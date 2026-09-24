@@ -7,7 +7,7 @@ namespace Jev.Net;
 [JsonDerivedType(typeof(NoulQuestion), "noul")]
 [JsonDerivedType(typeof(ChoiceQuestion), "choice")]
 [JsonDerivedType(typeof(ScoreQuestion), "score")]
-public abstract record JevQuestion
+public abstract class JevQuestion
 {
     private protected JevQuestion()
     {

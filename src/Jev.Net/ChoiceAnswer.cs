@@ -1,7 +1,7 @@
 namespace Jev.Net;
 
 /// <summary>The answer to a <see cref="ChoiceQuestion"/>.</summary>
-public sealed record ChoiceAnswer : JevAnswer
+public sealed class ChoiceAnswer : JevAnswer
 {
     /// <summary>Gets the highest-probability option.</summary>
     public required string Choice { get; init; }

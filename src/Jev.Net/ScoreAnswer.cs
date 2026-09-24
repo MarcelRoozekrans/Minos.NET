@@ -1,7 +1,7 @@
 namespace Jev.Net;
 
 /// <summary>The answer to a <see cref="ScoreQuestion"/>.</summary>
-public sealed record ScoreAnswer : JevAnswer
+public sealed class ScoreAnswer : JevAnswer
 {
     /// <summary>Gets the probability-weighted level; it can land between levels.</summary>
     public required double Score { get; init; }

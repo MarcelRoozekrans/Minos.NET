@@ -1,7 +1,7 @@
 namespace Jev.Net;
 
 /// <summary>A request to evaluate a state against a set of named, typed questions.</summary>
-public sealed record SystemOneRequest
+public sealed class SystemOneRequest
 {
     /// <summary>Gets the content to evaluate: text, or structured JSON such as records or a chat log.</summary>
     public required JevContent State { get; init; }

@@ -1,7 +1,7 @@
 namespace Jev.Net;
 
 /// <summary>Picks one option from a set you define.</summary>
-public sealed record ChoiceQuestion : JevQuestion
+public sealed class ChoiceQuestion : JevQuestion
 {
     /// <summary>
     /// Gets the options, each mapped to a description or <see langword="null"/> when it needs none.
