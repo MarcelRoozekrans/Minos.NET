@@ -1,0 +1,38 @@
+# Project Conventions
+
+> Written by `init-conventions`. Do not hand-edit — re-run the sub-skill instead; the Commit & Release Protocol reads these fields.
+
+**Established:** 2026-09-24
+
+## Stack
+
+**Language / runtime:** C#, .NET (net8.0, net10.0)
+**Package manager:** NuGet (dotnet CLI)
+**Framework:** none (class library; Microsoft.Extensions.* for DI/HTTP integration)
+**Datastore:** n/a
+
+## Commits
+
+**Format:** conventional (decided)
+**Scopes:** free
+**Scope source:** n/a
+**Fallback when scope not allowed:** omit scope
+
+## Branching
+
+**Model:** trunk
+**PR required:** no (no remote yet — re-run init-conventions once a GitHub remote exists)
+**Protected branches:** none
+
+## Versioning & Release
+
+**Scheme:** semver (decided)
+**Released by:** release-please (decided; to be configured)
+**Milestone completion tags a release:** no
+**Changelog:** auto
+
+## Deployment
+
+**Deploy target:** nuget.org (package id Jev.Net)
+**Environments:** none
+**Deployed by:** GitHub Actions (publish on release-please release)
