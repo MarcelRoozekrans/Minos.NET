@@ -10,11 +10,21 @@ internal sealed class JevContentConverter : JsonConverter<JevContent>
 {
     public override JevContent Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
     {
-        return reader.TokenType switch
+        if (reader.TokenType == JsonTokenType.String)
         {
-            JsonTokenType.String => JevContent.FromString(reader.GetString()!),
-            JsonTokenType.Null => throw new JsonException("Jev content cannot be null."),
-            _ => JevContent.FromJson(JsonElement.ParseValue(ref reader)),
+            return JevContent.FromString(reader.GetString()!);
+        }
+
+        if (reader.TokenType == JsonTokenType.Null)
+        {
+            throw new JsonException("Jev content cannot be null.");
+        }
+
+        var element = JsonElement.ParseValue(ref reader);
+        return element.ValueKind switch
+        {
+            JsonValueKind.Object or JsonValueKind.Array => JevContent.FromJson(element),
+            _ => throw new JsonException("Jev content must be a string, object or array."),
         };
     }
 

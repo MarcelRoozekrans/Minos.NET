@@ -130,6 +130,20 @@ public sealed class RequestSerializationTests
         Assert.IsType<JevJsonContext>(JevJson.Options.TypeInfoResolver);
     }
 
+    [Fact]
+    public void NullModel_Throws()
+    {
+        var request = new SystemOneRequest
+        {
+            State = State,
+            Model = null!,
+            Questions = new Dictionary<string, JevQuestion>(),
+        };
+
+        Assert.Throws<JsonException>(
+            () => JsonSerializer.SerializeToNode(request, JevJsonContext.Default.SystemOneRequest));
+    }
+
     private static void AssertSerializesTo(SystemOneRequest request, string fixture)
     {
         var actual = JsonSerializer.SerializeToNode(request, JevJsonContext.Default.SystemOneRequest);

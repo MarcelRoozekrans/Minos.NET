@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace Jev.Net;
 
 /// <summary>A request to evaluate a state against a set of named, typed questions.</summary>
@@ -7,6 +9,12 @@ public sealed class SystemOneRequest
     public required JevContent State { get; init; }
 
     /// <summary>Gets the model that handles the request. Defaults to <see cref="JevDefaults.Model"/>.</summary>
+    /// <remarks>
+    /// Never omitted from the request body even when <see langword="null"/>, so an
+    /// accidental <see langword="null"/> assignment is rejected as a <see cref="System.Text.Json.JsonException"/>
+    /// at serialization time instead of silently sending no model.
+    /// </remarks>
+    [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
     public string Model { get; init; } = JevDefaults.Model;
 
     /// <summary>Gets the questions, keyed by ids you choose; answers come back under the same ids.</summary>

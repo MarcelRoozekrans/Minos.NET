@@ -72,6 +72,45 @@ public sealed class ResponseSerializationTests
     }
 
     [Fact]
+    public void NullModel_Throws()
+    {
+        const string Json = """
+            {
+              "model": null,
+              "answers": {
+                "is_urgent": { "type": "noul", "noul": 0.95 }
+              },
+              "usage": { "input_tokens": 296, "output_tokens": 20 }
+            }
+            """;
+
+        Assert.Throws<JsonException>(
+            () => JsonSerializer.Deserialize(Json, JevJsonContext.Default.SystemOneResponse));
+    }
+
+    [Fact]
+    public void NullChoice_Throws()
+    {
+        const string Json = """
+            {
+              "model": "jev-1.13.0",
+              "answers": {
+                "department": {
+                  "type": "choice",
+                  "choice": null,
+                  "probabilities": { "billing": 0.88, "technical": 0.12, "sales": 0.0 },
+                  "confidence": 0.81
+                }
+              },
+              "usage": { "input_tokens": 318, "output_tokens": 34 }
+            }
+            """;
+
+        Assert.Throws<JsonException>(
+            () => JsonSerializer.Deserialize(Json, JevJsonContext.Default.SystemOneResponse));
+    }
+
+    [Fact]
     public void Models_Deserialize()
     {
         var list = JsonSerializer.Deserialize(Fixture.Text("models.json"), JevJsonContext.Default.ModelList);

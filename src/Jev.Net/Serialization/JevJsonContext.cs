@@ -6,7 +6,8 @@ namespace Jev.Net.Serialization;
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    AllowOutOfOrderMetadataProperties = true)]
+    AllowOutOfOrderMetadataProperties = true,
+    RespectNullableAnnotations = true)]
 [JsonSerializable(typeof(SystemOneRequest))]
 [JsonSerializable(typeof(SystemOneResponse))]
 [JsonSerializable(typeof(ModelList))]

@@ -57,6 +57,24 @@ public sealed class JevContentTests
     }
 
     [Fact]
+    public void FromJson_Number_Throws()
+    {
+        Assert.Throws<ArgumentException>(() => JevContent.FromJson(Json("42")));
+    }
+
+    [Fact]
+    public void FromJson_True_Throws()
+    {
+        Assert.Throws<ArgumentException>(() => JevContent.FromJson(Json("true")));
+    }
+
+    [Fact]
+    public void FromJson_False_Throws()
+    {
+        Assert.Throws<ArgumentException>(() => JevContent.FromJson(Json("false")));
+    }
+
+    [Fact]
     public void Equality_Text_IsOrdinal()
     {
         Assert.Equal(JevContent.FromString("a"), (JevContent)"a");
@@ -128,6 +146,18 @@ public sealed class JevContentTests
     public void Read_Null_Throws()
     {
         Assert.Throws<JsonException>(() => Read("null"));
+    }
+
+    [Fact]
+    public void Read_Number_Throws()
+    {
+        Assert.Throws<JsonException>(() => Read("42"));
+    }
+
+    [Fact]
+    public void Read_True_Throws()
+    {
+        Assert.Throws<JsonException>(() => Read("true"));
     }
 
     private static JsonElement Json(string json)

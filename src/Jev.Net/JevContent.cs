@@ -45,15 +45,17 @@ public readonly struct JevContent : IEquatable<JevContent>
     /// </summary>
     /// <param name="json">The JSON value.</param>
     /// <returns>The content.</returns>
-    /// <exception cref="ArgumentException"><paramref name="json"/> is undefined or JSON <c>null</c>.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="json"/> is not a string, object or array.
+    /// </exception>
     public static JevContent FromJson(JsonElement json)
     {
         return json.ValueKind switch
         {
             JsonValueKind.String => new JevContent(json.GetString()!),
-            JsonValueKind.Undefined or JsonValueKind.Null => throw new ArgumentException(
-                "Jev content cannot be created from an undefined or null JSON value.", nameof(json)),
-            _ => new JevContent(json.Clone()),
+            JsonValueKind.Object or JsonValueKind.Array => new JevContent(json.Clone()),
+            _ => throw new ArgumentException(
+                "Jev content must be a string, object or array.", nameof(json)),
         };
     }
 
