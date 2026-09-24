@@ -16,7 +16,7 @@ Deliver a working, Native AOT-clean `JevClient` for TypeSafe's Jev API covering 
 - [ ] release-please and GitVersion alpha publishing wired
 
 ## Phases
-1. Phase 1.1 — Repo scaffolding [active]
+1. Phase 1.1 — Repo scaffolding [complete]
 2. Phase 1.2 — Wire model [pending]
 3. Phase 1.3 — Transport [pending]
 4. Phase 1.4 — Error model [pending]

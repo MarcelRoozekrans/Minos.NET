@@ -17,11 +17,12 @@ compress_memory: disabled
 - [ ] BenchmarkDotNet baseline and `AllocationGate` budgets committed
 - [ ] release-please and GitVersion alpha publishing wired
 
-### Phase 1.1: Repo scaffolding [status: active]
+### Phase 1.1: Repo scaffolding [status: complete]
 **Goal:** Solution skeleton following AdoNet.Async standards: `.slnx`, `Directory.Build.props`, analyzers, `.editorconfig`, commitlint, Renovate, logo placeholder.
 **Surface:** Infra
 **HelpWanted:** no
 **Plan:** `docs/superpowers/plans/2026-09-24-phase-1.1-repo-scaffolding.md`
+**Completed:** 2026-09-24
 
 ### Phase 1.2: Wire model [status: pending]
 **Goal:** Request/response types mirroring the HTTP API, serialised via System.Text.Json source generation / ZeroAlloc.Serialisation.
