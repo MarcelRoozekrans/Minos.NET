@@ -32,6 +32,7 @@ rules:
       - state
       - sync
       - milestone
+      - main
 
   subject-case:
     - 2
