@@ -144,6 +144,76 @@ public sealed class RequestSerializationTests
             () => JsonSerializer.SerializeToNode(request, JevJsonContext.Default.SystemOneRequest));
     }
 
+    [Fact]
+    public void KeysWithCapitals_AreWrittenUnchanged()
+    {
+        var request = new SystemOneRequest
+        {
+            State = State,
+            Questions = new Dictionary<string, JevQuestion>
+            {
+                ["IsUrgent"] = new ChoiceQuestion
+                {
+                    Instructions = "Which team should handle this?",
+                    Criteria = new Dictionary<string, JevContent?> { ["Billing"] = "Payments and invoicing" },
+                },
+            },
+        };
+
+        AssertSerializesToJson(request, """
+            {
+              "state": "Help! My payouts have been failing for 3 days.",
+              "model": "jev-latest",
+              "questions": {
+                "IsUrgent": {
+                  "type": "choice",
+                  "instructions": "Which team should handle this?",
+                  "criteria": { "Billing": "Payments and invoicing" }
+                }
+              }
+            }
+            """);
+    }
+
+    [Fact]
+    public void NoulCriteria_WithOnlyWhenTrue_OmitsFalseKey()
+    {
+        var request = new SystemOneRequest
+        {
+            State = State,
+            Questions = new Dictionary<string, JevQuestion>
+            {
+                ["is_urgent"] = new NoulQuestion
+                {
+                    Instructions = "Does this convey urgency?",
+                    Criteria = new NoulCriteria { WhenTrue = "Explicitly time-sensitive" },
+                },
+            },
+        };
+
+        AssertSerializesToJson(request, """
+            {
+              "state": "Help! My payouts have been failing for 3 days.",
+              "model": "jev-latest",
+              "questions": {
+                "is_urgent": {
+                  "type": "noul",
+                  "instructions": "Does this convey urgency?",
+                  "criteria": { "true": "Explicitly time-sensitive" }
+                }
+              }
+            }
+            """);
+    }
+
+    [Fact]
+    public void TypeInfoResolver_ResolvesAllTopLevelTypes()
+    {
+        Assert.NotNull(JevJson.Options.GetTypeInfo(typeof(SystemOneRequest)));
+        Assert.NotNull(JevJson.Options.GetTypeInfo(typeof(SystemOneResponse)));
+        Assert.NotNull(JevJson.Options.GetTypeInfo(typeof(ModelList)));
+    }
+
     private static void AssertSerializesTo(SystemOneRequest request, string fixture)
     {
         var actual = JsonSerializer.SerializeToNode(request, JevJsonContext.Default.SystemOneRequest);
@@ -152,6 +222,16 @@ public sealed class RequestSerializationTests
         Assert.True(
             JsonNode.DeepEquals(expected, actual),
             $"Expected {expected.ToJsonString()} but got {actual?.ToJsonString()}");
+    }
+
+    private static void AssertSerializesToJson(SystemOneRequest request, string expectedJson)
+    {
+        var actual = JsonSerializer.SerializeToNode(request, JevJsonContext.Default.SystemOneRequest);
+        var expected = JsonNode.Parse(expectedJson);
+
+        Assert.True(
+            JsonNode.DeepEquals(expected, actual),
+            $"Expected {expected?.ToJsonString()} but got {actual?.ToJsonString()}");
     }
 
     private static JsonElement Json(string json)

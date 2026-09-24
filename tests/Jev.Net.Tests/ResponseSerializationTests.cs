@@ -40,9 +40,12 @@ public sealed class ResponseSerializationTests
 
         var answer = Assert.IsType<ScoreAnswer>(response.Answers["frustration"]);
         Assert.Equal(1.05, answer.Score);
+        Assert.Equal(3, answer.Legend.Count);
         Assert.Equal("Calm", answer.Legend["0"]);
         Assert.Equal("Frustrated", answer.Legend["1"]);
         Assert.Equal("Very angry", answer.Legend["2"]);
+        Assert.Equal(3, answer.Probabilities.Count);
+        Assert.Equal(0.0, answer.Probabilities["0"]);
         Assert.Equal(0.95, answer.Probabilities["1"]);
         Assert.Equal(0.05, answer.Probabilities["2"]);
         Assert.Equal(0.92, answer.Confidence);
