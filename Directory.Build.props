@@ -16,6 +16,8 @@
     <WarningsAsErrors>$(WarningsAsErrors);RS0016;RS0017</WarningsAsErrors>
     <!-- Only audit direct dependencies; transitive vulnerability warnings are owned by upstream packages -->
     <NuGetAuditMode>direct</NuGetAuditMode>
+    <!-- Placeholder version; CI overrides it via GitVersion / release-please (-p:Version=) -->
+    <Version>0.0.0-local</Version>
   </PropertyGroup>
 
   <!-- NuGet metadata -->
@@ -30,9 +32,8 @@
     <PackageTags>jev;typesafe;ai;system-one;client;sdk;aot;native-aot;zero-allocation</PackageTags>
   </PropertyGroup>
 
-  <!-- Disable packing for test and benchmark projects -->
-  <PropertyGroup Condition="$(MSBuildProjectName.Contains('.Tests')) Or
-                            $(MSBuildProjectName.Contains('.Benchmarks'))">
+  <!-- Packing is opt-in; library projects set IsPackable=true in their own csproj -->
+  <PropertyGroup>
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 

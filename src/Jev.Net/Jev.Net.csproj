@@ -6,6 +6,8 @@
     <Description>Unofficial .NET client for TypeSafe AI's Jev System One model. Source-generated, Native AOT-compatible and allocation-conscious. Not affiliated with or endorsed by TypeSafe AI.</Description>
     <!-- Zero runtime reflection by design; enables IsTrimmable and the IL2026/IL3050 analyzers. -->
     <IsAotCompatible>true</IsAotCompatible>
+    <IsPackable>true</IsPackable>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
   <ItemGroup>
