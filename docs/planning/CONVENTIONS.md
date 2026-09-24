@@ -14,8 +14,8 @@
 ## Commits
 
 **Format:** conventional (decided)
-**Scopes:** free
-**Scope source:** n/a
+**Scopes:** enforced
+**Scope source:** .commitlintrc.yml
 **Fallback when scope not allowed:** omit scope
 
 ## Branching
