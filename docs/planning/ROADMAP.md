@@ -24,11 +24,11 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-09-24-phase-1.1-repo-scaffolding.md`
 **Completed:** 2026-09-24
 
-### Phase 1.2: Wire model [status: pending]
+### Phase 1.2: Wire model [status: active]
 **Goal:** Request/response types mirroring the HTTP API, serialised via System.Text.Json source generation / ZeroAlloc.Serialisation.
 **Surface:** Backend
 **HelpWanted:** no
-**Plan:** _to be written_
+**Plan:** `docs/superpowers/plans/2026-09-24-phase-1.2-wire-model.md`
 
 ### Phase 1.3: Transport [status: pending]
 **Goal:** ZeroAlloc.Rest interface for `/v1/systemone` and `/v1/models` with Bearer auth and `TYPESAFE_API_KEY` resolution.
