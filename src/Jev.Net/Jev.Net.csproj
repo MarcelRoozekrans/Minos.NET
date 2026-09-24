@@ -15,4 +15,8 @@
     <AdditionalFiles Include="PublicAPI.Shipped.txt" />
     <AdditionalFiles Include="PublicAPI.Unshipped.txt" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Jev.Net.Tests" />
+  </ItemGroup>
 </Project>

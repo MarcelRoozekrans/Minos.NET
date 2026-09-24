@@ -1,5 +1,19 @@
 #nullable enable
 const Jev.Net.JevDefaults.ApiKeyEnvironmentVariable = "TYPESAFE_API_KEY" -> string!
 const Jev.Net.JevDefaults.Model = "jev-latest" -> string!
+Jev.Net.JevContent
+Jev.Net.JevContent.Equals(Jev.Net.JevContent other) -> bool
+Jev.Net.JevContent.JevContent() -> void
+Jev.Net.JevContent.IsString.get -> bool
+Jev.Net.JevContent.TryGetJson(out System.Text.Json.JsonElement json) -> bool
+Jev.Net.JevContent.TryGetString(out string? text) -> bool
 Jev.Net.JevDefaults
+override Jev.Net.JevContent.Equals(object? obj) -> bool
+override Jev.Net.JevContent.GetHashCode() -> int
+override Jev.Net.JevContent.ToString() -> string!
+static Jev.Net.JevContent.FromJson(System.Text.Json.JsonElement json) -> Jev.Net.JevContent
+static Jev.Net.JevContent.FromString(string! text) -> Jev.Net.JevContent
+static Jev.Net.JevContent.implicit operator Jev.Net.JevContent(string! text) -> Jev.Net.JevContent
+static Jev.Net.JevContent.operator !=(Jev.Net.JevContent left, Jev.Net.JevContent right) -> bool
+static Jev.Net.JevContent.operator ==(Jev.Net.JevContent left, Jev.Net.JevContent right) -> bool
 static Jev.Net.JevDefaults.BaseAddress.get -> System.Uri!
