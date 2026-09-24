@@ -1,0 +1,10 @@
+{
+  "model": "jev-1.13.0",
+  "answers": {
+    "q": {
+      "type": "ranking",
+      "ranking": ["a", "b"]
+    }
+  },
+  "usage": { "input_tokens": 1, "output_tokens": 1 }
+}

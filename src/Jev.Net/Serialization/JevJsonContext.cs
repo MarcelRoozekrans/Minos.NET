@@ -8,4 +8,6 @@ namespace Jev.Net.Serialization;
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
     AllowOutOfOrderMetadataProperties = true)]
 [JsonSerializable(typeof(SystemOneRequest))]
+[JsonSerializable(typeof(SystemOneResponse))]
+[JsonSerializable(typeof(ModelList))]
 internal sealed partial class JevJsonContext : JsonSerializerContext;
