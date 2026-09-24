@@ -32,7 +32,7 @@ compress_memory: disabled
 **Completed:** 2026-09-24
 
 ### Phase 1.3: Transport [status: pending]
-**Goal:** ZeroAlloc.Rest interface for `/v1/systemone` and `/v1/models` with Bearer auth and `TYPESAFE_API_KEY` resolution.
+**Goal:** ZeroAlloc.Rest interface for `/v1/systemone` and `/v1/models` with Bearer auth, `TYPESAFE_API_KEY` resolution, and a configurable base address (`TYPESAFE_BASE_URL`) supporting both TypeSafe direct and OpenRouter (`https://openrouter.ai/api`) as first-class providers.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
@@ -50,7 +50,7 @@ compress_memory: disabled
 **Plan:** _to be written_
 
 ### Phase 1.6: Test harness [status: pending]
-**Goal:** Unit tests, WireMock.Net component tests, and a live smoke suite skipped when no API key is present.
+**Goal:** Unit tests, WireMock.Net component tests, and a live smoke suite skipped when no API key is present — covering both TypeSafe direct and OpenRouter.
 **Surface:** Infra
 **HelpWanted:** no
 **Plan:** _to be written_

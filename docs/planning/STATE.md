@@ -11,6 +11,7 @@
 ## Open Decisions
 - Phase 1.3/1.4: whether to wrap ZeroAlloc.Rest's throwing paths ourselves or wait for ZeroAlloc.Rest #298 (error body), #299 (Result methods throw), #300 (custom error type), #301 (interface-level serializer ignored).
 - Phase 1.5: hand-written retry loop vs ZeroAlloc.Resilience once #141 (CS0308 on Result), #142 (retry on returned failures), #143 (Retry-After), #145 (public DI extension) are fixed.
+- Phase 1.3: OpenRouter is a first-class provider (decided 2026-09-24) — configurable base URL + `TYPESAFE_BASE_URL`, optional `Id`/`Provider`/`Usage.Cost` fields, and how `ListModelsAsync` behaves on OpenRouter (its `/api/v1/models` has a different shape). Details in the phase 1.2 plan follow-ups.
 - GitHub remote owner (personal vs ZeroAlloc-Net org) — needed before phase 1.7; re-run `init-conventions` once the remote exists.
 
 ## Blockers
