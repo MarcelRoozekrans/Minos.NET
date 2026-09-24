@@ -6,9 +6,9 @@
 
 ## Stack
 
-**Language / runtime:** C#, .NET (net8.0, net10.0)
+**Language / runtime:** C#, .NET 10 (net10.0 only — ZeroAlloc.Rest requires it)
 **Package manager:** NuGet (dotnet CLI)
-**Framework:** none (class library; Microsoft.Extensions.* for DI/HTTP integration)
+**Framework:** ZeroAlloc.* (Rest, Resilience, Results, Telemetry, Validation, Inject)
 **Datastore:** n/a
 
 ## Commits
@@ -33,6 +33,6 @@
 
 ## Deployment
 
-**Deploy target:** nuget.org (package id Jev.Net)
-**Environments:** none
-**Deployed by:** GitHub Actions (publish on release-please release)
+**Deploy target:** nuget.org (package id Jev.Net), GitHub Pages (docs site)
+**Environments:** github-pages
+**Deployed by:** GitHub Actions (release-please publish, GitVersion alpha pushes from main, Pages deploy)
