@@ -1,0 +1,5 @@
+#nullable enable
+const Jev.Net.JevDefaults.ApiKeyEnvironmentVariable = "TYPESAFE_API_KEY" -> string!
+const Jev.Net.JevDefaults.Model = "jev-latest" -> string!
+Jev.Net.JevDefaults
+static Jev.Net.JevDefaults.BaseAddress.get -> System.Uri!

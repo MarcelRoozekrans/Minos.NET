@@ -1,0 +1,56 @@
+<Project>
+  <!-- Build settings shared by all projects -->
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <AnalysisLevel>latest-recommended</AnalysisLevel>
+    <!--
+      Public API surface lock: RS0016 (missing entry) / RS0017 (extra entry) are
+      errors even if TreatWarningsAsErrors is locally disabled, so the public API
+      tracking files can never silently drift out of sync with the codebase.
+    -->
+    <WarningsAsErrors>$(WarningsAsErrors);RS0016;RS0017</WarningsAsErrors>
+    <!-- Only audit direct dependencies; transitive vulnerability warnings are owned by upstream packages -->
+    <NuGetAuditMode>direct</NuGetAuditMode>
+  </PropertyGroup>
+
+  <!-- NuGet metadata -->
+  <PropertyGroup>
+    <Authors>Marcel Roozekrans</Authors>
+    <Company>Marcel Roozekrans</Company>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Copyright>Copyright © Marcel Roozekrans</Copyright>
+    <PackageTags>jev;typesafe;ai;system-one;client;sdk;aot;native-aot;zero-allocation</PackageTags>
+  </PropertyGroup>
+
+  <!-- Disable packing for test and benchmark projects -->
+  <PropertyGroup Condition="$(MSBuildProjectName.Contains('.Tests')) Or
+                            $(MSBuildProjectName.Contains('.Benchmarks'))">
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <!-- Pack root README and icon into every NuGet package -->
+  <ItemGroup Condition="'$(IsPackable)' != 'false'">
+    <None Include="$(MSBuildThisFileDirectory)README.md"
+          Pack="true" PackagePath="" Visible="false" />
+    <None Include="$(MSBuildThisFileDirectory)assets\icon.png"
+          Pack="true" PackagePath="" Visible="false" />
+  </ItemGroup>
+
+  <!-- Global analyzers (PrivateAssets=all — do not flow to consumers) -->
+  <ItemGroup Condition="'$(IsRoslynComponent)' != 'true'">
+    <PackageReference Include="Meziantou.Analyzer" PrivateAssets="all" />
+    <PackageReference Include="Roslynator.Analyzers" PrivateAssets="all" />
+    <PackageReference Include="ErrorProne.NET.CoreAnalyzers" PrivateAssets="all" />
+    <PackageReference Include="ErrorProne.NET.Structs" PrivateAssets="all" />
+    <PackageReference Include="NetFabric.Hyperlinq.Analyzer" PrivateAssets="all" />
+    <PackageReference Include="ZeroAlloc.Analyzers" PrivateAssets="all" />
+  </ItemGroup>
+</Project>
