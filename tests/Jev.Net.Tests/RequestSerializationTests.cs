@@ -1,0 +1,148 @@
+using System.Text.Json;
+using System.Text.Json.Nodes;
+using Jev.Net.Serialization;
+
+namespace Jev.Net.Tests;
+
+public sealed class RequestSerializationTests
+{
+    private const string State = "Help! My payouts have been failing for 3 days.";
+
+    [Fact]
+    public void Noul_WithoutCriteria_OmitsCriteria()
+    {
+        var request = new SystemOneRequest
+        {
+            State = State,
+            Questions = new Dictionary<string, JevQuestion>
+            {
+                ["is_urgent"] = new NoulQuestion { Instructions = "Does this convey urgency?" },
+            },
+        };
+
+        AssertSerializesTo(request, "request-noul-minimal.json");
+    }
+
+    [Fact]
+    public void Noul_WithCriteria_WritesTrueAndFalse()
+    {
+        var request = new SystemOneRequest
+        {
+            State = State,
+            Questions = new Dictionary<string, JevQuestion>
+            {
+                ["is_urgent"] = new NoulQuestion
+                {
+                    Instructions = "Does this convey urgency?",
+                    Criteria = new NoulCriteria
+                    {
+                        WhenTrue = "Explicitly time-sensitive",
+                        WhenFalse = "No urgency expressed",
+                    },
+                },
+            },
+        };
+
+        AssertSerializesTo(request, "request-noul.json");
+    }
+
+    [Fact]
+    public void Choice_WritesNullOptionDescriptions()
+    {
+        var request = new SystemOneRequest
+        {
+            State = State,
+            Questions = new Dictionary<string, JevQuestion>
+            {
+                ["department"] = new ChoiceQuestion
+                {
+                    Instructions = "Which team should handle this?",
+                    Criteria = new Dictionary<string, JevContent?>
+                    {
+                        ["billing"] = "Payments, invoicing, refunds",
+                        ["technical"] = "Bugs, outages, integrations",
+                        ["sales"] = "Pricing, upgrades, new accounts",
+                        ["other"] = null,
+                    },
+                },
+            },
+        };
+
+        AssertSerializesTo(request, "request-choice.json");
+    }
+
+    [Fact]
+    public void Score_WritesOrderedLevels()
+    {
+        var request = new SystemOneRequest
+        {
+            State = State,
+            Questions = new Dictionary<string, JevQuestion>
+            {
+                ["frustration"] = new ScoreQuestion
+                {
+                    Instructions = "How frustrated is the customer?",
+                    Criteria = ["Calm", "Frustrated", "Very angry"],
+                },
+            },
+        };
+
+        AssertSerializesTo(request, "request-score.json");
+    }
+
+    [Fact]
+    public void StructuredStateAndInstructions_AndPinnedModel_AreWrittenVerbatim()
+    {
+        var request = new SystemOneRequest
+        {
+            State = JevContent.FromJson(Json("""
+                {"resume":{"name":"John Smith","location":"Oakland, CA","last_employer":"Google"}}
+                """)),
+            Model = "jev-1.13.0",
+            Questions = new Dictionary<string, JevQuestion>
+            {
+                ["is_duplicate"] = new NoulQuestion
+                {
+                    Instructions = JevContent.FromJson(Json("""
+                        {
+                          "potential_duplicate": {"name":"John Smith","location":"Oakland, California","last_employer":"Google"},
+                          "question": "Is the resume for the same person as `potential_duplicate`?"
+                        }
+                        """)),
+                },
+            },
+        };
+
+        AssertSerializesTo(request, "request-structured.json");
+    }
+
+    [Fact]
+    public void Model_DefaultsToJevLatest()
+    {
+        var request = new SystemOneRequest { State = State, Questions = new Dictionary<string, JevQuestion>() };
+
+        Assert.Equal(JevDefaults.Model, request.Model);
+    }
+
+    [Fact]
+    public void JevJsonOptions_UseTheSourceGeneratedContext()
+    {
+        Assert.IsType<JevJsonContext>(JevJson.Options.TypeInfoResolver);
+    }
+
+    private static void AssertSerializesTo(SystemOneRequest request, string fixture)
+    {
+        var actual = JsonSerializer.SerializeToNode(request, JevJsonContext.Default.SystemOneRequest);
+        var expected = Fixture.Load(fixture);
+
+        Assert.True(
+            JsonNode.DeepEquals(expected, actual),
+            $"Expected {expected.ToJsonString()} but got {actual?.ToJsonString()}");
+    }
+
+    private static JsonElement Json(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        return document.RootElement.Clone();
+    }
+}

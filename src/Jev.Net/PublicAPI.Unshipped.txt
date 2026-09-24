@@ -1,19 +1,96 @@
 #nullable enable
-const Jev.Net.JevDefaults.ApiKeyEnvironmentVariable = "TYPESAFE_API_KEY" -> string!
-const Jev.Net.JevDefaults.Model = "jev-latest" -> string!
+Jev.Net.ChoiceQuestion
+Jev.Net.ChoiceQuestion.ChoiceQuestion() -> void
+Jev.Net.ChoiceQuestion.Criteria.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Jev.Net.JevContent?>!
+Jev.Net.ChoiceQuestion.Criteria.init -> void
+Jev.Net.ChoiceQuestion.Equals(Jev.Net.ChoiceQuestion? other) -> bool
 Jev.Net.JevContent
 Jev.Net.JevContent.Equals(Jev.Net.JevContent other) -> bool
-Jev.Net.JevContent.JevContent() -> void
 Jev.Net.JevContent.IsString.get -> bool
+Jev.Net.JevContent.JevContent() -> void
 Jev.Net.JevContent.TryGetJson(out System.Text.Json.JsonElement json) -> bool
 Jev.Net.JevContent.TryGetString(out string? text) -> bool
 Jev.Net.JevDefaults
+Jev.Net.JevQuestion
+Jev.Net.JevQuestion.Instructions.get -> Jev.Net.JevContent
+Jev.Net.JevQuestion.Instructions.init -> void
+Jev.Net.JevQuestion.JevQuestion(Jev.Net.JevQuestion! original) -> void
+Jev.Net.NoulCriteria
+Jev.Net.NoulCriteria.<Clone>$() -> Jev.Net.NoulCriteria!
+Jev.Net.NoulCriteria.Equals(Jev.Net.NoulCriteria? other) -> bool
+Jev.Net.NoulCriteria.NoulCriteria() -> void
+Jev.Net.NoulCriteria.WhenFalse.get -> Jev.Net.JevContent?
+Jev.Net.NoulCriteria.WhenFalse.init -> void
+Jev.Net.NoulCriteria.WhenTrue.get -> Jev.Net.JevContent?
+Jev.Net.NoulCriteria.WhenTrue.init -> void
+Jev.Net.NoulQuestion
+Jev.Net.NoulQuestion.Criteria.get -> Jev.Net.NoulCriteria?
+Jev.Net.NoulQuestion.Criteria.init -> void
+Jev.Net.NoulQuestion.Equals(Jev.Net.NoulQuestion? other) -> bool
+Jev.Net.NoulQuestion.NoulQuestion() -> void
+Jev.Net.ScoreQuestion
+Jev.Net.ScoreQuestion.Criteria.get -> System.Collections.Generic.IReadOnlyList<Jev.Net.JevContent>!
+Jev.Net.ScoreQuestion.Criteria.init -> void
+Jev.Net.ScoreQuestion.Equals(Jev.Net.ScoreQuestion? other) -> bool
+Jev.Net.ScoreQuestion.ScoreQuestion() -> void
+Jev.Net.SystemOneRequest
+Jev.Net.SystemOneRequest.<Clone>$() -> Jev.Net.SystemOneRequest!
+Jev.Net.SystemOneRequest.Equals(Jev.Net.SystemOneRequest? other) -> bool
+Jev.Net.SystemOneRequest.Model.get -> string!
+Jev.Net.SystemOneRequest.Model.init -> void
+Jev.Net.SystemOneRequest.Questions.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Jev.Net.JevQuestion!>!
+Jev.Net.SystemOneRequest.Questions.init -> void
+Jev.Net.SystemOneRequest.State.get -> Jev.Net.JevContent
+Jev.Net.SystemOneRequest.State.init -> void
+Jev.Net.SystemOneRequest.SystemOneRequest() -> void
+abstract Jev.Net.JevQuestion.<Clone>$() -> Jev.Net.JevQuestion!
+const Jev.Net.JevDefaults.ApiKeyEnvironmentVariable = "TYPESAFE_API_KEY" -> string!
+const Jev.Net.JevDefaults.Model = "jev-latest" -> string!
+override Jev.Net.ChoiceQuestion.<Clone>$() -> Jev.Net.ChoiceQuestion!
+override Jev.Net.ChoiceQuestion.Equals(object? obj) -> bool
+override Jev.Net.ChoiceQuestion.GetHashCode() -> int
+override Jev.Net.ChoiceQuestion.ToString() -> string!
 override Jev.Net.JevContent.Equals(object? obj) -> bool
 override Jev.Net.JevContent.GetHashCode() -> int
 override Jev.Net.JevContent.ToString() -> string!
+override Jev.Net.JevQuestion.Equals(object? obj) -> bool
+override Jev.Net.JevQuestion.GetHashCode() -> int
+override Jev.Net.JevQuestion.ToString() -> string!
+override Jev.Net.NoulCriteria.Equals(object? obj) -> bool
+override Jev.Net.NoulCriteria.GetHashCode() -> int
+override Jev.Net.NoulCriteria.ToString() -> string!
+override Jev.Net.NoulQuestion.<Clone>$() -> Jev.Net.NoulQuestion!
+override Jev.Net.NoulQuestion.Equals(object? obj) -> bool
+override Jev.Net.NoulQuestion.GetHashCode() -> int
+override Jev.Net.NoulQuestion.ToString() -> string!
+override Jev.Net.ScoreQuestion.<Clone>$() -> Jev.Net.ScoreQuestion!
+override Jev.Net.ScoreQuestion.Equals(object? obj) -> bool
+override Jev.Net.ScoreQuestion.GetHashCode() -> int
+override Jev.Net.ScoreQuestion.ToString() -> string!
+override Jev.Net.SystemOneRequest.Equals(object? obj) -> bool
+override Jev.Net.SystemOneRequest.GetHashCode() -> int
+override Jev.Net.SystemOneRequest.ToString() -> string!
+override sealed Jev.Net.ChoiceQuestion.Equals(Jev.Net.JevQuestion? other) -> bool
+override sealed Jev.Net.NoulQuestion.Equals(Jev.Net.JevQuestion? other) -> bool
+override sealed Jev.Net.ScoreQuestion.Equals(Jev.Net.JevQuestion? other) -> bool
+static Jev.Net.ChoiceQuestion.operator !=(Jev.Net.ChoiceQuestion? left, Jev.Net.ChoiceQuestion? right) -> bool
+static Jev.Net.ChoiceQuestion.operator ==(Jev.Net.ChoiceQuestion? left, Jev.Net.ChoiceQuestion? right) -> bool
 static Jev.Net.JevContent.FromJson(System.Text.Json.JsonElement json) -> Jev.Net.JevContent
 static Jev.Net.JevContent.FromString(string! text) -> Jev.Net.JevContent
 static Jev.Net.JevContent.implicit operator Jev.Net.JevContent(string! text) -> Jev.Net.JevContent
 static Jev.Net.JevContent.operator !=(Jev.Net.JevContent left, Jev.Net.JevContent right) -> bool
 static Jev.Net.JevContent.operator ==(Jev.Net.JevContent left, Jev.Net.JevContent right) -> bool
 static Jev.Net.JevDefaults.BaseAddress.get -> System.Uri!
+static Jev.Net.JevQuestion.operator !=(Jev.Net.JevQuestion? left, Jev.Net.JevQuestion? right) -> bool
+static Jev.Net.JevQuestion.operator ==(Jev.Net.JevQuestion? left, Jev.Net.JevQuestion? right) -> bool
+static Jev.Net.NoulCriteria.operator !=(Jev.Net.NoulCriteria? left, Jev.Net.NoulCriteria? right) -> bool
+static Jev.Net.NoulCriteria.operator ==(Jev.Net.NoulCriteria? left, Jev.Net.NoulCriteria? right) -> bool
+static Jev.Net.NoulQuestion.operator !=(Jev.Net.NoulQuestion? left, Jev.Net.NoulQuestion? right) -> bool
+static Jev.Net.NoulQuestion.operator ==(Jev.Net.NoulQuestion? left, Jev.Net.NoulQuestion? right) -> bool
+static Jev.Net.ScoreQuestion.operator !=(Jev.Net.ScoreQuestion? left, Jev.Net.ScoreQuestion? right) -> bool
+static Jev.Net.ScoreQuestion.operator ==(Jev.Net.ScoreQuestion? left, Jev.Net.ScoreQuestion? right) -> bool
+static Jev.Net.SystemOneRequest.operator !=(Jev.Net.SystemOneRequest? left, Jev.Net.SystemOneRequest? right) -> bool
+static Jev.Net.SystemOneRequest.operator ==(Jev.Net.SystemOneRequest? left, Jev.Net.SystemOneRequest? right) -> bool
+virtual Jev.Net.JevQuestion.EqualityContract.get -> System.Type!
+virtual Jev.Net.JevQuestion.Equals(Jev.Net.JevQuestion? other) -> bool
+virtual Jev.Net.JevQuestion.PrintMembers(System.Text.StringBuilder! builder) -> bool
