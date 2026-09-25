@@ -15,30 +15,28 @@ public partial record TicketTriage
     [Noul("Does `message` ask the recipient to disclose a sensitive credential?",
           True = "Asks for a password, API key, or MFA code",
           False = "No credential is requested")]
-    public partial NoulAnswer RequestsCredentials { get; }
+    public partial Noul RequestsCredentials { get; }
 
     [Choice("Which team should handle `message`?")]
-    public partial ChoiceAnswer<Team> Team { get; }
+    public partial Choice<Team> Team { get; }
 
     [Score("How urgent is `message`?")]
-    public partial ScoreAnswer<Urgency> Urgency { get; }
+    public partial Score<Urgency> Urgency { get; }
 }
 
 public enum Team
 {
-    [Criteria("Charges, invoices, refunds", NotFor = "Login or access problems",
-              Examples = ["I was charged twice", "Where is my invoice?"])]
-    Billing,
+    [Criteria("Charges, invoices, refunds")] Billing,
     [Criteria("Login, profile, permissions, or security")] Account,
-    [NoneOfTheAbove("No listed team fits")] Other,
+    [Criteria("No listed team fits")] Other,
 }
 
 public enum Urgency { [Level("Can wait")] Low, [Level("This week")] Medium, [Level("Today")] High }
 ```
 
-The generator implements `IJevQuestionSet<TSelf>` on each `[JevQuestions]` type: a static `QuestionsUtf8` u8 literal holding the complete `questions` object, and a static `Parse(ref Utf8JsonReader)` that fills the partial properties. Answer names shown above (`NoulAnswer`, `ChoiceAnswer<T>`, …) are illustrative — see Deferred to phase brainstorms.
+The generator implements `IJevQuestionSet<TSelf>` on each `[JevQuestions]` type: a static `QuestionsUtf8` u8 literal holding the complete `questions` object, and a static `Parse(ref Utf8JsonReader)` that fills the partial properties. Typed answer names are `Noul`, `Choice<T>` and `Score<T>` (settled in the Phase 1.3 brainstorm).
 
-Planned diagnostics: JEV001 Choice enum empty or over the option limit; JEV002 Score enum outside 2–10 levels; JEV003 empty instructions; JEV004 instructions reference a field absent from the declared state type; JEV005 snake_case wire-key collision; JEV006 more than one `[NoneOfTheAbove]`. Code fix: generate `[Criteria]` stubs for bare enum members.
+Planned diagnostics: JEV001 Choice enum empty or over the option limit; JEV002 Score enum outside 2–10 levels; JEV003 empty instructions; JEV004 instructions reference a field absent from the declared state type; Wire-key collisions (the sketch's JEV005) became a Phase 1.3 generator error, since duplicate keys make the emitted JSON invalid. The sketch's `[NoneOfTheAbove]` and JEV006 were dropped in the Phase 1.3 brainstorm: the API has no such concept, so a catch-all is an ordinary option with a description. Code fix: generate `[Criteria]` stubs for bare enum members.
 
 ## Decisions
 
@@ -53,7 +51,7 @@ Planned diagnostics: JEV001 Choice enum empty or over the option limit; JEV002 S
 ### Milestone 1 — insert Phase 1.3, renumber the rest
 
 **New Phase 1.3: Question generator core** — `Surface: Backend`
-Incremental `[JevQuestions]` source generator with its attribute and runtime types (`[Noul]`, `[Choice]`, `[Score]`, `[Criteria]`, `[Level]`, `[NoneOfTheAbove]`, `IJevQuestionSet<TSelf>`, typed answer types), emitting `QuestionsUtf8` and a `Utf8JsonReader` answer parser. Emitted JSON is verified against the Phase 1.2 wire model and fixtures, with generator snapshot tests. No transport, no `EvaluateAsync`, no analyzers.
+Incremental `[JevQuestions]` source generator with its attribute and runtime types (`[Noul]`, `[Choice]`, `[Score]`, `[Criteria]`, `[Level]`, `IJevQuestionSet<TSelf>`, typed answer types), emitting `QuestionsUtf8` and a `Utf8JsonReader` answer parser. Emitted JSON is verified against the Phase 1.2 wire model and fixtures, with generator snapshot tests. No transport, no `EvaluateAsync`, no analyzers.
 
 Renumbered: 1.4 Transport, 1.5 Error model, 1.6 Resilience, 1.7 Test harness, 1.8 CI and release pipeline. Phase 1.8 additionally verifies the packed nupkg contains the generator under `analyzers/dotnet/cs`.
 
@@ -64,14 +62,14 @@ Added to the M1 Definition of Done: *`[JevQuestions]` generator emits question J
 | Phase | Goal | Surface | Replaces |
 |---|---|---|---|
 | 2.1 Typed evaluation | `EvaluateAsync<T>` returning `Result<T, JevError>`; typed state via `State = typeof(...)` + `JsonTypeInfo`; raw `JsonElement` / string / UTF-8 overloads | Backend | old 2.2 |
-| 2.2 Analyzers and code fixes | JEV001–JEV006 including the JEV004 state-field check, and the `[Criteria]`-stub code fix | Backend | most of old 2.4 |
-| 2.3 Structured instructions and criteria | `Examples` / `NotFor` in attributes, object/array instructions, `state` helpers | Backend | old 2.3 |
+| 2.2 Analyzers and code fixes | JEV001–JEV004 including the JEV004 state-field check, and the `[Criteria]`-stub code fix | Backend | most of old 2.4 |
+| 2.3 Structured instructions and criteria | `Examples` / `NotFor` in attributes (a Jev.Net convention sent as a criterion object — not an API field), object/array instructions, `state` helpers | Backend | old 2.3 |
 | 2.4 Fluent question builders | Runtime-defined questions sharing the typed answer types; runtime API-limit validation via ZeroAlloc.Validation (analyzers cannot see these) | Backend | old 2.1 + rest of old 2.4 |
 | 2.5 Typed-layer performance | Allocation budgets and benchmarks for the generated parser and the builders | Backend | old 2.5 |
 
 Milestone 2 Definition of Done:
 - `[JevQuestions]` types evaluate end-to-end through `EvaluateAsync<T>` → `Result<T, JevError>`, with no reflection
-- API limits enforced at compile time for generated question sets (JEV001–JEV006) and at runtime for builder-defined questions
+- API limits enforced at compile time for generated question sets (JEV001–JEV004, plus the generator's own key-collision error) and at runtime for builder-defined questions
 - Fluent builders cover all three question types including structured criteria
 - Typed layer stays within allocation budgets and the AOT smoke stays clean
 
@@ -84,7 +82,7 @@ Milestone 2 Definition of Done:
 
 ## Deferred to phase brainstorms
 
-Resolved in the Phase 1.3 (and 2.x) brainstorms, not here:
+All four were resolved in the Phase 1.3 brainstorm — see `2026-09-25-phase-1.3-question-generator-core-design.md` (names `Noul`/`Choice<T>`/`Score<T>`; argmax + `Expected`; one shared buffer with generated `JevOptionSet<T>`; `Parse` reads `answers` only and throws `JsonException`). Original questions:
 - **Typed answer naming.** `NoulAnswer`, `ChoiceAnswer` and `ScoreAnswer` already exist as public wire classes in `Jev.Net`; the typed types need distinct names or a namespace.
 - **Score → enum mapping.** The wire `score` is a `double` (expected level); `Value` needs a rule — rounding, or argmax of `probabilities`.
 - **Probability storage.** `[InlineArray]` needs a constant length and cannot depend on `T`, and Choice allows up to 255 options — needs generator-emitted per-enum storage or another scheme. Enum ordinal ≠ enum value when members set explicit values.

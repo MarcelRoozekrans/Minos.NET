@@ -33,7 +33,7 @@ compress_memory: disabled
 **Completed:** 2026-09-24
 
 ### Phase 1.3: Question generator core [status: pending]
-**Goal:** Incremental `[JevQuestions]` source generator with its attribute and runtime types (`[Noul]`, `[Choice]`, `[Score]`, `[Criteria]`, `[Level]`, `[NoneOfTheAbove]`, `IJevQuestionSet<TSelf>`, typed answer types), emitting `QuestionsUtf8` and a `Utf8JsonReader` answer parser, verified against the Phase 1.2 wire model and fixtures. No transport, `EvaluateAsync` or analyzers. Change spec: `docs/superpowers/specs/2026-09-25-question-generator-roadmap-design.md`.
+**Goal:** Incremental `[JevQuestions]` source generator with its attribute and runtime types (`[Noul]`, `[Choice]`, `[Score]`, `[Criteria]`, `[Level]`, `IJevQuestionSet<TSelf>`, typed `Noul` / `Choice<T>` / `Score<T>`), emitting `QuestionsUtf8` and a `Utf8JsonReader` answer parser, verified against the Phase 1.2 wire model and fixtures. No transport, `EvaluateAsync` or analyzers. Change spec: `docs/superpowers/specs/2026-09-25-question-generator-roadmap-design.md`.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
@@ -72,7 +72,7 @@ compress_memory: disabled
 **Goal:** Questions and answers become strongly typed, idiomatic C# without reflection — declared as `[JevQuestions]` types or built fluently at runtime.
 **Definition of Done:**
 - [ ] `[JevQuestions]` types evaluate end-to-end through `EvaluateAsync<T>` → `Result<T, JevError>`, with no reflection
-- [ ] API limits enforced at compile time for generated question sets (JEV001–JEV006) and at runtime for builder-defined questions
+- [ ] API limits enforced at compile time for generated question sets (JEV001–JEV004, plus the generator's own key-collision error) and at runtime for builder-defined questions
 - [ ] Fluent builders cover all three question types including structured criteria
 - [ ] Typed layer stays within allocation budgets and the AOT smoke stays clean
 
@@ -83,7 +83,7 @@ compress_memory: disabled
 **Plan:** _to be written_
 
 ### Phase 2.2: Analyzers and code fixes [status: pending]
-**Goal:** Diagnostics JEV001–JEV006 (option/level limits, empty instructions, state-field references, wire-key collisions, duplicate `[NoneOfTheAbove]`) and a `[Criteria]`-stub code fix.
+**Goal:** Diagnostics JEV001–JEV004 (option/level limits, empty instructions, state-field references) and a `[Criteria]`-stub code fix.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_

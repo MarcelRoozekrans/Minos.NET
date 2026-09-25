@@ -50,7 +50,7 @@ Jev.Net is a community .NET SDK for TypeSafe AI's Jev, the first "System One" mo
 > Reshaped 2026-09-25 around the `[JevQuestions]` source generator — see `2026-09-25-question-generator-roadmap-design.md`.
 
 1. Typed evaluation: `EvaluateAsync<T>` → `Result<T, JevError>`, typed state via `State = typeof(...)`, raw overloads — `Surface: Backend`
-2. Analyzers and code fixes: JEV001–JEV006 and a `[Criteria]`-stub code fix — `Surface: Backend`
+2. Analyzers and code fixes: JEV001–JEV004 and a `[Criteria]`-stub code fix — `Surface: Backend`
 3. Structured instructions/criteria (object/array, `Examples` / `NotFor`) and `state` helpers — `Surface: Backend`
 4. Fluent question builders for runtime-defined questions, with runtime limit validation via ZeroAlloc.Validation — `Surface: Backend`
 5. Allocation budgets and benchmarks for the typed layer — `Surface: Backend`
