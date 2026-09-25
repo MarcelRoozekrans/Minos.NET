@@ -34,11 +34,12 @@ Jev.Net is a community .NET SDK for TypeSafe AI's Jev, the first "System One" mo
 
 1. Repo scaffolding per AdoNet.Async standards (`.slnx`, `Directory.Build.props`, analyzers, `.editorconfig`, commitlint, Renovate, logo placeholder) — `Surface: Infra`
 2. Wire model for the HTTP API, serialised via STJ source generation / ZeroAlloc.Serialisation — `Surface: Backend`
-3. Transport: ZeroAlloc.Rest interface for `/v1/systemone` and `/v1/models`, Bearer auth, `TYPESAFE_API_KEY` — `Surface: Backend`
-4. Error model: `Result<T, JevError>` covering 401/422/429/529, network failures and timeouts — `Surface: Backend`
-5. Resilience: ZeroAlloc.Resilience retry on 429/529 honoring `retry-after` — `Surface: Backend`
-6. Test harness: unit tests, WireMock.Net component tests, key-gated live smoke suite — `Surface: Infra`
-7. CI: build/test, AOT smoke with `AllocationGate`, BenchmarkDotNet baseline, release-please, GitVersion alpha pushes — `Surface: Infra`
+3. Question generator core: `[JevQuestions]` source generator emitting question JSON and a typed answer parser (added 2026-09-25, see `2026-09-25-question-generator-roadmap-design.md`) — `Surface: Backend`
+4. Transport: ZeroAlloc.Rest interface for `/v1/systemone` and `/v1/models`, Bearer auth, `TYPESAFE_API_KEY` — `Surface: Backend`
+5. Error model: `Result<T, JevError>` covering 401/422/429/529, network failures and timeouts — `Surface: Backend`
+6. Resilience: ZeroAlloc.Resilience retry on 429/529 honoring `retry-after` — `Surface: Backend`
+7. Test harness: unit tests, WireMock.Net component tests, key-gated live smoke suite — `Surface: Infra`
+8. CI: build/test, AOT smoke with `AllocationGate`, BenchmarkDotNet baseline, release-please, GitVersion alpha pushes — `Surface: Infra`
 
 ### Milestone 2: Typed .NET API
 
@@ -46,10 +47,12 @@ Jev.Net is a community .NET SDK for TypeSafe AI's Jev, the first "System One" mo
 
 **Phases:**
 
-1. Fluent question builders (Noul, Choice, Score) and a typed request map — `Surface: Backend`
-2. `Choice<TEnum>` / `Score<TEnum>` with typed answers, reflection-free (generator or static abstracts) — `Surface: Backend`
-3. Structured instructions/criteria (object/array) and `state` helpers — `Surface: Backend`
-4. Client-side limit validation with ZeroAlloc.Validation (≤255 options, 2–10 levels, required fields) — `Surface: Backend`
+> Reshaped 2026-09-25 around the `[JevQuestions]` source generator — see `2026-09-25-question-generator-roadmap-design.md`.
+
+1. Typed evaluation: `EvaluateAsync<T>` → `Result<T, JevError>`, typed state via `State = typeof(...)`, raw overloads — `Surface: Backend`
+2. Analyzers and code fixes: JEV001–JEV006 and a `[Criteria]`-stub code fix — `Surface: Backend`
+3. Structured instructions/criteria (object/array, `Examples` / `NotFor`) and `state` helpers — `Surface: Backend`
+4. Fluent question builders for runtime-defined questions, with runtime limit validation via ZeroAlloc.Validation — `Surface: Backend`
 5. Allocation budgets and benchmarks for the typed layer — `Surface: Backend`
 
 ### Milestone 3: .NET integration

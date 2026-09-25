@@ -11,6 +11,7 @@ compress_memory: disabled
 **Started:** 2026-09-24
 **Definition of Done:**
 - [ ] `JevClient` calls `POST /v1/systemone` (Noul, Choice, Score) and `GET /v1/models`, returning `Result<T, JevError>`
+- [ ] `[JevQuestions]` generator emits question JSON and parses answers, verified against the wire fixtures
 - [ ] 401/422/429/529, network failures and timeouts map to `JevError`; 429/529 retried honoring `retry-after`
 - [ ] WireMock.Net component tests and key-gated live smoke suite pass
 - [ ] AOT smoke app publishes with zero IL2xxx/IL3xxx warnings in CI
@@ -31,70 +32,76 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-09-24-phase-1.2-wire-model.md`
 **Completed:** 2026-09-24
 
-### Phase 1.3: Transport [status: pending]
+### Phase 1.3: Question generator core [status: pending]
+**Goal:** Incremental `[JevQuestions]` source generator with its attribute and runtime types (`[Noul]`, `[Choice]`, `[Score]`, `[Criteria]`, `[Level]`, `[NoneOfTheAbove]`, `IJevQuestionSet<TSelf>`, typed answer types), emitting `QuestionsUtf8` and a `Utf8JsonReader` answer parser, verified against the Phase 1.2 wire model and fixtures. No transport, `EvaluateAsync` or analyzers. Change spec: `docs/superpowers/specs/2026-09-25-question-generator-roadmap-design.md`.
+**Surface:** Backend
+**HelpWanted:** no
+**Plan:** _to be written_
+
+### Phase 1.4: Transport [status: pending]
 **Goal:** ZeroAlloc.Rest interface for `/v1/systemone` and `/v1/models` with Bearer auth, `TYPESAFE_API_KEY` resolution, and a configurable base address (`TYPESAFE_BASE_URL`) supporting both TypeSafe direct and OpenRouter (`https://openrouter.ai/api`) as first-class providers.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 1.4: Error model [status: pending]
+### Phase 1.5: Error model [status: pending]
 **Goal:** `Result<T, JevError>` covering 401/422/429/529, network failures and timeouts.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 1.5: Resilience [status: pending]
+### Phase 1.6: Resilience [status: pending]
 **Goal:** ZeroAlloc.Resilience retry with exponential backoff on 429/529 honoring `retry-after`.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 1.6: Test harness [status: pending]
+### Phase 1.7: Test harness [status: pending]
 **Goal:** Unit tests, WireMock.Net component tests, and a live smoke suite skipped when no API key is present — covering both TypeSafe direct and OpenRouter.
 **Surface:** Infra
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 1.7: CI and release pipeline [status: pending]
-**Goal:** Build/test, AOT smoke with `AllocationGate`, BenchmarkDotNet baseline, release-please, and GitVersion alpha pushes to NuGet.
+### Phase 1.8: CI and release pipeline [status: pending]
+**Goal:** Build/test, AOT smoke with `AllocationGate`, BenchmarkDotNet baseline, release-please, GitVersion alpha pushes to NuGet, and a check that the packed nupkg carries the generator under `analyzers/dotnet/cs`.
 **Surface:** Infra
 **HelpWanted:** no
 **Plan:** _to be written_
 
 ## Milestone 2: Typed .NET API [status: pending]
-**Goal:** Questions and answers become strongly typed, idiomatic C# without reflection.
+**Goal:** Questions and answers become strongly typed, idiomatic C# without reflection — declared as `[JevQuestions]` types or built fluently at runtime.
 **Definition of Done:**
-- [ ] Fluent builders cover all three question types including structured instructions/criteria
-- [ ] `Choice<TEnum>` / `Score<TEnum>` return typed answers with no runtime reflection
-- [ ] Documented API limits validated client-side
-- [ ] Typed layer stays within allocation budgets and AOT smoke stays clean
+- [ ] `[JevQuestions]` types evaluate end-to-end through `EvaluateAsync<T>` → `Result<T, JevError>`, with no reflection
+- [ ] API limits enforced at compile time for generated question sets (JEV001–JEV006) and at runtime for builder-defined questions
+- [ ] Fluent builders cover all three question types including structured criteria
+- [ ] Typed layer stays within allocation budgets and the AOT smoke stays clean
 
-### Phase 2.1: Fluent question builders [status: pending]
-**Goal:** Builders for Noul, Choice and Score plus a typed request map.
+### Phase 2.1: Typed evaluation [status: pending]
+**Goal:** `EvaluateAsync<T>` returning `Result<T, JevError>`, with typed state via `[JevQuestions(State = typeof(...))]` and a caller-supplied `JsonTypeInfo`, plus raw `JsonElement` / string / UTF-8 overloads.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 2.2: Enum-typed questions [status: pending]
-**Goal:** `Choice<TEnum>` / `Score<TEnum>` with typed answers, reflection-free via generator or static abstract members.
+### Phase 2.2: Analyzers and code fixes [status: pending]
+**Goal:** Diagnostics JEV001–JEV006 (option/level limits, empty instructions, state-field references, wire-key collisions, duplicate `[NoneOfTheAbove]`) and a `[Criteria]`-stub code fix.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 2.3: Structured instructions and state [status: pending]
-**Goal:** Object/array instructions and criteria plus `state` helpers.
+### Phase 2.3: Structured instructions and criteria [status: pending]
+**Goal:** `Examples` / `NotFor` in attributes, object/array instructions and criteria, and `state` helpers.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 2.4: Client-side validation [status: pending]
-**Goal:** Enforce API limits (≤255 options, 2–10 levels, required fields) with ZeroAlloc.Validation.
+### Phase 2.4: Fluent question builders [status: pending]
+**Goal:** Builders for runtime-defined Noul, Choice and Score questions sharing the typed answer types, with runtime API-limit validation via ZeroAlloc.Validation.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
 
 ### Phase 2.5: Typed-layer performance [status: pending]
-**Goal:** Allocation budgets and benchmarks for the builders and typed answer parsing.
+**Goal:** Allocation budgets and benchmarks for the generated parser and the builders.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
