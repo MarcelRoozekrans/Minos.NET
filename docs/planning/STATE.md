@@ -11,7 +11,8 @@
 ## Upstream check (2026-09-25)
 - **ZeroAlloc.Rest 2.0.0** (breaking; see its `docs/migrating-to-v2.md`): fixes #299 (Result methods return Transport / Timeout / Deserialization failures via `HttpError.Kind` + `Exception`) and #301 (per-client keyed serializers, interface-level `[Serializer]` honoured); #302 docs fixed. **Still open:** #298 (no response body on `HttpError`), #300 (no custom error type / mapper).
 - **ZeroAlloc.Resilience 3.1.0:** #141, #144, #145 fixed. **Still open:** #142 (retry on returned failed Result), #143 (Retry-After).
-- **Other:** Inject #156 fixed in 1.8.0; Validation #183/#184 fixed in 1.7.8 but new bugs filed 2026-09-25 (#203–#207); Telemetry #142 open; TestHelpers #50 fixed in 1.3.3.
+- **ZeroAlloc.Validation:** #183/#184 fixed in 1.7.8. The follow-up bugs #203–#207 were closed 2026-09-25 on `main`, but **2.0.0 is not released** — release PR #199 is open, as is breaking PR #228 (unreachable `[Validate]` type → ZV0025). Latest NuGet is still 1.7.8. Needed by 2.4 Builders and 3.2 Options, so not blocking M1.
+- **Other:** Inject #156 fixed in 1.8.0; Telemetry #142 open; TestHelpers #50 fixed in 1.3.3.
 - **Latest NuGet:** Rest / Rest.SystemTextJson 2.0.0, Resilience 3.1.0, Results 1.2.3, Telemetry 1.6.3, Validation 1.7.8, Inject 1.8.0, TestHelpers 1.3.3.
 - **Effect:** 1.4 Transport is unblocked. 1.5 Error model needs a `MapError` from `HttpError` to `JevError` and has no 422 body until #298/#300. 1.6 Resilience still blocked on #142/#143.
 
