@@ -32,11 +32,12 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-09-24-phase-1.2-wire-model.md`
 **Completed:** 2026-09-24
 
-### Phase 1.3: Question generator core [status: active]
+### Phase 1.3: Question generator core [status: complete]
 **Goal:** Incremental `[JevQuestions]` source generator with its attribute and runtime types (`[Noul]`, `[Choice]`, `[Score]`, `[Criteria]`, `[Level]`, `IJevQuestionSet<TSelf>`, typed `Noul` / `Choice<T>` / `Score<T>`), emitting `QuestionsUtf8` and a `Utf8JsonReader` answer parser, verified against the Phase 1.2 wire model and fixtures. No transport, `EvaluateAsync` or analyzers. Change spec: `docs/superpowers/specs/2026-09-25-question-generator-roadmap-design.md`.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** `docs/superpowers/plans/2026-09-26-phase-1.3-question-generator-core.md`
+**Completed:** 2026-09-27
 
 ### Phase 1.4: Transport [status: pending]
 **Goal:** ZeroAlloc.Rest interface for `/v1/systemone` and `/v1/models` with Bearer auth, `TYPESAFE_API_KEY` resolution, and a configurable base address (`TYPESAFE_BASE_URL`) supporting both TypeSafe direct and OpenRouter (`https://openrouter.ai/api`) as first-class providers.
