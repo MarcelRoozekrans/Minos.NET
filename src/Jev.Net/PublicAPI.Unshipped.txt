@@ -1,4 +1,14 @@
 #nullable enable
+abstract Jev.Net.JevOptionSet<T>.Count.get -> int
+abstract Jev.Net.JevOptionSet<T>.IndexOf(T value) -> int
+abstract Jev.Net.JevOptionSet<T>.IndexOfKey(ref System.Text.Json.Utf8JsonReader reader) -> int
+abstract Jev.Net.JevOptionSet<T>.this[int index].get -> T
+Jev.Net.Choice<T>
+Jev.Net.Choice<T>.Choice() -> void
+Jev.Net.Choice<T>.Choice(T value, double confidence, Jev.Net.ProbabilityMap<T> probabilities) -> void
+Jev.Net.Choice<T>.Confidence.get -> double
+Jev.Net.Choice<T>.Probabilities.get -> Jev.Net.ProbabilityMap<T>
+Jev.Net.Choice<T>.Value.get -> T
 Jev.Net.ChoiceAnswer
 Jev.Net.ChoiceAnswer.Choice.get -> string!
 Jev.Net.ChoiceAnswer.Choice.init -> void
@@ -7,10 +17,23 @@ Jev.Net.ChoiceAnswer.Confidence.get -> double
 Jev.Net.ChoiceAnswer.Confidence.init -> void
 Jev.Net.ChoiceAnswer.Probabilities.get -> System.Collections.Generic.IReadOnlyDictionary<string!, double>!
 Jev.Net.ChoiceAnswer.Probabilities.init -> void
+Jev.Net.ChoiceAttribute
+Jev.Net.ChoiceAttribute.ChoiceAttribute(string! instructions) -> void
+Jev.Net.ChoiceAttribute.Instructions.get -> string!
+Jev.Net.ChoiceAttribute.Key.get -> string?
+Jev.Net.ChoiceAttribute.Key.set -> void
 Jev.Net.ChoiceQuestion
 Jev.Net.ChoiceQuestion.ChoiceQuestion() -> void
 Jev.Net.ChoiceQuestion.Criteria.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Jev.Net.JevContent?>!
 Jev.Net.ChoiceQuestion.Criteria.init -> void
+Jev.Net.CriteriaAttribute
+Jev.Net.CriteriaAttribute.CriteriaAttribute(string! description) -> void
+Jev.Net.CriteriaAttribute.Description.get -> string!
+Jev.Net.CriteriaAttribute.Key.get -> string?
+Jev.Net.CriteriaAttribute.Key.set -> void
+Jev.Net.IJevQuestionSet<TSelf>
+Jev.Net.IJevQuestionSet<TSelf>.Parse(ref System.Text.Json.Utf8JsonReader answers) -> TSelf
+Jev.Net.IJevQuestionSet<TSelf>.QuestionsUtf8.get -> System.ReadOnlySpan<byte>
 Jev.Net.JevAnswer
 Jev.Net.JevContent
 Jev.Net.JevContent.Equals(Jev.Net.JevContent other) -> bool
@@ -19,9 +42,13 @@ Jev.Net.JevContent.JevContent() -> void
 Jev.Net.JevContent.TryGetJson(out System.Text.Json.JsonElement json) -> bool
 Jev.Net.JevContent.TryGetString(out string? text) -> bool
 Jev.Net.JevDefaults
+Jev.Net.JevOptionSet<T>
+Jev.Net.JevOptionSet<T>.JevOptionSet() -> void
 Jev.Net.JevQuestion
 Jev.Net.JevQuestion.Instructions.get -> Jev.Net.JevContent
 Jev.Net.JevQuestion.Instructions.init -> void
+Jev.Net.JevQuestionsAttribute
+Jev.Net.JevQuestionsAttribute.JevQuestionsAttribute() -> void
 Jev.Net.JevUsage
 Jev.Net.JevUsage.<Clone>$() -> Jev.Net.JevUsage!
 Jev.Net.JevUsage.Equals(Jev.Net.JevUsage? other) -> bool
@@ -30,6 +57,9 @@ Jev.Net.JevUsage.InputTokens.init -> void
 Jev.Net.JevUsage.JevUsage() -> void
 Jev.Net.JevUsage.OutputTokens.get -> int
 Jev.Net.JevUsage.OutputTokens.init -> void
+Jev.Net.LevelAttribute
+Jev.Net.LevelAttribute.Description.get -> string!
+Jev.Net.LevelAttribute.LevelAttribute(string! description) -> void
 Jev.Net.ModelCard
 Jev.Net.ModelCard.<Clone>$() -> Jev.Net.ModelCard!
 Jev.Net.ModelCard.Description.get -> string!
@@ -44,10 +74,24 @@ Jev.Net.ModelList
 Jev.Net.ModelList.ModelList() -> void
 Jev.Net.ModelList.Models.get -> System.Collections.Generic.IReadOnlyList<Jev.Net.ModelCard!>!
 Jev.Net.ModelList.Models.init -> void
+Jev.Net.Noul
+Jev.Net.Noul.Noul() -> void
+Jev.Net.Noul.Noul(double probability) -> void
+Jev.Net.Noul.Probability.get -> double
+Jev.Net.Noul.Value.get -> bool
 Jev.Net.NoulAnswer
 Jev.Net.NoulAnswer.Noul.get -> double
 Jev.Net.NoulAnswer.Noul.init -> void
 Jev.Net.NoulAnswer.NoulAnswer() -> void
+Jev.Net.NoulAttribute
+Jev.Net.NoulAttribute.False.get -> string?
+Jev.Net.NoulAttribute.False.set -> void
+Jev.Net.NoulAttribute.Instructions.get -> string!
+Jev.Net.NoulAttribute.Key.get -> string?
+Jev.Net.NoulAttribute.Key.set -> void
+Jev.Net.NoulAttribute.NoulAttribute(string! instructions) -> void
+Jev.Net.NoulAttribute.True.get -> string?
+Jev.Net.NoulAttribute.True.set -> void
 Jev.Net.NoulCriteria
 Jev.Net.NoulCriteria.<Clone>$() -> Jev.Net.NoulCriteria!
 Jev.Net.NoulCriteria.Equals(Jev.Net.NoulCriteria? other) -> bool
@@ -60,6 +104,23 @@ Jev.Net.NoulQuestion
 Jev.Net.NoulQuestion.Criteria.get -> Jev.Net.NoulCriteria?
 Jev.Net.NoulQuestion.Criteria.init -> void
 Jev.Net.NoulQuestion.NoulQuestion() -> void
+Jev.Net.ProbabilityMap<T>
+Jev.Net.ProbabilityMap<T>.Count.get -> int
+Jev.Net.ProbabilityMap<T>.Enumerator
+Jev.Net.ProbabilityMap<T>.Enumerator.Current.get -> (T Option, double Probability)
+Jev.Net.ProbabilityMap<T>.Enumerator.Enumerator() -> void
+Jev.Net.ProbabilityMap<T>.Enumerator.MoveNext() -> bool
+Jev.Net.ProbabilityMap<T>.GetEnumerator() -> Jev.Net.ProbabilityMap<T>.Enumerator
+Jev.Net.ProbabilityMap<T>.ProbabilityMap() -> void
+Jev.Net.ProbabilityMap<T>.ProbabilityMap(double[]! buffer, int offset, Jev.Net.JevOptionSet<T>! options) -> void
+Jev.Net.ProbabilityMap<T>.this[T option].get -> double
+Jev.Net.Score<T>
+Jev.Net.Score<T>.Confidence.get -> double
+Jev.Net.Score<T>.Expected.get -> double
+Jev.Net.Score<T>.Probabilities.get -> Jev.Net.ProbabilityMap<T>
+Jev.Net.Score<T>.Score() -> void
+Jev.Net.Score<T>.Score(T value, double expected, double confidence, Jev.Net.ProbabilityMap<T> probabilities) -> void
+Jev.Net.Score<T>.Value.get -> T
 Jev.Net.ScoreAnswer
 Jev.Net.ScoreAnswer.Confidence.get -> double
 Jev.Net.ScoreAnswer.Confidence.init -> void
@@ -70,6 +131,11 @@ Jev.Net.ScoreAnswer.Probabilities.init -> void
 Jev.Net.ScoreAnswer.Score.get -> double
 Jev.Net.ScoreAnswer.Score.init -> void
 Jev.Net.ScoreAnswer.ScoreAnswer() -> void
+Jev.Net.ScoreAttribute
+Jev.Net.ScoreAttribute.Instructions.get -> string!
+Jev.Net.ScoreAttribute.Key.get -> string?
+Jev.Net.ScoreAttribute.Key.set -> void
+Jev.Net.ScoreAttribute.ScoreAttribute(string! instructions) -> void
 Jev.Net.ScoreQuestion
 Jev.Net.ScoreQuestion.Criteria.get -> System.Collections.Generic.IReadOnlyList<Jev.Net.JevContent>!
 Jev.Net.ScoreQuestion.Criteria.init -> void
