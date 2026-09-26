@@ -19,6 +19,15 @@ public sealed class GeneratorTests
     public void Mixed_Generates() => AssertGenerates(Sources.Mixed);
 
     [Fact]
+    public void ChoiceOverEmptyEnum_CompilesWithoutError() => AssertCompiles(Sources.ChoiceOverEmptyEnum);
+
+    [Fact]
+    public void ScoreOverEmptyEnum_CompilesWithoutError() => AssertCompiles(Sources.ScoreOverEmptyEnum);
+
+    [Fact]
+    public void KeywordNamespaceAndType_Generates() => AssertGenerates(Sources.KeywordNamespaceAndType);
+
+    [Fact]
     public void UnrelatedEdit_KeepsQuestionSetsCached()
     {
         var compilation = GeneratorHarness.Compile(Sources.Mixed);
@@ -63,5 +72,15 @@ public sealed class GeneratorTests
         Assert.Empty(diagnostics);
         Assert.Empty(output.GetDiagnostics().Where(d => d.Severity >= DiagnosticSeverity.Warning));
         GeneratorSnapshot.Verify(driver);
+    }
+
+    // Like AssertGenerates, but without a snapshot: used for cases that only need to prove the
+    // generated code compiles, not to pin its exact shape.
+    private static void AssertCompiles(string source)
+    {
+        GeneratorHarness.Run(source, out var output, out var diagnostics);
+
+        Assert.Empty(diagnostics);
+        Assert.Empty(output.GetDiagnostics().Where(d => d.Severity >= DiagnosticSeverity.Warning));
     }
 }

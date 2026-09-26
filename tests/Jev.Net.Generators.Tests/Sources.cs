@@ -87,4 +87,56 @@ internal static class Sources
             internal partial Score<Urgency> Urgency { get; }
         }
         """;
+
+    // A Choice over an enum with no members: CS0103 for the shared `buffer` variable if it is only
+    // declared when the total option count is positive.
+    public const string ChoiceOverEmptyEnum = """
+        using Jev.Net;
+
+        namespace Demo;
+
+        public enum EmptyChoice
+        {
+        }
+
+        [JevQuestions]
+        public partial record EmptyChoiceQuestion
+        {
+            [Choice("Pick one")]
+            public partial Choice<EmptyChoice> Answer { get; }
+        }
+        """;
+
+    // A Score over an enum with no members: same CS0103 risk as ChoiceOverEmptyEnum.
+    public const string ScoreOverEmptyEnum = """
+        using Jev.Net;
+
+        namespace Demo;
+
+        public enum EmptyScore
+        {
+        }
+
+        [JevQuestions]
+        public partial record EmptyScoreQuestion
+        {
+            [Score("Rate it")]
+            public partial Score<EmptyScore> Answer { get; }
+        }
+        """;
+
+    // A keyword namespace and a keyword type name: the hint name and the generated declarations
+    // must both handle '@'-escaping correctly.
+    public const string KeywordNamespaceAndType = """
+        using Jev.Net;
+
+        namespace @class;
+
+        [JevQuestions]
+        public partial record @event
+        {
+            [Noul("q")]
+            public partial Noul Answer { get; }
+        }
+        """;
 }

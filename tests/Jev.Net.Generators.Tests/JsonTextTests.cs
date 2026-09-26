@@ -29,4 +29,16 @@ public sealed class JsonTextTests
     [Fact]
     public void CSharpLiteral_EscapesControlCharacters()
         => Assert.Equal("\"a\\u000ab\"", JsonText.CSharpLiteral("a\nb"));
+
+    [Fact]
+    public void CSharpLiteral_EscapesLineSeparator()
+        => Assert.Equal("\"a\\u2028b\"", JsonText.CSharpLiteral("a\u2028b"));
+
+    [Fact]
+    public void CSharpLiteral_EscapesParagraphSeparator()
+        => Assert.Equal("\"a\\u2029b\"", JsonText.CSharpLiteral("a\u2029b"));
+
+    [Fact]
+    public void CSharpLiteral_EscapesNextLine()
+        => Assert.Equal("\"a\\u0085b\"", JsonText.CSharpLiteral("a\u0085b"));
 }
