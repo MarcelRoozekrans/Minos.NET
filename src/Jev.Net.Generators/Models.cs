@@ -42,18 +42,21 @@ internal sealed record QuestionSetModel(
 /// <summary>The pipeline value: a model when the type is valid, and the diagnostics found.</summary>
 internal sealed record QuestionSetResult(QuestionSetModel? Model, EquatableArray<DiagnosticInfo> Diagnostics);
 
-/// <summary>A source location without a reference to the syntax tree, so it can be cached.</summary>
-internal sealed record LocationInfo(string FilePath, TextSpan Span, LinePositionSpan LineSpan)
+/// <summary>
+/// A source location kept as a syntax tree and span. The tree instance is stable across incremental
+/// runs for files the edit did not touch, so this stays cacheable; unlike the file-path-only
+/// <see cref="Location.Create(string, TextSpan, LinePositionSpan)"/> form, <see cref="ToLocation"/>
+/// produces a real <see cref="LocationKind.SourceFile"/> location (<c>Location.IsInSource</c> is true).
+/// </summary>
+internal sealed record LocationInfo(SyntaxTree Tree, TextSpan Span)
 {
     public static LocationInfo? From(ISymbol symbol)
     {
         var location = symbol.Locations.FirstOrDefault(l => l.IsInSource);
-        return location?.SourceTree is null
-            ? null
-            : new LocationInfo(location.SourceTree.FilePath, location.SourceSpan, location.GetLineSpan().Span);
+        return location?.SourceTree is null ? null : new LocationInfo(location.SourceTree, location.SourceSpan);
     }
 
-    public Location ToLocation() => Location.Create(FilePath, Span, LineSpan);
+    public Location ToLocation() => Location.Create(Tree, Span);
 }
 
 /// <summary>A diagnostic in cacheable form.</summary>
