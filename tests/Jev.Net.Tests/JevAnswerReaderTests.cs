@@ -62,7 +62,7 @@ public sealed class JevAnswerReaderTests
     [Fact]
     public void ReadChoice_EscapedOptionKey_Resolves()
     {
-        var reader = At("""{"type":"choice","choice":"green","probabilities":{},"confidence":0.5}""");
+        var reader = At("""{"type":"choice","choice":"gr\u0065en","probabilities":{},"confidence":0.5}""");
 
         var choice = JevAnswerReader.ReadChoice(ref reader, ColorOptions.Instance, new double[3], 0);
 
