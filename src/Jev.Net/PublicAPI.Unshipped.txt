@@ -35,6 +35,7 @@ Jev.Net.IJevQuestionSet<TSelf>
 Jev.Net.IJevQuestionSet<TSelf>.Parse(ref System.Text.Json.Utf8JsonReader answers) -> TSelf
 Jev.Net.IJevQuestionSet<TSelf>.QuestionsUtf8.get -> System.ReadOnlySpan<byte>
 Jev.Net.JevAnswer
+Jev.Net.JevAnswerReader
 Jev.Net.JevContent
 Jev.Net.JevContent.Equals(Jev.Net.JevContent other) -> bool
 Jev.Net.JevContent.IsString.get -> bool
@@ -170,6 +171,12 @@ override Jev.Net.ModelCard.ToString() -> string!
 override Jev.Net.NoulCriteria.Equals(object? obj) -> bool
 override Jev.Net.NoulCriteria.GetHashCode() -> int
 override Jev.Net.NoulCriteria.ToString() -> string!
+static Jev.Net.JevAnswerReader.EnsureStartObject(ref System.Text.Json.Utf8JsonReader reader) -> void
+static Jev.Net.JevAnswerReader.MissingAnswer(string! key) -> System.Text.Json.JsonException!
+static Jev.Net.JevAnswerReader.NextProperty(ref System.Text.Json.Utf8JsonReader reader) -> bool
+static Jev.Net.JevAnswerReader.ReadChoice<T>(ref System.Text.Json.Utf8JsonReader reader, Jev.Net.JevOptionSet<T>! options, double[]! buffer, int offset) -> Jev.Net.Choice<T>
+static Jev.Net.JevAnswerReader.ReadNoul(ref System.Text.Json.Utf8JsonReader reader) -> Jev.Net.Noul
+static Jev.Net.JevAnswerReader.ReadScore<T>(ref System.Text.Json.Utf8JsonReader reader, Jev.Net.JevOptionSet<T>! options, double[]! buffer, int offset) -> Jev.Net.Score<T>
 static Jev.Net.JevContent.FromJson(System.Text.Json.JsonElement json) -> Jev.Net.JevContent
 static Jev.Net.JevContent.FromString(string! text) -> Jev.Net.JevContent
 static Jev.Net.JevContent.implicit operator Jev.Net.JevContent(string! text) -> Jev.Net.JevContent
