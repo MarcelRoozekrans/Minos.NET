@@ -48,8 +48,8 @@ internal static class ModelBuilder
         }
 
         var model = new QuestionSetModel(
-            type.ContainingNamespace.IsGlobalNamespace ? null : type.ContainingNamespace.ToDisplayString(),
-            type.Name,
+            Namespace(type.ContainingNamespace),
+            Identifier(type.Name),
             type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             type.IsRecord,
             new EquatableArray<QuestionModel>(questions.ToArray()));
@@ -247,6 +247,19 @@ internal static class ModelBuilder
 
     private static string Identifier(string name)
         => SyntaxFacts.GetKeywordKind(name) == SyntaxKind.None ? name : "@" + name;
+
+    /// <summary>Builds a dotted namespace name with each segment individually escaped as a C# identifier.</summary>
+    private static string? Namespace(INamespaceSymbol ns)
+    {
+        if (ns.IsGlobalNamespace)
+        {
+            return null;
+        }
+
+        var parent = Namespace(ns.ContainingNamespace);
+        var segment = Identifier(ns.Name);
+        return parent is null ? segment : parent + "." + segment;
+    }
 
     private static string AttributeName(QuestionKind kind) => kind switch
     {

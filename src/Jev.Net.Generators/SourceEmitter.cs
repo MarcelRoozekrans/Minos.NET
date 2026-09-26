@@ -9,7 +9,8 @@ internal static class SourceEmitter
     private const string Reader = "global::Jev.Net.JevAnswerReader";
 
     public static string HintName(QuestionSetModel model)
-        => (model.Namespace is null ? string.Empty : model.Namespace + ".") + model.TypeName + ".JevQuestions.g.cs";
+        => ((model.Namespace is null ? string.Empty : model.Namespace + ".") + model.TypeName + ".JevQuestions.g.cs")
+            .Replace("@", string.Empty);
 
     public static string Emit(QuestionSetModel model)
     {
@@ -63,6 +64,7 @@ internal static class SourceEmitter
     private static void EmitParse(CodeWriter code, QuestionSetModel model)
     {
         var bufferLength = model.Questions.Sum(question => question.Options.Length);
+        var needsBuffer = model.Questions.Any(question => question.Kind != QuestionKind.Noul);
 
         code.Line("    /// <summary>Reads the typed answers from the <c>answers</c> object of a <c>/v1/systemone</c> response.</summary>");
         code.Line("    /// <param name=\"answers\">A reader over complete JSON, positioned on the start of the <c>answers</c> object. It is left on the object's end.</param>");
@@ -70,9 +72,11 @@ internal static class SourceEmitter
         code.Line("    public static " + model.FullyQualifiedName + " Parse(ref global::System.Text.Json.Utf8JsonReader answers)");
         code.Line("    {");
         code.Line("        " + Reader + ".EnsureStartObject(ref answers);");
-        if (bufferLength > 0)
+        if (needsBuffer)
         {
-            code.Line("        var buffer = new double[" + Int(bufferLength) + "];");
+            code.Line("        var buffer = " + (bufferLength > 0
+                ? "new double[" + Int(bufferLength) + "];"
+                : "global::System.Array.Empty<double>();"));
         }
 
         code.Line("        var result = new " + model.FullyQualifiedName + "();");

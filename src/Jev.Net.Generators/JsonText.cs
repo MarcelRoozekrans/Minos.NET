@@ -59,8 +59,11 @@ internal static class JsonText
             {
                 literal.Append('\\').Append(c);
             }
-            else if (c < ' ')
+            else if (c < ' ' || c == (char)0x2028 || c == (char)0x2029 || c == (char)0x85)
             {
+                // U+2028 LINE SEPARATOR, U+2029 PARAGRAPH SEPARATOR and U+0085 NEXT LINE are treated as
+                // newlines inside a regular C# string literal even though they are not '\n' or '\r', so a
+                // raw one here would produce CS1010 "Newline in constant" in the generated file.
                 literal.Append("\\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
             }
             else

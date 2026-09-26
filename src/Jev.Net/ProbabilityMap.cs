@@ -19,7 +19,11 @@ public readonly struct ProbabilityMap<T>
     /// <param name="options">The options, in buffer order.</param>
     /// <exception cref="ArgumentNullException"><paramref name="buffer"/> or <paramref name="options"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The options do not fit in <paramref name="buffer"/> from <paramref name="offset"/>.</exception>
-    public ProbabilityMap(double[] buffer, int offset, JevOptionSet<T> options)
+    /// <remarks>
+    /// Internal: the buffer-plus-offset representation is generated-code plumbing that application code has no
+    /// meaningful way to construct. <see cref="JevAnswerReader"/> and the generated <c>Parse</c> methods build every instance.
+    /// </remarks>
+    internal ProbabilityMap(double[] buffer, int offset, JevOptionSet<T> options)
     {
         ArgumentNullException.ThrowIfNull(buffer);
         ArgumentNullException.ThrowIfNull(options);

@@ -113,7 +113,6 @@ Jev.Net.ProbabilityMap<T>.Enumerator.Enumerator() -> void
 Jev.Net.ProbabilityMap<T>.Enumerator.MoveNext() -> bool
 Jev.Net.ProbabilityMap<T>.GetEnumerator() -> Jev.Net.ProbabilityMap<T>.Enumerator
 Jev.Net.ProbabilityMap<T>.ProbabilityMap() -> void
-Jev.Net.ProbabilityMap<T>.ProbabilityMap(double[]! buffer, int offset, Jev.Net.JevOptionSet<T>! options) -> void
 Jev.Net.ProbabilityMap<T>.this[T option].get -> double
 Jev.Net.Score<T>
 Jev.Net.Score<T>.Confidence.get -> double
