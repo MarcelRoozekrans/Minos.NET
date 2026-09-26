@@ -37,6 +37,25 @@ public sealed class GeneratorTests
                 $"Step output was {output.Reason}."));
     }
 
+    [Fact]
+    public void InvalidType_UnrelatedEdit_KeepsQuestionSetsCached()
+    {
+        var compilation = GeneratorHarness.Compile("using Jev.Net;\n[JevQuestions] public class NotPartial { }");
+        var driver = GeneratorHarness.CreateDriver().RunGenerators(compilation);
+
+        var edited = compilation.AddSyntaxTrees(
+            CSharpSyntaxTree.ParseText("internal static class Unrelated { }", GeneratorHarness.ParseOptions));
+        driver = driver.RunGenerators(edited);
+
+        var steps = driver.GetRunResult().Results[0].TrackedSteps[QuestionSetGenerator.TrackingName];
+        Assert.NotEmpty(steps);
+        Assert.All(
+            steps.SelectMany(step => step.Outputs),
+            output => Assert.True(
+                output.Reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged,
+                $"Step output was {output.Reason}."));
+    }
+
     private static void AssertGenerates(string source)
     {
         var driver = GeneratorHarness.Run(source, out var output, out var diagnostics);

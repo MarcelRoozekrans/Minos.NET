@@ -43,10 +43,19 @@ internal sealed record QuestionSetModel(
 internal sealed record QuestionSetResult(QuestionSetModel? Model, EquatableArray<DiagnosticInfo> Diagnostics);
 
 /// <summary>
-/// A source location kept as a syntax tree and span. The tree instance is stable across incremental
-/// runs for files the edit did not touch, so this stays cacheable; unlike the file-path-only
-/// <see cref="Location.Create(string, TextSpan, LinePositionSpan)"/> form, <see cref="ToLocation"/>
-/// produces a real <see cref="LocationKind.SourceFile"/> location (<c>Location.IsInSource</c> is true).
+/// A source location kept as a syntax tree and span. This deliberately holds the <see cref="SyntaxTree"/>
+/// itself (rather than, say, a file path and line span) so that <see cref="ToLocation"/> produces a real
+/// <see cref="LocationKind.SourceFile"/> location with <c>Location.IsInSource == true</c> — diagnostics
+/// the generator reports stay attached to the offending source line instead of degrading to an
+/// <see cref="LocationKind.ExternalFile"/> location, which the file-path-only
+/// <see cref="Location.Create(string, TextSpan, LinePositionSpan)"/> form always produces.
+/// This is only reached for an invalid type (one that reports a diagnostic), so at most one tree per
+/// invalid <c>[JevQuestions]</c> type is ever carried in the pipeline model.
+/// Record equality (and therefore incremental caching) then relies on the tree instance being unchanged
+/// when unrelated files are edited elsewhere in the compilation — Roslyn reuses the same
+/// <see cref="SyntaxTree"/> object for files an edit did not touch, so this holds in practice, but it is a
+/// deliberate departure from the generator cookbook's general guidance to avoid carrying syntax/symbols in
+/// cached pipeline values.
 /// </summary>
 internal sealed record LocationInfo(SyntaxTree Tree, TextSpan Span)
 {
