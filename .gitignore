@@ -480,3 +480,6 @@ $RECYCLE.BIN/
 
 # Vim temporary swap files
 *.swp
+
+# Snapshot mismatches written by ZeroAlloc.TestHelpers GeneratorSnapshot
+*.received.*
