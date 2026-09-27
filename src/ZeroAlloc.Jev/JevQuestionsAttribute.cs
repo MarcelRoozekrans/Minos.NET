@@ -12,7 +12,7 @@ public sealed class JevQuestionsAttribute : Attribute
 {
     /// <summary>
     /// The state type this question set evaluates against, or <see langword="null"/> for a stateless set.
-    /// Must be a class, struct or record type: not an interface, an open generic type definition,
+    /// Must be a class, struct, record or array type: not an interface, an open generic type definition,
     /// <see langword="void"/>, a delegate or an enum.
     /// </summary>
     public Type? State { get; set; }

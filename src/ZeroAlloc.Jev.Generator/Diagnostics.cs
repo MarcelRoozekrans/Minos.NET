@@ -58,7 +58,7 @@ internal static class Diagnostics
     public static readonly DiagnosticDescriptor InvalidStateType = new(
         "JEV107",
         "Invalid state type",
-        "State type '{0}' must be a class, struct or record type",
+        "State type '{0}' must be a class, struct, record or array type",
         Category,
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);

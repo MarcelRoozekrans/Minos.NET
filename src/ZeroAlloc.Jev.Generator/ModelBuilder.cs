@@ -103,12 +103,20 @@ internal static class ModelBuilder
 
     // A static class has no value, so no instance of it could ever flow through EvaluateAsync<T, TState>: rejected.
     // An abstract class is accepted: a derived instance is a legitimate polymorphic state when its JsonTypeInfo
-    // handles the derived types.
+    // handles the derived types. An array is accepted too, provided its element type is itself valid: a JSON
+    // array is a legitimate state shape, and the generated set implements IJevQuestionSet<TSelf, TElement[]>.
     private static bool IsValidStateType(ITypeSymbol type)
-        => type.SpecialType != SpecialType.System_Void
+    {
+        if (type.TypeKind == TypeKind.Array)
+        {
+            return type is IArrayTypeSymbol arrayType && IsValidStateType(arrayType.ElementType);
+        }
+
+        return type.SpecialType != SpecialType.System_Void
             && type.TypeKind is TypeKind.Class or TypeKind.Struct
             && !type.IsStatic
             && type is not INamedTypeSymbol { IsUnboundGenericType: true };
+    }
 
     /// <summary>
     /// The <c>State = ...</c> argument's syntax location, or <see langword="null"/> when the attribute application

@@ -31,6 +31,9 @@ public sealed class GeneratorTests
     public void WithClosedGenericState_Generates() => AssertGenerates(Sources.WithClosedGenericState);
 
     [Fact]
+    public void WithArrayState_Generates() => AssertGenerates(Sources.WithArrayState);
+
+    [Fact]
     public void ChoiceOverEmptyEnum_CompilesWithoutError() => AssertCompiles(Sources.ChoiceOverEmptyEnum);
 
     [Fact]

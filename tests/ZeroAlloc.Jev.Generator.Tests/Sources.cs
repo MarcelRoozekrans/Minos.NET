@@ -209,6 +209,23 @@ internal static class Sources
         }
         """;
 
+    // A State type that is an array: a JSON array is a legitimate state shape, and the generated set implements
+    // IJevQuestionSet<TSelf, TElement[]>, naming the element type fully qualified with the array suffix.
+    public const string WithArrayState = """
+        using ZeroAlloc.Jev;
+
+        namespace Demo;
+
+        public sealed record ChatMessage(string Role, string Content);
+
+        [JevQuestions(State = typeof(ChatMessage[]))]
+        public partial record ArrayStateSet
+        {
+            [Noul("q")]
+            public partial Noul Answer { get; }
+        }
+        """;
+
     // A keyword-named question property and a keyword-named enum member: both must be emitted as
     // '@'-escaped identifiers while the JSON ids they produce stay the bare keyword text.
     public const string KeywordMembers = """
