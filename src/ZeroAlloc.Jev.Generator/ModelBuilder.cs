@@ -87,6 +87,9 @@ internal static class ModelBuilder
 
             if (!IsValidStateType(stateType))
             {
+                // StateArgumentLocation returns null only when the attribute application has no source syntax
+                // at all, which is not reachable from a [JevQuestions]-decorated declaration (always in source).
+                // The type's own location is the best defensive fallback then; it is not the attribute's location.
                 var location = StateArgumentLocation(attribute, cancellationToken) ?? LocationInfo.From(type);
                 diagnostics.Add(DiagnosticInfo.Create(Diagnostics.InvalidStateType, location, stateType.ToDisplayString()));
                 return null;
@@ -98,9 +101,13 @@ internal static class ModelBuilder
         return null;
     }
 
+    // A static class has no value, so no instance of it could ever flow through EvaluateAsync<T, TState>: rejected.
+    // An abstract class is accepted: a derived instance is a legitimate polymorphic state when its JsonTypeInfo
+    // handles the derived types.
     private static bool IsValidStateType(ITypeSymbol type)
         => type.SpecialType != SpecialType.System_Void
             && type.TypeKind is TypeKind.Class or TypeKind.Struct
+            && !type.IsStatic
             && type is not INamedTypeSymbol { IsUnboundGenericType: true };
 
     /// <summary>

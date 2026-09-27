@@ -25,6 +25,7 @@ public sealed class DiagnosticTests
         { "JEV107", "[JevQuestions(State = typeof(void))] public partial class C { }", "State = typeof(void)" },
         { "JEV107", "[JevQuestions(State = typeof(MyDelegate))] public partial class C { } public delegate void MyDelegate();", "State = typeof(MyDelegate)" },
         { "JEV107", "[JevQuestions(State = typeof(MyEnum))] public partial class C { } public enum MyEnum { A }", "State = typeof(MyEnum)" },
+        { "JEV107", "[JevQuestions(State = typeof(StaticState))] public partial class C { } public static class StaticState { }", "State = typeof(StaticState)" },
     };
 
     [Theory]

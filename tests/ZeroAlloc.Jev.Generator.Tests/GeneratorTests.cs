@@ -22,6 +22,15 @@ public sealed class GeneratorTests
     public void WithState_Generates() => AssertGenerates(Sources.WithState);
 
     [Fact]
+    public void WithAbstractState_Generates() => AssertGenerates(Sources.WithAbstractState);
+
+    [Fact]
+    public void WithNestedState_Generates() => AssertGenerates(Sources.WithNestedState);
+
+    [Fact]
+    public void WithClosedGenericState_Generates() => AssertGenerates(Sources.WithClosedGenericState);
+
+    [Fact]
     public void ChoiceOverEmptyEnum_CompilesWithoutError() => AssertCompiles(Sources.ChoiceOverEmptyEnum);
 
     [Fact]
@@ -56,6 +65,45 @@ public sealed class GeneratorTests
     public void InvalidType_UnrelatedEdit_KeepsQuestionSetsCached()
     {
         var compilation = GeneratorHarness.Compile("using ZeroAlloc.Jev;\n[JevQuestions] public class NotPartial { }");
+        var driver = GeneratorHarness.CreateDriver().RunGenerators(compilation);
+
+        var edited = compilation.AddSyntaxTrees(
+            CSharpSyntaxTree.ParseText("internal static class Unrelated { }", GeneratorHarness.ParseOptions));
+        driver = driver.RunGenerators(edited);
+
+        var steps = driver.GetRunResult().Results[0].TrackedSteps[QuestionSetGenerator.TrackingName];
+        Assert.NotEmpty(steps);
+        Assert.All(
+            steps.SelectMany(step => step.Outputs),
+            output => Assert.True(
+                output.Reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged,
+                $"Step output was {output.Reason}."));
+    }
+
+    [Fact]
+    public void WithState_UnrelatedEdit_KeepsQuestionSetsCached()
+    {
+        var compilation = GeneratorHarness.Compile(Sources.WithState);
+        var driver = GeneratorHarness.CreateDriver().RunGenerators(compilation);
+
+        var edited = compilation.AddSyntaxTrees(
+            CSharpSyntaxTree.ParseText("internal static class Unrelated { }", GeneratorHarness.ParseOptions));
+        driver = driver.RunGenerators(edited);
+
+        var steps = driver.GetRunResult().Results[0].TrackedSteps[QuestionSetGenerator.TrackingName];
+        Assert.NotEmpty(steps);
+        Assert.All(
+            steps.SelectMany(step => step.Outputs),
+            output => Assert.True(
+                output.Reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged,
+                $"Step output was {output.Reason}."));
+    }
+
+    [Fact]
+    public void InvalidState_UnrelatedEdit_KeepsQuestionSetsCached()
+    {
+        var compilation = GeneratorHarness.Compile(
+            "using ZeroAlloc.Jev;\n[JevQuestions(State = typeof(IFoo))] public partial class C { } public interface IFoo { }");
         var driver = GeneratorHarness.CreateDriver().RunGenerators(compilation);
 
         var edited = compilation.AddSyntaxTrees(
