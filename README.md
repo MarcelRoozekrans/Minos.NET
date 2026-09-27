@@ -16,6 +16,7 @@ Unofficial .NET client for [TypeSafe AI](https://typesafe.ai)'s **Jev**, the fir
 
 - `JevClient` calls `POST /v1/systemone` and `GET /v1/models` on TypeSafe or OpenRouter and returns `Result<T, JevError>` for every outcome — HTTP errors, network failures, time-outs and unreadable responses included.
 - `[JevQuestions]` source generator: declare questions as a C# type; the question JSON is emitted at compile time and answers parse into `Noul`, `Choice<TEnum>` and `Score<TEnum>`.
+- Typed evaluation: `EvaluateAsync<T>` and `EvaluateAsync<T, TState>` return the generated type directly, over a raw, pooled-buffer path.
 - Native AOT: no reflection, verified by an AOT smoke app in CI.
 
 ## Example
@@ -57,13 +58,6 @@ Declare the questions as a partial record with `[JevQuestions]`; the generator e
 ```csharp
 using ZeroAlloc.Jev;
 
-[JevQuestions]
-public partial record UrgencyCheck
-{
-    [Noul("Does this convey urgency?")]
-    public partial Noul IsUrgent { get; }
-}
-
 using var jev = new JevClient(new JevClientOptions { ApiKey = apiKey });
 
 var result = await jev.EvaluateAsync<UrgencyCheck>("Help! My payouts have been failing for 3 days.");
@@ -73,13 +67,25 @@ Console.WriteLine(result switch
     { IsSuccess: true } => $"P(urgent) = {result.Value.IsUrgent.Probability:P0}",
     _ => $"{result.Error.Kind}: {result.Error.Message}",
 });
+
+[JevQuestions]
+public partial record UrgencyCheck
+{
+    [Noul("Does this convey urgency?")]
+    public partial Noul IsUrgent { get; }
+}
 ```
 
-`JevClient` answers `EvaluateAsync<T>` over a raw, zero-allocation UTF-8 path instead of building `SystemOneRequest` and `SystemOneResponse`; any other `IJevClient` (a hand-written fake, for example) falls back to a compatible, allocating default that parses the same typed answers from the untyped call.
+`JevClient` answers `EvaluateAsync<T>` over a raw, pooled-buffer UTF-8 path instead of building `SystemOneRequest` and `SystemOneResponse`; any other `IJevClient` (a hand-written fake, for example) falls back to a compatible, allocating default that parses the same typed answers from the untyped call.
 
 For a typed state instead of plain text, name it on the question set with `State = typeof(...)` and call `EvaluateAsync<T, TState>` with a source-generated `JsonTypeInfo<TState>`:
 
 ```csharp
+using System.Text.Json.Serialization;
+
+var ticket = new TicketContext("Payouts failing", "Help! My payouts have been failing for 3 days.");
+var result = await jev.EvaluateAsync<TicketUrgency, TicketContext>(ticket, TicketContextJsonContext.Default.TicketContext);
+
 public sealed record TicketContext(string Subject, string Body);
 
 [JsonSerializable(typeof(TicketContext))]
@@ -91,9 +97,6 @@ public partial record TicketUrgency
     [Noul("Does the ticket convey urgency?")]
     public partial Noul IsUrgent { get; }
 }
-
-var ticket = new TicketContext("Payouts failing", "Help! My payouts have been failing for 3 days.");
-var result = await jev.EvaluateAsync<TicketUrgency, TicketContext>(ticket, TicketContextJsonContext.Default.TicketContext);
 ```
 
 Set `JevClientOptions.Model` to send a model or alias other than `JevDefaults.Model` on typed calls.
