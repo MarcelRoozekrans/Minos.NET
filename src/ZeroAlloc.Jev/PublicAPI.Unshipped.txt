@@ -5,10 +5,23 @@ abstract ZeroAlloc.Jev.JevOptionSet<T>.IndexOfKey(ref System.Text.Json.Utf8JsonR
 abstract ZeroAlloc.Jev.JevOptionSet<T>.this[int index].get -> T
 const ZeroAlloc.Jev.JevDefaults.BaseAddressEnvironmentVariable = "TYPESAFE_BASE_URL" -> string!
 const ZeroAlloc.Jev.JevDefaults.OpenRouterApiKeyEnvironmentVariable = "OPENROUTER_API_KEY" -> string!
+override ZeroAlloc.Jev.Choice<T>.Equals(object? obj) -> bool
+override ZeroAlloc.Jev.Choice<T>.GetHashCode() -> int
+override ZeroAlloc.Jev.ProbabilityMap<T>.Equals(object? obj) -> bool
+override ZeroAlloc.Jev.ProbabilityMap<T>.GetHashCode() -> int
+override ZeroAlloc.Jev.Score<T>.Equals(object? obj) -> bool
+override ZeroAlloc.Jev.Score<T>.GetHashCode() -> int
+static ZeroAlloc.Jev.Choice<T>.operator !=(ZeroAlloc.Jev.Choice<T> left, ZeroAlloc.Jev.Choice<T> right) -> bool
+static ZeroAlloc.Jev.Choice<T>.operator ==(ZeroAlloc.Jev.Choice<T> left, ZeroAlloc.Jev.Choice<T> right) -> bool
+static ZeroAlloc.Jev.ProbabilityMap<T>.operator !=(ZeroAlloc.Jev.ProbabilityMap<T> left, ZeroAlloc.Jev.ProbabilityMap<T> right) -> bool
+static ZeroAlloc.Jev.ProbabilityMap<T>.operator ==(ZeroAlloc.Jev.ProbabilityMap<T> left, ZeroAlloc.Jev.ProbabilityMap<T> right) -> bool
+static ZeroAlloc.Jev.Score<T>.operator !=(ZeroAlloc.Jev.Score<T> left, ZeroAlloc.Jev.Score<T> right) -> bool
+static ZeroAlloc.Jev.Score<T>.operator ==(ZeroAlloc.Jev.Score<T> left, ZeroAlloc.Jev.Score<T> right) -> bool
 ZeroAlloc.Jev.Choice<T>
 ZeroAlloc.Jev.Choice<T>.Choice() -> void
 ZeroAlloc.Jev.Choice<T>.Choice(T value, double confidence, ZeroAlloc.Jev.ProbabilityMap<T> probabilities) -> void
 ZeroAlloc.Jev.Choice<T>.Confidence.get -> double
+ZeroAlloc.Jev.Choice<T>.Equals(ZeroAlloc.Jev.Choice<T> other) -> bool
 ZeroAlloc.Jev.Choice<T>.Probabilities.get -> ZeroAlloc.Jev.ProbabilityMap<T>
 ZeroAlloc.Jev.Choice<T>.Value.get -> T
 ZeroAlloc.Jev.ChoiceAnswer
@@ -166,11 +179,13 @@ ZeroAlloc.Jev.ProbabilityMap<T>.Enumerator
 ZeroAlloc.Jev.ProbabilityMap<T>.Enumerator.Current.get -> (T Option, double Probability)
 ZeroAlloc.Jev.ProbabilityMap<T>.Enumerator.Enumerator() -> void
 ZeroAlloc.Jev.ProbabilityMap<T>.Enumerator.MoveNext() -> bool
+ZeroAlloc.Jev.ProbabilityMap<T>.Equals(ZeroAlloc.Jev.ProbabilityMap<T> other) -> bool
 ZeroAlloc.Jev.ProbabilityMap<T>.GetEnumerator() -> ZeroAlloc.Jev.ProbabilityMap<T>.Enumerator
 ZeroAlloc.Jev.ProbabilityMap<T>.ProbabilityMap() -> void
 ZeroAlloc.Jev.ProbabilityMap<T>.this[T option].get -> double
 ZeroAlloc.Jev.Score<T>
 ZeroAlloc.Jev.Score<T>.Confidence.get -> double
+ZeroAlloc.Jev.Score<T>.Equals(ZeroAlloc.Jev.Score<T> other) -> bool
 ZeroAlloc.Jev.Score<T>.Expected.get -> double
 ZeroAlloc.Jev.Score<T>.Probabilities.get -> ZeroAlloc.Jev.ProbabilityMap<T>
 ZeroAlloc.Jev.Score<T>.Score() -> void

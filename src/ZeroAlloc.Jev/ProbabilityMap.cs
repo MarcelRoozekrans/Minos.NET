@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace ZeroAlloc.Jev;
 
 /// <summary>The probability of each option of a typed Choice or Score answer, looked up by enum value.</summary>
@@ -6,7 +8,7 @@ namespace ZeroAlloc.Jev;
 /// The map is a view over a buffer that all answers of one parse share, so reading it allocates nothing. Options the
 /// response did not mention have probability 0.
 /// </remarks>
-public readonly struct ProbabilityMap<T>
+public readonly struct ProbabilityMap<T> : IEquatable<ProbabilityMap<T>>
     where T : struct, Enum
 {
     private readonly double[]? _buffer;
@@ -49,7 +51,7 @@ public readonly struct ProbabilityMap<T>
             var index = _options?.IndexOf(option) ?? -1;
             if (index < 0)
             {
-                throw new ArgumentOutOfRangeException(nameof(option), option, "The value is not one of the options.");
+                ThrowNotAnOption(index);
             }
 
             return _buffer![_offset + index];
@@ -59,6 +61,80 @@ public readonly struct ProbabilityMap<T>
     /// <summary>Returns an enumerator over the options and their probabilities, in wire order.</summary>
     /// <returns>The enumerator.</returns>
     public Enumerator GetEnumerator() => new(this);
+
+    /// <summary>Compares two maps for equality.</summary>
+    /// <param name="left">The first value.</param>
+    /// <param name="right">The second value.</param>
+    /// <returns><see langword="true"/> when both maps hold equal probabilities for the same options.</returns>
+    public static bool operator ==(ProbabilityMap<T> left, ProbabilityMap<T> right) => left.Equals(right);
+
+    /// <summary>Compares two maps for inequality.</summary>
+    /// <param name="left">The first value.</param>
+    /// <param name="right">The second value.</param>
+    /// <returns><see langword="true"/> when the maps differ.</returns>
+    public static bool operator !=(ProbabilityMap<T> left, ProbabilityMap<T> right) => !left.Equals(right);
+
+    /// <inheritdoc />
+    public bool Equals(ProbabilityMap<T> other)
+    {
+        var count = Count;
+        var otherCount = other.Count;
+
+        if (count == 0 && otherCount == 0)
+        {
+            return true;
+        }
+
+        if (count != otherCount)
+        {
+            return false;
+        }
+
+        if (!ReferenceEquals(_options, other._options))
+        {
+            var comparer = EqualityComparer<T>.Default;
+            for (var i = 0; i < count; i++)
+            {
+                if (!comparer.Equals(_options![i], other._options![i]))
+                {
+                    return false;
+                }
+            }
+        }
+
+        for (var i = 0; i < count; i++)
+        {
+            if (!_buffer![_offset + i].Equals(other._buffer![other._offset + i]))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is ProbabilityMap<T> other && Equals(other);
+
+    /// <inheritdoc />
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        var count = Count;
+        hash.Add(count);
+        for (var i = 0; i < count; i++)
+        {
+            hash.Add(_buffer![_offset + i]);
+        }
+
+        return hash.ToHashCode();
+    }
+
+    /// <summary>Throws for an option that is not one of this map's options, without boxing it.</summary>
+    /// <param name="index">The option's failed lookup result; always negative for this call.</param>
+    [DoesNotReturn]
+    private static void ThrowNotAnOption(int index)
+        => throw new ArgumentOutOfRangeException(nameof(index), "The value is not one of the options.");
 
     /// <summary>Enumerates the options of a <see cref="ProbabilityMap{T}"/> with their probabilities.</summary>
     public struct Enumerator
