@@ -25,5 +25,6 @@ public sealed class OpenRouterLiveTests
         Live.AssertAnsweredEveryQuestion(result.Value);
         Assert.NotNull(result.Value.Id);
         Assert.NotNull(result.Value.Provider);
+        Assert.NotNull(result.Value.Usage.Cost);
     }
 }

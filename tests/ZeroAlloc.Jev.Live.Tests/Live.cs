@@ -9,9 +9,14 @@ internal static class Live
 
     private static readonly string[] TeamOptions = ["billing", "technical", "sales"];
 
-    /// <summary>Creates an owned <see cref="JevClient"/> whose key comes from the environment.</summary>
+    /// <summary>
+    /// Creates an owned <see cref="JevClient"/> whose key comes from the environment. <see
+    /// cref="JevClientOptions.MaxRetries"/> is 0, so each evaluation bills at most once and a transient failure
+    /// surfaces instead of being hidden by a retry.
+    /// </summary>
     /// <param name="provider">The provider to call.</param>
-    public static JevClient Client(JevProvider provider) => new(new JevClientOptions { Provider = provider });
+    public static JevClient Client(JevProvider provider)
+        => new(new JevClientOptions { Provider = provider, MaxRetries = 0 });
 
     /// <summary>
     /// Gets the model to send: <c>JEV_LIVE_OPENROUTER_MODEL</c> for OpenRouter, else <c>JEV_LIVE_MODEL</c>, else
