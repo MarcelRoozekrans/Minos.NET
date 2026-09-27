@@ -20,9 +20,9 @@
 
 ## Branching
 
-**Model:** trunk
-**PR required:** no (detected 2026-09-27: `main` on ZeroAlloc-Net/ZeroAlloc.Jev is unprotected)
-**Protected branches:** none
+**Model:** feature-branch
+**PR required:** yes (ruleset "Main" on ZeroAlloc-Net/ZeroAlloc.Jev, 2026-09-27; the branch-protection endpoint does not report rulesets)
+**Protected branches:** main
 
 ## Versioning & Release
 
