@@ -4,9 +4,15 @@
 
 ## Current Position
 - **Milestone:** 2 — Typed .NET API (active since 2026-09-27; Milestone 1 complete, audit PASS)
-- **Phase:** 2.1 — Typed evaluation (active; spec and plan written, executing on branch `phase/2.1-typed-evaluation`)
-- **Last completed task:** Phase 1.8 — CI and release pipeline, merged as PR #44 on 2026-09-27; closes #14, #15, #30. Milestone 1 closed.
-- **Next task:** Phase 2.1 brainstorm on its own branch. Milestone 2 design: `docs/superpowers/specs/2026-09-27-milestone-2-design.md` (performance folded into each phase, 2.5 removed). Done since Milestone 1 closed: ZeroAlloc.Rest 2.2.0 / Resilience 3.3.0 adopted (Renovate #45), `X-TypeSafe-Retry-Count` sent on retries (PR #47, closes #40), `JevClient.ThrowDeclined` replaced by `[Retry(RethrowDeclined = true)]`.
+- **Phase:** 2.2 — Analyzers and code fixes (pending; no design spec yet)
+- **Last completed task:** Phase 2.1 — Typed evaluation, merged as PR #49 on 2026-09-27; closes #12, #13, #22.
+- **Next task:** Phase 2.2 brainstorm on its own branch: `ZeroAlloc.Jev.Analyzers` (JEV001–004, and JEV101–107 moved out of the generator; #4–#11) and `ZeroAlloc.Jev.CodeFixes`.
+
+## What Phase 2.1 shipped
+- `IJevClient.EvaluateAsync<T>` (string, `JsonElement`), `EvaluateUtf8Async<T>`, `EvaluateAsync<T, TState>` as default interface methods; `JevClient` overrides with a raw pooled-buffer path through `IJevApi.EvaluateRawAsync` and `JevRawSerializer`. Overload pairs without / with required `ct` (RS0026).
+- `[JevQuestions(State = typeof(...))]` → `IJevQuestionSet<TSelf, TState>`; JEV107 for invalid State types (moves to the analyzers in 2.2).
+- `JevClientOptions.Model`; value equality for `ProbabilityMap<T>`, `Choice<T>`, `Score<T>`.
+- Allocation gates: typed round trip 3784 B / budget 4224 B (identical on linux-x64). Upstream: ZeroAlloc.Rest#362.
 
 ## What Phase 1.8 shipped
 - The AOT smoke app enforces `AllocationGate` budgets (Parse 192 B, readers 0 B, `EvaluateAsync` 5120 B) and treats every warning as an error.
