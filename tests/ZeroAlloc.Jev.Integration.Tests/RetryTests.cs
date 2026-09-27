@@ -84,12 +84,7 @@ public sealed class RetryTests : IClassFixture<WireMockFixture>
             .OrderBy(entry => entry.RequestMessage!.DateTime)
             .Select(entry => entry.RequestMessage!.Headers!.TryGetValue("X-TypeSafe-Retry-Count", out var values) ? values[0] : null)
             .ToList();
-        // The spec (and TypeSafe's Python SDK) calls for the header to be absent on the first attempt.
-        // ZeroAlloc.Rest 2.2.0 cannot do that yet: a null [Header] argument still sends an empty-valued header
-        // instead of omitting it (ZeroAlloc-Net/ZeroAlloc.Rest#354, closed upstream but not yet in a released
-        // package). Once a release with that fix ships and this project upgrades to it, the first value below
-        // becomes null with no code change on this side.
-        Assert.Equal(["", "1", "2"], retryCounts);
+        Assert.Equal([null, "1", "2"], retryCounts);
     }
 
     [Fact]
