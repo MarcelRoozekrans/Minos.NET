@@ -46,6 +46,10 @@ For OpenRouter, set `Provider = JevProvider.OpenRouter` and an OpenRouter key (o
 
 Rate limiting (429), overload (503, 529), other server errors (5xx), request time-outs (408), network failures and client time-outs are retried with exponential backoff, honouring the server's `Retry-After`. Defaults follow TypeSafe's official SDKs: 2 retries, a 500 ms initial backoff and jitter; each wait, including a server's `Retry-After`, is capped at 30 s. Tune them with `MaxRetries`, `InitialBackoff`, `MaxRetryDelay` and `Jitter` on `JevClientOptions`. Retrying a time-out, network failure or 5xx can process, and bill, a request twice; set `MaxRetries = 0` where that matters. If you pass your own `HttpClient` that already has a retry handler, such as `AddStandardResilienceHandler`, set `MaxRetries = 0` so retries don't multiply.
 
+## Testing
+
+`dotnet test` runs the unit tests, the generator tests and the WireMock integration tests. The live smoke tests in `tests/ZeroAlloc.Jev.Live.Tests` call the real APIs and are skipped unless `TYPESAFE_API_KEY` or `OPENROUTER_API_KEY` is set; each run makes a few small billed evaluations. Override the model with `JEV_LIVE_MODEL`, or `JEV_LIVE_OPENROUTER_MODEL` for OpenRouter. Maintainers can run them in CI with the manual **Live smoke** workflow, which reads the keys from the `live-api` environment.
+
 ## License
 
 [MIT](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/LICENSE)

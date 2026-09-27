@@ -7,6 +7,7 @@
     <Project Path="tests/ZeroAlloc.Jev.Tests/ZeroAlloc.Jev.Tests.csproj" />
     <Project Path="tests/ZeroAlloc.Jev.Generator.Tests/ZeroAlloc.Jev.Generator.Tests.csproj" />
     <Project Path="tests/ZeroAlloc.Jev.Integration.Tests/ZeroAlloc.Jev.Integration.Tests.csproj" />
+    <Project Path="tests/ZeroAlloc.Jev.Live.Tests/ZeroAlloc.Jev.Live.Tests.csproj" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/ZeroAlloc.Jev.AotSmoke/ZeroAlloc.Jev.AotSmoke.csproj" />
