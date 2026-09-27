@@ -23,5 +23,7 @@
     <PackageVersion Include="ZeroAlloc.Rest" Version="2.1.0" />
     <PackageVersion Include="ZeroAlloc.Rest.SystemTextJson" Version="2.1.0" />
     <PackageVersion Include="ZeroAlloc.Results" Version="1.2.3" />
+    <!-- Benchmarks -->
+    <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
   </ItemGroup>
 </Project>

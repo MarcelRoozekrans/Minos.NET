@@ -12,4 +12,7 @@
   <Folder Name="/samples/">
     <Project Path="samples/ZeroAlloc.Jev.AotSmoke/ZeroAlloc.Jev.AotSmoke.csproj" />
   </Folder>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/ZeroAlloc.Jev.Benchmarks/ZeroAlloc.Jev.Benchmarks.csproj" />
+  </Folder>
 </Solution>
