@@ -288,9 +288,16 @@ public sealed class JevClientTests : IDisposable
         Assert.NotNull(client);
     }
 
-    private static JevClientSettings Settings(JevProvider provider = JevProvider.TypeSafe, TimeSpan? timeout = null)
+    // maxRetries defaults to 0 so each test here sees exactly one outcome per status; JevClientRetryTests covers retries.
+    private static JevClientSettings Settings(JevProvider provider = JevProvider.TypeSafe, TimeSpan? timeout = null, int maxRetries = 0)
         => JevClientSettings.Resolve(
-            new JevClientOptions { ApiKey = "test-key", Provider = provider, Timeout = timeout ?? TimeSpan.FromSeconds(60) },
+            new JevClientOptions
+            {
+                ApiKey = "test-key",
+                Provider = provider,
+                Timeout = timeout ?? TimeSpan.FromSeconds(60),
+                MaxRetries = maxRetries,
+            },
             _ => null);
 
     private JevClient Borrowing(StubHandler handler, JevProvider provider = JevProvider.TypeSafe)
