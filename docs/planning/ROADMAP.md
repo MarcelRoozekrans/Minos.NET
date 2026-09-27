@@ -7,7 +7,7 @@ compress_memory: disabled
 > Source spec: `docs/superpowers/specs/2026-09-24-roadmap-design.md`
 
 ## Milestone 1: Foundation & core client [status: active]
-**Goal:** A working, AOT-clean `JevClient` covering both endpoints, with CI gates (tests, AOT smoke, benchmarks) and alpha packages flowing to NuGet.
+**Goal:** A working, AOT-clean `JevClient` covering both endpoints, with CI gates (tests, AOT smoke, benchmarks); NuGet publishing is deferred until the maintainer declares the package mature (#29).
 **Started:** 2026-09-24
 **Definition of Done:**
 - [ ] `JevClient` calls `POST /v1/systemone` (Noul, Choice, Score) and `GET /v1/models`, returning `Result<T, JevError>`
@@ -15,8 +15,8 @@ compress_memory: disabled
 - [ ] 401/422/429/529, network failures and timeouts map to `JevError`; 429/529 retried honoring `retry-after`
 - [ ] WireMock.Net component tests and key-gated live smoke suite pass
 - [ ] AOT smoke app publishes with zero IL2xxx/IL3xxx warnings in CI
-- [ ] BenchmarkDotNet baseline and `AllocationGate` budgets committed
-- [ ] release-please and GitVersion alpha publishing wired
+- [ ] BenchmarkDotNet smoke gate and `AllocationGate` budgets in CI
+- [ ] release-please wired; NuGet publishing deferred (#29)
 
 ### Phase 1.1: Repo scaffolding [status: complete]
 **Goal:** Solution skeleton following AdoNet.Async standards: `.slnx`, `Directory.Build.props`, analyzers, `.editorconfig`, commitlint, Renovate, logo placeholder.
@@ -157,7 +157,7 @@ compress_memory: disabled
 **Definition of Done:**
 - [ ] Pattern helpers for confidence routing, composite scoring and fan-out shipped
 - [ ] At least three cookbook samples run as C# projects
-- [ ] Docusaurus site live on GitHub Pages
+- [ ] User docs live on the org website at jev.zeroalloc.net
 - [ ] README carries the unofficial-client disclaimer
 
 ### Phase 4.1: Pattern helpers [status: pending]
