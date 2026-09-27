@@ -25,6 +25,19 @@ internal interface IJevApi
         [Header("X-TypeSafe-Retry-Count")] [RetryAttempt] int? retryCount,
         CancellationToken ct);
 
+    /// <summary>
+    /// The same endpoint as <see cref="EvaluateAsync"/>, with pre-written UTF-8 JSON in and the raw response body out,
+    /// for typed evaluation. The caller owns both <see cref="RawJson"/> values: the retry proxy sends the same
+    /// <paramref name="body"/> on every attempt, so it must stay undisposed until the call completes.
+    /// </summary>
+    [Post("v1/systemone")]
+    [Serializer(typeof(JevRawSerializer))]
+    ValueTask<Result<RawJson, JevError>> EvaluateRawAsync(
+        [Body] RawJson body,
+        [Header("Authorization")] string authorization,
+        [Header("X-TypeSafe-Retry-Count")] [RetryAttempt] int? retryCount,
+        CancellationToken ct);
+
     [Get("v1/models")]
     ValueTask<Result<ModelList, JevError>> ListModelsAsync(
         [Header("Authorization")] string authorization,

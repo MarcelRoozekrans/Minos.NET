@@ -156,6 +156,31 @@ public sealed class JevClientRetryTests : IDisposable
     }
 
     [Fact]
+    public async Task Typed_RetriesWithTheSameBody_AndSendsTheRetryCount()
+    {
+        var pool = new CountingPool();
+        var outstandingPerAttempt = new List<int>();
+        var responses = new Queue<Func<HttpResponseMessage>>([() => Response(503), Success]);
+        var handler = new StubHandler((_, _) =>
+        {
+            outstandingPerAttempt.Add(pool.Outstanding);
+            return Task.FromResult(responses.Dequeue()());
+        });
+        using var client = Client(handler, pool: pool);
+
+        var result = await client.EvaluateAsync<UrgencyCheck>("text");
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(0.95, result.Value.IsUrgent.Probability);
+        Assert.Equal([null, "1"], handler.Requests.Select(r => r.RetryCount));
+        Assert.Equal(handler.Requests[0].Body, handler.Requests[1].Body);
+
+        // The request body stays rented, and so readable, until the whole call completes.
+        Assert.All(outstandingPerAttempt, outstanding => Assert.Equal(1, outstanding));
+        Assert.Equal(0, pool.Outstanding);
+    }
+
+    [Fact]
     public async Task ListModels_RetryCount_SentOnRetries()
     {
         var handler = StubHandler.Sequence(() => Response(503), () => Response(503), () => Json(HttpStatusCode.OK, Fixture.Text("models.json")));
@@ -261,7 +286,8 @@ public sealed class JevClientRetryTests : IDisposable
         StubHandler handler,
         int maxRetries = 2,
         TimeSpan? initialBackoff = null,
-        TimeSpan? maxRetryDelay = null)
+        TimeSpan? maxRetryDelay = null,
+        CountingPool? pool = null)
     {
         var http = new HttpClient(handler);
         _httpClients.Add(http);
@@ -269,7 +295,8 @@ public sealed class JevClientRetryTests : IDisposable
             Settings(maxRetries: maxRetries, initialBackoff: initialBackoff, maxRetryDelay: maxRetryDelay),
             http,
             ownedHandler: null,
-            TimeProvider.System);
+            TimeProvider.System,
+            pool ?? new CountingPool());
     }
 
     private static JevClientSettings Settings(

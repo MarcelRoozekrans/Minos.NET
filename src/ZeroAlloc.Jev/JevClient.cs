@@ -1,5 +1,8 @@
+using System.Buffers;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Text.Json;
+using System.Text.Json.Serialization.Metadata;
 using ZeroAlloc.Jev.Serialization;
 using ZeroAlloc.Jev.Transport;
 using ZeroAlloc.Resilience;
@@ -17,6 +20,8 @@ public sealed class JevClient : IJevClient, IDisposable
     private readonly IJevApiResilienceProxy _api;
     private readonly HttpClient? _ownedHttpClient;
     private readonly string _authorization;
+    private readonly string _model;
+    private readonly ArrayPool<byte> _pool;
     private readonly JevProvider _provider;
     private bool _disposed;
 
@@ -74,6 +79,17 @@ public sealed class JevClient : IJevClient, IDisposable
     }
 
     internal JevClient(JevClientSettings settings, HttpClient? httpClient, HttpMessageHandler? ownedHandler, TimeProvider time)
+        : this(settings, httpClient, ownedHandler, time, ArrayPool<byte>.Shared)
+    {
+    }
+
+    // pool supplies the typed path's request and response buffers; tests pass a counting pool to check every one is returned.
+    internal JevClient(
+        JevClientSettings settings,
+        HttpClient? httpClient,
+        HttpMessageHandler? ownedHandler,
+        TimeProvider time,
+        ArrayPool<byte> pool)
     {
         if (httpClient is null)
         {
@@ -96,7 +112,13 @@ public sealed class JevClient : IJevClient, IDisposable
 
         _provider = settings.Provider;
         _authorization = "Bearer " + settings.ApiKey;
-        var transport = new JevApiClient(httpClient, new SystemTextJsonSerializer(JevJson.Options), new JevErrorMapper(time));
+        _model = settings.Model;
+        _pool = pool;
+        var transport = new JevApiClient(
+            httpClient,
+            new SystemTextJsonSerializer(JevJson.Options),
+            new JevRawSerializer(pool),
+            new JevErrorMapper(time));
         _api = new IJevApiResilienceProxy(transport, new JevApiResiliencePolicies { Retry = RetryPolicyFor(settings) });
     }
 
@@ -110,6 +132,89 @@ public sealed class JevClient : IJevClient, IDisposable
         ArgumentNullException.ThrowIfNull(request);
         ObjectDisposedException.ThrowIf(_disposed, this);
         return EvaluateCoreAsync(request, ct);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>Calls <see cref="EvaluateAsync{T}(string, CancellationToken)"/> without cancellation.</remarks>
+    public ValueTask<Result<T, JevError>> EvaluateAsync<T>(string state)
+        where T : IJevQuestionSet<T>
+        => EvaluateAsync<T>(state, CancellationToken.None);
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Writes the request straight from <typeparamref name="T"/>'s questions, with <see cref="JevClientOptions.Model"/>,
+    /// and reads the typed answers straight from the response body, in pooled buffers, without building a
+    /// <see cref="SystemOneRequest"/> or <see cref="SystemOneResponse"/>. Retries and errors work as for
+    /// <see cref="EvaluateAsync(SystemOneRequest, CancellationToken)"/>.
+    /// </remarks>
+    public ValueTask<Result<T, JevError>> EvaluateAsync<T>(string state, CancellationToken ct)
+        where T : IJevQuestionSet<T>
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        ArgumentNullException.ThrowIfNull(state);
+        return EvaluateTypedAsync<T>(TypedRequestWriter.Write<T>(state, _model, _pool), ct);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>Calls <see cref="EvaluateAsync{T}(JsonElement, CancellationToken)"/> without cancellation.</remarks>
+    public ValueTask<Result<T, JevError>> EvaluateAsync<T>(JsonElement state)
+        where T : IJevQuestionSet<T>
+        => EvaluateAsync<T>(state, CancellationToken.None);
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Writes the request straight from <typeparamref name="T"/>'s questions, with <see cref="JevClientOptions.Model"/>,
+    /// and reads the typed answers straight from the response body, in pooled buffers, without building a
+    /// <see cref="SystemOneRequest"/> or <see cref="SystemOneResponse"/>. Retries and errors work as for
+    /// <see cref="EvaluateAsync(SystemOneRequest, CancellationToken)"/>.
+    /// </remarks>
+    public ValueTask<Result<T, JevError>> EvaluateAsync<T>(JsonElement state, CancellationToken ct)
+        where T : IJevQuestionSet<T>
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return EvaluateTypedAsync<T>(TypedRequestWriter.Write<T>(state, _model, _pool), ct);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Writes the request straight from <typeparamref name="T"/>'s questions, with <see cref="JevClientOptions.Model"/>,
+    /// and reads the typed answers straight from the response body, in pooled buffers, without building a
+    /// <see cref="SystemOneRequest"/> or <see cref="SystemOneResponse"/>. Retries and errors work as for
+    /// <see cref="EvaluateAsync(SystemOneRequest, CancellationToken)"/>.
+    /// </remarks>
+    public ValueTask<Result<T, JevError>> EvaluateUtf8Async<T>(ReadOnlyMemory<byte> utf8JsonState, CancellationToken ct = default)
+        where T : IJevQuestionSet<T>
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return EvaluateTypedAsync<T>(TypedRequestWriter.WriteUtf8<T>(utf8JsonState.Span, _model, _pool), ct);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Calls <see cref="EvaluateAsync{T, TState}(TState, JsonTypeInfo{TState}, CancellationToken)"/> without cancellation.
+    /// </remarks>
+    public ValueTask<Result<T, JevError>> EvaluateAsync<T, TState>(TState state, JsonTypeInfo<TState> stateTypeInfo)
+        where T : IJevQuestionSet<T, TState>
+        => EvaluateAsync<T, TState>(state, stateTypeInfo, CancellationToken.None);
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Writes the request straight from <typeparamref name="T"/>'s questions, with <see cref="JevClientOptions.Model"/>,
+    /// and reads the typed answers straight from the response body, in pooled buffers, without building a
+    /// <see cref="SystemOneRequest"/> or <see cref="SystemOneResponse"/>. Retries and errors work as for
+    /// <see cref="EvaluateAsync(SystemOneRequest, CancellationToken)"/>.
+    /// </remarks>
+    public ValueTask<Result<T, JevError>> EvaluateAsync<T, TState>(TState state, JsonTypeInfo<TState> stateTypeInfo, CancellationToken ct)
+        where T : IJevQuestionSet<T, TState>
+    {
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        if (state is null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
+
+        ArgumentNullException.ThrowIfNull(stateTypeInfo);
+        return EvaluateTypedAsync<T>(TypedRequestWriter.Write<T, TState>(state, stateTypeInfo, _model, _pool), ct);
     }
 
     /// <inheritdoc />
@@ -157,6 +262,31 @@ public sealed class JevClient : IJevClient, IDisposable
         }
 
         return result;
+    }
+
+    // Owns body: the retry proxy sends the same instance on every attempt, so it is disposed only once the whole call,
+    // retries included, has completed. A successful response is the only RawJson the transport hands back; failed
+    // attempts carry a JevError and no buffer.
+    private async ValueTask<Result<T, JevError>> EvaluateTypedAsync<T>(RawJson body, CancellationToken ct)
+        where T : IJevQuestionSet<T>
+    {
+        RawJson? response = null;
+        try
+        {
+            var result = await _api.EvaluateRawAsync(body, _authorization, retryCount: null, ct).ConfigureAwait(false);
+            if (result.IsFailure)
+            {
+                return Result<T, JevError>.Failure(result.Error);
+            }
+
+            response = result.Value;
+            return TypedEvaluation.ParseResponse<T>(response.Span, statusCode: 200);
+        }
+        finally
+        {
+            response?.Dispose();
+            body.Dispose();
+        }
     }
 
     private async ValueTask<Result<ModelList, JevError>> ListModelsCoreAsync(CancellationToken ct)

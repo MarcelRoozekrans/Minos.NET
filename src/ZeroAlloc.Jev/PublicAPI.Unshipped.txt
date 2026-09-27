@@ -67,6 +67,13 @@ ZeroAlloc.Jev.JevClient
 ZeroAlloc.Jev.JevClient.Dispose() -> void
 ZeroAlloc.Jev.JevClient.EvaluateAsync(ZeroAlloc.Jev.SystemOneRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.SystemOneResponse!, ZeroAlloc.Jev.JevError!>>
 ZeroAlloc.Jev.JevClient.EvaluateAsync(ZeroAlloc.Jev.SystemOneRequest! request, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.SystemOneResponse!, ZeroAlloc.Jev.JevError!>>
+ZeroAlloc.Jev.JevClient.EvaluateAsync<T, TState>(TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
+ZeroAlloc.Jev.JevClient.EvaluateAsync<T, TState>(TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
+ZeroAlloc.Jev.JevClient.EvaluateAsync<T>(string! state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
+ZeroAlloc.Jev.JevClient.EvaluateAsync<T>(string! state, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
+ZeroAlloc.Jev.JevClient.EvaluateAsync<T>(System.Text.Json.JsonElement state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
+ZeroAlloc.Jev.JevClient.EvaluateAsync<T>(System.Text.Json.JsonElement state, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
+ZeroAlloc.Jev.JevClient.EvaluateUtf8Async<T>(System.ReadOnlyMemory<byte> utf8JsonState, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
 ZeroAlloc.Jev.JevClient.JevClient() -> void
 ZeroAlloc.Jev.JevClient.JevClient(ZeroAlloc.Jev.JevClientOptions? options) -> void
 ZeroAlloc.Jev.JevClient.JevClient(System.Net.Http.HttpClient! httpClient) -> void
