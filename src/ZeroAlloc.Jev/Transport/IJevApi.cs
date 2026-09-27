@@ -12,11 +12,12 @@ namespace ZeroAlloc.Jev.Transport;
 /// <see cref="JevClientOptions"/>. Each retry sends the attempt number as <c>X-TypeSafe-Retry-Count</c>, meant to be
 /// absent on the first attempt, as TypeSafe's official SDKs do. ZeroAlloc.Rest 2.2.0 cannot omit it yet, so the
 /// first attempt currently sends an empty value instead (ZeroAlloc-Net/ZeroAlloc.Rest#354, closed upstream but not
-/// yet in a released package); no change is needed here once a release with that fix ships.
+/// yet in a released package); no change is needed here once a release with that fix ships. A declined exception is
+/// rethrown unchanged instead of being wrapped in <see cref="ResilienceException"/>.
 /// </remarks>
 [ZeroAllocRestClient(MaxErrorBodyBytes = 16384)]
 [ErrorMapper(typeof(JevErrorMapper))]
-[Retry(RetryWhen = nameof(IsTransient), DelayHint = nameof(RetryAfter), RetryOnException = nameof(NeverRetry))]
+[Retry(RetryWhen = nameof(IsTransient), DelayHint = nameof(RetryAfter), RetryOnException = nameof(NeverRetry), RethrowDeclined = true)]
 internal interface IJevApi
 {
     [Post("v1/systemone")]
