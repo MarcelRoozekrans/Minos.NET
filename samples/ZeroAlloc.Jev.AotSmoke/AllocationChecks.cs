@@ -24,7 +24,9 @@ internal static class AllocationChecks
         var answers = Encoding.UTF8.GetBytes(TriageAnswersJson);
 
         // Measured ~176 B/call on published win-x64 AOT: the SmokeTriage result record plus its shared probability
-        // buffer (double[3]). Rounded up to the next multiple of 64.
+        // buffer (double[3]), rounded up to the next multiple of 64. This gate allocates only the result record
+        // and its arrays, whose sizes are identical on 64-bit Linux and Windows, so the thin margin above the
+        // measurement is deliberate, not an oversight.
         Gate(
             budgetBytes: 192,
             action: () =>
@@ -112,10 +114,13 @@ internal static class AllocationChecks
         };
 
         // Measured ~4592 B/call on published win-x64 AOT: HttpRequestMessage, headers and content for the request,
-        // plus the response's HttpResponseMessage, its body buffering and JSON deserialization into SystemOneResponse.
-        // Rounded up to the next multiple of 64.
+        // plus the response's HttpResponseMessage, its body buffering and JSON deserialization into
+        // SystemOneResponse. This is the one gate whose allocation shape can vary across OS and runtime patch
+        // versions, since HttpClient's internal buffering differs by platform, so it carries about 10% headroom
+        // (5120 B, ~11% over the win-x64 measurement) instead of the next 64-byte step. Bring the budget down once
+        // a linux-x64 measurement exists.
         GateValueTask(
-            budgetBytes: 4608,
+            budgetBytes: 5120,
             action: () => client.EvaluateAsync(request),
             label: "EvaluateRoundTrip",
             passDescription: "EvaluateAsync stays within its allocation budget");
