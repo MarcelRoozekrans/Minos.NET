@@ -34,7 +34,8 @@ internal sealed class StubHandler(Func<HttpRequestMessage, CancellationToken, Ta
             request.Headers.TryGetValues("Authorization", out var auth) ? string.Join(",", auth) : null,
             request.Headers.UserAgent.ToString(),
             body,
-            Stopwatch.GetTimestamp()));
+            Stopwatch.GetTimestamp(),
+            request.Headers.TryGetValues("X-TypeSafe-Retry-Count", out var retryCount) ? string.Join(",", retryCount) : null));
         return await respond(request, cancellationToken).ConfigureAwait(false);
     }
 
@@ -44,5 +45,5 @@ internal sealed class StubHandler(Func<HttpRequestMessage, CancellationToken, Ta
         base.Dispose(disposing);
     }
 
-    internal sealed record Captured(HttpMethod Method, Uri? Uri, string? Authorization, string UserAgent, string? Body, long Timestamp);
+    internal sealed record Captured(HttpMethod Method, Uri? Uri, string? Authorization, string UserAgent, string? Body, long Timestamp, string? RetryCount = null);
 }

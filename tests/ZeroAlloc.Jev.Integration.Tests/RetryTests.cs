@@ -51,6 +51,43 @@ public sealed class RetryTests : IClassFixture<WireMockFixture>
     }
 
     [Fact]
+    public async Task RetryCount_IsSentOnRetries()
+    {
+        _fixture.Server
+            .Given(Request.Create().WithPath("/v1/systemone").UsingPost())
+            .InScenario("retry-count")
+            .WillSetStateTo("retried-once")
+            .RespondWith(Response.Create().WithStatusCode(HttpStatusCode.ServiceUnavailable));
+
+        _fixture.Server
+            .Given(Request.Create().WithPath("/v1/systemone").UsingPost())
+            .InScenario("retry-count")
+            .WhenStateIs("retried-once")
+            .WillSetStateTo("retried-twice")
+            .RespondWith(Response.Create().WithStatusCode(HttpStatusCode.ServiceUnavailable));
+
+        _fixture.Server
+            .Given(Request.Create().WithPath("/v1/systemone").UsingPost())
+            .InScenario("retry-count")
+            .WhenStateIs("retried-twice")
+            .RespondWith(Response.Create()
+                .WithStatusCode(HttpStatusCode.OK)
+                .WithHeader("Content-Type", "application/json")
+                .WithBody(Fixture.Text("response-noul.json")));
+
+        using var client = IntegrationClient.Create(_fixture.BaseAddress, maxRetries: 2);
+
+        var result = await client.EvaluateAsync(Fixtures.NoulRequest());
+
+        Assert.True(result.IsSuccess);
+        var retryCounts = _fixture.Server.LogEntries
+            .OrderBy(entry => entry.RequestMessage!.DateTime)
+            .Select(entry => entry.RequestMessage!.Headers!.TryGetValue("X-TypeSafe-Retry-Count", out var values) ? values[0] : null)
+            .ToList();
+        Assert.Equal([null, "1", "2"], retryCounts);
+    }
+
+    [Fact]
     public async Task PersistentOverload_MakesMaxRetriesPlusOneAttempts()
     {
         _fixture.Server

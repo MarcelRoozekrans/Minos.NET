@@ -1,7 +1,5 @@
-using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Headers;
 using System.Reflection;
-using System.Runtime.ExceptionServices;
 using ZeroAlloc.Jev.Serialization;
 using ZeroAlloc.Jev.Transport;
 using ZeroAlloc.Resilience;
@@ -139,16 +137,7 @@ public sealed class JevClient : IJevClient, IDisposable
 
     private async ValueTask<Result<SystemOneResponse, JevError>> EvaluateCoreAsync(SystemOneRequest request, CancellationToken ct)
     {
-        Result<SystemOneResponse, JevError> result;
-        try
-        {
-            result = await _api.EvaluateAsync(request, _authorization, ct).ConfigureAwait(false);
-        }
-        catch (ResilienceException exception) when (exception.InnerException is not null)
-        {
-            ThrowDeclined(exception);
-            throw;
-        }
+        var result = await _api.EvaluateAsync(request, _authorization, retryCount: null, ct).ConfigureAwait(false);
 
         if (result.IsSuccess)
         {
@@ -168,16 +157,7 @@ public sealed class JevClient : IJevClient, IDisposable
 
     private async ValueTask<Result<ModelList, JevError>> ListModelsCoreAsync(CancellationToken ct)
     {
-        Result<ModelList, JevError> result;
-        try
-        {
-            result = await _api.ListModelsAsync(_authorization, ct).ConfigureAwait(false);
-        }
-        catch (ResilienceException exception) when (exception.InnerException is not null)
-        {
-            ThrowDeclined(exception);
-            throw;
-        }
+        var result = await _api.ListModelsAsync(_authorization, retryCount: null, ct).ConfigureAwait(false);
 
         return result.IsSuccess && result.Value is null
             ? Result<ModelList, JevError>.Failure(Unreadable("The response body is null."))
@@ -193,13 +173,6 @@ public sealed class JevClient : IJevClient, IDisposable
             jitter: settings.Jitter,
             perAttemptTimeoutMs: 0,
             maxDelayMs: (int)Math.Ceiling(settings.MaxRetryDelay.TotalMilliseconds));
-
-    // The proxy wraps an exception that NeverRetry declined; this rethrows the original programming error with its
-    // stack trace intact. Caller cancellation never arrives here: the proxy rethrows it unwrapped.
-    // Remove once ZeroAlloc-Net/ZeroAlloc.Resilience#195 ships.
-    [DoesNotReturn]
-    private static void ThrowDeclined(ResilienceException exception)
-        => ExceptionDispatchInfo.Throw(exception.InnerException!);
 
     // System.Text.Json does not apply nullable annotations to dictionary values, so a null answer can arrive.
     private static bool HasNullAnswer(SystemOneResponse response)

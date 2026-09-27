@@ -132,6 +132,42 @@ public sealed class JevClientRetryTests : IDisposable
     }
 
     [Fact]
+    public async Task RetryCount_SentOnRetries()
+    {
+        var handler = StubHandler.Sequence(() => Response(503), () => Response(503), Success);
+        using var client = Client(handler);
+
+        var result = await client.EvaluateAsync(Request());
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal([null, "1", "2"], handler.Requests.Select(r => r.RetryCount));
+    }
+
+    [Fact]
+    public async Task RetryCount_IsAbsent_WhenTheFirstAttemptSucceeds()
+    {
+        var handler = StubHandler.Sequence(Success);
+        using var client = Client(handler);
+
+        var result = await client.EvaluateAsync(Request());
+
+        Assert.True(result.IsSuccess);
+        Assert.Null(handler.Requests[0].RetryCount);
+    }
+
+    [Fact]
+    public async Task ListModels_RetryCount_SentOnRetries()
+    {
+        var handler = StubHandler.Sequence(() => Response(503), () => Response(503), () => Json(HttpStatusCode.OK, Fixture.Text("models.json")));
+        using var client = Client(handler);
+
+        var result = await client.ListModelsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal([null, "1", "2"], handler.Requests.Select(r => r.RetryCount));
+    }
+
+    [Fact]
     public async Task RetryAfter_ReplacesTheBackoff()
     {
         var handler = StubHandler.Sequence(() => Response(429, retryAfterMs: "150"), Success);
