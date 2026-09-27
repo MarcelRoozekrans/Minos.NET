@@ -81,6 +81,25 @@ public sealed class JevClientSettingsTests
         => Assert.Throws<ArgumentException>(
             () => Resolve(new JevClientOptions { ApiKey = "k", BaseAddress = new Uri("v1", UriKind.Relative) }));
 
+    [Fact]
+    public void BaseAddressOptionWithQuery_Throws()
+        => Assert.Throws<ArgumentException>(
+            () => Resolve(new JevClientOptions { ApiKey = "k", BaseAddress = new Uri("http://host/api?key=value") }));
+
+    [Fact]
+    public void BaseAddressOptionWithFragment_Throws()
+        => Assert.Throws<ArgumentException>(
+            () => Resolve(new JevClientOptions { ApiKey = "k", BaseAddress = new Uri("http://host/api#x") }));
+
+    [Fact]
+    public void BaseAddressEnvironmentWithQuery_Throws_NamingTheVariable()
+    {
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => Resolve(new JevClientOptions { ApiKey = "k" }, ("TYPESAFE_BASE_URL", "http://host/api?key=value")));
+
+        Assert.Contains("TYPESAFE_BASE_URL", exception.Message, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData(0)]
     [InlineData(-1)]

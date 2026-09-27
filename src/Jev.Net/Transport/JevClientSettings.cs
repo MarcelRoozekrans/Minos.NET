@@ -58,6 +58,11 @@ internal sealed class JevClientSettings
             throw new ArgumentException("The base address must be an absolute URI.", nameof(options));
         }
 
+        if (options.BaseAddress is not null && HasQueryOrFragment(baseAddress))
+        {
+            throw new ArgumentException("The base address must not contain a query or fragment.", nameof(options));
+        }
+
         return new JevClientSettings(options.Provider, apiKey, WithTrailingSlash(baseAddress), options.Timeout);
     }
 
@@ -73,11 +78,22 @@ internal sealed class JevClientSettings
             return null;
         }
 
-        return Uri.TryCreate(text, UriKind.Absolute, out var uri)
-            ? uri
-            : throw new InvalidOperationException(
+        if (!Uri.TryCreate(text, UriKind.Absolute, out var uri))
+        {
+            throw new InvalidOperationException(
                 "The " + JevDefaults.BaseAddressEnvironmentVariable + " environment variable is not an absolute URI.");
+        }
+
+        if (HasQueryOrFragment(uri))
+        {
+            throw new InvalidOperationException(
+                "The " + JevDefaults.BaseAddressEnvironmentVariable + " environment variable must not contain a query or fragment.");
+        }
+
+        return uri;
     }
+
+    private static bool HasQueryOrFragment(Uri uri) => uri.Query.Length > 0 || uri.Fragment.Length > 0;
 
     private static Uri WithTrailingSlash(Uri uri)
         => uri.AbsoluteUri.EndsWith('/') ? uri : new Uri(uri.AbsoluteUri + "/");
