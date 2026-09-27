@@ -4,9 +4,9 @@
 
 ## Current Position
 - **Milestone:** 1 — Foundation & core client (complete 2026-09-27; audit PASS)
-- **Phase:** none active — next is a small follow-up PR, then Milestone 2
+- **Phase:** none active — next is Milestone 2
 - **Last completed task:** Phase 1.8 — CI and release pipeline, merged as PR #44 on 2026-09-27; closes #14, #15, #30. Milestone 1 closed.
-- **Next task:** Follow-up PR adopting ZeroAlloc.Rest 2.2.0 and ZeroAlloc.Resilience 3.3.0: send `X-TypeSafe-Retry-Count` (#40) via `[RetryAttempt]`, and replace the `JevClient.ThrowDeclined` workaround with `[Retry(RethrowDeclined = true)]` (#195). Then start Milestone 2.
+- **Next task:** Start Milestone 2 (`start-next-phase`). Done since Milestone 1 closed: ZeroAlloc.Rest 2.2.0 / Resilience 3.3.0 adopted (Renovate #45), `X-TypeSafe-Retry-Count` sent on retries (PR #47, closes #40), `JevClient.ThrowDeclined` replaced by `[Retry(RethrowDeclined = true)]`.
 
 ## What Phase 1.8 shipped
 - The AOT smoke app enforces `AllocationGate` budgets (Parse 192 B, readers 0 B, `EvaluateAsync` 5120 B) and treats every warning as an error.
@@ -66,4 +66,4 @@
 - Unknown until a live TypeSafe run (the phase 1.7 live suite, which needs `TYPESAFE_API_KEY`): whether TypeSafe sends `Retry-After`, and the schema of the 422 error body.
 
 ## Recommended Next Step
-Open the #40 / #195 follow-up PR on a new branch (bump ZeroAlloc.Rest to 2.2.0 and ZeroAlloc.Resilience to 3.3.0), then run `start-next-phase` for Milestone 2. Leave release PR #33 open until the package is declared mature.
+Run `start-next-phase` for Milestone 2. Open maintainer items: the `live-api` environment and TypeSafe live run, Renovate #37 (Microsoft.CodeAnalysis.Analyzers 5.9.0 for the Roslyn-5.0-pinned generator). Leave release PR #33 open until the package is declared mature. Local NuGet cache: check `.nupkg.metadata` sources if a released ZeroAlloc fix seems missing.
