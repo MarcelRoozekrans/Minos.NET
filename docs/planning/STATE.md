@@ -4,9 +4,9 @@
 
 ## Current Position
 - **Milestone:** 1 — Foundation & core client (5 of 8 phases complete)
-- **Phase:** 1.6 — Resilience (pending; no design spec yet)
+- **Phase:** 1.6 — Resilience (active; spec and plan written, executing on branch `phase/1.6-resilience`)
 - **Last completed task:** Phase 1.5 — Rename to ZeroAlloc.Jev, merged as PR #31 on 2026-09-27: package, namespaces, projects and generator renamed; org conformance; Native AOT smoke app; CI (`build`, `aot-smoke`) and release-please without NuGet publishing; follow-ups #4–#30 filed; ruleset "Main" active on `main`.
-- **Next task:** Phase 1.6 brainstorm (retries on 429/529 honouring `Retry-After`, with ZeroAlloc.Resilience 3.2.0 `RetryWhen` / `DelayHint`), on its own branch and landed through a pull request.
+- **Next task:** Execute the phase 1.6 plan subagent-driven (ledger in `.superpowers/sdd/2026-09-27-phase-1.6-resilience/progress.md`), then push and open the pull request after the maintainer's go-ahead.
 
 ## What Phase 1.5 shipped
 - Repository https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev, public; `main` protected by ruleset "Main" (required checks `build`, `aot-smoke`; pull requests with 1 approval; admin bypass for merges, since the only maintainer cannot approve their own pull request).
