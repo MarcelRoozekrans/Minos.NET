@@ -4,9 +4,9 @@
 
 ## Current Position
 - **Milestone:** 1 — Foundation & core client (6 of 8 phases complete)
-- **Phase:** 1.7 — Test harness (pending; no design spec yet)
+- **Phase:** 1.7 — Test harness (active; spec and plan written, executing on branch `phase/1.7-test-harness`)
 - **Last completed task:** Phase 1.6 — Resilience, merged as PR #39 on 2026-09-27; closes #18.
-- **Next task:** Phase 1.7 brainstorm (unit tests, WireMock.Net component tests, a live smoke suite skipped without an API key), on its own branch and landed through a pull request.
+- **Next task:** Execute the phase 1.7 plan subagent-driven; push and open the pull request after the maintainer's go-ahead. `OPENROUTER_API_KEY` is set locally, so only deliberate runs may touch the live project.
 
 ## What Phase 1.6 shipped
 - `JevClient` retries 429, 503/529, other 5xx, 408, network failures and client time-outs with exponential backoff through ZeroAlloc.Resilience 3.2.0's `[Retry]` on the internal `IJevApi`, honouring `retry-after-ms` and `Retry-After` capped by `MaxRetryDelay`; exhausted retries return the last `JevError`.

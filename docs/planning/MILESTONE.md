@@ -23,7 +23,7 @@ Deliver a working, Native AOT-clean `JevClient` for TypeSafe's Jev API covering 
 4. Phase 1.4 — Transport and error model [complete]
 5. Phase 1.5 — Rename to ZeroAlloc.Jev [complete]
 6. Phase 1.6 — Resilience [complete]
-7. Phase 1.7 — Test harness [pending]
+7. Phase 1.7 — Test harness [active]
 8. Phase 1.8 — CI and release pipeline [pending]
 
 ## Audit History

@@ -139,4 +139,25 @@ internal static class Sources
             public partial Noul Answer { get; }
         }
         """;
+
+    // A keyword-named question property and a keyword-named enum member: both must be emitted as
+    // '@'-escaped identifiers while the JSON ids they produce stay the bare keyword text.
+    public const string KeywordMembers = """
+        using ZeroAlloc.Jev;
+
+        namespace Demo;
+
+        public enum Verdict
+        {
+            [Criteria("Approved")] Approved,
+            [Criteria("Denied")] @for,
+        }
+
+        [JevQuestions]
+        public partial record KeywordMemberCheck
+        {
+            [Choice("What is the verdict?")]
+            public partial Choice<Verdict> @class { get; }
+        }
+        """;
 }

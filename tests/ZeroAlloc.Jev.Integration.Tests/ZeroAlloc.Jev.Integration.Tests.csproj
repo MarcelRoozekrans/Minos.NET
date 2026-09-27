@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ZeroAlloc.Jev\ZeroAlloc.Jev.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <PackageReference Include="WireMock.Net" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="ZeroAlloc.Jev.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\ZeroAlloc.Jev.Tests\Fixture.cs" Link="Fixture.cs" />
+    <None Include="..\ZeroAlloc.Jev.Tests\Fixtures\**\*.json" Link="Fixtures\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
