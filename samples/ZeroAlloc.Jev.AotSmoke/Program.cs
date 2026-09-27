@@ -141,7 +141,7 @@ internal static class Program
                 && !result.Value.RequestsCredentials.Value
                 && result.Value.Team.Value == Team.Account
                 && result.Value.Urgency.Value == Urgency.High,
-            "EvaluateAsync<T>(string) parses typed answers over the raw zero-allocation path");
+            "EvaluateAsync<T>(string) parses typed answers over the raw, pooled-buffer path");
     }
 
     private static async Task TypedEvaluateAsyncWithTStateParsesAnswers()
@@ -154,13 +154,13 @@ internal static class Program
 
         Check(
             result.IsSuccess && !result.Value.RequestsCredentials.Value,
-            "EvaluateAsync<T, TState>(state, stateTypeInfo) parses typed answers over the raw zero-allocation path");
+            "EvaluateAsync<T, TState>(state, stateTypeInfo) parses typed answers over the raw, pooled-buffer path");
     }
 
     private static async Task DefaultInterfaceMethodFallbackParsesAnswers()
     {
         // DimFallbackClient implements only IJevClient's two abstract members, so this call runs the interface's
-        // default implementation, JevClient's raw zero-allocation override, proving the compatible, allocating
+        // default implementation, not JevClient's raw, pooled-buffer override, proving the compatible, allocating
         // fallback path also compiles and runs under Native AOT.
         IJevClient client = new DimFallbackClient(new SystemOneResponse
         {
