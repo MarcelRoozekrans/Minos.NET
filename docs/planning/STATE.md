@@ -3,10 +3,16 @@
 **Date:** 2026-09-27
 
 ## Current Position
-- **Milestone:** 1 — Foundation & core client (6 of 8 phases complete)
-- **Phase:** 1.7 — Test harness (active; spec and plan written, executing on branch `phase/1.7-test-harness`)
-- **Last completed task:** Phase 1.6 — Resilience, merged as PR #39 on 2026-09-27; closes #18.
-- **Next task:** Execute the phase 1.7 plan subagent-driven; push and open the pull request after the maintainer's go-ahead. `OPENROUTER_API_KEY` is set locally, so only deliberate runs may touch the live project.
+- **Milestone:** 1 — Foundation & core client (7 of 8 phases complete)
+- **Phase:** 1.8 — CI and release pipeline (pending; no design spec yet)
+- **Last completed task:** Phase 1.7 — Test harness, merged as PR #42 on 2026-09-27; closes #17.
+- **Next task:** Phase 1.8 brainstorm (CI and release pipeline; NuGet publishing stays off until the maintainer declares the package mature), on its own branch and landed through a pull request.
+
+## What Phase 1.7 shipped
+- `tests/ZeroAlloc.Jev.Integration.Tests`: WireMock.Net 2.18.0 over real sockets, 15 tests, public API only, runs in the CI `build` job.
+- `tests/ZeroAlloc.Jev.Live.Tests`: 6 live tests that run only with `JEV_LIVE=1` and the provider's key; `.github/workflows/live-smoke.yml` runs them on manual dispatch from the `live-api` environment.
+- OpenRouter live evaluation passes with the default model `jev-latest` (run locally 2026-09-27).
+- Maintainer to-do: create the `live-api` environment (deployment branches `main`), add `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY`, dispatch **Live smoke**, then record below whether TypeSafe sends `Retry-After` and what the 422 body looks like.
 
 ## What Phase 1.6 shipped
 - `JevClient` retries 429, 503/529, other 5xx, 408, network failures and client time-outs with exponential backoff through ZeroAlloc.Resilience 3.2.0's `[Retry]` on the internal `IJevApi`, honouring `retry-after-ms` and `Retry-After` capped by `MaxRetryDelay`; exhausted retries return the last `JevError`.
@@ -51,7 +57,7 @@
 
 ## Blockers
 - None for Milestone 1.
-- Unknown until a live API call: whether TypeSafe sends `Retry-After`, and the schema of the 422 error body.
+- Unknown until a live TypeSafe run (the phase 1.7 live suite, which needs `TYPESAFE_API_KEY`): whether TypeSafe sends `Retry-After`, and the schema of the 422 error body.
 
 ## Recommended Next Step
-Run `start-next-phase` for Phase 1.7 — Test harness on a new branch. Leave release PR #33 open until the package is declared mature.
+Run `start-next-phase` for Phase 1.8 — CI and release pipeline on a new branch. Leave release PR #33 open until the package is declared mature.
