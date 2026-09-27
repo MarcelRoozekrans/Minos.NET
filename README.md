@@ -48,7 +48,7 @@ Rate limiting (429), overload (503, 529), other server errors (5xx), request tim
 
 ## Testing
 
-`dotnet test` runs the unit tests, the generator tests and the WireMock integration tests. The live smoke tests in `tests/ZeroAlloc.Jev.Live.Tests` call the real APIs and are skipped unless `TYPESAFE_API_KEY` or `OPENROUTER_API_KEY` is set; each run makes a few small billed evaluations. Override the model with `JEV_LIVE_MODEL`, or `JEV_LIVE_OPENROUTER_MODEL` for OpenRouter. Maintainers can run them in CI with the manual **Live smoke** workflow, which reads the keys from the `live-api` environment.
+`dotnet test` runs the unit tests, the generator tests and the WireMock integration tests. A solution-wide `dotnet test` never makes a billed call: the live smoke tests in `tests/ZeroAlloc.Jev.Live.Tests` call the real APIs and only run when `JEV_LIVE=1` is set *and* the provider's key (`TYPESAFE_API_KEY` or `OPENROUTER_API_KEY`) is set; otherwise every one of them reports skipped. To run them locally, opt in explicitly with the key set: `JEV_LIVE=1 dotnet test tests/ZeroAlloc.Jev.Live.Tests`. Each run makes a few small billed evaluations. Override the model with `JEV_LIVE_MODEL`, or `JEV_LIVE_OPENROUTER_MODEL` for OpenRouter. Maintainers can also run them in CI with the manual **Live smoke** workflow, which reads the keys from the `live-api` environment; restrict that environment's deployment branches to `main`.
 
 ## License
 
