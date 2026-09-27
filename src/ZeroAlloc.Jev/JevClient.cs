@@ -142,7 +142,7 @@ public sealed class JevClient : IJevClient, IDisposable
         Result<SystemOneResponse, JevError> result;
         try
         {
-            result = await _api.EvaluateAsync(request, _authorization, ct).ConfigureAwait(false);
+            result = await _api.EvaluateAsync(request, _authorization, retryCount: null, ct).ConfigureAwait(false);
         }
         catch (ResilienceException exception) when (exception.InnerException is not null)
         {
@@ -171,7 +171,7 @@ public sealed class JevClient : IJevClient, IDisposable
         Result<ModelList, JevError> result;
         try
         {
-            result = await _api.ListModelsAsync(_authorization, ct).ConfigureAwait(false);
+            result = await _api.ListModelsAsync(_authorization, retryCount: null, ct).ConfigureAwait(false);
         }
         catch (ResilienceException exception) when (exception.InnerException is not null)
         {

@@ -131,6 +131,49 @@ public sealed class JevClientRetryTests : IDisposable
         Assert.Equal(2, handler.Requests.Count);
     }
 
+    // The spec (and TypeSafe's Python SDK) calls for the header to be absent on the first attempt. ZeroAlloc.Rest
+    // 2.2.0 cannot do that yet: a null [Header] argument still sends an empty-valued header instead of omitting it
+    // (ZeroAlloc-Net/ZeroAlloc.Rest#354, closed upstream but not yet in a released package). Once a release with
+    // that fix ships and this project upgrades to it, FirstAttemptRetryCount below becomes null with no code change
+    // on this side, and these two constants should be updated together with it.
+    private const string FirstAttemptRetryCount = "";
+
+    [Fact]
+    public async Task RetryCount_SentOnRetries()
+    {
+        var handler = StubHandler.Sequence(() => Response(503), () => Response(503), Success);
+        using var client = Client(handler);
+
+        var result = await client.EvaluateAsync(Request());
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal([FirstAttemptRetryCount, "1", "2"], handler.Requests.Select(r => r.RetryCount));
+    }
+
+    [Fact]
+    public async Task RetryCount_CarriesNoAttemptNumber_WhenTheFirstAttemptSucceeds()
+    {
+        var handler = StubHandler.Sequence(Success);
+        using var client = Client(handler);
+
+        var result = await client.EvaluateAsync(Request());
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(FirstAttemptRetryCount, handler.Requests[0].RetryCount);
+    }
+
+    [Fact]
+    public async Task ListModels_RetryCount_SentOnRetries()
+    {
+        var handler = StubHandler.Sequence(() => Response(503), () => Response(503), () => Json(HttpStatusCode.OK, Fixture.Text("models.json")));
+        using var client = Client(handler);
+
+        var result = await client.ListModelsAsync();
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal([FirstAttemptRetryCount, "1", "2"], handler.Requests.Select(r => r.RetryCount));
+    }
+
     [Fact]
     public async Task RetryAfter_ReplacesTheBackoff()
     {
