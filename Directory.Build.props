@@ -53,8 +53,6 @@
   <ItemGroup Condition="'$(IsRoslynComponent)' != 'true'">
     <PackageReference Include="Meziantou.Analyzer" PrivateAssets="all" />
     <PackageReference Include="Roslynator.Analyzers" PrivateAssets="all" />
-    <PackageReference Include="ErrorProne.NET.CoreAnalyzers" PrivateAssets="all" />
-    <PackageReference Include="ErrorProne.NET.Structs" PrivateAssets="all" />
     <PackageReference Include="NetFabric.Hyperlinq.Analyzer" PrivateAssets="all" />
     <PackageReference Include="ZeroAlloc.Analyzers" PrivateAssets="all" />
   </ItemGroup>

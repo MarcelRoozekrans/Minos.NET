@@ -4,7 +4,5 @@
 
   <PropertyGroup>
     <IsPackable>false</IsPackable>
-    <!-- EPS06: ErrorProne.NET false positives on value-type receivers in test assertions -->
-    <NoWarn>$(NoWarn);EPS06</NoWarn>
   </PropertyGroup>
 </Project>
