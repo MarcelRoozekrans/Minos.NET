@@ -3,10 +3,17 @@
 **Date:** 2026-09-27
 
 ## Current Position
-- **Milestone:** 1 — Foundation & core client (5 of 8 phases complete)
-- **Phase:** 1.6 — Resilience (active; spec and plan written, executing on branch `phase/1.6-resilience`)
-- **Last completed task:** Phase 1.5 — Rename to ZeroAlloc.Jev, merged as PR #31 on 2026-09-27: package, namespaces, projects and generator renamed; org conformance; Native AOT smoke app; CI (`build`, `aot-smoke`) and release-please without NuGet publishing; follow-ups #4–#30 filed; ruleset "Main" active on `main`.
-- **Next task:** Execute the phase 1.6 plan subagent-driven (ledger in `.superpowers/sdd/2026-09-27-phase-1.6-resilience/progress.md`), then push and open the pull request after the maintainer's go-ahead.
+- **Milestone:** 1 — Foundation & core client (6 of 8 phases complete)
+- **Phase:** 1.7 — Test harness (pending; no design spec yet)
+- **Last completed task:** Phase 1.6 — Resilience, merged as PR #39 on 2026-09-27; closes #18.
+- **Next task:** Phase 1.7 brainstorm (unit tests, WireMock.Net component tests, a live smoke suite skipped without an API key), on its own branch and landed through a pull request.
+
+## What Phase 1.6 shipped
+- `JevClient` retries 429, 503/529, other 5xx, 408, network failures and client time-outs with exponential backoff through ZeroAlloc.Resilience 3.2.0's `[Retry]` on the internal `IJevApi`, honouring `retry-after-ms` and `Retry-After` capped by `MaxRetryDelay`; exhausted retries return the last `JevError`.
+- Public options `MaxRetries` (2), `InitialBackoff` (500 ms), `MaxRetryDelay` (30 s), `Jitter` (true); `Timeout` is per attempt.
+- `RetryAfterHeader` reads all RFC 9110 date forms, pivots RFC 850 years on the current date, clamps overflow and rejects non-finite `retry-after-ms`.
+- Tracked: ZeroAlloc-Net/ZeroAlloc.Resilience#195 (the `JevClient.ThrowDeclined` unwrap is a workaround until it ships), ZeroAlloc-Net/ZeroAlloc.Resilience#197 (unused package dependencies), #38 (HLQ005 pragmas), #40 (`X-TypeSafe-Retry-Count` parity).
+- Lesson: a merge commit carries the pull request title in its body, so a conventional PR title adds a second changelog entry in release PR #33. Give phase PRs a plain title, not a conventional one.
 
 ## What Phase 1.5 shipped
 - Repository https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev, public; `main` protected by ruleset "Main" (required checks `build`, `aot-smoke`; pull requests with 1 approval; admin bypass for merges, since the only maintainer cannot approve their own pull request).
@@ -39,7 +46,7 @@
 - Decided 2026-09-27: the repository is public at https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev (`origin`, `main` unprotected, no PRs required). NuGet publishing, including alpha pushes, waits until the maintainer declares the package mature — no NuGet secret is configured.
 - Decided 2026-09-27: the NuGet id `Jev.Net` is taken by another publisher, so the project becomes `ZeroAlloc.Jev` (package and root namespace), published from the ZeroAlloc.NET NuGet account with the GitHub repo in the ZeroAlloc-Net org. The rename is Phase 1.5, right after 1.4; Resilience moved to 1.6, Test harness 1.7, CI and release 1.8.
 - Decided 2026-09-27: former phases 1.4 Transport and 1.5 Error model merged into 1.4 "Transport and error model"; Resilience is now 1.5, Test harness 1.6, CI and release 1.7. OpenRouter model listing fails fast with `JevErrorKind.Unsupported`; configuration is a `JevProvider` enum plus `JevClientOptions`; `JevError` is one sealed type with a `Kind` enum.
-- Phase 1.6: use ZeroAlloc.Resilience 3.2.0's `RetryWhen` and `DelayHint` for 429/529 and `Retry-After`.
+- Decided 2026-09-27 (phase 1.6): retry 429, 503/529, other 5xx, 408, network failures and time-outs; defaults mirror the official TypeSafe Python SDK.
 - Phase 1.3 and 1.4 follow-ups are tracked as issues labelled `follow-up` on ZeroAlloc-Net/ZeroAlloc.Jev.
 
 ## Blockers
@@ -47,4 +54,4 @@
 - Unknown until a live API call: whether TypeSafe sends `Retry-After`, and the schema of the 422 error body.
 
 ## Recommended Next Step
-Run `start-next-phase` for Phase 1.6 — Resilience on a new branch. Read the phase 1.4 plan's follow-ups and issue #18 (Retry-After date forms) first. Leave release PR #33 open; close Renovate #34 if Renovate does not close it after the `[5.0.0]` pin lands.
+Run `start-next-phase` for Phase 1.7 — Test harness on a new branch. Leave release PR #33 open until the package is declared mature.
