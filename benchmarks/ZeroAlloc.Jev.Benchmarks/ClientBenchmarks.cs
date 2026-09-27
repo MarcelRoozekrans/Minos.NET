@@ -17,9 +17,11 @@ public class ClientBenchmarks
     private HttpClient _evaluateHttp = null!;
     private HttpClient _listModelsHttp = null!;
     private HttpClient _typedEvaluateHttp = null!;
+    private HttpClient _typedEvaluateNoulHttp = null!;
     private JevClient _evaluateClient = null!;
     private JevClient _listModelsClient = null!;
     private JevClient _typedEvaluateClient = null!;
+    private JevClient _typedEvaluateNoulClient = null!;
     private SystemOneRequest _request = null!;
     private string _typedState = null!;
 
@@ -29,6 +31,7 @@ public class ClientBenchmarks
         (_evaluateHttp, _evaluateClient) = CreateClient(NoulResponseJson);
         (_listModelsHttp, _listModelsClient) = CreateClient(ModelsResponseJson);
         (_typedEvaluateHttp, _typedEvaluateClient) = CreateClient(TriageResponseJson);
+        (_typedEvaluateNoulHttp, _typedEvaluateNoulClient) = CreateClient(NoulResponseJson);
         _request = new SystemOneRequest
         {
             State = "Help! My payouts have been failing for 3 days.",
@@ -46,9 +49,11 @@ public class ClientBenchmarks
         _evaluateClient.Dispose();
         _listModelsClient.Dispose();
         _typedEvaluateClient.Dispose();
+        _typedEvaluateNoulClient.Dispose();
         _evaluateHttp.Dispose();
         _listModelsHttp.Dispose();
         _typedEvaluateHttp.Dispose();
+        _typedEvaluateNoulHttp.Dispose();
     }
 
     /// <summary><see cref="JevClient.EvaluateAsync"/> over a fixed Noul response.</summary>
@@ -59,10 +64,16 @@ public class ClientBenchmarks
     [Benchmark]
     public ValueTask<Result<ModelList, JevError>> ListModelsAsync() => _listModelsClient.ListModelsAsync();
 
-    /// <summary><see cref="JevClient.EvaluateAsync{T}(string)"/> over a fixed typed-answers response, through the
-    /// raw zero-allocation path.</summary>
+    /// <summary><see cref="JevClient.EvaluateAsync{T}(string)"/> over a fixed triage (three-answer) response,
+    /// through the raw, pooled-buffer path.</summary>
     [Benchmark]
     public ValueTask<Result<BenchTriage, JevError>> TypedEvaluateAsync() => _typedEvaluateClient.EvaluateAsync<BenchTriage>(_typedState);
+
+    /// <summary><see cref="JevClient.EvaluateAsync{T}(string)"/> over the same fixed Noul (one-answer) response as
+    /// <see cref="EvaluateAsync"/>, through the raw, pooled-buffer path, so the typed and untyped calls compare
+    /// like for like.</summary>
+    [Benchmark]
+    public ValueTask<Result<BenchUrgency, JevError>> TypedEvaluateNoulAsync() => _typedEvaluateNoulClient.EvaluateAsync<BenchUrgency>(_typedState);
 
     private static (HttpClient Http, JevClient Client) CreateClient(string responseJson)
     {

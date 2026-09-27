@@ -39,6 +39,16 @@ public partial record BenchTriage
     public partial Score<Urgency> Urgency { get; }
 }
 
+/// <summary>A single-Noul question set whose wire key matches <c>NoulResponseJson</c>'s <c>is_urgent</c> answer,
+/// so <see cref="ClientBenchmarks.TypedEvaluateNoulAsync"/> compares like for like against
+/// <see cref="ClientBenchmarks.EvaluateAsync"/> over the same canned response.</summary>
+[JevQuestions]
+public partial record BenchUrgency
+{
+    [Noul("Does this convey urgency?")]
+    public partial Noul IsUrgent { get; }
+}
+
 /// <summary>Benchmarks the generated <c>BenchTriage.Parse</c> and the reader primitives it is built from, over the
 /// same kind of fixed inputs as the Native AOT smoke app's allocation gates.</summary>
 [MemoryDiagnoser]
