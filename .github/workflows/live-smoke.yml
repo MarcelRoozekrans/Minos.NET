@@ -1,0 +1,31 @@
+name: Live smoke
+
+# Calls the real TypeSafe and OpenRouter APIs, which bills a few small evaluations per run.
+# Manual only: never on pull requests or pushes, so forks can never reach the keys.
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  live:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: live-api
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          dotnet-version: '10.0.x'
+
+      - name: Live tests
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+          JEV_LIVE_MODEL: ${{ vars.JEV_LIVE_MODEL }}
+          JEV_LIVE_OPENROUTER_MODEL: ${{ vars.JEV_LIVE_OPENROUTER_MODEL }}
+        run: dotnet test tests/ZeroAlloc.Jev.Live.Tests -c Release --logger "console;verbosity=detailed"
