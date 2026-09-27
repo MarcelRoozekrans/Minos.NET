@@ -3,10 +3,9 @@
     <RootNamespace>ZeroAlloc.Jev</RootNamespace>
     <PackageId>ZeroAlloc.Jev</PackageId>
     <Title>ZeroAlloc.Jev</Title>
-    <Description>Unofficial .NET client for TypeSafe AI's Jev System One model. Source-generated, Native AOT-compatible and allocation-conscious. Not affiliated with or endorsed by TypeSafe AI.</Description>
+    <Description>Unofficial .NET client for TypeSafe AI's Jev System One model, directly or through OpenRouter. Source-generated, Native AOT-compatible and allocation-conscious, with typed questions and answers and Result-based errors. Not affiliated with or endorsed by TypeSafe AI.</Description>
     <!-- Zero runtime reflection by design; enables IsTrimmable and the IL2026/IL3050 analyzers. -->
     <IsAotCompatible>true</IsAotCompatible>
-    <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!--
       HLQ001 fires only in ZeroAlloc.Rest.Generator's own generated __CreateHttpError (IJevApi.g.cs), which this

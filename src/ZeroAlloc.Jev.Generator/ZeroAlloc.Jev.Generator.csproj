@@ -5,6 +5,8 @@
     <RootNamespace>ZeroAlloc.Jev.Generator</RootNamespace>
     <IsRoslynComponent>true</IsRoslynComponent>
     <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <!-- Shipped inside the ZeroAlloc.Jev package under analyzers/dotnet/cs, never on its own -->
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
 
   <ItemGroup>
