@@ -150,8 +150,8 @@ public sealed class JevClient : IJevClient, IDisposable
     public ValueTask<Result<T, JevError>> EvaluateAsync<T>(string state, CancellationToken ct)
         where T : IJevQuestionSet<T>
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
         ArgumentNullException.ThrowIfNull(state);
+        ObjectDisposedException.ThrowIf(_disposed, this);
         return EvaluateTypedAsync<T>(TypedRequestWriter.Write<T>(state, _model, _pool), ct);
     }
 
@@ -171,6 +171,7 @@ public sealed class JevClient : IJevClient, IDisposable
     public ValueTask<Result<T, JevError>> EvaluateAsync<T>(JsonElement state, CancellationToken ct)
         where T : IJevQuestionSet<T>
     {
+        TypedEvaluation.EnsureStateKind(state.ValueKind, nameof(state));
         ObjectDisposedException.ThrowIf(_disposed, this);
         return EvaluateTypedAsync<T>(TypedRequestWriter.Write<T>(state, _model, _pool), ct);
     }
@@ -185,6 +186,7 @@ public sealed class JevClient : IJevClient, IDisposable
     public ValueTask<Result<T, JevError>> EvaluateUtf8Async<T>(ReadOnlyMemory<byte> utf8JsonState, CancellationToken ct = default)
         where T : IJevQuestionSet<T>
     {
+        TypedEvaluation.EnsureStateJson(utf8JsonState.Span, nameof(utf8JsonState));
         ObjectDisposedException.ThrowIf(_disposed, this);
         return EvaluateTypedAsync<T>(TypedRequestWriter.WriteUtf8<T>(utf8JsonState.Span, _model, _pool), ct);
     }
@@ -207,13 +209,13 @@ public sealed class JevClient : IJevClient, IDisposable
     public ValueTask<Result<T, JevError>> EvaluateAsync<T, TState>(TState state, JsonTypeInfo<TState> stateTypeInfo, CancellationToken ct)
         where T : IJevQuestionSet<T, TState>
     {
-        ObjectDisposedException.ThrowIf(_disposed, this);
         if (state is null)
         {
             throw new ArgumentNullException(nameof(state));
         }
 
         ArgumentNullException.ThrowIfNull(stateTypeInfo);
+        ObjectDisposedException.ThrowIf(_disposed, this);
         return EvaluateTypedAsync<T>(TypedRequestWriter.Write<T, TState>(state, stateTypeInfo, _model, _pool), ct);
     }
 

@@ -346,6 +346,20 @@ public sealed class JevClientTypedTests : IDisposable
     }
 
     [Fact]
+    public void DisposedClient_WithInvalidArguments_ThrowsForTheArgument_NotObjectDisposedException()
+    {
+        var client = Client(StubHandler.Json(HttpStatusCode.OK, Fixture.Text("response-noul.json")));
+        client.Dispose();
+
+        ThrowsSynchronously<ArgumentNullException>(() => client.EvaluateAsync<UrgencyCheck>((string)null!).AsTask());
+        ThrowsSynchronously<ArgumentException>(() => client.EvaluateAsync<UrgencyCheck>(default(JsonElement)).AsTask());
+        ThrowsSynchronously<ArgumentException>(() => client.EvaluateUtf8Async<UrgencyCheck>("not json"u8.ToArray()).AsTask());
+        ThrowsSynchronously<ArgumentNullException>(
+            () => client.EvaluateAsync<TicketUrgency, TicketContext>(null!, TicketContextJsonContext.Default.TicketContext).AsTask());
+        ThrowsSynchronously<ArgumentNullException>(() => client.EvaluateAsync<TicketUrgency, TicketContext>(Ticket, null!).AsTask());
+    }
+
+    [Fact]
     public void InvalidArguments_ThrowSynchronously_WithoutARequest()
     {
         var handler = StubHandler.Json(HttpStatusCode.OK, Fixture.Text("response-noul.json"));

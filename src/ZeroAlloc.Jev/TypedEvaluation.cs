@@ -163,7 +163,7 @@ internal static class TypedEvaluation
     public static Result<T, JevError> ParseAnswersObject<T>(ReadOnlySpan<byte> answersJson, int? statusCode = null)
         where T : IJevQuestionSet<T>
     {
-        var reader = new Utf8JsonReader(answersJson);
+        var reader = new Utf8JsonReader(SkipUtf8Bom(answersJson));
         try
         {
             reader.Read();
@@ -191,7 +191,7 @@ internal static class TypedEvaluation
     public static Result<T, JevError> ParseResponse<T>(ReadOnlySpan<byte> responseJson, int? statusCode = null)
         where T : IJevQuestionSet<T>
     {
-        var reader = new Utf8JsonReader(responseJson);
+        var reader = new Utf8JsonReader(SkipUtf8Bom(responseJson));
         try
         {
             if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)
@@ -246,6 +246,14 @@ internal static class TypedEvaluation
             ? FromResponse<T>(result.Value)
             : Result<T, JevError>.Failure(result.Error);
     }
+
+    // Utf8JsonReader treats a leading UTF-8 BOM as an invalid start of a value, while the untyped path's
+    // stream-based deserializer (System.Text.Json's Deserialize(Stream)/DeserializeAsync(Stream)) skips one. A
+    // response body read straight into these reader-based paths must match that tolerance.
+    private static ReadOnlySpan<byte> Utf8Bom => [0xEF, 0xBB, 0xBF];
+
+    private static ReadOnlySpan<byte> SkipUtf8Bom(ReadOnlySpan<byte> json)
+        => json.StartsWith(Utf8Bom) ? json[Utf8Bom.Length..] : json;
 
     private static JevError Rejected(JsonException exception, int? statusCode)
         => new(JevErrorKind.InvalidResponse, "The response could not be read as the question set's answers: " + exception.Message, statusCode, exception: exception);

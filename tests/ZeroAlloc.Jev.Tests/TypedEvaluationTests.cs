@@ -72,10 +72,35 @@ public sealed class TypedEvaluationTests
     }
 
     [Fact]
+    public void ParseResponse_WithLeadingUtf8Bom_IsParsed()
+    {
+        var json = Fixture.Text("response-noul.json");
+        var withBom = new byte[] { 0xEF, 0xBB, 0xBF }.Concat(Encoding.UTF8.GetBytes(json)).ToArray();
+
+        var result = TypedEvaluation.ParseResponse<UrgencyCheck>(withBom);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(0.95, result.Value.IsUrgent.Probability);
+    }
+
+    [Fact]
     public void ParseAnswersObject_ParsesAnAnswersObject()
     {
         var result = TypedEvaluation.ParseAnswersObject<UrgencyCheck>("""{"is_urgent":{"type":"noul","noul":0.7}}"""u8);
 
+        Assert.Equal(0.7, result.Value.IsUrgent.Probability);
+    }
+
+    [Fact]
+    public void ParseAnswersObject_WithLeadingUtf8Bom_IsParsed()
+    {
+        var withBom = new byte[] { 0xEF, 0xBB, 0xBF }
+            .Concat(Encoding.UTF8.GetBytes("""{"is_urgent":{"type":"noul","noul":0.7}}"""))
+            .ToArray();
+
+        var result = TypedEvaluation.ParseAnswersObject<UrgencyCheck>(withBom);
+
+        Assert.True(result.IsSuccess);
         Assert.Equal(0.7, result.Value.IsUrgent.Probability);
     }
 

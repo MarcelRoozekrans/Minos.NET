@@ -21,8 +21,9 @@ public sealed class JevClientOptions
     public Uri? BaseAddress { get; set; }
 
     /// <summary>
-    /// Gets or sets the model a typed <c>EvaluateAsync</c> call asks, as a versioned id such as <c>jev-1.13.0</c> or an
-    /// alias. Defaults to <see cref="JevDefaults.Model"/>. Surrounding whitespace is trimmed; a blank value is rejected.
+    /// Gets or sets the model typed evaluation calls ask, including <c>EvaluateUtf8Async</c>, as a versioned id such as
+    /// <c>jev-1.13.0</c> or an alias. Defaults to <see cref="JevDefaults.Model"/>. Surrounding whitespace is trimmed;
+    /// a blank value is rejected.
     /// A <see cref="SystemOneRequest"/> names its own model, so this option does not apply to it.
     /// </summary>
     public string Model { get; set; } = JevDefaults.Model;
