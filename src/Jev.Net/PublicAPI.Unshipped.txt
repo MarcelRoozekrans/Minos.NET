@@ -33,11 +33,20 @@ Jev.Net.CriteriaAttribute.CriteriaAttribute(string! description) -> void
 Jev.Net.CriteriaAttribute.Description.get -> string!
 Jev.Net.CriteriaAttribute.Key.get -> string?
 Jev.Net.CriteriaAttribute.Key.set -> void
+Jev.Net.IJevClient
+Jev.Net.IJevClient.EvaluateAsync(Jev.Net.SystemOneRequest! request, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Jev.Net.SystemOneResponse!, Jev.Net.JevError!>>
+Jev.Net.IJevClient.ListModelsAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Jev.Net.ModelList!, Jev.Net.JevError!>>
 Jev.Net.IJevQuestionSet<TSelf>
 Jev.Net.IJevQuestionSet<TSelf>.Parse(ref System.Text.Json.Utf8JsonReader answers) -> TSelf
 Jev.Net.IJevQuestionSet<TSelf>.QuestionsUtf8.get -> System.ReadOnlySpan<byte>
 Jev.Net.JevAnswer
 Jev.Net.JevAnswerReader
+Jev.Net.JevClient
+Jev.Net.JevClient.Dispose() -> void
+Jev.Net.JevClient.EvaluateAsync(Jev.Net.SystemOneRequest! request, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Jev.Net.SystemOneResponse!, Jev.Net.JevError!>>
+Jev.Net.JevClient.JevClient(Jev.Net.JevClientOptions? options = null) -> void
+Jev.Net.JevClient.JevClient(System.Net.Http.HttpClient! httpClient, Jev.Net.JevClientOptions? options = null) -> void
+Jev.Net.JevClient.ListModelsAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Jev.Net.ModelList!, Jev.Net.JevError!>>
 Jev.Net.JevClientOptions
 Jev.Net.JevClientOptions.ApiKey.get -> string?
 Jev.Net.JevClientOptions.ApiKey.init -> void

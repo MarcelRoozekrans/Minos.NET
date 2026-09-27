@@ -1,6 +1,6 @@
 namespace Jev.Net;
 
-/// <summary>Configures a <c>JevClient</c>. Every property is optional.</summary>
+/// <summary>Configures a <see cref="JevClient"/>. Every property is optional.</summary>
 public sealed class JevClientOptions
 {
     /// <summary>Gets where requests go. Defaults to <see cref="JevProvider.TypeSafe"/>.</summary>
