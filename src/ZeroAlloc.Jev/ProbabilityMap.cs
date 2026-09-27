@@ -51,7 +51,7 @@ public readonly struct ProbabilityMap<T> : IEquatable<ProbabilityMap<T>>
             var index = _options?.IndexOf(option) ?? -1;
             if (index < 0)
             {
-                ThrowNotAnOption(index);
+                ThrowNotAnOption(nameof(option));
             }
 
             return _buffer![_offset + index];
@@ -131,10 +131,11 @@ public readonly struct ProbabilityMap<T> : IEquatable<ProbabilityMap<T>>
     }
 
     /// <summary>Throws for an option that is not one of this map's options, without boxing it.</summary>
-    /// <param name="index">The option's failed lookup result; always negative for this call.</param>
+    /// <param name="paramName">The invalid argument's name, forwarded from the caller so the exception still
+    /// names the public indexer's <c>option</c> parameter.</param>
     [DoesNotReturn]
-    private static void ThrowNotAnOption(int index)
-        => throw new ArgumentOutOfRangeException(nameof(index), "The value is not one of the options.");
+    private static void ThrowNotAnOption(string paramName)
+        => throw new ArgumentOutOfRangeException(paramName, "The value is not one of the options.");
 
     /// <summary>Enumerates the options of a <see cref="ProbabilityMap{T}"/> with their probabilities.</summary>
     public struct Enumerator

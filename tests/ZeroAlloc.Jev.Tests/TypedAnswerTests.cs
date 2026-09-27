@@ -57,8 +57,8 @@ public sealed class TypedAnswerTests
 
         var exception = Assert.Throws<ArgumentOutOfRangeException>(() => map[(Color)42]);
 
-        Assert.Equal("index", exception.ParamName);
-        Assert.Contains("index", exception.Message, StringComparison.Ordinal);
+        Assert.Equal("option", exception.ParamName);
+        Assert.Contains("option", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -123,6 +123,68 @@ public sealed class TypedAnswerTests
         for (var i = 0; i < 1000; i++)
         {
             _ = map[Color.Green];
+        }
+
+        var after = GC.GetAllocatedBytesForCurrentThread();
+
+        Assert.Equal(before, after);
+    }
+
+    [Fact]
+    public void ProbabilityMap_Equals_AllocatesNothing()
+    {
+        var first = new ProbabilityMap<Color>([0.1, 0.7, 0.2], 0, ColorOptions.Instance);
+        var second = new ProbabilityMap<Color>([9.0, 0.1, 0.7, 0.2], 1, ColorOptions.Instance);
+
+        // Warm up the JIT before measuring.
+        _ = first.Equals(second);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 1000; i++)
+        {
+            _ = first.Equals(second);
+        }
+
+        var after = GC.GetAllocatedBytesForCurrentThread();
+
+        Assert.Equal(before, after);
+    }
+
+    [Fact]
+    public void Choice_Equals_AllocatesNothing()
+    {
+        var map = new ProbabilityMap<Color>([0.1, 0.7, 0.2], 0, ColorOptions.Instance);
+        var first = new Choice<Color>(Color.Green, 0.81, map);
+        var second = new Choice<Color>(Color.Green, 0.81, map);
+
+        // Warm up the JIT before measuring.
+        _ = first.Equals(second);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 1000; i++)
+        {
+            _ = first.Equals(second);
+        }
+
+        var after = GC.GetAllocatedBytesForCurrentThread();
+
+        Assert.Equal(before, after);
+    }
+
+    [Fact]
+    public void Score_Equals_AllocatesNothing()
+    {
+        var map = new ProbabilityMap<Urgency>([0.0, 0.95, 0.05], 0, UrgencyLevels.Instance);
+        var first = new Score<Urgency>(Urgency.Medium, 1.05, 0.92, map);
+        var second = new Score<Urgency>(Urgency.Medium, 1.05, 0.92, map);
+
+        // Warm up the JIT before measuring.
+        _ = first.Equals(second);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 1000; i++)
+        {
+            _ = first.Equals(second);
         }
 
         var after = GC.GetAllocatedBytesForCurrentThread();

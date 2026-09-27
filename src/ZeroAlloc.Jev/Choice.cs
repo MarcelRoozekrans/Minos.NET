@@ -39,7 +39,9 @@ public readonly struct Choice<T> : IEquatable<Choice<T>>
 
     /// <inheritdoc />
     public bool Equals(Choice<T> other)
-        => Value.Equals(other.Value) && Confidence.Equals(other.Confidence) && Probabilities.Equals(other.Probabilities);
+        => EqualityComparer<T>.Default.Equals(Value, other.Value)
+        && Confidence.Equals(other.Confidence)
+        && Probabilities.Equals(other.Probabilities);
 
     /// <inheritdoc />
     public override bool Equals(object? obj) => obj is Choice<T> other && Equals(other);

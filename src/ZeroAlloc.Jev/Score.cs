@@ -44,7 +44,7 @@ public readonly struct Score<T> : IEquatable<Score<T>>
 
     /// <inheritdoc />
     public bool Equals(Score<T> other)
-        => Value.Equals(other.Value)
+        => EqualityComparer<T>.Default.Equals(Value, other.Value)
         && Expected.Equals(other.Expected)
         && Confidence.Equals(other.Confidence)
         && Probabilities.Equals(other.Probabilities);
