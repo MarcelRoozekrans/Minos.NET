@@ -11,4 +11,10 @@ public sealed class SystemOneResponse
 
     /// <summary>Gets the token usage for the request.</summary>
     public required JevUsage Usage { get; init; }
+
+    /// <summary>Gets the generation id OpenRouter assigns; <see langword="null"/> on TypeSafe's API.</summary>
+    public string? Id { get; init; }
+
+    /// <summary>Gets the upstream provider OpenRouter routed to; <see langword="null"/> on TypeSafe's API.</summary>
+    public string? Provider { get; init; }
 }

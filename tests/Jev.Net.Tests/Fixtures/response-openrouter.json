@@ -1,0 +1,12 @@
+{
+  "id": "gen-1727400000-abc123",
+  "provider": "TypeSafe",
+  "model": "~typesafe/jev-latest",
+  "answers": {
+    "is_urgent": {
+      "type": "noul",
+      "noul": 0.95
+    }
+  },
+  "usage": { "input_tokens": 296, "output_tokens": 20, "cost": 0.000296 }
+}

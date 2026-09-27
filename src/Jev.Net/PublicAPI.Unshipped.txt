@@ -3,6 +3,8 @@ abstract Jev.Net.JevOptionSet<T>.Count.get -> int
 abstract Jev.Net.JevOptionSet<T>.IndexOf(T value) -> int
 abstract Jev.Net.JevOptionSet<T>.IndexOfKey(ref System.Text.Json.Utf8JsonReader reader) -> int
 abstract Jev.Net.JevOptionSet<T>.this[int index].get -> T
+const Jev.Net.JevDefaults.BaseAddressEnvironmentVariable = "TYPESAFE_BASE_URL" -> string!
+const Jev.Net.JevDefaults.OpenRouterApiKeyEnvironmentVariable = "OPENROUTER_API_KEY" -> string!
 Jev.Net.Choice<T>
 Jev.Net.Choice<T>.Choice() -> void
 Jev.Net.Choice<T>.Choice(T value, double confidence, Jev.Net.ProbabilityMap<T> probabilities) -> void
@@ -52,6 +54,8 @@ Jev.Net.JevQuestionsAttribute
 Jev.Net.JevQuestionsAttribute.JevQuestionsAttribute() -> void
 Jev.Net.JevUsage
 Jev.Net.JevUsage.<Clone>$() -> Jev.Net.JevUsage!
+Jev.Net.JevUsage.Cost.get -> double?
+Jev.Net.JevUsage.Cost.init -> void
 Jev.Net.JevUsage.Equals(Jev.Net.JevUsage? other) -> bool
 Jev.Net.JevUsage.InputTokens.get -> int
 Jev.Net.JevUsage.InputTokens.init -> void
@@ -151,13 +155,16 @@ Jev.Net.SystemOneRequest.SystemOneRequest() -> void
 Jev.Net.SystemOneResponse
 Jev.Net.SystemOneResponse.Answers.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Jev.Net.JevAnswer!>!
 Jev.Net.SystemOneResponse.Answers.init -> void
+Jev.Net.SystemOneResponse.Id.get -> string?
+Jev.Net.SystemOneResponse.Id.init -> void
 Jev.Net.SystemOneResponse.Model.get -> string!
 Jev.Net.SystemOneResponse.Model.init -> void
+Jev.Net.SystemOneResponse.Provider.get -> string?
+Jev.Net.SystemOneResponse.Provider.init -> void
 Jev.Net.SystemOneResponse.SystemOneResponse() -> void
 Jev.Net.SystemOneResponse.Usage.get -> Jev.Net.JevUsage!
 Jev.Net.SystemOneResponse.Usage.init -> void
 const Jev.Net.JevDefaults.ApiKeyEnvironmentVariable = "TYPESAFE_API_KEY" -> string!
-const Jev.Net.JevDefaults.Model = "jev-latest" -> string!
 override Jev.Net.JevContent.Equals(object? obj) -> bool
 override Jev.Net.JevContent.GetHashCode() -> int
 override Jev.Net.JevContent.ToString() -> string!
@@ -181,7 +188,9 @@ static Jev.Net.JevContent.FromString(string! text) -> Jev.Net.JevContent
 static Jev.Net.JevContent.implicit operator Jev.Net.JevContent(string! text) -> Jev.Net.JevContent
 static Jev.Net.JevContent.operator !=(Jev.Net.JevContent left, Jev.Net.JevContent right) -> bool
 static Jev.Net.JevContent.operator ==(Jev.Net.JevContent left, Jev.Net.JevContent right) -> bool
-static Jev.Net.JevDefaults.BaseAddress.get -> System.Uri!
+static Jev.Net.JevDefaults.Model.get -> string!
+static Jev.Net.JevDefaults.OpenRouterBaseAddress.get -> System.Uri!
+static Jev.Net.JevDefaults.TypeSafeBaseAddress.get -> System.Uri!
 static Jev.Net.JevUsage.operator !=(Jev.Net.JevUsage? left, Jev.Net.JevUsage? right) -> bool
 static Jev.Net.JevUsage.operator ==(Jev.Net.JevUsage? left, Jev.Net.JevUsage? right) -> bool
 static Jev.Net.ModelCard.operator !=(Jev.Net.ModelCard? left, Jev.Net.ModelCard? right) -> bool

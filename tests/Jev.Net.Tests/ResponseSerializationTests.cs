@@ -126,6 +126,27 @@ public sealed class ResponseSerializationTests
         Assert.Equal("jev-preview", list.Models[1].Name);
     }
 
+    [Fact]
+    public void OpenRouterFields_Deserialize()
+    {
+        var response = Deserialize("response-openrouter.json");
+
+        Assert.Equal("gen-1727400000-abc123", response.Id);
+        Assert.Equal("TypeSafe", response.Provider);
+        Assert.Equal("~typesafe/jev-latest", response.Model);
+        Assert.Equal(0.000296, response.Usage.Cost);
+    }
+
+    [Fact]
+    public void TypeSafeResponse_HasNoOpenRouterFields()
+    {
+        var response = Deserialize("response-noul.json");
+
+        Assert.Null(response.Id);
+        Assert.Null(response.Provider);
+        Assert.Null(response.Usage.Cost);
+    }
+
     private static SystemOneResponse Deserialize(string fixture)
     {
         var response = JsonSerializer.Deserialize(Fixture.Text(fixture), JevJsonContext.Default.SystemOneResponse);

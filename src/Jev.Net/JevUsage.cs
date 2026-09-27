@@ -8,4 +8,7 @@ public sealed record JevUsage
 
     /// <summary>Gets the number of output tokens.</summary>
     public required int OutputTokens { get; init; }
+
+    /// <summary>Gets the cost in US dollars that OpenRouter reports; <see langword="null"/> on TypeSafe's API.</summary>
+    public double? Cost { get; init; }
 }
