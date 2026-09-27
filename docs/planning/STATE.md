@@ -3,10 +3,15 @@
 **Date:** 2026-09-27
 
 ## Current Position
-- **Milestone:** 1 — Foundation & core client (4 of 8 phases complete)
-- **Phase:** 1.5 — Rename to ZeroAlloc.Jev (active on branch `phase/1.5-rename-to-zeroalloc-jev`; plan tasks 1–6 done; Surface: Refactor)
-- **Last completed task:** Phase 1.4 — Transport and error model: all 4 tasks of `docs/superpowers/plans/2026-09-27-phase-1.4-transport-and-error-model.md` plus the final-review fix wave. 180 tests in `ZeroAlloc.Jev.Tests` and 55 in `ZeroAlloc.Jev.Generator.Tests` pass, Release build 0 warnings, and the final review published a Native AOT console app over `JevClient` with zero IL warnings.
-- **Next task:** Push the branch, open the PR, get CI and the org ruleset green, and merge (plan Task 7, with the maintainer).
+- **Milestone:** 1 — Foundation & core client (5 of 8 phases complete)
+- **Phase:** 1.6 — Resilience (pending; no design spec yet)
+- **Last completed task:** Phase 1.5 — Rename to ZeroAlloc.Jev, merged as PR #31 on 2026-09-27: package, namespaces, projects and generator renamed; org conformance; Native AOT smoke app; CI (`build`, `aot-smoke`) and release-please without NuGet publishing; follow-ups #4–#30 filed; ruleset "Main" active on `main`.
+- **Next task:** Phase 1.6 brainstorm (retries on 429/529 honouring `Retry-After`, with ZeroAlloc.Resilience 3.2.0 `RetryWhen` / `DelayHint`), on its own branch and landed through a pull request.
+
+## What Phase 1.5 shipped
+- Repository https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev, public; `main` protected by ruleset "Main" (required checks `build`, `aot-smoke`; pull requests with 1 approval; admin bypass for merges, since the only maintainer cannot approve their own pull request).
+- Release PR #33 (`chore(main): release 0.1.0`) is open and stays open: releases and NuGet publishing wait until the maintainer declares the package mature. There is no publish job; the org's `NUGET_API_KEY` is visible to this repository, so any future publish workflow must be a deliberate step.
+- Renovate is on the org configuration. It merged two dependency PRs into `main` before the ruleset existed; the deliberate `Microsoft.CodeAnalysis.CSharp` 5.0.0 pin is now guarded with the exact NuGet range `[5.0.0]` (a bare `5.0.0` means 5.0.0 or higher, which is why #34 appeared).
 
 ## What Phase 1.4 shipped
 - Public `IJevClient` / `JevClient` (four constructors without optional parameters), `JevClientOptions` (`set` accessors), `JevProvider`, `JevError` / `JevErrorKind`; internal `IJevApi` over ZeroAlloc.Rest 2.1.0 with `[ErrorMapper(typeof(JevErrorMapper))]`, `JevClientSettings`, `RetryAfterHeader`.
@@ -42,4 +47,4 @@
 - Unknown until a live API call: whether TypeSafe sends `Retry-After`, and the schema of the 422 error body.
 
 ## Recommended Next Step
-Run `start-next-phase` for Phase 1.5 — Rename to ZeroAlloc.Jev. It has no design spec, so it routes to a brainstorm: survey ZeroAlloc.Rest, ZeroAlloc.Results and ZeroAlloc.Resilience for naming, layout, build props, package metadata, docs and CI; then the Surface: Refactor pre-plan hook runs `refactor-analysis` before `writing-plans`. The phase ends with a real `PublishAot` smoke publish (seed described in the phase 1.4 plan follow-ups).
+Run `start-next-phase` for Phase 1.6 — Resilience on a new branch. Read the phase 1.4 plan's follow-ups and issue #18 (Retry-After date forms) first. Leave release PR #33 open; close Renovate #34 if Renovate does not close it after the `[5.0.0]` pin lands.
