@@ -35,7 +35,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="ZeroAlloc.Jev.Tests" />
-    <InternalsVisibleTo Include="ZeroAlloc.Jev.Integration.Tests" />
   </ItemGroup>
 
   <ItemGroup>

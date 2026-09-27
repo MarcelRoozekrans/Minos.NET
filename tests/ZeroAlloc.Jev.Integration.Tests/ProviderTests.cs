@@ -1,8 +1,6 @@
 using System.Net;
-using System.Text.Json;
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
-using ZeroAlloc.Jev.Serialization;
 
 namespace ZeroAlloc.Jev.Integration.Tests;
 
@@ -28,9 +26,8 @@ public sealed class ProviderTests : IClassFixture<WireMockFixture>
 
         var baseAddress = new Uri(_fixture.BaseAddress, "api/");
         using var client = IntegrationClient.Create(baseAddress);
-        var request = DeserializeNoulRequest();
 
-        var result = await client.EvaluateAsync(request);
+        var result = await client.EvaluateAsync(Fixtures.NoulRequest());
 
         Assert.True(result.IsSuccess);
         // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
@@ -53,9 +50,8 @@ public sealed class ProviderTests : IClassFixture<WireMockFixture>
 
         var baseAddress = new Uri(_fixture.BaseAddress, "api/");
         using var client = IntegrationClient.Create(baseAddress, provider: JevProvider.OpenRouter);
-        var request = DeserializeNoulRequest();
 
-        var result = await client.EvaluateAsync(request);
+        var result = await client.EvaluateAsync(Fixtures.NoulRequest());
 
         Assert.True(result.IsSuccess);
         Assert.Equal("gen-1727400000-abc123", result.Value.Id);
@@ -75,13 +71,9 @@ public sealed class ProviderTests : IClassFixture<WireMockFixture>
 
         using var http = new HttpClient { BaseAddress = new Uri(_fixture.BaseAddress, "custom/") };
         using var client = new JevClient(http, new JevClientOptions { ApiKey = "integration-key", MaxRetries = 0 });
-        var request = DeserializeNoulRequest();
 
-        var result = await client.EvaluateAsync(request);
+        var result = await client.EvaluateAsync(Fixtures.NoulRequest());
 
         Assert.True(result.IsSuccess);
     }
-
-    private static SystemOneRequest DeserializeNoulRequest()
-        => JsonSerializer.Deserialize(Fixtures.Text("request-noul.json"), JevJsonContext.Default.SystemOneRequest)!;
 }

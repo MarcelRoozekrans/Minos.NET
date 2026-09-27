@@ -1,9 +1,7 @@
 using System.Net;
-using System.Text.Json;
 using System.Text.Json.Nodes;
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
-using ZeroAlloc.Jev.Serialization;
 
 namespace ZeroAlloc.Jev.Integration.Tests;
 
@@ -28,9 +26,8 @@ public sealed class WireFormatTests : IClassFixture<WireMockFixture>
                 .WithBody(Fixtures.Text("response-noul.json")));
 
         using var client = IntegrationClient.Create(_fixture.BaseAddress);
-        var request = JsonSerializer.Deserialize(Fixtures.Text("request-noul.json"), JevJsonContext.Default.SystemOneRequest)!;
 
-        var result = await client.EvaluateAsync(request);
+        var result = await client.EvaluateAsync(Fixtures.NoulRequest());
 
         Assert.True(result.IsSuccess);
         // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
