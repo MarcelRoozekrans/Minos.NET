@@ -12,11 +12,13 @@ internal static class Live
     /// <summary>
     /// Creates an owned <see cref="JevClient"/> whose key comes from the environment. <see
     /// cref="JevClientOptions.MaxRetries"/> is 0, so each evaluation bills at most once and a transient failure
-    /// surfaces instead of being hidden by a retry.
+    /// surfaces instead of being hidden by a retry. <see cref="JevClientOptions.Model"/> is set from <see
+    /// cref="Model"/>, so a typed call honours <c>JEV_LIVE_MODEL</c> and <c>JEV_LIVE_OPENROUTER_MODEL</c> the same
+    /// way <see cref="Request"/> does for the untyped tests.
     /// </summary>
     /// <param name="provider">The provider to call.</param>
     public static JevClient Client(JevProvider provider)
-        => new(new JevClientOptions { Provider = provider, MaxRetries = 0 });
+        => new(new JevClientOptions { Provider = provider, MaxRetries = 0, Model = Model(provider) });
 
     /// <summary>
     /// Gets the model to send: <c>JEV_LIVE_OPENROUTER_MODEL</c> for OpenRouter, else <c>JEV_LIVE_MODEL</c>, else
