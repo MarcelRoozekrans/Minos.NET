@@ -24,6 +24,7 @@ internal static class Program
         await ListModelsReturnsModels().ConfigureAwait(false);
         await MalformedBodyIsInvalidResponse().ConfigureAwait(false);
         await OpenRouterModelListingIsUnsupported().ConfigureAwait(false);
+        await OverloadedThenSuccessIsRetried().ConfigureAwait(false);
         GeneratedQuestionSetRoundTrips();
 
         Console.WriteLine(failures == 0 ? "AOT smoke: all checks passed" : "AOT smoke: " + failures + " check(s) failed");
@@ -85,6 +86,17 @@ internal static class Program
         var result = await client.ListModelsAsync().ConfigureAwait(false);
 
         Check(result.IsFailure && result.Error.Kind == JevErrorKind.Unsupported, "model listing on OpenRouter is Unsupported");
+    }
+
+    private static async Task OverloadedThenSuccessIsRetried()
+    {
+        var handler = new SequenceHandler(NoulResponse, HttpStatusCode.ServiceUnavailable, HttpStatusCode.OK);
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("https://example.test/api/") };
+        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key", InitialBackoff = TimeSpan.FromMilliseconds(10) });
+
+        var result = await client.EvaluateAsync(Request()).ConfigureAwait(false);
+
+        Check(result.IsSuccess && handler.Calls == 2, "a 503 is retried through the resilience proxy");
     }
 
     private static void GeneratedQuestionSetRoundTrips()
