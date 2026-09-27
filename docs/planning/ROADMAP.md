@@ -65,7 +65,7 @@ compress_memory: disabled
 **Plan:** _to be written_
 
 ### Phase 1.8: CI and release pipeline [status: pending]
-**Goal:** Build/test, AOT smoke with `AllocationGate`, BenchmarkDotNet baseline, release-please, GitVersion alpha pushes to NuGet, and a check that the packed nupkg carries the generator under `analyzers/dotnet/cs`.
+**Goal:** Build/test, AOT smoke with `AllocationGate`, BenchmarkDotNet baseline, release-please, GitVersion alpha pushes to NuGet, and a check that the packed nupkg carries the generator under `analyzers/dotnet/cs`. Publishing to nuget.org — including alpha pushes — stays switched off until the maintainer declares the package mature (decided 2026-09-27); the repository itself is already public.
 **Surface:** Infra
 **HelpWanted:** no
 **Plan:** _to be written_

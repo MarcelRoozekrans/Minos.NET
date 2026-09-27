@@ -31,11 +31,11 @@
 - Milestone 1 has no upstream blockers.
 
 ## Open Decisions
+- Decided 2026-09-27: the repository is public at https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev (`origin`, `main` unprotected, no PRs required). NuGet publishing, including alpha pushes, waits until the maintainer declares the package mature — no NuGet secret is configured.
 - Decided 2026-09-27: the NuGet id `Jev.Net` is taken by another publisher, so the project becomes `ZeroAlloc.Jev` (package and root namespace), published from the ZeroAlloc.NET NuGet account with the GitHub repo in the ZeroAlloc-Net org. The rename is Phase 1.5, right after 1.4; Resilience moved to 1.6, Test harness 1.7, CI and release 1.8.
 - Decided 2026-09-27: former phases 1.4 Transport and 1.5 Error model merged into 1.4 "Transport and error model"; Resilience is now 1.5, Test harness 1.6, CI and release 1.7. OpenRouter model listing fails fast with `JevErrorKind.Unsupported`; configuration is a `JevProvider` enum plus `JevClientOptions`; `JevError` is one sealed type with a `Kind` enum.
 - Phase 1.6: use ZeroAlloc.Resilience 3.2.0's `RetryWhen` and `DelayHint` for 429/529 and `Retry-After`.
-- GitHub remote: create it in the ZeroAlloc-Net org, named ZeroAlloc.Jev, before phase 1.8; re-run `init-conventions` once it exists.
-- Once the remote exists, file the phase 1.3 follow-ups as issues. They are listed at the end of the phase 1.3 plan, grouped by the phase that owns them: 2.2 analyzers, 2.1/5.1 API, 1.7 packaging, 4.x README. The user rule is that every finding gets an issue, and until the remote exists they live only in the plan.
+- The remote now exists: file the phase 1.3 and 1.4 follow-ups as issues on ZeroAlloc-Net/ZeroAlloc.Jev. They are listed at the end of the phase 1.3 plan, grouped by the phase that owns them: 2.2 analyzers, 2.1/5.1 API, 1.7 packaging, 4.x README. The user rule is that every finding gets an issue, and until the remote exists they live only in the plan.
 
 ## Blockers
 - None for Milestone 1.
