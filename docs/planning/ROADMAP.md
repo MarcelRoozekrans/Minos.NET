@@ -89,7 +89,7 @@ compress_memory: disabled
 - [ ] Fluent builders cover all three question types, with runtime API-limit validation via ZeroAlloc.Validation
 - [ ] Every phase adds `AllocationGate` budgets and benchmarks for what it ships; the AOT smoke app stays clean; #12, #13 and #22 closed
 
-### Phase 2.1: Typed evaluation [status: active]
+### Phase 2.1: Typed evaluation [status: complete]
 **Goal:** `EvaluateAsync<T>` returning `Result<T, JevError>`, with:
 - typed state via `[JevQuestions(State = typeof(...))]` and a caller-supplied `JsonTypeInfo`;
 - raw `JsonElement` / string / UTF-8 overloads;
@@ -100,6 +100,7 @@ compress_memory: disabled
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-09-27-phase-2.1-typed-evaluation-design.md`
 **Plan:** `docs/superpowers/plans/2026-09-27-phase-2.1-typed-evaluation.md`
+**Completed:** 2026-09-27
 
 ### Phase 2.2: Analyzers and code fixes [status: pending]
 **Goal:** `ZeroAlloc.Jev.Analyzers` hosts JEV001–004 (option and level limits, empty instructions, state-field references) and the JEV101–107 checks, which move out of the generator (#4; #5–#11 fixed along the way). `ZeroAlloc.Jev.CodeFixes` adds the `[Criteria]` stub. Both are packed under `analyzers/dotnet/cs` and asserted by the pack tests.
