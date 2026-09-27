@@ -6,17 +6,18 @@ compress_memory: disabled
 
 > Source spec: `docs/superpowers/specs/2026-09-24-roadmap-design.md`
 
-## Milestone 1: Foundation & core client [status: active]
+## Milestone 1: Foundation & core client [status: complete]
 **Goal:** A working, AOT-clean `JevClient` covering both endpoints, with CI gates (tests, AOT smoke, benchmarks); NuGet publishing is deferred until the maintainer declares the package mature (#29).
 **Started:** 2026-09-24
+**Completed:** 2026-09-27
 **Definition of Done:**
-- [ ] `JevClient` calls `POST /v1/systemone` (Noul, Choice, Score) and `GET /v1/models`, returning `Result<T, JevError>`
-- [ ] `[JevQuestions]` generator emits question JSON and parses answers, verified against the wire fixtures
-- [ ] 401/422/429/529, network failures and timeouts map to `JevError`; 429/529 retried honoring `retry-after`
-- [ ] WireMock.Net component tests and key-gated live smoke suite pass
-- [ ] AOT smoke app publishes with zero IL2xxx/IL3xxx warnings in CI
-- [ ] BenchmarkDotNet smoke gate and `AllocationGate` budgets in CI
-- [ ] release-please wired; NuGet publishing deferred (#29)
+- [x] `JevClient` calls `POST /v1/systemone` (Noul, Choice, Score) and `GET /v1/models`, returning `Result<T, JevError>`
+- [x] `[JevQuestions]` generator emits question JSON and parses answers, verified against the wire fixtures
+- [x] 401/422/429/529, network failures and timeouts map to `JevError`; 429/529 retried honoring `retry-after`
+- [x] WireMock.Net component tests and key-gated live smoke suite pass
+- [x] AOT smoke app publishes with zero IL2xxx/IL3xxx warnings in CI
+- [x] BenchmarkDotNet smoke gate and `AllocationGate` budgets in CI
+- [x] release-please wired; NuGet publishing deferred (#29)
 
 ### Phase 1.1: Repo scaffolding [status: complete]
 **Goal:** Solution skeleton following AdoNet.Async standards: `.slnx`, `Directory.Build.props`, analyzers, `.editorconfig`, commitlint, Renovate, logo placeholder.
@@ -69,12 +70,13 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-09-27-phase-1.7-test-harness.md`
 **Completed:** 2026-09-27
 
-### Phase 1.8: CI and release pipeline [status: active]
+### Phase 1.8: CI and release pipeline [status: complete]
 **Goal:** Build/test, AOT smoke with `AllocationGate`, a BenchmarkDotNet smoke gate, release-please, a pack test verifying the packed nupkg carries the generator under `analyzers/dotnet/cs`, every trim and AOT warning promoted to an error, and a website trigger workflow that notifies the org site on `docs/` changes. Publishing to nuget.org and api-compat stay switched off until the maintainer declares the package mature; the repository itself is already public. Tracked: #28 (api-compat once a released baseline exists), #29 (NuGet publishing when mature); versioning is by release-please.
 **Surface:** Infra
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-09-27-phase-1.8-ci-and-release-pipeline-design.md`
 **Plan:** `docs/superpowers/plans/2026-09-27-phase-1.8-ci-and-release-pipeline.md`
+**Completed:** 2026-09-27
 
 ## Milestone 2: Typed .NET API [status: pending]
 **Goal:** Questions and answers become strongly typed, idiomatic C# without reflection — declared as `[JevQuestions]` types or built fluently at runtime.

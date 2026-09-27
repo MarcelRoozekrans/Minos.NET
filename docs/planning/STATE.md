@@ -3,10 +3,16 @@
 **Date:** 2026-09-27
 
 ## Current Position
-- **Milestone:** 1 — Foundation & core client (7 of 8 phases complete)
-- **Phase:** 1.8 — CI and release pipeline (active; spec and plan written, executing on branch `phase/1.8-ci-release`)
-- **Last completed task:** Phase 1.7 — Test harness, merged as PR #42 on 2026-09-27; closes #17.
-- **Next task:** Execute the phase 1.8 plan subagent-driven; push and open the pull request after the maintainer's go-ahead.
+- **Milestone:** 1 — Foundation & core client (complete 2026-09-27; audit PASS)
+- **Phase:** none active — next is a small follow-up PR, then Milestone 2
+- **Last completed task:** Phase 1.8 — CI and release pipeline, merged as PR #44 on 2026-09-27; closes #14, #15, #30. Milestone 1 closed.
+- **Next task:** Follow-up PR adopting ZeroAlloc.Rest 2.2.0 and ZeroAlloc.Resilience 3.3.0: send `X-TypeSafe-Retry-Count` (#40) via `[RetryAttempt]`, and replace the `JevClient.ThrowDeclined` workaround with `[Retry(RethrowDeclined = true)]` (#195). Then start Milestone 2.
+
+## What Phase 1.8 shipped
+- The AOT smoke app enforces `AllocationGate` budgets (Parse 192 B, readers 0 B, `EvaluateAsync` 5120 B) and treats every warning as an error.
+- `benchmarks/ZeroAlloc.Jev.Benchmarks` plus `benchmarks.yml` (org smoke gate; `smoke / benchmarks` not required); record the first full run in `docs/performance.md`.
+- The generator is packed from `GetTargetPath`; `tests/ZeroAlloc.Jev.PackTests` checks the nupkg layout and dependencies.
+- `trigger-website.yml` (user docs only); Phase 4.3 now targets the org website. Org issue ZeroAlloc-Net/.github#43.
 
 ## What Phase 1.7 shipped
 - `tests/ZeroAlloc.Jev.Integration.Tests`: WireMock.Net 2.18.0 over real sockets, 15 tests, public API only, runs in the CI `build` job.
@@ -60,4 +66,4 @@
 - Unknown until a live TypeSafe run (the phase 1.7 live suite, which needs `TYPESAFE_API_KEY`): whether TypeSafe sends `Retry-After`, and the schema of the 422 error body.
 
 ## Recommended Next Step
-Run `start-next-phase` for Phase 1.8 — CI and release pipeline on a new branch. Leave release PR #33 open until the package is declared mature.
+Open the #40 / #195 follow-up PR on a new branch (bump ZeroAlloc.Rest to 2.2.0 and ZeroAlloc.Resilience to 3.3.0), then run `start-next-phase` for Milestone 2. Leave release PR #33 open until the package is declared mature.
