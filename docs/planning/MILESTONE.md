@@ -11,7 +11,7 @@ Questions and answers become strongly typed, idiomatic C# with no reflection. A 
 - [ ] All planned phases complete.
 - [ ] All tests passing: unit, generator, analyzer, integration and pack. Live smoke runs when `JEV_LIVE=1` and a key are set.
 - [ ] `[JevQuestions]` types evaluate end to end through `EvaluateAsync<T>` → `Result<T, JevError>` with no reflection. Raw `JsonElement`, string and UTF-8 overloads exist too.
-- [ ] Every Jev diagnostic comes from `ZeroAlloc.Jev.Analyzers`: JEV001–004, and JEV101–106 moved out of the generator. The `[Criteria]`-stub code fix ships in `ZeroAlloc.Jev.CodeFixes`. #4–#11 are closed.
+- [ ] Every Jev diagnostic comes from `ZeroAlloc.Jev.Analyzers`: JEV001–004, and JEV101–107 moved out of the generator. The `[Criteria]`-stub code fix ships in `ZeroAlloc.Jev.CodeFixes`. #4–#11 are closed.
 - [ ] Structured instructions and criteria work in attributes and in builders.
 - [ ] Fluent builders cover Noul, Choice and Score, and validate the API limits at runtime with ZeroAlloc.Validation.
 - [ ] Every phase adds `AllocationGate` budgets and benchmarks for what it ships. The AOT smoke app exercises the new typed paths. #13 is closed.

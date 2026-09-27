@@ -20,7 +20,7 @@ Questions and answers become strongly typed, idiomatic C# with no reflection. A 
 - [ ] `[JevQuestions]` types evaluate end to end through `EvaluateAsync<T>` → `Result<T, JevError>` with no reflection. Raw `JsonElement`, string and UTF-8 overloads exist too.
 - [ ] Every Jev diagnostic comes from `ZeroAlloc.Jev.Analyzers`:
   - JEV001–004;
-  - JEV101–106, moved out of the generator, which reports none.
+  - JEV101–107, moved out of the generator, which reports none.
 
   The `[Criteria]`-stub code fix ships in `ZeroAlloc.Jev.CodeFixes`. Issues #4–#11 are closed.
 - [ ] Structured instructions and criteria (`Examples` / `NotFor`, object and array instructions, `state` helpers) work in attributes and in builders.
@@ -33,7 +33,7 @@ Questions and answers become strongly typed, idiomatic C# with no reflection. A 
 1. **Phase 2.1: Typed evaluation** — `Surface: Backend`
    - **Goal:** `EvaluateAsync<T>` returns `Result<T, JevError>`. It supports typed state via `[JevQuestions(State = typeof(...))]` with a caller-supplied `JsonTypeInfo`, plus raw `JsonElement`, string and UTF-8 overloads. The new member is added without breaking existing `IJevClient` implementations (#22). It also fixes record equality (#12) and ProbabilityMap boxing (#13), with budgets and benchmarks.
 2. **Phase 2.2: Analyzers and code fixes** — `Surface: Backend`
-   - **Goal:** `ZeroAlloc.Jev.Analyzers` hosts JEV001–004 and the JEV101–106 checks moved out of the generator (#4, fixing #5–#11 on the way). `ZeroAlloc.Jev.CodeFixes` adds the `[Criteria]` stub. Both ship under `analyzers/dotnet/cs`, and the pack tests assert them.
+   - **Goal:** `ZeroAlloc.Jev.Analyzers` hosts JEV001–004 and the JEV101–107 checks moved out of the generator (#4, fixing #5–#11 on the way). `ZeroAlloc.Jev.CodeFixes` adds the `[Criteria]` stub. Both ship under `analyzers/dotnet/cs`, and the pack tests assert them.
 3. **Phase 2.3: Structured instructions and criteria** — `Surface: Backend`
    - **Goal:** `Examples` / `NotFor` in attributes are sent as a criterion object, which is a Jev.Net convention, not an API field. Object and array instructions and criteria are supported, along with `state` helpers, all across the attributes, the generator and the analyzers.
 4. **Phase 2.4: Fluent question builders** — `Surface: Backend`
@@ -55,7 +55,7 @@ Questions and answers become strongly typed, idiomatic C# with no reflection. A 
 | Risk | Impact | Mitigation |
 |---|---|---|
 | A new `IJevClient` member breaks existing implementations | Breaking change for implementers | Settle in 2.1: a default interface method, or an extension over the non-generic call (#22) |
-| Moving JEV101–106 out of the generator changes when diagnostics appear | A diagnostic is lost or duplicated | Analyzer tests assert every existing diagnostic case; the generator tests assert the generator reports none |
+| Moving JEV101–107 out of the generator changes when diagnostics appear | A diagnostic is lost or duplicated | Analyzer tests assert every existing diagnostic case; the generator tests assert the generator reports none |
 | New analyzer and code-fix assemblies change the package layout | A consumer misses the analyzers, or the package bundles Workspaces | Extend the pack tests; the code-fix assembly's Workspaces reference stays private |
 | ZeroAlloc.Validation is not AOT-clean in our use, or carries unused dependencies | `aot-smoke` fails, or a heavier package | Spike it at the start of 2.4; file upstream issues, as with Resilience #197 |
 | Roslyn version drift across generator, analyzers and code fixes | IDE and SDK mismatch | Keep the single `Microsoft.CodeAnalysis.CSharp` 5.0.0 pin for all three; evaluate Renovate #37 against it |

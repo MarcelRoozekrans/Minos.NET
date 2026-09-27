@@ -84,7 +84,7 @@ compress_memory: disabled
 **Design:** `docs/superpowers/specs/2026-09-27-milestone-2-design.md`
 **Definition of Done:**
 - [ ] `[JevQuestions]` types evaluate end-to-end through `EvaluateAsync<T>` → `Result<T, JevError>`, with no reflection, plus raw `JsonElement` / string / UTF-8 overloads
-- [ ] All Jev diagnostics come from `ZeroAlloc.Jev.Analyzers` (JEV001–004, and JEV101–106 moved out of the generator); `[Criteria]`-stub code fix in `ZeroAlloc.Jev.CodeFixes`; #4–#11 closed
+- [ ] All Jev diagnostics come from `ZeroAlloc.Jev.Analyzers` (JEV001–004, and JEV101–107 moved out of the generator); `[Criteria]`-stub code fix in `ZeroAlloc.Jev.CodeFixes`; #4–#11 closed
 - [ ] Structured instructions and criteria work in attributes and builders
 - [ ] Fluent builders cover all three question types, with runtime API-limit validation via ZeroAlloc.Validation
 - [ ] Every phase adds `AllocationGate` budgets and benchmarks for what it ships; the AOT smoke app stays clean; #12, #13 and #22 closed
@@ -102,7 +102,7 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-09-27-phase-2.1-typed-evaluation.md`
 
 ### Phase 2.2: Analyzers and code fixes [status: pending]
-**Goal:** `ZeroAlloc.Jev.Analyzers` hosts JEV001–004 (option and level limits, empty instructions, state-field references) and the JEV101–106 checks, which move out of the generator (#4; #5–#11 fixed along the way). `ZeroAlloc.Jev.CodeFixes` adds the `[Criteria]` stub. Both are packed under `analyzers/dotnet/cs` and asserted by the pack tests.
+**Goal:** `ZeroAlloc.Jev.Analyzers` hosts JEV001–004 (option and level limits, empty instructions, state-field references) and the JEV101–107 checks, which move out of the generator (#4; #5–#11 fixed along the way). `ZeroAlloc.Jev.CodeFixes` adds the `[Criteria]` stub. Both are packed under `analyzers/dotnet/cs` and asserted by the pack tests.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
