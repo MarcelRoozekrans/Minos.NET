@@ -111,13 +111,13 @@ compress_memory: disabled
 ## Milestone 3: .NET integration [status: pending]
 **Goal:** First-class generic-host, DI and observability experience.
 **Definition of Done:**
-- [ ] `Jev.Net.Extensions.DependencyInjection` registers the typed client via one call
+- [ ] `ZeroAlloc.Jev.Extensions.DependencyInjection` registers the typed client via one call
 - [ ] Options bind from configuration and fail fast on invalid values
 - [ ] Spans and metrics (tokens, latency, confidence) emitted via ZeroAlloc.Telemetry
 - [ ] Resilience policies configurable through DI
 
 ### Phase 3.1: DI package [status: pending]
-**Goal:** `Jev.Net.Extensions.DependencyInjection` built on ZeroAlloc.Inject and `IHttpClientFactory`.
+**Goal:** `ZeroAlloc.Jev.Extensions.DependencyInjection` built on ZeroAlloc.Inject and `IHttpClientFactory`.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_

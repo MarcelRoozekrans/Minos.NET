@@ -5,18 +5,18 @@
 ## Current Position
 - **Milestone:** 1 — Foundation & core client (4 of 8 phases complete)
 - **Phase:** 1.5 — Rename to ZeroAlloc.Jev (pending; no design spec yet; Surface: Refactor)
-- **Last completed task:** Phase 1.4 — Transport and error model: all 4 tasks of `docs/superpowers/plans/2026-09-27-phase-1.4-transport-and-error-model.md` plus the final-review fix wave. 180 tests in `Jev.Net.Tests` and 55 in `Jev.Net.Generators.Tests` pass, Release build 0 warnings, and the final review published a Native AOT console app over `JevClient` with zero IL warnings.
+- **Last completed task:** Phase 1.4 — Transport and error model: all 4 tasks of `docs/superpowers/plans/2026-09-27-phase-1.4-transport-and-error-model.md` plus the final-review fix wave. 180 tests in `ZeroAlloc.Jev.Tests` and 55 in `ZeroAlloc.Jev.Generator.Tests` pass, Release build 0 warnings, and the final review published a Native AOT console app over `JevClient` with zero IL warnings.
 - **Next task:** Phase 1.5 brainstorm — survey the sibling ZeroAlloc-Net repos, then refactor-analysis before the plan.
 
 ## What Phase 1.4 shipped
 - Public `IJevClient` / `JevClient` (four constructors without optional parameters), `JevClientOptions` (`set` accessors), `JevProvider`, `JevError` / `JevErrorKind`; internal `IJevApi` over ZeroAlloc.Rest 2.1.0 with `[ErrorMapper(typeof(JevErrorMapper))]`, `JevClientSettings`, `RetryAfterHeader`.
 - OpenRouter: `SystemOneResponse.Id` / `Provider`, `JevUsage.Cost`; `ListModelsAsync` returns `Unsupported` without a request; `TYPESAFE_BASE_URL` applies to TypeSafe only.
-- Upstream issues filed: ZeroAlloc-Net/ZeroAlloc.Rest#335 (HLQ001 in generated code, which `Jev.Net.csproj` suppresses project-wide until it ships) and #336 (transitive dependency footprint).
+- Upstream issues filed: ZeroAlloc-Net/ZeroAlloc.Rest#335 (HLQ001 in generated code, which `ZeroAlloc.Jev.csproj` suppresses project-wide until it ships) and #336 (transitive dependency footprint).
 - Follow-ups for later phases are listed at the end of the phase 1.4 plan.
 
 ## What Phase 1.3 shipped
-- Runtime types in `Jev.Net`: `Noul`, `Choice<T>`, `Score<T>`, `ProbabilityMap<T>` (internal constructor), `JevOptionSet<T>`, `IJevQuestionSet<TSelf>`, the six question attributes, and `JevAnswerReader`, a public helper hidden from IntelliSense that the generated code calls.
-- Generator `src/Jev.Net.Generators` (netstandard2.0, Roslyn 5.0.0): `QuestionsUtf8` as a pure-ASCII u8 literal, a `Parse` that dispatches to `JevAnswerReader`, and one private option set per Choice/Score question. It reports JEV101–JEV106.
+- Runtime types in `ZeroAlloc.Jev`: `Noul`, `Choice<T>`, `Score<T>`, `ProbabilityMap<T>` (internal constructor), `JevOptionSet<T>`, `IJevQuestionSet<TSelf>`, the six question attributes, and `JevAnswerReader`, a public helper hidden from IntelliSense that the generated code calls.
+- Generator `src/ZeroAlloc.Jev.Generator` (netstandard2.0, Roslyn 5.0.0): `QuestionsUtf8` as a pure-ASCII u8 literal, a `Parse` that dispatches to `JevAnswerReader`, and one private option set per Choice/Score question. It reports JEV101–JEV106.
 - Decisions taken without the user while they were away. They are listed with what each costs if wrong in the session's final message, and recorded in the plan's "Follow-ups from the final review":
   - Work went directly on `main`, as the trunk conventions allow.
   - `LocationInfo` holds the `SyntaxTree`, so diagnostics are reported at in-source locations.
