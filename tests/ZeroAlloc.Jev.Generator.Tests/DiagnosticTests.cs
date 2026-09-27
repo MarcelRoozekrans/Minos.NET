@@ -20,6 +20,12 @@ public sealed class DiagnosticTests
         { "JEV105", "[JevQuestions] public partial record R(int X) { [Noul(\"q\")] public partial Noul Answer { get; } }", "R" },
         { "JEV106", "[JevQuestions] public partial class C { [Noul(\"a\")] public partial Noul IsUrgent { get; } [Noul(\"b\", Key = \"is_urgent\")] public partial Noul Other { get; } }", "C" },
         { "JEV106", "public enum E { [Criteria(\"x\", Key = \"b\")] A, B } [JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }", "Answer" },
+        { "JEV107", "[JevQuestions(State = typeof(IFoo))] public partial class C { } public interface IFoo { }", "State = typeof(IFoo)" },
+        { "JEV107", "[JevQuestions(State = typeof(System.Collections.Generic.List<>))] public partial class C { }", "State = typeof(System.Collections.Generic.List<>)" },
+        { "JEV107", "[JevQuestions(State = typeof(void))] public partial class C { }", "State = typeof(void)" },
+        { "JEV107", "[JevQuestions(State = typeof(MyDelegate))] public partial class C { } public delegate void MyDelegate();", "State = typeof(MyDelegate)" },
+        { "JEV107", "[JevQuestions(State = typeof(MyEnum))] public partial class C { } public enum MyEnum { A }", "State = typeof(MyEnum)" },
+        { "JEV107", "[JevQuestions(State = typeof(StaticState))] public partial class C { } public static class StaticState { }", "State = typeof(StaticState)" },
     };
 
     [Theory]

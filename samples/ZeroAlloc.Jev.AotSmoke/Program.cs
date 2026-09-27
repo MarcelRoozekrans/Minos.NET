@@ -14,6 +14,8 @@ internal static class Program
     private const string ModelsResponse = """{"models":[{"name":"jev-latest","description":"The most recent stable, official release.","release_date":"2026-09-15"}]}""";
     private const string ValidationResponse = """{"detail":"questions.is_urgent.instructions is required"}""";
     private const string TriageAnswers = """{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}}""";
+    private const string TriageResponse = """{"model":"jev-1.13.0","answers":{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}},"usage":{"input_tokens":296,"output_tokens":20}}""";
+    private const string CredentialsResponse = """{"model":"jev-1.13.0","answers":{"requests_credentials":{"type":"noul","noul":0.1}},"usage":{"input_tokens":296,"output_tokens":20}}""";
 
     private static int failures;
 
@@ -26,12 +28,16 @@ internal static class Program
         await OpenRouterModelListingIsUnsupported().ConfigureAwait(false);
         await OverloadedThenSuccessIsRetried().ConfigureAwait(false);
         GeneratedQuestionSetRoundTrips();
+        await TypedEvaluateAsyncParsesAnswers().ConfigureAwait(false);
+        await TypedEvaluateAsyncWithTStateParsesAnswers().ConfigureAwait(false);
+        await DefaultInterfaceMethodFallbackParsesAnswers().ConfigureAwait(false);
 
         AllocationChecks.GeneratedParse();
         AllocationChecks.ReadNoul();
         AllocationChecks.ReadChoice();
         AllocationChecks.ReadScore();
         AllocationChecks.EvaluateRoundTrip();
+        AllocationChecks.TypedEvaluateRoundTrip();
 
         Console.WriteLine(failures == 0 ? "AOT smoke: all checks passed" : "AOT smoke: " + failures + " check(s) failed");
         return failures == 0 ? 0 : 1;
@@ -121,6 +127,72 @@ internal static class Program
         Check(
             !triage.RequestsCredentials.Value && triage.Team.Value == Team.Account && triage.Urgency.Value == Urgency.High,
             "the generated Parse reads typed answers");
+    }
+
+    private static async Task TypedEvaluateAsyncParsesAnswers()
+    {
+        using var http = Http(HttpStatusCode.OK, TriageResponse);
+        using var client = new JevClient(http, Options());
+
+        var result = await client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days.").ConfigureAwait(false);
+
+        Check(
+            result.IsSuccess
+                && !result.Value.RequestsCredentials.Value
+                && result.Value.Team.Value == Team.Account
+                && result.Value.Urgency.Value == Urgency.High,
+            "EvaluateAsync<T>(string) parses typed answers over the raw, pooled-buffer path");
+    }
+
+    private static async Task TypedEvaluateAsyncWithTStateParsesAnswers()
+    {
+        using var http = Http(HttpStatusCode.OK, CredentialsResponse);
+        using var client = new JevClient(http, Options());
+        var state = new SmokeState("Payouts failing", "Help! My payouts have been failing for 3 days.");
+
+        var result = await client.EvaluateAsync<SmokeStateTriage, SmokeState>(state, SmokeStateJsonContext.Default.SmokeState).ConfigureAwait(false);
+
+        Check(
+            result.IsSuccess && !result.Value.RequestsCredentials.Value,
+            "EvaluateAsync<T, TState>(state, stateTypeInfo) parses typed answers over the raw, pooled-buffer path");
+    }
+
+    private static async Task DefaultInterfaceMethodFallbackParsesAnswers()
+    {
+        // DimFallbackClient implements only IJevClient's two abstract members, so this call runs the interface's
+        // default implementation, not JevClient's raw, pooled-buffer override, proving the compatible, allocating
+        // fallback path also compiles and runs under Native AOT.
+        IJevClient client = new DimFallbackClient(new SystemOneResponse
+        {
+            Model = "jev-1.13.0",
+            Answers = new Dictionary<string, JevAnswer>(StringComparer.Ordinal)
+            {
+                ["requests_credentials"] = new NoulAnswer { Noul = 0.1 },
+                ["team"] = new ChoiceAnswer
+                {
+                    Choice = "account",
+                    Probabilities = new Dictionary<string, double>(StringComparer.Ordinal) { ["billing"] = 0.2, ["account"] = 0.8 },
+                    Confidence = 0.7,
+                },
+                ["urgency"] = new ScoreAnswer
+                {
+                    Score = 1.9,
+                    Legend = new Dictionary<string, string>(StringComparer.Ordinal) { ["0"] = "Can wait", ["1"] = "This week", ["2"] = "Today" },
+                    Probabilities = new Dictionary<string, double>(StringComparer.Ordinal) { ["0"] = 0.0, ["1"] = 0.1, ["2"] = 0.9 },
+                    Confidence = 0.8,
+                },
+            },
+            Usage = new JevUsage { InputTokens = 296, OutputTokens = 20 },
+        });
+
+        var result = await client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days.").ConfigureAwait(false);
+
+        Check(
+            result.IsSuccess
+                && !result.Value.RequestsCredentials.Value
+                && result.Value.Team.Value == Team.Account
+                && result.Value.Urgency.Value == Urgency.High,
+            "the default interface method fallback parses typed answers under Native AOT");
     }
 
     private static HttpClient Http(HttpStatusCode status, string body)

@@ -24,8 +24,9 @@ internal static class SourceEmitter
             code.Line();
         }
 
+        var stateArgument = model.StateTypeName is null ? string.Empty : ", " + model.StateTypeName;
         code.Line("partial " + (model.IsRecord ? "record " : "class ") + model.TypeName
-            + " : global::ZeroAlloc.Jev.IJevQuestionSet<" + model.FullyQualifiedName + ">");
+            + " : global::ZeroAlloc.Jev.IJevQuestionSet<" + model.FullyQualifiedName + stateArgument + ">");
         code.Line("{");
 
         foreach (var question in model.Questions)

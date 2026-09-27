@@ -17,6 +17,7 @@ internal static class AllocationChecks
     private const string ScoreAnswerJson = """{"type":"score","score":1.9,"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}""";
     private const string TriageAnswersJson = """{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}}""";
     private const string NoulResponseJson = """{"model":"jev-1.13.0","answers":{"is_urgent":{"type":"noul","noul":0.95}},"usage":{"input_tokens":296,"output_tokens":20}}""";
+    private const string TriageResponseJson = """{"model":"jev-1.13.0","answers":{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}},"usage":{"input_tokens":296,"output_tokens":20}}""";
 
     /// <summary>The generated <c>SmokeTriage.Parse</c>, over the whole triage answer set.</summary>
     public static void GeneratedParse()
@@ -115,15 +116,39 @@ internal static class AllocationChecks
 
         // Measured ~4592 B/call on published win-x64 AOT: HttpRequestMessage, headers and content for the request,
         // plus the response's HttpResponseMessage, its body buffering and JSON deserialization into
-        // SystemOneResponse. This is the one gate whose allocation shape can vary across OS and runtime patch
-        // versions, since HttpClient's internal buffering differs by platform, so it carries about 10% headroom
-        // (5120 B, ~11% over the win-x64 measurement) instead of the next 64-byte step. Bring the budget down once
-        // a linux-x64 measurement exists.
+        // SystemOneResponse. A linux-x64 measurement (dotnet/sdk:10.0 container, 2026-09-27) matches exactly:
+        // 4592 B/call. The budget keeps about 10% headroom (5120 B) over that measurement, since HttpClient's
+        // internal buffering can still differ across runtime patch versions on either platform.
         GateValueTask(
             budgetBytes: 5120,
             action: () => client.EvaluateAsync(request),
             label: "EvaluateRoundTrip",
             passDescription: "EvaluateAsync stays within its allocation budget");
+    }
+
+    /// <summary><see cref="JevClient.EvaluateAsync{T}(string)"/> over a canned handler: the raw, pooled-buffer
+    /// path, through the public API only, since <c>TypedEvaluation</c> and <c>RawJson</c> are internal.</summary>
+    public static void TypedEvaluateRoundTrip()
+    {
+        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, TriageResponseJson))
+        {
+            BaseAddress = new Uri("https://example.test/api/"),
+        };
+        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+
+        // Measured ~3784 B/call on published win-x64 AOT: the request's Utf8JsonWriter and RawJson, plus
+        // ZeroAlloc.Rest's own per-attempt allocations (HttpRequestMessage, headers, the MemoryStream the body is
+        // copied into, and StreamContent), plus the response's HttpResponseMessage and body buffering, and the
+        // async state machines. There is no SystemOneRequest, SystemOneResponse, JevAnswer or questions dictionary
+        // on this path, which is why it comes in well below EvaluateRoundTrip's 4592 B measurement. A linux-x64
+        // measurement (dotnet/sdk:10.0 container, 2026-09-27) matches exactly: 3784 B/call. The budget keeps about
+        // 10% headroom (4224 B, rounded to the next 64 B) over that measurement, for the same cross-platform,
+        // cross-patch-version reason as EvaluateRoundTrip's gate.
+        GateValueTask(
+            budgetBytes: 4224,
+            action: () => client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days."),
+            label: "TypedEvaluateRoundTrip",
+            passDescription: "EvaluateAsync<T> stays within its allocation budget");
     }
 
     private static void Gate(int budgetBytes, Action action, string label, string passDescription)

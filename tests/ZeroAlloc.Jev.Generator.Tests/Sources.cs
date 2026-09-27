@@ -140,6 +140,92 @@ internal static class Sources
         }
         """;
 
+    // A set with a State type: the generated declaration implements the two-argument
+    // IJevQuestionSet<TSelf, TState>, naming the state type fully qualified.
+    public const string WithState = """
+        using ZeroAlloc.Jev;
+
+        namespace Demo;
+
+        public sealed record TicketContext(string CustomerId);
+
+        [JevQuestions(State = typeof(TicketContext))]
+        public partial record Set
+        {
+            [Noul("Is this urgent?")]
+            public partial Noul IsUrgent { get; }
+        }
+        """;
+
+    // A State type that is an abstract class: a legitimate polymorphic state (a derived instance's JsonTypeInfo
+    // handles the hierarchy), unlike a static class, which JEV107 rejects because it has no value at all.
+    public const string WithAbstractState = """
+        using ZeroAlloc.Jev;
+
+        namespace Demo;
+
+        public abstract record StateBase;
+
+        [JevQuestions(State = typeof(StateBase))]
+        public partial record AbstractStateSet
+        {
+            [Noul("q")]
+            public partial Noul Answer { get; }
+        }
+        """;
+
+    // A State type nested inside another type: the fully qualified name must include the outer type.
+    public const string WithNestedState = """
+        using ZeroAlloc.Jev;
+
+        namespace Demo;
+
+        public class Outer
+        {
+            public sealed record Inner(int Value);
+        }
+
+        [JevQuestions(State = typeof(Outer.Inner))]
+        public partial record NestedStateSet
+        {
+            [Noul("q")]
+            public partial Noul Answer { get; }
+        }
+        """;
+
+    // A State type that is a closed generic instantiation, not the open generic type definition JEV107 rejects.
+    public const string WithClosedGenericState = """
+        using ZeroAlloc.Jev;
+
+        namespace Demo;
+
+        public sealed class Wrapper<T>;
+
+        [JevQuestions(State = typeof(Wrapper<int>))]
+        public partial record ClosedGenericStateSet
+        {
+            [Noul("q")]
+            public partial Noul Answer { get; }
+        }
+        """;
+
+    // A State type that is an array: a JSON array is a legitimate state shape, and the generated set implements
+    // IJevQuestionSet<TSelf, TElement[]>, naming the element type fully qualified with the array suffix.
+    public const string WithArrayState = """
+        using ZeroAlloc.Jev;
+
+        namespace Demo;
+
+        public sealed record ChatMessage(string Role, string Content);
+
+        [JevQuestions(State = typeof(ChatMessage[]))]
+        public partial record ArrayStateSet
+        {
+            [Noul("q")]
+            public partial Noul Answer { get; }
+        }
+        """;
+
     // A keyword-named question property and a keyword-named enum member: both must be emitted as
     // '@'-escaped identifiers while the JSON ids they produce stay the bare keyword text.
     public const string KeywordMembers = """

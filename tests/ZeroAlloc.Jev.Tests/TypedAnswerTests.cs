@@ -55,7 +55,141 @@ public sealed class TypedAnswerTests
     {
         var map = new ProbabilityMap<Color>([0.2, 0.3, 0.5], 0, ColorOptions.Instance);
 
-        Assert.Throws<ArgumentOutOfRangeException>(() => map[(Color)42]);
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() => map[(Color)42]);
+
+        Assert.Equal("option", exception.ParamName);
+        Assert.Contains("option", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ProbabilityMap_Equals_SameProbabilities_DifferentBuffers_AreEqual()
+    {
+        var first = new ProbabilityMap<Color>([0.1, 0.7, 0.2], 0, ColorOptions.Instance);
+        var second = new ProbabilityMap<Color>([9.0, 0.1, 0.7, 0.2], 1, ColorOptions.Instance);
+
+        Assert.True(first.Equals(second));
+        Assert.True(first == second);
+        Assert.False(first != second);
+        Assert.Equal(first.GetHashCode(), second.GetHashCode());
+    }
+
+    [Fact]
+    public void ProbabilityMap_Equals_DifferentProbabilities_AreNotEqual()
+    {
+        var first = new ProbabilityMap<Color>([0.1, 0.7, 0.2], 0, ColorOptions.Instance);
+        var second = new ProbabilityMap<Color>([0.1, 0.6, 0.3], 0, ColorOptions.Instance);
+
+        Assert.False(first.Equals(second));
+        Assert.True(first != second);
+    }
+
+    [Fact]
+    public void ProbabilityMap_Equals_DifferentOptionCount_AreNotEqual()
+    {
+        var full = new ProbabilityMap<Color>([0.1, 0.7, 0.2], 0, ColorOptions.Instance);
+        var subset = new ProbabilityMap<Color>([0.1, 0.9], 0, ColorOptionsSubset.Instance);
+
+        Assert.False(full.Equals(subset));
+    }
+
+    [Fact]
+    public void ProbabilityMap_Equals_SameCount_DifferentOptionOrder_AreNotEqual()
+    {
+        var forward = new ProbabilityMap<Color>([0.1, 0.7, 0.2], 0, ColorOptions.Instance);
+        var reversed = new ProbabilityMap<Color>([0.1, 0.7, 0.2], 0, ColorOptionsReversed.Instance);
+
+        Assert.False(forward.Equals(reversed));
+    }
+
+    [Fact]
+    public void ProbabilityMap_Default_EqualsDefault()
+    {
+        var first = default(ProbabilityMap<Color>);
+        var second = default(ProbabilityMap<Color>);
+
+        Assert.True(first.Equals(second));
+        Assert.Equal(first.GetHashCode(), second.GetHashCode());
+    }
+
+    [Fact]
+    public void Indexer_SuccessPath_AllocatesNothing()
+    {
+        var map = new ProbabilityMap<Color>([0.1, 0.7, 0.2], 0, ColorOptions.Instance);
+
+        // Warm up the JIT before measuring.
+        _ = map[Color.Green];
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 1000; i++)
+        {
+            _ = map[Color.Green];
+        }
+
+        var after = GC.GetAllocatedBytesForCurrentThread();
+
+        Assert.Equal(before, after);
+    }
+
+    [Fact]
+    public void ProbabilityMap_Equals_AllocatesNothing()
+    {
+        var first = new ProbabilityMap<Color>([0.1, 0.7, 0.2], 0, ColorOptions.Instance);
+        var second = new ProbabilityMap<Color>([9.0, 0.1, 0.7, 0.2], 1, ColorOptions.Instance);
+
+        // Warm up the JIT before measuring.
+        _ = first.Equals(second);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 1000; i++)
+        {
+            _ = first.Equals(second);
+        }
+
+        var after = GC.GetAllocatedBytesForCurrentThread();
+
+        Assert.Equal(before, after);
+    }
+
+    [Fact]
+    public void Choice_Equals_AllocatesNothing()
+    {
+        var map = new ProbabilityMap<Color>([0.1, 0.7, 0.2], 0, ColorOptions.Instance);
+        var first = new Choice<Color>(Color.Green, 0.81, map);
+        var second = new Choice<Color>(Color.Green, 0.81, map);
+
+        // Warm up the JIT before measuring.
+        _ = first.Equals(second);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 1000; i++)
+        {
+            _ = first.Equals(second);
+        }
+
+        var after = GC.GetAllocatedBytesForCurrentThread();
+
+        Assert.Equal(before, after);
+    }
+
+    [Fact]
+    public void Score_Equals_AllocatesNothing()
+    {
+        var map = new ProbabilityMap<Urgency>([0.0, 0.95, 0.05], 0, UrgencyLevels.Instance);
+        var first = new Score<Urgency>(Urgency.Medium, 1.05, 0.92, map);
+        var second = new Score<Urgency>(Urgency.Medium, 1.05, 0.92, map);
+
+        // Warm up the JIT before measuring.
+        _ = first.Equals(second);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 1000; i++)
+        {
+            _ = first.Equals(second);
+        }
+
+        var after = GC.GetAllocatedBytesForCurrentThread();
+
+        Assert.Equal(before, after);
     }
 
     [Fact]

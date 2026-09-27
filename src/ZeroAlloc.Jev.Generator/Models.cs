@@ -32,11 +32,17 @@ internal sealed record QuestionModel(
     EquatableArray<OptionModel> Options);
 
 /// <summary>One <c>[JevQuestions]</c> type.</summary>
+/// <param name="StateTypeName">
+/// The fully qualified name of the <c>State</c> named argument's type, or <see langword="null"/> when the
+/// attribute carries no <c>State</c>. A string, never an <see cref="ISymbol"/>, so the model stays
+/// value-equatable for incremental caching.
+/// </param>
 internal sealed record QuestionSetModel(
     string? Namespace,
     string TypeName,
     string FullyQualifiedName,
     bool IsRecord,
+    string? StateTypeName,
     EquatableArray<QuestionModel> Questions);
 
 /// <summary>The pipeline value: a model when the type is valid, and the diagnostics found.</summary>
@@ -65,6 +71,9 @@ internal sealed record LocationInfo(SyntaxTree Tree, TextSpan Span)
         return location?.SourceTree is null ? null : new LocationInfo(location.SourceTree, location.SourceSpan);
     }
 
+    /// <summary>Builds a location from a syntax node, for diagnostics that have no owning symbol to hang off.</summary>
+    public static LocationInfo From(SyntaxNode node) => new(node.SyntaxTree, node.Span);
+
     public Location ToLocation() => Location.Create(Tree, Span);
 }
 
@@ -73,6 +82,9 @@ internal sealed record DiagnosticInfo(DiagnosticDescriptor Descriptor, LocationI
 {
     public static DiagnosticInfo Create(DiagnosticDescriptor descriptor, ISymbol symbol, params string[] arguments)
         => new(descriptor, LocationInfo.From(symbol), new EquatableArray<string>(arguments));
+
+    public static DiagnosticInfo Create(DiagnosticDescriptor descriptor, LocationInfo? location, params string[] arguments)
+        => new(descriptor, location, new EquatableArray<string>(arguments));
 
     public Diagnostic ToDiagnostic()
         => Diagnostic.Create(Descriptor, Where?.ToLocation(), Arguments.Cast<object>().ToArray());

@@ -16,6 +16,7 @@ Unofficial .NET client for [TypeSafe AI](https://typesafe.ai)'s **Jev**, the fir
 
 - `JevClient` calls `POST /v1/systemone` and `GET /v1/models` on TypeSafe or OpenRouter and returns `Result<T, JevError>` for every outcome — HTTP errors, network failures, time-outs and unreadable responses included.
 - `[JevQuestions]` source generator: declare questions as a C# type; the question JSON is emitted at compile time and answers parse into `Noul`, `Choice<TEnum>` and `Score<TEnum>`.
+- Typed evaluation: `EvaluateAsync<T>` and `EvaluateAsync<T, TState>` return the generated type directly, over a raw, pooled-buffer path.
 - Native AOT: no reflection, verified by an AOT smoke app in CI.
 
 ## Example
@@ -49,6 +50,56 @@ For OpenRouter, set `Provider = JevProvider.OpenRouter` and an OpenRouter key (o
 ### Retries
 
 Rate limiting (429), overload (503, 529), other server errors (5xx), request time-outs (408), network failures and client time-outs are retried with exponential backoff, honouring the server's `Retry-After`. Defaults follow TypeSafe's official SDKs: 2 retries, a 500 ms initial backoff and jitter; each wait, including a server's `Retry-After`, is capped at 30 s. Tune them with `MaxRetries`, `InitialBackoff`, `MaxRetryDelay` and `Jitter` on `JevClientOptions`. Retrying a time-out, network failure or 5xx can process, and bill, a request twice; set `MaxRetries = 0` where that matters. If you pass your own `HttpClient` that already has a retry handler, such as `AddStandardResilienceHandler`, set `MaxRetries = 0` so retries don't multiply. Each retry sends the attempt number as `X-TypeSafe-Retry-Count`, as TypeSafe's official SDKs do.
+
+## Typed evaluation
+
+Declare the questions as a partial record with `[JevQuestions]`; the generator emits the question JSON at compile time and a `Parse` method that reads the typed answers. Call `EvaluateAsync<T>` with the state, and match on the `Result`:
+
+```csharp
+using ZeroAlloc.Jev;
+
+using var jev = new JevClient(new JevClientOptions { ApiKey = apiKey });
+
+var result = await jev.EvaluateAsync<UrgencyCheck>("Help! My payouts have been failing for 3 days.");
+
+Console.WriteLine(result switch
+{
+    { IsSuccess: true } => $"P(urgent) = {result.Value.IsUrgent.Probability:P0}",
+    _ => $"{result.Error.Kind}: {result.Error.Message}",
+});
+
+[JevQuestions]
+public partial record UrgencyCheck
+{
+    [Noul("Does this convey urgency?")]
+    public partial Noul IsUrgent { get; }
+}
+```
+
+`JevClient` answers `EvaluateAsync<T>` over a raw, pooled-buffer UTF-8 path instead of building `SystemOneRequest` and `SystemOneResponse`; any other `IJevClient` (a hand-written fake, for example) falls back to a compatible, allocating default that parses the same typed answers from the untyped call.
+
+For a typed state instead of plain text, name it on the question set with `State = typeof(...)` and call `EvaluateAsync<T, TState>` with a source-generated `JsonTypeInfo<TState>`:
+
+```csharp
+using System.Text.Json.Serialization;
+
+var ticket = new TicketContext("Payouts failing", "Help! My payouts have been failing for 3 days.");
+var result = await jev.EvaluateAsync<TicketUrgency, TicketContext>(ticket, TicketContextJsonContext.Default.TicketContext);
+
+public sealed record TicketContext(string Subject, string Body);
+
+[JsonSerializable(typeof(TicketContext))]
+internal sealed partial class TicketContextJsonContext : JsonSerializerContext;
+
+[JevQuestions(State = typeof(TicketContext))]
+public partial record TicketUrgency
+{
+    [Noul("Does the ticket convey urgency?")]
+    public partial Noul IsUrgent { get; }
+}
+```
+
+Set `JevClientOptions.Model` to send a model or alias other than `JevDefaults.Model` on typed calls.
 
 ## Testing
 

@@ -1,21 +1,9 @@
-using System.Text.Json;
-using System.Text.Json.Serialization;
 using Xunit.Abstractions;
 
 namespace ZeroAlloc.Jev.Live.Tests;
 
 public sealed class TypeSafeLiveTests
 {
-    // Reflection-based, mirroring JevJsonContext's options: JevContentConverter is internal, so a source-generated
-    // context can't reference it from this assembly; phase 2.1's typed EvaluateAsync<T> replaces this round trip.
-    private static readonly JsonSerializerOptions QuestionsJsonOptions = new()
-    {
-        PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-        AllowOutOfOrderMetadataProperties = true,
-        RespectNullableAnnotations = true,
-    };
-
     private readonly ITestOutputHelper _output;
 
     public TypeSafeLiveTests(ITestOutputHelper output) => _output = output;
@@ -57,24 +45,10 @@ public sealed class TypeSafeLiveTests
     [LiveFact(JevProvider.TypeSafe)]
     public async Task GeneratedQuestionSet_ParsesTypedAnswers()
     {
-        // JevQuestion.Instructions is a JevContent, whose [JsonConverter] names the library's internal
-        // JevContentConverter. A source-generated context cannot compile a reference to it from this assembly
-        // without InternalsVisibleTo (which this project must not add), so this one deserialization uses plain
-        // reflection-based JsonSerializerOptions instead: reflection resolves and constructs the converter at run
-        // time, which is unaffected by the compile-time accessibility check that source generation fails on.
-        var questions = JsonSerializer.Deserialize<Dictionary<string, JevQuestion>>(
-            LiveTriage.QuestionsUtf8,
-            QuestionsJsonOptions)!;
-
         using var client = Live.Client(JevProvider.TypeSafe);
-        var request = new SystemOneRequest
-        {
-            State = "Help! My payouts have been failing for 3 days and nobody answers.",
-            Model = Live.Model(JevProvider.TypeSafe),
-            Questions = questions,
-        };
 
-        var result = await client.EvaluateAsync(request);
+        var result = await client.EvaluateAsync<LiveTriage>(
+            "Help! My payouts have been failing for 3 days and nobody answers.");
 
         if (result.IsFailure)
         {
@@ -83,13 +57,7 @@ public sealed class TypeSafeLiveTests
 
         Assert.True(result.IsSuccess);
 
-        var answersJson = JsonSerializer.SerializeToUtf8Bytes(
-            result.Value.Answers,
-            LiveJsonContext.Default.IReadOnlyDictionaryStringJevAnswer);
-
-        var reader = new Utf8JsonReader(answersJson);
-        reader.Read();
-        var triage = LiveTriage.Parse(ref reader);
+        var triage = result.Value;
 
         Assert.InRange(triage.IsUrgent.Probability, 0.0, 1.0);
 
@@ -134,18 +102,3 @@ public sealed class TypeSafeLiveTests
         Assert.Equal(JevErrorKind.Validation, result.Error.Kind);
     }
 }
-
-// Phase 2.1's typed EvaluateAsync<T> will replace this manual round trip. The library's own JevJsonContext is
-// internal, so this test-local context mirrors its options exactly to serialize the public JevAnswer wire type
-// (which carries its own JsonPolymorphic attributes) without InternalsVisibleTo. It cannot also cover
-// Dictionary<string, JevQuestion>: JevQuestion.Instructions is a JevContent, whose [JsonConverter] names the
-// library's internal JevContentConverter, and source generation must emit a direct, compile-time reference to a
-// converter type, which fails to compile here (SYSLIB1220/SYSLIB1030) without InternalsVisibleTo. That
-// deserialization uses reflection-based JsonSerializerOptions instead; see QuestionsJsonOptions above.
-[JsonSourceGenerationOptions(
-    PropertyNamingPolicy = JsonKnownNamingPolicy.SnakeCaseLower,
-    DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
-    AllowOutOfOrderMetadataProperties = true,
-    RespectNullableAnnotations = true)]
-[JsonSerializable(typeof(IReadOnlyDictionary<string, JevAnswer>))]
-internal sealed partial class LiveJsonContext : JsonSerializerContext;

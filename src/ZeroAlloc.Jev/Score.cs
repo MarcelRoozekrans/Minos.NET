@@ -2,7 +2,7 @@ namespace ZeroAlloc.Jev;
 
 /// <summary>A typed Score answer: the most probable level of an ordered rubric, with the expected level and confidence.</summary>
 /// <typeparam name="T">The enum whose members are the levels, in rubric order.</typeparam>
-public readonly struct Score<T>
+public readonly struct Score<T> : IEquatable<Score<T>>
     where T : struct, Enum
 {
     /// <summary>Initializes a new instance of the <see cref="Score{T}"/> struct.</summary>
@@ -29,4 +29,29 @@ public readonly struct Score<T>
 
     /// <summary>Gets the probability of each level.</summary>
     public ProbabilityMap<T> Probabilities { get; }
+
+    /// <summary>Compares two scores for equality.</summary>
+    /// <param name="left">The first value.</param>
+    /// <param name="right">The second value.</param>
+    /// <returns><see langword="true"/> when the values are equal.</returns>
+    public static bool operator ==(Score<T> left, Score<T> right) => left.Equals(right);
+
+    /// <summary>Compares two scores for inequality.</summary>
+    /// <param name="left">The first value.</param>
+    /// <param name="right">The second value.</param>
+    /// <returns><see langword="true"/> when the values differ.</returns>
+    public static bool operator !=(Score<T> left, Score<T> right) => !left.Equals(right);
+
+    /// <inheritdoc />
+    public bool Equals(Score<T> other)
+        => EqualityComparer<T>.Default.Equals(Value, other.Value)
+        && Expected.Equals(other.Expected)
+        && Confidence.Equals(other.Confidence)
+        && Probabilities.Equals(other.Probabilities);
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is Score<T> other && Equals(other);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => HashCode.Combine(Value, Expected, Confidence, Probabilities);
 }

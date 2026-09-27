@@ -236,6 +236,27 @@ public sealed class JevClientSettingsTests
                 MaxRetryDelay = TimeSpan.FromDays(30),
             }));
 
+    [Fact]
+    public void Model_DefaultsToJevDefaultsModel()
+        => Assert.Equal(JevDefaults.Model, Resolve(new JevClientOptions { ApiKey = "k" }).Model);
+
+    [Fact]
+    public void ModelOption_IsTrimmedAndCarriedOver()
+        => Assert.Equal("jev-1.13.0", Resolve(new JevClientOptions { ApiKey = "k", Model = "  jev-1.13.0\n" }).Model);
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("\t\n")]
+    [InlineData(null)]
+    public void BlankModel_Throws(string? model)
+    {
+        var exception = Assert.Throws<ArgumentException>(
+            () => Resolve(new JevClientOptions { ApiKey = "k", Model = model! }));
+
+        Assert.Equal("options", exception.ParamName);
+    }
+
     private static JevClientSettings Resolve(JevClientOptions? options, params (string Name, string Value)[] environment)
         => JevClientSettings.Resolve(
             options,

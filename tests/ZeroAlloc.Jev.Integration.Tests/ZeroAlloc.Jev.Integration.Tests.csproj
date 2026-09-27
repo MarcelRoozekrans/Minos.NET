@@ -1,6 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\..\src\ZeroAlloc.Jev\ZeroAlloc.Jev.csproj" />
+    <ProjectReference Include="..\..\src\ZeroAlloc.Jev.Generator\ZeroAlloc.Jev.Generator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>

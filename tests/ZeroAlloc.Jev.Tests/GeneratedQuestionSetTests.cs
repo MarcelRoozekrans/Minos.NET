@@ -62,6 +62,26 @@ public sealed class GeneratedQuestionSetTests
     }
 
     [Fact]
+    public void Choice_ParsedTwice_AreEqualByRecordEquality()
+    {
+        var first = Answers.Parse<DepartmentRouting>(Fixture.Text("response-choice.json"));
+        var second = Answers.Parse<DepartmentRouting>(Fixture.Text("response-choice.json"));
+
+        Assert.Equal(first, second);
+        Assert.Equal(first.GetHashCode(), second.GetHashCode());
+    }
+
+    [Fact]
+    public void Score_ParsedTwice_AreEqualByRecordEquality()
+    {
+        var first = Answers.Parse<FrustrationCheck>(Fixture.Text("response-score.json"));
+        var second = Answers.Parse<FrustrationCheck>(Fixture.Text("response-score.json"));
+
+        Assert.Equal(first, second);
+        Assert.Equal(first.GetHashCode(), second.GetHashCode());
+    }
+
+    [Fact]
     public void Score_ParsesFixture()
     {
         var frustration = Answers.Parse<FrustrationCheck>(Fixture.Text("response-score.json")).Frustration;

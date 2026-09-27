@@ -3,10 +3,10 @@
 **Date:** 2026-09-27
 
 ## Current Position
-- **Milestone:** 1 — Foundation & core client (complete 2026-09-27; audit PASS)
-- **Phase:** none active — next is Milestone 2
+- **Milestone:** 2 — Typed .NET API (active since 2026-09-27; Milestone 1 complete, audit PASS)
+- **Phase:** 2.1 — Typed evaluation (active; spec and plan written, executing on branch `phase/2.1-typed-evaluation`)
 - **Last completed task:** Phase 1.8 — CI and release pipeline, merged as PR #44 on 2026-09-27; closes #14, #15, #30. Milestone 1 closed.
-- **Next task:** Start Milestone 2 (`start-next-phase`). Done since Milestone 1 closed: ZeroAlloc.Rest 2.2.0 / Resilience 3.3.0 adopted (Renovate #45), `X-TypeSafe-Retry-Count` sent on retries (PR #47, closes #40), `JevClient.ThrowDeclined` replaced by `[Retry(RethrowDeclined = true)]`.
+- **Next task:** Phase 2.1 brainstorm on its own branch. Milestone 2 design: `docs/superpowers/specs/2026-09-27-milestone-2-design.md` (performance folded into each phase, 2.5 removed). Done since Milestone 1 closed: ZeroAlloc.Rest 2.2.0 / Resilience 3.3.0 adopted (Renovate #45), `X-TypeSafe-Retry-Count` sent on retries (PR #47, closes #40), `JevClient.ThrowDeclined` replaced by `[Retry(RethrowDeclined = true)]`.
 
 ## What Phase 1.8 shipped
 - The AOT smoke app enforces `AllocationGate` budgets (Parse 192 B, readers 0 B, `EvaluateAsync` 5120 B) and treats every warning as an error.
