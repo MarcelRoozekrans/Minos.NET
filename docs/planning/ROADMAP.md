@@ -53,12 +53,13 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-09-27-phase-1.5-rename-to-zeroalloc-jev.md`
 **Completed:** 2026-09-27
 
-### Phase 1.6: Resilience [status: active]
+### Phase 1.6: Resilience [status: complete]
 **Goal:** ZeroAlloc.Resilience retry with exponential backoff on 429, 503/529, other 5xx, 408, network failures and time-outs, honouring `Retry-After` and `retry-after-ms`; `MaxRetries`, `InitialBackoff`, `MaxRetryDelay` and `Jitter` on `JevClientOptions`, defaulting to the official TypeSafe SDK's 2 retries, 500 ms, 30 s and jitter. Completes `RetryAfterHeader` (#18).
 **Surface:** Backend
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-09-27-phase-1.6-resilience-design.md`
 **Plan:** `docs/superpowers/plans/2026-09-27-phase-1.6-resilience.md`
+**Completed:** 2026-09-27
 
 ### Phase 1.7: Test harness [status: pending]
 **Goal:** Unit tests, WireMock.Net component tests, and a live smoke suite skipped when no API key is present — covering both TypeSafe direct and OpenRouter.
