@@ -47,8 +47,9 @@ jobs:
   aot-smoke:
     runs-on: ubuntu-latest
     # Publishes samples/ZeroAlloc.Jev.AotSmoke with PublishAot=true and runs it: the client, the error mapper and
-    # the generator-emitted question set must survive ILC with none of the org's listed trim/AOT warning codes
-    # promoted to errors (see the csproj's WarningsAsErrors; not the full IL2xxx/IL3xxx surface, tracked as #30).
+    # the generator-emitted question set must survive ILC with every warning treated as an error, including the full
+    # IL2xxx/IL3xxx trim/AOT surface (closes #30). The run also enforces allocation budgets on the client's hot
+    # paths through ZeroAlloc.TestHelpers' AllocationGate, so a regression there fails the job too.
     steps:
       - uses: actions/checkout@v7
         with:
