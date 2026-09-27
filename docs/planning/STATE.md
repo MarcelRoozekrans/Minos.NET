@@ -3,10 +3,16 @@
 **Date:** 2026-09-27
 
 ## Current Position
-- **Milestone:** 1 — Foundation & core client (3 of 8 phases complete)
-- **Phase:** 1.4 — Transport (pending; no design spec yet)
-- **Last completed task:** Phase 1.3 — Question generator core, all 7 tasks of `docs/superpowers/plans/2026-09-26-phase-1.3-question-generator-core.md` plus the final-review fix wave. Executed autonomously overnight with a review of each task and a whole-branch review; 149 tests passing (94 in `Jev.Net.Tests`, 55 in `Jev.Net.Generators.Tests`), Release build with 0 warnings, nupkg carries `analyzers/dotnet/cs/Jev.Net.Generators.dll`.
-- **Next task:** Phase 1.4 — Transport and error model: design spec `docs/superpowers/specs/2026-09-27-phase-1.4-transport-and-error-model-design.md` written 2026-09-27; next is the implementation plan.
+- **Milestone:** 1 — Foundation & core client (4 of 8 phases complete)
+- **Phase:** 1.5 — Rename to ZeroAlloc.Jev (pending; no design spec yet; Surface: Refactor)
+- **Last completed task:** Phase 1.4 — Transport and error model: all 4 tasks of `docs/superpowers/plans/2026-09-27-phase-1.4-transport-and-error-model.md` plus the final-review fix wave. 180 tests in `Jev.Net.Tests` and 55 in `Jev.Net.Generators.Tests` pass, Release build 0 warnings, and the final review published a Native AOT console app over `JevClient` with zero IL warnings.
+- **Next task:** Phase 1.5 brainstorm — survey the sibling ZeroAlloc-Net repos, then refactor-analysis before the plan.
+
+## What Phase 1.4 shipped
+- Public `IJevClient` / `JevClient` (four constructors without optional parameters), `JevClientOptions` (`set` accessors), `JevProvider`, `JevError` / `JevErrorKind`; internal `IJevApi` over ZeroAlloc.Rest 2.1.0 with `[ErrorMapper(typeof(JevErrorMapper))]`, `JevClientSettings`, `RetryAfterHeader`.
+- OpenRouter: `SystemOneResponse.Id` / `Provider`, `JevUsage.Cost`; `ListModelsAsync` returns `Unsupported` without a request; `TYPESAFE_BASE_URL` applies to TypeSafe only.
+- Upstream issues filed: ZeroAlloc-Net/ZeroAlloc.Rest#335 (HLQ001 in generated code, which `Jev.Net.csproj` suppresses project-wide until it ships) and #336 (transitive dependency footprint).
+- Follow-ups for later phases are listed at the end of the phase 1.4 plan.
 
 ## What Phase 1.3 shipped
 - Runtime types in `Jev.Net`: `Noul`, `Choice<T>`, `Score<T>`, `ProbabilityMap<T>` (internal constructor), `JevOptionSet<T>`, `IJevQuestionSet<TSelf>`, the six question attributes, and `JevAnswerReader`, a public helper hidden from IntelliSense that the generated code calls.
@@ -36,4 +42,4 @@
 - Unknown until a live API call: whether TypeSafe sends `Retry-After`, and the schema of the 422 error body.
 
 ## Recommended Next Step
-Review the phase 1.3 work: `git log 13d8a91..HEAD`, the plan's follow-ups section, and the rulings in the session summary. Then run `start-next-phase` to brainstorm Phase 1.4 — Transport against ZeroAlloc.Rest 2.1.0. Read its migration guide and the follow-ups at the end of the phase 1.1, 1.2 and 1.3 plans first.
+Run `start-next-phase` for Phase 1.5 — Rename to ZeroAlloc.Jev. It has no design spec, so it routes to a brainstorm: survey ZeroAlloc.Rest, ZeroAlloc.Results and ZeroAlloc.Resilience for naming, layout, build props, package metadata, docs and CI; then the Surface: Refactor pre-plan hook runs `refactor-analysis` before `writing-plans`. The phase ends with a real `PublishAot` smoke publish (seed described in the phase 1.4 plan follow-ups).
