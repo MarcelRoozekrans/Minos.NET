@@ -1,0 +1,42 @@
+name: Release Please
+
+on:
+  push:
+    branches: [ main ]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
+jobs:
+  release-please:
+    runs-on: ubuntu-latest
+    outputs:
+      release_created: ${{ steps.release.outputs.release_created }}
+      tag_name: ${{ steps.release.outputs.tag_name }}
+      prs_created: ${{ steps.release.outputs.prs_created }}
+      pr: ${{ steps.release.outputs.pr }}
+
+    steps:
+      - uses: googleapis/release-please-action@v5
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+
+  # Shared from ZeroAlloc-Net/.github: moves unshipped analyzer rules and public API to shipped on the release PR.
+  ship-release-tracking:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.prs_created == 'true' }}
+    uses: ZeroAlloc-Net/.github/.github/workflows/ship-release-tracking.yml@main
+    with:
+      branch: ${{ fromJSON(needs.release-please.outputs.pr).headBranchName }}
+    secrets:
+      RELEASE_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+
+  # No publish job: NuGet publishing is deliberately absent until the maintainer declares the package mature.

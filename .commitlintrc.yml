@@ -21,6 +21,7 @@ rules:
     - 2
     - always
     - - core
+      - generator
       - di
       - tests
       - benchmarks
