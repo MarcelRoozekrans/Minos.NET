@@ -19,27 +19,51 @@ public sealed class JevClient : IJevClient, IDisposable
     private readonly JevProvider _provider;
     private bool _disposed;
 
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JevClient"/> class that creates and owns its
+    /// <see cref="HttpClient"/>, using defaults and environment variables.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">No API key is configured, or an environment variable is invalid.</exception>
+    public JevClient()
+        : this((JevClientOptions?)null)
+    {
+    }
+
     /// <summary>Initializes a new instance of the <see cref="JevClient"/> class that creates and owns its <see cref="HttpClient"/>.</summary>
     /// <param name="options">The configuration; <see langword="null"/> uses defaults and environment variables.</param>
     /// <exception cref="ArgumentException">An option has an invalid value.</exception>
     /// <exception cref="InvalidOperationException">No API key is configured, or an environment variable is invalid.</exception>
-    public JevClient(JevClientOptions? options = null)
-        : this(JevClientSettings.Resolve(options, Environment.GetEnvironmentVariable), httpClient: null, ownedHandler: null, TimeProvider.System)
+    public JevClient(JevClientOptions? options)
+        : this(ResolveSettings(options), httpClient: null, ownedHandler: null, TimeProvider.System)
+    {
+    }
+
+    /// <summary>
+    /// Initializes a new instance of the <see cref="JevClient"/> class over a caller-owned <see cref="HttpClient"/>,
+    /// using defaults and environment variables.
+    /// </summary>
+    /// <param name="httpClient">
+    /// The client to send requests with; it is not disposed. When its base address is <see langword="null"/>, this
+    /// constructor sets it, so <paramref name="httpClient"/> must not have sent a request yet.
+    /// </param>
+    /// <exception cref="ArgumentNullException"><paramref name="httpClient"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">No API key is configured, or an environment variable is invalid.</exception>
+    public JevClient(HttpClient httpClient)
+        : this(httpClient, (JevClientOptions?)null)
     {
     }
 
     /// <summary>Initializes a new instance of the <see cref="JevClient"/> class over a caller-owned <see cref="HttpClient"/>.</summary>
-    /// <param name="httpClient">The client to send requests with. Its base address is kept when set; it is not disposed.</param>
+    /// <param name="httpClient">
+    /// The client to send requests with; it is not disposed. When its base address is <see langword="null"/>, this
+    /// constructor sets it, so <paramref name="httpClient"/> must not have sent a request yet.
+    /// </param>
     /// <param name="options">The configuration; <see langword="null"/> uses defaults and environment variables.</param>
     /// <exception cref="ArgumentNullException"><paramref name="httpClient"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException">An option has an invalid value.</exception>
     /// <exception cref="InvalidOperationException">No API key is configured, or an environment variable is invalid.</exception>
-    public JevClient(HttpClient httpClient, JevClientOptions? options = null)
-        : this(
-            JevClientSettings.Resolve(options, Environment.GetEnvironmentVariable),
-            httpClient ?? throw new ArgumentNullException(nameof(httpClient)),
-            ownedHandler: null,
-            TimeProvider.System)
+    public JevClient(HttpClient httpClient, JevClientOptions? options)
+        : this(ResolveSettings(httpClient, options), httpClient, ownedHandler: null, TimeProvider.System)
     {
     }
 
@@ -134,6 +158,16 @@ public sealed class JevClient : IJevClient, IDisposable
     }
 
     private static JevError Unreadable(string message) => new(JevErrorKind.InvalidResponse, message, statusCode: 200);
+
+    private static JevClientSettings ResolveSettings(JevClientOptions? options)
+        => JevClientSettings.Resolve(options, Environment.GetEnvironmentVariable);
+
+    // Validates httpClient before resolving settings, so an invalid options value never masks a null httpClient.
+    private static JevClientSettings ResolveSettings(HttpClient httpClient, JevClientOptions? options)
+    {
+        ArgumentNullException.ThrowIfNull(httpClient);
+        return ResolveSettings(options);
+    }
 
     private static string ClientVersion()
     {

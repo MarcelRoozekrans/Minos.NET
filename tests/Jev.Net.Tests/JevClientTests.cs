@@ -202,6 +202,23 @@ public sealed class JevClientTests
         Assert.Equal(new Uri("http://proxy.local/jev/v1/systemone"), Assert.Single(handler.Requests).Uri);
 #pragma warning restore HLQ005
         Assert.False(handler.Disposed);
+        Assert.Null(http.DefaultRequestHeaders.Authorization);
+    }
+
+    [Fact]
+    public async Task BorrowedClientWithoutBaseAddress_GetsTheProviderAddress()
+    {
+        var handler = StubHandler.Json(HttpStatusCode.OK, Fixture.Text("response-noul.json"));
+        using var http = new HttpClient(handler);
+        var client = new JevClient(Settings(), http, ownedHandler: null, TimeProvider.System);
+
+        _ = await client.EvaluateAsync(NoulRequest());
+        client.Dispose();
+
+        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
+#pragma warning disable HLQ005
+        Assert.Equal(new Uri("https://api.typesafe.ai/v1/systemone"), Assert.Single(handler.Requests).Uri);
+#pragma warning restore HLQ005
     }
 
     [Fact]
@@ -225,7 +242,11 @@ public sealed class JevClientTests
     [Fact]
     public void PublicConstructors_ValidateArguments()
     {
+        Assert.Throws<ArgumentNullException>(() => new JevClient((HttpClient)null!));
         Assert.Throws<ArgumentNullException>(() => new JevClient(null!, new JevClientOptions { ApiKey = "k" }));
+
+        // A null httpClient must be reported even when the options would otherwise be invalid.
+        Assert.Throws<ArgumentNullException>(() => new JevClient(null!, new JevClientOptions { Provider = (JevProvider)42 }));
 
         using var client = new JevClient(new JevClientOptions { ApiKey = "k", BaseAddress = new Uri("http://localhost/") });
         Assert.NotNull(client);

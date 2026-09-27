@@ -9,17 +9,11 @@
     <IsPackable>true</IsPackable>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!--
-      HLQ001 false positive: ZeroAlloc.Rest.Generator's own generated JevApiClient (IJevApi.g.cs, which this
-      project does not author and cannot edit) copies response headers into a Dictionary and assigns it to an
-      IReadOnlyDictionary field once per HttpError. NetFabric.Hyperlinq.Analyzer flags every such assignment as
-      enumerator boxing regardless of call frequency; there is no hot loop here to fix.
+      HLQ001 fires only in ZeroAlloc.Rest.Generator's own generated __CreateHttpError (IJevApi.g.cs), which this
+      project does not author and cannot edit; .editorconfig severity overrides cannot scope generated code.
+      Remove once ZeroAlloc-Net/ZeroAlloc.Rest#335 ships: https://github.com/ZeroAlloc-Net/ZeroAlloc.Rest/issues/335
     -->
-    <!--
-      RS0026 false positive: JevClient's two public constructors both end in an optional JevClientOptions?
-      by design (one bare, one over a caller-owned HttpClient) - the spec fixes this shape. They are not
-      ambiguous (they differ in their leading parameter) and neither is expected to gain further overloads.
-    -->
-    <NoWarn>$(NoWarn);HLQ001;RS0026</NoWarn>
+    <NoWarn>$(NoWarn);HLQ001</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>

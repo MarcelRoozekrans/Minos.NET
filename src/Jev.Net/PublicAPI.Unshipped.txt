@@ -44,8 +44,10 @@ Jev.Net.JevAnswerReader
 Jev.Net.JevClient
 Jev.Net.JevClient.Dispose() -> void
 Jev.Net.JevClient.EvaluateAsync(Jev.Net.SystemOneRequest! request, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Jev.Net.SystemOneResponse!, Jev.Net.JevError!>>
-Jev.Net.JevClient.JevClient(Jev.Net.JevClientOptions? options = null) -> void
-Jev.Net.JevClient.JevClient(System.Net.Http.HttpClient! httpClient, Jev.Net.JevClientOptions? options = null) -> void
+Jev.Net.JevClient.JevClient() -> void
+Jev.Net.JevClient.JevClient(Jev.Net.JevClientOptions? options) -> void
+Jev.Net.JevClient.JevClient(System.Net.Http.HttpClient! httpClient) -> void
+Jev.Net.JevClient.JevClient(System.Net.Http.HttpClient! httpClient, Jev.Net.JevClientOptions? options) -> void
 Jev.Net.JevClient.ListModelsAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Jev.Net.ModelList!, Jev.Net.JevError!>>
 Jev.Net.JevClientOptions
 Jev.Net.JevClientOptions.ApiKey.get -> string?
