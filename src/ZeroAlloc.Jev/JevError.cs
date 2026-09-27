@@ -14,7 +14,10 @@ public sealed class JevError
     /// <param name="kind">What went wrong.</param>
     /// <param name="message">A short, human-readable description.</param>
     /// <param name="statusCode">The HTTP status code, when a response arrived.</param>
-    /// <param name="retryAfter">How long the service asked the caller to wait, from the <c>Retry-After</c> header.</param>
+    /// <param name="retryAfter">
+    /// How long the service asked the caller to wait, from the <c>retry-after-ms</c> header, which takes precedence,
+    /// or the <c>Retry-After</c> header.
+    /// </param>
     /// <param name="detail">The error response body, when it is JSON.</param>
     /// <param name="exception">The exception behind a network, time-out or response-reading failure.</param>
     public JevError(
@@ -44,7 +47,10 @@ public sealed class JevError
     /// <summary>Gets the HTTP status code, or <see langword="null"/> when no response arrived.</summary>
     public int? StatusCode { get; }
 
-    /// <summary>Gets how long the service asked the caller to wait, or <see langword="null"/> when it did not say.</summary>
+    /// <summary>
+    /// Gets how long the service asked the caller to wait, from the <c>retry-after-ms</c> header, which takes
+    /// precedence, or the <c>Retry-After</c> header, or <see langword="null"/> when neither was set.
+    /// </summary>
     public TimeSpan? RetryAfter { get; }
 
     /// <summary>Gets the error response body when it is JSON, for example the field a 422 rejected.</summary>

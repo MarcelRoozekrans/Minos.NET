@@ -20,7 +20,11 @@ public sealed class JevClientOptions
     /// </summary>
     public Uri? BaseAddress { get; set; }
 
-    /// <summary>Gets or sets how long a request may take. Defaults to 60 seconds. Applies only to an <see cref="HttpClient"/> the client creates.</summary>
+    /// <summary>
+    /// Gets or sets how long a single attempt may take. Defaults to 60 seconds. Applies only to an
+    /// <see cref="HttpClient"/> the client creates. With retries, a call can take up to
+    /// <c>(MaxRetries + 1) × Timeout</c> plus the waits between attempts.
+    /// </summary>
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(60);
 
     /// <summary>
@@ -33,18 +37,25 @@ public sealed class JevClientOptions
     /// </remarks>
     public int MaxRetries { get; set; } = 2;
 
-    /// <summary>Gets or sets the first wait between attempts, doubled for each further retry. Defaults to 500 ms.</summary>
+    /// <summary>
+    /// Gets or sets the first wait between attempts, doubled for each further retry and capped by
+    /// <see cref="MaxRetryDelay"/>. Defaults to 500 ms. Must be positive and at most <see cref="int.MaxValue"/>
+    /// milliseconds.
+    /// </summary>
     public TimeSpan InitialBackoff { get; set; } = TimeSpan.FromMilliseconds(500);
 
     /// <summary>
     /// Gets or sets the longest wait between attempts, for the backoff and for a server's <c>Retry-After</c> alike.
-    /// Defaults to 30 seconds.
+    /// Defaults to 30 seconds. Must be at least <see cref="InitialBackoff"/> and at most <see cref="int.MaxValue"/>
+    /// milliseconds.
     /// </summary>
     public TimeSpan MaxRetryDelay { get; set; } = TimeSpan.FromSeconds(30);
 
     /// <summary>
     /// Gets or sets a value indicating whether a random jitter is added to the backoff, so many clients do not retry in
-    /// step. A server's <c>Retry-After</c> is honoured exactly. Defaults to <see langword="true"/>.
+    /// step. Jitter adds up to 50 % of the backoff delay, and the result never exceeds <see cref="MaxRetryDelay"/>. A
+    /// server's <c>Retry-After</c> is honoured exactly, up to <see cref="MaxRetryDelay"/>. Defaults to
+    /// <see langword="true"/>.
     /// </summary>
     public bool Jitter { get; set; } = true;
 }

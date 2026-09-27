@@ -226,6 +226,16 @@ public sealed class JevClientSettingsTests
         => Assert.Throws<ArgumentException>(
             () => Resolve(new JevClientOptions { ApiKey = "k", MaxRetryDelay = TimeSpan.FromDays(30) }));
 
+    [Fact]
+    public void InitialBackoffBeyondIntMilliseconds_Throws()
+        => Assert.Throws<ArgumentException>(
+            () => Resolve(new JevClientOptions
+            {
+                ApiKey = "k",
+                InitialBackoff = TimeSpan.FromDays(30),
+                MaxRetryDelay = TimeSpan.FromDays(30),
+            }));
+
     private static JevClientSettings Resolve(JevClientOptions? options, params (string Name, string Value)[] environment)
         => JevClientSettings.Resolve(
             options,

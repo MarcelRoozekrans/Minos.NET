@@ -32,7 +32,7 @@ public sealed class JevClientRetryTests : IDisposable
     public async Task NetworkFailure_IsRetried()
     {
         var calls = 0;
-        var handler = new StubHandler((_, _) => ++calls == 1
+        var handler = new StubHandler((_, _) => ++calls <= 2
             ? throw new HttpRequestException("connection refused")
             : Task.FromResult(Success()));
         using var client = Client(handler);
@@ -40,7 +40,7 @@ public sealed class JevClientRetryTests : IDisposable
         var result = await client.EvaluateAsync(Request());
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(2, handler.Requests.Count);
+        Assert.Equal(3, handler.Requests.Count);
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public sealed class JevClientRetryTests : IDisposable
         var calls = 0;
         var handler = new StubHandler(async (_, ct) =>
         {
-            if (++calls == 1)
+            if (++calls <= 2)
             {
                 await Task.Delay(Timeout.Infinite, ct);
             }
@@ -61,7 +61,7 @@ public sealed class JevClientRetryTests : IDisposable
         var result = await client.EvaluateAsync(Request());
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(2, handler.Requests.Count);
+        Assert.Equal(3, handler.Requests.Count);
     }
 
     [Theory]
