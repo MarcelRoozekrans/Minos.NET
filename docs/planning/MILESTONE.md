@@ -20,7 +20,7 @@ Deliver a working, Native AOT-clean `JevClient` for TypeSafe's Jev API covering 
 1. Phase 1.1 — Repo scaffolding [complete]
 2. Phase 1.2 — Wire model [complete]
 3. Phase 1.3 — Question generator core [complete]
-4. Phase 1.4 — Transport and error model [pending]
+4. Phase 1.4 — Transport and error model [active]
 5. Phase 1.5 — Resilience [pending]
 6. Phase 1.6 — Test harness [pending]
 7. Phase 1.7 — CI and release pipeline [pending]

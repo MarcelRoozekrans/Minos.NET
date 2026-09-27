@@ -39,11 +39,11 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-09-26-phase-1.3-question-generator-core.md`
 **Completed:** 2026-09-27
 
-### Phase 1.4: Transport and error model [status: pending]
+### Phase 1.4: Transport and error model [status: active]
 **Goal:** Public `JevClient` (`IJevClient`) calling `/v1/systemone` and `/v1/models` on TypeSafe or OpenRouter through an internal ZeroAlloc.Rest 2.1.0 interface, returning `Result<T, JevError>` for every outcome via `[ErrorMapper]` — 401/422/429/529, other statuses, network failures, time-outs and unreadable responses. `JevClientOptions` with `JevProvider`, API key and base address from options or `TYPESAFE_API_KEY` / `OPENROUTER_API_KEY` / `TYPESAFE_BASE_URL`. Merges the former 1.4 Transport and 1.5 Error model (2026-09-27).
 **Surface:** Backend
 **HelpWanted:** no
-**Plan:** _to be written_
+**Plan:** `docs/superpowers/plans/2026-09-27-phase-1.4-transport-and-error-model.md`
 
 ### Phase 1.5: Resilience [status: pending]
 **Goal:** ZeroAlloc.Resilience retry with exponential backoff on 429/529 honoring `retry-after`.
