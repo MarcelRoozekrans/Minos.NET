@@ -35,11 +35,10 @@ Jev.Net is a community .NET SDK for TypeSafe AI's Jev, the first "System One" mo
 1. Repo scaffolding per AdoNet.Async standards (`.slnx`, `Directory.Build.props`, analyzers, `.editorconfig`, commitlint, Renovate, logo placeholder) — `Surface: Infra`
 2. Wire model for the HTTP API, serialised via STJ source generation / ZeroAlloc.Serialisation — `Surface: Backend`
 3. Question generator core: `[JevQuestions]` source generator emitting question JSON and a typed answer parser (added 2026-09-25, see `2026-09-25-question-generator-roadmap-design.md`) — `Surface: Backend`
-4. Transport: ZeroAlloc.Rest interface for `/v1/systemone` and `/v1/models`, Bearer auth, `TYPESAFE_API_KEY` — `Surface: Backend`
-5. Error model: `Result<T, JevError>` covering 401/422/429/529, network failures and timeouts — `Surface: Backend`
-6. Resilience: ZeroAlloc.Resilience retry on 429/529 honoring `retry-after` — `Surface: Backend`
-7. Test harness: unit tests, WireMock.Net component tests, key-gated live smoke suite — `Surface: Infra`
-8. CI: build/test, AOT smoke with `AllocationGate`, BenchmarkDotNet baseline, release-please, GitVersion alpha pushes — `Surface: Infra`
+4. Transport and error model: public `JevClient` returning `Result<T, JevError>` via ZeroAlloc.Rest `[ErrorMapper]`, Bearer auth, TypeSafe and OpenRouter providers (former phases 4 and 5 merged 2026-09-27, see `2026-09-27-phase-1.4-transport-and-error-model-design.md`) — `Surface: Backend`
+5. Resilience: ZeroAlloc.Resilience retry on 429/529 honoring `retry-after` — `Surface: Backend`
+6. Test harness: unit tests, WireMock.Net component tests, key-gated live smoke suite — `Surface: Infra`
+7. CI: build/test, AOT smoke with `AllocationGate`, BenchmarkDotNet baseline, release-please, GitVersion alpha pushes — `Surface: Infra`
 
 ### Milestone 2: Typed .NET API
 

@@ -53,7 +53,7 @@ Planned diagnostics: JEV001 Choice enum empty or over the option limit; JEV002 S
 **New Phase 1.3: Question generator core** — `Surface: Backend`
 Incremental `[JevQuestions]` source generator with its attribute and runtime types (`[Noul]`, `[Choice]`, `[Score]`, `[Criteria]`, `[Level]`, `IJevQuestionSet<TSelf>`, typed answer types), emitting `QuestionsUtf8` and a `Utf8JsonReader` answer parser. Emitted JSON is verified against the Phase 1.2 wire model and fixtures, with generator snapshot tests. No transport, no `EvaluateAsync`, no analyzers.
 
-Renumbered: 1.4 Transport, 1.5 Error model, 1.6 Resilience, 1.7 Test harness, 1.8 CI and release pipeline. Phase 1.8 additionally verifies the packed nupkg contains the generator under `analyzers/dotnet/cs`.
+Renumbered: 1.4 Transport, 1.5 Error model, 1.6 Resilience, 1.7 Test harness, 1.8 CI and release pipeline. (Superseded 2026-09-27: 1.4 and 1.5 merged into "Transport and error model"; Resilience is now 1.5, Test harness 1.6, CI and release 1.7.) Phase 1.8 additionally verifies the packed nupkg contains the generator under `analyzers/dotnet/cs`.
 
 Added to the M1 Definition of Done: *`[JevQuestions]` generator emits question JSON and parses answers, verified against the wire fixtures.*
 

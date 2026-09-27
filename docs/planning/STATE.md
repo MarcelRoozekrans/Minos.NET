@@ -6,7 +6,7 @@
 - **Milestone:** 1 — Foundation & core client (3 of 8 phases complete)
 - **Phase:** 1.4 — Transport (pending; no design spec yet)
 - **Last completed task:** Phase 1.3 — Question generator core, all 7 tasks of `docs/superpowers/plans/2026-09-26-phase-1.3-question-generator-core.md` plus the final-review fix wave. Executed autonomously overnight with a review of each task and a whole-branch review; 149 tests passing (94 in `Jev.Net.Tests`, 55 in `Jev.Net.Generators.Tests`), Release build with 0 warnings, nupkg carries `analyzers/dotnet/cs/Jev.Net.Generators.dll`.
-- **Next task:** Phase 1.4 brainstorm (Transport on ZeroAlloc.Rest 2.1.0).
+- **Next task:** Phase 1.4 — Transport and error model: design spec `docs/superpowers/specs/2026-09-27-phase-1.4-transport-and-error-model-design.md` written 2026-09-27; next is the implementation plan.
 
 ## What Phase 1.3 shipped
 - Runtime types in `Jev.Net`: `Noul`, `Choice<T>`, `Score<T>`, `ProbabilityMap<T>` (internal constructor), `JevOptionSet<T>`, `IJevQuestionSet<TSelf>`, the six question attributes, and `JevAnswerReader`, a public helper hidden from IntelliSense that the generated code calls.
@@ -25,11 +25,10 @@
 - Milestone 1 has no upstream blockers.
 
 ## Open Decisions
-- Phase 1.4/1.5: what goes public in 1.4 (Transport) versus what arrives with `JevError` in 1.5. With Rest 2.1.0's error mapper, the client can return `Result<T, JevError>` directly.
-- Phase 1.4: OpenRouter is a first-class provider (decided 2026-09-24). That means a configurable base URL plus `TYPESAFE_BASE_URL`, optional `Id`/`Provider`/`Usage.Cost` fields, and a decision on how `ListModelsAsync` behaves on OpenRouter. See the phase 1.2 plan follow-ups.
-- Phase 1.6: use ZeroAlloc.Resilience 3.2.0's `RetryWhen` and `DelayHint` for 429/529 and `Retry-After`.
-- GitHub remote owner: personal account or the ZeroAlloc-Net org. Needed before phase 1.8; re-run `init-conventions` once the remote exists.
-- Once the remote exists, file the phase 1.3 follow-ups as issues. They are listed at the end of the phase 1.3 plan, grouped by the phase that owns them: 2.2 analyzers, 2.1/5.1 API, 1.8 packaging, 4.x README. The user rule is that every finding gets an issue, and until the remote exists they live only in the plan.
+- Decided 2026-09-27: former phases 1.4 Transport and 1.5 Error model merged into 1.4 "Transport and error model"; Resilience is now 1.5, Test harness 1.6, CI and release 1.7. OpenRouter model listing fails fast with `JevErrorKind.Unsupported`; configuration is a `JevProvider` enum plus `JevClientOptions`; `JevError` is one sealed type with a `Kind` enum.
+- Phase 1.5: use ZeroAlloc.Resilience 3.2.0's `RetryWhen` and `DelayHint` for 429/529 and `Retry-After`.
+- GitHub remote owner: personal account or the ZeroAlloc-Net org. Needed before phase 1.7; re-run `init-conventions` once the remote exists.
+- Once the remote exists, file the phase 1.3 follow-ups as issues. They are listed at the end of the phase 1.3 plan, grouped by the phase that owns them: 2.2 analyzers, 2.1/5.1 API, 1.7 packaging, 4.x README. The user rule is that every finding gets an issue, and until the remote exists they live only in the plan.
 
 ## Blockers
 - None for Milestone 1.
