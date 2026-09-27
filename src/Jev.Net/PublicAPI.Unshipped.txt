@@ -38,6 +38,16 @@ Jev.Net.IJevQuestionSet<TSelf>.Parse(ref System.Text.Json.Utf8JsonReader answers
 Jev.Net.IJevQuestionSet<TSelf>.QuestionsUtf8.get -> System.ReadOnlySpan<byte>
 Jev.Net.JevAnswer
 Jev.Net.JevAnswerReader
+Jev.Net.JevClientOptions
+Jev.Net.JevClientOptions.ApiKey.get -> string?
+Jev.Net.JevClientOptions.ApiKey.init -> void
+Jev.Net.JevClientOptions.BaseAddress.get -> System.Uri?
+Jev.Net.JevClientOptions.BaseAddress.init -> void
+Jev.Net.JevClientOptions.JevClientOptions() -> void
+Jev.Net.JevClientOptions.Provider.get -> Jev.Net.JevProvider
+Jev.Net.JevClientOptions.Provider.init -> void
+Jev.Net.JevClientOptions.Timeout.get -> System.TimeSpan
+Jev.Net.JevClientOptions.Timeout.init -> void
 Jev.Net.JevContent
 Jev.Net.JevContent.Equals(Jev.Net.JevContent other) -> bool
 Jev.Net.JevContent.IsString.get -> bool
@@ -66,6 +76,9 @@ Jev.Net.JevErrorKind.Unsupported = 9 -> Jev.Net.JevErrorKind
 Jev.Net.JevErrorKind.Validation = 1 -> Jev.Net.JevErrorKind
 Jev.Net.JevOptionSet<T>
 Jev.Net.JevOptionSet<T>.JevOptionSet() -> void
+Jev.Net.JevProvider
+Jev.Net.JevProvider.OpenRouter = 1 -> Jev.Net.JevProvider
+Jev.Net.JevProvider.TypeSafe = 0 -> Jev.Net.JevProvider
 Jev.Net.JevQuestion
 Jev.Net.JevQuestion.Instructions.get -> Jev.Net.JevContent
 Jev.Net.JevQuestion.Instructions.init -> void
