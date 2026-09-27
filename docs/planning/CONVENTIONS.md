@@ -21,7 +21,7 @@
 ## Branching
 
 **Model:** trunk
-**PR required:** no (no remote yet — re-run init-conventions once a GitHub remote exists)
+**PR required:** no (detected 2026-09-27: `main` on ZeroAlloc-Net/ZeroAlloc.Jev is unprotected)
 **Protected branches:** none
 
 ## Versioning & Release
