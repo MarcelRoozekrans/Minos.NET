@@ -45,6 +45,25 @@ Jev.Net.JevContent.JevContent() -> void
 Jev.Net.JevContent.TryGetJson(out System.Text.Json.JsonElement json) -> bool
 Jev.Net.JevContent.TryGetString(out string? text) -> bool
 Jev.Net.JevDefaults
+Jev.Net.JevError
+Jev.Net.JevError.Detail.get -> System.Text.Json.JsonElement?
+Jev.Net.JevError.Exception.get -> System.Exception?
+Jev.Net.JevError.JevError(Jev.Net.JevErrorKind kind, string! message, int? statusCode = null, System.TimeSpan? retryAfter = null, System.Text.Json.JsonElement? detail = null, System.Exception? exception = null) -> void
+Jev.Net.JevError.Kind.get -> Jev.Net.JevErrorKind
+Jev.Net.JevError.Message.get -> string!
+Jev.Net.JevError.RetryAfter.get -> System.TimeSpan?
+Jev.Net.JevError.StatusCode.get -> int?
+Jev.Net.JevErrorKind
+Jev.Net.JevErrorKind.Http = 5 -> Jev.Net.JevErrorKind
+Jev.Net.JevErrorKind.InvalidResponse = 8 -> Jev.Net.JevErrorKind
+Jev.Net.JevErrorKind.Network = 6 -> Jev.Net.JevErrorKind
+Jev.Net.JevErrorKind.Overloaded = 3 -> Jev.Net.JevErrorKind
+Jev.Net.JevErrorKind.RateLimited = 2 -> Jev.Net.JevErrorKind
+Jev.Net.JevErrorKind.Server = 4 -> Jev.Net.JevErrorKind
+Jev.Net.JevErrorKind.Timeout = 7 -> Jev.Net.JevErrorKind
+Jev.Net.JevErrorKind.Unauthorized = 0 -> Jev.Net.JevErrorKind
+Jev.Net.JevErrorKind.Unsupported = 9 -> Jev.Net.JevErrorKind
+Jev.Net.JevErrorKind.Validation = 1 -> Jev.Net.JevErrorKind
 Jev.Net.JevOptionSet<T>
 Jev.Net.JevOptionSet<T>.JevOptionSet() -> void
 Jev.Net.JevQuestion
@@ -168,6 +187,7 @@ const Jev.Net.JevDefaults.ApiKeyEnvironmentVariable = "TYPESAFE_API_KEY" -> stri
 override Jev.Net.JevContent.Equals(object? obj) -> bool
 override Jev.Net.JevContent.GetHashCode() -> int
 override Jev.Net.JevContent.ToString() -> string!
+override Jev.Net.JevError.ToString() -> string!
 override Jev.Net.JevUsage.Equals(object? obj) -> bool
 override Jev.Net.JevUsage.GetHashCode() -> int
 override Jev.Net.JevUsage.ToString() -> string!

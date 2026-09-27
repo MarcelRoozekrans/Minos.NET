@@ -31,4 +31,10 @@
   <ItemGroup>
     <InternalsVisibleTo Include="Jev.Net.Tests" />
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ZeroAlloc.Rest" />
+    <PackageReference Include="ZeroAlloc.Rest.SystemTextJson" />
+    <PackageReference Include="ZeroAlloc.Results" />
+  </ItemGroup>
 </Project>
