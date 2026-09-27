@@ -113,6 +113,21 @@ public sealed class JevErrorMapperTests
     public void RetryAfter_DeltaSecondsOverflow_IsClamped()
         => Assert.Equal(RetryAfterHeader.MaxDelay, Mapper.Map(Status(429, retryAfter: "99999999999999999999")).RetryAfter);
 
+    [Fact]
+    public void RetryAfter_DeltaSecondsAtMaxDelayBoundary_IsExact()
+        => Assert.Equal(TimeSpan.FromSeconds(2147483), Mapper.Map(Status(429, retryAfter: "2147483")).RetryAfter);
+
+    [Fact]
+    public void RetryAfter_DeltaSecondsJustOverMaxDelayBoundary_IsClamped()
+        => Assert.Equal(RetryAfterHeader.MaxDelay, Mapper.Map(Status(429, retryAfter: "2147484")).RetryAfter);
+
+    [Fact]
+    public void RetryAfter_Rfc850TwoDigitYear_RollsOverRelativeToNow()
+        // .NET's invariant calendar has a fixed TwoDigitYearMax of 2049, which would read "50" as 1950. RFC
+        // 9110 section 5.6.7 instead ties the pivot to `now`: with Now = 2026, "50" names 2050 (far enough
+        // ahead to clamp to MaxDelay), not 1950 (which would be in the past and yield TimeSpan.Zero).
+        => Assert.Equal(RetryAfterHeader.MaxDelay, RetryAfterHeader.Parse("Saturday, 01-Jan-50 12:00:00 GMT", Now));
+
     [Theory]
     [InlineData("1500", 1500)]
     [InlineData("250.5", 250.5)]
@@ -128,6 +143,9 @@ public sealed class JevErrorMapperTests
     [InlineData("soon")]
     [InlineData("-5")]
     [InlineData("NaN")]
+    [InlineData("Infinity")]
+    [InlineData("-Infinity")]
+    [InlineData("infinity")]
     public void RetryAfterMs_Invalid_FallsBackToRetryAfter(string header)
         => Assert.Equal(TimeSpan.FromSeconds(5), Mapper.Map(WithHeaders(429, ("Retry-After", "5"), ("retry-after-ms", header))).RetryAfter);
 
