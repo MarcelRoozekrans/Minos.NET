@@ -61,12 +61,13 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-09-27-phase-1.6-resilience.md`
 **Completed:** 2026-09-27
 
-### Phase 1.7: Test harness [status: active]
+### Phase 1.7: Test harness [status: complete]
 **Goal:** Unit tests, WireMock.Net component tests, and a live smoke suite skipped when no API key is present — covering both TypeSafe direct and OpenRouter.
 **Surface:** Infra
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-09-27-phase-1.7-test-harness-design.md`
 **Plan:** `docs/superpowers/plans/2026-09-27-phase-1.7-test-harness.md`
+**Completed:** 2026-09-27
 
 ### Phase 1.8: CI and release pipeline [status: pending]
 **Goal:** Build/test, AOT smoke with `AllocationGate`, BenchmarkDotNet baseline, release-please, GitVersion alpha pushes to NuGet, and a check that the packed nupkg carries the generator under `analyzers/dotnet/cs`. Publishing to nuget.org — including alpha pushes — stays switched off until the maintainer declares the package mature (decided 2026-09-27); the repository itself is already public. Tracked: #28 (api-compat once a released baseline exists), #29 (NuGet publishing when mature).
