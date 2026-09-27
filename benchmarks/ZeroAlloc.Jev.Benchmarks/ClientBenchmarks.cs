@@ -55,7 +55,9 @@ public class ClientBenchmarks
     {
         var handler = new CannedHandler(HttpStatusCode.OK, responseJson);
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://example.test/api/") };
-        var client = new JevClient(http, new JevClientOptions { ApiKey = "bench", MaxRetries = 0 });
+        // Default retry options: the canned handler always returns 200, so no retry ever fires, and
+        // the benchmark measures the resilience proxy's per-call overhead that users get by default.
+        var client = new JevClient(http, new JevClientOptions { ApiKey = "bench" });
         return (http, client);
     }
 
