@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using System.Text;
 
@@ -13,6 +14,17 @@ internal sealed class StubHandler(Func<HttpRequestMessage, CancellationToken, Ta
     public static StubHandler Json(HttpStatusCode status, string body, string mediaType = "application/json")
         => new((_, _) => Task.FromResult(new HttpResponseMessage(status) { Content = new StringContent(body, Encoding.UTF8, mediaType) }));
 
+    public static StubHandler Sequence(params Func<HttpResponseMessage>[] responses)
+    {
+        var next = 0;
+        return new StubHandler((_, _) =>
+        {
+            var index = Math.Min(next, responses.Length - 1);
+            next++;
+            return Task.FromResult(responses[index]());
+        });
+    }
+
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var body = request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
@@ -21,7 +33,8 @@ internal sealed class StubHandler(Func<HttpRequestMessage, CancellationToken, Ta
             request.RequestUri,
             request.Headers.TryGetValues("Authorization", out var auth) ? string.Join(",", auth) : null,
             request.Headers.UserAgent.ToString(),
-            body));
+            body,
+            Stopwatch.GetTimestamp()));
         return await respond(request, cancellationToken).ConfigureAwait(false);
     }
 
@@ -31,5 +44,5 @@ internal sealed class StubHandler(Func<HttpRequestMessage, CancellationToken, Ta
         base.Dispose(disposing);
     }
 
-    internal sealed record Captured(HttpMethod Method, Uri? Uri, string? Authorization, string UserAgent, string? Body);
+    internal sealed record Captured(HttpMethod Method, Uri? Uri, string? Authorization, string UserAgent, string? Body, long Timestamp);
 }

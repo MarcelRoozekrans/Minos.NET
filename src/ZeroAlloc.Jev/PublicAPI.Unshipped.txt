@@ -54,7 +54,15 @@ ZeroAlloc.Jev.JevClientOptions.ApiKey.get -> string?
 ZeroAlloc.Jev.JevClientOptions.ApiKey.set -> void
 ZeroAlloc.Jev.JevClientOptions.BaseAddress.get -> System.Uri?
 ZeroAlloc.Jev.JevClientOptions.BaseAddress.set -> void
+ZeroAlloc.Jev.JevClientOptions.InitialBackoff.get -> System.TimeSpan
+ZeroAlloc.Jev.JevClientOptions.InitialBackoff.set -> void
 ZeroAlloc.Jev.JevClientOptions.JevClientOptions() -> void
+ZeroAlloc.Jev.JevClientOptions.Jitter.get -> bool
+ZeroAlloc.Jev.JevClientOptions.Jitter.set -> void
+ZeroAlloc.Jev.JevClientOptions.MaxRetries.get -> int
+ZeroAlloc.Jev.JevClientOptions.MaxRetries.set -> void
+ZeroAlloc.Jev.JevClientOptions.MaxRetryDelay.get -> System.TimeSpan
+ZeroAlloc.Jev.JevClientOptions.MaxRetryDelay.set -> void
 ZeroAlloc.Jev.JevClientOptions.Provider.get -> ZeroAlloc.Jev.JevProvider
 ZeroAlloc.Jev.JevClientOptions.Provider.set -> void
 ZeroAlloc.Jev.JevClientOptions.Timeout.get -> System.TimeSpan

@@ -170,6 +170,72 @@ public sealed class JevClientSettingsTests
     public void ToString_DoesNotRevealTheApiKey()
         => Assert.DoesNotContain("secret-key", Resolve(new JevClientOptions { ApiKey = "secret-key" }).ToString(), StringComparison.Ordinal);
 
+    [Fact]
+    public void RetryDefaults_MatchTheOfficialSdk()
+    {
+        var settings = Resolve(new JevClientOptions { ApiKey = "k" });
+
+        Assert.Equal(2, settings.MaxRetries);
+        Assert.Equal(TimeSpan.FromMilliseconds(500), settings.InitialBackoff);
+        Assert.Equal(TimeSpan.FromSeconds(30), settings.MaxRetryDelay);
+        Assert.True(settings.Jitter);
+    }
+
+    [Fact]
+    public void RetryOptions_AreCarriedOver()
+    {
+        var settings = Resolve(new JevClientOptions
+        {
+            ApiKey = "k",
+            MaxRetries = 0,
+            InitialBackoff = TimeSpan.FromMilliseconds(10),
+            MaxRetryDelay = TimeSpan.FromSeconds(2),
+            Jitter = false,
+        });
+
+        Assert.Equal(0, settings.MaxRetries);
+        Assert.Equal(TimeSpan.FromMilliseconds(10), settings.InitialBackoff);
+        Assert.Equal(TimeSpan.FromSeconds(2), settings.MaxRetryDelay);
+        Assert.False(settings.Jitter);
+    }
+
+    [Theory]
+    [InlineData(-1)]
+    [InlineData(11)]
+    public void MaxRetriesOutOfRange_Throws(int maxRetries)
+        => Assert.Throws<ArgumentException>(() => Resolve(new JevClientOptions { ApiKey = "k", MaxRetries = maxRetries }));
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void NonPositiveInitialBackoff_Throws(int milliseconds)
+        => Assert.Throws<ArgumentException>(
+            () => Resolve(new JevClientOptions { ApiKey = "k", InitialBackoff = TimeSpan.FromMilliseconds(milliseconds) }));
+
+    [Fact]
+    public void MaxRetryDelayBelowInitialBackoff_Throws()
+        => Assert.Throws<ArgumentException>(() => Resolve(new JevClientOptions
+        {
+            ApiKey = "k",
+            InitialBackoff = TimeSpan.FromSeconds(2),
+            MaxRetryDelay = TimeSpan.FromSeconds(1),
+        }));
+
+    [Fact]
+    public void MaxRetryDelayBeyondIntMilliseconds_Throws()
+        => Assert.Throws<ArgumentException>(
+            () => Resolve(new JevClientOptions { ApiKey = "k", MaxRetryDelay = TimeSpan.FromDays(30) }));
+
+    [Fact]
+    public void InitialBackoffBeyondIntMilliseconds_Throws()
+        => Assert.Throws<ArgumentException>(
+            () => Resolve(new JevClientOptions
+            {
+                ApiKey = "k",
+                InitialBackoff = TimeSpan.FromDays(30),
+                MaxRetryDelay = TimeSpan.FromDays(30),
+            }));
+
     private static JevClientSettings Resolve(JevClientOptions? options, params (string Name, string Value)[] environment)
         => JevClientSettings.Resolve(
             options,

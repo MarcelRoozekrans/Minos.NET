@@ -55,15 +55,28 @@ internal sealed class JevErrorMapper(TimeProvider time) : IHttpErrorMapper<JevEr
 
     private TimeSpan? RetryAfter(HttpError error)
     {
+        string? retryAfter = null;
         foreach (var header in error.Headers)
         {
-            if (string.Equals(header.Key, "Retry-After", StringComparison.OrdinalIgnoreCase) && header.Value.Count > 0)
+            if (header.Value.Count == 0)
             {
-                return RetryAfterHeader.Parse(header.Value[0], time.GetUtcNow());
+                continue;
+            }
+
+            // retry-after-ms (used by TypeSafe's official SDKs) is more precise, so it wins when it is valid.
+            if (string.Equals(header.Key, "retry-after-ms", StringComparison.OrdinalIgnoreCase)
+                && RetryAfterHeader.ParseMilliseconds(header.Value[0]) is { } milliseconds)
+            {
+                return milliseconds;
+            }
+
+            if (string.Equals(header.Key, "Retry-After", StringComparison.OrdinalIgnoreCase))
+            {
+                retryAfter = header.Value[0];
             }
         }
 
-        return null;
+        return retryAfter is null ? null : RetryAfterHeader.Parse(retryAfter, time.GetUtcNow());
     }
 
     private static JsonElement? Detail(HttpError error)

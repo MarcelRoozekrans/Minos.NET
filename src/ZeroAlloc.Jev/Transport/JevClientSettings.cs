@@ -6,12 +6,24 @@ namespace ZeroAlloc.Jev.Transport;
 /// </summary>
 internal sealed class JevClientSettings
 {
-    private JevClientSettings(JevProvider provider, string apiKey, Uri baseAddress, TimeSpan timeout)
+    private JevClientSettings(
+        JevProvider provider,
+        string apiKey,
+        Uri baseAddress,
+        TimeSpan timeout,
+        int maxRetries,
+        TimeSpan initialBackoff,
+        TimeSpan maxRetryDelay,
+        bool jitter)
     {
         Provider = provider;
         ApiKey = apiKey;
         BaseAddress = baseAddress;
         Timeout = timeout;
+        MaxRetries = maxRetries;
+        InitialBackoff = initialBackoff;
+        MaxRetryDelay = maxRetryDelay;
+        Jitter = jitter;
     }
 
     public JevProvider Provider { get; }
@@ -21,6 +33,14 @@ internal sealed class JevClientSettings
     public Uri BaseAddress { get; }
 
     public TimeSpan Timeout { get; }
+
+    public int MaxRetries { get; }
+
+    public TimeSpan InitialBackoff { get; }
+
+    public TimeSpan MaxRetryDelay { get; }
+
+    public bool Jitter { get; }
 
     /// <summary>Resolves options: explicit values first, then environment variables, then provider defaults.</summary>
     /// <param name="options">The caller's options, or <see langword="null"/> for all defaults.</param>
@@ -42,11 +62,36 @@ internal sealed class JevClientSettings
             throw new ArgumentException("The time-out must be positive.", nameof(options));
         }
 
+        if (options.MaxRetries is < 0 or > 10)
+        {
+            throw new ArgumentException("MaxRetries must be between 0 and 10.", nameof(options));
+        }
+
+        var maxMilliseconds = TimeSpan.FromMilliseconds(int.MaxValue);
+        if (options.InitialBackoff <= TimeSpan.Zero || options.InitialBackoff > maxMilliseconds)
+        {
+            throw new ArgumentException("InitialBackoff must be positive and at most int.MaxValue milliseconds.", nameof(options));
+        }
+
+        if (options.MaxRetryDelay < options.InitialBackoff || options.MaxRetryDelay > maxMilliseconds)
+        {
+            throw new ArgumentException(
+                "MaxRetryDelay must be at least InitialBackoff and at most int.MaxValue milliseconds.", nameof(options));
+        }
+
         var openRouter = options.Provider == JevProvider.OpenRouter;
         var apiKey = ResolveApiKey(options, openRouter, environment);
         var baseAddress = ResolveBaseAddress(options, openRouter, environment);
 
-        return new JevClientSettings(options.Provider, apiKey, WithTrailingSlash(baseAddress), options.Timeout);
+        return new JevClientSettings(
+            options.Provider,
+            apiKey,
+            WithTrailingSlash(baseAddress),
+            options.Timeout,
+            options.MaxRetries,
+            options.InitialBackoff,
+            options.MaxRetryDelay,
+            options.Jitter);
     }
 
     public override string ToString()

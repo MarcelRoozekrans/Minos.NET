@@ -1,7 +1,10 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Headers;
 using System.Reflection;
+using System.Runtime.ExceptionServices;
 using ZeroAlloc.Jev.Serialization;
 using ZeroAlloc.Jev.Transport;
+using ZeroAlloc.Resilience;
 using ZeroAlloc.Rest.SystemTextJson;
 using ZeroAlloc.Results;
 
@@ -13,7 +16,7 @@ public sealed class JevClient : IJevClient, IDisposable
 {
     private static readonly ProductInfoHeaderValue UserAgent = CreateUserAgent();
 
-    private readonly JevApiClient _api;
+    private readonly IJevApiResilienceProxy _api;
     private readonly HttpClient? _ownedHttpClient;
     private readonly string _authorization;
     private readonly JevProvider _provider;
@@ -95,7 +98,8 @@ public sealed class JevClient : IJevClient, IDisposable
 
         _provider = settings.Provider;
         _authorization = "Bearer " + settings.ApiKey;
-        _api = new JevApiClient(httpClient, new SystemTextJsonSerializer(JevJson.Options), new JevErrorMapper(time));
+        var transport = new JevApiClient(httpClient, new SystemTextJsonSerializer(JevJson.Options), new JevErrorMapper(time));
+        _api = new IJevApiResilienceProxy(transport, new JevApiResiliencePolicies { Retry = RetryPolicyFor(settings) });
     }
 
     /// <inheritdoc />
@@ -135,7 +139,17 @@ public sealed class JevClient : IJevClient, IDisposable
 
     private async ValueTask<Result<SystemOneResponse, JevError>> EvaluateCoreAsync(SystemOneRequest request, CancellationToken ct)
     {
-        var result = await _api.EvaluateAsync(request, _authorization, ct).ConfigureAwait(false);
+        Result<SystemOneResponse, JevError> result;
+        try
+        {
+            result = await _api.EvaluateAsync(request, _authorization, ct).ConfigureAwait(false);
+        }
+        catch (ResilienceException exception) when (exception.InnerException is not null)
+        {
+            ThrowDeclined(exception);
+            throw;
+        }
+
         if (result.IsSuccess)
         {
             if (result.Value is null)
@@ -154,11 +168,38 @@ public sealed class JevClient : IJevClient, IDisposable
 
     private async ValueTask<Result<ModelList, JevError>> ListModelsCoreAsync(CancellationToken ct)
     {
-        var result = await _api.ListModelsAsync(_authorization, ct).ConfigureAwait(false);
+        Result<ModelList, JevError> result;
+        try
+        {
+            result = await _api.ListModelsAsync(_authorization, ct).ConfigureAwait(false);
+        }
+        catch (ResilienceException exception) when (exception.InnerException is not null)
+        {
+            ThrowDeclined(exception);
+            throw;
+        }
+
         return result.IsSuccess && result.Value is null
             ? Result<ModelList, JevError>.Failure(Unreadable("The response body is null."))
             : result;
     }
+
+    // An owned client's HttpClient.Timeout, from JevClientOptions.Timeout, bounds each attempt; a borrowed client's
+    // own Timeout applies instead. Either way the policy adds no per-attempt timeout.
+    private static RetryPolicy RetryPolicyFor(JevClientSettings settings)
+        => new(
+            maxAttempts: settings.MaxRetries + 1,
+            backoffMs: (int)Math.Ceiling(settings.InitialBackoff.TotalMilliseconds),
+            jitter: settings.Jitter,
+            perAttemptTimeoutMs: 0,
+            maxDelayMs: (int)Math.Ceiling(settings.MaxRetryDelay.TotalMilliseconds));
+
+    // The proxy wraps an exception that NeverRetry declined; this rethrows the original programming error with its
+    // stack trace intact. Caller cancellation never arrives here: the proxy rethrows it unwrapped.
+    // Remove once ZeroAlloc-Net/ZeroAlloc.Resilience#195 ships.
+    [DoesNotReturn]
+    private static void ThrowDeclined(ResilienceException exception)
+        => ExceptionDispatchInfo.Throw(exception.InnerException!);
 
     // System.Text.Json does not apply nullable annotations to dictionary values, so a null answer can arrive.
     private static bool HasNullAnswer(SystemOneResponse response)
