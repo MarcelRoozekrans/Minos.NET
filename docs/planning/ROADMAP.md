@@ -39,11 +39,12 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-09-26-phase-1.3-question-generator-core.md`
 **Completed:** 2026-09-27
 
-### Phase 1.4: Transport and error model [status: active]
+### Phase 1.4: Transport and error model [status: complete]
 **Goal:** Public `JevClient` (`IJevClient`) calling `/v1/systemone` and `/v1/models` on TypeSafe or OpenRouter through an internal ZeroAlloc.Rest 2.1.0 interface, returning `Result<T, JevError>` for every outcome via `[ErrorMapper]` — 401/422/429/529, other statuses, network failures, time-outs and unreadable responses. `JevClientOptions` with `JevProvider`, API key and base address from options or `TYPESAFE_API_KEY` / `OPENROUTER_API_KEY` / `TYPESAFE_BASE_URL`. Merges the former 1.4 Transport and 1.5 Error model (2026-09-27).
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** `docs/superpowers/plans/2026-09-27-phase-1.4-transport-and-error-model.md`
+**Completed:** 2026-09-27
 
 ### Phase 1.5: Rename to ZeroAlloc.Jev [status: pending]
 **Goal:** Rename the package, root namespace, projects and generator references from `Jev.Net` to `ZeroAlloc.Jev` — the NuGet id `Jev.Net` is owned by another publisher (JohnCampionJr, since 2026-09-20). Covers namespaces, project and folder names, the solution, generator metadata names and emitted `global::` references, snapshots, PublicAPI files, package metadata and docs; the package is published from the ZeroAlloc.NET NuGet account with the repo in the ZeroAlloc-Net GitHub org. The result must fit the ZeroAlloc-Net org: conventions surveyed from the sibling repos (ZeroAlloc.Rest, .Results, .Resilience) for naming, layout, build props, package metadata, docs and CI shape; and Native AOT: a smoke app publishes with `PublishAot` and zero IL2xxx/IL3xxx warnings (the CI gate itself stays in 1.8).
