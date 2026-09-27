@@ -43,31 +43,89 @@ internal sealed class JevClientSettings
         }
 
         var openRouter = options.Provider == JevProvider.OpenRouter;
-        var keyVariable = openRouter ? JevDefaults.OpenRouterApiKeyEnvironmentVariable : JevDefaults.ApiKeyEnvironmentVariable;
-        var apiKey = NonBlank(options.ApiKey)
-            ?? NonBlank(environment(keyVariable))
-            ?? throw new InvalidOperationException(
-                "No API key is configured. Set JevClientOptions.ApiKey or the " + keyVariable + " environment variable.");
-
-        var baseAddress = options.BaseAddress
-            ?? FromEnvironment(environment(JevDefaults.BaseAddressEnvironmentVariable))
-            ?? (openRouter ? JevDefaults.OpenRouterBaseAddress : JevDefaults.TypeSafeBaseAddress);
-
-        if (!baseAddress.IsAbsoluteUri)
-        {
-            throw new ArgumentException("The base address must be an absolute URI.", nameof(options));
-        }
-
-        if (options.BaseAddress is not null && HasQueryOrFragment(baseAddress))
-        {
-            throw new ArgumentException("The base address must not contain a query or fragment.", nameof(options));
-        }
+        var apiKey = ResolveApiKey(options, openRouter, environment);
+        var baseAddress = ResolveBaseAddress(options, openRouter, environment);
 
         return new JevClientSettings(options.Provider, apiKey, WithTrailingSlash(baseAddress), options.Timeout);
     }
 
     public override string ToString()
         => "Provider=" + Provider.ToString() + ", BaseAddress=" + BaseAddress.AbsoluteUri + ", ApiKey=***";
+
+    private static string ResolveApiKey(JevClientOptions options, bool openRouter, Func<string, string?> environment)
+    {
+        var keyVariable = openRouter ? JevDefaults.OpenRouterApiKeyEnvironmentVariable : JevDefaults.ApiKeyEnvironmentVariable;
+
+        if (NonBlank(options.ApiKey) is { } explicitKey)
+        {
+            var trimmed = explicitKey.Trim();
+            if (HasControlCharacter(trimmed))
+            {
+                throw new ArgumentException("The API key contains a control character.", nameof(options));
+            }
+
+            return trimmed;
+        }
+
+        if (NonBlank(environment(keyVariable)) is { } environmentKey)
+        {
+            var trimmed = environmentKey.Trim();
+            if (HasControlCharacter(trimmed))
+            {
+                throw new InvalidOperationException("The " + keyVariable + " environment variable contains a control character.");
+            }
+
+            return trimmed;
+        }
+
+        throw new InvalidOperationException(
+            "No API key is configured. Set JevClientOptions.ApiKey or the " + keyVariable + " environment variable.");
+    }
+
+    private static Uri ResolveBaseAddress(JevClientOptions options, bool openRouter, Func<string, string?> environment)
+    {
+        if (options.BaseAddress is { } explicitAddress)
+        {
+            if (!explicitAddress.IsAbsoluteUri)
+            {
+                throw new ArgumentException("The base address must be an absolute URI.", nameof(options));
+            }
+
+            if (HasQueryOrFragment(explicitAddress))
+            {
+                throw new ArgumentException("The base address must not contain a query or fragment.", nameof(options));
+            }
+
+            if (!IsHttpScheme(explicitAddress))
+            {
+                throw new ArgumentException("The base address must use the http or https scheme.", nameof(options));
+            }
+
+            return explicitAddress;
+        }
+
+        // TYPESAFE_BASE_URL applies only to JevProvider.TypeSafe: OpenRouter's base address is never taken from it, so
+        // an OpenRouter key is never sent to a TypeSafe proxy.
+        if (!openRouter && FromEnvironment(environment(JevDefaults.BaseAddressEnvironmentVariable)) is { } environmentAddress)
+        {
+            return environmentAddress;
+        }
+
+        return openRouter ? JevDefaults.OpenRouterBaseAddress : JevDefaults.TypeSafeBaseAddress;
+    }
+
+    private static bool HasControlCharacter(string value)
+    {
+        foreach (var c in value)
+        {
+            if (char.IsControl(c))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private static string? NonBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
 
@@ -90,10 +148,20 @@ internal sealed class JevClientSettings
                 "The " + JevDefaults.BaseAddressEnvironmentVariable + " environment variable must not contain a query or fragment.");
         }
 
+        if (!IsHttpScheme(uri))
+        {
+            throw new InvalidOperationException(
+                "The " + JevDefaults.BaseAddressEnvironmentVariable + " environment variable must use the http or https scheme.");
+        }
+
         return uri;
     }
 
     private static bool HasQueryOrFragment(Uri uri) => uri.Query.Length > 0 || uri.Fragment.Length > 0;
+
+    private static bool IsHttpScheme(Uri uri)
+        => string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal)
+            || string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal);
 
     private static Uri WithTrailingSlash(Uri uri)
         => uri.AbsoluteUri.EndsWith('/') ? uri : new Uri(uri.AbsoluteUri + "/");

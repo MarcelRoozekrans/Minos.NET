@@ -11,7 +11,7 @@ namespace Jev.Net;
 /// <remarks>Thread-safe. Create one per application and reuse it; dispose it when the application stops.</remarks>
 public sealed class JevClient : IJevClient, IDisposable
 {
-    private static readonly ProductInfoHeaderValue UserAgent = new("Jev.Net", ClientVersion());
+    private static readonly ProductInfoHeaderValue UserAgent = CreateUserAgent();
 
     private readonly JevApiClient _api;
     private readonly HttpClient? _ownedHttpClient;
@@ -43,10 +43,12 @@ public sealed class JevClient : IJevClient, IDisposable
     /// using defaults and environment variables.
     /// </summary>
     /// <param name="httpClient">
-    /// The client to send requests with; it is not disposed. When its base address is <see langword="null"/>, this
-    /// constructor sets it, so <paramref name="httpClient"/> must not have sent a request yet.
+    /// The client to send requests with; it is not disposed. Its own <see cref="HttpClient.BaseAddress"/> wins over
+    /// <see cref="JevClientOptions.BaseAddress"/> when set, and must end in '/'; when it is <see langword="null"/>,
+    /// this constructor sets it, so <paramref name="httpClient"/> must not have sent a request yet.
     /// </param>
     /// <exception cref="ArgumentNullException"><paramref name="httpClient"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="httpClient"/> already has an invalid base address.</exception>
     /// <exception cref="InvalidOperationException">No API key is configured, or an environment variable is invalid.</exception>
     public JevClient(HttpClient httpClient)
         : this(httpClient, (JevClientOptions?)null)
@@ -55,12 +57,15 @@ public sealed class JevClient : IJevClient, IDisposable
 
     /// <summary>Initializes a new instance of the <see cref="JevClient"/> class over a caller-owned <see cref="HttpClient"/>.</summary>
     /// <param name="httpClient">
-    /// The client to send requests with; it is not disposed. When its base address is <see langword="null"/>, this
-    /// constructor sets it, so <paramref name="httpClient"/> must not have sent a request yet.
+    /// The client to send requests with; it is not disposed. Its own <see cref="HttpClient.BaseAddress"/> wins over
+    /// <see cref="JevClientOptions.BaseAddress"/> when set, and must end in '/'; when it is <see langword="null"/>,
+    /// this constructor sets it, so <paramref name="httpClient"/> must not have sent a request yet.
     /// </param>
     /// <param name="options">The configuration; <see langword="null"/> uses defaults and environment variables.</param>
     /// <exception cref="ArgumentNullException"><paramref name="httpClient"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException">An option has an invalid value.</exception>
+    /// <exception cref="ArgumentException">
+    /// An option has an invalid value, or <paramref name="httpClient"/> already has an invalid base address.
+    /// </exception>
     /// <exception cref="InvalidOperationException">No API key is configured, or an environment variable is invalid.</exception>
     public JevClient(HttpClient httpClient, JevClientOptions? options)
         : this(ResolveSettings(httpClient, options), httpClient, ownedHandler: null, TimeProvider.System)
@@ -79,9 +84,13 @@ public sealed class JevClient : IJevClient, IDisposable
             httpClient.DefaultRequestHeaders.UserAgent.Add(UserAgent);
             _ownedHttpClient = httpClient;
         }
+        else if (httpClient.BaseAddress is not null)
+        {
+            ValidateBorrowedBaseAddress(httpClient);
+        }
         else
         {
-            httpClient.BaseAddress ??= settings.BaseAddress;
+            httpClient.BaseAddress = settings.BaseAddress;
         }
 
         _provider = settings.Provider;
@@ -127,9 +136,17 @@ public sealed class JevClient : IJevClient, IDisposable
     private async ValueTask<Result<SystemOneResponse, JevError>> EvaluateCoreAsync(SystemOneRequest request, CancellationToken ct)
     {
         var result = await _api.EvaluateAsync(request, _authorization, ct).ConfigureAwait(false);
-        if (result.IsSuccess && (result.Value is null || HasNullAnswer(result.Value)))
+        if (result.IsSuccess)
         {
-            return Result<SystemOneResponse, JevError>.Failure(Unreadable("The response has no answers object or contains a null answer."));
+            if (result.Value is null)
+            {
+                return Result<SystemOneResponse, JevError>.Failure(Unreadable("The response body is null."));
+            }
+
+            if (HasNullAnswer(result.Value))
+            {
+                return Result<SystemOneResponse, JevError>.Failure(Unreadable("The response contains a null answer."));
+            }
         }
 
         return result;
@@ -157,7 +174,39 @@ public sealed class JevClient : IJevClient, IDisposable
         return false;
     }
 
+    // statusCode 200 is a placeholder: ZeroAlloc.Rest's generated client does not expose the real status of a
+    // successful response that this client itself then rejects as unreadable, so 200 is kept only because that is
+    // the status that let the response through in the first place.
     private static JevError Unreadable(string message) => new(JevErrorKind.InvalidResponse, message, statusCode: 200);
+
+    // Validates a caller-supplied HttpClient.BaseAddress with the same rules as a configured address. The caller's
+    // client is never modified, so unlike a configured address (which gets a trailing slash appended), the path here
+    // must already end in '/'.
+    private static void ValidateBorrowedBaseAddress(HttpClient httpClient)
+    {
+        var baseAddress = httpClient.BaseAddress!;
+
+        if (!baseAddress.IsAbsoluteUri)
+        {
+            throw new ArgumentException("httpClient.BaseAddress must be an absolute URI.", nameof(httpClient));
+        }
+
+        if (!string.Equals(baseAddress.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal)
+            && !string.Equals(baseAddress.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal))
+        {
+            throw new ArgumentException("httpClient.BaseAddress must use the http or https scheme.", nameof(httpClient));
+        }
+
+        if (baseAddress.Query.Length > 0 || baseAddress.Fragment.Length > 0)
+        {
+            throw new ArgumentException("httpClient.BaseAddress must not contain a query or fragment.", nameof(httpClient));
+        }
+
+        if (!baseAddress.AbsoluteUri.EndsWith('/'))
+        {
+            throw new ArgumentException("httpClient.BaseAddress must end with '/'.", nameof(httpClient));
+        }
+    }
 
     private static JevClientSettings ResolveSettings(JevClientOptions? options)
         => JevClientSettings.Resolve(options, Environment.GetEnvironmentVariable);
@@ -169,9 +218,31 @@ public sealed class JevClient : IJevClient, IDisposable
         return ResolveSettings(options);
     }
 
+    // ProductInfoHeaderValue's constructor throws FormatException for a version that is not a valid product token;
+    // a User-Agent header must never prevent client construction, so this falls back to "0.0.0" instead.
+    private static ProductInfoHeaderValue CreateUserAgent()
+    {
+        try
+        {
+            return new ProductInfoHeaderValue("Jev.Net", ClientVersion());
+        }
+        catch (FormatException)
+        {
+            return new ProductInfoHeaderValue("Jev.Net", "0.0.0");
+        }
+    }
+
     private static string ClientVersion()
     {
         var version = typeof(JevClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
-        return string.IsNullOrEmpty(version) ? "0.0.0" : version;
+        if (string.IsNullOrEmpty(version))
+        {
+            return "0.0.0";
+        }
+
+        // Strip build metadata (e.g. a source-control commit hash appended after '+' by the build), which is not
+        // part of the version a caller would want to see or compare in a User-Agent header.
+        var buildMetadata = version.IndexOf('+', StringComparison.Ordinal);
+        return buildMetadata < 0 ? version : version[..buildMetadata];
     }
 }

@@ -51,14 +51,14 @@ Jev.Net.JevClient.JevClient(System.Net.Http.HttpClient! httpClient, Jev.Net.JevC
 Jev.Net.JevClient.ListModelsAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Jev.Net.ModelList!, Jev.Net.JevError!>>
 Jev.Net.JevClientOptions
 Jev.Net.JevClientOptions.ApiKey.get -> string?
-Jev.Net.JevClientOptions.ApiKey.init -> void
+Jev.Net.JevClientOptions.ApiKey.set -> void
 Jev.Net.JevClientOptions.BaseAddress.get -> System.Uri?
-Jev.Net.JevClientOptions.BaseAddress.init -> void
+Jev.Net.JevClientOptions.BaseAddress.set -> void
 Jev.Net.JevClientOptions.JevClientOptions() -> void
 Jev.Net.JevClientOptions.Provider.get -> Jev.Net.JevProvider
-Jev.Net.JevClientOptions.Provider.init -> void
+Jev.Net.JevClientOptions.Provider.set -> void
 Jev.Net.JevClientOptions.Timeout.get -> System.TimeSpan
-Jev.Net.JevClientOptions.Timeout.init -> void
+Jev.Net.JevClientOptions.Timeout.set -> void
 Jev.Net.JevContent
 Jev.Net.JevContent.Equals(Jev.Net.JevContent other) -> bool
 Jev.Net.JevContent.IsString.get -> bool

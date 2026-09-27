@@ -18,9 +18,15 @@ internal sealed class JevErrorMapper(TimeProvider time) : IHttpErrorMapper<JevEr
             HttpErrorKind.Timeout => new JevError(JevErrorKind.Timeout, "The request timed out.", exception: error.Exception),
             HttpErrorKind.Transport => new JevError(
                 JevErrorKind.Network, error.Message ?? "The request could not be sent.", exception: error.Exception),
-            _ => new JevError(
+            HttpErrorKind.Deserialization => new JevError(
                 JevErrorKind.InvalidResponse,
                 error.Message ?? "The response could not be read.",
+                (int)error.StatusCode,
+                exception: error.Exception),
+            // Defensive: a future ZeroAlloc.Rest release may add a kind this mapper does not know about yet.
+            _ => new JevError(
+                JevErrorKind.InvalidResponse,
+                "Unrecognized error kind " + error.Kind.ToString() + ".",
                 (int)error.StatusCode,
                 exception: error.Exception),
         };
