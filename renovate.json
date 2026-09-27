@@ -7,8 +7,13 @@
   "labels": ["dependencies"],
   "packageRules": [
     {
+      "description": "The generator compiles against the first .NET 10 SDK's C# compiler (Roslyn 5.0.0); pinning it keeps the generator loadable by every .NET 10 consumer, so this stays manual until the minimum supported SDK moves",
+      "matchPackageNames": ["Microsoft.CodeAnalysis.CSharp"],
+      "allowedVersions": "5.0.0"
+    },
+    {
       "description": "Group ZeroAlloc packages; they are this library's external dependencies",
-      "matchPackagePrefixes": ["ZeroAlloc."],
+      "matchPackageNames": ["ZeroAlloc.{/,}**"],
       "groupName": "ZeroAlloc"
     },
     {
@@ -24,12 +29,12 @@
     },
     {
       "description": "Group xunit packages",
-      "matchPackagePrefixes": ["xunit"],
+      "matchPackageNames": ["xunit{/,}**"],
       "groupName": "xunit"
     },
     {
       "description": "Group Microsoft.CodeAnalysis packages",
-      "matchPackagePrefixes": ["Microsoft.CodeAnalysis."],
+      "matchPackageNames": ["Microsoft.CodeAnalysis.{/,}**"],
       "groupName": "Microsoft.CodeAnalysis"
     },
     {
