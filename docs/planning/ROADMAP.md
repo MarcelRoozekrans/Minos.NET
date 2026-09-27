@@ -47,7 +47,7 @@ compress_memory: disabled
 **Completed:** 2026-09-27
 
 ### Phase 1.5: Rename to ZeroAlloc.Jev [status: active]
-**Goal:** Rename the package, root namespace, projects and generator references from `Jev.Net` to `ZeroAlloc.Jev` — the NuGet id `Jev.Net` is owned by another publisher (JohnCampionJr, since 2026-09-20). Covers namespaces, project and folder names, the solution, generator metadata names and emitted `global::` references, snapshots, PublicAPI files, package metadata and docs; the package is published from the ZeroAlloc.NET NuGet account with the repo in the ZeroAlloc-Net GitHub org. The result must fit the ZeroAlloc-Net org: conventions surveyed from the sibling repos (ZeroAlloc.Rest, .Results, .Resilience) for naming, layout, build props, package metadata, docs and CI shape; and Native AOT: a smoke app publishes with `PublishAot` and zero IL2xxx/IL3xxx warnings (the CI gate itself stays in 1.8).
+**Goal:** Rename the package, root namespace, projects and generator references from `Jev.Net` to `ZeroAlloc.Jev` — the NuGet id `Jev.Net` is owned by another publisher (JohnCampionJr, since 2026-09-20). Covers namespaces, project and folder names, the solution, generator metadata names and emitted `global::` references, snapshots, PublicAPI files, package metadata and docs; the package is published from the ZeroAlloc.NET NuGet account with the repo in the ZeroAlloc-Net GitHub org. The result must fit the ZeroAlloc-Net org: conventions surveyed from the sibling repos (ZeroAlloc.Rest, .Results, .Resilience) for naming, layout, build props, package metadata, docs and CI shape; and Native AOT: a smoke app publishes with `PublishAot` and zero IL2xxx/IL3xxx warnings, with the `aot-smoke` CI job landing in this phase and becoming a required check.
 **Surface:** Refactor
 **HelpWanted:** no
 **Plan:** `docs/superpowers/plans/2026-09-27-phase-1.5-rename-to-zeroalloc-jev.md`
@@ -65,7 +65,7 @@ compress_memory: disabled
 **Plan:** _to be written_
 
 ### Phase 1.8: CI and release pipeline [status: pending]
-**Goal:** Build/test, AOT smoke with `AllocationGate`, BenchmarkDotNet baseline, release-please, GitVersion alpha pushes to NuGet, and a check that the packed nupkg carries the generator under `analyzers/dotnet/cs`. Publishing to nuget.org — including alpha pushes — stays switched off until the maintainer declares the package mature (decided 2026-09-27); the repository itself is already public.
+**Goal:** Build/test, AOT smoke with `AllocationGate`, BenchmarkDotNet baseline, release-please, GitVersion alpha pushes to NuGet, and a check that the packed nupkg carries the generator under `analyzers/dotnet/cs`. Publishing to nuget.org — including alpha pushes — stays switched off until the maintainer declares the package mature (decided 2026-09-27); the repository itself is already public. Tracked: #28 (api-compat once a released baseline exists), #29 (NuGet publishing when mature).
 **Surface:** Infra
 **HelpWanted:** no
 **Plan:** _to be written_

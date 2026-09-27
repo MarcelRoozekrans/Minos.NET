@@ -4,9 +4,9 @@
 
 ## Current Position
 - **Milestone:** 1 — Foundation & core client (4 of 8 phases complete)
-- **Phase:** 1.5 — Rename to ZeroAlloc.Jev (pending; no design spec yet; Surface: Refactor)
+- **Phase:** 1.5 — Rename to ZeroAlloc.Jev (active on branch `phase/1.5-rename-to-zeroalloc-jev`; plan tasks 1–6 done; Surface: Refactor)
 - **Last completed task:** Phase 1.4 — Transport and error model: all 4 tasks of `docs/superpowers/plans/2026-09-27-phase-1.4-transport-and-error-model.md` plus the final-review fix wave. 180 tests in `ZeroAlloc.Jev.Tests` and 55 in `ZeroAlloc.Jev.Generator.Tests` pass, Release build 0 warnings, and the final review published a Native AOT console app over `JevClient` with zero IL warnings.
-- **Next task:** Phase 1.5 brainstorm — survey the sibling ZeroAlloc-Net repos, then refactor-analysis before the plan.
+- **Next task:** Push the branch, open the PR, get CI and the org ruleset green, and merge (plan Task 7, with the maintainer).
 
 ## What Phase 1.4 shipped
 - Public `IJevClient` / `JevClient` (four constructors without optional parameters), `JevClientOptions` (`set` accessors), `JevProvider`, `JevError` / `JevErrorKind`; internal `IJevApi` over ZeroAlloc.Rest 2.1.0 with `[ErrorMapper(typeof(JevErrorMapper))]`, `JevClientSettings`, `RetryAfterHeader`.
