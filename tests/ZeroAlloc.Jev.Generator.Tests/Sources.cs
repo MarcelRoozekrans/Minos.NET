@@ -140,6 +140,23 @@ internal static class Sources
         }
         """;
 
+    // A set with a State type: the generated declaration implements the two-argument
+    // IJevQuestionSet<TSelf, TState>, naming the state type fully qualified.
+    public const string WithState = """
+        using ZeroAlloc.Jev;
+
+        namespace Demo;
+
+        public sealed record TicketContext(string CustomerId);
+
+        [JevQuestions(State = typeof(TicketContext))]
+        public partial record Set
+        {
+            [Noul("Is this urgent?")]
+            public partial Noul IsUrgent { get; }
+        }
+        """;
+
     // A keyword-named question property and a keyword-named enum member: both must be emitted as
     // '@'-escaped identifiers while the JSON ids they produce stay the bare keyword text.
     public const string KeywordMembers = """

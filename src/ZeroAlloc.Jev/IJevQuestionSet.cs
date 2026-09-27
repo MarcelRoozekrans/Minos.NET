@@ -16,3 +16,14 @@ public interface IJevQuestionSet<TSelf>
     /// <exception cref="JsonException">An answer is missing, has the wrong type, names an unknown option or level, or lacks a required field.</exception>
     static abstract TSelf Parse(ref Utf8JsonReader answers);
 }
+
+/// <summary>
+/// A <see cref="IJevQuestionSet{TSelf}"/> linked to the state type <c>EvaluateAsync&lt;T, TState&gt;</c> accepts
+/// alongside it. This is a marker interface with no members: <typeparamref name="TState"/> only participates in
+/// overload resolution and static typing for typed evaluation. The <c>[JevQuestions(State = typeof(TState))]</c>
+/// source generator implements it.
+/// </summary>
+/// <typeparam name="TSelf">The implementing type.</typeparam>
+/// <typeparam name="TState">The state type this question set evaluates against.</typeparam>
+public interface IJevQuestionSet<TSelf, TState> : IJevQuestionSet<TSelf>
+    where TSelf : IJevQuestionSet<TSelf, TState>;

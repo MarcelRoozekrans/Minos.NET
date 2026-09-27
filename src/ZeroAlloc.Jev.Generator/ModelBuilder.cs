@@ -1,3 +1,4 @@
+using System.Collections.Immutable;
 using System.Globalization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -13,9 +14,11 @@ internal static class ModelBuilder
     private const string ScoreAttribute = "ZeroAlloc.Jev.ScoreAttribute";
     private const string CriteriaAttribute = "ZeroAlloc.Jev.CriteriaAttribute";
     private const string LevelAttribute = "ZeroAlloc.Jev.LevelAttribute";
+    private const string StateArgument = "State";
 
-    public static QuestionSetResult Build(INamedTypeSymbol type, CancellationToken cancellationToken)
+    public static QuestionSetResult Build(GeneratorAttributeSyntaxContext context, CancellationToken cancellationToken)
     {
+        var type = (INamedTypeSymbol)context.TargetSymbol;
         var diagnostics = new List<DiagnosticInfo>();
 
         if (!IsSupportedType(type, cancellationToken))
@@ -28,6 +31,8 @@ internal static class ModelBuilder
         {
             diagnostics.Add(DiagnosticInfo.Create(Diagnostics.NoParameterlessConstructor, type, type.Name));
         }
+
+        var stateTypeName = BuildState(context.Attributes, type, diagnostics, cancellationToken);
 
         var questions = new List<QuestionModel>();
         foreach (var member in type.GetMembers())
@@ -52,12 +57,68 @@ internal static class ModelBuilder
             Identifier(type.Name),
             type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             type.IsRecord,
+            stateTypeName,
             new EquatableArray<QuestionModel>(questions.ToArray()));
         return Result(model, diagnostics);
     }
 
     private static QuestionSetResult Result(QuestionSetModel? model, List<DiagnosticInfo> diagnostics)
         => new(model, new EquatableArray<DiagnosticInfo>(diagnostics.ToArray()));
+
+    /// <summary>Reads and validates the <c>[JevQuestions(State = ...)]</c> named argument, if present.</summary>
+    private static string? BuildState(
+        ImmutableArray<AttributeData> attributes,
+        INamedTypeSymbol type,
+        List<DiagnosticInfo> diagnostics,
+        CancellationToken cancellationToken)
+    {
+        var attribute = attributes.FirstOrDefault();
+        if (attribute is null)
+        {
+            return null;
+        }
+
+        foreach (var argument in attribute.NamedArguments)
+        {
+            if (argument.Key != StateArgument || argument.Value.Value is not ITypeSymbol stateType)
+            {
+                continue;
+            }
+
+            if (!IsValidStateType(stateType))
+            {
+                var location = StateArgumentLocation(attribute, cancellationToken) ?? LocationInfo.From(type);
+                diagnostics.Add(DiagnosticInfo.Create(Diagnostics.InvalidStateType, location, stateType.ToDisplayString()));
+                return null;
+            }
+
+            return stateType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+        }
+
+        return null;
+    }
+
+    private static bool IsValidStateType(ITypeSymbol type)
+        => type.SpecialType != SpecialType.System_Void
+            && type.TypeKind is TypeKind.Class or TypeKind.Struct
+            && type is not INamedTypeSymbol { IsUnboundGenericType: true };
+
+    /// <summary>
+    /// The <c>State = ...</c> argument's syntax location, or <see langword="null"/> when the attribute application
+    /// has no source syntax to point at (the caller falls back to the type's location).
+    /// </summary>
+    private static LocationInfo? StateArgumentLocation(AttributeData attribute, CancellationToken cancellationToken)
+    {
+        if (attribute.ApplicationSyntaxReference?.GetSyntax(cancellationToken) is not AttributeSyntax syntax)
+        {
+            return null;
+        }
+
+        var argument = syntax.ArgumentList?.Arguments
+            .FirstOrDefault(a => a.NameEquals?.Name.Identifier.Text == StateArgument);
+
+        return argument is null ? LocationInfo.From(syntax) : LocationInfo.From(argument);
+    }
 
     private static bool IsSupportedType(INamedTypeSymbol type, CancellationToken cancellationToken)
         => type.TypeKind == TypeKind.Class

@@ -11,3 +11,4 @@ JEV103 | ZeroAlloc.Jev.Generator | Error | Diagnostics
 JEV104 | ZeroAlloc.Jev.Generator | Error | Diagnostics
 JEV105 | ZeroAlloc.Jev.Generator | Error | Diagnostics
 JEV106 | ZeroAlloc.Jev.Generator | Error | Diagnostics
+JEV107 | ZeroAlloc.Jev.Generator | Error | Diagnostics

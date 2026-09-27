@@ -17,7 +17,7 @@ public sealed class QuestionSetGenerator : IIncrementalGenerator
                 "ZeroAlloc.Jev.JevQuestionsAttribute",
                 static (node, _) => node is TypeDeclarationSyntax,
                 static (attributeContext, cancellationToken)
-                    => ModelBuilder.Build((INamedTypeSymbol)attributeContext.TargetSymbol, cancellationToken))
+                    => ModelBuilder.Build(attributeContext, cancellationToken))
             .WithTrackingName(TrackingName);
 
         context.RegisterSourceOutput(questionSets, static (output, result) =>

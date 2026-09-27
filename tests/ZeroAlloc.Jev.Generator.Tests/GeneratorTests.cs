@@ -19,6 +19,9 @@ public sealed class GeneratorTests
     public void Mixed_Generates() => AssertGenerates(Sources.Mixed);
 
     [Fact]
+    public void WithState_Generates() => AssertGenerates(Sources.WithState);
+
+    [Fact]
     public void ChoiceOverEmptyEnum_CompilesWithoutError() => AssertCompiles(Sources.ChoiceOverEmptyEnum);
 
     [Fact]

@@ -49,6 +49,7 @@ ZeroAlloc.Jev.CriteriaAttribute.Key.set -> void
 ZeroAlloc.Jev.IJevClient
 ZeroAlloc.Jev.IJevClient.EvaluateAsync(ZeroAlloc.Jev.SystemOneRequest! request, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.SystemOneResponse!, ZeroAlloc.Jev.JevError!>>
 ZeroAlloc.Jev.IJevClient.ListModelsAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.ModelList!, ZeroAlloc.Jev.JevError!>>
+ZeroAlloc.Jev.IJevQuestionSet<TSelf, TState>
 ZeroAlloc.Jev.IJevQuestionSet<TSelf>
 ZeroAlloc.Jev.IJevQuestionSet<TSelf>.Parse(ref System.Text.Json.Utf8JsonReader answers) -> TSelf
 ZeroAlloc.Jev.IJevQuestionSet<TSelf>.QuestionsUtf8.get -> System.ReadOnlySpan<byte>
@@ -116,6 +117,8 @@ ZeroAlloc.Jev.JevQuestion.Instructions.get -> ZeroAlloc.Jev.JevContent
 ZeroAlloc.Jev.JevQuestion.Instructions.init -> void
 ZeroAlloc.Jev.JevQuestionsAttribute
 ZeroAlloc.Jev.JevQuestionsAttribute.JevQuestionsAttribute() -> void
+ZeroAlloc.Jev.JevQuestionsAttribute.State.get -> System.Type?
+ZeroAlloc.Jev.JevQuestionsAttribute.State.set -> void
 ZeroAlloc.Jev.JevUsage
 ZeroAlloc.Jev.JevUsage.<Clone>$() -> ZeroAlloc.Jev.JevUsage!
 ZeroAlloc.Jev.JevUsage.Cost.get -> double?
