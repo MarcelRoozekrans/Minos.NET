@@ -1,7 +1,7 @@
 using System.Net;
+using System.Net.Sockets;
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
-using WireMock.Server;
 
 namespace ZeroAlloc.Jev.Integration.Tests;
 
@@ -47,9 +47,14 @@ public sealed class FailureTests : IClassFixture<WireMockFixture>
     [Fact]
     public async Task RefusedConnection_IsNetwork()
     {
-        var server = WireMockServer.Start();
-        var baseAddress = new Uri(server.Urls[0] + "/");
-        server.Stop();
+        // A socket that is bound but never Listen()s holds the port for the whole test: the kernel refuses the
+        // TCP handshake immediately (no listener is attached to it), and nobody else can bind the same port while
+        // this socket holds it. That is deterministic on a busy CI runner; starting and then stopping a real
+        // WireMock server is not, because another process can grab the freed port before the client connects.
+        using var socket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+        socket.Bind(new IPEndPoint(IPAddress.Loopback, 0));
+        var port = ((IPEndPoint)socket.LocalEndPoint!).Port;
+        var baseAddress = new Uri("http://127.0.0.1:" + port.ToString(System.Globalization.CultureInfo.InvariantCulture) + "/");
 
         using var client = IntegrationClient.Create(baseAddress, maxRetries: 0);
 
