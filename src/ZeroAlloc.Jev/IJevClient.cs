@@ -6,9 +6,10 @@ namespace ZeroAlloc.Jev;
 
 /// <summary>Calls TypeSafe's Jev System One API. Implemented by <see cref="JevClient"/>; mock it in tests.</summary>
 /// <remarks>
-/// A mock implements <see cref="EvaluateAsync(SystemOneRequest, CancellationToken)"/> and
+/// A hand-written fake implements <see cref="EvaluateAsync(SystemOneRequest, CancellationToken)"/> and
 /// <see cref="ListModelsAsync(CancellationToken)"/>; the typed <c>EvaluateAsync&lt;T&gt;</c> overloads then work
-/// through it.
+/// through it. Mocking libraries intercept default interface methods; configure the overload you call, or enable
+/// CallBase.
 /// </remarks>
 public interface IJevClient
 {

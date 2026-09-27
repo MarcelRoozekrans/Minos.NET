@@ -28,6 +28,17 @@ public sealed class TypedEvaluationTests
         Assert.Equal(0.3, result.Value.IsUrgent.Probability);
     }
 
+    [Fact]
+    public void ParseResponse_NestedAnswersBeforeTheTopLevelOnes_IsSkipped()
+    {
+        var json = """{"meta":{"answers":{}},"answers":{"is_urgent":{"type":"noul","noul":0.3}},"usage":{"answers":null}}""";
+
+        var result = TypedEvaluation.ParseResponse<UrgencyCheck>(Encoding.UTF8.GetBytes(json));
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(0.3, result.Value.IsUrgent.Probability);
+    }
+
     [Theory]
     [InlineData("""{"model":"jev-1.13.0"}""", "no answers")]
     [InlineData("""{"answers":null}""", "null")]
@@ -79,7 +90,7 @@ public sealed class TypedEvaluationTests
     }
 
     [Fact]
-    public void FromResponse_ReusesItsBufferAcrossCalls()
+    public void FromResponse_ParsesConsecutiveResponses()
     {
         var noul = JsonSerializer.Deserialize(Fixture.Text("response-noul.json"), Serialization.JevJsonContext.Default.SystemOneResponse)!;
         var choice = JsonSerializer.Deserialize(Fixture.Text("response-choice.json"), Serialization.JevJsonContext.Default.SystemOneResponse)!;

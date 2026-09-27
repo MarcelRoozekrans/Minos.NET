@@ -13,15 +13,6 @@ namespace ZeroAlloc.Jev;
 /// </summary>
 internal static class TypedEvaluation
 {
-    // Retained only while the answers are small, so one large response does not pin a large buffer to a thread.
-    private const int MaxRetainedBufferBytes = 64 * 1024;
-
-    [ThreadStatic]
-    private static ArrayBufferWriter<byte>? t_answersBuffer;
-
-    [ThreadStatic]
-    private static Utf8JsonWriter? t_answersWriter;
-
     /// <summary>Converts a state to content, rejecting JSON values Jev does not accept.</summary>
     /// <param name="state">The state: a string, object or array.</param>
     /// <param name="paramName">The caller's parameter name, for the exception.</param>
@@ -116,40 +107,13 @@ internal static class TypedEvaluation
     public static Result<T, JevError> FromResponse<T>(SystemOneResponse response)
         where T : IJevQuestionSet<T>
     {
-        var buffer = t_answersBuffer ?? new ArrayBufferWriter<byte>();
-        var writer = t_answersWriter;
-        if (writer is null)
-        {
-            writer = new Utf8JsonWriter(buffer);
-        }
-        else
-        {
-            writer.Reset(buffer);
-        }
-
-        t_answersBuffer = null;
-        t_answersWriter = null;
-        try
+        var buffer = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer))
         {
             JsonSerializer.Serialize(writer, response.Answers, JevJsonContext.Default.IReadOnlyDictionaryStringJevAnswer);
-            writer.Flush();
-            return ParseAnswersObject<T>(buffer.WrittenSpan);
         }
-        finally
-        {
-            writer.Reset();
-            if (buffer.Capacity <= MaxRetainedBufferBytes)
-            {
-                // Clear zeroes the written bytes, so no answer data outlives the call.
-                buffer.Clear();
-                t_answersBuffer = buffer;
-                t_answersWriter = writer;
-            }
-            else
-            {
-                writer.Dispose();
-            }
-        }
+
+        return ParseAnswersObject<T>(buffer.WrittenSpan);
     }
 
     /// <summary>Parses the typed answers from an <c>answers</c> JSON object.</summary>

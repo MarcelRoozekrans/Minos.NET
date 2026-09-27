@@ -210,6 +210,30 @@ public sealed class TypedEvaluationDefaultTests
         Assert.IsType<JsonException>(result.Error.Exception);
     }
 
+    [Fact]
+    public async Task ResponseWithNullAnswers_GivesInvalidResponse()
+    {
+        IJevClient client = FakeClient.WithAnswers(null!);
+
+        var result = await client.EvaluateAsync<UrgencyCheck>("text");
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);
+        Assert.IsType<JsonException>(result.Error.Exception);
+    }
+
+    [Fact]
+    public async Task ResponseWithEmptyAnswers_GivesInvalidResponse()
+    {
+        IJevClient client = FakeClient.WithAnswers(new Dictionary<string, JevAnswer>(StringComparer.Ordinal));
+
+        var result = await client.EvaluateAsync<UrgencyCheck>("text");
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);
+        Assert.IsType<JsonException>(result.Error.Exception);
+    }
+
     private static void AssertQuestionsEqual(ReadOnlySpan<byte> expectedQuestions, SystemOneRequest request)
     {
         var expected = JsonNode.Parse(expectedQuestions.ToArray());
@@ -235,6 +259,14 @@ public sealed class TypedEvaluationDefaultTests
         public static FakeClient Returning(string fixture)
             => new(Result<SystemOneResponse, JevError>.Success(
                 JsonSerializer.Deserialize(Fixture.Text(fixture), JevJsonContext.Default.SystemOneResponse)!));
+
+        public static FakeClient WithAnswers(IReadOnlyDictionary<string, JevAnswer> answers)
+            => new(Result<SystemOneResponse, JevError>.Success(new SystemOneResponse
+            {
+                Model = "jev-1.13.0",
+                Answers = answers,
+                Usage = new JevUsage { InputTokens = 1, OutputTokens = 1 },
+            }));
 
         public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken ct)
         {
