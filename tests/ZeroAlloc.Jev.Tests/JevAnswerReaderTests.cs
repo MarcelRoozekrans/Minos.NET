@@ -60,6 +60,21 @@ public sealed class JevAnswerReaderTests
     }
 
     [Fact]
+    public void ReadChoice_ProbabilitiesBeforeChoice_Resolves()
+    {
+        var buffer = new double[5];
+        var reader = At("""{"type":"choice","probabilities":{"red":0.1,"green":0.7,"blue":0.2},"choice":"green","confidence":0.81}""");
+
+        var choice = JevAnswerReader.ReadChoice(ref reader, ColorOptions.Instance, buffer, 2);
+
+        Assert.Equal(Color.Green, choice.Value);
+        Assert.Equal(0.81, choice.Confidence);
+        Assert.Equal(0.7, choice.Probabilities[Color.Green]);
+        Assert.Equal(ExpectedBuffer, buffer);
+        Assert.Equal(JsonTokenType.EndObject, reader.TokenType);
+    }
+
+    [Fact]
     public void ReadChoice_EscapedOptionKey_Resolves()
     {
         var reader = At("""{"type":"choice","choice":"gr\u0065en","probabilities":{},"confidence":0.5}""");

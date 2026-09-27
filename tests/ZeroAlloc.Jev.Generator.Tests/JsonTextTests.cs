@@ -1,5 +1,9 @@
+using System.Globalization;
+using System.Linq;
 using System.Text;
 using System.Text.Json;
+using Microsoft.CodeAnalysis.CSharp;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace ZeroAlloc.Jev.Generator.Tests;
 
@@ -41,4 +45,26 @@ public sealed class JsonTextTests
     [Fact]
     public void CSharpLiteral_EscapesNextLine()
         => Assert.Equal("\"a\\u0085b\"", JsonText.CSharpLiteral("a\u0085b"));
+
+    [Fact]
+    public void CSharpLiteral_NonAscii_RoundTrips()
+    {
+        var value = "caf" + (char)0x00E9 + " " + char.ConvertFromUtf32(0x1F600);
+        var expected = "\"" + string.Concat(value.Select(Escape)) + "\"";
+
+        var literal = JsonText.CSharpLiteral(value);
+
+        Assert.Equal(expected, literal);
+        Assert.All(literal, c => Assert.InRange(c, ' ', '~'));
+
+        var token = Assert.IsType<LiteralExpressionSyntax>(SyntaxFactory.ParseExpression(literal)).Token;
+        Assert.Equal(value, token.ValueText);
+
+        static string Escape(char c)
+            => c is '"' or '\\'
+                ? "\\" + c
+                : c < ' ' || c > '~'
+                    ? "\\u" + ((int)c).ToString("x4", CultureInfo.InvariantCulture)
+                    : c.ToString();
+    }
 }

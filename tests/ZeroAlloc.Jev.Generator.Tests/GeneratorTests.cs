@@ -28,6 +28,9 @@ public sealed class GeneratorTests
     public void KeywordNamespaceAndType_Generates() => AssertGenerates(Sources.KeywordNamespaceAndType);
 
     [Fact]
+    public void KeywordMembers_Generates() => AssertGenerates(Sources.KeywordMembers);
+
+    [Fact]
     public void UnrelatedEdit_KeepsQuestionSetsCached()
     {
         var compilation = GeneratorHarness.Compile(Sources.Mixed);

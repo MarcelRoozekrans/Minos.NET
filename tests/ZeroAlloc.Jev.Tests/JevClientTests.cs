@@ -242,6 +242,18 @@ public sealed class JevClientTests : IDisposable
     }
 
     [Fact]
+    public void BorrowedClient_WithBaseAddressFragment_Throws()
+    {
+        using var handler = StubHandler.Json(HttpStatusCode.OK, "{}");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("https://example.test/api/#frag") };
+
+        var exception = Assert.Throws<ArgumentException>(
+            () => new JevClient(Settings(), http, ownedHandler: null, TimeProvider.System));
+
+        Assert.Equal("httpClient", exception.ParamName);
+    }
+
+    [Fact]
     public async Task BorrowedClientWithoutBaseAddress_GetsTheProviderAddress()
     {
         var handler = StubHandler.Json(HttpStatusCode.OK, Fixture.Text("response-noul.json"));
