@@ -60,9 +60,11 @@ jobs:
         run: dotnet build benchmarks/ZeroAlloc.Jev.Benchmarks -c Release
 
       - name: Run benchmarks
+        env:
+          FILTER: ${{ inputs.filter }}
         run: |
           dotnet run --project benchmarks/ZeroAlloc.Jev.Benchmarks -c Release --no-build -- \
-            --filter '${{ inputs.filter }}'
+            --filter "$FILTER"
 
       - uses: actions/upload-artifact@v7
         if: always()
