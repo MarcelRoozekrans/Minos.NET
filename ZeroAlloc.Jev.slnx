@@ -1,0 +1,10 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/ZeroAlloc.Jev/ZeroAlloc.Jev.csproj" />
+    <Project Path="src/ZeroAlloc.Jev.Generator/ZeroAlloc.Jev.Generator.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/ZeroAlloc.Jev.Tests/ZeroAlloc.Jev.Tests.csproj" />
+    <Project Path="tests/ZeroAlloc.Jev.Generator.Tests/ZeroAlloc.Jev.Generator.Tests.csproj" />
+  </Folder>
+</Solution>
