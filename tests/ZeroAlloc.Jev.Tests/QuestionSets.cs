@@ -1,0 +1,96 @@
+namespace ZeroAlloc.Jev.Tests;
+
+[JevQuestions]
+public partial record UrgencyCheck
+{
+    [Noul("Does this convey urgency?", True = "Explicitly time-sensitive", False = "No urgency expressed")]
+    public partial Noul IsUrgent { get; }
+}
+
+[JevQuestions]
+public partial record MinimalUrgencyCheck
+{
+    [Noul("Does this convey urgency?")]
+    public partial Noul IsUrgent { get; }
+}
+
+public enum Department
+{
+    [Criteria("Payments, invoicing, refunds")]
+    Billing,
+
+    [Criteria("Bugs, outages, integrations")]
+    Technical,
+
+    [Criteria("Pricing, upgrades, new accounts")]
+    Sales,
+
+    Other,
+}
+
+[JevQuestions]
+public partial record DepartmentRouting
+{
+    [Choice("Which team should handle this?")]
+    public partial Choice<Department> Department { get; }
+}
+
+public enum Frustration
+{
+    [Level("Calm")]
+    Calm,
+
+    [Level("Frustrated")]
+    Frustrated,
+
+    [Level("Very angry")]
+    VeryAngry,
+}
+
+[JevQuestions]
+public partial record FrustrationCheck
+{
+    [Score("How frustrated is the customer?")]
+    public partial Score<Frustration> Frustration { get; }
+}
+
+[JevQuestions]
+public partial class TicketTriage
+{
+    [Noul("Does `message` ask for a credential?")]
+    public partial Noul RequestsCredentials { get; }
+
+    [Choice("Which team should handle `message`?")]
+    public partial Choice<Department> Team { get; }
+
+    [Score("How frustrated is the customer?")]
+    public partial Score<Frustration> Mood { get; }
+}
+
+public enum Priority
+{
+    [Criteria("Can wait")]
+    Low = 10,
+
+    [Criteria("Needs attention", Key = "urgent")]
+    High = 20,
+
+    // CA1069 false positive: this alias is deliberate test data for the generator's alias handling
+    // (global-constraints.md: "enum members that repeat an earlier member's value (aliases) are not
+    // separate options"), not an accidental duplicate.
+#pragma warning disable CA1069
+    Legacy = 10,
+#pragma warning restore CA1069
+}
+
+[JevQuestions]
+public partial record EdgeCases
+{
+    public const string TrickyInstructions = "Quote \" backslash \\ newline \n control \u0001 accent é emoji 😀 backtick `message`";
+
+    [Noul(TrickyInstructions, Key = "tricky")]
+    public partial Noul Escaping { get; }
+
+    [Choice("Priority?")]
+    public partial Choice<Priority> Priority { get; }
+}

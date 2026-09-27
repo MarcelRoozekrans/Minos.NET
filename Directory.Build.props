@@ -25,16 +25,14 @@
     <Authors>Marcel Roozekrans</Authors>
     <Company>Marcel Roozekrans</Company>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://jev.zeroalloc.net</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Copyright>Copyright © Marcel Roozekrans</Copyright>
-    <PackageTags>jev;typesafe;ai;system-one;client;sdk;aot;native-aot;zero-allocation</PackageTags>
-  </PropertyGroup>
-
-  <!-- Packing is opt-in; library projects set IsPackable=true in their own csproj -->
-  <PropertyGroup>
-    <IsPackable>false</IsPackable>
+    <PackageTags>jev;typesafe;ai;system-one;openrouter;client;sdk;source-generator;aot;native-aot;zero-allocation</PackageTags>
   </PropertyGroup>
 
   <!-- Pack root README and icon into every NuGet package -->
@@ -44,6 +42,12 @@
     <None Include="$(MSBuildThisFileDirectory)assets\icon.png"
           Pack="true" PackagePath="" Visible="false" />
   </ItemGroup>
+
+  <!-- Disable packing for test and benchmark projects -->
+  <PropertyGroup Condition="$(MSBuildProjectName.Contains('.Tests')) Or
+                            $(MSBuildProjectName.Contains('.Benchmarks'))">
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
 
   <!-- Global analyzers (PrivateAssets=all — do not flow to consumers) -->
   <ItemGroup Condition="'$(IsRoslynComponent)' != 'true'">

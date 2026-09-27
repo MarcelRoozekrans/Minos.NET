@@ -1,6 +1,51 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
   "extends": [
-    "local>MarcelRoozekrans/renovate-config"
+    "config:recommended",
+    "github>ZeroAlloc-Net/.github"
+  ],
+  "labels": ["dependencies"],
+  "packageRules": [
+    {
+      "description": "The generator compiles against the first .NET 10 SDK's C# compiler (Roslyn 5.0.0); pinning it keeps the generator loadable by every .NET 10 consumer, so this stays manual until the minimum supported SDK moves",
+      "matchPackageNames": ["Microsoft.CodeAnalysis.CSharp"],
+      "allowedVersions": "5.0.0"
+    },
+    {
+      "description": "Group ZeroAlloc packages; they are this library's external dependencies",
+      "matchPackageNames": ["ZeroAlloc.{/,}**"],
+      "groupName": "ZeroAlloc"
+    },
+    {
+      "description": "Group Roslyn analyzer packages",
+      "matchPackageNames": [
+        "Meziantou.Analyzer",
+        "Roslynator.Analyzers",
+        "ErrorProne.NET.CoreAnalyzers",
+        "ErrorProne.NET.Structs",
+        "NetFabric.Hyperlinq.Analyzer"
+      ],
+      "groupName": "Roslyn analyzers"
+    },
+    {
+      "description": "Group xunit packages",
+      "matchPackageNames": ["xunit{/,}**"],
+      "groupName": "xunit"
+    },
+    {
+      "description": "Group Microsoft.CodeAnalysis packages",
+      "matchPackageNames": ["Microsoft.CodeAnalysis.{/,}**"],
+      "groupName": "Microsoft.CodeAnalysis"
+    },
+    {
+      "description": "Group GitHub Actions",
+      "matchManagers": ["github-actions"],
+      "groupName": "GitHub Actions"
+    },
+    {
+      "description": "Automerge patch updates",
+      "matchUpdateTypes": ["patch"],
+      "automerge": true
+    }
   ]
 }

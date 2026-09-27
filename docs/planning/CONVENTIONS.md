@@ -33,6 +33,6 @@
 
 ## Deployment
 
-**Deploy target:** nuget.org (package id Jev.Net), GitHub Pages (docs site)
+**Deploy target:** nuget.org (package id ZeroAlloc.Jev, publishing off until the maintainer declares it mature), GitHub Pages (docs site)
 **Environments:** github-pages
-**Deployed by:** GitHub Actions (release-please publish, GitVersion alpha pushes from main, Pages deploy)
+**Deployed by:** GitHub Actions: release-please opens release PRs and creates GitHub releases; NuGet publishing and the Pages deploy are not configured yet (NuGet waits until the maintainer declares the package mature)
