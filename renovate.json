@@ -7,9 +7,9 @@
   "labels": ["dependencies"],
   "packageRules": [
     {
-      "description": "The generator compiles against the first .NET 10 SDK's C# compiler (Roslyn 5.0.0); pinning it keeps the generator loadable by every .NET 10 consumer, so this stays manual until the minimum supported SDK moves",
+      "description": "The generator compiles against the first .NET 10 SDK's C# compiler (Roslyn 5.0.0); pinning it keeps the generator loadable by every .NET 10 consumer, so this stays manual until the minimum supported SDK moves; NuGet range syntax, so the brackets mean exactly 5.0.0 (a bare 5.0.0 means 5.0.0 or higher)",
       "matchPackageNames": ["Microsoft.CodeAnalysis.CSharp"],
-      "allowedVersions": "5.0.0"
+      "allowedVersions": "[5.0.0]"
     },
     {
       "description": "Group ZeroAlloc packages; they are this library's external dependencies",
