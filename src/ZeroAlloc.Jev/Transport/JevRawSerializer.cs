@@ -15,6 +15,9 @@ internal sealed class JevRawSerializer : IRestSerializer
     // Large enough for a typical /v1/systemone response, small enough to stay out of the large object heap.
     private const int InitialResponseCapacity = 4096;
 
+    // The least free space each read is offered, so reads near the end of the buffer do not shrink to a few bytes.
+    private const int MinimumReadSize = 1024;
+
     private readonly ArrayPool<byte> _pool;
 
     /// <summary>Initializes a new instance of the <see cref="JevRawSerializer"/> class over the shared pool.</summary>
@@ -47,11 +50,11 @@ internal sealed class JevRawSerializer : IRestSerializer
             throw new NotSupportedException("JevRawSerializer reads only RawJson, not " + typeof(T).Name + ".");
         }
 
-        var raw = RawJson.Create(_pool, InitialResponseCapacity);
+        var raw = RawJson.Create(_pool, InitialCapacity(stream));
         try
         {
             int read;
-            while ((read = await stream.ReadAsync(raw.GetMemory(), ct).ConfigureAwait(false)) > 0)
+            while ((read = await stream.ReadAsync(raw.GetMemory(MinimumReadSize), ct).ConfigureAwait(false)) > 0)
             {
                 raw.Advance(read);
             }
@@ -63,6 +66,19 @@ internal sealed class JevRawSerializer : IRestSerializer
             raw.Dispose();
             throw;
         }
+    }
+
+    // A seekable stream, such as a buffered response, knows its remaining length: renting that plus room for the final
+    // zero-byte read means the body is read without regrowth. Otherwise the default capacity is a guess.
+    private static int InitialCapacity(Stream stream)
+    {
+        if (!stream.CanSeek)
+        {
+            return InitialResponseCapacity;
+        }
+
+        var remaining = stream.Length - stream.Position;
+        return remaining <= 0 ? MinimumReadSize : (int)Math.Min(remaining + MinimumReadSize, Array.MaxLength);
     }
 
     /// <summary>Writes a <see cref="RawJson"/> body's bytes to the stream. The body is not disposed.</summary>

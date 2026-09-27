@@ -32,6 +32,29 @@ public partial record NumericUrgency
     public partial Noul IsUrgent { get; }
 }
 
+/// <summary>A state whose converter writes a raw value with leading JSON whitespace, which Jev accepts.</summary>
+[JsonConverter(typeof(PaddedStateConverter))]
+public sealed record PaddedState(string Json);
+
+internal sealed class PaddedStateConverter : JsonConverter<PaddedState>
+{
+    public override PaddedState Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        => throw new NotSupportedException();
+
+    public override void Write(Utf8JsonWriter writer, PaddedState value, JsonSerializerOptions options)
+        => writer.WriteRawValue(value.Json);
+}
+
+[JsonSerializable(typeof(PaddedState))]
+internal sealed partial class PaddedStateJsonContext : JsonSerializerContext;
+
+[JevQuestions(State = typeof(PaddedState))]
+public partial record PaddedUrgency
+{
+    [Noul("Is it urgent?")]
+    public partial Noul IsUrgent { get; }
+}
+
 /// <summary>Covers <see cref="JevClient"/>'s own typed <c>EvaluateAsync</c> overloads, the raw UTF-8 path.</summary>
 public sealed class JevClientTypedTests : IDisposable
 {
@@ -128,6 +151,33 @@ public sealed class JevClientTypedTests : IDisposable
             c => c.EvaluateAsync<TicketUrgency, TicketContext>(Ticket, TicketContextJsonContext.Default.TicketContext, CancellationToken.None),
             c => c.EvaluateAsync<TicketUrgency, TicketContext>(Ticket, TicketContextJsonContext.Default.TicketContext, CancellationToken.None));
 
+    [Theory]
+    [InlineData(" \t\r\n{\"messages\":[]}")]
+    [InlineData("\n  [1, 2]")]
+    [InlineData("  \"plain text\"")]
+    public Task TypedStateWithLeadingWhitespace_SendsTheDefaultPathsRequest(string json)
+    {
+        var state = new PaddedState(json);
+        return AssertSendsTheDefaultRequest(
+            c => c.EvaluateAsync<PaddedUrgency, PaddedState>(state, PaddedStateJsonContext.Default.PaddedState),
+            c => c.EvaluateAsync<PaddedUrgency, PaddedState>(state, PaddedStateJsonContext.Default.PaddedState));
+    }
+
+    [Fact]
+    public void TypedStateWithLeadingWhitespace_ThatIsANumber_Throws()
+    {
+        var handler = StubHandler.Json(HttpStatusCode.OK, Fixture.Text("response-noul.json"));
+        var pool = new CountingPool();
+        using var client = Client(handler, pool);
+
+        var exception = ThrowsSynchronously<ArgumentException>(
+            () => client.EvaluateAsync<PaddedUrgency, PaddedState>(new PaddedState(" \n 42"), PaddedStateJsonContext.Default.PaddedState).AsTask());
+
+        Assert.Equal("state", exception.ParamName);
+        Assert.Empty(handler.Requests);
+        Assert.Equal(0, pool.Outstanding);
+    }
+
     [Fact]
     public Task EscapedQuestions_SendTheDefaultPathsRequest()
         => AssertSendsTheDefaultRequest(
@@ -214,12 +264,14 @@ public sealed class JevClientTypedTests : IDisposable
     [Fact]
     public async Task MalformedResponse_IsInvalidResponse()
     {
-        using var client = Client(StubHandler.Json(HttpStatusCode.OK, "not json"));
+        var pool = new CountingPool();
+        using var client = Client(StubHandler.Json(HttpStatusCode.OK, "not json"), pool);
 
         var result = await client.EvaluateAsync<UrgencyCheck>("text");
 
         Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);
         Assert.IsAssignableFrom<JsonException>(result.Error.Exception);
+        Assert.Equal(0, pool.Outstanding);
     }
 
     [Fact]
@@ -285,6 +337,10 @@ public sealed class JevClientTypedTests : IDisposable
 
         await Assert.ThrowsAsync<ObjectDisposedException>(async () => await client.EvaluateAsync<UrgencyCheck>("text"));
         await Assert.ThrowsAsync<ObjectDisposedException>(async () => await client.EvaluateUtf8Async<UrgencyCheck>("{}"u8.ToArray()));
+        using var document = JsonDocument.Parse("{}");
+        await Assert.ThrowsAsync<ObjectDisposedException>(async () => await client.EvaluateAsync<UrgencyCheck>(document.RootElement));
+        await Assert.ThrowsAsync<ObjectDisposedException>(
+            async () => await client.EvaluateAsync<UrgencyCheck>(document.RootElement, CancellationToken.None));
         await Assert.ThrowsAsync<ObjectDisposedException>(
             async () => await client.EvaluateAsync<TicketUrgency, TicketContext>(Ticket, TicketContextJsonContext.Default.TicketContext));
     }

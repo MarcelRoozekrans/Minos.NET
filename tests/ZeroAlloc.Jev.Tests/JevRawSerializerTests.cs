@@ -39,6 +39,25 @@ public sealed class JevRawSerializerTests
         Assert.Throws<ObjectDisposedException>(() => raw.Span.Length);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(5000)]
+    [InlineData(100_000)]
+    public async Task Deserialize_SeekableStream_IsReadWithoutRegrowth(int length)
+    {
+        var bytes = new byte[length + 7];
+        bytes.AsSpan().Fill((byte)'x');
+        var pool = new CountingPool();
+        var serializer = new JevRawSerializer(pool);
+        using var stream = new MemoryStream(bytes);
+        stream.Position = 7;
+
+        using var raw = await serializer.DeserializeAsync<RawJson>(stream);
+
+        Assert.Equal(length, raw!.Length);
+        Assert.Equal(1, pool.Rented);
+    }
+
     [Fact]
     public async Task Deserialize_OtherTypes_AreNotSupported()
     {
