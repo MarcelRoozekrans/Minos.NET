@@ -18,7 +18,7 @@ Questions and answers become strongly typed, idiomatic C# with no reflection. A 
 - [ ] #12 and #22 are closed.
 
 ## Phases
-1. Phase 2.1 — Typed evaluation [pending]
+1. Phase 2.1 — Typed evaluation [active]
 2. Phase 2.2 — Analyzers and code fixes [pending]
 3. Phase 2.3 — Structured instructions and criteria [pending]
 4. Phase 2.4 — Fluent question builders [pending]
