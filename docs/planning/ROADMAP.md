@@ -45,19 +45,25 @@ compress_memory: disabled
 **HelpWanted:** no
 **Plan:** `docs/superpowers/plans/2026-09-27-phase-1.4-transport-and-error-model.md`
 
-### Phase 1.5: Resilience [status: pending]
+### Phase 1.5: Rename to ZeroAlloc.Jev [status: pending]
+**Goal:** Rename the package, root namespace, projects and generator references from `Jev.Net` to `ZeroAlloc.Jev` — the NuGet id `Jev.Net` is owned by another publisher (JohnCampionJr, since 2026-09-20). Covers namespaces, project and folder names, the solution, generator metadata names and emitted `global::` references, snapshots, PublicAPI files, package metadata and docs; the package is published from the ZeroAlloc.NET NuGet account with the repo in the ZeroAlloc-Net GitHub org. The result must fit the ZeroAlloc-Net org: conventions surveyed from the sibling repos (ZeroAlloc.Rest, .Results, .Resilience) for naming, layout, build props, package metadata, docs and CI shape; and Native AOT: a smoke app publishes with `PublishAot` and zero IL2xxx/IL3xxx warnings (the CI gate itself stays in 1.8).
+**Surface:** Refactor
+**HelpWanted:** no
+**Plan:** _to be written_
+
+### Phase 1.6: Resilience [status: pending]
 **Goal:** ZeroAlloc.Resilience retry with exponential backoff on 429/529 honoring `retry-after`.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 1.6: Test harness [status: pending]
+### Phase 1.7: Test harness [status: pending]
 **Goal:** Unit tests, WireMock.Net component tests, and a live smoke suite skipped when no API key is present — covering both TypeSafe direct and OpenRouter.
 **Surface:** Infra
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 1.7: CI and release pipeline [status: pending]
+### Phase 1.8: CI and release pipeline [status: pending]
 **Goal:** Build/test, AOT smoke with `AllocationGate`, BenchmarkDotNet baseline, release-please, GitVersion alpha pushes to NuGet, and a check that the packed nupkg carries the generator under `analyzers/dotnet/cs`.
 **Surface:** Infra
 **HelpWanted:** no

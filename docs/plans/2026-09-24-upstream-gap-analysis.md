@@ -826,7 +826,7 @@ Options 1 and 2 keep existing generator-test consumers working, because they alr
 - Until R1, R2 and R3 land: wrap each generated call in a small internal adapter that catches `HttpRequestException`, `TaskCanceledException` when the caller's token is not cancelled, and `JsonException`, and maps them to `JevError`. For the 422 body, either add a `DelegatingHandler` that buffers error bodies, or accept a body-less `JevError.Validation` for now.
 - Use `ZeroAlloc.Results` `MapError`, `Bind`, `Match` and `MapAsync` to convert `Result<T, HttpError>` to `Result<T, JevError>`.
 
-**Resilience, phase 1.5**
+**Resilience, phase 1.6**
 - The ZeroAlloc.Resilience generator cannot be used on the transport interface today: see S1, S2, S3 and S5. Plan a hand-written retry loop in the adapter above for 429 and 529 only, with exponential backoff, optional jitter and `Retry-After`, capped at a maximum delay. Revisit once S1 to S5 ship.
 
 **Telemetry, phase 3.3**
@@ -838,7 +838,7 @@ Options 1 and 2 keep existing generator-test consumers working, because they alr
 - ZeroAlloc.Inject: until I1, register by hand in `AddJevClient`, or accept and list the generated public method.
 - ZeroAlloc.Validation.Options: until V1, register `IValidateOptions<JevClientOptions>` by hand with `ZeroAllocOptionsValidator<JevClientOptions>` and the generated validator. Until V2, the validator for a public options type is public, so list it in the PublicAPI files or validate by hand.
 
-**Benchmarks and AOT smoke, phase 1.7**
+**Benchmarks and AOT smoke, phase 1.8**
 - `AllocationGate.AssertBudget` and `AllocationGate.AssertBudgetValueTask` work. The generated client over an in-memory `HttpMessageHandler` completes synchronously, which `AssertBudgetValueTask` requires. Until X1 lands, add a target that removes the `GeneratorSnapshot` item from `Compile`.
 
 ## 4. Could not determine
@@ -848,4 +848,4 @@ Options 1 and 2 keep existing generator-test consumers working, because they alr
 - **Linux AOT.** Native AOT was verified on win-x64 only. ILC's trim and AOT analysis does not depend on the platform, but the CI target was not run.
 - **ZeroAlloc.Inject with typed `HttpClient`s.** Inject has no attribute for typed-HttpClient registration; ZeroAlloc.Rest's `AddHttpClient` covers that. Whether Inject is needed at all in phase 3.1 is a design question. Only its public-API leak was checked.
 - **ZeroAlloc.Rest.Resilience at runtime.** It could not be exercised, because every Result-returning configuration failed to compile in the Resilience generator. Its `AddRestResilience` code path was only read.
-- **Allocation figures.** The probes confirmed that `AllocationGate` is usable. They did not measure the per-call bytes of the generated client. That belongs in phase 1.7's baseline.
+- **Allocation figures.** The probes confirmed that `AllocationGate` is usable. They did not measure the per-call bytes of the generated client. That belongs in phase 1.8's baseline.
