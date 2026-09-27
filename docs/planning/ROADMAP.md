@@ -70,7 +70,7 @@ compress_memory: disabled
 **Completed:** 2026-09-27
 
 ### Phase 1.8: CI and release pipeline [status: active]
-**Goal:** Build/test, AOT smoke with `AllocationGate`, BenchmarkDotNet baseline, release-please, GitVersion alpha pushes to NuGet, and a check that the packed nupkg carries the generator under `analyzers/dotnet/cs`. Publishing to nuget.org — including alpha pushes — stays switched off until the maintainer declares the package mature (decided 2026-09-27); the repository itself is already public. Tracked: #28 (api-compat once a released baseline exists), #29 (NuGet publishing when mature).
+**Goal:** Build/test, AOT smoke with `AllocationGate`, a BenchmarkDotNet smoke gate, release-please, a pack test verifying the packed nupkg carries the generator under `analyzers/dotnet/cs`, every trim and AOT warning promoted to an error, and a website trigger workflow that notifies the org site on `docs/` changes. Publishing to nuget.org and api-compat stay switched off until the maintainer declares the package mature; the repository itself is already public. Tracked: #28 (api-compat once a released baseline exists), #29 (NuGet publishing when mature); versioning is by release-please.
 **Surface:** Infra
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-09-27-phase-1.8-ci-and-release-pipeline-design.md`
@@ -173,7 +173,7 @@ compress_memory: disabled
 **Plan:** _to be written_
 
 ### Phase 4.3: Documentation site [status: pending]
-**Goal:** Docusaurus site deployed to GitHub Pages.
+**Goal:** User docs in `docs/` served by the org website at jev.zeroalloc.net: a `repos/jev` submodule and an `apps/docs-jev` app in ZeroAlloc-Net/.website, triggered by `trigger-website.yml`.
 **Surface:** Docs
 **HelpWanted:** no
 **Plan:** _to be written_
