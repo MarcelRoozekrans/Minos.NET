@@ -78,40 +78,45 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-09-27-phase-1.8-ci-and-release-pipeline.md`
 **Completed:** 2026-09-27
 
-## Milestone 2: Typed .NET API [status: pending]
-**Goal:** Questions and answers become strongly typed, idiomatic C# without reflection — declared as `[JevQuestions]` types or built fluently at runtime.
+## Milestone 2: Typed .NET API [status: active]
+**Goal:** Questions and answers become strongly typed, idiomatic C# with no reflection. They are declared as `[JevQuestions]` types or built fluently at runtime, evaluated through `EvaluateAsync<T>`, AOT-clean and within CI-enforced allocation budgets.
+**Started:** 2026-09-27
+**Design:** `docs/superpowers/specs/2026-09-27-milestone-2-design.md`
 **Definition of Done:**
-- [ ] `[JevQuestions]` types evaluate end-to-end through `EvaluateAsync<T>` → `Result<T, JevError>`, with no reflection
-- [ ] API limits enforced at compile time for generated question sets (JEV001–JEV004, plus the generator's own key-collision error) and at runtime for builder-defined questions
-- [ ] Fluent builders cover all three question types including structured criteria
-- [ ] Typed layer stays within allocation budgets and the AOT smoke stays clean
+- [ ] `[JevQuestions]` types evaluate end-to-end through `EvaluateAsync<T>` → `Result<T, JevError>`, with no reflection, plus raw `JsonElement` / string / UTF-8 overloads
+- [ ] All Jev diagnostics come from `ZeroAlloc.Jev.Analyzers` (JEV001–004, and JEV101–106 moved out of the generator); `[Criteria]`-stub code fix in `ZeroAlloc.Jev.CodeFixes`; #4–#11 closed
+- [ ] Structured instructions and criteria work in attributes and builders
+- [ ] Fluent builders cover all three question types, with runtime API-limit validation via ZeroAlloc.Validation
+- [ ] Every phase adds `AllocationGate` budgets and benchmarks for what it ships; the AOT smoke app stays clean; #12, #13 and #22 closed
 
 ### Phase 2.1: Typed evaluation [status: pending]
-**Goal:** `EvaluateAsync<T>` returning `Result<T, JevError>`, with typed state via `[JevQuestions(State = typeof(...))]` and a caller-supplied `JsonTypeInfo`, plus raw `JsonElement` / string / UTF-8 overloads.
+**Goal:** `EvaluateAsync<T>` returning `Result<T, JevError>`, with:
+- typed state via `[JevQuestions(State = typeof(...))]` and a caller-supplied `JsonTypeInfo`;
+- raw `JsonElement` / string / UTF-8 overloads;
+- a non-breaking `IJevClient` shape (#22);
+- the record-equality fix (#12) and the ProbabilityMap boxing fix (#13), with budgets and benchmarks.
+
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
 
 ### Phase 2.2: Analyzers and code fixes [status: pending]
-**Goal:** Diagnostics JEV001–JEV004 (option/level limits, empty instructions, state-field references) and a `[Criteria]`-stub code fix.
+**Goal:** `ZeroAlloc.Jev.Analyzers` hosts JEV001–004 (option and level limits, empty instructions, state-field references) and the JEV101–106 checks, which move out of the generator (#4; #5–#11 fixed along the way). `ZeroAlloc.Jev.CodeFixes` adds the `[Criteria]` stub. Both are packed under `analyzers/dotnet/cs` and asserted by the pack tests.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
 
 ### Phase 2.3: Structured instructions and criteria [status: pending]
-**Goal:** `Examples` / `NotFor` in attributes, object/array instructions and criteria, and `state` helpers.
+**Goal:** `Examples` / `NotFor` in attributes, sent as a criterion object, which is a Jev.Net convention and not an API field; object and array instructions and criteria; and `state` helpers. This spans the attributes, the generator and the analyzers, with budgets for the new paths.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
 
 ### Phase 2.4: Fluent question builders [status: pending]
-**Goal:** Builders for runtime-defined Noul, Choice and Score questions sharing the typed answer types, with runtime API-limit validation via ZeroAlloc.Validation.
-**Surface:** Backend
-**HelpWanted:** no
-**Plan:** _to be written_
+**Goal:** Builders for runtime-defined Noul, Choice and Score questions that share the typed answer types, with:
+- runtime API-limit validation via ZeroAlloc.Validation, using limits shared with the analyzers;
+- allocation budgets and benchmarks for the builders.
 
-### Phase 2.5: Typed-layer performance [status: pending]
-**Goal:** Allocation budgets and benchmarks for the generated parser and the builders.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
