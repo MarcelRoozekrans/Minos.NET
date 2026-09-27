@@ -27,6 +27,12 @@ internal static class Program
         await OverloadedThenSuccessIsRetried().ConfigureAwait(false);
         GeneratedQuestionSetRoundTrips();
 
+        AllocationChecks.GeneratedParse();
+        AllocationChecks.ReadNoul();
+        AllocationChecks.ReadChoice();
+        AllocationChecks.ReadScore();
+        AllocationChecks.EvaluateRoundTrip();
+
         Console.WriteLine(failures == 0 ? "AOT smoke: all checks passed" : "AOT smoke: " + failures + " check(s) failed");
         return failures == 0 ? 0 : 1;
     }
@@ -132,7 +138,7 @@ internal static class Program
         },
     };
 
-    private static void Check(bool passed, string description)
+    internal static void Check(bool passed, string description)
     {
         Console.WriteLine((passed ? "PASS " : "FAIL ") + description);
         if (!passed)

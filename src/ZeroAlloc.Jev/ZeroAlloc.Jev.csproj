@@ -27,10 +27,6 @@
     <ProjectReference Include="..\ZeroAlloc.Jev.Generator\ZeroAlloc.Jev.Generator.csproj"
                       ReferenceOutputAssembly="false"
                       PrivateAssets="all" />
-    <None Include="..\ZeroAlloc.Jev.Generator\bin\$(Configuration)\netstandard2.0\ZeroAlloc.Jev.Generator.dll"
-          Pack="true"
-          PackagePath="analyzers/dotnet/cs"
-          Visible="false" />
   </ItemGroup>
 
   <ItemGroup>
@@ -43,4 +39,16 @@
     <PackageReference Include="ZeroAlloc.Rest.SystemTextJson" />
     <PackageReference Include="ZeroAlloc.Results" />
   </ItemGroup>
+
+  <!-- Pack the generator from its real build output rather than a hard-coded bin path (#14). -->
+  <Target Name="PackJevGenerator" BeforeTargets="_GetPackageFiles">
+    <MSBuild Projects="..\ZeroAlloc.Jev.Generator\ZeroAlloc.Jev.Generator.csproj"
+             Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration)">
+      <Output TaskParameter="TargetOutputs" ItemName="_JevGeneratorAssembly" />
+    </MSBuild>
+    <ItemGroup>
+      <None Include="@(_JevGeneratorAssembly)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+    </ItemGroup>
+  </Target>
 </Project>

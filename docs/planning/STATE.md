@@ -4,9 +4,9 @@
 
 ## Current Position
 - **Milestone:** 1 — Foundation & core client (7 of 8 phases complete)
-- **Phase:** 1.8 — CI and release pipeline (pending; no design spec yet)
+- **Phase:** 1.8 — CI and release pipeline (active; spec and plan written, executing on branch `phase/1.8-ci-release`)
 - **Last completed task:** Phase 1.7 — Test harness, merged as PR #42 on 2026-09-27; closes #17.
-- **Next task:** Phase 1.8 brainstorm (CI and release pipeline; NuGet publishing stays off until the maintainer declares the package mature), on its own branch and landed through a pull request.
+- **Next task:** Execute the phase 1.8 plan subagent-driven; push and open the pull request after the maintainer's go-ahead.
 
 ## What Phase 1.7 shipped
 - `tests/ZeroAlloc.Jev.Integration.Tests`: WireMock.Net 2.18.0 over real sockets, 15 tests, public API only, runs in the CI `build` job.

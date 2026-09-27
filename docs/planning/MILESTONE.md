@@ -13,8 +13,8 @@ Deliver a working, Native AOT-clean `JevClient` for TypeSafe's Jev API covering 
 - [ ] `[JevQuestions]` generator emits question JSON and parses answers, verified against the wire fixtures
 - [ ] 429/529 retried with backoff honoring `retry-after`
 - [ ] AOT smoke app publishes with zero IL2xxx/IL3xxx warnings in CI
-- [ ] BenchmarkDotNet baseline and `AllocationGate` budgets committed
-- [ ] release-please and GitVersion alpha publishing wired
+- [ ] BenchmarkDotNet smoke gate and `AllocationGate` budgets in CI
+- [ ] release-please wired; NuGet publishing deferred (#29)
 
 ## Phases
 1. Phase 1.1 — Repo scaffolding [complete]
@@ -24,7 +24,7 @@ Deliver a working, Native AOT-clean `JevClient` for TypeSafe's Jev API covering 
 5. Phase 1.5 — Rename to ZeroAlloc.Jev [complete]
 6. Phase 1.6 — Resilience [complete]
 7. Phase 1.7 — Test harness [complete]
-8. Phase 1.8 — CI and release pipeline [pending]
+8. Phase 1.8 — CI and release pipeline [active]
 
 ## Audit History
 | Date | Verdict | Gaps |
