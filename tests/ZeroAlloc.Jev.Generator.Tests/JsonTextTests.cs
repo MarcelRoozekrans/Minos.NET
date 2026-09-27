@@ -57,7 +57,9 @@ public sealed class JsonTextTests
         Assert.Equal(expected, literal);
         Assert.All(literal, c => Assert.InRange(c, ' ', '~'));
 
-        var token = Assert.IsType<LiteralExpressionSyntax>(SyntaxFactory.ParseExpression(literal)).Token;
+        var expression = SyntaxFactory.ParseExpression(literal);
+        Assert.Empty(expression.GetDiagnostics());
+        var token = Assert.IsType<LiteralExpressionSyntax>(expression).Token;
         Assert.Equal(value, token.ValueText);
 
         static string Escape(char c)
