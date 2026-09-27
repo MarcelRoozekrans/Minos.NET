@@ -6,11 +6,14 @@ namespace ZeroAlloc.Jev.Live.Tests;
 
 public sealed class TypeSafeLiveTests
 {
-    // Reflection-based (not source-generated): see the comment on GeneratedQuestionSet_ParsesTypedAnswers.
+    // Reflection-based, mirroring JevJsonContext's options: JevContentConverter is internal, so a source-generated
+    // context can't reference it from this assembly; phase 2.1's typed EvaluateAsync<T> replaces this round trip.
     private static readonly JsonSerializerOptions QuestionsJsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.SnakeCaseLower,
         DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+        AllowOutOfOrderMetadataProperties = true,
+        RespectNullableAnnotations = true,
     };
 
     private readonly ITestOutputHelper _output;
@@ -24,6 +27,11 @@ public sealed class TypeSafeLiveTests
 
         var result = await client.EvaluateAsync(Live.Request(JevProvider.TypeSafe));
 
+        if (result.IsFailure)
+        {
+            Live.LogError(_output, result.Error);
+        }
+
         Assert.True(result.IsSuccess);
         Live.AssertAnsweredEveryQuestion(result.Value);
     }
@@ -34,6 +42,11 @@ public sealed class TypeSafeLiveTests
         using var client = Live.Client(JevProvider.TypeSafe);
 
         var result = await client.ListModelsAsync();
+
+        if (result.IsFailure)
+        {
+            Live.LogError(_output, result.Error);
+        }
 
         Assert.True(result.IsSuccess);
         Assert.NotEmpty(result.Value.Models);
@@ -63,6 +76,11 @@ public sealed class TypeSafeLiveTests
 
         var result = await client.EvaluateAsync(request);
 
+        if (result.IsFailure)
+        {
+            Live.LogError(_output, result.Error);
+        }
+
         Assert.True(result.IsSuccess);
 
         var answersJson = JsonSerializer.SerializeToUtf8Bytes(
@@ -74,10 +92,16 @@ public sealed class TypeSafeLiveTests
         var triage = LiveTriage.Parse(ref reader);
 
         Assert.InRange(triage.IsUrgent.Probability, 0.0, 1.0);
+
         Assert.InRange(triage.Team.Confidence, 0.0, 1.0);
         Assert.True(Enum.IsDefined(triage.Team.Value));
+        Assert.Equal(3, triage.Team.Probabilities.Count);
+        Assert.InRange(triage.Team.Probabilities[triage.Team.Value], 0.0, 1.0);
+
         Assert.InRange(triage.Frustration.Confidence, 0.0, 1.0);
         Assert.True(Enum.IsDefined(triage.Frustration.Value));
+        Assert.Equal(3, triage.Frustration.Probabilities.Count);
+        Assert.InRange(triage.Frustration.Expected, 0.0, 2.0);
     }
 
     [LiveFact(JevProvider.TypeSafe)]
