@@ -16,7 +16,8 @@
     <WarningsAsErrors>$(WarningsAsErrors);RS0016;RS0017</WarningsAsErrors>
     <!-- Only audit direct dependencies; transitive vulnerability warnings are owned by upstream packages -->
     <NuGetAuditMode>direct</NuGetAuditMode>
-    <!-- Placeholder version; CI overrides it via GitVersion / release-please (-p:Version=) -->
+    <!-- Placeholder version; release-please manages the real version via the tagged release commit,
+         not by passing -p:Version= in CI. -->
     <Version>0.0.0-local</Version>
   </PropertyGroup>
 
