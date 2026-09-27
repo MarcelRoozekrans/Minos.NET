@@ -103,6 +103,46 @@ public sealed class JevErrorMapperTests
     }
 
     [Theory]
+    [InlineData("Sunday, 27-Sep-26 12:00:30 GMT")]
+    [InlineData("Sun Sep 27 12:00:30 2026")]
+    [InlineData("sun, 27 sep 2026 12:00:30 gmt")]
+    public void RetryAfter_OtherHttpDateForms_AreParsed(string header)
+        => Assert.Equal(TimeSpan.FromSeconds(30), Mapper.Map(Status(429, retryAfter: header)).RetryAfter);
+
+    [Fact]
+    public void RetryAfter_DeltaSecondsOverflow_IsClamped()
+        => Assert.Equal(RetryAfterHeader.MaxDelay, Mapper.Map(Status(429, retryAfter: "99999999999999999999")).RetryAfter);
+
+    [Theory]
+    [InlineData("1500", 1500)]
+    [InlineData("250.5", 250.5)]
+    [InlineData("0", 0)]
+    public void RetryAfterMs_IsParsed(string header, double milliseconds)
+        => Assert.Equal(TimeSpan.FromMilliseconds(milliseconds), Mapper.Map(WithHeaders(429, ("retry-after-ms", header))).RetryAfter);
+
+    [Fact]
+    public void RetryAfterMs_WinsOverRetryAfter()
+        => Assert.Equal(TimeSpan.FromMilliseconds(200), Mapper.Map(WithHeaders(429, ("Retry-After", "5"), ("retry-after-ms", "200"))).RetryAfter);
+
+    [Theory]
+    [InlineData("soon")]
+    [InlineData("-5")]
+    [InlineData("NaN")]
+    public void RetryAfterMs_Invalid_FallsBackToRetryAfter(string header)
+        => Assert.Equal(TimeSpan.FromSeconds(5), Mapper.Map(WithHeaders(429, ("Retry-After", "5"), ("retry-after-ms", header))).RetryAfter);
+
+    private static HttpError WithHeaders(int status, params (string Name, string Value)[] headers)
+    {
+        var map = new Dictionary<string, IReadOnlyList<string>>(StringComparer.OrdinalIgnoreCase);
+        foreach (var (name, value) in headers)
+        {
+            map[name] = [value];
+        }
+
+        return new HttpError((HttpStatusCode)status, map, null) { Kind = HttpErrorKind.Status };
+    }
+
+    [Theory]
     [InlineData("application/json")]
     [InlineData("application/problem+json")]
     public void Detail_JsonBody_IsParsed(string contentType)
