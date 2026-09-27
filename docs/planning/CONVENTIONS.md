@@ -27,12 +27,12 @@
 ## Versioning & Release
 
 **Scheme:** semver (decided)
-**Released by:** release-please (decided; to be configured)
+**Released by:** release-please (configured: `release-please.yml`, no publish job)
 **Milestone completion tags a release:** no
 **Changelog:** auto
 
 ## Deployment
 
-**Deploy target:** nuget.org (package id ZeroAlloc.Jev, publishing off until the maintainer declares it mature), GitHub Pages (docs site)
-**Environments:** github-pages
-**Deployed by:** GitHub Actions: release-please opens release PRs and creates GitHub releases; NuGet publishing and the Pages deploy are not configured yet (NuGet waits until the maintainer declares the package mature)
+**Deploy target:** nuget.org (package id ZeroAlloc.Jev, publishing off until the maintainer declares it mature, #29); the org website at jev.zeroalloc.net via ZeroAlloc-Net/.website (docs)
+**Environments:** live-api (manual live smoke; no deployment environment)
+**Deployed by:** GitHub Actions: release-please opens release PRs and creates GitHub releases; `trigger-website.yml` dispatches doc updates to the org website; NuGet publishing is not configured (#29)
