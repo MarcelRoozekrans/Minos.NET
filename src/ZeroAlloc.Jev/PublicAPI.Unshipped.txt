@@ -47,7 +47,15 @@ ZeroAlloc.Jev.CriteriaAttribute.Description.get -> string!
 ZeroAlloc.Jev.CriteriaAttribute.Key.get -> string?
 ZeroAlloc.Jev.CriteriaAttribute.Key.set -> void
 ZeroAlloc.Jev.IJevClient
-ZeroAlloc.Jev.IJevClient.EvaluateAsync(ZeroAlloc.Jev.SystemOneRequest! request, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.SystemOneResponse!, ZeroAlloc.Jev.JevError!>>
+ZeroAlloc.Jev.IJevClient.EvaluateAsync(ZeroAlloc.Jev.SystemOneRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.SystemOneResponse!, ZeroAlloc.Jev.JevError!>>
+ZeroAlloc.Jev.IJevClient.EvaluateAsync(ZeroAlloc.Jev.SystemOneRequest! request, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.SystemOneResponse!, ZeroAlloc.Jev.JevError!>>
+ZeroAlloc.Jev.IJevClient.EvaluateAsync<T, TState>(TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
+ZeroAlloc.Jev.IJevClient.EvaluateAsync<T, TState>(TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
+ZeroAlloc.Jev.IJevClient.EvaluateAsync<T>(string! state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
+ZeroAlloc.Jev.IJevClient.EvaluateAsync<T>(string! state, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
+ZeroAlloc.Jev.IJevClient.EvaluateAsync<T>(System.Text.Json.JsonElement state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
+ZeroAlloc.Jev.IJevClient.EvaluateAsync<T>(System.Text.Json.JsonElement state, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
+ZeroAlloc.Jev.IJevClient.EvaluateUtf8Async<T>(System.ReadOnlyMemory<byte> utf8JsonState, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
 ZeroAlloc.Jev.IJevClient.ListModelsAsync(System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.ModelList!, ZeroAlloc.Jev.JevError!>>
 ZeroAlloc.Jev.IJevQuestionSet<TSelf, TState>
 ZeroAlloc.Jev.IJevQuestionSet<TSelf>
@@ -57,7 +65,8 @@ ZeroAlloc.Jev.JevAnswer
 ZeroAlloc.Jev.JevAnswerReader
 ZeroAlloc.Jev.JevClient
 ZeroAlloc.Jev.JevClient.Dispose() -> void
-ZeroAlloc.Jev.JevClient.EvaluateAsync(ZeroAlloc.Jev.SystemOneRequest! request, System.Threading.CancellationToken ct = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.SystemOneResponse!, ZeroAlloc.Jev.JevError!>>
+ZeroAlloc.Jev.JevClient.EvaluateAsync(ZeroAlloc.Jev.SystemOneRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.SystemOneResponse!, ZeroAlloc.Jev.JevError!>>
+ZeroAlloc.Jev.JevClient.EvaluateAsync(ZeroAlloc.Jev.SystemOneRequest! request, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.SystemOneResponse!, ZeroAlloc.Jev.JevError!>>
 ZeroAlloc.Jev.JevClient.JevClient() -> void
 ZeroAlloc.Jev.JevClient.JevClient(ZeroAlloc.Jev.JevClientOptions? options) -> void
 ZeroAlloc.Jev.JevClient.JevClient(System.Net.Http.HttpClient! httpClient) -> void
@@ -77,6 +86,8 @@ ZeroAlloc.Jev.JevClientOptions.MaxRetries.get -> int
 ZeroAlloc.Jev.JevClientOptions.MaxRetries.set -> void
 ZeroAlloc.Jev.JevClientOptions.MaxRetryDelay.get -> System.TimeSpan
 ZeroAlloc.Jev.JevClientOptions.MaxRetryDelay.set -> void
+ZeroAlloc.Jev.JevClientOptions.Model.get -> string!
+ZeroAlloc.Jev.JevClientOptions.Model.set -> void
 ZeroAlloc.Jev.JevClientOptions.Provider.get -> ZeroAlloc.Jev.JevProvider
 ZeroAlloc.Jev.JevClientOptions.Provider.set -> void
 ZeroAlloc.Jev.JevClientOptions.Timeout.get -> System.TimeSpan

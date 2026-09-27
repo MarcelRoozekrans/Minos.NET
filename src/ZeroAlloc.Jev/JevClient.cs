@@ -101,7 +101,11 @@ public sealed class JevClient : IJevClient, IDisposable
     }
 
     /// <inheritdoc />
-    public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken ct = default)
+    public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request)
+        => EvaluateAsync(request, CancellationToken.None);
+
+    /// <inheritdoc />
+    public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken ct)
     {
         ArgumentNullException.ThrowIfNull(request);
         ObjectDisposedException.ThrowIf(_disposed, this);

@@ -10,6 +10,7 @@ internal sealed class JevClientSettings
         JevProvider provider,
         string apiKey,
         Uri baseAddress,
+        string model,
         TimeSpan timeout,
         int maxRetries,
         TimeSpan initialBackoff,
@@ -19,6 +20,7 @@ internal sealed class JevClientSettings
         Provider = provider;
         ApiKey = apiKey;
         BaseAddress = baseAddress;
+        Model = model;
         Timeout = timeout;
         MaxRetries = maxRetries;
         InitialBackoff = initialBackoff;
@@ -31,6 +33,8 @@ internal sealed class JevClientSettings
     public string ApiKey { get; }
 
     public Uri BaseAddress { get; }
+
+    public string Model { get; }
 
     public TimeSpan Timeout { get; }
 
@@ -79,6 +83,11 @@ internal sealed class JevClientSettings
                 "MaxRetryDelay must be at least InitialBackoff and at most int.MaxValue milliseconds.", nameof(options));
         }
 
+        if (string.IsNullOrWhiteSpace(options.Model))
+        {
+            throw new ArgumentException("The model must not be blank.", nameof(options));
+        }
+
         var openRouter = options.Provider == JevProvider.OpenRouter;
         var apiKey = ResolveApiKey(options, openRouter, environment);
         var baseAddress = ResolveBaseAddress(options, openRouter, environment);
@@ -87,6 +96,7 @@ internal sealed class JevClientSettings
             options.Provider,
             apiKey,
             WithTrailingSlash(baseAddress),
+            options.Model.Trim(),
             options.Timeout,
             options.MaxRetries,
             options.InitialBackoff,

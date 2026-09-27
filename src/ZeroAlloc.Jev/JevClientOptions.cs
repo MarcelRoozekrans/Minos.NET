@@ -21,6 +21,13 @@ public sealed class JevClientOptions
     public Uri? BaseAddress { get; set; }
 
     /// <summary>
+    /// Gets or sets the model a typed <c>EvaluateAsync</c> call asks, as a versioned id such as <c>jev-1.13.0</c> or an
+    /// alias. Defaults to <see cref="JevDefaults.Model"/>. Surrounding whitespace is trimmed; a blank value is rejected.
+    /// A <see cref="SystemOneRequest"/> names its own model, so this option does not apply to it.
+    /// </summary>
+    public string Model { get; set; } = JevDefaults.Model;
+
+    /// <summary>
     /// Gets or sets how long a single attempt may take. Defaults to 60 seconds. Applies only to an
     /// <see cref="HttpClient"/> the client creates. With retries, a call can take up to
     /// <c>(MaxRetries + 1) × Timeout</c> plus the waits between attempts.
