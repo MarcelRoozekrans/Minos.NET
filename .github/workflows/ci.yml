@@ -1,0 +1,77 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, 'release-please--**' ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          dotnet-version: '10.0.x'
+
+      - name: Restore
+        run: dotnet restore ZeroAlloc.Jev.slnx
+
+      - name: Build
+        run: dotnet build ZeroAlloc.Jev.slnx --no-restore -c Release
+
+      - name: Test
+        run: dotnet test ZeroAlloc.Jev.slnx --no-build -c Release --logger "trx" --results-directory ./test-results
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: test-results
+          path: ./test-results
+
+      - name: Pack
+        run: dotnet pack ZeroAlloc.Jev.slnx --no-build -c Release -o ./nupkg
+
+  aot-smoke:
+    runs-on: ubuntu-latest
+    # Publishes samples/ZeroAlloc.Jev.AotSmoke with PublishAot=true and runs it: the client, the error mapper and
+    # the generator-emitted question set must survive ILC with no IL2xxx/IL3xxx warnings.
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          dotnet-version: '10.0.x'
+
+      - name: Install AOT native toolchain
+        run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
+
+      - name: Restore
+        run: dotnet restore samples/ZeroAlloc.Jev.AotSmoke/ZeroAlloc.Jev.AotSmoke.csproj
+
+      - name: Publish AOT
+        run: dotnet publish samples/ZeroAlloc.Jev.AotSmoke/ZeroAlloc.Jev.AotSmoke.csproj -r linux-x64 -c Release -o ./aot-out
+
+      - name: Run AOT binary
+        run: ./aot-out/ZeroAlloc.Jev.AotSmoke
+
+  # Shared from ZeroAlloc-Net/.github: a release PR must mark released analyzer rules and public API as shipped.
+  release-tracking:
+    if: ${{ github.event_name == 'pull_request' && startsWith(github.head_ref, 'release-please--') }}
+    uses: ZeroAlloc-Net/.github/.github/workflows/release-tracking.yml@main
