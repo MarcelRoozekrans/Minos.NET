@@ -2,6 +2,7 @@ name: Live smoke
 
 # Calls the real TypeSafe and OpenRouter APIs, which bills a few small evaluations per run.
 # Manual only: never on pull requests or pushes, so forks can never reach the keys.
+# Maintainers must also restrict the live-api environment's deployment branches to main.
 on:
   workflow_dispatch:
 
@@ -24,6 +25,7 @@ jobs:
 
       - name: Live tests
         env:
+          JEV_LIVE: '1'
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           JEV_LIVE_MODEL: ${{ vars.JEV_LIVE_MODEL }}
