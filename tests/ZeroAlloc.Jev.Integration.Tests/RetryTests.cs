@@ -32,7 +32,7 @@ public sealed class RetryTests : IClassFixture<WireMockFixture>
             .RespondWith(Response.Create()
                 .WithStatusCode(HttpStatusCode.OK)
                 .WithHeader("Content-Type", "application/json")
-                .WithBody(Fixtures.Text("response-noul.json")));
+                .WithBody(Fixture.Text("response-noul.json")));
 
         using var client = IntegrationClient.Create(_fixture.BaseAddress, maxRetries: 2);
 

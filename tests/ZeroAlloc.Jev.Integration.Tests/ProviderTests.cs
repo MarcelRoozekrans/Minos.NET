@@ -22,7 +22,7 @@ public sealed class ProviderTests : IClassFixture<WireMockFixture>
             .RespondWith(Response.Create()
                 .WithStatusCode(HttpStatusCode.OK)
                 .WithHeader("Content-Type", "application/json")
-                .WithBody(Fixtures.Text("response-noul.json")));
+                .WithBody(Fixture.Text("response-noul.json")));
 
         var baseAddress = new Uri(_fixture.BaseAddress, "api/");
         using var client = IntegrationClient.Create(baseAddress);
@@ -46,7 +46,7 @@ public sealed class ProviderTests : IClassFixture<WireMockFixture>
             .RespondWith(Response.Create()
                 .WithStatusCode(HttpStatusCode.OK)
                 .WithHeader("Content-Type", "application/json")
-                .WithBody(Fixtures.Text("response-openrouter.json")));
+                .WithBody(Fixture.Text("response-openrouter.json")));
 
         var baseAddress = new Uri(_fixture.BaseAddress, "api/");
         using var client = IntegrationClient.Create(baseAddress, provider: JevProvider.OpenRouter);
@@ -67,7 +67,7 @@ public sealed class ProviderTests : IClassFixture<WireMockFixture>
             .RespondWith(Response.Create()
                 .WithStatusCode(HttpStatusCode.OK)
                 .WithHeader("Content-Type", "application/json")
-                .WithBody(Fixtures.Text("response-noul.json")));
+                .WithBody(Fixture.Text("response-noul.json")));
 
         using var http = new HttpClient { BaseAddress = new Uri(_fixture.BaseAddress, "custom/") };
         using var client = new JevClient(http, new JevClientOptions { ApiKey = "integration-key", MaxRetries = 0 });

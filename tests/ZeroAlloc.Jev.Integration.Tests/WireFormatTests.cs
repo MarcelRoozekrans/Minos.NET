@@ -23,7 +23,7 @@ public sealed class WireFormatTests : IClassFixture<WireMockFixture>
             .RespondWith(Response.Create()
                 .WithStatusCode(HttpStatusCode.OK)
                 .WithHeader("Content-Type", "application/json")
-                .WithBody(Fixtures.Text("response-noul.json")));
+                .WithBody(Fixture.Text("response-noul.json")));
 
         using var client = IntegrationClient.Create(_fixture.BaseAddress);
 
@@ -41,7 +41,7 @@ public sealed class WireFormatTests : IClassFixture<WireMockFixture>
         Assert.Equal("Bearer integration-key", sent.Headers!["Authorization"][0]);
         Assert.StartsWith("ZeroAlloc.Jev/", sent.Headers["User-Agent"][0]);
         Assert.StartsWith("application/json", sent.Headers["Content-Type"][0]);
-        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(Fixtures.Text("request-noul.json")), JsonNode.Parse(sent.Body!)));
+        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(Fixture.Text("request-noul.json")), JsonNode.Parse(sent.Body!)));
     }
 
     [Fact]
@@ -52,7 +52,7 @@ public sealed class WireFormatTests : IClassFixture<WireMockFixture>
             .RespondWith(Response.Create()
                 .WithStatusCode(HttpStatusCode.OK)
                 .WithHeader("Content-Type", "application/json")
-                .WithBody(Fixtures.Text("models.json")));
+                .WithBody(Fixture.Text("models.json")));
 
         using var client = IntegrationClient.Create(_fixture.BaseAddress);
 
@@ -68,5 +68,6 @@ public sealed class WireFormatTests : IClassFixture<WireMockFixture>
         var sent = entry.RequestMessage!;
         Assert.Equal("GET", sent.Method);
         Assert.Equal("Bearer integration-key", sent.Headers!["Authorization"][0]);
+        Assert.StartsWith("ZeroAlloc.Jev/", sent.Headers["User-Agent"][0]);
     }
 }

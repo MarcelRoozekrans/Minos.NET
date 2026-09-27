@@ -22,12 +22,9 @@ internal static class IntegrationClient
         });
 }
 
-/// <summary>Reads the fixture files linked from <c>tests/ZeroAlloc.Jev.Tests/Fixtures</c>.</summary>
+/// <summary>Integration-only request builders; fixture text comes from the linked <see cref="Fixture"/>.</summary>
 internal static class Fixtures
 {
-    public static string Text(string name)
-        => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", name));
-
     /// <summary>
     /// Builds, from public types only, the request that serializes to <c>request-noul.json</c>; see
     /// <c>RequestSerializationTests.Noul_WithCriteria_WritesTrueAndFalse</c> for the same fixture built the

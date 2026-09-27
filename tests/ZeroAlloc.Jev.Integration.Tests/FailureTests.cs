@@ -18,15 +18,22 @@ public sealed class FailureTests : IClassFixture<WireMockFixture>
     [Fact]
     public async Task SlowResponse_TimesOutPerAttempt()
     {
+        // A unique path segment, rather than the log's count or contents, isolates this test's own requests: a
+        // slow request from another test in this class (such as CallerCancellation_MidRequest_Throws) can still
+        // land in WireMock's log after that other test has already returned.
+        var segment = Guid.NewGuid().ToString("N");
+        var path = "/" + segment + "/v1/systemone";
+        var baseAddress = new Uri(_fixture.BaseAddress, segment + "/");
+
         _fixture.Server
-            .Given(Request.Create().WithPath("/v1/systemone").UsingPost())
+            .Given(Request.Create().WithPath(path).UsingPost())
             .RespondWith(Response.Create()
                 .WithStatusCode(HttpStatusCode.OK)
                 .WithHeader("Content-Type", "application/json")
-                .WithBody(Fixtures.Text("response-noul.json"))
+                .WithBody(Fixture.Text("response-noul.json"))
                 .WithDelay(TimeSpan.FromSeconds(2)));
 
-        using var client = IntegrationClient.Create(_fixture.BaseAddress, maxRetries: 1, timeout: TimeSpan.FromMilliseconds(300));
+        using var client = IntegrationClient.Create(baseAddress, maxRetries: 1, timeout: TimeSpan.FromMilliseconds(300));
 
         var result = await client.EvaluateAsync(Fixtures.NoulRequest());
 
@@ -36,12 +43,28 @@ public sealed class FailureTests : IClassFixture<WireMockFixture>
         // WireMock only logs a request once its (delayed) response has finished, so the log can still be
         // catching up to the two client attempts once EvaluateAsync has already returned.
         var deadline = DateTime.UtcNow.AddSeconds(5);
-        while (_fixture.Server.LogEntries.Count < 2 && DateTime.UtcNow < deadline)
+        while (CountRequestsTo(path) < 2 && DateTime.UtcNow < deadline)
         {
             await Task.Delay(50);
         }
 
-        Assert.Equal(2, _fixture.Server.LogEntries.Count);
+        Assert.Equal(2, CountRequestsTo(path));
+    }
+
+    // A manual loop, rather than LogEntries.Count(predicate), avoids a LINQ allocation on every poll of the
+    // deadline loop above.
+    private int CountRequestsTo(string path)
+    {
+        var count = 0;
+        foreach (var entry in _fixture.Server.LogEntries)
+        {
+            if (string.Equals(entry.RequestMessage?.Path, path, StringComparison.Ordinal))
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     [Fact]
@@ -72,7 +95,7 @@ public sealed class FailureTests : IClassFixture<WireMockFixture>
             .RespondWith(Response.Create()
                 .WithStatusCode(HttpStatusCode.OK)
                 .WithHeader("Content-Type", "application/json")
-                .WithBody(Fixtures.Text("response-noul.json"))
+                .WithBody(Fixture.Text("response-noul.json"))
                 .WithDelay(TimeSpan.FromSeconds(5)));
 
         using var client = IntegrationClient.Create(_fixture.BaseAddress);
