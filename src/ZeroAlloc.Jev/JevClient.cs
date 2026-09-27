@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Net.Http.Headers;
 using System.Reflection;
 using System.Runtime.ExceptionServices;
@@ -143,11 +144,9 @@ public sealed class JevClient : IJevClient, IDisposable
         {
             result = await _api.EvaluateAsync(request, _authorization, ct).ConfigureAwait(false);
         }
-        catch (ResilienceException exception) when (exception.InnerException is { } inner)
+        catch (ResilienceException exception) when (exception.InnerException is not null)
         {
-            // The proxy wraps an exception that NeverRetry declined; surface the original programming error.
-            // Remove once ZeroAlloc-Net/ZeroAlloc.Resilience#195 ships.
-            ExceptionDispatchInfo.Throw(inner);
+            ThrowDeclined(exception);
             throw;
         }
 
@@ -174,11 +173,9 @@ public sealed class JevClient : IJevClient, IDisposable
         {
             result = await _api.ListModelsAsync(_authorization, ct).ConfigureAwait(false);
         }
-        catch (ResilienceException exception) when (exception.InnerException is { } inner)
+        catch (ResilienceException exception) when (exception.InnerException is not null)
         {
-            // The proxy wraps an exception that NeverRetry declined; surface the original programming error.
-            // Remove once ZeroAlloc-Net/ZeroAlloc.Resilience#195 ships.
-            ExceptionDispatchInfo.Throw(inner);
+            ThrowDeclined(exception);
             throw;
         }
 
@@ -187,7 +184,8 @@ public sealed class JevClient : IJevClient, IDisposable
             : result;
     }
 
-    // Timeout already bounds each attempt through HttpClient.Timeout, so the policy adds no per-attempt timeout.
+    // An owned client's HttpClient.Timeout, from JevClientOptions.Timeout, bounds each attempt; a borrowed client's
+    // own Timeout applies instead. Either way the policy adds no per-attempt timeout.
     private static RetryPolicy RetryPolicyFor(JevClientSettings settings)
         => new(
             maxAttempts: settings.MaxRetries + 1,
@@ -195,6 +193,13 @@ public sealed class JevClient : IJevClient, IDisposable
             jitter: settings.Jitter,
             perAttemptTimeoutMs: 0,
             maxDelayMs: (int)Math.Ceiling(settings.MaxRetryDelay.TotalMilliseconds));
+
+    // The proxy wraps an exception that NeverRetry declined; this rethrows the original programming error with its
+    // stack trace intact. Caller cancellation never arrives here: the proxy rethrows it unwrapped.
+    // Remove once ZeroAlloc-Net/ZeroAlloc.Resilience#195 ships.
+    [DoesNotReturn]
+    private static void ThrowDeclined(ResilienceException exception)
+        => ExceptionDispatchInfo.Throw(exception.InnerException!);
 
     // System.Text.Json does not apply nullable annotations to dictionary values, so a null answer can arrive.
     private static bool HasNullAnswer(SystemOneResponse response)

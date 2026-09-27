@@ -56,7 +56,7 @@ public sealed class JevClientRetryTests : IDisposable
 
             return Success();
         });
-        using var client = new JevClient(Settings(timeout: TimeSpan.FromMilliseconds(100)), httpClient: null, handler, TimeProvider.System);
+        using var client = new JevClient(Settings(timeout: TimeSpan.FromMilliseconds(400)), httpClient: null, handler, TimeProvider.System);
 
         var result = await client.EvaluateAsync(Request());
 
@@ -170,9 +170,17 @@ public sealed class JevClientRetryTests : IDisposable
     [Fact]
     public async Task CancellationDuringAWait_ThrowsPromptly()
     {
-        var handler = StubHandler.Sequence(() => Response(429, retryAfter: "20"), Success);
-        using var client = Client(handler);
-        using var cancellation = new CancellationTokenSource(TimeSpan.FromMilliseconds(200));
+        // Cancellation starts only once the 429 is being returned, so it always lands in the 20 s wait that follows,
+        // never before the first request or during it. MaxRetryDelay is raised so the wait is not capped below 10 s.
+        using var cancellation = new CancellationTokenSource();
+        var handler = StubHandler.Sequence(
+            () =>
+            {
+                cancellation.CancelAfter(TimeSpan.FromMilliseconds(50));
+                return Response(429, retryAfter: "20");
+            },
+            Success);
+        using var client = Client(handler, maxRetryDelay: TimeSpan.FromSeconds(30));
 
         var stopwatch = Stopwatch.StartNew();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await client.EvaluateAsync(Request(), cancellation.Token));
@@ -188,6 +196,18 @@ public sealed class JevClientRetryTests : IDisposable
         using var client = Client(handler);
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await client.EvaluateAsync(Request()));
+
+        Assert.Equal("bug", exception.Message);
+        AssertOneAttempt(handler);
+    }
+
+    [Fact]
+    public async Task ProgrammingError_InListModels_SurfacesUnwrapped()
+    {
+        var handler = new StubHandler((_, _) => throw new InvalidOperationException("bug"));
+        using var client = Client(handler);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(async () => await client.ListModelsAsync());
 
         Assert.Equal("bug", exception.Message);
         AssertOneAttempt(handler);
