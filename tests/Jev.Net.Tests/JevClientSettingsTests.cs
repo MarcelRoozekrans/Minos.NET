@@ -56,9 +56,15 @@ public sealed class JevClientSettingsTests
     }
 
     [Fact]
-    public void BaseAddressEnvironment_WinsOverProviderDefault()
+    public void TypeSafe_BaseAddressEnvironment_WinsOverProviderDefault()
         => Assert.Equal(
             new Uri("http://env.local/"),
+            Resolve(new JevClientOptions { ApiKey = "k" }, ("TYPESAFE_BASE_URL", "http://env.local/")).BaseAddress);
+
+    [Fact]
+    public void OpenRouter_IgnoresTypeSafeBaseAddressEnvironment()
+        => Assert.Equal(
+            new Uri("https://openrouter.ai/api/"),
             Resolve(new JevClientOptions { ApiKey = "k", Provider = JevProvider.OpenRouter }, ("TYPESAFE_BASE_URL", "http://env.local/")).BaseAddress);
 
     [Fact]
@@ -98,6 +104,49 @@ public sealed class JevClientSettingsTests
             () => Resolve(new JevClientOptions { ApiKey = "k" }, ("TYPESAFE_BASE_URL", "http://host/api?key=value")));
 
         Assert.Contains("TYPESAFE_BASE_URL", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BaseAddressOptionWithNonHttpScheme_Throws()
+        => Assert.Throws<ArgumentException>(
+            () => Resolve(new JevClientOptions { ApiKey = "k", BaseAddress = new Uri("ftp://host/api/") }));
+
+    [Fact]
+    public void BaseAddressEnvironmentWithNonHttpScheme_Throws_NamingTheVariable()
+    {
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => Resolve(new JevClientOptions { ApiKey = "k" }, ("TYPESAFE_BASE_URL", "ftp://host/api/")));
+
+        Assert.Contains("TYPESAFE_BASE_URL", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ApiKeyOption_TrimsSurroundingWhitespace()
+        => Assert.Equal("abc", Resolve(new JevClientOptions { ApiKey = "abc\n" }).ApiKey);
+
+    [Fact]
+    public void ApiKeyEnvironment_TrimsSurroundingWhitespace()
+        => Assert.Equal("env-key", Resolve(null, ("TYPESAFE_API_KEY", "env-key\n")).ApiKey);
+
+    [Fact]
+    public void ApiKeyOption_WithEmbeddedControlCharacter_Throws_WithoutTheKey()
+    {
+        var key = "ab" + (char)1 + "cd";
+
+        var exception = Assert.Throws<ArgumentException>(() => Resolve(new JevClientOptions { ApiKey = key }));
+
+        Assert.DoesNotContain(key, exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ApiKeyEnvironment_WithEmbeddedControlCharacter_Throws_NamingTheVariable_WithoutTheKey()
+    {
+        var key = "ab" + (char)1 + "cd";
+
+        var exception = Assert.Throws<InvalidOperationException>(() => Resolve(null, ("TYPESAFE_API_KEY", key)));
+
+        Assert.DoesNotContain(key, exception.Message, StringComparison.Ordinal);
+        Assert.Contains("TYPESAFE_API_KEY", exception.Message, StringComparison.Ordinal);
     }
 
     [Theory]

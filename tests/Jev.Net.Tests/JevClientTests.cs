@@ -6,9 +6,19 @@ using Jev.Net.Transport;
 
 namespace Jev.Net.Tests;
 
-public sealed class JevClientTests
+public sealed class JevClientTests : IDisposable
 {
     private const string NullAnswerResponse = """{"model":"m","answers":{"x":null},"usage":{"input_tokens":1,"output_tokens":1}}""";
+
+    private readonly List<HttpClient> _borrowedHttpClients = [];
+
+    public void Dispose()
+    {
+        for (var i = 0; i < _borrowedHttpClients.Count; i++)
+        {
+            _borrowedHttpClients[i].Dispose();
+        }
+    }
 
     [Fact]
     public async Task Evaluate_TypeSafe_PostsTheRequestWithBearerAuth()
@@ -182,8 +192,10 @@ public sealed class JevClientTests
 
         // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
 #pragma warning disable HLQ005
-        Assert.StartsWith("Jev.Net/", Assert.Single(handler.Requests).UserAgent, StringComparison.Ordinal);
+        var sent = Assert.Single(handler.Requests);
 #pragma warning restore HLQ005
+        Assert.StartsWith("Jev.Net/", sent.UserAgent, StringComparison.Ordinal);
+        Assert.DoesNotContain('+', sent.UserAgent);
         Assert.True(handler.Disposed);
     }
 
@@ -203,6 +215,30 @@ public sealed class JevClientTests
 #pragma warning restore HLQ005
         Assert.False(handler.Disposed);
         Assert.Null(http.DefaultRequestHeaders.Authorization);
+    }
+
+    [Fact]
+    public void BorrowedClient_WithBaseAddressMissingTrailingSlash_Throws()
+    {
+        using var handler = StubHandler.Json(HttpStatusCode.OK, "{}");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("https://openrouter.ai/api") };
+
+        var exception = Assert.Throws<ArgumentException>(
+            () => new JevClient(Settings(), http, ownedHandler: null, TimeProvider.System));
+
+        Assert.Equal("httpClient", exception.ParamName);
+    }
+
+    [Fact]
+    public void BorrowedClient_WithBaseAddressQuery_Throws()
+    {
+        using var handler = StubHandler.Json(HttpStatusCode.OK, "{}");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("https://openrouter.ai/api/?key=value") };
+
+        var exception = Assert.Throws<ArgumentException>(
+            () => new JevClient(Settings(), http, ownedHandler: null, TimeProvider.System));
+
+        Assert.Equal("httpClient", exception.ParamName);
     }
 
     [Fact]
@@ -257,8 +293,12 @@ public sealed class JevClientTests
             new JevClientOptions { ApiKey = "test-key", Provider = provider, Timeout = timeout ?? TimeSpan.FromSeconds(60) },
             _ => null);
 
-    private static JevClient Borrowing(StubHandler handler, JevProvider provider = JevProvider.TypeSafe)
-        => new(Settings(provider), new HttpClient(handler), ownedHandler: null, TimeProvider.System);
+    private JevClient Borrowing(StubHandler handler, JevProvider provider = JevProvider.TypeSafe)
+    {
+        var http = new HttpClient(handler);
+        _borrowedHttpClients.Add(http);
+        return new(Settings(provider), http, ownedHandler: null, TimeProvider.System);
+    }
 
     private static JevClient Owning(StubHandler handler, TimeSpan? timeout = null)
         => new(Settings(timeout: timeout), httpClient: null, handler, TimeProvider.System);
