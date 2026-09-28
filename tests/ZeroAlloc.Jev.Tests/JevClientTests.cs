@@ -159,12 +159,27 @@ public sealed class JevClientTests : IDisposable
     [Theory]
     [InlineData("not json")]
     [InlineData("null")]
+    [InlineData("")]
     [InlineData(NullAnswerResponse)]
     public async Task Evaluate_UnreadableSuccessBody_IsInvalidResponse(string body)
     {
         using var client = Borrowing(StubHandler.Json(HttpStatusCode.OK, body));
 
         var result = await client.EvaluateAsync(NoulRequest());
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);
+    }
+
+    [Theory]
+    [InlineData("not json")]
+    [InlineData("null")]
+    [InlineData("")]
+    public async Task ListModels_UnreadableSuccessBody_IsInvalidResponse(string body)
+    {
+        using var client = Borrowing(StubHandler.Json(HttpStatusCode.OK, body));
+
+        var result = await client.ListModelsAsync();
 
         Assert.True(result.IsFailure);
         Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);

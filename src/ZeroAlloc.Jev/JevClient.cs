@@ -116,7 +116,7 @@ public sealed class JevClient : IJevClient, IDisposable
         _pool = pool;
         var transport = new JevApiClient(
             httpClient,
-            new SystemTextJsonSerializer(JevJson.Options),
+            new SystemTextJsonSerializer(JevJsonContext.Default),
             new JevRawSerializer(pool),
             new JevErrorMapper(time));
         _api = new IJevApiResilienceProxy(transport, new JevApiResiliencePolicies { Retry = RetryPolicyFor(settings) });
@@ -246,21 +246,16 @@ public sealed class JevClient : IJevClient, IDisposable
         _ownedHttpClient?.Dispose();
     }
 
+    // ZeroAlloc.Rest 3.0 itself rejects an empty or null success body as a Deserialization error before this runs, since
+    // SystemOneResponse is non-nullable in IJevApi; only a null value nested inside a non-null response, such as an
+    // answer, still needs to be caught here.
     private async ValueTask<Result<SystemOneResponse, JevError>> EvaluateCoreAsync(SystemOneRequest request, CancellationToken ct)
     {
         var result = await _api.EvaluateAsync(request, _authorization, retryCount: null, ct).ConfigureAwait(false);
 
-        if (result.IsSuccess)
+        if (result.IsSuccess && HasNullAnswer(result.Value))
         {
-            if (result.Value is null)
-            {
-                return Result<SystemOneResponse, JevError>.Failure(Unreadable("The response body is null."));
-            }
-
-            if (HasNullAnswer(result.Value))
-            {
-                return Result<SystemOneResponse, JevError>.Failure(Unreadable("The response contains a null answer."));
-            }
+            return Result<SystemOneResponse, JevError>.Failure(Unreadable("The response contains a null answer."));
         }
 
         return result;
@@ -291,14 +286,10 @@ public sealed class JevClient : IJevClient, IDisposable
         }
     }
 
-    private async ValueTask<Result<ModelList, JevError>> ListModelsCoreAsync(CancellationToken ct)
-    {
-        var result = await _api.ListModelsAsync(_authorization, retryCount: null, ct).ConfigureAwait(false);
-
-        return result.IsSuccess && result.Value is null
-            ? Result<ModelList, JevError>.Failure(Unreadable("The response body is null."))
-            : result;
-    }
+    // ZeroAlloc.Rest 3.0 itself rejects an empty or null success body as a Deserialization error before this runs,
+    // since ModelList is non-nullable in IJevApi, so no null check remains needed here.
+    private ValueTask<Result<ModelList, JevError>> ListModelsCoreAsync(CancellationToken ct)
+        => _api.ListModelsAsync(_authorization, retryCount: null, ct);
 
     // An owned client's HttpClient.Timeout, from JevClientOptions.Timeout, bounds each attempt; a borrowed client's
     // own Timeout applies instead. Either way the policy adds no per-attempt timeout.
