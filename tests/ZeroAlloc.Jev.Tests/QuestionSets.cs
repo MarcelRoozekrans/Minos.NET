@@ -145,3 +145,29 @@ public partial record EdgeCases
     [Choice("Priority?")]
     public partial Choice<Priority> Priority { get; }
 }
+
+// JSON text at the minifier's depth limit of 60. Embedded in a request, a criterion description reaches the 64 levels
+// System.Text.Json reads by default, and the instructions one level less.
+public static class DeepJson
+{
+    public const string Text = "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\"Is it deep?\"]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]";
+}
+
+public enum DeepOption
+{
+    [Criteria(DeepJson.Text, Json = true)]
+    Shallow,
+
+    [Criteria(DeepJson.Text, Json = true)]
+    Deep,
+}
+
+[JevQuestions]
+public partial record DeepJsonCheck
+{
+    [Noul(DeepJson.Text, Json = true)]
+    public partial Noul IsDeep { get; }
+
+    [Choice(DeepJson.Text, Json = true)]
+    public partial Choice<DeepOption> Depth { get; }
+}

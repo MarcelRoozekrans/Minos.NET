@@ -58,16 +58,22 @@ public sealed class JsonMinifierTests
         Assert.Equal(offset, result.ErrorOffset);
     }
 
-    public static TheoryData<string> LoneSurrogates => new()
+    public static TheoryData<string, int> LoneSurrogates => new()
     {
-        "[\"\\ud800\"]",
-        "[\"\\udc00\"]",
-        "[\"\\ud800\\u0041\"]",
+        { "[\"\\ud800\"]", 2 },
+        { "[\"\\udc00\"]", 2 },
+        { "[\"\\ud800\\u0041\"]", 2 },
     };
 
     [Theory]
     [MemberData(nameof(LoneSurrogates))]
-    public void Minify_LoneSurrogate_Fails(string text) => Assert.False(JsonMinifier.Minify(text).Succeeded);
+    public void Minify_LoneSurrogate_Fails(string text, int offset)
+    {
+        var result = JsonMinifier.Minify(text);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(offset, result.ErrorOffset);
+    }
 
     // A raw (unescaped) lone surrogate cannot go through [MemberData]: xunit.runner.visualstudio serializes
     // Theory arguments for VSTest's test-case discovery, and that round trip replaces an unpaired surrogate with
@@ -75,19 +81,40 @@ public sealed class JsonMinifierTests
     // string and never exercise JsonMinifier at all. A literal in the test body has no such round trip.
     [Fact]
     public void Minify_RawHighSurrogate_Fails()
-        => Assert.False(JsonMinifier.Minify("[\"" + (char)0xD800 + "\"]").Succeeded);
+        => AssertFailsAt("[\"" + (char)0xD800 + "\"]", 2);
 
     [Fact]
     public void Minify_RawLowSurrogate_Fails()
-        => Assert.False(JsonMinifier.Minify("[\"" + (char)0xDC00 + "\"]").Succeeded);
+        => AssertFailsAt("[\"" + (char)0xDC00 + "\"]", 2);
 
     [Fact]
-    public void Minify_Depth64_Succeeds()
-        => Assert.True(JsonMinifier.Minify(new string('[', 64) + new string(']', 64)).Succeeded);
+    public void Minify_EscapedHighSurrogateThenRawLowSurrogate_Fails()
+        => AssertFailsAt("[\"\\" + "ud800" + (char)0xDC00 + "\"]", 2);
 
     [Fact]
-    public void Minify_Depth65_Fails()
-        => Assert.False(JsonMinifier.Minify(new string('[', 65) + new string(']', 65)).Succeeded);
+    public void Minify_Invalid_ReturnsNoStrings()
+    {
+        var result = JsonMinifier.Minify("[\"first\",\"second\",]");
+
+        Assert.False(result.Succeeded);
+        Assert.Empty(result.Strings.ToArray());
+    }
+
+    [Fact]
+    public void Minify_Depth60_Succeeds()
+        => Assert.True(JsonMinifier.Minify(new string('[', 60) + new string(']', 60)).Succeeded);
+
+    [Fact]
+    public void Minify_Depth61_Fails()
+        => AssertFailsAt(new string('[', 61) + new string(']', 61), 60);
+
+    private static void AssertFailsAt(string text, int offset)
+    {
+        var result = JsonMinifier.Minify(text);
+
+        Assert.False(result.Succeeded);
+        Assert.Equal(offset, result.ErrorOffset);
+    }
 
     [Fact]
     public void Minify_ReturnsStringValuesInOrder_NotKeys()

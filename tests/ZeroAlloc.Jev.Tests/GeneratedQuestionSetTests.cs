@@ -56,6 +56,36 @@ public sealed class GeneratedQuestionSetTests
     }
 
     [Fact]
+    public void JsonAtDepthLimit_DeserializesThroughWireModel()
+    {
+        var json = "{\"state\":\"x\",\"questions\":" + Encoding.UTF8.GetString(DeepJsonCheck.QuestionsUtf8) + "}";
+        Assert.Equal(64, MaxNesting(json));
+
+        var request = JsonSerializer.Deserialize(json, JevJsonContext.Default.SystemOneRequest)!;
+
+        Assert.True(request.Questions["is_deep"].Instructions.TryGetJson(out var instructions));
+        Assert.Equal(JsonValueKind.Array, instructions.ValueKind);
+        var depth = Assert.IsType<ChoiceQuestion>(request.Questions["depth"]);
+        Assert.True(depth.Criteria["deep"]!.Value.TryGetJson(out var criterion));
+        Assert.Equal(JsonValueKind.Array, criterion.ValueKind);
+
+        static int MaxNesting(string text)
+        {
+            var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(text), new JsonReaderOptions { MaxDepth = 1000 });
+            var max = 0;
+            while (reader.Read())
+            {
+                if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
+                {
+                    max = Math.Max(max, reader.CurrentDepth + 1);
+                }
+            }
+
+            return max;
+        }
+    }
+
+    [Fact]
     public void Noul_ParsesFixture()
     {
         var answers = Answers.Parse<UrgencyCheck>(Fixture.Text("response-noul.json"));

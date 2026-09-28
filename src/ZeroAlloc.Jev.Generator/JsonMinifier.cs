@@ -6,7 +6,7 @@ namespace ZeroAlloc.Jev.Generator;
 /// <param name="Json">The minified, ASCII-escaped JSON; <see langword="null"/> when the text is invalid.</param>
 /// <param name="Strings">The decoded string values, not property names, in document order.</param>
 /// <param name="Error">Why the text is invalid; <see langword="null"/> on success.</param>
-/// <param name="ErrorOffset">The index of the first character that cannot continue a valid document.</param>
+/// <param name="ErrorOffset">The index of the offending token or character.</param>
 internal sealed record MinifyResult(string? Json, EquatableArray<string> Strings, string? Error, int ErrorOffset)
 {
     public bool Succeeded => Json is not null;
@@ -14,13 +14,17 @@ internal sealed record MinifyResult(string? Json, EquatableArray<string> Strings
 
 /// <summary>
 /// Validates and minifies the text of a <c>Json = true</c> attribute argument by RFC 8259, strictly: no comments,
-/// trailing commas, single quotes or byte order mark, no lone surrogates, at most 64 levels of nesting, and an object
-/// or array at the top level. It has no dependencies: the generator runs inside the compiler host, where
-/// System.Text.Json may not be loadable in a matching version.
+/// trailing commas, single quotes or byte order mark, no lone surrogates, at most 60 levels of nesting, and an object
+/// or array at the top level. Duplicate object keys are accepted, as RFC 8259 allows and System.Text.Json's
+/// JsonDocument does, although its JsonObject rejects them. It has no dependencies: the generator runs inside the
+/// compiler host, where System.Text.Json may not be loadable in a matching version.
 /// </summary>
 internal sealed class JsonMinifier
 {
-    private const int MaxDepth = 64;
+    // System.Text.Json reads a request with its default MaxDepth of 64, and the text does not stand alone there: a
+    // criterion description, the deepest embedding, sits inside the request object, "questions", the question and its
+    // "criteria". 64 minus those 4 levels leaves 60 for the text itself.
+    private const int MaxDepth = 60;
 
     private readonly string _text;
     private readonly StringBuilder _output = new();
@@ -110,7 +114,7 @@ internal sealed class JsonMinifier
     {
         if (depth >= MaxDepth)
         {
-            throw Fail("The JSON nests deeper than 64 levels.");
+            throw Fail("The JSON nests deeper than 60 levels.");
         }
 
         _output.Append('{');
@@ -138,7 +142,7 @@ internal sealed class JsonMinifier
 
             ReadString();
             SkipWhitespace();
-            if (Peek() != ':' || AtEnd)
+            if (Peek() != ':')
             {
                 throw Fail("Expected ':' after the property name.");
             }
@@ -175,7 +179,7 @@ internal sealed class JsonMinifier
     {
         if (depth >= MaxDepth)
         {
-            throw Fail("The JSON nests deeper than 64 levels.");
+            throw Fail("The JSON nests deeper than 60 levels.");
         }
 
         _output.Append('[');
