@@ -1,6 +1,8 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\..\src\ZeroAlloc.Jev.Analyzers\ZeroAlloc.Jev.Analyzers.csproj" />
+    <!-- CodeFixTests exercises AddDescriptionCodeFixProvider through CSharpCodeFixTest -->
+    <ProjectReference Include="..\..\src\ZeroAlloc.Jev.CodeFixes\ZeroAlloc.Jev.CodeFixes.csproj" />
     <!-- Valid sets run the generator too, so the compiler sees their partial properties implemented -->
     <ProjectReference Include="..\..\src\ZeroAlloc.Jev.Generator\ZeroAlloc.Jev.Generator.csproj" />
     <!-- Test sources use the [JevQuestions] attributes; AnalyzerVerifier adds this assembly as a metadata reference -->
@@ -12,6 +14,7 @@
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
     <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />

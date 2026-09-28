@@ -3,6 +3,7 @@
     <Project Path="src/ZeroAlloc.Jev/ZeroAlloc.Jev.csproj" />
     <Project Path="src/ZeroAlloc.Jev.Generator/ZeroAlloc.Jev.Generator.csproj" />
     <Project Path="src/ZeroAlloc.Jev.Analyzers/ZeroAlloc.Jev.Analyzers.csproj" />
+    <Project Path="src/ZeroAlloc.Jev.CodeFixes/ZeroAlloc.Jev.CodeFixes.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ZeroAlloc.Jev.Tests/ZeroAlloc.Jev.Tests.csproj" />
