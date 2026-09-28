@@ -15,6 +15,6 @@ internal sealed partial class SmokeStateJsonContext : JsonSerializerContext;
 [JevQuestions(State = typeof(SmokeState))]
 public partial record SmokeStateTriage
 {
-    [Noul("Does `message` ask for a credential?")]
+    [Noul("Does `body` ask for a credential?")]
     public partial Noul RequestsCredentials { get; }
 }

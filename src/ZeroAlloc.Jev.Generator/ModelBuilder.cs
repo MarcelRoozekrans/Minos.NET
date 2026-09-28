@@ -14,11 +14,17 @@ internal static class ModelBuilder
     private const string CriteriaAttribute = "ZeroAlloc.Jev.CriteriaAttribute";
     private const string LevelAttribute = "ZeroAlloc.Jev.LevelAttribute";
     private const string SetsRequiredMembersAttribute = "System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute";
+    private const string JsonPropertyNameAttribute = "System.Text.Json.Serialization.JsonPropertyNameAttribute";
     private const string StateArgument = "State";
 
     // The generator emits these two static members onto every question set: a question property carrying
     // either name would collide with the generated declaration.
     private static readonly string[] ReservedPropertyNames = ["Parse", "QuestionsUtf8"];
+
+    // The API sketch's guidance, which JEV005 warns about: the schema itself sets no upper bound.
+    private const int MinimumScoreLevels = 2;
+    private const int MaximumScoreLevels = 10;
+    private const int MaximumChoiceOptions = 255;
 
     /// <summary>
     /// Builds the model for <paramref name="type"/> from its symbols alone, so the generator and the analyzer
@@ -40,14 +46,15 @@ internal static class ModelBuilder
 
         CheckParameterlessConstructor(type, diagnostics);
 
-        var stateTypeName = BuildState(attribute, type, diagnostics, cancellationToken);
+        var stateType = BuildState(attribute, type, diagnostics, cancellationToken);
+        var stateMembers = stateType is null ? null : StateMembers.For(stateType);
 
         var questions = new List<QuestionModel>();
         foreach (var member in type.GetMembers())
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (member is IPropertySymbol property
-                && BuildQuestion(property, diagnostics, cancellationToken) is { } question)
+                && BuildQuestion(property, stateMembers, diagnostics, cancellationToken) is { } question)
             {
                 questions.Add(question);
             }
@@ -55,7 +62,8 @@ internal static class ModelBuilder
 
         ReportDuplicates(questions.Select(question => question.Key), type, type.Name, diagnostics);
 
-        if (diagnostics.Count > 0)
+        // Advice (JEV003–006) leaves the set valid; any other diagnostic means the generator must not emit it.
+        if (diagnostics.Any(diagnostic => !DiagnosticIds.IsAdvisory(diagnostic.Id)))
         {
             return Result(null, diagnostics);
         }
@@ -65,7 +73,7 @@ internal static class ModelBuilder
             Identifier(type.Name),
             type.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             type.IsRecord,
-            stateTypeName,
+            stateType?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             new EquatableArray<QuestionModel>(questions.ToArray()));
         return Result(model, diagnostics);
     }
@@ -74,7 +82,8 @@ internal static class ModelBuilder
         => new(model, new EquatableArray<DiagnosticInfo>(diagnostics.ToArray()));
 
     /// <summary>Reads and validates the <c>[JevQuestions(State = ...)]</c> named argument, if present.</summary>
-    private static string? BuildState(
+    /// <returns>The state type, or <see langword="null"/> when there is none or it is invalid.</returns>
+    private static ITypeSymbol? BuildState(
         AttributeData attribute,
         INamedTypeSymbol type,
         List<DiagnosticInfo> diagnostics,
@@ -97,7 +106,7 @@ internal static class ModelBuilder
                 return null;
             }
 
-            return stateType.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat);
+            return stateType;
         }
 
         return null;
@@ -204,6 +213,7 @@ internal static class ModelBuilder
 
     private static QuestionModel? BuildQuestion(
         IPropertySymbol property,
+        StateMembers? stateMembers,
         List<DiagnosticInfo> diagnostics,
         CancellationToken cancellationToken)
     {
@@ -261,9 +271,12 @@ internal static class ModelBuilder
             return null;
         }
 
+        CheckText(attribute, $"instructions of '{property.Name}'", property, diagnostics, cancellationToken);
+        stateMembers?.CheckReferences(attribute, property, diagnostics, cancellationToken);
+
         var options = enumType is null
             ? new EquatableArray<OptionModel>(Array.Empty<OptionModel>())
-            : BuildOptions(enumType, kind, property, diagnostics);
+            : BuildOptions(enumType, kind, property, diagnostics, cancellationToken);
 
         return new QuestionModel(
             Identifier(property.Name),
@@ -298,10 +311,14 @@ internal static class ModelBuilder
         INamedTypeSymbol enumType,
         QuestionKind kind,
         IPropertySymbol property,
-        List<DiagnosticInfo> diagnostics)
+        List<DiagnosticInfo> diagnostics,
+        CancellationToken cancellationToken)
     {
         var options = new List<OptionModel>();
         var seenValues = new List<object?>();
+
+        // An enum declared in another assembly has no source location, so its diagnostics go on the property.
+        ISymbol At(ISymbol symbol) => symbol.Locations.Any(l => l.IsInSource) ? symbol : property;
 
         foreach (var field in enumType.GetMembers().OfType<IFieldSymbol>())
         {
@@ -316,6 +333,15 @@ internal static class ModelBuilder
             if (kind == QuestionKind.Choice)
             {
                 var criteria = Find(field, CriteriaAttribute);
+                if (criteria is null)
+                {
+                    diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.MissingCriteria, At(field), enumType.Name, field.Name));
+                }
+                else
+                {
+                    CheckText(criteria, $"[Criteria] description of '{enumType.Name}.{field.Name}'", property, diagnostics, cancellationToken);
+                }
+
                 options.Add(new OptionModel(
                     Identifier(field.Name),
                     (criteria is null ? null : Named(criteria, "Key")) ?? SnakeCase.Convert(field.Name),
@@ -323,6 +349,7 @@ internal static class ModelBuilder
             }
             else if (Find(field, LevelAttribute) is { } level)
             {
+                CheckText(level, $"[Level] description of '{enumType.Name}.{field.Name}'", property, diagnostics, cancellationToken);
                 options.Add(new OptionModel(
                     Identifier(field.Name),
                     options.Count.ToString(CultureInfo.InvariantCulture),
@@ -330,13 +357,76 @@ internal static class ModelBuilder
             }
             else
             {
-                ISymbol location = field.Locations.Any(l => l.IsInSource) ? field : property;
-                diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.MissingLevel, location, enumType.Name, field.Name));
+                diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.MissingLevel, At(field), enumType.Name, field.Name));
             }
         }
 
+        CheckMemberCount(enumType, kind, seenValues.Count, At(enumType), diagnostics);
         ReportDuplicates(options.Select(option => option.Key), property, property.Name, diagnostics);
         return new EquatableArray<OptionModel>(options.ToArray());
+    }
+
+    /// <summary>JEV001 and JEV002 for an enum with no members, which the API rejects; JEV005 for a count outside the
+    /// API sketch's guidance. Aliases are not counted: they repeat a member already on the wire.</summary>
+    private static void CheckMemberCount(
+        INamedTypeSymbol enumType,
+        QuestionKind kind,
+        int count,
+        ISymbol location,
+        List<DiagnosticInfo> diagnostics)
+    {
+        var isScore = kind == QuestionKind.Score;
+        if (count == 0)
+        {
+            var id = isScore ? DiagnosticIds.EmptyScoreEnum : DiagnosticIds.EmptyChoiceEnum;
+            diagnostics.Add(DiagnosticInfo.Create(id, location, enumType.Name));
+        }
+        else if (isScore ? count is < MinimumScoreLevels or > MaximumScoreLevels : count > MaximumChoiceOptions)
+        {
+            diagnostics.Add(DiagnosticInfo.Create(
+                DiagnosticIds.OptionCountOutsideGuidance,
+                location,
+                isScore ? "Score" : "Choice",
+                enumType.Name,
+                count.ToString(CultureInfo.InvariantCulture),
+                isScore
+                    ? $"{MinimumScoreLevels} to {MaximumScoreLevels} levels"
+                    : $"at most {MaximumChoiceOptions} options"));
+        }
+    }
+
+    /// <summary>JEV003: a text argument that is an empty or whitespace string. Null is fine: the API accepts it.</summary>
+    /// <param name="attribute">The attribute whose first constructor argument is the text.</param>
+    /// <param name="what">What the text is, for the message: "instructions of 'Answer'", for one.</param>
+    /// <param name="fallback">Where to report when the attribute has no source syntax, as on an enum from metadata.</param>
+    /// <param name="diagnostics">The list to add the diagnostic to.</param>
+    /// <param name="cancellationToken">Cancels the syntax lookup.</param>
+    private static void CheckText(
+        AttributeData attribute,
+        string what,
+        ISymbol fallback,
+        List<DiagnosticInfo> diagnostics,
+        CancellationToken cancellationToken)
+    {
+        if (attribute.ConstructorArguments.Length > 0
+            && attribute.ConstructorArguments[0].Value is string text
+            && string.IsNullOrWhiteSpace(text))
+        {
+            diagnostics.Add(DiagnosticInfo.Create(
+                DiagnosticIds.EmptyText, TextArgumentLocation(attribute, fallback, cancellationToken), what));
+        }
+    }
+
+    /// <summary>The attribute's positional text argument, else the attribute, else <paramref name="fallback"/>'s location.</summary>
+    private static Location? TextArgumentLocation(AttributeData attribute, ISymbol fallback, CancellationToken cancellationToken)
+    {
+        if (attribute.ApplicationSyntaxReference?.GetSyntax(cancellationToken) is not AttributeSyntax syntax)
+        {
+            return DiagnosticInfo.SourceLocation(fallback);
+        }
+
+        var argument = syntax.ArgumentList?.Arguments.FirstOrDefault(a => a.NameEquals is null);
+        return argument is null ? syntax.GetLocation() : argument.GetLocation();
     }
 
     private static void ReportDuplicates(
@@ -419,4 +509,123 @@ internal static class ModelBuilder
         QuestionKind.Choice => "Choice",
         _ => "Score",
     };
+
+    /// <summary>
+    /// JEV004: the names a backticked token in instructions may use for a public instance property or field of the
+    /// <c>State</c> type, inherited ones included. Matching is case-insensitive, so the camelCase form of a name
+    /// needs no entry of its own.
+    /// </summary>
+    private sealed class StateMembers
+    {
+        private readonly string displayName;
+        private readonly HashSet<string> names;
+
+        private StateMembers(string displayName, HashSet<string> names)
+        {
+            this.displayName = displayName;
+            this.names = names;
+        }
+
+        /// <summary>
+        /// The members of <paramref name="stateType"/>, or <see langword="null"/> for an array state: a JSON array
+        /// has no named members for instructions to refer to, so its references are not checked.
+        /// </summary>
+        public static StateMembers? For(ITypeSymbol stateType)
+        {
+            if (stateType is not INamedTypeSymbol named)
+            {
+                return null;
+            }
+
+            var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            for (var current = named; current is not null; current = current.BaseType)
+            {
+                foreach (var member in current.GetMembers())
+                {
+                    if (member.IsStatic
+                        || member.IsImplicitlyDeclared
+                        || member.DeclaredAccessibility != Accessibility.Public
+                        || member is not (IFieldSymbol or IPropertySymbol { IsIndexer: false }))
+                    {
+                        continue;
+                    }
+
+                    var snakeCase = SnakeCase.Convert(member.Name);
+                    names.Add(member.Name);
+                    names.Add(snakeCase);
+                    names.Add(snakeCase.Replace('_', '-'));
+                    if (Find(member, JsonPropertyNameAttribute) is { } jsonName && Positional(jsonName) is { Length: > 0 } name)
+                    {
+                        names.Add(name);
+                    }
+                }
+            }
+
+            return new StateMembers(stateType.ToDisplayString(), names);
+        }
+
+        /// <summary>Reports each backticked identifier in a question's instructions that names no state member.</summary>
+        public void CheckReferences(
+            AttributeData attribute,
+            IPropertySymbol property,
+            List<DiagnosticInfo> diagnostics,
+            CancellationToken cancellationToken)
+        {
+            if (attribute.ConstructorArguments.Length == 0 || attribute.ConstructorArguments[0].Value is not string instructions)
+            {
+                return;
+            }
+
+            foreach (var token in BacktickedIdentifiers(instructions).Distinct(StringComparer.Ordinal))
+            {
+                if (!names.Contains(token))
+                {
+                    diagnostics.Add(DiagnosticInfo.Create(
+                        DiagnosticIds.UnknownStateReference,
+                        TextArgumentLocation(attribute, property, cancellationToken),
+                        token,
+                        displayName));
+                }
+            }
+        }
+
+        /// <summary>
+        /// The text between each pair of backticks that is a single identifier: a letter or <c>_</c>, then letters,
+        /// digits, <c>_</c> or <c>-</c>. Dotted paths and other text are skipped, as is an unclosed backtick.
+        /// </summary>
+        private static IEnumerable<string> BacktickedIdentifiers(string text)
+        {
+            var segments = text.Split('`');
+
+            // Odd segments lie between a pair of backticks, except a last one, which has no closing backtick.
+            for (var i = 1; i < segments.Length - 1; i += 2)
+            {
+                if (IsIdentifier(segments[i]))
+                {
+                    yield return segments[i];
+                }
+            }
+        }
+
+        private static bool IsIdentifier(string token)
+        {
+            if (token.Length == 0 || !(IsAsciiLetter(token[0]) || token[0] == '_'))
+            {
+                return false;
+            }
+
+            for (var i = 1; i < token.Length; i++)
+            {
+                var c = token[i];
+                if (!(IsAsciiLetter(c) || c is (>= '0' and <= '9') or '_' or '-'))
+                {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool IsAsciiLetter(char c) => c is (>= 'a' and <= 'z') or (>= 'A' and <= 'Z');
+    }
 }

@@ -5,6 +5,12 @@
 
 Rule ID | Category | Severity | Notes
 --------|----------|----------|-------
+JEV001 | ZeroAlloc.Jev | Error | Diagnostics
+JEV002 | ZeroAlloc.Jev | Error | Diagnostics
+JEV003 | ZeroAlloc.Jev | Warning | Diagnostics
+JEV004 | ZeroAlloc.Jev | Warning | Diagnostics
+JEV005 | ZeroAlloc.Jev | Warning | Diagnostics
+JEV006 | ZeroAlloc.Jev | Info | Diagnostics
 JEV101 | ZeroAlloc.Jev | Error | Diagnostics
 JEV102 | ZeroAlloc.Jev | Error | Diagnostics
 JEV103 | ZeroAlloc.Jev | Error | Diagnostics

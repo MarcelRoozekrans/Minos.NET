@@ -4,12 +4,60 @@ using ZeroAlloc.Jev.Generator;
 namespace ZeroAlloc.Jev.Analyzers;
 
 /// <summary>
-/// Errors for declarations the generator cannot produce code for. The shared model builder records them by
-/// <see cref="DiagnosticIds"/>; <see cref="QuestionSetAnalyzer"/> reports them.
+/// The Jev API's rules (JEV001–006) and the declarations the generator cannot produce code for (JEV101–107). The
+/// shared model builder records them by <see cref="DiagnosticIds"/>; <see cref="QuestionSetAnalyzer"/> reports them.
 /// </summary>
 internal static class Diagnostics
 {
     private const string Category = "ZeroAlloc.Jev";
+
+    public static readonly DiagnosticDescriptor EmptyChoiceEnum = new(
+        DiagnosticIds.EmptyChoiceEnum,
+        "Choice enum has no members",
+        "Choice enum '{0}' has no members: the API needs at least one option",
+        Category,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor EmptyScoreEnum = new(
+        DiagnosticIds.EmptyScoreEnum,
+        "Score enum has no members",
+        "Score enum '{0}' has no members: the API needs at least one level",
+        Category,
+        DiagnosticSeverity.Error,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor EmptyText = new(
+        DiagnosticIds.EmptyText,
+        "Empty instructions or description",
+        "The {0} is an empty or whitespace string: write the text, or pass null to send none",
+        Category,
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor UnknownStateReference = new(
+        DiagnosticIds.UnknownStateReference,
+        "Instructions refer to an unknown state member",
+        "The instructions refer to '{0}', which matches no public property or field of the state type '{1}'",
+        Category,
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor OptionCountOutsideGuidance = new(
+        DiagnosticIds.OptionCountOutsideGuidance,
+        "Option or level count outside the API guidance",
+        "{0} enum '{1}' has {2} members; the Jev API guidance is {3}",
+        Category,
+        DiagnosticSeverity.Warning,
+        isEnabledByDefault: true);
+
+    public static readonly DiagnosticDescriptor MissingCriteria = new(
+        DiagnosticIds.MissingCriteria,
+        "Choice option has no description",
+        "Choice option '{0}.{1}' has no [Criteria]: the API sees only its name, and a description usually helps",
+        Category,
+        DiagnosticSeverity.Info,
+        isEnabledByDefault: true);
 
     public static readonly DiagnosticDescriptor UnsupportedType = new(
         DiagnosticIds.UnsupportedType,

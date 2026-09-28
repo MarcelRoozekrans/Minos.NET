@@ -37,7 +37,7 @@ public sealed class MovedDiagnosticTests
         "public class Base { public required int Foo; } "
             + "[JevQuestions] public partial class {|JEV105:C|} : Base { [Noul(\"q\")] public partial Noul Answer { get; } }",
         "[JevQuestions] public partial class {|JEV106:C|} { [Noul(\"a\")] public partial Noul IsUrgent { get; } [Noul(\"b\", Key = \"is_urgent\")] public partial Noul Other { get; } }",
-        "public enum E { [Criteria(\"x\", Key = \"b\")] A, B } [JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> {|JEV106:Answer|} { get; } }",
+        "public enum E { [Criteria(\"x\", Key = \"b\")] A, [Criteria(\"y\")] B } [JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> {|JEV106:Answer|} { get; } }",
         "[JevQuestions({|JEV107:State = typeof(IFoo)|})] public partial class C { } public interface IFoo { }",
         "[JevQuestions({|JEV107:State = typeof(System.Collections.Generic.List<>)|})] public partial class C { }",
         "[JevQuestions({|JEV107:State = typeof(void)|})] public partial class C { }",
@@ -54,7 +54,7 @@ public sealed class MovedDiagnosticTests
     {
         "public enum L { [Level(\"a\")] A, [Level(\"b\")] B } "
             + "[JevQuestions] public partial class C { [Noul(\"q\")] public partial Noul A { get; } [Score(\"q\")] public partial Score<L> B { get; } }",
-        "public enum E { [Criteria(\"x\")] A, B } "
+        "public enum E { [Criteria(\"x\")] A, [Criteria(\"y\")] B } "
             + "[JevQuestions(State = typeof(S))] public partial record C { [Choice(\"q\")] public partial Choice<E> Answer { get; } } public sealed class S { }",
         "[JevQuestions] public partial record R(int X = 0) { [Noul(\"q\")] public partial Noul Answer { get; } }",
         "[JevQuestions] public partial class C { public C(int x = 0) { } [Noul(\"q\")] public partial Noul Answer { get; } }",
@@ -140,6 +140,19 @@ public sealed class MovedDiagnosticTests
             """;
 
         await AnalyzerVerifier.VerifyAsync(source, reference);
+    }
+
+    [Fact]
+    public async Task MissingLevel_TwoMembersOfEnumFromReferencedAssembly_ReportsEachOnProperty()
+    {
+        var reference = (await CompilationHelper.CompileAsync(
+                "using ZeroAlloc.Jev; namespace External; public enum Grade { [Level(\"Good\")] Good, Bad, Worse }", "External"))
+            .EmitToReference();
+
+        // Both members land on the same property location; only their names tell them apart, so neither may be dropped.
+        await AnalyzerVerifier.VerifyAsync(
+            "using External; [JevQuestions] public partial class C { [Score(\"q\")] public partial Score<Grade> {|JEV104:{|JEV104:Answer|}|} { get; } }",
+            reference);
     }
 
     /// <summary>Builds the symbol and the <c>[JevQuestions]</c> application for a source's <c>C</c> type, so a

@@ -16,6 +16,12 @@ public sealed class QuestionSetAnalyzer : DiagnosticAnalyzer
     private const string JevQuestionsAttribute = "ZeroAlloc.Jev.JevQuestionsAttribute";
 
     private static readonly ImmutableArray<DiagnosticDescriptor> Descriptors = ImmutableArray.Create(
+        Diagnostics.EmptyChoiceEnum,
+        Diagnostics.EmptyScoreEnum,
+        Diagnostics.EmptyText,
+        Diagnostics.UnknownStateReference,
+        Diagnostics.OptionCountOutsideGuidance,
+        Diagnostics.MissingCriteria,
         Diagnostics.UnsupportedType,
         Diagnostics.UnsupportedProperty,
         Diagnostics.AttributeTypeMismatch,
@@ -40,10 +46,13 @@ public sealed class QuestionSetAnalyzer : DiagnosticAnalyzer
             var attributeType = start.Compilation.GetTypeByMetadataName(JevQuestionsAttribute);
             if (attributeType is not null)
             {
-                // An enum shared by two question-set types (or by two properties in the same type) would
-                // otherwise be walked, and its missing-[Level] member reported, once per property that uses it.
-                var reportedEnumMembers = new ConcurrentDictionary<Location, byte>();
-                start.RegisterSymbolAction(symbol => Analyze(symbol, attributeType, reportedEnumMembers), SymbolKind.NamedType);
+                // An enum is walked once per property that uses it, across every question-set type, so a finding on
+                // the enum or one of its members (JEV001–003, JEV005, JEV006, JEV104) would repeat once per property.
+                // Each distinct finding (same rule, location and message arguments) is reported once per compilation.
+                // The arguments keep apart the members of an enum from another assembly, which all land on the
+                // property; the location keeps apart findings on two properties.
+                var reported = new ConcurrentDictionary<DiagnosticInfo, byte>();
+                start.RegisterSymbolAction(symbol => Analyze(symbol, attributeType, reported), SymbolKind.NamedType);
             }
         });
     }
@@ -51,7 +60,7 @@ public sealed class QuestionSetAnalyzer : DiagnosticAnalyzer
     private static void Analyze(
         SymbolAnalysisContext context,
         INamedTypeSymbol attributeType,
-        ConcurrentDictionary<Location, byte> reportedEnumMembers)
+        ConcurrentDictionary<DiagnosticInfo, byte> reported)
     {
         var type = (INamedTypeSymbol)context.Symbol;
         foreach (var attribute in type.GetAttributes())
@@ -63,9 +72,7 @@ public sealed class QuestionSetAnalyzer : DiagnosticAnalyzer
 
             foreach (var info in ModelBuilder.Build(type, attribute, context.CancellationToken).Diagnostics)
             {
-                if (info.Id == DiagnosticIds.MissingLevel
-                    && info.Location is { } location
-                    && !reportedEnumMembers.TryAdd(location, 0))
+                if (!reported.TryAdd(info, 0))
                 {
                     continue;
                 }
