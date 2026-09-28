@@ -8,7 +8,7 @@ namespace ZeroAlloc.Jev.Generator.Tests;
 /// </summary>
 public sealed class DiagnosticTests
 {
-    // Invalid sets: the analyzer reports JEV001, JEV002 and JEV101–107 for these (ZeroAlloc.Jev.Analyzers.Tests:
+    // Invalid sets: the analyzer reports JEV001, JEV002 and JEV101–109 for these (ZeroAlloc.Jev.Analyzers.Tests:
     // MovedDiagnosticTests, ApiRuleTests, InvalidSetBuildTests). The generator stubs every unimplemented partial
     // question property, whatever its shape, wherever a partial part can reach it: that includes JEV101 types, apart
     // from those in Jev101UnstubbableSources.

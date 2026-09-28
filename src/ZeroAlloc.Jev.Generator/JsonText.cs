@@ -9,7 +9,7 @@ internal static class JsonText
     /// <summary>
     /// Appends <paramref name="value"/> as a JSON string. Every character outside printable ASCII becomes a
     /// <c>\uXXXX</c> escape, so the JSON is plain ASCII whatever the source file's encoding. A lone surrogate
-    /// becomes <c>�</c>.
+    /// becomes <c>\ufffd</c>.
     /// </summary>
     public static StringBuilder AppendJsonString(this StringBuilder json, string value)
     {

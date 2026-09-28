@@ -26,18 +26,35 @@ public sealed class JsonTextTests
         Assert.Equal(value, document.RootElement.GetString());
     }
 
-    public static TheoryData<string, string> LoneSurrogateCases => new()
-    {
-        { "a" + (char)0xD800 + "b", "a\uFFFDb" },
-        { "a" + (char)0xDC00 + "b", "a\uFFFDb" },
-        { "a" + (char)0xDC00 + (char)0xD800, "a\uFFFD\uFFFD" },
-        { "end" + (char)0xD83D, "end\uFFFD" },
-    };
+    // Each lone-surrogate case is built inside a [Fact] body. Through [Theory] data, xunit.runner.visualstudio
+    // serializes the arguments for VSTest discovery and that round trip replaces an unpaired surrogate with U+FFFD
+    // before the test runs, so the input would already be valid and the test would pass without the escaping rule.
+    private const char Replacement = (char)0xFFFD;
 
-    [Theory]
-    [MemberData(nameof(LoneSurrogateCases))]
-    public void AppendJsonString_LoneSurrogate_BecomesReplacementCharacter(string value, string expected)
+    [Fact]
+    public void AppendJsonString_LoneHighSurrogateMidString_BecomesReplacementCharacter()
+        => AssertReplaced("a" + (char)0xD800 + "b", "a" + Replacement + "b");
+
+    [Fact]
+    public void AppendJsonString_LoneLowSurrogateMidString_BecomesReplacementCharacter()
+        => AssertReplaced("a" + (char)0xDC00 + "b", "a" + Replacement + "b");
+
+    [Fact]
+    public void AppendJsonString_LowThenHighSurrogate_BecomesTwoReplacementCharacters()
+        => AssertReplaced("a" + (char)0xDC00 + (char)0xD800, "a" + Replacement + Replacement);
+
+    [Fact]
+    public void AppendJsonString_HighSurrogateAtEnd_BecomesReplacementCharacter()
+        => AssertReplaced("end" + (char)0xD83D, "end" + Replacement);
+
+    [Fact]
+    public void AppendJsonString_TwoConsecutiveHighSurrogates_BecomeTwoReplacementCharacters()
+        => AssertReplaced("a" + (char)0xD800 + (char)0xD801 + "b", "a" + Replacement + Replacement + "b");
+
+    private static void AssertReplaced(string value, string expected)
     {
+        Assert.Contains(value, char.IsSurrogate);
+
         var json = new StringBuilder().AppendJsonString(value).ToString();
 
         Assert.All(json, c => Assert.InRange(c, ' ', '~'));

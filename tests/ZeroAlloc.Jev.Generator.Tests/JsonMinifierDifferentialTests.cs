@@ -3,7 +3,11 @@ using System.Text.Json.Nodes;
 
 namespace ZeroAlloc.Jev.Generator.Tests;
 
-/// <summary>JsonMinifier accepts exactly what System.Text.Json accepts, restricted to an object or array top level.</summary>
+/// <summary>
+/// JsonMinifier accepts exactly what System.Text.Json accepts, restricted to an object or array top level, with one
+/// intended difference: duplicate object keys are accepted, as RFC 8259 allows and JsonDocument does, although JsonObject
+/// rejects them. The corpus holds no duplicate keys.
+/// </summary>
 public sealed class JsonMinifierDifferentialTests
 {
     public static TheoryData<string> Corpus => new()
