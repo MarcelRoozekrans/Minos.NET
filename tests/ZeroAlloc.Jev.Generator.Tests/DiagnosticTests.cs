@@ -31,6 +31,8 @@ public sealed class DiagnosticTests
             + "[Score(\"q1\")] public partial Score<L> Answer1 { get; } [Score(\"q2\")] public partial Score<L> Answer2 { get; } }",
         "[JevQuestions] public partial record R(int X) { [Noul(\"q\")] public partial Noul Answer { get; } }",
         "[JevQuestions] public partial class C { public required int Foo; [Noul(\"q\")] public partial Noul Answer { get; } }",
+        "public class Base { public required int Foo; } "
+            + "[JevQuestions] public partial class C : Base { [Noul(\"q\")] public partial Noul Answer { get; } }",
         "[JevQuestions] public partial class C { [Noul(\"a\")] public partial Noul IsUrgent { get; } [Noul(\"b\", Key = \"is_urgent\")] public partial Noul Other { get; } }",
         "public enum E { [Criteria(\"x\", Key = \"b\")] A, B } [JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
         "[JevQuestions(State = typeof(IFoo))] public partial class C { } public interface IFoo { }",

@@ -165,13 +165,27 @@ internal static class ModelBuilder
         }
     }
 
+    /// <summary>Finds a <see langword="required"/> member on <paramref name="type"/> or any base type: a
+    /// constructor's <c>[SetsRequiredMembers]</c> covers inherited required members too, so the search must too.</summary>
     private static ISymbol? FindRequiredMember(INamedTypeSymbol type)
-        => type.GetMembers().FirstOrDefault(member => member switch
+    {
+        for (var current = type; current is not null; current = current.BaseType)
         {
-            IPropertySymbol property => property.IsRequired,
-            IFieldSymbol field => field.IsRequired,
-            _ => false,
-        });
+            var found = current.GetMembers().FirstOrDefault(candidate => candidate switch
+            {
+                IPropertySymbol property => property.IsRequired,
+                IFieldSymbol field => field.IsRequired,
+                _ => false,
+            });
+
+            if (found is not null)
+            {
+                return found;
+            }
+        }
+
+        return null;
+    }
 
     private static bool HasSetsRequiredMembers(IMethodSymbol constructor)
         => constructor.GetAttributes()

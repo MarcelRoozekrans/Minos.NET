@@ -34,6 +34,8 @@ public sealed class MovedDiagnosticTests
             + "[Score(\"q1\")] public partial Score<L> Answer1 { get; } [Score(\"q2\")] public partial Score<L> Answer2 { get; } }",
         "[JevQuestions] public partial record {|JEV105:R|}(int X) { [Noul(\"q\")] public partial Noul Answer { get; } }",
         "[JevQuestions] public partial class {|JEV105:C|} { public required int Foo; [Noul(\"q\")] public partial Noul Answer { get; } }",
+        "public class Base { public required int Foo; } "
+            + "[JevQuestions] public partial class {|JEV105:C|} : Base { [Noul(\"q\")] public partial Noul Answer { get; } }",
         "[JevQuestions] public partial class {|JEV106:C|} { [Noul(\"a\")] public partial Noul IsUrgent { get; } [Noul(\"b\", Key = \"is_urgent\")] public partial Noul Other { get; } }",
         "public enum E { [Criteria(\"x\", Key = \"b\")] A, B } [JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> {|JEV106:Answer|} { get; } }",
         "[JevQuestions({|JEV107:State = typeof(IFoo)|})] public partial class C { } public interface IFoo { }",
@@ -55,6 +57,9 @@ public sealed class MovedDiagnosticTests
         "public enum E { [Criteria(\"x\")] A, B } "
             + "[JevQuestions(State = typeof(S))] public partial record C { [Choice(\"q\")] public partial Choice<E> Answer { get; } } public sealed class S { }",
         "[JevQuestions] public partial record R(int X = 0) { [Noul(\"q\")] public partial Noul Answer { get; } }",
+        "[JevQuestions] public partial class C { public C(int x = 0) { } [Noul(\"q\")] public partial Noul Answer { get; } }",
+        "[JevQuestions] public partial class C { public required int Foo; "
+            + "[System.Diagnostics.CodeAnalysis.SetsRequiredMembers] public C() { } [Noul(\"q\")] public partial Noul Answer { get; } }",
     };
 
     [Theory]
@@ -67,17 +72,13 @@ public sealed class MovedDiagnosticTests
         var (type, attribute) = await GetQuestionSetAsync(
             "[JevQuestions] public partial class C { [Choice(\"q\")][Score(\"q\")] public partial Noul Answer { get; } }");
 
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
-        var info = Assert.Single(
-            ModelBuilder.Build(type, attribute, CancellationToken.None).Diagnostics,
-            d => string.Equals(d.Id, DiagnosticIds.AttributeTypeMismatch, StringComparison.Ordinal));
-#pragma warning restore HLQ005
+        var info = SingleDiagnostic(
+            ModelBuilder.Build(type, attribute, CancellationToken.None).Diagnostics, DiagnosticIds.AttributeTypeMismatch);
 
         var message = Format(Diagnostics.AttributeTypeMismatch, info);
 
-        Assert.Contains("Choice", message, StringComparison.Ordinal);
-        Assert.Contains("Score", message, StringComparison.Ordinal);
+        // Pins the join order: the attributes are named in declaration order, not sorted.
+        Assert.Contains("Choice, Score", message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -86,12 +87,23 @@ public sealed class MovedDiagnosticTests
         var (type, attribute) = await GetQuestionSetAsync(
             "[JevQuestions] public partial class C { public required int Foo; [Noul(\"q\")] public partial Noul Answer { get; } }");
 
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
-        var info = Assert.Single(
-            ModelBuilder.Build(type, attribute, CancellationToken.None).Diagnostics,
-            d => string.Equals(d.Id, DiagnosticIds.NoParameterlessConstructor, StringComparison.Ordinal));
-#pragma warning restore HLQ005
+        var info = SingleDiagnostic(
+            ModelBuilder.Build(type, attribute, CancellationToken.None).Diagnostics, DiagnosticIds.NoParameterlessConstructor);
+
+        var message = Format(Diagnostics.NoParameterlessConstructor, info);
+
+        Assert.Contains("Foo", message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task NoParameterlessConstructor_RequiredMemberOnBaseType_NamesTheMember()
+    {
+        var (type, attribute) = await GetQuestionSetAsync(
+            "public class Base { public required int Foo; } "
+                + "[JevQuestions] public partial class C : Base { [Noul(\"q\")] public partial Noul Answer { get; } }");
+
+        var info = SingleDiagnostic(
+            ModelBuilder.Build(type, attribute, CancellationToken.None).Diagnostics, DiagnosticIds.NoParameterlessConstructor);
 
         var message = Format(Diagnostics.NoParameterlessConstructor, info);
 
@@ -141,6 +153,14 @@ public sealed class MovedDiagnosticTests
             .First(a => string.Equals(a.AttributeClass?.Name, "JevQuestionsAttribute", StringComparison.Ordinal));
         return (type, attribute);
     }
+
+    /// <summary>The one diagnostic with <paramref name="id"/>, for the message-content facts.</summary>
+    // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single()
+    // (#38 tracks this repo-wide false positive; the pragma lives here once instead of at every call site).
+#pragma warning disable HLQ005
+    private static DiagnosticInfo SingleDiagnostic(IEnumerable<DiagnosticInfo> diagnostics, string id)
+        => Assert.Single(diagnostics, d => string.Equals(d.Id, id, StringComparison.Ordinal));
+#pragma warning restore HLQ005
 
     private static string Format(DiagnosticDescriptor descriptor, DiagnosticInfo info)
         => string.Format(
