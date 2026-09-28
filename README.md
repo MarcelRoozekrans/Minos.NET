@@ -216,7 +216,12 @@ which sends:
 
 `Json = true` cannot be combined with `Examples` or `NotFor` on the same attribute (JEV109).
 
-Per-request data, such as `potential_duplicate` above, belongs in `State` and is referenced from the instructions by backticked names, because generated question JSON — including any `Json = true` text — is fixed at compile time and cannot vary per call.
+The example mirrors the API reference's static illustration, with the candidate written into the instructions. In real use the candidate varies per request, and generated question JSON, including any `Json = true` text, is fixed at compile time and cannot vary per call. So put the candidate in the `State` type and reference it from the instructions by a backticked member name:
+
+```csharp
+public sealed record ResumeReview(Candidate Resume, Candidate PotentialDuplicate);
+[Noul("""{ "question": "Is the resume for the same person as `potential_duplicate`?" }""", Json = true)]
+```
 
 For the raw `SystemOneRequest` model, build `JevContent` directly for `State`, a question's `Instructions`, or a criterion description: `JevContent.FromValue<T>(value, typeInfo)` serializes a value through its source-generated `JsonTypeInfo<T>`, and `JevContent.FromUtf8Json(utf8Json)` parses UTF-8 JSON already in hand. Both throw `ArgumentException` unless the result is a single JSON string, object or array.
 

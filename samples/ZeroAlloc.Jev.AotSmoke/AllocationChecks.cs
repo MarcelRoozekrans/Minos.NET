@@ -143,10 +143,9 @@ internal static class AllocationChecks
         // on this path, which is why it comes in well below EvaluateRoundTrip's 4592 B measurement. A linux-x64
         // measurement (dotnet/sdk:10.0 container, 2026-09-27) matches exactly: 3784 B/call. The budget keeps about
         // 10% headroom (4224 B, rounded to the next 64 B) over that measurement, for the same cross-platform,
-        // cross-patch-version reason as EvaluateRoundTrip's gate. Re-measured for Task 8, after Task 6 removed a
-        // JSON copy from the typed-state path (EvaluateAsync&lt;T, TState&gt;): still 3784 B/call on both
-        // platforms, since that change touches the state-based overload, not this string-based one, so the budget
-        // is unchanged.
+        // cross-patch-version reason as EvaluateRoundTrip's gate. Re-measured after the typed-state path
+        // (EvaluateAsync&lt;T, TState&gt;) stopped copying the JSON: still 3784 B/call on both platforms, since that
+        // change touches the state-based overload, not this string-based one, so the budget is unchanged.
         GateValueTask(
             budgetBytes: 4224,
             action: () => client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days."),
