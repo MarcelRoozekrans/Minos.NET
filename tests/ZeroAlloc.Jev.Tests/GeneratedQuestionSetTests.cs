@@ -25,6 +25,9 @@ public sealed class GeneratedQuestionSetTests
     public void StructuredCriteria_QuestionsMatchFixture() => AssertQuestions<StructuredRouting>("request-structured-criteria.json");
 
     [Fact]
+    public void JsonInstructions_QuestionsMatchFixture() => AssertQuestions<DuplicateCheck>("request-structured.json");
+
+    [Fact]
     public void StructuredCriteria_DeserializeThroughWireModel()
     {
         var json = "{\"state\":\"x\",\"questions\":" + Encoding.UTF8.GetString(StructuredRouting.QuestionsUtf8) + "}";

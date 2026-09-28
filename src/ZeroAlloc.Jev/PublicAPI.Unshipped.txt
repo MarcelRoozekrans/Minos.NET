@@ -35,6 +35,8 @@ ZeroAlloc.Jev.ChoiceAnswer.Probabilities.init -> void
 ZeroAlloc.Jev.ChoiceAttribute
 ZeroAlloc.Jev.ChoiceAttribute.ChoiceAttribute(string! instructions) -> void
 ZeroAlloc.Jev.ChoiceAttribute.Instructions.get -> string!
+ZeroAlloc.Jev.ChoiceAttribute.Json.get -> bool
+ZeroAlloc.Jev.ChoiceAttribute.Json.set -> void
 ZeroAlloc.Jev.ChoiceAttribute.Key.get -> string?
 ZeroAlloc.Jev.ChoiceAttribute.Key.set -> void
 ZeroAlloc.Jev.ChoiceQuestion
@@ -46,6 +48,8 @@ ZeroAlloc.Jev.CriteriaAttribute.CriteriaAttribute(string! description) -> void
 ZeroAlloc.Jev.CriteriaAttribute.Description.get -> string!
 ZeroAlloc.Jev.CriteriaAttribute.Examples.get -> string![]?
 ZeroAlloc.Jev.CriteriaAttribute.Examples.set -> void
+ZeroAlloc.Jev.CriteriaAttribute.Json.get -> bool
+ZeroAlloc.Jev.CriteriaAttribute.Json.set -> void
 ZeroAlloc.Jev.CriteriaAttribute.Key.get -> string?
 ZeroAlloc.Jev.CriteriaAttribute.Key.set -> void
 ZeroAlloc.Jev.CriteriaAttribute.NotFor.get -> string![]?
@@ -155,6 +159,8 @@ ZeroAlloc.Jev.LevelAttribute
 ZeroAlloc.Jev.LevelAttribute.Description.get -> string!
 ZeroAlloc.Jev.LevelAttribute.Examples.get -> string![]?
 ZeroAlloc.Jev.LevelAttribute.Examples.set -> void
+ZeroAlloc.Jev.LevelAttribute.Json.get -> bool
+ZeroAlloc.Jev.LevelAttribute.Json.set -> void
 ZeroAlloc.Jev.LevelAttribute.LevelAttribute(string! description) -> void
 ZeroAlloc.Jev.LevelAttribute.NotFor.get -> string![]?
 ZeroAlloc.Jev.LevelAttribute.NotFor.set -> void
@@ -185,6 +191,8 @@ ZeroAlloc.Jev.NoulAttribute
 ZeroAlloc.Jev.NoulAttribute.False.get -> string?
 ZeroAlloc.Jev.NoulAttribute.False.set -> void
 ZeroAlloc.Jev.NoulAttribute.Instructions.get -> string!
+ZeroAlloc.Jev.NoulAttribute.Json.get -> bool
+ZeroAlloc.Jev.NoulAttribute.Json.set -> void
 ZeroAlloc.Jev.NoulAttribute.Key.get -> string?
 ZeroAlloc.Jev.NoulAttribute.Key.set -> void
 ZeroAlloc.Jev.NoulAttribute.NoulAttribute(string! instructions) -> void
@@ -232,6 +240,8 @@ ZeroAlloc.Jev.ScoreAnswer.Score.init -> void
 ZeroAlloc.Jev.ScoreAnswer.ScoreAnswer() -> void
 ZeroAlloc.Jev.ScoreAttribute
 ZeroAlloc.Jev.ScoreAttribute.Instructions.get -> string!
+ZeroAlloc.Jev.ScoreAttribute.Json.get -> bool
+ZeroAlloc.Jev.ScoreAttribute.Json.set -> void
 ZeroAlloc.Jev.ScoreAttribute.Key.get -> string?
 ZeroAlloc.Jev.ScoreAttribute.Key.set -> void
 ZeroAlloc.Jev.ScoreAttribute.ScoreAttribute(string! instructions) -> void

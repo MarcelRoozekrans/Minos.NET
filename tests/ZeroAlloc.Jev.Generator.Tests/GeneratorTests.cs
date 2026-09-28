@@ -22,6 +22,9 @@ public sealed class GeneratorTests
     public void StructuredCriteria_Generates() => AssertGenerates(Sources.StructuredCriteria);
 
     [Fact]
+    public void JsonText_Generates() => AssertGenerates(Sources.JsonText);
+
+    [Fact]
     public void WithState_Generates() => AssertGenerates(Sources.WithState);
 
     [Fact]

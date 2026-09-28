@@ -34,6 +34,7 @@ public sealed class DiagnosticTests
             + "[JevQuestions] public partial class C : Base { [Noul(\"q\")] public partial Noul Answer { get; } }",
         "[JevQuestions] public partial class C { [Noul(\"a\")] public partial Noul IsUrgent { get; } [Noul(\"b\", Key = \"is_urgent\")] private partial Noul Other { get; } }",
         "public enum E { [Criteria(\"x\", Key = \"b\")] A, [Criteria(\"y\")] B } [JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
+        "[JevQuestions] public partial class C { [Noul(\"{\", Json = true)] public partial Noul Answer { get; } }",
         "[JevQuestions(State = typeof(IFoo))] public partial class C { [Noul(\"q\")] public partial Noul Answer { get; } } public interface IFoo { }",
         "[JevQuestions(State = typeof(System.Collections.Generic.List<>))] public partial class C { }",
         "[JevQuestions(State = typeof(void))] public partial class C { }",

@@ -435,12 +435,16 @@ internal static class ModelBuilder
             ReportDuplicates(options.Select(option => option.Key), property, property.Name, diagnostics);
         }
 
+        var (instructions, instructionsJson) = TextOrJsonFragment(
+            attribute, $"The instruction text of '{property.Name}'", property, diagnostics, cancellationToken);
+        _ = instructionsJson; // Read by JEV003 and JEV004 once Task 5 wires them to Json = true text.
+
         return new QuestionModel(
             Identifier(property.Name),
             Modifiers(property, cancellationToken),
             kind,
             Named(attribute, "Key") ?? SnakeCase.Convert(property.Name),
-            TextFragment(Positional(attribute)),
+            instructions ?? string.Empty,
             Named(attribute, "True"),
             Named(attribute, "False"),
             enumType?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) ?? string.Empty,
@@ -562,27 +566,29 @@ internal static class ModelBuilder
             if (kind == QuestionKind.Choice)
             {
                 var criteria = Find(field, CriteriaAttribute);
+                var what = $"The [Criteria] description of '{enumType.Name}.{field.Name}'";
                 if (criteria is null)
                 {
                     diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.MissingCriteria, At(field), enumType.Name, field.Name));
                 }
                 else
                 {
-                    CheckText(criteria, $"The [Criteria] description of '{enumType.Name}.{field.Name}'", At(field), diagnostics, cancellationToken);
+                    CheckText(criteria, what, At(field), diagnostics, cancellationToken);
                 }
 
                 options.Add(new OptionModel(
                     Identifier(field.Name),
                     (criteria is null ? null : Named(criteria, "Key")) ?? SnakeCase.Convert(field.Name),
-                    criteria is null ? null : DescriptionFragment(criteria)));
+                    criteria is null ? null : DescriptionFragment(criteria, what, At(field), diagnostics, cancellationToken)));
             }
             else if (Find(field, LevelAttribute) is { } level)
             {
-                CheckText(level, $"The [Level] description of '{enumType.Name}.{field.Name}'", At(field), diagnostics, cancellationToken);
+                var what = $"The [Level] description of '{enumType.Name}.{field.Name}'";
+                CheckText(level, what, At(field), diagnostics, cancellationToken);
                 options.Add(new OptionModel(
                     Identifier(field.Name),
                     options.Count.ToString(CultureInfo.InvariantCulture),
-                    DescriptionFragment(level)));
+                    DescriptionFragment(level, what, At(field), diagnostics, cancellationToken)));
             }
             else
             {
@@ -657,6 +663,55 @@ internal static class ModelBuilder
         return argument is null ? syntax.GetLocation() : argument.GetLocation();
     }
 
+    /// <summary>The named argument's syntax, else the attribute, else <paramref name="fallback"/>'s location.</summary>
+    private static Location? NamedArgumentLocation(
+        AttributeData attribute, string name, ISymbol fallback, CancellationToken cancellationToken)
+    {
+        if (attribute.ApplicationSyntaxReference?.GetSyntax(cancellationToken) is not AttributeSyntax syntax)
+        {
+            return DiagnosticInfo.SourceLocation(fallback);
+        }
+
+        var argument = syntax.ArgumentList?.Arguments.FirstOrDefault(a => a.NameEquals?.Name.Identifier.ValueText == name);
+        return argument is null ? syntax.GetLocation() : argument.GetLocation();
+    }
+
+    private static bool NamedBool(AttributeData attribute, string name)
+        => attribute.NamedArguments.Any(argument => argument.Key == name && argument.Value.Value is true);
+
+    /// <summary>
+    /// The attribute's positional text as a wire fragment: minified JSON when it carries <c>Json = true</c>, else a JSON
+    /// string. JEV108 goes to <paramref name="diagnostics"/> when the JSON is invalid, and the fragment is then
+    /// <see langword="null"/>; the set is invalid, so it is never emitted.
+    /// </summary>
+    /// <returns>The fragment, and the minifier's result for a <c>Json = true</c> text, which JEV003 and JEV004 read.</returns>
+    private static (string? Fragment, MinifyResult? Json) TextOrJsonFragment(
+        AttributeData attribute,
+        string what,
+        ISymbol fallback,
+        List<DiagnosticInfo> diagnostics,
+        CancellationToken cancellationToken)
+    {
+        var text = Positional(attribute);
+        if (!NamedBool(attribute, "Json"))
+        {
+            return (TextFragment(text), null);
+        }
+
+        var result = JsonMinifier.Minify(text);
+        if (!result.Succeeded)
+        {
+            diagnostics.Add(DiagnosticInfo.Create(
+                DiagnosticIds.InvalidJson,
+                TextArgumentLocation(attribute, fallback, cancellationToken),
+                what,
+                result.Error!,
+                result.ErrorOffset.ToString(CultureInfo.InvariantCulture)));
+        }
+
+        return (result.Json, result);
+    }
+
     private static void ReportDuplicates(
         IEnumerable<string> keys,
         ISymbol location,
@@ -689,11 +744,33 @@ internal static class ModelBuilder
     private static string TextFragment(string text) => new StringBuilder().AppendJsonString(text).ToString();
 
     /// <summary>
-    /// A <c>[Criteria]</c> or <c>[Level]</c> description as its wire fragment: the plain text as a JSON string, or a
-    /// criterion object when <c>Examples</c> or <c>NotFor</c> holds a text. <see langword="null"/> entries are left out.
+    /// A <c>[Criteria]</c> or <c>[Level]</c> description as its wire fragment: the plain text as a JSON string, minified
+    /// JSON for a <c>Json = true</c> description, or a criterion object when <c>Examples</c> or <c>NotFor</c> holds a
+    /// text. <see langword="null"/> entries are left out.
     /// </summary>
-    private static string DescriptionFragment(AttributeData attribute)
+    /// <remarks>
+    /// JEV109 reports <c>Json = true</c> combined with <c>Examples</c> or <c>NotFor</c>, whether or not the JSON is
+    /// valid; JEV108 is then not also reported for the same attribute, since this returns before minifying.
+    /// </remarks>
+    private static string? DescriptionFragment(
+        AttributeData attribute,
+        string what,
+        ISymbol fallback,
+        List<DiagnosticInfo> diagnostics,
+        CancellationToken cancellationToken)
     {
+        if (NamedBool(attribute, "Json"))
+        {
+            if (NamedStrings(attribute, "Examples").Length > 0 || NamedStrings(attribute, "NotFor").Length > 0)
+            {
+                diagnostics.Add(DiagnosticInfo.Create(
+                    DiagnosticIds.JsonWithExamples, NamedArgumentLocation(attribute, "Json", fallback, cancellationToken), what));
+                return null;
+            }
+
+            return TextOrJsonFragment(attribute, what, fallback, diagnostics, cancellationToken).Fragment;
+        }
+
         var examples = NamedStrings(attribute, "Examples");
         var notFor = NamedStrings(attribute, "NotFor");
         var description = Positional(attribute);

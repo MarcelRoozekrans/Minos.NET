@@ -117,6 +117,24 @@ public enum Priority
 }
 
 [JevQuestions]
+public partial record DuplicateCheck
+{
+    [Noul(
+        """
+        {
+          "potential_duplicate": {
+            "name": "John Smith",
+            "location": "Oakland, California",
+            "last_employer": "Google"
+          },
+          "question": "Is the resume for the same person as `potential_duplicate`?"
+        }
+        """,
+        Json = true)]
+    public partial Noul IsDuplicate { get; }
+}
+
+[JevQuestions]
 public partial record EdgeCases
 {
     public const string TrickyInstructions = "Quote \" backslash \\ newline \n control \u0001 accent é emoji 😀 backtick `message`";
