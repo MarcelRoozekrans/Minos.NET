@@ -101,6 +101,46 @@ public partial record TicketUrgency
 
 Set `JevClientOptions.Model` to send a model or alias other than `JevDefaults.Model` on typed calls.
 
+## Diagnostics
+
+`ZeroAlloc.Jev.Analyzers` ships inside the `ZeroAlloc.Jev` package, next to the `[JevQuestions]` generator, and checks every question set against the Jev API's own rules (JEV001–006) and against what the generator can turn into code (JEV101–107). The option and level limits behind JEV005 come from TypeSafe's official SDK schema, not from this library. A set with any JEV101–107 finding is invalid: the generator still emits its type, but every question property is a throwing stub, so a plain command-line build reports the JEV error instead of the CS9248 "unimplemented partial property" error a stub-less build would otherwise show.
+
+| Id | Severity | Meaning |
+|----|----------|---------|
+| JEV001 | Error | A `Choice` enum has no members. |
+| JEV002 | Error | A `Score` enum has no members. |
+| JEV003 | Warning | Instructions or a description is empty or whitespace. |
+| JEV004 | Warning | A backticked name in the instructions matches no public member of the `State` type, by lenient matching; against an array `State`, the element type is checked. |
+| JEV005 | Warning | A `Score` enum has fewer than 2 or more than 10 levels, or a `Choice` enum has more than 255 options — the API sketch's guidance, not a hard schema limit. |
+| JEV006 | Info | A `Choice` member has no `[Criteria]` description. |
+| JEV101 | Error | The type carrying `[JevQuestions]` is not a supported shape: a non-generic, non-abstract, top-level partial class or record. |
+| JEV102 | Error | A question property is not a partial, get-only instance property. |
+| JEV103 | Error | A question property carries zero or more than one question attribute matching its type. |
+| JEV104 | Error | A `Score` level has no `[Level]` description. |
+| JEV105 | Error | The question set has no parameterless constructor. |
+| JEV106 | Error | The same wire key is used more than once in the set. |
+| JEV107 | Error | The `State` type is not a class, struct, record or array type. |
+
+Two code fixes are offered:
+- **JEV006** and **JEV104** add a `[Criteria("…")]` or `[Level("…")]` to the enum member, with the description derived from the member's own name (for example, `NeedsAttention` becomes `"Needs attention"`).
+
+Suppress a warning or info diagnostic that does not apply, narrowly, with a reason:
+
+```csharp
+#pragma warning disable JEV005 // Score enum intentionally has 12 levels for this question
+public enum Satisfaction { /* ... */ }
+#pragma warning restore JEV005
+```
+
+Or per-project or per-file in `.editorconfig`:
+
+```ini
+[*.cs]
+dotnet_diagnostic.JEV005.severity = none
+```
+
+Suppressing JEV001, JEV002 or JEV101–107 hides the build error but changes nothing else: those diagnostics are how the generator itself, not just the IDE, tells an invalid set from a valid one, so the set still gets a throwing stub for every question property. Fix the declaration instead.
+
 ## Testing
 
 `dotnet test` runs the unit tests, the generator tests and the WireMock integration tests. A solution-wide `dotnet test` never makes a billed call: the live smoke tests in `tests/ZeroAlloc.Jev.Live.Tests` call the real APIs and only run when `JEV_LIVE=1` is set *and* the provider's key (`TYPESAFE_API_KEY` or `OPENROUTER_API_KEY`) is set; otherwise every one of them reports skipped. To run them locally, opt in explicitly with the key set: `JEV_LIVE=1 dotnet test tests/ZeroAlloc.Jev.Live.Tests`. Each run makes a few small billed evaluations. Override the model with `JEV_LIVE_MODEL`, or `JEV_LIVE_OPENROUTER_MODEL` for OpenRouter. Maintainers can also run them in CI with the manual **Live smoke** workflow, which reads the keys from the `live-api` environment; restrict that environment's deployment branches to `main`.

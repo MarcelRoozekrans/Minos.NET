@@ -153,6 +153,19 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
     }
 
     [Fact]
+    public void ShipsAnalyzerAndCodeFixesAsAnalyzers()
+    {
+        using var archive = ZipFile.OpenRead(_fixture.NupkgPath);
+
+        Assert.Contains(
+            archive.Entries,
+            e => string.Equals(e.FullName, "analyzers/dotnet/cs/ZeroAlloc.Jev.Analyzers.dll", StringComparison.Ordinal));
+        Assert.Contains(
+            archive.Entries,
+            e => string.Equals(e.FullName, "analyzers/dotnet/cs/ZeroAlloc.Jev.CodeFixes.dll", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void ShipsLibraryAndDocs()
     {
         using var archive = ZipFile.OpenRead(_fixture.NupkgPath);
@@ -173,6 +186,8 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
         [
             "lib/net10.0/ZeroAlloc.Jev.dll",
             "analyzers/dotnet/cs/ZeroAlloc.Jev.Generator.dll",
+            "analyzers/dotnet/cs/ZeroAlloc.Jev.Analyzers.dll",
+            "analyzers/dotnet/cs/ZeroAlloc.Jev.CodeFixes.dll",
         ];
 
         var dllEntries = archive.Entries
@@ -207,6 +222,8 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
         {
             Assert.DoesNotContain("Generator", id, StringComparison.Ordinal);
             Assert.DoesNotContain("Analyzers", id, StringComparison.Ordinal);
+            Assert.DoesNotContain("CodeFixes", id, StringComparison.Ordinal);
+            Assert.DoesNotContain("CodeAnalysis", id, StringComparison.Ordinal);
         });
     }
 }

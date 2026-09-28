@@ -21,10 +21,17 @@
 
   <ItemGroup>
     <!--
-      Build the [JevQuestions] source generator first and ship it in this package under analyzers/dotnet/cs.
-      ZeroAlloc.Jev itself does not run it, and it must not become a package dependency.
+      Build the [JevQuestions] source generator, its analyzer and its code fixes first and ship them in this
+      package under analyzers/dotnet/cs. ZeroAlloc.Jev itself does not run any of them, and none may become a
+      package dependency.
     -->
     <ProjectReference Include="..\ZeroAlloc.Jev.Generator\ZeroAlloc.Jev.Generator.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+    <ProjectReference Include="..\ZeroAlloc.Jev.Analyzers\ZeroAlloc.Jev.Analyzers.csproj"
+                      ReferenceOutputAssembly="false"
+                      PrivateAssets="all" />
+    <ProjectReference Include="..\ZeroAlloc.Jev.CodeFixes\ZeroAlloc.Jev.CodeFixes.csproj"
                       ReferenceOutputAssembly="false"
                       PrivateAssets="all" />
   </ItemGroup>
@@ -40,15 +47,25 @@
     <PackageReference Include="ZeroAlloc.Results" />
   </ItemGroup>
 
-  <!-- Pack the generator from its real build output rather than a hard-coded bin path (#14). -->
+  <!-- Pack the generator, analyzer and code fixes from their real build output rather than a hard-coded bin path (#14). -->
   <Target Name="PackJevGenerator" BeforeTargets="_GetPackageFiles">
     <MSBuild Projects="..\ZeroAlloc.Jev.Generator\ZeroAlloc.Jev.Generator.csproj"
              Targets="GetTargetPath"
              Properties="Configuration=$(Configuration)">
-      <Output TaskParameter="TargetOutputs" ItemName="_JevGeneratorAssembly" />
+      <Output TaskParameter="TargetOutputs" ItemName="_JevAnalyzerAssemblies" />
+    </MSBuild>
+    <MSBuild Projects="..\ZeroAlloc.Jev.Analyzers\ZeroAlloc.Jev.Analyzers.csproj"
+             Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration)">
+      <Output TaskParameter="TargetOutputs" ItemName="_JevAnalyzerAssemblies" />
+    </MSBuild>
+    <MSBuild Projects="..\ZeroAlloc.Jev.CodeFixes\ZeroAlloc.Jev.CodeFixes.csproj"
+             Targets="GetTargetPath"
+             Properties="Configuration=$(Configuration)">
+      <Output TaskParameter="TargetOutputs" ItemName="_JevAnalyzerAssemblies" />
     </MSBuild>
     <ItemGroup>
-      <None Include="@(_JevGeneratorAssembly)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+      <None Include="@(_JevAnalyzerAssemblies)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
     </ItemGroup>
   </Target>
 </Project>
