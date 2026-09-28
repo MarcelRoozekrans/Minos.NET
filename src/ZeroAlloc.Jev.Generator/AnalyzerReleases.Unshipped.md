@@ -1,17 +1,2 @@
 ; Unshipped analyzer release
 ; https://github.com/dotnet/roslyn-analyzers/blob/main/src/Microsoft.CodeAnalysis.Analyzers/ReleaseTrackingAnalyzers.Help.md
-
-; The generator compiles these descriptors through the shared ModelBuilder but never reports them;
-; ZeroAlloc.Jev.Analyzers reports them. Release tracking checks every descriptor an assembly creates, so they stay listed here too.
-
-### New Rules
-
-Rule ID | Category | Severity | Notes
---------|----------|----------|-------
-JEV101 | ZeroAlloc.Jev | Error | Diagnostics
-JEV102 | ZeroAlloc.Jev | Error | Diagnostics
-JEV103 | ZeroAlloc.Jev | Error | Diagnostics
-JEV104 | ZeroAlloc.Jev | Error | Diagnostics
-JEV105 | ZeroAlloc.Jev | Error | Diagnostics
-JEV106 | ZeroAlloc.Jev | Error | Diagnostics
-JEV107 | ZeroAlloc.Jev | Error | Diagnostics

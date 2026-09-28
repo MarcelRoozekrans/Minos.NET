@@ -31,8 +31,15 @@ public sealed class MovedDiagnosticTests
     [MemberData(nameof(Cases))]
     public Task InvalidDeclaration_ReportsError(string source) => AnalyzerVerifier.VerifyAsync(source);
 
-    [Fact]
-    public Task ValidDeclaration_ReportsNothing() => AnalyzerVerifier.VerifyAsync(
+    public static TheoryData<string> ValidCases => new()
+    {
         "public enum L { [Level(\"a\")] A, [Level(\"b\")] B } "
-        + "[JevQuestions] public partial class C { [Noul(\"q\")] public partial Noul A { get; } [Score(\"q\")] public partial Score<L> B { get; } }");
+            + "[JevQuestions] public partial class C { [Noul(\"q\")] public partial Noul A { get; } [Score(\"q\")] public partial Score<L> B { get; } }",
+        "public enum E { [Criteria(\"x\")] A, B } "
+            + "[JevQuestions(State = typeof(S))] public partial record C { [Choice(\"q\")] public partial Choice<E> Answer { get; } } public sealed class S { }",
+    };
+
+    [Theory]
+    [MemberData(nameof(ValidCases))]
+    public Task ValidDeclaration_ReportsNothing(string source) => AnalyzerVerifier.VerifyNoDiagnosticsAsync(source);
 }

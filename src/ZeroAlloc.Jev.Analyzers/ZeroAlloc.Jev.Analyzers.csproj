@@ -21,13 +21,13 @@
 
   <!--
     The rules live once, in the generator's source, and are linked in here rather than shared as an assembly:
-    an analyzer that loads a dependency assembly is fragile. The generator uses them only to skip invalid sets;
-    this project reports them.
+    an analyzer that loads a dependency assembly is fragile. The generator uses them only to skip invalid sets.
+    The shared code names rules by DiagnosticIds; the descriptors live only here, in Diagnostics.cs.
   -->
   <ItemGroup>
     <Compile Include="..\ZeroAlloc.Jev.Generator\ModelBuilder.cs" Link="Shared\ModelBuilder.cs" />
     <Compile Include="..\ZeroAlloc.Jev.Generator\Models.cs" Link="Shared\Models.cs" />
-    <Compile Include="..\ZeroAlloc.Jev.Generator\Diagnostics.cs" Link="Shared\Diagnostics.cs" />
+    <Compile Include="..\ZeroAlloc.Jev.Generator\DiagnosticIds.cs" Link="Shared\DiagnosticIds.cs" />
     <Compile Include="..\ZeroAlloc.Jev.Generator\EquatableArray.cs" Link="Shared\EquatableArray.cs" />
     <Compile Include="..\ZeroAlloc.Jev.Generator\SnakeCase.cs" Link="Shared\SnakeCase.cs" />
     <Compile Include="..\ZeroAlloc.Jev.Generator\IsExternalInit.cs" Link="Shared\IsExternalInit.cs" />

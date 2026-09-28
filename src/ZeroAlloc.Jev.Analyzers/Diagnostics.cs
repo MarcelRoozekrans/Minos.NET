@@ -1,17 +1,18 @@
 using Microsoft.CodeAnalysis;
+using ZeroAlloc.Jev.Generator;
 
-namespace ZeroAlloc.Jev.Generator;
+namespace ZeroAlloc.Jev.Analyzers;
 
 /// <summary>
-/// Errors for declarations the generator cannot produce code for. ZeroAlloc.Jev.Analyzers links this file and
-/// its <c>QuestionSetAnalyzer</c> reports them; the generator only records them in the shared model and skips the set.
+/// Errors for declarations the generator cannot produce code for. The shared model builder records them by
+/// <see cref="DiagnosticIds"/>; <see cref="QuestionSetAnalyzer"/> reports them.
 /// </summary>
 internal static class Diagnostics
 {
     private const string Category = "ZeroAlloc.Jev";
 
     public static readonly DiagnosticDescriptor UnsupportedType = new(
-        "JEV101",
+        DiagnosticIds.UnsupportedType,
         "Unsupported question set type",
         "'{0}' must be a non-generic, non-abstract, top-level partial class or record to use [JevQuestions]",
         Category,
@@ -19,7 +20,7 @@ internal static class Diagnostics
         isEnabledByDefault: true);
 
     public static readonly DiagnosticDescriptor UnsupportedProperty = new(
-        "JEV102",
+        DiagnosticIds.UnsupportedProperty,
         "Unsupported question property",
         "Question property '{0}' must be a partial, get-only instance property",
         Category,
@@ -27,7 +28,7 @@ internal static class Diagnostics
         isEnabledByDefault: true);
 
     public static readonly DiagnosticDescriptor AttributeTypeMismatch = new(
-        "JEV103",
+        DiagnosticIds.AttributeTypeMismatch,
         "Question attribute does not match the property type",
         "Property '{0}' must carry exactly one question attribute, and [{1}] requires the type {2}",
         Category,
@@ -35,7 +36,7 @@ internal static class Diagnostics
         isEnabledByDefault: true);
 
     public static readonly DiagnosticDescriptor MissingLevel = new(
-        "JEV104",
+        DiagnosticIds.MissingLevel,
         "Score level has no description",
         "Score level '{0}.{1}' needs a [Level] attribute: the API does not accept a level without a description",
         Category,
@@ -43,7 +44,7 @@ internal static class Diagnostics
         isEnabledByDefault: true);
 
     public static readonly DiagnosticDescriptor NoParameterlessConstructor = new(
-        "JEV105",
+        DiagnosticIds.NoParameterlessConstructor,
         "Question set has no parameterless constructor",
         "'{0}' needs a parameterless constructor so the generated Parse method can create it",
         Category,
@@ -51,7 +52,7 @@ internal static class Diagnostics
         isEnabledByDefault: true);
 
     public static readonly DiagnosticDescriptor DuplicateKey = new(
-        "JEV106",
+        DiagnosticIds.DuplicateKey,
         "Duplicate wire key",
         "The wire key '{0}' is used more than once in '{1}'",
         Category,
@@ -59,7 +60,7 @@ internal static class Diagnostics
         isEnabledByDefault: true);
 
     public static readonly DiagnosticDescriptor InvalidStateType = new(
-        "JEV107",
+        DiagnosticIds.InvalidStateType,
         "Invalid state type",
         "State type '{0}' must be a class, struct, record or array type",
         Category,

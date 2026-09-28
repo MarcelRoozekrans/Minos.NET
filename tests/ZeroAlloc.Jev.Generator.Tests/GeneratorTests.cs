@@ -76,6 +76,9 @@ public sealed class GeneratorTests
 
         var steps = driver.GetRunResult().Results[0].TrackedSteps[QuestionSetGenerator.TrackingName];
         Assert.NotEmpty(steps);
+
+        // An invalid set has no model: the pipeline carries a null for it, and the generator emits nothing.
+        Assert.All(steps.SelectMany(step => step.Outputs), output => Assert.Null(output.Value));
         Assert.All(
             steps.SelectMany(step => step.Outputs),
             output => Assert.True(
@@ -115,6 +118,9 @@ public sealed class GeneratorTests
 
         var steps = driver.GetRunResult().Results[0].TrackedSteps[QuestionSetGenerator.TrackingName];
         Assert.NotEmpty(steps);
+
+        // An invalid set has no model: the pipeline carries a null for it, and the generator emits nothing.
+        Assert.All(steps.SelectMany(step => step.Outputs), output => Assert.Null(output.Value));
         Assert.All(
             steps.SelectMany(step => step.Outputs),
             output => Assert.True(

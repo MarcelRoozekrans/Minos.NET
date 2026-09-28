@@ -14,8 +14,7 @@ public sealed class QuestionSetAnalyzer : DiagnosticAnalyzer
 {
     private const string JevQuestionsAttribute = "ZeroAlloc.Jev.JevQuestionsAttribute";
 
-    /// <inheritdoc />
-    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get; } = ImmutableArray.Create(
+    private static readonly ImmutableArray<DiagnosticDescriptor> Descriptors = ImmutableArray.Create(
         Diagnostics.UnsupportedType,
         Diagnostics.UnsupportedProperty,
         Diagnostics.AttributeTypeMismatch,
@@ -23,6 +22,12 @@ public sealed class QuestionSetAnalyzer : DiagnosticAnalyzer
         Diagnostics.NoParameterlessConstructor,
         Diagnostics.DuplicateKey,
         Diagnostics.InvalidStateType);
+
+    private static readonly ImmutableDictionary<string, DiagnosticDescriptor> DescriptorsById
+        = Descriptors.ToImmutableDictionary(descriptor => descriptor.Id, StringComparer.Ordinal);
+
+    /// <inheritdoc />
+    public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics => Descriptors;
 
     /// <inheritdoc />
     public override void Initialize(AnalysisContext context)
@@ -49,9 +54,10 @@ public sealed class QuestionSetAnalyzer : DiagnosticAnalyzer
                 continue;
             }
 
-            foreach (var diagnostic in ModelBuilder.Build(type, attribute, context.CancellationToken).Diagnostics)
+            foreach (var info in ModelBuilder.Build(type, attribute, context.CancellationToken).Diagnostics)
             {
-                context.ReportDiagnostic(diagnostic.ToDiagnostic());
+                context.ReportDiagnostic(Diagnostic.Create(
+                    DescriptorsById[info.Id], info.Location, info.Arguments.Cast<object>().ToArray()));
             }
 
             return;

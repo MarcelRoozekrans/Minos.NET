@@ -29,13 +29,13 @@ internal static class ModelBuilder
 
         if (!IsSupportedType(type, cancellationToken))
         {
-            diagnostics.Add(DiagnosticInfo.Create(Diagnostics.UnsupportedType, type, type.Name));
+            diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.UnsupportedType, type, type.Name));
             return Result(null, diagnostics);
         }
 
         if (!type.InstanceConstructors.Any(constructor => constructor.Parameters.Length == 0))
         {
-            diagnostics.Add(DiagnosticInfo.Create(Diagnostics.NoParameterlessConstructor, type, type.Name));
+            diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.NoParameterlessConstructor, type, type.Name));
         }
 
         var stateTypeName = BuildState(attribute, type, diagnostics, cancellationToken);
@@ -90,8 +90,8 @@ internal static class ModelBuilder
                 // StateArgumentLocation returns null only when the attribute application has no source syntax
                 // at all, which is not reachable from a [JevQuestions]-decorated declaration (always in source).
                 // The type's own location is the best defensive fallback then; it is not the attribute's location.
-                var location = StateArgumentLocation(attribute, cancellationToken) ?? LocationInfo.From(type);
-                diagnostics.Add(DiagnosticInfo.Create(Diagnostics.InvalidStateType, location, stateType.ToDisplayString()));
+                var location = StateArgumentLocation(attribute, cancellationToken) ?? DiagnosticInfo.SourceLocation(type);
+                diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.InvalidStateType, location, stateType.ToDisplayString()));
                 return null;
             }
 
@@ -122,7 +122,7 @@ internal static class ModelBuilder
     /// The <c>State = ...</c> argument's syntax location, or <see langword="null"/> when the attribute application
     /// has no source syntax to point at (the caller falls back to the type's location).
     /// </summary>
-    private static LocationInfo? StateArgumentLocation(AttributeData attribute, CancellationToken cancellationToken)
+    private static Location? StateArgumentLocation(AttributeData attribute, CancellationToken cancellationToken)
     {
         if (attribute.ApplicationSyntaxReference?.GetSyntax(cancellationToken) is not AttributeSyntax syntax)
         {
@@ -132,7 +132,7 @@ internal static class ModelBuilder
         var argument = syntax.ArgumentList?.Arguments
             .FirstOrDefault(a => a.NameEquals?.Name.Identifier.Text == StateArgument);
 
-        return argument is null ? LocationInfo.From(syntax) : LocationInfo.From(argument);
+        return argument is null ? syntax.GetLocation() : argument.GetLocation();
     }
 
     private static bool IsSupportedType(INamedTypeSymbol type, CancellationToken cancellationToken)
@@ -178,7 +178,7 @@ internal static class ModelBuilder
 
         if (!property.IsPartialDefinition || property.IsStatic || property.GetMethod is null || property.SetMethod is not null)
         {
-            diagnostics.Add(DiagnosticInfo.Create(Diagnostics.UnsupportedProperty, property, property.Name));
+            diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.UnsupportedProperty, property, property.Name));
             return null;
         }
 
@@ -189,7 +189,7 @@ internal static class ModelBuilder
         if (attributeCount != 1 || !typeMatches)
         {
             diagnostics.Add(DiagnosticInfo.Create(
-                Diagnostics.AttributeTypeMismatch, property, property.Name, AttributeName(kind), ExpectedType(kind)));
+                DiagnosticIds.AttributeTypeMismatch, property, property.Name, AttributeName(kind), ExpectedType(kind)));
             return null;
         }
 
@@ -263,7 +263,7 @@ internal static class ModelBuilder
             else
             {
                 ISymbol location = field.Locations.Any(l => l.IsInSource) ? field : property;
-                diagnostics.Add(DiagnosticInfo.Create(Diagnostics.MissingLevel, location, enumType.Name, field.Name));
+                diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.MissingLevel, location, enumType.Name, field.Name));
             }
         }
 
@@ -279,7 +279,7 @@ internal static class ModelBuilder
     {
         foreach (var group in keys.GroupBy(key => key, StringComparer.Ordinal).Where(group => group.Count() > 1))
         {
-            diagnostics.Add(DiagnosticInfo.Create(Diagnostics.DuplicateKey, location, group.Key, owner));
+            diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.DuplicateKey, location, group.Key, owner));
         }
     }
 

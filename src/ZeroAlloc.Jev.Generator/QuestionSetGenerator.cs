@@ -20,14 +20,15 @@ public sealed class QuestionSetGenerator : IIncrementalGenerator
                     => ModelBuilder.Build(
                         (INamedTypeSymbol)attributeContext.TargetSymbol,
                         attributeContext.Attributes[0],
-                        cancellationToken))
+                        cancellationToken).Model)
             .WithTrackingName(TrackingName);
 
-        // The generator reports nothing: QuestionSetAnalyzer reports the diagnostics from the same model builder,
-        // so an invalid set is only skipped here.
-        context.RegisterSourceOutput(questionSets, static (output, result) =>
+        // The generator reports nothing: ZeroAlloc.Jev.Analyzers reports the diagnostics from the same model builder.
+        // The pipeline carries only the value-equatable model, null for an invalid set, which is skipped here. The
+        // null is kept rather than filtered out so an invalid set still has a tracked, cacheable pipeline entry.
+        context.RegisterSourceOutput(questionSets, static (output, model) =>
         {
-            if (result.Model is { } model)
+            if (model is not null)
             {
                 output.AddSource(SourceEmitter.HintName(model), SourceEmitter.Emit(model));
             }
