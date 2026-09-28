@@ -60,17 +60,35 @@ internal sealed record StubPropertyModel(
     string PropertyName,
     EquatableArray<StubAccessorModel> Accessors);
 
+/// <summary>One type declaration a stub file repeats: the invalid set itself, or one of the types containing it.</summary>
+/// <param name="Modifiers">
+/// The accessibility modifiers as declared, for a containing type; empty when none is declared, and always empty for
+/// the set itself, like the valid emitter's declaration part.
+/// </param>
+/// <param name="Keyword"><c>class</c>, <c>record</c>, <c>struct</c>, <c>record struct</c> or <c>interface</c>.</param>
+/// <param name="Name">The type's name, escaped as a C# identifier.</param>
+/// <param name="TypeParameters">
+/// The type parameter list with each parameter's variance, such as <c>&lt;in T, U&gt;</c>, or empty. Constraints are
+/// left out: a partial part may omit them.
+/// </param>
+/// <param name="Arity">The number of type parameters, which keeps the hint names of <c>Set</c> and <c>Set&lt;T&gt;</c> apart.</param>
+internal sealed record StubTypeModel(string Modifiers, string Keyword, string Name, string TypeParameters, int Arity);
+
 /// <summary>
 /// An invalid <c>[JevQuestions]</c> type whose partial question properties the generator implements anyway. The
 /// stubs keep the compiler from reporting CS9248, an unimplemented partial property: that declaration error would
-/// stop a command-line build before the analyzer runs, hiding the JEV error that explains the problem. The type is
-/// always a top-level, non-generic partial class or record, since anything else is JEV101 and gets no stub; so its
-/// namespace, name and kind are all a partial declaration needs.
+/// stop a command-line build before the analyzer runs, hiding the JEV error that explains the problem. The type may
+/// be one JEV101 rejects, as long as a partial part can complete it: a nested, generic, abstract or static type, or
+/// one that is not a class, so the model carries each declaration a partial part repeats.
 /// </summary>
+/// <param name="Namespace">The containing namespace, escaped; <see langword="null"/> for the global namespace.</param>
+/// <param name="ContainingTypes">The types containing the set, outermost first; empty for a top-level set.</param>
+/// <param name="Type">The set's own declaration.</param>
+/// <param name="Properties">The stubs.</param>
 internal sealed record InvalidSetModel(
     string? Namespace,
-    string TypeName,
-    bool IsRecord,
+    EquatableArray<StubTypeModel> ContainingTypes,
+    StubTypeModel Type,
     EquatableArray<StubPropertyModel> Properties);
 
 /// <summary>

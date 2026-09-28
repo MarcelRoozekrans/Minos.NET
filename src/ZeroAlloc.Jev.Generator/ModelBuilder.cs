@@ -44,9 +44,10 @@ internal static class ModelBuilder
 
         if (!IsSupportedType(type, cancellationToken))
         {
-            // No stubs: a partial declaration of an unsupported type would not compile, or would not reach it.
+            // A partial part can still complete most unsupported types, such as a nested, generic or abstract one, so
+            // those get their stubs too; StubDeclaration says which cannot.
             diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.UnsupportedType, type, type.Name));
-            return Result(null, null, diagnostics);
+            return Result(null, BuildInvalidSet(type, cancellationToken), diagnostics);
         }
 
         CheckParameterlessConstructor(type, diagnostics);
@@ -140,10 +141,28 @@ internal static class ModelBuilder
     /// <remarks>
     /// Nothing is stubbed for a property that is not a partial definition, which needs no implementation; for one the
     /// user already implemented; or for one with no question attribute, which is not the generator's to implement.
+    /// Nothing is stubbed either when no partial part can reach the type: see <see cref="StubDeclaration"/>.
     /// <see langword="null"/> when no property needs a stub.
     /// </remarks>
     private static InvalidSetModel? BuildInvalidSet(INamedTypeSymbol type, CancellationToken cancellationToken)
     {
+        if (StubDeclaration(type, isSet: true, cancellationToken) is not { } setDeclaration)
+        {
+            return null;
+        }
+
+        // Every containing type is repeated around the set, outermost first, so each must accept a partial part too.
+        var containingTypes = new List<StubTypeModel>();
+        for (var containing = type.ContainingType; containing is not null; containing = containing.ContainingType)
+        {
+            if (StubDeclaration(containing, isSet: false, cancellationToken) is not { } containingDeclaration)
+            {
+                return null;
+            }
+
+            containingTypes.Insert(0, containingDeclaration);
+        }
+
         var stubs = new List<StubPropertyModel>();
         foreach (var property in type.GetMembers().OfType<IPropertySymbol>())
         {
@@ -172,10 +191,67 @@ internal static class ModelBuilder
             ? null
             : new InvalidSetModel(
                 Namespace(type.ContainingNamespace),
-                Identifier(type.Name),
-                type.IsRecord,
+                new EquatableArray<StubTypeModel>(containingTypes.ToArray()),
+                setDeclaration,
                 new EquatableArray<StubPropertyModel>(stubs.ToArray()));
     }
+
+    /// <summary>
+    /// The declaration a partial part repeats for <paramref name="type"/>, the set or a type containing it: its kind,
+    /// its name and its type parameters with their variance, which every part must repeat. Constraints are left out,
+    /// since a part may omit them, and so are modifiers such as <see langword="abstract"/>, <see langword="static"/>,
+    /// <see langword="sealed"/>, <see langword="readonly"/> and <see langword="ref"/>, which one part declares for all.
+    /// </summary>
+    /// <param name="type">The set, or one of the types containing it.</param>
+    /// <param name="isSet">
+    /// Whether <paramref name="type"/> is the set. A containing type repeats its accessibility modifiers as declared;
+    /// the set repeats none, like the valid emitter's declaration part.
+    /// </param>
+    /// <param name="cancellationToken">Cancels the syntax lookups.</param>
+    /// <returns>
+    /// <see langword="null"/> when no partial part can complete <paramref name="type"/>: it is not declared
+    /// <see langword="partial"/>; it is file-local, so only its own file can reach it; or it is not a class, record,
+    /// struct or interface.
+    /// </returns>
+    private static StubTypeModel? StubDeclaration(INamedTypeSymbol type, bool isSet, CancellationToken cancellationToken)
+    {
+        var keyword = type.TypeKind switch
+        {
+            TypeKind.Class => type.IsRecord ? "record" : "class",
+            TypeKind.Struct => type.IsRecord ? "record struct" : "struct",
+            TypeKind.Interface => "interface",
+            _ => null,
+        };
+        var declarations = type.DeclaringSyntaxReferences
+            .Select(reference => reference.GetSyntax(cancellationToken))
+            .OfType<TypeDeclarationSyntax>()
+            .ToList();
+        if (keyword is null
+            || type.IsFileLocal
+            || !declarations.Any(declaration => declaration.Modifiers.Any(SyntaxKind.PartialKeyword)))
+        {
+            return null;
+        }
+
+        var modifiers = isSet
+            ? string.Empty
+            : declarations
+                .Select(declaration => string.Join(
+                    " ", declaration.Modifiers.Where(IsAccessibilityModifier).Select(modifier => modifier.Text)))
+                .FirstOrDefault(accessibility => accessibility.Length != 0) ?? string.Empty;
+        var typeParameters = type.TypeParameters.Length == 0
+            ? string.Empty
+            : "<" + string.Join(", ", type.TypeParameters.Select(parameter => VarianceModifier(parameter.Variance)
+                + Identifier(parameter.Name))) + ">";
+        return new StubTypeModel(modifiers, keyword, Identifier(type.Name), typeParameters, type.Arity);
+    }
+
+    private static string VarianceModifier(VarianceKind variance) => variance switch
+    {
+        VarianceKind.In => "in ",
+        VarianceKind.Out => "out ",
+        _ => string.Empty,
+    };
 
     private static bool IsQuestion(IPropertySymbol property)
         => property.GetAttributes().Any(attribute => attribute.AttributeClass?.ToDisplayString()
@@ -628,15 +704,14 @@ internal static class ModelBuilder
             .OfType<PropertyDeclarationSyntax>()
             .First();
 
-        return string.Join(
-            " ",
-            declaration.Modifiers
-                .Where(modifier => modifier.IsKind(SyntaxKind.PublicKeyword)
-                    || modifier.IsKind(SyntaxKind.InternalKeyword)
-                    || modifier.IsKind(SyntaxKind.ProtectedKeyword)
-                    || modifier.IsKind(SyntaxKind.PrivateKeyword))
-                .Select(modifier => modifier.Text));
+        return string.Join(" ", declaration.Modifiers.Where(IsAccessibilityModifier).Select(modifier => modifier.Text));
     }
+
+    private static bool IsAccessibilityModifier(SyntaxToken modifier)
+        => modifier.IsKind(SyntaxKind.PublicKeyword)
+            || modifier.IsKind(SyntaxKind.InternalKeyword)
+            || modifier.IsKind(SyntaxKind.ProtectedKeyword)
+            || modifier.IsKind(SyntaxKind.PrivateKeyword);
 
     private static string Identifier(string name)
         => SyntaxFacts.GetKeywordKind(name) == SyntaxKind.None ? name : "@" + name;

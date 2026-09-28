@@ -46,7 +46,10 @@ public sealed class QuestionSetAnalyzer : DiagnosticAnalyzer
     public override void Initialize(AnalysisContext context)
     {
         context.EnableConcurrentExecution();
-        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.None);
+        // These rules decide what the generator emits, and the generator reads a declaration wherever it lives. A set or
+        // enum in generated code must report here too, or its build shows only a follow-on error, such as CS0117 for the
+        // missing QuestionsUtf8, without the JEV diagnostic that explains it.
+        context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze | GeneratedCodeAnalysisFlags.ReportDiagnostics);
         context.RegisterCompilationStartAction(static start =>
         {
             var attributeType = start.Compilation.GetTypeByMetadataName(JevQuestionsAttribute);

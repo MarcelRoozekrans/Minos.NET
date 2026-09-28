@@ -38,6 +38,14 @@ public sealed class InvalidSetBuildTests
         "[JevQuestions] public partial class {|JEV105:C|} { [Noul(\"q\")] public required partial Noul {|JEV102:Answer|} { get; set; } }",
         "namespace Demo.Nested { public enum {|JEV001:E|} { } [JevQuestions] public partial class C { "
             + "[Choice(\"q\")] public partial Choice<E> Answer { get; } } }",
+        // JEV101 types a partial part can still complete get their stubs too: nested in partial types, generic, abstract.
+        "public partial class Outer { [JevQuestions] public partial class {|JEV101:Inner|} { [Noul(\"q\")] public partial Noul Answer { get; } } }",
+        "[JevQuestions] public partial class {|JEV101:Set|}<T> where T : struct, System.Enum { "
+            + "[Choice(\"q\")] public partial Choice<T> Answer { get; } [Noul(\"q2\")] internal partial Noul Other { get; } }",
+        "[JevQuestions] public abstract partial class {|JEV101:Set|} { [Noul(\"q\")] public partial Noul Answer { get; } }",
+        "namespace Demo; public partial struct Outer<TKey> where TKey : notnull { internal partial record Middle { "
+            + "[JevQuestions] private partial class {|JEV101:Inner|}<T> { [Noul(\"q\")] public partial Noul Answer { get; set; } } } }",
+        "[JevQuestions] public static partial class {|JEV101:Set|} { [Noul(\"q\")] public static partial Noul Answer { get; } }",
     };
 
     [Theory]

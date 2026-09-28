@@ -13,7 +13,14 @@ internal static class SourceEmitter
 
     public static string HintName(QuestionSetModel model) => HintName(model.Namespace, model.TypeName);
 
-    public static string HintName(InvalidSetModel model) => HintName(model.Namespace, model.TypeName);
+    /// <summary>
+    /// The hint name of a set's stubs: its containing types and its own name, each with its arity when generic, so a
+    /// nested or generic set cannot clash with another of the same name. A top-level non-generic set gets the name a
+    /// valid one would.
+    /// </summary>
+    public static string HintName(InvalidSetModel model)
+        => HintName(model.Namespace, string.Join(".", model.ContainingTypes.Append(model.Type).Select(type =>
+            type.Arity == 0 ? type.Name : type.Name + "`" + type.Arity.ToString(CultureInfo.InvariantCulture))));
 
     /// <summary>
     /// Implements an invalid set's partial question properties with accessors that throw, and nothing else: no
@@ -32,19 +39,35 @@ internal static class SourceEmitter
             code.Line();
         }
 
-        code.Line("partial " + (model.IsRecord ? "record " : "class ") + model.TypeName);
-        code.Line("{");
+        // The containing types, outermost first, then the set, each one level deeper.
+        var types = model.ContainingTypes.Append(model.Type).ToList();
+        for (var depth = 0; depth < types.Count; depth++)
+        {
+            var type = types[depth];
+            var indent = Indent(depth);
+            code.Line(indent + (type.Modifiers.Length == 0 ? string.Empty : type.Modifiers + " ")
+                + "partial " + type.Keyword + " " + type.Name + type.TypeParameters);
+            code.Line(indent + "{");
+        }
+
+        var memberIndent = Indent(types.Count);
         foreach (var property in model.Properties)
         {
             var accessors = string.Concat(property.Accessors.Select(accessor =>
                 " " + (accessor.Modifiers.Length == 0 ? string.Empty : accessor.Modifiers + " ") + accessor.Keyword
                 + " => throw new global::System.InvalidOperationException(" + InvalidSetMessage + ");"));
-            code.Line("    " + property.Modifiers + " " + property.TypeName + " " + property.PropertyName + " {" + accessors + " }");
+            code.Line(memberIndent + property.Modifiers + " " + property.TypeName + " " + property.PropertyName + " {" + accessors + " }");
         }
 
-        code.Line("}");
+        for (var depth = types.Count - 1; depth >= 0; depth--)
+        {
+            code.Line(Indent(depth) + "}");
+        }
+
         return code.ToString();
     }
+
+    private static string Indent(int depth) => new(' ', depth * 4);
 
     private static string HintName(string? ns, string typeName)
         => ((ns is null ? string.Empty : ns + ".") + typeName + ".JevQuestions.g.cs").Replace("@", string.Empty);
