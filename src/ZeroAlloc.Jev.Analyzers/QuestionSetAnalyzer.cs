@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -39,12 +40,18 @@ public sealed class QuestionSetAnalyzer : DiagnosticAnalyzer
             var attributeType = start.Compilation.GetTypeByMetadataName(JevQuestionsAttribute);
             if (attributeType is not null)
             {
-                start.RegisterSymbolAction(symbol => Analyze(symbol, attributeType), SymbolKind.NamedType);
+                // An enum shared by two question-set types (or by two properties in the same type) would
+                // otherwise be walked, and its missing-[Level] member reported, once per property that uses it.
+                var reportedEnumMembers = new ConcurrentDictionary<Location, byte>();
+                start.RegisterSymbolAction(symbol => Analyze(symbol, attributeType, reportedEnumMembers), SymbolKind.NamedType);
             }
         });
     }
 
-    private static void Analyze(SymbolAnalysisContext context, INamedTypeSymbol attributeType)
+    private static void Analyze(
+        SymbolAnalysisContext context,
+        INamedTypeSymbol attributeType,
+        ConcurrentDictionary<Location, byte> reportedEnumMembers)
     {
         var type = (INamedTypeSymbol)context.Symbol;
         foreach (var attribute in type.GetAttributes())
@@ -56,6 +63,13 @@ public sealed class QuestionSetAnalyzer : DiagnosticAnalyzer
 
             foreach (var info in ModelBuilder.Build(type, attribute, context.CancellationToken).Diagnostics)
             {
+                if (info.Id == DiagnosticIds.MissingLevel
+                    && info.Location is { } location
+                    && !reportedEnumMembers.TryAdd(location, 0))
+                {
+                    continue;
+                }
+
                 context.ReportDiagnostic(Diagnostic.Create(
                     DescriptorsById[info.Id], info.Location, info.Arguments.Cast<object>().ToArray()));
             }

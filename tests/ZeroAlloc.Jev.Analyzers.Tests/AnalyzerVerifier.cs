@@ -10,9 +10,18 @@ namespace ZeroAlloc.Jev.Analyzers.Tests;
 internal static class AnalyzerVerifier
 {
     /// <summary>Verifies a set the analyzer rejects: exactly the marked-up diagnostics, and nothing else.</summary>
-    public static Task VerifyAsync(string source)
+    /// <param name="source">The source under test.</param>
+    /// <param name="additionalReferences">
+    /// Extra metadata references the source needs, such as a compiled-in-test assembly for an enum declared
+    /// outside the source under test.
+    /// </param>
+    public static Task VerifyAsync(string source, params MetadataReference[] additionalReferences)
     {
         var test = Create<CSharpAnalyzerTest<QuestionSetAnalyzer, DefaultVerifier>>(source);
+        foreach (var reference in additionalReferences)
+        {
+            test.TestState.AdditionalReferences.Add(reference);
+        }
 
         // The generator skips an invalid set, so its partial question properties stay unimplemented and the compiler
         // reports each of them. Only the analyzer's diagnostics are under test here.

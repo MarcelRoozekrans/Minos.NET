@@ -30,7 +30,7 @@ internal static class Diagnostics
     public static readonly DiagnosticDescriptor AttributeTypeMismatch = new(
         DiagnosticIds.AttributeTypeMismatch,
         "Question attribute does not match the property type",
-        "Property '{0}' must carry exactly one question attribute, and [{1}] requires the type {2}",
+        "Property '{0}' must carry exactly one question attribute matching its type; found [{1}]",
         Category,
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);
@@ -46,7 +46,7 @@ internal static class Diagnostics
     public static readonly DiagnosticDescriptor NoParameterlessConstructor = new(
         DiagnosticIds.NoParameterlessConstructor,
         "Question set has no parameterless constructor",
-        "'{0}' needs a parameterless constructor so the generated Parse method can create it",
+        "'{0}' needs a parameterless constructor so the generated Parse method can create it{1}",
         Category,
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);

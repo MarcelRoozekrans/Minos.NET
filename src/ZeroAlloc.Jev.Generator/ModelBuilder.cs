@@ -13,7 +13,12 @@ internal static class ModelBuilder
     private const string ScoreAttribute = "ZeroAlloc.Jev.ScoreAttribute";
     private const string CriteriaAttribute = "ZeroAlloc.Jev.CriteriaAttribute";
     private const string LevelAttribute = "ZeroAlloc.Jev.LevelAttribute";
+    private const string SetsRequiredMembersAttribute = "System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute";
     private const string StateArgument = "State";
+
+    // The generator emits these two static members onto every question set: a question property carrying
+    // either name would collide with the generated declaration.
+    private static readonly string[] ReservedPropertyNames = ["Parse", "QuestionsUtf8"];
 
     /// <summary>
     /// Builds the model for <paramref name="type"/> from its symbols alone, so the generator and the analyzer
@@ -33,10 +38,7 @@ internal static class ModelBuilder
             return Result(null, diagnostics);
         }
 
-        if (!type.InstanceConstructors.Any(constructor => constructor.Parameters.Length == 0))
-        {
-            diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.NoParameterlessConstructor, type, type.Name));
-        }
+        CheckParameterlessConstructor(type, diagnostics);
 
         var stateTypeName = BuildState(attribute, type, diagnostics, cancellationToken);
 
@@ -135,12 +137,53 @@ internal static class ModelBuilder
         return argument is null ? syntax.GetLocation() : argument.GetLocation();
     }
 
+    /// <summary>
+    /// Checks that <c>new T()</c> can create <paramref name="type"/>: it needs a constructor invocable with no
+    /// arguments, and, when it has a <see langword="required"/> member, that constructor must carry
+    /// <c>[SetsRequiredMembers]</c> or the required member would still need to be set explicitly.
+    /// </summary>
+    private static void CheckParameterlessConstructor(INamedTypeSymbol type, List<DiagnosticInfo> diagnostics)
+    {
+        var invocableConstructors = type.InstanceConstructors
+            .Where(constructor => constructor.Parameters.All(parameter => parameter.IsOptional))
+            .ToList();
+
+        if (invocableConstructors.Count == 0)
+        {
+            diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.NoParameterlessConstructor, type, type.Name, string.Empty));
+            return;
+        }
+
+        if (FindRequiredMember(type) is { } requiredMember
+            && !invocableConstructors.Any(HasSetsRequiredMembers))
+        {
+            diagnostics.Add(DiagnosticInfo.Create(
+                DiagnosticIds.NoParameterlessConstructor,
+                type,
+                type.Name,
+                $"; required member '{requiredMember.Name}' has no default value"));
+        }
+    }
+
+    private static ISymbol? FindRequiredMember(INamedTypeSymbol type)
+        => type.GetMembers().FirstOrDefault(member => member switch
+        {
+            IPropertySymbol property => property.IsRequired,
+            IFieldSymbol field => field.IsRequired,
+            _ => false,
+        });
+
+    private static bool HasSetsRequiredMembers(IMethodSymbol constructor)
+        => constructor.GetAttributes()
+            .Any(attribute => attribute.AttributeClass?.ToDisplayString() == SetsRequiredMembersAttribute);
+
     private static bool IsSupportedType(INamedTypeSymbol type, CancellationToken cancellationToken)
         => type.TypeKind == TypeKind.Class
             && type.ContainingType is null
             && !type.IsGenericType
             && !type.IsAbstract
             && !type.IsStatic
+            && !type.IsFileLocal
             && type.DeclaringSyntaxReferences.Any(reference =>
                 reference.GetSyntax(cancellationToken) is TypeDeclarationSyntax declaration
                 && declaration.Modifiers.Any(SyntaxKind.PartialKeyword));
@@ -152,7 +195,7 @@ internal static class ModelBuilder
     {
         AttributeData? attribute = null;
         var kind = QuestionKind.Noul;
-        var attributeCount = 0;
+        var foundKinds = new List<QuestionKind>();
         foreach (var candidate in property.GetAttributes())
         {
             QuestionKind? candidateKind = candidate.AttributeClass?.ToDisplayString() switch
@@ -167,7 +210,7 @@ internal static class ModelBuilder
             {
                 attribute = candidate;
                 kind = found;
-                attributeCount++;
+                foundKinds.Add(found);
             }
         }
 
@@ -176,7 +219,15 @@ internal static class ModelBuilder
             return null;
         }
 
-        if (!property.IsPartialDefinition || property.IsStatic || property.GetMethod is null || property.SetMethod is not null)
+        if (!property.IsPartialDefinition
+            || property.IsStatic
+            || property.GetMethod is null
+            || property.SetMethod is not null
+            || property.IsVirtual
+            || property.IsOverride
+            || property.IsSealed
+            || HasNewModifier(property, cancellationToken)
+            || ReservedPropertyNames.Contains(property.Name, StringComparer.Ordinal))
         {
             diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.UnsupportedProperty, property, property.Name));
             return null;
@@ -186,10 +237,13 @@ internal static class ModelBuilder
         var typeMatches = kind == QuestionKind.Noul
             ? property.Type.ToDisplayString() == "ZeroAlloc.Jev.Noul"
             : enumType is not null;
-        if (attributeCount != 1 || !typeMatches)
+        if (foundKinds.Count != 1 || !typeMatches)
         {
             diagnostics.Add(DiagnosticInfo.Create(
-                DiagnosticIds.AttributeTypeMismatch, property, property.Name, AttributeName(kind), ExpectedType(kind)));
+                DiagnosticIds.AttributeTypeMismatch,
+                property,
+                property.Name,
+                string.Join(", ", foundKinds.Select(AttributeName))));
             return null;
         }
 
@@ -283,6 +337,14 @@ internal static class ModelBuilder
         }
     }
 
+    /// <summary>Whether the property's defining declaration carries the <see langword="new"/> modifier: it hides a
+    /// base member rather than overriding it, so it has no symbol-level flag of its own.</summary>
+    private static bool HasNewModifier(IPropertySymbol property, CancellationToken cancellationToken)
+        => property.DeclaringSyntaxReferences
+            .Select(reference => reference.GetSyntax(cancellationToken))
+            .OfType<PropertyDeclarationSyntax>()
+            .Any(declaration => declaration.Modifiers.Any(SyntaxKind.NewKeyword));
+
     private static AttributeData? Find(ISymbol symbol, string attributeName)
         => symbol.GetAttributes().FirstOrDefault(attribute => attribute.AttributeClass?.ToDisplayString() == attributeName);
 
@@ -342,12 +404,5 @@ internal static class ModelBuilder
         QuestionKind.Noul => "Noul",
         QuestionKind.Choice => "Choice",
         _ => "Score",
-    };
-
-    private static string ExpectedType(QuestionKind kind) => kind switch
-    {
-        QuestionKind.Noul => "Noul",
-        QuestionKind.Choice => "Choice<TEnum>",
-        _ => "Score<TEnum>",
     };
 }
