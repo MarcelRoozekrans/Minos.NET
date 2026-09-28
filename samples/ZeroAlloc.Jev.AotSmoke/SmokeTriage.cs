@@ -34,3 +34,23 @@ public partial record SmokeTriage
     [Score("How urgent is `message`?")]
     public partial Score<Urgency> Urgency { get; }
 }
+
+public enum SmokeTeam
+{
+    [Criteria("Charges, invoices, refunds", Examples = ["I was charged twice"], NotFor = ["How much is Pro?"])]
+    Billing,
+
+    [Criteria("""{"description":"Login, profile, permissions","owner":"identity"}""", Json = true)]
+    Account,
+}
+
+/// <summary>Structured criteria and JSON instructions, generated at compile time and published with Native AOT.</summary>
+[JevQuestions]
+public partial record SmokeStructured
+{
+    [Noul("""{"question":"Does `message` ask for a credential?","policy":{"strict":true}}""", Json = true)]
+    public partial Noul RequestsCredentials { get; }
+
+    [Choice("Which team should handle `message`?")]
+    public partial Choice<SmokeTeam> Team { get; }
+}

@@ -143,12 +143,49 @@ internal static class AllocationChecks
         // on this path, which is why it comes in well below EvaluateRoundTrip's 4592 B measurement. A linux-x64
         // measurement (dotnet/sdk:10.0 container, 2026-09-27) matches exactly: 3784 B/call. The budget keeps about
         // 10% headroom (4224 B, rounded to the next 64 B) over that measurement, for the same cross-platform,
-        // cross-patch-version reason as EvaluateRoundTrip's gate.
+        // cross-patch-version reason as EvaluateRoundTrip's gate. Re-measured for Task 8, after Task 6 removed a
+        // JSON copy from the typed-state path (EvaluateAsync&lt;T, TState&gt;): still 3784 B/call on both
+        // platforms, since that change touches the state-based overload, not this string-based one, so the budget
+        // is unchanged.
         GateValueTask(
             budgetBytes: 4224,
             action: () => client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days."),
             label: "TypedEvaluateRoundTrip",
             passDescription: "EvaluateAsync<T> stays within its allocation budget");
+    }
+
+    /// <summary><see cref="JevContent.FromValue{T}(T, System.Text.Json.Serialization.Metadata.JsonTypeInfo{T})"/> over the smoke state.</summary>
+    public static void ContentFromValue()
+    {
+        var state = new SmokeState("Payouts failing", "Help! My payouts have been failing for 3 days.");
+
+        // Measured 280 B/call on published win-x64 AOT: JsonSerializer.SerializeToElement serializes SmokeState's
+        // Subject and Body strings and builds a JsonDocument over the result, which JevContent then wraps without
+        // copying. A linux-x64 measurement (dotnet/sdk:10.0 container, 2026-09-28) matches exactly: 280 B/call. The
+        // budget keeps about 10% headroom (320 B, rounded to the next 64 B) over that measurement, since
+        // JsonDocument's internal buffer sizing can still differ across runtime patch versions on either platform.
+        Gate(
+            budgetBytes: 320,
+            action: () => _ = JevContent.FromValue(state, SmokeStateJsonContext.Default.SmokeState),
+            label: "ContentFromValue",
+            passDescription: "JevContent.FromValue stays within its allocation budget");
+    }
+
+    /// <summary><see cref="JevContent.FromUtf8Json(ReadOnlySpan{byte})"/> over a fixed object.</summary>
+    public static void ContentFromUtf8Json()
+    {
+        var json = Encoding.UTF8.GetBytes("""{"message":"Please send me your password","channel":"email"}""");
+
+        // Measured 256 B/call on published win-x64 AOT: JsonElement.ParseValue parses the fixed JSON object into a
+        // JsonDocument, which JevContent then wraps without copying. A linux-x64 measurement (dotnet/sdk:10.0
+        // container, 2026-09-28) matches exactly: 256 B/call. The budget keeps about 10% headroom (320 B, rounded
+        // to the next 64 B) over that measurement, for the same cross-platform, cross-patch-version reason as
+        // ContentFromValue's gate.
+        Gate(
+            budgetBytes: 320,
+            action: () => _ = JevContent.FromUtf8Json(json),
+            label: "ContentFromUtf8Json",
+            passDescription: "JevContent.FromUtf8Json stays within its allocation budget");
     }
 
     private static void Gate(int budgetBytes, Action action, string label, string passDescription)
