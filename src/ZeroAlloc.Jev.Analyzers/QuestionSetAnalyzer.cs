@@ -7,8 +7,8 @@ using ZeroAlloc.Jev.Generator;
 namespace ZeroAlloc.Jev.Analyzers;
 
 /// <summary>
-/// Reports the <c>[JevQuestions]</c> diagnostics. It runs the same model builder as the generator, which only
-/// skips an invalid set, so the two cannot disagree about what is valid.
+/// Reports the <c>[JevQuestions]</c> diagnostics. It runs the same model builder as the generator, which reports
+/// nothing and emits only throwing stubs for an invalid set, so the two cannot disagree about what is valid.
 /// </summary>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class QuestionSetAnalyzer : DiagnosticAnalyzer

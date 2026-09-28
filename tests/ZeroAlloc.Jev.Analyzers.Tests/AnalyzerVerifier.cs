@@ -23,8 +23,9 @@ internal static class AnalyzerVerifier
             test.TestState.AdditionalReferences.Add(reference);
         }
 
-        // The generator skips an invalid set, so its partial question properties stay unimplemented and the compiler
-        // reports each of them. Only the analyzer's diagnostics are under test here.
+        // The generator does not run here, so the partial question properties stay unimplemented and the compiler
+        // reports each of them. Only the analyzer's diagnostics are under test; VerifyWithGeneratorAsync checks the
+        // analyzer and the generator's stubs together.
         test.CompilerDiagnostics = CompilerDiagnostics.None;
         return test.RunAsync();
     }
@@ -34,6 +35,18 @@ internal static class AnalyzerVerifier
     /// default compiler-error check stays on: the set reports nothing and the generated code compiles.
     /// </summary>
     public static Task VerifyNoDiagnosticsAsync(string source) => Create<GeneratingTest>(source).RunAsync();
+
+    /// <summary>
+    /// Verifies a set the analyzer rejects, as a build sees it: the generator runs too and the compiler's errors are
+    /// checked, so the marked-up JEV diagnostics must be the only errors. The generator's throwing stubs implement the
+    /// partial question properties, so no CS9248 may appear.
+    /// </summary>
+    public static Task VerifyWithGeneratorAsync(string source)
+    {
+        var test = Create<GeneratingTest>(source);
+        test.CompilerDiagnostics = CompilerDiagnostics.Errors;
+        return test.RunAsync();
+    }
 
     private static TTest Create<TTest>(string source)
         where TTest : CSharpAnalyzerTest<QuestionSetAnalyzer, DefaultVerifier>, new()

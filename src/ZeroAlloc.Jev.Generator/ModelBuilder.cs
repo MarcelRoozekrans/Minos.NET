@@ -26,6 +26,10 @@ internal static class ModelBuilder
     private const int MaximumScoreLevels = 10;
     private const int MaximumChoiceOptions = 255;
 
+    // A stub repeats the property's declared type, nullable reference annotation included, so it matches the definition.
+    private static readonly SymbolDisplayFormat StubTypeFormat = SymbolDisplayFormat.FullyQualifiedFormat
+        .AddMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
+
     /// <summary>
     /// Builds the model for <paramref name="type"/> from its symbols alone, so the generator and the analyzer
     /// share one copy of the rules. Any syntax needed, such as the <c>State</c> argument's location, is reached
@@ -40,8 +44,9 @@ internal static class ModelBuilder
 
         if (!IsSupportedType(type, cancellationToken))
         {
+            // No stubs: a partial declaration of an unsupported type would not compile, or would not reach it.
             diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.UnsupportedType, type, type.Name));
-            return Result(null, diagnostics);
+            return Result(null, null, diagnostics);
         }
 
         CheckParameterlessConstructor(type, diagnostics);
@@ -62,10 +67,11 @@ internal static class ModelBuilder
 
         ReportDuplicates(questions.Select(question => question.Key), type, type.Name, diagnostics);
 
-        // Advice (JEV003–006) leaves the set valid; any other diagnostic means the generator must not emit it.
+        // Advice (JEV003–006) leaves the set valid; any other diagnostic makes it invalid, and the generator then
+        // emits only throwing stubs for its question properties.
         if (diagnostics.Any(diagnostic => !DiagnosticIds.IsAdvisory(diagnostic.Id)))
         {
-            return Result(null, diagnostics);
+            return Result(null, BuildInvalidSet(type, cancellationToken), diagnostics);
         }
 
         var model = new QuestionSetModel(
@@ -75,11 +81,52 @@ internal static class ModelBuilder
             type.IsRecord,
             stateType?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat),
             new EquatableArray<QuestionModel>(questions.ToArray()));
-        return Result(model, diagnostics);
+        return Result(model, null, diagnostics);
     }
 
-    private static QuestionSetResult Result(QuestionSetModel? model, List<DiagnosticInfo> diagnostics)
-        => new(model, new EquatableArray<DiagnosticInfo>(diagnostics.ToArray()));
+    private static QuestionSetResult Result(QuestionSetModel? model, InvalidSetModel? invalidSet, List<DiagnosticInfo> diagnostics)
+        => new(model, invalidSet, new EquatableArray<DiagnosticInfo>(diagnostics.ToArray()));
+
+    /// <summary>
+    /// The stubs for an invalid set: each question property the generator can implement, meaning a partial,
+    /// get-only instance property with no modifier JEV102 rejects. <see langword="null"/> when there is none.
+    /// </summary>
+    private static InvalidSetModel? BuildInvalidSet(INamedTypeSymbol type, CancellationToken cancellationToken)
+    {
+        var stubs = type.GetMembers()
+            .OfType<IPropertySymbol>()
+            .Where(property => IsQuestion(property) && IsImplementable(property, cancellationToken))
+            .Select(property => new StubPropertyModel(
+                Identifier(property.Name),
+                Modifiers(property, cancellationToken),
+                property.Type.ToDisplayString(StubTypeFormat)))
+            .ToArray();
+
+        return stubs.Length == 0
+            ? null
+            : new InvalidSetModel(
+                Namespace(type.ContainingNamespace),
+                Identifier(type.Name),
+                type.IsRecord,
+                new EquatableArray<StubPropertyModel>(stubs));
+    }
+
+    private static bool IsQuestion(IPropertySymbol property)
+        => property.GetAttributes().Any(attribute => attribute.AttributeClass?.ToDisplayString()
+            is NoulAttribute or ChoiceAttribute or ScoreAttribute);
+
+    /// <summary>Whether the property's shape lets the generator implement it: a partial, get-only instance property
+    /// that is not <see langword="virtual"/>, <see langword="override"/>, <see langword="sealed"/> or
+    /// <see langword="new"/>. Its name and type are checked separately.</summary>
+    private static bool IsImplementable(IPropertySymbol property, CancellationToken cancellationToken)
+        => property.IsPartialDefinition
+            && !property.IsStatic
+            && property.GetMethod is not null
+            && property.SetMethod is null
+            && !property.IsVirtual
+            && !property.IsOverride
+            && !property.IsSealed
+            && !HasNewModifier(property, cancellationToken);
 
     /// <summary>Reads and validates the <c>[JevQuestions(State = ...)]</c> named argument, if present.</summary>
     /// <returns>The state type, or <see langword="null"/> when there is none or it is invalid.</returns>
@@ -243,14 +290,7 @@ internal static class ModelBuilder
             return null;
         }
 
-        if (!property.IsPartialDefinition
-            || property.IsStatic
-            || property.GetMethod is null
-            || property.SetMethod is not null
-            || property.IsVirtual
-            || property.IsOverride
-            || property.IsSealed
-            || HasNewModifier(property, cancellationToken)
+        if (!IsImplementable(property, cancellationToken)
             || ReservedPropertyNames.Contains(property.Name, StringComparer.Ordinal))
         {
             diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.UnsupportedProperty, property, property.Name));
@@ -271,7 +311,7 @@ internal static class ModelBuilder
             return null;
         }
 
-        CheckText(attribute, $"instructions of '{property.Name}'", property, diagnostics, cancellationToken);
+        CheckText(attribute, $"The instruction text of '{property.Name}'", property, diagnostics, cancellationToken);
         stateMembers?.CheckReferences(attribute, property, diagnostics, cancellationToken);
 
         var options = enumType is null
@@ -339,7 +379,7 @@ internal static class ModelBuilder
                 }
                 else
                 {
-                    CheckText(criteria, $"[Criteria] description of '{enumType.Name}.{field.Name}'", property, diagnostics, cancellationToken);
+                    CheckText(criteria, $"The [Criteria] description of '{enumType.Name}.{field.Name}'", property, diagnostics, cancellationToken);
                 }
 
                 options.Add(new OptionModel(
@@ -349,7 +389,7 @@ internal static class ModelBuilder
             }
             else if (Find(field, LevelAttribute) is { } level)
             {
-                CheckText(level, $"[Level] description of '{enumType.Name}.{field.Name}'", property, diagnostics, cancellationToken);
+                CheckText(level, $"The [Level] description of '{enumType.Name}.{field.Name}'", property, diagnostics, cancellationToken);
                 options.Add(new OptionModel(
                     Identifier(field.Name),
                     options.Count.ToString(CultureInfo.InvariantCulture),
@@ -397,7 +437,7 @@ internal static class ModelBuilder
 
     /// <summary>JEV003: a text argument that is an empty or whitespace string. Null is fine: the API accepts it.</summary>
     /// <param name="attribute">The attribute whose first constructor argument is the text.</param>
-    /// <param name="what">What the text is, for the message: "instructions of 'Answer'", for one.</param>
+    /// <param name="what">What the text is, for the message: "The instruction text of 'Answer'", for one.</param>
     /// <param name="fallback">Where to report when the attribute has no source syntax, as on an enum from metadata.</param>
     /// <param name="diagnostics">The list to add the diagnostic to.</param>
     /// <param name="cancellationToken">Cancels the syntax lookup.</param>
@@ -527,12 +567,18 @@ internal static class ModelBuilder
         }
 
         /// <summary>
-        /// The members of <paramref name="stateType"/>, or <see langword="null"/> for an array state: a JSON array
-        /// has no named members for instructions to refer to, so its references are not checked.
+        /// The members of <paramref name="stateType"/>, or of its element type for an array state: instructions over
+        /// a JSON array refer to the fields of its items. <see langword="null"/> when there is no named type to check.
         /// </summary>
         public static StateMembers? For(ITypeSymbol stateType)
         {
-            if (stateType is not INamedTypeSymbol named)
+            var itemType = stateType;
+            while (itemType is IArrayTypeSymbol array)
+            {
+                itemType = array.ElementType;
+            }
+
+            if (itemType is not INamedTypeSymbol named)
             {
                 return null;
             }

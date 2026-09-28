@@ -44,11 +44,34 @@ internal sealed record QuestionSetModel(
     string? StateTypeName,
     EquatableArray<QuestionModel> Questions);
 
+/// <summary>One partial question property of an invalid set that the generator implements with a throwing stub.</summary>
+/// <param name="PropertyName">The property, escaped as a C# identifier.</param>
+/// <param name="Modifiers">The declaration's accessibility modifiers, repeated on the implementation.</param>
+/// <param name="TypeName">The property's fully qualified type, as declared.</param>
+internal sealed record StubPropertyModel(string PropertyName, string Modifiers, string TypeName);
+
 /// <summary>
-/// What <see cref="ModelBuilder"/> finds for one <c>[JevQuestions]</c> type: a model when the type is valid, and the
-/// problems found otherwise. The generator keeps only the model; the analyzer reports the diagnostics.
+/// An invalid <c>[JevQuestions]</c> type whose partial question properties the generator can still implement. The
+/// stubs keep the compiler from reporting CS9248, an unimplemented partial property: that declaration error would
+/// stop a command-line build before the analyzer runs, hiding the JEV error that explains the problem. The type is
+/// always a top-level, non-generic partial class or record, since anything else is JEV101 and gets no stub; so its
+/// namespace, name and kind are all a partial declaration needs.
 /// </summary>
-internal sealed record QuestionSetResult(QuestionSetModel? Model, EquatableArray<DiagnosticInfo> Diagnostics);
+internal sealed record InvalidSetModel(
+    string? Namespace,
+    string TypeName,
+    bool IsRecord,
+    EquatableArray<StubPropertyModel> Properties);
+
+/// <summary>
+/// What <see cref="ModelBuilder"/> finds for one <c>[JevQuestions]</c> type: a model when the type is valid, the stubs
+/// to emit when it is invalid but has implementable question properties, and the problems found. The generator keeps
+/// the model or the stubs; the analyzer reports the diagnostics.
+/// </summary>
+internal sealed record QuestionSetResult(
+    QuestionSetModel? Model,
+    InvalidSetModel? InvalidSet,
+    EquatableArray<DiagnosticInfo> Diagnostics);
 
 /// <summary>
 /// A problem with a <c>[JevQuestions]</c> type, by rule id. It carries no <see cref="DiagnosticDescriptor"/>:

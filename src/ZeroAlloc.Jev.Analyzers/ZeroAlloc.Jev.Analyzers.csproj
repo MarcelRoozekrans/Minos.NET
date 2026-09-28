@@ -21,7 +21,8 @@
 
   <!--
     The rules live once, in the generator's source, and are linked in here rather than shared as an assembly:
-    an analyzer that loads a dependency assembly is fragile. The generator uses them only to skip invalid sets.
+    an analyzer that loads a dependency assembly is fragile. The generator uses them only to tell a valid set,
+    which it implements, from an invalid one, which gets throwing stubs.
     The shared code names rules by DiagnosticIds; the descriptors live only here, in Diagnostics.cs.
   -->
   <ItemGroup>

@@ -110,6 +110,21 @@ public sealed class MovedDiagnosticTests
         Assert.Contains("Foo", message, StringComparison.Ordinal);
     }
 
+    // JEV003 is a new rule, not a moved one; it sits here to share the message helpers below.
+    [Theory]
+    [InlineData("[JevQuestions] public partial class C { [Noul(\" \")] public partial Noul Answer { get; } }",
+        "The instruction text of 'Answer' is empty or whitespace")]
+    [InlineData("public enum E { [Level(\"a\")] A, [Level(\"\")] B } [JevQuestions] public partial class C { [Score(\"q\")] public partial Score<E> Answer { get; } }",
+        "The [Level] description of 'E.B' is empty or whitespace")]
+    public async Task EmptyText_Message_NamesTheText(string source, string expected)
+    {
+        var (type, attribute) = await GetQuestionSetAsync(source);
+
+        var info = SingleDiagnostic(ModelBuilder.Build(type, attribute, CancellationToken.None).Diagnostics, DiagnosticIds.EmptyText);
+
+        Assert.StartsWith(expected, Format(Diagnostics.EmptyText, info), StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task MissingLevel_OnEnumFromReferencedAssembly_ReportsOnProperty()
     {

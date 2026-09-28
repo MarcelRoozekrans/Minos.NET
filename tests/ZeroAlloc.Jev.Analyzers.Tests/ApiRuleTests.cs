@@ -162,10 +162,24 @@ public sealed class ApiRuleTests
             "[JevQuestions] public partial class C { [Noul(\"Is `anything` set?\")] public partial Noul Answer { get; } }");
 
     [Fact]
-    public Task StateReference_ArrayState_ReportsNothing()
+    public Task StateReference_ArrayState_MatchesTheElementType()
         => AnalyzerVerifier.VerifyNoDiagnosticsAsync(
             State + "[JevQuestions(State = typeof(TicketState[]))] public partial class C { "
-                + "[Noul(\"Is `anything` set?\")] public partial Noul Answer { get; } }");
+                + "[Noul(\"Is any `customer_tier` gold or `sla` breached?\")] public partial Noul Answer { get; } }");
+
+    [Fact]
+    public Task StateReference_ArrayState_Typo_Reports()
+        => AnalyzerVerifier.VerifyAsync(
+            State + "[JevQuestions(State = typeof(TicketState[][]))] public partial class C { "
+                + "[Noul({|JEV004:\"Is any `customer_teir` gold?\"|})] public partial Noul Answer { get; } }");
+
+    [Fact]
+    public Task StateReference_PositionalRecordState_MatchesItsParameters()
+        => AnalyzerVerifier.VerifyAsync(
+            "public sealed record Ticket(string Subject, int OpenTickets); "
+                + "[JevQuestions(State = typeof(Ticket))] public partial class C { "
+                + "[Noul(\"Does `subject` or `open-tickets` show urgency?\")] public partial Noul A1 { get; } "
+                + "[Noul({|JEV004:\"Does `body` show urgency?\"|})] public partial Noul A2 { get; } }");
 
     // ---- JEV005: outside the API sketch's option and level guidance ----
 
@@ -195,6 +209,21 @@ public sealed class ApiRuleTests
             + "[JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }";
 
         return reports ? AnalyzerVerifier.VerifyAsync(source) : AnalyzerVerifier.VerifyNoDiagnosticsAsync(source);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(11)]
+    public async Task ScoreLevelCount_EnumFromReferencedAssembly_ReportsOnTheProperty(int levels)
+    {
+        var members = Members(levels, index => $"[Level(\"level {index}\")] M{index}");
+        var reference = (await CompilationHelper.CompileAsync(
+                $"using ZeroAlloc.Jev; namespace External; public enum Levels {{ {members} }}", "External"))
+            .EmitToReference();
+
+        await AnalyzerVerifier.VerifyAsync(
+            "using External; [JevQuestions] public partial class C { [Score(\"q\")] public partial Score<Levels> {|JEV005:Answer|} { get; } }",
+            reference);
     }
 
     [Fact]

@@ -88,7 +88,7 @@ internal static class Sources
         }
         """;
 
-    // A Choice over an enum with no members: JEV001 makes the set invalid, so the generator emits nothing.
+    // A Choice over an enum with no members: JEV001 makes the set invalid, so the generator emits only a throwing stub.
     public const string ChoiceOverEmptyEnum = """
         using ZeroAlloc.Jev;
 
@@ -106,7 +106,7 @@ internal static class Sources
         }
         """;
 
-    // A Score over an enum with no members: JEV002 makes the set invalid, so the generator emits nothing.
+    // A Score over an enum with no members: JEV002 makes the set invalid, so the generator emits only a throwing stub.
     public const string ScoreOverEmptyEnum = """
         using ZeroAlloc.Jev;
 
