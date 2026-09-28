@@ -20,7 +20,7 @@
     <!-- Source generator and analyzers: compile against the first .NET 10 SDK's compiler so every .NET 10 consumer can load them -->
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp" Version="5.0.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.0.0" />
-    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="3.11.0" />
+    <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0" />
     <!-- HTTP client -->
     <PackageVersion Include="ZeroAlloc.Resilience" Version="3.3.0" />
     <PackageVersion Include="ZeroAlloc.Rest" Version="3.0.0" />
