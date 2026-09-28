@@ -27,6 +27,11 @@ internal static class ModelBuilder
     private const int MaximumScoreLevels = 10;
     private const int MaximumChoiceOptions = 255;
 
+    // JEV003's second message argument: the advice that fits what is empty. The text follows the subject in the message.
+    private const string EmptyTextAdvice = "is empty or whitespace: write the text, or pass null to send none";
+    private const string EmptyEntryAdvice = "is empty or whitespace: write the text, or remove the entry";
+    private const string EmptyJsonAdvice = "is an empty JSON object or array: add content, or drop Json";
+
     // A stub repeats the property's declared type, nullable reference annotation included, so it matches the definition.
     private static readonly SymbolDisplayFormat StubTypeFormat = SymbolDisplayFormat.FullyQualifiedFormat
         .AddMiscellaneousOptions(SymbolDisplayMiscellaneousOptions.IncludeNullableReferenceTypeModifier);
@@ -663,7 +668,7 @@ internal static class ModelBuilder
             if (json.Succeeded && json.Json is "{}" or "[]")
             {
                 diagnostics.Add(DiagnosticInfo.Create(
-                    DiagnosticIds.EmptyText, TextArgumentLocation(attribute, fallback, cancellationToken), what));
+                    DiagnosticIds.EmptyText, TextArgumentLocation(attribute, fallback, cancellationToken), what, EmptyJsonAdvice));
             }
 
             return;
@@ -674,7 +679,7 @@ internal static class ModelBuilder
             && string.IsNullOrWhiteSpace(text))
         {
             diagnostics.Add(DiagnosticInfo.Create(
-                DiagnosticIds.EmptyText, TextArgumentLocation(attribute, fallback, cancellationToken), what));
+                DiagnosticIds.EmptyText, TextArgumentLocation(attribute, fallback, cancellationToken), what, EmptyTextAdvice));
         }
     }
 
@@ -710,7 +715,8 @@ internal static class ModelBuilder
                 diagnostics.Add(DiagnosticInfo.Create(
                     DiagnosticIds.EmptyText,
                     NamedArgumentLocation(attribute, name, fallback, cancellationToken),
-                    $"An entry of {name} on {whatLowerFirst}"));
+                    $"An entry of {name} on {whatLowerFirst}",
+                    EmptyEntryAdvice));
             }
 
             return;

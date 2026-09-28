@@ -30,7 +30,7 @@ internal static class Diagnostics
     public static readonly DiagnosticDescriptor EmptyText = new(
         DiagnosticIds.EmptyText,
         "Empty instructions or description",
-        "{0} is empty or whitespace: write the text, or pass null to send none",
+        "{0} {1}",
         Category,
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);

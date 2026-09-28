@@ -40,6 +40,9 @@ public sealed class StructuredTextTests
             + "[JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
         "public enum L { [Level(\"[]\", NotFor = new[] { \"x\" }, {|JEV109:Json = true|})] A, [Level(\"b\")] B } "
             + "[JevQuestions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }",
+        // Invalid JSON beside Examples: JEV109 alone, with no JEV108 piled onto the same attribute.
+        "public enum E { [Criteria(\"{oops\", {|JEV109:Json = true|}, Examples = [\"x\"])] A } "
+            + "[JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
     };
 
     [Theory]
