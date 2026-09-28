@@ -88,6 +88,45 @@ internal static class Sources
         }
         """;
 
+    public const string StructuredCriteria = """
+        using ZeroAlloc.Jev;
+
+        namespace Demo;
+
+        public enum StructuredDepartment
+        {
+            [Criteria("Payments, invoicing, refunds", Examples = ["I was charged twice"], NotFor = ["How much is Pro?"])]
+            Billing,
+
+            [Criteria("Bugs, outages, integrations", Examples = new[] { "The API returns 500" })]
+            Technical,
+
+            [Criteria("Pricing, upgrades, new accounts", Examples = [], NotFor = [])]
+            Sales,
+
+            Other,
+        }
+
+        public enum StructuredSeverity
+        {
+            [Level("Cosmetic", NotFor = ["Data loss"])]
+            Low,
+
+            [Level("Blocks work")]
+            High,
+        }
+
+        [JevQuestions]
+        public partial record StructuredRouting
+        {
+            [Choice("Which team should handle this?")]
+            public partial Choice<StructuredDepartment> Department { get; }
+
+            [Score("How severe is this?")]
+            public partial Score<StructuredSeverity> Severity { get; }
+        }
+        """;
+
     // A Choice over an enum with no members: JEV001 makes the set invalid, so the generator emits only a throwing stub.
     public const string ChoiceOverEmptyEnum = """
         using ZeroAlloc.Jev;

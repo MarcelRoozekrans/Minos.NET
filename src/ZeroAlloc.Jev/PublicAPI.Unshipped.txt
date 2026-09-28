@@ -44,8 +44,12 @@ ZeroAlloc.Jev.ChoiceQuestion.Criteria.init -> void
 ZeroAlloc.Jev.CriteriaAttribute
 ZeroAlloc.Jev.CriteriaAttribute.CriteriaAttribute(string! description) -> void
 ZeroAlloc.Jev.CriteriaAttribute.Description.get -> string!
+ZeroAlloc.Jev.CriteriaAttribute.Examples.get -> string![]?
+ZeroAlloc.Jev.CriteriaAttribute.Examples.set -> void
 ZeroAlloc.Jev.CriteriaAttribute.Key.get -> string?
 ZeroAlloc.Jev.CriteriaAttribute.Key.set -> void
+ZeroAlloc.Jev.CriteriaAttribute.NotFor.get -> string![]?
+ZeroAlloc.Jev.CriteriaAttribute.NotFor.set -> void
 ZeroAlloc.Jev.IJevClient
 ZeroAlloc.Jev.IJevClient.EvaluateAsync(ZeroAlloc.Jev.SystemOneRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.SystemOneResponse!, ZeroAlloc.Jev.JevError!>>
 ZeroAlloc.Jev.IJevClient.EvaluateAsync(ZeroAlloc.Jev.SystemOneRequest! request, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.SystemOneResponse!, ZeroAlloc.Jev.JevError!>>
@@ -149,7 +153,11 @@ ZeroAlloc.Jev.JevUsage.OutputTokens.get -> int
 ZeroAlloc.Jev.JevUsage.OutputTokens.init -> void
 ZeroAlloc.Jev.LevelAttribute
 ZeroAlloc.Jev.LevelAttribute.Description.get -> string!
+ZeroAlloc.Jev.LevelAttribute.Examples.get -> string![]?
+ZeroAlloc.Jev.LevelAttribute.Examples.set -> void
 ZeroAlloc.Jev.LevelAttribute.LevelAttribute(string! description) -> void
+ZeroAlloc.Jev.LevelAttribute.NotFor.get -> string![]?
+ZeroAlloc.Jev.LevelAttribute.NotFor.set -> void
 ZeroAlloc.Jev.ModelCard
 ZeroAlloc.Jev.ModelCard.<Clone>$() -> ZeroAlloc.Jev.ModelCard!
 ZeroAlloc.Jev.ModelCard.Description.get -> string!

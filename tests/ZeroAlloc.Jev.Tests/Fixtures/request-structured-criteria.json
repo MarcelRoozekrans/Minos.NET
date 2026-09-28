@@ -1,0 +1,31 @@
+{
+  "state": "Help! My payouts have been failing for 3 days.",
+  "model": "jev-latest",
+  "questions": {
+    "department": {
+      "type": "choice",
+      "instructions": "Which team should handle this?",
+      "criteria": {
+        "billing": {
+          "description": "Payments, invoicing, refunds",
+          "examples": ["I was charged twice"],
+          "not_for": ["How much is Pro?"]
+        },
+        "technical": {
+          "description": "Bugs, outages, integrations",
+          "examples": ["The API returns 500"]
+        },
+        "sales": "Pricing, upgrades, new accounts",
+        "other": null
+      }
+    },
+    "severity": {
+      "type": "score",
+      "instructions": "How severe is this?",
+      "criteria": [
+        { "description": "Cosmetic", "not_for": ["Data loss"] },
+        "Blocks work"
+      ]
+    }
+  }
+}

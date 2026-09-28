@@ -28,6 +28,7 @@
   <ItemGroup>
     <Compile Include="..\ZeroAlloc.Jev.Generator\ModelBuilder.cs" Link="Shared\ModelBuilder.cs" />
     <Compile Include="..\ZeroAlloc.Jev.Generator\Models.cs" Link="Shared\Models.cs" />
+    <Compile Include="..\ZeroAlloc.Jev.Generator\JsonText.cs" Link="Shared\JsonText.cs" />
     <Compile Include="..\ZeroAlloc.Jev.Generator\DiagnosticIds.cs" Link="Shared\DiagnosticIds.cs" />
     <Compile Include="..\ZeroAlloc.Jev.Generator\EquatableArray.cs" Link="Shared\EquatableArray.cs" />
     <Compile Include="..\ZeroAlloc.Jev.Generator\SnakeCase.cs" Link="Shared\SnakeCase.cs" />

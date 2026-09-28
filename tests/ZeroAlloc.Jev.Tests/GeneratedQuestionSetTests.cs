@@ -22,6 +22,22 @@ public sealed class GeneratedQuestionSetTests
     public void Score_QuestionsMatchFixture() => AssertQuestions<FrustrationCheck>("request-score.json");
 
     [Fact]
+    public void StructuredCriteria_QuestionsMatchFixture() => AssertQuestions<StructuredRouting>("request-structured-criteria.json");
+
+    [Fact]
+    public void StructuredCriteria_DeserializeThroughWireModel()
+    {
+        var json = "{\"state\":\"x\",\"questions\":" + Encoding.UTF8.GetString(StructuredRouting.QuestionsUtf8) + "}";
+
+        var request = JsonSerializer.Deserialize(json, JevJsonContext.Default.SystemOneRequest)!;
+
+        var department = Assert.IsType<ChoiceQuestion>(request.Questions["department"]);
+        Assert.True(department.Criteria["billing"]!.Value.TryGetJson(out var billing));
+        Assert.Equal("I was charged twice", billing.GetProperty("examples")[0].GetString());
+        Assert.True(department.Criteria["sales"]!.Value.IsString);
+    }
+
+    [Fact]
     public void Questions_DeserializeThroughWireModel()
     {
         var json = "{\"state\":\"x\",\"questions\":" + Encoding.UTF8.GetString(TicketTriage.QuestionsUtf8) + "}";
