@@ -16,7 +16,7 @@ internal static class SourceEmitter
     public static string HintName(InvalidSetModel model) => HintName(model.Namespace, model.TypeName);
 
     /// <summary>
-    /// Implements an invalid set's partial question properties with getters that throw, and nothing else: no
+    /// Implements an invalid set's partial question properties with accessors that throw, and nothing else: no
     /// <c>QuestionsUtf8</c>, no <c>Parse</c> and no <c>IJevQuestionSet</c>. Without them, each property would be
     /// CS9248, a declaration error that stops a command-line build before the analyzer reports the JEV error.
     /// </summary>
@@ -36,9 +36,10 @@ internal static class SourceEmitter
         code.Line("{");
         foreach (var property in model.Properties)
         {
-            var modifiers = property.Modifiers.Length == 0 ? string.Empty : property.Modifiers + " ";
-            code.Line("    " + modifiers + "partial " + property.TypeName + " " + property.PropertyName
-                + " { get => throw new global::System.InvalidOperationException(" + InvalidSetMessage + "); }");
+            var accessors = string.Concat(property.Accessors.Select(accessor =>
+                " " + (accessor.Modifiers.Length == 0 ? string.Empty : accessor.Modifiers + " ") + accessor.Keyword
+                + " => throw new global::System.InvalidOperationException(" + InvalidSetMessage + ");"));
+            code.Line("    " + property.Modifiers + " " + property.TypeName + " " + property.PropertyName + " {" + accessors + " }");
         }
 
         code.Line("}");

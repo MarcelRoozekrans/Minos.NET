@@ -44,14 +44,24 @@ internal sealed record QuestionSetModel(
     string? StateTypeName,
     EquatableArray<QuestionModel> Questions);
 
+/// <summary>One accessor of a stubbed property, as the definition declares it.</summary>
+/// <param name="Modifiers">The accessor's own modifiers, such as <c>private</c>; empty when it has none.</param>
+/// <param name="Keyword"><c>get</c>, <c>set</c> or <c>init</c>.</param>
+internal sealed record StubAccessorModel(string Modifiers, string Keyword);
+
 /// <summary>One partial question property of an invalid set that the generator implements with a throwing stub.</summary>
-/// <param name="PropertyName">The property, escaped as a C# identifier.</param>
-/// <param name="Modifiers">The declaration's accessibility modifiers, repeated on the implementation.</param>
+/// <param name="Modifiers">The definition's modifiers as written, in order, <c>partial</c> included.</param>
 /// <param name="TypeName">The property's fully qualified type, as declared.</param>
-internal sealed record StubPropertyModel(string PropertyName, string Modifiers, string TypeName);
+/// <param name="PropertyName">The property, escaped as a C# identifier.</param>
+/// <param name="Accessors">The definition's accessors, in order.</param>
+internal sealed record StubPropertyModel(
+    string Modifiers,
+    string TypeName,
+    string PropertyName,
+    EquatableArray<StubAccessorModel> Accessors);
 
 /// <summary>
-/// An invalid <c>[JevQuestions]</c> type whose partial question properties the generator can still implement. The
+/// An invalid <c>[JevQuestions]</c> type whose partial question properties the generator implements anyway. The
 /// stubs keep the compiler from reporting CS9248, an unimplemented partial property: that declaration error would
 /// stop a command-line build before the analyzer runs, hiding the JEV error that explains the problem. The type is
 /// always a top-level, non-generic partial class or record, since anything else is JEV101 and gets no stub; so its

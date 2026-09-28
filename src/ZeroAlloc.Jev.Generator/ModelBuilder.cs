@@ -88,37 +88,58 @@ internal static class ModelBuilder
         => new(model, invalidSet, new EquatableArray<DiagnosticInfo>(diagnostics.ToArray()));
 
     /// <summary>
-    /// The stubs for an invalid set: each question property the generator can implement, meaning a partial,
-    /// get-only instance property with no modifier JEV102 rejects. <see langword="null"/> when there is none.
+    /// The stubs for an invalid set: one for each question property that is an unimplemented partial definition,
+    /// whatever its shape. CS9248, an unimplemented partial property, is a declaration error, and csc skips every
+    /// analyzer in the compilation after one, so a single missing stub would hide all the JEV errors.
     /// </summary>
+    /// <remarks>
+    /// Nothing is stubbed for a property that is not a partial definition, which needs no implementation; for one the
+    /// user already implemented; or for one with no question attribute, which is not the generator's to implement.
+    /// <see langword="null"/> when no property needs a stub.
+    /// </remarks>
     private static InvalidSetModel? BuildInvalidSet(INamedTypeSymbol type, CancellationToken cancellationToken)
     {
-        var stubs = type.GetMembers()
-            .OfType<IPropertySymbol>()
-            .Where(property => IsQuestion(property) && IsImplementable(property, cancellationToken))
-            .Select(property => new StubPropertyModel(
-                Identifier(property.Name),
-                Modifiers(property, cancellationToken),
-                property.Type.ToDisplayString(StubTypeFormat)))
-            .ToArray();
+        var stubs = new List<StubPropertyModel>();
+        foreach (var property in type.GetMembers().OfType<IPropertySymbol>())
+        {
+            if (property is { IsPartialDefinition: true, PartialImplementationPart: null }
+                && IsQuestion(property)
+                && property.DeclaringSyntaxReferences
+                    .Select(reference => reference.GetSyntax(cancellationToken))
+                    .OfType<PropertyDeclarationSyntax>()
+                    .FirstOrDefault() is { AccessorList: { } accessorList } declaration)
+            {
+                // The implementation repeats the definition's modifiers and accessors as written, in order, so it
+                // matches whatever the definition declares, including shapes JEV102 rejects.
+                stubs.Add(new StubPropertyModel(
+                    string.Join(" ", declaration.Modifiers.Select(modifier => modifier.Text)),
+                    property.Type.ToDisplayString(StubTypeFormat),
+                    Identifier(property.Name),
+                    new EquatableArray<StubAccessorModel>(accessorList.Accessors
+                        .Select(accessor => new StubAccessorModel(
+                            string.Join(" ", accessor.Modifiers.Select(modifier => modifier.Text)),
+                            accessor.Keyword.Text))
+                        .ToArray())));
+            }
+        }
 
-        return stubs.Length == 0
+        return stubs.Count == 0
             ? null
             : new InvalidSetModel(
                 Namespace(type.ContainingNamespace),
                 Identifier(type.Name),
                 type.IsRecord,
-                new EquatableArray<StubPropertyModel>(stubs));
+                new EquatableArray<StubPropertyModel>(stubs.ToArray()));
     }
 
     private static bool IsQuestion(IPropertySymbol property)
         => property.GetAttributes().Any(attribute => attribute.AttributeClass?.ToDisplayString()
             is NoulAttribute or ChoiceAttribute or ScoreAttribute);
 
-    /// <summary>Whether the property's shape lets the generator implement it: a partial, get-only instance property
-    /// that is not <see langword="virtual"/>, <see langword="override"/>, <see langword="sealed"/> or
+    /// <summary>Whether the property has the shape JEV102 requires of a question: a partial, get-only instance
+    /// property that is not <see langword="virtual"/>, <see langword="override"/>, <see langword="sealed"/> or
     /// <see langword="new"/>. Its name and type are checked separately.</summary>
-    private static bool IsImplementable(IPropertySymbol property, CancellationToken cancellationToken)
+    private static bool HasSupportedShape(IPropertySymbol property, CancellationToken cancellationToken)
         => property.IsPartialDefinition
             && !property.IsStatic
             && property.GetMethod is not null
@@ -290,7 +311,7 @@ internal static class ModelBuilder
             return null;
         }
 
-        if (!IsImplementable(property, cancellationToken)
+        if (!HasSupportedShape(property, cancellationToken)
             || ReservedPropertyNames.Contains(property.Name, StringComparer.Ordinal))
         {
             diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.UnsupportedProperty, property, property.Name));

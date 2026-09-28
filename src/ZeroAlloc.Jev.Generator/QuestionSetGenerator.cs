@@ -28,8 +28,8 @@ public sealed class QuestionSetGenerator : IIncrementalGenerator
 
         // The generator reports nothing: ZeroAlloc.Jev.Analyzers reports the diagnostics from the same model builder.
         // The pipeline carries only value-equatable models, never the diagnostics, so it stays cacheable. A valid set
-        // gets its full implementation. An invalid one gets only throwing stubs for the question properties it can
-        // implement, so the compiler reports no CS9248 for them and the analyzer's JEV error is what a build shows.
+        // gets its full implementation. An invalid one gets only throwing stubs for its unimplemented partial question
+        // properties, so the compiler reports no CS9248 for them and the analyzer's JEV errors are what a build shows.
         context.RegisterSourceOutput(questionSets, static (output, input) =>
         {
             if (input.Model is { } model)

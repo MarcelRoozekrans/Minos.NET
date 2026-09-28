@@ -20,6 +20,22 @@ public sealed class InvalidSetBuildTests
             + "[Noul(\"b\", Key = \"is_urgent\")] public partial Noul Other { get; } }",
         "public interface IFoo { } [JevQuestions({|JEV107:State = typeof(IFoo)|})] public partial class C { "
             + "[Noul(\"q\")] public partial Noul Answer { get; } }",
+        "[JevQuestions] public partial class C { [Noul(\"q\")] public partial Noul {|JEV102:Answer|} { get; set; } }",
+        "[JevQuestions] public partial class C { [Noul(\"q\")] public partial Noul {|JEV102:Answer|} { get; private set; } }",
+        "[JevQuestions] public partial class C { [Noul(\"q\")] public partial Noul {|JEV102:Answer|} { get; init; } }",
+        "[JevQuestions] public partial class C { [Noul(\"q\")] public static partial Noul {|JEV102:Answer|} { get; } }",
+        "[JevQuestions] public partial class C { [Noul(\"q\")] public virtual partial Noul {|JEV102:Answer|} { get; } }",
+        "public class Base { public virtual Noul Answer => default; } "
+            + "[JevQuestions] public partial class C : Base { [Noul(\"q\")] public sealed override partial Noul {|JEV102:Answer|} { get; } }",
+        "public class Base { public virtual Noul Answer => default; } "
+            + "[JevQuestions] public partial class C : Base { [Noul(\"q\")] public override partial Noul {|JEV102:Answer|} { get; } }",
+        "public class Base { public Noul Answer => default; } "
+            + "[JevQuestions] public partial class C : Base { [Noul(\"q\")] public new partial Noul {|JEV102:Answer|} { get; } }",
+        "[JevQuestions] public partial class C { [Noul(\"q\")] public partial Noul {|JEV102:Answer|} { get; set; } "
+            + "[Noul(\"q2\")] internal partial Noul Other { get; } }",
+        // 'sealed' without 'override' is the user's own C# error, CS0238, which the stub cannot remove: it is still reported.
+        "[JevQuestions] public partial class C { [Noul(\"q\")] public sealed partial Noul {|CS0238:{|JEV102:Answer|}|} { get; } }",
+        "[JevQuestions] public partial class {|JEV105:C|} { [Noul(\"q\")] public required partial Noul {|JEV102:Answer|} { get; set; } }",
         "namespace Demo.Nested { public enum {|JEV001:E|} { } [JevQuestions] public partial class C { "
             + "[Choice(\"q\")] public partial Choice<E> Answer { get; } } }",
     };

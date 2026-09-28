@@ -8,9 +8,10 @@ namespace ZeroAlloc.Jev.Generator.Tests;
 /// </summary>
 public sealed class DiagnosticTests
 {
-    // Invalid sets whose question properties, if any, the generator can implement with a stub. The analyzer reports
-    // JEV001, JEV002 and JEV101–107 for these (ZeroAlloc.Jev.Analyzers.Tests: MovedDiagnosticTests, ApiRuleTests).
-    public static TheoryData<string> ImplementableInvalidSources => new()
+    // Invalid sets: the analyzer reports JEV001, JEV002 and JEV101–107 for these (ZeroAlloc.Jev.Analyzers.Tests:
+    // MovedDiagnosticTests, ApiRuleTests, InvalidSetBuildTests). The generator stubs every unimplemented partial
+    // question property, whatever its shape; a type JEV101 rejects gets no stub, since a partial part could not help.
+    public static TheoryData<string> InvalidSources => new()
     {
         "[JevQuestions] public class NotPartial { }",
         "[JevQuestions] public partial class Generic<T> { }",
@@ -41,50 +42,62 @@ public sealed class DiagnosticTests
         "public enum E { } [JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
         "public enum L { } [JevQuestions] public partial record C { [Score(\"q\")] internal partial Score<L> Answer { get; } }",
         "namespace @class; public enum E { } [JevQuestions] public partial class @event { [Choice(\"q\")] public partial Choice<E> @int { get; } }",
-    };
-
-    // JEV102 sets whose question property has a shape the generator cannot implement: no stub, no source at all.
-    public static TheoryData<string> UnimplementableInvalidSources => new()
-    {
-        "[JevQuestions] public partial class C { [Noul(\"q\")] public Noul Answer { get; } }",
         "[JevQuestions] public partial class C { [Noul(\"q\")] public partial Noul Answer { get; set; } }",
+        "[JevQuestions] public partial class C { [Noul(\"q\")] public partial Noul Answer { internal get; private init; } }",
         "[JevQuestions] public partial class C { [Noul(\"q\")] public static partial Noul Answer { get; } }",
         "[JevQuestions] public partial class C { [Noul(\"q\")] public virtual partial Noul Answer { get; } }",
         "[JevQuestions] public partial class C { [Noul(\"q\")] public sealed partial Noul Answer { get; } }",
+        "[JevQuestions] public partial class C { [Noul(\"q\")] public required partial Noul Answer { get; set; } }",
         "public class Base { public virtual Noul Answer => default; } "
             + "[JevQuestions] public partial class C : Base { [Noul(\"q\")] public override partial Noul Answer { get; } }",
+        "public class Base { public virtual Noul Answer => default; } "
+            + "[JevQuestions] public partial class C : Base { [Noul(\"q\")] public sealed override partial Noul Answer { get; } }",
         "public class Base { public Noul Answer => default; } "
             + "[JevQuestions] public partial class C : Base { [Noul(\"q\")] public new partial Noul Answer { get; } }",
     };
 
     [Theory]
-    [MemberData(nameof(ImplementableInvalidSources))]
-    public void InvalidDeclaration_ReportsNothing_AndEmitsOnlyStubs(string source)
+    [MemberData(nameof(InvalidSources))]
+    public void InvalidDeclaration_ReportsNothing_AndEmitsOnlyStubsThatCompile(string source)
     {
         var driver = GeneratorHarness.Run("using ZeroAlloc.Jev;\n" + source, out var output, out var diagnostics);
 
         Assert.Empty(diagnostics);
         AssertNoQuestionSet(driver);
         Assert.DoesNotContain(output.GetDiagnostics(), diagnostic => string.Equals(diagnostic.Id, "CS9248", StringComparison.Ordinal));
+
+        // The stubs themselves compile. A stub repeats its definition's declared type, so a user's own type error, such
+        // as Choice<int> breaking the enum constraint, recurs in it; the stub adds no error the source does not have.
+        var generated = driver.GetRunResult().GeneratedTrees;
+        var errors = output.GetDiagnostics().Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToList();
+        var sourceErrorIds = errors
+            .Where(diagnostic => diagnostic.Location.SourceTree is not { } tree || !generated.Contains(tree))
+            .Select(diagnostic => diagnostic.Id)
+            .ToHashSet(StringComparer.Ordinal);
+        Assert.All(
+            errors.Where(diagnostic => diagnostic.Location.SourceTree is { } tree && generated.Contains(tree)),
+            diagnostic => Assert.Contains(diagnostic.Id, sourceErrorIds));
     }
 
-    [Theory]
-    [MemberData(nameof(UnimplementableInvalidSources))]
-    public void UnimplementableProperty_ReportsNothing_AndGeneratesNothing(string source)
+    [Fact]
+    public void NonPartialQuestionProperty_NeedsNoStub_AndGeneratesNothing()
     {
-        var driver = GeneratorHarness.Run("using ZeroAlloc.Jev;\n" + source, out _, out var diagnostics);
+        var driver = GeneratorHarness.Run(
+            "using ZeroAlloc.Jev;\n[JevQuestions] public partial class C { [Noul(\"q\")] public Noul Answer { get; } }",
+            out _,
+            out var diagnostics);
 
         Assert.Empty(diagnostics);
         Assert.Empty(driver.GetRunResult().GeneratedTrees);
     }
 
     [Fact]
-    public void InvalidSet_StubsEveryImplementableQuestionProperty_WithItsOwnAccessibilityAndType()
+    public void InvalidSet_StubsEveryPartialQuestionProperty_MirroringItsDeclaration()
     {
         var driver = GeneratorHarness.Run(
             "using ZeroAlloc.Jev;\nnamespace Demo; public enum E { } [JevQuestions] public partial record C { "
                 + "[Choice(\"q\")] public partial Choice<E> A1 { get; } [Noul(\"q\")] internal partial Noul A2 { get; } "
-                + "[Noul(\"q\")] public partial Noul A3 { get; set; } public partial int NotAQuestion { get; } }",
+                + "[Noul(\"q\")] public virtual partial Noul A3 { get; private set; } public partial int NotAQuestion { get; } }",
             out _,
             out _);
 
@@ -99,7 +112,11 @@ public sealed class DiagnosticTests
             stub,
             StringComparison.Ordinal);
         Assert.Contains("internal partial global::ZeroAlloc.Jev.Noul A2 { get => throw", stub, StringComparison.Ordinal);
-        Assert.DoesNotContain(" A3 ", stub, StringComparison.Ordinal);
+        Assert.Contains(
+            "public virtual partial global::ZeroAlloc.Jev.Noul A3 { get => throw new global::System.InvalidOperationException(\"This [JevQuestions] set is invalid; see the JEV diagnostics.\"); "
+                + "private set => throw new global::System.InvalidOperationException(\"This [JevQuestions] set is invalid; see the JEV diagnostics.\"); }",
+            stub,
+            StringComparison.Ordinal);
         Assert.DoesNotContain("NotAQuestion", stub, StringComparison.Ordinal);
     }
 
