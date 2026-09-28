@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
+using WireMock;
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
 
@@ -18,53 +19,36 @@ public sealed class FailureTests : IClassFixture<WireMockFixture>
     [Fact]
     public async Task SlowResponse_TimesOutPerAttempt()
     {
-        // A unique path segment, rather than the log's count or contents, isolates this test's own requests: a
-        // slow request from another test in this class (such as CallerCancellation_MidRequest_Throws) can still
-        // land in WireMock's log after that other test has already returned.
-        var segment = Guid.NewGuid().ToString("N");
-        var path = "/" + segment + "/v1/systemone";
-        var baseAddress = new Uri(_fixture.BaseAddress, segment + "/");
-
+        // The server holds every response until the test has its result, so an attempt can only end through the
+        // client's per-attempt time-out, however late a busy machine schedules either side. A fixed WireMock delay
+        // is not enough: when the test host is starved of CPU, the time-out's own callback can run after the delay
+        // has elapsed and the response has already arrived.
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         _fixture.Server
-            .Given(Request.Create().WithPath(path).UsingPost())
-            .RespondWith(Response.Create()
-                .WithStatusCode(HttpStatusCode.OK)
-                .WithHeader("Content-Type", "application/json")
-                .WithBody(Fixture.Text("response-noul.json"))
-                .WithDelay(TimeSpan.FromSeconds(2)));
-
-        using var client = IntegrationClient.Create(baseAddress, maxRetries: 1, timeout: TimeSpan.FromMilliseconds(300));
-
-        var result = await client.EvaluateAsync(Fixtures.NoulRequest());
-
-        Assert.True(result.IsFailure);
-        Assert.Equal(JevErrorKind.Timeout, result.Error.Kind);
-
-        // WireMock only logs a request once its (delayed) response has finished, so the log can still be
-        // catching up to the two client attempts once EvaluateAsync has already returned.
-        var deadline = DateTime.UtcNow.AddSeconds(5);
-        while (CountRequestsTo(path) < 2 && DateTime.UtcNow < deadline)
-        {
-            await Task.Delay(50);
-        }
-
-        Assert.Equal(2, CountRequestsTo(path));
-    }
-
-    // A manual loop, rather than LogEntries.Count(predicate), avoids a LINQ allocation on every poll of the
-    // deadline loop above.
-    private int CountRequestsTo(string path)
-    {
-        var count = 0;
-        foreach (var entry in _fixture.Server.LogEntries)
-        {
-            if (string.Equals(entry.RequestMessage?.Path, path, StringComparison.Ordinal))
+            .Given(Request.Create().WithPath("/v1/systemone").UsingPost())
+            .RespondWith(Response.Create().WithCallback(async _ =>
             {
-                count++;
-            }
-        }
+                await release.Task.ConfigureAwait(false);
+                return new ResponseMessage { StatusCode = (int)HttpStatusCode.OK };
+            }));
 
-        return count;
+        try
+        {
+            // Attempts are counted on the client: WireMock records a request only once it has read it, and an
+            // attempt the client abandons before WireMock gets to it is never recorded at all.
+            using var attempts = new AttemptRecorder(_fixture.BaseAddress, timeout: TimeSpan.FromMilliseconds(300));
+            using var client = IntegrationClient.Create(attempts, maxRetries: 1);
+
+            var result = await client.EvaluateAsync(Fixtures.NoulRequest());
+
+            Assert.True(result.IsFailure);
+            Assert.Equal(JevErrorKind.Timeout, result.Error.Kind);
+            Assert.Equal(2, attempts.Count);
+        }
+        finally
+        {
+            release.SetResult();
+        }
     }
 
     [Fact]
@@ -90,23 +74,40 @@ public sealed class FailureTests : IClassFixture<WireMockFixture>
     [Fact]
     public async Task CallerCancellation_MidRequest_Throws()
     {
+        // The server signals when it has the request and then holds the response until the test ends. Cancelling
+        // only after that signal puts the cancellation mid-request by construction, rather than by a 200 ms guess
+        // that a busy machine can overrun, and while the response is held the call can only end through the
+        // cancellation, so no wall-clock bound has to separate "cancelled" from "answered".
+        var received = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         _fixture.Server
             .Given(Request.Create().WithPath("/v1/systemone").UsingPost())
-            .RespondWith(Response.Create()
-                .WithStatusCode(HttpStatusCode.OK)
-                .WithHeader("Content-Type", "application/json")
-                .WithBody(Fixture.Text("response-noul.json"))
-                .WithDelay(TimeSpan.FromSeconds(5)));
+            .RespondWith(Response.Create().WithCallback(async _ =>
+            {
+                received.TrySetResult();
+                await release.Task.ConfigureAwait(false);
+                return new ResponseMessage { StatusCode = (int)HttpStatusCode.OK };
+            }));
 
-        using var client = IntegrationClient.Create(_fixture.BaseAddress);
-        using var cancellation = new CancellationTokenSource();
-        cancellation.CancelAfter(TimeSpan.FromMilliseconds(200));
+        try
+        {
+            using var client = IntegrationClient.Create(_fixture.BaseAddress);
+            using var cancellation = new CancellationTokenSource();
 
-        var task = Assert.ThrowsAnyAsync<OperationCanceledException>(
-            async () => await client.EvaluateAsync(Fixtures.NoulRequest(), cancellation.Token));
+            var call = client.EvaluateAsync(Fixtures.NoulRequest(), cancellation.Token).AsTask();
+            await received.Task.WaitAsync(HangGuard);
+            await cancellation.CancelAsync();
 
-        var completed = await Task.WhenAny(task, Task.Delay(TimeSpan.FromSeconds(4)));
-        Assert.Same(task, completed);
-        await task;
+            // HangGuard only stops a regression that ignores the token from hanging the run: it then surfaces as a
+            // TimeoutException, which fails the assertion below.
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => call.WaitAsync(HangGuard));
+        }
+        finally
+        {
+            release.SetResult();
+        }
     }
+
+    // Far longer than any scheduling delay a loaded machine adds; reached only when the code under test is broken.
+    private static readonly TimeSpan HangGuard = TimeSpan.FromSeconds(30);
 }
