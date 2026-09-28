@@ -26,6 +26,33 @@ public sealed class JsonTextTests
         Assert.Equal(value, document.RootElement.GetString());
     }
 
+    public static TheoryData<string, string> LoneSurrogateCases => new()
+    {
+        { "a" + (char)0xD800 + "b", "a\uFFFDb" },
+        { "a" + (char)0xDC00 + "b", "a\uFFFDb" },
+        { "a" + (char)0xDC00 + (char)0xD800, "a\uFFFD\uFFFD" },
+        { "end" + (char)0xD83D, "end\uFFFD" },
+    };
+
+    [Theory]
+    [MemberData(nameof(LoneSurrogateCases))]
+    public void AppendJsonString_LoneSurrogate_BecomesReplacementCharacter(string value, string expected)
+    {
+        var json = new StringBuilder().AppendJsonString(value).ToString();
+
+        Assert.All(json, c => Assert.InRange(c, ' ', '~'));
+        using var document = JsonDocument.Parse(json);
+        Assert.Equal(expected, document.RootElement.GetString());
+    }
+
+    [Fact]
+    public void AppendJsonString_SurrogatePair_IsKept()
+    {
+        var json = new StringBuilder().AppendJsonString("\U0001F600").ToString();
+
+        Assert.Equal("\"\\ud83d\\ude00\"", json);
+    }
+
     [Fact]
     public void CSharpLiteral_EscapesQuotesAndBackslashes()
         => Assert.Equal(@"""{\""a\"":\""\\n\""}""", JsonText.CSharpLiteral("{\"a\":\"\\n\"}"));
