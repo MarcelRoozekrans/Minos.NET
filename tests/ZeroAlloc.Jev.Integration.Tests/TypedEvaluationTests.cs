@@ -47,6 +47,25 @@ public partial record StructuredTriage
     public partial Score<IntegrationSeverity> Severity { get; }
 }
 
+/// <summary>Matches the questions of <c>request-structured.json</c>: object instructions sent with Json = true.</summary>
+[JevQuestions]
+public partial record DuplicateTriage
+{
+    [Noul(
+        """
+        {
+          "potential_duplicate": {
+            "name": "John Smith",
+            "location": "Oakland, California",
+            "last_employer": "Google"
+          },
+          "question": "Is the resume for the same person as `potential_duplicate`?"
+        }
+        """,
+        Json = true)]
+    public partial Noul IsDuplicate { get; }
+}
+
 public sealed class TypedEvaluationTests : IClassFixture<WireMockFixture>
 {
     private readonly WireMockFixture _fixture;
@@ -111,10 +130,37 @@ public sealed class TypedEvaluationTests : IClassFixture<WireMockFixture>
 
         Assert.True(result.IsSuccess);
         Assert.Equal(IntegrationDepartment.Billing, result.Value.Department.Value);
+        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
 #pragma warning disable HLQ005
         var entry = Assert.Single(_fixture.Server.LogEntries);
 #pragma warning restore HLQ005
         var expected = JsonNode.Parse(Fixture.Text("request-structured-criteria.json"));
         Assert.True(JsonNode.DeepEquals(expected, JsonNode.Parse(entry.RequestMessage!.Body!)));
+    }
+
+    [Fact]
+    public async Task EvaluateAsyncT_SendsJsonInstructions()
+    {
+        _fixture.Server
+            .Given(Request.Create().WithPath("/v1/systemone").UsingPost())
+            .RespondWith(Response.Create()
+                .WithStatusCode(HttpStatusCode.OK)
+                .WithHeader("Content-Type", "application/json")
+                .WithBody("""{"model":"jev-1.13.0","answers":{"is_duplicate":{"type":"noul","noul":0.9}},"usage":{"input_tokens":300,"output_tokens":20}}"""));
+
+        using var client = IntegrationClient.Create(_fixture.BaseAddress);
+
+        var result = await client.EvaluateAsync<DuplicateTriage>("Resume: John Smith, Oakland, CA, last employer Google");
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(0.9, result.Value.IsDuplicate.Probability);
+        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
+#pragma warning disable HLQ005
+        var entry = Assert.Single(_fixture.Server.LogEntries);
+#pragma warning restore HLQ005
+        var fixture = JsonNode.Parse(Fixture.Text("request-structured.json"));
+        var expected = fixture?["questions"];
+        var actual = JsonNode.Parse(entry.RequestMessage!.Body!)?["questions"];
+        Assert.True(JsonNode.DeepEquals(expected, actual));
     }
 }
