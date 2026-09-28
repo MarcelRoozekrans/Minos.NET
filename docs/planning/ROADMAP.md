@@ -125,6 +125,7 @@ compress_memory: disabled
 
 **Surface:** Backend
 **HelpWanted:** no
+**Spec:** `docs/superpowers/specs/2026-09-28-phase-2.4-fluent-question-builders-design.md`
 **Plan:** _to be written_
 
 ## Milestone 3: .NET integration [status: pending]
