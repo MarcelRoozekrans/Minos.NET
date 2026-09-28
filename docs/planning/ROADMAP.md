@@ -115,7 +115,7 @@ compress_memory: disabled
 **Surface:** Backend
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-09-28-phase-2.3-structured-instructions-and-criteria-design.md`
-**Plan:** _to be written_
+**Plan:** `docs/superpowers/plans/2026-09-28-phase-2.3-structured-instructions-and-criteria.md`
 
 ### Phase 2.4: Fluent question builders [status: pending]
 **Goal:** Builders for runtime-defined Noul, Choice and Score questions that share the typed answer types, with:
