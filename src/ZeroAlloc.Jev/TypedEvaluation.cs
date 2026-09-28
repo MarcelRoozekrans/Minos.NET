@@ -30,11 +30,7 @@ internal static class TypedEvaluation
     /// <returns>The content; it does not reference <paramref name="utf8Json"/>.</returns>
     /// <exception cref="ArgumentException"><paramref name="utf8Json"/> is not a single JSON string, object or array.</exception>
     public static JevContent ToContent(ReadOnlyMemory<byte> utf8Json, string paramName)
-    {
-        EnsureSingleJsonValue(utf8Json.Span, paramName);
-        using var document = JsonDocument.Parse(utf8Json);
-        return ToContent(document.RootElement, paramName);
-    }
+        => JevContent.FromUtf8Json(utf8Json.Span, paramName);
 
     /// <summary>Serializes a typed state to content through its source-generated metadata.</summary>
     /// <typeparam name="TState">The state type.</typeparam>
@@ -44,7 +40,7 @@ internal static class TypedEvaluation
     /// <returns>The content.</returns>
     /// <exception cref="ArgumentException"><paramref name="state"/> does not serialize to a string, object or array.</exception>
     public static JevContent ToContent<TState>(TState state, JsonTypeInfo<TState> stateTypeInfo, string paramName)
-        => ToContent(JsonSerializer.SerializeToElement(state, stateTypeInfo), paramName);
+        => JevContent.FromValue(state, stateTypeInfo, paramName);
 
     /// <summary>Checks that a state's JSON kind is one Jev accepts: a string, object or array.</summary>
     /// <param name="kind">The state's kind.</param>
@@ -95,18 +91,18 @@ internal static class TypedEvaluation
         {
             if (!reader.Read())
             {
-                throw new ArgumentException("The state is not JSON: the input is empty.", paramName);
+                throw new ArgumentException("The JSON is empty.", paramName);
             }
 
             reader.Skip();
             if (reader.Read())
             {
-                throw new ArgumentException("The state must be a single JSON value.", paramName);
+                throw new ArgumentException("The input must be a single JSON value.", paramName);
             }
         }
         catch (JsonException exception)
         {
-            throw new ArgumentException("The state is not a single, well-formed JSON value.", paramName, exception);
+            throw new ArgumentException("The input is not a single, well-formed JSON value.", paramName, exception);
         }
     }
 
