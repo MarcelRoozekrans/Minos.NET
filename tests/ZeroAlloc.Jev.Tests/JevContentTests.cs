@@ -244,6 +244,27 @@ public sealed class JevContentTests
         return document.RootElement.Clone();
     }
 
+    [Theory]
+    [InlineData("{")]
+    [InlineData("")]
+    [InlineData("1 2")]
+    [InlineData("[1]]")]
+    public void EnsureSingleJsonValue_RejectsAnythingButOneValue(string json)
+    {
+        var exception = Assert.Throws<ArgumentException>(
+            () => JevContent.EnsureSingleJsonValue(Encoding.UTF8.GetBytes(json), "arg"));
+
+        Assert.Equal("arg", exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData("{}")]
+    [InlineData(" [1, {\"a\": null}] ")]
+    [InlineData("\"text\"")]
+    [InlineData("42")]
+    public void EnsureSingleJsonValue_AcceptsOneValue(string json)
+        => JevContent.EnsureSingleJsonValue(Encoding.UTF8.GetBytes(json), "arg");
+
     private static string Write(JevContent value)
     {
         var buffer = new ArrayBufferWriter<byte>();

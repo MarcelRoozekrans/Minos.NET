@@ -291,6 +291,8 @@ static ZeroAlloc.Jev.JevAnswerReader.ReadNoul(ref System.Text.Json.Utf8JsonReade
 static ZeroAlloc.Jev.JevAnswerReader.ReadScore<T>(ref System.Text.Json.Utf8JsonReader reader, ZeroAlloc.Jev.JevOptionSet<T>! options, double[]! buffer, int offset) -> ZeroAlloc.Jev.Score<T>
 static ZeroAlloc.Jev.JevContent.FromJson(System.Text.Json.JsonElement json) -> ZeroAlloc.Jev.JevContent
 static ZeroAlloc.Jev.JevContent.FromString(string! text) -> ZeroAlloc.Jev.JevContent
+static ZeroAlloc.Jev.JevContent.FromUtf8Json(System.ReadOnlySpan<byte> utf8Json) -> ZeroAlloc.Jev.JevContent
+static ZeroAlloc.Jev.JevContent.FromValue<T>(T value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo) -> ZeroAlloc.Jev.JevContent
 static ZeroAlloc.Jev.JevContent.implicit operator ZeroAlloc.Jev.JevContent(string! text) -> ZeroAlloc.Jev.JevContent
 static ZeroAlloc.Jev.JevContent.operator !=(ZeroAlloc.Jev.JevContent left, ZeroAlloc.Jev.JevContent right) -> bool
 static ZeroAlloc.Jev.JevContent.operator ==(ZeroAlloc.Jev.JevContent left, ZeroAlloc.Jev.JevContent right) -> bool
@@ -303,5 +305,3 @@ static ZeroAlloc.Jev.ModelCard.operator !=(ZeroAlloc.Jev.ModelCard? left, ZeroAl
 static ZeroAlloc.Jev.ModelCard.operator ==(ZeroAlloc.Jev.ModelCard? left, ZeroAlloc.Jev.ModelCard? right) -> bool
 static ZeroAlloc.Jev.NoulCriteria.operator !=(ZeroAlloc.Jev.NoulCriteria? left, ZeroAlloc.Jev.NoulCriteria? right) -> bool
 static ZeroAlloc.Jev.NoulCriteria.operator ==(ZeroAlloc.Jev.NoulCriteria? left, ZeroAlloc.Jev.NoulCriteria? right) -> bool
-static ZeroAlloc.Jev.JevContent.FromUtf8Json(System.ReadOnlySpan<byte> utf8Json) -> ZeroAlloc.Jev.JevContent
-static ZeroAlloc.Jev.JevContent.FromValue<T>(T value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo) -> ZeroAlloc.Jev.JevContent

@@ -85,14 +85,10 @@ public readonly struct JevContent : IEquatable<JevContent>
 
     internal static JevContent FromUtf8Json(ReadOnlySpan<byte> utf8Json, string paramName)
     {
-        TypedEvaluation.EnsureSingleJsonValue(utf8Json, paramName);
+        EnsureSingleJsonValue(utf8Json, paramName);
         var reader = new Utf8JsonReader(utf8Json);
         return FromDetached(JsonElement.ParseValue(ref reader), paramName);
     }
-
-    /// <summary>Converts text to content.</summary>
-    /// <param name="text">The text.</param>
-    public static implicit operator JevContent(string text) => FromString(text);
 
     /// <summary>Wraps an element that already owns its document, with no second copy.</summary>
     private static JevContent FromDetached(JsonElement json, string paramName) => json.ValueKind switch
@@ -101,6 +97,36 @@ public readonly struct JevContent : IEquatable<JevContent>
         JsonValueKind.Object or JsonValueKind.Array => new JevContent(json),
         _ => throw new ArgumentException("Jev content must be a JSON string, object or array.", paramName),
     };
+
+    /// <summary>Checks that <paramref name="utf8Json"/> is exactly one complete JSON value. Does not allocate.</summary>
+    /// <param name="utf8Json">The UTF-8 JSON to check.</param>
+    /// <param name="paramName">The caller's parameter name, for the exception.</param>
+    /// <exception cref="ArgumentException">The input is empty, malformed, truncated or holds more than one value.</exception>
+    internal static void EnsureSingleJsonValue(ReadOnlySpan<byte> utf8Json, string paramName)
+    {
+        var reader = new Utf8JsonReader(utf8Json);
+        try
+        {
+            if (!reader.Read())
+            {
+                throw new ArgumentException("The JSON is empty.", paramName);
+            }
+
+            reader.Skip();
+            if (reader.Read())
+            {
+                throw new ArgumentException("The input must be a single JSON value.", paramName);
+            }
+        }
+        catch (JsonException exception)
+        {
+            throw new ArgumentException("The input is not a single, well-formed JSON value.", paramName, exception);
+        }
+    }
+
+    /// <summary>Converts text to content.</summary>
+    /// <param name="text">The text.</param>
+    public static implicit operator JevContent(string text) => FromString(text);
 
     /// <summary>Compares two content values for equality.</summary>
     /// <param name="left">The first value.</param>

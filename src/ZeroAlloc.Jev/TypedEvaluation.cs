@@ -64,7 +64,7 @@ internal static class TypedEvaluation
     /// </exception>
     public static void EnsureStateJson(ReadOnlySpan<byte> utf8Json, string paramName)
     {
-        EnsureSingleJsonValue(utf8Json, paramName);
+        JevContent.EnsureSingleJsonValue(utf8Json, paramName);
 
         var reader = new Utf8JsonReader(utf8Json);
         reader.Read();
@@ -79,32 +79,6 @@ internal static class TypedEvaluation
     /// <returns>The exception.</returns>
     public static ArgumentException InvalidStateKind(string paramName)
         => new("The state must be a JSON string, object or array.", paramName);
-
-    /// <summary>Checks that <paramref name="utf8Json"/> is exactly one complete JSON value. Does not allocate.</summary>
-    /// <param name="utf8Json">The UTF-8 JSON to check.</param>
-    /// <param name="paramName">The caller's parameter name, for the exception.</param>
-    /// <exception cref="ArgumentException">The input is empty, malformed, truncated or holds more than one value.</exception>
-    public static void EnsureSingleJsonValue(ReadOnlySpan<byte> utf8Json, string paramName)
-    {
-        var reader = new Utf8JsonReader(utf8Json);
-        try
-        {
-            if (!reader.Read())
-            {
-                throw new ArgumentException("The JSON is empty.", paramName);
-            }
-
-            reader.Skip();
-            if (reader.Read())
-            {
-                throw new ArgumentException("The input must be a single JSON value.", paramName);
-            }
-        }
-        catch (JsonException exception)
-        {
-            throw new ArgumentException("The input is not a single, well-formed JSON value.", paramName, exception);
-        }
-    }
 
     /// <summary>Builds the request that asks <typeparamref name="T"/>'s questions about <paramref name="state"/>.</summary>
     /// <typeparam name="T">The question set.</typeparam>
