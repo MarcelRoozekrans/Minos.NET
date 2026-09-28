@@ -78,6 +78,11 @@ internal sealed record InvalidSetModel(
 /// to emit when it is invalid but has implementable question properties, and the problems found. The generator keeps
 /// the model or the stubs; the analyzer reports the diagnostics.
 /// </summary>
+/// <remarks>
+/// <see cref="Diagnostics"/> holds what the set reports itself. It leaves out the rules about an enum declared in the
+/// same assembly, which the enum reports through <see cref="ModelBuilder.ValidateEnum"/>, though they still decide
+/// whether the set is valid. The rules about an enum from another assembly are included, on the property using it.
+/// </remarks>
 internal sealed record QuestionSetResult(
     QuestionSetModel? Model,
     InvalidSetModel? InvalidSet,

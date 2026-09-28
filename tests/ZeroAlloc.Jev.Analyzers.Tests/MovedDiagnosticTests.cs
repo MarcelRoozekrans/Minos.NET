@@ -120,7 +120,11 @@ public sealed class MovedDiagnosticTests
     {
         var (type, attribute) = await GetQuestionSetAsync(source);
 
-        var info = SingleDiagnostic(ModelBuilder.Build(type, attribute, CancellationToken.None).Diagnostics, DiagnosticIds.EmptyText);
+        // An enum's rules come from the enum's own analysis, not the set's build.
+        var diagnostics = type.ContainingNamespace.GetTypeMembers("E") is [{ } enumType]
+            ? ModelBuilder.ValidateEnum(enumType, QuestionKind.Score, CancellationToken.None)
+            : ModelBuilder.Build(type, attribute, CancellationToken.None).Diagnostics;
+        var info = SingleDiagnostic(diagnostics, DiagnosticIds.EmptyText);
 
         Assert.StartsWith(expected, Format(Diagnostics.EmptyText, info), StringComparison.Ordinal);
     }

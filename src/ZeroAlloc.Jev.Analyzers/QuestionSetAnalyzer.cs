@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Collections.Immutable;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.Diagnostics;
@@ -10,6 +9,13 @@ namespace ZeroAlloc.Jev.Analyzers;
 /// Reports the <c>[JevQuestions]</c> diagnostics. It runs the same model builder as the generator, which reports
 /// nothing and emits only throwing stubs for an invalid set, so the two cannot disagree about what is valid.
 /// </summary>
+/// <remarks>
+/// Every diagnostic is local: it points inside the declaration of the symbol whose action reports it. The IDE analyses
+/// the open document alone and shows only the local diagnostics it finds there, together with their code fixes. So a
+/// set reports its own rules, and those about an enum from another assembly, on the property that uses it; an enum
+/// declared in this compilation reports its own rules, for every way the sets use it, from its own action. Each
+/// finding is then reported exactly once, by the one symbol it belongs to, and needs no deduplication across sets.
+/// </remarks>
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class QuestionSetAnalyzer : DiagnosticAnalyzer
 {
@@ -46,42 +52,59 @@ public sealed class QuestionSetAnalyzer : DiagnosticAnalyzer
             var attributeType = start.Compilation.GetTypeByMetadataName(JevQuestionsAttribute);
             if (attributeType is not null)
             {
-                // An enum is walked once per property that uses it, across every question-set type, so a finding on
-                // the enum or one of its members (JEV001–003, JEV005, JEV006, JEV104) would repeat once per property.
-                // Each distinct finding (same rule, location and message arguments) is reported once per compilation.
-                // The arguments keep apart the members of an enum from another assembly, which all land on the
-                // property; the location keeps apart findings on two properties.
-                var reported = new ConcurrentDictionary<DiagnosticInfo, byte>();
-                start.RegisterSymbolAction(symbol => Analyze(symbol, attributeType, reported), SymbolKind.NamedType);
+                var enumUsages = new EnumUsageIndex(start.Compilation, attributeType);
+                start.RegisterSymbolAction(
+                    symbol =>
+                    {
+                        var type = (INamedTypeSymbol)symbol.Symbol;
+                        if (type.TypeKind == TypeKind.Enum)
+                        {
+                            AnalyzeEnum(symbol, type, enumUsages);
+                        }
+                        else
+                        {
+                            AnalyzeSet(symbol, type, attributeType);
+                        }
+                    },
+                    SymbolKind.NamedType);
             }
         });
     }
 
-    private static void Analyze(
-        SymbolAnalysisContext context,
-        INamedTypeSymbol attributeType,
-        ConcurrentDictionary<DiagnosticInfo, byte> reported)
+    /// <summary>The rules of a <c>[JevQuestions]</c> type and its properties.</summary>
+    private static void AnalyzeSet(SymbolAnalysisContext context, INamedTypeSymbol type, INamedTypeSymbol attributeType)
     {
-        var type = (INamedTypeSymbol)context.Symbol;
         foreach (var attribute in type.GetAttributes())
         {
-            if (!SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, attributeType))
+            if (SymbolEqualityComparer.Default.Equals(attribute.AttributeClass, attributeType))
             {
-                continue;
+                Report(context, ModelBuilder.Build(type, attribute, context.CancellationToken).Diagnostics);
+                return;
             }
+        }
+    }
 
-            foreach (var info in ModelBuilder.Build(type, attribute, context.CancellationToken).Diagnostics)
-            {
-                if (!reported.TryAdd(info, 0))
-                {
-                    continue;
-                }
+    /// <summary>The rules of an enum, once for each way the sets use it: as a Choice, a Score, or both.</summary>
+    private static void AnalyzeEnum(SymbolAnalysisContext context, INamedTypeSymbol enumType, EnumUsageIndex enumUsages)
+    {
+        var usage = enumUsages.For(enumType, context.CancellationToken);
+        if ((usage & EnumUsage.Choice) != 0)
+        {
+            Report(context, ModelBuilder.ValidateEnum(enumType, QuestionKind.Choice, context.CancellationToken));
+        }
 
-                context.ReportDiagnostic(Diagnostic.Create(
-                    DescriptorsById[info.Id], info.Location, info.Arguments.Cast<object>().ToArray()));
-            }
+        if ((usage & EnumUsage.Score) != 0)
+        {
+            Report(context, ModelBuilder.ValidateEnum(enumType, QuestionKind.Score, context.CancellationToken));
+        }
+    }
 
-            return;
+    private static void Report(SymbolAnalysisContext context, EquatableArray<DiagnosticInfo> diagnostics)
+    {
+        foreach (var info in diagnostics)
+        {
+            context.ReportDiagnostic(Diagnostic.Create(
+                DescriptorsById[info.Id], info.Location, info.Arguments.Cast<object>().ToArray()));
         }
     }
 }

@@ -16,12 +16,10 @@ namespace ZeroAlloc.Jev.Analyzers.Tests;
 /// <see cref="CompilerDiagnostics.None"/> ignores that expected compiler error consistently in every case here,
 /// the same way <c>AnalyzerVerifier.VerifyAsync</c> does for the analyzer-only tests.
 ///
-/// <para>Every test also sets <see cref="CodeFixTestBehaviors.SkipLocalDiagnosticCheck"/>: <see
-/// cref="QuestionSetAnalyzer"/> reports every diagnostic from a <c>RegisterSymbolAction</c> callback, which the
-/// testing framework always buckets as a "non-local", compilation-wide diagnostic regardless of the diagnostic
-/// having a perfectly good in-source <see cref="Location"/> — the bucketing follows which analyzer callback
-/// reported it, not where it points. Without this flag, <c>CodeFixTest</c> refuses to apply any fix to it at
-/// all.</para>
+/// <para>The testing framework's local-diagnostic check stays on: it refuses to fix a diagnostic that is not local,
+/// that is, one that does not point inside the declaration of the symbol whose action reported it. That is what the
+/// IDE shows for the open document, so the check proves the fix is offered there. Each JEV006 and JEV104 here comes
+/// from the enum's own symbol action and is local; <c>LocalDiagnosticTests</c> checks the same directly.</para>
 /// </remarks>
 public sealed class CodeFixTests
 {
@@ -76,7 +74,6 @@ public sealed class CodeFixTests
             FixedCode = source,
             ReferenceAssemblies = ReferenceAssemblies.Net.Net100,
             CompilerDiagnostics = CompilerDiagnostics.None,
-            CodeFixTestBehaviors = CodeFixTestBehaviors.SkipLocalDiagnosticCheck,
         };
         AddReferences(test, reference);
 
@@ -131,7 +128,6 @@ public sealed class CodeFixTests
                 + "[ZeroAlloc.Jev.Choice(\"q\")] public partial ZeroAlloc.Jev.Choice<E> Answer { get; } }",
             ReferenceAssemblies = ReferenceAssemblies.Net.Net100,
             CompilerDiagnostics = CompilerDiagnostics.None,
-            CodeFixTestBehaviors = CodeFixTestBehaviors.SkipLocalDiagnosticCheck,
         };
         AddJevReference(test);
         return test.RunAsync();
@@ -146,7 +142,6 @@ public sealed class CodeFixTests
             FixedCode = fixedCode,
             ReferenceAssemblies = ReferenceAssemblies.Net.Net100,
             CompilerDiagnostics = CompilerDiagnostics.None,
-            CodeFixTestBehaviors = CodeFixTestBehaviors.SkipLocalDiagnosticCheck,
         };
 
         if (batch)

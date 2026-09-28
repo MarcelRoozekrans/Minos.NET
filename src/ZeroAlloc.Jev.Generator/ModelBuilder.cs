@@ -54,12 +54,16 @@ internal static class ModelBuilder
         var stateType = BuildState(attribute, type, diagnostics, cancellationToken);
         var stateMembers = stateType is null ? null : StateMembers.For(stateType);
 
+        // The rules about an enum declared in this assembly go on the enum, where ValidateEnum reports them from the
+        // enum's own analysis; they still decide the set's validity here. An enum from another assembly has no
+        // declaration to report on, so its findings join the set's own, on the property that uses it.
+        var enumDiagnostics = new List<DiagnosticInfo>();
         var questions = new List<QuestionModel>();
         foreach (var member in type.GetMembers())
         {
             cancellationToken.ThrowIfCancellationRequested();
             if (member is IPropertySymbol property
-                && BuildQuestion(property, stateMembers, diagnostics, cancellationToken) is { } question)
+                && BuildQuestion(property, stateMembers, diagnostics, enumDiagnostics, cancellationToken) is { } question)
             {
                 questions.Add(question);
             }
@@ -69,7 +73,7 @@ internal static class ModelBuilder
 
         // Advice (JEV003–006) leaves the set valid; any other diagnostic makes it invalid, and the generator then
         // emits only throwing stubs for its question properties.
-        if (diagnostics.Any(diagnostic => !DiagnosticIds.IsAdvisory(diagnostic.Id)))
+        if (diagnostics.Concat(enumDiagnostics).Any(diagnostic => !DiagnosticIds.IsAdvisory(diagnostic.Id)))
         {
             return Result(null, BuildInvalidSet(type, cancellationToken), diagnostics);
         }
@@ -86,6 +90,47 @@ internal static class ModelBuilder
 
     private static QuestionSetResult Result(QuestionSetModel? model, InvalidSetModel? invalidSet, List<DiagnosticInfo> diagnostics)
         => new(model, invalidSet, new EquatableArray<DiagnosticInfo>(diagnostics.ToArray()));
+
+    /// <summary>
+    /// The rules about one enum used as a Choice or a Score: JEV001 or JEV002 when it is empty, JEV005 for a count
+    /// outside the guidance, JEV006 or JEV104 for a member without its description, and JEV003 for an empty one. They
+    /// are located on the enum, its members and their attributes, so the enum's own analysis reports them. The same
+    /// code checks them inside <see cref="Build"/>, where they decide whether the set is valid.
+    /// </summary>
+    /// <param name="enumType">An enum declared in source.</param>
+    /// <param name="kind"><see cref="QuestionKind.Choice"/> or <see cref="QuestionKind.Score"/>: how a set uses it.</param>
+    /// <param name="cancellationToken">Cancels the syntax lookups.</param>
+    public static EquatableArray<DiagnosticInfo> ValidateEnum(
+        INamedTypeSymbol enumType, QuestionKind kind, CancellationToken cancellationToken)
+    {
+        var diagnostics = new List<DiagnosticInfo>();
+        BuildOptions(enumType, kind, externalUser: null, diagnostics, cancellationToken);
+        return new EquatableArray<DiagnosticInfo>(diagnostics.ToArray());
+    }
+
+    /// <summary>
+    /// The enums <paramref name="type"/>'s questions use, each with how it is used: exactly the enums whose options
+    /// <see cref="Build"/> checks, so an enum's own analysis reports what a build of the set finds. An unsupported
+    /// type, and a property that is not a well-formed Choice or Score question, contribute nothing.
+    /// </summary>
+    public static IEnumerable<(INamedTypeSymbol EnumType, QuestionKind Kind)> EnumUsages(
+        INamedTypeSymbol type, CancellationToken cancellationToken)
+    {
+        if (!IsSupportedType(type, cancellationToken))
+        {
+            yield break;
+        }
+
+        var ignored = new List<DiagnosticInfo>();
+        foreach (var property in type.GetMembers().OfType<IPropertySymbol>())
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            if (Classify(property, ignored, cancellationToken) is { EnumType: { } enumType } question)
+            {
+                yield return (enumType, question.Kind);
+            }
+        }
+    }
 
     /// <summary>
     /// The stubs for an invalid set: one for each question property that is an unimplemented partial definition,
@@ -279,9 +324,62 @@ internal static class ModelBuilder
                 reference.GetSyntax(cancellationToken) is TypeDeclarationSyntax declaration
                 && declaration.Modifiers.Any(SyntaxKind.PartialKeyword));
 
+    /// <param name="property">A member of the set.</param>
+    /// <param name="stateMembers">The <c>State</c> type's members, for JEV004; <see langword="null"/> without one.</param>
+    /// <param name="diagnostics">The set's own findings.</param>
+    /// <param name="enumDiagnostics">The findings about an enum declared in this assembly, which the enum reports.</param>
+    /// <param name="cancellationToken">Cancels the syntax lookups.</param>
     private static QuestionModel? BuildQuestion(
         IPropertySymbol property,
         StateMembers? stateMembers,
+        List<DiagnosticInfo> diagnostics,
+        List<DiagnosticInfo> enumDiagnostics,
+        CancellationToken cancellationToken)
+    {
+        if (Classify(property, diagnostics, cancellationToken) is not { } question)
+        {
+            return null;
+        }
+
+        var (attribute, kind, enumType) = question;
+        CheckText(attribute, $"The instruction text of '{property.Name}'", property, diagnostics, cancellationToken);
+        stateMembers?.CheckReferences(attribute, property, diagnostics, cancellationToken);
+
+        var options = new EquatableArray<OptionModel>(Array.Empty<OptionModel>());
+        if (enumType is not null)
+        {
+            var declaredHere = SymbolEqualityComparer.Default.Equals(enumType.ContainingAssembly, property.ContainingAssembly);
+            options = BuildOptions(
+                enumType,
+                kind,
+                declaredHere ? null : property,
+                declaredHere ? enumDiagnostics : diagnostics,
+                cancellationToken);
+            ReportDuplicates(options.Select(option => option.Key), property, property.Name, diagnostics);
+        }
+
+        return new QuestionModel(
+            Identifier(property.Name),
+            Modifiers(property, cancellationToken),
+            kind,
+            Named(attribute, "Key") ?? SnakeCase.Convert(property.Name),
+            Positional(attribute),
+            Named(attribute, "True"),
+            Named(attribute, "False"),
+            enumType?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) ?? string.Empty,
+            options);
+    }
+
+    /// <summary>A property's question attribute, its kind and, for a Choice or a Score, its enum.</summary>
+    private sealed record Question(AttributeData Attribute, QuestionKind Kind, INamedTypeSymbol? EnumType);
+
+    /// <summary>
+    /// Whether <paramref name="property"/> is a well-formed question: one question attribute, a supported shape and
+    /// name, and the type its attribute calls for. JEV102 and JEV103 go to <paramref name="diagnostics"/> when not.
+    /// </summary>
+    /// <returns>The question, or <see langword="null"/> when the property is no question or a malformed one.</returns>
+    private static Question? Classify(
+        IPropertySymbol property,
         List<DiagnosticInfo> diagnostics,
         CancellationToken cancellationToken)
     {
@@ -332,23 +430,7 @@ internal static class ModelBuilder
             return null;
         }
 
-        CheckText(attribute, $"The instruction text of '{property.Name}'", property, diagnostics, cancellationToken);
-        stateMembers?.CheckReferences(attribute, property, diagnostics, cancellationToken);
-
-        var options = enumType is null
-            ? new EquatableArray<OptionModel>(Array.Empty<OptionModel>())
-            : BuildOptions(enumType, kind, property, diagnostics, cancellationToken);
-
-        return new QuestionModel(
-            Identifier(property.Name),
-            Modifiers(property, cancellationToken),
-            kind,
-            Named(attribute, "Key") ?? SnakeCase.Convert(property.Name),
-            Positional(attribute),
-            Named(attribute, "True"),
-            Named(attribute, "False"),
-            enumType?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) ?? string.Empty,
-            options);
+        return new Question(attribute, kind, enumType);
     }
 
     private static INamedTypeSymbol? QuestionEnum(ITypeSymbol type, QuestionKind kind)
@@ -368,18 +450,27 @@ internal static class ModelBuilder
                 : null;
     }
 
+    /// <summary>The options of <paramref name="enumType"/> in wire order, checking the enum rules on the way.</summary>
+    /// <param name="enumType">The Choice or Score enum.</param>
+    /// <param name="kind">How the enum is used.</param>
+    /// <param name="externalUser">
+    /// The property using the enum when the enum is declared in another assembly, which has no declaration here to
+    /// report on: every finding then lands on the property. <see langword="null"/> for an enum declared in this
+    /// assembly, whose findings land on the enum, its members and their attributes.
+    /// </param>
+    /// <param name="diagnostics">The list the findings go to.</param>
+    /// <param name="cancellationToken">Cancels the syntax lookups.</param>
     private static EquatableArray<OptionModel> BuildOptions(
         INamedTypeSymbol enumType,
         QuestionKind kind,
-        IPropertySymbol property,
+        IPropertySymbol? externalUser,
         List<DiagnosticInfo> diagnostics,
         CancellationToken cancellationToken)
     {
         var options = new List<OptionModel>();
         var seenValues = new List<object?>();
 
-        // An enum declared in another assembly has no source location, so its diagnostics go on the property.
-        ISymbol At(ISymbol symbol) => symbol.Locations.Any(l => l.IsInSource) ? symbol : property;
+        ISymbol At(ISymbol symbol) => externalUser ?? symbol;
 
         foreach (var field in enumType.GetMembers().OfType<IFieldSymbol>())
         {
@@ -400,7 +491,7 @@ internal static class ModelBuilder
                 }
                 else
                 {
-                    CheckText(criteria, $"The [Criteria] description of '{enumType.Name}.{field.Name}'", property, diagnostics, cancellationToken);
+                    CheckText(criteria, $"The [Criteria] description of '{enumType.Name}.{field.Name}'", At(field), diagnostics, cancellationToken);
                 }
 
                 options.Add(new OptionModel(
@@ -410,7 +501,7 @@ internal static class ModelBuilder
             }
             else if (Find(field, LevelAttribute) is { } level)
             {
-                CheckText(level, $"The [Level] description of '{enumType.Name}.{field.Name}'", property, diagnostics, cancellationToken);
+                CheckText(level, $"The [Level] description of '{enumType.Name}.{field.Name}'", At(field), diagnostics, cancellationToken);
                 options.Add(new OptionModel(
                     Identifier(field.Name),
                     options.Count.ToString(CultureInfo.InvariantCulture),
@@ -423,7 +514,6 @@ internal static class ModelBuilder
         }
 
         CheckMemberCount(enumType, kind, seenValues.Count, At(enumType), diagnostics);
-        ReportDuplicates(options.Select(option => option.Key), property, property.Name, diagnostics);
         return new EquatableArray<OptionModel>(options.ToArray());
     }
 

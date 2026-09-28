@@ -20,15 +20,24 @@ internal static class CompilationHelper
         (await ReferenceAssemblies.Net.Net100.ResolveAsync(LanguageNames.CSharp, CancellationToken.None))
             .Add(MetadataReference.CreateFromFile(typeof(JevQuestionsAttribute).Assembly.Location)));
 
-    public static async Task<CSharpCompilation> CompileAsync(string source, string assemblyName = "CompilationHelperTest")
+    public static Task<CSharpCompilation> CompileAsync(string source, string assemblyName = "CompilationHelperTest")
+        => CompileAsync([CSharpSyntaxTree.ParseText(source, ParseOptions)], assemblyName);
+
+    /// <summary>Compiles several documents together, for the tests that analyse one document of a compilation alone.</summary>
+    public static async Task<CSharpCompilation> CompileAsync(IEnumerable<SyntaxTree> trees, string assemblyName = "CompilationHelperTest")
         => CSharpCompilation.Create(
             assemblyName,
-            [CSharpSyntaxTree.ParseText(source, new CSharpParseOptions(LanguageVersion.Latest))],
+            trees,
             await References.Value,
             new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary));
 
+    /// <summary>Parses <paramref name="source"/> as the document at <paramref name="path"/>.</summary>
+    public static SyntaxTree Parse(string source, string path) => CSharpSyntaxTree.ParseText(source, ParseOptions, path);
+
+    private static CSharpParseOptions ParseOptions => new(LanguageVersion.Latest);
+
     /// <summary>Emits <paramref name="compilation"/> to an in-memory assembly, for use as another compilation's
-    /// metadata reference (an enum declared "in a referenced assembly", for JEV104's dedup rule).</summary>
+    /// metadata reference (an enum declared "in a referenced assembly", whose findings land on the property that uses it).</summary>
     public static MetadataReference EmitToReference(this CSharpCompilation compilation)
     {
         using var stream = new MemoryStream();
