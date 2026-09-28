@@ -19,7 +19,7 @@ Questions and answers become strongly typed, idiomatic C# with no reflection. A 
 
 ## Phases
 1. Phase 2.1 — Typed evaluation [complete]
-2. Phase 2.2 — Analyzers and code fixes [active]
+2. Phase 2.2 — Analyzers and code fixes [complete]
 3. Phase 2.3 — Structured instructions and criteria [pending]
 4. Phase 2.4 — Fluent question builders [pending]
 
