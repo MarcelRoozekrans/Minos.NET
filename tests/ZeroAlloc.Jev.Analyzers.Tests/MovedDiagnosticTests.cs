@@ -111,22 +111,32 @@ public sealed class MovedDiagnosticTests
     }
 
     // JEV003 is a new rule, not a moved one; it sits here to share the message helpers below.
-    [Theory]
-    [InlineData("[JevQuestions] public partial class C { [Noul(\" \")] public partial Noul Answer { get; } }",
-        "The instruction text of 'Answer' is empty or whitespace")]
-    [InlineData("public enum E { [Level(\"a\")] A, [Level(\"\")] B } [JevQuestions] public partial class C { [Score(\"q\")] public partial Score<E> Answer { get; } }",
-        "The [Level] description of 'E.B' is empty or whitespace")]
-    public async Task EmptyText_Message_NamesTheText(string source, string expected)
+    [Fact]
+    public async Task EmptyText_InstructionText_MessageNamesTheText()
     {
-        var (type, attribute) = await GetQuestionSetAsync(source);
+        var (type, attribute) = await GetQuestionSetAsync(
+            "[JevQuestions] public partial class C { [Noul(\" \")] public partial Noul Answer { get; } }");
 
+        var info = SingleDiagnostic(ModelBuilder.Build(type, attribute, CancellationToken.None).Diagnostics, DiagnosticIds.EmptyText);
+
+        Assert.StartsWith(
+            "The instruction text of 'Answer' is empty or whitespace", Format(Diagnostics.EmptyText, info), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task EmptyText_LevelDescription_MessageNamesTheText()
+    {
         // An enum's rules come from the enum's own analysis, not the set's build.
-        var diagnostics = type.ContainingNamespace.GetTypeMembers("E") is [{ } enumType]
-            ? ModelBuilder.ValidateEnum(enumType, QuestionKind.Score, CancellationToken.None)
-            : ModelBuilder.Build(type, attribute, CancellationToken.None).Diagnostics;
-        var info = SingleDiagnostic(diagnostics, DiagnosticIds.EmptyText);
+        var compilation = await CompilationHelper.CompileAsync(
+            "using ZeroAlloc.Jev;\npublic enum E { [Level(\"a\")] A, [Level(\"\")] B }");
+        var enumType = compilation.GetTypeByMetadataName("E")
+            ?? throw new InvalidOperationException("Type 'E' not found in the compiled source.");
 
-        Assert.StartsWith(expected, Format(Diagnostics.EmptyText, info), StringComparison.Ordinal);
+        var info = SingleDiagnostic(
+            ModelBuilder.ValidateEnum(enumType, QuestionKind.Score, CancellationToken.None), DiagnosticIds.EmptyText);
+
+        Assert.StartsWith(
+            "The [Level] description of 'E.B' is empty or whitespace", Format(Diagnostics.EmptyText, info), StringComparison.Ordinal);
     }
 
     [Fact]

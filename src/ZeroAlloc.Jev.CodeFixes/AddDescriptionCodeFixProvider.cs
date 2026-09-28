@@ -73,8 +73,11 @@ public sealed class AddDescriptionCodeFixProvider : CodeFixProvider
         var metadataName = $"{JevNamespace}.{attributeName}Attribute";
 
         // The attribute is written fully qualified and left to the simplifier to shorten to what binds at the member.
-        // ImportAdder adds a using for it only when nothing in scope reaches it yet: in Roslyn 5.0.0 it overlooks a
-        // using inside a namespace and a global using in another file, and adds a redundant top-level one.
+        // ImportAdder is asked for a using only when nothing in scope reaches the attribute yet. On its own it mishandles
+        // two cases: under an alias using such as `using Jev = ZeroAlloc.Jev;` it still adds `using ZeroAlloc.Jev;` and
+        // the name reduces to a bare [Criteria], on Roslyn 5.0.0 and 5.9.0; and with a global using in another file it
+        // leaves a stray blank line at the top, on 5.0.0 only, fixed in later Roslyn.
+        // Tracked: #TBD
         var name = SyntaxFactory.ParseName("global::" + metadataName).WithAdditionalAnnotations(Simplifier.Annotation);
         if (model.Compilation.GetTypeByMetadataName(metadataName) is not { } attributeType
             || !IsInScope(model, member.SpanStart, attributeType))
@@ -111,6 +114,7 @@ public sealed class AddDescriptionCodeFixProvider : CodeFixProvider
     /// <paramref name="changed"/> as plain text, every line break the fix wrote in <paramref name="newLine"/>. ImportAdder
     /// ends a using it adds with a line break of its own choosing, which the formatter keeps whatever the new line
     /// option says, so a using added to a one-line file under <c>end_of_line = lf</c> would still end in <c>"\r\n"</c>.
+    /// Reproduced on Roslyn 5.0.0 and 5.9.0. Tracked: #TBD
     /// </summary>
     /// <remarks>
     /// Only the text the fix changed is rewritten, so the user's own lines keep their endings. The result carries no
