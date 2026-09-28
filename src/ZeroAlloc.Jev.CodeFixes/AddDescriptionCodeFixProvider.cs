@@ -77,7 +77,7 @@ public sealed class AddDescriptionCodeFixProvider : CodeFixProvider
         // two cases: under an alias using such as `using Jev = ZeroAlloc.Jev;` it still adds `using ZeroAlloc.Jev;` and
         // the name reduces to a bare [Criteria], on Roslyn 5.0.0 and 5.9.0; and with a global using in another file it
         // leaves a stray blank line at the top, on 5.0.0 only, fixed in later Roslyn.
-        // Tracked: #TBD
+        // Tracked: #51
         var name = SyntaxFactory.ParseName("global::" + metadataName).WithAdditionalAnnotations(Simplifier.Annotation);
         if (model.Compilation.GetTypeByMetadataName(metadataName) is not { } attributeType
             || !IsInScope(model, member.SpanStart, attributeType))
@@ -114,7 +114,7 @@ public sealed class AddDescriptionCodeFixProvider : CodeFixProvider
     /// <paramref name="changed"/> as plain text, every line break the fix wrote in <paramref name="newLine"/>. ImportAdder
     /// ends a using it adds with a line break of its own choosing, which the formatter keeps whatever the new line
     /// option says, so a using added to a one-line file under <c>end_of_line = lf</c> would still end in <c>"\r\n"</c>.
-    /// Reproduced on Roslyn 5.0.0 and 5.9.0. Tracked: #TBD
+    /// Reproduced on Roslyn 5.0.0 and 5.9.0. Tracked: #51
     /// </summary>
     /// <remarks>
     /// Only the text the fix changed is rewritten, so the user's own lines keep their endings. The result carries no
