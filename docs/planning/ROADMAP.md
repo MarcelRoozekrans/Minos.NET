@@ -102,12 +102,13 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-09-27-phase-2.1-typed-evaluation.md`
 **Completed:** 2026-09-27
 
-### Phase 2.2: Analyzers and code fixes [status: active]
+### Phase 2.2: Analyzers and code fixes [status: complete]
 **Goal:** `ZeroAlloc.Jev.Analyzers` hosts JEV001–006 (empty enums, empty text, state-member references, option and level guidance, missing criteria) and the JEV101–107 checks, which move out of the generator (#4; #5–#11 fixed along the way). `ZeroAlloc.Jev.CodeFixes` adds code fixes for a missing `[Criteria]` and a missing `[Level]`. Both are packed under `analyzers/dotnet/cs` and asserted by the pack tests.
 **Surface:** Backend
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-09-27-phase-2.2-analyzers-and-code-fixes-design.md`
 **Plan:** `docs/superpowers/plans/2026-09-28-phase-2.2-analyzers-and-code-fixes.md`
+**Completed:** 2026-09-28
 
 ### Phase 2.3: Structured instructions and criteria [status: pending]
 **Goal:** `Examples` / `NotFor` in attributes, sent as a criterion object, which is a Jev.Net convention and not an API field; object and array instructions and criteria; and `state` helpers. This spans the attributes, the generator and the analyzers, with budgets for the new paths.

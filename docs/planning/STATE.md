@@ -4,9 +4,15 @@
 
 ## Current Position
 - **Milestone:** 2 — Typed .NET API (active since 2026-09-27; Milestone 1 complete, audit PASS)
-- **Phase:** 2.2 — Analyzers and code fixes (active; spec and plan written, executing on branch `phase/2.2-analyzers`)
-- **Last completed task:** Phase 2.1 — Typed evaluation, merged as PR #49 on 2026-09-27; closes #12, #13, #22.
-- **Next task:** Phase 2.2 brainstorm on its own branch: `ZeroAlloc.Jev.Analyzers` (JEV001–004, and JEV101–107 moved out of the generator; #4–#11) and `ZeroAlloc.Jev.CodeFixes`.
+- **Phase:** 2.3 — Structured instructions and criteria (pending; no design spec yet)
+- **Last completed task:** Phase 2.2 — Analyzers and code fixes, merged as PR #52 on 2026-09-28; closes #4–#11.
+- **Next task:** Adopt ZeroAlloc.Rest 3.0.0 in its own PR (breaking: drop RUC/RDC from `JevRawSerializer`, AOT-safe `SystemTextJsonSerializer` context constructor, empty-body handling; closes #26, #27), then the Phase 2.3 brainstorm.
+
+## What Phase 2.2 shipped
+- `ZeroAlloc.Jev.Analyzers` reports every Jev diagnostic, and the generator reports none. New rules: JEV001–002 (Error: empty Choice or Score enum, from the SDK schema), JEV003 (Warning: blank text), JEV004 (Warning: a backticked name that matches no `State` member), JEV005 (Warning: the sketch's level and option ranges), JEV006 (Info: a Choice member without `[Criteria]`). JEV101–107 moved out of the generator, with #5–#11 fixed. Enum rules are local, so the IDE shows them. The analyzer also runs on generated code.
+- Invalid sets get throwing stub properties, so command-line builds show the JEV error rather than CS9248.
+- `ZeroAlloc.Jev.CodeFixes` inserts `[Criteria]` and `[Level]`. Its Roslyn `ImportAdder` workarounds are tracked in #51; upstream, dotnet/roslyn#85804 and a comment on #77119.
+- The package ships the generator, analyzers and code fixes. `Microsoft.CodeAnalysis.CSharp.Workspaces` is pinned at `[5.0.0]`.
 
 ## What Phase 2.1 shipped
 - `IJevClient.EvaluateAsync<T>` (string, `JsonElement`), `EvaluateUtf8Async<T>`, `EvaluateAsync<T, TState>` as default interface methods; `JevClient` overrides with a raw pooled-buffer path through `IJevApi.EvaluateRawAsync` and `JevRawSerializer`. Overload pairs without / with required `ct` (RS0026).
