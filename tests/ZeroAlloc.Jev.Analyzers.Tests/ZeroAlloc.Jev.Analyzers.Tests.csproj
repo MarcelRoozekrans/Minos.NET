@@ -1,8 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\..\src\ZeroAlloc.Jev.Analyzers\ZeroAlloc.Jev.Analyzers.csproj" />
-    <!-- CodeFixTests exercises AddDescriptionCodeFixProvider through CSharpCodeFixTest -->
-    <ProjectReference Include="..\..\src\ZeroAlloc.Jev.CodeFixes\ZeroAlloc.Jev.CodeFixes.csproj" />
+    <!--
+      CodeFixTests exercises AddDescriptionCodeFixProvider through CSharpCodeFixTest, and WordSplitterTests its internal
+      WordSplitter. The alias keeps the code fixes' internals apart from the analyzer's: both link DiagnosticIds.cs.
+    -->
+    <ProjectReference Include="..\..\src\ZeroAlloc.Jev.CodeFixes\ZeroAlloc.Jev.CodeFixes.csproj" Aliases="CodeFixes" />
     <!-- Valid sets run the generator too, so the compiler sees their partial properties implemented -->
     <ProjectReference Include="..\..\src\ZeroAlloc.Jev.Generator\ZeroAlloc.Jev.Generator.csproj" />
     <!-- Test sources use the [JevQuestions] attributes; AnalyzerVerifier adds this assembly as a metadata reference -->

@@ -29,4 +29,8 @@
   <ItemGroup>
     <Compile Include="..\ZeroAlloc.Jev.Generator\DiagnosticIds.cs" Link="Shared\DiagnosticIds.cs" />
   </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ZeroAlloc.Jev.Analyzers.Tests" />
+  </ItemGroup>
 </Project>
