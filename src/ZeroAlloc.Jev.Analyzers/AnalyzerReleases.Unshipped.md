@@ -1,9 +1,6 @@
 ; Unshipped analyzer release
 ; https://github.com/dotnet/roslyn-analyzers/blob/main/src/Microsoft.CodeAnalysis.Analyzers/ReleaseTrackingAnalyzers.Help.md
 
-; The generator compiles these descriptors through the shared ModelBuilder but never reports them;
-; ZeroAlloc.Jev.Analyzers reports them. Release tracking checks every descriptor an assembly creates, so they stay listed here too.
-
 ### New Rules
 
 Rule ID | Category | Severity | Notes

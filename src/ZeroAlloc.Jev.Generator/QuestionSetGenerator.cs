@@ -17,16 +17,16 @@ public sealed class QuestionSetGenerator : IIncrementalGenerator
                 "ZeroAlloc.Jev.JevQuestionsAttribute",
                 static (node, _) => node is TypeDeclarationSyntax,
                 static (attributeContext, cancellationToken)
-                    => ModelBuilder.Build(attributeContext, cancellationToken))
+                    => ModelBuilder.Build(
+                        (INamedTypeSymbol)attributeContext.TargetSymbol,
+                        attributeContext.Attributes[0],
+                        cancellationToken))
             .WithTrackingName(TrackingName);
 
+        // The generator reports nothing: QuestionSetAnalyzer reports the diagnostics from the same model builder,
+        // so an invalid set is only skipped here.
         context.RegisterSourceOutput(questionSets, static (output, result) =>
         {
-            foreach (var diagnostic in result.Diagnostics)
-            {
-                output.ReportDiagnostic(diagnostic.ToDiagnostic());
-            }
-
             if (result.Model is { } model)
             {
                 output.AddSource(SourceEmitter.HintName(model), SourceEmitter.Emit(model));

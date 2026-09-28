@@ -12,6 +12,11 @@
       "allowedVersions": "[5.0.0]"
     },
     {
+      "description": "Code fixes compile against the Workspaces layer of the same first .NET 10 SDK compiler (Roslyn 5.0.0); it must match the Microsoft.CodeAnalysis.CSharp pin exactly or restore fails with NU1605, so it stays manual too; the brackets mean exactly 5.0.0",
+      "matchPackageNames": ["Microsoft.CodeAnalysis.CSharp.Workspaces"],
+      "allowedVersions": "[5.0.0]"
+    },
+    {
       "description": "Group ZeroAlloc packages; they are this library's external dependencies",
       "matchPackageNames": ["ZeroAlloc.{/,}**"],
       "groupName": "ZeroAlloc"

@@ -2,10 +2,13 @@ using Microsoft.CodeAnalysis;
 
 namespace ZeroAlloc.Jev.Generator;
 
-/// <summary>Errors for declarations the generator cannot produce code for.</summary>
+/// <summary>
+/// Errors for declarations the generator cannot produce code for. ZeroAlloc.Jev.Analyzers links this file and
+/// its <c>QuestionSetAnalyzer</c> reports them; the generator only records them in the shared model and skips the set.
+/// </summary>
 internal static class Diagnostics
 {
-    private const string Category = "ZeroAlloc.Jev.Generator";
+    private const string Category = "ZeroAlloc.Jev";
 
     public static readonly DiagnosticDescriptor UnsupportedType = new(
         "JEV101",

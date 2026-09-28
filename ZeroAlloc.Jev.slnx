@@ -2,10 +2,12 @@
   <Folder Name="/src/">
     <Project Path="src/ZeroAlloc.Jev/ZeroAlloc.Jev.csproj" />
     <Project Path="src/ZeroAlloc.Jev.Generator/ZeroAlloc.Jev.Generator.csproj" />
+    <Project Path="src/ZeroAlloc.Jev.Analyzers/ZeroAlloc.Jev.Analyzers.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ZeroAlloc.Jev.Tests/ZeroAlloc.Jev.Tests.csproj" />
     <Project Path="tests/ZeroAlloc.Jev.Generator.Tests/ZeroAlloc.Jev.Generator.Tests.csproj" />
+    <Project Path="tests/ZeroAlloc.Jev.Analyzers.Tests/ZeroAlloc.Jev.Analyzers.Tests.csproj" />
     <Project Path="tests/ZeroAlloc.Jev.Integration.Tests/ZeroAlloc.Jev.Integration.Tests.csproj" />
     <Project Path="tests/ZeroAlloc.Jev.Live.Tests/ZeroAlloc.Jev.Live.Tests.csproj" />
     <Project Path="tests/ZeroAlloc.Jev.PackTests/ZeroAlloc.Jev.PackTests.csproj" />

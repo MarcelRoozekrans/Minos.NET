@@ -1,4 +1,3 @@
-using System.Collections.Immutable;
 using System.Globalization;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
@@ -16,9 +15,16 @@ internal static class ModelBuilder
     private const string LevelAttribute = "ZeroAlloc.Jev.LevelAttribute";
     private const string StateArgument = "State";
 
-    public static QuestionSetResult Build(GeneratorAttributeSyntaxContext context, CancellationToken cancellationToken)
+    /// <summary>
+    /// Builds the model for <paramref name="type"/> from its symbols alone, so the generator and the analyzer
+    /// share one copy of the rules. Any syntax needed, such as the <c>State</c> argument's location, is reached
+    /// through the symbols' syntax references.
+    /// </summary>
+    /// <param name="type">The type carrying <c>[JevQuestions]</c>.</param>
+    /// <param name="attribute">The <c>[JevQuestions]</c> application on <paramref name="type"/>.</param>
+    /// <param name="cancellationToken">Cancels the build.</param>
+    public static QuestionSetResult Build(INamedTypeSymbol type, AttributeData attribute, CancellationToken cancellationToken)
     {
-        var type = (INamedTypeSymbol)context.TargetSymbol;
         var diagnostics = new List<DiagnosticInfo>();
 
         if (!IsSupportedType(type, cancellationToken))
@@ -32,7 +38,7 @@ internal static class ModelBuilder
             diagnostics.Add(DiagnosticInfo.Create(Diagnostics.NoParameterlessConstructor, type, type.Name));
         }
 
-        var stateTypeName = BuildState(context.Attributes, type, diagnostics, cancellationToken);
+        var stateTypeName = BuildState(attribute, type, diagnostics, cancellationToken);
 
         var questions = new List<QuestionModel>();
         foreach (var member in type.GetMembers())
@@ -67,17 +73,11 @@ internal static class ModelBuilder
 
     /// <summary>Reads and validates the <c>[JevQuestions(State = ...)]</c> named argument, if present.</summary>
     private static string? BuildState(
-        ImmutableArray<AttributeData> attributes,
+        AttributeData attribute,
         INamedTypeSymbol type,
         List<DiagnosticInfo> diagnostics,
         CancellationToken cancellationToken)
     {
-        var attribute = attributes.FirstOrDefault();
-        if (attribute is null)
-        {
-            return null;
-        }
-
         foreach (var argument in attribute.NamedArguments)
         {
             if (argument.Key != StateArgument || argument.Value.Value is not ITypeSymbol stateType)
