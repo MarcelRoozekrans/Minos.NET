@@ -1,5 +1,4 @@
 using System.Buffers;
-using System.Diagnostics.CodeAnalysis;
 using ZeroAlloc.Rest;
 
 namespace ZeroAlloc.Jev.Transport;
@@ -10,8 +9,6 @@ namespace ZeroAlloc.Jev.Transport;
 /// </summary>
 internal sealed class JevRawSerializer : IRestSerializer
 {
-    private const string OnlyRawJson = "Supports only RawJson, which it copies as bytes; no reflection or dynamic code is used.";
-
     // Large enough for a typical /v1/systemone response, small enough to stay out of the large object heap.
     private const int InitialResponseCapacity = 4096;
 
@@ -40,8 +37,6 @@ internal sealed class JevRawSerializer : IRestSerializer
     /// <param name="ct">Cancels the read.</param>
     /// <returns>The body.</returns>
     /// <exception cref="NotSupportedException"><typeparamref name="T"/> is not <see cref="RawJson"/>.</exception>
-    [RequiresUnreferencedCode(OnlyRawJson)]
-    [RequiresDynamicCode(OnlyRawJson)]
     public async ValueTask<T?> DeserializeAsync<T>(Stream stream, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(stream);
@@ -88,8 +83,6 @@ internal sealed class JevRawSerializer : IRestSerializer
     /// <param name="ct">Cancels the write.</param>
     /// <returns>A task that completes when the bytes are written.</returns>
     /// <exception cref="NotSupportedException"><paramref name="value"/> is not a <see cref="RawJson"/>.</exception>
-    [RequiresUnreferencedCode(OnlyRawJson)]
-    [RequiresDynamicCode(OnlyRawJson)]
     public ValueTask SerializeAsync<T>(Stream stream, T value, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(stream);

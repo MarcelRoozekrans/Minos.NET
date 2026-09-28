@@ -7,12 +7,6 @@
     <!-- Zero runtime reflection by design; enables IsTrimmable and the IL2026/IL3050 analyzers. -->
     <IsAotCompatible>true</IsAotCompatible>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!--
-      HLQ001 fires only in ZeroAlloc.Rest.Generator's own generated __CreateHttpError (IJevApi.g.cs), which this
-      project does not author and cannot edit; .editorconfig severity overrides cannot scope generated code.
-      Remove once ZeroAlloc-Net/ZeroAlloc.Rest#335 ships: https://github.com/ZeroAlloc-Net/ZeroAlloc.Rest/issues/335
-    -->
-    <NoWarn>$(NoWarn);HLQ001</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
