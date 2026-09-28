@@ -122,8 +122,8 @@ public sealed class CodeFixTests
                 + "[ZeroAlloc.Jev.JevQuestions] public partial class Q { "
                 + "[ZeroAlloc.Jev.Choice(\"q\")] public partial ZeroAlloc.Jev.Choice<E> Answer { get; } }",
             // A single line has no line break of its own to follow and there is no .editorconfig, so the using ends
-            // with the workspace's default new line, "\r\n".
-            FixedCode = "using ZeroAlloc.Jev;\r\n\r\npublic enum E { [ZeroAlloc.Jev.Criteria(\"x\")] A, [Criteria(\"B\")] B } "
+            // with the workspace's default new line, Environment.NewLine: "\n" on Linux, "\r\n" on Windows.
+            FixedCode = "using ZeroAlloc.Jev;" + Environment.NewLine + Environment.NewLine + "public enum E { [ZeroAlloc.Jev.Criteria(\"x\")] A, [Criteria(\"B\")] B } "
                 + "[ZeroAlloc.Jev.JevQuestions] public partial class Q { "
                 + "[ZeroAlloc.Jev.Choice(\"q\")] public partial ZeroAlloc.Jev.Choice<E> Answer { get; } }",
             ReferenceAssemblies = ReferenceAssemblies.Net.Net100,
