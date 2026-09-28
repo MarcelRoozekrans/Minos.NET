@@ -13,6 +13,40 @@ public partial record NoulTriage
     public partial Noul IsUrgent { get; }
 }
 
+public enum IntegrationDepartment
+{
+    [Criteria("Payments, invoicing, refunds", Examples = ["I was charged twice"], NotFor = ["How much is Pro?"])]
+    Billing,
+
+    [Criteria("Bugs, outages, integrations", Examples = new[] { "The API returns 500" })]
+    Technical,
+
+    [Criteria("Pricing, upgrades, new accounts", Examples = [], NotFor = [])]
+    Sales,
+
+    Other,
+}
+
+public enum IntegrationSeverity
+{
+    [Level("Cosmetic", NotFor = ["Data loss"])]
+    Low,
+
+    [Level("Blocks work")]
+    High,
+}
+
+/// <summary>Matches <c>request-structured-criteria.json</c> exactly.</summary>
+[JevQuestions]
+public partial record StructuredTriage
+{
+    [Choice("Which team should handle this?")]
+    public partial Choice<IntegrationDepartment> Department { get; }
+
+    [Score("How severe is this?")]
+    public partial Score<IntegrationSeverity> Severity { get; }
+}
+
 public sealed class TypedEvaluationTests : IClassFixture<WireMockFixture>
 {
     private readonly WireMockFixture _fixture;
@@ -59,5 +93,28 @@ public sealed class TypedEvaluationTests : IClassFixture<WireMockFixture>
 
         var expectedBody = JsonNode.Parse(Fixture.Text("request-noul.json"));
         Assert.All(entries, entry => Assert.True(JsonNode.DeepEquals(expectedBody, JsonNode.Parse(entry.RequestMessage!.Body!))));
+    }
+
+    [Fact]
+    public async Task EvaluateAsyncT_SendsStructuredCriteria()
+    {
+        _fixture.Server
+            .Given(Request.Create().WithPath("/v1/systemone").UsingPost())
+            .RespondWith(Response.Create()
+                .WithStatusCode(HttpStatusCode.OK)
+                .WithHeader("Content-Type", "application/json")
+                .WithBody("""{"model":"jev-1.13.0","answers":{"department":{"type":"choice","choice":"billing","probabilities":{"billing":0.9,"technical":0.05,"sales":0.03,"other":0.02},"confidence":0.9},"severity":{"type":"score","score":0.2,"probabilities":{"0":0.8,"1":0.2},"confidence":0.8}},"usage":{"input_tokens":300,"output_tokens":20}}"""));
+
+        using var client = IntegrationClient.Create(_fixture.BaseAddress);
+
+        var result = await client.EvaluateAsync<StructuredTriage>("Help! My payouts have been failing for 3 days.");
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(IntegrationDepartment.Billing, result.Value.Department.Value);
+#pragma warning disable HLQ005
+        var entry = Assert.Single(_fixture.Server.LogEntries);
+#pragma warning restore HLQ005
+        var expected = JsonNode.Parse(Fixture.Text("request-structured-criteria.json"));
+        Assert.True(JsonNode.DeepEquals(expected, JsonNode.Parse(entry.RequestMessage!.Body!)));
     }
 }
