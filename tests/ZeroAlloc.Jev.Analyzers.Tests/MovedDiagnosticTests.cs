@@ -119,8 +119,38 @@ public sealed class MovedDiagnosticTests
 
         var info = SingleDiagnostic(ModelBuilder.Build(type, attribute, CancellationToken.None).Diagnostics, DiagnosticIds.EmptyText);
 
-        Assert.StartsWith(
-            "The instruction text of 'Answer' is empty or whitespace", Format(Diagnostics.EmptyText, info), StringComparison.Ordinal);
+        Assert.Equal(
+            "The instruction text of 'Answer' is empty or whitespace: write the text, or pass null to send none",
+            Format(Diagnostics.EmptyText, info));
+    }
+
+    [Fact]
+    public async Task EmptyText_EmptyJson_MessageAdvisesContentOrDroppingJson()
+    {
+        var (type, attribute) = await GetQuestionSetAsync(
+            "[JevQuestions] public partial class C { [Noul(\"{ }\", Json = true)] public partial Noul Answer { get; } }");
+
+        var info = SingleDiagnostic(ModelBuilder.Build(type, attribute, CancellationToken.None).Diagnostics, DiagnosticIds.EmptyText);
+
+        Assert.Equal(
+            "The instruction text of 'Answer' is an empty JSON object or array: add content, or drop Json",
+            Format(Diagnostics.EmptyText, info));
+    }
+
+    [Fact]
+    public async Task EmptyText_EmptyEntry_MessageAdvisesRemovingTheEntry()
+    {
+        var compilation = await CompilationHelper.CompileAsync(
+            "using ZeroAlloc.Jev;\npublic enum E { [Criteria(\"a\", Examples = [\" \"])] A }");
+        var enumType = compilation.GetTypeByMetadataName("E")
+            ?? throw new InvalidOperationException("Type 'E' not found in the compiled source.");
+
+        var info = SingleDiagnostic(
+            ModelBuilder.ValidateEnum(enumType, QuestionKind.Choice, CancellationToken.None), DiagnosticIds.EmptyText);
+
+        Assert.Equal(
+            "An entry of Examples on the [Criteria] description of 'E.A' is empty or whitespace: write the text, or remove the entry",
+            Format(Diagnostics.EmptyText, info));
     }
 
     [Fact]

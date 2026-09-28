@@ -26,6 +26,50 @@ public sealed class JsonTextTests
         Assert.Equal(value, document.RootElement.GetString());
     }
 
+    // Each lone-surrogate case is built inside a [Fact] body. Through [Theory] data, xunit.runner.visualstudio
+    // serializes the arguments for VSTest discovery and that round trip replaces an unpaired surrogate with U+FFFD
+    // before the test runs, so the input would already be valid and the test would pass without the escaping rule.
+    private const char Replacement = (char)0xFFFD;
+
+    [Fact]
+    public void AppendJsonString_LoneHighSurrogateMidString_BecomesReplacementCharacter()
+        => AssertReplaced("a" + (char)0xD800 + "b", "a" + Replacement + "b");
+
+    [Fact]
+    public void AppendJsonString_LoneLowSurrogateMidString_BecomesReplacementCharacter()
+        => AssertReplaced("a" + (char)0xDC00 + "b", "a" + Replacement + "b");
+
+    [Fact]
+    public void AppendJsonString_LowThenHighSurrogate_BecomesTwoReplacementCharacters()
+        => AssertReplaced("a" + (char)0xDC00 + (char)0xD800, "a" + Replacement + Replacement);
+
+    [Fact]
+    public void AppendJsonString_HighSurrogateAtEnd_BecomesReplacementCharacter()
+        => AssertReplaced("end" + (char)0xD83D, "end" + Replacement);
+
+    [Fact]
+    public void AppendJsonString_TwoConsecutiveHighSurrogates_BecomeTwoReplacementCharacters()
+        => AssertReplaced("a" + (char)0xD800 + (char)0xD801 + "b", "a" + Replacement + Replacement + "b");
+
+    private static void AssertReplaced(string value, string expected)
+    {
+        Assert.Contains(value, char.IsSurrogate);
+
+        var json = new StringBuilder().AppendJsonString(value).ToString();
+
+        Assert.All(json, c => Assert.InRange(c, ' ', '~'));
+        using var document = JsonDocument.Parse(json);
+        Assert.Equal(expected, document.RootElement.GetString());
+    }
+
+    [Fact]
+    public void AppendJsonString_SurrogatePair_IsKept()
+    {
+        var json = new StringBuilder().AppendJsonString("\U0001F600").ToString();
+
+        Assert.Equal("\"\\ud83d\\ude00\"", json);
+    }
+
     [Fact]
     public void CSharpLiteral_EscapesQuotesAndBackslashes()
         => Assert.Equal(@"""{\""a\"":\""\\n\""}""", JsonText.CSharpLiteral("{\"a\":\"\\n\"}"));

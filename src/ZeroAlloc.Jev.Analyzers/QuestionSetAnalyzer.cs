@@ -34,7 +34,9 @@ public sealed class QuestionSetAnalyzer : DiagnosticAnalyzer
         Diagnostics.MissingLevel,
         Diagnostics.NoParameterlessConstructor,
         Diagnostics.DuplicateKey,
-        Diagnostics.InvalidStateType);
+        Diagnostics.InvalidStateType,
+        Diagnostics.InvalidJson,
+        Diagnostics.JsonWithExamples);
 
     private static readonly ImmutableDictionary<string, DiagnosticDescriptor> DescriptorsById
         = Descriptors.ToImmutableDictionary(descriptor => descriptor.Id, StringComparer.Ordinal);

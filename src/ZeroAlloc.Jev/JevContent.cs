@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using ZeroAlloc.Jev.Serialization;
 
 namespace ZeroAlloc.Jev;
@@ -57,6 +58,70 @@ public readonly struct JevContent : IEquatable<JevContent>
             _ => throw new ArgumentException(
                 "Jev content must be a string, object or array.", nameof(json)),
         };
+    }
+
+    /// <summary>Creates content by serializing a value through its source-generated metadata; no reflection.</summary>
+    /// <typeparam name="T">The value's type.</typeparam>
+    /// <param name="value">The value: it must serialize to a JSON string, object or array.</param>
+    /// <param name="typeInfo">The metadata to serialize <paramref name="value"/> with.</param>
+    /// <returns>The content.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="typeInfo"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="value"/> does not serialize to a string, object or array.</exception>
+    public static JevContent FromValue<T>(T value, JsonTypeInfo<T> typeInfo) => FromValue(value, typeInfo, nameof(value));
+
+    /// <summary>Creates content from UTF-8 JSON: exactly one JSON string, object or array.</summary>
+    /// <param name="utf8Json">The UTF-8 JSON. The content does not reference it.</param>
+    /// <returns>The content.</returns>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="utf8Json"/> is empty, malformed, holds more than one value, or is not a string, object or array.
+    /// </exception>
+    public static JevContent FromUtf8Json(ReadOnlySpan<byte> utf8Json) => FromUtf8Json(utf8Json, nameof(utf8Json));
+
+    internal static JevContent FromValue<T>(T value, JsonTypeInfo<T> typeInfo, string paramName)
+    {
+        ArgumentNullException.ThrowIfNull(typeInfo);
+        return FromDetached(JsonSerializer.SerializeToElement(value, typeInfo), paramName);
+    }
+
+    internal static JevContent FromUtf8Json(ReadOnlySpan<byte> utf8Json, string paramName)
+    {
+        EnsureSingleJsonValue(utf8Json, paramName);
+        var reader = new Utf8JsonReader(utf8Json);
+        return FromDetached(JsonElement.ParseValue(ref reader), paramName);
+    }
+
+    /// <summary>Wraps an element that already owns its document, with no second copy.</summary>
+    private static JevContent FromDetached(JsonElement json, string paramName) => json.ValueKind switch
+    {
+        JsonValueKind.String => new JevContent(json.GetString()!),
+        JsonValueKind.Object or JsonValueKind.Array => new JevContent(json),
+        _ => throw new ArgumentException("Jev content must be a JSON string, object or array.", paramName),
+    };
+
+    /// <summary>Checks that <paramref name="utf8Json"/> is exactly one complete JSON value. Does not allocate.</summary>
+    /// <param name="utf8Json">The UTF-8 JSON to check.</param>
+    /// <param name="paramName">The caller's parameter name, for the exception.</param>
+    /// <exception cref="ArgumentException">The input is empty, malformed, truncated or holds more than one value.</exception>
+    internal static void EnsureSingleJsonValue(ReadOnlySpan<byte> utf8Json, string paramName)
+    {
+        var reader = new Utf8JsonReader(utf8Json);
+        try
+        {
+            if (!reader.Read())
+            {
+                throw new ArgumentException("The JSON is empty.", paramName);
+            }
+
+            reader.Skip();
+            if (reader.Read())
+            {
+                throw new ArgumentException("The input must be a single JSON value.", paramName);
+            }
+        }
+        catch (JsonException exception)
+        {
+            throw new ArgumentException("The input is not a single, well-formed JSON value.", paramName, exception);
+        }
     }
 
     /// <summary>Converts text to content.</summary>

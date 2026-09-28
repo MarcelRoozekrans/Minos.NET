@@ -35,6 +35,39 @@ public partial record DepartmentRouting
     public partial Choice<Department> Department { get; }
 }
 
+public enum StructuredDepartment
+{
+    [Criteria("Payments, invoicing, refunds", Examples = ["I was charged twice"], NotFor = ["How much is Pro?"])]
+    Billing,
+
+    [Criteria("Bugs, outages, integrations", Examples = new[] { "The API returns 500" })]
+    Technical,
+
+    [Criteria("Pricing, upgrades, new accounts", Examples = [], NotFor = [])]
+    Sales,
+
+    Other,
+}
+
+public enum StructuredSeverity
+{
+    [Level("Cosmetic", NotFor = ["Data loss"])]
+    Low,
+
+    [Level("Blocks work")]
+    High,
+}
+
+[JevQuestions]
+public partial record StructuredRouting
+{
+    [Choice("Which team should handle this?")]
+    public partial Choice<StructuredDepartment> Department { get; }
+
+    [Score("How severe is this?")]
+    public partial Score<StructuredSeverity> Severity { get; }
+}
+
 public enum Frustration
 {
     [Level("Calm")]
@@ -84,6 +117,24 @@ public enum Priority
 }
 
 [JevQuestions]
+public partial record DuplicateCheck
+{
+    [Noul(
+        """
+        {
+          "potential_duplicate": {
+            "name": "John Smith",
+            "location": "Oakland, California",
+            "last_employer": "Google"
+          },
+          "question": "Is the resume for the same person as `potential_duplicate`?"
+        }
+        """,
+        Json = true)]
+    public partial Noul IsDuplicate { get; }
+}
+
+[JevQuestions]
 public partial record EdgeCases
 {
     public const string TrickyInstructions = "Quote \" backslash \\ newline \n control \u0001 accent é emoji 😀 backtick `message`";
@@ -93,4 +144,30 @@ public partial record EdgeCases
 
     [Choice("Priority?")]
     public partial Choice<Priority> Priority { get; }
+}
+
+// JSON text at the minifier's depth limit of 60. Embedded in a request, a criterion description reaches the 64 levels
+// System.Text.Json reads by default, and the instructions one level less.
+public static class DeepJson
+{
+    public const string Text = "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\"Is it deep?\"]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]";
+}
+
+public enum DeepOption
+{
+    [Criteria(DeepJson.Text, Json = true)]
+    Shallow,
+
+    [Criteria(DeepJson.Text, Json = true)]
+    Deep,
+}
+
+[JevQuestions]
+public partial record DeepJsonCheck
+{
+    [Noul(DeepJson.Text, Json = true)]
+    public partial Noul IsDeep { get; }
+
+    [Choice(DeepJson.Text, Json = true)]
+    public partial Choice<DeepOption> Depth { get; }
 }

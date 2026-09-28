@@ -22,6 +22,25 @@ public sealed class GeneratedQuestionSetTests
     public void Score_QuestionsMatchFixture() => AssertQuestions<FrustrationCheck>("request-score.json");
 
     [Fact]
+    public void StructuredCriteria_QuestionsMatchFixture() => AssertQuestions<StructuredRouting>("request-structured-criteria.json");
+
+    [Fact]
+    public void JsonInstructions_QuestionsMatchFixture() => AssertQuestions<DuplicateCheck>("request-structured.json");
+
+    [Fact]
+    public void StructuredCriteria_DeserializeThroughWireModel()
+    {
+        var json = "{\"state\":\"x\",\"questions\":" + Encoding.UTF8.GetString(StructuredRouting.QuestionsUtf8) + "}";
+
+        var request = JsonSerializer.Deserialize(json, JevJsonContext.Default.SystemOneRequest)!;
+
+        var department = Assert.IsType<ChoiceQuestion>(request.Questions["department"]);
+        Assert.True(department.Criteria["billing"]!.Value.TryGetJson(out var billing));
+        Assert.Equal("I was charged twice", billing.GetProperty("examples")[0].GetString());
+        Assert.True(department.Criteria["sales"]!.Value.IsString);
+    }
+
+    [Fact]
     public void Questions_DeserializeThroughWireModel()
     {
         var json = "{\"state\":\"x\",\"questions\":" + Encoding.UTF8.GetString(TicketTriage.QuestionsUtf8) + "}";
@@ -34,6 +53,36 @@ public sealed class GeneratedQuestionSetTests
         Assert.Null(team.Criteria["other"]);
         var mood = Assert.IsType<ScoreQuestion>(request.Questions["mood"]);
         Assert.Equal(3, mood.Criteria.Count);
+    }
+
+    [Fact]
+    public void JsonAtDepthLimit_DeserializesThroughWireModel()
+    {
+        var json = "{\"state\":\"x\",\"questions\":" + Encoding.UTF8.GetString(DeepJsonCheck.QuestionsUtf8) + "}";
+        Assert.Equal(64, MaxNesting(json));
+
+        var request = JsonSerializer.Deserialize(json, JevJsonContext.Default.SystemOneRequest)!;
+
+        Assert.True(request.Questions["is_deep"].Instructions.TryGetJson(out var instructions));
+        Assert.Equal(JsonValueKind.Array, instructions.ValueKind);
+        var depth = Assert.IsType<ChoiceQuestion>(request.Questions["depth"]);
+        Assert.True(depth.Criteria["deep"]!.Value.TryGetJson(out var criterion));
+        Assert.Equal(JsonValueKind.Array, criterion.ValueKind);
+
+        static int MaxNesting(string text)
+        {
+            var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(text), new JsonReaderOptions { MaxDepth = 1000 });
+            var max = 0;
+            while (reader.Read())
+            {
+                if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
+                {
+                    max = Math.Max(max, reader.CurrentDepth + 1);
+                }
+            }
+
+            return max;
+        }
     }
 
     [Fact]

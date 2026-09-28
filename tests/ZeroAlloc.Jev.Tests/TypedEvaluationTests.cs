@@ -128,25 +128,4 @@ public sealed class TypedEvaluationTests
         Assert.Equal(Department.Billing, second.Value.Department.Value);
         Assert.Equal(first.Value, third.Value);
     }
-
-    [Theory]
-    [InlineData("{")]
-    [InlineData("")]
-    [InlineData("1 2")]
-    [InlineData("[1]]")]
-    public void EnsureSingleJsonValue_RejectsAnythingButOneValue(string json)
-    {
-        var exception = Assert.Throws<ArgumentException>(
-            () => TypedEvaluation.EnsureSingleJsonValue(Encoding.UTF8.GetBytes(json), "arg"));
-
-        Assert.Equal("arg", exception.ParamName);
-    }
-
-    [Theory]
-    [InlineData("{}")]
-    [InlineData(" [1, {\"a\": null}] ")]
-    [InlineData("\"text\"")]
-    [InlineData("42")]
-    public void EnsureSingleJsonValue_AcceptsOneValue(string json)
-        => TypedEvaluation.EnsureSingleJsonValue(Encoding.UTF8.GetBytes(json), "arg");
 }

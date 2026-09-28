@@ -28,6 +28,7 @@ internal static class Program
         await OpenRouterModelListingIsUnsupported().ConfigureAwait(false);
         await OverloadedThenSuccessIsRetried().ConfigureAwait(false);
         GeneratedQuestionSetRoundTrips();
+        StructuredQuestionSetRoundTrips();
         await TypedEvaluateAsyncParsesAnswers().ConfigureAwait(false);
         await TypedEvaluateAsyncWithTStateParsesAnswers().ConfigureAwait(false);
         await DefaultInterfaceMethodFallbackParsesAnswers().ConfigureAwait(false);
@@ -38,6 +39,8 @@ internal static class Program
         AllocationChecks.ReadScore();
         AllocationChecks.EvaluateRoundTrip();
         AllocationChecks.TypedEvaluateRoundTrip();
+        AllocationChecks.ContentFromValue();
+        AllocationChecks.ContentFromUtf8Json();
 
         Console.WriteLine(failures == 0 ? "AOT smoke: all checks passed" : "AOT smoke: " + failures + " check(s) failed");
         return failures == 0 ? 0 : 1;
@@ -127,6 +130,28 @@ internal static class Program
         Check(
             !triage.RequestsCredentials.Value && triage.Team.Value == Team.Account && triage.Urgency.Value == Urgency.High,
             "the generated Parse reads typed answers");
+    }
+
+    private static void StructuredQuestionSetRoundTrips()
+    {
+        using var questions = JsonDocument.Parse(SmokeStructured.QuestionsUtf8.ToArray());
+        var root = questions.RootElement;
+
+        Check(
+            root.GetProperty("requests_credentials").GetProperty("instructions").GetProperty("policy").GetProperty("strict").GetBoolean(),
+            "Json = true instructions are sent as a JSON object");
+        Check(
+            string.Equals(
+                root.GetProperty("team").GetProperty("criteria").GetProperty("billing").GetProperty("not_for")[0].GetString(),
+                "How much is Pro?",
+                StringComparison.Ordinal),
+            "Examples and NotFor are sent as a criterion object");
+        Check(
+            string.Equals(
+                root.GetProperty("team").GetProperty("criteria").GetProperty("account").GetProperty("owner").GetString(),
+                "identity",
+                StringComparison.Ordinal),
+            "a Json = true description is sent as JSON");
     }
 
     private static async Task TypedEvaluateAsyncParsesAnswers()

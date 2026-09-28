@@ -73,6 +73,29 @@ public sealed class TypeSafeLiveTests
     }
 
     [LiveFact(JevProvider.TypeSafe)]
+    public async Task StructuredCriteria_ParsesTypedAnswers()
+    {
+        using var client = Live.Client(JevProvider.TypeSafe);
+
+        var result = await client.EvaluateAsync<LiveStructuredRouting>(
+            "Help! My payouts have been failing for 3 days and nobody answers.");
+
+        if (result.IsFailure)
+        {
+            Live.LogError(_output, result.Error);
+        }
+
+        Assert.True(result.IsSuccess);
+
+        var routing = result.Value;
+
+        Assert.InRange(routing.Team.Confidence, 0.0, 1.0);
+        Assert.True(Enum.IsDefined(routing.Team.Value));
+        Assert.Equal(3, routing.Team.Probabilities.Count);
+        Assert.InRange(routing.Team.Probabilities[routing.Team.Value], 0.0, 1.0);
+    }
+
+    [LiveFact(JevProvider.TypeSafe)]
     public async Task BadKey_IsUnauthorized()
     {
         using var client = new JevClient(new JevClientOptions { ApiKey = "invalid-key-for-live-test", MaxRetries = 0 });

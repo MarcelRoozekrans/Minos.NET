@@ -12,19 +12,23 @@ internal enum QuestionKind
 /// <summary>One Choice option or Score level, in wire order.</summary>
 /// <param name="MemberName">The enum member, escaped as a C# identifier.</param>
 /// <param name="Key">The wire key: snake_case name or override for a Choice, the level index for a Score.</param>
-/// <param name="Description">The criterion or level text; <see langword="null"/> sends JSON <c>null</c>.</param>
-internal sealed record OptionModel(string MemberName, string Key, string? Description);
+/// <param name="DescriptionJson">
+/// The criterion or level as a wire fragment: a JSON string, a criterion object or JSON from a <c>Json = true</c>
+/// description. <see langword="null"/> sends JSON <c>null</c>.
+/// </param>
+internal sealed record OptionModel(string MemberName, string Key, string? DescriptionJson);
 
 /// <summary>One question property.</summary>
 /// <param name="PropertyName">The property, escaped as a C# identifier.</param>
 /// <param name="Modifiers">The declaration's accessibility modifiers, repeated on the implementation.</param>
 /// <param name="EnumType">The fully qualified enum for Choice and Score; empty for Noul.</param>
+/// <param name="InstructionsJson">The instructions as a wire fragment: a JSON string, or JSON from a <c>Json = true</c> text.</param>
 internal sealed record QuestionModel(
     string PropertyName,
     string Modifiers,
     QuestionKind Kind,
     string Key,
-    string Instructions,
+    string InstructionsJson,
     string? WhenTrue,
     string? WhenFalse,
     string EnumType,

@@ -253,7 +253,7 @@ internal static class SourceEmitter
                 QuestionKind.Choice => "choice",
                 _ => "score",
             });
-            json.Append(",\"instructions\":").AppendJsonString(question.Instructions);
+            json.Append(",\"instructions\":").Append(question.InstructionsJson);
 
             switch (question.Kind)
             {
@@ -282,15 +282,7 @@ internal static class SourceEmitter
                             json.Append(',');
                         }
 
-                        json.AppendJsonString(option.Key).Append(':');
-                        if (option.Description is null)
-                        {
-                            json.Append("null");
-                        }
-                        else
-                        {
-                            json.AppendJsonString(option.Description);
-                        }
+                        json.AppendJsonString(option.Key).Append(':').Append(option.DescriptionJson ?? "null");
                     }
 
                     json.Append('}');
@@ -305,7 +297,7 @@ internal static class SourceEmitter
                             json.Append(',');
                         }
 
-                        json.AppendJsonString(question.Options[j].Description ?? string.Empty);
+                        json.Append(question.Options[j].DescriptionJson ?? "\"\"");
                     }
 
                     json.Append(']');

@@ -1,9 +1,19 @@
 using System.Buffers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using ZeroAlloc.Jev.Serialization;
 
 namespace ZeroAlloc.Jev.Tests;
+
+public sealed record ContentSample(string Name, int Age);
+
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase)]
+[JsonSerializable(typeof(ContentSample))]
+[JsonSerializable(typeof(int))]
+[JsonSerializable(typeof(string))]
+[JsonSerializable(typeof(int[]))]
+internal sealed partial class ContentJsonContext : JsonSerializerContext;
 
 public sealed class JevContentTests
 {
@@ -160,11 +170,100 @@ public sealed class JevContentTests
         Assert.Throws<JsonException>(() => Read("true"));
     }
 
+    [Fact]
+    public void FromValue_Object_IsJson()
+    {
+        var content = JevContent.FromValue(new ContentSample("John", 42), ContentJsonContext.Default.ContentSample);
+
+        Assert.True(content.TryGetJson(out var json));
+        Assert.Equal("John", json.GetProperty("name").GetString());
+    }
+
+    [Fact]
+    public void FromValue_Array_IsJson()
+        => Assert.True(JevContent.FromValue([1, 2], ContentJsonContext.Default.Int32Array).TryGetJson(out _));
+
+    [Fact]
+    public void FromValue_String_IsText()
+    {
+        var content = JevContent.FromValue("hello", ContentJsonContext.Default.String);
+
+        Assert.True(content.TryGetString(out var text));
+        Assert.Equal("hello", text);
+    }
+
+    [Fact]
+    public void FromValue_Number_Throws()
+        => Assert.Equal("value", Assert.Throws<ArgumentException>(() => JevContent.FromValue(5, ContentJsonContext.Default.Int32)).ParamName);
+
+    [Fact]
+    public void FromValue_NullTypeInfo_Throws()
+        => Assert.Throws<ArgumentNullException>(() => JevContent.FromValue<int>(5, null!));
+
+    [Theory]
+    [InlineData("{\"a\":1}", false)]
+    [InlineData("[1,2]", false)]
+    [InlineData("\"text\"", true)]
+    public void FromUtf8Json_Accepted(string json, bool isString)
+        => Assert.Equal(isString, JevContent.FromUtf8Json(Encoding.UTF8.GetBytes(json)).IsString);
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("5")]
+    [InlineData("null")]
+    [InlineData("true")]
+    [InlineData("{} {}")]
+    [InlineData("{")]
+    public void FromUtf8Json_Rejected(string json)
+        => Assert.Equal(
+            "utf8Json",
+            Assert.Throws<ArgumentException>(() => JevContent.FromUtf8Json(Encoding.UTF8.GetBytes(json))).ParamName);
+
+    [Fact]
+    public void FromUtf8Json_WithBom_IsRejected_AsTheStatePathIs()
+    {
+        byte[] withBom = [0xEF, 0xBB, 0xBF, (byte)'{', (byte)'}'];
+
+        Assert.Throws<ArgumentException>(() => JevContent.FromUtf8Json(withBom));
+    }
+
+    [Fact]
+    public void FromUtf8Json_DoesNotReferenceInput()
+    {
+        var bytes = Encoding.UTF8.GetBytes("{\"a\":\"b\"}");
+        var content = JevContent.FromUtf8Json(bytes);
+        Array.Clear(bytes);
+
+        Assert.True(content.TryGetJson(out var json));
+        Assert.Equal("b", json.GetProperty("a").GetString());
+    }
+
     private static JsonElement Json(string json)
     {
         using var document = JsonDocument.Parse(json);
         return document.RootElement.Clone();
     }
+
+    [Theory]
+    [InlineData("{")]
+    [InlineData("")]
+    [InlineData("1 2")]
+    [InlineData("[1]]")]
+    public void EnsureSingleJsonValue_RejectsAnythingButOneValue(string json)
+    {
+        var exception = Assert.Throws<ArgumentException>(
+            () => JevContent.EnsureSingleJsonValue(Encoding.UTF8.GetBytes(json), "arg"));
+
+        Assert.Equal("arg", exception.ParamName);
+    }
+
+    [Theory]
+    [InlineData("{}")]
+    [InlineData(" [1, {\"a\": null}] ")]
+    [InlineData("\"text\"")]
+    [InlineData("42")]
+    public void EnsureSingleJsonValue_AcceptsOneValue(string json)
+        => JevContent.EnsureSingleJsonValue(Encoding.UTF8.GetBytes(json), "arg");
 
     private static string Write(JevContent value)
     {
