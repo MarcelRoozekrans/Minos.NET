@@ -4,7 +4,7 @@
 
 ## Current Position
 - **Milestone:** 2 — Typed .NET API (active since 2026-09-27; Milestone 1 complete, audit PASS)
-- **Phase:** 2.2 — Analyzers and code fixes (pending; no design spec yet)
+- **Phase:** 2.2 — Analyzers and code fixes (active; spec and plan written, executing on branch `phase/2.2-analyzers`)
 - **Last completed task:** Phase 2.1 — Typed evaluation, merged as PR #49 on 2026-09-27; closes #12, #13, #22.
 - **Next task:** Phase 2.2 brainstorm on its own branch: `ZeroAlloc.Jev.Analyzers` (JEV001–004, and JEV101–107 moved out of the generator; #4–#11) and `ZeroAlloc.Jev.CodeFixes`.
 

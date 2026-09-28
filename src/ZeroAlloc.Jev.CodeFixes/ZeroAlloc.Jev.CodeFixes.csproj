@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Roslyn loads code fixes as netstandard2.0 assemblies -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>ZeroAlloc.Jev.CodeFixes</RootNamespace>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <!-- Shipped inside the ZeroAlloc.Jev package under analyzers/dotnet/cs, never on its own -->
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+
+  <!--
+    Only the rule ids, not the descriptors: linking DiagnosticIds.cs (as ZeroAlloc.Jev.Analyzers itself does, from
+    the same file) keeps this assembly free of a load-time dependency on ZeroAlloc.Jev.Analyzers.dll. A code-fix
+    provider that referenced the analyzer assembly directly would make the two load together even when only one is
+    needed, which the generator/analyzer split was designed to avoid in the first place.
+  -->
+  <ItemGroup>
+    <Compile Include="..\ZeroAlloc.Jev.Generator\DiagnosticIds.cs" Link="Shared\DiagnosticIds.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="ZeroAlloc.Jev.Analyzers.Tests" />
+  </ItemGroup>
+</Project>

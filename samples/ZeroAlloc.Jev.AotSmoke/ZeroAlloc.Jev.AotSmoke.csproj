@@ -16,6 +16,10 @@
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"
                       UndefineProperties="PublishAot" />
+    <ProjectReference Include="..\..\src\ZeroAlloc.Jev.Analyzers\ZeroAlloc.Jev.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      UndefineProperties="PublishAot" />
     <PackageReference Include="ZeroAlloc.TestHelpers" PrivateAssets="all" />
   </ItemGroup>
 </Project>

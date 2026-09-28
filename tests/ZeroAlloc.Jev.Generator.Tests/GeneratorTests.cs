@@ -34,12 +34,6 @@ public sealed class GeneratorTests
     public void WithArrayState_Generates() => AssertGenerates(Sources.WithArrayState);
 
     [Fact]
-    public void ChoiceOverEmptyEnum_CompilesWithoutError() => AssertCompiles(Sources.ChoiceOverEmptyEnum);
-
-    [Fact]
-    public void ScoreOverEmptyEnum_CompilesWithoutError() => AssertCompiles(Sources.ScoreOverEmptyEnum);
-
-    [Fact]
     public void KeywordNamespaceAndType_Generates() => AssertGenerates(Sources.KeywordNamespaceAndType);
 
     [Fact]
@@ -76,6 +70,11 @@ public sealed class GeneratorTests
 
         var steps = driver.GetRunResult().Results[0].TrackedSteps[QuestionSetGenerator.TrackingName];
         Assert.NotEmpty(steps);
+
+        // An invalid set has no model, and with no question property to stub it has no stubs either: nothing is emitted.
+        Assert.All(
+            steps.SelectMany(step => step.Outputs),
+            output => Assert.Equal(new QuestionSetGenerator.GeneratorInput(null, null), output.Value));
         Assert.All(
             steps.SelectMany(step => step.Outputs),
             output => Assert.True(
@@ -115,6 +114,37 @@ public sealed class GeneratorTests
 
         var steps = driver.GetRunResult().Results[0].TrackedSteps[QuestionSetGenerator.TrackingName];
         Assert.NotEmpty(steps);
+
+        // An invalid set has no model, and with no question property to stub it has no stubs either: nothing is emitted.
+        Assert.All(
+            steps.SelectMany(step => step.Outputs),
+            output => Assert.Equal(new QuestionSetGenerator.GeneratorInput(null, null), output.Value));
+        Assert.All(
+            steps.SelectMany(step => step.Outputs),
+            output => Assert.True(
+                output.Reason is IncrementalStepRunReason.Cached or IncrementalStepRunReason.Unchanged,
+                $"Step output was {output.Reason}."));
+    }
+
+    [Fact]
+    public void InvalidSetWithStubs_UnrelatedEdit_KeepsQuestionSetsCached()
+    {
+        var compilation = GeneratorHarness.Compile(Sources.ChoiceOverEmptyEnum);
+        var driver = GeneratorHarness.CreateDriver().RunGenerators(compilation);
+
+        var edited = compilation.AddSyntaxTrees(
+            CSharpSyntaxTree.ParseText("internal static class Unrelated { }", GeneratorHarness.ParseOptions));
+        driver = driver.RunGenerators(edited);
+
+        var steps = driver.GetRunResult().Results[0].TrackedSteps[QuestionSetGenerator.TrackingName];
+        Assert.NotEmpty(steps);
+
+        // The stub model is value-equatable like the full model, so an unrelated edit leaves it cached.
+        Assert.All(
+            steps.SelectMany(step => step.Outputs),
+            output => Assert.True(
+                output.Value is QuestionSetGenerator.GeneratorInput { Model: null, InvalidSet: not null },
+                $"Step output was {output.Value}."));
         Assert.All(
             steps.SelectMany(step => step.Outputs),
             output => Assert.True(
@@ -129,15 +159,5 @@ public sealed class GeneratorTests
         Assert.Empty(diagnostics);
         Assert.Empty(output.GetDiagnostics().Where(d => d.Severity >= DiagnosticSeverity.Warning));
         GeneratorSnapshot.Verify(driver);
-    }
-
-    // Like AssertGenerates, but without a snapshot: used for cases that only need to prove the
-    // generated code compiles, not to pin its exact shape.
-    private static void AssertCompiles(string source)
-    {
-        GeneratorHarness.Run(source, out var output, out var diagnostics);
-
-        Assert.Empty(diagnostics);
-        Assert.Empty(output.GetDiagnostics().Where(d => d.Severity >= DiagnosticSeverity.Warning));
     }
 }

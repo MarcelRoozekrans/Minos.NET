@@ -88,8 +88,7 @@ internal static class Sources
         }
         """;
 
-    // A Choice over an enum with no members: CS0103 for the shared `buffer` variable if it is only
-    // declared when the total option count is positive.
+    // A Choice over an enum with no members: JEV001 makes the set invalid, so the generator emits only a throwing stub.
     public const string ChoiceOverEmptyEnum = """
         using ZeroAlloc.Jev;
 
@@ -107,7 +106,7 @@ internal static class Sources
         }
         """;
 
-    // A Score over an enum with no members: same CS0103 risk as ChoiceOverEmptyEnum.
+    // A Score over an enum with no members: JEV002 makes the set invalid, so the generator emits only a throwing stub.
     public const string ScoreOverEmptyEnum = """
         using ZeroAlloc.Jev;
 

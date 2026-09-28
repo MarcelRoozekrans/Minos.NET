@@ -1,5 +1,4 @@
 using Microsoft.CodeAnalysis;
-using Microsoft.CodeAnalysis.Text;
 
 namespace ZeroAlloc.Jev.Generator;
 
@@ -45,47 +44,83 @@ internal sealed record QuestionSetModel(
     string? StateTypeName,
     EquatableArray<QuestionModel> Questions);
 
-/// <summary>The pipeline value: a model when the type is valid, and the diagnostics found.</summary>
-internal sealed record QuestionSetResult(QuestionSetModel? Model, EquatableArray<DiagnosticInfo> Diagnostics);
+/// <summary>One accessor of a stubbed property, as the definition declares it.</summary>
+/// <param name="Modifiers">The accessor's own modifiers, such as <c>private</c>; empty when it has none.</param>
+/// <param name="Keyword"><c>get</c>, <c>set</c> or <c>init</c>.</param>
+internal sealed record StubAccessorModel(string Modifiers, string Keyword);
+
+/// <summary>One partial question property of an invalid set that the generator implements with a throwing stub.</summary>
+/// <param name="Modifiers">The definition's modifiers as written, in order, <c>partial</c> included.</param>
+/// <param name="TypeName">The property's fully qualified type, as declared.</param>
+/// <param name="PropertyName">The property, escaped as a C# identifier.</param>
+/// <param name="Accessors">The definition's accessors, in order.</param>
+internal sealed record StubPropertyModel(
+    string Modifiers,
+    string TypeName,
+    string PropertyName,
+    EquatableArray<StubAccessorModel> Accessors);
+
+/// <summary>One type declaration a stub file repeats: the invalid set itself, or one of the types containing it.</summary>
+/// <param name="Modifiers">
+/// The accessibility modifiers as declared, for a containing type; empty when none is declared, and always empty for
+/// the set itself, like the valid emitter's declaration part.
+/// </param>
+/// <param name="Keyword"><c>class</c>, <c>record</c>, <c>struct</c>, <c>record struct</c> or <c>interface</c>.</param>
+/// <param name="Name">The type's name, escaped as a C# identifier.</param>
+/// <param name="TypeParameters">
+/// The type parameter list with each parameter's variance, such as <c>&lt;in T, U&gt;</c>, or empty. Constraints are
+/// left out: a partial part may omit them.
+/// </param>
+/// <param name="Arity">The number of type parameters, which keeps the hint names of <c>Set</c> and <c>Set&lt;T&gt;</c> apart.</param>
+internal sealed record StubTypeModel(string Modifiers, string Keyword, string Name, string TypeParameters, int Arity);
 
 /// <summary>
-/// A source location kept as a syntax tree and span. This deliberately holds the <see cref="SyntaxTree"/>
-/// itself (rather than, say, a file path and line span) so that <see cref="ToLocation"/> produces a real
-/// <see cref="LocationKind.SourceFile"/> location with <c>Location.IsInSource == true</c> — diagnostics
-/// the generator reports stay attached to the offending source line instead of degrading to an
-/// <see cref="LocationKind.ExternalFile"/> location, which the file-path-only
-/// <see cref="Location.Create(string, TextSpan, LinePositionSpan)"/> form always produces.
-/// This is only reached for an invalid type (one that reports a diagnostic), so at most one tree per
-/// invalid <c>[JevQuestions]</c> type is ever carried in the pipeline model.
-/// Record equality (and therefore incremental caching) then relies on the tree instance being unchanged
-/// when unrelated files are edited elsewhere in the compilation — Roslyn reuses the same
-/// <see cref="SyntaxTree"/> object for files an edit did not touch, so this holds in practice, but it is a
-/// deliberate departure from the generator cookbook's general guidance to avoid carrying syntax/symbols in
-/// cached pipeline values.
+/// An invalid <c>[JevQuestions]</c> type whose partial question properties the generator implements anyway. The
+/// stubs keep the compiler from reporting CS9248, an unimplemented partial property: that declaration error would
+/// stop a command-line build before the analyzer runs, hiding the JEV error that explains the problem. The type may
+/// be one JEV101 rejects, as long as a partial part can complete it: a nested, generic, abstract or static type, or
+/// one that is not a class, so the model carries each declaration a partial part repeats.
 /// </summary>
-internal sealed record LocationInfo(SyntaxTree Tree, TextSpan Span)
+/// <param name="Namespace">The containing namespace, escaped; <see langword="null"/> for the global namespace.</param>
+/// <param name="ContainingTypes">The types containing the set, outermost first; empty for a top-level set.</param>
+/// <param name="Type">The set's own declaration.</param>
+/// <param name="Properties">The stubs.</param>
+internal sealed record InvalidSetModel(
+    string? Namespace,
+    EquatableArray<StubTypeModel> ContainingTypes,
+    StubTypeModel Type,
+    EquatableArray<StubPropertyModel> Properties);
+
+/// <summary>
+/// What <see cref="ModelBuilder"/> finds for one <c>[JevQuestions]</c> type: a model when the type is valid, the stubs
+/// to emit when it is invalid but has implementable question properties, and the problems found. The generator keeps
+/// the model or the stubs; the analyzer reports the diagnostics.
+/// </summary>
+/// <remarks>
+/// <see cref="Diagnostics"/> holds what the set reports itself. It leaves out the rules about an enum declared in the
+/// same assembly, which the enum reports through <see cref="ModelBuilder.ValidateEnum"/>, though they still decide
+/// whether the set is valid. The rules about an enum from another assembly are included, on the property using it.
+/// </remarks>
+internal sealed record QuestionSetResult(
+    QuestionSetModel? Model,
+    InvalidSetModel? InvalidSet,
+    EquatableArray<DiagnosticInfo> Diagnostics);
+
+/// <summary>
+/// A problem with a <c>[JevQuestions]</c> type, by rule id. It carries no <see cref="DiagnosticDescriptor"/>:
+/// the descriptors live only in ZeroAlloc.Jev.Analyzers, so the generator, which shares this file, defines no rules.
+/// </summary>
+/// <param name="Id">One of the <see cref="DiagnosticIds"/>.</param>
+/// <param name="Location">Where to report it, or <see langword="null"/> when there is no source location.</param>
+/// <param name="Arguments">The message format arguments.</param>
+internal sealed record DiagnosticInfo(string Id, Location? Location, EquatableArray<string> Arguments)
 {
-    public static LocationInfo? From(ISymbol symbol)
-    {
-        var location = symbol.Locations.FirstOrDefault(l => l.IsInSource);
-        return location?.SourceTree is null ? null : new LocationInfo(location.SourceTree, location.SourceSpan);
-    }
+    public static DiagnosticInfo Create(string id, ISymbol symbol, params string[] arguments)
+        => new(id, SourceLocation(symbol), new EquatableArray<string>(arguments));
 
-    /// <summary>Builds a location from a syntax node, for diagnostics that have no owning symbol to hang off.</summary>
-    public static LocationInfo From(SyntaxNode node) => new(node.SyntaxTree, node.Span);
+    public static DiagnosticInfo Create(string id, Location? location, params string[] arguments)
+        => new(id, location, new EquatableArray<string>(arguments));
 
-    public Location ToLocation() => Location.Create(Tree, Span);
-}
-
-/// <summary>A diagnostic in cacheable form.</summary>
-internal sealed record DiagnosticInfo(DiagnosticDescriptor Descriptor, LocationInfo? Where, EquatableArray<string> Arguments)
-{
-    public static DiagnosticInfo Create(DiagnosticDescriptor descriptor, ISymbol symbol, params string[] arguments)
-        => new(descriptor, LocationInfo.From(symbol), new EquatableArray<string>(arguments));
-
-    public static DiagnosticInfo Create(DiagnosticDescriptor descriptor, LocationInfo? location, params string[] arguments)
-        => new(descriptor, location, new EquatableArray<string>(arguments));
-
-    public Diagnostic ToDiagnostic()
-        => Diagnostic.Create(Descriptor, Where?.ToLocation(), Arguments.Cast<object>().ToArray());
+    /// <summary>The symbol's first location in source, or <see langword="null"/> when it has none.</summary>
+    public static Location? SourceLocation(ISymbol symbol) => symbol.Locations.FirstOrDefault(l => l.IsInSource);
 }

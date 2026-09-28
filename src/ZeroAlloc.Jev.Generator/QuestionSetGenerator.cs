@@ -16,21 +16,33 @@ public sealed class QuestionSetGenerator : IIncrementalGenerator
             .ForAttributeWithMetadataName(
                 "ZeroAlloc.Jev.JevQuestionsAttribute",
                 static (node, _) => node is TypeDeclarationSyntax,
-                static (attributeContext, cancellationToken)
-                    => ModelBuilder.Build(attributeContext, cancellationToken))
+                static (attributeContext, cancellationToken) =>
+                {
+                    var result = ModelBuilder.Build(
+                        (INamedTypeSymbol)attributeContext.TargetSymbol,
+                        attributeContext.Attributes[0],
+                        cancellationToken);
+                    return new GeneratorInput(result.Model, result.InvalidSet);
+                })
             .WithTrackingName(TrackingName);
 
-        context.RegisterSourceOutput(questionSets, static (output, result) =>
+        // The generator reports nothing: ZeroAlloc.Jev.Analyzers reports the diagnostics from the same model builder.
+        // The pipeline carries only value-equatable models, never the diagnostics, so it stays cacheable. A valid set
+        // gets its full implementation. An invalid one gets only throwing stubs for its unimplemented partial question
+        // properties, so the compiler reports no CS9248 for them and the analyzer's JEV errors are what a build shows.
+        context.RegisterSourceOutput(questionSets, static (output, input) =>
         {
-            foreach (var diagnostic in result.Diagnostics)
-            {
-                output.ReportDiagnostic(diagnostic.ToDiagnostic());
-            }
-
-            if (result.Model is { } model)
+            if (input.Model is { } model)
             {
                 output.AddSource(SourceEmitter.HintName(model), SourceEmitter.Emit(model));
             }
+            else if (input.InvalidSet is { } invalidSet)
+            {
+                output.AddSource(SourceEmitter.HintName(invalidSet), SourceEmitter.EmitStubs(invalidSet));
+            }
         });
     }
+
+    /// <summary>What the pipeline carries for one set: its model when valid, else its stubs, if it has any.</summary>
+    internal sealed record GeneratorInput(QuestionSetModel? Model, InvalidSetModel? InvalidSet);
 }
