@@ -18,6 +18,7 @@ Unofficial .NET client for [TypeSafe AI](https://typesafe.ai)'s **Jev**, the fir
 - `[JevQuestions]` source generator: declare questions as a C# type; the question JSON is emitted at compile time and answers parse into `Noul`, `Choice<TEnum>` and `Score<TEnum>`.
 - Typed evaluation: `EvaluateAsync<T>` and `EvaluateAsync<T, TState>` return the generated type directly, over a raw, pooled-buffer path.
 - Analyzers and code fixes: question sets are checked at compile time against the Jev API's rules and the generator's, with code fixes that add a missing `[Criteria]` or `[Level]` description. See [Diagnostics](#diagnostics).
+- Structured criteria and instructions: `Examples` / `NotFor` on `[Criteria]` and `[Level]`, and `Json = true` for JSON object or array text, checked at compile time.
 - Native AOT: no reflection, verified by an AOT smoke app in CI.
 
 ## Example
@@ -102,18 +103,135 @@ public partial record TicketUrgency
 
 Set `JevClientOptions.Model` to send a model or alias other than `JevDefaults.Model` on typed calls.
 
+### Structured criteria and instructions
+
+`[Criteria]` and `[Level]` can carry `Examples` and `NotFor` alongside the description. With either set and non-empty, the generator sends a criterion object instead of plain text for that option; empty arrays are omitted, and a `null` entry in `Examples` or `NotFor` is left out:
+
+```csharp
+public enum Department
+{
+    [Criteria("Payments, invoicing, refunds", Examples = ["I was charged twice"], NotFor = ["How much is Pro?"])]
+    Billing,
+
+    [Criteria("Bugs, outages, integrations", Examples = ["The API returns 500"])]
+    Technical,
+
+    [Criteria("Pricing, upgrades, new accounts")]
+    Sales,
+
+    Other,
+}
+
+public enum Severity
+{
+    [Level("Cosmetic", NotFor = ["Data loss"])]
+    Low,
+
+    [Level("Blocks work")]
+    High,
+}
+
+[JevQuestions]
+public partial record Routing
+{
+    [Choice("Which team should handle this?")]
+    public partial Choice<Department> Department { get; }
+
+    [Score("How severe is this?")]
+    public partial Score<Severity> Severity { get; }
+}
+```
+
+which sends:
+
+```json
+{
+  "department": {
+    "type": "choice",
+    "instructions": "Which team should handle this?",
+    "criteria": {
+      "billing": {
+        "description": "Payments, invoicing, refunds",
+        "examples": ["I was charged twice"],
+        "not_for": ["How much is Pro?"]
+      },
+      "technical": {
+        "description": "Bugs, outages, integrations",
+        "examples": ["The API returns 500"]
+      },
+      "sales": "Pricing, upgrades, new accounts",
+      "other": null
+    }
+  },
+  "severity": {
+    "type": "score",
+    "instructions": "How severe is this?",
+    "criteria": [
+      { "description": "Cosmetic", "not_for": ["Data loss"] },
+      "Blocks work"
+    ]
+  }
+}
+```
+
+`description`, `examples` and `not_for` are a ZeroAlloc.Jev convention the model reads from the criterion object; the Jev API itself has no such field.
+
+Instructions or a description can also be marked `Json = true`: the text must be a JSON object or array, and the generator checks and minifies it at compile time, then sends it as structured JSON instead of a string:
+
+```csharp
+[JevQuestions]
+public partial record DuplicateCheck
+{
+    [Noul(
+        """
+        {
+          "potential_duplicate": {
+            "name": "John Smith",
+            "location": "Oakland, California",
+            "last_employer": "Google"
+          },
+          "question": "Is the resume for the same person as `potential_duplicate`?"
+        }
+        """,
+        Json = true)]
+    public partial Noul IsDuplicate { get; }
+}
+```
+
+which sends:
+
+```json
+"is_duplicate": {
+  "type": "noul",
+  "instructions": {
+    "potential_duplicate": {
+      "name": "John Smith",
+      "location": "Oakland, California",
+      "last_employer": "Google"
+    },
+    "question": "Is the resume for the same person as `potential_duplicate`?"
+  }
+}
+```
+
+`Json = true` cannot be combined with `Examples` or `NotFor` on the same attribute (JEV109).
+
+Per-request data, such as `potential_duplicate` above, belongs in `State` and is referenced from the instructions by backticked names, because generated question JSON — including any `Json = true` text — is fixed at compile time and cannot vary per call.
+
+For the raw `SystemOneRequest` model, build `JevContent` directly for `State`, a question's `Instructions`, or a criterion description: `JevContent.FromValue<T>(value, typeInfo)` serializes a value through its source-generated `JsonTypeInfo<T>`, and `JevContent.FromUtf8Json(utf8Json)` parses UTF-8 JSON already in hand. Both throw `ArgumentException` unless the result is a single JSON string, object or array.
+
 ## Diagnostics
 
-`ZeroAlloc.Jev.Analyzers` ships inside the `ZeroAlloc.Jev` package, next to the `[JevQuestions]` generator, and checks every question set against the Jev API's own rules (JEV001–006) and against what the generator can turn into code (JEV101–107). JEV001 and JEV002 enforce TypeSafe's official SDK schema, which needs at least one option or level. The limits behind JEV005 are only the API sketch's guidance, not a schema limit.
+`ZeroAlloc.Jev.Analyzers` ships inside the `ZeroAlloc.Jev` package, next to the `[JevQuestions]` generator, and checks every question set against the Jev API's own rules (JEV001–006) and against what the generator can turn into code (JEV101–109). JEV001 and JEV002 enforce TypeSafe's official SDK schema, which needs at least one option or level. The limits behind JEV005 are only the API sketch's guidance, not a schema limit.
 
-A set with any error, JEV001, JEV002 or JEV101–107, is invalid. The generator emits no `QuestionsUtf8`, no `Parse` and no `IJevQuestionSet` for it. It does implement each unimplemented partial question property with a throwing stub, so a command-line build reports the JEV error instead of CS9248, "partial property must have an implementation part". Only those properties are stubbed. An error in your own declaration, such as CS0238 for `sealed` on a property that overrides nothing, still stops a command-line build before the analyzers run and hides their output. The IDE, which runs the analyzers live, still shows them.
+A set with any error, JEV001, JEV002 or JEV101–109, is invalid. The generator emits no `QuestionsUtf8`, no `Parse` and no `IJevQuestionSet` for it. It does implement each unimplemented partial question property with a throwing stub, so a command-line build reports the JEV error instead of CS9248, "partial property must have an implementation part". Only those properties are stubbed. An error in your own declaration, such as CS0238 for `sealed` on a property that overrides nothing, still stops a command-line build before the analyzers run and hides their output. The IDE, which runs the analyzers live, still shows them.
 
 | Id | Severity | Meaning |
 |----|----------|---------|
 | JEV001 | Error | A `Choice` enum has no members. |
 | JEV002 | Error | A `Score` enum has no members. |
-| JEV003 | Warning | Instructions or a description is empty or whitespace. |
-| JEV004 | Warning | A backticked name in the instructions matches no public member of the `State` type, by lenient matching; against an array `State`, the element type is checked. |
+| JEV003 | Warning | Instructions, a description or an `Examples` / `NotFor` entry is empty or whitespace, or JSON text is `{}` or `[]`. |
+| JEV004 | Warning | A backticked name in the instructions matches no public member of the `State` type, by lenient matching; against an array `State`, the element type is checked; for `Json = true` instructions, every string value is checked. |
 | JEV005 | Warning | A `Score` enum has fewer than 2 or more than 10 levels, or a `Choice` enum has more than 255 options — the API sketch's guidance, not a hard schema limit. |
 | JEV006 | Info | A `Choice` member has no `[Criteria]` description. |
 | JEV101 | Error | The type carrying `[JevQuestions]` is not a supported shape: a non-generic, non-abstract, non-static, top-level partial class or record that is not file-local. |
@@ -123,6 +241,8 @@ A set with any error, JEV001, JEV002 or JEV101–107, is invalid. The generator 
 | JEV105 | Error | The question set has no constructor callable without arguments, or it has `required` members and that constructor lacks `[SetsRequiredMembers]`. A constructor whose parameters all have defaults is accepted. |
 | JEV106 | Error | The same wire key is used more than once in the set. |
 | JEV107 | Error | The `State` type is not a class, struct, record or array type. |
+| JEV108 | Error | Text marked `Json = true` is not a JSON object or array. |
+| JEV109 | Error | `Json = true` is combined with `Examples` or `NotFor`. |
 
 Two code fixes are offered, and both can fix all occurrences in a document, project or solution:
 - **JEV006** adds `[Criteria("…")]` to the `Choice` enum member.
@@ -145,7 +265,7 @@ Or per-project or per-file in `.editorconfig`:
 dotnet_diagnostic.JEV005.severity = none
 ```
 
-Suppressing JEV001, JEV002 or JEV101–107 hides the error but does not make the set valid. The generator does not read the diagnostics; it applies the same shared rules itself. So a suppressed set still gets no `QuestionsUtf8`, no `Parse` and no `IJevQuestionSet`, and any use of it fails: `EvaluateAsync<T>` does not compile, and the stubbed properties throw. Fix the declaration instead.
+Suppressing JEV001, JEV002 or JEV101–109 hides the error but does not make the set valid. The generator does not read the diagnostics; it applies the same shared rules itself. So a suppressed set still gets no `QuestionsUtf8`, no `Parse` and no `IJevQuestionSet`, and any use of it fails: `EvaluateAsync<T>` does not compile, and the stubbed properties throw. Fix the declaration instead.
 
 ## Testing
 
