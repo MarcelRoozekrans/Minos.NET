@@ -114,6 +114,7 @@ compress_memory: disabled
 **Goal:** `Examples` / `NotFor` in attributes, sent as a criterion object, which is a Jev.Net convention and not an API field; object and array instructions and criteria; and `state` helpers. This spans the attributes, the generator and the analyzers, with budgets for the new paths.
 **Surface:** Backend
 **HelpWanted:** no
+**Spec:** `docs/superpowers/specs/2026-09-28-phase-2.3-structured-instructions-and-criteria-design.md`
 **Plan:** _to be written_
 
 ### Phase 2.4: Fluent question builders [status: pending]
