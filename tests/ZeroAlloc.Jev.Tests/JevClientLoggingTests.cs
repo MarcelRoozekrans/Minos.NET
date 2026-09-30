@@ -103,6 +103,40 @@ public sealed class JevClientLoggingTests : IDisposable
     }
 
     [Fact]
+    public async Task NonTransientFailure_LogsNoRetry_AndSendsOneRequest()
+    {
+        using var logs = new LogCapture();
+        var handler = StubHandler.Sequence(() => Status(422));
+        using var client = Client(handler, logs.Factory, maxRetries: 2);
+
+        var result = await client.EvaluateAsync(Request());
+
+        Assert.Equal(JevErrorKind.Validation, result.Error.Kind);
+        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single, not System.Linq.Enumerable.Single().
+#pragma warning disable HLQ005
+        Assert.Single(handler.Requests);
+#pragma warning restore HLQ005
+        Assert.DoesNotContain(1003, logs.EventIds);
+    }
+
+    [Fact]
+    public async Task TransientFailure_WithNoRetriesAllowed_LogsNoRetry()
+    {
+        using var logs = new LogCapture();
+        var handler = StubHandler.Sequence(() => Status(503));
+        using var client = Client(handler, logs.Factory, maxRetries: 0);
+
+        var result = await client.EvaluateAsync(Request());
+
+        Assert.True(result.IsFailure);
+        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single, not System.Linq.Enumerable.Single().
+#pragma warning disable HLQ005
+        Assert.Single(handler.Requests);
+#pragma warning restore HLQ005
+        Assert.DoesNotContain(1003, logs.EventIds);
+    }
+
+    [Fact]
     public async Task NullFactory_RetriesAsBefore()
     {
         var handler = StubHandler.Sequence(() => Status(503), Success);
