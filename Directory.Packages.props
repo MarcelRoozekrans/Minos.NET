@@ -26,6 +26,8 @@
     <PackageVersion Include="ZeroAlloc.Rest" Version="3.0.0" />
     <PackageVersion Include="ZeroAlloc.Rest.SystemTextJson" Version="3.0.0" />
     <PackageVersion Include="ZeroAlloc.Results" Version="1.2.3" />
+    <!-- Runtime question set validation: its generators run for ZeroAlloc.Jev only, never in consumers' builds -->
+    <PackageVersion Include="ZeroAlloc.Validation" Version="2.0.3" />
     <!-- Benchmarks -->
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
   </ItemGroup>

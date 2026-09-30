@@ -7,6 +7,12 @@
     <!-- Zero runtime reflection by design; enables IsTrimmable and the IL2026/IL3050 analyzers. -->
     <IsAotCompatible>true</IsAotCompatible>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!--
+      ZeroAlloc.Validation's generator emits every {Model}Validator internal: they check this library's internal
+      question specs and are no part of its API. Every ZeroAlloc generator reads this one property; the
+      ZeroAlloc.Rest and ZeroAlloc.Resilience output it also covers is internal already.
+    -->
+    <ZeroAllocGeneratedAccessibility>Internal</ZeroAllocGeneratedAccessibility>
   </PropertyGroup>
 
   <ItemGroup>
@@ -39,6 +45,16 @@
     <PackageReference Include="ZeroAlloc.Rest" />
     <PackageReference Include="ZeroAlloc.Rest.SystemTextJson" />
     <PackageReference Include="ZeroAlloc.Results" />
+    <!--
+      PrivateAssets keeps ZeroAlloc.Validation's and ZeroAlloc.Pipeline's analyzers and build files out of
+      consumers' builds: its generators run for this library only. The runtime library still flows.
+    -->
+    <PackageReference Include="ZeroAlloc.Validation" PrivateAssets="analyzers;build;buildtransitive" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The rule ids, shared with the generator and the analyzers, so a runtime failure names the same JEV id. -->
+    <Compile Include="..\ZeroAlloc.Jev.Generator\DiagnosticIds.cs" Link="Shared\DiagnosticIds.cs" />
   </ItemGroup>
 
   <!-- Pack the generator, analyzer and code fixes from their real build output rather than a hard-coded bin path (#14). -->

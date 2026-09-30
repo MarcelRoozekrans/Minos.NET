@@ -1,7 +1,7 @@
 namespace ZeroAlloc.Jev.Generator;
 
 /// <summary>
-/// The ids of the rules <see cref="ModelBuilder"/> checks. Plain strings, not descriptors: the generator shares the
+/// The ids of the rules <c>ModelBuilder</c> checks. Plain strings, not descriptors: the generator shares the
 /// model builder but defines no rules. ZeroAlloc.Jev.Analyzers links this file and owns the descriptors.
 /// </summary>
 internal static class DiagnosticIds
