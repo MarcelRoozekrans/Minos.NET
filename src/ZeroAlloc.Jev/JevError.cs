@@ -38,6 +38,15 @@ public sealed class JevError
         Exception = exception;
     }
 
+    /// <summary>Initializes a new <see cref="JevErrorKind.InvalidQuestions"/> error.</summary>
+    /// <param name="message">A short, human-readable description.</param>
+    /// <param name="failures">The rules the question set breaks.</param>
+    internal JevError(string message, IReadOnlyList<JevQuestionFailure> failures)
+        : this(JevErrorKind.InvalidQuestions, message)
+    {
+        Failures = failures;
+    }
+
     /// <summary>Gets what went wrong.</summary>
     public JevErrorKind Kind { get; }
 
@@ -58,6 +67,12 @@ public sealed class JevError
 
     /// <summary>Gets the exception behind a network, time-out or response-reading failure.</summary>
     public Exception? Exception { get; }
+
+    /// <summary>
+    /// Gets the rules a question set built with <c>JevQuestionSetBuilder</c> breaks, when <see cref="Kind"/> is
+    /// <see cref="JevErrorKind.InvalidQuestions"/>; empty for every other kind.
+    /// </summary>
+    public IReadOnlyList<JevQuestionFailure> Failures { get; } = [];
 
     /// <inheritdoc />
     public override string ToString()

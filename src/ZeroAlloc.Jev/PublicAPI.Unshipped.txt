@@ -311,3 +311,21 @@ ZeroAlloc.Jev.JevCriterion.WithNotFor(params System.ReadOnlySpan<string?> notFor
 static ZeroAlloc.Jev.JevCriterion.implicit operator ZeroAlloc.Jev.JevCriterion!(string! description) -> ZeroAlloc.Jev.JevCriterion!
 static ZeroAlloc.Jev.JevCriterion.Json(ZeroAlloc.Jev.JevContent json) -> ZeroAlloc.Jev.JevCriterion!
 static ZeroAlloc.Jev.JevCriterion.Text(string! description) -> ZeroAlloc.Jev.JevCriterion!
+ZeroAlloc.Jev.JevError.Failures.get -> System.Collections.Generic.IReadOnlyList<ZeroAlloc.Jev.JevQuestionFailure!>!
+ZeroAlloc.Jev.JevErrorKind.InvalidQuestions = 10 -> ZeroAlloc.Jev.JevErrorKind
+ZeroAlloc.Jev.JevQuestionFailure
+ZeroAlloc.Jev.JevQuestionFailure.<Clone>$() -> ZeroAlloc.Jev.JevQuestionFailure!
+ZeroAlloc.Jev.JevQuestionFailure.Deconstruct(out string! Rule, out string? QuestionKey, out string! Message) -> void
+ZeroAlloc.Jev.JevQuestionFailure.Equals(ZeroAlloc.Jev.JevQuestionFailure? other) -> bool
+ZeroAlloc.Jev.JevQuestionFailure.JevQuestionFailure(string! Rule, string? QuestionKey, string! Message) -> void
+ZeroAlloc.Jev.JevQuestionFailure.Message.get -> string!
+ZeroAlloc.Jev.JevQuestionFailure.Message.init -> void
+ZeroAlloc.Jev.JevQuestionFailure.QuestionKey.get -> string?
+ZeroAlloc.Jev.JevQuestionFailure.QuestionKey.init -> void
+ZeroAlloc.Jev.JevQuestionFailure.Rule.get -> string!
+ZeroAlloc.Jev.JevQuestionFailure.Rule.init -> void
+override ZeroAlloc.Jev.JevQuestionFailure.Equals(object? obj) -> bool
+override ZeroAlloc.Jev.JevQuestionFailure.GetHashCode() -> int
+override ZeroAlloc.Jev.JevQuestionFailure.ToString() -> string!
+static ZeroAlloc.Jev.JevQuestionFailure.operator !=(ZeroAlloc.Jev.JevQuestionFailure? left, ZeroAlloc.Jev.JevQuestionFailure? right) -> bool
+static ZeroAlloc.Jev.JevQuestionFailure.operator ==(ZeroAlloc.Jev.JevQuestionFailure? left, ZeroAlloc.Jev.JevQuestionFailure? right) -> bool

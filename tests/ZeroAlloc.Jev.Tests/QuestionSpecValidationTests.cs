@@ -17,7 +17,7 @@ public sealed class QuestionSpecValidationTests
 
     [Fact]
     public void Noul_WithoutOptions_HasNoFailures()
-        => Assert.True(Validator.Validate(new QuestionSpec { Key = "q", Kind = QuestionKind.Noul, Options = [] }).IsValid);
+        => Assert.True(Validator.Validate(new QuestionSpec { Key = "q", Kind = QuestionKind.Noul, Instructions = "Is it?", Options = [] }).IsValid);
 
     [Theory]
     [InlineData(true, "JEV001")]
@@ -98,7 +98,8 @@ public sealed class QuestionSpecValidationTests
         {
             Key = "q",
             Kind = isChoice ? QuestionKind.Choice : QuestionKind.Score,
-            Options = [.. keys.Select(key => new OptionSpec(key))],
+            Instructions = "Which one?",
+            Options = [.. keys.Select(key => new OptionSpec(key, key, "Described", -1))],
         };
 
     private static string[] Keys(int count) => [.. Enumerable.Range(0, count).Select(i => i.ToString(CultureInfo.InvariantCulture))];

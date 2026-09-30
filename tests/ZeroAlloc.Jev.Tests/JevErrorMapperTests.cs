@@ -211,5 +211,9 @@ public sealed class JevErrorMapperTests
         };
     }
 
+    [Fact]
+    public void JevError_OfAnyOtherKind_HasNoFailures()
+        => Assert.Empty(new JevError(JevErrorKind.Validation, "bad").Failures);
+
     private static Dictionary<string, IReadOnlyList<string>> Headers() => [];
 }
