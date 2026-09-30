@@ -154,5 +154,15 @@ public sealed class TypeSafeLiveTests
         Assert.InRange(answer.Confidence, 0.0, 1.0);
         Assert.Equal(3, answer.Probabilities.Count);
         Assert.InRange(answer.Probabilities[answer.Value], 0.0, 1.0);
+
+        var sum = 0.0;
+        foreach (var (key, probability) in answer.Probabilities)
+        {
+            Assert.Contains(key, Teams);
+            Assert.InRange(probability, 0.0, 1.0);
+            sum += probability;
+        }
+
+        Assert.Equal(1.0, sum, 0.01);
     }
 }

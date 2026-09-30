@@ -200,7 +200,27 @@ public sealed class TypedEvaluationTests : IClassFixture<WireMockFixture>
         Assert.True(result.Value.Get(urgent).Value);
         Assert.Equal(IntegrationDepartment.Billing, result.Value.Get(department).Value);
         Assert.Equal("pro-plan", result.Value.Get(product).Value);
-        Assert.Equal(1, result.Value.Get(effort).Level);
+        var departmentAnswer = result.Value.Get(department);
+        Assert.Equal(0.9, departmentAnswer.Confidence);
+        Assert.Equal(4, departmentAnswer.Probabilities.Count);
+        Assert.Equal(0.9, departmentAnswer.Probabilities[IntegrationDepartment.Billing]);
+        Assert.Equal(0.05, departmentAnswer.Probabilities[IntegrationDepartment.Technical]);
+        Assert.Equal(0.03, departmentAnswer.Probabilities[IntegrationDepartment.Sales]);
+        Assert.Equal(0.02, departmentAnswer.Probabilities[IntegrationDepartment.Other]);
+        var productAnswer = result.Value.Get(product);
+        Assert.Equal(0.7, productAnswer.Confidence);
+        Assert.Equal(3, productAnswer.Probabilities.Count);
+        Assert.Equal(0.7, productAnswer.Probabilities["pro-plan"]);
+        Assert.Equal(0.2, productAnswer.Probabilities["team-plan"]);
+        Assert.Equal(0.1, productAnswer.Probabilities["other"]);
+        var effortAnswer = result.Value.Get(effort);
+        Assert.Equal(1, effortAnswer.Level);
+        Assert.Equal(0.9, effortAnswer.Expected);
+        Assert.Equal(0.6, effortAnswer.Confidence);
+        Assert.Equal(3, effortAnswer.Probabilities.Count);
+        Assert.Equal(0.3, effortAnswer.Probabilities[0]);
+        Assert.Equal(0.5, effortAnswer.Probabilities[1]);
+        Assert.Equal(0.2, effortAnswer.Probabilities[2]);
         // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
 #pragma warning disable HLQ005
         var entry = Assert.Single(_fixture.Server.LogEntries);
