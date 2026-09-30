@@ -140,31 +140,31 @@ compress_memory: disabled
 **Goal:** `ZeroAlloc.Jev.Extensions.DependencyInjection` built on ZeroAlloc.Inject and `IHttpClientFactory`.
 **Surface:** Backend
 **HelpWanted:** no
-**Plan:** `docs/superpowers/plans/2026-09-28-phase-2.4-fluent-question-builders.md`
+**Plan:** _to be written_
 
 ### Phase 3.2: Options and configuration [status: pending]
 **Goal:** Configuration binding validated with ZeroAlloc.Validation.Options.
 **Surface:** Backend
 **HelpWanted:** no
-**Plan:** `docs/superpowers/plans/2026-09-28-phase-2.4-fluent-question-builders.md`
+**Plan:** _to be written_
 
 ### Phase 3.3: Telemetry [status: pending]
 **Goal:** ZeroAlloc.Telemetry spans and metrics for tokens, latency and confidence.
 **Surface:** Backend
 **HelpWanted:** no
-**Plan:** `docs/superpowers/plans/2026-09-28-phase-2.4-fluent-question-builders.md`
+**Plan:** _to be written_
 
 ### Phase 3.4: Logging [status: pending]
 **Goal:** Source-generated `LoggerMessage` logging across the client.
 **Surface:** Backend
 **HelpWanted:** no
-**Plan:** `docs/superpowers/plans/2026-09-28-phase-2.4-fluent-question-builders.md`
+**Plan:** _to be written_
 
 ### Phase 3.5: Configurable resilience [status: pending]
 **Goal:** Expose retry/timeout policies through DI configuration.
 **Surface:** Backend
 **HelpWanted:** no
-**Plan:** `docs/superpowers/plans/2026-09-28-phase-2.4-fluent-question-builders.md`
+**Plan:** _to be written_
 
 ## Milestone 4: Patterns & docs [status: pending]
 **Goal:** Developers can learn and apply Jev's documented patterns in C#.
@@ -178,25 +178,25 @@ compress_memory: disabled
 **Goal:** Confidence-gated routing, composite scoring and speculative fan-out helpers.
 **Surface:** Backend
 **HelpWanted:** no
-**Plan:** `docs/superpowers/plans/2026-09-28-phase-2.4-fluent-question-builders.md`
+**Plan:** _to be written_
 
 ### Phase 4.2: Cookbook samples [status: pending]
 **Goal:** Runnable C# ports of guardrails, intent routing and re-ranking cookbooks.
 **Surface:** Docs
 **HelpWanted:** no
-**Plan:** `docs/superpowers/plans/2026-09-28-phase-2.4-fluent-question-builders.md`
+**Plan:** _to be written_
 
 ### Phase 4.3: Documentation site [status: pending]
 **Goal:** User docs in `docs/` served by the org website at jev.zeroalloc.net: a `repos/jev` submodule and an `apps/docs-jev` app in ZeroAlloc-Net/.website, triggered by `trigger-website.yml`.
 **Surface:** Docs
 **HelpWanted:** no
-**Plan:** `docs/superpowers/plans/2026-09-28-phase-2.4-fluent-question-builders.md`
+**Plan:** _to be written_
 
 ### Phase 4.4: README and branding [status: pending]
 **Goal:** README, logo and unofficial-client disclaimer.
 **Surface:** Docs
 **HelpWanted:** no
-**Plan:** `docs/superpowers/plans/2026-09-28-phase-2.4-fluent-question-builders.md`
+**Plan:** _to be written_
 
 ## Milestone 5: 1.0 hardening [status: pending]
 **Goal:** A reviewed, frozen public API shipped as a stable 1.0.
@@ -210,22 +210,22 @@ compress_memory: disabled
 **Goal:** Review and seal the public API, tracked with PublicApiAnalyzers.
 **Surface:** Refactor
 **HelpWanted:** no
-**Plan:** `docs/superpowers/plans/2026-09-28-phase-2.4-fluent-question-builders.md`
+**Plan:** _to be written_
 
 ### Phase 5.2: Benchmark suite [status: pending]
 **Goal:** Full benchmarks vs a raw HttpClient + STJ baseline and the official JS SDK's overhead.
 **Surface:** Backend
 **HelpWanted:** no
-**Plan:** `docs/superpowers/plans/2026-09-28-phase-2.4-fluent-question-builders.md`
+**Plan:** _to be written_
 
 ### Phase 5.3: AOT and alias verification [status: pending]
 **Goal:** Full-surface AOT/trim verification and `jev-latest` / `jev-preview` alias checks.
 **Surface:** Infra
 **HelpWanted:** no
-**Plan:** `docs/superpowers/plans/2026-09-28-phase-2.4-fluent-question-builders.md`
+**Plan:** _to be written_
 
 ### Phase 5.4: 1.0 release [status: pending]
 **Goal:** Stable 1.0 via release-please with versioned docs.
 **Surface:** Infra
 **HelpWanted:** no
-**Plan:** `docs/superpowers/plans/2026-09-28-phase-2.4-fluent-question-builders.md`
+**Plan:** _to be written_
