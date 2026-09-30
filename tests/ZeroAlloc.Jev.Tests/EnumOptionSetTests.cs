@@ -39,7 +39,7 @@ public enum AliasAfterLarge
     Item22 = 22,
     Item23 = 23,
 
-    // CA1069 false positive: a deliberate alias declared after the member it repeats. On this enum Enum.GetName
+    // Deliberate alias: test data for the alias rule. On this enum Enum.GetName
     // returns "Legacy" for the value, which is why the option set reads the fields instead.
 #pragma warning disable CA1069
     Legacy = Item03,
@@ -54,7 +54,7 @@ public enum AliasBeforeLarge
     Item03 = 3,
     Item04 = 4,
 
-    // CA1069 false positive: a deliberate alias declared before the member it repeats; the generator keys the value as Old.
+    // Deliberate alias: test data for the alias rule; the generator keys the value as Old.
 #pragma warning disable CA1069
     Old = 5,
     Current = 5,

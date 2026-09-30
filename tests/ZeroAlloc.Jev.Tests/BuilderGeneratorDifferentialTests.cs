@@ -13,7 +13,7 @@ public enum DiffTeam
 
     ServiceDesk = 1,
 
-    // CA1069 false positive: a deliberate alias declared after its original, test data for the alias rule, which the
+    // Deliberate alias: test data for the alias rule, which the
     // builder and the generator both skip.
 #pragma warning disable CA1069
     Helpdesk = ServiceDesk,

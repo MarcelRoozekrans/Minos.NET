@@ -11,7 +11,7 @@ public enum Channel
     Email = 0,
     Phone = 2,
 
-    // CA1069 false positive: a deliberate alias declared after the member it repeats, test data for the builder's alias rule.
+    // Deliberate alias: test data for the alias rule, which the builder and the generator both skip.
 #pragma warning disable CA1069
     Mail = Email,
 #pragma warning restore CA1069
