@@ -2,6 +2,7 @@ using System.Net;
 using System.Text;
 using BenchmarkDotNet.Attributes;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using ZeroAlloc.Results;
 using ZeroAlloc.Jev.Shared;
 
@@ -30,6 +31,8 @@ public class ClientBenchmarks
     private JevClient _typedEvaluateLoggedClient = null!;
     private HttpClient _evaluateYieldingHttp = null!;
     private HttpClient _evaluateYieldingLoggedHttp = null!;
+    private HttpClient _evaluateYieldingNullLoggedHttp = null!;
+    private JevClient _evaluateYieldingNullLoggedClient = null!;
     private JevClient _evaluateYieldingClient = null!;
     private JevClient _evaluateYieldingLoggedClient = null!;
     private SystemOneRequest _request = null!;
@@ -46,6 +49,7 @@ public class ClientBenchmarks
         (_typedEvaluateLoggedHttp, _typedEvaluateLoggedClient) = CreateClient(TriageResponseJson, DiscardingLoggerFactory.Instance);
         (_evaluateYieldingHttp, _evaluateYieldingClient) = CreateClient(new YieldingHandler(HttpStatusCode.OK, NoulResponseJson), loggerFactory: null);
         (_evaluateYieldingLoggedHttp, _evaluateYieldingLoggedClient) = CreateClient(new YieldingHandler(HttpStatusCode.OK, NoulResponseJson), DiscardingLoggerFactory.Instance);
+        (_evaluateYieldingNullLoggedHttp, _evaluateYieldingNullLoggedClient) = CreateClient(new YieldingHandler(HttpStatusCode.OK, NoulResponseJson), NullLoggerFactory.Instance);
         _request = new SystemOneRequest
         {
             State = "Help! My payouts have been failing for 3 days.",
@@ -72,10 +76,12 @@ public class ClientBenchmarks
         _typedEvaluateLoggedClient.Dispose();
         _evaluateYieldingClient.Dispose();
         _evaluateYieldingLoggedClient.Dispose();
+        _evaluateYieldingNullLoggedClient.Dispose();
         _evaluateLoggedHttp.Dispose();
         _typedEvaluateLoggedHttp.Dispose();
         _evaluateYieldingHttp.Dispose();
         _evaluateYieldingLoggedHttp.Dispose();
+        _evaluateYieldingNullLoggedHttp.Dispose();
     }
 
     /// <summary><see cref="JevClient.EvaluateAsync"/> over a fixed Noul response.</summary>
@@ -110,6 +116,11 @@ public class ClientBenchmarks
     [Benchmark]
     public ValueTask<Result<SystemOneResponse, JevError>> EvaluateYieldingAsync() => _evaluateYieldingClient.EvaluateAsync(_request);
 
+    /// <summary><see cref="EvaluateYieldingAsync"/> through <see cref="NullLoggerFactory"/>, whose logger has every
+    /// level disabled, so it must cost nothing over the unlogged call.</summary>
+    [Benchmark]
+    public ValueTask<Result<SystemOneResponse, JevError>> EvaluateYieldingWithNullLoggerAsync() => _evaluateYieldingNullLoggedClient.EvaluateAsync(_request);
+
     /// <summary><see cref="EvaluateYieldingAsync"/> through a logger enabled at every level that discards everything,
     /// so the logging wrappers' async state machines run.</summary>
     [Benchmark]
@@ -140,20 +151,5 @@ public class ClientBenchmarks
                 Content = new StringContent(body, Encoding.UTF8, "application/json"),
                 RequestMessage = request,
             });
-    }
-
-    /// <summary>Answers like <see cref="CannedHandler"/> but yields first, so the call genuinely completes
-    /// asynchronously and the logging wrappers' state machines are measured.</summary>
-    internal sealed class YieldingHandler(HttpStatusCode status, string body) : HttpMessageHandler
-    {
-        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-        {
-            await Task.Yield();
-            return new HttpResponseMessage(status)
-            {
-                Content = new StringContent(body, Encoding.UTF8, "application/json"),
-                RequestMessage = request,
-            };
-        }
     }
 }

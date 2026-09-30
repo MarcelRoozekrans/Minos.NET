@@ -49,6 +49,7 @@ internal static class Program
         AllocationChecks.TypedEvaluateRoundTripWithEveryLevelFiltered();
         AllocationChecks.EvaluateRoundTripWithDiscardingLogger();
         AllocationChecks.TypedEvaluateRoundTripWithDiscardingLogger();
+        await AllocationChecks.DisabledLoggerAddsNothingWhereAnEnabledOneDoes().ConfigureAwait(false);
         AllocationChecks.ContentFromValue();
         AllocationChecks.ContentFromUtf8Json();
         AllocationChecks.BuildQuestionSet();

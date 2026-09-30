@@ -231,6 +231,70 @@ internal static class AllocationChecks
             "the discarding logger received log calls, so EvaluateAsync<T> ran the logged path");
     }
 
+    /// <summary>
+    /// Proves the disabled-logger gates can tell a disabled logger from an enabled one. The canned handler completes
+    /// synchronously, where even an enabled logger adds nothing, so those gates would pass if a disabled logger wrongly
+    /// entered the logging wrappers. A yielding handler makes every call complete asynchronously, where the wrappers'
+    /// state machines are boxed and show up as bytes.
+    /// </summary>
+    public static async Task DisabledLoggerAddsNothingWhereAnEnabledOneDoes()
+    {
+        var unlogged = await LeastYieldingEvaluationAsync(null).ConfigureAwait(false);
+        var disabled = await LeastYieldingEvaluationAsync(NullLoggerFactory.Instance).ConfigureAwait(false);
+        var enabled = await LeastYieldingEvaluationAsync(DiscardingLoggerFactory.Instance).ConfigureAwait(false);
+        Console.WriteLine($"     yielding EvaluateAsync B/call: no factory {unlogged}, NullLoggerFactory {disabled}, discarding logger {enabled}");
+
+        // The tolerance absorbs measurement noise: a runtime thread allocating during the loop adds up to about 70 B/call
+        // to a single run, which the least of three runs removes, leaving a few bytes. A wrapper's state machine is
+        // hundreds of bytes per call.
+        Program.Check(
+            disabled - unlogged <= 8,
+            "a NullLoggerFactory adds no allocation to an asynchronously completing EvaluateAsync");
+        Program.Check(
+            enabled - unlogged > 0,
+            "the discarding logger adds allocation to an asynchronously completing EvaluateAsync, so this check sees the wrappers");
+    }
+
+    // The least of three runs, because noise from other runtime threads only ever adds bytes.
+    private static async Task<long> LeastYieldingEvaluationAsync(ILoggerFactory? loggerFactory)
+    {
+        var least = long.MaxValue;
+        for (var run = 0; run < 3; run++)
+        {
+            least = Math.Min(least, await MeasureYieldingEvaluationAsync(loggerFactory).ConfigureAwait(false));
+        }
+
+        return least;
+    }
+
+    // Bytes allocated per awaited EvaluateAsync over a handler that yields, on any thread, since the continuation
+    // does not run on the caller's. The loop is sequential, so nothing else allocates meanwhile but the runtime.
+    private static async Task<long> MeasureYieldingEvaluationAsync(ILoggerFactory? loggerFactory)
+    {
+        const int YieldingIterations = 500;
+        using var http = new HttpClient(new YieldingHandler(HttpStatusCode.OK, NoulResponseJson))
+        {
+            BaseAddress = new Uri("https://example.test/api/"),
+        };
+        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" }, loggerFactory);
+        var request = Program.Request();
+
+        for (var i = 0; i < 100; i++)
+        {
+            _ = await client.EvaluateAsync(request).ConfigureAwait(false);
+        }
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        var before = GC.GetTotalAllocatedBytes(precise: true);
+        for (var i = 0; i < YieldingIterations; i++)
+        {
+            _ = await client.EvaluateAsync(request).ConfigureAwait(false);
+        }
+
+        return (GC.GetTotalAllocatedBytes(precise: true) - before) / YieldingIterations;
+    }
+
     // EvaluateRoundTrip's call, the same canned response and Program.Request(), through a logging client.
     private static void EvaluateRoundTripThrough(ILoggerFactory loggerFactory, int budgetBytes, string label, string passDescription)
     {
