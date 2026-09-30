@@ -65,7 +65,7 @@ using var jev = new JevClient(new JevClientOptions { ApiKey = apiKey }, loggerFa
 using var jev = new JevClient(httpClient, options, loggerFactory);
 ```
 
-The client logs in the `ZeroAlloc.Jev.JevClient` category. It logs each operation once, when it completes, each attempt it will retry, and each unexpected exception thrown while the call runs. A `null` factory logs nothing, and so do the four constructors without one. Without a logger, or with every level an operation can emit disabled, such as through `NullLoggerFactory` or a filter, the call runs the unlogged path: no logging work and no allocation.
+The client logs in the `ZeroAlloc.Jev.JevClient` category. It logs each operation once, when it completes, each attempt it will retry, and each unexpected exception thrown while the call runs. A `null` factory logs nothing, and so do the four constructors without one. Without a logger, or with every level an operation can emit disabled, such as through `NullLoggerFactory` or a filter, the call runs the unlogged path: no allocation, only `IsEnabled` checks.
 
 | Id | Event | Level | Fields |
 |---|---|---|---|
@@ -81,11 +81,11 @@ The client logs in the `ZeroAlloc.Jev.JevClient` category. It logs each operatio
 - **`AttemptRetrying`** is logged for each failed attempt the client retries. `Attempt` is 1 for the first attempt, and matches the `X-TypeSafe-Retry-Count` of the retry that follows. The last attempt is reported by the operation's failure event instead.
 - **`UnexpectedException`** means a programming error. The exception surfaces unchanged. Cancellation you requested is not logged, and neither are the argument, disposed and request-writing checks that throw before the call runs.
 
-**Never logged:** the state, instructions, criteria, answers, the API key, any header value, and `JevError.Detail`, which holds the server's error body. `ErrorMessage` is `JevError.Message`, except for two kinds whose message can carry request or response text. For `InvalidResponse`, which can quote the server's answer, it is `The response could not be read.` instead. For `Network`, whose message is the transport's exception text and can echo the request, it is `The request could not be sent.` instead.
+**Never logged by the library:** the state, instructions, criteria, answers, the API key, any header value, and `JevError.Detail`, which holds the server's error body. `UnexpectedException` is the exception: it carries the exception as thrown, unchanged, including one from your own `DelegatingHandler`, whose message the library cannot vouch for. `ErrorMessage` is `JevError.Message`, except for two kinds whose message can carry request or response text. For `InvalidResponse`, which can quote the server's answer, it is `The response could not be read.` instead. For `Network`, whose message is the transport's exception text and can echo the request, it is `The request could not be sent.` instead.
 
 `JevError.Message` itself is unchanged: for `Network` and `InvalidResponse` it can carry that text. If you log `result.Error.Message` yourself, be aware of what it can hold.
 
-**Cost:** with no logger or every level disabled, logging adds nothing, and the existing allocation budgets hold. With logging enabled, it adds no allocation to a call that completes synchronously, and about 480 B to a call that completes asynchronously, which is the logging wrappers' state machines. See [Phase 3.1 — Logging](docs/performance.md#phase-31--logging) for the measurements.
+**Cost:** with no logger or every level disabled, logging adds no allocation, and the existing allocation budgets hold. With logging enabled, it adds no allocation to a call that completes synchronously, and about 480 B to a call that completes asynchronously, which is the logging wrappers' state machines. See [Phase 3.1 — Logging](docs/performance.md#phase-31--logging) for the measurements.
 
 A hand-written `IJevClient` that relies on the default interface methods for typed and built-set evaluation logs nothing. The logging lives in `JevClient`.
 
@@ -312,7 +312,7 @@ A failure makes `Build()` return a `JevErrorKind.InvalidQuestions` error whose `
 
 ## Diagnostics
 
-`ZeroAlloc.Jev.Analyzers` ships inside the `ZeroAlloc.Jev` package, next to the `[JevQuestions]` generator, and checks every question set against the Jev API's own rules (JEV001–006) and against what the generator can turn into code (JEV101–109). JEV001 and JEV002 enforce TypeSafe's official SDK schema, which needs at least one option or level. The limits behind JEV005 are only the API sketch's guidance, not a schema limit. NuGet flows a dependency's analyzers to consumers transitively, so the ZeroAlloc.Validation and ZeroAlloc.Pipeline generators reach your build too; they stay inert unless you declare `[Validate]` types.
+`ZeroAlloc.Jev.Analyzers` ships inside the `ZeroAlloc.Jev` package, next to the `[JevQuestions]` generator, and checks every question set against the Jev API's own rules (JEV001–006) and against what the generator can turn into code (JEV101–109). JEV001 and JEV002 enforce TypeSafe's official SDK schema, which needs at least one option or level. The limits behind JEV005 are only the API sketch's guidance, not a schema limit. NuGet flows a dependency's analyzers to consumers transitively, so the ZeroAlloc.Validation, ZeroAlloc.Pipeline and Microsoft.Extensions.Logging generators reach your build too; they stay inert unless you declare `[Validate]` types or your own `[LoggerMessage]` methods. `Microsoft.Extensions.Logging.Abstractions` 10.0.0 or later is a runtime dependency of the package, new with logging.
 
 A set with any error, JEV001, JEV002 or JEV101–109, is invalid. The generator emits no `QuestionsUtf8`, no `Parse` and no `IJevQuestionSet` for it. It does implement each unimplemented partial question property with a throwing stub, so a command-line build reports the JEV error instead of CS9248, "partial property must have an implementation part". Only those properties are stubbed. An error in your own declaration, such as CS0238 for `sealed` on a property that overrides nothing, still stops a command-line build before the analyzers run and hides their output. The IDE, which runs the analyzers live, still shows them.
 

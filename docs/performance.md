@@ -71,14 +71,15 @@ under the JIT, since parsing is internal and the AOT smoke app uses only the pub
 | `ClientBenchmarks.TypedEvaluateAsync` | 1.780 us | 3.29 KB | 4224 B |
 | `ClientBenchmarks.TypedEvaluateWithDiscardingLoggerAsync` | 1.960 us | 3.29 KB | 3712 B |
 | `ClientBenchmarks.EvaluateYieldingAsync` | 7.994 us | 5.09 KB | — |
+| `ClientBenchmarks.EvaluateYieldingWithNullLoggerAsync` | 22.79 us | 5.09 KB | — |
 | `ClientBenchmarks.EvaluateYieldingWithDiscardingLoggerAsync` | 12.235 us | 5.56 KB | — |
 
 Measured on a 12th Gen Intel Core i9-12900HK, Windows 11 (10.0.26200.9457), .NET SDK 10.0.401 with runtime 10.0.12,
 with `--job short`, so the means are indicative only. BenchmarkDotNet prints Allocated in KB (1 KB = 1024 B) to two
 decimals, so each figure is good to about 5 B.
 
-Without a logger, or with one whose levels are all disabled, each operation returns the unlogged call itself. So
-`EvaluateAsync` and `TypedEvaluateAsync` run the same code as before logging, and the AOT smoke gates hold them to their
+Without a logger, or with one whose levels are all disabled, each operation returns the unlogged call itself, so logging
+allocates nothing and does only `IsEnabled` checks; with no factory at all, there is no logging decorator either. The AOT smoke gates hold `EvaluateAsync` and `TypedEvaluateAsync` to their
 existing budgets with `NullLoggerFactory` and with an every-level-filtered `LoggerFactory`; they measure 4312 B and
 3368 B, inside the unchanged 5120 B and 4224 B.
 
@@ -99,3 +100,5 @@ attributable by elimination: the synchronous rows show the wrapper adds 0 B, so 
 that only an async completion allocates, and it is the cost a real network call pays. The two yielding means, 7.994 us and
 12.235 us, are dominated by the thread pool hand-off and their error bars (11.7 us and 115.8 us) are wider than the
 difference, so they show no logging time cost either way; only their allocation figures are reliable.
+
+`EvaluateYieldingWithNullLoggerAsync` runs the same yielding call through `NullLoggerFactory`: it allocates 5.09 KB, the same as the unlogged call, so a disabled logger adds no allocation even where an enabled one adds about 480 B. Its mean comes from a later, noisier run that also re-measured the two rows beside it (26.51 us and 28.30 us, error bars above 200 us), so it says nothing about time. The AOT smoke app makes the same comparison with `GC.GetTotalAllocatedBytes` over 500 awaited calls, the least of three runs: 5254 B with no factory, 5254 B with `NullLoggerFactory` and 5733 B with the discarding logger.
