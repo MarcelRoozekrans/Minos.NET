@@ -103,6 +103,21 @@ public sealed class LoggingJevApiTests
     }
 
     [Fact]
+    public async Task WarningDisabled_SynchronousTransientFailure_LogsNothingAndReturnsTheResultUnchanged()
+    {
+        var logger = new FakeLogger();
+        logger.ControlLevel(LogLevel.Warning, enabled: false);
+        var api = new LoggingJevApi(new FixedApi(Overloaded), logger, ThreeAttempts);
+
+        var result = await api.ListModelsAsync("Bearer k", retryCount: null, CancellationToken.None);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(JevErrorKind.Overloaded, result.Error.Kind);
+        Assert.Equal(503, result.Error.StatusCode);
+        Assert.Equal(0, logger.Collector.Count);
+    }
+
+    [Fact]
     public async Task AsynchronousFailure_IsLoggedWhenItCompletes()
     {
         var logger = new FakeLogger();
