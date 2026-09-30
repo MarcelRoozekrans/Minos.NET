@@ -145,6 +145,7 @@ compress_memory: disabled
 **Goal:** Source-generated `[LoggerMessage]` logging across `JevClient`, with constructor overloads that accept an `ILoggerFactory`.
 **Surface:** Backend
 **HelpWanted:** no
+**Spec:** `docs/superpowers/specs/2026-09-30-phase-3.1-logging-design.md`
 **Plan:** _to be written_
 
 ### Phase 3.2: Telemetry [status: pending]
