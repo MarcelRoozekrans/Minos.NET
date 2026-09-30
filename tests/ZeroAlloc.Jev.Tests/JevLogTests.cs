@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 
@@ -62,6 +63,105 @@ public sealed class JevLogTests
     }
 
     [Fact]
+    public void EvaluationSucceeded_CarriesItsValuesAndTemplate()
+    {
+        var logger = new FakeLogger();
+
+        JevLog.EvaluationSucceeded(logger, JevLog.Evaluate, "jev-latest", JevProvider.TypeSafe, 3, 2.5);
+
+        var record = logger.LatestRecord;
+        Assert.Equal("evaluate", LogAssert.Field(record, "Operation"));
+        Assert.Equal("jev-latest", LogAssert.Field(record, "Model"));
+        Assert.Equal("TypeSafe", LogAssert.Field(record, "Provider"));
+        Assert.Equal("3", LogAssert.Field(record, "QuestionCount"));
+        Assert.Equal(2.5.ToString(CultureInfo.InvariantCulture), LogAssert.Field(record, "DurationMs"));
+        Assert.Equal(
+            "Jev {Operation} on {Model} via {Provider} succeeded: {QuestionCount} questions in {DurationMs} ms.",
+            LogAssert.Field(record, "{OriginalFormat}"));
+        Assert.Equal("Jev evaluate on jev-latest via TypeSafe succeeded: 3 questions in 2.5 ms.", record.Message);
+    }
+
+    [Fact]
+    public void AttemptRetrying_CarriesItsValuesAndTemplate()
+    {
+        var logger = new FakeLogger();
+
+        JevLog.AttemptRetrying(logger, 2, JevErrorKind.RateLimited, 429, TimeSpan.FromSeconds(3));
+
+        var record = logger.LatestRecord;
+        Assert.Equal("2", LogAssert.Field(record, "Attempt"));
+        Assert.Equal("RateLimited", LogAssert.Field(record, "ErrorKind"));
+        Assert.Equal("429", LogAssert.Field(record, "StatusCode"));
+        Assert.Equal("00:00:03", LogAssert.Field(record, "RetryAfter"));
+        Assert.Equal(
+            "Jev attempt {Attempt} failed with {ErrorKind}, status {StatusCode}, retry-after {RetryAfter}; retrying.",
+            LogAssert.Field(record, "{OriginalFormat}"));
+        Assert.Equal("Jev attempt 2 failed with RateLimited, status 429, retry-after 00:00:03; retrying.", record.Message);
+    }
+
+    [Fact]
+    public void AttemptRetrying_LogsANullRetryAfter_WhenTheServerSentNone()
+    {
+        var logger = new FakeLogger();
+
+        JevLog.AttemptRetrying(logger, 1, JevErrorKind.Server, 500, null);
+
+        var record = logger.LatestRecord;
+        Assert.Null(LogAssert.Field(record, "RetryAfter"));
+        Assert.Equal("500", LogAssert.Field(record, "StatusCode"));
+        Assert.Equal("Jev attempt 1 failed with Server, status 500, retry-after (null); retrying.", record.Message);
+    }
+
+    [Fact]
+    public void ModelsListed_CarriesItsValuesAndTemplate()
+    {
+        var logger = new FakeLogger();
+
+        JevLog.ModelsListed(logger, JevProvider.OpenRouter, 7, 2.5);
+
+        var record = logger.LatestRecord;
+        Assert.Equal("OpenRouter", LogAssert.Field(record, "Provider"));
+        Assert.Equal("7", LogAssert.Field(record, "ModelCount"));
+        Assert.Equal(2.5.ToString(CultureInfo.InvariantCulture), LogAssert.Field(record, "DurationMs"));
+        Assert.Equal(
+            "Jev list-models via {Provider} succeeded: {ModelCount} models in {DurationMs} ms.",
+            LogAssert.Field(record, "{OriginalFormat}"));
+        Assert.Equal("Jev list-models via OpenRouter succeeded: 7 models in 2.5 ms.", record.Message);
+    }
+
+    [Fact]
+    public void ModelsListFailed_CarriesItsValuesAndTemplate()
+    {
+        var logger = new FakeLogger();
+
+        JevLog.ModelsListFailed(logger, JevProvider.OpenRouter, JevErrorKind.Unauthorized, 401, 2.5, "The API returned HTTP 401.");
+
+        var record = logger.LatestRecord;
+        Assert.Equal("OpenRouter", LogAssert.Field(record, "Provider"));
+        Assert.Equal("Unauthorized", LogAssert.Field(record, "ErrorKind"));
+        Assert.Equal("401", LogAssert.Field(record, "StatusCode"));
+        Assert.Equal(2.5.ToString(CultureInfo.InvariantCulture), LogAssert.Field(record, "DurationMs"));
+        Assert.Equal("The API returned HTTP 401.", LogAssert.Field(record, "ErrorMessage"));
+        Assert.Equal(
+            "Jev list-models via {Provider} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}",
+            LogAssert.Field(record, "{OriginalFormat}"));
+        Assert.Equal("Jev list-models via OpenRouter failed with Unauthorized, status 401, in 2.5 ms: The API returned HTTP 401.", record.Message);
+    }
+
+    [Fact]
+    public void UnexpectedException_CarriesItsOperationAndTemplate()
+    {
+        var logger = new FakeLogger();
+
+        JevLog.UnexpectedException(logger, JevLog.ListModels, new InvalidOperationException("bug"));
+
+        var record = logger.LatestRecord;
+        Assert.Equal("list-models", LogAssert.Field(record, "Operation"));
+        Assert.Equal("Jev {Operation} threw an unexpected exception.", LogAssert.Field(record, "{OriginalFormat}"));
+        Assert.Equal("Jev list-models threw an unexpected exception.", record.Message);
+    }
+
+    [Fact]
     public void EvaluationFailed_CarriesItsSixFields()
     {
         var logger = new FakeLogger();
@@ -73,7 +173,10 @@ public sealed class JevLogTests
         Assert.Equal("jev-latest", LogAssert.Field(record, "Model"));
         Assert.Equal("RateLimited", LogAssert.Field(record, "ErrorKind"));
         Assert.Equal("429", LogAssert.Field(record, "StatusCode"));
-        Assert.NotNull(LogAssert.Field(record, "DurationMs"));
+        Assert.Equal(12.5.ToString(CultureInfo.InvariantCulture), LogAssert.Field(record, "DurationMs"));
+        Assert.Equal(
+            "Jev evaluate-typed on jev-latest failed with RateLimited, status 429, in 12.5 ms: The API returned HTTP 429.",
+            record.Message);
         Assert.Equal("The API returned HTTP 429.", LogAssert.Field(record, "ErrorMessage"));
         Assert.Equal(
             "Jev {Operation} on {Model} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}",
@@ -120,19 +223,30 @@ public sealed class JevLogTests
             JevLog.UnreadableResponse,
             JevLog.SafeMessage(new JevError(JevErrorKind.InvalidResponse, "'secret' is not one of the options.", 200)));
 
-    [Fact]
-    public void IsAnyEnabled_IsTrue_WhenAnyLevelAnOperationEmitsIsEnabled()
+    [Theory]
+    [InlineData(LogLevel.Debug)]
+    [InlineData(LogLevel.Warning)]
+    [InlineData(LogLevel.Error)]
+    public void IsAnyEnabled_IsTrue_WhenOnlyOneLevelAnOperationEmitsIsEnabled(LogLevel enabled)
     {
-        var errorsOnly = new FakeLogger();
-        errorsOnly.ControlLevel(LogLevel.Debug, enabled: false);
-        errorsOnly.ControlLevel(LogLevel.Warning, enabled: false);
+        var logger = new FakeLogger();
+        foreach (var level in new[] { LogLevel.Debug, LogLevel.Warning, LogLevel.Error })
+        {
+            logger.ControlLevel(level, enabled: level == enabled);
+        }
+
+        Assert.True(JevLog.IsAnyEnabled(logger));
+    }
+
+    [Fact]
+    public void IsAnyEnabled_IsFalse_WhenNoLevelAnOperationEmitsIsEnabled()
+    {
         var none = new FakeLogger();
         none.ControlLevel(LogLevel.Debug, enabled: false);
         none.ControlLevel(LogLevel.Warning, enabled: false);
         none.ControlLevel(LogLevel.Error, enabled: false);
 
         Assert.True(JevLog.IsAnyEnabled(new FakeLogger()));
-        Assert.True(JevLog.IsAnyEnabled(errorsOnly));
         Assert.False(JevLog.IsAnyEnabled(none));
         Assert.False(JevLog.IsAnyEnabled(Microsoft.Extensions.Logging.Abstractions.NullLogger.Instance));
     }
