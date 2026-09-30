@@ -377,6 +377,33 @@ public sealed class JevClientLoggingTests : IDisposable
         Assert.Equal([1002], logs.EventIds);
     }
 
+    [Fact]
+    public async Task RequestWithoutQuestions_HasTheSameOutcome_WithAndWithoutALogger()
+    {
+        var unlogged = await OutcomeOfAQuestionlessRequestAsync(loggerFactory: null);
+        using var logs = new LogCapture();
+        var logged = await OutcomeOfAQuestionlessRequestAsync(logs.Factory);
+
+        Assert.Equal(unlogged, logged);
+    }
+
+    // The exception type the call ends in, or the result's error kind, so a logger cannot change which.
+    private async Task<string> OutcomeOfAQuestionlessRequestAsync(ILoggerFactory? loggerFactory)
+    {
+        using var client = Client(StubHandler.Sequence(Success), loggerFactory);
+        var request = new SystemOneRequest { State = "state", Questions = null! };
+
+        try
+        {
+            var result = await client.EvaluateAsync(request);
+            return result.IsSuccess ? "success" : result.Error.Kind.ToString();
+        }
+        catch (Exception exception)
+        {
+            return exception.GetType().FullName!;
+        }
+    }
+
     private JevClient Client(StubHandler handler, ILoggerFactory? loggerFactory, int maxRetries = 0, JevProvider provider = JevProvider.TypeSafe)
     {
         var http = new HttpClient(handler);

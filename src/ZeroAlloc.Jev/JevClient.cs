@@ -15,8 +15,9 @@ namespace ZeroAlloc.Jev;
 /// <summary>Calls TypeSafe's Jev System One API, directly or through OpenRouter.</summary>
 /// <remarks>
 /// Thread-safe. Create one per application and reuse it; dispose it when the application stops. Pass an
-/// <see cref="ILoggerFactory"/> to log each operation, each retried attempt and each unexpected exception; the logs
-/// never contain the state, questions, answers, API key, a header value or an error response body.
+/// <see cref="ILoggerFactory"/> to log each operation, each retried attempt and each unexpected exception. What the
+/// library writes never contains the state, questions, answers, API key, a header value or an error response body; the
+/// unexpected-exception event carries the exception as thrown, which can include one from your own handler.
 /// </remarks>
 public sealed class JevClient : IJevClient, IDisposable
 {
@@ -91,6 +92,7 @@ public sealed class JevClient : IJevClient, IDisposable
     /// <param name="options">The configuration; <see langword="null"/> uses defaults and environment variables.</param>
     /// <param name="loggerFactory">
     /// Creates the client's logger, in the <c>ZeroAlloc.Jev.JevClient</c> category; <see langword="null"/> logs nothing.
+    /// The client does not dispose it, so it must outlive the client.
     /// </param>
     /// <exception cref="ArgumentException">An option has an invalid value.</exception>
     /// <exception cref="InvalidOperationException">No API key is configured, or an environment variable is invalid.</exception>
@@ -117,6 +119,7 @@ public sealed class JevClient : IJevClient, IDisposable
     /// <param name="options">The configuration; <see langword="null"/> uses defaults and environment variables.</param>
     /// <param name="loggerFactory">
     /// Creates the client's logger, in the <c>ZeroAlloc.Jev.JevClient</c> category; <see langword="null"/> logs nothing.
+    /// The client does not dispose it, so it must outlive the client.
     /// </param>
     /// <exception cref="ArgumentNullException"><paramref name="httpClient"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException">
@@ -210,7 +213,7 @@ public sealed class JevClient : IJevClient, IDisposable
             EvaluateCoreAsync(request, ct),
             JevLog.Evaluate,
             request.Model,
-            _logger is null ? 0 : request.Questions.Count,
+            _logger is null ? 0 : request.Questions is { } questions ? questions.Count : 0,
             started,
             ct);
     }
