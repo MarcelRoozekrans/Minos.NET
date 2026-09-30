@@ -1,21 +1,28 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
+using System.Reflection;
 using System.Text.Json;
 using ZeroAlloc.Jev.Generator;
 
 namespace ZeroAlloc.Jev;
 
 /// <summary>
-/// The options or levels of an enum question built at run time, from <see cref="Enum.GetValues{TEnum}()"/> and
-/// <see cref="Enum.GetName{TEnum}(TEnum)"/>: no reflection, so it is Native AOT-safe.
+/// The options or levels of an enum question built at run time, read from the enum's public static fields in
+/// declaration order, as the generator reads the enum's members.
 /// </summary>
-/// <typeparam name="T">The enum.</typeparam>
+/// <typeparam name="T">
+/// The enum. Its public fields are declared through <see cref="DynamicallyAccessedMembersAttribute"/>, so the trimmer
+/// keeps them and reading them is trim- and Native AOT-safe.
+/// </typeparam>
 /// <remarks>
-/// <see cref="ForChoice"/> holds one option per distinct value, so an alias is skipped, in ascending value order, each
-/// keyed by its member name in snake_case, by the generator's own <c>SnakeCase</c>. A Score's levels follow the order
-/// its builder gave them, from <see cref="Levels"/>, keyed by index. Attributes on the members, such as
-/// <c>[Criteria(Key = …)]</c> or <c>[Level]</c>, are not read.
+/// <see cref="ForChoice"/> holds one option per distinct value, in declaration order, each keyed by its member name in
+/// snake_case, by the generator's own <c>SnakeCase</c>. An alias, a later field repeating an earlier field's value, is
+/// skipped, so a value is keyed by its first declared name. <see cref="Enum.GetName{TEnum}(TEnum)"/> is not used: for
+/// an aliased value in a larger enum it may return the alias. A Score's levels follow the order its builder gave them,
+/// from <see cref="Levels"/>, keyed by index. Attributes on the members, such as <c>[Criteria(Key = …)]</c> or
+/// <c>[Level]</c>, are not read.
 /// </remarks>
-internal sealed class EnumOptionSet<T> : JevOptionSet<T>
+internal sealed class EnumOptionSet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] T> : JevOptionSet<T>
     where T : struct, Enum
 {
     // Created on first use; a race creates two equal sets and keeps one, which is harmless.
@@ -34,7 +41,9 @@ internal sealed class EnumOptionSet<T> : JevOptionSet<T>
         _utf8Keys = Utf8Keys.Encode(keys);
     }
 
-    /// <summary>Gets the options of a Choice over <typeparamref name="T"/>, keyed by member name in snake_case.</summary>
+    /// <summary>
+    /// Gets the options of a Choice over <typeparamref name="T"/>, in declaration order, keyed by member name in snake_case.
+    /// </summary>
     public static EnumOptionSet<T> ForChoice => s_forChoice ??= Create();
 
     public override int Count => _values.Length;
@@ -86,24 +95,29 @@ internal sealed class EnumOptionSet<T> : JevOptionSet<T>
 
     private static EnumOptionSet<T> Create()
     {
-        var values = new List<T>();
-        foreach (var value in Enum.GetValues<T>())
+        // An enum's public static fields are its members, in metadata order, which is declaration order: the order
+        // the generator reads them in.
+        var fields = typeof(T).GetFields(BindingFlags.Public | BindingFlags.Static);
+        var values = new List<T>(fields.Length);
+        var names = new List<string>(fields.Length);
+        foreach (var field in fields)
         {
-            // An alias repeats an earlier member's value; that member already represents it.
+            var value = (T)field.GetValue(null)!;
+
+            // An alias repeats an earlier field's value; the earlier member already represents it.
             if (!values.Contains(value))
             {
                 values.Add(value);
+                names.Add(field.Name);
             }
         }
 
-        var names = new string[values.Count];
-        var keys = new string[values.Count];
-        for (var i = 0; i < names.Length; i++)
+        var keys = new string[names.Count];
+        for (var i = 0; i < keys.Length; i++)
         {
-            names[i] = Enum.GetName(values[i])!;
             keys[i] = SnakeCase.Convert(names[i]);
         }
 
-        return new EnumOptionSet<T>([.. values], names, keys);
+        return new EnumOptionSet<T>([.. values], [.. names], keys);
     }
 }
