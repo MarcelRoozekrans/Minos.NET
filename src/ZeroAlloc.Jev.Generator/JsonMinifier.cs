@@ -15,10 +15,11 @@ internal sealed record MinifyResult(string? Json, EquatableArray<string> Strings
 
 /// <summary>
 /// Validates and minifies the text of a <c>Json = true</c> attribute argument by RFC 8259, strictly: no comments,
-/// trailing commas, single quotes or byte order mark, no lone surrogates, at most <see cref="JevLimits.MaximumJsonDepth"/> levels of nesting, and an object
-/// or array at the top level. Duplicate object keys are accepted, as RFC 8259 allows and System.Text.Json's
-/// JsonDocument does, although its JsonObject rejects them. It has no dependencies: the generator runs inside the
-/// compiler host, where System.Text.Json may not be loadable in a matching version.
+/// trailing commas, single quotes or byte order mark, no lone surrogates, at most
+/// <see cref="JevLimits.MaximumJsonDepth"/> levels of nesting, and an object or array at the top level.
+/// Duplicate object keys are accepted, as RFC 8259 allows and System.Text.Json's JsonDocument does, although its
+/// JsonObject rejects them. It has no dependencies: the generator runs inside the compiler host, where
+/// System.Text.Json may not be loadable in a matching version.
 /// </summary>
 internal sealed class JsonMinifier
 {
