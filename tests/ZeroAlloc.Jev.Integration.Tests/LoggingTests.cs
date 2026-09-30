@@ -48,6 +48,7 @@ public sealed class LoggingTests : IClassFixture<WireMockFixture>
         var result = await client.EvaluateAsync(Fixtures.NoulRequest());
 
         Assert.True(result.IsSuccess);
+        Assert.Equal(2, _fixture.Server.LogEntries.Count);
         Assert.Equal([1003, 1001], logs.EventIds);
 
         var retrying = logs.Only(1003);
