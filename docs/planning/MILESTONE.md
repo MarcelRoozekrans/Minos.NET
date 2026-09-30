@@ -1,30 +1,36 @@
-# Milestone 2: Typed .NET API
+# Milestone 3: .NET integration
 
-**Status:** complete
-**Started:** 2026-09-27
-**Completed:** 2026-09-30
-**Design:** `docs/superpowers/specs/2026-09-27-milestone-2-design.md`
+**Status:** active
+**Started:** 2026-09-30
+**Design:** `docs/superpowers/specs/2026-09-30-milestone-3-design.md`
 
 ## Goal
-Questions and answers become strongly typed, idiomatic C# with no reflection. A question set is declared as a `[JevQuestions]` type, or built fluently at runtime. It is evaluated through `EvaluateAsync<T>` returning `Result<T, JevError>`, stays Native AOT-clean, and stays within allocation budgets that CI enforces.
+Jev feels native in a .NET generic-host app. One call registers the client, including keyed clients per provider. Options bind from configuration and fail fast when they are invalid, and the same configuration carries the retry and timeout settings. Every evaluation emits structured logs through `ILogger`, plus spans and metrics for tokens, latency and confidence. It all stays Native AOT-clean and within CI-enforced allocation budgets. Logging and telemetry live in the core package; `ZeroAlloc.Jev.DependencyInjection` only wires them up.
 
 ## Definition of Done
-- [x] All planned phases complete.
-- [x] All tests passing: unit, generator, analyzer, integration and pack. Live smoke runs when `JEV_LIVE=1` and a key are set.
-- [x] `[JevQuestions]` types evaluate end to end through `EvaluateAsync<T>` → `Result<T, JevError>` with no reflection. Raw `JsonElement`, string and UTF-8 overloads exist too.
-- [x] Every Jev diagnostic comes from `ZeroAlloc.Jev.Analyzers`: JEV001–004, and JEV101–107 moved out of the generator. The `[Criteria]`-stub code fix ships in `ZeroAlloc.Jev.CodeFixes`. #4–#11 are closed.
-- [x] Structured instructions and criteria work in attributes and in builders.
-- [x] Fluent builders cover Noul, Choice and Score, and validate the API limits at runtime with ZeroAlloc.Validation.
-- [x] Every phase adds `AllocationGate` budgets and benchmarks for what it ships. The AOT smoke app exercises the new typed paths. #13 is closed.
-- [x] #12 and #22 are closed.
+- [ ] All planned phases complete.
+- [ ] All tests passing: unit, generator, analyzer, integration and pack. Live smoke still runs when `JEV_LIVE=1` and a key are set.
+- [ ] `ZeroAlloc.Jev.DependencyInjection` registers the client:
+  - `services.AddJevClient(...)` registers an `IJevClient` on `IHttpClientFactory` in one call.
+  - `services.AddJevClient(name, ...)` registers keyed clients, each with its own options and `HttpClient`.
+  - The pack tests assert the package's layout and dependencies.
+- [ ] `JevClientOptions` bind from `IConfiguration`, validated with ZeroAlloc.Validation.Options so invalid values fail at startup. Retry and timeout settings are configurable this way.
+- [ ] `JevClient` logs through Microsoft's source-generated `[LoggerMessage]`:
+  - It accepts an `ILoggerFactory` through new constructor overloads.
+  - Logs never contain state, instructions, answers or the API key.
+  - Without a logger, it logs nothing and allocates nothing for logging.
+- [ ] Spans and metrics come from ZeroAlloc.Telemetry:
+  - They cover token usage, operation duration and answer confidence.
+  - Names follow the OpenTelemetry GenAI conventions plus `jev.*`.
+  - Jev's span nests the `ZeroAlloc.Rest` HTTP span; it does not duplicate it.
+- [ ] Every phase adds `AllocationGate` budgets and benchmarks for what it ships, and existing budgets hold with logging and telemetry disabled. The AOT smoke app exercises logging, telemetry and DI registration with zero IL2xxx/IL3xxx warnings.
 
 ## Phases
-1. Phase 2.1 — Typed evaluation [complete]
-2. Phase 2.2 — Analyzers and code fixes [complete]
-3. Phase 2.3 — Structured instructions and criteria [complete]
-4. Phase 2.4 — Fluent question builders [complete]
+1. Phase 3.1 — Logging [pending]
+2. Phase 3.2 — Telemetry [pending]
+3. Phase 3.3 — DI package [pending]
+4. Phase 3.4 — Options and configuration [pending]
 
 ## Audit History
 | Date | Verdict | Gaps |
 |---|---|---|
-| 2026-09-30 | PASS | None; notes: TypeSafe live suite not yet run, performance baseline not recorded, no pre-push-review reports (per-task and whole-branch reviews instead). `docs/plans/2026-09-30-milestone-2-audit.md` |
