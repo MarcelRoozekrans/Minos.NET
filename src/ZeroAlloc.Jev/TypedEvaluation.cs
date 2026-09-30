@@ -118,6 +118,19 @@ internal static class TypedEvaluation
         where T : IJevQuestionSet<T>
         => EvaluateCoreAsync(client, CreateRequest<T>(state, JevDefaults.Model), GeneratedAnswerParser<T>.Instance, ct);
 
+    /// <summary>
+    /// The default-interface-method path for a built set: sends its questions through
+    /// <see cref="IJevClient.EvaluateAsync(SystemOneRequest, CancellationToken)"/> with <see cref="JevDefaults.Model"/>
+    /// and reads its answers from the untyped response. Compatible with any <see cref="IJevClient"/>; allocates.
+    /// </summary>
+    /// <param name="client">The client.</param>
+    /// <param name="set">The question set.</param>
+    /// <param name="state">The state.</param>
+    /// <param name="ct">Cancels the call.</param>
+    /// <returns>The answers, or the <see cref="JevError"/> that prevented them.</returns>
+    public static ValueTask<Result<JevAnswers, JevError>> EvaluateAsync(IJevClient client, JevQuestionSet set, JevContent state, CancellationToken ct)
+        => EvaluateCoreAsync(client, CreateRequest(set.QuestionsUtf8, state, JevDefaults.Model, nameof(JevQuestionSet)), set.Parser, ct);
+
     /// <summary>Reads typed answers from an untyped response by re-serializing its answers.</summary>
     /// <typeparam name="T">The question set.</typeparam>
     /// <param name="response">The response.</param>

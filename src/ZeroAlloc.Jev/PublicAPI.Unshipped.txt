@@ -411,3 +411,7 @@ static ZeroAlloc.Jev.KeyedProbabilityMap.operator !=(ZeroAlloc.Jev.KeyedProbabil
 static ZeroAlloc.Jev.KeyedProbabilityMap.operator ==(ZeroAlloc.Jev.KeyedProbabilityMap left, ZeroAlloc.Jev.KeyedProbabilityMap right) -> bool
 static ZeroAlloc.Jev.KeyedScore.operator !=(ZeroAlloc.Jev.KeyedScore left, ZeroAlloc.Jev.KeyedScore right) -> bool
 static ZeroAlloc.Jev.KeyedScore.operator ==(ZeroAlloc.Jev.KeyedScore left, ZeroAlloc.Jev.KeyedScore right) -> bool
+ZeroAlloc.Jev.IJevClient.EvaluateAsync(ZeroAlloc.Jev.JevQuestionSet! questionSet, ZeroAlloc.Jev.JevContent state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.JevAnswers!, ZeroAlloc.Jev.JevError!>>
+ZeroAlloc.Jev.IJevClient.EvaluateAsync(ZeroAlloc.Jev.JevQuestionSet! questionSet, ZeroAlloc.Jev.JevContent state, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.JevAnswers!, ZeroAlloc.Jev.JevError!>>
+ZeroAlloc.Jev.JevClient.EvaluateAsync(ZeroAlloc.Jev.JevQuestionSet! questionSet, ZeroAlloc.Jev.JevContent state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.JevAnswers!, ZeroAlloc.Jev.JevError!>>
+ZeroAlloc.Jev.JevClient.EvaluateAsync(ZeroAlloc.Jev.JevQuestionSet! questionSet, ZeroAlloc.Jev.JevContent state, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.JevAnswers!, ZeroAlloc.Jev.JevError!>>

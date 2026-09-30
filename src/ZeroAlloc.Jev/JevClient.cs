@@ -232,6 +232,26 @@ public sealed class JevClient : IJevClient, IDisposable
     }
 
     /// <inheritdoc />
+    /// <remarks>Calls <see cref="EvaluateAsync(JevQuestionSet, JevContent, CancellationToken)"/> without cancellation.</remarks>
+    public ValueTask<Result<JevAnswers, JevError>> EvaluateAsync(JevQuestionSet questionSet, JevContent state)
+        => EvaluateAsync(questionSet, state, CancellationToken.None);
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Writes the request straight from the set's <see cref="JevQuestionSet.QuestionsUtf8"/>, with
+    /// <see cref="JevClientOptions.Model"/>, and reads the answers straight from the response body, in pooled buffers,
+    /// without building a <see cref="SystemOneRequest"/> or <see cref="SystemOneResponse"/>. Retries and errors work as
+    /// for <see cref="EvaluateAsync(SystemOneRequest, CancellationToken)"/>.
+    /// </remarks>
+    public ValueTask<Result<JevAnswers, JevError>> EvaluateAsync(JevQuestionSet questionSet, JevContent state, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(questionSet);
+        JevContent.EnsureInitialized(state, nameof(state));
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return EvaluateTypedAsync(TypedRequestWriter.Write(questionSet.QuestionsUtf8, state, _model, _pool), questionSet.Parser, ct);
+    }
+
+    /// <inheritdoc />
     public ValueTask<Result<ModelList, JevError>> ListModelsAsync(CancellationToken ct = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);

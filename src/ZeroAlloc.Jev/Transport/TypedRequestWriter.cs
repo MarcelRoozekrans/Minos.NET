@@ -47,6 +47,23 @@ internal static class TypedRequestWriter
         return Compose<JsonElement>(questionsUtf8, state, UnknownStateSize, model, pool, static (writer, _, element) => element.WriteTo(writer));
     }
 
+    /// <summary>Writes a request with a <see cref="JevContent"/> state: text as a string, JSON as its value.</summary>
+    /// <param name="questionsUtf8">The <c>questions</c> object, copied as is.</param>
+    /// <param name="state">The state, which must be initialized.</param>
+    /// <param name="model">The model.</param>
+    /// <param name="pool">The pool the body's buffer is rented from.</param>
+    /// <returns>The body, which the caller owns and must dispose.</returns>
+    public static RawJson Write(ReadOnlySpan<byte> questionsUtf8, JevContent state, string model, ArrayPool<byte> pool)
+    {
+        if (state.TryGetString(out var text))
+        {
+            return Write(questionsUtf8, text, model, pool);
+        }
+
+        state.TryGetJson(out var json);
+        return Write(questionsUtf8, json, model, pool);
+    }
+
     /// <summary>Writes a request with a UTF-8 JSON state, which must be one string, object or array.</summary>
     /// <param name="questionsUtf8">The <c>questions</c> object, copied as is.</param>
     /// <param name="utf8JsonState">The state.</param>
