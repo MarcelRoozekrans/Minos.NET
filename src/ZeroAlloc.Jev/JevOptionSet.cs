@@ -8,7 +8,7 @@ namespace ZeroAlloc.Jev;
 /// The <c>[JevQuestions]</c> source generator emits one sealed subclass per question. It maps enum values, indices and
 /// wire keys with switches, so no reflection is involved.
 /// </remarks>
-public abstract class JevOptionSet<T>
+public abstract class JevOptionSet<T> : IJevOptionKeys
     where T : struct, Enum
 {
     /// <summary>Gets the number of options.</summary>

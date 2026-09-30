@@ -80,6 +80,33 @@ public static class JevAnswerReader
     public static Choice<T> ReadChoice<T>(ref Utf8JsonReader reader, JevOptionSet<T> options, double[] buffer, int offset)
         where T : struct, Enum
     {
+        var (choice, confidence) = ReadChoiceCore(ref reader, options, buffer, offset);
+        return new Choice<T>(options[choice], confidence, new ProbabilityMap<T>(buffer, offset, options));
+    }
+
+    /// <summary>Reads a Score answer, writing its probabilities into <paramref name="buffer"/> from <paramref name="offset"/>.</summary>
+    /// <typeparam name="T">The enum whose members are the levels.</typeparam>
+    /// <param name="reader">A reader positioned on the answer's start. It is left on the answer's end.</param>
+    /// <param name="options">The levels, keyed <c>"0"</c>, <c>"1"</c>, … in rubric order.</param>
+    /// <param name="buffer">The probability buffer shared by one parse.</param>
+    /// <param name="offset">The position of this answer's slice in <paramref name="buffer"/>.</param>
+    /// <returns>The answer; its value is the most probable level, the lower one on a tie.</returns>
+    /// <exception cref="JsonException">The answer is malformed, is not a Score answer, names an unknown level, or lacks a required field.</exception>
+    public static Score<T> ReadScore<T>(ref Utf8JsonReader reader, JevOptionSet<T> options, double[] buffer, int offset)
+        where T : struct, Enum
+    {
+        var (level, expected, confidence) = ReadScoreCore(ref reader, options, buffer, offset);
+        return new Score<T>(options[level], expected, confidence, new ProbabilityMap<T>(buffer, offset, options));
+    }
+
+    /// <summary>Reads a Choice answer's option index and confidence, writing its probabilities into <paramref name="buffer"/> from <paramref name="offset"/>.</summary>
+    /// <param name="reader">A reader positioned on the answer's start. It is left on the answer's end.</param>
+    /// <param name="options">The options.</param>
+    /// <param name="buffer">The probability buffer shared by one parse.</param>
+    /// <param name="offset">The position of this answer's slice in <paramref name="buffer"/>.</param>
+    /// <returns>The chosen option's position and the confidence.</returns>
+    internal static (int Choice, double Confidence) ReadChoiceCore(ref Utf8JsonReader reader, IJevOptionKeys options, double[] buffer, int offset)
+    {
         ValidateSlice(options, buffer, offset);
         EnsureStartObject(ref reader);
         var hasType = false;
@@ -117,22 +144,20 @@ public static class JevAnswerReader
         Require(hasType, "type");
         Require(choice >= 0, "choice");
         Require(hasProbabilities, "probabilities");
-        return new Choice<T>(
-            options[choice],
-            confidence ?? throw MissingField("confidence"),
-            new ProbabilityMap<T>(buffer, offset, options));
+        return (choice, confidence ?? throw MissingField("confidence"));
     }
 
-    /// <summary>Reads a Score answer, writing its probabilities into <paramref name="buffer"/> from <paramref name="offset"/>.</summary>
-    /// <typeparam name="T">The enum whose members are the levels.</typeparam>
+    /// <summary>
+    /// Reads a Score answer's most probable level, the lower one on a tie, its expected level and its confidence,
+    /// writing its probabilities into <paramref name="buffer"/> from <paramref name="offset"/>.
+    /// </summary>
     /// <param name="reader">A reader positioned on the answer's start. It is left on the answer's end.</param>
     /// <param name="options">The levels, keyed <c>"0"</c>, <c>"1"</c>, … in rubric order.</param>
     /// <param name="buffer">The probability buffer shared by one parse.</param>
     /// <param name="offset">The position of this answer's slice in <paramref name="buffer"/>.</param>
-    /// <returns>The answer; its value is the most probable level, the lower one on a tie.</returns>
-    /// <exception cref="JsonException">The answer is malformed, is not a Score answer, names an unknown level, or lacks a required field.</exception>
-    public static Score<T> ReadScore<T>(ref Utf8JsonReader reader, JevOptionSet<T> options, double[] buffer, int offset)
-        where T : struct, Enum
+    /// <returns>The most probable level's position, the expected level and the confidence.</returns>
+    internal static (int Level, double Expected, double Confidence) ReadScoreCore(
+        ref Utf8JsonReader reader, IJevOptionKeys options, double[] buffer, int offset)
     {
         ValidateSlice(options, buffer, offset);
         if (options.Count == 0)
@@ -184,11 +209,7 @@ public static class JevAnswerReader
             }
         }
 
-        return new Score<T>(
-            options[best],
-            expected ?? throw MissingField("score"),
-            confidence ?? throw MissingField("confidence"),
-            new ProbabilityMap<T>(buffer, offset, options));
+        return (best, expected ?? throw MissingField("score"), confidence ?? throw MissingField("confidence"));
     }
 
     /// <summary>Creates the exception thrown when the response has no answer for a declared question.</summary>
@@ -196,8 +217,7 @@ public static class JevAnswerReader
     /// <returns>The exception.</returns>
     public static JsonException MissingAnswer(string key) => new($"The response has no answer for '{key}'.");
 
-    private static void ValidateSlice<T>(JevOptionSet<T> options, double[] buffer, int offset)
-        where T : struct, Enum
+    private static void ValidateSlice(IJevOptionKeys options, double[] buffer, int offset)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(buffer);
@@ -225,8 +245,7 @@ public static class JevAnswerReader
         return value;
     }
 
-    private static int ReadOptionIndex<T>(ref Utf8JsonReader reader, JevOptionSet<T> options, JsonTokenType expected)
-        where T : struct, Enum
+    private static int ReadOptionIndex(ref Utf8JsonReader reader, IJevOptionKeys options, JsonTokenType expected)
     {
         if (reader.TokenType != expected)
         {
@@ -242,8 +261,7 @@ public static class JevAnswerReader
         return index;
     }
 
-    private static void ReadProbabilities<T>(ref Utf8JsonReader reader, JevOptionSet<T> options, double[] buffer, int offset)
-        where T : struct, Enum
+    private static void ReadProbabilities(ref Utf8JsonReader reader, IJevOptionKeys options, double[] buffer, int offset)
     {
         reader.Read();
         EnsureStartObject(ref reader);
