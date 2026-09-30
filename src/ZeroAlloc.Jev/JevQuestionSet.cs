@@ -15,7 +15,7 @@ public sealed class JevQuestionSet
     {
         Identity = identity;
         _questionsUtf8 = questionsUtf8;
-        Warnings = warnings;
+        Warnings = warnings.Length == 0 ? [] : new System.Collections.ObjectModel.ReadOnlyCollection<JevQuestionFailure>(warnings);
         Plan = plan;
         QuestionKeys = utf8Keys;
         ProbabilityCount = probabilityCount;

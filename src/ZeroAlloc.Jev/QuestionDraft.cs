@@ -26,6 +26,18 @@ internal sealed class QuestionDraft(
 
     public List<OptionSpec> Options { get; } = [];
 
+    private bool _closed;
+
+    public void Close() => _closed = true;
+
+    public void EnsureOpen()
+    {
+        if (_closed)
+        {
+            throw new InvalidOperationException("The configurator can only be used inside its callback.");
+        }
+    }
+
     public QuestionSpec ToSpec()
         => new()
         {

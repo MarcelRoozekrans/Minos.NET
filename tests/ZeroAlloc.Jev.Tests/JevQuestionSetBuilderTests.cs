@@ -129,13 +129,34 @@ public sealed class JevQuestionSetBuilderTests
     }
 
     [Fact]
+    public void NullKey_ThrowsOnAllTenQuestionMethods()
+    {
+        var builder = JevQuestionSet.CreateBuilder();
+        Action[] calls =
+        [
+            () => builder.Noul(null!, "x", out _),
+            () => builder.Noul(null!, "x", out _, _ => { }),
+            () => builder.Choice<Department>(null!, "x", out _),
+            () => builder.Choice<Department>(null!, "x", out _, _ => { }),
+            () => builder.Choice(null!, "x", out _),
+            () => builder.Choice(null!, "x", out _, _ => { }),
+            () => builder.Score<Frustration>(null!, "x", out _),
+            () => builder.Score<Frustration>(null!, "x", out _, _ => { }),
+            () => builder.Score(null!, "x", out _),
+            () => builder.Score(null!, "x", out _, _ => { }),
+        ];
+
+        foreach (var call in calls)
+        {
+            Assert.Equal("key", Assert.Throws<ArgumentNullException>(call).ParamName);
+        }
+    }
+
+    [Fact]
     public void NullArguments_ThrowArgumentNullException()
     {
         var builder = JevQuestionSet.CreateBuilder();
 
-        Assert.Equal("key", Assert.Throws<ArgumentNullException>(() => builder.Noul(null!, "x", out _)).ParamName);
-        Assert.Equal("key", Assert.Throws<ArgumentNullException>(() => builder.Choice<Department>(null!, "x", out _)).ParamName);
-        Assert.Equal("key", Assert.Throws<ArgumentNullException>(() => builder.Score(null!, "x", out _)).ParamName);
         Assert.Equal("text", Assert.Throws<ArgumentNullException>(() => builder.Noul("k", (string)null!, out _)).ParamName);
         Assert.Equal("configure", Assert.Throws<ArgumentNullException>(() => builder.Noul("k", "x", out _, null!)).ParamName);
         Assert.Equal("configure", Assert.Throws<ArgumentNullException>(() => builder.Choice<Department>("k", "x", out _, null!)).ParamName);
@@ -169,10 +190,76 @@ public sealed class JevQuestionSetBuilderTests
     {
         var builder = JevQuestionSet.CreateBuilder().Noul("kept", "Kept?", out _);
 
-        Assert.Throws<InvalidOperationException>(
-            () => builder.Choice("dropped", "Dropped?", out _, _ => throw new InvalidOperationException("configure failed")));
+        Action[] calls =
+        [
+            () => builder.Noul("dropped", "Dropped?", out _, _ => throw new InvalidOperationException("configure failed")),
+            () => builder.Choice<Department>("dropped", "Dropped?", out _, _ => throw new InvalidOperationException("configure failed")),
+            () => builder.Choice("dropped", "Dropped?", out _, _ => throw new InvalidOperationException("configure failed")),
+            () => builder.Score<Frustration>("dropped", "Dropped?", out _, _ => throw new InvalidOperationException("configure failed")),
+            () => builder.Score("dropped", "Dropped?", out _, _ => throw new InvalidOperationException("configure failed")),
+        ];
+
+        foreach (var call in calls)
+        {
+            Assert.Equal("configure failed", Assert.Throws<InvalidOperationException>(call).Message);
+        }
 
         Assert.Equal("""{"kept":{"type":"noul","instructions":"Kept?"}}""", Encoding.ASCII.GetString(Built(builder).QuestionsUtf8));
+    }
+
+    [Fact]
+    public void AConfigurator_ThrowsOnceItsCallbackReturned_AndChangesNothing()
+    {
+        NoulCriteriaBuilder? noul = null;
+        ChoiceOptionsBuilder<Department>? choice = null;
+        ScoreLevelsBuilder<Frustration>? score = null;
+        KeyedChoiceOptionsBuilder? keyedChoice = null;
+        KeyedScoreLevelsBuilder? keyedScore = null;
+        var builder = JevQuestionSet.CreateBuilder()
+            .Noul("n", "N?", out _, c => noul = c)
+            .Choice<Department>("c", "C?", out _, o => choice = o)
+            .Score<Frustration>("s", "S?", out _, l => score = l.Level(Frustration.Calm, "a").Level(Frustration.Frustrated, "b").Level(Frustration.VeryAngry, "c"))
+            .Choice("kc", "KC?", out _, o => keyedChoice = o.Option("a"))
+            .Score("ks", "KS?", out _, l => keyedScore = l.Level("a"));
+        var before = Built(builder).QuestionsUtf8.ToArray();
+
+        Assert.Throws<InvalidOperationException>(() => noul!.WhenTrue("x"));
+        Assert.Throws<InvalidOperationException>(() => noul!.WhenFalse("x"));
+        Assert.Throws<InvalidOperationException>(() => choice!.Describe(Department.Billing, "x"));
+        Assert.Throws<InvalidOperationException>(() => score!.Level(Frustration.Calm, "x"));
+        Assert.Throws<InvalidOperationException>(() => keyedChoice!.Option("b"));
+        Assert.Throws<InvalidOperationException>(() => keyedChoice!.Option("b", "x"));
+        Assert.Throws<InvalidOperationException>(() => keyedScore!.Level("x"));
+
+        Assert.Equal(before, Built(builder).QuestionsUtf8.ToArray());
+    }
+
+    [Fact]
+    public void AConfigurator_ThatThrew_IsClosedToo()
+    {
+        KeyedChoiceOptionsBuilder? stored = null;
+        var builder = JevQuestionSet.CreateBuilder().Noul("kept", "Kept?", out _);
+
+        Assert.Throws<InvalidOperationException>(() => builder.Choice("dropped", "D?", out _, o =>
+        {
+            stored = o;
+            throw new InvalidOperationException("configure failed");
+        }));
+
+        Assert.Throws<InvalidOperationException>(() => stored!.Option("late"));
+        Assert.Equal("""{"kept":{"type":"noul","instructions":"Kept?"}}""", Encoding.ASCII.GetString(Built(builder).QuestionsUtf8));
+    }
+
+    [Fact]
+    public void WarningsAndFailures_AreNotWritableArrays()
+    {
+        var warned = JevQuestionSet.CreateBuilder().Noul("q", "   ", out _).Build().Value;
+        var failed = JevQuestionSet.CreateBuilder().Choice("team", "Which team?", out _).Build().Error;
+
+        Assert.NotEmpty(warned.Warnings);
+        Assert.IsNotType<JevQuestionFailure[]>(warned.Warnings);
+        Assert.NotEmpty(failed.Failures);
+        Assert.IsNotType<JevQuestionFailure[]>(failed.Failures);
     }
 
     [Fact]

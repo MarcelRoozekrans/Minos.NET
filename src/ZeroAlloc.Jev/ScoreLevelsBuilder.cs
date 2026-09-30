@@ -10,6 +10,7 @@ namespace ZeroAlloc.Jev;
 /// (JEV104, JEV106). Listed in declaration order, the levels match the generator's for the same enum.
 /// </summary>
 /// <typeparam name="T">The enum whose members are the levels; its public fields are read, so the trimmer keeps them.</typeparam>
+/// <remarks>Valid only inside its callback: once the question method returns, its methods throw <see cref="InvalidOperationException"/>.</remarks>
 public sealed class ScoreLevelsBuilder<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] T>
     where T : struct, Enum
 {
@@ -26,10 +27,12 @@ public sealed class ScoreLevelsBuilder<[DynamicallyAccessedMembers(DynamicallyAc
     /// <param name="level">The member this level is.</param>
     /// <param name="criterion">What the level means.</param>
     /// <returns>This builder.</returns>
+    /// <exception cref="InvalidOperationException">The configurator is used after its callback returned.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="criterion"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="level"/> is not a member of <typeparamref name="T"/>.</exception>
     public ScoreLevelsBuilder<T> Level(T level, JevCriterion criterion)
     {
+        _draft.EnsureOpen();
         ArgumentNullException.ThrowIfNull(criterion);
         var member = _options.IndexOf(level);
         if (member < 0)

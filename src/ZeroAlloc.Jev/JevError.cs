@@ -44,7 +44,7 @@ public sealed class JevError
     internal JevError(string message, IReadOnlyList<JevQuestionFailure> failures)
         : this(JevErrorKind.InvalidQuestions, message)
     {
-        Failures = failures;
+        Failures = failures.Count == 0 ? [] : new System.Collections.ObjectModel.ReadOnlyCollection<JevQuestionFailure>([.. failures]);
     }
 
     /// <summary>Gets what went wrong.</summary>

@@ -8,6 +8,7 @@ namespace ZeroAlloc.Jev;
 /// <see langword="null"/>.
 /// </summary>
 /// <typeparam name="T">The enum whose members are the options; its public fields are read, so the trimmer keeps them.</typeparam>
+/// <remarks>Valid only inside its callback: once the question method returns, its methods throw <see cref="InvalidOperationException"/>.</remarks>
 public sealed class ChoiceOptionsBuilder<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] T>
     where T : struct, Enum
 {
@@ -24,10 +25,12 @@ public sealed class ChoiceOptionsBuilder<[DynamicallyAccessedMembers(Dynamically
     /// <param name="option">The option.</param>
     /// <param name="criterion">What the option means.</param>
     /// <returns>This builder.</returns>
+    /// <exception cref="InvalidOperationException">The configurator is used after its callback returned.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="criterion"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="option"/> is not a member of <typeparamref name="T"/>.</exception>
     public ChoiceOptionsBuilder<T> Describe(T option, JevCriterion criterion)
     {
+        _draft.EnsureOpen();
         ArgumentNullException.ThrowIfNull(criterion);
         var index = _options.IndexOf(option);
         if (index < 0)

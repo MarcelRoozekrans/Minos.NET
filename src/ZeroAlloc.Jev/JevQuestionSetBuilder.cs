@@ -13,6 +13,8 @@ namespace ZeroAlloc.Jev;
 /// <remarks>
 /// Not thread-safe. <see cref="Build"/> checks the questions against the API's rules and can be called again after
 /// adding more; every set built by one builder accepts that builder's handles. A call that throws adds no question.
+/// A configurator passed to <c>configure</c> works only inside that callback: once it returns, the configurator throws
+/// <see cref="InvalidOperationException"/>.
 /// </remarks>
 public sealed class JevQuestionSetBuilder
 {
@@ -49,7 +51,7 @@ public sealed class JevQuestionSetBuilder
     {
         var draft = Draft(key, QuestionKind.Noul, instructions, enumOptions: null, enumMembers: null);
         ArgumentNullException.ThrowIfNull(configure);
-        configure(new NoulCriteriaBuilder(draft));
+        Configure(draft, () => configure(new NoulCriteriaBuilder(draft)));
         question = new NoulHandle(_identity, Add(draft));
         return this;
     }
@@ -86,7 +88,7 @@ public sealed class JevQuestionSetBuilder
     {
         var draft = EnumChoiceDraft<T>(key, instructions);
         ArgumentNullException.ThrowIfNull(configure);
-        configure(new ChoiceOptionsBuilder<T>(draft, EnumOptionSet<T>.ForChoice));
+        Configure(draft, () => configure(new ChoiceOptionsBuilder<T>(draft, EnumOptionSet<T>.ForChoice)));
         question = new ChoiceHandle<T>(_identity, Add(draft));
         return this;
     }
@@ -118,7 +120,7 @@ public sealed class JevQuestionSetBuilder
     {
         var draft = Draft(key, QuestionKind.Choice, instructions, enumOptions: null, enumMembers: null);
         ArgumentNullException.ThrowIfNull(configure);
-        configure(new KeyedChoiceOptionsBuilder(draft));
+        Configure(draft, () => configure(new KeyedChoiceOptionsBuilder(draft)));
         question = new KeyedChoiceHandle(_identity, Add(draft));
         return this;
     }
@@ -158,7 +160,7 @@ public sealed class JevQuestionSetBuilder
     {
         var draft = EnumScoreDraft<T>(key, instructions);
         ArgumentNullException.ThrowIfNull(configure);
-        configure(new ScoreLevelsBuilder<T>(draft, EnumOptionSet<T>.ForChoice));
+        Configure(draft, () => configure(new ScoreLevelsBuilder<T>(draft, EnumOptionSet<T>.ForChoice)));
         question = new ScoreHandle<T>(_identity, Add(draft));
         return this;
     }
@@ -190,7 +192,7 @@ public sealed class JevQuestionSetBuilder
     {
         var draft = Draft(key, QuestionKind.Score, instructions, enumOptions: null, enumMembers: null);
         ArgumentNullException.ThrowIfNull(configure);
-        configure(new KeyedScoreLevelsBuilder(draft));
+        Configure(draft, () => configure(new KeyedScoreLevelsBuilder(draft)));
         question = new KeyedScoreHandle(_identity, Add(draft));
         return this;
     }
@@ -280,6 +282,20 @@ public sealed class JevQuestionSetBuilder
 
     private static string Summary(JevQuestionFailure[] failures)
         => $"The question set breaks {failures.Length.ToString(CultureInfo.InvariantCulture)} rule(s). {failures[0].Rule}: {failures[0].Message}";
+
+    // A configurator works only while its callback runs, even when the callback throws, so a stored one cannot change
+    // a question already added.
+    private static void Configure(QuestionDraft draft, Action callback)
+    {
+        try
+        {
+            callback();
+        }
+        finally
+        {
+            draft.Close();
+        }
+    }
 
     private int Add(QuestionDraft draft)
     {
