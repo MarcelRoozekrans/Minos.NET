@@ -1,7 +1,9 @@
 using System.Net;
 using System.Text;
 using BenchmarkDotNet.Attributes;
+using Microsoft.Extensions.Logging;
 using ZeroAlloc.Results;
+using ZeroAlloc.Jev.Shared;
 
 namespace ZeroAlloc.Jev.Benchmarks;
 
@@ -22,6 +24,14 @@ public class ClientBenchmarks
     private JevClient _listModelsClient = null!;
     private JevClient _typedEvaluateClient = null!;
     private JevClient _typedEvaluateNoulClient = null!;
+    private HttpClient _evaluateLoggedHttp = null!;
+    private HttpClient _typedEvaluateLoggedHttp = null!;
+    private JevClient _evaluateLoggedClient = null!;
+    private JevClient _typedEvaluateLoggedClient = null!;
+    private HttpClient _evaluateYieldingHttp = null!;
+    private HttpClient _evaluateYieldingLoggedHttp = null!;
+    private JevClient _evaluateYieldingClient = null!;
+    private JevClient _evaluateYieldingLoggedClient = null!;
     private SystemOneRequest _request = null!;
     private string _typedState = null!;
 
@@ -32,6 +42,10 @@ public class ClientBenchmarks
         (_listModelsHttp, _listModelsClient) = CreateClient(ModelsResponseJson);
         (_typedEvaluateHttp, _typedEvaluateClient) = CreateClient(TriageResponseJson);
         (_typedEvaluateNoulHttp, _typedEvaluateNoulClient) = CreateClient(NoulResponseJson);
+        (_evaluateLoggedHttp, _evaluateLoggedClient) = CreateClient(NoulResponseJson, DiscardingLoggerFactory.Instance);
+        (_typedEvaluateLoggedHttp, _typedEvaluateLoggedClient) = CreateClient(TriageResponseJson, DiscardingLoggerFactory.Instance);
+        (_evaluateYieldingHttp, _evaluateYieldingClient) = CreateClient(new YieldingHandler(HttpStatusCode.OK, NoulResponseJson), loggerFactory: null);
+        (_evaluateYieldingLoggedHttp, _evaluateYieldingLoggedClient) = CreateClient(new YieldingHandler(HttpStatusCode.OK, NoulResponseJson), DiscardingLoggerFactory.Instance);
         _request = new SystemOneRequest
         {
             State = "Help! My payouts have been failing for 3 days.",
@@ -54,6 +68,14 @@ public class ClientBenchmarks
         _listModelsHttp.Dispose();
         _typedEvaluateHttp.Dispose();
         _typedEvaluateNoulHttp.Dispose();
+        _evaluateLoggedClient.Dispose();
+        _typedEvaluateLoggedClient.Dispose();
+        _evaluateYieldingClient.Dispose();
+        _evaluateYieldingLoggedClient.Dispose();
+        _evaluateLoggedHttp.Dispose();
+        _typedEvaluateLoggedHttp.Dispose();
+        _evaluateYieldingHttp.Dispose();
+        _evaluateYieldingLoggedHttp.Dispose();
     }
 
     /// <summary><see cref="JevClient.EvaluateAsync"/> over a fixed Noul response.</summary>
@@ -75,13 +97,37 @@ public class ClientBenchmarks
     [Benchmark]
     public ValueTask<Result<BenchUrgency, JevError>> TypedEvaluateNoulAsync() => _typedEvaluateNoulClient.EvaluateAsync<BenchUrgency>(_typedState);
 
+    /// <summary><see cref="EvaluateAsync"/> through a logger enabled at every level that discards everything.</summary>
+    [Benchmark]
+    public ValueTask<Result<SystemOneResponse, JevError>> EvaluateWithDiscardingLoggerAsync() => _evaluateLoggedClient.EvaluateAsync(_request);
+
+    /// <summary><see cref="TypedEvaluateAsync"/> through a logger enabled at every level that discards everything.</summary>
+    [Benchmark]
+    public ValueTask<Result<BenchTriage, JevError>> TypedEvaluateWithDiscardingLoggerAsync()
+        => _typedEvaluateLoggedClient.EvaluateAsync<BenchTriage>(_typedState);
+
+    /// <summary><see cref="EvaluateAsync"/> over a handler that completes asynchronously, with no logger.</summary>
+    [Benchmark]
+    public ValueTask<Result<SystemOneResponse, JevError>> EvaluateYieldingAsync() => _evaluateYieldingClient.EvaluateAsync(_request);
+
+    /// <summary><see cref="EvaluateYieldingAsync"/> through a logger enabled at every level that discards everything,
+    /// so the logging wrappers' async state machines run.</summary>
+    [Benchmark]
+    public ValueTask<Result<SystemOneResponse, JevError>> EvaluateYieldingWithDiscardingLoggerAsync() => _evaluateYieldingLoggedClient.EvaluateAsync(_request);
+
     internal static (HttpClient Http, JevClient Client) CreateClient(string responseJson)
+        => CreateClient(responseJson, loggerFactory: null);
+
+    internal static (HttpClient Http, JevClient Client) CreateClient(string responseJson, ILoggerFactory? loggerFactory)
+        => CreateClient(new CannedHandler(HttpStatusCode.OK, responseJson), loggerFactory);
+
+    private static (HttpClient Http, JevClient Client) CreateClient(HttpMessageHandler handler, ILoggerFactory? loggerFactory)
     {
-        var handler = new CannedHandler(HttpStatusCode.OK, responseJson);
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://example.test/api/") };
-        // Default retry options: the canned handler always returns 200, so no retry ever fires, and
+        // Default retry options: the handler always returns 200, so no retry ever fires, and
         // the benchmark measures the resilience proxy's per-call overhead that users get by default.
-        var client = new JevClient(http, new JevClientOptions { ApiKey = "bench" });
+        // A null factory builds exactly the client the two-argument constructor builds.
+        var client = new JevClient(http, new JevClientOptions { ApiKey = "bench" }, loggerFactory);
         return (http, client);
     }
 
@@ -94,5 +140,20 @@ public class ClientBenchmarks
                 Content = new StringContent(body, Encoding.UTF8, "application/json"),
                 RequestMessage = request,
             });
+    }
+
+    /// <summary>Answers like <see cref="CannedHandler"/> but yields first, so the call genuinely completes
+    /// asynchronously and the logging wrappers' state machines are measured.</summary>
+    internal sealed class YieldingHandler(HttpStatusCode status, string body) : HttpMessageHandler
+    {
+        protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            await Task.Yield();
+            return new HttpResponseMessage(status)
+            {
+                Content = new StringContent(body, Encoding.UTF8, "application/json"),
+                RequestMessage = request,
+            };
+        }
     }
 }

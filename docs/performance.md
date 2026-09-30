@@ -61,3 +61,38 @@ The budgets come from the AOT smoke app and the unit test, which measure on thei
 next 64 B; the parse measures 216 B, rounded up to 256 B. The parse budget is gated in `tests/ZeroAlloc.Jev.Tests`
 under the JIT, since parsing is internal and the AOT smoke app uses only the public API; it allocates only the
 `JevAnswers` object, its probability buffer and its slot array.
+
+### Phase 3.1 — Logging
+
+| Benchmark | Mean | Allocated | AOT smoke budget |
+|---|---|---|---|
+| `ClientBenchmarks.EvaluateAsync` | 2.269 us | 4.17 KB | 5120 B |
+| `ClientBenchmarks.EvaluateWithDiscardingLoggerAsync` | 2.402 us | 4.17 KB | 4800 B |
+| `ClientBenchmarks.TypedEvaluateAsync` | 1.780 us | 3.29 KB | 4224 B |
+| `ClientBenchmarks.TypedEvaluateWithDiscardingLoggerAsync` | 1.960 us | 3.29 KB | 3712 B |
+| `ClientBenchmarks.EvaluateYieldingAsync` | 7.994 us | 5.09 KB | — |
+| `ClientBenchmarks.EvaluateYieldingWithDiscardingLoggerAsync` | 12.235 us | 5.56 KB | — |
+
+Measured on a 12th Gen Intel Core i9-12900HK, Windows 11 (10.0.26200.9457), .NET SDK 10.0.401 with runtime 10.0.12,
+with `--job short`, so the means are indicative only. BenchmarkDotNet prints Allocated in KB (1 KB = 1024 B) to two
+decimals, so each figure is good to about 5 B.
+
+Without a logger, or with one whose levels are all disabled, each operation returns the unlogged call itself. So
+`EvaluateAsync` and `TypedEvaluateAsync` run the same code as before logging, and the AOT smoke gates hold them to their
+existing budgets with `NullLoggerFactory` and with an every-level-filtered `LoggerFactory`; they measure 4312 B and
+3368 B, inside the unchanged 5120 B and 4224 B.
+
+The discarding logger is enabled at every level and writes nothing, so every event, timestamp and logging wrapper runs.
+- In the benchmark, it adds 0 B to `EvaluateAsync` and 0 B to `TypedEvaluateAsync`, to the precision of the table. The
+  means differ by less than the error bars.
+- Under published win-x64 AOT, the smoke gates measure 4312 B and 3368 B per call with the discarding logger, the same as
+  without it. Their budgets, 4800 B and 3712 B, are those measurements plus about 10%, rounded up to the next 64 B.
+- The events pass struct state straight to the logger, so what logging adds is the logging wrappers' state machines when a
+  call does not complete synchronously.
+
+The canned handler completes synchronously, so the rows above never run those state machines, and neither does the AOT
+gate. The `Yielding` rows use a handler that awaits `Task.Yield()` before answering, so the call genuinely completes
+asynchronously. There the discarding logger adds about 0.47 KB (5.56 KB against 5.09 KB, roughly 480 B) per call, which is
+the wrappers' async state machines and is the cost a real network call pays. The two yielding means, 7.994 us and
+12.235 us, are dominated by the thread pool hand-off and their error bars (11.7 us and 115.8 us) are wider than the
+difference, so they show no logging time cost either way; only their allocation figures are reliable.

@@ -19,4 +19,9 @@
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- The AOT smoke app's discarding logger factory, one file for both, so the two measure the same logger. -->
+    <Compile Include="..\..\samples\ZeroAlloc.Jev.AotSmoke\DiscardingLoggerFactory.cs" Link="Shared\DiscardingLoggerFactory.cs" />
+  </ItemGroup>
 </Project>
