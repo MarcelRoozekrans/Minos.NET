@@ -69,7 +69,7 @@ public sealed class JevError
     public Exception? Exception { get; }
 
     /// <summary>
-    /// Gets the rules a question set built with <c>JevQuestionSetBuilder</c> breaks, when <see cref="Kind"/> is
+    /// Gets the rules a question set built with <see cref="JevQuestionSetBuilder"/> breaks, when <see cref="Kind"/> is
     /// <see cref="JevErrorKind.InvalidQuestions"/>; empty for every other kind.
     /// </summary>
     public IReadOnlyList<JevQuestionFailure> Failures { get; } = [];

@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace ZeroAlloc.Jev;
 
 /// <summary>
-/// Describes a Choice option or a Score level of a question built with <c>JevQuestionSetBuilder</c>: a plain
+/// Describes a Choice option or a Score level of a question built with <see cref="JevQuestionSetBuilder"/>: a plain
 /// text, a text with <see cref="WithExamples"/> and <see cref="WithNotFor"/> texts, or JSON.
 /// </summary>
 /// <remarks>

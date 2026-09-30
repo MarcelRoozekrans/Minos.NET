@@ -140,6 +140,19 @@ public readonly struct JevContent : IEquatable<JevContent>
     /// <returns><see langword="true"/> when the values differ.</returns>
     public static bool operator !=(JevContent left, JevContent right) => !left.Equals(right);
 
+    /// <summary>Throws unless <paramref name="content"/> holds text or JSON.</summary>
+    /// <param name="content">The content to check.</param>
+    /// <param name="paramName">The caller's parameter name, for the exception.</param>
+    /// <exception cref="ArgumentException"><paramref name="content"/> is <see langword="default"/>.</exception>
+    internal static void EnsureInitialized(JevContent content, string paramName)
+    {
+        if (content._text is null && content._json.ValueKind == JsonValueKind.Undefined)
+        {
+            throw new ArgumentException(
+                "The content is uninitialized: create it with FromString, FromJson, FromValue or FromUtf8Json.", paramName);
+        }
+    }
+
     /// <summary>Gets the text, when this content is plain text.</summary>
     /// <param name="text">The text, or <see langword="null"/>.</param>
     /// <returns><see langword="true"/> when this content is plain text.</returns>

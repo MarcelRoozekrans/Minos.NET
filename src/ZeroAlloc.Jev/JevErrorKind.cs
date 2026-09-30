@@ -49,7 +49,7 @@ public enum JevErrorKind
     Unsupported,
 
     /// <summary>
-    /// A question set built with <c>JevQuestionSetBuilder</c> breaks the API's rules; <see cref="JevError.Failures"/>
+    /// A question set built with <see cref="JevQuestionSetBuilder"/> breaks the API's rules; <see cref="JevError.Failures"/>
     /// lists each one. <c>Build</c> returns it, and no request is sent.
     /// </summary>
     InvalidQuestions,
