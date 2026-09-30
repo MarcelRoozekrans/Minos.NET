@@ -214,14 +214,16 @@ internal static class AllocationChecks
 
         // Measured 4288 B/call on published win-x64 AOT: the JevQuestionSet's pre-built request body copied into a pooled
         // buffer, HttpClient's request and response objects and body buffering, the JevAnswers result and the async state
-        // machines. Budget: about 10% headroom, 4717 B, rounded up to the next multiple of 64, 4736 B, since HttpClient's
-        // allocations follow runtime internals.
+        // machines if the call does not complete synchronously. Budget: about 10% headroom, 4717 B, rounded up to the next
+        // multiple of 64, 4736 B, since HttpClient's allocations follow runtime internals.
         GateValueTask(
             budgetBytes: 4736,
             action: () => client.EvaluateAsync(set, "Help! My payouts have been failing for 3 days."),
             label: "EvaluateBuiltSetRoundTrip",
             passDescription: "EvaluateAsync over a built set stays within its allocation budget");
     }
+
+    private static double sink;
 
     /// <summary><see cref="JevAnswers.Get(NoulHandle)"/> and its overloads, over one evaluation's answers.</summary>
     public static void JevAnswersGet()
@@ -239,10 +241,14 @@ internal static class AllocationChecks
             budgetBytes: 0,
             action: () =>
             {
-                _ = answers.Get(credentials);
-                _ = answers.Get(team);
-                _ = answers.Get(product);
-                _ = answers.Get(urgency);
+                var noul = answers.Get(credentials);
+                var teamAnswer = answers.Get(team);
+                var productAnswer = answers.Get(product);
+                var urgencyAnswer = answers.Get(urgency);
+
+                // Consumed into a static field so the compiler cannot elide the calls and make the 0 B gate vacuous.
+                sink += (noul.Value ? 1 : 0) + (int)teamAnswer.Value + productAnswer.Value.Length + (int)urgencyAnswer.Value
+                    + teamAnswer.Confidence + productAnswer.Confidence + urgencyAnswer.Confidence + urgencyAnswer.Expected;
             },
             label: "JevAnswersGet",
             passDescription: "JevAnswers.Get allocates nothing");

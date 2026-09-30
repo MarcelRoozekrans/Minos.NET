@@ -266,7 +266,6 @@ internal static class Program
         Check(
             result.IsSuccess
                 && result.Value.Get(channel).Value == Channel.Email
-                && result.Value.Get(channel).Value == Channel.Mail
                 && Math.Abs(result.Value.Get(channel).Probabilities[Channel.Mail] - 0.8) < 1e-12,
             "a built enum Choice keys an aliased value by its first declared name, email, under Native AOT");
     }

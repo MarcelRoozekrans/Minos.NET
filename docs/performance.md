@@ -41,9 +41,9 @@ benchmark, and the same rounding gives it 320 B too.
 
 | Benchmark | Mean | Allocated | Budget |
 |---|---|---|---|
-| `QuestionSetBenchmarks.Build` | 1.903 us | 6728 B | 7296 B (AOT smoke, three questions) |
-| `QuestionSetBenchmarks.EvaluateBuiltSet` | 4.234 us | 3808 B | 4736 B (AOT smoke) |
-| `QuestionSetBenchmarks.ParseBuiltTwenty` | 3.087 us | 568 B | 256 B (unit test, three questions) |
+| `QuestionSetBenchmarks.Build` | 1.903 us | 6728 B | 7296 B (AOT smoke, a different three-question set) |
+| `QuestionSetBenchmarks.EvaluateBuiltSet` | 4.234 us | 3808 B | 4736 B (AOT smoke, a different set) |
+| `QuestionSetBenchmarks.ParseBuiltTwenty` | 3.087 us | 568 B | 256 B (unit test, a different three-question set) |
 | `QuestionSetBenchmarks.ParseGeneratedTwenty` | 2.457 us | 176 B | — |
 | `JevAnswers.Get` | — | — | 0 B (AOT smoke) |
 
@@ -52,9 +52,9 @@ with `--job short`, so the means are indicative only.
 
 A built set finds each answer's question by a linear `ValueTextEquals` scan over its UTF-8 keys, where the generated
 parser compiles one `if` chain. At twenty questions the scan costs about 0.63 us more, 3.087 us against 2.457 us, or
-26% (1.26 times the generated parse), and allocates 568 B against 176 B for the larger slot array. That is well
+26% (1.26 times the generated parse), and allocates 568 B against 176 B mostly for the larger slot array. That is well
 inside twice the generated parse, so it does not call for a UTF-8 key map: the scan is short at the sizes a question
-set has, and a map would add an allocation and a hash per answer for a saving of well under a microsecond.
+set has, and a map, built once at Build, would add a hash per answer for a saving of well under a microsecond.
 
 The budgets come from the AOT smoke app and the unit test, which measure on their own inputs, not the benchmark's:
 `Build` measures 6592 B and `EvaluateBuiltSet` 4288 B on published win-x64 AOT, each plus about 10% rounded up to the
