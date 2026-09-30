@@ -32,6 +32,8 @@ internal static class Program
         await TypedEvaluateAsyncParsesAnswers().ConfigureAwait(false);
         await TypedEvaluateAsyncWithTStateParsesAnswers().ConfigureAwait(false);
         await DefaultInterfaceMethodFallbackParsesAnswers().ConfigureAwait(false);
+        await BuiltQuestionSetEvaluates().ConfigureAwait(false);
+        await BuiltEnumChoiceReadsTheFieldsInDeclarationOrder().ConfigureAwait(false);
 
         AllocationChecks.GeneratedParse();
         AllocationChecks.ReadNoul();
@@ -41,6 +43,9 @@ internal static class Program
         AllocationChecks.TypedEvaluateRoundTrip();
         AllocationChecks.ContentFromValue();
         AllocationChecks.ContentFromUtf8Json();
+        AllocationChecks.BuildQuestionSet();
+        AllocationChecks.EvaluateBuiltSetRoundTrip();
+        AllocationChecks.JevAnswersGet();
 
         Console.WriteLine(failures == 0 ? "AOT smoke: all checks passed" : "AOT smoke: " + failures + " check(s) failed");
         return failures == 0 ? 0 : 1;
@@ -218,6 +223,52 @@ internal static class Program
                 && result.Value.Team.Value == Team.Account
                 && result.Value.Urgency.Value == Urgency.High,
             "the default interface method fallback parses typed answers under Native AOT");
+    }
+
+    private static async Task BuiltQuestionSetEvaluates()
+    {
+        var set = SmokeBuiltSet.Full(out var credentials, out var team, out var product, out var urgency);
+        Check(set.Warnings.Count == 0, "a question set built at run time passes its rules");
+
+        using var http = Http(HttpStatusCode.OK, SmokeBuiltSet.ResponseJson);
+        using var client = new JevClient(http, Options());
+
+        var result = await client.EvaluateAsync(set, "Help! My payouts have been failing for 3 days.").ConfigureAwait(false);
+
+        Check(
+            result.IsSuccess
+                && !result.Value.Get(credentials).Value
+                && result.Value.Get(team).Value == Team.Account
+                && string.Equals(result.Value.Get(product).Value, "pro-plan", StringComparison.Ordinal)
+                && result.Value.Get(urgency).Value == Urgency.High,
+            "a built question set evaluates over the raw, pooled-buffer path");
+
+        var invalid = JevQuestionSet.CreateBuilder().Choice("empty", "Which one?", out _).Build();
+        Check(
+            invalid.IsFailure
+                && invalid.Error.Kind == JevErrorKind.InvalidQuestions
+                && string.Equals(invalid.Error.Failures[0].Rule, "JEV001", StringComparison.Ordinal),
+            "a built question set that breaks a rule fails with its JEV id");
+    }
+
+    private static async Task BuiltEnumChoiceReadsTheFieldsInDeclarationOrder()
+    {
+        var set = SmokeBuiltSet.AliasedChoice(out var channel);
+        Check(
+            string.Equals(Encoding.UTF8.GetString(set.QuestionsUtf8), SmokeBuiltSet.AliasedChoiceQuestions, StringComparison.Ordinal),
+            "a built enum Choice sends its options in declaration order, the alias skipped, under Native AOT");
+
+        using var http = Http(HttpStatusCode.OK, SmokeBuiltSet.AliasedChoiceResponseJson);
+        using var client = new JevClient(http, Options());
+
+        var result = await client.EvaluateAsync(set, "Sent from my phone's mail app.").ConfigureAwait(false);
+
+        Check(
+            result.IsSuccess
+                && result.Value.Get(channel).Value == Channel.Email
+                && result.Value.Get(channel).Value == Channel.Mail
+                && Math.Abs(result.Value.Get(channel).Probabilities[Channel.Mail] - 0.8) < 1e-12,
+            "a built enum Choice keys an aliased value by its first declared name, email, under Native AOT");
     }
 
     private static HttpClient Http(HttpStatusCode status, string body)

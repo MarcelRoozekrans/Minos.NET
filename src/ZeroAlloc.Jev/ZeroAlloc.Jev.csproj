@@ -44,6 +44,8 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="ZeroAlloc.Jev.Tests" />
+    <!-- The benchmarks time the internal parse of a built set in isolation, which no public member exposes. -->
+    <InternalsVisibleTo Include="ZeroAlloc.Jev.Benchmarks" />
   </ItemGroup>
 
   <ItemGroup>
