@@ -58,7 +58,11 @@ internal sealed class EnumOptionSet<[DynamicallyAccessedMembers(DynamicallyAcces
     public string NameAt(int index) => _names[index];
 
     /// <summary>Creates a Score's levels, in the order given, keyed <c>"0"</c>, <c>"1"</c>, ….</summary>
-    /// <param name="members">For each level, lowest first, the index in this set of the member it is.</param>
+    /// <param name="members">
+    /// For each level, lowest first, the index in this set of the member it is. Each entry must be a valid
+    /// <see cref="ForChoice"/> index and every member must appear exactly once; the builder's validation, JEV104 for a
+    /// missing member and JEV106 for one given twice, rejects anything else before a set's levels are created.
+    /// </param>
     /// <returns>The levels.</returns>
     public EnumOptionSet<T> Levels(ReadOnlySpan<int> members)
     {
@@ -95,7 +99,8 @@ internal sealed class EnumOptionSet<[DynamicallyAccessedMembers(DynamicallyAcces
 
     private static EnumOptionSet<T> Create()
     {
-        // An enum's public static fields are its members, in metadata order, which is declaration order: the order
+        // GetFields documents no order; metadata order, which is declaration order, is relied on. The declaration-order
+        // and generator-parity tests in EnumOptionSetTests guard it. An enum's public static fields are its members, in
         // the generator reads them in.
         var fields = typeof(T).GetFields(BindingFlags.Public | BindingFlags.Static);
         var values = new List<T>(fields.Length);
