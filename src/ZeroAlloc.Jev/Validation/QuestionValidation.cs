@@ -18,6 +18,8 @@ internal static class QuestionValidation
     public static (JevQuestionFailure[] Failures, JevQuestionFailure[] Warnings) Validate(QuestionSpec[] questions)
     {
         var result = Validator.Validate(new QuestionSetSpec { Questions = questions });
+        // ZeroAlloc.Validation reports IsValid == false when any failure exists, warnings included, so none are dropped here;
+        // BlankInstructions_WarnJev003 in the tests pins that a warnings-only set returns its warnings.
         if (result.IsValid)
         {
             return ([], []);

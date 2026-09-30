@@ -125,6 +125,47 @@ public sealed class QuestionValidationTests
     [Fact]
     public void ChoiceOver255Options_WarnsJev005() => AssertWarning("JEV005", "c", Choice("c", "Which?", Levels(256)));
 
+    [Fact]
+    public void BlankNoulFalseDescription_WarnsJev003() => AssertWarning("JEV003", "q", Noul("q", "Is it?") with { WhenFalse = "" });
+
+    [Fact]
+    public void WhenTrueDeeperThan60Levels_FailsJev108() => AssertFailure("JEV108", "q", Noul("q", "Is it?") with { WhenTrue = Nested(61) });
+
+    [Fact]
+    public void WhenFalseDeeperThan60Levels_FailsJev108() => AssertFailure("JEV108", "q", Noul("q", "Is it?") with { WhenFalse = Nested(61) });
+
+    [Fact]
+    public void WhenTrueAndWhenFalseAt60Levels_Pass() => AssertClean(Noul("q", "Is it?") with { WhenTrue = Nested(60), WhenFalse = Nested(60) });
+
+    [Fact]
+    public void ScoreWith2And10Levels_IsClean()
+    {
+        AssertClean(Score("s", "How?", Levels(2)));
+        AssertClean(Score("s", "How?", Levels(10)));
+    }
+
+    [Fact]
+    public void ChoiceWith255Options_IsClean() => AssertClean(Choice("c", "Which?", Levels(255)));
+
+    [Fact]
+    public void OptionKeyUsedThreeTimes_FailsJev106_Once()
+        => AssertFailure("JEV106", "team", Choice("team", "Which team?", Option("a", "A"), Option("a", "B"), Option("a", "C")));
+
+    [Fact]
+    public void EnumScoreWithOneOfThreeLevelsGiven_FailsJev104ForEachMissingMember_AndWarnsJev005()
+    {
+        var (failures, warnings) = QuestionValidation.Validate([EnumScore("urgency", ["Low", "Medium", "High"], 1)]);
+
+        Assert.Equal(2, failures.Length);
+        Assert.All(failures, failure => Assert.Equal("JEV104", failure.Rule));
+        Assert.Contains("'Low'", failures[0].Message, StringComparison.Ordinal);
+        Assert.Contains("'High'", failures[1].Message, StringComparison.Ordinal);
+        Assert.All(failures, failure => Assert.Equal("urgency", failure.QuestionKey));
+        var warning = Only(warnings);
+        Assert.Equal("JEV005", warning.Rule);
+        Assert.Equal("urgency", warning.QuestionKey);
+    }
+
     private static void AssertFailure(string rule, string key, params QuestionSpec[] questions)
     {
         var (failures, warnings) = QuestionValidation.Validate(questions);

@@ -79,18 +79,36 @@ public sealed class QuestionSpecValidationTests
     [Fact]
     public void ValidSpec_AllocatesNothing()
     {
-        var spec = Spec(isChoice: true, "billing", "account");
+        QuestionSpec[] specs =
+        [
+            Spec(isChoice: true, "billing", "account"),
+            Spec(isChoice: true, "a") with { Options = [new OptionSpec("a", "a", JevCriterion.Json(JevContent.FromUtf8Json("{\"a\":[1]}"u8)), -1)] },
+            new QuestionSpec
+            {
+                Key = "urgency",
+                Kind = QuestionKind.Score,
+                Instructions = "How urgent?",
+                EnumMembers = ["Low", "High"],
+                Options = [new OptionSpec("0", "Low", "Level", 0), new OptionSpec("1", "High", "Level", 1)],
+            },
+        ];
 
         // Warm up the JIT before measuring.
-        _ = Validator.Validate(spec);
-
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        for (var i = 0; i < 1000; i++)
+        foreach (var spec in specs)
         {
-            _ = Validator.Validate(spec);
+            Assert.True(Validator.Validate(spec).IsValid);
         }
 
-        Assert.Equal(before, GC.GetAllocatedBytesForCurrentThread());
+        foreach (var spec in specs)
+        {
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            for (var i = 0; i < 1000; i++)
+            {
+                _ = Validator.Validate(spec);
+            }
+
+            Assert.Equal(before, GC.GetAllocatedBytesForCurrentThread());
+        }
     }
 
     private static QuestionSpec Spec(bool isChoice, params string[] keys)
