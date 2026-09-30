@@ -3,10 +3,10 @@
 **Date:** 2026-09-30
 
 ## Current Position
-- **Milestone:** 2 — Typed .NET API, complete 2026-09-30 (audit PASS, `docs/plans/2026-09-30-milestone-2-audit.md`). Milestone 3 — .NET integration is next and pending.
-- **Phase:** none active. Phase 3.1 (DI package) is the first of Milestone 3.
-- **Last completed task:** Phase 2.4 — Fluent question builders, merged as PR #62 (`78874a2`); its follow-up #61 fix merged as PR #64 (`3a43c88`). Milestone 2 audit and completion on branch `chore/audit-milestone-2`.
-- **Next task:** `new-milestone` for Milestone 3 — brainstorm its scope, then Phase 3.1.
+- **Milestone:** 3 — .NET integration, active since 2026-09-30 (design `docs/superpowers/specs/2026-09-30-milestone-3-design.md`). Milestone 2 complete, audit PASS.
+- **Phase:** 3.1 — Logging (pending; no design spec yet). Order: 3.1 Logging, 3.2 Telemetry, 3.3 DI package, 3.4 Options and configuration (absorbs the former 3.5, configurable resilience).
+- **Last completed task:** Milestone 3 brainstorm and spec. Decisions: `ZeroAlloc.Jev.DependencyInjection` as the package name; logging and telemetry in core; Microsoft's `[LoggerMessage]`; ZeroAlloc.Telemetry with GenAI conventions plus `jev.*`; a default client plus keyed clients.
+- **Next task:** `start-next-phase`, which runs the Phase 3.1 brainstorm.
 
 ## What Phase 2.4 shipped
 - `JevQuestionSet.CreateBuilder()`: Noul, enum and keyed Choice, enum and keyed Score questions with configurators (closed after their callback) and handles. `Build()` returns `Result<JevQuestionSet, JevError>` after checking the analyzers' rules with ZeroAlloc.Validation 2.0.3; failures come back as the new `JevErrorKind.InvalidQuestions` with `JevError.Failures`, warnings on `JevQuestionSet.Warnings`. `QuestionsUtf8` is byte-identical to the generator's for the same set, which a differential test pins.
@@ -90,4 +90,4 @@
 - Still unknown until a TypeSafe live run (needs `TYPESAFE_API_KEY` and the `live-api` environment): whether TypeSafe sends `Retry-After`, the 422 body schema, and whether Phase 2.4's `BuiltQuestionSet_ParsesAKeyedChoice` passes.
 
 ## Recommended Next Step
-Merge the `chore/audit-milestone-2` PR, then run `new-milestone` for Milestone 3 — .NET integration. Open maintainer items: the `live-api` environment and TypeSafe live run; record the performance baseline from a full Benchmarks run; release PR #63 (0.2.0) stays open until you choose to release.
+Merge the `chore/milestone-3` PR, then run `start-next-phase` for Phase 3.1 — Logging. Open maintainer items: the `live-api` environment and TypeSafe live run; record the performance baseline from a full Benchmarks run; release PR #63 (0.2.0) stays open until you choose to release.

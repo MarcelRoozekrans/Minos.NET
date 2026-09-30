@@ -130,40 +130,37 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-09-28-phase-2.4-fluent-question-builders.md`
 **Completed:** 2026-09-30
 
-## Milestone 3: .NET integration [status: pending]
-**Goal:** First-class generic-host, DI and observability experience.
+## Milestone 3: .NET integration [status: active]
+**Goal:** Jev feels native in a .NET generic-host app: one-call registration, including keyed clients per provider; options bound from configuration and failing fast, carrying the retry and timeout settings; and structured logs, spans and metrics for tokens, latency and confidence. Logging and telemetry live in the core package, and the DI package wires them up. AOT-clean and within CI-enforced allocation budgets.
+**Started:** 2026-09-30
+**Design:** `docs/superpowers/specs/2026-09-30-milestone-3-design.md`
 **Definition of Done:**
-- [ ] `ZeroAlloc.Jev.Extensions.DependencyInjection` registers the typed client via one call
-- [ ] Options bind from configuration and fail fast on invalid values
-- [ ] Spans and metrics (tokens, latency, confidence) emitted via ZeroAlloc.Telemetry
-- [ ] Resilience policies configurable through DI
+- [ ] `ZeroAlloc.Jev.DependencyInjection` registers the client in one call, and keyed clients with their own options and `HttpClient`, over `IHttpClientFactory`
+- [ ] `JevClientOptions` bind from `IConfiguration` and fail fast on invalid values, validated with ZeroAlloc.Validation.Options; retry and timeout settings are configurable this way
+- [ ] Source-generated `[LoggerMessage]` logging through `ILogger`, with no payload or key in logs and no cost without a logger
+- [ ] Spans and metrics for tokens, latency and confidence via ZeroAlloc.Telemetry, named per the GenAI conventions plus `jev.*`, nesting the `ZeroAlloc.Rest` span
+- [ ] Every phase adds `AllocationGate` budgets and benchmarks for what it ships, and existing budgets hold; the AOT smoke app exercises logging, telemetry and DI
 
-### Phase 3.1: DI package [status: pending]
-**Goal:** `ZeroAlloc.Jev.Extensions.DependencyInjection` built on ZeroAlloc.Inject and `IHttpClientFactory`.
+### Phase 3.1: Logging [status: pending]
+**Goal:** Source-generated `[LoggerMessage]` logging across `JevClient`, with constructor overloads that accept an `ILoggerFactory`.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 3.2: Options and configuration [status: pending]
-**Goal:** Configuration binding validated with ZeroAlloc.Validation.Options.
+### Phase 3.2: Telemetry [status: pending]
+**Goal:** ZeroAlloc.Telemetry spans and metrics in the core package for tokens, latency and confidence, named per the GenAI conventions plus `jev.*`.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 3.3: Telemetry [status: pending]
-**Goal:** ZeroAlloc.Telemetry spans and metrics for tokens, latency and confidence.
+### Phase 3.3: DI package [status: pending]
+**Goal:** `ZeroAlloc.Jev.DependencyInjection` with `AddJevClient(...)` and keyed clients over `IHttpClientFactory`, wiring logging and telemetry.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 3.4: Logging [status: pending]
-**Goal:** Source-generated `LoggerMessage` logging across the client.
-**Surface:** Backend
-**HelpWanted:** no
-**Plan:** _to be written_
-
-### Phase 3.5: Configurable resilience [status: pending]
-**Goal:** Expose retry/timeout policies through DI configuration.
+### Phase 3.4: Options and configuration [status: pending]
+**Goal:** `IConfiguration` binding validated with ZeroAlloc.Validation.Options, with retry and timeout settings through configuration. Absorbs the roadmap's former Phase 3.5, configurable resilience (2026-09-30).
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
