@@ -109,3 +109,5 @@ ZeroAlloc.Jev.IJevClient.EvaluateAsync(ZeroAlloc.Jev.JevQuestionSet! questionSet
 ZeroAlloc.Jev.IJevClient.EvaluateAsync(ZeroAlloc.Jev.JevQuestionSet! questionSet, ZeroAlloc.Jev.JevContent state, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.JevAnswers!, ZeroAlloc.Jev.JevError!>>
 ZeroAlloc.Jev.JevClient.EvaluateAsync(ZeroAlloc.Jev.JevQuestionSet! questionSet, ZeroAlloc.Jev.JevContent state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.JevAnswers!, ZeroAlloc.Jev.JevError!>>
 ZeroAlloc.Jev.JevClient.EvaluateAsync(ZeroAlloc.Jev.JevQuestionSet! questionSet, ZeroAlloc.Jev.JevContent state, System.Threading.CancellationToken ct) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.JevAnswers!, ZeroAlloc.Jev.JevError!>>
+ZeroAlloc.Jev.JevClient.JevClient(System.Net.Http.HttpClient! httpClient, ZeroAlloc.Jev.JevClientOptions? options, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory) -> void
+ZeroAlloc.Jev.JevClient.JevClient(ZeroAlloc.Jev.JevClientOptions? options, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory) -> void

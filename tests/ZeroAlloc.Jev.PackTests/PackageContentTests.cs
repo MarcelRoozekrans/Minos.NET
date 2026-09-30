@@ -342,6 +342,20 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
             }
             """);
 
+        // The logging constructor, through the flowed Microsoft.Extensions.Logging.Abstractions: the dependency must
+        // reach the consumer's compilation, not just the nuspec.
+        File.WriteAllText(Path.Combine(consumer, "Logging.cs"), """
+            using Microsoft.Extensions.Logging.Abstractions;
+            using ZeroAlloc.Jev;
+
+            namespace Consumer;
+
+            public static class Logging
+            {
+                public static JevClient Create() => new(new JevClientOptions { ApiKey = "consumer-key" }, NullLoggerFactory.Instance);
+            }
+            """);
+
         // Non-vacuity guard: the check must see package analyzers, so ZeroAlloc.Jev's own generator has to be listed.
         // Restore separately, so the msbuild output holds nothing but the JSON.
         RunDotnet(consumer, "restore", "Consumer.csproj");
