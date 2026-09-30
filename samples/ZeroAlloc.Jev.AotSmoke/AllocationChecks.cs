@@ -117,11 +117,12 @@ internal static class AllocationChecks
             },
         };
 
-        // Measured ~4592 B/call on published win-x64 AOT: HttpRequestMessage, headers and content for the request,
+        // Measured ~4312 B/call on published win-x64 AOT: HttpRequestMessage, headers and content for the request,
         // plus the response's HttpResponseMessage, its body buffering and JSON deserialization into
-        // SystemOneResponse. A linux-x64 measurement (dotnet/sdk:10.0 container, 2026-09-27) matches exactly:
-        // 4592 B/call. The budget keeps about 10% headroom (5120 B) over that measurement, since HttpClient's
-        // internal buffering can still differ across runtime patch versions on either platform.
+        // SystemOneResponse. It measured higher, 4592 B/call, when first budgeted in Phase 1.8, on win-x64 and on
+        // linux-x64 (dotnet/sdk:10.0 container, 2026-09-27). The budget stays at 5120 B, the Phase 1.8 figure with
+        // about 10% headroom, since HttpClient's internal buffering can still differ across runtime patch versions
+        // on either platform; tightening it is a separate decision.
         GateValueTask(
             budgetBytes: 5120,
             action: () => client.EvaluateAsync(request),
@@ -139,16 +140,15 @@ internal static class AllocationChecks
         };
         using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
 
-        // Measured ~3784 B/call on published win-x64 AOT: the request's Utf8JsonWriter and RawJson, plus
+        // Measured ~3368 B/call on published win-x64 AOT: the request's Utf8JsonWriter and RawJson, plus
         // ZeroAlloc.Rest's own per-attempt allocations (HttpRequestMessage, headers, the MemoryStream the body is
         // copied into, and StreamContent), plus the response's HttpResponseMessage and body buffering, and the
         // async state machines. There is no SystemOneRequest, SystemOneResponse, JevAnswer or questions dictionary
-        // on this path, which is why it comes in well below EvaluateRoundTrip's 4592 B measurement. A linux-x64
-        // measurement (dotnet/sdk:10.0 container, 2026-09-27) matches exactly: 3784 B/call. The budget keeps about
-        // 10% headroom (4224 B, rounded to the next 64 B) over that measurement, for the same cross-platform,
-        // cross-patch-version reason as EvaluateRoundTrip's gate. Re-measured after the typed-state path
-        // (EvaluateAsync&lt;T, TState&gt;) stopped copying the JSON: still 3784 B/call on both platforms, since that
-        // change touches the state-based overload, not this string-based one, so the budget is unchanged.
+        // on this path, which is why it comes in well below EvaluateRoundTrip's 4312 B measurement. It measured
+        // higher, 3784 B/call, when first budgeted in Phase 1.8 and re-measured in Phase 2.1, on win-x64 and on
+        // linux-x64 (dotnet/sdk:10.0 container, 2026-09-27). The budget stays at 4224 B, the 3784 B figure with about
+        // 10% headroom rounded to the next 64 B, for the same cross-platform, cross-patch-version reason as
+        // EvaluateRoundTrip's gate; tightening it is a separate decision.
         GateValueTask(
             budgetBytes: 4224,
             action: () => client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days."),
@@ -192,7 +192,9 @@ internal static class AllocationChecks
     /// </summary>
     public static void EvaluateRoundTripWithDiscardingLogger()
     {
-        // Measured ~4312 B/call on published win-x64 AOT, the same as EvaluateRoundTrip and its unlogged twin in this run,
+        var callsBefore = DiscardingLoggerFactory.Calls;
+
+        // Measured ~4312 B/call on published win-x64 AOT, the same as EvaluateRoundTrip's current measurement and its unlogged twin in this run,
         // so the enabled logger adds nothing on the synchronous path the canned handler takes: each event's state is a
         // struct handed to a logger that discards it, the timing is two Stopwatch timestamps, and no state machine is
         // boxed while a call completes synchronously. A call that completes asynchronously also allocates the
@@ -203,12 +205,17 @@ internal static class AllocationChecks
             budgetBytes: 4800,
             "EvaluateRoundTripWithDiscardingLogger",
             "EvaluateAsync with every log level enabled stays within its budget");
+        Program.Check(
+            DiscardingLoggerFactory.Calls > callsBefore,
+            "the discarding logger received log calls, so EvaluateAsync ran the logged path");
     }
 
     /// <summary><see cref="TypedEvaluateRoundTrip"/> through a logger enabled at every level that discards everything.</summary>
     public static void TypedEvaluateRoundTripWithDiscardingLogger()
     {
-        // Measured ~3368 B/call on published win-x64 AOT, the same as TypedEvaluateRoundTrip and its unlogged twin in this run,
+        var callsBefore = DiscardingLoggerFactory.Calls;
+
+        // Measured ~3368 B/call on published win-x64 AOT, the same as TypedEvaluateRoundTrip's current measurement and its unlogged twin in this run,
         // so the enabled logger adds nothing on the synchronous path the canned handler takes: each event's state is a
         // struct handed to a logger that discards it, the timing is two Stopwatch timestamps, and no state machine is
         // boxed while a call completes synchronously. A call that completes asynchronously also allocates the
@@ -219,6 +226,9 @@ internal static class AllocationChecks
             budgetBytes: 3712,
             "TypedEvaluateRoundTripWithDiscardingLogger",
             "EvaluateAsync<T> with every log level enabled stays within its budget");
+        Program.Check(
+            DiscardingLoggerFactory.Calls > callsBefore,
+            "the discarding logger received log calls, so EvaluateAsync<T> ran the logged path");
     }
 
     // EvaluateRoundTrip's call, the same canned response and Program.Request(), through a logging client.

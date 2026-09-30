@@ -10,6 +10,9 @@ internal sealed class DiscardingLoggerFactory : ILoggerFactory
 {
     public static readonly DiscardingLoggerFactory Instance = new();
 
+    /// <summary>Gets how many log calls the logger has received, so a caller can prove the logged path ran.</summary>
+    public static int Calls => DiscardingLogger.Instance.Calls;
+
     public ILogger CreateLogger(string categoryName) => DiscardingLogger.Instance;
 
     public void AddProvider(ILoggerProvider provider)
@@ -24,6 +27,10 @@ internal sealed class DiscardingLoggerFactory : ILoggerFactory
     {
         public static readonly DiscardingLogger Instance = new();
 
+        private int _calls;
+
+        public int Calls => Volatile.Read(ref _calls);
+
         public IDisposable? BeginScope<TState>(TState state)
             where TState : notnull => null;
 
@@ -31,6 +38,7 @@ internal sealed class DiscardingLoggerFactory : ILoggerFactory
 
         public void Log<TState>(LogLevel logLevel, EventId eventId, TState state, Exception? exception, Func<TState, Exception?, string> formatter)
         {
+            Interlocked.Increment(ref _calls);
         }
     }
 }
