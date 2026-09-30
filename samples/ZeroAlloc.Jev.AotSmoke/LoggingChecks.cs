@@ -1,0 +1,90 @@
+using System.Net;
+using Microsoft.Extensions.Logging;
+
+namespace ZeroAlloc.Jev.AotSmoke;
+
+/// <summary>The client's log events under Native AOT, through a real <see cref="LoggerFactory"/> over an in-process provider.</summary>
+internal static class LoggingChecks
+{
+    public static async Task RetriedEvaluationLogsTheRetryAndTheSuccess()
+    {
+        using var provider = new CapturingLoggerProvider();
+        using var factory = new LoggerFactory([provider], new LoggerFilterOptions { MinLevel = LogLevel.Debug });
+        var handler = new SequenceHandler(Program.NoulResponse, HttpStatusCode.ServiceUnavailable, HttpStatusCode.OK);
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("https://example.test/api/") };
+        using var client = new JevClient(
+            http, new JevClientOptions { ApiKey = "smoke-key", InitialBackoff = TimeSpan.FromMilliseconds(10) }, factory);
+
+        var result = await client.EvaluateAsync(Program.Request()).ConfigureAwait(false);
+        var records = provider.Records;
+
+        Program.Check(
+            result.IsSuccess
+                && records.Length == 2
+                && records[0] is { EventId: 1003, Level: LogLevel.Warning, Category: "ZeroAlloc.Jev.JevClient" }
+                && records[0].Field("Attempt") is 1
+                && records[0].Field("StatusCode") is 503
+                && records[1] is { EventId: 1001, Level: LogLevel.Debug }
+                && records[1].Field("Operation") is "evaluate"
+                && records[1].Field("QuestionCount") is 1,
+            "a retried evaluation logs AttemptRetrying, then EvaluationSucceeded, under Native AOT");
+    }
+
+    public static async Task TypedEvaluationLogsItsQuestionCount()
+    {
+        using var provider = new CapturingLoggerProvider();
+        using var factory = new LoggerFactory([provider], new LoggerFilterOptions { MinLevel = LogLevel.Debug });
+        using var http = Http(HttpStatusCode.OK, Program.TriageResponse);
+        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" }, factory);
+
+        var result = await client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days.").ConfigureAwait(false);
+        var records = provider.Records;
+
+        Program.Check(
+            result.IsSuccess
+                && records.Length == 1
+                && records[0].EventId == 1001
+                && records[0].Field("Operation") is "evaluate-typed"
+                && records[0].Field("QuestionCount") is 3,
+            "a typed evaluation logs its generated set's question count under Native AOT");
+    }
+
+    public static async Task FailedEvaluationLogsTheLibraryMessageOnly()
+    {
+        using var provider = new CapturingLoggerProvider();
+        using var factory = new LoggerFactory([provider], new LoggerFilterOptions { MinLevel = LogLevel.Debug });
+        using var http = Http(HttpStatusCode.UnprocessableEntity, Program.ValidationResponse);
+        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" }, factory);
+
+        var result = await client.EvaluateAsync(Program.Request()).ConfigureAwait(false);
+        var records = provider.Records;
+
+        Program.Check(
+            result.IsFailure
+                && records.Length == 1
+                && records[0] is { EventId: 1002, Level: LogLevel.Warning }
+                && records[0].Field("ErrorKind") is JevErrorKind.Validation
+                && records[0].Field("StatusCode") is 422
+                && records[0].Field("ErrorMessage") is "The API returned HTTP 422."
+                && !records[0].Message.Contains("is required", StringComparison.Ordinal),
+            "a failed evaluation logs EvaluationFailed without the error body under Native AOT");
+    }
+
+    public static async Task ModelListingLogsTheModelCount()
+    {
+        using var provider = new CapturingLoggerProvider();
+        using var factory = new LoggerFactory([provider], new LoggerFilterOptions { MinLevel = LogLevel.Debug });
+        using var http = Http(HttpStatusCode.OK, Program.ModelsResponse);
+        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" }, factory);
+
+        var result = await client.ListModelsAsync().ConfigureAwait(false);
+        var records = provider.Records;
+
+        Program.Check(
+            result.IsSuccess && records.Length == 1 && records[0].EventId == 1004 && records[0].Field("ModelCount") is 1,
+            "a model listing logs ModelsListed under Native AOT");
+    }
+
+    private static HttpClient Http(HttpStatusCode status, string body)
+        => new(new CannedHandler(status, body)) { BaseAddress = new Uri("https://example.test/api/") };
+}

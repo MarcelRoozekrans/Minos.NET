@@ -21,5 +21,7 @@
                       ReferenceOutputAssembly="false"
                       UndefineProperties="PublishAot" />
     <PackageReference Include="ZeroAlloc.TestHelpers" PrivateAssets="all" />
+    <!-- A real LoggerFactory, so the logging checks run the path a consumer's app runs under Native AOT. -->
+    <PackageReference Include="Microsoft.Extensions.Logging" />
   </ItemGroup>
 </Project>

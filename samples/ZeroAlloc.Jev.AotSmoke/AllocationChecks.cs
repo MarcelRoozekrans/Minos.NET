@@ -1,6 +1,9 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using ZeroAlloc.Jev.Shared;
 using ZeroAlloc.TestHelpers;
 
 namespace ZeroAlloc.Jev.AotSmoke;
@@ -151,6 +154,100 @@ internal static class AllocationChecks
             action: () => client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days."),
             label: "TypedEvaluateRoundTrip",
             passDescription: "EvaluateAsync<T> stays within its allocation budget");
+    }
+
+    /// <summary><see cref="EvaluateRoundTrip"/> through <see cref="NullLoggerFactory"/>, whose logger has every level disabled.</summary>
+    public static void EvaluateRoundTripWithNullLoggerFactory()
+    {
+        // Budget: EvaluateRoundTrip's own, 5120 B, unchanged. With no level enabled the client takes the unlogged path:
+        // no logging wrapper and no LoggingJevApi state machine, so nothing may be added.
+        EvaluateRoundTripThrough(
+            NullLoggerFactory.Instance,
+            budgetBytes: 5120,
+            "EvaluateRoundTripWithNullLoggerFactory",
+            "EvaluateAsync through NullLoggerFactory stays within EvaluateRoundTrip's budget");
+    }
+
+    /// <summary>
+    /// <see cref="TypedEvaluateRoundTrip"/> through a real <see cref="LoggerFactory"/> with a provider, whose filter
+    /// disables every level.
+    /// </summary>
+    public static void TypedEvaluateRoundTripWithEveryLevelFiltered()
+    {
+        using var provider = new CapturingLoggerProvider();
+        using var factory = new LoggerFactory([provider], new LoggerFilterOptions { MinLevel = LogLevel.None });
+
+        // Budget: TypedEvaluateRoundTrip's own, 4224 B, unchanged, for the same reason as the NullLoggerFactory gate.
+        TypedEvaluateRoundTripThrough(
+            factory,
+            budgetBytes: 4224,
+            "TypedEvaluateRoundTripWithEveryLevelFiltered",
+            "EvaluateAsync<T> with every level filtered out stays within TypedEvaluateRoundTrip's budget");
+        Program.Check(provider.Records.Length == 0, "a logger with every level filtered out receives no record");
+    }
+
+    /// <summary>
+    /// <see cref="EvaluateRoundTrip"/> through a logger enabled at every level that discards everything, so every log
+    /// call, timestamp and wrapper runs.
+    /// </summary>
+    public static void EvaluateRoundTripWithDiscardingLogger()
+    {
+        // Measured ~4312 B/call on published win-x64 AOT, the same as EvaluateRoundTrip and its unlogged twin in this run,
+        // so the enabled logger adds nothing on the synchronous path the canned handler takes: each event's state is a
+        // struct handed to a logger that discards it, the timing is two Stopwatch timestamps, and no state machine is
+        // boxed while a call completes synchronously. A call that completes asynchronously also allocates the
+        // LoggingJevApi and LogEvaluationAsync state machines, which this gate cannot see. Budget: about 10% headroom
+        // over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
+        EvaluateRoundTripThrough(
+            DiscardingLoggerFactory.Instance,
+            budgetBytes: 4800,
+            "EvaluateRoundTripWithDiscardingLogger",
+            "EvaluateAsync with every log level enabled stays within its budget");
+    }
+
+    /// <summary><see cref="TypedEvaluateRoundTrip"/> through a logger enabled at every level that discards everything.</summary>
+    public static void TypedEvaluateRoundTripWithDiscardingLogger()
+    {
+        // Measured ~3368 B/call on published win-x64 AOT, the same as TypedEvaluateRoundTrip and its unlogged twin in this run,
+        // so the enabled logger adds nothing on the synchronous path the canned handler takes: each event's state is a
+        // struct handed to a logger that discards it, the timing is two Stopwatch timestamps, and no state machine is
+        // boxed while a call completes synchronously. A call that completes asynchronously also allocates the
+        // LoggingJevApi and LogEvaluationAsync state machines, which this gate cannot see. Budget: about 10% headroom
+        // over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
+        TypedEvaluateRoundTripThrough(
+            DiscardingLoggerFactory.Instance,
+            budgetBytes: 3712,
+            "TypedEvaluateRoundTripWithDiscardingLogger",
+            "EvaluateAsync<T> with every log level enabled stays within its budget");
+    }
+
+    // EvaluateRoundTrip's call, the same canned response and Program.Request(), through a logging client.
+    private static void EvaluateRoundTripThrough(ILoggerFactory loggerFactory, int budgetBytes, string label, string passDescription)
+    {
+        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, NoulResponseJson))
+        {
+            BaseAddress = new Uri("https://example.test/api/"),
+        };
+        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" }, loggerFactory);
+        var request = Program.Request();
+
+        GateValueTask(budgetBytes, () => client.EvaluateAsync(request), label, passDescription);
+    }
+
+    // TypedEvaluateRoundTrip's call, the same canned response and state, through a logging client.
+    private static void TypedEvaluateRoundTripThrough(ILoggerFactory loggerFactory, int budgetBytes, string label, string passDescription)
+    {
+        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, TriageResponseJson))
+        {
+            BaseAddress = new Uri("https://example.test/api/"),
+        };
+        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" }, loggerFactory);
+
+        GateValueTask(
+            budgetBytes,
+            () => client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days."),
+            label,
+            passDescription);
     }
 
     /// <summary><see cref="JevContent.FromValue{T}(T, System.Text.Json.Serialization.Metadata.JsonTypeInfo{T})"/> over the smoke state.</summary>
