@@ -140,6 +140,7 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
 {
     private static readonly string[] ExpectedRuntimeDependencyIds =
     [
+        "Microsoft.Extensions.Logging.Abstractions",
         "ZeroAlloc.Rest",
         "ZeroAlloc.Rest.SystemTextJson",
         "ZeroAlloc.Results",
@@ -234,6 +235,23 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
             Assert.DoesNotContain("CodeFixes", id, StringComparison.Ordinal);
             Assert.DoesNotContain("CodeAnalysis", id, StringComparison.Ordinal);
         });
+    }
+
+    [Fact]
+    public void LoggingAbstractionsDependency_IsTheFirstDotnet10Release()
+    {
+        XNamespace ns = "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd";
+        var nuspec = XDocument.Load(_fixture.NuspecPath);
+
+        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
+#pragma warning disable HLQ005
+        var dependency = Assert.Single(
+            nuspec.Descendants(ns + "dependency"),
+            d => string.Equals((string?)d.Attribute("id"), "Microsoft.Extensions.Logging.Abstractions", StringComparison.Ordinal));
+#pragma warning restore HLQ005
+
+        // A floor, not a pin: 10.0.0 lets a consumer on any .NET 10 servicing release of the extensions resolve it.
+        Assert.Equal("10.0.0", (string?)dependency.Attribute("version"));
     }
 
     [Fact]
@@ -336,6 +354,12 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
 
         Assert.Contains("ZeroAlloc.Jev.Generator.dll", analyzers);
 
+        // Microsoft.Extensions.Logging.Abstractions ships the [LoggerMessage] generator as an analyzer. The nuspec's default
+        // exclude="Build,Analyzers" does not stop it reaching this consumer, because NuGet flows a dependency's analyzers
+        // transitively whatever the exclude says, NuGet/Home#6720, as for ZeroAlloc.Validation above. It must be listed
+        // here, so the no-generated-source check below proves it stays inert rather than absent.
+        Assert.Contains("Microsoft.Extensions.Logging.Generators.dll", analyzers);
+
         // It must build with no warning, and no source may come from the Validation or Pipeline generators.
         RunDotnet(consumer, "build", "Consumer.csproj", "-c", "Release", "-p:EmitCompilerGeneratedFiles=true", "-warnaserror");
 
@@ -349,6 +373,9 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
         Assert.Contains("ZeroAlloc.Jev.Generator", generators);
         Assert.DoesNotContain(generators, name => name.StartsWith("ZeroAlloc.Validation", StringComparison.Ordinal));
         Assert.DoesNotContain(generators, name => name.StartsWith("ZeroAlloc.Pipeline", StringComparison.Ordinal));
+
+        // The [LoggerMessage] generator reached the consumer, as asserted above; with no [LoggerMessage] method it emits nothing.
+        Assert.DoesNotContain(generators, name => name.StartsWith("Microsoft.Extensions.Logging.Generators", StringComparison.Ordinal));
     }
 
     private static string RunDotnet(string workingDirectory, params string[] arguments)
