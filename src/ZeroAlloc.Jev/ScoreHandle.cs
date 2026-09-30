@@ -8,13 +8,14 @@ namespace ZeroAlloc.Jev;
 public readonly struct ScoreHandle<T>
     where T : struct, Enum
 {
-    internal ScoreHandle(object set, int index)
+    internal ScoreHandle(object owner, int index)
     {
-        Set = set;
+        Owner = owner;
         Index = index;
     }
 
-    internal object? Set { get; }
+    /// <summary>Gets the identity token of the builder that created this handle; every set that builder builds shares it.</summary>
+    internal object? Owner { get; }
 
     internal int Index { get; }
 }

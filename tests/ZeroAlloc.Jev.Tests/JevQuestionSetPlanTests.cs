@@ -25,7 +25,7 @@ public sealed class JevQuestionSetPlanTests
 
         Assert.Same(set.Identity, again.Identity);
         Assert.Equal([0, 1, 2, 3, 4], new[] { noul.Index, team.Index, mood.Index, product.Index, effort.Index });
-        Assert.All(new[] { noul.Set, team.Set, mood.Set, product.Set, effort.Set }, s => Assert.Same(set.Identity, s));
+        Assert.All(new[] { noul.Owner, team.Owner, mood.Owner, product.Owner, effort.Owner }, s => Assert.Same(set.Identity, s));
 
         QuestionKind[] kinds = [QuestionKind.Noul, QuestionKind.Choice, QuestionKind.Score, QuestionKind.Choice, QuestionKind.Score];
         string[] keys = ["urgent", "team", "mood", "product", "effort"];

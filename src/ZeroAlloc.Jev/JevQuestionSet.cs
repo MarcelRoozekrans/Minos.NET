@@ -31,7 +31,7 @@ public sealed class JevQuestionSet
     /// <summary>Gets the advice the set's questions break: JEV003 and JEV005, which do not stop the build.</summary>
     public IReadOnlyList<JevQuestionFailure> Warnings { get; }
 
-    /// <summary>Gets the builder that created this set; its handles belong to this set.</summary>
+    /// <summary>Gets the identity token of the builder that created this set; every set that builder builds shares it.</summary>
     internal object Identity { get; }
 
     /// <summary>Gets how to read each question's answer, in wire order.</summary>

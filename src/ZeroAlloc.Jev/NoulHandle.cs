@@ -6,13 +6,14 @@ namespace ZeroAlloc.Jev;
 /// </summary>
 public readonly struct NoulHandle
 {
-    internal NoulHandle(object set, int index)
+    internal NoulHandle(object owner, int index)
     {
-        Set = set;
+        Owner = owner;
         Index = index;
     }
 
-    internal object? Set { get; }
+    /// <summary>Gets the identity token of the builder that created this handle; every set that builder builds shares it.</summary>
+    internal object? Owner { get; }
 
     internal int Index { get; }
 }
