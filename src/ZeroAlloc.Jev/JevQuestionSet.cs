@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace ZeroAlloc.Jev;
 
 /// <summary>
@@ -9,11 +11,13 @@ namespace ZeroAlloc.Jev;
 public sealed class JevQuestionSet
 {
     private readonly byte[] _questionsUtf8;
+    private readonly AnswerParser<JevAnswers> _parser;
 
     internal JevQuestionSet(
         object identity, byte[] questionsUtf8, JevQuestionFailure[] warnings, QuestionPlan[] plan, byte[][] utf8Keys, int probabilityCount)
     {
         Identity = identity;
+        _parser = Parse;
         _questionsUtf8 = questionsUtf8;
         Warnings = warnings.Length == 0 ? [] : new System.Collections.ObjectModel.ReadOnlyCollection<JevQuestionFailure>(warnings);
         Plan = plan;
@@ -42,4 +46,61 @@ public sealed class JevQuestionSet
     /// <summary>Starts a new set.</summary>
     /// <returns>An empty builder.</returns>
     public static JevQuestionSetBuilder CreateBuilder() => new();
+
+    /// <summary>Gets this set's parser, created once.</summary>
+    internal AnswerParser<JevAnswers> Parser => _parser;
+
+    /// <summary>
+    /// Reads the answers from the <c>answers</c> object. Keys are found by a linear, allocation-free scan; unknown keys
+    /// are skipped, as a generated set skips them.
+    /// </summary>
+    /// <exception cref="JsonException">An answer is missing, has the wrong type, names an unknown option or level, or lacks a required field.</exception>
+    internal JevAnswers Parse(ref Utf8JsonReader answers)
+    {
+        JevAnswerReader.EnsureStartObject(ref answers);
+        var plan = Plan;
+        var probabilities = new double[ProbabilityCount];
+        var slots = new AnswerSlot[plan.Length];
+        Span<bool> found = plan.Length <= 256 ? stackalloc bool[plan.Length] : new bool[plan.Length];
+
+        while (JevAnswerReader.NextProperty(ref answers))
+        {
+            var index = Utf8Keys.IndexOf(ref answers, QuestionKeys);
+            if (index < 0)
+            {
+                answers.Skip();
+                continue;
+            }
+
+            answers.Read();
+            var question = plan[index];
+            switch (question.Kind)
+            {
+                case QuestionKind.Noul:
+                    slots[index] = new AnswerSlot(0, JevAnswerReader.ReadNoul(ref answers).Probability, 0, 0);
+                    break;
+                case QuestionKind.Choice:
+                    var (choice, confidence) = JevAnswerReader.ReadChoiceCore(ref answers, question.Options!, probabilities, question.Offset);
+                    slots[index] = new AnswerSlot(choice, 0, confidence, question.Offset);
+                    break;
+                default:
+                    var (level, expected, scoreConfidence) = JevAnswerReader.ReadScoreCore(
+                        ref answers, question.Options!, probabilities, question.Offset);
+                    slots[index] = new AnswerSlot(level, expected, scoreConfidence, question.Offset);
+                    break;
+            }
+
+            found[index] = true;
+        }
+
+        for (var i = 0; i < plan.Length; i++)
+        {
+            if (!found[i])
+            {
+                throw JevAnswerReader.MissingAnswer(plan[i].Key);
+            }
+        }
+
+        return new JevAnswers(this, probabilities, slots);
+    }
 }

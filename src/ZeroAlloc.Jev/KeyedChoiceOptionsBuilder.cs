@@ -11,7 +11,7 @@ public sealed class KeyedChoiceOptionsBuilder
     internal KeyedChoiceOptionsBuilder(QuestionDraft draft) => _draft = draft;
 
     /// <summary>Adds an option without a description; it sends <see langword="null"/>.</summary>
-    /// <param name="key">The option's wire key, which the answer's <c>KeyedChoice.Value</c> returns.</param>
+    /// <param name="key">The option's wire key, which the answer's <see cref="KeyedChoice.Value"/> returns.</param>
     /// <returns>This builder.</returns>
     /// <exception cref="InvalidOperationException">The configurator is used after its callback returned.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="key"/> is <see langword="null"/>.</exception>
@@ -24,7 +24,7 @@ public sealed class KeyedChoiceOptionsBuilder
     }
 
     /// <summary>Adds a described option.</summary>
-    /// <param name="key">The option's wire key, which the answer's <c>KeyedChoice.Value</c> returns.</param>
+    /// <param name="key">The option's wire key, which the answer's <see cref="KeyedChoice.Value"/> returns.</param>
     /// <param name="criterion">What the option means.</param>
     /// <returns>This builder.</returns>
     /// <exception cref="InvalidOperationException">The configurator is used after its callback returned.</exception>

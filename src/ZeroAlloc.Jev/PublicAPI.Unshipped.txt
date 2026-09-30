@@ -367,3 +367,47 @@ ZeroAlloc.Jev.ScoreHandle<T>.ScoreHandle() -> void
 ZeroAlloc.Jev.ScoreLevelsBuilder<T>
 ZeroAlloc.Jev.ScoreLevelsBuilder<T>.Level(T level, ZeroAlloc.Jev.JevCriterion! criterion) -> ZeroAlloc.Jev.ScoreLevelsBuilder<T>!
 static ZeroAlloc.Jev.JevQuestionSet.CreateBuilder() -> ZeroAlloc.Jev.JevQuestionSetBuilder!
+ZeroAlloc.Jev.JevAnswers
+ZeroAlloc.Jev.JevAnswers.Get(ZeroAlloc.Jev.KeyedChoiceHandle question) -> ZeroAlloc.Jev.KeyedChoice
+ZeroAlloc.Jev.JevAnswers.Get(ZeroAlloc.Jev.KeyedScoreHandle question) -> ZeroAlloc.Jev.KeyedScore
+ZeroAlloc.Jev.JevAnswers.Get(ZeroAlloc.Jev.NoulHandle question) -> ZeroAlloc.Jev.Noul
+ZeroAlloc.Jev.JevAnswers.Get<T>(ZeroAlloc.Jev.ChoiceHandle<T> question) -> ZeroAlloc.Jev.Choice<T>
+ZeroAlloc.Jev.JevAnswers.Get<T>(ZeroAlloc.Jev.ScoreHandle<T> question) -> ZeroAlloc.Jev.Score<T>
+ZeroAlloc.Jev.KeyedChoice
+ZeroAlloc.Jev.KeyedChoice.Confidence.get -> double
+ZeroAlloc.Jev.KeyedChoice.Equals(ZeroAlloc.Jev.KeyedChoice other) -> bool
+ZeroAlloc.Jev.KeyedChoice.KeyedChoice() -> void
+ZeroAlloc.Jev.KeyedChoice.KeyedChoice(string! value, double confidence, ZeroAlloc.Jev.KeyedProbabilityMap probabilities) -> void
+ZeroAlloc.Jev.KeyedChoice.Probabilities.get -> ZeroAlloc.Jev.KeyedProbabilityMap
+ZeroAlloc.Jev.KeyedChoice.Value.get -> string!
+ZeroAlloc.Jev.KeyedProbabilityMap
+ZeroAlloc.Jev.KeyedProbabilityMap.Count.get -> int
+ZeroAlloc.Jev.KeyedProbabilityMap.Enumerator
+ZeroAlloc.Jev.KeyedProbabilityMap.Enumerator.Current.get -> (string! Key, double Probability)
+ZeroAlloc.Jev.KeyedProbabilityMap.Enumerator.Enumerator() -> void
+ZeroAlloc.Jev.KeyedProbabilityMap.Enumerator.MoveNext() -> bool
+ZeroAlloc.Jev.KeyedProbabilityMap.Equals(ZeroAlloc.Jev.KeyedProbabilityMap other) -> bool
+ZeroAlloc.Jev.KeyedProbabilityMap.GetEnumerator() -> ZeroAlloc.Jev.KeyedProbabilityMap.Enumerator
+ZeroAlloc.Jev.KeyedProbabilityMap.KeyedProbabilityMap() -> void
+ZeroAlloc.Jev.KeyedProbabilityMap.this[int index].get -> double
+ZeroAlloc.Jev.KeyedProbabilityMap.this[string! key].get -> double
+ZeroAlloc.Jev.KeyedScore
+ZeroAlloc.Jev.KeyedScore.Confidence.get -> double
+ZeroAlloc.Jev.KeyedScore.Equals(ZeroAlloc.Jev.KeyedScore other) -> bool
+ZeroAlloc.Jev.KeyedScore.Expected.get -> double
+ZeroAlloc.Jev.KeyedScore.KeyedScore() -> void
+ZeroAlloc.Jev.KeyedScore.KeyedScore(int level, double expected, double confidence, ZeroAlloc.Jev.KeyedProbabilityMap probabilities) -> void
+ZeroAlloc.Jev.KeyedScore.Level.get -> int
+ZeroAlloc.Jev.KeyedScore.Probabilities.get -> ZeroAlloc.Jev.KeyedProbabilityMap
+override ZeroAlloc.Jev.KeyedChoice.Equals(object? obj) -> bool
+override ZeroAlloc.Jev.KeyedChoice.GetHashCode() -> int
+override ZeroAlloc.Jev.KeyedProbabilityMap.Equals(object? obj) -> bool
+override ZeroAlloc.Jev.KeyedProbabilityMap.GetHashCode() -> int
+override ZeroAlloc.Jev.KeyedScore.Equals(object? obj) -> bool
+override ZeroAlloc.Jev.KeyedScore.GetHashCode() -> int
+static ZeroAlloc.Jev.KeyedChoice.operator !=(ZeroAlloc.Jev.KeyedChoice left, ZeroAlloc.Jev.KeyedChoice right) -> bool
+static ZeroAlloc.Jev.KeyedChoice.operator ==(ZeroAlloc.Jev.KeyedChoice left, ZeroAlloc.Jev.KeyedChoice right) -> bool
+static ZeroAlloc.Jev.KeyedProbabilityMap.operator !=(ZeroAlloc.Jev.KeyedProbabilityMap left, ZeroAlloc.Jev.KeyedProbabilityMap right) -> bool
+static ZeroAlloc.Jev.KeyedProbabilityMap.operator ==(ZeroAlloc.Jev.KeyedProbabilityMap left, ZeroAlloc.Jev.KeyedProbabilityMap right) -> bool
+static ZeroAlloc.Jev.KeyedScore.operator !=(ZeroAlloc.Jev.KeyedScore left, ZeroAlloc.Jev.KeyedScore right) -> bool
+static ZeroAlloc.Jev.KeyedScore.operator ==(ZeroAlloc.Jev.KeyedScore left, ZeroAlloc.Jev.KeyedScore right) -> bool

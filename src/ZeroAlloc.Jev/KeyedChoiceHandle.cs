@@ -2,7 +2,7 @@ namespace ZeroAlloc.Jev;
 
 /// <summary>
 /// Identifies a keyed Choice question of a set built with <see cref="JevQuestionSetBuilder"/>; pass it to
-/// <c>JevAnswers.Get</c> to read its answer. It works only with answers to a set built by the same builder.
+/// <see cref="JevAnswers"/> to read its answer. It works only with answers to a set built by the same builder.
 /// </summary>
 public readonly struct KeyedChoiceHandle
 {

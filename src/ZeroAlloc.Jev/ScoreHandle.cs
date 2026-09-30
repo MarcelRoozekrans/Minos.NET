@@ -2,7 +2,7 @@ namespace ZeroAlloc.Jev;
 
 /// <summary>
 /// Identifies an enum Score question of a set built with <see cref="JevQuestionSetBuilder"/>; pass it to
-/// <c>JevAnswers.Get</c> to read its answer. It works only with answers to a set built by the same builder.
+/// <see cref="JevAnswers"/> to read its answer. It works only with answers to a set built by the same builder.
 /// </summary>
 /// <typeparam name="T">The enum whose members are the levels.</typeparam>
 public readonly struct ScoreHandle<T>
