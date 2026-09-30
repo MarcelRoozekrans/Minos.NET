@@ -10,7 +10,7 @@ public sealed class JevAnswersTests
         {"answers":{
           "product":{"type":"choice","choice":"team-plan","probabilities":{"pro-plan":0.25,"team-plan":0.7},"confidence":0.66},
           "extra":{"type":"noul","noul":1},
-          "effort":{"type":"score","score":0.8,"probabilities":{"0":0.4,"1":0.4,"2":0.2},"confidence":0.5}
+          "effort":{"type":"score","score":0.8,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.4,"1":0.4,"2":0.2},"confidence":0.5}
         }}
         """;
 
@@ -53,7 +53,7 @@ public sealed class JevAnswersTests
             .Level(OutOfOrderLevel.High, "High").Level(OutOfOrderLevel.Low, "Low").Level(OutOfOrderLevel.Medium, "Medium")));
 
         var answer = Parse(set, """
-            {"answers":{"level":{"type":"score","score":0.25,"probabilities":{"0":0.6,"1":0.3,"2":0.1},"confidence":0.4}}}
+            {"answers":{"level":{"type":"score","score":0.25,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.6,"1":0.3,"2":0.1},"confidence":0.4}}}
             """).Get(level);
 
         Assert.Equal(OutOfOrderLevel.High, answer.Value);
@@ -66,7 +66,7 @@ public sealed class JevAnswersTests
     {
         const string response = """
             {"answers":{
-              "mood":{"type":"score","score":0.2,"probabilities":{"0":0.8,"1":0.2,"2":0.0},"confidence":0.7},
+              "mood":{"type":"score","score":0.2,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.8,"1":0.2,"2":0.0},"confidence":0.7},
               "extra_question":{"type":"noul","noul":1},
               "requests_credentials":{"noul":0.1,"type":"noul"},
               "team":{"type":"choice","choice":"technical","probabilities":{"billing":0.1,"technical":0.9},"confidence":0.85}
@@ -170,9 +170,9 @@ public sealed class JevAnswersTests
             {"answers":{
               "n":{"type":"noul","noul":0.95},
               "d":{"type":"choice","choice":"billing","probabilities":{"billing":0.88,"technical":0.12,"sales":0.0},"confidence":0.81},
-              "f":{"type":"score","score":1.05,"probabilities":{"0":0.0,"1":0.95,"2":0.05},"confidence":0.92},
+              "f":{"type":"score","score":1.05,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.95,"2":0.05},"confidence":0.92},
               "product":{"type":"choice","choice":"team-plan","probabilities":{"pro-plan":0.25,"team-plan":0.7},"confidence":0.66},
-              "effort":{"type":"score","score":0.8,"probabilities":{"0":0.4,"1":0.4,"2":0.2},"confidence":0.5}
+              "effort":{"type":"score","score":0.8,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.4,"1":0.4,"2":0.2},"confidence":0.5}
             }}
             """);
 

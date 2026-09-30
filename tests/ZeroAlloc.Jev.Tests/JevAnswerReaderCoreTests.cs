@@ -34,7 +34,7 @@ public sealed class JevAnswerReaderCoreTests
     public void ReadScoreCore_ReadsTheArgmax_TheLowerLevelOnATie()
     {
         var buffer = new double[3];
-        var reader = Reader("""{"type":"score","score":0.8,"probabilities":{"0":0.4,"1":0.4,"2":0.2},"confidence":0.5}""");
+        var reader = Reader("""{"type":"score","score":0.8,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.4,"1":0.4,"2":0.2},"confidence":0.5}""");
 
         var (level, expected, confidence) = JevAnswerReader.ReadScoreCore(ref reader, KeyedOptionSet.Levels(3), buffer, 0);
 
@@ -47,7 +47,7 @@ public sealed class JevAnswerReaderCoreTests
     public void ReadScoreCore_WithoutLevels_Throws()
         => Assert.Equal("options", Assert.Throws<ArgumentException>(() =>
         {
-            var reader = Reader("""{"type":"score","score":0,"probabilities":{},"confidence":1}""");
+            var reader = Reader("""{"type":"score","score":0,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{},"confidence":1}""");
             JevAnswerReader.ReadScoreCore(ref reader, KeyedOptionSet.Levels(0), [], 0);
         }).ParamName);
 

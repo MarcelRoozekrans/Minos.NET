@@ -262,6 +262,24 @@ public sealed class JevClientTypedTests : IDisposable
     }
 
     [Fact]
+    public async Task ScoreAnswerWithoutLegend_IsInvalidResponse()
+    {
+        var pool = new CountingPool();
+        var body = Fixture.Text("response-score.json").Replace(
+            "\"legend\": { \"0\": \"Calm\", \"1\": \"Frustrated\", \"2\": \"Very angry\" },", string.Empty, StringComparison.Ordinal);
+        Assert.DoesNotContain("legend", body, StringComparison.Ordinal);
+        using var client = Client(StubHandler.Json(HttpStatusCode.OK, body), pool);
+
+        var result = await client.EvaluateAsync<FrustrationCheck>("text");
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);
+        Assert.Equal(200, result.Error.StatusCode);
+        Assert.IsType<JsonException>(result.Error.Exception);
+        Assert.Equal(0, pool.Outstanding);
+    }
+
+    [Fact]
     public async Task MalformedResponse_IsInvalidResponse()
     {
         var pool = new CountingPool();

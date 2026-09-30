@@ -90,7 +90,7 @@ public sealed class JevAnswerReaderTests
     [InlineData("""{"type":"choice","choice":"red","probabilities":{"purple":1.0},"confidence":0.5}""")]
     [InlineData("""{"type":"choice","choice":"red","confidence":0.5}""")]
     [InlineData("""{"type":"choice","choice":"red","probabilities":{}}""")]
-    [InlineData("""{"type":"score","choice":"red","probabilities":{},"confidence":0.5}""")]
+    [InlineData("""{"type":"score","choice":"red","legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{},"confidence":0.5}""")]
     public void ReadChoice_Invalid_Throws(string json)
         => Assert.ThrowsAny<JsonException>(() =>
         {
@@ -122,17 +122,40 @@ public sealed class JevAnswerReaderTests
     [Fact]
     public void ReadScore_Tie_PicksLowerLevel()
     {
-        var reader = At("""{"type":"score","score":1.0,"probabilities":{"0":0.45,"1":0.1,"2":0.45},"confidence":0.3}""");
+        var reader = At("""{"type":"score","score":1.0,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.45,"1":0.1,"2":0.45},"confidence":0.3}""");
 
         var score = JevAnswerReader.ReadScore(ref reader, UrgencyLevels.Instance, new double[3], 0);
 
         Assert.Equal(Urgency.Low, score.Value);
     }
 
+    [Fact]
+    public void ReadScore_WithoutLegend_Throws()
+    {
+        var ex = Assert.Throws<JsonException>(() =>
+        {
+            var reader = At("""{"type":"score","score":1.0,"probabilities":{"0":0.1,"1":0.8,"2":0.1},"confidence":0.5}""");
+            JevAnswerReader.ReadScore(ref reader, UrgencyLevels.Instance, new double[3], 0);
+        });
+
+        Assert.Contains("'legend'", ex.Message, StringComparison.Ordinal);
+    }
+
     [Theory]
-    [InlineData("""{"type":"score","score":1.0,"probabilities":{"3":1.0},"confidence":0.5}""")]
-    [InlineData("""{"type":"score","probabilities":{"0":1.0},"confidence":0.5}""")]
-    [InlineData("""{"type":"noul","score":1.0,"probabilities":{"0":1.0},"confidence":0.5}""")]
+    [InlineData("\"x\"")]
+    [InlineData("[]")]
+    [InlineData("null")]
+    public void ReadScore_NonObjectLegend_Throws(string legend)
+        => Assert.ThrowsAny<JsonException>(() =>
+        {
+            var reader = At($$"""{"type":"score","score":1.0,"legend":{{legend}},"probabilities":{"0":0.1,"1":0.8,"2":0.1},"confidence":0.5}""");
+            JevAnswerReader.ReadScore(ref reader, UrgencyLevels.Instance, new double[3], 0);
+        });
+
+    [Theory]
+    [InlineData("""{"type":"score","score":1.0,"legend":{"0":"Low"},"probabilities":{"3":1.0},"confidence":0.5}""")]
+    [InlineData("""{"type":"score","legend":{"0":"Low"},"probabilities":{"0":1.0},"confidence":0.5}""")]
+    [InlineData("""{"type":"noul","score":1.0,"legend":{"0":"Low"},"probabilities":{"0":1.0},"confidence":0.5}""")]
     public void ReadScore_Invalid_Throws(string json)
         => Assert.ThrowsAny<JsonException>(() =>
         {

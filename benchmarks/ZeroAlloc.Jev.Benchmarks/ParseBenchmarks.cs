@@ -65,12 +65,12 @@ public class ParseBenchmarks
     public void Setup()
     {
         _triageAnswers = Encoding.UTF8.GetBytes(
-            """{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}}""");
+            """{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}}""");
         _noulAnswer = Encoding.UTF8.GetBytes("""{"type":"noul","noul":0.95}""");
         _choiceAnswer = Encoding.UTF8.GetBytes(
             """{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7}""");
         _scoreAnswer = Encoding.UTF8.GetBytes(
-            """{"type":"score","score":1.9,"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}""");
+            """{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}""");
         _teamBuffer = new double[TeamOptions.Instance.Count];
         _urgencyBuffer = new double[UrgencyOptions.Instance.Count];
     }
