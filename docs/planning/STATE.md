@@ -3,10 +3,19 @@
 **Date:** 2026-09-30
 
 ## Current Position
-- **Milestone:** 3 — .NET integration, active since 2026-09-30 (design `docs/superpowers/specs/2026-09-30-milestone-3-design.md`). Milestone 2 complete, audit PASS.
-- **Phase:** 3.1 — Logging (pending; no design spec yet). Order: 3.1 Logging, 3.2 Telemetry, 3.3 DI package, 3.4 Options and configuration (absorbs the former 3.5, configurable resilience).
-- **Last completed task:** Milestone 3 brainstorm and spec. Decisions: `ZeroAlloc.Jev.DependencyInjection` as the package name; logging and telemetry in core; Microsoft's `[LoggerMessage]`; ZeroAlloc.Telemetry with GenAI conventions plus `jev.*`; a default client plus keyed clients.
-- **Next task:** `start-next-phase`, which runs the Phase 3.1 brainstorm.
+- **Milestone:** 3 — .NET integration, active since 2026-09-30 (design `docs/superpowers/specs/2026-09-30-milestone-3-design.md`).
+- **Phase:** 3.2 — Telemetry (pending; no design spec yet). Phase 3.1 — Logging complete on branch `phase/3.1-logging`, PR open, not yet merged.
+- **Last completed task:** Phase 3.1 — Logging. Final whole-branch review passed after one fix wave.
+- **Next task:** merge the Phase 3.1 PR (maintainer), then `start-next-phase` for Phase 3.2 — Telemetry. Phase 3.2 starts by testing whether ZeroAlloc.Telemetry's attributes can express the GenAI names and a confidence histogram.
+
+## What Phase 3.1 shipped
+- `JevClient(JevClientOptions?, ILoggerFactory?)` and `JevClient(HttpClient, JevClientOptions?, ILoggerFactory?)`; category `ZeroAlloc.Jev.JevClient`; the four older constructors log nothing. `new JevClient(null, null)` is now CS0121 (accepted; it always threw).
+- Six source-generated `[LoggerMessage]` events in internal `JevLog`, ids 1001–1006, none with more than six fields (a larger one generates a struct HLQ006 rejects). Success at Debug, failures and retries at Warning, unexpected exceptions at Error.
+- Retried attempts are logged by the internal `LoggingJevApi` decorator between the ZeroAlloc.Resilience proxy and the transport, using the proxy's own `RetryPolicy`.
+- Privacy: no state, instructions, criteria, answers, API key, headers or `JevError.Detail` in logs. `Network` and `InvalidResponse` messages are logged as a fixed text, because they can quote the request or response; the privacy tests found and closed a real leak of exception text on the network path.
+- Cost: nothing with no logger or every level disabled, proven by an async discriminating check in the AOT smoke app (5254 B per call either way). An enabled logger adds 0 B on a synchronous call and about 480 B on a truly asynchronous one.
+- New runtime dependency `Microsoft.Extensions.Logging.Abstractions` 10.0.0; its `[LoggerMessage]` generator reaches consumers transitively (NuGet/Home#6720) and stays inert.
+- Issues filed: #67 (remove `Json = true` from attributes, deferred to Phase 5.1), #68 (tighten two AOT budgets, needs a linux-x64 re-measurement).
 
 ## What Phase 2.4 shipped
 - `JevQuestionSet.CreateBuilder()`: Noul, enum and keyed Choice, enum and keyed Score questions with configurators (closed after their callback) and handles. `Build()` returns `Result<JevQuestionSet, JevError>` after checking the analyzers' rules with ZeroAlloc.Validation 2.0.3; failures come back as the new `JevErrorKind.InvalidQuestions` with `JevError.Failures`, warnings on `JevQuestionSet.Warnings`. `QuestionsUtf8` is byte-identical to the generator's for the same set, which a differential test pins.
@@ -90,4 +99,4 @@
 - Still unknown until a TypeSafe live run (needs `TYPESAFE_API_KEY` and the `live-api` environment): whether TypeSafe sends `Retry-After`, the 422 body schema, and whether Phase 2.4's `BuiltQuestionSet_ParsesAKeyedChoice` passes.
 
 ## Recommended Next Step
-Merge the `chore/milestone-3` PR, then run `start-next-phase` for Phase 3.1 — Logging. Open maintainer items: the `live-api` environment and TypeSafe live run; record the performance baseline from a full Benchmarks run; release PR #63 (0.2.0) stays open until you choose to release.
+Merge the Phase 3.1 PR, then run `start-next-phase` for Phase 3.2 — Telemetry. Open maintainer items: the `live-api` environment and TypeSafe live run; record the performance baseline from a full Benchmarks run; decide #68; release PR #63 (0.2.0) stays open until you choose to release.
