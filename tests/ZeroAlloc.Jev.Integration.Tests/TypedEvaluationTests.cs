@@ -163,4 +163,49 @@ public sealed class TypedEvaluationTests : IClassFixture<WireMockFixture>
         var actual = JsonNode.Parse(entry.RequestMessage!.Body!)?["questions"];
         Assert.True(JsonNode.DeepEquals(expected, actual));
     }
+
+    [Fact]
+    public async Task EvaluateAsync_BuiltSet_SendsItsQuestions_AndReadsItsAnswers()
+    {
+        _fixture.Server
+            .Given(Request.Create().WithPath("/v1/systemone").UsingPost())
+            .RespondWith(Response.Create()
+                .WithStatusCode(HttpStatusCode.OK)
+                .WithHeader("Content-Type", "application/json")
+                .WithBody("""{"model":"jev-1.13.0","answers":{"is_urgent":{"type":"noul","noul":0.95},"department":{"type":"choice","choice":"billing","probabilities":{"billing":0.9,"technical":0.05,"sales":0.03,"other":0.02},"confidence":0.9},"product":{"type":"choice","choice":"pro-plan","probabilities":{"pro-plan":0.7,"team-plan":0.2,"other":0.1},"confidence":0.7},"effort":{"type":"score","score":0.9,"probabilities":{"0":0.3,"1":0.5,"2":0.2},"confidence":0.6,"legend":["Minutes","Hours","Days"]}},"usage":{"input_tokens":300,"output_tokens":20}}"""));
+
+        var built = JevQuestionSet.CreateBuilder()
+            .Noul("is_urgent", "Does this convey urgency?", out var urgent, c => c
+                .WhenTrue("Explicitly time-sensitive")
+                .WhenFalse("No urgency expressed"))
+            .Choice<IntegrationDepartment>("department", "Which team should handle this?", out var department, o => o
+                .Describe(IntegrationDepartment.Billing, JevCriterion.Text("Payments, invoicing, refunds")
+                    .WithExamples("I was charged twice")
+                    .WithNotFor("How much is Pro?"))
+                .Describe(IntegrationDepartment.Technical, JevCriterion.Text("Bugs, outages, integrations").WithExamples("The API returns 500"))
+                .Describe(IntegrationDepartment.Sales, "Pricing, upgrades, new accounts"))
+            .Choice("product", "Which product is `message` about?", out var product, o => o
+                .Option("pro-plan", "The Pro subscription")
+                .Option("team-plan", "The Team subscription")
+                .Option("other"))
+            .Score("effort", "How much effort will this take?", out var effort, l => l.Level("Minutes").Level("Hours").Level("Days"))
+            .Build();
+        Assert.True(built.IsSuccess);
+
+        using var client = IntegrationClient.Create(_fixture.BaseAddress);
+
+        var result = await client.EvaluateAsync(built.Value, "Help! My payouts have been failing for 3 days.");
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.Value.Get(urgent).Value);
+        Assert.Equal(IntegrationDepartment.Billing, result.Value.Get(department).Value);
+        Assert.Equal("pro-plan", result.Value.Get(product).Value);
+        Assert.Equal(1, result.Value.Get(effort).Level);
+        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
+#pragma warning disable HLQ005
+        var entry = Assert.Single(_fixture.Server.LogEntries);
+#pragma warning restore HLQ005
+        var expected = JsonNode.Parse(Fixture.Text("request-built-set.json"));
+        Assert.True(JsonNode.DeepEquals(expected, JsonNode.Parse(entry.RequestMessage!.Body!)));
+    }
 }
