@@ -305,3 +305,9 @@ static ZeroAlloc.Jev.ModelCard.operator !=(ZeroAlloc.Jev.ModelCard? left, ZeroAl
 static ZeroAlloc.Jev.ModelCard.operator ==(ZeroAlloc.Jev.ModelCard? left, ZeroAlloc.Jev.ModelCard? right) -> bool
 static ZeroAlloc.Jev.NoulCriteria.operator !=(ZeroAlloc.Jev.NoulCriteria? left, ZeroAlloc.Jev.NoulCriteria? right) -> bool
 static ZeroAlloc.Jev.NoulCriteria.operator ==(ZeroAlloc.Jev.NoulCriteria? left, ZeroAlloc.Jev.NoulCriteria? right) -> bool
+ZeroAlloc.Jev.JevCriterion
+ZeroAlloc.Jev.JevCriterion.WithExamples(params System.ReadOnlySpan<string?> examples) -> ZeroAlloc.Jev.JevCriterion!
+ZeroAlloc.Jev.JevCriterion.WithNotFor(params System.ReadOnlySpan<string?> notFor) -> ZeroAlloc.Jev.JevCriterion!
+static ZeroAlloc.Jev.JevCriterion.implicit operator ZeroAlloc.Jev.JevCriterion!(string! description) -> ZeroAlloc.Jev.JevCriterion!
+static ZeroAlloc.Jev.JevCriterion.Json(ZeroAlloc.Jev.JevContent json) -> ZeroAlloc.Jev.JevCriterion!
+static ZeroAlloc.Jev.JevCriterion.Text(string! description) -> ZeroAlloc.Jev.JevCriterion!
