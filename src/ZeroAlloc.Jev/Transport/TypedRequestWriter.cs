@@ -5,10 +5,10 @@ using System.Text.Json.Serialization.Metadata;
 namespace ZeroAlloc.Jev.Transport;
 
 /// <summary>
-/// Writes a <c>/v1/systemone</c> request body for a <see cref="IJevQuestionSet{TSelf}"/> straight into a pooled
-/// <see cref="RawJson"/>: the questions are copied from <see cref="IJevQuestionSet{TSelf}.QuestionsUtf8"/> and no
-/// <see cref="SystemOneRequest"/> is built. The body is JSON-equal to the one <see cref="TypedEvaluation.CreateRequest{T}(JevContent, string)"/>
-/// serializes to for the same state and model.
+/// Writes a <c>/v1/systemone</c> request body straight into a pooled <see cref="RawJson"/>: the questions are copied from
+/// the bytes the caller passes, a generated set's <c>QuestionsUtf8</c> or a built set's, and no <see cref="SystemOneRequest"/>
+/// is built. The body is JSON-equal to the one <see cref="TypedEvaluation.CreateRequest(ReadOnlySpan{byte}, JevContent, string, string)"/>
+/// serializes to for the same questions, state and model.
 /// </summary>
 internal static class TypedRequestWriter
 {
@@ -26,31 +26,29 @@ internal static class TypedRequestWriter
         where TArg : allows ref struct;
 
     /// <summary>Writes a request with a text state.</summary>
-    /// <typeparam name="T">The question set.</typeparam>
+    /// <param name="questionsUtf8">The <c>questions</c> object, copied as is.</param>
     /// <param name="state">The text.</param>
     /// <param name="model">The model.</param>
     /// <param name="pool">The pool the body's buffer is rented from.</param>
     /// <returns>The body, which the caller owns and must dispose.</returns>
-    public static RawJson Write<T>(string state, string model, ArrayPool<byte> pool)
-        where T : IJevQuestionSet<T>
-        => Compose<T, string>(state, state.Length, model, pool, static (writer, _, text) => writer.WriteStringValue(text));
+    public static RawJson Write(ReadOnlySpan<byte> questionsUtf8, string state, string model, ArrayPool<byte> pool)
+        => Compose<string>(questionsUtf8, state, state.Length, model, pool, static (writer, _, text) => writer.WriteStringValue(text));
 
     /// <summary>Writes a request with a JSON state, which must be a string, object or array.</summary>
-    /// <typeparam name="T">The question set.</typeparam>
+    /// <param name="questionsUtf8">The <c>questions</c> object, copied as is.</param>
     /// <param name="state">The state.</param>
     /// <param name="model">The model.</param>
     /// <param name="pool">The pool the body's buffer is rented from.</param>
     /// <returns>The body, which the caller owns and must dispose.</returns>
     /// <exception cref="ArgumentException"><paramref name="state"/> is not a string, object or array.</exception>
-    public static RawJson Write<T>(JsonElement state, string model, ArrayPool<byte> pool)
-        where T : IJevQuestionSet<T>
+    public static RawJson Write(ReadOnlySpan<byte> questionsUtf8, JsonElement state, string model, ArrayPool<byte> pool)
     {
         TypedEvaluation.EnsureStateKind(state.ValueKind, nameof(state));
-        return Compose<T, JsonElement>(state, UnknownStateSize, model, pool, static (writer, _, element) => element.WriteTo(writer));
+        return Compose<JsonElement>(questionsUtf8, state, UnknownStateSize, model, pool, static (writer, _, element) => element.WriteTo(writer));
     }
 
     /// <summary>Writes a request with a UTF-8 JSON state, which must be one string, object or array.</summary>
-    /// <typeparam name="T">The question set.</typeparam>
+    /// <param name="questionsUtf8">The <c>questions</c> object, copied as is.</param>
     /// <param name="utf8JsonState">The state.</param>
     /// <param name="model">The model.</param>
     /// <param name="pool">The pool the body's buffer is rented from.</param>
@@ -58,11 +56,11 @@ internal static class TypedRequestWriter
     /// <exception cref="ArgumentException">
     /// <paramref name="utf8JsonState"/> is not exactly one well-formed JSON string, object or array.
     /// </exception>
-    public static RawJson WriteUtf8<T>(ReadOnlySpan<byte> utf8JsonState, string model, ArrayPool<byte> pool)
-        where T : IJevQuestionSet<T>
+    public static RawJson WriteUtf8(ReadOnlySpan<byte> questionsUtf8, ReadOnlySpan<byte> utf8JsonState, string model, ArrayPool<byte> pool)
     {
         TypedEvaluation.EnsureStateJson(utf8JsonState, nameof(utf8JsonState));
-        return Compose<T, ReadOnlySpan<byte>>(
+        return Compose<ReadOnlySpan<byte>>(
+            questionsUtf8,
             utf8JsonState,
             utf8JsonState.Length,
             model,
@@ -71,17 +69,18 @@ internal static class TypedRequestWriter
     }
 
     /// <summary>Writes a request with a typed state, serialized through its source-generated metadata.</summary>
-    /// <typeparam name="T">The question set.</typeparam>
     /// <typeparam name="TState">The state type.</typeparam>
+    /// <param name="questionsUtf8">The <c>questions</c> object, copied as is.</param>
     /// <param name="state">The state.</param>
     /// <param name="stateTypeInfo">The metadata <paramref name="state"/> is serialized with.</param>
     /// <param name="model">The model.</param>
     /// <param name="pool">The pool the body's buffer is rented from.</param>
     /// <returns>The body, which the caller owns and must dispose.</returns>
     /// <exception cref="ArgumentException"><paramref name="state"/> does not serialize to a string, object or array.</exception>
-    public static RawJson Write<T, TState>(TState state, JsonTypeInfo<TState> stateTypeInfo, string model, ArrayPool<byte> pool)
-        where T : IJevQuestionSet<T>
-        => Compose<T, (TState State, JsonTypeInfo<TState> TypeInfo)>(
+    public static RawJson Write<TState>(
+        ReadOnlySpan<byte> questionsUtf8, TState state, JsonTypeInfo<TState> stateTypeInfo, string model, ArrayPool<byte> pool)
+        => Compose<(TState State, JsonTypeInfo<TState> TypeInfo)>(
+            questionsUtf8,
             (state, stateTypeInfo),
             UnknownStateSize,
             model,
@@ -109,11 +108,11 @@ internal static class TypedRequestWriter
 
     // Rents the body and writes {"state":, then the state through writeState, then ,"model":…,"questions":…}. The body
     // is disposed if anything throws, so the caller owns it only once it is returned.
-    private static RawJson Compose<T, TArg>(TArg arg, int stateSizeHint, string model, ArrayPool<byte> pool, StateWriter<TArg> writeState)
-        where T : IJevQuestionSet<T>
+    private static RawJson Compose<TArg>(
+        ReadOnlySpan<byte> questionsUtf8, TArg arg, int stateSizeHint, string model, ArrayPool<byte> pool, StateWriter<TArg> writeState)
         where TArg : allows ref struct
     {
-        var body = RawJson.Create(pool, T.QuestionsUtf8.Length + model.Length + stateSizeHint + Overhead);
+        var body = RawJson.Create(pool, questionsUtf8.Length + model.Length + stateSizeHint + Overhead);
         try
         {
             using (var writer = new Utf8JsonWriter(body))
@@ -123,7 +122,7 @@ internal static class TypedRequestWriter
                 writeState(writer, body, arg);
                 writer.WriteString("model"u8, model);
                 writer.WritePropertyName("questions"u8);
-                writer.WriteRawValue(T.QuestionsUtf8, skipInputValidation: true);
+                writer.WriteRawValue(questionsUtf8, skipInputValidation: true);
                 writer.WriteEndObject();
                 writer.Flush();
             }

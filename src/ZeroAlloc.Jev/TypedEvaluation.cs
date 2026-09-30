@@ -87,12 +87,21 @@ internal static class TypedEvaluation
     /// <returns>The request.</returns>
     public static SystemOneRequest CreateRequest<T>(JevContent state, string model)
         where T : IJevQuestionSet<T>
+        => CreateRequest(T.QuestionsUtf8, state, model, typeof(T).Name);
+
+    /// <summary>Builds the request that asks the given questions about <paramref name="state"/>.</summary>
+    /// <param name="questionsUtf8">The <c>questions</c> object.</param>
+    /// <param name="state">The state.</param>
+    /// <param name="model">The model.</param>
+    /// <param name="setName">The question set's name, for the exception.</param>
+    /// <returns>The request.</returns>
+    public static SystemOneRequest CreateRequest(ReadOnlySpan<byte> questionsUtf8, JevContent state, string model, string setName)
         => new()
         {
             State = state,
             Model = model,
-            Questions = JsonSerializer.Deserialize(T.QuestionsUtf8, JevJsonContext.Default.IReadOnlyDictionaryStringJevQuestion)
-                ?? throw new InvalidOperationException(typeof(T).Name + ".QuestionsUtf8 is JSON null."),
+            Questions = JsonSerializer.Deserialize(questionsUtf8, JevJsonContext.Default.IReadOnlyDictionaryStringJevQuestion)
+                ?? throw new InvalidOperationException(setName + ".QuestionsUtf8 is JSON null."),
         };
 
     /// <summary>
@@ -107,7 +116,7 @@ internal static class TypedEvaluation
     /// <returns>The typed answers, or the <see cref="JevError"/> that prevented them.</returns>
     public static ValueTask<Result<T, JevError>> EvaluateAsync<T>(IJevClient client, JevContent state, CancellationToken ct)
         where T : IJevQuestionSet<T>
-        => EvaluateCoreAsync<T>(client, CreateRequest<T>(state, JevDefaults.Model), ct);
+        => EvaluateCoreAsync(client, CreateRequest<T>(state, JevDefaults.Model), GeneratedAnswerParser<T>.Instance, ct);
 
     /// <summary>Reads typed answers from an untyped response by re-serializing its answers.</summary>
     /// <typeparam name="T">The question set.</typeparam>
@@ -115,6 +124,14 @@ internal static class TypedEvaluation
     /// <returns>The typed answers, or an <see cref="JevErrorKind.InvalidResponse"/> error.</returns>
     public static Result<T, JevError> FromResponse<T>(SystemOneResponse response)
         where T : IJevQuestionSet<T>
+        => FromResponse(response, GeneratedAnswerParser<T>.Instance);
+
+    /// <summary>Reads typed answers from an untyped response by re-serializing its answers.</summary>
+    /// <typeparam name="TResult">The typed answers.</typeparam>
+    /// <param name="response">The response.</param>
+    /// <param name="parse">The question set's parser.</param>
+    /// <returns>The typed answers, or an <see cref="JevErrorKind.InvalidResponse"/> error.</returns>
+    public static Result<TResult, JevError> FromResponse<TResult>(SystemOneResponse response, AnswerParser<TResult> parse)
     {
         var buffer = new ArrayBufferWriter<byte>();
         using (var writer = new Utf8JsonWriter(buffer))
@@ -122,7 +139,7 @@ internal static class TypedEvaluation
             JsonSerializer.Serialize(writer, response.Answers, JevJsonContext.Default.IReadOnlyDictionaryStringJevAnswer);
         }
 
-        return ParseAnswersObject<T>(buffer.WrittenSpan);
+        return ParseAnswersObject(buffer.WrittenSpan, parse);
     }
 
     /// <summary>Parses the typed answers from an <c>answers</c> JSON object.</summary>
@@ -132,16 +149,26 @@ internal static class TypedEvaluation
     /// <returns>The typed answers, or an <see cref="JevErrorKind.InvalidResponse"/> error carrying the <see cref="JsonException"/>.</returns>
     public static Result<T, JevError> ParseAnswersObject<T>(ReadOnlySpan<byte> answersJson, int? statusCode = null)
         where T : IJevQuestionSet<T>
+        => ParseAnswersObject(answersJson, GeneratedAnswerParser<T>.Instance, statusCode);
+
+    /// <summary>Parses the typed answers from an <c>answers</c> JSON object.</summary>
+    /// <typeparam name="TResult">The typed answers.</typeparam>
+    /// <param name="answersJson">The UTF-8 <c>answers</c> object.</param>
+    /// <param name="parse">The question set's parser.</param>
+    /// <param name="statusCode">The HTTP status code to report on a failure, when one is known.</param>
+    /// <returns>The typed answers, or an <see cref="JevErrorKind.InvalidResponse"/> error carrying the <see cref="JsonException"/>.</returns>
+    public static Result<TResult, JevError> ParseAnswersObject<TResult>(
+        ReadOnlySpan<byte> answersJson, AnswerParser<TResult> parse, int? statusCode = null)
     {
         var reader = new Utf8JsonReader(SkipUtf8Bom(answersJson));
         try
         {
             reader.Read();
-            return Result<T, JevError>.Success(T.Parse(ref reader));
+            return Result<TResult, JevError>.Success(parse(ref reader));
         }
         catch (JsonException exception)
         {
-            return Result<T, JevError>.Failure(Rejected(exception, statusCode));
+            return Result<TResult, JevError>.Failure(Rejected(exception, statusCode));
         }
     }
 
@@ -160,17 +187,35 @@ internal static class TypedEvaluation
     /// </returns>
     public static Result<T, JevError> ParseResponse<T>(ReadOnlySpan<byte> responseJson, int? statusCode = null)
         where T : IJevQuestionSet<T>
+        => ParseResponse(responseJson, GeneratedAnswerParser<T>.Instance, statusCode);
+
+    /// <summary>
+    /// Parses the typed answers from a complete <c>/v1/systemone</c> response body: finds the top-level
+    /// <c>answers</c> property and runs <paramref name="parse"/> on it. The rest of the body is read to its
+    /// end, so malformed or truncated JSON anywhere is reported. Does not allocate on success.
+    /// </summary>
+    /// <typeparam name="TResult">The typed answers.</typeparam>
+    /// <param name="responseJson">The UTF-8 response body.</param>
+    /// <param name="parse">The question set's parser.</param>
+    /// <param name="statusCode">The HTTP status code to report on a failure, when one is known.</param>
+    /// <returns>
+    /// The typed answers, or an <see cref="JevErrorKind.InvalidResponse"/> error when the body is not an object, has no
+    /// or several <c>answers</c> properties, or the answers are rejected; a <see cref="JsonException"/> is kept as
+    /// <see cref="JevError.Exception"/>.
+    /// </returns>
+    public static Result<TResult, JevError> ParseResponse<TResult>(
+        ReadOnlySpan<byte> responseJson, AnswerParser<TResult> parse, int? statusCode = null)
     {
         var reader = new Utf8JsonReader(SkipUtf8Bom(responseJson));
         try
         {
             if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)
             {
-                return Result<T, JevError>.Failure(Invalid("The response body is not a JSON object.", statusCode));
+                return Result<TResult, JevError>.Failure(Invalid("The response body is not a JSON object.", statusCode));
             }
 
             var found = false;
-            T? answers = default;
+            TResult? answers = default;
             while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName)
             {
                 var isAnswers = reader.ValueTextEquals("answers"u8);
@@ -183,15 +228,15 @@ internal static class TypedEvaluation
 
                 if (found)
                 {
-                    return Result<T, JevError>.Failure(Invalid("The response has more than one answers property.", statusCode));
+                    return Result<TResult, JevError>.Failure(Invalid("The response has more than one answers property.", statusCode));
                 }
 
                 if (reader.TokenType == JsonTokenType.Null)
                 {
-                    return Result<T, JevError>.Failure(Invalid("The response's answers are null.", statusCode));
+                    return Result<TResult, JevError>.Failure(Invalid("The response's answers are null.", statusCode));
                 }
 
-                answers = T.Parse(ref reader);
+                answers = parse(ref reader);
                 found = true;
             }
 
@@ -199,22 +244,22 @@ internal static class TypedEvaluation
             reader.Read();
 
             return found
-                ? Result<T, JevError>.Success(answers!)
-                : Result<T, JevError>.Failure(Invalid("The response has no answers.", statusCode));
+                ? Result<TResult, JevError>.Success(answers!)
+                : Result<TResult, JevError>.Failure(Invalid("The response has no answers.", statusCode));
         }
         catch (JsonException exception)
         {
-            return Result<T, JevError>.Failure(Rejected(exception, statusCode));
+            return Result<TResult, JevError>.Failure(Rejected(exception, statusCode));
         }
     }
 
-    private static async ValueTask<Result<T, JevError>> EvaluateCoreAsync<T>(IJevClient client, SystemOneRequest request, CancellationToken ct)
-        where T : IJevQuestionSet<T>
+    private static async ValueTask<Result<TResult, JevError>> EvaluateCoreAsync<TResult>(
+        IJevClient client, SystemOneRequest request, AnswerParser<TResult> parse, CancellationToken ct)
     {
         var result = await client.EvaluateAsync(request, ct).ConfigureAwait(false);
         return result.IsSuccess
-            ? FromResponse<T>(result.Value)
-            : Result<T, JevError>.Failure(result.Error);
+            ? FromResponse(result.Value, parse)
+            : Result<TResult, JevError>.Failure(result.Error);
     }
 
     // Utf8JsonReader treats a leading UTF-8 BOM as an invalid start of a value, while the untyped path's
