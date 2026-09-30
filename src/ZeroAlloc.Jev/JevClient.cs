@@ -152,7 +152,10 @@ public sealed class JevClient : IJevClient, IDisposable
     {
         ArgumentNullException.ThrowIfNull(state);
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return EvaluateTypedAsync<T>(TypedRequestWriter.Write<T>(state, _model, _pool), ct);
+        return EvaluateTypedAsync(
+            TypedRequestWriter.Write(T.QuestionsUtf8, state, _model, _pool),
+            GeneratedAnswerParser<T>.Instance,
+            ct);
     }
 
     /// <inheritdoc />
@@ -173,7 +176,10 @@ public sealed class JevClient : IJevClient, IDisposable
     {
         TypedEvaluation.EnsureStateKind(state.ValueKind, nameof(state));
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return EvaluateTypedAsync<T>(TypedRequestWriter.Write<T>(state, _model, _pool), ct);
+        return EvaluateTypedAsync(
+            TypedRequestWriter.Write(T.QuestionsUtf8, state, _model, _pool),
+            GeneratedAnswerParser<T>.Instance,
+            ct);
     }
 
     /// <inheritdoc />
@@ -188,7 +194,10 @@ public sealed class JevClient : IJevClient, IDisposable
     {
         TypedEvaluation.EnsureStateJson(utf8JsonState.Span, nameof(utf8JsonState));
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return EvaluateTypedAsync<T>(TypedRequestWriter.WriteUtf8<T>(utf8JsonState.Span, _model, _pool), ct);
+        return EvaluateTypedAsync(
+            TypedRequestWriter.WriteUtf8(T.QuestionsUtf8, utf8JsonState.Span, _model, _pool),
+            GeneratedAnswerParser<T>.Instance,
+            ct);
     }
 
     /// <inheritdoc />
@@ -216,7 +225,30 @@ public sealed class JevClient : IJevClient, IDisposable
 
         ArgumentNullException.ThrowIfNull(stateTypeInfo);
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return EvaluateTypedAsync<T>(TypedRequestWriter.Write<T, TState>(state, stateTypeInfo, _model, _pool), ct);
+        return EvaluateTypedAsync(
+            TypedRequestWriter.Write(T.QuestionsUtf8, state, stateTypeInfo, _model, _pool),
+            GeneratedAnswerParser<T>.Instance,
+            ct);
+    }
+
+    /// <inheritdoc />
+    /// <remarks>Calls <see cref="EvaluateAsync(JevQuestionSet, JevContent, CancellationToken)"/> without cancellation.</remarks>
+    public ValueTask<Result<JevAnswers, JevError>> EvaluateAsync(JevQuestionSet questionSet, JevContent state)
+        => EvaluateAsync(questionSet, state, CancellationToken.None);
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Writes the request straight from the set's <see cref="JevQuestionSet.QuestionsUtf8"/>, with
+    /// <see cref="JevClientOptions.Model"/>, and reads the answers straight from the response body, in pooled buffers,
+    /// without building a <see cref="SystemOneRequest"/> or <see cref="SystemOneResponse"/>. Retries and errors work as
+    /// for <see cref="EvaluateAsync(SystemOneRequest, CancellationToken)"/>.
+    /// </remarks>
+    public ValueTask<Result<JevAnswers, JevError>> EvaluateAsync(JevQuestionSet questionSet, JevContent state, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(questionSet);
+        JevContent.EnsureInitialized(state, nameof(state));
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        return EvaluateTypedAsync(TypedRequestWriter.Write(questionSet.QuestionsUtf8, state, _model, _pool), questionSet.Parser, ct);
     }
 
     /// <inheritdoc />
@@ -264,8 +296,8 @@ public sealed class JevClient : IJevClient, IDisposable
     // Owns body: the retry proxy sends the same instance on every attempt, so it is disposed only once the whole call,
     // retries included, has completed. A successful response is the only RawJson the transport hands back; failed
     // attempts carry a JevError and no buffer.
-    private async ValueTask<Result<T, JevError>> EvaluateTypedAsync<T>(RawJson body, CancellationToken ct)
-        where T : IJevQuestionSet<T>
+    private async ValueTask<Result<TResult, JevError>> EvaluateTypedAsync<TResult>(
+        RawJson body, AnswerParser<TResult> parse, CancellationToken ct)
     {
         RawJson? response = null;
         try
@@ -273,11 +305,11 @@ public sealed class JevClient : IJevClient, IDisposable
             var result = await _api.EvaluateRawAsync(body, _authorization, retryCount: null, ct).ConfigureAwait(false);
             if (result.IsFailure)
             {
-                return Result<T, JevError>.Failure(result.Error);
+                return Result<TResult, JevError>.Failure(result.Error);
             }
 
             response = result.Value;
-            return TypedEvaluation.ParseResponse<T>(response.Span, statusCode: 200);
+            return TypedEvaluation.ParseResponse(response.Span, parse, statusCode: 200);
         }
         finally
         {

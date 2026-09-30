@@ -108,7 +108,7 @@ public enum Priority
     [Criteria("Needs attention", Key = "urgent")]
     High = 20,
 
-    // CA1069 false positive: this alias is deliberate test data for the generator's alias handling
+    // Deliberate alias: test data for the generator's alias handling
     // (global-constraints.md: "enum members that repeat an earlier member's value (aliases) are not
     // separate options"), not an accidental duplicate.
 #pragma warning disable CA1069

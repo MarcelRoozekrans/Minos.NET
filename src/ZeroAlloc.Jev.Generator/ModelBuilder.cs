@@ -22,11 +22,6 @@ internal static class ModelBuilder
     // either name would collide with the generated declaration.
     private static readonly string[] ReservedPropertyNames = ["Parse", "QuestionsUtf8"];
 
-    // The API sketch's guidance, which JEV005 warns about: the schema itself sets no upper bound.
-    private const int MinimumScoreLevels = 2;
-    private const int MaximumScoreLevels = 10;
-    private const int MaximumChoiceOptions = 255;
-
     // JEV003's second message argument: the advice that fits what is empty. The text follows the subject in the message.
     private const string EmptyTextAdvice = "is empty or whitespace: write the text, or pass null to send none";
     private const string EmptyEntryAdvice = "is empty or whitespace: write the text, or remove the entry";
@@ -622,12 +617,14 @@ internal static class ModelBuilder
         List<DiagnosticInfo> diagnostics)
     {
         var isScore = kind == QuestionKind.Score;
-        if (count == 0)
+        if (count < JevLimits.MinimumOptions)
         {
             var id = isScore ? DiagnosticIds.EmptyScoreEnum : DiagnosticIds.EmptyChoiceEnum;
             diagnostics.Add(DiagnosticInfo.Create(id, location, enumType.Name));
         }
-        else if (isScore ? count is < MinimumScoreLevels or > MaximumScoreLevels : count > MaximumChoiceOptions)
+        else if (isScore
+            ? count is < JevLimits.MinimumScoreLevels or > JevLimits.MaximumScoreLevels
+            : count > JevLimits.MaximumChoiceOptions)
         {
             diagnostics.Add(DiagnosticInfo.Create(
                 DiagnosticIds.OptionCountOutsideGuidance,
@@ -636,8 +633,8 @@ internal static class ModelBuilder
                 enumType.Name,
                 count.ToString(CultureInfo.InvariantCulture),
                 isScore
-                    ? $"{MinimumScoreLevels} to {MaximumScoreLevels} levels"
-                    : $"at most {MaximumChoiceOptions} options"));
+                    ? $"{JevLimits.MinimumScoreLevels} to {JevLimits.MaximumScoreLevels} levels"
+                    : $"at most {JevLimits.MaximumChoiceOptions} options"));
         }
     }
 

@@ -4,9 +4,21 @@
     <PackageId>ZeroAlloc.Jev</PackageId>
     <Title>ZeroAlloc.Jev</Title>
     <Description>Unofficial .NET client for TypeSafe AI's Jev System One model, directly or through OpenRouter. Source-generated, Native AOT-compatible and allocation-conscious, with typed questions and answers and Result-based errors. Not affiliated with or endorsed by TypeSafe AI.</Description>
-    <!-- Zero runtime reflection by design; enables IsTrimmable and the IL2026/IL3050 analyzers. -->
+    <!--
+      Trim- and AOT-safe by design. The one reflection, EnumOptionSet reading an enum's public fields for question sets
+      built at run time, is declared through DynamicallyAccessedMembers, so the trimmer keeps those fields. Enables
+      IsTrimmable and the trim and AOT analyzers.
+    -->
     <IsAotCompatible>true</IsAotCompatible>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- GeneratorJsonEncoder overrides JavaScriptEncoder's pointer-based members. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!--
+      ZeroAlloc.Validation's generator emits every {Model}Validator internal: they check this library's internal
+      question specs and are no part of its API. Every ZeroAlloc generator reads this one property; the
+      ZeroAlloc.Rest and ZeroAlloc.Resilience output it also covers is internal already.
+    -->
+    <ZeroAllocGeneratedAccessibility>Internal</ZeroAllocGeneratedAccessibility>
   </PropertyGroup>
 
   <ItemGroup>
@@ -32,6 +44,8 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="ZeroAlloc.Jev.Tests" />
+    <!-- The benchmarks time the internal parse of a built set in isolation, which no public member exposes. -->
+    <InternalsVisibleTo Include="ZeroAlloc.Jev.Benchmarks" />
   </ItemGroup>
 
   <ItemGroup>
@@ -39,6 +53,20 @@
     <PackageReference Include="ZeroAlloc.Rest" />
     <PackageReference Include="ZeroAlloc.Rest.SystemTextJson" />
     <PackageReference Include="ZeroAlloc.Results" />
+    <!--
+      PrivateAssets keeps ZeroAlloc.Validation's build and buildtransitive assets out of consumers' builds, and the
+      nuspec excludes its Build and Analyzers. NuGet still flows the analyzers transitively, NuGet/Home#6720, where
+      they stay inert without [Validate] types. The runtime library flows as usual.
+    -->
+    <PackageReference Include="ZeroAlloc.Validation" PrivateAssets="analyzers;build;buildtransitive" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The rule ids, shared with the generator and the analyzers, so a runtime failure names the same JEV id. -->
+    <Compile Include="..\ZeroAlloc.Jev.Generator\DiagnosticIds.cs" Link="Shared\DiagnosticIds.cs" />
+    <Compile Include="..\ZeroAlloc.Jev.Generator\JevLimits.cs" Link="Shared\JevLimits.cs" />
+    <!-- One snake_case algorithm for the generator's keys and the runtime option sets. -->
+    <Compile Include="..\ZeroAlloc.Jev.Generator\SnakeCase.cs" Link="Shared\SnakeCase.cs" />
   </ItemGroup>
 
   <!-- Pack the generator, analyzer and code fixes from their real build output rather than a hard-coded bin path (#14). -->

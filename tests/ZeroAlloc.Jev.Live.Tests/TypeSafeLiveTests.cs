@@ -4,6 +4,8 @@ namespace ZeroAlloc.Jev.Live.Tests;
 
 public sealed class TypeSafeLiveTests
 {
+    private static readonly string[] Teams = ["billing", "technical", "sales"];
+
     private readonly ITestOutputHelper _output;
 
     public TypeSafeLiveTests(ITestOutputHelper output) => _output = output;
@@ -123,5 +125,44 @@ public sealed class TypeSafeLiveTests
         Assert.True(result.IsFailure);
         Live.LogError(_output, result.Error);
         Assert.Equal(JevErrorKind.Validation, result.Error.Kind);
+    }
+
+    [LiveFact(JevProvider.TypeSafe)]
+    public async Task BuiltQuestionSet_ParsesAKeyedChoice()
+    {
+        using var client = Live.Client(JevProvider.TypeSafe);
+        var built = JevQuestionSet.CreateBuilder()
+            .Choice("team", "Which team should handle this?", out var team, o => o
+                .Option("billing", JevCriterion.Text("Payments, invoicing, refunds").WithExamples("I was charged twice"))
+                .Option("technical", "Bugs, outages, integrations")
+                .Option("sales", "Pricing, upgrades, new accounts"))
+            .Build();
+        Assert.True(built.IsSuccess);
+
+        var result = await client.EvaluateAsync(built.Value, "Help! My payouts have been failing for 3 days and nobody answers.");
+
+        if (result.IsFailure)
+        {
+            Live.LogError(_output, result.Error);
+        }
+
+        Assert.True(result.IsSuccess);
+
+        var answer = result.Value.Get(team);
+
+        Assert.Contains(answer.Value, Teams);
+        Assert.InRange(answer.Confidence, 0.0, 1.0);
+        Assert.Equal(3, answer.Probabilities.Count);
+        Assert.InRange(answer.Probabilities[answer.Value], 0.0, 1.0);
+
+        var sum = 0.0;
+        foreach (var (key, probability) in answer.Probabilities)
+        {
+            Assert.Contains(key, Teams);
+            Assert.InRange(probability, 0.0, 1.0);
+            sum += probability;
+        }
+
+        Assert.Equal(1.0, sum, 0.01);
     }
 }

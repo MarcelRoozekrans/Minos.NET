@@ -6,6 +6,7 @@ using System.Text.Json.Serialization;
 using ZeroAlloc.Jev.Serialization;
 using ZeroAlloc.Jev.Transport;
 using ZeroAlloc.Results;
+using static ZeroAlloc.Jev.Tests.ClientTestKit;
 
 namespace ZeroAlloc.Jev.Tests;
 
@@ -58,7 +59,6 @@ public partial record PaddedUrgency
 /// <summary>Covers <see cref="JevClient"/>'s own typed <c>EvaluateAsync</c> overloads, the raw UTF-8 path.</summary>
 public sealed class JevClientTypedTests : IDisposable
 {
-    private const string TestModel = "jev-test-model";
     private const string TicketJson = """{"messages":[{"role":"user","content":"Help!"}]}""";
 
     private static readonly TicketContext Ticket = new("Payouts failing", "Help! My payouts have been failing for 3 days.");
@@ -432,55 +432,6 @@ public sealed class JevClientTypedTests : IDisposable
         Assert.Equal(0, pool.Outstanding);
     }
 
-    // The exception must come from the call itself, before any task exists, as for the default interface methods.
-    private static TException ThrowsSynchronously<TException>(Func<Task> call)
-        where TException : Exception
-    {
-        Task? task = null;
-        var exception = Record.Exception(() => { task = call(); });
-        Assert.Null(task);
-        return Assert.IsType<TException>(exception);
-    }
-
-    private static StubHandler.Captured OnlyRequest(StubHandler handler)
-    {
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
-        return Assert.Single(handler.Requests);
-#pragma warning restore HLQ005
-    }
-
     private JevClient Client(StubHandler handler, CountingPool? pool = null, JevProvider provider = JevProvider.TypeSafe)
-    {
-        var http = new HttpClient(handler);
-        _httpClients.Add(http);
-        var settings = JevClientSettings.Resolve(
-            new JevClientOptions { ApiKey = "test-key", Provider = provider, Model = TestModel, MaxRetries = 0 },
-            _ => null);
-        return new JevClient(settings, http, ownedHandler: null, TimeProvider.System, pool ?? new CountingPool());
-    }
-
-    /// <summary>Implements only the abstract members, so typed calls run the default interface methods.</summary>
-    private sealed class CapturingClient : IJevClient
-    {
-        private readonly List<SystemOneRequest> _requests = [];
-
-        public SystemOneRequest OnlyRequest()
-        {
-            // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
-            return Assert.Single(_requests);
-#pragma warning restore HLQ005
-        }
-
-        public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken ct)
-        {
-            _requests.Add(request);
-            return ValueTask.FromResult(Result<SystemOneResponse, JevError>.Success(
-                JsonSerializer.Deserialize(Fixture.Text("response-noul.json"), JevJsonContext.Default.SystemOneResponse)!));
-        }
-
-        public ValueTask<Result<ModelList, JevError>> ListModelsAsync(CancellationToken ct = default)
-            => throw new NotSupportedException();
-    }
+        => ClientTestKit.Client(_httpClients, handler, pool, provider);
 }

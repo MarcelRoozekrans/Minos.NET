@@ -7,9 +7,9 @@ namespace ZeroAlloc.Jev;
 /// <summary>Calls TypeSafe's Jev System One API. Implemented by <see cref="JevClient"/>; mock it in tests.</summary>
 /// <remarks>
 /// A hand-written fake implements <see cref="EvaluateAsync(SystemOneRequest, CancellationToken)"/> and
-/// <see cref="ListModelsAsync(CancellationToken)"/>; the typed <c>EvaluateAsync&lt;T&gt;</c> overloads then work
-/// through it. Mocking libraries intercept default interface methods; configure the overload you call, or enable
-/// CallBase.
+/// <see cref="ListModelsAsync(CancellationToken)"/>; the typed <c>EvaluateAsync&lt;T&gt;</c> overloads and the built-set
+/// overloads then work through it. Mocking libraries intercept default interface methods; configure the overload you
+/// call, or enable CallBase.
 /// </remarks>
 public interface IJevClient
 {
@@ -163,5 +163,37 @@ public interface IJevClient
 
         ArgumentNullException.ThrowIfNull(stateTypeInfo);
         return TypedEvaluation.EvaluateAsync<T>(this, TypedEvaluation.ToContent(state, stateTypeInfo, nameof(state)), ct);
+    }
+
+    /// <summary>Asks a built question set's questions about a state and returns its answers.</summary>
+    /// <param name="questionSet">The set, from <see cref="JevQuestionSetBuilder.Build"/>.</param>
+    /// <param name="state">The state: text, or a JSON object or array.</param>
+    /// <returns>The answers, or the <see cref="JevError"/> that prevented them.</returns>
+    /// <remarks>Calls <see cref="EvaluateAsync(JevQuestionSet, JevContent, CancellationToken)"/> without cancellation.</remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="questionSet"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="state"/> is uninitialized.</exception>
+    ValueTask<Result<JevAnswers, JevError>> EvaluateAsync(JevQuestionSet questionSet, JevContent state)
+        => EvaluateAsync(questionSet, state, CancellationToken.None);
+
+    /// <summary>Asks a built question set's questions about a state and returns its answers.</summary>
+    /// <param name="questionSet">The set, from <see cref="JevQuestionSetBuilder.Build"/>.</param>
+    /// <param name="state">The state: text, or a JSON object or array.</param>
+    /// <param name="ct">Cancels the call; cancellation throws <see cref="OperationCanceledException"/>.</param>
+    /// <returns>
+    /// The answers, or the <see cref="JevError"/> that prevented them; answers the set rejects give
+    /// <see cref="JevErrorKind.InvalidResponse"/>.
+    /// </returns>
+    /// <remarks>
+    /// This default implementation is the compatible, allocating path: it calls
+    /// <see cref="EvaluateAsync(SystemOneRequest, CancellationToken)"/> with <see cref="JevDefaults.Model"/> and reads
+    /// the answers from the untyped response. <see cref="JevClient"/> overrides it.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="questionSet"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="state"/> is uninitialized.</exception>
+    ValueTask<Result<JevAnswers, JevError>> EvaluateAsync(JevQuestionSet questionSet, JevContent state, CancellationToken ct)
+    {
+        ArgumentNullException.ThrowIfNull(questionSet);
+        JevContent.EnsureInitialized(state, nameof(state));
+        return TypedEvaluation.EvaluateAsync(this, questionSet, state, ct);
     }
 }

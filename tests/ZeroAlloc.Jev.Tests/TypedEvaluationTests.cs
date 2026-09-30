@@ -128,4 +128,18 @@ public sealed class TypedEvaluationTests
         Assert.Equal(Department.Billing, second.Value.Department.Value);
         Assert.Equal(first.Value, third.Value);
     }
+
+    [Fact]
+    public void ParseResponse_WithAParser_RunsIt()
+    {
+        var result = TypedEvaluation.ParseResponse(
+            Encoding.UTF8.GetBytes(Fixture.Text("response-noul.json")), GeneratedAnswerParser<UrgencyCheck>.Instance);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(0.95, result.Value.IsUrgent.Probability);
+    }
+
+    [Fact]
+    public void GeneratedAnswerParser_IsCreatedOnce()
+        => Assert.Same(GeneratedAnswerParser<UrgencyCheck>.Instance, GeneratedAnswerParser<UrgencyCheck>.Instance);
 }

@@ -1,0 +1,31 @@
+{
+  "state": "Help! My payouts have been failing for 3 days.",
+  "model": "jev-latest",
+  "questions": {
+    "is_urgent": {
+      "type": "noul",
+      "instructions": "Does this convey urgency?",
+      "criteria": { "true": "Explicitly time-sensitive", "false": "No urgency expressed" }
+    },
+    "department": {
+      "type": "choice",
+      "instructions": "Which team should handle this?",
+      "criteria": {
+        "billing": { "description": "Payments, invoicing, refunds", "examples": ["I was charged twice"], "not_for": ["How much is Pro?"] },
+        "technical": { "description": "Bugs, outages, integrations", "examples": ["The API returns 500"] },
+        "sales": "Pricing, upgrades, new accounts",
+        "other": null
+      }
+    },
+    "product": {
+      "type": "choice",
+      "instructions": "Which product is `message` about?",
+      "criteria": { "pro-plan": "The Pro subscription", "team-plan": "The Team subscription", "other": null }
+    },
+    "effort": {
+      "type": "score",
+      "instructions": "How much effort will this take?",
+      "criteria": ["Minutes", "Hours", "Days"]
+    }
+  }
+}

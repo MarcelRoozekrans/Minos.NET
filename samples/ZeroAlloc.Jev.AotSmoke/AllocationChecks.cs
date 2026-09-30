@@ -187,6 +187,73 @@ internal static class AllocationChecks
             passDescription: "JevContent.FromUtf8Json stays within its allocation budget");
     }
 
+    /// <summary><see cref="JevQuestionSetBuilder.Build"/> over a three-question set: a Noul, an enum Choice and a keyed Choice.</summary>
+    public static void BuildQuestionSet()
+    {
+        var builder = SmokeBuiltSet.Builder(out _, out _, out _);
+
+        // Measured 6592 B/call on published win-x64 AOT: the builder's question and warning lists, the Utf8JsonWriter and
+        // its ArrayBufferWriter growth, the UTF-8 keys and the resulting JevQuestionSet. Budget: about 10% headroom, 7251 B,
+        // rounded up to the next multiple of 64, 7296 B, since writer growth and list capacities follow runtime internals.
+        Gate(
+            budgetBytes: 7296,
+            action: () => _ = builder.Build(),
+            label: "BuildQuestionSet",
+            passDescription: "JevQuestionSetBuilder.Build stays within its allocation budget");
+    }
+
+    /// <summary><see cref="JevClient.EvaluateAsync(JevQuestionSet, JevContent)"/> over a canned handler.</summary>
+    public static void EvaluateBuiltSetRoundTrip()
+    {
+        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, SmokeBuiltSet.ResponseJson))
+        {
+            BaseAddress = new Uri("https://example.test/api/"),
+        };
+        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+        var set = SmokeBuiltSet.Full(out _, out _, out _, out _);
+
+        // Measured 4288 B/call on published win-x64 AOT: the JevQuestionSet's pre-built request body copied into a pooled
+        // buffer, HttpClient's request and response objects and body buffering, the JevAnswers result and the async state
+        // machines if the call does not complete synchronously. Budget: about 10% headroom, 4717 B, rounded up to the next
+        // multiple of 64, 4736 B, since HttpClient's allocations follow runtime internals.
+        GateValueTask(
+            budgetBytes: 4736,
+            action: () => client.EvaluateAsync(set, "Help! My payouts have been failing for 3 days."),
+            label: "EvaluateBuiltSetRoundTrip",
+            passDescription: "EvaluateAsync over a built set stays within its allocation budget");
+    }
+
+    private static double sink;
+
+    /// <summary><see cref="JevAnswers.Get(NoulHandle)"/> and its overloads, over one evaluation's answers.</summary>
+    public static void JevAnswersGet()
+    {
+        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, SmokeBuiltSet.ResponseJson))
+        {
+            BaseAddress = new Uri("https://example.test/api/"),
+        };
+        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+        var set = SmokeBuiltSet.Full(out var credentials, out var team, out var product, out var urgency);
+        var answers = client.EvaluateAsync(set, "Help!").AsTask().GetAwaiter().GetResult().Value;
+
+        // 0 B/call: Get rebuilds each typed answer as a struct over the answers' shared probability buffer.
+        Gate(
+            budgetBytes: 0,
+            action: () =>
+            {
+                var noul = answers.Get(credentials);
+                var teamAnswer = answers.Get(team);
+                var productAnswer = answers.Get(product);
+                var urgencyAnswer = answers.Get(urgency);
+
+                // Consumed into a static field so the compiler cannot elide the calls and make the 0 B gate vacuous.
+                sink += (noul.Value ? 1 : 0) + (int)teamAnswer.Value + productAnswer.Value.Length + (int)urgencyAnswer.Value
+                    + teamAnswer.Confidence + productAnswer.Confidence + urgencyAnswer.Confidence + urgencyAnswer.Expected;
+            },
+            label: "JevAnswersGet",
+            passDescription: "JevAnswers.Get allocates nothing");
+    }
+
     private static void Gate(int budgetBytes, Action action, string label, string passDescription)
     {
         try

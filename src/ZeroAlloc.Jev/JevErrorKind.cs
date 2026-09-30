@@ -47,4 +47,10 @@ public enum JevErrorKind
 
     /// <summary>The operation is not available on the configured provider.</summary>
     Unsupported,
+
+    /// <summary>
+    /// A question set built with <see cref="JevQuestionSetBuilder"/> breaks the API's rules; <see cref="JevError.Failures"/>
+    /// lists each one. <c>Build</c> returns it, and no request is sent.
+    /// </summary>
+    InvalidQuestions,
 }

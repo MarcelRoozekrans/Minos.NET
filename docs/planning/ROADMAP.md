@@ -118,14 +118,16 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-09-28-phase-2.3-structured-instructions-and-criteria.md`
 **Completed:** 2026-09-28
 
-### Phase 2.4: Fluent question builders [status: pending]
+### Phase 2.4: Fluent question builders [status: complete]
 **Goal:** Builders for runtime-defined Noul, Choice and Score questions that share the typed answer types, with:
 - runtime API-limit validation via ZeroAlloc.Validation, using limits shared with the analyzers;
 - allocation budgets and benchmarks for the builders.
 
 **Surface:** Backend
 **HelpWanted:** no
-**Plan:** _to be written_
+**Spec:** `docs/superpowers/specs/2026-09-28-phase-2.4-fluent-question-builders-design.md`
+**Plan:** `docs/superpowers/plans/2026-09-28-phase-2.4-fluent-question-builders.md`
+**Completed:** 2026-09-30
 
 ## Milestone 3: .NET integration [status: pending]
 **Goal:** First-class generic-host, DI and observability experience.
