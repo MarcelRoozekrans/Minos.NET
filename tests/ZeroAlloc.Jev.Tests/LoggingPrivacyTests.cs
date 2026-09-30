@@ -89,6 +89,10 @@ public sealed class LoggingPrivacyTests : IDisposable
 
         Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);
         AssertSentTheSecrets(handler);
+
+        // The JSON reader's message quotes only the first rejected character, not the body, so the body cannot be
+        // asserted in the error; a 200 InvalidResponse proves the malformed body was received and parsed.
+        Assert.Equal(200, result.Error.StatusCode);
         AssertNoSecret(logs);
     }
 
@@ -126,7 +130,12 @@ public sealed class LoggingPrivacyTests : IDisposable
         Assert.True((await client.EvaluateAsync<UrgencyCheck>("zq-secret-state")).IsSuccess);
         Assert.True((await client.EvaluateAsync(set, "zq-secret-state")).IsSuccess);
 
+        Assert.Equal(2, handler.Requests.Count);
         Assert.All(handler.Requests, request => Assert.Contains("zq-secret-state", request.Body, StringComparison.Ordinal));
+        Assert.All(handler.Requests, request => Assert.Contains(ApiKey, request.Authorization, StringComparison.Ordinal));
+        Assert.Contains("zq-secret-key", handler.Requests[1].Body, StringComparison.Ordinal);
+        Assert.Contains("zq-secret-instructions", handler.Requests[1].Body, StringComparison.Ordinal);
+        Assert.Contains("zq-secret-true", handler.Requests[1].Body, StringComparison.Ordinal);
         AssertNoSecret(logs);
     }
 
@@ -149,13 +158,16 @@ public sealed class LoggingPrivacyTests : IDisposable
     public async Task NetworkFailure_LogsNoRequestText()
     {
         using var logs = new LogCapture();
-        var handler = new StubHandler((_, _) => throw new HttpRequestException("Connection refused"));
+        var handler = new StubHandler((_, _) => throw new HttpRequestException("Connection refused to https://host/?q=zq-secret-exception"));
         using var client = Client(handler, logs);
 
         var result = await client.EvaluateAsync(SecretRequest());
 
         Assert.Equal(JevErrorKind.Network, result.Error.Kind);
         AssertSentTheSecrets(handler);
+
+        // A real handler can echo request data into its exception message; the precondition is that it reached the error.
+        Assert.Contains(Secret, result.Error.Message, StringComparison.Ordinal);
         AssertNoSecret(logs);
     }
 
