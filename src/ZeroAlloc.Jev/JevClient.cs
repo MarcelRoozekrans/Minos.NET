@@ -205,7 +205,14 @@ public sealed class JevClient : IJevClient, IDisposable
     {
         ArgumentNullException.ThrowIfNull(request);
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return EvaluateCoreAsync(request, ct);
+        var started = JevLog.StartTiming(_logger);
+        return WithLogging(
+            EvaluateCoreAsync(request, ct),
+            JevLog.Evaluate,
+            request.Model,
+            _logger is null ? 0 : request.Questions.Count,
+            started,
+            ct);
     }
 
     /// <inheritdoc />
@@ -226,10 +233,8 @@ public sealed class JevClient : IJevClient, IDisposable
     {
         ArgumentNullException.ThrowIfNull(state);
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return EvaluateTypedAsync(
-            TypedRequestWriter.Write(T.QuestionsUtf8, state, _model, _pool),
-            GeneratedAnswerParser<T>.Instance,
-            ct);
+        var started = JevLog.StartTiming(_logger);
+        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.Write(T.QuestionsUtf8, state, _model, _pool), ct);
     }
 
     /// <inheritdoc />
@@ -250,10 +255,8 @@ public sealed class JevClient : IJevClient, IDisposable
     {
         TypedEvaluation.EnsureStateKind(state.ValueKind, nameof(state));
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return EvaluateTypedAsync(
-            TypedRequestWriter.Write(T.QuestionsUtf8, state, _model, _pool),
-            GeneratedAnswerParser<T>.Instance,
-            ct);
+        var started = JevLog.StartTiming(_logger);
+        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.Write(T.QuestionsUtf8, state, _model, _pool), ct);
     }
 
     /// <inheritdoc />
@@ -268,10 +271,8 @@ public sealed class JevClient : IJevClient, IDisposable
     {
         TypedEvaluation.EnsureStateJson(utf8JsonState.Span, nameof(utf8JsonState));
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return EvaluateTypedAsync(
-            TypedRequestWriter.WriteUtf8(T.QuestionsUtf8, utf8JsonState.Span, _model, _pool),
-            GeneratedAnswerParser<T>.Instance,
-            ct);
+        var started = JevLog.StartTiming(_logger);
+        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.WriteUtf8(T.QuestionsUtf8, utf8JsonState.Span, _model, _pool), ct);
     }
 
     /// <inheritdoc />
@@ -299,10 +300,8 @@ public sealed class JevClient : IJevClient, IDisposable
 
         ArgumentNullException.ThrowIfNull(stateTypeInfo);
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return EvaluateTypedAsync(
-            TypedRequestWriter.Write(T.QuestionsUtf8, state, stateTypeInfo, _model, _pool),
-            GeneratedAnswerParser<T>.Instance,
-            ct);
+        var started = JevLog.StartTiming(_logger);
+        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.Write(T.QuestionsUtf8, state, stateTypeInfo, _model, _pool), ct);
     }
 
     /// <inheritdoc />
@@ -322,22 +321,33 @@ public sealed class JevClient : IJevClient, IDisposable
         ArgumentNullException.ThrowIfNull(questionSet);
         JevContent.EnsureInitialized(state, nameof(state));
         ObjectDisposedException.ThrowIf(_disposed, this);
-        return EvaluateTypedAsync(TypedRequestWriter.Write(questionSet.QuestionsUtf8, state, _model, _pool), questionSet.Parser, ct);
+        var started = JevLog.StartTiming(_logger);
+        return WithLogging(
+            EvaluateTypedAsync(TypedRequestWriter.Write(questionSet.QuestionsUtf8, state, _model, _pool), questionSet.Parser, ct),
+            JevLog.EvaluateBuiltSet,
+            _model,
+            questionSet.Plan.Length,
+            started,
+            ct);
     }
 
     /// <inheritdoc />
     public ValueTask<Result<ModelList, JevError>> ListModelsAsync(CancellationToken ct = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
+        var started = JevLog.StartTiming(_logger);
 
         if (_provider == JevProvider.OpenRouter)
         {
-            return ValueTask.FromResult(Result<ModelList, JevError>.Failure(new JevError(
-                JevErrorKind.Unsupported,
-                "Model listing is only available on TypeSafe's API; OpenRouter has its own Models API.")));
+            return WithModelLogging(
+                ValueTask.FromResult(Result<ModelList, JevError>.Failure(new JevError(
+                    JevErrorKind.Unsupported,
+                    "Model listing is only available on TypeSafe's API; OpenRouter has its own Models API."))),
+                started,
+                ct);
         }
 
-        return ListModelsCoreAsync(ct);
+        return WithModelLogging(ListModelsCoreAsync(ct), started, ct);
     }
 
     /// <inheritdoc />
@@ -396,6 +406,96 @@ public sealed class JevClient : IJevClient, IDisposable
     // since ModelList is non-nullable in IJevApi, so no null check remains needed here.
     private ValueTask<Result<ModelList, JevError>> ListModelsCoreAsync(CancellationToken ct)
         => _api.ListModelsAsync(_authorization, retryCount: null, ct);
+
+    // The four typed overloads: the request is already written, from the generated set's questions, into body.
+    private ValueTask<Result<T, JevError>> EvaluateGeneratedAsync<T>(long started, RawJson body, CancellationToken ct)
+        where T : IJevQuestionSet<T>
+        => WithLogging(
+            EvaluateTypedAsync(body, GeneratedAnswerParser<T>.Instance, ct),
+            JevLog.EvaluateTyped,
+            _model,
+            QuestionCount<T>(),
+            started,
+            ct);
+
+    // Checked per call: without a logger, or with every level the operation can emit disabled, this returns call
+    // itself, so the client runs exactly the unlogged code and pays no extra state machine.
+    private ValueTask<Result<TResult, JevError>> WithLogging<TResult>(
+        ValueTask<Result<TResult, JevError>> call, string operation, string model, int questionCount, long started, CancellationToken ct)
+        => _logger is { } logger && JevLog.IsAnyEnabled(logger)
+            ? LogEvaluationAsync(logger, call, operation, model, questionCount, started, ct)
+            : call;
+
+    // Logs the whole outcome once, after any retries and after typed parsing; the filter logs a thrown exception
+    // without catching it, so it surfaces unchanged.
+    private async ValueTask<Result<TResult, JevError>> LogEvaluationAsync<TResult>(
+        ILogger logger,
+        ValueTask<Result<TResult, JevError>> call,
+        string operation,
+        string model,
+        int questionCount,
+        long started,
+        CancellationToken ct)
+    {
+        try
+        {
+            var result = await call.ConfigureAwait(false);
+            var durationMs = JevLog.ElapsedMilliseconds(started);
+            if (result.IsSuccess)
+            {
+                JevLog.EvaluationSucceeded(logger, operation, model, _provider, questionCount, durationMs);
+            }
+            else
+            {
+                var error = result.Error;
+                var message = JevLog.SafeMessage(error);
+                JevLog.EvaluationFailed(logger, operation, model, error.Kind, error.StatusCode, durationMs, message);
+            }
+
+            return result;
+        }
+        catch (Exception exception) when (JevLog.LogUnexpected(logger, operation, exception, ct))
+        {
+            throw;
+        }
+    }
+
+    private ValueTask<Result<ModelList, JevError>> WithModelLogging(
+        ValueTask<Result<ModelList, JevError>> call, long started, CancellationToken ct)
+        => _logger is { } logger && JevLog.IsAnyEnabled(logger) ? LogModelsAsync(logger, call, started, ct) : call;
+
+    private async ValueTask<Result<ModelList, JevError>> LogModelsAsync(
+        ILogger logger, ValueTask<Result<ModelList, JevError>> call, long started, CancellationToken ct)
+    {
+        try
+        {
+            var result = await call.ConfigureAwait(false);
+            var durationMs = JevLog.ElapsedMilliseconds(started);
+            if (result.IsSuccess)
+            {
+                var modelCount = result.Value.Models.Count;
+                JevLog.ModelsListed(logger, _provider, modelCount, durationMs);
+            }
+            else
+            {
+                var error = result.Error;
+                var message = JevLog.SafeMessage(error);
+                JevLog.ModelsListFailed(logger, _provider, error.Kind, error.StatusCode, durationMs, message);
+            }
+
+            return result;
+        }
+        catch (Exception exception) when (JevLog.LogUnexpected(logger, JevLog.ListModels, exception, ct))
+        {
+            throw;
+        }
+    }
+
+    // The generated set's question count, read once per type and only when a logger could log it: the argument is
+    // evaluated before WithLogging's own check, so this repeats the same allocation-free IsAnyEnabled check.
+    private int QuestionCount<T>()
+        where T : IJevQuestionSet<T>
+        => _logger is { } logger && JevLog.IsAnyEnabled(logger) ? GeneratedQuestionCount<T>.Value : 0;
 
     // An owned client's HttpClient.Timeout, from JevClientOptions.Timeout, bounds each attempt; a borrowed client's
     // own Timeout applies instead. Either way the policy adds no per-attempt timeout.
