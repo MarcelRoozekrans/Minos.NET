@@ -65,7 +65,7 @@ using var jev = new JevClient(new JevClientOptions { ApiKey = apiKey }, loggerFa
 using var jev = new JevClient(httpClient, options, loggerFactory);
 ```
 
-The client logs in the `ZeroAlloc.Jev.JevClient` category. It logs each operation once, when it completes, each attempt it will retry, and each unexpected exception. A `null` factory logs nothing, and so do the four constructors without one. Without a logger, or with every level an operation can emit disabled, such as through `NullLoggerFactory` or a filter, the call runs the unlogged path: no logging work and no allocation.
+The client logs in the `ZeroAlloc.Jev.JevClient` category. It logs each operation once, when it completes, each attempt it will retry, and each unexpected exception thrown while the call runs. A `null` factory logs nothing, and so do the four constructors without one. Without a logger, or with every level an operation can emit disabled, such as through `NullLoggerFactory` or a filter, the call runs the unlogged path: no logging work and no allocation.
 
 | Id | Event | Level | Fields |
 |---|---|---|---|
@@ -79,7 +79,7 @@ The client logs in the `ZeroAlloc.Jev.JevClient` category. It logs each operatio
 - **`Operation`** is `evaluate` for `EvaluateAsync(SystemOneRequest)`, `evaluate-typed` for the typed overloads, `evaluate-built-set` for a built `JevQuestionSet`, and `list-models`.
 - **`EvaluationFailed`** covers every failure the call returns, including an `InvalidResponse` from reading typed answers.
 - **`AttemptRetrying`** is logged for each failed attempt the client retries. `Attempt` is 1 for the first attempt, and matches the `X-TypeSafe-Retry-Count` of the retry that follows. The last attempt is reported by the operation's failure event instead.
-- **`UnexpectedException`** means a programming error. The exception surfaces unchanged. Cancellation you requested is not logged.
+- **`UnexpectedException`** means a programming error. The exception surfaces unchanged. Cancellation you requested is not logged, and neither are the argument, disposed and request-writing checks that throw before the call runs.
 
 **Never logged:** the state, instructions, criteria, answers, the API key, any header value, and `JevError.Detail`, which holds the server's error body. `ErrorMessage` is `JevError.Message`, except for two kinds whose message can carry request or response text. For `InvalidResponse`, which can quote the server's answer, it is `The response could not be read.` instead. For `Network`, whose message is the transport's exception text and can echo the request, it is `The request could not be sent.` instead.
 
@@ -89,7 +89,7 @@ The client logs in the `ZeroAlloc.Jev.JevClient` category. It logs each operatio
 
 A hand-written `IJevClient` that relies on the default interface methods for typed and built-set evaluation logs nothing. The logging lives in `JevClient`.
 
-With the new overloads, `new JevClient(null, null)` no longer compiles (CS0121), because both two-parameter constructors accept two `null` literals. It always threw `ArgumentNullException` before. For defaults and environment variables, write `new JevClient((JevClientOptions?)null)`.
+With the new overloads, `new JevClient(null, null)` no longer compiles (CS0121), because both two-parameter constructors accept two `null` literals. It always threw `ArgumentNullException` before. For defaults and environment variables, write `new JevClient()`.
 
 ## Typed evaluation
 
