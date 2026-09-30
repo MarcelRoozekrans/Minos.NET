@@ -1,12 +1,24 @@
-# Session State — 2026-09-27
+# Session State — 2026-09-30
 
-**Date:** 2026-09-27
+**Date:** 2026-09-30
 
 ## Current Position
-- **Milestone:** 2 — Typed .NET API (active since 2026-09-27; Milestone 1 complete, audit PASS)
-- **Phase:** 2.3 — Structured instructions and criteria (pending; no design spec yet)
-- **Last completed task:** Phase 2.2 — Analyzers and code fixes, merged as PR #52 on 2026-09-28; closes #4–#11.
-- **Next task:** Adopt ZeroAlloc.Rest 3.0.0 in its own PR (breaking: drop RUC/RDC from `JevRawSerializer`, AOT-safe `SystemTextJsonSerializer` context constructor, empty-body handling; closes #26, #27), then the Phase 2.3 brainstorm.
+- **Milestone:** 2 — Typed .NET API, complete 2026-09-30 (audit PASS, `docs/plans/2026-09-30-milestone-2-audit.md`). Milestone 3 — .NET integration is next and pending.
+- **Phase:** none active. Phase 3.1 (DI package) is the first of Milestone 3.
+- **Last completed task:** Phase 2.4 — Fluent question builders, merged as PR #62 (`78874a2`); its follow-up #61 fix merged as PR #64 (`3a43c88`). Milestone 2 audit and completion on branch `chore/audit-milestone-2`.
+- **Next task:** `new-milestone` for Milestone 3 — brainstorm its scope, then Phase 3.1.
+
+## What Phase 2.4 shipped
+- `JevQuestionSet.CreateBuilder()`: Noul, enum and keyed Choice, enum and keyed Score questions with configurators (closed after their callback) and handles. `Build()` returns `Result<JevQuestionSet, JevError>` after checking the analyzers' rules with ZeroAlloc.Validation 2.0.3; failures come back as the new `JevErrorKind.InvalidQuestions` with `JevError.Failures`, warnings on `JevQuestionSet.Warnings`. `QuestionsUtf8` is byte-identical to the generator's for the same set, which a differential test pins.
+- `JevAnswers.Get(handle)` reads `Noul`, `Choice<T>`, `Score<T>`, `KeyedChoice` and `KeyedScore` without allocating; a handle from another builder, a `default` handle or one added after the build throws `ArgumentException`. `IJevClient.EvaluateAsync(JevQuestionSet questionSet, JevContent state)` with its CancellationToken overload are default interface methods; `JevClient` overrides them on its pooled path.
+- Shared single sources: `JevLimits` (generator, analyzers, library), `Utf8Keys`, the generator's linked `SnakeCase.cs` and `DiagnosticIds.cs`, and `GeneratorJsonEncoder`, which escapes as the generator does.
+- Budgets: Build 7296 B, evaluating a built set 4736 B, parsing a built set 256 B, `JevAnswers.Get` 0 B. A 20-question built parse runs at 1.26× the generated one, so no key map.
+- Maintainer decisions: enum options are read from the enum's public fields in declaration order under `DynamicallyAccessedMembers` (exception to the no-reflection goal, since `Enum.GetName` names aliases by the alias in larger enums; verified under Native AOT). NuGet flows ZeroAlloc.Validation's analyzers to consumers transitively (NuGet/Home#6720); they stay inert. Score answers require `legend`, as the TypeSafe API does (#61, fixed in #64).
+- Upstream: ZeroAlloc-Net/ZeroAlloc.Validation#282 (InclusiveBetween with When ignored its upper bound) was fixed in 2.0.3 by the zeroalloc-ae session, which owns upstream ZeroAlloc work.
+- Lesson: phase PRs are squash-merged, so a plain PR title makes release-please drop the whole phase. Put a `BEGIN_COMMIT_OVERRIDE` block in the PR body; after merging, confirm the entries appear in the release PR.
+
+## What Phase 2.3 shipped
+- `Examples` / `NotFor` in attributes, sent as a criterion object; object and array instructions and criteria; `state` helpers and the `JevContent` factories, with budgets and `ContentBenchmarks`. Merged as PR #58.
 
 ## What Phase 2.2 shipped
 - `ZeroAlloc.Jev.Analyzers` reports every Jev diagnostic, and the generator reports none. New rules: JEV001–002 (Error: empty Choice or Score enum, from the SDK schema), JEV003 (Warning: blank text), JEV004 (Warning: a backticked name that matches no `State` member), JEV005 (Warning: the sketch's level and option ranges), JEV006 (Info: a Choice member without `[Criteria]`). JEV101–107 moved out of the generator, with #5–#11 fixed. Enum rules are local, so the IDE shows them. The analyzer also runs on generated code.
@@ -37,7 +49,7 @@
 - Public options `MaxRetries` (2), `InitialBackoff` (500 ms), `MaxRetryDelay` (30 s), `Jitter` (true); `Timeout` is per attempt.
 - `RetryAfterHeader` reads all RFC 9110 date forms, pivots RFC 850 years on the current date, clamps overflow and rejects non-finite `retry-after-ms`.
 - Tracked: ZeroAlloc-Net/ZeroAlloc.Resilience#195 (the `JevClient.ThrowDeclined` unwrap is a workaround until it ships), ZeroAlloc-Net/ZeroAlloc.Resilience#197 (unused package dependencies), #38 (HLQ005 pragmas), #40 (`X-TypeSafe-Retry-Count` parity).
-- Lesson: a merge commit carries the pull request title in its body, so a conventional PR title adds a second changelog entry in release PR #33. Give phase PRs a plain title, not a conventional one.
+- Lesson (superseded 2026-09-30): this assumed merge commits. Phase PRs are squash-merged, and a plain title then drops the phase from the changelog; see Phase 2.4's lesson.
 
 ## What Phase 1.5 shipped
 - Repository https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev, public; `main` protected by ruleset "Main" (required checks `build`, `aot-smoke`; pull requests with 1 approval; admin bypass for merges, since the only maintainer cannot approve their own pull request).
@@ -74,8 +86,8 @@
 - Phase 1.3 and 1.4 follow-ups are tracked as issues labelled `follow-up` on ZeroAlloc-Net/ZeroAlloc.Jev.
 
 ## Blockers
-- None for Milestone 1.
-- Unknown until a live TypeSafe run (the phase 1.7 live suite, which needs `TYPESAFE_API_KEY`): whether TypeSafe sends `Retry-After`, and the schema of the 422 error body.
+- None for Milestone 3's start.
+- Still unknown until a TypeSafe live run (needs `TYPESAFE_API_KEY` and the `live-api` environment): whether TypeSafe sends `Retry-After`, the 422 body schema, and whether Phase 2.4's `BuiltQuestionSet_ParsesAKeyedChoice` passes.
 
 ## Recommended Next Step
-Run `start-next-phase` for Milestone 2. Open maintainer items: the `live-api` environment and TypeSafe live run, Renovate #37 (Microsoft.CodeAnalysis.Analyzers 5.9.0 for the Roslyn-5.0-pinned generator). Leave release PR #33 open until the package is declared mature. Local NuGet cache: check `.nupkg.metadata` sources if a released ZeroAlloc fix seems missing.
+Merge the `chore/audit-milestone-2` PR, then run `new-milestone` for Milestone 3 — .NET integration. Open maintainer items: the `live-api` environment and TypeSafe live run; record the performance baseline from a full Benchmarks run; release PR #63 (0.2.0) stays open until you choose to release.

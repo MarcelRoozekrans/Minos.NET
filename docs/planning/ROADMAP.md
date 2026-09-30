@@ -78,16 +78,17 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-09-27-phase-1.8-ci-and-release-pipeline.md`
 **Completed:** 2026-09-27
 
-## Milestone 2: Typed .NET API [status: active]
+## Milestone 2: Typed .NET API [status: complete]
 **Goal:** Questions and answers become strongly typed, idiomatic C# with no reflection. They are declared as `[JevQuestions]` types or built fluently at runtime, evaluated through `EvaluateAsync<T>`, AOT-clean and within CI-enforced allocation budgets.
 **Started:** 2026-09-27
+**Completed:** 2026-09-30
 **Design:** `docs/superpowers/specs/2026-09-27-milestone-2-design.md`
 **Definition of Done:**
-- [ ] `[JevQuestions]` types evaluate end-to-end through `EvaluateAsync<T>` → `Result<T, JevError>`, with no reflection, plus raw `JsonElement` / string / UTF-8 overloads
-- [ ] All Jev diagnostics come from `ZeroAlloc.Jev.Analyzers` (JEV001–006, and JEV101–107 moved out of the generator); code fixes adding a missing `[Criteria]` or `[Level]` in `ZeroAlloc.Jev.CodeFixes`; #4–#11 closed
-- [ ] Structured instructions and criteria work in attributes and builders
-- [ ] Fluent builders cover all three question types, with runtime API-limit validation via ZeroAlloc.Validation
-- [ ] Every phase adds `AllocationGate` budgets and benchmarks for what it ships; the AOT smoke app stays clean; #12, #13 and #22 closed
+- [x] `[JevQuestions]` types evaluate end-to-end through `EvaluateAsync<T>` → `Result<T, JevError>`, with no reflection, plus raw `JsonElement` / string / UTF-8 overloads
+- [x] All Jev diagnostics come from `ZeroAlloc.Jev.Analyzers` (JEV001–006, and JEV101–107 moved out of the generator); code fixes adding a missing `[Criteria]` or `[Level]` in `ZeroAlloc.Jev.CodeFixes`; #4–#11 closed
+- [x] Structured instructions and criteria work in attributes and builders
+- [x] Fluent builders cover all three question types, with runtime API-limit validation via ZeroAlloc.Validation
+- [x] Every phase adds `AllocationGate` budgets and benchmarks for what it ships; the AOT smoke app stays clean; #12, #13 and #22 closed
 
 ### Phase 2.1: Typed evaluation [status: complete]
 **Goal:** `EvaluateAsync<T>` returning `Result<T, JevError>`, with:
