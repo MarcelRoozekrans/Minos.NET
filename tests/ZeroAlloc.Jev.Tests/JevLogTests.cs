@@ -211,11 +211,16 @@ public sealed class JevLogTests
 
     [Theory]
     [InlineData(JevErrorKind.Validation, "The API returned HTTP 422.")]
-    [InlineData(JevErrorKind.Network, "Connection refused")]
     [InlineData(JevErrorKind.Timeout, "The request timed out.")]
     [InlineData(JevErrorKind.Unsupported, "Model listing is only available on TypeSafe's API.")]
     public void SafeMessage_KeepsALibraryMessage(JevErrorKind kind, string message)
         => Assert.Equal(message, JevLog.SafeMessage(new JevError(kind, message)));
+
+    [Fact]
+    public void SafeMessage_ReplacesANetworkMessage_WhichCanEchoTheRequest()
+        => Assert.Equal(
+            JevLog.RequestNotSent,
+            JevLog.SafeMessage(new JevError(JevErrorKind.Network, "Connection refused to https://host/?q=secret")));
 
     [Fact]
     public void SafeMessage_ReplacesAnInvalidResponseMessage_WhichCanQuoteTheResponse()

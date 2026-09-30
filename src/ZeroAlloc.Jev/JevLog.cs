@@ -35,6 +35,12 @@ internal static partial class JevLog
     /// </summary>
     public const string UnreadableResponse = "The response could not be read.";
 
+    /// <summary>
+    /// What is logged instead of a <see cref="JevErrorKind.Network"/> error's message, which is the transport's exception
+    /// text and can echo the request: its URL or headers.
+    /// </summary>
+    public const string RequestNotSent = "The request could not be sent.";
+
     /// <summary>An evaluation succeeded.</summary>
     [LoggerMessage(
         EventId = 1001,
@@ -86,11 +92,16 @@ internal static partial class JevLog
         Message = "Jev {Operation} threw an unexpected exception.")]
     public static partial void UnexpectedException(ILogger logger, string operation, Exception exception);
 
-    /// <summary>The message to log for <paramref name="error"/>: its own, except for an unreadable response.</summary>
+    /// <summary>The message to log for <paramref name="error"/>: its own, except where it can carry request or response text.</summary>
     /// <param name="error">The error.</param>
-    /// <returns><see cref="JevError.Message"/>, or <see cref="UnreadableResponse"/> for <see cref="JevErrorKind.InvalidResponse"/>.</returns>
+    /// <returns><see cref="JevError.Message"/>, or a fixed text for <see cref="JevErrorKind.InvalidResponse"/> (<see cref="UnreadableResponse"/>) and <see cref="JevErrorKind.Network"/> (<see cref="RequestNotSent"/>).</returns>
     public static string SafeMessage(JevError error)
-        => error.Kind == JevErrorKind.InvalidResponse ? UnreadableResponse : error.Message;
+        => error.Kind switch
+        {
+            JevErrorKind.InvalidResponse => UnreadableResponse,
+            JevErrorKind.Network => RequestNotSent,
+            _ => error.Message,
+        };
 
     /// <summary>
     /// Whether an operation could log anything: Debug for its success, Warning for its failure, Error for an unexpected
