@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using ZeroAlloc.Jev.Transport;
 
@@ -30,5 +31,40 @@ public sealed class TypedRequestWriterTests
         var sent = JsonNode.Parse(body.Span)!;
         Assert.True(JsonNode.DeepEquals(JsonNode.Parse(UrgencyCheck.QuestionsUtf8), sent["questions"]));
         Assert.Equal(1, (int)sent["state"]!["a"]!);
+    }
+
+    [Fact]
+    public void WriteJsonElement_CopiesTheGivenQuestions()
+    {
+        var pool = new CountingPool();
+        using var state = JsonDocument.Parse("""{"a":1}""");
+
+        using (var body = TypedRequestWriter.Write(UrgencyCheck.QuestionsUtf8, state.RootElement, "m", pool))
+        {
+            var sent = JsonNode.Parse(body.Span)!;
+            Assert.True(JsonNode.DeepEquals(JsonNode.Parse(UrgencyCheck.QuestionsUtf8), sent["questions"]));
+            Assert.Equal(1, (int)sent["state"]!["a"]!);
+            Assert.Equal("m", (string?)sent["model"]);
+        }
+
+        Assert.Equal(0, pool.Outstanding);
+    }
+
+    [Fact]
+    public void WriteTypedState_CopiesTheGivenQuestions()
+    {
+        var pool = new CountingPool();
+
+        using (var body = TypedRequestWriter.Write(
+            UrgencyCheck.QuestionsUtf8, new ContentSample("Ada", 36), ContentJsonContext.Default.ContentSample, "m", pool))
+        {
+            var sent = JsonNode.Parse(body.Span)!;
+            Assert.True(JsonNode.DeepEquals(JsonNode.Parse(UrgencyCheck.QuestionsUtf8), sent["questions"]));
+            Assert.Equal("Ada", (string?)sent["state"]!["name"]);
+            Assert.Equal(36, (int)sent["state"]!["age"]!);
+            Assert.Equal("m", (string?)sent["model"]);
+        }
+
+        Assert.Equal(0, pool.Outstanding);
     }
 }
