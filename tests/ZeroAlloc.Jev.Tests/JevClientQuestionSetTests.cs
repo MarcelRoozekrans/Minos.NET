@@ -73,6 +73,36 @@ public sealed class JevClientQuestionSetTests : IDisposable
     }
 
     [Fact]
+    public async Task DefaultPath_MissingAnswer_IsInvalidResponse()
+    {
+        var set = Set(out _, out _, out _, out _);
+        IJevClient fake = new CapturingClient();
+
+        var result = await fake.EvaluateAsync(set, "x");
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);
+    }
+
+    [Theory]
+    [InlineData(HttpStatusCode.UnprocessableEntity, JevErrorKind.Validation)]
+    [InlineData(HttpStatusCode.Unauthorized, JevErrorKind.Unauthorized)]
+    [InlineData(HttpStatusCode.InternalServerError, JevErrorKind.Server)]
+    public async Task ErrorStatus_MapsToTheErrorKind_AndReturnsTheBuffers(HttpStatusCode status, JevErrorKind kind)
+    {
+        var set = Set(out _, out _, out _, out _);
+        var pool = new CountingPool();
+        using var client = Client(StubHandler.Json(status, """{"detail":"nope"}"""), pool);
+
+        var result = await client.EvaluateAsync(set, "x");
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(kind, result.Error.Kind);
+        Assert.Equal((int)status, result.Error.StatusCode);
+        Assert.Equal(0, pool.Outstanding);
+    }
+
+    [Fact]
     public async Task CallerCancellation_Throws_AndReturnsTheBuffers()
     {
         var set = Set(out _, out _, out _, out _);
