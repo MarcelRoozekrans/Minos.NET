@@ -157,18 +157,38 @@ public sealed class JevAnswersTests
     }
 
     [Fact]
-    public void Get_AllocatesNothing()
+    public void Get_AllocatesNothing_ForEveryAnswerKind()
     {
-        var (set, product, effort) = KeyedSet();
-        var answers = Parse(set, KeyedResponse);
+        var set = Built(JevQuestionSet.CreateBuilder()
+            .Noul("n", "Urgent?", out var noul)
+            .Choice<Department>("d", "Which team?", out var department)
+            .Score<Frustration>("f", "How frustrated?", out var frustration, l => l
+                .Level(Frustration.Calm, "Calm").Level(Frustration.Frustrated, "Frustrated").Level(Frustration.VeryAngry, "Very angry"))
+            .Choice("product", "Which product?", out var product, o => o.Option("pro-plan", "Pro").Option("team-plan", "Team").Option("other"))
+            .Score("effort", "How much effort?", out var effort, l => l.Level("Minutes").Level("Hours").Level("Days")));
+        var answers = Parse(set, """
+            {"answers":{
+              "n":{"type":"noul","noul":0.95},
+              "d":{"type":"choice","choice":"billing","probabilities":{"billing":0.88,"technical":0.12,"sales":0.0},"confidence":0.81},
+              "f":{"type":"score","score":1.05,"probabilities":{"0":0.0,"1":0.95,"2":0.05},"confidence":0.92},
+              "product":{"type":"choice","choice":"team-plan","probabilities":{"pro-plan":0.25,"team-plan":0.7},"confidence":0.66},
+              "effort":{"type":"score","score":0.8,"probabilities":{"0":0.4,"1":0.4,"2":0.2},"confidence":0.5}
+            }}
+            """);
 
         // Warm up the JIT before measuring.
+        _ = answers.Get(noul);
+        _ = answers.Get(department);
+        _ = answers.Get(frustration);
         _ = answers.Get(product);
         _ = answers.Get(effort);
 
         var before = GC.GetAllocatedBytesForCurrentThread();
         for (var i = 0; i < 1000; i++)
         {
+            _ = answers.Get(noul);
+            _ = answers.Get(department);
+            _ = answers.Get(frustration);
             _ = answers.Get(product);
             _ = answers.Get(effort);
         }
@@ -177,14 +197,26 @@ public sealed class JevAnswersTests
     }
 
     [Fact]
-    public void AHandleFromAnotherSet_Throws()
+    public void AHandleFromAnotherSet_Throws_ForEveryHandleKind()
     {
         var (set, _, _) = KeyedSet();
-        var (_, otherProduct, _) = KeyedSet();
+        var (_, otherProduct, otherEffort) = KeyedSet();
+        _ = JevQuestionSet.CreateBuilder()
+            .Noul("n", "Urgent?", out var otherNoul)
+            .Choice<Department>("d", "Which team?", out var otherDepartment)
+            .Score<Frustration>("f", "How?", out var otherFrustration, l => l.Level(Frustration.Calm, "Calm"));
         var answers = Parse(set, KeyedResponse);
 
         Assert.Equal("question", Assert.Throws<ArgumentException>(() => answers.Get(otherProduct)).ParamName);
+        Assert.Equal("question", Assert.Throws<ArgumentException>(() => answers.Get(otherEffort)).ParamName);
+        Assert.Equal("question", Assert.Throws<ArgumentException>(() => answers.Get(otherNoul)).ParamName);
+        Assert.Equal("question", Assert.Throws<ArgumentException>(() => answers.Get(otherDepartment)).ParamName);
+        Assert.Equal("question", Assert.Throws<ArgumentException>(() => answers.Get(otherFrustration)).ParamName);
         Assert.Equal("question", Assert.Throws<ArgumentException>(() => answers.Get(default(KeyedChoiceHandle))).ParamName);
+        Assert.Equal("question", Assert.Throws<ArgumentException>(() => answers.Get(default(NoulHandle))).ParamName);
+        Assert.Equal("question", Assert.Throws<ArgumentException>(() => answers.Get(default(ChoiceHandle<Department>))).ParamName);
+        Assert.Equal("question", Assert.Throws<ArgumentException>(() => answers.Get(default(ScoreHandle<Frustration>))).ParamName);
+        Assert.Equal("question", Assert.Throws<ArgumentException>(() => answers.Get(default(KeyedScoreHandle))).ParamName);
     }
 
     [Fact]
@@ -195,7 +227,68 @@ public sealed class JevAnswersTests
         builder.Noul("later", "Later?", out var later);
         var answers = Parse(set, Fixture.Text("response-noul.json"));
 
-        Assert.Throws<ArgumentException>(() => answers.Get(later));
+        Assert.Equal("question", Assert.Throws<ArgumentException>(() => answers.Get(later)).ParamName);
+    }
+
+    [Fact]
+    public void DuplicateAnswerKeys_LastWins_AsInAGeneratedSet()
+    {
+        const string response = """
+            {"answers":{
+              "is_urgent":{"type":"noul","noul":0.1},
+              "department":{"type":"choice","choice":"billing","probabilities":{"billing":0.9,"technical":0.1,"sales":0.0},"confidence":0.8},
+              "is_urgent":{"type":"noul","noul":0.7},
+              "department":{"type":"choice","choice":"technical","probabilities":{"billing":0.2,"technical":0.8,"sales":0.0},"confidence":0.6}
+            }}
+            """;
+        var set = Built(JevQuestionSet.CreateBuilder()
+            .Noul("is_urgent", "Urgent?", out var urgent)
+            .Choice<Department>("department", "Which team?", out var department));
+
+        var answers = Parse(set, response);
+
+        Assert.Equal(0.7, answers.Get(urgent).Probability);
+        Assert.Equal(Department.Technical, answers.Get(department).Value);
+        Assert.Equal(0.8, answers.Get(department).Probabilities[Department.Technical]);
+        Assert.Equal(0.6, answers.Get(department).Confidence);
+    }
+
+    [Fact]
+    public void MoreThan256Questions_ParseAndReadTheLastAnswer()
+    {
+        var (set, handles) = ManyNoulSet(257);
+        var response = "{\"answers\":{" + string.Join(",", Enumerable.Range(0, 257).Select(i => $"\"q{i}\":{{\"type\":\"noul\",\"noul\":{(i == 256 ? "0.75" : "0.5")}}}")) + "}}";
+
+        var answers = Parse(set, response);
+
+        Assert.Equal(0.75, answers.Get(handles[256]).Probability);
+        Assert.Equal(0.5, answers.Get(handles[0]).Probability);
+    }
+
+    [Fact]
+    public void MoreThan256Questions_MissingAnswer_IsInvalidResponse()
+    {
+        var (set, _) = ManyNoulSet(257);
+        var response = "{\"answers\":{" + string.Join(",", Enumerable.Range(0, 256).Select(i => $"\"q{i}\":{{\"type\":\"noul\",\"noul\":0.5}}")) + "}}";
+
+        var result = TypedEvaluation.ParseResponse(Encoding.UTF8.GetBytes(response), set.Parser);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);
+        Assert.Contains("'q256'", result.Error.Message, StringComparison.Ordinal);
+    }
+
+    private static (JevQuestionSet Set, List<NoulHandle> Handles) ManyNoulSet(int count)
+    {
+        var builder = JevQuestionSet.CreateBuilder();
+        var handles = new List<NoulHandle>();
+        for (var i = 0; i < count; i++)
+        {
+            builder.Noul($"q{i}", "Q?", out var handle);
+            handles.Add(handle);
+        }
+
+        return (Built(builder), handles);
     }
 
     private static (JevQuestionSet Set, KeyedChoiceHandle Product, KeyedScoreHandle Effort) KeyedSet()
