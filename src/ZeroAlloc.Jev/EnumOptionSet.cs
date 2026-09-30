@@ -101,7 +101,7 @@ internal sealed class EnumOptionSet<[DynamicallyAccessedMembers(DynamicallyAcces
     {
         // GetFields documents no order; metadata order, which is declaration order, is relied on. The declaration-order
         // and generator-parity tests in EnumOptionSetTests guard it. An enum's public static fields are its members, in
-        // the generator reads them in.
+        // the order the generator reads them in.
         var fields = typeof(T).GetFields(BindingFlags.Public | BindingFlags.Static);
         var values = new List<T>(fields.Length);
         var names = new List<string>(fields.Length);
