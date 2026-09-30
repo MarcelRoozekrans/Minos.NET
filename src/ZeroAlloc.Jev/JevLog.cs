@@ -72,7 +72,7 @@ internal static partial class JevLog
         EventId = 1004,
         EventName = nameof(ModelsListed),
         Level = LogLevel.Debug,
-        Message = "Jev list-models via {Provider} succeeded: {ModelCount} models in {DurationMs} ms.")]
+        Message = "Jev " + ListModels + " via {Provider} succeeded: {ModelCount} models in {DurationMs} ms.")]
     public static partial void ModelsListed(ILogger logger, JevProvider provider, int modelCount, double durationMs);
 
     /// <summary>A model listing failed, after any retries.</summary>
@@ -80,7 +80,7 @@ internal static partial class JevLog
         EventId = 1005,
         EventName = nameof(ModelsListFailed),
         Level = LogLevel.Warning,
-        Message = "Jev list-models via {Provider} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}")]
+        Message = "Jev " + ListModels + " via {Provider} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}")]
     public static partial void ModelsListFailed(
         ILogger logger, JevProvider provider, JevErrorKind errorKind, int? statusCode, double durationMs, string errorMessage);
 
