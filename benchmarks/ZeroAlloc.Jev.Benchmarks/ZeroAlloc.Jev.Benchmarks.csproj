@@ -19,4 +19,10 @@
   <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" />
   </ItemGroup>
+
+  <ItemGroup>
+    <!-- The AOT smoke app's discarding logger factory and yielding handler, one file each for both, so the two measure the same things. -->
+    <Compile Include="..\..\samples\ZeroAlloc.Jev.AotSmoke\DiscardingLoggerFactory.cs" Link="Shared\DiscardingLoggerFactory.cs" />
+    <Compile Include="..\..\samples\ZeroAlloc.Jev.AotSmoke\YieldingHandler.cs" Link="Shared\YieldingHandler.cs" />
+  </ItemGroup>
 </Project>

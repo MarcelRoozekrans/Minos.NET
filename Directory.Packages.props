@@ -4,6 +4,7 @@
   </PropertyGroup>
   <ItemGroup>
     <!-- Testing -->
+    <PackageVersion Include="Microsoft.Extensions.Diagnostics.Testing" Version="10.10.0" />
     <PackageVersion Include="Microsoft.NET.Test.Sdk" Version="18.10.1" />
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.0" />
@@ -26,6 +27,13 @@
     <PackageVersion Include="ZeroAlloc.Rest" Version="3.1.0" />
     <PackageVersion Include="ZeroAlloc.Rest.SystemTextJson" Version="3.1.0" />
     <PackageVersion Include="ZeroAlloc.Results" Version="1.2.4" />
+    <!--
+      Logging: the library's floor is the first .NET 10 release, so consumers on any 10.0.x resolve without a conflict.
+      Microsoft.Extensions.Logging, for the tests' and the AOT smoke app's LoggerFactory, follows Diagnostics.Testing's
+      own floor, 10.0.12: a lower direct reference would be an NU1605 downgrade.
+    -->
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.12" />
     <!-- Runtime question set validation: its generators validate ZeroAlloc.Jev's own specs; NuGet still flows them to consumers, where they stay inert, NuGet/Home#6720 -->
     <PackageVersion Include="ZeroAlloc.Validation" Version="2.0.3" />
     <!-- Benchmarks -->

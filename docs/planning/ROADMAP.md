@@ -141,11 +141,13 @@ compress_memory: disabled
 - [ ] Spans and metrics for tokens, latency and confidence via ZeroAlloc.Telemetry, named per the GenAI conventions plus `jev.*`, nesting the `ZeroAlloc.Rest` span
 - [ ] Every phase adds `AllocationGate` budgets and benchmarks for what it ships, and existing budgets hold; the AOT smoke app exercises logging, telemetry and DI
 
-### Phase 3.1: Logging [status: pending]
+### Phase 3.1: Logging [status: complete]
 **Goal:** Source-generated `[LoggerMessage]` logging across `JevClient`, with constructor overloads that accept an `ILoggerFactory`.
 **Surface:** Backend
 **HelpWanted:** no
-**Plan:** _to be written_
+**Spec:** `docs/superpowers/specs/2026-09-30-phase-3.1-logging-design.md`
+**Plan:** `docs/superpowers/plans/2026-09-30-phase-3.1-logging.md`
+**Completed:** 2026-09-30
 
 ### Phase 3.2: Telemetry [status: pending]
 **Goal:** ZeroAlloc.Telemetry spans and metrics in the core package for tokens, latency and confidence, named per the GenAI conventions plus `jev.*`.

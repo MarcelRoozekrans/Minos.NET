@@ -21,6 +21,7 @@ Unofficial .NET client for [TypeSafe AI](https://typesafe.ai)'s **Jev**, the fir
 - Analyzers and code fixes: question sets are checked at compile time against the Jev API's rules and the generator's, with code fixes that add a missing `[Criteria]` or `[Level]` description. See [Diagnostics](#diagnostics).
 - Structured criteria and instructions: `Examples` / `NotFor` on `[Criteria]` and `[Level]`, and `Json = true` for JSON object or array text, checked at compile time.
 - Native AOT: verified by an AOT smoke app in CI. Generated sets use no reflection; enum questions in built sets read the enum's public fields through trim-safe annotations.
+- Logging: pass an `ILoggerFactory` for structured `Microsoft.Extensions.Logging` events per operation and per retried attempt, never with request or answer content. See [Logging](#logging).
 
 ## Example
 
@@ -53,6 +54,42 @@ For OpenRouter, set `Provider = JevProvider.OpenRouter` and an OpenRouter key (o
 ### Retries
 
 Rate limiting (429), overload (503, 529), other server errors (5xx), request time-outs (408), network failures and client time-outs are retried with exponential backoff, honouring the server's `Retry-After`. Defaults follow TypeSafe's official SDKs: 2 retries, a 500 ms initial backoff and jitter; each wait, including a server's `Retry-After`, is capped at 30 s. Tune them with `MaxRetries`, `InitialBackoff`, `MaxRetryDelay` and `Jitter` on `JevClientOptions`. Retrying a time-out, network failure or 5xx can process, and bill, a request twice; set `MaxRetries = 0` where that matters. If you pass your own `HttpClient` that already has a retry handler, such as `AddStandardResilienceHandler`, set `MaxRetries = 0` so retries don't multiply. Each retry sends the attempt number as `X-TypeSafe-Retry-Count`, as TypeSafe's official SDKs do.
+
+### Logging
+
+Pass an `ILoggerFactory` to log through `Microsoft.Extensions.Logging`:
+
+```csharp
+using var jev = new JevClient(new JevClientOptions { ApiKey = apiKey }, loggerFactory);
+// or over your own HttpClient:
+using var jev = new JevClient(httpClient, options, loggerFactory);
+```
+
+The client logs in the `ZeroAlloc.Jev.JevClient` category. It logs each operation once, when it completes, each attempt it will retry, and each unexpected exception thrown while the call runs. A `null` factory logs nothing, and so do the four constructors without one. Without a logger, or with every level an operation can emit disabled, such as through `NullLoggerFactory` or a filter, the call runs the unlogged path: no allocation, only `IsEnabled` checks.
+
+| Id | Event | Level | Fields |
+|---|---|---|---|
+| 1001 | `EvaluationSucceeded` | Debug | `Operation`, `Model`, `Provider`, `QuestionCount`, `DurationMs` |
+| 1002 | `EvaluationFailed` | Warning | `Operation`, `Model`, `ErrorKind`, `StatusCode`, `DurationMs`, `ErrorMessage` |
+| 1003 | `AttemptRetrying` | Warning | `Attempt`, `ErrorKind`, `StatusCode`, `RetryAfter` |
+| 1004 | `ModelsListed` | Debug | `Provider`, `ModelCount`, `DurationMs` |
+| 1005 | `ModelsListFailed` | Warning | `Provider`, `ErrorKind`, `StatusCode`, `DurationMs`, `ErrorMessage` |
+| 1006 | `UnexpectedException` | Error | `Operation`, and the exception |
+
+- **`Operation`** is `evaluate` for `EvaluateAsync(SystemOneRequest)`, `evaluate-typed` for the typed overloads, `evaluate-built-set` for a built `JevQuestionSet`, and `list-models`.
+- **`EvaluationFailed`** covers every failure the call returns, including an `InvalidResponse` from reading typed answers.
+- **`AttemptRetrying`** is logged for each failed attempt the client retries. `Attempt` is 1 for the first attempt, and matches the `X-TypeSafe-Retry-Count` of the retry that follows. The last attempt is reported by the operation's failure event instead.
+- **`UnexpectedException`** means a programming error. The exception surfaces unchanged. Cancellation you requested is not logged, and neither are the argument, disposed and request-writing checks that throw before the call runs.
+
+**Never logged by the library:** the state, instructions, criteria, answers, the API key, any header value, and `JevError.Detail`, which holds the server's error body. `UnexpectedException` is the exception: it carries the exception as thrown, unchanged, including one from your own `DelegatingHandler`, whose message the library cannot vouch for. `ErrorMessage` is `JevError.Message`, except for two kinds whose message can carry request or response text. For `InvalidResponse`, which can quote the server's answer, it is `The response could not be read.` instead. For `Network`, whose message is the transport's exception text and can echo the request, it is `The request could not be sent.` instead.
+
+`JevError.Message` itself is unchanged: for `Network` and `InvalidResponse` it can carry that text. If you log `result.Error.Message` yourself, be aware of what it can hold.
+
+**Cost:** with no logger or every level disabled, logging adds no allocation, and the existing allocation budgets hold. With logging enabled, it adds no allocation to a call that completes synchronously, and about 480 B to a call that completes asynchronously, which is the logging wrappers' state machines. See [Phase 3.1 — Logging](docs/performance.md#phase-31--logging) for the measurements.
+
+A hand-written `IJevClient` that relies on the default interface methods for typed and built-set evaluation logs nothing. The logging lives in `JevClient`.
+
+With the new overloads, `new JevClient(null, null)` no longer compiles (CS0121), because both two-parameter constructors accept two `null` literals. It always threw `ArgumentNullException` before. For defaults and environment variables, write `new JevClient()`.
 
 ## Typed evaluation
 
@@ -275,7 +312,7 @@ A failure makes `Build()` return a `JevErrorKind.InvalidQuestions` error whose `
 
 ## Diagnostics
 
-`ZeroAlloc.Jev.Analyzers` ships inside the `ZeroAlloc.Jev` package, next to the `[JevQuestions]` generator, and checks every question set against the Jev API's own rules (JEV001–006) and against what the generator can turn into code (JEV101–109). JEV001 and JEV002 enforce TypeSafe's official SDK schema, which needs at least one option or level. The limits behind JEV005 are only the API sketch's guidance, not a schema limit. NuGet flows a dependency's analyzers to consumers transitively, so the ZeroAlloc.Validation and ZeroAlloc.Pipeline generators reach your build too; they stay inert unless you declare `[Validate]` types.
+`ZeroAlloc.Jev.Analyzers` ships inside the `ZeroAlloc.Jev` package, next to the `[JevQuestions]` generator, and checks every question set against the Jev API's own rules (JEV001–006) and against what the generator can turn into code (JEV101–109). JEV001 and JEV002 enforce TypeSafe's official SDK schema, which needs at least one option or level. The limits behind JEV005 are only the API sketch's guidance, not a schema limit. NuGet flows a dependency's analyzers to consumers transitively, so the ZeroAlloc.Validation, ZeroAlloc.Pipeline and Microsoft.Extensions.Logging generators reach your build too; they stay inert unless you declare `[Validate]` types or your own `[LoggerMessage]` methods. `Microsoft.Extensions.Logging.Abstractions` 10.0.0 or later is a runtime dependency of the package, new with logging.
 
 A set with any error, JEV001, JEV002 or JEV101–109, is invalid. The generator emits no `QuestionsUtf8`, no `Parse` and no `IJevQuestionSet` for it. It does implement each unimplemented partial question property with a throwing stub, so a command-line build reports the JEV error instead of CS9248, "partial property must have an implementation part". Only those properties are stubbed. An error in your own declaration, such as CS0238 for `sealed` on a property that overrides nothing, still stops a command-line build before the analyzers run and hides their output. The IDE, which runs the analyzers live, still shows them.
 

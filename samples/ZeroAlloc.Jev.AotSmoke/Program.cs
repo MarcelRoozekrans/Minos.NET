@@ -10,11 +10,11 @@ namespace ZeroAlloc.Jev.AotSmoke;
 /// </summary>
 internal static class Program
 {
-    private const string NoulResponse = """{"model":"jev-1.13.0","answers":{"is_urgent":{"type":"noul","noul":0.95}},"usage":{"input_tokens":296,"output_tokens":20}}""";
-    private const string ModelsResponse = """{"models":[{"name":"jev-latest","description":"The most recent stable, official release.","release_date":"2026-09-15"}]}""";
-    private const string ValidationResponse = """{"detail":"questions.is_urgent.instructions is required"}""";
+    internal const string NoulResponse = """{"model":"jev-1.13.0","answers":{"is_urgent":{"type":"noul","noul":0.95}},"usage":{"input_tokens":296,"output_tokens":20}}""";
+    internal const string ModelsResponse = """{"models":[{"name":"jev-latest","description":"The most recent stable, official release.","release_date":"2026-09-15"}]}""";
+    internal const string ValidationResponse = """{"detail":"questions.is_urgent.instructions is required"}""";
     private const string TriageAnswers = """{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}}""";
-    private const string TriageResponse = """{"model":"jev-1.13.0","answers":{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}},"usage":{"input_tokens":296,"output_tokens":20}}""";
+    internal const string TriageResponse = """{"model":"jev-1.13.0","answers":{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}},"usage":{"input_tokens":296,"output_tokens":20}}""";
     private const string CredentialsResponse = """{"model":"jev-1.13.0","answers":{"requests_credentials":{"type":"noul","noul":0.1}},"usage":{"input_tokens":296,"output_tokens":20}}""";
 
     private static int failures;
@@ -34,6 +34,10 @@ internal static class Program
         await DefaultInterfaceMethodFallbackParsesAnswers().ConfigureAwait(false);
         await BuiltQuestionSetEvaluates().ConfigureAwait(false);
         await BuiltEnumChoiceReadsTheFieldsInDeclarationOrder().ConfigureAwait(false);
+        await LoggingChecks.RetriedEvaluationLogsTheRetryAndTheSuccess().ConfigureAwait(false);
+        await LoggingChecks.TypedEvaluationLogsItsQuestionCount().ConfigureAwait(false);
+        await LoggingChecks.FailedEvaluationLogsTheLibraryMessageOnly().ConfigureAwait(false);
+        await LoggingChecks.ModelListingLogsTheModelCount().ConfigureAwait(false);
 
         AllocationChecks.GeneratedParse();
         AllocationChecks.ReadNoul();
@@ -41,6 +45,11 @@ internal static class Program
         AllocationChecks.ReadScore();
         AllocationChecks.EvaluateRoundTrip();
         AllocationChecks.TypedEvaluateRoundTrip();
+        AllocationChecks.EvaluateRoundTripWithNullLoggerFactory();
+        AllocationChecks.TypedEvaluateRoundTripWithEveryLevelFiltered();
+        AllocationChecks.EvaluateRoundTripWithDiscardingLogger();
+        AllocationChecks.TypedEvaluateRoundTripWithDiscardingLogger();
+        await AllocationChecks.DisabledLoggerAddsNothingWhereAnEnabledOneDoes().ConfigureAwait(false);
         AllocationChecks.ContentFromValue();
         AllocationChecks.ContentFromUtf8Json();
         AllocationChecks.BuildQuestionSet();
@@ -276,7 +285,7 @@ internal static class Program
     private static JevClientOptions Options(JevProvider provider = JevProvider.TypeSafe)
         => new() { ApiKey = "smoke-key", Provider = provider };
 
-    private static SystemOneRequest Request() => new()
+    internal static SystemOneRequest Request() => new()
     {
         State = "Help! My payouts have been failing for 3 days.",
         Questions = new Dictionary<string, JevQuestion>(StringComparer.Ordinal)

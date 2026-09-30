@@ -1,6 +1,9 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
+using ZeroAlloc.Jev.Shared;
 using ZeroAlloc.TestHelpers;
 
 namespace ZeroAlloc.Jev.AotSmoke;
@@ -114,11 +117,12 @@ internal static class AllocationChecks
             },
         };
 
-        // Measured ~4592 B/call on published win-x64 AOT: HttpRequestMessage, headers and content for the request,
+        // Measured ~4312 B/call on published win-x64 AOT: HttpRequestMessage, headers and content for the request,
         // plus the response's HttpResponseMessage, its body buffering and JSON deserialization into
-        // SystemOneResponse. A linux-x64 measurement (dotnet/sdk:10.0 container, 2026-09-27) matches exactly:
-        // 4592 B/call. The budget keeps about 10% headroom (5120 B) over that measurement, since HttpClient's
-        // internal buffering can still differ across runtime patch versions on either platform.
+        // SystemOneResponse. It measured higher, 4592 B/call, when first budgeted in Phase 1.8, on win-x64 and on
+        // linux-x64 (dotnet/sdk:10.0 container, 2026-09-27). The budget stays at 5120 B, the Phase 1.8 figure with
+        // about 10% headroom, since HttpClient's internal buffering can still differ across runtime patch versions
+        // on either platform; tightening it is a separate decision.
         GateValueTask(
             budgetBytes: 5120,
             action: () => client.EvaluateAsync(request),
@@ -136,21 +140,188 @@ internal static class AllocationChecks
         };
         using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
 
-        // Measured ~3784 B/call on published win-x64 AOT: the request's Utf8JsonWriter and RawJson, plus
+        // Measured ~3368 B/call on published win-x64 AOT: the request's Utf8JsonWriter and RawJson, plus
         // ZeroAlloc.Rest's own per-attempt allocations (HttpRequestMessage, headers, the MemoryStream the body is
         // copied into, and StreamContent), plus the response's HttpResponseMessage and body buffering, and the
         // async state machines. There is no SystemOneRequest, SystemOneResponse, JevAnswer or questions dictionary
-        // on this path, which is why it comes in well below EvaluateRoundTrip's 4592 B measurement. A linux-x64
-        // measurement (dotnet/sdk:10.0 container, 2026-09-27) matches exactly: 3784 B/call. The budget keeps about
-        // 10% headroom (4224 B, rounded to the next 64 B) over that measurement, for the same cross-platform,
-        // cross-patch-version reason as EvaluateRoundTrip's gate. Re-measured after the typed-state path
-        // (EvaluateAsync&lt;T, TState&gt;) stopped copying the JSON: still 3784 B/call on both platforms, since that
-        // change touches the state-based overload, not this string-based one, so the budget is unchanged.
+        // on this path, which is why it comes in well below EvaluateRoundTrip's 4312 B measurement. It measured
+        // higher, 3784 B/call, when first budgeted in Phase 1.8 and re-measured in Phase 2.1, on win-x64 and on
+        // linux-x64 (dotnet/sdk:10.0 container, 2026-09-27). The budget stays at 4224 B, the 3784 B figure with about
+        // 10% headroom rounded to the next 64 B, for the same cross-platform, cross-patch-version reason as
+        // EvaluateRoundTrip's gate; tightening it is a separate decision.
         GateValueTask(
             budgetBytes: 4224,
             action: () => client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days."),
             label: "TypedEvaluateRoundTrip",
             passDescription: "EvaluateAsync<T> stays within its allocation budget");
+    }
+
+    /// <summary><see cref="EvaluateRoundTrip"/> through <see cref="NullLoggerFactory"/>, whose logger has every level disabled.</summary>
+    public static void EvaluateRoundTripWithNullLoggerFactory()
+    {
+        // Budget: EvaluateRoundTrip's own, 5120 B, unchanged. With no level enabled the client takes the unlogged path:
+        // no logging wrapper and no LoggingJevApi state machine, so nothing may be added.
+        EvaluateRoundTripThrough(
+            NullLoggerFactory.Instance,
+            budgetBytes: 5120,
+            "EvaluateRoundTripWithNullLoggerFactory",
+            "EvaluateAsync through NullLoggerFactory stays within EvaluateRoundTrip's budget");
+    }
+
+    /// <summary>
+    /// <see cref="TypedEvaluateRoundTrip"/> through a real <see cref="LoggerFactory"/> with a provider, whose filter
+    /// disables every level.
+    /// </summary>
+    public static void TypedEvaluateRoundTripWithEveryLevelFiltered()
+    {
+        using var provider = new CapturingLoggerProvider();
+        using var factory = new LoggerFactory([provider], new LoggerFilterOptions { MinLevel = LogLevel.None });
+
+        // Budget: TypedEvaluateRoundTrip's own, 4224 B, unchanged, for the same reason as the NullLoggerFactory gate.
+        TypedEvaluateRoundTripThrough(
+            factory,
+            budgetBytes: 4224,
+            "TypedEvaluateRoundTripWithEveryLevelFiltered",
+            "EvaluateAsync<T> with every level filtered out stays within TypedEvaluateRoundTrip's budget");
+        Program.Check(provider.Records.Length == 0, "a logger with every level filtered out receives no record");
+    }
+
+    /// <summary>
+    /// <see cref="EvaluateRoundTrip"/> through a logger enabled at every level that discards everything, so every log
+    /// call, timestamp and wrapper runs.
+    /// </summary>
+    public static void EvaluateRoundTripWithDiscardingLogger()
+    {
+        var callsBefore = DiscardingLoggerFactory.Calls;
+
+        // Measured ~4312 B/call on published win-x64 AOT, the same as EvaluateRoundTrip's current measurement and its unlogged twin in this run,
+        // so the enabled logger adds nothing on the synchronous path the canned handler takes: each event's state is a
+        // struct handed to a logger that discards it, the timing is two Stopwatch timestamps, and no state machine is
+        // boxed while a call completes synchronously. A call that completes asynchronously also allocates the
+        // LoggingJevApi and LogEvaluationAsync state machines, which this gate cannot see. Budget: about 10% headroom
+        // over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
+        EvaluateRoundTripThrough(
+            DiscardingLoggerFactory.Instance,
+            budgetBytes: 4800,
+            "EvaluateRoundTripWithDiscardingLogger",
+            "EvaluateAsync with every log level enabled stays within its budget");
+        Program.Check(
+            DiscardingLoggerFactory.Calls > callsBefore,
+            "the discarding logger received log calls, so EvaluateAsync ran the logged path");
+    }
+
+    /// <summary><see cref="TypedEvaluateRoundTrip"/> through a logger enabled at every level that discards everything.</summary>
+    public static void TypedEvaluateRoundTripWithDiscardingLogger()
+    {
+        var callsBefore = DiscardingLoggerFactory.Calls;
+
+        // Measured ~3368 B/call on published win-x64 AOT, the same as TypedEvaluateRoundTrip's current measurement and its unlogged twin in this run,
+        // so the enabled logger adds nothing on the synchronous path the canned handler takes: each event's state is a
+        // struct handed to a logger that discards it, the timing is two Stopwatch timestamps, and no state machine is
+        // boxed while a call completes synchronously. A call that completes asynchronously also allocates the
+        // LoggingJevApi and LogEvaluationAsync state machines, which this gate cannot see. Budget: about 10% headroom
+        // over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
+        TypedEvaluateRoundTripThrough(
+            DiscardingLoggerFactory.Instance,
+            budgetBytes: 3712,
+            "TypedEvaluateRoundTripWithDiscardingLogger",
+            "EvaluateAsync<T> with every log level enabled stays within its budget");
+        Program.Check(
+            DiscardingLoggerFactory.Calls > callsBefore,
+            "the discarding logger received log calls, so EvaluateAsync<T> ran the logged path");
+    }
+
+    /// <summary>
+    /// Proves the disabled-logger gates can tell a disabled logger from an enabled one. The canned handler completes
+    /// synchronously, where even an enabled logger adds nothing, so those gates would pass if a disabled logger wrongly
+    /// entered the logging wrappers. A yielding handler makes every call complete asynchronously, where the wrappers'
+    /// state machines are boxed and show up as bytes.
+    /// </summary>
+    public static async Task DisabledLoggerAddsNothingWhereAnEnabledOneDoes()
+    {
+        var unlogged = await LeastYieldingEvaluationAsync(null).ConfigureAwait(false);
+        var disabled = await LeastYieldingEvaluationAsync(NullLoggerFactory.Instance).ConfigureAwait(false);
+        var enabled = await LeastYieldingEvaluationAsync(DiscardingLoggerFactory.Instance).ConfigureAwait(false);
+        Console.WriteLine($"     yielding EvaluateAsync B/call: no factory {unlogged}, NullLoggerFactory {disabled}, discarding logger {enabled}");
+
+        // The tolerance absorbs measurement noise: a runtime thread allocating during the loop adds up to about 70 B/call
+        // to a single run, which the least of three runs removes, leaving a few bytes. A wrapper's state machine is
+        // hundreds of bytes per call.
+        Program.Check(
+            disabled - unlogged <= 8,
+            "a NullLoggerFactory adds no allocation to an asynchronously completing EvaluateAsync");
+        Program.Check(
+            enabled - unlogged > 0,
+            "the discarding logger adds allocation to an asynchronously completing EvaluateAsync, so this check sees the wrappers");
+    }
+
+    // The least of three runs, because noise from other runtime threads only ever adds bytes.
+    private static async Task<long> LeastYieldingEvaluationAsync(ILoggerFactory? loggerFactory)
+    {
+        var least = long.MaxValue;
+        for (var run = 0; run < 3; run++)
+        {
+            least = Math.Min(least, await MeasureYieldingEvaluationAsync(loggerFactory).ConfigureAwait(false));
+        }
+
+        return least;
+    }
+
+    // Bytes allocated per awaited EvaluateAsync over a handler that yields, on any thread, since the continuation
+    // does not run on the caller's. The loop is sequential, so nothing else allocates meanwhile but the runtime.
+    private static async Task<long> MeasureYieldingEvaluationAsync(ILoggerFactory? loggerFactory)
+    {
+        const int YieldingIterations = 500;
+        using var http = new HttpClient(new YieldingHandler(HttpStatusCode.OK, NoulResponseJson))
+        {
+            BaseAddress = new Uri("https://example.test/api/"),
+        };
+        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" }, loggerFactory);
+        var request = Program.Request();
+
+        for (var i = 0; i < 100; i++)
+        {
+            _ = await client.EvaluateAsync(request).ConfigureAwait(false);
+        }
+
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        var before = GC.GetTotalAllocatedBytes(precise: true);
+        for (var i = 0; i < YieldingIterations; i++)
+        {
+            _ = await client.EvaluateAsync(request).ConfigureAwait(false);
+        }
+
+        return (GC.GetTotalAllocatedBytes(precise: true) - before) / YieldingIterations;
+    }
+
+    // EvaluateRoundTrip's call, the same canned response and Program.Request(), through a logging client.
+    private static void EvaluateRoundTripThrough(ILoggerFactory loggerFactory, int budgetBytes, string label, string passDescription)
+    {
+        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, NoulResponseJson))
+        {
+            BaseAddress = new Uri("https://example.test/api/"),
+        };
+        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" }, loggerFactory);
+        var request = Program.Request();
+
+        GateValueTask(budgetBytes, () => client.EvaluateAsync(request), label, passDescription);
+    }
+
+    // TypedEvaluateRoundTrip's call, the same canned response and state, through a logging client.
+    private static void TypedEvaluateRoundTripThrough(ILoggerFactory loggerFactory, int budgetBytes, string label, string passDescription)
+    {
+        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, TriageResponseJson))
+        {
+            BaseAddress = new Uri("https://example.test/api/"),
+        };
+        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" }, loggerFactory);
+
+        GateValueTask(
+            budgetBytes,
+            () => client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days."),
+            label,
+            passDescription);
     }
 
     /// <summary><see cref="JevContent.FromValue{T}(T, System.Text.Json.Serialization.Metadata.JsonTypeInfo{T})"/> over the smoke state.</summary>

@@ -26,7 +26,7 @@ Jev feels native in a .NET generic-host app. One call registers the client, incl
 - [ ] Every phase adds `AllocationGate` budgets and benchmarks for what it ships, and existing budgets hold with logging and telemetry disabled. The AOT smoke app exercises logging, telemetry and DI registration with zero IL2xxx/IL3xxx warnings.
 
 ## Phases
-1. Phase 3.1 — Logging [pending]
+1. Phase 3.1 — Logging [complete]
 2. Phase 3.2 — Telemetry [pending]
 3. Phase 3.3 — DI package [pending]
 4. Phase 3.4 — Options and configuration [pending]

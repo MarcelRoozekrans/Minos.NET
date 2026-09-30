@@ -49,6 +49,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- ILogger and the [LoggerMessage] generator; a runtime dependency that flows to consumers. -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="ZeroAlloc.Resilience" />
     <PackageReference Include="ZeroAlloc.Rest" />
     <PackageReference Include="ZeroAlloc.Rest.SystemTextJson" />
