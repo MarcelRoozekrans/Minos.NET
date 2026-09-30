@@ -14,6 +14,10 @@ internal sealed class KeyedOptionSet : IJevOptionKeys
 
     /// <summary>Initializes a new instance of the <see cref="KeyedOptionSet"/> class.</summary>
     /// <param name="keys">The wire keys, in wire order. The set keeps the array.</param>
+    /// <remarks>
+    /// Duplicate and empty keys are not checked here: the builder's validation rejects both before a set is created.
+    /// Should a duplicate get through, the first match wins.
+    /// </remarks>
     public KeyedOptionSet(string[] keys)
     {
         _keys = keys;
@@ -24,11 +28,23 @@ internal sealed class KeyedOptionSet : IJevOptionKeys
     public int Count => _keys.Length;
 
     /// <summary>Gets the key at <paramref name="index"/>.</summary>
-    public string this[int index] => _keys[index];
+    /// <param name="index">The option's position in wire order.</param>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is not a valid position.</exception>
+    public string this[int index]
+    {
+        get
+        {
+            ArgumentOutOfRangeException.ThrowIfNegative(index);
+            ArgumentOutOfRangeException.ThrowIfGreaterThanOrEqual(index, _keys.Length);
+            return _keys[index];
+        }
+    }
 
     /// <summary>Creates the levels of a keyed Score: keys <c>"0"</c> to <c>count - 1</c>.</summary>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="count"/> is negative.</exception>
     public static KeyedOptionSet Levels(int count)
     {
+        ArgumentOutOfRangeException.ThrowIfNegative(count);
         var keys = new string[count];
         for (var i = 0; i < count; i++)
         {

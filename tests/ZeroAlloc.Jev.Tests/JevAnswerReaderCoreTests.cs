@@ -66,10 +66,21 @@ public sealed class JevAnswerReaderCoreTests
     public void KeyedOptionSet_IndexOfKey_ComparesTheUnescapedUtf8()
     {
         var options = new KeyedOptionSet(["café", "tea"]);
-        var reader = Reader("\"caf\u00e9\"");
+        var reader = Reader("\"caf\\u00e9\"");
 
         Assert.Equal(0, options.IndexOfKey(ref reader));
     }
+
+    [Fact]
+    public void KeyedOptionSet_Indexer_OutOfRange_Throws()
+    {
+        Assert.Equal("index", Assert.Throws<ArgumentOutOfRangeException>(() => Products[3]).ParamName);
+        Assert.Equal("index", Assert.Throws<ArgumentOutOfRangeException>(() => Products[-1]).ParamName);
+    }
+
+    [Fact]
+    public void KeyedOptionSet_Levels_NegativeCount_Throws()
+        => Assert.Equal("count", Assert.Throws<ArgumentOutOfRangeException>(() => KeyedOptionSet.Levels(-1)).ParamName);
 
     private static Utf8JsonReader Reader(string json)
     {
