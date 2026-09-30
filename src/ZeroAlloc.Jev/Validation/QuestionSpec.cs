@@ -18,14 +18,14 @@ internal sealed record QuestionSpec
 
     public required OptionSpec[] Options { get; init; }
 
-    [GreaterThanOrEqualTo(1, When = nameof(IsChoice), ErrorCode = DiagnosticIds.EmptyChoiceEnum,
+    [GreaterThanOrEqualTo(JevLimits.MinimumOptions, When = nameof(IsChoice), ErrorCode = DiagnosticIds.EmptyChoiceEnum,
         Message = "A Choice question needs at least one option.")]
-    [GreaterThanOrEqualTo(1, When = nameof(IsScore), ErrorCode = DiagnosticIds.EmptyScoreEnum,
+    [GreaterThanOrEqualTo(JevLimits.MinimumOptions, When = nameof(IsScore), ErrorCode = DiagnosticIds.EmptyScoreEnum,
         Message = "A Score question needs at least one level.")]
-    [LessThanOrEqualTo(255, When = nameof(IsChoice), Severity = Severity.Warning,
+    [LessThanOrEqualTo(JevLimits.MaximumChoiceOptions, When = nameof(IsChoice), Severity = Severity.Warning,
         ErrorCode = DiagnosticIds.OptionCountOutsideGuidance,
         Message = "A Choice question has more than 255 options, beyond the API's guidance.")]
-    [InclusiveBetween(2, 10, When = nameof(IsScoreWithLevels), Severity = Severity.Warning,
+    [InclusiveBetween(JevLimits.MinimumScoreLevels, JevLimits.MaximumScoreLevels, When = nameof(IsScoreWithLevels), Severity = Severity.Warning,
         ErrorCode = DiagnosticIds.OptionCountOutsideGuidance,
         Message = "A Score question has fewer than 2 or more than 10 levels, outside the API's guidance.")]
     public int OptionCount => Options.Length;

@@ -56,6 +56,7 @@
   <ItemGroup>
     <!-- The rule ids, shared with the generator and the analyzers, so a runtime failure names the same JEV id. -->
     <Compile Include="..\ZeroAlloc.Jev.Generator\DiagnosticIds.cs" Link="Shared\DiagnosticIds.cs" />
+    <Compile Include="..\ZeroAlloc.Jev.Generator\JevLimits.cs" Link="Shared\JevLimits.cs" />
   </ItemGroup>
 
   <!-- Pack the generator, analyzer and code fixes from their real build output rather than a hard-coded bin path (#14). -->

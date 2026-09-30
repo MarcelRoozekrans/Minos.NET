@@ -31,6 +31,7 @@
     <Compile Include="..\ZeroAlloc.Jev.Generator\JsonText.cs" Link="Shared\JsonText.cs" />
     <Compile Include="..\ZeroAlloc.Jev.Generator\JsonMinifier.cs" Link="Shared\JsonMinifier.cs" />
     <Compile Include="..\ZeroAlloc.Jev.Generator\DiagnosticIds.cs" Link="Shared\DiagnosticIds.cs" />
+    <Compile Include="..\ZeroAlloc.Jev.Generator\JevLimits.cs" Link="Shared\JevLimits.cs" />
     <Compile Include="..\ZeroAlloc.Jev.Generator\EquatableArray.cs" Link="Shared\EquatableArray.cs" />
     <Compile Include="..\ZeroAlloc.Jev.Generator\SnakeCase.cs" Link="Shared\SnakeCase.cs" />
     <Compile Include="..\ZeroAlloc.Jev.Generator\IsExternalInit.cs" Link="Shared\IsExternalInit.cs" />

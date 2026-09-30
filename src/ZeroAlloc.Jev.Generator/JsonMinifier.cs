@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text;
 
 namespace ZeroAlloc.Jev.Generator;
@@ -14,17 +15,15 @@ internal sealed record MinifyResult(string? Json, EquatableArray<string> Strings
 
 /// <summary>
 /// Validates and minifies the text of a <c>Json = true</c> attribute argument by RFC 8259, strictly: no comments,
-/// trailing commas, single quotes or byte order mark, no lone surrogates, at most 60 levels of nesting, and an object
+/// trailing commas, single quotes or byte order mark, no lone surrogates, at most <see cref="JevLimits.MaximumJsonDepth"/> levels of nesting, and an object
 /// or array at the top level. Duplicate object keys are accepted, as RFC 8259 allows and System.Text.Json's
 /// JsonDocument does, although its JsonObject rejects them. It has no dependencies: the generator runs inside the
 /// compiler host, where System.Text.Json may not be loadable in a matching version.
 /// </summary>
 internal sealed class JsonMinifier
 {
-    // System.Text.Json reads a request with its default MaxDepth of 64, and the text does not stand alone there: a
-    // criterion description, the deepest embedding, sits inside the request object, "questions", the question and its
-    // "criteria". 64 minus those 4 levels leaves 60 for the text itself.
-    private const int MaxDepth = 60;
+    private static readonly string DepthError =
+        $"The JSON nests deeper than {JevLimits.MaximumJsonDepth.ToString(CultureInfo.InvariantCulture)} levels.";
 
     private readonly string _text;
     private readonly StringBuilder _output = new();
@@ -112,9 +111,9 @@ internal sealed class JsonMinifier
 
     private void ReadObject(int depth)
     {
-        if (depth >= MaxDepth)
+        if (depth >= JevLimits.MaximumJsonDepth)
         {
-            throw Fail("The JSON nests deeper than 60 levels.");
+            throw Fail(DepthError);
         }
 
         _output.Append('{');
@@ -177,9 +176,9 @@ internal sealed class JsonMinifier
 
     private void ReadArray(int depth)
     {
-        if (depth >= MaxDepth)
+        if (depth >= JevLimits.MaximumJsonDepth)
         {
-            throw Fail("The JSON nests deeper than 60 levels.");
+            throw Fail(DepthError);
         }
 
         _output.Append('[');
