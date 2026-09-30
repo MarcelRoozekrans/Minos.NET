@@ -46,8 +46,9 @@
     <PackageReference Include="ZeroAlloc.Rest.SystemTextJson" />
     <PackageReference Include="ZeroAlloc.Results" />
     <!--
-      PrivateAssets keeps ZeroAlloc.Validation's and ZeroAlloc.Pipeline's analyzers and build files out of
-      consumers' builds: its generators run for this library only. The runtime library still flows.
+      PrivateAssets keeps ZeroAlloc.Validation's build and buildtransitive assets out of consumers' builds, and the
+      nuspec excludes its Build and Analyzers. NuGet still flows the analyzers transitively, NuGet/Home#6720, where
+      they stay inert without [Validate] types. The runtime library flows as usual.
     -->
     <PackageReference Include="ZeroAlloc.Validation" PrivateAssets="analyzers;build;buildtransitive" />
   </ItemGroup>

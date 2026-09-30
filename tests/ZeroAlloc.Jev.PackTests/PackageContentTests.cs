@@ -266,7 +266,8 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
             Assert.True(
                 !included.Contains("Build", StringComparer.OrdinalIgnoreCase) && !included.Contains("Analyzers", StringComparer.OrdinalIgnoreCase),
                 $"Found the include form '{include}', which must contain neither Build nor Analyzers.");
-        }    }
+        }
+    }
 
     // NuGet flows a package's analyzers to consumers transitively whatever PrivateAssets says, NuGet/Home#6720, so the
     // ZeroAlloc.Validation and ZeroAlloc.Pipeline analyzers do reach the consumer. This asserts they stay inert: nothing
@@ -308,34 +309,47 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
               </ItemGroup>
             </Project>
             """);
-        File.WriteAllText(Path.Combine(consumer, "Marker.cs"), "namespace Consumer;\n\npublic static class Marker\n{\n}\n");
+        // A minimal question set, so ZeroAlloc.Jev's own generator has something to emit: the positive control for
+        // the directory check below. It has no [Validate] type, so the Validation and Pipeline generators have none.
+        File.WriteAllText(Path.Combine(consumer, "Questions.cs"), """
+            using ZeroAlloc.Jev;
+
+            namespace Consumer;
+
+            [JevQuestions]
+            public partial record UrgencyCheck
+            {
+                [Noul("Does this convey urgency?")]
+                public partial Noul IsUrgent { get; }
+            }
+            """);
 
         // Non-vacuity guard: the check must see package analyzers, so ZeroAlloc.Jev's own generator has to be listed.
-        var listing = RunDotnet(consumer, "msbuild", "Consumer.csproj", "-restore", "-t:ResolveLockFileAnalyzers", "-getItem:Analyzer");
+        // Restore separately, so the msbuild output holds nothing but the JSON.
+        RunDotnet(consumer, "restore", "Consumer.csproj");
+        var listing = RunDotnet(consumer, "msbuild", "Consumer.csproj", "-t:ResolveLockFileAnalyzers", "-getItem:Analyzer");
 
-        using var output = JsonDocument.Parse(listing[listing.IndexOf('{', StringComparison.Ordinal)..]);
+        using var output = JsonDocument.Parse(listing);
         var analyzers = output.RootElement.GetProperty("Items").GetProperty("Analyzer").EnumerateArray()
             .Select(item => Path.GetFileName(item.GetProperty("Identity").GetString()!))
             .ToArray();
 
         Assert.Contains("ZeroAlloc.Jev.Generator.dll", analyzers);
 
-        // No [Validate] type in the consumer: it must build with no warning and no source from those generators.
+        // It must build with no warning, and no source may come from the Validation or Pipeline generators.
         RunDotnet(consumer, "build", "Consumer.csproj", "-c", "Release", "-p:EmitCompilerGeneratedFiles=true", "-warnaserror");
 
-        var generated = Path.Combine(consumer, "obj");
-        var emitted = Directory.Exists(generated)
-            ? Directory.GetFiles(generated, "*.cs", SearchOption.AllDirectories)
-                .Where(file => file.Contains($"{Path.DirectorySeparatorChar}generated{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
-                .Where(file => Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(file))!)
-                    .StartsWith("ZeroAlloc.Validation", StringComparison.Ordinal)
-                    || Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(file))!)
-                    .StartsWith("ZeroAlloc.Pipeline", StringComparison.Ordinal))
-                .ToArray()
-            : [];
+        // Each generated file sits in obj/.../generated/{generator assembly}/{generator}/: name its generator assembly.
+        var generators = Directory.GetFiles(Path.Combine(consumer, "obj"), "*.cs", SearchOption.AllDirectories)
+            .Where(file => file.Contains($"{Path.DirectorySeparatorChar}generated{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .Select(file => Path.GetFileName(Path.GetDirectoryName(Path.GetDirectoryName(file))!))
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
 
-        Assert.Empty(emitted);
-    }
+        Assert.Contains("ZeroAlloc.Jev.Generator", generators);
+        Assert.DoesNotContain(generators, name => name.StartsWith("ZeroAlloc.Validation", StringComparison.Ordinal));
+        Assert.DoesNotContain(generators, name => name.StartsWith("ZeroAlloc.Pipeline", StringComparison.Ordinal));    }
+
     private static string RunDotnet(string workingDirectory, params string[] arguments)
     {
         var startInfo = new ProcessStartInfo("dotnet")
