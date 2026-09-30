@@ -348,7 +348,8 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
 
         Assert.Contains("ZeroAlloc.Jev.Generator", generators);
         Assert.DoesNotContain(generators, name => name.StartsWith("ZeroAlloc.Validation", StringComparison.Ordinal));
-        Assert.DoesNotContain(generators, name => name.StartsWith("ZeroAlloc.Pipeline", StringComparison.Ordinal));    }
+        Assert.DoesNotContain(generators, name => name.StartsWith("ZeroAlloc.Pipeline", StringComparison.Ordinal));
+    }
 
     private static string RunDotnet(string workingDirectory, params string[] arguments)
     {
