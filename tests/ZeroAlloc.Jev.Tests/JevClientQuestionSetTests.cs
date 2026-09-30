@@ -11,6 +11,9 @@ public sealed class JevClientQuestionSetTests : IDisposable
 {
     private const string ResponseJson = """{"model":"jev-1.13.0","answers":{"is_urgent":{"type":"noul","noul":0.95},"department":{"type":"choice","choice":"technical","probabilities":{"billing":0.1,"technical":0.8,"sales":0.1},"confidence":0.8},"product":{"type":"choice","choice":"pro-plan","probabilities":{"pro-plan":0.6,"team-plan":0.4},"confidence":0.6},"effort":{"type":"score","score":1.2,"legend":{"0":"Minutes","1":"Hours","2":"Days"},"probabilities":{"0":0.1,"1":0.6,"2":0.3},"confidence":0.7}},"usage":{"input_tokens":10,"output_tokens":5}}""";
 
+    private static readonly string ResponseWithoutLegend = ResponseJson.Replace(
+        "\"legend\":{\"0\":\"Minutes\",\"1\":\"Hours\",\"2\":\"Days\"},", string.Empty, StringComparison.Ordinal);
+
     private readonly List<HttpClient> _httpClients = [];
 
     public void Dispose()
@@ -62,6 +65,22 @@ public sealed class JevClientQuestionSetTests : IDisposable
         var set = Set(out _, out _, out _, out _);
         var pool = new CountingPool();
         using var client = Client(StubHandler.Json(HttpStatusCode.OK, Fixture.Text("response-noul.json")), pool);
+
+        var result = await client.EvaluateAsync(set, "x");
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);
+        Assert.Equal(200, result.Error.StatusCode);
+        Assert.IsType<JsonException>(result.Error.Exception);
+        Assert.Equal(0, pool.Outstanding);
+    }
+
+    [Fact]
+    public async Task ScoreAnswerWithoutLegend_IsInvalidResponse_AndReturnsTheBuffers()
+    {
+        var set = Set(out _, out _, out _, out _);
+        var pool = new CountingPool();
+        using var client = Client(StubHandler.Json(HttpStatusCode.OK, ResponseWithoutLegend), pool);
 
         var result = await client.EvaluateAsync(set, "x");
 

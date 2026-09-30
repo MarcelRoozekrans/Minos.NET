@@ -122,7 +122,7 @@ public sealed class TypedEvaluationTests : IClassFixture<WireMockFixture>
             .RespondWith(Response.Create()
                 .WithStatusCode(HttpStatusCode.OK)
                 .WithHeader("Content-Type", "application/json")
-                .WithBody("""{"model":"jev-1.13.0","answers":{"department":{"type":"choice","choice":"billing","probabilities":{"billing":0.9,"technical":0.05,"sales":0.03,"other":0.02},"confidence":0.9},"severity":{"type":"score","score":0.2,"probabilities":{"0":0.8,"1":0.2},"confidence":0.8}},"usage":{"input_tokens":300,"output_tokens":20}}"""));
+                .WithBody("""{"model":"jev-1.13.0","answers":{"department":{"type":"choice","choice":"billing","probabilities":{"billing":0.9,"technical":0.05,"sales":0.03,"other":0.02},"confidence":0.9},"severity":{"type":"score","score":0.2,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.8,"1":0.2},"confidence":0.8}},"usage":{"input_tokens":300,"output_tokens":20}}"""));
 
         using var client = IntegrationClient.Create(_fixture.BaseAddress);
 
@@ -172,7 +172,7 @@ public sealed class TypedEvaluationTests : IClassFixture<WireMockFixture>
             .RespondWith(Response.Create()
                 .WithStatusCode(HttpStatusCode.OK)
                 .WithHeader("Content-Type", "application/json")
-                .WithBody("""{"model":"jev-1.13.0","answers":{"is_urgent":{"type":"noul","noul":0.95},"department":{"type":"choice","choice":"billing","probabilities":{"billing":0.9,"technical":0.05,"sales":0.03,"other":0.02},"confidence":0.9},"product":{"type":"choice","choice":"pro-plan","probabilities":{"pro-plan":0.7,"team-plan":0.2,"other":0.1},"confidence":0.7},"effort":{"type":"score","score":0.9,"probabilities":{"0":0.3,"1":0.5,"2":0.2},"confidence":0.6,"legend":["Minutes","Hours","Days"]}},"usage":{"input_tokens":300,"output_tokens":20}}"""));
+                .WithBody("""{"model":"jev-1.13.0","answers":{"is_urgent":{"type":"noul","noul":0.95},"department":{"type":"choice","choice":"billing","probabilities":{"billing":0.9,"technical":0.05,"sales":0.03,"other":0.02},"confidence":0.9},"product":{"type":"choice","choice":"pro-plan","probabilities":{"pro-plan":0.7,"team-plan":0.2,"other":0.1},"confidence":0.7},"effort":{"type":"score","score":0.9,"legend":{"0":"Minutes","1":"Hours","2":"Days"},"probabilities":{"0":0.3,"1":0.5,"2":0.2},"confidence":0.6}},"usage":{"input_tokens":300,"output_tokens":20}}"""));
 
         var built = JevQuestionSet.CreateBuilder()
             .Noul("is_urgent", "Does this convey urgency?", out var urgent, c => c

@@ -146,7 +146,7 @@ public sealed class GeneratedQuestionSetTests
     {
         const string response = """
             {"answers":{
-              "mood":{"type":"score","score":0.2,"probabilities":{"0":0.8,"1":0.2,"2":0.0},"confidence":0.7},
+              "mood":{"type":"score","score":0.2,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.8,"1":0.2,"2":0.0},"confidence":0.7},
               "extra_question":{"type":"noul","noul":1},
               "requests_credentials":{"noul":0.1,"type":"noul"},
               "team":{"type":"choice","choice":"technical","probabilities":{"billing":0.1,"technical":0.9},"confidence":0.85}
@@ -173,7 +173,7 @@ public sealed class GeneratedQuestionSetTests
     [Fact]
     public void Score_UnknownLevel_Throws()
         => Assert.ThrowsAny<JsonException>(() => Answers.Parse<FrustrationCheck>(
-            """{"answers":{"frustration":{"type":"score","score":1,"probabilities":{"3":1.0},"confidence":0.5}}}"""));
+            """{"answers":{"frustration":{"type":"score","score":1,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"3":1.0},"confidence":0.5}}}"""));
 
     [Fact]
     public void Parse_LeavesReaderOnTheAnswersEnd()

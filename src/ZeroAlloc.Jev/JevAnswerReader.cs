@@ -84,7 +84,10 @@ public static class JevAnswerReader
         return new Choice<T>(options[choice], confidence, new ProbabilityMap<T>(buffer, offset, options));
     }
 
-    /// <summary>Reads a Score answer, writing its probabilities into <paramref name="buffer"/> from <paramref name="offset"/>.</summary>
+    /// <summary>
+    /// Reads a Score answer, writing its probabilities into <paramref name="buffer"/> from <paramref name="offset"/>.
+    /// The answer must carry a <c>legend</c> object, as the API requires, though this path does not expose it.
+    /// </summary>
     /// <typeparam name="T">The enum whose members are the levels.</typeparam>
     /// <param name="reader">A reader positioned on the answer's start. It is left on the answer's end.</param>
     /// <param name="options">The levels, keyed <c>"0"</c>, <c>"1"</c>, … in rubric order.</param>
@@ -150,6 +153,7 @@ public static class JevAnswerReader
     /// <summary>
     /// Reads a Score answer's most probable level, the lower one on a tie, its expected level and its confidence,
     /// writing its probabilities into <paramref name="buffer"/> from <paramref name="offset"/>.
+    /// The answer must carry a <c>legend</c> object, which is validated and skipped.
     /// </summary>
     /// <param name="reader">A reader positioned on the answer's start. It is left on the answer's end.</param>
     /// <param name="options">The levels, keyed <c>"0"</c>, <c>"1"</c>, … in rubric order.</param>
@@ -167,6 +171,7 @@ public static class JevAnswerReader
 
         EnsureStartObject(ref reader);
         var hasType = false;
+        var hasLegend = false;
         var hasProbabilities = false;
         double? expected = null;
         double? confidence = null;
@@ -181,6 +186,14 @@ public static class JevAnswerReader
             else if (reader.ValueTextEquals("score"u8))
             {
                 expected = ReadNumber(ref reader);
+            }
+            else if (reader.ValueTextEquals("legend"u8))
+            {
+                // Required by the API but not exposed by the pooled path: check its shape and skip it.
+                reader.Read();
+                EnsureStartObject(ref reader);
+                reader.Skip();
+                hasLegend = true;
             }
             else if (reader.ValueTextEquals("probabilities"u8))
             {
@@ -198,6 +211,7 @@ public static class JevAnswerReader
         }
 
         Require(hasType, "type");
+        Require(hasLegend, "legend");
         Require(hasProbabilities, "probabilities");
 
         var best = 0;

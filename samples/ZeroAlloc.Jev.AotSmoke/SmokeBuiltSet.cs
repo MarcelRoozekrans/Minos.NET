@@ -32,7 +32,7 @@ internal static class SmokeBuiltSet
         return built.IsSuccess ? built.Value : throw new InvalidOperationException("The aliased smoke question set is invalid: " + built.Error.Message);
     }
 
-    public const string ResponseJson = """{"model":"jev-1.13.0","answers":{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"product":{"type":"choice","choice":"pro-plan","probabilities":{"pro-plan":0.9,"team-plan":0.1},"confidence":0.9},"urgency":{"type":"score","score":1.9,"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}},"usage":{"input_tokens":296,"output_tokens":20}}""";
+    public const string ResponseJson = """{"model":"jev-1.13.0","answers":{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"product":{"type":"choice","choice":"pro-plan","probabilities":{"pro-plan":0.9,"team-plan":0.1},"confidence":0.9},"urgency":{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}},"usage":{"input_tokens":296,"output_tokens":20}}""";
 
     /// <summary>A three-question builder: a Noul, an enum Choice and a keyed Choice.</summary>
     public static JevQuestionSetBuilder Builder(out NoulHandle credentials, out ChoiceHandle<Team> team, out KeyedChoiceHandle product)
