@@ -1,0 +1,109 @@
+using System.Globalization;
+using System.Text.Json;
+using ZeroAlloc.Jev.Generator;
+
+namespace ZeroAlloc.Jev;
+
+/// <summary>
+/// The options or levels of an enum question built at run time, from <see cref="Enum.GetValues{TEnum}()"/> and
+/// <see cref="Enum.GetName{TEnum}(TEnum)"/>: no reflection, so it is Native AOT-safe.
+/// </summary>
+/// <typeparam name="T">The enum.</typeparam>
+/// <remarks>
+/// <see cref="ForChoice"/> holds one option per distinct value, so an alias is skipped, in ascending value order, each
+/// keyed by its member name in snake_case, by the generator's own <c>SnakeCase</c>. A Score's levels follow the order
+/// its builder gave them, from <see cref="Levels"/>, keyed by index. Attributes on the members, such as
+/// <c>[Criteria(Key = …)]</c> or <c>[Level]</c>, are not read.
+/// </remarks>
+internal sealed class EnumOptionSet<T> : JevOptionSet<T>
+    where T : struct, Enum
+{
+    // Created on first use; a race creates two equal sets and keeps one, which is harmless.
+    private static EnumOptionSet<T>? s_forChoice;
+
+    private readonly T[] _values;
+    private readonly string[] _names;
+    private readonly string[] _keys;
+    private readonly byte[][] _utf8Keys;
+
+    private EnumOptionSet(T[] values, string[] names, string[] keys)
+    {
+        _values = values;
+        _names = names;
+        _keys = keys;
+        _utf8Keys = Utf8Keys.Encode(keys);
+    }
+
+    /// <summary>Gets the options of a Choice over <typeparamref name="T"/>, keyed by member name in snake_case.</summary>
+    public static EnumOptionSet<T> ForChoice => s_forChoice ??= Create();
+
+    public override int Count => _values.Length;
+
+    public override T this[int index]
+        => (uint)index < (uint)_values.Length ? _values[index] : throw new ArgumentOutOfRangeException(nameof(index));
+
+    /// <summary>Gets the wire key at <paramref name="index"/>.</summary>
+    public string KeyAt(int index) => _keys[index];
+
+    /// <summary>Gets the member name at <paramref name="index"/>, for messages.</summary>
+    public string NameAt(int index) => _names[index];
+
+    /// <summary>Creates a Score's levels, in the order given, keyed <c>"0"</c>, <c>"1"</c>, ….</summary>
+    /// <param name="members">For each level, lowest first, the index in this set of the member it is.</param>
+    /// <returns>The levels.</returns>
+    public EnumOptionSet<T> Levels(ReadOnlySpan<int> members)
+    {
+        var values = new T[members.Length];
+        var names = new string[members.Length];
+        var keys = new string[members.Length];
+        var level = 0;
+        foreach (ref readonly var member in members)
+        {
+            values[level] = _values[member];
+            names[level] = _names[member];
+            keys[level] = level.ToString(CultureInfo.InvariantCulture);
+            level++;
+        }
+
+        return new EnumOptionSet<T>(values, names, keys);
+    }
+
+    public override int IndexOf(T value)
+    {
+        var comparer = EqualityComparer<T>.Default;
+        for (var i = 0; i < _values.Length; i++)
+        {
+            if (comparer.Equals(_values[i], value))
+            {
+                return i;
+            }
+        }
+
+        return -1;
+    }
+
+    public override int IndexOfKey(ref Utf8JsonReader reader) => Utf8Keys.IndexOf(ref reader, _utf8Keys);
+
+    private static EnumOptionSet<T> Create()
+    {
+        var values = new List<T>();
+        foreach (var value in Enum.GetValues<T>())
+        {
+            // An alias repeats an earlier member's value; that member already represents it.
+            if (!values.Contains(value))
+            {
+                values.Add(value);
+            }
+        }
+
+        var names = new string[values.Count];
+        var keys = new string[values.Count];
+        for (var i = 0; i < names.Length; i++)
+        {
+            names[i] = Enum.GetName(values[i])!;
+            keys[i] = SnakeCase.Convert(names[i]);
+        }
+
+        return new EnumOptionSet<T>([.. values], names, keys);
+    }
+}
