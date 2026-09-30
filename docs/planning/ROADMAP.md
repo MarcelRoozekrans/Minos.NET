@@ -146,7 +146,7 @@ compress_memory: disabled
 **Surface:** Backend
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-09-30-phase-3.1-logging-design.md`
-**Plan:** _to be written_
+**Plan:** `docs/superpowers/plans/2026-09-30-phase-3.1-logging.md`
 
 ### Phase 3.2: Telemetry [status: pending]
 **Goal:** ZeroAlloc.Telemetry spans and metrics in the core package for tokens, latency and confidence, named per the GenAI conventions plus `jev.*`.
