@@ -9,7 +9,9 @@ namespace ZeroAlloc.Jev;
 /// <remarks>
 /// Read once per set type, on first use, which only a client with a logger makes. It is not a generated constant: the
 /// set is compiled into the caller's assembly, where an internal member is out of this library's reach, and a public
-/// one would be a new member of <see cref="IJevQuestionSet{TSelf}"/>.
+/// one would be a new member of <see cref="IJevQuestionSet{TSelf}"/>. The bytes are written by the ZeroAlloc.Jev
+/// generator and are always a valid JSON object, so the static initializer does not throw; callers read
+/// <see cref="Value"/> only on the logging path, which is what keeps it lazy.
 /// </remarks>
 /// <typeparam name="T">The question set.</typeparam>
 internal static class GeneratedQuestionCount<T>
