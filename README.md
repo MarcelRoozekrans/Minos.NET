@@ -20,7 +20,7 @@ Unofficial .NET client for [TypeSafe AI](https://typesafe.ai)'s **Jev**, the fir
 - Question sets built at run time: `JevQuestionSet.CreateBuilder()` adds Noul, Choice and Score questions over an enum or over keys known only at run time, checks them against the same rules as the analyzers, and evaluates them through the same pooled path.
 - Analyzers and code fixes: question sets are checked at compile time against the Jev API's rules and the generator's, with code fixes that add a missing `[Criteria]` or `[Level]` description. See [Diagnostics](#diagnostics).
 - Structured criteria and instructions: `Examples` / `NotFor` on `[Criteria]` and `[Level]`, and `Json = true` for JSON object or array text, checked at compile time.
-- Native AOT: no reflection, verified by an AOT smoke app in CI.
+- Native AOT: verified by an AOT smoke app in CI. Generated sets use no reflection; enum questions in built sets read the enum's public fields through trim-safe annotations.
 
 ## Example
 
@@ -251,7 +251,11 @@ Each question method takes the question's wire key, its instructions as `JevCont
 
 `JevCriterion` describes an option or level: a string converts to one, `JevCriterion.Text(…).WithExamples(…).WithNotFor(…)` sends the same criterion object as `[Criteria]`'s `Examples` and `NotFor`, and `JevCriterion.Json(content)` sends JSON.
 
-Enum questions read the enum's public fields, its members, once per enum. This is trim- and Native AOT-safe: the builder's generic parameters are annotated so the trimmer keeps the enum's public fields; a method of yours that passes its own generic parameter on to `Choice<T>`, `Score<T>` or `JevAnswers.Get` needs the same `[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)]`. A Choice's options are keyed and ordered as the generator does it: keyed by member name in snake_case, in declaration order, and an alias, a member repeating an earlier member's value, is skipped, so the value is keyed by the first name declared for it. Attributes on the members, such as `[Criteria(Key = …)]` or `[Level]`, are not read: describe the options with `Describe`, and give a Score's levels with `Level`, in order, lowest first. Every distinct member must be given exactly once; list them in declaration order to match the generator.
+Enum questions read the enum's public fields, its members, once per enum. This is trim- and Native AOT-safe: the builder's generic parameters are annotated so the trimmer keeps the enum's public fields; a method of yours that passes its own generic parameter on to `Choice<T>`, `Score<T>` or `JevAnswers.Get` needs the same `[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)]`.
+
+A Choice's options are keyed and ordered as the generator does it: keyed by member name in snake_case, in declaration order, and an alias, a member repeating an earlier member's value, is skipped, so the value is keyed by the first name declared for it.
+
+Attributes on the members, such as `[Criteria(Key = …)]` or `[Level]`, are not read: describe the options with `Describe`, and give a Score's levels with `Level`, in order, lowest first. Every distinct member must be given exactly once; list them in declaration order to match the generator.
 
 `Build()` checks the set against these rules:
 
