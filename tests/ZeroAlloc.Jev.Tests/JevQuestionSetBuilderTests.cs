@@ -263,6 +263,20 @@ public sealed class JevQuestionSetBuilderTests
     }
 
     [Fact]
+    public void EmptyWarningsAndFailures_AreSharedAndReadOnly()
+    {
+        var first = Built(JevQuestionSet.CreateBuilder().Noul("a", "A?", out _));
+        var second = Built(JevQuestionSet.CreateBuilder().Noul("b", "B?", out _));
+        var other = new JevError(JevErrorKind.Timeout, "The request timed out.");
+
+        Assert.Empty(first.Warnings);
+        Assert.Same(first.Warnings, second.Warnings);
+        Assert.True(((ICollection<JevQuestionFailure>)first.Warnings).IsReadOnly);
+        Assert.Empty(other.Failures);
+        Assert.True(((ICollection<JevQuestionFailure>)other.Failures).IsReadOnly);
+    }
+
+    [Fact]
     public void Build_TakesASnapshot()
     {
         var builder = JevQuestionSet.CreateBuilder().Noul("a", "A?", out _);
