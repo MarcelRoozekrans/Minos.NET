@@ -8,7 +8,7 @@ namespace ZeroAlloc.Jev.Serialization;
 /// question set built at run time writes the same bytes as a generated one: <c>\"</c>, <c>\\</c>, <c>\n</c>, <c>\r</c>
 /// and <c>\t</c>; every other character outside printable ASCII as a lowercase <c>\uXXXX</c> escape, a character
 /// outside the Basic Multilingual Plane as its surrogate pair's two escapes; printable ASCII as is. A lone surrogate
-/// reaches the encoder as U+FFFD, which it writes as <c>�</c>, as the generator does.
+/// reaches the encoder as U+FFFD, which it writes as <c>\ufffd</c>, as the generator does.
 /// </summary>
 internal sealed class GeneratorJsonEncoder : JavaScriptEncoder
 {

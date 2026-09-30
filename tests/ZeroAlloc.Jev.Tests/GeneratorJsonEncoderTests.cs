@@ -32,6 +32,22 @@ public sealed class GeneratorJsonEncoderTests
             w.WriteEndObject();
         }));
 
+    [Theory]
+    [MemberData(nameof(Texts))]
+    public void Utf8StringValue_MatchesTheGenerator(string text)
+        => Assert.Equal(Generator(text), Write(w => w.WriteStringValue(Encoding.UTF8.GetBytes(text))));
+
+    [Theory]
+    [MemberData(nameof(Texts))]
+    public void Utf8PropertyName_MatchesTheGenerator(string text)
+        => Assert.Equal("{" + Generator(text) + ":null}", Write(w =>
+        {
+            w.WriteStartObject();
+            w.WritePropertyName(Encoding.UTF8.GetBytes(text));
+            w.WriteNullValue();
+            w.WriteEndObject();
+        }));
+
     [Fact]
     public void LoneSurrogates_MatchTheGenerator()
     {
