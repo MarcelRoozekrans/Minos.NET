@@ -84,15 +84,18 @@ existing budgets with `NullLoggerFactory` and with an every-level-filtered `Logg
 
 The discarding logger is enabled at every level and writes nothing, so every event, timestamp and logging wrapper runs.
 - In the benchmark, it adds 0 B to `EvaluateAsync` and 0 B to `TypedEvaluateAsync`, to the precision of the table. The
-  means differ by less than the error bars.
+  mean gaps, 0.13 us and 0.18 us, are within the noise, less than the larger error bar of each pair. The discarding
+  logger's per-call `Interlocked` counter, which the AOT gates read, costs a few ns and no allocation, also inside the
+  noise.
 - Under published win-x64 AOT, the smoke gates measure 4312 B and 3368 B per call with the discarding logger, the same as
-  without it. Their budgets, 4800 B and 3712 B, are those measurements plus about 10%, rounded up to the next 64 B.
+  the disabled-logger measurements of 4312 B and 3368 B. Their budgets, 4800 B and 3712 B, are those measurements plus about 10%, rounded up to the next 64 B.
 - The events pass struct state straight to the logger, so what logging adds is the logging wrappers' state machines when a
   call does not complete synchronously.
 
 The canned handler completes synchronously, so the rows above never run those state machines, and neither does the AOT
 gate. The `Yielding` rows use a handler that awaits `Task.Yield()` before answering, so the call genuinely completes
 asynchronously. There the discarding logger adds about 0.47 KB (5.56 KB against 5.09 KB, roughly 480 B) per call, which is
-the wrappers' async state machines and is the cost a real network call pays. The two yielding means, 7.994 us and
+attributable by elimination: the synchronous rows show the wrapper adds 0 B, so the async delta is the state machines
+that only an async completion allocates, and it is the cost a real network call pays. The two yielding means, 7.994 us and
 12.235 us, are dominated by the thread pool hand-off and their error bars (11.7 us and 115.8 us) are wider than the
 difference, so they show no logging time cost either way; only their allocation figures are reliable.
