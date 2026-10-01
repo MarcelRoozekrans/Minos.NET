@@ -61,6 +61,13 @@
       they stay inert without [Validate] types. The runtime library flows as usual.
     -->
     <PackageReference Include="ZeroAlloc.Validation" PrivateAssets="analyzers;build;buildtransitive" />
+    <!--
+      The [Instrument] attributes flow to consumers at run time; the bundled proxy generator runs for this library only.
+      PrivateAssets keeps its build and buildtransitive assets out of consumers' builds and the nuspec excludes its
+      Build and Analyzers, as for ZeroAlloc.Validation. NuGet may still flow the analyzer, NuGet/Home#6720, where it
+      stays inert without [Instrument]; the pack tests check that no source is generated.
+    -->
+    <PackageReference Include="ZeroAlloc.Telemetry" PrivateAssets="analyzers;build;buildtransitive" />
   </ItemGroup>
 
   <ItemGroup>

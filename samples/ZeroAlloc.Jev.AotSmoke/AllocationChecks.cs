@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using ZeroAlloc.Jev.Shared;
+using ZeroAlloc.Results;
 using ZeroAlloc.TestHelpers;
 
 namespace ZeroAlloc.Jev.AotSmoke;
@@ -239,14 +240,16 @@ internal static class AllocationChecks
     /// </summary>
     public static async Task DisabledLoggerAddsNothingWhereAnEnabledOneDoes()
     {
-        var unlogged = await LeastYieldingEvaluationAsync(null).ConfigureAwait(false);
-        var disabled = await LeastYieldingEvaluationAsync(NullLoggerFactory.Instance).ConfigureAwait(false);
-        var enabled = await LeastYieldingEvaluationAsync(DiscardingLoggerFactory.Instance).ConfigureAwait(false);
+        var request = Program.Request();
+        Func<JevClient, ValueTask<Result<SystemOneResponse, JevError>>> evaluate = client => client.EvaluateAsync(request);
+        var unlogged = await MedianYieldingAsync(NoulResponseJson, null, evaluate).ConfigureAwait(false);
+        var disabled = await MedianYieldingAsync(NoulResponseJson, NullLoggerFactory.Instance, evaluate).ConfigureAwait(false);
+        var enabled = await MedianYieldingAsync(NoulResponseJson, DiscardingLoggerFactory.Instance, evaluate).ConfigureAwait(false);
         Console.WriteLine($"     yielding EvaluateAsync B/call: no factory {unlogged}, NullLoggerFactory {disabled}, discarding logger {enabled}");
 
-        // The tolerance absorbs measurement noise: a runtime thread allocating during the loop adds up to about 70 B/call
-        // to a single run, which the least of three runs removes, leaving a few bytes. A wrapper's state machine is
-        // hundreds of bytes per call.
+        // The tolerance absorbs measurement noise: a single run can sit tens of bytes per call above or below the usual
+        // figure, which the median of five runs removes, leaving a few bytes. A wrapper's state machine is hundreds of
+        // bytes per call.
         Program.Check(
             disabled - unlogged <= 8,
             "a NullLoggerFactory adds no allocation to an asynchronously completing EvaluateAsync");
@@ -255,33 +258,39 @@ internal static class AllocationChecks
             "the discarding logger adds allocation to an asynchronously completing EvaluateAsync, so this check sees the wrappers");
     }
 
-    // The least of three runs, because noise from other runtime threads only ever adds bytes.
-    private static async Task<long> LeastYieldingEvaluationAsync(ILoggerFactory? loggerFactory)
+    // The median of five runs. Yielding runs vary in both directions: a runtime thread allocating during the loop adds
+    // bytes, and a continuation that lands where a pooled buffer is still cached saves some. The least of several runs
+    // is therefore biased low and lets one lucky run set a baseline; the median ignores an outlier on either side.
+    private static async Task<long> MedianYieldingAsync<TResult>(
+        string responseJson, ILoggerFactory? loggerFactory, Func<JevClient, ValueTask<TResult>> call)
     {
-        var least = long.MaxValue;
-        for (var run = 0; run < 3; run++)
+        const int Runs = 5;
+        var runs = new List<long>(Runs);
+        for (var run = 0; run < Runs; run++)
         {
-            least = Math.Min(least, await MeasureYieldingEvaluationAsync(loggerFactory).ConfigureAwait(false));
+            runs.Add(await MeasureYieldingAsync(responseJson, loggerFactory, call).ConfigureAwait(false));
         }
 
-        return least;
+        runs.Sort();
+        return runs[Runs / 2];
     }
 
-    // Bytes allocated per awaited EvaluateAsync over a handler that yields, on any thread, since the continuation
-    // does not run on the caller's. The loop is sequential, so nothing else allocates meanwhile but the runtime.
-    private static async Task<long> MeasureYieldingEvaluationAsync(ILoggerFactory? loggerFactory)
+    // Bytes allocated per awaited call over a handler that yields, on any thread, since the continuation does not run on
+    // the caller's. The loop is sequential, so nothing else allocates meanwhile but the runtime. call is created once by
+    // the caller, so invoking it allocates nothing per call.
+    private static async Task<long> MeasureYieldingAsync<TResult>(
+        string responseJson, ILoggerFactory? loggerFactory, Func<JevClient, ValueTask<TResult>> call)
     {
         const int YieldingIterations = 500;
-        using var http = new HttpClient(new YieldingHandler(HttpStatusCode.OK, NoulResponseJson))
+        using var http = new HttpClient(new YieldingHandler(HttpStatusCode.OK, responseJson))
         {
             BaseAddress = new Uri("https://example.test/api/"),
         };
         using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" }, loggerFactory);
-        var request = Program.Request();
 
         for (var i = 0; i < 100; i++)
         {
-            _ = await client.EvaluateAsync(request).ConfigureAwait(false);
+            _ = await call(client).ConfigureAwait(false);
         }
 
         GC.Collect();
@@ -289,7 +298,7 @@ internal static class AllocationChecks
         var before = GC.GetTotalAllocatedBytes(precise: true);
         for (var i = 0; i < YieldingIterations; i++)
         {
-            _ = await client.EvaluateAsync(request).ConfigureAwait(false);
+            _ = await call(client).ConfigureAwait(false);
         }
 
         return (GC.GetTotalAllocatedBytes(precise: true) - before) / YieldingIterations;
@@ -383,10 +392,11 @@ internal static class AllocationChecks
         using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
         var set = SmokeBuiltSet.Full(out _, out _, out _, out _);
 
-        // Measured 4288 B/call on published win-x64 AOT: the JevQuestionSet's pre-built request body copied into a pooled
+        // Measured 3656 B/call on published win-x64 AOT: the JevQuestionSet's pre-built request body copied into a pooled
         // buffer, HttpClient's request and response objects and body buffering, the JevAnswers result and the async state
-        // machines if the call does not complete synchronously. Budget: about 10% headroom, 4717 B, rounded up to the next
-        // multiple of 64, 4736 B, since HttpClient's allocations follow runtime internals.
+        // machines if the call does not complete synchronously. It measured higher, 4288 B/call, when first budgeted in
+        // Phase 2.4. The budget stays at 4736 B, that figure with about 10% headroom rounded up to the next multiple of
+        // 64, since HttpClient's allocations follow runtime internals; tightening it is a separate decision.
         GateValueTask(
             budgetBytes: 4736,
             action: () => client.EvaluateAsync(set, "Help! My payouts have been failing for 3 days."),
@@ -423,6 +433,87 @@ internal static class AllocationChecks
             },
             label: "JevAnswersGet",
             passDescription: "JevAnswers.Get allocates nothing");
+    }
+
+    /// <summary>
+    /// <see cref="EvaluateRoundTrip"/> while discarding listeners sample every span and enable every instrument.
+    /// </summary>
+    public static void EvaluateRoundTripWhileListening()
+    {
+        using var telemetry = new DiscardingTelemetry();
+        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, NoulResponseJson)) { BaseAddress = new Uri("https://example.test/api/") };
+        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+        var request = Program.Request();
+
+        // Measured 5680 B/call on published win-x64 AOT. The call pays EvaluateRoundTrip's bytes plus the Activity, its
+        // boxed start tags, the boxed tag and measurement values and each metric's TagList. Budget: about 10% headroom
+        // over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
+        GateValueTask(
+            budgetBytes: 6272,
+            action: () => client.EvaluateAsync(request),
+            label: "EvaluateRoundTripWhileListening",
+            passDescription: "EvaluateAsync while listening stays within its allocation budget");
+        Program.Check(telemetry.Measurements > 0, "the discarding listeners received measurements, so EvaluateAsync ran the listening path");
+        Program.Check(telemetry.StoppedSpans > 0, "the discarding listeners recorded spans, so EvaluateAsync ran the listening path");
+    }
+
+    /// <summary><see cref="TypedEvaluateRoundTrip"/> while discarding listeners are attached.</summary>
+    public static void TypedEvaluateRoundTripWhileListening()
+    {
+        using var telemetry = new DiscardingTelemetry();
+        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, TriageResponseJson)) { BaseAddress = new Uri("https://example.test/api/") };
+        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+
+        // Measured 4928 B/call on published win-x64 AOT. The call pays TypedEvaluateRoundTrip's bytes plus the span, tags
+        // and measurements, and the deferred reads, which allocate only the response model's string, once per attribute
+        // that reads it. Budget: about 10% headroom over the measurement, rounded up to the next multiple of 64 B, per the
+        // Phase 1.8 rule.
+        GateValueTask(
+            budgetBytes: 5440,
+            action: () => client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days."),
+            label: "TypedEvaluateRoundTripWhileListening",
+            passDescription: "EvaluateAsync<T> while listening stays within its allocation budget");
+        Program.Check(telemetry.Measurements > 0, "the discarding listeners received measurements, so EvaluateAsync<T> ran the listening path");
+        Program.Check(telemetry.StoppedSpans > 0, "the discarding listeners recorded spans, so EvaluateAsync<T> ran the listening path");
+    }
+
+    /// <summary><see cref="EvaluateBuiltSetRoundTrip"/> while discarding listeners are attached.</summary>
+    public static void EvaluateBuiltSetRoundTripWhileListening()
+    {
+        using var telemetry = new DiscardingTelemetry();
+        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, SmokeBuiltSet.ResponseJson)) { BaseAddress = new Uri("https://example.test/api/") };
+        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+        var set = SmokeBuiltSet.Full(out _, out _, out _, out _);
+
+        // Measured 5216 B/call on published win-x64 AOT. The call pays EvaluateBuiltSetRoundTrip's bytes plus the span,
+        // tags and measurements. Budget: about 10% headroom over the measurement, rounded up to the next multiple of 64 B,
+        // per the Phase 1.8 rule.
+        GateValueTask(
+            budgetBytes: 5760,
+            action: () => client.EvaluateAsync(set, "Help! My payouts have been failing for 3 days."),
+            label: "EvaluateBuiltSetRoundTripWhileListening",
+            passDescription: "EvaluateAsync over a built set while listening stays within its allocation budget");
+        Program.Check(telemetry.Measurements > 0, "the discarding listeners received measurements, so the built set ran the listening path");
+        Program.Check(telemetry.StoppedSpans > 0, "the discarding listeners recorded spans, so the built set ran the listening path");
+    }
+
+    /// <summary>
+    /// A typed evaluation that completes asynchronously, with nothing listening: the one place telemetry adds bytes when
+    /// off, the unwrap's state machine. The canned-handler gates complete synchronously and cannot see it.
+    /// </summary>
+    public static async Task TelemetryOffAsynchronousTypedEvaluation()
+    {
+        var median = await MedianYieldingAsync(TriageResponseJson, null, static client => client.EvaluateAsync<SmokeTriage>("Help!")).ConfigureAwait(false);
+        Console.WriteLine($"     yielding EvaluateAsync<T> B/call with telemetry off: {median}");
+
+        // Measured 4568 B/call, the median of five runs, on published win-x64 AOT. This is the whole asynchronously
+        // completing call, not only the unwrap: the transport's request and response, body buffering, parsing and every
+        // boxed async state machine, among them the unwrap's. Budget: about 10% headroom over the measurement, rounded up
+        // to the next multiple of 64 B, per the Phase 1.8 rule.
+        const long BudgetBytes = 5056;
+        Program.Check(
+            median <= BudgetBytes,
+            $"an asynchronously completing EvaluateAsync<T> with telemetry off stays within its allocation budget: {median} B/call against {BudgetBytes} B");
     }
 
     private static void Gate(int budgetBytes, Action action, string label, string passDescription)

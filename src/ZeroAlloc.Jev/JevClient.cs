@@ -5,6 +5,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.Extensions.Logging;
 using ZeroAlloc.Jev.Serialization;
+using ZeroAlloc.Jev.Telemetry;
 using ZeroAlloc.Jev.Transport;
 using ZeroAlloc.Resilience;
 using ZeroAlloc.Rest.SystemTextJson;
@@ -18,15 +19,17 @@ namespace ZeroAlloc.Jev;
 /// <see cref="ILoggerFactory"/> to log each operation, each retried attempt and each unexpected exception. What the
 /// library writes never contains the state, questions, answers, API key, a header value or an error response body; the
 /// unexpected-exception event carries the exception as thrown, which can include one from your own handler.
+/// Spans and metrics come from the ZeroAlloc.Jev ActivitySource and Meter; see the README's Telemetry section.
 /// </remarks>
 public sealed class JevClient : IJevClient, IDisposable
 {
     private static readonly ProductInfoHeaderValue UserAgent = CreateUserAgent();
 
-    private readonly IJevApiResilienceProxy _api;
+    private readonly JevOperationsInstrumented _operations;
     private readonly HttpClient? _ownedHttpClient;
-    private readonly string _authorization;
     private readonly string _model;
+    private readonly string _providerName;
+    private readonly Uri _endpoint;
     private readonly ArrayPool<byte> _pool;
     private readonly JevProvider _provider;
     private readonly ILogger? _logger;
@@ -182,7 +185,8 @@ public sealed class JevClient : IJevClient, IDisposable
         }
 
         _provider = settings.Provider;
-        _authorization = "Bearer " + settings.ApiKey;
+        _providerName = JevTelemetry.ProviderOf(settings.Provider);
+        _endpoint = httpClient.BaseAddress!;
         _model = settings.Model;
         _pool = pool;
         _logger = logger;
@@ -193,10 +197,13 @@ public sealed class JevClient : IJevClient, IDisposable
             new JevErrorMapper(time));
         var retry = RetryPolicyFor(settings);
 
-        // The proxy, then the logging decorator, then the transport: the decorator sees every attempt with its retry
-        // number and shares the proxy's policy. Without a logger the proxy wraps the transport directly, as before.
+        // The retry proxy, then the logging decorator, then the transport: the decorator sees every attempt with its retry
+        // number and shares the retry proxy's policy. Without a logger the retry proxy wraps the transport directly, as before.
         IJevApi attempts = logger is null ? transport : new LoggingJevApi(transport, logger, retry);
-        _api = new IJevApiResilienceProxy(attempts, new JevApiResiliencePolicies { Retry = retry });
+        var api = new IJevApiResilienceProxy(attempts, new JevApiResiliencePolicies { Retry = retry });
+
+        // Always wired: with nothing listening, the generated proxy returns each operation's own task.
+        _operations = new JevOperationsInstrumented(new JevOperations(api, "Bearer " + settings.ApiKey));
     }
 
     /// <inheritdoc />
@@ -210,7 +217,7 @@ public sealed class JevClient : IJevClient, IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         var started = JevLog.StartTiming(_logger);
         return WithLogging(
-            EvaluateCoreAsync(request, ct),
+            _operations.EvaluateAsync(request, _providerName, _endpoint, ct),
             JevLog.Evaluate,
             request.Model,
             _logger is null ? 0 : request.Questions is { } questions ? questions.Count : 0,
@@ -325,8 +332,9 @@ public sealed class JevClient : IJevClient, IDisposable
         JevContent.EnsureInitialized(state, nameof(state));
         ObjectDisposedException.ThrowIf(_disposed, this);
         var started = JevLog.StartTiming(_logger);
+        var body = TypedRequestWriter.Write(questionSet.QuestionsUtf8, state, _model, _pool);
         return WithLogging(
-            EvaluateTypedAsync(TypedRequestWriter.Write(questionSet.QuestionsUtf8, state, _model, _pool), questionSet.Parser, ct),
+            Evaluated.Unwrap(_operations.EvaluateBuiltSetAsync(body, questionSet, _model, _providerName, _endpoint, ct)),
             JevLog.EvaluateBuiltSet,
             _model,
             questionSet.Plan.Length,
@@ -340,6 +348,7 @@ public sealed class JevClient : IJevClient, IDisposable
         ObjectDisposedException.ThrowIf(_disposed, this);
         var started = JevLog.StartTiming(_logger);
 
+        // Created before any call, so it bypasses the proxy: no request is sent, and no span or metric is recorded.
         if (_provider == JevProvider.OpenRouter)
         {
             return WithModelLogging(
@@ -350,7 +359,7 @@ public sealed class JevClient : IJevClient, IDisposable
                 ct);
         }
 
-        return WithModelLogging(ListModelsCoreAsync(ct), started, ct);
+        return WithModelLogging(_operations.ListModelsAsync(_providerName, _endpoint, ct), started, ct);
     }
 
     /// <inheritdoc />
@@ -365,61 +374,21 @@ public sealed class JevClient : IJevClient, IDisposable
         _ownedHttpClient?.Dispose();
     }
 
-    // ZeroAlloc.Rest 3.0 itself rejects an empty or null success body as a Deserialization error before this runs, since
-    // SystemOneResponse is non-nullable in IJevApi; only a null value nested inside a non-null response, such as an
-    // answer, still needs to be caught here.
-    private async ValueTask<Result<SystemOneResponse, JevError>> EvaluateCoreAsync(SystemOneRequest request, CancellationToken ct)
-    {
-        var result = await _api.EvaluateAsync(request, _authorization, retryCount: null, ct).ConfigureAwait(false);
-
-        if (result.IsSuccess && HasNullAnswer(result.Value))
-        {
-            return Result<SystemOneResponse, JevError>.Failure(Unreadable("The response contains a null answer."));
-        }
-
-        return result;
-    }
-
-    // Owns body: the retry proxy sends the same instance on every attempt, so it is disposed only once the whole call,
-    // retries included, has completed. A successful response is the only RawJson the transport hands back; failed
-    // attempts carry a JevError and no buffer.
-    private async ValueTask<Result<TResult, JevError>> EvaluateTypedAsync<TResult>(
-        RawJson body, AnswerParser<TResult> parse, CancellationToken ct)
-    {
-        RawJson? response = null;
-        try
-        {
-            var result = await _api.EvaluateRawAsync(body, _authorization, retryCount: null, ct).ConfigureAwait(false);
-            if (result.IsFailure)
-            {
-                return Result<TResult, JevError>.Failure(result.Error);
-            }
-
-            response = result.Value;
-            return TypedEvaluation.ParseResponse(response.Span, parse, statusCode: 200);
-        }
-        finally
-        {
-            response?.Dispose();
-            body.Dispose();
-        }
-    }
-
-    // ZeroAlloc.Rest 3.0 itself rejects an empty or null success body as a Deserialization error before this runs,
-    // since ModelList is non-nullable in IJevApi, so no null check remains needed here.
-    private ValueTask<Result<ModelList, JevError>> ListModelsCoreAsync(CancellationToken ct)
-        => _api.ListModelsAsync(_authorization, retryCount: null, ct);
-
-    // The four typed overloads: the request is already written, from the generated set's questions, into body.
+    // The four typed overloads: the request is already written, from the generated set's questions, into body. The
+    // question count is a span tag on every call, so it is read every call, from a static field set once per set type,
+    // and the log reuses the same value.
     private ValueTask<Result<T, JevError>> EvaluateGeneratedAsync<T>(long started, RawJson body, CancellationToken ct)
         where T : IJevQuestionSet<T>
-        => WithLogging(
-            EvaluateTypedAsync(body, GeneratedAnswerParser<T>.Instance, ct),
+    {
+        var questionCount = GeneratedQuestionCount<T>.Value;
+        return WithLogging(
+            Evaluated.Unwrap(_operations.EvaluateTypedAsync<T>(body, _model, _providerName, _endpoint, questionCount, ct)),
             JevLog.EvaluateTyped,
             _model,
-            QuestionCount<T>(),
+            questionCount,
             started,
             ct);
+    }
 
     // Checked per call: without a logger, or with every level the operation can emit disabled, this returns call
     // itself, so the client runs exactly the unlogged code and pays no extra state machine.
@@ -494,12 +463,6 @@ public sealed class JevClient : IJevClient, IDisposable
         }
     }
 
-    // The generated set's question count, read once per type and only when a logger could log it: the argument is
-    // evaluated before WithLogging's own check, so this repeats the same allocation-free IsAnyEnabled check.
-    private int QuestionCount<T>()
-        where T : IJevQuestionSet<T>
-        => _logger is { } logger && JevLog.IsAnyEnabled(logger) ? GeneratedQuestionCount<T>.Value : 0;
-
     // An owned client's HttpClient.Timeout, from JevClientOptions.Timeout, bounds each attempt; a borrowed client's
     // own Timeout applies instead. Either way the policy adds no per-attempt timeout.
     private static RetryPolicy RetryPolicyFor(JevClientSettings settings)
@@ -509,25 +472,6 @@ public sealed class JevClient : IJevClient, IDisposable
             jitter: settings.Jitter,
             perAttemptTimeoutMs: 0,
             maxDelayMs: (int)Math.Ceiling(settings.MaxRetryDelay.TotalMilliseconds));
-
-    // System.Text.Json does not apply nullable annotations to dictionary values, so a null answer can arrive.
-    private static bool HasNullAnswer(SystemOneResponse response)
-    {
-        foreach (var answer in response.Answers.Values)
-        {
-            if (answer is null)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    // statusCode 200 is a placeholder: ZeroAlloc.Rest's generated client does not expose the real status of a
-    // successful response that this client itself then rejects as unreadable, so 200 is kept only because that is
-    // the status that let the response through in the first place.
-    private static JevError Unreadable(string message) => new(JevErrorKind.InvalidResponse, message, statusCode: 200);
 
     // Validates a caller-supplied HttpClient.BaseAddress with the same rules as a configured address. The caller's
     // client is never modified, so unlike a configured address (which gets a trailing slash appended), the path here

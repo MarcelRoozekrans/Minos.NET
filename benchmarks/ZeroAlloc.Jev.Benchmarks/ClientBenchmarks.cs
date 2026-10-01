@@ -13,8 +13,8 @@ namespace ZeroAlloc.Jev.Benchmarks;
 [MemoryDiagnoser]
 public class ClientBenchmarks
 {
-    private const string NoulResponseJson = """{"model":"jev-1.13.0","answers":{"is_urgent":{"type":"noul","noul":0.95}},"usage":{"input_tokens":296,"output_tokens":20}}""";
-    private const string ModelsResponseJson = """{"models":[{"name":"jev-latest","description":"The most recent stable, official release.","release_date":"2026-09-15"}]}""";
+    internal const string NoulResponseJson = """{"model":"jev-1.13.0","answers":{"is_urgent":{"type":"noul","noul":0.95}},"usage":{"input_tokens":296,"output_tokens":20}}""";
+    internal const string ModelsResponseJson = """{"models":[{"name":"jev-latest","description":"The most recent stable, official release.","release_date":"2026-09-15"}]}""";
     internal const string TriageResponseJson = """{"model":"jev-1.13.0","answers":{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}},"usage":{"input_tokens":296,"output_tokens":20}}""";
 
     private HttpClient _evaluateHttp = null!;
@@ -35,6 +35,8 @@ public class ClientBenchmarks
     private JevClient _evaluateYieldingNullLoggedClient = null!;
     private JevClient _evaluateYieldingClient = null!;
     private JevClient _evaluateYieldingLoggedClient = null!;
+    private HttpClient _typedEvaluateYieldingHttp = null!;
+    private JevClient _typedEvaluateYieldingClient = null!;
     private SystemOneRequest _request = null!;
     private string _typedState = null!;
 
@@ -50,6 +52,7 @@ public class ClientBenchmarks
         (_evaluateYieldingHttp, _evaluateYieldingClient) = CreateClient(new YieldingHandler(HttpStatusCode.OK, NoulResponseJson), loggerFactory: null);
         (_evaluateYieldingLoggedHttp, _evaluateYieldingLoggedClient) = CreateClient(new YieldingHandler(HttpStatusCode.OK, NoulResponseJson), DiscardingLoggerFactory.Instance);
         (_evaluateYieldingNullLoggedHttp, _evaluateYieldingNullLoggedClient) = CreateClient(new YieldingHandler(HttpStatusCode.OK, NoulResponseJson), NullLoggerFactory.Instance);
+        (_typedEvaluateYieldingHttp, _typedEvaluateYieldingClient) = CreateClient(new YieldingHandler(HttpStatusCode.OK, TriageResponseJson), loggerFactory: null);
         _request = new SystemOneRequest
         {
             State = "Help! My payouts have been failing for 3 days.",
@@ -82,6 +85,8 @@ public class ClientBenchmarks
         _evaluateYieldingHttp.Dispose();
         _evaluateYieldingLoggedHttp.Dispose();
         _evaluateYieldingNullLoggedHttp.Dispose();
+        _typedEvaluateYieldingClient.Dispose();
+        _typedEvaluateYieldingHttp.Dispose();
     }
 
     /// <summary><see cref="JevClient.EvaluateAsync"/> over a fixed Noul response.</summary>
@@ -126,13 +131,18 @@ public class ClientBenchmarks
     [Benchmark]
     public ValueTask<Result<SystemOneResponse, JevError>> EvaluateYieldingWithDiscardingLoggerAsync() => _evaluateYieldingLoggedClient.EvaluateAsync(_request);
 
+    /// <summary><see cref="TypedEvaluateAsync"/> over a handler that completes asynchronously, with nothing listening:
+    /// what a real typed call pays, the telemetry unwrap's state machine included.</summary>
+    [Benchmark]
+    public ValueTask<Result<BenchTriage, JevError>> TypedEvaluateYieldingAsync() => _typedEvaluateYieldingClient.EvaluateAsync<BenchTriage>(_typedState);
+
     internal static (HttpClient Http, JevClient Client) CreateClient(string responseJson)
         => CreateClient(responseJson, loggerFactory: null);
 
     internal static (HttpClient Http, JevClient Client) CreateClient(string responseJson, ILoggerFactory? loggerFactory)
         => CreateClient(new CannedHandler(HttpStatusCode.OK, responseJson), loggerFactory);
 
-    private static (HttpClient Http, JevClient Client) CreateClient(HttpMessageHandler handler, ILoggerFactory? loggerFactory)
+    internal static (HttpClient Http, JevClient Client) CreateClient(HttpMessageHandler handler, ILoggerFactory? loggerFactory)
     {
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://example.test/api/") };
         // Default retry options: the handler always returns 200, so no retry ever fires, and

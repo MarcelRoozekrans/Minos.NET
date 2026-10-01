@@ -1,12 +1,26 @@
-# Session State — 2026-09-30
+# Session State — 2026-10-01
 
-**Date:** 2026-09-30
+**Date:** 2026-10-01
 
 ## Current Position
 - **Milestone:** 3 — .NET integration, active since 2026-09-30 (design `docs/superpowers/specs/2026-09-30-milestone-3-design.md`).
-- **Phase:** 3.2 — Telemetry (pending; no design spec yet). Phase 3.1 — Logging complete on branch `phase/3.1-logging`, PR open, not yet merged.
-- **Last completed task:** Phase 3.1 — Logging. Final whole-branch review passed after one fix wave.
-- **Next task:** merge the Phase 3.1 PR (maintainer), then `start-next-phase` for Phase 3.2 — Telemetry. Phase 3.2 starts by testing whether ZeroAlloc.Telemetry's attributes can express the GenAI names and a confidence histogram.
+- **Phase:** 3.2 — Telemetry, complete on branch `phase/3.2-telemetry`; PR #72 is open and not yet merged. Phase 3.1 — Logging merged as PR #69. Next phase: 3.3 — DI package (pending; no design spec yet).
+- **Last completed task:** Phase 3.2 — Telemetry. All 9 plan tasks passed review, and the final whole-branch review passed after one fix wave. The full suite, a non-incremental build and the AOT smoke app are clean.
+- **Next task:** merge PR #72 (maintainer), confirm the release-please PR lists the three Phase 3.2 `feat` lines, then `start-next-phase` for Phase 3.3 — DI package.
+
+## What Phase 3.2 shipped
+- Internal `[Instrument("ZeroAlloc.Jev")] IJevOperations`, with four methods, implemented by `JevOperations` over the retry proxy. `JevClient` calls the generated `JevOperationsInstrumented`. Source and meter are both `ZeroAlloc.Jev`. No constructor changes.
+- One GenAI CLIENT span per operation, `evaluate {model}` or `list_models`, with start tags and success/failure end tags. Failures get `error.type` = the `JevErrorKind` name and Error status with no description. The span nests each retried attempt's `ZeroAlloc.Rest` span.
+- Metrics: `gen_ai.client.operation.duration` in seconds, the GenAI token histograms and counters (`gen_ai.token.modality=text`), and `jev.answer.confidence`, one point per Choice or Score answer. Each has explicit buckets.
+- `Evaluated<T>` defers the model, usage and confidence reads from the pooled response until the proxy asks, which it does only while something listens. `GeneratedQuestionCount<T>` is now read on every typed call and is 0 for a malformed hand-written set.
+- Cost with nothing listening:
+  - 0 B on the raw path, list-models and synchronously completing typed and built-set calls.
+  - About 211 B on an asynchronously completing typed or built-set call, for the unwrap. The limit is 344 B.
+- Cost while listening: about 1.0–1.8 KB per call. New AOT budgets: 6272, 5440 and 5760 B while listening, and 5056 B for an async typed call with telemetry off. Existing budgets are unchanged.
+- The AOT smoke app's yielding measurements now take the median of five runs, because the least of three made a logging check flaky.
+- New runtime dependency ZeroAlloc.Telemetry 1.10.0. Its generator reaches consumers transitively and stays inert, which the pack tests assert.
+- Upstream: ZeroAlloc-Net/ZeroAlloc.Telemetry#184 is filed by the ZeroAlloc org session. On the exception path the span gets the exception message as its description and no `error.type`. The README documents this. #68 has a comment on the third loose budget, `EvaluateBuiltSetRoundTrip`: 4736 B against 3656 B measured.
+- Lesson: the plan quoted a stale 4288 B for the built-set call. `main` measured 3656 B. Re-measure baselines on `main` before a plan asserts them.
 
 ## What Phase 3.1 shipped
 - `JevClient(JevClientOptions?, ILoggerFactory?)` and `JevClient(HttpClient, JevClientOptions?, ILoggerFactory?)`; category `ZeroAlloc.Jev.JevClient`; the four older constructors log nothing. `new JevClient(null, null)` is now CS0121 (accepted; it always threw).
@@ -99,4 +113,12 @@
 - Still unknown until a TypeSafe live run (needs `TYPESAFE_API_KEY` and the `live-api` environment): whether TypeSafe sends `Retry-After`, the 422 body schema, and whether Phase 2.4's `BuiltQuestionSet_ParsesAKeyedChoice` passes.
 
 ## Recommended Next Step
-Merge the Phase 3.1 PR, then run `start-next-phase` for Phase 3.2 — Telemetry. Open maintainer items: the `live-api` environment and TypeSafe live run; record the performance baseline from a full Benchmarks run; decide #68; release PR #63 (0.2.0) stays open until you choose to release.
+Merge PR #72, check the release-please PR for the Phase 3.2 `feat` lines, then run `start-next-phase` for Phase 3.3 — DI package.
+
+Open maintainer items:
+- the `live-api` environment and the TypeSafe live run;
+- record the performance baseline from a full Benchmarks run;
+- decide #68, which now covers three gates;
+- answer ZeroAlloc.Telemetry#184's two API questions;
+- Renovate PRs #70 and #71;
+- release PR #63 (0.2.0) stays open until you choose to release.

@@ -171,3 +171,11 @@ public partial record DeepJsonCheck
     [Choice(DeepJson.Text, Json = true)]
     public partial Choice<DeepOption> Depth { get; }
 }
+
+/// <summary>Built sets the telemetry tests share.</summary>
+internal static class BuiltSets
+{
+    /// <summary>One Noul, <c>is_urgent</c>, which <c>response-noul.json</c> answers.</summary>
+    public static JevQuestionSet UrgencyOnly()
+        => JevQuestionSet.CreateBuilder().Noul("is_urgent", "Does this convey urgency?", out _).Build().Value;
+}

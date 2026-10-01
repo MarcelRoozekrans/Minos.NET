@@ -1,3 +1,5 @@
+using ZeroAlloc.Jev.Telemetry;
+
 namespace ZeroAlloc.Jev;
 
 /// <summary>The answers to a <see cref="SystemOneRequest"/>, one per question.</summary>
@@ -17,4 +19,7 @@ public sealed class SystemOneResponse
 
     /// <summary>Gets the upstream provider OpenRouter routed to; <see langword="null"/> on TypeSafe's API.</summary>
     public string? Provider { get; init; }
+
+    /// <summary>Gets each Choice and Score answer's confidence, for the telemetry proxy; reading it does not allocate.</summary>
+    internal AnswerConfidences Confidences => new(Answers);
 }

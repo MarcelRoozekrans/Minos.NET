@@ -46,16 +46,20 @@ public class QuestionSetBenchmarks
     private HttpClient _http = null!;
     private JevClient _client = null!;
 
-    [GlobalSetup]
-    public void Setup()
-    {
-        _builder = JevQuestionSet.CreateBuilder()
+    /// <summary>The Noul, enum Choice and enum Score of <see cref="ClientBenchmarks.TypedEvaluateAsync"/>, as a builder.</summary>
+    internal static JevQuestionSetBuilder TriageBuilder()
+        => JevQuestionSet.CreateBuilder()
             .Noul("requests_credentials", "Does `message` ask for a credential?", out _)
             .Choice<Team>("team", "Which team should handle `message`?", out _, o => o
                 .Describe(Team.Billing, "Charges, invoices, refunds")
                 .Describe(Team.Account, "Login, profile, permissions"))
             .Score<Urgency>("urgency", "How urgent is `message`?", out _, l => l
                 .Level(Urgency.Low, "Can wait").Level(Urgency.Medium, "This week").Level(Urgency.High, "Today"));
+
+    [GlobalSetup]
+    public void Setup()
+    {
+        _builder = TriageBuilder();
         _triage = _builder.Build().Value;
 
         var twenty = JevQuestionSet.CreateBuilder();

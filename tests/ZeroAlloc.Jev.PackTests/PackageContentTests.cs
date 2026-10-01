@@ -144,6 +144,7 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
         "ZeroAlloc.Rest",
         "ZeroAlloc.Rest.SystemTextJson",
         "ZeroAlloc.Results",
+        "ZeroAlloc.Telemetry",
         "ZeroAlloc.Resilience",
         "ZeroAlloc.Validation",
     ];
@@ -255,7 +256,19 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
     }
 
     [Fact]
-    public void ValidationDependency_ExcludesBuildAndAnalyzers()
+    public void ValidationDependency_ExcludesBuildAndAnalyzers() => AssertExcludesBuildAndAnalyzers("ZeroAlloc.Validation");
+
+    [Fact]
+    public void TelemetryDependency_IsTheFloor_AndExcludesBuildAndAnalyzers()
+    {
+        var dependency = AssertExcludesBuildAndAnalyzers("ZeroAlloc.Telemetry");
+
+        // 1.10.0 allows several [TraceTag] on one parameter, which the endpoint and request tags need.
+        Assert.Equal("1.10.0", (string?)dependency.Attribute("version"));
+    }
+
+    // Finds the nuspec dependency on id and checks that its PrivateAssets keep Build and Analyzers out of consumers.
+    private XElement AssertExcludesBuildAndAnalyzers(string id)
     {
         XNamespace ns = "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd";
         var nuspec = XDocument.Load(_fixture.NuspecPath);
@@ -264,7 +277,7 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
 #pragma warning disable HLQ005
         var dependency = Assert.Single(
             nuspec.Descendants(ns + "dependency"),
-            d => string.Equals((string?)d.Attribute("id"), "ZeroAlloc.Validation", StringComparison.Ordinal));
+            d => string.Equals((string?)d.Attribute("id"), id, StringComparison.Ordinal));
 #pragma warning restore HLQ005
         var exclude = (string?)dependency.Attribute("exclude");
         var include = (string?)dependency.Attribute("include");
@@ -275,23 +288,25 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
             var excluded = exclude.Split(',', StringSplitOptions.TrimEntries);
             Assert.True(
                 excluded.Contains("Build", StringComparer.OrdinalIgnoreCase) && excluded.Contains("Analyzers", StringComparer.OrdinalIgnoreCase),
-                $"Found the exclude form '{exclude}', which must list Build and Analyzers.");
+                $"Found the exclude form '{exclude}' on {id}, which must list Build and Analyzers.");
         }
         else
         {
-            Assert.True(include is not null, "Found neither an exclude nor an include attribute on the ZeroAlloc.Validation dependency.");
+            Assert.True(include is not null, $"Found neither an exclude nor an include attribute on the {id} dependency.");
             var included = include.Split(',', StringSplitOptions.TrimEntries);
             Assert.True(
                 !included.Contains("Build", StringComparer.OrdinalIgnoreCase) && !included.Contains("Analyzers", StringComparer.OrdinalIgnoreCase),
-                $"Found the include form '{include}', which must contain neither Build nor Analyzers.");
+                $"Found the include form '{include}' on {id}, which must contain neither Build nor Analyzers.");
         }
+
+        return dependency;
     }
 
     // NuGet flows a package's analyzers to consumers transitively whatever PrivateAssets says, NuGet/Home#6720, so the
-    // ZeroAlloc.Validation and ZeroAlloc.Pipeline analyzers do reach the consumer. This asserts they stay inert: nothing
+    // ZeroAlloc.Validation, ZeroAlloc.Pipeline and ZeroAlloc.Telemetry analyzers do reach the consumer. This asserts they stay inert: nothing
     // is emitted and the build stays clean, rather than that they are absent.
     [Fact]
-    public void PackedConsumer_WithoutValidateTypes_BuildsCleanAndGetsNoValidationSources()
+    public void PackedConsumer_WithoutValidateOrInstrumentTypes_BuildsCleanAndGetsNoSourceFromThoseGenerators()
     {
         var consumer = Path.Combine(_fixture.OutputDirectory, "consumer");
         Directory.CreateDirectory(consumer);
@@ -356,6 +371,16 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
             }
             """);
 
+        // The runtime attributes flow: a consumer can name them, though it needs no reference of its own to use Jev.
+        File.WriteAllText(Path.Combine(consumer, "Attributes.cs"), """
+            namespace Consumer;
+
+            public static class Attributes
+            {
+                public static System.Type Instrument => typeof(ZeroAlloc.Telemetry.InstrumentAttribute);
+            }
+            """);
+
         // Non-vacuity guard: the check must see package analyzers, so ZeroAlloc.Jev's own generator has to be listed.
         // Restore separately, so the msbuild output holds nothing but the JSON.
         RunDotnet(consumer, "restore", "Consumer.csproj");
@@ -374,6 +399,10 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
         // here, so the no-generated-source check below proves it stays inert rather than absent.
         Assert.Contains("Microsoft.Extensions.Logging.Generators.dll", analyzers);
 
+        // ZeroAlloc.Telemetry's proxy generator reaches the consumer the same way, NuGet/Home#6720, so the check below
+        // proves it stays inert rather than absent.
+        Assert.Contains("ZeroAlloc.Telemetry.Generator.dll", analyzers);
+
         // It must build with no warning, and no source may come from the Validation or Pipeline generators.
         RunDotnet(consumer, "build", "Consumer.csproj", "-c", "Release", "-p:EmitCompilerGeneratedFiles=true", "-warnaserror");
 
@@ -387,6 +416,9 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
         Assert.Contains("ZeroAlloc.Jev.Generator", generators);
         Assert.DoesNotContain(generators, name => name.StartsWith("ZeroAlloc.Validation", StringComparison.Ordinal));
         Assert.DoesNotContain(generators, name => name.StartsWith("ZeroAlloc.Pipeline", StringComparison.Ordinal));
+
+        // With no [Instrument] interface, ZeroAlloc.Telemetry's proxy generator emits nothing.
+        Assert.DoesNotContain(generators, name => name.StartsWith("ZeroAlloc.Telemetry", StringComparison.Ordinal));
 
         // The [LoggerMessage] generator reached the consumer, as asserted above; with no [LoggerMessage] method it emits nothing.
         Assert.DoesNotContain(generators, name => name.StartsWith("Microsoft.Extensions.Logging.Generators", StringComparison.Ordinal));
