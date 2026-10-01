@@ -27,7 +27,7 @@ Jev feels native in a .NET generic-host app. One call registers the client, incl
 
 ## Phases
 1. Phase 3.1 — Logging [complete]
-2. Phase 3.2 — Telemetry [pending]
+2. Phase 3.2 — Telemetry [active]
 3. Phase 3.3 — DI package [pending]
 4. Phase 3.4 — Options and configuration [pending]
 
