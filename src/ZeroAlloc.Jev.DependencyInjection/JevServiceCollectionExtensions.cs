@@ -46,10 +46,58 @@ public static class JevServiceCollectionExtensions
         return AddDefault(services, configure);
     }
 
+    /// <summary>
+    /// Registers an <see cref="IJevClient"/> keyed by <paramref name="name"/>, configured from the
+    /// <see cref="JevClientOptions"/> named <paramref name="name"/>, defaults and environment variables. Inject it with
+    /// <c>[FromKeyedServices(name)]</c>.
+    /// </summary>
+    /// <param name="services">The services to add to.</param>
+    /// <param name="name">The client's service key and options name.</param>
+    /// <returns>The builder of the client's <see cref="HttpClient"/>, for adding handlers.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> or <paramref name="name"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="name"/> is empty.</exception>
+    public static IHttpClientBuilder AddJevClient(this IServiceCollection services, string name)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        return AddKeyed(services, name, configure: null);
+    }
+
+    /// <summary>
+    /// Registers an <see cref="IJevClient"/> keyed by <paramref name="name"/>, configured by <paramref name="configure"/>.
+    /// Inject it with <c>[FromKeyedServices(name)]</c>.
+    /// </summary>
+    /// <param name="services">The services to add to.</param>
+    /// <param name="name">The client's service key and options name.</param>
+    /// <param name="configure">
+    /// Configures the <see cref="JevClientOptions"/> named <paramref name="name"/>. Each call adds its delegate, and they
+    /// run in order.
+    /// </param>
+    /// <returns>The builder of the client's <see cref="HttpClient"/>, for adding handlers.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="services"/>, <paramref name="name"/> or <paramref name="configure"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="ArgumentException"><paramref name="name"/> is empty.</exception>
+    public static IHttpClientBuilder AddJevClient(this IServiceCollection services, string name, Action<JevClientOptions> configure)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentNullException.ThrowIfNull(configure);
+        return AddKeyed(services, name, configure);
+    }
+
     private static IHttpClientBuilder AddDefault(IServiceCollection services, Action<JevClientOptions>? configure)
     {
         var builder = AddOptionsAndHttpClient(services, OptionsDefaults.DefaultName, HttpClientName, configure);
         services.TryAddSingleton<IJevClient>(provider => Create(provider, OptionsDefaults.DefaultName, HttpClientName));
+        return builder;
+    }
+
+    private static IHttpClientBuilder AddKeyed(IServiceCollection services, string name, Action<JevClientOptions>? configure)
+    {
+        var httpClientName = HttpClientName + ":" + name;
+        var builder = AddOptionsAndHttpClient(services, name, httpClientName, configure);
+        services.TryAddKeyedSingleton<IJevClient>(name, (provider, _) => Create(provider, name, httpClientName));
         return builder;
     }
 
