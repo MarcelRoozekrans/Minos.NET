@@ -102,3 +102,50 @@ that only an async completion allocates, and it is the cost a real network call 
 difference, so they show no logging time cost either way; only their allocation figures are reliable.
 
 `EvaluateYieldingWithNullLoggerAsync` runs the same yielding call through `NullLoggerFactory`: it allocates 5.09 KB, the same as the unlogged call, so a disabled logger adds no allocation even where an enabled one adds about 480 B. Its mean comes from a later, noisier run that also re-measured the two rows beside it (26.51 us and 28.30 us, error bars above 200 us), so it says nothing about time. The AOT smoke app makes the same comparison with `GC.GetTotalAllocatedBytes` over 500 awaited calls, the least of three runs: 5254 B with no factory, 5254 B with `NullLoggerFactory` and 5733 B with the discarding logger.
+
+### Phase 3.2 — Telemetry
+
+| Benchmark | Mean | Allocated | AOT smoke budget |
+|---|---|---|---|
+| `ClientBenchmarks.EvaluateAsync` | 2.530 us | 4.17 KB | 5120 B |
+| `TelemetryBenchmarks.EvaluateListeningAsync` | 3.200 us | 5.51 KB | 6272 B |
+| `ClientBenchmarks.TypedEvaluateAsync` | 2.082 us | 3.29 KB | 4224 B |
+| `TelemetryBenchmarks.TypedEvaluateListeningAsync` | 6.623 us | 4.81 KB | 5440 B |
+| `QuestionSetBenchmarks.EvaluateBuiltSet` | 2.024 us | 3.31 KB | — |
+| `TelemetryBenchmarks.EvaluateBuiltSetListeningAsync` | 6.457 us | 4.84 KB | — |
+| `ClientBenchmarks.ListModelsAsync` | 1.520 us | 3.08 KB | — |
+| `TelemetryBenchmarks.ListModelsListeningAsync` | 1.872 us | 4.09 KB | — |
+| `ClientBenchmarks.TypedEvaluateYieldingAsync` | 5.170 us | 4.46 KB | 5056 B |
+| `TelemetryBenchmarks.TypedEvaluateYieldingListeningAsync` | 21.724 us | 6.23 KB | — |
+
+Measured on a 12th Gen Intel Core i9-12900HK, Windows 11 (10.0.26200.9457), .NET SDK 10.0.401 with runtime 10.0.12,
+with `--job short`, so the means are indicative only. BenchmarkDotNet prints Allocated in KB (1 KB = 1024 B) to two
+decimals, so each figure is good to about 5 B.
+`QuestionSetBenchmarks.EvaluateBuiltSet` and `TelemetryBenchmarks.EvaluateBuiltSetListeningAsync` evaluate the same
+three-question triage set, off and listening, so those two rows compare directly. The AOT built-set gates evaluate
+`SmokeBuiltSet.Full`, four questions, so they have no row here: `EvaluateBuiltSetRoundTrip` holds 4736 B, and
+`EvaluateBuiltSetRoundTripWhileListening` measures 5216 B against 5760 B.
+
+**Telemetry off.** With nothing listening, the generated proxy returns each operation's own task, so it adds nothing.
+- The raw evaluation and model listing allocate exactly what they did in Phase 3.1. `ClientBenchmarks.EvaluateAsync` and
+  `ListModelsAsync` match their Phase 3.1 rows, and the AOT `EvaluateRoundTrip` gate holds 5120 B unchanged.
+- Typed and built-set calls that complete synchronously allocate exactly what they did in Phase 3.1:
+  `ClientBenchmarks.TypedEvaluateAsync` matches its Phase 3.1 row, and under published win-x64 AOT the typed and built-set
+  gates measure 3368 B and 3656 B, inside the unchanged 4224 B and 4736 B.
+- A typed or built-set call that completes asynchronously, which every real network call does, pays one state machine
+  for the unwrap that hands back the answers and returns the response buffer. The unit test measures it at
+  211 B under the JIT, against a 344 B limit, the headroom of the tightest existing gate,
+  `TypedEvaluateRoundTripWithDiscardingLogger`.
+- Under published win-x64 AOT, an asynchronous `EvaluateAsync<T>` with telemetry off allocates 4568 B per call, the median
+  of five runs, because yielding runs vary in both directions.
+
+**Listening.** Discarding listeners sample every span and enable every instrument. Then the call pays for:
+- the `Activity`, and the start tags `TagsAtStart` boxes into one `TagList`;
+- the boxed tag and measurement values, and a `TagList` per metric;
+- the deferred reads.
+
+The reads re-scan the response once per attribute. The only allocation they make is the response model's string. There is no
+cache, so the string is built again for each attribute that reads it: the span tag and the duration and token-histogram
+metric tags. That cost is included in the figures below; it is measured, not budgeted at zero. Under
+published win-x64 AOT the listening gates measure 5680 B, 4928 B and 5216 B per call.
+Their budgets are those measurements plus about 10%, rounded up to the next 64 B.
