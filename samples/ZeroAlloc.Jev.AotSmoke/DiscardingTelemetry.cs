@@ -12,6 +12,7 @@ internal sealed class DiscardingTelemetry : IDisposable
     private readonly ActivityListener _activities;
     private readonly MeterListener _meters;
     private long _measurements;
+    private long _stoppedSpans;
 
     public DiscardingTelemetry()
     {
@@ -19,6 +20,7 @@ internal sealed class DiscardingTelemetry : IDisposable
         {
             ShouldListenTo = static source => source.Name is "ZeroAlloc.Jev",
             Sample = static (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+            ActivityStopped = _ => Interlocked.Increment(ref _stoppedSpans),
         };
         ActivitySource.AddActivityListener(_activities);
 
@@ -39,6 +41,9 @@ internal sealed class DiscardingTelemetry : IDisposable
 
     /// <summary>Gets how many measurements arrived, so a check can tell the listeners ran.</summary>
     public long Measurements => Interlocked.Read(ref _measurements);
+
+    /// <summary>Gets how many recorded spans stopped, so a check can tell the activity listener ran.</summary>
+    public long StoppedSpans => Interlocked.Read(ref _stoppedSpans);
 
     public void Dispose()
     {

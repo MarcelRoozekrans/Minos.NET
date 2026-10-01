@@ -75,7 +75,9 @@ internal static class TelemetryChecks
         listener.SetMeasurementEventCallback<long>((instrument, value, _, _) => points.Add((instrument.Name, instrument.Unit, value)));
         listener.Start();
 
-        // The handler waits 50 ms, so the duration has a known minimum: 0.05 in seconds, 50 or more in milliseconds.
+        // The handler waits 50 ms, so the duration has a known minimum: 0.05 in seconds, 50 or more in milliseconds. The
+        // check accepts 0.04 and up, leaving 10 ms of slack for timer and stopwatch granularity, which still rules out
+        // milliseconds.
         using var http = new HttpClient(new DelayedHandler(TimeSpan.FromMilliseconds(50), Program.TriageResponse)) { BaseAddress = new Uri("https://example.test/api/") };
         using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
 

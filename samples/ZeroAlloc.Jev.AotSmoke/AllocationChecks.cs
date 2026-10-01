@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using ZeroAlloc.Jev.Shared;
+using ZeroAlloc.Results;
 using ZeroAlloc.TestHelpers;
 
 namespace ZeroAlloc.Jev.AotSmoke;
@@ -240,9 +241,10 @@ internal static class AllocationChecks
     public static async Task DisabledLoggerAddsNothingWhereAnEnabledOneDoes()
     {
         var request = Program.Request();
-        var unlogged = await MedianYieldingAsync(NoulResponseJson, null, client => client.EvaluateAsync(request)).ConfigureAwait(false);
-        var disabled = await MedianYieldingAsync(NoulResponseJson, NullLoggerFactory.Instance, client => client.EvaluateAsync(request)).ConfigureAwait(false);
-        var enabled = await MedianYieldingAsync(NoulResponseJson, DiscardingLoggerFactory.Instance, client => client.EvaluateAsync(request)).ConfigureAwait(false);
+        Func<JevClient, ValueTask<Result<SystemOneResponse, JevError>>> evaluate = client => client.EvaluateAsync(request);
+        var unlogged = await MedianYieldingAsync(NoulResponseJson, null, evaluate).ConfigureAwait(false);
+        var disabled = await MedianYieldingAsync(NoulResponseJson, NullLoggerFactory.Instance, evaluate).ConfigureAwait(false);
+        var enabled = await MedianYieldingAsync(NoulResponseJson, DiscardingLoggerFactory.Instance, evaluate).ConfigureAwait(false);
         Console.WriteLine($"     yielding EvaluateAsync B/call: no factory {unlogged}, NullLoggerFactory {disabled}, discarding logger {enabled}");
 
         // The tolerance absorbs measurement noise: a single run can sit tens of bytes per call above or below the usual
@@ -452,6 +454,7 @@ internal static class AllocationChecks
             label: "EvaluateRoundTripWhileListening",
             passDescription: "EvaluateAsync while listening stays within its allocation budget");
         Program.Check(telemetry.Measurements > 0, "the discarding listeners received measurements, so EvaluateAsync ran the listening path");
+        Program.Check(telemetry.StoppedSpans > 0, "the discarding listeners recorded spans, so EvaluateAsync ran the listening path");
     }
 
     /// <summary><see cref="TypedEvaluateRoundTrip"/> while discarding listeners are attached.</summary>
@@ -471,6 +474,7 @@ internal static class AllocationChecks
             label: "TypedEvaluateRoundTripWhileListening",
             passDescription: "EvaluateAsync<T> while listening stays within its allocation budget");
         Program.Check(telemetry.Measurements > 0, "the discarding listeners received measurements, so EvaluateAsync<T> ran the listening path");
+        Program.Check(telemetry.StoppedSpans > 0, "the discarding listeners recorded spans, so EvaluateAsync<T> ran the listening path");
     }
 
     /// <summary><see cref="EvaluateBuiltSetRoundTrip"/> while discarding listeners are attached.</summary>
@@ -490,6 +494,7 @@ internal static class AllocationChecks
             label: "EvaluateBuiltSetRoundTripWhileListening",
             passDescription: "EvaluateAsync over a built set while listening stays within its allocation budget");
         Program.Check(telemetry.Measurements > 0, "the discarding listeners received measurements, so the built set ran the listening path");
+        Program.Check(telemetry.StoppedSpans > 0, "the discarding listeners recorded spans, so the built set ran the listening path");
     }
 
     /// <summary>
