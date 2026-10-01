@@ -100,17 +100,28 @@ public sealed class OperationsProxyTests
         AssertSuccessMetrics(capture, "jev-test-model", "typesafe", "jev-1.13.0", "evaluate-typed", inputTokens: 318, outputTokens: 34, confidences: [0.81]);
     }
 
-    [Fact]
-    public async Task TypedFailure_IsAnErrorWithItsKindAndNoDescription_AndRecordsOnlyTheDuration()
+    [Theory]
+    [InlineData("evaluate")]
+    [InlineData("evaluate-typed")]
+    [InlineData("evaluate-built-set")]
+    public async Task EvaluationFailure_IsAnErrorWithItsKindAndNoDescription_AndRecordsOnlyTheDuration(string operation)
     {
+        const string Message = "a message that must not leak";
         using var capture = new TelemetryCapture();
-        var fake = new FakeOperations("{}") { Error = new JevError(JevErrorKind.RateLimited, "a message that must not leak", 429) };
+        var proxy = new JevOperationsInstrumented(new FakeOperations("{}") { Error = new JevError(JevErrorKind.RateLimited, Message, 429) });
 
-        var result = await Evaluated.Unwrap(new JevOperationsInstrumented(fake).EvaluateTypedAsync<UrgencyCheck>(
-            TelemetryBodies.EmptyBody(), "jev-test-model", "typesafe", Endpoint, 1, CancellationToken.None));
+        var failed = operation switch
+        {
+            "evaluate" => (await proxy.EvaluateAsync(Request(), "typesafe", Endpoint, CancellationToken.None)).IsFailure,
+            "evaluate-typed" => (await Evaluated.Unwrap(proxy.EvaluateTypedAsync<UrgencyCheck>(
+                TelemetryBodies.EmptyBody(), "jev-test-model", "typesafe", Endpoint, 1, CancellationToken.None))).IsFailure,
+            _ => (await Evaluated.Unwrap(proxy.EvaluateBuiltSetAsync(
+                TelemetryBodies.EmptyBody(), BuiltSets.UrgencyOnly(), "jev-test-model", "typesafe", Endpoint, CancellationToken.None))).IsFailure,
+        };
 
-        Assert.True(result.IsFailure);
+        Assert.True(failed);
         var span = capture.Span();
+        Assert.Equal(operation, capture.StartTags().Tag("jev.operation"));
         Assert.Equal(ActivityStatusCode.Error, span.Status);
         Assert.Null(span.StatusDescription);
         Assert.Equal("RateLimited", span.GetTagItem("error.type"));
@@ -120,6 +131,12 @@ public sealed class OperationsProxyTests
         Assert.Equal("gen_ai.client.operation.duration", point.Metric);
         Assert.Equal("RateLimited", point.Tag("error.type"));
         Assert.Null(point.Tag("gen_ai.response.model"));
+
+        // Every tag the call emitted, at the span's start and end and on the metric point, and none carries the message.
+        KeyValuePair<string, object?>[] emitted = [.. span.TagObjects, .. capture.StartTags(), .. point.Tags];
+        Assert.NotEmpty(emitted);
+        Assert.DoesNotContain(emitted, tag => tag.Value is string text && text.Contains(Message, StringComparison.Ordinal));
+        Assert.DoesNotContain(Message, span.DisplayName, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -137,8 +154,7 @@ public sealed class OperationsProxyTests
 
         Assert.Equal("evaluate-built-set", capture.StartTags().Tag("jev.operation"));
         Assert.Equal(2, capture.StartTags().Tag("jev.request.question_count"));
-        Assert.Equal([0.81], capture.Points("jev.answer.confidence").Select(point => point.Value));
-        Assert.Equal("evaluate-built-set", capture.Points("jev.answer.confidence")[0].Tag("jev.operation"));
+        AssertSuccessMetrics(capture, "jev-test-model", "typesafe", "jev-1.13.0", "evaluate-built-set", inputTokens: 5, outputTokens: 2, confidences: [0.81]);
     }
 
     [Fact]
