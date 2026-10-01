@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using static ZeroAlloc.Jev.DependencyInjection.Tests.Registrations;
 
 namespace ZeroAlloc.Jev.DependencyInjection.Tests;
@@ -29,10 +30,21 @@ public sealed class AddJevClientEnvironmentTests
         services.AddJevClient(options => options.BaseAddress = new Uri("http://default.local/"));
         using var provider = services.BuildServiceProvider();
 
-        var exception = Assert.Throws<InvalidOperationException>(() => provider.GetRequiredService<IJevClient>());
+        var exception = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IJevClient>());
 
         Assert.Equal(
             "No API key is configured. Set JevClientOptions.ApiKey or the TYPESAFE_API_KEY environment variable.",
             exception.Message);
+    }
+
+    [Fact]
+    public void ApiKeyFromTheEnvironment_PassesValidation()
+    {
+        using var environment = new EnvironmentVariables(("TYPESAFE_API_KEY", "env-key"));
+        var services = new ServiceCollection();
+        services.AddJevClient(options => options.BaseAddress = new Uri("http://default.local/"));
+        using var provider = services.BuildServiceProvider();
+
+        Assert.NotNull(provider.GetRequiredService<IJevClient>());
     }
 }

@@ -2,6 +2,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using ZeroAlloc.Jev;
+using ZeroAlloc.Jev.DependencyInjection;
 using OptionsDefaults = Microsoft.Extensions.Options.Options;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -12,7 +13,9 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// <see cref="JevClient.ConfigureHttpClient(HttpClient, JevClientOptions)"/> configures from the registration's named
 /// <see cref="JevClientOptions"/>. The client reads those options once, when the container first builds it, and logs
 /// through the container's <see cref="ILoggerFactory"/>. Its spans and metrics come from the <c>ZeroAlloc.Jev</c> source
-/// and meter. Invalid options throw when the client is first resolved.
+/// and meter. Invalid options fail a generic host at startup, through <see cref="JevClientOptions.Validate()"/> and
+/// <c>ValidateOnStart</c>. Without a host they throw when the client is first resolved. Either way the exception is an
+/// <see cref="OptionsValidationException"/> that carries the core's message.
 /// </remarks>
 public static class JevServiceCollectionExtensions
 {
@@ -101,10 +104,14 @@ public static class JevServiceCollectionExtensions
         return builder;
     }
 
-    // Configures the HttpClient on the first registration of its name only, so a repeat call cannot replace a primary
-    // handler the caller set through the first call's builder. The factory's own request logging is removed: its
-    // handlers allocate on every request even when nothing logs, and the client logs each operation and each retried
-    // attempt itself. AddDefaultLogger on the returned builder brings it back.
+    // Adds the options and configures the HttpClient. The HttpClient name maps one-to-one to the options name, so the
+    // first registration of either is the first of both. That first registration alone also:
+    // - adds the options' validator and ValidateOnStart, so repeat calls do not stack validators. TryAddEnumerable
+    //   cannot do this: it compares implementation types, so it would keep one validator for every name.
+    // - configures the HttpClient, so a repeat call cannot replace a primary handler the caller set through the first
+    //   call's builder. The factory's own request logging is removed: its handlers allocate on every request even when
+    //   nothing logs, and the client logs each operation and each retried attempt itself. AddDefaultLogger on the
+    //   returned builder brings it back.
     private static IHttpClientBuilder AddOptionsAndHttpClient(
         IServiceCollection services, string optionsName, string httpClientName, Action<JevClientOptions>? configure)
     {
@@ -119,6 +126,8 @@ public static class JevServiceCollectionExtensions
         if (!repeat)
         {
             services.AddKeyedSingleton(httpClientName, new HttpClientConfigured());
+            services.AddSingleton<IValidateOptions<JevClientOptions>>(new JevClientOptionsValidator(optionsName));
+            options.ValidateOnStart();
             builder
                 .ConfigurePrimaryHttpMessageHandler(static () => new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(2) })
                 .SetHandlerLifetime(Timeout.InfiniteTimeSpan)
