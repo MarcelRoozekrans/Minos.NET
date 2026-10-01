@@ -149,12 +149,13 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-09-30-phase-3.1-logging.md`
 **Completed:** 2026-09-30
 
-### Phase 3.2: Telemetry [status: active]
+### Phase 3.2: Telemetry [status: complete]
 **Goal:** ZeroAlloc.Telemetry spans and metrics in the core package for tokens, latency and confidence, named per the GenAI conventions plus `jev.*`.
 **Surface:** Backend
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-10-01-phase-3.2-telemetry-design.md`
 **Plan:** `docs/superpowers/plans/2026-10-01-phase-3.2-telemetry.md`
+**Completed:** 2026-10-01
 
 ### Phase 3.3: DI package [status: pending]
 **Goal:** `ZeroAlloc.Jev.DependencyInjection` with `AddJevClient(...)` and keyed clients over `IHttpClientFactory`, wiring logging and telemetry.
