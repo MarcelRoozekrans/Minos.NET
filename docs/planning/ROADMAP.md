@@ -165,12 +165,13 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-01-phase-3.3-di-package.md`
 **Completed:** 2026-10-01
 
-### Phase 3.4: Options and configuration [status: active]
+### Phase 3.4: Options and configuration [status: complete]
 **Goal:** `IConfiguration` binding validated at startup with the core's own rules, with retry and timeout settings through configuration. Absorbs the roadmap's former Phase 3.5, configurable resilience (2026-09-30).
 **Surface:** Backend
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-10-01-phase-3.4-options-configuration-design.md`
 **Plan:** `docs/superpowers/plans/2026-10-01-phase-3.4-options-configuration.md`
+**Completed:** 2026-10-01
 
 ## Milestone 4: Patterns & docs [status: pending]
 **Goal:** Developers can learn and apply Jev's documented patterns in C#.
