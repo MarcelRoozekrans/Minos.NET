@@ -25,6 +25,31 @@ public sealed class KeyedJevClientTests
     }
 
     [Fact]
+    public async Task DefaultAndKeyedClients_KeepTheirOwnHttpClient()
+    {
+        var defaultHandler = Noul();
+        var keyedHandler = Noul();
+        var services = new ServiceCollection();
+        services
+            .AddJevClient(Options("http://default.local/", apiKey: "default-key"))
+            .ConfigurePrimaryHttpMessageHandler(() => defaultHandler);
+        services
+            .AddJevClient("openrouter", Options("http://keyed.local/api/", apiKey: "keyed-key"))
+            .ConfigurePrimaryHttpMessageHandler(() => keyedHandler);
+        using var provider = services.BuildServiceProvider();
+
+        _ = await provider.GetRequiredService<IJevClient>().EvaluateAsync(Request());
+        _ = await provider.GetRequiredKeyedService<IJevClient>("openrouter").EvaluateAsync(Request());
+
+        var defaultRequest = OnlyRequest(defaultHandler);
+        Assert.Equal(new Uri("http://default.local/v1/systemone"), defaultRequest.Uri);
+        Assert.Equal("Bearer default-key", defaultRequest.Authorization);
+        var keyedRequest = OnlyRequest(keyedHandler);
+        Assert.Equal(new Uri("http://keyed.local/api/v1/systemone"), keyedRequest.Uri);
+        Assert.Equal("Bearer keyed-key", keyedRequest.Authorization);
+    }
+
+    [Fact]
     public async Task TwoKeyedClients_HaveTheirOwnOptionsAndHttpClients()
     {
         var typesafeHandler = Noul();
