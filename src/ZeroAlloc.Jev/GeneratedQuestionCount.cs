@@ -3,15 +3,15 @@ using System.Text.Json;
 namespace ZeroAlloc.Jev;
 
 /// <summary>
-/// The number of questions in a <c>[JevQuestions]</c> set, for the client's logs: the top-level properties of its
+/// The number of questions in a <c>[JevQuestions]</c> set, for the client's logs and its <c>jev.request.question_count</c> span tag: the top-level properties of its
 /// <see cref="IJevQuestionSet{TSelf}.QuestionsUtf8"/>, the questions object the generator wrote at compile time.
 /// </summary>
 /// <remarks>
-/// Read once per set type, on first use, which only a client with a logger makes. It is not a generated constant: the
+/// Read once per set type, on the type's first typed evaluation. It is not a generated constant: the
 /// set is compiled into the caller's assembly, where an internal member is out of this library's reach, and a public
 /// one would be a new member of <see cref="IJevQuestionSet{TSelf}"/>. The bytes are written by the ZeroAlloc.Jev
-/// generator and are always a valid JSON object, so the static initializer does not throw; callers read
-/// <see cref="Value"/> only on the logging path, which is what keeps it lazy.
+/// generator and are always a valid JSON object, so the static initializer does not throw; the first read runs it,
+/// once per type.
 /// </remarks>
 /// <typeparam name="T">The question set.</typeparam>
 internal static class GeneratedQuestionCount<T>
