@@ -46,4 +46,20 @@ public sealed class DependencyInjectionTests : IClassFixture<WireMockFixture>
         Assert.Equal(0.95, Assert.IsType<NoulAnswer>(result.Value.Answers["is_urgent"]).Noul, 3);
         Assert.Equal(2, attempts.Value);
     }
+
+    [Fact]
+    public async Task BoundMaxRetries_IsTheNumberOfRetriesOnTheWire()
+    {
+        _fixture.Server
+            .Given(Request.Create().WithPath("/v1/systemone").UsingPost())
+            .RespondWith(Response.Create().WithStatusCode(HttpStatusCode.ServiceUnavailable));
+        var attempts = new DependencyInjectionHarness.AttemptCount();
+        using var provider = DependencyInjectionHarness.BoundProvider(_fixture, attempts, maxRetries: 3, timeout: null);
+
+        var result = await provider.GetRequiredService<IJevClient>().EvaluateAsync(Fixtures.NoulRequest());
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(503, result.Error.StatusCode);
+        Assert.Equal(4, attempts.Value);
+    }
 }

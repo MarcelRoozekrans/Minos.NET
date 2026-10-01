@@ -1,3 +1,5 @@
+using System.Globalization;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ZeroAlloc.Jev.Integration.Tests;
@@ -20,6 +22,32 @@ internal static class DependencyInjectionHarness
                     options.Timeout = perAttempt;
                 }
             })
+            .AddHttpMessageHandler(() => new CountingHandler(attempts));
+        return services.BuildServiceProvider();
+    }
+
+    // The same fixture settings as Provider, but every one bound from an in-memory configuration section, as an
+    // appsettings.json would supply them. timeout null leaves the key out, so the library's default applies.
+    public static ServiceProvider BoundProvider(WireMockFixture fixture, AttemptCount attempts, int maxRetries, TimeSpan? timeout)
+    {
+        var settings = new Dictionary<string, string?>(StringComparer.Ordinal)
+        {
+            ["Jev:ApiKey"] = "integration-key",
+            ["Jev:BaseAddress"] = fixture.BaseAddress.AbsoluteUri,
+            ["Jev:MaxRetries"] = maxRetries.ToString(CultureInfo.InvariantCulture),
+            ["Jev:InitialBackoff"] = "00:00:00.010",
+            ["Jev:MaxRetryDelay"] = "00:00:05",
+            ["Jev:Jitter"] = "false",
+        };
+        if (timeout is { } perAttempt)
+        {
+            settings["Jev:Timeout"] = perAttempt.ToString("c", CultureInfo.InvariantCulture);
+        }
+
+        var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
+        var services = new ServiceCollection();
+        services
+            .AddJevClient(configuration.GetSection("Jev"))
             .AddHttpMessageHandler(() => new CountingHandler(attempts));
         return services.BuildServiceProvider();
     }
