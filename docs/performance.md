@@ -162,13 +162,16 @@ Their budgets are those measurements plus about 10%, rounded up to the next 64 B
 
 | Benchmark | Mean | Allocated | AOT smoke budget |
 |---|---|---|---|
-| `ClientBenchmarks.EvaluateAsync` | 18.15 us | 4.17 KB | 5120 B |
+| `ClientBenchmarks.EvaluateAsync` | 18.15 us | 4.17 KB | 5120 B (the existing `EvaluateRoundTrip` budget) |
 | `DependencyInjectionBenchmarks.HandBuiltEvaluateAsync` | 5.453 us | 4.23 KB | — |
 | `DependencyInjectionBenchmarks.ResolvedEvaluateAsync` | 5.816 us | 4.23 KB | 4864 B |
 
 Measured on a 12th Gen Intel Core i9-12900HK, Windows 11, .NET SDK 10.0.401 with runtime 10.0.12, with `--job short`, so
 the means are indicative only. BenchmarkDotNet prints Allocated in KB (1 KB = 1024 B) to two decimals, so each figure is
 good to about 5 B.
+
+The `ClientBenchmarks.EvaluateAsync` row ran in a separate job on a loaded machine. Its mean, 18.15 us with an error of
+70.88 us, is noise and cannot be compared with the DI rows' means. Only its Allocated figure is meaningful.
 
 **DI adds nothing per call.**
 - Both `DependencyInjectionBenchmarks` rows make `ClientBenchmarks.EvaluateAsync`'s call.
@@ -180,6 +183,9 @@ good to about 5 B.
   measures 4376 B, within the absolute budget of 4864 B: the measurement plus about 10%, rounded up to the
   next 64 B.
 - Registration and the first resolve happen once and are not budgeted.
+- The AOT figures come from a local measuring helper in the smoke app. It stands in for a measuring API requested as
+  ZeroAlloc-Net/ZeroAlloc.TestHelpers#56, uses the gate's own warm-up and iterations, and rounds the per-call figure up.
+- Every existing allocation budget is unchanged.
 
 **The factory's request logging.** `AddHttpClient` gives every named client the factory's logging handlers. These format
 the redacted request URI and open a logging scope on every request, before they check whether any logger is enabled.
