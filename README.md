@@ -138,7 +138,9 @@ The histograms carry the GenAI conventions' bucket boundaries as advice. Confide
 - `gen_ai.operation.name` is `evaluate` or `list_models`;
 - `gen_ai.provider.name` is `typesafe` or `openrouter`.
 
-**Never emitted:** the state, instructions, criteria, answers or probabilities, the API key, any header value, `JevError.Message` and `JevError.Detail`.
+**Exceptions.** A thrown exception, cancellation included, marks the span `Error` with the exception's message as its description, and the duration is recorded without `error.type`. That is ZeroAlloc.Telemetry's default exception handling, and a fix is being raised upstream.
+
+**Never emitted:** Jev never puts the state, instructions, criteria, answers or probabilities, the API key, any header value, `JevError.Message` or `JevError.Detail` in a tag, a metric attribute or a span description. The one message that can reach a span is a thrown exception's, which is the runtime's.
 
 **Cost.** With nothing listening, the generated proxy returns each operation's own task.
 - The raw evaluation, model listing and every call that completes synchronously allocate nothing extra.

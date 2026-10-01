@@ -129,8 +129,9 @@ three-question triage set, off and listening, so those two rows compare directly
 `EvaluateBuiltSetRoundTripWhileListening` measures 5216 B against 5760 B.
 
 **Telemetry off.** With nothing listening, the generated proxy returns each operation's own task, so it adds nothing.
-- The raw evaluation and model listing allocate exactly what they did in Phase 3.1. `ClientBenchmarks.EvaluateAsync` and
-  `ListModelsAsync` match their Phase 3.1 rows, and the AOT `EvaluateRoundTrip` gate holds 5120 B unchanged.
+- The raw evaluation allocates exactly what it did in Phase 3.1: `ClientBenchmarks.EvaluateAsync` matches its Phase 3.1
+  row, and the AOT `EvaluateRoundTrip` gate holds 5120 B unchanged. Model listing has no earlier row and no AOT gate; the
+  unit gate `OperationsCostTests.NothingListening_ListModels_AddsNothing` shows 0 B through the proxy with nothing listening.
 - Typed and built-set calls that complete synchronously allocate exactly what they did in Phase 3.1:
   `ClientBenchmarks.TypedEvaluateAsync` matches its Phase 3.1 row, and under published win-x64 AOT the typed and built-set
   gates measure 3368 B and 3656 B, inside the unchanged 4224 B and 4736 B.
