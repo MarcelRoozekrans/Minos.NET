@@ -35,16 +35,26 @@ internal static class IntegrationClient
     public static JevClient Create(AttemptRecorder attempts, int maxRetries = 0, TimeSpan? initialBackoff = null)
         => new(attempts.HttpClient, Options(maxRetries, initialBackoff, JevProvider.TypeSafe));
 
+    /// <summary>
+    /// Applies the fixtures' configuration to <paramref name="options"/>: the fixed key, no jitter, a 5 second maximum
+    /// retry delay and a short backoff. The hand-built clients and the ones from <c>AddJevClient</c> both configure
+    /// through this.
+    /// </summary>
+    public static void Configure(JevClientOptions options, int maxRetries, TimeSpan? initialBackoff = null)
+    {
+        options.ApiKey = "integration-key";
+        options.MaxRetries = maxRetries;
+        options.InitialBackoff = initialBackoff ?? TimeSpan.FromMilliseconds(10);
+        options.MaxRetryDelay = TimeSpan.FromSeconds(5);
+        options.Jitter = false;
+    }
+
     private static JevClientOptions Options(int maxRetries, TimeSpan? initialBackoff, JevProvider provider)
-        => new()
-        {
-            Provider = provider,
-            ApiKey = "integration-key",
-            MaxRetries = maxRetries,
-            InitialBackoff = initialBackoff ?? TimeSpan.FromMilliseconds(10),
-            MaxRetryDelay = TimeSpan.FromSeconds(5),
-            Jitter = false,
-        };
+    {
+        var options = new JevClientOptions { Provider = provider };
+        Configure(options, maxRetries, initialBackoff);
+        return options;
+    }
 }
 
 /// <summary>

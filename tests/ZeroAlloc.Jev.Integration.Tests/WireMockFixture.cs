@@ -1,3 +1,7 @@
+using System.Net;
+using WireMock;
+using WireMock.RequestBuilders;
+using WireMock.ResponseBuilders;
 using WireMock.Server;
 
 namespace ZeroAlloc.Jev.Integration.Tests;
@@ -19,5 +23,31 @@ public sealed class WireMockFixture : IDisposable
 
     public void Reset() => Server.Reset();
 
+    /// <summary>
+    /// Makes the server hold every <c>POST /v1/systemone</c> response until the returned handle is disposed, so an attempt
+    /// can only end through the client's per-attempt time-out, however late a busy machine schedules either side. A fixed
+    /// WireMock delay is not enough: when the test host is starved of CPU, the time-out's own callback can run after the
+    /// delay has elapsed and the response has already arrived.
+    /// </summary>
+    /// <returns>A handle that releases the held responses; dispose it only after the test has its result.</returns>
+    public IDisposable HoldEveryResponse()
+    {
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Server
+            .Given(Request.Create().WithPath("/v1/systemone").UsingPost())
+            .RespondWith(Response.Create().WithCallback(async _ =>
+            {
+                await release.Task.ConfigureAwait(false);
+                return new ResponseMessage { StatusCode = (int)HttpStatusCode.OK };
+            }));
+        return new Release(release);
+    }
+
     public void Dispose() => Server.Stop();
+
+    /// <summary>Releases the responses <see cref="HoldEveryResponse"/> holds.</summary>
+    private sealed class Release(TaskCompletionSource source) : IDisposable
+    {
+        public void Dispose() => source.TrySetResult();
+    }
 }
