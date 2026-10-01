@@ -58,6 +58,7 @@ public sealed class AddJevClientConfigurationTests
     {
         var configuration = Configuration(
             ("Default:ApiKey", "default-key"),
+            ("Default:BaseAddress", "http://default.local/"),
             ("Default:MaxRetries", "1"),
             ("OpenRouter:Provider", "OpenRouter"),
             ("OpenRouter:ApiKey", "openrouter-key"),
@@ -102,6 +103,19 @@ public sealed class AddJevClientConfigurationTests
         var exception = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredKeyedService<IJevClient>("bound"));
 
         Assert.Equal(["MaxRetries must be between 0 and 10. (Parameter 'options')"], exception.Failures);
+    }
+
+    [Fact]
+    public void UnconvertibleBoundValue_FailsAtTheFirstResolve()
+    {
+        var configuration = Configuration(("ApiKey", "bound-key"), ("BaseAddress", "http://bound.local/"), ("MaxRetries", "abc"));
+        var services = new ServiceCollection();
+        services.AddJevClient(configuration);
+        using var provider = services.BuildServiceProvider();
+
+        var exception = Assert.Throws<InvalidOperationException>(() => provider.GetRequiredService<IJevClient>());
+
+        Assert.Contains("MaxRetries", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

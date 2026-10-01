@@ -45,7 +45,11 @@ public sealed class AddJevClientEnvironmentTests
         services.AddJevClient(options => options.BaseAddress = new Uri("http://default.local/"));
         using var provider = services.BuildServiceProvider();
 
-        Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IHttpClientFactory>().CreateClient("ZeroAlloc.Jev"));
+        var exception = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IHttpClientFactory>().CreateClient("ZeroAlloc.Jev"));
+
+        Assert.Equal(
+            "No API key is configured. Set JevClientOptions.ApiKey or the TYPESAFE_API_KEY environment variable.",
+            exception.Message);
     }
 
     [Fact]
