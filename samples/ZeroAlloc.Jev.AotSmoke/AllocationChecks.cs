@@ -517,6 +517,36 @@ internal static class AllocationChecks
     }
 
     /// <summary>
+    /// <see cref="EvaluateRoundTripThroughDependencyInjection"/>'s comparison for a client whose options are bound from
+    /// configuration. Binding and validation run once, at the first resolve, so the call itself costs what a hand-built
+    /// client's does.
+    /// </summary>
+    public static void EvaluateRoundTripThroughBoundConfiguration()
+    {
+        var services = new ServiceCollection();
+        DependencyInjectionChecks.RegisterBoundDefaultClient(services);
+        using var provider = services.BuildServiceProvider();
+        var resolved = provider.GetRequiredService<IJevClient>();
+
+        // The bound section's base address and key, and the same canned body, so both sides make the same call.
+        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
+        JevClient.ConfigureHttpClient(http, new JevClientOptions { BaseAddress = new Uri("https://example.test/api/") });
+        using var handBuilt = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+        var request = Program.Request();
+
+        var byHand = SynchronousBytesPerCall(() => handBuilt.EvaluateAsync(request));
+        var byBinding = SynchronousBytesPerCall(() => resolved.EvaluateAsync(request));
+        Console.WriteLine($"     EvaluateAsync B/call on a hand-built client over a configured HttpClient: {byHand}");
+        Console.WriteLine($"     EvaluateAsync B/call on a client bound from configuration: {byBinding}");
+
+        GateValueTask(
+            budgetBytes: (int)byHand,
+            action: () => resolved.EvaluateAsync(request),
+            label: "EvaluateRoundTripThroughBoundConfigurationAgainstHandBuilt",
+            passDescription: "EvaluateAsync through a client bound from configuration allocates no more than through a hand-built one");
+    }
+
+    /// <summary>
     /// <see cref="EvaluateRoundTrip"/> while discarding listeners sample every span and enable every instrument.
     /// </summary>
     public static void EvaluateRoundTripWhileListening()

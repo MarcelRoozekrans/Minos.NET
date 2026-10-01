@@ -25,5 +25,7 @@
     <PackageReference Include="ZeroAlloc.TestHelpers" PrivateAssets="all" />
     <!-- A real LoggerFactory, so the logging checks run the path a consumer's app runs under Native AOT. -->
     <PackageReference Include="Microsoft.Extensions.Logging" />
+    <!-- ConfigurationBuilder and AddInMemoryCollection, so binding through AddJevClient runs under Native AOT. -->
+    <PackageReference Include="Microsoft.Extensions.Configuration" />
   </ItemGroup>
 </Project>
