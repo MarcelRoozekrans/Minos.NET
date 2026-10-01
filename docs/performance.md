@@ -157,3 +157,34 @@ cache, so the string is built again for each attribute that reads it: the span t
 metric tags. That cost is included in the figures below; it is measured, not budgeted at zero. Under
 published win-x64 AOT the listening gates measure 5680 B, 4928 B and 5216 B per call.
 Their budgets are those measurements plus about 10%, rounded up to the next 64 B.
+
+### Phase 3.3 — DI package
+
+| Benchmark | Mean | Allocated | AOT smoke budget |
+|---|---|---|---|
+| `ClientBenchmarks.EvaluateAsync` | 18.15 us | 4.17 KB | 5120 B |
+| `DependencyInjectionBenchmarks.HandBuiltEvaluateAsync` | 5.453 us | 4.23 KB | — |
+| `DependencyInjectionBenchmarks.ResolvedEvaluateAsync` | 5.816 us | 4.23 KB | 4864 B |
+
+Measured on a 12th Gen Intel Core i9-12900HK, Windows 11, .NET SDK 10.0.401 with runtime 10.0.12, with `--job short`, so
+the means are indicative only. BenchmarkDotNet prints Allocated in KB (1 KB = 1024 B) to two decimals, so each figure is
+good to about 5 B.
+
+**DI adds nothing per call.**
+- Both `DependencyInjectionBenchmarks` rows make `ClientBenchmarks.EvaluateAsync`'s call.
+- The hand-built client runs over an `HttpClient` that `JevClient.ConfigureHttpClient` configured, as the factory's is.
+  So both send the User-Agent header. That header costs 64 B per call over `ClientBenchmarks.EvaluateAsync`, whose
+  borrowed client sends none.
+- Under published win-x64 AOT, the gate `EvaluateRoundTripThroughDependencyInjectionAgainstHandBuilt` holds the
+  resolved client to the hand-built client's own measurement from the same run, 4376 B. The resolved client
+  measures 4376 B, within the absolute budget of 4864 B: the measurement plus about 10%, rounded up to the
+  next 64 B.
+- Registration and the first resolve happen once and are not budgeted.
+
+**The factory's request logging.** `AddHttpClient` gives every named client the factory's logging handlers. These format
+the redacted request URI and open a logging scope on every request, before they check whether any logger is enabled.
+- With those handlers, the resolved client measured 4720 B against 4376 B per call, under both the JIT and published
+  win-x64 AOT. That is 344 B more. This was measured while planning, on 2026-10-01.
+- So `AddJevClient` removes them with `RemoveAllLoggers()`. The client still logs each operation and each retried attempt
+  itself.
+- `AddDefaultLogger()` on the returned builder brings them back, at that cost.
