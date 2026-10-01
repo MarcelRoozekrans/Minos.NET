@@ -130,16 +130,17 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-09-28-phase-2.4-fluent-question-builders.md`
 **Completed:** 2026-09-30
 
-## Milestone 3: .NET integration [status: active]
+## Milestone 3: .NET integration [status: complete]
 **Goal:** Jev feels native in a .NET generic-host app: one-call registration, including keyed clients per provider; options bound from configuration and failing fast, carrying the retry and timeout settings; and structured logs, spans and metrics for tokens, latency and confidence. Logging and telemetry live in the core package, and the DI package wires them up. AOT-clean and within CI-enforced allocation budgets.
 **Started:** 2026-09-30
+**Completed:** 2026-10-01
 **Design:** `docs/superpowers/specs/2026-09-30-milestone-3-design.md`
 **Definition of Done:**
-- [ ] `ZeroAlloc.Jev.DependencyInjection` registers the client in one call, and keyed clients with their own options and `HttpClient`, over `IHttpClientFactory`
-- [ ] `JevClientOptions` bind from `IConfiguration` and fail fast on invalid values, validated at startup; retry and timeout settings are configurable this way
-- [ ] Source-generated `[LoggerMessage]` logging through `ILogger`, with no payload or key in logs and no cost without a logger
-- [ ] Spans and metrics for tokens, latency and confidence via ZeroAlloc.Telemetry, named per the GenAI conventions plus `jev.*`, nesting the `ZeroAlloc.Rest` span
-- [ ] Every phase adds `AllocationGate` budgets and benchmarks for what it ships, and existing budgets hold; the AOT smoke app exercises logging, telemetry and DI
+- [x] `ZeroAlloc.Jev.DependencyInjection` registers the client in one call, and keyed clients with their own options and `HttpClient`, over `IHttpClientFactory`
+- [x] `JevClientOptions` bind from `IConfiguration` and fail fast on invalid values, validated at startup; retry and timeout settings are configurable this way
+- [x] Source-generated `[LoggerMessage]` logging through `ILogger`, with no payload or key in logs and no cost without a logger
+- [x] Spans and metrics for tokens, latency and confidence via ZeroAlloc.Telemetry, named per the GenAI conventions plus `jev.*`, nesting the `ZeroAlloc.Rest` span
+- [x] Every phase adds `AllocationGate` budgets and benchmarks for what it ships, and existing budgets hold; the AOT smoke app exercises logging, telemetry and DI
 
 ### Phase 3.1: Logging [status: complete]
 **Goal:** Source-generated `[LoggerMessage]` logging across `JevClient`, with constructor overloads that accept an `ILoggerFactory`.

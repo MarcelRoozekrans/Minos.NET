@@ -1,13 +1,13 @@
-# Session State — 2026-10-01 (Phase 3.4 complete, PR open)
+# Session State — 2026-10-01 (Milestone 3 complete)
 
 **Date:** 2026-10-01
 
 ## Current Position
-- **Milestone:** 3 — .NET integration, active since 2026-09-30 (design `docs/superpowers/specs/2026-09-30-milestone-3-design.md`). All four phases are complete.
-- **Phase:** 3.4 — Options and configuration is complete on branch `phase/3.4-options-configuration`, pushed with a PR to `main`.
-  - Phase 3.3 merged as PR #75, Phase 3.2 as PR #72.
-- **Last completed task:** final verification and the whole-branch review fixes for Phase 3.4.
-- **Next task:** after the Phase 3.4 PR is merged, confirm the release PR lists its three `feat` entries and the `docs` entry, then run `audit-milestone` for Milestone 3, then `complete-milestone`.
+- **Milestone:** 3 — .NET integration is complete. Its audit passed on 2026-10-01 (`docs/plans/2026-10-01-milestone-3-audit.md`), and the completion lands through a PR from `chore/complete-milestone-3`.
+  - Phases 3.1–3.4 merged as PRs #69, #72, #75 and #76. Release PR #63 (0.2.0) lists every phase.
+  - Issues #19 and #20 were resolved by Phase 3.3 and are closed.
+- **Next milestone:** 4 — Patterns & docs, pending in ROADMAP.md.
+- **Next task:** once the completion PR is merged, run `new-milestone` for Milestone 4. It starts with a milestone-scope brainstorm.
 
 ## What Phase 3.4 shipped
 - Core: public `JevClientOptions.Validate()` runs `JevClientSettings.Resolve`, the check every constructor runs, so it throws what the constructor would throw. The invalid-option cases live in one shared test source, `InvalidOptionsCases`.
@@ -144,7 +144,7 @@
 - Still unknown until a TypeSafe live run (needs `TYPESAFE_API_KEY` and the `live-api` environment): whether TypeSafe sends `Retry-After`, the 422 body schema, and whether Phase 2.4's `BuiltQuestionSet_ParsesAKeyedChoice` passes.
 
 ## Recommended Next Step
-Merge the Phase 3.4 PR, confirm release-please counted its entries, then run `audit-milestone` for Milestone 3.
+Merge the Milestone 3 completion PR, then run `new-milestone` for Milestone 4 — Patterns & docs.
 
 Open maintainer items:
 - the `live-api` environment and the TypeSafe live run;
