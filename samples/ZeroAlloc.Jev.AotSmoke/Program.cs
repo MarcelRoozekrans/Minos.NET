@@ -38,6 +38,9 @@ internal static class Program
         await LoggingChecks.TypedEvaluationLogsItsQuestionCount().ConfigureAwait(false);
         await LoggingChecks.FailedEvaluationLogsTheLibraryMessageOnly().ConfigureAwait(false);
         await LoggingChecks.ModelListingLogsTheModelCount().ConfigureAwait(false);
+        await TelemetryChecks.RetriedEvaluationIsOneSpanOverTwoAttempts().ConfigureAwait(false);
+        await TelemetryChecks.TypedEvaluationRecordsItsMetrics().ConfigureAwait(false);
+        await TelemetryChecks.FailedEvaluationIsAnError().ConfigureAwait(false);
 
         AllocationChecks.GeneratedParse();
         AllocationChecks.ReadNoul();
@@ -55,6 +58,10 @@ internal static class Program
         AllocationChecks.BuildQuestionSet();
         AllocationChecks.EvaluateBuiltSetRoundTrip();
         AllocationChecks.JevAnswersGet();
+        await AllocationChecks.TelemetryOffAsynchronousTypedEvaluation().ConfigureAwait(false);
+        AllocationChecks.EvaluateRoundTripWhileListening();
+        AllocationChecks.TypedEvaluateRoundTripWhileListening();
+        AllocationChecks.EvaluateBuiltSetRoundTripWhileListening();
 
         Console.WriteLine(failures == 0 ? "AOT smoke: all checks passed" : "AOT smoke: " + failures + " check(s) failed");
         return failures == 0 ? 0 : 1;
