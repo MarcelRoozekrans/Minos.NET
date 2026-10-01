@@ -190,13 +190,13 @@ The four `AddJevClient` overloads are `()`, `(Action<JevClientOptions>)`, `(stri
   - Its primary handler is a `SocketsHttpHandler` that recycles connections every 2 minutes, so DNS changes are picked up.
   - The factory never rotates that handler, because the singleton keeps its `HttpClient` for life.
   - `JevClient.ConfigureHttpClient` gives it the base address, the per-attempt `Timeout` and the User-Agent.
-- **`AddJevClient` returns the `IHttpClientBuilder`,** so you can add your own handlers. If you add a retry handler, such as `AddStandardResilienceHandler`, set `MaxRetries = 0`, so retries don't multiply.
+- **`AddJevClient` returns the `IHttpClientBuilder`,** which is where you add your own handlers. If one of them retries, see [Retries](#retries).
 - **Logging goes through the host's `ILoggerFactory`.** Without a logging provider, or with Jev's levels disabled, the client logs nothing and allocates nothing for logging.
   - The factory's own request logs are off for Jev's clients, because their handlers allocate on every request even when nothing logs, 344 B per call.
   - The client logs each operation and each retried attempt itself.
   - Call `AddDefaultLogger()` on the returned builder to bring the factory's logs back, at that cost.
 - **Telemetry is on.** Subscribe with `AddSource("ZeroAlloc.Jev")` and `AddMeter("ZeroAlloc.Jev")`, as [Telemetry](#telemetry) shows. The package takes no OpenTelemetry dependency.
-- **Invalid options throw when the client is first resolved, not at registration.** That covers a missing API key, a non-positive `Timeout` or an invalid base address. The exception is the core's `ArgumentException` or `InvalidOperationException`. Phase 3.4 moves this check to startup.
+- **Invalid options throw when the client is first resolved, not at registration.** That covers a missing API key, an invalid base address, or a `Timeout` that is zero, negative other than infinite, or longer than about 24.8 days. The exception is the core's `ArgumentException` or `InvalidOperationException`. A later version moves this check to startup.
 - **Disposal.** The container disposes the client with the provider. The `HttpClient` belongs to the factory, and is left alone.
 
 **Cost.** An evaluation through a resolved client allocates no more than the same call on a hand-built client over a configured `HttpClient`, and measures equal to it, so DI adds nothing per call. Under Native AOT both allocate 4376 B per call. Registration and the first resolve happen once. See [Phase 3.3 — DI package](docs/performance.md#phase-33--di-package).
