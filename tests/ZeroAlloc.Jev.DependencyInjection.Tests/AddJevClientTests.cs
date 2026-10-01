@@ -148,20 +148,38 @@ public sealed class AddJevClientTests
     }
 
     [Fact]
-    public async Task DisposingTheProvider_DisposesTheClient_AndNotTheFactorysHandler()
+    public async Task DisposingTheClient_LeavesTheFactorysHandlerUsable()
     {
         var handler = Noul();
         var services = new ServiceCollection();
         services.AddJevClient(Options("http://default.local/")).ConfigurePrimaryHttpMessageHandler(() => handler);
+        using var provider = services.BuildServiceProvider();
+        var client = provider.GetRequiredService<IJevClient>();
+        _ = await client.EvaluateAsync(Request());
+
+        // The spec's claim: the singleton borrows its HttpClient, so disposing the client leaves the handler alone.
+        ((IDisposable)client).Dispose();
+
+        Assert.False(handler.Disposed);
+        using var fresh = provider.GetRequiredService<IHttpClientFactory>().CreateClient("ZeroAlloc.Jev");
+        using var response = await fresh.GetAsync(new Uri("v1/probe", UriKind.Relative));
+        Assert.True(response.IsSuccessStatusCode);
+        Assert.False(handler.Disposed);
+        Assert.Equal(2, handler.Requests.Count);
+    }
+
+    [Fact]
+    public async Task DisposingTheProvider_DisposesTheClient()
+    {
+        var services = new ServiceCollection();
+        services.AddJevClient(Options("http://default.local/")).ConfigurePrimaryHttpMessageHandler(() => Noul());
         var provider = services.BuildServiceProvider();
         var client = provider.GetRequiredService<IJevClient>();
         _ = await client.EvaluateAsync(Request());
 
-        Assert.False(handler.Disposed);
         provider.Dispose();
 
         await Assert.ThrowsAsync<ObjectDisposedException>(async () => await client.EvaluateAsync(Request()));
-        Assert.False(handler.Disposed);
     }
 
     [Fact]
