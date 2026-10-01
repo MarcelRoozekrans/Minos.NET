@@ -185,12 +185,16 @@ public sealed class Router([FromKeyedServices("openrouter")] IJevClient jev)
 
 The four `AddJevClient` overloads are `()`, `(Action<JevClientOptions>)`, `(string name)` and `(string name, Action<JevClientOptions>)`, in the namespace `Microsoft.Extensions.DependencyInjection`.
 
-- **One singleton per registration.** It reads its named `JevClientOptions` once, when first resolved. The default client reads the default name, and a keyed client reads its key. Repeat calls for the same name add their configure delegates in order, and register no second client.
+- **One singleton per registration.** It reads its named `JevClientOptions` once, when first resolved. The default client reads the default name, and a keyed client reads its key. Repeat calls for the same name add their configure delegates in order, and register no second client. Registration uses `TryAdd`: if the app registers its own `IJevClient`, or a keyed one under the same name, before `AddJevClient`, the app's registration wins, and `AddJevClient` configures only the named `HttpClient` and the options.
 - **The `HttpClient` comes from the factory.** It is named `ZeroAlloc.Jev`, or `ZeroAlloc.Jev:{name}` for a keyed client.
   - Its primary handler is a `SocketsHttpHandler` that recycles connections every 2 minutes, so DNS changes are picked up.
   - The factory never rotates that handler, because the singleton keeps its `HttpClient` for life.
   - `JevClient.ConfigureHttpClient` gives it the base address, the per-attempt `Timeout` and the User-Agent.
 - **`AddJevClient` returns the `IHttpClientBuilder`,** which is where you add your own handlers. If one of them retries, see [Retries](#retries).
+- **Host-wide defaults apply to Jev's clients too.** Handlers added through `ConfigureHttpClientDefaults` also run on `ZeroAlloc.Jev` and `ZeroAlloc.Jev:{name}`, whether the defaults are registered before or after `AddJevClient`.
+  - Aspire ServiceDefaults' `AddStandardResilienceHandler()` is the usual case. Its retries multiply with Jev's, and its per-attempt and total time-outs override `JevClientOptions.Timeout`.
+  - There is no per-client way to remove that handler. Set `MaxRetries = 0`, as [Retries](#retries) describes, and keep the handler's time-outs at or above `Timeout`.
+  - A primary handler set in the defaults is replaced by `AddJevClient`'s own `SocketsHttpHandler`, and the defaults' loggers are removed.
 - **Logging goes through the host's `ILoggerFactory`.** Without a logging provider, or with Jev's levels disabled, the client logs nothing and allocates nothing for logging.
   - The factory's own request logs are off for Jev's clients, because their handlers allocate on every request even when nothing logs, 344 B per call.
   - The client logs each operation and each retried attempt itself.
@@ -204,10 +208,15 @@ The four `AddJevClient` overloads are `()`, `(Action<JevClientOptions>)`, `(stri
 **Without the package.** `JevClient.ConfigureHttpClient(httpClient, options)` configures any `HttpClient` the way the client configures its own: it applies the per-attempt `Timeout`, the base address when the `HttpClient` has none, and the User-Agent. It needs no API key and does not touch the handler. Call it before the client sends a request, for instance on a named client of your own:
 
 ```csharp
-services.AddHttpClient("jev").ConfigureHttpClient(http => JevClient.ConfigureHttpClient(http, options));
+services.AddHttpClient("jev")
+    .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(2) })
+    .SetHandlerLifetime(Timeout.InfiniteTimeSpan)
+    .ConfigureHttpClient(http => JevClient.ConfigureHttpClient(http, options));
 
 var jev = new JevClient(httpClientFactory.CreateClient("jev"), options);
 ```
+
+A long-lived `JevClient` keeps one handler for life, so the factory's default 2-minute handler rotation would never reach it and DNS changes would go unseen. The `SocketsHttpHandler` recycles its own connections instead, and the infinite handler lifetime stops the factory rotating it.
 
 ## Typed evaluation
 
