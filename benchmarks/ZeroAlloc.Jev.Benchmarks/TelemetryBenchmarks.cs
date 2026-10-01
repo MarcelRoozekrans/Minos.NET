@@ -64,12 +64,14 @@ public class TelemetryBenchmarks : IDisposable
         _builtSetHttp.Dispose();
         _listModelsHttp.Dispose();
         _typedYieldingHttp.Dispose();
+        // BenchmarkDotNet may also dispose this instance; both calls are idempotent.
         Dispose();
     }
 
     /// <summary>Detaches the listeners.</summary>
     public void Dispose()
     {
+        // Null-conditional: Dispose can run when Setup never did.
         _telemetry?.Dispose();
         GC.SuppressFinalize(this);
     }

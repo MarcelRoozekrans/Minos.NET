@@ -103,6 +103,8 @@ difference, so they show no logging time cost either way; only their allocation 
 
 `EvaluateYieldingWithNullLoggerAsync` runs the same yielding call through `NullLoggerFactory`: it allocates 5.09 KB, the same as the unlogged call, so a disabled logger adds no allocation even where an enabled one adds about 480 B. Its mean comes from a later, noisier run that also re-measured the two rows beside it (26.51 us and 28.30 us, error bars above 200 us), so it says nothing about time. The AOT smoke app makes the same comparison with `GC.GetTotalAllocatedBytes` over 500 awaited calls, the least of three runs: 5254 B with no factory, 5254 B with `NullLoggerFactory` and 5733 B with the discarding logger.
 
+Note, 2026-10-01: since Phase 3.2 that check takes the median of five runs, because yielding runs vary in both directions, and it measures about 5254 B with no factory, 5254 B with `NullLoggerFactory` and 5720-5736 B with the discarding logger.
+
 ### Phase 3.2 — Telemetry
 
 | Benchmark | Mean | Allocated | AOT smoke budget |
@@ -138,6 +140,11 @@ three-question triage set, off and listening, so those two rows compare directly
   `TypedEvaluateRoundTripWithDiscardingLogger`.
 - Under published win-x64 AOT, an asynchronous `EvaluateAsync<T>` with telemetry off allocates 4568 B per call, the median
   of five runs, because yielding runs vary in both directions.
+
+Listening minus off, from the table: the raw evaluation 1.34 KB (5.51 against 4.17), the typed call 1.52 KB (4.81 against 3.29),
+the built set 1.53 KB (4.84 against 3.31), model listing 1.01 KB (4.09 against 3.08) and the asynchronous typed call 1.77 KB
+(6.23 against 4.46). The mean of `TypedEvaluateYieldingListeningAsync`, 21.724 us with an error of 171 us, is dominated by the thread pool
+hand-off and noise, so only its allocation figure is reliable.
 
 **Listening.** Discarding listeners sample every span and enable every instrument. Then the call pays for:
 - the `Activity`, and the start tags `TagsAtStart` boxes into one `TagList`;
