@@ -1,22 +1,27 @@
-# Session State — 2026-10-01 (paused mid-brainstorm, Phase 3.4)
+# Session State — 2026-10-01 (Phase 3.4 complete, PR open)
 
 **Date:** 2026-10-01
 
 ## Current Position
-- **Milestone:** 3 — .NET integration, active since 2026-09-30 (design `docs/superpowers/specs/2026-09-30-milestone-3-design.md`).
-- **Phase:** 3.4 — Options and configuration, the last phase of Milestone 3. It is mid-brainstorm on branch `phase/3.4-options-configuration`, which exists only locally and was cut from `main` at d1c0f53.
-  - Phase 3.3 — DI package merged as PR #75, and release-please counted all five entries: three `feat`, one `fix`, one `docs`.
-  - Phase 3.2 merged as PR #72.
-- **Last completed task:** a draft design spec, `docs/superpowers/specs/2026-10-01-phase-3.4-options-configuration-design.md`.
-  - The maintainer approved its Decisions and Sections 1–2: rules reused from the core resolver through `IValidateOptions` plus `ValidateOnStart`, no ZeroAlloc.Validation.Options, new `AddJevClient(IConfiguration)` overloads, and a public `JevClientOptions.Validate()`.
-  - Section 3 (Tests, AOT, cost and docs) is written as a proposal and NOT yet reviewed.
-- **Next task:** resume the brainstorm.
-  1. Present Section 3 of the draft spec for approval.
-  2. Clear the status line in the spec.
-  3. Run the spec review gate.
-  4. Then `writing-plans`, a pre-flight scan and subagent-driven execution, as in Phases 3.2–3.3.
-  
-  ROADMAP still shows 3.4 as `pending` with no Spec or Plan line. Set it `active` with both lines when the plan is written.
+- **Milestone:** 3 — .NET integration, active since 2026-09-30 (design `docs/superpowers/specs/2026-09-30-milestone-3-design.md`). All four phases are complete.
+- **Phase:** 3.4 — Options and configuration is complete on branch `phase/3.4-options-configuration`, pushed with a PR to `main`.
+  - Phase 3.3 merged as PR #75, Phase 3.2 as PR #72.
+- **Last completed task:** final verification and the whole-branch review fixes for Phase 3.4.
+- **Next task:** after the Phase 3.4 PR is merged, confirm the release PR lists its three `feat` entries and the `docs` entry, then run `audit-milestone` for Milestone 3, then `complete-milestone`.
+
+## What Phase 3.4 shipped
+- Core: public `JevClientOptions.Validate()` runs `JevClientSettings.Resolve`, the check every constructor runs, so it throws what the constructor would throw. The invalid-option cases live in one shared test source, `InvalidOptionsCases`.
+- DI:
+  - Every `AddJevClient` registration adds an internal `JevClientOptionsValidator` for its options name, plus `ValidateOnStart()`. A generic host fails at `StartAsync`; without a host the first resolve throws `OptionsValidationException` with the core's message.
+  - New overloads `AddJevClient(IConfiguration)` and `AddJevClient(string name, IConfiguration)`. Binding is source-generated through `EnableConfigurationBindingGenerator`. New dependency `Microsoft.Extensions.Options.ConfigurationExtensions` 10.0.0.
+- Plan-probe finding: `TryAddEnumerable` keeps one validator for every options name, because it compares implementation types. The validator is added on the first registration of a name instead.
+- Behaviour changes, documented in the README:
+  - Options are still validated when the app registers its own `IJevClient`; a test host needs a placeholder key.
+  - Creating Jev's named `HttpClient` from the factory directly needs valid options, an API key included.
+  - A configuration value the binder cannot convert fails at the same moment with the binder's `InvalidOperationException`.
+- Cost: a client bound from configuration measures 4376 B per call under Native AOT, equal to a hand-built client, checked by a relative gate. Existing budgets are unchanged.
+- ZeroAlloc.Validation.Options was dropped from the milestone; startup validation reuses the core's own rules.
+- Maintainer decision still open: config errors carry the core's `(Parameter 'options')` suffix, which the spec keeps.
 
 ## What Phase 3.3 shipped
 - New package `ZeroAlloc.Jev.DependencyInjection` with four overloads, all returning `IHttpClientBuilder`:
@@ -139,7 +144,7 @@
 - Still unknown until a TypeSafe live run (needs `TYPESAFE_API_KEY` and the `live-api` environment): whether TypeSafe sends `Retry-After`, the 422 body schema, and whether Phase 2.4's `BuiltQuestionSet_ParsesAKeyedChoice` passes.
 
 ## Recommended Next Step
-Resume the Phase 3.4 brainstorm on branch `phase/3.4-options-configuration`. Present the draft spec's Section 3 for approval, then the spec review gate, then `writing-plans`. Do not commit on `main`: it is protected, and a Phase 3.3 spec commit landed there locally once and had to be moved.
+Merge the Phase 3.4 PR, confirm release-please counted its entries, then run `audit-milestone` for Milestone 3.
 
 Open maintainer items:
 - the `live-api` environment and the TypeSafe live run;
