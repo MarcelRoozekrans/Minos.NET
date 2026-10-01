@@ -23,6 +23,7 @@ Unofficial .NET client for [TypeSafe AI](https://typesafe.ai)'s **Jev**, the fir
 - Native AOT: verified by an AOT smoke app in CI. Generated sets use no reflection; enum questions in built sets read the enum's public fields through trim-safe annotations.
 - Logging: pass an `ILoggerFactory` for structured `Microsoft.Extensions.Logging` events per operation and per retried attempt, never with request or answer content. See [Logging](#logging).
 - Telemetry: OpenTelemetry spans and metrics on the `ZeroAlloc.Jev` source and meter, named per the GenAI conventions, never with request or answer content, and adding no allocation to the raw path or to synchronously completing calls until something listens. See [Telemetry](#telemetry).
+- Dependency injection: `ZeroAlloc.Jev.DependencyInjection`'s `services.AddJevClient(...)` registers a singleton `IJevClient` over `IHttpClientFactory`, and `AddJevClient(name, ...)` registers keyed clients, each with its own options and `HttpClient`. See [Dependency injection](#dependency-injection).
 
 ## Example
 
@@ -152,6 +153,61 @@ See [Phase 3.2 — Telemetry](docs/performance.md#phase-32--telemetry).
 A hand-written `IJevClient` that relies on the default interface methods for typed and built-set evaluation emits nothing. The telemetry lives in `JevClient`.
 
 **Stability.** The GenAI semantic conventions are in Development, and the token metric names follow the `semantic-conventions-genai` repository's main branch, which has no release yet. Names may change before this package's 1.0.
+
+### Dependency injection
+
+`ZeroAlloc.Jev.DependencyInjection` registers the client in a .NET host, over `IHttpClientFactory`:
+
+```csharp
+builder.Services.AddJevClient(options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
+
+public sealed class TicketTriage(IJevClient jev)
+{
+    // ...
+}
+```
+
+For several providers or configurations, register keyed clients and inject each one with `[FromKeyedServices]`:
+
+```csharp
+builder.Services.AddJevClient("typesafe", options => options.ApiKey = typesafeKey);
+builder.Services.AddJevClient("openrouter", options =>
+{
+    options.Provider = JevProvider.OpenRouter;
+    options.ApiKey = openRouterKey;
+});
+
+public sealed class Router([FromKeyedServices("openrouter")] IJevClient jev)
+{
+    // ...
+}
+```
+
+The four `AddJevClient` overloads are `()`, `(Action<JevClientOptions>)`, `(string name)` and `(string name, Action<JevClientOptions>)`, in the namespace `Microsoft.Extensions.DependencyInjection`.
+
+- **One singleton per registration.** It reads its named `JevClientOptions` once, when first resolved. The default client reads the default name, and a keyed client reads its key. Repeat calls for the same name add their configure delegates in order, and register no second client.
+- **The `HttpClient` comes from the factory.** It is named `ZeroAlloc.Jev`, or `ZeroAlloc.Jev:{name}` for a keyed client.
+  - Its primary handler is a `SocketsHttpHandler` that recycles connections every 2 minutes, so DNS changes are picked up.
+  - The factory never rotates that handler, because the singleton keeps its `HttpClient` for life.
+  - `JevClient.ConfigureHttpClient` gives it the base address, the per-attempt `Timeout` and the User-Agent.
+- **`AddJevClient` returns the `IHttpClientBuilder`,** so you can add your own handlers. If you add a retry handler, such as `AddStandardResilienceHandler`, set `MaxRetries = 0`, so retries don't multiply.
+- **Logging goes through the host's `ILoggerFactory`.** Without a logging provider, or with Jev's levels disabled, the client logs nothing and allocates nothing for logging.
+  - The factory's own request logs are off for Jev's clients, because their handlers allocate on every request even when nothing logs, 344 B per call.
+  - The client logs each operation and each retried attempt itself.
+  - Call `AddDefaultLogger()` on the returned builder to bring the factory's logs back, at that cost.
+- **Telemetry is on.** Subscribe with `AddSource("ZeroAlloc.Jev")` and `AddMeter("ZeroAlloc.Jev")`, as [Telemetry](#telemetry) shows. The package takes no OpenTelemetry dependency.
+- **Invalid options throw when the client is first resolved, not at registration.** That covers a missing API key, a non-positive `Timeout` or an invalid base address. The exception is the core's `ArgumentException` or `InvalidOperationException`. Phase 3.4 moves this check to startup.
+- **Disposal.** The container disposes the client with the provider. The `HttpClient` belongs to the factory, and is left alone.
+
+**Cost.** An evaluation through a resolved client allocates no more than the same call on a hand-built client over a configured `HttpClient`, and measures equal to it, so DI adds nothing per call. Under Native AOT both allocate 4376 B per call. Registration and the first resolve happen once. See [Phase 3.3 — DI package](docs/performance.md#phase-33--di-package).
+
+**Without the package.** `JevClient.ConfigureHttpClient(httpClient, options)` configures any `HttpClient` the way the client configures its own: it applies the per-attempt `Timeout`, the base address when the `HttpClient` has none, and the User-Agent. It needs no API key and does not touch the handler. Call it before the client sends a request, for instance on a named client of your own:
+
+```csharp
+services.AddHttpClient("jev").ConfigureHttpClient(http => JevClient.ConfigureHttpClient(http, options));
+
+var jev = new JevClient(httpClientFactory.CreateClient("jev"), options);
+```
 
 ## Typed evaluation
 

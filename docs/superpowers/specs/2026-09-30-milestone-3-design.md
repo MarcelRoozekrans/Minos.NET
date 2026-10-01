@@ -64,12 +64,11 @@ Custom retry policies supplied through DI are left out until someone asks for th
   | Package | Version |
   |---|---|
   | ZeroAlloc.Telemetry | 1.10.0 |
-  | ZeroAlloc.Inject | 1.9.1 |
   | ZeroAlloc.Validation.Options | 2.0.3 |
-  | ZeroAlloc.Rest.DependencyInjection | 3.1.0 |
 
   ZeroAlloc.Telemetry#142, metrics from a method's result, is closed.
   ZeroAlloc.Telemetry moved to 1.10.0, released on 2026-10-01, for Phase 3.2: 1.9.0 closed #168–#173, and 1.10.0 closed #181. See `docs/superpowers/specs/2026-10-01-phase-3.2-telemetry-design.md`.
+  Phase 3.3 dropped ZeroAlloc.Inject and ZeroAlloc.Rest.DependencyInjection. `AddJevClient` is hand-written over `Microsoft.Extensions.Http` 10.0.0: Inject's attributes discover an app's own services, and Rest.DependencyInjection generates registrations for public Rest interfaces, while Jev's `IJevApi` is internal and built inside `JevClient`. See `docs/superpowers/specs/2026-10-01-phase-3.3-di-package-design.md`.
 - **New core dependency:** `Microsoft.Extensions.Logging.Abstractions`.
 
 ## External Constraints
