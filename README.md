@@ -183,9 +183,9 @@ public sealed class Router([FromKeyedServices("openrouter")] IJevClient jev)
 }
 ```
 
-The four `AddJevClient` overloads are `()`, `(Action<JevClientOptions>)`, `(string name)` and `(string name, Action<JevClientOptions>)`, in the namespace `Microsoft.Extensions.DependencyInjection`.
+The six `AddJevClient` overloads are `()`, `(Action<JevClientOptions>)`, `(IConfiguration)`, `(string name)`, `(string name, Action<JevClientOptions>)` and `(string name, IConfiguration)`, in the namespace `Microsoft.Extensions.DependencyInjection`.
 
-- **One singleton per registration.** It reads its named `JevClientOptions` once, when first resolved. The default client reads the default name, and a keyed client reads its key. Repeat calls for the same name add their configure delegates in order, and register no second client. Registration uses `TryAdd`: if the app registers its own `IJevClient`, or a keyed one under the same name, before `AddJevClient`, the app's registration wins, and `AddJevClient` configures only the named `HttpClient` and the options.
+- **One singleton per registration.** It reads its named `JevClientOptions` once, when first resolved. The default client reads the default name, and a keyed client reads its key. Repeat calls for the same name add their configure delegates in order, and register no second client. Registration uses `TryAdd`: if the app registers its own `IJevClient`, or a keyed one under the same name, before `AddJevClient`, the app's registration wins, and `AddJevClient` configures only the named `HttpClient` and the options. Those options are still validated at startup, so a test host that replaces the client needs a placeholder key, for example `AddJevClient(options => options.ApiKey = "test")`, or a `Jev:ApiKey` setting.
 - **The `HttpClient` comes from the factory.** It is named `ZeroAlloc.Jev`, or `ZeroAlloc.Jev:{name}` for a keyed client.
   - Its primary handler is a `SocketsHttpHandler` that recycles connections every 2 minutes, so DNS changes are picked up.
   - The factory never rotates that handler, because the singleton keeps its `HttpClient` for life.
@@ -200,10 +200,44 @@ The four `AddJevClient` overloads are `()`, `(Action<JevClientOptions>)`, `(stri
   - The client logs each operation and each retried attempt itself.
   - Call `AddDefaultLogger()` on the returned builder to bring the factory's logs back, at that cost.
 - **Telemetry is on.** Subscribe with `AddSource("ZeroAlloc.Jev")` and `AddMeter("ZeroAlloc.Jev")`, as [Telemetry](#telemetry) shows. The package takes no OpenTelemetry dependency.
-- **Invalid options throw when the client is first resolved, not at registration.** That covers a missing API key, an invalid base address, or a `Timeout` that is zero, negative other than infinite, or longer than about 24.8 days. The exception is the core's `ArgumentException` or `InvalidOperationException`. A later version moves this check to startup.
+- **Invalid options fail at startup.** Each registration validates its options with `JevClientOptions.Validate()`, the check the client's constructor runs, and `ValidateOnStart()`. So a generic host fails at `StartAsync`. Without a host, as with a plain `BuildServiceProvider()`, they throw when the client is first resolved. That covers a missing API key, an invalid base address, `MaxRetries` outside 0–10, a back-off out of range, a blank model, or a `Timeout` that is zero, negative other than infinite, or longer than about 24.8 days. The exception is an `OptionsValidationException` whose message is the core's own. `JevClientOptions.Validate()` is public, for health checks or hand-built clients. Jev's named `HttpClient` reads the same options, so creating it from `IHttpClientFactory` directly also needs valid options, an API key included.
 - **Disposal.** The container disposes the client with the provider. The `HttpClient` belongs to the factory, and is left alone.
 
-**Cost.** An evaluation through a resolved client allocates no more than the same call on a hand-built client over a configured `HttpClient`, and measures equal to it, so DI adds nothing per call. Under Native AOT both allocate 4376 B per call. Registration and the first resolve happen once. See [Phase 3.3 — DI package](docs/performance.md#phase-33--di-package).
+#### Configuration
+
+Bind a client's options from configuration, such as `appsettings.json`:
+
+```json
+{
+  "Jev": {
+    "Provider": "TypeSafe",
+    "Model": "jev-latest",
+    "Timeout": "00:01:00",
+    "MaxRetries": 2,
+    "InitialBackoff": "00:00:00.500",
+    "MaxRetryDelay": "00:00:30",
+    "Jitter": true
+  },
+  "OpenRouter": {
+    "Provider": "OpenRouter",
+    "MaxRetries": 0
+  }
+}
+```
+
+```csharp
+builder.Services.AddJevClient(builder.Configuration.GetSection("Jev"));
+builder.Services.AddJevClient("openrouter", builder.Configuration.GetSection("OpenRouter"));
+```
+
+- The keys are the `JevClientOptions` property names: `Provider`, `ApiKey`, `BaseAddress`, `Model`, `Timeout`, `MaxRetries`, `InitialBackoff`, `MaxRetryDelay` and `Jitter`. Time spans use the `hh:mm:ss` form. Every key is optional.
+- Keep the API key out of `appsettings.json`. Leave `ApiKey` unset to use `TYPESAFE_API_KEY` or `OPENROUTER_API_KEY`, or supply `Jev:ApiKey` from user secrets or an environment variable such as `Jev__ApiKey`.
+- A configure delegate registered later for the same client, such as `AddJevClient(options => ...)`, overrides bound values.
+- Bound values are validated at startup like any others. A value the binder cannot convert, such as `"MaxRetries": "abc"`, fails at the same point with an `InvalidOperationException` from the binder, not an `OptionsValidationException`.
+- Binding is source-generated, so it uses no reflection and stays Native AOT-clean with nothing to set up.
+- Changes to the configuration after the client is built are not picked up. The client is a singleton that reads its options once.
+
+**Cost.** An evaluation through a resolved client allocates no more than the same call on a hand-built client over a configured `HttpClient`, and measures equal to it, so DI adds nothing per call. Under Native AOT both allocate 4376 B per call. Registration and the first resolve happen once. A client bound from configuration costs the same per call: binding and validation run once, when the options are first read, which is at startup under a generic host. See [Phase 3.3 — DI package](docs/performance.md#phase-33--di-package).
 
 **Without the package.** `JevClient.ConfigureHttpClient(httpClient, options)` configures any `HttpClient` the way the client configures its own: it applies the per-attempt `Timeout`, the base address when the `HttpClient` has none, and the User-Agent. It needs no API key and does not touch the handler. Call it before the client sends a request, for instance on a named client of your own:
 

@@ -24,7 +24,7 @@ All of it stays Native AOT-clean and within the CI-enforced allocation budgets. 
   - `services.AddJevClient(name, ...)` registers keyed clients, each with its own options and `HttpClient`, resolved with `[FromKeyedServices]`.
   - The pack tests assert the package's layout and dependencies.
 - [ ] `JevClientOptions` bind from `IConfiguration`.
-  - They are validated with ZeroAlloc.Validation.Options, so invalid values fail at startup, not on the first call.
+  - They are validated at startup with the core's own rules, so invalid values fail when the host starts, not on the first call.
   - `MaxRetries`, `InitialBackoff`, `MaxRetryDelay`, `Jitter` and `Timeout` are configurable this way.
 - [ ] `JevClient` logs through Microsoft's source-generated `[LoggerMessage]` methods.
   - It accepts an `ILoggerFactory` through new constructor overloads, none of them with optional parameters.
@@ -47,7 +47,7 @@ Release PRs come from release-please, per `docs/planning/CONVENTIONS.md`. Comple
 3. **Phase 3.3: DI package** — `Surface: Backend`
    - **Goal:** `ZeroAlloc.Jev.DependencyInjection` with `AddJevClient(...)` and keyed clients over `IHttpClientFactory`, wiring logging and telemetry.
 4. **Phase 3.4: Options and configuration** — `Surface: Backend`
-   - **Goal:** `IConfiguration` binding validated with ZeroAlloc.Validation.Options, with retry and timeout settings through configuration.
+   - **Goal:** `IConfiguration` binding validated at startup, with retry and timeout settings through configuration.
 
 This order differs from the roadmap, which had DI → options → telemetry → logging → configurable resilience. Because logging and telemetry live in core, building them first lets the DI package be written once and never reopened.
 
@@ -64,8 +64,8 @@ Custom retry policies supplied through DI are left out until someone asks for th
   | Package | Version |
   |---|---|
   | ZeroAlloc.Telemetry | 1.10.0 |
-  | ZeroAlloc.Validation.Options | 2.0.3 |
 
+  ZeroAlloc.Validation.Options was dropped in Phase 3.4: startup validation reuses the core's own rules through `JevClientOptions.Validate()`, so there is one rule set.
   ZeroAlloc.Telemetry#142, metrics from a method's result, is closed.
   ZeroAlloc.Telemetry moved to 1.10.0, released on 2026-10-01, for Phase 3.2: 1.9.0 closed #168–#173, and 1.10.0 closed #181. See `docs/superpowers/specs/2026-10-01-phase-3.2-telemetry-design.md`.
   Phase 3.3 dropped ZeroAlloc.Inject and ZeroAlloc.Rest.DependencyInjection. `AddJevClient` is hand-written over `Microsoft.Extensions.Http` 10.0.0: Inject's attributes discover an app's own services, and Rest.DependencyInjection generates registrations for public Rest interfaces, while Jev's `IJevApi` is internal and built inside `JevClient`. See `docs/superpowers/specs/2026-10-01-phase-3.3-di-package-design.md`.

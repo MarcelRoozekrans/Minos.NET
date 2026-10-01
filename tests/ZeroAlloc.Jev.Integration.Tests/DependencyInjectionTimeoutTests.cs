@@ -32,4 +32,20 @@ public sealed class DependencyInjectionTimeoutTests : IClassFixture<WireMockFixt
         Assert.Equal(JevErrorKind.Timeout, result.Error.Kind);
         Assert.Equal(2, attempts.Value);
     }
+
+    [Fact]
+    public async Task BoundTimeout_TimesOutEachAttempt()
+    {
+        // As above, but the 300 ms per-attempt time-out and the single attempt both come from configuration.
+        using var held = _fixture.HoldEveryResponse();
+        var attempts = new DependencyInjectionHarness.AttemptCount();
+        using var provider = DependencyInjectionHarness.BoundProvider(
+            _fixture, attempts, maxRetries: 0, timeout: TimeSpan.FromMilliseconds(300));
+
+        var result = await provider.GetRequiredService<IJevClient>().EvaluateAsync(Fixtures.NoulRequest());
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(JevErrorKind.Timeout, result.Error.Kind);
+        Assert.Equal(1, attempts.Value);
+    }
 }

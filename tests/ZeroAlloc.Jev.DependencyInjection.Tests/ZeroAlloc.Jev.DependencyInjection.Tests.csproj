@@ -7,6 +7,10 @@
     <!-- FakeLogger, and through Microsoft.Extensions.Logging the ServiceCollection container the tests build. -->
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
+    <!-- ConfigurationBuilder and AddInMemoryCollection, for the binding tests. -->
+    <PackageReference Include="Microsoft.Extensions.Configuration" />
+    <!-- Host.CreateApplicationBuilder, for the startup validation tests. -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />

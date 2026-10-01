@@ -31,13 +31,15 @@ public sealed class AddJevClientTests
         var services = new ServiceCollection();
         services.AddJevClient(options =>
         {
+            options.ApiKey = "di-key";
             options.BaseAddress = new Uri("http://proxy.local/jev");
             options.Timeout = TimeSpan.FromSeconds(12);
         });
         using var provider = services.BuildServiceProvider();
 
-        // No API key: the HttpClient is configured without one. A fresh CreateClient builds exactly as the factory built
-        // the resolved client's HttpClient, from the same named configuration, so this checks what the client received.
+        // A fresh CreateClient builds exactly as the factory built the resolved client's HttpClient, from the same named
+        // configuration, so this checks what the client received. The options need a key: the named options are
+        // validated whenever they are first read, and the HttpClient's configuration reads them.
         using var http = provider.GetRequiredService<IHttpClientFactory>().CreateClient("ZeroAlloc.Jev");
 
         Assert.Equal(new Uri("http://proxy.local/jev/"), http.BaseAddress);
@@ -236,7 +238,7 @@ public sealed class AddJevClientTests
             });
             using var provider = services.BuildServiceProvider();
 
-            var exception = Assert.Throws<ArgumentException>(() => provider.GetRequiredService<IJevClient>());
+            var exception = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IJevClient>());
 
             Assert.StartsWith("The time-out must be positive.", exception.Message, StringComparison.Ordinal);
         }

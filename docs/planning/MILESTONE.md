@@ -14,7 +14,7 @@ Jev feels native in a .NET generic-host app. One call registers the client, incl
   - `services.AddJevClient(...)` registers an `IJevClient` on `IHttpClientFactory` in one call.
   - `services.AddJevClient(name, ...)` registers keyed clients, each with its own options and `HttpClient`.
   - The pack tests assert the package's layout and dependencies.
-- [ ] `JevClientOptions` bind from `IConfiguration`, validated with ZeroAlloc.Validation.Options so invalid values fail at startup. Retry and timeout settings are configurable this way.
+- [ ] `JevClientOptions` bind from `IConfiguration`, validated at startup with the core's own rules, so invalid values fail when the host starts. Retry and timeout settings are configurable this way.
 - [ ] `JevClient` logs through Microsoft's source-generated `[LoggerMessage]`:
   - It accepts an `ILoggerFactory` through new constructor overloads.
   - Logs never contain state, instructions, answers or the API key.
@@ -29,7 +29,7 @@ Jev feels native in a .NET generic-host app. One call registers the client, incl
 1. Phase 3.1 — Logging [complete]
 2. Phase 3.2 — Telemetry [complete]
 3. Phase 3.3 — DI package [complete]
-4. Phase 3.4 — Options and configuration [pending]
+4. Phase 3.4 — Options and configuration [complete]
 
 ## Audit History
 | Date | Verdict | Gaps |

@@ -17,6 +17,8 @@
     <PackageReference Include="WireMock.Net" />
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
+    <!-- ConfigurationBuilder and AddInMemoryCollection, for the client bound from configuration. -->
+    <PackageReference Include="Microsoft.Extensions.Configuration" />
   </ItemGroup>
 
   <ItemGroup>

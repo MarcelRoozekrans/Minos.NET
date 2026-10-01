@@ -54,17 +54,18 @@ public sealed class DependencyInjectionPackageTests : IClassFixture<DependencyIn
     }
 
     [Fact]
-    public void DependsOnTheCorePackageAndMicrosoftExtensionsHttpOnly()
+    public void DependsOnTheCorePackageHttpAndOptionsConfigurationOnly()
     {
         var dependencies = Dependencies();
 
         Assert.Equal(
-            ["Microsoft.Extensions.Http", "ZeroAlloc.Jev"],
+            ["Microsoft.Extensions.Http", "Microsoft.Extensions.Options.ConfigurationExtensions", "ZeroAlloc.Jev"],
             dependencies.Select(dependency => (string)dependency.Attribute("id")!).Order(StringComparer.Ordinal).ToArray());
 
-        // The core package is packed at the same version, and Microsoft.Extensions.Http's floor is the first .NET 10 release.
+        // The core package is packed at the same version; both Microsoft floors are the first .NET 10 release.
         Assert.Equal(_fixture.PackageVersion, Version(dependencies, "ZeroAlloc.Jev"));
         Assert.Equal("10.0.0", Version(dependencies, "Microsoft.Extensions.Http"));
+        Assert.Equal("10.0.0", Version(dependencies, "Microsoft.Extensions.Options.ConfigurationExtensions"));
     }
 
     // The net10.0 group's dependencies.

@@ -194,3 +194,12 @@ the redacted request URI and open a logging scope on every request, before they 
 - So `AddJevClient` removes them with `RemoveAllLoggers()`. The client still logs each operation and each retried attempt
   itself.
 - `AddDefaultLogger()` on the returned builder brings them back, at that cost.
+
+### Phase 3.4 — Options and configuration
+
+Binding from `IConfiguration` and startup validation run once, when the options are first read, so they add nothing per
+call.
+- Under published win-x64 AOT, the gate `EvaluateRoundTripThroughBoundConfigurationAgainstHandBuilt` holds a client bound
+  from configuration to a hand-built client's own measurement from the same run. Both measured 4376 B per call.
+- The absolute 4864 B gate for a DI-resolved client, and every other existing budget, are unchanged.
+- Binding is source-generated. The AOT smoke app binds every option with zero IL2xxx/IL3xxx warnings.

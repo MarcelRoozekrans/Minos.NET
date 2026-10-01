@@ -1,3 +1,5 @@
+using ZeroAlloc.Jev.Transport;
+
 namespace ZeroAlloc.Jev;
 
 /// <summary>Configures a <see cref="JevClient"/>. Every property is optional.</summary>
@@ -69,4 +71,23 @@ public sealed class JevClientOptions
     /// <see langword="true"/>.
     /// </summary>
     public bool Jitter { get; set; } = true;
+
+    /// <summary>
+    /// Checks these options exactly as a <see cref="JevClient"/> constructor does, including the API key and base address
+    /// environment variables, and throws what the constructor would throw. It creates no client and changes no option.
+    /// </summary>
+    /// <remarks>
+    /// The constructors run the same check, so options that pass here construct a client, as long as the environment
+    /// variables do not change in between. <c>AddJevClient</c> runs it at host startup.
+    /// </remarks>
+    /// <exception cref="ArgumentException">An option has an invalid value.</exception>
+    /// <exception cref="InvalidOperationException">
+    /// No API key is configured, or the <see cref="JevDefaults.ApiKeyEnvironmentVariable"/>,
+    /// <see cref="JevDefaults.OpenRouterApiKeyEnvironmentVariable"/> or <see cref="JevDefaults.BaseAddressEnvironmentVariable"/>
+    /// environment variable is invalid.
+    /// </exception>
+    public void Validate() => Validate(Environment.GetEnvironmentVariable);
+
+    // The constructors' own check, against a given environment; tests pass a fake.
+    internal void Validate(Func<string, string?> environment) => _ = JevClientSettings.Resolve(this, environment);
 }

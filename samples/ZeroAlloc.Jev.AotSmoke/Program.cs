@@ -39,6 +39,8 @@ internal static class Program
         await LoggingChecks.FailedEvaluationLogsTheLibraryMessageOnly().ConfigureAwait(false);
         await LoggingChecks.ModelListingLogsTheModelCount().ConfigureAwait(false);
         await DependencyInjectionChecks.DefaultAndKeyedClientsEvaluate().ConfigureAwait(false);
+        await DependencyInjectionChecks.ClientsBoundFromConfigurationEvaluate().ConfigureAwait(false);
+        DependencyInjectionChecks.InvalidConfigurationFailsValidation();
         await TelemetryChecks.RetriedEvaluationIsOneSpanOverTwoAttempts().ConfigureAwait(false);
         await TelemetryChecks.TypedEvaluationRecordsItsMetrics().ConfigureAwait(false);
         await TelemetryChecks.FailedEvaluationIsAnError().ConfigureAwait(false);
@@ -60,6 +62,7 @@ internal static class Program
         AllocationChecks.EvaluateBuiltSetRoundTrip();
         AllocationChecks.JevAnswersGet();
         AllocationChecks.EvaluateRoundTripThroughDependencyInjection();
+        AllocationChecks.EvaluateRoundTripThroughBoundConfiguration();
         await AllocationChecks.TelemetryOffAsynchronousTypedEvaluation().ConfigureAwait(false);
         AllocationChecks.EvaluateRoundTripWhileListening();
         AllocationChecks.TypedEvaluateRoundTripWhileListening();
