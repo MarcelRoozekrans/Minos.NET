@@ -28,6 +28,9 @@ internal sealed class JevClientSettings
         Jitter = jitter;
     }
 
+    // The longest span HttpClient.Timeout accepts, and the cap on the back-off options.
+    private static readonly TimeSpan MaxMilliseconds = TimeSpan.FromMilliseconds(int.MaxValue);
+
     public JevProvider Provider { get; }
 
     public string ApiKey { get; }
@@ -64,13 +67,12 @@ internal sealed class JevClientSettings
             throw new ArgumentException("MaxRetries must be between 0 and 10.", nameof(options));
         }
 
-        var maxMilliseconds = TimeSpan.FromMilliseconds(int.MaxValue);
-        if (options.InitialBackoff <= TimeSpan.Zero || options.InitialBackoff > maxMilliseconds)
+        if (options.InitialBackoff <= TimeSpan.Zero || options.InitialBackoff > MaxMilliseconds)
         {
             throw new ArgumentException("InitialBackoff must be positive and at most int.MaxValue milliseconds.", nameof(options));
         }
 
-        if (options.MaxRetryDelay < options.InitialBackoff || options.MaxRetryDelay > maxMilliseconds)
+        if (options.MaxRetryDelay < options.InitialBackoff || options.MaxRetryDelay > MaxMilliseconds)
         {
             throw new ArgumentException(
                 "MaxRetryDelay must be at least InitialBackoff and at most int.MaxValue milliseconds.", nameof(options));
@@ -128,9 +130,6 @@ internal sealed class JevClientSettings
         }
     }
 
-    // The longest time-out HttpClient.Timeout accepts.
-    private static readonly TimeSpan MaxHttpTimeout = TimeSpan.FromMilliseconds(int.MaxValue);
-
     private static void EnsureValidTimeout(JevClientOptions options)
     {
         if (options.Timeout <= TimeSpan.Zero && options.Timeout != System.Threading.Timeout.InfiniteTimeSpan)
@@ -138,9 +137,9 @@ internal sealed class JevClientSettings
             throw new ArgumentException("The time-out must be positive.", nameof(options));
         }
 
-        if (options.Timeout > MaxHttpTimeout)
+        if (options.Timeout > MaxMilliseconds)
         {
-            throw new ArgumentOutOfRangeException(nameof(options), options.Timeout, "The time-out must not exceed " + MaxHttpTimeout.TotalMilliseconds.ToString(System.Globalization.CultureInfo.InvariantCulture) + " milliseconds.");
+            throw new ArgumentOutOfRangeException(nameof(options), options.Timeout, "The time-out must not exceed " + MaxMilliseconds.TotalMilliseconds.ToString(System.Globalization.CultureInfo.InvariantCulture) + " milliseconds.");
         }
     }
 
