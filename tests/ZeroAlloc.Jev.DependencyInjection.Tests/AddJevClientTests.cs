@@ -208,17 +208,20 @@ public sealed class AddJevClientTests
     [Fact]
     public void NonPositiveTimeout_Throws_OnTheFirstResolve()
     {
-        var services = new ServiceCollection();
-        services.AddJevClient(options =>
+        foreach (var timeout in new[] { TimeSpan.FromSeconds(-1), TimeSpan.Zero })
         {
-            Options("http://default.local/")(options);
-            options.Timeout = TimeSpan.FromSeconds(-1);
-        });
-        using var provider = services.BuildServiceProvider();
+            var services = new ServiceCollection();
+            services.AddJevClient(options =>
+            {
+                Options("http://default.local/")(options);
+                options.Timeout = timeout;
+            });
+            using var provider = services.BuildServiceProvider();
 
-        var exception = Assert.Throws<ArgumentException>(() => provider.GetRequiredService<IJevClient>());
+            var exception = Assert.Throws<ArgumentException>(() => provider.GetRequiredService<IJevClient>());
 
-        Assert.StartsWith("The time-out must be positive.", exception.Message, StringComparison.Ordinal);
+            Assert.StartsWith("The time-out must be positive.", exception.Message, StringComparison.Ordinal);
+        }
     }
 
     [Fact]
