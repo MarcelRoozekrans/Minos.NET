@@ -15,10 +15,13 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// <see cref="JevClientOptions"/>. The client reads those options once, when the container first builds it, and logs
 /// through the container's <see cref="ILoggerFactory"/>. Its spans and metrics come from the <c>ZeroAlloc.Jev</c> source
 /// and meter. Invalid options fail a generic host at startup, through <see cref="JevClientOptions.Validate()"/> and
-/// <c>ValidateOnStart</c>. Without a host they throw when the client is first resolved. Either way the exception is an
-/// <see cref="OptionsValidationException"/> that carries the core's message. The registration's named options are
-/// validated whenever they are first read, so creating its named <see cref="HttpClient"/> from
-/// <see cref="IHttpClientFactory"/> directly also needs valid options, an API key included.
+/// <c>ValidateOnStart</c>. Without a host they throw when the client is first resolved. Either way a value that fails
+/// validation throws an <see cref="OptionsValidationException"/> that carries the core's message, and a configuration
+/// value the binder cannot convert fails at the same point with the binder's <see cref="InvalidOperationException"/>.
+/// The registration's named options are validated whenever they are first read, so creating its named
+/// <see cref="HttpClient"/> from <see cref="IHttpClientFactory"/> directly also needs valid options, an API key
+/// included. The options are validated even when the app registers its own <see cref="IJevClient"/> first, so a test
+/// host that replaces the client still needs an API key, such as a placeholder one.
 /// </remarks>
 public static class JevServiceCollectionExtensions
 {
