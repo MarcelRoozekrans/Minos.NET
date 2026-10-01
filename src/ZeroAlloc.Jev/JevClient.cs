@@ -197,8 +197,8 @@ public sealed class JevClient : IJevClient, IDisposable
             new JevErrorMapper(time));
         var retry = RetryPolicyFor(settings);
 
-        // The proxy, then the logging decorator, then the transport: the decorator sees every attempt with its retry
-        // number and shares the proxy's policy. Without a logger the proxy wraps the transport directly, as before.
+        // The retry proxy, then the logging decorator, then the transport: the decorator sees every attempt with its retry
+        // number and shares the retry proxy's policy. Without a logger the retry proxy wraps the transport directly, as before.
         IJevApi attempts = logger is null ? transport : new LoggingJevApi(transport, logger, retry);
         var api = new IJevApiResilienceProxy(attempts, new JevApiResiliencePolicies { Retry = retry });
 
