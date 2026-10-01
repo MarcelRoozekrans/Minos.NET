@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Net;
+using System.Text;
 using System.Text.Json;
 using ZeroAlloc.Jev.Serialization;
 
@@ -59,6 +60,52 @@ public sealed class JevClientTelemetryTests : IDisposable
         Assert.Equal(1, capture.StartTags().Tag("jev.request.question_count"));
         Assert.Equal("jev-1.13.0", span.GetTagItem("gen_ai.response.model"));
         Assert.Equal([0.81], capture.Points("jev.answer.confidence").Select(point => point.Value));
+    }
+
+    [Fact]
+    public async Task TypedEvaluation_CompletingAsynchronously_ReturnsEveryBuffer()
+    {
+        using var capture = new TelemetryCapture();
+        var pool = new CountingPool();
+        var handler = new StubHandler(async (_, _) =>
+        {
+            await Task.Yield();
+            return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(Fixture.Text("response-choice.json"), Encoding.UTF8, "application/json") };
+        });
+        using var client = ClientTestKit.Client(_httpClients, handler, pool);
+
+        var result = await client.EvaluateAsync<DepartmentRouting>("Help!");
+
+        Assert.Equal(Department.Billing, result.Value.Department.Value);
+        Assert.True(pool.Rented > 0);
+        Assert.Equal(0, pool.Outstanding);
+        Assert.Equal("evaluate-typed", capture.StartTags().Tag("jev.operation"));
+        Assert.Equal("jev-1.13.0", capture.Span().GetTagItem("gen_ai.response.model"));
+    }
+
+    [Fact]
+    public async Task TypedEvaluation_CancelledWhilePending_Throws_AndReturnsEveryBuffer()
+    {
+        using var capture = new TelemetryCapture();
+        var pool = new CountingPool();
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handler = new StubHandler(async (_, ct) =>
+        {
+            started.SetResult();
+            await Task.Delay(Timeout.Infinite, ct);
+            return new HttpResponseMessage(HttpStatusCode.OK);
+        });
+        using var client = ClientTestKit.Client(_httpClients, handler, pool);
+        using var cancellation = new CancellationTokenSource();
+
+        var pending = client.EvaluateAsync<DepartmentRouting>("Help!", cancellation.Token).AsTask();
+        await started.Task;
+        await cancellation.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await pending);
+
+        Assert.True(pool.Rented > 0);
+        Assert.Equal(0, pool.Outstanding);
     }
 
     [Fact]
