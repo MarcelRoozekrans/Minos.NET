@@ -29,9 +29,10 @@ public sealed class JevClientOptions
     public string Model { get; set; } = JevDefaults.Model;
 
     /// <summary>
-    /// Gets or sets how long a single attempt may take. Defaults to 60 seconds. Applies only to an
-    /// <see cref="HttpClient"/> the client creates. With retries, a call can take up to
-    /// <c>(MaxRetries + 1) × Timeout</c> plus the waits between attempts.
+    /// Gets or sets how long a single attempt may take. Defaults to 60 seconds. Applies to an <see cref="HttpClient"/>
+    /// the client creates, and to one configured with <see cref="JevClient.ConfigureHttpClient(HttpClient, JevClientOptions)"/>,
+    /// as <c>AddJevClient</c>'s are; another <see cref="HttpClient"/> you pass keeps its own time-out. With retries, a call
+    /// can take up to <c>(MaxRetries + 1) × Timeout</c> plus the waits between attempts.
     /// </summary>
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(60);
 
