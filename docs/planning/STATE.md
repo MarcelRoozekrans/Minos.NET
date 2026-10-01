@@ -1,12 +1,22 @@
-# Session State — 2026-10-01
+# Session State — 2026-10-01 (paused mid-brainstorm, Phase 3.4)
 
 **Date:** 2026-10-01
 
 ## Current Position
 - **Milestone:** 3 — .NET integration, active since 2026-09-30 (design `docs/superpowers/specs/2026-09-30-milestone-3-design.md`).
-- **Phase:** 3.3 — DI package, complete on branch `phase/3.3-di-package`; PR #75 is open and not yet merged. Phase 3.2 — Telemetry merged as PR #72, and release-please counted its `feat` lines. Next phase: 3.4 — Options and configuration (pending; no design spec yet), the last phase of Milestone 3.
-- **Last completed task:** Phase 3.3 — DI package. All 9 plan tasks passed review, and the final whole-branch review passed after one fix wave. The full suite, a non-incremental build and the AOT smoke app are clean.
-- **Next task:** merge PR #75 (maintainer), confirm the release-please PR lists the three Phase 3.3 `feat` lines and the `fix`, then `start-next-phase` for Phase 3.4. Phase 3.4 binds the named `JevClientOptions` that `AddJevClient` registers to `IConfiguration`, validates them with ZeroAlloc.Validation.Options and `ValidateOnStart`, and does not change `AddJevClient`'s signatures.
+- **Phase:** 3.4 — Options and configuration, the last phase of Milestone 3. It is mid-brainstorm on branch `phase/3.4-options-configuration`, which exists only locally and was cut from `main` at d1c0f53.
+  - Phase 3.3 — DI package merged as PR #75, and release-please counted all five entries: three `feat`, one `fix`, one `docs`.
+  - Phase 3.2 merged as PR #72.
+- **Last completed task:** a draft design spec, `docs/superpowers/specs/2026-10-01-phase-3.4-options-configuration-design.md`.
+  - The maintainer approved its Decisions and Sections 1–2: rules reused from the core resolver through `IValidateOptions` plus `ValidateOnStart`, no ZeroAlloc.Validation.Options, new `AddJevClient(IConfiguration)` overloads, and a public `JevClientOptions.Validate()`.
+  - Section 3 (Tests, AOT, cost and docs) is written as a proposal and NOT yet reviewed.
+- **Next task:** resume the brainstorm.
+  1. Present Section 3 of the draft spec for approval.
+  2. Clear the status line in the spec.
+  3. Run the spec review gate.
+  4. Then `writing-plans`, a pre-flight scan and subagent-driven execution, as in Phases 3.2–3.3.
+  
+  ROADMAP still shows 3.4 as `pending` with no Spec or Plan line. Set it `active` with both lines when the plan is written.
 
 ## What Phase 3.3 shipped
 - New package `ZeroAlloc.Jev.DependencyInjection` with four overloads, all returning `IHttpClientBuilder`:
@@ -129,7 +139,7 @@
 - Still unknown until a TypeSafe live run (needs `TYPESAFE_API_KEY` and the `live-api` environment): whether TypeSafe sends `Retry-After`, the 422 body schema, and whether Phase 2.4's `BuiltQuestionSet_ParsesAKeyedChoice` passes.
 
 ## Recommended Next Step
-Merge PR #75, check the release-please PR for the Phase 3.3 `feat` lines and the `fix`, then run `start-next-phase` for Phase 3.4 — Options and configuration.
+Resume the Phase 3.4 brainstorm on branch `phase/3.4-options-configuration`. Present the draft spec's Section 3 for approval, then the spec review gate, then `writing-plans`. Do not commit on `main`: it is protected, and a Phase 3.3 spec commit landed there locally once and had to be moved.
 
 Open maintainer items:
 - the `live-api` environment and the TypeSafe live run;
