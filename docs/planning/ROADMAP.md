@@ -157,11 +157,12 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-01-phase-3.2-telemetry.md`
 **Completed:** 2026-10-01
 
-### Phase 3.3: DI package [status: pending]
+### Phase 3.3: DI package [status: active]
 **Goal:** `ZeroAlloc.Jev.DependencyInjection` with `AddJevClient(...)` and keyed clients over `IHttpClientFactory`, wiring logging and telemetry.
 **Surface:** Backend
 **HelpWanted:** no
-**Plan:** _to be written_
+**Spec:** `docs/superpowers/specs/2026-10-01-phase-3.3-di-package-design.md`
+**Plan:** `docs/superpowers/plans/2026-10-01-phase-3.3-di-package.md`
 
 ### Phase 3.4: Options and configuration [status: pending]
 **Goal:** `IConfiguration` binding validated with ZeroAlloc.Validation.Options, with retry and timeout settings through configuration. Absorbs the roadmap's former Phase 3.5, configurable resilience (2026-09-30).
