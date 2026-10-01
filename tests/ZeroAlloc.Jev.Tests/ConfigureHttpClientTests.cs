@@ -1,3 +1,5 @@
+using System.Net;
+
 namespace ZeroAlloc.Jev.Tests;
 
 /// <summary>
@@ -198,6 +200,34 @@ public sealed class ConfigureHttpClientTests
 
         Assert.Null(http.BaseAddress);
         Assert.Equal(TimeSpan.FromSeconds(100), http.Timeout);
+        Assert.Empty(http.DefaultRequestHeaders.UserAgent);
+    }
+
+    [Fact]
+    public async Task ClientThatAlreadySentARequest_Throws_AndLeavesTheClientUnchanged()
+    {
+        using var handler = StubHandler.Json(HttpStatusCode.OK, "{}");
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://mine.local/") };
+        using var response = await http.GetAsync(new Uri("probe", UriKind.Relative));
+
+        _ = Assert.Throws<InvalidOperationException>(
+            () => JevClient.ConfigureHttpClient(http, new JevClientOptions { Timeout = TimeSpan.FromSeconds(7) }));
+
+        Assert.Equal(new Uri("http://mine.local/"), http.BaseAddress);
+        Assert.Empty(http.DefaultRequestHeaders.UserAgent);
+        Assert.Equal(TimeSpan.FromSeconds(100), http.Timeout);
+    }
+
+    [Fact]
+    public async Task ClientWithoutABaseAddressThatAlreadySentARequest_Throws_AndKeepsNoBaseAddress()
+    {
+        using var handler = StubHandler.Json(HttpStatusCode.OK, "{}");
+        using var http = new HttpClient(handler);
+        using var response = await http.GetAsync(new Uri("http://mine.local/probe"));
+
+        _ = Assert.Throws<InvalidOperationException>(() => JevClient.ConfigureHttpClient(http, null));
+
+        Assert.Null(http.BaseAddress);
         Assert.Empty(http.DefaultRequestHeaders.UserAgent);
     }
 
