@@ -159,14 +159,45 @@ public sealed class ConfigureHttpClientTests
     }
 
     [Fact]
-    public void FailedConfiguration_LeavesTheClientUnchanged()
+    public void TooLongTimeout_Throws_AndLeavesTheClientUnchanged()
+    {
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(100) };
+
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(
+            () => Configure(http, new JevClientOptions { Timeout = TimeSpan.FromMilliseconds((double)int.MaxValue + 1), BaseAddress = new Uri("http://option.local/") }));
+
+        Assert.StartsWith("The time-out must not exceed", exception.Message, StringComparison.Ordinal);
+        Assert.Equal("options", exception.ParamName);
+        Assert.Null(http.BaseAddress);
+        Assert.Equal(TimeSpan.FromSeconds(100), http.Timeout);
+        Assert.Empty(http.DefaultRequestHeaders.UserAgent);
+    }
+
+    [Fact]
+    public void MaximumTimeout_IsAccepted()
     {
         using var http = new HttpClient();
+
+        Configure(http, new JevClientOptions { Timeout = TimeSpan.FromMilliseconds(int.MaxValue) });
+
+        Assert.Equal(TimeSpan.FromMilliseconds(int.MaxValue), http.Timeout);
+    }
+
+    [Fact]
+    public void TooLongTimeout_Throws_FromTheConstructor()
+        => Assert.Throws<ArgumentOutOfRangeException>(
+            () => new JevClient(new JevClientOptions { ApiKey = "k", Timeout = TimeSpan.FromMilliseconds((double)int.MaxValue + 1) }));
+
+    [Fact]
+    public void FailedConfiguration_LeavesTheClientUnchanged()
+    {
+        using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(100) };
 
         _ = Assert.Throws<ArgumentException>(
             () => Configure(http, new JevClientOptions { Timeout = TimeSpan.Zero, BaseAddress = new Uri("http://option.local/") }));
 
         Assert.Null(http.BaseAddress);
+        Assert.Equal(TimeSpan.FromSeconds(100), http.Timeout);
         Assert.Empty(http.DefaultRequestHeaders.UserAgent);
     }
 

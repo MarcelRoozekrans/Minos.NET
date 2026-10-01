@@ -128,11 +128,19 @@ internal sealed class JevClientSettings
         }
     }
 
+    // The longest time-out HttpClient.Timeout accepts.
+    private static readonly TimeSpan MaxHttpTimeout = TimeSpan.FromMilliseconds(int.MaxValue);
+
     private static void EnsureValidTimeout(JevClientOptions options)
     {
         if (options.Timeout <= TimeSpan.Zero && options.Timeout != System.Threading.Timeout.InfiniteTimeSpan)
         {
             throw new ArgumentException("The time-out must be positive.", nameof(options));
+        }
+
+        if (options.Timeout > MaxHttpTimeout)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), options.Timeout, "The time-out must not exceed " + MaxHttpTimeout.TotalMilliseconds.ToString(System.Globalization.CultureInfo.InvariantCulture) + " milliseconds.");
         }
     }
 
