@@ -22,6 +22,7 @@ Unofficial .NET client for [TypeSafe AI](https://typesafe.ai)'s **Jev**, the fir
 - Structured criteria and instructions: `Examples` / `NotFor` on `[Criteria]` and `[Level]`, and `Json = true` for JSON object or array text, checked at compile time.
 - Native AOT: verified by an AOT smoke app in CI. Generated sets use no reflection; enum questions in built sets read the enum's public fields through trim-safe annotations.
 - Logging: pass an `ILoggerFactory` for structured `Microsoft.Extensions.Logging` events per operation and per retried attempt, never with request or answer content. See [Logging](#logging).
+- Telemetry: OpenTelemetry spans and metrics on the `ZeroAlloc.Jev` source and meter, named per the GenAI conventions, never with request or answer content, and free until something listens. See [Telemetry](#telemetry).
 
 ## Example
 
@@ -90,6 +91,65 @@ The client logs in the `ZeroAlloc.Jev.JevClient` category. It logs each operatio
 A hand-written `IJevClient` that relies on the default interface methods for typed and built-set evaluation logs nothing. The logging lives in `JevClient`.
 
 With the new overloads, `new JevClient(null, null)` no longer compiles (CS0121), because both two-parameter constructors accept two `null` literals. It always threw `ArgumentNullException` before. For defaults and environment variables, write `new JevClient()`.
+
+### Telemetry
+
+The client emits OpenTelemetry spans and metrics through `System.Diagnostics`, generated at compile time by ZeroAlloc.Telemetry. Subscribe to the `ZeroAlloc.Jev` source and meter:
+
+```csharp
+builder.Services.AddOpenTelemetry()
+    .WithTracing(tracing => tracing.AddSource("ZeroAlloc.Jev"))
+    .WithMetrics(metrics => metrics.AddMeter("ZeroAlloc.Jev"));
+```
+
+Add `ZeroAlloc.Rest` too to see each HTTP attempt: Jev's span is the parent of every attempt's `ZeroAlloc.Rest` span, so a retried call shows one Jev span over several attempts. The version of both is the package's informational version. Nothing needs configuring on the client.
+
+**Span.** One per operation, of kind `Client`.
+
+| | Evaluation | Model listing |
+|---|---|---|
+| Name | `evaluate {gen_ai.request.model}` | `list_models` |
+| `gen_ai.operation.name` | `evaluate` | `list_models` |
+| `gen_ai.provider.name` | `typesafe` or `openrouter` | same |
+| `gen_ai.request.model` | the requested model | — |
+| `server.address`, `server.port` | the base address | same |
+| `jev.operation` | `evaluate`, `evaluate-typed` or `evaluate-built-set` | `list-models` |
+| `jev.request.question_count` | the number of questions | — |
+| `gen_ai.response.model`, `gen_ai.usage.input_tokens`, `gen_ai.usage.output_tokens` | on success | — |
+| `gen_ai.response.id`, `jev.usage.cost` | on success, for `EvaluateAsync(SystemOneRequest)`, when OpenRouter reports them | — |
+| `error.type` | the `JevErrorKind` name, on failure | same |
+
+The first seven rows are set when the span starts, so a sampler sees them. A failed result marks the span `Error`, with no description: `error.type` carries the kind, and `JevError.Message` can quote the request. A typed answer the question set rejects is an `InvalidResponse` failure, as the caller sees it.
+
+**Metrics.**
+
+| Metric | Kind | Unit | Recorded | Attributes |
+|---|---|---|---|---|
+| `gen_ai.client.operation.duration` | Histogram | `s` | every call | operation, provider, request model, `server.address`, `server.port`; `error.type` on failure; response model on success |
+| `gen_ai.client.inference.operation.input_tokens` | Histogram | `{token}` | evaluation success | operation, provider, request model, response model |
+| `gen_ai.client.inference.operation.output_tokens` | Histogram | `{token}` | evaluation success | same |
+| `gen_ai.client.inference.usage.input_tokens` | Counter | `{token}` | evaluation success | operation, provider, request model, `gen_ai.token.modality` = `text` |
+| `gen_ai.client.inference.usage.output_tokens` | Counter | `{token}` | evaluation success | same |
+| `jev.answer.confidence` | Histogram | `1` | one point per Choice or Score answer | operation, provider, request model, `jev.operation` |
+
+The histograms carry the GenAI conventions' bucket boundaries as advice. Confidence uses `0.1` to `0.9` in steps of `0.1`, then `0.95` and `0.99`. Noul answers have no confidence and record no point.
+
+**Custom values.** The GenAI conventions list no operation for evaluating or listing models, and no TypeSafe or OpenRouter provider, and they ask instrumentations to document their own:
+- `gen_ai.operation.name` is `evaluate` or `list_models`;
+- `gen_ai.provider.name` is `typesafe` or `openrouter`.
+
+**Never emitted:** the state, instructions, criteria, answers or probabilities, the API key, any header value, `JevError.Message` and `JevError.Detail`.
+
+**Cost.** With nothing listening, the generated proxy returns each operation's own task.
+- The raw evaluation, model listing and every call that completes synchronously allocate nothing extra.
+- A typed or built-set call that completes asynchronously, as a real network call does, also allocates one extra state machine of 211 B. It hands back the answers and returns the pooled response buffer.
+- While listening, a call pays for the span, its tags and the measurements: about 1.0 to 1.8 KB, depending on the call: 1560 B on a typed call under Native AOT, 4928 B against 3368 B with nothing listening.
+
+See [Phase 3.2 — Telemetry](docs/performance.md#phase-32--telemetry).
+
+A hand-written `IJevClient` that relies on the default interface methods for typed and built-set evaluation emits nothing. The telemetry lives in `JevClient`.
+
+**Stability.** The GenAI semantic conventions are in Development, and the token metric names follow the `semantic-conventions-genai` repository's main branch, which has no release yet. Names may change before this package's 1.0.
 
 ## Typed evaluation
 
