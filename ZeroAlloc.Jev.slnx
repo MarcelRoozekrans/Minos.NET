@@ -1,12 +1,14 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/ZeroAlloc.Jev/ZeroAlloc.Jev.csproj" />
+    <Project Path="src/ZeroAlloc.Jev.DependencyInjection/ZeroAlloc.Jev.DependencyInjection.csproj" />
     <Project Path="src/ZeroAlloc.Jev.Generator/ZeroAlloc.Jev.Generator.csproj" />
     <Project Path="src/ZeroAlloc.Jev.Analyzers/ZeroAlloc.Jev.Analyzers.csproj" />
     <Project Path="src/ZeroAlloc.Jev.CodeFixes/ZeroAlloc.Jev.CodeFixes.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/ZeroAlloc.Jev.Tests/ZeroAlloc.Jev.Tests.csproj" />
+    <Project Path="tests/ZeroAlloc.Jev.DependencyInjection.Tests/ZeroAlloc.Jev.DependencyInjection.Tests.csproj" />
     <Project Path="tests/ZeroAlloc.Jev.Generator.Tests/ZeroAlloc.Jev.Generator.Tests.csproj" />
     <Project Path="tests/ZeroAlloc.Jev.Analyzers.Tests/ZeroAlloc.Jev.Analyzers.Tests.csproj" />
     <Project Path="tests/ZeroAlloc.Jev.Integration.Tests/ZeroAlloc.Jev.Integration.Tests.csproj" />

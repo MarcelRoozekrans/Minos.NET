@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using ZeroAlloc.Jev.Shared;
@@ -20,6 +21,9 @@ internal static class AllocationChecks
     private const string ChoiceAnswerJson = """{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7}""";
     private const string ScoreAnswerJson = """{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}""";
     private const string TriageAnswersJson = """{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}}""";
+    // The iteration count of every synchronous gate and of SynchronousBytesPerCall, so the helper measures as the gates do.
+    private const int GateIterations = 1000;
+
     private const string NoulResponseJson = """{"model":"jev-1.13.0","answers":{"is_urgent":{"type":"noul","noul":0.95}},"usage":{"input_tokens":296,"output_tokens":20}}""";
     private const string TriageResponseJson = """{"model":"jev-1.13.0","answers":{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}},"usage":{"input_tokens":296,"output_tokens":20}}""";
 
@@ -304,6 +308,42 @@ internal static class AllocationChecks
         return (GC.GetTotalAllocatedBytes(precise: true) - before) / YieldingIterations;
     }
 
+    // Stands in for a measuring API requested from ZeroAlloc.TestHelpers: its AllocationGate only asserts a budget and
+    // returns no figure, and a relative gate needs the figure. ZeroAlloc-Net/ZeroAlloc.TestHelpers#56 tracks it; replace this
+    // with that API when it ships.
+    //
+    // Bytes allocated per call over synchronously completing calls, measured as AssertBudgetValueTask measures them: two
+    // warm-up calls, a full collection, then GateIterations calls that must each complete synchronously. It returns the
+    // ceiling, (total + iterations - 1) / iterations, so a budget of that figure times the gate's GateIterations is never
+    // below the measured total, and a hand-built client whose total is not a multiple of GateIterations cannot fail a gate
+    // against itself.
+    private static long SynchronousBytesPerCall<T>(Func<ValueTask<T>> call)
+    {
+        Drain(call());
+        Drain(call());
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < GateIterations; i++)
+        {
+            Drain(call());
+        }
+
+        var total = GC.GetAllocatedBytesForCurrentThread() - before;
+        return (total + GateIterations - 1) / GateIterations;
+
+        static void Drain(ValueTask<T> pending)
+        {
+            if (!pending.IsCompletedSuccessfully)
+            {
+                throw new InvalidOperationException("The call did not complete synchronously, so its measurement would include awaiter machinery.");
+            }
+
+            _ = pending.Result;
+        }
+    }
+
     // EvaluateRoundTrip's call, the same canned response and Program.Request(), through a logging client.
     private static void EvaluateRoundTripThrough(ILoggerFactory loggerFactory, int budgetBytes, string label, string passDescription)
     {
@@ -436,6 +476,47 @@ internal static class AllocationChecks
     }
 
     /// <summary>
+    /// <see cref="EvaluateRoundTrip"/>'s call through a client <c>AddJevClient</c> registered, against the same call on a
+    /// hand-built client over an <see cref="HttpClient"/> that <see cref="JevClient.ConfigureHttpClient"/> configured the
+    /// same way. Registration and the first resolve happen once and are not budgeted.
+    /// </summary>
+    public static void EvaluateRoundTripThroughDependencyInjection()
+    {
+        var services = new ServiceCollection();
+        DependencyInjectionChecks.RegisterDefaultClient(services);
+        using var provider = services.BuildServiceProvider();
+        var resolved = provider.GetRequiredService<IJevClient>();
+
+        // The same canned body as RegisterDefaultClient's handler, so both sides of the comparison parse one response.
+        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
+        JevClient.ConfigureHttpClient(http, new JevClientOptions { BaseAddress = new Uri("https://example.test/api/") });
+        using var handBuilt = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+        var request = Program.Request();
+
+        // Both figures are ceilings from SynchronousBytesPerCall, so neither side of the comparison is truncated.
+        var byHand = SynchronousBytesPerCall(() => handBuilt.EvaluateAsync(request));
+        var byContainer = SynchronousBytesPerCall(() => resolved.EvaluateAsync(request));
+        Console.WriteLine($"     EvaluateAsync B/call on a hand-built client over a configured HttpClient: {byHand}");
+        Console.WriteLine($"     EvaluateAsync B/call on a DI-resolved client: {byContainer}");
+
+        // DI adds nothing per call: the hand-built client's own measurement is the budget.
+        GateValueTask(
+            budgetBytes: (int)byHand,
+            action: () => resolved.EvaluateAsync(request),
+            label: "EvaluateRoundTripThroughDependencyInjectionAgainstHandBuilt",
+            passDescription: "EvaluateAsync through a DI-resolved client allocates no more than through a hand-built one");
+
+        // Measured 4376 B/call on published win-x64 AOT: EvaluateRoundTrip's call plus the User-Agent header the factory's
+        // HttpClient sends, and nothing from the container or the factory, whose request logging AddJevClient removes.
+        // Budget: about 10% headroom over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
+        GateValueTask(
+            budgetBytes: 4864,
+            action: () => resolved.EvaluateAsync(request),
+            label: "EvaluateRoundTripThroughDependencyInjection",
+            passDescription: "EvaluateAsync through a DI-resolved client stays within its allocation budget");
+    }
+
+    /// <summary>
     /// <see cref="EvaluateRoundTrip"/> while discarding listeners sample every span and enable every instrument.
     /// </summary>
     public static void EvaluateRoundTripWhileListening()
@@ -520,7 +601,7 @@ internal static class AllocationChecks
     {
         try
         {
-            AllocationGate.AssertBudget(budgetBytes, 1000, action, label);
+            AllocationGate.AssertBudget(budgetBytes, GateIterations, action, label);
             Program.Check(true, passDescription);
         }
         catch (InvalidOperationException exception)
@@ -533,7 +614,7 @@ internal static class AllocationChecks
     {
         try
         {
-            AllocationGate.AssertBudgetValueTask(budgetBytes, 1000, action, label);
+            AllocationGate.AssertBudgetValueTask(budgetBytes, GateIterations, action, label);
             Program.Check(true, passDescription);
         }
         catch (InvalidOperationException exception)

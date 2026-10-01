@@ -53,16 +53,19 @@ public class ClientBenchmarks
         (_evaluateYieldingLoggedHttp, _evaluateYieldingLoggedClient) = CreateClient(new YieldingHandler(HttpStatusCode.OK, NoulResponseJson), DiscardingLoggerFactory.Instance);
         (_evaluateYieldingNullLoggedHttp, _evaluateYieldingNullLoggedClient) = CreateClient(new YieldingHandler(HttpStatusCode.OK, NoulResponseJson), NullLoggerFactory.Instance);
         (_typedEvaluateYieldingHttp, _typedEvaluateYieldingClient) = CreateClient(new YieldingHandler(HttpStatusCode.OK, TriageResponseJson), loggerFactory: null);
-        _request = new SystemOneRequest
-        {
-            State = "Help! My payouts have been failing for 3 days.",
-            Questions = new Dictionary<string, JevQuestion>(StringComparer.Ordinal)
-            {
-                ["is_urgent"] = new NoulQuestion { Instructions = "Does this convey urgency?" },
-            },
-        };
+        _request = Request();
         _typedState = "Help! My payouts have been failing for 3 days.";
     }
+
+    /// <summary>The one-question Noul request that <see cref="EvaluateAsync"/> and the dependency injection benchmarks send.</summary>
+    internal static SystemOneRequest Request() => new()
+    {
+        State = "Help! My payouts have been failing for 3 days.",
+        Questions = new Dictionary<string, JevQuestion>(StringComparer.Ordinal)
+        {
+            ["is_urgent"] = new NoulQuestion { Instructions = "Does this convey urgency?" },
+        },
+    };
 
     [GlobalCleanup]
     public void Cleanup()

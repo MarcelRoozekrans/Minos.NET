@@ -19,36 +19,19 @@ public sealed class FailureTests : IClassFixture<WireMockFixture>
     [Fact]
     public async Task SlowResponse_TimesOutPerAttempt()
     {
-        // The server holds every response until the test has its result, so an attempt can only end through the
-        // client's per-attempt time-out, however late a busy machine schedules either side. A fixed WireMock delay
-        // is not enough: when the test host is starved of CPU, the time-out's own callback can run after the delay
-        // has elapsed and the response has already arrived.
-        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        _fixture.Server
-            .Given(Request.Create().WithPath("/v1/systemone").UsingPost())
-            .RespondWith(Response.Create().WithCallback(async _ =>
-            {
-                await release.Task.ConfigureAwait(false);
-                return new ResponseMessage { StatusCode = (int)HttpStatusCode.OK };
-            }));
+        // The server holds every response until the test has its result; see HoldEveryResponse.
+        using var held = _fixture.HoldEveryResponse();
 
-        try
-        {
-            // Attempts are counted on the client: WireMock records a request only once it has read it, and an
-            // attempt the client abandons before WireMock gets to it is never recorded at all.
-            using var attempts = new AttemptRecorder(_fixture.BaseAddress, timeout: TimeSpan.FromMilliseconds(300));
-            using var client = IntegrationClient.Create(attempts, maxRetries: 1);
+        // Attempts are counted on the client: WireMock records a request only once it has read it, and an
+        // attempt the client abandons before WireMock gets to it is never recorded at all.
+        using var attempts = new AttemptRecorder(_fixture.BaseAddress, timeout: TimeSpan.FromMilliseconds(300));
+        using var client = IntegrationClient.Create(attempts, maxRetries: 1);
 
-            var result = await client.EvaluateAsync(Fixtures.NoulRequest());
+        var result = await client.EvaluateAsync(Fixtures.NoulRequest());
 
-            Assert.True(result.IsFailure);
-            Assert.Equal(JevErrorKind.Timeout, result.Error.Kind);
-            Assert.Equal(2, attempts.Count);
-        }
-        finally
-        {
-            release.SetResult();
-        }
+        Assert.True(result.IsFailure);
+        Assert.Equal(JevErrorKind.Timeout, result.Error.Kind);
+        Assert.Equal(2, attempts.Count);
     }
 
     [Fact]

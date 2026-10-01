@@ -28,6 +28,9 @@ internal sealed class JevClientSettings
         Jitter = jitter;
     }
 
+    // The longest span HttpClient.Timeout accepts, and the cap on the back-off options.
+    private static readonly TimeSpan MaxMilliseconds = TimeSpan.FromMilliseconds(int.MaxValue);
+
     public JevProvider Provider { get; }
 
     public string ApiKey { get; }
@@ -56,28 +59,20 @@ internal sealed class JevClientSettings
         ArgumentNullException.ThrowIfNull(environment);
         options ??= new JevClientOptions();
 
-        if (!Enum.IsDefined(options.Provider))
-        {
-            throw new ArgumentException("Unknown provider " + options.Provider.ToString() + ".", nameof(options));
-        }
-
-        if (options.Timeout <= TimeSpan.Zero && options.Timeout != System.Threading.Timeout.InfiniteTimeSpan)
-        {
-            throw new ArgumentException("The time-out must be positive.", nameof(options));
-        }
+        EnsureKnownProvider(options);
+        EnsureValidTimeout(options);
 
         if (options.MaxRetries is < 0 or > 10)
         {
             throw new ArgumentException("MaxRetries must be between 0 and 10.", nameof(options));
         }
 
-        var maxMilliseconds = TimeSpan.FromMilliseconds(int.MaxValue);
-        if (options.InitialBackoff <= TimeSpan.Zero || options.InitialBackoff > maxMilliseconds)
+        if (options.InitialBackoff <= TimeSpan.Zero || options.InitialBackoff > MaxMilliseconds)
         {
             throw new ArgumentException("InitialBackoff must be positive and at most int.MaxValue milliseconds.", nameof(options));
         }
 
-        if (options.MaxRetryDelay < options.InitialBackoff || options.MaxRetryDelay > maxMilliseconds)
+        if (options.MaxRetryDelay < options.InitialBackoff || options.MaxRetryDelay > MaxMilliseconds)
         {
             throw new ArgumentException(
                 "MaxRetryDelay must be at least InitialBackoff and at most int.MaxValue milliseconds.", nameof(options));
@@ -104,8 +99,49 @@ internal sealed class JevClientSettings
             options.Jitter);
     }
 
+    /// <summary>
+    /// Resolves only what an <see cref="HttpClient"/> needs: the base address and the per-attempt time-out. Runs the
+    /// same checks as <see cref="Resolve"/> on those, with the same messages, and needs no API key.
+    /// </summary>
+    /// <param name="options">The caller's options, or <see langword="null"/> for all defaults.</param>
+    /// <param name="environment">Reads an environment variable; tests pass a fake.</param>
+    /// <exception cref="ArgumentException">The provider, the time-out or the base address option is invalid.</exception>
+    /// <exception cref="InvalidOperationException">The base address environment variable is invalid.</exception>
+    public static JevHttpSettings ResolveHttp(JevClientOptions? options, Func<string, string?> environment)
+    {
+        ArgumentNullException.ThrowIfNull(environment);
+        options ??= new JevClientOptions();
+
+        EnsureKnownProvider(options);
+        EnsureValidTimeout(options);
+
+        var baseAddress = ResolveBaseAddress(options, options.Provider == JevProvider.OpenRouter, environment);
+        return new JevHttpSettings(WithTrailingSlash(baseAddress), options.Timeout);
+    }
+
     public override string ToString()
         => "Provider=" + Provider.ToString() + ", BaseAddress=" + BaseAddress.AbsoluteUri + ", ApiKey=***";
+
+    private static void EnsureKnownProvider(JevClientOptions options)
+    {
+        if (!Enum.IsDefined(options.Provider))
+        {
+            throw new ArgumentException("Unknown provider " + options.Provider.ToString() + ".", nameof(options));
+        }
+    }
+
+    private static void EnsureValidTimeout(JevClientOptions options)
+    {
+        if (options.Timeout <= TimeSpan.Zero && options.Timeout != System.Threading.Timeout.InfiniteTimeSpan)
+        {
+            throw new ArgumentException("The time-out must be positive.", nameof(options));
+        }
+
+        if (options.Timeout > MaxMilliseconds)
+        {
+            throw new ArgumentOutOfRangeException(nameof(options), options.Timeout, "The time-out must not exceed " + MaxMilliseconds.TotalMilliseconds.ToString(System.Globalization.CultureInfo.InvariantCulture) + " milliseconds.");
+        }
+    }
 
     private static string ResolveApiKey(JevClientOptions options, bool openRouter, Func<string, string?> environment)
     {

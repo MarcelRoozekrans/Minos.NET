@@ -36,6 +36,11 @@
     -->
     <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
     <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.12" />
+    <!--
+      The DI package's IHttpClientFactory and AddHttpClient. Its floor is the first .NET 10 release, as for
+      Logging.Abstractions, so consumers on any 10.0.x resolve without a conflict.
+    -->
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.0" />
     <!-- Runtime question set validation: its generators validate ZeroAlloc.Jev's own specs; NuGet still flows them to consumers, where they stay inert, NuGet/Home#6720 -->
     <PackageVersion Include="ZeroAlloc.Validation" Version="2.0.3" />
     <!-- Benchmarks -->

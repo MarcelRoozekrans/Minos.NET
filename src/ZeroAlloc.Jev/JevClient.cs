@@ -167,12 +167,8 @@ public sealed class JevClient : IJevClient, IDisposable
     {
         if (httpClient is null)
         {
-            httpClient = new HttpClient(ownedHandler ?? new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(2) })
-            {
-                BaseAddress = settings.BaseAddress,
-                Timeout = settings.Timeout,
-            };
-            httpClient.DefaultRequestHeaders.UserAgent.Add(UserAgent);
+            httpClient = new HttpClient(ownedHandler ?? new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(2) });
+            ApplyHttpSettings(httpClient, new JevHttpSettings(settings.BaseAddress, settings.Timeout));
             _ownedHttpClient = httpClient;
         }
         else if (httpClient.BaseAddress is not null)
@@ -204,6 +200,32 @@ public sealed class JevClient : IJevClient, IDisposable
 
         // Always wired: with nothing listening, the generated proxy returns each operation's own task.
         _operations = new JevOperationsInstrumented(new JevOperations(api, "Bearer " + settings.ApiKey));
+    }
+
+    /// <summary>
+    /// Configures an <see cref="HttpClient"/> as <see cref="JevClient"/> configures one it creates, except its handler, for a client you then
+    /// pass to a constructor that takes an <see cref="HttpClient"/>, such as one from <c>IHttpClientFactory</c>.
+    /// </summary>
+    /// <param name="httpClient">The client to configure. It must not have sent a request yet.</param>
+    /// <param name="options">The configuration; <see langword="null"/> uses defaults and environment variables.</param>
+    /// <remarks>
+    /// Sets <see cref="HttpClient.BaseAddress"/> from <see cref="JevClientOptions.BaseAddress"/>, the
+    /// <see cref="JevDefaults.BaseAddressEnvironmentVariable"/> environment variable or the provider's default, only when
+    /// <paramref name="httpClient"/> has none. Sets <see cref="HttpClient.Timeout"/> to <see cref="JevClientOptions.Timeout"/>,
+    /// the per-attempt time-out, and adds the <c>ZeroAlloc.Jev</c> User-Agent unless it is already there. It reads no
+    /// API key, so it can run before one is configured.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="httpClient"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">The provider, the time-out or the base address option is invalid.</exception>
+    /// <exception cref="InvalidOperationException">The base address environment variable is invalid, or <paramref name="httpClient"/> has already sent a request.</exception>
+    public static void ConfigureHttpClient(HttpClient httpClient, JevClientOptions? options)
+        => ConfigureHttpClient(httpClient, options, Environment.GetEnvironmentVariable);
+
+    // environment reads an environment variable; tests pass a fake.
+    internal static void ConfigureHttpClient(HttpClient httpClient, JevClientOptions? options, Func<string, string?> environment)
+    {
+        ArgumentNullException.ThrowIfNull(httpClient);
+        ApplyHttpSettings(httpClient, JevClientSettings.ResolveHttp(options, environment));
     }
 
     /// <inheritdoc />
@@ -499,6 +521,19 @@ public sealed class JevClient : IJevClient, IDisposable
         if (!baseAddress.AbsoluteUri.EndsWith('/'))
         {
             throw new ArgumentException("httpClient.BaseAddress must end with '/'.", nameof(httpClient));
+        }
+    }
+
+    // What an owned HttpClient gets and ConfigureHttpClient applies: the base address when there is none, the per-attempt
+    // time-out, and the User-Agent once.
+    private static void ApplyHttpSettings(HttpClient httpClient, JevHttpSettings settings)
+    {
+        // Timeout first: its setter can throw, and nothing else has been changed by then.
+        httpClient.Timeout = settings.Timeout;
+        httpClient.BaseAddress ??= settings.BaseAddress;
+        if (!httpClient.DefaultRequestHeaders.UserAgent.Contains(UserAgent))
+        {
+            httpClient.DefaultRequestHeaders.UserAgent.Add(UserAgent);
         }
     }
 

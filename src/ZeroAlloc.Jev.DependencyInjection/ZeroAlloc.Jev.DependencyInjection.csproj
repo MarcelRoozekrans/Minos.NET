@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>ZeroAlloc.Jev.DependencyInjection</RootNamespace>
+    <PackageId>ZeroAlloc.Jev.DependencyInjection</PackageId>
+    <Title>ZeroAlloc.Jev.DependencyInjection</Title>
+    <Description>Registers ZeroAlloc.Jev's IJevClient in a .NET host over IHttpClientFactory, as a default client or as keyed clients with their own options. Native AOT-compatible. Not affiliated with or endorsed by TypeSafe AI.</Description>
+    <PackageTags>$(PackageTags);dependency-injection;httpclientfactory</PackageTags>
+    <!-- Hand-written registrations over Microsoft.Extensions.Http, with no reflection: enables IsTrimmable and the trim and AOT analyzers. -->
+    <IsAotCompatible>true</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ZeroAlloc.Jev\ZeroAlloc.Jev.csproj" />
+    <!-- IHttpClientFactory and AddHttpClient; brings Microsoft.Extensions.DependencyInjection.Abstractions and Options. -->
+    <PackageReference Include="Microsoft.Extensions.Http" />
+  </ItemGroup>
+</Project>
