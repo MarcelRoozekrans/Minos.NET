@@ -32,7 +32,9 @@ public sealed class JevClientOptions
     /// Gets or sets how long a single attempt may take. Defaults to 60 seconds. Applies to an <see cref="HttpClient"/>
     /// the client creates, and to one configured with <see cref="JevClient.ConfigureHttpClient(HttpClient, JevClientOptions)"/>,
     /// as <c>AddJevClient</c>'s are; another <see cref="HttpClient"/> you pass keeps its own time-out. With retries, a call
-    /// can take up to <c>(MaxRetries + 1) × Timeout</c> plus the waits between attempts.
+    /// can take up to <c>(MaxRetries + 1) × Timeout</c> plus the waits between attempts. Must be positive or
+    /// <see cref="System.Threading.Timeout.InfiniteTimeSpan"/>, and at most <see cref="int.MaxValue"/> milliseconds,
+    /// which is about 24.8 days.
     /// </summary>
     public TimeSpan Timeout { get; set; } = TimeSpan.FromSeconds(60);
 
