@@ -110,6 +110,15 @@ public sealed class TelemetryPrivacyTests : IDisposable
             {
                 seen.Append(tag.Key).Append('=').AppendLine(Convert.ToString(tag.Value, System.Globalization.CultureInfo.InvariantCulture));
             }
+
+            foreach (var spanEvent in span.Events)
+            {
+                seen.AppendLine(spanEvent.Name);
+                foreach (var tag in spanEvent.Tags)
+                {
+                    seen.Append(tag.Key).Append('=').AppendLine(Convert.ToString(tag.Value, System.Globalization.CultureInfo.InvariantCulture));
+                }
+            }
         }
 
         foreach (var tag in capture.StartTags())
@@ -125,7 +134,8 @@ public sealed class TelemetryPrivacyTests : IDisposable
             }
         }
 
-        // Non-vacuity: the listeners saw the request model's start tag, so the text below is what they recorded.
+        // Non-vacuity: the listeners saw the request model start tag and at least one metric point, so the text below is what they recorded.
+        Assert.NotEmpty(capture.AllPoints);
         var text = seen.ToString();
         Assert.Contains("gen_ai.request.model=", text, StringComparison.Ordinal);
         foreach (var secret in Secrets)
