@@ -22,7 +22,7 @@ Unofficial .NET client for [TypeSafe AI](https://typesafe.ai)'s **Jev**, the fir
 - Structured criteria and instructions: `Examples` / `NotFor` on `[Criteria]` and `[Level]`, and `Json = true` for JSON object or array text, checked at compile time.
 - Native AOT: verified by an AOT smoke app in CI. Generated sets use no reflection; enum questions in built sets read the enum's public fields through trim-safe annotations.
 - Logging: pass an `ILoggerFactory` for structured `Microsoft.Extensions.Logging` events per operation and per retried attempt, never with request or answer content. See [Logging](#logging).
-- Telemetry: OpenTelemetry spans and metrics on the `ZeroAlloc.Jev` source and meter, named per the GenAI conventions, never with request or answer content, and free until something listens. See [Telemetry](#telemetry).
+- Telemetry: OpenTelemetry spans and metrics on the `ZeroAlloc.Jev` source and meter, named per the GenAI conventions, never with request or answer content, and adding no allocation to the raw path or to synchronously completing calls until something listens. See [Telemetry](#telemetry).
 
 ## Example
 
@@ -143,7 +143,7 @@ The histograms carry the GenAI conventions' bucket boundaries as advice. Confide
 **Cost.** With nothing listening, the generated proxy returns each operation's own task.
 - The raw evaluation, model listing and every call that completes synchronously allocate nothing extra.
 - A typed or built-set call that completes asynchronously, as a real network call does, also allocates one extra state machine of 211 B. It hands back the answers and returns the pooled response buffer.
-- While listening, a call pays for the span, its tags and the measurements: about 1.0 to 1.8 KB, depending on the call: 1560 B on a typed call under Native AOT, 4928 B against 3368 B with nothing listening.
+- While listening, a call pays for the span, its tags and the measurements. The benchmarks measure about 1.0 to 1.8 KB per call, depending on the path. A typed call under Native AOT pays 1560 B, which is 4928 B listening against 3368 B with nothing listening.
 
 See [Phase 3.2 — Telemetry](docs/performance.md#phase-32--telemetry).
 
