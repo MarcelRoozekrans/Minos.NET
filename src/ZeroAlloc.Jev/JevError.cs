@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text.Json;
+using ZeroAlloc.Jev.Telemetry;
 
 namespace ZeroAlloc.Jev;
 
@@ -73,6 +74,9 @@ public sealed class JevError
     /// <see cref="JevErrorKind.InvalidQuestions"/>; empty for every other kind.
     /// </summary>
     public IReadOnlyList<JevQuestionFailure> Failures { get; } = [];
+
+    /// <summary>Gets <see cref="Kind"/>'s name, the span's and the duration metric's <c>error.type</c>.</summary>
+    internal string ErrorType => JevTelemetry.ErrorTypeOf(Kind);
 
     /// <inheritdoc />
     public override string ToString()

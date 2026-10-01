@@ -280,7 +280,7 @@ internal static class TypedEvaluation
     // response body read straight into these reader-based paths must match that tolerance.
     private static ReadOnlySpan<byte> Utf8Bom => [0xEF, 0xBB, 0xBF];
 
-    private static ReadOnlySpan<byte> SkipUtf8Bom(ReadOnlySpan<byte> json)
+    internal static ReadOnlySpan<byte> SkipUtf8Bom(ReadOnlySpan<byte> json)
         => json.StartsWith(Utf8Bom) ? json[Utf8Bom.Length..] : json;
 
     private static JevError Rejected(JsonException exception, int? statusCode)
