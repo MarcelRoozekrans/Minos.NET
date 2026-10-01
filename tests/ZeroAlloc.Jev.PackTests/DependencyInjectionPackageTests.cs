@@ -75,7 +75,8 @@ public sealed class DependencyInjectionPackageTests : IClassFixture<DependencyIn
             .Element(Nuspec + "metadata")!
             .Element(Nuspec + "dependencies")!
             .Elements(Nuspec + "group")
-            .First(g => string.Equals((string?)g.Attribute("targetFramework"), "net10.0", StringComparison.Ordinal));
+            .FirstOrDefault(g => string.Equals((string?)g.Attribute("targetFramework"), "net10.0", StringComparison.Ordinal));
+        Assert.True(group is not null, "The nuspec has no net10.0 dependency group.");
         return [.. group.Elements(Nuspec + "dependency")];
     }
 

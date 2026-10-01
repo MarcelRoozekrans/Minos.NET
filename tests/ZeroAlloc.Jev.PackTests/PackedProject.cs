@@ -6,8 +6,8 @@ namespace ZeroAlloc.Jev.PackTests;
 
 /// <summary>
 /// Packs one shipping project under <c>src</c> once, into a unique temp directory, via <c>dotnet pack</c> run as a child
-/// <see cref="Process"/>. Reuses the src output the solution build already produced with <c>--no-build</c> when it
-/// exists, and redirects the generated nuspec away from the project's own <c>obj</c> directory, so this never races or
+/// <see cref="Process"/>. Lets pack build the project itself, restore included, so it never packs a stale build; the build is
+/// incremental, so after a solution build it rewrites nothing. It redirects the generated nuspec away from the project's own <c>obj</c> directory, so this never races or
 /// corrupts the concurrent solution build or a later pack step.
 /// </summary>
 internal sealed class PackedProject : IDisposable
@@ -26,10 +26,8 @@ internal sealed class PackedProject : IDisposable
         Directory.CreateDirectory(_tempDir);
 
         var projectPath = Path.Combine(repoRoot, "src", projectName, projectName + ".csproj");
-        var srcOutputDll = Path.Combine(repoRoot, "src", projectName, "bin", configuration, "net10.0", projectName + ".dll");
-        var reuseSrcOutput = File.Exists(srcOutputDll);
 
-        // Redirect the generated .nuspec into our own temp dir: dotnet pack --no-build still writes it under
+        // Redirect the generated .nuspec into our own temp dir: dotnet pack writes it under
         // the project's obj/, and this test can otherwise race a concurrent solution build or pack step there.
         var nuspecOutputPath = Path.Combine(_tempDir, "nuspec-obj") + Path.DirectorySeparatorChar;
 
@@ -48,10 +46,6 @@ internal sealed class PackedProject : IDisposable
         startInfo.ArgumentList.Add(_tempDir);
         startInfo.ArgumentList.Add($"-p:NuspecOutputPath={nuspecOutputPath}");
         startInfo.ArgumentList.Add($"-p:PackageVersion={PackageVersion}");
-        if (reuseSrcOutput)
-        {
-            startInfo.ArgumentList.Add("--no-build");
-        }
 
         using var process = Process.Start(startInfo)
             ?? throw new InvalidOperationException("Failed to start 'dotnet pack'.");
