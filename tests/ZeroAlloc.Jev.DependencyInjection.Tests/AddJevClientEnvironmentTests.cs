@@ -38,6 +38,17 @@ public sealed class AddJevClientEnvironmentTests
     }
 
     [Fact]
+    public void FactoryHttpClient_WithoutAKey_FailsValidation()
+    {
+        using var environment = new EnvironmentVariables(("TYPESAFE_API_KEY", null));
+        var services = new ServiceCollection();
+        services.AddJevClient(options => options.BaseAddress = new Uri("http://default.local/"));
+        using var provider = services.BuildServiceProvider();
+
+        Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IHttpClientFactory>().CreateClient("ZeroAlloc.Jev"));
+    }
+
+    [Fact]
     public void ApiKeyFromTheEnvironment_PassesValidation()
     {
         using var environment = new EnvironmentVariables(("TYPESAFE_API_KEY", "env-key"));

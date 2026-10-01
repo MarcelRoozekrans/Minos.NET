@@ -16,7 +16,9 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// through the container's <see cref="ILoggerFactory"/>. Its spans and metrics come from the <c>ZeroAlloc.Jev</c> source
 /// and meter. Invalid options fail a generic host at startup, through <see cref="JevClientOptions.Validate()"/> and
 /// <c>ValidateOnStart</c>. Without a host they throw when the client is first resolved. Either way the exception is an
-/// <see cref="OptionsValidationException"/> that carries the core's message.
+/// <see cref="OptionsValidationException"/> that carries the core's message. The registration's named options are
+/// validated whenever they are first read, so creating its named <see cref="HttpClient"/> from
+/// <see cref="IHttpClientFactory"/> directly also needs valid options, an API key included.
 /// </remarks>
 public static class JevServiceCollectionExtensions
 {
