@@ -17,8 +17,9 @@ public sealed class OperationsCostTests(ITestOutputHelper output)
     // budget over its 3368 B measurement. The plan probe measured the unwrap at 165 B.
     private const int UnwrapHeadroomBytes = 344;
 
-    // Each figure is the least of three runs, which removes most noise from other runtime threads, but the difference of two
-    // such figures can still dip a few bytes below zero; the AOT smoke app's disabled-logger check allows the same 8 B.
+    // Each figure is the median of five runs. Yielding runs vary in both directions: a runtime thread allocating during the
+    // loop adds bytes, and a continuation that finds a pooled buffer still cached saves some. So the difference of two such
+    // figures can dip a few bytes below zero; the AOT smoke app's disabled-logger check allows the same 8 B.
     private const int NoiseBytes = 8;
 
     private static readonly Uri Endpoint = new("https://api.typesafe.ai/");
@@ -81,16 +82,21 @@ public sealed class OperationsCostTests(ITestOutputHelper output)
         async Task UnwrappedAsync()
             => _ = await Evaluated.Unwrap(proxy.EvaluateTypedAsync<DepartmentRouting>(TelemetryBodies.EmptyBody(), "m", "typesafe", Endpoint, 1, CancellationToken.None));
 
-        // Interleaved, so both variants see the same machine load in each run; the least of three runs of each is kept,
-        // since noise from other runtime threads only ever adds bytes.
-        var proxied = long.MaxValue;
-        var unwrapped = long.MaxValue;
-        for (var run = 0; run < 3; run++)
+        // Interleaved, so both variants see the same machine load in each run; the median of five runs of each is kept,
+        // since noise moves a run in either direction and the median ignores an outlier on either side.
+        const int Runs = 5;
+        var proxiedRuns = new List<long>(Runs);
+        var unwrappedRuns = new List<long>(Runs);
+        for (var run = 0; run < Runs; run++)
         {
-            proxied = Math.Min(proxied, await BytesPerCallAsync(ProxiedAsync));
-            unwrapped = Math.Min(unwrapped, await BytesPerCallAsync(UnwrappedAsync));
+            proxiedRuns.Add(await BytesPerCallAsync(ProxiedAsync));
+            unwrappedRuns.Add(await BytesPerCallAsync(UnwrappedAsync));
         }
 
+        proxiedRuns.Sort();
+        unwrappedRuns.Sort();
+        var proxied = proxiedRuns[Runs / 2];
+        var unwrapped = unwrappedRuns[Runs / 2];
         var unwrap = unwrapped - proxied;
         output.WriteLine($"asynchronous typed call through the proxy: {proxied} B/call; with the unwrap: {unwrapped} B/call; the unwrap: {unwrap} B");
         Assert.InRange(unwrap, -NoiseBytes, UnwrapHeadroomBytes);
