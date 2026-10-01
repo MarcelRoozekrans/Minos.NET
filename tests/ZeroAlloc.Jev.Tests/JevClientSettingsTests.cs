@@ -83,21 +83,6 @@ public sealed class JevClientSettingsTests
     }
 
     [Fact]
-    public void RelativeBaseAddressOption_Throws()
-        => Assert.Throws<ArgumentException>(
-            () => Resolve(new JevClientOptions { ApiKey = "k", BaseAddress = new Uri("v1", UriKind.Relative) }));
-
-    [Fact]
-    public void BaseAddressOptionWithQuery_Throws()
-        => Assert.Throws<ArgumentException>(
-            () => Resolve(new JevClientOptions { ApiKey = "k", BaseAddress = new Uri("http://host/api?key=value") }));
-
-    [Fact]
-    public void BaseAddressOptionWithFragment_Throws()
-        => Assert.Throws<ArgumentException>(
-            () => Resolve(new JevClientOptions { ApiKey = "k", BaseAddress = new Uri("http://host/api#x") }));
-
-    [Fact]
     public void BaseAddressEnvironmentWithQuery_Throws_NamingTheVariable()
     {
         var exception = Assert.Throws<InvalidOperationException>(
@@ -105,11 +90,6 @@ public sealed class JevClientSettingsTests
 
         Assert.Contains("TYPESAFE_BASE_URL", exception.Message, StringComparison.Ordinal);
     }
-
-    [Fact]
-    public void BaseAddressOptionWithNonHttpScheme_Throws()
-        => Assert.Throws<ArgumentException>(
-            () => Resolve(new JevClientOptions { ApiKey = "k", BaseAddress = new Uri("ftp://host/api/") }));
 
     [Fact]
     public void BaseAddressEnvironmentWithNonHttpScheme_Throws_NamingTheVariable()
@@ -149,22 +129,11 @@ public sealed class JevClientSettingsTests
         Assert.Contains("TYPESAFE_API_KEY", exception.Message, StringComparison.Ordinal);
     }
 
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    public void NonPositiveTimeout_Throws(int seconds)
-        => Assert.Throws<ArgumentException>(
-            () => Resolve(new JevClientOptions { ApiKey = "k", Timeout = TimeSpan.FromSeconds(seconds) }));
-
     [Fact]
     public void InfiniteTimeout_IsAllowed()
         => Assert.Equal(
             Timeout.InfiniteTimeSpan,
             Resolve(new JevClientOptions { ApiKey = "k", Timeout = Timeout.InfiniteTimeSpan }).Timeout);
-
-    [Fact]
-    public void UnknownProvider_Throws()
-        => Assert.Throws<ArgumentException>(() => Resolve(new JevClientOptions { ApiKey = "k", Provider = (JevProvider)42 }));
 
     [Fact]
     public void ToString_DoesNotRevealTheApiKey()
@@ -199,43 +168,6 @@ public sealed class JevClientSettingsTests
         Assert.False(settings.Jitter);
     }
 
-    [Theory]
-    [InlineData(-1)]
-    [InlineData(11)]
-    public void MaxRetriesOutOfRange_Throws(int maxRetries)
-        => Assert.Throws<ArgumentException>(() => Resolve(new JevClientOptions { ApiKey = "k", MaxRetries = maxRetries }));
-
-    [Theory]
-    [InlineData(0)]
-    [InlineData(-1)]
-    public void NonPositiveInitialBackoff_Throws(int milliseconds)
-        => Assert.Throws<ArgumentException>(
-            () => Resolve(new JevClientOptions { ApiKey = "k", InitialBackoff = TimeSpan.FromMilliseconds(milliseconds) }));
-
-    [Fact]
-    public void MaxRetryDelayBelowInitialBackoff_Throws()
-        => Assert.Throws<ArgumentException>(() => Resolve(new JevClientOptions
-        {
-            ApiKey = "k",
-            InitialBackoff = TimeSpan.FromSeconds(2),
-            MaxRetryDelay = TimeSpan.FromSeconds(1),
-        }));
-
-    [Fact]
-    public void MaxRetryDelayBeyondIntMilliseconds_Throws()
-        => Assert.Throws<ArgumentException>(
-            () => Resolve(new JevClientOptions { ApiKey = "k", MaxRetryDelay = TimeSpan.FromDays(30) }));
-
-    [Fact]
-    public void InitialBackoffBeyondIntMilliseconds_Throws()
-        => Assert.Throws<ArgumentException>(
-            () => Resolve(new JevClientOptions
-            {
-                ApiKey = "k",
-                InitialBackoff = TimeSpan.FromDays(30),
-                MaxRetryDelay = TimeSpan.FromDays(30),
-            }));
-
     [Fact]
     public void Model_DefaultsToJevDefaultsModel()
         => Assert.Equal(JevDefaults.Model, Resolve(new JevClientOptions { ApiKey = "k" }).Model);
@@ -255,6 +187,18 @@ public sealed class JevClientSettingsTests
             () => Resolve(new JevClientOptions { ApiKey = "k", Model = model! }));
 
         Assert.Equal("options", exception.ParamName);
+    }
+
+    [Theory]
+    [MemberData(nameof(InvalidOptionsCases.All), MemberType = typeof(InvalidOptionsCases))]
+    public void InvalidOptions_ThrowTheirException(string name)
+    {
+        var invalid = InvalidOptionsCases.Get(name);
+
+        var exception = Record.Exception(() => JevClientSettings.Resolve(invalid.Options(), invalid.Lookup));
+
+        Assert.NotNull(exception);
+        Assert.IsType(invalid.Exception, exception);
     }
 
     private static JevClientSettings Resolve(JevClientOptions? options, params (string Name, string Value)[] environment)
