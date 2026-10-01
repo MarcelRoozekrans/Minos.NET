@@ -1,5 +1,48 @@
 # Changelog
 
+## [0.2.0](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/compare/v0.1.0...v0.2.0) (2026-10-01)
+
+
+### Features
+
+* **core:** add JevClient constructors that take an ILoggerFactory; a null factory logs nothing, and a constructor call with two null literals no longer compiles because it is ambiguous ([b1709a2](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/b1709a2fe2819231b2c70aa9f6f8d30d36fd609a))
+* **core:** add JevClientOptions.Validate ([12ef375](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/12ef375a1ea9a26f4c53f85295d11ffee8ff117a))
+* **core:** add JevCriterion for structured option and level descriptions ([78874a2](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/78874a23103562b4bd38dbd8a6931c2ec26ee066))
+* **core:** add the instrumented operations interface ([b118b5c](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/b118b5c83158d9aa3c6d83a44811b9d2d8e29c3a))
+* **core:** add the telemetry names and the deferred response reads ([b118b5c](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/b118b5c83158d9aa3c6d83a44811b9d2d8e29c3a))
+* **core:** build question sets at run time with JevQuestionSet.CreateBuilder ([78874a2](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/78874a23103562b4bd38dbd8a6931c2ec26ee066))
+* **core:** check built question sets against the analyzers' rules and fail with the new JevErrorKind.InvalidQuestions ([78874a2](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/78874a23103562b4bd38dbd8a6931c2ec26ee066))
+* **core:** configure a factory-created httpclient as the client configures its own ([d1c0f53](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/d1c0f53eed2dd6b7d23bcfda3e0703f77a592fed))
+* **core:** evaluate built question sets through IJevClient and JevClient ([78874a2](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/78874a23103562b4bd38dbd8a6931c2ec26ee066))
+* **core:** log each evaluation, model listing, retried attempt and unexpected exception through ILogger, with source-generated LoggerMessage events 1001 to 1006 that never carry the state, questions, answers, API key, header values or error body ([b1709a2](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/b1709a2fe2819231b2c70aa9f6f8d30d36fd609a))
+* **core:** read a built set's answers through typed handles with JevAnswers ([78874a2](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/78874a23103562b4bd38dbd8a6931c2ec26ee066))
+* **core:** trace and measure every client operation ([b118b5c](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/b118b5c83158d9aa3c6d83a44811b9d2d8e29c3a))
+* **di:** bind AddJevClient options from IConfiguration ([12ef375](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/12ef375a1ea9a26f4c53f85295d11ffee8ff117a))
+* **di:** register keyed clients with their own options and httpclient ([d1c0f53](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/d1c0f53eed2dd6b7d23bcfda3e0703f77a592fed))
+* **di:** register the default client over ihttpclientfactory ([d1c0f53](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/d1c0f53eed2dd6b7d23bcfda3e0703f77a592fed))
+* **di:** validate AddJevClient options at startup ([12ef375](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/12ef375a1ea9a26f4c53f85295d11ffee8ff117a))
+
+
+### Bug Fixes
+
+* **core:** reject a timeout httpclient cannot hold before configuring anything ([d1c0f53](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/d1c0f53eed2dd6b7d23bcfda3e0703f77a592fed))
+* **core:** require the legend on score answers, as the TypeSafe API does, so every evaluation path rejects a Score answer without it ([3a43c88](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/3a43c88567c805343a3862bda6caedbc0651bdce))
+
+
+### Documentation
+
+* **docs:** document configuration binding and startup validation ([12ef375](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/12ef375a1ea9a26f4c53f85295d11ffee8ff117a))
+* **docs:** document dependency injection ([d1c0f53](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/d1c0f53eed2dd6b7d23bcfda3e0703f77a592fed))
+* **docs:** document the client's telemetry ([b118b5c](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/b118b5c83158d9aa3c6d83a44811b9d2d8e29c3a))
+* document question sets built at run time ([78874a2](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/78874a23103562b4bd38dbd8a6931c2ec26ee066))
+* document the client's log events, levels, privacy and cost ([b1709a2](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/b1709a2fe2819231b2c70aa9f6f8d30d36fd609a))
+
+
+### Dependencies
+
+* add Microsoft.Extensions.Logging.Abstractions 10.0.0 as a runtime dependency ([b1709a2](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/b1709a2fe2819231b2c70aa9f6f8d30d36fd609a))
+* add ZeroAlloc.Validation 2.0.3 as a runtime dependency ([78874a2](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/78874a23103562b4bd38dbd8a6931c2ec26ee066))
+
 ## 0.1.0 (2026-09-28)
 
 
