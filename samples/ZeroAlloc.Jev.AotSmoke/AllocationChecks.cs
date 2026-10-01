@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using ZeroAlloc.Jev.Shared;
@@ -304,6 +305,42 @@ internal static class AllocationChecks
         return (GC.GetTotalAllocatedBytes(precise: true) - before) / YieldingIterations;
     }
 
+    // Stands in for a measuring API requested from ZeroAlloc.TestHelpers: its AllocationGate only asserts a budget and
+    // returns no figure, and a relative gate needs the figure. ZeroAlloc-Net/ZeroAlloc.TestHelpers#56 tracks it; replace this
+    // with that API when it ships.
+    //
+    // Bytes allocated per call over synchronously completing calls, measured as AssertBudgetValueTask measures them: two
+    // warm-up calls, a full collection, then 1000 calls that must each complete synchronously. It returns the ceiling,
+    // (total + iterations - 1) / iterations, so a budget of that figure times the gate's 1000 iterations is never below the
+    // measured total, and a hand-built client whose total is not a multiple of 1000 cannot fail a gate against itself.
+    private static long SynchronousBytesPerCall<T>(Func<ValueTask<T>> call)
+    {
+        const int Iterations = 1000;
+        Drain(call());
+        Drain(call());
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < Iterations; i++)
+        {
+            Drain(call());
+        }
+
+        var total = GC.GetAllocatedBytesForCurrentThread() - before;
+        return (total + Iterations - 1) / Iterations;
+
+        static void Drain(ValueTask<T> pending)
+        {
+            if (!pending.IsCompletedSuccessfully)
+            {
+                throw new InvalidOperationException("The call did not complete synchronously, so its measurement would include awaiter machinery.");
+            }
+
+            _ = pending.Result;
+        }
+    }
+
     // EvaluateRoundTrip's call, the same canned response and Program.Request(), through a logging client.
     private static void EvaluateRoundTripThrough(ILoggerFactory loggerFactory, int budgetBytes, string label, string passDescription)
     {
@@ -433,6 +470,46 @@ internal static class AllocationChecks
             },
             label: "JevAnswersGet",
             passDescription: "JevAnswers.Get allocates nothing");
+    }
+
+    /// <summary>
+    /// <see cref="EvaluateRoundTrip"/>'s call through a client <c>AddJevClient</c> registered, against the same call on a
+    /// hand-built client over an <see cref="HttpClient"/> that <see cref="JevClient.ConfigureHttpClient"/> configured the
+    /// same way. Registration and the first resolve happen once and are not budgeted.
+    /// </summary>
+    public static void EvaluateRoundTripThroughDependencyInjection()
+    {
+        var services = new ServiceCollection();
+        DependencyInjectionChecks.RegisterDefaultClient(services);
+        using var provider = services.BuildServiceProvider();
+        var resolved = provider.GetRequiredService<IJevClient>();
+
+        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, NoulResponseJson));
+        JevClient.ConfigureHttpClient(http, new JevClientOptions { BaseAddress = new Uri("https://example.test/api/") });
+        using var handBuilt = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+        var request = Program.Request();
+
+        // Both figures are ceilings from SynchronousBytesPerCall, so neither side of the comparison is truncated.
+        var byHand = SynchronousBytesPerCall(() => handBuilt.EvaluateAsync(request));
+        var byContainer = SynchronousBytesPerCall(() => resolved.EvaluateAsync(request));
+        Console.WriteLine($"     EvaluateAsync B/call on a hand-built client over a configured HttpClient: {byHand}");
+        Console.WriteLine($"     EvaluateAsync B/call on a DI-resolved client: {byContainer}");
+
+        // DI adds nothing per call: the hand-built client's own measurement is the budget.
+        GateValueTask(
+            budgetBytes: (int)byHand,
+            action: () => resolved.EvaluateAsync(request),
+            label: "EvaluateRoundTripThroughDependencyInjectionAgainstHandBuilt",
+            passDescription: "EvaluateAsync through a DI-resolved client allocates no more than through a hand-built one");
+
+        // Measured 4376 B/call on published win-x64 AOT: EvaluateRoundTrip's call plus the User-Agent header the factory's
+        // HttpClient sends, and nothing from the container or the factory, whose request logging AddJevClient removes.
+        // Budget: about 10% headroom over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
+        GateValueTask(
+            budgetBytes: 4864,
+            action: () => resolved.EvaluateAsync(request),
+            label: "EvaluateRoundTripThroughDependencyInjection",
+            passDescription: "EvaluateAsync through a DI-resolved client stays within its allocation budget");
     }
 
     /// <summary>
