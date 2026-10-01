@@ -79,7 +79,7 @@ public sealed class EvaluatedTests
     [Fact]
     public void LeadingBom_IsSkipped()
     {
-        using var evaluated = Evaluate("﻿" + """{"model":"m-1","answers":{"a":""" + Choice + """},"usage":{"input_tokens":7,"output_tokens":3}}""");
+        using var evaluated = Evaluate("\uFEFF" + """{"model":"m-1","answers":{"a":""" + Choice + """},"usage":{"input_tokens":7,"output_tokens":3}}""");
 
         Assert.Equal("m-1", evaluated.ResponseModel);
         Assert.Equal(7, evaluated.InputTokens);
@@ -122,6 +122,32 @@ public sealed class EvaluatedTests
             ZeroAlloc.Results.Result<Evaluated<string>, JevError>.Success(evaluated)));
 
         Assert.True(call.IsCompletedSuccessfully);
+        Assert.Equal("answers", (await call).Value);
+        Assert.Throws<ObjectDisposedException>(() => evaluated.ResponseModel);
+    }
+
+    [Fact]
+    public void UsageOutsideTheInt32Range_IsNull()
+    {
+        using var evaluated = Evaluate("""{"usage":{"input_tokens":3000000000,"output_tokens":3000000000},"answers":{}}""");
+
+        Assert.Null(evaluated.InputTokens);
+        Assert.Null(evaluated.OutputTokens);
+    }
+
+    [Fact]
+    public async Task Unwrap_OfAnAsynchronousSuccess_DisposesAndReturnsTheAnswers()
+    {
+        var evaluated = Evaluate(Fixture.Text("response-noul.json"));
+        var source = new TaskCompletionSource<ZeroAlloc.Results.Result<Evaluated<string>, JevError>>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        var call = Evaluated.Unwrap(new ValueTask<ZeroAlloc.Results.Result<Evaluated<string>, JevError>>(source.Task));
+
+        Assert.False(call.IsCompleted);
+        Assert.Equal("jev-1.13.0", evaluated.ResponseModel);
+
+        source.SetResult(ZeroAlloc.Results.Result<Evaluated<string>, JevError>.Success(evaluated));
+
         Assert.Equal("answers", (await call).Value);
         Assert.Throws<ObjectDisposedException>(() => evaluated.ResponseModel);
     }

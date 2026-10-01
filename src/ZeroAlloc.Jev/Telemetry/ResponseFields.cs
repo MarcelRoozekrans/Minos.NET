@@ -3,7 +3,7 @@ using System.Text.Json;
 namespace ZeroAlloc.Jev.Telemetry;
 
 /// <summary>
-/// Reads one top-level field of a <c>/v1/systemone</c> response body for telemetry, without allocating. Only the
+/// Reads one top-level field of a <c>/v1/systemone</c> response body for telemetry, without allocating except the model string. Only the
 /// listening path calls these, after <c>TypedEvaluation.ParseResponse</c> has read the whole body, so
 /// the body is complete, valid JSON.
 /// </summary>
