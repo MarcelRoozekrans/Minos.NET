@@ -43,8 +43,10 @@ internal sealed class JevOperations(IJevApi api, string authorization) : IJevOpe
         => api.ListModelsAsync(authorization, retryCount: null, ct);
 
     // Owns body: the retry proxy sends the same instance on every attempt, so it is disposed only once the whole call,
-    // retries included, has completed. A successful parse hands the response to the Evaluated, which the caller
-    // disposes after the proxy has read it; every other path returns it here.
+    // retries included, has completed. A successful response is the only RawJson the transport hands back; failed
+    // attempts carry a JevError and no buffer, so a failed transport result needs no dispose. A successful parse hands
+    // the response to the Evaluated, which the caller disposes after the proxy has read it; every other path returns
+    // it here.
     private async ValueTask<Result<Evaluated<TResult>, JevError>> EvaluateRawAsync<TResult>(
         RawJson body, AnswerParser<TResult> parse, CancellationToken ct)
     {
