@@ -4,9 +4,25 @@
 
 ## Current Position
 - **Milestone:** 3 — .NET integration, active since 2026-09-30 (design `docs/superpowers/specs/2026-09-30-milestone-3-design.md`).
-- **Phase:** 3.2 — Telemetry, complete on branch `phase/3.2-telemetry`; PR #72 is open and not yet merged. Phase 3.1 — Logging merged as PR #69. Next phase: 3.3 — DI package (pending; no design spec yet).
-- **Last completed task:** Phase 3.2 — Telemetry. All 9 plan tasks passed review, and the final whole-branch review passed after one fix wave. The full suite, a non-incremental build and the AOT smoke app are clean.
-- **Next task:** merge PR #72 (maintainer), confirm the release-please PR lists the three Phase 3.2 `feat` lines, then `start-next-phase` for Phase 3.3 — DI package.
+- **Phase:** 3.3 — DI package, complete on branch `phase/3.3-di-package`; PR #75 is open and not yet merged. Phase 3.2 — Telemetry merged as PR #72, and release-please counted its `feat` lines. Next phase: 3.4 — Options and configuration (pending; no design spec yet), the last phase of Milestone 3.
+- **Last completed task:** Phase 3.3 — DI package. All 9 plan tasks passed review, and the final whole-branch review passed after one fix wave. The full suite, a non-incremental build and the AOT smoke app are clean.
+- **Next task:** merge PR #75 (maintainer), confirm the release-please PR lists the three Phase 3.3 `feat` lines and the `fix`, then `start-next-phase` for Phase 3.4. Phase 3.4 binds the named `JevClientOptions` that `AddJevClient` registers to `IConfiguration`, validates them with ZeroAlloc.Validation.Options and `ValidateOnStart`, and does not change `AddJevClient`'s signatures.
+
+## What Phase 3.3 shipped
+- New package `ZeroAlloc.Jev.DependencyInjection` with four overloads, all returning `IHttpClientBuilder`:
+  - `AddJevClient()` and `AddJevClient(Action<JevClientOptions>)` register the default `IJevClient` singleton.
+  - `AddJevClient(name)` and `AddJevClient(name, configure)` register keyed singletons, injected with `[FromKeyedServices(name)]`.
+- How each registration is wired:
+  - Named options: the default client uses `Options.DefaultName`, a keyed client uses its key.
+  - A named `HttpClient`, `ZeroAlloc.Jev` or `ZeroAlloc.Jev:{name}`, with a pooled `SocketsHttpHandler` (2 min) and an infinite handler lifetime, configured through `JevClient.ConfigureHttpClient`.
+  - The `HttpClient` is configured on the first registration of each name only, guarded by a private marker service. The client is registered with TryAdd, so an `IJevClient` the app registered itself wins.
+- Maintainer decision: `AddJevClient` removes the factory's request loggers, which cost 344 B per call (4720 vs 4376 B). `.AddDefaultLogger()` on the builder restores them.
+- Core: public `JevClient.ConfigureHttpClient(HttpClient, JevClientOptions?)` applies the timeout, the base address (only when none is set) and the User-Agent, and needs no API key. `EnsureValidTimeout` rejects a time-out above `int.MaxValue` ms up front, which fixed a half-configured client and a leaked owned client.
+- Cost: a DI-resolved call measures 4376 B under Native AOT, equal to a hand-built client. A relative gate and an absolute 4864 B gate check this. Existing budgets are unchanged.
+- The pack fixture no longer packs with `--no-build`, which used to let a stale build pass.
+- The milestone's ZeroAlloc.Inject and ZeroAlloc.Rest.DependencyInjection dependencies were dropped as unneeded.
+- Issues filed: #73 (adopt ZeroAlloc.TestHelpers#56's measuring API, implemented in TestHelpers PR #57 but not released yet) and #74 (hand-rolled zero-allocation tests can flake under load).
+- Lesson: the ZeroAlloc org session is `zeroalloc-0f` this time; check ListAgents for its current name before messaging it.
 
 ## What Phase 3.2 shipped
 - Internal `[Instrument("ZeroAlloc.Jev")] IJevOperations`, with four methods, implemented by `JevOperations` over the retry proxy. `JevClient` calls the generated `JevOperationsInstrumented`. Source and meter are both `ZeroAlloc.Jev`. No constructor changes.
@@ -113,12 +129,13 @@
 - Still unknown until a TypeSafe live run (needs `TYPESAFE_API_KEY` and the `live-api` environment): whether TypeSafe sends `Retry-After`, the 422 body schema, and whether Phase 2.4's `BuiltQuestionSet_ParsesAKeyedChoice` passes.
 
 ## Recommended Next Step
-Merge PR #72, check the release-please PR for the Phase 3.2 `feat` lines, then run `start-next-phase` for Phase 3.3 — DI package.
+Merge PR #75, check the release-please PR for the Phase 3.3 `feat` lines and the `fix`, then run `start-next-phase` for Phase 3.4 — Options and configuration.
 
 Open maintainer items:
 - the `live-api` environment and the TypeSafe live run;
 - record the performance baseline from a full Benchmarks run;
 - decide #68, which now covers three gates;
 - answer ZeroAlloc.Telemetry#184's two API questions;
+- decide whether to report to dotnet/runtime that IHttpClientFactory's request loggers allocate 344 B per call even when no logger is enabled;
 - Renovate PRs #70 and #71;
 - release PR #63 (0.2.0) stays open until you choose to release.
