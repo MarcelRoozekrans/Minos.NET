@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -7,7 +8,7 @@ using OptionsDefaults = Microsoft.Extensions.Options.Options;
 
 namespace Microsoft.Extensions.DependencyInjection;
 
-/// <summary>Registers <see cref="IJevClient"/> in an <see cref="IServiceCollection"/>, over <see cref="IHttpClientFactory"/>.</summary>
+/// <summary>Registers <see cref="IJevClient"/> in an <see cref="IServiceCollection"/>, over <see cref="IHttpClientFactory"/>, with options from delegates or bound from <see cref="IConfiguration"/>.</summary>
 /// <remarks>
 /// Each registration is one <see cref="JevClient"/> singleton over its own named <see cref="HttpClient"/>, which
 /// <see cref="JevClient.ConfigureHttpClient(HttpClient, JevClientOptions)"/> configures from the registration's named
@@ -32,7 +33,7 @@ public static class JevServiceCollectionExtensions
     public static IHttpClientBuilder AddJevClient(this IServiceCollection services)
     {
         ArgumentNullException.ThrowIfNull(services);
-        return AddDefault(services, configure: null);
+        return AddDefault(services, configure: null, configuration: null);
     }
 
     /// <summary>Registers the default <see cref="IJevClient"/>, configured by <paramref name="configure"/>.</summary>
@@ -46,7 +47,26 @@ public static class JevServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configure);
-        return AddDefault(services, configure);
+        return AddDefault(services, configure, configuration: null);
+    }
+
+    /// <summary>
+    /// Registers the default <see cref="IJevClient"/>, its <see cref="JevClientOptions"/> bound from
+    /// <paramref name="configuration"/>.
+    /// </summary>
+    /// <param name="services">The services to add to.</param>
+    /// <param name="configuration">
+    /// The configuration to bind, typically a section such as <c>builder.Configuration.GetSection("Jev")</c>. Its keys are
+    /// the <see cref="JevClientOptions"/> property names. A configure delegate registered later for the default client
+    /// overrides bound values. Changes after the client is built are not picked up.
+    /// </param>
+    /// <returns>The builder of the client's <see cref="HttpClient"/>, for adding handlers.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="services"/> or <paramref name="configuration"/> is <see langword="null"/>.</exception>
+    public static IHttpClientBuilder AddJevClient(this IServiceCollection services, IConfiguration configuration)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentNullException.ThrowIfNull(configuration);
+        return AddDefault(services, configure: null, configuration);
     }
 
     /// <summary>
@@ -63,7 +83,7 @@ public static class JevServiceCollectionExtensions
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentException.ThrowIfNullOrEmpty(name);
-        return AddKeyed(services, name, configure: null);
+        return AddKeyed(services, name, configure: null, configuration: null);
     }
 
     /// <summary>
@@ -86,20 +106,46 @@ public static class JevServiceCollectionExtensions
         ArgumentNullException.ThrowIfNull(services);
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentNullException.ThrowIfNull(configure);
-        return AddKeyed(services, name, configure);
+        return AddKeyed(services, name, configure, configuration: null);
     }
 
-    private static IHttpClientBuilder AddDefault(IServiceCollection services, Action<JevClientOptions>? configure)
+    /// <summary>
+    /// Registers an <see cref="IJevClient"/> keyed by <paramref name="name"/>, its <see cref="JevClientOptions"/> bound
+    /// from <paramref name="configuration"/>. Inject it with <c>[FromKeyedServices(name)]</c>.
+    /// </summary>
+    /// <param name="services">The services to add to.</param>
+    /// <param name="name">The client's service key and options name.</param>
+    /// <param name="configuration">
+    /// The configuration to bind, typically a section such as <c>builder.Configuration.GetSection("Jev:OpenRouter")</c>.
+    /// Its keys are the <see cref="JevClientOptions"/> property names. A configure delegate registered later for the same
+    /// name overrides bound values. Changes after the client is built are not picked up.
+    /// </param>
+    /// <returns>The builder of the client's <see cref="HttpClient"/>, for adding handlers.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="services"/>, <paramref name="name"/> or <paramref name="configuration"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="ArgumentException"><paramref name="name"/> is empty.</exception>
+    public static IHttpClientBuilder AddJevClient(this IServiceCollection services, string name, IConfiguration configuration)
     {
-        var builder = AddOptionsAndHttpClient(services, OptionsDefaults.DefaultName, HttpClientName, configure);
+        ArgumentNullException.ThrowIfNull(services);
+        ArgumentException.ThrowIfNullOrEmpty(name);
+        ArgumentNullException.ThrowIfNull(configuration);
+        return AddKeyed(services, name, configure: null, configuration);
+    }
+
+    private static IHttpClientBuilder AddDefault(
+        IServiceCollection services, Action<JevClientOptions>? configure, IConfiguration? configuration)
+    {
+        var builder = AddOptionsAndHttpClient(services, OptionsDefaults.DefaultName, HttpClientName, configure, configuration);
         services.TryAddSingleton<IJevClient>(provider => Create(provider, OptionsDefaults.DefaultName, HttpClientName));
         return builder;
     }
 
-    private static IHttpClientBuilder AddKeyed(IServiceCollection services, string name, Action<JevClientOptions>? configure)
+    private static IHttpClientBuilder AddKeyed(
+        IServiceCollection services, string name, Action<JevClientOptions>? configure, IConfiguration? configuration)
     {
         var httpClientName = HttpClientName + ":" + name;
-        var builder = AddOptionsAndHttpClient(services, name, httpClientName, configure);
+        var builder = AddOptionsAndHttpClient(services, name, httpClientName, configure, configuration);
         services.TryAddKeyedSingleton<IJevClient>(name, (provider, _) => Create(provider, name, httpClientName));
         return builder;
     }
@@ -113,9 +159,20 @@ public static class JevServiceCollectionExtensions
     //   nothing logs, and the client logs each operation and each retried attempt itself. AddDefaultLogger on the
     //   returned builder brings it back.
     private static IHttpClientBuilder AddOptionsAndHttpClient(
-        IServiceCollection services, string optionsName, string httpClientName, Action<JevClientOptions>? configure)
+        IServiceCollection services,
+        string optionsName,
+        string httpClientName,
+        Action<JevClientOptions>? configure,
+        IConfiguration? configuration)
     {
         var options = services.AddOptions<JevClientOptions>(optionsName);
+
+        // Source-generated through EnableConfigurationBindingGenerator, so this Bind uses no reflection.
+        if (configuration is not null)
+        {
+            options.Bind(configuration);
+        }
+
         if (configure is not null)
         {
             options.Configure(configure);

@@ -47,6 +47,11 @@
       Logging.Abstractions, so consumers on any 10.0.x resolve without a conflict.
     -->
     <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.0" />
+    <!--
+      The DI package's Bind over IConfiguration. It brings Configuration.Binder, whose source generator the DI package
+      enables so binding uses no reflection. Its floor is the first .NET 10 release, as for Microsoft.Extensions.Http.
+    -->
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0" />
     <!-- Runtime question set validation: its generators validate ZeroAlloc.Jev's own specs; NuGet still flows them to consumers, where they stay inert, NuGet/Home#6720 -->
     <PackageVersion Include="ZeroAlloc.Validation" Version="2.0.3" />
     <!-- Benchmarks -->

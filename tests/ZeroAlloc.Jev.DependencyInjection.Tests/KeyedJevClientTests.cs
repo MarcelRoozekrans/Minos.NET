@@ -161,7 +161,7 @@ public sealed class KeyedJevClientTests
         Assert.Equal("name", Assert.Throws<ArgumentNullException>(() => services.AddJevClient(null!, configure)).ParamName);
         Assert.Equal("name", Assert.Throws<ArgumentException>(() => services.AddJevClient(string.Empty)).ParamName);
         Assert.Equal("name", Assert.Throws<ArgumentException>(() => services.AddJevClient(string.Empty, configure)).ParamName);
-        Assert.Equal("configure", Assert.Throws<ArgumentNullException>(() => services.AddJevClient("openrouter", null!)).ParamName);
+        Assert.Equal("configure", Assert.Throws<ArgumentNullException>(() => services.AddJevClient("openrouter", (Action<JevClientOptions>)null!)).ParamName);
         Assert.Empty(services);
     }
 }

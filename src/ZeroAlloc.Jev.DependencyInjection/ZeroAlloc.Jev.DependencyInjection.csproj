@@ -3,10 +3,12 @@
     <RootNamespace>ZeroAlloc.Jev.DependencyInjection</RootNamespace>
     <PackageId>ZeroAlloc.Jev.DependencyInjection</PackageId>
     <Title>ZeroAlloc.Jev.DependencyInjection</Title>
-    <Description>Registers ZeroAlloc.Jev's IJevClient in a .NET host over IHttpClientFactory, as a default client or as keyed clients with their own options. Native AOT-compatible. Not affiliated with or endorsed by TypeSafe AI.</Description>
+    <Description>Registers ZeroAlloc.Jev's IJevClient in a .NET host over IHttpClientFactory, as a default client or as keyed clients with their own options, bound from IConfiguration and validated at startup. Native AOT-compatible. Not affiliated with or endorsed by TypeSafe AI.</Description>
     <PackageTags>$(PackageTags);dependency-injection;httpclientfactory</PackageTags>
     <!-- Hand-written registrations over Microsoft.Extensions.Http, with no reflection: enables IsTrimmable and the trim and AOT analyzers. -->
     <IsAotCompatible>true</IsAotCompatible>
+    <!-- Bind is source-generated, with no reflection, so consumers stay trim- and AOT-clean with no setup of their own. -->
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
 
@@ -18,5 +20,7 @@
     <ProjectReference Include="..\ZeroAlloc.Jev\ZeroAlloc.Jev.csproj" />
     <!-- IHttpClientFactory and AddHttpClient; brings Microsoft.Extensions.DependencyInjection.Abstractions and Options. -->
     <PackageReference Include="Microsoft.Extensions.Http" />
+    <!-- OptionsBuilder.Bind over IConfiguration; brings Configuration.Abstractions and Configuration.Binder. -->
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
   </ItemGroup>
 </Project>
