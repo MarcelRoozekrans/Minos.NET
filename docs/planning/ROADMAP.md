@@ -136,7 +136,7 @@ compress_memory: disabled
 **Design:** `docs/superpowers/specs/2026-09-30-milestone-3-design.md`
 **Definition of Done:**
 - [ ] `ZeroAlloc.Jev.DependencyInjection` registers the client in one call, and keyed clients with their own options and `HttpClient`, over `IHttpClientFactory`
-- [ ] `JevClientOptions` bind from `IConfiguration` and fail fast on invalid values, validated with ZeroAlloc.Validation.Options; retry and timeout settings are configurable this way
+- [ ] `JevClientOptions` bind from `IConfiguration` and fail fast on invalid values, validated at startup; retry and timeout settings are configurable this way
 - [ ] Source-generated `[LoggerMessage]` logging through `ILogger`, with no payload or key in logs and no cost without a logger
 - [ ] Spans and metrics for tokens, latency and confidence via ZeroAlloc.Telemetry, named per the GenAI conventions plus `jev.*`, nesting the `ZeroAlloc.Rest` span
 - [ ] Every phase adds `AllocationGate` budgets and benchmarks for what it ships, and existing budgets hold; the AOT smoke app exercises logging, telemetry and DI
