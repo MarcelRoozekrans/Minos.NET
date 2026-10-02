@@ -1,3 +1,10 @@
+---
+id: composite-scoring
+title: Composite scoring
+sidebar_position: 4
+description: Break a judgement into small Scores and combine them with weights you own.
+---
+
 # Composite scoring
 
 Instead of asking one large question such as "is this pull request good?", ask several small ones that each have an

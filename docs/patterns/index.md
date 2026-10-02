@@ -1,3 +1,10 @@
+---
+id: patterns
+title: Patterns
+sidebar_position: 1
+description: Four ways to use Jev answers, each with a guide of its own.
+---
+
 # Patterns
 
 Four ways to use Jev's answers, each with a page of its own.

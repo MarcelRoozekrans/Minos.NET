@@ -1,3 +1,10 @@
+---
+id: confidence-routing
+title: Confidence routing
+sidebar_position: 3
+description: Gate each action on the answer confidence, with a threshold sized to the cost of being wrong.
+---
+
 # Confidence routing
 
 A Jev answer says what it found, and its confidence says whether you should act on it. Treat them as two separate

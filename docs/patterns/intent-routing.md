@@ -1,3 +1,10 @@
+---
+id: intent-routing
+title: Intent routing
+sidebar_position: 5
+description: Make a cheap first decision that sends each request to code, a model or a person.
+---
+
 # Intent routing
 
 Many requests do not need a large language model, and some should not reach one at all. Let Jev make a cheap first

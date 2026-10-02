@@ -1,3 +1,10 @@
+---
+id: fan-out
+title: Speculative fan-out
+sidebar_position: 2
+description: Ask every question you might need in one request and read only the answers that matter.
+---
+
 # Speculative fan-out
 
 Ask every question you might need in a single request, then let your code read only the answers that matter for this

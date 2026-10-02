@@ -1,3 +1,10 @@
+---
+id: performance
+title: Performance
+sidebar_position: 13
+description: What the benchmarks measure, how to run them, and what the client costs per call.
+---
+
 # Performance
 
 `benchmarks/ZeroAlloc.Jev.Benchmarks` measures the client's hot paths with BenchmarkDotNet: the
