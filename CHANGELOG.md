@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.3.0](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/compare/v0.2.0...v0.3.0) (2026-10-02)
+
+
+### Features
+
+* **core:** add ConfidenceThresholds and ConfidenceTier, which place an answer's confidence in a Low, Medium or High tier without allocating ([55a85db](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/55a85db040b636501be297ed84ee6c8b1cb17309))
+* **core:** add Normalized to Score and KeyedScore, putting the expected level on a 0 to 1 scale ([55a85db](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/55a85db040b636501be297ed84ee6c8b1cb17309))
+
+
+### Documentation
+
+* **docs:** add guides for speculative fan-out, confidence routing, composite scoring and intent routing, with C# snippets that compile and run in CI ([55a85db](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/55a85db040b636501be297ed84ee6c8b1cb17309))
+
+
+### Tests
+
+* **samples:** gate ConfidenceThresholds.Classify and Normalized at 0 B under Native AOT ([55a85db](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/55a85db040b636501be297ed84ee6c8b1cb17309))
+
 ## [0.2.0](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/compare/v0.1.0...v0.2.0) (2026-10-01)
 
 
