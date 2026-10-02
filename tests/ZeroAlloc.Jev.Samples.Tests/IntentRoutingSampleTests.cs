@@ -73,6 +73,17 @@ public sealed class IntentRoutingSampleTests
         Assert.Equal(tier, routed.Tier);
     }
 
+    [Fact]
+    public void Report_CountFollowsTheRequests_AfterAWith()
+    {
+        var report = new RoutingReport([new RoutedRequest("t", "x", TravelIntent.ChangeBooking, ConfidenceTier.High, RequestHandler.AssistantModel, false)]);
+        var changed = report with { Requests = [new RoutedRequest("t", "x", TravelIntent.DisputeCharge, ConfidenceTier.High, RequestHandler.Person, false)] };
+
+        Assert.Equal(0, report.WithoutLanguageModel);
+        Assert.Equal(1, changed.WithoutLanguageModel);
+        Assert.EndsWith("1 of 1 requests needed no language model\n", changed.Render(), StringComparison.Ordinal);
+    }
+
     private static RoutedRequest Find(RoutingReport report, string id) =>
         report.Requests.First(x => string.Equals(x.Id, id, StringComparison.Ordinal));
 

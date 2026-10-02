@@ -8,7 +8,7 @@ public sealed record RoutedRequest(string Id, string Text, TravelIntent Intent, 
 public sealed record RoutingReport(IReadOnlyList<RoutedRequest> Requests)
 {
     /// <summary>How many requests were settled without calling a language model.</summary>
-    public int WithoutLanguageModel { get; } = Requests.Count(r => r.Handler != RequestHandler.AssistantModel);
+    public int WithoutLanguageModel => Requests.Count(r => r.Handler != RequestHandler.AssistantModel);
 
     public string Render()
     {
