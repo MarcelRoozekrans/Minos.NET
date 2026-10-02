@@ -17,6 +17,20 @@
       "allowedVersions": "[5.0.0]"
     },
     {
+      "description": "The library's shipped floor for these three is the first .NET 10 release, so a consumer on any 10.0.x servicing release resolves without a conflict; the pack tests assert 10.0.0 in the nuspec. Microsoft.Extensions.Logging, Hosting and Configuration are test and smoke-app only and keep updating. Raising a floor is a deliberate change made by hand, together with the pack tests; the brackets mean exactly 10.0.0",
+      "matchPackageNames": [
+        "Microsoft.Extensions.Logging.Abstractions",
+        "Microsoft.Extensions.Http",
+        "Microsoft.Extensions.Options.ConfigurationExtensions"
+      ],
+      "allowedVersions": "[10.0.0]"
+    },
+    {
+      "description": "ZeroAlloc.Telemetry 1.10.0 is the library's shipped floor: it is the first release that allows several [TraceTag] on one parameter, and the pack tests assert it. The rest of the ZeroAlloc group keeps updating. Raising the floor is a deliberate change made by hand, together with the pack tests; the brackets mean exactly 1.10.0",
+      "matchPackageNames": ["ZeroAlloc.Telemetry"],
+      "allowedVersions": "[1.10.0]"
+    },
+    {
       "description": "Group ZeroAlloc packages; they are this library's external dependencies",
       "matchPackageNames": ["ZeroAlloc.{/,}**"],
       "groupName": "ZeroAlloc"
