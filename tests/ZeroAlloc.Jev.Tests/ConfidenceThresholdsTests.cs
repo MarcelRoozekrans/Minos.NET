@@ -78,4 +78,37 @@ public sealed class ConfidenceThresholdsTests
         Assert.True(new ConfidenceThresholds(0.6, 0.85) != ConfidenceThresholds.Default);
         Assert.False(ConfidenceThresholds.Default.Equals((object)0.5));
     }
+
+    [Fact]
+    public void Equality_DiffersWhenOnlyOneThresholdDiffers()
+    {
+        Assert.NotEqual(ConfidenceThresholds.Default, new ConfidenceThresholds(0.5, 0.8));
+        Assert.NotEqual(ConfidenceThresholds.Default, new ConfidenceThresholds(0.6, 0.9));
+        Assert.True(ConfidenceThresholds.Default != new ConfidenceThresholds(0.5, 0.8));
+        Assert.True(ConfidenceThresholds.Default != new ConfidenceThresholds(0.6, 0.9));
+    }
+
+    [Theory]
+    [InlineData(1.5, ConfidenceTier.High)]
+    [InlineData(-0.1, ConfidenceTier.Low)]
+    [InlineData(double.PositiveInfinity, ConfidenceTier.High)]
+    [InlineData(double.NegativeInfinity, ConfidenceTier.Low)]
+    public void Default_Classify_PlacesOutOfRangeInputsAtTheNearestEnd(double confidence, ConfidenceTier expected)
+        => Assert.Equal(expected, ConfidenceThresholds.Default.Classify(confidence));
+
+    [Fact]
+    public void Constructor_AcceptsNegativeZero()
+    {
+        var thresholds = new ConfidenceThresholds(-0.0, 0.9);
+
+        Assert.Equal(0.0, thresholds.Medium);
+    }
+
+    [Fact]
+    public void Constructor_ChecksMediumBeforeHigh()
+    {
+        var exception = Assert.Throws<ArgumentOutOfRangeException>(() => new ConfidenceThresholds(double.NaN, double.NaN));
+
+        Assert.Equal("medium", exception.ParamName);
+    }
 }
