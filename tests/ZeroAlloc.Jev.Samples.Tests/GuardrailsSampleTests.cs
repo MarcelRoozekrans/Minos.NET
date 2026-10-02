@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using ZeroAlloc.Jev.Samples.Guardrails;
+using ZeroAlloc.TestHelpers;
 
 namespace ZeroAlloc.Jev.Samples.Tests;
 
@@ -43,6 +44,9 @@ public sealed class GuardrailsSampleTests
 
     private static ScreenedMessage Find(GuardrailsReport report, string id) =>
         report.Messages.First(x => string.Equals(x.Id, id, StringComparison.Ordinal));
+
+    [Fact]
+    public async Task Report_MatchesTheSnapshot() => TextSnapshot.VerifyText((await Run()).Render());
 
     private static async Task<GuardrailsReport> Run()
     {

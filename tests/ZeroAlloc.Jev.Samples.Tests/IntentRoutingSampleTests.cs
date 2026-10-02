@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using ZeroAlloc.Jev.Samples.IntentRouting;
+using ZeroAlloc.TestHelpers;
 
 namespace ZeroAlloc.Jev.Samples.Tests;
 
@@ -74,6 +75,9 @@ public sealed class IntentRoutingSampleTests
 
     private static RoutedRequest Find(RoutingReport report, string id) =>
         report.Requests.First(x => string.Equals(x.Id, id, StringComparison.Ordinal));
+
+    [Fact]
+    public async Task Report_MatchesTheSnapshot() => TextSnapshot.VerifyText((await Run()).Render());
 
     private static async Task<RoutingReport> Run()
     {

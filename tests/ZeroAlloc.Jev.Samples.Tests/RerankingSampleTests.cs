@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ZeroAlloc.Jev.Samples.Reranking;
+using ZeroAlloc.TestHelpers;
 
 namespace ZeroAlloc.Jev.Samples.Tests;
 
@@ -293,6 +294,9 @@ public sealed class RerankingSampleTests
         Assert.Equal(0, report.JevHitsAt1);
         Assert.Equal(1, changed.JevHitsAt1);
     }
+
+    [Fact]
+    public async Task Report_MatchesTheSnapshot() => TextSnapshot.VerifyText((await Run()).Render());
 
     private static async Task<RerankingReport> Run()
     {
