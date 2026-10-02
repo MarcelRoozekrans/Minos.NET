@@ -80,8 +80,8 @@ you asked for it. Everything else, including every network and service failure, 
 | `Jitter` | `true` | `true` or `false` | Adds a random extra of up to 50 percent to each backoff wait, so many clients do not retry in step. |
 
 Each option you set beats the environment. The order is: the option, then the environment variable, then the provider's
-default. A blank API key counts as unset. `TYPESAFE_BASE_URL`
-never applies to OpenRouter, so an OpenRouter key is never sent to a TypeSafe proxy.
+default. A blank API key counts as unset. `TYPESAFE_BASE_URL` never applies to OpenRouter, so an OpenRouter key is
+never sent to a TypeSafe proxy.
 
 The first snippet spells out every option that has a default, with its default value. You rarely write all of them. It
 is here so the table above has code to match.
