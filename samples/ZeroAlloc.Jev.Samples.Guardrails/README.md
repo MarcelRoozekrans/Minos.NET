@@ -19,7 +19,7 @@ By default the sample replays the answers checked in as `recordings.json`. It ne
 To call the API instead, set `OPENROUTER_API_KEY` and pass a mode after `--`:
 
 - `-- --live` sends the requests and prints the report.
-- `-- --record` does the same and then rewrites `recordings.json` from the responses.
+- `-- --record` does the same and then rewrites `recordings.json` from the responses. It writes straight to the sample's source folder, and replay reads the same file, so a fresh recording shows on the next run.
 
 The live modes make 12 billed requests.
 
@@ -30,6 +30,10 @@ The live modes make 12 billed requests.
 ## Tuning
 
 The thresholds in `GuardrailPolicy.cs` are starting points, not recommendations. Tune them on your own traffic and decide what a review means in your product.
+
+A request for medical or legal advice is only ever reviewed, never blocked on that answer alone. The question says what a message is about, not that it is harmful, so it is routed to a person; it is blocked only when its content is harmful, which the severity score decides.
+
+On the recorded messages the two policies differ mainly on borderline cases, because the model is confident about most of them. The policy tests in `tests/ZeroAlloc.Jev.Samples.Tests` feed made-up answers through each rule and show where the thresholds bite.
 
 ## Credit
 

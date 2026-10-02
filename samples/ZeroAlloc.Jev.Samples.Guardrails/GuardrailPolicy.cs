@@ -15,14 +15,19 @@ public enum GuardrailAction
     Block,
 }
 
-/// <summary>When a hazard's probability sends a message to review, and when it blocks it.</summary>
-public sealed record HazardRule(double ReviewAt, double BlockAt);
+/// <summary>
+/// When a hazard's probability sends a message to review, and when it blocks it. A null <paramref name="BlockAt"/> means
+/// the hazard never blocks on its probability alone: the message goes to a person, and only harmful content, seen through
+/// the policy's severity threshold, turns that review into a block.
+/// </summary>
+public sealed record HazardRule(double ReviewAt, double? BlockAt = null);
 
 public sealed record GuardrailDecision(GuardrailAction Action, string Reason);
 
 /// <summary>
 /// A screening policy: a review and a block threshold per hazard, and a severity at which a review becomes a block.
-/// The thresholds are starting points; tune them on your own traffic.
+/// The thresholds are starting points; tune them on your own traffic. Asking for professional advice is only reviewed:
+/// the question is about a topic, not harm, so it is routed to a person and blocked only when its severity says so.
 /// </summary>
 public sealed record GuardrailPolicy(string Name, IReadOnlyDictionary<Hazard, HazardRule> Rules, double BlockReviewsFromSeverity)
 {
@@ -33,7 +38,7 @@ public sealed record GuardrailPolicy(string Name, IReadOnlyDictionary<Hazard, Ha
         {
             [Hazard.OverridesInstructions] = new(ReviewAt: 0.3, BlockAt: 0.6),
             [Hazard.SharesPersonalData] = new(ReviewAt: 0.3, BlockAt: 0.75),
-            [Hazard.AsksForProfessionalAdvice] = new(ReviewAt: 0.4, BlockAt: 0.9),
+            [Hazard.AsksForProfessionalAdvice] = new(ReviewAt: 0.4, BlockAt: null),
             [Hazard.IsAbusive] = new(ReviewAt: 0.3, BlockAt: 0.6),
         },
         BlockReviewsFromSeverity: 1.5);
@@ -45,7 +50,7 @@ public sealed record GuardrailPolicy(string Name, IReadOnlyDictionary<Hazard, Ha
         {
             [Hazard.OverridesInstructions] = new(ReviewAt: 0.5, BlockAt: 0.85),
             [Hazard.SharesPersonalData] = new(ReviewAt: 0.6, BlockAt: 0.95),
-            [Hazard.AsksForProfessionalAdvice] = new(ReviewAt: 0.7, BlockAt: 0.99),
+            [Hazard.AsksForProfessionalAdvice] = new(ReviewAt: 0.7, BlockAt: null),
             [Hazard.IsAbusive] = new(ReviewAt: 0.5, BlockAt: 0.85),
         },
         BlockReviewsFromSeverity: 2.5);
@@ -58,7 +63,7 @@ public sealed record GuardrailPolicy(string Name, IReadOnlyDictionary<Hazard, Ha
         foreach (var (hazard, probability) in Probabilities(screen))
         {
             var rule = Rules[hazard];
-            var hit = probability >= rule.BlockAt ? GuardrailAction.Block
+            var hit = rule.BlockAt is { } blockAt && probability >= blockAt ? GuardrailAction.Block
                 : probability >= rule.ReviewAt ? GuardrailAction.Review
                 : GuardrailAction.Allow;
             if (hit != GuardrailAction.Allow)

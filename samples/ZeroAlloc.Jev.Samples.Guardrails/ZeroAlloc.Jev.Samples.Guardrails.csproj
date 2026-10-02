@@ -19,6 +19,5 @@
 
   <ItemGroup>
     <None Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
-    <None Include="recordings.json" Condition="Exists('recordings.json')" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

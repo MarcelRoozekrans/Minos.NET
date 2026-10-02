@@ -18,9 +18,8 @@ catch (ArgumentException e)
     return 2;
 }
 
-var recordingsPath = mode == SampleMode.Record
-    ? Path.Combine(SampleHost.SampleDirectory(SampleName), "recordings.json")
-    : Path.Combine(AppContext.BaseDirectory, "recordings.json");
+// The recordings live in the source folder in every mode, so a record run is replayed at once, with no rebuild.
+var recordingsPath = Path.Combine(SampleHost.SampleDirectory(SampleName), "recordings.json");
 
 var session = new RecordingSession();
 var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings { Args = args, ContentRootPath = AppContext.BaseDirectory });
