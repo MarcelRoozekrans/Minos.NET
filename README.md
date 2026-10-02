@@ -193,7 +193,7 @@ The six `AddJevClient` overloads are `()`, `(Action<JevClientOptions>)`, `(IConf
 - **`AddJevClient` returns the `IHttpClientBuilder`,** which is where you add your own handlers. If one of them retries, see [Retries](#retries).
 - **Host-wide defaults apply to Jev's clients too.** Handlers added through `ConfigureHttpClientDefaults` also run on `ZeroAlloc.Jev` and `ZeroAlloc.Jev:{name}`, whether the defaults are registered before or after `AddJevClient`.
   - Aspire ServiceDefaults' `AddStandardResilienceHandler()` is the usual case. Its retries multiply with Jev's, and its per-attempt and total time-outs override `JevClientOptions.Timeout`.
-  - There is no per-client way to remove that handler. Set `MaxRetries = 0`, as [Retries](#retries) describes, and keep the handler's time-outs at or above `Timeout`.
+  - To keep a defaults handler off Jev's client, call `AddJevClient(...).ConfigureAdditionalHttpMessageHandlers((handlers, _) => handlers.Clear())`. It also removes every handler you added yourself through that builder. Otherwise set `MaxRetries = 0`, as [Retries](#retries) describes, and keep the handler's time-outs at or above `Timeout`.
   - A primary handler set in the defaults is replaced by `AddJevClient`'s own `SocketsHttpHandler`, and the defaults' loggers are removed.
 - **Logging goes through the host's `ILoggerFactory`.** Without a logging provider, or with Jev's levels disabled, the client logs nothing and allocates nothing for logging.
   - The factory's own request logs are off for Jev's clients, because their handlers allocate on every request even when nothing logs, 344 B per call.
