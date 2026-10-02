@@ -252,6 +252,10 @@ var jev = new JevClient(httpClientFactory.CreateClient("jev"), options);
 
 A long-lived `JevClient` keeps one handler for life, so the factory's default 2-minute handler rotation would never reach it and DNS changes would go unseen. The `SocketsHttpHandler` recycles its own connections instead, and the infinite handler lifetime stops the factory rotating it.
 
+### Patterns
+
+Four patterns for using the answers, speculative fan-out, confidence routing, composite scoring and intent routing, have guides in [docs/patterns](docs/patterns/index.md), each with C# that is compiled and tested. Two helpers support them: `ConfidenceThresholds` with `ConfidenceTier` classifies a confidence as Low, Medium or High without allocating, and `Normalized` on Score answers puts any rubric's `Expected` on a 0 to 1 scale.
+
 ## Typed evaluation
 
 Declare the questions as a partial record with `[JevQuestions]`; the generator emits the question JSON at compile time and a `Parse` method that reads the typed answers. Call `EvaluateAsync<T>` with the state, and match on the `Result`:
