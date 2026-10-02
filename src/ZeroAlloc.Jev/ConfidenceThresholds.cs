@@ -6,8 +6,9 @@ namespace ZeroAlloc.Jev;
 /// money deserves stricter ones. Treat the values as starting points to tune on your own data.
 /// </summary>
 /// <remarks>
-/// <see langword="default"/> is not a zero threshold: it, <c>new()</c> and <see cref="Default"/> all use the documented
-/// tiers, 0.5 and 0.9, so an uninitialized value never classifies every answer as <see cref="ConfidenceTier.High"/>.
+/// <see langword="default"/> is not a zero threshold: it, <c>new()</c> and <see cref="Default"/> all use 0.5 and 0.9, the
+/// cut points TypeSafe's confidence guide uses in its example, so an uninitialized value never classifies every answer as
+/// <see cref="ConfidenceTier.High"/>.
 /// </remarks>
 public readonly struct ConfidenceThresholds : IEquatable<ConfidenceThresholds>
 {
@@ -47,7 +48,10 @@ public readonly struct ConfidenceThresholds : IEquatable<ConfidenceThresholds>
         _isSet = true;
     }
 
-    /// <summary>Gets the documented tiers: <see cref="Medium"/> 0.5 and <see cref="High"/> 0.9.</summary>
+    /// <summary>
+    /// Gets the default thresholds: <see cref="Medium"/> 0.5 and <see cref="High"/> 0.9, the cut points TypeSafe's confidence
+    /// guide uses in its example.
+    /// </summary>
     public static ConfidenceThresholds Default => default;
 
     /// <summary>Gets the lowest confidence that is <see cref="ConfidenceTier.Medium"/>; 0.5 unless set.</summary>

@@ -3,7 +3,7 @@ namespace ZeroAlloc.Jev.Tests;
 public sealed class ConfidenceThresholdsTests
 {
     [Fact]
-    public void Default_IsTheDocumentedTiers()
+    public void Default_IsHalfAndNineTenths()
     {
         Assert.Equal(0.5, ConfidenceThresholds.Default.Medium);
         Assert.Equal(0.9, ConfidenceThresholds.Default.High);
