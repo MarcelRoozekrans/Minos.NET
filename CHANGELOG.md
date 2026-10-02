@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.1](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/compare/v0.3.0...v0.3.1) (2026-10-02)
+
+
+### Documentation
+
+* **samples:** add guardrails, intent-routing and re-ranking cookbook samples that run live, record from OpenRouter, or replay checked-in answers offline ([a163615](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/a163615be4f76aeab75490ed795fa9f3a460c608))
+
+
+### Tests
+
+* **samples:** replay every cookbook sample in CI, pin its recorded decisions, snapshot its report and scan the recordings for keys ([a163615](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/a163615be4f76aeab75490ed795fa9f3a460c608))
+
 ## [0.3.0](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/compare/v0.2.0...v0.3.0) (2026-10-02)
 
 
