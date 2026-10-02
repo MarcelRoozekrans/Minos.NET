@@ -34,7 +34,7 @@
       Microsoft.Extensions.Logging, for the tests' and the AOT smoke app's LoggerFactory, follows Diagnostics.Testing's
       own floor, 10.0.12: a lower direct reference would be an NU1605 downgrade.
     -->
-    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.12" />
     <PackageVersion Include="Microsoft.Extensions.Logging" Version="10.0.12" />
     <!--
       Test and smoke-app only: a generic host for the startup validation tests, and in-memory configuration. They follow
@@ -46,12 +46,12 @@
       The DI package's IHttpClientFactory and AddHttpClient. Its floor is the first .NET 10 release, as for
       Logging.Abstractions, so consumers on any 10.0.x resolve without a conflict.
     -->
-    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Http" Version="10.0.12" />
     <!--
       The DI package's Bind over IConfiguration. It brings Configuration.Binder, whose source generator the DI package
       enables so binding uses no reflection. Its floor is the first .NET 10 release, as for Microsoft.Extensions.Http.
     -->
-    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.12" />
     <!-- Runtime question set validation: its generators validate ZeroAlloc.Jev's own specs; NuGet still flows them to consumers, where they stay inert, NuGet/Home#6720 -->
     <PackageVersion Include="ZeroAlloc.Validation" Version="2.0.3" />
     <!-- Benchmarks -->
