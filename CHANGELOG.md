@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.3.2](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/compare/v0.3.1...v0.3.2) (2026-10-02)
+
+
+### Documentation
+
+* **docs:** add the user guide: getting started, question types, typed evaluation, run-time question sets, client and errors, dependency injection, observability, Native AOT, diagnostics, testing your code, patterns, samples and performance ([5326126](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/5326126ec5ac25de3ad0c682c96c31d5242a1cbb))
+
+
+### Tests
+
+* **docs:** check the guide's front matter, internal links and anchors, next steps, and the tables and figures it copies from the code ([5326126](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/5326126ec5ac25de3ad0c682c96c31d5242a1cbb))
+
 ## [0.3.1](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/compare/v0.3.0...v0.3.1) (2026-10-02)
 
 
