@@ -36,12 +36,12 @@ jobs:
 
       - name: Check docs snippets
         # Every C# block in the user docs comes from tests/ZeroAlloc.Jev.Docs.Tests, which the Build step compiled.
-        # Regenerate the docs and fail when the committed Markdown differs: a snippet changed without re-running
-        # `dotnet mdsnippets`.
+        # Regenerate the docs and fail when any tracked file differs: a snippet changed without re-running
+        # `dotnet mdsnippets`, or the tool rewrote a file it should not touch.
         run: |
           dotnet tool restore
           dotnet mdsnippets
-          git diff --exit-code -- docs/ README.md
+          git diff --exit-code
 
       - name: Upload test results
         uses: actions/upload-artifact@v7
