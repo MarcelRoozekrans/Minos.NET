@@ -60,8 +60,9 @@ dotnet add package ZeroAlloc.Jev.DependencyInjection
 ### Before the package is published
 
 Clone the [ZeroAlloc.Jev repository](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev), pack both packages into a folder,
-and register that folder as a local NuGet source. Use the folder's absolute path. A local build is versioned
-`0.0.0-local`.
+and register that folder as a local NuGet source. Use the folder's absolute path. On Windows, give
+`dotnet nuget add source` a native path such as `C:\src\jev\nupkgs`, because a path that mixes forward and back
+slashes is rejected as invalid. A local build is versioned `0.0.0-local`.
 
 ```shell
 dotnet pack src/ZeroAlloc.Jev -c Release -o /absolute/path/nupkgs
