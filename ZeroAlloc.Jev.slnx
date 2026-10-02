@@ -20,6 +20,7 @@
   <Folder Name="/samples/">
     <Project Path="samples/ZeroAlloc.Jev.AotSmoke/ZeroAlloc.Jev.AotSmoke.csproj" />
     <Project Path="samples/ZeroAlloc.Jev.Samples.Shared/ZeroAlloc.Jev.Samples.Shared.csproj" />
+    <Project Path="samples/ZeroAlloc.Jev.Samples.Guardrails/ZeroAlloc.Jev.Samples.Guardrails.csproj" />
   </Folder>
   <Folder Name="/benchmarks/">
     <Project Path="benchmarks/ZeroAlloc.Jev.Benchmarks/ZeroAlloc.Jev.Benchmarks.csproj" />

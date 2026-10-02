@@ -2,6 +2,13 @@
   <!-- Replays every cookbook sample from its checked-in recordings and checks its decisions. Offline; needs no key. -->
   <ItemGroup>
     <ProjectReference Include="..\..\samples\ZeroAlloc.Jev.Samples.Shared\ZeroAlloc.Jev.Samples.Shared.csproj" />
+    <ProjectReference Include="..\..\samples\ZeroAlloc.Jev.Samples.Guardrails\ZeroAlloc.Jev.Samples.Guardrails.csproj" />
+    <ProjectReference Include="..\..\src\ZeroAlloc.Jev.Generator\ZeroAlloc.Jev.Generator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\src\ZeroAlloc.Jev.Analyzers\ZeroAlloc.Jev.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>
