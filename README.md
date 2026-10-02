@@ -471,6 +471,10 @@ A failure makes `Build()` return a `JevErrorKind.InvalidQuestions` error whose `
 
 `IJevClient` evaluates a built set through default interface methods, `EvaluateAsync(JevQuestionSet questionSet, JevContent state)` and an overload that takes a `CancellationToken`, so a hand-written fake that implements only the two abstract members supports it too; `JevClient` uses its raw, pooled-buffer path.
 
+## Patterns
+
+The [pattern guides](docs/patterns/index.md) cover speculative fan-out, confidence routing, composite scoring and intent routing, each with C# that is compiled and tested. Two helpers support them: `ConfidenceThresholds` with `ConfidenceTier` classifies a confidence as Low, Medium or High without allocating, and `Normalized` on Score answers puts any rubric's `Expected` on a 0 to 1 scale.
+
 ## Diagnostics
 
 `ZeroAlloc.Jev.Analyzers` ships inside the `ZeroAlloc.Jev` package, next to the `[JevQuestions]` generator, and checks every question set against the Jev API's own rules (JEV001–006) and against what the generator can turn into code (JEV101–109). JEV001 and JEV002 enforce TypeSafe's official SDK schema, which needs at least one option or level. The limits behind JEV005 are only the API sketch's guidance, not a schema limit. NuGet flows a dependency's analyzers to consumers transitively, so the ZeroAlloc.Validation, ZeroAlloc.Pipeline and Microsoft.Extensions.Logging generators reach your build too; they stay inert unless you declare `[Validate]` types or your own `[LoggerMessage]` methods. `Microsoft.Extensions.Logging.Abstractions` 10.0.0 or later is a runtime dependency of the package, new with logging.

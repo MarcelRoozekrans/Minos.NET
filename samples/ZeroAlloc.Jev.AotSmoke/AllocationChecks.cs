@@ -476,6 +476,52 @@ internal static class AllocationChecks
     }
 
     /// <summary>
+    /// The pattern helpers on parsed answers: <see cref="ConfidenceThresholds.Classify"/>, <c>Score.Normalized</c> and
+    /// <c>KeyedScore.Normalized</c>. Each is arithmetic over the answer struct, so the budget is 0 B.
+    /// </summary>
+    public static void PatternHelpers()
+    {
+        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, SmokeBuiltSet.ResponseJson))
+        {
+            BaseAddress = new Uri("https://example.test/api/"),
+        };
+        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+        var set = SmokeBuiltSet.Full(out _, out _, out _, out var urgency);
+        var urgencyAnswer = client.EvaluateAsync(set, "Help!").AsTask().GetAwaiter().GetResult().Value.Get(urgency);
+
+        using var keyedHttp = new HttpClient(new CannedHandler(HttpStatusCode.OK, SmokeBuiltSet.KeyedRiskResponseJson))
+        {
+            BaseAddress = new Uri("https://example.test/api/"),
+        };
+        using var keyedClient = new JevClient(keyedHttp, new JevClientOptions { ApiKey = "smoke-key" });
+        var riskSet = SmokeBuiltSet.KeyedRisk(out var risk);
+        var riskAnswer = keyedClient.EvaluateAsync(riskSet, "Help!").AsTask().GetAwaiter().GetResult().Value.Get(risk);
+
+        var strict = new ConfidenceThresholds(medium: 0.6, high: 0.85);
+        Program.Check(
+            ConfidenceThresholds.Default.Classify(urgencyAnswer.Confidence) == ConfidenceTier.Medium
+                && strict.Classify(riskAnswer.Confidence) == ConfidenceTier.High
+                && ConfidenceThresholds.Default.Classify(riskAnswer.Confidence) == ConfidenceTier.Medium,
+            "ConfidenceThresholds classifies parsed answers' confidence per instance under Native AOT");
+        Program.Check(
+            Math.Abs(urgencyAnswer.Normalized - 0.95) < 1e-9 && Math.Abs(riskAnswer.Normalized - 0.8) < 1e-9,
+            "Normalized puts parsed enum and keyed Scores on a 0 to 1 scale under Native AOT");
+
+        Gate(
+            budgetBytes: 0,
+            action: () =>
+            {
+                // Consumed into a static field so the compiler cannot elide the calls and make the 0 B gate vacuous.
+                sink += (int)ConfidenceThresholds.Default.Classify(urgencyAnswer.Confidence)
+                    + (int)strict.Classify(riskAnswer.Confidence)
+                    + urgencyAnswer.Normalized
+                    + riskAnswer.Normalized;
+            },
+            label: "PatternHelpers",
+            passDescription: "ConfidenceThresholds.Classify and Score/KeyedScore.Normalized allocate nothing");
+    }
+
+    /// <summary>
     /// <see cref="EvaluateRoundTrip"/>'s call through a client <c>AddJevClient</c> registered, against the same call on a
     /// hand-built client over an <see cref="HttpClient"/> that <see cref="JevClient.ConfigureHttpClient"/> configured the
     /// same way. Registration and the first resolve happen once and are not budgeted.

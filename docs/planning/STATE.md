@@ -1,12 +1,19 @@
-# Session State — 2026-10-02 (Milestone 4 started)
+# Session State — 2026-10-02 (Phase 4.1 complete, PR to open)
 
 **Date:** 2026-10-02
 
 ## Current Position
-- **Milestone:** 4 — Patterns & docs, active since 2026-10-02 (design `docs/superpowers/specs/2026-10-02-milestone-4-design.md`). Milestone 3 completed on 2026-10-01 as PR #77.
-- **Phase:** 4.1 — Pattern helpers and guides, pending. The milestone start lands through a PR from `chore/start-milestone-4`.
-- **Milestone 4 decisions (2026-10-02):** thin allocation-free helpers only (a normalized Score value and a confidence-tier gate), because the official SDKs ship none; original inspired-by samples, because TypeSafe's cookbook reuse terms are unknown; CI runs the samples from checked-in OpenRouter recordings; this session opens the ZeroAlloc-Net/.website PR for the docs site.
-- **Next task:** once the start PR is merged, run `start-next-phase`, which brainstorms Phase 4.1.
+- **Milestone:** 4 — Patterns & docs, active since 2026-10-02 (design `docs/superpowers/specs/2026-10-02-milestone-4-design.md`).
+- **Phase:** 4.1 — Pattern helpers and guides is complete on branch `phase/4.1-pattern-helpers`; it lands through a PR to `main`.
+- **Next task:** after the Phase 4.1 PR merges, confirm the release PR lists its `feat` and `docs` entries, then run `start-next-phase` to brainstorm Phase 4.2 — Cookbook samples.
+
+## What Phase 4.1 shipped
+- Core: `ConfidenceTier { Low, Medium, High }` and `readonly struct ConfidenceThresholds`. Its `default` means 0.5 and 0.9, the cut points TypeSafe's confidence guide uses in an example, so an unset value never classifies every answer as High; a value on a threshold goes to the higher tier and NaN is Low. `Normalized` on `Score<T>` and `KeyedScore`: Expected / (levels − 1), clamped, 0 below two levels.
+- AOT: the `PatternHelpers` gate holds `Classify` and both `Normalized` properties to 0 B per call; the check tells a strict instance from the default.
+- Docs: guides for fan-out, confidence routing, composite scoring and intent routing in `docs/patterns/`, with an index and a `## Patterns` README section. Every C# block comes from a `#region` in `tests/ZeroAlloc.Jev.Docs.Tests`, written in by MarkdownSnippets 28.5.0 (`mdsnippets.json`, local tool); each example runs against canned answers, a test fails when a snippet block has more than one source, and CI runs `dotnet mdsnippets` then `git diff --exit-code`.
+- Maintainer ruling at the final review: the guides use our own example data (app-store reviews, shop refunds, pull-request rubrics, an IT helpdesk); TypeSafe's example data has no known reuse terms. Each guide links TypeSafe's pattern page.
+- Lessons: MarkdownSnippets excludes directories only by bare name, and reads snippet regions from any untracked text file, including `.superpowers` review diffs, so `ExcludeSnippetDirectories` lists `.superpowers`.
+- Issue filed: #79 (the relative AOT allocation gates compare two noisy measurements with zero headroom; one flaked once during verification).
 
 ## What Phase 3.4 shipped
 - Core: public `JevClientOptions.Validate()` runs `JevClientSettings.Resolve`, the check every constructor runs, so it throws what the constructor would throw. The invalid-option cases live in one shared test source, `InvalidOptionsCases`.
@@ -143,7 +150,8 @@
 - Still unknown until a TypeSafe live run (needs `TYPESAFE_API_KEY` and the `live-api` environment): whether TypeSafe sends `Retry-After`, the 422 body schema, and whether Phase 2.4's `BuiltQuestionSet_ParsesAKeyedChoice` passes.
 
 ## Recommended Next Step
-Merge the Milestone 4 start PR, then run `start-next-phase` to brainstorm Phase 4.1 — Pattern helpers and guides.
+Merge the Phase 4.1 PR, check release-please counted it, then run `start-next-phase` for Phase 4.2 — Cookbook samples.
+
 
 
 Open maintainer items:

@@ -185,11 +185,13 @@ compress_memory: disabled
 - [ ] The user guide in `docs/` is served at jev.zeroalloc.net through ZeroAlloc-Net/.website
 - [ ] README carries the unofficial-client disclaimer and the logo, and links the site
 
-### Phase 4.1: Pattern helpers and guides [status: pending]
+### Phase 4.1: Pattern helpers and guides [status: complete]
 **Goal:** Two allocation-free helpers, a normalized Score value and a confidence-tier gate with overridable defaults, plus guides for the four documented patterns with C# snippets that compile in CI.
 **Surface:** Backend
 **HelpWanted:** no
-**Plan:** _to be written_
+**Spec:** `docs/superpowers/specs/2026-10-02-phase-4.1-pattern-helpers-design.md`
+**Plan:** `docs/superpowers/plans/2026-10-02-phase-4.1-pattern-helpers.md`
+**Completed:** 2026-10-02
 
 ### Phase 4.2: Cookbook samples [status: pending]
 **Goal:** Original guardrails, intent-routing and re-ranking samples that run live or in replay mode from recorded OpenRouter answers, with CI checking their decisions in replay mode.

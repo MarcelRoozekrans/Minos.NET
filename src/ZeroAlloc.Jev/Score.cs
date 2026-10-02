@@ -30,6 +30,20 @@ public readonly struct Score<T> : IEquatable<Score<T>>
     /// <summary>Gets the probability of each level.</summary>
     public ProbabilityMap<T> Probabilities { get; }
 
+    /// <summary>
+    /// Gets <see cref="Expected"/> on a 0 to 1 scale: the expected level divided by the top level's index, so Scores with
+    /// different level counts can be weighted against each other. 0 for an answer with fewer than two levels.
+    /// Not a number when <see cref="Expected"/> is not a number.
+    /// </summary>
+    public double Normalized
+    {
+        get
+        {
+            var levels = Probabilities.Count;
+            return levels > 1 ? Math.Clamp(Expected / (levels - 1), 0.0, 1.0) : 0.0;
+        }
+    }
+
     /// <summary>Compares two scores for equality.</summary>
     /// <param name="left">The first value.</param>
     /// <param name="right">The second value.</param>

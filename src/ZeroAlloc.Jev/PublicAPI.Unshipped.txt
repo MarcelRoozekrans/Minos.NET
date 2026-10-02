@@ -1,1 +1,19 @@
 #nullable enable
+ZeroAlloc.Jev.ConfidenceThresholds
+ZeroAlloc.Jev.ConfidenceThresholds.Classify(double confidence) -> ZeroAlloc.Jev.ConfidenceTier
+ZeroAlloc.Jev.ConfidenceThresholds.ConfidenceThresholds() -> void
+ZeroAlloc.Jev.ConfidenceThresholds.ConfidenceThresholds(double medium, double high) -> void
+ZeroAlloc.Jev.ConfidenceThresholds.Equals(ZeroAlloc.Jev.ConfidenceThresholds other) -> bool
+ZeroAlloc.Jev.ConfidenceThresholds.High.get -> double
+ZeroAlloc.Jev.ConfidenceThresholds.Medium.get -> double
+ZeroAlloc.Jev.ConfidenceTier
+ZeroAlloc.Jev.ConfidenceTier.High = 2 -> ZeroAlloc.Jev.ConfidenceTier
+ZeroAlloc.Jev.ConfidenceTier.Low = 0 -> ZeroAlloc.Jev.ConfidenceTier
+ZeroAlloc.Jev.ConfidenceTier.Medium = 1 -> ZeroAlloc.Jev.ConfidenceTier
+override ZeroAlloc.Jev.ConfidenceThresholds.Equals(object? obj) -> bool
+override ZeroAlloc.Jev.ConfidenceThresholds.GetHashCode() -> int
+static ZeroAlloc.Jev.ConfidenceThresholds.Default.get -> ZeroAlloc.Jev.ConfidenceThresholds
+static ZeroAlloc.Jev.ConfidenceThresholds.operator !=(ZeroAlloc.Jev.ConfidenceThresholds left, ZeroAlloc.Jev.ConfidenceThresholds right) -> bool
+static ZeroAlloc.Jev.ConfidenceThresholds.operator ==(ZeroAlloc.Jev.ConfidenceThresholds left, ZeroAlloc.Jev.ConfidenceThresholds right) -> bool
+ZeroAlloc.Jev.KeyedScore.Normalized.get -> double
+ZeroAlloc.Jev.Score<T>.Normalized.get -> double
