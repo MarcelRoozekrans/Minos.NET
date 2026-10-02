@@ -126,7 +126,7 @@ The first seven rows are set when the span starts, so a sampler sees them. A fai
 
 | Metric | Kind | Unit | Recorded | Attributes |
 |---|---|---|---|---|
-| `gen_ai.client.operation.duration` | Histogram | `s` | every call | operation, provider, request model, `server.address`, `server.port`; `error.type` on failure; response model on success |
+| `gen_ai.client.operation.duration` | Histogram | `s` | every call | operation, provider, request model, `server.address`, `server.port`; `error.type` on failure; response model on success. The model-listing duration carries no request or response model |
 | `gen_ai.client.inference.operation.input_tokens` | Histogram | `{token}` | evaluation success | operation, provider, request model, response model |
 | `gen_ai.client.inference.operation.output_tokens` | Histogram | `{token}` | evaluation success | same |
 | `gen_ai.client.inference.usage.input_tokens` | Counter | `{token}` | evaluation success | operation, provider, request model, `gen_ai.token.modality` = `text` |
@@ -139,7 +139,7 @@ The histograms carry the GenAI conventions' bucket boundaries as advice. Confide
 - `gen_ai.operation.name` is `evaluate` or `list_models`;
 - `gen_ai.provider.name` is `typesafe` or `openrouter`.
 
-**Exceptions.** A thrown exception, cancellation included, marks the span `Error` with the exception's message as its description, and the duration is recorded without `error.type`. That is ZeroAlloc.Telemetry's default exception handling, and a fix is being raised upstream.
+**Exceptions.** A thrown exception, cancellation included, marks the span `Error` with the exception's message as its description, and the duration is recorded without `error.type`. That is ZeroAlloc.Telemetry's default exception handling, and it is fixed in ZeroAlloc.Telemetry 1.11.0, with adoption tracked in ZeroAlloc.Jev#85.
 
 **Never emitted:** Jev never puts the state, instructions, criteria, answers or probabilities, the API key, any header value, `JevError.Message` or `JevError.Detail` in a tag, a metric attribute or a span description. The one message that can reach a span is a thrown exception's, which is the runtime's.
 
