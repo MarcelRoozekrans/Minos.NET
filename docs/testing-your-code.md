@@ -234,10 +234,9 @@ review.
 A fake never runs `JevClient`. The client replaces the interface's default typed calls with its own request writer
 and its own parser for the answers, and the defaults send the default model. So a fake cannot tell you that your
 question set builds the request you meant, or that a reply parses into the answers you read. For that, run a real
-`JevClient` and replace only the network. A
-`JevClient` can take an `HttpClient` you made, and an `HttpClient` can take a **message handler**: the object that
-actually sends the request. A handler of your own that answers from memory means the full client runs, and no packet
-leaves the machine.
+`JevClient` and replace only the network. A `JevClient` can take an `HttpClient` you made, and an `HttpClient` can
+take a **message handler**: the object that actually sends the request. A handler of your own that answers from memory
+means the full client runs, and no packet leaves the machine.
 
 <!-- snippet: TestingYourCode_Handler -->
 ```cs

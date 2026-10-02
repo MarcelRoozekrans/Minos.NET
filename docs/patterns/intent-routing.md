@@ -114,5 +114,6 @@ public static class HelpdeskRouting
 
 ## Next
 
-- [Samples](../samples.md): three whole programs, including one that routes by intent, run offline from recorded answers.
+- [Samples](../samples.md): three whole programs, including one that routes by intent, run offline from recorded
+  answers.
 - [Patterns](index.md): the four patterns and how they combine.
