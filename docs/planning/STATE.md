@@ -1,13 +1,12 @@
-# Session State — 2026-10-01 (Milestone 3 complete)
+# Session State — 2026-10-02 (Milestone 4 started)
 
-**Date:** 2026-10-01
+**Date:** 2026-10-02
 
 ## Current Position
-- **Milestone:** 3 — .NET integration is complete. Its audit passed on 2026-10-01 (`docs/plans/2026-10-01-milestone-3-audit.md`), and the completion lands through a PR from `chore/complete-milestone-3`.
-  - Phases 3.1–3.4 merged as PRs #69, #72, #75 and #76. Release PR #63 (0.2.0) lists every phase.
-  - Issues #19 and #20 were resolved by Phase 3.3 and are closed.
-- **Next milestone:** 4 — Patterns & docs, pending in ROADMAP.md.
-- **Next task:** once the completion PR is merged, run `new-milestone` for Milestone 4. It starts with a milestone-scope brainstorm.
+- **Milestone:** 4 — Patterns & docs, active since 2026-10-02 (design `docs/superpowers/specs/2026-10-02-milestone-4-design.md`). Milestone 3 completed on 2026-10-01 as PR #77.
+- **Phase:** 4.1 — Pattern helpers and guides, pending. The milestone start lands through a PR from `chore/start-milestone-4`.
+- **Milestone 4 decisions (2026-10-02):** thin allocation-free helpers only (a normalized Score value and a confidence-tier gate), because the official SDKs ship none; original inspired-by samples, because TypeSafe's cookbook reuse terms are unknown; CI runs the samples from checked-in OpenRouter recordings; this session opens the ZeroAlloc-Net/.website PR for the docs site.
+- **Next task:** once the start PR is merged, run `start-next-phase`, which brainstorms Phase 4.1.
 
 ## What Phase 3.4 shipped
 - Core: public `JevClientOptions.Validate()` runs `JevClientSettings.Resolve`, the check every constructor runs, so it throws what the constructor would throw. The invalid-option cases live in one shared test source, `InvalidOptionsCases`.
@@ -144,7 +143,8 @@
 - Still unknown until a TypeSafe live run (needs `TYPESAFE_API_KEY` and the `live-api` environment): whether TypeSafe sends `Retry-After`, the 422 body schema, and whether Phase 2.4's `BuiltQuestionSet_ParsesAKeyedChoice` passes.
 
 ## Recommended Next Step
-Merge the Milestone 3 completion PR, then run `new-milestone` for Milestone 4 — Patterns & docs.
+Merge the Milestone 4 start PR, then run `start-next-phase` to brainstorm Phase 4.1 — Pattern helpers and guides.
+
 
 Open maintainer items:
 - the `live-api` environment and the TypeSafe live run;
