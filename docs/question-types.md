@@ -119,7 +119,8 @@ public static Department? RunnerUp(Choice<Department> department)
 <!-- endSnippet -->
 
 Options the response did not mention have probability 0. Reading an enum value that is not one of the question's options
-throws `ArgumentOutOfRangeException`, and so does an unknown key or an out-of-range index on a keyed map.
+throws `ArgumentOutOfRangeException`, and so does an unknown key or an out-of-range index on a keyed map. A null key
+on a keyed map throws `ArgumentNullException`.
 
 ## Score: a level on an ordered scale
 

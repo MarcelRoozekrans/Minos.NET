@@ -9,10 +9,11 @@ description: Install ZeroAlloc.Jev, point it at TypeSafe or OpenRouter, and run 
 # Getting started
 
 ZeroAlloc.Jev is an unofficial .NET client for [TypeSafe AI](https://typesafe.ai)'s **Jev**, the first System One
-model. System One is TypeSafe's name for this kind of model, one that answers typed questions about a piece of text
-directly; [docs.typesafe.ai](https://docs.typesafe.ai) has their own description. You send Jev the text or JSON to judge, called the state, and a few typed
-questions about it. Jev answers each question with a typed result and a calibrated confidence, meaning a number meant
-to track how often such answers are right. You can reach it directly at TypeSafe, or through OpenRouter.
+model. TypeSafe calls Jev a System One model: it answers typed questions directly instead of generating text, and
+[their guide](https://docs.typesafe.ai/concepts/system-one) explains the idea. You send Jev the text or JSON to judge,
+called the state, and a few typed questions about it. Jev answers each question with a typed result and a calibrated
+confidence, meaning a number meant to track how often such answers are right. You can reach it directly at TypeSafe,
+or through OpenRouter.
 
 The library turns those questions and answers into ordinary C# types. You declare the questions on a partial record, a
 source generator writes the request, and the reply comes back as properties you can read. There is no JSON to build or
@@ -43,8 +44,7 @@ later. Visual Studio 2026 version 18.0 is the first release that does. An older 
 ## Install
 
 The packages are not yet published to NuGet. Once they are, `dotnet add package` is how you install them, as below.
-Until then, the source is in the [ZeroAlloc.Jev repository](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev): clone it,
-run `dotnet pack src/ZeroAlloc.Jev -c Release -o ./nupkgs`, and add that folder to your project as a local NuGet source.
+Until then you can build them yourself, as the next section shows.
 
 ```shell
 dotnet add package ZeroAlloc.Jev
@@ -57,6 +57,27 @@ install for typed questions. If you use dependency injection in a .NET host, add
 dotnet add package ZeroAlloc.Jev.DependencyInjection
 ```
 
+### Before the package is published
+
+Clone the [ZeroAlloc.Jev repository](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev), pack both packages into a folder,
+and register that folder as a local NuGet source. Use the folder's absolute path. A local build is versioned
+`0.0.0-local`.
+
+```shell
+dotnet pack src/ZeroAlloc.Jev -c Release -o /absolute/path/nupkgs
+dotnet pack src/ZeroAlloc.Jev.DependencyInjection -c Release -o /absolute/path/nupkgs
+dotnet nuget add source /absolute/path/nupkgs --name zeroalloc-jev-local
+```
+
+Then add the packages with that version, in place of the commands above:
+
+```shell
+dotnet add package ZeroAlloc.Jev --version 0.0.0-local
+dotnet add package ZeroAlloc.Jev.DependencyInjection --version 0.0.0-local
+```
+
+Remove the source when you switch to the published packages: `dotnet nuget remove source zeroalloc-jev-local`.
+
 ## Providers and keys
 
 `JevClientOptions.Provider` says where requests go, and `JevProvider` has two values.
@@ -67,9 +88,9 @@ dotnet add package ZeroAlloc.Jev.DependencyInjection
 | `JevProvider.OpenRouter` | `https://openrouter.ai/api/` | `OPENROUTER_API_KEY` |
 
 `TypeSafe` is the default. Set `ApiKey` on the options, or leave it unset and the client reads the matching
-environment variable. `JevClient` is disposable and meant to be long-lived: create one, share it, and dispose it
-at shutdown, as the snippet below does for its short example. The client throws `InvalidOperationException` when it is created with no key available, so a
-missing key shows up at start-up rather than on the first call.
+environment variable. `JevClient` is disposable and meant to be long-lived: create one, share it, and dispose it at
+shutdown, as the snippet below does for its short example. The client throws `InvalidOperationException` when it is
+created with no key available, so a missing key shows up at start-up rather than on the first call.
 
 <!-- snippet: GettingStarted_Clients -->
 ```cs
