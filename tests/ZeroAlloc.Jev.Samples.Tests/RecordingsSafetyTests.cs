@@ -1,11 +1,16 @@
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace ZeroAlloc.Jev.Samples.Tests;
 
-public sealed class RecordingsSafetyTests
+public sealed partial class RecordingsSafetyTests
 {
-    private static readonly string[] Forbidden = ["sk-", "Bearer", "api_key", "Authorization"];
+    private static readonly string[] Forbidden = ["Bearer", "api_key", "Authorization"];
     private static readonly string[] AllowedRootProperties = ["entries", "model", "provider", "recorded"];
+
+    // The shape of an API key, such as OpenRouter's sk-or-v1-..., not the bare prefix: a response body may say "risk-based".
+    [GeneratedRegex("sk-[A-Za-z0-9_-]{20,}", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex KeyShape();
 
     public static TheoryData<string> Recordings
     {
@@ -27,7 +32,22 @@ public sealed class RecordingsSafetyTests
 
     [Fact]
     public void EverySample_HasRecordings()
-        => Assert.Equal(3, Recordings.Count);
+    {
+        var samples = Directory.EnumerateDirectories(Path.Combine(Repository.Root, "samples"), "ZeroAlloc.Jev.Samples.*")
+            .Where(dir => !string.Equals(Path.GetFileName(dir), "ZeroAlloc.Jev.Samples.Shared", StringComparison.Ordinal))
+            .ToArray();
+
+        Assert.NotEmpty(samples);
+        Assert.All(samples, dir => Assert.True(File.Exists(Path.Combine(dir, "recordings.json")), dir + " has no recordings.json"));
+    }
+
+    [Fact]
+    public void KeyShape_AllowsOrdinaryWordsThatContainSk()
+        => Assert.DoesNotMatch(KeyShape(), "a risk-based check of the task-list");
+
+    [Fact]
+    public void KeyShape_CatchesAnOpenRouterKey()
+        => Assert.Matches(KeyShape(), "sk-or-v1-" + new string('a', 40));
 
     [Theory]
     [MemberData(nameof(Recordings))]
@@ -36,6 +56,7 @@ public sealed class RecordingsSafetyTests
         var text = File.ReadAllText(Path.Combine(Repository.Root, relativePath));
         using var json = JsonDocument.Parse(text);
 
+        Assert.DoesNotMatch(KeyShape(), text);
         Assert.All(Forbidden, word => Assert.DoesNotContain(word, text, StringComparison.Ordinal));
         Assert.Equal(AllowedRootProperties, json.RootElement.EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal));
     }

@@ -36,16 +36,22 @@ jobs:
 
       - name: Run the cookbook samples in replay mode
         # Runs each sample's real entry point (argument parsing, config, host wiring) offline from its checked-in
-        # recordings. No key: OPENROUTER_API_KEY is unset, so a sample that tried the network would fail validation.
+        # recordings. OPENROUTER_API_KEY is set to an empty string here, which has the same effect as unsetting it:
+        # a sample that tried the network would fail validation. Every folder with a recordings.json is a sample.
         env:
           OPENROUTER_API_KEY: ""
         run: |
-          for sample in Guardrails IntentRouting Reranking; do
-            echo "::group::$sample"
-            timeout 120s dotnet run --project "samples/ZeroAlloc.Jev.Samples.$sample" --no-build -c Release | tee "sample-$sample.txt"
-            test "${PIPESTATUS[0]}" -eq 0
-            test -s "sample-$sample.txt"
+          for recordings in samples/*/recordings.json; do
+            dir=$(dirname "$recordings")
+            name=$(basename "$dir")
+            out="$RUNNER_TEMP/$name.txt"
+            echo "::group::$name"
+            status=0
+            timeout 120s dotnet run --project "$dir" --no-build -c Release > "$out" || status=$?
+            cat "$out"
             echo "::endgroup::"
+            test "$status" -eq 0
+            test -s "$out"
           done
 
       - name: Check docs snippets

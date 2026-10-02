@@ -4,11 +4,11 @@ Three cookbook samples show Jev doing real work in a small console app. Each one
 
 | Sample | What it shows |
 | --- | --- |
-| [Guardrails](ZeroAlloc.Jev.Samples.Guardrails) | Screens chat messages before they reach a language model, with one request per message and two policies over the same answers. |
-| [Intent routing](ZeroAlloc.Jev.Samples.IntentRouting) | Decides per request whether code, an assistant model or a person handles it, using Jev as the cheap first step. |
-| [Re-ranking](ZeroAlloc.Jev.Samples.Reranking) | Re-orders a keyword shortlist of help articles by how well each answers the question, in one fan-out request. |
+| [Guardrails](ZeroAlloc.Jev.Samples.Guardrails) | Screens chat messages before they reach a language model, with one request per message and two policies over the same answers. Inspired by TypeSafe's [Guardrails for LLMs](https://docs.typesafe.ai/cookbooks/llm_guardrails) cookbook. |
+| [Intent routing](ZeroAlloc.Jev.Samples.IntentRouting) | Decides per request whether code, an assistant model or a person handles it, using Jev as the cheap first step. Inspired by TypeSafe's [intent routing](https://docs.typesafe.ai/patterns/intent-routing) pattern and its [Function calling](https://docs.typesafe.ai/cookbooks/function_calling) cookbook. |
+| [Re-ranking](ZeroAlloc.Jev.Samples.Reranking) | Re-orders a keyword shortlist of help articles by how well each answers the question, in one fan-out request. Inspired by TypeSafe's [Re-ranking](https://docs.typesafe.ai/cookbooks/rerank_typesafe) cookbook. |
 
-Every sample is our own work. Each is inspired by one of TypeSafe's cookbooks and links to it, but the code, the data and the policies are written here.
+Every sample is our own work. Each is inspired by TypeSafe's material, linked in the table above, but the code, the data and the policies are written here.
 
 ## Run a sample
 

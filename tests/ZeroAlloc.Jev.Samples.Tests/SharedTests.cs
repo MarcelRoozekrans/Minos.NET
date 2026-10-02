@@ -106,7 +106,8 @@ public sealed class SharedTests
     }
 
     [Fact]
-    public void Save_WritesOnlyLineFeeds_OnEveryPlatform()
+    // Guards Windows, where Environment.NewLine is CRLF; the serializer already writes LF elsewhere.
+    public void Save_WritesLineFeedsOnly()
     {
         var path = Path.GetTempFileName();
         try
