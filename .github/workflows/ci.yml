@@ -34,6 +34,28 @@ jobs:
       - name: Test
         run: dotnet test ZeroAlloc.Jev.slnx --no-build -c Release --logger "trx" --results-directory ./test-results
 
+      - name: Run the cookbook samples in replay mode
+        # Runs each sample's real entry point (argument parsing, config, host wiring) offline from its checked-in
+        # recordings. ReplayHandler is what keeps replay offline: it is the primary handler and answers every request
+        # from the recordings, and replay supplies a placeholder key that passes validation. The empty
+        # OPENROUTER_API_KEY only guards against a sample that runs live by mistake: it then fails at startup instead
+        # of calling the API. Every folder with a recordings.json is a sample.
+        env:
+          OPENROUTER_API_KEY: ""
+        run: |
+          for recordings in samples/*/recordings.json; do
+            dir=$(dirname "$recordings")
+            name=$(basename "$dir")
+            out="$RUNNER_TEMP/$name.txt"
+            echo "::group::$name"
+            status=0
+            timeout 120s dotnet run --project "$dir" --no-build -c Release > "$out" || status=$?
+            cat "$out"
+            echo "::endgroup::"
+            test "$status" -eq 0
+            test -s "$out"
+          done
+
       - name: Check docs snippets
         # Every C# block in the user docs comes from tests/ZeroAlloc.Jev.Docs.Tests, which the Build step compiled.
         # Regenerate the docs and fail when any tracked file differs: a snippet changed without re-running

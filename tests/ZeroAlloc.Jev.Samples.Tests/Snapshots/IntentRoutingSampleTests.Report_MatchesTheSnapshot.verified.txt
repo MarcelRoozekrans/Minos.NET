@@ -1,0 +1,13 @@
+﻿t01  LookUpBooking High    BookingLookup
+t02  LookUpBooking High    BookingLookup  URGENT
+t03  ChangeBooking High    AssistantModel
+t04  ChangeBooking High    AssistantModel
+t05  ChangeBooking High    AssistantModel URGENT
+t06  DisputeCharge High    Person
+t07  DisputeCharge High    Person
+t08  LookUpBooking High    BookingLookup
+t09  Other         High    Person
+t10  LookUpBooking High    BookingLookup  URGENT
+t11  ChangeBooking High    AssistantModel
+t12  Other         High    Person
+8 of 12 requests needed no language model

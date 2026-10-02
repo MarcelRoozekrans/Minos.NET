@@ -1,0 +1,727 @@
+{
+  "provider": "OpenRouter",
+  "model": "typesafe/jev-1.13-20260917",
+  "recorded": "2026-10-02",
+  "entries": [
+    {
+      "requestHash": "035ffc50a04863ae1d7bfacf9a611b6ce4cc1a307e6f534b947d556180b540d1",
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "overrides_instructions": {
+            "type": "noul",
+            "noul": 0.99
+          },
+          "shares_personal_data": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "asks_for_professional_advice": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "is_abusive": {
+            "type": "noul",
+            "noul": 0.04
+          },
+          "severity": {
+            "type": "score",
+            "score": 1.67,
+            "legend": {
+              "0": "None: nothing harmful",
+              "1": "Mild: rude or off-topic",
+              "2": "Serious: harmful if acted on",
+              "3": "Dangerous: a risk to someone's safety"
+            },
+            "probabilities": {
+              "0": 0.09,
+              "1": 0.16,
+              "2": 0.74,
+              "3": 0.01
+            },
+            "confidence": 0.65
+          }
+        },
+        "usage": {
+          "input_tokens": 425,
+          "output_tokens": 98,
+          "cost": 0.00001785
+        },
+        "id": "gen-dec-1790940186-cEQUdVAzcQKr53m2LKBx",
+        "provider": "TypeSafe"
+      }
+    },
+    {
+      "requestHash": "23b3b73df6866bb24931b2f20cfb1eddb5cd0192631e3c585b07769810cffdc1",
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "overrides_instructions": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "shares_personal_data": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "asks_for_professional_advice": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "is_abusive": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "severity": {
+            "type": "score",
+            "score": 0.02,
+            "legend": {
+              "0": "None: nothing harmful",
+              "1": "Mild: rude or off-topic",
+              "2": "Serious: harmful if acted on",
+              "3": "Dangerous: a risk to someone's safety"
+            },
+            "probabilities": {
+              "0": 0.99,
+              "1": 0,
+              "2": 0.01,
+              "3": 0
+            },
+            "confidence": 0.98
+          }
+        },
+        "usage": {
+          "input_tokens": 435,
+          "output_tokens": 98,
+          "cost": 0.00001827
+        },
+        "id": "gen-dec-1790940185-mOjyiiWwbMjPwfPF8vdY",
+        "provider": "TypeSafe"
+      }
+    },
+    {
+      "requestHash": "2787cc5a7da4a17d21e2d2b74fab16598548b82d3ddc51e043d36c5128f44600",
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "overrides_instructions": {
+            "type": "noul",
+            "noul": 0.04
+          },
+          "shares_personal_data": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "asks_for_professional_advice": {
+            "type": "noul",
+            "noul": 0.99
+          },
+          "is_abusive": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "severity": {
+            "type": "score",
+            "score": 2.97,
+            "legend": {
+              "0": "None: nothing harmful",
+              "1": "Mild: rude or off-topic",
+              "2": "Serious: harmful if acted on",
+              "3": "Dangerous: a risk to someone's safety"
+            },
+            "probabilities": {
+              "0": 0,
+              "1": 0,
+              "2": 0.02,
+              "3": 0.98
+            },
+            "confidence": 0.97
+          }
+        },
+        "usage": {
+          "input_tokens": 430,
+          "output_tokens": 98,
+          "cost": 0.00001806
+        },
+        "id": "gen-dec-1790940187-hkfgrNheQYjoYMXRAnrh",
+        "provider": "TypeSafe"
+      }
+    },
+    {
+      "requestHash": "3ae7d736cd1a234922541c2e1c8345c41bf1a2b0f0e4f6e91efc56f86dda35c8",
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "overrides_instructions": {
+            "type": "noul",
+            "noul": 0.98
+          },
+          "shares_personal_data": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "asks_for_professional_advice": {
+            "type": "noul",
+            "noul": 0.98
+          },
+          "is_abusive": {
+            "type": "noul",
+            "noul": 0.08
+          },
+          "severity": {
+            "type": "score",
+            "score": 1.9,
+            "legend": {
+              "0": "None: nothing harmful",
+              "1": "Mild: rude or off-topic",
+              "2": "Serious: harmful if acted on",
+              "3": "Dangerous: a risk to someone's safety"
+            },
+            "probabilities": {
+              "0": 0.02,
+              "1": 0.06,
+              "2": 0.92,
+              "3": 0
+            },
+            "confidence": 0.89
+          }
+        },
+        "usage": {
+          "input_tokens": 436,
+          "output_tokens": 98,
+          "cost": 0.000018312
+        },
+        "id": "gen-dec-1790940189-FoDT3tEra3xkw4QgRgzZ",
+        "provider": "TypeSafe"
+      }
+    },
+    {
+      "requestHash": "3b528dca97efdf159006a7a7df9385a59a1b3611673d24bd5b09ca253dda8e63",
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "overrides_instructions": {
+            "type": "noul",
+            "noul": 0.1
+          },
+          "shares_personal_data": {
+            "type": "noul",
+            "noul": 0.28
+          },
+          "asks_for_professional_advice": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "is_abusive": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "severity": {
+            "type": "score",
+            "score": 0.35,
+            "legend": {
+              "0": "None: nothing harmful",
+              "1": "Mild: rude or off-topic",
+              "2": "Serious: harmful if acted on",
+              "3": "Dangerous: a risk to someone's safety"
+            },
+            "probabilities": {
+              "0": 0.81,
+              "1": 0.03,
+              "2": 0.16,
+              "3": 0
+            },
+            "confidence": 0.65
+          }
+        },
+        "usage": {
+          "input_tokens": 431,
+          "output_tokens": 98,
+          "cost": 0.000018102
+        },
+        "id": "gen-dec-1790940189-PcQyobr2qREc3EJC5pSV",
+        "provider": "TypeSafe"
+      }
+    },
+    {
+      "requestHash": "80e6b3c223c983d8c19958f7289a1661762498c2ae6091632e17cc7d51c14d86",
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "overrides_instructions": {
+            "type": "noul",
+            "noul": 0.05
+          },
+          "shares_personal_data": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "asks_for_professional_advice": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "is_abusive": {
+            "type": "noul",
+            "noul": 0.07
+          },
+          "severity": {
+            "type": "score",
+            "score": 0.33,
+            "legend": {
+              "0": "None: nothing harmful",
+              "1": "Mild: rude or off-topic",
+              "2": "Serious: harmful if acted on",
+              "3": "Dangerous: a risk to someone's safety"
+            },
+            "probabilities": {
+              "0": 0.68,
+              "1": 0.32,
+              "2": 0,
+              "3": 0
+            },
+            "confidence": 0.67
+          }
+        },
+        "usage": {
+          "input_tokens": 428,
+          "output_tokens": 98,
+          "cost": 0.000017976
+        },
+        "id": "gen-dec-1790940189-O3YVtu9Atne88UinJcWw",
+        "provider": "TypeSafe"
+      }
+    },
+    {
+      "requestHash": "856c58f741b47a8240bd4ee49b559f535b7d79652509b505d7aefb329f4d2651",
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "overrides_instructions": {
+            "type": "noul",
+            "noul": 0.05
+          },
+          "shares_personal_data": {
+            "type": "noul",
+            "noul": 0.99
+          },
+          "asks_for_professional_advice": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "is_abusive": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "severity": {
+            "type": "score",
+            "score": 1.46,
+            "legend": {
+              "0": "None: nothing harmful",
+              "1": "Mild: rude or off-topic",
+              "2": "Serious: harmful if acted on",
+              "3": "Dangerous: a risk to someone's safety"
+            },
+            "probabilities": {
+              "0": 0.27,
+              "1": 0.01,
+              "2": 0.7,
+              "3": 0.02
+            },
+            "confidence": 0.42
+          }
+        },
+        "usage": {
+          "input_tokens": 444,
+          "output_tokens": 98,
+          "cost": 0.000018648
+        },
+        "id": "gen-dec-1790940187-DOpOHRlEkiEneV1n0wgZ",
+        "provider": "TypeSafe"
+      }
+    },
+    {
+      "requestHash": "87286bdc7d7042b796c2548413185e034d09966540377bda7f78aef48af334c2",
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "overrides_instructions": {
+            "type": "noul",
+            "noul": 0.12
+          },
+          "shares_personal_data": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "asks_for_professional_advice": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "is_abusive": {
+            "type": "noul",
+            "noul": 0.27
+          },
+          "severity": {
+            "type": "score",
+            "score": 0.84,
+            "legend": {
+              "0": "None: nothing harmful",
+              "1": "Mild: rude or off-topic",
+              "2": "Serious: harmful if acted on",
+              "3": "Dangerous: a risk to someone's safety"
+            },
+            "probabilities": {
+              "0": 0.23,
+              "1": 0.7,
+              "2": 0.07,
+              "3": 0
+            },
+            "confidence": 0.69
+          }
+        },
+        "usage": {
+          "input_tokens": 430,
+          "output_tokens": 98,
+          "cost": 0.00001806
+        },
+        "id": "gen-dec-1790940189-kQe4FbuQGTTXEs3rtQMi",
+        "provider": "TypeSafe"
+      }
+    },
+    {
+      "requestHash": "88ed72635fda2ccd72c93209386ca43ef902b27e7e8ca6d70a8a723231a0f725",
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "overrides_instructions": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "shares_personal_data": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "asks_for_professional_advice": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "is_abusive": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "severity": {
+            "type": "score",
+            "score": 0,
+            "legend": {
+              "0": "None: nothing harmful",
+              "1": "Mild: rude or off-topic",
+              "2": "Serious: harmful if acted on",
+              "3": "Dangerous: a risk to someone's safety"
+            },
+            "probabilities": {
+              "0": 1,
+              "1": 0,
+              "2": 0,
+              "3": 0
+            },
+            "confidence": 1
+          }
+        },
+        "usage": {
+          "input_tokens": 424,
+          "output_tokens": 98,
+          "cost": 0.000017808
+        },
+        "id": "gen-dec-1790940188-4GLdKARnWuPp5SM88cgb",
+        "provider": "TypeSafe"
+      }
+    },
+    {
+      "requestHash": "b3762adcaa5cd6a923960738d7f1a1e0e395fc79162020e9c3a8af4b0a0732a6",
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "overrides_instructions": {
+            "type": "noul",
+            "noul": 0.93
+          },
+          "shares_personal_data": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "asks_for_professional_advice": {
+            "type": "noul",
+            "noul": 0.25
+          },
+          "is_abusive": {
+            "type": "noul",
+            "noul": 0.04
+          },
+          "severity": {
+            "type": "score",
+            "score": 1.39,
+            "legend": {
+              "0": "None: nothing harmful",
+              "1": "Mild: rude or off-topic",
+              "2": "Serious: harmful if acted on",
+              "3": "Dangerous: a risk to someone's safety"
+            },
+            "probabilities": {
+              "0": 0.25,
+              "1": 0.11,
+              "2": 0.63,
+              "3": 0.01
+            },
+            "confidence": 0.38
+          }
+        },
+        "usage": {
+          "input_tokens": 439,
+          "output_tokens": 98,
+          "cost": 0.000018438
+        },
+        "id": "gen-dec-1790940186-FTjjVycj55AQxkA2qGDW",
+        "provider": "TypeSafe"
+      }
+    },
+    {
+      "requestHash": "b5a64931ded67a01ba0b32cbbfda9928cfa1ab7836e395a325150b3d5c25e737",
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "severity": {
+            "type": "score",
+            "score": 2.16,
+            "legend": {
+              "0": "None: nothing harmful",
+              "1": "Mild: rude or off-topic",
+              "2": "Serious: harmful if acted on",
+              "3": "Dangerous: a risk to someone's safety"
+            },
+            "probabilities": {
+              "0": 0.02,
+              "1": 0.23,
+              "2": 0.32,
+              "3": 0.43
+            },
+            "confidence": 0.16
+          },
+          "overrides_instructions": {
+            "type": "noul",
+            "noul": 0.11
+          },
+          "shares_personal_data": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "asks_for_professional_advice": {
+            "type": "noul",
+            "noul": 0.02
+          },
+          "is_abusive": {
+            "type": "noul",
+            "noul": 0.97
+          }
+        },
+        "usage": {
+          "input_tokens": 431,
+          "output_tokens": 98,
+          "cost": 0.000018102
+        },
+        "id": "gen-dec-1790940188-6BMUQYtGgHKpSXn8nPlX",
+        "provider": "TypeSafe"
+      }
+    },
+    {
+      "requestHash": "c1dcd7be54c2a211826a1239d000f9e2da3c7cdb4ea2c8c9e0d88a202cc91522",
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "shares_personal_data": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "asks_for_professional_advice": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "is_abusive": {
+            "type": "noul",
+            "noul": 0
+          },
+          "severity": {
+            "type": "score",
+            "score": 0,
+            "legend": {
+              "0": "None: nothing harmful",
+              "1": "Mild: rude or off-topic",
+              "2": "Serious: harmful if acted on",
+              "3": "Dangerous: a risk to someone's safety"
+            },
+            "probabilities": {
+              "0": 1,
+              "1": 0,
+              "2": 0,
+              "3": 0
+            },
+            "confidence": 1
+          },
+          "overrides_instructions": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        },
+        "usage": {
+          "input_tokens": 421,
+          "output_tokens": 98,
+          "cost": 0.000017682
+        },
+        "id": "gen-dec-1790940188-Erf8eaKGD1yJrjOBeEWB",
+        "provider": "TypeSafe"
+      }
+    },
+    {
+      "requestHash": "d1c12f8605143d3d65772c0a5f678148c6dceb43af17b84facb15f711b91aced",
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "overrides_instructions": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "shares_personal_data": {
+            "type": "noul",
+            "noul": 0.99
+          },
+          "asks_for_professional_advice": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "is_abusive": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "severity": {
+            "type": "score",
+            "score": 0.11,
+            "legend": {
+              "0": "None: nothing harmful",
+              "1": "Mild: rude or off-topic",
+              "2": "Serious: harmful if acted on",
+              "3": "Dangerous: a risk to someone's safety"
+            },
+            "probabilities": {
+              "0": 0.9299999999999999,
+              "1": 0.02,
+              "2": 0.04,
+              "3": 0.01
+            },
+            "confidence": 0.89
+          }
+        },
+        "usage": {
+          "input_tokens": 438,
+          "output_tokens": 98,
+          "cost": 0.000018396
+        },
+        "id": "gen-dec-1790940187-ZnpLc8GVCieVoovKgtVi",
+        "provider": "TypeSafe"
+      }
+    },
+    {
+      "requestHash": "e6f36a9b573a2c8559bd9c44ed618075d60a28c37e4abbfe58c5d7aa985975f7",
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "overrides_instructions": {
+            "type": "noul",
+            "noul": 0.61
+          },
+          "shares_personal_data": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "asks_for_professional_advice": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "is_abusive": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "severity": {
+            "type": "score",
+            "score": 0.02,
+            "legend": {
+              "0": "None: nothing harmful",
+              "1": "Mild: rude or off-topic",
+              "2": "Serious: harmful if acted on",
+              "3": "Dangerous: a risk to someone's safety"
+            },
+            "probabilities": {
+              "0": 0.99,
+              "1": 0.01,
+              "2": 0,
+              "3": 0
+            },
+            "confidence": 0.98
+          }
+        },
+        "usage": {
+          "input_tokens": 429,
+          "output_tokens": 98,
+          "cost": 0.000018018
+        },
+        "id": "gen-dec-1790940190-e1cabs49EZw3ypN8N38A",
+        "provider": "TypeSafe"
+      }
+    },
+    {
+      "requestHash": "e78e17d6639bb4a65521fa29d24785e359d7885125dca0fdf9fecec98c6f6730",
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "overrides_instructions": {
+            "type": "noul",
+            "noul": 0.03
+          },
+          "shares_personal_data": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "asks_for_professional_advice": {
+            "type": "noul",
+            "noul": 0.98
+          },
+          "is_abusive": {
+            "type": "noul",
+            "noul": 0.01
+          },
+          "severity": {
+            "type": "score",
+            "score": 0.68,
+            "legend": {
+              "0": "None: nothing harmful",
+              "1": "Mild: rude or off-topic",
+              "2": "Serious: harmful if acted on",
+              "3": "Dangerous: a risk to someone's safety"
+            },
+            "probabilities": {
+              "0": 0.65,
+              "1": 0.02,
+              "2": 0.32,
+              "3": 0.01
+            },
+            "confidence": 0.32
+          }
+        },
+        "usage": {
+          "input_tokens": 432,
+          "output_tokens": 98,
+          "cost": 0.000018144
+        },
+        "id": "gen-dec-1790940188-WWufGiTUuNvWiIxr2TZm",
+        "provider": "TypeSafe"
+      }
+    }
+  ]
+}

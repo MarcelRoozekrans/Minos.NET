@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- What the cookbook samples share: the run modes, recording and replaying Jev's HTTP traffic, and the host wiring. -->
+  <PropertyGroup>
+    <RootNamespace>ZeroAlloc.Jev.Samples</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ZeroAlloc.Jev\ZeroAlloc.Jev.csproj" />
+    <ProjectReference Include="..\..\src\ZeroAlloc.Jev.DependencyInjection\ZeroAlloc.Jev.DependencyInjection.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+  </ItemGroup>
+</Project>
