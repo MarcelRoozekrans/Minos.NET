@@ -32,7 +32,7 @@ public readonly struct Score<T> : IEquatable<Score<T>>
 
     /// <summary>
     /// Gets <see cref="Expected"/> on a 0 to 1 scale: the expected level divided by the top level's index, so Scores with
-    /// different level counts can be weighted against each other. 0 for an answer with no levels.
+    /// different level counts can be weighted against each other. 0 for an answer with fewer than two levels.
     /// Not a number when <see cref="Expected"/> is not a number.
     /// </summary>
     public double Normalized
