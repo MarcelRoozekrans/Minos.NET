@@ -39,9 +39,11 @@ public sealed class SharedTests
         var recordings = File(new RecordedResponse(RequestHash.Of(request), Body));
         using var http = new HttpClient(new ReplayHandler(recordings, "ZeroAlloc.Jev.Samples.Example"));
 
-        using var response = await http.PostAsync(new Uri("https://example.test/v1"), new ByteArrayContent(request));
+        using var sent = new HttpRequestMessage(HttpMethod.Post, "https://example.test/v1") { Content = new ByteArrayContent(request) };
+        using var response = await http.SendAsync(sent);
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Same(sent, response.RequestMessage);
         Assert.Equal(Body, await response.Content.ReadAsStringAsync());
     }
 
@@ -101,6 +103,41 @@ public sealed class SharedTests
         {
             System.IO.File.Delete(path);
         }
+    }
+
+    [Fact]
+    public void ToFile_RejectsResponsesFromDifferentModels()
+    {
+        var session = new RecordingSession();
+        session.Add("a", """{"model":"jev-1.13.0"}""");
+        session.Add("b", """{"model":"jev-1.14.0"}""");
+
+        var exception = Assert.Throws<InvalidOperationException>(() => session.ToFile("OpenRouter", new DateOnly(2026, 10, 2)));
+
+        Assert.Contains("jev-1.13.0", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("jev-1.14.0", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ToFile_ReadsTheModelWhenEveryResponseAgrees()
+    {
+        var session = new RecordingSession();
+        session.Add("a", """{"model":"jev-1.13.0"}""");
+        session.Add("b", """{"model":"jev-1.13.0"}""");
+
+        Assert.Equal("jev-1.13.0", session.ToFile("OpenRouter", new DateOnly(2026, 10, 2)).Model);
+    }
+
+    [Fact]
+    public void Replay_RejectsADuplicateRequestHash_NamingItAndTheSample()
+    {
+        var recordings = File(new RecordedResponse("abc123", Body), new RecordedResponse("abc123", Body));
+
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => new ReplayHandler(recordings, "ZeroAlloc.Jev.Samples.Example"));
+
+        Assert.Contains("abc123", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("ZeroAlloc.Jev.Samples.Example", exception.Message, StringComparison.Ordinal);
     }
 
     private static RecordingsFile File(params RecordedResponse[] entries)

@@ -12,8 +12,17 @@ public sealed class ReplayHandler : HttpMessageHandler
     public ReplayHandler(RecordingsFile recordings, string sampleName)
     {
         ArgumentNullException.ThrowIfNull(recordings);
-        _responses = recordings.Entries.ToDictionary(e => e.RequestHash, e => e.ResponseBody, StringComparer.Ordinal);
         _sampleName = sampleName;
+        _responses = new Dictionary<string, string>(StringComparer.Ordinal);
+        foreach (var entry in recordings.Entries)
+        {
+            if (!_responses.TryAdd(entry.RequestHash, entry.ResponseBody))
+            {
+                throw new InvalidOperationException(
+                    "The recordings of " + sampleName + " hold the request hash " + entry.RequestHash + " more than once. "
+                    + "Remove the duplicate, or re-record with: dotnet run --project samples/" + sampleName + " -- --record");
+            }
+        }
     }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)

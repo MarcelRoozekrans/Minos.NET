@@ -27,8 +27,11 @@ public sealed class RecordingSession
         }
     }
 
-    /// <summary>Builds the recordings file; the model is read from the first response's <c>model</c> field.</summary>
-    /// <exception cref="InvalidOperationException">Nothing was recorded.</exception>
+    /// <summary>
+    /// Builds the recordings file; the model is the <c>model</c> field every response reports, or <c>unknown</c> when
+    /// none has one.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">Nothing was recorded, or the responses report different models.</exception>
     public RecordingsFile ToFile(string provider, DateOnly recorded)
     {
         lock (_gate)
@@ -38,15 +41,26 @@ public sealed class RecordingSession
                 throw new InvalidOperationException("Nothing was recorded.");
             }
 
-            using var first = JsonDocument.Parse(_responses.Values.First());
-            var model = first.RootElement.TryGetProperty("model", out var m) ? m.GetString() ?? "unknown" : "unknown";
+            var models = _responses.Values.Select(ModelOf).Distinct(StringComparer.Ordinal).Order(StringComparer.Ordinal).ToList();
+            if (models.Count > 1)
+            {
+                throw new InvalidOperationException(
+                    "The responses report different models: " + string.Join(", ", models) + ". Record them again in one run.");
+            }
+
             return new RecordingsFile
             {
                 Provider = provider,
-                Model = model,
+                Model = models[0],
                 Recorded = recorded.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
                 Entries = [.. _responses.Select(r => new RecordedResponse(r.Key, r.Value))],
             };
         }
+    }
+
+    private static string ModelOf(string responseBody)
+    {
+        using var document = JsonDocument.Parse(responseBody);
+        return document.RootElement.TryGetProperty("model", out var model) ? model.GetString() ?? "unknown" : "unknown";
     }
 }
