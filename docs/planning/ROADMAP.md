@@ -201,11 +201,12 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-02-phase-4.2-cookbook-samples.md`
 **Completed:** 2026-10-02
 
-### Phase 4.3: User guide [status: pending]
+### Phase 4.3: User guide [status: active]
 **Goal:** The user guide in `docs/`, in the org layout: getting started, every question type, typed evaluation and builders, DI and configuration, logging and telemetry, Native AOT, patterns and samples. Closes #16.
 **Surface:** Docs
 **HelpWanted:** no
-**Plan:** _to be written_
+**Spec:** `docs/superpowers/specs/2026-10-02-phase-4.3-user-guide-design.md`
+**Plan:** `docs/superpowers/plans/2026-10-02-phase-4.3-user-guide.md`
 
 ### Phase 4.4: Docs site, logo and README [status: pending]
 **Goal:** Register the repository in ZeroAlloc-Net/.website (`repos/jev` submodule and `apps/docs-jev` app) so `trigger-website.yml` publishes the guide to jev.zeroalloc.net; add a logo and slim the README to point at the site, keeping the disclaimer.
