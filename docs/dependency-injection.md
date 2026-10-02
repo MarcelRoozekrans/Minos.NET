@@ -256,9 +256,7 @@ The client's `HttpClient` comes from `IHttpClientFactory`. It is named `ZeroAllo
 the key for a keyed client. You rarely need the name, except to change what is behind it in a test.
 
 - **Its handler.** The primary handler is a `SocketsHttpHandler` that recycles its connections every two minutes, so a
-  change in DNS is picked up. The factory never rotates the handler, because the singleton keeps its `HttpClient` for
-  its whole life. The factory's usual two-minute rotation would never reach it, so the handler recycles connections on
-  its own instead.
+  change in DNS is picked up. The factory never rotates it, because the singleton keeps its `HttpClient` for life.
 - **Its settings.** `JevClient.ConfigureHttpClient` gives the `HttpClient` its base address, the per-attempt `Timeout`
   and the `ZeroAlloc.Jev` User-Agent.
 - **Its handlers.** Add your own through the builder `AddJevClient` returns. A handler sees every request and every
@@ -296,6 +294,17 @@ public static class HandlerRegistration
         services.AddJevClient(options => options.ApiKey = apiKey);
     }
 
+    // To keep a defaults handler off Jev's client, clear the handlers of its builder. This also clears any you added
+    // through that builder, so add those inside the delegate, after the Clear.
+    public static IHttpClientBuilder AddJevWithoutDefaultHandlers(IServiceCollection services, string apiKey)
+    {
+        services.AddTransient<TraceHeaderHandler>();
+        services.ConfigureHttpClientDefaults(defaults => defaults.AddHttpMessageHandler<TraceHeaderHandler>());
+        return services
+            .AddJevClient(options => options.ApiKey = apiKey)
+            .ConfigureAdditionalHttpMessageHandlers((handlers, _) => handlers.Clear());
+    }
+
     // When a handler of yours retries, such as a standard resilience handler, turn Jev's own retries off,
     // so the two do not multiply.
     public static void AddWithOwnRetries(IServiceCollection services, string apiKey)
@@ -308,9 +317,23 @@ public static class HandlerRegistration
 ```
 <!-- endSnippet -->
 
-A handler that retries, or one with its own time-outs, works against Jev's own settings. Retries multiply, so set
-`MaxRetries = 0` as the snippet does, and keep the handler's time-outs at or above `Timeout`. There is no per-client way
-to remove a handler that came from `ConfigureHttpClientDefaults`.
+### Host-wide defaults
+
+`ConfigureHttpClientDefaults` is how a host applies one setup to every `HttpClient`, and it reaches Jev's clients too.
+Two things in it do not:
+
+- **A primary handler set in the defaults is replaced.** Jev's client always uses its own `SocketsHttpHandler`, whether
+  the defaults are registered before or after `AddJevClient`. A defaults primary handler never sees Jev's requests.
+- **The defaults' loggers are removed** from Jev's clients, in either order, as the next section says.
+
+The usual cause of trouble is a defaults handler that retries, most often Aspire ServiceDefaults'
+`AddStandardResilienceHandler()`. Its retries multiply with Jev's, so set `MaxRetries = 0`, as the snippet does and as
+[the cost of retrying](client-and-errors.md#the-cost-of-retrying) explains. It has time-outs of its own too, and the
+advice is to keep them at or above `Timeout`. That last point is advice, not something the tests here check.
+
+To keep a defaults handler off Jev's client, clear the additional handlers of its builder, as the last method in the
+snippet does. This also removes every handler you added yourself through that builder, so add yours in the same call
+with `ConfigureAdditionalHttpMessageHandlers`, after the `Clear()`, if you want them.
 
 ### The factory's request logs
 
@@ -341,6 +364,9 @@ public static JevClient Create(IHttpClientFactory factory, JevClientOptions opti
     => new(factory.CreateClient("jev"), options);
 ```
 <!-- endSnippet -->
+
+The `JevClient` that `Create` makes still needs an API key. `ConfigureHttpClient` sets up the `HttpClient` only, so the
+key comes from `options.ApiKey` or the environment variable, as for any client.
 
 The `SocketsHttpHandler` and the infinite handler lifetime do for this client what the package does for its own: a
 long-lived `JevClient` keeps one handler for life, so the connections recycle themselves and the factory does not rotate

@@ -69,7 +69,7 @@ you asked for it. Everything else, including every network and service failure, 
 | Property | Default | Valid values | What it does |
 | --- | --- | --- | --- |
 | `Provider` | `JevProvider.TypeSafe` | `TypeSafe` or `OpenRouter` | Where requests go. |
-| `ApiKey` | none | not blank, no control characters | The key sent as a bearer token. When unset, the client reads `TYPESAFE_API_KEY`, or `OPENROUTER_API_KEY` for OpenRouter. |
+| `ApiKey` | none | any text without control characters; blank counts as unset | The key sent as a bearer token. When unset, the client reads `TYPESAFE_API_KEY`, or `OPENROUTER_API_KEY` for OpenRouter. |
 | `BaseAddress` | the provider's address | absolute `http` or `https` URI, no query or fragment | The API root, for a proxy or a test server. When unset, the client reads `TYPESAFE_BASE_URL` for TypeSafe only, then uses `https://api.typesafe.ai/` or `https://openrouter.ai/api/`. |
 | `Model` | `jev-latest` | not blank | The model that typed evaluation asks, as a versioned id such as `jev-1.13.0` or an alias. |
 | `Timeout` | 60 seconds | positive, or `Timeout.InfiniteTimeSpan`, and at most about 24.8 days | How long one attempt may take. |
@@ -180,10 +180,11 @@ public static JevClientOptions NoRetries(string apiKey)
 ### Retry-After
 
 A busy service usually says how long to wait. Jev reads two headers: `retry-after-ms`, in milliseconds, and the standard
-`Retry-After`, either as a number of seconds or as an HTTP date. When both are present, `retry-after-ms` wins. The wait
-replaces the backoff for the next attempt and is honoured exactly, but never beyond `MaxRetryDelay`. A server that asks
-for an hour is waited for `MaxRetryDelay`, 30 seconds by default, and then asked again. The value is also available to
-you, as `JevError.RetryAfter`, on a failure that comes back.
+`Retry-After`, either as a number of seconds or as an HTTP date. When both are present, `retry-after-ms` wins, provided
+it is a non-negative number. An invalid `retry-after-ms` is ignored and `Retry-After` is used. The wait replaces the
+backoff for the next attempt and is waited for as asked, never beyond `MaxRetryDelay`. A server that asks for an hour is
+waited for `MaxRetryDelay`, 30 seconds by default, and then asked again. The value is also available to you, as
+`JevError.RetryAfter`, on a failure that comes back.
 
 ### The cost of retrying
 
@@ -242,7 +243,7 @@ A failed call returns a `JevError`. Its `Kind` says what went wrong, and the oth
 | `Http` | Any other unsuccessful status, such as 404, or 408. | Only 408 | Report it. The status is in `StatusCode`. |
 | `Network` | No response: a DNS, connection or TLS failure. | Yes | Check connectivity. `Exception` holds the cause. |
 | `Timeout` | An attempt exceeded `Timeout`. | Yes | Raise `Timeout`, or ask fewer questions. |
-| `InvalidResponse` | A successful response could not be read as the expected JSON, or an answer was missing. | No | Report it. The service replied with something this library does not understand. |
+| `InvalidResponse` | A successful response could not be read as the expected JSON, or an answer was missing. `StatusCode` is then 200, or the other 2xx status that arrived. | No | Report it. The service replied with something this library does not understand. |
 | `Unsupported` | The operation is not available on the provider, such as listing models on OpenRouter. | No | Do not call it on that provider. No request was sent. |
 | `InvalidQuestions` | A question set built at run time breaks the API's rules. Only a failed `Build()` returns it, and no request is sent. | No | Fix the set. `Failures` lists each rule. |
 

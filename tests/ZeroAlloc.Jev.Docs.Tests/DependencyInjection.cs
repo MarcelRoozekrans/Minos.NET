@@ -140,6 +140,17 @@ public static class HandlerRegistration
         services.AddJevClient(options => options.ApiKey = apiKey);
     }
 
+    // To keep a defaults handler off Jev's client, clear the handlers of its builder. This also clears any you added
+    // through that builder, so add those inside the delegate, after the Clear.
+    public static IHttpClientBuilder AddJevWithoutDefaultHandlers(IServiceCollection services, string apiKey)
+    {
+        services.AddTransient<TraceHeaderHandler>();
+        services.ConfigureHttpClientDefaults(defaults => defaults.AddHttpMessageHandler<TraceHeaderHandler>());
+        return services
+            .AddJevClient(options => options.ApiKey = apiKey)
+            .ConfigureAdditionalHttpMessageHandlers((handlers, _) => handlers.Clear());
+    }
+
     // When a handler of yours retries, such as a standard resilience handler, turn Jev's own retries off,
     // so the two do not multiply.
     public static void AddWithOwnRetries(IServiceCollection services, string apiKey)

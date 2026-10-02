@@ -297,6 +297,92 @@ public sealed class DependencyInjectionTests
     }
 
     [Fact]
+    public async Task ClearingTheAdditionalHandlers_KeepsADefaultsHandlerOffJevsClient()
+    {
+        var withDefaults = new ServiceCollection();
+        using var first = new ScriptedJev.Handler([Reply.Ok(UrgentResponse)]);
+        HandlerRegistration.AddTracedEverywhere(withDefaults, "key");
+        withDefaults.AddHttpClient("ZeroAlloc.Jev").ConfigurePrimaryHttpMessageHandler(() => first);
+        await using (var provider = withDefaults.BuildServiceProvider())
+        {
+            await provider.GetRequiredService<IJevClient>().EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
+        }
+
+        var cleared = new ServiceCollection();
+        using var second = new ScriptedJev.Handler([Reply.Ok(UrgentResponse)]);
+        HandlerRegistration.AddJevWithoutDefaultHandlers(cleared, "key").ConfigurePrimaryHttpMessageHandler(() => second);
+        await using (var provider = cleared.BuildServiceProvider())
+        {
+            await provider.GetRequiredService<IJevClient>().EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
+        }
+
+        Assert.Collection(first.Requests, sent => Assert.True(sent.HasTraceHeader));
+        Assert.Collection(second.Requests, sent => Assert.False(sent.HasTraceHeader));
+    }
+
+    [Fact]
+    public async Task ClearingTheAdditionalHandlers_AlsoClearsOnesAddedThroughTheBuilder()
+    {
+        var services = new ServiceCollection();
+        using var stub = new ScriptedJev.Handler([Reply.Ok(UrgentResponse)]);
+        services.AddTransient<TraceHeaderHandler>();
+        services.AddJevClient(options => options.ApiKey = "key")
+            .ConfigurePrimaryHttpMessageHandler(() => stub)
+            .AddHttpMessageHandler<TraceHeaderHandler>()
+            .ConfigureAdditionalHttpMessageHandlers((handlers, _) => handlers.Clear());
+        await using var provider = services.BuildServiceProvider();
+
+        await provider.GetRequiredService<IJevClient>().EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
+
+        Assert.Collection(stub.Requests, sent => Assert.False(sent.HasTraceHeader));
+    }
+
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task ADefaultsPrimaryHandlerAndLogger_NeverReachJevsClient(bool defaultsFirst)
+    {
+        var capture = new CategoryCapture();
+        var defaultsPrimary = new CountingHandler();
+        var services = new ServiceCollection();
+        services.AddLogging(logging => logging.SetMinimumLevel(LogLevel.Trace).AddProvider(capture));
+        void Defaults() => services.ConfigureHttpClientDefaults(defaults =>
+        {
+            defaults.ConfigurePrimaryHttpMessageHandler(() => defaultsPrimary);
+            defaults.AddDefaultLogger();
+        });
+        void Jev() => services.AddJevClient(options =>
+        {
+            options.ApiKey = "key";
+            options.MaxRetries = 0;
+            options.BaseAddress = new Uri("http://127.0.0.1:1/");
+        });
+
+        if (defaultsFirst)
+        {
+            Defaults();
+            Jev();
+        }
+        else
+        {
+            Jev();
+            Defaults();
+        }
+
+        await using var provider = services.BuildServiceProvider();
+
+        // Jev's own SocketsHttpHandler is used, so the call fails as a refused connection and the defaults' handler is untouched.
+        var result = await provider.GetRequiredService<IJevClient>().EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
+        using var control = provider.GetRequiredService<IHttpClientFactory>().CreateClient("other");
+        using var controlResponse = await control.GetAsync(new Uri("http://other.example/"));
+
+        Assert.Equal(JevErrorKind.Network, result.Error.Kind);
+        Assert.Equal(1, defaultsPrimary.Count);
+        Assert.Contains(capture.Categories, category => category.StartsWith("System.Net.Http.HttpClient.other", StringComparison.Ordinal));
+        Assert.DoesNotContain(capture.Categories, category => category.StartsWith("System.Net.Http.HttpClient.ZeroAlloc.Jev", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task TheClientLogsItself_AndTheFactorysRequestLogsAreOffUnlessAskedFor()
     {
         var withoutFactoryLogs = await CategoriesLoggedAsync(addDefaultLogger: false);
@@ -368,6 +454,19 @@ public sealed class DependencyInjectionTests
         var result = await provider.GetRequiredService<IJevClient>().EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
         Assert.True(result.IsSuccess);
         return capture.Categories;
+    }
+
+    private sealed class CountingHandler : HttpMessageHandler
+    {
+        private int _count;
+
+        public int Count => Volatile.Read(ref _count);
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Interlocked.Increment(ref _count);
+            return Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK));
+        }
     }
 
     private sealed class CategoryCapture : ILoggerProvider

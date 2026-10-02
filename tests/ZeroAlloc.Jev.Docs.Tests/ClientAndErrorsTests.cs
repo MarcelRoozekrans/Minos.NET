@@ -102,6 +102,7 @@ public sealed class ClientAndErrorsTests
             var result = await jev2.ListModelsAsync(CancellationToken.None);
 
             Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);
+            Assert.Equal(200, result.Error.StatusCode);
             Assert.StartsWith("Jev replied with something unreadable", ClientFailures.Describe(result.Error), StringComparison.Ordinal);
         }
     }
@@ -306,6 +307,8 @@ public sealed class ClientAndErrorsTests
         await AssertRetryAfterAsync(TimeSpan.FromSeconds(3), ("Retry-After", "3"));
         await AssertRetryAfterAsync(TimeSpan.FromMilliseconds(1500), ("retry-after-ms", "1500"));
         await AssertRetryAfterAsync(TimeSpan.FromMilliseconds(250), ("Retry-After", "7"), ("retry-after-ms", "250"));
+        await AssertRetryAfterAsync(TimeSpan.FromSeconds(7), ("Retry-After", "7"), ("retry-after-ms", "soon"));
+        await AssertRetryAfterAsync(TimeSpan.FromSeconds(7), ("retry-after-ms", "-5"), ("Retry-After", "7"));
         await AssertRetryAfterAsync(null, ("Retry-After", "soon"));
         await AssertRetryAfterAsync(null);
 
@@ -333,6 +336,28 @@ public sealed class ClientAndErrorsTests
             var result = await jev.EvaluateAsync(Request(), limit.Token);
 
             Assert.True(result.IsSuccess);
+        }
+
+        Assert.Equal(2, requests.Count);
+    }
+
+    [Fact]
+    public async Task ARetryAfterBelowMaxRetryDelay_IsWaitedFor()
+    {
+        // The backoff alone would be 1 ms, so a wait of about 400 ms can only come from the server's header.
+        var options = ScriptedJev.Quick(1);
+        options.MaxRetryDelay = TimeSpan.FromSeconds(5);
+        var (http, jev, requests) = ScriptedJev.Client(
+            options, Reply.Error(429, string.Empty, ("retry-after-ms", "400")), Reply.Ok(UrgencyResponse));
+        using (http)
+        using (jev)
+        {
+            var started = System.Diagnostics.Stopwatch.GetTimestamp();
+            var result = await jev.EvaluateAsync(Request(), CancellationToken.None);
+            var waited = System.Diagnostics.Stopwatch.GetElapsedTime(started);
+
+            Assert.True(result.IsSuccess);
+            Assert.True(waited >= TimeSpan.FromMilliseconds(350), $"Waited {waited}.");
         }
 
         Assert.Equal(2, requests.Count);
