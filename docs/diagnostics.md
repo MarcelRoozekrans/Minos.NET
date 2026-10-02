@@ -147,6 +147,7 @@ properties throw. Fix the declaration instead.
 
 ## Next
 
+- [Testing your code](testing-your-code.md): test code that uses Jev with fakes and canned replies.
 - [Typed evaluation](typed-evaluation.md): declaring question sets, which these rules check.
 - [Question sets at run time](question-sets-at-run-time.md): the same limits and rule ids, checked when you call
   `Build()`.

@@ -154,9 +154,9 @@ builds on this.
 
 ## Keyed questions
 
-When the options or levels are only known at run time, you build the question set with a builder instead of declaring a
-[typed set](typed-evaluation.md). The Choice and Score then have keyed forms: `KeyedChoice` and
-`KeyedScore`. They hold the same things, with strings in place of enum members.
+When the options or levels are only known at run time, you
+[build the question set with a builder](question-sets-at-run-time.md) instead of declaring a
+[typed set](typed-evaluation.md). The Choice and Score then have keyed forms: `KeyedChoice` and `KeyedScore`. They hold the same things, with strings in place of enum members.
 
 - `KeyedChoice.Value` is the key of the option Jev picked, a string. Its `Probabilities` are a `KeyedProbabilityMap`,
   looked up by key.
@@ -244,5 +244,6 @@ The [performance](performance.md) page has the measured costs of a call.
 
 ## Next
 
+- [Typed evaluation](typed-evaluation.md): declare question sets as C# types, give them a typed state and call them.
 - [Confidence routing](patterns/confidence-routing.md): act on an answer only as far as its confidence allows.
 - [Patterns](patterns/index.md): the four patterns, with runnable examples.

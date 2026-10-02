@@ -375,6 +375,7 @@ the handler.
 
 ## Next
 
+- [Logging, traces and metrics](observability.md): what a registered client reports about each call.
 - [Client and errors](client-and-errors.md): the options a registration sets, and every `JevError`.
 - [Typed evaluation](typed-evaluation.md): the calls a resolved client makes.
 - [Performance](performance.md): what a call costs, measured, including through dependency injection.

@@ -107,7 +107,8 @@ A call logs once, when it completes, and logs again for each attempt it is about
 A model listing against OpenRouter fails with `Unsupported` before any request is sent. It logs 1005, like any other
 failure.
 
-The client writes these records for its own calls. A hand-written `IJevClient` that relies on the interface's default
+The client writes these records for its own calls. A
+[hand-written `IJevClient`](testing-your-code.md#way-one-a-fake-ijevclient) that relies on the interface's default
 methods for typed evaluation logs nothing, because the logging lives in `JevClient`.
 
 ### What is never logged
@@ -337,8 +338,9 @@ call's own task, so the numbers are these:
 
 [Phase 3.2](performance.md#phase-32--telemetry) in the performance page has the table. The AOT gates are
 `EvaluateRoundTripWhileListening`, `TypedEvaluateRoundTripWhileListening` and `EvaluateBuiltSetRoundTripWhileListening`,
-and [Native AOT](native-aot.md) lists their budgets. As with logging, a hand-written `IJevClient` that relies on the
-default interface methods for typed evaluation emits nothing.
+and [Native AOT](native-aot.md) lists their budgets. As with logging, a
+[hand-written `IJevClient`](testing-your-code.md#way-one-a-fake-ijevclient) that relies on the default interface methods
+for typed evaluation emits nothing.
 
 The GenAI conventions are still in development, and the token metric names follow the main branch of the
 `semantic-conventions-genai` repository, which has no release yet. Names may change before this package reaches 1.0.

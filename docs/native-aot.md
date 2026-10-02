@@ -78,7 +78,8 @@ The checks run the real client over a canned HTTP handler. They cover:
 - failures: a rejected request, an unreadable response, an overloaded service that is retried, and the unsupported
   model listing on OpenRouter;
 - logging through a real `LoggerFactory`, and the telemetry spans and metrics through real listeners;
-- registering clients with dependency injection, and binding their options from configuration;
+- registering clients with [dependency injection](dependency-injection.md), and binding their options from
+  configuration;
 - the allocation budgets in the next section.
 
 ## What the client allocates
@@ -95,8 +96,8 @@ object.
   probabilities of its answers, and nothing else.
 - **A whole call allocates a few kilobytes.** Over the canned handler, a typed call measures 3368 B under Native AOT,
   and [Performance](performance.md) has the measurements for the other paths.
-- **Building a question set allocates the set.** It measures 6592 B, so build it once and share it, as the run-time page
-  advises.
+- **Building a question set allocates the set.** It measures 6592 B, so build it once and share it, as the
+  [run-time page](question-sets-at-run-time.md) advises.
 - **Logging and telemetry add nothing to synchronous calls until something listens.** With no logger, or every level
   off, a call allocates nothing extra. With nothing listening to the source or the meter, telemetry adds nothing to the
   calls that complete synchronously, and 211 B to a typed or built-set call that completes asynchronously. [Logging,

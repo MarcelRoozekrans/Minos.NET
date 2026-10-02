@@ -216,3 +216,9 @@ call.
 `ConfidenceThresholds.Classify`, `Score<T>.Normalized` and `KeyedScore.Normalized` are arithmetic over the answer
 struct. Under published win-x64 AOT, the `PatternHelpers` gate holds all three to 0 B per call on parsed answers, and
 every existing budget is unchanged. No benchmark was added: there is no work beyond a few comparisons and a division.
+
+## Next
+
+- [Getting started](getting-started.md): the guide from the beginning.
+- [Testing your code](testing-your-code.md): test code that uses Jev with canned answers.
+- [Samples](samples.md): three runnable cookbook samples.

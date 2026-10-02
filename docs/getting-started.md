@@ -179,8 +179,9 @@ Given a message such as "Help! My payouts have been failing for 3 days.", a typi
 error, and `result.Error.Message` explains it. [The client and its errors](client-and-errors.md#errors) lists every kind
 and what to do about each.
 
-The call needs an `IJevClient`. `JevClient` implements it, and a test can hand in a fake. See the
-[patterns](patterns/index.md) for complete, runnable uses of these answers.
+The call needs an `IJevClient`. `JevClient` implements it, and a test can hand in a fake, as
+[testing your code](testing-your-code.md) shows. See the [patterns](patterns/index.md) for complete, runnable uses of
+these answers.
 
 ## Where next
 
@@ -194,10 +195,10 @@ The guide has one page per topic.
 - [Logging, traces and metrics](observability.md): what the client reports about each call.
 - [Native AOT and allocations](native-aot.md): running as a native executable, and the allocation budgets.
 - [Diagnostics](diagnostics.md): every analyzer rule for question sets, and how to suppress one.
+- [Testing your code](testing-your-code.md): fakes and canned replies, so tests never call the real API.
 - [Patterns](patterns/index.md): four ways to put the answers to work.
+- [Samples](samples.md): three runnable cookbook samples that replay recorded answers.
 - [Performance](performance.md): what a call costs, measured.
-
-One more page follows in this guide: testing your code.
 
 ## Next
 

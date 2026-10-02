@@ -279,6 +279,7 @@ the same annotation on that parameter: `[DynamicallyAccessedMembers(DynamicallyA
 
 ## Next
 
+- [The client and its errors](client-and-errors.md): the options, retries, time-outs and every `JevError`.
 - [Typed evaluation](typed-evaluation.md): the declared form of a question set, and `JevContent`.
 - [Question types](question-types.md): what each answer holds.
 - [Fan-out](patterns/fan-out.md#built-at-run-time): five questions built at run time and routed.

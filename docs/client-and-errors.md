@@ -279,14 +279,15 @@ public static string Describe(JevError error) => error.Kind switch
 ```
 <!-- endSnippet -->
 
-The same `JevError` comes back from every evaluate call: typed, built at run time or raw. A fake `IJevClient` in a test
-can return one too.
+The same `JevError` comes back from every evaluate call: typed, built at run time or raw. A
+[fake `IJevClient`](testing-your-code.md#way-one-a-fake-ijevclient) in a test can return one too.
 
 ## The raw request API
 
-Typed evaluation and question sets cover most uses. Underneath them is the raw API, the shape of the HTTP request: a
-state, a model and a dictionary of questions with ids you choose. You rarely need it, but it is there when you want the
-exact wire form, or are building your own layer.
+[Typed evaluation](typed-evaluation.md) and [question sets built at run time](question-sets-at-run-time.md) cover
+most uses. Underneath them is the raw API, the shape of the HTTP request: a state, a model and a dictionary of questions
+with ids you choose. You rarely need it, but it is there when you want the exact wire form, or are building your own
+layer.
 
 <!-- snippet: ClientAndErrors_RawRequest -->
 ```cs
@@ -327,8 +328,9 @@ carries the generation `Id` and the upstream `Provider`, and `Usage` carries the
 
 Each answer is a `NoulAnswer`, a `ChoiceAnswer` or a `ScoreAnswer`, so you pattern-match to read it. The typed forms do
 that matching for you, which is the reason to prefer them. The raw API leaves the API's rules for questions to you,
-where the generator, the analyzers and the question set builder check them for you. A question the service rejects comes
-back as a `Validation` error.
+where the generator, the [analyzers](diagnostics.md) and the
+[question set builder](question-sets-at-run-time.md) check them for you. A question the service rejects comes back as a
+`Validation` error.
 
 ## Listing models
 
