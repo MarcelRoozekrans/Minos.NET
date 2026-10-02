@@ -52,7 +52,7 @@ public partial record BankingRequest
 
 ## The gates
 
-Balance checks use the defaults. Transfers get a stricter pair, so only a High answer acts, a Medium answer asks the
+Balance checks use the defaults, so any answer from Medium up acts. Transfers get a stricter pair, so only a High answer acts, a Medium answer asks the
 caller to confirm, and anything lower goes to a person.
 
 <!-- snippet: ConfidenceRoutingRules -->
@@ -75,19 +75,25 @@ public static class BankingRouting
         var intent = request.Intent;
         return intent.Value switch
         {
-            // Reading a balance changes nothing, so the documented defaults are enough and Medium is safe to act on.
-            BankingIntent.CheckBalance => ConfidenceThresholds.Default.Classify(intent.Confidence) == ConfidenceTier.Low
-                ? BankingAction.HandToHuman
-                : BankingAction.CheckBalance,
-            BankingIntent.TransferMoney => Transfers.Classify(intent.Confidence) switch
-            {
-                ConfidenceTier.High => BankingAction.Transfer,
-                ConfidenceTier.Medium => BankingAction.ConfirmTransfer,
-                _ => BankingAction.HandToHuman,
-            },
+            BankingIntent.CheckBalance => RouteBalanceCheck(intent.Confidence),
+            BankingIntent.TransferMoney => RouteTransfer(intent.Confidence),
             _ => BankingAction.HandToHuman,
         };
     }
+
+    // Reading a balance changes nothing, so the documented defaults are enough and Medium is safe to act on.
+    private static BankingAction RouteBalanceCheck(double confidence)
+        => ConfidenceThresholds.Default.Classify(confidence) == ConfidenceTier.Low
+            ? BankingAction.HandToHuman
+            : BankingAction.CheckBalance;
+
+    private static BankingAction RouteTransfer(double confidence)
+        => Transfers.Classify(confidence) switch
+        {
+            ConfidenceTier.High => BankingAction.Transfer,
+            ConfidenceTier.Medium => BankingAction.ConfirmTransfer,
+            _ => BankingAction.HandToHuman,
+        };
 }
 ```
 <!-- endSnippet -->

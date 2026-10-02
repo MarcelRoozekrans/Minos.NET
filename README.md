@@ -254,7 +254,7 @@ A long-lived `JevClient` keeps one handler for life, so the factory's default 2-
 
 ### Patterns
 
-Four patterns for using the answers, speculative fan-out, confidence routing, composite scoring and intent routing, have guides in [docs/patterns](docs/patterns/index.md), each with C# that is compiled and tested. Two helpers support them: `ConfidenceThresholds` with `ConfidenceTier` classifies a confidence as Low, Medium or High without allocating, and `Normalized` on Score answers puts any rubric's `Expected` on a 0 to 1 scale.
+There are guides for four patterns: speculative fan-out, confidence routing, composite scoring and intent routing. Each has a page under [docs/patterns](docs/patterns/index.md), with C# that is compiled and tested. Two helpers support them: `ConfidenceThresholds` with `ConfidenceTier` classifies a confidence as Low, Medium or High without allocating, and `Normalized` on Score answers puts any rubric's `Expected` on a 0 to 1 scale.
 
 ## Typed evaluation
 

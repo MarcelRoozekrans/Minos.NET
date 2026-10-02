@@ -62,7 +62,7 @@ public static class RequestRouting
 
         return request.Intent.Value switch
         {
-            RequestIntent.OrderStatus => RequestHandler.OrderLookup,      // plain code and a database query
+            RequestIntent.OrderStatus => RequestHandler.OrderLookup,          // plain code and a database query
             RequestIntent.ProductQuestion => RequestHandler.ProductAssistant, // a language model with product context
             _ => RequestHandler.Person,
         };
