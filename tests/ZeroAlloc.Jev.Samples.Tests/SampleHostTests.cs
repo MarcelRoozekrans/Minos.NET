@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -27,7 +28,7 @@ public sealed class SampleHostTests : IDisposable
             Provider = "OpenRouter",
             Model = "jev-1.13.0",
             Recorded = "2026-10-02",
-            Entries = [new RecordedResponse(hash, Body)],
+            Entries = [new RecordedResponse(hash, JsonElement.Parse(Body))],
         }.Save(recordings);
 
         // Whatever the process environment holds, the placeholder key passes startup validation and the replay handler

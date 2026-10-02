@@ -53,7 +53,7 @@ public sealed class RecordingSession
                 Provider = provider,
                 Model = models[0],
                 Recorded = recorded.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
-                Entries = [.. _responses.Select(r => new RecordedResponse(r.Key, r.Value))],
+                Entries = [.. _responses.Select(r => new RecordedResponse(r.Key, JsonElement.Parse(r.Value)))],
             };
         }
     }

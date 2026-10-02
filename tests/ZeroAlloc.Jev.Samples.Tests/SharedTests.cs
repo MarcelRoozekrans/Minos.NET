@@ -36,7 +36,7 @@ public sealed class SharedTests
     public async Task Replay_AnswersARecordedRequest()
     {
         var request = Encoding.UTF8.GetBytes("""{"q":1}""");
-        var recordings = File(new RecordedResponse(RequestHash.Of(request), Body));
+        var recordings = File(new RecordedResponse(RequestHash.Of(request), JsonElement.Parse(Body)));
         using var http = new HttpClient(new ReplayHandler(recordings, "ZeroAlloc.Jev.Samples.Example"));
 
         using var sent = new HttpRequestMessage(HttpMethod.Post, "https://example.test/v1") { Content = new ByteArrayContent(request) };
@@ -93,6 +93,7 @@ public sealed class SharedTests
             Assert.Equal(1, session.Count);
             Assert.Equal(RequestHash.Of(request), file.Entries[0].RequestHash);
             Assert.Equal("jev-1.13.0", file.Model);
+            Assert.Equal(JsonValueKind.Object, json.RootElement.GetProperty("entries")[0].GetProperty("responseBody").ValueKind);
             Assert.DoesNotContain("sk-secret", text, StringComparison.Ordinal);
             Assert.DoesNotContain("Bearer", text, StringComparison.Ordinal);
             Assert.Equal(
@@ -112,11 +113,40 @@ public sealed class SharedTests
         var path = Path.GetTempFileName();
         try
         {
-            File(new RecordedResponse("abc123", Body)).Save(path);
+            File(new RecordedResponse("abc123", JsonElement.Parse(Body))).Save(path);
             var text = System.IO.File.ReadAllText(path);
 
             Assert.DoesNotContain('\r', text);
             Assert.EndsWith("}\n", text, StringComparison.Ordinal);
+        }
+        finally
+        {
+            System.IO.File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task Save_StoresTheBodyAsJson_AndReplayKeepsItsExactText()
+    {
+        const string body = """{"model":"jev-1.13.0","answers":{"q":{"type":"noul","noul":0.5700000000000001}},"note":"someone's <safety> & \"quoted\""}""";
+        var request = Encoding.UTF8.GetBytes("""{"q":4}""");
+        var path = Path.GetTempFileName();
+        try
+        {
+            File(new RecordedResponse(RequestHash.Of(request), JsonElement.Parse(body))).Save(path);
+            var text = System.IO.File.ReadAllText(path);
+            using var http = new HttpClient(new ReplayHandler(RecordingsFile.Load(path), "ZeroAlloc.Jev.Samples.Example"));
+            using var sent = new HttpRequestMessage(HttpMethod.Post, "https://example.test/v1") { Content = new ByteArrayContent(request) };
+            using var response = await http.SendAsync(sent);
+            using var replayed = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+
+            // Nested JSON that reads as written: the number keeps its text, and quotes and apostrophes are not escaped as \u00XX.
+            Assert.Contains("\"noul\": 0.5700000000000001", text, StringComparison.Ordinal);
+            Assert.Contains("someone's <safety> & ", text, StringComparison.Ordinal);
+            Assert.DoesNotContain(@"\u0022", text, StringComparison.Ordinal);
+            Assert.DoesNotContain(@"\u0027", text, StringComparison.Ordinal);
+            Assert.Equal("0.5700000000000001", replayed.RootElement.GetProperty("answers").GetProperty("q").GetProperty("noul").GetRawText());
+            Assert.Equal("someone's <safety> & \"quoted\"", replayed.RootElement.GetProperty("note").GetString());
         }
         finally
         {
@@ -150,7 +180,7 @@ public sealed class SharedTests
     [Fact]
     public void Replay_RejectsADuplicateRequestHash_NamingItAndTheSample()
     {
-        var recordings = File(new RecordedResponse("abc123", Body), new RecordedResponse("abc123", Body));
+        var recordings = File(new RecordedResponse("abc123", JsonElement.Parse(Body)), new RecordedResponse("abc123", JsonElement.Parse(Body)));
 
         var exception = Assert.Throws<InvalidOperationException>(
             () => new ReplayHandler(recordings, "ZeroAlloc.Jev.Samples.Example"));

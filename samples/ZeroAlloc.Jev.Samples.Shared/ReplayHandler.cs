@@ -16,7 +16,7 @@ public sealed class ReplayHandler : HttpMessageHandler
         _responses = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var entry in recordings.Entries)
         {
-            if (!_responses.TryAdd(entry.RequestHash, entry.ResponseBody))
+            if (!_responses.TryAdd(entry.RequestHash, entry.ResponseBody.GetRawText()))
             {
                 throw new InvalidOperationException(
                     "The recordings of " + sampleName + " hold the request hash " + entry.RequestHash + " more than once. "

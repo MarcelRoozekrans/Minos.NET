@@ -5,51 +5,363 @@
   "entries": [
     {
       "requestHash": "0009979db857ee22b55a2e742c0a386ce5d2af696a81b31c89cc201a12a0d491",
-      "responseBody": "{\u0022model\u0022:\u0022typesafe/jev-1.13-20260917\u0022,\u0022answers\u0022:{\u0022intent\u0022:{\u0022type\u0022:\u0022choice\u0022,\u0022choice\u0022:\u0022other\u0022,\u0022probabilities\u0022:{\u0022change_booking\u0022:0,\u0022dispute_charge\u0022:0,\u0022other\u0022:1,\u0022look_up_booking\u0022:0},\u0022confidence\u0022:1},\u0022travels_within24_hours\u0022:{\u0022type\u0022:\u0022noul\u0022,\u0022noul\u0022:0.02}},\u0022usage\u0022:{\u0022input_tokens\u0022:393,\u0022output_tokens\u0022:74,\u0022cost\u0022:0.000016506},\u0022id\u0022:\u0022gen-dec-1790931717-ZTdP41lcqYbNX6PS8s11\u0022,\u0022provider\u0022:\u0022TypeSafe\u0022}"
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "intent": {
+            "type": "choice",
+            "choice": "other",
+            "probabilities": {
+              "change_booking": 0,
+              "dispute_charge": 0,
+              "other": 1,
+              "look_up_booking": 0
+            },
+            "confidence": 1
+          },
+          "travels_within24_hours": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        },
+        "usage": {
+          "input_tokens": 393,
+          "output_tokens": 74,
+          "cost": 0.000016506
+        },
+        "id": "gen-dec-1790931717-ZTdP41lcqYbNX6PS8s11",
+        "provider": "TypeSafe"
+      }
     },
     {
       "requestHash": "1370a85ba81418df6b00891fdbd52563faa207a72bdd62f16e8afee7b15ca1fd",
-      "responseBody": "{\u0022model\u0022:\u0022typesafe/jev-1.13-20260917\u0022,\u0022answers\u0022:{\u0022intent\u0022:{\u0022type\u0022:\u0022choice\u0022,\u0022choice\u0022:\u0022dispute_charge\u0022,\u0022probabilities\u0022:{\u0022dispute_charge\u0022:1,\u0022other\u0022:0,\u0022look_up_booking\u0022:0,\u0022change_booking\u0022:0},\u0022confidence\u0022:1},\u0022travels_within24_hours\u0022:{\u0022type\u0022:\u0022noul\u0022,\u0022noul\u0022:0.03}},\u0022usage\u0022:{\u0022input_tokens\u0022:402,\u0022output_tokens\u0022:76,\u0022cost\u0022:0.000016884},\u0022id\u0022:\u0022gen-dec-1790931716-eTd8yyq9bV4J9tXDRb3n\u0022,\u0022provider\u0022:\u0022TypeSafe\u0022}"
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "intent": {
+            "type": "choice",
+            "choice": "dispute_charge",
+            "probabilities": {
+              "dispute_charge": 1,
+              "other": 0,
+              "look_up_booking": 0,
+              "change_booking": 0
+            },
+            "confidence": 1
+          },
+          "travels_within24_hours": {
+            "type": "noul",
+            "noul": 0.03
+          }
+        },
+        "usage": {
+          "input_tokens": 402,
+          "output_tokens": 76,
+          "cost": 0.000016884
+        },
+        "id": "gen-dec-1790931716-eTd8yyq9bV4J9tXDRb3n",
+        "provider": "TypeSafe"
+      }
     },
     {
       "requestHash": "1671ab326891df9220505beb3f2c797dd159a2f8b29d70969590f172c733b51b",
-      "responseBody": "{\u0022model\u0022:\u0022typesafe/jev-1.13-20260917\u0022,\u0022answers\u0022:{\u0022intent\u0022:{\u0022type\u0022:\u0022choice\u0022,\u0022choice\u0022:\u0022change_booking\u0022,\u0022probabilities\u0022:{\u0022dispute_charge\u0022:0,\u0022other\u0022:0,\u0022look_up_booking\u0022:0,\u0022change_booking\u0022:1},\u0022confidence\u0022:1},\u0022travels_within24_hours\u0022:{\u0022type\u0022:\u0022noul\u0022,\u0022noul\u0022:0.03}},\u0022usage\u0022:{\u0022input_tokens\u0022:399,\u0022output_tokens\u0022:75,\u0022cost\u0022:0.000016758},\u0022id\u0022:\u0022gen-dec-1790931717-ZfyyICBZmIdk82uscX02\u0022,\u0022provider\u0022:\u0022TypeSafe\u0022}"
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "intent": {
+            "type": "choice",
+            "choice": "change_booking",
+            "probabilities": {
+              "dispute_charge": 0,
+              "other": 0,
+              "look_up_booking": 0,
+              "change_booking": 1
+            },
+            "confidence": 1
+          },
+          "travels_within24_hours": {
+            "type": "noul",
+            "noul": 0.03
+          }
+        },
+        "usage": {
+          "input_tokens": 399,
+          "output_tokens": 75,
+          "cost": 0.000016758
+        },
+        "id": "gen-dec-1790931717-ZfyyICBZmIdk82uscX02",
+        "provider": "TypeSafe"
+      }
     },
     {
       "requestHash": "1ccb455dc4a161c3b27d3eb481c38a46956dbf9be69d05044042cf56889ce7b4",
-      "responseBody": "{\u0022model\u0022:\u0022typesafe/jev-1.13-20260917\u0022,\u0022answers\u0022:{\u0022intent\u0022:{\u0022type\u0022:\u0022choice\u0022,\u0022choice\u0022:\u0022look_up_booking\u0022,\u0022probabilities\u0022:{\u0022dispute_charge\u0022:0,\u0022look_up_booking\u0022:1,\u0022other\u0022:0,\u0022change_booking\u0022:0},\u0022confidence\u0022:1},\u0022travels_within24_hours\u0022:{\u0022type\u0022:\u0022noul\u0022,\u0022noul\u0022:0.97}},\u0022usage\u0022:{\u0022input_tokens\u0022:399,\u0022output_tokens\u0022:76,\u0022cost\u0022:0.000016758},\u0022id\u0022:\u0022gen-dec-1790931717-OgwBtz9Cyzy9hGKzJXXZ\u0022,\u0022provider\u0022:\u0022TypeSafe\u0022}"
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "intent": {
+            "type": "choice",
+            "choice": "look_up_booking",
+            "probabilities": {
+              "dispute_charge": 0,
+              "look_up_booking": 1,
+              "other": 0,
+              "change_booking": 0
+            },
+            "confidence": 1
+          },
+          "travels_within24_hours": {
+            "type": "noul",
+            "noul": 0.97
+          }
+        },
+        "usage": {
+          "input_tokens": 399,
+          "output_tokens": 76,
+          "cost": 0.000016758
+        },
+        "id": "gen-dec-1790931717-OgwBtz9Cyzy9hGKzJXXZ",
+        "provider": "TypeSafe"
+      }
     },
     {
       "requestHash": "254e618f16aa312ef77adb73db5d4bff89b9c958764ccb53fd489243eb64f4bb",
-      "responseBody": "{\u0022model\u0022:\u0022typesafe/jev-1.13-20260917\u0022,\u0022answers\u0022:{\u0022intent\u0022:{\u0022type\u0022:\u0022choice\u0022,\u0022choice\u0022:\u0022dispute_charge\u0022,\u0022probabilities\u0022:{\u0022look_up_booking\u0022:0,\u0022dispute_charge\u0022:1,\u0022other\u0022:0,\u0022change_booking\u0022:0},\u0022confidence\u0022:1},\u0022travels_within24_hours\u0022:{\u0022type\u0022:\u0022noul\u0022,\u0022noul\u0022:0.01}},\u0022usage\u0022:{\u0022input_tokens\u0022:402,\u0022output_tokens\u0022:76,\u0022cost\u0022:0.000016884},\u0022id\u0022:\u0022gen-dec-1790931716-DIHBjjNRjRhB7M4y561j\u0022,\u0022provider\u0022:\u0022TypeSafe\u0022}"
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "intent": {
+            "type": "choice",
+            "choice": "dispute_charge",
+            "probabilities": {
+              "look_up_booking": 0,
+              "dispute_charge": 1,
+              "other": 0,
+              "change_booking": 0
+            },
+            "confidence": 1
+          },
+          "travels_within24_hours": {
+            "type": "noul",
+            "noul": 0.01
+          }
+        },
+        "usage": {
+          "input_tokens": 402,
+          "output_tokens": 76,
+          "cost": 0.000016884
+        },
+        "id": "gen-dec-1790931716-DIHBjjNRjRhB7M4y561j",
+        "provider": "TypeSafe"
+      }
     },
     {
       "requestHash": "3ccaa357383021bc958e8a692f349df519f1900adee737e69e7a1d0b0dfa02fa",
-      "responseBody": "{\u0022model\u0022:\u0022typesafe/jev-1.13-20260917\u0022,\u0022answers\u0022:{\u0022intent\u0022:{\u0022type\u0022:\u0022choice\u0022,\u0022choice\u0022:\u0022change_booking\u0022,\u0022probabilities\u0022:{\u0022look_up_booking\u0022:0,\u0022dispute_charge\u0022:0,\u0022other\u0022:0,\u0022change_booking\u0022:1},\u0022confidence\u0022:1},\u0022travels_within24_hours\u0022:{\u0022type\u0022:\u0022noul\u0022,\u0022noul\u0022:0.03}},\u0022usage\u0022:{\u0022input_tokens\u0022:406,\u0022output_tokens\u0022:75,\u0022cost\u0022:0.000017052},\u0022id\u0022:\u0022gen-dec-1790931715-9hJPxeq00rnDCEJttGXQ\u0022,\u0022provider\u0022:\u0022TypeSafe\u0022}"
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "intent": {
+            "type": "choice",
+            "choice": "change_booking",
+            "probabilities": {
+              "look_up_booking": 0,
+              "dispute_charge": 0,
+              "other": 0,
+              "change_booking": 1
+            },
+            "confidence": 1
+          },
+          "travels_within24_hours": {
+            "type": "noul",
+            "noul": 0.03
+          }
+        },
+        "usage": {
+          "input_tokens": 406,
+          "output_tokens": 75,
+          "cost": 0.000017052
+        },
+        "id": "gen-dec-1790931715-9hJPxeq00rnDCEJttGXQ",
+        "provider": "TypeSafe"
+      }
     },
     {
       "requestHash": "4fa96632c37c2f457f29bdf5b40e20f26eb80291a5c011c3067b14775da45f54",
-      "responseBody": "{\u0022model\u0022:\u0022typesafe/jev-1.13-20260917\u0022,\u0022answers\u0022:{\u0022intent\u0022:{\u0022type\u0022:\u0022choice\u0022,\u0022choice\u0022:\u0022look_up_booking\u0022,\u0022probabilities\u0022:{\u0022look_up_booking\u0022:1,\u0022change_booking\u0022:0,\u0022other\u0022:0,\u0022dispute_charge\u0022:0},\u0022confidence\u0022:1},\u0022travels_within24_hours\u0022:{\u0022type\u0022:\u0022noul\u0022,\u0022noul\u0022:0.01}},\u0022usage\u0022:{\u0022input_tokens\u0022:407,\u0022output_tokens\u0022:76,\u0022cost\u0022:0.000017094},\u0022id\u0022:\u0022gen-dec-1790931714-b9gh6woyrTGRBEf4O815\u0022,\u0022provider\u0022:\u0022TypeSafe\u0022}"
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "intent": {
+            "type": "choice",
+            "choice": "look_up_booking",
+            "probabilities": {
+              "look_up_booking": 1,
+              "change_booking": 0,
+              "other": 0,
+              "dispute_charge": 0
+            },
+            "confidence": 1
+          },
+          "travels_within24_hours": {
+            "type": "noul",
+            "noul": 0.01
+          }
+        },
+        "usage": {
+          "input_tokens": 407,
+          "output_tokens": 76,
+          "cost": 0.000017094
+        },
+        "id": "gen-dec-1790931714-b9gh6woyrTGRBEf4O815",
+        "provider": "TypeSafe"
+      }
     },
     {
       "requestHash": "5651d4179ea3c7a185229a9d085ad092b27ac57dbd9b20217f3d3de7b8e7be28",
-      "responseBody": "{\u0022model\u0022:\u0022typesafe/jev-1.13-20260917\u0022,\u0022answers\u0022:{\u0022intent\u0022:{\u0022type\u0022:\u0022choice\u0022,\u0022choice\u0022:\u0022look_up_booking\u0022,\u0022probabilities\u0022:{\u0022other\u0022:0.01,\u0022look_up_booking\u0022:0.99,\u0022dispute_charge\u0022:0,\u0022change_booking\u0022:0},\u0022confidence\u0022:0.98},\u0022travels_within24_hours\u0022:{\u0022type\u0022:\u0022noul\u0022,\u0022noul\u0022:0.02}},\u0022usage\u0022:{\u0022input_tokens\u0022:396,\u0022output_tokens\u0022:76,\u0022cost\u0022:0.000016632},\u0022id\u0022:\u0022gen-dec-1790931716-1Pfl5cwl46SvCgDzlbTm\u0022,\u0022provider\u0022:\u0022TypeSafe\u0022}"
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "intent": {
+            "type": "choice",
+            "choice": "look_up_booking",
+            "probabilities": {
+              "other": 0.01,
+              "look_up_booking": 0.99,
+              "dispute_charge": 0,
+              "change_booking": 0
+            },
+            "confidence": 0.98
+          },
+          "travels_within24_hours": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        },
+        "usage": {
+          "input_tokens": 396,
+          "output_tokens": 76,
+          "cost": 0.000016632
+        },
+        "id": "gen-dec-1790931716-1Pfl5cwl46SvCgDzlbTm",
+        "provider": "TypeSafe"
+      }
     },
     {
       "requestHash": "64ae16d6e8fb70f590d26ed512742c064719c978afcafc69482f6fbe66bf7d6c",
-      "responseBody": "{\u0022model\u0022:\u0022typesafe/jev-1.13-20260917\u0022,\u0022answers\u0022:{\u0022intent\u0022:{\u0022type\u0022:\u0022choice\u0022,\u0022choice\u0022:\u0022look_up_booking\u0022,\u0022probabilities\u0022:{\u0022look_up_booking\u0022:0.99,\u0022change_booking\u0022:0,\u0022other\u0022:0.01,\u0022dispute_charge\u0022:0},\u0022confidence\u0022:0.99},\u0022travels_within24_hours\u0022:{\u0022type\u0022:\u0022noul\u0022,\u0022noul\u0022:0.86}},\u0022usage\u0022:{\u0022input_tokens\u0022:405,\u0022output_tokens\u0022:76,\u0022cost\u0022:0.00001701},\u0022id\u0022:\u0022gen-dec-1790931715-q54ioHwi0K33vdKV3nRq\u0022,\u0022provider\u0022:\u0022TypeSafe\u0022}"
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "intent": {
+            "type": "choice",
+            "choice": "look_up_booking",
+            "probabilities": {
+              "look_up_booking": 0.99,
+              "change_booking": 0,
+              "other": 0.01,
+              "dispute_charge": 0
+            },
+            "confidence": 0.99
+          },
+          "travels_within24_hours": {
+            "type": "noul",
+            "noul": 0.86
+          }
+        },
+        "usage": {
+          "input_tokens": 405,
+          "output_tokens": 76,
+          "cost": 0.00001701
+        },
+        "id": "gen-dec-1790931715-q54ioHwi0K33vdKV3nRq",
+        "provider": "TypeSafe"
+      }
     },
     {
       "requestHash": "6d24e8e5a02d4dddac7523c96d629d9b939fa040b9b82a72e26bc2375b89cdaf",
-      "responseBody": "{\u0022model\u0022:\u0022typesafe/jev-1.13-20260917\u0022,\u0022answers\u0022:{\u0022intent\u0022:{\u0022type\u0022:\u0022choice\u0022,\u0022choice\u0022:\u0022change_booking\u0022,\u0022probabilities\u0022:{\u0022look_up_booking\u0022:0,\u0022change_booking\u0022:1,\u0022other\u0022:0,\u0022dispute_charge\u0022:0},\u0022confidence\u0022:1},\u0022travels_within24_hours\u0022:{\u0022type\u0022:\u0022noul\u0022,\u0022noul\u0022:0.97}},\u0022usage\u0022:{\u0022input_tokens\u0022:402,\u0022output_tokens\u0022:75,\u0022cost\u0022:0.000016884},\u0022id\u0022:\u0022gen-dec-1790931715-xa3atBgSbFXKIwcqM4NP\u0022,\u0022provider\u0022:\u0022TypeSafe\u0022}"
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "intent": {
+            "type": "choice",
+            "choice": "change_booking",
+            "probabilities": {
+              "look_up_booking": 0,
+              "change_booking": 1,
+              "other": 0,
+              "dispute_charge": 0
+            },
+            "confidence": 1
+          },
+          "travels_within24_hours": {
+            "type": "noul",
+            "noul": 0.97
+          }
+        },
+        "usage": {
+          "input_tokens": 402,
+          "output_tokens": 75,
+          "cost": 0.000016884
+        },
+        "id": "gen-dec-1790931715-xa3atBgSbFXKIwcqM4NP",
+        "provider": "TypeSafe"
+      }
     },
     {
       "requestHash": "9c0bf72e2ab7f469349b25eba98a230b588683dfd8edb179ca970f2d617e94b8",
-      "responseBody": "{\u0022model\u0022:\u0022typesafe/jev-1.13-20260917\u0022,\u0022answers\u0022:{\u0022intent\u0022:{\u0022type\u0022:\u0022choice\u0022,\u0022choice\u0022:\u0022change_booking\u0022,\u0022probabilities\u0022:{\u0022look_up_booking\u0022:0,\u0022change_booking\u0022:1,\u0022other\u0022:0,\u0022dispute_charge\u0022:0},\u0022confidence\u0022:1},\u0022travels_within24_hours\u0022:{\u0022type\u0022:\u0022noul\u0022,\u0022noul\u0022:0.02}},\u0022usage\u0022:{\u0022input_tokens\u0022:401,\u0022output_tokens\u0022:75,\u0022cost\u0022:0.000016842},\u0022id\u0022:\u0022gen-dec-1790931715-ASw5LIH3Vn00ngEdcgv6\u0022,\u0022provider\u0022:\u0022TypeSafe\u0022}"
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "intent": {
+            "type": "choice",
+            "choice": "change_booking",
+            "probabilities": {
+              "look_up_booking": 0,
+              "change_booking": 1,
+              "other": 0,
+              "dispute_charge": 0
+            },
+            "confidence": 1
+          },
+          "travels_within24_hours": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        },
+        "usage": {
+          "input_tokens": 401,
+          "output_tokens": 75,
+          "cost": 0.000016842
+        },
+        "id": "gen-dec-1790931715-ASw5LIH3Vn00ngEdcgv6",
+        "provider": "TypeSafe"
+      }
     },
     {
       "requestHash": "b7f34d51478b7ada6c4aace898a5a41f3c6628830f0ef258451f1820403c2077",
-      "responseBody": "{\u0022model\u0022:\u0022typesafe/jev-1.13-20260917\u0022,\u0022answers\u0022:{\u0022intent\u0022:{\u0022type\u0022:\u0022choice\u0022,\u0022choice\u0022:\u0022other\u0022,\u0022probabilities\u0022:{\u0022other\u0022:1,\u0022look_up_booking\u0022:0,\u0022dispute_charge\u0022:0,\u0022change_booking\u0022:0},\u0022confidence\u0022:1},\u0022travels_within24_hours\u0022:{\u0022type\u0022:\u0022noul\u0022,\u0022noul\u0022:0.02}},\u0022usage\u0022:{\u0022input_tokens\u0022:388,\u0022output_tokens\u0022:74,\u0022cost\u0022:0.000016296},\u0022id\u0022:\u0022gen-dec-1790931717-wDa3K8srG6iGK7nH2cLO\u0022,\u0022provider\u0022:\u0022TypeSafe\u0022}"
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "intent": {
+            "type": "choice",
+            "choice": "other",
+            "probabilities": {
+              "other": 1,
+              "look_up_booking": 0,
+              "dispute_charge": 0,
+              "change_booking": 0
+            },
+            "confidence": 1
+          },
+          "travels_within24_hours": {
+            "type": "noul",
+            "noul": 0.02
+          }
+        },
+        "usage": {
+          "input_tokens": 388,
+          "output_tokens": 74,
+          "cost": 0.000016296
+        },
+        "id": "gen-dec-1790931717-wDa3K8srG6iGK7nH2cLO",
+        "provider": "TypeSafe"
+      }
     }
   ]
 }
