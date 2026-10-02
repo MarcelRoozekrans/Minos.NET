@@ -23,9 +23,9 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="5.0.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0" />
     <!-- HTTP client -->
-    <PackageVersion Include="ZeroAlloc.Resilience" Version="3.3.0" />
-    <PackageVersion Include="ZeroAlloc.Rest" Version="3.1.0" />
-    <PackageVersion Include="ZeroAlloc.Rest.SystemTextJson" Version="3.1.0" />
+    <PackageVersion Include="ZeroAlloc.Resilience" Version="3.3.1" />
+    <PackageVersion Include="ZeroAlloc.Rest" Version="3.2.0" />
+    <PackageVersion Include="ZeroAlloc.Rest.SystemTextJson" Version="3.2.0" />
     <PackageVersion Include="ZeroAlloc.Results" Version="1.2.4" />
     <!-- Telemetry: the attributes at run time, and the proxy generator bundled at analyzers/dotnet/cs. 1.10.0 is the floor: it allows several [TraceTag] on one parameter, #181. -->
     <PackageVersion Include="ZeroAlloc.Telemetry" Version="1.10.0" />
@@ -53,7 +53,7 @@
     -->
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0" />
     <!-- Runtime question set validation: its generators validate ZeroAlloc.Jev's own specs; NuGet still flows them to consumers, where they stay inert, NuGet/Home#6720 -->
-    <PackageVersion Include="ZeroAlloc.Validation" Version="2.0.3" />
+    <PackageVersion Include="ZeroAlloc.Validation" Version="2.1.0" />
     <!-- Benchmarks -->
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
   </ItemGroup>
