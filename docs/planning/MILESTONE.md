@@ -25,7 +25,7 @@ A C# developer can learn Jev from its own docs site and apply TypeSafe's documen
 - [ ] Every existing allocation budget is unchanged.
 
 ## Phases
-1. Phase 4.1 — Pattern helpers and guides [pending]
+1. Phase 4.1 — Pattern helpers and guides [active]
 2. Phase 4.2 — Cookbook samples [pending]
 3. Phase 4.3 — User guide [pending]
 4. Phase 4.4 — Docs site, logo and README [pending]
