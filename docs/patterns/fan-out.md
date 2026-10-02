@@ -218,5 +218,5 @@ public sealed class BuiltReviewTriage
 - Build a question set once and keep it, as `BuiltReviewTriage` does: the set is immutable and safe to share across
   threads.
 - The thresholds here (0.6, 1.5, 0.7) are starting points. Tune them on your own reviews.
-- The README covers the builder in full, including its validation rules, in
-  [Question sets built at run time](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev#question-sets-built-at-run-time).
+- The guide covers the builder in full, including its validation rules, in
+  [Question sets at run time](../question-sets-at-run-time.md).

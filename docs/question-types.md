@@ -155,8 +155,8 @@ builds on this.
 ## Keyed questions
 
 When the options or levels are only known at run time, you build the question set with a builder instead of declaring a
-type. The Choice and Score then have keyed forms: `KeyedChoice` and `KeyedScore`. They hold the same things, with
-strings in place of enum members.
+[typed set](typed-evaluation.md). The Choice and Score then have keyed forms: `KeyedChoice` and
+`KeyedScore`. They hold the same things, with strings in place of enum members.
 
 - `KeyedChoice.Value` is the key of the option Jev picked, a string. Its `Probabilities` are a `KeyedProbabilityMap`,
   looked up by key.
@@ -212,8 +212,8 @@ public sealed class PlanAdvisor
 ```
 <!-- endSnippet -->
 
-Building a set at run time is covered on its own page. The point here is the shape of the answers: they are read with
-`JevAnswers.Get` and a handle, and they hold the same numbers as the typed forms.
+Building a set at run time is covered on its [own page](question-sets-at-run-time.md). The point here is the shape of
+the answers: they are read with `JevAnswers.Get` and a handle, and they hold the same numbers as the typed forms.
 
 ## Confidence is not probability
 

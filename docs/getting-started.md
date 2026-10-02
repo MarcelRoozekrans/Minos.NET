@@ -185,11 +185,13 @@ The call needs an `IJevClient`. `JevClient` implements it, and a test can hand i
 The guide has one page per topic.
 
 - [Question types](question-types.md): Noul, Choice and Score in detail, and how confidence differs from probability.
+- [Typed evaluation](typed-evaluation.md): declaring questions, typed state and the evaluate overloads.
+- [Question sets at run time](question-sets-at-run-time.md): building a set from data.
 - [Patterns](patterns/index.md): four ways to put the answers to work.
 - [Performance](performance.md): what a call costs, measured.
 
-More pages follow in this guide: typed evaluation, question sets built at run time, the client and its errors,
-dependency injection, observability, Native AOT, diagnostics, and testing your code.
+More pages follow in this guide: the client and its errors, dependency injection, observability, Native AOT,
+diagnostics, and testing your code.
 
 ## Next
 
