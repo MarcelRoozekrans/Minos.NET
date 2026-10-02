@@ -1,6 +1,6 @@
 # Composite scoring
 
-Instead of asking one large question such as "is this a good candidate?", ask several small ones that each have an
+Instead of asking one large question such as "is this pull request good?", ask several small ones that each have an
 answer, then combine the answers yourself. Each Score is an atomic judgement that is easy to check by hand. The
 combination is a weighted sum in your own code, so the policy is yours: it is visible, testable and easy to change.
 
@@ -9,87 +9,122 @@ shows it with typed Scores and `Normalized`.
 
 ## Why normalize
 
-A Score's `Expected` is a level index weighted by probability: 3.0 on a five-level rubric is high, while 3.0 on a
-three-level rubric does not exist. Adding raw values from rubrics of different sizes mixes scales. `Normalized` divides
+A Score's `Expected` is a level index weighted by probability: 2.0 on a five-level rubric is the middle, while 2.0 on a
+three-level rubric is the top. Adding raw values from rubrics of different sizes mixes scales. `Normalized` divides
 `Expected` by the index of the top level, so every Score lands on 0 to 1 whatever its rubric, and weights then mean
 the same thing for all of them.
 
 ## The questions
 
-Four Scores. Two use a five-level rubric and two a three-level one, on purpose.
+A pull request gets four Scores. Two use a five-level rubric and two a three-level one, on purpose.
 
 <!-- snippet: CompositeScoringQuestions -->
 ```cs
-public enum Depth
+public enum CorrectnessLevel
 {
-    [Level("None")]
+    [Level("Broken: it does not do what it claims")]
+    Broken,
+
+    [Level("Major defects")]
+    MajorDefects,
+
+    [Level("Minor defects")]
+    MinorDefects,
+
+    [Level("Correct for the common cases")]
+    CommonCases,
+
+    [Level("Correct, edge cases included")]
+    EdgeCases,
+}
+
+public enum CoverageLevel
+{
+    [Level("No tests")]
     None,
 
-    [Level("Has read about it")]
-    Aware,
+    [Level("A token test")]
+    Token,
 
-    [Level("Has used it on real work")]
-    Working,
+    [Level("The happy path only")]
+    HappyPath,
 
-    [Level("Has led work with it")]
-    Strong,
+    [Level("The main paths and their failures")]
+    MainPaths,
 
-    [Level("Recognised expert")]
-    Expert,
+    [Level("Thorough, edge cases included")]
+    Thorough,
 }
 
-public enum Breadth
+public enum ReadabilityLevel
 {
-    [Level("One area")]
-    Narrow,
+    [Level("Hard to follow")]
+    Hard,
 
-    [Level("A few related areas")]
-    Moderate,
+    [Level("Readable with effort")]
+    WithEffort,
 
-    [Level("Many unrelated areas")]
-    Wide,
+    [Level("Reads easily")]
+    Easy,
 }
 
-// Four atomic judgements. Two use a 5-level rubric and two a 3-level one, so their raw Expected values
-// are on different scales; Normalized puts every one of them on 0 to 1.
+public enum FocusLevel
+{
+    [Level("Mixes unrelated changes")]
+    Mixed,
+
+    [Level("Mostly one change, with some extras")]
+    Mostly,
+
+    [Level("One focused change")]
+    Focused,
+}
+
+// Four atomic judgements about a pull request. Two use a 5-level rubric and two a 3-level one, so their raw
+// Expected values are on different scales; Normalized puts every one of them on 0 to 1.
 [JevQuestions]
-public partial record CandidateAssessment
+public partial record PullRequestReview
 {
-    [Score("How deep is the candidate's C# experience?")]
-    public partial Score<Depth> CSharp { get; }
+    [Score("How correct is the change?")]
+    public partial Score<CorrectnessLevel> Correctness { get; }
 
-    [Score("How much system design has the candidate done?")]
-    public partial Score<Depth> SystemDesign { get; }
+    [Score("How well do the tests cover the change?")]
+    public partial Score<CoverageLevel> TestCoverage { get; }
 
-    [Score("How much has the candidate led other people?")]
-    public partial Score<Breadth> Leadership { get; }
+    [Score("How easy is the diff to read?")]
+    public partial Score<ReadabilityLevel> Readability { get; }
 
-    [Score("How broad is the candidate's experience?")]
-    public partial Score<Breadth> Generalist { get; }
+    [Score("How focused is the pull request on a single change?")]
+    public partial Score<FocusLevel> ScopeFocus { get; }
 }
 ```
 <!-- endSnippet -->
 
 ## The weights
 
-Two roles read the same four answers with different weights. A new role is a new method, not a new request.
+Two policies read the same four answers with different weights. One asks whether the pull request is ready to merge;
+the other asks whether it would make a good first review for a new teammate. A new policy is a new method, not a new
+request.
 
 <!-- snippet: CompositeScoringWeights -->
 ```cs
-public static class CandidateScoring
+public static class PullRequestScoring
 {
-    // The weights are the hiring policy. They live in code, they sum to 1, and changing them needs no new request.
-    public static double IndividualContributor(CandidateAssessment a)
-        => (0.40 * a.CSharp.Normalized)
-         + (0.40 * a.SystemDesign.Normalized)
-         + (0.10 * a.Leadership.Normalized)
-         + (0.10 * a.Generalist.Normalized);
+    // Each policy is a set of weights in code that sums to 1. Changing a policy, or adding one, needs no new request.
 
-    public static double EngineeringManager(CandidateAssessment a)
-        => (0.15 * a.CSharp.Normalized)
-         + (0.20 * a.SystemDesign.Normalized)
-         + (0.40 * a.Leadership.Normalized)
-         + (0.25 * a.Generalist.Normalized);
+    // Ready to merge: what matters is that it works and that the tests prove it.
+    public static double ReadyToMerge(PullRequestReview r)
+        => (0.45 * r.Correctness.Normalized)
+         + (0.35 * r.TestCoverage.Normalized)
+         + (0.10 * r.Readability.Normalized)
+         + (0.10 * r.ScopeFocus.Normalized);
+
+    // A good first review for a new teammate: small, focused and easy to read matters more than polish.
+    public static double GoodFirstReview(PullRequestReview r)
+        => (0.15 * r.Correctness.Normalized)
+         + (0.10 * r.TestCoverage.Normalized)
+         + (0.40 * r.Readability.Normalized)
+         + (0.35 * r.ScopeFocus.Normalized);
 }
 ```
 <!-- endSnippet -->

@@ -4,32 +4,41 @@ namespace ZeroAlloc.Jev.Docs.Tests;
 
 public sealed class ConfidenceRoutingTests
 {
+    // Every threshold is hit on both sides: the defaults, 0.5 and 0.9, through tracking and cancelling, and the
+    // refund pair, 0.7 and 0.92, through refunds.
     [Theory]
-    [InlineData("transfer_money", 0.92, BankingAction.Transfer)]
-    [InlineData("transfer_money", 0.85, BankingAction.Transfer)]
-    [InlineData("transfer_money", 0.7, BankingAction.ConfirmTransfer)]
-    [InlineData("transfer_money", 0.6, BankingAction.ConfirmTransfer)]
-    [InlineData("transfer_money", 0.4, BankingAction.HandToHuman)]
-    [InlineData("check_balance", 0.55, BankingAction.CheckBalance)]
-    [InlineData("check_balance", 0.5, BankingAction.CheckBalance)]
-    [InlineData("check_balance", 0.3, BankingAction.HandToHuman)]
-    [InlineData("other", 0.95, BankingAction.HandToHuman)]
-    public async Task EachActionHasItsOwnGate(string intent, double confidence, BankingAction expected)
+    [InlineData("track_order", 0.5, ShopAction.ShowTracking)]
+    [InlineData("track_order", 0.49, ShopAction.HandToPerson)]
+    [InlineData("track_order", 0.9, ShopAction.ShowTracking)]
+    [InlineData("track_order", 0.89, ShopAction.ShowTracking)]
+    [InlineData("cancel_order", 0.9, ShopAction.CancelOrder)]
+    [InlineData("cancel_order", 0.89, ShopAction.ConfirmCancel)]
+    [InlineData("cancel_order", 0.5, ShopAction.ConfirmCancel)]
+    [InlineData("cancel_order", 0.49, ShopAction.HandToPerson)]
+    [InlineData("request_refund", 0.92, ShopAction.IssueRefund)]
+    [InlineData("request_refund", 0.91, ShopAction.ConfirmRefund)]
+    [InlineData("request_refund", 0.7, ShopAction.ConfirmRefund)]
+    [InlineData("request_refund", 0.69, ShopAction.HandToPerson)]
+    [InlineData("other", 0.97, ShopAction.HandToPerson)]
+    public async Task EachActionHasItsOwnGate(string intent, double confidence, ShopAction expected)
     {
-        var request = await CannedJev.EvaluateAsync<BankingRequest>(Response(intent, confidence), "Send 200 to Sam.");
+        var message = await CannedJev.EvaluateAsync<ChatMessage>(Response(intent, confidence), "I want my money back for order 1042.");
 
-        Assert.Equal(expected, BankingRouting.Route(request));
+        Assert.Equal(expected, ShopRouting.Route(message));
     }
 
-    private static readonly string[] IntentKeys = ["check_balance", "transfer_money", "other"];
+    private static readonly string[] IntentKeys = ["track_order", "cancel_order", "request_refund", "other"];
 
-    // Builds a one-question response: the chosen intent gets 0.8 and the others share the rest, so the
-    // probabilities agree with the choice; the confidence is whatever the test passes.
+    // Builds a one-question response. The chosen intent's probability equals the confidence, and the other
+    // intents share the rest equally, so the probabilities sum to 1 and agree with the confidence.
     private static string Response(string intent, double confidence)
     {
+        var others = (1.0 - confidence) / (IntentKeys.Length - 1);
         var probabilities = string.Join(
             ',',
-            IntentKeys.Select(key => string.Create(CultureInfo.InvariantCulture, $"\"{key}\":{(string.Equals(key, intent, StringComparison.Ordinal) ? 0.8 : 0.1)}")));
+            IntentKeys.Select(key => string.Create(
+                CultureInfo.InvariantCulture,
+                $"\"{key}\":{(string.Equals(key, intent, StringComparison.Ordinal) ? confidence : others)}")));
 
         return string.Create(
             CultureInfo.InvariantCulture,

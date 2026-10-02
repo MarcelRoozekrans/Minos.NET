@@ -1,63 +1,79 @@
 namespace ZeroAlloc.Jev.Docs.Tests;
 
 #region ConfidenceRoutingQuestions
-public enum BankingIntent
+public enum ShopIntent
 {
-    [Criteria("Asks for an account balance")]
-    CheckBalance,
+    [Criteria("Wants to know where an order is or when it arrives")]
+    TrackOrder,
 
-    [Criteria("Asks to move money to another account")]
-    TransferMoney,
+    [Criteria("Wants to cancel an order")]
+    CancelOrder,
+
+    [Criteria("Wants money back for an order")]
+    RequestRefund,
 
     [Criteria("Anything else")]
     Other,
 }
 
 [JevQuestions]
-public partial record BankingRequest
+public partial record ChatMessage
 {
-    [Choice("What does the caller want to do?")]
-    public partial Choice<BankingIntent> Intent { get; }
+    [Choice("What does the customer want to do?")]
+    public partial Choice<ShopIntent> Intent { get; }
 }
 #endregion
 
 #region ConfidenceRoutingRules
-public enum BankingAction
+public enum ShopAction
 {
-    CheckBalance,
-    ConfirmTransfer,
-    Transfer,
-    HandToHuman,
+    ShowTracking,
+    ConfirmCancel,
+    CancelOrder,
+    ConfirmRefund,
+    IssueRefund,
+    HandToPerson,
 }
 
-public static class BankingRouting
+public static class ShopRouting
 {
-    // Moving money is expensive to get wrong: act only at 0.85 or above, and ask the caller to confirm from 0.6.
-    private static readonly ConfidenceThresholds Transfers = new(medium: 0.6, high: 0.85);
+    // A refund sends money out and is hard to take back: issue it only from 0.92, and ask the customer to
+    // confirm from 0.7.
+    private static readonly ConfidenceThresholds Refunds = new(medium: 0.7, high: 0.92);
 
-    public static BankingAction Route(BankingRequest request)
+    public static ShopAction Route(ChatMessage message)
     {
-        var intent = request.Intent;
+        var intent = message.Intent;
         return intent.Value switch
         {
-            BankingIntent.CheckBalance => RouteBalanceCheck(intent.Confidence),
-            BankingIntent.TransferMoney => RouteTransfer(intent.Confidence),
-            _ => BankingAction.HandToHuman,
+            ShopIntent.TrackOrder => RouteTracking(intent.Confidence),
+            ShopIntent.CancelOrder => RouteCancel(intent.Confidence),
+            ShopIntent.RequestRefund => RouteRefund(intent.Confidence),
+            _ => ShopAction.HandToPerson,
         };
     }
 
-    // Reading a balance changes nothing, so the documented defaults are enough and Medium is safe to act on.
-    private static BankingAction RouteBalanceCheck(double confidence)
+    // Showing where an order is changes nothing, so the default thresholds are enough and Medium is safe to act on.
+    private static ShopAction RouteTracking(double confidence)
         => ConfidenceThresholds.Default.Classify(confidence) == ConfidenceTier.Low
-            ? BankingAction.HandToHuman
-            : BankingAction.CheckBalance;
+            ? ShopAction.HandToPerson
+            : ShopAction.ShowTracking;
 
-    private static BankingAction RouteTransfer(double confidence)
-        => Transfers.Classify(confidence) switch
+    // A cancelled order can be placed again, so cancelling uses the default thresholds, but Medium asks first.
+    private static ShopAction RouteCancel(double confidence)
+        => ConfidenceThresholds.Default.Classify(confidence) switch
         {
-            ConfidenceTier.High => BankingAction.Transfer,
-            ConfidenceTier.Medium => BankingAction.ConfirmTransfer,
-            _ => BankingAction.HandToHuman,
+            ConfidenceTier.High => ShopAction.CancelOrder,
+            ConfidenceTier.Medium => ShopAction.ConfirmCancel,
+            _ => ShopAction.HandToPerson,
+        };
+
+    private static ShopAction RouteRefund(double confidence)
+        => Refunds.Classify(confidence) switch
+        {
+            ConfidenceTier.High => ShopAction.IssueRefund,
+            ConfidenceTier.Medium => ShopAction.ConfirmRefund,
+            _ => ShopAction.HandToPerson,
         };
 }
 #endregion

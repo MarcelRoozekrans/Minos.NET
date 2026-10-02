@@ -1,70 +1,72 @@
 namespace ZeroAlloc.Jev.Docs.Tests;
 
 #region IntentRoutingQuestions
-public enum RequestIntent
+public enum HelpdeskIntent
 {
-    [Criteria("Where an order is, or when it arrives")]
-    OrderStatus,
+    [Criteria("Locked out, or needs a password reset")]
+    PasswordReset,
 
-    [Criteria("How a product works or what it includes")]
-    ProductQuestion,
+    [Criteria("How to install, use or configure some software")]
+    SoftwareQuestion,
 
-    [Criteria("A complaint or a dispute")]
-    Complaint,
+    [Criteria("A device or a peripheral is broken or misbehaving")]
+    HardwareFault,
 }
 
-public enum Complexity
+public enum Effort
 {
-    [Level("Simple: one fact answers it")]
-    Simple,
+    [Level("Quick: a few minutes, one step")]
+    Quick,
 
-    [Level("Moderate: needs some context")]
-    Moderate,
+    [Level("Involved: several steps, or some back and forth")]
+    Involved,
 
-    [Level("Complex: needs judgement")]
-    Complex,
+    [Level("A project: needs planning or several people")]
+    Project,
 }
 
 [JevQuestions]
-public partial record IncomingRequest
+public partial record HelpdeskTicket
 {
-    [Choice("What does the customer want?")]
-    public partial Choice<RequestIntent> Intent { get; }
+    [Choice("What does the employee need?")]
+    public partial Choice<HelpdeskIntent> Intent { get; }
 
-    [Score("How complex is the request?")]
-    public partial Score<Complexity> Complexity { get; }
+    [Score("How much work will this take to resolve?")]
+    public partial Score<Effort> Effort { get; }
 }
 #endregion
 
 #region IntentRoutingRules
-public enum RequestHandler
+public enum HelpdeskRoute
 {
-    OrderLookup,
-    ProductAssistant,
-    Person,
+    SelfServiceReset,
+    SoftwareAssistant,
+    Technician,
+    ServiceDesk,
 }
 
-public static class RequestRouting
+public static class HelpdeskRouting
 {
-    // Jev is the cheap first step: it decides who handles a request, and only the requests that need a
+    // Jev is the cheap first step: it decides who handles a ticket, so only the tickets that need a
     // language model or a person reach one.
-    public static RequestHandler Route(IncomingRequest request)
+    public static HelpdeskRoute Route(HelpdeskTicket ticket)
     {
-        if (ConfidenceThresholds.Default.Classify(request.Intent.Confidence) == ConfidenceTier.Low)
+        if (ConfidenceThresholds.Default.Classify(ticket.Intent.Confidence) == ConfidenceTier.Low)
         {
-            return RequestHandler.Person; // unsure what the customer wants
+            return HelpdeskRoute.ServiceDesk; // unsure what the employee needs
         }
 
-        if (request.Complexity.Expected > 1.0)
+        if (ticket.Effort.Expected > 1.0)
         {
-            return RequestHandler.Person; // more than moderately complex
+            return HelpdeskRoute.ServiceDesk; // more than an involved fix
         }
 
-        return request.Intent.Value switch
+        return ticket.Intent.Value switch
         {
-            RequestIntent.OrderStatus => RequestHandler.OrderLookup,          // plain code and a database query
-            RequestIntent.ProductQuestion => RequestHandler.ProductAssistant, // a language model with product context
-            _ => RequestHandler.Person,
+            HelpdeskIntent.PasswordReset => HelpdeskRoute.SelfServiceReset,     // a flow in plain code, no model
+            HelpdeskIntent.SoftwareQuestion => HelpdeskRoute.SoftwareAssistant, // a language model with the docs
+            HelpdeskIntent.HardwareFault => HelpdeskRoute.Technician,          // someone must look at the device
+            _ => HelpdeskRoute.ServiceDesk,
         };
     }
 }
