@@ -32,6 +32,18 @@ internal static class ScriptedJev
         return (http, new JevClient(http, options), handler.Requests);
     }
 
+    /// <summary>
+    /// Only the HttpClient, configured as the client configures its own, for a test that builds the client itself, for
+    /// example to pass a logger factory.
+    /// </summary>
+    public static (HttpClient Http, IReadOnlyList<Sent> Requests) Http(JevClientOptions options, params Reply[] script)
+    {
+        var handler = new Handler(script);
+        var http = new HttpClient(handler) { BaseAddress = new Uri("https://docs.example/api/") };
+        JevClient.ConfigureHttpClient(http, options);
+        return (http, handler.Requests);
+    }
+
     /// <summary>Options with a short backoff, so a retried test finishes in milliseconds.</summary>
     public static JevClientOptions Quick(int maxRetries = 2)
         => new()

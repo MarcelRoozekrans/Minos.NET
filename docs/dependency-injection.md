@@ -194,7 +194,7 @@ Things to know when you bind:
 - **A value the binder cannot convert**, such as `"MaxRetries": "abc"`, fails with the binder's
   `InvalidOperationException`, not with an `OptionsValidationException`. A value that converts but is out of range, such
   as `"MaxRetries": 11`, is checked like any other, as the next section says.
-- **Binding uses no reflection,** so it works under Native AOT without any setup.
+- **Binding uses no reflection,** so it works under [Native AOT](native-aot.md) without any setup.
 - **Changes are not picked up.** The client is a singleton that reads its options once, so a change to the configuration
   after it is built has no effect.
 
@@ -242,7 +242,7 @@ Some things still need valid options, an API key included:
 
 - **One singleton per registration.** It reads its named options once, when the container first builds it. The default
   client reads the default options, and a keyed client reads the options named by its key. The client logs through the
-  container's `ILoggerFactory`.
+  container's `ILoggerFactory`, as [Logging, traces and metrics](observability.md#logging) describes.
 - **A repeat call for the same name** adds its delegate, and the delegates run in order. It does not register a second
   client.
 - **Your own registration wins.** `AddJevClient` registers the client with `TryAdd`, so an `IJevClient` you registered
@@ -342,7 +342,8 @@ Jev's clients. Jev's client already logs each operation and each retried attempt
 category, and the factory's logging handlers add work to every request. Call `AddDefaultLogger()` on the builder
 `AddJevClient` returns to bring the factory's logs back.
 
-Without a logging provider, or with Jev's log levels turned off, the client logs nothing.
+Without a logging provider, or with Jev's log levels turned off, the client logs nothing. [Logging, traces and
+metrics](observability.md#logging) lists the events and their levels.
 
 ## Using Jev without the package
 

@@ -11,8 +11,9 @@ A `[JevQuestions]` type fixes its questions, options and keys when you compile. 
 program runs: the products come from a database, or each tenant has its own teams. For those cases you build the set
 with a builder instead. The result is a `JevQuestionSet`, which you evaluate and read much like a typed one.
 
-Prefer a [typed question set](typed-evaluation.md) when the questions are fixed. It needs no handles, and the analyzers
-check it as you type. A built set is checked when you call `Build()`, as [below](#checking-the-set).
+Prefer a [typed question set](typed-evaluation.md) when the questions are fixed. It needs no handles, and the
+[analyzers](diagnostics.md) check it as you type. A built set is checked when you call `Build()`, as
+[below](#checking-the-set).
 
 ## Building a set
 
@@ -183,8 +184,8 @@ Any `IJevClient` can evaluate a built set, including a hand-written fake that im
 
 ## Checking the set
 
-`Build()` returns a `Result<JevQuestionSet, JevError>`. It checks the questions against the rules the analyzers apply to
-a typed set, and the rule ids are the same.
+`Build()` returns a `Result<JevQuestionSet, JevError>`. It checks the questions against the rules the
+[analyzers](diagnostics.md) apply to a typed set, and the rule ids are the same.
 
 | Rule | What it checks | Outcome |
 | --- | --- | --- |
@@ -271,10 +272,10 @@ error, so it throws and does not return a failed `Result`.
 Building validates the questions and writes the request JSON, so do it once and keep the set, as `TenantRouter` does in
 its constructor. A `JevQuestionSet` is immutable and safe to share across threads. A builder is not thread-safe.
 
-An enum question reads the enum's public fields, which is safe to trim and for Native AOT: the builder's generic
-parameters are annotated so that the trimmer keeps them. A method of yours that passes its own generic parameter on to
-`Choice<T>`, `Score<T>` or `JevAnswers.Get` needs the same annotation on that parameter:
-`[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)]`.
+An enum question reads the enum's public fields, which is safe to trim and for [Native
+AOT](native-aot.md#the-one-use-of-reflection): the builder's generic parameters are annotated so that the trimmer keeps
+them. A method of yours that passes its own generic parameter on to `Choice<T>`, `Score<T>` or `JevAnswers.Get` needs
+the same annotation on that parameter: `[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)]`.
 
 ## Next
 

@@ -50,9 +50,9 @@ Until then you can build them yourself, as the next section shows.
 dotnet add package ZeroAlloc.Jev
 ```
 
-`ZeroAlloc.Jev` is the core. It already contains the source generator and the analyzers, so there is nothing else to
-install for typed questions. If you use dependency injection in a .NET host, add the integration package as well,
-which [dependency injection](dependency-injection.md) covers:
+`ZeroAlloc.Jev` is the core. It already contains the source generator and the [analyzers](diagnostics.md), so there is
+nothing else to install for typed questions. If you use dependency injection in a .NET host, add the integration package
+as well, which [dependency injection](dependency-injection.md) covers:
 
 ```shell
 dotnet add package ZeroAlloc.Jev.DependencyInjection
@@ -191,10 +191,13 @@ The guide has one page per topic.
 - [Question sets at run time](question-sets-at-run-time.md): building a set from data.
 - [The client and its errors](client-and-errors.md): options, retries, time-outs and every `JevError`.
 - [Dependency injection](dependency-injection.md): registering the client in a .NET host.
+- [Logging, traces and metrics](observability.md): what the client reports about each call.
+- [Native AOT and allocations](native-aot.md): running as a native executable, and the allocation budgets.
+- [Diagnostics](diagnostics.md): every analyzer rule for question sets, and how to suppress one.
 - [Patterns](patterns/index.md): four ways to put the answers to work.
 - [Performance](performance.md): what a call costs, measured.
 
-More pages follow in this guide: observability, Native AOT, diagnostics, and testing your code.
+One more page follows in this guide: testing your code.
 
 ## Next
 

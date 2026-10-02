@@ -54,8 +54,9 @@ There are two families of constructor.
   [dependency injection](dependency-injection.md#using-jev-without-the-package) page shows.
 
 Both families take a `null` options object to mean "all defaults and environment variables", and both have an overload
-that also takes an `ILoggerFactory`. With one, the client logs each operation and each retried attempt. What it logs
-never contains the state, the questions, the answers, the API key or a header value.
+that also takes an `ILoggerFactory`. With one, the client logs each operation and each retried attempt, as [Logging,
+traces and metrics](observability.md#logging) describes. What it logs never contains the state, the questions, the
+answers, the API key or a header value.
 
 A client throws instead of returning a failure only for mistakes in the calling code. A missing API key, an invalid
 option or a `null` request throws when you create the client or make the call. Calling a disposed client throws
