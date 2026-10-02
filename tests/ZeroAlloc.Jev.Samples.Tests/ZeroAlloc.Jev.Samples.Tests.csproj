@@ -3,6 +3,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\samples\ZeroAlloc.Jev.Samples.Shared\ZeroAlloc.Jev.Samples.Shared.csproj" />
     <ProjectReference Include="..\..\samples\ZeroAlloc.Jev.Samples.Guardrails\ZeroAlloc.Jev.Samples.Guardrails.csproj" />
+    <ProjectReference Include="..\..\samples\ZeroAlloc.Jev.Samples.IntentRouting\ZeroAlloc.Jev.Samples.IntentRouting.csproj" />
     <ProjectReference Include="..\..\src\ZeroAlloc.Jev.Generator\ZeroAlloc.Jev.Generator.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
