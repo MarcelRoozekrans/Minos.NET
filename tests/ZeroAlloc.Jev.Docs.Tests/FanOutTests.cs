@@ -2,6 +2,8 @@ namespace ZeroAlloc.Jev.Docs.Tests;
 
 public sealed class FanOutTests
 {
+    private static readonly string[] QuestionKeys = ["category", "bug_severity", "has_repro_steps", "asks_for_refund", "mood"];
+
     // A blocking bug with repro steps from an angry customer who does not ask for a refund.
     private const string BlockingBugResponse = """
         {
@@ -50,9 +52,9 @@ public sealed class FanOutTests
     }
 
     [Fact]
-    public async Task TriageAsync_RoutesThroughTheClient()
+    public async Task TriageAsync_RoutesThroughTheClient_InOneRequest()
     {
-        var (http, jev) = CannedJev.Client(BlockingBugResponse);
+        var (http, jev, requests) = CannedJev.Client(BlockingBugResponse);
         using (http)
         using (jev)
         {
@@ -60,5 +62,14 @@ public sealed class FanOutTests
                 TicketActions.EscalateToEngineering | TicketActions.Prioritize,
                 await TicketTriage.TriageAsync(jev, "Export crashes every time.", CancellationToken.None));
         }
+
+        // The guide's core claim: every question travels in the same request.
+        Assert.Collection(requests, body =>
+        {
+            foreach (var key in QuestionKeys)
+            {
+                Assert.Contains($"\"{key}\"", body, StringComparison.Ordinal);
+            }
+        });
     }
 }

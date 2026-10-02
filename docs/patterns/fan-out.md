@@ -1,11 +1,12 @@
 # Speculative fan-out
 
 Ask every question you might need in a single request, then let your code read only the answers that matter for this
-input. Jev answers all of them in one call, and extra questions add little latency or cost compared with separate
-requests, so there is no reason to decide up front which questions apply.
+input. Jev answers all of them in one call. The questions share one round trip, so adding another question costs far
+less than sending another request, and there is no reason to decide up front which questions apply. Each question still
+adds some tokens to the call.
 
-TypeSafe describes the pattern in [Speculative fan-out](https://docs.typesafe.ai/patterns/fan-out). This page shows it
-with a typed question set.
+TypeSafe describes the pattern in [Speculative fan-out](https://docs.typesafe.ai/patterns/fan-out), including their
+measured numbers. This page shows it with a typed question set.
 
 ## The questions
 
@@ -129,7 +130,8 @@ public static class TicketRouting
 public static async Task<TicketActions?> TriageAsync(IJevClient jev, string ticketText, CancellationToken ct)
 {
     var result = await jev.EvaluateAsync<SupportTicket>(ticketText, ct);
-    return result.IsSuccess ? TicketRouting.Route(result.Value) : null; // null: send it to a person
+    // On failure, result.Error.Kind and .Message say why: log them and send the ticket to a person.
+    return result.IsSuccess ? TicketRouting.Route(result.Value) : null;
 }
 ```
 <!-- endSnippet -->

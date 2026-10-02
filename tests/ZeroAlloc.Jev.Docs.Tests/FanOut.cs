@@ -107,7 +107,8 @@ public static class TicketTriage
     public static async Task<TicketActions?> TriageAsync(IJevClient jev, string ticketText, CancellationToken ct)
     {
         var result = await jev.EvaluateAsync<SupportTicket>(ticketText, ct);
-        return result.IsSuccess ? TicketRouting.Route(result.Value) : null; // null: send it to a person
+        // On failure, result.Error.Kind and .Message say why: log them and send the ticket to a person.
+        return result.IsSuccess ? TicketRouting.Route(result.Value) : null;
     }
     #endregion
 }
