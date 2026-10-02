@@ -32,6 +32,6 @@ public sealed class RecordingsFile
 /// <summary>One recorded response body and the hash of the request that produced it.</summary>
 public sealed record RecordedResponse(string RequestHash, string ResponseBody);
 
-[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, WriteIndented = true)]
+[JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, WriteIndented = true, NewLine = "\n")]
 [JsonSerializable(typeof(RecordingsFile))]
 internal sealed partial class RecordingsJsonContext : JsonSerializerContext;

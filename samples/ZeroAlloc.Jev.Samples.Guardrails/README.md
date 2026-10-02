@@ -16,6 +16,8 @@ dotnet run --project samples/ZeroAlloc.Jev.Samples.Guardrails
 
 By default the sample replays the answers checked in as `recordings.json`. It needs no network and no key.
 
+Replay reads `recordings.json` from the sample's source folder in the repository checkout, so run the sample from a clone of the repository.
+
 To call the API instead, set `OPENROUTER_API_KEY` and pass a mode after `--`:
 
 - `-- --live` sends the requests and prints the report.
@@ -33,7 +35,7 @@ The thresholds in `GuardrailPolicy.cs` are starting points, not recommendations.
 
 A request for medical or legal advice is only ever reviewed, never blocked on that answer alone. The question says what a message is about, not that it is harmful, so it is routed to a person; it is blocked only when its content is harmful, which the severity score decides.
 
-On the recorded messages the two policies differ mainly on borderline cases, because the model is confident about most of them. The policy tests in `tests/ZeroAlloc.Jev.Samples.Tests` feed made-up answers through each rule and show where the thresholds bite.
+On the recorded messages both policies give the same split, because the model is confident about every one of them. The two only part ways on borderline answers. The policy tests in `tests/ZeroAlloc.Jev.Samples.Tests` feed made-up answers through each rule and show where their thresholds differ.
 
 ## Credit
 

@@ -34,6 +34,20 @@ jobs:
       - name: Test
         run: dotnet test ZeroAlloc.Jev.slnx --no-build -c Release --logger "trx" --results-directory ./test-results
 
+      - name: Run the cookbook samples in replay mode
+        # Runs each sample's real entry point (argument parsing, config, host wiring) offline from its checked-in
+        # recordings. No key: OPENROUTER_API_KEY is unset, so a sample that tried the network would fail validation.
+        env:
+          OPENROUTER_API_KEY: ""
+        run: |
+          for sample in Guardrails IntentRouting Reranking; do
+            echo "::group::$sample"
+            timeout 120s dotnet run --project "samples/ZeroAlloc.Jev.Samples.$sample" --no-build -c Release | tee "sample-$sample.txt"
+            test "${PIPESTATUS[0]}" -eq 0
+            test -s "sample-$sample.txt"
+            echo "::endgroup::"
+          done
+
       - name: Check docs snippets
         # Every C# block in the user docs comes from tests/ZeroAlloc.Jev.Docs.Tests, which the Build step compiled.
         # Regenerate the docs and fail when any tracked file differs: a snippet changed without re-running

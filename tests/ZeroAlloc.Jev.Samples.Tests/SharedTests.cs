@@ -106,6 +106,24 @@ public sealed class SharedTests
     }
 
     [Fact]
+    public void Save_WritesOnlyLineFeeds_OnEveryPlatform()
+    {
+        var path = Path.GetTempFileName();
+        try
+        {
+            File(new RecordedResponse("abc123", Body)).Save(path);
+            var text = System.IO.File.ReadAllText(path);
+
+            Assert.DoesNotContain('\r', text);
+            Assert.EndsWith("}\n", text, StringComparison.Ordinal);
+        }
+        finally
+        {
+            System.IO.File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void ToFile_RejectsResponsesFromDifferentModels()
     {
         var session = new RecordingSession();
