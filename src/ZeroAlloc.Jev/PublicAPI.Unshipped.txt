@@ -15,3 +15,5 @@ override ZeroAlloc.Jev.ConfidenceThresholds.GetHashCode() -> int
 static ZeroAlloc.Jev.ConfidenceThresholds.Default.get -> ZeroAlloc.Jev.ConfidenceThresholds
 static ZeroAlloc.Jev.ConfidenceThresholds.operator !=(ZeroAlloc.Jev.ConfidenceThresholds left, ZeroAlloc.Jev.ConfidenceThresholds right) -> bool
 static ZeroAlloc.Jev.ConfidenceThresholds.operator ==(ZeroAlloc.Jev.ConfidenceThresholds left, ZeroAlloc.Jev.ConfidenceThresholds right) -> bool
+ZeroAlloc.Jev.KeyedScore.Normalized.get -> double
+ZeroAlloc.Jev.Score<T>.Normalized.get -> double
