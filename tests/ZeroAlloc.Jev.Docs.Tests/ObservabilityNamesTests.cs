@@ -80,9 +80,7 @@ public sealed class ObservabilityNamesTests
     public void ThePackages_TakeNoOpenTelemetryDependency(string project)
     {
         var projectFile = File.ReadAllText(Path.Combine(PublishedPages.Root, "src", project, project + ".csproj"));
-        var packages = File.ReadAllText(Path.Combine(PublishedPages.Root, "Directory.Packages.props"));
 
         Assert.DoesNotContain("OpenTelemetry", projectFile, StringComparison.OrdinalIgnoreCase);
-        Assert.DoesNotContain("OpenTelemetry", packages, StringComparison.OrdinalIgnoreCase);
     }
 }

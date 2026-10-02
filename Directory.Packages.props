@@ -41,6 +41,9 @@
       Microsoft.Extensions.Logging's 10.0.12, so nothing they bring is an NU1605 downgrade.
     -->
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.12" />
+    <!-- The docs tests only: compiles the observability page's OpenTelemetry wiring. The library takes no OpenTelemetry
+      dependency. -->
+    <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.19.1" />
     <PackageVersion Include="Microsoft.Extensions.Configuration" Version="10.0.12" />
     <!--
       The DI package's IHttpClientFactory and AddHttpClient. Its floor is the first .NET 10 release, as for

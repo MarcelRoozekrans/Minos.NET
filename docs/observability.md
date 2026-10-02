@@ -167,10 +167,6 @@ is the version of the `ZeroAlloc.Jev` package you installed.
 <!-- snippet: Observability_OpenTelemetryNames -->
 ```cs
 // The two names an OpenTelemetry setup needs. The source carries the spans and the meter carries the metrics.
-// With the OpenTelemetry.Extensions.Hosting package an application passes them on like this:
-//   services.AddOpenTelemetry()
-//       .WithTracing(tracing => tracing.AddSource(JevTelemetryNames.Source))
-//       .WithMetrics(metrics => metrics.AddMeter(JevTelemetryNames.Meter));
 public static class JevTelemetryNames
 {
     public const string Source = "ZeroAlloc.Jev";
@@ -183,7 +179,23 @@ public static class JevTelemetryNames
 The `ZeroAlloc.Jev` package takes no OpenTelemetry dependency, and neither does `ZeroAlloc.Jev.DependencyInjection`.
 Your application brings OpenTelemetry itself, usually the `OpenTelemetry.Extensions.Hosting` package, whose
 `AddOpenTelemetry()` starts the setup. Pass the source to `WithTracing` with `AddSource`, and the meter to `WithMetrics`
-with `AddMeter`, using the two names above, and add an exporter for where the data should go.
+with `AddMeter`:
+
+<!-- snippet: Observability_OpenTelemetryWiring -->
+```cs
+// Needs the OpenTelemetry.Extensions.Hosting package. Add an exporter to each builder for where the data should go.
+public static IServiceCollection AddJevTelemetry(this IServiceCollection services)
+{
+    services.AddOpenTelemetry()
+        .WithTracing(tracing => tracing.AddSource(JevTelemetryNames.Source))
+        .WithMetrics(metrics => metrics.AddMeter(JevTelemetryNames.Meter));
+
+    return services;
+}
+```
+<!-- endSnippet -->
+
+Then add an exporter to each builder for where the data should go.
 
 OpenTelemetry is one listener. Anything built on `ActivityListener` and `MeterListener` hears the same signals, and this
 one is small enough to read. The tests behind this page use it.
