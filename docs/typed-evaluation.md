@@ -297,7 +297,8 @@ failure with kind `JevErrorKind.InvalidResponse`.
 
 The model is the one in `JevClientOptions.Model`, which defaults to the alias `jev-latest`. `JevClient` writes the
 request straight from the generated JSON into pooled buffers. Any other `IJevClient`, such as a hand-written fake in a
-test, works as well, through the default interface methods that go by way of `SystemOneRequest`.
+test, works as well, through the default interface methods that go by way of
+[`SystemOneRequest`](client-and-errors.md#the-raw-request-api).
 
 ## JevContent
 
@@ -346,3 +347,4 @@ get-only instance properties.
 - [Question sets built at run time](question-sets-at-run-time.md): when the questions, options or keys come from data.
 - [Question types](question-types.md): what each answer holds.
 - [Patterns](patterns/index.md): complete examples that put the answers to work.
+- [The client and its errors](client-and-errors.md): the options, retries, and every `JevError` a call can return.

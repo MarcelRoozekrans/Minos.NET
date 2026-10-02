@@ -254,7 +254,7 @@ public static IReadOnlyList<string> Advice()
 <!-- endSnippet -->
 
 A `switch` over `JevErrorKind` needs a case for `InvalidQuestions`, since a failed `Build()` is the one place it
-appears.
+appears. [The client and its errors](client-and-errors.md#errors) lists the other kinds.
 
 ## Handles
 

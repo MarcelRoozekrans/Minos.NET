@@ -51,7 +51,8 @@ dotnet add package ZeroAlloc.Jev
 ```
 
 `ZeroAlloc.Jev` is the core. It already contains the source generator and the analyzers, so there is nothing else to
-install for typed questions. If you use dependency injection in a .NET host, add the integration package as well:
+install for typed questions. If you use dependency injection in a .NET host, add the integration package as well,
+which [dependency injection](dependency-injection.md) covers:
 
 ```shell
 dotnet add package ZeroAlloc.Jev.DependencyInjection
@@ -175,7 +176,8 @@ public static async Task<string> TriageAsync(IJevClient jev, string message, Can
 
 Given a message such as "Help! My payouts have been failing for 3 days.", a typical reply makes this return
 `urgent, for Billing`. On failure, `result.Error.Kind` says what went wrong, for example a rejected key or a network
-error, and `result.Error.Message` explains it.
+error, and `result.Error.Message` explains it. [The client and its errors](client-and-errors.md#errors) lists every kind
+and what to do about each.
 
 The call needs an `IJevClient`. `JevClient` implements it, and a test can hand in a fake. See the
 [patterns](patterns/index.md) for complete, runnable uses of these answers.
@@ -187,11 +189,12 @@ The guide has one page per topic.
 - [Question types](question-types.md): Noul, Choice and Score in detail, and how confidence differs from probability.
 - [Typed evaluation](typed-evaluation.md): declaring questions, typed state and the evaluate overloads.
 - [Question sets at run time](question-sets-at-run-time.md): building a set from data.
+- [The client and its errors](client-and-errors.md): options, retries, time-outs and every `JevError`.
+- [Dependency injection](dependency-injection.md): registering the client in a .NET host.
 - [Patterns](patterns/index.md): four ways to put the answers to work.
 - [Performance](performance.md): what a call costs, measured.
 
-More pages follow in this guide: the client and its errors, dependency injection, observability, Native AOT,
-diagnostics, and testing your code.
+More pages follow in this guide: observability, Native AOT, diagnostics, and testing your code.
 
 ## Next
 
