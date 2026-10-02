@@ -22,6 +22,7 @@
     <Project Path="samples/ZeroAlloc.Jev.Samples.Shared/ZeroAlloc.Jev.Samples.Shared.csproj" />
     <Project Path="samples/ZeroAlloc.Jev.Samples.Guardrails/ZeroAlloc.Jev.Samples.Guardrails.csproj" />
     <Project Path="samples/ZeroAlloc.Jev.Samples.IntentRouting/ZeroAlloc.Jev.Samples.IntentRouting.csproj" />
+    <Project Path="samples/ZeroAlloc.Jev.Samples.Reranking/ZeroAlloc.Jev.Samples.Reranking.csproj" />
   </Folder>
   <Folder Name="/benchmarks/">
     <Project Path="benchmarks/ZeroAlloc.Jev.Benchmarks/ZeroAlloc.Jev.Benchmarks.csproj" />
