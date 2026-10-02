@@ -56,6 +56,7 @@ public sealed class SharedTests
             () => http.PostAsync(new Uri("https://example.test/v1"), new StringContent("{}")));
 
         Assert.Contains("dotnet run --project samples/ZeroAlloc.Jev.Samples.Example -- --record", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("Its questions, its data or the client's request format changed", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

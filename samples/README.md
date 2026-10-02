@@ -26,7 +26,7 @@ A sample runs in one of three modes, chosen by the argument after `--`:
 
 ## The recordings
 
-The checked-in recordings are real OpenRouter answers from the model `typesafe/jev-1.13-20260917`, all recorded on 2026-10-02. A recording holds only the provider, the model, the date and the response bodies keyed by a hash of the request. It never holds headers or a key, and a test checks that. Record again with `--record` when a sample's questions or data change.
+The checked-in recordings are real OpenRouter answers from the model `typesafe/jev-1.13-20260917`, all recorded on 2026-10-02. A recording holds only the provider, the model, the date and the response bodies keyed by a hash of the request. It never holds headers or a key, and a test checks that. Record again with `--record` when a sample's questions or data change. A change to the client's request format in the core library changes the request of every sample, so it means re-recording all of them; replay names the sample and the command when a request has no recorded answer.
 
 ## Not a sample
 

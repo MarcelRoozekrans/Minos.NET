@@ -32,8 +32,8 @@ public sealed class ReplayHandler : HttpMessageHandler
         if (!_responses.TryGetValue(RequestHash.Of(body), out var response))
         {
             throw new InvalidOperationException(
-                "No recorded answer for this request in " + _sampleName + ". Its questions or data changed since it was "
-                + "recorded. Re-record with: dotnet run --project samples/" + _sampleName + " -- --record");
+                "No recorded answer for this request in " + _sampleName + ". Its questions, its data or the client's request "
+                + "format changed since it was recorded. Re-record with: dotnet run --project samples/" + _sampleName + " -- --record");
         }
 
         return new HttpResponseMessage(HttpStatusCode.OK)
