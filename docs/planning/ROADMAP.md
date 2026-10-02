@@ -193,12 +193,13 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-02-phase-4.1-pattern-helpers.md`
 **Completed:** 2026-10-02
 
-### Phase 4.2: Cookbook samples [status: active]
+### Phase 4.2: Cookbook samples [status: complete]
 **Goal:** Original guardrails, intent-routing and re-ranking samples that run live or in replay mode from recorded OpenRouter answers, with CI checking their decisions in replay mode.
 **Surface:** Docs
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-10-02-phase-4.2-cookbook-samples-design.md`
 **Plan:** `docs/superpowers/plans/2026-10-02-phase-4.2-cookbook-samples.md`
+**Completed:** 2026-10-02
 
 ### Phase 4.3: User guide [status: pending]
 **Goal:** The user guide in `docs/`, in the org layout: getting started, every question type, typed evaluation and builders, DI and configuration, logging and telemetry, Native AOT, patterns and samples. Closes #16.
