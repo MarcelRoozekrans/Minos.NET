@@ -34,7 +34,7 @@ public sealed class TestingYourCodeHttpTests
             "desk": {
               "type": "choice",
               "choice": "billing",
-              "probabilities": { "billing": 0.8, "technical": 0.2 },
+              "probabilities": { "billing": 0.7, "technical": 0.2, "product_team": 0.1 },
               "confidence": 0.8
             }
           },

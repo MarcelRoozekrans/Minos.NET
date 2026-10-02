@@ -1,6 +1,8 @@
 namespace ZeroAlloc.Jev.Docs.Tests;
 
 #region TestingYourCode_Fake
+using System.Text.Json;
+using ZeroAlloc.Jev;
 using ZeroAlloc.Results;
 
 // A fake implements the two abstract members. Every other member of IJevClient has a default that calls EvaluateAsync.
@@ -14,7 +16,13 @@ public sealed class FakeJev(Result<SystemOneResponse, JevError> reply) : IJevCli
     // A reply that answers both questions of TriageQuestions.
     public static FakeJev Answering(double urgent, TriageDesk desk, double deskConfidence)
     {
-        var other = desk == TriageDesk.Billing ? TriageDesk.Technical : TriageDesk.Billing;
+        // A Choice names its options by the enum member in snake_case, so ProductTeam is product_team.
+        var probabilities = new Dictionary<string, double>();
+        foreach (var option in Enum.GetValues<TriageDesk>())
+        {
+            probabilities[JsonNamingPolicy.SnakeCaseLower.ConvertName(option.ToString())] = option == desk ? 0.7 : 0.15;
+        }
+
         return new FakeJev(Result<SystemOneResponse, JevError>.Success(new SystemOneResponse
         {
             Model = "fake",
@@ -25,13 +33,9 @@ public sealed class FakeJev(Result<SystemOneResponse, JevError> reply) : IJevCli
                 ["is_urgent"] = new NoulAnswer { Noul = urgent },
                 ["desk"] = new ChoiceAnswer
                 {
-                    Choice = desk.ToString().ToLowerInvariant(),
+                    Choice = JsonNamingPolicy.SnakeCaseLower.ConvertName(desk.ToString()),
                     Confidence = deskConfidence,
-                    Probabilities = new Dictionary<string, double>
-                    {
-                        [desk.ToString().ToLowerInvariant()] = 0.7,
-                        [other.ToString().ToLowerInvariant()] = 0.3,
-                    },
+                    Probabilities = probabilities,
                 },
             },
         }));

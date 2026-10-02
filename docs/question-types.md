@@ -156,7 +156,8 @@ builds on this.
 
 When the options or levels are only known at run time, you
 [build the question set with a builder](question-sets-at-run-time.md) instead of declaring a
-[typed set](typed-evaluation.md). The Choice and Score then have keyed forms: `KeyedChoice` and `KeyedScore`. They hold the same things, with strings in place of enum members.
+[typed set](typed-evaluation.md). The Choice and Score then have keyed forms: `KeyedChoice` and `KeyedScore`. They
+hold the same things, with strings in place of enum members.
 
 - `KeyedChoice.Value` is the key of the option Jev picked, a string. Its `Probabilities` are a `KeyedProbabilityMap`,
   looked up by key.

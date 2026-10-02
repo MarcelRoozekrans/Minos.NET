@@ -111,3 +111,8 @@ public static class HelpdeskRouting
 - The effort cut-off of 1.0, "involved", is a starting point. Tune it on your own tickets.
 - The same questions can be built at run time instead of declared; the [fan-out](fan-out.md#built-at-run-time) guide
   shows how.
+
+## Next
+
+- [Samples](../samples.md): three whole programs, including one that routes by intent, run offline from recorded answers.
+- [Patterns](index.md): the four patterns and how they combine.

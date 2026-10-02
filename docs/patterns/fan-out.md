@@ -220,3 +220,8 @@ public sealed class BuiltReviewTriage
 - The thresholds here (0.6, 1.5, 0.7) are starting points. Tune them on your own reviews.
 - The guide covers the builder in full, including its validation rules, in
   [Question sets at run time](../question-sets-at-run-time.md).
+
+## Next
+
+- [Confidence routing](confidence-routing.md): gate each action on the answer's confidence.
+- [Question sets at run time](../question-sets-at-run-time.md): the builder behind the run-time version above.

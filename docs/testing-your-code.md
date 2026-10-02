@@ -28,6 +28,7 @@ public enum TriageDesk
 {
     Billing,
     Technical,
+    ProductTeam,
 }
 
 // Two questions about a ticket's text. The wire keys are the property names in snake_case: is_urgent and desk.
@@ -95,6 +96,8 @@ text, `JsonElement` and UTF-8 overloads, all end up in the one method the fake w
 
 <!-- snippet: TestingYourCode_Fake -->
 ```cs
+using System.Text.Json;
+using ZeroAlloc.Jev;
 using ZeroAlloc.Results;
 
 // A fake implements the two abstract members. Every other member of IJevClient has a default that calls EvaluateAsync.
@@ -108,7 +111,13 @@ public sealed class FakeJev(Result<SystemOneResponse, JevError> reply) : IJevCli
     // A reply that answers both questions of TriageQuestions.
     public static FakeJev Answering(double urgent, TriageDesk desk, double deskConfidence)
     {
-        var other = desk == TriageDesk.Billing ? TriageDesk.Technical : TriageDesk.Billing;
+        // A Choice names its options by the enum member in snake_case, so ProductTeam is product_team.
+        var probabilities = new Dictionary<string, double>();
+        foreach (var option in Enum.GetValues<TriageDesk>())
+        {
+            probabilities[JsonNamingPolicy.SnakeCaseLower.ConvertName(option.ToString())] = option == desk ? 0.7 : 0.15;
+        }
+
         return new FakeJev(Result<SystemOneResponse, JevError>.Success(new SystemOneResponse
         {
             Model = "fake",
@@ -119,13 +128,9 @@ public sealed class FakeJev(Result<SystemOneResponse, JevError> reply) : IJevCli
                 ["is_urgent"] = new NoulAnswer { Noul = urgent },
                 ["desk"] = new ChoiceAnswer
                 {
-                    Choice = desk.ToString().ToLowerInvariant(),
+                    Choice = JsonNamingPolicy.SnakeCaseLower.ConvertName(desk.ToString()),
                     Confidence = deskConfidence,
-                    Probabilities = new Dictionary<string, double>
-                    {
-                        [desk.ToString().ToLowerInvariant()] = 0.7,
-                        [other.ToString().ToLowerInvariant()] = 0.3,
-                    },
+                    Probabilities = probabilities,
                 },
             },
         }));
@@ -151,7 +156,9 @@ The reply is a `SystemOneResponse`, and its answers are keyed by **question key*
 `IsUrgent` is `is_urgent`, unless the attribute sets `Key`.
 [Typed evaluation](typed-evaluation.md#declaring-the-questions) has the rule. Each answer is a `NoulAnswer`, a
 `ChoiceAnswer` or a `ScoreAnswer`, and [Question types](question-types.md) says what each one holds. A Choice answer
-names its option by the enum member in snake_case, so `TriageDesk.Billing` is `billing`.
+names its option by the enum member in snake_case, so `TriageDesk.Billing` is `billing` and `TriageDesk.ProductTeam` is
+`product_team`. The fake gets the keys from `JsonNamingPolicy.SnakeCaseLower`, which converts names the way the
+library does.
 
 With the fake in hand, a test is a few lines: build the class, call it, assert the decision. The fake also keeps every
 request, so the test can check what the code asked.
@@ -224,8 +231,10 @@ review.
 
 ## Way two: a real `JevClient` over a canned HTTP reply
 
-A fake never runs the library's own code, so it cannot tell you that your question set builds the request you meant, or
-that a reply parses into the answers you read. For that, run a real `JevClient` and replace only the network. A
+A fake never runs `JevClient`. The client replaces the interface's default typed calls with its own request writer
+and its own parser for the answers, and the defaults send the default model. So a fake cannot tell you that your
+question set builds the request you meant, or that a reply parses into the answers you read. For that, run a real
+`JevClient` and replace only the network. A
 `JevClient` can take an `HttpClient` you made, and an `HttpClient` can take a **message handler**: the object that
 actually sends the request. A handler of your own that answers from memory means the full client runs, and no packet
 leaves the machine.
@@ -267,7 +276,7 @@ private const string UrgentBody = """
         "desk": {
           "type": "choice",
           "choice": "billing",
-          "probabilities": { "billing": 0.8, "technical": 0.2 },
+          "probabilities": { "billing": 0.7, "technical": 0.2, "product_team": 0.1 },
           "confidence": 0.8
         }
       },
@@ -331,8 +340,9 @@ public async Task ARejectedKey_BecomesAFailure_AndThePersonReviews()
 
 A few details are worth knowing.
 
-- **Give the client a key.** `JevClient` throws `InvalidOperationException` when it finds no API key, and a test machine
-  has none. Any string passes validation.
+- **Give the client a key.** Without `ApiKey`, the client reads the provider's key variable, `TYPESAFE_API_KEY` or
+  `OPENROUTER_API_KEY`, and throws `InvalidOperationException` when that is unset, as it is on most CI machines. A dummy
+  key keeps the test independent of the environment.
 - **Leave out the base address.** A client built over an `HttpClient` with no base address sets its own, and the handler
   never uses it.
 - **Set `MaxRetries` to 0 when a test replies with an error.** The client retries a 429, a 5xx and a network failure
@@ -341,8 +351,9 @@ A few details are worth knowing.
 - **The handler sees the real request.** The first test reads the body it was sent, and checks the state and a question
   key. That is a check a fake cannot make.
 
-To test retries themselves, make the handler follow a script, one reply per attempt, such as a 503 and then a success.
-The tests behind this guide do that for the retry examples on the client page.
+To test retries themselves, make the handler follow a script, with one reply per attempt, such as a 503 and then a
+success, and assert how many requests it saw. Set `InitialBackoff` and `MaxRetryDelay` in the options to a few
+milliseconds, such as 1 ms and 5 ms, so that the waits between attempts cost the test nothing.
 
 ## Which to use
 

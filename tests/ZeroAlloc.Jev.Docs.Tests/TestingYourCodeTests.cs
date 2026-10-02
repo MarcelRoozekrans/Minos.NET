@@ -1,3 +1,5 @@
+using System.Text.Json;
+
 namespace ZeroAlloc.Jev.Docs.Tests;
 
 /// <summary>The claims the testing page makes about fakes and canned responses.</summary>
@@ -11,8 +13,21 @@ public sealed class TestingYourCodeTests
         Assert.True((await jev.EvaluateAsync<TriageQuestions>("text")).IsSuccess);
         Assert.True((await jev.EvaluateAsync<TriageQuestions>("text", CancellationToken.None)).IsSuccess);
         Assert.True((await jev.EvaluateUtf8Async<TriageQuestions>("\"text\""u8.ToArray())).IsSuccess);
+        Assert.True((await jev.EvaluateAsync<TriageQuestions>(JsonElement.Parse("\"text\""))).IsSuccess);
+        Assert.True((await jev.EvaluateAsync<TriageQuestions>(JsonElement.Parse("{}"), CancellationToken.None)).IsSuccess);
 
-        Assert.Equal(3, ((FakeJev)jev).Requests.Count);
+        Assert.Equal(5, ((FakeJev)jev).Requests.Count);
+    }
+
+    [Fact]
+    public async Task ATwoWordOption_IsKeyedInSnakeCase_ByTheFake()
+    {
+        IJevClient jev = FakeJev.Answering(0.1, TriageDesk.ProductTeam, 0.9);
+
+        var result = await jev.EvaluateAsync<TriageQuestions>("text");
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(TriageDesk.ProductTeam, result.Value.Desk.Value);
     }
 
     [Fact]

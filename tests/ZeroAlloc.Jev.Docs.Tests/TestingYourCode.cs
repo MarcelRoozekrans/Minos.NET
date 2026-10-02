@@ -7,6 +7,7 @@ public enum TriageDesk
 {
     Billing,
     Technical,
+    ProductTeam,
 }
 
 // Two questions about a ticket's text. The wire keys are the property names in snake_case: is_urgent and desk.

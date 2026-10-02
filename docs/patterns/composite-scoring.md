@@ -143,3 +143,7 @@ public static class PullRequestScoring
 - Changing the policy means changing the weights. The request, and so the cost of the call, stays the same.
 - `KeyedScore.Normalized` does the same for question sets built at run time; the
   [fan-out](fan-out.md#built-at-run-time) guide shows how to build one.
+
+## Next
+
+- [Intent routing](intent-routing.md): make a cheap first decision that sends each request to code, a model or a person.
