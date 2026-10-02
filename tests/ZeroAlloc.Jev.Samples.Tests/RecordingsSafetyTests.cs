@@ -7,6 +7,7 @@ public sealed partial class RecordingsSafetyTests
 {
     private static readonly string[] Forbidden = ["Bearer", "api_key", "Authorization"];
     private static readonly string[] AllowedRootProperties = ["entries", "model", "provider", "recorded"];
+    private static readonly string[] AllowedEntryProperties = ["requestHash", "responseBody"];
 
     // The shape of an API key, such as OpenRouter's sk-or-v1-..., not the bare prefix: a response body may say "risk-based".
     [GeneratedRegex("sk-[A-Za-z0-9_-]{20,}", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
@@ -56,8 +57,13 @@ public sealed partial class RecordingsSafetyTests
         var text = File.ReadAllText(Path.Combine(Repository.Root, relativePath));
         using var json = JsonDocument.Parse(text);
 
+        // The response bodies are nested JSON, so the raw text of the whole file is scanned, bodies included.
         Assert.DoesNotMatch(KeyShape(), text);
-        Assert.All(Forbidden, word => Assert.DoesNotContain(word, text, StringComparison.Ordinal));
+        Assert.All(Forbidden, word => Assert.DoesNotContain(word, text, StringComparison.OrdinalIgnoreCase));
         Assert.Equal(AllowedRootProperties, json.RootElement.EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal));
+        Assert.NotEmpty(json.RootElement.GetProperty("entries").EnumerateArray());
+        Assert.All(
+            json.RootElement.GetProperty("entries").EnumerateArray(),
+            entry => Assert.Equal(AllowedEntryProperties, entry.EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal)));
     }
 }
