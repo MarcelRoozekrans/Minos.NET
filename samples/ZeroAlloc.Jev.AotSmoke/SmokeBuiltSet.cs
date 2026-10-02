@@ -59,7 +59,7 @@ internal static class SmokeBuiltSet
     }
 
     /// <summary>The answer to <see cref="KeyedRisk"/>: a 4-level keyed Score at expected level 2.4.</summary>
-    public const string KeyedRiskResponseJson = """{"model":"jev-1.13.0","answers":{"risk":{"type":"score","score":2.4,"legend":{"0":"None","1":"Low","2":"Elevated","3":"Severe"},"probabilities":{"0":0.0,"1":0.1,"2":0.4,"3":0.5},"confidence":0.75}},"usage":{"input_tokens":120,"output_tokens":10}}""";
+    public const string KeyedRiskResponseJson = """{"model":"jev-1.13.0","answers":{"risk":{"type":"score","score":2.4,"legend":{"0":"None","1":"Low","2":"Elevated","3":"Severe"},"probabilities":{"0":0.0,"1":0.1,"2":0.4,"3":0.5},"confidence":0.87}},"usage":{"input_tokens":120,"output_tokens":10}}""";
 
     /// <summary>One keyed Score with four levels, built.</summary>
     public static JevQuestionSet KeyedRisk(out KeyedScoreHandle risk)

@@ -500,8 +500,9 @@ internal static class AllocationChecks
         var strict = new ConfidenceThresholds(medium: 0.6, high: 0.85);
         Program.Check(
             ConfidenceThresholds.Default.Classify(urgencyAnswer.Confidence) == ConfidenceTier.Medium
-                && strict.Classify(riskAnswer.Confidence) == ConfidenceTier.Medium,
-            "ConfidenceThresholds classifies parsed answers' confidence under Native AOT");
+                && strict.Classify(riskAnswer.Confidence) == ConfidenceTier.High
+                && ConfidenceThresholds.Default.Classify(riskAnswer.Confidence) == ConfidenceTier.Medium,
+            "ConfidenceThresholds classifies parsed answers' confidence per instance under Native AOT");
         Program.Check(
             Math.Abs(urgencyAnswer.Normalized - 0.95) < 1e-9 && Math.Abs(riskAnswer.Normalized - 0.8) < 1e-9,
             "Normalized puts parsed enum and keyed Scores on a 0 to 1 scale under Native AOT");
