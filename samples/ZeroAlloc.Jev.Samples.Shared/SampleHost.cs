@@ -9,12 +9,14 @@ public static class SampleHost
     /// <summary>
     /// Registers the default <see cref="IJevClient"/> bound from <paramref name="jevSection"/>, then applies
     /// <paramref name="mode"/>. Replay needs no key, so it supplies a placeholder that is never sent anywhere.
+    /// <paramref name="recordingsPath"/> is read in replay only, so a live run may pass <see langword="null"/>.
     /// </summary>
+    /// <exception cref="ArgumentException">Replay is asked for without a recordings path.</exception>
     public static IHttpClientBuilder AddSampleJevClient(
         this IServiceCollection services,
         IConfiguration jevSection,
         SampleMode mode,
-        string recordingsPath,
+        string? recordingsPath,
         string sampleName,
         RecordingSession session)
     {
@@ -22,6 +24,7 @@ public static class SampleHost
         switch (mode)
         {
             case SampleMode.Replay:
+                ArgumentException.ThrowIfNullOrEmpty(recordingsPath);
                 services.AddJevClient(options => options.ApiKey ??= "replay-no-key");
                 builder.ConfigurePrimaryHttpMessageHandler(() => new ReplayHandler(RecordingsFile.Load(recordingsPath), sampleName));
                 break;
@@ -42,6 +45,14 @@ public static class SampleHost
             configuration.GetSection("Jev"), SampleMode.Replay, Path.Combine(sampleDirectory, "recordings.json"), sampleName, new RecordingSession());
         return services.BuildServiceProvider();
     }
+
+    /// <summary>
+    /// The sample's <c>recordings.json</c> in its source folder, which replay reads and record rewrites, so a record run
+    /// is replayed at once with no rebuild. Live mode reads no recordings and gets <see langword="null"/>, so it runs
+    /// from anywhere, not only from a clone of the repository.
+    /// </summary>
+    public static string? RecordingsPath(SampleMode mode, string sampleName)
+        => mode == SampleMode.Live ? null : Path.Combine(SampleDirectory(sampleName), "recordings.json");
 
     /// <summary>Finds <c>samples/<paramref name="sampleName"/></c> from the running assembly.</summary>
     public static string SampleDirectory(string sampleName)

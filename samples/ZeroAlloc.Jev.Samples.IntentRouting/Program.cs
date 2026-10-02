@@ -18,8 +18,8 @@ catch (ArgumentException e)
     return 2;
 }
 
-// The recordings live in the source folder in every mode, so a record run is replayed at once, with no rebuild.
-var recordingsPath = Path.Combine(SampleHost.SampleDirectory(SampleName), "recordings.json");
+// Replay and record use the recordings in the repository checkout; live needs none, so it runs from anywhere.
+var recordingsPath = SampleHost.RecordingsPath(mode, SampleName);
 
 var session = new RecordingSession();
 var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings { Args = args, ContentRootPath = AppContext.BaseDirectory });
@@ -30,7 +30,7 @@ var jev = host.Services.GetRequiredService<IJevClient>();
 var report = await IntentRoutingSample.RunAsync(jev, CancellationToken.None).ConfigureAwait(false);
 Console.Write(report.Render());
 
-if (mode == SampleMode.Record)
+if (mode == SampleMode.Record && recordingsPath is not null)
 {
     session.ToFile("OpenRouter", DateOnly.FromDateTime(DateTime.UtcNow)).Save(recordingsPath);
     Console.WriteLine("Recorded " + session.Count + " responses to " + recordingsPath);

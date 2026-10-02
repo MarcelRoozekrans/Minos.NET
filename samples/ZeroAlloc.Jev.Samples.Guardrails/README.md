@@ -16,7 +16,7 @@ dotnet run --project samples/ZeroAlloc.Jev.Samples.Guardrails
 
 By default the sample replays the answers checked in as `recordings.json`. It needs no network and no key.
 
-Replay reads `recordings.json` from the sample's source folder in the repository checkout, so run the sample from a clone of the repository.
+Replay and record read and write the recordings in your clone of the repository, so run those two modes from a clone. `--live` reads no recordings and runs from anywhere.
 
 To call the API instead, set `OPENROUTER_API_KEY` and pass a mode after `--`:
 

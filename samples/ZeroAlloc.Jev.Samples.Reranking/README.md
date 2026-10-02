@@ -16,6 +16,8 @@ dotnet run --project samples/ZeroAlloc.Jev.Samples.Reranking
 
 By default the sample replays the answers checked in as `recordings.json`. It needs no network and no key.
 
+Replay and record read and write the recordings in your clone of the repository, so run those two modes from a clone. `--live` reads no recordings and runs from anywhere.
+
 To call the API instead, set `OPENROUTER_API_KEY` and pass a mode after `--`:
 
 - `-- --live` sends the requests and prints the report.

@@ -16,7 +16,7 @@ Every sample is our own work. Each is inspired by TypeSafe's material, linked in
 dotnet run --project samples/ZeroAlloc.Jev.Samples.Guardrails
 ```
 
-Run the samples from a clone of the repository. Replay reads each sample's `recordings.json` from its source folder in the checkout, so it does not work from a copied build output.
+Replay and record read and write the recordings in your clone of the repository: each sample's `recordings.json` in its source folder. Run those two modes from a clone, not from a copied build output. `--live` reads no recordings and runs from anywhere.
 
 A sample runs in one of three modes, chosen by the argument after `--`:
 

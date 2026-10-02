@@ -45,6 +45,37 @@ public sealed class SampleHostTests : IDisposable
         Assert.Contains("dotnet run --project samples/" + Sample + " -- --record", exception.Message, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void RecordingsPath_IsNull_ForLive_SoLiveNeedsNoCheckout()
+        => Assert.Null(SampleHost.RecordingsPath(SampleMode.Live, "ZeroAlloc.Jev.Samples.Guardrails"));
+
+    [Theory]
+    [InlineData(SampleMode.Replay)]
+    [InlineData(SampleMode.Record)]
+    public void RecordingsPath_IsTheSourceFolderFile_ForReplayAndRecord(SampleMode mode)
+        => Assert.Equal(
+            Path.Combine(Repository.Root, "samples", "ZeroAlloc.Jev.Samples.Guardrails", "recordings.json"),
+            SampleHost.RecordingsPath(mode, "ZeroAlloc.Jev.Samples.Guardrails"));
+
+    [Fact]
+    public void Replay_NeedsARecordingsPath()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+
+        Assert.ThrowsAny<ArgumentException>(
+            () => new ServiceCollection().AddSampleJevClient(configuration.GetSection("Jev"), SampleMode.Replay, null, Sample, new RecordingSession()));
+    }
+
+    [Fact]
+    public void Live_RegistersWithoutARecordingsPath()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+
+        var builder = new ServiceCollection().AddSampleJevClient(configuration.GetSection("Jev"), SampleMode.Live, null, Sample, new RecordingSession());
+
+        Assert.NotNull(builder);
+    }
+
     private async Task<string> CaptureRequestHashAsync()
     {
         // The replay wiring still loads the recordings; an empty file is enough, as the capture handler answers instead.
