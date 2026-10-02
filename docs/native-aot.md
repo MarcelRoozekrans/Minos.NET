@@ -97,10 +97,10 @@ object.
   and [Performance](performance.md) has the measurements for the other paths.
 - **Building a question set allocates the set.** It measures 6592 B, so build it once and share it, as the run-time page
   advises.
-- **Logging and telemetry add nothing until something listens.** With no logger, or every level off, a call allocates
-  nothing extra, and with nothing listening to the source or the meter, telemetry adds nothing to the calls that
-  complete synchronously. [Logging, traces and metrics](observability.md#the-cost-of-logging) says what each adds when
-  it is on.
+- **Logging and telemetry add nothing to synchronous calls until something listens.** With no logger, or every level
+  off, a call allocates nothing extra. With nothing listening to the source or the meter, telemetry adds nothing to the
+  calls that complete synchronously, and 211 B to a typed or built-set call that completes asynchronously. [Logging,
+  traces and metrics](observability.md#the-cost-of-logging) says what each adds when it is on.
 
 These claims are enforced, not only measured. The smoke application runs each path below repeatedly, mostly under
 `AllocationGate` from the ZeroAlloc.TestHelpers package, and fails if the path allocates more than its budget. The calls
@@ -135,6 +135,8 @@ regression cannot reach a release unnoticed.
 | `EvaluateRoundTripWhileListening` | A raw call with a span and metric listener attached. | 6272 |
 | `TypedEvaluateRoundTripWhileListening` | A typed call with the listeners attached. | 5440 |
 | `EvaluateBuiltSetRoundTripWhileListening` | A built-set call with the listeners attached. | 5760 |
+| `EvaluateRoundTripThroughBoundConfiguration` | A raw call through a client bound from configuration, equal to a hand-built client's own measurement. | same as the hand-built client |
+| `DisabledLoggerAddsNothingWhereAnEnabledOneDoes` | Asynchronous calls with no factory, a null factory and an enabled logger. Checks the disabled ones add nothing. | no byte budget |
 | `TelemetryOffAsynchronousTypedEvaluation` | A typed call that completes asynchronously, with nothing listening. The median of five runs. | 5056 |
 
 The two logging rows with a logger that does nothing keep the budgets of the calls without one, because the client takes

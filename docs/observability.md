@@ -17,8 +17,9 @@ and why, how many tokens you used, and how sure Jev was. `JevClient` reports all
 
 All three describe the call and never its content. Your state, your questions, the answers, your API key and the
 server's error text stay out of every one of them, and the sections below say exactly where the line is drawn. All
-three are also cheap: with nothing listening they add no allocation to the calls this guide measures, and
-[the cost](#the-cost-of-listening) section says what listening adds.
+three are also cheap: with nothing listening they add nothing to calls that complete synchronously, and a small fixed
+cost to asynchronous ones. [The cost of listening](#the-cost-of-listening) and
+[the cost of logging](#the-cost-of-logging) give the figures.
 
 ## Logging
 
@@ -283,7 +284,8 @@ marks the span `Error` with the exception's message as the description, and reco
 `error.type`. That is the default exception handling of ZeroAlloc.Telemetry, the library that generates the
 instrumentation. [ZeroAlloc.Telemetry#184](https://github.com/ZeroAlloc-Net/ZeroAlloc.Telemetry/issues/184) tracked it,
 and it is fixed in ZeroAlloc.Telemetry 1.11.0. This package builds against 1.10.0, so until it moves to a later version
-the behaviour above is what you see.
+the behaviour above is what you see. Adopting the fix is tracked in
+[ZeroAlloc.Jev#85](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/issues/85).
 
 ## Metrics
 

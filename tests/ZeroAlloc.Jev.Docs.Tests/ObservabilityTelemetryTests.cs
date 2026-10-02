@@ -185,6 +185,18 @@ public sealed class ObservabilityTelemetryTests
         Assert.All(rest, attempt => Assert.Equal(jev.SpanId, attempt.ParentSpanId));
     }
 
+    // The exceptions section of the page describes ZeroAlloc.Telemetry 1.10.0, whose exception path sets no error.type.
+    [Fact]
+    public void TheTelemetryPin_IsStillTheVersionThePageDescribes()
+    {
+        var props = File.ReadAllText(Path.Combine(PublishedPages.Root, "Directory.Packages.props"));
+
+        Assert.True(
+            props.Contains("<PackageVersion Include=\"ZeroAlloc.Telemetry\" Version=\"1.10.0\" />", StringComparison.Ordinal),
+            "ZeroAlloc.Telemetry is no longer pinned at 1.10.0. 1.11.0 fixed the exception path, so update the "
+            + "'When an exception is thrown' note in docs/observability.md, and the README's Telemetry section, then this test.");
+    }
+
     [Fact]
     public async Task ACancelledCall_MarksTheSpanError_WithTheExceptionsMessage_AndNoErrorType()
     {

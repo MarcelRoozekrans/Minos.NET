@@ -36,26 +36,39 @@ public sealed partial class NativeAotTests
         var checks = AllocationChecks();
         var rows = PageTables.Rows(Page, "The allocation budgets");
 
-        Assert.Equal(21, rows.Length);
+        Assert.Equal(23, rows.Length);
         Assert.Equal(rows.Length, new HashSet<string>(rows.Select(row => PageTables.Code(row[0])), StringComparer.Ordinal).Count);
         Assert.All(
             rows,
             row =>
             {
                 var gate = PageTables.Code(row[0]);
-                var budget = int.Parse(row[2], CultureInfo.InvariantCulture);
+                if (!int.TryParse(row[2], CultureInfo.InvariantCulture, out var budget))
+                {
+                    return;
+                }
+
                 Assert.True(Array.IndexOf(Budgets(checks, gate), budget) >= 0, $"{gate} has the budget {budget}.");
             });
     }
 
-    // A gate that Main never calls would be a budget that nothing enforces.
+    // The page lists every gate the smoke app runs, and no other: a gate missing from the table is a budget nobody can see.
     [Fact]
-    public void EveryGateOnThePage_IsRunByTheSmokeApp()
+    public void TheGatesOnThePage_AreExactlyTheGatesProgramRuns()
     {
         var program = Source("samples", "ZeroAlloc.Jev.AotSmoke", "Program.cs");
-        var rows = PageTables.Rows(Page, "The allocation budgets");
+        var called = new SortedSet<string>(StringComparer.Ordinal);
+        foreach (Match call in GateCall().Matches(program))
+        {
+            called.Add(call.Groups["gate"].Value);
+        }
 
-        Assert.All(rows, row => Assert.Contains($"AllocationChecks.{PageTables.Code(row[0])}()", program, StringComparison.Ordinal));
+        var listed = new SortedSet<string>(
+            PageTables.Rows(Page, "The allocation budgets").Select(row => PageTables.Code(row[0])),
+            StringComparer.Ordinal);
+
+        Assert.Equal(23, called.Count);
+        Assert.Equal(called, listed);
     }
 
     [Fact]
@@ -121,6 +134,9 @@ public sealed partial class NativeAotTests
         Assert.Contains("Phase 3.1 — Logging", performance, StringComparison.Ordinal);
         Assert.Contains("Phase 3.2 — Telemetry", performance, StringComparison.Ordinal);
     }
+
+    [GeneratedRegex(@"AllocationChecks\.(?<gate>\w+)\(\)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex GateCall();
 
     [GeneratedRegex(@"(?:budgetBytes: |BudgetBytes = )(?<bytes>\d+)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex Budget();
