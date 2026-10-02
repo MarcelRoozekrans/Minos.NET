@@ -39,6 +39,19 @@ public sealed class NormalizedScoreTests
     public void Typed_UsesItsLevelCount()
         => Assert.Equal(0.525, Typed(1.05).Normalized, 12);
 
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(0.7)]
+    public void OneLevel_IsZeroWithoutDividingByZero(double expected)
+        => Assert.Equal(0.0, Keyed(1, expected).Normalized);
+
+    [Fact]
+    public void NotANumberExpected_GivesNotANumber()
+    {
+        Assert.True(double.IsNaN(Keyed(3, double.NaN).Normalized));
+        Assert.True(double.IsNaN(Typed(double.NaN).Normalized));
+    }
+
     private static KeyedScore Keyed(int levels, double expected)
         => new(0, expected, 0.9, new KeyedProbabilityMap(new double[levels], 0, KeyedOptionSet.Levels(levels)));
 
