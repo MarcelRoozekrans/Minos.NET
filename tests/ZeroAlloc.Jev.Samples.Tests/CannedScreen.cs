@@ -1,6 +1,4 @@
 using System.Globalization;
-using System.Net;
-using System.Text;
 using ZeroAlloc.Jev.Samples.Guardrails;
 
 namespace ZeroAlloc.Jev.Samples.Tests;
@@ -28,16 +26,6 @@ internal static class CannedScreen
                 "probabilities":{"0":0.25,"1":0.25,"2":0.25,"3":0.25},"confidence":0.9}},
              "usage":{"input_tokens":1,"output_tokens":1}}
             """);
-        using var http = new HttpClient(new Handler(json)) { BaseAddress = new Uri("https://canned.example/api/") };
-        using var jev = new JevClient(http, new JevClientOptions { ApiKey = "canned-key", MaxRetries = 0 });
-        var result = await jev.EvaluateAsync<MessageScreen>("any message", CancellationToken.None);
-        Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Kind + ": " + result.Error.Message : null);
-        return result.Value;
-    }
-
-    private sealed class Handler(string json) : HttpMessageHandler
-    {
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) =>
-            Task.FromResult(new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(json, Encoding.UTF8, "application/json") });
+        return await Canned.EvaluateAsync<MessageScreen>(json);
     }
 }

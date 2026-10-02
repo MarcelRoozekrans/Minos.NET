@@ -6,7 +6,7 @@ This sample is a travel-booking assistant that decides who handles each incoming
 - **Three destinations.** A plain lookup is answered by code, with no language model. A change to a booking goes to an assistant model that has the booking as context. Disputes, unclear requests and anything without a flow go to a person.
 - **Confidence decides when to hand over.** If the model is unsure what the traveller wants, the request goes to a person whatever the intent says. The urgency flag is separate and is read from the second question.
 
-Only changes reach a language model, so the more of the traffic that is lookups and disputes, the less generation you pay for. In the recorded run 8 of the 12 requests needed no language model.
+Only changes reach a language model, so the more of the traffic that goes to code or a person, whether lookups, disputes or other requests, the less generation you pay for. In the recorded run 8 of the 12 requests needed no language model.
 
 The twelve requests are written for the sample and range from a lookup to the keyboard noise `asdf`.
 

@@ -42,12 +42,34 @@ public sealed class IntentRoutingSampleTests
     }
 
     [Fact]
-    public async Task TheCountMatchesTheRoutes()
+    public async Task EightOfTwelve_NeedNoLanguageModel()
     {
         var report = await Run();
 
-        Assert.Equal(report.Requests.Count(r => r.Handler != RequestHandler.AssistantModel), report.WithoutLanguageModel);
-        Assert.EndsWith(report.WithoutLanguageModel + " of 12 requests needed no language model\n", report.Render(), StringComparison.Ordinal);
+        Assert.Equal(8, report.WithoutLanguageModel);
+        Assert.Equal("8 of 12 requests needed no language model", report.Render().TrimEnd('\n').Split('\n')[^1]);
+    }
+
+    [Theory]
+    [InlineData("t01", RequestHandler.BookingLookup, false, ConfidenceTier.High)]
+    [InlineData("t02", RequestHandler.BookingLookup, true, ConfidenceTier.High)]
+    [InlineData("t03", RequestHandler.AssistantModel, false, ConfidenceTier.High)]
+    [InlineData("t04", RequestHandler.AssistantModel, false, ConfidenceTier.High)]
+    [InlineData("t05", RequestHandler.AssistantModel, true, ConfidenceTier.High)]
+    [InlineData("t06", RequestHandler.Person, false, ConfidenceTier.High)]
+    [InlineData("t07", RequestHandler.Person, false, ConfidenceTier.High)]
+    [InlineData("t08", RequestHandler.BookingLookup, false, ConfidenceTier.High)]
+    [InlineData("t09", RequestHandler.Person, false, ConfidenceTier.High)]
+    [InlineData("t10", RequestHandler.BookingLookup, true, ConfidenceTier.High)]
+    [InlineData("t11", RequestHandler.AssistantModel, false, ConfidenceTier.High)]
+    [InlineData("t12", RequestHandler.Person, false, ConfidenceTier.High)]
+    public async Task EveryRecordedRequest_RoutesAsRecorded(string id, RequestHandler handler, bool urgent, ConfidenceTier tier)
+    {
+        var routed = Find(await Run(), id);
+
+        Assert.Equal(handler, routed.Handler);
+        Assert.Equal(urgent, routed.Urgent);
+        Assert.Equal(tier, routed.Tier);
     }
 
     private static RoutedRequest Find(RoutingReport report, string id) =>
