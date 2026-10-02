@@ -1,11 +1,21 @@
-# Session State — 2026-10-02 (Phase 4.1 complete, PR to open)
+# Session State — 2026-10-02 (Phase 4.2 complete, PR to open)
 
 **Date:** 2026-10-02
 
 ## Current Position
 - **Milestone:** 4 — Patterns & docs, active since 2026-10-02 (design `docs/superpowers/specs/2026-10-02-milestone-4-design.md`).
-- **Phase:** 4.1 — Pattern helpers and guides is complete on branch `phase/4.1-pattern-helpers`; it lands through a PR to `main`.
-- **Next task:** after the Phase 4.1 PR merges, confirm the release PR lists its `feat` and `docs` entries, then run `start-next-phase` to brainstorm Phase 4.2 — Cookbook samples.
+- **Phase:** 4.2 — Cookbook samples is complete on branch `phase/4.2-cookbook-samples`; it lands through a PR to `main`. Phase 4.1 merged as PR #80; release 0.3.0 (#81) carried it. Release PR #63 (0.2.0) also merged; releases are now cut, NuGet publishing still off (#29).
+- **Next task:** after the Phase 4.2 PR merges, confirm release-please lists its two `docs`/`test` entries, then run `start-next-phase` to brainstorm Phase 4.3 — User guide.
+
+## What Phase 4.2 shipped
+- `samples/ZeroAlloc.Jev.Samples.Shared`: `SampleMode` (replay default, live, record), `ReplayHandler` (primary handler, answers by SHA-256 of the request body, fails with the re-record command), `RecordingHandler` (successful response bodies only, never headers), `RecordingSession` (throws on mixed models), `RecordingsFile` (bodies stored as raw JSON, LF-only), `SampleHost` (wires a mode onto `AddJevClient`; replay supplies a placeholder key). Live runs need no checkout; replay and record read and write the recordings in the clone.
+- Three original samples recorded on OpenRouter (`typesafe/jev-1.13-20260917`, 2026-10-02), each crediting and linking its TypeSafe cookbook:
+  - Guardrails: 15 authored messages, Strict and Lenient policies. Ruling: advice requests are review-only (`BlockAt` null); severity still blocks. g15 (indirect instruction probe, 0.61) is where the policies part on recorded answers: Strict blocks, Lenient reviews — a 0.01 margin, documented.
+  - Intent routing: 12 travel requests; 8 of 12 need no language model. "asdf" came back as high-confidence Other, so it reaches a person by intent, not by the low-confidence rule (documented).
+  - Re-ranking: 25 authored help-centre articles, keyword shortlist of 8, one fan-out request per query with a keyed Noul per candidate built at run time; hit@1 1/5 to 5/5, hit@3 2/5 to 5/5 (a small corpus and a deliberately weak baseline, documented).
+- `tests/ZeroAlloc.Jev.Samples.Tests` (139 tests): every rule pinned on canned answers, every recorded decision pinned, report snapshots via ZeroAlloc.TestHelpers 1.5.0 `TextSnapshot.VerifyText`, and a recordings safety scan (key shapes, auth headers case-insensitive, exact entry shape).
+- CI (maintainer request): the `build` job runs every discovered sample's real entry point in replay mode with an empty key and `timeout 120s`. Other ZeroAlloc repos only run their AotSmoke apps.
+- Upstream: ZeroAlloc.TestHelpers #59 (`TextSnapshot`, BCL-only) filed and shipped in 1.5.0 by the org session.
 
 ## What Phase 4.1 shipped
 - Core: `ConfidenceTier { Low, Medium, High }` and `readonly struct ConfidenceThresholds`. Its `default` means 0.5 and 0.9, the cut points TypeSafe's confidence guide uses in an example, so an unset value never classifies every answer as High; a value on a threshold goes to the higher tier and NaN is Low. `Normalized` on `Score<T>` and `KeyedScore`: Expected / (levels − 1), clamped, 0 below two levels.
@@ -150,7 +160,8 @@
 - Still unknown until a TypeSafe live run (needs `TYPESAFE_API_KEY` and the `live-api` environment): whether TypeSafe sends `Retry-After`, the 422 body schema, and whether Phase 2.4's `BuiltQuestionSet_ParsesAKeyedChoice` passes.
 
 ## Recommended Next Step
-Merge the Phase 4.1 PR, check release-please counted it, then run `start-next-phase` for Phase 4.2 — Cookbook samples.
+Merge the Phase 4.2 PR, check release-please counted it, then run `start-next-phase` for Phase 4.3 — User guide.
+
 
 
 
@@ -161,4 +172,3 @@ Open maintainer items:
 - answer ZeroAlloc.Telemetry#184's two API questions;
 - decide whether to report to dotnet/runtime that IHttpClientFactory's request loggers allocate 344 B per call even when no logger is enabled;
 - Renovate PRs #70 and #71;
-- release PR #63 (0.2.0) stays open until you choose to release.
