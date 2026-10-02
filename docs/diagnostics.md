@@ -55,7 +55,7 @@ shows them.
 | JEV105 | Error | Question set has no parameterless constructor | The set has no constructor that can be called without arguments, or it has `required` members and that constructor lacks `[SetsRequiredMembers]`. A constructor whose parameters all have defaults counts. |
 | JEV106 | Error | Duplicate wire key | Two questions in the set use the same wire key, or two options of one Choice do. |
 | JEV107 | Error | Invalid state type | The `State` type is not a class, struct, record or array type. |
-| JEV108 | Error | Text marked Json is not a JSON object or array | Text with `Json = true` is not a JSON object or array, or it is nested too deeply. |
+| JEV108 | Error | Text marked Json is not a JSON object or array | Text with `Json = true` is not a JSON object or array, or it is nested more than 60 levels deep. |
 | JEV109 | Error | Json combined with Examples or NotFor | `Json = true` is set together with `Examples` or `NotFor`. Put them inside the JSON instead. |
 
 A [set built at run time](question-sets-at-run-time.md#checking-the-set) is checked against the same limits, with the

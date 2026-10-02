@@ -152,6 +152,7 @@ public sealed class FrontMatterTests
             .Where(p => !string.Equals(p, GettingStarted, StringComparison.Ordinal))
             .ToList();
         Assert.Empty(roots);
+        Assert.Equal("/", Field(GettingStarted, "slug"));
     }
 
     [Theory]

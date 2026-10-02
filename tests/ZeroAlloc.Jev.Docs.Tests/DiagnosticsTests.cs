@@ -87,6 +87,16 @@ public sealed partial class DiagnosticsTests
         Assert.Contains($"more than {Limit(limits, "MaximumChoiceOptions")} options", row, StringComparison.Ordinal);
     }
 
+    // JEV108's depth is JevLimits' too: the generator and Build share it.
+    [Fact]
+    public void TheJev108Limit_IsJevLimits()
+    {
+        var limits = Source("src", "ZeroAlloc.Jev.Generator", "JevLimits.cs");
+        var row = Array.Find(PageTables.Rows(Page, "The rules"), r => string.Equals(r[0], "JEV108", StringComparison.Ordinal))![3];
+
+        Assert.Contains($"more than {Limit(limits, "MaximumJsonDepth")} levels", row, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void TheCodeFixTable_IsTheProvidersFixableRules_AndItsTitleFormat()
     {

@@ -58,6 +58,17 @@ as well, which [dependency injection](dependency-injection.md) covers:
 dotnet add package ZeroAlloc.Jev.DependencyInjection
 ```
 
+### What the package brings with it
+
+`ZeroAlloc.Jev` has one runtime dependency from Microsoft, `Microsoft.Extensions.Logging.Abstractions` 10.0.0 or later,
+for the logging interfaces that [the client's logging](observability.md#logging) uses. Its other runtime dependencies
+are ZeroAlloc libraries.
+
+NuGet also passes the analyzers and source generators of those dependencies on to your build. The ones that arrive are
+those of ZeroAlloc.Validation, ZeroAlloc.Telemetry, and Microsoft.Extensions.Logging.Abstractions. They do nothing
+unless you declare `[Validate]` types, `[Instrument]` types or your own `[LoggerMessage]` methods, so your build stays
+clean and gets no extra source from them.
+
 ### Before the package is published
 
 Clone the [ZeroAlloc.Jev repository](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev), pack both packages into a folder,

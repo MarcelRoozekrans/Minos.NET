@@ -6,6 +6,10 @@ namespace ZeroAlloc.Jev.Docs.Tests;
 /// <summary>Just enough Markdown reading for the docs checks: prose lines, headings and their ids, and links.</summary>
 internal static partial class Markdown
 {
+    // Private-use characters that wrap a code-span placeholder, so no heading text can collide with it.
+    private const char SpanOpen = '\uE000';
+    private const char SpanClose = '\uE001';
+
     /// <summary>The number of lines a closed <c>---</c> front-matter block takes, including both fences, or 0 when there is none.</summary>
     public static int FrontMatterLength(IEnumerable<string> lines)
     {
@@ -104,7 +108,7 @@ internal static partial class Markdown
             match =>
             {
                 spans.Add(match.Groups["content"].Value);
-                return $"{spans.Count - 1}";
+                return $"{SpanOpen}{spans.Count - 1}{SpanClose}";
             });
         text = LinkOrImage().Replace(text, "${text}");
         text = text.Replace("*", string.Empty, StringComparison.Ordinal);
@@ -161,16 +165,41 @@ internal static partial class Markdown
         return ids;
     }
 
-    /// <summary>Every link and image target in the prose, outside code, with its line number.</summary>
+    /// <summary>Every link and image target in the prose, outside code, with the line number its paragraph starts on.</summary>
     public static List<(int Line, string Target)> Links(IEnumerable<string> lines)
     {
         var result = new List<(int, string)>();
+        var start = 0;
+        var previous = 0;
+        var paragraph = new StringBuilder();
         foreach (var (number, text) in Prose(lines))
         {
-            Collect(CodeSpan().Replace(text, " "), number, result);
+            var continues = paragraph.Length > 0 && number == previous + 1 && text.Trim().Length > 0;
+            if (!continues)
+            {
+                Flush(paragraph, start, result);
+                start = number;
+            }
+
+            if (text.Trim().Length > 0)
+            {
+                paragraph.Append(text).Append(' ');
+            }
+
+            previous = number;
         }
 
+        Flush(paragraph, start, result);
         return result;
+    }
+
+    private static void Flush(StringBuilder paragraph, int start, List<(int, string)> result)
+    {
+        if (paragraph.Length > 0)
+        {
+            Collect(CodeSpan().Replace(paragraph.ToString(), " "), start, result);
+            paragraph.Clear();
+        }
     }
 
     private static void Collect(string text, int number, List<(int, string)> result)
@@ -197,7 +226,7 @@ internal static partial class Markdown
     [GeneratedRegex(@"!?\[(?<text>[^\]]*)\]\((?:[^()]|\([^()]*\))*\)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex LinkOrImage();
 
-    [GeneratedRegex("(?<index>[0-9]+)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex("\uE000(?<index>[0-9]+)\uE001", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex Placeholder();
 
     [GeneratedRegex(@"(?<!\w)_+|_+(?!\w)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]

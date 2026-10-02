@@ -76,7 +76,8 @@ public static class KeyedRegistration
     #endregion
 
     #region DependencyInjection_FromEnvironment
-    // With no options at all, the key comes from TYPESAFE_API_KEY and everything else from the defaults.
+    // With no options at all, the key comes from TYPESAFE_API_KEY, the base address from TYPESAFE_BASE_URL when set,
+    // and everything else from the defaults.
     public static void AddFromEnvironment(IServiceCollection services)
     {
         services.AddJevClient();

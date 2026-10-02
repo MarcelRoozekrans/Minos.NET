@@ -108,6 +108,20 @@ public static JevClientOptions SpelledOut(string apiKey)
 
 A `SystemOneRequest` names its own model, so `Model` applies to typed evaluation and to question sets only.
 
+### JevDefaults
+
+`JevDefaults` is the static class that holds the values the client falls back on. Use it instead of typing the same
+text yourself, for example to send `JevDefaults.Model` explicitly or to name an environment variable in a message.
+
+| Member | Value | What it is |
+| --- | --- | --- |
+| `ApiKeyEnvironmentVariable` | `TYPESAFE_API_KEY` | The variable a TypeSafe key is read from. |
+| `OpenRouterApiKeyEnvironmentVariable` | `OPENROUTER_API_KEY` | The variable an OpenRouter key is read from. |
+| `BaseAddressEnvironmentVariable` | `TYPESAFE_BASE_URL` | The variable that overrides the base address, for TypeSafe only. |
+| `Model` | `jev-latest` | The model alias used when a request does not name one. A property, so a changed default is not compiled into your code. |
+| `TypeSafeBaseAddress` | `https://api.typesafe.ai/` | The root address of TypeSafe's API. A property. |
+| `OpenRouterBaseAddress` | `https://openrouter.ai/api/` | The root address of OpenRouter's System One API. A property. |
+
 ### Checking options early
 
 The constructors check the options, and so does `Validate()`. It runs exactly the check a constructor runs, including

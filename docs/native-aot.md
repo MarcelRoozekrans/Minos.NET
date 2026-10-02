@@ -100,8 +100,8 @@ object.
   [run-time page](question-sets-at-run-time.md) advises.
 - **Logging and telemetry add nothing to synchronous calls until something listens.** With no logger, or every level
   off, a call allocates nothing extra. With nothing listening to the source or the meter, telemetry adds nothing to the
-  calls that complete synchronously, and 211 B to a typed or built-set call that completes asynchronously. [Logging,
-  traces and metrics](observability.md#the-cost-of-logging) says what each adds when it is on.
+  calls that complete synchronously, and 211 B, measured under the JIT, to a typed or built-set call that completes
+  asynchronously. [Logging, traces and metrics](observability.md#the-cost-of-logging) says what each adds when it is on.
 
 These claims are enforced, not only measured. The smoke application runs each path below repeatedly, mostly under
 `AllocationGate` from the ZeroAlloc.TestHelpers package, and fails if the path allocates more than its budget. The calls

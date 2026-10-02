@@ -29,6 +29,8 @@ public sealed class LinkTests
     [InlineData("See [x](y.md)", "see-x")]
     [InlineData("**Bold** and *em* and _under_", "bold-and-em-and-under")]
     [InlineData("snake_case stays", "snake_case-stays")]
+    [InlineData("Step 2 `x`", "step-2-x")]
+    [InlineData("Phase 3.1 `a_1` and 2", "phase-31-a_1-and-2")]
     public void Slug_FollowsTheDocusaurusRule(string heading, string expected) =>
         Assert.Equal(expected, Slug(heading));
 
@@ -152,6 +154,14 @@ public sealed class LinkTests
     {
         Assert.Equal("b.md", Targets("- item", "  ```cs", "  [a](a.md)", "  ```", "[b](b.md)"));
         Assert.Equal("b.md", Targets("1. item", "        ~~~", "        [a](a.md)", "   ~~~", "[b](b.md)"));
+    }
+
+    [Fact]
+    public void Links_FollowATextThatWrapsAcrossLines()
+    {
+        Assert.Equal("x.md#h", Targets("See [Logging,", "traces and metrics](x.md#h) now."));
+        Assert.Equal("b.md", Targets("Code `a", "[no](a.md)` then [b](b.md)"));
+        Assert.Equal(string.Empty, Targets("One para [a](", "", "a.md) split"));
     }
 
     [Fact]

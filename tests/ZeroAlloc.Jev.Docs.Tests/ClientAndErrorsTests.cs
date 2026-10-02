@@ -436,6 +436,27 @@ public sealed class ClientAndErrorsTests
         }
     }
 
+    // The JevDefaults table lists every public member of the class, with the values the class holds.
+    [Fact]
+    public void TheJevDefaultsTable_ListsEveryMemberWithItsValue()
+    {
+        var rows = PageTables.Rows("client-and-errors.md", "JevDefaults");
+        var actual = typeof(JevDefaults)
+            .GetMembers(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.DeclaredOnly)
+            .Where(member => member.MemberType is System.Reflection.MemberTypes.Field or System.Reflection.MemberTypes.Property)
+            .Select(member => member.Name)
+            .Order(StringComparer.Ordinal);
+
+        Assert.Equal(actual, rows.Select(row => PageTables.Code(row[0])).Order(StringComparer.Ordinal));
+        var values = rows.ToDictionary(row => PageTables.Code(row[0]), row => PageTables.Code(row[1]), StringComparer.Ordinal);
+        Assert.Equal(JevDefaults.ApiKeyEnvironmentVariable, values[nameof(JevDefaults.ApiKeyEnvironmentVariable)]);
+        Assert.Equal(JevDefaults.OpenRouterApiKeyEnvironmentVariable, values[nameof(JevDefaults.OpenRouterApiKeyEnvironmentVariable)]);
+        Assert.Equal(JevDefaults.BaseAddressEnvironmentVariable, values[nameof(JevDefaults.BaseAddressEnvironmentVariable)]);
+        Assert.Equal(JevDefaults.Model, values[nameof(JevDefaults.Model)]);
+        Assert.Equal(JevDefaults.TypeSafeBaseAddress.ToString(), values[nameof(JevDefaults.TypeSafeBaseAddress)]);
+        Assert.Equal(JevDefaults.OpenRouterBaseAddress.ToString(), values[nameof(JevDefaults.OpenRouterBaseAddress)]);
+    }
+
     private static SystemOneRequest Request() => new()
     {
         State = "Help!",

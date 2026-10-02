@@ -50,4 +50,24 @@ public sealed class GettingStartedTests
         Assert.Equal(SupportTeam.Billing, check.Team.Value);
         Assert.Equal(0.77, check.Team.Confidence);
     }
+
+    // The install section's note on what the package brings: one Microsoft runtime dependency, and the dependencies'
+    // analyzers, which flow whatever PrivateAssets says, NuGet/Home#6720. The pack tests check the packed nuspec.
+    [Fact]
+    public void TheInstallNote_MatchesThePackagesDependencies()
+    {
+        var project = File.ReadAllText(Path.Combine(PublishedPages.Root, "src", "ZeroAlloc.Jev", "ZeroAlloc.Jev.csproj"));
+        var packages = File.ReadAllText(Path.Combine(PublishedPages.Root, "Directory.Packages.props"));
+        var page = PageTables.Text("getting-started.md");
+
+        Assert.Contains("<PackageReference Include=\"Microsoft.Extensions.Logging.Abstractions\" />", project, StringComparison.Ordinal);
+        Assert.Contains("<PackageVersion Include=\"Microsoft.Extensions.Logging.Abstractions\" Version=\"10.0.0\" />", packages, StringComparison.Ordinal);
+        Assert.Contains("`Microsoft.Extensions.Logging.Abstractions` 10.0.0 or later", page, StringComparison.Ordinal);
+
+        Assert.Contains("NuGet still flows the analyzers", project, StringComparison.Ordinal);
+        Assert.Contains("NuGet may still flow the analyzer", project, StringComparison.Ordinal);
+        Assert.Contains("<PackageReference Include=\"ZeroAlloc.Validation\" PrivateAssets=\"analyzers;build;buildtransitive\" />", project, StringComparison.Ordinal);
+        Assert.Contains("<PackageReference Include=\"ZeroAlloc.Telemetry\" PrivateAssets=\"analyzers;build;buildtransitive\" />", project, StringComparison.Ordinal);
+        Assert.Contains("`[Validate]` types, `[Instrument]` types or your own `[LoggerMessage]` methods", page, StringComparison.Ordinal);
+    }
 }

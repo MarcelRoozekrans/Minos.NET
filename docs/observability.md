@@ -155,10 +155,35 @@ The client opens one span for each operation, of kind `Client`. Its name is `eva
 example `evaluate jev-latest`, for an evaluation and `list_models` for a model listing. The span measures the whole
 call, including the retries. A call that fails on every attempt is still one span.
 
-To see the spans in an application, subscribe to the source named `ZeroAlloc.Jev`: with OpenTelemetry that is
-`AddSource("ZeroAlloc.Jev")`, and nothing needs configuring on the client. Add the source `ZeroAlloc.Rest` as well to
-see each HTTP attempt. Jev's span is the parent of every attempt's span, so a call that was retried shows as one Jev
-span over several attempt spans.
+To see the spans in an application, subscribe to the source named `ZeroAlloc.Jev`, and nothing needs configuring on the
+client. Add the source `ZeroAlloc.Rest` as well to see each HTTP attempt. Jev's span is the parent of every attempt's
+span, so a call that was retried shows as one Jev span over several attempt spans.
+
+### Subscribing with OpenTelemetry
+
+The source and the meter share one name. Both also carry the package's informational version as their version, which
+is the version of the `ZeroAlloc.Jev` package you installed.
+
+<!-- snippet: Observability_OpenTelemetryNames -->
+```cs
+// The two names an OpenTelemetry setup needs. The source carries the spans and the meter carries the metrics.
+// With the OpenTelemetry.Extensions.Hosting package an application passes them on like this:
+//   services.AddOpenTelemetry()
+//       .WithTracing(tracing => tracing.AddSource(JevTelemetryNames.Source))
+//       .WithMetrics(metrics => metrics.AddMeter(JevTelemetryNames.Meter));
+public static class JevTelemetryNames
+{
+    public const string Source = "ZeroAlloc.Jev";
+
+    public const string Meter = "ZeroAlloc.Jev";
+}
+```
+<!-- endSnippet -->
+
+The `ZeroAlloc.Jev` package takes no OpenTelemetry dependency, and neither does `ZeroAlloc.Jev.DependencyInjection`.
+Your application brings OpenTelemetry itself, usually the `OpenTelemetry.Extensions.Hosting` package, whose
+`AddOpenTelemetry()` starts the setup. Pass the source to `WithTracing` with `AddSource`, and the meter to `WithMetrics`
+with `AddMeter`, using the two names above, and add an exporter for where the data should go.
 
 OpenTelemetry is one listener. Anything built on `ActivityListener` and `MeterListener` hears the same signals, and this
 one is small enough to read. The tests behind this page use it.
@@ -290,8 +315,9 @@ the behaviour above is what you see. Adopting the fix is tracked in
 
 ## Metrics
 
-The meter named `ZeroAlloc.Jev` has six instruments. Every evaluation records its duration, and a successful evaluation
-also records its tokens and one confidence point for each Choice or Score answer.
+The meter named `ZeroAlloc.Jev` has six instruments. To collect them with OpenTelemetry, pass the name to `AddMeter`, as
+[the traces section](#subscribing-with-opentelemetry) shows. Every evaluation records its duration, and a successful
+evaluation also records its tokens and one confidence point for each Choice or Score answer.
 
 | Metric | Kind | Unit | Attributes | Recorded |
 | --- | --- | --- | --- | --- |
@@ -331,7 +357,7 @@ call's own task, so the numbers are these:
 
 - **Raw evaluation, model listing, and every call that completes synchronously:** nothing extra.
 - **A typed or built-set call that completes asynchronously,** as a real network call does: one extra state machine of
-  211 B. It hands back the answers and returns the pooled response buffer.
+  211 B, measured under the JIT. It hands back the answers and returns the pooled response buffer.
 - **While listening,** a call pays for the span, its attributes and the measurements. The benchmarks measure about 1.0
   to 1.8 KB per call, depending on the path. Under Native AOT a typed call pays 1560 B, which is 4928 B listening
   against 3368 B with nothing listening.

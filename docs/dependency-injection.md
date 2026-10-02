@@ -88,11 +88,13 @@ handlers are added. [Below](#the-httpclient-from-the-factory) covers that.
 | `AddJevClient(string name, IConfiguration)` | a keyed client | a configuration section |
 
 "The defaults and the environment variables" are the ones from [the client page](client-and-errors.md#options): the key
-comes from `TYPESAFE_API_KEY`, and everything else has its default.
+comes from `TYPESAFE_API_KEY`, the base address from `TYPESAFE_BASE_URL` when it is set, and everything else has its
+default.
 
 <!-- snippet: DependencyInjection_FromEnvironment -->
 ```cs
-// With no options at all, the key comes from TYPESAFE_API_KEY and everything else from the defaults.
+// With no options at all, the key comes from TYPESAFE_API_KEY, the base address from TYPESAFE_BASE_URL when set,
+// and everything else from the defaults.
 public static void AddFromEnvironment(IServiceCollection services)
 {
     services.AddJevClient();
