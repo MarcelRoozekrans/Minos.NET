@@ -127,3 +127,5 @@ public static class ShopRouting
 - Noul (yes/no) answers carry no confidence. Gate them on `Probability` instead, as in the
   [fan-out](fan-out.md) example.
 - The thresholds here are starting points. Tune them on your own data.
+- The same question can be built at run time instead of declared; the [fan-out](fan-out.md#built-at-run-time) guide
+  shows how.

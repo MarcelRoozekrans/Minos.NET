@@ -72,6 +72,41 @@ public sealed class FanOutTests
         Assert.Collection(requests, body => Assert.Equal(QuestionKeys, QuestionKeysOf(body)));
     }
 
+    [Theory]
+    [InlineData(nameof(CrashResponse), ReviewActions.PageOnCall | ReviewActions.ToCompetitiveResearch)]
+    [InlineData(nameof(PricingResponse), ReviewActions.ToProductTeam)]
+    public async Task BuiltQuestions_SendTheSameQuestions_AndRouteTheSame(string responseName, ReviewActions expected)
+    {
+        var response = string.Equals(responseName, nameof(CrashResponse), StringComparison.Ordinal) ? CrashResponse : PricingResponse;
+
+        var (typedHttp, typedJev, typedRequests) = CannedJev.Client(response);
+        using (typedHttp)
+        using (typedJev)
+        {
+            Assert.Equal(expected, await ReviewTriage.TriageAsync(typedJev, "A review.", CancellationToken.None));
+        }
+
+        var (http, jev, requests) = CannedJev.Client(response);
+        using (http)
+        using (jev)
+        {
+            Assert.Equal(expected, await new BuiltReviewTriage().TriageAsync(jev, "A review.", CancellationToken.None));
+        }
+
+        // The same five keys as the [JevQuestions] type, and the same questions under them, options and levels included.
+        Assert.Collection(requests, body =>
+        {
+            Assert.Equal(QuestionKeys, QuestionKeysOf(body));
+            Assert.Equal(QuestionsOf(typedRequests[0]), QuestionsOf(body));
+        });
+    }
+
+    private static string QuestionsOf(string requestBody)
+    {
+        using var document = JsonDocument.Parse(requestBody);
+        return document.RootElement.GetProperty("questions").GetRawText();
+    }
+
     private static string[] QuestionKeysOf(string requestBody)
     {
         using var document = JsonDocument.Parse(requestBody);

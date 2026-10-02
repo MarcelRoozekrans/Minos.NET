@@ -140,10 +140,76 @@ public static async Task<ReviewActions?> TriageAsync(IJevClient jev, string revi
 ```
 <!-- endSnippet -->
 
+## Built at run time
+
+When the questions are only known at run time, build the set with `JevQuestionSet.CreateBuilder()` instead of declaring
+a type. Here are the same five questions, with the same keys, options and levels, read through the handles the builder
+hands back. The routing is the same method, so the two versions route every review alike.
+
+<!-- snippet: FanOutBuilt -->
+```cs
+public sealed class BuiltReviewTriage
+{
+    private readonly JevQuestionSet _questions;
+    private readonly ChoiceHandle<ReviewTopic> _topic;
+    private readonly ScoreHandle<Sentiment> _sentiment;
+    private readonly NoulHandle _mentionsDataLoss;
+    private readonly NoulHandle _namesCompetitor;
+
+    // Build the set once and share it: it is immutable and thread-safe. Each question method hands back a
+    // handle, and the handle reads that question's answer.
+    public BuiltReviewTriage()
+    {
+        var built = JevQuestionSet.CreateBuilder()
+            .Choice("topic", "What is the review mainly about?", out _topic, options => options
+                .Describe(ReviewTopic.Crash, "The app crashes, freezes or closes on its own")
+                .Describe(ReviewTopic.Performance, "The app is slow, drains the battery or uses too much data")
+                .Describe(ReviewTopic.Pricing, "The price, the subscription or in-app purchases")
+                .Describe(ReviewTopic.FeatureIdea, "A feature the reviewer wants added")
+                .Describe(ReviewTopic.Praise, "Mostly praise, with no complaint"))
+            .Score("sentiment", "How does the reviewer feel about the app?", out _sentiment, levels => levels
+                .Level(Sentiment.VeryNegative, "Very negative")
+                .Level(Sentiment.Negative, "Negative")
+                .Level(Sentiment.Mixed, "Mixed or neutral")
+                .Level(Sentiment.Positive, "Positive")
+                .Level(Sentiment.VeryPositive, "Very positive"))
+            .Noul(
+                "mentions_data_loss",
+                "Does the reviewer say they lost data, such as notes, files or saved progress?",
+                out _mentionsDataLoss)
+            .Noul("names_competitor", "Does the review name a competing app?", out _namesCompetitor)
+            .Noul("would_recommend", "Would the reviewer still recommend the app to a friend?", out _) // not read here
+            .Build();
+
+        // These questions are fixed, so a failure is a bug in this code: built.Error.Failures lists what is wrong.
+        _questions = built.IsSuccess ? built.Value : throw new InvalidOperationException(built.Error.Message);
+    }
+
+    public async Task<ReviewActions?> TriageAsync(IJevClient jev, string reviewText, CancellationToken ct)
+    {
+        var result = await jev.EvaluateAsync(_questions, reviewText, ct);
+        if (result.IsFailure)
+        {
+            return null;
+        }
+
+        var answers = result.Value;
+        return ReviewRouting.Route(
+            answers.Get(_topic),
+            answers.Get(_sentiment),
+            answers.Get(_mentionsDataLoss),
+            answers.Get(_namesCompetitor));
+    }
+}
+```
+<!-- endSnippet -->
+
 ## C# notes
 
 - Each answer is a struct over the response's shared buffer: reading `Value`, `Expected`, `Confidence` or
-  `Probability` allocates nothing.
+  `Probability` allocates nothing, and neither does `JevAnswers.Get`.
+- Build a question set once and keep it, as `BuiltReviewTriage` does: the set is immutable and safe to share across
+  threads.
 - The thresholds here (0.6, 1.5, 0.7) are starting points. Tune them on your own reviews.
-- The same questions can be built at run time instead of declared; see
+- The README covers the builder in full, including its validation rules, in
   [Question sets built at run time](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev#question-sets-built-at-run-time).

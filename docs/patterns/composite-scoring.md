@@ -134,4 +134,5 @@ public static class PullRequestScoring
 - `Normalized` runs from 0 to 1, and reading it allocates nothing.
 - Make each set of weights sum to 1, so the composite stays on 0 to 1 and thresholds on it keep their meaning.
 - Changing the policy means changing the weights. The request, and so the cost of the call, stays the same.
-- `KeyedScore.Normalized` does the same for question sets built at run time.
+- `KeyedScore.Normalized` does the same for question sets built at run time; the
+  [fan-out](fan-out.md#built-at-run-time) guide shows how to build one.

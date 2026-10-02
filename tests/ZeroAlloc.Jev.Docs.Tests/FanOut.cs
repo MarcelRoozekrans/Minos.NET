@@ -114,3 +114,59 @@ public static class ReviewTriage
     }
     #endregion
 }
+
+#region FanOutBuilt
+public sealed class BuiltReviewTriage
+{
+    private readonly JevQuestionSet _questions;
+    private readonly ChoiceHandle<ReviewTopic> _topic;
+    private readonly ScoreHandle<Sentiment> _sentiment;
+    private readonly NoulHandle _mentionsDataLoss;
+    private readonly NoulHandle _namesCompetitor;
+
+    // Build the set once and share it: it is immutable and thread-safe. Each question method hands back a
+    // handle, and the handle reads that question's answer.
+    public BuiltReviewTriage()
+    {
+        var built = JevQuestionSet.CreateBuilder()
+            .Choice("topic", "What is the review mainly about?", out _topic, options => options
+                .Describe(ReviewTopic.Crash, "The app crashes, freezes or closes on its own")
+                .Describe(ReviewTopic.Performance, "The app is slow, drains the battery or uses too much data")
+                .Describe(ReviewTopic.Pricing, "The price, the subscription or in-app purchases")
+                .Describe(ReviewTopic.FeatureIdea, "A feature the reviewer wants added")
+                .Describe(ReviewTopic.Praise, "Mostly praise, with no complaint"))
+            .Score("sentiment", "How does the reviewer feel about the app?", out _sentiment, levels => levels
+                .Level(Sentiment.VeryNegative, "Very negative")
+                .Level(Sentiment.Negative, "Negative")
+                .Level(Sentiment.Mixed, "Mixed or neutral")
+                .Level(Sentiment.Positive, "Positive")
+                .Level(Sentiment.VeryPositive, "Very positive"))
+            .Noul(
+                "mentions_data_loss",
+                "Does the reviewer say they lost data, such as notes, files or saved progress?",
+                out _mentionsDataLoss)
+            .Noul("names_competitor", "Does the review name a competing app?", out _namesCompetitor)
+            .Noul("would_recommend", "Would the reviewer still recommend the app to a friend?", out _) // not read here
+            .Build();
+
+        // These questions are fixed, so a failure is a bug in this code: built.Error.Failures lists what is wrong.
+        _questions = built.IsSuccess ? built.Value : throw new InvalidOperationException(built.Error.Message);
+    }
+
+    public async Task<ReviewActions?> TriageAsync(IJevClient jev, string reviewText, CancellationToken ct)
+    {
+        var result = await jev.EvaluateAsync(_questions, reviewText, ct);
+        if (result.IsFailure)
+        {
+            return null;
+        }
+
+        var answers = result.Value;
+        return ReviewRouting.Route(
+            answers.Get(_topic),
+            answers.Get(_sentiment),
+            answers.Get(_mentionsDataLoss),
+            answers.Get(_namesCompetitor));
+    }
+}
+#endregion

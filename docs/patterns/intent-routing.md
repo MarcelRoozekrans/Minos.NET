@@ -102,3 +102,5 @@ public static class HelpdeskRouting
 - This composes with [confidence routing](confidence-routing.md): give each handler its own thresholds instead of the
   defaults when a wrong route costs more for some of them.
 - The effort cut-off of 1.0, "involved", is a starting point. Tune it on your own tickets.
+- The same questions can be built at run time instead of declared; the [fan-out](fan-out.md#built-at-run-time) guide
+  shows how.
