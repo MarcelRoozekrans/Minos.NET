@@ -8,6 +8,8 @@ const ZeroAlloc.Jev.JevDefaults.BaseAddressEnvironmentVariable = "TYPESAFE_BASE_
 const ZeroAlloc.Jev.JevDefaults.OpenRouterApiKeyEnvironmentVariable = "OPENROUTER_API_KEY" -> string!
 override ZeroAlloc.Jev.Choice<T>.Equals(object? obj) -> bool
 override ZeroAlloc.Jev.Choice<T>.GetHashCode() -> int
+override ZeroAlloc.Jev.ConfidenceThresholds.Equals(object? obj) -> bool
+override ZeroAlloc.Jev.ConfidenceThresholds.GetHashCode() -> int
 override ZeroAlloc.Jev.JevContent.Equals(object? obj) -> bool
 override ZeroAlloc.Jev.JevContent.GetHashCode() -> int
 override ZeroAlloc.Jev.JevContent.ToString() -> string!
@@ -36,6 +38,9 @@ override ZeroAlloc.Jev.Score<T>.Equals(object? obj) -> bool
 override ZeroAlloc.Jev.Score<T>.GetHashCode() -> int
 static ZeroAlloc.Jev.Choice<T>.operator !=(ZeroAlloc.Jev.Choice<T> left, ZeroAlloc.Jev.Choice<T> right) -> bool
 static ZeroAlloc.Jev.Choice<T>.operator ==(ZeroAlloc.Jev.Choice<T> left, ZeroAlloc.Jev.Choice<T> right) -> bool
+static ZeroAlloc.Jev.ConfidenceThresholds.Default.get -> ZeroAlloc.Jev.ConfidenceThresholds
+static ZeroAlloc.Jev.ConfidenceThresholds.operator !=(ZeroAlloc.Jev.ConfidenceThresholds left, ZeroAlloc.Jev.ConfidenceThresholds right) -> bool
+static ZeroAlloc.Jev.ConfidenceThresholds.operator ==(ZeroAlloc.Jev.ConfidenceThresholds left, ZeroAlloc.Jev.ConfidenceThresholds right) -> bool
 static ZeroAlloc.Jev.JevAnswerReader.EnsureStartObject(ref System.Text.Json.Utf8JsonReader reader) -> void
 static ZeroAlloc.Jev.JevAnswerReader.MissingAnswer(string! key) -> System.Text.Json.JsonException!
 static ZeroAlloc.Jev.JevAnswerReader.NextProperty(ref System.Text.Json.Utf8JsonReader reader) -> bool
@@ -105,6 +110,17 @@ ZeroAlloc.Jev.ChoiceQuestion
 ZeroAlloc.Jev.ChoiceQuestion.ChoiceQuestion() -> void
 ZeroAlloc.Jev.ChoiceQuestion.Criteria.get -> System.Collections.Generic.IReadOnlyDictionary<string!, ZeroAlloc.Jev.JevContent?>!
 ZeroAlloc.Jev.ChoiceQuestion.Criteria.init -> void
+ZeroAlloc.Jev.ConfidenceThresholds
+ZeroAlloc.Jev.ConfidenceThresholds.Classify(double confidence) -> ZeroAlloc.Jev.ConfidenceTier
+ZeroAlloc.Jev.ConfidenceThresholds.ConfidenceThresholds() -> void
+ZeroAlloc.Jev.ConfidenceThresholds.ConfidenceThresholds(double medium, double high) -> void
+ZeroAlloc.Jev.ConfidenceThresholds.Equals(ZeroAlloc.Jev.ConfidenceThresholds other) -> bool
+ZeroAlloc.Jev.ConfidenceThresholds.High.get -> double
+ZeroAlloc.Jev.ConfidenceThresholds.Medium.get -> double
+ZeroAlloc.Jev.ConfidenceTier
+ZeroAlloc.Jev.ConfidenceTier.High = 2 -> ZeroAlloc.Jev.ConfidenceTier
+ZeroAlloc.Jev.ConfidenceTier.Low = 0 -> ZeroAlloc.Jev.ConfidenceTier
+ZeroAlloc.Jev.ConfidenceTier.Medium = 1 -> ZeroAlloc.Jev.ConfidenceTier
 ZeroAlloc.Jev.CriteriaAttribute
 ZeroAlloc.Jev.CriteriaAttribute.CriteriaAttribute(string! description) -> void
 ZeroAlloc.Jev.CriteriaAttribute.Description.get -> string!
@@ -291,6 +307,7 @@ ZeroAlloc.Jev.KeyedScore.Expected.get -> double
 ZeroAlloc.Jev.KeyedScore.KeyedScore() -> void
 ZeroAlloc.Jev.KeyedScore.KeyedScore(int level, double expected, double confidence, ZeroAlloc.Jev.KeyedProbabilityMap probabilities) -> void
 ZeroAlloc.Jev.KeyedScore.Level.get -> int
+ZeroAlloc.Jev.KeyedScore.Normalized.get -> double
 ZeroAlloc.Jev.KeyedScore.Probabilities.get -> ZeroAlloc.Jev.KeyedProbabilityMap
 ZeroAlloc.Jev.KeyedScoreHandle
 ZeroAlloc.Jev.KeyedScoreHandle.KeyedScoreHandle() -> void
@@ -370,6 +387,7 @@ ZeroAlloc.Jev.Score<T>
 ZeroAlloc.Jev.Score<T>.Confidence.get -> double
 ZeroAlloc.Jev.Score<T>.Equals(ZeroAlloc.Jev.Score<T> other) -> bool
 ZeroAlloc.Jev.Score<T>.Expected.get -> double
+ZeroAlloc.Jev.Score<T>.Normalized.get -> double
 ZeroAlloc.Jev.Score<T>.Probabilities.get -> ZeroAlloc.Jev.ProbabilityMap<T>
 ZeroAlloc.Jev.Score<T>.Score() -> void
 ZeroAlloc.Jev.Score<T>.Score(T value, double expected, double confidence, ZeroAlloc.Jev.ProbabilityMap<T> probabilities) -> void
