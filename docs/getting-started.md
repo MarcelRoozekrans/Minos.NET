@@ -9,8 +9,10 @@ description: Install ZeroAlloc.Jev, point it at TypeSafe or OpenRouter, and run 
 # Getting started
 
 ZeroAlloc.Jev is an unofficial .NET client for [TypeSafe AI](https://typesafe.ai)'s **Jev**, the first System One
-model. You send Jev a piece of text or JSON, called the state, and a few typed questions about it. Jev answers each
-question with a calibrated, typed result. You can reach it directly at TypeSafe, or through OpenRouter.
+model. System One is TypeSafe's name for this kind of model, one that answers typed questions about a piece of text
+directly; [docs.typesafe.ai](https://docs.typesafe.ai) has their own description. You send Jev the text or JSON to judge, called the state, and a few typed
+questions about it. Jev answers each question with a typed result and a calibrated confidence, meaning a number meant
+to track how often such answers are right. You can reach it directly at TypeSafe, or through OpenRouter.
 
 The library turns those questions and answers into ordinary C# types. You declare the questions on a partial record, a
 source generator writes the request, and the reply comes back as properties you can read. There is no JSON to build or
@@ -24,7 +26,8 @@ parse by hand.
 
 Every question is one of three kinds. The [next page](question-types.md) covers them in detail.
 
-- **Noul** asks a yes/no question and answers with the probability of yes.
+- **Noul** asks a yes/no question and answers with the probability of yes. "Noul" is TypeSafe's name for the
+  question type.
 - **Choice** asks for one option out of a list, and answers with the pick, a confidence and every option's probability.
 - **Score** asks for a level on an ordered scale, and answers like a Choice, plus the probability-weighted average
   level.
@@ -39,8 +42,9 @@ later. Visual Studio 2026 version 18.0 is the first release that does. An older 
 
 ## Install
 
-The packages are not on nuget.org yet: publishing waits until the maintainer declares the package mature. Once they are
-there, you add them like this.
+The packages are not yet published to NuGet. Once they are, `dotnet add package` is how you install them, as below.
+Until then, the source is in the [ZeroAlloc.Jev repository](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev): clone it,
+run `dotnet pack src/ZeroAlloc.Jev -c Release -o ./nupkgs`, and add that folder to your project as a local NuGet source.
 
 ```shell
 dotnet add package ZeroAlloc.Jev
@@ -63,16 +67,26 @@ dotnet add package ZeroAlloc.Jev.DependencyInjection
 | `JevProvider.OpenRouter` | `https://openrouter.ai/api/` | `OPENROUTER_API_KEY` |
 
 `TypeSafe` is the default. Set `ApiKey` on the options, or leave it unset and the client reads the matching
-environment variable. The client throws `InvalidOperationException` when it is created with no key available, so a
+environment variable. `JevClient` is disposable and meant to be long-lived: create one, share it, and dispose it
+at shutdown, as the snippet below does for its short example. The client throws `InvalidOperationException` when it is created with no key available, so a
 missing key shows up at start-up rather than on the first call.
 
 <!-- snippet: GettingStarted_Clients -->
 ```cs
 // TypeSafe is the default provider. With no ApiKey set, the client reads TYPESAFE_API_KEY.
-public static JevClient ForTypeSafe() => new(new JevClientOptions());
+// JevClient is disposable and meant to be long-lived: create it once, share it, and dispose it at shutdown.
+public static async Task<string> ViaTypeSafeAsync(string message, CancellationToken ct)
+{
+    using var jev = new JevClient(new JevClientOptions());
+    return await GettingStartedEvaluation.TriageAsync(jev, message, ct);
+}
 
 // OpenRouter: name the provider. With no ApiKey set, the client reads OPENROUTER_API_KEY.
-public static JevClient ForOpenRouter() => new(new JevClientOptions { Provider = JevProvider.OpenRouter });
+public static async Task<string> ViaOpenRouterAsync(string message, CancellationToken ct)
+{
+    using var jev = new JevClient(new JevClientOptions { Provider = JevProvider.OpenRouter });
+    return await GettingStartedEvaluation.TriageAsync(jev, message, ct);
+}
 ```
 <!-- endSnippet -->
 
@@ -84,6 +98,8 @@ description that tells Jev what the option means.
 
 <!-- snippet: GettingStarted_Questions -->
 ```cs
+using ZeroAlloc.Jev;
+
 public enum SupportTeam
 {
     [Criteria("Payments, invoices and refunds")]

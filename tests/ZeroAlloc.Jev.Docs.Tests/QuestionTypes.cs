@@ -64,7 +64,7 @@ public static class AnswerReading
             department.Probabilities[Department.Sales]);
     }
 
-    // The map can be enumerated too, in the order the options were declared, without allocating.
+    // The map can be enumerated too, in the order of the enum's members, without allocating.
     public static Department? RunnerUp(Choice<Department> department)
     {
         Department? runnerUp = null;
@@ -86,7 +86,7 @@ public static class AnswerReading
     public static (Mood Level, double Expected, double Normalized, double Confidence) ReadScore(Score<Mood> mood)
     {
         // Value is the most probable level. Expected is the probability-weighted average level index, so it
-        // can fall between levels: 0.5 here sits halfway between Annoyed and Neutral. Normalized rescales it
+        // can fall between levels: 0.5 would sit halfway between level 0 and level 1. Normalized rescales it
         // to 0 to 1, so Scores with different numbers of levels can be compared and weighted.
         return (mood.Value, mood.Expected, mood.Normalized, mood.Confidence);
     }

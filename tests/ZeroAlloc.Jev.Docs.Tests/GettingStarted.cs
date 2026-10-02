@@ -1,6 +1,8 @@
 namespace ZeroAlloc.Jev.Docs.Tests;
 
 #region GettingStarted_Questions
+using ZeroAlloc.Jev;
+
 public enum SupportTeam
 {
     [Criteria("Payments, invoices and refunds")]
@@ -30,10 +32,19 @@ public static class GettingStartedClients
 {
     #region GettingStarted_Clients
     // TypeSafe is the default provider. With no ApiKey set, the client reads TYPESAFE_API_KEY.
-    public static JevClient ForTypeSafe() => new(new JevClientOptions());
+    // JevClient is disposable and meant to be long-lived: create it once, share it, and dispose it at shutdown.
+    public static async Task<string> ViaTypeSafeAsync(string message, CancellationToken ct)
+    {
+        using var jev = new JevClient(new JevClientOptions());
+        return await GettingStartedEvaluation.TriageAsync(jev, message, ct);
+    }
 
     // OpenRouter: name the provider. With no ApiKey set, the client reads OPENROUTER_API_KEY.
-    public static JevClient ForOpenRouter() => new(new JevClientOptions { Provider = JevProvider.OpenRouter });
+    public static async Task<string> ViaOpenRouterAsync(string message, CancellationToken ct)
+    {
+        using var jev = new JevClient(new JevClientOptions { Provider = JevProvider.OpenRouter });
+        return await GettingStartedEvaluation.TriageAsync(jev, message, ct);
+    }
     #endregion
 }
 

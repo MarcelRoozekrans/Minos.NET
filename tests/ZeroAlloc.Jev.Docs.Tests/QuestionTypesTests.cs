@@ -1,3 +1,5 @@
+using ZeroAlloc.TestHelpers;
+
 namespace ZeroAlloc.Jev.Docs.Tests;
 
 public sealed class QuestionTypesTests
@@ -75,19 +77,44 @@ public sealed class QuestionTypesTests
     {
         var analysis = await CannedJev.EvaluateAsync<TicketAnalysis>(TicketResponse, "Help!");
 
-        // Warm up, so one-time JIT work does not count.
-        Read(analysis);
+        var built = JevQuestionSet.CreateBuilder()
+            .Choice("plan", "Which plan fits this customer?", out var plan, o => o.Option("free").Option("pro-plan").Option("team-plan"))
+            .Score("effort", "How much setup work does the customer need?", out var effort, l => l.Level("Minutes").Level("Hours").Level("Days"))
+            .Build();
+        Assert.True(built.IsSuccess);
+        var (http, jev, _) = CannedJev.Client(KeyedResponse);
+        using var httpScope = http;
+        using var jevScope = jev;
+        var evaluated = await jev.EvaluateAsync(built.Value, "A team of twelve.", CancellationToken.None);
+        Assert.True(evaluated.IsSuccess);
+        var answers = evaluated.Value;
 
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        Read(analysis);
-        Assert.Equal(0, GC.GetAllocatedBytesForCurrentThread() - before);
-    }
+        var sum = 0.0;
 
-    private static void Read(TicketAnalysis analysis)
-    {
-        _ = AnswerReading.ReadNoul(analysis.IsUrgent);
-        _ = AnswerReading.ReadChoice(analysis.Department);
-        _ = AnswerReading.RunnerUp(analysis.Department);
-        _ = AnswerReading.ReadScore(analysis.Mood);
+        // Every read the page calls free: the typed Noul, Choice and Score reads, the keyed reads through
+        // JevAnswers.Get, and enumerating a keyed probability map.
+        AllocationGate.AssertBudget(
+            0,
+            1000,
+            () =>
+            {
+                sum += AnswerReading.ReadNoul(analysis.IsUrgent).Probability;
+                sum += AnswerReading.ReadChoice(analysis.Department).PickedProbability;
+                sum += AnswerReading.RunnerUp(analysis.Department) is null ? 0 : 1;
+                sum += AnswerReading.ReadScore(analysis.Mood).Normalized;
+
+                var keyedChoice = answers.Get(plan);
+                sum += keyedChoice.Confidence + keyedChoice.Probabilities[keyedChoice.Value] + keyedChoice.Value.Length;
+                foreach (var (key, probability) in keyedChoice.Probabilities)
+                {
+                    sum += probability + key.Length;
+                }
+
+                var keyedScore = answers.Get(effort);
+                sum += keyedScore.Level + keyedScore.Expected + keyedScore.Normalized + keyedScore.Probabilities[1];
+            },
+            "ReadingAnswers");
+
+        Assert.True(sum > 0);
     }
 }

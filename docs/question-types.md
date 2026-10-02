@@ -99,7 +99,7 @@ public static (Department Picked, double Confidence, double PickedProbability, d
         department.Probabilities[Department.Sales]);
 }
 
-// The map can be enumerated too, in the order the options were declared, without allocating.
+// The map can be enumerated too, in the order of the enum's members, without allocating.
 public static Department? RunnerUp(Choice<Department> department)
 {
     Department? runnerUp = null;
@@ -119,7 +119,7 @@ public static Department? RunnerUp(Choice<Department> department)
 <!-- endSnippet -->
 
 Options the response did not mention have probability 0. Reading an enum value that is not one of the question's options
-throws `ArgumentOutOfRangeException`.
+throws `ArgumentOutOfRangeException`, and so does an unknown key or an out-of-range index on a keyed map.
 
 ## Score: a level on an ordered scale
 
@@ -136,7 +136,7 @@ levels, lowest first, and `[Level]` describes each one. The answer holds these.
 public static (Mood Level, double Expected, double Normalized, double Confidence) ReadScore(Score<Mood> mood)
 {
     // Value is the most probable level. Expected is the probability-weighted average level index, so it
-    // can fall between levels: 0.5 here sits halfway between Annoyed and Neutral. Normalized rescales it
+    // can fall between levels: 0.5 would sit halfway between level 0 and level 1. Normalized rescales it
     // to 0 to 1, so Scores with different numbers of levels can be compared and weighted.
     return (mood.Value, mood.Expected, mood.Normalized, mood.Confidence);
 }
@@ -219,9 +219,9 @@ Building a set at run time is covered on its own page. The point here is the sha
 The two numbers answer different questions, and a Choice or a Score has both.
 
 - A **probability** says how likely one option, or one level, is. A Choice or Score gives one for every option.
-- **Confidence** says how far to trust the answer as a whole. TypeSafe calibrates it, so that it can be used as a
-  gate: a higher confidence should mean the answer is right more often. Treat any threshold as a starting point, and
-  tune it on your own data.
+- **Confidence** says how far to trust the answer as a whole. It is meant to be calibrated, so that it can be used as a
+  gate; TypeSafe explains what it means in their [confidence guide](https://docs.typesafe.ai/confidence). Treat any
+  threshold as a starting point, and tune it on your own data.
 
 So the two do not replace each other. The probabilities show how the options compare, and the confidence helps you
 decide what to do with the answer: act on it, check it first, or hand it to a person.
@@ -235,8 +235,9 @@ confidence threshold sized to the cost of being wrong, with `ConfidenceThreshold
 
 The answers of one call share one buffer, and each probability map is a view over it. Reading `Value`, `Probability`,
 `Expected`, `Normalized` or `Confidence`, looking up a probability, enumerating a `Probabilities` map and calling
-`JevAnswers.Get` all allocate nothing. `foreach` over a map yields each option with its probability, in wire order,
-which is the order the options were declared, as `RunnerUp` above does.
+`JevAnswers.Get` all allocate nothing. `foreach` over a map yields each option with its probability, in the order of
+the enum's members, as `RunnerUp` above does. A member that repeats an earlier member's value is an alias and is
+skipped, and explicit values do not reorder anything. A keyed map enumerates its keys in the order they were added.
 
 The [performance](performance.md) page has the measured costs of a call.
 
