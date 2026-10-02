@@ -1,38 +1,35 @@
-# Milestone 3: .NET integration
+# Milestone 4: Patterns & docs
 
-**Status:** complete
-**Started:** 2026-09-30
-**Completed:** 2026-10-01
-**Design:** `docs/superpowers/specs/2026-09-30-milestone-3-design.md`
+**Status:** active
+**Started:** 2026-10-02
+**Design:** `docs/superpowers/specs/2026-10-02-milestone-4-design.md`
 
 ## Goal
-Jev feels native in a .NET generic-host app. One call registers the client, including keyed clients per provider. Options bind from configuration and fail fast when they are invalid, and the same configuration carries the retry and timeout settings. Every evaluation emits structured logs through `ILogger`, plus spans and metrics for tokens, latency and confidence. It all stays Native AOT-clean and within CI-enforced allocation budgets. Logging and telemetry live in the core package; `ZeroAlloc.Jev.DependencyInjection` only wires them up.
+A C# developer can learn Jev from its own docs site and apply TypeSafe's documented patterns in idiomatic C#. The library adds only thin, allocation-free helpers, and only where hand-written code tends to go wrong. Original, runnable samples show guardrails, intent routing and re-ranking end to end. CI keeps the samples honest by replaying recorded real answers.
 
 ## Definition of Done
-- [x] All planned phases complete.
-- [x] All tests passing: unit, generator, analyzer, integration and pack. Live smoke still runs when `JEV_LIVE=1` and a key are set.
-- [x] `ZeroAlloc.Jev.DependencyInjection` registers the client:
-  - `services.AddJevClient(...)` registers an `IJevClient` on `IHttpClientFactory` in one call.
-  - `services.AddJevClient(name, ...)` registers keyed clients, each with its own options and `HttpClient`.
-  - The pack tests assert the package's layout and dependencies.
-- [x] `JevClientOptions` bind from `IConfiguration`, validated at startup with the core's own rules, so invalid values fail when the host starts. Retry and timeout settings are configurable this way.
-- [x] `JevClient` logs through Microsoft's source-generated `[LoggerMessage]`:
-  - It accepts an `ILoggerFactory` through new constructor overloads.
-  - Logs never contain state, instructions, answers or the API key.
-  - Without a logger, it logs nothing and allocates nothing for logging.
-- [x] Spans and metrics come from ZeroAlloc.Telemetry:
-  - They cover token usage, operation duration and answer confidence.
-  - Names follow the OpenTelemetry GenAI conventions plus `jev.*`.
-  - Jev's span nests the `ZeroAlloc.Rest` HTTP span; it does not duplicate it.
-- [x] Every phase adds `AllocationGate` budgets and benchmarks for what it ships, and existing budgets hold with logging and telemetry disabled. The AOT smoke app exercises logging, telemetry and DI registration with zero IL2xxx/IL3xxx warnings.
+- [ ] All planned phases complete.
+- [ ] All tests passing: unit, generator, analyzer, integration and pack, plus every sample in replay mode. Live smoke still runs when `JEV_LIVE=1` and a key are set.
+- [ ] Pattern helpers ship in the core:
+  - A normalized Score value, and a confidence-tier gate with overridable 0.5 and 0.9 defaults.
+  - Both are in `PublicAPI.Unshipped.txt`, with 0 B `AllocationGate` budgets.
+  - The AOT smoke app exercises them with zero IL2xxx/IL3xxx warnings.
+- [ ] Guides for all four documented patterns live in `docs/`: fan-out, confidence routing, composite scoring and intent routing. Their C# snippets compile in CI.
+- [ ] Three original samples are C# projects under `samples/`: guardrails, intent routing and re-ranking.
+  - Each credits and links the TypeSafe cookbook it was inspired by.
+  - Each runs live with a key, and in replay mode from checked-in recordings of a real run.
+  - CI runs each one in replay mode and checks its decisions.
+- [ ] The user guide in `docs/` covers getting started, every question type, typed evaluation and builders, DI and configuration, logging and telemetry, Native AOT, and patterns and samples. #16 is closed.
+- [ ] jev.zeroalloc.net serves the guide through `apps/docs-jev` and `repos/jev` in ZeroAlloc-Net/.website. A push to `docs/` on `main` updates it through `trigger-website.yml`.
+- [ ] The README carries the unofficial-client disclaimer and the logo, and links the site.
+- [ ] Every existing allocation budget is unchanged.
 
 ## Phases
-1. Phase 3.1 — Logging [complete]
-2. Phase 3.2 — Telemetry [complete]
-3. Phase 3.3 — DI package [complete]
-4. Phase 3.4 — Options and configuration [complete]
+1. Phase 4.1 — Pattern helpers and guides [pending]
+2. Phase 4.2 — Cookbook samples [pending]
+3. Phase 4.3 — User guide [pending]
+4. Phase 4.4 — Docs site, logo and README [pending]
 
 ## Audit History
 | Date | Verdict | Gaps |
 |---|---|---|
-| 2026-10-01 | PASS | None blocking. Notes: TypeSafe live suite not run, ZeroAlloc.Telemetry#184 open upstream, no Phase 3.4 benchmark, no pre-push-review reports. See `docs/plans/2026-10-01-milestone-3-audit.md`. |

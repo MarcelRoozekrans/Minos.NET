@@ -174,34 +174,37 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-01-phase-3.4-options-configuration.md`
 **Completed:** 2026-10-01
 
-## Milestone 4: Patterns & docs [status: pending]
-**Goal:** Developers can learn and apply Jev's documented patterns in C#.
+## Milestone 4: Patterns & docs [status: active]
+**Goal:** A C# developer can learn Jev from its own docs site and apply TypeSafe's documented patterns in idiomatic C#, with thin allocation-free helpers, original runnable samples kept honest by replayed recordings, and a user guide served at jev.zeroalloc.net.
+**Started:** 2026-10-02
+**Design:** `docs/superpowers/specs/2026-10-02-milestone-4-design.md`
 **Definition of Done:**
-- [ ] Pattern helpers for confidence routing, composite scoring and fan-out shipped
-- [ ] At least three cookbook samples run as C# projects
-- [ ] User docs live on the org website at jev.zeroalloc.net
-- [ ] README carries the unofficial-client disclaimer
+- [ ] Pattern helpers ship in the core: a normalized Score value and a confidence-tier gate, allocation-free and exercised under Native AOT
+- [ ] Guides for fan-out, confidence routing, composite scoring and intent routing, with C# snippets that compile in CI
+- [ ] Original guardrails, intent-routing and re-ranking samples run as C# projects, live or from replayed recordings, and CI checks their decisions in replay mode
+- [ ] The user guide in `docs/` is served at jev.zeroalloc.net through ZeroAlloc-Net/.website
+- [ ] README carries the unofficial-client disclaimer and the logo, and links the site
 
-### Phase 4.1: Pattern helpers [status: pending]
-**Goal:** Confidence-gated routing, composite scoring and speculative fan-out helpers.
+### Phase 4.1: Pattern helpers and guides [status: pending]
+**Goal:** Two allocation-free helpers, a normalized Score value and a confidence-tier gate with overridable defaults, plus guides for the four documented patterns with C# snippets that compile in CI.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
 
 ### Phase 4.2: Cookbook samples [status: pending]
-**Goal:** Runnable C# ports of guardrails, intent routing and re-ranking cookbooks.
+**Goal:** Original guardrails, intent-routing and re-ranking samples that run live or in replay mode from recorded OpenRouter answers, with CI checking their decisions in replay mode.
 **Surface:** Docs
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 4.3: Documentation site [status: pending]
-**Goal:** User docs in `docs/` served by the org website at jev.zeroalloc.net: a `repos/jev` submodule and an `apps/docs-jev` app in ZeroAlloc-Net/.website, triggered by `trigger-website.yml`.
+### Phase 4.3: User guide [status: pending]
+**Goal:** The user guide in `docs/`, in the org layout: getting started, every question type, typed evaluation and builders, DI and configuration, logging and telemetry, Native AOT, patterns and samples. Closes #16.
 **Surface:** Docs
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 4.4: README and branding [status: pending]
-**Goal:** README, logo and unofficial-client disclaimer.
+### Phase 4.4: Docs site, logo and README [status: pending]
+**Goal:** Register the repository in ZeroAlloc-Net/.website (`repos/jev` submodule and `apps/docs-jev` app) so `trigger-website.yml` publishes the guide to jev.zeroalloc.net; add a logo and slim the README to point at the site, keeping the disclaimer.
 **Surface:** Docs
 **HelpWanted:** no
 **Plan:** _to be written_
