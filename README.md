@@ -252,10 +252,6 @@ var jev = new JevClient(httpClientFactory.CreateClient("jev"), options);
 
 A long-lived `JevClient` keeps one handler for life, so the factory's default 2-minute handler rotation would never reach it and DNS changes would go unseen. The `SocketsHttpHandler` recycles its own connections instead, and the infinite handler lifetime stops the factory rotating it.
 
-### Patterns
-
-There are guides for four patterns: speculative fan-out, confidence routing, composite scoring and intent routing. Each has a page under [docs/patterns](docs/patterns/index.md), with C# that is compiled and tested. Two helpers support them: `ConfidenceThresholds` with `ConfidenceTier` classifies a confidence as Low, Medium or High without allocating, and `Normalized` on Score answers puts any rubric's `Expected` on a 0 to 1 scale.
-
 ## Typed evaluation
 
 Declare the questions as a partial record with `[JevQuestions]`; the generator emits the question JSON at compile time and a `Parse` method that reads the typed answers. Call `EvaluateAsync<T>` with the state, and match on the `Result`:
@@ -474,6 +470,10 @@ Attributes on the members, such as `[Criteria(Key = …)]` or `[Level]`, are not
 A failure makes `Build()` return a `JevErrorKind.InvalidQuestions` error whose `JevError.Failures`, a read-only list, lists each broken rule as a `JevQuestionFailure(Rule, QuestionKey, Message)`; warnings are on `JevQuestionSet.Warnings`, also a read-only list. `JevErrorKind.InvalidQuestions` is new in this release: an exhaustive `switch` over `JevErrorKind` needs a case for it.
 
 `IJevClient` evaluates a built set through default interface methods, `EvaluateAsync(JevQuestionSet questionSet, JevContent state)` and an overload that takes a `CancellationToken`, so a hand-written fake that implements only the two abstract members supports it too; `JevClient` uses its raw, pooled-buffer path.
+
+## Patterns
+
+The [pattern guides](docs/patterns/index.md) cover speculative fan-out, confidence routing, composite scoring and intent routing, each with C# that is compiled and tested. Two helpers support them: `ConfidenceThresholds` with `ConfidenceTier` classifies a confidence as Low, Medium or High without allocating, and `Normalized` on Score answers puts any rubric's `Expected` on a 0 to 1 scale.
 
 ## Diagnostics
 
