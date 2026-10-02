@@ -27,13 +27,13 @@ public sealed record RankedQuery(string Query, string BestId, IReadOnlyList<stri
 
 public sealed record RerankingReport(IReadOnlyList<RankedQuery> Queries)
 {
-    public int KeywordHitsAt1 { get; } = Queries.Count(q => q.KeywordHit(1));
+    public int KeywordHitsAt1 => Queries.Count(q => q.KeywordHit(1));
 
-    public int KeywordHitsAt3 { get; } = Queries.Count(q => q.KeywordHit(3));
+    public int KeywordHitsAt3 => Queries.Count(q => q.KeywordHit(3));
 
-    public int JevHitsAt1 { get; } = Queries.Count(q => q.JevHit(1));
+    public int JevHitsAt1 => Queries.Count(q => q.JevHit(1));
 
-    public int JevHitsAt3 { get; } = Queries.Count(q => q.JevHit(3));
+    public int JevHitsAt3 => Queries.Count(q => q.JevHit(3));
 
     public string Render()
     {

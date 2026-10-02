@@ -3,7 +3,7 @@ namespace ZeroAlloc.Jev.Samples.Reranking;
 /// <summary>A customer question and the id of the article a person would pick as its answer.</summary>
 public sealed record Query(string Text, string BestId);
 
-/// <summary>Five authored customer questions, each worded to share more surface words with a weaker article.</summary>
+/// <summary>Five authored customer questions; most are worded so that a weaker article shares more surface words with them than the best one.</summary>
 public static class Queries
 {
     public static IReadOnlyList<Query> All { get; } =

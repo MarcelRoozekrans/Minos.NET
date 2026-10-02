@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ZeroAlloc.Jev.Samples.Reranking;
 
@@ -266,12 +267,31 @@ public sealed class RerankingSampleTests
     }
 
     [Fact]
-    public void EachQuery_IsOneRequest()
+    public async Task EachQuery_IsOneRequest()
     {
-        var file = RecordingsFile.Load(Path.Combine(SampleHost.SampleDirectory(Sample), "recordings.json"));
+        var directory = SampleHost.SampleDirectory(Sample);
+        var configuration = new ConfigurationBuilder().AddJsonFile(Path.Combine(directory, "appsettings.json")).Build();
+        var counter = new CountingHandler();
+        var services = new ServiceCollection();
+        services.AddSampleJevClient(
+            configuration.GetSection("Jev"), SampleMode.Replay, Path.Combine(directory, "recordings.json"), Sample, new RecordingSession())
+            .AddHttpMessageHandler(() => counter);
+        using var provider = services.BuildServiceProvider();
 
-        Assert.Equal(5, file.Entries.Count);
-        Assert.Equal(5, file.Entries.Select(e => e.RequestHash).Distinct(StringComparer.Ordinal).Count());
+        var report = await RerankingSample.RunAsync(provider.GetRequiredService<IJevClient>(), CancellationToken.None);
+
+        Assert.Equal(5, report.Queries.Count);
+        Assert.Equal(5, counter.Requests);
+    }
+
+    [Fact]
+    public void Report_CountsFollowTheQueries_AfterAWith()
+    {
+        var report = new RerankingReport([new RankedQuery("q", "b", ["a", "b"], ["a", "b"])]);
+        var changed = report with { Queries = [new RankedQuery("q", "b", ["a", "b"], ["b", "a"])] };
+
+        Assert.Equal(0, report.JevHitsAt1);
+        Assert.Equal(1, changed.JevHitsAt1);
     }
 
     private static async Task<RerankingReport> Run()
@@ -288,4 +308,17 @@ public sealed class RerankingSampleTests
         [.. KeywordShortlist.Top(query, Articles.All, 8).Select(a => a.Id)];
 
     private static string[] Ordered(IReadOnlySet<string> tokens) => [.. tokens.Order(StringComparer.Ordinal)];
+
+    private sealed class CountingHandler : DelegatingHandler
+    {
+        private int _requests;
+
+        public int Requests => Volatile.Read(ref _requests);
+
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            Interlocked.Increment(ref _requests);
+            return base.SendAsync(request, cancellationToken);
+        }
+    }
 }
