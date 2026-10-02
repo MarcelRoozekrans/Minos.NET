@@ -2,7 +2,7 @@
 id: typed-evaluation
 title: Typed evaluation
 sidebar_position: 3
-description: Declare Jev questions as a C# type, give them a typed state, and choose the EvaluateAsync overload that fits.
+description: Declare Jev questions as a C# type, give them a typed state, and pick the EvaluateAsync overload.
 ---
 
 # Typed evaluation
@@ -114,8 +114,8 @@ A few things in that declaration are worth reading closely.
 
 - **Options and levels are enum members.** `[Criteria]` describes a Choice option. `[Level]` describes a Score level,
   and the members, in declaration order, are the levels from lowest to highest. A Choice member without `[Criteria]`
-  is still an option and is sent with no description. A Score level must have a `[Level]`, because the API does not
-  accept a level without one.
+  is still an option and is sent with no description, though the analyzers report it as the Info diagnostic JEV006. A
+  Score level must have a `[Level]`, because the API does not accept a level without one.
 - **`Examples` and `NotFor` sharpen a description.** `Examples` lists texts that belong to the option, and `NotFor`
   lists texts that only look as if they do. With either set and non-empty, the generator sends a criterion object in
   place of a plain string for that option or level. Empty arrays and `null` entries are left out.
@@ -160,9 +160,9 @@ object. The Jev API itself has no such fields. The generated questions for `Tick
 }
 ```
 
-A Choice's options are keyed by the member name in snake_case, and a Score's levels are keyed by their index. Because
-this JSON is written at compile time, the question text and criteria are fixed: they cannot vary per call. What varies
-per call is the state.
+A Choice's options are keyed by the member name in snake_case, or by `Key` on the member's `[Criteria]` when one is
+set. A Score's levels are keyed by their index, and `[Level]` has no `Key`. Because this JSON is written at compile
+time, the question text and criteria are fixed: they cannot vary per call. What varies per call is the state.
 
 ### Referring to the state in a question
 
@@ -233,9 +233,11 @@ public static async Task<(bool Urgent, Desk Desk, Impact Impact)?> ReviewAsync(
 ```
 <!-- endSnippet -->
 
-`EvaluateAsync<TicketReview, SupportTicket>` takes the state, its JSON metadata and an optional cancellation token. The
-call needs the `State` link: a set declared without `State = typeof(SupportTicket)` does not satisfy the constraint, so
-a mismatched state and question set is a compile error. A cancelled call throws `OperationCanceledException`.
+`EvaluateAsync<TicketReview, SupportTicket>` takes the state, its JSON metadata and an optional cancellation token.
+The call needs the `State` link: a set declared without `State = typeof(SupportTicket)` does not satisfy the
+constraint, so a mismatched state and question set is a compile error. A cancelled call throws
+`OperationCanceledException`. The `TState` overload throws `ArgumentNullException` for a `null` state or a `null`
+`JsonTypeInfo`.
 
 The overloads differ in the state they take.
 
@@ -249,6 +251,21 @@ The overloads differ in the state they take.
 The first three work for any question set, with or without a state type. A set that has one accepts them as well. The
 text overload is the one to reach for when the state is a message or a document. The `JsonElement` and UTF-8 overloads
 suit state you already hold as JSON, such as a request body.
+
+The first three overloads need a set to evaluate. This one declares no `State` type, so any text or JSON can be its
+state.
+
+<!-- snippet: TypedEvaluation_Stateless -->
+```cs
+// Without State, the questions stand alone, and any text or JSON can be the state.
+[JevQuestions]
+public partial record UrgencyCheck
+{
+    [Noul("Does this convey urgency?")]
+    public partial Noul IsUrgent { get; }
+}
+```
+<!-- endSnippet -->
 
 <!-- snippet: TypedEvaluation_OtherStates -->
 ```cs

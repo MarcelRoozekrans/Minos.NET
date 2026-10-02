@@ -111,6 +111,33 @@ public sealed class TypedEvaluationTests
     }
 
     [Fact]
+    public void TheWireJsonOnThePage_IsWhatTheGeneratorWrites()
+    {
+        var lines = File.ReadAllLines(Path.Combine(PublishedPages.Root, "docs", "typed-evaluation.md"));
+        var start = Array.FindIndex(lines, line => string.Equals(line, "```json", StringComparison.Ordinal));
+        Assert.True(start >= 0, "The page has a json block.");
+        var end = Array.FindIndex(lines, start + 1, line => string.Equals(line, "```", StringComparison.Ordinal));
+        using var onPage = JsonDocument.Parse(string.Join('\n', lines[(start + 1)..end]));
+        using var generated = JsonDocument.Parse(TicketReview.QuestionsUtf8.ToArray());
+
+        Assert.True(JsonElement.DeepEquals(onPage.RootElement, generated.RootElement));
+    }
+
+    [Fact]
+    public async Task TheTStateOverload_RejectsANullStateOrNullMetadata()
+    {
+        var (http, jev, _) = CannedJev.Client(ReviewResponse);
+        using (http)
+        using (jev)
+        {
+            await Assert.ThrowsAsync<ArgumentNullException>(async () => await jev.EvaluateAsync<TicketReview, SupportTicket>(
+                null!, SupportTicketJson.Default.SupportTicket, CancellationToken.None));
+            await Assert.ThrowsAsync<ArgumentNullException>(async () => await jev.EvaluateAsync<TicketReview, SupportTicket>(
+                Ticket, null!, CancellationToken.None));
+        }
+    }
+
+    [Fact]
     public void JsonInstructions_AreSentAsAnObject()
     {
         using var actual = JsonDocument.Parse(RefundCheck.QuestionsUtf8.ToArray());

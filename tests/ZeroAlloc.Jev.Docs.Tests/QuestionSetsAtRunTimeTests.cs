@@ -358,6 +358,31 @@ public sealed class QuestionSetsAtRunTimeTests
             => throw new NotSupportedException();
     }
 
+    private enum Empty
+    {
+    }
+
+    [Fact]
+    public void AnEnumWithNoMembers_FailsAsJev001AndJev002()
+    {
+        var choice = JevQuestionSet.CreateBuilder().Choice("c", "Which?", out ChoiceHandle<Empty> _).Build();
+        var score = JevQuestionSet.CreateBuilder().Score("s", "How?", out ScoreHandle<Empty> _, levels => { }).Build();
+        var keyedChoice = JevQuestionSet.CreateBuilder().Choice("c", "Which?", out KeyedChoiceHandle _).Build();
+        var enumScore = JevQuestionSet.CreateBuilder().Score("s", "How?", out ScoreHandle<Priority> _).Build();
+
+        Assert.Equal(["JEV001"], Rules(choice.Error));
+        Assert.Equal(["JEV002"], Rules(score.Error));
+        Assert.Equal(["JEV001"], Rules(keyedChoice.Error));
+        Assert.Equal(["JEV104", "JEV104", "JEV104"], Rules(enumScore.Error));
+    }
+
+    [Fact]
+    public void ANoulAndAnEnumChoice_BuildWithoutAConfigurator()
+    {
+        Assert.True(JevQuestionSet.CreateBuilder().Noul("n", "A?", out NoulHandle _).Build().IsSuccess);
+        Assert.True(JevQuestionSet.CreateBuilder().Choice("c", "Which?", out ChoiceHandle<ServiceTeam> _).Build().IsSuccess);
+    }
+
     private static string[] Rules(JevError error) => [.. error.Failures.Select(f => f.Rule)];
 
     private static string[] WarningRules(JevQuestionSet set) => [.. set.Warnings.Select(f => f.Rule)];

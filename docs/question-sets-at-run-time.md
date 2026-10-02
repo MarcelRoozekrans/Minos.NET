@@ -2,7 +2,7 @@
 id: question-sets-at-run-time
 title: Question sets at run time
 sidebar_position: 4
-description: Build a Jev question set from data with JevQuestionSet.CreateBuilder, evaluate it, and read the answers through handles.
+description: Build a Jev question set from data with the builder, evaluate it, and read answers through handles.
 ---
 
 # Question sets at run time
@@ -93,12 +93,15 @@ public sealed class TenantRouter
 
 Every question method takes the same first three arguments.
 
-- **The key**, the question's name in the request and the response. It must not be empty or repeated.
+- **The key**, the question's name in the request and the response. A `null` key throws `ArgumentNullException`. An
+  empty or repeated key is caught by `Build()` as JEV106.
 - **The instructions**, the question itself, as a [`JevContent`](typed-evaluation.md#jevcontent). A string converts to
   one. Use `JevContent.FromUtf8Json` or `JevContent.FromValue` for instructions that are a JSON object or array.
 - **A handle**, as an `out` argument. Keep it: it is how you read this question's answer later.
 
-An optional fourth argument is a configurator, a callback that describes the question's options. The methods are these.
+A fourth argument, the configurator, is a callback that describes the question's options. It is optional for a Noul
+and an enum Choice. A keyed Choice, a keyed Score and an enum Score need one: without it, `Build()` fails with JEV001,
+JEV002 or JEV104. The methods are these.
 
 | Method | Question | Handle | Configurator |
 | --- | --- | --- | --- |
@@ -185,8 +188,8 @@ a typed set, and the rule ids are the same.
 
 | Rule | What it checks | Outcome |
 | --- | --- | --- |
-| JEV001 | A Choice has no options. | Failure |
-| JEV002 | A keyed Score has no levels. | Failure |
+| JEV001 | A Choice has no options: a keyed Choice with none, or an enum Choice over an enum with no members. | Failure |
+| JEV002 | A Score has no levels: a keyed Score with none, or an enum Score over an enum with no members. | Failure |
 | JEV104 | A member of an enum Score is not given a level. | Failure |
 | JEV106 | A question key, a keyed option key or an enum Score member is repeated, or a key is empty. | Failure |
 | JEV108 | JSON instructions or a JSON description nests deeper than 60 levels. | Failure |
