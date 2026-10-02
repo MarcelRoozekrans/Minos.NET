@@ -34,6 +34,15 @@ jobs:
       - name: Test
         run: dotnet test ZeroAlloc.Jev.slnx --no-build -c Release --logger "trx" --results-directory ./test-results
 
+      - name: Check docs snippets
+        # Every C# block in the user docs comes from tests/ZeroAlloc.Jev.Docs.Tests, which the Build step compiled.
+        # Regenerate the docs and fail when the committed Markdown differs: a snippet changed without re-running
+        # `dotnet mdsnippets`.
+        run: |
+          dotnet tool restore
+          dotnet mdsnippets
+          git diff --exit-code -- docs/ README.md
+
       - name: Upload test results
         uses: actions/upload-artifact@v7
         if: always()
