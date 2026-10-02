@@ -9,26 +9,33 @@ internal static class PublishedPages
 
     public static IReadOnlyList<string> All { get; } = Find();
 
-    /// <summary>Reads the <c>---</c>-fenced front matter at the top of a page as flat <c>key: value</c> pairs.</summary>
-    public static IReadOnlyDictionary<string, string> FrontMatter(string relativePath)
-    {
-        var lines = File.ReadAllLines(Path.Combine(Root, relativePath));
-        var result = new Dictionary<string, string>(StringComparer.Ordinal);
-        if (lines.Length == 0 || !string.Equals(lines[0], "---", StringComparison.Ordinal))
-        {
-            return result;
-        }
+    /// <summary>The <c>_category_.json</c> files of the published folders, as repository-relative paths.</summary>
+    public static IReadOnlyList<string> Categories { get; } = FindCategories();
 
-        var opening = true;
+    /// <summary>Whether a path relative to <c>docs/</c> is in an unpublished folder or is a README.</summary>
+    public static bool IsUnpublished(string relativeToDocs) =>
+        Array.Exists(Unpublished, u => relativeToDocs.StartsWith(u + "/", StringComparison.Ordinal))
+        || string.Equals(Path.GetFileName(relativeToDocs), "README.md", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>Reads the <c>---</c>-fenced front matter at the top of a page as flat <c>key: value</c> pairs.</summary>
+    public static IReadOnlyDictionary<string, string> FrontMatter(string relativePath) =>
+        FrontMatter(File.ReadAllLines(Path.Combine(Root, relativePath)));
+
+    /// <summary>Reads front matter from lines. A block with no closing <c>---</c> is no front matter. Matching surrounding quotes are removed.</summary>
+    public static IReadOnlyDictionary<string, string> FrontMatter(IReadOnlyCollection<string> lines)
+    {
+        var result = new Dictionary<string, string>(StringComparer.Ordinal);
+        var length = Markdown.FrontMatterLength(lines);
+        var number = 0;
         foreach (var line in lines)
         {
-            if (opening)
+            number++;
+            if (number == 1)
             {
-                opening = false;
                 continue;
             }
 
-            if (string.Equals(line, "---", StringComparison.Ordinal))
+            if (number >= length)
             {
                 break;
             }
@@ -36,12 +43,15 @@ internal static class PublishedPages
             var colon = line.IndexOf(':', StringComparison.Ordinal);
             if (colon > 0)
             {
-                result[line[..colon].Trim()] = line[(colon + 1)..].Trim();
+                result[line[..colon].Trim()] = Unquote(line[(colon + 1)..].Trim());
             }
         }
 
         return result;
     }
+
+    private static string Unquote(string value) =>
+        value.Length >= 2 && (value[0] == '"' || value[0] == '\'') && value[^1] == value[0] ? value[1..^1] : value;
 
     private static string[] Find()
     {
@@ -50,18 +60,31 @@ internal static class PublishedPages
         foreach (var path in Directory.EnumerateFiles(docs, "*.md", SearchOption.AllDirectories))
         {
             var relative = Path.GetRelativePath(docs, path).Replace('\\', '/');
-            var top = relative.Split('/')[0];
-            if (Array.Exists(Unpublished, u => string.Equals(u, top, StringComparison.Ordinal))
-                || string.Equals(Path.GetFileName(path), "README.md", StringComparison.Ordinal))
+            if (!IsUnpublished(relative))
             {
-                continue;
+                pages.Add("docs/" + relative);
             }
-
-            pages.Add("docs/" + relative);
         }
 
         pages.Sort(StringComparer.Ordinal);
         return [.. pages];
+    }
+
+    private static string[] FindCategories()
+    {
+        var docs = Path.Combine(Root, "docs");
+        var found = new List<string>();
+        foreach (var path in Directory.EnumerateFiles(docs, "_category_.json", SearchOption.AllDirectories))
+        {
+            var relative = Path.GetRelativePath(docs, path).Replace('\\', '/');
+            if (!IsUnpublished(relative))
+            {
+                found.Add("docs/" + relative);
+            }
+        }
+
+        found.Sort(StringComparer.Ordinal);
+        return [.. found];
     }
 
     private static string FindRoot()
