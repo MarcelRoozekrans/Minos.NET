@@ -44,7 +44,7 @@ hit@3 keyword 2/5 -> jev 5/5
 
 Re-ranking can only reorder what the shortlist found. If the best article is not among the eight candidates, Jev never sees it, so the shortlist has to be wide enough for the recall you need.
 
-The probabilities are not spread evenly. For one question the best article scored only 0.29, far lower than the 0.7 to 0.9 of the best articles for the other questions, yet it still came first because every other candidate scored 0.02 or less. Rank by the order, and do not treat a fixed probability as the threshold for "this answers it".
+The probabilities are not spread evenly. For one question the best article scored only 0.29, far lower than the 0.72 to 0.94 of the best articles for the other questions, yet it still came first because every other candidate scored 0.02 or less. Rank by the order, and do not treat a fixed probability as the threshold for "this answers it".
 
 Candidates with equal probabilities keep their keyword order, so the result is the same on every run.
 
