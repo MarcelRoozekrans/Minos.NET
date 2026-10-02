@@ -132,6 +132,36 @@ public sealed class LinkTests
     }
 
     [Fact]
+    public void Check_RejectsALinkWithTheWrongCase()
+    {
+        Assert.Null(LinkChecker.Check(Page, [], "fan-out.md"));
+        Assert.NotNull(LinkChecker.Check(Page, [], "Fan-Out.md"));
+        Assert.NotNull(LinkChecker.Check(Page, [], "../Patterns/fan-out.md"));
+    }
+
+    [Fact]
+    public void Slug_KeepsUnderscoresInsideInlineCode()
+    {
+        // github-slugger lower-cases the rendered text and drops punctuation, so the dot goes and the underscores stay.
+        Assert.Equal("_category_json", Slug("`_category_.json`"));
+        Assert.Equal("a_b-c", Slug("`a_b` _c_"));
+    }
+
+    [Fact]
+    public void Links_SkipFencesNestedInAListItem()
+    {
+        Assert.Equal("b.md", Targets("- item", "  ```cs", "  [a](a.md)", "  ```", "[b](b.md)"));
+        Assert.Equal("b.md", Targets("1. item", "        ~~~", "        [a](a.md)", "   ~~~", "[b](b.md)"));
+    }
+
+    [Fact]
+    public void Links_AllowOneLevelOfParenthesesInATarget()
+    {
+        Assert.Equal("a(1).md,b.md", Targets("[a](a(1).md) and [b](b.md)"));
+        Assert.Equal("see-x", Slug("See [x](a(1).md)"));
+    }
+
+    [Fact]
     public void Check_RejectsAMissingPageAndAMissingAnchor()
     {
         Assert.NotNull(LinkChecker.Check(Page, [], "nope.md"));
@@ -199,9 +229,9 @@ internal static partial class LinkChecker
             return $"{file} is in an unpublished folder or is a README.";
         }
 
-        if (!File.Exists(resolved))
+        if (!ExistsWithExactCase(docs, relative))
         {
-            return $"{file} does not exist.";
+            return $"{file} does not exist, or differs in letter case from the file on disk.";
         }
 
         if (anchor is null || !resolved.EndsWith(".md", StringComparison.OrdinalIgnoreCase))
@@ -212,6 +242,24 @@ internal static partial class LinkChecker
         return Markdown.Anchors(File.ReadAllLines(resolved)).Contains(anchor, StringComparer.Ordinal)
             ? null
             : $"{file} has no heading for #{anchor}.";
+    }
+
+    // File.Exists ignores case on Windows, but the site is built on Linux, so every segment must match its directory entry exactly.
+    private static bool ExistsWithExactCase(string docs, string relative)
+    {
+        var current = docs;
+        foreach (var segment in relative.Split('/'))
+        {
+            if (!Directory.Exists(current)
+                || !Array.Exists(Directory.GetFileSystemEntries(current), e => string.Equals(Path.GetFileName(e), segment, StringComparison.Ordinal)))
+            {
+                return false;
+            }
+
+            current = Path.Combine(current, segment);
+        }
+
+        return true;
     }
 
     [GeneratedRegex(@"^[a-zA-Z][a-zA-Z0-9+.-]*:", RegexOptions.None, matchTimeoutMilliseconds: 1000)]

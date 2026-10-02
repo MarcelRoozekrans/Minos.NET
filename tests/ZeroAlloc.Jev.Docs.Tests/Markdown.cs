@@ -97,11 +97,19 @@ internal static partial class Markdown
     /// <summary>The heading text as rendered: no <c>{#id}</c>, links reduced to their text, no emphasis marks, code as its content.</summary>
     public static string PlainText(string heading)
     {
-        var text = CustomId().Replace(heading, string.Empty);
+        // Code spans become their literal content and are shielded from the markup stripping, so `_category_.json` keeps its underscores.
+        var spans = new List<string>();
+        var text = CodeSpan().Replace(
+            CustomId().Replace(heading, string.Empty),
+            match =>
+            {
+                spans.Add(match.Groups["content"].Value);
+                return $"{spans.Count - 1}";
+            });
         text = LinkOrImage().Replace(text, "${text}");
-        text = text.Replace("`", string.Empty, StringComparison.Ordinal);
         text = text.Replace("*", string.Empty, StringComparison.Ordinal);
-        return EmphasisUnderscore().Replace(text, string.Empty).Trim();
+        text = EmphasisUnderscore().Replace(text, string.Empty);
+        return Placeholder().Replace(text, match => spans[int.Parse(match.Groups["index"].Value, System.Globalization.CultureInfo.InvariantCulture)]).Trim();
     }
 
     /// <summary>The first level-1 heading of a page, as rendered, or null.</summary>
@@ -174,7 +182,7 @@ internal static partial class Markdown
         }
     }
 
-    [GeneratedRegex(@"^ {0,3}(?<run>`{3,}|~{3,})(?<rest>.*)$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"^\s*(?<run>`{3,}|~{3,})(?<rest>.*)$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex Fence();
 
     [GeneratedRegex(@"\s*\{#(?<id>[^}\s]+)\}\s*$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
@@ -186,15 +194,18 @@ internal static partial class Markdown
     [GeneratedRegex(@"^ {0,3}#[ \t]+(?<text>.*?)(?:[ \t]+#+)?[ \t]*$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex H1();
 
-    [GeneratedRegex(@"!?\[(?<text>[^\]]*)\]\([^)]*\)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"!?\[(?<text>[^\]]*)\]\((?:[^()]|\([^()]*\))*\)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex LinkOrImage();
+
+    [GeneratedRegex("(?<index>[0-9]+)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex Placeholder();
 
     [GeneratedRegex(@"(?<!\w)_+|_+(?!\w)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex EmphasisUnderscore();
 
-    [GeneratedRegex(@"(?<ticks>`+)(?!`).+?(?<!`)\k<ticks>(?!`)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"(?<ticks>`+)(?!`)(?<content>.+?)(?<!`)\k<ticks>(?!`)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex CodeSpan();
 
-    [GeneratedRegex(@"\[(?<text>(?:[^\[\]]|\[[^\]]*\])*)\]\((?:<(?<angle>[^>]*)>|(?<target>[^)\s]+))(?:\s+""[^""]*"")?\s*\)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"\[(?<text>(?:[^\[\]]|\[[^\]]*\])*)\]\((?:<(?<angle>[^>]*)>|(?<target>(?:[^()\s]|\([^()\s]*\))+))(?:\s+""[^""]*"")?\s*\)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex Link();
 }

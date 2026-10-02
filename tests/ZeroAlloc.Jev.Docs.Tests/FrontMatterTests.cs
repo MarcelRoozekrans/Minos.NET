@@ -60,6 +60,7 @@ public sealed class FrontMatterTests
     {
         Assert.Equal("docs", CategoryFolder("docs/patterns/_category_.json"));
         Assert.Equal("docs/guide", CategoryFolder("docs/guide/deep/_category_.json"));
+        Assert.Equal("docs", CategoryFolder("docs/_category_.json"));
     }
 
     [Fact]
@@ -223,7 +224,11 @@ public sealed class FrontMatterTests
         }
     }
 
-    internal static string CategoryFolder(string category) => Parent(Parent(category));
+    internal static string CategoryFolder(string category)
+    {
+        var folder = Parent(category);
+        return folder.Contains('/', StringComparison.Ordinal) ? Parent(folder) : folder;
+    }
 
     private static string Parent(string path) => path[..path.LastIndexOf('/')];
 
