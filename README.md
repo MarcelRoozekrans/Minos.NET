@@ -126,7 +126,7 @@ The first seven rows are set when the span starts, so a sampler sees them. A fai
 
 | Metric | Kind | Unit | Recorded | Attributes |
 |---|---|---|---|---|
-| `gen_ai.client.operation.duration` | Histogram | `s` | every call | operation, provider, request model, `server.address`, `server.port`; `error.type` on failure; response model on success |
+| `gen_ai.client.operation.duration` | Histogram | `s` | every call | operation, provider, request model, `server.address`, `server.port`; `error.type` on failure; response model on success. The model-listing duration carries no request or response model |
 | `gen_ai.client.inference.operation.input_tokens` | Histogram | `{token}` | evaluation success | operation, provider, request model, response model |
 | `gen_ai.client.inference.operation.output_tokens` | Histogram | `{token}` | evaluation success | same |
 | `gen_ai.client.inference.usage.input_tokens` | Counter | `{token}` | evaluation success | operation, provider, request model, `gen_ai.token.modality` = `text` |
@@ -139,7 +139,7 @@ The histograms carry the GenAI conventions' bucket boundaries as advice. Confide
 - `gen_ai.operation.name` is `evaluate` or `list_models`;
 - `gen_ai.provider.name` is `typesafe` or `openrouter`.
 
-**Exceptions.** A thrown exception, cancellation included, marks the span `Error` with the exception's message as its description, and the duration is recorded without `error.type`. That is ZeroAlloc.Telemetry's default exception handling, and a fix is being raised upstream.
+**Exceptions.** A thrown exception, cancellation included, marks the span `Error` with the exception's message as its description, and the duration is recorded without `error.type`. That is ZeroAlloc.Telemetry's default exception handling, and it is fixed in ZeroAlloc.Telemetry 1.11.0, with adoption tracked in ZeroAlloc.Jev#85.
 
 **Never emitted:** Jev never puts the state, instructions, criteria, answers or probabilities, the API key, any header value, `JevError.Message` or `JevError.Detail` in a tag, a metric attribute or a span description. The one message that can reach a span is a thrown exception's, which is the runtime's.
 
@@ -193,7 +193,7 @@ The six `AddJevClient` overloads are `()`, `(Action<JevClientOptions>)`, `(IConf
 - **`AddJevClient` returns the `IHttpClientBuilder`,** which is where you add your own handlers. If one of them retries, see [Retries](#retries).
 - **Host-wide defaults apply to Jev's clients too.** Handlers added through `ConfigureHttpClientDefaults` also run on `ZeroAlloc.Jev` and `ZeroAlloc.Jev:{name}`, whether the defaults are registered before or after `AddJevClient`.
   - Aspire ServiceDefaults' `AddStandardResilienceHandler()` is the usual case. Its retries multiply with Jev's, and its per-attempt and total time-outs override `JevClientOptions.Timeout`.
-  - There is no per-client way to remove that handler. Set `MaxRetries = 0`, as [Retries](#retries) describes, and keep the handler's time-outs at or above `Timeout`.
+  - To keep a defaults handler off Jev's client, call `AddJevClient(...).ConfigureAdditionalHttpMessageHandlers((handlers, _) => handlers.Clear())`. It also removes every handler you added yourself through that builder. Otherwise set `MaxRetries = 0`, as [Retries](#retries) describes, and keep the handler's time-outs at or above `Timeout`.
   - A primary handler set in the defaults is replaced by `AddJevClient`'s own `SocketsHttpHandler`, and the defaults' loggers are removed.
 - **Logging goes through the host's `ILoggerFactory`.** Without a logging provider, or with Jev's levels disabled, the client logs nothing and allocates nothing for logging.
   - The factory's own request logs are off for Jev's clients, because their handlers allocate on every request even when nothing logs, 344 B per call.

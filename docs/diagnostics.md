@@ -1,0 +1,154 @@
+---
+id: diagnostics
+title: Diagnostics
+sidebar_position: 9
+description: Every JEV analyzer rule with its severity, the two code fixes, and how to suppress a rule that does not apply.
+---
+
+# Diagnostics
+
+A question set is code that Jev turns into a request, so mistakes in it are best found while you type, not when a call
+fails. `ZeroAlloc.Jev` ships a set of Roslyn analyzers for this. They live inside the package, next to the
+`[JevQuestions]` generator, so there is nothing else to install. The editor shows their findings as you type, and the
+build reports them too.
+
+Every rule has an id that starts with `JEV`, a severity and a short title. The severity says how much the finding
+matters:
+
+- **Error** stops the build, because the question set cannot work.
+- **Warning** is something that is probably a mistake, such as an empty description. The set still works.
+- **Info** is a suggestion. It does not fail the build, and the editor shows it as a hint.
+
+## Two groups of rules
+
+The rules come in two groups.
+
+- **JEV001 to JEV006 check the set against the Jev API's own rules.** JEV001 and JEV002 follow the schema of TypeSafe's
+  official SDK, which needs at least one option or level. The others are advice and never block the generator. The
+  limits behind JEV005 are guidance from the API sketch, not a limit of the schema.
+- **JEV101 to JEV109 check what the generator can turn into code.** They are all errors, because a declaration the
+  generator cannot read cannot be turned into a request.
+
+A set with any error is invalid. The generator writes no `QuestionsUtf8`, no `Parse` and no `IJevQuestionSet` for it,
+so `EvaluateAsync<T>` does not compile for that type. The generator still gives each unimplemented question property a
+stub that throws. That way a command-line build reports the JEV error, and not CS9248, "partial property must have an
+implementation part", which would hide it.
+
+One thing can still hide the analyzers. An error in your own declaration, such as CS0238 for `sealed` on a property that
+overrides nothing, stops a command-line build before any analyzer runs. The editor runs the analyzers live and still
+shows them.
+
+## The rules
+
+| Id | Severity | Title | It fires when |
+| --- | --- | --- | --- |
+| JEV001 | Error | Choice enum has no members | The enum of a `Choice<T>` has no members. The API needs at least one option. |
+| JEV002 | Error | Score enum has no members | The enum of a `Score<T>` has no members. The API needs at least one level. |
+| JEV003 | Warning | Empty instructions or description | Instructions, a description, or an `Examples` or `NotFor` entry is empty or only white space, or JSON text is `{}` or `[]`. A `null` text is fine, because the API accepts none. |
+| JEV004 | Warning | Instructions refer to an unknown state member | A name in backticks in the instructions matches no public property or field of the `State` type, as [typed evaluation](typed-evaluation.md#referring-to-the-state-in-a-question) describes. For an array state the element type is checked, and for `Json = true` instructions every string value is. |
+| JEV005 | Warning | Option or level count outside the API guidance | A Score enum has fewer than 2 or more than 10 levels, or a Choice enum has more than 255 options. |
+| JEV006 | Info | Choice option has no description | A member of a Choice enum has no `[Criteria]`. It is still an option, sent with no description, and a description usually helps. |
+| JEV101 | Error | Unsupported question set type | The type with `[JevQuestions]` is not a non-generic, non-abstract, non-static, top-level partial class or record that is not file-local. |
+| JEV102 | Error | Unsupported question property | A question property is not a partial, get-only instance property, or it is `virtual`, `new`, `sealed` or `override`, or it is named `Parse` or `QuestionsUtf8`, which the generator reserves. |
+| JEV103 | Error | Question attribute does not match the property type | A question property has more than one question attribute, or one that does not fit its type: `[Noul]` needs a `Noul`, `[Choice]` a `Choice<T>` and `[Score]` a `Score<T>`. |
+| JEV104 | Error | Score level has no description | A member of a Score enum has no `[Level]`. The API does not accept a level without a description. |
+| JEV105 | Error | Question set has no parameterless constructor | The set has no constructor that can be called without arguments, or it has `required` members and that constructor lacks `[SetsRequiredMembers]`. A constructor whose parameters all have defaults counts. |
+| JEV106 | Error | Duplicate wire key | Two questions in the set use the same wire key, or two options of one Choice do. |
+| JEV107 | Error | Invalid state type | The `State` type is not a class, struct, record or array type. |
+| JEV108 | Error | Text marked Json is not a JSON object or array | Text with `Json = true` is not a JSON object or array, or it is nested more than 60 levels deep. |
+| JEV109 | Error | Json combined with Examples or NotFor | `Json = true` is set together with `Examples` or `NotFor`. Put them inside the JSON instead. |
+
+A [set built at run time](question-sets-at-run-time.md#checking-the-set) is checked against the same limits, with the
+same rule ids. That page says which rules apply there, and which of them fail `Build()`.
+
+### Where a rule is reported
+
+A rule about an enum, such as JEV001, JEV005, JEV006 and JEV104, is reported on the enum and its members, and not on
+each set that uses it. The other rules are reported on the set type or on the property they are about. An enum from
+another assembly has no declaration in your project, so its findings are reported on the question property that uses it.
+
+## Code fixes
+
+Two rules come with a code fix. Both write the missing description for you, from the member's own name.
+
+| Rule | Fix title, for a member named `NeedsAttention` | What it adds |
+| --- | --- | --- |
+| JEV006 | `Add [Criteria("Needs attention")]` | A `[Criteria]` on the Choice member. |
+| JEV104 | `Add [Level("Needs attention")]` | A `[Level]` on the Score member. |
+
+The name is split into words and written as a sentence, so `NeedsAttention` becomes `"Needs attention"`, `HTTPError`
+becomes `"HTTP error"` and `NEEDS_ATTENTION` becomes `"Needs attention"`. That is a starting point. Read it and write
+something that tells the model what the option means, because the model reads the description.
+
+Both fixes can fix every occurrence in a document, a project or a solution at once. The fix adds a `using` for
+`ZeroAlloc.Jev` only when the attribute is not already in scope. There is no fix when the enum is declared in another
+assembly, because there is no member in your code to put the attribute on.
+
+## Suppressing a rule
+
+Suppress a warning or an Info rule that does not apply to your case. Do it narrowly, and say why. A `#pragma` around
+the one declaration is the narrowest. This enum has 11 levels on purpose, a 0 to 10 scale, so the JEV005 warning is
+turned off for that enum and nothing else. The example is compiled with warnings treated as errors, so it only builds
+because the suppression works.
+
+<!-- snippet: Diagnostics_Suppress -->
+```cs
+using ZeroAlloc.Jev;
+
+// The Jev API's guidance is 2 to 10 levels for a Score, so JEV005 warns about this enum. A 0 to 10 scale has 11
+// levels by definition, so the warning is suppressed here, for this enum only, and the reason is written next to it.
+#pragma warning disable JEV005 // A 0 to 10 recommendation scale has 11 levels on purpose.
+public enum Recommendation
+{
+    [Level("0: Not at all likely")] Zero,
+    [Level("1")] One,
+    [Level("2")] Two,
+    [Level("3")] Three,
+    [Level("4")] Four,
+    [Level("5: Neutral")] Five,
+    [Level("6")] Six,
+    [Level("7")] Seven,
+    [Level("8")] Eight,
+    [Level("9")] Nine,
+    [Level("10: Extremely likely")] Ten,
+}
+#pragma warning restore JEV005
+
+[JevQuestions]
+public partial record SurveyReply
+{
+    [Score("How likely is this customer to recommend us to a friend?")]
+    public partial Score<Recommendation> Recommend { get; }
+}
+```
+<!-- endSnippet -->
+
+To change a rule for a whole project, or for the files an `.editorconfig` section covers, set its severity there:
+
+```ini
+[*.cs]
+dotnet_diagnostic.JEV005.severity = none
+```
+
+The same setting can go the other way. If you want every Choice option to have a description, raise JEV006 from Info to
+a warning, and the build will then fail until each option has one:
+
+```ini
+[*.cs]
+dotnet_diagnostic.JEV006.severity = warning
+```
+
+A project-wide `<NoWarn>JEV005</NoWarn>` in the project file works too.
+
+An error does not go away that way. Suppressing JEV001, JEV002 or one of JEV101 to JEV109 hides the message, but the set
+stays invalid. The generator does not read the diagnostics. It applies the same rules itself, so a suppressed set still
+gets no `QuestionsUtf8`, no `Parse` and no `IJevQuestionSet`. `EvaluateAsync<T>` does not compile for it, and the stub
+properties throw. Fix the declaration instead.
+
+## Next
+
+- [Testing your code](testing-your-code.md): test code that uses Jev with fakes and canned replies.
+- [Typed evaluation](typed-evaluation.md): declaring question sets, which these rules check.
+- [Question sets at run time](question-sets-at-run-time.md): the same limits and rule ids, checked when you call
+  `Build()`.
+- [Performance](performance.md): what a call costs, measured.

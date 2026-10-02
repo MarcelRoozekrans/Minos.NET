@@ -1,3 +1,10 @@
+---
+id: intent-routing
+title: Intent routing
+sidebar_position: 5
+description: Make a cheap first decision that sends each request to code, a model or a person.
+---
+
 # Intent routing
 
 Many requests do not need a large language model, and some should not reach one at all. Let Jev make a cheap first
@@ -104,3 +111,9 @@ public static class HelpdeskRouting
 - The effort cut-off of 1.0, "involved", is a starting point. Tune it on your own tickets.
 - The same questions can be built at run time instead of declared; the [fan-out](fan-out.md#built-at-run-time) guide
   shows how.
+
+## Next
+
+- [Samples](../samples.md): three whole programs, including one that routes by intent, run offline from recorded
+  answers.
+- [Patterns](index.md): the four patterns and how they combine.

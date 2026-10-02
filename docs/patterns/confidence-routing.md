@@ -1,3 +1,10 @@
+---
+id: confidence-routing
+title: Confidence routing
+sidebar_position: 3
+description: Gate each action on the answer confidence, with a threshold sized to the cost of being wrong.
+---
+
 # Confidence routing
 
 A Jev answer says what it found, and its confidence says whether you should act on it. Treat them as two separate
@@ -129,3 +136,8 @@ public static class ShopRouting
 - The thresholds here are starting points. Tune them on your own data.
 - The same question can be built at run time instead of declared; the [fan-out](fan-out.md#built-at-run-time) guide
   shows how.
+
+## Next
+
+- [Composite scoring](composite-scoring.md): combine several Scores with weights you own.
+- [Question types](../question-types.md): what confidence is, and how it differs from probability.

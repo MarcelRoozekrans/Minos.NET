@@ -1,11 +1,19 @@
-# Session State — 2026-10-02 (Phase 4.2 complete, PR to open)
+# Session State — 2026-10-02 (Phase 4.3 complete, PR to open)
 
 **Date:** 2026-10-02
 
 ## Current Position
 - **Milestone:** 4 — Patterns & docs, active since 2026-10-02 (design `docs/superpowers/specs/2026-10-02-milestone-4-design.md`).
-- **Phase:** 4.2 — Cookbook samples is complete on branch `phase/4.2-cookbook-samples`; it lands through a PR to `main`. Phase 4.1 merged as PR #80; release 0.3.0 (#81) carried it. Release PR #63 (0.2.0) also merged; releases are now cut, NuGet publishing still off (#29).
-- **Next task:** after the Phase 4.2 PR merges, confirm release-please lists its two `docs`/`test` entries, then run `start-next-phase` to brainstorm Phase 4.3 — User guide.
+- **Phase:** 4.3 — User guide is complete on branch `phase/4.3-user-guide`; it lands through a PR to `main` that closes #16. Phase 4.2 merged as PR #82; release 0.3.1 (#83) carried it.
+- **Next task:** after the Phase 4.3 PR merges, confirm release-please lists its entries, then run `start-next-phase` for Phase 4.4 — Docs site, logo and README.
+
+## What Phase 4.3 shipped
+- The user guide in `docs/`, in the org's Docusaurus layout: getting-started (`slug: /`), question-types, typed-evaluation, question-sets-at-run-time, client-and-errors, dependency-injection, observability, native-aot, diagnostics, testing-your-code, patterns/ (with `_category_.json`), samples and performance. Maintainer decision: the guide is the single source of user docs; Phase 4.4 cuts the README to an overview, and every README reference fact now has a guide home.
+- Every C# block is a compiled MarkdownSnippets region in `tests/ZeroAlloc.Jev.Docs.Tests`; each page's main example runs as a test. 318 docs tests, including front matter (ids, positions, the root slug), every internal link and anchor under the github-slugger rule (links that wrap across lines included), a `## Next` on every page, and tests tying copied tables and quoted figures to the code (JEV rules, AOT gates, `JevDefaults`, telemetry names, sample commands).
+- Published scope excludes `docs/planning`, `docs/plans` and `docs/superpowers`, matching Phase 4.4's site exclusions.
+- The docs tests reference `OpenTelemetry.Extensions.Hosting` 1.19.1 (test-only) so the observability page's wiring compiles; the packages still take no OpenTelemetry dependency, which a test checks.
+- README fixes on the way: removing a defaults handler from Jev's client, and the telemetry notes (ZeroAlloc.Telemetry#184 is fixed in 1.11.0; adoption tracked in #85).
+- Not reproduced: one docs test-host crash seen once during the final fix round, clean in six reruns.
 
 ## What Phase 4.2 shipped
 - `samples/ZeroAlloc.Jev.Samples.Shared`: `SampleMode` (replay default, live, record), `ReplayHandler` (primary handler, answers by SHA-256 of the request body, fails with the re-record command), `RecordingHandler` (successful response bodies only, never headers), `RecordingSession` (throws on mixed models), `RecordingsFile` (bodies stored as raw JSON, LF-only), `SampleHost` (wires a mode onto `AddJevClient`; replay supplies a placeholder key). Live runs need no checkout; replay and record read and write the recordings in the clone.
@@ -160,7 +168,7 @@
 - Still unknown until a TypeSafe live run (needs `TYPESAFE_API_KEY` and the `live-api` environment): whether TypeSafe sends `Retry-After`, the 422 body schema, and whether Phase 2.4's `BuiltQuestionSet_ParsesAKeyedChoice` passes.
 
 ## Recommended Next Step
-Merge the Phase 4.2 PR, check release-please counted it, then run `start-next-phase` for Phase 4.3 — User guide.
+Merge the Phase 4.3 PR, check release-please counted it, then run `start-next-phase` for Phase 4.4 — Docs site, logo and README.
 
 
 

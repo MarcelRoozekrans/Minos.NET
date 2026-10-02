@@ -27,7 +27,7 @@ A C# developer can learn Jev from its own docs site and apply TypeSafe's documen
 ## Phases
 1. Phase 4.1 — Pattern helpers and guides [complete]
 2. Phase 4.2 — Cookbook samples [complete]
-3. Phase 4.3 — User guide [pending]
+3. Phase 4.3 — User guide [complete]
 4. Phase 4.4 — Docs site, logo and README [pending]
 
 ## Audit History
