@@ -1,6 +1,6 @@
 # ZeroAlloc.Jev
 
-<img src="https://raw.githubusercontent.com/ZeroAlloc-Net/ZeroAlloc.Jev/main/assets/icon.png" alt="ZeroAlloc" width="64">
+![ZeroAlloc.Jev](https://raw.githubusercontent.com/ZeroAlloc-Net/ZeroAlloc.Jev/main/assets/icon.png)
 
 [![CI](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/workflows/ci.yml/badge.svg)](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/workflows/ci.yml)
 
@@ -46,6 +46,13 @@ public partial record Triage
 
 public static class ReadmeExample
 {
+    // The client reads TYPESAFE_API_KEY. Create it once, share it, and dispose it at shutdown.
+    public static async Task<string> RunAsync(string message, CancellationToken ct)
+    {
+        using var jev = new JevClient();
+        return await RouteAsync(jev, message, ct);
+    }
+
     public static async Task<string> RouteAsync(IJevClient jev, string message, CancellationToken ct)
     {
         var result = await jev.EvaluateAsync<Triage>(message, ct);
@@ -82,6 +89,10 @@ The guide lives at [jev.zeroalloc.net](https://jev.zeroalloc.net):
 ## Samples
 
 Runnable cookbook apps live in [`samples/`](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/tree/main/samples); they replay recorded answers, so they run offline.
+
+## Building
+
+Building this repository needs the SDK version pinned in `global.json` (10.0.401 or later, via `rollForward: latestMinor`). The `[JevQuestions]` generator compiles against Roslyn 5.0, so builds and IDEs must host Roslyn 5.0 or later — Visual Studio 2026 version 18.0 is the first release that qualifies. An older IDE shows generator errors even when `dotnet build` succeeds.
 
 ## Testing
 

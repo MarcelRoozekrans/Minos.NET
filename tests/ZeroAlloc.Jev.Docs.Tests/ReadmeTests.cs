@@ -37,7 +37,7 @@ public sealed class ReadmeTests
         {
             var summary = await ReadmeExample.RouteAsync(jev, "Anything.", CancellationToken.None);
 
-            Assert.False(summary.StartsWith("urgent", StringComparison.Ordinal));
+            Assert.StartsWith("InvalidResponse: ", summary, StringComparison.Ordinal);
         }
     }
 }

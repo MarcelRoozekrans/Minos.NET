@@ -24,6 +24,13 @@ public partial record Triage
 
 public static class ReadmeExample
 {
+    // The client reads TYPESAFE_API_KEY. Create it once, share it, and dispose it at shutdown.
+    public static async Task<string> RunAsync(string message, CancellationToken ct)
+    {
+        using var jev = new JevClient();
+        return await RouteAsync(jev, message, ct);
+    }
+
     public static async Task<string> RouteAsync(IJevClient jev, string message, CancellationToken ct)
     {
         var result = await jev.EvaluateAsync<Triage>(message, ct);
