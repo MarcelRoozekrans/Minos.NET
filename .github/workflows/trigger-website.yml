@@ -1,6 +1,6 @@
-# The ZeroAlloc-Net/.website site picks this repository up once Phase 4.3 registers it
-# as a submodule. Until then this workflow dispatches harmlessly to a site that does not
-# yet include this repo's docs.
+# ZeroAlloc-Net/.website includes this repository as its repos/jev submodule and serves docs/
+# at jev.zeroalloc.net. Each dispatch makes .website open or update its "update submodules"
+# PR, which moves that submodule to this repository's latest main.
 #
 # Only user docs should trigger a dispatch: docs/planning, docs/superpowers and docs/plans
 # change nearly every session, and each dispatch makes the org website repo open or update

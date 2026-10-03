@@ -1,0 +1,55 @@
+# Builds the user guide in docs/ with the same Docusaurus app that serves it at
+# jev.zeroalloc.net: apps/docs-jev in ZeroAlloc-Net/.website. The app sets
+# onBrokenLinks: 'throw', so a broken link or anchor in docs/ fails this job here,
+# in the pull request that introduced it, instead of in .website's build after merge.
+#
+# The job builds against .website's main, so it needs the docs-jev app to have merged there.
+name: Docs site
+
+on:
+  pull_request:
+    paths: ['docs/**', 'assets/**', '.github/workflows/docs-site.yml']
+  push:
+    branches: [main]
+    paths: ['docs/**', 'assets/**', '.github/workflows/docs-site.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      # Only Jev's docs are needed, so skip the other submodules.
+      - name: Check out ZeroAlloc-Net/.website
+        uses: actions/checkout@v7
+        with:
+          repository: ZeroAlloc-Net/.website
+          path: website
+          submodules: false
+
+      # .website's docs-jev app reads this repository's docs/ and assets/ from repos/jev, its
+      # submodule path. Checking this repository out straight into that path builds the pull
+      # request's own files there, with no symlink or copy.
+      - name: Check out this repository as repos/jev
+        uses: actions/checkout@v7
+        with:
+          path: website/repos/jev
+
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: website/package.json
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: website/pnpm-lock.yaml
+
+      - name: Install dependencies
+        working-directory: website
+        run: pnpm install --frozen-lockfile
+
+      - name: Build the docs site
+        working-directory: website
+        run: pnpm exec turbo build --filter @zeroalloc/docs-jev
