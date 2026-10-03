@@ -34,3 +34,4 @@ A C# developer can learn Jev from its own docs site and apply TypeSafe's documen
 | Date | Verdict | Gaps |
 |---|---|---|
 | 2026-10-03 | FAIL | jev.zeroalloc.net not served: Cloudflare project `za-docs-jev` and its domain not created yet (maintainer step); see `docs/plans/2026-10-03-milestone-4-audit.md` |
+| 2026-10-03 | PASS | Re-audit after the Cloudflare setup: the site serves the guide. Note: .website PR #76 (submodule update with the shared icon) still open |

@@ -1,7 +1,7 @@
 # Milestone 4 Audit — Patterns & docs
 
 **Date:** 2026-10-03
-**Verdict:** FAIL, with one gap. jev.zeroalloc.net does not serve the guide yet. Everything in the repositories is done; the gap is a maintainer step in Cloudflare. Every other criterion passes.
+**Verdict:** PASS, with notes. The first pass failed only because jev.zeroalloc.net was not served yet. The maintainer then created the Cloudflare project and domain, and the re-audit passes.
 
 | Criterion | Result | Evidence |
 |---|---|---|
@@ -16,20 +16,15 @@
 | Each sample runs live with a key and in replay mode from checked-in recordings of a real run | PASS | Phase 4.2: `--live`, `--record` and `--replay`, the default. The answers were recorded on OpenRouter on 2026-10-02 with `typesafe/jev-1.13-20260917`. |
 | CI runs each sample in replay mode and checks its decisions | PASS | `tests/ZeroAlloc.Jev.Samples.Tests` pins every decision and snapshots each report. CI also runs each `Program.cs` in replay mode. |
 | The user guide covers every listed area, and #16 is closed | PASS | Phase 4.3 covers getting started, question types, typed evaluation, run-time question sets, client and errors, DI and configuration, observability, Native AOT, diagnostics, testing, patterns, samples and performance. #16 is closed. |
-| jev.zeroalloc.net serves the guide through `apps/docs-jev` and `repos/jev`, and a push to `docs/` on `main` updates it through `trigger-website.yml` | **FAIL** | `repos/jev` and `apps/docs-jev` are on .website's `main` (#81), and the app builds in CI there and in Jev's Docs site job. `trigger-website.yml` ran on `a4676d6`, and .website's update workflow moved `repos/jev` in its open "update submodules" PR #76. But jev.zeroalloc.net does not resolve: `curl` gets no connection, while rest.zeroalloc.net answers 200. None of #81's Cloudflare build checks was for a `za-docs-jev` project, so the Workers project and the custom domain have not been created yet. |
+| jev.zeroalloc.net serves the guide through `apps/docs-jev` and `repos/jev`, and a push to `docs/` on `main` updates it through `trigger-website.yml` | PASS, with a note | Re-audited 2026-10-03, after the maintainer created the Cloudflare project and domain. https://jev.zeroalloc.net/, `/question-types`, `/patterns` and `/icon.png` answer 200. `trigger-website.yml` ran on `a4676d6`, and .website's update workflow moved `repos/jev` in its "update submodules" PR #76. **Note:** #76 was still open at the re-audit, so the site serves .website#81's pinned commit, with the guide but the old placeholder icon. Merging #76 brings Phase 4.4's commit and the shared icon. |
 | The README carries the unofficial-client disclaimer and the logo, and links the site | PASS | Phase 4.4: the shared ZeroAlloc icon, the disclaimer verbatim, and one jev.zeroalloc.net link per guide page. Docs tests check every link against the site's routes and headings. |
 | Every existing allocation budget is unchanged | PASS | Since Milestone 3 ended at `12ef375`, `samples/ZeroAlloc.Jev.AotSmoke` has 63 lines added and none removed. The only additions are the new `PatternHelpers` gate and its built set. |
 | Pre-push reviews on file | Note | There are no `docs/pre-push-review-*.md` reports. Every phase ran a review after each task, with fix rounds, and a final whole-branch review on the most capable model. |
 | The release will tag correctly | Skipped | CONVENTIONS sets `Milestone completion tags a release: no`, because release-please owns releases. Releases 0.3.0 to 0.3.3 carried the milestone. Release 0.3.3's changelog has only the PR title for Phase 4.4, because GitHub never associated the squash commit with #88, so release-please could not read the PR body's override. The docs entry is still credited. |
 
-## The gap
+## The gap, now closed
 
-**jev.zeroalloc.net is not served.** This needs no code change in either repository. The maintainer has to:
-1. Create the Cloudflare Workers project `za-docs-jev`, connected to ZeroAlloc-Net/.website the way the other `za-docs-*` projects are. It deploys `apps/docs-jev/build` per `apps/docs-jev/wrangler.jsonc`.
-2. Add the `jev.zeroalloc.net` custom domain to it.
-3. Merge .website's "update submodules" PR #76, so the site serves Phase 4.4's commit with the shared icon.
-
-Then re-run this audit. If https://jev.zeroalloc.net/ and https://jev.zeroalloc.net/question-types both answer 200, the criterion passes.
+The first pass failed because jev.zeroalloc.net did not resolve. The Cloudflare Workers project `za-docs-jev` and its custom domain had not been created yet. The maintainer created both on 2026-10-03, and the re-audit found the site serving the guide. One step remains: merge .website's "update submodules" PR #76, so the site serves Phase 4.4's commit with the shared icon.
 
 ## Decisions recorded during the milestone
 - **The helpers stay thin (4.1).** There are two helpers. `ConfidenceThresholds` is a struct whose `default` means 0.5 and 0.9, and everything else stays a guide.
