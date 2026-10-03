@@ -24,7 +24,8 @@ public partial record Triage
 
 public static class ReadmeExample
 {
-    // The client reads TYPESAFE_API_KEY. Create it once, share it, and dispose it at shutdown.
+    // A one-off run. The client reads TYPESAFE_API_KEY. A long-running app creates one client and shares it, or
+    // registers it with AddJevClient.
     public static async Task<string> RunAsync(string message, CancellationToken ct)
     {
         using var jev = new JevClient();

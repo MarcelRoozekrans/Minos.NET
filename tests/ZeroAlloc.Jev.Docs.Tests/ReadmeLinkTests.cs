@@ -28,7 +28,7 @@ public sealed partial class ReadmeLinkTests
         var leaf = folder[(folder.LastIndexOf('/') + 1)..];
         var isIndex = string.Equals(name, "index", StringComparison.OrdinalIgnoreCase)
             || string.Equals(name, "README", StringComparison.OrdinalIgnoreCase)
-            || (leaf.Length > 0 && string.Equals(name, leaf, StringComparison.Ordinal));
+            || (leaf.Length > 0 && string.Equals(name, leaf, StringComparison.OrdinalIgnoreCase));
         if (isIndex)
         {
             return prefix.Length == 0 ? "/" : prefix;
@@ -47,6 +47,7 @@ public sealed partial class ReadmeLinkTests
     [InlineData("patterns", "index.md", "overview", null, "/patterns")]
     [InlineData("patterns", "patterns.md", "overview", null, "/patterns")]
     [InlineData("patterns", "README.md", "overview", null, "/patterns")]
+    [InlineData("patterns", "Patterns.md", "overview", null, "/patterns")]
     [InlineData("patterns", "fan-out.md", "fan-out", "wide", "/patterns/wide")]
     [InlineData("", "diagnostics.md", "diagnostics", "rules", "/rules")]
     [InlineData("patterns", "fan-out.md", "fan-out", "/elsewhere/fan-out", "/elsewhere/fan-out")]
