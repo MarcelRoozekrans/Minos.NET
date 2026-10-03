@@ -1,8 +1,9 @@
 # ZeroAlloc-Net/.website includes this repository as its repos/jev submodule and serves docs/
-# at jev.zeroalloc.net. Each dispatch makes .website open or update its "update submodules"
-# PR, which moves that submodule to this repository's latest main.
+# at jev.zeroalloc.net, with the logo and favicon from assets/. Each dispatch makes .website
+# open or update its "update submodules" PR, which moves that submodule to this repository's
+# latest main.
 #
-# Only user docs should trigger a dispatch: docs/planning, docs/superpowers and docs/plans
+# Only user docs and assets should trigger a dispatch: docs/planning, docs/superpowers and docs/plans
 # change nearly every session, and each dispatch makes the org website repo open or update
 # a submodule PR.
 name: Trigger website rebuild
@@ -12,6 +13,7 @@ on:
     branches: [main]
     paths:
       - 'docs/**'
+      - 'assets/**'
       - '!docs/planning/**'
       - '!docs/superpowers/**'
       - '!docs/plans/**'

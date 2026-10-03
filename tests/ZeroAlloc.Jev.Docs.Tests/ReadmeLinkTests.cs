@@ -214,7 +214,7 @@ public sealed partial class ReadmeLinkTests
     private static (int Top, int Inner) SidebarKey(string page)
     {
         var position = int.Parse(PublishedPages.FrontMatter(page)["sidebar_position"], System.Globalization.CultureInfo.InvariantCulture);
-        var folder = Path.GetDirectoryName(page["docs/".Length..])!.Replace((char)92, '/');
+        var folder = Path.GetDirectoryName(page["docs/".Length..])!.Replace('\\', '/');
         if (folder.Length == 0)
         {
             return (position, 0);
