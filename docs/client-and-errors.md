@@ -58,6 +58,13 @@ that also takes an `ILoggerFactory`. With one, the client logs each operation an
 traces and metrics](observability.md#logging) describes. What it logs never contains the state, the questions, the
 answers, the API key or a header value.
 
+Two calls with bare `null` literals do not compile (CS0121), because more than one constructor accepts them.
+`new JevClient(null)` matches both `(JevClientOptions?)` and `(HttpClient)`. `new JevClient(null, null)` matches both
+`(JevClientOptions?, ILoggerFactory?)` and `(HttpClient, JevClientOptions?)`; before the logging overloads it compiled
+and always threw `ArgumentNullException` for the missing `HttpClient`. For all defaults and environment variables, write
+`new JevClient()`. Any other call resolves once its `null` has a type, for example
+`new JevClient((JevClientOptions?)null)`.
+
 A client throws instead of returning a failure only for mistakes in the calling code. A missing API key, an invalid
 option or a `null` request throws when you create the client or make the call. Calling a disposed client throws
 `ObjectDisposedException`. Cancelling the `CancellationToken` you passed throws `OperationCanceledException`, because

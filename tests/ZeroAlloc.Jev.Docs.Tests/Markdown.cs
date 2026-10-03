@@ -131,8 +131,11 @@ internal static partial class Markdown
         return null;
     }
 
-    /// <summary>The ids of a page's headings, with <c>-1</c>, <c>-2</c> added to repeats.</summary>
-    public static List<string> Anchors(IEnumerable<string> lines)
+    /// <summary>
+    /// The ids of a page's headings, with <c>-1</c>, <c>-2</c> added to repeats. <paramref name="minLevel"/> drops the
+    /// ids of shallower headings: Docusaurus emits none for an h1, so a link to one lands nowhere.
+    /// </summary>
+    public static List<string> Anchors(IEnumerable<string> lines, int minLevel = 1)
     {
         var ids = new List<string>();
         var seen = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -146,19 +149,24 @@ internal static partial class Markdown
 
             var text = heading.Groups["text"].Value;
             var slug = Slug(text);
+            var id = slug;
             if (CustomId().IsMatch(text))
             {
-                ids.Add(slug);
+                // A custom id is taken as written and does not count as a repeat.
             }
             else if (seen.TryGetValue(slug, out var count))
             {
                 seen[slug] = count + 1;
-                ids.Add($"{slug}-{count + 1}");
+                id = $"{slug}-{count + 1}";
             }
             else
             {
                 seen[slug] = 0;
-                ids.Add(slug);
+            }
+
+            if (heading.Groups["hashes"].Length >= minLevel)
+            {
+                ids.Add(id);
             }
         }
 
@@ -217,7 +225,7 @@ internal static partial class Markdown
     [GeneratedRegex(@"\s*\{#(?<id>[^}\s]+)\}\s*$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex CustomId();
 
-    [GeneratedRegex(@"^ {0,3}#{1,6}[ \t]+(?<text>.*?)(?:[ \t]+#+)?[ \t]*$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"^ {0,3}(?<hashes>#{1,6})[ \t]+(?<text>.*?)(?:[ \t]+#+)?[ \t]*$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex Heading();
 
     [GeneratedRegex(@"^ {0,3}#[ \t]+(?<text>.*?)(?:[ \t]+#+)?[ \t]*$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]

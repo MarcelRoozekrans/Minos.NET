@@ -1,11 +1,19 @@
-# Session State — 2026-10-02 (Phase 4.3 complete, PR to open)
+# Session State — 2026-10-03 (Phase 4.4 complete, two PRs to land)
 
-**Date:** 2026-10-02
+**Date:** 2026-10-03
 
 ## Current Position
-- **Milestone:** 4 — Patterns & docs, active since 2026-10-02 (design `docs/superpowers/specs/2026-10-02-milestone-4-design.md`).
-- **Phase:** 4.3 — User guide is complete on branch `phase/4.3-user-guide`; it lands through a PR to `main` that closes #16. Phase 4.2 merged as PR #82; release 0.3.1 (#83) carried it.
-- **Next task:** after the Phase 4.3 PR merges, confirm release-please lists its entries, then run `start-next-phase` for Phase 4.4 — Docs site, logo and README.
+- **Milestone:** 4 — Patterns & docs, active since 2026-10-02 (design `docs/superpowers/specs/2026-10-02-milestone-4-design.md`). All four phases are complete; the milestone audit is next.
+- **Phase:** 4.4 — Docs site, logo and README is complete on branch `phase/4.4-docs-site`. Phase 4.3 merged as PR #86; release 0.3.2 (#87) carried it.
+- **Next task:** merge ZeroAlloc-Net/.website#81 first, then open and merge the Jev Phase 4.4 PR (its `docs-site` job builds against .website's `main`), confirm release-please lists it, then run `audit-milestone` for Milestone 4.
+
+## What Phase 4.4 shipped
+- ZeroAlloc-Net/.website#81 (open): `repos/jev` submodule, `apps/docs-jev` copied from docs-rest with `onBrokenLinks: 'throw'` and `planning`/`superpowers` excluded, a zeroalloc.net home-page entry (`available: true`, maintainer decision), README row and lockfile. Its `build` workflow passed.
+- Logo: `assets/icon.svg` and `icon.png` are byte-identical copies of ZeroAlloc.Rest's shared icon (maintainer decision); pack tests pin both hashes and check the packed icon.
+- README cut from 531 to about 95 lines: logo as a Markdown image (nuget.org renders no raw HTML), disclaimer and Status line verbatim, install, a compiled and tested example, one absolute jev.zeroalloc.net link per guide page, samples, building, testing and license. Tests check every site link against the site's routing (folder plus front-matter `id`, index pages, `slug: /`), anchors at h2 to h6, sidebar order, titles, absolute links and no raw HTML. The docs tests' heading ids matched a real Docusaurus build for all 17 pages.
+- CI: `docs-site.yml` checks out .website, checks this repository out into `website/repos/jev`, and builds `@zeroalloc/docs-jev` on changes to `docs/**` or `assets/**`. Not a required check. `trigger-website.yml` now also dispatches on `assets/**`.
+- Guide: `client-and-errors.md` names both ambiguous bare-null constructor calls, CS0121.
+- Maintainer to-do: create the Cloudflare Workers project `za-docs-jev` and the `jev.zeroalloc.net` custom domain; until then the README's site links do not load. #29 has a note to reword the README Status line when publishing starts.
 
 ## What Phase 4.3 shipped
 - The user guide in `docs/`, in the org's Docusaurus layout: getting-started (`slug: /`), question-types, typed-evaluation, question-sets-at-run-time, client-and-errors, dependency-injection, observability, native-aot, diagnostics, testing-your-code, patterns/ (with `_category_.json`), samples and performance. Maintainer decision: the guide is the single source of user docs; Phase 4.4 cuts the README to an overview, and every README reference fact now has a guide home.
@@ -168,7 +176,7 @@
 - Still unknown until a TypeSafe live run (needs `TYPESAFE_API_KEY` and the `live-api` environment): whether TypeSafe sends `Retry-After`, the 422 body schema, and whether Phase 2.4's `BuiltQuestionSet_ParsesAKeyedChoice` passes.
 
 ## Recommended Next Step
-Merge the Phase 4.3 PR, check release-please counted it, then run `start-next-phase` for Phase 4.4 — Docs site, logo and README.
+Merge ZeroAlloc-Net/.website#81, then the Phase 4.4 PR; check release-please counted it; set up Cloudflare for jev.zeroalloc.net; then run `audit-milestone` for Milestone 4.
 
 
 
