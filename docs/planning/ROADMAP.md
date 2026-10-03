@@ -214,7 +214,7 @@ compress_memory: disabled
 **Surface:** Docs
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-10-03-phase-4.4-docs-site-design.md`
-**Plan:** _to be written_
+**Plan:** `docs/superpowers/plans/2026-10-03-phase-4.4-docs-site.md`
 
 ## Milestone 5: 1.0 hardening [status: pending]
 **Goal:** A reviewed, frozen public API shipped as a stable 1.0.
