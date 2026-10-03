@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.IO.Compression;
+using System.Security.Cryptography;
 using System.Text.Json;
 using System.Xml.Linq;
 
@@ -41,6 +42,36 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
     private readonly PackFixture _fixture;
 
     public PackageContentTests(PackFixture fixture) => _fixture = fixture;
+
+    [Fact]
+    public void ShipsTheIconAtTheRoot_MatchingTheFileOnDisk()
+    {
+        XNamespace ns = "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd";
+        var nuspec = XDocument.Load(_fixture.NuspecPath);
+        using var archive = ZipFile.OpenRead(_fixture.NupkgPath);
+
+        var entry = archive.GetEntry("icon.png");
+
+        Assert.NotNull(entry);
+        Assert.Equal("icon.png", (string?)nuspec.Root!.Element(ns + "metadata")!.Element(ns + "icon"));
+        using var stream = entry.Open();
+        using var packed = new MemoryStream();
+        stream.CopyTo(packed);
+        var onDisk = File.ReadAllBytes(Path.Combine(PackedProject.FindRepoRoot(), "assets", "icon.png"));
+        Assert.True(onDisk.AsSpan().SequenceEqual(packed.ToArray()), "Found a packed icon.png that differs from assets/icon.png.");
+    }
+
+    // The shared ZeroAlloc icon: this is the SHA-256 of assets/icon.svg in ZeroAlloc-Net/ZeroAlloc.Rest. Every ZeroAlloc
+    // package carries the same mark, so a different file here means the icon drifted from the org's.
+    private const string SharedIconSvgSha256 = "94bbd8999ebb3184b5c2d1c0fd22e406b3e8e8b38eca1039cb4e326f4abd3448";
+
+    [Fact]
+    public void IconSvg_IsTheSharedZeroAllocIcon()
+    {
+        var svg = File.ReadAllBytes(Path.Combine(PackedProject.FindRepoRoot(), "assets", "icon.svg"));
+
+        Assert.Equal(SharedIconSvgSha256, Convert.ToHexStringLower(SHA256.HashData(svg)));
+    }
 
     [Fact]
     public void ShipsGeneratorAsAnalyzer()

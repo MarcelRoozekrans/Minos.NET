@@ -110,7 +110,7 @@ internal sealed class PackedProject : IDisposable
         return destination;
     }
 
-    private static string FindRepoRoot()
+    internal static string FindRepoRoot()
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null)
