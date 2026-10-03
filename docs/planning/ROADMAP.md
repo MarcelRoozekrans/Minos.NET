@@ -174,16 +174,17 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-01-phase-3.4-options-configuration.md`
 **Completed:** 2026-10-01
 
-## Milestone 4: Patterns & docs [status: active]
+## Milestone 4: Patterns & docs [status: complete]
 **Goal:** A C# developer can learn Jev from its own docs site and apply TypeSafe's documented patterns in idiomatic C#, with thin allocation-free helpers, original runnable samples kept honest by replayed recordings, and a user guide served at jev.zeroalloc.net.
 **Started:** 2026-10-02
+**Completed:** 2026-10-03
 **Design:** `docs/superpowers/specs/2026-10-02-milestone-4-design.md`
 **Definition of Done:**
-- [ ] Pattern helpers ship in the core: a normalized Score value and a confidence-tier gate, allocation-free and exercised under Native AOT
-- [ ] Guides for fan-out, confidence routing, composite scoring and intent routing, with C# snippets that compile in CI
-- [ ] Original guardrails, intent-routing and re-ranking samples run as C# projects, live or from replayed recordings, and CI checks their decisions in replay mode
-- [ ] The user guide in `docs/` is served at jev.zeroalloc.net through ZeroAlloc-Net/.website
-- [ ] README carries the unofficial-client disclaimer and the logo, and links the site
+- [x] Pattern helpers ship in the core: a normalized Score value and a confidence-tier gate, allocation-free and exercised under Native AOT
+- [x] Guides for fan-out, confidence routing, composite scoring and intent routing, with C# snippets that compile in CI
+- [x] Original guardrails, intent-routing and re-ranking samples run as C# projects, live or from replayed recordings, and CI checks their decisions in replay mode
+- [x] The user guide in `docs/` is served at jev.zeroalloc.net through ZeroAlloc-Net/.website
+- [x] README carries the unofficial-client disclaimer and the logo, and links the site
 
 ### Phase 4.1: Pattern helpers and guides [status: complete]
 **Goal:** Two allocation-free helpers, a normalized Score value and a confidence-tier gate with overridable defaults, plus guides for the four documented patterns with C# snippets that compile in CI.

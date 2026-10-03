@@ -1,11 +1,11 @@
-# Session State — 2026-10-03 (Phase 4.4 complete, two PRs to land)
+# Session State — 2026-10-03 (Milestone 4 complete)
 
 **Date:** 2026-10-03
 
 ## Current Position
-- **Milestone:** 4 — Patterns & docs, active since 2026-10-02 (design `docs/superpowers/specs/2026-10-02-milestone-4-design.md`). All four phases are complete; the milestone audit is next.
-- **Phase:** 4.4 — Docs site, logo and README is complete on branch `phase/4.4-docs-site`. Phase 4.3 merged as PR #86; release 0.3.2 (#87) carried it.
-- **Next task:** merge ZeroAlloc-Net/.website#81 first, then open and merge the Jev Phase 4.4 PR (its `docs-site` job builds against .website's `main`), confirm release-please lists it, then run `audit-milestone` for Milestone 4.
+- **Milestone:** 4 — Patterns & docs is complete (audit `docs/plans/2026-10-03-milestone-4-audit.md`: PASS on re-audit, after the maintainer set up Cloudflare). Milestone 5 — 1.0 hardening is next.
+- **Phase:** none active. Phase 4.4 merged as PR #88; release 0.3.3 (#89) carried it. ZeroAlloc-Net/.website#81 merged; jev.zeroalloc.net serves the guide.
+- **Next task:** merge the milestone-4 audit PR, merge .website's "update submodules" PR #76 (brings the shared icon to the site), then run `new-milestone` for Milestone 5 — 1.0 hardening.
 
 ## What Phase 4.4 shipped
 - ZeroAlloc-Net/.website#81 (open): `repos/jev` submodule, `apps/docs-jev` copied from docs-rest with `onBrokenLinks: 'throw'` and `planning`/`superpowers` excluded, a zeroalloc.net home-page entry (`available: true`, maintainer decision), README row and lockfile. Its `build` workflow passed.
@@ -176,7 +176,7 @@
 - Still unknown until a TypeSafe live run (needs `TYPESAFE_API_KEY` and the `live-api` environment): whether TypeSafe sends `Retry-After`, the 422 body schema, and whether Phase 2.4's `BuiltQuestionSet_ParsesAKeyedChoice` passes.
 
 ## Recommended Next Step
-Merge ZeroAlloc-Net/.website#81, then the Phase 4.4 PR; check release-please counted it; set up Cloudflare for jev.zeroalloc.net; then run `audit-milestone` for Milestone 4.
+Merge the milestone-4 audit PR and .website PR #76, then run `new-milestone` for Milestone 5 — 1.0 hardening.
 
 
 
