@@ -39,6 +39,11 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
         "ZeroAlloc.Validation",
     ];
 
+    // The shared ZeroAlloc icon: the SHA-256 of assets/icon.svg and assets/icon.png in ZeroAlloc-Net/ZeroAlloc.Rest.
+    // Every ZeroAlloc package carries the same mark, so a different file here means the icon drifted from the org's.
+    private const string SharedIconSvgSha256 = "94bbd8999ebb3184b5c2d1c0fd22e406b3e8e8b38eca1039cb4e326f4abd3448";
+    private const string SharedIconPngSha256 = "6d408bdc8252bda318e9b661864684c543dc692fe6d4304d8fb31125d0e384af";
+
     private readonly PackFixture _fixture;
 
     public PackageContentTests(PackFixture fixture) => _fixture = fixture;
@@ -61,16 +66,14 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
         Assert.True(onDisk.AsSpan().SequenceEqual(packed.ToArray()), "Found a packed icon.png that differs from assets/icon.png.");
     }
 
-    // The shared ZeroAlloc icon: this is the SHA-256 of assets/icon.svg in ZeroAlloc-Net/ZeroAlloc.Rest. Every ZeroAlloc
-    // package carries the same mark, so a different file here means the icon drifted from the org's.
-    private const string SharedIconSvgSha256 = "94bbd8999ebb3184b5c2d1c0fd22e406b3e8e8b38eca1039cb4e326f4abd3448";
-
-    [Fact]
-    public void IconSvg_IsTheSharedZeroAllocIcon()
+    [Theory]
+    [InlineData("icon.svg", SharedIconSvgSha256)]
+    [InlineData("icon.png", SharedIconPngSha256)]
+    public void TheIcon_IsTheSharedZeroAllocIcon(string file, string sha256)
     {
-        var svg = File.ReadAllBytes(Path.Combine(PackedProject.FindRepoRoot(), "assets", "icon.svg"));
+        var bytes = File.ReadAllBytes(Path.Combine(PackedProject.FindRepoRoot(), "assets", file));
 
-        Assert.Equal(SharedIconSvgSha256, Convert.ToHexStringLower(SHA256.HashData(svg)));
+        Assert.Equal(sha256, Convert.ToHexStringLower(SHA256.HashData(bytes)));
     }
 
     [Fact]
