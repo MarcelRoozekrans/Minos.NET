@@ -522,6 +522,37 @@ internal static class AllocationChecks
     }
 
     /// <summary>
+    /// <see cref="Noul.Equals(Noul)"/> on parsed answers, directly and through <see cref="EqualityComparer{T}.Default"/>.
+    /// <see cref="Noul"/> implements <see cref="IEquatable{T}"/>, so neither path boxes and the budget is 0 B.
+    /// </summary>
+    public static void NoulEquals()
+    {
+        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, SmokeBuiltSet.ResponseJson))
+        {
+            BaseAddress = new Uri("https://example.test/api/"),
+        };
+        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+        var set = SmokeBuiltSet.Full(out var credentials, out _, out _, out _);
+        var first = client.EvaluateAsync(set, "Help!").AsTask().GetAwaiter().GetResult().Value.Get(credentials);
+        var second = client.EvaluateAsync(set, "Help!").AsTask().GetAwaiter().GetResult().Value.Get(credentials);
+        var comparer = EqualityComparer<Noul>.Default;
+
+        Program.Check(
+            first == second && comparer.Equals(first, second) && first != new Noul(0.9),
+            "Noul compares parsed answers by probability under Native AOT");
+
+        Gate(
+            budgetBytes: 0,
+            action: () =>
+            {
+                // Consumed into a static field so the compiler cannot elide the calls and make the 0 B gate vacuous.
+                sink += (first.Equals(second) ? 1 : 0) + (comparer.Equals(first, second) ? 1 : 0);
+            },
+            label: "NoulEquals",
+            passDescription: "Noul.Equals allocates nothing, directly or through EqualityComparer<Noul>.Default");
+    }
+
+    /// <summary>
     /// <see cref="EvaluateRoundTrip"/>'s call through a client <c>AddJevClient</c> registered, against the same call on a
     /// hand-built client over an <see cref="HttpClient"/> that <see cref="JevClient.ConfigureHttpClient"/> configured the
     /// same way. Registration and the first resolve happen once and are not budgeted.

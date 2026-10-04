@@ -1,3 +1,6 @@
+using System.ComponentModel;
+using System.Reflection;
+
 namespace ZeroAlloc.Jev.Tests;
 
 public sealed class TypedAnswerTests
@@ -12,6 +15,72 @@ public sealed class TypedAnswerTests
 
         Assert.Equal(probability, noul.Probability);
         Assert.Equal(expected, noul.Value);
+    }
+
+    [Fact]
+    public void Noul_Equals_SameProbability_AreEqual()
+    {
+        var first = new Noul(0.81);
+        var second = new Noul(0.81);
+
+        Assert.True(first.Equals(second));
+        Assert.True(first.Equals((object)second));
+        Assert.True(first == second);
+        Assert.False(first != second);
+        Assert.Equal(first.GetHashCode(), second.GetHashCode());
+    }
+
+    [Fact]
+    public void Noul_Equals_DifferentProbability_AreNotEqual()
+    {
+        // Both answers are yes, so equality compares the probability, not Value.
+        var first = new Noul(0.81);
+        var second = new Noul(0.9);
+
+        Assert.False(first.Equals(second));
+        Assert.True(first != second);
+        Assert.False(first.Equals((object)0.81));
+        Assert.False(first.Equals(null));
+    }
+
+    [Fact]
+    public void Noul_Default_EqualsZeroProbability()
+    {
+        Assert.Equal(new Noul(0.0), default);
+        Assert.Equal(new Noul(0.0).GetHashCode(), default(Noul).GetHashCode());
+    }
+
+    [Fact]
+    public void Noul_Equals_AllocatesNothing()
+    {
+        var first = new Noul(0.81);
+        var second = new Noul(0.81);
+        var comparer = EqualityComparer<Noul>.Default;
+
+        // Warm up the JIT before measuring.
+        _ = first.Equals(second);
+        _ = comparer.Equals(first, second);
+
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        for (var i = 0; i < 1000; i++)
+        {
+            _ = first.Equals(second);
+            _ = comparer.Equals(first, second);
+        }
+
+        var after = GC.GetAllocatedBytesForCurrentThread();
+
+        Assert.Equal(before, after);
+    }
+
+    [Fact]
+    public void JevOptionSet_IsHiddenFromIntelliSense_LikeJevAnswerReader()
+    {
+        Assert.Equal(EditorBrowsableState.Never, Hidden(typeof(JevAnswerReader)));
+        Assert.Equal(EditorBrowsableState.Never, Hidden(typeof(JevOptionSet<>)));
+
+        static EditorBrowsableState? Hidden(Type type)
+            => type.GetCustomAttribute<EditorBrowsableAttribute>()?.State;
     }
 
     [Fact]

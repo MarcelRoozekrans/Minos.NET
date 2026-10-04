@@ -63,6 +63,7 @@ internal static class Program
         AllocationChecks.EvaluateBuiltSetRoundTrip();
         AllocationChecks.JevAnswersGet();
         AllocationChecks.PatternHelpers();
+        AllocationChecks.NoulEquals();
         AllocationChecks.EvaluateRoundTripThroughDependencyInjection();
         AllocationChecks.EvaluateRoundTripThroughBoundConfiguration();
         await AllocationChecks.TelemetryOffAsynchronousTypedEvaluation().ConfigureAwait(false);

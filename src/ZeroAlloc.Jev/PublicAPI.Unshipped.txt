@@ -38,3 +38,8 @@ ZeroAlloc.Jev.JevErrorKind.InvalidResponse = 9 -> ZeroAlloc.Jev.JevErrorKind
 ZeroAlloc.Jev.JevErrorKind.Unsupported = 10 -> ZeroAlloc.Jev.JevErrorKind
 ZeroAlloc.Jev.JevErrorKind.InvalidQuestions = 11 -> ZeroAlloc.Jev.JevErrorKind
 ZeroAlloc.Jev.JevErrorKind.Disposed = 12 -> ZeroAlloc.Jev.JevErrorKind
+ZeroAlloc.Jev.Noul.Equals(ZeroAlloc.Jev.Noul other) -> bool
+override ZeroAlloc.Jev.Noul.Equals(object? obj) -> bool
+override ZeroAlloc.Jev.Noul.GetHashCode() -> int
+static ZeroAlloc.Jev.Noul.operator !=(ZeroAlloc.Jev.Noul left, ZeroAlloc.Jev.Noul right) -> bool
+static ZeroAlloc.Jev.Noul.operator ==(ZeroAlloc.Jev.Noul left, ZeroAlloc.Jev.Noul right) -> bool
