@@ -9,7 +9,7 @@ namespace ZeroAlloc.Jev.Integration.Tests;
 [JevQuestions]
 public partial record NoulTriage
 {
-    [Noul("Does this convey urgency?", True = "Explicitly time-sensitive", False = "No urgency expressed")]
+    [Noul("Does this convey urgency?", WhenTrue = "Explicitly time-sensitive", WhenFalse = "No urgency expressed")]
     public partial Noul IsUrgent { get; }
 }
 

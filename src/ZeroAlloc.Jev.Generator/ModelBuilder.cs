@@ -443,8 +443,8 @@ internal static class ModelBuilder
             kind,
             Named(attribute, "Key") ?? SnakeCase.Convert(property.Name),
             instructions,
-            Named(attribute, "True"),
-            Named(attribute, "False"),
+            Named(attribute, "WhenTrue"),
+            Named(attribute, "WhenFalse"),
             enumType?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) ?? string.Empty,
             options);
     }

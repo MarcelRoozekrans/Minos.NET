@@ -52,8 +52,8 @@ public partial record TicketReview
 {
     [Noul(
         "Is the `body` urgent, for a customer on the `plan` they have?",
-        True = "The customer needs help right away",
-        False = "The customer can wait")]
+        WhenTrue = "The customer needs help right away",
+        WhenFalse = "The customer can wait")]
     public partial Noul IsUrgent { get; }
 
     [Choice("Which desk should handle this?")]

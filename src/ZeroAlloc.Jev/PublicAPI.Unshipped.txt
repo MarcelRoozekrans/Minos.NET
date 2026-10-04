@@ -46,3 +46,11 @@ static ZeroAlloc.Jev.Noul.operator ==(ZeroAlloc.Jev.Noul left, ZeroAlloc.Jev.Nou
 *REMOVED*ZeroAlloc.Jev.JevQuestionSetBuilder.Choice(string! key, ZeroAlloc.Jev.JevContent instructions, out ZeroAlloc.Jev.KeyedChoiceHandle question) -> ZeroAlloc.Jev.JevQuestionSetBuilder!
 *REMOVED*ZeroAlloc.Jev.JevQuestionSetBuilder.Score(string! key, ZeroAlloc.Jev.JevContent instructions, out ZeroAlloc.Jev.KeyedScoreHandle question) -> ZeroAlloc.Jev.JevQuestionSetBuilder!
 *REMOVED*ZeroAlloc.Jev.JevQuestionSetBuilder.Score<T>(string! key, ZeroAlloc.Jev.JevContent instructions, out ZeroAlloc.Jev.ScoreHandle<T> question) -> ZeroAlloc.Jev.JevQuestionSetBuilder!
+*REMOVED*ZeroAlloc.Jev.NoulAttribute.False.get -> string?
+*REMOVED*ZeroAlloc.Jev.NoulAttribute.False.set -> void
+*REMOVED*ZeroAlloc.Jev.NoulAttribute.True.get -> string?
+*REMOVED*ZeroAlloc.Jev.NoulAttribute.True.set -> void
+ZeroAlloc.Jev.NoulAttribute.WhenFalse.get -> string?
+ZeroAlloc.Jev.NoulAttribute.WhenFalse.set -> void
+ZeroAlloc.Jev.NoulAttribute.WhenTrue.get -> string?
+ZeroAlloc.Jev.NoulAttribute.WhenTrue.set -> void

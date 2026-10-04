@@ -36,7 +36,7 @@ public enum DiffLevel
 [JevQuestions]
 public partial record DiffSet
 {
-    [Noul(EdgeCases.TrickyInstructions, True = "Explicitly time-sensitive", False = "No urgency expressed")]
+    [Noul(EdgeCases.TrickyInstructions, WhenTrue = "Explicitly time-sensitive", WhenFalse = "No urgency expressed")]
     public partial Noul IsUrgent { get; }
 
     [Noul("Is `message` a duplicate?")]

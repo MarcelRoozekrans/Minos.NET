@@ -97,8 +97,8 @@ public partial record TicketReview
 {
     [Noul(
         "Is the `body` urgent, for a customer on the `plan` they have?",
-        True = "The customer needs help right away",
-        False = "The customer can wait")]
+        WhenTrue = "The customer needs help right away",
+        WhenFalse = "The customer can wait")]
     public partial Noul IsUrgent { get; }
 
     [Choice("Which desk should handle this?")]
@@ -120,7 +120,7 @@ A few things in that declaration are worth reading closely.
 - **`Examples` and `NotFor` sharpen a description.** `Examples` lists texts that belong to the option, and `NotFor`
   lists texts that only look as if they do. With either set and non-empty, the generator sends a criterion object in
   place of a plain string for that option or level. Empty arrays and `null` entries are left out.
-- **`True` and `False` describe a Noul's answers.** They say what a yes and a no mean for that question. Both are
+- **`WhenTrue` and `WhenFalse` describe a Noul's answers.** They say what a yes and a no mean for that question. Both are
   optional.
 - **`State = typeof(SupportTicket)` links the set to its state type.** The generated type then implements
   `IJevQuestionSet<TicketReview, SupportTicket>`. The type must be a class, struct, record or array type.
