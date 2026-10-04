@@ -37,7 +37,7 @@ public sealed class JevAdapter : IClientAdapter, IUsesBenchmarkTransport
     public string Library => "ZeroAlloc.Jev";
 
     /// <inheritdoc/>
-    public string Version => LibraryVersion.Of(typeof(JevClient));
+    public string Version => LibraryVersion.OfSourceBuild(typeof(JevClient));
 
     /// <inheritdoc/>
     public string? Note => null;

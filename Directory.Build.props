@@ -16,9 +16,13 @@
     <WarningsAsErrors>$(WarningsAsErrors);RS0016;RS0017</WarningsAsErrors>
     <!-- Only audit direct dependencies; transitive vulnerability warnings are owned by upstream packages -->
     <NuGetAuditMode>direct</NuGetAuditMode>
-    <!-- Placeholder version; release-please manages the real version via the tagged release commit,
-         not by passing -p:Version= in CI. -->
-    <Version>0.0.0-local</Version>
+    <!--
+      The last released version, from release-please's manifest, which the release commit bumps: a build of the tagged
+      commit carries that release's version, and any other build carries the last release's. CI passes no -p:Version=.
+      The SDK appends the commit to the informational version, as in 0.3.3+<sha>, so a build between releases stays
+      distinguishable from the release itself.
+    -->
+    <Version>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory).release-please-manifest.json')), '[0-9]+\.[0-9]+\.[0-9]+[^"]*'))</Version>
   </PropertyGroup>
 
   <!-- NuGet metadata -->
