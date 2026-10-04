@@ -9,16 +9,26 @@ using ZeroAlloc.Jev.Benchmarks.Mock;
 
 namespace ZeroAlloc.Jev.Benchmarks.Tests;
 
-/// <summary>Each comparison client against the in-process mock: it reaches the mock, sends the workload and parses the recorded answer.</summary>
+/// <summary>Each comparison client against the in-process mock and a logging twin: it reaches the mock, sends the workload and parses the recorded answer.</summary>
 public sealed class AdapterTests : IDisposable
 {
     private static readonly string ResponsePath = Path.Combine(AppContext.BaseDirectory, "response.json");
 
     private readonly WireMockServer _server = MockHost.Start(0, ResponsePath);
 
+    // The mock keeps no request log, so the tests that inspect what a client sent use this server, which logs every
+    // request and answers with the same recorded bytes.
+    private readonly WireMockServer _recorder = StartRecorder();
+
+    private readonly MockRequestCounter _counter;
+
+    public AdapterTests() => _counter = new MockRequestCounter(BaseAddress);
+
     public static TheoryData<string> Clients { get; } = new(ClientAdapters.All);
 
     private Uri BaseAddress => new(_server.Urls[0]);
+
+    private Uri RecorderAddress => new(_recorder.Urls[0]);
 
     [Theory]
     [MemberData(nameof(Clients))]
@@ -29,7 +39,7 @@ public sealed class AdapterTests : IDisposable
         var answers = await adapter.AskAsync(CancellationToken.None);
 
         answers.EnsureEquals(client, Workload.Expected);
-        _ = OnlyRequest(_server);
+        Assert.Equal(1, await _counter.CountAsync(CancellationToken.None));
     }
 
     [Theory]
@@ -41,18 +51,18 @@ public sealed class AdapterTests : IDisposable
         var outcome = await adapter.CallAsync(CancellationToken.None);
 
         Assert.True(outcome.IsExpected);
-        _ = OnlyRequest(_server);
+        Assert.Equal(1, await _counter.CountAsync(CancellationToken.None));
     }
 
     [Theory]
     [MemberData(nameof(Clients))]
     public async Task Every_client_sends_the_workload_to_systemone(string client)
     {
-        using var adapter = ClientAdapters.Create(client, BaseAddress);
+        using var adapter = ClientAdapters.Create(client, RecorderAddress);
 
         _ = await adapter.CallAsync(CancellationToken.None);
 
-        var request = OnlyRequest(_server);
+        var request = OnlyRequest(_recorder);
         Assert.Equal("/v1/systemone", request.Path);
         using var body = JsonDocument.Parse(request.Body!);
         var root = body.RootElement;
@@ -78,11 +88,11 @@ public sealed class AdapterTests : IDisposable
     [MemberData(nameof(Clients))]
     public async Task Every_client_but_JevSharp_sends_the_dummy_key(string client)
     {
-        using var adapter = ClientAdapters.Create(client, BaseAddress);
+        using var adapter = ClientAdapters.Create(client, RecorderAddress);
 
         _ = await adapter.CallAsync(CancellationToken.None);
 
-        var headers = OnlyRequest(_server).Headers!;
+        var headers = OnlyRequest(_recorder).Headers!;
         if (string.Equals(client, ClientAdapters.JevSharp, StringComparison.Ordinal))
         {
             // JevSharp reaches the mock through a custom endpoint, which takes static headers only, and sends none.
@@ -99,8 +109,8 @@ public sealed class AdapterTests : IDisposable
     [Fact]
     public async Task The_raw_baseline_sends_the_body_ZeroAlloc_Jev_sends()
     {
-        using var jev = ClientAdapters.Create(ClientAdapters.Jev, BaseAddress);
-        using var raw = ClientAdapters.Create(ClientAdapters.Raw, BaseAddress);
+        using var jev = ClientAdapters.Create(ClientAdapters.Jev, RecorderAddress);
+        using var raw = ClientAdapters.Create(ClientAdapters.Raw, RecorderAddress);
 
         _ = await jev.CallAsync(CancellationToken.None);
         _ = await raw.CallAsync(CancellationToken.None);
@@ -108,7 +118,7 @@ public sealed class AdapterTests : IDisposable
         string? jevBody = null;
         string? rawBody = null;
         Assert.Collection(
-            _server.LogEntries,
+            _recorder.LogEntries,
             e => jevBody = e.RequestMessage?.Body,
             e => rawBody = e.RequestMessage?.Body);
         Assert.NotNull(jevBody);
@@ -139,7 +149,22 @@ public sealed class AdapterTests : IDisposable
 
     public void Dispose()
     {
+        _counter.Dispose();
         _server.Stop();
         _server.Dispose();
+        _recorder.Stop();
+        _recorder.Dispose();
+    }
+
+    private static WireMockServer StartRecorder()
+    {
+        var recorder = WireMockServer.Start(new WireMockServerSettings { Urls = ["http://127.0.0.1:0"] });
+        recorder
+            .Given(Request.Create().WithPath("/v1/systemone").UsingPost())
+            .RespondWith(Response.Create()
+                .WithStatusCode(200)
+                .WithHeader("Content-Type", "application/json")
+                .WithBody(File.ReadAllBytes(ResponsePath)));
+        return recorder;
     }
 }

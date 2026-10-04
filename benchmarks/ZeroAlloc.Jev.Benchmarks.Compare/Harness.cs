@@ -36,16 +36,16 @@ public sealed class Harness(CompareOptions options, TextWriter log)
         Directory.CreateDirectory(options.OutDirectory);
         var throughput = new Dictionary<string, double>(StringComparer.Ordinal);
         var clients = new Dictionary<string, IClientAdapter>(StringComparer.Ordinal);
-        using var requestLog = new MockRequestLog(options.BaseUrl);
+        using var counter = new MockRequestCounter(options.BaseUrl);
         try
         {
             foreach (var client in ClientAdapters.All)
             {
                 var adapter = ClientAdapters.Create(client, options.BaseUrl);
                 clients[client] = adapter;
-                await WarmUpAsync(adapter, cancellationToken).ConfigureAwait(false);
-                await ProbeAsync(adapter, requestLog, cancellationToken).ConfigureAwait(false);
-                throughput[client] = await MeasureThroughputAsync(adapter, requestLog, cancellationToken).ConfigureAwait(false);
+                await WarmUpAsync(adapter, counter, cancellationToken).ConfigureAwait(false);
+                await ProbeAsync(adapter, counter, cancellationToken).ConfigureAwait(false);
+                throughput[client] = await MeasureThroughputAsync(adapter, counter, cancellationToken).ConfigureAwait(false);
             }
 
             var summary = RunBenchmarks();
@@ -63,18 +63,21 @@ public sealed class Harness(CompareOptions options, TextWriter log)
         }
     }
 
-    private static async Task WarmUpAsync(IClientAdapter adapter, CancellationToken cancellationToken)
-    {
-        for (var i = 0; i < CompareBenchmarks.WarmupCalls; i++)
+    private static Task<int> WarmUpAsync(IClientAdapter adapter, MockRequestCounter counter, CancellationToken cancellationToken)
+        => CountedAsync(adapter.Client, "warm-up", counter, async () =>
         {
-            var answers = await adapter.AskAsync(cancellationToken).ConfigureAwait(false);
-            answers.EnsureEquals(adapter.Client, Workload.Expected);
-        }
-    }
+            for (var i = 0; i < CompareBenchmarks.WarmupCalls; i++)
+            {
+                var answers = await adapter.AskAsync(cancellationToken).ConfigureAwait(false);
+                answers.EnsureEquals(adapter.Client, Workload.Expected);
+            }
+
+            return CompareBenchmarks.WarmupCalls;
+        }, static calls => calls, cancellationToken);
 
     // Sequential calls: one request per call, with no retry and no extra request.
-    private static Task<int> ProbeAsync(IClientAdapter adapter, MockRequestLog requestLog, CancellationToken cancellationToken)
-        => CountedAsync(adapter.Client, "probe", requestLog, async () =>
+    private static Task<int> ProbeAsync(IClientAdapter adapter, MockRequestCounter counter, CancellationToken cancellationToken)
+        => CountedAsync(adapter.Client, "probe", counter, async () =>
         {
             for (var i = 0; i < ProbeCalls; i++)
             {
@@ -88,11 +91,11 @@ public sealed class Harness(CompareOptions options, TextWriter log)
             return ProbeCalls;
         }, static calls => calls, cancellationToken);
 
-    // The warm-up and the measured phase are counted apart, each from an empty log, so neither fills the capped log.
-    private async Task<double> MeasureThroughputAsync(IClientAdapter adapter, MockRequestLog requestLog, CancellationToken cancellationToken)
+    // The throughput warm-up and the measured phase are counted apart, so a mismatch names the phase.
+    private async Task<double> MeasureThroughputAsync(IClientAdapter adapter, MockRequestCounter counter, CancellationToken cancellationToken)
     {
-        var warmup = await CountedPhaseAsync(adapter, "throughput warm-up", ThroughputWarmup, requestLog, cancellationToken).ConfigureAwait(false);
-        var measured = await CountedPhaseAsync(adapter, "throughput run", ThroughputDuration, requestLog, cancellationToken).ConfigureAwait(false);
+        var warmup = await CountedPhaseAsync(adapter, "throughput warm-up", ThroughputWarmup, counter, cancellationToken).ConfigureAwait(false);
+        var measured = await CountedPhaseAsync(adapter, "throughput run", ThroughputDuration, counter, cancellationToken).ConfigureAwait(false);
         await log.WriteLineAsync(string.Create(
             CultureInfo.InvariantCulture,
             $"{adapter.Client}: probe {ProbeCalls} of {ProbeCalls} requests, warm-up {warmup.Calls} of {warmup.Calls}, measured {measured.Calls} of {measured.Calls}, {measured.PerSecond:F0}/s")).ConfigureAwait(false);
@@ -100,24 +103,23 @@ public sealed class Harness(CompareOptions options, TextWriter log)
     }
 
     private static Task<ThroughputPhase> CountedPhaseAsync(
-        IClientAdapter adapter, string run, TimeSpan duration, MockRequestLog requestLog, CancellationToken cancellationToken)
+        IClientAdapter adapter, string run, TimeSpan duration, MockRequestCounter counter, CancellationToken cancellationToken)
         => CountedAsync(
             adapter.Client,
             run,
-            requestLog,
+            counter,
             () => ThroughputRunner.RunPhaseAsync(adapter, Concurrency, duration),
             static phase => phase.Calls,
             cancellationToken);
 
-    // Reads the mock's request count before and after the calls, from an empty log, and fails unless it rose by
-    // exactly the calls made.
+    // Reads the mock's served-request count before and after the calls, and fails unless it rose by exactly the calls
+    // made. The count is never reset, so these windows add up to the run's total.
     private static async Task<T> CountedAsync<T>(
-        string client, string run, MockRequestLog requestLog, Func<Task<T>> makeCalls, Func<T, long> callsMade, CancellationToken cancellationToken)
+        string client, string run, MockRequestCounter counter, Func<Task<T>> makeCalls, Func<T, long> callsMade, CancellationToken cancellationToken)
     {
-        await requestLog.ClearAsync(cancellationToken).ConfigureAwait(false);
-        var before = await requestLog.CountAsync(cancellationToken).ConfigureAwait(false);
+        var before = await counter.CountAsync(cancellationToken).ConfigureAwait(false);
         var result = await makeCalls().ConfigureAwait(false);
-        var after = await requestLog.CountAsync(cancellationToken).ConfigureAwait(false);
+        var after = await counter.CountAsync(cancellationToken).ConfigureAwait(false);
         EnsureCount(client, run, callsMade(result), after - before);
         return result;
     }
@@ -128,7 +130,7 @@ public sealed class Harness(CompareOptions options, TextWriter log)
         {
             throw new InvalidOperationException(string.Create(
                 CultureInfo.InvariantCulture,
-                $"{client}: the {run} made {calls} calls but the mock logged {requests} requests. A retry, an extra request or a full request log breaks the one-request-per-call rule."));
+                $"{client}: the {run} made {calls} calls but the mock logged {requests} requests. A retry or an extra request breaks the one-request-per-call rule."));
         }
     }
 

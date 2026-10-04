@@ -50,30 +50,28 @@ public sealed class HarnessTests : IDisposable
     }
 
     [Fact]
-    public async Task The_request_log_counts_and_clears()
+    public async Task The_counter_reads_the_served_requests()
     {
-        using var log = new MockRequestLog(BaseAddress);
+        using var counter = new MockRequestCounter(BaseAddress);
         using var adapter = ClientAdapters.Create(ClientAdapters.Raw, BaseAddress);
+        Assert.Equal(0, await counter.CountAsync(CancellationToken.None));
+
         _ = await adapter.CallAsync(CancellationToken.None);
         _ = await adapter.CallAsync(CancellationToken.None);
 
-        Assert.Equal(2, await log.CountAsync(CancellationToken.None));
-
-        await log.ClearAsync(CancellationToken.None);
-
-        Assert.Equal(0, await log.CountAsync(CancellationToken.None));
+        Assert.Equal(2, await counter.CountAsync(CancellationToken.None));
     }
 
     [Fact]
-    public async Task A_throughput_phase_counts_every_request_the_mock_logs()
+    public async Task A_throughput_phase_counts_every_request_the_mock_serves()
     {
-        using var log = new MockRequestLog(BaseAddress);
+        using var counter = new MockRequestCounter(BaseAddress);
         using var adapter = ClientAdapters.Create(ClientAdapters.Jev, BaseAddress);
 
         var phase = await ThroughputRunner.RunPhaseAsync(adapter, workers: 4, TimeSpan.FromMilliseconds(200));
 
         Assert.True(phase.Calls > 0);
-        Assert.Equal(phase.Calls, await log.CountAsync(CancellationToken.None));
+        Assert.Equal(phase.Calls, await counter.CountAsync(CancellationToken.None));
         Assert.True(phase.PerSecond > 0);
     }
 
