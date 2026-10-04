@@ -100,6 +100,9 @@ client came first read as slower than it is. On 2026-10-04 that was ZeroAlloc.Je
 latency on CI, a gap that vanished when the order was reversed or the process was warmed first. Node and Python run
 one client per process, so the order can't favour one of them.
 
+The figures are therefore steady-state, measured in a warm process. They don't show a client's first-call cost: its
+construction and the JIT compilation of its code, generated code included.
+
 ## Tests
 
 `merge.py` and `cores.py` have pytest tests in `tests/`:

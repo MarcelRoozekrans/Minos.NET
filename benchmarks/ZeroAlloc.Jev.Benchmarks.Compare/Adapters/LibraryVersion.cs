@@ -36,9 +36,12 @@ public static class LibraryVersion
     {
         ArgumentNullException.ThrowIfNull(informational);
         var plus = informational.IndexOf('+', StringComparison.Ordinal);
-        return plus < 0 || plus == informational.Length - 1
-            ? (plus < 0 ? informational : informational[..plus], null)
-            : (informational[..plus], informational[(plus + 1)..]);
+        if (plus < 0)
+        {
+            return (informational, null);
+        }
+
+        return plus == informational.Length - 1 ? (informational[..plus], null) : (informational[..plus], informational[(plus + 1)..]);
     }
 
     private static (string Version, string? Commit) Read(Type type)

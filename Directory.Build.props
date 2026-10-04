@@ -20,9 +20,12 @@
       The last released version, from release-please's manifest, which the release commit bumps: a build of the tagged
       commit carries that release's version, and any other build carries the last release's. CI passes no -p:Version=.
       The SDK appends the commit to the informational version, as in 0.3.3+<sha>, so a build between releases stays
-      distinguishable from the release itself.
+      distinguishable from the release itself. Only a semantic version under the manifest's "." key is taken; anything
+      else leaves the version empty, and the JevCheckReleaseVersion target below fails the build naming the problem.
     -->
-    <Version>$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(MSBuildThisFileDirectory).release-please-manifest.json')), '[0-9]+\.[0-9]+\.[0-9]+[^"]*'))</Version>
+    <JevReleaseManifest>$(MSBuildThisFileDirectory).release-please-manifest.json</JevReleaseManifest>
+    <JevReleaseVersion Condition="Exists('$(JevReleaseManifest)')">$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(JevReleaseManifest)')), '(?&lt;="\."\s*:\s*")[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(?=")'))</JevReleaseVersion>
+    <Version Condition="'$(JevReleaseVersion)' != ''">$(JevReleaseVersion)</Version>
   </PropertyGroup>
 
   <!-- NuGet metadata -->
@@ -61,4 +64,12 @@
     <PackageReference Include="NetFabric.Hyperlinq.Analyzer" PrivateAssets="all" />
     <PackageReference Include="ZeroAlloc.Analyzers" PrivateAssets="all" />
   </ItemGroup>
+
+  <!-- Fails before any build or pack whose version could not be read from the release manifest, instead of building it as 1.0.0. -->
+  <Target Name="JevCheckReleaseVersion" BeforeTargets="BeforeBuild;GenerateNuspec">
+    <Error Condition="!Exists('$(JevReleaseManifest)')"
+           Text="The release manifest $(JevReleaseManifest) is missing. The build reads the version from it; restore the file from git." />
+    <Error Condition="Exists('$(JevReleaseManifest)') And '$(JevReleaseVersion)' == ''"
+           Text="The release manifest $(JevReleaseManifest) has no semantic version under its &quot;.&quot; key, such as { &quot;.&quot;: &quot;0.3.3&quot; }. Fix the file; the build reads the version from it." />
+  </Target>
 </Project>

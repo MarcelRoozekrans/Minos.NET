@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text.RegularExpressions;
 using ZeroAlloc.Jev.Benchmarks.Compare.Adapters;
 
@@ -17,11 +18,14 @@ public sealed partial class LibraryVersionTests
     }
 
     [Fact]
-    public void ZeroAlloc_Jev_reports_its_released_version_and_short_commit()
+    public void ZeroAlloc_Jev_reports_its_released_version_and_short_commit_when_one_is_recorded()
     {
         using var adapter = new JevAdapter(new Uri("http://127.0.0.1:1/"));
+        var informational = typeof(JevClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
 
-        Assert.Matches(SourceBuildVersion(), adapter.Version);
+        // A build without git metadata, such as one from a source tarball, records no commit, and then reports the version alone.
+        var (_, commit) = LibraryVersion.Split(informational);
+        Assert.Matches(commit is null ? ReleasedVersion() : SourceBuildVersion(), adapter.Version);
         Assert.DoesNotContain("0.0.0", adapter.Version, StringComparison.Ordinal);
     }
 
@@ -32,6 +36,10 @@ public sealed partial class LibraryVersionTests
 
         Assert.DoesNotContain("+", adapter.Version, StringComparison.Ordinal);
     }
+
+    // The manifest's version alone.
+    [GeneratedRegex("^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?$", RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex ReleasedVersion();
 
     // The manifest's version, then the short commit the SDK records in the informational version.
     [GeneratedRegex("^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?\\+[0-9a-f]{7}$", RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: 1000)]
