@@ -10,9 +10,9 @@ using ZeroAlloc.Jev.Benchmarks.Shared;
 namespace ZeroAlloc.Jev.Benchmarks.Compare;
 
 /// <summary>
-/// Runs the comparison: per client, a checked warm-up, a timed sequential latency loop and a throughput run, each
-/// counted against the mock; then the mock's own ceiling; then BenchmarkDotNet for allocated bytes per call. It writes
-/// the shared result file.
+/// Runs the comparison: first a warm-up of every client, so none is measured in a cold process; then per client, a
+/// checked warm-up, a timed sequential latency loop and a throughput run, each counted against the mock; then the
+/// mock's own ceiling; then BenchmarkDotNet for allocated bytes per call. It writes the shared result file.
 /// </summary>
 /// <param name="options">The command line.</param>
 /// <param name="log">Where progress goes.</param>
@@ -43,6 +43,7 @@ public sealed class Harness(CompareOptions options, TextWriter log)
         Directory.CreateDirectory(options.OutDirectory);
         var measured = new Dictionary<string, ClientMeasurement>(StringComparer.Ordinal);
         using var counter = new MockRequestCounter(options.BaseUrl);
+        await WarmUpProcessAsync(counter, cancellationToken).ConfigureAwait(false);
         foreach (var client in ClientAdapters.All)
         {
             using var adapter = ClientAdapters.Create(client, options.BaseUrl);
@@ -55,6 +56,21 @@ public sealed class Harness(CompareOptions options, TextWriter log)
         var path = Path.Combine(options.OutDirectory, options.ResultFileName);
         await File.WriteAllTextAsync(path, file.ToJson(), cancellationToken).ConfigureAwait(false);
         return path;
+    }
+
+    // Runs every client's checked warm-up and a throughput warm-up before any client is measured, each on an instance
+    // that is then disposed. Without it, the first client measured runs its latency loop while the process is still
+    // cold: tiered JIT has not yet recompiled the shared HttpClient, socket and System.Text.Json code, nor the client's
+    // own, and the thread pool has not grown. That client then reads as much slower than it is, whichever client it is.
+    // The code each client runs is compiled once per process, so the instance measured later starts warm.
+    private async Task WarmUpProcessAsync(MockRequestCounter counter, CancellationToken cancellationToken)
+    {
+        foreach (var client in ClientAdapters.All)
+        {
+            using var adapter = ClientAdapters.Create(client, options.BaseUrl);
+            await WarmUpAsync(adapter, counter, cancellationToken).ConfigureAwait(false);
+            _ = await CountedPhaseAsync(adapter, "process warm-up", Concurrency, ThroughputWarmup, counter, cancellationToken).ConfigureAwait(false);
+        }
     }
 
     private async Task<ClientMeasurement> MeasureAsync(IClientAdapter adapter, MockRequestCounter counter, CancellationToken cancellationToken)

@@ -88,6 +88,18 @@ Every result file records the mock's cores as `machine.mockCores`, and its harne
 The mock ceiling, `machine.mockCeilingPerSecond`, is measured under the same split. It is the best of the raw .NET
 client at 16, 32 and 64 workers.
 
+## The process warm-up
+
+The .NET harness measures five clients in one process, one after another. Before it measures any of them, it warms up
+every client: the checked warm-up calls, then a throughput warm-up at 16 workers, on an instance it then disposes. Each
+client is then measured warm, wherever it stands in the order.
+
+Without it, the first client's latency loop ran while the process was still cold: tiered JIT had not yet recompiled the
+shared `HttpClient`, socket and System.Text.Json code or the client's own, and the thread pool had not grown. Whichever
+client came first read as slower than it is. On 2026-10-04 that was ZeroAlloc.Jev, at about twice the raw client's
+latency on CI, a gap that vanished when the order was reversed or the process was warmed first. Node and Python run
+one client per process, so the order can't favour one of them.
+
 ## Tests
 
 `merge.py` and `cores.py` have pytest tests in `tests/`:
