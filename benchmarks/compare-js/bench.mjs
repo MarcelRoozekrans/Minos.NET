@@ -20,8 +20,15 @@ const EXPECTED = {
   noul: 0.86,
 };
 
-// .NET's Environment.MachineName, the default the .NET harness uses: upper case on Windows, as-is elsewhere.
-const defaultMachine = () => (process.platform === "win32" ? os.hostname().toUpperCase() : os.hostname());
+// .NET's Environment.MachineName, the default the .NET harness uses: the NetBIOS name on Windows, upper case and cut to
+// 15 characters; the host name as-is elsewhere.
+const defaultMachine = () => (process.platform === "win32" ? os.hostname().toUpperCase().slice(0, 15) : os.hostname());
+
+// Reads like .NET's RuntimeInformation.OSDescription: "Microsoft Windows 10.0.26200" on Windows, and uname -srv on
+// Linux and macOS, for example "Linux 6.8.0-45-generic #45-Ubuntu SMP". os.version() is the Windows edition name there,
+// not the build, so Windows uses os.release() alone.
+const osDescription = () =>
+  process.platform === "win32" ? `Microsoft Windows ${os.release()}` : `${os.type()} ${os.release()} ${os.version()}`;
 
 class CheckError extends Error {}
 class UsageError extends Error {}
@@ -210,7 +217,7 @@ async function main() {
   const file = {
     machine: {
       name: opts.machine,
-      os: `${os.platform()} ${os.release()}`,
+      os: osDescription(),
       cpu: os.cpus()[0]?.model ?? process.arch,
       date: new Date().toISOString().replace(/\.\d+Z$/, "Z"),
       mockCeilingPerSecond: null,
