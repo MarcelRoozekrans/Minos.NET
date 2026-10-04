@@ -31,9 +31,9 @@ public enum TriageRoute
 // The class under test. It asks for an IJevClient, so a test can hand it any implementation.
 public sealed class TicketTriager(IJevClient jev)
 {
-    public async Task<TriageRoute> RouteAsync(string ticketText, CancellationToken ct)
+    public async Task<TriageRoute> RouteAsync(string ticketText, CancellationToken cancellationToken)
     {
-        var result = await jev.EvaluateAsync<TriageQuestions>(ticketText, ct);
+        var result = await jev.EvaluateAsync<TriageQuestions>(ticketText, cancellationToken);
         if (result.IsFailure)
         {
             // Jev could not answer, so a person looks at the ticket.

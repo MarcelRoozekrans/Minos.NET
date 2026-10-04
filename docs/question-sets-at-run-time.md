@@ -75,10 +75,10 @@ public sealed class TenantRouter
     }
 
     public async Task<(bool Urgent, string Team, Priority Priority)?> RouteAsync(
-        IJevClient jev, string message, CancellationToken ct)
+        IJevClient jev, string message, CancellationToken cancellationToken)
     {
         // The state is a JevContent. Text converts to one, so a string can be passed as it is.
-        var result = await jev.EvaluateAsync(_questions, message, ct);
+        var result = await jev.EvaluateAsync(_questions, message, cancellationToken);
         if (result.IsFailure)
         {
             return null;
@@ -101,8 +101,8 @@ Every question method takes the same first three arguments.
 - **A handle**, as an `out` argument. Keep it: it is how you read this question's answer later.
 
 A fourth argument, the configurator, is a callback that describes the question's options. It is optional for a Noul
-and an enum Choice. A keyed Choice, a keyed Score and an enum Score need one: without it, `Build()` fails with JEV001,
-JEV002 or JEV104. The methods are these.
+and an enum Choice. A keyed Choice, a keyed Score and an enum Score need one, so they have no overload without it. A
+configurator that adds nothing still fails `Build()`, with JEV001, JEV002 or JEV104. The methods are these.
 
 | Method | Question | Handle | Configurator |
 | --- | --- | --- | --- |
@@ -170,11 +170,11 @@ no question.
 
 ## Evaluating and reading
 
-Evaluate a built set with `EvaluateAsync(questionSet, state, ct)`. The state is a `JevContent`, so a string passes as it
-is. The result holds a `JevAnswers`, and `answers.Get(handle)` returns the answer for that handle's question, as the
-same types a typed set uses: `Noul`, `Choice<T>`, `Score<T>`, `KeyedChoice` and `KeyedScore`. `TenantRouter.RouteAsync`
-above shows the whole path. [Question types](question-types.md) covers what those answers hold, and what is free to
-read.
+Evaluate a built set with `EvaluateAsync(questionSet, state, cancellationToken)`. The state is a `JevContent`, so a
+string passes as it is. The result holds a `JevAnswers`, and `answers.Get(handle)` returns the answer for that handle's
+question, as the same types a typed set uses: `Noul`, `Choice<T>`, `Score<T>`, `KeyedChoice` and `KeyedScore`.
+`TenantRouter.RouteAsync` above shows the whole path. [Question types](question-types.md) covers what those answers
+hold, and what is free to read.
 
 A response that is missing the answer to one of the set's questions fails the call with `JevErrorKind.InvalidResponse`.
 Answers to keys the set does not contain are ignored.
@@ -185,7 +185,8 @@ Any `IJevClient` can evaluate a built set, including a hand-written fake that im
 ## Checking the set
 
 `Build()` returns a `Result<JevQuestionSet, JevError>`. It checks the questions against the rules the
-[analyzers](diagnostics.md) apply to a typed set, and the rule ids are the same.
+[analyzers](diagnostics.md) apply to a typed set, and the rule ids are the same. JEV108 is the builder's own, because
+only a built set can carry JSON.
 
 | Rule | What it checks | Outcome |
 | --- | --- | --- |
@@ -193,7 +194,7 @@ Any `IJevClient` can evaluate a built set, including a hand-written fake that im
 | JEV002 | A Score has no levels: a keyed Score with none, or an enum Score over an enum with no members. | Failure |
 | JEV104 | A member of an enum Score is not given a level. | Failure |
 | JEV106 | A question key, a keyed option key or an enum Score member is repeated, or a key is empty. | Failure |
-| JEV108 | JSON instructions or a JSON description nests deeper than 60 levels. | Failure |
+| JEV108 | JSON instructions, a JSON description, or a JSON yes/no meaning nests deeper than 60 levels. | Failure |
 | JEV003 | Blank instructions, description or example, or JSON that is exactly `{}` or `[]`. | Warning |
 | JEV005 | A Score outside 2 to 10 levels, or a Choice over 255 options. | Warning |
 
@@ -208,8 +209,8 @@ the key of the question at fault, and a message.
 public static IReadOnlyList<string> BrokenRules()
 {
     var built = JevQuestionSet.CreateBuilder()
-        .Choice("team", "Which team should handle this?", out KeyedChoiceHandle _)  // no options
-        .Noul("team", "Is this urgent?", out NoulHandle _)                          // a key used twice
+        .Choice("team", "Which team should handle this?", out KeyedChoiceHandle _, options => { })  // no options
+        .Noul("team", "Is this urgent?", out NoulHandle _)                                          // a key used twice
         .Build();
 
     var broken = new List<string>();

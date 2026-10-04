@@ -91,6 +91,45 @@ public sealed class FailureTests : IClassFixture<WireMockFixture>
         }
     }
 
+    [Fact]
+    public async Task DisposingTheClient_MidRequest_IsDisposed_AndNotRetried()
+    {
+        // As in CallerCancellation_MidRequest_Throws, the server signals when it has the request and holds the response,
+        // so the disposal lands mid-request by construction. The client owns its HttpClient and a real
+        // SocketsHttpHandler, so disposing it tears the request down as it would in production.
+        var received = 0;
+        var firstReceived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        _fixture.Server
+            .Given(Request.Create().WithPath("/v1/systemone").UsingPost())
+            .RespondWith(Response.Create().WithCallback(async _ =>
+            {
+                Interlocked.Increment(ref received);
+                firstReceived.TrySetResult();
+                await release.Task.ConfigureAwait(false);
+                return new ResponseMessage { StatusCode = (int)HttpStatusCode.OK };
+            }));
+
+        try
+        {
+            var client = IntegrationClient.Create(_fixture.BaseAddress, maxRetries: 2);
+
+            var call = client.EvaluateAsync(Fixtures.NoulRequest()).AsTask();
+            await firstReceived.Task.WaitAsync(HangGuard);
+            client.Dispose();
+            var result = await call.WaitAsync(HangGuard);
+
+            Assert.True(result.IsFailure);
+            Assert.Equal(JevErrorKind.Disposed, result.Error.Kind);
+            Assert.Equal(1, Volatile.Read(ref received));
+            await Assert.ThrowsAsync<ObjectDisposedException>(async () => await client.EvaluateAsync(Fixtures.NoulRequest()));
+        }
+        finally
+        {
+            release.SetResult();
+        }
+    }
+
     // Far longer than any scheduling delay a loaded machine adds; reached only when the code under test is broken.
     private static readonly TimeSpan HangGuard = TimeSpan.FromSeconds(30);
 }

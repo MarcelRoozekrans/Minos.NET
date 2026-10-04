@@ -29,7 +29,6 @@
     <Compile Include="..\ZeroAlloc.Jev.Generator\ModelBuilder.cs" Link="Shared\ModelBuilder.cs" />
     <Compile Include="..\ZeroAlloc.Jev.Generator\Models.cs" Link="Shared\Models.cs" />
     <Compile Include="..\ZeroAlloc.Jev.Generator\JsonText.cs" Link="Shared\JsonText.cs" />
-    <Compile Include="..\ZeroAlloc.Jev.Generator\JsonMinifier.cs" Link="Shared\JsonMinifier.cs" />
     <Compile Include="..\ZeroAlloc.Jev.Generator\DiagnosticIds.cs" Link="Shared\DiagnosticIds.cs" />
     <Compile Include="..\ZeroAlloc.Jev.Generator\JevLimits.cs" Link="Shared\JevLimits.cs" />
     <Compile Include="..\ZeroAlloc.Jev.Generator\EquatableArray.cs" Link="Shared\EquatableArray.cs" />

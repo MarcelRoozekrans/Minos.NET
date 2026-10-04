@@ -52,8 +52,8 @@ public partial record TicketReview
 {
     [Noul(
         "Is the `body` urgent, for a customer on the `plan` they have?",
-        True = "The customer needs help right away",
-        False = "The customer can wait")]
+        WhenTrue = "The customer needs help right away",
+        WhenFalse = "The customer can wait")]
     public partial Noul IsUrgent { get; }
 
     [Choice("Which desk should handle this?")]
@@ -61,24 +61,6 @@ public partial record TicketReview
 
     [Score("How much does this affect the customer?", Key = "impact")]
     public partial Score<Impact> Impact { get; }
-}
-#endregion
-
-#region TypedEvaluation_JsonInstructions
-[JevQuestions(State = typeof(SupportTicket))]
-public partial record RefundCheck
-{
-    // Json = true sends the text as a JSON object instead of a string. The generator checks and minifies it at
-    // compile time, and the backticked name is still checked against the state type.
-    [Noul(
-        """
-        {
-          "policy": "Refunds are allowed within 30 days of purchase.",
-          "question": "Does the `body` ask for a refund that the policy allows?"
-        }
-        """,
-        Json = true)]
-    public partial Noul IsAllowed { get; }
 }
 #endregion
 
@@ -96,12 +78,12 @@ public static class TicketReviewing
 {
     #region TypedEvaluation_Evaluate
     public static async Task<(bool Urgent, Desk Desk, Impact Impact)?> ReviewAsync(
-        IJevClient jev, SupportTicket ticket, CancellationToken ct)
+        IJevClient jev, SupportTicket ticket, CancellationToken cancellationToken)
     {
         // The state type and its JSON metadata travel together. The call serializes the ticket and sends it
         // with the questions.
         var result = await jev.EvaluateAsync<TicketReview, SupportTicket>(
-            ticket, SupportTicketJson.Default.SupportTicket, ct);
+            ticket, SupportTicketJson.Default.SupportTicket, cancellationToken);
         if (result.IsFailure)
         {
             return null;
@@ -115,17 +97,21 @@ public static class TicketReviewing
     #region TypedEvaluation_OtherStates
     // A question set without a State type takes its state as text, as a JsonElement or as UTF-8 JSON.
     public static async Task<int> EvaluateEachFormAsync(
-        IJevClient jev, string text, JsonElement element, ReadOnlyMemory<byte> utf8Json, CancellationToken ct)
+        IJevClient jev,
+        string text,
+        JsonElement element,
+        ReadOnlyMemory<byte> utf8Json,
+        CancellationToken cancellationToken)
     {
         var succeeded = 0;
 
-        var fromText = await jev.EvaluateAsync<UrgencyCheck>(text, ct);
+        var fromText = await jev.EvaluateAsync<UrgencyCheck>(text, cancellationToken);
         succeeded += fromText.IsSuccess ? 1 : 0;
 
-        var fromElement = await jev.EvaluateAsync<UrgencyCheck>(element, ct);
+        var fromElement = await jev.EvaluateAsync<UrgencyCheck>(element, cancellationToken);
         succeeded += fromElement.IsSuccess ? 1 : 0;
 
-        var fromUtf8 = await jev.EvaluateUtf8Async<UrgencyCheck>(utf8Json, ct);
+        var fromUtf8 = await jev.EvaluateUtf8Async<UrgencyCheck>(utf8Json, cancellationToken);
         succeeded += fromUtf8.IsSuccess ? 1 : 0;
 
         return succeeded;

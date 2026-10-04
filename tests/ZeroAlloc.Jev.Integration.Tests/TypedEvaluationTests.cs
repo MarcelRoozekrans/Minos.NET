@@ -9,7 +9,7 @@ namespace ZeroAlloc.Jev.Integration.Tests;
 [JevQuestions]
 public partial record NoulTriage
 {
-    [Noul("Does this convey urgency?", True = "Explicitly time-sensitive", False = "No urgency expressed")]
+    [Noul("Does this convey urgency?", WhenTrue = "Explicitly time-sensitive", WhenFalse = "No urgency expressed")]
     public partial Noul IsUrgent { get; }
 }
 
@@ -45,25 +45,6 @@ public partial record StructuredTriage
 
     [Score("How severe is this?")]
     public partial Score<IntegrationSeverity> Severity { get; }
-}
-
-/// <summary>Matches the questions of <c>request-structured.json</c>: object instructions sent with Json = true.</summary>
-[JevQuestions]
-public partial record DuplicateTriage
-{
-    [Noul(
-        """
-        {
-          "potential_duplicate": {
-            "name": "John Smith",
-            "location": "Oakland, California",
-            "last_employer": "Google"
-          },
-          "question": "Is the resume for the same person as `potential_duplicate`?"
-        }
-        """,
-        Json = true)]
-    public partial Noul IsDuplicate { get; }
 }
 
 public sealed class TypedEvaluationTests : IClassFixture<WireMockFixture>
@@ -139,7 +120,7 @@ public sealed class TypedEvaluationTests : IClassFixture<WireMockFixture>
     }
 
     [Fact]
-    public async Task EvaluateAsyncT_SendsJsonInstructions()
+    public async Task EvaluateAsync_BuiltSet_SendsJsonInstructions()
     {
         _fixture.Server
             .Given(Request.Create().WithPath("/v1/systemone").UsingPost())
@@ -148,12 +129,23 @@ public sealed class TypedEvaluationTests : IClassFixture<WireMockFixture>
                 .WithHeader("Content-Type", "application/json")
                 .WithBody("""{"model":"jev-1.13.0","answers":{"is_duplicate":{"type":"noul","noul":0.9}},"usage":{"input_tokens":300,"output_tokens":20}}"""));
 
+        // Declared sets are text only, so structured instructions come from a built set.
+        var built = JevQuestionSet.CreateBuilder()
+            .Noul("is_duplicate", JevContent.FromUtf8Json("""
+                {
+                  "potential_duplicate": { "name": "John Smith", "location": "Oakland, California", "last_employer": "Google" },
+                  "question": "Is the resume for the same person as `potential_duplicate`?"
+                }
+                """u8), out var duplicate)
+            .Build();
+        Assert.True(built.IsSuccess);
+
         using var client = IntegrationClient.Create(_fixture.BaseAddress);
 
-        var result = await client.EvaluateAsync<DuplicateTriage>("Resume: John Smith, Oakland, CA, last employer Google");
+        var result = await client.EvaluateAsync(built.Value, "Resume: John Smith, Oakland, CA, last employer Google");
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(0.9, result.Value.IsDuplicate.Probability);
+        Assert.Equal(0.9, result.Value.Get(duplicate).Probability);
         // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
 #pragma warning disable HLQ005
         var entry = Assert.Single(_fixture.Server.LogEntries);

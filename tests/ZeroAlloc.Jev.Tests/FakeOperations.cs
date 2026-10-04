@@ -24,6 +24,9 @@ internal sealed class FakeOperations(string responseJson) : IJevOperations
     /// <summary>Gets or sets whether a typed result's response is returned already disposed, so reading it throws.</summary>
     public bool DisposedResponse { get; set; }
 
+    /// <summary>Gets or sets the exception every call throws, after it yields; <see langword="null"/> throws none.</summary>
+    public Exception? Throws { get; set; }
+
     /// <summary>Gets or sets the raw path's response.</summary>
     public SystemOneResponse? Raw { get; set; }
 
@@ -72,7 +75,7 @@ internal sealed class FakeOperations(string responseJson) : IJevOperations
     }
 
     private ValueTask<TResult> Complete<TResult>(TResult result)
-        => Yield || Delay > TimeSpan.Zero ? LaterAsync(result) : new ValueTask<TResult>(result);
+        => Yield || Throws is not null || Delay > TimeSpan.Zero ? LaterAsync(result) : new ValueTask<TResult>(result);
 
     private async ValueTask<TResult> LaterAsync<TResult>(TResult result)
     {
@@ -83,6 +86,11 @@ internal sealed class FakeOperations(string responseJson) : IJevOperations
         else
         {
             await Task.Yield();
+        }
+
+        if (Throws is { } thrown)
+        {
+            throw thrown;
         }
 
         return result;

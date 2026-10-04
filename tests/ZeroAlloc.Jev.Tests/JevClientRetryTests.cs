@@ -108,6 +108,20 @@ public sealed class JevClientRetryTests : IDisposable
     }
 
     [Fact]
+    public async Task ExhaustedRetries_On408_ReturnHttp()
+    {
+        // JevErrorKind.Http's docs: a 408 is retried, and returned as Http only after the retries are used up.
+        var handler = StubHandler.Sequence(() => Response(408), () => Response(408), () => Response(408));
+        using var client = Client(handler);
+
+        var result = await client.EvaluateAsync(Request());
+
+        Assert.Equal(JevErrorKind.Http, result.Error.Kind);
+        Assert.Equal(408, result.Error.StatusCode);
+        Assert.Equal(3, handler.Requests.Count);
+    }
+
+    [Fact]
     public async Task ZeroRetries_MakeOneAttempt()
     {
         var handler = StubHandler.Sequence(() => Response(503), Success);

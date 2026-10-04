@@ -11,7 +11,7 @@ namespace ZeroAlloc.Jev.Tests;
 public sealed class LoggingJevApiTests
 {
     private static readonly RetryPolicy ThreeAttempts = new(maxAttempts: 3, backoffMs: 1, jitter: false, perAttemptTimeoutMs: 0, maxDelayMs: 10);
-    private static readonly JevError Overloaded = new(JevErrorKind.Overloaded, "The API returned HTTP 503.", 503, TimeSpan.FromSeconds(2));
+    private static readonly JevError Overloaded = new(JevErrorKind.Overloaded, "The API returned HTTP 503.") { StatusCode = 503, RetryAfter = TimeSpan.FromSeconds(2) };
 
     [Theory]
     [InlineData(null, 1)]
@@ -48,7 +48,7 @@ public sealed class LoggingJevApiTests
     public async Task Status408_IsTransient()
     {
         var logger = new FakeLogger();
-        var api = new LoggingJevApi(new FixedApi(new JevError(JevErrorKind.Http, "The API returned HTTP 408.", 408)), logger, ThreeAttempts);
+        var api = new LoggingJevApi(new FixedApi(new JevError(JevErrorKind.Http, "The API returned HTTP 408.") { StatusCode = 408 }), logger, ThreeAttempts);
 
         await api.ListModelsAsync("Bearer k", retryCount: null, CancellationToken.None);
 
@@ -59,7 +59,7 @@ public sealed class LoggingJevApiTests
     public async Task NonTransientFailure_LogsNothing()
     {
         var logger = new FakeLogger();
-        var api = new LoggingJevApi(new FixedApi(new JevError(JevErrorKind.Unauthorized, "The API returned HTTP 401.", 401)), logger, ThreeAttempts);
+        var api = new LoggingJevApi(new FixedApi(new JevError(JevErrorKind.Unauthorized, "The API returned HTTP 401.") { StatusCode = 401 }), logger, ThreeAttempts);
 
         await api.ListModelsAsync("Bearer k", retryCount: null, CancellationToken.None);
 

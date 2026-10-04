@@ -70,6 +70,20 @@ option or a `null` request throws when you create the client or make the call. C
 `ObjectDisposedException`. Cancelling the `CancellationToken` you passed throws `OperationCanceledException`, because
 you asked for it. Everything else, including every network and service failure, comes back as a `JevError`.
 
+### Disposing a client
+
+`Dispose` decides what happens to a call by when the call started:
+
+- **A call started after `Dispose`** throws `ObjectDisposedException`, because calling a disposed client is a mistake in
+  the calling code.
+- **A call already in flight** over an `HttpClient` the client created is torn down with that `HttpClient`. It returns
+  a `JevError` of kind `Disposed`, not `Timeout` or `Network`, so you can tell it apart from a real failure. A real
+  time-out that was mapped before `Dispose` set its flag keeps `Timeout` when no retry is left.
+- **A call already in flight over an `HttpClient` you lent** is not torn down, because the client never disposes that
+  `HttpClient`. The attempt in flight keeps its own result.
+- **A disposed client never retries**, whichever kind of `HttpClient` it uses. A retry that would start after `Dispose`
+  is not sent, and the call returns `Disposed`.
+
 ## Options
 
 `JevClientOptions` has nine properties, and every one is optional.
@@ -79,7 +93,7 @@ you asked for it. Everything else, including every network and service failure, 
 | `Provider` | `JevProvider.TypeSafe` | `TypeSafe` or `OpenRouter` | Where requests go. |
 | `ApiKey` | none | any text without control characters; blank counts as unset | The key sent as a bearer token. When unset, the client reads `TYPESAFE_API_KEY`, or `OPENROUTER_API_KEY` for OpenRouter. |
 | `BaseAddress` | the provider's address | absolute `http` or `https` URI, no query or fragment | The API root, for a proxy or a test server. When unset, the client reads `TYPESAFE_BASE_URL` for TypeSafe only, then uses `https://api.typesafe.ai/` or `https://openrouter.ai/api/`. |
-| `Model` | `jev-latest` | not blank | The model that typed evaluation asks, as a versioned id such as `jev-1.13.0` or an alias. |
+| `Model` | `jev-latest` | not blank | The model that typed evaluation and built question sets ask, as a versioned id such as `jev-1.13.0` or an alias. |
 | `Timeout` | 60 seconds | positive, or `Timeout.InfiniteTimeSpan`, and at most about 24.8 days | How long one attempt may take. |
 | `MaxRetries` | 2 | 0 to 10 | How many times a failed call is tried again. 0 turns retries off. |
 | `InitialBackoff` | 500 ms | positive, and at most about 24.8 days | The first wait between attempts. It doubles for each further retry. |
@@ -241,6 +255,9 @@ failure. Cancelling your own `CancellationToken` is different: it stops the call
 
 A failed call returns a `JevError`. Its `Kind` says what went wrong, and the other members add detail when there is any.
 
+You can build one yourself, for a test fake, with `new JevError(kind, message)`. `StatusCode`, `RetryAfter`, `Detail`
+and `Exception` are `init` properties, so set only the ones that apply with an object initializer.
+
 | Member | Holds |
 | --- | --- |
 | `Kind` | A `JevErrorKind`: the cause, listed below. |
@@ -255,6 +272,8 @@ A failed call returns a `JevError`. Its `Kind` says what went wrong, and the oth
 
 ### The kinds
 
+The values start at 1, so `default(JevErrorKind)` is no kind.
+
 | `JevErrorKind` | When | Retried | What to do |
 | --- | --- | --- | --- |
 | `Unauthorized` | HTTP 401 or 403: the key is missing, wrong or lacks access. | No | Fix the key. Retrying cannot help. |
@@ -268,9 +287,11 @@ A failed call returns a `JevError`. Its `Kind` says what went wrong, and the oth
 | `InvalidResponse` | A successful response could not be read as the expected JSON, or an answer was missing. `StatusCode` is then 200, or the other 2xx status that arrived. | No | Report it. The service replied with something this library does not understand. |
 | `Unsupported` | The operation is not available on the provider, such as listing models on OpenRouter. | No | Do not call it on that provider. No request was sent. |
 | `InvalidQuestions` | A question set built at run time breaks the API's rules. Only a failed `Build()` returns it, and no request is sent. | No | Fix the set. `Failures` lists each rule. |
+| `Disposed` | The client was disposed while the call was in flight, which tore its request down or kept a due retry from being sent. | No | Stop. The client is gone. A call started after disposal throws `ObjectDisposedException` instead. |
 
 The "Retried" column describes what the client does before it returns the error. A `RateLimited`, `Overloaded`,
-`Server`, `Network` or `Timeout` error that reaches you has already been retried `MaxRetries` times.
+`Server`, `Network` or `Timeout` error, or an `Http` error for a 408, that reaches you has already been retried
+`MaxRetries` times.
 
 ### Handling a failure
 
@@ -293,6 +314,7 @@ public static string Describe(JevError error) => error.Kind switch
     JevErrorKind.InvalidResponse => $"Jev replied with something unreadable: {error.Message}",
     JevErrorKind.Unsupported => $"The provider cannot do that: {error.Message}",
     JevErrorKind.InvalidQuestions => $"The question set is invalid, {error.Failures.Count} rules broken.",
+    JevErrorKind.Disposed => "The client was disposed while the call was running.",
 
     // A kind added in a later version still produces a useful message.
     _ => error.ToString(),
@@ -314,7 +336,7 @@ layer.
 ```cs
 // The raw API names its own model and questions, with ids you choose. Use it when the questions are not known at
 // compile time and the question set builder does not fit. Typed evaluation is shorter wherever it can be used.
-public static async Task<string> UrgencyAsync(IJevClient jev, string message, CancellationToken ct)
+public static async Task<string> UrgencyAsync(IJevClient jev, string message, CancellationToken cancellationToken)
 {
     var result = await jev.EvaluateAsync(
         new SystemOneRequest
@@ -325,7 +347,7 @@ public static async Task<string> UrgencyAsync(IJevClient jev, string message, Ca
                 ["is_urgent"] = new NoulQuestion { Instructions = "Does this convey urgency?" },
             },
         },
-        ct);
+        cancellationToken);
 
     if (result.IsFailure)
     {
@@ -360,9 +382,9 @@ where the generator, the [analyzers](diagnostics.md) and the
 
 <!-- snippet: ClientAndErrors_Models -->
 ```cs
-public static async Task<string> ModelsAsync(IJevClient jev, CancellationToken ct)
+public static async Task<string> ModelsAsync(IJevClient jev, CancellationToken cancellationToken)
 {
-    var result = await jev.ListModelsAsync(ct);
+    var result = await jev.ListModelsAsync(cancellationToken);
     if (result.IsFailure)
     {
         return ClientFailures.Describe(result.Error);

@@ -27,13 +27,13 @@ public sealed record RoutingReport(IReadOnlyList<RoutedRequest> Requests)
 /// <summary>Classifies each request with one Jev call and routes it: code, an assistant model or a person.</summary>
 public static class IntentRoutingSample
 {
-    public static async Task<RoutingReport> RunAsync(IJevClient jev, CancellationToken ct)
+    public static async Task<RoutingReport> RunAsync(IJevClient jev, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(jev);
         var routed = new List<RoutedRequest>();
         foreach (var (id, text) in Requests.All)
         {
-            var result = await jev.EvaluateAsync<TravelRequest>(text, ct).ConfigureAwait(false);
+            var result = await jev.EvaluateAsync<TravelRequest>(text, cancellationToken).ConfigureAwait(false);
             if (result.IsFailure)
             {
                 throw new InvalidOperationException(id + ": " + result.Error.Kind + ": " + result.Error.Message);

@@ -32,33 +32,44 @@ public sealed partial class DiagnosticsTests
     {
         var rows = PageTables.Rows(Page, "The rules");
 
-        Assert.Equal(15, Descriptors().Length);
+        Assert.Equal(13, Descriptors().Length);
         Assert.Equal(
             Descriptors().Select(rule => $"{rule.Id} {rule.Severity} {rule.Title}"),
             rows.Select(row => $"{row[0]} {row[1]} {row[2]}"));
     }
 
-    // The release-tracking file is a second record of the same ids and severities, checked by the build's own analyzer.
+    // The release-tracking files are a second record of the same ids and severities, checked by the build's own
+    // analyzer: the shipped rules, less the ones the unshipped release removes.
     [Fact]
     public void TheRuleTableOnThePage_IsTheShippedAnalyzerReleaseToo()
     {
         var rows = PageTables.Rows(Page, "The rules");
-        var shipped = new List<string>();
-        foreach (Match match in ShippedRule().Matches(Source("src", "ZeroAlloc.Jev.Analyzers", "AnalyzerReleases.Shipped.md")))
-        {
-            shipped.Add($"{match.Groups["id"].Value} {match.Groups["severity"].Value}");
-        }
+        var shipped = Rules(Source("src", "ZeroAlloc.Jev.Analyzers", "AnalyzerReleases.Shipped.md"));
+        var removed = Rules(RemovedRulesSection(Source("src", "ZeroAlloc.Jev.Analyzers", "AnalyzerReleases.Unshipped.md")));
 
-        Assert.Equal(shipped, rows.Select(row => $"{row[0]} {row[1]}"));
+        Assert.Equal(shipped.Except(removed, StringComparer.Ordinal), rows.Select(row => $"{row[0]} {row[1]}"));
+    }
+
+    // A shipped release is never edited: the rules JEV108 and JEV109 lost with Json = true stay in it, and the unshipped
+    // release records their removal.
+    [Fact]
+    public void Jev108AndJev109_StayShipped_AndAreRemovedInTheUnshippedRelease()
+    {
+        var shipped = Rules(Source("src", "ZeroAlloc.Jev.Analyzers", "AnalyzerReleases.Shipped.md"));
+        var removed = Rules(RemovedRulesSection(Source("src", "ZeroAlloc.Jev.Analyzers", "AnalyzerReleases.Unshipped.md")));
+
+        Assert.Contains("JEV108 Error", shipped);
+        Assert.Contains("JEV109 Error", shipped);
+        Assert.Equal(["JEV108 Error", "JEV109 Error"], removed);
     }
 
     [Fact]
-    public void TheGroups_AreTheSixApiRules_AndNineGeneratorRules_AndTheGeneratorRulesAreAllErrors()
+    public void TheGroups_AreTheSixApiRules_AndSevenGeneratorRules_AndTheGeneratorRulesAreAllErrors()
     {
         var rows = PageTables.Rows(Page, "The rules");
 
         Assert.Equal(
-            ["JEV001", "JEV002", "JEV003", "JEV004", "JEV005", "JEV006", "JEV101", "JEV102", "JEV103", "JEV104", "JEV105", "JEV106", "JEV107", "JEV108", "JEV109"],
+            ["JEV001", "JEV002", "JEV003", "JEV004", "JEV005", "JEV006", "JEV101", "JEV102", "JEV103", "JEV104", "JEV105", "JEV106", "JEV107"],
             rows.Select(row => row[0]));
         Assert.All(rows.Where(row => row[0].StartsWith("JEV1", StringComparison.Ordinal)), row => Assert.Equal("Error", row[1]));
     }
@@ -87,14 +98,34 @@ public sealed partial class DiagnosticsTests
         Assert.Contains($"more than {Limit(limits, "MaximumChoiceOptions")} options", row, StringComparison.Ordinal);
     }
 
-    // JEV108's depth is JevLimits' too: the generator and Build share it.
+    // The run-time builder's own rule: its id is DiagnosticIds.InvalidJson and its depth is JevLimits.MaximumJsonDepth,
+    // which Build checks. It has no analyzer descriptor, so it is not in the analyzer table. The row names the three
+    // places QuestionSpec.ValidateJsonDepth checks: the instructions, a description and a yes/no meaning.
     [Fact]
-    public void TheJev108Limit_IsJevLimits()
+    public void TheBuilderSection_IsInvalidJson_AtJevLimitsDepth()
     {
         var limits = Source("src", "ZeroAlloc.Jev.Generator", "JevLimits.cs");
-        var row = Array.Find(PageTables.Rows(Page, "The rules"), r => string.Equals(r[0], "JEV108", StringComparison.Ordinal))![3];
+        var invalidJson = Regex.Match(
+            Source("src", "ZeroAlloc.Jev.Generator", "DiagnosticIds.cs"),
+            @"public const string InvalidJson = ""(?<id>JEV\d+)"";",
+            RegexOptions.None,
+            TimeSpan.FromSeconds(1)).Groups["id"].Value;
+        var rows = PageTables.Rows(Page, "Reported by the run-time builder");
 
-        Assert.Contains($"more than {Limit(limits, "MaximumJsonDepth")} levels", row, StringComparison.Ordinal);
+        Assert.Equal("JEV108", invalidJson);
+        Assert.Equal([invalidJson], rows.Select(row => row[0]));
+        Assert.Contains($"more than {Limit(limits, "MaximumJsonDepth")} levels", rows[0][2], StringComparison.Ordinal);
+        Assert.StartsWith("JSON instructions, a JSON description, or a JSON yes/no meaning nests", rows[0][2], StringComparison.Ordinal);
+        var spec = Source("src", "ZeroAlloc.Jev", "Validation", "QuestionSpec.cs");
+        Assert.Contains("AddDepth(ref failures, \"The instructions\");", spec, StringComparison.Ordinal);
+        Assert.Contains("AddDepth(ref failures, \"What a yes answer means\");", spec, StringComparison.Ordinal);
+        Assert.Contains("AddDepth(ref failures, \"What a no answer means\");", spec, StringComparison.Ordinal);
+        Assert.Contains("AddDepth(ref failures, $\"The description of '{option.Name}'\");", spec, StringComparison.Ordinal);
+        Assert.DoesNotContain(Descriptors(), rule => string.Equals(rule.Id, invalidJson, StringComparison.Ordinal));
+        Assert.Contains(
+            "### Reported by the run-time builder\n\nOne rule has no analyzer, because only a [set built at run time](question-sets-at-run-time.md#checking-the-set)",
+            PageTables.Text(Page).ReplaceLineEndings("\n"),
+            StringComparison.Ordinal);
     }
 
     [Fact]
@@ -150,6 +181,25 @@ public sealed partial class DiagnosticsTests
             "Great service, I would tell everyone.");
 
         Assert.Equal(Recommendation.Nine, reply.Recommend.Value);
+    }
+
+    private static List<string> Rules(string release)
+    {
+        var rules = new List<string>();
+        foreach (Match match in ShippedRule().Matches(release))
+        {
+            rules.Add($"{match.Groups["id"].Value} {match.Groups["severity"].Value}");
+        }
+
+        return rules;
+    }
+
+    private static string RemovedRulesSection(string release)
+    {
+        var start = release.IndexOf("### Removed Rules", StringComparison.Ordinal);
+        Assert.True(start >= 0, "AnalyzerReleases.Unshipped.md has a Removed Rules section.");
+        var end = release.IndexOf("###", start + 3, StringComparison.Ordinal);
+        return end < 0 ? release[start..] : release[start..end];
     }
 
     private static int Limit(string limits, string name)

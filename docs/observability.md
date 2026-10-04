@@ -54,7 +54,7 @@ public static class ObservedLogging
     // A client logs through the ILoggerFactory it is given. FakeLoggerProvider keeps every record in memory, which
     // is what a test wants. An application would add its own provider instead, such as the console or Serilog.
     public static async Task<IReadOnlyList<FakeLogRecord>> EvaluateAndCollectAsync(
-        HttpClient http, JevClientOptions options, CancellationToken ct)
+        HttpClient http, JevClientOptions options, CancellationToken cancellationToken)
     {
         using var provider = new FakeLoggerProvider();
         using var loggers = LoggerFactory.Create(builder => builder
@@ -63,7 +63,7 @@ public static class ObservedLogging
         using var jev = new JevClient(http, options, loggers);
 
         // The result is not inspected here: each outcome, a success or a failure, is one log event.
-        await jev.EvaluateAsync<ObservedUrgency>("Help! The server is down.", ct);
+        await jev.EvaluateAsync<ObservedUrgency>("Help! The server is down.", cancellationToken);
 
         return provider.Collector.GetSnapshot();
     }
@@ -99,7 +99,8 @@ A call logs once, when it completes, and logs again for each attempt it is about
 - **A retry** is a Warning, 1003, logged for each failed attempt that the client will retry. `Attempt` is 1 for the
   first attempt, and it equals the `X-TypeSafe-Retry-Count` header of the retry that follows. The last attempt is not
   logged here, because the operation's failure event reports it. If your `CancellationToken` is cancelled while the
-  client waits to retry, the retry does not happen even though the event was logged.
+  client waits to retry, the retry does not happen even though the event was logged. Nor does it when the client is
+  disposed before the retry starts, in which case the call returns `Disposed`.
 - **`UnexpectedException`** is an Error, 1006. It means a mistake in the calling code or a bug, because a failure of the
   call itself is a returned `JevError`. The exception continues up to you unchanged. A cancellation that you requested
   is not logged, and neither are the argument checks and the disposed-client check that throw before the call starts.
@@ -304,7 +305,7 @@ named `jev.*`.
 | `gen_ai.usage.output_tokens` | success | The output tokens. Evaluations only. |
 | `gen_ai.response.id` | success | OpenRouter's generation id, when it reports one. Only the raw `EvaluateAsync(SystemOneRequest)`. |
 | `jev.usage.cost` | success | The cost in US dollars, when OpenRouter reports it. Only the raw `EvaluateAsync(SystemOneRequest)`. |
-| `error.type` | failure | The name of the `JevErrorKind`, such as `RateLimited`. |
+| `error.type` | failure | The name of the `JevErrorKind`, such as `RateLimited`, or the full type name of a thrown exception. |
 
 The start attributes are set when the span is created, so a sampler sees them and can decide on them. A failed result
 marks the span `Error`, with no description. `error.type` says what went wrong, and the description stays empty because
@@ -318,12 +319,11 @@ OpenRouter, and they ask instrumentations to document their own. Jev's are the v
 ### When an exception is thrown
 
 A thrown exception is not a `JevError`, so it takes a different path. Cancellation is the usual example. Such a call
-marks the span `Error` with the exception's message as the description, and records the duration without an
-`error.type`. That is the default exception handling of ZeroAlloc.Telemetry, the library that generates the
-instrumentation. [ZeroAlloc.Telemetry#184](https://github.com/ZeroAlloc-Net/ZeroAlloc.Telemetry/issues/184) tracked it,
-and it is fixed in ZeroAlloc.Telemetry 1.11.0. This package builds against 1.10.0, so until it moves to a later version
-the behaviour above is what you see. Adopting the fix is tracked in
-[ZeroAlloc.Jev#85](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/issues/85).
+marks the span `Error` with no description, the same as a failed result, and sets `error.type` to the full name of the
+exception's type, such as `System.Threading.Tasks.TaskCanceledException`. The message is left out because it is the
+runtime's own text, and the library cannot vouch for it. The duration metric carries the same `error.type`, once. This
+is ZeroAlloc.Telemetry 1.11.0, the library that generates the instrumentation, with
+`ExceptionDescription = false` on each of Jev's operations.
 
 ## Metrics
 
@@ -359,8 +359,8 @@ The same values on a span and on a metric are the same strings, so you can filte
 ## What is never emitted
 
 Jev puts none of these in a span attribute, a metric attribute or a span description: the state, the instructions, the
-criteria, the answers or their probabilities, the API key, a header value, `JevError.Message` or `JevError.Detail`. The
-one message that can reach a span is that of a thrown exception, as described above, and that is the runtime's own text.
+criteria, the answers or their probabilities, the API key, a header value, `JevError.Message`, `JevError.Detail` or an
+exception message. The one thing a thrown exception adds to a span is the full name of its type, as described above.
 
 ## The cost of listening
 

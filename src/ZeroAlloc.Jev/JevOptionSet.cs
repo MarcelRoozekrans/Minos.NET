@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Text.Json;
 
 namespace ZeroAlloc.Jev;
@@ -5,9 +6,11 @@ namespace ZeroAlloc.Jev;
 /// <summary>The options of a typed Choice question or the levels of a typed Score question, in wire order.</summary>
 /// <typeparam name="T">The enum whose members are the options or levels.</typeparam>
 /// <remarks>
-/// The <c>[JevQuestions]</c> source generator emits one sealed subclass per question. It maps enum values, indices and
-/// wire keys with switches, so no reflection is involved.
+/// Infrastructure for the code the <c>[JevQuestions]</c> source generator emits; application code does not use it.
+/// The generator emits one sealed subclass per question. It maps enum values, indices and wire keys with switches, so no
+/// reflection is involved.
 /// </remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 public abstract class JevOptionSet<T> : IJevOptionKeys
     where T : struct, Enum
 {

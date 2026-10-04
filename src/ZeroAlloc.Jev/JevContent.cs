@@ -126,6 +126,8 @@ public readonly struct JevContent : IEquatable<JevContent>
 
     /// <summary>Converts text to content.</summary>
     /// <param name="text">The text.</param>
+    /// <returns>The content.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="text"/> is <see langword="null"/>.</exception>
     public static implicit operator JevContent(string text) => FromString(text);
 
     /// <summary>Compares two content values for equality.</summary>

@@ -25,7 +25,6 @@ internal static class ModelBuilder
     // JEV003's second message argument: the advice that fits what is empty. The text follows the subject in the message.
     private const string EmptyTextAdvice = "is empty or whitespace: write the text, or pass null to send none";
     private const string EmptyEntryAdvice = "is empty or whitespace: write the text, or remove the entry";
-    private const string EmptyJsonAdvice = "is an empty JSON object or array: add content, or drop Json";
 
     // A stub repeats the property's declared type, nullable reference annotation included, so it matches the definition.
     private static readonly SymbolDisplayFormat StubTypeFormat = SymbolDisplayFormat.FullyQualifiedFormat
@@ -434,18 +433,18 @@ internal static class ModelBuilder
             ReportDuplicates(options.Select(option => option.Key), property, property.Name, diagnostics);
         }
 
-        var (instructions, instructionsJson) = TextOrJsonFragment(attribute, what, property, diagnostics, cancellationToken);
-        CheckText(attribute, what, property, instructionsJson, diagnostics, cancellationToken);
-        stateMembers?.CheckReferences(attribute, instructionsJson, property, diagnostics, cancellationToken);
+        var instructions = TextFragment(Positional(attribute));
+        CheckText(attribute, what, property, diagnostics, cancellationToken);
+        stateMembers?.CheckReferences(attribute, property, diagnostics, cancellationToken);
 
         return new QuestionModel(
             Identifier(property.Name),
             Modifiers(property, cancellationToken),
             kind,
             Named(attribute, "Key") ?? SnakeCase.Convert(property.Name),
-            instructions ?? string.Empty,
-            Named(attribute, "True"),
-            Named(attribute, "False"),
+            instructions,
+            Named(attribute, "WhenTrue"),
+            Named(attribute, "WhenFalse"),
             enumType?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) ?? string.Empty,
             options);
     }
@@ -573,11 +572,10 @@ internal static class ModelBuilder
                 }
                 else
                 {
-                    var (fragment, json) = DescriptionFragment(criteria, what, At(field), diagnostics, cancellationToken);
-                    CheckText(criteria, what, At(field), json, diagnostics, cancellationToken);
+                    CheckText(criteria, what, At(field), diagnostics, cancellationToken);
                     CheckEntries(criteria, "Examples", what, At(field), diagnostics, cancellationToken);
                     CheckEntries(criteria, "NotFor", what, At(field), diagnostics, cancellationToken);
-                    descriptionFragment = fragment;
+                    descriptionFragment = DescriptionFragment(criteria);
                 }
 
                 options.Add(new OptionModel(
@@ -588,14 +586,13 @@ internal static class ModelBuilder
             else if (Find(field, LevelAttribute) is { } level)
             {
                 var what = $"The [Level] description of '{enumType.Name}.{field.Name}'";
-                var (fragment, json) = DescriptionFragment(level, what, At(field), diagnostics, cancellationToken);
-                CheckText(level, what, At(field), json, diagnostics, cancellationToken);
+                CheckText(level, what, At(field), diagnostics, cancellationToken);
                 CheckEntries(level, "Examples", what, At(field), diagnostics, cancellationToken);
                 CheckEntries(level, "NotFor", what, At(field), diagnostics, cancellationToken);
                 options.Add(new OptionModel(
                     Identifier(field.Name),
                     options.Count.ToString(CultureInfo.InvariantCulture),
-                    fragment));
+                    DescriptionFragment(level)));
             }
             else
             {
@@ -639,38 +636,20 @@ internal static class ModelBuilder
     }
 
     /// <summary>
-    /// JEV003: a text argument that is an empty or whitespace string. Null is fine: the API accepts it. For a
-    /// <c>Json = true</c> text, an empty document (<c>"{}"</c> or <c>"[]"</c>) counts as empty too, and the raw text is
-    /// not itself checked for blankness: <paramref name="json"/> being non-null means the JSON rules already own it.
+    /// JEV003: a text argument that is an empty or whitespace string. Null is fine: the API accepts it.
     /// </summary>
     /// <param name="attribute">The attribute whose first constructor argument is the text.</param>
     /// <param name="what">What the text is, for the message: "The instruction text of 'Answer'", for one.</param>
     /// <param name="fallback">Where to report when the attribute has no source syntax, as on an enum from metadata.</param>
-    /// <param name="json">
-    /// The minifier's result for a <c>Json = true</c> text; <see langword="null"/> for plain text. A failed result is
-    /// skipped: JEV108 already reported it.
-    /// </param>
     /// <param name="diagnostics">The list to add the diagnostic to.</param>
     /// <param name="cancellationToken">Cancels the syntax lookup.</param>
     private static void CheckText(
         AttributeData attribute,
         string what,
         ISymbol fallback,
-        MinifyResult? json,
         List<DiagnosticInfo> diagnostics,
         CancellationToken cancellationToken)
     {
-        if (json is not null)
-        {
-            if (json.Succeeded && json.Json is "{}" or "[]")
-            {
-                diagnostics.Add(DiagnosticInfo.Create(
-                    DiagnosticIds.EmptyText, TextArgumentLocation(attribute, fallback, cancellationToken), what, EmptyJsonAdvice));
-            }
-
-            return;
-        }
-
         if (attribute.ConstructorArguments.Length > 0
             && attribute.ConstructorArguments[0].Value is string text
             && string.IsNullOrWhiteSpace(text))
@@ -745,42 +724,6 @@ internal static class ModelBuilder
         return argument is null ? syntax.GetLocation() : argument.GetLocation();
     }
 
-    private static bool NamedBool(AttributeData attribute, string name)
-        => attribute.NamedArguments.Any(argument => argument.Key == name && argument.Value.Value is true);
-
-    /// <summary>
-    /// The attribute's positional text as a wire fragment: minified JSON when it carries <c>Json = true</c>, else a JSON
-    /// string. JEV108 goes to <paramref name="diagnostics"/> when the JSON is invalid, and the fragment is then
-    /// <see langword="null"/>; the set is invalid, so it is never emitted.
-    /// </summary>
-    /// <returns>The fragment, and the minifier's result for a <c>Json = true</c> text, which JEV003 and JEV004 read.</returns>
-    private static (string? Fragment, MinifyResult? Json) TextOrJsonFragment(
-        AttributeData attribute,
-        string what,
-        ISymbol fallback,
-        List<DiagnosticInfo> diagnostics,
-        CancellationToken cancellationToken)
-    {
-        var text = Positional(attribute);
-        if (!NamedBool(attribute, "Json"))
-        {
-            return (TextFragment(text), null);
-        }
-
-        var result = JsonMinifier.Minify(text);
-        if (!result.Succeeded)
-        {
-            diagnostics.Add(DiagnosticInfo.Create(
-                DiagnosticIds.InvalidJson,
-                TextArgumentLocation(attribute, fallback, cancellationToken),
-                what,
-                result.Error!,
-                result.ErrorOffset.ToString(CultureInfo.InvariantCulture)));
-        }
-
-        return (result.Json, result);
-    }
-
     private static void ReportDuplicates(
         IEnumerable<string> keys,
         ISymbol location,
@@ -813,50 +756,23 @@ internal static class ModelBuilder
     private static string TextFragment(string text) => new StringBuilder().AppendJsonString(text).ToString();
 
     /// <summary>
-    /// A <c>[Criteria]</c> or <c>[Level]</c> description as its wire fragment: the plain text as a JSON string, minified
-    /// JSON for a <c>Json = true</c> description, or a criterion object when <c>Examples</c> or <c>NotFor</c> holds a
-    /// text. <see langword="null"/> entries are left out.
+    /// A <c>[Criteria]</c> or <c>[Level]</c> description as its wire fragment: the plain text as a JSON string, or a
+    /// criterion object when <c>Examples</c> or <c>NotFor</c> holds a text. <see langword="null"/> entries are left out.
     /// </summary>
-    /// <remarks>
-    /// JEV109 reports <c>Json = true</c> combined with <c>Examples</c> or <c>NotFor</c>, whether or not the JSON is
-    /// valid; JEV108 is then not also reported for the same attribute, since this returns before minifying.
-    /// </remarks>
-    /// <returns>
-    /// The fragment, and the minifier's result for a <c>Json = true</c> description, which JEV003 and JEV004 read.
-    /// <see langword="null"/> for both when JEV109 already reported the <c>Json</c> and <c>Examples</c>/<c>NotFor</c>
-    /// combination, so a JEV003 does not pile onto the same attribute.
-    /// </returns>
-    private static (string? Fragment, MinifyResult? Json) DescriptionFragment(
-        AttributeData attribute,
-        string what,
-        ISymbol fallback,
-        List<DiagnosticInfo> diagnostics,
-        CancellationToken cancellationToken)
+    private static string DescriptionFragment(AttributeData attribute)
     {
-        if (NamedBool(attribute, "Json"))
-        {
-            if (NamedStrings(attribute, "Examples").Length > 0 || NamedStrings(attribute, "NotFor").Length > 0)
-            {
-                diagnostics.Add(DiagnosticInfo.Create(
-                    DiagnosticIds.JsonWithExamples, NamedArgumentLocation(attribute, "Json", fallback, cancellationToken), what));
-                return (null, null);
-            }
-
-            return TextOrJsonFragment(attribute, what, fallback, diagnostics, cancellationToken);
-        }
-
         var examples = NamedStrings(attribute, "Examples");
         var notFor = NamedStrings(attribute, "NotFor");
         var description = Positional(attribute);
         if (examples.Length == 0 && notFor.Length == 0)
         {
-            return (TextFragment(description), null);
+            return TextFragment(description);
         }
 
         var json = new StringBuilder("{\"description\":").AppendJsonString(description);
         AppendArray(json, "examples", examples);
         AppendArray(json, "not_for", notFor);
-        return (json.Append('}').ToString(), null);
+        return json.Append('}').ToString();
 
         static void AppendArray(StringBuilder json, string name, string[] values)
         {
@@ -1002,42 +918,24 @@ internal static class ModelBuilder
         }
 
         /// <summary>
-        /// Reports each backticked identifier in a question's instructions that names no state member. For a
-        /// <c>Json = true</c> text, the identifiers come from every string value of the parsed JSON, not its property
-        /// names; a failed parse is skipped, since JEV108 already reported it.
+        /// Reports each backticked identifier in a question's instructions that names no state member.
         /// </summary>
         /// <param name="attribute">The question's attribute, whose first constructor argument is the plain-text instructions.</param>
-        /// <param name="json">The minifier's result for a <c>Json = true</c> text; <see langword="null"/> for plain text.</param>
         /// <param name="property">Where to report when the attribute has no source syntax.</param>
         /// <param name="diagnostics">The list to add findings to.</param>
         /// <param name="cancellationToken">Cancels the syntax lookup.</param>
         public void CheckReferences(
             AttributeData attribute,
-            MinifyResult? json,
             IPropertySymbol property,
             List<DiagnosticInfo> diagnostics,
             CancellationToken cancellationToken)
         {
-            IEnumerable<string> tokens;
-            if (json is not null)
-            {
-                if (!json.Succeeded)
-                {
-                    return;
-                }
-
-                tokens = json.Strings.SelectMany(BacktickedIdentifiers);
-            }
-            else if (attribute.ConstructorArguments.Length > 0 && attribute.ConstructorArguments[0].Value is string instructions)
-            {
-                tokens = BacktickedIdentifiers(instructions);
-            }
-            else
+            if (attribute.ConstructorArguments.Length == 0 || attribute.ConstructorArguments[0].Value is not string instructions)
             {
                 return;
             }
 
-            foreach (var token in tokens.Distinct(StringComparer.Ordinal))
+            foreach (var token in BacktickedIdentifiers(instructions).Distinct(StringComparer.Ordinal))
             {
                 if (!names.Contains(token))
                 {

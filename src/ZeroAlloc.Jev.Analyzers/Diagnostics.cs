@@ -4,7 +4,7 @@ using ZeroAlloc.Jev.Generator;
 namespace ZeroAlloc.Jev.Analyzers;
 
 /// <summary>
-/// The Jev API's rules (JEV001–006) and the declarations the generator cannot produce code for (JEV101–109). The
+/// The Jev API's rules (JEV001–006) and the declarations the generator cannot produce code for (JEV101–107). The
 /// shared model builder records them by <see cref="DiagnosticIds"/>; <see cref="QuestionSetAnalyzer"/> reports them.
 /// </summary>
 internal static class Diagnostics
@@ -111,22 +111,6 @@ internal static class Diagnostics
         DiagnosticIds.InvalidStateType,
         "Invalid state type",
         "State type '{0}' must be a class, struct, record or array type",
-        Category,
-        DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
-    public static readonly DiagnosticDescriptor InvalidJson = new(
-        DiagnosticIds.InvalidJson,
-        "Text marked Json is not a JSON object or array",
-        "{0} is marked Json = true but is not a JSON object or array: {1} (at offset {2})",
-        Category,
-        DiagnosticSeverity.Error,
-        isEnabledByDefault: true);
-
-    public static readonly DiagnosticDescriptor JsonWithExamples = new(
-        DiagnosticIds.JsonWithExamples,
-        "Json combined with Examples or NotFor",
-        "{0} sets Json = true together with Examples or NotFor: put them inside the JSON, or drop Json",
         Category,
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);

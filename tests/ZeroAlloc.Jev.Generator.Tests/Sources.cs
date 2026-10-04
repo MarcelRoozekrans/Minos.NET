@@ -10,7 +10,7 @@ internal static class Sources
         [JevQuestions]
         public partial record UrgencyCheck
         {
-            [Noul("Does this convey urgency?", True = "Explicitly time-sensitive", False = "No urgency expressed")]
+            [Noul("Does this convey urgency?", WhenTrue = "Explicitly time-sensitive", WhenFalse = "No urgency expressed")]
             public partial Noul IsUrgent { get; }
         }
         """;
@@ -77,7 +77,7 @@ internal static class Sources
         [JevQuestions]
         internal partial class TicketTriage
         {
-            [Noul("Does `message` ask for a \"credential\"?", False = "No credential is requested")]
+            [Noul("Does `message` ask for a \"credential\"?", WhenFalse = "No credential is requested")]
             public partial Noul RequestsCredentials { get; }
 
             [Choice("Which team should handle `message`?", Key = "route_to")]
@@ -124,33 +124,6 @@ internal static class Sources
 
             [Score("How severe is this?")]
             public partial Score<StructuredSeverity> Severity { get; }
-        }
-        """;
-
-    public const string JsonText = """
-        using ZeroAlloc.Jev;
-
-        namespace Demo;
-
-        public enum JsonDepartment
-        {
-            [Criteria("{\"description\":\"a\",\"examples\":[\"é\"]}", Json = true)]
-            Billing,
-
-            [Criteria("Bugs, outages, integrations")]
-            Technical,
-        }
-
-        [JevQuestions]
-        public partial record JsonRouting
-        {
-            [Noul(
-                "{\"question\":\"Is this urgent?\",\"hints\":[\"deadline\",\"outage\"]}",
-                Json = true)]
-            public partial Noul IsUrgent { get; }
-
-            [Choice("[\"Which team should handle this?\"]", Json = true)]
-            public partial Choice<JsonDepartment> Department { get; }
         }
         """;
 

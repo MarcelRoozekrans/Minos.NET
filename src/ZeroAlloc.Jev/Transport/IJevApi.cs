@@ -45,6 +45,10 @@ internal interface IJevApi
         CancellationToken ct);
 
     /// <summary>Whether a failure is worth another attempt: rate limiting, overload, server errors, 408, network failures and time-outs.</summary>
+    /// <remarks>
+    /// Never <see cref="JevErrorKind.Disposed"/>: <see cref="JevErrorMapper"/> reports an attempt torn down by disposing
+    /// the client as that kind, not as a time-out or network failure, so a disposed client is never retried.
+    /// </remarks>
     static bool IsTransient(JevError error)
         => error.Kind is JevErrorKind.RateLimited or JevErrorKind.Overloaded or JevErrorKind.Server
             or JevErrorKind.Network or JevErrorKind.Timeout

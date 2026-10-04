@@ -8,7 +8,7 @@ public enum DiffTeam
     [Criteria("Payments, invoicing, refunds", Examples = ["I was charged twice"], NotFor = ["How much is Pro?"])]
     Billing = 2,
 
-    [Criteria("""{"description":"Login, profile, permissions","owner":"identity"}""", Json = true)]
+    [Criteria("Login, profile, permissions")]
     AccountSecurity = 0,
 
     ServiceDesk = 1,
@@ -36,10 +36,10 @@ public enum DiffLevel
 [JevQuestions]
 public partial record DiffSet
 {
-    [Noul(EdgeCases.TrickyInstructions, True = "Explicitly time-sensitive", False = "No urgency expressed")]
+    [Noul(EdgeCases.TrickyInstructions, WhenTrue = "Explicitly time-sensitive", WhenFalse = "No urgency expressed")]
     public partial Noul IsUrgent { get; }
 
-    [Noul("""{ "question": "Is `message` a duplicate?", "policy": { "strict": true, "limit": 1.50 } }""", Json = true)]
+    [Noul("Is `message` a duplicate?")]
     public partial Noul IsDuplicate { get; }
 
     [Choice("Which team should handle `message`?", Key = "route_to")]
@@ -49,7 +49,10 @@ public partial record DiffSet
     public partial Score<DiffLevel> UrgencyLevel { get; }
 }
 
-/// <summary>The builder and the generator send byte-identical questions: escaping, snake_case keys, skipped aliases.</summary>
+/// <summary>
+/// The builder and the generator send byte-identical questions: escaping, snake_case keys, skipped aliases. Declared
+/// sets are text only, so structured JSON is checked on the builder side alone, in <see cref="JevQuestionSetBuilderTests"/>.
+/// </summary>
 public sealed class BuilderGeneratorDifferentialTests
 {
     [Fact]
@@ -67,14 +70,12 @@ public sealed class BuilderGeneratorDifferentialTests
             .Noul("is_urgent", EdgeCases.TrickyInstructions, out _, c => c
                 .WhenTrue("Explicitly time-sensitive")
                 .WhenFalse("No urgency expressed"))
-            .Noul("is_duplicate", JevContent.FromUtf8Json(
-                """{ "question": "Is `message` a duplicate?", "policy": { "strict": true, "limit": 1.50 } }"""u8), out _)
+            .Noul("is_duplicate", "Is `message` a duplicate?", out _)
             .Choice<DiffTeam>("route_to", "Which team should handle `message`?", out _, o => o
                 .Describe(DiffTeam.Billing, JevCriterion.Text("Payments, invoicing, refunds")
                     .WithExamples("I was charged twice")
                     .WithNotFor("How much is Pro?"))
-                .Describe(DiffTeam.AccountSecurity, JevCriterion.Json(JevContent.FromUtf8Json(
-                    """{"description":"Login, profile, permissions","owner":"identity"}"""u8))))
+                .Describe(DiffTeam.AccountSecurity, "Login, profile, permissions"))
             .Score<DiffLevel>("urgency_level", "How urgent is `message`?", out _, l => l
                 .Level(DiffLevel.Low, "Can wait")
                 .Level(DiffLevel.Medium, JevCriterion.Text("This week").WithExamples("Within five days"))

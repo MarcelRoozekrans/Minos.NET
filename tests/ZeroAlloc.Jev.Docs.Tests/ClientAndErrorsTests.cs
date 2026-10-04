@@ -457,6 +457,17 @@ public sealed class ClientAndErrorsTests
         Assert.Equal(JevDefaults.OpenRouterBaseAddress.ToString(), values[nameof(JevDefaults.OpenRouterBaseAddress)]);
     }
 
+    // The kinds table lists every member of the enum, with the same name.
+    [Fact]
+    public void TheKindsTable_ListsEveryJevErrorKind()
+    {
+        var rows = PageTables.Rows("client-and-errors.md", "The kinds");
+
+        Assert.Equal(
+            Enum.GetNames<JevErrorKind>().Order(StringComparer.Ordinal),
+            rows.Select(row => PageTables.Code(row[0])).Order(StringComparer.Ordinal));
+    }
+
     private static SystemOneRequest Request() => new()
     {
         State = "Help!",

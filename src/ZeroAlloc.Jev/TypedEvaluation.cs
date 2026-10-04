@@ -284,7 +284,7 @@ internal static class TypedEvaluation
         => json.StartsWith(Utf8Bom) ? json[Utf8Bom.Length..] : json;
 
     private static JevError Rejected(JsonException exception, int? statusCode)
-        => new(JevErrorKind.InvalidResponse, "The response could not be read as the question set's answers: " + exception.Message, statusCode, exception: exception);
+        => new(JevErrorKind.InvalidResponse, "The response could not be read as the question set's answers: " + exception.Message) { StatusCode = statusCode, Exception = exception };
 
-    private static JevError Invalid(string message, int? statusCode) => new(JevErrorKind.InvalidResponse, message, statusCode);
+    private static JevError Invalid(string message, int? statusCode) => new(JevErrorKind.InvalidResponse, message) { StatusCode = statusCode };
 }

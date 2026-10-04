@@ -121,6 +121,7 @@ regression cannot reach a release unnoticed.
 | `ReadScore` | Reading a `Score<T>` answer. | 0 |
 | `JevAnswersGet` | Reading answers of a built set through its handles. | 0 |
 | `PatternHelpers` | The confidence and normalization helpers of the patterns. | 0 |
+| `NoulEquals` | Comparing two `Noul` answers, directly and through `EqualityComparer<Noul>.Default`. | 0 |
 | `GeneratedParse` | Parsing a typed set of three answers. | 192 |
 | `EvaluateRoundTrip` | A raw `EvaluateAsync` call. | 5120 |
 | `TypedEvaluateRoundTrip` | A typed `EvaluateAsync<T>` call. | 4224 |

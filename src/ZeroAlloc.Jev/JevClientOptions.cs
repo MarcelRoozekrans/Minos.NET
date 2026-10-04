@@ -3,6 +3,10 @@ using ZeroAlloc.Jev.Transport;
 namespace ZeroAlloc.Jev;
 
 /// <summary>Configures a <see cref="JevClient"/>. Every property is optional.</summary>
+/// <remarks>
+/// A client reads these options once, when it is constructed. Changing this instance afterwards has no effect on a
+/// client already built.
+/// </remarks>
 public sealed class JevClientOptions
 {
     /// <summary>Gets or sets where requests go. Defaults to <see cref="JevProvider.TypeSafe"/>.</summary>
@@ -23,9 +27,9 @@ public sealed class JevClientOptions
     public Uri? BaseAddress { get; set; }
 
     /// <summary>
-    /// Gets or sets the model typed evaluation calls ask, including <c>EvaluateUtf8Async</c>, as a versioned id such as
-    /// <c>jev-1.13.0</c> or an alias. Defaults to <see cref="JevDefaults.Model"/>. Surrounding whitespace is trimmed;
-    /// a blank value is rejected.
+    /// Gets or sets the model that typed evaluation calls, including <c>EvaluateUtf8Async</c>, and built question sets
+    /// ask, as a versioned id such as <c>jev-1.13.0</c> or an alias. Defaults to <see cref="JevDefaults.Model"/>.
+    /// Surrounding whitespace is trimmed; a blank value is rejected.
     /// A <see cref="SystemOneRequest"/> names its own model, so this option does not apply to it.
     /// </summary>
     public string Model { get; set; } = JevDefaults.Model;

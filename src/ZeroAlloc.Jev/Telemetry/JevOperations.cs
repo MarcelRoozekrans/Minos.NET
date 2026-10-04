@@ -94,5 +94,5 @@ internal sealed class JevOperations(IJevApi api, string authorization) : IJevOpe
     // statusCode 200 is a placeholder: ZeroAlloc.Rest's generated client does not expose the real status of a
     // successful response that this client itself then rejects as unreadable, so 200 is kept only because that is
     // the status that let the response through in the first place.
-    private static JevError Unreadable(string message) => new(JevErrorKind.InvalidResponse, message, statusCode: 200);
+    private static JevError Unreadable(string message) => new(JevErrorKind.InvalidResponse, message) { StatusCode = 200 };
 }

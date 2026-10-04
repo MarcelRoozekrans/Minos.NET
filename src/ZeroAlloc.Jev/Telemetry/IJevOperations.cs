@@ -20,7 +20,7 @@ namespace ZeroAlloc.Jev.Telemetry;
 internal interface IJevOperations
 {
     /// <summary>Evaluates an untyped request.</summary>
-    [Trace("evaluate {request.Model}", Kind = ActivityKind.Client, ErrorWhen = "IsFailure", TagsAtStart = true)]
+    [Trace("evaluate {request.Model}", Kind = ActivityKind.Client, ErrorWhen = "IsFailure", TagsAtStart = true, ExceptionDescription = false)]
     [TraceTagConstant(OperationName, EvaluateOperation)]
     [TraceTagConstant(JevOperation, JevLog.Evaluate)]
     [TraceTagFromResult(ResponseModel, "Value.Model", When = "IsSuccess")]
@@ -59,7 +59,7 @@ internal interface IJevOperations
         CancellationToken ct);
 
     /// <summary>Evaluates a generated set from its pre-written request; owns and disposes <paramref name="body"/>.</summary>
-    [Trace("evaluate {model}", Kind = ActivityKind.Client, ErrorWhen = "IsFailure", TagsAtStart = true)]
+    [Trace("evaluate {model}", Kind = ActivityKind.Client, ErrorWhen = "IsFailure", TagsAtStart = true, ExceptionDescription = false)]
     [TraceTagConstant(OperationName, EvaluateOperation)]
     [TraceTagConstant(JevOperation, JevLog.EvaluateTyped)]
     [TraceTagFromResult(ResponseModel, "Value.ResponseModel", When = "IsSuccess")]
@@ -99,7 +99,7 @@ internal interface IJevOperations
         where T : IJevQuestionSet<T>;
 
     /// <summary>Evaluates a built set from its pre-written request; owns and disposes <paramref name="body"/>.</summary>
-    [Trace("evaluate {model}", Kind = ActivityKind.Client, ErrorWhen = "IsFailure", TagsAtStart = true)]
+    [Trace("evaluate {model}", Kind = ActivityKind.Client, ErrorWhen = "IsFailure", TagsAtStart = true, ExceptionDescription = false)]
     [TraceTagConstant(OperationName, EvaluateOperation)]
     [TraceTagConstant(JevOperation, JevLog.EvaluateBuiltSet)]
     [TraceTagFromResult(ResponseModel, "Value.ResponseModel", When = "IsSuccess")]
@@ -138,7 +138,7 @@ internal interface IJevOperations
         CancellationToken ct);
 
     /// <summary>Lists the models; never called for OpenRouter, whose failure the client returns before any call.</summary>
-    [Trace(ListModelsOperation, Kind = ActivityKind.Client, ErrorWhen = "IsFailure", TagsAtStart = true)]
+    [Trace(ListModelsOperation, Kind = ActivityKind.Client, ErrorWhen = "IsFailure", TagsAtStart = true, ExceptionDescription = false)]
     [TraceTagConstant(OperationName, ListModelsOperation)]
     [TraceTagConstant(JevOperation, JevLog.ListModels)]
     [TraceTagFromResult(ErrorType, "Error.ErrorType", When = "IsFailure")]

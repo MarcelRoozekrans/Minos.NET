@@ -36,7 +36,7 @@ public sealed partial class NativeAotTests
         var checks = AllocationChecks();
         var rows = PageTables.Rows(Page, "The allocation budgets");
 
-        Assert.Equal(23, rows.Length);
+        Assert.Equal(24, rows.Length);
         Assert.Equal(rows.Length, new HashSet<string>(rows.Select(row => PageTables.Code(row[0])), StringComparer.Ordinal).Count);
         Assert.All(
             rows,
@@ -67,7 +67,7 @@ public sealed partial class NativeAotTests
             PageTables.Rows(Page, "The allocation budgets").Select(row => PageTables.Code(row[0])),
             StringComparer.Ordinal);
 
-        Assert.Equal(23, called.Count);
+        Assert.Equal(24, called.Count);
         Assert.Equal(called, listed);
     }
 
@@ -76,7 +76,7 @@ public sealed partial class NativeAotTests
     {
         var checks = AllocationChecks();
 
-        Assert.All(["ReadNoul", "ReadChoice", "ReadScore", "JevAnswersGet", "PatternHelpers"], gate => Assert.Contains(0, Budgets(checks, gate)));
+        Assert.All(["ReadNoul", "ReadChoice", "ReadScore", "JevAnswersGet", "PatternHelpers", "NoulEquals"], gate => Assert.Contains(0, Budgets(checks, gate)));
     }
 
     [Fact]

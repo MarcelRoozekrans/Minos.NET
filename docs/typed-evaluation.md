@@ -97,8 +97,8 @@ public partial record TicketReview
 {
     [Noul(
         "Is the `body` urgent, for a customer on the `plan` they have?",
-        True = "The customer needs help right away",
-        False = "The customer can wait")]
+        WhenTrue = "The customer needs help right away",
+        WhenFalse = "The customer can wait")]
     public partial Noul IsUrgent { get; }
 
     [Choice("Which desk should handle this?")]
@@ -120,8 +120,8 @@ A few things in that declaration are worth reading closely.
 - **`Examples` and `NotFor` sharpen a description.** `Examples` lists texts that belong to the option, and `NotFor`
   lists texts that only look as if they do. With either set and non-empty, the generator sends a criterion object in
   place of a plain string for that option or level. Empty arrays and `null` entries are left out.
-- **`True` and `False` describe a Noul's answers.** They say what a yes and a no mean for that question. Both are
-  optional.
+- **`WhenTrue` and `WhenFalse` describe a Noul's answers.** They say what a yes and a no mean for that question. Both
+  are optional.
 - **`State = typeof(SupportTicket)` links the set to its state type.** The generated type then implements
   `IJevQuestionSet<TicketReview, SupportTicket>`. The type must be a class, struct, record or array type.
 
@@ -178,36 +178,10 @@ The check only runs for a set with a `State` type.
 
 ### Structured instructions
 
-A question's instructions can be a JSON object or array instead of a string. Set `Json = true`, and the generator
-checks the text, minifies it, and sends it as structured JSON. This suits a question that needs a policy or a few
-labelled facts next to the question itself.
-
-<!-- snippet: TypedEvaluation_JsonInstructions -->
-```cs
-[JevQuestions(State = typeof(SupportTicket))]
-public partial record RefundCheck
-{
-    // Json = true sends the text as a JSON object instead of a string. The generator checks and minifies it at
-    // compile time, and the backticked name is still checked against the state type.
-    [Noul(
-        """
-        {
-          "policy": "Refunds are allowed within 30 days of purchase.",
-          "question": "Does the `body` ask for a refund that the policy allows?"
-        }
-        """,
-        Json = true)]
-    public partial Noul IsAllowed { get; }
-}
-```
-<!-- endSnippet -->
-
-A `[Criteria]` or `[Level]` description can be marked `Json = true` too. `Json = true` cannot be combined with
-`Examples` or `NotFor` on the same attribute (JEV109): put them inside the JSON instead. Text that is not a JSON object
-or array is JEV108.
-
-The instructions are fixed at compile time, like all generated question text. So a candidate or a record that varies
-per call belongs in the state, and the instructions refer to it by a backticked name, as the example does with `body`.
+A declared question's instructions, criteria and levels are always text. For instructions or a description that is a
+JSON object or array, such as a policy or a few labelled facts next to the question, build the set at run time: pass
+a [`JevContent`](#jevcontent) as the instructions, and describe an option with `JevCriterion.Json`.
+[Question sets at run time](question-sets-at-run-time.md#describing-options) shows both.
 
 ## Evaluating
 
@@ -217,12 +191,12 @@ ways. Check `IsFailure` before reading `Value`.
 <!-- snippet: TypedEvaluation_Evaluate -->
 ```cs
 public static async Task<(bool Urgent, Desk Desk, Impact Impact)?> ReviewAsync(
-    IJevClient jev, SupportTicket ticket, CancellationToken ct)
+    IJevClient jev, SupportTicket ticket, CancellationToken cancellationToken)
 {
     // The state type and its JSON metadata travel together. The call serializes the ticket and sends it
     // with the questions.
     var result = await jev.EvaluateAsync<TicketReview, SupportTicket>(
-        ticket, SupportTicketJson.Default.SupportTicket, ct);
+        ticket, SupportTicketJson.Default.SupportTicket, cancellationToken);
     if (result.IsFailure)
     {
         return null;
@@ -272,17 +246,21 @@ public partial record UrgencyCheck
 ```cs
 // A question set without a State type takes its state as text, as a JsonElement or as UTF-8 JSON.
 public static async Task<int> EvaluateEachFormAsync(
-    IJevClient jev, string text, JsonElement element, ReadOnlyMemory<byte> utf8Json, CancellationToken ct)
+    IJevClient jev,
+    string text,
+    JsonElement element,
+    ReadOnlyMemory<byte> utf8Json,
+    CancellationToken cancellationToken)
 {
     var succeeded = 0;
 
-    var fromText = await jev.EvaluateAsync<UrgencyCheck>(text, ct);
+    var fromText = await jev.EvaluateAsync<UrgencyCheck>(text, cancellationToken);
     succeeded += fromText.IsSuccess ? 1 : 0;
 
-    var fromElement = await jev.EvaluateAsync<UrgencyCheck>(element, ct);
+    var fromElement = await jev.EvaluateAsync<UrgencyCheck>(element, cancellationToken);
     succeeded += fromElement.IsSuccess ? 1 : 0;
 
-    var fromUtf8 = await jev.EvaluateUtf8Async<UrgencyCheck>(utf8Json, ct);
+    var fromUtf8 = await jev.EvaluateUtf8Async<UrgencyCheck>(utf8Json, cancellationToken);
     succeeded += fromUtf8.IsSuccess ? 1 : 0;
 
     return succeeded;

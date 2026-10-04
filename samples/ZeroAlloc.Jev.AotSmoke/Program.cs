@@ -44,6 +44,7 @@ internal static class Program
         await TelemetryChecks.RetriedEvaluationIsOneSpanOverTwoAttempts().ConfigureAwait(false);
         await TelemetryChecks.TypedEvaluationRecordsItsMetrics().ConfigureAwait(false);
         await TelemetryChecks.FailedEvaluationIsAnError().ConfigureAwait(false);
+        await TelemetryChecks.CancelledEvaluationSetsErrorTypeWithoutItsMessage().ConfigureAwait(false);
 
         AllocationChecks.GeneratedParse();
         AllocationChecks.ReadNoul();
@@ -62,6 +63,7 @@ internal static class Program
         AllocationChecks.EvaluateBuiltSetRoundTrip();
         AllocationChecks.JevAnswersGet();
         AllocationChecks.PatternHelpers();
+        AllocationChecks.NoulEquals();
         AllocationChecks.EvaluateRoundTripThroughDependencyInjection();
         AllocationChecks.EvaluateRoundTripThroughBoundConfiguration();
         await AllocationChecks.TelemetryOffAsynchronousTypedEvaluation().ConfigureAwait(false);
@@ -161,24 +163,25 @@ internal static class Program
 
     private static void StructuredQuestionSetRoundTrips()
     {
-        using var questions = JsonDocument.Parse(SmokeStructured.QuestionsUtf8.ToArray());
-        var root = questions.RootElement;
-
-        Check(
-            root.GetProperty("requests_credentials").GetProperty("instructions").GetProperty("policy").GetProperty("strict").GetBoolean(),
-            "Json = true instructions are sent as a JSON object");
+        using var generated = JsonDocument.Parse(SmokeStructured.QuestionsUtf8.ToArray());
         Check(
             string.Equals(
-                root.GetProperty("team").GetProperty("criteria").GetProperty("billing").GetProperty("not_for")[0].GetString(),
+                generated.RootElement.GetProperty("team").GetProperty("criteria").GetProperty("billing").GetProperty("not_for")[0].GetString(),
                 "How much is Pro?",
                 StringComparison.Ordinal),
             "Examples and NotFor are sent as a criterion object");
+
+        using var built = JsonDocument.Parse(SmokeBuiltSet.Structured().QuestionsUtf8.ToArray());
+        var root = built.RootElement;
+        Check(
+            root.GetProperty("requests_credentials").GetProperty("instructions").GetProperty("policy").GetProperty("strict").GetBoolean(),
+            "JevContent instructions are sent as a JSON object");
         Check(
             string.Equals(
                 root.GetProperty("team").GetProperty("criteria").GetProperty("account").GetProperty("owner").GetString(),
                 "identity",
                 StringComparison.Ordinal),
-            "a Json = true description is sent as JSON");
+            "a JevCriterion.Json description is sent as JSON");
     }
 
     private static async Task TypedEvaluateAsyncParsesAnswers()
@@ -265,7 +268,7 @@ internal static class Program
                 && result.Value.Get(urgency).Value == Urgency.High,
             "a built question set evaluates over the raw, pooled-buffer path");
 
-        var invalid = JevQuestionSet.CreateBuilder().Choice("empty", "Which one?", out _).Build();
+        var invalid = JevQuestionSet.CreateBuilder().Choice("empty", "Which one?", out _, options => { }).Build();
         Check(
             invalid.IsFailure
                 && invalid.Error.Kind == JevErrorKind.InvalidQuestions

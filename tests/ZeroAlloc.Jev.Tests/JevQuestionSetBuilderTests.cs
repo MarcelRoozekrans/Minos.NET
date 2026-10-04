@@ -1,5 +1,8 @@
+using System.Reflection;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
+using ZeroAlloc.Jev.Serialization;
 
 namespace ZeroAlloc.Jev.Tests;
 
@@ -58,6 +61,42 @@ public sealed class JevQuestionSetBuilderTests
                 """u8), out _));
 
     [Fact]
+    public void JsonAtDepthLimit_DeserializesThroughWireModel()
+    {
+        var deep = JevContent.FromUtf8Json(Encoding.UTF8.GetBytes(DeepJson.Text));
+        var built = Built(JevQuestionSet.CreateBuilder()
+            .Noul("is_deep", deep, out _)
+            .Choice<DeepOption>("depth", "How deep?", out _, o => o
+                .Describe(DeepOption.Shallow, JevCriterion.Json(deep))
+                .Describe(DeepOption.Deep, JevCriterion.Json(deep))));
+        var json = "{\"state\":\"x\",\"questions\":" + Encoding.UTF8.GetString(built.QuestionsUtf8) + "}";
+        Assert.Equal(64, MaxNesting(json));
+
+        var request = JsonSerializer.Deserialize(json, JevJsonContext.Default.SystemOneRequest)!;
+
+        Assert.True(request.Questions["is_deep"].Instructions.TryGetJson(out var instructions));
+        Assert.Equal(JsonValueKind.Array, instructions.ValueKind);
+        var depth = Assert.IsType<ChoiceQuestion>(request.Questions["depth"]);
+        Assert.True(depth.Criteria["deep"]!.Value.TryGetJson(out var criterion));
+        Assert.Equal(JsonValueKind.Array, criterion.ValueKind);
+
+        static int MaxNesting(string text)
+        {
+            var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(text), new JsonReaderOptions { MaxDepth = 1000 });
+            var max = 0;
+            while (reader.Read())
+            {
+                if (reader.TokenType is JsonTokenType.StartObject or JsonTokenType.StartArray)
+                {
+                    max = Math.Max(max, reader.CurrentDepth + 1);
+                }
+            }
+
+            return max;
+        }
+    }
+
+    [Fact]
     public void KeyedChoiceAndScore_MatchFixture()
         => AssertQuestions("request-keyed.json", JevQuestionSet.CreateBuilder()
             .Choice("product", "Which product is `message` about?", out _, o => o
@@ -87,7 +126,7 @@ public sealed class JevQuestionSetBuilderTests
         var built = JevQuestionSet.CreateBuilder()
             .Score<Frustration>("missing", "How?", out _, l => l.Level(Frustration.Calm, "Calm").Level(Frustration.VeryAngry, "Very angry"))
             .Score<Priority>("aliased", "How?", out _, l => l.Level(Priority.Low, "Low").Level(Priority.High, "High").Level(Priority.Legacy, "Legacy"))
-            .Score<Frustration>("none", "How?", out _)
+            .Score<Frustration>("none", "How?", out _, _ => { })
             .Build();
 
         Assert.True(built.IsFailure);
@@ -104,7 +143,7 @@ public sealed class JevQuestionSetBuilderTests
     public void Build_WithBrokenRules_FailsWithInvalidQuestions()
     {
         var built = JevQuestionSet.CreateBuilder()
-            .Choice("team", "Which team?", out _)
+            .Choice("team", "Which team?", out _, _ => { })
             .Noul(string.Empty, "Anything?", out _)
             .Build();
 
@@ -129,7 +168,21 @@ public sealed class JevQuestionSetBuilderTests
     }
 
     [Fact]
-    public void NullKey_ThrowsOnAllTenQuestionMethods()
+    public void OnlyNoulAndEnumChoice_HaveAnOverloadWithoutAConfigurator()
+    {
+        // A keyed Choice, a keyed Score and an enum Score with nothing configured always fail Build, so none has an overload
+        // that lacks the configurator: the mistake is a compile error instead of a run-time JEV001, JEV002 or JEV104.
+        var withoutConfigurator = typeof(JevQuestionSetBuilder)
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .Where(method => method.GetParameters().Length == 3)
+            .Select(method => method.Name + (method.IsGenericMethodDefinition ? "<T>" : string.Empty))
+            .Order(StringComparer.Ordinal);
+
+        Assert.Equal(["Choice<T>", "Noul"], withoutConfigurator);
+    }
+
+    [Fact]
+    public void NullKey_ThrowsOnAllSevenQuestionMethods()
     {
         var builder = JevQuestionSet.CreateBuilder();
         Action[] calls =
@@ -138,11 +191,8 @@ public sealed class JevQuestionSetBuilderTests
             () => builder.Noul(null!, "x", out _, _ => { }),
             () => builder.Choice<Department>(null!, "x", out _),
             () => builder.Choice<Department>(null!, "x", out _, _ => { }),
-            () => builder.Choice(null!, "x", out _),
             () => builder.Choice(null!, "x", out _, _ => { }),
-            () => builder.Score<Frustration>(null!, "x", out _),
             () => builder.Score<Frustration>(null!, "x", out _, _ => { }),
-            () => builder.Score(null!, "x", out _),
             () => builder.Score(null!, "x", out _, _ => { }),
         ];
 
@@ -254,7 +304,7 @@ public sealed class JevQuestionSetBuilderTests
     public void WarningsAndFailures_AreNotWritableArrays()
     {
         var warned = JevQuestionSet.CreateBuilder().Noul("q", "   ", out _).Build().Value;
-        var failed = JevQuestionSet.CreateBuilder().Choice("team", "Which team?", out _).Build().Error;
+        var failed = JevQuestionSet.CreateBuilder().Choice("team", "Which team?", out _, _ => { }).Build().Error;
 
         Assert.NotEmpty(warned.Warnings);
         Assert.IsNotType<JevQuestionFailure[]>(warned.Warnings);

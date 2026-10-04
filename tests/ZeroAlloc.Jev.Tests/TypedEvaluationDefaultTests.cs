@@ -189,7 +189,7 @@ public sealed class TypedEvaluationDefaultTests
     [Fact]
     public async Task FailedResponse_ReturnsTheSameError()
     {
-        var error = new JevError(JevErrorKind.RateLimited, "Slow down.", statusCode: 429);
+        var error = new JevError(JevErrorKind.RateLimited, "Slow down.") { StatusCode = 429 };
         IJevClient client = new FakeClient(Result<SystemOneResponse, JevError>.Failure(error));
 
         var result = await client.EvaluateAsync<UrgencyCheck>("text");
@@ -268,14 +268,14 @@ public sealed class TypedEvaluationDefaultTests
                 Usage = new JevUsage { InputTokens = 1, OutputTokens = 1 },
             }));
 
-        public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken ct)
+        public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken cancellationToken)
         {
             Requests.Add(request);
-            LastToken = ct;
+            LastToken = cancellationToken;
             return ValueTask.FromResult(result);
         }
 
-        public ValueTask<Result<ModelList, JevError>> ListModelsAsync(CancellationToken ct = default)
+        public ValueTask<Result<ModelList, JevError>> ListModelsAsync(CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
     }
 }

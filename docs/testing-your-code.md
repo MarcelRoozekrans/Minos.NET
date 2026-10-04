@@ -52,9 +52,9 @@ public enum TriageRoute
 // The class under test. It asks for an IJevClient, so a test can hand it any implementation.
 public sealed class TicketTriager(IJevClient jev)
 {
-    public async Task<TriageRoute> RouteAsync(string ticketText, CancellationToken ct)
+    public async Task<TriageRoute> RouteAsync(string ticketText, CancellationToken cancellationToken)
     {
-        var result = await jev.EvaluateAsync<TriageQuestions>(ticketText, ct);
+        var result = await jev.EvaluateAsync<TriageQuestions>(ticketText, cancellationToken);
         if (result.IsFailure)
         {
             // Jev could not answer, so a person looks at the ticket.
@@ -140,13 +140,21 @@ public sealed class FakeJev(Result<SystemOneResponse, JevError> reply) : IJevCli
     public static FakeJev Failing(JevErrorKind kind)
         => new(Result<SystemOneResponse, JevError>.Failure(new JevError(kind, "The fake failed on purpose.")));
 
-    public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken ct)
+    // A busy service: the kind and message are the constructor's, the rest are init properties.
+    public static FakeJev Overloaded(TimeSpan retryAfter)
+        => new(Result<SystemOneResponse, JevError>.Failure(new JevError(JevErrorKind.Overloaded, "The fake is busy on purpose.")
+        {
+            StatusCode = 503,
+            RetryAfter = retryAfter,
+        }));
+
+    public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken cancellationToken)
     {
         _requests.Add(request);
         return ValueTask.FromResult(reply);
     }
 
-    public ValueTask<Result<ModelList, JevError>> ListModelsAsync(CancellationToken ct = default)
+    public ValueTask<Result<ModelList, JevError>> ListModelsAsync(CancellationToken cancellationToken = default)
         => throw new NotSupportedException("This fake does not list models.");
 }
 ```
@@ -227,7 +235,9 @@ such thresholds, see [confidence routing](patterns/confidence-routing.md).
 
 Add a row for each failure you care about as well. The fake's `Failing` method returns an error of any
 [`JevErrorKind`](client-and-errors.md#the-kinds), which is how the test above shows that a network error ends in a
-review.
+review. `Overloaded` shows how to give an error more detail: the constructor takes the kind and the message, and the
+example sets the `StatusCode` and `RetryAfter` init properties. `Detail` and `Exception` are set the same way when
+the failure has them.
 
 ## Way two: a real `JevClient` over a canned HTTP reply
 

@@ -19,7 +19,8 @@ namespace ZeroAlloc.Jev;
 /// <see cref="ILoggerFactory"/> to log each operation, each retried attempt and each unexpected exception. What the
 /// library writes never contains the state, questions, answers, API key, a header value or an error response body; the
 /// unexpected-exception event carries the exception as thrown, which can include one from your own handler.
-/// Spans and metrics come from the ZeroAlloc.Jev ActivitySource and Meter; see the README's Telemetry section.
+/// Spans and metrics come from the ZeroAlloc.Jev ActivitySource and Meter; see the
+/// <see href="https://jev.zeroalloc.net/observability">observability guide</see>.
 /// </remarks>
 public sealed class JevClient : IJevClient, IDisposable
 {
@@ -33,7 +34,9 @@ public sealed class JevClient : IJevClient, IDisposable
     private readonly ArrayPool<byte> _pool;
     private readonly JevProvider _provider;
     private readonly ILogger? _logger;
-    private bool _disposed;
+    // Volatile: Dispose writes it before it disposes the owned HttpClient, and the error mapper and the disposal guard
+    // read it on the threads that complete the calls in flight.
+    private volatile bool _disposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JevClient"/> class that creates and owns its
@@ -186,17 +189,23 @@ public sealed class JevClient : IJevClient, IDisposable
         _model = settings.Model;
         _pool = pool;
         _logger = logger;
+        // A disposed client never retries. Only an owned HttpClient is disposed with the client, so only an owned one can
+        // tear a request down: the mapper reports such an attempt as Disposed, which is never retried. A borrowed
+        // HttpClient's attempt in flight keeps its own result, so its mapper never reads the flag.
+        Func<bool> disposed = () => _disposed;
         var transport = new JevApiClient(
             httpClient,
             new SystemTextJsonSerializer(JevJsonContext.Default),
             new JevRawSerializer(pool),
-            new JevErrorMapper(time));
+            new JevErrorMapper(time, _ownedHttpClient is null ? null : disposed));
         var retry = RetryPolicyFor(settings);
 
-        // The retry proxy, then the logging decorator, then the transport: the decorator sees every attempt with its retry
-        // number and shares the retry proxy's policy. Without a logger the retry proxy wraps the transport directly, as before.
+        // The retry proxy, then the disposal guard, then the logging decorator when there is a logger, then the transport.
+        // The guard answers any attempt that would start after Dispose, owned or borrowed, with Disposed instead of
+        // sending it. The logging decorator sees every attempt sent with its retry number and shares the proxy's policy.
         IJevApi attempts = logger is null ? transport : new LoggingJevApi(transport, logger, retry);
-        var api = new IJevApiResilienceProxy(attempts, new JevApiResiliencePolicies { Retry = retry });
+        var api = new IJevApiResilienceProxy(
+            new DisposalGuardJevApi(attempts, disposed), new JevApiResiliencePolicies { Retry = retry });
 
         // Always wired: with nothing listening, the generated proxy returns each operation's own task.
         _operations = new JevOperationsInstrumented(new JevOperations(api, "Bearer " + settings.ApiKey));
@@ -233,18 +242,18 @@ public sealed class JevClient : IJevClient, IDisposable
         => EvaluateAsync(request, CancellationToken.None);
 
     /// <inheritdoc />
-    public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken ct)
+    public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         ObjectDisposedException.ThrowIf(_disposed, this);
         var started = JevLog.StartTiming(_logger);
         return WithLogging(
-            _operations.EvaluateAsync(request, _providerName, _endpoint, ct),
+            _operations.EvaluateAsync(request, _providerName, _endpoint, cancellationToken),
             JevLog.Evaluate,
             request.Model,
             _logger is null ? 0 : request.Questions is { } questions ? questions.Count : 0,
             started,
-            ct);
+            cancellationToken);
     }
 
     /// <inheritdoc />
@@ -260,13 +269,13 @@ public sealed class JevClient : IJevClient, IDisposable
     /// <see cref="SystemOneRequest"/> or <see cref="SystemOneResponse"/>. Retries and errors work as for
     /// <see cref="EvaluateAsync(SystemOneRequest, CancellationToken)"/>.
     /// </remarks>
-    public ValueTask<Result<T, JevError>> EvaluateAsync<T>(string state, CancellationToken ct)
+    public ValueTask<Result<T, JevError>> EvaluateAsync<T>(string state, CancellationToken cancellationToken)
         where T : IJevQuestionSet<T>
     {
         ArgumentNullException.ThrowIfNull(state);
         ObjectDisposedException.ThrowIf(_disposed, this);
         var started = JevLog.StartTiming(_logger);
-        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.Write(T.QuestionsUtf8, state, _model, _pool), ct);
+        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.Write(T.QuestionsUtf8, state, _model, _pool), cancellationToken);
     }
 
     /// <inheritdoc />
@@ -282,13 +291,13 @@ public sealed class JevClient : IJevClient, IDisposable
     /// <see cref="SystemOneRequest"/> or <see cref="SystemOneResponse"/>. Retries and errors work as for
     /// <see cref="EvaluateAsync(SystemOneRequest, CancellationToken)"/>.
     /// </remarks>
-    public ValueTask<Result<T, JevError>> EvaluateAsync<T>(JsonElement state, CancellationToken ct)
+    public ValueTask<Result<T, JevError>> EvaluateAsync<T>(JsonElement state, CancellationToken cancellationToken)
         where T : IJevQuestionSet<T>
     {
         TypedEvaluation.EnsureStateKind(state.ValueKind, nameof(state));
         ObjectDisposedException.ThrowIf(_disposed, this);
         var started = JevLog.StartTiming(_logger);
-        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.Write(T.QuestionsUtf8, state, _model, _pool), ct);
+        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.Write(T.QuestionsUtf8, state, _model, _pool), cancellationToken);
     }
 
     /// <inheritdoc />
@@ -298,13 +307,13 @@ public sealed class JevClient : IJevClient, IDisposable
     /// <see cref="SystemOneRequest"/> or <see cref="SystemOneResponse"/>. Retries and errors work as for
     /// <see cref="EvaluateAsync(SystemOneRequest, CancellationToken)"/>.
     /// </remarks>
-    public ValueTask<Result<T, JevError>> EvaluateUtf8Async<T>(ReadOnlyMemory<byte> utf8JsonState, CancellationToken ct = default)
+    public ValueTask<Result<T, JevError>> EvaluateUtf8Async<T>(ReadOnlyMemory<byte> utf8JsonState, CancellationToken cancellationToken = default)
         where T : IJevQuestionSet<T>
     {
         TypedEvaluation.EnsureStateJson(utf8JsonState.Span, nameof(utf8JsonState));
         ObjectDisposedException.ThrowIf(_disposed, this);
         var started = JevLog.StartTiming(_logger);
-        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.WriteUtf8(T.QuestionsUtf8, utf8JsonState.Span, _model, _pool), ct);
+        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.WriteUtf8(T.QuestionsUtf8, utf8JsonState.Span, _model, _pool), cancellationToken);
     }
 
     /// <inheritdoc />
@@ -322,7 +331,7 @@ public sealed class JevClient : IJevClient, IDisposable
     /// <see cref="SystemOneRequest"/> or <see cref="SystemOneResponse"/>. Retries and errors work as for
     /// <see cref="EvaluateAsync(SystemOneRequest, CancellationToken)"/>.
     /// </remarks>
-    public ValueTask<Result<T, JevError>> EvaluateAsync<T, TState>(TState state, JsonTypeInfo<TState> stateTypeInfo, CancellationToken ct)
+    public ValueTask<Result<T, JevError>> EvaluateAsync<T, TState>(TState state, JsonTypeInfo<TState> stateTypeInfo, CancellationToken cancellationToken)
         where T : IJevQuestionSet<T, TState>
     {
         if (state is null)
@@ -333,7 +342,7 @@ public sealed class JevClient : IJevClient, IDisposable
         ArgumentNullException.ThrowIfNull(stateTypeInfo);
         ObjectDisposedException.ThrowIf(_disposed, this);
         var started = JevLog.StartTiming(_logger);
-        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.Write(T.QuestionsUtf8, state, stateTypeInfo, _model, _pool), ct);
+        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.Write(T.QuestionsUtf8, state, stateTypeInfo, _model, _pool), cancellationToken);
     }
 
     /// <inheritdoc />
@@ -348,7 +357,7 @@ public sealed class JevClient : IJevClient, IDisposable
     /// without building a <see cref="SystemOneRequest"/> or <see cref="SystemOneResponse"/>. Retries and errors work as
     /// for <see cref="EvaluateAsync(SystemOneRequest, CancellationToken)"/>.
     /// </remarks>
-    public ValueTask<Result<JevAnswers, JevError>> EvaluateAsync(JevQuestionSet questionSet, JevContent state, CancellationToken ct)
+    public ValueTask<Result<JevAnswers, JevError>> EvaluateAsync(JevQuestionSet questionSet, JevContent state, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(questionSet);
         JevContent.EnsureInitialized(state, nameof(state));
@@ -356,16 +365,16 @@ public sealed class JevClient : IJevClient, IDisposable
         var started = JevLog.StartTiming(_logger);
         var body = TypedRequestWriter.Write(questionSet.QuestionsUtf8, state, _model, _pool);
         return WithLogging(
-            Evaluated.Unwrap(_operations.EvaluateBuiltSetAsync(body, questionSet, _model, _providerName, _endpoint, ct)),
+            Evaluated.Unwrap(_operations.EvaluateBuiltSetAsync(body, questionSet, _model, _providerName, _endpoint, cancellationToken)),
             JevLog.EvaluateBuiltSet,
             _model,
             questionSet.Plan.Length,
             started,
-            ct);
+            cancellationToken);
     }
 
     /// <inheritdoc />
-    public ValueTask<Result<ModelList, JevError>> ListModelsAsync(CancellationToken ct = default)
+    public ValueTask<Result<ModelList, JevError>> ListModelsAsync(CancellationToken cancellationToken = default)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var started = JevLog.StartTiming(_logger);
@@ -378,13 +387,28 @@ public sealed class JevClient : IJevClient, IDisposable
                     JevErrorKind.Unsupported,
                     "Model listing is only available on TypeSafe's API; OpenRouter has its own Models API."))),
                 started,
-                ct);
+                cancellationToken);
         }
 
-        return WithModelLogging(_operations.ListModelsAsync(_providerName, _endpoint, ct), started, ct);
+        return WithModelLogging(_operations.ListModelsAsync(_providerName, _endpoint, cancellationToken), started, cancellationToken);
     }
 
-    /// <inheritdoc />
+    /// <summary>Disposes the <see cref="HttpClient"/> this client created; a borrowed one is left alone.</summary>
+    /// <remarks>
+    /// <para>
+    /// A call started after <see cref="Dispose"/> throws <see cref="ObjectDisposedException"/>. A call already in flight
+    /// over an <see cref="HttpClient"/> this client created is torn down with it, or is never sent when the disposal
+    /// lands just before the send; either way it returns a <see cref="JevErrorKind.Disposed"/> failure. A real time-out
+    /// that was mapped before <see cref="Dispose"/> set the flag stays <see cref="JevErrorKind.Timeout"/> when no retry
+    /// is left.
+    /// </para>
+    /// <para>
+    /// A disposed client never retries. A retry that would start after <see cref="Dispose"/> is not sent, and the call
+    /// returns <see cref="JevErrorKind.Disposed"/>, whether the client created its <see cref="HttpClient"/> or borrowed
+    /// it. A borrowed <see cref="HttpClient"/> is not disposed, so the attempt already in flight over it is not torn down
+    /// and keeps its own result. Calling <see cref="Dispose"/> more than once does nothing.
+    /// </para>
+    /// </remarks>
     public void Dispose()
     {
         if (_disposed)
@@ -392,6 +416,8 @@ public sealed class JevClient : IJevClient, IDisposable
             return;
         }
 
+        // Set first: disposing the HttpClient cancels the requests in flight, or makes a send that has not started throw
+        // ObjectDisposedException, and the mapper and the disposal guard must see the flag when either happens.
         _disposed = true;
         _ownedHttpClient?.Dispose();
     }

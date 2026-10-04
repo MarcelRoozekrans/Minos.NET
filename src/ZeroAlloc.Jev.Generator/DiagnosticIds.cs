@@ -22,8 +22,9 @@ internal static class DiagnosticIds
     public const string NoParameterlessConstructor = "JEV105";
     public const string DuplicateKey = "JEV106";
     public const string InvalidStateType = "JEV107";
+
+    // Reported only by the run-time builder, for a built set's JSON nested too deep: declared sets are text only.
     public const string InvalidJson = "JEV108";
-    public const string JsonWithExamples = "JEV109";
 
     /// <summary>Whether a diagnostic with <paramref name="id"/> is advice only: the set is still valid and generated.</summary>
     public static bool IsAdvisory(string id)

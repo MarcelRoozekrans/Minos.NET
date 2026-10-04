@@ -42,9 +42,9 @@ public partial record InboxCheck
 // A class asks for IJevClient in its constructor, and the container supplies the shared client.
 public sealed class InboxTriage(IJevClient jev)
 {
-    public async Task<string> TriageAsync(string message, CancellationToken ct)
+    public async Task<string> TriageAsync(string message, CancellationToken cancellationToken)
     {
-        var result = await jev.EvaluateAsync<InboxCheck>(message, ct);
+        var result = await jev.EvaluateAsync<InboxCheck>(message, cancellationToken);
         if (result.IsFailure)
         {
             return $"Jev failed, {result.Error.Kind}";
@@ -130,9 +130,9 @@ public static void AddKeyedJev(IHostApplicationBuilder builder)
 // A keyed client is asked for by its key.
 public sealed class InboxRouter([FromKeyedServices("openrouter")] IJevClient jev)
 {
-    public async Task<string> TriageAsync(string message, CancellationToken ct)
+    public async Task<string> TriageAsync(string message, CancellationToken cancellationToken)
     {
-        var result = await jev.EvaluateAsync<InboxCheck>(message, ct);
+        var result = await jev.EvaluateAsync<InboxCheck>(message, cancellationToken);
         if (result.IsFailure)
         {
             return $"Jev failed, {result.Error.Kind}";

@@ -9,17 +9,11 @@ public sealed class NoulAttribute(string instructions) : Attribute
     public string Instructions { get; } = instructions;
 
     /// <summary>Gets or sets what a yes answer means. Optional.</summary>
-    public string? True { get; set; }
+    public string? WhenTrue { get; set; }
 
     /// <summary>Gets or sets what a no answer means. Optional.</summary>
-    public string? False { get; set; }
+    public string? WhenFalse { get; set; }
 
     /// <summary>Gets or sets the question's wire key. Defaults to the property name in snake_case.</summary>
     public string? Key { get; set; }
-
-    /// <summary>
-    /// Gets or sets whether the instructions text is a JSON object or array, sent as structured instructions rather than
-    /// as text. The text is checked at compile time (JEV108).
-    /// </summary>
-    public bool Json { get; set; }
 }

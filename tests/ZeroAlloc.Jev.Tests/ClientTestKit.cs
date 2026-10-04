@@ -56,14 +56,14 @@ internal static class ClientTestKit
 #pragma warning restore HLQ005
         }
 
-        public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken ct)
+        public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken cancellationToken)
         {
             _requests.Add(request);
             return ValueTask.FromResult(Result<SystemOneResponse, JevError>.Success(
                 JsonSerializer.Deserialize(responseJson ?? Fixture.Text("response-noul.json"), JevJsonContext.Default.SystemOneResponse)!));
         }
 
-        public ValueTask<Result<ModelList, JevError>> ListModelsAsync(CancellationToken ct = default)
+        public ValueTask<Result<ModelList, JevError>> ListModelsAsync(CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
     }
 }
