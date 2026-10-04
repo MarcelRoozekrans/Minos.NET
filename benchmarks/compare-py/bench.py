@@ -10,9 +10,11 @@ import os
 import platform
 import re
 import sys
+import threading
 import time
 import urllib.parse
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from importlib.metadata import version
 
@@ -213,6 +215,28 @@ def latency_run(client, warmup_calls, timed_calls):
     return {"calls": warmup_calls + timed_calls, "latency": summarize(milliseconds)}
 
 
+def sync_warmup(client, workers, duration_ms):
+    """The .NET harness's warm-up before latency, on the sync client the latency loop uses: each of the workers, one
+    thread each, starts a new call until the time is up, and a call in flight then completes and counts."""
+    calls = 0
+    lock = threading.Lock()
+    start = time.perf_counter_ns()
+
+    def work():
+        nonlocal calls
+        while (time.perf_counter_ns() - start) / 1e6 < duration_ms:
+            result = client.system_one(STATE, QUESTIONS, model=MODEL)
+            with lock:
+                calls += 1
+            if not is_expected(result):
+                raise CheckError("The SDK read an unexpected answer during the process warm-up.")
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        for future in [pool.submit(work) for _ in range(workers)]:
+            future.result()
+    return {"calls": calls}
+
+
 async def throughput_phase(client, workers, duration_ms):
     """Each worker starts a new call until the time is up; a call in flight then completes and counts."""
     calls = 0
@@ -264,6 +288,11 @@ def main():
             return {"calls": 1}
 
         counted(opts.base_url, "start-up call", startup)
+
+        # The same warm-up the .NET harness gives every client before its latency loop: 16 workers for 2 s, or 0.5 s
+        # in a smoke run, here as threads on the sync client the latency loop then uses.
+        process_warmup = counted(opts.base_url, "process warm-up", lambda: sync_warmup(client, CONCURRENCY, warmup_ms))
+        print(f"typesafe-sdk-python: process warm-up {process_warmup['calls']} of {process_warmup['calls']} requests")
         latency = counted(opts.base_url, "latency loop", lambda: latency_run(client, latency_warmup, latency_calls))
 
     warmup, throughput = asyncio.run(throughput_runs(opts.base_url, warmup_ms, measured_ms))

@@ -22,12 +22,17 @@ name, upper case and cut to 15 characters. The runner always passes `--machine`,
 
 ## Method
 
-- The dummy key `benchmark-dummy-key` and `retry=RetryPolicy(max_retries=0)`: one attempt per call. Each mode uses one
-  long-lived client, closed when its runs end. The SDK's default HTTP transport is kept on purpose, because that is
-  what users get.
+- The dummy key `benchmark-dummy-key` and `retry=RetryPolicy(max_retries=0)`: one attempt per call. The SDK's default
+  HTTP transport is kept on purpose, because that is what users get.
+- Two client instances, because the SDK splits sync and async calls between two classes: one long-lived synchronous
+  `TypeSafeClient` for the start-up call, the warm-up and the latency loop, and one long-lived `AsyncTypeSafeClient`
+  for the throughput windows. Each is closed when its runs end. A sequential loop is what a sync caller does, and 16
+  concurrent calls on one thread need the async client.
 - A start-up call asserts every expected answer; the harness exits with code 1 if one differs.
+- Warm-up: the same as the .NET harness gives every client before latency, 16 workers for 2 s, or 0.5 s for a smoke
+  run. Here the workers are 16 threads on the synchronous client the latency loop then uses.
 - Latency: the synchronous `TypeSafeClient`, 200 warm-up calls, then 2000 timed calls, one at a time, each timed with
-  `time.perf_counter_ns`. Mean, p50 and p99 by nearest rank. A smoke run uses 10 and 20.
+  `time.perf_counter_ns`. The arithmetic mean, and p50 and p99 by nearest rank. A smoke run uses 10 and 20.
 - Throughput: the `AsyncTypeSafeClient` with 16 concurrent `asyncio` tasks on one event loop, a 2 s warm-up and a 10 s
   measured window (0.5 s and 1 s for a smoke run). A call in flight when the time is up completes and counts.
 - Each window is bracketed by reads of `GET /count`; the count must rise by exactly the calls made, else the harness

@@ -21,8 +21,10 @@ name, upper case and cut to 15 characters. The runner always passes `--machine`,
   per call. The SDK accepts a `fetch` option, but the harness keeps the default global `fetch` on purpose, because that is what
   users get.
 - A start-up call asserts every expected answer; the harness exits with code 1 if one differs.
-- Latency: 200 warm-up calls, then 2000 timed calls, one at a time, each timed with `process.hrtime.bigint()`. Mean,
-  p50 and p99 by nearest rank. A smoke run uses 10 and 20.
+- Warm-up: the same as the .NET harness gives every client before latency, 16 concurrent promise loops for 2 s, or
+  0.5 s for a smoke run, so the latency loop runs on code V8 has already optimized and on warm connections.
+- Latency: 200 warm-up calls, then 2000 timed calls, one at a time, each timed with `process.hrtime.bigint()`. The
+  arithmetic mean, and p50 and p99 by nearest rank. A smoke run uses 10 and 20.
 - Throughput: 16 concurrent promise loops, a 2 s warm-up and a 10 s measured window (0.5 s and 1 s for a smoke run).
   A call in flight when the time is up completes and counts.
 - Each window is bracketed by reads of `GET /count`; the count must rise by exactly the calls made, else the harness
