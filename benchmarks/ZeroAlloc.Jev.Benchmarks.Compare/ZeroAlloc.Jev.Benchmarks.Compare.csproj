@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Compares ZeroAlloc.Jev with a hand-written HttpClient client and the community .NET Jev clients, all calling the
+       benchmark mock. The community clients are benchmark-only dependencies, referenced from this project alone. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>ZeroAlloc.Jev.Benchmarks.Compare</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\ZeroAlloc.Jev\ZeroAlloc.Jev.csproj" />
+    <ProjectReference Include="..\..\src\ZeroAlloc.Jev.Generator\ZeroAlloc.Jev.Generator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\src\ZeroAlloc.Jev.Analyzers\ZeroAlloc.Jev.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The command-line reading and the cores option the mock and the harness share, one file each for both. -->
+    <Compile Include="..\Shared\ArgumentReader.cs" Link="Shared\ArgumentReader.cs" />
+    <Compile Include="..\Shared\CoreAffinity.cs" Link="Shared\CoreAffinity.cs" />
+    <!-- The benchmark tests check the shared cores parser through this project's copy. -->
+    <InternalsVisibleTo Include="ZeroAlloc.Jev.Benchmarks.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+    <PackageReference Include="JevSharp" />
+    <PackageReference Include="TypeSafe.AI.Sdk" />
+    <PackageReference Include="Jev.Net" />
+  </ItemGroup>
+</Project>

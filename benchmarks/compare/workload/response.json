@@ -1,0 +1,27 @@
+{
+  "model": "typesafe/jev-1.13-20260917",
+  "answers": {
+    "intent": {
+      "type": "choice",
+      "choice": "look_up_booking",
+      "probabilities": {
+        "look_up_booking": 0.99,
+        "change_booking": 0,
+        "other": 0.01,
+        "dispute_charge": 0
+      },
+      "confidence": 0.99
+    },
+    "travels_within24_hours": {
+      "type": "noul",
+      "noul": 0.86
+    }
+  },
+  "usage": {
+    "input_tokens": 405,
+    "output_tokens": 76,
+    "cost": 0.00001701
+  },
+  "id": "gen-dec-1790931715-q54ioHwi0K33vdKV3nRq",
+  "provider": "TypeSafe"
+}

@@ -2,7 +2,7 @@
 id: performance
 title: Performance
 sidebar_position: 13
-description: What the benchmarks measure, how to run them, and what the client costs per call.
+description: What the client costs per call, how it compares with other clients, and how to run the benchmarks.
 ---
 
 # Performance
@@ -229,6 +229,200 @@ budget. Re-measured under published win-x64 AOT on 2026-10-04, three runs, every
   `NullLoggerFactory` and 5843 B with the discarding logger, against 5254 B, 5254 B and about 5730 B in Phase 3.2.
 - The relative gates against a hand-built client, and the `NullLoggerFactory` comparison, are the known flaky ones
   tracked in #79. In two of the three runs they failed by under 25 B, the same pattern as before.
+
+**ZeroAlloc.Rest 3.2.1.** Release 3.2.1 of ZeroAlloc.Rest removes the per-call allocations its generated transport made
+even when nothing listened (#95). It adds `Accept` with `TryAddWithoutValidation` instead of a new header value, guards
+its metrics on `Enabled` and shares one `TagList`, passes no `params` array, and reads no `Host` without a listener.
+Re-measured under published win-x64 AOT on 2026-10-04, three identical runs, every absolute gate passed. The figures are
+bytes per call, before and after, with the new budget, which is still the measurement plus about 10%, rounded up to the
+next 64 B:
+
+| Gate | Before | After | Old budget | New budget |
+|---|---|---|---|---|
+| `EvaluateRoundTrip`, and its two logger twins | 4312 B | 3928 B | 5120 B, 4800 B | 4352 B |
+| `TypedEvaluateRoundTrip`, and its two logger twins | 3368 B | 2984 B | 4224 B, 3712 B | 3328 B |
+| `EvaluateBuiltSetRoundTrip` | 3656 B | 3272 B | 4736 B | 3648 B |
+| `EvaluateRoundTripThroughDependencyInjection` | 4376 B | 3992 B | 4864 B | 4416 B |
+| `EvaluateRoundTripWhileListening` | 5680 B | 5296 B | 6272 B | 5888 B |
+| `TypedEvaluateRoundTripWhileListening` | 4928 B | 4544 B | 5440 B | 5056 B |
+| `EvaluateBuiltSetRoundTripWhileListening` | 5216 B | 4832 B | 5760 B | 5376 B |
+| `TelemetryOffAsynchronousTypedEvaluation` | 4563 B | 4184 B | 5056 B | 4608 B |
+
+- Every synchronous gate drops by 384 B, so the saving is a fixed cost of the old transport, not a share of the call.
+  The listening gates drop by the same 384 B, so the metrics' tag arrays and boxing were paid with nothing listening
+  too.
+- The hand-built and DI-resolved clients both measure 3992 B, so the relative gates still compare equal.
+- The figures in the Phase 3.2 and Phase 3.3 tables and the "unchanged" budgets above describe those phases; the
+  budgets in [Native AOT](native-aot.md) are the current ones.
+- The unit tests' unwrap headroom is unchanged at 344 B, because the tightest gate,
+  `TypedEvaluateRoundTripWithDiscardingLogger`, now has 3328 B over its 2984 B.
+- The new budgets were measured on win-x64, and Linux CI holds them too: the `aot-smoke` job passed every gate on
+  linux-x64, in [run 37207773054][aot-smoke-run] on commit `bf1ef0b`, with the DI-resolved client at 3992 B there as
+  well.
+- In the [client comparison](#comparison) below, ZeroAlloc.Jev allocates fewer bytes per call than the hand-written
+  `HttpClient` client; its Bytes/call column has the figures.
+
+[aot-smoke-run]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37207773054
+
+## Comparison
+
+ZeroAlloc.Jev against six other clients, all calling one local mock with the same request:
+- `raw-httpclient`, the client a developer would write by hand with `HttpClient` and System.Text.Json. Like every
+  other client, it builds and serializes the request on every call, here with a source-generated serializer context;
+- the community .NET clients JevSharp, TypeSafe.AI.Sdk and Jev.Net, the three most downloaded of eleven on NuGet;
+- TypeSafe's official JS SDK, `@typesafe-ai/sdk`, and its official Python SDK, `typesafe-sdk`.
+
+Every client asks the same two questions and parses the same recorded answer, described in [the workload][workload].
+Each makes one attempt per call, with retries off.
+
+Each library had to pass three checks to be included: a licence that allows its use, a custom base URL and a
+single-attempt setting. A library that failed would have been left out, not patched. All five passed, so none was left
+out. The checks and their sources are in [the library-check document][library-checks].
+
+### What the numbers measure
+
+- **The client's own cost per call.** Every call goes over loopback to a minimal Kestrel mock, which serves one cached
+  response and keeps no log. So the figures hold no network latency and no server work. Latency does include the mock's
+  minimal per-request cost, which is the same for every client.
+- **Steady state.** Each client is measured warm, in a warm process. The figures leave out first-call cost: building the
+  client and the JIT compilation of its code, generated code included.
+- **The same warm-up for every client.** Before its latency loop, every client runs 16 concurrent workers for 2 s on
+  the instance that is then measured, then makes 200 warm-up calls one at a time. The .NET, JS and Python harnesses
+  all do this.
+- **Latency:** after the warm-up, 2000 calls one at a time, each timed on its own. The mean is the arithmetic mean of
+  the call times; p50 and p99 are by nearest rank. The five .NET clients share one process, so their calls are
+  interleaved: 20 rounds in which every client makes 100 timed calls, in an order that rotates each round, with each
+  client's times pooled over its rounds.
+- **Throughput:** 16 concurrent workers for 10 s, after a 2 s warm-up, one client at a time. The .NET harness rotates
+  its clients' order from run to run and records it. The mock counts every request, and a run fails unless each call
+  sent exactly one.
+- **Client instances.** Each .NET and JS client uses one long-lived instance. The Python SDK splits sync and async
+  calls between two classes, so the Python harness uses one long-lived synchronous `TypeSafeClient` for the warm-up and
+  the latency loop, and one long-lived `AsyncTypeSafeClient` for throughput.
+- **Transports.** All five .NET clients run on one `SocketsHttpHandler` configuration, each with its own instance:
+  pooled connections that live 2 minutes, automatic decompression off and the default connection limit. The JS and
+  Python SDKs use their own default transports: Node's built-in `fetch`, and the Python SDK's own HTTP client.
+- **Of mock ceiling:** the client's throughput as a share of the mock ceiling. The ceiling is the highest rate the raw
+  client reached against the mock, the best of 16, 32 and 64 workers, in the same run and on the same cores. So it is a
+  lower bound on what the mock can serve: the run doesn't show whether the mock or the raw client was the limit.
+- **Separate physical cores.** The mock runs on one set of cores and the clients on the other; the machine line names
+  both. The split keeps the SMT sibling threads of each physical core on one side, so the mock never runs on a core the
+  clients run on. The two sides still share the last-level cache and the memory bandwidth, so the mock's work can still
+  slow the client being measured a little.
+- **Bytes/call:** BenchmarkDotNet's MemoryDiagnoser, for the .NET clients only. Compare bytes only between the .NET
+  clients; Node and Python have no equivalent figure, so their rows show a dash.
+- **One run at a time.** Compare clients only within one run. Shared CI runners differ in CPU and load from one run to
+  the next, so the absolute figures move between runs; see [Across runs](#across-runs).
+
+<!-- comparison: benchmarks/compare/results/ci-run-1.json -->
+### ZeroAlloc.Jev: client comparison
+
+| Client | Library | Runtime | Mean (ms) | p50 (ms) | p99 (ms) | Throughput (/s) | Of mock ceiling | Bytes/call |
+|---|---|---|--:|--:|--:|--:|--:|--:|
+| **zeroalloc-jev** | ZeroAlloc.Jev 0.4.0-local+db54c90 | .NET 10.0.12 | 0.052 | 0.048 | 0.094 | 65,672 | 99% | 5,416 |
+| raw-httpclient | HttpClient, System.Text.Json 10.0.12 | .NET 10.0.12 | 0.058 | 0.054 | 0.109 | 65,029 | 98% | 6,456 |
+| jev-net | Jev.Net 0.4.0 | .NET 10.0.12 | 0.065 | 0.063 | 0.117 | 44,848 | 68% | 20,232 |
+| typesafe-ai-sdk | TypeSafe.AI.Sdk 0.3.0 | .NET 10.0.12 | 0.078 | 0.074 | 0.139 | 40,114 | 61% | 26,673 |
+| jevsharp[^1] | JevSharp 0.2.0 | .NET 10.0.12 | 0.168 | 0.170 | 0.245 | 27,415 | 41% | 51,913 |
+| typesafe-ai-sdk-js | @typesafe-ai/sdk 0.6.0 | Node.js 24.21.0 | 0.368 | 0.284 | 0.923 | 5,793 | 9% | — |
+| typesafe-sdk-python | typesafe-sdk 0.7.2 | Python 3.12.14 | 0.584 | 0.581 | 0.699 | 1,221 | 2% | — |
+
+Machine: ci; OS: Ubuntu 24.04.5 LTS; CPU: INTEL(R) XEON(R) PLATINUM 8573C; date: 2026-10-04T15:34:07Z; mock cores: 0-1; client cores: 2-3; mock ceiling: 66,103/s.
+
+Order: latency in 20 interleaved rounds of 100 calls per .NET client, rotated by round from rotation 4; throughput jev-net, zeroalloc-jev, raw-httpclient, jevsharp, typesafe-ai-sdk.
+
+Run: [run 37213251867](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37213251867), commit `fcc4cee`.
+
+[^1]: JevSharp reaches a custom endpoint with static headers only, so it sends no auth header.
+<!-- endComparison -->
+
+The table is `merge.py`'s output for [the first of the published runs][ci-json], which holds the run's result files
+whole, and a docs test fails if the two differ. The run used a GitHub-hosted `ubuntu-latest` runner; the machine line
+gives its CPU and the cores the mock and the clients ran on.
+
+In this run and in both others under [Across runs](#across-runs), ZeroAlloc.Jev had the lowest mean latency, the
+highest throughput and the fewest bytes per call of any client. Its throughput lead over the raw client is small; the
+other clients stay well behind both, and their throughput order was the same in every run: Jev.Net, TypeSafe.AI.Sdk,
+JevSharp, the JS SDK and the Python SDK.
+
+In every run the raw client and ZeroAlloc.Jev come close to the mock ceiling, and they can pass it: the ceiling is
+only a lower bound on what the mock can serve, the best rate the raw client reached in its own, separate measurement.
+The Of mock ceiling column in each table shows how close each run came. Near the ceiling, the mock's own speed may
+narrow the gap between those two. The other clients stay well below it in every run, so their figures are their own.
+
+**ZeroAlloc.Jev is built from the branch.** Its Library cell shows the version a build that is not a release gets, the
+last release with a `-local` suffix, followed by the commit CI built, as in `<release>-local+<commit>`. So the tables
+measure branch commit `fcc4cee`, not a published release. A pull-request run builds GitHub's merge of the branch into
+`main`, so the commit in the version is that merge commit; the run line names the branch commit it came from.
+
+**JevSharp sends no auth header.** It reaches a custom endpoint with static headers only, and a custom endpoint is its
+only way to reach the mock. So each of its calls does a little less work than the other clients' calls.
+
+**The JS and Python throughput is one thread's.** Each SDK is bound by one CPU-bound thread: the Node event loop, and
+one Python interpreter thread. Their throughput is that thread's ceiling, and more workers don't raise it. The evidence
+is in the [JS harness's README][js-readme] and the [Python harness's README][py-readme].
+
+**Versions.** The Library and Runtime columns give the version of every library and runtime the run measured. The
+community .NET clients come from NuGet, and the raw client uses the runtime's own System.Text.Json. The Python SDK's
+dependencies are pinned in [`requirements.txt`][py-requirements], and the JS SDK's in its `package-lock.json`.
+
+A run on an idle local machine, which is steadier than a shared runner, is still to come: see [issue #97][issue-97].
+
+### Across runs
+
+Shared runners differ from run to run, so the comparison ran on CI three times on the same commit, each time on a
+fresh runner. The first table gives each run, with its CPU and mock ceiling. The second gives each client's lowest and
+highest figure over those runs. It shows how far each figure moved between runners, and it is no ranking: compare
+clients within one run. The table above is the first run; the result files of all three are in
+[`benchmarks/compare/results`][results]. Within each run the .NET clients' latency calls are interleaved and their
+throughput order rotates, as [What the numbers measure](#what-the-numbers-measure) describes, so no client gains from
+its place in the order.
+
+<!-- acrossRuns: benchmarks/compare/results/ci-run-1.json benchmarks/compare/results/ci-run-2.json benchmarks/compare/results/ci-run-3.json -->
+### ZeroAlloc.Jev: across runs
+
+| Run | Commit | CPU | Mock ceiling (/s) |
+|---|---|---|--:|
+| [run 37213251867](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37213251867) | `fcc4cee` | INTEL(R) XEON(R) PLATINUM 8573C | 66,103 |
+| [run 37213281420](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37213281420) | `fcc4cee` | AMD EPYC 7763 64-Core Processor | 37,751 |
+| [run 37213313491](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37213313491) | `fcc4cee` | Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz | 52,157 |
+
+| Client | Mean (ms) | Throughput (/s) | Of mock ceiling | Bytes/call |
+|---|--:|--:|--:|--:|
+| **zeroalloc-jev** | 0.052 to 0.108 | 34,748 to 65,672 | 92% to 108% | 5,416 |
+| raw-httpclient | 0.058 to 0.132 | 34,690 to 65,029 | 92% to 104% | 6,456 |
+| jev-net | 0.065 to 0.140 | 25,147 to 44,848 | 67% to 72% | 20,232 |
+| typesafe-ai-sdk | 0.078 to 0.170 | 23,223 to 40,114 | 61% to 63% | 26,656 to 26,673 |
+| jevsharp | 0.168 to 0.233 | 16,999 to 27,415 | 41% to 45% | 51,882 to 52,069 |
+| typesafe-ai-sdk-js | 0.368 to 0.479 | 3,418 to 5,793 | 8% to 9% | — |
+| typesafe-sdk-python | 0.584 to 0.742 | 1,022 to 1,221 | 2% to 3% | — |
+
+Runs: 3. Each range is the lowest to the highest figure over the runs.
+<!-- endAcrossRuns -->
+
+Both tables are `merge.py --across`'s output for the published runs the marker above names, and a docs test fails if
+they differ.
+
+### Reproducing the run
+
+- **Locally:** `benchmarks/compare/run.ps1`, or `run.sh` on Linux, builds everything, runs the mock and the three
+  harnesses and merges the results. Keep the machine idle. See [its README][compare-readme].
+- **On CI:** add the `benchmarks:compare` label to a pull request that changes the comparison's files or the library,
+  or start the **Benchmarks: compare** workflow by `workflow_dispatch`. The `full` job uploads the result files and the
+  table as the `compare-full` artifact.
+- **Publishing a run:** `merge.py` with `--run-url`, `--commit` and `--save` writes the result files as one published
+  run, and prints the table that goes between the comparison markers on this page. `merge.py --across` with the
+  published runs prints the tables that go between the across-runs markers.
+
+[workload]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/benchmarks/compare/workload/README.md
+[library-checks]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/docs/plans/2026-10-04-phase-5.2-library-checks.md
+[ci-json]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/benchmarks/compare/results/ci-run-1.json
+[results]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/tree/main/benchmarks/compare/results
+[js-readme]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/benchmarks/compare-js/README.md#why-the-js-throughput-is-lower
+[py-readme]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/benchmarks/compare-py/README.md#why-the-python-throughput-is-lower
+[py-requirements]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/benchmarks/compare-py/requirements.txt
+[issue-97]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/issues/97
+[compare-readme]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/benchmarks/compare/README.md
 
 ## Next
 

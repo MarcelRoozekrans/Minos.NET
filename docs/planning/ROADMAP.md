@@ -238,11 +238,13 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-04-phase-5.1-public-api-review.md`
 **Completed:** 2026-10-04
 
-### Phase 5.2: Benchmark suite [status: pending]
+### Phase 5.2: Benchmark suite [status: complete]
 **Goal:** A raw .NET baseline in BenchmarkDotNet plus Node and Python harnesses running TypeSafe's official SDKs, all against one local mock server serving recorded Jev responses; results published.
 **Surface:** Backend
 **HelpWanted:** no
-**Plan:** _to be written_
+**Spec:** `docs/superpowers/specs/2026-10-04-phase-5.2-benchmark-suite-design.md`
+**Plan:** `docs/superpowers/plans/2026-10-04-phase-5.2-benchmark-suite.md`
+**Completed:** 2026-10-04
 
 ### Phase 5.3: Live, AOT and alias verification [status: pending]
 **Goal:** Pass the TypeSafe live suite and record its Retry-After and 422 behaviour, check the `jev-latest` and `jev-preview` aliases live, verify AOT and trim across the whole API, and close #68, #73, #74 and #79.

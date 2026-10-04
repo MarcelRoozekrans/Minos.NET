@@ -129,9 +129,9 @@ public sealed partial class NativeAotTests
         var performance = Source("docs", "performance.md");
 
         Assert.Contains("`Build` measures 6592 B", performance, StringComparison.Ordinal);
-        Assert.Contains("3368 B", performance, StringComparison.Ordinal);
+        Assert.Contains("2984 B", performance, StringComparison.Ordinal);
         Assert.Contains("211 B", performance, StringComparison.Ordinal);
-        Assert.Contains("4928 B", performance, StringComparison.Ordinal);
+        Assert.Contains("4544 B", performance, StringComparison.Ordinal);
         Assert.Contains("roughly 480 B", performance, StringComparison.Ordinal);
         Assert.Contains("Phase 3.3 — DI package", performance, StringComparison.Ordinal);
         Assert.Contains("Phase 3.1 — Logging", performance, StringComparison.Ordinal);
@@ -143,18 +143,18 @@ public sealed partial class NativeAotTests
     public void TheProseFigures_AreOnTheQuotingPagesToo()
     {
         var aot = Source("docs", "native-aot.md");
-        Assert.Contains("3368 B under Native AOT", aot, StringComparison.Ordinal);
+        Assert.Contains("2984 B under Native AOT", aot, StringComparison.Ordinal);
         Assert.Contains("It measures 6592 B", aot, StringComparison.Ordinal);
         Assert.Contains("211 B, measured under the JIT", aot, StringComparison.Ordinal);
 
         var observability = Source("docs", "observability.md");
         Assert.Contains("about 480 B", observability, StringComparison.Ordinal);
         Assert.Contains("211 B, measured under the JIT", observability, StringComparison.Ordinal);
-        Assert.Contains("a typed call pays 1560 B, which is 4928 B listening", observability, StringComparison.Ordinal);
-        Assert.Contains("against 3368 B with nothing listening", observability, StringComparison.Ordinal);
+        Assert.Contains("a typed call pays 1560 B, which is 4544 B listening", observability, StringComparison.Ordinal);
+        Assert.Contains("against 2984 B with nothing listening", observability, StringComparison.Ordinal);
 
         // The 1560 B is the difference of the two measured figures.
-        Assert.Equal(1560, 4928 - 3368);
+        Assert.Equal(1560, 4544 - 2984);
     }
 
     [GeneratedRegex(@"AllocationChecks\.(?<gate>\w+)\(\)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]

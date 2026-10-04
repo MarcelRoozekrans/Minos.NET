@@ -1,0 +1,9 @@
+{
+  "name": "zeroalloc-jev-benchmarks-compare-js",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Benchmarks TypeSafe's official JS SDK against the shared local mock.",
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "dependencies": { "@typesafe-ai/sdk": "0.6.0" }
+}

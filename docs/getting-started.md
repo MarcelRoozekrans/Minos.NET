@@ -74,7 +74,15 @@ clean and gets no extra source from them.
 Clone the [ZeroAlloc.Jev repository](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev), pack both packages into a folder,
 and register that folder as a local NuGet source. Use the folder's absolute path. On Windows, give
 `dotnet nuget add source` a native path such as `C:\src\jev\nupkgs`, because a path that mixes forward and back
-slashes is rejected as invalid. A local build is versioned `0.0.0-local`.
+slashes is rejected as invalid.
+
+A local build is versioned as the last release with a `-local` suffix: the release in `.release-please-manifest.json`,
+such as `0.4.0`, gives `0.4.0-local`. The packed files' names show it. The suffix keeps a local package apart from
+the published one. NuGet caches packages by id and version, so a local build versioned exactly `0.4.0` would sit in the
+cache in place of the real 0.4.0, which was built from another commit. A `-local` version is a prerelease, so it sorts
+below the release and NuGet never picks it for a stable version range. When the release is itself a prerelease, such
+as `1.0.0-beta.1`, a local build is `1.0.0-0.local.beta.1` instead, which sorts below every prerelease of `1.0.0`;
+use the version from the packed files' names.
 
 ```shell
 dotnet pack src/ZeroAlloc.Jev -c Release -o /absolute/path/nupkgs
@@ -82,11 +90,12 @@ dotnet pack src/ZeroAlloc.Jev.DependencyInjection -c Release -o /absolute/path/n
 dotnet nuget add source /absolute/path/nupkgs --name zeroalloc-jev-local
 ```
 
-Then add the packages with that version, in place of the commands above:
+Then add the packages with that version, in place of the commands above. Replace `<release>` with the manifest's
+version:
 
 ```shell
-dotnet add package ZeroAlloc.Jev --version 0.0.0-local
-dotnet add package ZeroAlloc.Jev.DependencyInjection --version 0.0.0-local
+dotnet add package ZeroAlloc.Jev --version <release>-local
+dotnet add package ZeroAlloc.Jev.DependencyInjection --version <release>-local
 ```
 
 Remove the source when you switch to the published packages: `dotnet nuget remove source zeroalloc-jev-local`.

@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The benchmark mock: a minimal Kestrel endpoint that serves one recorded Jev answer and counts what it serves. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>ZeroAlloc.Jev.Benchmarks.Mock</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The command-line reading and the cores option the mock and the harness share, one file each for both. -->
+    <Compile Include="..\Shared\ArgumentReader.cs" Link="Shared\ArgumentReader.cs" />
+    <Compile Include="..\Shared\CoreAffinity.cs" Link="Shared\CoreAffinity.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The recorded answer the host serves, copied next to the executable and loaded from disk at startup. -->
+    <None Include="..\compare\workload\response.json" Link="response.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

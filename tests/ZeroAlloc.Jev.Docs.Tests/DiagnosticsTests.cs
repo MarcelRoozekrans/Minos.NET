@@ -41,26 +41,27 @@ public sealed partial class DiagnosticsTests
     // The release-tracking files are a second record of the same ids and severities, checked by the build's own
     // analyzer: the shipped rules, less the ones the unshipped release removes.
     [Fact]
-    public void TheRuleTableOnThePage_IsTheShippedAnalyzerReleaseToo()
+    public void TheRuleTableOnThePage_IsTheActiveRulesOfTheReleaseHistory()
     {
         var rows = PageTables.Rows(Page, "The rules");
-        var shipped = Rules(Source("src", "ZeroAlloc.Jev.Analyzers", "AnalyzerReleases.Shipped.md"));
-        var removed = Rules(RemovedRulesSection(Source("src", "ZeroAlloc.Jev.Analyzers", "AnalyzerReleases.Unshipped.md")));
 
-        Assert.Equal(shipped.Except(removed, StringComparer.Ordinal), rows.Select(row => $"{row[0]} {row[1]}"));
+        Assert.Equal(ReleaseHistory().Active, rows.Select(row => $"{row[0]} {row[1]}"));
     }
 
-    // A shipped release is never edited: the rules JEV108 and JEV109 lost with Json = true stay in it, and the unshipped
-    // release records their removal.
+    // A release is never edited once shipped: JEV108 and JEV109, lost with Json = true, stay in the release that added
+    // them, and a later release, shipped or not yet shipped, records their removal. Release tracking moves the unshipped
+    // sections into the shipped file when a release is cut, so the test reads both files as one history.
     [Fact]
-    public void Jev108AndJev109_StayShipped_AndAreRemovedInTheUnshippedRelease()
+    public void Jev108AndJev109_StayInTheReleaseThatAddedThem_AndALaterReleaseRemovesThem()
     {
-        var shipped = Rules(Source("src", "ZeroAlloc.Jev.Analyzers", "AnalyzerReleases.Shipped.md"));
-        var removed = Rules(RemovedRulesSection(Source("src", "ZeroAlloc.Jev.Analyzers", "AnalyzerReleases.Unshipped.md")));
+        var history = ReleaseHistory();
 
-        Assert.Contains("JEV108 Error", shipped);
-        Assert.Contains("JEV109 Error", shipped);
-        Assert.Equal(["JEV108 Error", "JEV109 Error"], removed);
+        Assert.Contains("JEV108 Error", history.Added);
+        Assert.Contains("JEV109 Error", history.Added);
+        Assert.Contains("JEV108 Error", history.Removed);
+        Assert.Contains("JEV109 Error", history.Removed);
+        Assert.DoesNotContain(history.Active, rule => rule.StartsWith("JEV108", StringComparison.Ordinal));
+        Assert.DoesNotContain(history.Active, rule => rule.StartsWith("JEV109", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -194,12 +195,28 @@ public sealed partial class DiagnosticsTests
         return rules;
     }
 
-    private static string RemovedRulesSection(string release)
+    // The shipped releases, then the unshipped one, read in order: every rule a New Rules section adds, minus every rule a
+    // Removed Rules section takes out. Lines outside a section, such as the unshipped file's bare rows, count as added.
+    private static (List<string> Added, List<string> Removed, List<string> Active) ReleaseHistory()
     {
-        var start = release.IndexOf("### Removed Rules", StringComparison.Ordinal);
-        Assert.True(start >= 0, "AnalyzerReleases.Unshipped.md has a Removed Rules section.");
-        var end = release.IndexOf("###", start + 3, StringComparison.Ordinal);
-        return end < 0 ? release[start..] : release[start..end];
+        var added = new List<string>();
+        var removed = new List<string>();
+        foreach (var file in new[] { "AnalyzerReleases.Shipped.md", "AnalyzerReleases.Unshipped.md" })
+        {
+            var target = added;
+            foreach (var line in Source("src", "ZeroAlloc.Jev.Analyzers", file).ReplaceLineEndings("\n").Split('\n'))
+            {
+                if (line.StartsWith("### ", StringComparison.Ordinal))
+                {
+                    target = line.StartsWith("### Removed Rules", StringComparison.Ordinal) ? removed : added;
+                    continue;
+                }
+
+                target.AddRange(Rules(line));
+            }
+        }
+
+        return (added, removed, added.Except(removed, StringComparer.Ordinal).ToList());
     }
 
     private static int Limit(string limits, string name)

@@ -371,8 +371,8 @@ call's own task, so the numbers are these:
 - **A typed or built-set call that completes asynchronously,** as a real network call does: one extra state machine of
   211 B, measured under the JIT. It hands back the answers and returns the pooled response buffer.
 - **While listening,** a call pays for the span, its attributes and the measurements. The benchmarks measure about 1.0
-  to 1.8 KB per call, depending on the path. Under Native AOT a typed call pays 1560 B, which is 4928 B listening
-  against 3368 B with nothing listening.
+  to 1.8 KB per call, depending on the path. Under Native AOT a typed call pays 1560 B, which is 4544 B listening
+  against 2984 B with nothing listening.
 
 [Phase 3.2](performance.md#phase-32--telemetry) in the performance page has the table. The AOT gates are
 `EvaluateRoundTripWhileListening`, `TypedEvaluateRoundTripWhileListening` and `EvaluateBuiltSetRoundTripWhileListening`,

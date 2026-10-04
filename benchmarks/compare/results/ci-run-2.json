@@ -1,0 +1,168 @@
+{
+  "run": {
+    "url": "https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37213281420",
+    "commit": "fcc4cee39c5cc20c619a04f663efeea7489a704f"
+  },
+  "files": [
+    {
+      "name": "dotnet-ci.json",
+      "machine": {
+        "name": "ci",
+        "os": "Ubuntu 24.04.5 LTS",
+        "cpu": "AMD EPYC 7763 64-Core Processor",
+        "date": "2026-10-04T15:34:17Z",
+        "mockCeilingPerSecond": 37751,
+        "cores": "2-3",
+        "mockCores": "0-1"
+      },
+      "results": [
+        {
+          "client": "zeroalloc-jev",
+          "library": "ZeroAlloc.Jev",
+          "version": "0.4.0-local+db54c90",
+          "runtime": ".NET",
+          "runtimeVersion": "10.0.12",
+          "latencyMs": {
+            "mean": 0.108,
+            "p50": 0.1,
+            "p99": 0.195
+          },
+          "throughputPerSecond": 34748,
+          "concurrency": 16,
+          "allocatedBytesPerCall": 5416
+        },
+        {
+          "client": "raw-httpclient",
+          "library": "HttpClient, System.Text.Json",
+          "version": "10.0.12",
+          "runtime": ".NET",
+          "runtimeVersion": "10.0.12",
+          "latencyMs": {
+            "mean": 0.132,
+            "p50": 0.124,
+            "p99": 0.209
+          },
+          "throughputPerSecond": 34689.6,
+          "concurrency": 16,
+          "allocatedBytesPerCall": 6456
+        },
+        {
+          "client": "jevsharp",
+          "library": "JevSharp",
+          "version": "0.2.0",
+          "runtime": ".NET",
+          "runtimeVersion": "10.0.12",
+          "latencyMs": {
+            "mean": 0.233,
+            "p50": 0.223,
+            "p99": 0.351
+          },
+          "throughputPerSecond": 16998.9,
+          "concurrency": 16,
+          "allocatedBytesPerCall": 52069,
+          "note": "JevSharp reaches a custom endpoint with static headers only, so it sends no auth header."
+        },
+        {
+          "client": "typesafe-ai-sdk",
+          "library": "TypeSafe.AI.Sdk",
+          "version": "0.3.0",
+          "runtime": ".NET",
+          "runtimeVersion": "10.0.12",
+          "latencyMs": {
+            "mean": 0.17,
+            "p50": 0.159,
+            "p99": 0.24
+          },
+          "throughputPerSecond": 23222.7,
+          "concurrency": 16,
+          "allocatedBytesPerCall": 26656
+        },
+        {
+          "client": "jev-net",
+          "library": "Jev.Net",
+          "version": "0.4.0",
+          "runtime": ".NET",
+          "runtimeVersion": "10.0.12",
+          "latencyMs": {
+            "mean": 0.14,
+            "p50": 0.133,
+            "p99": 0.212
+          },
+          "throughputPerSecond": 25146.8,
+          "concurrency": 16,
+          "allocatedBytesPerCall": 20232
+        }
+      ],
+      "order": {
+        "latencyRounds": 20,
+        "callsPerRound": 100,
+        "rotation": 2,
+        "throughput": [
+          "jevsharp",
+          "typesafe-ai-sdk",
+          "jev-net",
+          "zeroalloc-jev",
+          "raw-httpclient"
+        ]
+      }
+    },
+    {
+      "name": "js-ci.json",
+      "machine": {
+        "name": "ci",
+        "os": "Linux 6.17.0-1022-azure #22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026",
+        "cpu": "AMD EPYC 7763 64-Core Processor",
+        "date": "2026-10-04T15:34:32Z",
+        "mockCeilingPerSecond": null,
+        "cores": "2-3",
+        "mockCores": "0-1"
+      },
+      "results": [
+        {
+          "client": "typesafe-ai-sdk-js",
+          "library": "@typesafe-ai/sdk",
+          "version": "0.6.0",
+          "runtime": "Node.js",
+          "runtimeVersion": "24.21.0",
+          "latencyMs": {
+            "mean": 0.479,
+            "p50": 0.409,
+            "p99": 0.887
+          },
+          "throughputPerSecond": 3418.2,
+          "concurrency": 16,
+          "allocatedBytesPerCall": null
+        }
+      ]
+    },
+    {
+      "name": "py-ci.json",
+      "machine": {
+        "name": "ci",
+        "os": "Linux 6.17.0-1022-azure #22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026",
+        "cpu": "AMD EPYC 7763 64-Core Processor",
+        "date": "2026-10-04T15:34:48Z",
+        "mockCeilingPerSecond": null,
+        "cores": "2-3",
+        "mockCores": "0-1"
+      },
+      "results": [
+        {
+          "client": "typesafe-sdk-python",
+          "library": "typesafe-sdk",
+          "version": "0.7.2",
+          "runtime": "Python",
+          "runtimeVersion": "3.12.14",
+          "latencyMs": {
+            "mean": 0.742,
+            "p50": 0.735,
+            "p99": 0.885
+          },
+          "throughputPerSecond": 1021.5,
+          "concurrency": 16,
+          "allocatedBytesPerCall": null
+        }
+      ]
+    }
+  ]
+}

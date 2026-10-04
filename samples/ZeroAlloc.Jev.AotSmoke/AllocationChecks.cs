@@ -122,14 +122,14 @@ internal static class AllocationChecks
             },
         };
 
-        // Measured ~4312 B/call on published win-x64 AOT: HttpRequestMessage, headers and content for the request,
+        // Measured 3928 B/call on published win-x64 AOT: HttpRequestMessage, headers and content for the request,
         // plus the response's HttpResponseMessage, its body buffering and JSON deserialization into
-        // SystemOneResponse. It measured higher, 4592 B/call, when first budgeted in Phase 1.8, on win-x64 and on
-        // linux-x64 (dotnet/sdk:10.0 container, 2026-09-27). The budget stays at 5120 B, the Phase 1.8 figure with
-        // about 10% headroom, since HttpClient's internal buffering can still differ across runtime patch versions
-        // on either platform; tightening it is a separate decision.
+        // SystemOneResponse. It measured 4312 B/call before ZeroAlloc.Rest 3.2.1 and 4592 B/call when first budgeted in
+        // Phase 1.8; 3.2.1's generated transport no longer allocates a header value, boxed status codes or a tag array
+        // per call. Budget: about 10% headroom over the measurement, rounded up to the next multiple of 64 B, per the
+        // Phase 1.8 rule.
         GateValueTask(
-            budgetBytes: 5120,
+            budgetBytes: 4352,
             action: () => client.EvaluateAsync(request),
             label: "EvaluateRoundTrip",
             passDescription: "EvaluateAsync stays within its allocation budget");
@@ -145,17 +145,15 @@ internal static class AllocationChecks
         };
         using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
 
-        // Measured ~3368 B/call on published win-x64 AOT: the request's Utf8JsonWriter and RawJson, plus
+        // Measured 2984 B/call on published win-x64 AOT: the request's Utf8JsonWriter and RawJson, plus
         // ZeroAlloc.Rest's own per-attempt allocations (HttpRequestMessage, headers, the MemoryStream the body is
         // copied into, and StreamContent), plus the response's HttpResponseMessage and body buffering, and the
         // async state machines. There is no SystemOneRequest, SystemOneResponse, JevAnswer or questions dictionary
-        // on this path, which is why it comes in well below EvaluateRoundTrip's 4312 B measurement. It measured
-        // higher, 3784 B/call, when first budgeted in Phase 1.8 and re-measured in Phase 2.1, on win-x64 and on
-        // linux-x64 (dotnet/sdk:10.0 container, 2026-09-27). The budget stays at 4224 B, the 3784 B figure with about
-        // 10% headroom rounded to the next 64 B, for the same cross-platform, cross-patch-version reason as
-        // EvaluateRoundTrip's gate; tightening it is a separate decision.
+        // on this path, which is why it comes in well below EvaluateRoundTrip's 3928 B measurement. It measured
+        // 3368 B/call before ZeroAlloc.Rest 3.2.1 and 3784 B/call when first budgeted in Phase 1.8. Budget: about 10%
+        // headroom over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
         GateValueTask(
-            budgetBytes: 4224,
+            budgetBytes: 3328,
             action: () => client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days."),
             label: "TypedEvaluateRoundTrip",
             passDescription: "EvaluateAsync<T> stays within its allocation budget");
@@ -164,11 +162,11 @@ internal static class AllocationChecks
     /// <summary><see cref="EvaluateRoundTrip"/> through <see cref="NullLoggerFactory"/>, whose logger has every level disabled.</summary>
     public static void EvaluateRoundTripWithNullLoggerFactory()
     {
-        // Budget: EvaluateRoundTrip's own, 5120 B, unchanged. With no level enabled the client takes the unlogged path:
+        // Budget: EvaluateRoundTrip's own, 4352 B, unchanged. With no level enabled the client takes the unlogged path:
         // no logging wrapper and no LoggingJevApi state machine, so nothing may be added.
         EvaluateRoundTripThrough(
             NullLoggerFactory.Instance,
-            budgetBytes: 5120,
+            budgetBytes: 4352,
             "EvaluateRoundTripWithNullLoggerFactory",
             "EvaluateAsync through NullLoggerFactory stays within EvaluateRoundTrip's budget");
     }
@@ -182,10 +180,10 @@ internal static class AllocationChecks
         using var provider = new CapturingLoggerProvider();
         using var factory = new LoggerFactory([provider], new LoggerFilterOptions { MinLevel = LogLevel.None });
 
-        // Budget: TypedEvaluateRoundTrip's own, 4224 B, unchanged, for the same reason as the NullLoggerFactory gate.
+        // Budget: TypedEvaluateRoundTrip's own, 3328 B, unchanged, for the same reason as the NullLoggerFactory gate.
         TypedEvaluateRoundTripThrough(
             factory,
-            budgetBytes: 4224,
+            budgetBytes: 3328,
             "TypedEvaluateRoundTripWithEveryLevelFiltered",
             "EvaluateAsync<T> with every level filtered out stays within TypedEvaluateRoundTrip's budget");
         Program.Check(provider.Records.Length == 0, "a logger with every level filtered out receives no record");
@@ -199,7 +197,7 @@ internal static class AllocationChecks
     {
         var callsBefore = DiscardingLoggerFactory.Calls;
 
-        // Measured ~4312 B/call on published win-x64 AOT, the same as EvaluateRoundTrip's current measurement and its unlogged twin in this run,
+        // Measured 3928 B/call on published win-x64 AOT, the same as EvaluateRoundTrip's current measurement and its unlogged twin in this run,
         // so the enabled logger adds nothing on the synchronous path the canned handler takes: each event's state is a
         // struct handed to a logger that discards it, the timing is two Stopwatch timestamps, and no state machine is
         // boxed while a call completes synchronously. A call that completes asynchronously also allocates the
@@ -207,7 +205,7 @@ internal static class AllocationChecks
         // over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
         EvaluateRoundTripThrough(
             DiscardingLoggerFactory.Instance,
-            budgetBytes: 4800,
+            budgetBytes: 4352,
             "EvaluateRoundTripWithDiscardingLogger",
             "EvaluateAsync with every log level enabled stays within its budget");
         Program.Check(
@@ -220,7 +218,7 @@ internal static class AllocationChecks
     {
         var callsBefore = DiscardingLoggerFactory.Calls;
 
-        // Measured ~3368 B/call on published win-x64 AOT, the same as TypedEvaluateRoundTrip's current measurement and its unlogged twin in this run,
+        // Measured 2984 B/call on published win-x64 AOT, the same as TypedEvaluateRoundTrip's current measurement and its unlogged twin in this run,
         // so the enabled logger adds nothing on the synchronous path the canned handler takes: each event's state is a
         // struct handed to a logger that discards it, the timing is two Stopwatch timestamps, and no state machine is
         // boxed while a call completes synchronously. A call that completes asynchronously also allocates the
@@ -228,7 +226,7 @@ internal static class AllocationChecks
         // over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
         TypedEvaluateRoundTripThrough(
             DiscardingLoggerFactory.Instance,
-            budgetBytes: 3712,
+            budgetBytes: 3328,
             "TypedEvaluateRoundTripWithDiscardingLogger",
             "EvaluateAsync<T> with every log level enabled stays within its budget");
         Program.Check(
@@ -432,13 +430,13 @@ internal static class AllocationChecks
         using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
         var set = SmokeBuiltSet.Full(out _, out _, out _, out _);
 
-        // Measured 3656 B/call on published win-x64 AOT: the JevQuestionSet's pre-built request body copied into a pooled
+        // Measured 3272 B/call on published win-x64 AOT: the JevQuestionSet's pre-built request body copied into a pooled
         // buffer, HttpClient's request and response objects and body buffering, the JevAnswers result and the async state
-        // machines if the call does not complete synchronously. It measured higher, 4288 B/call, when first budgeted in
-        // Phase 2.4. The budget stays at 4736 B, that figure with about 10% headroom rounded up to the next multiple of
-        // 64, since HttpClient's allocations follow runtime internals; tightening it is a separate decision.
+        // machines if the call does not complete synchronously. It measured 3656 B/call before ZeroAlloc.Rest 3.2.1 and
+        // 4288 B/call when first budgeted in Phase 2.4. Budget: about 10% headroom over the measurement, rounded up to
+        // the next multiple of 64 B, per the Phase 1.8 rule.
         GateValueTask(
-            budgetBytes: 4736,
+            budgetBytes: 3648,
             action: () => client.EvaluateAsync(set, "Help! My payouts have been failing for 3 days."),
             label: "EvaluateBuiltSetRoundTrip",
             passDescription: "EvaluateAsync over a built set stays within its allocation budget");
@@ -583,11 +581,11 @@ internal static class AllocationChecks
             label: "EvaluateRoundTripThroughDependencyInjectionAgainstHandBuilt",
             passDescription: "EvaluateAsync through a DI-resolved client allocates no more than through a hand-built one");
 
-        // Measured 4376 B/call on published win-x64 AOT: EvaluateRoundTrip's call plus the User-Agent header the factory's
+        // Measured 3992 B/call on published win-x64 AOT: EvaluateRoundTrip's call plus the User-Agent header the factory's
         // HttpClient sends, and nothing from the container or the factory, whose request logging AddJevClient removes.
         // Budget: about 10% headroom over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
         GateValueTask(
-            budgetBytes: 4864,
+            budgetBytes: 4416,
             action: () => resolved.EvaluateAsync(request),
             label: "EvaluateRoundTripThroughDependencyInjection",
             passDescription: "EvaluateAsync through a DI-resolved client stays within its allocation budget");
@@ -633,11 +631,11 @@ internal static class AllocationChecks
         using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
         var request = Program.Request();
 
-        // Measured 5680 B/call on published win-x64 AOT. The call pays EvaluateRoundTrip's bytes plus the Activity, its
+        // Measured 5296 B/call on published win-x64 AOT. The call pays EvaluateRoundTrip's bytes plus the Activity, its
         // boxed start tags, the boxed tag and measurement values and each metric's TagList. Budget: about 10% headroom
         // over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
         GateValueTask(
-            budgetBytes: 6272,
+            budgetBytes: 5888,
             action: () => client.EvaluateAsync(request),
             label: "EvaluateRoundTripWhileListening",
             passDescription: "EvaluateAsync while listening stays within its allocation budget");
@@ -652,12 +650,12 @@ internal static class AllocationChecks
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, TriageResponseJson)) { BaseAddress = new Uri("https://example.test/api/") };
         using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
 
-        // Measured 4928 B/call on published win-x64 AOT. The call pays TypedEvaluateRoundTrip's bytes plus the span, tags
+        // Measured 4544 B/call on published win-x64 AOT. The call pays TypedEvaluateRoundTrip's bytes plus the span, tags
         // and measurements, and the deferred reads, which allocate only the response model's string, once per attribute
         // that reads it. Budget: about 10% headroom over the measurement, rounded up to the next multiple of 64 B, per the
         // Phase 1.8 rule.
         GateValueTask(
-            budgetBytes: 5440,
+            budgetBytes: 5056,
             action: () => client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days."),
             label: "TypedEvaluateRoundTripWhileListening",
             passDescription: "EvaluateAsync<T> while listening stays within its allocation budget");
@@ -673,11 +671,11 @@ internal static class AllocationChecks
         using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
         var set = SmokeBuiltSet.Full(out _, out _, out _, out _);
 
-        // Measured 5216 B/call on published win-x64 AOT. The call pays EvaluateBuiltSetRoundTrip's bytes plus the span,
+        // Measured 4832 B/call on published win-x64 AOT. The call pays EvaluateBuiltSetRoundTrip's bytes plus the span,
         // tags and measurements. Budget: about 10% headroom over the measurement, rounded up to the next multiple of 64 B,
         // per the Phase 1.8 rule.
         GateValueTask(
-            budgetBytes: 5760,
+            budgetBytes: 5376,
             action: () => client.EvaluateAsync(set, "Help! My payouts have been failing for 3 days."),
             label: "EvaluateBuiltSetRoundTripWhileListening",
             passDescription: "EvaluateAsync over a built set while listening stays within its allocation budget");
@@ -694,11 +692,11 @@ internal static class AllocationChecks
         var median = await MedianYieldingAsync(TriageResponseJson, null, static client => client.EvaluateAsync<SmokeTriage>("Help!")).ConfigureAwait(false);
         Console.WriteLine($"     yielding EvaluateAsync<T> B/call with telemetry off: {median}");
 
-        // Measured 4568 B/call, the median of five runs, on published win-x64 AOT. This is the whole asynchronously
+        // Measured 4184 B/call, the median of five runs, on published win-x64 AOT. This is the whole asynchronously
         // completing call, not only the unwrap: the transport's request and response, body buffering, parsing and every
         // boxed async state machine, among them the unwrap's. Budget: about 10% headroom over the measurement, rounded up
         // to the next multiple of 64 B, per the Phase 1.8 rule.
-        const long BudgetBytes = 5056;
+        const long BudgetBytes = 4608;
         Program.Check(
             median <= BudgetBytes,
             $"an asynchronously completing EvaluateAsync<T> with telemetry off stays within its allocation budget: {median} B/call against {BudgetBytes} B");

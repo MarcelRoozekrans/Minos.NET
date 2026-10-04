@@ -1,13 +1,25 @@
-# Session State — 2026-10-04 (Phase 5.1 complete, PR to open)
+# Session State — 2026-10-04 (Phase 5.2 complete, PR #94 to merge)
 
 **Date:** 2026-10-04
 
 ## Current Position
 - **Milestone:** 5 — 1.0 hardening, active since 2026-10-04 (design `docs/superpowers/specs/2026-10-04-milestone-5-design.md`).
-- **Phase:** 5.1 — Public API review is complete on branch `phase/5.1-api-review`; it lands through a PR to `main` and releases as 0.4.0 (`bump-minor-pre-major`).
-- **Next task:** merge the Phase 5.1 PR, check the release-please PR lists every breaking entry BEFORE merging it, then run `start-next-phase` for Phase 5.2 — Benchmark suite.
-- **Maintainer decisions for Milestone 5:** 1.0.0 ships to NuGet only after the TypeSafe live suite passes with a real key (the maintainer obtains one); benchmarks compare against a raw HttpClient + STJ client and the official JS and Python SDKs; the docs site keeps one live version.
+- **Phase:** 5.2 — Benchmark suite is complete on branch `phase/5.2-benchmarks`, PR #94. Phase 5.1 merged as #92 and shipped in release 0.4.0 (#93).
+- **Next task:** merge PR #94, check the release-please PR lists its entries before merging it, then run `start-next-phase` for Phase 5.3 — Live, AOT and alias verification (needs a TypeSafe API key from the maintainer for the live run).
+- **Maintainer decisions for Milestone 5:** 1.0.0 ships to NuGet only after the TypeSafe live suite passes with a real key; the docs site keeps one live version.
 - **Operational note:** .website's bot-opened "update submodules" PRs hold their `build` run for approval ("action_required"); approve the run, then merge with the admin override.
+
+## What Phase 5.2 shipped
+- Client comparison benchmark in `benchmarks/compare/`: ZeroAlloc.Jev against a hand-written HttpClient + System.Text.Json client, JevSharp 0.2.0, TypeSafe.AI.Sdk 0.3.0, Jev.Net 0.4.0 (all MIT, checks in `docs/plans/2026-10-04-phase-5.2-library-checks.md`), TypeSafe's JS SDK 0.6.0 and Python SDK 0.7.2.
+  - Mock: our own minimal Kestrel endpoint (WireMock dropped: its request log halved throughput), serving one recorded Jev answer, counting requests at `/count`.
+  - Harnesses: .NET (`ZeroAlloc.Jev.Benchmarks.Compare`, BenchmarkDotNet for bytes), Node, Python; same per-call latency method, warm-up of the measured instance, 16-worker throughput, verified request counts. .NET latency runs in 20 interleaved rotating rounds; throughput order rotates per run. All .NET clients share one SocketsHttpHandler setup.
+  - Runners `run.ps1`/`run.sh` + `cores.py` (mock and clients on separate physical cores, by core type on hybrid CPUs) + `merge.py`; reusable for the org-wide sweep via `--project`, `--results`, `--bench-root`.
+  - CI: `benchmarks-compare.yml` smoke on PRs, full run on the `benchmarks:compare` label or dispatch.
+  - Published in `docs/performance.md` from three CI runs on fcc4cee (`benchmarks/compare/results/ci-run-1..3.json`): ZeroAlloc.Jev had the lowest mean latency, the highest throughput (small lead over raw) and the fewest bytes per call in all three; every claim is tested against the JSON. Local idle-machine table tracked in #97.
+- Investigation: the first-run 2x latency gap was a cold-JIT artefact of measurement order, not Jev; Jev's pipeline costs about 5.9 us CPU per call against 5.3 for raw.
+- Upstream: ZeroAlloc.Rest#406 (per-call Accept header, unguarded metric tags, params array, Host read) fixed in 3.2.1 by the org session; adopted here (#95), every AOT budget tightened by about 384 B, Linux CI confirms.
+- Versioning: builds read the release manifest; non-release builds are `<version>-local` (prereleases sort below their release); `-p:JevRelease=true` applies to build and pack (Phase 5.4 must pass it to both). A missing or malformed manifest fails the build clearly.
+- Docs tests read the analyzer release history as one sequence, so cutting a release can't break them.
 
 ## What Phase 5.1 shipped
 - API review: `docs/plans/2026-10-04-phase-5.1-api-review.md`, 59 types and 445 members, findings R1–R14 each linked to its fix; impact analysis `docs/plans/2026-10-04-phase-5.1-public-api-review-impact-analysis.md`.
@@ -190,7 +202,7 @@
 - Still unknown until a TypeSafe live run (needs `TYPESAFE_API_KEY` and the `live-api` environment): whether TypeSafe sends `Retry-After`, the 422 body schema, and whether Phase 2.4's `BuiltQuestionSet_ParsesAKeyedChoice` passes.
 
 ## Recommended Next Step
-Merge the Phase 5.1 PR, check the 0.4.0 release-please PR lists every breaking entry before merging it, then run `start-next-phase` for Phase 5.2 — Benchmark suite.
+Merge PR #94, check its release-please entries before merging the release PR, then run `start-next-phase` for Phase 5.3 — Live, AOT and alias verification.
 
 
 

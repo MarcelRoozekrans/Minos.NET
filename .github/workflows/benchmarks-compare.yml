@@ -1,0 +1,129 @@
+name: 'Benchmarks: compare'
+
+# Compares ZeroAlloc.Jev with other clients (raw .NET, Node, Python) against one local mock,
+# driven by benchmarks/compare/run.sh. Not a required check.
+#
+#   smoke  pull_request, when the comparison's own files change. A short run that proves every
+#          harness still works and the pytest tests pass; the numbers it prints are meaningless.
+#          It skips the "labeled" event, so adding a label never starts a smoke run.
+#   full   workflow_dispatch ("Run workflow", once this file is on main), or a pull request that
+#          carries the label benchmarks:compare. A labeled PR runs the full job on every push and
+#          runs no smoke job, so the full job runs the pytest tests too. Labels use the PR head's
+#          workflow, so a PR can produce its own table before it merges. Uploads the results,
+#          including comparison.md.
+#
+# The path filter applies to every pull_request event, labeled included: a PR carrying the label
+# runs the full job only while it changes one of these paths. The library, the shared build
+# props and the SDK pin are in it, because a change to any of them changes the results.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, labeled]
+    paths:
+      - 'benchmarks/compare/**'
+      - 'benchmarks/compare-js/**'
+      - 'benchmarks/compare-py/**'
+      - 'benchmarks/ZeroAlloc.Jev.Benchmarks.Compare/**'
+      - 'benchmarks/ZeroAlloc.Jev.Benchmarks.Mock/**'
+      - 'benchmarks/Shared/**'
+      - 'tests/ZeroAlloc.Jev.Benchmarks.Tests/**'
+      - '.github/workflows/benchmarks-compare.yml'
+      - 'src/**'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
+      - 'global.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  smoke:
+    name: smoke
+    if: github.event_name == 'pull_request' && github.event.action != 'labeled' && !contains(github.event.pull_request.labels.*.name, 'benchmarks:compare')
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          dotnet-version: 10.0.x
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: benchmarks/compare-js/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: benchmarks/compare-py/requirements.txt
+
+      - name: Test the merge and core-split scripts
+        run: |
+          pip install -r benchmarks/compare/requirements-test.txt
+          python -m pytest benchmarks/compare/tests
+
+      - name: Smoke the comparison
+        run: benchmarks/compare/run.sh --smoke --machine ci
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: compare-smoke
+          path: benchmarks/compare/results/
+          if-no-files-found: warn
+
+  full:
+    name: full
+    if: github.event_name == 'workflow_dispatch' || contains(github.event.pull_request.labels.*.name, 'benchmarks:compare')
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          dotnet-version: 10.0.x
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: benchmarks/compare-js/package-lock.json
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+          cache: pip
+          cache-dependency-path: benchmarks/compare-py/requirements.txt
+
+      - name: Test the merge and core-split scripts
+        run: |
+          pip install -r benchmarks/compare/requirements-test.txt
+          python -m pytest benchmarks/compare/tests
+
+      - name: Run the comparison
+        run: benchmarks/compare/run.sh --machine ci
+
+      - uses: actions/upload-artifact@v7
+        if: always()
+        with:
+          name: compare-full
+          path: benchmarks/compare/results/
+          if-no-files-found: warn
