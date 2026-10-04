@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>ZeroAlloc.Jev.Benchmarks.Mock</RootNamespace>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="WireMock.Net" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The recorded answer the host serves, copied next to the executable and loaded from disk at startup. -->
+    <None Include="..\compare\workload\response.json" Link="response.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>
