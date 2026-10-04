@@ -230,10 +230,11 @@ compress_memory: disabled
 - [ ] Full-surface AOT/trim verification green; #68, #73, #74 and #79 closed
 - [ ] 1.0.0 published to NuGet through release-please and a publishing workflow (#29); the guide states its version
 
-### Phase 5.1: Public API review [status: pending]
+### Phase 5.1: Public API review [status: active]
 **Goal:** Review and freeze the public surface (sealing, naming, nullability, XML docs), make the breaking changes #67, #23, #24 and #25, adopt Telemetry 1.11.0 (#85) and close #21.
 **Surface:** Refactor
 **HelpWanted:** no
+**Spec:** `docs/superpowers/specs/2026-10-04-phase-5.1-public-api-review-design.md`
 **Plan:** _to be written_
 
 ### Phase 5.2: Benchmark suite [status: pending]
