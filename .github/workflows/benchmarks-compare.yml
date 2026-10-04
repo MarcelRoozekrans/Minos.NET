@@ -8,11 +8,13 @@ name: 'Benchmarks: compare'
 #          It skips the "labeled" event, so adding a label never starts a smoke run.
 #   full   workflow_dispatch ("Run workflow", once this file is on main), or a pull request that
 #          carries the label benchmarks:compare. A labeled PR runs the full job on every push and
-#          runs no smoke job at all. Labels use the PR head's workflow, so a PR can produce its own
-#          table before it merges. Uploads the results, including comparison.md.
+#          runs no smoke job, so the full job runs the pytest tests too. Labels use the PR head's
+#          workflow, so a PR can produce its own table before it merges. Uploads the results,
+#          including comparison.md.
 #
 # The path filter applies to every pull_request event, labeled included: a PR carrying the label
-# runs the full job only while it changes one of these paths.
+# runs the full job only while it changes one of these paths. The library, the shared build
+# props and the SDK pin are in it, because a change to any of them changes the results.
 
 on:
   pull_request:
@@ -26,6 +28,10 @@ on:
       - 'benchmarks/Shared/**'
       - 'tests/ZeroAlloc.Jev.Benchmarks.Tests/**'
       - '.github/workflows/benchmarks-compare.yml'
+      - 'src/**'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
+      - 'global.json'
   workflow_dispatch:
 
 permissions:
@@ -106,6 +112,11 @@ jobs:
           python-version: '3.12'
           cache: pip
           cache-dependency-path: benchmarks/compare-py/requirements.txt
+
+      - name: Test the merge and core-split scripts
+        run: |
+          pip install -r benchmarks/compare/requirements-test.txt
+          python -m pytest benchmarks/compare/tests
 
       - name: Run the comparison
         run: benchmarks/compare/run.sh --machine ci
