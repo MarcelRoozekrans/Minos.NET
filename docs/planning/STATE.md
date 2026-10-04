@@ -1,11 +1,13 @@
-# Session State — 2026-10-03 (Milestone 4 complete)
+# Session State — 2026-10-04 (Milestone 5 started)
 
-**Date:** 2026-10-03
+**Date:** 2026-10-04
 
 ## Current Position
-- **Milestone:** 4 — Patterns & docs is complete (audit `docs/plans/2026-10-03-milestone-4-audit.md`: PASS on re-audit, after the maintainer set up Cloudflare). Milestone 5 — 1.0 hardening is next.
-- **Phase:** none active. Phase 4.4 merged as PR #88; release 0.3.3 (#89) carried it. ZeroAlloc-Net/.website#81 merged; jev.zeroalloc.net serves the guide.
-- **Next task:** merge the milestone-4 audit PR, merge .website's "update submodules" PR #76 (brings the shared icon to the site), then run `new-milestone` for Milestone 5 — 1.0 hardening.
+- **Milestone:** 5 — 1.0 hardening, active since 2026-10-04 (design `docs/superpowers/specs/2026-10-04-milestone-5-design.md`). Milestone 4 completed 2026-10-03 (PR #90); jev.zeroalloc.net serves the guide with the shared icon (.website #76).
+- **Phase:** 5.1 — Public API review is next (pending; no spec yet).
+- **Next task:** merge the Milestone 5 design PR, then run `start-next-phase` to brainstorm Phase 5.1.
+- **Maintainer decisions for Milestone 5:** 1.0.0 ships to NuGet only after the TypeSafe live suite passes with a real key (the maintainer obtains one); benchmarks compare against a raw HttpClient + STJ client and the official JS and Python SDKs; the docs site keeps one live version.
+- **Operational note:** .website's bot-opened "update submodules" PRs hold their `build` run for approval ("action_required"); approve the run, then merge with the admin override.
 
 ## What Phase 4.4 shipped
 - ZeroAlloc-Net/.website#81 (open): `repos/jev` submodule, `apps/docs-jev` copied from docs-rest with `onBrokenLinks: 'throw'` and `planning`/`superpowers` excluded, a zeroalloc.net home-page entry (`available: true`, maintainer decision), README row and lockfile. Its `build` workflow passed.
@@ -176,7 +178,7 @@
 - Still unknown until a TypeSafe live run (needs `TYPESAFE_API_KEY` and the `live-api` environment): whether TypeSafe sends `Retry-After`, the 422 body schema, and whether Phase 2.4's `BuiltQuestionSet_ParsesAKeyedChoice` passes.
 
 ## Recommended Next Step
-Merge the milestone-4 audit PR and .website PR #76, then run `new-milestone` for Milestone 5 — 1.0 hardening.
+Merge the Milestone 5 design PR, then run `start-next-phase` to brainstorm Phase 5.1 — Public API review.
 
 
 

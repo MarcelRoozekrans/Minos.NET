@@ -1,38 +1,38 @@
-# Milestone 4: Patterns & docs
+# Milestone 5: 1.0 hardening
 
-**Status:** complete
-**Started:** 2026-10-02
-**Completed:** 2026-10-03
-**Design:** `docs/superpowers/specs/2026-10-02-milestone-4-design.md`
+**Status:** active
+**Started:** 2026-10-04
+**Design:** `docs/superpowers/specs/2026-10-04-milestone-5-design.md`
 
 ## Goal
-A C# developer can learn Jev from its own docs site and apply TypeSafe's documented patterns in idiomatic C#. The library adds only thin, allocation-free helpers, and only where hand-written code tends to go wrong. Original, runnable samples show guardrails, intent routing and re-ranking end to end. CI keeps the samples honest by replaying recorded real answers.
+Ship ZeroAlloc.Jev 1.0.0 to NuGet. Before release, its public API has been reviewed and frozen. It has been measured against a hand-written .NET client and against TypeSafe's official JS and Python SDKs. It has passed against TypeSafe's real API, and under Native AOT across its whole public surface.
 
 ## Definition of Done
-- [x] All planned phases complete.
-- [x] All tests passing: unit, generator, analyzer, integration and pack, plus every sample in replay mode. Live smoke still runs when `JEV_LIVE=1` and a key are set.
-- [x] Pattern helpers ship in the core:
-  - A normalized Score value, and a confidence-tier gate with overridable 0.5 and 0.9 defaults.
-  - Both are in `PublicAPI.Unshipped.txt`, with 0 B `AllocationGate` budgets.
-  - The AOT smoke app exercises them with zero IL2xxx/IL3xxx warnings.
-- [x] Guides for all four documented patterns live in `docs/`: fan-out, confidence routing, composite scoring and intent routing. Their C# snippets compile in CI.
-- [x] Three original samples are C# projects under `samples/`: guardrails, intent routing and re-ranking.
-  - Each credits and links the TypeSafe cookbook it was inspired by.
-  - Each runs live with a key, and in replay mode from checked-in recordings of a real run.
-  - CI runs each one in replay mode and checks its decisions.
-- [x] The user guide in `docs/` covers getting started, every question type, typed evaluation and builders, DI and configuration, logging and telemetry, Native AOT, and patterns and samples. #16 is closed.
-- [x] jev.zeroalloc.net serves the guide through `apps/docs-jev` and `repos/jev` in ZeroAlloc-Net/.website. A push to `docs/` on `main` updates it through `trigger-website.yml`.
-- [x] The README carries the unofficial-client disclaimer and the logo, and links the site.
-- [x] Every existing allocation budget is unchanged.
+- [ ] All planned phases complete.
+- [ ] All tests pass: unit, generator, analyzer, DI, docs, integration, pack and samples, with every sample in replay mode. The TypeSafe live suite has passed at least once with a real key, as well as OpenRouter's.
+- [ ] The public API has been reviewed:
+  - every public type is sealed or deliberately open;
+  - naming and nullability are reviewed;
+  - XML docs are complete;
+  - #67, #23, #24 and #25 are resolved;
+  - ZeroAlloc.Telemetry 1.11.0 is adopted (#85);
+  - #21 is closed.
+- [ ] `PublicAPI.Shipped.txt` describes 1.0.0, and api-compat (#28) checks every later change against the 1.0.0 package.
+- [ ] A published benchmark suite compares Jev with a hand-written raw `HttpClient` plus System.Text.Json client, and with TypeSafe's official JS and Python SDKs.
+  - All four call one local mock server that serves recorded Jev responses.
+  - The results are in `docs/performance.md` and on jev.zeroalloc.net, with each runtime and its version, and what each number measures.
+- [ ] Native AOT and trim verification covers the whole public API, with zero IL2xxx and IL3xxx warnings.
+- [ ] The `jev-latest` and `jev-preview` aliases are checked live.
+- [ ] The allocation-measurement follow-ups are closed: #68, #73, #74 and #79.
+- [ ] 1.0.0 is published to NuGet through release-please and a publishing workflow (#29). The guide states the version it describes, and the README's Status line no longer says the package is unpublished.
+- [ ] Every allocation budget is unchanged or tightened, never loosened.
 
 ## Phases
-1. Phase 4.1 — Pattern helpers and guides [complete]
-2. Phase 4.2 — Cookbook samples [complete]
-3. Phase 4.3 — User guide [complete]
-4. Phase 4.4 — Docs site, logo and README [complete]
+1. Phase 5.1 — Public API review [pending]
+2. Phase 5.2 — Benchmark suite [pending]
+3. Phase 5.3 — Live, AOT and alias verification [pending]
+4. Phase 5.4 — 1.0 release [pending]
 
 ## Audit History
 | Date | Verdict | Gaps |
 |---|---|---|
-| 2026-10-03 | FAIL | jev.zeroalloc.net not served: Cloudflare project `za-docs-jev` and its domain not created yet (maintainer step); see `docs/plans/2026-10-03-milestone-4-audit.md` |
-| 2026-10-03 | PASS | Re-audit after the Cloudflare setup: the site serves the guide. Note: .website PR #76 (submodule update with the shared icon) still open |
