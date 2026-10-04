@@ -238,10 +238,11 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-04-phase-5.1-public-api-review.md`
 **Completed:** 2026-10-04
 
-### Phase 5.2: Benchmark suite [status: pending]
+### Phase 5.2: Benchmark suite [status: active]
 **Goal:** A raw .NET baseline in BenchmarkDotNet plus Node and Python harnesses running TypeSafe's official SDKs, all against one local mock server serving recorded Jev responses; results published.
 **Surface:** Backend
 **HelpWanted:** no
+**Spec:** `docs/superpowers/specs/2026-10-04-phase-5.2-benchmark-suite-design.md`
 **Plan:** _to be written_
 
 ### Phase 5.3: Live, AOT and alias verification [status: pending]
