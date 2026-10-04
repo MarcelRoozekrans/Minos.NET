@@ -268,7 +268,7 @@ internal static class Program
                 && result.Value.Get(urgency).Value == Urgency.High,
             "a built question set evaluates over the raw, pooled-buffer path");
 
-        var invalid = JevQuestionSet.CreateBuilder().Choice("empty", "Which one?", out _).Build();
+        var invalid = JevQuestionSet.CreateBuilder().Choice("empty", "Which one?", out _, options => { }).Build();
         Check(
             invalid.IsFailure
                 && invalid.Error.Kind == JevErrorKind.InvalidQuestions

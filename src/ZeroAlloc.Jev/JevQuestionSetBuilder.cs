@@ -93,20 +93,6 @@ public sealed class JevQuestionSetBuilder
         return this;
     }
 
-    /// <summary>Adds a keyed Choice question with no options yet, which <see cref="Build"/> rejects (JEV001).</summary>
-    /// <param name="key">The question's wire key.</param>
-    /// <param name="instructions">The question: text, or JSON.</param>
-    /// <param name="question">The handle to read the answer with.</param>
-    /// <returns>This builder.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="key"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException"><paramref name="instructions"/> is uninitialized.</exception>
-    public JevQuestionSetBuilder Choice(string key, JevContent instructions, out KeyedChoiceHandle question)
-    {
-        var draft = Draft(key, QuestionKind.Choice, instructions, enumOptions: null, enumMembers: null);
-        question = new KeyedChoiceHandle(_identity, Add(draft));
-        return this;
-    }
-
     /// <summary>Adds a Choice question over string keys known at run time.</summary>
     /// <param name="key">The question's wire key.</param>
     /// <param name="instructions">The question: text, or JSON.</param>
@@ -122,23 +108,6 @@ public sealed class JevQuestionSetBuilder
         ArgumentNullException.ThrowIfNull(configure);
         Configure(draft, () => configure(new KeyedChoiceOptionsBuilder(draft)));
         question = new KeyedChoiceHandle(_identity, Add(draft));
-        return this;
-    }
-
-    /// <summary>Adds a Score question over an enum's members with no level given yet, which <see cref="Build"/> rejects (JEV104).</summary>
-    /// <typeparam name="T">The enum whose members are the levels.</typeparam>
-    /// <param name="key">The question's wire key.</param>
-    /// <param name="instructions">The question: text, or JSON.</param>
-    /// <param name="question">The handle to read the answer with.</param>
-    /// <returns>This builder.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="key"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException"><paramref name="instructions"/> is uninitialized.</exception>
-    public JevQuestionSetBuilder Score<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] T>(
-        string key, JevContent instructions, out ScoreHandle<T> question)
-        where T : struct, Enum
-    {
-        var draft = EnumScoreDraft<T>(key, instructions);
-        question = new ScoreHandle<T>(_identity, Add(draft));
         return this;
     }
 
@@ -162,20 +131,6 @@ public sealed class JevQuestionSetBuilder
         ArgumentNullException.ThrowIfNull(configure);
         Configure(draft, () => configure(new ScoreLevelsBuilder<T>(draft, EnumOptionSet<T>.ForChoice)));
         question = new ScoreHandle<T>(_identity, Add(draft));
-        return this;
-    }
-
-    /// <summary>Adds a keyed Score question with no levels yet, which <see cref="Build"/> rejects (JEV002).</summary>
-    /// <param name="key">The question's wire key.</param>
-    /// <param name="instructions">The question: text, or JSON.</param>
-    /// <param name="question">The handle to read the answer with.</param>
-    /// <returns>This builder.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="key"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException"><paramref name="instructions"/> is uninitialized.</exception>
-    public JevQuestionSetBuilder Score(string key, JevContent instructions, out KeyedScoreHandle question)
-    {
-        var draft = Draft(key, QuestionKind.Score, instructions, enumOptions: null, enumMembers: null);
-        question = new KeyedScoreHandle(_identity, Add(draft));
         return this;
     }
 

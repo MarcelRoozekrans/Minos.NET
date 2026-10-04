@@ -101,8 +101,8 @@ Every question method takes the same first three arguments.
 - **A handle**, as an `out` argument. Keep it: it is how you read this question's answer later.
 
 A fourth argument, the configurator, is a callback that describes the question's options. It is optional for a Noul
-and an enum Choice. A keyed Choice, a keyed Score and an enum Score need one: without it, `Build()` fails with JEV001,
-JEV002 or JEV104. The methods are these.
+and an enum Choice. A keyed Choice, a keyed Score and an enum Score need one, so they have no overload without it. A
+configurator that adds nothing still fails `Build()`, with JEV001, JEV002 or JEV104. The methods are these.
 
 | Method | Question | Handle | Configurator |
 | --- | --- | --- | --- |
@@ -209,8 +209,8 @@ the key of the question at fault, and a message.
 public static IReadOnlyList<string> BrokenRules()
 {
     var built = JevQuestionSet.CreateBuilder()
-        .Choice("team", "Which team should handle this?", out KeyedChoiceHandle _)  // no options
-        .Noul("team", "Is this urgent?", out NoulHandle _)                          // a key used twice
+        .Choice("team", "Which team should handle this?", out KeyedChoiceHandle _, options => { })  // no options
+        .Noul("team", "Is this urgent?", out NoulHandle _)                                          // a key used twice
         .Build();
 
     var broken = new List<string>();

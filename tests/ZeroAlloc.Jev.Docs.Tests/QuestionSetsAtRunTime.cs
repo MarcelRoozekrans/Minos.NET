@@ -111,8 +111,8 @@ public static class RuleChecks
     public static IReadOnlyList<string> BrokenRules()
     {
         var built = JevQuestionSet.CreateBuilder()
-            .Choice("team", "Which team should handle this?", out KeyedChoiceHandle _)  // no options
-            .Noul("team", "Is this urgent?", out NoulHandle _)                          // a key used twice
+            .Choice("team", "Which team should handle this?", out KeyedChoiceHandle _, options => { })  // no options
+            .Noul("team", "Is this urgent?", out NoulHandle _)                                          // a key used twice
             .Build();
 
         var broken = new List<string>();

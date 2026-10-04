@@ -150,7 +150,7 @@ public sealed class QuestionSetsAtRunTimeTests
         Assert.Equal(["JEV106"], Rules(twice.Error));
 
         // JEV001 and JEV002: a keyed Score with no levels. An enum Choice with no options cannot happen, as every member is one.
-        var noLevels = JevQuestionSet.CreateBuilder().Score("s", "How?", out KeyedScoreHandle _).Build();
+        var noLevels = JevQuestionSet.CreateBuilder().Score("s", "How?", out KeyedScoreHandle _, levels => { }).Build();
         Assert.Equal(["JEV002"], Rules(noLevels.Error));
 
         // An empty question key, an empty option key and a repeated option key are JEV106.
@@ -367,8 +367,8 @@ public sealed class QuestionSetsAtRunTimeTests
     {
         var choice = JevQuestionSet.CreateBuilder().Choice("c", "Which?", out ChoiceHandle<Empty> _).Build();
         var score = JevQuestionSet.CreateBuilder().Score("s", "How?", out ScoreHandle<Empty> _, levels => { }).Build();
-        var keyedChoice = JevQuestionSet.CreateBuilder().Choice("c", "Which?", out KeyedChoiceHandle _).Build();
-        var enumScore = JevQuestionSet.CreateBuilder().Score("s", "How?", out ScoreHandle<Priority> _).Build();
+        var keyedChoice = JevQuestionSet.CreateBuilder().Choice("c", "Which?", out KeyedChoiceHandle _, options => { }).Build();
+        var enumScore = JevQuestionSet.CreateBuilder().Score("s", "How?", out ScoreHandle<Priority> _, levels => { }).Build();
 
         Assert.Equal(["JEV001"], Rules(choice.Error));
         Assert.Equal(["JEV002"], Rules(score.Error));

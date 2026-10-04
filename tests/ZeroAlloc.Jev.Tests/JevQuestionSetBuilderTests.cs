@@ -1,3 +1,4 @@
+using System.Reflection;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -125,7 +126,7 @@ public sealed class JevQuestionSetBuilderTests
         var built = JevQuestionSet.CreateBuilder()
             .Score<Frustration>("missing", "How?", out _, l => l.Level(Frustration.Calm, "Calm").Level(Frustration.VeryAngry, "Very angry"))
             .Score<Priority>("aliased", "How?", out _, l => l.Level(Priority.Low, "Low").Level(Priority.High, "High").Level(Priority.Legacy, "Legacy"))
-            .Score<Frustration>("none", "How?", out _)
+            .Score<Frustration>("none", "How?", out _, _ => { })
             .Build();
 
         Assert.True(built.IsFailure);
@@ -142,7 +143,7 @@ public sealed class JevQuestionSetBuilderTests
     public void Build_WithBrokenRules_FailsWithInvalidQuestions()
     {
         var built = JevQuestionSet.CreateBuilder()
-            .Choice("team", "Which team?", out _)
+            .Choice("team", "Which team?", out _, _ => { })
             .Noul(string.Empty, "Anything?", out _)
             .Build();
 
@@ -167,7 +168,21 @@ public sealed class JevQuestionSetBuilderTests
     }
 
     [Fact]
-    public void NullKey_ThrowsOnAllTenQuestionMethods()
+    public void OnlyNoulAndEnumChoice_HaveAnOverloadWithoutAConfigurator()
+    {
+        // A keyed Choice, a keyed Score and an enum Score with nothing configured always fail Build, so none has an overload
+        // that lacks the configurator: the mistake is a compile error instead of a run-time JEV001, JEV002 or JEV104.
+        var withoutConfigurator = typeof(JevQuestionSetBuilder)
+            .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .Where(method => method.GetParameters().Length == 3)
+            .Select(method => method.Name + (method.IsGenericMethodDefinition ? "<T>" : string.Empty))
+            .Order(StringComparer.Ordinal);
+
+        Assert.Equal(["Choice<T>", "Noul"], withoutConfigurator);
+    }
+
+    [Fact]
+    public void NullKey_ThrowsOnAllSevenQuestionMethods()
     {
         var builder = JevQuestionSet.CreateBuilder();
         Action[] calls =
@@ -176,11 +191,8 @@ public sealed class JevQuestionSetBuilderTests
             () => builder.Noul(null!, "x", out _, _ => { }),
             () => builder.Choice<Department>(null!, "x", out _),
             () => builder.Choice<Department>(null!, "x", out _, _ => { }),
-            () => builder.Choice(null!, "x", out _),
             () => builder.Choice(null!, "x", out _, _ => { }),
-            () => builder.Score<Frustration>(null!, "x", out _),
             () => builder.Score<Frustration>(null!, "x", out _, _ => { }),
-            () => builder.Score(null!, "x", out _),
             () => builder.Score(null!, "x", out _, _ => { }),
         ];
 
@@ -292,7 +304,7 @@ public sealed class JevQuestionSetBuilderTests
     public void WarningsAndFailures_AreNotWritableArrays()
     {
         var warned = JevQuestionSet.CreateBuilder().Noul("q", "   ", out _).Build().Value;
-        var failed = JevQuestionSet.CreateBuilder().Choice("team", "Which team?", out _).Build().Error;
+        var failed = JevQuestionSet.CreateBuilder().Choice("team", "Which team?", out _, _ => { }).Build().Error;
 
         Assert.NotEmpty(warned.Warnings);
         Assert.IsNotType<JevQuestionFailure[]>(warned.Warnings);
