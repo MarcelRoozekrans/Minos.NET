@@ -22,7 +22,11 @@ public sealed record ResultFile(MachineInfo Machine, IReadOnlyList<ClientResult>
 /// The mock's own ceiling: completed calls per second of the raw client at 64 workers, so each client's throughput can be
 /// read against it.
 /// </param>
-public sealed record MachineInfo(string Name, string Os, string Cpu, string Date, double MockCeilingPerSecond);
+/// <param name="Cores">
+/// The cores the harness ran on, as a list such as <c>10-19</c>, or <see langword="null"/> when it was not pinned. The
+/// runner gives the mock the other half.
+/// </param>
+public sealed record MachineInfo(string Name, string Os, string Cpu, string Date, double MockCeilingPerSecond, string? Cores);
 
 /// <summary>One client's figures.</summary>
 /// <param name="Client">The client's name.</param>

@@ -109,7 +109,7 @@ public sealed class HarnessTests : IAsyncLifetime
     public void The_result_file_has_the_shared_format()
     {
         var file = new ResultFile(
-            new MachineInfo("box", "Windows", "CPU", "2026-10-04T00:00:00Z", 30000.5),
+            new MachineInfo("box", "Windows", "CPU", "2026-10-04T00:00:00Z", 30000.5, "10-19"),
             [
                 new ClientResult("jevsharp", "JevSharp", "0.2.0", ".NET", "10.0.0", new LatencyFigures(1.5, 1.25, 3), 9000, 16, 1024) { Note = "no auth header" },
                 new ClientResult("jev-net", "Jev.Net", "0.4.0", ".NET", "10.0.0", new LatencyFigures(1, 1, 2), 8000, 16, null),
@@ -119,8 +119,9 @@ public sealed class HarnessTests : IAsyncLifetime
         var root = json.RootElement;
 
         Assert.Equal(["machine", "results"], root.EnumerateObject().Select(p => p.Name));
-        Assert.Equal(["name", "os", "cpu", "date", "mockCeilingPerSecond"], root.GetProperty("machine").EnumerateObject().Select(p => p.Name));
+        Assert.Equal(["name", "os", "cpu", "date", "mockCeilingPerSecond", "cores"], root.GetProperty("machine").EnumerateObject().Select(p => p.Name));
         Assert.Equal(30000.5, root.GetProperty("machine").GetProperty("mockCeilingPerSecond").GetDouble());
+        Assert.Equal("10-19", root.GetProperty("machine").GetProperty("cores").GetString());
         var first = root.GetProperty("results")[0];
         Assert.Equal(
             ["client", "library", "version", "runtime", "runtimeVersion", "latencyMs", "throughputPerSecond", "concurrency", "allocatedBytesPerCall", "note"],

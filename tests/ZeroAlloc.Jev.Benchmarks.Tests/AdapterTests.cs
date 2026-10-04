@@ -138,6 +138,20 @@ public sealed class AdapterTests : IAsyncLifetime, IDisposable
         Assert.Equal(jevBody, rawBody);
     }
 
+    [Fact]
+    public async Task The_raw_baseline_sends_a_content_length_not_a_chunked_body()
+    {
+        using var raw = ClientAdapters.Create(ClientAdapters.Raw, RecorderAddress);
+
+        _ = await raw.CallAsync(CancellationToken.None);
+
+        var request = OnlyRequest(_recorder);
+        var headers = request.Headers!;
+        Assert.Equal([request.BodyAsBytes!.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)], headers["Content-Length"]);
+        Assert.False(headers.ContainsKey("Transfer-Encoding"));
+        Assert.Equal(["application/json"], headers["Content-Type"]);
+    }
+
     [Theory]
     [MemberData(nameof(Clients))]
     public async Task A_failed_call_is_attempted_once(string client)

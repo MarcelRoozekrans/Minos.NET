@@ -19,6 +19,13 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The shared parser and setter of the cores option, one file for the mock and the harness. -->
+    <Compile Include="..\Shared\CoreAffinity.cs" Link="Shared\CoreAffinity.cs" />
+    <!-- The benchmark tests check the shared cores parser through this project's copy. -->
+    <InternalsVisibleTo Include="ZeroAlloc.Jev.Benchmarks.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="BenchmarkDotNet" />
     <PackageReference Include="JevSharp" />
     <PackageReference Include="TypeSafe.AI.Sdk" />

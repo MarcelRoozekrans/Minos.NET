@@ -1,15 +1,20 @@
+using ZeroAlloc.Jev.Benchmarks.Shared;
+
 namespace ZeroAlloc.Jev.Benchmarks.Compare;
 
-/// <summary>The harness's command line: <c>--base-url &lt;url&gt; --out &lt;dir&gt; [--smoke] [--machine &lt;name&gt;]</c>.</summary>
+/// <summary>
+/// The harness's command line: <c>--base-url &lt;url&gt; --out &lt;dir&gt; [--smoke] [--machine &lt;name&gt;] [--cores &lt;mask or list&gt;]</c>.
+/// </summary>
 /// <param name="BaseUrl">The mock's root address.</param>
 /// <param name="OutDirectory">Where the result file and BenchmarkDotNet's artifacts go.</param>
 /// <param name="Smoke">Whether this is a smoke run: BenchmarkDotNet's dry job and a short throughput run.</param>
 /// <param name="Machine">The machine name the result file reports and is named after.</param>
-public sealed record CompareOptions(Uri BaseUrl, string OutDirectory, bool Smoke, string Machine)
+/// <param name="Cores">The cores the harness pins itself to, as a bit mask, or <see langword="null"/> for every core.</param>
+public sealed record CompareOptions(Uri BaseUrl, string OutDirectory, bool Smoke, string Machine, ulong? Cores = null)
 {
     /// <summary>The usage line printed when the arguments are wrong.</summary>
     public const string Usage =
-        "Usage: dotnet run -c Release --project benchmarks/ZeroAlloc.Jev.Benchmarks.Compare -- --base-url <url> --out <dir> [--smoke] [--machine <name>]";
+        "Usage: dotnet run -c Release --project benchmarks/ZeroAlloc.Jev.Benchmarks.Compare -- --base-url <url> --out <dir> [--smoke] [--machine <name>] [--cores <mask or list>]";
 
     /// <summary>Parses the command line.</summary>
     /// <param name="args">The arguments.</param>
@@ -22,6 +27,7 @@ public sealed record CompareOptions(Uri BaseUrl, string OutDirectory, bool Smoke
         string? baseUrl = null;
         string? outDirectory = null;
         string? machine = null;
+        ulong? cores = null;
         var smoke = false;
         for (var i = 0; i < args.Count; i++)
         {
@@ -35,6 +41,9 @@ public sealed record CompareOptions(Uri BaseUrl, string OutDirectory, bool Smoke
                     break;
                 case "--machine":
                     machine = Value(args, ref i);
+                    break;
+                case "--cores":
+                    cores = CoreAffinity.Parse(Value(args, ref i));
                     break;
                 case "--smoke":
                     smoke = true;
@@ -60,7 +69,7 @@ public sealed record CompareOptions(Uri BaseUrl, string OutDirectory, bool Smoke
             throw new ArgumentException("--machine must not be blank.", nameof(args));
         }
 
-        return new CompareOptions(uri, outDirectory, smoke, machine.Trim());
+        return new CompareOptions(uri, outDirectory, smoke, machine.Trim(), cores);
     }
 
     /// <summary>Gets the result file's name, <c>dotnet-&lt;machine&gt;.json</c>, with characters unsafe in a file name replaced.</summary>

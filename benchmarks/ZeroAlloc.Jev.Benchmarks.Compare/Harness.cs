@@ -5,6 +5,7 @@ using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Reports;
 using BenchmarkDotNet.Running;
 using ZeroAlloc.Jev.Benchmarks.Compare.Adapters;
+using ZeroAlloc.Jev.Benchmarks.Shared;
 
 namespace ZeroAlloc.Jev.Benchmarks.Compare;
 
@@ -139,6 +140,12 @@ public sealed class Harness(CompareOptions options, TextWriter log)
     {
         var job = (options.Smoke ? Job.Dry : Job.ShortRun)
             .WithEnvironmentVariables(new EnvironmentVariable(CompareBenchmarks.BaseUrlVariable, options.BaseUrl.AbsoluteUri));
+        if (options.Cores is { } cores)
+        {
+            // BenchmarkDotNet's benchmark processes run on the harness's cores too.
+            job = job.WithAffinity(unchecked((nint)cores));
+        }
+
         var config = DefaultConfig.Instance
             .AddJob(job)
             .WithArtifactsPath(Path.Combine(options.OutDirectory, "BenchmarkDotNet.Artifacts"));
@@ -156,7 +163,8 @@ public sealed class Harness(CompareOptions options, TextWriter log)
         RuntimeInformation.OSDescription,
         summary.HostEnvironmentInfo.Cpu.Value?.ProcessorName ?? RuntimeInformation.ProcessArchitecture.ToString(),
         DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture),
-        Math.Round(mockCeilingPerSecond, 1));
+        Math.Round(mockCeilingPerSecond, 1),
+        options.Cores is { } cores ? CoreAffinity.Describe(cores) : null);
 
     private static List<ClientResult> Results(Summary summary, Dictionary<string, ClientMeasurement> measured)
     {

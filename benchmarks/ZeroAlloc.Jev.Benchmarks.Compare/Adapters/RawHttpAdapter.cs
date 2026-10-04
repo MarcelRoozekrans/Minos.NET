@@ -1,21 +1,24 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace ZeroAlloc.Jev.Benchmarks.Compare.Adapters;
 
 /// <summary>
-/// The baseline: what a careful developer writes by hand with <see cref="HttpClient"/> and System.Text.Json. It posts
-/// the request body ZeroAlloc.Jev sends for the workload and reads the answers into plain records, both through a
-/// source-generated <see cref="JsonSerializerContext"/>, over <see cref="BenchmarkTransport"/>'s <see cref="HttpClient"/>.
-/// One attempt, no retries.
+/// The baseline: what a careful developer writes by hand with <see cref="HttpClient"/> and System.Text.Json. It
+/// serializes the request body ZeroAlloc.Jev sends for the workload once, posts those bytes with a <c>Content-Length</c>
+/// as every library does, and reads the answers into plain records, both through a source-generated
+/// <see cref="JsonSerializerContext"/>, over <see cref="BenchmarkTransport"/>'s <see cref="HttpClient"/>. One attempt,
+/// no retries.
 /// </summary>
 public sealed class RawHttpAdapter : IClientAdapter
 {
     private static readonly Uri SystemOnePath = new("v1/systemone", UriKind.Relative);
+    private static readonly MediaTypeHeaderValue Json = new("application/json");
 
     private readonly HttpClient _http;
-    private readonly RawRequest _request;
+    private readonly byte[] _body;
 
     /// <summary>Initializes a new instance of the <see cref="RawHttpAdapter"/> class.</summary>
     /// <param name="baseAddress">The mock's root address; requests go to <c>v1/systemone</c> under it.</param>
@@ -30,12 +33,13 @@ public sealed class RawHttpAdapter : IClientAdapter
             criteria[option] = description;
         }
 
-        _request = new RawRequest(
+        var request = new RawRequest(
             Workload.State,
             Workload.Model,
             new RawQuestions(
                 new RawChoiceQuestion("choice", Workload.IntentInstructions, criteria),
                 new RawNoulQuestion("noul", Workload.TravelsSoonInstructions)));
+        _body = JsonSerializer.SerializeToUtf8Bytes(request, RawJsonContext.Default.RawRequest);
     }
 
     /// <inheritdoc/>
@@ -73,7 +77,9 @@ public sealed class RawHttpAdapter : IClientAdapter
 
     private async Task<RawResponse> PostAsync(CancellationToken cancellationToken)
     {
-        using var content = JsonContent.Create(_request, RawJsonContext.Default.RawRequest);
+        // A ByteArrayContent knows its length, so the request carries a Content-Length instead of a chunked body.
+        using var content = new ByteArrayContent(_body);
+        content.Headers.ContentType = Json;
         using var response = await _http.PostAsync(SystemOnePath, content, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
         return await response.Content.ReadFromJsonAsync(RawJsonContext.Default.RawResponse, cancellationToken).ConfigureAwait(false)

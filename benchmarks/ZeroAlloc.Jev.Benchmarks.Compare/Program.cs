@@ -1,4 +1,5 @@
 using ZeroAlloc.Jev.Benchmarks.Compare;
+using ZeroAlloc.Jev.Benchmarks.Shared;
 
 CompareOptions options;
 try
@@ -14,9 +15,24 @@ catch (ArgumentException e)
 
 try
 {
+    if (options.Cores is { } cores)
+    {
+        CoreAffinity.Apply(cores);
+    }
+
     var path = await new Harness(options, Console.Out).RunAsync(CancellationToken.None).ConfigureAwait(false);
     Console.WriteLine("Wrote " + path);
     return 0;
+}
+catch (ArgumentException e)
+{
+    await Console.Error.WriteLineAsync(e.Message).ConfigureAwait(false);
+    return 2;
+}
+catch (PlatformNotSupportedException e)
+{
+    await Console.Error.WriteLineAsync(e.Message).ConfigureAwait(false);
+    return 2;
 }
 catch (InvalidOperationException e)
 {

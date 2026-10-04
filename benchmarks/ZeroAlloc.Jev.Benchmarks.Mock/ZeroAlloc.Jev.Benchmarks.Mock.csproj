@@ -11,6 +11,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The shared parser and setter of the cores option, one file for the mock and the harness. -->
+    <Compile Include="..\Shared\CoreAffinity.cs" Link="Shared\CoreAffinity.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <!-- The recorded answer the host serves, copied next to the executable and loaded from disk at startup. -->
     <None Include="..\compare\workload\response.json" Link="response.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
