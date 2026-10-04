@@ -75,6 +75,7 @@ public sealed class JevCriterion
 
     /// <summary>Converts a plain text to a criterion.</summary>
     /// <param name="description">What the option or level means.</param>
+    /// <returns>The criterion.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="description"/> is <see langword="null"/>.</exception>
     public static implicit operator JevCriterion(string description) => Text(description);
 

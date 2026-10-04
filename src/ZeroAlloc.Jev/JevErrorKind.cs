@@ -27,7 +27,10 @@ public enum JevErrorKind
     /// </summary>
     Server = 5,
 
-    /// <summary>Any other unsuccessful HTTP status.</summary>
+    /// <summary>
+    /// Any other unsuccessful HTTP status. For a 408, the client already retries this with backoff, and returns it only
+    /// after <see cref="JevClientOptions.MaxRetries"/> retries are used up.
+    /// </summary>
     Http = 6,
 
     /// <summary>

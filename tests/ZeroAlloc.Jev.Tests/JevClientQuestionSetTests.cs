@@ -136,6 +136,24 @@ public sealed class JevClientQuestionSetTests : IDisposable
         Assert.Equal(0, pool.Outstanding);
     }
 
+    [Fact]
+    public async Task OptionsModel_IsSentForABuiltSet_AsReadWhenTheClientWasConstructed()
+    {
+        var set = Set(out _, out _, out _, out _);
+        var handler = StubHandler.Json(HttpStatusCode.OK, ResponseJson);
+        var http = new HttpClient(handler);
+        _httpClients.Add(http);
+        var options = new JevClientOptions { ApiKey = "test-key", Model = "jev-first", MaxRetries = 0 };
+        using var client = new JevClient(http, options);
+
+        // The client resolved its options when it was constructed, so a later change does not reach it.
+        options.Model = "jev-second";
+        var result = await client.EvaluateAsync(set, "x", CancellationToken.None);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("jev-first", JsonNode.Parse(OnlyRequest(handler).Body!)!["model"]!.GetValue<string>());
+    }
+
     private async Task AssertBothPathsAgree(JevContent state)
     {
         var set = Set(out var urgent, out var department, out var product, out var effort);

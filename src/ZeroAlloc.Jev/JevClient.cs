@@ -19,7 +19,8 @@ namespace ZeroAlloc.Jev;
 /// <see cref="ILoggerFactory"/> to log each operation, each retried attempt and each unexpected exception. What the
 /// library writes never contains the state, questions, answers, API key, a header value or an error response body; the
 /// unexpected-exception event carries the exception as thrown, which can include one from your own handler.
-/// Spans and metrics come from the ZeroAlloc.Jev ActivitySource and Meter; see the README's Telemetry section.
+/// Spans and metrics come from the ZeroAlloc.Jev ActivitySource and Meter; see the
+/// <see href="https://jev.zeroalloc.net/observability">observability guide</see>.
 /// </remarks>
 public sealed class JevClient : IJevClient, IDisposable
 {

@@ -73,6 +73,7 @@ public readonly struct KeyedProbabilityMap : IEquatable<KeyedProbabilityMap>
     public static bool operator !=(KeyedProbabilityMap left, KeyedProbabilityMap right) => !left.Equals(right);
 
     /// <summary>Returns an enumerator over the keys and their probabilities, in wire order.</summary>
+    /// <returns>The enumerator.</returns>
     public Enumerator GetEnumerator() => new(this);
 
     /// <inheritdoc />
