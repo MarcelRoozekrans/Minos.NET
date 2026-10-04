@@ -243,7 +243,7 @@ compress_memory: disabled
 **Surface:** Backend
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-10-04-phase-5.2-benchmark-suite-design.md`
-**Plan:** _to be written_
+**Plan:** `docs/superpowers/plans/2026-10-04-phase-5.2-benchmark-suite.md`
 
 ### Phase 5.3: Live, AOT and alias verification [status: pending]
 **Goal:** Pass the TypeSafe live suite and record its Retry-After and 422 behaviour, check the `jev-latest` and `jev-preview` aliases live, verify AOT and trim across the whole API, and close #68, #73, #74 and #79.
