@@ -50,15 +50,15 @@ public static class ReadmeExample
 {
     // A one-off run. The client reads TYPESAFE_API_KEY. A long-running app creates one client and shares it, or
     // registers it with AddJevClient.
-    public static async Task<string> RunAsync(string message, CancellationToken ct)
+    public static async Task<string> RunAsync(string message, CancellationToken cancellationToken)
     {
         using var jev = new JevClient();
-        return await RouteAsync(jev, message, ct);
+        return await RouteAsync(jev, message, cancellationToken);
     }
 
-    public static async Task<string> RouteAsync(IJevClient jev, string message, CancellationToken ct)
+    public static async Task<string> RouteAsync(IJevClient jev, string message, CancellationToken cancellationToken)
     {
-        var result = await jev.EvaluateAsync<Triage>(message, ct);
+        var result = await jev.EvaluateAsync<Triage>(message, cancellationToken);
         return result.IsFailure
             ? $"{result.Error.Kind}: {result.Error.Message}"
             : $"urgent: {result.Value.IsUrgent.Value}, queue: {result.Value.Queue.Value}";

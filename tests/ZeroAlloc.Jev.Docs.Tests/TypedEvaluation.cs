@@ -78,12 +78,12 @@ public static class TicketReviewing
 {
     #region TypedEvaluation_Evaluate
     public static async Task<(bool Urgent, Desk Desk, Impact Impact)?> ReviewAsync(
-        IJevClient jev, SupportTicket ticket, CancellationToken ct)
+        IJevClient jev, SupportTicket ticket, CancellationToken cancellationToken)
     {
         // The state type and its JSON metadata travel together. The call serializes the ticket and sends it
         // with the questions.
         var result = await jev.EvaluateAsync<TicketReview, SupportTicket>(
-            ticket, SupportTicketJson.Default.SupportTicket, ct);
+            ticket, SupportTicketJson.Default.SupportTicket, cancellationToken);
         if (result.IsFailure)
         {
             return null;
@@ -97,17 +97,21 @@ public static class TicketReviewing
     #region TypedEvaluation_OtherStates
     // A question set without a State type takes its state as text, as a JsonElement or as UTF-8 JSON.
     public static async Task<int> EvaluateEachFormAsync(
-        IJevClient jev, string text, JsonElement element, ReadOnlyMemory<byte> utf8Json, CancellationToken ct)
+        IJevClient jev,
+        string text,
+        JsonElement element,
+        ReadOnlyMemory<byte> utf8Json,
+        CancellationToken cancellationToken)
     {
         var succeeded = 0;
 
-        var fromText = await jev.EvaluateAsync<UrgencyCheck>(text, ct);
+        var fromText = await jev.EvaluateAsync<UrgencyCheck>(text, cancellationToken);
         succeeded += fromText.IsSuccess ? 1 : 0;
 
-        var fromElement = await jev.EvaluateAsync<UrgencyCheck>(element, ct);
+        var fromElement = await jev.EvaluateAsync<UrgencyCheck>(element, cancellationToken);
         succeeded += fromElement.IsSuccess ? 1 : 0;
 
-        var fromUtf8 = await jev.EvaluateUtf8Async<UrgencyCheck>(utf8Json, ct);
+        var fromUtf8 = await jev.EvaluateUtf8Async<UrgencyCheck>(utf8Json, cancellationToken);
         succeeded += fromUtf8.IsSuccess ? 1 : 0;
 
         return succeeded;

@@ -18,7 +18,7 @@ public static class ObservedLogging
     // A client logs through the ILoggerFactory it is given. FakeLoggerProvider keeps every record in memory, which
     // is what a test wants. An application would add its own provider instead, such as the console or Serilog.
     public static async Task<IReadOnlyList<FakeLogRecord>> EvaluateAndCollectAsync(
-        HttpClient http, JevClientOptions options, CancellationToken ct)
+        HttpClient http, JevClientOptions options, CancellationToken cancellationToken)
     {
         using var provider = new FakeLoggerProvider();
         using var loggers = LoggerFactory.Create(builder => builder
@@ -27,7 +27,7 @@ public static class ObservedLogging
         using var jev = new JevClient(http, options, loggers);
 
         // The result is not inspected here: each outcome, a success or a failure, is one log event.
-        await jev.EvaluateAsync<ObservedUrgency>("Help! The server is down.", ct);
+        await jev.EvaluateAsync<ObservedUrgency>("Help! The server is down.", cancellationToken);
 
         return provider.Collector.GetSnapshot();
     }

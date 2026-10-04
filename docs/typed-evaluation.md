@@ -120,8 +120,8 @@ A few things in that declaration are worth reading closely.
 - **`Examples` and `NotFor` sharpen a description.** `Examples` lists texts that belong to the option, and `NotFor`
   lists texts that only look as if they do. With either set and non-empty, the generator sends a criterion object in
   place of a plain string for that option or level. Empty arrays and `null` entries are left out.
-- **`WhenTrue` and `WhenFalse` describe a Noul's answers.** They say what a yes and a no mean for that question. Both are
-  optional.
+- **`WhenTrue` and `WhenFalse` describe a Noul's answers.** They say what a yes and a no mean for that question. Both
+  are optional.
 - **`State = typeof(SupportTicket)` links the set to its state type.** The generated type then implements
   `IJevQuestionSet<TicketReview, SupportTicket>`. The type must be a class, struct, record or array type.
 
@@ -191,12 +191,12 @@ ways. Check `IsFailure` before reading `Value`.
 <!-- snippet: TypedEvaluation_Evaluate -->
 ```cs
 public static async Task<(bool Urgent, Desk Desk, Impact Impact)?> ReviewAsync(
-    IJevClient jev, SupportTicket ticket, CancellationToken ct)
+    IJevClient jev, SupportTicket ticket, CancellationToken cancellationToken)
 {
     // The state type and its JSON metadata travel together. The call serializes the ticket and sends it
     // with the questions.
     var result = await jev.EvaluateAsync<TicketReview, SupportTicket>(
-        ticket, SupportTicketJson.Default.SupportTicket, ct);
+        ticket, SupportTicketJson.Default.SupportTicket, cancellationToken);
     if (result.IsFailure)
     {
         return null;
@@ -246,17 +246,21 @@ public partial record UrgencyCheck
 ```cs
 // A question set without a State type takes its state as text, as a JsonElement or as UTF-8 JSON.
 public static async Task<int> EvaluateEachFormAsync(
-    IJevClient jev, string text, JsonElement element, ReadOnlyMemory<byte> utf8Json, CancellationToken ct)
+    IJevClient jev,
+    string text,
+    JsonElement element,
+    ReadOnlyMemory<byte> utf8Json,
+    CancellationToken cancellationToken)
 {
     var succeeded = 0;
 
-    var fromText = await jev.EvaluateAsync<UrgencyCheck>(text, ct);
+    var fromText = await jev.EvaluateAsync<UrgencyCheck>(text, cancellationToken);
     succeeded += fromText.IsSuccess ? 1 : 0;
 
-    var fromElement = await jev.EvaluateAsync<UrgencyCheck>(element, ct);
+    var fromElement = await jev.EvaluateAsync<UrgencyCheck>(element, cancellationToken);
     succeeded += fromElement.IsSuccess ? 1 : 0;
 
-    var fromUtf8 = await jev.EvaluateUtf8Async<UrgencyCheck>(utf8Json, ct);
+    var fromUtf8 = await jev.EvaluateUtf8Async<UrgencyCheck>(utf8Json, cancellationToken);
     succeeded += fromUtf8.IsSuccess ? 1 : 0;
 
     return succeeded;

@@ -75,10 +75,10 @@ public sealed class TenantRouter
     }
 
     public async Task<(bool Urgent, string Team, Priority Priority)?> RouteAsync(
-        IJevClient jev, string message, CancellationToken ct)
+        IJevClient jev, string message, CancellationToken cancellationToken)
     {
         // The state is a JevContent. Text converts to one, so a string can be passed as it is.
-        var result = await jev.EvaluateAsync(_questions, message, ct);
+        var result = await jev.EvaluateAsync(_questions, message, cancellationToken);
         if (result.IsFailure)
         {
             return null;
@@ -170,11 +170,11 @@ no question.
 
 ## Evaluating and reading
 
-Evaluate a built set with `EvaluateAsync(questionSet, state, ct)`. The state is a `JevContent`, so a string passes as it
-is. The result holds a `JevAnswers`, and `answers.Get(handle)` returns the answer for that handle's question, as the
-same types a typed set uses: `Noul`, `Choice<T>`, `Score<T>`, `KeyedChoice` and `KeyedScore`. `TenantRouter.RouteAsync`
-above shows the whole path. [Question types](question-types.md) covers what those answers hold, and what is free to
-read.
+Evaluate a built set with `EvaluateAsync(questionSet, state, cancellationToken)`. The state is a `JevContent`, so a
+string passes as it is. The result holds a `JevAnswers`, and `answers.Get(handle)` returns the answer for that handle's
+question, as the same types a typed set uses: `Noul`, `Choice<T>`, `Score<T>`, `KeyedChoice` and `KeyedScore`.
+`TenantRouter.RouteAsync` above shows the whole path. [Question types](question-types.md) covers what those answers
+hold, and what is free to read.
 
 A response that is missing the answer to one of the set's questions fails the call with `JevErrorKind.InvalidResponse`.
 Answers to keys the set does not contain are ignored.

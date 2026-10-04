@@ -335,7 +335,7 @@ layer.
 ```cs
 // The raw API names its own model and questions, with ids you choose. Use it when the questions are not known at
 // compile time and the question set builder does not fit. Typed evaluation is shorter wherever it can be used.
-public static async Task<string> UrgencyAsync(IJevClient jev, string message, CancellationToken ct)
+public static async Task<string> UrgencyAsync(IJevClient jev, string message, CancellationToken cancellationToken)
 {
     var result = await jev.EvaluateAsync(
         new SystemOneRequest
@@ -346,7 +346,7 @@ public static async Task<string> UrgencyAsync(IJevClient jev, string message, Ca
                 ["is_urgent"] = new NoulQuestion { Instructions = "Does this convey urgency?" },
             },
         },
-        ct);
+        cancellationToken);
 
     if (result.IsFailure)
     {
@@ -381,9 +381,9 @@ where the generator, the [analyzers](diagnostics.md) and the
 
 <!-- snippet: ClientAndErrors_Models -->
 ```cs
-public static async Task<string> ModelsAsync(IJevClient jev, CancellationToken ct)
+public static async Task<string> ModelsAsync(IJevClient jev, CancellationToken cancellationToken)
 {
-    var result = await jev.ListModelsAsync(ct);
+    var result = await jev.ListModelsAsync(cancellationToken);
     if (result.IsFailure)
     {
         return ClientFailures.Describe(result.Error);

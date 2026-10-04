@@ -106,9 +106,10 @@ public static class ReviewRouting
 public static class ReviewTriage
 {
     #region FanOutCall
-    public static async Task<ReviewActions?> TriageAsync(IJevClient jev, string reviewText, CancellationToken ct)
+    public static async Task<ReviewActions?> TriageAsync(
+        IJevClient jev, string reviewText, CancellationToken cancellationToken)
     {
-        var result = await jev.EvaluateAsync<AppReview>(reviewText, ct);
+        var result = await jev.EvaluateAsync<AppReview>(reviewText, cancellationToken);
         // On failure, result.Error.Kind and .Message say why: log them and leave the review for a person.
         return result.IsSuccess ? ReviewRouting.Route(result.Value) : null;
     }
@@ -153,9 +154,10 @@ public sealed class BuiltReviewTriage
         _questions = built.IsSuccess ? built.Value : throw new InvalidOperationException(built.Error.Message);
     }
 
-    public async Task<ReviewActions?> TriageAsync(IJevClient jev, string reviewText, CancellationToken ct)
+    public async Task<ReviewActions?> TriageAsync(
+        IJevClient jev, string reviewText, CancellationToken cancellationToken)
     {
-        var result = await jev.EvaluateAsync(_questions, reviewText, ct);
+        var result = await jev.EvaluateAsync(_questions, reviewText, cancellationToken);
         if (result.IsFailure)
         {
             return null;

@@ -33,17 +33,17 @@ public static class GettingStartedClients
     #region GettingStarted_Clients
     // TypeSafe is the default provider. With no ApiKey set, the client reads TYPESAFE_API_KEY.
     // JevClient is disposable and meant to be long-lived: create it once, share it, and dispose it at shutdown.
-    public static async Task<string> ViaTypeSafeAsync(string message, CancellationToken ct)
+    public static async Task<string> ViaTypeSafeAsync(string message, CancellationToken cancellationToken)
     {
         using var jev = new JevClient(new JevClientOptions());
-        return await GettingStartedEvaluation.TriageAsync(jev, message, ct);
+        return await GettingStartedEvaluation.TriageAsync(jev, message, cancellationToken);
     }
 
     // OpenRouter: name the provider. With no ApiKey set, the client reads OPENROUTER_API_KEY.
-    public static async Task<string> ViaOpenRouterAsync(string message, CancellationToken ct)
+    public static async Task<string> ViaOpenRouterAsync(string message, CancellationToken cancellationToken)
     {
         using var jev = new JevClient(new JevClientOptions { Provider = JevProvider.OpenRouter });
-        return await GettingStartedEvaluation.TriageAsync(jev, message, ct);
+        return await GettingStartedEvaluation.TriageAsync(jev, message, cancellationToken);
     }
     #endregion
 }
@@ -51,9 +51,9 @@ public static class GettingStartedClients
 public static class GettingStartedEvaluation
 {
     #region GettingStarted_Evaluate
-    public static async Task<string> TriageAsync(IJevClient jev, string message, CancellationToken ct)
+    public static async Task<string> TriageAsync(IJevClient jev, string message, CancellationToken cancellationToken)
     {
-        var result = await jev.EvaluateAsync<TicketCheck>(message, ct);
+        var result = await jev.EvaluateAsync<TicketCheck>(message, cancellationToken);
 
         // Every outcome comes back as a value, so check for failure before reading the answers: a network
         // error, a rejected key and an unreadable response all arrive here, with a Kind and a Message.
