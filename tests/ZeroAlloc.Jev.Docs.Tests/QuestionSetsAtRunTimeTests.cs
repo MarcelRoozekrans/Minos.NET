@@ -346,7 +346,7 @@ public sealed class QuestionSetsAtRunTimeTests
 
     private sealed class FakeClient : IJevClient
     {
-        public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken ct)
+        public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken cancellationToken)
             => ValueTask.FromResult(Result<SystemOneResponse, JevError>.Success(new SystemOneResponse
             {
                 Model = "fake",
@@ -354,7 +354,7 @@ public sealed class QuestionSetsAtRunTimeTests
                 Usage = new JevUsage { InputTokens = 1, OutputTokens = 1 },
             }));
 
-        public ValueTask<Result<ModelList, JevError>> ListModelsAsync(CancellationToken ct = default)
+        public ValueTask<Result<ModelList, JevError>> ListModelsAsync(CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
     }
 

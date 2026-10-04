@@ -1,4 +1,5 @@
 using System.Net;
+using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using ZeroAlloc.Jev.Serialization;
@@ -336,6 +337,22 @@ public sealed class JevClientTests : IDisposable
 
     private static JevClient Owning(StubHandler handler, TimeSpan? timeout = null)
         => new(Settings(timeout: timeout), httpClient: null, handler, TimeProvider.System);
+
+    [Theory]
+    [InlineData(typeof(IJevClient))]
+    [InlineData(typeof(JevClient))]
+    public void EveryCancellationTokenParameter_IsNamedCancellationToken(Type type)
+    {
+        // A parameter name is public API: callers can pass the token by name, as the BCL names it.
+        var names = type.GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
+            .SelectMany(method => method.GetParameters())
+            .Where(parameter => parameter.ParameterType == typeof(CancellationToken))
+            .Select(parameter => parameter.Name)
+            .ToArray();
+
+        Assert.Equal(7, names.Length);
+        Assert.All(names, name => Assert.Equal("cancellationToken", name));
+    }
 
     private static SystemOneRequest NoulRequest()
         => JsonSerializer.Deserialize(Fixture.Text("request-noul.json"), JevJsonContext.Default.SystemOneRequest)!;

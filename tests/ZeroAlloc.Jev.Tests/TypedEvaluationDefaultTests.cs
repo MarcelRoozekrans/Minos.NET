@@ -268,14 +268,14 @@ public sealed class TypedEvaluationDefaultTests
                 Usage = new JevUsage { InputTokens = 1, OutputTokens = 1 },
             }));
 
-        public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken ct)
+        public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken cancellationToken)
         {
             Requests.Add(request);
-            LastToken = ct;
+            LastToken = cancellationToken;
             return ValueTask.FromResult(result);
         }
 
-        public ValueTask<Result<ModelList, JevError>> ListModelsAsync(CancellationToken ct = default)
+        public ValueTask<Result<ModelList, JevError>> ListModelsAsync(CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
     }
 }

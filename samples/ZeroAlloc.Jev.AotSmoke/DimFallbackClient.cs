@@ -9,9 +9,9 @@ namespace ZeroAlloc.Jev.AotSmoke;
 /// </summary>
 internal sealed class DimFallbackClient(SystemOneResponse response) : IJevClient
 {
-    public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken ct)
+    public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken cancellationToken)
         => new(Result<SystemOneResponse, JevError>.Success(response));
 
-    public ValueTask<Result<ModelList, JevError>> ListModelsAsync(CancellationToken ct = default)
+    public ValueTask<Result<ModelList, JevError>> ListModelsAsync(CancellationToken cancellationToken = default)
         => throw new NotSupportedException("Not exercised by the smoke app.");
 }

@@ -148,13 +148,13 @@ public sealed class FakeJev(Result<SystemOneResponse, JevError> reply) : IJevCli
             RetryAfter = retryAfter,
         }));
 
-    public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken ct)
+    public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken cancellationToken)
     {
         _requests.Add(request);
         return ValueTask.FromResult(reply);
     }
 
-    public ValueTask<Result<ModelList, JevError>> ListModelsAsync(CancellationToken ct = default)
+    public ValueTask<Result<ModelList, JevError>> ListModelsAsync(CancellationToken cancellationToken = default)
         => throw new NotSupportedException("This fake does not list models.");
 }
 ```
