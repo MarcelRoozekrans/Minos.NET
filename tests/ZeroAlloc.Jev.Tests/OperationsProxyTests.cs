@@ -108,7 +108,7 @@ public sealed class OperationsProxyTests
     {
         const string Message = "a message that must not leak";
         using var capture = new TelemetryCapture();
-        var proxy = new JevOperationsInstrumented(new FakeOperations("{}") { Error = new JevError(JevErrorKind.RateLimited, Message, 429) });
+        var proxy = new JevOperationsInstrumented(new FakeOperations("{}") { Error = new JevError(JevErrorKind.RateLimited, Message) { StatusCode = 429 } });
 
         var failed = operation switch
         {
@@ -249,7 +249,7 @@ public sealed class OperationsProxyTests
     public async Task ListModelsFailure_CarriesItsErrorType()
     {
         using var capture = new TelemetryCapture();
-        var proxy = new JevOperationsInstrumented(new FakeOperations("{}") { Error = new JevError(JevErrorKind.Unauthorized, "no", 401) });
+        var proxy = new JevOperationsInstrumented(new FakeOperations("{}") { Error = new JevError(JevErrorKind.Unauthorized, "no") { StatusCode = 401 } });
 
         await proxy.ListModelsAsync("typesafe", Endpoint, CancellationToken.None);
 

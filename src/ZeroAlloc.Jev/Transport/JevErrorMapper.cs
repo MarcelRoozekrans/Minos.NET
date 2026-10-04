@@ -15,20 +15,24 @@ internal sealed class JevErrorMapper(TimeProvider time) : IHttpErrorMapper<JevEr
         return error.Kind switch
         {
             HttpErrorKind.Status => FromStatus(error),
-            HttpErrorKind.Timeout => new JevError(JevErrorKind.Timeout, "The request timed out.", exception: error.Exception),
+            HttpErrorKind.Timeout => new JevError(JevErrorKind.Timeout, "The request timed out.") { Exception = error.Exception },
             HttpErrorKind.Transport => new JevError(
-                JevErrorKind.Network, error.Message ?? "The request could not be sent.", exception: error.Exception),
+                JevErrorKind.Network, error.Message ?? "The request could not be sent.") { Exception = error.Exception },
             HttpErrorKind.Deserialization => new JevError(
                 JevErrorKind.InvalidResponse,
-                error.Message ?? "The response could not be read.",
-                (int)error.StatusCode,
-                exception: error.Exception),
+                error.Message ?? "The response could not be read.")
+            {
+                StatusCode = (int)error.StatusCode,
+                Exception = error.Exception,
+            },
             // Defensive: a future ZeroAlloc.Rest release may add a kind this mapper does not know about yet.
             _ => new JevError(
                 JevErrorKind.InvalidResponse,
-                "Unrecognized error kind " + error.Kind.ToString() + ".",
-                (int)error.StatusCode,
-                exception: error.Exception),
+                "Unrecognized error kind " + error.Kind.ToString() + ".")
+            {
+                StatusCode = (int)error.StatusCode,
+                Exception = error.Exception,
+            },
         };
     }
 
@@ -47,10 +51,12 @@ internal sealed class JevErrorMapper(TimeProvider time) : IHttpErrorMapper<JevEr
 
         return new JevError(
             kind,
-            "The API returned HTTP " + status.ToString(CultureInfo.InvariantCulture) + ".",
-            status,
-            RetryAfter(error),
-            Detail(error));
+            "The API returned HTTP " + status.ToString(CultureInfo.InvariantCulture) + ".")
+        {
+            StatusCode = status,
+            RetryAfter = RetryAfter(error),
+            Detail = Detail(error),
+        };
     }
 
     private TimeSpan? RetryAfter(HttpError error)

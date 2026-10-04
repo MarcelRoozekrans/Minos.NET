@@ -189,7 +189,7 @@ public sealed class TypedEvaluationDefaultTests
     [Fact]
     public async Task FailedResponse_ReturnsTheSameError()
     {
-        var error = new JevError(JevErrorKind.RateLimited, "Slow down.", statusCode: 429);
+        var error = new JevError(JevErrorKind.RateLimited, "Slow down.") { StatusCode = 429 };
         IJevClient client = new FakeClient(Result<SystemOneResponse, JevError>.Failure(error));
 
         var result = await client.EvaluateAsync<UrgencyCheck>("text");

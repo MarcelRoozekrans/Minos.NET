@@ -226,7 +226,7 @@ public sealed class JevLogTests
     public void SafeMessage_ReplacesAnInvalidResponseMessage_WhichCanQuoteTheResponse()
         => Assert.Equal(
             JevLog.UnreadableResponse,
-            JevLog.SafeMessage(new JevError(JevErrorKind.InvalidResponse, "'secret' is not one of the options.", 200)));
+            JevLog.SafeMessage(new JevError(JevErrorKind.InvalidResponse, "'secret' is not one of the options.") { StatusCode = 200 }));
 
     [Theory]
     [InlineData(LogLevel.Debug)]
