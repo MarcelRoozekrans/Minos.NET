@@ -55,19 +55,19 @@ public sealed class JevError
     public string Message { get; }
 
     /// <summary>Gets the HTTP status code, or <see langword="null"/> when no response arrived.</summary>
-    public int? StatusCode { get; }
+    public int? StatusCode { get; init; }
 
     /// <summary>
     /// Gets how long the service asked the caller to wait, from the <c>retry-after-ms</c> header, which takes
     /// precedence, or the <c>Retry-After</c> header, or <see langword="null"/> when neither was set.
     /// </summary>
-    public TimeSpan? RetryAfter { get; }
+    public TimeSpan? RetryAfter { get; init; }
 
     /// <summary>Gets the error response body when it is JSON, for example the field a 422 rejected.</summary>
-    public JsonElement? Detail { get; }
+    public JsonElement? Detail { get; init; }
 
     /// <summary>Gets the exception behind a network, time-out or response-reading failure.</summary>
-    public Exception? Exception { get; }
+    public Exception? Exception { get; init; }
 
     /// <summary>
     /// Gets the rules a question set built with <see cref="JevQuestionSetBuilder"/> breaks, when <see cref="Kind"/> is

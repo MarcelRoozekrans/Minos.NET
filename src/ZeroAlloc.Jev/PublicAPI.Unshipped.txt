@@ -9,3 +9,7 @@
 *REMOVED*ZeroAlloc.Jev.NoulAttribute.Json.set -> void
 *REMOVED*ZeroAlloc.Jev.ScoreAttribute.Json.get -> bool
 *REMOVED*ZeroAlloc.Jev.ScoreAttribute.Json.set -> void
+ZeroAlloc.Jev.JevError.Detail.init -> void
+ZeroAlloc.Jev.JevError.Exception.init -> void
+ZeroAlloc.Jev.JevError.RetryAfter.init -> void
+ZeroAlloc.Jev.JevError.StatusCode.init -> void

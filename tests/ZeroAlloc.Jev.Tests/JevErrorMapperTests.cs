@@ -215,5 +215,40 @@ public sealed class JevErrorMapperTests
     public void JevError_OfAnyOtherKind_HasNoFailures()
         => Assert.Empty(new JevError(JevErrorKind.Validation, "bad").Failures);
 
+    [Fact]
+    public void JevError_InitProperties_RoundTrip()
+    {
+        var exception = new InvalidOperationException("boom");
+        using var document = JsonDocument.Parse("{\"field\":\"x\"}");
+        var detail = document.RootElement.Clone();
+
+        var error = new JevError(JevErrorKind.Validation, "bad")
+        {
+            StatusCode = 422,
+            RetryAfter = TimeSpan.FromSeconds(3),
+            Detail = detail,
+            Exception = exception,
+        };
+
+        Assert.Equal(JevErrorKind.Validation, error.Kind);
+        Assert.Equal("bad", error.Message);
+        Assert.Equal(422, error.StatusCode);
+        Assert.Equal(TimeSpan.FromSeconds(3), error.RetryAfter);
+        Assert.Equal("x", error.Detail?.GetProperty("field").GetString());
+        Assert.Same(exception, error.Exception);
+        Assert.Empty(error.Failures);
+    }
+
+    [Fact]
+    public void JevError_WithoutInitProperties_LeavesThemNull()
+    {
+        var error = new JevError(JevErrorKind.Network, "down");
+
+        Assert.Null(error.StatusCode);
+        Assert.Null(error.RetryAfter);
+        Assert.Null(error.Detail);
+        Assert.Null(error.Exception);
+    }
+
     private static Dictionary<string, IReadOnlyList<string>> Headers() => [];
 }
