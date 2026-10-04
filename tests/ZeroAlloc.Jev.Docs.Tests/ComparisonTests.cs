@@ -3,51 +3,109 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 
 namespace ZeroAlloc.Jev.Docs.Tests;
 
-// The page publishes the client comparison from a checked-in run. These tests keep the page and the run's JSON equal: the
-// table must be exactly what merge.py prints for the JSON, and the published run's column under "Across runs" must
-// carry the same figures.
-public sealed class ComparisonTests
+// The page publishes the client comparison from checked-in runs. These tests keep every figure the Comparison section
+// states tied to the runs' JSON: the tables must be exactly what merge.py prints for the JSON, and the section's own
+// prose may state no measured figure, only the method's parameters.
+public sealed partial class ComparisonTests
 {
     private const string Page = "performance.md";
     private const string Run = "benchmarks/compare/results/ci.json";
     private const string Merge = "benchmarks/compare/merge.py";
     private const string Project = "ZeroAlloc.Jev";
+    private const string TableStart = "<!-- comparison:";
+    private const string TableEnd = "<!-- endComparison -->";
+    private const string AcrossStart = "<!-- acrossRuns:";
+    private const string AcrossEnd = "<!-- endAcrossRuns -->";
+
+    // The numbers the section's prose may state: the method's parameters, which the harnesses fix and the result files
+    // do not all record. 16 workers is also checked against every result's concurrency, and the latency rounds against
+    // a run's recorded order when it has one. Any other number in the prose is a measured figure stated outside the
+    // generated tables, and fails the test.
+    private static readonly string[] MethodParameters =
+    [
+        "16", // workers in the warm-up and the throughput run
+        "2", // seconds of warm-up; minutes a pooled connection lives
+        "10", // seconds of the throughput run
+        "200", // warm-up calls before the latency loop
+        "2000", // timed latency calls per client
+        "20", // interleaved latency rounds
+        "100", // timed calls per client per round
+        "32", // the mock ceiling's other worker counts
+        "64",
+    ];
 
     [Fact]
     public void ThePublishedTable_IsMergesOutputForTheCheckedInRun()
     {
-        var expected = RunMerge(Run);
-        var published = Block(PageTables.Text(Page), Run);
+        var expected = RunMerge(Merge, Run, "--project", Project);
+        var published = Block(PageTables.Text(Page), TableStart, TableEnd, Run);
 
         Assert.Equal(expected, published);
     }
 
     [Fact]
-    public void ThePublishedRunsColumnUnderAcrossRuns_IsTheCheckedInRun()
+    public void TheAcrossRunsTables_AreMergesOutputForTheRunsTheMarkerNames()
     {
-        var results = Results(Run);
-        var rows = PageTables.Rows(Page, "Across runs");
+        var runs = AcrossRuns(PageTables.Text(Page));
+        var expected = RunMerge([Merge, "--across", .. runs, "--project", Project]);
+        var published = Block(PageTables.Text(Page), AcrossStart, AcrossEnd, string.Join(' ', runs));
 
-        Assert.Equal(
-            results.Select(r => r.GetProperty("client").GetString()).Order(StringComparer.Ordinal),
-            rows.Select(row => row[0].Trim('*')).Order(StringComparer.Ordinal));
-        Assert.All(
-            rows,
-            row =>
-            {
-                var client = row[0].Trim('*');
-                var result = results.Single(r => string.Equals(r.GetProperty("client").GetString(), client, StringComparison.Ordinal));
+        Assert.Contains(Run, runs);
+        Assert.Equal(expected, published);
+    }
 
-                Assert.Equal(Whole(result.GetProperty("throughputPerSecond").GetDouble()), Last(row[1]));
-                Assert.Equal(
-                    result.GetProperty("latencyMs").GetProperty("mean").GetDouble().ToString("F3", CultureInfo.InvariantCulture),
-                    Last(row[2]));
-                var bytes = result.GetProperty("allocatedBytesPerCall");
-                Assert.Equal(bytes.ValueKind == JsonValueKind.Null ? "—" : Whole(bytes.GetDouble()), Last(row[3]));
-            });
+    [Fact]
+    public void TheComparisonProse_StatesNoMeasuredFigureOfItsOwn()
+    {
+        var prose = ComparisonProse(PageTables.Text(Page));
+        var numbers = Number().Matches(prose).Select(m => m.Value).Distinct(StringComparer.Ordinal).ToArray();
+
+        Assert.All(numbers, number => Assert.True(
+            MethodParameters.Contains(number, StringComparer.Ordinal),
+            $"The Comparison section's prose states {number}, which is not one of the method's parameters. Put measured figures in a generated table, or tie the number to the JSON in this test."));
+        Assert.Contains("16", numbers);
+    }
+
+    [Fact]
+    public void TheMethodsParametersInTheProse_MatchTheRuns()
+    {
+        string[] runs = [.. AcrossRuns(PageTables.Text(Page)).Append(Run).Distinct(StringComparer.Ordinal)];
+        var files = runs.SelectMany(Files).ToArray();
+
+        Assert.All(files.SelectMany(file => file.GetProperty("results").EnumerateArray()), result => Assert.Equal(16, result.GetProperty("concurrency").GetInt32()));
+        Assert.All(files.Where(file => file.TryGetProperty("order", out _)), file =>
+        {
+            var order = file.GetProperty("order");
+            Assert.Equal(20, order.GetProperty("latencyRounds").GetInt32());
+            Assert.Equal(100, order.GetProperty("callsPerRound").GetInt32());
+        });
+    }
+
+    [Fact]
+    public void TheProse_LeavesOutTheTablesTheLinkTargetsAndTheIssueNumbers()
+    {
+        string[] lines =
+        [
+            "## Comparison",
+            "Ran 16 workers; see [run 123](https://x/runs/123), [issue #97][issue-97] and #98.",
+            "<!-- comparison: x.json -->",
+            "| a | 5,808 |",
+            "<!-- endComparison -->",
+            "<!-- acrossRuns: x.json -->",
+            "| b | 91% |",
+            "<!-- endAcrossRuns -->",
+            "[ref-1]: https://x/runs/456",
+            "## Next",
+            "Not 17.",
+        ];
+
+        var prose = ComparisonProse(string.Join('\n', lines));
+
+        Assert.Equal(["16", "123"], Number().Matches(prose).Select(m => m.Value));
     }
 
     [Fact]
@@ -55,8 +113,8 @@ public sealed class ComparisonTests
     {
         var text = "a\n<!-- comparison: x.json -->\n### T\n\n| r |\n<!-- endComparison -->\nb\n";
 
-        Assert.Equal("### T\n\n| r |\n", Block(text, "x.json"));
-        Assert.Equal("### T\n\n| r |\n", Block(text.Replace("\n", "\r\n", StringComparison.Ordinal), "x.json"));
+        Assert.Equal("### T\n\n| r |\n", Block(text, TableStart, TableEnd, "x.json"));
+        Assert.Equal("### T\n\n| r |\n", Block(text.Replace("\n", "\r\n", StringComparison.Ordinal), TableStart, TableEnd, "x.json"));
     }
 
     [Theory]
@@ -65,36 +123,82 @@ public sealed class ComparisonTests
     [InlineData("<!-- comparison: x.json -->\nx\n")]
     [InlineData("<!-- comparison: x.json -->\nx\n<!-- endComparison -->\n<!-- comparison: x.json -->\ny\n<!-- endComparison -->\n")]
     public void Block_NeedsExactlyOnePairOfMarkersForTheRun(string text) =>
-        Assert.ThrowsAny<Exception>(() => Block(text, "x.json"));
+        Assert.ThrowsAny<Exception>(() => Block(text, TableStart, TableEnd, "x.json"));
 
-    private static string Whole(double value) => value.ToString("N0", CultureInfo.InvariantCulture);
-
-    // "96,502 / 49,550 / 36,869": the published run is the last of the runs in a cell.
-    private static string Last(string cell) => cell.Split(" / ")[^1];
-
-    private static JsonElement[] Results(string run)
+    // The files "<!-- acrossRuns: a.json b.json -->" names, in order.
+    private static string[] AcrossRuns(string text)
     {
-        using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(PublishedPages.Root, run)));
-        return [.. document.RootElement.GetProperty("files").EnumerateArray()
-            .SelectMany(file => file.GetProperty("results").EnumerateArray())
-            .Select(result => result.Clone())];
+        var lines = text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n').Where(l => l.StartsWith(AcrossStart, StringComparison.Ordinal)).ToArray();
+        Assert.True(lines.Length == 1, "The page has one across-runs block.");
+        return lines[0][AcrossStart.Length..^"-->".Length].Split(' ', StringSplitOptions.RemoveEmptyEntries);
     }
 
-    // The lines between "<!-- comparison: <run> -->" and "<!-- endComparison -->", with LF line ends.
-    private static string Block(string text, string run)
+    // Each harness file a published run holds, cloned so it outlives the document.
+    private static JsonElement[] Files(string run)
+    {
+        using var document = JsonDocument.Parse(File.ReadAllText(Path.Combine(PublishedPages.Root, run)));
+        return [.. document.RootElement.GetProperty("files").EnumerateArray().Select(file => file.Clone())];
+    }
+
+    // The Comparison section without its generated blocks, its link targets, its reference definitions and its issue
+    // numbers: what the page states in its own words.
+    private static string ComparisonProse(string text)
     {
         var lines = text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
-        var start = $"<!-- comparison: {run} -->";
-        var starts = Enumerable.Range(0, lines.Length).Where(i => lines[i].StartsWith("<!-- comparison:", StringComparison.Ordinal)).ToArray();
-        var ends = Enumerable.Range(0, lines.Length).Where(i => string.Equals(lines[i], "<!-- endComparison -->", StringComparison.Ordinal)).ToArray();
+        var start = Array.IndexOf(lines, "## Comparison");
+        var end = Array.FindIndex(lines, start + 1, l => l.StartsWith("## ", StringComparison.Ordinal));
+        Assert.True(start >= 0 && end > start, "The page has a Comparison section followed by another section.");
 
-        Assert.True(starts.Length == 1 && ends.Length == 1, "The page has one comparison block.");
+        var prose = new StringBuilder();
+        var generated = false;
+        foreach (var line in lines[start..end])
+        {
+            if (line.StartsWith(TableStart, StringComparison.Ordinal) || line.StartsWith(AcrossStart, StringComparison.Ordinal))
+            {
+                generated = true;
+            }
+            else if (string.Equals(line, TableEnd, StringComparison.Ordinal) || string.Equals(line, AcrossEnd, StringComparison.Ordinal))
+            {
+                generated = false;
+            }
+            else if (!generated && !ReferenceDefinition().IsMatch(line))
+            {
+                prose.Append(LinkTarget().Replace(IssueNumber().Replace(line, string.Empty), "]")).Append('\n');
+            }
+        }
+
+        return prose.ToString();
+    }
+
+    // The lines between "<start> <key> -->" and the end marker, with LF line ends.
+    private static string Block(string text, string startMarker, string endMarker, string key)
+    {
+        var lines = text.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
+        var start = $"{startMarker} {key} -->";
+        var starts = Enumerable.Range(0, lines.Length).Where(i => lines[i].StartsWith(startMarker, StringComparison.Ordinal)).ToArray();
+        var ends = Enumerable.Range(0, lines.Length).Where(i => string.Equals(lines[i], endMarker, StringComparison.Ordinal)).ToArray();
+
+        Assert.True(starts.Length == 1 && ends.Length == 1, "The page has one block of this kind.");
         Assert.Equal(start, lines[starts[0]]);
         Assert.True(ends[0] > starts[0], "The block's end marker follows its start marker.");
         return string.Join('\n', lines[(starts[0] + 1)..ends[0]]) + "\n";
     }
 
-    private static string RunMerge(string run)
+    // A number standing on its own, not part of a name such as p99: 16, 5,808, 0.114 or 91%.
+    [GeneratedRegex(@"(?<![\w.])\d+(?:[.,]\d+)*%?", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex Number();
+
+    [GeneratedRegex(@"^\[[^\]]+\]:\s", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex ReferenceDefinition();
+
+    // An inline link's target, "](...)", or a reference link's label, "][...]".
+    [GeneratedRegex(@"\](?:\([^)]*\)|\[[^\]]*\])", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex LinkTarget();
+
+    [GeneratedRegex(@"#\d+\b", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex IssueNumber();
+
+    private static string RunMerge(params string[] arguments)
     {
         var python = Python();
         var start = new ProcessStartInfo(python)
@@ -106,7 +210,7 @@ public sealed class ComparisonTests
             StandardErrorEncoding = Encoding.UTF8,
             UseShellExecute = false,
         };
-        foreach (var argument in new[] { Merge, run, "--project", Project })
+        foreach (var argument in arguments)
         {
             start.ArgumentList.Add(argument);
         }
