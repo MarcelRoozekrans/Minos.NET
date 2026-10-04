@@ -6,11 +6,12 @@ using System.Text.Json.Serialization;
 namespace ZeroAlloc.Jev.Benchmarks.Compare.Adapters;
 
 /// <summary>
-/// The baseline: what a careful developer writes by hand with <see cref="HttpClient"/> and System.Text.Json. It
-/// serializes the request body ZeroAlloc.Jev sends for the workload once, posts those bytes with a <c>Content-Length</c>
-/// as every library does, and reads the answers into plain records, both through a source-generated
-/// <see cref="JsonSerializerContext"/>, over <see cref="BenchmarkTransport"/>'s <see cref="HttpClient"/>. One attempt,
-/// no retries.
+/// The baseline: what a careful developer writes by hand with <see cref="HttpClient"/> and System.Text.Json. On every
+/// call it builds the request for the call's state, serializes it to the body ZeroAlloc.Jev sends for the workload,
+/// posts those bytes with a <c>Content-Length</c> as every library does, and reads the answers into plain records, both
+/// through a source-generated <see cref="JsonSerializerContext"/>, over <see cref="BenchmarkTransport"/>'s
+/// <see cref="HttpClient"/>. Only the question definitions, which never change, are built once. One attempt, no
+/// retries.
 /// </summary>
 public sealed class RawHttpAdapter : IClientAdapter, IUsesBenchmarkTransport
 {
@@ -18,7 +19,7 @@ public sealed class RawHttpAdapter : IClientAdapter, IUsesBenchmarkTransport
     private static readonly MediaTypeHeaderValue Json = new("application/json");
 
     private readonly HttpClient _http;
-    private readonly byte[] _body;
+    private readonly RawQuestions _questions;
 
     /// <summary>Initializes a new instance of the <see cref="RawHttpAdapter"/> class.</summary>
     /// <param name="baseAddress">The mock's root address; requests go to <c>v1/systemone</c> under it.</param>
@@ -33,13 +34,9 @@ public sealed class RawHttpAdapter : IClientAdapter, IUsesBenchmarkTransport
             criteria[option] = description;
         }
 
-        var request = new RawRequest(
-            Workload.State,
-            Workload.Model,
-            new RawQuestions(
-                new RawChoiceQuestion("choice", Workload.IntentInstructions, criteria),
-                new RawNoulQuestion("noul", Workload.TravelsSoonInstructions)));
-        _body = JsonSerializer.SerializeToUtf8Bytes(request, RawJsonContext.Default.RawRequest);
+        _questions = new RawQuestions(
+            new RawChoiceQuestion("choice", Workload.IntentInstructions, criteria),
+            new RawNoulQuestion("noul", Workload.TravelsSoonInstructions));
     }
 
     /// <inheritdoc/>
@@ -80,8 +77,13 @@ public sealed class RawHttpAdapter : IClientAdapter, IUsesBenchmarkTransport
 
     private async Task<RawResponse> PostAsync(CancellationToken cancellationToken)
     {
-        // A ByteArrayContent knows its length, so the request carries a Content-Length instead of a chunked body.
-        using var content = new ByteArrayContent(_body);
+        // The state differs per call in real use, so the request is built and serialized on every call, as every other
+        // client does. A ByteArrayContent knows its length, so the request carries a Content-Length instead of a
+        // chunked body.
+        var body = JsonSerializer.SerializeToUtf8Bytes(
+            new RawRequest(Workload.State, Workload.Model, _questions),
+            RawJsonContext.Default.RawRequest);
+        using var content = new ByteArrayContent(body);
         content.Headers.ContentType = Json;
         using var response = await _http.PostAsync(SystemOnePath, content, cancellationToken).ConfigureAwait(false);
         response.EnsureSuccessStatusCode();
