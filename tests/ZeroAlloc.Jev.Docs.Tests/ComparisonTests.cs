@@ -13,7 +13,7 @@ namespace ZeroAlloc.Jev.Docs.Tests;
 public sealed partial class ComparisonTests
 {
     private const string Page = "performance.md";
-    private const string Run = "benchmarks/compare/results/ci.json";
+    private const string Run = "benchmarks/compare/results/ci-run-1.json";
     private const string Merge = "benchmarks/compare/merge.py";
     private const string Project = "ZeroAlloc.Jev";
     private const string TableStart = "<!-- comparison:";
@@ -57,6 +57,41 @@ public sealed partial class ComparisonTests
         Assert.Contains(Run, runs);
         Assert.Equal(expected, published);
     }
+
+    // The prose under the main table claims, for every run the across-runs marker names, that ZeroAlloc.Jev has the
+    // lowest mean latency, the highest throughput and the fewest bytes per call, and that the other clients' throughput
+    // order is the one it lists. A republished run that breaks a claim fails here, so the prose is re-read.
+    [Fact]
+    public void TheProsesClaims_HoldInEveryRun()
+    {
+        string[] stated = ["raw-httpclient", "jev-net", "typesafe-ai-sdk", "jevsharp", "typesafe-ai-sdk-js", "typesafe-sdk-python"];
+        var runs = AcrossRuns(PageTables.Text(Page));
+
+        Assert.Equal(3, runs.Length);
+        Assert.All(runs, run =>
+        {
+            var results = Files(run).SelectMany(file => file.GetProperty("results").EnumerateArray()).ToArray();
+            var jev = results.Single(r => string.Equals(r.GetProperty("client").GetString(), "zeroalloc-jev", StringComparison.Ordinal));
+            var others = results.Where(r => !string.Equals(r.GetProperty("client").GetString(), "zeroalloc-jev", StringComparison.Ordinal)).ToArray();
+
+            Assert.All(others, other =>
+            {
+                Assert.True(Mean(other) > Mean(jev), $"{run}: ZeroAlloc.Jev's mean is below {Client(other)}'s.");
+                Assert.True(Throughput(other) < Throughput(jev), $"{run}: ZeroAlloc.Jev's throughput is above {Client(other)}'s.");
+                var bytes = other.GetProperty("allocatedBytesPerCall");
+                Assert.True(
+                    bytes.ValueKind == JsonValueKind.Null || bytes.GetInt64() > jev.GetProperty("allocatedBytesPerCall").GetInt64(),
+                    $"{run}: ZeroAlloc.Jev allocates less than {Client(other)}.");
+            });
+            Assert.Equal(stated, others.OrderByDescending(Throughput).Select(Client));
+        });
+    }
+
+    private static string Client(JsonElement result) => result.GetProperty("client").GetString()!;
+
+    private static double Mean(JsonElement result) => result.GetProperty("latencyMs").GetProperty("mean").GetDouble();
+
+    private static double Throughput(JsonElement result) => result.GetProperty("throughputPerSecond").GetDouble();
 
     [Fact]
     public void TheComparisonProse_StatesNoMeasuredFigureOfItsOwn()

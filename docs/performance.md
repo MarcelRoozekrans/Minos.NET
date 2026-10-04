@@ -313,36 +313,46 @@ out. The checks and their sources are in [the library-check document][library-ch
 - **One run at a time.** Compare clients only within one run. Shared CI runners differ in CPU and load from one run to
   the next, so the absolute figures move between runs; see [Across runs](#across-runs).
 
-<!-- comparison: benchmarks/compare/results/ci.json -->
+<!-- comparison: benchmarks/compare/results/ci-run-1.json -->
 ### ZeroAlloc.Jev: client comparison
 
 | Client | Library | Runtime | Mean (ms) | p50 (ms) | p99 (ms) | Throughput (/s) | Of mock ceiling | Bytes/call |
 |---|---|---|--:|--:|--:|--:|--:|--:|
-| raw-httpclient | HttpClient, System.Text.Json 10.0.12 | .NET 10.0.12 | 0.077 | 0.074 | 0.104 | 36,869 | 91% | 5,808 |
-| **zeroalloc-jev** | ZeroAlloc.Jev 0.4.0+cf96a0e | .NET 10.0.12 | 0.114 | 0.105 | 0.207 | 35,323 | 87% | 5,416 |
-| jev-net | Jev.Net 0.4.0 | .NET 10.0.12 | 0.113 | 0.094 | 0.207 | 25,710 | 63% | 20,232 |
-| typesafe-ai-sdk | TypeSafe.AI.Sdk 0.3.0 | .NET 10.0.12 | 0.129 | 0.124 | 0.210 | 23,993 | 59% | 26,656 |
-| jevsharp[^1] | JevSharp 0.2.0 | .NET 10.0.12 | 0.272 | 0.270 | 0.323 | 17,348 | 43% | 52,072 |
-| typesafe-ai-sdk-js | @typesafe-ai/sdk 0.6.0 | Node.js 24.21.0 | 0.551 | 0.459 | 2.635 | 3,519 | 9% | — |
-| typesafe-sdk-python | typesafe-sdk 0.7.2 | Python 3.12.14 | 0.650 | 0.640 | 0.751 | 1,051 | 3% | — |
+| **zeroalloc-jev** | ZeroAlloc.Jev 0.4.0-local+db54c90 | .NET 10.0.12 | 0.052 | 0.048 | 0.094 | 65,672 | 99% | 5,416 |
+| raw-httpclient | HttpClient, System.Text.Json 10.0.12 | .NET 10.0.12 | 0.058 | 0.054 | 0.109 | 65,029 | 98% | 6,456 |
+| jev-net | Jev.Net 0.4.0 | .NET 10.0.12 | 0.065 | 0.063 | 0.117 | 44,848 | 68% | 20,232 |
+| typesafe-ai-sdk | TypeSafe.AI.Sdk 0.3.0 | .NET 10.0.12 | 0.078 | 0.074 | 0.139 | 40,114 | 61% | 26,673 |
+| jevsharp[^1] | JevSharp 0.2.0 | .NET 10.0.12 | 0.168 | 0.170 | 0.245 | 27,415 | 41% | 51,913 |
+| typesafe-ai-sdk-js | @typesafe-ai/sdk 0.6.0 | Node.js 24.21.0 | 0.368 | 0.284 | 0.923 | 5,793 | 9% | — |
+| typesafe-sdk-python | typesafe-sdk 0.7.2 | Python 3.12.14 | 0.584 | 0.581 | 0.699 | 1,221 | 2% | — |
 
-Machine: ci; OS: Ubuntu 24.04.5 LTS; CPU: AMD EPYC 7763 64-Core Processor; date: 2026-10-04T14:06:01Z; mock cores: 0-1; client cores: 2-3; mock ceiling: 40,570/s.
+Machine: ci; OS: Ubuntu 24.04.5 LTS; CPU: INTEL(R) XEON(R) PLATINUM 8573C; date: 2026-10-04T15:34:07Z; mock cores: 0-1; client cores: 2-3; mock ceiling: 66,103/s.
 
-Run: [run 37207772176](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37207772176), commit `bf1ef0b`.
+Order: latency in 20 interleaved rounds of 100 calls per .NET client, rotated by round from rotation 4; throughput jev-net, zeroalloc-jev, raw-httpclient, jevsharp, typesafe-ai-sdk.
+
+Run: [run 37213251867](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37213251867), commit `fcc4cee`.
 
 [^1]: JevSharp reaches a custom endpoint with static headers only, so it sends no auth header.
 <!-- endComparison -->
 
-The table is `merge.py`'s output for [`benchmarks/compare/results/ci.json`][ci-json], which holds the run's result
-files whole, and a docs test fails if the two differ. The run used a GitHub-hosted `ubuntu-latest` runner; the machine
-line gives its CPU and the cores the mock and the clients ran on. The raw client and ZeroAlloc.Jev come closest to the
-mock ceiling, close enough for the mock's own speed to narrow the gap between them. The other clients stay well below
-it, so their figures are their own.
+The table is `merge.py`'s output for [the first of the published runs][ci-json], which holds the run's result files
+whole, and a docs test fails if the two differ. The run used a GitHub-hosted `ubuntu-latest` runner; the machine line
+gives its CPU and the cores the mock and the clients ran on.
+
+In this run and in both others under [Across runs](#across-runs), ZeroAlloc.Jev had the lowest mean latency, the
+highest throughput and the fewest bytes per call of any client. Its throughput lead over the raw client is small; the
+other clients stay well behind both, and their throughput order was the same in every run: Jev.Net, TypeSafe.AI.Sdk,
+JevSharp, the JS SDK and the Python SDK.
+
+The raw client and ZeroAlloc.Jev come close to the mock ceiling, and can pass it: the ceiling is only a lower bound on
+what the mock can serve, the best rate the raw client reached in its own, separate measurement. In the third run both
+are above it. So near the ceiling, the mock's own speed may narrow the gap between those two. The other clients stay
+well below it, so their figures are their own.
 
 **ZeroAlloc.Jev is built from the branch.** Its Library cell shows the version a build that is not a release gets, the
-last release with a `-local` suffix, followed by the commit CI built, as in `<release>-local+<commit>`. So the table
-measures that commit, not a published release. A pull-request run builds GitHub's merge of the branch into `main`, so
-that commit is the merge commit; the run line names the branch commit it came from.
+last release with a `-local` suffix, followed by the commit CI built, as in `<release>-local+<commit>`. So the tables
+measure branch commit `fcc4cee`, not a published release. A pull-request run builds GitHub's merge of the branch into
+`main`, so the commit in the version is that merge commit; the run line names the branch commit it came from.
 
 **JevSharp sends no auth header.** It reaches a custom endpoint with static headers only, and a custom endpoint is its
 only way to reach the mock. So each of its calls does a little less work than the other clients' calls.
@@ -359,29 +369,34 @@ A run on an idle local machine, which is steadier than a shared runner, is still
 
 ### Across runs
 
-Shared runners differ from run to run, so the comparison runs on CI more than once, each time on a fresh runner. The
-first table gives each run, with its CPU and mock ceiling. The second gives each client's lowest and highest figure
-over those runs. It shows how far each figure moved between runners, and it is no ranking: compare clients within one
-run, in the table above.
+Shared runners differ from run to run, so the comparison ran on CI three times on the same commit, each time on a
+fresh runner. The first table gives each run, with its CPU and mock ceiling. The second gives each client's lowest and
+highest figure over those runs. It shows how far each figure moved between runners, and it is no ranking: compare
+clients within one run. The table above is the first run; the result files of all three are in
+[`benchmarks/compare/results`][results]. Within each run the .NET clients' latency calls are interleaved and their
+throughput order rotates, as [What the numbers measure](#what-the-numbers-measure) describes, so no client gains from
+its place in the order.
 
-<!-- acrossRuns: benchmarks/compare/results/ci.json -->
+<!-- acrossRuns: benchmarks/compare/results/ci-run-1.json benchmarks/compare/results/ci-run-2.json benchmarks/compare/results/ci-run-3.json -->
 ### ZeroAlloc.Jev: across runs
 
 | Run | Commit | CPU | Mock ceiling (/s) |
 |---|---|---|--:|
-| [run 37207772176](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37207772176) | `bf1ef0b` | AMD EPYC 7763 64-Core Processor | 40,570 |
+| [run 37213251867](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37213251867) | `fcc4cee` | INTEL(R) XEON(R) PLATINUM 8573C | 66,103 |
+| [run 37213281420](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37213281420) | `fcc4cee` | AMD EPYC 7763 64-Core Processor | 37,751 |
+| [run 37213313491](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37213313491) | `fcc4cee` | Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz | 52,157 |
 
 | Client | Mean (ms) | Throughput (/s) | Of mock ceiling | Bytes/call |
 |---|--:|--:|--:|--:|
-| raw-httpclient | 0.077 | 36,869 | 91% | 5,808 |
-| **zeroalloc-jev** | 0.114 | 35,323 | 87% | 5,416 |
-| jev-net | 0.113 | 25,710 | 63% | 20,232 |
-| typesafe-ai-sdk | 0.129 | 23,993 | 59% | 26,656 |
-| jevsharp | 0.272 | 17,348 | 43% | 52,072 |
-| typesafe-ai-sdk-js | 0.551 | 3,519 | 9% | — |
-| typesafe-sdk-python | 0.650 | 1,051 | 3% | — |
+| **zeroalloc-jev** | 0.052 to 0.108 | 34,748 to 65,672 | 92% to 108% | 5,416 |
+| raw-httpclient | 0.058 to 0.132 | 34,690 to 65,029 | 92% to 104% | 6,456 |
+| jev-net | 0.065 to 0.140 | 25,147 to 44,848 | 67% to 72% | 20,232 |
+| typesafe-ai-sdk | 0.078 to 0.170 | 23,223 to 40,114 | 61% to 63% | 26,656 to 26,673 |
+| jevsharp | 0.168 to 0.233 | 16,999 to 27,415 | 41% to 45% | 51,882 to 52,069 |
+| typesafe-ai-sdk-js | 0.368 to 0.479 | 3,418 to 5,793 | 8% to 9% | — |
+| typesafe-sdk-python | 0.584 to 0.742 | 1,022 to 1,221 | 2% to 3% | — |
 
-Runs: 1. Each range is the lowest to the highest figure over the runs.
+Runs: 3. Each range is the lowest to the highest figure over the runs.
 <!-- endAcrossRuns -->
 
 Both tables are `merge.py --across`'s output for the published runs the marker above names, and a docs test fails if
@@ -400,7 +415,8 @@ they differ.
 
 [workload]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/benchmarks/compare/workload/README.md
 [library-checks]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/docs/plans/2026-10-04-phase-5.2-library-checks.md
-[ci-json]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/benchmarks/compare/results/ci.json
+[ci-json]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/benchmarks/compare/results/ci-run-1.json
+[results]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/tree/main/benchmarks/compare/results
 [js-readme]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/benchmarks/compare-js/README.md#why-the-js-throughput-is-lower
 [py-readme]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/benchmarks/compare-py/README.md#why-the-python-throughput-is-lower
 [py-requirements]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/benchmarks/compare-py/requirements.txt

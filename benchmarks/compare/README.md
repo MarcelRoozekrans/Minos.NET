@@ -60,19 +60,21 @@ Exit codes:
 
 Each run first deletes the old `*.json` files in its `<machine>` folder, so a failed harness can't leave a stale file
 behind to be merged. The per-machine folders are git-ignored. The published runs are checked in at the top of
-`results/`, such as `results/ci.json`.
+`results/`, such as `results/ci-run-1.json`.
 
 To merge by hand, run `python benchmarks/compare/merge.py results/<machine>/*.json --project ZeroAlloc.Jev`.
 
 ### Publishing a run
 
-`docs/performance.md` publishes the table of one run, kept in `results/ci.json`. That file is one published run: a
+`docs/performance.md` publishes the table of one run, kept in `results/ci-run-1.json`. That file is one published run: a
 `run` object with the run's `url` and `commit`, and a `files` list holding each harness's result file whole, under its
 file name. `merge.py` writes it with `--save`, and reads it back like the files it came from:
 
 ```sh
-python benchmarks/compare/merge.py dotnet-ci.json js-ci.json py-ci.json --project ZeroAlloc.Jev   --run-url https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/<id> --commit <sha>   --save benchmarks/compare/results/ci.json
-python benchmarks/compare/merge.py benchmarks/compare/results/ci.json --project ZeroAlloc.Jev
+python benchmarks/compare/merge.py dotnet-ci.json js-ci.json py-ci.json --project ZeroAlloc.Jev \
+  --run-url https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/<id> --commit <sha> \
+  --save benchmarks/compare/results/ci-run-1.json
+python benchmarks/compare/merge.py benchmarks/compare/results/ci-run-1.json --project ZeroAlloc.Jev
 ```
 
 | Option | Meaning |
@@ -81,7 +83,7 @@ python benchmarks/compare/merge.py benchmarks/compare/results/ci.json --project 
 | `--commit <sha>` | The commit the run measured, printed in short under the machine line. It overrides a published run's. |
 | `--save <path>` | Also writes the inputs as one published run at `<path>`. |
 
-The printed table goes on the page between `<!-- comparison: benchmarks/compare/results/ci.json -->` and
+The printed table goes on the page between `<!-- comparison: benchmarks/compare/results/ci-run-1.json -->` and
 `<!-- endComparison -->`.
 
 Several published runs, such as three CI runs saved as `results/ci-run-1.json` to `results/ci-run-3.json`, give the

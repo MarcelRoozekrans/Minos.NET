@@ -1,7 +1,7 @@
 {
   "run": {
-    "url": "https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37207772176",
-    "commit": "bf1ef0b9a521470cf3960854e817540a10798ad7"
+    "url": "https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37213281420",
+    "commit": "fcc4cee39c5cc20c619a04f663efeea7489a704f"
   },
   "files": [
     {
@@ -10,8 +10,8 @@
         "name": "ci",
         "os": "Ubuntu 24.04.5 LTS",
         "cpu": "AMD EPYC 7763 64-Core Processor",
-        "date": "2026-10-04T14:05:34Z",
-        "mockCeilingPerSecond": 40569.8,
+        "date": "2026-10-04T15:34:17Z",
+        "mockCeilingPerSecond": 37751,
         "cores": "2-3",
         "mockCores": "0-1"
       },
@@ -19,15 +19,15 @@
         {
           "client": "zeroalloc-jev",
           "library": "ZeroAlloc.Jev",
-          "version": "0.4.0+cf96a0e",
+          "version": "0.4.0-local+db54c90",
           "runtime": ".NET",
           "runtimeVersion": "10.0.12",
           "latencyMs": {
-            "mean": 0.114,
-            "p50": 0.105,
-            "p99": 0.207
+            "mean": 0.108,
+            "p50": 0.1,
+            "p99": 0.195
           },
-          "throughputPerSecond": 35322.6,
+          "throughputPerSecond": 34748,
           "concurrency": 16,
           "allocatedBytesPerCall": 5416
         },
@@ -38,13 +38,13 @@
           "runtime": ".NET",
           "runtimeVersion": "10.0.12",
           "latencyMs": {
-            "mean": 0.077,
-            "p50": 0.074,
-            "p99": 0.104
+            "mean": 0.132,
+            "p50": 0.124,
+            "p99": 0.209
           },
-          "throughputPerSecond": 36869.1,
+          "throughputPerSecond": 34689.6,
           "concurrency": 16,
-          "allocatedBytesPerCall": 5808
+          "allocatedBytesPerCall": 6456
         },
         {
           "client": "jevsharp",
@@ -53,13 +53,13 @@
           "runtime": ".NET",
           "runtimeVersion": "10.0.12",
           "latencyMs": {
-            "mean": 0.272,
-            "p50": 0.27,
-            "p99": 0.323
+            "mean": 0.233,
+            "p50": 0.223,
+            "p99": 0.351
           },
-          "throughputPerSecond": 17347.8,
+          "throughputPerSecond": 16998.9,
           "concurrency": 16,
-          "allocatedBytesPerCall": 52072,
+          "allocatedBytesPerCall": 52069,
           "note": "JevSharp reaches a custom endpoint with static headers only, so it sends no auth header."
         },
         {
@@ -69,11 +69,11 @@
           "runtime": ".NET",
           "runtimeVersion": "10.0.12",
           "latencyMs": {
-            "mean": 0.129,
-            "p50": 0.124,
-            "p99": 0.21
+            "mean": 0.17,
+            "p50": 0.159,
+            "p99": 0.24
           },
-          "throughputPerSecond": 23993.4,
+          "throughputPerSecond": 23222.7,
           "concurrency": 16,
           "allocatedBytesPerCall": 26656
         },
@@ -84,15 +84,27 @@
           "runtime": ".NET",
           "runtimeVersion": "10.0.12",
           "latencyMs": {
-            "mean": 0.113,
-            "p50": 0.094,
-            "p99": 0.207
+            "mean": 0.14,
+            "p50": 0.133,
+            "p99": 0.212
           },
-          "throughputPerSecond": 25710.4,
+          "throughputPerSecond": 25146.8,
           "concurrency": 16,
           "allocatedBytesPerCall": 20232
         }
-      ]
+      ],
+      "order": {
+        "latencyRounds": 20,
+        "callsPerRound": 100,
+        "rotation": 2,
+        "throughput": [
+          "jevsharp",
+          "typesafe-ai-sdk",
+          "jev-net",
+          "zeroalloc-jev",
+          "raw-httpclient"
+        ]
+      }
     },
     {
       "name": "js-ci.json",
@@ -100,7 +112,7 @@
         "name": "ci",
         "os": "Linux 6.17.0-1022-azure #22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026",
         "cpu": "AMD EPYC 7763 64-Core Processor",
-        "date": "2026-10-04T14:05:47Z",
+        "date": "2026-10-04T15:34:32Z",
         "mockCeilingPerSecond": null,
         "cores": "2-3",
         "mockCores": "0-1"
@@ -113,11 +125,11 @@
           "runtime": "Node.js",
           "runtimeVersion": "24.21.0",
           "latencyMs": {
-            "mean": 0.551,
-            "p50": 0.459,
-            "p99": 2.635
+            "mean": 0.479,
+            "p50": 0.409,
+            "p99": 0.887
           },
-          "throughputPerSecond": 3518.7,
+          "throughputPerSecond": 3418.2,
           "concurrency": 16,
           "allocatedBytesPerCall": null
         }
@@ -129,7 +141,7 @@
         "name": "ci",
         "os": "Linux 6.17.0-1022-azure #22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026",
         "cpu": "AMD EPYC 7763 64-Core Processor",
-        "date": "2026-10-04T14:06:01Z",
+        "date": "2026-10-04T15:34:48Z",
         "mockCeilingPerSecond": null,
         "cores": "2-3",
         "mockCores": "0-1"
@@ -142,11 +154,11 @@
           "runtime": "Python",
           "runtimeVersion": "3.12.14",
           "latencyMs": {
-            "mean": 0.65,
-            "p50": 0.64,
-            "p99": 0.751
+            "mean": 0.742,
+            "p50": 0.735,
+            "p99": 0.885
           },
-          "throughputPerSecond": 1050.7,
+          "throughputPerSecond": 1021.5,
           "concurrency": 16,
           "allocatedBytesPerCall": null
         }

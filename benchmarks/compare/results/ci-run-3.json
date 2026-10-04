@@ -1,0 +1,168 @@
+{
+  "run": {
+    "url": "https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37213313491",
+    "commit": "fcc4cee39c5cc20c619a04f663efeea7489a704f"
+  },
+  "files": [
+    {
+      "name": "dotnet-ci.json",
+      "machine": {
+        "name": "ci",
+        "os": "Ubuntu 24.04.5 LTS",
+        "cpu": "Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz",
+        "date": "2026-10-04T15:34:45Z",
+        "mockCeilingPerSecond": 52156.7,
+        "cores": "2-3",
+        "mockCores": "0-1"
+      },
+      "results": [
+        {
+          "client": "zeroalloc-jev",
+          "library": "ZeroAlloc.Jev",
+          "version": "0.4.0-local+db54c90",
+          "runtime": ".NET",
+          "runtimeVersion": "10.0.12",
+          "latencyMs": {
+            "mean": 0.055,
+            "p50": 0.049,
+            "p99": 0.121
+          },
+          "throughputPerSecond": 56394.3,
+          "concurrency": 16,
+          "allocatedBytesPerCall": 5416
+        },
+        {
+          "client": "raw-httpclient",
+          "library": "HttpClient, System.Text.Json",
+          "version": "10.0.12",
+          "runtime": ".NET",
+          "runtimeVersion": "10.0.12",
+          "latencyMs": {
+            "mean": 0.066,
+            "p50": 0.062,
+            "p99": 0.133
+          },
+          "throughputPerSecond": 54070.5,
+          "concurrency": 16,
+          "allocatedBytesPerCall": 6456
+        },
+        {
+          "client": "jevsharp",
+          "library": "JevSharp",
+          "version": "0.2.0",
+          "runtime": ".NET",
+          "runtimeVersion": "10.0.12",
+          "latencyMs": {
+            "mean": 0.19,
+            "p50": 0.176,
+            "p99": 0.319
+          },
+          "throughputPerSecond": 21426.9,
+          "concurrency": 16,
+          "allocatedBytesPerCall": 51882,
+          "note": "JevSharp reaches a custom endpoint with static headers only, so it sends no auth header."
+        },
+        {
+          "client": "typesafe-ai-sdk",
+          "library": "TypeSafe.AI.Sdk",
+          "version": "0.3.0",
+          "runtime": ".NET",
+          "runtimeVersion": "10.0.12",
+          "latencyMs": {
+            "mean": 0.109,
+            "p50": 0.092,
+            "p99": 0.176
+          },
+          "throughputPerSecond": 32949.7,
+          "concurrency": 16,
+          "allocatedBytesPerCall": 26656
+        },
+        {
+          "client": "jev-net",
+          "library": "Jev.Net",
+          "version": "0.4.0",
+          "runtime": ".NET",
+          "runtimeVersion": "10.0.12",
+          "latencyMs": {
+            "mean": 0.092,
+            "p50": 0.083,
+            "p99": 0.153
+          },
+          "throughputPerSecond": 37296,
+          "concurrency": 16,
+          "allocatedBytesPerCall": 20232
+        }
+      ],
+      "order": {
+        "latencyRounds": 20,
+        "callsPerRound": 100,
+        "rotation": 3,
+        "throughput": [
+          "typesafe-ai-sdk",
+          "jev-net",
+          "zeroalloc-jev",
+          "raw-httpclient",
+          "jevsharp"
+        ]
+      }
+    },
+    {
+      "name": "js-ci.json",
+      "machine": {
+        "name": "ci",
+        "os": "Linux 6.17.0-1022-azure #22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026",
+        "cpu": "Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz",
+        "date": "2026-10-04T15:35:00Z",
+        "mockCeilingPerSecond": null,
+        "cores": "2-3",
+        "mockCores": "0-1"
+      },
+      "results": [
+        {
+          "client": "typesafe-ai-sdk-js",
+          "library": "@typesafe-ai/sdk",
+          "version": "0.6.0",
+          "runtime": "Node.js",
+          "runtimeVersion": "24.21.0",
+          "latencyMs": {
+            "mean": 0.383,
+            "p50": 0.314,
+            "p99": 0.749
+          },
+          "throughputPerSecond": 4432.6,
+          "concurrency": 16,
+          "allocatedBytesPerCall": null
+        }
+      ]
+    },
+    {
+      "name": "py-ci.json",
+      "machine": {
+        "name": "ci",
+        "os": "Linux 6.17.0-1022-azure #22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026",
+        "cpu": "Intel(R) Xeon(R) Platinum 8370C CPU @ 2.80GHz",
+        "date": "2026-10-04T15:35:16Z",
+        "mockCeilingPerSecond": null,
+        "cores": "2-3",
+        "mockCores": "0-1"
+      },
+      "results": [
+        {
+          "client": "typesafe-sdk-python",
+          "library": "typesafe-sdk",
+          "version": "0.7.2",
+          "runtime": "Python",
+          "runtimeVersion": "3.12.14",
+          "latencyMs": {
+            "mean": 0.609,
+            "p50": 0.603,
+            "p99": 0.752
+          },
+          "throughputPerSecond": 1166.8,
+          "concurrency": 16,
+          "allocatedBytesPerCall": null
+        }
+      ]
+    }
+  ]
+}
