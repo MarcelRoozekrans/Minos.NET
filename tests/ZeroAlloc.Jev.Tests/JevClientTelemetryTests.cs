@@ -109,6 +109,34 @@ public sealed class JevClientTelemetryTests : IDisposable
     }
 
     [Fact]
+    public async Task CancelledCall_MarksTheSpanError_WithTheExceptionsTypeAndNoDescription()
+    {
+        using var capture = new TelemetryCapture();
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var handler = new StubHandler(async (_, ct) =>
+        {
+            started.SetResult();
+            await Task.Delay(Timeout.Infinite, ct);
+            return new HttpResponseMessage(HttpStatusCode.OK);
+        });
+        using var client = ClientTestKit.Client(_httpClients, handler);
+        using var cancellation = new CancellationTokenSource();
+
+        var pending = client.EvaluateAsync(Request(), cancellation.Token).AsTask();
+        await started.Task;
+        await cancellation.CancelAsync();
+        var raised = await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await pending);
+
+        var span = capture.Span();
+        Assert.Equal(ActivityStatusCode.Error, span.Status);
+        Assert.True(string.IsNullOrEmpty(span.StatusDescription));
+        Assert.Equal(raised.GetType().FullName, span.GetTagItem("error.type"));
+        var point = capture.OnlyPoint();
+        Assert.Equal(1, point.Tags.Count(tag => string.Equals(tag.Key, "error.type", StringComparison.Ordinal)));
+        Assert.Equal(raised.GetType().FullName, point.Tag("error.type"));
+    }
+
+    [Fact]
     public async Task EveryTypedOverload_IsTraced()
     {
         using var capture = new TelemetryCapture();

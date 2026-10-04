@@ -304,7 +304,7 @@ named `jev.*`.
 | `gen_ai.usage.output_tokens` | success | The output tokens. Evaluations only. |
 | `gen_ai.response.id` | success | OpenRouter's generation id, when it reports one. Only the raw `EvaluateAsync(SystemOneRequest)`. |
 | `jev.usage.cost` | success | The cost in US dollars, when OpenRouter reports it. Only the raw `EvaluateAsync(SystemOneRequest)`. |
-| `error.type` | failure | The name of the `JevErrorKind`, such as `RateLimited`. |
+| `error.type` | failure | The name of the `JevErrorKind`, such as `RateLimited`, or the full type name of a thrown exception. |
 
 The start attributes are set when the span is created, so a sampler sees them and can decide on them. A failed result
 marks the span `Error`, with no description. `error.type` says what went wrong, and the description stays empty because
@@ -318,12 +318,11 @@ OpenRouter, and they ask instrumentations to document their own. Jev's are the v
 ### When an exception is thrown
 
 A thrown exception is not a `JevError`, so it takes a different path. Cancellation is the usual example. Such a call
-marks the span `Error` with the exception's message as the description, and records the duration without an
-`error.type`. That is the default exception handling of ZeroAlloc.Telemetry, the library that generates the
-instrumentation. [ZeroAlloc.Telemetry#184](https://github.com/ZeroAlloc-Net/ZeroAlloc.Telemetry/issues/184) tracked it,
-and it is fixed in ZeroAlloc.Telemetry 1.11.0. This package builds against 1.10.0, so until it moves to a later version
-the behaviour above is what you see. Adopting the fix is tracked in
-[ZeroAlloc.Jev#85](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/issues/85).
+marks the span `Error` with no description, the same as a failed result, and sets `error.type` to the full name of the
+exception's type, such as `System.Threading.Tasks.TaskCanceledException`. The message is left out because it is the
+runtime's own text, and the library cannot vouch for it. The duration metric carries the same `error.type`, once. This
+is ZeroAlloc.Telemetry 1.11.0, the library that generates the instrumentation, with
+`ExceptionDescription = false` on each of Jev's operations.
 
 ## Metrics
 
@@ -359,8 +358,8 @@ The same values on a span and on a metric are the same strings, so you can filte
 ## What is never emitted
 
 Jev puts none of these in a span attribute, a metric attribute or a span description: the state, the instructions, the
-criteria, the answers or their probabilities, the API key, a header value, `JevError.Message` or `JevError.Detail`. The
-one message that can reach a span is that of a thrown exception, as described above, and that is the runtime's own text.
+criteria, the answers or their probabilities, the API key, a header value, `JevError.Message`, `JevError.Detail` or an
+exception message. The one thing a thrown exception adds to a span is the full name of its type, as described above.
 
 ## The cost of listening
 

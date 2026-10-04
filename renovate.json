@@ -26,9 +26,9 @@
       "allowedVersions": "[10.0.0]"
     },
     {
-      "description": "ZeroAlloc.Telemetry 1.10.0 is the library's shipped floor: it is the first release that allows several [TraceTag] on one parameter, and the pack tests assert it. The rest of the ZeroAlloc group keeps updating. Raising the floor is a deliberate change made by hand, together with the pack tests; the brackets mean exactly 1.10.0",
+      "description": "ZeroAlloc.Telemetry 1.11.0 is the library's shipped floor: it is the first release that sets error.type on the exception path and can leave the exception message out of the span status, and the pack tests assert it. The rest of the ZeroAlloc group keeps updating. Raising the floor is a deliberate change made by hand, together with the pack tests; the brackets mean exactly 1.11.0",
       "matchPackageNames": ["ZeroAlloc.Telemetry"],
-      "allowedVersions": "[1.10.0]"
+      "allowedVersions": "[1.11.0]"
     },
     {
       "description": "Group ZeroAlloc packages; they are this library's external dependencies",

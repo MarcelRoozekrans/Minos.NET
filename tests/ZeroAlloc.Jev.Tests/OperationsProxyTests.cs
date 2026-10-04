@@ -139,6 +139,71 @@ public sealed class OperationsProxyTests
         Assert.DoesNotContain(Message, span.DisplayName, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("evaluate", false)]
+    [InlineData("evaluate-typed", false)]
+    [InlineData("evaluate-built-set", false)]
+    [InlineData("evaluate", true)]
+    [InlineData("evaluate-typed", true)]
+    [InlineData("evaluate-built-set", true)]
+    public async Task ThrownOrCancelledCall_SetsErrorTypeToTheExceptionsFullName_AndLeavesItsMessageOut(string operation, bool cancelled)
+    {
+        const string Message = "an exception message that must not leak";
+        using var capture = new TelemetryCapture();
+        Exception thrown = cancelled ? new OperationCanceledException(Message) : new InvalidOperationException(Message);
+        var proxy = new JevOperationsInstrumented(new FakeOperations("{}")
+        {
+            Error = new JevError(JevErrorKind.Network, "not reached"),
+            Throws = thrown,
+        });
+
+        var raised = await Assert.ThrowsAnyAsync<Exception>(async () => _ = operation switch
+        {
+            "evaluate" => (await proxy.EvaluateAsync(Request(), "typesafe", Endpoint, CancellationToken.None)).IsFailure,
+            "evaluate-typed" => (await Evaluated.Unwrap(proxy.EvaluateTypedAsync<UrgencyCheck>(
+                TelemetryBodies.EmptyBody(), "jev-test-model", "typesafe", Endpoint, 1, CancellationToken.None))).IsFailure,
+            _ => (await Evaluated.Unwrap(proxy.EvaluateBuiltSetAsync(
+                TelemetryBodies.EmptyBody(), BuiltSets.UrgencyOnly(), "jev-test-model", "typesafe", Endpoint, CancellationToken.None))).IsFailure,
+        });
+
+        Assert.Same(thrown, raised);
+        var span = capture.Span();
+        Assert.Equal(operation, capture.StartTags().Tag("jev.operation"));
+        Assert.Equal(ActivityStatusCode.Error, span.Status);
+        Assert.True(string.IsNullOrEmpty(span.StatusDescription));
+        Assert.Equal(thrown.GetType().FullName, span.GetTagItem("error.type"));
+
+        // The duration carries error.type exactly once, with the exception's name.
+        var point = capture.OnlyPoint();
+        Assert.Equal("gen_ai.client.operation.duration", point.Metric);
+        Assert.Equal(1, point.Tags.Count(tag => string.Equals(tag.Key, "error.type", StringComparison.Ordinal)));
+        Assert.Equal(thrown.GetType().FullName, point.Tag("error.type"));
+
+        // Neither the span's start and end tags nor the metric point's carry the message.
+        KeyValuePair<string, object?>[] emitted = [.. span.TagObjects, .. capture.StartTags(), .. point.Tags];
+        Assert.DoesNotContain(emitted, tag => tag.Value is string text && text.Contains(Message, StringComparison.Ordinal));
+        Assert.DoesNotContain(Message, span.DisplayName, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ListModelsThatThrows_SetsErrorTypeToTheExceptionsFullName_AndLeavesItsMessageOut()
+    {
+        const string Message = "a list failure that must not leak";
+        using var capture = new TelemetryCapture();
+        var proxy = new JevOperationsInstrumented(new FakeOperations("{}") { Throws = new InvalidOperationException(Message) });
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await proxy.ListModelsAsync("typesafe", Endpoint, CancellationToken.None));
+
+        var span = capture.Span();
+        Assert.Equal(ActivityStatusCode.Error, span.Status);
+        Assert.True(string.IsNullOrEmpty(span.StatusDescription));
+        Assert.Equal("System.InvalidOperationException", span.GetTagItem("error.type"));
+        var point = capture.OnlyPoint();
+        Assert.Equal(1, point.Tags.Count(tag => string.Equals(tag.Key, "error.type", StringComparison.Ordinal)));
+        Assert.Equal("System.InvalidOperationException", point.Tag("error.type"));
+        Assert.DoesNotContain(span.TagObjects, tag => tag.Value is string text && text.Contains(Message, StringComparison.Ordinal));
+    }
+
     [Fact]
     public async Task BuiltSet_TagsItsOperationAndQuestionCount()
     {

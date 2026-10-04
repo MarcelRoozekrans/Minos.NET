@@ -119,6 +119,40 @@ internal static class TelemetryChecks
             "a failed evaluation is an Error span with its error.type and no description under Native AOT");
     }
 
+    public static async Task CancelledEvaluationSetsErrorTypeWithoutItsMessage()
+    {
+        var spans = new List<Activity>();
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = static source => source.Name is "ZeroAlloc.Jev",
+            Sample = static (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
+            ActivityStopped = spans.Add,
+        };
+        ActivitySource.AddActivityListener(listener);
+        using var http = new HttpClient(new DelayedHandler(TimeSpan.FromSeconds(30), Program.NoulResponse)) { BaseAddress = new Uri("https://example.test/api/") };
+        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key", MaxRetries = 0 });
+        using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
+        Exception? raised = null;
+
+        try
+        {
+            await client.EvaluateAsync(Program.Request(), cancel.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException exception)
+        {
+            raised = exception;
+        }
+
+        Program.Check(
+            raised is not null
+                && spans.Count == 1
+                && spans[0].Status == ActivityStatusCode.Error
+                && string.IsNullOrEmpty(spans[0].StatusDescription)
+                && spans[0].GetTagItem("error.type") is string errorType
+                && string.Equals(errorType, raised.GetType().FullName, StringComparison.Ordinal),
+            "a cancelled evaluation is an Error span with the exception's full type name as error.type and no description under Native AOT");
+    }
+
     /// <summary>Answers with one canned 200 response after a fixed delay, so a call's duration has a known minimum.</summary>
     private sealed class DelayedHandler(TimeSpan delay, string body) : HttpMessageHandler
     {

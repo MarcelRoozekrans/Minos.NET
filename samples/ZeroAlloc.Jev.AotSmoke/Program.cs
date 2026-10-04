@@ -44,6 +44,7 @@ internal static class Program
         await TelemetryChecks.RetriedEvaluationIsOneSpanOverTwoAttempts().ConfigureAwait(false);
         await TelemetryChecks.TypedEvaluationRecordsItsMetrics().ConfigureAwait(false);
         await TelemetryChecks.FailedEvaluationIsAnError().ConfigureAwait(false);
+        await TelemetryChecks.CancelledEvaluationSetsErrorTypeWithoutItsMessage().ConfigureAwait(false);
 
         AllocationChecks.GeneratedParse();
         AllocationChecks.ReadNoul();

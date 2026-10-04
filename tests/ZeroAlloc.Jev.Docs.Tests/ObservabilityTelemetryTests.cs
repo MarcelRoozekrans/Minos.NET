@@ -185,37 +185,52 @@ public sealed class ObservabilityTelemetryTests
         Assert.All(rest, attempt => Assert.Equal(jev.SpanId, attempt.ParentSpanId));
     }
 
-    // The exceptions section of the page describes ZeroAlloc.Telemetry 1.10.0, whose exception path sets no error.type.
+    // The exceptions section of the page describes ZeroAlloc.Telemetry 1.11.0, whose exception path sets error.type.
     [Fact]
     public void TheTelemetryPin_IsStillTheVersionThePageDescribes()
     {
         var props = File.ReadAllText(Path.Combine(PublishedPages.Root, "Directory.Packages.props"));
 
         Assert.True(
-            props.Contains("<PackageVersion Include=\"ZeroAlloc.Telemetry\" Version=\"1.10.0\" />", StringComparison.Ordinal),
-            "ZeroAlloc.Telemetry is no longer pinned at 1.10.0. 1.11.0 fixed the exception path, so update the "
-            + "'When an exception is thrown' note in docs/observability.md, and the README's Telemetry section, then this test.");
+            props.Contains("<PackageVersion Include=\"ZeroAlloc.Telemetry\" Version=\"1.11.0\" />", StringComparison.Ordinal),
+            "ZeroAlloc.Telemetry is no longer pinned at 1.11.0. Check that the exception path still sets error.type "
+            + "and leaves the message out, then update the 'When an exception is thrown' note in docs/observability.md and this test.");
     }
 
     [Fact]
-    public async Task ACancelledCall_MarksTheSpanError_WithTheExceptionsMessage_AndNoErrorType()
+    public async Task ACancelledCall_MarksTheSpanError_WithTheExceptionsTypeAndNoDescription()
     {
         using var listener = new JevTelemetryListener();
         var (http, jev, _) = ScriptedJev.Client(Options(), new Reply(HttpStatusCode.OK, TicketResponse, Delay: TimeSpan.FromSeconds(30)));
+        OperationCanceledException raised;
         using (http)
         using (jev)
         using (var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(100)))
         {
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            raised = await Assert.ThrowsAnyAsync<OperationCanceledException>(
                 async () => await jev.EvaluateAsync<TicketAnalysis>("Help!", cancel.Token));
         }
 
         var span = Only.Of(listener.Spans);
         Assert.Equal(ActivityStatusCode.Error, span.Status);
-        Assert.False(string.IsNullOrEmpty(span.StatusDescription));
-        Assert.Null(span.GetTagItem("error.type"));
+        Assert.True(string.IsNullOrEmpty(span.StatusDescription));
+        Assert.Equal(raised.GetType().FullName, span.GetTagItem("error.type"));
         var duration = Only.Of(Points(listener, "gen_ai.client.operation.duration"));
-        Assert.DoesNotContain("error.type", Keys(duration.Tags));
+        Assert.Equal(1, Keys(duration.Tags).Count(key => string.Equals(key, "error.type", StringComparison.Ordinal)));
+        Assert.Equal(raised.GetType().FullName, duration.Tags.First(tag => string.Equals(tag.Key, "error.type", StringComparison.Ordinal)).Value);
+    }
+
+    [Fact]
+    public void TheExceptionsSection_SaysWhatTheClientDoes()
+    {
+        var page = PageTables.Text(Page);
+        var section = page[page.IndexOf("### When an exception is thrown", StringComparison.Ordinal)..];
+        var end = section.IndexOf("\n## ", StringComparison.Ordinal);
+        section = section[..end].ReplaceLineEndings(" ");
+
+        Assert.Contains("full name", section, StringComparison.Ordinal);
+        Assert.Contains("no description", section, StringComparison.Ordinal);
+        Assert.DoesNotContain("1.10.0", section, StringComparison.Ordinal);
     }
 
     // The span table: every attribute on the page is one a span carries, and the start ones are the ones the sampler sees.

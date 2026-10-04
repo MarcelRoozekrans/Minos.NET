@@ -186,8 +186,9 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
     {
         var dependency = AssertExcludesBuildAndAnalyzers("ZeroAlloc.Telemetry");
 
-        // 1.10.0 allows several [TraceTag] on one parameter, which the endpoint and request tags need.
-        Assert.Equal("1.10.0", (string?)dependency.Attribute("version"));
+        // 1.11.0 sets error.type on the exception path and can leave the exception message out of the span status.
+        // It also keeps 1.10.0's several [TraceTag] on one parameter, which the endpoint and request tags need.
+        Assert.Equal("1.11.0", (string?)dependency.Attribute("version"));
     }
 
     // Finds the nuspec dependency on id and checks that its PrivateAssets keep Build and Analyzers out of consumers.

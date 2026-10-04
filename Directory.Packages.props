@@ -27,8 +27,8 @@
     <PackageVersion Include="ZeroAlloc.Rest" Version="3.2.0" />
     <PackageVersion Include="ZeroAlloc.Rest.SystemTextJson" Version="3.2.0" />
     <PackageVersion Include="ZeroAlloc.Results" Version="1.2.4" />
-    <!-- Telemetry: the attributes at run time, and the proxy generator bundled at analyzers/dotnet/cs. 1.10.0 is the floor: it allows several [TraceTag] on one parameter, #181. -->
-    <PackageVersion Include="ZeroAlloc.Telemetry" Version="1.10.0" />
+    <!-- Telemetry: the attributes at run time, and the proxy generator bundled at analyzers/dotnet/cs. 1.11.0 is the floor: it sets error.type on the exception path and can leave the exception message out of the span status, #184. -->
+    <PackageVersion Include="ZeroAlloc.Telemetry" Version="1.11.0" />
     <!--
       Logging: the library's floor is the first .NET 10 release, so consumers on any 10.0.x resolve without a conflict.
       Microsoft.Extensions.Logging, for the tests' and the AOT smoke app's LoggerFactory, follows Diagnostics.Testing's
