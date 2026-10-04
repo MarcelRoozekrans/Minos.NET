@@ -8,7 +8,7 @@ namespace ZeroAlloc.Jev.Generator.Tests;
 /// </summary>
 public sealed class DiagnosticTests
 {
-    // Invalid sets: the analyzer reports JEV001, JEV002 and JEV101–109 for these (ZeroAlloc.Jev.Analyzers.Tests:
+    // Invalid sets: the analyzer reports JEV001, JEV002 and JEV101–107 for these (ZeroAlloc.Jev.Analyzers.Tests:
     // MovedDiagnosticTests, ApiRuleTests, InvalidSetBuildTests). The generator stubs every unimplemented partial
     // question property, whatever its shape, wherever a partial part can reach it: that includes JEV101 types, apart
     // from those in Jev101UnstubbableSources.
@@ -67,6 +67,29 @@ public sealed class DiagnosticTests
         AssertNoQuestionSet(driver);
         Assert.DoesNotContain(output.GetDiagnostics(), diagnostic => string.Equals(diagnostic.Id, "CS9248", StringComparison.Ordinal));
         AssertStubsAddNoError(driver, output);
+    }
+
+    // Declared sets are text only. Json is no longer a named argument of any question-set attribute, so setting it is
+    // the compiler's own error at the argument, and the generator adds nothing to it.
+    public static TheoryData<string> JsonNamedArgumentSources => new()
+    {
+        "[JevQuestions] public partial class C { [Noul(\"{}\", Json = true)] public partial Noul Answer { get; } }",
+        "public enum E { [Criteria(\"a\")] A } [JevQuestions] public partial class C { [Choice(\"[]\", Json = true)] public partial Choice<E> Answer { get; } }",
+        "public enum L { [Level(\"a\")] A, [Level(\"b\")] B } [JevQuestions] public partial class C { [Score(\"[]\", Json = true)] public partial Score<L> Answer { get; } }",
+        "public enum E { [Criteria(\"{}\", Json = true)] A } [JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
+        "public enum L { [Level(\"{}\", Json = true)] A, [Level(\"b\")] B } [JevQuestions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }",
+    };
+
+    [Theory]
+    [MemberData(nameof(JsonNamedArgumentSources))]
+    public void JsonNamedArgument_DoesNotCompile(string source)
+    {
+        GeneratorHarness.Run("using ZeroAlloc.Jev;\n" + source, out var output, out var diagnostics);
+
+        Assert.Empty(diagnostics);
+        var errors = output.GetDiagnostics().Where(diagnostic => diagnostic.Severity == DiagnosticSeverity.Error).ToList();
+        Assert.Equal(["CS0246"], errors.Select(error => error.Id));
+        Assert.Equal("Json", errors[0].Location.SourceTree!.GetText().ToString(errors[0].Location.SourceSpan));
     }
 
     /// <summary>

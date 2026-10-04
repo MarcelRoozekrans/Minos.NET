@@ -1,1 +1,11 @@
 #nullable enable
+*REMOVED*ZeroAlloc.Jev.ChoiceAttribute.Json.get -> bool
+*REMOVED*ZeroAlloc.Jev.ChoiceAttribute.Json.set -> void
+*REMOVED*ZeroAlloc.Jev.CriteriaAttribute.Json.get -> bool
+*REMOVED*ZeroAlloc.Jev.CriteriaAttribute.Json.set -> void
+*REMOVED*ZeroAlloc.Jev.LevelAttribute.Json.get -> bool
+*REMOVED*ZeroAlloc.Jev.LevelAttribute.Json.set -> void
+*REMOVED*ZeroAlloc.Jev.NoulAttribute.Json.get -> bool
+*REMOVED*ZeroAlloc.Jev.NoulAttribute.Json.set -> void
+*REMOVED*ZeroAlloc.Jev.ScoreAttribute.Json.get -> bool
+*REMOVED*ZeroAlloc.Jev.ScoreAttribute.Json.set -> void

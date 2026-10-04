@@ -33,7 +33,7 @@ To be recorded from the first full run.
 | `ContentBenchmarks.FromUtf8Json` | 708.7 ns | 256 B | 320 B |
 
 Measured on a 12th Gen Intel Core i9-12900HK, Windows 11 (10.0.26200.9457), .NET SDK 10.0.401, with
-`--job short`. Question sets add no runtime cost: `Examples`, `NotFor` and `Json = true` change only the
+`--job short`. Question sets add no runtime cost: `Examples` and `NotFor` change only the
 static `QuestionsUtf8` literal.
 
 The means come from `--job short`, which runs few iterations and leaves wide error bars; treat them as
