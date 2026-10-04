@@ -259,3 +259,106 @@ def test_a_malformed_saved_run_exits_with_2(tmp_path, content):
 
     assert run.returncode == 2
     assert "Usage:" in run.stderr
+
+
+ORDER = {"latencyRounds": 20, "callsPerRound": 100, "rotation": 2, "throughput": ["jevsharp", "raw", "jev"]}
+
+
+def test_a_dotnet_result_without_bytes_is_refused(tmp_path):
+    dotnet = dotnet_file()
+    dotnet["results"][0]["allocatedBytesPerCall"] = None
+
+    with pytest.raises(merge.MergeError, match="jev: a .NET result has no allocatedBytesPerCall"):
+        merge.render(merge.load([write(tmp_path, "dotnet-box.json", dotnet)]), "ZeroAlloc.Jev")
+
+
+def test_the_order_line_follows_the_machine_line_and_a_saved_run_keeps_it(tmp_path):
+    dotnet = dotnet_file()
+    dotnet["order"] = ORDER
+    files = [write(tmp_path, "dotnet-box.json", dotnet), write(tmp_path, "js-box.json", js_file())]
+    saved = str(tmp_path / "ci.json")
+
+    text = merge.render(merge.load(files), "ZeroAlloc.Jev", None, merge.load_orders(files))
+    merge.save(files, saved, {})
+
+    lines = text.splitlines()
+    order = lines.index(
+        "Order: latency in 20 interleaved rounds of 100 calls per .NET client, rotated by round from rotation 2; "
+        "throughput jevsharp, raw, jev."
+    )
+    assert lines[order - 2].startswith("Machine: box;")
+    with open(saved, encoding="utf-8") as f:
+        assert json.load(f)["files"][0]["order"] == ORDER
+    assert merge.render(merge.load([saved]), "ZeroAlloc.Jev", None, merge.load_orders([saved])) == text
+
+
+def test_without_an_order_there_is_no_order_line(files):
+    assert "Order:" not in merge.render(merge.load(files), "ZeroAlloc.Jev", None, merge.load_orders(files))
+
+
+def saved_run(tmp_path, name, url, scale, ceiling, cpu="AMD EPYC 7763"):
+    """A published run whose throughputs are the sample's times scale, and whose mean latencies are scale ms."""
+    dotnet, js = dotnet_file(), js_file()
+    dotnet["machine"].update(mockCeilingPerSecond=ceiling, cpu=cpu)
+    for r in dotnet["results"] + js["results"]:
+        r["throughputPerSecond"] *= scale
+        r["latencyMs"]["mean"] = scale
+    files = [write(tmp_path, f"{name}-dotnet.json", dotnet), write(tmp_path, f"{name}-js.json", js)]
+    path = str(tmp_path / f"{name}.json")
+    merge.save(files, path, {"url": url, "commit": f"{name}000000abc"})
+    return path
+
+
+def test_across_runs_gives_each_runs_ceiling_and_each_clients_lowest_and_highest(tmp_path):
+    runs = [
+        saved_run(tmp_path, "aaa", RUN_URL, 1.0, 100000.0),
+        saved_run(tmp_path, "bbb", RUN_URL + "4", 2.0, 150000.0, cpu="AMD EPYC 9V74"),
+    ]
+
+    text = merge.render_across(merge.load_across(runs), "ZeroAlloc.Jev")
+
+    assert text.splitlines()[0] == "### ZeroAlloc.Jev: across runs"
+    assert f"| [run 123]({RUN_URL}) | `aaa0000` | AMD EPYC 7763 | 100,000 |" in text.splitlines()
+    assert f"| [run 1234]({RUN_URL}4) | `bbb0000` | AMD EPYC 9V74 | 150,000 |" in text.splitlines()
+    rows = [r for r in table_rows(text) if not r.startswith(("| [run", "| Run"))]
+    assert rows == [
+        "| raw | 1.000 to 2.000 | 60,000 to 120,000 | 60% to 80% | 800 |",
+        "| **jev** | 1.000 to 2.000 | 50,000 to 100,000 | 50% to 67% | 1,024 |",
+        "| jevsharp | 1.000 to 2.000 | 40,000 to 80,001 | 40% to 53% | 4,096 |",
+        "| typesafe-ai-sdk-js | 1.000 to 2.000 | 4,940 to 9,880 | 5% to 7% | — |",
+    ]
+    assert text.endswith("Runs: 2. Each range is the lowest to the highest figure over the runs.\n")
+
+
+def test_across_one_run_gives_single_figures(tmp_path):
+    text = merge.render_across(merge.load_across([saved_run(tmp_path, "aaa", RUN_URL, 1.0, 100000.0)]), "ZeroAlloc.Jev")
+
+    assert "| raw | 1.000 | 60,000 | 60% | 800 |" in text.splitlines()
+
+
+def test_across_runs_with_different_clients_is_refused(tmp_path):
+    first = saved_run(tmp_path, "aaa", RUN_URL, 1.0, 100000.0)
+    dotnet = dotnet_file()
+    dotnet["machine"]["mockCeilingPerSecond"] = 1.0
+    second = str(tmp_path / "bbb.json")
+    merge.save([write(tmp_path, "bbb-dotnet.json", dotnet)], second, {"url": RUN_URL + "4"})
+
+    with pytest.raises(merge.MergeError, match="clients differ"):
+        merge.render_across(merge.load_across([first, second]), "ZeroAlloc.Jev")
+
+
+def test_the_command_line_prints_the_across_runs_table(tmp_path):
+    runs = [saved_run(tmp_path, "aaa", RUN_URL, 1.0, 100000.0), saved_run(tmp_path, "bbb", RUN_URL + "4", 2.0, 150000.0)]
+
+    result = subprocess.run([sys.executable, MERGE, "--across", *runs, "--project", "ZeroAlloc.Jev"], capture_output=True, check=False)
+    refused = subprocess.run(
+        [sys.executable, MERGE, "--across", *runs, "--project", "ZeroAlloc.Jev", "--save", str(tmp_path / "x.json")],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.decode("utf-8") == merge.render_across(merge.load_across(runs), "ZeroAlloc.Jev")
+    assert refused.returncode == 2
+    assert "--across takes no" in refused.stderr
