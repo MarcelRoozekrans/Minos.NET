@@ -7,9 +7,13 @@ using JevNetRetryPolicy = Jev.Net.RetryPolicy;
 
 namespace ZeroAlloc.Jev.Benchmarks.Compare.Adapters;
 
-/// <summary>Jev.Net 0.4.0: <c>BaseUrl</c> pointed at the mock, <c>RetryPolicy.None</c> and the dummy key.</summary>
+/// <summary>
+/// Jev.Net 0.4.0: <c>BaseUrl</c> pointed at the mock, <c>RetryPolicy.None</c> and the dummy key, over
+/// <see cref="BenchmarkTransport"/>'s <see cref="HttpClient"/>.
+/// </summary>
 public sealed class JevNetAdapter : IClientAdapter
 {
+    private readonly HttpClient _http;
     private readonly JevNetClient _client;
     private readonly Dictionary<string, Question> _questions;
 
@@ -17,8 +21,11 @@ public sealed class JevNetAdapter : IClientAdapter
     /// <param name="baseAddress">The mock's root address; requests go to <c>/v1/systemone</c> under it.</param>
     public JevNetAdapter(Uri baseAddress)
     {
+        _http = BenchmarkTransport.CreateHttpClient();
         _client = new JevNetClient(new JevNetOptions
         {
+            HttpClient = _http,
+            DisposeHttpClient = false,
             ApiKey = Workload.DummyApiKey,
             BaseUrl = ClientAdapters.WithoutTrailingSlash(baseAddress),
             Retry = JevNetRetryPolicy.None,
@@ -66,5 +73,9 @@ public sealed class JevNetAdapter : IClientAdapter
     }
 
     /// <inheritdoc/>
-    public void Dispose() => _client.Dispose();
+    public void Dispose()
+    {
+        _client.Dispose();
+        _http.Dispose();
+    }
 }

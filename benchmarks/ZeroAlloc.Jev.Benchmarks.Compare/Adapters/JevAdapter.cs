@@ -1,11 +1,16 @@
 namespace ZeroAlloc.Jev.Benchmarks.Compare.Adapters;
 
-/// <summary>ZeroAlloc.Jev: the generated <see cref="TravelRequest"/> question set through <c>EvaluateAsync&lt;T&gt;</c>.</summary>
+/// <summary>
+/// ZeroAlloc.Jev: the generated <see cref="TravelRequest"/> question set through <c>EvaluateAsync&lt;T&gt;</c>, over
+/// <see cref="BenchmarkTransport"/>'s <see cref="HttpClient"/>.
+/// </summary>
 public sealed class JevAdapter : IClientAdapter
 {
-    // The wire key of each TravelIntent option, by enum value, for reading every probability in AskAsync.
-    private static readonly string[] OptionKeys = ["look_up_booking", "change_booking", "dispute_charge", "other"];
+    // The wire key of each TravelIntent option, by enum value, for reading every probability in AskAsync. TravelIntent
+    // declares its options in the workload's order.
+    private static readonly string[] OptionKeys = Workload.IntentOptions.Select(o => o.Key).ToArray();
 
+    private readonly HttpClient _http;
     private readonly JevClient _client;
 
     /// <summary>Initializes a new instance of the <see cref="JevAdapter"/> class.</summary>
@@ -13,7 +18,8 @@ public sealed class JevAdapter : IClientAdapter
     public JevAdapter(Uri baseAddress)
     {
         ArgumentNullException.ThrowIfNull(baseAddress);
-        _client = new JevClient(new JevClientOptions
+        _http = BenchmarkTransport.CreateHttpClient();
+        _client = new JevClient(_http, new JevClientOptions
         {
             ApiKey = Workload.DummyApiKey,
             BaseAddress = ClientAdapters.WithTrailingSlash(baseAddress),
@@ -22,7 +28,7 @@ public sealed class JevAdapter : IClientAdapter
     }
 
     /// <inheritdoc/>
-    public string Client => "zeroalloc-jev";
+    public string Client => ClientAdapters.Jev;
 
     /// <inheritdoc/>
     public string Library => "ZeroAlloc.Jev";
@@ -60,7 +66,11 @@ public sealed class JevAdapter : IClientAdapter
     }
 
     /// <inheritdoc/>
-    public void Dispose() => _client.Dispose();
+    public void Dispose()
+    {
+        _client.Dispose();
+        _http.Dispose();
+    }
 
     private async ValueTask<TravelRequest> EvaluateAsync(CancellationToken cancellationToken)
     {

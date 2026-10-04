@@ -75,6 +75,37 @@ public sealed class HarnessTests : IAsyncLifetime
     }
 
     [Fact]
+    public void Latency_figures_are_the_mean_and_the_nearest_rank_percentiles()
+    {
+        // 1..100 ms, shuffled: the mean is 50.5, the 50th percentile is the 50th value and the 99th the 99th.
+        var times = Enumerable.Range(1, 100).Select(i => (double)i).Reverse().ToList();
+
+        var figures = LatencyRunner.Summarize(times);
+
+        Assert.Equal(new LatencyFigures(50.5, 50, 99), figures);
+    }
+
+    [Fact]
+    public void Latency_figures_of_one_call_are_that_call()
+    {
+        Assert.Equal(new LatencyFigures(2.5, 2.5, 2.5), LatencyRunner.Summarize([2.5]));
+    }
+
+    [Fact]
+    public async Task The_latency_loop_makes_the_warm_up_and_timed_calls_one_request_each()
+    {
+        using var counter = new MockRequestCounter(BaseAddress);
+        using var adapter = ClientAdapters.Create(ClientAdapters.Raw, BaseAddress);
+
+        var run = await LatencyRunner.RunAsync(adapter, warmupCalls: 5, timedCalls: 20, CancellationToken.None);
+
+        Assert.Equal(25, run.Calls);
+        Assert.Equal(25, await counter.CountAsync(CancellationToken.None));
+        Assert.True(run.Latency.Mean > 0);
+        Assert.True(run.Latency.P50 <= run.Latency.P99);
+    }
+
+    [Fact]
     public void The_result_file_has_the_shared_format()
     {
         var file = new ResultFile(

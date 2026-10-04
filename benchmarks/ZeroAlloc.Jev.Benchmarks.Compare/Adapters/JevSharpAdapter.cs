@@ -14,7 +14,8 @@ namespace ZeroAlloc.Jev.Benchmarks.Compare.Adapters;
 
 /// <summary>
 /// JevSharp 0.2.0: a custom endpoint with the TypeSafe protocol, since JevSharp has no base-URL option, and
-/// <c>Retry.MaxAttempts = 1</c>. A custom endpoint takes static headers only; the empty map sends no auth header.
+/// <c>Retry.MaxAttempts = 1</c>, over <see cref="BenchmarkTransport"/>'s <see cref="HttpClient"/>. A custom endpoint takes
+/// static headers only; the empty map sends no auth header.
 /// </summary>
 public sealed class JevSharpAdapter : IClientAdapter
 {
@@ -32,7 +33,7 @@ public sealed class JevSharpAdapter : IClientAdapter
             Workload.Model,
             new Dictionary<string, string>(StringComparer.Ordinal));
         options.Retry.MaxAttempts = 1;
-        _http = new HttpClient();
+        _http = BenchmarkTransport.CreateHttpClient();
         _client = new JevSharpClient(options, _http, NullLogger<JevSharpClient>.Instance);
 
         var criteria = new Dictionary<string, JevValue>(StringComparer.Ordinal);

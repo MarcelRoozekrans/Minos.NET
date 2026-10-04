@@ -4,9 +4,13 @@ using TypeSafeSdkOptions = TypeSafe.AI.Sdk.TypeSafeClientOptions;
 
 namespace ZeroAlloc.Jev.Benchmarks.Compare.Adapters;
 
-/// <summary>TypeSafe.AI.Sdk 0.3.0: <c>BaseUrl</c> pointed at the mock, <c>Retry.MaxRetries = 0</c> and the dummy key.</summary>
+/// <summary>
+/// TypeSafe.AI.Sdk 0.3.0: <c>BaseUrl</c> pointed at the mock, <c>Retry.MaxRetries = 0</c> and the dummy key, over
+/// <see cref="BenchmarkTransport"/>'s <see cref="HttpClient"/>.
+/// </summary>
 public sealed class TypeSafeSdkAdapter : IClientAdapter
 {
+    private readonly HttpClient _http;
     private readonly TypeSafeSdkClient _client;
     private readonly Dictionary<string, Question> _questions;
 
@@ -14,7 +18,9 @@ public sealed class TypeSafeSdkAdapter : IClientAdapter
     /// <param name="baseAddress">The mock's root address; requests go to <c>/v1/systemone</c> under it.</param>
     public TypeSafeSdkAdapter(Uri baseAddress)
     {
-        _client = new TypeSafeSdkClient(new TypeSafeSdkOptions
+        // The SDK builds absolute URLs from BaseUrl and does not dispose an HttpClient it is given.
+        _http = BenchmarkTransport.CreateHttpClient();
+        _client = new TypeSafeSdkClient(_http, new TypeSafeSdkOptions
         {
             ApiKey = Workload.DummyApiKey,
             BaseUrl = ClientAdapters.WithoutTrailingSlash(baseAddress),
@@ -65,5 +71,9 @@ public sealed class TypeSafeSdkAdapter : IClientAdapter
     }
 
     /// <inheritdoc/>
-    public void Dispose() => _client.Dispose();
+    public void Dispose()
+    {
+        _client.Dispose();
+        _http.Dispose();
+    }
 }

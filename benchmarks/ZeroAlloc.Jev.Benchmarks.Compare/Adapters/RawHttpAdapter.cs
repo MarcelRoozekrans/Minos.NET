@@ -7,7 +7,8 @@ namespace ZeroAlloc.Jev.Benchmarks.Compare.Adapters;
 /// <summary>
 /// The baseline: what a careful developer writes by hand with <see cref="HttpClient"/> and System.Text.Json. It posts
 /// the request body ZeroAlloc.Jev sends for the workload and reads the answers into plain records, both through a
-/// source-generated <see cref="JsonSerializerContext"/>. One attempt, no retries.
+/// source-generated <see cref="JsonSerializerContext"/>, over <see cref="BenchmarkTransport"/>'s <see cref="HttpClient"/>.
+/// One attempt, no retries.
 /// </summary>
 public sealed class RawHttpAdapter : IClientAdapter
 {
@@ -20,7 +21,7 @@ public sealed class RawHttpAdapter : IClientAdapter
     /// <param name="baseAddress">The mock's root address; requests go to <c>v1/systemone</c> under it.</param>
     public RawHttpAdapter(Uri baseAddress)
     {
-        _http = new HttpClient { BaseAddress = ClientAdapters.WithTrailingSlash(baseAddress) };
+        _http = BenchmarkTransport.CreateHttpClient(ClientAdapters.WithTrailingSlash(baseAddress));
         _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", Workload.DummyApiKey);
 
         var criteria = new Dictionary<string, string>(StringComparer.Ordinal);

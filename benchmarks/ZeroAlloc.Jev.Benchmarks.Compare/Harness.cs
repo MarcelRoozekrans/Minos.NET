@@ -1,6 +1,5 @@
 using System.Globalization;
 using System.Runtime.InteropServices;
-using BenchmarkDotNet.Columns;
 using BenchmarkDotNet.Configs;
 using BenchmarkDotNet.Jobs;
 using BenchmarkDotNet.Reports;
@@ -10,8 +9,9 @@ using ZeroAlloc.Jev.Benchmarks.Compare.Adapters;
 namespace ZeroAlloc.Jev.Benchmarks.Compare;
 
 /// <summary>
-/// Runs the comparison: per client, an exact-count probe and a counted throughput run, then BenchmarkDotNet for
-/// latency and allocations, and writes the shared result file.
+/// Runs the comparison: per client, a checked warm-up, a timed sequential latency loop and a throughput run, each
+/// counted against the mock; then the mock's own ceiling; then BenchmarkDotNet for allocated bytes per call. It writes
+/// the shared result file.
 /// </summary>
 /// <param name="options">The command line.</param>
 /// <param name="log">Where progress goes.</param>
@@ -23,8 +23,9 @@ public sealed class Harness(CompareOptions options, TextWriter log)
     /// <summary>How many workers the raw client uses to measure the mock's own ceiling.</summary>
     public const int CeilingConcurrency = 64;
 
-    /// <summary>How many sequential calls the exact-count probe makes per client.</summary>
-    public const int ProbeCalls = 100;
+    private int LatencyWarmupCalls => options.Smoke ? 10 : 200;
+
+    private int LatencyCalls => options.Smoke ? 20 : 2000;
 
     private TimeSpan ThroughputWarmup => options.Smoke ? TimeSpan.FromSeconds(0.5) : TimeSpan.FromSeconds(2);
 
@@ -37,34 +38,43 @@ public sealed class Harness(CompareOptions options, TextWriter log)
     public async Task<string> RunAsync(CancellationToken cancellationToken)
     {
         Directory.CreateDirectory(options.OutDirectory);
-        var throughput = new Dictionary<string, double>(StringComparer.Ordinal);
-        var clients = new Dictionary<string, IClientAdapter>(StringComparer.Ordinal);
+        var measured = new Dictionary<string, ClientMeasurement>(StringComparer.Ordinal);
         using var counter = new MockRequestCounter(options.BaseUrl);
-        try
+        foreach (var client in ClientAdapters.All)
         {
-            foreach (var client in ClientAdapters.All)
-            {
-                var adapter = ClientAdapters.Create(client, options.BaseUrl);
-                clients[client] = adapter;
-                await WarmUpAsync(adapter, counter, cancellationToken).ConfigureAwait(false);
-                await ProbeAsync(adapter, counter, cancellationToken).ConfigureAwait(false);
-                throughput[client] = await MeasureThroughputAsync(adapter, counter, cancellationToken).ConfigureAwait(false);
-            }
+            using var adapter = ClientAdapters.Create(client, options.BaseUrl);
+            measured[client] = await MeasureAsync(adapter, counter, cancellationToken).ConfigureAwait(false);
+        }
 
-            var ceiling = await MeasureCeilingAsync(counter, cancellationToken).ConfigureAwait(false);
-            var summary = RunBenchmarks();
-            var file = new ResultFile(Machine(summary, ceiling), Results(summary, clients, throughput));
-            var path = Path.Combine(options.OutDirectory, options.ResultFileName);
-            await File.WriteAllTextAsync(path, file.ToJson(), cancellationToken).ConfigureAwait(false);
-            return path;
-        }
-        finally
-        {
-            foreach (var adapter in clients.Values)
-            {
-                adapter.Dispose();
-            }
-        }
+        var ceiling = await MeasureCeilingAsync(counter, cancellationToken).ConfigureAwait(false);
+        var summary = RunBenchmarks();
+        var file = new ResultFile(Machine(summary, ceiling), Results(summary, measured));
+        var path = Path.Combine(options.OutDirectory, options.ResultFileName);
+        await File.WriteAllTextAsync(path, file.ToJson(), cancellationToken).ConfigureAwait(false);
+        return path;
+    }
+
+    private async Task<ClientMeasurement> MeasureAsync(IClientAdapter adapter, MockRequestCounter counter, CancellationToken cancellationToken)
+    {
+        await WarmUpAsync(adapter, counter, cancellationToken).ConfigureAwait(false);
+
+        // Sequential calls, so the count also proves one request per call, with no retry and no extra request.
+        var latency = await CountedAsync(
+            adapter.Client,
+            "latency loop",
+            counter,
+            () => LatencyRunner.RunAsync(adapter, LatencyWarmupCalls, LatencyCalls, cancellationToken),
+            static run => run.Calls,
+            cancellationToken).ConfigureAwait(false);
+
+        // The throughput warm-up and the measured phase are counted apart, so a mismatch names the phase.
+        var warmup = await CountedPhaseAsync(adapter, "throughput warm-up", Concurrency, ThroughputWarmup, counter, cancellationToken).ConfigureAwait(false);
+        var throughput = await CountedPhaseAsync(adapter, "throughput run", Concurrency, ThroughputDuration, counter, cancellationToken).ConfigureAwait(false);
+
+        await log.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"{adapter.Client}: latency {latency.Calls} of {latency.Calls} requests, mean {latency.Latency.Mean} ms, p50 {latency.Latency.P50} ms, p99 {latency.Latency.P99} ms; throughput warm-up {warmup.Calls} of {warmup.Calls}, measured {throughput.Calls} of {throughput.Calls}, {throughput.PerSecond:F0}/s")).ConfigureAwait(false);
+        return new ClientMeasurement(adapter.Library, adapter.Version, adapter.Note, latency.Latency, throughput.PerSecond);
     }
 
     private static Task<int> WarmUpAsync(IClientAdapter adapter, MockRequestCounter counter, CancellationToken cancellationToken)
@@ -78,33 +88,6 @@ public sealed class Harness(CompareOptions options, TextWriter log)
 
             return CompareBenchmarks.WarmupCalls;
         }, static calls => calls, cancellationToken);
-
-    // Sequential calls: one request per call, with no retry and no extra request.
-    private static Task<int> ProbeAsync(IClientAdapter adapter, MockRequestCounter counter, CancellationToken cancellationToken)
-        => CountedAsync(adapter.Client, "probe", counter, async () =>
-        {
-            for (var i = 0; i < ProbeCalls; i++)
-            {
-                var outcome = await adapter.CallAsync(cancellationToken).ConfigureAwait(false);
-                if (!outcome.IsExpected)
-                {
-                    throw new InvalidOperationException(adapter.Client + " read an unexpected answer in the probe.");
-                }
-            }
-
-            return ProbeCalls;
-        }, static calls => calls, cancellationToken);
-
-    // The throughput warm-up and the measured phase are counted apart, so a mismatch names the phase.
-    private async Task<double> MeasureThroughputAsync(IClientAdapter adapter, MockRequestCounter counter, CancellationToken cancellationToken)
-    {
-        var warmup = await CountedPhaseAsync(adapter, "throughput warm-up", Concurrency, ThroughputWarmup, counter, cancellationToken).ConfigureAwait(false);
-        var measured = await CountedPhaseAsync(adapter, "throughput run", Concurrency, ThroughputDuration, counter, cancellationToken).ConfigureAwait(false);
-        await log.WriteLineAsync(string.Create(
-            CultureInfo.InvariantCulture,
-            $"{adapter.Client}: probe {ProbeCalls} of {ProbeCalls} requests, warm-up {warmup.Calls} of {warmup.Calls}, measured {measured.Calls} of {measured.Calls}, {measured.PerSecond:F0}/s")).ConfigureAwait(false);
-        return measured.PerSecond;
-    }
 
     // The mock's own ceiling: the raw client, the thinnest one, at four times the clients' concurrency, so the results
     // can show how far below the mock's limit each client stays.
@@ -147,17 +130,17 @@ public sealed class Harness(CompareOptions options, TextWriter log)
         {
             throw new InvalidOperationException(string.Create(
                 CultureInfo.InvariantCulture,
-                $"{client}: the {run} made {calls} calls but the mock logged {requests} requests. A retry or an extra request breaks the one-request-per-call rule."));
+                $"{client}: the {run} made {calls} calls but the mock served {requests} requests. A retry or an extra request breaks the one-request-per-call rule."));
         }
     }
 
+    // BenchmarkDotNet measures allocated bytes per call only; latency comes from the timed loop, as in every harness.
     private Summary RunBenchmarks()
     {
-        var job = (options.Smoke ? Job.Dry : Job.Default)
+        var job = (options.Smoke ? Job.Dry : Job.ShortRun)
             .WithEnvironmentVariables(new EnvironmentVariable(CompareBenchmarks.BaseUrlVariable, options.BaseUrl.AbsoluteUri));
         var config = DefaultConfig.Instance
             .AddJob(job)
-            .AddColumn(StatisticColumn.Median, new P99Column())
             .WithArtifactsPath(Path.Combine(options.OutDirectory, "BenchmarkDotNet.Artifacts"));
         var summary = BenchmarkRunner.Run<CompareBenchmarks>(config);
         if (summary.HasCriticalValidationErrors || summary.Reports.Length != CompareBenchmarks.ClientByBenchmark.Count || summary.Reports.Any(r => !r.Success))
@@ -175,35 +158,31 @@ public sealed class Harness(CompareOptions options, TextWriter log)
         DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture),
         Math.Round(mockCeilingPerSecond, 1));
 
-    private static List<ClientResult> Results(Summary summary, Dictionary<string, IClientAdapter> clients, Dictionary<string, double> throughput)
+    private static List<ClientResult> Results(Summary summary, Dictionary<string, ClientMeasurement> measured)
     {
         var results = new List<ClientResult>();
         foreach (var client in ClientAdapters.All)
         {
             var report = summary.Reports.First(r => string.Equals(
                 CompareBenchmarks.ClientByBenchmark[r.BenchmarkCase.Descriptor.WorkloadMethod.Name], client, StringComparison.Ordinal));
-            var statistics = report.ResultStatistics
-                ?? throw new InvalidOperationException(client + ": BenchmarkDotNet reported no statistics.");
-            var p99 = P99Column.Nanoseconds(report)
-                ?? throw new InvalidOperationException(client + ": BenchmarkDotNet reported no 99th percentile.");
-            var adapter = clients[client];
+            var measurement = measured[client];
             results.Add(new ClientResult(
                 client,
-                adapter.Library,
-                adapter.Version,
+                measurement.Library,
+                measurement.Version,
                 ".NET",
                 Environment.Version.ToString(),
-                new LatencyFigures(ToMilliseconds(statistics.Mean), ToMilliseconds(statistics.Median), ToMilliseconds(p99)),
-                Math.Round(throughput[client], 1),
+                measurement.Latency,
+                Math.Round(measurement.ThroughputPerSecond, 1),
                 Concurrency,
                 report.GcStats.GetBytesAllocatedPerOperation(report.BenchmarkCase))
             {
-                Note = adapter.Note,
+                Note = measurement.Note,
             });
         }
 
         return results;
     }
 
-    private static double ToMilliseconds(double nanoseconds) => Math.Round(nanoseconds / 1_000_000, 6);
+    private sealed record ClientMeasurement(string Library, string Version, string? Note, LatencyFigures Latency, double ThroughputPerSecond);
 }

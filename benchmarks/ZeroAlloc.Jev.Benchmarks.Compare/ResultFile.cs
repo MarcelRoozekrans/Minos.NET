@@ -59,5 +59,4 @@ public sealed record LatencyFigures(double Mean, double P50, double P99);
 /// <summary>The harness's source-generated serializer metadata.</summary>
 [JsonSourceGenerationOptions(PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase, WriteIndented = true)]
 [JsonSerializable(typeof(ResultFile))]
-[JsonSerializable(typeof(JsonElement))]
 internal sealed partial class CompareJsonContext : JsonSerializerContext;

@@ -4,8 +4,9 @@ using ZeroAlloc.Jev.Benchmarks.Compare.Adapters;
 namespace ZeroAlloc.Jev.Benchmarks.Compare;
 
 /// <summary>
-/// Per-call latency and allocations of every client, one call at a time against the mock. BenchmarkDotNet runs each
-/// benchmark in its own process, which reads the mock's address from <see cref="BaseUrlVariable"/>.
+/// Allocated bytes per call of every client, from BenchmarkDotNet's memory diagnoser; latency comes from the harness's
+/// timed loop instead. BenchmarkDotNet runs each benchmark in its own process, which reads the mock's address from
+/// <see cref="BaseUrlVariable"/>.
 /// </summary>
 [MemoryDiagnoser]
 public class CompareBenchmarks

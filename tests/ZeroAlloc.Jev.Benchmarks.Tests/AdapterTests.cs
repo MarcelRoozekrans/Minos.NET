@@ -84,6 +84,20 @@ public sealed class AdapterTests : IAsyncLifetime, IDisposable
 
     [Theory]
     [MemberData(nameof(Clients))]
+    public async Task Every_client_runs_on_the_benchmark_transport(string client)
+    {
+        using var adapter = ClientAdapters.Create(client, RecorderAddress);
+
+        _ = await adapter.CallAsync(CancellationToken.None);
+
+        // BenchmarkTransport's handler has automatic decompression off, so no client asks for a compressed answer.
+        // Jev.Net's own default handler turns decompression on and would send Accept-Encoding.
+        var request = OnlyRequest(_recorder);
+        Assert.False(request.Headers!.ContainsKey("Accept-Encoding"));
+    }
+
+    [Theory]
+    [MemberData(nameof(Clients))]
     public async Task Every_client_but_JevSharp_sends_the_dummy_key(string client)
     {
         using var adapter = ClientAdapters.Create(client, RecorderAddress);
@@ -113,13 +127,14 @@ public sealed class AdapterTests : IAsyncLifetime, IDisposable
         _ = await jev.CallAsync(CancellationToken.None);
         _ = await raw.CallAsync(CancellationToken.None);
 
-        string? jevBody = null;
-        string? rawBody = null;
+        byte[]? jevBody = null;
+        byte[]? rawBody = null;
         Assert.Collection(
             _recorder.LogEntries,
-            e => jevBody = e.RequestMessage?.Body,
-            e => rawBody = e.RequestMessage?.Body);
+            e => jevBody = e.RequestMessage?.BodyAsBytes,
+            e => rawBody = e.RequestMessage?.BodyAsBytes);
         Assert.NotNull(jevBody);
+        Assert.NotEmpty(jevBody);
         Assert.Equal(jevBody, rawBody);
     }
 
