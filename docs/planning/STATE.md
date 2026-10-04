@@ -1,13 +1,25 @@
-# Session State — 2026-10-04 (Milestone 5 started)
+# Session State — 2026-10-04 (Phase 5.1 complete, PR to open)
 
 **Date:** 2026-10-04
 
 ## Current Position
-- **Milestone:** 5 — 1.0 hardening, active since 2026-10-04 (design `docs/superpowers/specs/2026-10-04-milestone-5-design.md`). Milestone 4 completed 2026-10-03 (PR #90); jev.zeroalloc.net serves the guide with the shared icon (.website #76).
-- **Phase:** 5.1 — Public API review is next (pending; no spec yet).
-- **Next task:** merge the Milestone 5 design PR, then run `start-next-phase` to brainstorm Phase 5.1.
+- **Milestone:** 5 — 1.0 hardening, active since 2026-10-04 (design `docs/superpowers/specs/2026-10-04-milestone-5-design.md`).
+- **Phase:** 5.1 — Public API review is complete on branch `phase/5.1-api-review`; it lands through a PR to `main` and releases as 0.4.0 (`bump-minor-pre-major`).
+- **Next task:** merge the Phase 5.1 PR, check the release-please PR lists every breaking entry BEFORE merging it, then run `start-next-phase` for Phase 5.2 — Benchmark suite.
 - **Maintainer decisions for Milestone 5:** 1.0.0 ships to NuGet only after the TypeSafe live suite passes with a real key (the maintainer obtains one); benchmarks compare against a raw HttpClient + STJ client and the official JS and Python SDKs; the docs site keeps one live version.
 - **Operational note:** .website's bot-opened "update submodules" PRs hold their `build` run for approval ("action_required"); approve the run, then merge with the admin override.
+
+## What Phase 5.1 shipped
+- API review: `docs/plans/2026-10-04-phase-5.1-api-review.md`, 59 types and 445 members, findings R1–R14 each linked to its fix; impact analysis `docs/plans/2026-10-04-phase-5.1-public-api-review-impact-analysis.md`.
+- Breaking (all in `PublicAPI.Unshipped.txt`, 43 removed and 40 added lines):
+  - `Json = true` removed from `[Noul]`, `[Choice]`, `[Score]`, `[Criteria]`, `[Level]` (#67); the generator's `JsonMinifier` and the JSON branches of JEV003 and JEV004 removed; JEV109 and the JEV108 analyzer descriptor removed (listed under Removed Rules); JEV108 stays as a run-time builder failure, documented in its own `diagnostics.md` section.
+  - `JevError(kind, message)` with init properties `StatusCode`, `RetryAfter`, `Detail` (`JsonElement?`) and `Exception` (#24).
+  - `JevErrorKind` numbered 1–12 with no zero member, plus `Disposed` (#23). CA1008 is not in the `latest-recommended` set, so no suppression.
+  - Builder overloads that could never build removed (keyed Choice, keyed Score, enum Score without a configurator); `NoulAttribute.True`/`False` renamed `WhenTrue`/`WhenFalse`; public `ct` parameters renamed `cancellationToken`, and the guide and samples follow.
+- Disposal (#25): a call in flight when its client is disposed returns `Disposed`; a disposed client never retries, owned or borrowed `HttpClient` (maintainer-approved ruling); a borrowed client's attempt already in flight keeps its own result. `DisposalGuardJevApi` sits inside the retry proxy and inspects only faulted attempts, so the success path allocates nothing.
+- Telemetry (#85): ZeroAlloc.Telemetry 1.11.0, `ExceptionDescription = false` on every `[Trace]`; a thrown call's span carries `error.type` = the exception's `FullName` and no status description.
+- Additive: `Noul` value equality (0 B AOT gate); `JevOptionSet<T>` hidden from IntelliSense; XML docs completed (R11–R14).
+- Measurement notes: AOT absolute gates pass; figures crept since Phase 3 (non-yielding +~20 B, a yielding call 5254 → 5363 B), noted on #68 for Phase 5.3; the relative gates still flake (#79). #21 closed.
 
 ## What Phase 4.4 shipped
 - ZeroAlloc-Net/.website#81 (open): `repos/jev` submodule, `apps/docs-jev` copied from docs-rest with `onBrokenLinks: 'throw'` and `planning`/`superpowers` excluded, a zeroalloc.net home-page entry (`available: true`, maintainer decision), README row and lockfile. Its `build` workflow passed.
@@ -178,7 +190,7 @@
 - Still unknown until a TypeSafe live run (needs `TYPESAFE_API_KEY` and the `live-api` environment): whether TypeSafe sends `Retry-After`, the 422 body schema, and whether Phase 2.4's `BuiltQuestionSet_ParsesAKeyedChoice` passes.
 
 ## Recommended Next Step
-Merge the Milestone 5 design PR, then run `start-next-phase` to brainstorm Phase 5.1 — Public API review.
+Merge the Phase 5.1 PR, check the 0.4.0 release-please PR lists every breaking entry before merging it, then run `start-next-phase` for Phase 5.2 — Benchmark suite.
 
 
 
