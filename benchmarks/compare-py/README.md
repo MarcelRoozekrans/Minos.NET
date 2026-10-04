@@ -41,4 +41,4 @@ it used 93 to 99 percent of one core whether 1, 16 or 64 tasks ran, and 1 task r
 and 1,562/s for 64. The mock held exactly 16 client connections for 16 tasks, all reused, so the SDK does not open
 connections per call. Raw `httpx2` calls, the HTTP library the SDK is built on, with a hand-made JSON body and
 response parsing, reached 2,086/s at 16 tasks, so the HTTP stack sets the ceiling and the SDK's request building and
-response validation cost about a fifth on top.
+response validation cost roughly 20 to 25 percent on top. The raw `httpx2` comparison was an ad-hoc script and is not committed.

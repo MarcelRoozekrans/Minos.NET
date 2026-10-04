@@ -89,13 +89,21 @@ def cpu_name():
     return platform.processor() or platform.machine()
 
 
+_NO_PROXY = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+
+
+def _number(value: float) -> float | int:
+    """Writes a whole number without a trailing .0, as the JS and .NET harnesses do."""
+    return int(value) if value.is_integer() else value
+
+
 class _Parser(argparse.ArgumentParser):
     def error(self, message):
         raise UsageError(message)
 
 
 def parse_args(argv):
-    parser = _Parser(add_help=False)
+    parser = _Parser(add_help=False, allow_abbrev=False)
     parser.add_argument("--base-url")
     parser.add_argument("--out")
     parser.add_argument("--smoke", action="store_true")
@@ -140,7 +148,8 @@ def assert_full_answers(result):
 
 
 def read_count(base_url):
-    with urllib.request.urlopen(f"{base_url}/count") as response:
+    # Read the count directly, never through a proxy from HTTP_PROXY, so it is the mock's own figure.
+    with _NO_PROXY.open(f"{base_url}/count") as response:
         status = response.status
         text = response.read().decode("utf-8").strip()
     if status != 200 or not re.fullmatch(r"\d+", text):
@@ -273,7 +282,7 @@ def main():
                 "runtime": "Python",
                 "runtimeVersion": platform.python_version(),
                 "latencyMs": latency["latency"],
-                "throughputPerSecond": math.floor(throughput["per_second"] * 10 + 0.5) / 10,
+                "throughputPerSecond": _number(math.floor(throughput["per_second"] * 10 + 0.5) / 10),
                 "concurrency": CONCURRENCY,
                 "allocatedBytesPerCall": None,
             }
