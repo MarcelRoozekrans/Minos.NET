@@ -6,11 +6,32 @@ namespace ZeroAlloc.Jev.Transport;
 
 /// <summary>Maps every ZeroAlloc.Rest failure to a <see cref="JevError"/>.</summary>
 /// <param name="time">The clock used to turn an HTTP-date <c>Retry-After</c> into a delay.</param>
-internal sealed class JevErrorMapper(TimeProvider time) : IHttpErrorMapper<JevError>
+/// <param name="disposed">
+/// Reads whether the <see cref="JevClient"/> that owns the <see cref="HttpClient"/> has been disposed, or
+/// <see langword="null"/> for a borrowed <see cref="HttpClient"/>, which disposing the client never tears down.
+/// </param>
+internal sealed class JevErrorMapper(TimeProvider time, Func<bool>? disposed) : IHttpErrorMapper<JevError>
 {
+    private const string DisposedMessage = "The client was disposed while the request was in flight.";
+
+    /// <summary>The failure for an attempt that the client's disposal tore down or kept from being sent.</summary>
+    /// <param name="exception">The exception the teardown caused, or <see langword="null"/> when nothing was sent.</param>
+    /// <returns>A <see cref="JevErrorKind.Disposed"/> error.</returns>
+    public static JevError Disposed(Exception? exception)
+        => new(JevErrorKind.Disposed, DisposedMessage) { Exception = exception };
+
     public JevError Map(HttpError error)
     {
         ArgumentNullException.ThrowIfNull(error);
+
+        // Disposing the client disposes its HttpClient, which cancels every request in flight: the attempt arrives here
+        // as a time-out, or as a transport failure from a handler that fails that way. The client sets its flag before
+        // it disposes the HttpClient, so the flag is visible here; a real time-out mapped before the disposal stays
+        // Timeout. Deciding here, before the retry proxy sees the failure, keeps a disposed client from retrying.
+        if (error.Kind is HttpErrorKind.Timeout or HttpErrorKind.Transport && disposed is not null && disposed())
+        {
+            return Disposed(error.Exception);
+        }
 
         return error.Kind switch
         {

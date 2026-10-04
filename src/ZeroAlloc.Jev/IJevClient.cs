@@ -6,10 +6,18 @@ namespace ZeroAlloc.Jev;
 
 /// <summary>Calls TypeSafe's Jev System One API. Implemented by <see cref="JevClient"/>; mock it in tests.</summary>
 /// <remarks>
+/// <para>
 /// A hand-written fake implements <see cref="EvaluateAsync(SystemOneRequest, CancellationToken)"/> and
 /// <see cref="ListModelsAsync(CancellationToken)"/>; the typed <c>EvaluateAsync&lt;T&gt;</c> overloads and the built-set
 /// overloads then work through it. Mocking libraries intercept default interface methods; configure the overload you
 /// call, or enable CallBase.
+/// </para>
+/// <para>
+/// After <see cref="JevClient.Dispose"/>, a <see cref="JevClient"/> call throws <see cref="ObjectDisposedException"/>.
+/// A call already in flight when it is disposed returns a <see cref="JevErrorKind.Disposed"/> failure when the
+/// disposal tore its request down, which happens only over an <see cref="HttpClient"/> the client created, and that
+/// failure is never retried.
+/// </para>
 /// </remarks>
 public interface IJevClient
 {

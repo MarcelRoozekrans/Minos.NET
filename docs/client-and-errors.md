@@ -70,6 +70,19 @@ option or a `null` request throws when you create the client or make the call. C
 `ObjectDisposedException`. Cancelling the `CancellationToken` you passed throws `OperationCanceledException`, because
 you asked for it. Everything else, including every network and service failure, comes back as a `JevError`.
 
+### Disposing a client
+
+`Dispose` decides what happens to a call by when the call started:
+
+- **A call started after `Dispose`** throws `ObjectDisposedException`, because calling a disposed client is a mistake in
+  the calling code.
+- **A call already in flight** over an `HttpClient` the client created is torn down with that `HttpClient`. It returns
+  a `JevError` of kind `Disposed`, not `Timeout` or `Network`, so you can tell it apart from a real failure, and it is
+  never retried. A retry that was waiting when `Dispose` ran is not sent either, and the call returns `Disposed`. An
+  attempt that had already failed with a real time-out before `Dispose` keeps `Timeout` when no retry is left.
+- **A call already in flight over an `HttpClient` you lent** is not affected. The client never disposes that
+  `HttpClient`, so the call runs to completion, retries included.
+
 ## Options
 
 `JevClientOptions` has nine properties, and every one is optional.

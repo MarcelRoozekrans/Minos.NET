@@ -33,7 +33,9 @@ public sealed class JevClient : IJevClient, IDisposable
     private readonly ArrayPool<byte> _pool;
     private readonly JevProvider _provider;
     private readonly ILogger? _logger;
-    private bool _disposed;
+    // Volatile: Dispose writes it before it disposes the owned HttpClient, and the error mapper and the disposal guard
+    // read it on the threads that complete the calls in flight.
+    private volatile bool _disposed;
 
     /// <summary>
     /// Initializes a new instance of the <see cref="JevClient"/> class that creates and owns its
@@ -186,16 +188,26 @@ public sealed class JevClient : IJevClient, IDisposable
         _model = settings.Model;
         _pool = pool;
         _logger = logger;
+        // Only an owned HttpClient is disposed with the client, so only an owned one can tear a request down. The mapper
+        // then reports such an attempt as Disposed, which is never retried, and the guard keeps a retry that was already
+        // waiting from being sent.
+        Func<bool>? disposed = _ownedHttpClient is null ? null : () => _disposed;
         var transport = new JevApiClient(
             httpClient,
             new SystemTextJsonSerializer(JevJsonContext.Default),
             new JevRawSerializer(pool),
-            new JevErrorMapper(time));
+            new JevErrorMapper(time, disposed));
         var retry = RetryPolicyFor(settings);
 
-        // The retry proxy, then the logging decorator, then the transport: the decorator sees every attempt with its retry
-        // number and shares the retry proxy's policy. Without a logger the retry proxy wraps the transport directly, as before.
+        // The retry proxy, then the disposal guard, then the logging decorator, then the transport: the logging decorator
+        // sees every attempt sent with its retry number and shares the retry proxy's policy. Without a logger and over a
+        // borrowed HttpClient, the retry proxy wraps the transport directly, as before.
         IJevApi attempts = logger is null ? transport : new LoggingJevApi(transport, logger, retry);
+        if (disposed is not null)
+        {
+            attempts = new DisposalGuardJevApi(attempts, disposed);
+        }
+
         var api = new IJevApiResilienceProxy(attempts, new JevApiResiliencePolicies { Retry = retry });
 
         // Always wired: with nothing listening, the generated proxy returns each operation's own task.
@@ -384,7 +396,20 @@ public sealed class JevClient : IJevClient, IDisposable
         return WithModelLogging(_operations.ListModelsAsync(_providerName, _endpoint, ct), started, ct);
     }
 
-    /// <inheritdoc />
+    /// <summary>Disposes the <see cref="HttpClient"/> this client created; a borrowed one is left alone.</summary>
+    /// <remarks>
+    /// <para>
+    /// A call started after <see cref="Dispose"/> throws <see cref="ObjectDisposedException"/>. A call already in flight
+    /// over an <see cref="HttpClient"/> this client created is torn down with it, and returns a
+    /// <see cref="JevErrorKind.Disposed"/> failure; it is never retried. A real time-out that failed an attempt before
+    /// the disposal is still <see cref="JevErrorKind.Timeout"/> when no retry is left; when a retry is due, the disposal
+    /// stops it and the call returns <see cref="JevErrorKind.Disposed"/>.
+    /// </para>
+    /// <para>
+    /// A borrowed <see cref="HttpClient"/> is not disposed, so a call in flight over it runs to completion, retries
+    /// included. Calling <see cref="Dispose"/> more than once does nothing.
+    /// </para>
+    /// </remarks>
     public void Dispose()
     {
         if (_disposed)
@@ -392,6 +417,7 @@ public sealed class JevClient : IJevClient, IDisposable
             return;
         }
 
+        // Set first: disposing the HttpClient cancels the requests in flight, and their failures must see the flag.
         _disposed = true;
         _ownedHttpClient?.Dispose();
     }

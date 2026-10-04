@@ -10,7 +10,7 @@ public sealed class JevErrorMapperTests
 {
     private static readonly DateTimeOffset Now = new(2026, 9, 27, 12, 0, 0, TimeSpan.Zero);
 
-    private static readonly JevErrorMapper Mapper = new(new FixedTimeProvider(Now));
+    private static readonly JevErrorMapper Mapper = new(new FixedTimeProvider(Now), disposed: null);
 
     [Theory]
     [InlineData(401, JevErrorKind.Unauthorized)]
@@ -56,6 +56,56 @@ public sealed class JevErrorMapperTests
         Assert.Null(error.StatusCode);
         Assert.Equal("connection refused", error.Message);
         Assert.Same(cause, error.Exception);
+    }
+
+    // Disposing an owned client cancels its requests in flight; the attempt arrives as a time-out or a transport failure.
+    [Fact]
+    public void TimeoutOrTransport_AfterTheOwningClientWasDisposed_IsDisposed_WithException()
+    {
+        var mapper = new JevErrorMapper(new FixedTimeProvider(Now), disposed: () => true);
+        var cancelled = new TaskCanceledException("cancelled");
+        var refused = new HttpRequestException("connection refused");
+
+        var timeout = mapper.Map(new HttpError((HttpStatusCode)0, Headers(), cancelled.Message) { Kind = HttpErrorKind.Timeout, Exception = cancelled });
+        var transport = mapper.Map(new HttpError((HttpStatusCode)0, Headers(), refused.Message) { Kind = HttpErrorKind.Transport, Exception = refused });
+
+        Assert.Equal(JevErrorKind.Disposed, timeout.Kind);
+        Assert.Equal("The client was disposed while the request was in flight.", timeout.Message);
+        Assert.Null(timeout.StatusCode);
+        Assert.Same(cancelled, timeout.Exception);
+        Assert.Equal(JevErrorKind.Disposed, transport.Kind);
+        Assert.Same(refused, transport.Exception);
+        Assert.False(IJevApi.IsTransient(timeout));
+    }
+
+    // The flag is read when the failure is mapped: a time-out mapped before the disposal stays Timeout.
+    [Fact]
+    public void Timeout_MappedBeforeTheDisposal_StaysTimeout_AndOneMappedAfterIsDisposed()
+    {
+        var disposed = false;
+        var mapper = new JevErrorMapper(new FixedTimeProvider(Now), () => disposed);
+        var cause = new TaskCanceledException("timed out");
+        var failure = new HttpError((HttpStatusCode)0, Headers(), cause.Message) { Kind = HttpErrorKind.Timeout, Exception = cause };
+
+        var before = mapper.Map(failure);
+        disposed = true;
+        var after = mapper.Map(failure);
+
+        Assert.Equal(JevErrorKind.Timeout, before.Kind);
+        Assert.Equal(JevErrorKind.Disposed, after.Kind);
+    }
+
+    // A response arrived, so nothing was torn down: its own kind stands even after the disposal.
+    [Fact]
+    public void StatusOrDeserialization_AfterTheOwningClientWasDisposed_KeepsItsKind()
+    {
+        var mapper = new JevErrorMapper(new FixedTimeProvider(Now), disposed: () => true);
+        var cause = new JsonException("bad json");
+
+        Assert.Equal(JevErrorKind.Overloaded, mapper.Map(Status(503)).Kind);
+        Assert.Equal(
+            JevErrorKind.InvalidResponse,
+            mapper.Map(new HttpError(HttpStatusCode.OK, Headers(), cause.Message) { Kind = HttpErrorKind.Deserialization, Exception = cause }).Kind);
     }
 
     [Fact]
