@@ -70,6 +70,8 @@ The maintainer took these decisions during the brainstorm on 2026-10-03 and 2026
 - 5.2 and 5.3 are independent of each other.
 - 5.4 comes last. It cannot start its release step until 5.3's TypeSafe run has passed.
 
+**Update 2026-10-04 (maintainer decision during Phase 5.3's brainstorm):** the old Phase 5.3 is split. 5.3 is now "AOT, trim and measurement verification", which needs no key. A new 5.4, "Live and alias verification", holds the TypeSafe live run and the alias checks, and starts when the maintainer has a TypeSafe key. The 1.0 release moves to 5.5. The definition of done is unchanged.
+
 ## Dependencies on Prior Milestones
 
 - **Milestone 1:**
