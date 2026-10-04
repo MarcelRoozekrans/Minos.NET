@@ -27,11 +27,22 @@ public sealed class HarnessTests : IAsyncLifetime
     }
 
     [Fact]
+    public void Options_parse_the_cores_and_the_mock_cores()
+    {
+        var options = CompareOptions.Parse(["--base-url", "http://127.0.0.1:5005", "--out", "results", "--cores", "0-11", "--mock-cores", "0xFF000"], "default");
+
+        Assert.Equal(0xFFFUL, options.Cores);
+        Assert.Equal(0xFF000UL, options.MockCores);
+    }
+
+    [Fact]
     public void Options_default_the_machine_name_and_a_full_run()
     {
         var options = CompareOptions.Parse(["--base-url", "http://127.0.0.1:5005", "--out", "results"], "HOST-1");
 
         Assert.False(options.Smoke);
+        Assert.Null(options.Cores);
+        Assert.Null(options.MockCores);
         Assert.Equal("HOST-1", options.Machine);
         Assert.Equal("dotnet-HOST-1.json", options.ResultFileName);
     }
@@ -43,6 +54,8 @@ public sealed class HarnessTests : IAsyncLifetime
     [InlineData("--base-url", "http://127.0.0.1:5005")]
     [InlineData("--base-url", "http://127.0.0.1:5005", "--out", "results", "--machine")]
     [InlineData("--base-url", "http://127.0.0.1:5005", "--out", "results", "--fast")]
+    [InlineData("--base-url", "http://127.0.0.1:5005", "--out", "results", "--mock-cores", "x")]
+    [InlineData("--base-url", "http://127.0.0.1:5005", "--out", "results", "--mock-cores")]
     public void Options_reject_a_wrong_command_line(params string[] args)
     {
         Assert.Throws<ArgumentException>(() => CompareOptions.Parse(args, "default"));
@@ -151,7 +164,7 @@ public sealed class HarnessTests : IAsyncLifetime
     public void The_result_file_has_the_shared_format()
     {
         var file = new ResultFile(
-            new MachineInfo("box", "Windows", "CPU", "2026-10-04T00:00:00Z", 30000.5, "10-19"),
+            new MachineInfo("box", "Windows", "CPU", "2026-10-04T00:00:00Z", 30000.5, "0-11", "12-19"),
             [
                 new ClientResult("jevsharp", "JevSharp", "0.2.0", ".NET", "10.0.0", new LatencyFigures(1.5, 1.25, 3), 9000, 16, 1024) { Note = "no auth header" },
                 new ClientResult("jev-net", "Jev.Net", "0.4.0", ".NET", "10.0.0", new LatencyFigures(1, 1, 2), 8000, 16, null),
@@ -161,9 +174,10 @@ public sealed class HarnessTests : IAsyncLifetime
         var root = json.RootElement;
 
         Assert.Equal(["machine", "results"], root.EnumerateObject().Select(p => p.Name));
-        Assert.Equal(["name", "os", "cpu", "date", "mockCeilingPerSecond", "cores"], root.GetProperty("machine").EnumerateObject().Select(p => p.Name));
+        Assert.Equal(["name", "os", "cpu", "date", "mockCeilingPerSecond", "cores", "mockCores"], root.GetProperty("machine").EnumerateObject().Select(p => p.Name));
         Assert.Equal(30000.5, root.GetProperty("machine").GetProperty("mockCeilingPerSecond").GetDouble());
-        Assert.Equal("10-19", root.GetProperty("machine").GetProperty("cores").GetString());
+        Assert.Equal("0-11", root.GetProperty("machine").GetProperty("cores").GetString());
+        Assert.Equal("12-19", root.GetProperty("machine").GetProperty("mockCores").GetString());
         var first = root.GetProperty("results")[0];
         Assert.Equal(
             ["client", "library", "version", "runtime", "runtimeVersion", "latencyMs", "throughputPerSecond", "concurrency", "allocatedBytesPerCall", "note"],

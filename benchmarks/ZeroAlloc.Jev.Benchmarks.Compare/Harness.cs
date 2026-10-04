@@ -174,7 +174,8 @@ public sealed class Harness(CompareOptions options, TextWriter log)
         summary.HostEnvironmentInfo.Cpu.Value?.ProcessorName ?? RuntimeInformation.ProcessArchitecture.ToString(),
         DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture),
         Math.Round(mockCeilingPerSecond, 1),
-        options.Cores is { } cores ? CoreAffinity.Describe(cores) : null);
+        options.Cores is { } cores ? CoreAffinity.Describe(cores) : null,
+        options.MockCores is { } mockCores ? CoreAffinity.Describe(mockCores) : null);
 
     private static List<ClientResult> Results(Summary summary, Dictionary<string, ClientMeasurement> measured)
     {

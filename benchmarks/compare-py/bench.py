@@ -18,7 +18,12 @@ from importlib.metadata import version
 
 from typesafe_sdk import AsyncTypeSafeClient, Choice, Noul, RetryPolicy, TypeSafeClient
 
-USAGE = "Usage: python bench.py --base-url <url> --out <dir> [--smoke] [--machine <name>]"
+USAGE = (
+    "Usage: python bench.py --base-url <url> --out <dir> [--smoke] [--machine <name>]"
+    " [--cores <list>] [--mock-cores <list>]"
+)
+# A core list such as 0-11 or 0,2,4-6. The runner pins Python from outside, so the harness only records these.
+CORE_LIST = re.compile(r"\d+(-\d+)?(,\d+(-\d+)?)*")
 CONCURRENCY = 16
 DUMMY_API_KEY = "benchmark-dummy-key"
 STATE = "Is my booking to Rome still on? I fly tonight."
@@ -108,7 +113,12 @@ def parse_args(argv):
     parser.add_argument("--out")
     parser.add_argument("--smoke", action="store_true")
     parser.add_argument("--machine", default=None)
+    parser.add_argument("--cores", default=None)
+    parser.add_argument("--mock-cores", default=None)
     opts = parser.parse_args(argv)
+    for name, value in (("--cores", opts.cores), ("--mock-cores", opts.mock_cores)):
+        if value is not None and not CORE_LIST.fullmatch(value):
+            raise UsageError(f"{name} must be a core list such as 0-3,8.")
     url = urllib.parse.urlsplit(opts.base_url or "")
     if url.scheme not in ("http", "https") or not url.netloc:
         raise UsageError("--base-url must be an absolute http or https address.")
@@ -272,7 +282,8 @@ def main():
             "cpu": cpu_name(),
             "date": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
             "mockCeilingPerSecond": None,
-            "cores": None,
+            "cores": opts.cores,
+            "mockCores": opts.mock_cores,
         },
         "results": [
             {

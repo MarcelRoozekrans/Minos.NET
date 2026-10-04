@@ -7,7 +7,10 @@ import path from "node:path";
 import { createRequire } from "node:module";
 import { TypeSafeClient, choice, noul } from "@typesafe-ai/sdk";
 
-const USAGE = "Usage: node bench.mjs --base-url <url> --out <dir> [--smoke] [--machine <name>]";
+const USAGE =
+  "Usage: node bench.mjs --base-url <url> --out <dir> [--smoke] [--machine <name>] [--cores <list>] [--mock-cores <list>]";
+// A core list such as 0-11 or 0,2,4-6. The runner pins Node from outside, so the harness only records these.
+const CORE_LIST = /^\d+(-\d+)?(,\d+(-\d+)?)*$/;
 const CONCURRENCY = 16;
 const DUMMY_API_KEY = "benchmark-dummy-key";
 const STATE = "Is my booking to Rome still on? I fly tonight.";
@@ -34,7 +37,7 @@ class CheckError extends Error {}
 class UsageError extends Error {}
 
 function parseArgs(argv) {
-  const opts = { baseUrl: null, out: null, smoke: false, machine: defaultMachine() };
+  const opts = { baseUrl: null, out: null, smoke: false, machine: defaultMachine(), cores: null, mockCores: null };
   for (let i = 0; i < argv.length; i++) {
     const arg = argv[i];
     if (arg === "--smoke") {
@@ -45,6 +48,13 @@ function parseArgs(argv) {
       if (arg === "--base-url") opts.baseUrl = value;
       else if (arg === "--out") opts.out = value;
       else opts.machine = value;
+    } else if (arg === "--cores" || arg === "--mock-cores") {
+      const value = argv[++i];
+      if (value === undefined || !CORE_LIST.test(value)) {
+        throw new UsageError(`${arg} must be a core list such as 0-3,8.`);
+      }
+      if (arg === "--cores") opts.cores = value;
+      else opts.mockCores = value;
     } else {
       throw new UsageError(`Unknown argument: ${arg}`);
     }
@@ -221,7 +231,8 @@ async function main() {
       cpu: os.cpus()[0]?.model ?? process.arch,
       date: new Date().toISOString().replace(/\.\d+Z$/, "Z"),
       mockCeilingPerSecond: null,
-      cores: null,
+      cores: opts.cores,
+      mockCores: opts.mockCores,
     },
     results: [
       {

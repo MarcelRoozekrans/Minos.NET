@@ -8,7 +8,7 @@ Python 3.10 or later.
 ```sh
 python -m venv .venv
 .venv/bin/pip install -r requirements.txt     # on Windows: .venv\Scripts\pip
-.venv/bin/python bench.py --base-url http://127.0.0.1:5005 --out ../../results [--smoke] [--machine <name>]
+.venv/bin/python bench.py --base-url http://127.0.0.1:5005 --out ../../results [--smoke] [--machine <name>] [--cores <list>] [--mock-cores <list>]
 ```
 
 `requirements.txt` pins `typesafe-sdk` and every transitive dependency to an exact version, from a `pip freeze` of a
@@ -32,7 +32,9 @@ name, upper case and cut to 15 characters. The runner always passes `--machine`,
   measured window (0.5 s and 1 s for a smoke run). A call in flight when the time is up completes and counts.
 - Each window is bracketed by reads of `GET /count`; the count must rise by exactly the calls made, else the harness
   exits with code 1.
-- `mockCeilingPerSecond` and `allocatedBytesPerCall` are `null`, and so is `cores`: the runner pins Python from outside.
+- `mockCeilingPerSecond` and `allocatedBytesPerCall` are `null`. The runner pins Python from outside and passes
+  `--cores <list>` and `--mock-cores <list>`, which the harness only records as `cores` and `mockCores`; without them
+  both are `null`.
 
 ## Why the Python throughput is lower
 

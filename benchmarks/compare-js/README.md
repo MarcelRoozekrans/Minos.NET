@@ -6,7 +6,7 @@ latency and throughput method, and the same result format.
 
 ```sh
 npm ci
-node bench.mjs --base-url http://127.0.0.1:5005 --out ../../results [--smoke] [--machine <name>]
+node bench.mjs --base-url http://127.0.0.1:5005 --out ../../results [--smoke] [--machine <name>] [--cores <list>] [--mock-cores <list>]
 ```
 
 Start the mock first: `dotnet run -c Release --project benchmarks/ZeroAlloc.Jev.Benchmarks.Mock`. It stops when its
@@ -27,7 +27,9 @@ name, upper case and cut to 15 characters. The runner always passes `--machine`,
   A call in flight when the time is up completes and counts.
 - Each window is bracketed by reads of `GET /count`; the count must rise by exactly the calls made, else the harness
   exits with code 1.
-- `mockCeilingPerSecond` and `allocatedBytesPerCall` are `null`, and so is `cores`: the runner pins Node from outside.
+- `mockCeilingPerSecond` and `allocatedBytesPerCall` are `null`. The runner pins Node from outside and passes
+  `--cores <list>` and `--mock-cores <list>`, which the harness only records as `cores` and `mockCores`; without them
+  both are `null`.
 
 ## Why the JS throughput is lower
 

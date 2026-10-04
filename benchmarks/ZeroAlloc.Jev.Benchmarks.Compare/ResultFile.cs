@@ -24,9 +24,13 @@ public sealed record ResultFile(MachineInfo Machine, IReadOnlyList<ClientResult>
 /// </param>
 /// <param name="Cores">
 /// The cores the harness ran on, as a list such as <c>10-19</c>, or <see langword="null"/> when it was not pinned. The
-/// runner gives the mock the other half.
+/// runner gives the mock the other cores.
 /// </param>
-public sealed record MachineInfo(string Name, string Os, string Cpu, string Date, double MockCeilingPerSecond, string? Cores);
+/// <param name="MockCores">
+/// The cores the runner pinned the mock to, as a list such as <c>12-19</c>, or <see langword="null"/> when it was not
+/// pinned.
+/// </param>
+public sealed record MachineInfo(string Name, string Os, string Cpu, string Date, double MockCeilingPerSecond, string? Cores, string? MockCores);
 
 /// <summary>One client's figures.</summary>
 /// <param name="Client">The client's name.</param>
