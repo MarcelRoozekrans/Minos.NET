@@ -17,7 +17,7 @@ namespace ZeroAlloc.Jev.Benchmarks.Compare.Adapters;
 /// <c>Retry.MaxAttempts = 1</c>, over <see cref="BenchmarkTransport"/>'s <see cref="HttpClient"/>. A custom endpoint takes
 /// static headers only; the empty map sends no auth header.
 /// </summary>
-public sealed class JevSharpAdapter : IClientAdapter
+public sealed class JevSharpAdapter : IClientAdapter, IUsesBenchmarkTransport
 {
     private readonly HttpClient _http;
     private readonly JevSharpClient _client;
@@ -50,6 +50,9 @@ public sealed class JevSharpAdapter : IClientAdapter
                 [Workload.TravelsSoonKey] = new JevSharpNoulQuestion(Workload.TravelsSoonInstructions),
             });
     }
+
+    /// <inheritdoc/>
+    HttpClient IUsesBenchmarkTransport.Http => _http;
 
     /// <inheritdoc/>
     public string Client => ClientAdapters.JevSharp;

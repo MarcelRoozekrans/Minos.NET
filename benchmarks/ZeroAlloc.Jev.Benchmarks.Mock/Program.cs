@@ -1,26 +1,22 @@
 using ZeroAlloc.Jev.Benchmarks.Mock;
 using ZeroAlloc.Jev.Benchmarks.Shared;
 
-var port = 5005;
-for (var i = 0; i < args.Length - 1; i++)
+MockOptions options;
+try
 {
-    if (string.Equals(args[i], "--port", StringComparison.Ordinal))
+    options = MockOptions.Parse(args);
+
+    // Pin before Kestrel starts, so every thread the server creates runs on these cores.
+    if (options.Cores is { } cores)
     {
-        port = int.Parse(args[i + 1], System.Globalization.CultureInfo.InvariantCulture);
+        CoreAffinity.Apply(cores);
     }
-    else if (string.Equals(args[i], "--cores", StringComparison.Ordinal))
-    {
-        // Pin before Kestrel starts, so every thread the server creates runs on these cores.
-        try
-        {
-            CoreAffinity.Apply(CoreAffinity.Parse(args[i + 1]));
-        }
-        catch (Exception e) when (e is ArgumentException or PlatformNotSupportedException)
-        {
-            await Console.Error.WriteLineAsync(e.Message).ConfigureAwait(false);
-            return 2;
-        }
-    }
+}
+catch (Exception e) when (e is ArgumentException or PlatformNotSupportedException)
+{
+    await Console.Error.WriteLineAsync(e.Message).ConfigureAwait(false);
+    await Console.Error.WriteLineAsync(MockOptions.Usage).ConfigureAwait(false);
+    return 2;
 }
 
 using var stop = new ManualResetEventSlim();
@@ -30,7 +26,7 @@ Console.CancelKeyPress += (_, e) =>
     stop.Set();
 };
 
-var server = await MockHost.StartAsync(port, Path.Combine(AppContext.BaseDirectory, "response.json"), CancellationToken.None).ConfigureAwait(false);
+var server = await MockHost.StartAsync(options.Port, Path.Combine(AppContext.BaseDirectory, "response.json"), CancellationToken.None).ConfigureAwait(false);
 await using (server.ConfigureAwait(false))
 {
     Console.WriteLine("ready");

@@ -34,16 +34,16 @@ public sealed record CompareOptions(Uri BaseUrl, string OutDirectory, bool Smoke
             switch (args[i])
             {
                 case "--base-url":
-                    baseUrl = Value(args, ref i);
+                    baseUrl = ArgumentReader.Value(args, ref i);
                     break;
                 case "--out":
-                    outDirectory = Value(args, ref i);
+                    outDirectory = ArgumentReader.Value(args, ref i);
                     break;
                 case "--machine":
-                    machine = Value(args, ref i);
+                    machine = ArgumentReader.Value(args, ref i);
                     break;
                 case "--cores":
-                    cores = CoreAffinity.Parse(Value(args, ref i));
+                    cores = CoreAffinity.Parse(ArgumentReader.Value(args, ref i));
                     break;
                 case "--smoke":
                     smoke = true;
@@ -87,16 +87,5 @@ public sealed record CompareOptions(Uri BaseUrl, string OutDirectory, bool Smoke
             });
             return "dotnet-" + safe + ".json";
         }
-    }
-
-    private static string Value(IReadOnlyList<string> args, ref int i)
-    {
-        if (i + 1 >= args.Count)
-        {
-            throw new ArgumentException(args[i] + " needs a value.", nameof(args));
-        }
-
-        i++;
-        return args[i];
     }
 }

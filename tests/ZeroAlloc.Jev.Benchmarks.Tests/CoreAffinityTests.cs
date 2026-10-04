@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using ZeroAlloc.Jev.Benchmarks.Compare;
 using ZeroAlloc.Jev.Benchmarks.Shared;
 
@@ -59,6 +60,33 @@ public sealed class CoreAffinityTests
         var beyond = 1UL << Environment.ProcessorCount;
 
         Assert.Throws<ArgumentException>(() => CoreAffinity.Apply(beyond));
+    }
+
+    [Fact]
+    public void Apply_sets_the_process_affinity()
+    {
+        // Apply pins the process on Windows and Linux only, so the check runs there only.
+        if (OperatingSystem.IsWindows() || OperatingSystem.IsLinux())
+        {
+            using var process = Process.GetCurrentProcess();
+            var original = process.ProcessorAffinity;
+            var lowest = (ulong)original & (~(ulong)original + 1);
+            try
+            {
+                // Pin to the lowest core the process already has, then read the affinity back from a fresh snapshot.
+                CoreAffinity.Apply(lowest);
+
+                using var pinned = Process.GetCurrentProcess();
+                Assert.Equal(lowest, (ulong)pinned.ProcessorAffinity);
+            }
+            finally
+            {
+                process.ProcessorAffinity = original;
+            }
+
+            using var restored = Process.GetCurrentProcess();
+            Assert.Equal(original, restored.ProcessorAffinity);
+        }
     }
 
     [Fact]

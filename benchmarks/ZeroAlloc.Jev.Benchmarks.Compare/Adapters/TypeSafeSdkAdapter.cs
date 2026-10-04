@@ -8,7 +8,7 @@ namespace ZeroAlloc.Jev.Benchmarks.Compare.Adapters;
 /// TypeSafe.AI.Sdk 0.3.0: <c>BaseUrl</c> pointed at the mock, <c>Retry.MaxRetries = 0</c> and the dummy key, over
 /// <see cref="BenchmarkTransport"/>'s <see cref="HttpClient"/>.
 /// </summary>
-public sealed class TypeSafeSdkAdapter : IClientAdapter
+public sealed class TypeSafeSdkAdapter : IClientAdapter, IUsesBenchmarkTransport
 {
     private readonly HttpClient _http;
     private readonly TypeSafeSdkClient _client;
@@ -39,6 +39,9 @@ public sealed class TypeSafeSdkAdapter : IClientAdapter
             [Workload.TravelsSoonKey] = Question.Noul(Workload.TravelsSoonInstructions, criteria: null),
         };
     }
+
+    /// <inheritdoc/>
+    HttpClient IUsesBenchmarkTransport.Http => _http;
 
     /// <inheritdoc/>
     public string Client => ClientAdapters.TypeSafeSdk;

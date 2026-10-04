@@ -11,7 +11,7 @@ namespace ZeroAlloc.Jev.Benchmarks.Compare.Adapters;
 /// Jev.Net 0.4.0: <c>BaseUrl</c> pointed at the mock, <c>RetryPolicy.None</c> and the dummy key, over
 /// <see cref="BenchmarkTransport"/>'s <see cref="HttpClient"/>.
 /// </summary>
-public sealed class JevNetAdapter : IClientAdapter
+public sealed class JevNetAdapter : IClientAdapter, IUsesBenchmarkTransport
 {
     private readonly HttpClient _http;
     private readonly JevNetClient _client;
@@ -43,6 +43,9 @@ public sealed class JevNetAdapter : IClientAdapter
             [Workload.TravelsSoonKey] = new JevNetNoul(Workload.TravelsSoonInstructions),
         };
     }
+
+    /// <inheritdoc/>
+    HttpClient IUsesBenchmarkTransport.Http => _http;
 
     /// <inheritdoc/>
     public string Client => ClientAdapters.JevNet;

@@ -4,7 +4,7 @@ namespace ZeroAlloc.Jev.Benchmarks.Compare.Adapters;
 /// ZeroAlloc.Jev: the generated <see cref="TravelRequest"/> question set through <c>EvaluateAsync&lt;T&gt;</c>, over
 /// <see cref="BenchmarkTransport"/>'s <see cref="HttpClient"/>.
 /// </summary>
-public sealed class JevAdapter : IClientAdapter
+public sealed class JevAdapter : IClientAdapter, IUsesBenchmarkTransport
 {
     // The wire key of each TravelIntent option, by enum value, for reading every probability in AskAsync. TravelIntent
     // declares its options in the workload's order.
@@ -26,6 +26,9 @@ public sealed class JevAdapter : IClientAdapter
             MaxRetries = 0,
         });
     }
+
+    /// <inheritdoc/>
+    HttpClient IUsesBenchmarkTransport.Http => _http;
 
     /// <inheritdoc/>
     public string Client => ClientAdapters.Jev;

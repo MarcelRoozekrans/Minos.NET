@@ -17,6 +17,27 @@ public sealed class MockHostTests : IAsyncLifetime, IDisposable
     public async Task InitializeAsync() => _server = await MockHost.StartAsync(0, ResponsePath, CancellationToken.None);
 
     [Fact]
+    public async Task A_second_host_on_a_taken_port_fails_and_leaves_the_port_usable()
+    {
+        var port = _server.BaseAddress.Port;
+
+        await Assert.ThrowsAnyAsync<IOException>(() => MockHost.StartAsync(port, ResponsePath, CancellationToken.None));
+
+        // The first host still serves on the port.
+        using (await PostSystemOneAsync())
+        {
+        }
+
+        Assert.Equal(1, await CountAsync());
+
+        // Once it stops, a new host can take the port.
+        await _server.DisposeAsync();
+        _server = await MockHost.StartAsync(port, ResponsePath, CancellationToken.None);
+        Assert.Equal(port, _server.BaseAddress.Port);
+        Assert.Equal(0, await CountAsync());
+    }
+
+    [Fact]
     public void The_server_listens_on_the_loopback_address()
     {
         Assert.Equal("127.0.0.1", _server.BaseAddress.Host);

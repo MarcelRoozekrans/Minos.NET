@@ -58,7 +58,17 @@ public static class MockHost
             return WriteAsync(context.Response, Utf8(0), "text/plain");
         });
 
-        await app.StartAsync(cancellationToken).ConfigureAwait(false);
+        try
+        {
+            await app.StartAsync(cancellationToken).ConfigureAwait(false);
+        }
+        catch
+        {
+            // A failed start, such as a port already in use, must not leave the app's services behind.
+            await app.DisposeAsync().ConfigureAwait(false);
+            throw;
+        }
+
         var address = app.Services.GetRequiredService<IServer>().Features.GetRequiredFeature<IServerAddressesFeature>().Addresses.First();
         return new MockServer(app, new Uri(address), counter);
     }

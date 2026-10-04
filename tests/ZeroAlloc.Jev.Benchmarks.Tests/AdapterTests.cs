@@ -90,6 +90,9 @@ public sealed class AdapterTests : IAsyncLifetime, IDisposable
 
         _ = await adapter.CallAsync(CancellationToken.None);
 
+        // The adapter's library sends through a client BenchmarkTransport made.
+        Assert.True(BenchmarkTransport.IsFromHere(((IUsesBenchmarkTransport)adapter).Http));
+
         // BenchmarkTransport's handler has automatic decompression off, so no client asks for a compressed answer.
         // Jev.Net's own default handler turns decompression on and would send Accept-Encoding.
         var request = OnlyRequest(_recorder);
@@ -136,6 +139,26 @@ public sealed class AdapterTests : IAsyncLifetime, IDisposable
         Assert.NotNull(jevBody);
         Assert.NotEmpty(jevBody);
         Assert.Equal(jevBody, rawBody);
+    }
+
+    [Fact]
+    public void The_benchmark_transport_has_the_ruled_handler_settings()
+    {
+        using var handler = BenchmarkTransport.CreateHandler();
+
+        Assert.Equal(TimeSpan.FromMinutes(2), handler.PooledConnectionLifetime);
+        Assert.Equal(System.Net.DecompressionMethods.None, handler.AutomaticDecompression);
+        Assert.Equal(int.MaxValue, handler.MaxConnectionsPerServer);
+    }
+
+    [Fact]
+    public void A_client_made_elsewhere_is_not_from_the_benchmark_transport()
+    {
+        using var other = new HttpClient();
+        using var ours = BenchmarkTransport.CreateHttpClient();
+
+        Assert.False(BenchmarkTransport.IsFromHere(other));
+        Assert.True(BenchmarkTransport.IsFromHere(ours));
     }
 
     [Fact]

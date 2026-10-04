@@ -12,7 +12,7 @@ namespace ZeroAlloc.Jev.Benchmarks.Compare.Adapters;
 /// <see cref="JsonSerializerContext"/>, over <see cref="BenchmarkTransport"/>'s <see cref="HttpClient"/>. One attempt,
 /// no retries.
 /// </summary>
-public sealed class RawHttpAdapter : IClientAdapter
+public sealed class RawHttpAdapter : IClientAdapter, IUsesBenchmarkTransport
 {
     private static readonly Uri SystemOnePath = new("v1/systemone", UriKind.Relative);
     private static readonly MediaTypeHeaderValue Json = new("application/json");
@@ -41,6 +41,9 @@ public sealed class RawHttpAdapter : IClientAdapter
                 new RawNoulQuestion("noul", Workload.TravelsSoonInstructions)));
         _body = JsonSerializer.SerializeToUtf8Bytes(request, RawJsonContext.Default.RawRequest);
     }
+
+    /// <inheritdoc/>
+    HttpClient IUsesBenchmarkTransport.Http => _http;
 
     /// <inheritdoc/>
     public string Client => ClientAdapters.Raw;

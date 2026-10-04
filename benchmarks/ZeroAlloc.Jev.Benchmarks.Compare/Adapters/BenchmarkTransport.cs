@@ -1,4 +1,5 @@
 using System.Net;
+using System.Runtime.CompilerServices;
 
 namespace ZeroAlloc.Jev.Benchmarks.Compare.Adapters;
 
@@ -9,6 +10,9 @@ namespace ZeroAlloc.Jev.Benchmarks.Compare.Adapters;
 /// </summary>
 public static class BenchmarkTransport
 {
+    // Every client CreateHttpClient made and has not been collected, so a test can check an adapter's client came from here.
+    private static readonly ConditionalWeakTable<HttpClient, object> Created = [];
+
     /// <summary>How long a pooled connection lives before the handler replaces it.</summary>
     public static readonly TimeSpan PooledConnectionLifetime = TimeSpan.FromMinutes(2);
 
@@ -31,6 +35,12 @@ public static class BenchmarkTransport
             http.BaseAddress = baseAddress;
         }
 
+        Created.AddOrUpdate(http, Created);
         return http;
     }
+
+    /// <summary>Gets a value indicating whether <paramref name="http"/> came from <see cref="CreateHttpClient"/>.</summary>
+    /// <param name="http">A client.</param>
+    /// <returns><see langword="true"/> when this class created it.</returns>
+    internal static bool IsFromHere(HttpClient http) => Created.TryGetValue(http, out _);
 }
