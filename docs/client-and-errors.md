@@ -241,6 +241,9 @@ failure. Cancelling your own `CancellationToken` is different: it stops the call
 
 A failed call returns a `JevError`. Its `Kind` says what went wrong, and the other members add detail when there is any.
 
+You can build one yourself, for a test fake, with `new JevError(kind, message)`. `StatusCode`, `RetryAfter`, `Detail`
+and `Exception` are `init` properties, so set only the ones that apply with an object initializer.
+
 | Member | Holds |
 | --- | --- |
 | `Kind` | A `JevErrorKind`: the cause, listed below. |

@@ -140,6 +140,14 @@ public sealed class FakeJev(Result<SystemOneResponse, JevError> reply) : IJevCli
     public static FakeJev Failing(JevErrorKind kind)
         => new(Result<SystemOneResponse, JevError>.Failure(new JevError(kind, "The fake failed on purpose.")));
 
+    // A busy service: the kind and message are the constructor's, the rest are init properties.
+    public static FakeJev Overloaded(TimeSpan retryAfter)
+        => new(Result<SystemOneResponse, JevError>.Failure(new JevError(JevErrorKind.Overloaded, "The fake is busy on purpose.")
+        {
+            StatusCode = 503,
+            RetryAfter = retryAfter,
+        }));
+
     public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken ct)
     {
         _requests.Add(request);
@@ -227,7 +235,8 @@ such thresholds, see [confidence routing](patterns/confidence-routing.md).
 
 Add a row for each failure you care about as well. The fake's `Failing` method returns an error of any
 [`JevErrorKind`](client-and-errors.md#the-kinds), which is how the test above shows that a network error ends in a
-review.
+review. `Overloaded` shows the other half of building a `JevError`: the constructor takes the kind and the message, and
+`StatusCode`, `RetryAfter`, `Detail` and `Exception` are `init` properties you set when the failure has them.
 
 ## Way two: a real `JevClient` over a canned HTTP reply
 

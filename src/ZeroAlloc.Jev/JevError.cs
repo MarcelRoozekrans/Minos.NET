@@ -14,29 +14,12 @@ public sealed class JevError
     /// <summary>Initializes a new instance of the <see cref="JevError"/> class.</summary>
     /// <param name="kind">What went wrong.</param>
     /// <param name="message">A short, human-readable description.</param>
-    /// <param name="statusCode">The HTTP status code, when a response arrived.</param>
-    /// <param name="retryAfter">
-    /// How long the service asked the caller to wait, from the <c>retry-after-ms</c> header, which takes precedence,
-    /// or the <c>Retry-After</c> header.
-    /// </param>
-    /// <param name="detail">The error response body, when it is JSON.</param>
-    /// <param name="exception">The exception behind a network, time-out or response-reading failure.</param>
-    public JevError(
-        JevErrorKind kind,
-        string message,
-        int? statusCode = null,
-        TimeSpan? retryAfter = null,
-        JsonElement? detail = null,
-        Exception? exception = null)
+    public JevError(JevErrorKind kind, string message)
     {
         ArgumentNullException.ThrowIfNull(message);
 
         Kind = kind;
         Message = message;
-        StatusCode = statusCode;
-        RetryAfter = retryAfter;
-        Detail = detail;
-        Exception = exception;
     }
 
     /// <summary>Initializes a new <see cref="JevErrorKind.InvalidQuestions"/> error.</summary>

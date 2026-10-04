@@ -13,3 +13,5 @@ ZeroAlloc.Jev.JevError.Detail.init -> void
 ZeroAlloc.Jev.JevError.Exception.init -> void
 ZeroAlloc.Jev.JevError.RetryAfter.init -> void
 ZeroAlloc.Jev.JevError.StatusCode.init -> void
+*REMOVED*ZeroAlloc.Jev.JevError.JevError(ZeroAlloc.Jev.JevErrorKind kind, string! message, int? statusCode = null, System.TimeSpan? retryAfter = null, System.Text.Json.JsonElement? detail = null, System.Exception? exception = null) -> void
+ZeroAlloc.Jev.JevError.JevError(ZeroAlloc.Jev.JevErrorKind kind, string! message) -> void

@@ -45,6 +45,14 @@ public sealed class FakeJev(Result<SystemOneResponse, JevError> reply) : IJevCli
     public static FakeJev Failing(JevErrorKind kind)
         => new(Result<SystemOneResponse, JevError>.Failure(new JevError(kind, "The fake failed on purpose.")));
 
+    // A busy service: the kind and message are the constructor's, the rest are init properties.
+    public static FakeJev Overloaded(TimeSpan retryAfter)
+        => new(Result<SystemOneResponse, JevError>.Failure(new JevError(JevErrorKind.Overloaded, "The fake is busy on purpose.")
+        {
+            StatusCode = 503,
+            RetryAfter = retryAfter,
+        }));
+
     public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken ct)
     {
         _requests.Add(request);
