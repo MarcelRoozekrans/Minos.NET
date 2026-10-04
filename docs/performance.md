@@ -230,6 +230,36 @@ budget. Re-measured under published win-x64 AOT on 2026-10-04, three runs, every
 - The relative gates against a hand-built client, and the `NullLoggerFactory` comparison, are the known flaky ones
   tracked in #79. In two of the three runs they failed by under 25 B, the same pattern as before.
 
+**ZeroAlloc.Rest 3.2.1.** Release 3.2.1 of ZeroAlloc.Rest removes the per-call allocations its generated transport made
+even when nothing listened (#95). It adds `Accept` with `TryAddWithoutValidation` instead of a new header value, guards
+its metrics on `Enabled` and shares one `TagList`, passes no `params` array, and reads no `Host` without a listener.
+Re-measured under published win-x64 AOT on 2026-10-04, three identical runs, every absolute gate passed. The figures are
+bytes per call, before and after, with the new budget, which is still the measurement plus about 10%, rounded up to the
+next 64 B:
+
+| Gate | Before | After | Old budget | New budget |
+|---|---|---|---|---|
+| `EvaluateRoundTrip`, and its two logger twins | 4312 B | 3928 B | 5120 B, 4800 B | 4352 B |
+| `TypedEvaluateRoundTrip`, and its two logger twins | 3368 B | 2984 B | 4224 B, 3712 B | 3328 B |
+| `EvaluateBuiltSetRoundTrip` | 3656 B | 3272 B | 4736 B | 3648 B |
+| `EvaluateRoundTripThroughDependencyInjection` | 4376 B | 3992 B | 4864 B | 4416 B |
+| `EvaluateRoundTripWhileListening` | 5680 B | 5296 B | 6272 B | 5888 B |
+| `TypedEvaluateRoundTripWhileListening` | 4928 B | 4544 B | 5440 B | 5056 B |
+| `EvaluateBuiltSetRoundTripWhileListening` | 5216 B | 4832 B | 5760 B | 5376 B |
+| `TelemetryOffAsynchronousTypedEvaluation` | 4563 B | 4184 B | 5056 B | 4608 B |
+
+- Every synchronous gate drops by 384 B, so the saving is a fixed cost of the old transport, not a share of the call. The listening
+  gates drop by the same 384 B, so the metrics' tag arrays and boxing were paid with nothing listening too.
+- The hand-built and DI-resolved clients both measure 3992 B, so the relative gates still compare equal.
+- The figures in the Phase 3.2 and Phase 3.3 tables and the "unchanged" budgets above describe those phases; the budgets in
+  [Native AOT](native-aot.md) are the current ones.
+- The unit tests' unwrap headroom is unchanged at 344 B, because the tightest gate, `TypedEvaluateRoundTripWithDiscardingLogger`,
+  now has 3328 B over its 2984 B.
+- The new budgets are measured on win-x64 only. The old linux-x64 figures (2026-09-27) were higher than win-x64, so a
+  container run is the next check before relying on the tighter budgets in CI.
+- The client comparison's smoke run, `--smoke` against the mock server, reports 5648 B per call for ZeroAlloc.Jev against
+  6040 B for the raw `HttpClient`, so ZeroAlloc.Jev now allocates less than hand-written code.
+
 ## Next
 
 - [Getting started](getting-started.md): the guide from the beginning.

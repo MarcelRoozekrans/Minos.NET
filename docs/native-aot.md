@@ -94,7 +94,7 @@ object.
   time](question-sets-at-run-time.md).
 - **Parsing a typed answer set allocates the result.** That is the result record, plus the shared buffer that holds the
   probabilities of its answers, and nothing else.
-- **A whole call allocates a few kilobytes.** Over the canned handler, a typed call measures 3368 B under Native AOT,
+- **A whole call allocates a few kilobytes.** Over the canned handler, a typed call measures 2984 B under Native AOT,
   and [Performance](performance.md) has the measurements for the other paths.
 - **Building a question set allocates the set.** It measures 6592 B, so build it once and share it, as the
   [run-time page](question-sets-at-run-time.md) advises.
@@ -123,23 +123,23 @@ regression cannot reach a release unnoticed.
 | `PatternHelpers` | The confidence and normalization helpers of the patterns. | 0 |
 | `NoulEquals` | Comparing two `Noul` answers, directly and through `EqualityComparer<Noul>.Default`. | 0 |
 | `GeneratedParse` | Parsing a typed set of three answers. | 192 |
-| `EvaluateRoundTrip` | A raw `EvaluateAsync` call. | 5120 |
-| `TypedEvaluateRoundTrip` | A typed `EvaluateAsync<T>` call. | 4224 |
-| `EvaluateBuiltSetRoundTrip` | An `EvaluateAsync` call over a built set. | 4736 |
+| `EvaluateRoundTrip` | A raw `EvaluateAsync` call. | 4352 |
+| `TypedEvaluateRoundTrip` | A typed `EvaluateAsync<T>` call. | 3328 |
+| `EvaluateBuiltSetRoundTrip` | An `EvaluateAsync` call over a built set. | 3648 |
 | `BuildQuestionSet` | Building a question set. | 7296 |
 | `ContentFromValue` | `JevContent.FromValue`. | 320 |
 | `ContentFromUtf8Json` | `JevContent.FromUtf8Json`. | 320 |
-| `EvaluateRoundTripWithNullLoggerFactory` | A raw call with a logger factory that logs nothing. | 5120 |
-| `TypedEvaluateRoundTripWithEveryLevelFiltered` | A typed call with every log level filtered out. | 4224 |
-| `EvaluateRoundTripWithDiscardingLogger` | A raw call with every log level on. | 4800 |
-| `TypedEvaluateRoundTripWithDiscardingLogger` | A typed call with every log level on. | 3712 |
-| `EvaluateRoundTripThroughDependencyInjection` | A raw call through a client resolved from the container. | 4864 |
-| `EvaluateRoundTripWhileListening` | A raw call with a span and metric listener attached. | 6272 |
-| `TypedEvaluateRoundTripWhileListening` | A typed call with the listeners attached. | 5440 |
-| `EvaluateBuiltSetRoundTripWhileListening` | A built-set call with the listeners attached. | 5760 |
+| `EvaluateRoundTripWithNullLoggerFactory` | A raw call with a logger factory that logs nothing. | 4352 |
+| `TypedEvaluateRoundTripWithEveryLevelFiltered` | A typed call with every log level filtered out. | 3328 |
+| `EvaluateRoundTripWithDiscardingLogger` | A raw call with every log level on. | 4352 |
+| `TypedEvaluateRoundTripWithDiscardingLogger` | A typed call with every log level on. | 3328 |
+| `EvaluateRoundTripThroughDependencyInjection` | A raw call through a client resolved from the container. | 4416 |
+| `EvaluateRoundTripWhileListening` | A raw call with a span and metric listener attached. | 5888 |
+| `TypedEvaluateRoundTripWhileListening` | A typed call with the listeners attached. | 5056 |
+| `EvaluateBuiltSetRoundTripWhileListening` | A built-set call with the listeners attached. | 5376 |
 | `EvaluateRoundTripThroughBoundConfiguration` | A raw call through a client bound from configuration, equal to a hand-built client's own measurement. | same as the hand-built client |
 | `DisabledLoggerAddsNothingWhereAnEnabledOneDoes` | Asynchronous calls with no factory, a null factory and an enabled logger. Checks the disabled ones add nothing. | no byte budget |
-| `TelemetryOffAsynchronousTypedEvaluation` | A typed call that completes asynchronously, with nothing listening. The median of five runs. | 5056 |
+| `TelemetryOffAsynchronousTypedEvaluation` | A typed call that completes asynchronously, with nothing listening. The median of five runs. | 4608 |
 
 The two logging rows with a logger that does nothing keep the budgets of the calls without one, because the client takes
 the unlogged path. The two rows with every level on are higher, and the two listening rows show what a span and the

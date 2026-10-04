@@ -13,8 +13,8 @@ namespace ZeroAlloc.Jev.Tests;
 [Collection(TelemetryListeners.Name)]
 public sealed class OperationsCostTests(ITestOutputHelper output)
 {
-    // Rule 7: the tightest headroom among the existing AOT gates, TypedEvaluateRoundTripWithDiscardingLogger's 3712 B
-    // budget over its 3368 B measurement. The plan probe measured the unwrap at 165 B.
+    // Rule 7: the tightest headroom among the existing AOT gates, TypedEvaluateRoundTripWithDiscardingLogger's 3328 B
+    // budget over its 2984 B measurement. The plan probe measured the unwrap at 165 B.
     private const int UnwrapHeadroomBytes = 344;
 
     // Each figure is the median of five runs. Yielding runs vary in both directions: a runtime thread allocating during the
