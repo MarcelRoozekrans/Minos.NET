@@ -218,34 +218,38 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-03-phase-4.4-docs-site.md`
 **Completed:** 2026-10-03
 
-## Milestone 5: 1.0 hardening [status: pending]
-**Goal:** A reviewed, frozen public API shipped as a stable 1.0.
+## Milestone 5: 1.0 hardening [status: active]
+**Goal:** Ship ZeroAlloc.Jev 1.0.0 to NuGet, with a reviewed and frozen public API, benchmarks against hand-written .NET and TypeSafe's official JS and Python SDKs, a passing TypeSafe live run, and full-surface Native AOT verification.
+**Started:** 2026-10-04
+**Design:** `docs/superpowers/specs/2026-10-04-milestone-5-design.md`
 **Definition of Done:**
-- [ ] Public API reviewed, sealed and tracked by PublicApiAnalyzers
-- [ ] Full benchmark suite published
-- [ ] Full-surface AOT/trim verification green
-- [ ] 1.0.0 published to NuGet with versioned docs
+- [ ] Public API reviewed: sealing, naming, nullability and XML docs; #67, #23, #24 and #25 resolved; Telemetry 1.11.0 adopted (#85); #21 closed
+- [ ] `PublicAPI.Shipped.txt` describes 1.0.0, and api-compat (#28) guards later changes
+- [ ] Published benchmarks against a raw HttpClient + STJ client and the official JS and Python SDKs, on one local mock server
+- [ ] TypeSafe live suite passed once with a real key; `jev-latest` and `jev-preview` checked live
+- [ ] Full-surface AOT/trim verification green; #68, #73, #74 and #79 closed
+- [ ] 1.0.0 published to NuGet through release-please and a publishing workflow (#29); the guide states its version
 
 ### Phase 5.1: Public API review [status: pending]
-**Goal:** Review and seal the public API, tracked with PublicApiAnalyzers.
+**Goal:** Review and freeze the public surface (sealing, naming, nullability, XML docs), make the breaking changes #67, #23, #24 and #25, adopt Telemetry 1.11.0 (#85) and close #21.
 **Surface:** Refactor
 **HelpWanted:** no
 **Plan:** _to be written_
 
 ### Phase 5.2: Benchmark suite [status: pending]
-**Goal:** Full benchmarks vs a raw HttpClient + STJ baseline and the official JS SDK's overhead.
+**Goal:** A raw .NET baseline in BenchmarkDotNet plus Node and Python harnesses running TypeSafe's official SDKs, all against one local mock server serving recorded Jev responses; results published.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 5.3: AOT and alias verification [status: pending]
-**Goal:** Full-surface AOT/trim verification and `jev-latest` / `jev-preview` alias checks.
+### Phase 5.3: Live, AOT and alias verification [status: pending]
+**Goal:** Pass the TypeSafe live suite and record its Retry-After and 422 behaviour, check the `jev-latest` and `jev-preview` aliases live, verify AOT and trim across the whole API, and close #68, #73, #74 and #79.
 **Surface:** Infra
 **HelpWanted:** no
 **Plan:** _to be written_
 
 ### Phase 5.4: 1.0 release [status: pending]
-**Goal:** Stable 1.0 via release-please with versioned docs.
+**Goal:** Add the NuGet publishing workflow (#29), cut 1.0.0 through release-please, state the version in the guide and README, then add api-compat (#28) against the 1.0.0 package.
 **Surface:** Infra
 **HelpWanted:** no
 **Plan:** _to be written_
