@@ -1,0 +1,145 @@
+using System.Text.Json;
+using WireMock.RequestBuilders;
+using WireMock.ResponseBuilders;
+using WireMock.Server;
+using WireMock.Settings;
+using ZeroAlloc.Jev.Benchmarks.Compare;
+using ZeroAlloc.Jev.Benchmarks.Compare.Adapters;
+using ZeroAlloc.Jev.Benchmarks.Mock;
+
+namespace ZeroAlloc.Jev.Benchmarks.Tests;
+
+/// <summary>Each comparison client against the in-process mock: it reaches the mock, sends the workload and parses the recorded answer.</summary>
+public sealed class AdapterTests : IDisposable
+{
+    private static readonly string ResponsePath = Path.Combine(AppContext.BaseDirectory, "response.json");
+
+    private readonly WireMockServer _server = MockHost.Start(0, ResponsePath);
+
+    public static TheoryData<string> Clients { get; } = new(ClientAdapters.All);
+
+    private Uri BaseAddress => new(_server.Urls[0]);
+
+    [Theory]
+    [MemberData(nameof(Clients))]
+    public async Task One_call_reads_the_recorded_answers(string client)
+    {
+        using var adapter = ClientAdapters.Create(client, BaseAddress);
+
+        var answers = await adapter.AskAsync(CancellationToken.None);
+
+        answers.EnsureEquals(client, Workload.Expected);
+        _ = OnlyRequest(_server);
+    }
+
+    [Theory]
+    [MemberData(nameof(Clients))]
+    public async Task The_measured_call_reads_the_expected_outcome(string client)
+    {
+        using var adapter = ClientAdapters.Create(client, BaseAddress);
+
+        var outcome = await adapter.CallAsync(CancellationToken.None);
+
+        Assert.True(outcome.IsExpected);
+        _ = OnlyRequest(_server);
+    }
+
+    [Theory]
+    [MemberData(nameof(Clients))]
+    public async Task Every_client_sends_the_workload_to_systemone(string client)
+    {
+        using var adapter = ClientAdapters.Create(client, BaseAddress);
+
+        _ = await adapter.CallAsync(CancellationToken.None);
+
+        var request = OnlyRequest(_server);
+        Assert.Equal("/v1/systemone", request.Path);
+        using var body = JsonDocument.Parse(request.Body!);
+        var root = body.RootElement;
+        Assert.Equal(Workload.Model, root.GetProperty("model").GetString());
+        Assert.Equal(Workload.State, root.GetProperty("state").GetString());
+
+        var questions = root.GetProperty("questions");
+        Assert.Equal([Workload.IntentKey, Workload.TravelsSoonKey], questions.EnumerateObject().Select(p => p.Name));
+
+        var intent = questions.GetProperty(Workload.IntentKey);
+        Assert.Equal("choice", intent.GetProperty("type").GetString());
+        Assert.Equal(Workload.IntentInstructions, intent.GetProperty("instructions").GetString());
+        Assert.Equal(
+            Workload.IntentOptions.Select(o => (o.Key, o.Value)),
+            intent.GetProperty("criteria").EnumerateObject().Select(p => (p.Name, p.Value.GetString()!)));
+
+        var travelsSoon = questions.GetProperty(Workload.TravelsSoonKey);
+        Assert.Equal("noul", travelsSoon.GetProperty("type").GetString());
+        Assert.Equal(Workload.TravelsSoonInstructions, travelsSoon.GetProperty("instructions").GetString());
+    }
+
+    [Theory]
+    [MemberData(nameof(Clients))]
+    public async Task Every_client_but_JevSharp_sends_the_dummy_key(string client)
+    {
+        using var adapter = ClientAdapters.Create(client, BaseAddress);
+
+        _ = await adapter.CallAsync(CancellationToken.None);
+
+        var headers = OnlyRequest(_server).Headers!;
+        if (string.Equals(client, ClientAdapters.JevSharp, StringComparison.Ordinal))
+        {
+            // JevSharp reaches the mock through a custom endpoint, which takes static headers only, and sends none.
+            Assert.False(headers.ContainsKey("Authorization"));
+            Assert.NotNull(adapter.Note);
+        }
+        else
+        {
+            Assert.Equal(["Bearer " + Workload.DummyApiKey], headers["Authorization"]);
+            Assert.Null(adapter.Note);
+        }
+    }
+
+    [Fact]
+    public async Task The_raw_baseline_sends_the_body_ZeroAlloc_Jev_sends()
+    {
+        using var jev = ClientAdapters.Create(ClientAdapters.Jev, BaseAddress);
+        using var raw = ClientAdapters.Create(ClientAdapters.Raw, BaseAddress);
+
+        _ = await jev.CallAsync(CancellationToken.None);
+        _ = await raw.CallAsync(CancellationToken.None);
+
+        string? jevBody = null;
+        string? rawBody = null;
+        Assert.Collection(
+            _server.LogEntries,
+            e => jevBody = e.RequestMessage?.Body,
+            e => rawBody = e.RequestMessage?.Body);
+        Assert.NotNull(jevBody);
+        Assert.Equal(jevBody, rawBody);
+    }
+
+    [Theory]
+    [MemberData(nameof(Clients))]
+    public async Task A_failed_call_is_attempted_once(string client)
+    {
+        using var failing = WireMockServer.Start(new WireMockServerSettings { Urls = ["http://127.0.0.1:0"] });
+        failing.Given(Request.Create().WithPath("/v1/systemone").UsingPost()).RespondWith(Response.Create().WithStatusCode(503));
+        using var adapter = ClientAdapters.Create(client, new Uri(failing.Urls[0]));
+
+        await Assert.ThrowsAnyAsync<Exception>(async () => await adapter.CallAsync(CancellationToken.None));
+
+        _ = OnlyRequest(failing);
+    }
+
+    // The one request the server logged; fails unless there is exactly one.
+    private static WireMock.IRequestMessage OnlyRequest(WireMockServer server)
+    {
+        WireMock.IRequestMessage? only = null;
+        Assert.Collection(server.LogEntries, e => only = e.RequestMessage);
+        Assert.NotNull(only);
+        return only;
+    }
+
+    public void Dispose()
+    {
+        _server.Stop();
+        _server.Dispose();
+    }
+}

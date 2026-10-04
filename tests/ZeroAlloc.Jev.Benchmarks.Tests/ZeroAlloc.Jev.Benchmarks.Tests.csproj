@@ -1,6 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <ItemGroup>
     <ProjectReference Include="..\..\benchmarks\ZeroAlloc.Jev.Benchmarks.Mock\ZeroAlloc.Jev.Benchmarks.Mock.csproj" />
+    <!-- The comparison harness and its adapters. It brings the benchmark-only community clients, which is acceptable
+         here: neither project is packable, and no test of the library references them. -->
+    <ProjectReference Include="..\..\benchmarks\ZeroAlloc.Jev.Benchmarks.Compare\ZeroAlloc.Jev.Benchmarks.Compare.csproj" />
   </ItemGroup>
 
   <ItemGroup>

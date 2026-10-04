@@ -27,6 +27,7 @@
   </Folder>
   <Folder Name="/benchmarks/">
     <Project Path="benchmarks/ZeroAlloc.Jev.Benchmarks/ZeroAlloc.Jev.Benchmarks.csproj" />
+    <Project Path="benchmarks/ZeroAlloc.Jev.Benchmarks.Compare/ZeroAlloc.Jev.Benchmarks.Compare.csproj" />
     <Project Path="benchmarks/ZeroAlloc.Jev.Benchmarks.Mock/ZeroAlloc.Jev.Benchmarks.Mock.csproj" />
   </Folder>
 </Solution>
