@@ -235,8 +235,9 @@ such thresholds, see [confidence routing](patterns/confidence-routing.md).
 
 Add a row for each failure you care about as well. The fake's `Failing` method returns an error of any
 [`JevErrorKind`](client-and-errors.md#the-kinds), which is how the test above shows that a network error ends in a
-review. `Overloaded` shows the other half of building a `JevError`: the constructor takes the kind and the message, and
-`StatusCode`, `RetryAfter`, `Detail` and `Exception` are `init` properties you set when the failure has them.
+review. `Overloaded` shows how to give an error more detail: the constructor takes the kind and the message, and the
+example sets the `StatusCode` and `RetryAfter` init properties. `Detail` and `Exception` are set the same way when
+the failure has them.
 
 ## Way two: a real `JevClient` over a canned HTTP reply
 
