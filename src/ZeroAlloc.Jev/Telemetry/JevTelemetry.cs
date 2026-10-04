@@ -126,6 +126,7 @@ internal static class JevTelemetry
         JevErrorKind.InvalidResponse => nameof(JevErrorKind.InvalidResponse),
         JevErrorKind.Unsupported => nameof(JevErrorKind.Unsupported),
         JevErrorKind.InvalidQuestions => nameof(JevErrorKind.InvalidQuestions),
+        JevErrorKind.Disposed => nameof(JevErrorKind.Disposed),
         _ => Other,
     };
 }

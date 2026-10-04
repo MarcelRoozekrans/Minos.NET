@@ -15,3 +15,26 @@ ZeroAlloc.Jev.JevError.RetryAfter.init -> void
 ZeroAlloc.Jev.JevError.StatusCode.init -> void
 *REMOVED*ZeroAlloc.Jev.JevError.JevError(ZeroAlloc.Jev.JevErrorKind kind, string! message, int? statusCode = null, System.TimeSpan? retryAfter = null, System.Text.Json.JsonElement? detail = null, System.Exception? exception = null) -> void
 ZeroAlloc.Jev.JevError.JevError(ZeroAlloc.Jev.JevErrorKind kind, string! message) -> void
+*REMOVED*ZeroAlloc.Jev.JevErrorKind.Http = 5 -> ZeroAlloc.Jev.JevErrorKind
+*REMOVED*ZeroAlloc.Jev.JevErrorKind.InvalidQuestions = 10 -> ZeroAlloc.Jev.JevErrorKind
+*REMOVED*ZeroAlloc.Jev.JevErrorKind.InvalidResponse = 8 -> ZeroAlloc.Jev.JevErrorKind
+*REMOVED*ZeroAlloc.Jev.JevErrorKind.Network = 6 -> ZeroAlloc.Jev.JevErrorKind
+*REMOVED*ZeroAlloc.Jev.JevErrorKind.Overloaded = 3 -> ZeroAlloc.Jev.JevErrorKind
+*REMOVED*ZeroAlloc.Jev.JevErrorKind.RateLimited = 2 -> ZeroAlloc.Jev.JevErrorKind
+*REMOVED*ZeroAlloc.Jev.JevErrorKind.Server = 4 -> ZeroAlloc.Jev.JevErrorKind
+*REMOVED*ZeroAlloc.Jev.JevErrorKind.Timeout = 7 -> ZeroAlloc.Jev.JevErrorKind
+*REMOVED*ZeroAlloc.Jev.JevErrorKind.Unauthorized = 0 -> ZeroAlloc.Jev.JevErrorKind
+*REMOVED*ZeroAlloc.Jev.JevErrorKind.Unsupported = 9 -> ZeroAlloc.Jev.JevErrorKind
+*REMOVED*ZeroAlloc.Jev.JevErrorKind.Validation = 1 -> ZeroAlloc.Jev.JevErrorKind
+ZeroAlloc.Jev.JevErrorKind.Unauthorized = 1 -> ZeroAlloc.Jev.JevErrorKind
+ZeroAlloc.Jev.JevErrorKind.Validation = 2 -> ZeroAlloc.Jev.JevErrorKind
+ZeroAlloc.Jev.JevErrorKind.RateLimited = 3 -> ZeroAlloc.Jev.JevErrorKind
+ZeroAlloc.Jev.JevErrorKind.Overloaded = 4 -> ZeroAlloc.Jev.JevErrorKind
+ZeroAlloc.Jev.JevErrorKind.Server = 5 -> ZeroAlloc.Jev.JevErrorKind
+ZeroAlloc.Jev.JevErrorKind.Http = 6 -> ZeroAlloc.Jev.JevErrorKind
+ZeroAlloc.Jev.JevErrorKind.Network = 7 -> ZeroAlloc.Jev.JevErrorKind
+ZeroAlloc.Jev.JevErrorKind.Timeout = 8 -> ZeroAlloc.Jev.JevErrorKind
+ZeroAlloc.Jev.JevErrorKind.InvalidResponse = 9 -> ZeroAlloc.Jev.JevErrorKind
+ZeroAlloc.Jev.JevErrorKind.Unsupported = 10 -> ZeroAlloc.Jev.JevErrorKind
+ZeroAlloc.Jev.JevErrorKind.InvalidQuestions = 11 -> ZeroAlloc.Jev.JevErrorKind
+ZeroAlloc.Jev.JevErrorKind.Disposed = 12 -> ZeroAlloc.Jev.JevErrorKind

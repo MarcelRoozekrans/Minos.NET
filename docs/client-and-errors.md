@@ -258,6 +258,8 @@ and `Exception` are `init` properties, so set only the ones that apply with an o
 
 ### The kinds
 
+The values start at 1, so `default(JevErrorKind)` is no kind.
+
 | `JevErrorKind` | When | Retried | What to do |
 | --- | --- | --- | --- |
 | `Unauthorized` | HTTP 401 or 403: the key is missing, wrong or lacks access. | No | Fix the key. Retrying cannot help. |
@@ -271,6 +273,7 @@ and `Exception` are `init` properties, so set only the ones that apply with an o
 | `InvalidResponse` | A successful response could not be read as the expected JSON, or an answer was missing. `StatusCode` is then 200, or the other 2xx status that arrived. | No | Report it. The service replied with something this library does not understand. |
 | `Unsupported` | The operation is not available on the provider, such as listing models on OpenRouter. | No | Do not call it on that provider. No request was sent. |
 | `InvalidQuestions` | A question set built at run time breaks the API's rules. Only a failed `Build()` returns it, and no request is sent. | No | Fix the set. `Failures` lists each rule. |
+| `Disposed` | The client was disposed while the request was in flight, which tore it down. | No | Stop. The client is gone. A call started after disposal throws `ObjectDisposedException` instead. |
 
 The "Retried" column describes what the client does before it returns the error. A `RateLimited`, `Overloaded`,
 `Server`, `Network` or `Timeout` error that reaches you has already been retried `MaxRetries` times.
@@ -296,6 +299,7 @@ public static string Describe(JevError error) => error.Kind switch
     JevErrorKind.InvalidResponse => $"Jev replied with something unreadable: {error.Message}",
     JevErrorKind.Unsupported => $"The provider cannot do that: {error.Message}",
     JevErrorKind.InvalidQuestions => $"The question set is invalid, {error.Failures.Count} rules broken.",
+JevErrorKind.Disposed => "The client was disposed while the call was running.",
 
     // A kind added in a later version still produces a useful message.
     _ => error.ToString(),

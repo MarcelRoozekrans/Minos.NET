@@ -18,6 +18,20 @@ public sealed class JevTelemetryTests
     [Fact]
     public void UndefinedErrorKind_IsOther() => Assert.Equal("_OTHER", JevTelemetry.ErrorTypeOf((JevErrorKind)999));
 
+    [Fact]
+    public void Disposed_HasItsNameAsErrorType() => Assert.Equal("Disposed", JevTelemetry.ErrorTypeOf(JevErrorKind.Disposed));
+
+    [Fact]
+    public void NoErrorKind_HasTheValueZero_SoDefaultIsNoKind()
+    {
+        Assert.DoesNotContain(0, Enum.GetValues<JevErrorKind>().Select(kind => (int)kind));
+        Assert.False(Enum.IsDefined(default(JevErrorKind)));
+    }
+
+    [Fact]
+    public void ErrorKinds_AreNumberedFromOneInOrder()
+        => Assert.Equal(Enumerable.Range(1, 12), Enum.GetValues<JevErrorKind>().Select(kind => (int)kind));
+
     [Theory]
     [InlineData(JevProvider.TypeSafe, "typesafe")]
     [InlineData(JevProvider.OpenRouter, "openrouter")]
