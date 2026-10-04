@@ -286,8 +286,9 @@ out. The checks and their sources are in [the library-check document][library-ch
   minimal per-request cost, which is the same for every client.
 - **Steady state.** Each client is measured warm, in a warm process. The figures leave out first-call cost: building the
   client and the JIT compilation of its code, generated code included.
-- **The same warm-up for every client.** Before its latency loop, every client runs 16 concurrent workers for 2 s,
-  then makes 200 warm-up calls one at a time. The .NET, JS and Python harnesses all do this.
+- **The same warm-up for every client.** Before its latency loop, every client runs 16 concurrent workers for 2 s on
+  the instance that is then measured, then makes 200 warm-up calls one at a time. The .NET, JS and Python harnesses
+  all do this.
 - **Latency:** after the warm-up, 2000 calls one at a time, each timed on its own. The mean is the arithmetic mean of
   the call times; p50 and p99 are by nearest rank. The five .NET clients share one process, so their calls are
   interleaved: 20 rounds in which every client makes 100 timed calls, in an order that rotates each round, with each
@@ -344,10 +345,10 @@ highest throughput and the fewest bytes per call of any client. Its throughput l
 other clients stay well behind both, and their throughput order was the same in every run: Jev.Net, TypeSafe.AI.Sdk,
 JevSharp, the JS SDK and the Python SDK.
 
-The raw client and ZeroAlloc.Jev come close to the mock ceiling, and can pass it: the ceiling is only a lower bound on
-what the mock can serve, the best rate the raw client reached in its own, separate measurement. In the third run both
-are above it. So near the ceiling, the mock's own speed may narrow the gap between those two. The other clients stay
-well below it, so their figures are their own.
+In every run the raw client and ZeroAlloc.Jev come close to the mock ceiling, and they can pass it: the ceiling is
+only a lower bound on what the mock can serve, the best rate the raw client reached in its own, separate measurement.
+The Of mock ceiling column in each table shows how close each run came. Near the ceiling, the mock's own speed may
+narrow the gap between those two. The other clients stay well below it in every run, so their figures are their own.
 
 **ZeroAlloc.Jev is built from the branch.** Its Library cell shows the version a build that is not a release gets, the
 last release with a `-local` suffix, followed by the commit CI built, as in `<release>-local+<commit>`. So the tables

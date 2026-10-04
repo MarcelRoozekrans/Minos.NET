@@ -18,8 +18,8 @@ name, upper case and cut to 15 characters. The runner always passes `--machine`,
 ## Method
 
 - One long-lived `TypeSafeClient` with the dummy key `benchmark-dummy-key` and `retry: { maxRetries: 0 }`: one attempt
-  per call. The SDK accepts a `fetch` option, but the harness keeps the default global `fetch` on purpose, because that is what
-  users get.
+  per call. The SDK accepts a `fetch` option, but the harness keeps the default global `fetch` on purpose, because
+  that is what users get.
 - A start-up call asserts every expected answer; the harness exits with code 1 if one differs.
 - Warm-up: the same as the .NET harness gives every client before latency, 16 concurrent promise loops for 2 s, or
   0.5 s for a smoke run, so the latency loop runs on code V8 has already optimized and on warm connections.

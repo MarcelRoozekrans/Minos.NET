@@ -87,6 +87,39 @@ public sealed partial class ComparisonTests
         });
     }
 
+    // The prose under the main table says that in every run the raw client and ZeroAlloc.Jev come close to the mock
+    // ceiling, and that the other clients stay well below it. Close means at least 90% of the ceiling, and well below
+    // means under 75%, so the two groups are apart by a clear margin in every run.
+    [Fact]
+    public void TheCeilingClaims_HoldInEveryRun()
+    {
+        string[] leaders = ["raw-httpclient", "zeroalloc-jev"];
+        var page = PageTables.Text(Page);
+
+        Assert.Contains("In every run the raw client and ZeroAlloc.Jev come close to the mock ceiling", page, StringComparison.Ordinal);
+        Assert.Contains("The other clients stay well below it in every run", page, StringComparison.Ordinal);
+        Assert.All(AcrossRuns(page), run =>
+        {
+            var files = Files(run);
+            var ceiling = files
+                .Select(file => file.GetProperty("machine").GetProperty("mockCeilingPerSecond"))
+                .First(value => value.ValueKind != JsonValueKind.Null)
+                .GetDouble();
+            Assert.All(files.SelectMany(file => file.GetProperty("results").EnumerateArray()), result =>
+            {
+                var share = Throughput(result) / ceiling;
+                if (leaders.Contains(Client(result), StringComparer.Ordinal))
+                {
+                    Assert.True(share >= 0.90, $"{run}: {Client(result)} reaches {share:P0} of the ceiling, not close to it.");
+                }
+                else
+                {
+                    Assert.True(share < 0.75, $"{run}: {Client(result)} reaches {share:P0} of the ceiling, not well below it.");
+                }
+            });
+        });
+    }
+
     private static string Client(JsonElement result) => result.GetProperty("client").GetString()!;
 
     private static double Mean(JsonElement result) => result.GetProperty("latencyMs").GetProperty("mean").GetDouble();
