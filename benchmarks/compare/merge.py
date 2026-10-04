@@ -1,16 +1,25 @@
 """Merges the comparison harnesses' result files into one Markdown table.
 
-Usage: python merge.py results/<machine>/*.json --project <name>
+Usage: python merge.py results/<machine>/*.json --project <name> [--run-url <url>] [--commit <sha>] [--save <path>]
 
-It prints one row per client, fastest throughput first, then the machine line and any client notes as footnotes. Every
-file must come from one run on one machine. The project's own rows, those whose library is the project, are in bold.
+It prints one row per client, fastest throughput first, then the machine line, the run line and any client notes as
+footnotes. Every file must come from one run on one machine. The project's own rows, those whose library is the
+project, are in bold.
+
+An input is either a harness's result file, with a 'machine' object and a 'results' list, or a published run that
+--save wrote: a 'run' object and a 'files' list of the harness files, each kept whole under its file name. --run-url and
+--commit name the run, overriding what a published run says; --save writes the inputs as one published run.
 """
 
 import argparse
 import json
+import os
 import sys
 
-USAGE = "Usage: python merge.py <result.json> [<result.json> ...] --project <name>"
+USAGE = (
+    "Usage: python merge.py <result.json> [<result.json> ...] --project <name>"
+    " [--run-url <url>] [--commit <sha>] [--save <path>]"
+)
 DASH = "—"
 
 
@@ -23,21 +32,67 @@ class _Parser(argparse.ArgumentParser):
         raise MergeError(message)
 
 
-def load(paths):
-    """Reads each result file and returns (path, machine, results) triples."""
-    files = []
+def _is_result_file(data):
+    return isinstance(data, dict) and isinstance(data.get("machine"), dict) and isinstance(data.get("results"), list)
+
+
+def _entries(paths):
+    """Reads each input and returns its harness files as dicts of name, label, machine and results, plus each run."""
+    entries = []
+    runs = []
     for path in paths:
         try:
             with open(path, encoding="utf-8") as f:
                 data = json.load(f)
         except (OSError, ValueError) as error:
             raise MergeError(f"{path}: {error}") from error
-        if not isinstance(data, dict) or not isinstance(data.get("machine"), dict) or not isinstance(data.get("results"), list):
+        if isinstance(data, dict) and "files" in data:
+            run = data.get("run")
+            if not isinstance(data["files"], list) or not data["files"] or (run is not None and not isinstance(run, dict)):
+                raise MergeError(f"{path}: not a published run; it needs a non-empty 'files' list and a 'run' object.")
+            runs.append(run or {})
+            for entry in data["files"]:
+                if not _is_result_file(entry) or not isinstance(entry.get("name"), str):
+                    raise MergeError(f"{path}: each entry in 'files' needs a 'name', a 'machine' object and a 'results' list.")
+                entries.append(
+                    {"name": entry["name"], "label": f"{path}:{entry['name']}", "machine": entry["machine"], "results": entry["results"]}
+                )
+        elif _is_result_file(data):
+            entries.append({"name": os.path.basename(path), "label": path, "machine": data["machine"], "results": data["results"]})
+        else:
             raise MergeError(f"{path}: not a result file; it needs a 'machine' object and a 'results' list.")
-        files.append((path, data["machine"], data["results"]))
-    if not files:
+    if not entries:
         raise MergeError("No result files given.")
-    return files
+    return entries, runs
+
+
+def load(paths):
+    """Reads each result file and returns (path, machine, results) triples; a published run gives one per harness file."""
+    entries, _ = _entries(paths)
+    return [(e["label"], e["machine"], e["results"]) for e in entries]
+
+
+def load_run(paths, url=None, commit=None):
+    """The run the inputs name, as a dict with 'url' and 'commit' where known; the arguments override the inputs."""
+    _, runs = _entries(paths)
+    run = {}
+    for key, given in (("url", url), ("commit", commit)):
+        value = given if given is not None else _one([r.get(key) for r in runs], f"the run's {key}")
+        if value is not None:
+            run[key] = value
+    return run
+
+
+def save(paths, path, run):
+    """Writes the inputs as one published run: the run, then every harness file whole, under its file name."""
+    entries, _ = _entries(paths)
+    data = {"run": run, "files": [{"name": e["name"], "machine": e["machine"], "results": e["results"]} for e in entries]}
+    try:
+        with open(path, "w", encoding="utf-8", newline="\n") as f:
+            json.dump(data, f, indent=2, ensure_ascii=False)
+            f.write("\n")
+    except OSError as error:
+        raise MergeError(f"{path}: {error}") from error
 
 
 def _ms(value):
@@ -75,8 +130,19 @@ def _client_cores(files):
     return "; ".join(parts)
 
 
-def render(files, project):
-    """Renders the table, the machine line and the footnotes as Markdown text."""
+def _run_line(run):
+    """'Run: [run <id>](<url>), commit `<short sha>`.', with whichever of the two the run has."""
+    parts = []
+    if run.get("url"):
+        url = run["url"]
+        parts.append(f"[run {url.rstrip('/').rsplit('/', 1)[-1]}]({url})")
+    if run.get("commit"):
+        parts.append(f"commit `{run['commit'][:7]}`")
+    return f"Run: {', '.join(parts)}." if parts else None
+
+
+def render(files, project, run=None):
+    """Renders the table, the machine line, the run line and the footnotes as Markdown text."""
     name = _one([m.get("name") for _, m, _ in files], "the machine name")
     ceiling = _one([m.get("mockCeilingPerSecond") for _, m, _ in files], "the mock ceiling")
     mock_cores = _one([m.get("mockCores") for _, m, _ in files], "the mock's cores")
@@ -137,6 +203,9 @@ def render(files, project):
         f"mock ceiling: {_whole(ceiling) + '/s' if ceiling is not None else DASH}",
     ]
     lines += ["", "; ".join(machine) + "."]
+    run_line = _run_line(run or {})
+    if run_line:
+        lines += ["", run_line]
     if notes:
         lines.append("")
         lines += [f"[^{i}]: {note}" for i, note in enumerate(notes, start=1)]
@@ -147,12 +216,18 @@ def main(argv):
     parser = _Parser(add_help=False, allow_abbrev=False)
     parser.add_argument("files", nargs="+")
     parser.add_argument("--project", required=True)
+    parser.add_argument("--run-url")
+    parser.add_argument("--commit")
+    parser.add_argument("--save")
     try:
         opts = parser.parse_args(argv)
         if not opts.project.strip():
             raise MergeError("--project must not be blank.")
         try:
-            table = render(load(opts.files), opts.project.strip())
+            run = load_run(opts.files, opts.run_url, opts.commit)
+            table = render(load(opts.files), opts.project.strip(), run)
+            if opts.save:
+                save(opts.files, opts.save, run)
         except (KeyError, TypeError) as error:
             raise MergeError(f"A result entry is missing a field or has the wrong type: {error!r}") from error
         # UTF-8 with LF on every OS: the dash for a missing value survives a redirect, and the output is the same everywhere.

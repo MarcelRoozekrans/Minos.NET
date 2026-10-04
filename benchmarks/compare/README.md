@@ -59,9 +59,30 @@ Exit codes:
 
 Each run first deletes the old `*.json` files in its `<machine>` folder, so a failed harness can't leave a stale file
 behind to be merged. The per-machine folders are git-ignored. The published runs are checked in at the top of
-`results/`.
+`results/`, such as `results/ci.json`.
 
 To merge by hand, run `python benchmarks/compare/merge.py results/<machine>/*.json --project ZeroAlloc.Jev`.
+
+### Publishing a run
+
+`docs/performance.md` publishes the table of one run, kept in `results/ci.json`. That file is one published run: a
+`run` object with the run's `url` and `commit`, and a `files` list holding each harness's result file whole, under its
+file name. `merge.py` writes it with `--save`, and reads it back like the files it came from:
+
+```sh
+python benchmarks/compare/merge.py dotnet-ci.json js-ci.json py-ci.json --project ZeroAlloc.Jev   --run-url https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/<id> --commit <sha>   --save benchmarks/compare/results/ci.json
+python benchmarks/compare/merge.py benchmarks/compare/results/ci.json --project ZeroAlloc.Jev
+```
+
+| Option | Meaning |
+|---|---|
+| `--run-url <url>` | The run's URL, printed under the machine line. It overrides the URL a published run holds. |
+| `--commit <sha>` | The commit the run measured, printed in short under the machine line. It overrides a published run's. |
+| `--save <path>` | Also writes the inputs as one published run at `<path>`. |
+
+The printed table goes on the page between `<!-- comparison: benchmarks/compare/results/ci.json -->` and
+`<!-- endComparison -->`. A docs test runs `merge.py` on the JSON and fails when the page's table differs, or when the
+published run's figures under "Across runs" do.
 
 ## The core split
 

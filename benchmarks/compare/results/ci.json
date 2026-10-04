@@ -1,0 +1,156 @@
+{
+  "run": {
+    "url": "https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37207772176",
+    "commit": "bf1ef0b9a521470cf3960854e817540a10798ad7"
+  },
+  "files": [
+    {
+      "name": "dotnet-ci.json",
+      "machine": {
+        "name": "ci",
+        "os": "Ubuntu 24.04.5 LTS",
+        "cpu": "AMD EPYC 7763 64-Core Processor",
+        "date": "2026-10-04T14:05:34Z",
+        "mockCeilingPerSecond": 40569.8,
+        "cores": "2-3",
+        "mockCores": "0-1"
+      },
+      "results": [
+        {
+          "client": "zeroalloc-jev",
+          "library": "ZeroAlloc.Jev",
+          "version": "0.4.0+cf96a0e",
+          "runtime": ".NET",
+          "runtimeVersion": "10.0.12",
+          "latencyMs": {
+            "mean": 0.114,
+            "p50": 0.105,
+            "p99": 0.207
+          },
+          "throughputPerSecond": 35322.6,
+          "concurrency": 16,
+          "allocatedBytesPerCall": 5416
+        },
+        {
+          "client": "raw-httpclient",
+          "library": "HttpClient, System.Text.Json",
+          "version": "10.0.12",
+          "runtime": ".NET",
+          "runtimeVersion": "10.0.12",
+          "latencyMs": {
+            "mean": 0.077,
+            "p50": 0.074,
+            "p99": 0.104
+          },
+          "throughputPerSecond": 36869.1,
+          "concurrency": 16,
+          "allocatedBytesPerCall": 5808
+        },
+        {
+          "client": "jevsharp",
+          "library": "JevSharp",
+          "version": "0.2.0",
+          "runtime": ".NET",
+          "runtimeVersion": "10.0.12",
+          "latencyMs": {
+            "mean": 0.272,
+            "p50": 0.27,
+            "p99": 0.323
+          },
+          "throughputPerSecond": 17347.8,
+          "concurrency": 16,
+          "allocatedBytesPerCall": 52072,
+          "note": "JevSharp reaches a custom endpoint with static headers only, so it sends no auth header."
+        },
+        {
+          "client": "typesafe-ai-sdk",
+          "library": "TypeSafe.AI.Sdk",
+          "version": "0.3.0",
+          "runtime": ".NET",
+          "runtimeVersion": "10.0.12",
+          "latencyMs": {
+            "mean": 0.129,
+            "p50": 0.124,
+            "p99": 0.21
+          },
+          "throughputPerSecond": 23993.4,
+          "concurrency": 16,
+          "allocatedBytesPerCall": 26656
+        },
+        {
+          "client": "jev-net",
+          "library": "Jev.Net",
+          "version": "0.4.0",
+          "runtime": ".NET",
+          "runtimeVersion": "10.0.12",
+          "latencyMs": {
+            "mean": 0.113,
+            "p50": 0.094,
+            "p99": 0.207
+          },
+          "throughputPerSecond": 25710.4,
+          "concurrency": 16,
+          "allocatedBytesPerCall": 20232
+        }
+      ]
+    },
+    {
+      "name": "js-ci.json",
+      "machine": {
+        "name": "ci",
+        "os": "Linux 6.17.0-1022-azure #22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026",
+        "cpu": "AMD EPYC 7763 64-Core Processor",
+        "date": "2026-10-04T14:05:47Z",
+        "mockCeilingPerSecond": null,
+        "cores": "2-3",
+        "mockCores": "0-1"
+      },
+      "results": [
+        {
+          "client": "typesafe-ai-sdk-js",
+          "library": "@typesafe-ai/sdk",
+          "version": "0.6.0",
+          "runtime": "Node.js",
+          "runtimeVersion": "24.21.0",
+          "latencyMs": {
+            "mean": 0.551,
+            "p50": 0.459,
+            "p99": 2.635
+          },
+          "throughputPerSecond": 3518.7,
+          "concurrency": 16,
+          "allocatedBytesPerCall": null
+        }
+      ]
+    },
+    {
+      "name": "py-ci.json",
+      "machine": {
+        "name": "ci",
+        "os": "Linux 6.17.0-1022-azure #22-Ubuntu SMP Mon Jul 27 17:24:03 UTC 2026",
+        "cpu": "AMD EPYC 7763 64-Core Processor",
+        "date": "2026-10-04T14:06:01Z",
+        "mockCeilingPerSecond": null,
+        "cores": "2-3",
+        "mockCores": "0-1"
+      },
+      "results": [
+        {
+          "client": "typesafe-sdk-python",
+          "library": "typesafe-sdk",
+          "version": "0.7.2",
+          "runtime": "Python",
+          "runtimeVersion": "3.12.14",
+          "latencyMs": {
+            "mean": 0.65,
+            "p50": 0.64,
+            "p99": 0.751
+          },
+          "throughputPerSecond": 1050.7,
+          "concurrency": 16,
+          "allocatedBytesPerCall": null
+        }
+      ]
+    }
+  ]
+}

@@ -174,3 +174,88 @@ def test_a_wrong_command_line_exits_with_2(tmp_path, args):
 
     assert run.returncode == 2
     assert "Usage:" in run.stderr
+
+
+RUN_URL = "https://github.com/o/r/actions/runs/123"
+
+
+def test_the_run_line_names_the_run_and_the_short_commit(files):
+    text = merge.render(merge.load(files), "ZeroAlloc.Jev", {"url": RUN_URL, "commit": "bf1ef0b9a521470cf"})
+
+    lines = text.splitlines()
+    run = lines.index(f"Run: [run 123]({RUN_URL}), commit `bf1ef0b`.")
+    assert lines[run - 2].startswith("Machine: box;")
+    assert lines[run + 2] == "[^1]: Sends no auth header."
+
+
+def test_without_a_run_there_is_no_run_line(files):
+    assert "Run:" not in merge.render(merge.load(files), "ZeroAlloc.Jev")
+    assert "Run:" not in merge.render(merge.load(files), "ZeroAlloc.Jev", {})
+
+
+def test_a_saved_run_keeps_every_file_whole_and_renders_the_same_table(files, tmp_path):
+    saved = str(tmp_path / "ci.json")
+    run = {"url": RUN_URL, "commit": "abc1234def"}
+
+    merge.save(files, saved, run)
+
+    with open(saved, encoding="utf-8") as f:
+        data = json.load(f)
+    assert data["run"] == run
+    assert [entry["name"] for entry in data["files"]] == ["dotnet-box.json", "js-box.json"]
+    assert {k: data["files"][0][k] for k in ("machine", "results")} == dotnet_file()
+    assert {k: data["files"][1][k] for k in ("machine", "results")} == js_file()
+    assert merge.load_run([saved]) == run
+    assert merge.render(merge.load([saved]), "ZeroAlloc.Jev", merge.load_run([saved])) == merge.render(
+        merge.load(files), "ZeroAlloc.Jev", run
+    )
+
+
+def test_the_arguments_override_the_saved_run(files, tmp_path):
+    saved = str(tmp_path / "ci.json")
+    merge.save(files, saved, {"url": RUN_URL, "commit": "abc1234"})
+
+    assert merge.load_run([saved], commit="fff0000") == {"url": RUN_URL, "commit": "fff0000"}
+
+
+def test_two_saved_runs_that_name_different_runs_are_refused(files, tmp_path):
+    first, second = str(tmp_path / "a.json"), str(tmp_path / "b.json")
+    merge.save(files, first, {"url": RUN_URL})
+    merge.save(files, second, {"url": RUN_URL + "4"})
+
+    with pytest.raises(merge.MergeError, match="run's url"):
+        merge.load_run([first, second])
+
+
+def test_the_command_line_saves_a_run_and_reads_it_back(files, tmp_path):
+    saved = str(tmp_path / "ci.json")
+    first = subprocess.run(
+        [sys.executable, MERGE, *files, "--project", "ZeroAlloc.Jev", "--run-url", RUN_URL, "--commit", "abc1234", "--save", saved],
+        capture_output=True,
+        check=False,
+    )
+    second = subprocess.run([sys.executable, MERGE, saved, "--project", "ZeroAlloc.Jev"], capture_output=True, check=False)
+
+    assert first.returncode == 0, first.stderr
+    assert second.returncode == 0, second.stderr
+    assert second.stdout == first.stdout
+    assert f"Run: [run 123]({RUN_URL}), commit `abc1234`.".encode() in second.stdout
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        {"run": {}, "files": []},
+        {"run": {}, "files": "dotnet-box.json"},
+        {"run": "123", "files": [{"name": "x.json", "machine": {}, "results": []}]},
+        {"run": {}, "files": [{"machine": {}, "results": []}]},
+        {"run": {}, "files": [{"name": "x.json", "results": []}]},
+    ],
+)
+def test_a_malformed_saved_run_exits_with_2(tmp_path, content):
+    bad = write(tmp_path, "ci.json", content)
+
+    run = subprocess.run([sys.executable, MERGE, bad, "--project", "ZeroAlloc.Jev"], capture_output=True, text=True, check=False)
+
+    assert run.returncode == 2
+    assert "Usage:" in run.stderr
