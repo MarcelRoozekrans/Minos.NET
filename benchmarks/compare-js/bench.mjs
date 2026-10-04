@@ -206,8 +206,9 @@ async function main() {
     return { calls: 1 };
   });
 
-  // The same warm-up the .NET harness gives every client before its latency loop: 16 workers for 2 s, or 0.5 s in a
-  // smoke run, so the latency loop runs on JIT-compiled code and warm connections, as the .NET clients' does.
+  // The same warm-up the .NET harness gives every client, on the instance it measures, before its latency loop: 16
+  // workers for 2 s, or 0.5 s in a smoke run, so the latency loop runs on optimized code and warm connections, as the
+  // .NET clients' does.
   const processWarmup = await counted(opts.baseUrl, "process warm-up", () =>
     throughputPhase(client, CONCURRENCY, throughputWarmupMs),
   );

@@ -139,8 +139,9 @@ the mock or the client side was the limit.
 ## The process warm-up
 
 The .NET harness measures five clients in one process. Before it measures any of them, it warms up every client: the
-checked warm-up calls, then a throughput warm-up at 16 workers for 2 s, or 0.5 s in a smoke run, on an instance it then
-disposes. Each client is then measured warm, wherever it stands in the order.
+checked warm-up calls, then a throughput warm-up at 16 workers for 2 s, or 0.5 s in a smoke run. It does this on the
+long-lived instance it then measures, so both the process and that instance's connections are warm. Each client is
+then measured warm, wherever it stands in the order.
 
 The Node and Python harnesses get the same warm-up before their latency loop: 16 workers for 2 s, or 0.5 s in a smoke
 run. Node runs 16 promise loops on its one client. Python runs 16 threads on the synchronous client its latency loop

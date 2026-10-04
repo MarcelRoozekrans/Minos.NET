@@ -10,9 +10,9 @@ using ZeroAlloc.Jev.Benchmarks.Shared;
 namespace ZeroAlloc.Jev.Benchmarks.Compare;
 
 /// <summary>
-/// Runs the comparison: first a warm-up of every client, so none is measured in a cold process; then every client's
-/// checked warm-up; then the latency rounds, which interleave the clients; then each client's throughput run, one
-/// client at a time, in a rotated order; each counted against the mock. Then the mock ceiling, then BenchmarkDotNet for
+/// Runs the comparison: first every client's warm-up, on the instance that is then measured, so none is measured cold;
+/// then the latency rounds, which interleave the clients; then each client's throughput run, one client at a time, in
+/// a rotated order; each counted against the mock. Then the mock ceiling, then BenchmarkDotNet for
 /// allocated bytes per call. It writes the shared result file, with the order it used.
 /// </summary>
 /// <param name="options">The command line.</param>
@@ -46,7 +46,6 @@ public sealed class Harness(CompareOptions options, TextWriter log)
     {
         Directory.CreateDirectory(options.OutDirectory);
         using var counter = new MockRequestCounter(options.BaseUrl);
-        await WarmUpProcessAsync(counter, cancellationToken).ConfigureAwait(false);
 
         // A random start unless --rotation names one, so the order differs from run to run; the file records it.
         var rotation = options.Rotation ?? Random.Shared.Next(ClientAdapters.All.Count);
@@ -57,21 +56,6 @@ public sealed class Harness(CompareOptions options, TextWriter log)
         var path = Path.Combine(options.OutDirectory, options.ResultFileName);
         await File.WriteAllTextAsync(path, file.ToJson(), cancellationToken).ConfigureAwait(false);
         return path;
-    }
-
-    // Runs every client's checked warm-up and a throughput warm-up before any client is measured, each on an instance
-    // that is then disposed. Without it, the first client measured runs its latency loop while the process is still
-    // cold: tiered JIT has not yet recompiled the shared HttpClient, socket and System.Text.Json code, nor the client's
-    // own, and the thread pool has not grown. That client then reads as much slower than it is, whichever client it is.
-    // The code each client runs is compiled once per process, so the instance measured later starts warm.
-    private async Task WarmUpProcessAsync(MockRequestCounter counter, CancellationToken cancellationToken)
-    {
-        foreach (var client in ClientAdapters.All)
-        {
-            using var adapter = ClientAdapters.Create(client, options.BaseUrl);
-            await WarmUpAsync(adapter, counter, cancellationToken).ConfigureAwait(false);
-            _ = await CountedPhaseAsync(adapter, "process warm-up", Concurrency, ThroughputWarmup, counter, cancellationToken).ConfigureAwait(false);
-        }
     }
 
     // Every client lives through the whole measurement, so the latency rounds can interleave them. Each client's
@@ -101,9 +85,16 @@ public sealed class Harness(CompareOptions options, TextWriter log)
     private async Task<(Dictionary<string, ClientMeasurement> Measured, MeasurementOrder Order)> MeasureAsync(
         IClientAdapter[] adapters, MockRequestCounter counter, int rotation, CancellationToken cancellationToken)
     {
+        // Every client's checked warm-up calls, then 16 workers for the warm-up time, on the instance measured below,
+        // before any client is measured. Without it, the first client measured runs its latency loop while the process
+        // is still cold: tiered JIT has not yet recompiled the shared HttpClient, socket and System.Text.Json code, nor
+        // the client's own, and the thread pool has not grown, so that client reads as much slower than it is. Running
+        // it on the measured instance also leaves that instance's own connections and caches warm, as the Node and
+        // Python harnesses leave theirs.
         foreach (var adapter in adapters)
         {
             await WarmUpAsync(adapter, counter, cancellationToken).ConfigureAwait(false);
+            _ = await CountedPhaseAsync(adapter, "process warm-up", Concurrency, ThroughputWarmup, counter, cancellationToken).ConfigureAwait(false);
         }
 
         // Sequential calls, so the count also proves one request per call, with no retry and no extra request.
