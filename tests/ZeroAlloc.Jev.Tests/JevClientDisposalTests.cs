@@ -104,33 +104,66 @@ public sealed class JevClientDisposalTests
         Assert.Equal(nameof(JevErrorKind.Disposed), LogAssert.Field(logs.Only(1002), "ErrorKind"));
     }
 
-    // The order the other way round: the per-attempt time-out fires and the failure is mapped before Dispose runs.
+    // The order the other way round: the per-attempt time-out fires and is mapped while the client is not yet disposed,
+    // then Dispose runs before the call returns. ZeroAlloc.Rest stops its per-attempt span right after the mapper
+    // returns, still inside the transport, so a listener on that span disposes the client at exactly that point: before
+    // the guard, the logging decorator, the retry proxy, the operations or the client see the result. MaxRetries is 0
+    // because a retry would be due otherwise, and a disposed client refuses it with Disposed, which is correct but would
+    // hide the order this checks. An implementation that decided Disposed from the flag after mapping would fail here.
     [Fact]
-    public async Task RealTimeoutBeforeDispose_IsStillTimeout()
+    public async Task RealTimeoutMappedBeforeDispose_StaysTimeout_WhenDisposeRunsBeforeTheCallReturns()
     {
-        var timedOut = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var handler = new StubHandler(async (_, ct) =>
         {
-            try
-            {
-                await Task.Delay(Timeout.Infinite, ct);
-            }
-            finally
-            {
-                timedOut.TrySetResult();
-            }
-
+            await Task.Delay(Timeout.Infinite, ct);
             return Success();
         });
         var client = Owned(handler, maxRetries: 0, timeout: TimeSpan.FromMilliseconds(100));
+        var disposedAfterMapping = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        using var listener = new ActivityListener
+        {
+            ShouldListenTo = source => source.Name is "ZeroAlloc.Rest",
+            Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllData,
+            ActivityStopped = _ =>
+            {
+                client.Dispose();
+                disposedAfterMapping.TrySetResult();
+            },
+        };
+        ActivitySource.AddActivityListener(listener);
 
-        var call = client.EvaluateAsync(Request()).AsTask();
-        await timedOut.Task;
-        var result = await call;
-        client.Dispose();
+        var result = await client.EvaluateAsync(Request());
 
+        Assert.True(disposedAfterMapping.Task.IsCompleted);
         Assert.Equal(JevErrorKind.Timeout, result.Error.Kind);
         _ = ClientTestKit.OnlyRequest(handler);
+        await Assert.ThrowsAsync<ObjectDisposedException>(async () => await client.EvaluateAsync(Request()));
+    }
+
+    // Disposal lands after the guard read the flag but before the send checked it, so the send throws
+    // ObjectDisposedException, as HttpClient and SocketsHttpHandler do. Forced here by a handler that disposes the client
+    // and then throws that exception for its one attempt.
+    [Fact]
+    public async Task DisposeBetweenTheGuardAndTheSend_IsDisposed_AfterOneAttempt()
+    {
+        using var logs = new LogCapture();
+        using var capture = new TelemetryCapture();
+        JevClient? client = null;
+        var handler = new StubHandler((_, _) =>
+        {
+            client!.Dispose();
+            throw new ObjectDisposedException(typeof(HttpClient).FullName);
+        });
+        client = Owned(handler, logger: logs.Factory.CreateLogger(JevLog.Category));
+
+        var result = await client.EvaluateAsync(Request());
+
+        AssertDisposed(result);
+        Assert.IsType<ObjectDisposedException>(result.Error.Exception);
+        _ = ClientTestKit.OnlyRequest(handler);
+        Assert.DoesNotContain(1006, logs.EventIds);
+        Assert.Equal(nameof(JevErrorKind.Disposed), LogAssert.Field(logs.Only(1002), "ErrorKind"));
+        Assert.Equal("Disposed", capture.Span().GetTagItem("error.type"));
     }
 
     [Fact]

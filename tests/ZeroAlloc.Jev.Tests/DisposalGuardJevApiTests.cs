@@ -47,12 +47,44 @@ public sealed class DisposalGuardJevApiTests
         Assert.Equal(0, inner.Calls);
     }
 
-    private static void AssertDisposed<T>(ValueTask<Result<T, JevError>> call)
+    // The client was disposed after the guard read the flag, so the send threw ObjectDisposedException.
+    [Fact]
+    public void AnAttemptFaultedWithObjectDisposedException_AfterDisposal_IsDisposed_WithTheException()
+    {
+        var thrown = new ObjectDisposedException(typeof(HttpClient).FullName);
+        var reads = 0;
+        var guard = new DisposalGuardJevApi(new FaultingApi(thrown), () => ++reads > 1);
+
+        var call = guard.ListModelsAsync("Bearer k", null, CancellationToken.None);
+
+        AssertDisposed(call, thrown);
+    }
+
+    [Fact]
+    public async Task AnAttemptFaultedWithObjectDisposedException_BeforeDisposal_FaultsUnchanged()
+    {
+        var thrown = new ObjectDisposedException("something else");
+        var guard = new DisposalGuardJevApi(new FaultingApi(thrown), static () => false);
+
+        Assert.Same(thrown, await Assert.ThrowsAsync<ObjectDisposedException>(async () => await guard.ListModelsAsync("Bearer k", null, CancellationToken.None)));
+    }
+
+    [Fact]
+    public async Task AnAttemptFaultedWithAnotherException_AfterDisposal_FaultsUnchanged()
+    {
+        var thrown = new InvalidOperationException("a bug");
+        var reads = 0;
+        var guard = new DisposalGuardJevApi(new FaultingApi(thrown), () => ++reads > 1);
+
+        Assert.Same(thrown, await Assert.ThrowsAsync<InvalidOperationException>(async () => await guard.ListModelsAsync("Bearer k", null, CancellationToken.None)));
+    }
+
+    private static void AssertDisposed<T>(ValueTask<Result<T, JevError>> call, Exception? exception = null)
     {
         Assert.True(call.IsCompletedSuccessfully);
         var error = call.Result.Error;
         Assert.Equal(JevErrorKind.Disposed, error.Kind);
-        Assert.Null(error.Exception);
+        Assert.Same(exception, error.Exception);
         Assert.False(IJevApi.IsTransient(error));
     }
 
@@ -84,6 +116,20 @@ public sealed class DisposalGuardJevApiTests
             Calls++;
             return new(Models);
         }
+    }
+
+    // Every call has already faulted with the exception, as an async method that threw before its first await.
+    private sealed class FaultingApi(Exception thrown) : IJevApi
+    {
+        public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(
+            SystemOneRequest body, string authorization, int? retryCount, CancellationToken ct)
+            => ValueTask.FromException<Result<SystemOneResponse, JevError>>(thrown);
+
+        public ValueTask<Result<RawJson, JevError>> EvaluateRawAsync(RawJson body, string authorization, int? retryCount, CancellationToken ct)
+            => ValueTask.FromException<Result<RawJson, JevError>>(thrown);
+
+        public ValueTask<Result<ModelList, JevError>> ListModelsAsync(string authorization, int? retryCount, CancellationToken ct)
+            => ValueTask.FromException<Result<ModelList, JevError>>(thrown);
     }
 
     private sealed class PendingApi(Task<Result<ModelList, JevError>> pending) : IJevApi

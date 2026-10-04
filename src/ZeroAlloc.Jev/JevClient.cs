@@ -397,9 +397,10 @@ public sealed class JevClient : IJevClient, IDisposable
     /// <remarks>
     /// <para>
     /// A call started after <see cref="Dispose"/> throws <see cref="ObjectDisposedException"/>. A call already in flight
-    /// over an <see cref="HttpClient"/> this client created is torn down with it, and returns a
-    /// <see cref="JevErrorKind.Disposed"/> failure. A real time-out that was mapped before <see cref="Dispose"/> set the
-    /// flag stays <see cref="JevErrorKind.Timeout"/> when no retry is left.
+    /// over an <see cref="HttpClient"/> this client created is torn down with it, or is never sent when the disposal
+    /// lands just before the send; either way it returns a <see cref="JevErrorKind.Disposed"/> failure. A real time-out
+    /// that was mapped before <see cref="Dispose"/> set the flag stays <see cref="JevErrorKind.Timeout"/> when no retry
+    /// is left.
     /// </para>
     /// <para>
     /// A disposed client never retries. A retry that would start after <see cref="Dispose"/> is not sent, and the call
@@ -415,7 +416,8 @@ public sealed class JevClient : IJevClient, IDisposable
             return;
         }
 
-        // Set first: disposing the HttpClient cancels the requests in flight, and their failures must see the flag.
+        // Set first: disposing the HttpClient cancels the requests in flight, or makes a send that has not started throw
+        // ObjectDisposedException, and the mapper and the disposal guard must see the flag when either happens.
         _disposed = true;
         _ownedHttpClient?.Dispose();
     }
