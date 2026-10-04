@@ -127,33 +127,6 @@ internal static class Sources
         }
         """;
 
-    public const string JsonText = """
-        using ZeroAlloc.Jev;
-
-        namespace Demo;
-
-        public enum JsonDepartment
-        {
-            [Criteria("{\"description\":\"a\",\"examples\":[\"é\"]}", Json = true)]
-            Billing,
-
-            [Criteria("Bugs, outages, integrations")]
-            Technical,
-        }
-
-        [JevQuestions]
-        public partial record JsonRouting
-        {
-            [Noul(
-                "{\"question\":\"Is this urgent?\",\"hints\":[\"deadline\",\"outage\"]}",
-                Json = true)]
-            public partial Noul IsUrgent { get; }
-
-            [Choice("[\"Which team should handle this?\"]", Json = true)]
-            public partial Choice<JsonDepartment> Department { get; }
-        }
-        """;
-
     // A Choice over an enum with no members: JEV001 makes the set invalid, so the generator emits only a throwing stub.
     public const string ChoiceOverEmptyEnum = """
         using ZeroAlloc.Jev;

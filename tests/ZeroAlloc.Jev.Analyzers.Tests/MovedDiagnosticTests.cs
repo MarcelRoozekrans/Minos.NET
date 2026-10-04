@@ -125,19 +125,6 @@ public sealed class MovedDiagnosticTests
     }
 
     [Fact]
-    public async Task EmptyText_EmptyJson_MessageAdvisesContentOrDroppingJson()
-    {
-        var (type, attribute) = await GetQuestionSetAsync(
-            "[JevQuestions] public partial class C { [Noul(\"{ }\", Json = true)] public partial Noul Answer { get; } }");
-
-        var info = SingleDiagnostic(ModelBuilder.Build(type, attribute, CancellationToken.None).Diagnostics, DiagnosticIds.EmptyText);
-
-        Assert.Equal(
-            "The instruction text of 'Answer' is an empty JSON object or array: add content, or drop Json",
-            Format(Diagnostics.EmptyText, info));
-    }
-
-    [Fact]
     public async Task EmptyText_EmptyEntry_MessageAdvisesRemovingTheEntry()
     {
         var compilation = await CompilationHelper.CompileAsync(

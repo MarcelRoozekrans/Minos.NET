@@ -185,7 +185,8 @@ Any `IJevClient` can evaluate a built set, including a hand-written fake that im
 ## Checking the set
 
 `Build()` returns a `Result<JevQuestionSet, JevError>`. It checks the questions against the rules the
-[analyzers](diagnostics.md) apply to a typed set, and the rule ids are the same.
+[analyzers](diagnostics.md) apply to a typed set, and the rule ids are the same. JEV108 is the builder's own, because
+only a built set can carry JSON.
 
 | Rule | What it checks | Outcome |
 | --- | --- | --- |

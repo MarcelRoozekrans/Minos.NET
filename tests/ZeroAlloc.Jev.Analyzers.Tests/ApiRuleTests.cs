@@ -57,8 +57,6 @@ public sealed class ApiRuleTests
             + "[JevQuestions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }",
         "public enum L { [Level(\"a\")] A, [Level({|JEV003:\"\"|})] B } [JevQuestions] public partial class C { "
             + "[Score(\"q1\")] public partial Score<L> A1 { get; } [Score(\"q2\")] public partial Score<L> A2 { get; } }",
-        "[JevQuestions] public partial class C { [Noul({|JEV003:\"{}\"|}, Json = true)] public partial Noul Answer { get; } }",
-        "[JevQuestions] public partial class C { [Noul({|JEV003:\" [ ] \"|}, Json = true)] public partial Noul Answer { get; } }",
         "public enum E { [Criteria(\"a\", {|JEV003:Examples = [\" \"]|})] A } "
             + "[JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
         "public enum E { [Criteria(\"a\", {|JEV003:NotFor = new string[] { null! }|})] A } "
@@ -78,7 +76,6 @@ public sealed class ApiRuleTests
         "public enum E { [Criteria(null)] A, [Criteria(\"b\")] B } public enum L { [Level(null)] A, [Level(\"b\")] B } "
             + "[JevQuestions] public partial class C { [Choice(null)] public partial Choice<E> A1 { get; } "
             + "[Score(null)] public partial Score<L> A2 { get; } }",
-        "[JevQuestions] public partial class C { [Noul(\"{\\\"threshold\\\":5}\", Json = true)] public partial Noul Answer { get; } }",
         "public enum E { [Criteria(\"a\", Examples = [\"x\"], NotFor = [])] A } "
             + "[JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
     };
@@ -191,22 +188,6 @@ public sealed class ApiRuleTests
                 + "[JevQuestions(State = typeof(Ticket))] public partial class C { "
                 + "[Noul(\"Does `subject` or `open-tickets` show urgency?\")] public partial Noul A1 { get; } "
                 + "[Noul({|JEV004:\"Does `body` show urgency?\"|})] public partial Noul A2 { get; } }");
-
-    [Fact]
-    public Task UnknownStateReference_InJsonInstructions_Reports()
-        => AnalyzerVerifier.VerifyAsync(
-            "public sealed class S { public string Message { get; set; } = \"\"; } "
-                + "[JevQuestions(State = typeof(S))] public partial class C { "
-                + "[Noul({|JEV004:\"{\\\"question\\\":\\\"Does `message` match `missing`?\\\",\\\"`key_only`\\\":1}\"|}, Json = true)] "
-                + "public partial Noul Answer { get; } }");
-
-    [Fact]
-    public Task KnownStateReference_InJsonInstructions_ReportsNothing()
-        => AnalyzerVerifier.VerifyNoDiagnosticsAsync(
-            "public sealed class S { public string Message { get; set; } = \"\"; } "
-                + "[JevQuestions(State = typeof(S))] public partial class C { "
-                + "[Noul(\"{\\\"question\\\":\\\"Does `message` ask for a credential?\\\"}\", Json = true)] "
-                + "public partial Noul Answer { get; } }");
 
     // ---- JEV005: outside the API sketch's option and level guidance ----
 

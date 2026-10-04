@@ -26,7 +26,7 @@ The rules come in two groups.
 - **JEV001 to JEV006 check the set against the Jev API's own rules.** JEV001 and JEV002 follow the schema of TypeSafe's
   official SDK, which needs at least one option or level. The others are advice and never block the generator. The
   limits behind JEV005 are guidance from the API sketch, not a limit of the schema.
-- **JEV101 to JEV109 check what the generator can turn into code.** They are all errors, because a declaration the
+- **JEV101 to JEV107 check what the generator can turn into code.** They are all errors, because a declaration the
   generator cannot read cannot be turned into a request.
 
 A set with any error is invalid. The generator writes no `QuestionsUtf8`, no `Parse` and no `IJevQuestionSet` for it,
@@ -44,8 +44,8 @@ shows them.
 | --- | --- | --- | --- |
 | JEV001 | Error | Choice enum has no members | The enum of a `Choice<T>` has no members. The API needs at least one option. |
 | JEV002 | Error | Score enum has no members | The enum of a `Score<T>` has no members. The API needs at least one level. |
-| JEV003 | Warning | Empty instructions or description | Instructions, a description, or an `Examples` or `NotFor` entry is empty or only white space, or JSON text is `{}` or `[]`. A `null` text is fine, because the API accepts none. |
-| JEV004 | Warning | Instructions refer to an unknown state member | A name in backticks in the instructions matches no public property or field of the `State` type, as [typed evaluation](typed-evaluation.md#referring-to-the-state-in-a-question) describes. For an array state the element type is checked, and for `Json = true` instructions every string value is. |
+| JEV003 | Warning | Empty instructions or description | Instructions, a description, or an `Examples` or `NotFor` entry is empty or only white space. A `null` text is fine, because the API accepts none. |
+| JEV004 | Warning | Instructions refer to an unknown state member | A name in backticks in the instructions matches no public property or field of the `State` type, as [typed evaluation](typed-evaluation.md#referring-to-the-state-in-a-question) describes. For an array state the element type is checked. |
 | JEV005 | Warning | Option or level count outside the API guidance | A Score enum has fewer than 2 or more than 10 levels, or a Choice enum has more than 255 options. |
 | JEV006 | Info | Choice option has no description | A member of a Choice enum has no `[Criteria]`. It is still an option, sent with no description, and a description usually helps. |
 | JEV101 | Error | Unsupported question set type | The type with `[JevQuestions]` is not a non-generic, non-abstract, non-static, top-level partial class or record that is not file-local. |
@@ -55,11 +55,18 @@ shows them.
 | JEV105 | Error | Question set has no parameterless constructor | The set has no constructor that can be called without arguments, or it has `required` members and that constructor lacks `[SetsRequiredMembers]`. A constructor whose parameters all have defaults counts. |
 | JEV106 | Error | Duplicate wire key | Two questions in the set use the same wire key, or two options of one Choice do. |
 | JEV107 | Error | Invalid state type | The `State` type is not a class, struct, record or array type. |
-| JEV108 | Error | Text marked Json is not a JSON object or array | Text with `Json = true` is not a JSON object or array, or it is nested more than 60 levels deep. |
-| JEV109 | Error | Json combined with Examples or NotFor | `Json = true` is set together with `Examples` or `NotFor`. Put them inside the JSON instead. |
 
 A [set built at run time](question-sets-at-run-time.md#checking-the-set) is checked against the same limits, with the
 same rule ids. That page says which rules apply there, and which of them fail `Build()`.
+
+### Reported by the run-time builder
+
+One rule has no analyzer, because only a [set built at run time](question-sets-at-run-time.md#checking-the-set) can
+carry JSON. A declared set's instructions and descriptions are always text.
+
+| Id | Outcome | It fires when |
+| --- | --- | --- |
+| JEV108 | `Build()` fails | JSON instructions or a JSON description nests more than 60 levels deep. |
 
 ### Where a rule is reported
 
@@ -140,7 +147,7 @@ dotnet_diagnostic.JEV006.severity = warning
 
 A project-wide `<NoWarn>JEV005</NoWarn>` in the project file works too.
 
-An error does not go away that way. Suppressing JEV001, JEV002 or one of JEV101 to JEV109 hides the message, but the set
+An error does not go away that way. Suppressing JEV001, JEV002 or one of JEV101 to JEV107 hides the message, but the set
 stays invalid. The generator does not read the diagnostics. It applies the same rules itself, so a suppressed set still
 gets no `QuestionsUtf8`, no `Parse` and no `IJevQuestionSet`. `EvaluateAsync<T>` does not compile for it, and the stub
 properties throw. Fix the declaration instead.

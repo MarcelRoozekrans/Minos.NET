@@ -19,9 +19,10 @@ internal static class JevLimits
     public const int MaximumChoiceOptions = 255;
 
     /// <summary>
-    /// The deepest nesting JSON instructions or a JSON description may have (JEV108). System.Text.Json reads a request
-    /// with its default MaxDepth of 64, and a criterion description sits 4 levels deep in it: the request object,
-    /// <c>questions</c>, the question and its <c>criteria</c>.
+    /// The deepest nesting a built set's JSON instructions or JSON description may have (JEV108). Only the run-time
+    /// builder checks it: declared sets are text only. System.Text.Json reads a request with its default MaxDepth of 64,
+    /// and a criterion description sits 4 levels deep in it: the request object, <c>questions</c>, the question and its
+    /// <c>criteria</c>.
     /// </summary>
     public const int MaximumJsonDepth = 60;
 }

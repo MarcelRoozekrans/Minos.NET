@@ -58,7 +58,7 @@ public sealed class GeneratorJsonEncoderTests
     }
 
     [Fact]
-    public void JsonElement_IsWrittenAsTheMinifierWritesIt()
+    public void JsonElement_IsWrittenCompactWithTheGeneratorsEscaping()
     {
         using var document = JsonDocument.Parse(
             """ { "q" : "say \"hi\" \u00e9 é 😀 <b> \/" , "n": [1.50, -0, 1e+5, 2E-3], "a":1, "a":2 } """);

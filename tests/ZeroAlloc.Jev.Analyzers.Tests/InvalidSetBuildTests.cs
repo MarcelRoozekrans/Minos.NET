@@ -46,11 +46,6 @@ public sealed class InvalidSetBuildTests
         "namespace Demo; public partial struct Outer<TKey> where TKey : notnull { internal partial record Middle { "
             + "[JevQuestions] private partial class {|JEV101:Inner|}<T> { [Noul(\"q\")] public partial Noul Answer { get; set; } } } }",
         "[JevQuestions] public static partial class {|JEV101:Set|} { [Noul(\"q\")] public static partial Noul Answer { get; } }",
-        "[JevQuestions] public partial class C { [Noul({|JEV108:\"{\"|}, Json = true)] public partial Noul Answer { get; } }",
-        "public enum E { [Criteria({|JEV108:\"{oops\"|}, Json = true)] A } "
-            + "[JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
-        "public enum E { [Criteria(\"{}\", {|JEV109:Json = true|}, NotFor = [\"x\"])] A } "
-            + "[JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
     };
 
     [Theory]

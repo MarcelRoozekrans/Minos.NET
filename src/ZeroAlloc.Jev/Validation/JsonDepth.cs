@@ -3,7 +3,7 @@ using ZeroAlloc.Jev.Generator;
 
 namespace ZeroAlloc.Jev.Validation;
 
-/// <summary>JSON nesting depth, counted as the generator's minifier counts it: an object or array is one level.</summary>
+/// <summary>JSON nesting depth: an object or array is one level, and a string, number or literal is none.</summary>
 internal static class JsonDepth
 {
     /// <summary>Returns the nesting depth: 0 for a string, number or literal; 1 for <c>{}</c> or <c>[]</c>.</summary>
