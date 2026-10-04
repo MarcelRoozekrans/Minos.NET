@@ -19,8 +19,8 @@ public sealed record ResultFile(MachineInfo Machine, IReadOnlyList<ClientResult>
 /// <param name="Cpu">The processor.</param>
 /// <param name="Date">When the run finished, as an ISO 8601 UTC timestamp such as <c>2026-10-04T10:05:13Z</c>.</param>
 /// <param name="MockCeilingPerSecond">
-/// The mock's own ceiling: completed calls per second of the raw client at 64 workers, so each client's throughput can be
-/// read against it.
+/// The mock's own ceiling: the best completed calls per second of the raw client at 16, 32 and 64 workers, so each
+/// client's throughput can be read against it.
 /// </param>
 /// <param name="Cores">
 /// The cores the harness ran on, as a list such as <c>10-19</c>, or <see langword="null"/> when it was not pinned. The

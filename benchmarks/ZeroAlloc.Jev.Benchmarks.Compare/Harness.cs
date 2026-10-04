@@ -21,8 +21,10 @@ public sealed class Harness(CompareOptions options, TextWriter log)
     /// <summary>How many workers call at once in the throughput run.</summary>
     public const int Concurrency = 16;
 
-    /// <summary>How many workers the raw client uses to measure the mock's own ceiling.</summary>
-    public const int CeilingConcurrency = 64;
+    /// <summary>
+    /// The worker counts the raw client tries when it measures the mock's own ceiling; the ceiling is the best of them.
+    /// </summary>
+    public static IReadOnlyList<int> CeilingConcurrencies { get; } = [16, 32, 64];
 
     private int LatencyWarmupCalls => options.Smoke ? 10 : 200;
 
@@ -90,17 +92,25 @@ public sealed class Harness(CompareOptions options, TextWriter log)
             return CompareBenchmarks.WarmupCalls;
         }, static calls => calls, cancellationToken);
 
-    // The mock's own ceiling: the raw client, the thinnest one, at four times the clients' concurrency, so the results
-    // can show how far below the mock's limit each client stays.
+    // The mock's own ceiling: the raw client, the thinnest one, at 16, 32 and 64 workers, each for the throughput
+    // duration, keeping the best. One count alone is no upper bound: 64 workers can cost a few client cores more than
+    // they load the mock. The results can then show how far below the mock's limit each client stays.
     private async Task<double> MeasureCeilingAsync(MockRequestCounter counter, CancellationToken cancellationToken)
     {
         using var raw = ClientAdapters.Create(ClientAdapters.Raw, options.BaseUrl);
-        _ = await CountedPhaseAsync(raw, "mock ceiling warm-up", CeilingConcurrency, ThroughputWarmup, counter, cancellationToken).ConfigureAwait(false);
-        var measured = await CountedPhaseAsync(raw, "mock ceiling run", CeilingConcurrency, ThroughputDuration, counter, cancellationToken).ConfigureAwait(false);
+        _ = await CountedPhaseAsync(raw, "mock ceiling warm-up", CeilingConcurrencies[^1], ThroughputWarmup, counter, cancellationToken).ConfigureAwait(false);
+        var best = await CeilingRunner.RunAsync(CeilingConcurrencies, async workers =>
+        {
+            var measured = await CountedPhaseAsync(raw, "mock ceiling run", workers, ThroughputDuration, counter, cancellationToken).ConfigureAwait(false);
+            await log.WriteLineAsync(string.Create(
+                CultureInfo.InvariantCulture,
+                $"mock ceiling: {workers} workers on the raw client, measured {measured.Calls} of {measured.Calls}, {measured.PerSecond:F0}/s")).ConfigureAwait(false);
+            return measured;
+        }).ConfigureAwait(false);
         await log.WriteLineAsync(string.Create(
             CultureInfo.InvariantCulture,
-            $"mock ceiling: {CeilingConcurrency} workers on the raw client, measured {measured.Calls} of {measured.Calls}, {measured.PerSecond:F0}/s")).ConfigureAwait(false);
-        return measured.PerSecond;
+            $"mock ceiling: best {best.PerSecond:F0}/s at {best.Workers} workers")).ConfigureAwait(false);
+        return best.PerSecond;
     }
 
     private static Task<ThroughputPhase> CountedPhaseAsync(

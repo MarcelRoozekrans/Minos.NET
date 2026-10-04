@@ -75,6 +75,48 @@ public sealed class HarnessTests : IAsyncLifetime
     }
 
     [Fact]
+    public async Task The_ceiling_is_the_best_of_every_worker_count()
+    {
+        // 32 workers is fastest here: 64 overloads the client, so a single 64-worker run would understate the ceiling.
+        var rates = new Dictionary<int, long> { [16] = 9000, [32] = 12000, [64] = 10000 };
+        var tried = new List<int>();
+
+        var ceiling = await CeilingRunner.RunAsync(Harness.CeilingConcurrencies, workers =>
+        {
+            tried.Add(workers);
+            return Task.FromResult(new ThroughputPhase(rates[workers], TimeSpan.FromSeconds(1)));
+        });
+
+        Assert.Equal([16, 32, 64], tried);
+        Assert.Equal(new CeilingMeasurement(12000, 32), ceiling);
+    }
+
+    [Fact]
+    public async Task The_ceiling_runs_each_worker_count_against_the_mock()
+    {
+        using var counter = new MockRequestCounter(BaseAddress);
+        using var adapter = ClientAdapters.Create(ClientAdapters.Raw, BaseAddress);
+        long calls = 0;
+
+        var ceiling = await CeilingRunner.RunAsync([1, 4], async workers =>
+        {
+            var phase = await ThroughputRunner.RunPhaseAsync(adapter, workers, TimeSpan.FromMilliseconds(100));
+            calls += phase.Calls;
+            return phase;
+        });
+
+        Assert.True(ceiling.Workers is 1 or 4);
+        Assert.True(ceiling.PerSecond > 0);
+        Assert.Equal(calls, await counter.CountAsync(CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task The_ceiling_needs_a_worker_count()
+    {
+        await Assert.ThrowsAsync<ArgumentException>(() => CeilingRunner.RunAsync([], _ => Task.FromResult(new ThroughputPhase(1, TimeSpan.FromSeconds(1)))));
+    }
+
+    [Fact]
     public void Latency_figures_are_the_mean_and_the_nearest_rank_percentiles()
     {
         // 1..100 ms, shuffled: the mean is 50.5, the 50th percentile is the 50th value and the 99th the 99th.
