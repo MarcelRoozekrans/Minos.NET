@@ -102,7 +102,7 @@ public static class ClientFailures
         JevErrorKind.InvalidResponse => $"Jev replied with something unreadable: {error.Message}",
         JevErrorKind.Unsupported => $"The provider cannot do that: {error.Message}",
         JevErrorKind.InvalidQuestions => $"The question set is invalid, {error.Failures.Count} rules broken.",
-    JevErrorKind.Disposed => "The client was disposed while the call was running.",
+        JevErrorKind.Disposed => "The client was disposed while the call was running.",
 
         // A kind added in a later version still produces a useful message.
         _ => error.ToString(),

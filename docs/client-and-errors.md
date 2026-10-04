@@ -93,7 +93,7 @@ you asked for it. Everything else, including every network and service failure, 
 | `Provider` | `JevProvider.TypeSafe` | `TypeSafe` or `OpenRouter` | Where requests go. |
 | `ApiKey` | none | any text without control characters; blank counts as unset | The key sent as a bearer token. When unset, the client reads `TYPESAFE_API_KEY`, or `OPENROUTER_API_KEY` for OpenRouter. |
 | `BaseAddress` | the provider's address | absolute `http` or `https` URI, no query or fragment | The API root, for a proxy or a test server. When unset, the client reads `TYPESAFE_BASE_URL` for TypeSafe only, then uses `https://api.typesafe.ai/` or `https://openrouter.ai/api/`. |
-| `Model` | `jev-latest` | not blank | The model that typed evaluation asks, as a versioned id such as `jev-1.13.0` or an alias. |
+| `Model` | `jev-latest` | not blank | The model that typed evaluation and built question sets ask, as a versioned id such as `jev-1.13.0` or an alias. |
 | `Timeout` | 60 seconds | positive, or `Timeout.InfiniteTimeSpan`, and at most about 24.8 days | How long one attempt may take. |
 | `MaxRetries` | 2 | 0 to 10 | How many times a failed call is tried again. 0 turns retries off. |
 | `InitialBackoff` | 500 ms | positive, and at most about 24.8 days | The first wait between attempts. It doubles for each further retry. |
@@ -290,7 +290,8 @@ The values start at 1, so `default(JevErrorKind)` is no kind.
 | `Disposed` | The client was disposed while the call was in flight, which tore its request down or kept a due retry from being sent. | No | Stop. The client is gone. A call started after disposal throws `ObjectDisposedException` instead. |
 
 The "Retried" column describes what the client does before it returns the error. A `RateLimited`, `Overloaded`,
-`Server`, `Network` or `Timeout` error that reaches you has already been retried `MaxRetries` times.
+`Server`, `Network` or `Timeout` error, or an `Http` error for a 408, that reaches you has already been retried
+`MaxRetries` times.
 
 ### Handling a failure
 
@@ -313,7 +314,7 @@ public static string Describe(JevError error) => error.Kind switch
     JevErrorKind.InvalidResponse => $"Jev replied with something unreadable: {error.Message}",
     JevErrorKind.Unsupported => $"The provider cannot do that: {error.Message}",
     JevErrorKind.InvalidQuestions => $"The question set is invalid, {error.Failures.Count} rules broken.",
-JevErrorKind.Disposed => "The client was disposed while the call was running.",
+    JevErrorKind.Disposed => "The client was disposed while the call was running.",
 
     // A kind added in a later version still produces a useful message.
     _ => error.ToString(),

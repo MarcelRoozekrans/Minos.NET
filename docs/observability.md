@@ -99,7 +99,8 @@ A call logs once, when it completes, and logs again for each attempt it is about
 - **A retry** is a Warning, 1003, logged for each failed attempt that the client will retry. `Attempt` is 1 for the
   first attempt, and it equals the `X-TypeSafe-Retry-Count` header of the retry that follows. The last attempt is not
   logged here, because the operation's failure event reports it. If your `CancellationToken` is cancelled while the
-  client waits to retry, the retry does not happen even though the event was logged.
+  client waits to retry, the retry does not happen even though the event was logged. Nor does it when the client is
+  disposed before the retry starts, in which case the call returns `Disposed`.
 - **`UnexpectedException`** is an Error, 1006. It means a mistake in the calling code or a bug, because a failure of the
   call itself is a returned `JevError`. The exception continues up to you unchanged. A cancellation that you requested
   is not logged, and neither are the argument checks and the disposed-client check that throw before the call starts.
