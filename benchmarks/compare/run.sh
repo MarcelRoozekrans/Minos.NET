@@ -1,18 +1,26 @@
 #!/usr/bin/env bash
 # Runs the client comparison: builds and starts the mock, runs the .NET, Node and Python harnesses one after another,
-# then stops the mock and merges the results. The twin of run.ps1, for CI and Linux.
-#
-# Usage: run.sh [--smoke] [--machine <name>] [--project <name>] [--port <n>] [--mock-cores <list>] [--client-cores <list>]
-#
-# The mock and the harnesses run on separate cores. On a hybrid CPU, read from /sys/devices/cpu_core and cpu_atom on
-# Linux, the harnesses get the performance cores and the mock the efficiency cores; otherwise the mock gets the lower
-# half and the harnesses the upper half. --mock-cores and --client-cores, lists such as 12-19 or 0-3,8, override the
-# split. The mock and the .NET harness pin themselves; Node and Python are pinned with taskset, and run unpinned with a
-# warning when it is missing. Results go to results/<machine>/, and the merged table to results/<machine>/comparison.md.
-# Exits with 1 if a build or a harness failed, and with 2 on a wrong command line.
+# then stops the mock and merges the results. The twin of run.ps1, for CI and Linux. See README.md next to this script,
+# and run it with --help for the options.
 set -euo pipefail
 
-usage='Usage: run.sh [--smoke] [--machine <name>] [--project <name>] [--port <n>] [--mock-cores <list>] [--client-cores <list>]'
+usage='Usage: run.sh [options]
+
+  --smoke                 A short run that checks every harness works; its numbers mean nothing.
+  --machine <name>        The machine name in the results and their folder. Default: the host name; on Windows
+                          shells, upper case and cut to 15 characters, as .NET reports it.
+  --project <name>        The project under test. It names the .NET projects <name>.Benchmarks.Mock and
+                          <name>.Benchmarks.Compare under the bench root, and marks the project'"'"'s rows in the table.
+                          Default: ZeroAlloc.Jev.
+  --bench-root <dir>      The folder holding those two projects, compare-js and compare-py.
+                          Default: the benchmarks folder of this repository.
+  --results <dir>         Where results go, in a <machine> subfolder. Default: results next to this script.
+  --port <n>              The mock'"'"'s port. Default: 5005.
+  --mock-cores <list>     The mock'"'"'s cores, such as 12-19 or 0-3,8. Default: see the core split in README.md.
+  --client-cores <list>   The harnesses'"'"' cores. Given one of the two, the other set gets the remaining cores.
+  --help                  Prints this text.
+
+Exits with 0 on success, 1 if a build or a harness failed or the mock did not start, and 2 on a wrong command line.'
 
 die_usage() {
   echo "$1" >&2
@@ -20,140 +28,100 @@ die_usage() {
   exit 2
 }
 
+trim() { local s="$1"; s="${s#"${s%%[![:space:]]*}"}"; printf '%s' "${s%"${s##*[![:space:]]}"}"; }
+
+# The default machine name matches the harnesses' and run.ps1's: .NET's Environment.MachineName, which on Windows is the
+# NetBIOS name, upper case and at most 15 characters.
+default_machine() {
+  local name
+  name="$(hostname)"
+  case "$(uname -s)" in
+    MINGW* | MSYS* | CYGWIN*) name="$(printf '%s' "$name" | tr '[:lower:]' '[:upper:]')"; name="${name:0:15}" ;;
+  esac
+  printf '%s' "$name"
+}
+
 # --- Command line ---------------------------------------------------------------------------------------------------
 
+here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 smoke=false
-machine="$(hostname)"
+machine="$(default_machine)"
 project='ZeroAlloc.Jev'
+bench_root="$here/.."
+results_root="$here/results"
 port=5005
-mock_cores_arg=''
-client_cores_arg=''
+core_args=()
 while [ $# -gt 0 ]; do
   case "$1" in
     --smoke) smoke=true; shift; continue ;;
-    --machine | --project | --port | --mock-cores | --client-cores) ;;
+    --help) echo "$usage"; exit 0 ;;
+    --machine | --project | --bench-root | --results | --port | --mock-cores | --client-cores) ;;
     *) die_usage "Unknown argument: $1" ;;
   esac
   [ $# -ge 2 ] || die_usage "$1 needs a value."
   case "$1" in
     --machine) machine="$2" ;;
     --project) project="$2" ;;
+    --bench-root) bench_root="$2" ;;
+    --results) results_root="$2" ;;
     --port)
       [[ "$2" =~ ^[0-9]+$ ]] && [ "$2" -ge 1 ] && [ "$2" -le 65535 ] || die_usage '--port must be a number from 1 to 65535.'
       port="$2" ;;
-    --mock-cores) mock_cores_arg="$2" ;;
-    --client-cores) client_cores_arg="$2" ;;
+    --mock-cores | --client-cores) core_args+=("$1" "$2") ;;
   esac
   shift 2
 done
 
-trim() { local s="$1"; s="${s#"${s%%[![:space:]]*}"}"; printf '%s' "${s%"${s##*[![:space:]]}"}"; }
 machine="$(trim "$machine")"
 project="$(trim "$project")"
 [ -n "$machine" ] || die_usage '--machine must not be blank.'
 [ -n "$project" ] || die_usage '--project must not be blank.'
-
-# --- Core lists -----------------------------------------------------------------------------------------------------
-
-core_count="$(nproc)"
-[ "$core_count" -le 64 ] || core_count=64
-[ "$core_count" -ge 2 ] || die_usage 'The mock and the clients need separate cores, and this machine has one.'
-
-# Expands a list such as 0-3,8 into sorted, distinct core indexes, one per line.
-expand_cores() {
-  local text="$1" name="$2" part first last core
-  [[ "$text" =~ ^[0-9]+(-[0-9]+)?(,[0-9]+(-[0-9]+)?)*$ ]] || die_usage "$name must be a core list such as 0-3,8, not '$text'."
-  {
-    IFS=',' read -ra parts <<< "$text"
-    for part in "${parts[@]}"; do
-      first="${part%-*}"
-      last="${part#*-}"
-      [ "$((10#$last))" -ge "$((10#$first))" ] || die_usage "$name has a descending range: $part."
-      for ((core = 10#$first; core <= 10#$last; core++)); do echo "$core"; done
-    done
-  } | sort -n -u
-}
-
-# Checks the expanded cores exist on this machine.
-check_cores() {
-  local name="$1" highest
-  highest="$(tail -n 1 <<< "$2")"
-  [ "$highest" -lt "$core_count" ] || die_usage "$name names core $highest, but this machine has cores 0 to $((core_count - 1))."
-}
-
-# Writes sorted core indexes, one per line, as a canonical list such as 0-3,8, the form the .NET harness writes.
-describe_cores() {
-  local out='' start='' prev='' core
-  while read -r core; do
-    [ -n "$core" ] || continue
-    if [ -n "$prev" ] && [ "$core" -eq $((prev + 1)) ]; then
-      prev="$core"
-      continue
-    fi
-    if [ -n "$start" ]; then
-      out+="${out:+,}$start"
-      [ "$prev" -eq "$start" ] || out+="-$prev"
-    fi
-    start="$core"
-    prev="$core"
-  done
-  if [ -n "$start" ]; then
-    out+="${out:+,}$start"
-    [ "$prev" -eq "$start" ] || out+="-$prev"
-  fi
-  printf '%s' "$out"
-}
-
-all_cores="$(seq 0 $((core_count - 1)))"
-without() { grep -vxF -f <(printf '%s\n' "$2") <<< "$1" || true; }
-
-if [ -n "$mock_cores_arg" ] || [ -n "$client_cores_arg" ]; then
-  split='override'
-  if [ -n "$mock_cores_arg" ]; then
-    mock_cores="$(expand_cores "$mock_cores_arg" --mock-cores)" || exit 2
-    check_cores --mock-cores "$mock_cores"
-  fi
-  if [ -n "$client_cores_arg" ]; then
-    client_cores="$(expand_cores "$client_cores_arg" --client-cores)" || exit 2
-    check_cores --client-cores "$client_cores"
-  fi
-  [ -n "$mock_cores_arg" ] || mock_cores="$(without "$all_cores" "$client_cores")"
-  [ -n "$client_cores_arg" ] || client_cores="$(without "$all_cores" "$mock_cores")"
-elif [ -r /sys/devices/cpu_core/cpus ] && [ -r /sys/devices/cpu_atom/cpus ]; then
-  split='hybrid: performance cores for the clients, efficiency cores for the mock'
-  client_cores="$(expand_cores "$(trim "$(cat /sys/devices/cpu_core/cpus)")" cpu_core)"
-  mock_cores="$(expand_cores "$(trim "$(cat /sys/devices/cpu_atom/cpus)")" cpu_atom)"
-else
-  if [ "$(uname -s)" = Linux ]; then
-    split='even: one core type'
-  else
-    split='even: the core types are unknown here; on a hybrid CPU pass --mock-cores and --client-cores'
-  fi
-  half=$((core_count / 2))
-  mock_cores="$(seq 0 $((half - 1)))"
-  client_cores="$(seq "$half" $((core_count - 1)))"
-fi
-
-[ -n "$mock_cores" ] && [ -n "$client_cores" ] \
-  || die_usage 'The mock and the clients each need at least one core; pass --mock-cores and --client-cores.'
-[ -z "$(grep -xF -f <(printf '%s\n' "$mock_cores") <<< "$client_cores" || true)" ] || die_usage '--mock-cores and --client-cores overlap.'
-
-mock_list="$(describe_cores <<< "$mock_cores")"
-client_list="$(describe_cores <<< "$client_cores")"
-echo "Cores ($split): mock $mock_list, clients $client_list"
+[ -d "$bench_root" ] || die_usage "Not found: $bench_root. Check --bench-root."
+bench_root="$(cd "$bench_root" && pwd)"
+mkdir -p "$results_root"
+results_root="$(cd "$results_root" && pwd)"
 
 # --- Paths ----------------------------------------------------------------------------------------------------------
 
-here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-root="$(cd "$here/../.." && pwd)"
-mock_project="$root/benchmarks/ZeroAlloc.Jev.Benchmarks.Mock/ZeroAlloc.Jev.Benchmarks.Mock.csproj"
-mock_dll="$root/benchmarks/ZeroAlloc.Jev.Benchmarks.Mock/bin/Release/net10.0/ZeroAlloc.Jev.Benchmarks.Mock.dll"
-compare_project="$root/benchmarks/ZeroAlloc.Jev.Benchmarks.Compare/ZeroAlloc.Jev.Benchmarks.Compare.csproj"
-js_dir="$root/benchmarks/compare-js"
-py_dir="$root/benchmarks/compare-py"
+mock_name="$project.Benchmarks.Mock"
+compare_name="$project.Benchmarks.Compare"
+mock_project="$bench_root/$mock_name/$mock_name.csproj"
+compare_project="$bench_root/$compare_name/$compare_name.csproj"
+js_dir="$bench_root/compare-js"
+py_dir="$bench_root/compare-py"
+for path in "$mock_project" "$compare_project" "$js_dir/bench.mjs" "$py_dir/bench.py"; do
+  [ -f "$path" ] || die_usage "Not found: $path. Check --project and --bench-root."
+done
 safe_machine="$(printf '%s' "$machine" | sed 's/[^A-Za-z0-9._-]/-/g')"
-out_dir="$here/results/$safe_machine"
+out_dir="$results_root/$safe_machine"
 base_url="http://127.0.0.1:$port"
+
+# --- Python, for the core split, the harness venv and the merge -----------------------------------------------------
+
+python=''
+for candidate in python3 python; do
+  if command -v "$candidate" > /dev/null && "$candidate" -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2> /dev/null; then
+    python="$candidate"
+    break
+  fi
+done
+[ -n "$python" ] || { echo 'Python 3.10 or later is needed.' >&2; exit 1; }
+
+# --- Core split -----------------------------------------------------------------------------------------------------
+
+# cores.py reads the core types from sysfs on Linux; Windows shells have none, so the split there is even unless
+# --mock-cores or --client-cores says otherwise.
+split_output="$("$python" "$here/cores.py" --count "$(nproc)" "${core_args[@]}")" \
+  || die_usage 'The core split failed; see the message above.'
+split_value() { sed -n "s/^$1=//p" <<< "$split_output" | tr -d '\r'; }
+mock_list="$(split_value mock)"
+client_list="$(split_value clients)"
+split="$(split_value split)"
+case "$(uname -s)" in
+  MINGW* | MSYS* | CYGWIN*)
+    if [ ${#core_args[@]} -eq 0 ]; then split+='; on a hybrid CPU pass --mock-cores and --client-cores, or use run.ps1'; fi ;;
+esac
+echo "Cores ($split): mock $mock_list, clients $client_list"
 
 venv_python() {
   if [ -x "$py_dir/.venv/bin/python" ]; then echo "$py_dir/.venv/bin/python"; else echo "$py_dir/.venv/Scripts/python.exe"; fi
@@ -170,20 +138,21 @@ dotnet build "$compare_project" -c Release --nologo -v quiet || exit 1
 step 'Install the Node harness'
 (cd "$js_dir" && npm ci --no-audit --no-fund) || exit 1
 if [ ! -x "$py_dir/.venv/bin/python" ] && [ ! -x "$py_dir/.venv/Scripts/python.exe" ]; then
-  python=''
-  for candidate in python3 python; do
-    if command -v "$candidate" > /dev/null && "$candidate" -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2> /dev/null; then
-      python="$candidate"
-      break
-    fi
-  done
-  [ -n "$python" ] || { echo 'Python 3.10 or later is needed.' >&2; exit 1; }
   step 'Create the Python venv'
   "$python" -m venv "$py_dir/.venv" || exit 1
 fi
 py="$(venv_python)"
 step 'Install the Python harness'
 "$py" -m pip install --quiet --disable-pip-version-check -r "$py_dir/requirements.txt" || exit 1
+
+# The mock's own build output, whatever framework it targets.
+mapfile -t mock_dlls < <(find "$bench_root/$mock_name/bin/Release" -name "$mock_name.runtimeconfig.json" 2> /dev/null \
+  | sed "s/\.runtimeconfig\.json\$/.dll/")
+if [ ${#mock_dlls[@]} -ne 1 ]; then
+  echo "Expected one built $mock_name.dll under bin/Release, found ${#mock_dlls[@]}." >&2
+  exit 1
+fi
+mock_dll="${mock_dlls[0]}"
 
 # A previous run's files would be merged as if they were this run's.
 mkdir -p "$out_dir"
@@ -226,7 +195,14 @@ mock_pid="$MOCK_PID"
 exec {mock_in}>&"${MOCK[1]}" {mock_out}<&"${MOCK[0]}"
 eval "exec ${MOCK[1]}>&- ${MOCK[0]}<&-"
 if ! read -r -t 60 -u "$mock_out" line || [ "${line%$'\r'}" != ready ]; then
-  echo "The mock did not start: $(cat "$mock_errors" 2> /dev/null || true)" >&2
+  if kill -0 "$mock_pid" 2> /dev/null; then
+    echo 'The mock did not start: it did not print ready within 60 s.' >&2
+  elif grep -q "^Port $port is already in use" "$mock_errors" 2> /dev/null; then
+    # The mock exits with 3 and this line when the port is taken.
+    echo "The mock did not start: port $port is already in use. Stop whatever holds it, or pass --port." >&2
+  else
+    echo "The mock did not start: $(cat "$mock_errors" 2> /dev/null || true)" >&2
+  fi
   exit 1
 fi
 
@@ -266,7 +242,7 @@ fi
 
 # --- Merge ----------------------------------------------------------------------------------------------------------
 
-"$py" "$here/merge.py" "$out_dir"/*.json --project "$project" > "$out_dir/comparison.md" || { echo 'merge.py failed.' >&2; exit 1; }
+"$python" "$here/merge.py" "$out_dir"/*.json --project "$project" > "$out_dir/comparison.md" || { echo 'merge.py failed.' >&2; exit 1; }
 echo
 cat "$out_dir/comparison.md"
 echo

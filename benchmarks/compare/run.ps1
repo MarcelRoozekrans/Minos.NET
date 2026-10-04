@@ -2,22 +2,30 @@
 <#
 .SYNOPSIS
 Runs the client comparison: builds and starts the mock, runs the .NET, Node and Python harnesses one after another, then
-stops the mock and merges the results.
-
-.DESCRIPTION
-Usage: run.ps1 [--smoke] [--machine <name>] [--project <name>] [--port <n>] [--mock-cores <list>] [--client-cores <list>]
-
-The mock and the harnesses run on separate cores. On a hybrid CPU the harnesses get the performance cores and the mock
-the efficiency cores; with one core type the mock gets the lower half and the harnesses the upper half. --mock-cores
-and --client-cores, lists such as 12-19 or 0-3,8, override the split. Results go to results/<machine>/, and the
-merged table to results/<machine>/comparison.md. The script exits with 1 if a build or a harness failed, and with 2 on
-a wrong command line.
+stops the mock and merges the results. See README.md next to this script, and run it with --help for the options.
 #>
 
 $ErrorActionPreference = 'Stop'
 Set-StrictMode -Version Latest
 
-$usage = 'Usage: run.ps1 [--smoke] [--machine <name>] [--project <name>] [--port <n>] [--mock-cores <list>] [--client-cores <list>]'
+$usage = @'
+Usage: run.ps1 [options]
+
+  --smoke                 A short run that checks every harness works; its numbers mean nothing.
+  --machine <name>        The machine name in the results and their folder. Default: this computer's name.
+  --project <name>        The project under test. It names the .NET projects <name>.Benchmarks.Mock and
+                          <name>.Benchmarks.Compare under the bench root, and marks the project's rows in the table.
+                          Default: ZeroAlloc.Jev.
+  --bench-root <dir>      The folder holding those two projects, compare-js and compare-py.
+                          Default: the benchmarks folder of this repository.
+  --results <dir>         Where results go, in a <machine> subfolder. Default: results next to this script.
+  --port <n>              The mock's port. Default: 5005.
+  --mock-cores <list>     The mock's cores, such as 12-19 or 0-3,8. Default: see the core split in README.md.
+  --client-cores <list>   The harnesses' cores. Given one of the two, the other set gets the remaining cores.
+  --help                  Prints this text.
+
+Exits with 0 on success, 1 if a build or a harness failed or the mock did not start, and 2 on a wrong command line.
+'@
 
 function Exit-Usage([string] $message) {
     [Console]::Error.WriteLine($message)
@@ -30,28 +38,24 @@ function Exit-Usage([string] $message) {
 $smoke = $false
 $machine = [Environment]::MachineName
 $project = 'ZeroAlloc.Jev'
+$benchRoot = Join-Path $PSScriptRoot '..'
+$resultsRoot = Join-Path $PSScriptRoot 'results'
 $port = 5005
-$mockCoresArg = $null
-$clientCoresArg = $null
+$coreArgs = [Collections.Generic.List[string]]::new()
+$valued = '--machine', '--project', '--bench-root', '--results', '--port', '--mock-cores', '--client-cores'
 for ($i = 0; $i -lt $args.Count; $i++) {
     $arg = [string] $args[$i]
-    if ($arg -ceq '--smoke') {
-        $smoke = $true
-        continue
-    }
-
-    if ($arg -cnotin '--machine', '--project', '--port', '--mock-cores', '--client-cores') {
-        Exit-Usage "Unknown argument: $arg"
-    }
-
-    if ($i + 1 -ge $args.Count) {
-        Exit-Usage "$arg needs a value."
-    }
+    if ($arg -ceq '--smoke') { $smoke = $true; continue }
+    if ($arg -ceq '--help') { Write-Host $usage; exit 0 }
+    if ($arg -cnotin $valued) { Exit-Usage "Unknown argument: $arg" }
+    if ($i + 1 -ge $args.Count) { Exit-Usage "$arg needs a value." }
 
     $value = [string] $args[++$i]
     switch -CaseSensitive ($arg) {
         '--machine' { $machine = $value }
         '--project' { $project = $value }
+        '--bench-root' { $benchRoot = $value }
+        '--results' { $resultsRoot = $value }
         '--port' {
             $parsed = 0
             if (-not [int]::TryParse($value, [ref] $parsed) -or $parsed -lt 1 -or $parsed -gt 65535) {
@@ -60,8 +64,7 @@ for ($i = 0; $i -lt $args.Count; $i++) {
 
             $port = $parsed
         }
-        '--mock-cores' { $mockCoresArg = $value }
-        '--client-cores' { $clientCoresArg = $value }
+        default { $coreArgs.Add($arg); $coreArgs.Add($value) }
     }
 }
 
@@ -69,58 +72,49 @@ if ([string]::IsNullOrWhiteSpace($machine)) { Exit-Usage '--machine must not be 
 if ([string]::IsNullOrWhiteSpace($project)) { Exit-Usage '--project must not be blank.' }
 $machine = $machine.Trim()
 $project = $project.Trim()
+$benchRoot = [IO.Path]::GetFullPath($benchRoot, $PWD.Path)
+$resultsRoot = [IO.Path]::GetFullPath($resultsRoot, $PWD.Path)
 
-# --- Core lists ---------------------------------------------------------------------------------------------------
+# --- Paths --------------------------------------------------------------------------------------------------------
 
-# Expands a list such as 0-3,8 into sorted core indexes.
-function ConvertFrom-CoreList([string] $text, [string] $name) {
-    if ($text -notmatch '^\d+(-\d+)?(,\d+(-\d+)?)*$') {
-        Exit-Usage "$name must be a core list such as 0-3,8, not '$text'."
-    }
-
-    $cores = [Collections.Generic.SortedSet[int]]::new()
-    foreach ($part in $text.Split(',')) {
-        $bounds = $part.Split('-')
-        $first = [int] $bounds[0]
-        $last = [int] $bounds[-1]
-        if ($last -lt $first) { Exit-Usage "$name has a descending range: $part." }
-        for ($core = $first; $core -le $last; $core++) { [void] $cores.Add($core) }
-    }
-
-    if ($cores.Max -ge [Environment]::ProcessorCount -or $cores.Max -gt 63) {
-        Exit-Usage "$name names core $($cores.Max), but this machine has cores 0 to $([Environment]::ProcessorCount - 1)."
-    }
-
-    return , [int[]] @($cores)
+$mockName = "$project.Benchmarks.Mock"
+$compareName = "$project.Benchmarks.Compare"
+$mockProject = Join-Path $benchRoot "$mockName/$mockName.csproj"
+$compareProject = Join-Path $benchRoot "$compareName/$compareName.csproj"
+$jsDir = Join-Path $benchRoot 'compare-js'
+$pyDir = Join-Path $benchRoot 'compare-py'
+foreach ($path in $mockProject, $compareProject, (Join-Path $jsDir 'bench.mjs'), (Join-Path $pyDir 'bench.py')) {
+    if (-not (Test-Path $path)) { Exit-Usage "Not found: $path. Check --project and --bench-root." }
 }
 
-# Writes sorted core indexes as a canonical list such as 0-3,8, the form the .NET harness writes.
-function ConvertTo-CoreList([int[]] $cores) {
-    $parts = [Collections.Generic.List[string]]::new()
-    $i = 0
-    while ($i -lt $cores.Count) {
-        $j = $i
-        while ($j + 1 -lt $cores.Count -and $cores[$j + 1] -eq $cores[$j] + 1) { $j++ }
-        $parts.Add($(if ($j -gt $i) { "$($cores[$i])-$($cores[$j])" } else { "$($cores[$i])" }))
-        $i = $j + 1
+$venvPython = if ($IsWindows) { Join-Path $pyDir '.venv/Scripts/python.exe' } else { Join-Path $pyDir '.venv/bin/python' }
+$safeMachine = $machine -replace '[^A-Za-z0-9._-]', '-'
+$outDir = Join-Path $resultsRoot $safeMachine
+$baseUrl = "http://127.0.0.1:$port"
+
+# --- Python, for the core split, the harness venv and the merge ---------------------------------------------------
+
+$python = $null
+foreach ($candidate in $(if ($IsWindows) { 'python', 'python3' } else { 'python3', 'python' })) {
+    if (Get-Command $candidate -ErrorAction SilentlyContinue) {
+        & $candidate -c 'import sys; sys.exit(sys.version_info < (3, 10))' 2>$null
+        if ($LASTEXITCODE -eq 0) { $python = $candidate; break }
     }
-
-    return $parts -join ','
 }
 
-function ConvertTo-CoreMask([int[]] $cores) {
-    [uint64] $mask = 0
-    foreach ($core in $cores) { $mask = $mask -bor ([uint64] 1 -shl $core) }
-    return $mask
+if ($null -eq $python) {
+    [Console]::Error.WriteLine('Python 3.10 or later is needed.')
+    exit 1
 }
 
-# Returns each logical core's type as a dictionary from core index to a rank, where a higher rank is a faster core
-# type. Windows reports each physical core's EfficiencyClass through GetLogicalProcessorInformationEx; Linux lists the
-# hybrid core types in /sys/devices/cpu_core and /sys/devices/cpu_atom. Returns $null when the types are unknown.
+# --- Core split ---------------------------------------------------------------------------------------------------
+
+# Each logical core's EfficiencyClass, higher being faster, in core order, for cores.py's --ranks. Windows reports it per
+# physical core through GetLogicalProcessorInformationEx. Returns $null when a core has no class. Elsewhere cores.py
+# reads sysfs itself.
 function Get-CoreRanks {
-    if ($IsWindows) {
-        if (-not ('JevBench.CpuTopology' -as [type])) {
-            Add-Type -TypeDefinition @'
+    if (-not ('JevBench.CpuTopology' -as [type])) {
+        Add-Type -TypeDefinition @'
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
@@ -180,81 +174,37 @@ namespace JevBench
     }
 }
 '@
-        }
-
-        $ranks = @{}
-        foreach ($core in [JevBench.CpuTopology]::Cores()) {
-            for ($bit = 0; $bit -lt 64; $bit++) {
-                if (([uint64] $core[1] -shr $bit) -band 1) { $ranks[$bit] = [int] $core[0] }
-            }
-        }
-
-        return $(if ($ranks.Count -eq [Environment]::ProcessorCount) { $ranks } else { $null })
     }
 
-    if ($IsLinux -and (Test-Path /sys/devices/cpu_core/cpus) -and (Test-Path /sys/devices/cpu_atom/cpus)) {
-        $ranks = @{}
-        foreach ($core in (ConvertFrom-CoreList (Get-Content /sys/devices/cpu_core/cpus).Trim() 'cpu_core')) { $ranks[$core] = 1 }
-        foreach ($core in (ConvertFrom-CoreList (Get-Content /sys/devices/cpu_atom/cpus).Trim() 'cpu_atom')) { $ranks[$core] = 0 }
-        return $ranks
+    $count = [Math]::Min([Environment]::ProcessorCount, 64)
+    $ranks = [int[]]::new($count)
+    $seen = 0
+    foreach ($core in [JevBench.CpuTopology]::Cores()) {
+        for ($bit = 0; $bit -lt $count; $bit++) {
+            if (([uint64] $core[1] -shr $bit) -band 1) { $ranks[$bit] = [int] $core[0]; $seen++ }
+        }
     }
 
-    return $null
+    return $(if ($seen -eq $count) { $ranks -join ',' } else { $null })
 }
 
-$allCores = [int[]] @(0..([Math]::Min([Environment]::ProcessorCount, 64) - 1))
-if ($allCores.Count -lt 2) {
-    Exit-Usage 'The mock and the clients need separate cores, and this machine has one.'
-}
-
-$split = 'override'
-if ($null -ne $mockCoresArg -or $null -ne $clientCoresArg) {
-    $mockCores = if ($null -ne $mockCoresArg) { ConvertFrom-CoreList $mockCoresArg '--mock-cores' } else { $null }
-    $clientCores = if ($null -ne $clientCoresArg) { ConvertFrom-CoreList $clientCoresArg '--client-cores' } else { $null }
-    if ($null -eq $mockCores) { $mockCores = [int[]] @($allCores | Where-Object { $_ -notin $clientCores }) }
-    if ($null -eq $clientCores) { $clientCores = [int[]] @($allCores | Where-Object { $_ -notin $mockCores }) }
-}
-else {
+$splitArgs = @((Join-Path $PSScriptRoot 'cores.py'), '--count', [Environment]::ProcessorCount) + $coreArgs
+if ($IsWindows -and $coreArgs.Count -eq 0) {
     $ranks = Get-CoreRanks
-    $distinct = if ($null -ne $ranks) { @($ranks.Values | Sort-Object -Unique) } else { @() }
-    if ($distinct.Count -gt 1) {
-        $fastest = $distinct[-1]
-        $clientCores = [int[]] @($allCores | Where-Object { $ranks[$_] -eq $fastest })
-        $mockCores = [int[]] @($allCores | Where-Object { $ranks[$_] -ne $fastest })
-        $split = 'hybrid: performance cores for the clients, the other cores for the mock'
-    }
-    else {
-        $half = [int] [Math]::Floor($allCores.Count / 2)
-        $mockCores = [int[]] @($allCores[0..($half - 1)])
-        $clientCores = [int[]] @($allCores[$half..($allCores.Count - 1)])
-        $split = $(if ($null -eq $ranks) { 'even: the core types are unknown' } else { 'even: one core type' })
-    }
+    if ($null -ne $ranks) { $splitArgs += '--ranks', $ranks }
 }
 
-if ($mockCores.Count -eq 0 -or $clientCores.Count -eq 0) {
-    Exit-Usage 'The mock and the clients each need at least one core; pass --mock-cores and --client-cores.'
+$splitLines = & $python @splitArgs
+if ($LASTEXITCODE -ne 0) { Exit-Usage 'The core split failed; see the message above.' }
+$split = @{}
+foreach ($line in $splitLines) {
+    $key, $value = $line -split '=', 2
+    $split[$key] = $value
 }
 
-if (@($mockCores | Where-Object { $_ -in $clientCores }).Count -gt 0) {
-    Exit-Usage '--mock-cores and --client-cores overlap.'
-}
-
-$mockList = ConvertTo-CoreList $mockCores
-$clientList = ConvertTo-CoreList $clientCores
-Write-Host "Cores ($split): mock $mockList, clients $clientList"
-
-# --- Paths --------------------------------------------------------------------------------------------------------
-
-$root = (Resolve-Path (Join-Path $PSScriptRoot '../..')).Path
-$mockProject = Join-Path $root 'benchmarks/ZeroAlloc.Jev.Benchmarks.Mock/ZeroAlloc.Jev.Benchmarks.Mock.csproj'
-$mockDll = Join-Path $root 'benchmarks/ZeroAlloc.Jev.Benchmarks.Mock/bin/Release/net10.0/ZeroAlloc.Jev.Benchmarks.Mock.dll'
-$compareProject = Join-Path $root 'benchmarks/ZeroAlloc.Jev.Benchmarks.Compare/ZeroAlloc.Jev.Benchmarks.Compare.csproj'
-$jsDir = Join-Path $root 'benchmarks/compare-js'
-$pyDir = Join-Path $root 'benchmarks/compare-py'
-$venvPython = if ($IsWindows) { Join-Path $pyDir '.venv/Scripts/python.exe' } else { Join-Path $pyDir '.venv/bin/python' }
-$safeMachine = $machine -replace '[^A-Za-z0-9._-]', '-'
-$outDir = Join-Path $PSScriptRoot "results/$safeMachine"
-$baseUrl = "http://127.0.0.1:$port"
+$mockList = $split['mock']
+$clientList = $split['clients']
+Write-Host "Cores ($($split['split'])): mock $mockList, clients $clientList"
 
 function Invoke-Checked([string] $what, [scriptblock] $command) {
     Write-Host "==> $what"
@@ -269,7 +219,6 @@ try {
     Invoke-Checked 'Build the .NET harness' { dotnet build $compareProject -c Release --nologo -v quiet }
     Invoke-Checked 'Install the Node harness' { Push-Location $jsDir; try { npm ci --no-audit --no-fund } finally { Pop-Location } }
     if (-not (Test-Path $venvPython)) {
-        $python = if ($IsWindows) { 'python' } else { 'python3' }
         Invoke-Checked 'Create the Python venv' { & $python -m venv (Join-Path $pyDir '.venv') }
     }
 
@@ -279,6 +228,16 @@ catch {
     [Console]::Error.WriteLine($_.Exception.Message)
     exit 1
 }
+
+# The mock's own build output, whatever framework it targets.
+$mockDll = @(Get-ChildItem (Join-Path $benchRoot "$mockName/bin/Release") -Recurse -Filter "$mockName.dll" -ErrorAction SilentlyContinue |
+    Where-Object { Test-Path (Join-Path $_.DirectoryName "$mockName.runtimeconfig.json") })
+if ($mockDll.Count -ne 1) {
+    [Console]::Error.WriteLine("Expected one built $mockName.dll under bin/Release, found $($mockDll.Count).")
+    exit 1
+}
+
+$mockDll = $mockDll[0].FullName
 
 # A previous run's files would be merged as if they were this run's.
 New-Item -ItemType Directory -Force $outDir | Out-Null
@@ -303,15 +262,20 @@ try {
     $mockErrors = $mock.StandardError.ReadToEndAsync()
     $line = $mock.StandardOutput.ReadLineAsync()
     if (-not $line.Wait([TimeSpan]::FromSeconds(60)) -or $line.Result -cne 'ready') {
-        $mock.WaitForExit(2000) | Out-Null
-        $detail = if ($mock.HasExited) { $mockErrors.Result.Trim() } else { 'it did not print ready within 60 s' }
+        $mock.WaitForExit(5000) | Out-Null
+        if ($mock.HasExited -and $mock.ExitCode -eq 3) {
+            throw "The mock did not start: port $port is already in use. Stop whatever holds it, or pass --port."
+        }
+
+        $detail = if ($mock.HasExited) { "exit code $($mock.ExitCode): $($mockErrors.Result.Trim())" } else { 'it did not print ready within 60 s' }
         throw "The mock did not start: $detail"
     }
 
     # The harnesses and everything they start run on the clients' cores. Node and Python inherit this process's
     # affinity, which also covers the Windows venv launcher's child interpreter. The .NET harness pins itself too.
+    # clientmask64 is the mask as a signed 64-bit number, so core 63 does not overflow the conversion.
     if ($IsWindows) {
-        $self.ProcessorAffinity = [IntPtr] [int64] (ConvertTo-CoreMask $clientCores)
+        $self.ProcessorAffinity = [IntPtr] [int64]::Parse($split['clientmask64'], [Globalization.CultureInfo]::InvariantCulture)
         $pinPrefix = @()
     }
     elseif (Get-Command taskset -ErrorAction SilentlyContinue) {
@@ -377,7 +341,7 @@ $files = @(Get-ChildItem $outDir -Filter '*.json' | Sort-Object Name | ForEach-O
 $consoleEncoding = [Console]::OutputEncoding
 [Console]::OutputEncoding = [Text.UTF8Encoding]::new($false)
 try {
-    $table = & $venvPython (Join-Path $PSScriptRoot 'merge.py') @files --project $project
+    $table = & $python (Join-Path $PSScriptRoot 'merge.py') @files --project $project
 }
 finally {
     [Console]::OutputEncoding = $consoleEncoding
