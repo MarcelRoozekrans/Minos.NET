@@ -80,7 +80,9 @@ A local build is versioned as the last release with a `-local` suffix: the relea
 such as `0.4.0`, gives `0.4.0-local`. The packed files' names show it. The suffix keeps a local package apart from
 the published one. NuGet caches packages by id and version, so a local build versioned exactly `0.4.0` would sit in the
 cache in place of the real 0.4.0, which was built from another commit. A `-local` version is a prerelease, so it sorts
-below the release and NuGet never picks it for a stable version range.
+below the release and NuGet never picks it for a stable version range. When the release is itself a prerelease, such
+as `1.0.0-beta.1`, a local build is `1.0.0-0.local.beta.1` instead, which sorts below every prerelease of `1.0.0`;
+use the version from the packed files' names.
 
 ```shell
 dotnet pack src/ZeroAlloc.Jev -c Release -o /absolute/path/nupkgs

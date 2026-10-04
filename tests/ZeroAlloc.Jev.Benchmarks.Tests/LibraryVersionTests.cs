@@ -28,7 +28,8 @@ public sealed partial class LibraryVersionTests
         // table shows a branch build as one. A build without git metadata, such as one from a source tarball, records
         // no commit, and then reports the version alone.
         var release = ManifestRelease();
-        var local = release + (release.Contains('-', StringComparison.Ordinal) ? ".local" : "-local");
+        var dash = release.IndexOf('-', StringComparison.Ordinal);
+        var local = dash < 0 ? release + "-local" : release[..dash] + "-0.local." + release[(dash + 1)..];
         var (_, commit) = LibraryVersion.Split(informational);
         if (commit is null)
         {

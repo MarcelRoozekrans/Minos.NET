@@ -86,7 +86,8 @@ public sealed class GettingStartedTests
         var built = informational.Split('+')[0];
         var page = PageTables.Text("getting-started.md");
 
-        Assert.Equal(release + (release.Contains('-', StringComparison.Ordinal) ? ".local" : "-local"), built);
+        var dash = release.IndexOf('-', StringComparison.Ordinal);
+        Assert.Equal(dash < 0 ? release + "-local" : release[..dash] + "-0.local." + release[(dash + 1)..], built);
         Assert.Equal(new Version(release.Split('-')[0] + ".0"), typeof(JevClient).Assembly.GetName().Version);
         Assert.Contains("dotnet add package ZeroAlloc.Jev --version <release>-local", page, StringComparison.Ordinal);
         Assert.Contains("dotnet add package ZeroAlloc.Jev.DependencyInjection --version <release>-local", page, StringComparison.Ordinal);
