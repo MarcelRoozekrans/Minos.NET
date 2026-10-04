@@ -217,6 +217,19 @@ call.
 struct. Under published win-x64 AOT, the `PatternHelpers` gate holds all three to 0 B per call on parsed answers, and
 every existing budget is unchanged. No benchmark was added: there is no work beyond a few comparisons and a division.
 
+### Phase 5.1 — Public API review
+
+The API review renamed members and parameters and added the `Disposed` kind. It added no benchmark and changed no
+budget. Re-measured under published win-x64 AOT on 2026-10-04, three runs, every absolute gate passed:
+- A hand-built client over a configured `HttpClient`, and a DI-resolved client, measure 4397 B per call, 21 B more than
+  the 4376 B recorded in Phase 3.3. Both sit inside the unchanged 4864 B budget.
+- An asynchronous `EvaluateAsync<T>` with telemetry off measures 4587 B and 4589 B, against 4568 B in Phase 3.2 and
+  the unchanged 5056 B budget.
+- The yielding `EvaluateAsync` comparison measures 5351 to 5363 B with no factory, 5359 to 5363 B with
+  `NullLoggerFactory` and 5843 B with the discarding logger, against 5254 B, 5254 B and about 5730 B in Phase 3.2.
+- The relative gates against a hand-built client, and the `NullLoggerFactory` comparison, are the known flaky ones
+  tracked in #79. In two of the three runs they failed by under 25 B, the same pattern as before.
+
 ## Next
 
 - [Getting started](getting-started.md): the guide from the beginning.
