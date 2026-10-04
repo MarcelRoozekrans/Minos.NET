@@ -40,15 +40,15 @@ public enum SmokeTeam
     [Criteria("Charges, invoices, refunds", Examples = ["I was charged twice"], NotFor = ["How much is Pro?"])]
     Billing,
 
-    [Criteria("""{"description":"Login, profile, permissions","owner":"identity"}""", Json = true)]
+    [Criteria("Login, profile, permissions")]
     Account,
 }
 
-/// <summary>Structured criteria and JSON instructions, generated at compile time and published with Native AOT.</summary>
+/// <summary>Structured criteria, generated at compile time and published with Native AOT.</summary>
 [JevQuestions]
 public partial record SmokeStructured
 {
-    [Noul("""{"question":"Does `message` ask for a credential?","policy":{"strict":true}}""", Json = true)]
+    [Noul("Does `message` ask for a credential?")]
     public partial Noul RequestsCredentials { get; }
 
     [Choice("Which team should handle `message`?")]

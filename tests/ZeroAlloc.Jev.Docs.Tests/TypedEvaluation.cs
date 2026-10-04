@@ -64,24 +64,6 @@ public partial record TicketReview
 }
 #endregion
 
-#region TypedEvaluation_JsonInstructions
-[JevQuestions(State = typeof(SupportTicket))]
-public partial record RefundCheck
-{
-    // Json = true sends the text as a JSON object instead of a string. The generator checks and minifies it at
-    // compile time, and the backticked name is still checked against the state type.
-    [Noul(
-        """
-        {
-          "policy": "Refunds are allowed within 30 days of purchase.",
-          "question": "Does the `body` ask for a refund that the policy allows?"
-        }
-        """,
-        Json = true)]
-    public partial Noul IsAllowed { get; }
-}
-#endregion
-
 #region TypedEvaluation_Stateless
 // Without State, the questions stand alone, and any text or JSON can be the state.
 [JevQuestions]

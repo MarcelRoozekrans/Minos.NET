@@ -15,9 +15,6 @@ public sealed class GeneratedQuestionCountTests
     public void StructuredCriteria() => AssertCount<StructuredRouting>(2);
 
     [Fact]
-    public void JsonTextAtTheDepthLimit() => AssertCount<DeepJsonCheck>(2);
-
-    [Fact]
     public void TruncatedQuestions_CountZero_AndDoNotThrow() => Assert.Equal(0, GeneratedQuestionCount<TruncatedSet>.Value);
 
     [Fact]

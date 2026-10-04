@@ -178,36 +178,10 @@ The check only runs for a set with a `State` type.
 
 ### Structured instructions
 
-A question's instructions can be a JSON object or array instead of a string. Set `Json = true`, and the generator
-checks the text, minifies it, and sends it as structured JSON. This suits a question that needs a policy or a few
-labelled facts next to the question itself.
-
-<!-- snippet: TypedEvaluation_JsonInstructions -->
-```cs
-[JevQuestions(State = typeof(SupportTicket))]
-public partial record RefundCheck
-{
-    // Json = true sends the text as a JSON object instead of a string. The generator checks and minifies it at
-    // compile time, and the backticked name is still checked against the state type.
-    [Noul(
-        """
-        {
-          "policy": "Refunds are allowed within 30 days of purchase.",
-          "question": "Does the `body` ask for a refund that the policy allows?"
-        }
-        """,
-        Json = true)]
-    public partial Noul IsAllowed { get; }
-}
-```
-<!-- endSnippet -->
-
-A `[Criteria]` or `[Level]` description can be marked `Json = true` too. `Json = true` cannot be combined with
-`Examples` or `NotFor` on the same attribute (JEV109): put them inside the JSON instead. Text that is not a JSON object
-or array is JEV108.
-
-The instructions are fixed at compile time, like all generated question text. So a candidate or a record that varies
-per call belongs in the state, and the instructions refer to it by a backticked name, as the example does with `body`.
+A declared question's instructions, criteria and levels are always text. For instructions or a description that is a
+JSON object or array, such as a policy or a few labelled facts next to the question, build the set at run time: pass
+a [`JevContent`](#jevcontent) as the instructions, and describe an option with `JevCriterion.Json`.
+[Question sets at run time](question-sets-at-run-time.md#describing-options) shows both.
 
 ## Evaluating
 

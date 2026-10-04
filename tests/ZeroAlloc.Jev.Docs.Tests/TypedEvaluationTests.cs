@@ -138,16 +138,6 @@ public sealed class TypedEvaluationTests
     }
 
     [Fact]
-    public void JsonInstructions_AreSentAsAnObject()
-    {
-        using var actual = JsonDocument.Parse(RefundCheck.QuestionsUtf8.ToArray());
-
-        var instructions = actual.RootElement.GetProperty("is_allowed").GetProperty("instructions");
-        Assert.Equal(JsonValueKind.Object, instructions.ValueKind);
-        Assert.Equal("Refunds are allowed within 30 days of purchase.", instructions.GetProperty("policy").GetString());
-    }
-
-    [Fact]
     public async Task EachStateForm_IsSentInItsOwnShape()
     {
         using var element = JsonDocument.Parse("""{"subject":"Payouts failing"}""");

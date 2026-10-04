@@ -162,24 +162,25 @@ internal static class Program
 
     private static void StructuredQuestionSetRoundTrips()
     {
-        using var questions = JsonDocument.Parse(SmokeStructured.QuestionsUtf8.ToArray());
-        var root = questions.RootElement;
-
-        Check(
-            root.GetProperty("requests_credentials").GetProperty("instructions").GetProperty("policy").GetProperty("strict").GetBoolean(),
-            "Json = true instructions are sent as a JSON object");
+        using var generated = JsonDocument.Parse(SmokeStructured.QuestionsUtf8.ToArray());
         Check(
             string.Equals(
-                root.GetProperty("team").GetProperty("criteria").GetProperty("billing").GetProperty("not_for")[0].GetString(),
+                generated.RootElement.GetProperty("team").GetProperty("criteria").GetProperty("billing").GetProperty("not_for")[0].GetString(),
                 "How much is Pro?",
                 StringComparison.Ordinal),
             "Examples and NotFor are sent as a criterion object");
+
+        using var built = JsonDocument.Parse(SmokeBuiltSet.Structured().QuestionsUtf8.ToArray());
+        var root = built.RootElement;
+        Check(
+            root.GetProperty("requests_credentials").GetProperty("instructions").GetProperty("policy").GetProperty("strict").GetBoolean(),
+            "JevContent instructions are sent as a JSON object");
         Check(
             string.Equals(
                 root.GetProperty("team").GetProperty("criteria").GetProperty("account").GetProperty("owner").GetString(),
                 "identity",
                 StringComparison.Ordinal),
-            "a Json = true description is sent as JSON");
+            "a JevCriterion.Json description is sent as JSON");
     }
 
     private static async Task TypedEvaluateAsyncParsesAnswers()
