@@ -139,7 +139,10 @@ internal sealed record QuestionSpec
         return failures?.ToArray() ?? [];
     }
 
-    /// <summary>JEV108: instructions or a description nested deeper than <see cref="JevLimits.MaximumJsonDepth"/> levels.</summary>
+    /// <summary>
+    /// JEV108: instructions, a description, or what a yes or no answer means, nested deeper than
+    /// <see cref="JevLimits.MaximumJsonDepth"/> levels.
+    /// </summary>
     [CustomValidation]
     public ValidationFailure[] ValidateJsonDepth()
     {

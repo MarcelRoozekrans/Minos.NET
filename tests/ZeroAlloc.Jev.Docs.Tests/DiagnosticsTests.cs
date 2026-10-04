@@ -99,7 +99,8 @@ public sealed partial class DiagnosticsTests
     }
 
     // The run-time builder's own rule: its id is DiagnosticIds.InvalidJson and its depth is JevLimits.MaximumJsonDepth,
-    // which Build checks. It has no analyzer descriptor, so it is not in the analyzer table.
+    // which Build checks. It has no analyzer descriptor, so it is not in the analyzer table. The row names the three
+    // places QuestionSpec.ValidateJsonDepth checks: the instructions, a description and a yes/no meaning.
     [Fact]
     public void TheBuilderSection_IsInvalidJson_AtJevLimitsDepth()
     {
@@ -114,6 +115,12 @@ public sealed partial class DiagnosticsTests
         Assert.Equal("JEV108", invalidJson);
         Assert.Equal([invalidJson], rows.Select(row => row[0]));
         Assert.Contains($"more than {Limit(limits, "MaximumJsonDepth")} levels", rows[0][2], StringComparison.Ordinal);
+        Assert.StartsWith("JSON instructions, a JSON description, or a JSON yes/no meaning nests", rows[0][2], StringComparison.Ordinal);
+        var spec = Source("src", "ZeroAlloc.Jev", "Validation", "QuestionSpec.cs");
+        Assert.Contains("AddDepth(ref failures, \"The instructions\");", spec, StringComparison.Ordinal);
+        Assert.Contains("AddDepth(ref failures, \"What a yes answer means\");", spec, StringComparison.Ordinal);
+        Assert.Contains("AddDepth(ref failures, \"What a no answer means\");", spec, StringComparison.Ordinal);
+        Assert.Contains("AddDepth(ref failures, $\"The description of '{option.Name}'\");", spec, StringComparison.Ordinal);
         Assert.DoesNotContain(Descriptors(), rule => string.Equals(rule.Id, invalidJson, StringComparison.Ordinal));
         Assert.Contains(
             "### Reported by the run-time builder\n\nOne rule has no analyzer, because only a [set built at run time](question-sets-at-run-time.md#checking-the-set)",

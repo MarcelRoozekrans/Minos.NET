@@ -65,7 +65,7 @@ public sealed class JevQuestionSetBuilderTests
         var deep = JevContent.FromUtf8Json(Encoding.UTF8.GetBytes(DeepJson.Text));
         var built = Built(JevQuestionSet.CreateBuilder()
             .Noul("is_deep", deep, out _)
-            .Choice<DeepOption>("depth", DeepJson.Text, out _, o => o
+            .Choice<DeepOption>("depth", "How deep?", out _, o => o
                 .Describe(DeepOption.Shallow, JevCriterion.Json(deep))
                 .Describe(DeepOption.Deep, JevCriterion.Json(deep))));
         var json = "{\"state\":\"x\",\"questions\":" + Encoding.UTF8.GetString(built.QuestionsUtf8) + "}";

@@ -66,7 +66,7 @@ carry JSON. A declared set's instructions and descriptions are always text.
 
 | Id | Outcome | It fires when |
 | --- | --- | --- |
-| JEV108 | `Build()` fails | JSON instructions or a JSON description nests more than 60 levels deep. |
+| JEV108 | `Build()` fails | JSON instructions, a JSON description, or a JSON yes/no meaning nests more than 60 levels deep. |
 
 ### Where a rule is reported
 

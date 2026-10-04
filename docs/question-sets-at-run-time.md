@@ -194,7 +194,7 @@ only a built set can carry JSON.
 | JEV002 | A Score has no levels: a keyed Score with none, or an enum Score over an enum with no members. | Failure |
 | JEV104 | A member of an enum Score is not given a level. | Failure |
 | JEV106 | A question key, a keyed option key or an enum Score member is repeated, or a key is empty. | Failure |
-| JEV108 | JSON instructions or a JSON description nests deeper than 60 levels. | Failure |
+| JEV108 | JSON instructions, a JSON description, or a JSON yes/no meaning nests deeper than 60 levels. | Failure |
 | JEV003 | Blank instructions, description or example, or JSON that is exactly `{}` or `[]`. | Warning |
 | JEV005 | A Score outside 2 to 10 levels, or a Choice over 255 options. | Warning |
 

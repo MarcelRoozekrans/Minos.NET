@@ -442,7 +442,7 @@ internal static class ModelBuilder
             Modifiers(property, cancellationToken),
             kind,
             Named(attribute, "Key") ?? SnakeCase.Convert(property.Name),
-            instructions ?? string.Empty,
+            instructions,
             Named(attribute, "True"),
             Named(attribute, "False"),
             enumType?.ToDisplayString(SymbolDisplayFormat.FullyQualifiedFormat) ?? string.Empty,
