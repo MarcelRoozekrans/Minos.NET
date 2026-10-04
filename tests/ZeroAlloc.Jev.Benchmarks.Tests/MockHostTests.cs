@@ -4,14 +4,24 @@ using ZeroAlloc.Jev.Benchmarks.Mock;
 
 namespace ZeroAlloc.Jev.Benchmarks.Tests;
 
-public sealed class MockHostTests : IDisposable
+/// <summary>The Kestrel mock: the recorded bytes, 404 elsewhere, and the served-request count.</summary>
+public sealed class MockHostTests : IAsyncLifetime, IDisposable
 {
     private static readonly string ResponsePath = Path.Combine(AppContext.BaseDirectory, "response.json");
 
-    private readonly WireMock.Server.WireMockServer _server = MockHost.Start(0, ResponsePath);
     private readonly HttpClient _http = new();
+    private MockServer _server = null!;
 
-    private Uri Url(string path) => new(_server.Urls[0] + path);
+    private Uri Url(string path) => new(_server.BaseAddress, path);
+
+    public async Task InitializeAsync() => _server = await MockHost.StartAsync(0, ResponsePath, CancellationToken.None);
+
+    [Fact]
+    public void The_server_listens_on_the_loopback_address()
+    {
+        Assert.Equal("127.0.0.1", _server.BaseAddress.Host);
+        Assert.NotEqual(0, _server.BaseAddress.Port);
+    }
 
     [Fact]
     public async Task Post_to_systemone_returns_the_recorded_bytes_as_json()
@@ -19,30 +29,49 @@ public sealed class MockHostTests : IDisposable
         using var response = await PostSystemOneAsync();
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        Assert.Equal("application/json", response.Content.Headers.ContentType?.MediaType);
+        Assert.Equal("application/json", response.Content.Headers.ContentType?.ToString());
         Assert.Equal(await File.ReadAllBytesAsync(ResponsePath), await response.Content.ReadAsByteArrayAsync());
     }
 
-    [Fact]
-    public async Task Another_path_gets_no_match()
+    [Theory]
+    [InlineData("GET", "/v1/other")]
+    [InlineData("POST", "/v1/other")]
+    [InlineData("POST", "/v1/systemone/extra")]
+    [InlineData("GET", "/")]
+    public async Task Another_path_answers_404(string method, string path)
     {
-        using var response = await _http.GetAsync(Url("/v1/other"));
+        using var request = new HttpRequestMessage(new HttpMethod(method), Url(path));
+        using var response = await _http.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
-    }
-
-    [Fact]
-    public async Task Count_is_zero_before_any_call()
-    {
         Assert.Equal(0, await CountAsync());
     }
 
     [Fact]
-    public async Task Count_is_one_after_one_call()
+    public async Task Another_method_on_systemone_is_refused_and_not_counted()
     {
-        using var response = await PostSystemOneAsync();
+        using var response = await _http.GetAsync(Url(MockHost.SystemOnePath));
+
+        Assert.Equal(HttpStatusCode.MethodNotAllowed, response.StatusCode);
+        Assert.Equal(0, await CountAsync());
+    }
+
+    [Fact]
+    public async Task Count_is_zero_then_one_then_reset_to_zero()
+    {
+        Assert.Equal(0, await CountAsync());
+
+        using (await PostSystemOneAsync())
+        {
+        }
 
         Assert.Equal(1, await CountAsync());
+        Assert.Equal(1, _server.Count);
+
+        using var reset = await _http.PostAsync(Url(MockHost.CountResetPath), content: null);
+
+        Assert.Equal(HttpStatusCode.OK, reset.StatusCode);
+        Assert.Equal(0, await CountAsync());
     }
 
     [Fact]
@@ -56,31 +85,19 @@ public sealed class MockHostTests : IDisposable
     }
 
     [Fact]
-    public async Task Reset_sets_the_count_back_to_zero()
-    {
-        using (await PostSystemOneAsync())
-        using (await PostSystemOneAsync())
-        {
-        }
-
-        using var reset = await _http.PostAsync(Url(MockHost.CountResetPath), content: null);
-
-        Assert.Equal(HttpStatusCode.OK, reset.StatusCode);
-        Assert.Equal(0, await CountAsync());
-    }
-
-    [Fact]
     public async Task Count_and_reset_requests_are_not_counted()
     {
-        _ = await CountAsync();
-        using var reset = await _http.PostAsync(Url(MockHost.CountResetPath), content: null);
-        using var miss = await _http.GetAsync(Url("/v1/other"));
+        for (var i = 0; i < 3; i++)
+        {
+            _ = await CountAsync();
+            using var reset = await _http.PostAsync(Url(MockHost.CountResetPath), content: null);
+        }
 
         Assert.Equal(0, await CountAsync());
     }
 
     [Fact]
-    public async Task A_thousand_calls_count_a_thousand_and_keep_no_log()
+    public async Task A_thousand_calls_count_a_thousand()
     {
         const int Calls = 1000;
         for (var i = 0; i < Calls; i++)
@@ -90,20 +107,16 @@ public sealed class MockHostTests : IDisposable
         }
 
         Assert.Equal(Calls, await CountAsync());
-        Assert.Empty(_server.LogEntries);
     }
 
-    public void Dispose()
-    {
-        _http.Dispose();
-        _server.Stop();
-        _server.Dispose();
-    }
+    public async Task DisposeAsync() => await _server.DisposeAsync();
+
+    public void Dispose() => _http.Dispose();
 
     private async Task<HttpResponseMessage> PostSystemOneAsync()
     {
         using var content = new StringContent("{}", System.Text.Encoding.UTF8, "application/json");
-        return await _http.PostAsync(Url("/v1/systemone"), content);
+        return await _http.PostAsync(Url(MockHost.SystemOnePath), content);
     }
 
     private async Task<long> CountAsync()

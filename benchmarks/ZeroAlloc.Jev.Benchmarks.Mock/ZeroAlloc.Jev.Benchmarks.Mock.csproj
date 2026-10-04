@@ -1,4 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <!-- The benchmark mock: a minimal Kestrel endpoint that serves one recorded Jev answer and counts what it serves. -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <RootNamespace>ZeroAlloc.Jev.Benchmarks.Mock</RootNamespace>
@@ -6,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="WireMock.Net" />
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,5 +1,4 @@
 using System.Text.Json;
-using WireMock.Server;
 using ZeroAlloc.Jev.Benchmarks.Compare;
 using ZeroAlloc.Jev.Benchmarks.Compare.Adapters;
 using ZeroAlloc.Jev.Benchmarks.Mock;
@@ -7,13 +6,13 @@ using ZeroAlloc.Jev.Benchmarks.Mock;
 namespace ZeroAlloc.Jev.Benchmarks.Tests;
 
 /// <summary>The comparison harness's parts other than BenchmarkDotNet: the command line, the request count, the throughput loop and the result file.</summary>
-public sealed class HarnessTests : IDisposable
+public sealed class HarnessTests : IAsyncLifetime
 {
     private static readonly string ResponsePath = Path.Combine(AppContext.BaseDirectory, "response.json");
 
-    private readonly WireMockServer _server = MockHost.Start(0, ResponsePath);
+    private MockServer _server = null!;
 
-    private Uri BaseAddress => new(_server.Urls[0]);
+    private Uri BaseAddress => _server.BaseAddress;
 
     [Fact]
     public void Options_parse_every_argument()
@@ -79,7 +78,7 @@ public sealed class HarnessTests : IDisposable
     public void The_result_file_has_the_shared_format()
     {
         var file = new ResultFile(
-            new MachineInfo("box", "Windows", "CPU", "2026-10-04T00:00:00.0000000+00:00"),
+            new MachineInfo("box", "Windows", "CPU", "2026-10-04T00:00:00Z", 30000.5),
             [
                 new ClientResult("jevsharp", "JevSharp", "0.2.0", ".NET", "10.0.0", new LatencyFigures(1.5, 1.25, 3), 9000, 16, 1024) { Note = "no auth header" },
                 new ClientResult("jev-net", "Jev.Net", "0.4.0", ".NET", "10.0.0", new LatencyFigures(1, 1, 2), 8000, 16, null),
@@ -89,7 +88,8 @@ public sealed class HarnessTests : IDisposable
         var root = json.RootElement;
 
         Assert.Equal(["machine", "results"], root.EnumerateObject().Select(p => p.Name));
-        Assert.Equal(["name", "os", "cpu", "date"], root.GetProperty("machine").EnumerateObject().Select(p => p.Name));
+        Assert.Equal(["name", "os", "cpu", "date", "mockCeilingPerSecond"], root.GetProperty("machine").EnumerateObject().Select(p => p.Name));
+        Assert.Equal(30000.5, root.GetProperty("machine").GetProperty("mockCeilingPerSecond").GetDouble());
         var first = root.GetProperty("results")[0];
         Assert.Equal(
             ["client", "library", "version", "runtime", "runtimeVersion", "latencyMs", "throughputPerSecond", "concurrency", "allocatedBytesPerCall", "note"],
@@ -102,9 +102,7 @@ public sealed class HarnessTests : IDisposable
         Assert.False(second.TryGetProperty("note", out _));
     }
 
-    public void Dispose()
-    {
-        _server.Stop();
-        _server.Dispose();
-    }
+    public async Task InitializeAsync() => _server = await MockHost.StartAsync(0, ResponsePath, CancellationToken.None);
+
+    public async Task DisposeAsync() => await _server.DisposeAsync();
 }

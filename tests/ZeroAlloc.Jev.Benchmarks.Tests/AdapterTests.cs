@@ -10,23 +10,21 @@ using ZeroAlloc.Jev.Benchmarks.Mock;
 namespace ZeroAlloc.Jev.Benchmarks.Tests;
 
 /// <summary>Each comparison client against the in-process mock and a logging twin: it reaches the mock, sends the workload and parses the recorded answer.</summary>
-public sealed class AdapterTests : IDisposable
+public sealed class AdapterTests : IAsyncLifetime, IDisposable
 {
     private static readonly string ResponsePath = Path.Combine(AppContext.BaseDirectory, "response.json");
 
-    private readonly WireMockServer _server = MockHost.Start(0, ResponsePath);
+    private MockServer _server = null!;
 
     // The mock keeps no request log, so the tests that inspect what a client sent use this server, which logs every
     // request and answers with the same recorded bytes.
     private readonly WireMockServer _recorder = StartRecorder();
 
-    private readonly MockRequestCounter _counter;
-
-    public AdapterTests() => _counter = new MockRequestCounter(BaseAddress);
+    private MockRequestCounter _counter = null!;
 
     public static TheoryData<string> Clients { get; } = new(ClientAdapters.All);
 
-    private Uri BaseAddress => new(_server.Urls[0]);
+    private Uri BaseAddress => _server.BaseAddress;
 
     private Uri RecorderAddress => new(_recorder.Urls[0]);
 
@@ -147,11 +145,17 @@ public sealed class AdapterTests : IDisposable
         return only;
     }
 
+    public async Task InitializeAsync()
+    {
+        _server = await MockHost.StartAsync(0, ResponsePath, CancellationToken.None);
+        _counter = new MockRequestCounter(BaseAddress);
+    }
+
+    public async Task DisposeAsync() => await _server.DisposeAsync();
+
     public void Dispose()
     {
         _counter.Dispose();
-        _server.Stop();
-        _server.Dispose();
         _recorder.Stop();
         _recorder.Dispose();
     }

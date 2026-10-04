@@ -20,6 +20,9 @@ public sealed class Harness(CompareOptions options, TextWriter log)
     /// <summary>How many workers call at once in the throughput run.</summary>
     public const int Concurrency = 16;
 
+    /// <summary>How many workers the raw client uses to measure the mock's own ceiling.</summary>
+    public const int CeilingConcurrency = 64;
+
     /// <summary>How many sequential calls the exact-count probe makes per client.</summary>
     public const int ProbeCalls = 100;
 
@@ -48,8 +51,9 @@ public sealed class Harness(CompareOptions options, TextWriter log)
                 throughput[client] = await MeasureThroughputAsync(adapter, counter, cancellationToken).ConfigureAwait(false);
             }
 
+            var ceiling = await MeasureCeilingAsync(counter, cancellationToken).ConfigureAwait(false);
             var summary = RunBenchmarks();
-            var file = new ResultFile(Machine(summary), Results(summary, clients, throughput));
+            var file = new ResultFile(Machine(summary, ceiling), Results(summary, clients, throughput));
             var path = Path.Combine(options.OutDirectory, options.ResultFileName);
             await File.WriteAllTextAsync(path, file.ToJson(), cancellationToken).ConfigureAwait(false);
             return path;
@@ -94,21 +98,34 @@ public sealed class Harness(CompareOptions options, TextWriter log)
     // The throughput warm-up and the measured phase are counted apart, so a mismatch names the phase.
     private async Task<double> MeasureThroughputAsync(IClientAdapter adapter, MockRequestCounter counter, CancellationToken cancellationToken)
     {
-        var warmup = await CountedPhaseAsync(adapter, "throughput warm-up", ThroughputWarmup, counter, cancellationToken).ConfigureAwait(false);
-        var measured = await CountedPhaseAsync(adapter, "throughput run", ThroughputDuration, counter, cancellationToken).ConfigureAwait(false);
+        var warmup = await CountedPhaseAsync(adapter, "throughput warm-up", Concurrency, ThroughputWarmup, counter, cancellationToken).ConfigureAwait(false);
+        var measured = await CountedPhaseAsync(adapter, "throughput run", Concurrency, ThroughputDuration, counter, cancellationToken).ConfigureAwait(false);
         await log.WriteLineAsync(string.Create(
             CultureInfo.InvariantCulture,
             $"{adapter.Client}: probe {ProbeCalls} of {ProbeCalls} requests, warm-up {warmup.Calls} of {warmup.Calls}, measured {measured.Calls} of {measured.Calls}, {measured.PerSecond:F0}/s")).ConfigureAwait(false);
         return measured.PerSecond;
     }
 
+    // The mock's own ceiling: the raw client, the thinnest one, at four times the clients' concurrency, so the results
+    // can show how far below the mock's limit each client stays.
+    private async Task<double> MeasureCeilingAsync(MockRequestCounter counter, CancellationToken cancellationToken)
+    {
+        using var raw = ClientAdapters.Create(ClientAdapters.Raw, options.BaseUrl);
+        _ = await CountedPhaseAsync(raw, "mock ceiling warm-up", CeilingConcurrency, ThroughputWarmup, counter, cancellationToken).ConfigureAwait(false);
+        var measured = await CountedPhaseAsync(raw, "mock ceiling run", CeilingConcurrency, ThroughputDuration, counter, cancellationToken).ConfigureAwait(false);
+        await log.WriteLineAsync(string.Create(
+            CultureInfo.InvariantCulture,
+            $"mock ceiling: {CeilingConcurrency} workers on the raw client, measured {measured.Calls} of {measured.Calls}, {measured.PerSecond:F0}/s")).ConfigureAwait(false);
+        return measured.PerSecond;
+    }
+
     private static Task<ThroughputPhase> CountedPhaseAsync(
-        IClientAdapter adapter, string run, TimeSpan duration, MockRequestCounter counter, CancellationToken cancellationToken)
+        IClientAdapter adapter, string run, int workers, TimeSpan duration, MockRequestCounter counter, CancellationToken cancellationToken)
         => CountedAsync(
             adapter.Client,
             run,
             counter,
-            () => ThroughputRunner.RunPhaseAsync(adapter, Concurrency, duration),
+            () => ThroughputRunner.RunPhaseAsync(adapter, workers, duration),
             static phase => phase.Calls,
             cancellationToken);
 
@@ -151,11 +168,12 @@ public sealed class Harness(CompareOptions options, TextWriter log)
         return summary;
     }
 
-    private MachineInfo Machine(Summary summary) => new(
+    private MachineInfo Machine(Summary summary, double mockCeilingPerSecond) => new(
         options.Machine,
         RuntimeInformation.OSDescription,
         summary.HostEnvironmentInfo.Cpu.Value?.ProcessorName ?? RuntimeInformation.ProcessArchitecture.ToString(),
-        DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture));
+        DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ", CultureInfo.InvariantCulture),
+        Math.Round(mockCeilingPerSecond, 1));
 
     private static List<ClientResult> Results(Summary summary, Dictionary<string, IClientAdapter> clients, Dictionary<string, double> throughput)
     {

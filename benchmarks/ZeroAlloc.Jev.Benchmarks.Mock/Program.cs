@@ -16,18 +16,19 @@ Console.CancelKeyPress += (_, e) =>
     stop.Set();
 };
 
-var server = MockHost.Start(port, Path.Combine(AppContext.BaseDirectory, "response.json"));
-Console.WriteLine("ready");
-
-// Stop on Ctrl+C, or when stdin closes, which is how a harness that spawned the host ends it.
-_ = Task.Run(() =>
+var server = await MockHost.StartAsync(port, Path.Combine(AppContext.BaseDirectory, "response.json"), CancellationToken.None).ConfigureAwait(false);
+await using (server.ConfigureAwait(false))
 {
-    while (Console.In.ReadLine() is not null)
-    {
-    }
+    Console.WriteLine("ready");
 
-    stop.Set();
-});
-stop.Wait();
-server.Stop();
-server.Dispose();
+    // Stop on Ctrl+C, or when stdin closes, which is how a harness that spawned the host ends it.
+    _ = Task.Run(() =>
+    {
+        while (Console.In.ReadLine() is not null)
+        {
+        }
+
+        stop.Set();
+    });
+    stop.Wait();
+}

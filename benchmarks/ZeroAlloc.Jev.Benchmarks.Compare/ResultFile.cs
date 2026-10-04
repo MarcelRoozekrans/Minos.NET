@@ -18,7 +18,11 @@ public sealed record ResultFile(MachineInfo Machine, IReadOnlyList<ClientResult>
 /// <param name="Os">The operating system.</param>
 /// <param name="Cpu">The processor.</param>
 /// <param name="Date">When the run finished, as an ISO 8601 UTC timestamp such as <c>2026-10-04T10:05:13Z</c>.</param>
-public sealed record MachineInfo(string Name, string Os, string Cpu, string Date);
+/// <param name="MockCeilingPerSecond">
+/// The mock's own ceiling: completed calls per second of the raw client at 64 workers, so each client's throughput can be
+/// read against it.
+/// </param>
+public sealed record MachineInfo(string Name, string Os, string Cpu, string Date, double MockCeilingPerSecond);
 
 /// <summary>One client's figures.</summary>
 /// <param name="Client">The client's name.</param>
