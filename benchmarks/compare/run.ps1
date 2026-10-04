@@ -1,8 +1,9 @@
 #Requires -Version 7
 <#
 .SYNOPSIS
-Runs the client comparison: builds and starts the mock, runs the .NET, Node and Python harnesses one after another, then
-stops the mock and merges the results. See README.md next to this script, and run it with --help for the options.
+Runs the client comparison: builds and starts the mock, runs the .NET harness and whichever of the Node and Python
+harnesses exist under the bench root, one after another, then stops the mock and merges the results. See README.md next
+to this script, and run it with --help for the options.
 #>
 
 $ErrorActionPreference = 'Stop'
@@ -16,8 +17,8 @@ Usage: run.ps1 [options]
   --project <name>        The project under test. It names the .NET projects <name>.Benchmarks.Mock and
                           <name>.Benchmarks.Compare under the bench root, and marks the project's rows in the table.
                           Default: ZeroAlloc.Jev.
-  --bench-root <dir>      The folder holding those two projects, compare-js and compare-py.
-                          Default: the benchmarks folder of this repository.
+  --bench-root <dir>      The folder holding those two projects, which are required, and compare-js and compare-py,
+                          which are run when present. Default: the benchmarks folder of this repository.
   --results <dir>         Where results go, in a <machine> subfolder. Default: results next to this script.
   --port <n>              The mock's port. Default: 5005.
   --mock-cores <list>     The mock's cores, such as 12-19 or 0-3,8. Default: see the core split in README.md.
@@ -83,9 +84,17 @@ $mockProject = Join-Path $benchRoot "$mockName/$mockName.csproj"
 $compareProject = Join-Path $benchRoot "$compareName/$compareName.csproj"
 $jsDir = Join-Path $benchRoot 'compare-js'
 $pyDir = Join-Path $benchRoot 'compare-py'
-foreach ($path in $mockProject, $compareProject, (Join-Path $jsDir 'bench.mjs'), (Join-Path $pyDir 'bench.py')) {
+
+# The mock and the .NET harness are the comparison; the Node and Python harnesses are optional, since most projects have
+# no JS or Python counterpart to compare against.
+foreach ($path in $mockProject, $compareProject) {
     if (-not (Test-Path $path)) { Exit-Usage "Not found: $path. Check --project and --bench-root." }
 }
+
+$hasJs = Test-Path (Join-Path $jsDir 'bench.mjs')
+$hasPy = Test-Path (Join-Path $pyDir 'bench.py')
+if (-not $hasJs) { Write-Host "Skipping the Node harness: no $(Join-Path $jsDir 'bench.mjs')." }
+if (-not $hasPy) { Write-Host "Skipping the Python harness: no $(Join-Path $pyDir 'bench.py')." }
 
 $venvPython = if ($IsWindows) { Join-Path $pyDir '.venv/Scripts/python.exe' } else { Join-Path $pyDir '.venv/bin/python' }
 $safeMachine = $machine -replace '[^A-Za-z0-9._-]', '-'
@@ -109,10 +118,11 @@ if ($null -eq $python) {
 
 # --- Core split ---------------------------------------------------------------------------------------------------
 
-# Each logical core's EfficiencyClass, higher being faster, in core order, for cores.py's --ranks. Windows reports it per
-# physical core through GetLogicalProcessorInformationEx. Returns $null when a core has no class. Elsewhere cores.py
-# reads sysfs itself.
-function Get-CoreRanks {
+# The physical cores, from GetLogicalProcessorInformationEx's RelationProcessorCore entries: each logical core's
+# EfficiencyClass, higher being faster, in core order, for cores.py's --ranks; and each physical core's logical cores,
+# for --siblings, so the split never puts two threads of one core on different sides. Either is $null when the entries
+# do not cover every logical core. Elsewhere cores.py reads sysfs itself.
+function Get-CoreTopology {
     if (-not ('JevBench.CpuTopology' -as [type])) {
         Add-Type -TypeDefinition @'
 using System;
@@ -178,20 +188,26 @@ namespace JevBench
 
     $count = [Math]::Min([Environment]::ProcessorCount, 64)
     $ranks = [int[]]::new($count)
+    $groups = [Collections.Generic.List[string]]::new()
     $seen = 0
     foreach ($core in [JevBench.CpuTopology]::Cores()) {
+        $threads = [Collections.Generic.List[int]]::new()
         for ($bit = 0; $bit -lt $count; $bit++) {
-            if (([uint64] $core[1] -shr $bit) -band 1) { $ranks[$bit] = [int] $core[0]; $seen++ }
+            if (([uint64] $core[1] -shr $bit) -band 1) { $ranks[$bit] = [int] $core[0]; $threads.Add($bit); $seen++ }
         }
+
+        if ($threads.Count -gt 0) { $groups.Add($threads -join ',') }
     }
 
-    return $(if ($seen -eq $count) { $ranks -join ',' } else { $null })
+    if ($seen -ne $count) { return @{ Ranks = $null; Siblings = $null } }
+    return @{ Ranks = $ranks -join ','; Siblings = $groups -join ';' }
 }
 
 $splitArgs = @((Join-Path $PSScriptRoot 'cores.py'), '--count', [Environment]::ProcessorCount) + $coreArgs
-if ($IsWindows -and $coreArgs.Count -eq 0) {
-    $ranks = Get-CoreRanks
-    if ($null -ne $ranks) { $splitArgs += '--ranks', $ranks }
+if ($IsWindows) {
+    $topology = Get-CoreTopology
+    if ($null -ne $topology.Ranks -and $coreArgs.Count -eq 0) { $splitArgs += '--ranks', $topology.Ranks }
+    if ($null -ne $topology.Siblings) { $splitArgs += '--siblings', $topology.Siblings }
 }
 
 $splitLines = & $python @splitArgs
@@ -204,7 +220,7 @@ foreach ($line in $splitLines) {
 
 $mockList = $split['mock']
 $clientList = $split['clients']
-Write-Host "Cores ($($split['split'])): mock $mockList, clients $clientList"
+Write-Host "Cores ($($split['split'])): mock $mockList, clients $clientList; physical cores $($split['siblings'])"
 
 function Invoke-Checked([string] $what, [scriptblock] $command) {
     Write-Host "==> $what"
@@ -217,12 +233,17 @@ function Invoke-Checked([string] $what, [scriptblock] $command) {
 try {
     Invoke-Checked 'Build the mock' { dotnet build $mockProject -c Release --nologo -v quiet }
     Invoke-Checked 'Build the .NET harness' { dotnet build $compareProject -c Release --nologo -v quiet }
-    Invoke-Checked 'Install the Node harness' { Push-Location $jsDir; try { npm ci --no-audit --no-fund } finally { Pop-Location } }
-    if (-not (Test-Path $venvPython)) {
-        Invoke-Checked 'Create the Python venv' { & $python -m venv (Join-Path $pyDir '.venv') }
+    if ($hasJs) {
+        Invoke-Checked 'Install the Node harness' { Push-Location $jsDir; try { npm ci --no-audit --no-fund } finally { Pop-Location } }
     }
 
-    Invoke-Checked 'Install the Python harness' { & $venvPython -m pip install --quiet --disable-pip-version-check -r (Join-Path $pyDir 'requirements.txt') }
+    if ($hasPy) {
+        if (-not (Test-Path $venvPython)) {
+            Invoke-Checked 'Create the Python venv' { & $python -m venv (Join-Path $pyDir '.venv') }
+        }
+
+        Invoke-Checked 'Install the Python harness' { & $venvPython -m pip install --quiet --disable-pip-version-check -r (Join-Path $pyDir 'requirements.txt') }
+    }
 }
 catch {
     [Console]::Error.WriteLine($_.Exception.Message)
@@ -291,10 +312,10 @@ try {
     $recorded = if ($null -ne $pinPrefix) { @('--cores', $clientList) } else { @() }
 
     $harnesses = [ordered]@{
-        '.NET'   = @('dotnet', 'run', '--no-build', '-c', 'Release', '--project', $compareProject, '--') + $common + @('--cores', $clientList)
-        'Node'   = @($pinPrefix) + @('node', (Join-Path $jsDir 'bench.mjs')) + $common + $recorded
-        'Python' = @($pinPrefix) + @($venvPython, (Join-Path $pyDir 'bench.py')) + $common + $recorded
+        '.NET' = @('dotnet', 'run', '--no-build', '-c', 'Release', '--project', $compareProject, '--') + $common + @('--cores', $clientList)
     }
+    if ($hasJs) { $harnesses['Node'] = @($pinPrefix) + @('node', (Join-Path $jsDir 'bench.mjs')) + $common + $recorded }
+    if ($hasPy) { $harnesses['Python'] = @($pinPrefix) + @($venvPython, (Join-Path $pyDir 'bench.py')) + $common + $recorded }
     foreach ($name in $harnesses.Keys) {
         $command = @($harnesses[$name] | Where-Object { $null -ne $_ })
         Write-Host "==> Run the $name harness"

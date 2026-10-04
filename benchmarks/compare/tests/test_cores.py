@@ -129,6 +129,7 @@ def test_the_command_line_prints_key_value_lines(tmp_path):
         "clientmask=4095",
         "clientmask64=4095",
         f"split={cores.HYBRID}",
+        "siblings=unknown",
     ]
 
 
@@ -153,3 +154,79 @@ def test_a_wrong_command_line_exits_with_2(args):
     assert result.returncode == 2
     assert result.stderr.strip()
     assert result.stdout == ""
+
+
+def siblings_sysfs(root, groups):
+    for group in groups:
+        for core in group:
+            write(root, f"devices/system/cpu/cpu{core}/topology/thread_siblings_list", ",".join(map(str, group)) + "\n")
+
+
+@pytest.mark.parametrize(
+    ("groups", "mock", "clients"),
+    [
+        # Siblings numbered next to each other, as many Intel and Azure hosts do.
+        ([[0, 1], [2, 3], [4, 5], [6, 7]], [0, 1, 2, 3], [4, 5, 6, 7]),
+        # Siblings numbered N and N + half: an even split of the logical indexes would put every mock thread on the
+        # sibling of a client thread.
+        ([[0, 4], [1, 5], [2, 6], [3, 7]], [0, 1, 4, 5], [2, 3, 6, 7]),
+    ],
+)
+def test_the_even_split_keeps_each_physical_cores_threads_on_one_side(tmp_path, groups, mock, clients):
+    siblings_sysfs(tmp_path, groups)
+
+    siblings = cores.detect_siblings(str(tmp_path), 8)
+
+    assert siblings == groups
+    assert cores.split(8, siblings=siblings) == (mock, clients, cores.UNKNOWN)
+    assert cores.shared_cores(mock, clients, siblings) == []
+
+
+def test_a_hybrid_split_keeps_the_fast_cores_threads_together():
+    # Six two-thread performance cores, 0-11, and eight one-thread efficiency cores, 12-19.
+    siblings = [[2 * i, 2 * i + 1] for i in range(6)] + [[c] for c in range(12, 20)]
+    ranks = {c: (1 if c < 12 else 0) for c in range(20)}
+
+    assert cores.split(20, ranks=ranks, siblings=siblings) == (list(range(12, 20)), list(range(12)), cores.HYBRID)
+
+
+def test_one_physical_core_cannot_be_split():
+    with pytest.raises(cores.CoreError, match="one physical core"):
+        cores.split(2, siblings=[[0, 1]])
+
+
+@pytest.mark.parametrize(("text", "expected"), [("0,1;2,3", [[0, 1], [2, 3]]), ("2-3;0-1", [[0, 1], [2, 3]]), ("0;1;2;3", [[0], [1], [2], [3]])])
+def test_siblings_parse_into_groups_by_first_core(text, expected):
+    assert cores.parse_siblings(text, 4) == expected
+
+
+@pytest.mark.parametrize("text", ["0,1;2", "0,1;1,2,3", "0-3;4", "a"])
+def test_siblings_that_miss_or_repeat_a_core_are_refused(text):
+    with pytest.raises(cores.CoreError):
+        cores.parse_siblings(text, 4)
+
+
+def test_sysfs_without_every_cores_siblings_is_unknown(tmp_path):
+    siblings_sysfs(tmp_path, [[0, 1]])
+
+    assert cores.detect_siblings(str(tmp_path), 4) is None
+    assert cores.describe_siblings(None) == "unknown"
+
+
+def test_the_command_line_reads_the_siblings_from_sysfs(tmp_path):
+    siblings_sysfs(tmp_path, [[0, 2], [1, 3]])
+
+    result = run("--count", "4", "--sysfs", str(tmp_path))
+
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines()[:2] == ["mock=0,2", "clients=1,3"]
+    assert "siblings=0,2;1,3" in result.stdout.splitlines()
+
+
+def test_the_command_line_takes_the_siblings_and_warns_when_an_override_splits_a_core(tmp_path):
+    result = run("--count", "4", "--siblings", "0,1;2,3", "--mock-cores", "0", "--sysfs", str(tmp_path))
+
+    assert result.returncode == 0, result.stderr
+    assert "mock=0" in result.stdout.splitlines()
+    assert "siblings=0-1;2-3" in result.stdout.splitlines()
+    assert "splits physical core 0-1" in result.stderr

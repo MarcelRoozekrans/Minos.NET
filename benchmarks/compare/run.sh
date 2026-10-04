@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Runs the client comparison: builds and starts the mock, runs the .NET, Node and Python harnesses one after another,
-# then stops the mock and merges the results. The twin of run.ps1, for CI and Linux. See README.md next to this script,
-# and run it with --help for the options.
+# Runs the client comparison: builds and starts the mock, runs the .NET harness and whichever of the Node and Python
+# harnesses exist under the bench root, one after another, then stops the mock and merges the results. The twin of
+# run.ps1, for CI and Linux. See README.md next to this script, and run it with --help for the options.
 set -euo pipefail
 
 usage='Usage: run.sh [options]
@@ -12,8 +12,8 @@ usage='Usage: run.sh [options]
   --project <name>        The project under test. It names the .NET projects <name>.Benchmarks.Mock and
                           <name>.Benchmarks.Compare under the bench root, and marks the project'"'"'s rows in the table.
                           Default: ZeroAlloc.Jev.
-  --bench-root <dir>      The folder holding those two projects, compare-js and compare-py.
-                          Default: the benchmarks folder of this repository.
+  --bench-root <dir>      The folder holding those two projects, which are required, and compare-js and compare-py,
+                          which are run when present. Default: the benchmarks folder of this repository.
   --results <dir>         Where results go, in a <machine> subfolder. Default: results next to this script.
   --port <n>              The mock'"'"'s port. Default: 5005.
   --mock-cores <list>     The mock'"'"'s cores, such as 12-19 or 0-3,8. Default: see the core split in README.md.
@@ -89,9 +89,15 @@ mock_project="$bench_root/$mock_name/$mock_name.csproj"
 compare_project="$bench_root/$compare_name/$compare_name.csproj"
 js_dir="$bench_root/compare-js"
 py_dir="$bench_root/compare-py"
-for path in "$mock_project" "$compare_project" "$js_dir/bench.mjs" "$py_dir/bench.py"; do
+# The mock and the .NET harness are the comparison; the Node and Python harnesses are optional, since most projects have
+# no JS or Python counterpart to compare against.
+for path in "$mock_project" "$compare_project"; do
   [ -f "$path" ] || die_usage "Not found: $path. Check --project and --bench-root."
 done
+has_js=false
+has_py=false
+if [ -f "$js_dir/bench.mjs" ]; then has_js=true; else echo "Skipping the Node harness: no $js_dir/bench.mjs."; fi
+if [ -f "$py_dir/bench.py" ]; then has_py=true; else echo "Skipping the Python harness: no $py_dir/bench.py."; fi
 safe_machine="$(printf '%s' "$machine" | sed 's/[^A-Za-z0-9._-]/-/g')"
 out_dir="$results_root/$safe_machine"
 base_url="http://127.0.0.1:$port"
@@ -109,19 +115,22 @@ done
 
 # --- Core split -----------------------------------------------------------------------------------------------------
 
-# cores.py reads the core types from sysfs on Linux; Windows shells have none, so the split there is even unless
-# --mock-cores or --client-cores says otherwise.
+# cores.py reads the core types and each physical core's threads from sysfs on Linux; Windows shells have neither, so
+# the split there is even over logical cores unless --mock-cores or --client-cores says otherwise.
 split_output="$("$python" "$here/cores.py" --count "$(nproc)" "${core_args[@]}")" \
   || die_usage 'The core split failed; see the message above.'
 split_value() { sed -n "s/^$1=//p" <<< "$split_output" | tr -d '\r'; }
 mock_list="$(split_value mock)"
 client_list="$(split_value clients)"
 split="$(split_value split)"
+siblings="$(split_value siblings)"
 case "$(uname -s)" in
   MINGW* | MSYS* | CYGWIN*)
-    if [ ${#core_args[@]} -eq 0 ]; then split+='; on a hybrid CPU pass --mock-cores and --client-cores, or use run.ps1'; fi ;;
+    if [ ${#core_args[@]} -eq 0 ]; then
+      split+='; the core types and SMT siblings are unknown here, so pass --mock-cores and --client-cores, or use run.ps1'
+    fi ;;
 esac
-echo "Cores ($split): mock $mock_list, clients $client_list"
+echo "Cores ($split): mock $mock_list, clients $client_list; physical cores $siblings"
 
 venv_python() {
   if [ -x "$py_dir/.venv/bin/python" ]; then echo "$py_dir/.venv/bin/python"; else echo "$py_dir/.venv/Scripts/python.exe"; fi
@@ -135,15 +144,19 @@ step 'Build the mock'
 dotnet build "$mock_project" -c Release --nologo -v quiet || exit 1
 step 'Build the .NET harness'
 dotnet build "$compare_project" -c Release --nologo -v quiet || exit 1
-step 'Install the Node harness'
-(cd "$js_dir" && npm ci --no-audit --no-fund) || exit 1
-if [ ! -x "$py_dir/.venv/bin/python" ] && [ ! -x "$py_dir/.venv/Scripts/python.exe" ]; then
-  step 'Create the Python venv'
-  "$python" -m venv "$py_dir/.venv" || exit 1
+if [ "$has_js" = true ]; then
+  step 'Install the Node harness'
+  (cd "$js_dir" && npm ci --no-audit --no-fund) || exit 1
 fi
-py="$(venv_python)"
-step 'Install the Python harness'
-"$py" -m pip install --quiet --disable-pip-version-check -r "$py_dir/requirements.txt" || exit 1
+if [ "$has_py" = true ]; then
+  if [ ! -x "$py_dir/.venv/bin/python" ] && [ ! -x "$py_dir/.venv/Scripts/python.exe" ]; then
+    step 'Create the Python venv'
+    "$python" -m venv "$py_dir/.venv" || exit 1
+  fi
+  py="$(venv_python)"
+  step 'Install the Python harness'
+  "$py" -m pip install --quiet --disable-pip-version-check -r "$py_dir/requirements.txt" || exit 1
+fi
 
 # The mock's own build output, whatever framework it targets.
 mapfile -t mock_dlls < <(find "$bench_root/$mock_name/bin/Release" -name "$mock_name.runtimeconfig.json" 2> /dev/null \
@@ -230,8 +243,8 @@ run_harness() {
 }
 
 run_harness .NET dotnet run --no-build -c Release --project "$compare_project" -- "${common[@]}" --cores "$client_list"
-run_harness Node "${pin[@]}" node "$js_dir/bench.mjs" "${common[@]}" "${recorded[@]}"
-run_harness Python "${pin[@]}" "$py" "$py_dir/bench.py" "${common[@]}" "${recorded[@]}"
+if [ "$has_js" = true ]; then run_harness Node "${pin[@]}" node "$js_dir/bench.mjs" "${common[@]}" "${recorded[@]}"; fi
+if [ "$has_py" = true ]; then run_harness Python "${pin[@]}" "$py" "$py_dir/bench.py" "${common[@]}" "${recorded[@]}"; fi
 
 cleanup
 
