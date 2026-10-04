@@ -61,7 +61,7 @@ public static class RerankingSample
 {
     public const int ShortlistSize = 8;
 
-    public static async Task<RerankingReport> RunAsync(IJevClient jev, CancellationToken ct)
+    public static async Task<RerankingReport> RunAsync(IJevClient jev, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(jev);
         var ranked = new List<RankedQuery>();
@@ -87,7 +87,7 @@ public static class RerankingSample
                 throw new InvalidOperationException(query.Text + ": " + set.Error.Kind + ": " + set.Error.Message);
             }
 
-            var result = await jev.EvaluateAsync(set.Value, query.Text, ct).ConfigureAwait(false);
+            var result = await jev.EvaluateAsync(set.Value, query.Text, cancellationToken).ConfigureAwait(false);
             if (result.IsFailure)
             {
                 throw new InvalidOperationException(query.Text + ": " + result.Error.Kind + ": " + result.Error.Message);
