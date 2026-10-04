@@ -31,3 +31,5 @@ The checked-in recordings are real OpenRouter answers from the model `typesafe/j
 ## Not a sample
 
 `ZeroAlloc.Jev.AotSmoke` in this folder is the Native AOT smoke app that CI publishes and runs. It checks that the client survives trimming and AOT compilation, and it is not a cookbook sample.
+
+`ZeroAlloc.Jev.AotSurface` is not a sample either. CI publishes it with Native AOT and full trimming, rooting both packages whole, so every public member is checked for trim and AOT safety, not only the members an app calls. It is published, never run.
