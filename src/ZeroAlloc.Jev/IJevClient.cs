@@ -13,10 +13,11 @@ namespace ZeroAlloc.Jev;
 /// call, or enable CallBase.
 /// </para>
 /// <para>
-/// After <see cref="JevClient.Dispose"/>, a <see cref="JevClient"/> call throws <see cref="ObjectDisposedException"/>.
-/// A call already in flight when it is disposed returns a <see cref="JevErrorKind.Disposed"/> failure when the
-/// disposal tore its request down, which happens only over an <see cref="HttpClient"/> the client created, and that
-/// failure is never retried.
+/// After <see cref="JevClient.Dispose"/>, a <see cref="JevClient"/> call throws <see cref="ObjectDisposedException"/>,
+/// and a disposed client never retries: a retry that would start after the disposal is not sent, and the call returns
+/// a <see cref="JevErrorKind.Disposed"/> failure. A call whose request the disposal tore down, which happens only over
+/// an <see cref="HttpClient"/> the client created, returns <see cref="JevErrorKind.Disposed"/> too. Over a borrowed
+/// <see cref="HttpClient"/>, the attempt already in flight is not torn down and keeps its own result.
 /// </para>
 /// </remarks>
 public interface IJevClient

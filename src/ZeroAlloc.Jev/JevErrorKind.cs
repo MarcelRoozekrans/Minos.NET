@@ -55,8 +55,9 @@ public enum JevErrorKind
     InvalidQuestions = 11,
 
     /// <summary>
-    /// A request was torn down because the client was disposed while the request was in flight. The client does not
-    /// retry it. A call started after disposal throws <see cref="ObjectDisposedException"/> instead.
+    /// The client was disposed while the call was in flight: either the disposal tore its request down, or a retry was
+    /// due and the client did not send it, because a disposed client never retries. A call started after disposal
+    /// throws <see cref="ObjectDisposedException"/> instead.
     /// </summary>
     Disposed = 12,
 }

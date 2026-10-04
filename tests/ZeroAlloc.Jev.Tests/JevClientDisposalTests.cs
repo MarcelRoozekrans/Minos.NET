@@ -87,8 +87,9 @@ public sealed class JevClientDisposalTests
     [Fact]
     public async Task DisposeBeforeATransientFailure_StopsItsRetry_AndIsDisposed()
     {
+        using var logs = new LogCapture();
         var gate = new Gate(() => Status(HttpStatusCode.ServiceUnavailable), honoursCancellation: false);
-        var client = Owned(gate.Handler);
+        var client = Owned(gate.Handler, logger: logs.Factory.CreateLogger(JevLog.Category));
 
         var call = client.EvaluateAsync(Request()).AsTask();
         var result = await DisposeWhileBlocked(gate, client, call);
@@ -96,6 +97,11 @@ public sealed class JevClientDisposalTests
         AssertDisposed(result);
         Assert.Null(result.Error.Exception);
         _ = ClientTestKit.OnlyRequest(gate.Handler);
+
+        // The logging decorator logs the retry the 503 earns before the proxy asks for it; the guard then refuses it, as
+        // LoggingJevApi's remarks say. The final failure is logged as Disposed.
+        Assert.Equal(nameof(JevErrorKind.Overloaded), LogAssert.Field(logs.Only(1003), "ErrorKind"));
+        Assert.Equal(nameof(JevErrorKind.Disposed), LogAssert.Field(logs.Only(1002), "ErrorKind"));
     }
 
     // The order the other way round: the per-attempt time-out fires and the failure is mapped before Dispose runs.
@@ -143,13 +149,28 @@ public sealed class JevClientDisposalTests
         Assert.True(handler.Disposed);
     }
 
-    // Disposing the client leaves a borrowed HttpClient alone, so nothing is torn down: the call runs to completion,
-    // its retry included, and the HttpClient still works afterwards.
+    // A borrowed HttpClient is not disposed with the client, so the attempt in flight is not torn down: it gets its 503.
+    // A disposed client never retries, though, so the retry that 503 earns is not sent.
     [Fact]
-    public async Task InFlightCall_OverABorrowedHttpClient_IsUnaffectedByDispose()
+    public async Task BorrowedAttempt_ThatFailsTransientlyAfterDispose_IsDisposed_AfterOneRequest()
     {
-        var attempts = 0;
-        var gate = new Gate(() => ++attempts == 1 ? Status(HttpStatusCode.ServiceUnavailable) : Success());
+        var gate = new Gate(() => Status(HttpStatusCode.ServiceUnavailable));
+        using var http = new HttpClient(gate.Handler);
+        var client = new JevClient(Settings(maxRetries: 2), http, ownedHandler: null, TimeProvider.System);
+
+        var call = client.EvaluateAsync(Request()).AsTask();
+        var result = await DisposeWhileBlocked(gate, client, call);
+
+        AssertDisposed(result);
+        _ = ClientTestKit.OnlyRequest(gate.Handler);
+        Assert.False(gate.Handler.Disposed);
+    }
+
+    // The attempt in flight over a borrowed HttpClient keeps its own result, and the HttpClient still works afterwards.
+    [Fact]
+    public async Task BorrowedAttempt_ThatSucceedsAfterDispose_StillSucceeds_AndTheHttpClientIsNotDisposed()
+    {
+        var gate = new Gate(Success);
         using var http = new HttpClient(gate.Handler);
         var client = new JevClient(Settings(maxRetries: 2), http, ownedHandler: null, TimeProvider.System);
 
@@ -157,7 +178,7 @@ public sealed class JevClientDisposalTests
         var result = await DisposeWhileBlocked(gate, client, call);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(2, gate.Handler.Requests.Count);
+        _ = ClientTestKit.OnlyRequest(gate.Handler);
         Assert.False(gate.Handler.Disposed);
         using var response = await http.GetAsync(new Uri("https://api.typesafe.ai/v1/models"));
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

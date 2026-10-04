@@ -14,7 +14,9 @@ namespace ZeroAlloc.Jev.Transport;
 /// each retry; it also sends that index as <c>X-TypeSafe-Retry-Count</c>. It retries a result that
 /// <see cref="IJevApi.IsTransient"/> accepts unless the attempt's index is <c>MaxAttempts - 1</c>, and it never
 /// retries a thrown exception. This decorator applies the same two tests to the same <see cref="RetryPolicy"/>.
-/// If the caller cancels during the backoff, the retry it logged does not happen.
+/// If the caller cancels during the backoff, the retry it logged does not happen. Nor does it when the client is
+/// disposed before the retry starts: <see cref="DisposalGuardJevApi"/> refuses the retry, and the call returns
+/// <see cref="JevErrorKind.Disposed"/>.
 /// </para>
 /// <para>
 /// With <see cref="LogLevel.Warning"/> disabled it returns the inner call's <see cref="ValueTask{TResult}"/> itself,

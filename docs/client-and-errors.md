@@ -77,11 +77,12 @@ you asked for it. Everything else, including every network and service failure, 
 - **A call started after `Dispose`** throws `ObjectDisposedException`, because calling a disposed client is a mistake in
   the calling code.
 - **A call already in flight** over an `HttpClient` the client created is torn down with that `HttpClient`. It returns
-  a `JevError` of kind `Disposed`, not `Timeout` or `Network`, so you can tell it apart from a real failure, and it is
-  never retried. A retry that was waiting when `Dispose` ran is not sent either, and the call returns `Disposed`. An
-  attempt that had already failed with a real time-out before `Dispose` keeps `Timeout` when no retry is left.
-- **A call already in flight over an `HttpClient` you lent** is not affected. The client never disposes that
-  `HttpClient`, so the call runs to completion, retries included.
+  a `JevError` of kind `Disposed`, not `Timeout` or `Network`, so you can tell it apart from a real failure. A real
+  time-out that was mapped before `Dispose` set its flag keeps `Timeout` when no retry is left.
+- **A call already in flight over an `HttpClient` you lent** is not torn down, because the client never disposes that
+  `HttpClient`. The attempt in flight keeps its own result.
+- **A disposed client never retries**, whichever kind of `HttpClient` it uses. A retry that would start after `Dispose`
+  is not sent, and the call returns `Disposed`.
 
 ## Options
 
@@ -286,7 +287,7 @@ The values start at 1, so `default(JevErrorKind)` is no kind.
 | `InvalidResponse` | A successful response could not be read as the expected JSON, or an answer was missing. `StatusCode` is then 200, or the other 2xx status that arrived. | No | Report it. The service replied with something this library does not understand. |
 | `Unsupported` | The operation is not available on the provider, such as listing models on OpenRouter. | No | Do not call it on that provider. No request was sent. |
 | `InvalidQuestions` | A question set built at run time breaks the API's rules. Only a failed `Build()` returns it, and no request is sent. | No | Fix the set. `Failures` lists each rule. |
-| `Disposed` | The client was disposed while the request was in flight, which tore it down. | No | Stop. The client is gone. A call started after disposal throws `ObjectDisposedException` instead. |
+| `Disposed` | The client was disposed while the call was in flight, which tore its request down or kept a due retry from being sent. | No | Stop. The client is gone. A call started after disposal throws `ObjectDisposedException` instead. |
 
 The "Retried" column describes what the client does before it returns the error. A `RateLimited`, `Overloaded`,
 `Server`, `Network` or `Timeout` error that reaches you has already been retried `MaxRetries` times.

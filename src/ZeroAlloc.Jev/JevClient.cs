@@ -188,27 +188,23 @@ public sealed class JevClient : IJevClient, IDisposable
         _model = settings.Model;
         _pool = pool;
         _logger = logger;
-        // Only an owned HttpClient is disposed with the client, so only an owned one can tear a request down. The mapper
-        // then reports such an attempt as Disposed, which is never retried, and the guard keeps a retry that was already
-        // waiting from being sent.
-        Func<bool>? disposed = _ownedHttpClient is null ? null : () => _disposed;
+        // A disposed client never retries. Only an owned HttpClient is disposed with the client, so only an owned one can
+        // tear a request down: the mapper reports such an attempt as Disposed, which is never retried. A borrowed
+        // HttpClient's attempt in flight keeps its own result, so its mapper never reads the flag.
+        Func<bool> disposed = () => _disposed;
         var transport = new JevApiClient(
             httpClient,
             new SystemTextJsonSerializer(JevJsonContext.Default),
             new JevRawSerializer(pool),
-            new JevErrorMapper(time, disposed));
+            new JevErrorMapper(time, _ownedHttpClient is null ? null : disposed));
         var retry = RetryPolicyFor(settings);
 
-        // The retry proxy, then the disposal guard, then the logging decorator, then the transport: the logging decorator
-        // sees every attempt sent with its retry number and shares the retry proxy's policy. Without a logger and over a
-        // borrowed HttpClient, the retry proxy wraps the transport directly, as before.
+        // The retry proxy, then the disposal guard, then the logging decorator when there is a logger, then the transport.
+        // The guard answers any attempt that would start after Dispose, owned or borrowed, with Disposed instead of
+        // sending it. The logging decorator sees every attempt sent with its retry number and shares the proxy's policy.
         IJevApi attempts = logger is null ? transport : new LoggingJevApi(transport, logger, retry);
-        if (disposed is not null)
-        {
-            attempts = new DisposalGuardJevApi(attempts, disposed);
-        }
-
-        var api = new IJevApiResilienceProxy(attempts, new JevApiResiliencePolicies { Retry = retry });
+        var api = new IJevApiResilienceProxy(
+            new DisposalGuardJevApi(attempts, disposed), new JevApiResiliencePolicies { Retry = retry });
 
         // Always wired: with nothing listening, the generated proxy returns each operation's own task.
         _operations = new JevOperationsInstrumented(new JevOperations(api, "Bearer " + settings.ApiKey));
@@ -401,13 +397,14 @@ public sealed class JevClient : IJevClient, IDisposable
     /// <para>
     /// A call started after <see cref="Dispose"/> throws <see cref="ObjectDisposedException"/>. A call already in flight
     /// over an <see cref="HttpClient"/> this client created is torn down with it, and returns a
-    /// <see cref="JevErrorKind.Disposed"/> failure; it is never retried. A real time-out that failed an attempt before
-    /// the disposal is still <see cref="JevErrorKind.Timeout"/> when no retry is left; when a retry is due, the disposal
-    /// stops it and the call returns <see cref="JevErrorKind.Disposed"/>.
+    /// <see cref="JevErrorKind.Disposed"/> failure. A real time-out that was mapped before <see cref="Dispose"/> set the
+    /// flag stays <see cref="JevErrorKind.Timeout"/> when no retry is left.
     /// </para>
     /// <para>
-    /// A borrowed <see cref="HttpClient"/> is not disposed, so a call in flight over it runs to completion, retries
-    /// included. Calling <see cref="Dispose"/> more than once does nothing.
+    /// A disposed client never retries. A retry that would start after <see cref="Dispose"/> is not sent, and the call
+    /// returns <see cref="JevErrorKind.Disposed"/>, whether the client created its <see cref="HttpClient"/> or borrowed
+    /// it. A borrowed <see cref="HttpClient"/> is not disposed, so the attempt already in flight over it is not torn down
+    /// and keeps its own result. Calling <see cref="Dispose"/> more than once does nothing.
     /// </para>
     /// </remarks>
     public void Dispose()
