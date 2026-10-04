@@ -22,3 +22,12 @@ JEV106 | ZeroAlloc.Jev | Error | Diagnostics
 JEV107 | ZeroAlloc.Jev | Error | Diagnostics
 JEV108 | ZeroAlloc.Jev | Error | Diagnostics
 JEV109 | ZeroAlloc.Jev | Error | Diagnostics
+
+## Release 0.4.0
+
+### Removed Rules
+
+Rule ID | Category | Severity | Notes
+--------|----------|----------|-------
+JEV108 | ZeroAlloc.Jev | Error | Diagnostics
+JEV109 | ZeroAlloc.Jev | Error | Diagnostics
