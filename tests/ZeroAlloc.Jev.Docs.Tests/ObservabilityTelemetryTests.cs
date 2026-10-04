@@ -228,6 +228,7 @@ public sealed class ObservabilityTelemetryTests
         var end = section.IndexOf("\n## ", StringComparison.Ordinal);
         section = section[..end].ReplaceLineEndings(" ");
 
+        Assert.Contains("`error.type`", section, StringComparison.Ordinal);
         Assert.Contains("full name", section, StringComparison.Ordinal);
         Assert.Contains("no description", section, StringComparison.Ordinal);
         Assert.DoesNotContain("1.10.0", section, StringComparison.Ordinal);
