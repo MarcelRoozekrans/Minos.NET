@@ -1,5 +1,40 @@
 # Changelog
 
+## [0.4.0](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/compare/v0.3.3...v0.4.0) (2026-10-04)
+
+
+### ⚠ BREAKING CHANGES
+
+* **generator:** drop the analyzer rules JEV108 and JEV109; the run-time builder still reports JEV108
+* **core:** construct JevError with a kind and a message, and set StatusCode, RetryAfter, Detail and Exception as init properties
+* **core:** number JevErrorKind from 1 so default is no kind, and add JevErrorKind.Disposed
+* **core:** remove the builder's keyed Choice, keyed Score and enum Score overloads that have no configurator
+* **core:** rename NoulAttribute.True and False to WhenTrue and WhenFalse
+* **core:** rename the client's ct parameters to cancellationToken
+* **core:** remove Json = true from the question-set attributes; build structured JSON sets at run time with JevContent and JevCriterion.Json
+
+### Features
+
+* **core:** construct JevError with a kind and a message, and set StatusCode, RetryAfter, Detail and Exception as init properties ([f622ff5](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/f622ff57565ac7c91f60327336acd67f4f705b52))
+* **core:** give Noul value equality and hide JevOptionSet from IntelliSense ([f622ff5](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/f622ff57565ac7c91f60327336acd67f4f705b52))
+* **core:** number JevErrorKind from 1 so default is no kind, and add JevErrorKind.Disposed ([f622ff5](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/f622ff57565ac7c91f60327336acd67f4f705b52))
+* **core:** remove Json = true from the question-set attributes; build structured JSON sets at run time with JevContent and JevCriterion.Json ([f622ff5](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/f622ff57565ac7c91f60327336acd67f4f705b52))
+* **core:** remove the builder's keyed Choice, keyed Score and enum Score overloads that have no configurator ([f622ff5](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/f622ff57565ac7c91f60327336acd67f4f705b52))
+* **core:** rename NoulAttribute.True and False to WhenTrue and WhenFalse ([f622ff5](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/f622ff57565ac7c91f60327336acd67f4f705b52))
+* **core:** rename the client's ct parameters to cancellationToken ([f622ff5](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/f622ff57565ac7c91f60327336acd67f4f705b52))
+* **core:** set error.type to the exception's full type name on a thrown call's span, without its message, with ZeroAlloc.Telemetry 1.11.0 ([f622ff5](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/f622ff57565ac7c91f60327336acd67f4f705b52))
+* **generator:** drop the analyzer rules JEV108 and JEV109; the run-time builder still reports JEV108 ([f622ff5](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/f622ff57565ac7c91f60327336acd67f4f705b52))
+
+
+### Bug Fixes
+
+* **core:** return Disposed for a call in flight when its client is disposed, and never retry once disposed ([f622ff5](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/f622ff57565ac7c91f60327336acd67f4f705b52))
+
+
+### Documentation
+
+* **docs:** document disposal, the error kinds and JevError construction, and the public API review for 1.0 ([f622ff5](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/f622ff57565ac7c91f60327336acd67f4f705b52))
+
 ## [0.3.3](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/compare/v0.3.2...v0.3.3) (2026-10-03)
 
 
