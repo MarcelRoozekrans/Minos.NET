@@ -1,3 +1,6 @@
+using System.Reflection;
+using System.Text.Json;
+
 namespace ZeroAlloc.Jev.Docs.Tests;
 
 public sealed class GettingStartedTests
@@ -69,5 +72,25 @@ public sealed class GettingStartedTests
         Assert.Contains("<PackageReference Include=\"ZeroAlloc.Validation\" PrivateAssets=\"analyzers;build;buildtransitive\" />", project, StringComparison.Ordinal);
         Assert.Contains("<PackageReference Include=\"ZeroAlloc.Telemetry\" PrivateAssets=\"analyzers;build;buildtransitive\" />", project, StringComparison.Ordinal);
         Assert.Contains("`[Validate]` types, `[Instrument]` types or your own `[LoggerMessage]` methods", page, StringComparison.Ordinal);
+    }
+
+    // The local-pack section tells readers to add <release>-local, the version a normal build gets: the manifest's
+    // release with the -local suffix that keeps it apart from the published package. Only a release build, which passes
+    // -p:JevRelease=true, drops the suffix, and the test suite is never built that way.
+    [Fact]
+    public void TheLocalPackSection_UsesTheVersionALocalBuildGets()
+    {
+        using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(PublishedPages.Root, ".release-please-manifest.json")));
+        var release = manifest.RootElement.GetProperty(".").GetString()!;
+        var informational = typeof(JevClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
+        var built = informational.Split('+')[0];
+        var page = PageTables.Text("getting-started.md");
+
+        Assert.Equal(release + (release.Contains('-', StringComparison.Ordinal) ? ".local" : "-local"), built);
+        Assert.Equal(new Version(release.Split('-')[0] + ".0"), typeof(JevClient).Assembly.GetName().Version);
+        Assert.Contains("dotnet add package ZeroAlloc.Jev --version <release>-local", page, StringComparison.Ordinal);
+        Assert.Contains("dotnet add package ZeroAlloc.Jev.DependencyInjection --version <release>-local", page, StringComparison.Ordinal);
+        Assert.Contains("A local build is versioned as the last release with a `-local` suffix", page, StringComparison.Ordinal);
+        Assert.DoesNotContain("0.0.0-local", page, StringComparison.Ordinal);
     }
 }
