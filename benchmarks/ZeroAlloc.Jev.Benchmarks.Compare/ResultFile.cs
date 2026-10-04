@@ -8,10 +8,24 @@ namespace ZeroAlloc.Jev.Benchmarks.Compare;
 /// <param name="Results">One entry per client.</param>
 public sealed record ResultFile(MachineInfo Machine, IReadOnlyList<ClientResult> Results)
 {
+    /// <summary>
+    /// Gets the order the clients were measured in, or <see langword="null"/> for a harness with one client; left out
+    /// when null.
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public MeasurementOrder? Order { get; init; }
+
     /// <summary>Serializes the file in the shared format: camelCase names, indented.</summary>
     /// <returns>The JSON text.</returns>
     public string ToJson() => JsonSerializer.Serialize(this, CompareJsonContext.Default.ResultFile);
 }
+
+/// <summary>How the harness ordered its clients.</summary>
+/// <param name="LatencyRounds">How many interleaved latency rounds ran.</param>
+/// <param name="CallsPerRound">How many timed calls each client made in each round.</param>
+/// <param name="Rotation">Where the first round started in the base client order; round <c>r</c> starts one further.</param>
+/// <param name="Throughput">The clients in the order their throughput windows ran, one client at a time.</param>
+public sealed record MeasurementOrder(int LatencyRounds, int CallsPerRound, int Rotation, IReadOnlyList<string> Throughput);
 
 /// <summary>The machine a run measured.</summary>
 /// <param name="Name">The machine's name.</param>
@@ -19,8 +33,9 @@ public sealed record ResultFile(MachineInfo Machine, IReadOnlyList<ClientResult>
 /// <param name="Cpu">The processor.</param>
 /// <param name="Date">When the run finished, as an ISO 8601 UTC timestamp such as <c>2026-10-04T10:05:13Z</c>.</param>
 /// <param name="MockCeilingPerSecond">
-/// The mock's own ceiling: the best completed calls per second of the raw client at 16, 32 and 64 workers, so each
-/// client's throughput can be read against it.
+/// The mock ceiling: the best completed calls per second of the raw client at 16, 32 and 64 workers. It is a lower
+/// bound on what the mock can serve, since nothing shows whether the mock or the client side saturated, and each
+/// client's throughput is read against it.
 /// </param>
 /// <param name="Cores">
 /// The cores the harness ran on, as a list such as <c>10-19</c>, or <see langword="null"/> when it was not pinned. The
@@ -41,7 +56,10 @@ public sealed record MachineInfo(string Name, string Os, string Cpu, string Date
 /// <param name="LatencyMs">One call at a time: mean, median and 99th percentile, in milliseconds.</param>
 /// <param name="ThroughputPerSecond">Completed calls per second at <paramref name="Concurrency"/>.</param>
 /// <param name="Concurrency">How many workers called at once in the throughput run.</param>
-/// <param name="AllocatedBytesPerCall">Bytes allocated per call, from BenchmarkDotNet's memory diagnoser.</param>
+/// <param name="AllocatedBytesPerCall">
+/// Bytes allocated per call, from BenchmarkDotNet's memory diagnoser. The .NET harness always sets it; the format
+/// allows null for the JS and Python harnesses only.
+/// </param>
 public sealed record ClientResult(
     string Client,
     string Library,

@@ -10,9 +10,10 @@ using ZeroAlloc.Jev.Benchmarks.Shared;
 namespace ZeroAlloc.Jev.Benchmarks.Compare;
 
 /// <summary>
-/// Runs the comparison: first a warm-up of every client, so none is measured in a cold process; then per client, a
-/// checked warm-up, a timed sequential latency loop and a throughput run, each counted against the mock; then the
-/// mock's own ceiling; then BenchmarkDotNet for allocated bytes per call. It writes the shared result file.
+/// Runs the comparison: first a warm-up of every client, so none is measured in a cold process; then every client's
+/// checked warm-up; then the latency rounds, which interleave the clients; then each client's throughput run, one
+/// client at a time, in a rotated order; each counted against the mock. Then the mock ceiling, then BenchmarkDotNet for
+/// allocated bytes per call. It writes the shared result file, with the order it used.
 /// </summary>
 /// <param name="options">The command line.</param>
 /// <param name="log">Where progress goes.</param>
@@ -22,13 +23,16 @@ public sealed class Harness(CompareOptions options, TextWriter log)
     public const int Concurrency = 16;
 
     /// <summary>
-    /// The worker counts the raw client tries when it measures the mock's own ceiling; the ceiling is the best of them.
+    /// The worker counts the raw client tries when it measures the mock ceiling; the ceiling is the best of them.
     /// </summary>
     public static IReadOnlyList<int> CeilingConcurrencies { get; } = [16, 32, 64];
 
     private int LatencyWarmupCalls => options.Smoke ? 10 : 200;
 
-    private int LatencyCalls => options.Smoke ? 20 : 2000;
+    // 20 rounds of 100 calls, 2000 timed calls per client; a smoke run times 20, in 4 rounds of 5.
+    private int LatencyRounds => options.Smoke ? 4 : 20;
+
+    private int LatencyCallsPerRound => options.Smoke ? 5 : 100;
 
     private TimeSpan ThroughputWarmup => options.Smoke ? TimeSpan.FromSeconds(0.5) : TimeSpan.FromSeconds(2);
 
@@ -41,18 +45,15 @@ public sealed class Harness(CompareOptions options, TextWriter log)
     public async Task<string> RunAsync(CancellationToken cancellationToken)
     {
         Directory.CreateDirectory(options.OutDirectory);
-        var measured = new Dictionary<string, ClientMeasurement>(StringComparer.Ordinal);
         using var counter = new MockRequestCounter(options.BaseUrl);
         await WarmUpProcessAsync(counter, cancellationToken).ConfigureAwait(false);
-        foreach (var client in ClientAdapters.All)
-        {
-            using var adapter = ClientAdapters.Create(client, options.BaseUrl);
-            measured[client] = await MeasureAsync(adapter, counter, cancellationToken).ConfigureAwait(false);
-        }
 
+        // A random start unless --rotation names one, so the order differs from run to run; the file records it.
+        var rotation = options.Rotation ?? Random.Shared.Next(ClientAdapters.All.Count);
+        var (measured, order) = await MeasureClientsAsync(counter, rotation, cancellationToken).ConfigureAwait(false);
         var ceiling = await MeasureCeilingAsync(counter, cancellationToken).ConfigureAwait(false);
         var summary = RunBenchmarks();
-        var file = new ResultFile(Machine(summary, ceiling), Results(summary, measured));
+        var file = new ResultFile(Machine(summary, ceiling), Results(summary, measured)) { Order = order };
         var path = Path.Combine(options.OutDirectory, options.ResultFileName);
         await File.WriteAllTextAsync(path, file.ToJson(), cancellationToken).ConfigureAwait(false);
         return path;
@@ -73,27 +74,61 @@ public sealed class Harness(CompareOptions options, TextWriter log)
         }
     }
 
-    private async Task<ClientMeasurement> MeasureAsync(IClientAdapter adapter, MockRequestCounter counter, CancellationToken cancellationToken)
+    // Every client lives through the whole measurement, so the latency rounds can interleave them. Each client's
+    // throughput window then runs alone, in the rotated order, so no client always runs first or last.
+    private async Task<(Dictionary<string, ClientMeasurement> Measured, MeasurementOrder Order)> MeasureClientsAsync(
+        MockRequestCounter counter, int rotation, CancellationToken cancellationToken)
     {
-        await WarmUpAsync(adapter, counter, cancellationToken).ConfigureAwait(false);
+        var adapters = new IClientAdapter?[ClientAdapters.All.Count];
+        try
+        {
+            for (var i = 0; i < adapters.Length; i++)
+            {
+                adapters[i] = ClientAdapters.Create(ClientAdapters.All[i], options.BaseUrl);
+            }
+
+            return await MeasureAsync(adapters!, counter, rotation, cancellationToken).ConfigureAwait(false);
+        }
+        finally
+        {
+            foreach (var adapter in adapters)
+            {
+                adapter?.Dispose();
+            }
+        }
+    }
+
+    private async Task<(Dictionary<string, ClientMeasurement> Measured, MeasurementOrder Order)> MeasureAsync(
+        IClientAdapter[] adapters, MockRequestCounter counter, int rotation, CancellationToken cancellationToken)
+    {
+        foreach (var adapter in adapters)
+        {
+            await WarmUpAsync(adapter, counter, cancellationToken).ConfigureAwait(false);
+        }
 
         // Sequential calls, so the count also proves one request per call, with no retry and no extra request.
-        var latency = await CountedAsync(
-            adapter.Client,
-            "latency loop",
-            counter,
-            () => LatencyRunner.RunAsync(adapter, LatencyWarmupCalls, LatencyCalls, cancellationToken),
-            static run => run.Calls,
-            cancellationToken).ConfigureAwait(false);
+        var latency = await LatencyRunner.RunRoundsAsync(
+            adapters, LatencyWarmupCalls, LatencyRounds, LatencyCallsPerRound, rotation, counter.CountAsync, cancellationToken).ConfigureAwait(false);
 
-        // The throughput warm-up and the measured phase are counted apart, so a mismatch names the phase.
-        var warmup = await CountedPhaseAsync(adapter, "throughput warm-up", Concurrency, ThroughputWarmup, counter, cancellationToken).ConfigureAwait(false);
-        var throughput = await CountedPhaseAsync(adapter, "throughput run", Concurrency, ThroughputDuration, counter, cancellationToken).ConfigureAwait(false);
+        IClientAdapter[] throughputOrder = [.. LatencyRunner.Order(adapters.Length, 0, rotation).Select(i => adapters[i])];
+        var measured = new Dictionary<string, ClientMeasurement>(StringComparer.Ordinal);
+        foreach (var adapter in throughputOrder)
+        {
+            // The throughput warm-up and the measured phase are counted apart, so a mismatch names the phase.
+            var warmup = await CountedPhaseAsync(adapter, "throughput warm-up", Concurrency, ThroughputWarmup, counter, cancellationToken).ConfigureAwait(false);
+            var throughput = await CountedPhaseAsync(adapter, "throughput run", Concurrency, ThroughputDuration, counter, cancellationToken).ConfigureAwait(false);
+            var run = latency[adapter.Client];
+            await log.WriteLineAsync(string.Create(
+                CultureInfo.InvariantCulture,
+                $"{adapter.Client}: latency {run.Calls} of {run.Calls} requests, mean {run.Latency.Mean} ms, p50 {run.Latency.P50} ms, p99 {run.Latency.P99} ms; throughput warm-up {warmup.Calls} of {warmup.Calls}, measured {throughput.Calls} of {throughput.Calls}, {throughput.PerSecond:F0}/s")).ConfigureAwait(false);
+            measured[adapter.Client] = new ClientMeasurement(adapter.Library, adapter.Version, adapter.Note, run.Latency, throughput.PerSecond);
+        }
 
+        var order = new MeasurementOrder(LatencyRounds, LatencyCallsPerRound, rotation, [.. throughputOrder.Select(a => a.Client)]);
         await log.WriteLineAsync(string.Create(
             CultureInfo.InvariantCulture,
-            $"{adapter.Client}: latency {latency.Calls} of {latency.Calls} requests, mean {latency.Latency.Mean} ms, p50 {latency.Latency.P50} ms, p99 {latency.Latency.P99} ms; throughput warm-up {warmup.Calls} of {warmup.Calls}, measured {throughput.Calls} of {throughput.Calls}, {throughput.PerSecond:F0}/s")).ConfigureAwait(false);
-        return new ClientMeasurement(adapter.Library, adapter.Version, adapter.Note, latency.Latency, throughput.PerSecond);
+            $"order: latency in {order.LatencyRounds} rounds of {order.CallsPerRound} calls per client from rotation {rotation}; throughput {string.Join(", ", order.Throughput)}")).ConfigureAwait(false);
+        return (measured, order);
     }
 
     private static Task<int> WarmUpAsync(IClientAdapter adapter, MockRequestCounter counter, CancellationToken cancellationToken)
@@ -108,9 +143,10 @@ public sealed class Harness(CompareOptions options, TextWriter log)
             return CompareBenchmarks.WarmupCalls;
         }, static calls => calls, cancellationToken);
 
-    // The mock's own ceiling: the raw client, the thinnest one, at 16, 32 and 64 workers, each for the throughput
-    // duration, keeping the best. One count alone is no upper bound: 64 workers can cost a few client cores more than
-    // they load the mock. The results can then show how far below the mock's limit each client stays.
+    // The mock ceiling: the raw client, the thinnest one, at 16, 32 and 64 workers, each for the throughput duration,
+    // keeping the best. One count alone would understate it: 64 workers can cost a few client cores more than they load
+    // the mock. It is the best rate the raw client reached, so a lower bound on what the mock can serve; nothing here
+    // shows whether the mock or the client side saturated.
     private async Task<double> MeasureCeilingAsync(MockRequestCounter counter, CancellationToken cancellationToken)
     {
         using var raw = ClientAdapters.Create(ClientAdapters.Raw, options.BaseUrl);
@@ -201,6 +237,12 @@ public sealed class Harness(CompareOptions options, TextWriter log)
             var report = summary.Reports.First(r => string.Equals(
                 CompareBenchmarks.ClientByBenchmark[r.BenchmarkCase.Descriptor.WorkloadMethod.Name], client, StringComparison.Ordinal));
             var measurement = measured[client];
+
+            // Bytes are the one figure the .NET clients have and the JS and Python ones don't; a missing one is a
+            // failed measurement, not a dash in the table.
+            var allocated = report.GcStats.GetBytesAllocatedPerOperation(report.BenchmarkCase)
+                ?? throw new InvalidOperationException(
+                    client + ": BenchmarkDotNet reported no allocated bytes per call; see its log in " + summary.LogFilePath);
             results.Add(new ClientResult(
                 client,
                 measurement.Library,
@@ -210,7 +252,7 @@ public sealed class Harness(CompareOptions options, TextWriter log)
                 measurement.Latency,
                 Math.Round(measurement.ThroughputPerSecond, 1),
                 Concurrency,
-                report.GcStats.GetBytesAllocatedPerOperation(report.BenchmarkCase))
+                allocated)
             {
                 Note = measurement.Note,
             });

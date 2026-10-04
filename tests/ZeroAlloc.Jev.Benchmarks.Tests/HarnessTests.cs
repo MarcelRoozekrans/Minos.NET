@@ -36,6 +36,14 @@ public sealed class HarnessTests : IAsyncLifetime
     }
 
     [Fact]
+    public void Options_parse_the_rotation()
+    {
+        var options = CompareOptions.Parse(["--base-url", "http://127.0.0.1:5005", "--out", "results", "--rotation", "3"], "default");
+
+        Assert.Equal(3, options.Rotation);
+    }
+
+    [Fact]
     public void Options_default_the_machine_name_and_a_full_run()
     {
         var options = CompareOptions.Parse(["--base-url", "http://127.0.0.1:5005", "--out", "results"], "HOST-1");
@@ -43,6 +51,7 @@ public sealed class HarnessTests : IAsyncLifetime
         Assert.False(options.Smoke);
         Assert.Null(options.Cores);
         Assert.Null(options.MockCores);
+        Assert.Null(options.Rotation);
         Assert.Equal("HOST-1", options.Machine);
         Assert.Equal("dotnet-HOST-1.json", options.ResultFileName);
     }
@@ -56,6 +65,8 @@ public sealed class HarnessTests : IAsyncLifetime
     [InlineData("--base-url", "http://127.0.0.1:5005", "--out", "results", "--fast")]
     [InlineData("--base-url", "http://127.0.0.1:5005", "--out", "results", "--mock-cores", "x")]
     [InlineData("--base-url", "http://127.0.0.1:5005", "--out", "results", "--mock-cores")]
+    [InlineData("--base-url", "http://127.0.0.1:5005", "--out", "results", "--rotation", "-1")]
+    [InlineData("--base-url", "http://127.0.0.1:5005", "--out", "results", "--rotation", "x")]
     public void Options_reject_a_wrong_command_line(params string[] args)
     {
         Assert.Throws<ArgumentException>(() => CompareOptions.Parse(args, "default"));
@@ -147,17 +158,69 @@ public sealed class HarnessTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task The_latency_loop_makes_the_warm_up_and_timed_calls_one_request_each()
+    public async Task The_latency_rounds_count_every_clients_calls_against_the_mock()
     {
         using var counter = new MockRequestCounter(BaseAddress);
-        using var adapter = ClientAdapters.Create(ClientAdapters.Raw, BaseAddress);
+        using var raw = ClientAdapters.Create(ClientAdapters.Raw, BaseAddress);
+        using var jev = ClientAdapters.Create(ClientAdapters.Jev, BaseAddress);
 
-        var run = await LatencyRunner.RunAsync(adapter, warmupCalls: 5, timedCalls: 20, CancellationToken.None);
+        var runs = await LatencyRunner.RunRoundsAsync([raw, jev], warmupCalls: 3, rounds: 4, callsPerRound: 5, rotation: 1, counter.CountAsync, CancellationToken.None);
 
-        Assert.Equal(25, run.Calls);
-        Assert.Equal(25, await counter.CountAsync(CancellationToken.None));
-        Assert.True(run.Latency.Mean > 0);
-        Assert.True(run.Latency.P50 <= run.Latency.P99);
+        // Each client: 3 warm-up calls, then 4 rounds of 5 timed calls.
+        Assert.Equal([ClientAdapters.Raw, ClientAdapters.Jev], runs.Keys.Order(StringComparer.Ordinal));
+        Assert.All(runs.Values, run =>
+        {
+            Assert.Equal(23, run.Calls);
+            Assert.True(run.Latency.Mean > 0);
+            Assert.True(run.Latency.P50 <= run.Latency.P99);
+        });
+        Assert.Equal(46, await counter.CountAsync(CancellationToken.None));
+    }
+
+    [Theory]
+    [InlineData(3, 0, 0, new[] { 0, 1, 2 })]
+    [InlineData(3, 1, 0, new[] { 1, 2, 0 })]
+    [InlineData(3, 2, 0, new[] { 2, 0, 1 })]
+    [InlineData(3, 3, 0, new[] { 0, 1, 2 })]
+    [InlineData(3, 0, 2, new[] { 2, 0, 1 })]
+    [InlineData(5, 7, 4, new[] { 1, 2, 3, 4, 0 })]
+    public void The_order_rotates_by_round_from_the_rotation(int count, int round, int rotation, int[] expected)
+    {
+        Assert.Equal(expected, LatencyRunner.Order(count, round, rotation));
+    }
+
+    [Fact]
+    public async Task The_latency_rounds_interleave_the_clients_and_pool_each_ones_times()
+    {
+        var calls = new List<string>();
+        using var a = new RecordingAdapter("a", calls);
+        using var b = new RecordingAdapter("b", calls);
+        using var c = new RecordingAdapter("c", calls);
+
+        var runs = await LatencyRunner.RunRoundsAsync(
+            [a, b, c], warmupCalls: 1, rounds: 3, callsPerRound: 2, rotation: 1, _ => Task.FromResult((long)calls.Count), CancellationToken.None);
+
+        // The warm-up runs in round 0's order; then round r starts at client (1 + r) mod 3, each client making 2 calls.
+        Assert.Equal(
+            ["b", "c", "a", "b", "b", "c", "c", "a", "a", "c", "c", "a", "a", "b", "b", "a", "a", "b", "b", "c", "c"],
+            calls);
+        Assert.All(runs.Values, run => Assert.Equal(7, run.Calls));
+    }
+
+    [Fact]
+    public async Task A_client_whose_requests_differ_from_its_calls_fails_the_latency_rounds_by_name()
+    {
+        var calls = new List<string>();
+        using var good = new RecordingAdapter("good", calls);
+        using var retrying = new RecordingAdapter("retrying", calls);
+
+        // Every call of "retrying" shows up as two requests at the mock.
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => LatencyRunner.RunRoundsAsync(
+            [good, retrying], warmupCalls: 0, rounds: 2, callsPerRound: 3, rotation: 0,
+            _ => Task.FromResult<long>(calls.Sum(name => string.Equals(name, "retrying", StringComparison.Ordinal) ? 2 : 1)),
+            CancellationToken.None));
+
+        Assert.StartsWith("retrying: the latency rounds made 6 calls but the mock served 12 requests.", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -190,7 +253,49 @@ public sealed class HarnessTests : IAsyncLifetime
         Assert.False(second.TryGetProperty("note", out _));
     }
 
+    [Fact]
+    public void The_result_file_records_the_order_after_the_results()
+    {
+        var file = new ResultFile(
+            new MachineInfo("box", "Linux", "CPU", "2026-10-04T00:00:00Z", 30000, null, null),
+            [new ClientResult("jev-net", "Jev.Net", "0.4.0", ".NET", "10.0.0", new LatencyFigures(1, 1, 2), 8000, 16, 1024)])
+        {
+            Order = new MeasurementOrder(20, 100, 2, ["jevsharp", "typesafe-ai-sdk", "jev-net", "zeroalloc-jev", "raw-httpclient"]),
+        };
+
+        using var json = JsonDocument.Parse(file.ToJson());
+        var order = json.RootElement.GetProperty("order");
+
+        Assert.Equal(["machine", "results", "order"], json.RootElement.EnumerateObject().Select(p => p.Name));
+        Assert.Equal(["latencyRounds", "callsPerRound", "rotation", "throughput"], order.EnumerateObject().Select(p => p.Name));
+        Assert.Equal("jevsharp", order.GetProperty("throughput")[0].GetString());
+    }
+
     public async Task InitializeAsync() => _server = await MockHost.StartAsync(0, ResponsePath, CancellationToken.None);
 
     public async Task DisposeAsync() => await _server.DisposeAsync();
+
+    // A client that answers at once and records each call, for checking the order without a server.
+    private sealed class RecordingAdapter(string client, List<string> calls) : IClientAdapter
+    {
+        public string Client => client;
+
+        public string Library => client;
+
+        public string Version => "1.0.0";
+
+        public string? Note => null;
+
+        public ValueTask<CallOutcome> CallAsync(CancellationToken cancellationToken)
+        {
+            calls.Add(client);
+            return ValueTask.FromResult(new CallOutcome(LooksUpBooking: true, Workload.TravelsSoonNoul));
+        }
+
+        public Task<WorkloadAnswers> AskAsync(CancellationToken cancellationToken) => throw new NotSupportedException();
+
+        public void Dispose()
+        {
+        }
+    }
 }
