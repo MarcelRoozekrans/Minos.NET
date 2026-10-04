@@ -1,5 +1,28 @@
 # Changelog
 
+## [0.5.0](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/compare/v0.4.0...v0.5.0) (2026-10-04)
+
+
+### Features
+
+* **benchmarks:** add reusable comparison runners, a physical-core split and a merge script that turns every harness's results into Markdown tables ([c3382a5](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/c3382a582c1558dccf33f0cfdd1902c90edbe6e5))
+* **benchmarks:** compare ZeroAlloc.Jev with a hand-written HttpClient client, JevSharp, TypeSafe.AI.Sdk, Jev.Net and TypeSafe's official JS and Python SDKs against one local Kestrel mock ([c3382a5](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/c3382a582c1558dccf33f0cfdd1902c90edbe6e5))
+
+
+### Bug Fixes
+
+* **core:** read the package version from the release manifest, mark builds that are not releases as -local, and fail the build when the manifest has no semantic version ([c3382a5](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/c3382a582c1558dccf33f0cfdd1902c90edbe6e5))
+
+
+### Documentation
+
+* **docs:** publish the client comparison from three CI runs in the performance guide ([c3382a5](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/c3382a582c1558dccf33f0cfdd1902c90edbe6e5))
+
+
+### Dependencies
+
+* **deps:** adopt ZeroAlloc.Rest 3.2.1, which drops about 384 B of per-call transport allocations, and tighten every Native AOT allocation budget to match ([c3382a5](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/c3382a582c1558dccf33f0cfdd1902c90edbe6e5))
+
 ## [0.4.0](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/compare/v0.3.3...v0.4.0) (2026-10-04)
 
 
