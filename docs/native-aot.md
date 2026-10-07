@@ -89,14 +89,21 @@ The checks run the real client over a canned HTTP handler. They cover:
 ### The whole-assembly check: is anything unsafe
 
 A publish only analyses what the program reaches, so the smoke application cannot vouch for a member that no check
-calls. The `aot-surface` job closes that gap. It publishes `samples/ZeroAlloc.Jev.AotSurface` with `PublishAot` and full
-trimming, and roots `ZeroAlloc.Jev` and `ZeroAlloc.Jev.DependencyInjection` whole through `TrimmerRootAssembly`. The
-compiler then analyses every member of both packages, called or not. The host is rooted as well, and it holds a
-`[JevQuestions]` set with a Noul, a Choice and a Score, so the code the generator writes is analysed in full too.
+calls. The `aot-surface` job closes that gap. It publishes `samples/ZeroAlloc.Jev.AotSurface` with `PublishAot` and
+full trimming, and roots `ZeroAlloc.Jev` and `ZeroAlloc.Jev.DependencyInjection` whole through `TrimmerRootAssembly`.
 
-Every `IL2xxx` and `IL3xxx` warning is an error, so a single trimming or AOT hazard anywhere in the public API fails the
-job. The host is only published and never run, because the publish is the check. A hazard that nothing calls fails the
-build all the same, which was confirmed by adding a never-called method that looks a type up by name.
+Rooting analyses every non-generic member of both packages, called or not, and every generic member the compiler can
+share across reference types. A value-type generic has no such shared form, so rooting alone skips it. That covers
+`Choice<T>`, `Score<T>` and the other generics over an enum, whose type parameter is `where T : struct, Enum`. The host
+therefore instantiates every public generic type and generic method of both packages over its own types, and the
+compiler analyses them through those instantiations. A test in `tests/ZeroAlloc.Jev.AotSmoke.Tests` fails when a public
+generic is not instantiated in the host. The host is rooted as well. Its `[JevQuestions]` sets, one with a Noul, a
+Choice and a Score and one with a typed state, mean the code the generator writes is analysed in full too.
+
+Every `IL2xxx` and `IL3xxx` warning is an error, so a trimming or AOT hazard in the public API fails the job. The host
+is only published and never run, because the publish is the check. A hazard that nothing calls fails the build all the
+same. That was confirmed by looking a type up by name in a never-called method, and again inside a generic method and
+a member of a generic type over an enum.
 
 ### The coverage rule: does the smoke application leave anything out
 
