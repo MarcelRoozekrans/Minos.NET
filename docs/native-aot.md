@@ -118,8 +118,9 @@ test says why for each:
 - property and indexer accessors, fields, constants and enum members, which are covered through their types;
 - operators, including implicit conversions, which are syntax over methods that count;
 - the `Equals(object)`, `GetHashCode()` and `ToString()` overrides;
-- the members the compiler writes for a record class: `<Clone>$`, `Deconstruct`, `PrintMembers` and `Equals(T)`. The
-  `Equals(T)` of a struct is declared in the code, so it does count.
+- the members the compiler writes for a record, such as `<Clone>$`, `Deconstruct`, `PrintMembers` and `Equals(T)`.
+  The test recognises them by the `[CompilerGenerated]` attribute the compiler puts on them, not by name, so a record
+  member written by hand, and the `Equals(T)` of a struct, do count.
 
 Every other entry point has to be declared. A smoke check carries one `[Covers]` attribute per entry point it calls,
 spelled as its line in the `PublicAPI` file. The test fails in four cases:
@@ -133,7 +134,8 @@ spelled as its line in the `PublicAPI` file. The test fails in four cases:
 A **default interface method** of `IJevClient` is an entry point too, and the rule for it is stricter. Calling it
 through a client resolved from a container proves nothing, because that client may override it and the default body
 would never run. A check counts for a default interface method only when the receiver is known from the code to be a
-type that does not override it. The smoke application keeps `DimFallbackClient` for this, a client that implements only
+type that does not override it: either its own type, or the type its local was created as, when nothing assigns that
+local again. The smoke application keeps `DimFallbackClient` for this, a client that implements only
 the abstract members, and every check of a default method runs on it and asserts what reached the abstract member.
 
 The rule is about reach, not about correctness: it shows that the code binds to the entry point and that `Main` runs the
