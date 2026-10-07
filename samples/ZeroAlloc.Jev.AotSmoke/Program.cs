@@ -13,9 +13,9 @@ internal static class Program
     internal const string NoulResponse = """{"model":"jev-1.13.0","answers":{"is_urgent":{"type":"noul","noul":0.95}},"usage":{"input_tokens":296,"output_tokens":20}}""";
     internal const string ModelsResponse = """{"models":[{"name":"jev-latest","description":"The most recent stable, official release.","release_date":"2026-09-15"}]}""";
     internal const string ValidationResponse = """{"detail":"questions.is_urgent.instructions is required"}""";
-    private const string TriageAnswers = """{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}}""";
+    internal const string TriageAnswers = """{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}}""";
     internal const string TriageResponse = """{"model":"jev-1.13.0","answers":{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}},"usage":{"input_tokens":296,"output_tokens":20}}""";
-    private const string CredentialsResponse = """{"model":"jev-1.13.0","answers":{"requests_credentials":{"type":"noul","noul":0.1}},"usage":{"input_tokens":296,"output_tokens":20}}""";
+    internal const string CredentialsResponse = """{"model":"jev-1.13.0","answers":{"requests_credentials":{"type":"noul","noul":0.1}},"usage":{"input_tokens":296,"output_tokens":20}}""";
 
     private static int failures;
 
@@ -45,6 +45,42 @@ internal static class Program
         await TelemetryChecks.TypedEvaluationRecordsItsMetrics().ConfigureAwait(false);
         await TelemetryChecks.FailedEvaluationIsAnError().ConfigureAwait(false);
         await TelemetryChecks.CancelledEvaluationSetsErrorTypeWithoutItsMessage().ConfigureAwait(false);
+        await DependencyInjectionChecks.ClientsConfiguredFromTheEnvironmentEvaluate().ConfigureAwait(false);
+
+        // One group per public type, so together with the checks above every public entry point runs under Native AOT.
+        await JevClientChecks.ClientsThatOwnTheirHttpClientRefuseCallsAfterDispose().ConfigureAwait(false);
+        await JevClientChecks.ClientOverAnHttpClientReadsTheKeyFromTheEnvironment().ConfigureAwait(false);
+        await JevClientChecks.BuiltSetEvaluatesWithACancellationToken().ConfigureAwait(false);
+        await JevClientChecks.TypedTextStateEvaluatesWithACancellationToken().ConfigureAwait(false);
+        await JevClientChecks.TypedJsonStateEvaluates().ConfigureAwait(false);
+        await JevClientChecks.TypedUtf8StateEvaluates().ConfigureAwait(false);
+        await JevClientChecks.TypedStateEvaluatesWithACancellationToken().ConfigureAwait(false);
+        await IJevClientChecks.AbstractMembersRunThroughTheInterface().ConfigureAwait(false);
+        await IJevClientChecks.TypedDefaultMethodsParseAnswers().ConfigureAwait(false);
+        await IJevClientChecks.TypedStateDefaultMethodsParseAnswers().ConfigureAwait(false);
+        await IJevClientChecks.BuiltSetDefaultMethodsReadAnswers().ConfigureAwait(false);
+        JevClientOptionsChecks.ValidateAcceptsValidOptionsAndRejectsInvalidOnes();
+        JevContentChecks.TextContentRoundTrips();
+        JevContentChecks.JsonContentRoundTrips();
+        JevCriterionChecks.NotForTextsAreSentWithTheDescription();
+        QuestionSetBuilderChecks.NoulCriteriaAndUndescribedKeyedOptionsAreSent();
+        await QuestionHandleChecks.DefaultHandlesAreRejected().ConfigureAwait(false);
+        NoulChecks.EmptyNoulIsFalse();
+        ChoiceChecks.ChoiceIsRebuiltAndCompared();
+        ScoreChecks.ScoreIsRebuiltAndCompared();
+        ProbabilityMapChecks.ProbabilityMapEnumeratesAndCompares();
+        await KeyedChoiceChecks.KeyedChoiceIsRebuiltAndCompared().ConfigureAwait(false);
+        await KeyedScoreChecks.KeyedScoreIsRebuiltAndCompared().ConfigureAwait(false);
+        await KeyedProbabilityMapChecks.KeyedProbabilityMapEnumeratesAndCompares().ConfigureAwait(false);
+        ConfidenceThresholdsChecks.DefaultThresholdsEqualTheirExplicitValues();
+        JevErrorChecks.HandBuiltErrorCarriesItsKindAndMessage();
+        JevQuestionFailureChecks.HandBuiltFailureEqualsTheReportedOne();
+        await SystemOneModelChecks.HandBuiltQuestionsAreSent().ConfigureAwait(false);
+        await SystemOneModelChecks.HandBuiltModelCardEqualsTheListedOne().ConfigureAwait(false);
+        QuestionAttributeChecks.AttributesKeepWhatTheyAreGiven();
+        JevAnswerReaderChecks.MissingAnswerNamesTheQuestion();
+        JevOptionSetChecks.HandWrittenOptionSetMapsOptions();
+        IJevQuestionSetChecks.ParseRunsThroughTheInterface();
 
         AllocationChecks.GeneratedParse();
         AllocationChecks.ReadNoul();
@@ -329,10 +365,10 @@ internal static class Program
             "a built enum Choice keys an aliased value by its first declared name, email, under Native AOT");
     }
 
-    private static HttpClient Http(HttpStatusCode status, string body)
+    internal static HttpClient Http(HttpStatusCode status, string body)
         => new(new CannedHandler(status, body)) { BaseAddress = new Uri("https://example.test/api/") };
 
-    private static JevClientOptions Options(JevProvider provider = JevProvider.TypeSafe)
+    internal static JevClientOptions Options(JevProvider provider = JevProvider.TypeSafe)
         => new() { ApiKey = "smoke-key", Provider = provider };
 
     internal static SystemOneRequest Request() => new()
