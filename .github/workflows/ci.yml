@@ -131,10 +131,12 @@ jobs:
   aot-surface:
     runs-on: ubuntu-latest
     # Publishes samples/ZeroAlloc.Jev.AotSurface with PublishAot=true and TrimMode=full. It roots ZeroAlloc.Jev and
-    # ZeroAlloc.Jev.DependencyInjection whole through TrimmerRootAssembly, so ILC analyses every public member, not
-    # only the ones aot-smoke calls, plus the code the generator emits for one question set. Every IL2xxx/IL3xxx
-    # warning is an error, so any trim or AOT hazard anywhere in the public API fails the job. The publish is the
-    # check; the binary is not run.
+    # ZeroAlloc.Jev.DependencyInjection whole through TrimmerRootAssembly, so ILC analyses their members, not only the
+    # ones aot-smoke calls, plus the code the generator emits for the host's question sets. Rooting reaches every
+    # non-generic member and every generic one ILC can share across reference types; value-type generics, such as
+    # Choice<T> over an enum, are analysed through the host's instantiations of every public generic type and method,
+    # which SurfaceGenericsTests keeps complete. Every IL2xxx/IL3xxx warning is an error, so a trim or AOT hazard in
+    # the public API fails the job. The publish is the check; the binary is not run.
     steps:
       - uses: actions/checkout@v7
         with:
