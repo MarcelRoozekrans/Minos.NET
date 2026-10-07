@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using ZeroAlloc.TestHelpers;
 
 namespace ZeroAlloc.Jev.Tests;
 
@@ -183,17 +184,18 @@ public sealed class JevAnswersTests
         _ = answers.Get(product);
         _ = answers.Get(effort);
 
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        for (var i = 0; i < 1000; i++)
-        {
-            _ = answers.Get(noul);
-            _ = answers.Get(department);
-            _ = answers.Get(frustration);
-            _ = answers.Get(product);
-            _ = answers.Get(effort);
-        }
-
-        Assert.Equal(before, GC.GetAllocatedBytesForCurrentThread());
+        AllocationGate.AssertBudget(
+            0,
+            1000,
+            () =>
+            {
+                _ = answers.Get(noul);
+                _ = answers.Get(department);
+                _ = answers.Get(frustration);
+                _ = answers.Get(product);
+                _ = answers.Get(effort);
+            },
+            "AnswersGet");
     }
 
     [Fact]

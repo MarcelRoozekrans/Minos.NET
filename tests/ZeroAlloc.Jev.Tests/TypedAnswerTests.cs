@@ -1,5 +1,6 @@
 using System.ComponentModel;
 using System.Reflection;
+using ZeroAlloc.TestHelpers;
 
 namespace ZeroAlloc.Jev.Tests;
 
@@ -61,16 +62,15 @@ public sealed class TypedAnswerTests
         _ = first.Equals(second);
         _ = comparer.Equals(first, second);
 
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        for (var i = 0; i < 1000; i++)
-        {
-            _ = first.Equals(second);
-            _ = comparer.Equals(first, second);
-        }
-
-        var after = GC.GetAllocatedBytesForCurrentThread();
-
-        Assert.Equal(before, after);
+        AllocationGate.AssertBudget(
+            0,
+            1000,
+            () =>
+            {
+                _ = first.Equals(second);
+                _ = comparer.Equals(first, second);
+            },
+            "NoulEquals");
     }
 
     [Fact]
@@ -188,15 +188,14 @@ public sealed class TypedAnswerTests
         // Warm up the JIT before measuring.
         _ = map[Color.Green];
 
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        for (var i = 0; i < 1000; i++)
-        {
-            _ = map[Color.Green];
-        }
-
-        var after = GC.GetAllocatedBytesForCurrentThread();
-
-        Assert.Equal(before, after);
+        AllocationGate.AssertBudget(
+            0,
+            1000,
+            () =>
+            {
+                _ = map[Color.Green];
+            },
+            "ProbabilityMapIndexer");
     }
 
     [Fact]
@@ -208,15 +207,14 @@ public sealed class TypedAnswerTests
         // Warm up the JIT before measuring.
         _ = first.Equals(second);
 
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        for (var i = 0; i < 1000; i++)
-        {
-            _ = first.Equals(second);
-        }
-
-        var after = GC.GetAllocatedBytesForCurrentThread();
-
-        Assert.Equal(before, after);
+        AllocationGate.AssertBudget(
+            0,
+            1000,
+            () =>
+            {
+                _ = first.Equals(second);
+            },
+            "ProbabilityMapEquals");
     }
 
     [Fact]
@@ -229,15 +227,14 @@ public sealed class TypedAnswerTests
         // Warm up the JIT before measuring.
         _ = first.Equals(second);
 
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        for (var i = 0; i < 1000; i++)
-        {
-            _ = first.Equals(second);
-        }
-
-        var after = GC.GetAllocatedBytesForCurrentThread();
-
-        Assert.Equal(before, after);
+        AllocationGate.AssertBudget(
+            0,
+            1000,
+            () =>
+            {
+                _ = first.Equals(second);
+            },
+            "ChoiceEquals");
     }
 
     [Fact]
@@ -250,15 +247,14 @@ public sealed class TypedAnswerTests
         // Warm up the JIT before measuring.
         _ = first.Equals(second);
 
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        for (var i = 0; i < 1000; i++)
-        {
-            _ = first.Equals(second);
-        }
-
-        var after = GC.GetAllocatedBytesForCurrentThread();
-
-        Assert.Equal(before, after);
+        AllocationGate.AssertBudget(
+            0,
+            1000,
+            () =>
+            {
+                _ = first.Equals(second);
+            },
+            "ScoreEquals");
     }
 
     [Fact]
