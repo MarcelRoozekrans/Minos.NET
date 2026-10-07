@@ -13,13 +13,23 @@ public sealed class EntryPointCoverageTests
     private static readonly string[] Packages = ["ZeroAlloc.Jev", "ZeroAlloc.Jev.DependencyInjection"];
 
     [Fact]
-    public void The_rebuilt_smoke_compilation_has_no_errors()
+    public void The_rebuilt_smoke_compilation_has_no_warnings_or_errors_like_the_real_build()
     {
         var smoke = SmokeCompilation.Instance;
 
+        // The real build treats warnings as errors and succeeded, so it had neither; the rebuild must agree.
         Assert.True(smoke.GeneratorCount > 0, "No source generator was loaded from the smoke app's analyzers.");
         Assert.Empty(smoke.GeneratorErrors.Select(diagnostic => diagnostic.ToString()));
-        Assert.Empty(smoke.Errors.Select(diagnostic => diagnostic.ToString()));
+        Assert.Empty(smoke.Diagnostics.Select(diagnostic => diagnostic.ToString()));
+    }
+
+    [Fact]
+    public void The_rebuilt_smoke_compilation_generates_the_files_the_real_build_did()
+    {
+        var smoke = SmokeCompilation.Instance;
+
+        Assert.NotEmpty(smoke.BuildGeneratedFiles);
+        Assert.Equal(smoke.BuildGeneratedFiles, smoke.GeneratedFiles);
     }
 
     [Fact]
