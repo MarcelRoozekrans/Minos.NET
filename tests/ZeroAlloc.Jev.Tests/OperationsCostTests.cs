@@ -19,7 +19,9 @@ public sealed class OperationsCostTests(ITestOutputHelper output)
 
     // Each figure is the median of five runs. Yielding runs vary in both directions: a runtime thread allocating during the
     // loop adds bytes, and a continuation that finds a pooled buffer still cached saves some. So the difference of two such
-    // figures can dip a few bytes below zero; the AOT smoke app's disabled-logger check allows the same 8 B.
+    // figures can dip below zero: measuring the proxied call against itself over 300 fresh runs on 2026-10-07 gave -1 to
+    // +1 B/call. The 8 B allowed below zero matches the AOT smoke app's disabled-logger check. Both hand-rolled yielding
+    // helpers, BytesPerCallAsync here and MeasureYieldingAsync there, and their 8 B tolerances are tracked in #104.
     private const int NoiseBytes = 8;
 
     private static readonly Uri Endpoint = new("https://api.typesafe.ai/");

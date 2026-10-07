@@ -253,10 +253,12 @@ internal static class AllocationChecks
         Console.WriteLine($"     yielding EvaluateAsync B/call: no factory {unlogged}, NullLoggerFactory {disabled}, discarding logger {enabled}");
 
         // The tolerance absorbs the spread that remains once the pools are stocked. It is observed, not attributed: a
-        // settled window still moves by 904 to 1384 B, about 2 to 3 B/call, from run to run, and over 296 fresh runs in
-        // #79's investigation the medians of the two sides differed by -8 to +4 B/call. The counter has to be
+        // settled window still moves by 904 to 1384 B, about 2 to 3 B/call, from run to run. The counter has to be
         // process-wide, since the continuations hop pool threads, so it would also count any runtime thread's allocation.
-        // 8 B is twice the largest observed excess. A wrapper's state machine is hundreds of bytes per call.
+        // 8 B was twice the largest excess over 296 fresh runs in #79's investigation, +4 B/call. Over 800 fresh runs of
+        // the published win-x64 app on 2026-10-07, the medians of the two sides differed by -7 to +10 B/call, 95% of
+        // them within -2 to +2, and the one run at +10 failed this check. #104 tracks the tolerance and this helper's
+        // replacement. A wrapper's state machine is hundreds of bytes per call.
         Program.Check(
             disabled - unlogged <= 8,
             "a NullLoggerFactory adds no allocation to an asynchronously completing EvaluateAsync");
