@@ -234,6 +234,8 @@ budget. Re-measured under published win-x64 AOT on 2026-10-04, three runs, every
   `NullLoggerFactory` and 5843 B with the discarding logger, against 5254 B, 5254 B and about 5730 B in Phase 3.2.
 - The relative gates against a hand-built client, and the `NullLoggerFactory` comparison, are the known flaky ones
   tracked in #79. In two of the three runs they failed by under 25 B, the same pattern as before.
+- Phase 5.3 traced these increases, #68, to the measurement, not the library: see
+  [Phase 5.3](#phase-53--the-allocation-creep).
 
 **ZeroAlloc.Rest 3.2.1.** Release 3.2.1 of ZeroAlloc.Rest removes the per-call allocations its generated transport made
 even when nothing listened (#95). It adds `Accept` with `TryAddWithoutValidation` instead of a new header value, guards
@@ -268,6 +270,51 @@ next 64 B:
   `HttpClient` client; its Bytes/call column has the figures.
 
 [aot-smoke-run]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37207773054
+
+### Phase 5.3 — The allocation creep
+
+Phase 5.1 recorded figures above Phase 3's: about 20 B more per call on the synchronous paths, and 5363 B against
+5254 B on the yielding call with no logger factory. Phase 5.3 traced this, #68. **No path got more expensive.** The
+extra bytes were the measurement's own: a refill of pools that the measuring loop had emptied.
+
+**The cause.** The measuring loops warmed up and then forced gen2 collections. Each gen2 collection runs
+`ArrayPool.Shared`'s trim. Once the machine's memory load passes 90% of the runtime's high-load threshold, which this
+machine's had by Phase 5.1, the trim drops every pooled array, including the ones the warm-up had just rented. The first
+measured calls then rented them again:
+- `byte[16384]`, `byte[4096]` and 152 B, 20680 B in all on the raw `EvaluateAsync`, or about 21 B per call over 1000
+  calls. Other paths paid 1 to 42 B per call, depending on which pooled arrays they rent, and paths that rent none,
+  such as the answer readers and `Build`, paid nothing.
+- On the yielding check, the refill was 20680 B over 500 calls, 41.4 B per call. Its 100-call warm-up also left some
+  pool threads' own array slots empty, so a window could rent up to two more 16 KB arrays, 33.1 B per call each.
+  Together, 5254 + 41.4 + 66.2 = 5362 B, the 5363 B that Phase 5.1 recorded.
+
+The order of the measuring loops is the fix: collect first and wait for the trim to finish, then warm up, then measure.
+Jev's own helpers have measured that way since Phase 5.3, #79, and the yielding check now warms up for 2000 calls.
+ZeroAlloc.TestHelpers 1.5.1 fixed `AllocationGate` the same way, TestHelpers#62, and Jev pins it, so every gate now
+reads the path's true cost.
+
+**The trace.** The smoke app of each phase merge on `main` since Phase 3.2 was published under win-x64 Native AOT with
+the fixed measuring order patched in, three runs each. Every figure was the same in every run:
+
+| Merge | Raw call | DI-resolved | Typed call | Built set | Yielding, no factory | Yielding, telemetry off |
+|---|---|---|---|---|---|---|
+| Phase 3.2 to Phase 5.1, seven merges | 4312 B | 4376 B | 3368 B | 3656 B | 5250 to 5256 B | 4565 to 4568 B |
+| Phase 5.2, ZeroAlloc.Rest 3.2.1 | 3928 B | 3992 B | 2984 B | 3272 B | 4870 to 4872 B | 4181 to 4184 B |
+
+- The DI-resolved column starts at Phase 3.3, which added it.
+- The listening gates and the other synchronous gates follow the same pattern: flat through Phase 5.1, then down by
+  exactly 384 B at Phase 5.2, or unchanged where the path makes no HTTP call.
+- The old measuring order on the Phase 5.1 merge reads 4396.68 B per call on the DI-resolved client, the 4397 B
+  Phase 5.1 recorded. The true cost there was 4376 B, Phase 3.3's figure.
+- So the only change since Phase 3 is ZeroAlloc.Rest 3.2.1's saving of 384 B per call.
+
+**Today.** Under published win-x64 AOT on 2026-10-07, five runs, through ZeroAlloc.TestHelpers 1.5.1, every
+`AllocationGate` gate measures exactly the figure its comment records, with the same total over 1000 calls in every
+run. The yielding telemetry-off check measures 4181 to 4185 B against the 4184 B its comment records.
+
+The budgets stay as they are. Each is already the true cost plus about 10%, rounded up to the next 64 B, so no budget
+can be tightened under that rule. `GeneratedParse` is the exception: it stays below the rule, at 192 B over 176 B, for
+the reason its comment gives.
 
 ## Comparison
 
