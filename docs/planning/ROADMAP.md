@@ -246,13 +246,21 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-04-phase-5.2-benchmark-suite.md`
 **Completed:** 2026-10-04
 
-### Phase 5.3: Live, AOT and alias verification [status: pending]
-**Goal:** Pass the TypeSafe live suite and record its Retry-After and 422 behaviour, check the `jev-latest` and `jev-preview` aliases live, verify AOT and trim across the whole API, and close #68, #73, #74 and #79.
+### Phase 5.3: AOT, trim and measurement verification [status: complete]
+**Goal:** Root both packages in a full-trim Native AOT publish with no IL2xxx or IL3xxx warnings, require the AOT smoke app to exercise every public entry point, fix the flaky allocation gates at their cause, and trace the allocation creep; closes #68, #73, #74 and #79.
+**Surface:** Infra
+**HelpWanted:** no
+**Spec:** `docs/superpowers/specs/2026-10-04-phase-5.3-aot-and-measurement-verification-design.md`
+**Plan:** `docs/superpowers/plans/2026-10-04-phase-5.3-aot-and-measurement-verification.md`
+**Completed:** 2026-10-07
+
+### Phase 5.4: Live and alias verification [status: pending]
+**Goal:** Pass the TypeSafe live suite with a real key, record whether TypeSafe sends Retry-After and what its 422 body looks like, and check the `jev-latest` and `jev-preview` aliases live on both providers. Starts when the maintainer has a TypeSafe key.
 **Surface:** Infra
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 5.4: 1.0 release [status: pending]
+### Phase 5.5: 1.0 release [status: pending]
 **Goal:** Add the NuGet publishing workflow (#29), cut 1.0.0 through release-please, state the version in the guide and README, then add api-compat (#28) against the 1.0.0 package.
 **Surface:** Infra
 **HelpWanted:** no

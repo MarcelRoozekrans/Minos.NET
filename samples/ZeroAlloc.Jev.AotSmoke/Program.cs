@@ -13,9 +13,9 @@ internal static class Program
     internal const string NoulResponse = """{"model":"jev-1.13.0","answers":{"is_urgent":{"type":"noul","noul":0.95}},"usage":{"input_tokens":296,"output_tokens":20}}""";
     internal const string ModelsResponse = """{"models":[{"name":"jev-latest","description":"The most recent stable, official release.","release_date":"2026-09-15"}]}""";
     internal const string ValidationResponse = """{"detail":"questions.is_urgent.instructions is required"}""";
-    private const string TriageAnswers = """{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}}""";
+    internal const string TriageAnswers = """{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}}""";
     internal const string TriageResponse = """{"model":"jev-1.13.0","answers":{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}},"usage":{"input_tokens":296,"output_tokens":20}}""";
-    private const string CredentialsResponse = """{"model":"jev-1.13.0","answers":{"requests_credentials":{"type":"noul","noul":0.1}},"usage":{"input_tokens":296,"output_tokens":20}}""";
+    internal const string CredentialsResponse = """{"model":"jev-1.13.0","answers":{"requests_credentials":{"type":"noul","noul":0.1}},"usage":{"input_tokens":296,"output_tokens":20}}""";
 
     private static int failures;
 
@@ -45,6 +45,43 @@ internal static class Program
         await TelemetryChecks.TypedEvaluationRecordsItsMetrics().ConfigureAwait(false);
         await TelemetryChecks.FailedEvaluationIsAnError().ConfigureAwait(false);
         await TelemetryChecks.CancelledEvaluationSetsErrorTypeWithoutItsMessage().ConfigureAwait(false);
+        await DependencyInjectionChecks.ClientsConfiguredFromTheEnvironmentEvaluate().ConfigureAwait(false);
+
+        // One group per public type, so together with the checks above every public entry point runs under Native AOT.
+        await JevClientChecks.ClientsThatOwnTheirHttpClientRefuseCallsAfterDispose().ConfigureAwait(false);
+        await JevClientChecks.ClientOverAnHttpClientReadsTheKeyFromTheEnvironment().ConfigureAwait(false);
+        await JevClientChecks.BuiltSetEvaluatesWithACancellationToken().ConfigureAwait(false);
+        await JevClientChecks.TypedTextStateEvaluatesWithACancellationToken().ConfigureAwait(false);
+        await JevClientChecks.TypedJsonStateEvaluates().ConfigureAwait(false);
+        await JevClientChecks.TypedUtf8StateEvaluates().ConfigureAwait(false);
+        await JevClientChecks.TypedStateEvaluatesWithACancellationToken().ConfigureAwait(false);
+        await IJevClientChecks.AbstractMembersRunThroughTheInterface().ConfigureAwait(false);
+        await IJevClientChecks.RequestDefaultMethodPassesTheRequestOn().ConfigureAwait(false);
+        await IJevClientChecks.TypedDefaultMethodsSendTheStateAndParseAnswers().ConfigureAwait(false);
+        await IJevClientChecks.TypedStateDefaultMethodsSendTheStateAndParseAnswers().ConfigureAwait(false);
+        await IJevClientChecks.BuiltSetDefaultMethodsSendTheStateAndReadAnswers().ConfigureAwait(false);
+        JevClientOptionsChecks.ValidateAcceptsValidOptionsAndRejectsInvalidOnes();
+        JevContentChecks.TextContentRoundTrips();
+        JevContentChecks.JsonContentRoundTrips();
+        JevCriterionChecks.NotForTextsAreSentWithTheDescription();
+        QuestionSetBuilderChecks.NoulCriteriaAndUndescribedKeyedOptionsAreSent();
+        await QuestionHandleChecks.DefaultHandlesAreRejected().ConfigureAwait(false);
+        NoulChecks.EmptyNoulIsFalse();
+        ChoiceChecks.ChoiceIsRebuiltAndCompared();
+        ScoreChecks.ScoreIsRebuiltAndCompared();
+        ProbabilityMapChecks.ProbabilityMapEnumeratesAndCompares();
+        await KeyedChoiceChecks.KeyedChoiceIsRebuiltAndCompared().ConfigureAwait(false);
+        await KeyedScoreChecks.KeyedScoreIsRebuiltAndCompared().ConfigureAwait(false);
+        await KeyedProbabilityMapChecks.KeyedProbabilityMapEnumeratesAndCompares().ConfigureAwait(false);
+        ConfidenceThresholdsChecks.DefaultThresholdsEqualTheirExplicitValues();
+        JevErrorChecks.HandBuiltErrorCarriesItsKindAndMessage();
+        JevQuestionFailureChecks.HandBuiltFailureEqualsTheReportedOne();
+        await SystemOneModelChecks.HandBuiltQuestionsAreSent().ConfigureAwait(false);
+        await SystemOneModelChecks.HandBuiltModelCardEqualsTheListedOne().ConfigureAwait(false);
+        QuestionAttributeChecks.AttributesKeepWhatTheyAreGiven();
+        JevAnswerReaderChecks.MissingAnswerNamesTheQuestion();
+        JevOptionSetChecks.HandWrittenOptionSetMapsOptions();
+        IJevQuestionSetChecks.ParseRunsThroughTheInterface();
 
         AllocationChecks.GeneratedParse();
         AllocationChecks.ReadNoul();
@@ -75,6 +112,11 @@ internal static class Program
         return failures == 0 ? 0 : 1;
     }
 
+    [Covers("ZeroAlloc.Jev.JevClient.JevClient(System.Net.Http.HttpClient! httpClient, ZeroAlloc.Jev.JevClientOptions? options) -> void")]
+    [Covers("ZeroAlloc.Jev.JevClient.EvaluateAsync(ZeroAlloc.Jev.SystemOneRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.SystemOneResponse!, ZeroAlloc.Jev.JevError!>>")]
+    [Covers("ZeroAlloc.Jev.JevClientOptions.JevClientOptions() -> void")]
+    [Covers("ZeroAlloc.Jev.SystemOneRequest.SystemOneRequest() -> void")]
+    [Covers("ZeroAlloc.Jev.NoulQuestion.NoulQuestion() -> void")]
     private static async Task EvaluateParsesAnswers()
     {
         using var http = Http(HttpStatusCode.OK, NoulResponse);
@@ -100,6 +142,7 @@ internal static class Program
             "a 422 maps to Validation with its JSON detail");
     }
 
+    [Covers("ZeroAlloc.Jev.JevClient.ListModelsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.ModelList!, ZeroAlloc.Jev.JevError!>>")]
     private static async Task ListModelsReturnsModels()
     {
         using var http = Http(HttpStatusCode.OK, ModelsResponse);
@@ -143,6 +186,8 @@ internal static class Program
         Check(result.IsSuccess && handler.Calls == 2, "a 503 is retried through the resilience proxy");
     }
 
+    [Covers("static ZeroAlloc.Jev.JevAnswerReader.EnsureStartObject(ref System.Text.Json.Utf8JsonReader reader) -> void")]
+    [Covers("static ZeroAlloc.Jev.JevAnswerReader.NextProperty(ref System.Text.Json.Utf8JsonReader reader) -> bool")]
     private static void GeneratedQuestionSetRoundTrips()
     {
         using var questions = JsonDocument.Parse(SmokeTriage.QuestionsUtf8.ToArray());
@@ -161,6 +206,7 @@ internal static class Program
             "the generated Parse reads typed answers");
     }
 
+    [Covers("static ZeroAlloc.Jev.JevCriterion.Json(ZeroAlloc.Jev.JevContent json) -> ZeroAlloc.Jev.JevCriterion!")]
     private static void StructuredQuestionSetRoundTrips()
     {
         using var generated = JsonDocument.Parse(SmokeStructured.QuestionsUtf8.ToArray());
@@ -184,12 +230,13 @@ internal static class Program
             "a JevCriterion.Json description is sent as JSON");
     }
 
+    [Covers("ZeroAlloc.Jev.JevClient.EvaluateAsync<T>(string! state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>")]
     private static async Task TypedEvaluateAsyncParsesAnswers()
     {
         using var http = Http(HttpStatusCode.OK, TriageResponse);
         using var client = new JevClient(http, Options());
 
-        var result = await client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days.").ConfigureAwait(false);
+        var result = await client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State).ConfigureAwait(false);
 
         Check(
             result.IsSuccess
@@ -199,11 +246,12 @@ internal static class Program
             "EvaluateAsync<T>(string) parses typed answers over the raw, pooled-buffer path");
     }
 
+    [Covers("ZeroAlloc.Jev.JevClient.EvaluateAsync<T, TState>(TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>")]
     private static async Task TypedEvaluateAsyncWithTStateParsesAnswers()
     {
         using var http = Http(HttpStatusCode.OK, CredentialsResponse);
         using var client = new JevClient(http, Options());
-        var state = new SmokeState("Payouts failing", "Help! My payouts have been failing for 3 days.");
+        var state = new SmokeState("Payouts failing", SmokeAnswers.State);
 
         var result = await client.EvaluateAsync<SmokeStateTriage, SmokeState>(state, SmokeStateJsonContext.Default.SmokeState).ConfigureAwait(false);
 
@@ -212,6 +260,12 @@ internal static class Program
             "EvaluateAsync<T, TState>(state, stateTypeInfo) parses typed answers over the raw, pooled-buffer path");
     }
 
+    [Covers("ZeroAlloc.Jev.IJevClient.EvaluateAsync<T>(string! state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>")]
+    [Covers("ZeroAlloc.Jev.SystemOneResponse.SystemOneResponse() -> void")]
+    [Covers("ZeroAlloc.Jev.NoulAnswer.NoulAnswer() -> void")]
+    [Covers("ZeroAlloc.Jev.ChoiceAnswer.ChoiceAnswer() -> void")]
+    [Covers("ZeroAlloc.Jev.ScoreAnswer.ScoreAnswer() -> void")]
+    [Covers("ZeroAlloc.Jev.JevUsage.JevUsage() -> void")]
     private static async Task DefaultInterfaceMethodFallbackParsesAnswers()
     {
         // DimFallbackClient implements only IJevClient's two abstract members, so this call runs the interface's
@@ -240,7 +294,7 @@ internal static class Program
             Usage = new JevUsage { InputTokens = 296, OutputTokens = 20 },
         });
 
-        var result = await client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days.").ConfigureAwait(false);
+        var result = await client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State).ConfigureAwait(false);
 
         Check(
             result.IsSuccess
@@ -250,6 +304,22 @@ internal static class Program
             "the default interface method fallback parses typed answers under Native AOT");
     }
 
+    [Covers("static ZeroAlloc.Jev.JevQuestionSet.CreateBuilder() -> ZeroAlloc.Jev.JevQuestionSetBuilder!")]
+    [Covers("ZeroAlloc.Jev.JevQuestionSetBuilder.Build() -> ZeroAlloc.Results.Result<ZeroAlloc.Jev.JevQuestionSet!, ZeroAlloc.Jev.JevError!>")]
+    [Covers("ZeroAlloc.Jev.JevQuestionSetBuilder.Noul(string! key, ZeroAlloc.Jev.JevContent instructions, out ZeroAlloc.Jev.NoulHandle question) -> ZeroAlloc.Jev.JevQuestionSetBuilder!")]
+    [Covers("ZeroAlloc.Jev.JevQuestionSetBuilder.Choice<T>(string! key, ZeroAlloc.Jev.JevContent instructions, out ZeroAlloc.Jev.ChoiceHandle<T> question, System.Action<ZeroAlloc.Jev.ChoiceOptionsBuilder<T>!>! configure) -> ZeroAlloc.Jev.JevQuestionSetBuilder!")]
+    [Covers("ZeroAlloc.Jev.JevQuestionSetBuilder.Choice(string! key, ZeroAlloc.Jev.JevContent instructions, out ZeroAlloc.Jev.KeyedChoiceHandle question, System.Action<ZeroAlloc.Jev.KeyedChoiceOptionsBuilder!>! configure) -> ZeroAlloc.Jev.JevQuestionSetBuilder!")]
+    [Covers("ZeroAlloc.Jev.JevQuestionSetBuilder.Score<T>(string! key, ZeroAlloc.Jev.JevContent instructions, out ZeroAlloc.Jev.ScoreHandle<T> question, System.Action<ZeroAlloc.Jev.ScoreLevelsBuilder<T>!>! configure) -> ZeroAlloc.Jev.JevQuestionSetBuilder!")]
+    [Covers("ZeroAlloc.Jev.ChoiceOptionsBuilder<T>.Describe(T option, ZeroAlloc.Jev.JevCriterion! criterion) -> ZeroAlloc.Jev.ChoiceOptionsBuilder<T>!")]
+    [Covers("ZeroAlloc.Jev.KeyedChoiceOptionsBuilder.Option(string! key, ZeroAlloc.Jev.JevCriterion! criterion) -> ZeroAlloc.Jev.KeyedChoiceOptionsBuilder!")]
+    [Covers("ZeroAlloc.Jev.ScoreLevelsBuilder<T>.Level(T level, ZeroAlloc.Jev.JevCriterion! criterion) -> ZeroAlloc.Jev.ScoreLevelsBuilder<T>!")]
+    [Covers("static ZeroAlloc.Jev.JevCriterion.Text(string! description) -> ZeroAlloc.Jev.JevCriterion!")]
+    [Covers("ZeroAlloc.Jev.JevCriterion.WithExamples(params System.ReadOnlySpan<string?> examples) -> ZeroAlloc.Jev.JevCriterion!")]
+    [Covers("ZeroAlloc.Jev.JevClient.EvaluateAsync(ZeroAlloc.Jev.JevQuestionSet! questionSet, ZeroAlloc.Jev.JevContent state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.JevAnswers!, ZeroAlloc.Jev.JevError!>>")]
+    [Covers("ZeroAlloc.Jev.JevAnswers.Get(ZeroAlloc.Jev.NoulHandle question) -> ZeroAlloc.Jev.Noul")]
+    [Covers("ZeroAlloc.Jev.JevAnswers.Get(ZeroAlloc.Jev.KeyedChoiceHandle question) -> ZeroAlloc.Jev.KeyedChoice")]
+    [Covers("ZeroAlloc.Jev.JevAnswers.Get<T>(ZeroAlloc.Jev.ChoiceHandle<T> question) -> ZeroAlloc.Jev.Choice<T>")]
+    [Covers("ZeroAlloc.Jev.JevAnswers.Get<T>(ZeroAlloc.Jev.ScoreHandle<T> question) -> ZeroAlloc.Jev.Score<T>")]
     private static async Task BuiltQuestionSetEvaluates()
     {
         var set = SmokeBuiltSet.Full(out var credentials, out var team, out var product, out var urgency);
@@ -258,7 +328,7 @@ internal static class Program
         using var http = Http(HttpStatusCode.OK, SmokeBuiltSet.ResponseJson);
         using var client = new JevClient(http, Options());
 
-        var result = await client.EvaluateAsync(set, "Help! My payouts have been failing for 3 days.").ConfigureAwait(false);
+        var result = await client.EvaluateAsync(set, SmokeAnswers.State).ConfigureAwait(false);
 
         Check(
             result.IsSuccess
@@ -276,6 +346,7 @@ internal static class Program
             "a built question set that breaks a rule fails with its JEV id");
     }
 
+    [Covers("ZeroAlloc.Jev.JevQuestionSetBuilder.Choice<T>(string! key, ZeroAlloc.Jev.JevContent instructions, out ZeroAlloc.Jev.ChoiceHandle<T> question) -> ZeroAlloc.Jev.JevQuestionSetBuilder!")]
     private static async Task BuiltEnumChoiceReadsTheFieldsInDeclarationOrder()
     {
         var set = SmokeBuiltSet.AliasedChoice(out var channel);
@@ -295,15 +366,15 @@ internal static class Program
             "a built enum Choice keys an aliased value by its first declared name, email, under Native AOT");
     }
 
-    private static HttpClient Http(HttpStatusCode status, string body)
+    internal static HttpClient Http(HttpStatusCode status, string body)
         => new(new CannedHandler(status, body)) { BaseAddress = new Uri("https://example.test/api/") };
 
-    private static JevClientOptions Options(JevProvider provider = JevProvider.TypeSafe)
+    internal static JevClientOptions Options(JevProvider provider = JevProvider.TypeSafe)
         => new() { ApiKey = "smoke-key", Provider = provider };
 
     internal static SystemOneRequest Request() => new()
     {
-        State = "Help! My payouts have been failing for 3 days.",
+        State = SmokeAnswers.State,
         Questions = new Dictionary<string, JevQuestion>(StringComparer.Ordinal)
         {
             ["is_urgent"] = new NoulQuestion { Instructions = "Does this convey urgency?" },

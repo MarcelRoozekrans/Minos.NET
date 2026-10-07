@@ -19,7 +19,9 @@ public sealed class OperationsCostTests(ITestOutputHelper output)
 
     // Each figure is the median of five runs. Yielding runs vary in both directions: a runtime thread allocating during the
     // loop adds bytes, and a continuation that finds a pooled buffer still cached saves some. So the difference of two such
-    // figures can dip a few bytes below zero; the AOT smoke app's disabled-logger check allows the same 8 B.
+    // figures can dip below zero: measuring the proxied call against itself over 300 fresh runs on 2026-10-07 gave -1 to
+    // +1 B/call. The 8 B allowed below zero matches the AOT smoke app's disabled-logger check. Both hand-rolled yielding
+    // helpers, BytesPerCallAsync here and MeasureYieldingAsync there, and their 8 B tolerances are tracked in #104.
     private const int NoiseBytes = 8;
 
     private static readonly Uri Endpoint = new("https://api.typesafe.ai/");
@@ -102,16 +104,20 @@ public sealed class OperationsCostTests(ITestOutputHelper output)
         Assert.InRange(unwrap, -NoiseBytes, UnwrapHeadroomBytes);
     }
 
-    // Bytes per call over 2000 sequential awaited calls, after 200 to warm up.
+    // Bytes per call over 2000 sequential awaited calls, after 200 to warm up. The heap is settled before the warm-up,
+    // not after it: a forced gen2 GC lets ArrayPool.Shared trim the arrays the warm-up rented, and the measured calls
+    // would then pay to rent them again. The same order fixes ZeroAlloc.TestHelpers' AllocationGate, TestHelpers#62.
     private static async Task<long> BytesPerCallAsync(Func<Task> call)
     {
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
         for (var i = 0; i < 200; i++)
         {
             await call();
         }
 
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
         var before = GC.GetTotalAllocatedBytes(precise: true);
         for (var i = 0; i < 2000; i++)
         {

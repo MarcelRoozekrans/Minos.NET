@@ -21,7 +21,7 @@ internal static class AllocationChecks
     private const string ChoiceAnswerJson = """{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7}""";
     private const string ScoreAnswerJson = """{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}""";
     private const string TriageAnswersJson = """{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}}""";
-    // The iteration count of every synchronous gate and of SynchronousBytesPerCall, so the helper measures as the gates do.
+    // The iteration count of every synchronous gate, the relative ones included.
     private const int GateIterations = 1000;
 
     private const string NoulResponseJson = """{"model":"jev-1.13.0","answers":{"is_urgent":{"type":"noul","noul":0.95}},"usage":{"input_tokens":296,"output_tokens":20}}""";
@@ -49,6 +49,7 @@ internal static class AllocationChecks
     }
 
     /// <summary><see cref="JevAnswerReader.ReadNoul"/> over a fixed Noul answer.</summary>
+    [Covers("static ZeroAlloc.Jev.JevAnswerReader.ReadNoul(ref System.Text.Json.Utf8JsonReader reader) -> ZeroAlloc.Jev.Noul")]
     public static void ReadNoul()
     {
         var answer = Encoding.UTF8.GetBytes(NoulAnswerJson);
@@ -67,6 +68,7 @@ internal static class AllocationChecks
     }
 
     /// <summary><see cref="JevAnswerReader.ReadChoice{T}"/> into a caller-owned buffer.</summary>
+    [Covers("static ZeroAlloc.Jev.JevAnswerReader.ReadChoice<T>(ref System.Text.Json.Utf8JsonReader reader, ZeroAlloc.Jev.JevOptionSet<T>! options, double[]! buffer, int offset) -> ZeroAlloc.Jev.Choice<T>")]
     public static void ReadChoice()
     {
         var answer = Encoding.UTF8.GetBytes(ChoiceAnswerJson);
@@ -86,6 +88,7 @@ internal static class AllocationChecks
     }
 
     /// <summary><see cref="JevAnswerReader.ReadScore{T}"/> into a caller-owned buffer.</summary>
+    [Covers("static ZeroAlloc.Jev.JevAnswerReader.ReadScore<T>(ref System.Text.Json.Utf8JsonReader reader, ZeroAlloc.Jev.JevOptionSet<T>! options, double[]! buffer, int offset) -> ZeroAlloc.Jev.Score<T>")]
     public static void ReadScore()
     {
         var answer = Encoding.UTF8.GetBytes(ScoreAnswerJson);
@@ -115,7 +118,7 @@ internal static class AllocationChecks
         using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
         var request = new SystemOneRequest
         {
-            State = "Help! My payouts have been failing for 3 days.",
+            State = SmokeAnswers.State,
             Questions = new Dictionary<string, JevQuestion>(StringComparer.Ordinal)
             {
                 ["is_urgent"] = new NoulQuestion { Instructions = "Does this convey urgency?" },
@@ -154,7 +157,7 @@ internal static class AllocationChecks
         // headroom over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
         GateValueTask(
             budgetBytes: 3328,
-            action: () => client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days."),
+            action: () => client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State),
             label: "TypedEvaluateRoundTrip",
             passDescription: "EvaluateAsync<T> stays within its allocation budget");
     }
@@ -249,11 +252,15 @@ internal static class AllocationChecks
         var enabled = await MedianYieldingAsync(NoulResponseJson, DiscardingLoggerFactory.Instance, evaluate).ConfigureAwait(false);
         Console.WriteLine($"     yielding EvaluateAsync B/call: no factory {unlogged}, NullLoggerFactory {disabled}, discarding logger {enabled}");
 
-        // The tolerance absorbs measurement noise: a single run can sit tens of bytes per call above or below the usual
-        // figure, which the median of five runs removes, leaving a few bytes. A wrapper's state machine is hundreds of
-        // bytes per call.
+        // The tolerance absorbs the spread that remains once the pools are stocked. It is observed, not attributed: a
+        // settled window still moves by 904 to 1384 B, about 2 to 3 B/call, from run to run. The counter has to be
+        // process-wide, since the continuations hop pool threads, so it would also count any runtime thread's allocation.
+        // Over 800 fresh runs of the published win-x64 app on 2026-10-07, the medians of the two sides differed by -7 to
+        // +10 B/call, 95% of them within -2 to +2. An earlier 8 B tolerance failed the one run at +10, so the tolerance
+        // is 16 B: above the largest excess seen, and far below what it guards against, since a logging wrapper's state
+        // machine adds hundreds of bytes per call. #104 tracks the tolerance and this helper's replacement.
         Program.Check(
-            disabled - unlogged <= 8,
+            disabled - unlogged <= 16,
             "a NullLoggerFactory adds no allocation to an asynchronously completing EvaluateAsync");
         Program.Check(
             enabled - unlogged > 0,
@@ -261,8 +268,8 @@ internal static class AllocationChecks
     }
 
     // The median of five runs. Yielding runs vary in both directions: a runtime thread allocating during the loop adds
-    // bytes, and a continuation that lands where a pooled buffer is still cached saves some. The least of several runs
-    // is therefore biased low and lets one lucky run set a baseline; the median ignores an outlier on either side.
+    // bytes, and one that allocated less than usual saves some. The least of several runs is therefore biased low and
+    // lets one lucky run set a baseline; the median ignores an outlier on either side.
     private static async Task<long> MedianYieldingAsync<TResult>(
         string responseJson, ILoggerFactory? loggerFactory, Func<JevClient, ValueTask<TResult>> call)
     {
@@ -279,10 +286,18 @@ internal static class AllocationChecks
 
     // Bytes allocated per awaited call over a handler that yields, on any thread, since the continuation does not run on
     // the caller's. The loop is sequential, so nothing else allocates meanwhile but the runtime. call is created once by
-    // the caller, so invoking it allocates nothing per call.
+    // the caller, so invoking it allocates nothing per call. ZeroAlloc.TestHelpers has no equivalent: its ValueTask
+    // measurements throw unless every call completes synchronously, and they count the calling thread only.
+    //
+    // The order matters, part of #79. A forced gen2 GC runs ArrayPool.Shared's trim, which under high machine memory load
+    // drops every pooled array, so the collections come first and wait for that trim, and the warm-up comes after them; a
+    // collection after the warm-up made the window pay for the refill, about 41 B/call. The warm-up is long because the
+    // pool keeps one array per size in each thread's own slot, and the continuations rotate over several pool threads: 100
+    // calls left some threads unstocked, so a window still rented fresh 16 KB arrays, 0 to 2 per window, up to 66 B/call.
     private static async Task<long> MeasureYieldingAsync<TResult>(
         string responseJson, ILoggerFactory? loggerFactory, Func<JevClient, ValueTask<TResult>> call)
     {
+        const int WarmupIterations = 2000;
         const int YieldingIterations = 500;
         using var http = new HttpClient(new YieldingHandler(HttpStatusCode.OK, responseJson))
         {
@@ -290,13 +305,15 @@ internal static class AllocationChecks
         };
         using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" }, loggerFactory);
 
-        for (var i = 0; i < 100; i++)
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        for (var i = 0; i < WarmupIterations; i++)
         {
             _ = await call(client).ConfigureAwait(false);
         }
 
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
         var before = GC.GetTotalAllocatedBytes(precise: true);
         for (var i = 0; i < YieldingIterations; i++)
         {
@@ -304,42 +321,6 @@ internal static class AllocationChecks
         }
 
         return (GC.GetTotalAllocatedBytes(precise: true) - before) / YieldingIterations;
-    }
-
-    // Stands in for a measuring API requested from ZeroAlloc.TestHelpers: its AllocationGate only asserts a budget and
-    // returns no figure, and a relative gate needs the figure. ZeroAlloc-Net/ZeroAlloc.TestHelpers#56 tracks it; replace this
-    // with that API when it ships.
-    //
-    // Bytes allocated per call over synchronously completing calls, measured as AssertBudgetValueTask measures them: two
-    // warm-up calls, a full collection, then GateIterations calls that must each complete synchronously. It returns the
-    // ceiling, (total + iterations - 1) / iterations, so a budget of that figure times the gate's GateIterations is never
-    // below the measured total, and a hand-built client whose total is not a multiple of GateIterations cannot fail a gate
-    // against itself.
-    private static long SynchronousBytesPerCall<T>(Func<ValueTask<T>> call)
-    {
-        Drain(call());
-        Drain(call());
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
-        GC.Collect();
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        for (var i = 0; i < GateIterations; i++)
-        {
-            Drain(call());
-        }
-
-        var total = GC.GetAllocatedBytesForCurrentThread() - before;
-        return (total + GateIterations - 1) / GateIterations;
-
-        static void Drain(ValueTask<T> pending)
-        {
-            if (!pending.IsCompletedSuccessfully)
-            {
-                throw new InvalidOperationException("The call did not complete synchronously, so its measurement would include awaiter machinery.");
-            }
-
-            _ = pending.Result;
-        }
     }
 
     // EvaluateRoundTrip's call, the same canned response and Program.Request(), through a logging client.
@@ -366,15 +347,16 @@ internal static class AllocationChecks
 
         GateValueTask(
             budgetBytes,
-            () => client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days."),
+            () => client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State),
             label,
             passDescription);
     }
 
     /// <summary><see cref="JevContent.FromValue{T}(T, System.Text.Json.Serialization.Metadata.JsonTypeInfo{T})"/> over the smoke state.</summary>
+    [Covers("static ZeroAlloc.Jev.JevContent.FromValue<T>(T value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo) -> ZeroAlloc.Jev.JevContent")]
     public static void ContentFromValue()
     {
-        var state = new SmokeState("Payouts failing", "Help! My payouts have been failing for 3 days.");
+        var state = new SmokeState("Payouts failing", SmokeAnswers.State);
 
         // Measured 280 B/call on published win-x64 AOT: JsonSerializer.SerializeToElement serializes SmokeState's
         // Subject and Body strings and builds a JsonDocument over the result, which JevContent then wraps without
@@ -389,6 +371,7 @@ internal static class AllocationChecks
     }
 
     /// <summary><see cref="JevContent.FromUtf8Json(ReadOnlySpan{byte})"/> over a fixed object.</summary>
+    [Covers("static ZeroAlloc.Jev.JevContent.FromUtf8Json(System.ReadOnlySpan<byte> utf8Json) -> ZeroAlloc.Jev.JevContent")]
     public static void ContentFromUtf8Json()
     {
         var json = Encoding.UTF8.GetBytes("""{"message":"Please send me your password","channel":"email"}""");
@@ -437,7 +420,7 @@ internal static class AllocationChecks
         // the next multiple of 64 B, per the Phase 1.8 rule.
         GateValueTask(
             budgetBytes: 3648,
-            action: () => client.EvaluateAsync(set, "Help! My payouts have been failing for 3 days."),
+            action: () => client.EvaluateAsync(set, SmokeAnswers.State),
             label: "EvaluateBuiltSetRoundTrip",
             passDescription: "EvaluateAsync over a built set stays within its allocation budget");
     }
@@ -477,6 +460,11 @@ internal static class AllocationChecks
     /// The pattern helpers on parsed answers: <see cref="ConfidenceThresholds.Classify"/>, <c>Score.Normalized</c> and
     /// <c>KeyedScore.Normalized</c>. Each is arithmetic over the answer struct, so the budget is 0 B.
     /// </summary>
+    [Covers("ZeroAlloc.Jev.ConfidenceThresholds.Classify(double confidence) -> ZeroAlloc.Jev.ConfidenceTier")]
+    [Covers("ZeroAlloc.Jev.ConfidenceThresholds.ConfidenceThresholds(double medium, double high) -> void")]
+    [Covers("ZeroAlloc.Jev.JevQuestionSetBuilder.Score(string! key, ZeroAlloc.Jev.JevContent instructions, out ZeroAlloc.Jev.KeyedScoreHandle question, System.Action<ZeroAlloc.Jev.KeyedScoreLevelsBuilder!>! configure) -> ZeroAlloc.Jev.JevQuestionSetBuilder!")]
+    [Covers("ZeroAlloc.Jev.KeyedScoreLevelsBuilder.Level(ZeroAlloc.Jev.JevCriterion! criterion) -> ZeroAlloc.Jev.KeyedScoreLevelsBuilder!")]
+    [Covers("ZeroAlloc.Jev.JevAnswers.Get(ZeroAlloc.Jev.KeyedScoreHandle question) -> ZeroAlloc.Jev.KeyedScore")]
     public static void PatternHelpers()
     {
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, SmokeBuiltSet.ResponseJson))
@@ -523,6 +511,8 @@ internal static class AllocationChecks
     /// <see cref="Noul.Equals(Noul)"/> on parsed answers, directly and through <see cref="EqualityComparer{T}.Default"/>.
     /// <see cref="Noul"/> implements <see cref="IEquatable{T}"/>, so neither path boxes and the budget is 0 B.
     /// </summary>
+    [Covers("ZeroAlloc.Jev.Noul.Equals(ZeroAlloc.Jev.Noul other) -> bool")]
+    [Covers("ZeroAlloc.Jev.Noul.Noul(double probability) -> void")]
     public static void NoulEquals()
     {
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, SmokeBuiltSet.ResponseJson))
@@ -555,6 +545,7 @@ internal static class AllocationChecks
     /// hand-built client over an <see cref="HttpClient"/> that <see cref="JevClient.ConfigureHttpClient"/> configured the
     /// same way. Registration and the first resolve happen once and are not budgeted.
     /// </summary>
+    [Covers("static ZeroAlloc.Jev.JevClient.ConfigureHttpClient(System.Net.Http.HttpClient! httpClient, ZeroAlloc.Jev.JevClientOptions? options) -> void")]
     public static void EvaluateRoundTripThroughDependencyInjection()
     {
         var services = new ServiceCollection();
@@ -568,18 +559,12 @@ internal static class AllocationChecks
         using var handBuilt = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
         var request = Program.Request();
 
-        // Both figures are ceilings from SynchronousBytesPerCall, so neither side of the comparison is truncated.
-        var byHand = SynchronousBytesPerCall(() => handBuilt.EvaluateAsync(request));
-        var byContainer = SynchronousBytesPerCall(() => resolved.EvaluateAsync(request));
-        Console.WriteLine($"     EvaluateAsync B/call on a hand-built client over a configured HttpClient: {byHand}");
-        Console.WriteLine($"     EvaluateAsync B/call on a DI-resolved client: {byContainer}");
-
-        // DI adds nothing per call: the hand-built client's own measurement is the budget.
-        GateValueTask(
-            budgetBytes: (int)byHand,
-            action: () => resolved.EvaluateAsync(request),
-            label: "EvaluateRoundTripThroughDependencyInjectionAgainstHandBuilt",
-            passDescription: "EvaluateAsync through a DI-resolved client allocates no more than through a hand-built one");
+        // DI adds nothing per call: the hand-built client's own total in this run is the budget.
+        RelativeGateValueTask(
+            () => handBuilt.EvaluateAsync(request),
+            () => resolved.EvaluateAsync(request),
+            "EvaluateRoundTripThroughDependencyInjectionAgainstHandBuilt",
+            "EvaluateAsync through a DI-resolved client allocates no more than through a hand-built one");
 
         // Measured 3992 B/call on published win-x64 AOT: EvaluateRoundTrip's call plus the User-Agent header the factory's
         // HttpClient sends, and nothing from the container or the factory, whose request logging AddJevClient removes.
@@ -609,16 +594,11 @@ internal static class AllocationChecks
         using var handBuilt = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
         var request = Program.Request();
 
-        var byHand = SynchronousBytesPerCall(() => handBuilt.EvaluateAsync(request));
-        var byBinding = SynchronousBytesPerCall(() => resolved.EvaluateAsync(request));
-        Console.WriteLine($"     EvaluateAsync B/call on a hand-built client over a configured HttpClient: {byHand}");
-        Console.WriteLine($"     EvaluateAsync B/call on a client bound from configuration: {byBinding}");
-
-        GateValueTask(
-            budgetBytes: (int)byHand,
-            action: () => resolved.EvaluateAsync(request),
-            label: "EvaluateRoundTripThroughBoundConfigurationAgainstHandBuilt",
-            passDescription: "EvaluateAsync through a client bound from configuration allocates no more than through a hand-built one");
+        RelativeGateValueTask(
+            () => handBuilt.EvaluateAsync(request),
+            () => resolved.EvaluateAsync(request),
+            "EvaluateRoundTripThroughBoundConfigurationAgainstHandBuilt",
+            "EvaluateAsync through a client bound from configuration allocates no more than through a hand-built one");
     }
 
     /// <summary>
@@ -656,7 +636,7 @@ internal static class AllocationChecks
         // Phase 1.8 rule.
         GateValueTask(
             budgetBytes: 5056,
-            action: () => client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days."),
+            action: () => client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State),
             label: "TypedEvaluateRoundTripWhileListening",
             passDescription: "EvaluateAsync<T> while listening stays within its allocation budget");
         Program.Check(telemetry.Measurements > 0, "the discarding listeners received measurements, so EvaluateAsync<T> ran the listening path");
@@ -676,7 +656,7 @@ internal static class AllocationChecks
         // per the Phase 1.8 rule.
         GateValueTask(
             budgetBytes: 5376,
-            action: () => client.EvaluateAsync(set, "Help! My payouts have been failing for 3 days."),
+            action: () => client.EvaluateAsync(set, SmokeAnswers.State),
             label: "EvaluateBuiltSetRoundTripWhileListening",
             passDescription: "EvaluateAsync over a built set while listening stays within its allocation budget");
         Program.Check(telemetry.Measurements > 0, "the discarding listeners received measurements, so the built set ran the listening path");
@@ -720,6 +700,25 @@ internal static class AllocationChecks
         try
         {
             AllocationGate.AssertBudgetValueTask(budgetBytes, GateIterations, action, label);
+            Program.Check(true, passDescription);
+        }
+        catch (InvalidOperationException exception)
+        {
+            Program.Check(false, exception.Message);
+        }
+    }
+
+    // A relative gate: candidate's total over GateIterations calls may not exceed baseline's, both measured in this run.
+    // AllocationGate compares the totals, so neither side is rounded and there is no headroom to hide a byte. Since
+    // ZeroAlloc.TestHelpers 1.5.1 it settles the heap before its warm-up, so both totals are the calls' true cost, the
+    // same in every run; 1.5.0 collected after the warm-up and measured a refill of the pools that collection emptied,
+    // which made these gates flaky, #79.
+    private static void RelativeGateValueTask<T>(
+        Func<ValueTask<T>> baseline, Func<ValueTask<T>> candidate, string label, string passDescription)
+    {
+        try
+        {
+            AllocationGate.AssertNoMoreThanValueTask(GateIterations, baseline, candidate, label);
             Program.Check(true, passDescription);
         }
         catch (InvalidOperationException exception)

@@ -34,7 +34,7 @@
         is a global property for the whole build, not a pack setting: the version is compiled into every assembly's
         informational version, and so into the User-Agent and the telemetry version. So it must reach the build that
         compiles the DLLs as well as the pack, or the pack must build them itself. A dotnet pack with no-build after a
-        build without it ships release-numbered packages whose DLLs still say -local. Phase 5.4's publishing workflow
+        build without it ships release-numbered packages whose DLLs still say -local. Phase 5.5's publishing workflow
         passes it to both its build and its pack for a tagged release; nothing else should.
       - AssemblyVersion and FileVersion stay numeric, <major>.<minor>.<patch>.0, whichever build it is.
     -->

@@ -28,4 +28,7 @@
     <!-- ConfigurationBuilder and AddInMemoryCollection, so binding through AddJevClient runs under Native AOT. -->
     <PackageReference Include="Microsoft.Extensions.Configuration" />
   </ItemGroup>
+
+  <!-- Writes the compiler inputs the entry-point coverage test rebuilds this compilation from. -->
+  <Import Project="../JevCompileInputs.targets" />
 </Project>

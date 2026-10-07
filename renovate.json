@@ -31,6 +31,12 @@
       "allowedVersions": "[1.11.0]"
     },
     {
+      "description": "pydantic pins pydantic_core to one exact version, so pydantic_core can only move together with pydantic. Renovate updated it alone in #100, to 2.49.0, which no published pydantic accepts, and the benchmark requirements stopped installing. benchmarks/compare-py/requirements.txt is a full pip freeze: move pydantic, then regenerate the file.",
+      "matchFileNames": ["benchmarks/compare-py/requirements.txt"],
+      "matchPackageNames": ["pydantic_core", "pydantic-core"],
+      "enabled": false
+    },
+    {
       "description": "Group ZeroAlloc packages; they are this library's external dependencies",
       "matchPackageNames": ["ZeroAlloc.{/,}**"],
       "groupName": "ZeroAlloc"

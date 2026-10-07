@@ -17,9 +17,11 @@
     <Project Path="tests/ZeroAlloc.Jev.PackTests/ZeroAlloc.Jev.PackTests.csproj" />
     <Project Path="tests/ZeroAlloc.Jev.Samples.Tests/ZeroAlloc.Jev.Samples.Tests.csproj" />
     <Project Path="tests/ZeroAlloc.Jev.Benchmarks.Tests/ZeroAlloc.Jev.Benchmarks.Tests.csproj" />
+    <Project Path="tests/ZeroAlloc.Jev.AotSmoke.Tests/ZeroAlloc.Jev.AotSmoke.Tests.csproj" />
   </Folder>
   <Folder Name="/samples/">
     <Project Path="samples/ZeroAlloc.Jev.AotSmoke/ZeroAlloc.Jev.AotSmoke.csproj" />
+    <Project Path="samples/ZeroAlloc.Jev.AotSurface/ZeroAlloc.Jev.AotSurface.csproj" />
     <Project Path="samples/ZeroAlloc.Jev.Samples.Shared/ZeroAlloc.Jev.Samples.Shared.csproj" />
     <Project Path="samples/ZeroAlloc.Jev.Samples.Guardrails/ZeroAlloc.Jev.Samples.Guardrails.csproj" />
     <Project Path="samples/ZeroAlloc.Jev.Samples.IntentRouting/ZeroAlloc.Jev.Samples.IntentRouting.csproj" />

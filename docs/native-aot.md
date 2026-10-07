@@ -2,7 +2,7 @@
 id: native-aot
 title: Native AOT and allocations
 sidebar_position: 8
-description: What it means that the Jev client is Native AOT compatible, the one reflection it uses, and the allocation budgets that guard it.
+description: What it means that the Jev client is Native AOT compatible, the one reflection it uses, how CI checks every public member, and the allocation budgets that guard it.
 ---
 
 # Native AOT and allocations
@@ -67,10 +67,14 @@ will not survive, and the warning names it.
 
 ## Where it is checked
 
+Three checks guard it, and each answers a different question.
+
+### The smoke application: does it run
+
 The repository holds a smoke application, `samples/ZeroAlloc.Jev.AotSmoke`. The `aot-smoke` job of the CI workflow
 publishes it with `PublishAot` and runs the native executable. The project treats every warning as an error, including
-the whole `IL2xxx` and `IL3xxx` range, so a trimming or AOT warning anywhere in the client fails the build. The program
-exits with a failure if any check fails.
+the whole `IL2xxx` and `IL3xxx` range, so a trimming or AOT warning anywhere in what the application uses fails the
+build. The program exits with a failure if any check fails.
 
 The checks run the real client over a canned HTTP handler. They cover:
 
@@ -81,6 +85,61 @@ The checks run the real client over a canned HTTP handler. They cover:
 - registering clients with [dependency injection](dependency-injection.md), and binding their options from
   configuration;
 - the allocation budgets in the next section.
+
+### The whole-assembly check: is anything unsafe
+
+A publish only analyses what the program reaches, so the smoke application cannot vouch for a member that no check
+calls. The `aot-surface` job closes that gap. It publishes `samples/ZeroAlloc.Jev.AotSurface` with `PublishAot` and
+full trimming, and roots `ZeroAlloc.Jev` and `ZeroAlloc.Jev.DependencyInjection` whole through `TrimmerRootAssembly`.
+
+Rooting analyses every non-generic member of both packages, called or not, and every generic member the compiler can
+share across reference types. A value-type generic has no such shared form, so rooting alone skips it. That covers
+`Choice<T>`, `Score<T>` and the other generics over an enum, whose type parameter is `where T : struct, Enum`. The host
+therefore instantiates every public generic type and generic method of both packages over its own types, and the
+compiler analyses them through those instantiations. A test in `tests/ZeroAlloc.Jev.AotSmoke.Tests` fails when a public
+generic is not instantiated in the host. The host is rooted as well. Its `[JevQuestions]` sets, one with a Noul, a
+Choice and a Score and one with a typed state, mean the code the generator writes is analysed in full too.
+
+Every `IL2xxx` and `IL3xxx` warning is an error, so a trimming or AOT hazard in the public API fails the job. The host
+is only published and never run, because the publish is the check. A hazard that nothing calls fails the build all the
+same. That was confirmed by looking a type up by name in a never-called method, and again inside a generic method and
+a member of a generic type over an enum.
+
+### The coverage rule: does the smoke application leave anything out
+
+The smoke application has to call everything a user can call, or its own pass says too little. The test project
+`tests/ZeroAlloc.Jev.AotSmoke.Tests` enforces that, and it runs with the rest of the test suite.
+
+An **entry point** is a public or protected method or constructor that you call. The list is read from the four
+`PublicAPI` files, so a new public member is an entry point the day it is added. These are not entry points, and the
+test says why for each:
+
+- type declarations, which are called through their constructors and methods;
+- property and indexer accessors, fields, constants and enum members, which are covered through their types;
+- operators, including implicit conversions, which are syntax over methods that count;
+- the `Equals(object)`, `GetHashCode()` and `ToString()` overrides;
+- the members the compiler writes for a record, such as `<Clone>$`, `Deconstruct`, `PrintMembers` and `Equals(T)`.
+  The test recognises them by the `[CompilerGenerated]` attribute the compiler puts on them, not by name, so a record
+  member written by hand, and the `Equals(T)` of a struct, do count.
+
+Every other entry point has to be declared. A smoke check carries one `[Covers]` attribute per entry point it calls,
+spelled as its line in the `PublicAPI` file. The test fails in four cases:
+
+- an entry point that no check declares;
+- a declaration that names no entry point, such as a stale line or a typo;
+- a check that declares something its code never calls. The test binds the check's code with the compiler's semantic
+  model, follows it into the smoke application's own helpers, and compares the symbols it finds;
+- a declaring check that `Main` does not run.
+
+A **default interface method** of `IJevClient` is an entry point too, and the rule for it is stricter. Calling it
+through a client resolved from a container proves nothing, because that client may override it and the default body
+would never run. A check counts for a default interface method only when the receiver is known from the code to be a
+type that does not override it: either its own type, or the type its local was created as, when nothing assigns that
+local again. The smoke application keeps `DimFallbackClient` for this, a client that implements only
+the abstract members, and every check of a default method runs on it and asserts what reached the abstract member.
+
+The rule is about reach, not about correctness: it shows that the code binds to the entry point and that `Main` runs the
+check, not that the call asserts the right thing.
 
 ## What the client allocates
 
@@ -133,12 +192,12 @@ regression cannot reach a release unnoticed.
 | `TypedEvaluateRoundTripWithEveryLevelFiltered` | A typed call with every log level filtered out. | 3328 |
 | `EvaluateRoundTripWithDiscardingLogger` | A raw call with every log level on. | 4352 |
 | `TypedEvaluateRoundTripWithDiscardingLogger` | A typed call with every log level on. | 3328 |
-| `EvaluateRoundTripThroughDependencyInjection` | A raw call through a client resolved from the container. | 4416 |
+| `EvaluateRoundTripThroughDependencyInjection` | A raw call through a client resolved from the container, and no more than a hand-built client's own measurement. | 4416 |
 | `EvaluateRoundTripWhileListening` | A raw call with a span and metric listener attached. | 5888 |
 | `TypedEvaluateRoundTripWhileListening` | A typed call with the listeners attached. | 5056 |
 | `EvaluateBuiltSetRoundTripWhileListening` | A built-set call with the listeners attached. | 5376 |
 | `EvaluateRoundTripThroughBoundConfiguration` | A raw call through a client bound from configuration, equal to a hand-built client's own measurement. | same as the hand-built client |
-| `DisabledLoggerAddsNothingWhereAnEnabledOneDoes` | Asynchronous calls with no factory, a null factory and an enabled logger. Checks the disabled ones add nothing. | no byte budget |
+| `DisabledLoggerAddsNothingWhereAnEnabledOneDoes` | Asynchronous calls with no factory, a null factory and an enabled logger. Checks the disabled ones add no more than 16 B per call, a tolerance for the noise of a process-wide counter ([#104](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/issues/104)). | no byte budget |
 | `TelemetryOffAsynchronousTypedEvaluation` | A typed call that completes asynchronously, with nothing listening. The median of five runs. | 4608 |
 
 The two logging rows with a logger that does nothing keep the budgets of the calls without one, because the client takes

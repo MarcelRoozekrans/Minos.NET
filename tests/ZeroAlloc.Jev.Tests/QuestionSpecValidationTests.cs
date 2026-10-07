@@ -1,5 +1,6 @@
 using System.Globalization;
 using ZeroAlloc.Jev.Validation;
+using ZeroAlloc.TestHelpers;
 using ZeroAlloc.Validation;
 
 namespace ZeroAlloc.Jev.Tests;
@@ -101,13 +102,7 @@ public sealed class QuestionSpecValidationTests
 
         foreach (var spec in specs)
         {
-            var before = GC.GetAllocatedBytesForCurrentThread();
-            for (var i = 0; i < 1000; i++)
-            {
-                _ = Validator.Validate(spec);
-            }
-
-            Assert.Equal(before, GC.GetAllocatedBytesForCurrentThread());
+            AllocationGate.AssertBudget(0, 1000, () => Validator.Validate(spec), "ValidateSpec");
         }
     }
 

@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      aot-smoke-runs:
+        description: How many times the aot-smoke job runs the published binary, stopping at the first failure
+        type: number
+        default: 1
 
 permissions:
   contents: read
@@ -102,7 +107,55 @@ jobs:
         run: dotnet publish samples/ZeroAlloc.Jev.AotSmoke/ZeroAlloc.Jev.AotSmoke.csproj -r linux-x64 -c Release -o ./aot-out
 
       - name: Run AOT binary
-        run: ./aot-out/ZeroAlloc.Jev.AotSmoke
+        # Runs once on pushes and pull requests. A manual dispatch can set aot-smoke-runs to repeat the run, for
+        # example 20 times to check the allocation gates for flakes on Linux; it stops at the first failing run.
+        env:
+          RUNS: ${{ inputs.aot-smoke-runs || 1 }}
+        run: |
+          if ! [[ "$RUNS" =~ ^[0-9]+$ ]] || [ "$RUNS" -lt 1 ]; then
+            echo "::error::aot-smoke-runs must be a whole number of at least 1, not '$RUNS'"
+            exit 1
+          fi
+          for run in $(seq 1 "$RUNS"); do
+            echo "::group::Run $run of $RUNS"
+            status=0
+            ./aot-out/ZeroAlloc.Jev.AotSmoke || status=$?
+            echo "::endgroup::"
+            if [ "$status" -ne 0 ]; then
+              echo "::error::Run $run of $RUNS failed with exit code $status"
+              exit "$status"
+            fi
+            echo "Run $run of $RUNS passed"
+          done
+
+  aot-surface:
+    runs-on: ubuntu-latest
+    # Publishes samples/ZeroAlloc.Jev.AotSurface with PublishAot=true and TrimMode=full. It roots ZeroAlloc.Jev and
+    # ZeroAlloc.Jev.DependencyInjection whole through TrimmerRootAssembly, so ILC analyses their members, not only the
+    # ones aot-smoke calls, plus the code the generator emits for the host's question sets. Rooting reaches every
+    # non-generic member and every generic one ILC can share across reference types; value-type generics, such as
+    # Choice<T> over an enum, are analysed through the host's instantiations of every public generic type and method,
+    # which SurfaceGenericsTests keeps complete. Every IL2xxx/IL3xxx warning is an error, so a trim or AOT hazard in
+    # the public API fails the job. The publish is the check; the binary is not run.
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          dotnet-version: '10.0.x'
+
+      - name: Install AOT native toolchain
+        run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
+
+      - name: Restore
+        run: dotnet restore samples/ZeroAlloc.Jev.AotSurface/ZeroAlloc.Jev.AotSurface.csproj
+
+      - name: Publish AOT with both packages rooted
+        run: dotnet publish samples/ZeroAlloc.Jev.AotSurface/ZeroAlloc.Jev.AotSurface.csproj -r linux-x64 -c Release -o ./aot-surface-out
 
   # Shared from ZeroAlloc-Net/.github: a release PR must mark released analyzer rules and public API as shipped.
   release-tracking:

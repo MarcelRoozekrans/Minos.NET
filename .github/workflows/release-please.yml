@@ -40,7 +40,7 @@ jobs:
       RELEASE_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
 
   # No publish job: NuGet publishing is deliberately absent until the maintainer declares the package mature.
-  # Phase 5.4's publishing job must pass -p:JevRelease=true to the build and to the pack alike: without it,
+  # Phase 5.5's publishing job must pass -p:JevRelease=true to the build and to the pack alike: without it,
   # Directory.Build.props versions every build <release>-local, so a local pack never takes the published
   # package's version. The version is compiled into the DLLs, so a pack --no-build after a build without the
   # switch would ship release-numbered packages whose DLLs, and User-Agent, still say -local.

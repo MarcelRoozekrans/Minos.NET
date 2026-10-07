@@ -18,6 +18,8 @@ internal static class DependencyInjectionChecks
             })
             .ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
 
+    [Covers("static Microsoft.Extensions.DependencyInjection.JevServiceCollectionExtensions.AddJevClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<ZeroAlloc.Jev.JevClientOptions!>! configure) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!")]
+    [Covers("static Microsoft.Extensions.DependencyInjection.JevServiceCollectionExtensions.AddJevClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, System.Action<ZeroAlloc.Jev.JevClientOptions!>! configure) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!")]
     public static async Task DefaultAndKeyedClientsEvaluate()
     {
         var services = new ServiceCollection();
@@ -70,6 +72,8 @@ internal static class DependencyInjectionChecks
             .AddJevClient(BoundConfiguration().GetSection("Jev"))
             .ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
 
+    [Covers("static Microsoft.Extensions.DependencyInjection.JevServiceCollectionExtensions.AddJevClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!")]
+    [Covers("static Microsoft.Extensions.DependencyInjection.JevServiceCollectionExtensions.AddJevClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!")]
     public static async Task ClientsBoundFromConfigurationEvaluate()
     {
         var services = new ServiceCollection();
@@ -99,6 +103,38 @@ internal static class DependencyInjectionChecks
         Program.Check(
             result.IsSuccess && keyedResult.IsSuccess,
             "the default and the keyed client bound from configuration each evaluate under Native AOT");
+    }
+
+    [Covers("static Microsoft.Extensions.DependencyInjection.JevServiceCollectionExtensions.AddJevClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!")]
+    [Covers("static Microsoft.Extensions.DependencyInjection.JevServiceCollectionExtensions.AddJevClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!")]
+    public static async Task ClientsConfiguredFromTheEnvironmentEvaluate()
+    {
+        using (SmokeAssert.TypeSafeEnvironment())
+        {
+            var services = new ServiceCollection();
+            services.AddJevClient().ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
+            services.AddJevClient("secondary").ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
+            using var provider = services.BuildServiceProvider();
+
+            var client = provider.GetRequiredService<IJevClient>();
+            var keyed = provider.GetRequiredKeyedService<IJevClient>("secondary");
+            var result = await client.EvaluateAsync(Program.Request()).ConfigureAwait(false);
+            var keyedResult = await keyed.EvaluateAsync(Program.Request()).ConfigureAwait(false);
+
+            Program.Check(
+                !ReferenceEquals(client, keyed) && result.IsSuccess && keyedResult.IsSuccess,
+                "AddJevClient() and AddJevClient(name) take the key and base address from the environment and evaluate under Native AOT");
+        }
+
+        var unconfigured = new ServiceCollection();
+        unconfigured.AddJevClient();
+        using var unconfiguredProvider = unconfigured.BuildServiceProvider();
+        using (SmokeAssert.NoApiKeyEnvironment())
+        {
+            Program.Check(
+                SmokeAssert.Throws<OptionsValidationException>(() => unconfiguredProvider.GetRequiredService<IJevClient>()),
+                "AddJevClient() with no key in options or the environment fails options validation under Native AOT");
+        }
     }
 
     public static void InvalidConfigurationFailsValidation()

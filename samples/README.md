@@ -31,3 +31,5 @@ The checked-in recordings are real OpenRouter answers from the model `typesafe/j
 ## Not a sample
 
 `ZeroAlloc.Jev.AotSmoke` in this folder is the Native AOT smoke app that CI publishes and runs. It checks that the client survives trimming and AOT compilation, and it is not a cookbook sample.
+
+`ZeroAlloc.Jev.AotSurface` is not a sample either. CI publishes it with Native AOT and full trimming, rooting both packages whole, so their members are checked for trim and AOT safety, not only the members an app calls. Rooting reaches every non-generic member and every generic one the compiler can share across reference types. A value-type generic, such as `Choice<T>` over an enum, has no such shared form, so the host instantiates every public generic type and method over its own types, and a test fails when one is missing. It is published, never run.

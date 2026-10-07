@@ -6,6 +6,7 @@ namespace ZeroAlloc.Jev.AotSmoke;
 /// <summary>The client's log events under Native AOT, through a real <see cref="LoggerFactory"/> over an in-process provider.</summary>
 internal static class LoggingChecks
 {
+    [Covers("ZeroAlloc.Jev.JevClient.JevClient(System.Net.Http.HttpClient! httpClient, ZeroAlloc.Jev.JevClientOptions? options, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory) -> void")]
     public static async Task RetriedEvaluationLogsTheRetryAndTheSuccess()
     {
         using var provider = new CapturingLoggerProvider();
@@ -37,7 +38,7 @@ internal static class LoggingChecks
         using var http = Http(HttpStatusCode.OK, Program.TriageResponse);
         using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" }, factory);
 
-        var result = await client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days.").ConfigureAwait(false);
+        var result = await client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State).ConfigureAwait(false);
         var records = provider.Records;
 
         Program.Check(
