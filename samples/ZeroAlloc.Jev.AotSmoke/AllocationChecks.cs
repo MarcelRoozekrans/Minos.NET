@@ -21,7 +21,7 @@ internal static class AllocationChecks
     private const string ChoiceAnswerJson = """{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7}""";
     private const string ScoreAnswerJson = """{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}""";
     private const string TriageAnswersJson = """{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}}""";
-    // The iteration count of every synchronous gate and of SynchronousBytesTotal, so the helper measures as the gates do.
+    // The iteration count of every synchronous gate, the relative ones included.
     private const int GateIterations = 1000;
 
     private const string NoulResponseJson = """{"model":"jev-1.13.0","answers":{"is_urgent":{"type":"noul","noul":0.95}},"usage":{"input_tokens":296,"output_tokens":20}}""";
@@ -284,7 +284,8 @@ internal static class AllocationChecks
 
     // Bytes allocated per awaited call over a handler that yields, on any thread, since the continuation does not run on
     // the caller's. The loop is sequential, so nothing else allocates meanwhile but the runtime. call is created once by
-    // the caller, so invoking it allocates nothing per call.
+    // the caller, so invoking it allocates nothing per call. ZeroAlloc.TestHelpers has no equivalent: its ValueTask
+    // measurements throw unless every call completes synchronously, and they count the calling thread only.
     //
     // The order matters, part of #79. A forced gen2 GC runs ArrayPool.Shared's trim, which under high machine memory load
     // drops every pooled array, so the collections come first and wait for that trim, and the warm-up comes after them; a
@@ -318,44 +319,6 @@ internal static class AllocationChecks
         }
 
         return (GC.GetTotalAllocatedBytes(precise: true) - before) / YieldingIterations;
-    }
-
-    // Jev's local stand-in for ZeroAlloc.TestHelpers' measuring API: AssertNoMoreThanValueTask compares two such totals.
-    // ZeroAlloc.TestHelpers 1.5.1, the pinned version, measures in this same order, ZeroAlloc-Net/ZeroAlloc.TestHelpers#62,
-    // so its gates now read the same exact figures as this copy; #73 swaps this copy for that API. 1.5.0 warmed up before
-    // its collections and so measured the pool refill described below, up to 42 B/call more on the HTTP paths, #68.
-    //
-    // Bytes allocated over GateIterations synchronously completing calls. The order is what makes it exact: flush first,
-    // then warm up, then measure. A forced gen2 GC runs ArrayPool.Shared's trim, which under high machine memory load drops
-    // every pooled array, so a flush after the warm-up made the first measured call re-rent them, 20680 B on EvaluateAsync,
-    // and the unawaited trim of a trailing Collect raced the loop and sometimes dropped one again, part of #79. Waiting
-    // for finalizers after each Collect lets the trim finish before the warm-up refills the pools. The counter is the
-    // thread's own, which is exact here because every call must complete synchronously on this thread.
-    private static long SynchronousBytesTotal<T>(Func<ValueTask<T>> call)
-    {
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
-        Drain(call());
-        Drain(call());
-        var before = GC.GetAllocatedBytesForCurrentThread();
-        for (var i = 0; i < GateIterations; i++)
-        {
-            Drain(call());
-        }
-
-        return GC.GetAllocatedBytesForCurrentThread() - before;
-
-        static void Drain(ValueTask<T> pending)
-        {
-            if (!pending.IsCompletedSuccessfully)
-            {
-                throw new InvalidOperationException("The call did not complete synchronously, so its measurement would include awaiter machinery.");
-            }
-
-            _ = pending.Result;
-        }
     }
 
     // EvaluateRoundTrip's call, the same canned response and Program.Request(), through a logging client.
@@ -594,11 +557,10 @@ internal static class AllocationChecks
         using var handBuilt = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
         var request = Program.Request();
 
-        // DI adds nothing per call: the hand-built client's own total is the budget.
-        AssertNoMoreThanHandBuilt(
+        // DI adds nothing per call: the hand-built client's own total in this run is the budget.
+        RelativeGateValueTask(
             () => handBuilt.EvaluateAsync(request),
             () => resolved.EvaluateAsync(request),
-            "a DI-resolved client",
             "EvaluateRoundTripThroughDependencyInjectionAgainstHandBuilt",
             "EvaluateAsync through a DI-resolved client allocates no more than through a hand-built one");
 
@@ -630,29 +592,11 @@ internal static class AllocationChecks
         using var handBuilt = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
         var request = Program.Request();
 
-        AssertNoMoreThanHandBuilt(
+        RelativeGateValueTask(
             () => handBuilt.EvaluateAsync(request),
             () => resolved.EvaluateAsync(request),
-            "a client bound from configuration",
             "EvaluateRoundTripThroughBoundConfigurationAgainstHandBuilt",
             "EvaluateAsync through a client bound from configuration allocates no more than through a hand-built one");
-    }
-
-    // A relative gate: candidate's total over GateIterations calls may not exceed handBuilt's, both measured in this run by
-    // SynchronousBytesTotal. It compares totals, as TestHelpers' AssertNoMoreThanValueTask does, so #73 can swap this for
-    // that API, whose flush order 1.5.1 fixed; neither side is rounded, so there is no headroom to hide a byte.
-    private static void AssertNoMoreThanHandBuilt<T>(
-        Func<ValueTask<T>> handBuilt, Func<ValueTask<T>> candidate, string candidateName, string label, string passDescription)
-    {
-        var byHand = SynchronousBytesTotal(handBuilt);
-        var byCandidate = SynchronousBytesTotal(candidate);
-        Console.WriteLine($"     EvaluateAsync B total over {GateIterations} calls on a hand-built client over a configured HttpClient: {byHand}");
-        Console.WriteLine($"     EvaluateAsync B total over {GateIterations} calls on {candidateName}: {byCandidate}");
-        Program.Check(
-            byCandidate <= byHand,
-            byCandidate <= byHand
-                ? passDescription
-                : $"{label}: {candidateName} allocated {byCandidate} B over {GateIterations} calls, the hand-built client {byHand} B");
     }
 
     /// <summary>
@@ -754,6 +698,25 @@ internal static class AllocationChecks
         try
         {
             AllocationGate.AssertBudgetValueTask(budgetBytes, GateIterations, action, label);
+            Program.Check(true, passDescription);
+        }
+        catch (InvalidOperationException exception)
+        {
+            Program.Check(false, exception.Message);
+        }
+    }
+
+    // A relative gate: candidate's total over GateIterations calls may not exceed baseline's, both measured in this run.
+    // AllocationGate compares the totals, so neither side is rounded and there is no headroom to hide a byte. Since
+    // ZeroAlloc.TestHelpers 1.5.1 it settles the heap before its warm-up, so both totals are the calls' true cost, the
+    // same in every run; 1.5.0 collected after the warm-up and measured a refill of the pools that collection emptied,
+    // which made these gates flaky, #79.
+    private static void RelativeGateValueTask<T>(
+        Func<ValueTask<T>> baseline, Func<ValueTask<T>> candidate, string label, string passDescription)
+    {
+        try
+        {
+            AllocationGate.AssertNoMoreThanValueTask(GateIterations, baseline, candidate, label);
             Program.Check(true, passDescription);
         }
         catch (InvalidOperationException exception)

@@ -191,10 +191,10 @@ The `ClientBenchmarks.EvaluateAsync` row ran in a separate job on a loaded machi
   call: its measurement plus about 10%, rounded up to the next 64 B. Phase 3.3 measured 4376 B per call and set
   that budget at 4864 B; ZeroAlloc.Rest 3.2.1 brought both down.
 - Registration and the first resolve happen once and are not budgeted.
-- The AOT figures come from a local measuring helper in the smoke app. It stands in for ZeroAlloc.TestHelpers'
-  measuring API, #73, and compares totals over the gate's iterations. Since Phase 5.3 it forces its collections
-  before the warm-up, not after: a forced gen2 collection lets `ArrayPool.Shared` drop its arrays under high memory
-  load, and measuring their refill made the gate flaky, #79.
+- Since Phase 5.3 the gate is ZeroAlloc.TestHelpers' `AllocationGate.AssertNoMoreThanValueTask`, which compares the
+  two totals over the gate's iterations, #73. Until then a local helper in the smoke app measured them. Release 1.5.1
+  settles the heap before its warm-up, not after: a forced gen2 collection lets `ArrayPool.Shared` drop its arrays
+  under high memory load, and measuring their refill made the gate flaky, #79.
 - Every existing allocation budget is unchanged.
 
 **The factory's request logging.** `AddHttpClient` gives every named client the factory's logging handlers. These format
