@@ -11,15 +11,15 @@ using Microsoft.CodeAnalysis.Text;
 namespace ZeroAlloc.Jev.AotSmoke.Tests;
 
 /// <summary>
-/// The AOT smoke app's compilation, rebuilt from the inputs its <c>JevWriteCompileInputs</c> target writes: the same
-/// sources, references, defines, language version, nullable context, parser features and warning options, with the
-/// same source generators run over them under the same editorconfig and MSBuild options. Tests check the result
-/// against the real build: no errors or warnings, as the real build's TreatWarningsAsErrors guarantees, and the same
-/// generated files the real build wrote.
+/// A sample's compilation, rebuilt from the inputs its <c>JevWriteCompileInputs</c> target writes: the same sources,
+/// references, defines, language version, nullable context, parser features and warning options, with the same source
+/// generators run over them under the same editorconfig and MSBuild options. Tests check the result against the real
+/// build: no errors or warnings, as the real build's TreatWarningsAsErrors guarantees, and the same generated files the
+/// real build wrote.
 /// </summary>
-internal sealed class SmokeCompilation
+internal sealed class SampleCompilation
 {
-    private SmokeCompilation(
+    private SampleCompilation(
         Compilation compilation,
         ImmutableArray<Diagnostic> generatorDiagnostics,
         int generatorCount,
@@ -36,8 +36,11 @@ internal sealed class SmokeCompilation
             : [];
     }
 
-    /// <summary>The smoke app's compilation, built once for every test.</summary>
-    public static SmokeCompilation Instance { get; } = Create();
+    /// <summary>The AOT smoke app's compilation, built once for every test.</summary>
+    public static SampleCompilation Smoke { get; } = Create("AotSmokeCompileInputs", "ZeroAlloc.Jev.AotSmoke");
+
+    /// <summary>The AOT surface host's compilation, built once for every test.</summary>
+    public static SampleCompilation Surface { get; } = Create("AotSurfaceCompileInputs", "ZeroAlloc.Jev.AotSurface");
 
     /// <summary>The compilation, generator output included.</summary>
     public Compilation Compilation { get; }
@@ -57,11 +60,11 @@ internal sealed class SmokeCompilation
     /// <summary>The files the real build's generators wrote, through EmitCompilerGeneratedFiles.</summary>
     public List<string> BuildGeneratedFiles { get; }
 
-    private static SmokeCompilation Create()
+    private static SampleCompilation Create(string inputsKey, string assemblyName)
     {
-        var inputsPath = typeof(SmokeCompilation).Assembly
+        var inputsPath = typeof(SampleCompilation).Assembly
             .GetCustomAttributes<AssemblyMetadataAttribute>()
-            .First(attribute => string.Equals(attribute.Key, "AotSmokeCompileInputs", StringComparison.Ordinal))
+            .First(attribute => string.Equals(attribute.Key, inputsKey, StringComparison.Ordinal))
             .Value!;
         var inputs = File.ReadAllLines(inputsPath)
             .Select(line => line.Split('|', 2))
@@ -90,9 +93,9 @@ internal sealed class SmokeCompilation
                 .Distinct(StringComparer.Ordinal)
                 .Select(id => KeyValuePair.Create(id, ReportDiagnostic.Suppress)))
             .WithSyntaxTreeOptionsProvider(new ConfigTreeOptions(configs));
-        var compilation = CSharpCompilation.Create("ZeroAlloc.Jev.AotSmoke", trees, references, options);
+        var compilation = CSharpCompilation.Create(assemblyName, trees, references, options);
 
-        var loader = new AnalyzerLoader();
+        var loader = new AnalyzerLoader(assemblyName + " analyzers");
         var generators = inputs["analyzer"]
             .Select(path => new AnalyzerFileReference(path, loader))
             .SelectMany(reference => reference.GetGenerators(LanguageNames.CSharp))
@@ -111,7 +114,7 @@ internal sealed class SmokeCompilation
             .Select(tree => tree.FilePath)
             .Order(StringComparer.Ordinal)
             .ToList();
-        return new SmokeCompilation(output, generatorDiagnostics, generators.Count, generatedFiles, generatedRoot);
+        return new SampleCompilation(output, generatorDiagnostics, generators.Count, generatedFiles, generatedRoot);
     }
 
     private static string Single(ILookup<string, string> inputs, string key) => inputs[key].First();
@@ -185,7 +188,7 @@ internal sealed class SmokeCompilation
 
     // Loads each analyzer assembly once, beside its own dependencies; Microsoft.CodeAnalysis itself resolves to the
     // copy this test already runs on.
-    private sealed class AnalyzerLoader() : AssemblyLoadContext("AotSmokeAnalyzers"), IAnalyzerAssemblyLoader
+    private sealed class AnalyzerLoader(string contextName) : AssemblyLoadContext(contextName), IAnalyzerAssemblyLoader
     {
         private readonly Dictionary<string, string> dependencies = new(StringComparer.OrdinalIgnoreCase);
 

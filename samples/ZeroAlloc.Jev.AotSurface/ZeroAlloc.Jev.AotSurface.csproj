@@ -1,9 +1,12 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
     Publishes with Native AOT and roots ZeroAlloc.Jev and ZeroAlloc.Jev.DependencyInjection whole, so ILC analyses
-    every public member for trim and AOT safety, not only the members an app happens to call. It also roots this
-    assembly, so every member the generator emits for SurfaceTriage is analysed too. Every warning is an error,
-    including IL2xxx and IL3xxx, and none is suppressed. CI publishes it in the aot-surface job; it is never run.
+    their members for trim and AOT safety, not only the members an app happens to call. Rooting reaches every
+    non-generic member and every generic one ILC can share across reference types; a value-type generic, such as
+    Choice<T> where T : struct, Enum, has no shared form and is skipped. So this assembly is rooted too: SurfaceGenerics
+    instantiates every public generic type and method, and the members the generator emits for the question sets are
+    analysed as well. SurfaceGenericsTests fails when a public generic is not instantiated here. Every warning is an
+    error, including IL2xxx and IL3xxx, and none is suppressed. CI publishes it in the aot-surface job; it is never run.
   -->
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -35,4 +38,7 @@
                       ReferenceOutputAssembly="false"
                       UndefineProperties="PublishAot" />
   </ItemGroup>
+
+  <!-- Writes the compiler inputs the test that checks every public generic is instantiated here rebuilds this from. -->
+  <Import Project="../JevCompileInputs.targets" />
 </Project>

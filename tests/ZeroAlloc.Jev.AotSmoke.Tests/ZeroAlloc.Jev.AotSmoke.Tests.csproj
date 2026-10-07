@@ -1,8 +1,13 @@
 <Project Sdk="Microsoft.NET.Sdk">
-  <!-- Fails unless the Native AOT smoke app declares and really calls every public entry point in the PublicAPI files. -->
+  <!--
+    Fails unless the Native AOT smoke app declares and really calls every public entry point in the PublicAPI files, and
+    unless the AOT surface host instantiates every public generic type and method.
+  -->
   <ItemGroup>
-    <!-- Built first, so its compile-inputs.txt is current; the test reads its sources, not its assembly. -->
+    <!-- Built first, so their compile-inputs.txt is current; the tests read their sources, not their assemblies. -->
     <ProjectReference Include="..\..\samples\ZeroAlloc.Jev.AotSmoke\ZeroAlloc.Jev.AotSmoke.csproj"
+                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\samples\ZeroAlloc.Jev.AotSurface\ZeroAlloc.Jev.AotSurface.csproj"
                       ReferenceOutputAssembly="false" />
   </ItemGroup>
 
@@ -14,10 +19,14 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The smoke app's compiler inputs, written by its JevWriteCompileInputs target in this configuration. -->
+    <!-- Each sample's compiler inputs, written by its JevWriteCompileInputs target in this configuration. -->
     <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
       <_Parameter1>AotSmokeCompileInputs</_Parameter1>
       <_Parameter2>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../samples/ZeroAlloc.Jev.AotSmoke/obj/$(Configuration)/$(TargetFramework)/compile-inputs.txt'))</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>AotSurfaceCompileInputs</_Parameter1>
+      <_Parameter2>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../samples/ZeroAlloc.Jev.AotSurface/obj/$(Configuration)/$(TargetFramework)/compile-inputs.txt'))</_Parameter2>
     </AssemblyAttribute>
   </ItemGroup>
 

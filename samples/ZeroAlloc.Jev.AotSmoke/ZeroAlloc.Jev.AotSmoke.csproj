@@ -29,43 +29,6 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" />
   </ItemGroup>
 
-  <PropertyGroup>
-    <!--
-      The coverage test compares the generated files it gets by rerunning the generators with the ones this build
-      wrote, so the build writes them, under obj like the rest of its intermediate output.
-    -->
-    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
-    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)$(Configuration)/$(TargetFramework)/$(RuntimeIdentifier)/generated</CompilerGeneratedFilesOutputPath>
-  </PropertyGroup>
-
-  <!--
-    Writes this project's compiler inputs: its sources, references, analyzers, editorconfig files, additional files,
-    defines, parser features and the options the compiler takes from properties. The entry-point coverage test,
-    tests/ZeroAlloc.Jev.AotSmoke.Tests, rebuilds the same compilation from them, generators included, to check that
-    every public entry point is declared by a smoke check that really calls it. Each list property has its ';'
-    separators turned into ',' so it stays one line.
-  -->
-  <Target Name="JevWriteCompileInputs" AfterTargets="CoreCompile">
-    <ItemGroup>
-      <_JevCompileInput Include="@(Compile->'compile|%(FullPath)')" />
-      <_JevCompileInput Include="@(ReferencePath->'reference|%(FullPath)')" />
-      <_JevCompileInput Include="@(Analyzer->'analyzer|%(FullPath)')" />
-      <_JevCompileInput Include="@(EditorConfigFiles->'editorconfig|%(FullPath)')" />
-      <_JevCompileInput Include="@(AdditionalFiles->'additionalfile|%(FullPath)')" />
-      <_JevCompileInput Include="define|$(DefineConstants.Replace(';', ','))" />
-      <_JevCompileInput Include="features|$(Features.Replace(';', ','))" />
-      <_JevCompileInput Include="interceptorsnamespaces|$(InterceptorsNamespaces.Replace(';', ','))" />
-      <_JevCompileInput Include="interceptorspreviewnamespaces|$(InterceptorsPreviewNamespaces.Replace(';', ','))" />
-      <_JevCompileInput Include="langversion|$(LangVersion)" />
-      <_JevCompileInput Include="nullable|$(Nullable)" />
-      <_JevCompileInput Include="allowunsafeblocks|$(AllowUnsafeBlocks)" />
-      <_JevCompileInput Include="nowarn|$(NoWarn.Replace(';', ','))" />
-      <_JevCompileInput Include="warninglevel|$(WarningLevel)" />
-      <_JevCompileInput Include="generatedfiles|$([System.IO.Path]::GetFullPath('$(CompilerGeneratedFilesOutputPath)'))" />
-    </ItemGroup>
-    <WriteLinesToFile File="$(IntermediateOutputPath)compile-inputs.txt"
-                      Lines="@(_JevCompileInput)"
-                      Overwrite="true"
-                      WriteOnlyWhenDifferent="true" />
-  </Target>
+  <!-- Writes the compiler inputs the entry-point coverage test rebuilds this compilation from. -->
+  <Import Project="../JevCompileInputs.targets" />
 </Project>

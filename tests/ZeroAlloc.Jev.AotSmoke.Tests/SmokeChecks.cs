@@ -12,7 +12,7 @@ internal sealed record SmokeCheck(IMethodSymbol Method, List<string> Declared, H
 }
 
 /// <summary>
-/// Reads the smoke checks out of <see cref="SmokeCompilation"/>, and resolves what each one calls through the
+/// Reads the smoke checks out of <see cref="SampleCompilation.Smoke"/>, and resolves what each one calls through the
 /// semantic model, so a declaration is honest only if the code really binds to that entry point.
 /// </summary>
 /// <remarks>
@@ -38,7 +38,7 @@ internal static class SmokeChecks
 
     private static List<SmokeCheck> Find()
     {
-        var compilation = SmokeCompilation.Instance.Compilation;
+        var compilation = SampleCompilation.Smoke.Compilation;
         var checks = new List<SmokeCheck>();
         foreach (var method in SourceMethods(compilation.Assembly.GlobalNamespace))
         {
@@ -58,7 +58,7 @@ internal static class SmokeChecks
 
     private static Dictionary<string, HashSet<string>> FindCalledByMainsCallees()
     {
-        var compilation = SmokeCompilation.Instance.Compilation;
+        var compilation = SampleCompilation.Smoke.Compilation;
         return RunByMain
             .Where(IsSource)
             .ToDictionary(method => method.ContainingType.Name + "." + method.Name, method => Called(compilation, method), StringComparer.Ordinal);
@@ -74,7 +74,7 @@ internal static class SmokeChecks
 
     private static HashSet<IMethodSymbol> FindRunByMain()
     {
-        var compilation = SmokeCompilation.Instance.Compilation;
+        var compilation = SampleCompilation.Smoke.Compilation;
         var main = compilation.GetEntryPoint(CancellationToken.None)
             ?? throw new InvalidOperationException("The smoke app has no entry point.");
         return Reach(compilation, main, transitive: false);

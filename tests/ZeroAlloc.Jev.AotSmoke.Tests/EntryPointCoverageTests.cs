@@ -15,7 +15,7 @@ public sealed class EntryPointCoverageTests
     [Fact]
     public void The_rebuilt_smoke_compilation_has_no_warnings_or_errors_like_the_real_build()
     {
-        var smoke = SmokeCompilation.Instance;
+        var smoke = SampleCompilation.Smoke;
 
         // The real build treats warnings as errors and succeeded, so it had neither; the rebuild must agree.
         Assert.True(smoke.GeneratorCount > 0, "No source generator was loaded from the smoke app's analyzers.");
@@ -26,7 +26,7 @@ public sealed class EntryPointCoverageTests
     [Fact]
     public void The_rebuilt_smoke_compilation_generates_the_files_the_real_build_did()
     {
-        var smoke = SmokeCompilation.Instance;
+        var smoke = SampleCompilation.Smoke;
 
         Assert.NotEmpty(smoke.BuildGeneratedFiles);
         Assert.Equal(smoke.BuildGeneratedFiles, smoke.GeneratedFiles);
@@ -105,8 +105,8 @@ public sealed class EntryPointCoverageTests
     }
 
     private static IAssemblySymbol FindAssembly(string name)
-        => SmokeCompilation.Instance.Compilation.References
-            .Select(SmokeCompilation.Instance.Compilation.GetAssemblyOrModuleSymbol)
+        => SampleCompilation.Smoke.Compilation.References
+            .Select(SampleCompilation.Smoke.Compilation.GetAssemblyOrModuleSymbol)
             .OfType<IAssemblySymbol>()
             .First(assembly => string.Equals(assembly.Name, name, StringComparison.Ordinal));
 
