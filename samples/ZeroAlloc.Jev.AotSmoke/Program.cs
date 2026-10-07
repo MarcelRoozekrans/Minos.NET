@@ -56,9 +56,10 @@ internal static class Program
         await JevClientChecks.TypedUtf8StateEvaluates().ConfigureAwait(false);
         await JevClientChecks.TypedStateEvaluatesWithACancellationToken().ConfigureAwait(false);
         await IJevClientChecks.AbstractMembersRunThroughTheInterface().ConfigureAwait(false);
-        await IJevClientChecks.TypedDefaultMethodsParseAnswers().ConfigureAwait(false);
-        await IJevClientChecks.TypedStateDefaultMethodsParseAnswers().ConfigureAwait(false);
-        await IJevClientChecks.BuiltSetDefaultMethodsReadAnswers().ConfigureAwait(false);
+        await IJevClientChecks.RequestDefaultMethodPassesTheRequestOn().ConfigureAwait(false);
+        await IJevClientChecks.TypedDefaultMethodsSendTheStateAndParseAnswers().ConfigureAwait(false);
+        await IJevClientChecks.TypedStateDefaultMethodsSendTheStateAndParseAnswers().ConfigureAwait(false);
+        await IJevClientChecks.BuiltSetDefaultMethodsSendTheStateAndReadAnswers().ConfigureAwait(false);
         JevClientOptionsChecks.ValidateAcceptsValidOptionsAndRejectsInvalidOnes();
         JevContentChecks.TextContentRoundTrips();
         JevContentChecks.JsonContentRoundTrips();
@@ -235,7 +236,7 @@ internal static class Program
         using var http = Http(HttpStatusCode.OK, TriageResponse);
         using var client = new JevClient(http, Options());
 
-        var result = await client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days.").ConfigureAwait(false);
+        var result = await client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State).ConfigureAwait(false);
 
         Check(
             result.IsSuccess
@@ -250,7 +251,7 @@ internal static class Program
     {
         using var http = Http(HttpStatusCode.OK, CredentialsResponse);
         using var client = new JevClient(http, Options());
-        var state = new SmokeState("Payouts failing", "Help! My payouts have been failing for 3 days.");
+        var state = new SmokeState("Payouts failing", SmokeAnswers.State);
 
         var result = await client.EvaluateAsync<SmokeStateTriage, SmokeState>(state, SmokeStateJsonContext.Default.SmokeState).ConfigureAwait(false);
 
@@ -293,7 +294,7 @@ internal static class Program
             Usage = new JevUsage { InputTokens = 296, OutputTokens = 20 },
         });
 
-        var result = await client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days.").ConfigureAwait(false);
+        var result = await client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State).ConfigureAwait(false);
 
         Check(
             result.IsSuccess
@@ -327,7 +328,7 @@ internal static class Program
         using var http = Http(HttpStatusCode.OK, SmokeBuiltSet.ResponseJson);
         using var client = new JevClient(http, Options());
 
-        var result = await client.EvaluateAsync(set, "Help! My payouts have been failing for 3 days.").ConfigureAwait(false);
+        var result = await client.EvaluateAsync(set, SmokeAnswers.State).ConfigureAwait(false);
 
         Check(
             result.IsSuccess
@@ -373,7 +374,7 @@ internal static class Program
 
     internal static SystemOneRequest Request() => new()
     {
-        State = "Help! My payouts have been failing for 3 days.",
+        State = SmokeAnswers.State,
         Questions = new Dictionary<string, JevQuestion>(StringComparer.Ordinal)
         {
             ["is_urgent"] = new NoulQuestion { Instructions = "Does this convey urgency?" },

@@ -38,7 +38,7 @@ internal static class LoggingChecks
         using var http = Http(HttpStatusCode.OK, Program.TriageResponse);
         using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" }, factory);
 
-        var result = await client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days.").ConfigureAwait(false);
+        var result = await client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State).ConfigureAwait(false);
         var records = provider.Records;
 
         Program.Check(

@@ -18,7 +18,7 @@ internal static class SystemOneModelChecks
         using var client = new JevClient(http, Program.Options());
         var request = new SystemOneRequest
         {
-            State = "Help! My payouts have been failing for 3 days.",
+            State = SmokeAnswers.State,
             Questions = new Dictionary<string, JevQuestion>(StringComparer.Ordinal)
             {
                 ["requests_credentials"] = new NoulQuestion

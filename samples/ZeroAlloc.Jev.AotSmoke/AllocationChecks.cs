@@ -118,7 +118,7 @@ internal static class AllocationChecks
         using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
         var request = new SystemOneRequest
         {
-            State = "Help! My payouts have been failing for 3 days.",
+            State = SmokeAnswers.State,
             Questions = new Dictionary<string, JevQuestion>(StringComparer.Ordinal)
             {
                 ["is_urgent"] = new NoulQuestion { Instructions = "Does this convey urgency?" },
@@ -157,7 +157,7 @@ internal static class AllocationChecks
         // headroom over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
         GateValueTask(
             budgetBytes: 3328,
-            action: () => client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days."),
+            action: () => client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State),
             label: "TypedEvaluateRoundTrip",
             passDescription: "EvaluateAsync<T> stays within its allocation budget");
     }
@@ -369,7 +369,7 @@ internal static class AllocationChecks
 
         GateValueTask(
             budgetBytes,
-            () => client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days."),
+            () => client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State),
             label,
             passDescription);
     }
@@ -378,7 +378,7 @@ internal static class AllocationChecks
     [Covers("static ZeroAlloc.Jev.JevContent.FromValue<T>(T value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo) -> ZeroAlloc.Jev.JevContent")]
     public static void ContentFromValue()
     {
-        var state = new SmokeState("Payouts failing", "Help! My payouts have been failing for 3 days.");
+        var state = new SmokeState("Payouts failing", SmokeAnswers.State);
 
         // Measured 280 B/call on published win-x64 AOT: JsonSerializer.SerializeToElement serializes SmokeState's
         // Subject and Body strings and builds a JsonDocument over the result, which JevContent then wraps without
@@ -442,7 +442,7 @@ internal static class AllocationChecks
         // the next multiple of 64 B, per the Phase 1.8 rule.
         GateValueTask(
             budgetBytes: 3648,
-            action: () => client.EvaluateAsync(set, "Help! My payouts have been failing for 3 days."),
+            action: () => client.EvaluateAsync(set, SmokeAnswers.State),
             label: "EvaluateBuiltSetRoundTrip",
             passDescription: "EvaluateAsync over a built set stays within its allocation budget");
     }
@@ -669,7 +669,7 @@ internal static class AllocationChecks
         // Phase 1.8 rule.
         GateValueTask(
             budgetBytes: 5056,
-            action: () => client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days."),
+            action: () => client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State),
             label: "TypedEvaluateRoundTripWhileListening",
             passDescription: "EvaluateAsync<T> while listening stays within its allocation budget");
         Program.Check(telemetry.Measurements > 0, "the discarding listeners received measurements, so EvaluateAsync<T> ran the listening path");
@@ -689,7 +689,7 @@ internal static class AllocationChecks
         // per the Phase 1.8 rule.
         GateValueTask(
             budgetBytes: 5376,
-            action: () => client.EvaluateAsync(set, "Help! My payouts have been failing for 3 days."),
+            action: () => client.EvaluateAsync(set, SmokeAnswers.State),
             label: "EvaluateBuiltSetRoundTripWhileListening",
             passDescription: "EvaluateAsync over a built set while listening stays within its allocation budget");
         Program.Check(telemetry.Measurements > 0, "the discarding listeners received measurements, so the built set ran the listening path");

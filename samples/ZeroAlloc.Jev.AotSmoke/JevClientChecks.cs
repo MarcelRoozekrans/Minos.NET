@@ -11,7 +11,6 @@ namespace ZeroAlloc.Jev.AotSmoke;
 /// </summary>
 internal static class JevClientChecks
 {
-    private const string State = "Help! My payouts have been failing for 3 days.";
 
     [Covers("ZeroAlloc.Jev.JevClient.JevClient() -> void")]
     [Covers("ZeroAlloc.Jev.JevClient.JevClient(ZeroAlloc.Jev.JevClientOptions? options) -> void")]
@@ -74,7 +73,7 @@ internal static class JevClientChecks
         using var client = new JevClient(http, Program.Options());
         using var cancellation = new CancellationTokenSource();
 
-        var result = await client.EvaluateAsync(set, State, cancellation.Token).ConfigureAwait(false);
+        var result = await client.EvaluateAsync(set, SmokeAnswers.State, cancellation.Token).ConfigureAwait(false);
 
         Program.Check(
             result.IsSuccess
@@ -92,9 +91,9 @@ internal static class JevClientChecks
         using var client = new JevClient(http, Program.Options());
         using var cancellation = new CancellationTokenSource();
 
-        var result = await client.EvaluateAsync<SmokeTriage>(State, cancellation.Token).ConfigureAwait(false);
+        var result = await client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State, cancellation.Token).ConfigureAwait(false);
 
-        Program.Check(IsTriage(result), "JevClient.EvaluateAsync<T>(string, cancellationToken) parses typed answers under Native AOT");
+        Program.Check(SmokeAnswers.IsTriage(result), "JevClient.EvaluateAsync<T>(string, cancellationToken) parses typed answers under Native AOT");
     }
 
     [Covers("ZeroAlloc.Jev.JevClient.EvaluateAsync<T>(System.Text.Json.JsonElement state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>")]
@@ -103,14 +102,14 @@ internal static class JevClientChecks
     {
         using var http = Program.Http(HttpStatusCode.OK, Program.TriageResponse);
         using var client = new JevClient(http, Program.Options());
-        using var state = JsonDocument.Parse("""{"subject":"Payouts failing","body":"Help! My payouts have been failing for 3 days."}""");
+        using var state = JsonDocument.Parse(SmokeAnswers.JsonState);
         using var cancellation = new CancellationTokenSource();
 
         var result = await client.EvaluateAsync<SmokeTriage>(state.RootElement).ConfigureAwait(false);
         var cancellable = await client.EvaluateAsync<SmokeTriage>(state.RootElement, cancellation.Token).ConfigureAwait(false);
 
         Program.Check(
-            IsTriage(result) && IsTriage(cancellable),
+            SmokeAnswers.IsTriage(result) && SmokeAnswers.IsTriage(cancellable),
             "JevClient.EvaluateAsync<T>(JsonElement) and its cancellable overload parse typed answers under Native AOT");
         Program.Check(
             await SmokeAssert.ThrowsAsync<ArgumentException>(() => client.EvaluateAsync<SmokeTriage>(default(JsonElement)).AsTask()).ConfigureAwait(false),
@@ -122,11 +121,11 @@ internal static class JevClientChecks
     {
         using var http = Program.Http(HttpStatusCode.OK, Program.TriageResponse);
         using var client = new JevClient(http, Program.Options());
-        var state = Encoding.UTF8.GetBytes("""{"subject":"Payouts failing","body":"Help! My payouts have been failing for 3 days."}""");
+        var state = Encoding.UTF8.GetBytes(SmokeAnswers.JsonState);
 
         var result = await client.EvaluateUtf8Async<SmokeTriage>(state).ConfigureAwait(false);
 
-        Program.Check(IsTriage(result), "JevClient.EvaluateUtf8Async<T> parses typed answers from a UTF-8 JSON state under Native AOT");
+        Program.Check(SmokeAnswers.IsTriage(result), "JevClient.EvaluateUtf8Async<T> parses typed answers from a UTF-8 JSON state under Native AOT");
         Program.Check(
             await SmokeAssert.ThrowsAsync<ArgumentException>(() => client.EvaluateUtf8Async<SmokeTriage>("{} {}"u8.ToArray()).AsTask()).ConfigureAwait(false),
             "JevClient.EvaluateUtf8Async<T> rejects a state that is not one JSON value under Native AOT");
@@ -138,7 +137,7 @@ internal static class JevClientChecks
         using var http = Program.Http(HttpStatusCode.OK, Program.CredentialsResponse);
         using var client = new JevClient(http, Program.Options());
         using var cancellation = new CancellationTokenSource();
-        var state = new SmokeState("Payouts failing", State);
+        var state = new SmokeState("Payouts failing", SmokeAnswers.State);
 
         var result = await client
             .EvaluateAsync<SmokeStateTriage, SmokeState>(state, SmokeStateJsonContext.Default.SmokeState, cancellation.Token)
@@ -148,10 +147,4 @@ internal static class JevClientChecks
             result.IsSuccess && !result.Value.RequestsCredentials.Value,
             "JevClient.EvaluateAsync<T, TState>(state, stateTypeInfo, cancellationToken) parses typed answers under Native AOT");
     }
-
-    internal static bool IsTriage(ZeroAlloc.Results.Result<SmokeTriage, JevError> result)
-        => result.IsSuccess
-            && !result.Value.RequestsCredentials.Value
-            && result.Value.Team.Value == Team.Account
-            && result.Value.Urgency.Value == Urgency.High;
 }

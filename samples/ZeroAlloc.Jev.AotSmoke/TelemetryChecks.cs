@@ -81,7 +81,7 @@ internal static class TelemetryChecks
         using var http = new HttpClient(new DelayedHandler(TimeSpan.FromMilliseconds(50), Program.TriageResponse)) { BaseAddress = new Uri("https://example.test/api/") };
         using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
 
-        var result = await client.EvaluateAsync<SmokeTriage>("Help! My payouts have been failing for 3 days.").ConfigureAwait(false);
+        var result = await client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State).ConfigureAwait(false);
 
         var confidences = points.Where(point => point.Name is "jev.answer.confidence").Select(point => point.Value).ToArray();
         var duration = points.Where(point => point.Name is "gen_ai.client.operation.duration").ToArray();
