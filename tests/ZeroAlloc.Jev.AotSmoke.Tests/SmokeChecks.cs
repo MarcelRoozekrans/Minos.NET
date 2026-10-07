@@ -1,6 +1,7 @@
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Operations;
 
 namespace ZeroAlloc.Jev.AotSmoke.Tests;
 
@@ -20,7 +21,10 @@ internal sealed record SmokeCheck(IMethodSymbol Method, List<string> Declared, H
 /// smoke app's own methods, constructors, accessors and lambdas it reaches call in turn, generated code included. A
 /// constructor of a smoke type also calls its base constructor. A call is matched by the signature of the member it
 /// binds to, so a call on a <c>JevClient</c> covers <c>JevClient</c>'s member, and a call through an
-/// <c>IJevClient</c> covers the interface's. A call inside <c>nameof</c> runs nothing and does not count.
+/// <c>IJevClient</c> covers the interface's. A default interface method counts only when its own body runs: the
+/// receiver's static type, or the type its local was created as, must not override it, so a default called on a
+/// <c>JevClient</c> or on a client resolved from a container does not count. A call inside <c>nameof</c> runs nothing
+/// and does not count.
 /// </remarks>
 internal static class SmokeChecks
 {
@@ -118,7 +122,7 @@ internal static class SmokeChecks
 
     /// <summary>The methods and constructors <paramref name="root"/> calls; with <paramref name="transitive"/>, also
     /// the ones the smoke app's own code it calls calls in turn.</summary>
-    private static HashSet<IMethodSymbol> Reach(Compilation compilation, IMethodSymbol root, bool transitive)
+    internal static HashSet<IMethodSymbol> Reach(Compilation compilation, IMethodSymbol root, bool transitive)
     {
         var called = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default);
         var visited = new HashSet<IMethodSymbol>(SymbolEqualityComparer.Default) { root };
@@ -188,6 +192,15 @@ internal static class SmokeChecks
 
                 switch (model.GetSymbolInfo(node).Symbol)
                 {
+                    case IMethodSymbol target when IsDefaultInterfaceMethod(target):
+                        // Only the invocation itself is judged, by the receiver it dispatches on; the member access
+                        // inside it, and a method group, never count for a default interface method.
+                        if (node is InvocationExpressionSyntax invocation && RunsDefaultBody(model, invocation, target))
+                        {
+                            yield return target;
+                        }
+
+                        break;
                     case IMethodSymbol target:
                         yield return target;
                         break;
@@ -205,6 +218,56 @@ internal static class SmokeChecks
                 }
             }
         }
+    }
+
+    // A default interface method: an interface instance method with a body. Abstract members have no body to run, and
+    // a static one has no receiver to dispatch on.
+    private static bool IsDefaultInterfaceMethod(IMethodSymbol method)
+        => method.ContainingType.TypeKind == TypeKind.Interface
+            && method.MethodKind == MethodKind.Ordinary
+            && !method.IsAbstract
+            && !method.IsStatic;
+
+    // Whether calling target on this invocation's receiver runs target's own body: the receiver's runtime type, as far
+    // as the code shows it, must not override the default. An unknown runtime type, such as a client resolved from a
+    // container, does not count, since it may well override it.
+    private static bool RunsDefaultBody(SemanticModel model, InvocationExpressionSyntax invocation, IMethodSymbol target)
+    {
+        if (model.GetOperation(invocation) is not IInvocationOperation { Instance: { } receiver }
+            || RuntimeType(model, receiver, depth: 0) is not { } runtimeType)
+        {
+            return false;
+        }
+
+        var definition = target.OriginalDefinition;
+        var implementation = runtimeType.FindImplementationForInterfaceMember(definition);
+        return SymbolEqualityComparer.Default.Equals(implementation?.OriginalDefinition, definition);
+    }
+
+    // The runtime type of a receiver as far as the code shows it: its static type when that is a class or struct,
+    // else the type its local was created as. Null when the code does not show it.
+    private static ITypeSymbol? RuntimeType(SemanticModel model, IOperation operation, int depth)
+    {
+        while (operation is IConversionOperation or IParenthesizedOperation)
+        {
+            operation = operation is IConversionOperation conversion ? conversion.Operand : ((IParenthesizedOperation)operation).Operand;
+        }
+
+        if (operation.Type is { TypeKind: not TypeKind.Interface and not TypeKind.TypeParameter } known)
+        {
+            return known;
+        }
+
+        if (depth < 8
+            && operation is ILocalReferenceOperation local
+            && local.Local.DeclaringSyntaxReferences is [var declaration]
+            && declaration.GetSyntax() is VariableDeclaratorSyntax { Initializer.Value: { } value }
+            && model.GetOperation(value) is { } initializer)
+        {
+            return RuntimeType(model, initializer, depth + 1);
+        }
+
+        return null;
     }
 
     private static bool HasExplicitInitializer(IEnumerable<SyntaxReference> references)
