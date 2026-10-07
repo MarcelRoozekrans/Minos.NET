@@ -252,11 +252,11 @@ internal static class AllocationChecks
         var enabled = await MedianYieldingAsync(NoulResponseJson, DiscardingLoggerFactory.Instance, evaluate).ConfigureAwait(false);
         Console.WriteLine($"     yielding EvaluateAsync B/call: no factory {unlogged}, NullLoggerFactory {disabled}, discarding logger {enabled}");
 
-        // The tolerance absorbs noise the measurement cannot remove. The continuations hop pool threads, so the counter
-        // has to be process-wide, and it also counts what runtime threads allocate during the window: a settled window
-        // still moves by 904 to 1384 B, about 2 to 3 B/call, from run to run. The medians of the two sides differed by at
-        // most 4 B/call over the runs in #79's investigation; 8 B leaves twice that. A wrapper's state machine is hundreds
-        // of bytes per call.
+        // The tolerance absorbs the spread that remains once the pools are stocked. It is observed, not attributed: a
+        // settled window still moves by 904 to 1384 B, about 2 to 3 B/call, from run to run, and over 296 fresh runs in
+        // #79's investigation the medians of the two sides differed by -8 to +4 B/call. The counter has to be
+        // process-wide, since the continuations hop pool threads, so it would also count any runtime thread's allocation.
+        // 8 B is twice the largest observed excess. A wrapper's state machine is hundreds of bytes per call.
         Program.Check(
             disabled - unlogged <= 8,
             "a NullLoggerFactory adds no allocation to an asynchronously completing EvaluateAsync");
