@@ -255,12 +255,12 @@ internal static class AllocationChecks
         // The tolerance absorbs the spread that remains once the pools are stocked. It is observed, not attributed: a
         // settled window still moves by 904 to 1384 B, about 2 to 3 B/call, from run to run. The counter has to be
         // process-wide, since the continuations hop pool threads, so it would also count any runtime thread's allocation.
-        // 8 B was twice the largest excess over 296 fresh runs in #79's investigation, +4 B/call. Over 800 fresh runs of
-        // the published win-x64 app on 2026-10-07, the medians of the two sides differed by -7 to +10 B/call, 95% of
-        // them within -2 to +2, and the one run at +10 failed this check. #104 tracks the tolerance and this helper's
-        // replacement. A wrapper's state machine is hundreds of bytes per call.
+        // Over 800 fresh runs of the published win-x64 app on 2026-10-07, the medians of the two sides differed by -7 to
+        // +10 B/call, 95% of them within -2 to +2. An earlier 8 B tolerance failed the one run at +10, so the tolerance
+        // is 16 B: above the largest excess seen, and far below what it guards against, since a logging wrapper's state
+        // machine adds hundreds of bytes per call. #104 tracks the tolerance and this helper's replacement.
         Program.Check(
-            disabled - unlogged <= 8,
+            disabled - unlogged <= 16,
             "a NullLoggerFactory adds no allocation to an asynchronously completing EvaluateAsync");
         Program.Check(
             enabled - unlogged > 0,
