@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ main ]
   workflow_dispatch:
+    inputs:
+      aot-smoke-runs:
+        description: How many times the aot-smoke job runs the published binary, stopping at the first failure
+        type: number
+        default: 1
 
 permissions:
   contents: read
@@ -102,7 +107,26 @@ jobs:
         run: dotnet publish samples/ZeroAlloc.Jev.AotSmoke/ZeroAlloc.Jev.AotSmoke.csproj -r linux-x64 -c Release -o ./aot-out
 
       - name: Run AOT binary
-        run: ./aot-out/ZeroAlloc.Jev.AotSmoke
+        # Runs once on pushes and pull requests. A manual dispatch can set aot-smoke-runs to repeat the run, for
+        # example 20 times to check the allocation gates for flakes on Linux; it stops at the first failing run.
+        env:
+          RUNS: ${{ inputs.aot-smoke-runs || 1 }}
+        run: |
+          if ! [[ "$RUNS" =~ ^[0-9]+$ ]] || [ "$RUNS" -lt 1 ]; then
+            echo "::error::aot-smoke-runs must be a whole number of at least 1, not '$RUNS'"
+            exit 1
+          fi
+          for run in $(seq 1 "$RUNS"); do
+            echo "::group::Run $run of $RUNS"
+            status=0
+            ./aot-out/ZeroAlloc.Jev.AotSmoke || status=$?
+            echo "::endgroup::"
+            if [ "$status" -ne 0 ]; then
+              echo "::error::Run $run of $RUNS failed with exit code $status"
+              exit "$status"
+            fi
+            echo "Run $run of $RUNS passed"
+          done
 
   aot-surface:
     runs-on: ubuntu-latest
