@@ -21,7 +21,7 @@ internal static class AllocationChecks
     private const string ChoiceAnswerJson = """{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7}""";
     private const string ScoreAnswerJson = """{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}""";
     private const string TriageAnswersJson = """{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}}""";
-    // The iteration count of every synchronous gate and of SynchronousBytesPerCall, so the helper measures as the gates do.
+    // The iteration count of every synchronous gate and of SynchronousBytesTotal, so the helper measures as the gates do.
     private const int GateIterations = 1000;
 
     private const string NoulResponseJson = """{"model":"jev-1.13.0","answers":{"is_urgent":{"type":"noul","noul":0.95}},"usage":{"input_tokens":296,"output_tokens":20}}""";
@@ -252,9 +252,11 @@ internal static class AllocationChecks
         var enabled = await MedianYieldingAsync(NoulResponseJson, DiscardingLoggerFactory.Instance, evaluate).ConfigureAwait(false);
         Console.WriteLine($"     yielding EvaluateAsync B/call: no factory {unlogged}, NullLoggerFactory {disabled}, discarding logger {enabled}");
 
-        // The tolerance absorbs measurement noise: a single run can sit tens of bytes per call above or below the usual
-        // figure, which the median of five runs removes, leaving a few bytes. A wrapper's state machine is hundreds of
-        // bytes per call.
+        // The tolerance absorbs noise the measurement cannot remove. The continuations hop pool threads, so the counter
+        // has to be process-wide, and it also counts what runtime threads allocate during the window: a settled window
+        // still moves by 904 to 1384 B, about 2 to 3 B/call, from run to run. The medians of the two sides differed by at
+        // most 4 B/call over the runs in #79's investigation; 8 B leaves twice that. A wrapper's state machine is hundreds
+        // of bytes per call.
         Program.Check(
             disabled - unlogged <= 8,
             "a NullLoggerFactory adds no allocation to an asynchronously completing EvaluateAsync");
@@ -264,8 +266,8 @@ internal static class AllocationChecks
     }
 
     // The median of five runs. Yielding runs vary in both directions: a runtime thread allocating during the loop adds
-    // bytes, and a continuation that lands where a pooled buffer is still cached saves some. The least of several runs
-    // is therefore biased low and lets one lucky run set a baseline; the median ignores an outlier on either side.
+    // bytes, and one that allocated less than usual saves some. The least of several runs is therefore biased low and
+    // lets one lucky run set a baseline; the median ignores an outlier on either side.
     private static async Task<long> MedianYieldingAsync<TResult>(
         string responseJson, ILoggerFactory? loggerFactory, Func<JevClient, ValueTask<TResult>> call)
     {
@@ -283,9 +285,16 @@ internal static class AllocationChecks
     // Bytes allocated per awaited call over a handler that yields, on any thread, since the continuation does not run on
     // the caller's. The loop is sequential, so nothing else allocates meanwhile but the runtime. call is created once by
     // the caller, so invoking it allocates nothing per call.
+    //
+    // The order matters, part of #79. A forced gen2 GC runs ArrayPool.Shared's trim, which under high machine memory load
+    // drops every pooled array, so the collections come first and wait for that trim, and the warm-up comes after them; a
+    // collection after the warm-up made the window pay for the refill, about 41 B/call. The warm-up is long because the
+    // pool keeps one array per size in each thread's own slot, and the continuations rotate over several pool threads: 100
+    // calls left some threads unstocked, so a window still rented fresh 16 KB arrays, 0 to 2 per window, up to 66 B/call.
     private static async Task<long> MeasureYieldingAsync<TResult>(
         string responseJson, ILoggerFactory? loggerFactory, Func<JevClient, ValueTask<TResult>> call)
     {
+        const int WarmupIterations = 2000;
         const int YieldingIterations = 500;
         using var http = new HttpClient(new YieldingHandler(HttpStatusCode.OK, responseJson))
         {
@@ -293,13 +302,15 @@ internal static class AllocationChecks
         };
         using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" }, loggerFactory);
 
-        for (var i = 0; i < 100; i++)
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        for (var i = 0; i < WarmupIterations; i++)
         {
             _ = await call(client).ConfigureAwait(false);
         }
 
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
         var before = GC.GetTotalAllocatedBytes(precise: true);
         for (var i = 0; i < YieldingIterations; i++)
         {
@@ -309,30 +320,32 @@ internal static class AllocationChecks
         return (GC.GetTotalAllocatedBytes(precise: true) - before) / YieldingIterations;
     }
 
-    // Stands in for a measuring API requested from ZeroAlloc.TestHelpers: its AllocationGate only asserts a budget and
-    // returns no figure, and a relative gate needs the figure. ZeroAlloc-Net/ZeroAlloc.TestHelpers#56 tracks it; replace this
-    // with that API when it ships.
+    // Jev's local stand-in for ZeroAlloc.TestHelpers' measuring API: AssertNoMoreThanValueTask compares two such totals.
+    // #73 swaps it for that API once ZeroAlloc.TestHelpers 1.5.1 ships the fix for AllocationGate's flush order,
+    // ZeroAlloc-Net/ZeroAlloc.TestHelpers#62; until then the API measures the pool refill described below, so this copy
+    // must not be replaced by it.
     //
-    // Bytes allocated per call over synchronously completing calls, measured as AssertBudgetValueTask measures them: two
-    // warm-up calls, a full collection, then GateIterations calls that must each complete synchronously. It returns the
-    // ceiling, (total + iterations - 1) / iterations, so a budget of that figure times the gate's GateIterations is never
-    // below the measured total, and a hand-built client whose total is not a multiple of GateIterations cannot fail a gate
-    // against itself.
-    private static long SynchronousBytesPerCall<T>(Func<ValueTask<T>> call)
+    // Bytes allocated over GateIterations synchronously completing calls. The order is what makes it exact: flush first,
+    // then warm up, then measure. A forced gen2 GC runs ArrayPool.Shared's trim, which under high machine memory load drops
+    // every pooled array, so a flush after the warm-up made the first measured call re-rent them, 20680 B on EvaluateAsync,
+    // and the unawaited trim of a trailing Collect raced the loop and sometimes dropped one again, part of #79. Waiting
+    // for finalizers after each Collect lets the trim finish before the warm-up refills the pools. The counter is the
+    // thread's own, which is exact here because every call must complete synchronously on this thread.
+    private static long SynchronousBytesTotal<T>(Func<ValueTask<T>> call)
     {
-        Drain(call());
-        Drain(call());
         GC.Collect();
         GC.WaitForPendingFinalizers();
         GC.Collect();
+        GC.WaitForPendingFinalizers();
+        Drain(call());
+        Drain(call());
         var before = GC.GetAllocatedBytesForCurrentThread();
         for (var i = 0; i < GateIterations; i++)
         {
             Drain(call());
         }
 
-        var total = GC.GetAllocatedBytesForCurrentThread() - before;
-        return (total + GateIterations - 1) / GateIterations;
+        return GC.GetAllocatedBytesForCurrentThread() - before;
 
         static void Drain(ValueTask<T> pending)
         {
@@ -581,18 +594,13 @@ internal static class AllocationChecks
         using var handBuilt = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
         var request = Program.Request();
 
-        // Both figures are ceilings from SynchronousBytesPerCall, so neither side of the comparison is truncated.
-        var byHand = SynchronousBytesPerCall(() => handBuilt.EvaluateAsync(request));
-        var byContainer = SynchronousBytesPerCall(() => resolved.EvaluateAsync(request));
-        Console.WriteLine($"     EvaluateAsync B/call on a hand-built client over a configured HttpClient: {byHand}");
-        Console.WriteLine($"     EvaluateAsync B/call on a DI-resolved client: {byContainer}");
-
-        // DI adds nothing per call: the hand-built client's own measurement is the budget.
-        GateValueTask(
-            budgetBytes: (int)byHand,
-            action: () => resolved.EvaluateAsync(request),
-            label: "EvaluateRoundTripThroughDependencyInjectionAgainstHandBuilt",
-            passDescription: "EvaluateAsync through a DI-resolved client allocates no more than through a hand-built one");
+        // DI adds nothing per call: the hand-built client's own total is the budget.
+        AssertNoMoreThanHandBuilt(
+            () => handBuilt.EvaluateAsync(request),
+            () => resolved.EvaluateAsync(request),
+            "a DI-resolved client",
+            "EvaluateRoundTripThroughDependencyInjectionAgainstHandBuilt",
+            "EvaluateAsync through a DI-resolved client allocates no more than through a hand-built one");
 
         // Measured 3992 B/call on published win-x64 AOT: EvaluateRoundTrip's call plus the User-Agent header the factory's
         // HttpClient sends, and nothing from the container or the factory, whose request logging AddJevClient removes.
@@ -622,16 +630,29 @@ internal static class AllocationChecks
         using var handBuilt = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
         var request = Program.Request();
 
-        var byHand = SynchronousBytesPerCall(() => handBuilt.EvaluateAsync(request));
-        var byBinding = SynchronousBytesPerCall(() => resolved.EvaluateAsync(request));
-        Console.WriteLine($"     EvaluateAsync B/call on a hand-built client over a configured HttpClient: {byHand}");
-        Console.WriteLine($"     EvaluateAsync B/call on a client bound from configuration: {byBinding}");
+        AssertNoMoreThanHandBuilt(
+            () => handBuilt.EvaluateAsync(request),
+            () => resolved.EvaluateAsync(request),
+            "a client bound from configuration",
+            "EvaluateRoundTripThroughBoundConfigurationAgainstHandBuilt",
+            "EvaluateAsync through a client bound from configuration allocates no more than through a hand-built one");
+    }
 
-        GateValueTask(
-            budgetBytes: (int)byHand,
-            action: () => resolved.EvaluateAsync(request),
-            label: "EvaluateRoundTripThroughBoundConfigurationAgainstHandBuilt",
-            passDescription: "EvaluateAsync through a client bound from configuration allocates no more than through a hand-built one");
+    // A relative gate: candidate's total over GateIterations calls may not exceed handBuilt's, both measured in this run by
+    // SynchronousBytesTotal. It compares totals, as TestHelpers' AssertNoMoreThanValueTask does, so #73 can swap this for
+    // that API once its flush order is fixed upstream; neither side is rounded, so there is no headroom to hide a byte.
+    private static void AssertNoMoreThanHandBuilt<T>(
+        Func<ValueTask<T>> handBuilt, Func<ValueTask<T>> candidate, string candidateName, string label, string passDescription)
+    {
+        var byHand = SynchronousBytesTotal(handBuilt);
+        var byCandidate = SynchronousBytesTotal(candidate);
+        Console.WriteLine($"     EvaluateAsync B total over {GateIterations} calls on a hand-built client over a configured HttpClient: {byHand}");
+        Console.WriteLine($"     EvaluateAsync B total over {GateIterations} calls on {candidateName}: {byCandidate}");
+        Program.Check(
+            byCandidate <= byHand,
+            byCandidate <= byHand
+                ? passDescription
+                : $"{label}: {candidateName} allocated {byCandidate} B over {GateIterations} calls, the hand-built client {byHand} B");
     }
 
     /// <summary>
