@@ -183,12 +183,12 @@ regression cannot reach a release unnoticed.
 | `TypedEvaluateRoundTripWithEveryLevelFiltered` | A typed call with every log level filtered out. | 3328 |
 | `EvaluateRoundTripWithDiscardingLogger` | A raw call with every log level on. | 4352 |
 | `TypedEvaluateRoundTripWithDiscardingLogger` | A typed call with every log level on. | 3328 |
-| `EvaluateRoundTripThroughDependencyInjection` | A raw call through a client resolved from the container. | 4416 |
+| `EvaluateRoundTripThroughDependencyInjection` | A raw call through a client resolved from the container, and no more than a hand-built client's own measurement. | 4416 |
 | `EvaluateRoundTripWhileListening` | A raw call with a span and metric listener attached. | 5888 |
 | `TypedEvaluateRoundTripWhileListening` | A typed call with the listeners attached. | 5056 |
 | `EvaluateBuiltSetRoundTripWhileListening` | A built-set call with the listeners attached. | 5376 |
 | `EvaluateRoundTripThroughBoundConfiguration` | A raw call through a client bound from configuration, equal to a hand-built client's own measurement. | same as the hand-built client |
-| `DisabledLoggerAddsNothingWhereAnEnabledOneDoes` | Asynchronous calls with no factory, a null factory and an enabled logger. Checks the disabled ones add nothing. | no byte budget |
+| `DisabledLoggerAddsNothingWhereAnEnabledOneDoes` | Asynchronous calls with no factory, a null factory and an enabled logger. Checks the disabled ones add no more than 8 B per call, the observed noise of a process-wide counter ([#104](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/issues/104)). | no byte budget |
 | `TelemetryOffAsynchronousTypedEvaluation` | A typed call that completes asynchronously, with nothing listening. The median of five runs. | 4608 |
 
 The two logging rows with a logger that does nothing keep the budgets of the calls without one, because the client takes
