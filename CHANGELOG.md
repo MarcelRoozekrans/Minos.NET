@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.5.1](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/compare/v0.5.0...v0.5.1) (2026-10-07)
+
+
+### Bug Fixes
+
+* **benchmarks:** restore a pydantic_core that pydantic accepts, and stop Renovate updating it on its own ([5e72229](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/5e72229d5edb854e7f7b3aba4e743b3c4401dff7))
+* **samples:** measure the allocation gates without the pool refill their forced collection caused ([5e72229](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/5e72229d5edb854e7f7b3aba4e743b3c4401dff7))
+
+
+### Documentation
+
+* **docs:** describe the whole-assembly AOT check and the entry-point coverage rule ([5e72229](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/5e72229d5edb854e7f7b3aba4e743b3c4401dff7))
+* **docs:** trace the allocation creep since Phase 3 to the measuring loop, not the library ([5e72229](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/5e72229d5edb854e7f7b3aba4e743b3c4401dff7))
+* **roadmap:** split live and alias verification into Phase 5.4 and move the 1.0 release to Phase 5.5 ([5e72229](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/5e72229d5edb854e7f7b3aba4e743b3c4401dff7))
+
+
+### Tests
+
+* **samples:** require the AOT smoke app to exercise every public entry point, default interface methods included ([5e72229](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/5e72229d5edb854e7f7b3aba4e743b3c4401dff7))
+* **tests:** measure the zero-allocation unit tests through AllocationGate ([5e72229](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/5e72229d5edb854e7f7b3aba4e743b3c4401dff7))
+
 ## [0.5.0](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/compare/v0.4.0...v0.5.0) (2026-10-04)
 
 
