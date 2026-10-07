@@ -54,6 +54,57 @@ public sealed class DefaultInterfaceMethodTests
             }
 
             public static string AbstractMemberOnAnUnknownReceiver(IGreeter greeter) => greeter.Name();
+
+            public static string OnAPlainLocalReassignedToAnUnknownOne(IGreeter other)
+            {
+                IGreeter greeter = new Plain();
+                greeter = other;
+                return greeter.Greet();
+            }
+
+            public static string OnAPlainLocalReassignedInANestedBlock(IGreeter other, bool swap)
+            {
+                IGreeter greeter = new Plain();
+                if (swap)
+                {
+                    greeter = other;
+                }
+
+                return greeter.Greet();
+            }
+
+            public static string OnAPlainLocalReassignedInALambda(IGreeter other)
+            {
+                IGreeter greeter = new Plain();
+                System.Action swap = () => greeter = other;
+                swap();
+                return greeter.Greet();
+            }
+
+            public static string OnAPlainLocalReassignedThroughAnOutArgument()
+            {
+                IGreeter greeter = new Plain();
+                Replace(out greeter);
+                return greeter.Greet();
+            }
+
+            public static string OnAPlainLocalReassignedByDeconstruction(IGreeter other)
+            {
+                IGreeter greeter = new Plain();
+                int count;
+                (greeter, count) = (other, 1);
+                return greeter.Greet() + count;
+            }
+
+            public static string OnAPlainLocalReassignedAfterTheCall(IGreeter other)
+            {
+                IGreeter greeter = new Plain();
+                var greeting = greeter.Greet();
+                greeter = other;
+                return greeting + greeter.Name();
+            }
+
+            private static void Replace(out IGreeter greeter) => greeter = new Overriding();
         }
         """;
 
@@ -78,6 +129,14 @@ public sealed class DefaultInterfaceMethodTests
     [InlineData("OnAnOverridingLocal")]
     [InlineData("OnAnUnknownReceiver")]
     [InlineData("AsAMethodGroup")]
+    [InlineData("OnAPlainLocalReassignedToAnUnknownOne")]
+    [InlineData("OnAPlainLocalReassignedInANestedBlock")]
+    [InlineData("OnAPlainLocalReassignedInALambda")]
+    [InlineData("OnAPlainLocalReassignedThroughAnOutArgument")]
+    [InlineData("OnAPlainLocalReassignedByDeconstruction")]
+    // A write anywhere in the local's scope disqualifies it, even one after the call: the rule stays simple and errs
+    // towards not counting.
+    [InlineData("OnAPlainLocalReassignedAfterTheCall")]
     public void A_default_whose_body_may_not_run_does_not_count(string check)
         => Assert.DoesNotContain(Greet, Calls(check), SymbolEqualityComparer.Default);
 

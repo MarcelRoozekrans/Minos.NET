@@ -23,8 +23,8 @@ internal sealed record SmokeCheck(IMethodSymbol Method, List<string> Declared, H
 /// binds to, so a call on a <c>JevClient</c> covers <c>JevClient</c>'s member, and a call through an
 /// <c>IJevClient</c> covers the interface's. A default interface method counts only when its own body runs: the
 /// receiver's static type, or the type its local was created as, must not override it, so a default called on a
-/// <c>JevClient</c> or on a client resolved from a container does not count. A call inside <c>nameof</c> runs nothing
-/// and does not count.
+/// <c>JevClient</c> or on a client resolved from a container does not count, nor does one on a local that is assigned
+/// again after its declaration. A call inside <c>nameof</c> runs nothing and does not count.
 /// </remarks>
 internal static class SmokeChecks
 {
@@ -245,7 +245,8 @@ internal static class SmokeChecks
     }
 
     // The runtime type of a receiver as far as the code shows it: its static type when that is a class or struct,
-    // else the type its local was created as. Null when the code does not show it.
+    // else the type its local was created as, provided nothing assigns the local again. Null when the code does not
+    // show it.
     private static ITypeSymbol? RuntimeType(SemanticModel model, IOperation operation, int depth)
     {
         while (operation is IConversionOperation or IParenthesizedOperation)
@@ -261,7 +262,8 @@ internal static class SmokeChecks
         if (depth < 8
             && operation is ILocalReferenceOperation local
             && local.Local.DeclaringSyntaxReferences is [var declaration]
-            && declaration.GetSyntax() is VariableDeclaratorSyntax { Initializer.Value: { } value }
+            && declaration.GetSyntax() is VariableDeclaratorSyntax { Initializer.Value: { } value } declarator
+            && !IsAssignedAgain(model, local.Local, declarator)
             && model.GetOperation(value) is { } initializer)
         {
             return RuntimeType(model, initializer, depth + 1);
@@ -269,6 +271,39 @@ internal static class SmokeChecks
 
         return null;
     }
+
+    // Whether anything besides its declarator's initializer writes the local: an assignment, an out or ref argument,
+    // a deconstruction or an increment, in a nested block or a lambda included. A local is in scope only in the
+    // statements that follow its declaration in the same list, so those, and the initializers of its own declaration,
+    // are all a write can be in. A declaration outside a statement list, such as a for loop's, counts as written.
+    private static bool IsAssignedAgain(SemanticModel model, ILocalSymbol local, VariableDeclaratorSyntax declarator)
+    {
+        if (declarator.Parent?.Parent is not LocalDeclarationStatementSyntax statement
+            || Siblings(statement) is not { } siblings)
+        {
+            return true;
+        }
+
+        var regions = siblings
+            .Where(sibling => sibling != statement)
+            .Select(sibling => model.AnalyzeDataFlow(sibling))
+            .Concat(statement.Declaration.Variables
+                .Select(variable => variable.Initializer?.Value)
+                .OfType<ExpressionSyntax>()
+                .Select(value => model.AnalyzeDataFlow(value)));
+        return regions.Any(region => region is null
+            || !region.Succeeded
+            || region.WrittenInside.Contains(local, SymbolEqualityComparer.Default));
+    }
+
+    private static IEnumerable<StatementSyntax>? Siblings(LocalDeclarationStatementSyntax statement)
+        => statement.Parent switch
+        {
+            BlockSyntax block => block.Statements,
+            SwitchSectionSyntax section => section.Statements,
+            GlobalStatementSyntax { Parent: CompilationUnitSyntax unit } => unit.Members.OfType<GlobalStatementSyntax>().Select(global => global.Statement),
+            _ => null,
+        };
 
     private static bool HasExplicitInitializer(IEnumerable<SyntaxReference> references)
         => references.Select(reference => reference.GetSyntax()).Any(syntax => syntax switch
