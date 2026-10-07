@@ -28,4 +28,22 @@
     <!-- ConfigurationBuilder and AddInMemoryCollection, so binding through AddJevClient runs under Native AOT. -->
     <PackageReference Include="Microsoft.Extensions.Configuration" />
   </ItemGroup>
+
+  <!--
+    Writes this project's compiler inputs: its sources, references, analyzers and defines. The entry-point coverage
+    test, tests/ZeroAlloc.Jev.AotSmoke.Tests, rebuilds the same compilation from them, generators included, to check
+    that every public entry point is declared by a smoke check that really calls it.
+  -->
+  <Target Name="JevWriteCompileInputs" AfterTargets="CoreCompile">
+    <ItemGroup>
+      <_JevCompileInput Include="@(Compile->'compile|%(FullPath)')" />
+      <_JevCompileInput Include="@(ReferencePath->'reference|%(FullPath)')" />
+      <_JevCompileInput Include="@(Analyzer->'analyzer|%(FullPath)')" />
+      <_JevCompileInput Include="define|$(DefineConstants.Replace(';', ','))" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(IntermediateOutputPath)compile-inputs.txt"
+                      Lines="@(_JevCompileInput)"
+                      Overwrite="true"
+                      WriteOnlyWhenDifferent="true" />
+  </Target>
 </Project>

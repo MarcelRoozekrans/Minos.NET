@@ -18,6 +18,9 @@ internal static class DependencyInjectionChecks
             })
             .ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
 
+    [Covers("static Microsoft.Extensions.DependencyInjection.JevServiceCollectionExtensions.AddJevClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<ZeroAlloc.Jev.JevClientOptions!>! configure) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!")]
+    [Covers("static Microsoft.Extensions.DependencyInjection.JevServiceCollectionExtensions.AddJevClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, System.Action<ZeroAlloc.Jev.JevClientOptions!>! configure) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!")]
+    [Covers("ZeroAlloc.Jev.IJevClient.EvaluateAsync(ZeroAlloc.Jev.SystemOneRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.SystemOneResponse!, ZeroAlloc.Jev.JevError!>>")]
     public static async Task DefaultAndKeyedClientsEvaluate()
     {
         var services = new ServiceCollection();
@@ -70,6 +73,8 @@ internal static class DependencyInjectionChecks
             .AddJevClient(BoundConfiguration().GetSection("Jev"))
             .ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
 
+    [Covers("static Microsoft.Extensions.DependencyInjection.JevServiceCollectionExtensions.AddJevClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!")]
+    [Covers("static Microsoft.Extensions.DependencyInjection.JevServiceCollectionExtensions.AddJevClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!")]
     public static async Task ClientsBoundFromConfigurationEvaluate()
     {
         var services = new ServiceCollection();

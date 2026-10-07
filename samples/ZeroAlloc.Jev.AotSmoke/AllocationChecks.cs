@@ -49,6 +49,7 @@ internal static class AllocationChecks
     }
 
     /// <summary><see cref="JevAnswerReader.ReadNoul"/> over a fixed Noul answer.</summary>
+    [Covers("static ZeroAlloc.Jev.JevAnswerReader.ReadNoul(ref System.Text.Json.Utf8JsonReader reader) -> ZeroAlloc.Jev.Noul")]
     public static void ReadNoul()
     {
         var answer = Encoding.UTF8.GetBytes(NoulAnswerJson);
@@ -67,6 +68,7 @@ internal static class AllocationChecks
     }
 
     /// <summary><see cref="JevAnswerReader.ReadChoice{T}"/> into a caller-owned buffer.</summary>
+    [Covers("static ZeroAlloc.Jev.JevAnswerReader.ReadChoice<T>(ref System.Text.Json.Utf8JsonReader reader, ZeroAlloc.Jev.JevOptionSet<T>! options, double[]! buffer, int offset) -> ZeroAlloc.Jev.Choice<T>")]
     public static void ReadChoice()
     {
         var answer = Encoding.UTF8.GetBytes(ChoiceAnswerJson);
@@ -86,6 +88,7 @@ internal static class AllocationChecks
     }
 
     /// <summary><see cref="JevAnswerReader.ReadScore{T}"/> into a caller-owned buffer.</summary>
+    [Covers("static ZeroAlloc.Jev.JevAnswerReader.ReadScore<T>(ref System.Text.Json.Utf8JsonReader reader, ZeroAlloc.Jev.JevOptionSet<T>! options, double[]! buffer, int offset) -> ZeroAlloc.Jev.Score<T>")]
     public static void ReadScore()
     {
         var answer = Encoding.UTF8.GetBytes(ScoreAnswerJson);
@@ -372,6 +375,7 @@ internal static class AllocationChecks
     }
 
     /// <summary><see cref="JevContent.FromValue{T}(T, System.Text.Json.Serialization.Metadata.JsonTypeInfo{T})"/> over the smoke state.</summary>
+    [Covers("static ZeroAlloc.Jev.JevContent.FromValue<T>(T value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo) -> ZeroAlloc.Jev.JevContent")]
     public static void ContentFromValue()
     {
         var state = new SmokeState("Payouts failing", "Help! My payouts have been failing for 3 days.");
@@ -389,6 +393,7 @@ internal static class AllocationChecks
     }
 
     /// <summary><see cref="JevContent.FromUtf8Json(ReadOnlySpan{byte})"/> over a fixed object.</summary>
+    [Covers("static ZeroAlloc.Jev.JevContent.FromUtf8Json(System.ReadOnlySpan<byte> utf8Json) -> ZeroAlloc.Jev.JevContent")]
     public static void ContentFromUtf8Json()
     {
         var json = Encoding.UTF8.GetBytes("""{"message":"Please send me your password","channel":"email"}""");
@@ -477,6 +482,11 @@ internal static class AllocationChecks
     /// The pattern helpers on parsed answers: <see cref="ConfidenceThresholds.Classify"/>, <c>Score.Normalized</c> and
     /// <c>KeyedScore.Normalized</c>. Each is arithmetic over the answer struct, so the budget is 0 B.
     /// </summary>
+    [Covers("ZeroAlloc.Jev.ConfidenceThresholds.Classify(double confidence) -> ZeroAlloc.Jev.ConfidenceTier")]
+    [Covers("ZeroAlloc.Jev.ConfidenceThresholds.ConfidenceThresholds(double medium, double high) -> void")]
+    [Covers("ZeroAlloc.Jev.JevQuestionSetBuilder.Score(string! key, ZeroAlloc.Jev.JevContent instructions, out ZeroAlloc.Jev.KeyedScoreHandle question, System.Action<ZeroAlloc.Jev.KeyedScoreLevelsBuilder!>! configure) -> ZeroAlloc.Jev.JevQuestionSetBuilder!")]
+    [Covers("ZeroAlloc.Jev.KeyedScoreLevelsBuilder.Level(ZeroAlloc.Jev.JevCriterion! criterion) -> ZeroAlloc.Jev.KeyedScoreLevelsBuilder!")]
+    [Covers("ZeroAlloc.Jev.JevAnswers.Get(ZeroAlloc.Jev.KeyedScoreHandle question) -> ZeroAlloc.Jev.KeyedScore")]
     public static void PatternHelpers()
     {
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, SmokeBuiltSet.ResponseJson))
@@ -523,6 +533,8 @@ internal static class AllocationChecks
     /// <see cref="Noul.Equals(Noul)"/> on parsed answers, directly and through <see cref="EqualityComparer{T}.Default"/>.
     /// <see cref="Noul"/> implements <see cref="IEquatable{T}"/>, so neither path boxes and the budget is 0 B.
     /// </summary>
+    [Covers("ZeroAlloc.Jev.Noul.Equals(ZeroAlloc.Jev.Noul other) -> bool")]
+    [Covers("ZeroAlloc.Jev.Noul.Noul(double probability) -> void")]
     public static void NoulEquals()
     {
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, SmokeBuiltSet.ResponseJson))
@@ -555,6 +567,7 @@ internal static class AllocationChecks
     /// hand-built client over an <see cref="HttpClient"/> that <see cref="JevClient.ConfigureHttpClient"/> configured the
     /// same way. Registration and the first resolve happen once and are not budgeted.
     /// </summary>
+    [Covers("static ZeroAlloc.Jev.JevClient.ConfigureHttpClient(System.Net.Http.HttpClient! httpClient, ZeroAlloc.Jev.JevClientOptions? options) -> void")]
     public static void EvaluateRoundTripThroughDependencyInjection()
     {
         var services = new ServiceCollection();

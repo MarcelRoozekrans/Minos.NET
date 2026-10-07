@@ -119,6 +119,7 @@ internal static class TelemetryChecks
             "a failed evaluation is an Error span with its error.type and no description under Native AOT");
     }
 
+    [Covers("ZeroAlloc.Jev.JevClient.EvaluateAsync(ZeroAlloc.Jev.SystemOneRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.SystemOneResponse!, ZeroAlloc.Jev.JevError!>>")]
     public static async Task CancelledEvaluationSetsErrorTypeWithoutItsMessage()
     {
         var spans = new List<Activity>();

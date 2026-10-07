@@ -6,6 +6,7 @@ namespace ZeroAlloc.Jev.AotSmoke;
 /// <summary>The client's log events under Native AOT, through a real <see cref="LoggerFactory"/> over an in-process provider.</summary>
 internal static class LoggingChecks
 {
+    [Covers("ZeroAlloc.Jev.JevClient.JevClient(System.Net.Http.HttpClient! httpClient, ZeroAlloc.Jev.JevClientOptions? options, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory) -> void")]
     public static async Task RetriedEvaluationLogsTheRetryAndTheSuccess()
     {
         using var provider = new CapturingLoggerProvider();
