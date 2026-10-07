@@ -1,13 +1,19 @@
-# Session State — 2026-10-04 (Phase 5.2 complete, PR #94 to merge)
+# Session State — 2026-10-07 (Phase 5.3 complete, PR to open)
 
-**Date:** 2026-10-04
+**Date:** 2026-10-07
 
 ## Current Position
-- **Milestone:** 5 — 1.0 hardening, active since 2026-10-04 (design `docs/superpowers/specs/2026-10-04-milestone-5-design.md`).
-- **Phase:** 5.2 — Benchmark suite is complete on branch `phase/5.2-benchmarks`, PR #94. Phase 5.1 merged as #92 and shipped in release 0.4.0 (#93).
-- **Next task:** merge PR #94, check the release-please PR lists its entries before merging it, then run `start-next-phase` for Phase 5.3 — Live, AOT and alias verification (needs a TypeSafe API key from the maintainer for the live run).
-- **Maintainer decisions for Milestone 5:** 1.0.0 ships to NuGet only after the TypeSafe live suite passes with a real key; the docs site keeps one live version.
-- **Operational note:** .website's bot-opened "update submodules" PRs hold their `build` run for approval ("action_required"); approve the run, then merge with the admin override.
+- **Milestone:** 5 — 1.0 hardening, active since 2026-10-04 (design `docs/superpowers/specs/2026-10-04-milestone-5-design.md`). Phases: 5.1 and 5.2 merged (releases 0.4.0 and 0.5.0); 5.3 complete; 5.4 live and alias verification waits for a TypeSafe API key from the maintainer; 5.5 is the 1.0 release.
+- **Phase:** 5.3 — AOT, trim and measurement verification is complete on branch `phase/5.3-verification`; it lands through a PR to `main`.
+- **Next task:** open and merge the Phase 5.3 PR (ask whether `aot-surface` becomes a required check), check its release-please entries before merging the release PR, then Phase 5.4 once the maintainer has a TypeSafe key — otherwise go straight to planning 5.5's publishing work.
+- **Maintainer decisions for Milestone 5:** 1.0.0 ships to NuGet only after the TypeSafe live suite passes with a real key; the old 5.3 was split so the keyless work could go first.
+- **Operational note:** .website's bot-opened "update submodules" PRs hold their `build` run for approval ("action_required"); approve the run, then merge with the admin override. CI on a branch without a PR: `gh workflow run ci.yml --ref <branch>` (add `-f aot-smoke-runs=20` to repeat the AOT smoke run).
+
+## What Phase 5.3 shipped
+- `samples/ZeroAlloc.Jev.AotSurface` + `aot-surface` CI job: roots both packages (`TrimmerRootAssembly`, `TrimMode=full`) and instantiates every public open generic over an enum (rooting cannot instantiate `where T : struct` generics), so every public member is trim and AOT analysed; 0 warnings on win-x64 and linux-x64. A test fails if a new public generic is not instantiated.
+- Entry-point coverage: `tests/ZeroAlloc.Jev.AotSmoke.Tests` rebuilds the smoke app's real compilation (same features, editorconfig options and generators) and requires a `[Covers("<PublicAPI line>")]` on a check that really calls each of the 137 public entry points; default interface methods count only when called on a type that does not override them; record members are excluded by `[CompilerGenerated]`.
+- Measurement: flaky allocation gates were caused by the measuring loop (warm-up, then forced gen2 GC, then ArrayPool's trim drops the warmed arrays under high machine memory load, so the measurement pays to refill them). Fixed in Jev's helpers and upstream in ZeroAlloc.TestHelpers 1.5.1 (#62), now pinned; relative gates use `AssertNoMoreThanValueTask` (#73, #79 closed). #74's unit tests use `AllocationGate`. #68's creep was the same artefact: true costs unchanged across phases except -384 B from ZeroAlloc.Rest 3.2.1. The yielding disabled-logger check keeps a 16 B tolerance sized from 800 runs; Jev's async helpers wait for TestHelpers#65 (tracked in #104).
+- Proof: the AOT smoke app passed 20 consecutive runs on win-x64 and 20 on linux-x64 CI.
 
 ## What Phase 5.2 shipped
 - Client comparison benchmark in `benchmarks/compare/`: ZeroAlloc.Jev against a hand-written HttpClient + System.Text.Json client, JevSharp 0.2.0, TypeSafe.AI.Sdk 0.3.0, Jev.Net 0.4.0 (all MIT, checks in `docs/plans/2026-10-04-phase-5.2-library-checks.md`), TypeSafe's JS SDK 0.6.0 and Python SDK 0.7.2.
@@ -202,7 +208,7 @@
 - Still unknown until a TypeSafe live run (needs `TYPESAFE_API_KEY` and the `live-api` environment): whether TypeSafe sends `Retry-After`, the 422 body schema, and whether Phase 2.4's `BuiltQuestionSet_ParsesAKeyedChoice` passes.
 
 ## Recommended Next Step
-Merge PR #94, check its release-please entries before merging the release PR, then run `start-next-phase` for Phase 5.3 — Live, AOT and alias verification.
+Open and merge the Phase 5.3 PR, check its release-please entries, then Phase 5.4 (needs a TypeSafe key) or Phase 5.5's planning.
 
 
 

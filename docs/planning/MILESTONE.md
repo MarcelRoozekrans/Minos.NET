@@ -30,7 +30,7 @@ Ship ZeroAlloc.Jev 1.0.0 to NuGet. Before release, its public API has been revie
 ## Phases
 1. Phase 5.1 — Public API review [complete]
 2. Phase 5.2 — Benchmark suite [complete]
-3. Phase 5.3 — AOT, trim and measurement verification [active]
+3. Phase 5.3 — AOT, trim and measurement verification [complete]
 4. Phase 5.4 — Live and alias verification [pending]
 5. Phase 5.5 — 1.0 release [pending]
 
