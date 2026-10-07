@@ -186,9 +186,10 @@ The `ClientBenchmarks.EvaluateAsync` row ran in a separate job on a loaded machi
   So both send the User-Agent header. That header costs 64 B per call over `ClientBenchmarks.EvaluateAsync`, whose
   borrowed client sends none.
 - Under published win-x64 AOT, the gate `EvaluateRoundTripThroughDependencyInjectionAgainstHandBuilt` holds the
-  resolved client to the hand-built client's own measurement from the same run, 4376 B. The resolved client
-  measures 4376 B, within the absolute budget of 4864 B: the measurement plus about 10%, rounded up to the
-  next 64 B.
+  resolved client's total over 1000 calls to the hand-built client's own total from the same run. Since Phase 5.3
+  both measure exactly 3992000 B, 3992 B per call. The resolved client also has an absolute budget of 4416 B per
+  call: its measurement plus about 10%, rounded up to the next 64 B. Phase 3.3 measured 4376 B per call and set
+  that budget at 4864 B; ZeroAlloc.Rest 3.2.1 brought both down.
 - Registration and the first resolve happen once and are not budgeted.
 - The AOT figures come from a local measuring helper in the smoke app. It stands in for ZeroAlloc.TestHelpers'
   measuring API, #73, and compares totals over the gate's iterations. Since Phase 5.3 it forces its collections
@@ -209,8 +210,10 @@ the redacted request URI and open a logging scope on every request, before they 
 Binding from `IConfiguration` and startup validation run once, when the options are first read, so they add nothing per
 call.
 - Under published win-x64 AOT, the gate `EvaluateRoundTripThroughBoundConfigurationAgainstHandBuilt` holds a client bound
-  from configuration to a hand-built client's own measurement from the same run. Both measured 4376 B per call.
-- The absolute 4864 B gate for a DI-resolved client, and every other existing budget, are unchanged.
+  from configuration to a hand-built client's own total over 1000 calls from the same run. Both measured 4376 B per
+  call in Phase 3.4; since Phase 5.3 both measure exactly 3992000 B, 3992 B per call.
+- The absolute gate for a DI-resolved client, 4864 B per call then and 4416 B now, and every other existing budget,
+  were unchanged by this phase.
 - Binding is source-generated. The AOT smoke app binds every option with zero IL2xxx/IL3xxx warnings.
 
 ### Phase 4.1 — Pattern helpers
