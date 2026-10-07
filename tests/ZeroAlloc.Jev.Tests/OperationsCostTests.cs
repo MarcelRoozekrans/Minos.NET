@@ -102,16 +102,20 @@ public sealed class OperationsCostTests(ITestOutputHelper output)
         Assert.InRange(unwrap, -NoiseBytes, UnwrapHeadroomBytes);
     }
 
-    // Bytes per call over 2000 sequential awaited calls, after 200 to warm up.
+    // Bytes per call over 2000 sequential awaited calls, after 200 to warm up. The heap is settled before the warm-up,
+    // not after it: a forced gen2 GC lets ArrayPool.Shared trim the arrays the warm-up rented, and the measured calls
+    // would then pay to rent them again. The same order fixes ZeroAlloc.TestHelpers' AllocationGate, TestHelpers#62.
     private static async Task<long> BytesPerCallAsync(Func<Task> call)
     {
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
+        GC.Collect();
+        GC.WaitForPendingFinalizers();
         for (var i = 0; i < 200; i++)
         {
             await call();
         }
 
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
         var before = GC.GetTotalAllocatedBytes(precise: true);
         for (var i = 0; i < 2000; i++)
         {
