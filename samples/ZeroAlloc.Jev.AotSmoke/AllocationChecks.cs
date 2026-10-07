@@ -321,9 +321,9 @@ internal static class AllocationChecks
     }
 
     // Jev's local stand-in for ZeroAlloc.TestHelpers' measuring API: AssertNoMoreThanValueTask compares two such totals.
-    // #73 swaps it for that API once ZeroAlloc.TestHelpers 1.5.1 ships the fix for AllocationGate's flush order,
-    // ZeroAlloc-Net/ZeroAlloc.TestHelpers#62; until then the API measures the pool refill described below, so this copy
-    // must not be replaced by it.
+    // ZeroAlloc.TestHelpers 1.5.1, the pinned version, measures in this same order, ZeroAlloc-Net/ZeroAlloc.TestHelpers#62,
+    // so its gates now read the same exact figures as this copy; #73 swaps this copy for that API. 1.5.0 warmed up before
+    // its collections and so measured the pool refill described below, up to 42 B/call more on the HTTP paths, #68.
     //
     // Bytes allocated over GateIterations synchronously completing calls. The order is what makes it exact: flush first,
     // then warm up, then measure. A forced gen2 GC runs ArrayPool.Shared's trim, which under high machine memory load drops
@@ -640,7 +640,7 @@ internal static class AllocationChecks
 
     // A relative gate: candidate's total over GateIterations calls may not exceed handBuilt's, both measured in this run by
     // SynchronousBytesTotal. It compares totals, as TestHelpers' AssertNoMoreThanValueTask does, so #73 can swap this for
-    // that API once its flush order is fixed upstream; neither side is rounded, so there is no headroom to hide a byte.
+    // that API, whose flush order 1.5.1 fixed; neither side is rounded, so there is no headroom to hide a byte.
     private static void AssertNoMoreThanHandBuilt<T>(
         Func<ValueTask<T>> handBuilt, Func<ValueTask<T>> candidate, string candidateName, string label, string passDescription)
     {
