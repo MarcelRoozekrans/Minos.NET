@@ -275,5 +275,13 @@ class FixRound3(unittest.TestCase):
                          r.stage_a("using ZeroAlloc.Jev.Generator;\nnamespace ZeroAlloc.Jev.Tests;", "cs"))
 
 
+class FixRound4(unittest.TestCase):
+    def test_extern_alias_usings_stay_namespaces(self):
+        line = "using CodeFixes::ZeroAlloc.Jev.CodeFixes;"
+        self.assertEqual("using CodeFixes::Minos.CodeFixes;", r.stage_a(line, "cs"))
+        self.assertEqual("using CodeFixes::Minos.CodeFixes;", r.stage_a(line, "md"))
+        self.assertEqual("using static Core::Minos.X;", r.stage_a("using static Core::ZeroAlloc.Jev.X;", "cs"))
+
+
 if __name__ == "__main__":
     unittest.main()

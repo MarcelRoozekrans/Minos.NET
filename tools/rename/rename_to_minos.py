@@ -63,10 +63,10 @@ def stage_a(text: str, kind: str) -> str:
         text = re.sub(r'(<Using Include=")ZeroAlloc\.Jev', r"\1Minos", text)
         return text.replace("ZeroAlloc.Jev", "Minos.NET")
     if kind == "md":
-        text = re.sub(r"(?:\b|(?<=\\[nrt]))(namespace|using)(\s+(?:static\s+)?)ZeroAlloc\.Jev\b", r"\1\2Minos", text)
+        text = re.sub(r"(?:\b|(?<=\\[nrt]))(namespace|using)(\s+(?:static\s+)?(?:\w+::)?)ZeroAlloc\.Jev\b", r"\1\2Minos", text)
         text = _project_or_namespace(text)
         return text.replace("ZeroAlloc.Jev", "Minos.NET")
-    text = re.sub(r"(?:\b|(?<=\\[nrt]))(namespace|using)(\s+(?:static\s+)?)ZeroAlloc\.Jev\b", r"\1\2Minos", text)
+    text = re.sub(r"(?:\b|(?<=\\[nrt]))(namespace|using)(\s+(?:static\s+)?(?:\w+::)?)ZeroAlloc\.Jev\b", r"\1\2Minos", text)
     text = text.replace('"ZeroAlloc.Jev/', '"Minos.NET/')
     return _project_or_namespace(text)
 
