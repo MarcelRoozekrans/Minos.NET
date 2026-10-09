@@ -231,6 +231,6 @@ public sealed partial class DiagnosticsTests
         matchTimeoutMilliseconds: 1000)]
     private static partial Regex Descriptor();
 
-    [GeneratedRegex(@"^(?<id>(?:JEV|MIN)\d+) \| (?:ZeroAlloc\.Jev|Minos) \| (?<severity>\w+) \|", RegexOptions.Multiline, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"^(?<id>(?:JEV\d+(?= \| ZeroAlloc\.Jev \|)|MIN\d+(?= \| Minos \|))) \| (?:ZeroAlloc\.Jev|Minos) \| (?<severity>\w+) \|", RegexOptions.Multiline, matchTimeoutMilliseconds: 1000)]
     private static partial Regex ShippedRule();
 }
