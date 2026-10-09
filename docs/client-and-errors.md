@@ -429,6 +429,42 @@ where the generator, the [analyzers](diagnostics.md) and the
 [question set builder](question-sets-at-run-time.md) check them for you. A question the service rejects comes back as a
 `Validation` error.
 
+### When your code has its own Question or Answer
+
+The raw API's base types are `Minos.Question` and `Minos.Answer`. If your application has a `Question` or `Answer` of
+its own, a file that imports both namespaces cannot name either type bare: the compiler reports CS0104, an ambiguous
+reference. A `using` alias settles it, because an alias outranks a namespace import. Alias your own type to the short
+name, and give Minos's type a name of its own.
+
+<!-- snippet: ClientAndErrors_NameClash -->
+```cs
+using Minos;
+using Shop.Surveys;
+
+// Shop.Surveys and Minos both have a Question, so a bare Question in this file would be ambiguous: error CS0104. An
+// alias outranks a using of a whole namespace, so these two settle it. Question is your own, MinosQuestion is Minos's.
+using Question = Shop.Surveys.Question;
+using MinosQuestion = Minos.Question;
+
+public static class SurveyRequests
+{
+    // Each survey question becomes a yes/no question in a raw request, under the survey question's own key.
+    public static SystemOneRequest ToRequest(Survey survey, string state)
+    {
+        var questions = new Dictionary<string, MinosQuestion>(StringComparer.Ordinal);
+        foreach (Question question in survey.Questions)
+        {
+            questions[question.Key] = new NoulQuestion { Instructions = question.Text };
+        }
+
+        return new SystemOneRequest { State = state, Questions = questions };
+    }
+}
+```
+<!-- endSnippet -->
+
+Code in a namespace under `Minos` never sees the clash: it finds Minos's types first.
+
 ## Listing models
 
 `ListModelsAsync` returns the models and aliases your account can name in a `SystemOneRequest`: a `ModelList` of
