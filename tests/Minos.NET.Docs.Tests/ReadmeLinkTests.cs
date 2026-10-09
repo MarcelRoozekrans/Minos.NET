@@ -5,7 +5,7 @@ namespace Minos.Docs.Tests;
 
 public sealed partial class ReadmeLinkTests
 {
-    private const string Site = "https://jev.zeroalloc.net";
+    private const string Site = "https://marcelroozekrans.github.io/Minos.NET";
     // The bronze 192 px raster of the Minos mark. A PNG, because the mark's SVGs paint in currentColor, which an image
     // renders black on GitHub's dark theme, and nuget.org renders no raw HTML that could swap in a dark variant.
     private const string Logo = "https://raw.githubusercontent.com/MarcelRoozekrans/Minos.NET/main/assets/brand/icon-192.png";

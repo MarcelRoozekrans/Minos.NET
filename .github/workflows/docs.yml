@@ -1,0 +1,90 @@
+name: Docs
+
+# Builds the guide in docs/ with the Docusaurus app at the repository root and publishes it to
+# https://marcelroozekrans.github.io/Minos.NET/. The same workflow shape as Rag.NET's docs.yml.
+#
+# Every pull request that touches the site's input gets the build as a check: docusaurus.config.ts sets
+# onBrokenLinks: 'throw', so a broken link fails the change that caused it. Only a push to main uploads
+# the built site and deploys it, so no pull request can stage what gets published.
+#
+# Path-filtered: package*.json, the docs/ tree and the site config are the whole input to
+# `npm run build`, and .NET source changes cannot affect it. src/css is the site's customCss, not the
+# .NET source tree.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "package.json"
+      - "package-lock.json"
+      - "docusaurus.config.ts"
+      - "sidebars.ts"
+      - "tsconfig.json"
+      - "src/css/**"
+      - "static/**"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - "package.json"
+      - "package-lock.json"
+      - "docusaurus.config.ts"
+      - "sidebars.ts"
+      - "tsconfig.json"
+      - "src/css/**"
+      - "static/**"
+      - ".github/workflows/docs.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# The build job reads the repository and nothing else. The deploy job takes pages: write and
+# id-token: write at the job level, so the build job, which runs on pull requests from forks, never has them.
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+
+      # Pinned rather than left to the runner image's default, as in Rag.NET.
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+
+      - name: Install
+        run: npm ci
+
+      # Fails on a broken link: onBrokenLinks is 'throw'. Do not soften this step with continue-on-error.
+      - name: Build
+        run: npm run build
+
+      - name: Upload the built site
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: build
+
+  deploy:
+    needs: build
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5

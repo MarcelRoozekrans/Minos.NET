@@ -23,7 +23,7 @@ dotnet add package Minos.NET
 dotnet add package Minos.NET.DependencyInjection
 ```
 
-You need the .NET 10 SDK, and any IDE or build that hosts the `[Questions]` generator must host Roslyn 5.0 or later; [Getting started](https://jev.zeroalloc.net/) has the details.
+You need the .NET 10 SDK, and any IDE or build that hosts the `[Questions]` generator must host Roslyn 5.0 or later; [Getting started](https://marcelroozekrans.github.io/Minos.NET/) has the details.
 
 ## Example
 
@@ -73,25 +73,25 @@ public static class ReadmeExample
 
 ## Documentation
 
-The guide lives at [jev.zeroalloc.net](https://jev.zeroalloc.net):
+The guide lives at [marcelroozekrans.github.io/Minos.NET](https://marcelroozekrans.github.io/Minos.NET):
 
-- [Getting started](https://jev.zeroalloc.net/): install Minos.NET, point it at TypeSafe or OpenRouter, and run your first typed evaluation.
-- [Question types](https://jev.zeroalloc.net/question-types): Noul, Choice and Score, what each answer holds, and how confidence differs from probability.
-- [Typed evaluation](https://jev.zeroalloc.net/typed-evaluation): declare questions as a C# type, give them a typed state, and pick the `EvaluateAsync` overload.
-- [Question sets at run time](https://jev.zeroalloc.net/question-sets-at-run-time): build a question set from data with the builder, evaluate it, and read answers through handles.
-- [The client and its errors](https://jev.zeroalloc.net/client-and-errors): create and configure a `DecisionClient`, its retries and time-outs, every kind of `DecisionError`, and the raw request API.
-- [Dependency injection](https://jev.zeroalloc.net/dependency-injection): register `IDecisionClient` in a .NET host, key several clients, and bind options from configuration.
-- [Logging, traces and metrics](https://jev.zeroalloc.net/observability): what the client logs, which spans and metrics it emits, and what it never records.
-- [Native AOT and allocations](https://jev.zeroalloc.net/native-aot): what Native AOT compatibility means, the one reflection the client uses, and the allocation budgets that guard it.
-- [Diagnostics](https://jev.zeroalloc.net/diagnostics): every MIN analyzer rule with its severity, the two code fixes, and how to suppress a rule.
-- [Testing your code](https://jev.zeroalloc.net/testing-your-code): test code that calls Jev with a fake `IDecisionClient` or a real `DecisionClient` over a canned HTTP reply.
-- [Patterns](https://jev.zeroalloc.net/patterns): four ways to use Jev answers, each with a guide of its own.
-- [Speculative fan-out](https://jev.zeroalloc.net/patterns/fan-out): ask every question you might need in one request and read only the answers that matter.
-- [Confidence routing](https://jev.zeroalloc.net/patterns/confidence-routing): gate each action on the answer confidence, with a threshold sized to the cost of being wrong.
-- [Composite scoring](https://jev.zeroalloc.net/patterns/composite-scoring): break a judgement into small Scores and combine them with weights you own.
-- [Intent routing](https://jev.zeroalloc.net/patterns/intent-routing): make a cheap first decision that sends each request to code, a model or a person.
-- [Samples](https://jev.zeroalloc.net/samples): three runnable cookbook samples that replay recorded Jev answers offline.
-- [Performance](https://jev.zeroalloc.net/performance): what the benchmarks measure, how to run them, and what the client costs per call.
+- [Getting started](https://marcelroozekrans.github.io/Minos.NET/): install Minos.NET, point it at TypeSafe or OpenRouter, and run your first typed evaluation.
+- [Question types](https://marcelroozekrans.github.io/Minos.NET/question-types): Noul, Choice and Score, what each answer holds, and how confidence differs from probability.
+- [Typed evaluation](https://marcelroozekrans.github.io/Minos.NET/typed-evaluation): declare questions as a C# type, give them a typed state, and pick the `EvaluateAsync` overload.
+- [Question sets at run time](https://marcelroozekrans.github.io/Minos.NET/question-sets-at-run-time): build a question set from data with the builder, evaluate it, and read answers through handles.
+- [The client and its errors](https://marcelroozekrans.github.io/Minos.NET/client-and-errors): create and configure a `DecisionClient`, its retries and time-outs, every kind of `DecisionError`, and the raw request API.
+- [Dependency injection](https://marcelroozekrans.github.io/Minos.NET/dependency-injection): register `IDecisionClient` in a .NET host, key several clients, and bind options from configuration.
+- [Logging, traces and metrics](https://marcelroozekrans.github.io/Minos.NET/observability): what the client logs, which spans and metrics it emits, and what it never records.
+- [Native AOT and allocations](https://marcelroozekrans.github.io/Minos.NET/native-aot): what Native AOT compatibility means, the one reflection the client uses, and the allocation budgets that guard it.
+- [Diagnostics](https://marcelroozekrans.github.io/Minos.NET/diagnostics): every MIN analyzer rule with its severity, the two code fixes, and how to suppress a rule.
+- [Testing your code](https://marcelroozekrans.github.io/Minos.NET/testing-your-code): test code that calls Jev with a fake `IDecisionClient` or a real `DecisionClient` over a canned HTTP reply.
+- [Patterns](https://marcelroozekrans.github.io/Minos.NET/patterns): four ways to use Jev answers, each with a guide of its own.
+- [Speculative fan-out](https://marcelroozekrans.github.io/Minos.NET/patterns/fan-out): ask every question you might need in one request and read only the answers that matter.
+- [Confidence routing](https://marcelroozekrans.github.io/Minos.NET/patterns/confidence-routing): gate each action on the answer confidence, with a threshold sized to the cost of being wrong.
+- [Composite scoring](https://marcelroozekrans.github.io/Minos.NET/patterns/composite-scoring): break a judgement into small Scores and combine them with weights you own.
+- [Intent routing](https://marcelroozekrans.github.io/Minos.NET/patterns/intent-routing): make a cheap first decision that sends each request to code, a model or a person.
+- [Samples](https://marcelroozekrans.github.io/Minos.NET/samples): three runnable cookbook samples that replay recorded Jev answers offline.
+- [Performance](https://marcelroozekrans.github.io/Minos.NET/performance): what the benchmarks measure, how to run them, and what the client costs per call.
 
 ## Samples
 

@@ -491,3 +491,7 @@ benchmarks/compare/results/*/
 
 # Screenshots and logs the Playwright MCP server writes into the working directory.
 .playwright-mcp/
+
+# The Docusaurus site: its build output and cache at the repository root. node_modules/ is ignored above.
+/build/
+/.docusaurus/

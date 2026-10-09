@@ -217,6 +217,8 @@ Why bronze-resolved copies: the masters paint in `currentColor`, which has no in
 | Sizes at or below 48 px come from the favicon redraw | yes — the exporter's fixed routing; never the master |
 | Files written | 8 by the exporter, plus `icon-128.png` with the same argv — 9 |
 
+The docs site takes two more copies, in `static/img/`: `logo.svg`, the navbar logo, is a bronze-resolved copy of `logo-mark.svg` (`currentColor` → `#A86B24`) for the same reason, since the navbar shows it in an `<img>`; `favicon.ico` is an unchanged copy of `favicon.ico`.
+
 ### Print minimums
 
 `n/a — Q4 named no print or embroidery process`

@@ -390,7 +390,8 @@ Run: [run 37213251867](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/ru
 
 The table is `merge.py`'s output for [the first of the published runs][ci-json], which holds the run's result files
 whole, and a docs test fails if the two differ. The run used a GitHub-hosted `ubuntu-latest` runner; the machine line
-gives its CPU and the cores the mock and the clients ran on.
+gives its CPU and the cores the mock and the clients ran on. The three published runs were measured on 2026-10-04,
+before the library was renamed, so their result files call it ZeroAlloc.Jev; the code measured is the same.
 
 In this run and in both others under [Across runs](#across-runs), Minos.NET had the lowest mean latency, the
 highest throughput and the fewest bytes per call of any client. Its throughput lead over the raw client is small; the

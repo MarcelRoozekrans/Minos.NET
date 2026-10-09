@@ -129,13 +129,32 @@ public sealed partial class ComparisonTests
     [Fact]
     public void TheComparisonProse_StatesNoMeasuredFigureOfItsOwn()
     {
-        var prose = ComparisonProse(PageTables.Text(Page));
+        var prose = IsoDate().Replace(ComparisonProse(PageTables.Text(Page)), string.Empty);
         var numbers = Number().Matches(prose).Select(m => m.Value).Distinct(StringComparer.Ordinal).ToArray();
 
         Assert.All(numbers, number => Assert.True(
             MethodParameters.Contains(number, StringComparer.Ordinal),
             $"The Comparison section's prose states {number}, which is not one of the method's parameters. Put measured figures in a generated table, or tie the number to the JSON in this test."));
         Assert.Contains("16", numbers);
+    }
+
+    // The prose says when the published runs were measured, to explain why their result files still carry the name the
+    // library had then. A date is the one figure it may state outside the tables, and only the day every result file
+    // of every published run records.
+    [Fact]
+    public void TheProsesDates_AreTheDayThePublishedRunsWereMeasured()
+    {
+        var page = PageTables.Text(Page);
+        var days = AcrossRuns(page)
+            .SelectMany(Files)
+            .Select(file => file.GetProperty("machine").GetProperty("date").GetString()![..10])
+            .Distinct(StringComparer.Ordinal)
+            .ToArray();
+        var stated = IsoDate().Matches(ComparisonProse(page)).Select(m => m.Value).Distinct(StringComparer.Ordinal).ToArray();
+
+        Assert.True(days.Length == 1, $"The published runs were measured on {days.Length} days, not one.");
+        Assert.Equal(days, stated);
+        Assert.Contains($"so their result files call it {Project}", page, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -251,6 +270,10 @@ public sealed partial class ComparisonTests
         Assert.True(ends[0] > starts[0], "The block's end marker follows its start marker.");
         return string.Join('\n', lines[(starts[0] + 1)..ends[0]]) + "\n";
     }
+
+    // A calendar date, such as 2026-10-04.
+    [GeneratedRegex(@"(?<![\w.])\d{4}-\d{2}-\d{2}(?![\w.])", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex IsoDate();
 
     // A number standing on its own, not part of a name such as p99: 16, 5,808, 0.114 or 91%.
     [GeneratedRegex(@"(?<![\w.])\d+(?:[.,]\d+)*%?", RegexOptions.None, matchTimeoutMilliseconds: 1000)]

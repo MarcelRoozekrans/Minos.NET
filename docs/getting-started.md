@@ -19,9 +19,8 @@ The library turns those questions and answers into ordinary C# types. You declar
 source generator writes the request, and the reply comes back as properties you can read. There is no JSON to build or
 parse by hand.
 
-> **Not affiliated with TypeSafe AI.** Minos.NET is a community project in the
-> [ZeroAlloc](https://github.com/ZeroAlloc-Net) family. TypeSafe publishes official SDKs for Python and JavaScript;
-> see [docs.typesafe.ai](https://docs.typesafe.ai).
+> **Not affiliated with TypeSafe AI.** Minos.NET is a community project. TypeSafe publishes official SDKs for Python
+> and JavaScript; see [docs.typesafe.ai](https://docs.typesafe.ai).
 
 ## The three question types
 
