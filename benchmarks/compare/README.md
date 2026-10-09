@@ -86,12 +86,21 @@ python benchmarks/compare/merge.py benchmarks/compare/results/ci-run-1.json --pr
 The printed table goes on the page between `<!-- comparison: benchmarks/compare/results/ci-run-1.json -->` and
 `<!-- endComparison -->`.
 
+The published runs were measured before the rename, under the name ZeroAlloc.Jev, so the table on the page now comes
+from `--project ZeroAlloc.Jev`:
+
+```sh
+python benchmarks/compare/merge.py benchmarks/compare/results/ci-run-1.json --project ZeroAlloc.Jev
+```
+
 Several published runs, such as three CI runs saved as `results/ci-run-1.json` to `results/ci-run-3.json`, give the
 "Across runs" table: one row per run with its CPU and mock ceiling, then per client the lowest and highest mean latency,
 throughput, share of the mock ceiling and bytes per call.
 
+The published runs were measured before the rename, under the name ZeroAlloc.Jev, so the command takes that name:
+
 ```sh
-python benchmarks/compare/merge.py --across benchmarks/compare/results/ci-run-1.json benchmarks/compare/results/ci-run-2.json benchmarks/compare/results/ci-run-3.json --project Minos.NET
+python benchmarks/compare/merge.py --across benchmarks/compare/results/ci-run-1.json benchmarks/compare/results/ci-run-2.json benchmarks/compare/results/ci-run-3.json --project ZeroAlloc.Jev
 ```
 
 That table goes between `<!-- acrossRuns: <file> <file> ... -->` and `<!-- endAcrossRuns -->`, the marker naming the
