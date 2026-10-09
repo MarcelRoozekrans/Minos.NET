@@ -6,7 +6,7 @@ using Minos.Generator;
 
 namespace Minos.Analyzers.Tests;
 
-/// <summary>Runs <see cref="QuestionSetAnalyzer"/> over a source with <c>{|JEV10x:…|}</c> markup at each expected diagnostic.</summary>
+/// <summary>Runs <see cref="QuestionSetAnalyzer"/> over a source with <c>{|MINxxx:…|}</c> markup at each expected diagnostic.</summary>
 internal static class AnalyzerVerifier
 {
     /// <summary>Verifies a set the analyzer rejects: exactly the marked-up diagnostics, and nothing else.</summary>
