@@ -218,15 +218,16 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-03-phase-4.4-docs-site.md`
 **Completed:** 2026-10-03
 
-## Milestone 5: 1.0 hardening [status: active]
+## Milestone 5: 1.0 hardening [status: complete]
 **Goal:** Harden the client before 1.0: a reviewed public API, benchmarks against hand-written .NET and TypeSafe's official JS and Python SDKs, a passing TypeSafe live run, and full-surface Native AOT verification. Re-scoped 2026-10-09: the 1.0 publish moved to Milestone 7, after the provider-neutral rework in Milestone 6 (`docs/superpowers/specs/2026-10-09-roadmap-design.md`).
 **Started:** 2026-10-04
+**Completed:** 2026-10-09
 **Design:** `docs/superpowers/specs/2026-10-04-milestone-5-design.md`
 **Definition of Done:**
-- [ ] Public API reviewed: sealing, naming, nullability and XML docs; #67, #23, #24 and #25 resolved; Telemetry 1.11.0 adopted (#85); #21 closed
-- [ ] Published benchmarks against a raw HttpClient + STJ client and the official JS and Python SDKs, on one local mock server
-- [ ] TypeSafe live suite passed once with a real key; `jev-latest` and `jev-preview` checked live
-- [ ] Full-surface AOT/trim verification green; #68, #73, #74 and #79 closed
+- [x] Public API reviewed: sealing, naming, nullability and XML docs; #67, #23, #24 and #25 resolved; Telemetry 1.11.0 adopted (#85); #21 closed
+- [x] Published benchmarks against a raw HttpClient + STJ client and the official JS and Python SDKs, on one local mock server
+- [x] TypeSafe live suite passed once with a real key; `jev-latest` and `jev-preview` checked live
+- [x] Full-surface AOT/trim verification green; #68, #73, #74 and #79 closed
 
 ### Phase 5.1: Public API review [status: complete]
 **Goal:** Review and freeze the public surface (sealing, naming, nullability, XML docs), make the breaking changes #67, #23, #24 and #25, adopt Telemetry 1.11.0 (#85) and close #21.
@@ -261,9 +262,10 @@ compress_memory: disabled
 **Completed:** 2026-10-09
 **Evidence:** Live smoke on main: probe [run 37913354273](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37913354273) (8/8), post-merge [run 37918889031](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37918889031) (12/13, OpenRouter rejects jev-preview, fixed in #111) and [run 37925900075](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37925900075) (13/13). TypeSafe answers jev-latest and jev-preview with jev-1.13.0 and accepts jev-1.13.0 as a model; OpenRouter answers jev-latest as typesafe/jev-1.13-20260917 and has no jev-preview.
 
-## Milestone 6: Provider-neutral core [status: pending]
+## Milestone 6: Provider-neutral core [status: active]
 **Goal:** Rename to a vendor-neutral name and reshape the core around a neutral question model, an `IDecisionClient` and two protocol adapters, `/v1/systemone` and OpenAI's `/v1/decisions`, validated by a conformance suite, before any 1.0 API freeze.
-**Design:** `docs/superpowers/specs/2026-10-09-roadmap-design.md`
+**Started:** 2026-10-09
+**Design:** `docs/superpowers/specs/2026-10-09-milestone-6-design.md`
 **Definition of Done:**
 - [ ] A vendor-neutral name is decided and applied to packages, namespaces, attributes, client and error types, analyzer IDs, the repository and the docs site; the fate of `ZeroAlloc.Jev` is decided
 - [ ] The generator emits a provider-neutral question set; serialization lives in protocol adapters
