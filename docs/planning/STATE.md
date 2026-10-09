@@ -1,27 +1,50 @@
-# Session State — 2026-10-09 (Phase 5.4 complete, 5.5 next)
+# Session State — 2026-10-09 (Phase 5.5 paused: release on hold for a vendor-neutral rename)
 
 **Date:** 2026-10-09
 
 ## Current Position
-- **Milestone:** 5 — 1.0 hardening, active since 2026-10-04. Design: `docs/superpowers/specs/2026-10-04-milestone-5-design.md`.
-  - 5.1 to 5.4 are complete. Releases so far: 0.4.0, 0.5.0, 0.5.1, 0.5.2 (Phase 5.4, #108) and 0.5.3 (#111).
-  - 5.5, the 1.0 release, is next.
-- **Phase:** 5.4 — Live and alias verification, complete.
-- **Next task:** Phase 5.5. Brainstorm and plan:
-  - the NuGet publishing workflow (#29);
-  - 1.0.0 through release-please;
-  - the version in the guide and README;
-  - api-compat (#28) against the 1.0.0 package.
+- **Milestone:** 5 — 1.0 hardening, active since 2026-10-04. Phases 5.1 to 5.4 are complete. Phase 5.5, the 1.0 release, is active and **paused by the maintainer**.
+- **Phase:** 5.5 — 1.0 release. Spec `docs/superpowers/specs/2026-10-09-phase-5.5-1.0-release-design.md`, plan `docs/superpowers/plans/2026-10-09-phase-5.5-1.0-release.md`.
+- **Branch `phase/5.5-release`, local only, not pushed, no PR:**
+  - **Task 1 (done, reviewed):** `tools/release/inspect_packages.py` with 20 unit tests, run by a new CI step. It checks the two packages, their versions, the DLLs' informational version and the DI package's dependency before any push. `.gitignore` re-includes `tools/release/`.
+  - **Task 2 (done, reviewed):**
+    - a `publish` job in `release-please.yml` that pushes to nuget.org and GitHub Packages, then attaches the packages to the release;
+    - the `publish-from-manifest.yml` rescue workflow;
+    - the `api-compat` job in `ci.yml`;
+    - both workflows refuse any 0.x version.
+  - **Task 3 (done, review pending, commit 57d7319):**
+    - the guide's release-please version line;
+    - `extra-files` in `release-please-config.json`;
+    - the README Status line now says "published on NuGet";
+    - Install wording;
+    - `VersionLineTests`.
+  - **SDD ledger:** `.superpowers/sdd/2026-10-09-phase-5.5-1.0-release/progress.md`, git-ignored and local. It records every task, review and ruling.
+- **Last completed:** Task 3's implementation; its review was not run.
+- **Not done:** Task 3 review, the final whole-branch review, Task 4 (push and PR, with `Release-As: 1.0.0`), Task 5 (cut and verify 1.0.0).
 
-  1.0.0 may now publish: the TypeSafe live suite has passed with a real key.
-- **Maintainer decisions for Milestone 5:**
-  - 1.0.0 ships to NuGet only after the TypeSafe live suite passes with a real key. That condition was met on 2026-10-09.
-  - The old 5.3 was split so the keyless work could go first.
-- **Operational notes:**
-  - **Live keys:** `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY` are in the `live-api` environment, which deploys only from `main`. Run the suite with `gh workflow run live-smoke.yml --ref main`. About 13 small billed calls per run.
-  - **Website updates:** .website's bot-opened "update submodules" PRs hold their `build` run for approval (`action_required`). Approve it with `gh api -X POST repos/ZeroAlloc-Net/.website/actions/runs/<id>/approve`, then merge with `--admin`, after asking the maintainer.
-  - **`za-docs-jev` preview check:** it failed on PRs because its Cloudflare non-production deploy command was `npx wrangler preview` with no `previews` block. The maintainer changed the setting on 2026-10-09; confirm on the next bot PR.
-  - **CI on a branch without a PR:** `gh workflow run ci.yml --ref <branch>`. Add `-f aot-smoke-runs=20` to repeat the AOT smoke run.
+## Open Decisions
+- **Package name (blocks any publish).** The maintainer proposes repositioning the library as a provider-neutral decision client, for example `ZeroAlloc.Decisions` with provider packages, because OpenAI's Decisions API and Cloudflare's Clef have launched. The proposal is recorded verbatim in `docs/plans/2026-10-09-provider-neutral-direction.md`, items 1 to 6.
+  - **Item 1, blocking:** rename packages, namespaces, `[JevQuestions]`, `IJevClient`, `JevError`, the JEV analyzer IDs and the docs site before the first NuGet publish.
+  - Nothing is published under `ZeroAlloc.Jev` yet; both ids were still free on nuget.org on 2026-10-09.
+- **Whether to file items 1–6 as GitHub issues.** Not filed. The maintainer has not decided.
+- **What Milestone 5 becomes.** Its definition of done says "1.0.0 published" and "public API frozen". Item 2 changes the generator's output and the public API, so 1.0 likely moves after the rename and the provider-neutral model. This needs a roadmap re-plan.
+- **The `za-docs-jev` Cloudflare preview check.** The maintainer changed its non-production deploy command on 2026-10-09. Not yet confirmed on a new PR; .website #82 and #83 still failed at 11:39 and 11:46.
+
+## Blockers
+- **Release:** blocked on the name decision. Do not push `phase/5.5-release`, do not open its PR, and do not merge anything carrying `Release-As: 1.0.0`.
+
+## Recommended Next Step
+1. Brainstorm the name decision, item 1, with the maintainer and record it in `docs/planning/`.
+2. Re-plan the roadmap from Milestone 5 onward around the provider-neutral direction, through `plan-roadmap` or `new-milestone`. Keep the Phase 5.5 pipeline work: only the package ids in `tools/release/inspect_packages.py`, the guide line and the docs change with the name.
+3. Then finish Phase 5.5 under the new name: Task 3 review, final review, PR, and 1.0.0.
+
+## Operational notes
+- **Live keys:** `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY` are in the `live-api` environment, which deploys only from `main`. Run the suite with `gh workflow run live-smoke.yml --ref main`. About 13 small billed calls per run.
+- **Website updates:**
+  - .website's bot "update submodules" PRs hold their `build` run (`action_required`). Approve it with `gh api -X POST repos/ZeroAlloc-Net/.website/actions/runs/<id>/approve`, then merge with `--admin`, after asking the maintainer.
+  - jev.zeroalloc.net only updates when that PR merges.
+- **Org-wide publishing:** the per-repository publish jobs have drifted; one shared workflow is tracked in ZeroAlloc-Net/.github#49. Jev's job already matches its target.
+- **CI on a branch without a PR:** `gh workflow run ci.yml --ref <branch>`. Add `-f aot-smoke-runs=20` to repeat the AOT smoke run.
 
 ## What Phase 5.4 shipped
 - **Live evidence:** Live smoke on `main`.
