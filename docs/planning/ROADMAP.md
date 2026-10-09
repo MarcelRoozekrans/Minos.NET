@@ -259,7 +259,7 @@ compress_memory: disabled
 **Surface:** Infra
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-10-09-phase-5.4-live-and-alias-verification-design.md`
-**Plan:** _to be written_
+**Plan:** `docs/superpowers/plans/2026-10-09-phase-5.4-live-and-alias-verification.md`
 
 ### Phase 5.5: 1.0 release [status: pending]
 **Goal:** Add the NuGet publishing workflow (#29), cut 1.0.0 through release-please, state the version in the guide and README, then add api-compat (#28) against the 1.0.0 package.
