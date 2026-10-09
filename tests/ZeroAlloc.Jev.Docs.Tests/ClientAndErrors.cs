@@ -1,3 +1,4 @@
+using System.Text.Json;
 namespace ZeroAlloc.Jev.Docs.Tests;
 
 #region ClientAndErrors_Constructors
@@ -107,6 +108,37 @@ public static class ClientFailures
         // A kind added in a later version still produces a useful message.
         _ => error.ToString(),
     };
+    #endregion
+}
+
+public static class ValidationProblems
+{
+    #region ClientAndErrors_ValidationProblems
+    // TypeSafe answers a 422 with a list of problems. Each one says where it is, as a path such as body.questions,
+    // and what is wrong. Other errors carry a different body, so check its shape before reading it.
+    public static IReadOnlyList<string> List(JevError error)
+    {
+        var problems = new List<string>();
+        if (error is not { Kind: JevErrorKind.Validation, Detail: { ValueKind: JsonValueKind.Object } body }
+            || !body.TryGetProperty("detail", out var detail)
+            || detail.ValueKind != JsonValueKind.Array)
+        {
+            return problems;
+        }
+
+        foreach (var problem in detail.EnumerateArray())
+        {
+            var path = new List<string>();
+            foreach (var part in problem.GetProperty("loc").EnumerateArray())
+            {
+                path.Add(part.ToString());
+            }
+
+            problems.Add($"{string.Join('.', path)}: {problem.GetProperty("msg").GetString()}");
+        }
+
+        return problems;
+    }
     #endregion
 }
 

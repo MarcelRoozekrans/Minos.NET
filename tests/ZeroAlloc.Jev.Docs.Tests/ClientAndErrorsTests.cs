@@ -25,6 +25,11 @@ public sealed class ClientAndErrorsTests
         }
         """;
 
+    // Bodies TypeSafe really sent, captured by the Live smoke workflow's run 37913354273 on 2026-10-09.
+    private const string TypeSafeValidationBody = """{"detail":[{"type":"too_short","loc":["body","questions"],"msg":"Dictionary should have at least 1 item after validation, not 0","input":{},"ctx":{"field_type":"Dictionary","min_length":1,"actual_length":0}}]}""";
+
+    private const string TypeSafeUnauthorizedBody = """{"detail":{"error_type":"authentication_error","message":"Cannot authenticate with the server. Please check your API key and try again."}}""";
+
     [Fact]
     public async Task Describe_TurnsARejectedKeyIntoAnAction()
     {
@@ -51,6 +56,47 @@ public sealed class ClientAndErrorsTests
         using (jev)
         {
             Assert.Equal(expected, await RawRequests.UrgencyAsync(jev, "Help!", CancellationToken.None));
+        }
+    }
+
+    [Fact]
+    public async Task ValidationProblems_ReadsWhereAndWhatFromTypeSafesRealBody()
+    {
+        var (http, jev, _) = ScriptedJev.Client(ScriptedJev.Quick(0), Reply.Error(422, TypeSafeValidationBody));
+        using (http)
+        using (jev)
+        {
+            var result = await jev.EvaluateAsync(new SystemOneRequest
+            {
+                State = "Help!",
+                Questions = new Dictionary<string, JevQuestion>(),
+            });
+
+            Assert.True(result.IsFailure);
+            Assert.Equal(
+                ["body.questions: Dictionary should have at least 1 item after validation, not 0"],
+                ValidationProblems.List(result.Error));
+        }
+    }
+
+    [Theory]
+    [InlineData(401, TypeSafeUnauthorizedBody)]
+    [InlineData(422, "{\"detail\":\"questions is required\"}")]
+    [InlineData(422, "not json")]
+    public async Task ValidationProblems_IsEmpty_WhenThereIsNoListOfProblems(int status, string body)
+    {
+        var (http, jev, _) = ScriptedJev.Client(ScriptedJev.Quick(0), Reply.Error(status, body));
+        using (http)
+        using (jev)
+        {
+            var result = await jev.EvaluateAsync(new SystemOneRequest
+            {
+                State = "Help!",
+                Questions = new Dictionary<string, JevQuestion>(),
+            });
+
+            Assert.True(result.IsFailure);
+            Assert.Empty(ValidationProblems.List(result.Error));
         }
     }
 
