@@ -93,7 +93,7 @@ you asked for it. Everything else, including every network and service failure, 
 | `Provider` | `JevProvider.TypeSafe` | `TypeSafe` or `OpenRouter` | Where requests go. |
 | `ApiKey` | none | any text without control characters; blank counts as unset | The key sent as a bearer token. When unset, the client reads `TYPESAFE_API_KEY`, or `OPENROUTER_API_KEY` for OpenRouter. |
 | `BaseAddress` | the provider's address | absolute `http` or `https` URI, no query or fragment | The API root, for a proxy or a test server. When unset, the client reads `TYPESAFE_BASE_URL` for TypeSafe only, then uses `https://api.typesafe.ai/` or `https://openrouter.ai/api/`. |
-| `Model` | `jev-latest` | not blank | The model that typed evaluation and built question sets ask: the alias `jev-latest` or `jev-preview`, or a versioned id such as `jev-1.13.0`. See [Listing models](#listing-models). |
+| `Model` | `jev-latest` | not blank | The model that typed evaluation and built question sets ask: an alias such as `jev-latest` (or TypeSafe's `jev-preview`), or a versioned id such as `jev-1.13.0`. See [Listing models](#listing-models). |
 | `Timeout` | 60 seconds | positive, or `Timeout.InfiniteTimeSpan`, and at most about 24.8 days | How long one attempt may take. |
 | `MaxRetries` | 2 | 0 to 10 | How many times a failed call is tried again. 0 turns retries off. |
 | `InitialBackoff` | 500 ms | positive, and at most about 24.8 days | The first wait between attempts. It doubles for each further retry. |
@@ -458,10 +458,10 @@ public static async Task<string> ModelsAsync(IJevClient jev, CancellationToken c
 Listing models is available on TypeSafe's API only. On OpenRouter the call returns an `Unsupported` error and sends no
 request, because OpenRouter has its own models API.
 
-TypeSafe lists only the aliases, `jev-latest` for the newest stable release and `jev-preview` for the newest release
-of any kind. A versioned id such as `jev-1.13.0` is accepted as a `Model` too, listed or not, as TypeSafe's
-[models page](https://docs.typesafe.ai/models) describes. Whichever you send, the response's `Model` names the
-versioned model that answered, so log it if you need to know which release produced a result. OpenRouter accepts
+As of October 2026, TypeSafe lists only the aliases, `jev-latest` for the newest stable release and `jev-preview` for
+the newest release of any kind. A versioned id such as `jev-1.13.0` is accepted as a `Model` too, listed or not, as
+TypeSafe's [models page](https://docs.typesafe.ai/models) describes. Whichever you send, the response's `Model` names
+the versioned model that answered, so log it if you need to know which release produced a result. OpenRouter accepts
 `jev-latest` too, and reports its own model id in the response.
 
 ## Next
