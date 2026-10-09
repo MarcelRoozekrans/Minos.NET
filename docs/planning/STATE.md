@@ -35,8 +35,8 @@
 - **Publishing:** blocked until Milestone 7. Do not push `phase/5.5-release` as a PR, and do not merge anything carrying `Release-As: 1.0.0`.
 
 ## Recommended Next Step
-1. Run `new-milestone` for Milestone 6, Provider-neutral core: a milestone-scope brainstorm, `MILESTONE.md` and ROADMAP.md.
-2. Then Phase 6.1: brainstorm the name decision (#120).
+1. Milestone 6, Provider-neutral core, is active (design `docs/superpowers/specs/2026-10-09-milestone-6-design.md`).
+2. Next: Phase 6.1: brainstorm the name decision (#120).
 3. From Milestone 6 on, run `pre-push-review` on each feature branch before its PR. The Milestone 5 audit found no reports on file.
 
 ## Operational notes

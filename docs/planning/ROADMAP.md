@@ -262,9 +262,10 @@ compress_memory: disabled
 **Completed:** 2026-10-09
 **Evidence:** Live smoke on main: probe [run 37913354273](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37913354273) (8/8), post-merge [run 37918889031](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37918889031) (12/13, OpenRouter rejects jev-preview, fixed in #111) and [run 37925900075](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37925900075) (13/13). TypeSafe answers jev-latest and jev-preview with jev-1.13.0 and accepts jev-1.13.0 as a model; OpenRouter answers jev-latest as typesafe/jev-1.13-20260917 and has no jev-preview.
 
-## Milestone 6: Provider-neutral core [status: pending]
+## Milestone 6: Provider-neutral core [status: active]
 **Goal:** Rename to a vendor-neutral name and reshape the core around a neutral question model, an `IDecisionClient` and two protocol adapters, `/v1/systemone` and OpenAI's `/v1/decisions`, validated by a conformance suite, before any 1.0 API freeze.
-**Design:** `docs/superpowers/specs/2026-10-09-roadmap-design.md`
+**Started:** 2026-10-09
+**Design:** `docs/superpowers/specs/2026-10-09-milestone-6-design.md`
 **Definition of Done:**
 - [ ] A vendor-neutral name is decided and applied to packages, namespaces, attributes, client and error types, analyzer IDs, the repository and the docs site; the fate of `ZeroAlloc.Jev` is decided
 - [ ] The generator emits a provider-neutral question set; serialization lives in protocol adapters
