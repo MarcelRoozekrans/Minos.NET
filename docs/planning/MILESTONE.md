@@ -21,7 +21,7 @@ One typed question set runs against TypeSafe, OpenRouter, OpenAI and a local `/v
 - [ ] A Providers docs page shows the presets and the capability matrix. A sample switches providers by configuration only.
 
 ## Phases
-1. Phase 6.1 — Name decision and rename [pending]
+1. Phase 6.1 — Name decision and rename [active]
 2. Phase 6.2 — Neutral question model and adapter boundary [pending]
 3. Phase 6.3 — IDecisionClient abstraction and pipeline [pending]
 4. Phase 6.4 — /v1/systemone adapter [pending]

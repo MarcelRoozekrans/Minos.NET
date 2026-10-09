@@ -274,10 +274,11 @@ compress_memory: disabled
 - [ ] A conformance suite passes against recorded TypeSafe and OpenAI fixtures
 - [ ] A Providers docs page documents the presets and the capability matrix
 
-### Phase 6.1: Name decision and rename [status: pending]
+### Phase 6.1: Name decision and rename [status: active]
 **Goal:** Decide the vendor-neutral name, provider-package layout and the fate of `ZeroAlloc.Jev`, then rename packages, namespaces, attributes, `IJevClient`/`JevError`, analyzer IDs, repository and docs site, before the first NuGet publish (#120).
 **Surface:** Refactor
 **HelpWanted:** no
+**Spec:** `docs/superpowers/specs/2026-10-09-phase-6.1-rename-design.md`
 **Plan:** _to be written_
 
 ### Phase 6.2: Neutral question model and adapter boundary [status: pending]
