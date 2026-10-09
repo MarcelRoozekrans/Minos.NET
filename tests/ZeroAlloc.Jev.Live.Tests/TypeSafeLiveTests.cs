@@ -43,7 +43,7 @@ public sealed class TypeSafeLiveTests
         Assert.NotEmpty(result.Value.Models);
         _output.WriteLine("Models: " + string.Join(", ", result.Value.Models.Select(model => model.Name)));
         Assert.Contains(result.Value.Models, model => string.Equals(model.Name, JevDefaults.Model, StringComparison.Ordinal));
-        Assert.Contains(result.Value.Models, model => string.Equals(model.Name, "jev-preview", StringComparison.Ordinal));
+        Assert.Contains(result.Value.Models, model => string.Equals(model.Name, Live.Preview, StringComparison.Ordinal));
     }
 
     [LiveFact(JevProvider.TypeSafe)]
@@ -130,11 +130,16 @@ public sealed class TypeSafeLiveTests
         // TypeSafe's 422 lists each problem with where it is and what is wrong; the guide's example relies on it.
         Assert.Equal(422, result.Error.StatusCode);
         Assert.NotNull(result.Error.Detail);
-        var problems = result.Error.Detail.Value.GetProperty("detail");
+        var detail = result.Error.Detail.Value;
+        Assert.Equal(JsonValueKind.Object, detail.ValueKind);
+        Assert.True(detail.TryGetProperty("detail", out var problems));
         Assert.Equal(JsonValueKind.Array, problems.ValueKind);
         Assert.True(problems.GetArrayLength() > 0);
-        Assert.Equal(JsonValueKind.Array, problems[0].GetProperty("loc").ValueKind);
-        Assert.Equal(JsonValueKind.String, problems[0].GetProperty("msg").ValueKind);
+        Assert.Equal(JsonValueKind.Object, problems[0].ValueKind);
+        Assert.True(problems[0].TryGetProperty("loc", out var loc));
+        Assert.Equal(JsonValueKind.Array, loc.ValueKind);
+        Assert.True(problems[0].TryGetProperty("msg", out var msg));
+        Assert.Equal(JsonValueKind.String, msg.ValueKind);
     }
 
     [LiveFact(JevProvider.TypeSafe)]

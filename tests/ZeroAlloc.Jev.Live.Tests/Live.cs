@@ -5,6 +5,9 @@ namespace ZeroAlloc.Jev.Live.Tests;
 /// <summary>Shared infrastructure for the live smoke tests: an owned client, the model and a probe request.</summary>
 internal static class Live
 {
+    /// <summary>The alias for the newest release of any kind, which TypeSafe lists.</summary>
+    public const string Preview = "jev-preview";
+
     private const string State = "Help! My payouts have been failing for 3 days and nobody answers.";
 
     private static readonly string[] TeamOptions = ["billing", "technical", "sales"];

@@ -12,8 +12,6 @@ public sealed class AliasLiveTests
 {
     private const string Latest = "jev-latest";
 
-    private const string Preview = "jev-preview";
-
     private readonly ITestOutputHelper _output;
 
     public AliasLiveTests(ITestOutputHelper output) => _output = output;
@@ -24,7 +22,7 @@ public sealed class AliasLiveTests
 
     [LiveFact(JevProvider.TypeSafe)]
     public async Task TypeSafe_Preview_AnswersWithAVersionedModel()
-        => AssertVersioned((await EvaluateAsync(JevProvider.TypeSafe, Preview)).Model);
+        => AssertVersioned((await EvaluateAsync(JevProvider.TypeSafe, Live.Preview)).Model);
 
     [LiveFact(JevProvider.TypeSafe)]
     public async Task TypeSafe_TheVersionedIdAnAliasResolvesTo_IsAcceptedAsAModel()
@@ -44,7 +42,7 @@ public sealed class AliasLiveTests
 
     [LiveFact(JevProvider.OpenRouter)]
     public async Task OpenRouter_Preview_Answers()
-        => Assert.False(string.IsNullOrWhiteSpace((await EvaluateAsync(JevProvider.OpenRouter, Preview)).Model));
+        => Assert.False(string.IsNullOrWhiteSpace((await EvaluateAsync(JevProvider.OpenRouter, Live.Preview)).Model));
 
     private static void AssertVersioned(string model)
         => Assert.True(
