@@ -13,6 +13,28 @@
     - 9, Hosted to local;
     - 10, Escalation.
   - Issues #120 (the name, blocking) and #115–#119 track the work.
+- **Milestone 6, Phase 6.1 (rename to Minos):** active, on branch `phase/6.1-rename`.
+  - **Done:** the rename is implemented and reviewed task by task, to plan `docs/superpowers/plans/2026-10-09-phase-6.1-rename-to-minos.md`:
+    - `Minos.NET` packages, the `Minos` namespace and the new type names;
+    - `MIN` analyzer IDs and `minos.*` telemetry keys;
+    - the bronze coil logo;
+    - the README with "About the name";
+    - an in-repo Docusaurus site for GitHub Pages;
+    - CI with no ZeroAlloc-org dependencies;
+    - the no-old-name guard test.
+  - **Not done:** the PR, then the maintainer actions below.
+  - **Maintainer actions after the PR merges**, in order:
+    - [ ] Transfer `ZeroAlloc-Net/ZeroAlloc.Jev` to `MarcelRoozekrans` and rename it `Minos.NET`. GitHub redirects old URLs, so the published benchmark run links keep working.
+    - [ ] Re-create `RELEASE_PLEASE_TOKEN` on the personal repository. It was an org secret.
+    - [ ] Check that the `live-api` environment came along with `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY` and its `main`-only branch policy.
+    - [ ] Re-create the `main` ruleset with the required checks: `build`, `aot-smoke`, `aot-surface`, the docs build, `smoke / benchmarks`, and `release-tracking` on release PRs.
+    - [ ] Enable Renovate for the repository; it uses the `local>MarcelRoozekrans/renovate-config` preset.
+    - [ ] GitHub Pages: set the source to "GitHub Actions", then run `docs.yml` and check https://marcelroozekrans.github.io/Minos.NET/.
+    - [ ] Redirect `jev.zeroalloc.net` to the Pages URL. Then open a ZeroAlloc-Net/.website PR that removes `repos/jev`, `apps/docs-jev` and the home-page entry, and retire the `za-docs-jev` Cloudflare project.
+    - [ ] Run Live smoke on `main` and expect 13/13. Its variables are now `MINOS_LIVE*`.
+    - [ ] Check that the first release-please run on the personal repository opens its PR.
+    - [ ] Delete `tools/rename/` once the PR is merged, together with the guard's exclusion for it.
+  - **Known until 1.0:** the NuGet navbar link and the README's NuGet references have no package behind them.
 - **Old Phase 5.5 (1.0 release):** removed from Milestone 5 and folded into Phase 7.4.
   - Its reviewed pipeline work sits on the local branch `phase/5.5-release`, not pushed:
     - inspection script;
