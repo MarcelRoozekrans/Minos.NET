@@ -4,7 +4,7 @@ using ZeroAlloc.Validation;
 namespace Minos.Validation;
 
 /// <summary>
-/// Fails text that is empty or whitespace and JSON that is exactly <c>{}</c> or <c>[]</c> (JEV003); <see langword="null"/>
+/// Fails text that is empty or whitespace and JSON that is exactly <c>{}</c> or <c>[]</c> (MIN003); <see langword="null"/>
 /// passes, as the API accepts an absent description.
 /// </summary>
 internal sealed class NotBlankContentAttribute : ValidationAttribute<DecisionContent?>

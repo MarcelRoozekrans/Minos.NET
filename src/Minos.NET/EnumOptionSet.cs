@@ -60,8 +60,8 @@ internal sealed class EnumOptionSet<[DynamicallyAccessedMembers(DynamicallyAcces
     /// <summary>Creates a Score's levels, in the order given, keyed <c>"0"</c>, <c>"1"</c>, ….</summary>
     /// <param name="members">
     /// For each level, lowest first, the index in this set of the member it is. Each entry must be a valid
-    /// <see cref="ForChoice"/> index and every member must appear exactly once; the builder's validation, JEV104 for a
-    /// missing member and JEV106 for one given twice, rejects anything else before a set's levels are created.
+    /// <see cref="ForChoice"/> index and every member must appear exactly once; the builder's validation, MIN104 for a
+    /// missing member and MIN106 for one given twice, rejects anything else before a set's levels are created.
     /// </param>
     /// <returns>The levels.</returns>
     public EnumOptionSet<T> Levels(ReadOnlySpan<int> members)

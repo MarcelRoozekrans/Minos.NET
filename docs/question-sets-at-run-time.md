@@ -95,14 +95,14 @@ public sealed class TenantRouter
 Every question method takes the same first three arguments.
 
 - **The key**, the question's name in the request and the response. A `null` key throws `ArgumentNullException`. An
-  empty or repeated key is caught by `Build()` as JEV106.
+  empty or repeated key is caught by `Build()` as MIN106.
 - **The instructions**, the question itself, as a [`DecisionContent`](typed-evaluation.md#decisioncontent). A string converts to
   one. Use `DecisionContent.FromUtf8Json` or `DecisionContent.FromValue` for instructions that are a JSON object or array.
 - **A handle**, as an `out` argument. Keep it: it is how you read this question's answer later.
 
 A fourth argument, the configurator, is a callback that describes the question's options. It is optional for a Noul
 and an enum Choice. A keyed Choice, a keyed Score and an enum Score need one, so they have no overload without it. A
-configurator that adds nothing still fails `Build()`, with JEV001, JEV002 or JEV104. The methods are these.
+configurator that adds nothing still fails `Build()`, with MIN001, MIN002 or MIN104. The methods are these.
 
 | Method | Question | Handle | Configurator |
 | --- | --- | --- | --- |
@@ -185,18 +185,18 @@ Any `IDecisionClient` can evaluate a built set, including a hand-written fake th
 ## Checking the set
 
 `Build()` returns a `Result<QuestionSet, DecisionError>`. It checks the questions against the rules the
-[analyzers](diagnostics.md) apply to a typed set, and the rule ids are the same. JEV108 is the builder's own, because
+[analyzers](diagnostics.md) apply to a typed set, and the rule ids are the same. MIN108 is the builder's own, because
 only a built set can carry JSON.
 
 | Rule | What it checks | Outcome |
 | --- | --- | --- |
-| JEV001 | A Choice has no options: a keyed Choice with none, or an enum Choice over an enum with no members. | Failure |
-| JEV002 | A Score has no levels: a keyed Score with none, or an enum Score over an enum with no members. | Failure |
-| JEV104 | A member of an enum Score is not given a level. | Failure |
-| JEV106 | A question key, a keyed option key or an enum Score member is repeated, or a key is empty. | Failure |
-| JEV108 | JSON instructions, a JSON description, or a JSON yes/no meaning nests deeper than 60 levels. | Failure |
-| JEV003 | Blank instructions, description or example, or JSON that is exactly `{}` or `[]`. | Warning |
-| JEV005 | A Score outside 2 to 10 levels, or a Choice over 255 options. | Warning |
+| MIN001 | A Choice has no options: a keyed Choice with none, or an enum Choice over an enum with no members. | Failure |
+| MIN002 | A Score has no levels: a keyed Score with none, or an enum Score over an enum with no members. | Failure |
+| MIN104 | A member of an enum Score is not given a level. | Failure |
+| MIN106 | A question key, a keyed option key or an enum Score member is repeated, or a key is empty. | Failure |
+| MIN108 | JSON instructions, a JSON description, or a JSON yes/no meaning nests deeper than 60 levels. | Failure |
+| MIN003 | Blank instructions, description or example, or JSON that is exactly `{}` or `[]`. | Warning |
+| MIN005 | A Score outside 2 to 10 levels, or a Choice over 255 options. | Warning |
 
 A failure makes `Build()` return an error of kind `DecisionErrorKind.InvalidQuestions`, and no request is ever sent for the
 set. `DecisionError.Failures` is a read-only list with one `QuestionFailure` for each rule broken. It holds the rule's id,

@@ -82,7 +82,7 @@ internal sealed record StubTypeModel(string Modifiers, string Keyword, string Na
 /// An invalid <c>[Questions]</c> type whose partial question properties the generator implements anyway. The
 /// stubs keep the compiler from reporting CS9248, an unimplemented partial property: that declaration error would
 /// stop a command-line build before the analyzer runs, hiding the JEV error that explains the problem. The type may
-/// be one JEV101 rejects, as long as a partial part can complete it: a nested, generic, abstract or static type, or
+/// be one MIN101 rejects, as long as a partial part can complete it: a nested, generic, abstract or static type, or
 /// one that is not a class, so the model carries each declaration a partial part repeats.
 /// </summary>
 /// <param name="Namespace">The containing namespace, escaped; <see langword="null"/> for the global namespace.</param>

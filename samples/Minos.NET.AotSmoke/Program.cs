@@ -342,7 +342,7 @@ internal static class Program
         Check(
             invalid.IsFailure
                 && invalid.Error.Kind == DecisionErrorKind.InvalidQuestions
-                && string.Equals(invalid.Error.Failures[0].Rule, "JEV001", StringComparison.Ordinal),
+                && string.Equals(invalid.Error.Failures[0].Rule, "MIN001", StringComparison.Ordinal),
             "a built question set that breaks a rule fails with its JEV id");
     }
 

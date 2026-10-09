@@ -17,13 +17,13 @@ public sealed class LocalDiagnosticTests
     /// <summary>An enum rule, the enum it fires on and the set that uses it, and the text the diagnostic spans.</summary>
     public static TheoryData<string, string, string, string> EnumRules => new()
     {
-        { "JEV006", "public enum E { [Criteria(\"x\")] A, B }", "[Choice(\"q\")] public partial Choice<E> Answer { get; }", "B" },
-        { "JEV104", "public enum E { [Level(\"a\")] A, [Level(\"b\")] B, C }", "[Score(\"q\")] public partial Score<E> Answer { get; }", "C" },
-        { "JEV001", "public enum E { }", "[Choice(\"q\")] public partial Choice<E> Answer { get; }", "E" },
-        { "JEV002", "public enum E { }", "[Score(\"q\")] public partial Score<E> Answer { get; }", "E" },
-        { "JEV005", "public enum E { [Level(\"a\")] A }", "[Score(\"q\")] public partial Score<E> Answer { get; }", "E" },
-        { "JEV003", "public enum E { [Criteria(\" \")] A }", "[Choice(\"q\")] public partial Choice<E> Answer { get; }", "\" \"" },
-        { "JEV003", "public enum E { [Level(\"a\")] A, [Level(\"\")] B }", "[Score(\"q\")] public partial Score<E> Answer { get; }", "\"\"" },
+        { "MIN006", "public enum E { [Criteria(\"x\")] A, B }", "[Choice(\"q\")] public partial Choice<E> Answer { get; }", "B" },
+        { "MIN104", "public enum E { [Level(\"a\")] A, [Level(\"b\")] B, C }", "[Score(\"q\")] public partial Score<E> Answer { get; }", "C" },
+        { "MIN001", "public enum E { }", "[Choice(\"q\")] public partial Choice<E> Answer { get; }", "E" },
+        { "MIN002", "public enum E { }", "[Score(\"q\")] public partial Score<E> Answer { get; }", "E" },
+        { "MIN005", "public enum E { [Level(\"a\")] A }", "[Score(\"q\")] public partial Score<E> Answer { get; }", "E" },
+        { "MIN003", "public enum E { [Criteria(\" \")] A }", "[Choice(\"q\")] public partial Choice<E> Answer { get; }", "\" \"" },
+        { "MIN003", "public enum E { [Level(\"a\")] A, [Level(\"\")] B }", "[Score(\"q\")] public partial Score<E> Answer { get; }", "\"\"" },
     };
 
     [Theory]
@@ -69,7 +69,7 @@ public sealed class LocalDiagnosticTests
         var diagnostics = await compilation.WithAnalyzers([new QuestionSetAnalyzer()]).GetAnalyzerDiagnosticsAsync(CancellationToken.None);
 
         var members = diagnostics
-            .Where(diagnostic => string.Equals(diagnostic.Id, "JEV006", StringComparison.Ordinal))
+            .Where(diagnostic => string.Equals(diagnostic.Id, "MIN006", StringComparison.Ordinal))
             .Select(SpanText)
             .OrderBy(member => member, StringComparer.Ordinal);
         Assert.Equal(["B", "C"], members);
@@ -88,7 +88,7 @@ public sealed class LocalDiagnosticTests
         var found = diagnostics
             .Select(diagnostic => diagnostic.Id + ":" + SpanText(diagnostic))
             .OrderBy(entry => entry, StringComparer.Ordinal);
-        Assert.Equal(["JEV006:B", "JEV104:A"], found);
+        Assert.Equal(["MIN006:B", "MIN104:A"], found);
     }
 
     [Fact]

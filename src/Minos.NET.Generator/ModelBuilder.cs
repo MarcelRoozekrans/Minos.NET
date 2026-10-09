@@ -22,7 +22,7 @@ internal static class ModelBuilder
     // either name would collide with the generated declaration.
     private static readonly string[] ReservedPropertyNames = ["Parse", "QuestionsUtf8"];
 
-    // JEV003's second message argument: the advice that fits what is empty. The text follows the subject in the message.
+    // MIN003's second message argument: the advice that fits what is empty. The text follows the subject in the message.
     private const string EmptyTextAdvice = "is empty or whitespace: write the text, or pass null to send none";
     private const string EmptyEntryAdvice = "is empty or whitespace: write the text, or remove the entry";
 
@@ -72,7 +72,7 @@ internal static class ModelBuilder
 
         ReportDuplicates(questions.Select(question => question.Key), type, type.Name, diagnostics);
 
-        // Advice (JEV003–006) leaves the set valid; any other diagnostic makes it invalid, and the generator then
+        // Advice (MIN003–006) leaves the set valid; any other diagnostic makes it invalid, and the generator then
         // emits only throwing stubs for its question properties.
         if (diagnostics.Concat(enumDiagnostics).Any(diagnostic => !DiagnosticIds.IsAdvisory(diagnostic.Id)))
         {
@@ -93,8 +93,8 @@ internal static class ModelBuilder
         => new(model, invalidSet, new EquatableArray<DiagnosticInfo>(diagnostics.ToArray()));
 
     /// <summary>
-    /// The rules about one enum used as a Choice or a Score: JEV001 or JEV002 when it is empty, JEV005 for a count
-    /// outside the guidance, JEV006 or JEV104 for a member without its description, and JEV003 for an empty one. They
+    /// The rules about one enum used as a Choice or a Score: MIN001 or MIN002 when it is empty, MIN005 for a count
+    /// outside the guidance, MIN006 or MIN104 for a member without its description, and MIN003 for an empty one. They
     /// are located on the enum, its members and their attributes, so the enum's own analysis reports them. The same
     /// code checks them inside <see cref="Build"/>, where they decide whether the set is valid.
     /// </summary>
@@ -174,7 +174,7 @@ internal static class ModelBuilder
                     .FirstOrDefault() is { AccessorList: { } accessorList } declaration)
             {
                 // The implementation repeats the definition's modifiers and accessors as written, in order, so it
-                // matches whatever the definition declares, including shapes JEV102 rejects.
+                // matches whatever the definition declares, including shapes MIN102 rejects.
                 stubs.Add(new StubPropertyModel(
                     string.Join(" ", declaration.Modifiers.Select(modifier => modifier.Text)),
                     property.Type.ToDisplayString(StubTypeFormat),
@@ -257,7 +257,7 @@ internal static class ModelBuilder
         => property.GetAttributes().Any(attribute => attribute.AttributeClass?.ToDisplayString()
             is NoulAttribute or ChoiceAttribute or ScoreAttribute);
 
-    /// <summary>Whether the property has the shape JEV102 requires of a question: a partial, get-only instance
+    /// <summary>Whether the property has the shape MIN102 requires of a question: a partial, get-only instance
     /// property that is not <see langword="virtual"/>, <see langword="override"/>, <see langword="sealed"/> or
     /// <see langword="new"/>. Its name and type are checked separately.</summary>
     private static bool HasSupportedShape(IPropertySymbol property, CancellationToken cancellationToken)
@@ -401,7 +401,7 @@ internal static class ModelBuilder
                 && declaration.Modifiers.Any(SyntaxKind.PartialKeyword));
 
     /// <param name="property">A member of the set.</param>
-    /// <param name="stateMembers">The <c>State</c> type's members, for JEV004; <see langword="null"/> without one.</param>
+    /// <param name="stateMembers">The <c>State</c> type's members, for MIN004; <see langword="null"/> without one.</param>
     /// <param name="diagnostics">The set's own findings.</param>
     /// <param name="enumDiagnostics">The findings about an enum declared in this assembly, which the enum reports.</param>
     /// <param name="cancellationToken">Cancels the syntax lookups.</param>
@@ -454,7 +454,7 @@ internal static class ModelBuilder
 
     /// <summary>
     /// Whether <paramref name="property"/> is a well-formed question: one question attribute, a supported shape and
-    /// name, and the type its attribute calls for. JEV102 and JEV103 go to <paramref name="diagnostics"/> when not.
+    /// name, and the type its attribute calls for. MIN102 and MIN103 go to <paramref name="diagnostics"/> when not.
     /// </summary>
     /// <returns>The question, or <see langword="null"/> when the property is no question or a malformed one.</returns>
     private static Question? Classify(
@@ -604,7 +604,7 @@ internal static class ModelBuilder
         return new EquatableArray<OptionModel>(options.ToArray());
     }
 
-    /// <summary>JEV001 and JEV002 for an enum with no members, which the API rejects; JEV005 for a count outside the
+    /// <summary>MIN001 and MIN002 for an enum with no members, which the API rejects; MIN005 for a count outside the
     /// API sketch's guidance. Aliases are not counted: they repeat a member already on the wire.</summary>
     private static void CheckMemberCount(
         INamedTypeSymbol enumType,
@@ -636,7 +636,7 @@ internal static class ModelBuilder
     }
 
     /// <summary>
-    /// JEV003: a text argument that is an empty or whitespace string. Null is fine: the API accepts it.
+    /// MIN003: a text argument that is an empty or whitespace string. Null is fine: the API accepts it.
     /// </summary>
     /// <param name="attribute">The attribute whose first constructor argument is the text.</param>
     /// <param name="what">What the text is, for the message: "The instruction text of 'Answer'", for one.</param>
@@ -660,7 +660,7 @@ internal static class ModelBuilder
     }
 
     /// <summary>
-    /// JEV003: an entry of an array-valued named argument, such as <c>Examples</c> or <c>NotFor</c>, that is
+    /// MIN003: an entry of an array-valued named argument, such as <c>Examples</c> or <c>NotFor</c>, that is
     /// <see langword="null"/> or a whitespace string. Reported once at the named argument's location, however many
     /// entries are blank.
     /// </summary>
@@ -858,7 +858,7 @@ internal static class ModelBuilder
     };
 
     /// <summary>
-    /// JEV004: the names a backticked token in instructions may use for a public instance property or field of the
+    /// MIN004: the names a backticked token in instructions may use for a public instance property or field of the
     /// <c>State</c> type, inherited ones included. Matching is case-insensitive, so the camelCase form of a name
     /// needs no entry of its own.
     /// </summary>

@@ -4,12 +4,12 @@ using Minos.Generator;
 namespace Minos.Analyzers;
 
 /// <summary>
-/// The Jev API's rules (JEV001–006) and the declarations the generator cannot produce code for (JEV101–107). The
+/// The Jev API's rules (MIN001–006) and the declarations the generator cannot produce code for (MIN101–107). The
 /// shared model builder records them by <see cref="DiagnosticIds"/>; <see cref="QuestionSetAnalyzer"/> reports them.
 /// </summary>
 internal static class Diagnostics
 {
-    private const string Category = "ZeroAlloc.Jev";
+    private const string Category = "Minos";
 
     public static readonly DiagnosticDescriptor EmptyChoiceEnum = new(
         DiagnosticIds.EmptyChoiceEnum,

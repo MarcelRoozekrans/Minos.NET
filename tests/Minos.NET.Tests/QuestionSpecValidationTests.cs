@@ -21,8 +21,8 @@ public sealed class QuestionSpecValidationTests
         => Assert.True(Validator.Validate(new QuestionSpec { Key = "q", Kind = QuestionKind.Noul, Instructions = "Is it?", Options = [] }).IsValid);
 
     [Theory]
-    [InlineData(true, "JEV001")]
-    [InlineData(false, "JEV002")]
+    [InlineData(true, "MIN001")]
+    [InlineData(false, "MIN002")]
     public void NoOptions_IsAnError(bool isChoice, string rule)
     {
         var failure = Only(Validator.Validate(Spec(isChoice)));
@@ -38,7 +38,7 @@ public sealed class QuestionSpecValidationTests
     {
         var failure = Only(Validator.Validate(Spec(isChoice: false, Keys(levels))));
 
-        Assert.Equal("JEV005", failure.ErrorCode);
+        Assert.Equal("MIN005", failure.ErrorCode);
         Assert.Equal(Severity.Warning, failure.Severity);
     }
 
@@ -53,7 +53,7 @@ public sealed class QuestionSpecValidationTests
     {
         var failure = Only(Validator.Validate(Spec(isChoice: true, Keys(256))));
 
-        Assert.Equal("JEV005", failure.ErrorCode);
+        Assert.Equal("MIN005", failure.ErrorCode);
         Assert.Equal(Severity.Warning, failure.Severity);
     }
 
@@ -65,17 +65,17 @@ public sealed class QuestionSpecValidationTests
     {
         var failure = Only(Validator.Validate(Spec(isChoice: true, "a", "b", "a", "a")));
 
-        Assert.Equal("JEV106", failure.ErrorCode);
+        Assert.Equal("MIN106", failure.ErrorCode);
         Assert.Equal(Severity.Error, failure.Severity);
         Assert.Contains("'a'", failure.ErrorMessage, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void EmptyOptionKey_IsAnError() => Assert.Equal("JEV106", Only(Validator.Validate(Spec(isChoice: true, "a", ""))).ErrorCode);
+    public void EmptyOptionKey_IsAnError() => Assert.Equal("MIN106", Only(Validator.Validate(Spec(isChoice: true, "a", ""))).ErrorCode);
 
     [Fact]
     public void EmptyQuestionKey_IsAnError()
-        => Assert.Equal("JEV106", Only(Validator.Validate(Spec(isChoice: true, "a") with { Key = string.Empty })).ErrorCode);
+        => Assert.Equal("MIN106", Only(Validator.Validate(Spec(isChoice: true, "a") with { Key = string.Empty })).ErrorCode);
 
     [Fact]
     public void ValidSpec_AllocatesNothing()

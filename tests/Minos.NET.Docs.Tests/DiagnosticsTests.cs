@@ -49,7 +49,7 @@ public sealed partial class DiagnosticsTests
     }
 
     // A release is never edited once shipped: JEV108 and JEV109, lost with Json = true, stay in the release that added
-    // them, and a later release, shipped or not yet shipped, records their removal. Release tracking moves the unshipped
+    // them under their shipped JEV ids, and a later release records their removal. Release tracking moves the unshipped
     // sections into the shipped file when a release is cut, so the test reads both files as one history.
     [Fact]
     public void Jev108AndJev109_StayInTheReleaseThatAddedThem_AndALaterReleaseRemovesThem()
@@ -70,9 +70,9 @@ public sealed partial class DiagnosticsTests
         var rows = PageTables.Rows(Page, "The rules");
 
         Assert.Equal(
-            ["JEV001", "JEV002", "JEV003", "JEV004", "JEV005", "JEV006", "JEV101", "JEV102", "JEV103", "JEV104", "JEV105", "JEV106", "JEV107"],
+            ["MIN001", "MIN002", "MIN003", "MIN004", "MIN005", "MIN006", "MIN101", "MIN102", "MIN103", "MIN104", "MIN105", "MIN106", "MIN107"],
             rows.Select(row => row[0]));
-        Assert.All(rows.Where(row => row[0].StartsWith("JEV1", StringComparison.Ordinal)), row => Assert.Equal("Error", row[1]));
+        Assert.All(rows.Where(row => row[0].StartsWith("MIN1", StringComparison.Ordinal)), row => Assert.Equal("Error", row[1]));
     }
 
     // The warnings and the Info rule are the ones the shared code calls advisory: they never make a set invalid.
@@ -84,16 +84,16 @@ public sealed partial class DiagnosticsTests
 
         Assert.Contains("id is EmptyText or UnknownStateReference or OptionCountOutsideGuidance or MissingCriteria", ids, StringComparison.Ordinal);
         Assert.Equal(
-            ["JEV003", "JEV004", "JEV005", "JEV006"],
+            ["MIN003", "MIN004", "MIN005", "MIN006"],
             rows.Where(row => row[1] is "Warning" or "Info").Select(row => row[0]));
     }
 
-    // JEV005's numbers are DecisionLimits' numbers, which the generator, the analyzers and Build all share.
+    // MIN005's numbers are DecisionLimits' numbers, which the generator, the analyzers and Build all share.
     [Fact]
-    public void TheJev005Limits_AreDecisionLimits()
+    public void TheMin005Limits_AreDecisionLimits()
     {
         var limits = Source("src", "Minos.NET.Generator", "DecisionLimits.cs");
-        var row = Array.Find(PageTables.Rows(Page, "The rules"), r => string.Equals(r[0], "JEV005", StringComparison.Ordinal))![3];
+        var row = Array.Find(PageTables.Rows(Page, "The rules"), r => string.Equals(r[0], "MIN005", StringComparison.Ordinal))![3];
 
         Assert.Contains($"fewer than {Limit(limits, "MinimumScoreLevels")} or more than {Limit(limits, "MaximumScoreLevels")} levels", row, StringComparison.Ordinal);
         Assert.Contains($"more than {Limit(limits, "MaximumChoiceOptions")} options", row, StringComparison.Ordinal);
@@ -108,12 +108,12 @@ public sealed partial class DiagnosticsTests
         var limits = Source("src", "Minos.NET.Generator", "DecisionLimits.cs");
         var invalidJson = Regex.Match(
             Source("src", "Minos.NET.Generator", "DiagnosticIds.cs"),
-            @"public const string InvalidJson = ""(?<id>JEV\d+)"";",
+            @"public const string InvalidJson = ""(?<id>MIN\d+)"";",
             RegexOptions.None,
             TimeSpan.FromSeconds(1)).Groups["id"].Value;
         var rows = PageTables.Rows(Page, "Reported by the run-time builder");
 
-        Assert.Equal("JEV108", invalidJson);
+        Assert.Equal("MIN108", invalidJson);
         Assert.Equal([invalidJson], rows.Select(row => row[0]));
         Assert.Contains($"more than {Limit(limits, "MaximumJsonDepth")} levels", rows[0][2], StringComparison.Ordinal);
         Assert.StartsWith("JSON instructions, a JSON description, or a JSON yes/no meaning nests", rows[0][2], StringComparison.Ordinal);
@@ -139,7 +139,7 @@ public sealed partial class DiagnosticsTests
         Assert.Contains("diagnostic.Id == DiagnosticIds.MissingCriteria ? \"Criteria\" : \"Level\"", provider, StringComparison.Ordinal);
         Assert.Contains("$\"Add [{attributeName}(\\\"{WordSplitter.ToSentence(member.Identifier.ValueText)}\\\")]\"", provider, StringComparison.Ordinal);
         Assert.Contains("WellKnownFixAllProviders.BatchFixer", provider, StringComparison.Ordinal);
-        Assert.Equal(["JEV006", "JEV104"], rows.Select(row => row[0]));
+        Assert.Equal(["MIN006", "MIN104"], rows.Select(row => row[0]));
         Assert.Equal(
             ["Add [Criteria(\"Needs attention\")]", "Add [Level(\"Needs attention\")]"],
             rows.Select(row => PageTables.Code(row[1])));
@@ -157,9 +157,9 @@ public sealed partial class DiagnosticsTests
     }
 
     // The suppression example only compiles, with warnings as errors, because its pragma works. This pins the one thing
-    // that makes JEV005 fire: more levels than the guidance allows.
+    // that makes MIN005 fire: more levels than the guidance allows.
     [Fact]
-    public void TheSuppressedEnum_HasMoreLevelsThanJev005Allows()
+    public void TheSuppressedEnum_HasMoreLevelsThanMin005Allows()
     {
         var limit = Limit(Source("src", "Minos.NET.Generator", "DecisionLimits.cs"), "MaximumScoreLevels");
 
@@ -222,7 +222,7 @@ public sealed partial class DiagnosticsTests
     private static int Limit(string limits, string name)
         => int.Parse(Regex.Match(limits, $@"{name} = (\d+);", RegexOptions.None, TimeSpan.FromSeconds(1)).Groups[1].Value, CultureInfo.InvariantCulture);
 
-    [GeneratedRegex(@"public const string (?<name>\w+) = ""(?<id>JEV\d+)"";", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"public const string (?<name>\w+) = ""(?<id>MIN\d+)"";", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex IdConstant();
 
     [GeneratedRegex(
@@ -231,6 +231,6 @@ public sealed partial class DiagnosticsTests
         matchTimeoutMilliseconds: 1000)]
     private static partial Regex Descriptor();
 
-    [GeneratedRegex(@"^(?<id>JEV\d+) \| ZeroAlloc\.Jev \| (?<severity>\w+) \|", RegexOptions.Multiline, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"^(?<id>(?:JEV|MIN)\d+) \| (?:ZeroAlloc\.Jev|Minos) \| (?<severity>\w+) \|", RegexOptions.Multiline, matchTimeoutMilliseconds: 1000)]
     private static partial Regex ShippedRule();
 }

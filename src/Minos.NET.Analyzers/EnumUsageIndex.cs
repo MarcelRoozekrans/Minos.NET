@@ -75,7 +75,7 @@ internal sealed class EnumUsageIndex
     /// <summary>
     /// The class and record declarations that carry any attribute and are not nested in another type. The attribute
     /// is not matched by name, which an alias would defeat; binding it is left to the few declarations that remain.
-    /// A nested type is skipped, as is everything inside a type: a nested set is unsupported, JEV101, and
+    /// A nested type is skipped, as is everything inside a type: a nested set is unsupported, MIN101, and
     /// <see cref="ModelBuilder.EnumUsages"/> finds no questions in it.
     /// </summary>
     private static IEnumerable<TypeDeclarationSyntax> CandidateDeclarations(SyntaxNode root)

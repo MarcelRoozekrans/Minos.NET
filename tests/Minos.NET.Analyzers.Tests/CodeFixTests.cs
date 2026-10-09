@@ -9,8 +9,8 @@ using CodeFixes::Minos.CodeFixes;
 namespace Minos.Analyzers.Tests;
 
 /// <summary>
-/// <see cref="AddDescriptionCodeFixProvider"/>: adds <c>[Criteria("…")]</c> (JEV006) or <c>[Level("…")]</c>
-/// (JEV104) to an enum member, the text derived from the member name by <see cref="WordSplitter"/>.
+/// <see cref="AddDescriptionCodeFixProvider"/>: adds <c>[Criteria("…")]</c> (MIN006) or <c>[Level("…")]</c>
+/// (MIN104) to an enum member, the text derived from the member name by <see cref="WordSplitter"/>.
 /// </summary>
 /// <remarks>
 /// The generator does not run in these tests (only <see cref="QuestionSetAnalyzer"/> and the code fix are under
@@ -20,7 +20,7 @@ namespace Minos.Analyzers.Tests;
 ///
 /// <para>The testing framework's local-diagnostic check stays on: it refuses to fix a diagnostic that is not local,
 /// that is, one that does not point inside the declaration of the symbol whose action reported it. That is what the
-/// IDE shows for the open document, so the check proves the fix is offered there. Each JEV006 and JEV104 here comes
+/// IDE shows for the open document, so the check proves the fix is offered there. Each MIN006 and MIN104 here comes
 /// from the enum's own symbol action and is local; <c>LocalDiagnosticTests</c> checks the same directly.</para>
 /// </remarks>
 public sealed class CodeFixTests
@@ -28,7 +28,7 @@ public sealed class CodeFixTests
     [Fact]
     public Task MissingCriteria_AddsAttributeFromMemberName()
         => VerifyAsync(
-            "public enum E { [Criteria(\"x\")] A, {|JEV006:Billing|} } "
+            "public enum E { [Criteria(\"x\")] A, {|MIN006:Billing|} } "
                 + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
             "public enum E { [Criteria(\"x\")] A, [Criteria(\"Billing\")] Billing } "
                 + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }");
@@ -36,7 +36,7 @@ public sealed class CodeFixTests
     [Fact]
     public Task MissingCriteria_LowercasesLaterWords()
         => VerifyAsync(
-            "public enum E { [Criteria(\"x\")] A, {|JEV006:NeedsAttention|} } "
+            "public enum E { [Criteria(\"x\")] A, {|MIN006:NeedsAttention|} } "
                 + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
             "public enum E { [Criteria(\"x\")] A, [Criteria(\"Needs attention\")] NeedsAttention } "
                 + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }");
@@ -44,7 +44,7 @@ public sealed class CodeFixTests
     [Fact]
     public Task MissingCriteria_KeepsAnAcronymUppercase()
         => VerifyAsync(
-            "public enum E { [Criteria(\"x\")] A, {|JEV006:HTTPError|} } "
+            "public enum E { [Criteria(\"x\")] A, {|MIN006:HTTPError|} } "
                 + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
             "public enum E { [Criteria(\"x\")] A, [Criteria(\"HTTP error\")] HTTPError } "
                 + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }");
@@ -52,7 +52,7 @@ public sealed class CodeFixTests
     [Fact]
     public Task MissingLevel_AddsAttributeFromMemberName()
         => VerifyAsync(
-            "public enum L { [Level(\"a\")] A, {|JEV104:NeedsReview|} } "
+            "public enum L { [Level(\"a\")] A, {|MIN104:NeedsReview|} } "
                 + "[Questions] public partial class Q { [Score(\"q\")] public partial Score<L> Answer { get; } }",
             "public enum L { [Level(\"a\")] A, [Level(\"Needs review\")] NeedsReview } "
                 + "[Questions] public partial class Q { [Score(\"q\")] public partial Score<L> Answer { get; } }");
@@ -60,16 +60,16 @@ public sealed class CodeFixTests
     [Fact]
     public async Task MissingLevel_OnPropertyFromReferencedAssembly_OffersNoFix()
     {
-        // JEV104 lands on the property, not an enum member, when the enum has no source syntax; there is no
+        // MIN104 lands on the property, not an enum member, when the enum has no source syntax; there is no
         // enum member declaration to attach [Level] to, so the provider must not offer a fix, and the fixed
         // state is identical to the original: no code action was applicable.
         var reference = (await CompilationHelper.CompileAsync("namespace External; public enum Levels { A, B }", "External"))
             .EmitToReference();
 
-        // Neither enum member has [Level], so JEV104 fires once per member (Levels.A and Levels.B), both at the
+        // Neither enum member has [Level], so MIN104 fires once per member (Levels.A and Levels.B), both at the
         // same property location: the nested markup matches AnalyzerVerifier's own convention for this case.
         var source = "using Minos; using External; [Questions] public partial class Q { "
-            + "[Score(\"q\")] public partial Score<Levels> {|JEV104:{|JEV104:Answer|}|} { get; } }";
+            + "[Score(\"q\")] public partial Score<Levels> {|MIN104:{|MIN104:Answer|}|} { get; } }";
         var test = new CSharpCodeFixTest<QuestionSetAnalyzer, AddDescriptionCodeFixProvider, DefaultVerifier>
         {
             TestCode = source,
@@ -85,7 +85,7 @@ public sealed class CodeFixTests
     [Fact]
     public Task FixAll_InDocument_FixesEveryMember()
         => VerifyAsync(
-            "public enum E { [Criteria(\"x\")] A, {|JEV006:B|}, {|JEV006:C|}, {|JEV006:HTTPError|} } "
+            "public enum E { [Criteria(\"x\")] A, {|MIN006:B|}, {|MIN006:C|}, {|MIN006:HTTPError|} } "
                 + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
             "public enum E { [Criteria(\"x\")] A, [Criteria(\"B\")] B, [Criteria(\"C\")] C, [Criteria(\"HTTP error\")] HTTPError } "
                 + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
@@ -99,7 +99,7 @@ public sealed class CodeFixTests
             {
                 [Criteria("x")] A,
                 // A note about B
-                [System.Obsolete] {|JEV006:B|},
+                [System.Obsolete] {|MIN006:B|},
             }
             [Questions] public partial class Q { [Choice("q")] public partial Choice<E> Answer { get; } }
             """,
@@ -118,7 +118,7 @@ public sealed class CodeFixTests
     {
         var test = new CSharpCodeFixTest<QuestionSetAnalyzer, AddDescriptionCodeFixProvider, DefaultVerifier>
         {
-            TestCode = "public enum E { [Minos.Criteria(\"x\")] A, {|JEV006:B|} } "
+            TestCode = "public enum E { [Minos.Criteria(\"x\")] A, {|MIN006:B|} } "
                 + "[Minos.Questions] public partial class Q { "
                 + "[Minos.Choice(\"q\")] public partial Minos.Choice<E> Answer { get; } }",
             // A single line has no line break of its own to follow and there is no .editorconfig, so the using ends
@@ -139,7 +139,7 @@ public sealed class CodeFixTests
             [
                 """
                 using M = Minos;
-                public enum E { [M.Criteria("x")] A, {|JEV006:B|} }
+                public enum E { [M.Criteria("x")] A, {|MIN006:B|} }
                 [M.Questions] public partial class Q { [M.Choice("q")] public partial M.Choice<E> {|CS9248:Answer|} { get; } }
                 """,
             ],
@@ -160,7 +160,7 @@ public sealed class CodeFixTests
                 {
                     using Minos;
 
-                    public enum E { [Criteria("x")] A, {|JEV006:B|} }
+                    public enum E { [Criteria("x")] A, {|MIN006:B|} }
                     [Questions] public partial class Q { [Choice("q")] public partial Choice<E> {|CS9248:Answer|} { get; } }
                 }
                 """,
@@ -185,7 +185,7 @@ public sealed class CodeFixTests
                 """
                 namespace N;
 
-                public enum E { [Criteria("x")] A, {|JEV006:B|} }
+                public enum E { [Criteria("x")] A, {|MIN006:B|} }
                 [Questions] public partial class Q { [Choice("q")] public partial Choice<E> {|CS9248:Answer|} { get; } }
                 """,
             ],
@@ -206,7 +206,7 @@ public sealed class CodeFixTests
         const string Set = "[Minos.Questions]\npublic partial class Q\n{\n"
             + "    [Minos.Choice(\"q\")] public partial Minos.Choice<E> {|CS9248:Answer|} { get; }\n}\n";
         const string Source = "public enum E\n{\n    [Minos.Criteria(\"x\")] A,\n"
-            + "    {|JEV006:B|},\n    {|JEV006:NeedsAttention|},\n}\n\n" + Set;
+            + "    {|MIN006:B|},\n    {|MIN006:NeedsAttention|},\n}\n\n" + Set;
         const string Fixed = "using Minos;\n\npublic enum E\n{\n    [Minos.Criteria(\"x\")] A,\n"
             + "    [Criteria(\"B\")] B,\n    [Criteria(\"Needs attention\")] NeedsAttention,\n}\n\n" + Set;
 
@@ -220,7 +220,7 @@ public sealed class CodeFixTests
         const string Set = "[Questions]\r\npublic partial class Q\r\n{\r\n"
             + "    [Choice(\"q\")] public partial Choice<E> {|CS9248:Answer|} { get; }\r\n}\r\n";
         return VerifyCompilesAsync(
-            ["using Minos;\r\n\r\npublic enum E\r\n{\r\n    [Criteria(\"x\")] A,\r\n    [System.Obsolete]\r\n    {|JEV006:B|},\r\n}\r\n\r\n" + Set],
+            ["using Minos;\r\n\r\npublic enum E\r\n{\r\n    [Criteria(\"x\")] A,\r\n    [System.Obsolete]\r\n    {|MIN006:B|},\r\n}\r\n\r\n" + Set],
             ["using Minos;\r\n\r\npublic enum E\r\n{\r\n    [Criteria(\"x\")] A,\r\n    [System.Obsolete]\r\n    [Criteria(\"B\")]\r\n    B,\r\n}\r\n\r\n" + Set]);
     }
 
@@ -230,7 +230,7 @@ public sealed class CodeFixTests
         // A single line has no line break of its own to follow, so only .editorconfig can ask for "\n".
         var test = new CSharpCodeFixTest<QuestionSetAnalyzer, AddDescriptionCodeFixProvider, DefaultVerifier>
         {
-            TestCode = "public enum E { [Minos.Criteria(\"x\")] A, {|JEV006:B|} } "
+            TestCode = "public enum E { [Minos.Criteria(\"x\")] A, {|MIN006:B|} } "
                 + "[Minos.Questions] public partial class Q { "
                 + "[Minos.Choice(\"q\")] public partial Minos.Choice<E> Answer { get; } }",
             FixedCode = "using Minos;\n\npublic enum E { [Minos.Criteria(\"x\")] A, [Criteria(\"B\")] B } "
@@ -247,7 +247,7 @@ public sealed class CodeFixTests
     /// <summary>
     /// Verifies a fix with the compiler's errors checked, so the fixed code must compile: each source marks the one
     /// expected error, CS9248 for the partial property the generator would implement. That the fixed code reports no
-    /// JEV006 is the testing framework's own check.
+    /// MIN006 is the testing framework's own check.
     /// </summary>
     private static Task VerifyCompilesAsync(string[] sources, string[] fixedSources, string[]? batchFixedSources = null)
     {

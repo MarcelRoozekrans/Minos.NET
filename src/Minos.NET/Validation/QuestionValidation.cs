@@ -19,7 +19,7 @@ internal static class QuestionValidation
     {
         var result = Validator.Validate(new QuestionSetSpec { Questions = questions });
         // ZeroAlloc.Validation reports IsValid == false when any failure exists, warnings included, so none are dropped here;
-        // BlankInstructions_WarnJev003 in the tests pins that a warnings-only set returns its warnings.
+        // BlankInstructions_WarnMin003 in the tests pins that a warnings-only set returns its warnings.
         if (result.IsValid)
         {
             return ([], []);

@@ -15,7 +15,7 @@ using Minos.Generator;
 namespace Minos.CodeFixes;
 
 /// <summary>
-/// Adds a <c>[Criteria("…")]</c> (JEV006) or <c>[Level("…")]</c> (JEV104) to an enum member that is missing one,
+/// Adds a <c>[Criteria("…")]</c> (MIN006) or <c>[Level("…")]</c> (MIN104) to an enum member that is missing one,
 /// with the description derived from the member's own name by <see cref="WordSplitter"/>.
 /// </summary>
 /// <remarks>

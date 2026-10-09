@@ -127,7 +127,7 @@ internal static class Sources
         }
         """;
 
-    // A Choice over an enum with no members: JEV001 makes the set invalid, so the generator emits only a throwing stub.
+    // A Choice over an enum with no members: MIN001 makes the set invalid, so the generator emits only a throwing stub.
     public const string ChoiceOverEmptyEnum = """
         using Minos;
 
@@ -145,7 +145,7 @@ internal static class Sources
         }
         """;
 
-    // A Score over an enum with no members: JEV002 makes the set invalid, so the generator emits only a throwing stub.
+    // A Score over an enum with no members: MIN002 makes the set invalid, so the generator emits only a throwing stub.
     public const string ScoreOverEmptyEnum = """
         using Minos;
 
@@ -196,7 +196,7 @@ internal static class Sources
         """;
 
     // A State type that is an abstract class: a legitimate polymorphic state (a derived instance's JsonTypeInfo
-    // handles the hierarchy), unlike a static class, which JEV107 rejects because it has no value at all.
+    // handles the hierarchy), unlike a static class, which MIN107 rejects because it has no value at all.
     public const string WithAbstractState = """
         using Minos;
 
@@ -231,7 +231,7 @@ internal static class Sources
         }
         """;
 
-    // A State type that is a closed generic instantiation, not the open generic type definition JEV107 rejects.
+    // A State type that is a closed generic instantiation, not the open generic type definition MIN107 rejects.
     public const string WithClosedGenericState = """
         using Minos;
 

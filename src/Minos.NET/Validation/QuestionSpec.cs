@@ -53,16 +53,16 @@ internal sealed record QuestionSpec
 
     public bool IsChoice() => Kind == QuestionKind.Choice;
 
-    // A keyed Score, or an enum Score over an enum with no members: JEV002, as the generator reports it. An enum Score
-    // over members with no level given fails JEV104 for each member instead, as the analyzers do.
+    // A keyed Score, or an enum Score over an enum with no members: MIN002, as the generator reports it. An enum Score
+    // over members with no level given fails MIN104 for each member instead, as the analyzers do.
     public bool NeedsLevels() => Kind == QuestionKind.Score && EnumMembers is not { Length: > 0 };
 
-    // A Score with no levels already fails JEV002 or JEV104; JEV005 does not pile onto it, as in the analyzers.
+    // A Score with no levels already fails MIN002 or MIN104; MIN005 does not pile onto it, as in the analyzers.
     public bool IsScoreWithLevels() => Kind == QuestionKind.Score && Options.Length > 0;
 
     /// <summary>
-    /// The rules across a question's options: JEV106 for an empty or repeated option key, reported once per key;
-    /// JEV003 for a blank description or a blank example or not-for entry. Both Score <c>Level</c> methods require a
+    /// The rules across a question's options: MIN106 for an empty or repeated option key, reported once per key;
+    /// MIN003 for a blank description or a blank example or not-for entry. Both Score <c>Level</c> methods require a
     /// criterion, so a level always has one.
     /// </summary>
     [CustomValidation]
@@ -103,7 +103,7 @@ internal sealed record QuestionSpec
     }
 
     /// <summary>
-    /// An enum Score's levels against its members: JEV104 for a member not given a level, JEV106 for one given more than
+    /// An enum Score's levels against its members: MIN104 for a member not given a level, MIN106 for one given more than
     /// once, each reported once per member. An alias counts as the member it shares a value with.
     /// </summary>
     [CustomValidation]
@@ -140,7 +140,7 @@ internal sealed record QuestionSpec
     }
 
     /// <summary>
-    /// JEV108: instructions, a description, or what a yes or no answer means, nested deeper than
+    /// MIN108: instructions, a description, or what a yes or no answer means, nested deeper than
     /// <see cref="DecisionLimits.MaximumJsonDepth"/> levels.
     /// </summary>
     [CustomValidation]

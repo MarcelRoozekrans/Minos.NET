@@ -6,14 +6,14 @@ namespace Minos.Validation;
 
 /// <summary>
 /// A whole set built at run time. Each question is checked by the <see cref="QuestionSpec"/> rules, which
-/// ZeroAlloc.Validation reports under <c>Questions[i]</c>; the set adds JEV106 for a question key used more than once.
+/// ZeroAlloc.Validation reports under <c>Questions[i]</c>; the set adds MIN106 for a question key used more than once.
 /// </summary>
 [Validate]
 internal sealed record QuestionSetSpec
 {
     public required QuestionSpec[] Questions { get; init; }
 
-    /// <summary>JEV106 for a repeated question key, reported once per key, at its second use. An empty key is QuestionSpec's.</summary>
+    /// <summary>MIN106 for a repeated question key, reported once per key, at its second use. An empty key is QuestionSpec's.</summary>
     [CustomValidation]
     public ValidationFailure[] ValidateKeys()
     {

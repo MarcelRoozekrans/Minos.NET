@@ -28,7 +28,7 @@ public sealed class QuestionSet
     /// <summary>Gets the <c>questions</c> object of a <c>/v1/systemone</c> request, as UTF-8 JSON, written once at build.</summary>
     public ReadOnlySpan<byte> QuestionsUtf8 => _questionsUtf8;
 
-    /// <summary>Gets the advice the set's questions break: JEV003 and JEV005, which do not stop the build.</summary>
+    /// <summary>Gets the advice the set's questions break: MIN003 and MIN005, which do not stop the build.</summary>
     public IReadOnlyList<QuestionFailure> Warnings { get; }
 
     /// <summary>Gets the identity token of the builder that created this set; every set that builder builds shares it.</summary>

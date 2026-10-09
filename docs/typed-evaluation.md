@@ -115,7 +115,7 @@ A few things in that declaration are worth reading closely.
 - **Options and levels are enum members.** `[Criteria]` describes a Choice option. `[Level]` describes a Score level,
   and the members, in declaration order, are the levels from lowest to highest. A Choice member without `[Criteria]` is
   still an option and is sent with no description, though the analyzers report it as the Info diagnostic
-  [JEV006](diagnostics.md#the-rules). A Score level must have a `[Level]`, because the API does not accept a level
+  [MIN006](diagnostics.md#the-rules). A Score level must have a `[Level]`, because the API does not accept a level
   without one.
 - **`Examples` and `NotFor` sharpen a description.** `Examples` lists texts that belong to the option, and `NotFor`
   lists texts that only look as if they do. With either set and non-empty, the generator sends a criterion object in
@@ -171,7 +171,7 @@ A question can point at a member of the state by putting its name in backticks, 
 above. The generator checks each backticked name against the state type's public instance properties and fields,
 including inherited ones. A name matches the member's own name, its snake_case or kebab-case form, or its
 `[JsonPropertyName]`, ignoring case. A name that matches nothing is reported as warning
-[JEV004](diagnostics.md#the-rules), so a renamed member shows up at compile time and not as a quietly confused question.
+[MIN004](diagnostics.md#the-rules), so a renamed member shows up at compile time and not as a quietly confused question.
 For a state that is an array, the element type is checked.
 
 The check only runs for a set with a `State` type.

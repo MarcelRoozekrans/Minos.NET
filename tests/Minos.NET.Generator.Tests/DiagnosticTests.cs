@@ -8,10 +8,10 @@ namespace Minos.Generator.Tests;
 /// </summary>
 public sealed class DiagnosticTests
 {
-    // Invalid sets: the analyzer reports JEV001, JEV002 and JEV101–107 for these (Minos.NET.Analyzers.Tests:
+    // Invalid sets: the analyzer reports MIN001, MIN002 and MIN101–107 for these (Minos.NET.Analyzers.Tests:
     // MovedDiagnosticTests, ApiRuleTests, InvalidSetBuildTests). The generator stubs every unimplemented partial
-    // question property, whatever its shape, wherever a partial part can reach it: that includes JEV101 types, apart
-    // from those in Jev101UnstubbableSources.
+    // question property, whatever its shape, wherever a partial part can reach it: that includes MIN101 types, apart
+    // from those in Min101UnstubbableSources.
     public static TheoryData<string> InvalidSources => new()
     {
         "[Questions] public class NotPartial { }",
@@ -150,9 +150,9 @@ public sealed class DiagnosticTests
         Assert.DoesNotContain("NotAQuestion", stub, StringComparison.Ordinal);
     }
 
-    // JEV101 types a partial part can still complete: nested in partial types, generic, abstract, static, or not a
-    // class at all. Each gets its stubs, so a build shows JEV101 rather than CS9248.
-    public static TheoryData<string> Jev101StubbableSources => new()
+    // MIN101 types a partial part can still complete: nested in partial types, generic, abstract, static, or not a
+    // class at all. Each gets its stubs, so a build shows MIN101 rather than CS9248.
+    public static TheoryData<string> Min101StubbableSources => new()
     {
         "public partial class Outer { [Questions] public partial class Inner { [Noul(\"q\")] public partial Noul Answer { get; } } }",
         "[Questions] public partial class Set<T> { [Noul(\"q\")] public partial Noul Answer { get; } }",
@@ -174,8 +174,8 @@ public sealed class DiagnosticTests
     };
 
     [Theory]
-    [MemberData(nameof(Jev101StubbableSources))]
-    public void Jev101TypeAPartialPartCanComplete_EmitsStubsThatCompile(string source)
+    [MemberData(nameof(Min101StubbableSources))]
+    public void Min101TypeAPartialPartCanComplete_EmitsStubsThatCompile(string source)
     {
         var driver = GeneratorHarness.Run("using Minos;\n" + source, out var output, out var diagnostics);
 
@@ -186,9 +186,9 @@ public sealed class DiagnosticTests
         AssertStubsAddNoError(driver, output);
     }
 
-    // JEV101 types no partial part can complete: the type is not partial or is file-local, or a type containing it is
+    // MIN101 types no partial part can complete: the type is not partial or is file-local, or a type containing it is
     // not partial or is file-local. A declaration in another file could not reach it, so nothing is generated.
-    public static TheoryData<string> Jev101UnstubbableSources => new()
+    public static TheoryData<string> Min101UnstubbableSources => new()
     {
         "[Questions] public class NotPartial { [Noul(\"q\")] public partial Noul Answer { get; } }",
         "[Questions] file partial class FileLocal { [Noul(\"q\")] public partial Noul Answer { get; } }",
@@ -198,8 +198,8 @@ public sealed class DiagnosticTests
     };
 
     [Theory]
-    [MemberData(nameof(Jev101UnstubbableSources))]
-    public void Jev101TypeNoPartialPartCanComplete_GeneratesNothing(string source)
+    [MemberData(nameof(Min101UnstubbableSources))]
+    public void Min101TypeNoPartialPartCanComplete_GeneratesNothing(string source)
     {
         var driver = GeneratorHarness.Run("using Minos;\n" + source, out _, out var diagnostics);
 
@@ -208,7 +208,7 @@ public sealed class DiagnosticTests
     }
 
     [Fact]
-    public void Jev101NestedGenericSet_StubRepeatsItsContainingTypesAndTypeParameters()
+    public void Min101NestedGenericSet_StubRepeatsItsContainingTypesAndTypeParameters()
     {
         var driver = GeneratorHarness.Run(
             "using Minos;\nnamespace Demo; public partial struct Outer<TKey> where TKey : notnull { internal partial record Middle { "
@@ -245,7 +245,7 @@ public sealed class DiagnosticTests
     }
 
     [Fact]
-    public void Jev101SetsSharingAName_GetDistinctStubFiles()
+    public void Min101SetsSharingAName_GetDistinctStubFiles()
     {
         var driver = GeneratorHarness.Run(
             "using Minos;\nnamespace Demo; "
@@ -274,7 +274,7 @@ public sealed class DiagnosticTests
         Assert.Empty(output.GetDiagnostics().Where(d => d.Severity >= DiagnosticSeverity.Warning));
     }
 
-    // The sources the analyzer warns about with JEV003–006: advice, not errors, so the generator still emits the set.
+    // The sources the analyzer warns about with MIN003–006: advice, not errors, so the generator still emits the set.
     public static TheoryData<string> AdvisorySources => new()
     {
         "[Questions] public partial class C { [Noul(\"  \")] public partial Noul Answer { get; } }",

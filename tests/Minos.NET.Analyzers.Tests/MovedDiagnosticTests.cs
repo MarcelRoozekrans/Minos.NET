@@ -4,46 +4,46 @@ using Minos.Generator;
 
 namespace Minos.Analyzers.Tests;
 
-/// <summary>JEV101–107, which the generator used to report, now reported by the analyzer at the same locations.</summary>
+/// <summary>MIN101–107, which the generator used to report, now reported by the analyzer at the same locations.</summary>
 public sealed class MovedDiagnosticTests
 {
     public static TheoryData<string> Cases => new()
     {
-        "[Questions] public class {|JEV101:NotPartial|} { }",
-        "[Questions] public partial class {|JEV101:Generic|}<T> { }",
-        "public partial class Outer { [Questions] public partial class {|JEV101:Inner|} { } }",
-        "[Questions] public abstract partial class {|JEV101:Base|} { }",
-        "[Questions] file partial class {|JEV101:FileLocal|} { }",
-        "[Questions] public partial class C { [Noul(\"q\")] public Noul {|JEV102:Answer|} { get; } }",
-        "[Questions] public partial class C { [Noul(\"q\")] public partial Noul {|JEV102:Answer|} { get; set; } }",
-        "[Questions] public partial class C { [Noul(\"q\")] public static partial Noul {|JEV102:Answer|} { get; } }",
-        "[Questions] public partial class C { [Noul(\"q\")] public partial Noul {|JEV102:Parse|} { get; } }",
-        "[Questions] public partial class C { [Noul(\"q\")] public partial Noul {|JEV102:QuestionsUtf8|} { get; } }",
-        "[Questions] public partial class C { [Noul(\"q\")] public virtual partial Noul {|JEV102:Answer|} { get; } }",
-        "[Questions] public partial class C { [Noul(\"q\")] public sealed partial Noul {|JEV102:Answer|} { get; } }",
+        "[Questions] public class {|MIN101:NotPartial|} { }",
+        "[Questions] public partial class {|MIN101:Generic|}<T> { }",
+        "public partial class Outer { [Questions] public partial class {|MIN101:Inner|} { } }",
+        "[Questions] public abstract partial class {|MIN101:Base|} { }",
+        "[Questions] file partial class {|MIN101:FileLocal|} { }",
+        "[Questions] public partial class C { [Noul(\"q\")] public Noul {|MIN102:Answer|} { get; } }",
+        "[Questions] public partial class C { [Noul(\"q\")] public partial Noul {|MIN102:Answer|} { get; set; } }",
+        "[Questions] public partial class C { [Noul(\"q\")] public static partial Noul {|MIN102:Answer|} { get; } }",
+        "[Questions] public partial class C { [Noul(\"q\")] public partial Noul {|MIN102:Parse|} { get; } }",
+        "[Questions] public partial class C { [Noul(\"q\")] public partial Noul {|MIN102:QuestionsUtf8|} { get; } }",
+        "[Questions] public partial class C { [Noul(\"q\")] public virtual partial Noul {|MIN102:Answer|} { get; } }",
+        "[Questions] public partial class C { [Noul(\"q\")] public sealed partial Noul {|MIN102:Answer|} { get; } }",
         "public class Base { public virtual Noul Answer => default; } "
-            + "[Questions] public partial class C : Base { [Noul(\"q\")] public override partial Noul {|JEV102:Answer|} { get; } }",
+            + "[Questions] public partial class C : Base { [Noul(\"q\")] public override partial Noul {|MIN102:Answer|} { get; } }",
         "public class Base { public Noul Answer => default; } "
-            + "[Questions] public partial class C : Base { [Noul(\"q\")] public new partial Noul {|JEV102:Answer|} { get; } }",
-        "[Questions] public partial class C { [Choice(\"q\")] public partial Noul {|JEV103:Answer|} { get; } }",
-        "[Questions] public partial class C { [Noul(\"q\")][Choice(\"q\")] public partial Noul {|JEV103:Answer|} { get; } }",
-        "[Questions] public partial class C { [Choice(\"q\")] public partial Choice<int> {|JEV103:Answer|} { get; } }",
-        "[Questions] public partial class C { [Choice(\"q\")][Score(\"q\")] public partial Noul {|JEV103:Answer|} { get; } }",
-        "public enum L { [Level(\"a\")] A, {|JEV104:B|} } [Questions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }",
-        "public enum L { [Level(\"a\")] A, {|JEV104:B|} } [Questions] public partial class C { "
+            + "[Questions] public partial class C : Base { [Noul(\"q\")] public new partial Noul {|MIN102:Answer|} { get; } }",
+        "[Questions] public partial class C { [Choice(\"q\")] public partial Noul {|MIN103:Answer|} { get; } }",
+        "[Questions] public partial class C { [Noul(\"q\")][Choice(\"q\")] public partial Noul {|MIN103:Answer|} { get; } }",
+        "[Questions] public partial class C { [Choice(\"q\")] public partial Choice<int> {|MIN103:Answer|} { get; } }",
+        "[Questions] public partial class C { [Choice(\"q\")][Score(\"q\")] public partial Noul {|MIN103:Answer|} { get; } }",
+        "public enum L { [Level(\"a\")] A, {|MIN104:B|} } [Questions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }",
+        "public enum L { [Level(\"a\")] A, {|MIN104:B|} } [Questions] public partial class C { "
             + "[Score(\"q1\")] public partial Score<L> Answer1 { get; } [Score(\"q2\")] public partial Score<L> Answer2 { get; } }",
-        "[Questions] public partial record {|JEV105:R|}(int X) { [Noul(\"q\")] public partial Noul Answer { get; } }",
-        "[Questions] public partial class {|JEV105:C|} { public required int Foo; [Noul(\"q\")] public partial Noul Answer { get; } }",
+        "[Questions] public partial record {|MIN105:R|}(int X) { [Noul(\"q\")] public partial Noul Answer { get; } }",
+        "[Questions] public partial class {|MIN105:C|} { public required int Foo; [Noul(\"q\")] public partial Noul Answer { get; } }",
         "public class Base { public required int Foo; } "
-            + "[Questions] public partial class {|JEV105:C|} : Base { [Noul(\"q\")] public partial Noul Answer { get; } }",
-        "[Questions] public partial class {|JEV106:C|} { [Noul(\"a\")] public partial Noul IsUrgent { get; } [Noul(\"b\", Key = \"is_urgent\")] public partial Noul Other { get; } }",
-        "public enum E { [Criteria(\"x\", Key = \"b\")] A, [Criteria(\"y\")] B } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> {|JEV106:Answer|} { get; } }",
-        "[Questions({|JEV107:State = typeof(IFoo)|})] public partial class C { } public interface IFoo { }",
-        "[Questions({|JEV107:State = typeof(System.Collections.Generic.List<>)|})] public partial class C { }",
-        "[Questions({|JEV107:State = typeof(void)|})] public partial class C { }",
-        "[Questions({|JEV107:State = typeof(MyDelegate)|})] public partial class C { } public delegate void MyDelegate();",
-        "[Questions({|JEV107:State = typeof(MyEnum)|})] public partial class C { } public enum MyEnum { A }",
-        "[Questions({|JEV107:State = typeof(StaticState)|})] public partial class C { } public static class StaticState { }",
+            + "[Questions] public partial class {|MIN105:C|} : Base { [Noul(\"q\")] public partial Noul Answer { get; } }",
+        "[Questions] public partial class {|MIN106:C|} { [Noul(\"a\")] public partial Noul IsUrgent { get; } [Noul(\"b\", Key = \"is_urgent\")] public partial Noul Other { get; } }",
+        "public enum E { [Criteria(\"x\", Key = \"b\")] A, [Criteria(\"y\")] B } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> {|MIN106:Answer|} { get; } }",
+        "[Questions({|MIN107:State = typeof(IFoo)|})] public partial class C { } public interface IFoo { }",
+        "[Questions({|MIN107:State = typeof(System.Collections.Generic.List<>)|})] public partial class C { }",
+        "[Questions({|MIN107:State = typeof(void)|})] public partial class C { }",
+        "[Questions({|MIN107:State = typeof(MyDelegate)|})] public partial class C { } public delegate void MyDelegate();",
+        "[Questions({|MIN107:State = typeof(MyEnum)|})] public partial class C { } public enum MyEnum { A }",
+        "[Questions({|MIN107:State = typeof(StaticState)|})] public partial class C { } public static class StaticState { }",
     };
 
     [Theory]
@@ -110,7 +110,7 @@ public sealed class MovedDiagnosticTests
         Assert.Contains("Foo", message, StringComparison.Ordinal);
     }
 
-    // JEV003 is a new rule, not a moved one; it sits here to share the message helpers below.
+    // MIN003 is a new rule, not a moved one; it sits here to share the message helpers below.
     [Fact]
     public async Task EmptyText_InstructionText_MessageNamesTheText()
     {
@@ -181,7 +181,7 @@ public sealed class MovedDiagnosticTests
             public partial class C
             {
                 [Score("q")]
-                public partial Score<Grade> {|JEV104:Answer|} { get; }
+                public partial Score<Grade> {|MIN104:Answer|} { get; }
             }
             """;
 
@@ -197,7 +197,7 @@ public sealed class MovedDiagnosticTests
 
         // Both members land on the same property location; only their names tell them apart, so neither may be dropped.
         await AnalyzerVerifier.VerifyAsync(
-            "using External; [Questions] public partial class C { [Score(\"q\")] public partial Score<Grade> {|JEV104:{|JEV104:Answer|}|} { get; } }",
+            "using External; [Questions] public partial class C { [Score(\"q\")] public partial Score<Grade> {|MIN104:{|MIN104:Answer|}|} { get; } }",
             reference);
     }
 

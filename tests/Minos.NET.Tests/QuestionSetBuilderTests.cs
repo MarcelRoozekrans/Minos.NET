@@ -132,11 +132,11 @@ public sealed class QuestionSetBuilderTests
         Assert.True(built.IsFailure);
         var failures = built.Error.Failures;
         Assert.Equal(5, failures.Count);
-        Assert.Contains(failures, f => f is { Rule: "JEV104", QuestionKey: "missing" } && f.Message.Contains("'Frustrated'", StringComparison.Ordinal));
-        Assert.Contains(failures, f => f is { Rule: "JEV106", QuestionKey: "aliased" } && f.Message.Contains("'Low'", StringComparison.Ordinal));
-        Assert.Contains(failures, f => f is { Rule: "JEV104", QuestionKey: "none" } && f.Message.Contains("'Calm'", StringComparison.Ordinal));
-        Assert.Contains(failures, f => f is { Rule: "JEV104", QuestionKey: "none" } && f.Message.Contains("'Frustrated'", StringComparison.Ordinal));
-        Assert.Contains(failures, f => f is { Rule: "JEV104", QuestionKey: "none" } && f.Message.Contains("'VeryAngry'", StringComparison.Ordinal));
+        Assert.Contains(failures, f => f is { Rule: "MIN104", QuestionKey: "missing" } && f.Message.Contains("'Frustrated'", StringComparison.Ordinal));
+        Assert.Contains(failures, f => f is { Rule: "MIN106", QuestionKey: "aliased" } && f.Message.Contains("'Low'", StringComparison.Ordinal));
+        Assert.Contains(failures, f => f is { Rule: "MIN104", QuestionKey: "none" } && f.Message.Contains("'Calm'", StringComparison.Ordinal));
+        Assert.Contains(failures, f => f is { Rule: "MIN104", QuestionKey: "none" } && f.Message.Contains("'Frustrated'", StringComparison.Ordinal));
+        Assert.Contains(failures, f => f is { Rule: "MIN104", QuestionKey: "none" } && f.Message.Contains("'VeryAngry'", StringComparison.Ordinal));
     }
 
     [Fact]
@@ -150,8 +150,8 @@ public sealed class QuestionSetBuilderTests
         Assert.True(built.IsFailure);
         Assert.Equal(DecisionErrorKind.InvalidQuestions, built.Error.Kind);
         Assert.Null(built.Error.StatusCode);
-        Assert.Contains(built.Error.Failures, f => f is { Rule: "JEV001", QuestionKey: "team" });
-        Assert.Contains(built.Error.Failures, f => f is { Rule: "JEV106", QuestionKey: "" });
+        Assert.Contains(built.Error.Failures, f => f is { Rule: "MIN001", QuestionKey: "team" });
+        Assert.Contains(built.Error.Failures, f => f is { Rule: "MIN106", QuestionKey: "" });
     }
 
     [Fact]
@@ -164,14 +164,14 @@ public sealed class QuestionSetBuilderTests
 #pragma warning disable HLQ005
         var warning = Assert.Single(built.Value.Warnings);
 #pragma warning restore HLQ005
-        Assert.Equal(new QuestionFailure("JEV003", "q", warning.Message), warning);
+        Assert.Equal(new QuestionFailure("MIN003", "q", warning.Message), warning);
     }
 
     [Fact]
     public void OnlyNoulAndEnumChoice_HaveAnOverloadWithoutAConfigurator()
     {
         // A keyed Choice, a keyed Score and an enum Score with nothing configured always fail Build, so none has an overload
-        // that lacks the configurator: the mistake is a compile error instead of a run-time JEV001, JEV002 or JEV104.
+        // that lacks the configurator: the mistake is a compile error instead of a run-time MIN001, MIN002 or MIN104.
         var withoutConfigurator = typeof(QuestionSetBuilder)
             .GetMethods(BindingFlags.Public | BindingFlags.Instance | BindingFlags.DeclaredOnly)
             .Where(method => method.GetParameters().Length == 3)

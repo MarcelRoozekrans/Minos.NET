@@ -14,11 +14,11 @@ internal static class QuestionFailureChecks
         }
 
         var reported = built.Error.Failures[0];
-        var expected = new QuestionFailure("JEV001", "empty", reported.Message);
+        var expected = new QuestionFailure("MIN001", "empty", reported.Message);
 
         Program.Check(
             expected.Equals(reported)
-                && string.Equals(expected.Rule, "JEV001", StringComparison.Ordinal)
+                && string.Equals(expected.Rule, "MIN001", StringComparison.Ordinal)
                 && string.Equals(expected.QuestionKey, "empty", StringComparison.Ordinal),
             "a hand-built QuestionFailure equals the failure Build reports under Native AOT");
     }

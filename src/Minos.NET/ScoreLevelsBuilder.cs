@@ -7,7 +7,7 @@ namespace Minos;
 /// <summary>
 /// Gives the levels of an enum Score question built with <see cref="QuestionSetBuilder"/>, lowest first: level
 /// <c>i</c> is the member of the <c>i</c>-th <see cref="Level"/> call. Every distinct member must be given exactly once
-/// (JEV104, JEV106). Listed in declaration order, the levels match the generator's for the same enum.
+/// (MIN104, MIN106). Listed in declaration order, the levels match the generator's for the same enum.
 /// </summary>
 /// <typeparam name="T">The enum whose members are the levels; its public fields are read, so the trimmer keeps them.</typeparam>
 /// <remarks>Valid only inside its callback: once the question method returns, its methods throw <see cref="InvalidOperationException"/>.</remarks>

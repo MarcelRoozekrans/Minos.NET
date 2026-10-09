@@ -66,10 +66,10 @@ public sealed class QuestionSetsAtRunTimeTests
     public void TenantRouter_ReportsEveryBrokenRuleOfATenantsTeams()
     {
         var empty = Assert.Throws<InvalidOperationException>(() => new TenantRouter([]));
-        Assert.Contains("JEV001", empty.Message, StringComparison.Ordinal);
+        Assert.Contains("MIN001", empty.Message, StringComparison.Ordinal);
 
         var duplicate = Assert.Throws<InvalidOperationException>(() => new TenantRouter([("a", "One"), ("a", "Two"), ("", "None")]));
-        Assert.Contains("JEV106", duplicate.Message, StringComparison.Ordinal);
+        Assert.Contains("MIN106", duplicate.Message, StringComparison.Ordinal);
         Assert.Contains("'a'", duplicate.Message, StringComparison.Ordinal);
     }
 
@@ -116,18 +116,18 @@ public sealed class QuestionSetsAtRunTimeTests
     [Fact]
     public void Build_ListsEveryBrokenRule_UnderTheInvalidQuestionsKind()
     {
-        Assert.Equal(["JEV001 team", "JEV106 team"], RuleChecks.BrokenRules());
+        Assert.Equal(["MIN001 team", "MIN106 team"], RuleChecks.BrokenRules());
 
         var built = QuestionSet.CreateBuilder().Noul("a", "A?", out NoulHandle _).Noul("a", "B?", out NoulHandle _).Build();
         Assert.True(built.IsFailure);
         Assert.Equal(DecisionErrorKind.InvalidQuestions, built.Error.Kind);
-        Assert.Collection(built.Error.Failures, failure => Assert.Equal(("JEV106", "a"), (failure.Rule, failure.QuestionKey)));
+        Assert.Collection(built.Error.Failures, failure => Assert.Equal(("MIN106", "a"), (failure.Rule, failure.QuestionKey)));
     }
 
     [Fact]
     public void Build_AWarningStillBuildsTheSet()
     {
-        Assert.Equal(["JEV003 urgent", "JEV005 mood"], RuleChecks.Advice());
+        Assert.Equal(["MIN003 urgent", "MIN005 mood"], RuleChecks.Advice());
 
         var clean = QuestionSet.CreateBuilder().Noul("a", "A?", out NoulHandle _).Build();
         Assert.True(clean.IsSuccess);
@@ -137,44 +137,44 @@ public sealed class QuestionSetsAtRunTimeTests
     [Fact]
     public void Build_ChecksTheRulesInTheTable()
     {
-        // JEV104: a member of an enum Score that is not given a level, and JEV106: one given twice.
+        // MIN104: a member of an enum Score that is not given a level, and MIN106: one given twice.
         var missing = QuestionSet.CreateBuilder()
             .Score("p", "How soon?", out ScoreHandle<Priority> _, levels => levels.Level(Priority.Low, "x").Level(Priority.Medium, "y"))
             .Build();
-        Assert.Equal(["JEV104"], Rules(missing.Error));
+        Assert.Equal(["MIN104"], Rules(missing.Error));
 
         var twice = QuestionSet.CreateBuilder()
             .Score("p", "How soon?", out ScoreHandle<Priority> _, levels => levels
                 .Level(Priority.Low, "x").Level(Priority.Low, "x").Level(Priority.Medium, "y").Level(Priority.High, "z"))
             .Build();
-        Assert.Equal(["JEV106"], Rules(twice.Error));
+        Assert.Equal(["MIN106"], Rules(twice.Error));
 
-        // JEV001 and JEV002: a keyed Score with no levels. An enum Choice with no options cannot happen, as every member is one.
+        // MIN001 and MIN002: a keyed Score with no levels. An enum Choice with no options cannot happen, as every member is one.
         var noLevels = QuestionSet.CreateBuilder().Score("s", "How?", out KeyedScoreHandle _, levels => { }).Build();
-        Assert.Equal(["JEV002"], Rules(noLevels.Error));
+        Assert.Equal(["MIN002"], Rules(noLevels.Error));
 
-        // An empty question key, an empty option key and a repeated option key are JEV106.
+        // An empty question key, an empty option key and a repeated option key are MIN106.
         var keys = QuestionSet.CreateBuilder()
             .Noul(string.Empty, "A?", out NoulHandle _)
             .Choice("c", "Which?", out KeyedChoiceHandle _, o => o.Option("x").Option("x").Option(string.Empty))
             .Build();
-        Assert.Equal(["JEV106", "JEV106", "JEV106"], Rules(keys.Error));
+        Assert.Equal(["MIN106", "MIN106", "MIN106"], Rules(keys.Error));
 
-        // JEV108: JSON nested deeper than 60 levels, and 60 levels are fine.
+        // MIN108: JSON nested deeper than 60 levels, and 60 levels are fine.
         var deep = DecisionContent.FromUtf8Json(System.Text.Encoding.UTF8.GetBytes(new string('[', 61) + new string(']', 61)));
         var deepest = DecisionContent.FromUtf8Json(System.Text.Encoding.UTF8.GetBytes(new string('[', 60) + new string(']', 60)));
-        Assert.Equal(["JEV108"], Rules(QuestionSet.CreateBuilder().Noul("n", deep, out NoulHandle _).Build().Error));
+        Assert.Equal(["MIN108"], Rules(QuestionSet.CreateBuilder().Noul("n", deep, out NoulHandle _).Build().Error));
         Assert.True(QuestionSet.CreateBuilder().Noul("n", deepest, out NoulHandle _).Build().IsSuccess);
 
-        // JEV003: a blank description or example, and JSON that is exactly {} or [].
+        // MIN003: a blank description or example, and JSON that is exactly {} or [].
         var blank = QuestionSet.CreateBuilder()
             .Choice("c", "Which?", out KeyedChoiceHandle _, o => o.Option("x", Criterion.Text("ok").WithExamples(" ")))
             .Noul("n", DecisionContent.FromUtf8Json("{}"u8), out NoulHandle _)
             .Build();
         Assert.True(blank.IsSuccess);
-        Assert.Equal(["JEV003", "JEV003"], WarningRules(blank.Value));
+        Assert.Equal(["MIN003", "MIN003"], WarningRules(blank.Value));
 
-        // JEV005: a Score of 11 levels, and a Choice of 256 options.
+        // MIN005: a Score of 11 levels, and a Choice of 256 options.
         var many = QuestionSet.CreateBuilder()
             .Score("s", "How?", out KeyedScoreHandle _, levels =>
             {
@@ -192,7 +192,7 @@ public sealed class QuestionSetsAtRunTimeTests
             })
             .Build();
         Assert.True(many.IsSuccess);
-        Assert.Equal(["JEV005", "JEV005"], WarningRules(many.Value));
+        Assert.Equal(["MIN005", "MIN005"], WarningRules(many.Value));
     }
 
     [Fact]
@@ -363,17 +363,17 @@ public sealed class QuestionSetsAtRunTimeTests
     }
 
     [Fact]
-    public void AnEnumWithNoMembers_FailsAsJev001AndJev002()
+    public void AnEnumWithNoMembers_FailsAsMin001AndMin002()
     {
         var choice = QuestionSet.CreateBuilder().Choice("c", "Which?", out ChoiceHandle<Empty> _).Build();
         var score = QuestionSet.CreateBuilder().Score("s", "How?", out ScoreHandle<Empty> _, levels => { }).Build();
         var keyedChoice = QuestionSet.CreateBuilder().Choice("c", "Which?", out KeyedChoiceHandle _, options => { }).Build();
         var enumScore = QuestionSet.CreateBuilder().Score("s", "How?", out ScoreHandle<Priority> _, levels => { }).Build();
 
-        Assert.Equal(["JEV001"], Rules(choice.Error));
-        Assert.Equal(["JEV002"], Rules(score.Error));
-        Assert.Equal(["JEV001"], Rules(keyedChoice.Error));
-        Assert.Equal(["JEV104", "JEV104", "JEV104"], Rules(enumScore.Error));
+        Assert.Equal(["MIN001"], Rules(choice.Error));
+        Assert.Equal(["MIN002"], Rules(score.Error));
+        Assert.Equal(["MIN001"], Rules(keyedChoice.Error));
+        Assert.Equal(["MIN104", "MIN104", "MIN104"], Rules(enumScore.Error));
     }
 
     [Fact]

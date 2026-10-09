@@ -22,117 +22,117 @@ public sealed class QuestionValidationTests
     }
 
     [Fact]
-    public void ChoiceWithoutOptions_FailsJev001() => AssertFailure("JEV001", "team", Choice("team", "Which team?"));
+    public void ChoiceWithoutOptions_FailsMin001() => AssertFailure("MIN001", "team", Choice("team", "Which team?"));
 
     [Fact]
-    public void ScoreWithoutLevels_FailsJev002_WithoutJev005() => AssertFailure("JEV002", "urgency", Score("urgency", "How urgent?"));
+    public void ScoreWithoutLevels_FailsMin002_WithoutMin005() => AssertFailure("MIN002", "urgency", Score("urgency", "How urgent?"));
 
     [Fact]
-    public void EnumScoreOverAnEmptyEnum_FailsJev002() => AssertFailure("JEV002", "urgency", EnumScore("urgency", []));
+    public void EnumScoreOverAnEmptyEnum_FailsMin002() => AssertFailure("MIN002", "urgency", EnumScore("urgency", []));
 
     [Fact]
     public void EnumScore_GivingEveryMemberOnce_InAnyOrder_Passes() => AssertClean(EnumScore("urgency", ["Low", "Medium", "High"], 2, 0, 1));
 
     [Fact]
-    public void EnumScoreMemberNotGivenALevel_FailsJev104()
+    public void EnumScoreMemberNotGivenALevel_FailsMin104()
     {
         var failure = OnlyFailure(EnumScore("urgency", ["Low", "Medium", "High"], 0, 2));
 
-        Assert.Equal("JEV104", failure.Rule);
+        Assert.Equal("MIN104", failure.Rule);
         Assert.Equal("urgency", failure.QuestionKey);
         Assert.Contains("'Medium'", failure.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void EnumScoreWithNoLevelGiven_FailsJev104_PerMember_WithoutJev002()
+    public void EnumScoreWithNoLevelGiven_FailsMin104_PerMember_WithoutMin002()
     {
         var (failures, warnings) = QuestionValidation.Validate([EnumScore("urgency", ["Low", "High"])]);
 
         Assert.Empty(warnings);
         Assert.Equal(2, failures.Length);
-        Assert.All(failures, failure => Assert.Equal(new QuestionFailure("JEV104", "urgency", failure.Message), failure));
+        Assert.All(failures, failure => Assert.Equal(new QuestionFailure("MIN104", "urgency", failure.Message), failure));
     }
 
     [Fact]
-    public void EnumScoreMemberGivenTwice_FailsJev106_Once()
+    public void EnumScoreMemberGivenTwice_FailsMin106_Once()
     {
         var failure = OnlyFailure(EnumScore("urgency", ["Low", "High"], 0, 1, 0, 0));
 
-        Assert.Equal("JEV106", failure.Rule);
+        Assert.Equal("MIN106", failure.Rule);
         Assert.Equal("urgency", failure.QuestionKey);
         Assert.Contains("'Low'", failure.Message, StringComparison.Ordinal);
     }
 
     [Fact]
-    public void DuplicateQuestionKey_FailsJev106_Once()
-        => AssertFailure("JEV106", "q", Noul("q", "One?"), Noul("q", "Two?"), Noul("q", "Three?"));
+    public void DuplicateQuestionKey_FailsMin106_Once()
+        => AssertFailure("MIN106", "q", Noul("q", "One?"), Noul("q", "Two?"), Noul("q", "Three?"));
 
     [Fact]
-    public void DuplicateOptionKey_FailsJev106()
-        => AssertFailure("JEV106", "team", Choice("team", "Which team?", Option("a", "A"), Option("a", "Also A")));
+    public void DuplicateOptionKey_FailsMin106()
+        => AssertFailure("MIN106", "team", Choice("team", "Which team?", Option("a", "A"), Option("a", "Also A")));
 
     [Fact]
-    public void EmptyQuestionKey_FailsJev106() => AssertFailure("JEV106", string.Empty, Noul(string.Empty, "Anything?"));
+    public void EmptyQuestionKey_FailsMin106() => AssertFailure("MIN106", string.Empty, Noul(string.Empty, "Anything?"));
 
     [Fact]
-    public void EmptyOptionKey_FailsJev106() => AssertFailure("JEV106", "team", Choice("team", "Which team?", Option(string.Empty, "A")));
+    public void EmptyOptionKey_FailsMin106() => AssertFailure("MIN106", "team", Choice("team", "Which team?", Option(string.Empty, "A")));
 
     [Fact]
-    public void InstructionsDeeperThan60Levels_FailJev108() => AssertFailure("JEV108", "q", Noul("q", Nested(61)));
+    public void InstructionsDeeperThan60Levels_FailMin108() => AssertFailure("MIN108", "q", Noul("q", Nested(61)));
 
     [Fact]
     public void InstructionsAt60Levels_Pass() => AssertClean(Noul("q", Nested(60)));
 
     [Fact]
-    public void DescriptionDeeperThan60Levels_FailsJev108()
-        => AssertFailure("JEV108", "team", Choice("team", "Which team?", Option("a", Criterion.Json(Nested(61)))));
+    public void DescriptionDeeperThan60Levels_FailsMin108()
+        => AssertFailure("MIN108", "team", Choice("team", "Which team?", Option("a", Criterion.Json(Nested(61)))));
 
     [Fact]
-    public void BlankInstructions_WarnJev003() => AssertWarning("JEV003", "q", Noul("q", "   "));
+    public void BlankInstructions_WarnMin003() => AssertWarning("MIN003", "q", Noul("q", "   "));
 
     [Fact]
-    public void EmptyJsonInstructions_WarnJev003()
+    public void EmptyJsonInstructions_WarnMin003()
     {
-        AssertWarning("JEV003", "q", Noul("q", DecisionContent.FromUtf8Json("{}"u8)));
-        AssertWarning("JEV003", "q", Noul("q", DecisionContent.FromUtf8Json("[]"u8)));
+        AssertWarning("MIN003", "q", Noul("q", DecisionContent.FromUtf8Json("{}"u8)));
+        AssertWarning("MIN003", "q", Noul("q", DecisionContent.FromUtf8Json("[]"u8)));
     }
 
     [Fact]
-    public void BlankDescription_WarnsJev003() => AssertWarning("JEV003", "team", Choice("team", "Which team?", Option("a", " ")));
+    public void BlankDescription_WarnsMin003() => AssertWarning("MIN003", "team", Choice("team", "Which team?", Option("a", " ")));
 
     [Fact]
-    public void EmptyJsonDescription_WarnsJev003()
-        => AssertWarning("JEV003", "team", Choice("team", "Which team?", Option("a", Criterion.Json(DecisionContent.FromUtf8Json("{}"u8)))));
+    public void EmptyJsonDescription_WarnsMin003()
+        => AssertWarning("MIN003", "team", Choice("team", "Which team?", Option("a", Criterion.Json(DecisionContent.FromUtf8Json("{}"u8)))));
 
     [Fact]
-    public void BlankExampleEntry_WarnsJev003()
-        => AssertWarning("JEV003", "team", Choice("team", "Which team?", Option("a", Criterion.Text("A").WithExamples("  "))));
+    public void BlankExampleEntry_WarnsMin003()
+        => AssertWarning("MIN003", "team", Choice("team", "Which team?", Option("a", Criterion.Text("A").WithExamples("  "))));
 
     [Fact]
-    public void NullNotForEntry_WarnsJev003()
-        => AssertWarning("JEV003", "team", Choice("team", "Which team?", Option("a", Criterion.Text("A").WithNotFor(null, "x"))));
+    public void NullNotForEntry_WarnsMin003()
+        => AssertWarning("MIN003", "team", Choice("team", "Which team?", Option("a", Criterion.Text("A").WithNotFor(null, "x"))));
 
     [Fact]
-    public void BlankNoulDescription_WarnsJev003() => AssertWarning("JEV003", "q", Noul("q", "Is it?") with { WhenTrue = "" });
+    public void BlankNoulDescription_WarnsMin003() => AssertWarning("MIN003", "q", Noul("q", "Is it?") with { WhenTrue = "" });
 
     [Fact]
-    public void ScoreOutsideGuidance_WarnsJev005()
+    public void ScoreOutsideGuidance_WarnsMin005()
     {
-        AssertWarning("JEV005", "s", Score("s", "How?", Levels(1)));
-        AssertWarning("JEV005", "s", Score("s", "How?", Levels(11)));
+        AssertWarning("MIN005", "s", Score("s", "How?", Levels(1)));
+        AssertWarning("MIN005", "s", Score("s", "How?", Levels(11)));
     }
 
     [Fact]
-    public void ChoiceOver255Options_WarnsJev005() => AssertWarning("JEV005", "c", Choice("c", "Which?", Levels(256)));
+    public void ChoiceOver255Options_WarnsMin005() => AssertWarning("MIN005", "c", Choice("c", "Which?", Levels(256)));
 
     [Fact]
-    public void BlankNoulFalseDescription_WarnsJev003() => AssertWarning("JEV003", "q", Noul("q", "Is it?") with { WhenFalse = "" });
+    public void BlankNoulFalseDescription_WarnsMin003() => AssertWarning("MIN003", "q", Noul("q", "Is it?") with { WhenFalse = "" });
 
     [Fact]
-    public void WhenTrueDeeperThan60Levels_FailsJev108() => AssertFailure("JEV108", "q", Noul("q", "Is it?") with { WhenTrue = Nested(61) });
+    public void WhenTrueDeeperThan60Levels_FailsMin108() => AssertFailure("MIN108", "q", Noul("q", "Is it?") with { WhenTrue = Nested(61) });
 
     [Fact]
-    public void WhenFalseDeeperThan60Levels_FailsJev108() => AssertFailure("JEV108", "q", Noul("q", "Is it?") with { WhenFalse = Nested(61) });
+    public void WhenFalseDeeperThan60Levels_FailsMin108() => AssertFailure("MIN108", "q", Noul("q", "Is it?") with { WhenFalse = Nested(61) });
 
     [Fact]
     public void WhenTrueAndWhenFalseAt60Levels_Pass() => AssertClean(Noul("q", "Is it?") with { WhenTrue = Nested(60), WhenFalse = Nested(60) });
@@ -148,21 +148,21 @@ public sealed class QuestionValidationTests
     public void ChoiceWith255Options_IsClean() => AssertClean(Choice("c", "Which?", Levels(255)));
 
     [Fact]
-    public void OptionKeyUsedThreeTimes_FailsJev106_Once()
-        => AssertFailure("JEV106", "team", Choice("team", "Which team?", Option("a", "A"), Option("a", "B"), Option("a", "C")));
+    public void OptionKeyUsedThreeTimes_FailsMin106_Once()
+        => AssertFailure("MIN106", "team", Choice("team", "Which team?", Option("a", "A"), Option("a", "B"), Option("a", "C")));
 
     [Fact]
-    public void EnumScoreWithOneOfThreeLevelsGiven_FailsJev104ForEachMissingMember_AndWarnsJev005()
+    public void EnumScoreWithOneOfThreeLevelsGiven_FailsMin104ForEachMissingMember_AndWarnsMin005()
     {
         var (failures, warnings) = QuestionValidation.Validate([EnumScore("urgency", ["Low", "Medium", "High"], 1)]);
 
         Assert.Equal(2, failures.Length);
-        Assert.All(failures, failure => Assert.Equal("JEV104", failure.Rule));
+        Assert.All(failures, failure => Assert.Equal("MIN104", failure.Rule));
         Assert.Contains("'Low'", failures[0].Message, StringComparison.Ordinal);
         Assert.Contains("'High'", failures[1].Message, StringComparison.Ordinal);
         Assert.All(failures, failure => Assert.Equal("urgency", failure.QuestionKey));
         var warning = Only(warnings);
-        Assert.Equal("JEV005", warning.Rule);
+        Assert.Equal("MIN005", warning.Rule);
         Assert.Equal("urgency", warning.QuestionKey);
     }
 

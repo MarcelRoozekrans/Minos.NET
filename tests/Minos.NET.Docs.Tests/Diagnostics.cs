@@ -3,9 +3,9 @@ namespace Minos.Docs.Tests;
 #region Diagnostics_Suppress
 using Minos;
 
-// The Jev API's guidance is 2 to 10 levels for a Score, so JEV005 warns about this enum. A 0 to 10 scale has 11
+// The Jev API's guidance is 2 to 10 levels for a Score, so MIN005 warns about this enum. A 0 to 10 scale has 11
 // levels by definition, so the warning is suppressed here, for this enum only, and the reason is written next to it.
-#pragma warning disable JEV005 // A 0 to 10 recommendation scale has 11 levels on purpose.
+#pragma warning disable MIN005 // A 0 to 10 recommendation scale has 11 levels on purpose.
 public enum Recommendation
 {
     [Level("0: Not at all likely")] Zero,
@@ -20,7 +20,7 @@ public enum Recommendation
     [Level("9")] Nine,
     [Level("10: Extremely likely")] Ten,
 }
-#pragma warning restore JEV005
+#pragma warning restore MIN005
 
 [Questions]
 public partial record SurveyReply
