@@ -71,16 +71,16 @@ public sealed partial class ComparisonTests
         Assert.All(runs, run =>
         {
             var results = Files(run).SelectMany(file => file.GetProperty("results").EnumerateArray()).ToArray();
-            var jev = results.Single(r => string.Equals(r.GetProperty("client").GetString(), "zeroalloc-jev", StringComparison.Ordinal));
+            var minos = results.Single(r => string.Equals(r.GetProperty("client").GetString(), "zeroalloc-jev", StringComparison.Ordinal));
             var others = results.Where(r => !string.Equals(r.GetProperty("client").GetString(), "zeroalloc-jev", StringComparison.Ordinal)).ToArray();
 
             Assert.All(others, other =>
             {
-                Assert.True(Mean(other) > Mean(jev), $"{run}: Minos.NET's mean is below {Client(other)}'s.");
-                Assert.True(Throughput(other) < Throughput(jev), $"{run}: Minos.NET's throughput is above {Client(other)}'s.");
+                Assert.True(Mean(other) > Mean(minos), $"{run}: Minos.NET's mean is below {Client(other)}'s.");
+                Assert.True(Throughput(other) < Throughput(minos), $"{run}: Minos.NET's throughput is above {Client(other)}'s.");
                 var bytes = other.GetProperty("allocatedBytesPerCall");
                 Assert.True(
-                    bytes.ValueKind == JsonValueKind.Null || bytes.GetInt64() > jev.GetProperty("allocatedBytesPerCall").GetInt64(),
+                    bytes.ValueKind == JsonValueKind.Null || bytes.GetInt64() > minos.GetProperty("allocatedBytesPerCall").GetInt64(),
                     $"{run}: Minos.NET allocates less than {Client(other)}.");
             });
             Assert.Equal(stated, others.OrderByDescending(Throughput).Select(Client));

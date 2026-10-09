@@ -7,20 +7,20 @@ namespace Minos.Samples;
 public static class SampleHost
 {
     /// <summary>
-    /// Registers the default <see cref="IDecisionClient"/> bound from <paramref name="jevSection"/>, then applies
+    /// Registers the default <see cref="IDecisionClient"/> bound from <paramref name="clientSection"/>, then applies
     /// <paramref name="mode"/>. Replay needs no key, so it supplies a placeholder that is never sent anywhere.
     /// <paramref name="recordingsPath"/> is read in replay only, so a live run may pass <see langword="null"/>.
     /// </summary>
     /// <exception cref="ArgumentException">Replay is asked for without a recordings path.</exception>
     public static IHttpClientBuilder AddSampleDecisionClient(
         this IServiceCollection services,
-        IConfiguration jevSection,
+        IConfiguration clientSection,
         SampleMode mode,
         string? recordingsPath,
         string sampleName,
         RecordingSession session)
     {
-        var builder = services.AddDecisionClient(jevSection);
+        var builder = services.AddDecisionClient(clientSection);
         switch (mode)
         {
             case SampleMode.Replay:

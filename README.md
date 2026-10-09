@@ -52,13 +52,13 @@ public static class ReadmeExample
     // registers it with AddDecisionClient.
     public static async Task<string> RunAsync(string message, CancellationToken cancellationToken)
     {
-        using var jev = new DecisionClient();
-        return await RouteAsync(jev, message, cancellationToken);
+        using var client = new DecisionClient();
+        return await RouteAsync(client, message, cancellationToken);
     }
 
-    public static async Task<string> RouteAsync(IDecisionClient jev, string message, CancellationToken cancellationToken)
+    public static async Task<string> RouteAsync(IDecisionClient client, string message, CancellationToken cancellationToken)
     {
-        var result = await jev.EvaluateAsync<Triage>(message, cancellationToken);
+        var result = await client.EvaluateAsync<Triage>(message, cancellationToken);
         return result.IsFailure
             ? $"{result.Error.Kind}: {result.Error.Message}"
             : $"urgent: {result.Value.IsUrgent.Value}, queue: {result.Value.Queue.Value}";

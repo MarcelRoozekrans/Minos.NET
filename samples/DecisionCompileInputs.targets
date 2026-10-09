@@ -9,6 +9,18 @@
   </PropertyGroup>
 
   <!--
+    The compiler writes the generated files but never deletes one it no longer generates, so a renamed generator
+    output would linger beside its replacement and the test would see both. The folder is emptied whenever
+    CoreCompile is about to run, with the same inputs and outputs, so it holds only what this compile writes.
+  -->
+  <Target Name="DecisionCleanCompilerGeneratedFiles"
+          BeforeTargets="CoreCompile"
+          Inputs="@(Compile);@(Analyzer);@(EditorConfigFiles)"
+          Outputs="@(IntermediateAssembly)">
+    <RemoveDir Directories="$(CompilerGeneratedFilesOutputPath)" />
+  </Target>
+
+  <!--
     Writes this project's compiler inputs: its sources, references, analyzers, editorconfig files, additional files,
     defines, parser features and the options the compiler takes from properties. tests/Minos.NET.AotSmoke.Tests
     rebuilds the same compilation from them, generators included: for the smoke app, to check that every public entry

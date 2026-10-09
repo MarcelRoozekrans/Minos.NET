@@ -48,11 +48,11 @@ public sealed class ObservabilityNamesTests
         };
         instruments.Start();
 
-        var (http, jev, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Ok(UrgencyResponse));
+        var (http, client, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Ok(UrgencyResponse));
         using (http)
-        using (jev)
+        using (client)
         {
-            await RawRequests.UrgencyAsync(jev, "Help!", CancellationToken.None);
+            await RawRequests.UrgencyAsync(client, "Help!", CancellationToken.None);
         }
 
         var version = typeof(DecisionClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;

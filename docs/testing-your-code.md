@@ -50,11 +50,11 @@ public enum TriageRoute
 }
 
 // The class under test. It asks for an IDecisionClient, so a test can hand it any implementation.
-public sealed class TicketTriager(IDecisionClient jev)
+public sealed class TicketTriager(IDecisionClient client)
 {
     public async Task<TriageRoute> RouteAsync(string ticketText, CancellationToken cancellationToken)
     {
-        var result = await jev.EvaluateAsync<TriageQuestions>(ticketText, cancellationToken);
+        var result = await client.EvaluateAsync<TriageQuestions>(ticketText, cancellationToken);
         if (result.IsFailure)
         {
             // Jev could not answer, so a person looks at the ticket.
@@ -176,13 +176,13 @@ request, so the test can check what the code asked.
 [Fact]
 public async Task AnUrgentTicket_IsEscalated_AndTheTicketTextIsWhatWasAsked()
 {
-    var jev = FakeDecision.Answering(urgent: 0.92, TriageDesk.Billing, deskConfidence: 0.8);
-    var triager = new TicketTriager(jev);
+    var client = FakeDecision.Answering(urgent: 0.92, TriageDesk.Billing, deskConfidence: 0.8);
+    var triager = new TicketTriager(client);
 
     var route = await triager.RouteAsync("Payouts have been failing for 3 days.", CancellationToken.None);
 
     Assert.Equal(TriageRoute.Escalate, route);
-    Assert.Collection(jev.Requests, request =>
+    Assert.Collection(client.Requests, request =>
     {
         Assert.True(request.State.TryGetString(out var state));
         Assert.Equal("Payouts have been failing for 3 days.", state);
@@ -318,9 +318,9 @@ public async Task ARealClient_SendsTheQuestions_AndReadsTheCannedAnswers()
     var handler = new CannedHandler(HttpStatusCode.OK, UrgentBody);
     using var http = new HttpClient(handler);
     // A dummy key passes validation, and no retries means a failing reply is returned at once.
-    using var jev = new DecisionClient(http, new DecisionClientOptions { ApiKey = "test-key", MaxRetries = 0 });
+    using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "test-key", MaxRetries = 0 });
 
-    var route = await new TicketTriager(jev).RouteAsync("Payouts have been failing for 3 days.", CancellationToken.None);
+    var route = await new TicketTriager(client).RouteAsync("Payouts have been failing for 3 days.", CancellationToken.None);
 
     Assert.Equal(TriageRoute.Escalate, route);
     Assert.Collection(handler.RequestBodies, sent =>
@@ -336,13 +336,13 @@ public async Task ARejectedKey_BecomesAFailure_AndThePersonReviews()
 {
     var handler = new CannedHandler(HttpStatusCode.Unauthorized, """{"error":"Invalid API key"}""");
     using var http = new HttpClient(handler);
-    using var jev = new DecisionClient(http, new DecisionClientOptions { ApiKey = "test-key", MaxRetries = 0 });
+    using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "test-key", MaxRetries = 0 });
 
-    var result = await jev.EvaluateAsync<TriageQuestions>("Any ticket.", CancellationToken.None);
+    var result = await client.EvaluateAsync<TriageQuestions>("Any ticket.", CancellationToken.None);
 
     Assert.True(result.IsFailure);
     Assert.Equal(DecisionErrorKind.Unauthorized, result.Error.Kind);
-    Assert.Equal(TriageRoute.Review, await new TicketTriager(jev).RouteAsync("Any ticket.", CancellationToken.None));
+    Assert.Equal(TriageRoute.Review, await new TicketTriager(client).RouteAsync("Any ticket.", CancellationToken.None));
 }
 ```
 <!-- endSnippet -->

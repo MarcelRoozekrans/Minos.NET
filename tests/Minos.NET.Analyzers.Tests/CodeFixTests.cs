@@ -138,16 +138,16 @@ public sealed class CodeFixTests
         => VerifyCompilesAsync(
             [
                 """
-                using Jev = Minos;
-                public enum E { [Jev.Criteria("x")] A, {|JEV006:B|} }
-                [Jev.Questions] public partial class Q { [Jev.Choice("q")] public partial Jev.Choice<E> {|CS9248:Answer|} { get; } }
+                using M = Minos;
+                public enum E { [M.Criteria("x")] A, {|JEV006:B|} }
+                [M.Questions] public partial class Q { [M.Choice("q")] public partial M.Choice<E> {|CS9248:Answer|} { get; } }
                 """,
             ],
             [
                 """
-                using Jev = Minos;
-                public enum E { [Jev.Criteria("x")] A, [Jev.Criteria("B")] B }
-                [Jev.Questions] public partial class Q { [Jev.Choice("q")] public partial Jev.Choice<E> {|CS9248:Answer|} { get; } }
+                using M = Minos;
+                public enum E { [M.Criteria("x")] A, [M.Criteria("B")] B }
+                [M.Questions] public partial class Q { [M.Choice("q")] public partial M.Choice<E> {|CS9248:Answer|} { get; } }
                 """,
             ]);
 

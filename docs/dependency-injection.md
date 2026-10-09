@@ -40,11 +40,11 @@ public partial record InboxCheck
 }
 
 // A class asks for IDecisionClient in its constructor, and the container supplies the shared client.
-public sealed class InboxTriage(IDecisionClient jev)
+public sealed class InboxTriage(IDecisionClient client)
 {
     public async Task<string> TriageAsync(string message, CancellationToken cancellationToken)
     {
-        var result = await jev.EvaluateAsync<InboxCheck>(message, cancellationToken);
+        var result = await client.EvaluateAsync<InboxCheck>(message, cancellationToken);
         if (result.IsFailure)
         {
             return $"Jev failed, {result.Error.Kind}";
@@ -128,11 +128,11 @@ public static void AddKeyedDecision(IHostApplicationBuilder builder)
 <!-- snippet: DependencyInjection_KeyedConsumer -->
 ```cs
 // A keyed client is asked for by its key.
-public sealed class InboxRouter([FromKeyedServices("openrouter")] IDecisionClient jev)
+public sealed class InboxRouter([FromKeyedServices("openrouter")] IDecisionClient client)
 {
     public async Task<string> TriageAsync(string message, CancellationToken cancellationToken)
     {
-        var result = await jev.EvaluateAsync<InboxCheck>(message, cancellationToken);
+        var result = await client.EvaluateAsync<InboxCheck>(message, cancellationToken);
         if (result.IsFailure)
         {
             return $"Jev failed, {result.Error.Kind}";
@@ -358,13 +358,13 @@ instance on a named client of your own.
 ```cs
 // A named HttpClient of your own, set up the way AddDecisionClient sets up its client.
 public static void AddDecisionHttpClient(IServiceCollection services, DecisionClientOptions options)
-    => services.AddHttpClient("jev")
+    => services.AddHttpClient("minos")
         .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(2) })
         .SetHandlerLifetime(Timeout.InfiniteTimeSpan)
         .ConfigureHttpClient(http => DecisionClient.ConfigureHttpClient(http, options));
 
 public static DecisionClient Create(IHttpClientFactory factory, DecisionClientOptions options)
-    => new(factory.CreateClient("jev"), options);
+    => new(factory.CreateClient("minos"), options);
 ```
 <!-- endSnippet -->
 

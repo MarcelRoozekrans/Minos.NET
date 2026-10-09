@@ -170,9 +170,9 @@ public sealed partial class ObservabilityLoggingTests
         using (http)
         using (var provider = new FakeLoggerProvider())
         using (var loggers = LoggerFactory.Create(builder => builder.AddProvider(provider).SetMinimumLevel(LogLevel.Debug)))
-        using (var jev = new DecisionClient(http, options, loggers))
+        using (var client = new DecisionClient(http, options, loggers))
         {
-            await jev.ListModelsAsync(CancellationToken.None);
+            await client.ListModelsAsync(CancellationToken.None);
 
             var listed = Only.Of(provider.Collector.GetSnapshot());
             Assert.Equal(1004, listed.Id.Id);
@@ -191,9 +191,9 @@ public sealed partial class ObservabilityLoggingTests
         using (http)
         using (var provider = new FakeLoggerProvider())
         using (var loggers = LoggerFactory.Create(builder => builder.AddProvider(provider).SetMinimumLevel(LogLevel.Debug)))
-        using (var jev = new DecisionClient(http, options, loggers))
+        using (var client = new DecisionClient(http, options, loggers))
         {
-            await jev.ListModelsAsync(CancellationToken.None);
+            await client.ListModelsAsync(CancellationToken.None);
 
             var failed = Only.Of(provider.Collector.GetSnapshot());
             Assert.Equal(1005, failed.Id.Id);
@@ -210,10 +210,10 @@ public sealed partial class ObservabilityLoggingTests
         using var http = new HttpClient(new ThrowingHandler()) { BaseAddress = new Uri("https://docs.example/api/") };
         using var provider = new FakeLoggerProvider();
         using var loggers = LoggerFactory.Create(builder => builder.AddProvider(provider).SetMinimumLevel(LogLevel.Debug));
-        using var jev = new DecisionClient(http, options, loggers);
+        using var client = new DecisionClient(http, options, loggers);
 
         var thrown = await Assert.ThrowsAsync<InvalidOperationException>(
-            async () => await jev.EvaluateAsync<ObservedUrgency>("Help!", CancellationToken.None));
+            async () => await client.EvaluateAsync<ObservedUrgency>("Help!", CancellationToken.None));
 
         var record = Only.Of(provider.Collector.GetSnapshot());
         Assert.Equal(1006, record.Id.Id);
@@ -225,7 +225,7 @@ public sealed partial class ObservabilityLoggingTests
         using var cancelled = new CancellationTokenSource();
         await cancelled.CancelAsync();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            async () => await jev.EvaluateAsync<ObservedUrgency>("Help!", cancelled.Token));
+            async () => await client.EvaluateAsync<ObservedUrgency>("Help!", cancelled.Token));
         Assert.DoesNotContain(provider.Collector.GetSnapshot(), logged => logged.Id.Id == 1006);
     }
 
@@ -237,9 +237,9 @@ public sealed partial class ObservabilityLoggingTests
         using (http)
         using (var provider = new FakeLoggerProvider())
         using (var loggers = LoggerFactory.Create(builder => builder.AddProvider(provider).SetMinimumLevel(LogLevel.None)))
-        using (var jev = new DecisionClient(http, options, loggers))
+        using (var client = new DecisionClient(http, options, loggers))
         {
-            var result = await jev.EvaluateAsync<ObservedUrgency>("Help!", CancellationToken.None);
+            var result = await client.EvaluateAsync<ObservedUrgency>("Help!", CancellationToken.None);
 
             Assert.True(result.IsSuccess);
             Assert.Empty(provider.Collector.GetSnapshot());

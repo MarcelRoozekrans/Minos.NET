@@ -4,7 +4,7 @@ namespace Minos;
 
 /// <summary>
 /// The number of questions in a <c>[Questions]</c> set, for the client's logs and its
-/// <c>jev.request.question_count</c> span tag: the top-level properties of its
+/// <c>minos.request.question_count</c> span tag: the top-level properties of its
 /// <see cref="IQuestionSet{TSelf}.QuestionsUtf8"/>, the questions object the generator wrote at compile time.
 /// </summary>
 /// <remarks>

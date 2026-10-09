@@ -219,7 +219,7 @@ public sealed class DecisionClientTests : IDisposable
     public async Task BorrowedClient_KeepsItsBaseAddress_AndSurvivesDispose()
     {
         var handler = StubHandler.Json(HttpStatusCode.OK, Fixture.Text("response-noul.json"));
-        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://proxy.local/jev/") };
+        using var http = new HttpClient(handler) { BaseAddress = new Uri("http://proxy.local/minos/") };
         var client = new DecisionClient(Settings(), http, ownedHandler: null, TimeProvider.System);
 
         _ = await client.EvaluateAsync(NoulRequest());
@@ -227,7 +227,7 @@ public sealed class DecisionClientTests : IDisposable
 
         // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
 #pragma warning disable HLQ005
-        Assert.Equal(new Uri("http://proxy.local/jev/v1/systemone"), Assert.Single(handler.Requests).Uri);
+        Assert.Equal(new Uri("http://proxy.local/minos/v1/systemone"), Assert.Single(handler.Requests).Uri);
 #pragma warning restore HLQ005
         Assert.False(handler.Disposed);
         Assert.Null(http.DefaultRequestHeaders.Authorization);

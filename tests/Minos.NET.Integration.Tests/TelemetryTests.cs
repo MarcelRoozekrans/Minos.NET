@@ -43,18 +43,18 @@ public sealed class TelemetryTests : IClassFixture<WireMockFixture>
         Assert.True(result.IsSuccess);
         Assert.Equal(2, _fixture.Server.LogEntries.Count);
 
-        var jev = capture.Span();
-        Assert.Equal(ActivityKind.Client, jev.Kind);
-        Assert.Equal(ActivityStatusCode.Unset, jev.Status);
-        Assert.Equal(_fixture.BaseAddress.Host, jev.GetTagItem("server.address"));
-        Assert.Equal(_fixture.BaseAddress.Port, jev.GetTagItem("server.port"));
+        var clientSpan = capture.Span();
+        Assert.Equal(ActivityKind.Client, clientSpan.Kind);
+        Assert.Equal(ActivityStatusCode.Unset, clientSpan.Status);
+        Assert.Equal(_fixture.BaseAddress.Host, clientSpan.GetTagItem("server.address"));
+        Assert.Equal(_fixture.BaseAddress.Port, clientSpan.GetTagItem("server.port"));
 
         var rest = capture.Spans("ZeroAlloc.Rest");
         Assert.Equal(2, rest.Length);
         Assert.All(rest, attempt =>
         {
-            Assert.Equal(jev.TraceId, attempt.TraceId);
-            Assert.Equal(jev.SpanId, attempt.ParentSpanId);
+            Assert.Equal(clientSpan.TraceId, attempt.TraceId);
+            Assert.Equal(clientSpan.SpanId, attempt.ParentSpanId);
         });
     }
 }

@@ -32,7 +32,7 @@ public sealed class AddDecisionClientTests
         services.AddDecisionClient(options =>
         {
             options.ApiKey = "di-key";
-            options.BaseAddress = new Uri("http://proxy.local/jev");
+            options.BaseAddress = new Uri("http://proxy.local/minos");
             options.Timeout = TimeSpan.FromSeconds(12);
         });
         using var provider = services.BuildServiceProvider();
@@ -42,7 +42,7 @@ public sealed class AddDecisionClientTests
         // validated whenever they are first read, and the HttpClient's configuration reads them.
         using var http = provider.GetRequiredService<IHttpClientFactory>().CreateClient("Minos.NET");
 
-        Assert.Equal(new Uri("http://proxy.local/jev/"), http.BaseAddress);
+        Assert.Equal(new Uri("http://proxy.local/minos/"), http.BaseAddress);
         Assert.Equal(TimeSpan.FromSeconds(12), http.Timeout);
         Assert.Matches(UserAgentPattern, http.DefaultRequestHeaders.UserAgent.ToString());
     }
@@ -251,7 +251,7 @@ public sealed class AddDecisionClientTests
         var services = new ServiceCollection();
         services
             .AddDecisionClient(Options("http://default.local/"))
-            .ConfigureHttpClient(http => http.BaseAddress = new Uri("http://proxy.local/jev"));
+            .ConfigureHttpClient(http => http.BaseAddress = new Uri("http://proxy.local/minos"));
         using var provider = services.BuildServiceProvider();
 
         var exception = Assert.Throws<ArgumentException>(() => provider.GetRequiredService<IDecisionClient>());

@@ -31,14 +31,14 @@ public sealed class QuestionSetsAtRunTimeTests
     public async Task RouteAsync_BuildsOnce_EvaluatesAndReadsThroughHandles()
     {
         var router = new TenantRouter(Teams);
-        var (http, jev, requests) = CannedDecision.Client(RouteResponse);
+        var (http, client, requests) = CannedDecision.Client(RouteResponse);
         using (http)
-        using (jev)
+        using (client)
         {
-            var routed = await router.RouteAsync(jev, "Our checkout is down.", CancellationToken.None);
+            var routed = await router.RouteAsync(client, "Our checkout is down.", CancellationToken.None);
 
             Assert.Equal((true, "payments", Priority.High), routed);
-            Assert.Equal((true, "payments", Priority.High), await router.RouteAsync(jev, "Again.", CancellationToken.None));
+            Assert.Equal((true, "payments", Priority.High), await router.RouteAsync(client, "Again.", CancellationToken.None));
         }
 
         Assert.Equal(2, requests.Count);
@@ -54,11 +54,11 @@ public sealed class QuestionSetsAtRunTimeTests
     public async Task RouteAsync_ReportsAFailureAsNull()
     {
         var router = new TenantRouter(Teams);
-        var (http, jev, _) = CannedDecision.Client("this is not json");
+        var (http, client, _) = CannedDecision.Client("this is not json");
         using (http)
-        using (jev)
+        using (client)
         {
-            Assert.Null(await router.RouteAsync(jev, "Anything.", CancellationToken.None));
+            Assert.Null(await router.RouteAsync(client, "Anything.", CancellationToken.None));
         }
     }
 
@@ -98,13 +98,13 @@ public sealed class QuestionSetsAtRunTimeTests
             """);
         Assert.True(JsonElement.DeepEquals(expected.RootElement, actual.RootElement));
 
-        var (http, jev, _) = CannedDecision.Client("""
+        var (http, client, _) = CannedDecision.Client("""
             { "model": "m", "answers": { "team": { "type": "choice", "choice": "technical", "probabilities": { "billing": 0.1, "technical": 0.8, "sales": 0.1 }, "confidence": 0.9 } }, "usage": { "input_tokens": 1, "output_tokens": 1 } }
             """);
         using (http)
-        using (jev)
+        using (client)
         {
-            var result = await jev.EvaluateAsync(set, "Help", CancellationToken.None);
+            var result = await client.EvaluateAsync(set, "Help", CancellationToken.None);
 
             Assert.True(result.IsSuccess);
             var answer = result.Value.Get(team);
@@ -204,15 +204,15 @@ public sealed class QuestionSetsAtRunTimeTests
         var late = builder.Build().Value;
         var other = QuestionSet.CreateBuilder().Noul("first", "First?", out var foreign).Build().Value;
 
-        var (http, jev, _) = CannedDecision.Client("""
+        var (http, client, _) = CannedDecision.Client("""
             { "model": "m", "answers": { "first": { "type": "noul", "noul": 0.2 }, "second": { "type": "noul", "noul": 0.7 } }, "usage": { "input_tokens": 1, "output_tokens": 1 } }
             """);
         using (http)
-        using (jev)
+        using (client)
         {
-            var earlyAnswers = (await jev.EvaluateAsync(early, "x", CancellationToken.None)).Value;
-            var lateAnswers = (await jev.EvaluateAsync(late, "x", CancellationToken.None)).Value;
-            var otherAnswers = (await jev.EvaluateAsync(other, "x", CancellationToken.None)).Value;
+            var earlyAnswers = (await client.EvaluateAsync(early, "x", CancellationToken.None)).Value;
+            var lateAnswers = (await client.EvaluateAsync(late, "x", CancellationToken.None)).Value;
+            var otherAnswers = (await client.EvaluateAsync(other, "x", CancellationToken.None)).Value;
 
             // A handle works with every set its builder built, if the question existed when the set was built.
             Assert.Equal(0.2, earlyAnswers.Get(first).Probability);
@@ -235,13 +235,13 @@ public sealed class QuestionSetsAtRunTimeTests
     public async Task AMissingAnswer_FailsTheCallAsInvalidResponse()
     {
         var set = QuestionSet.CreateBuilder().Noul("a", "A?", out NoulHandle _).Noul("b", "B?", out NoulHandle _).Build().Value;
-        var (http, jev, _) = CannedDecision.Client("""
+        var (http, client, _) = CannedDecision.Client("""
             { "model": "m", "answers": { "a": { "type": "noul", "noul": 0.2 } }, "usage": { "input_tokens": 1, "output_tokens": 1 } }
             """);
         using (http)
-        using (jev)
+        using (client)
         {
-            var result = await jev.EvaluateAsync(set, "x", CancellationToken.None);
+            var result = await client.EvaluateAsync(set, "x", CancellationToken.None);
 
             Assert.True(result.IsFailure);
             Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);
@@ -296,13 +296,13 @@ public sealed class QuestionSetsAtRunTimeTests
         var criteria = questions.RootElement.GetProperty("d").GetProperty("criteria");
         Assert.Equal(JsonValueKind.Null, criteria.GetProperty("billing").ValueKind);
 
-        var (http, jev, _) = CannedDecision.Client("""
+        var (http, client, _) = CannedDecision.Client("""
             { "model": "m", "answers": { "d": { "type": "choice", "choice": "sales", "probabilities": { "billing": 0.1, "technical": 0.2, "sales": 0.7 }, "confidence": 0.5 } }, "usage": { "input_tokens": 1, "output_tokens": 1 } }
             """);
         using (http)
-        using (jev)
+        using (client)
         {
-            var result = await jev.EvaluateAsync(set, "x", CancellationToken.None);
+            var result = await client.EvaluateAsync(set, "x", CancellationToken.None);
 
             Assert.Equal(Department.Sales, result.Value.Get(department).Value);
         }
@@ -312,13 +312,13 @@ public sealed class QuestionSetsAtRunTimeTests
     public async Task AnswersToUnknownKeys_AreIgnored()
     {
         var set = QuestionSet.CreateBuilder().Noul("a", "A?", out var a).Build().Value;
-        var (http, jev, _) = CannedDecision.Client("""
+        var (http, client, _) = CannedDecision.Client("""
             { "model": "m", "answers": { "extra": { "type": "noul", "noul": 0.9 }, "a": { "type": "noul", "noul": 0.2 } }, "usage": { "input_tokens": 1, "output_tokens": 1 } }
             """);
         using (http)
-        using (jev)
+        using (client)
         {
-            var result = await jev.EvaluateAsync(set, "x", CancellationToken.None);
+            var result = await client.EvaluateAsync(set, "x", CancellationToken.None);
 
             Assert.Equal(0.2, result.Value.Get(a).Probability);
         }

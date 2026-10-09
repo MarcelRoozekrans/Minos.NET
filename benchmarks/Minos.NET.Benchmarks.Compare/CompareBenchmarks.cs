@@ -22,7 +22,7 @@ public class CompareBenchmarks
     /// <summary>Gets the client each benchmark method measures, by method name.</summary>
     public static IReadOnlyDictionary<string, string> ClientByBenchmark { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-        [nameof(Minos)] = ClientAdapters.Jev,
+        [nameof(Minos)] = ClientAdapters.Minos,
         [nameof(RawHttpClient)] = ClientAdapters.Raw,
         [nameof(JevSharp)] = ClientAdapters.JevSharp,
         [nameof(TypeSafeSdk)] = ClientAdapters.TypeSafeSdk,
@@ -32,7 +32,7 @@ public class CompareBenchmarks
     /// <summary>Creates and warms up the Minos.NET client.</summary>
     /// <returns>A task that completes when the client is warm.</returns>
     [GlobalSetup(Target = nameof(Minos))]
-    public Task SetupMinosAsync() => StartAsync(ClientAdapters.Jev);
+    public Task SetupMinosAsync() => StartAsync(ClientAdapters.Minos);
 
     /// <summary>Creates and warms up the raw baseline.</summary>
     /// <returns>A task that completes when the client is warm.</returns>

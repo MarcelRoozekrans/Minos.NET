@@ -74,7 +74,7 @@ public sealed class AddDescriptionCodeFixProvider : CodeFixProvider
 
         // The attribute is written fully qualified and left to the simplifier to shorten to what binds at the member.
         // ImportAdder is asked for a using only when nothing in scope reaches the attribute yet. On its own it mishandles
-        // two cases: under an alias using such as `using Jev = Minos;` it still adds `using Minos;` and
+        // two cases: under an alias using such as `using M = Minos;` it still adds `using Minos;` and
         // the name reduces to a bare [Criteria], on Roslyn 5.0.0 and 5.9.0; and with a global using in another file it
         // leaves a stray blank line at the top, on 5.0.0 only, fixed in later Roslyn.
         // Tracked: #51

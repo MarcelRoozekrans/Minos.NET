@@ -22,7 +22,7 @@ internal sealed class PackedProject : IDisposable
             .GetCustomAttribute<AssemblyConfigurationAttribute>()?.Configuration
             ?? "Release";
 
-        _tempDir = Path.Combine(Path.GetTempPath(), "jev-pack-tests-" + Guid.NewGuid().ToString("N"));
+        _tempDir = Path.Combine(Path.GetTempPath(), "minos-pack-tests-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempDir);
 
         var projectPath = Path.Combine(repoRoot, "src", projectName, projectName + ".csproj");

@@ -19,7 +19,7 @@ public sealed class AddDecisionClientTelemetryTests
         var result = await provider.GetRequiredService<IDecisionClient>().EvaluateAsync(Request());
 
         Assert.True(result.IsSuccess);
-        Assert.Equal("evaluate", capture.StartTags().Tag("jev.operation"));
+        Assert.Equal("evaluate", capture.StartTags().Tag("minos.operation"));
         Assert.Equal("Minos", capture.Span().Source.Name);
     }
 }

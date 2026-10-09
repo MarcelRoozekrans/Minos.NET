@@ -16,11 +16,11 @@ public sealed class ReadmeTests
     [Fact]
     public async Task RouteAsync_ReadsBothAnswers()
     {
-        var (http, jev, requests) = CannedDecision.Client(Response);
+        var (http, client, requests) = CannedDecision.Client(Response);
         using (http)
-        using (jev)
+        using (client)
         {
-            var summary = await ReadmeExample.RouteAsync(jev, "Help! My payouts have been failing for 3 days.", CancellationToken.None);
+            var summary = await ReadmeExample.RouteAsync(client, "Help! My payouts have been failing for 3 days.", CancellationToken.None);
 
             Assert.Equal("urgent: True, queue: Billing", summary);
         }
@@ -31,11 +31,11 @@ public sealed class ReadmeTests
     [Fact]
     public async Task RouteAsync_ReportsAFailureInsteadOfThrowing()
     {
-        var (http, jev, _) = CannedDecision.Client("this is not json");
+        var (http, client, _) = CannedDecision.Client("this is not json");
         using (http)
-        using (jev)
+        using (client)
         {
-            var summary = await ReadmeExample.RouteAsync(jev, "Anything.", CancellationToken.None);
+            var summary = await ReadmeExample.RouteAsync(client, "Anything.", CancellationToken.None);
 
             Assert.StartsWith("InvalidResponse: ", summary, StringComparison.Ordinal);
         }

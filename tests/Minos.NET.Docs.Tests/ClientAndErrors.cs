@@ -155,9 +155,9 @@ public static class RawRequests
     #region ClientAndErrors_RawRequest
     // The raw API names its own model and questions, with ids you choose. Use it when the questions are not known at
     // compile time and the question set builder does not fit. Typed evaluation is shorter wherever it can be used.
-    public static async Task<string> UrgencyAsync(IDecisionClient jev, string message, CancellationToken cancellationToken)
+    public static async Task<string> UrgencyAsync(IDecisionClient client, string message, CancellationToken cancellationToken)
     {
-        var result = await jev.EvaluateAsync(
+        var result = await client.EvaluateAsync(
             new SystemOneRequest
             {
                 State = message,
@@ -185,9 +185,9 @@ public static class RawRequests
 public static class ModelListing
 {
     #region ClientAndErrors_Models
-    public static async Task<string> ModelsAsync(IDecisionClient jev, CancellationToken cancellationToken)
+    public static async Task<string> ModelsAsync(IDecisionClient client, CancellationToken cancellationToken)
     {
-        var result = await jev.ListModelsAsync(cancellationToken);
+        var result = await client.ListModelsAsync(cancellationToken);
         if (result.IsFailure)
         {
             return ClientFailures.Describe(result.Error);

@@ -8,23 +8,23 @@ public sealed class TestingYourCodeTests
     [Fact]
     public async Task EveryTypedOverload_GoesThroughTheFakesOneEvaluateMethod()
     {
-        IDecisionClient jev = FakeDecision.Answering(0.9, TriageDesk.Billing, 0.8);
+        IDecisionClient client = FakeDecision.Answering(0.9, TriageDesk.Billing, 0.8);
 
-        Assert.True((await jev.EvaluateAsync<TriageQuestions>("text")).IsSuccess);
-        Assert.True((await jev.EvaluateAsync<TriageQuestions>("text", CancellationToken.None)).IsSuccess);
-        Assert.True((await jev.EvaluateUtf8Async<TriageQuestions>("\"text\""u8.ToArray())).IsSuccess);
-        Assert.True((await jev.EvaluateAsync<TriageQuestions>(JsonElement.Parse("\"text\""))).IsSuccess);
-        Assert.True((await jev.EvaluateAsync<TriageQuestions>(JsonElement.Parse("{}"), CancellationToken.None)).IsSuccess);
+        Assert.True((await client.EvaluateAsync<TriageQuestions>("text")).IsSuccess);
+        Assert.True((await client.EvaluateAsync<TriageQuestions>("text", CancellationToken.None)).IsSuccess);
+        Assert.True((await client.EvaluateUtf8Async<TriageQuestions>("\"text\""u8.ToArray())).IsSuccess);
+        Assert.True((await client.EvaluateAsync<TriageQuestions>(JsonElement.Parse("\"text\""))).IsSuccess);
+        Assert.True((await client.EvaluateAsync<TriageQuestions>(JsonElement.Parse("{}"), CancellationToken.None)).IsSuccess);
 
-        Assert.Equal(5, ((FakeDecision)jev).Requests.Count);
+        Assert.Equal(5, ((FakeDecision)client).Requests.Count);
     }
 
     [Fact]
     public async Task ATwoWordOption_IsKeyedInSnakeCase_ByTheFake()
     {
-        IDecisionClient jev = FakeDecision.Answering(0.1, TriageDesk.ProductTeam, 0.9);
+        IDecisionClient client = FakeDecision.Answering(0.1, TriageDesk.ProductTeam, 0.9);
 
-        var result = await jev.EvaluateAsync<TriageQuestions>("text");
+        var result = await client.EvaluateAsync<TriageQuestions>("text");
 
         Assert.True(result.IsSuccess);
         Assert.Equal(TriageDesk.ProductTeam, result.Value.Desk.Value);
@@ -50,11 +50,11 @@ public sealed class TestingYourCodeTests
     [InlineData("""{ "answers": { "is_urgent": { "type": "noul", "noul": 0.9 } } }""")]
     public async Task ACannedBodyThatLeavesOutAKeyField_IsAnInvalidResponse(string body)
     {
-        var (http, jev, _) = CannedDecision.Client(body);
+        var (http, client, _) = CannedDecision.Client(body);
         using (http)
-        using (jev)
+        using (client)
         {
-            var result = await jev.EvaluateAsync<TriageQuestions>("text", CancellationToken.None);
+            var result = await client.EvaluateAsync<TriageQuestions>("text", CancellationToken.None);
 
             Assert.True(result.IsFailure);
             Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);
@@ -68,9 +68,9 @@ public sealed class TestingYourCodeTests
         using var http = new HttpClient(handler);
 
         Assert.Null(http.BaseAddress);
-        using var jev = new DecisionClient(http, new DecisionClientOptions { ApiKey = "test-key", MaxRetries = 0 });
+        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "test-key", MaxRetries = 0 });
 
         Assert.NotNull(http.BaseAddress);
-        Assert.Equal(TriageRoute.Queue, await new TicketTriager(jev).RouteAsync("text", CancellationToken.None));
+        Assert.Equal(TriageRoute.Queue, await new TicketTriager(client).RouteAsync("text", CancellationToken.None));
     }
 }

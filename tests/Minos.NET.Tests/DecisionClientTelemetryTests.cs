@@ -33,11 +33,11 @@ public sealed class DecisionClientTelemetryTests : IDisposable
         Assert.Equal("evaluate jev-latest", span.DisplayName);
         Assert.Equal(ActivityKind.Client, span.Kind);
         var start = capture.StartTags();
-        Assert.Equal("evaluate", start.Tag("jev.operation"));
+        Assert.Equal("evaluate", start.Tag("minos.operation"));
         Assert.Equal("typesafe", start.Tag("gen_ai.provider.name"));
         Assert.Equal("api.typesafe.ai", start.Tag("server.address"));
         Assert.Equal(443, start.Tag("server.port"));
-        Assert.Equal(1, start.Tag("jev.request.question_count"));
+        Assert.Equal(1, start.Tag("minos.request.question_count"));
         Assert.Equal("jev-1.13.0", span.GetTagItem("gen_ai.response.model"));
         Assert.Equal(296, span.GetTagItem("gen_ai.usage.input_tokens"));
     }
@@ -55,11 +55,11 @@ public sealed class DecisionClientTelemetryTests : IDisposable
         Assert.Equal(0, pool.Outstanding);
         var span = capture.Span();
         Assert.Equal($"evaluate {ClientTestKit.TestModel}", span.DisplayName);
-        Assert.Equal("evaluate-typed", capture.StartTags().Tag("jev.operation"));
+        Assert.Equal("evaluate-typed", capture.StartTags().Tag("minos.operation"));
         Assert.Equal(ClientTestKit.TestModel, capture.StartTags().Tag("gen_ai.request.model"));
-        Assert.Equal(1, capture.StartTags().Tag("jev.request.question_count"));
+        Assert.Equal(1, capture.StartTags().Tag("minos.request.question_count"));
         Assert.Equal("jev-1.13.0", span.GetTagItem("gen_ai.response.model"));
-        Assert.Equal([0.81], capture.Points("jev.answer.confidence").Select(point => point.Value));
+        Assert.Equal([0.81], capture.Points("minos.answer.confidence").Select(point => point.Value));
     }
 
     [Fact]
@@ -79,7 +79,7 @@ public sealed class DecisionClientTelemetryTests : IDisposable
         Assert.Equal(Department.Billing, result.Value.Department.Value);
         Assert.True(pool.Rented > 0);
         Assert.Equal(0, pool.Outstanding);
-        Assert.Equal("evaluate-typed", capture.StartTags().Tag("jev.operation"));
+        Assert.Equal("evaluate-typed", capture.StartTags().Tag("minos.operation"));
         Assert.Equal("jev-1.13.0", capture.Span().GetTagItem("gen_ai.response.model"));
     }
 
@@ -152,7 +152,7 @@ public sealed class DecisionClientTelemetryTests : IDisposable
 
         var spans = capture.Spans("Minos");
         Assert.Equal(4, spans.Length);
-        Assert.All(spans, span => Assert.Equal("evaluate-typed", span.GetTagItem("jev.operation")));
+        Assert.All(spans, span => Assert.Equal("evaluate-typed", span.GetTagItem("minos.operation")));
     }
 
     [Fact]
@@ -185,9 +185,9 @@ public sealed class DecisionClientTelemetryTests : IDisposable
 
         Assert.True(result.IsSuccess);
         Assert.Equal(0, pool.Outstanding);
-        Assert.Equal("evaluate-built-set", capture.StartTags().Tag("jev.operation"));
-        Assert.Equal(1, capture.StartTags().Tag("jev.request.question_count"));
-        Assert.Empty(capture.Points("jev.answer.confidence"));
+        Assert.Equal("evaluate-built-set", capture.StartTags().Tag("minos.operation"));
+        Assert.Equal(1, capture.StartTags().Tag("minos.request.question_count"));
+        Assert.Empty(capture.Points("minos.answer.confidence"));
     }
 
     [Fact]
@@ -230,7 +230,7 @@ public sealed class DecisionClientTelemetryTests : IDisposable
 
         Assert.True(result.IsSuccess);
         Assert.Equal("list_models", capture.Span().DisplayName);
-        Assert.Equal("list-models", capture.StartTags().Tag("jev.operation"));
+        Assert.Equal("list-models", capture.StartTags().Tag("minos.operation"));
         Assert.Equal("gen_ai.client.operation.duration", capture.OnlyPoint().Metric);
     }
 
@@ -262,7 +262,7 @@ public sealed class DecisionClientTelemetryTests : IDisposable
         Assert.Equal("openrouter", start.Tag("gen_ai.provider.name"));
         Assert.Equal("openrouter.ai", start.Tag("server.address"));
         Assert.Equal("gen-1727400000-abc123", capture.Span().GetTagItem("gen_ai.response.id"));
-        Assert.Equal(0.000296, capture.Span().GetTagItem("jev.usage.cost"));
+        Assert.Equal(0.000296, capture.Span().GetTagItem("minos.usage.cost"));
     }
 
     [Fact]
@@ -277,7 +277,7 @@ public sealed class DecisionClientTelemetryTests : IDisposable
         await client.EvaluateAsync(Request());
 
         Assert.Equal([1001], logs.EventIds);
-        Assert.Equal("evaluate", capture.Span().GetTagItem("jev.operation"));
+        Assert.Equal("evaluate", capture.Span().GetTagItem("minos.operation"));
     }
 
     private static SystemOneRequest Request()

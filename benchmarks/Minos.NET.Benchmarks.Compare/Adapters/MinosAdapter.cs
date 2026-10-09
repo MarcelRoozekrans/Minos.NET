@@ -31,7 +31,7 @@ public sealed class MinosAdapter : IClientAdapter, IUsesBenchmarkTransport
     HttpClient IUsesBenchmarkTransport.Http => _http;
 
     /// <inheritdoc/>
-    public string Client => ClientAdapters.Jev;
+    public string Client => ClientAdapters.Minos;
 
     /// <inheritdoc/>
     public string Library => "Minos.NET";

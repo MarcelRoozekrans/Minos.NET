@@ -120,15 +120,15 @@ created with no key available, so a missing key shows up at start-up rather than
 // DecisionClient is disposable and meant to be long-lived: create it once, share it, and dispose it at shutdown.
 public static async Task<string> ViaTypeSafeAsync(string message, CancellationToken cancellationToken)
 {
-    using var jev = new DecisionClient(new DecisionClientOptions());
-    return await GettingStartedEvaluation.TriageAsync(jev, message, cancellationToken);
+    using var client = new DecisionClient(new DecisionClientOptions());
+    return await GettingStartedEvaluation.TriageAsync(client, message, cancellationToken);
 }
 
 // OpenRouter: name the provider. With no ApiKey set, the client reads OPENROUTER_API_KEY.
 public static async Task<string> ViaOpenRouterAsync(string message, CancellationToken cancellationToken)
 {
-    using var jev = new DecisionClient(new DecisionClientOptions { Provider = DecisionProvider.OpenRouter });
-    return await GettingStartedEvaluation.TriageAsync(jev, message, cancellationToken);
+    using var client = new DecisionClient(new DecisionClientOptions { Provider = DecisionProvider.OpenRouter });
+    return await GettingStartedEvaluation.TriageAsync(client, message, cancellationToken);
 }
 ```
 <!-- endSnippet -->
@@ -174,9 +174,9 @@ can fail in many ways. Check `IsFailure` first, and read the answers from `Value
 
 <!-- snippet: GettingStarted_Evaluate -->
 ```cs
-public static async Task<string> TriageAsync(IDecisionClient jev, string message, CancellationToken cancellationToken)
+public static async Task<string> TriageAsync(IDecisionClient client, string message, CancellationToken cancellationToken)
 {
-    var result = await jev.EvaluateAsync<TicketCheck>(message, cancellationToken);
+    var result = await client.EvaluateAsync<TicketCheck>(message, cancellationToken);
 
     // Every outcome comes back as a value, so check for failure before reading the answers: a network
     // error, a rejected key and an unreadable response all arrive here, with a Kind and a Message.

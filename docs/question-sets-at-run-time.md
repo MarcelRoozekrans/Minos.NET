@@ -75,10 +75,10 @@ public sealed class TenantRouter
     }
 
     public async Task<(bool Urgent, string Team, Priority Priority)?> RouteAsync(
-        IDecisionClient jev, string message, CancellationToken cancellationToken)
+        IDecisionClient client, string message, CancellationToken cancellationToken)
     {
         // The state is a DecisionContent. Text converts to one, so a string can be passed as it is.
-        var result = await jev.EvaluateAsync(_questions, message, cancellationToken);
+        var result = await client.EvaluateAsync(_questions, message, cancellationToken);
         if (result.IsFailure)
         {
             return null;

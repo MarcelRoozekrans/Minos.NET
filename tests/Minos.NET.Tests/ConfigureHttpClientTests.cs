@@ -13,9 +13,9 @@ public sealed class ConfigureHttpClientTests
     {
         using var http = new HttpClient();
 
-        Configure(http, new DecisionClientOptions { BaseAddress = new Uri("http://proxy.local/jev") });
+        Configure(http, new DecisionClientOptions { BaseAddress = new Uri("http://proxy.local/minos") });
 
-        Assert.Equal(new Uri("http://proxy.local/jev/"), http.BaseAddress);
+        Assert.Equal(new Uri("http://proxy.local/minos/"), http.BaseAddress);
     }
 
     [Fact]
@@ -33,9 +33,9 @@ public sealed class ConfigureHttpClientTests
     {
         using var http = new HttpClient();
 
-        Configure(http, new DecisionClientOptions(), ("TYPESAFE_BASE_URL", "http://env.local/jev"));
+        Configure(http, new DecisionClientOptions(), ("TYPESAFE_BASE_URL", "http://env.local/minos"));
 
-        Assert.Equal(new Uri("http://env.local/jev/"), http.BaseAddress);
+        Assert.Equal(new Uri("http://env.local/minos/"), http.BaseAddress);
     }
 
     [Fact]

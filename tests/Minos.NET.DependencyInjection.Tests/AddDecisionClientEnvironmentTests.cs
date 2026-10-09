@@ -11,7 +11,7 @@ public sealed class AddDecisionClientEnvironmentTests
     [Fact]
     public async Task TypeSafeBaseUrl_IsTheFactoryClientsBaseAddress()
     {
-        using var environment = new EnvironmentVariables(("TYPESAFE_BASE_URL", "http://env.local/jev"));
+        using var environment = new EnvironmentVariables(("TYPESAFE_BASE_URL", "http://env.local/minos"));
         var handler = Noul();
         var services = new ServiceCollection();
         services.AddDecisionClient(options => options.ApiKey = "di-key").ConfigurePrimaryHttpMessageHandler(() => handler);
@@ -19,7 +19,7 @@ public sealed class AddDecisionClientEnvironmentTests
 
         _ = await provider.GetRequiredService<IDecisionClient>().EvaluateAsync(Request());
 
-        Assert.Equal(new Uri("http://env.local/jev/v1/systemone"), OnlyRequest(handler).Uri);
+        Assert.Equal(new Uri("http://env.local/minos/v1/systemone"), OnlyRequest(handler).Uri);
     }
 
     [Fact]

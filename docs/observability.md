@@ -60,10 +60,10 @@ public static class ObservedLogging
         using var loggers = LoggerFactory.Create(builder => builder
             .AddProvider(provider)
             .SetMinimumLevel(LogLevel.Debug));
-        using var jev = new DecisionClient(http, options, loggers);
+        using var client = new DecisionClient(http, options, loggers);
 
         // The result is not inspected here: each outcome, a success or a failure, is one log event.
-        await jev.EvaluateAsync<ObservedUrgency>("Help! The server is down.", cancellationToken);
+        await client.EvaluateAsync<ObservedUrgency>("Help! The server is down.", cancellationToken);
 
         return provider.Collector.GetSnapshot();
     }
@@ -289,7 +289,7 @@ public sealed class DecisionTelemetryListener : IDisposable
 ### The span's attributes
 
 The attributes follow OpenTelemetry's semantic conventions for generative AI, where a convention fits. The rest are
-named `jev.*`.
+named `minos.*`.
 
 | Attribute | Set | Value |
 | --- | --- | --- |
@@ -298,13 +298,13 @@ named `jev.*`.
 | `gen_ai.request.model` | start | The requested model. Evaluations only. |
 | `server.address` | start | The host of the base address. |
 | `server.port` | start | The port of the base address. |
-| `jev.operation` | start | `evaluate`, `evaluate-typed`, `evaluate-built-set` or `list-models`, as in the logs. |
-| `jev.request.question_count` | start | The number of questions. Evaluations only. |
+| `minos.operation` | start | `evaluate`, `evaluate-typed`, `evaluate-built-set` or `list-models`, as in the logs. |
+| `minos.request.question_count` | start | The number of questions. Evaluations only. |
 | `gen_ai.response.model` | success | The model that answered. Evaluations only. |
 | `gen_ai.usage.input_tokens` | success | The input tokens. Evaluations only. |
 | `gen_ai.usage.output_tokens` | success | The output tokens. Evaluations only. |
 | `gen_ai.response.id` | success | OpenRouter's generation id, when it reports one. Only the raw `EvaluateAsync(SystemOneRequest)`. |
-| `jev.usage.cost` | success | The cost in US dollars, when OpenRouter reports it. Only the raw `EvaluateAsync(SystemOneRequest)`. |
+| `minos.usage.cost` | success | The cost in US dollars, when OpenRouter reports it. Only the raw `EvaluateAsync(SystemOneRequest)`. |
 | `error.type` | failure | The name of the `DecisionErrorKind`, such as `RateLimited`, or the full type name of a thrown exception. |
 
 The start attributes are set when the span is created, so a sampler sees them and can decide on them. A failed result
@@ -338,7 +338,7 @@ evaluation also records its tokens and one confidence point for each Choice or S
 | `gen_ai.client.inference.operation.output_tokens` | Histogram | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.response.model` | evaluation success |
 | `gen_ai.client.inference.usage.input_tokens` | Counter | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.modality` | evaluation success |
 | `gen_ai.client.inference.usage.output_tokens` | Counter | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.modality` | evaluation success |
-| `jev.answer.confidence` | Histogram | `1` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `jev.operation` | each Choice or Score answer |
+| `minos.answer.confidence` | Histogram | `1` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `minos.operation` | each Choice or Score answer |
 
 - **The duration** carries `gen_ai.response.model` on success and `error.type` on failure, never both. A model listing
   has no request or response model, so its duration carries only the operation, the provider, the server and, on

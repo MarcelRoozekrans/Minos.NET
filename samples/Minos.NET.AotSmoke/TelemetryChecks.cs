@@ -33,22 +33,22 @@ internal static class TelemetryChecks
 
         var result = await client.EvaluateAsync(Program.Request()).ConfigureAwait(false);
 
-        var jev = spans.Where(span => span.Source.Name is "Minos").ToArray();
+        var minosSpans = spans.Where(span => span.Source.Name is "Minos").ToArray();
         var rest = spans.Where(span => span.Source.Name is "ZeroAlloc.Rest").ToArray();
         Program.Check(
             result.IsSuccess
-                && jev.Length == 1
-                && jev[0].Kind == ActivityKind.Client
-                && jev[0].DisplayName is "evaluate jev-latest"
-                && jev[0].Status == ActivityStatusCode.Unset
+                && minosSpans.Length == 1
+                && minosSpans[0].Kind == ActivityKind.Client
+                && minosSpans[0].DisplayName is "evaluate jev-latest"
+                && minosSpans[0].Status == ActivityStatusCode.Unset
                 && rest.Length == 2
-                && rest.All(attempt => attempt.ParentSpanId == jev[0].SpanId),
+                && rest.All(attempt => attempt.ParentSpanId == minosSpans[0].SpanId),
             "a retried evaluation is one Jev client span over two ZeroAlloc.Rest attempt spans under Native AOT");
         Program.Check(
             startTags.Exists(tag => tag.Key is "server.address" && tag.Value is "example.test")
                 && startTags.Exists(tag => tag.Key is "server.port" && tag.Value is 443)
                 && startTags.Exists(tag => tag.Key is "gen_ai.request.model" && tag.Value is "jev-latest")
-                && startTags.Exists(tag => tag.Key is "jev.request.question_count" && tag.Value is 1),
+                && startTags.Exists(tag => tag.Key is "minos.request.question_count" && tag.Value is 1),
             "the span's tags reach the sampler at start under Native AOT");
     }
 
@@ -83,7 +83,7 @@ internal static class TelemetryChecks
 
         var result = await client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State).ConfigureAwait(false);
 
-        var confidences = points.Where(point => point.Name is "jev.answer.confidence").Select(point => point.Value).ToArray();
+        var confidences = points.Where(point => point.Name is "minos.answer.confidence").Select(point => point.Value).ToArray();
         var duration = points.Where(point => point.Name is "gen_ai.client.operation.duration").ToArray();
         Program.Check(
             result.IsSuccess

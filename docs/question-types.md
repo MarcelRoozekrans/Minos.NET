@@ -194,9 +194,9 @@ public sealed class PlanAdvisor
     }
 
     public async Task<(string Plan, double PlanProbability, int EffortLevel, double EffortNormalized)?> AdviseAsync(
-        IDecisionClient jev, string message, CancellationToken cancellationToken)
+        IDecisionClient client, string message, CancellationToken cancellationToken)
     {
-        var result = await jev.EvaluateAsync(_questions, message, cancellationToken);
+        var result = await client.EvaluateAsync(_questions, message, cancellationToken);
         if (result.IsFailure)
         {
             return null;

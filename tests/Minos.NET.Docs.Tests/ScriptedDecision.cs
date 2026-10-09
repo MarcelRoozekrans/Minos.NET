@@ -24,7 +24,7 @@ internal sealed record Sent(Uri? Uri, string? Authorization, string? RetryCount,
 /// </summary>
 internal static class ScriptedDecision
 {
-    public static (HttpClient Http, DecisionClient Jev, IReadOnlyList<Sent> Requests) Client(DecisionClientOptions options, params Reply[] script)
+    public static (HttpClient Http, DecisionClient Client, IReadOnlyList<Sent> Requests) Client(DecisionClientOptions options, params Reply[] script)
     {
         var handler = new Handler(script);
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://docs.example/api/") };

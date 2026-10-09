@@ -11,8 +11,8 @@ internal static class CannedDecision
         where T : IQuestionSet<T>
     {
         using var http = new HttpClient(new Handler(responseJson)) { BaseAddress = new Uri("https://docs.example/api/") };
-        using var jev = new DecisionClient(http, new DecisionClientOptions { ApiKey = "docs-key", MaxRetries = 0 });
-        var result = await jev.EvaluateAsync<T>(state, CancellationToken.None);
+        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "docs-key", MaxRetries = 0 });
+        var result = await client.EvaluateAsync<T>(state, CancellationToken.None);
         Assert.True(result.IsSuccess, result.IsFailure ? $"{result.Error.Kind}: {result.Error.Message}" : null);
         return result.Value;
     }
@@ -21,7 +21,7 @@ internal static class CannedDecision
     /// A client over a canned response, for snippets that take an <see cref="IDecisionClient"/>; the caller disposes both.
     /// <c>Requests</c> holds the body of every request the client sent, in order.
     /// </summary>
-    public static (HttpClient Http, DecisionClient Jev, IReadOnlyList<string> Requests) Client(string responseJson)
+    public static (HttpClient Http, DecisionClient Client, IReadOnlyList<string> Requests) Client(string responseJson)
     {
         var handler = new Handler(responseJson);
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://docs.example/api/") };

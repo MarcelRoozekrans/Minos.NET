@@ -29,11 +29,11 @@ public enum TriageRoute
 }
 
 // The class under test. It asks for an IDecisionClient, so a test can hand it any implementation.
-public sealed class TicketTriager(IDecisionClient jev)
+public sealed class TicketTriager(IDecisionClient client)
 {
     public async Task<TriageRoute> RouteAsync(string ticketText, CancellationToken cancellationToken)
     {
-        var result = await jev.EvaluateAsync<TriageQuestions>(ticketText, cancellationToken);
+        var result = await client.EvaluateAsync<TriageQuestions>(ticketText, cancellationToken);
         if (result.IsFailure)
         {
             // Jev could not answer, so a person looks at the ticket.
@@ -58,13 +58,13 @@ public sealed class TestingYourCodeFakeTests
     [Fact]
     public async Task AnUrgentTicket_IsEscalated_AndTheTicketTextIsWhatWasAsked()
     {
-        var jev = FakeDecision.Answering(urgent: 0.92, TriageDesk.Billing, deskConfidence: 0.8);
-        var triager = new TicketTriager(jev);
+        var client = FakeDecision.Answering(urgent: 0.92, TriageDesk.Billing, deskConfidence: 0.8);
+        var triager = new TicketTriager(client);
 
         var route = await triager.RouteAsync("Payouts have been failing for 3 days.", CancellationToken.None);
 
         Assert.Equal(TriageRoute.Escalate, route);
-        Assert.Collection(jev.Requests, request =>
+        Assert.Collection(client.Requests, request =>
         {
             Assert.True(request.State.TryGetString(out var state));
             Assert.Equal("Payouts have been failing for 3 days.", state);

@@ -32,11 +32,11 @@ public sealed class TypedEvaluationTests
     [Fact]
     public async Task ReviewAsync_SendsTheStateAndReadsTheTypedAnswers()
     {
-        var (http, jev, requests) = CannedDecision.Client(ReviewResponse);
+        var (http, client, requests) = CannedDecision.Client(ReviewResponse);
         using (http)
-        using (jev)
+        using (client)
         {
-            var review = await TicketReviewing.ReviewAsync(jev, Ticket, CancellationToken.None);
+            var review = await TicketReviewing.ReviewAsync(client, Ticket, CancellationToken.None);
 
             Assert.Equal((true, Desk.Billing, Impact.High), review);
         }
@@ -52,11 +52,11 @@ public sealed class TypedEvaluationTests
     [Fact]
     public async Task ReviewAsync_ReportsAFailureAsNull()
     {
-        var (http, jev, _) = CannedDecision.Client("this is not json");
+        var (http, client, _) = CannedDecision.Client("this is not json");
         using (http)
-        using (jev)
+        using (client)
         {
-            Assert.Null(await TicketReviewing.ReviewAsync(jev, Ticket, CancellationToken.None));
+            Assert.Null(await TicketReviewing.ReviewAsync(client, Ticket, CancellationToken.None));
         }
     }
 
@@ -126,13 +126,13 @@ public sealed class TypedEvaluationTests
     [Fact]
     public async Task TheTStateOverload_RejectsANullStateOrNullMetadata()
     {
-        var (http, jev, _) = CannedDecision.Client(ReviewResponse);
+        var (http, client, _) = CannedDecision.Client(ReviewResponse);
         using (http)
-        using (jev)
+        using (client)
         {
-            await Assert.ThrowsAsync<ArgumentNullException>(async () => await jev.EvaluateAsync<TicketReview, SupportTicket>(
+            await Assert.ThrowsAsync<ArgumentNullException>(async () => await client.EvaluateAsync<TicketReview, SupportTicket>(
                 null!, SupportTicketJson.Default.SupportTicket, CancellationToken.None));
-            await Assert.ThrowsAsync<ArgumentNullException>(async () => await jev.EvaluateAsync<TicketReview, SupportTicket>(
+            await Assert.ThrowsAsync<ArgumentNullException>(async () => await client.EvaluateAsync<TicketReview, SupportTicket>(
                 Ticket, null!, CancellationToken.None));
         }
     }
@@ -141,12 +141,12 @@ public sealed class TypedEvaluationTests
     public async Task EachStateForm_IsSentInItsOwnShape()
     {
         using var element = JsonDocument.Parse("""{"subject":"Payouts failing"}""");
-        var (http, jev, requests) = CannedDecision.Client(UrgencyResponse);
+        var (http, client, requests) = CannedDecision.Client(UrgencyResponse);
         using (http)
-        using (jev)
+        using (client)
         {
             var succeeded = await TicketReviewing.EvaluateEachFormAsync(
-                jev, "Help! My payouts are failing.", element.RootElement, """{"subject":"Payouts failing"}"""u8.ToArray(), CancellationToken.None);
+                client, "Help! My payouts are failing.", element.RootElement, """{"subject":"Payouts failing"}"""u8.ToArray(), CancellationToken.None);
 
             Assert.Equal(3, succeeded);
         }
@@ -165,11 +165,11 @@ public sealed class TypedEvaluationTests
     [Fact]
     public async Task ASetWithAState_AlsoTakesTextAsItsState()
     {
-        var (http, jev, requests) = CannedDecision.Client(ReviewResponse);
+        var (http, client, requests) = CannedDecision.Client(ReviewResponse);
         using (http)
-        using (jev)
+        using (client)
         {
-            var result = await jev.EvaluateAsync<TicketReview>("Help!", CancellationToken.None);
+            var result = await client.EvaluateAsync<TicketReview>("Help!", CancellationToken.None);
 
             Assert.True(result.IsSuccess);
         }
@@ -182,29 +182,29 @@ public sealed class TypedEvaluationTests
     [Fact]
     public async Task ARejectedState_ThrowsInsteadOfFailing()
     {
-        var (http, jev, _) = CannedDecision.Client(UrgencyResponse);
+        var (http, client, _) = CannedDecision.Client(UrgencyResponse);
         using (http)
-        using (jev)
+        using (client)
         {
             using var number = JsonDocument.Parse("42");
 
             await Assert.ThrowsAsync<ArgumentException>(
-                async () => await jev.EvaluateAsync<UrgencyCheck>(number.RootElement, CancellationToken.None));
+                async () => await client.EvaluateAsync<UrgencyCheck>(number.RootElement, CancellationToken.None));
             await Assert.ThrowsAsync<ArgumentException>(
-                async () => await jev.EvaluateUtf8Async<UrgencyCheck>(Encoding.UTF8.GetBytes("42"), CancellationToken.None));
+                async () => await client.EvaluateUtf8Async<UrgencyCheck>(Encoding.UTF8.GetBytes("42"), CancellationToken.None));
             await Assert.ThrowsAsync<ArgumentNullException>(
-                async () => await jev.EvaluateAsync<UrgencyCheck>((string)null!, CancellationToken.None));
+                async () => await client.EvaluateAsync<UrgencyCheck>((string)null!, CancellationToken.None));
         }
     }
 
     [Fact]
     public async Task AMissingAnswer_IsAFailureOfKindInvalidResponse()
     {
-        var (http, jev, _) = CannedDecision.Client(UrgencyResponse);
+        var (http, client, _) = CannedDecision.Client(UrgencyResponse);
         using (http)
-        using (jev)
+        using (client)
         {
-            var result = await jev.EvaluateAsync<TicketReview>("Help!", CancellationToken.None);
+            var result = await client.EvaluateAsync<TicketReview>("Help!", CancellationToken.None);
 
             Assert.True(result.IsFailure);
             Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);

@@ -33,11 +33,11 @@ public sealed class ClientAndErrorsTests
     [Fact]
     public async Task Describe_TurnsARejectedKeyIntoAnAction()
     {
-        var (http, jev, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(), Reply.Error(401));
+        var (http, client, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(), Reply.Error(401));
         using (http)
-        using (jev)
+        using (client)
         {
-            var message = await RawRequests.UrgencyAsync(jev, "Help!", CancellationToken.None);
+            var message = await RawRequests.UrgencyAsync(client, "Help!", CancellationToken.None);
 
             Assert.Equal("Jev rejected the API key. Check the key and what it may access.", message);
         }
@@ -51,22 +51,22 @@ public sealed class ClientAndErrorsTests
     [InlineData(418, "", "Jev failed with HTTP 418: The API returned HTTP 418.")]
     public async Task Describe_ReadsTheStatusAndTheDetail(int status, string body, string expected)
     {
-        var (http, jev, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Error(status, body));
+        var (http, client, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Error(status, body));
         using (http)
-        using (jev)
+        using (client)
         {
-            Assert.Equal(expected, await RawRequests.UrgencyAsync(jev, "Help!", CancellationToken.None));
+            Assert.Equal(expected, await RawRequests.UrgencyAsync(client, "Help!", CancellationToken.None));
         }
     }
 
     [Fact]
     public async Task ValidationProblems_ReadsWhereAndWhatFromTypeSafesRealBody()
     {
-        var (http, jev, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Error(422, TypeSafeValidationBody));
+        var (http, client, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Error(422, TypeSafeValidationBody));
         using (http)
-        using (jev)
+        using (client)
         {
-            var result = await jev.EvaluateAsync(new SystemOneRequest
+            var result = await client.EvaluateAsync(new SystemOneRequest
             {
                 State = "Help!",
                 Questions = new Dictionary<string, Question>(),
@@ -83,11 +83,11 @@ public sealed class ClientAndErrorsTests
     public async Task ValidationProblems_SkipsMalformedProblems()
     {
         const string body = """{"detail":[{"loc":["body","state"],"msg":"too long"},{"msg":"x"},3,{"loc":"body","msg":"y"},{"loc":["body"],"msg":7}]}""";
-        var (http, jev, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Error(422, body));
+        var (http, client, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Error(422, body));
         using (http)
-        using (jev)
+        using (client)
         {
-            var result = await jev.EvaluateAsync(new SystemOneRequest
+            var result = await client.EvaluateAsync(new SystemOneRequest
             {
                 State = "Help!",
                 Questions = new Dictionary<string, Question>(),
@@ -105,11 +105,11 @@ public sealed class ClientAndErrorsTests
     [InlineData(422, "not json")]
     public async Task ValidationProblems_IsEmpty_WhenThereIsNoListOfProblems(int status, string body)
     {
-        var (http, jev, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Error(status, body));
+        var (http, client, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Error(status, body));
         using (http)
-        using (jev)
+        using (client)
         {
-            var result = await jev.EvaluateAsync(new SystemOneRequest
+            var result = await client.EvaluateAsync(new SystemOneRequest
             {
                 State = "Help!",
                 Questions = new Dictionary<string, Question>(),
@@ -126,11 +126,11 @@ public sealed class ClientAndErrorsTests
     [InlineData(429, "Jev is busy. Try again later.")]
     public async Task Describe_ReadsAServerFailureAfterTheRetriesAreUsedUp(int status, string expected)
     {
-        var (http, jev, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(1), Reply.Error(status));
+        var (http, client, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(1), Reply.Error(status));
         using (http)
-        using (jev)
+        using (client)
         {
-            Assert.Equal(expected, await RawRequests.UrgencyAsync(jev, "Help!", CancellationToken.None));
+            Assert.Equal(expected, await RawRequests.UrgencyAsync(client, "Help!", CancellationToken.None));
         }
 
         Assert.Equal(2, requests.Count);
@@ -139,33 +139,33 @@ public sealed class ClientAndErrorsTests
     [Fact]
     public async Task Describe_ReportsTheWaitTheServerAskedFor()
     {
-        var (http, jev, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Error(429, string.Empty, ("retry-after-ms", "1500")));
+        var (http, client, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Error(429, string.Empty, ("retry-after-ms", "1500")));
         using (http)
-        using (jev)
+        using (client)
         {
             Assert.Equal(
                 "Jev is busy. It asks for 1500 ms before the next call.",
-                await RawRequests.UrgencyAsync(jev, "Help!", CancellationToken.None));
+                await RawRequests.UrgencyAsync(client, "Help!", CancellationToken.None));
         }
     }
 
     [Fact]
     public async Task Describe_ReportsANetworkFailureAndAnUnreadableReply()
     {
-        var (http, jev, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Refused);
+        var (http, client, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Refused);
         using (http)
-        using (jev)
+        using (client)
         {
             Assert.Equal(
                 "Jev could not be reached: The connection was refused.",
-                await RawRequests.UrgencyAsync(jev, "Help!", CancellationToken.None));
+                await RawRequests.UrgencyAsync(client, "Help!", CancellationToken.None));
         }
 
-        var (http2, jev2, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Ok("this is not json"));
+        var (http2, client2, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Ok("this is not json"));
         using (http2)
-        using (jev2)
+        using (client2)
         {
-            var result = await jev2.ListModelsAsync(CancellationToken.None);
+            var result = await client2.ListModelsAsync(CancellationToken.None);
 
             Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);
             Assert.Equal(200, result.Error.StatusCode);
@@ -176,11 +176,11 @@ public sealed class ClientAndErrorsTests
     [Fact]
     public async Task TheRawRequest_SendsTheQuestionsAndReadsTheAnswers()
     {
-        var (http, jev, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(), Reply.Ok(UrgencyResponse));
+        var (http, client, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(), Reply.Ok(UrgencyResponse));
         using (http)
-        using (jev)
+        using (client)
         {
-            var message = await RawRequests.UrgencyAsync(jev, "Help!", CancellationToken.None);
+            var message = await RawRequests.UrgencyAsync(client, "Help!", CancellationToken.None);
 
             Assert.Equal("jev-1.13.0: 93 %, 41 input tokens", message);
         }
@@ -196,11 +196,11 @@ public sealed class ClientAndErrorsTests
     [Fact]
     public async Task ModelsAsync_ListsTheModels_AndOpenRouterIsUnsupportedWithoutARequest()
     {
-        var (http, jev, _) = ScriptedDecision.Client(ScriptedDecision.Quick(), Reply.Ok(ModelsResponse));
+        var (http, client, _) = ScriptedDecision.Client(ScriptedDecision.Quick(), Reply.Ok(ModelsResponse));
         using (http)
-        using (jev)
+        using (client)
         {
-            Assert.Equal("jev-latest (2026-09-15), jev-preview (2026-09-16)", await ModelListing.ModelsAsync(jev, CancellationToken.None));
+            Assert.Equal("jev-latest (2026-09-15), jev-preview (2026-09-16)", await ModelListing.ModelsAsync(client, CancellationToken.None));
         }
 
         var options = new DecisionClientOptions { Provider = DecisionProvider.OpenRouter, ApiKey = "docs-key" };
@@ -282,11 +282,11 @@ public sealed class ClientAndErrorsTests
     [Fact]
     public async Task ARetryableFailure_IsRetriedAndTheAttemptNumberIsSent()
     {
-        var (http, jev, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(), Reply.Error(503), Reply.Error(500), Reply.Ok(UrgencyResponse));
+        var (http, client, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(), Reply.Error(503), Reply.Error(500), Reply.Ok(UrgencyResponse));
         using (http)
-        using (jev)
+        using (client)
         {
-            var result = await jev.EvaluateAsync(Request(), CancellationToken.None);
+            var result = await client.EvaluateAsync(Request(), CancellationToken.None);
 
             Assert.True(result.IsSuccess);
         }
@@ -302,11 +302,11 @@ public sealed class ClientAndErrorsTests
     [InlineData(408, DecisionErrorKind.Http)]
     public async Task EachRetriedStatus_IsTriedMaxRetriesPlusOneTimes_ThenReportedWithItsKind(int status, DecisionErrorKind kind)
     {
-        var (http, jev, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(), Reply.Error(status));
+        var (http, client, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(), Reply.Error(status));
         using (http)
-        using (jev)
+        using (client)
         {
-            var result = await jev.EvaluateAsync(Request(), CancellationToken.None);
+            var result = await client.EvaluateAsync(Request(), CancellationToken.None);
 
             Assert.Equal(kind, result.Error.Kind);
             Assert.Equal(status, result.Error.StatusCode);
@@ -323,11 +323,11 @@ public sealed class ClientAndErrorsTests
     [InlineData(422)]
     public async Task AClientError_IsNotRetried(int status)
     {
-        var (http, jev, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(), Reply.Error(status));
+        var (http, client, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(), Reply.Error(status));
         using (http)
-        using (jev)
+        using (client)
         {
-            var result = await jev.EvaluateAsync(Request(), CancellationToken.None);
+            var result = await client.EvaluateAsync(Request(), CancellationToken.None);
 
             Assert.True(result.IsFailure);
         }
@@ -338,11 +338,11 @@ public sealed class ClientAndErrorsTests
     [Fact]
     public async Task ANetworkFailure_IsRetried()
     {
-        var (http, jev, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(1), Reply.Refused);
+        var (http, client, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(1), Reply.Refused);
         using (http)
-        using (jev)
+        using (client)
         {
-            var result = await jev.EvaluateAsync(Request(), CancellationToken.None);
+            var result = await client.EvaluateAsync(Request(), CancellationToken.None);
 
             Assert.Equal(DecisionErrorKind.Network, result.Error.Kind);
             Assert.IsType<HttpRequestException>(result.Error.Exception);
@@ -355,11 +355,11 @@ public sealed class ClientAndErrorsTests
     public async Task MaxRetriesZero_SendsOneRequest()
     {
         var options = ClientOptions.NoRetries("docs-key");
-        var (http, jev, requests) = ScriptedDecision.Client(options, Reply.Error(503));
+        var (http, client, requests) = ScriptedDecision.Client(options, Reply.Error(503));
         using (http)
-        using (jev)
+        using (client)
         {
-            var result = await jev.EvaluateAsync(Request(), CancellationToken.None);
+            var result = await client.EvaluateAsync(Request(), CancellationToken.None);
 
             Assert.Equal(DecisionErrorKind.Overloaded, result.Error.Kind);
         }
@@ -379,11 +379,11 @@ public sealed class ClientAndErrorsTests
         await AssertRetryAfterAsync(null);
 
         var date = DateTimeOffset.UtcNow.AddMinutes(10).ToString("R", CultureInfo.InvariantCulture);
-        var (http, jev, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Error(429, string.Empty, ("Retry-After", date)));
+        var (http, client, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Error(429, string.Empty, ("Retry-After", date)));
         using (http)
-        using (jev)
+        using (client)
         {
-            var wait = (await jev.EvaluateAsync(Request(), CancellationToken.None)).Error.RetryAfter;
+            var wait = (await client.EvaluateAsync(Request(), CancellationToken.None)).Error.RetryAfter;
 
             Assert.InRange(wait!.Value, TimeSpan.FromMinutes(9), TimeSpan.FromMinutes(10));
         }
@@ -393,13 +393,13 @@ public sealed class ClientAndErrorsTests
     public async Task ARetryAfterLongerThanMaxRetryDelay_IsCappedAtIt()
     {
         // The server asks for an hour. MaxRetryDelay is 5 ms, so the retry happens at once.
-        var (http, jev, requests) = ScriptedDecision.Client(
+        var (http, client, requests) = ScriptedDecision.Client(
             ScriptedDecision.Quick(1), Reply.Error(429, string.Empty, ("Retry-After", "3600")), Reply.Ok(UrgencyResponse));
         using (http)
-        using (jev)
+        using (client)
         using (var limit = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
         {
-            var result = await jev.EvaluateAsync(Request(), limit.Token);
+            var result = await client.EvaluateAsync(Request(), limit.Token);
 
             Assert.True(result.IsSuccess);
         }
@@ -413,13 +413,13 @@ public sealed class ClientAndErrorsTests
         // The backoff alone would be 1 ms, so a wait of about 400 ms can only come from the server's header.
         var options = ScriptedDecision.Quick(1);
         options.MaxRetryDelay = TimeSpan.FromSeconds(5);
-        var (http, jev, requests) = ScriptedDecision.Client(
+        var (http, client, requests) = ScriptedDecision.Client(
             options, Reply.Error(429, string.Empty, ("retry-after-ms", "400")), Reply.Ok(UrgencyResponse));
         using (http)
-        using (jev)
+        using (client)
         {
             var started = System.Diagnostics.Stopwatch.GetTimestamp();
-            var result = await jev.EvaluateAsync(Request(), CancellationToken.None);
+            var result = await client.EvaluateAsync(Request(), CancellationToken.None);
             var waited = System.Diagnostics.Stopwatch.GetElapsedTime(started);
 
             Assert.True(result.IsSuccess);
@@ -434,12 +434,12 @@ public sealed class ClientAndErrorsTests
     {
         var options = ScriptedDecision.Quick(1);
         options.Timeout = TimeSpan.FromMilliseconds(100);
-        var (http, jev, requests) = ScriptedDecision.Client(
+        var (http, client, requests) = ScriptedDecision.Client(
             options, new Reply(HttpStatusCode.OK, UrgencyResponse, Delay: TimeSpan.FromSeconds(30)));
         using (http)
-        using (jev)
+        using (client)
         {
-            var result = await jev.EvaluateAsync(Request(), CancellationToken.None);
+            var result = await client.EvaluateAsync(Request(), CancellationToken.None);
 
             Assert.Equal(DecisionErrorKind.Timeout, result.Error.Kind);
             Assert.NotNull(result.Error.Exception);
@@ -451,13 +451,13 @@ public sealed class ClientAndErrorsTests
     [Fact]
     public async Task Cancelling_ThrowsInsteadOfReturningAFailure()
     {
-        var (http, jev, _) = ScriptedDecision.Client(
+        var (http, client, _) = ScriptedDecision.Client(
             ScriptedDecision.Quick(), new Reply(HttpStatusCode.OK, UrgencyResponse, Delay: TimeSpan.FromSeconds(30)));
         using (http)
-        using (jev)
+        using (client)
         using (var cancelled = new CancellationTokenSource(TimeSpan.FromMilliseconds(50)))
         {
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await jev.EvaluateAsync(Request(), cancelled.Token));
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await client.EvaluateAsync(Request(), cancelled.Token));
         }
     }
 
@@ -466,10 +466,10 @@ public sealed class ClientAndErrorsTests
     {
         using var handler = new ScriptedDecision.Handler([Reply.Ok(UrgencyResponse)]);
         using var borrowed = new HttpClient(handler) { BaseAddress = new Uri("https://docs.example/api/") };
-        var jev = ClientConstructors.Borrowed(borrowed, "docs-key");
-        jev.Dispose();
+        var client = ClientConstructors.Borrowed(borrowed, "docs-key");
+        client.Dispose();
 
-        await Assert.ThrowsAsync<ObjectDisposedException>(async () => await jev.EvaluateAsync(Request(), CancellationToken.None));
+        await Assert.ThrowsAsync<ObjectDisposedException>(async () => await client.EvaluateAsync(Request(), CancellationToken.None));
         using var response = await borrowed.GetAsync(new Uri("v1/anything", UriKind.Relative));
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -480,7 +480,7 @@ public sealed class ClientAndErrorsTests
     {
         var options = new DecisionClientOptions { ApiKey = "docs-key", Timeout = TimeSpan.FromSeconds(5) };
         using var borrowed = new HttpClient();
-        using var jev = new DecisionClient(borrowed, options);
+        using var client = new DecisionClient(borrowed, options);
 
         Assert.Equal(TimeSpan.FromSeconds(100), borrowed.Timeout);
 
@@ -492,11 +492,11 @@ public sealed class ClientAndErrorsTests
 
     private static async Task AssertRetryAfterAsync(TimeSpan? expected, params (string Name, string Value)[] headers)
     {
-        var (http, jev, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Error(429, string.Empty, headers));
+        var (http, client, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Error(429, string.Empty, headers));
         using (http)
-        using (jev)
+        using (client)
         {
-            var result = await jev.EvaluateAsync(Request(), CancellationToken.None);
+            var result = await client.EvaluateAsync(Request(), CancellationToken.None);
 
             Assert.Equal(expected, result.Error.RetryAfter);
         }

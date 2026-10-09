@@ -78,11 +78,11 @@ public static class TicketReviewing
 {
     #region TypedEvaluation_Evaluate
     public static async Task<(bool Urgent, Desk Desk, Impact Impact)?> ReviewAsync(
-        IDecisionClient jev, SupportTicket ticket, CancellationToken cancellationToken)
+        IDecisionClient client, SupportTicket ticket, CancellationToken cancellationToken)
     {
         // The state type and its JSON metadata travel together. The call serializes the ticket and sends it
         // with the questions.
-        var result = await jev.EvaluateAsync<TicketReview, SupportTicket>(
+        var result = await client.EvaluateAsync<TicketReview, SupportTicket>(
             ticket, SupportTicketJson.Default.SupportTicket, cancellationToken);
         if (result.IsFailure)
         {
@@ -97,7 +97,7 @@ public static class TicketReviewing
     #region TypedEvaluation_OtherStates
     // A question set without a State type takes its state as text, as a JsonElement or as UTF-8 JSON.
     public static async Task<int> EvaluateEachFormAsync(
-        IDecisionClient jev,
+        IDecisionClient client,
         string text,
         JsonElement element,
         ReadOnlyMemory<byte> utf8Json,
@@ -105,13 +105,13 @@ public static class TicketReviewing
     {
         var succeeded = 0;
 
-        var fromText = await jev.EvaluateAsync<UrgencyCheck>(text, cancellationToken);
+        var fromText = await client.EvaluateAsync<UrgencyCheck>(text, cancellationToken);
         succeeded += fromText.IsSuccess ? 1 : 0;
 
-        var fromElement = await jev.EvaluateAsync<UrgencyCheck>(element, cancellationToken);
+        var fromElement = await client.EvaluateAsync<UrgencyCheck>(element, cancellationToken);
         succeeded += fromElement.IsSuccess ? 1 : 0;
 
-        var fromUtf8 = await jev.EvaluateUtf8Async<UrgencyCheck>(utf8Json, cancellationToken);
+        var fromUtf8 = await client.EvaluateUtf8Async<UrgencyCheck>(utf8Json, cancellationToken);
         succeeded += fromUtf8.IsSuccess ? 1 : 0;
 
         return succeeded;

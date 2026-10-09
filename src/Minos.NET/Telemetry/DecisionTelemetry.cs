@@ -2,7 +2,7 @@ namespace Minos.Telemetry;
 
 /// <summary>
 /// The span, metric and attribute names <c>IDecisionOperations</c> uses: OpenTelemetry GenAI names where they fit,
-/// <c>jev.*</c> for the rest. The GenAI token metrics follow the <c>semantic-conventions-genai</c> repository's main
+/// <c>minos.*</c> for the rest. The GenAI token metrics follow the <c>semantic-conventions-genai</c> repository's main
 /// branch, which has no release yet; Milestone 5 rechecks every name before 1.0.
 /// </summary>
 internal static class DecisionTelemetry
@@ -44,13 +44,13 @@ internal static class DecisionTelemetry
     public const string ErrorType = "error.type";
 
     /// <summary>The client's operation, the logging operation names: <c>evaluate</c>, <c>evaluate-typed</c>, <c>evaluate-built-set</c> or <c>list-models</c>.</summary>
-    public const string DecisionOperation = "jev.operation";
+    public const string DecisionOperation = "minos.operation";
 
     /// <summary>The number of questions asked.</summary>
-    public const string QuestionCount = "jev.request.question_count";
+    public const string QuestionCount = "minos.request.question_count";
 
     /// <summary>The cost in US dollars OpenRouter reports.</summary>
-    public const string Cost = "jev.usage.cost";
+    public const string Cost = "minos.usage.cost";
 
     /// <summary>The custom GenAI operation value for an evaluation.</summary>
     public const string EvaluateOperation = "evaluate";
@@ -86,7 +86,7 @@ internal static class DecisionTelemetry
     public const string OutputTokenCounter = "gen_ai.client.inference.usage.output_tokens";
 
     /// <summary>Each Choice or Score answer's confidence.</summary>
-    public const string AnswerConfidence = "jev.answer.confidence";
+    public const string AnswerConfidence = "minos.answer.confidence";
 
     /// <summary>Seconds.</summary>
     public const string Seconds = "s";

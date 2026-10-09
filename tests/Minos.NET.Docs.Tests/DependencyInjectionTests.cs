@@ -402,7 +402,7 @@ public sealed class DependencyInjectionTests
         WithoutThePackage.AddDecisionHttpClient(services, options);
         using var provider = services.BuildServiceProvider();
 
-        using var http = provider.GetRequiredService<IHttpClientFactory>().CreateClient("jev");
+        using var http = provider.GetRequiredService<IHttpClientFactory>().CreateClient("minos");
 
         Assert.Equal(TimeSpan.FromSeconds(15), http.Timeout);
         Assert.Equal(new Uri("https://api.typesafe.ai/"), http.BaseAddress);
@@ -417,9 +417,9 @@ public sealed class DependencyInjectionTests
         WithoutThePackage.AddDecisionHttpClient(services, options);
         using var provider = services.BuildServiceProvider();
 
-        using var jev = WithoutThePackage.Create(provider.GetRequiredService<IHttpClientFactory>(), options);
+        using var client = WithoutThePackage.Create(provider.GetRequiredService<IHttpClientFactory>(), options);
 
-        Assert.NotNull(jev);
+        Assert.NotNull(client);
     }
 
     private static HostApplicationBuilder NewBuilder()

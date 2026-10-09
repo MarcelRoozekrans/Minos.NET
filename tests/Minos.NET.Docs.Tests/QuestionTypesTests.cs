@@ -60,11 +60,11 @@ public sealed class QuestionTypesTests
     public async Task KeyedAnswers_ReadByKeyAndByLevelIndex()
     {
         var advisor = new PlanAdvisor([("free", "No cost"), ("pro-plan", "One user"), ("team-plan", "Many users")]);
-        var (http, jev, requests) = CannedDecision.Client(KeyedResponse);
+        var (http, client, requests) = CannedDecision.Client(KeyedResponse);
         using (http)
-        using (jev)
+        using (client)
         {
-            var advice = await advisor.AdviseAsync(jev, "We are a team of twelve.", CancellationToken.None);
+            var advice = await advisor.AdviseAsync(client, "We are a team of twelve.", CancellationToken.None);
 
             Assert.Equal(("team-plan", 0.7, 2, 0.8), advice);
         }
@@ -82,10 +82,10 @@ public sealed class QuestionTypesTests
             .Score("effort", "How much setup work does the customer need?", out var effort, l => l.Level("Minutes").Level("Hours").Level("Days"))
             .Build();
         Assert.True(built.IsSuccess);
-        var (http, jev, _) = CannedDecision.Client(KeyedResponse);
+        var (http, client, _) = CannedDecision.Client(KeyedResponse);
         using var httpScope = http;
-        using var jevScope = jev;
-        var evaluated = await jev.EvaluateAsync(built.Value, "A team of twelve.", CancellationToken.None);
+        using var clientScope = client;
+        var evaluated = await client.EvaluateAsync(built.Value, "A team of twelve.", CancellationToken.None);
         Assert.True(evaluated.IsSuccess);
         var answers = evaluated.Value;
 

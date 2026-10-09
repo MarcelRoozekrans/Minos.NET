@@ -34,18 +34,18 @@ public sealed class OperationsProxyTests
 
         var start = capture.StartTags();
         Assert.Equal("evaluate", start.Tag("gen_ai.operation.name"));
-        Assert.Equal("evaluate", start.Tag("jev.operation"));
+        Assert.Equal("evaluate", start.Tag("minos.operation"));
         Assert.Equal("jev-latest", start.Tag("gen_ai.request.model"));
         Assert.Equal("openrouter", start.Tag("gen_ai.provider.name"));
         Assert.Equal("api.typesafe.ai", start.Tag("server.address"));
         Assert.Equal(443, start.Tag("server.port"));
-        Assert.Equal(1, start.Tag("jev.request.question_count"));
+        Assert.Equal(1, start.Tag("minos.request.question_count"));
 
         Assert.Equal("~typesafe/jev-latest", span.GetTagItem("gen_ai.response.model"));
         Assert.Equal(296, span.GetTagItem("gen_ai.usage.input_tokens"));
         Assert.Equal(20, span.GetTagItem("gen_ai.usage.output_tokens"));
         Assert.Equal("gen-1727400000-abc123", span.GetTagItem("gen_ai.response.id"));
-        Assert.Equal(0.000296, span.GetTagItem("jev.usage.cost"));
+        Assert.Equal(0.000296, span.GetTagItem("minos.usage.cost"));
         Assert.Null(span.GetTagItem("error.type"));
 
         AssertSuccessMetrics(capture, "jev-latest", "openrouter", "~typesafe/jev-latest", "evaluate", inputTokens: 296, outputTokens: 20, confidences: []);
@@ -61,7 +61,7 @@ public sealed class OperationsProxyTests
 
         var span = capture.Span();
         Assert.Null(span.GetTagItem("gen_ai.response.id"));
-        Assert.Null(span.GetTagItem("jev.usage.cost"));
+        Assert.Null(span.GetTagItem("minos.usage.cost"));
     }
 
     [Fact]
@@ -75,7 +75,7 @@ public sealed class OperationsProxyTests
 
         await new DecisionOperationsInstrumented(fake).EvaluateAsync(Request(), "typesafe", Endpoint, CancellationToken.None);
 
-        Assert.Equal([0.81, 0.92], capture.Points("jev.answer.confidence").Select(point => point.Value));
+        Assert.Equal([0.81, 0.92], capture.Points("minos.answer.confidence").Select(point => point.Value));
     }
 
     [Fact]
@@ -90,8 +90,8 @@ public sealed class OperationsProxyTests
         Assert.Equal(Department.Billing, result.Value.Department.Value);
         var span = capture.Span();
         Assert.Equal("evaluate jev-test-model", span.DisplayName);
-        Assert.Equal("evaluate-typed", capture.StartTags().Tag("jev.operation"));
-        Assert.Equal(1, capture.StartTags().Tag("jev.request.question_count"));
+        Assert.Equal("evaluate-typed", capture.StartTags().Tag("minos.operation"));
+        Assert.Equal(1, capture.StartTags().Tag("minos.request.question_count"));
         Assert.Equal("jev-1.13.0", span.GetTagItem("gen_ai.response.model"));
         Assert.Equal(318, span.GetTagItem("gen_ai.usage.input_tokens"));
         Assert.Equal(34, span.GetTagItem("gen_ai.usage.output_tokens"));
@@ -121,7 +121,7 @@ public sealed class OperationsProxyTests
 
         Assert.True(failed);
         var span = capture.Span();
-        Assert.Equal(operation, capture.StartTags().Tag("jev.operation"));
+        Assert.Equal(operation, capture.StartTags().Tag("minos.operation"));
         Assert.Equal(ActivityStatusCode.Error, span.Status);
         Assert.Null(span.StatusDescription);
         Assert.Equal("RateLimited", span.GetTagItem("error.type"));
@@ -168,7 +168,7 @@ public sealed class OperationsProxyTests
 
         Assert.Same(thrown, raised);
         var span = capture.Span();
-        Assert.Equal(operation, capture.StartTags().Tag("jev.operation"));
+        Assert.Equal(operation, capture.StartTags().Tag("minos.operation"));
         Assert.Equal(ActivityStatusCode.Error, span.Status);
         Assert.True(string.IsNullOrEmpty(span.StatusDescription));
         Assert.Equal(thrown.GetType().FullName, span.GetTagItem("error.type"));
@@ -217,8 +217,8 @@ public sealed class OperationsProxyTests
         await Evaluated.Unwrap(new DecisionOperationsInstrumented(fake).EvaluateBuiltSetAsync(
             TelemetryBodies.EmptyBody(), set, "jev-test-model", "typesafe", Endpoint, CancellationToken.None));
 
-        Assert.Equal("evaluate-built-set", capture.StartTags().Tag("jev.operation"));
-        Assert.Equal(2, capture.StartTags().Tag("jev.request.question_count"));
+        Assert.Equal("evaluate-built-set", capture.StartTags().Tag("minos.operation"));
+        Assert.Equal(2, capture.StartTags().Tag("minos.request.question_count"));
         AssertSuccessMetrics(capture, "jev-test-model", "typesafe", "jev-1.13.0", "evaluate-built-set", inputTokens: 5, outputTokens: 2, confidences: [0.81]);
     }
 
@@ -235,9 +235,9 @@ public sealed class OperationsProxyTests
         Assert.Equal(ActivityKind.Client, span.Kind);
         var start = capture.StartTags();
         Assert.Equal("list_models", start.Tag("gen_ai.operation.name"));
-        Assert.Equal("list-models", start.Tag("jev.operation"));
+        Assert.Equal("list-models", start.Tag("minos.operation"));
         Assert.Null(start.Tag("gen_ai.request.model"));
-        Assert.Null(start.Tag("jev.request.question_count"));
+        Assert.Null(start.Tag("minos.request.question_count"));
 
         var point = capture.OnlyPoint();
         Assert.Equal(
@@ -275,17 +275,17 @@ public sealed class OperationsProxyTests
         await proxy.ListModelsAsync("typesafe", Endpoint, CancellationToken.None);
 
         Assert.Equal(4, capture.Points("gen_ai.client.operation.duration").Length);
-        Assert.Equal(3, capture.Points("jev.answer.confidence").Length);
+        Assert.Equal(3, capture.Points("minos.answer.confidence").Length);
         AssertInstrument(capture, "gen_ai.client.operation.duration", "s", DecisionTelemetry.DurationBuckets.ToArray());
         AssertInstrument(capture, "gen_ai.client.inference.operation.input_tokens", "{token}", DecisionTelemetry.TokenBuckets.ToArray());
         AssertInstrument(capture, "gen_ai.client.inference.operation.output_tokens", "{token}", DecisionTelemetry.TokenBuckets.ToArray());
-        AssertInstrument(capture, "jev.answer.confidence", "1", DecisionTelemetry.ConfidenceBuckets.ToArray());
+        AssertInstrument(capture, "minos.answer.confidence", "1", DecisionTelemetry.ConfidenceBuckets.ToArray());
         Assert.IsType<Counter<long>>(capture.Instrument("gen_ai.client.inference.usage.input_tokens"));
         Assert.Equal("{token}", capture.Instrument("gen_ai.client.inference.usage.output_tokens").Unit);
 
         var version = typeof(DecisionClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
         Assert.All(capture.Spans("Minos"), span => Assert.Equal(version, span.Source.Version));
-        Assert.Equal(version, capture.Instrument("jev.answer.confidence").Meter.Version);
+        Assert.Equal(version, capture.Instrument("minos.answer.confidence").Meter.Version);
     }
 
     [Fact]
@@ -296,7 +296,7 @@ public sealed class OperationsProxyTests
             ["gen_ai.client.operation.duration"] = ("s", DecisionTelemetry.DurationBuckets.ToArray()),
             ["gen_ai.client.inference.operation.input_tokens"] = ("{token}", DecisionTelemetry.TokenBuckets.ToArray()),
             ["gen_ai.client.inference.operation.output_tokens"] = ("{token}", DecisionTelemetry.TokenBuckets.ToArray()),
-            ["jev.answer.confidence"] = ("1", DecisionTelemetry.ConfidenceBuckets.ToArray()),
+            ["minos.answer.confidence"] = ("1", DecisionTelemetry.ConfidenceBuckets.ToArray()),
         };
         var declared = 0;
 
@@ -375,7 +375,7 @@ public sealed class OperationsProxyTests
     }
 
     private static void AssertSuccessMetrics(
-        TelemetryCapture capture, string requestModel, string provider, string responseModel, string jevOperation, int inputTokens, int outputTokens, double[] confidences)
+        TelemetryCapture capture, string requestModel, string provider, string responseModel, string minosOperation, int inputTokens, int outputTokens, double[] confidences)
     {
         // The unit only: Duration_IsRecordedInSeconds checks the value's scale over a call with a known minimum duration.
         var duration = capture.OnlyPoint("gen_ai.client.operation.duration");
@@ -403,12 +403,12 @@ public sealed class OperationsProxyTests
             Assert.Equal("text", point.Tag("gen_ai.token.modality"));
         }
 
-        var confidencePoints = capture.Points("jev.answer.confidence");
+        var confidencePoints = capture.Points("minos.answer.confidence");
         Assert.Equal(confidences, confidencePoints.Select(point => point.Value));
         Assert.All(confidencePoints, point =>
         {
-            Assert.Equal(["gen_ai.operation.name", "gen_ai.provider.name", "gen_ai.request.model", "jev.operation"], point.TagNames);
-            Assert.Equal(jevOperation, point.Tag("jev.operation"));
+            Assert.Equal(["gen_ai.operation.name", "gen_ai.provider.name", "gen_ai.request.model", "minos.operation"], point.TagNames);
+            Assert.Equal(minosOperation, point.Tag("minos.operation"));
         });
     }
 

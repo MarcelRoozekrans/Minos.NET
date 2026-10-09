@@ -53,7 +53,7 @@ public static class SurfaceGenerics
     }
 
     /// <summary>Calls every public generic evaluation method, on the interface and on the client.</summary>
-    public static async Task EvaluateAsync(IDecisionClient client, DecisionClient jevClient, JsonElement json, SurfaceState state)
+    public static async Task EvaluateAsync(IDecisionClient client, DecisionClient decisionClient, JsonElement json, SurfaceState state)
     {
         var stateInfo = SurfaceStateJsonContext.Default.SurfaceState;
 
@@ -65,12 +65,12 @@ public static class SurfaceGenerics
         _ = await client.EvaluateAsync<SurfaceStateTriage, SurfaceState>(state, stateInfo).ConfigureAwait(false);
         _ = await client.EvaluateAsync<SurfaceStateTriage, SurfaceState>(state, stateInfo, CancellationToken.None).ConfigureAwait(false);
 
-        _ = await jevClient.EvaluateAsync<SurfaceTriage>("state").ConfigureAwait(false);
-        _ = await jevClient.EvaluateAsync<SurfaceTriage>("state", CancellationToken.None).ConfigureAwait(false);
-        _ = await jevClient.EvaluateAsync<SurfaceTriage>(json).ConfigureAwait(false);
-        _ = await jevClient.EvaluateAsync<SurfaceTriage>(json, CancellationToken.None).ConfigureAwait(false);
-        _ = await jevClient.EvaluateUtf8Async<SurfaceTriage>("{}"u8.ToArray()).ConfigureAwait(false);
-        _ = await jevClient.EvaluateAsync<SurfaceStateTriage, SurfaceState>(state, stateInfo).ConfigureAwait(false);
-        _ = await jevClient.EvaluateAsync<SurfaceStateTriage, SurfaceState>(state, stateInfo, CancellationToken.None).ConfigureAwait(false);
+        _ = await decisionClient.EvaluateAsync<SurfaceTriage>("state").ConfigureAwait(false);
+        _ = await decisionClient.EvaluateAsync<SurfaceTriage>("state", CancellationToken.None).ConfigureAwait(false);
+        _ = await decisionClient.EvaluateAsync<SurfaceTriage>(json).ConfigureAwait(false);
+        _ = await decisionClient.EvaluateAsync<SurfaceTriage>(json, CancellationToken.None).ConfigureAwait(false);
+        _ = await decisionClient.EvaluateUtf8Async<SurfaceTriage>("{}"u8.ToArray()).ConfigureAwait(false);
+        _ = await decisionClient.EvaluateAsync<SurfaceStateTriage, SurfaceState>(state, stateInfo).ConfigureAwait(false);
+        _ = await decisionClient.EvaluateAsync<SurfaceStateTriage, SurfaceState>(state, stateInfo, CancellationToken.None).ConfigureAwait(false);
     }
 }

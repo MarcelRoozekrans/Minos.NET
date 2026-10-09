@@ -89,7 +89,7 @@ public sealed class HarnessTests : IAsyncLifetime
     public async Task A_throughput_phase_counts_every_request_the_mock_serves()
     {
         using var counter = new MockRequestCounter(BaseAddress);
-        using var adapter = ClientAdapters.Create(ClientAdapters.Jev, BaseAddress);
+        using var adapter = ClientAdapters.Create(ClientAdapters.Minos, BaseAddress);
 
         var phase = await ThroughputRunner.RunPhaseAsync(adapter, workers: 4, TimeSpan.FromMilliseconds(200));
 
@@ -162,12 +162,12 @@ public sealed class HarnessTests : IAsyncLifetime
     {
         using var counter = new MockRequestCounter(BaseAddress);
         using var raw = ClientAdapters.Create(ClientAdapters.Raw, BaseAddress);
-        using var jev = ClientAdapters.Create(ClientAdapters.Jev, BaseAddress);
+        using var minos = ClientAdapters.Create(ClientAdapters.Minos, BaseAddress);
 
-        var runs = await LatencyRunner.RunRoundsAsync([raw, jev], warmupCalls: 3, rounds: 4, callsPerRound: 5, rotation: 1, counter.CountAsync, CancellationToken.None);
+        var runs = await LatencyRunner.RunRoundsAsync([raw, minos], warmupCalls: 3, rounds: 4, callsPerRound: 5, rotation: 1, counter.CountAsync, CancellationToken.None);
 
         // Each client: 3 warm-up calls, then 4 rounds of 5 timed calls.
-        Assert.Equal([ClientAdapters.Raw, ClientAdapters.Jev], runs.Keys.Order(StringComparer.Ordinal));
+        Assert.Equal([ClientAdapters.Raw, ClientAdapters.Minos], runs.Keys.Order(StringComparer.Ordinal));
         Assert.All(runs.Values, run =>
         {
             Assert.Equal(23, run.Calls);

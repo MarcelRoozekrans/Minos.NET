@@ -59,13 +59,13 @@ public sealed class FanOutTests
     [Fact]
     public async Task TriageAsync_RoutesThroughTheClient_InOneRequest()
     {
-        var (http, jev, requests) = CannedDecision.Client(CrashResponse);
+        var (http, client, requests) = CannedDecision.Client(CrashResponse);
         using (http)
-        using (jev)
+        using (client)
         {
             Assert.Equal(
                 ReviewActions.PageOnCall | ReviewActions.ToCompetitiveResearch,
-                await ReviewTriage.TriageAsync(jev, "Crashed on launch and wiped my notes.", CancellationToken.None));
+                await ReviewTriage.TriageAsync(client, "Crashed on launch and wiped my notes.", CancellationToken.None));
         }
 
         // The guide's core claim: every question travels in the same request.
@@ -86,11 +86,11 @@ public sealed class FanOutTests
             Assert.Equal(expected, await ReviewTriage.TriageAsync(typedDecision, "A review.", CancellationToken.None));
         }
 
-        var (http, jev, requests) = CannedDecision.Client(response);
+        var (http, client, requests) = CannedDecision.Client(response);
         using (http)
-        using (jev)
+        using (client)
         {
-            Assert.Equal(expected, await new BuiltReviewTriage().TriageAsync(jev, "A review.", CancellationToken.None));
+            Assert.Equal(expected, await new BuiltReviewTriage().TriageAsync(client, "A review.", CancellationToken.None));
         }
 
         // The same five keys as the [Questions] type, and the same questions under them, options and levels included.

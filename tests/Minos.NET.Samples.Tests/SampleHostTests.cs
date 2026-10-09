@@ -9,7 +9,7 @@ public sealed class SampleHostTests : IDisposable
     private const string Sample = "Minos.NET.Samples.Example";
     private const string Body = """{"model":"jev-1.13.0","answers":{"urgent":{"type":"noul","noul":0.9}},"usage":{"input_tokens":1,"output_tokens":1}}""";
 
-    private readonly string _directory = Directory.CreateTempSubdirectory("jev-sample-host-").FullName;
+    private readonly string _directory = Directory.CreateTempSubdirectory("minos-sample-host-").FullName;
 
     public void Dispose() => Directory.Delete(_directory, recursive: true);
 

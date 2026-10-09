@@ -245,13 +245,13 @@ public sealed class RerankingSampleTests
         var report = await Run();
 
         string[][] keyword = [["a01", "a02", "a12"], ["a01", "a02", "a05"], ["a07", "a08", "a04"], ["a22", "a01", "a02"], ["a16", "a17", "a01"]];
-        string[][] jev = [["a04", "a02", "a12"], ["a09", "a10", "a05"], ["a08", "a07", "a04"], ["a21", "a18", "a05"], ["a16", "a02", "a04"]];
+        string[][] decision = [["a04", "a02", "a12"], ["a09", "a10", "a05"], ["a08", "a07", "a04"], ["a21", "a18", "a05"], ["a16", "a02", "a04"]];
         Assert.Equal(5, report.Queries.Count);
-        for (var i = 0; i < jev.Length; i++)
+        for (var i = 0; i < decision.Length; i++)
         {
             Assert.Equal(Queries.All[i].Text, report.Queries[i].Query);
             Assert.Equal(keyword[i], FirstThree(report.Queries[i].KeywordOrder));
-            Assert.Equal(jev[i], FirstThree(report.Queries[i].DecisionOrder));
+            Assert.Equal(decision[i], FirstThree(report.Queries[i].DecisionOrder));
         }
     }
 

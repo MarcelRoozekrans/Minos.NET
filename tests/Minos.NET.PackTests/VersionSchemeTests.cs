@@ -11,7 +11,7 @@ namespace Minos.PackTests;
 /// </summary>
 public sealed class VersionSchemeTests : IDisposable
 {
-    private readonly string _manifest = Path.Combine(Path.GetTempPath(), "jev-manifest-" + Guid.NewGuid().ToString("N") + ".json");
+    private readonly string _manifest = Path.Combine(Path.GetTempPath(), "minos-manifest-" + Guid.NewGuid().ToString("N") + ".json");
 
     [Theory]
     [InlineData("0.4.0", "0.4.0-local", "0.4.0.0")]

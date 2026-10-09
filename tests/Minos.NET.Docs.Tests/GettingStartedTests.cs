@@ -19,11 +19,11 @@ public sealed class GettingStartedTests
     [Fact]
     public async Task TriageAsync_ReadsTheTypedAnswers()
     {
-        var (http, jev, requests) = CannedDecision.Client(TicketResponse);
+        var (http, client, requests) = CannedDecision.Client(TicketResponse);
         using (http)
-        using (jev)
+        using (client)
         {
-            var summary = await GettingStartedEvaluation.TriageAsync(jev, "Help! My payouts have been failing for 3 days.", CancellationToken.None);
+            var summary = await GettingStartedEvaluation.TriageAsync(client, "Help! My payouts have been failing for 3 days.", CancellationToken.None);
 
             Assert.Equal("urgent, for Billing", summary);
         }
@@ -34,11 +34,11 @@ public sealed class GettingStartedTests
     [Fact]
     public async Task TriageAsync_ReportsAFailureInsteadOfThrowing()
     {
-        var (http, jev, _) = CannedDecision.Client("this is not json");
+        var (http, client, _) = CannedDecision.Client("this is not json");
         using (http)
-        using (jev)
+        using (client)
         {
-            var summary = await GettingStartedEvaluation.TriageAsync(jev, "Anything.", CancellationToken.None);
+            var summary = await GettingStartedEvaluation.TriageAsync(client, "Anything.", CancellationToken.None);
 
             Assert.StartsWith("Jev failed, ", summary, StringComparison.Ordinal);
         }

@@ -58,19 +58,19 @@ public sealed class ObservabilityTelemetryTests
 
     private static async Task RunAsync(Func<DecisionClient, Task> call, DecisionClientOptions options, params Reply[] script)
     {
-        var (http, jev, _) = ScriptedDecision.Client(options, script);
+        var (http, client, _) = ScriptedDecision.Client(options, script);
         using (http)
-        using (jev)
+        using (client)
         {
-            await call(jev);
+            await call(client);
         }
     }
 
-    private static Task Typed(DecisionClient jev) => jev.EvaluateAsync<TicketAnalysis>("Help! SECRET-STATE", CancellationToken.None).AsTask();
+    private static Task Typed(DecisionClient client) => client.EvaluateAsync<TicketAnalysis>("Help! SECRET-STATE", CancellationToken.None).AsTask();
 
-    private static Task Raw(DecisionClient jev) => RawRequests.UrgencyAsync(jev, "Help! SECRET-STATE", CancellationToken.None);
+    private static Task Raw(DecisionClient client) => RawRequests.UrgencyAsync(client, "Help! SECRET-STATE", CancellationToken.None);
 
-    private static Task Listing(DecisionClient jev) => jev.ListModelsAsync(CancellationToken.None).AsTask();
+    private static Task Listing(DecisionClient client) => client.ListModelsAsync(CancellationToken.None).AsTask();
 
     private static string[] Keys(IEnumerable<KeyValuePair<string, object?>> tags) => [.. tags.Select(tag => tag.Key)];
 
@@ -110,8 +110,8 @@ public sealed class ObservabilityTelemetryTests
         Assert.Equal(Model, span.GetTagItem("gen_ai.request.model"));
         Assert.Equal("docs.example", span.GetTagItem("server.address"));
         Assert.Equal(443, span.GetTagItem("server.port"));
-        Assert.Equal("evaluate-typed", span.GetTagItem("jev.operation"));
-        Assert.Equal(3, span.GetTagItem("jev.request.question_count"));
+        Assert.Equal("evaluate-typed", span.GetTagItem("minos.operation"));
+        Assert.Equal(3, span.GetTagItem("minos.request.question_count"));
         Assert.Equal("jev-1.13.0", span.GetTagItem("gen_ai.response.model"));
         Assert.Equal(150, span.GetTagItem("gen_ai.usage.input_tokens"));
         Assert.Equal(20, span.GetTagItem("gen_ai.usage.output_tokens"));
@@ -128,9 +128,9 @@ public sealed class ObservabilityTelemetryTests
         var span = Only.Of(listener.Spans);
         Assert.Equal("list_models", span.DisplayName);
         Assert.Equal("list_models", span.GetTagItem("gen_ai.operation.name"));
-        Assert.Equal("list-models", span.GetTagItem("jev.operation"));
+        Assert.Equal("list-models", span.GetTagItem("minos.operation"));
         Assert.Null(span.GetTagItem("gen_ai.request.model"));
-        Assert.Null(span.GetTagItem("jev.request.question_count"));
+        Assert.Null(span.GetTagItem("minos.request.question_count"));
     }
 
     [Fact]
@@ -179,10 +179,10 @@ public sealed class ObservabilityTelemetryTests
 
         await RunAsync(Typed, Options(2), Reply.Error(503), Reply.Ok(TicketResponse));
 
-        var jev = Only.Of([.. spans.Where(span => span.Source.Name is "Minos")]);
+        var clientSpan = Only.Of([.. spans.Where(span => span.Source.Name is "Minos")]);
         var rest = spans.Where(span => span.Source.Name is "ZeroAlloc.Rest").ToArray();
         Assert.Equal(2, rest.Length);
-        Assert.All(rest, attempt => Assert.Equal(jev.SpanId, attempt.ParentSpanId));
+        Assert.All(rest, attempt => Assert.Equal(clientSpan.SpanId, attempt.ParentSpanId));
     }
 
     // The exceptions section of the page describes ZeroAlloc.Telemetry 1.11.0, whose exception path sets error.type.
@@ -201,14 +201,14 @@ public sealed class ObservabilityTelemetryTests
     public async Task ACancelledCall_MarksTheSpanError_WithTheExceptionsTypeAndNoDescription()
     {
         using var listener = new DecisionTelemetryListener();
-        var (http, jev, _) = ScriptedDecision.Client(Options(), new Reply(HttpStatusCode.OK, TicketResponse, Delay: TimeSpan.FromSeconds(30)));
+        var (http, client, _) = ScriptedDecision.Client(Options(), new Reply(HttpStatusCode.OK, TicketResponse, Delay: TimeSpan.FromSeconds(30)));
         OperationCanceledException raised;
         using (http)
-        using (jev)
+        using (client)
         using (var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(100)))
         {
             raised = await Assert.ThrowsAnyAsync<OperationCanceledException>(
-                async () => await jev.EvaluateAsync<TicketAnalysis>("Help!", cancel.Token));
+                async () => await client.EvaluateAsync<TicketAnalysis>("Help!", cancel.Token));
         }
 
         var span = Only.Of(listener.Spans);
@@ -256,9 +256,9 @@ public sealed class ObservabilityTelemetryTests
         Assert.Equal(atStart, start);
         Assert.Equal(
             ["evaluate", "evaluate-typed", "list-models"],
-            listener.Spans.Select(span => (string)span.GetTagItem("jev.operation")!).Distinct().Order(StringComparer.Ordinal));
+            listener.Spans.Select(span => (string)span.GetTagItem("minos.operation")!).Distinct().Order(StringComparer.Ordinal));
         Assert.Equal("gen-1727400000-abc123", listener.Spans[1].GetTagItem("gen_ai.response.id"));
-        Assert.Equal(0.000296, listener.Spans[1].GetTagItem("jev.usage.cost"));
+        Assert.Equal(0.000296, listener.Spans[1].GetTagItem("minos.usage.cost"));
     }
 
     // The metric table: the meter has exactly these instruments, with these kinds and units, and each records these attributes.
@@ -300,7 +300,7 @@ public sealed class ObservabilityTelemetryTests
         var duration = Buckets(listener, "gen_ai.client.operation.duration");
         var input = Buckets(listener, "gen_ai.client.inference.operation.input_tokens");
         var output = Buckets(listener, "gen_ai.client.inference.operation.output_tokens");
-        var confidence = Buckets(listener, "jev.answer.confidence");
+        var confidence = Buckets(listener, "minos.answer.confidence");
 
         Assert.Equal(14, duration.Length);
         Assert.True(EveryStepIs(duration, 2));
@@ -319,14 +319,14 @@ public sealed class ObservabilityTelemetryTests
         using var listener = new DecisionTelemetryListener();
 
         await RunAsync(Typed, Options(), Reply.Ok(TicketResponse));
-        Assert.Equal([0.64, 0.7], Points(listener, "jev.answer.confidence").Select(point => point.Value).Order());
+        Assert.Equal([0.64, 0.7], Points(listener, "minos.answer.confidence").Select(point => point.Value).Order());
 
         listener.Measurements.Clear();
         await RunAsync(
-            jev => jev.EvaluateAsync<ObservedUrgency>("Help!", CancellationToken.None).AsTask(),
+            client => client.EvaluateAsync<ObservedUrgency>("Help!", CancellationToken.None).AsTask(),
             Options(),
             Reply.Ok(UrgentResponse));
-        Assert.Empty(Points(listener, "jev.answer.confidence"));
+        Assert.Empty(Points(listener, "minos.answer.confidence"));
     }
 
     [Fact]

@@ -124,21 +124,21 @@ public sealed class AdapterTests : IAsyncLifetime, IDisposable
     [Fact]
     public async Task The_raw_baseline_sends_the_body_Minos_sends()
     {
-        using var jev = ClientAdapters.Create(ClientAdapters.Jev, RecorderAddress);
+        using var minos = ClientAdapters.Create(ClientAdapters.Minos, RecorderAddress);
         using var raw = ClientAdapters.Create(ClientAdapters.Raw, RecorderAddress);
 
-        _ = await jev.CallAsync(CancellationToken.None);
+        _ = await minos.CallAsync(CancellationToken.None);
         _ = await raw.CallAsync(CancellationToken.None);
 
-        byte[]? jevBody = null;
+        byte[]? minosBody = null;
         byte[]? rawBody = null;
         Assert.Collection(
             _recorder.LogEntries,
-            e => jevBody = e.RequestMessage?.BodyAsBytes,
+            e => minosBody = e.RequestMessage?.BodyAsBytes,
             e => rawBody = e.RequestMessage?.BodyAsBytes);
-        Assert.NotNull(jevBody);
-        Assert.NotEmpty(jevBody);
-        Assert.Equal(jevBody, rawBody);
+        Assert.NotNull(minosBody);
+        Assert.NotEmpty(minosBody);
+        Assert.Equal(minosBody, rawBody);
     }
 
     [Fact]

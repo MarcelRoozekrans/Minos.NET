@@ -8,7 +8,7 @@ namespace Minos.Telemetry;
 
 /// <summary>
 /// The client's four operations, instrumented: ZeroAlloc.Telemetry generates <c>DecisionOperationsInstrumented</c>, which
-/// opens one CLIENT span per call and records the GenAI and <c>jev.*</c> metrics. With nothing listening the proxy returns
+/// opens one CLIENT span per call and records the GenAI and <c>minos.*</c> metrics. With nothing listening the proxy returns
 /// the inner call's task itself. Span and metric tags never carry request or answer content.
 /// </summary>
 /// <remarks>

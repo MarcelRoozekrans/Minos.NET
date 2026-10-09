@@ -26,8 +26,8 @@ var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings {
 builder.Services.AddSampleDecisionClient(builder.Configuration.GetSection("Jev"), mode, recordingsPath, SampleName, session);
 using var host = builder.Build();
 
-var jev = host.Services.GetRequiredService<IDecisionClient>();
-var report = await RerankingSample.RunAsync(jev, CancellationToken.None).ConfigureAwait(false);
+var client = host.Services.GetRequiredService<IDecisionClient>();
+var report = await RerankingSample.RunAsync(client, CancellationToken.None).ConfigureAwait(false);
 Console.Write(report.Render());
 
 if (mode == SampleMode.Record && recordingsPath is not null)

@@ -10,8 +10,8 @@ internal static class Canned
         where T : IQuestionSet<T>
     {
         using var http = new HttpClient(new Handler(json)) { BaseAddress = new Uri("https://canned.example/api/") };
-        using var jev = new DecisionClient(http, new DecisionClientOptions { ApiKey = "canned-key", MaxRetries = 0 });
-        var result = await jev.EvaluateAsync<T>("any message", CancellationToken.None);
+        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "canned-key", MaxRetries = 0 });
+        var result = await client.EvaluateAsync<T>("any message", CancellationToken.None);
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Kind + ": " + result.Error.Message : null);
         return result.Value;
     }

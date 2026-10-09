@@ -24,10 +24,10 @@ public static class ObservedLogging
         using var loggers = LoggerFactory.Create(builder => builder
             .AddProvider(provider)
             .SetMinimumLevel(LogLevel.Debug));
-        using var jev = new DecisionClient(http, options, loggers);
+        using var client = new DecisionClient(http, options, loggers);
 
         // The result is not inspected here: each outcome, a success or a failure, is one log event.
-        await jev.EvaluateAsync<ObservedUrgency>("Help! The server is down.", cancellationToken);
+        await client.EvaluateAsync<ObservedUrgency>("Help! The server is down.", cancellationToken);
 
         return provider.Collector.GetSnapshot();
     }

@@ -139,9 +139,9 @@ public static class ReviewRouting
 <!-- snippet: FanOutCall -->
 ```cs
 public static async Task<ReviewActions?> TriageAsync(
-    IDecisionClient jev, string reviewText, CancellationToken cancellationToken)
+    IDecisionClient client, string reviewText, CancellationToken cancellationToken)
 {
-    var result = await jev.EvaluateAsync<AppReview>(reviewText, cancellationToken);
+    var result = await client.EvaluateAsync<AppReview>(reviewText, cancellationToken);
     // On failure, result.Error.Kind and .Message say why: log them and leave the review for a person.
     return result.IsSuccess ? ReviewRouting.Route(result.Value) : null;
 }
@@ -194,9 +194,9 @@ public sealed class BuiltReviewTriage
     }
 
     public async Task<ReviewActions?> TriageAsync(
-        IDecisionClient jev, string reviewText, CancellationToken cancellationToken)
+        IDecisionClient client, string reviewText, CancellationToken cancellationToken)
     {
-        var result = await jev.EvaluateAsync(_questions, reviewText, cancellationToken);
+        var result = await client.EvaluateAsync(_questions, reviewText, cancellationToken);
         if (result.IsFailure)
         {
             return null;

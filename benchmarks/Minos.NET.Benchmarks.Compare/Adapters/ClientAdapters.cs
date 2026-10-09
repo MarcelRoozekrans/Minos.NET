@@ -4,7 +4,7 @@ namespace Minos.Benchmarks.Compare.Adapters;
 public static class ClientAdapters
 {
     /// <summary>The Minos.NET client.</summary>
-    public const string Jev = "zeroalloc-jev";
+    public const string Minos = "zeroalloc-jev";
 
     /// <summary>The hand-written <see cref="HttpClient"/> and System.Text.Json client.</summary>
     public const string Raw = "raw-httpclient";
@@ -19,7 +19,7 @@ public static class ClientAdapters
     public const string JevNet = "jev-net";
 
     /// <summary>Gets every client name, in run order.</summary>
-    public static IReadOnlyList<string> All { get; } = [Jev, Raw, JevSharp, TypeSafeSdk, JevNet];
+    public static IReadOnlyList<string> All { get; } = [Minos, Raw, JevSharp, TypeSafeSdk, JevNet];
 
     /// <summary>Creates the named client, pointed at <paramref name="baseAddress"/>.</summary>
     /// <param name="client">One of <see cref="All"/>.</param>
@@ -28,7 +28,7 @@ public static class ClientAdapters
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="client"/> is not a known client.</exception>
     public static IClientAdapter Create(string client, Uri baseAddress) => client switch
     {
-        Jev => new MinosAdapter(baseAddress),
+        Minos => new MinosAdapter(baseAddress),
         Raw => new RawHttpAdapter(baseAddress),
         JevSharp => new JevSharpAdapter(baseAddress),
         TypeSafeSdk => new TypeSafeSdkAdapter(baseAddress),
