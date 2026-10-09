@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Minos.Analyzers.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Minos.NET.Analyzers\Minos.NET.Analyzers.csproj" />
+    <!--
+      CodeFixTests exercises AddDescriptionCodeFixProvider through CSharpCodeFixTest, and WordSplitterTests its internal
+      WordSplitter. The alias keeps the code fixes' internals apart from the analyzer's: both link DiagnosticIds.cs.
+    -->
+    <ProjectReference Include="..\..\src\Minos.NET.CodeFixes\Minos.NET.CodeFixes.csproj" Aliases="CodeFixes" />
+    <!-- Valid sets run the generator too, so the compiler sees their partial properties implemented -->
+    <ProjectReference Include="..\..\src\Minos.NET.Generator\Minos.NET.Generator.csproj" />
+    <!-- Test sources use the [Questions] attributes; AnalyzerVerifier adds this assembly as a metadata reference -->
+    <ProjectReference Include="..\..\src\Minos.NET\Minos.NET.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Both pinned explicitly: the testing packages would otherwise resolve their much older minimum Roslyn -->
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" />
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>

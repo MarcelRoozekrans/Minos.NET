@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Minos.NET">
+  <!-- Favicon — a redraw, not a scale. reproduction.md § The favicon's own spec: weight 32 (2 px at 16 px), at most one counter.
+       The same rule as the master (semicircles alternating between two centres), one turn instead of 1.5:
+       lower semicircle centreline r 48 about B (80,152), then upper r 96 about A (128,152); centres 48 apart.
+       Pitch 96, so the channel is 96 - 32 = 64 (4 px at 16 px) >= 40.96 (w 32 target + dark tab-bar increment). Eye 2 x 32 = 64.
+       Dropped: the master's innermost half-turn (r 36) — see LOGO.md § Variants → Favicon.
+       Ink x 16 ... 240 (fills the live area on the longer axis), y 40 ... 216, centred on 128. Every edge on a multiple of 16; no flags.
+       Uniform weight: correction 4 declined — 32 -> 30.72 is 2.00 px against 1.92 px at the only sizes this variant renders at. -->
+  <path fill="currentColor"
+        d="M144 152A64 64 0 0 1 16 152A112 112 0 0 1 240 152H208
+           A80 80 0 0 0 48 152A32 32 0 0 0 112 152Z"/>
+</svg>

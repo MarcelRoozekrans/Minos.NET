@@ -135,8 +135,7 @@ The old Phase 5.5, "1.0 release", leaves this milestone. Its reviewed pipeline w
   - Cloudflare Workers AI or Clef access;
   - open-model servers and their licences;
   - nuget.org, with the shared org key;
-  - the ZeroAlloc-Net/.website docs site, which a rename moves;
-  - the org's shared publish workflow (ZeroAlloc-Net/.github#49), which may replace Jev's own job.
+  - **Update, Phase 6.1:** the project leaves the ZeroAlloc org and becomes `MarcelRoozekrans/Minos.NET`. Its docs move to GitHub Pages and its publishing follows the maintainer's personal-library convention, so the org's `.website` and its shared publish workflow (ZeroAlloc-Net/.github#49) no longer apply.
 
 ## Risk Register
 

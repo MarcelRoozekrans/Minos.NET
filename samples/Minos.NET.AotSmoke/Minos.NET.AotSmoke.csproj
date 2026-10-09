@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Minos.AotSmoke</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <PublishAot>true</PublishAot>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <OptimizationPreference>Size</OptimizationPreference>
+
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Minos.NET\Minos.NET.csproj" />
+    <!-- AddDecisionClient, so registration, resolution and the factory's HttpClient run under Native AOT. -->
+    <ProjectReference Include="..\..\src\Minos.NET.DependencyInjection\Minos.NET.DependencyInjection.csproj" />
+    <ProjectReference Include="..\..\src\Minos.NET.Generator\Minos.NET.Generator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      UndefineProperties="PublishAot" />
+    <ProjectReference Include="..\..\src\Minos.NET.Analyzers\Minos.NET.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      UndefineProperties="PublishAot" />
+    <PackageReference Include="ZeroAlloc.TestHelpers" PrivateAssets="all" />
+    <!-- A real LoggerFactory, so the logging checks run the path a consumer's app runs under Native AOT. -->
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+    <!-- ConfigurationBuilder and AddInMemoryCollection, so binding through AddDecisionClient runs under Native AOT. -->
+    <PackageReference Include="Microsoft.Extensions.Configuration" />
+  </ItemGroup>
+
+  <!-- Writes the compiler inputs the entry-point coverage test rebuilds this compilation from. -->
+  <Import Project="../DecisionCompileInputs.targets" />
+</Project>

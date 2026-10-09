@@ -33,7 +33,7 @@ benchmarks/compare/run.sh --smoke                       # the same from bash
 |---|---|---|
 | `--smoke` | off | A short run that checks every harness works. |
 | `--machine <name>` | this computer's name, as .NET reports it | The machine name in the results and their folder. |
-| `--project <name>` | `ZeroAlloc.Jev` | The project under test: it names the .NET projects and marks the project's rows in the table. |
+| `--project <name>` | `Minos.NET` | The project under test: it names the .NET projects and marks the project's rows in the table. |
 | `--bench-root <dir>` | this repository's `benchmarks` | The folder holding the .NET projects, and `compare-js` and `compare-py` when they exist. |
 | `--results <dir>` | `results` next to the scripts | Where results go, in a `<machine>` subfolder. |
 | `--port <n>` | `5005` | The mock's port. |
@@ -62,7 +62,7 @@ Each run first deletes the old `*.json` files in its `<machine>` folder, so a fa
 behind to be merged. The per-machine folders are git-ignored. The published runs are checked in at the top of
 `results/`, such as `results/ci-run-1.json`.
 
-To merge by hand, run `python benchmarks/compare/merge.py results/<machine>/*.json --project ZeroAlloc.Jev`.
+To merge by hand, run `python benchmarks/compare/merge.py results/<machine>/*.json --project Minos.NET`.
 
 ### Publishing a run
 
@@ -71,10 +71,10 @@ To merge by hand, run `python benchmarks/compare/merge.py results/<machine>/*.js
 file name. `merge.py` writes it with `--save`, and reads it back like the files it came from:
 
 ```sh
-python benchmarks/compare/merge.py dotnet-ci.json js-ci.json py-ci.json --project ZeroAlloc.Jev \
-  --run-url https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/<id> --commit <sha> \
+python benchmarks/compare/merge.py dotnet-ci.json js-ci.json py-ci.json --project Minos.NET \
+  --run-url https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/<id> --commit <sha> \
   --save benchmarks/compare/results/ci-run-1.json
-python benchmarks/compare/merge.py benchmarks/compare/results/ci-run-1.json --project ZeroAlloc.Jev
+python benchmarks/compare/merge.py benchmarks/compare/results/ci-run-1.json --project Minos.NET
 ```
 
 | Option | Meaning |
@@ -86,9 +86,18 @@ python benchmarks/compare/merge.py benchmarks/compare/results/ci-run-1.json --pr
 The printed table goes on the page between `<!-- comparison: benchmarks/compare/results/ci-run-1.json -->` and
 `<!-- endComparison -->`.
 
+The published runs were measured before the rename, under the name ZeroAlloc.Jev, so the table on the page now comes
+from `--project ZeroAlloc.Jev`:
+
+```sh
+python benchmarks/compare/merge.py benchmarks/compare/results/ci-run-1.json --project ZeroAlloc.Jev
+```
+
 Several published runs, such as three CI runs saved as `results/ci-run-1.json` to `results/ci-run-3.json`, give the
 "Across runs" table: one row per run with its CPU and mock ceiling, then per client the lowest and highest mean latency,
 throughput, share of the mock ceiling and bytes per call.
+
+The published runs were measured before the rename, under the name ZeroAlloc.Jev, so the command takes that name:
 
 ```sh
 python benchmarks/compare/merge.py --across benchmarks/compare/results/ci-run-1.json benchmarks/compare/results/ci-run-2.json benchmarks/compare/results/ci-run-3.json --project ZeroAlloc.Jev
@@ -150,7 +159,7 @@ uses, because the SDK splits sync and async calls between two client classes; th
 
 Without it, the first client's latency loop ran while the process was still cold: tiered JIT had not yet recompiled the
 shared `HttpClient`, socket and System.Text.Json code or the client's own, and the thread pool had not grown. Whichever
-client came first read as slower than it is. On 2026-10-04 that was ZeroAlloc.Jev, at about twice the raw client's
+client came first read as slower than it is. On 2026-10-04 that was Minos.NET, at about twice the raw client's
 latency on CI, a gap that vanished when the order was reversed or the process was warmed first. Node and Python run
 one client per process, so the order can't favour one of them.
 

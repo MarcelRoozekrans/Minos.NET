@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Minos.AotSmoke.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <!--
+    Fails unless the Native AOT smoke app declares and really calls every public entry point in the PublicAPI files, and
+    unless the AOT surface host instantiates every public generic type and method.
+  -->
+  <ItemGroup>
+    <!-- Built first, so their compile-inputs.txt is current; the tests read their sources, not their assemblies. -->
+    <ProjectReference Include="..\..\samples\Minos.NET.AotSmoke\Minos.NET.AotSmoke.csproj"
+                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\samples\Minos.NET.AotSurface\Minos.NET.AotSurface.csproj"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Each sample's compiler inputs, written by its DecisionWriteCompileInputs target in this configuration. -->
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>AotSmokeCompileInputs</_Parameter1>
+      <_Parameter2>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../samples/Minos.NET.AotSmoke/obj/$(Configuration)/$(TargetFramework)/compile-inputs.txt'))</_Parameter2>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
+      <_Parameter1>AotSurfaceCompileInputs</_Parameter1>
+      <_Parameter2>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../samples/Minos.NET.AotSurface/obj/$(Configuration)/$(TargetFramework)/compile-inputs.txt'))</_Parameter2>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>

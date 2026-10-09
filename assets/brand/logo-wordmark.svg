@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Minos.NET">
+  <!-- Wordmark. Webfont: Bahnschrift 600, declared in LOGO.md. NOT converted to outlines — recorded as an
+       un-performed step in LOGO.md's Production handoff; not a finished asset anywhere the face is absent.
+       Single text run; text-anchor start, x 32 and baseline y 144 on the grid (chosen, not measured).
+       font-size 37.45, letter-spacing 1.87 (t = 0.05): refitted from the verification render (fit 0.9904 off 37.81) so the ink edge lands on 224 —
+       the contact sheet's fit row is the measurement. The custom detail is declined: see LOGO.md § Type-specific records. -->
+  <text x="32" y="144" text-anchor="start" font-family="Bahnschrift, 'DIN Alternate', 'Segoe UI', sans-serif" font-size="37.45"
+        font-weight="600" letter-spacing="1.87" fill="currentColor">Minos.NET</text>
+</svg>

@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <!-- Roslyn loads analyzers as netstandard2.0 assemblies -->
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <RootNamespace>Minos.Analyzers</RootNamespace>
+    <IsRoslynComponent>true</IsRoslynComponent>
+    <EnforceExtendedAnalyzerRules>true</EnforceExtendedAnalyzerRules>
+    <!-- Shipped inside the Minos.NET package under analyzers/dotnet/cs, never on its own -->
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.CodeAnalysis.Analyzers" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AdditionalFiles Include="AnalyzerReleases.Shipped.md" />
+    <AdditionalFiles Include="AnalyzerReleases.Unshipped.md" />
+  </ItemGroup>
+
+  <!--
+    The rules live once, in the generator's source, and are linked in here rather than shared as an assembly:
+    an analyzer that loads a dependency assembly is fragile. The generator uses them only to tell a valid set,
+    which it implements, from an invalid one, which gets throwing stubs.
+    The shared code names rules by DiagnosticIds; the descriptors live only here, in Diagnostics.cs.
+  -->
+  <ItemGroup>
+    <Compile Include="..\Minos.NET.Generator\ModelBuilder.cs" Link="Shared\ModelBuilder.cs" />
+    <Compile Include="..\Minos.NET.Generator\Models.cs" Link="Shared\Models.cs" />
+    <Compile Include="..\Minos.NET.Generator\JsonText.cs" Link="Shared\JsonText.cs" />
+    <Compile Include="..\Minos.NET.Generator\DiagnosticIds.cs" Link="Shared\DiagnosticIds.cs" />
+    <Compile Include="..\Minos.NET.Generator\DecisionLimits.cs" Link="Shared\DecisionLimits.cs" />
+    <Compile Include="..\Minos.NET.Generator\EquatableArray.cs" Link="Shared\EquatableArray.cs" />
+    <Compile Include="..\Minos.NET.Generator\SnakeCase.cs" Link="Shared\SnakeCase.cs" />
+    <Compile Include="..\Minos.NET.Generator\IsExternalInit.cs" Link="Shared\IsExternalInit.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Minos.NET.Analyzers.Tests" />
+  </ItemGroup>
+</Project>

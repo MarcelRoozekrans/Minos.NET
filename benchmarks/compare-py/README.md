@@ -1,7 +1,7 @@
 # Python comparison harness
 
 Measures TypeSafe's official Python SDK, `typesafe-sdk` 0.7.2, against the shared local mock. It follows the .NET
-harness in `benchmarks/ZeroAlloc.Jev.Benchmarks.Compare` and the JS harness in `benchmarks/compare-js`: the same
+harness in `benchmarks/Minos.NET.Benchmarks.Compare` and the JS harness in `benchmarks/compare-js`: the same
 workload (`benchmarks/compare/workload`), the same latency and throughput method, and the same result format. It needs
 Python 3.10 or later.
 
@@ -14,7 +14,7 @@ python -m venv .venv
 `requirements.txt` pins `typesafe-sdk` and every transitive dependency to an exact version, from a `pip freeze` of a
 clean virtual environment.
 
-Start the mock first: `dotnet run -c Release --project benchmarks/ZeroAlloc.Jev.Benchmarks.Mock`. It stops when its
+Start the mock first: `dotnet run -c Release --project benchmarks/Minos.NET.Benchmarks.Mock`. It stops when its
 stdin closes, so keep stdin open when you start it from a script.
 
 It writes `py-<machine>.json`. The machine name defaults to the one the .NET harness uses: on Windows the NetBIOS

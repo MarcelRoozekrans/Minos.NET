@@ -1,0 +1,49 @@
+using System.Diagnostics;
+using System.Net;
+using System.Text;
+
+namespace Minos.Tests;
+
+/// <summary>An in-memory HTTP handler that records each request and answers with a canned response.</summary>
+internal sealed class StubHandler(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> respond) : HttpMessageHandler
+{
+    public List<Captured> Requests { get; } = [];
+
+    public bool Disposed { get; private set; }
+
+    public static StubHandler Json(HttpStatusCode status, string body, string mediaType = "application/json")
+        => new((_, _) => Task.FromResult(new HttpResponseMessage(status) { Content = new StringContent(body, Encoding.UTF8, mediaType) }));
+
+    public static StubHandler Sequence(params Func<HttpResponseMessage>[] responses)
+    {
+        var next = 0;
+        return new StubHandler((_, _) =>
+        {
+            var index = Math.Min(next, responses.Length - 1);
+            next++;
+            return Task.FromResult(responses[index]());
+        });
+    }
+
+    protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        var body = request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
+        Requests.Add(new Captured(
+            request.Method,
+            request.RequestUri,
+            request.Headers.TryGetValues("Authorization", out var auth) ? string.Join(",", auth) : null,
+            request.Headers.UserAgent.ToString(),
+            body,
+            Stopwatch.GetTimestamp(),
+            request.Headers.TryGetValues("X-TypeSafe-Retry-Count", out var retryCount) ? string.Join(",", retryCount) : null));
+        return await respond(request, cancellationToken).ConfigureAwait(false);
+    }
+
+    protected override void Dispose(bool disposing)
+    {
+        Disposed = true;
+        base.Dispose(disposing);
+    }
+
+    internal sealed record Captured(HttpMethod Method, Uri? Uri, string? Authorization, string UserAgent, string? Body, long Timestamp, string? RetryCount = null);
+}

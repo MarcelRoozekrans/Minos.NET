@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Minos.DependencyInjection.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Minos.NET.DependencyInjection\Minos.NET.DependencyInjection.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- FakeLogger, and through Microsoft.Extensions.Logging the ServiceCollection container the tests build. -->
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+    <!-- ConfigurationBuilder and AddInMemoryCollection, for the binding tests. -->
+    <PackageReference Include="Microsoft.Extensions.Configuration" />
+    <!-- Host.CreateApplicationBuilder, for the startup validation tests. -->
+    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+    <Using Include="Minos.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\Minos.NET.Tests\StubHandler.cs" Link="StubHandler.cs" />
+    <Compile Include="..\Minos.NET.Tests\Fixture.cs" Link="Fixture.cs" />
+    <Compile Include="..\Minos.NET.Tests\TelemetryCapture.cs" Link="TelemetryCapture.cs" />
+    <Compile Include="..\Minos.NET.Tests\TelemetryListeners.cs" Link="TelemetryListeners.cs" />
+    <None Include="..\Minos.NET.Tests\Fixtures\response-noul.json" Link="Fixtures\response-noul.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

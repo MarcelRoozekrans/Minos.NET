@@ -62,7 +62,7 @@ public enum Sentiment
 // Five questions, one request. Not every answer matters for every review: data loss is only read for crash
 // reports, and no rule below reads WouldRecommend at all. Each question adds some tokens, but they all share
 // the one round trip, so it is cheaper to ask them all than to decide first which ones apply.
-[JevQuestions]
+[Questions]
 public partial record AppReview
 {
     [Choice("What is the review mainly about?")]
@@ -139,9 +139,9 @@ public static class ReviewRouting
 <!-- snippet: FanOutCall -->
 ```cs
 public static async Task<ReviewActions?> TriageAsync(
-    IJevClient jev, string reviewText, CancellationToken cancellationToken)
+    IDecisionClient client, string reviewText, CancellationToken cancellationToken)
 {
-    var result = await jev.EvaluateAsync<AppReview>(reviewText, cancellationToken);
+    var result = await client.EvaluateAsync<AppReview>(reviewText, cancellationToken);
     // On failure, result.Error.Kind and .Message say why: log them and leave the review for a person.
     return result.IsSuccess ? ReviewRouting.Route(result.Value) : null;
 }
@@ -150,7 +150,7 @@ public static async Task<ReviewActions?> TriageAsync(
 
 ## Built at run time
 
-When the questions are only known at run time, build the set with `JevQuestionSet.CreateBuilder()` instead of declaring
+When the questions are only known at run time, build the set with `QuestionSet.CreateBuilder()` instead of declaring
 a type. Here are the same five questions, with the same keys, options and levels, read through the handles the builder
 hands back. The routing is the same method, so the two versions route every review alike.
 
@@ -158,7 +158,7 @@ hands back. The routing is the same method, so the two versions route every revi
 ```cs
 public sealed class BuiltReviewTriage
 {
-    private readonly JevQuestionSet _questions;
+    private readonly QuestionSet _questions;
     private readonly ChoiceHandle<ReviewTopic> _topic;
     private readonly ScoreHandle<Sentiment> _sentiment;
     private readonly NoulHandle _mentionsDataLoss;
@@ -168,7 +168,7 @@ public sealed class BuiltReviewTriage
     // handle, and the handle reads that question's answer.
     public BuiltReviewTriage()
     {
-        var built = JevQuestionSet.CreateBuilder()
+        var built = QuestionSet.CreateBuilder()
             .Choice("topic", "What is the review mainly about?", out _topic, options => options
                 .Describe(ReviewTopic.Crash, "The app crashes, freezes or closes on its own")
                 .Describe(ReviewTopic.Performance, "The app is slow, drains the battery or uses too much data")
@@ -194,9 +194,9 @@ public sealed class BuiltReviewTriage
     }
 
     public async Task<ReviewActions?> TriageAsync(
-        IJevClient jev, string reviewText, CancellationToken cancellationToken)
+        IDecisionClient client, string reviewText, CancellationToken cancellationToken)
     {
-        var result = await jev.EvaluateAsync(_questions, reviewText, cancellationToken);
+        var result = await client.EvaluateAsync(_questions, reviewText, cancellationToken);
         if (result.IsFailure)
         {
             return null;
@@ -216,7 +216,7 @@ public sealed class BuiltReviewTriage
 ## C# notes
 
 - Each answer is a struct over the response's shared buffer: reading `Value`, `Expected`, `Confidence` or
-  `Probability` allocates nothing, and neither does `JevAnswers.Get`.
+  `Probability` allocates nothing, and neither does `Answers.Get`.
 - Build a question set once and keep it, as `BuiltReviewTriage` does: the set is immutable and safe to share across
   threads.
 - The thresholds here (0.6, 1.5, 0.7) are starting points. Tune them on your own reviews.

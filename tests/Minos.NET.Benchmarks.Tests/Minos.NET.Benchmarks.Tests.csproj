@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Minos.Benchmarks.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\benchmarks\Minos.NET.Benchmarks.Mock\Minos.NET.Benchmarks.Mock.csproj" />
+    <!-- The comparison harness and its adapters. It brings the benchmark-only community clients, which is acceptable
+         here: neither project is packable, and no test of the library references them. -->
+    <ProjectReference Include="..\..\benchmarks\Minos.NET.Benchmarks.Compare\Minos.NET.Benchmarks.Compare.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <!-- The request-inspection tests' own logging server, and the 503 server of the single-attempt test. -->
+    <PackageReference Include="WireMock.Net" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\benchmarks\compare\workload\response.json" Link="response.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

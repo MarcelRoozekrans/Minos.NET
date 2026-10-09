@@ -1,6 +1,6 @@
 name: 'Benchmarks: compare'
 
-# Compares ZeroAlloc.Jev with other clients (raw .NET, Node, Python) against one local mock,
+# Compares Minos.NET with other clients (raw .NET, Node, Python) against one local mock,
 # driven by benchmarks/compare/run.sh. Not a required check.
 #
 #   smoke  pull_request, when the comparison's own files change. A short run that proves every
@@ -23,10 +23,10 @@ on:
       - 'benchmarks/compare/**'
       - 'benchmarks/compare-js/**'
       - 'benchmarks/compare-py/**'
-      - 'benchmarks/ZeroAlloc.Jev.Benchmarks.Compare/**'
-      - 'benchmarks/ZeroAlloc.Jev.Benchmarks.Mock/**'
+      - 'benchmarks/Minos.NET.Benchmarks.Compare/**'
+      - 'benchmarks/Minos.NET.Benchmarks.Mock/**'
       - 'benchmarks/Shared/**'
-      - 'tests/ZeroAlloc.Jev.Benchmarks.Tests/**'
+      - 'tests/Minos.NET.Benchmarks.Tests/**'
       - '.github/workflows/benchmarks-compare.yml'
       - 'src/**'
       - 'Directory.Build.props'

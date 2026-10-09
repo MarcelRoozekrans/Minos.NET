@@ -16,7 +16,7 @@ Usage: run.ps1 [options]
   --machine <name>        The machine name in the results and their folder. Default: this computer's name.
   --project <name>        The project under test. It names the .NET projects <name>.Benchmarks.Mock and
                           <name>.Benchmarks.Compare under the bench root, and marks the project's rows in the table.
-                          Default: ZeroAlloc.Jev.
+                          Default: Minos.NET.
   --bench-root <dir>      The folder holding those two projects, which are required, and compare-js and compare-py,
                           which are run when present. Default: the benchmarks folder of this repository.
   --results <dir>         Where results go, in a <machine> subfolder. Default: results next to this script.
@@ -38,7 +38,7 @@ function Exit-Usage([string] $message) {
 
 $smoke = $false
 $machine = [Environment]::MachineName
-$project = 'ZeroAlloc.Jev'
+$project = 'Minos.NET'
 $benchRoot = Join-Path $PSScriptRoot '..'
 $resultsRoot = Join-Path $PSScriptRoot 'results'
 $port = 5005
@@ -123,14 +123,14 @@ if ($null -eq $python) {
 # for --siblings, so the split never puts two threads of one core on different sides. Either is $null when the entries
 # do not cover every logical core. Elsewhere cores.py reads sysfs itself.
 function Get-CoreTopology {
-    if (-not ('JevBench.CpuTopology' -as [type])) {
+    if (-not ('DecisionBench.CpuTopology' -as [type])) {
         Add-Type -TypeDefinition @'
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Runtime.InteropServices;
 
-namespace JevBench
+namespace DecisionBench
 {
     public static class CpuTopology
     {
@@ -190,7 +190,7 @@ namespace JevBench
     $ranks = [int[]]::new($count)
     $groups = [Collections.Generic.List[string]]::new()
     $seen = 0
-    foreach ($core in [JevBench.CpuTopology]::Cores()) {
+    foreach ($core in [DecisionBench.CpuTopology]::Cores()) {
         $threads = [Collections.Generic.List[int]]::new()
         for ($bit = 0; $bit -lt $count; $bit++) {
             if (([uint64] $core[1] -shr $bit) -band 1) { $ranks[$bit] = [int] $core[0]; $threads.Add($bit); $seen++ }

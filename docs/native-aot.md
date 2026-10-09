@@ -2,7 +2,7 @@
 id: native-aot
 title: Native AOT and allocations
 sidebar_position: 8
-description: What it means that the Jev client is Native AOT compatible, the one reflection it uses, how CI checks every public member, and the allocation budgets that guard it.
+description: What it means that the Minos client is Native AOT compatible, the one reflection it uses, how CI checks every public member, and the allocation budgets that guard it.
 ---
 
 # Native AOT and allocations
@@ -12,17 +12,17 @@ time, and the compiler removes code that it cannot see being used, which is call
 is small, but a library has to cooperate. Code that finds types or members by name at run time, which is reflection,
 can lose the very things it looks for.
 
-`ZeroAlloc.Jev` is written for this. This page says what that covers, where it is checked, and what the client
+`Minos.NET` is written for this. This page says what that covers, where it is checked, and what the client
 allocates, because a program that avoids the just-in-time compiler usually cares about memory as well.
 
 ## What is Native AOT compatible
 
-- **The client.** `ZeroAlloc.Jev` sets `IsAotCompatible`, which turns on the trimming and Native AOT analyzers for the
-  library's own build. Sending requests, mapping every failure to a `JevError`, retries, logging and telemetry all run
+- **The client.** `Minos.NET` sets `IsAotCompatible`, which turns on the trimming and Native AOT analyzers for the
+  library's own build. Sending requests, mapping every failure to a `DecisionError`, retries, logging and telemetry all run
   under Native AOT.
-- **The generated question sets.** The `[JevQuestions]` generator writes the question JSON and the answer parsing as
+- **The generated question sets.** The `[Questions]` generator writes the question JSON and the answer parsing as
   ordinary C# at compile time. The set uses no reflection at run time, and neither does reading an answer.
-- **Dependency injection.** `ZeroAlloc.Jev.DependencyInjection` is Native AOT compatible too. It binds options from
+- **Dependency injection.** `Minos.NET.DependencyInjection` is Native AOT compatible too. It binds options from
   configuration with the configuration binding source generator, so binding uses no reflection and needs nothing set up
   in your program. [Dependency injection](dependency-injection.md#options-from-configuration) covers the options.
 
@@ -34,7 +34,7 @@ the trimmer with `DynamicallyAccessedMembers`, so the trimmer keeps those fields
 Native AOT. You do not need to do anything for it.
 
 There is one case that does ask something of you. A method of your own that passes its own generic parameter on to
-`Choice<T>`, `Score<T>` or `JevAnswers.Get` needs the same annotation on that parameter,
+`Choice<T>`, `Score<T>` or `Answers.Get` needs the same annotation on that parameter,
 `[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)]`.
 [Question sets at run time](question-sets-at-run-time.md#build-once-and-share) says where.
 
@@ -43,7 +43,7 @@ There is one case that does ask something of you. A method of your own that pass
 A typed [state](typed-evaluation.md#the-state), such as a support ticket record, is written as JSON through
 `System.Text.Json`. Under Native AOT that needs source-generated metadata, which a `JsonSerializerContext` gives. Pass
 the context's `JsonTypeInfo` to the `EvaluateAsync<T, TState>` overload, and nothing is found by reflection. A state
-you pass as a string, a `JsonElement` or UTF-8 JSON needs no metadata at all, and `JevContent.FromValue` takes the same
+you pass as a string, a `JsonElement` or UTF-8 JSON needs no metadata at all, and `DecisionContent.FromValue` takes the same
 `JsonTypeInfo`.
 
 ## Publishing your own application
@@ -71,7 +71,7 @@ Three checks guard it, and each answers a different question.
 
 ### The smoke application: does it run
 
-The repository holds a smoke application, `samples/ZeroAlloc.Jev.AotSmoke`. The `aot-smoke` job of the CI workflow
+The repository holds a smoke application, `samples/Minos.NET.AotSmoke`. The `aot-smoke` job of the CI workflow
 publishes it with `PublishAot` and runs the native executable. The project treats every warning as an error, including
 the whole `IL2xxx` and `IL3xxx` range, so a trimming or AOT warning anywhere in what the application uses fails the
 build. The program exits with a failure if any check fails.
@@ -89,15 +89,15 @@ The checks run the real client over a canned HTTP handler. They cover:
 ### The whole-assembly check: is anything unsafe
 
 A publish only analyses what the program reaches, so the smoke application cannot vouch for a member that no check
-calls. The `aot-surface` job closes that gap. It publishes `samples/ZeroAlloc.Jev.AotSurface` with `PublishAot` and
-full trimming, and roots `ZeroAlloc.Jev` and `ZeroAlloc.Jev.DependencyInjection` whole through `TrimmerRootAssembly`.
+calls. The `aot-surface` job closes that gap. It publishes `samples/Minos.NET.AotSurface` with `PublishAot` and
+full trimming, and roots `Minos.NET` and `Minos.NET.DependencyInjection` whole through `TrimmerRootAssembly`.
 
 Rooting analyses every non-generic member of both packages, called or not, and every generic member the compiler can
 share across reference types. A value-type generic has no such shared form, so rooting alone skips it. That covers
 `Choice<T>`, `Score<T>` and the other generics over an enum, whose type parameter is `where T : struct, Enum`. The host
 therefore instantiates every public generic type and generic method of both packages over its own types, and the
-compiler analyses them through those instantiations. A test in `tests/ZeroAlloc.Jev.AotSmoke.Tests` fails when a public
-generic is not instantiated in the host. The host is rooted as well. Its `[JevQuestions]` sets, one with a Noul, a
+compiler analyses them through those instantiations. A test in `tests/Minos.NET.AotSmoke.Tests` fails when a public
+generic is not instantiated in the host. The host is rooted as well. Its `[Questions]` sets, one with a Noul, a
 Choice and a Score and one with a typed state, mean the code the generator writes is analysed in full too.
 
 Every `IL2xxx` and `IL3xxx` warning is an error, so a trimming or AOT hazard in the public API fails the job. The host
@@ -108,7 +108,7 @@ a member of a generic type over an enum.
 ### The coverage rule: does the smoke application leave anything out
 
 The smoke application has to call everything a user can call, or its own pass says too little. The test project
-`tests/ZeroAlloc.Jev.AotSmoke.Tests` enforces that, and it runs with the rest of the test suite.
+`tests/Minos.NET.AotSmoke.Tests` enforces that, and it runs with the rest of the test suite.
 
 An **entry point** is a public or protected method or constructor that you call. The list is read from the four
 `PublicAPI` files, so a new public member is an entry point the day it is added. These are not entry points, and the
@@ -131,7 +131,7 @@ spelled as its line in the `PublicAPI` file. The test fails in four cases:
   model, follows it into the smoke application's own helpers, and compares the symbols it finds;
 - a declaring check that `Main` does not run.
 
-A **default interface method** of `IJevClient` is an entry point too, and the rule for it is stricter. Calling it
+A **default interface method** of `IDecisionClient` is an entry point too, and the rule for it is stricter. Calling it
 through a client resolved from a container proves nothing, because that client may override it and the default body
 would never run. A check counts for a default interface method only when the receiver is known from the code to be a
 type that does not override it: either its own type, or the type its local was created as, when nothing assigns that
@@ -144,12 +144,12 @@ check, not that the call asserts the right thing.
 ## What the client allocates
 
 An allocation is memory the garbage collector must later reclaim. A client that allocates little causes few collections,
-which keeps the pauses short in a program that makes many calls. Jev is built to allocate little. The typed and
+which keeps the pauses short in a program that makes many calls. Minos is built to allocate little. The typed and
 built-set calls write the request into a pooled buffer and read the response from one, and reading an answer creates no
 object.
 
 - **Reading an answer allocates nothing.** `Noul`, `Choice<T>` and `Score<T>` are read as structs, and so are the
-  `Probabilities`, the confidence helpers and `JevAnswers.Get` for a [set built at run
+  `Probabilities`, the confidence helpers and `Answers.Get` for a [set built at run
   time](question-sets-at-run-time.md).
 - **Parsing a typed answer set allocates the result.** That is the result record, plus the shared buffer that holds the
   probabilities of its answers, and nothing else.
@@ -164,7 +164,7 @@ object.
 
 These claims are enforced, not only measured. The smoke application runs each path below repeatedly, mostly under
 `AllocationGate` from the ZeroAlloc.TestHelpers package, and fails if the path allocates more than its budget. The calls
-run over a canned in-memory handler, so the budgets measure Jev's own work and not the network.
+run over a canned in-memory handler, so the budgets measure the client's own work and not the network.
 
 ### The allocation budgets
 
@@ -178,7 +178,7 @@ regression cannot reach a release unnoticed.
 | `ReadNoul` | Reading a `Noul` answer. | 0 |
 | `ReadChoice` | Reading a `Choice<T>` answer. | 0 |
 | `ReadScore` | Reading a `Score<T>` answer. | 0 |
-| `JevAnswersGet` | Reading answers of a built set through its handles. | 0 |
+| `AnswersGet` | Reading answers of a built set through its handles. | 0 |
 | `PatternHelpers` | The confidence and normalization helpers of the patterns. | 0 |
 | `NoulEquals` | Comparing two `Noul` answers, directly and through `EqualityComparer<Noul>.Default`. | 0 |
 | `GeneratedParse` | Parsing a typed set of three answers. | 192 |
@@ -186,8 +186,8 @@ regression cannot reach a release unnoticed.
 | `TypedEvaluateRoundTrip` | A typed `EvaluateAsync<T>` call. | 3328 |
 | `EvaluateBuiltSetRoundTrip` | An `EvaluateAsync` call over a built set. | 3648 |
 | `BuildQuestionSet` | Building a question set. | 7296 |
-| `ContentFromValue` | `JevContent.FromValue`. | 320 |
-| `ContentFromUtf8Json` | `JevContent.FromUtf8Json`. | 320 |
+| `ContentFromValue` | `DecisionContent.FromValue`. | 320 |
+| `ContentFromUtf8Json` | `DecisionContent.FromUtf8Json`. | 320 |
 | `EvaluateRoundTripWithNullLoggerFactory` | A raw call with a logger factory that logs nothing. | 4352 |
 | `TypedEvaluateRoundTripWithEveryLevelFiltered` | A typed call with every log level filtered out. | 3328 |
 | `EvaluateRoundTripWithDiscardingLogger` | A raw call with every log level on. | 4352 |
@@ -197,7 +197,7 @@ regression cannot reach a release unnoticed.
 | `TypedEvaluateRoundTripWhileListening` | A typed call with the listeners attached. | 5056 |
 | `EvaluateBuiltSetRoundTripWhileListening` | A built-set call with the listeners attached. | 5376 |
 | `EvaluateRoundTripThroughBoundConfiguration` | A raw call through a client bound from configuration, equal to a hand-built client's own measurement. | same as the hand-built client |
-| `DisabledLoggerAddsNothingWhereAnEnabledOneDoes` | Asynchronous calls with no factory, a null factory and an enabled logger. Checks the disabled ones add no more than 16 B per call, a tolerance for the noise of a process-wide counter ([#104](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/issues/104)). | no byte budget |
+| `DisabledLoggerAddsNothingWhereAnEnabledOneDoes` | Asynchronous calls with no factory, a null factory and an enabled logger. Checks the disabled ones add no more than 16 B per call, a tolerance for the noise of a process-wide counter ([#104](https://github.com/MarcelRoozekrans/Minos.NET/issues/104)). | no byte budget |
 | `TelemetryOffAsynchronousTypedEvaluation` | A typed call that completes asynchronously, with nothing listening. The median of five runs. | 4608 |
 
 The two logging rows with a logger that does nothing keep the budgets of the calls without one, because the client takes

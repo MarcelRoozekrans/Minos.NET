@@ -1,8 +1,8 @@
 {
   "$schema": "https://raw.githubusercontent.com/SimonCropp/MarkdownSnippets/main/schema.json",
   "Convention": "InPlaceOverwrite",
-  "ExcludeSnippetDirectories": [ ".superpowers" ],
-  "ExcludeMarkdownDirectories": [ "planning", "superpowers", "plans" ],
+  "ExcludeSnippetDirectories": [ ".superpowers", "node_modules", ".docusaurus" ],
+  "ExcludeMarkdownDirectories": [ "design", "planning", "superpowers", "plans", "node_modules", ".docusaurus" ],
   "LinkFormat": "None",
   "OmitSnippetLinks": true,
   "TreatMissingAsWarning": false

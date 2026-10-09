@@ -1,0 +1,53 @@
+<Project>
+  <PropertyGroup>
+    <!--
+      The test compares the generated files it gets by rerunning the generators with the ones this build wrote, so the
+      build writes them, under obj like the rest of its intermediate output.
+    -->
+    <EmitCompilerGeneratedFiles>true</EmitCompilerGeneratedFiles>
+    <CompilerGeneratedFilesOutputPath>$(BaseIntermediateOutputPath)$(Configuration)/$(TargetFramework)/$(RuntimeIdentifier)/generated</CompilerGeneratedFilesOutputPath>
+  </PropertyGroup>
+
+  <!--
+    The compiler writes the generated files but never deletes one it no longer generates, so a renamed generator
+    output would linger beside its replacement and the test would see both. The folder is emptied whenever
+    CoreCompile is about to run, with the same inputs and outputs, so it holds only what this compile writes.
+  -->
+  <Target Name="DecisionCleanCompilerGeneratedFiles"
+          BeforeTargets="CoreCompile"
+          Inputs="@(Compile);@(Analyzer);@(EditorConfigFiles)"
+          Outputs="@(IntermediateAssembly)">
+    <RemoveDir Directories="$(CompilerGeneratedFilesOutputPath)" />
+  </Target>
+
+  <!--
+    Writes this project's compiler inputs: its sources, references, analyzers, editorconfig files, additional files,
+    defines, parser features and the options the compiler takes from properties. tests/Minos.NET.AotSmoke.Tests
+    rebuilds the same compilation from them, generators included: for the smoke app, to check that every public entry
+    point is declared by a smoke check that really calls it; for the surface host, to check that it instantiates every
+    public generic type and method. Each list property has its ';' separators turned into ',' so it stays one line.
+  -->
+  <Target Name="DecisionWriteCompileInputs" AfterTargets="CoreCompile">
+    <ItemGroup>
+      <_DecisionCompileInput Include="@(Compile->'compile|%(FullPath)')" />
+      <_DecisionCompileInput Include="@(ReferencePath->'reference|%(FullPath)')" />
+      <_DecisionCompileInput Include="@(Analyzer->'analyzer|%(FullPath)')" />
+      <_DecisionCompileInput Include="@(EditorConfigFiles->'editorconfig|%(FullPath)')" />
+      <_DecisionCompileInput Include="@(AdditionalFiles->'additionalfile|%(FullPath)')" />
+      <_DecisionCompileInput Include="define|$(DefineConstants.Replace(';', ','))" />
+      <_DecisionCompileInput Include="features|$(Features.Replace(';', ','))" />
+      <_DecisionCompileInput Include="interceptorsnamespaces|$(InterceptorsNamespaces.Replace(';', ','))" />
+      <_DecisionCompileInput Include="interceptorspreviewnamespaces|$(InterceptorsPreviewNamespaces.Replace(';', ','))" />
+      <_DecisionCompileInput Include="langversion|$(LangVersion)" />
+      <_DecisionCompileInput Include="nullable|$(Nullable)" />
+      <_DecisionCompileInput Include="allowunsafeblocks|$(AllowUnsafeBlocks)" />
+      <_DecisionCompileInput Include="nowarn|$(NoWarn.Replace(';', ','))" />
+      <_DecisionCompileInput Include="warninglevel|$(WarningLevel)" />
+      <_DecisionCompileInput Include="generatedfiles|$([System.IO.Path]::GetFullPath('$(CompilerGeneratedFilesOutputPath)'))" />
+    </ItemGroup>
+    <WriteLinesToFile File="$(IntermediateOutputPath)compile-inputs.txt"
+                      Lines="@(_DecisionCompileInput)"
+                      Overwrite="true"
+                      WriteOnlyWhenDifferent="true" />
+  </Target>
+</Project>

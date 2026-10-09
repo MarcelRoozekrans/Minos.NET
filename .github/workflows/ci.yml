@@ -31,13 +31,13 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Restore
-        run: dotnet restore ZeroAlloc.Jev.slnx
+        run: dotnet restore Minos.NET.slnx
 
       - name: Build
-        run: dotnet build ZeroAlloc.Jev.slnx --no-restore -c Release
+        run: dotnet build Minos.NET.slnx --no-restore -c Release
 
       - name: Test
-        run: dotnet test ZeroAlloc.Jev.slnx --no-build -c Release --logger "trx" --results-directory ./test-results
+        run: dotnet test Minos.NET.slnx --no-build -c Release --logger "trx" --results-directory ./test-results
 
       - name: Run the cookbook samples in replay mode
         # Runs each sample's real entry point (argument parsing, config, host wiring) offline from its checked-in
@@ -62,7 +62,7 @@ jobs:
           done
 
       - name: Check docs snippets
-        # Every C# block in the user docs comes from tests/ZeroAlloc.Jev.Docs.Tests, which the Build step compiled.
+        # Every C# block in the user docs comes from tests/Minos.NET.Docs.Tests, which the Build step compiled.
         # Regenerate the docs and fail when any tracked file differs: a snippet changed without re-running
         # `dotnet mdsnippets`, or the tool rewrote a file it should not touch.
         run: |
@@ -78,11 +78,11 @@ jobs:
           path: ./test-results
 
       - name: Pack
-        run: dotnet pack ZeroAlloc.Jev.slnx --no-build -c Release -o ./nupkg
+        run: dotnet pack Minos.NET.slnx --no-build -c Release -o ./nupkg
 
   aot-smoke:
     runs-on: ubuntu-latest
-    # Publishes samples/ZeroAlloc.Jev.AotSmoke with PublishAot=true and runs it: the client, the error mapper and
+    # Publishes samples/Minos.NET.AotSmoke with PublishAot=true and runs it: the client, the error mapper and
     # the generator-emitted question set must survive ILC with every warning treated as an error, including the full
     # IL2xxx/IL3xxx trim/AOT surface (closes #30). The run also enforces allocation budgets on the client's hot
     # paths through ZeroAlloc.TestHelpers' AllocationGate, so a regression there fails the job too.
@@ -101,10 +101,10 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
 
       - name: Restore
-        run: dotnet restore samples/ZeroAlloc.Jev.AotSmoke/ZeroAlloc.Jev.AotSmoke.csproj
+        run: dotnet restore samples/Minos.NET.AotSmoke/Minos.NET.AotSmoke.csproj
 
       - name: Publish AOT
-        run: dotnet publish samples/ZeroAlloc.Jev.AotSmoke/ZeroAlloc.Jev.AotSmoke.csproj -r linux-x64 -c Release -o ./aot-out
+        run: dotnet publish samples/Minos.NET.AotSmoke/Minos.NET.AotSmoke.csproj -r linux-x64 -c Release -o ./aot-out
 
       - name: Run AOT binary
         # Runs once on pushes and pull requests. A manual dispatch can set aot-smoke-runs to repeat the run, for
@@ -119,7 +119,7 @@ jobs:
           for run in $(seq 1 "$RUNS"); do
             echo "::group::Run $run of $RUNS"
             status=0
-            ./aot-out/ZeroAlloc.Jev.AotSmoke || status=$?
+            ./aot-out/Minos.NET.AotSmoke || status=$?
             echo "::endgroup::"
             if [ "$status" -ne 0 ]; then
               echo "::error::Run $run of $RUNS failed with exit code $status"
@@ -130,8 +130,8 @@ jobs:
 
   aot-surface:
     runs-on: ubuntu-latest
-    # Publishes samples/ZeroAlloc.Jev.AotSurface with PublishAot=true and TrimMode=full. It roots ZeroAlloc.Jev and
-    # ZeroAlloc.Jev.DependencyInjection whole through TrimmerRootAssembly, so ILC analyses their members, not only the
+    # Publishes samples/Minos.NET.AotSurface with PublishAot=true and TrimMode=full. It roots Minos.NET and
+    # Minos.NET.DependencyInjection whole through TrimmerRootAssembly, so ILC analyses their members, not only the
     # ones aot-smoke calls, plus the code the generator emits for the host's question sets. Rooting reaches every
     # non-generic member and every generic one ILC can share across reference types; value-type generics, such as
     # Choice<T> over an enum, are analysed through the host's instantiations of every public generic type and method,
@@ -152,12 +152,16 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y clang zlib1g-dev
 
       - name: Restore
-        run: dotnet restore samples/ZeroAlloc.Jev.AotSurface/ZeroAlloc.Jev.AotSurface.csproj
+        run: dotnet restore samples/Minos.NET.AotSurface/Minos.NET.AotSurface.csproj
 
       - name: Publish AOT with both packages rooted
-        run: dotnet publish samples/ZeroAlloc.Jev.AotSurface/ZeroAlloc.Jev.AotSurface.csproj -r linux-x64 -c Release -o ./aot-surface-out
+        run: dotnet publish samples/Minos.NET.AotSurface/Minos.NET.AotSurface.csproj -r linux-x64 -c Release -o ./aot-surface-out
 
-  # Shared from ZeroAlloc-Net/.github: a release PR must mark released analyzer rules and public API as shipped.
+  # A release PR must have marked released analyzer rules and public API as shipped.
   release-tracking:
     if: ${{ github.event_name == 'pull_request' && startsWith(github.head_ref, 'release-please--') }}
-    uses: ZeroAlloc-Net/.github/.github/workflows/release-tracking.yml@main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check nothing is left unshipped
+        run: python3 tools/release/ship_release_tracking.py --check

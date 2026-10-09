@@ -13,6 +13,27 @@
     - 9, Hosted to local;
     - 10, Escalation.
   - Issues #120 (the name, blocking) and #115–#119 track the work.
+- **Milestone 6, Phase 6.1 (rename to Minos):** active, on branch `phase/6.1-rename`.
+  - **Done:** the rename is implemented and reviewed task by task, to plan `docs/superpowers/plans/2026-10-09-phase-6.1-rename-to-minos.md`:
+    - `Minos.NET` packages, the `Minos` namespace and the new type names;
+    - `MIN` analyzer IDs and `minos.*` telemetry keys;
+    - the bronze coil logo;
+    - the README with "About the name";
+    - an in-repo Docusaurus site for GitHub Pages;
+    - CI with no ZeroAlloc-org dependencies;
+    - the no-old-name guard test.
+  - **Not done:** the PR, then the maintainer actions below.
+  - **Maintainer actions after the PR merges**, in order:
+    - [ ] Transfer `ZeroAlloc-Net/ZeroAlloc.Jev` to `MarcelRoozekrans` and rename it `Minos.NET`. GitHub redirects old URLs, so the published benchmark run links keep working.
+    - [ ] Re-create `RELEASE_PLEASE_TOKEN` on the personal repository. It was an org secret.
+    - [ ] Check that the `live-api` environment came along with `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY` and its `main`-only branch policy.
+    - [ ] Re-create the `main` ruleset with the required checks: `build`, `aot-smoke`, `aot-surface`, `smoke / benchmarks`, and `release-tracking` on release PRs. Not `docs`: it only runs when docs change.
+    - [ ] Enable Renovate for the repository; it uses the `local>MarcelRoozekrans/renovate-config` preset.
+    - [ ] GitHub Pages: set the source to "GitHub Actions", then run `docs.yml` and check https://marcelroozekrans.github.io/Minos.NET/.
+    - [ ] Redirect `jev.zeroalloc.net` to the Pages URL. Then open a ZeroAlloc-Net/.website PR that removes `repos/jev`, `apps/docs-jev` and the home-page entry, and retire the `za-docs-jev` Cloudflare project.
+    - [ ] Run Live smoke on `main` and expect 13/13. Its variables are now `MINOS_LIVE*`.
+    - [ ] Check that the first release-please run on the personal repository opens its PR.
+    - [ ] Delete `tools/rename/` once the PR is merged, together with the guard's exclusion for it.
 - **Old Phase 5.5 (1.0 release):** removed from Milestone 5 and folded into Phase 7.4.
   - Its reviewed pipeline work sits on the local branch `phase/5.5-release`, not pushed:
     - inspection script;
@@ -25,7 +46,7 @@
   - At Phase 7.4, rebase or replay that branch onto the renamed code and update the package ids.
 
 ## Open Decisions
-- **Package name (blocks any publish).** The maintainer proposes repositioning the library as a provider-neutral decision client, for example `ZeroAlloc.Decisions` with provider packages, because OpenAI's Decisions API and Cloudflare's Clef have launched. The proposal is recorded verbatim in `docs/plans/2026-10-09-provider-neutral-direction.md`, items 1 to 6.
+- **Name: decided 2026-10-09: Minos.** The repository moves to `MarcelRoozekrans/Minos.NET` and leaves the ZeroAlloc org. Packages are `Minos.NET[.X]`, the namespace is `Minos`, analyzer IDs are `MIN`. See the Phase 6.1 spec. The repositioning as a provider-neutral decision client follows OpenAI's Decisions API and Cloudflare's Clef launching. The proposal is recorded verbatim in `docs/plans/2026-10-09-provider-neutral-direction.md`, items 1 to 6.
   - **Item 1, blocking:** rename packages, namespaces, `[JevQuestions]`, `IJevClient`, `JevError`, the JEV analyzer IDs and the docs site before the first NuGet publish.
   - Nothing is published under `ZeroAlloc.Jev` yet; both ids were still free on nuget.org on 2026-10-09.
 - **Issues:** items 1–6 are tracked in #120 (new) and #115–#119, updated on 2026-10-09 to the revised text; #29 and #28 re-pointed to Phase 7.4.
@@ -44,7 +65,7 @@
 - **Website updates:**
   - .website's bot "update submodules" PRs hold their `build` run (`action_required`). Approve it with `gh api -X POST repos/ZeroAlloc-Net/.website/actions/runs/<id>/approve`, then merge with `--admin`, after asking the maintainer.
   - jev.zeroalloc.net only updates when that PR merges.
-- **Org-wide publishing:** the per-repository publish jobs have drifted; one shared workflow is tracked in ZeroAlloc-Net/.github#49. Jev's job already matches its target.
+- **Org-wide publishing:** ZeroAlloc-Net/.github#49 tracks one shared publish workflow for the org. It no longer applies here: Minos publishes the way Thalos.NET does.
 - **CI on a branch without a PR:** `gh workflow run ci.yml --ref <branch>`. Add `-f aot-smoke-runs=20` to repeat the AOT smoke run.
 
 ## What Phase 5.4 shipped

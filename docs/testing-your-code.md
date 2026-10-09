@@ -2,7 +2,7 @@
 id: testing-your-code
 title: Testing your code
 sidebar_position: 10
-description: Test code that calls Jev with a fake IJevClient or a real JevClient over a canned HTTP reply, and pin each decision.
+description: Test code that calls Jev with a fake IDecisionClient or a real DecisionClient over a canned HTTP reply, and pin each decision.
 ---
 
 # Testing your code
@@ -22,7 +22,7 @@ answers into one of three routes: escalate it, put it in a queue, or send it to 
 
 <!-- snippet: TestingYourCode_Triager -->
 ```cs
-using ZeroAlloc.Jev;
+using Minos;
 
 public enum TriageDesk
 {
@@ -32,7 +32,7 @@ public enum TriageDesk
 }
 
 // Two questions about a ticket's text. The wire keys are the property names in snake_case: is_urgent and desk.
-[JevQuestions]
+[Questions]
 public partial record TriageQuestions
 {
     [Noul("Does this ticket need help right away?")]
@@ -49,12 +49,12 @@ public enum TriageRoute
     Review,
 }
 
-// The class under test. It asks for an IJevClient, so a test can hand it any implementation.
-public sealed class TicketTriager(IJevClient jev)
+// The class under test. It asks for an IDecisionClient, so a test can hand it any implementation.
+public sealed class TicketTriager(IDecisionClient client)
 {
     public async Task<TriageRoute> RouteAsync(string ticketText, CancellationToken cancellationToken)
     {
-        var result = await jev.EvaluateAsync<TriageQuestions>(ticketText, cancellationToken);
+        var result = await client.EvaluateAsync<TriageQuestions>(ticketText, cancellationToken);
         if (result.IsFailure)
         {
             // Jev could not answer, so a person looks at the ticket.
@@ -74,20 +74,20 @@ public sealed class TicketTriager(IJevClient jev)
 ```
 <!-- endSnippet -->
 
-Two things make the class easy to test. It asks for an `IJevClient` in its constructor and does not create a client
+Two things make the class easy to test. It asks for an `IDecisionClient` in its constructor and does not create a client
 itself, so a test can hand it any implementation. And it turns a failed call into a decision, the review, instead of
 throwing, which is the behaviour a test most wants to pin. [Dependency injection](dependency-injection.md) explains how
 a host supplies the real client. A test does not need a container: it builds the class directly, as the tests below do.
 
-## Way one: a fake `IJevClient`
+## Way one: a fake `IDecisionClient`
 
-`IJevClient` is the library's interface for calling Jev, and `JevClient` implements it. A **fake** is a small class of
+`IDecisionClient` is the library's interface for calling Jev, and `DecisionClient` implements it. A **fake** is a small class of
 your own that implements it and returns a fixed reply, with no HTTP at all.
 
 A fake implements only two members:
 
 - `EvaluateAsync(SystemOneRequest, CancellationToken)`, which takes the request and returns a `Result` of a response or
-  a [`JevError`](client-and-errors.md#errors);
+  a [`DecisionError`](client-and-errors.md#errors);
 - `ListModelsAsync`, which your code probably never calls, so the fake can throw.
 
 Every other member of the interface, such as the typed `EvaluateAsync<T>` calls your code makes, has a default
@@ -97,11 +97,11 @@ text, `JsonElement` and UTF-8 overloads, all end up in the one method the fake w
 <!-- snippet: TestingYourCode_Fake -->
 ```cs
 using System.Text.Json;
-using ZeroAlloc.Jev;
+using Minos;
 using ZeroAlloc.Results;
 
-// A fake implements the two abstract members. Every other member of IJevClient has a default that calls EvaluateAsync.
-public sealed class FakeJev(Result<SystemOneResponse, JevError> reply) : IJevClient
+// A fake implements the two abstract members. Every other member of IDecisionClient has a default that calls EvaluateAsync.
+public sealed class FakeDecision(Result<SystemOneResponse, DecisionError> reply) : IDecisionClient
 {
     private readonly List<SystemOneRequest> _requests = [];
 
@@ -109,7 +109,7 @@ public sealed class FakeJev(Result<SystemOneResponse, JevError> reply) : IJevCli
     public IReadOnlyList<SystemOneRequest> Requests => _requests;
 
     // A reply that answers both questions of TriageQuestions.
-    public static FakeJev Answering(double urgent, TriageDesk desk, double deskConfidence)
+    public static FakeDecision Answering(double urgent, TriageDesk desk, double deskConfidence)
     {
         // A Choice names its options by the enum member in snake_case, so ProductTeam is product_team.
         var probabilities = new Dictionary<string, double>();
@@ -118,11 +118,11 @@ public sealed class FakeJev(Result<SystemOneResponse, JevError> reply) : IJevCli
             probabilities[JsonNamingPolicy.SnakeCaseLower.ConvertName(option.ToString())] = option == desk ? 0.7 : 0.15;
         }
 
-        return new FakeJev(Result<SystemOneResponse, JevError>.Success(new SystemOneResponse
+        return new FakeDecision(Result<SystemOneResponse, DecisionError>.Success(new SystemOneResponse
         {
             Model = "fake",
-            Usage = new JevUsage { InputTokens = 1, OutputTokens = 1 },
-            Answers = new Dictionary<string, JevAnswer>
+            Usage = new DecisionUsage { InputTokens = 1, OutputTokens = 1 },
+            Answers = new Dictionary<string, Answer>
             {
                 // The keys are the wire keys of the questions.
                 ["is_urgent"] = new NoulAnswer { Noul = urgent },
@@ -137,24 +137,24 @@ public sealed class FakeJev(Result<SystemOneResponse, JevError> reply) : IJevCli
     }
 
     // A reply that is a failure, as a rejected key or a network error would be.
-    public static FakeJev Failing(JevErrorKind kind)
-        => new(Result<SystemOneResponse, JevError>.Failure(new JevError(kind, "The fake failed on purpose.")));
+    public static FakeDecision Failing(DecisionErrorKind kind)
+        => new(Result<SystemOneResponse, DecisionError>.Failure(new DecisionError(kind, "The fake failed on purpose.")));
 
     // A busy service: the kind and message are the constructor's, the rest are init properties.
-    public static FakeJev Overloaded(TimeSpan retryAfter)
-        => new(Result<SystemOneResponse, JevError>.Failure(new JevError(JevErrorKind.Overloaded, "The fake is busy on purpose.")
+    public static FakeDecision Overloaded(TimeSpan retryAfter)
+        => new(Result<SystemOneResponse, DecisionError>.Failure(new DecisionError(DecisionErrorKind.Overloaded, "The fake is busy on purpose.")
         {
             StatusCode = 503,
             RetryAfter = retryAfter,
         }));
 
-    public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken cancellationToken)
+    public ValueTask<Result<SystemOneResponse, DecisionError>> EvaluateAsync(SystemOneRequest request, CancellationToken cancellationToken)
     {
         _requests.Add(request);
         return ValueTask.FromResult(reply);
     }
 
-    public ValueTask<Result<ModelList, JevError>> ListModelsAsync(CancellationToken cancellationToken = default)
+    public ValueTask<Result<ModelList, DecisionError>> ListModelsAsync(CancellationToken cancellationToken = default)
         => throw new NotSupportedException("This fake does not list models.");
 }
 ```
@@ -176,13 +176,13 @@ request, so the test can check what the code asked.
 [Fact]
 public async Task AnUrgentTicket_IsEscalated_AndTheTicketTextIsWhatWasAsked()
 {
-    var jev = FakeJev.Answering(urgent: 0.92, TriageDesk.Billing, deskConfidence: 0.8);
-    var triager = new TicketTriager(jev);
+    var client = FakeDecision.Answering(urgent: 0.92, TriageDesk.Billing, deskConfidence: 0.8);
+    var triager = new TicketTriager(client);
 
     var route = await triager.RouteAsync("Payouts have been failing for 3 days.", CancellationToken.None);
 
     Assert.Equal(TriageRoute.Escalate, route);
-    Assert.Collection(jev.Requests, request =>
+    Assert.Collection(client.Requests, request =>
     {
         Assert.True(request.State.TryGetString(out var state));
         Assert.Equal("Payouts have been failing for 3 days.", state);
@@ -190,9 +190,9 @@ public async Task AnUrgentTicket_IsEscalated_AndTheTicketTextIsWhatWasAsked()
 }
 
 [Fact]
-public async Task WhenJevFails_ThePersonReviews()
+public async Task WhenDecisionFails_ThePersonReviews()
 {
-    var triager = new TicketTriager(FakeJev.Failing(JevErrorKind.Network));
+    var triager = new TicketTriager(FakeDecision.Failing(DecisionErrorKind.Network));
 
     var route = await triager.RouteAsync("Any ticket.", CancellationToken.None);
 
@@ -221,7 +221,7 @@ the tests are for, so write one row per rule, including the exact edge of each c
 [InlineData(0.10, 0.59, TriageRoute.Review)]
 public async Task EachAnswer_PinsOneDecision(double urgent, double deskConfidence, TriageRoute expected)
 {
-    var triager = new TicketTriager(FakeJev.Answering(urgent, TriageDesk.Technical, deskConfidence));
+    var triager = new TicketTriager(FakeDecision.Answering(urgent, TriageDesk.Technical, deskConfidence));
 
     Assert.Equal(expected, await triager.RouteAsync("A ticket.", CancellationToken.None));
 }
@@ -234,17 +234,17 @@ more. When someone changes a threshold, one row fails, and its values say which 
 such thresholds, see [confidence routing](patterns/confidence-routing.md).
 
 Add a row for each failure you care about as well. The fake's `Failing` method returns an error of any
-[`JevErrorKind`](client-and-errors.md#the-kinds), which is how the test above shows that a network error ends in a
+[`DecisionErrorKind`](client-and-errors.md#the-kinds), which is how the test above shows that a network error ends in a
 review. `Overloaded` shows how to give an error more detail: the constructor takes the kind and the message, and the
 example sets the `StatusCode` and `RetryAfter` init properties. `Detail` and `Exception` are set the same way when
 the failure has them.
 
-## Way two: a real `JevClient` over a canned HTTP reply
+## Way two: a real `DecisionClient` over a canned HTTP reply
 
-A fake never runs `JevClient`. The client replaces the interface's default typed calls with its own request writer
+A fake never runs `DecisionClient`. The client replaces the interface's default typed calls with its own request writer
 and its own parser for the answers, and the defaults send the default model. So a fake cannot tell you that your
 question set builds the request you meant, or that a reply parses into the answers you read. For that, run a real
-`JevClient` and replace only the network. A `JevClient` can take an `HttpClient` you made, and an `HttpClient` can
+`DecisionClient` and replace only the network. A `DecisionClient` can take an `HttpClient` you made, and an `HttpClient` can
 take a **message handler**: the object that actually sends the request. A handler of your own that answers from memory
 means the full client runs, and no packet leaves the machine.
 
@@ -318,9 +318,9 @@ public async Task ARealClient_SendsTheQuestions_AndReadsTheCannedAnswers()
     var handler = new CannedHandler(HttpStatusCode.OK, UrgentBody);
     using var http = new HttpClient(handler);
     // A dummy key passes validation, and no retries means a failing reply is returned at once.
-    using var jev = new JevClient(http, new JevClientOptions { ApiKey = "test-key", MaxRetries = 0 });
+    using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "test-key", MaxRetries = 0 });
 
-    var route = await new TicketTriager(jev).RouteAsync("Payouts have been failing for 3 days.", CancellationToken.None);
+    var route = await new TicketTriager(client).RouteAsync("Payouts have been failing for 3 days.", CancellationToken.None);
 
     Assert.Equal(TriageRoute.Escalate, route);
     Assert.Collection(handler.RequestBodies, sent =>
@@ -336,13 +336,13 @@ public async Task ARejectedKey_BecomesAFailure_AndThePersonReviews()
 {
     var handler = new CannedHandler(HttpStatusCode.Unauthorized, """{"error":"Invalid API key"}""");
     using var http = new HttpClient(handler);
-    using var jev = new JevClient(http, new JevClientOptions { ApiKey = "test-key", MaxRetries = 0 });
+    using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "test-key", MaxRetries = 0 });
 
-    var result = await jev.EvaluateAsync<TriageQuestions>("Any ticket.", CancellationToken.None);
+    var result = await client.EvaluateAsync<TriageQuestions>("Any ticket.", CancellationToken.None);
 
     Assert.True(result.IsFailure);
-    Assert.Equal(JevErrorKind.Unauthorized, result.Error.Kind);
-    Assert.Equal(TriageRoute.Review, await new TicketTriager(jev).RouteAsync("Any ticket.", CancellationToken.None));
+    Assert.Equal(DecisionErrorKind.Unauthorized, result.Error.Kind);
+    Assert.Equal(TriageRoute.Review, await new TicketTriager(client).RouteAsync("Any ticket.", CancellationToken.None));
 }
 ```
 <!-- endSnippet -->
@@ -384,10 +384,10 @@ in a test.
 
 A check against the real API still has a place: a small, optional test that you run by hand, to confirm that a question
 set is understood. Keep it out of the normal run, and have it skip unless someone opts in. This repository's own live
-tests are skipped unless `JEV_LIVE=1` and an API key are set, because their calls are billed.
+tests are skipped unless `MINOS_LIVE=1` and an API key are set, because their calls are billed.
 
 ## Next
 
 - [Patterns](patterns/index.md): four ways to use the answers, with examples that run as tests against canned answers.
 - [Samples](samples.md): three runnable cookbook samples that replay recorded answers instead of calling the API.
-- [The client and its errors](client-and-errors.md): the options, and every `JevError` a test can provoke.
+- [The client and its errors](client-and-errors.md): the options, and every `DecisionError` a test can provoke.

@@ -2,56 +2,56 @@
 id: client-and-errors
 title: The client and its errors
 sidebar_position: 5
-description: Create and configure a JevClient, understand its retries and time-outs, handle every kind of JevError, and use the raw request API.
+description: Create and configure a DecisionClient, understand its retries and time-outs, handle every kind of DecisionError, and use the raw request API.
 ---
 
 # The client and its errors
 
-Every page so far has called `EvaluateAsync` on an `IJevClient`. This page is about that client: how to create one, what
+Every page so far has called `EvaluateAsync` on an `IDecisionClient`. This page is about that client: how to create one, what
 its options do, what happens when a call fails, and how to read the failure. It also covers the raw request API and
 listing models.
 
 The failure side matters because a call to a remote model fails in ordinary ways. The network drops, the key is wrong,
-the service is busy. Jev reports every such failure as a value, a `JevError`, so a failure of the call itself arrives as
-a value to check, not as an exception to catch.
+the service is busy. Minos reports every such failure as a value, a `DecisionError`, so a failure of the call itself
+arrives as a value to check, not as an exception to catch.
 
 ## Creating a client
 
-`JevClient` is the class that implements `IJevClient`. It is thread-safe and meant to live for the whole program: create
+`DecisionClient` is the class that implements `IDecisionClient`. It is thread-safe and meant to live for the whole program: create
 one, share it, and dispose it when the program stops. Creating a client per call wastes connections.
 
 <!-- snippet: ClientAndErrors_Constructors -->
 ```cs
 using Microsoft.Extensions.Logging;
-using ZeroAlloc.Jev;
+using Minos;
 
 public static class ClientConstructors
 {
     // The client creates its own HttpClient, and disposing the client disposes it.
-    public static JevClient Owned(string apiKey)
-        => new(new JevClientOptions { ApiKey = apiKey });
+    public static DecisionClient Owned(string apiKey)
+        => new(new DecisionClientOptions { ApiKey = apiKey });
 
     // You pass an HttpClient you manage, for example one from IHttpClientFactory. The client never disposes it.
-    public static JevClient Borrowed(HttpClient http, string apiKey)
-        => new(http, new JevClientOptions { ApiKey = apiKey });
+    public static DecisionClient Borrowed(HttpClient http, string apiKey)
+        => new(http, new DecisionClientOptions { ApiKey = apiKey });
 
     // Either form also takes an ILoggerFactory, and then logs each operation and each retried attempt.
-    public static JevClient Logged(string apiKey, ILoggerFactory loggers)
-        => new(new JevClientOptions { ApiKey = apiKey }, loggers);
+    public static DecisionClient Logged(string apiKey, ILoggerFactory loggers)
+        => new(new DecisionClientOptions { ApiKey = apiKey }, loggers);
 }
 ```
 <!-- endSnippet -->
 
 There are two families of constructor.
 
-- **The client owns its `HttpClient`.** `new JevClient(options)`, or `new JevClient()` for all defaults. The client
+- **The client owns its `HttpClient`.** `new DecisionClient(options)`, or `new DecisionClient()` for all defaults. The client
   creates the `HttpClient`, applies the options to it, and disposes it in `Dispose`.
-- **You lend an `HttpClient`.** `new JevClient(http, options)`. The client uses it and never disposes it, so whoever
+- **You lend an `HttpClient`.** `new DecisionClient(http, options)`. The client uses it and never disposes it, so whoever
   created it still owns it. This is how a client over `IHttpClientFactory` works, and it is what a test does to put a
   fake handler under the client. Two things follow. The `HttpClient`'s own `BaseAddress` wins over
-  `JevClientOptions.BaseAddress` when it is set, and it must end in `/`. And its own `Timeout` applies, not
-  `JevClientOptions.Timeout`, unless you set it up with `JevClient.ConfigureHttpClient`, which the
-  [dependency injection](dependency-injection.md#using-jev-without-the-package) page shows.
+  `DecisionClientOptions.BaseAddress` when it is set, and it must end in `/`. And its own `Timeout` applies, not
+  `DecisionClientOptions.Timeout`, unless you set it up with `DecisionClient.ConfigureHttpClient`, which the
+  [dependency injection](dependency-injection.md#using-minos-without-the-package) page shows.
 
 Both families take a `null` options object to mean "all defaults and environment variables", and both have an overload
 that also takes an `ILoggerFactory`. With one, the client logs each operation and each retried attempt, as [Logging,
@@ -59,16 +59,16 @@ traces and metrics](observability.md#logging) describes. What it logs never cont
 answers, the API key or a header value.
 
 Two calls with bare `null` literals do not compile (CS0121), because more than one constructor accepts them.
-`new JevClient(null)` matches both `(JevClientOptions?)` and `(HttpClient)`. `new JevClient(null, null)` matches both
-`(JevClientOptions?, ILoggerFactory?)` and `(HttpClient, JevClientOptions?)`; before the logging overloads it compiled
+`new DecisionClient(null)` matches both `(DecisionClientOptions?)` and `(HttpClient)`. `new DecisionClient(null, null)` matches both
+`(DecisionClientOptions?, ILoggerFactory?)` and `(HttpClient, DecisionClientOptions?)`; before the logging overloads it compiled
 and always threw `ArgumentNullException` for the missing `HttpClient`. For all defaults and environment variables, write
-`new JevClient()`. Any other call resolves once its `null` has a type, for example
-`new JevClient((JevClientOptions?)null)`.
+`new DecisionClient()`. Any other call resolves once its `null` has a type, for example
+`new DecisionClient((DecisionClientOptions?)null)`.
 
 A client throws instead of returning a failure only for mistakes in the calling code. A missing API key, an invalid
 option or a `null` request throws when you create the client or make the call. Calling a disposed client throws
 `ObjectDisposedException`. Cancelling the `CancellationToken` you passed throws `OperationCanceledException`, because
-you asked for it. Everything else, including every network and service failure, comes back as a `JevError`.
+you asked for it. Everything else, including every network and service failure, comes back as a `DecisionError`.
 
 ### Disposing a client
 
@@ -77,7 +77,7 @@ you asked for it. Everything else, including every network and service failure, 
 - **A call started after `Dispose`** throws `ObjectDisposedException`, because calling a disposed client is a mistake in
   the calling code.
 - **A call already in flight** over an `HttpClient` the client created is torn down with that `HttpClient`. It returns
-  a `JevError` of kind `Disposed`, not `Timeout` or `Network`, so you can tell it apart from a real failure. A real
+  a `DecisionError` of kind `Disposed`, not `Timeout` or `Network`, so you can tell it apart from a real failure. A real
   time-out that was mapped before `Dispose` set its flag keeps `Timeout` when no retry is left.
 - **A call already in flight over an `HttpClient` you lent** is not torn down, because the client never disposes that
   `HttpClient`. The attempt in flight keeps its own result.
@@ -86,11 +86,11 @@ you asked for it. Everything else, including every network and service failure, 
 
 ## Options
 
-`JevClientOptions` has nine properties, and every one is optional.
+`DecisionClientOptions` has nine properties, and every one is optional.
 
 | Property | Default | Valid values | What it does |
 | --- | --- | --- | --- |
-| `Provider` | `JevProvider.TypeSafe` | `TypeSafe` or `OpenRouter` | Where requests go. |
+| `Provider` | `DecisionProvider.TypeSafe` | `TypeSafe` or `OpenRouter` | Where requests go. |
 | `ApiKey` | none | any text without control characters; blank counts as unset | The key sent as a bearer token. When unset, the client reads `TYPESAFE_API_KEY`, or `OPENROUTER_API_KEY` for OpenRouter. |
 | `BaseAddress` | the provider's address | absolute `http` or `https` URI, no query or fragment | The API root, for a proxy or a test server. When unset, the client reads `TYPESAFE_BASE_URL` for TypeSafe only, then uses `https://api.typesafe.ai/` or `https://openrouter.ai/api/`. |
 | `Model` | `jev-latest` | not blank | The model that typed evaluation and built question sets ask: an alias such as `jev-latest` (or TypeSafe's `jev-preview`), or a versioned id such as `jev-1.13.0`. See [Listing models](#listing-models). |
@@ -112,11 +112,11 @@ is here so the table above has code to match.
 // Every option set to the value it has when you leave it out, apart from the API key, which has no default:
 // without one, the client reads TYPESAFE_API_KEY, or OPENROUTER_API_KEY for OpenRouter.
 // BaseAddress is also left out: it defaults to the provider's own address.
-public static JevClientOptions SpelledOut(string apiKey)
+public static DecisionClientOptions SpelledOut(string apiKey)
     => new()
     {
         ApiKey = apiKey,
-        Provider = JevProvider.TypeSafe,
+        Provider = DecisionProvider.TypeSafe,
         Model = "jev-latest",
         Timeout = TimeSpan.FromSeconds(60),
         MaxRetries = 2,
@@ -129,10 +129,10 @@ public static JevClientOptions SpelledOut(string apiKey)
 
 A `SystemOneRequest` names its own model, so `Model` applies to typed evaluation and to question sets only.
 
-### JevDefaults
+### DecisionDefaults
 
-`JevDefaults` is the static class that holds the values the client falls back on. Use it instead of typing the same
-text yourself, for example to send `JevDefaults.Model` explicitly or to name an environment variable in a message.
+`DecisionDefaults` is the static class that holds the values the client falls back on. Use it instead of typing the same
+text yourself, for example to send `DecisionDefaults.Model` explicitly or to name an environment variable in a message.
 
 | Member | Value | What it is |
 | --- | --- | --- |
@@ -153,7 +153,7 @@ start-up.
 ```cs
 // Validate runs the check the constructors run, without creating a client. It throws ArgumentException for a value
 // that is out of range, and InvalidOperationException when no API key can be found.
-public static string? Problem(JevClientOptions options)
+public static string? Problem(DecisionClientOptions options)
 {
     try
     {
@@ -178,7 +178,7 @@ fail in the constructor, it can only be because an environment variable changed 
 
 ## Retries
 
-Jev retries a failed call for you. These failures are retried:
+Minos retries a failed call for you. These failures are retried:
 
 - rate limiting, HTTP 429;
 - overload, HTTP 503 and 529;
@@ -198,7 +198,7 @@ extra of up to half its length, and a wait never exceeds `MaxRetryDelay`. Each r
 <!-- snippet: ClientAndErrors_Retries -->
 ```cs
 // Four retries, waiting about 1 s, 2 s, 4 s and then 8 s, each wait at most 20 s.
-public static JevClientOptions Patient(string apiKey)
+public static DecisionClientOptions Patient(string apiKey)
     => new()
     {
         ApiKey = apiKey,
@@ -208,23 +208,23 @@ public static JevClientOptions Patient(string apiKey)
     };
 
 // No retries: a failed call is reported at once. Use this where a duplicate, billed request is worse than a failure.
-public static JevClientOptions NoRetries(string apiKey)
+public static DecisionClientOptions NoRetries(string apiKey)
     => new() { ApiKey = apiKey, MaxRetries = 0 };
 ```
 <!-- endSnippet -->
 
 ### Retry-After
 
-A busy service usually says how long to wait. Jev reads two headers: `retry-after-ms`, in milliseconds, and the standard
-`Retry-After`, either as a number of seconds or as an HTTP date. When both are present, `retry-after-ms` wins, provided
-it is a non-negative number. An invalid `retry-after-ms` is ignored and `Retry-After` is used. The wait replaces the
-backoff for the next attempt and is waited for as asked, never beyond `MaxRetryDelay`. A server that asks for an hour is
-waited for `MaxRetryDelay`, 30 seconds by default, and then asked again. The value is also available to you, as
-`JevError.RetryAfter`, on a failure that comes back.
+A busy service usually says how long to wait. Minos reads two headers: `retry-after-ms`, in milliseconds, and the
+standard `Retry-After`, either as a number of seconds or as an HTTP date. When both are present, `retry-after-ms` wins,
+provided it is a non-negative number. An invalid `retry-after-ms` is ignored and `Retry-After` is used. The wait
+replaces the backoff for the next attempt and is waited for as asked, never beyond `MaxRetryDelay`. A server that asks
+for an hour is waited for `MaxRetryDelay`, 30 seconds by default, and then asked again. The value is also available to
+you, as `DecisionError.RetryAfter`, on a failure that comes back.
 
 TypeSafe's [API reference](https://docs.typesafe.ai/api) asks clients to back off exponentially on a 429 or 529, and
-does not say whether those responses carry either header; its official Python SDK reads both. Jev's own live runs
-have not yet met a 429 or 529, so as of October 2026 whether TypeSafe sends a wait is unconfirmed. Either way the
+does not say whether those responses carry either header; its official Python SDK reads both. This library's own live
+runs have not yet met a 429 or 529, so as of October 2026 whether TypeSafe sends a wait is unconfirmed. Either way the
 client behaves correctly: it waits as asked when a header is present, and backs off when none is.
 
 ### The cost of retrying
@@ -234,38 +234,38 @@ the server may already have processed it, and it may charge for it. Retrying the
 processed, and charged, again. If a duplicate charge matters more to you than resilience, set `MaxRetries = 0`.
 
 If you route the client through a handler that retries by itself, such as a standard resilience handler, set
-`MaxRetries = 0` too. Otherwise the two sets of retries multiply: three attempts of Jev's inside each of three attempts
-of the handler is nine requests.
+`MaxRetries = 0` too. Otherwise the two sets of retries multiply: three attempts of the client inside each of three
+attempts of the handler is nine requests.
 
 ## Time-outs
 
 `Timeout` bounds one attempt, not the whole call. A call with retries can take up to `(MaxRetries + 1) times Timeout`
 plus the waits between attempts. Its time-out applies to a client that owns its `HttpClient`, and to one you set up with
-`JevClient.ConfigureHttpClient`, as `AddJevClient` does. An `HttpClient` you pass without that keeps its own `Timeout`,
+`DecisionClient.ConfigureHttpClient`, as `AddDecisionClient` does. An `HttpClient` you pass without that keeps its own `Timeout`,
 which is 100 seconds unless you changed it.
 
 <!-- snippet: ClientAndErrors_Timeouts -->
 ```cs
 // Each attempt may take 10 s, and there is one retry. The worst case for one call is therefore two attempts of
 // 10 s each, plus one wait of at most MaxRetryDelay between them.
-public static JevClientOptions Strict(string apiKey)
+public static DecisionClientOptions Strict(string apiKey)
     => new() { ApiKey = apiKey, Timeout = TimeSpan.FromSeconds(10), MaxRetries = 1 };
 ```
 <!-- endSnippet -->
 
-An attempt that takes longer than `Timeout` fails with `JevErrorKind.Timeout`, and is retried like any transient
+An attempt that takes longer than `Timeout` fails with `DecisionErrorKind.Timeout`, and is retried like any transient
 failure. Cancelling your own `CancellationToken` is different: it stops the call at once and throws, with no retry.
 
 ## Errors
 
-A failed call returns a `JevError`. Its `Kind` says what went wrong, and the other members add detail when there is any.
+A failed call returns a `DecisionError`. Its `Kind` says what went wrong, and the other members add detail when there is any.
 
-You can build one yourself, for a test fake, with `new JevError(kind, message)`. `StatusCode`, `RetryAfter`, `Detail`
+You can build one yourself, for a test fake, with `new DecisionError(kind, message)`. `StatusCode`, `RetryAfter`, `Detail`
 and `Exception` are `init` properties, so set only the ones that apply with an object initializer.
 
 | Member | Holds |
 | --- | --- |
-| `Kind` | A `JevErrorKind`: the cause, listed below. |
+| `Kind` | A `DecisionErrorKind`: the cause, listed below. |
 | `Message` | A short description in English. The response body is in `Detail`, not here. |
 | `StatusCode` | The HTTP status, or `null` when no response arrived. |
 | `RetryAfter` | How long the service asked you to wait, or `null`. |
@@ -288,10 +288,10 @@ OpenRouter's errors use its own shape, `{"error":{"message":"…","code":400}}`.
 ```cs
 // TypeSafe answers a 422 with a list of problems. Each one says where it is, as a path such as body.questions,
 // and what is wrong. Other errors carry a different body, and a problem may be malformed, so check each shape.
-public static IReadOnlyList<string> List(JevError error)
+public static IReadOnlyList<string> List(DecisionError error)
 {
     var problems = new List<string>();
-    if (error is not { Kind: JevErrorKind.Validation, Detail: { ValueKind: JsonValueKind.Object } body }
+    if (error is not { Kind: DecisionErrorKind.Validation, Detail: { ValueKind: JsonValueKind.Object } body }
         || !body.TryGetProperty("detail", out var detail)
         || detail.ValueKind != JsonValueKind.Array)
     {
@@ -326,9 +326,9 @@ public static IReadOnlyList<string> List(JevError error)
 
 ### The kinds
 
-The values start at 1, so `default(JevErrorKind)` is no kind.
+The values start at 1, so `default(DecisionErrorKind)` is no kind.
 
-| `JevErrorKind` | When | Retried | What to do |
+| `DecisionErrorKind` | When | Retried | What to do |
 | --- | --- | --- | --- |
 | `Unauthorized` | HTTP 401 or 403: the key is missing, wrong or lacks access. | No | Fix the key. Retrying cannot help. |
 | `Validation` | HTTP 400 or 422: the request was rejected. `Detail` usually names the field. | No | Fix the request. This is a bug in the questions or the state. |
@@ -354,21 +354,21 @@ kinds.
 
 <!-- snippet: ClientAndErrors_Failures -->
 ```cs
-// Every failure of a call comes back as a JevError. Kind says what to do about it. The other members
+// Every failure of a call comes back as a DecisionError. Kind says what to do about it. The other members
 // add detail when there is some: StatusCode, RetryAfter, Detail and Exception.
-public static string Describe(JevError error) => error.Kind switch
+public static string Describe(DecisionError error) => error.Kind switch
 {
-    JevErrorKind.Unauthorized => "Jev rejected the API key. Check the key and what it may access.",
-    JevErrorKind.Validation => $"Jev rejected the request: {error.Detail?.GetRawText() ?? error.Message}",
-    JevErrorKind.RateLimited or JevErrorKind.Overloaded when error.RetryAfter is { } wait
-        => $"Jev is busy. It asks for {(int)wait.TotalMilliseconds} ms before the next call.",
-    JevErrorKind.RateLimited or JevErrorKind.Overloaded => "Jev is busy. Try again later.",
-    JevErrorKind.Server or JevErrorKind.Http => $"Jev failed with HTTP {error.StatusCode}: {error.Message}",
-    JevErrorKind.Network or JevErrorKind.Timeout => $"Jev could not be reached: {error.Exception?.Message ?? error.Message}",
-    JevErrorKind.InvalidResponse => $"Jev replied with something unreadable: {error.Message}",
-    JevErrorKind.Unsupported => $"The provider cannot do that: {error.Message}",
-    JevErrorKind.InvalidQuestions => $"The question set is invalid, {error.Failures.Count} rules broken.",
-    JevErrorKind.Disposed => "The client was disposed while the call was running.",
+    DecisionErrorKind.Unauthorized => "The service rejected the API key. Check the key and what it may access.",
+    DecisionErrorKind.Validation => $"The service rejected the request: {error.Detail?.GetRawText() ?? error.Message}",
+    DecisionErrorKind.RateLimited or DecisionErrorKind.Overloaded when error.RetryAfter is { } wait
+        => $"The service is busy. It asks for {(int)wait.TotalMilliseconds} ms before the next call.",
+    DecisionErrorKind.RateLimited or DecisionErrorKind.Overloaded => "The service is busy. Try again later.",
+    DecisionErrorKind.Server or DecisionErrorKind.Http => $"The service failed with HTTP {error.StatusCode}: {error.Message}",
+    DecisionErrorKind.Network or DecisionErrorKind.Timeout => $"The service could not be reached: {error.Exception?.Message ?? error.Message}",
+    DecisionErrorKind.InvalidResponse => $"The service replied with something unreadable: {error.Message}",
+    DecisionErrorKind.Unsupported => $"The provider cannot do that: {error.Message}",
+    DecisionErrorKind.InvalidQuestions => $"The question set is invalid, {error.Failures.Count} rules broken.",
+    DecisionErrorKind.Disposed => "The client was disposed while the call was running.",
 
     // A kind added in a later version still produces a useful message.
     _ => error.ToString(),
@@ -376,8 +376,8 @@ public static string Describe(JevError error) => error.Kind switch
 ```
 <!-- endSnippet -->
 
-The same `JevError` comes back from every evaluate call: typed, built at run time or raw. A
-[fake `IJevClient`](testing-your-code.md#way-one-a-fake-ijevclient) in a test can return one too.
+The same `DecisionError` comes back from every evaluate call: typed, built at run time or raw. A
+[fake `IDecisionClient`](testing-your-code.md#way-one-a-fake-idecisionclient) in a test can return one too.
 
 ## The raw request API
 
@@ -390,13 +390,13 @@ layer.
 ```cs
 // The raw API names its own model and questions, with ids you choose. Use it when the questions are not known at
 // compile time and the question set builder does not fit. Typed evaluation is shorter wherever it can be used.
-public static async Task<string> UrgencyAsync(IJevClient jev, string message, CancellationToken cancellationToken)
+public static async Task<string> UrgencyAsync(IDecisionClient client, string message, CancellationToken cancellationToken)
 {
-    var result = await jev.EvaluateAsync(
+    var result = await client.EvaluateAsync(
         new SystemOneRequest
         {
             State = message,
-            Questions = new Dictionary<string, JevQuestion>
+            Questions = new Dictionary<string, Question>
             {
                 ["is_urgent"] = new NoulQuestion { Instructions = "Does this convey urgency?" },
             },
@@ -417,8 +417,8 @@ public static async Task<string> UrgencyAsync(IJevClient jev, string message, Ca
 ```
 <!-- endSnippet -->
 
-A `SystemOneRequest` has a required `State`, which is a `JevContent` (text converts to one, as
-[typed evaluation](typed-evaluation.md#jevcontent) describes), a `Model` that defaults to `jev-latest`, and required
+A `SystemOneRequest` has a required `State`, which is a `DecisionContent` (text converts to one, as
+[typed evaluation](typed-evaluation.md#decisioncontent) describes), a `Model` that defaults to `jev-latest`, and required
 `Questions`. The response is a `SystemOneResponse`: the versioned `Model` that answered, `Answers` keyed by the ids you
 sent, and `Usage` with the input and output token counts. Only input tokens are billed. On OpenRouter the response also
 carries the generation `Id` and the upstream `Provider`, and `Usage` carries the `Cost` in US dollars.
@@ -429,6 +429,42 @@ where the generator, the [analyzers](diagnostics.md) and the
 [question set builder](question-sets-at-run-time.md) check them for you. A question the service rejects comes back as a
 `Validation` error.
 
+### When your code has its own Question or Answer
+
+The raw API's base types are `Minos.Question` and `Minos.Answer`. If your application has a `Question` or `Answer` of
+its own, a file that imports both namespaces cannot name either type bare: the compiler reports CS0104, an ambiguous
+reference. A `using` alias settles it, because an alias outranks a namespace import. Alias your own type to the short
+name, and give Minos's type a name of its own.
+
+<!-- snippet: ClientAndErrors_NameClash -->
+```cs
+using Minos;
+using Shop.Surveys;
+
+// Shop.Surveys and Minos both have a Question, so a bare Question in this file would be ambiguous: error CS0104. An
+// alias outranks a using of a whole namespace, so these two settle it. Question is your own, MinosQuestion is Minos's.
+using Question = Shop.Surveys.Question;
+using MinosQuestion = Minos.Question;
+
+public static class SurveyRequests
+{
+    // Each survey question becomes a yes/no question in a raw request, under the survey question's own key.
+    public static SystemOneRequest ToRequest(Survey survey, string state)
+    {
+        var questions = new Dictionary<string, MinosQuestion>(StringComparer.Ordinal);
+        foreach (Question question in survey.Questions)
+        {
+            questions[question.Key] = new NoulQuestion { Instructions = question.Text };
+        }
+
+        return new SystemOneRequest { State = state, Questions = questions };
+    }
+}
+```
+<!-- endSnippet -->
+
+Code in a namespace under `Minos` never sees the clash: it finds Minos's types first.
+
 ## Listing models
 
 `ListModelsAsync` returns the models and aliases your account can name in a `SystemOneRequest`: a `ModelList` of
@@ -436,9 +472,9 @@ where the generator, the [analyzers](diagnostics.md) and the
 
 <!-- snippet: ClientAndErrors_Models -->
 ```cs
-public static async Task<string> ModelsAsync(IJevClient jev, CancellationToken cancellationToken)
+public static async Task<string> ModelsAsync(IDecisionClient client, CancellationToken cancellationToken)
 {
-    var result = await jev.ListModelsAsync(cancellationToken);
+    var result = await client.ListModelsAsync(cancellationToken);
     if (result.IsFailure)
     {
         return ClientFailures.Describe(result.Error);

@@ -11,7 +11,7 @@ usage='Usage: run.sh [options]
                           shells, upper case and cut to 15 characters, as .NET reports it.
   --project <name>        The project under test. It names the .NET projects <name>.Benchmarks.Mock and
                           <name>.Benchmarks.Compare under the bench root, and marks the project'"'"'s rows in the table.
-                          Default: ZeroAlloc.Jev.
+                          Default: Minos.NET.
   --bench-root <dir>      The folder holding those two projects, which are required, and compare-js and compare-py,
                           which are run when present. Default: the benchmarks folder of this repository.
   --results <dir>         Where results go, in a <machine> subfolder. Default: results next to this script.
@@ -46,7 +46,7 @@ default_machine() {
 here="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 smoke=false
 machine="$(default_machine)"
-project='ZeroAlloc.Jev'
+project='Minos.NET'
 bench_root="$here/.."
 results_root="$here/results"
 port=5005

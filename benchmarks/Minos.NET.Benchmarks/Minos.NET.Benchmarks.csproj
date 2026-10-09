@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Minos.Benchmarks</RootNamespace>
+    <Optimize>true</Optimize>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Minos.NET\Minos.NET.csproj" />
+    <ProjectReference Include="..\..\src\Minos.NET.DependencyInjection\Minos.NET.DependencyInjection.csproj" />
+    <ProjectReference Include="..\..\src\Minos.NET.Generator\Minos.NET.Generator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+    <ProjectReference Include="..\..\src\Minos.NET.Analyzers\Minos.NET.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="BenchmarkDotNet" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The AOT smoke app's discarding logger factory and yielding handler, one file each for both, so the two measure the same things. -->
+    <Compile Include="..\..\samples\Minos.NET.AotSmoke\DiscardingLoggerFactory.cs" Link="Shared\DiscardingLoggerFactory.cs" />
+    <Compile Include="..\..\samples\Minos.NET.AotSmoke\YieldingHandler.cs" Link="Shared\YieldingHandler.cs" />
+    <Compile Include="..\..\samples\Minos.NET.AotSmoke\DiscardingTelemetry.cs" Link="Shared\DiscardingTelemetry.cs" />
+  </ItemGroup>
+</Project>

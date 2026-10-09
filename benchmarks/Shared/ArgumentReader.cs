@@ -1,4 +1,4 @@
-namespace ZeroAlloc.Jev.Benchmarks.Shared;
+namespace Minos.Benchmarks.Shared;
 
 /// <summary>
 /// The argument reading the mock and the harness share, so both treat a missing or bad value the same way: an

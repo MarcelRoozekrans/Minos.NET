@@ -29,18 +29,40 @@ jobs:
           manifest-file: .release-please-manifest.json
           token: ${{ secrets.RELEASE_PLEASE_TOKEN }}
 
-  # Shared from ZeroAlloc-Net/.github: moves unshipped analyzer rules and public API to shipped on the release PR.
+  # Moves unshipped analyzer rules and public API to shipped on the release PR branch, so the release commit carries
+  # the move. Formerly shared from ZeroAlloc-Net/.github; the script now lives in tools/release.
   ship-release-tracking:
     needs: release-please
     if: ${{ needs.release-please.outputs.prs_created == 'true' }}
-    uses: ZeroAlloc-Net/.github/.github/workflows/ship-release-tracking.yml@main
-    with:
-      branch: ${{ fromJSON(needs.release-please.outputs.pr).headBranchName }}
-    secrets:
-      RELEASE_TOKEN: ${{ secrets.RELEASE_PLEASE_TOKEN }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ fromJSON(needs.release-please.outputs.pr).headBranchName }}
+          token: ${{ secrets.RELEASE_PLEASE_TOKEN || github.token }}
+
+      - name: Move Unshipped entries to Shipped
+        run: |
+          set -euo pipefail
+          version=$(jq -r '."." // empty' .release-please-manifest.json)
+          if [ -z "$version" ]; then
+            echo "::error::.release-please-manifest.json has no \".\" entry; only single-component manifests are supported"
+            exit 1
+          fi
+          python3 tools/release/ship_release_tracking.py "$version"
+          if git diff --quiet; then
+            echo "Nothing unshipped for $version."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "chore: mark analyzer rules and public api shipped in $version"
+          git push
 
   # No publish job: NuGet publishing is deliberately absent until the maintainer declares the package mature.
-  # Phase 5.5's publishing job must pass -p:JevRelease=true to the build and to the pack alike: without it,
+  # Phase 5.5's publishing job must pass -p:MinosRelease=true to the build and to the pack alike: without it,
   # Directory.Build.props versions every build <release>-local, so a local pack never takes the published
   # package's version. The version is compiled into the DLLs, so a pack --no-build after a build without the
   # switch would ship release-numbered packages whose DLLs, and User-Agent, still say -local.

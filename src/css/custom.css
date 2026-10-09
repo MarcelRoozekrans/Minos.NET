@@ -1,0 +1,29 @@
+/**
+ * The Minos theme: Infima's defaults with the brand's Minoan bronze (#A86B24, docs/design/LOGO.md) as the primary
+ * colour. Links take the primary colour, so each theme uses the bronze shade that keeps them at 4.5:1 or better on
+ * its background: #8F5B1F on white (5.8:1), and #D9A05B on the dark theme's #1B1B1D (7.5:1). The brand value itself
+ * is 4.4:1 on white, just short.
+ */
+
+:root {
+  --ifm-color-primary: #8f5b1f;
+  --ifm-color-primary-dark: #81521c;
+  --ifm-color-primary-darker: #7a4d1a;
+  --ifm-color-primary-darkest: #644016;
+  --ifm-color-primary-light: #ab6d25;
+  --ifm-color-primary-lighter: #b87528;
+  --ifm-color-primary-lightest: #d58f3e;
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #d9a05b;
+  --ifm-color-primary-dark: #d39242;
+  --ifm-color-primary-darker: #d08a35;
+  --ifm-color-primary-darkest: #af7229;
+  --ifm-color-primary-light: #ddaa6b;
+  --ifm-color-primary-lighter: #dfae74;
+  --ifm-color-primary-lightest: #e4bc8c;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 0, 0, 0.3);
+}

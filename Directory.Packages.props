@@ -55,13 +55,13 @@
       enables so binding uses no reflection. Its floor is the first .NET 10 release, as for Microsoft.Extensions.Http.
     -->
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0" />
-    <!-- Runtime question set validation: its generators validate ZeroAlloc.Jev's own specs; NuGet still flows them to consumers, where they stay inert, NuGet/Home#6720 -->
+    <!-- Runtime question set validation: its generators validate Minos.NET's own specs; NuGet still flows them to consumers, where they stay inert, NuGet/Home#6720 -->
     <PackageVersion Include="ZeroAlloc.Validation" Version="2.1.0" />
     <!-- Benchmarks -->
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
     <!--
       Benchmark-only: the community Jev clients the comparison harness measures. Only
-      benchmarks/ZeroAlloc.Jev.Benchmarks.Compare references them; nothing in src/ or the library's tests does. The
+      benchmarks/Minos.NET.Benchmarks.Compare references them; nothing in src/ or the library's tests does. The
       versions are the ones docs/plans/2026-10-04-phase-5.2-library-checks.md checked.
     -->
     <PackageVersion Include="JevSharp" Version="0.2.0" />

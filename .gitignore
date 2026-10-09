@@ -23,6 +23,7 @@ mono_crash.*
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
+!/tools/release/
 [Rr]eleases/
 x64/
 x86/
@@ -487,3 +488,10 @@ $RECYCLE.BIN/
 
 # The comparison runner's per-machine output; the published runs sit in benchmarks/compare/results/ itself.
 benchmarks/compare/results/*/
+
+# Screenshots and logs the Playwright MCP server writes into the working directory.
+.playwright-mcp/
+
+# The Docusaurus site: its build output and cache at the repository root. node_modules/ is ignored above.
+/build/
+/.docusaurus/

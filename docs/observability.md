@@ -2,18 +2,18 @@
 id: observability
 title: Logging, traces and metrics
 sidebar_position: 7
-description: What the Jev client logs, which spans and metrics it emits, what it never records, and what listening costs.
+description: What the Minos client logs, which spans and metrics it emits, what it never records, and what listening costs.
 ---
 
 # Logging, traces and metrics
 
 A client that calls a remote model needs to be observable: you want to know how long each call took, which ones failed
-and why, how many tokens you used, and how sure Jev was. `JevClient` reports all of this through the three signals that
+and why, how many tokens you used, and how sure Jev was. `DecisionClient` reports all of this through the three signals that
 .NET has built in:
 
 - **Logs**, through `Microsoft.Extensions.Logging`, when you give the client an `ILoggerFactory`.
-- **Traces**, as `System.Diagnostics` spans, from an `ActivitySource` named `ZeroAlloc.Jev`.
-- **Metrics**, as `System.Diagnostics.Metrics` instruments, from a `Meter` named `ZeroAlloc.Jev`.
+- **Traces**, as `System.Diagnostics` spans, from an `ActivitySource` named `Minos`.
+- **Metrics**, as `System.Diagnostics.Metrics` instruments, from a `Meter` named `Minos`.
 
 All three describe the call and never its content. Your state, your questions, the answers, your API key and the
 server's error text stay out of every one of them, and the sections below say exactly where the line is drawn. All
@@ -27,7 +27,7 @@ Pass an `ILoggerFactory` when you create the client, as [the client page](client
 Without one, or with `null`, the client logs nothing. A client that [dependency injection](dependency-injection.md)
 registers logs through the container's `ILoggerFactory`, so there is nothing to pass.
 
-The client logs in the category `ZeroAlloc.Jev.JevClient`. This example makes one evaluation and returns what was
+The client logs in the category `Minos.DecisionClient`. This example makes one evaluation and returns what was
 logged. `FakeLoggerProvider`, from `Microsoft.Extensions.Diagnostics.Testing`, keeps the records in memory. An
 application would add a real provider, such as the console, instead.
 
@@ -39,10 +39,10 @@ dotnet add package Microsoft.Extensions.Diagnostics.Testing
 ```cs
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
-using ZeroAlloc.Jev;
+using Minos;
 
 // One question, so that the events are easy to read.
-[JevQuestions]
+[Questions]
 public partial record ObservedUrgency
 {
     [Noul("Does this convey urgency?")]
@@ -54,16 +54,16 @@ public static class ObservedLogging
     // A client logs through the ILoggerFactory it is given. FakeLoggerProvider keeps every record in memory, which
     // is what a test wants. An application would add its own provider instead, such as the console or Serilog.
     public static async Task<IReadOnlyList<FakeLogRecord>> EvaluateAndCollectAsync(
-        HttpClient http, JevClientOptions options, CancellationToken cancellationToken)
+        HttpClient http, DecisionClientOptions options, CancellationToken cancellationToken)
     {
         using var provider = new FakeLoggerProvider();
         using var loggers = LoggerFactory.Create(builder => builder
             .AddProvider(provider)
             .SetMinimumLevel(LogLevel.Debug));
-        using var jev = new JevClient(http, options, loggers);
+        using var client = new DecisionClient(http, options, loggers);
 
         // The result is not inspected here: each outcome, a success or a failure, is one log event.
-        await jev.EvaluateAsync<ObservedUrgency>("Help! The server is down.", cancellationToken);
+        await client.EvaluateAsync<ObservedUrgency>("Help! The server is down.", cancellationToken);
 
         return provider.Collector.GetSnapshot();
     }
@@ -78,12 +78,12 @@ such as a JSON console or Serilog, receives each `{Placeholder}` below as a fiel
 
 | Id | Event | Level | Message template |
 | --- | --- | --- | --- |
-| 1001 | `EvaluationSucceeded` | Debug | `Jev {Operation} on {Model} via {Provider} succeeded: {QuestionCount} questions in {DurationMs} ms.` |
-| 1002 | `EvaluationFailed` | Warning | `Jev {Operation} on {Model} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}` |
-| 1003 | `AttemptRetrying` | Warning | `Jev attempt {Attempt} failed with {ErrorKind}, status {StatusCode}, retry-after {RetryAfter}; retrying.` |
-| 1004 | `ModelsListed` | Debug | `Jev list-models via {Provider} succeeded: {ModelCount} models in {DurationMs} ms.` |
-| 1005 | `ModelsListFailed` | Warning | `Jev list-models via {Provider} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}` |
-| 1006 | `UnexpectedException` | Error | `Jev {Operation} threw an unexpected exception.` The exception is attached to the record. |
+| 1001 | `EvaluationSucceeded` | Debug | `Minos {Operation} on {Model} via {Provider} succeeded: {QuestionCount} questions in {DurationMs} ms.` |
+| 1002 | `EvaluationFailed` | Warning | `Minos {Operation} on {Model} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}` |
+| 1003 | `AttemptRetrying` | Warning | `Minos attempt {Attempt} failed with {ErrorKind}, status {StatusCode}, retry-after {RetryAfter}; retrying.` |
+| 1004 | `ModelsListed` | Debug | `Minos list-models via {Provider} succeeded: {ModelCount} models in {DurationMs} ms.` |
+| 1005 | `ModelsListFailed` | Warning | `Minos list-models via {Provider} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}` |
+| 1006 | `UnexpectedException` | Error | `Minos {Operation} threw an unexpected exception.` The exception is attached to the record. |
 
 A call logs once, when it completes, and logs again for each attempt it is about to retry.
 
@@ -93,8 +93,8 @@ A call logs once, when it completes, and logs again for each attempt it is about
 - **Success** is a Debug event, 1001 for an evaluation and 1004 for a model listing. `QuestionCount` is the number of
   questions asked.
 - **Failure** is a Warning, 1002 or 1005. It covers every failure the call returns as a
-  [`JevError`](client-and-errors.md#errors), after the retries are used up, including an `InvalidResponse` from reading
-  typed answers. `ErrorKind` is the `JevErrorKind`. `StatusCode` is the HTTP status, or null when no response arrived,
+  [`DecisionError`](client-and-errors.md#errors), after the retries are used up, including an `InvalidResponse` from reading
+  typed answers. `ErrorKind` is the `DecisionErrorKind`. `StatusCode` is the HTTP status, or null when no response arrived,
   and the message then reads `status (null)`.
 - **A retry** is a Warning, 1003, logged for each failed attempt that the client will retry. `Attempt` is 1 for the
   first attempt, and it equals the `X-TypeSafe-Retry-Count` header of the retry that follows. The last attempt is not
@@ -102,15 +102,15 @@ A call logs once, when it completes, and logs again for each attempt it is about
   client waits to retry, the retry does not happen even though the event was logged. Nor does it when the client is
   disposed before the retry starts, in which case the call returns `Disposed`.
 - **`UnexpectedException`** is an Error, 1006. It means a mistake in the calling code or a bug, because a failure of the
-  call itself is a returned `JevError`. The exception continues up to you unchanged. A cancellation that you requested
+  call itself is a returned `DecisionError`. The exception continues up to you unchanged. A cancellation that you requested
   is not logged, and neither are the argument checks and the disposed-client check that throw before the call starts.
 
 A model listing against OpenRouter fails with `Unsupported` before any request is sent. It logs 1005, like any other
 failure.
 
 The client writes these records for its own calls. A
-[hand-written `IJevClient`](testing-your-code.md#way-one-a-fake-ijevclient) that relies on the interface's default
-methods for typed evaluation logs nothing, because the logging lives in `JevClient`.
+[hand-written `IDecisionClient`](testing-your-code.md#way-one-a-fake-idecisionclient) that relies on the interface's default
+methods for typed evaluation logs nothing, because the logging lives in `DecisionClient`.
 
 ### What is never logged
 
@@ -119,12 +119,12 @@ The library never logs these:
 - the state, the instructions and the criteria, which is everything you sent;
 - the answers;
 - the API key and the value of any header;
-- `JevError.Detail`, which holds the body of the server's error response.
+- `DecisionError.Detail`, which holds the body of the server's error response.
 
 An exception you can still see is the one in event 1006, which carries the exception as it was thrown. That includes an
 exception from a `DelegatingHandler` of your own, whose message the library cannot vouch for.
 
-`ErrorMessage` in events 1002 and 1005 is `JevError.Message`, with two exceptions. The message of an `InvalidResponse`
+`ErrorMessage` in events 1002 and 1005 is `DecisionError.Message`, with two exceptions. The message of an `InvalidResponse`
 error can quote what the server answered, and the message of a `Network` error is the transport's exception text, which
 can echo the request. So those two kinds log a fixed text instead:
 
@@ -133,7 +133,7 @@ can echo the request. So those two kinds log a fixed text instead:
 | `InvalidResponse` | `The response could not be read.` |
 | `Network` | `The request could not be sent.` |
 
-`JevError.Message` itself is unchanged. If you log `result.Error.Message` yourself, remember what those two kinds can
+`DecisionError.Message` itself is unchanged. If you log `result.Error.Message` yourself, remember what those two kinds can
 hold.
 
 ### The cost of logging
@@ -156,28 +156,28 @@ The client opens one span for each operation, of kind `Client`. Its name is `eva
 example `evaluate jev-latest`, for an evaluation and `list_models` for a model listing. The span measures the whole
 call, including the retries. A call that fails on every attempt is still one span.
 
-To see the spans in an application, subscribe to the source named `ZeroAlloc.Jev`, and nothing needs configuring on the
-client. Add the source `ZeroAlloc.Rest` as well to see each HTTP attempt. Jev's span is the parent of every attempt's
-span, so a call that was retried shows as one Jev span over several attempt spans.
+To see the spans in an application, subscribe to the source named `Minos`, and nothing needs configuring on the
+client. Add the source `ZeroAlloc.Rest` as well to see each HTTP attempt. The Minos span is the parent of every
+attempt's span, so a call that was retried shows as one Minos span over several attempt spans.
 
 ### Subscribing with OpenTelemetry
 
 The source and the meter share one name. Both also carry the package's informational version as their version, which
-is the version of the `ZeroAlloc.Jev` package you installed.
+is the version of the `Minos.NET` package you installed.
 
 <!-- snippet: Observability_OpenTelemetryNames -->
 ```cs
 // The two names an OpenTelemetry setup needs. The source carries the spans and the meter carries the metrics.
-public static class JevTelemetryNames
+public static class DecisionTelemetryNames
 {
-    public const string Source = "ZeroAlloc.Jev";
+    public const string Source = "Minos";
 
-    public const string Meter = "ZeroAlloc.Jev";
+    public const string Meter = "Minos";
 }
 ```
 <!-- endSnippet -->
 
-The `ZeroAlloc.Jev` package takes no OpenTelemetry dependency, and neither does `ZeroAlloc.Jev.DependencyInjection`.
+The `Minos.NET` package takes no OpenTelemetry dependency, and neither does `Minos.NET.DependencyInjection`.
 Your application brings OpenTelemetry itself, usually the `OpenTelemetry.Extensions.Hosting` package, whose
 `AddOpenTelemetry()` starts the setup. Pass the source to `WithTracing` with `AddSource`, and the meter to `WithMetrics`
 with `AddMeter`:
@@ -185,11 +185,11 @@ with `AddMeter`:
 <!-- snippet: Observability_OpenTelemetryWiring -->
 ```cs
 // Needs the OpenTelemetry.Extensions.Hosting package. Add an exporter to each builder for where the data should go.
-public static IServiceCollection AddJevTelemetry(this IServiceCollection services)
+public static IServiceCollection AddDecisionTelemetry(this IServiceCollection services)
 {
     services.AddOpenTelemetry()
-        .WithTracing(tracing => tracing.AddSource(JevTelemetryNames.Source))
-        .WithMetrics(metrics => metrics.AddMeter(JevTelemetryNames.Meter));
+        .WithTracing(tracing => tracing.AddSource(DecisionTelemetryNames.Source))
+        .WithMetrics(metrics => metrics.AddMeter(DecisionTelemetryNames.Meter));
 
     return services;
 }
@@ -206,19 +206,19 @@ one is small enough to read. The tests behind this page use it.
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
-public sealed record JevMeasurement(string Name, string? Unit, double Value, KeyValuePair<string, object?>[] Tags);
+public sealed record DecisionMeasurement(string Name, string? Unit, double Value, KeyValuePair<string, object?>[] Tags);
 
-// Listens to everything Jev emits. OpenTelemetry does the same once it is told to add the source and the meter
-// named ZeroAlloc.Jev, and then exports what it hears.
-public sealed class JevTelemetryListener : IDisposable
+// Listens to everything Minos emits. OpenTelemetry does the same once it is told to add the source and the meter
+// named Minos, and then exports what it hears.
+public sealed class DecisionTelemetryListener : IDisposable
 {
-    private const string Name = "ZeroAlloc.Jev";
+    private const string Name = "Minos";
 
     private readonly Lock _gate = new();
     private readonly ActivityListener _activities;
     private readonly MeterListener _meters = new();
 
-    public JevTelemetryListener()
+    public DecisionTelemetryListener()
     {
         _activities = new ActivityListener
         {
@@ -265,7 +265,7 @@ public sealed class JevTelemetryListener : IDisposable
 
     public IList<KeyValuePair<string, object?>[]> StartTags { get; } = [];
 
-    public IList<JevMeasurement> Measurements { get; } = [];
+    public IList<DecisionMeasurement> Measurements { get; } = [];
 
     public IDictionary<string, Instrument> Instruments { get; } = new Dictionary<string, Instrument>();
 
@@ -279,7 +279,7 @@ public sealed class JevTelemetryListener : IDisposable
     {
         lock (_gate)
         {
-            Measurements.Add(new JevMeasurement(instrument.Name, instrument.Unit, value, tags.ToArray()));
+            Measurements.Add(new DecisionMeasurement(instrument.Name, instrument.Unit, value, tags.ToArray()));
         }
     }
 }
@@ -289,7 +289,7 @@ public sealed class JevTelemetryListener : IDisposable
 ### The span's attributes
 
 The attributes follow OpenTelemetry's semantic conventions for generative AI, where a convention fits. The rest are
-named `jev.*`.
+named `minos.*`.
 
 | Attribute | Set | Value |
 | --- | --- | --- |
@@ -298,36 +298,36 @@ named `jev.*`.
 | `gen_ai.request.model` | start | The requested model. Evaluations only. |
 | `server.address` | start | The host of the base address. |
 | `server.port` | start | The port of the base address. |
-| `jev.operation` | start | `evaluate`, `evaluate-typed`, `evaluate-built-set` or `list-models`, as in the logs. |
-| `jev.request.question_count` | start | The number of questions. Evaluations only. |
+| `minos.operation` | start | `evaluate`, `evaluate-typed`, `evaluate-built-set` or `list-models`, as in the logs. |
+| `minos.request.question_count` | start | The number of questions. Evaluations only. |
 | `gen_ai.response.model` | success | The model that answered. Evaluations only. |
 | `gen_ai.usage.input_tokens` | success | The input tokens. Evaluations only. |
 | `gen_ai.usage.output_tokens` | success | The output tokens. Evaluations only. |
 | `gen_ai.response.id` | success | OpenRouter's generation id, when it reports one. Only the raw `EvaluateAsync(SystemOneRequest)`. |
-| `jev.usage.cost` | success | The cost in US dollars, when OpenRouter reports it. Only the raw `EvaluateAsync(SystemOneRequest)`. |
-| `error.type` | failure | The name of the `JevErrorKind`, such as `RateLimited`, or the full type name of a thrown exception. |
+| `minos.usage.cost` | success | The cost in US dollars, when OpenRouter reports it. Only the raw `EvaluateAsync(SystemOneRequest)`. |
+| `error.type` | failure | The name of the `DecisionErrorKind`, such as `RateLimited`, or the full type name of a thrown exception. |
 
 The start attributes are set when the span is created, so a sampler sees them and can decide on them. A failed result
 marks the span `Error`, with no description. `error.type` says what went wrong, and the description stays empty because
-`JevError.Message` can quote the request. A typed answer that the question set rejects is an `InvalidResponse` failure,
+`DecisionError.Message` can quote the request. A typed answer that the question set rejects is an `InvalidResponse` failure,
 the same as the caller sees.
 
 The GenAI conventions name no operation for evaluating or for listing models, and no provider called TypeSafe or
-OpenRouter, and they ask instrumentations to document their own. Jev's are the values in the table: the operation is
+OpenRouter, and they ask instrumentations to document their own. Minos uses the values in the table: the operation is
 `evaluate` or `list_models`, and the provider is `typesafe` or `openrouter`.
 
 ### When an exception is thrown
 
-A thrown exception is not a `JevError`, so it takes a different path. Cancellation is the usual example. Such a call
+A thrown exception is not a `DecisionError`, so it takes a different path. Cancellation is the usual example. Such a call
 marks the span `Error` with no description, the same as a failed result, and sets `error.type` to the full name of the
 exception's type, such as `System.Threading.Tasks.TaskCanceledException`. The message is left out because it is the
 runtime's own text, and the library cannot vouch for it. The duration metric carries the same `error.type`, once. This
 is ZeroAlloc.Telemetry 1.11.0, the library that generates the instrumentation, with
-`ExceptionDescription = false` on each of Jev's operations.
+`ExceptionDescription = false` on each Minos operation.
 
 ## Metrics
 
-The meter named `ZeroAlloc.Jev` has six instruments. To collect them with OpenTelemetry, pass the name to `AddMeter`, as
+The meter named `Minos` has six instruments. To collect them with OpenTelemetry, pass the name to `AddMeter`, as
 [the traces section](#subscribing-with-opentelemetry) shows. Every evaluation records its duration, and a successful
 evaluation also records its tokens and one confidence point for each Choice or Score answer.
 
@@ -338,7 +338,7 @@ evaluation also records its tokens and one confidence point for each Choice or S
 | `gen_ai.client.inference.operation.output_tokens` | Histogram | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.response.model` | evaluation success |
 | `gen_ai.client.inference.usage.input_tokens` | Counter | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.modality` | evaluation success |
 | `gen_ai.client.inference.usage.output_tokens` | Counter | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.modality` | evaluation success |
-| `jev.answer.confidence` | Histogram | `1` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `jev.operation` | each Choice or Score answer |
+| `minos.answer.confidence` | Histogram | `1` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `minos.operation` | each Choice or Score answer |
 
 - **The duration** carries `gen_ai.response.model` on success and `error.type` on failure, never both. A model listing
   has no request or response model, so its duration carries only the operation, the provider, the server and, on
@@ -358,8 +358,8 @@ The same values on a span and on a metric are the same strings, so you can filte
 
 ## What is never emitted
 
-Jev puts none of these in a span attribute, a metric attribute or a span description: the state, the instructions, the
-criteria, the answers or their probabilities, the API key, a header value, `JevError.Message`, `JevError.Detail` or an
+Minos puts none of these in a span attribute, a metric attribute or a span description: the state, the instructions, the
+criteria, the answers or their probabilities, the API key, a header value, `DecisionError.Message`, `DecisionError.Detail` or an
 exception message. The one thing a thrown exception adds to a span is the full name of its type, as described above.
 
 ## The cost of listening
@@ -377,7 +377,7 @@ call's own task, so the numbers are these:
 [Phase 3.2](performance.md#phase-32--telemetry) in the performance page has the table. The AOT gates are
 `EvaluateRoundTripWhileListening`, `TypedEvaluateRoundTripWhileListening` and `EvaluateBuiltSetRoundTripWhileListening`,
 and [Native AOT](native-aot.md) lists their budgets. As with logging, a
-[hand-written `IJevClient`](testing-your-code.md#way-one-a-fake-ijevclient) that relies on the default interface methods
+[hand-written `IDecisionClient`](testing-your-code.md#way-one-a-fake-idecisionclient) that relies on the default interface methods
 for typed evaluation emits nothing.
 
 The GenAI conventions are still in development, and the token metric names follow the main branch of the

@@ -1,0 +1,22 @@
+﻿The lock won't close and the app still says I'm riding
+  keyword  a01 a02 a12  miss
+  model    a04 a02 a12  hit@1
+
+I got charged although the bike had a flat tyre
+  keyword  a01 a02 a05  miss
+  model    a09 a10 a05  hit@1
+
+How do I stop my membership before it renews next month
+  keyword  a07 a08 a04  hit@3
+  model    a08 a07 a04  hit@1
+
+My friend wants to ride along on my account
+  keyword  a22 a01 a02  miss
+  model    a21 a18 a05  hit@1
+
+Can I get a receipt for my company's expenses
+  keyword  a16 a17 a01  hit@1
+  model    a16 a02 a04  hit@1
+
+hit@1 keyword 1/5 -> model 5/5
+hit@3 keyword 2/5 -> model 5/5

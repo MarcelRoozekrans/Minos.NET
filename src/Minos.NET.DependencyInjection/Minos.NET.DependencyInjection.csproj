@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Minos.DependencyInjection</RootNamespace>
+    <PackageId>Minos.NET.DependencyInjection</PackageId>
+    <Title>Minos.NET.DependencyInjection</Title>
+    <Description>Registers Minos.NET's IDecisionClient in a .NET host over IHttpClientFactory, as a default client or as keyed clients with their own options, bound from IConfiguration and validated at startup. Native AOT-compatible. Not affiliated with or endorsed by TypeSafe AI.</Description>
+    <PackageTags>$(PackageTags);dependency-injection;httpclientfactory</PackageTags>
+    <!-- Hand-written registrations over Microsoft.Extensions.Http, with no reflection: enables IsTrimmable and the trim and AOT analyzers. -->
+    <IsAotCompatible>true</IsAotCompatible>
+    <!-- Bind is source-generated, with no reflection, so consumers stay trim- and AOT-clean with no setup of their own. -->
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Minos.NET\Minos.NET.csproj" />
+    <!-- IHttpClientFactory and AddHttpClient; brings Microsoft.Extensions.DependencyInjection.Abstractions and Options. -->
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <!-- OptionsBuilder.Bind over IConfiguration; brings Configuration.Abstractions and Configuration.Binder. -->
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+  </ItemGroup>
+</Project>
