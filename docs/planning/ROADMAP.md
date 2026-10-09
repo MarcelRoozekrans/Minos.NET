@@ -254,10 +254,11 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-04-phase-5.3-aot-and-measurement-verification.md`
 **Completed:** 2026-10-07
 
-### Phase 5.4: Live and alias verification [status: pending]
+### Phase 5.4: Live and alias verification [status: active]
 **Goal:** Pass the TypeSafe live suite with a real key, record whether TypeSafe sends Retry-After and what its 422 body looks like, and check the `jev-latest` and `jev-preview` aliases live on both providers. Starts when the maintainer has a TypeSafe key.
 **Surface:** Infra
 **HelpWanted:** no
+**Spec:** `docs/superpowers/specs/2026-10-09-phase-5.4-live-and-alias-verification-design.md`
 **Plan:** _to be written_
 
 ### Phase 5.5: 1.0 release [status: pending]
