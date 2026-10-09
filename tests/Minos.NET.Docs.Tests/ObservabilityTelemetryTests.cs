@@ -160,7 +160,7 @@ public sealed class ObservabilityTelemetryTests
     }
 
     [Fact]
-    public async Task ARetriedCall_IsOneDecisionSpan_OverTheRestSpansOfItsAttempts()
+    public async Task ARetriedCall_IsOneMinosSpan_OverTheRestSpansOfItsAttempts()
     {
         var spans = new List<Activity>();
         using var activities = new ActivityListener

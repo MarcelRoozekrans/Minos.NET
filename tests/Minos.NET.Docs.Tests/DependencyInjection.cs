@@ -23,7 +23,7 @@ public sealed class InboxTriage(IDecisionClient client)
         var result = await client.EvaluateAsync<InboxCheck>(message, cancellationToken);
         if (result.IsFailure)
         {
-            return $"Jev failed, {result.Error.Kind}";
+            return $"The call failed, {result.Error.Kind}";
         }
 
         return result.Value.IsUrgent.Value ? "urgent" : "can wait";
@@ -52,7 +52,7 @@ public sealed class InboxRouter([FromKeyedServices("openrouter")] IDecisionClien
         var result = await client.EvaluateAsync<InboxCheck>(message, cancellationToken);
         if (result.IsFailure)
         {
-            return $"Jev failed, {result.Error.Kind}";
+            return $"The call failed, {result.Error.Kind}";
         }
 
         return result.Value.IsUrgent.Value ? "urgent, via OpenRouter" : "can wait, via OpenRouter";
@@ -63,7 +63,7 @@ public sealed class InboxRouter([FromKeyedServices("openrouter")] IDecisionClien
 public static class KeyedRegistration
 {
     #region DependencyInjection_Keyed
-    public static void AddKeyedDecision(IHostApplicationBuilder builder)
+    public static void AddKeyedClients(IHostApplicationBuilder builder)
     {
         builder.Services.AddDecisionClient("typesafe", options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
         builder.Services.AddDecisionClient("openrouter", options =>
@@ -89,7 +89,7 @@ public static class KeyedRegistration
     // Each client reads its own section.
     public static void AddFromConfiguration(IHostApplicationBuilder builder)
     {
-        builder.Services.AddDecisionClient(builder.Configuration.GetSection("Jev"));
+        builder.Services.AddDecisionClient(builder.Configuration.GetSection("Minos"));
         builder.Services.AddDecisionClient("openrouter", builder.Configuration.GetSection("OpenRouter"));
     }
     #endregion
@@ -105,7 +105,7 @@ public static class KeyedRegistration
         }
         catch (OptionsValidationException exception)
         {
-            return $"Jev is misconfigured: {string.Join(' ', exception.Failures)}";
+            return $"Minos is misconfigured: {string.Join(' ', exception.Failures)}";
         }
     }
     #endregion
@@ -133,7 +133,7 @@ public static class HandlerRegistration
             .AddHttpMessageHandler<TraceHeaderHandler>();
     }
 
-    // ConfigureHttpClientDefaults adds a handler to every HttpClient the factory makes, Jev's included.
+    // ConfigureHttpClientDefaults adds a handler to every HttpClient the factory makes, the Minos clients included.
     public static void AddTracedEverywhere(IServiceCollection services, string apiKey)
     {
         services.AddTransient<TraceHeaderHandler>();
@@ -141,8 +141,8 @@ public static class HandlerRegistration
         services.AddDecisionClient(options => options.ApiKey = apiKey);
     }
 
-    // To keep a defaults handler off Jev's client, clear the handlers of its builder. This also clears any you added
-    // through that builder, so add those inside the delegate, after the Clear.
+    // To keep a defaults handler off the Minos client, clear the handlers of its builder. This also clears any you
+    // added through that builder, so add those inside the delegate, after the Clear.
     public static IHttpClientBuilder AddDecisionWithoutDefaultHandlers(IServiceCollection services, string apiKey)
     {
         services.AddTransient<TraceHeaderHandler>();
@@ -152,7 +152,7 @@ public static class HandlerRegistration
             .ConfigureAdditionalHttpMessageHandlers((handlers, _) => handlers.Clear());
     }
 
-    // When a handler of yours retries, such as a standard resilience handler, turn Jev's own retries off,
+    // When a handler of yours retries, such as a standard resilience handler, turn the client's own retries off,
     // so the two do not multiply.
     public static void AddWithOwnRetries(IServiceCollection services, string apiKey)
         => services.AddDecisionClient(options =>
@@ -167,7 +167,7 @@ public static class WithoutThePackage
 {
     #region DependencyInjection_WithoutPackage
     // A named HttpClient of your own, set up the way AddDecisionClient sets up its client.
-    public static void AddDecisionHttpClient(IServiceCollection services, DecisionClientOptions options)
+    public static void AddMinosHttpClient(IServiceCollection services, DecisionClientOptions options)
         => services.AddHttpClient("minos")
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(2) })
             .SetHandlerLifetime(Timeout.InfiniteTimeSpan)

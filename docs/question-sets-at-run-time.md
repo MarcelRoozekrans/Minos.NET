@@ -2,7 +2,7 @@
 id: question-sets-at-run-time
 title: Question sets at run time
 sidebar_position: 4
-description: Build a Jev question set from data with the builder, evaluate it, and read answers through handles.
+description: Build a question set from data with the builder, evaluate it, and read answers through handles.
 ---
 
 # Question sets at run time

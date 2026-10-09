@@ -36,8 +36,8 @@ Treat the numbers as the shape of the gain, not as a benchmark. The corpus is sm
 In the recorded run the keyword order put the best article first for 1 of the 5 questions and in the top three for 2 of 5. After re-ranking, the best article was first for all 5.
 
 ```
-hit@1 keyword 1/5 -> jev 5/5
-hit@3 keyword 2/5 -> jev 5/5
+hit@1 keyword 1/5 -> model 5/5
+hit@3 keyword 2/5 -> model 5/5
 ```
 
 ## Things to know

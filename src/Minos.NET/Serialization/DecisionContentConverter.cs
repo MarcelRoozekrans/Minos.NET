@@ -17,14 +17,14 @@ internal sealed class DecisionContentConverter : JsonConverter<DecisionContent>
 
         if (reader.TokenType == JsonTokenType.Null)
         {
-            throw new JsonException("Jev content cannot be null.");
+            throw new JsonException("Decision content cannot be null.");
         }
 
         var element = JsonElement.ParseValue(ref reader);
         return element.ValueKind switch
         {
             JsonValueKind.Object or JsonValueKind.Array => DecisionContent.FromJson(element),
-            _ => throw new JsonException("Jev content must be a string, object or array."),
+            _ => throw new JsonException("Decision content must be a string, object or array."),
         };
     }
 
@@ -40,7 +40,7 @@ internal sealed class DecisionContentConverter : JsonConverter<DecisionContent>
         }
         else
         {
-            throw new InvalidOperationException("Cannot serialize uninitialized Jev content.");
+            throw new InvalidOperationException("Cannot serialize uninitialized decision content.");
         }
     }
 }

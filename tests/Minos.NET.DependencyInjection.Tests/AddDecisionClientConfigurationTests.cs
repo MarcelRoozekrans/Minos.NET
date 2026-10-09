@@ -12,17 +12,17 @@ public sealed class AddDecisionClientConfigurationTests
     public void EveryKey_Binds()
     {
         var configuration = Configuration(
-            ("Jev:Provider", "OpenRouter"),
-            ("Jev:ApiKey", "bound-key"),
-            ("Jev:BaseAddress", "http://bound.local/api/"),
-            ("Jev:Model", "jev-1.13.0"),
-            ("Jev:Timeout", "00:00:05"),
-            ("Jev:MaxRetries", "4"),
-            ("Jev:InitialBackoff", "00:00:00.100"),
-            ("Jev:MaxRetryDelay", "00:00:03"),
-            ("Jev:Jitter", "false"));
+            ("Minos:Provider", "OpenRouter"),
+            ("Minos:ApiKey", "bound-key"),
+            ("Minos:BaseAddress", "http://bound.local/api/"),
+            ("Minos:Model", "jev-1.13.0"),
+            ("Minos:Timeout", "00:00:05"),
+            ("Minos:MaxRetries", "4"),
+            ("Minos:InitialBackoff", "00:00:00.100"),
+            ("Minos:MaxRetryDelay", "00:00:03"),
+            ("Minos:Jitter", "false"));
         var services = new ServiceCollection();
-        services.AddDecisionClient(configuration.GetSection("Jev"));
+        services.AddDecisionClient(configuration.GetSection("Minos"));
         using var provider = services.BuildServiceProvider();
 
         var options = provider.GetRequiredService<IOptionsMonitor<DecisionClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName);

@@ -73,7 +73,7 @@ clean and gets no extra source from them.
 
 Clone the [Minos.NET repository](https://github.com/MarcelRoozekrans/Minos.NET), pack both packages into a folder,
 and register that folder as a local NuGet source. Use the folder's absolute path. On Windows, give
-`dotnet nuget add source` a native path such as `C:\src\jev\nupkgs`, because a path that mixes forward and back
+`dotnet nuget add source` a native path such as `C:\src\minos\nupkgs`, because a path that mixes forward and back
 slashes is rejected as invalid.
 
 A local build is versioned as the last release with a `-local` suffix: the release in `.release-please-manifest.json`,
@@ -87,7 +87,7 @@ use the version from the packed files' names.
 ```shell
 dotnet pack src/Minos.NET -c Release -o /absolute/path/nupkgs
 dotnet pack src/Minos.NET.DependencyInjection -c Release -o /absolute/path/nupkgs
-dotnet nuget add source /absolute/path/nupkgs --name zeroalloc-jev-local
+dotnet nuget add source /absolute/path/nupkgs --name minos-net-local
 ```
 
 Then add the packages with that version, in place of the commands above. Replace `<release>` with the manifest's
@@ -98,7 +98,7 @@ dotnet add package Minos.NET --version <release>-local
 dotnet add package Minos.NET.DependencyInjection --version <release>-local
 ```
 
-Remove the source when you switch to the published packages: `dotnet nuget remove source zeroalloc-jev-local`.
+Remove the source when you switch to the published packages: `dotnet nuget remove source minos-net-local`.
 
 ## Providers and keys
 
@@ -182,7 +182,7 @@ public static async Task<string> TriageAsync(IDecisionClient client, string mess
     // error, a rejected key and an unreadable response all arrive here, with a Kind and a Message.
     if (result.IsFailure)
     {
-        return $"Jev failed, {result.Error.Kind}: {result.Error.Message}";
+        return $"The call failed, {result.Error.Kind}: {result.Error.Message}";
     }
 
     var check = result.Value;

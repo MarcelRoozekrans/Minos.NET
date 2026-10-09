@@ -49,7 +49,7 @@ def dotnet_file():
     return {
         "machine": machine(mockCeilingPerSecond=100000.0, os="Microsoft Windows 10.0.26200 .NET", date="2026-10-04T10:05:00Z"),
         "results": [
-            result("jev", "Minos.NET", ".NET", "10.0.0", 50000.0, 1024),
+            result("minos", "Minos.NET", ".NET", "10.0.0", 50000.0, 1024),
             result("jevsharp", "JevSharp", ".NET", "10.0.0", 40000.4, 4096, note="Sends no auth header."),
             result("raw", "HttpClient, System.Text.Json", ".NET", "10.0.0", 60000.0, 800),
         ],
@@ -83,7 +83,7 @@ def test_rows_are_sorted_by_throughput_with_every_column(files):
 
     assert table_rows(text) == [
         "| raw | HttpClient, System.Text.Json 1.2.3 | .NET 10.0.0 | 0.250 | 0.200 | 1.500 | 60,000 | 60% | 800 |",
-        "| **jev** | Minos.NET 1.2.3 | .NET 10.0.0 | 0.250 | 0.200 | 1.500 | 50,000 | 50% | 1,024 |",
+        "| **minos** | Minos.NET 1.2.3 | .NET 10.0.0 | 0.250 | 0.200 | 1.500 | 50,000 | 50% | 1,024 |",
         "| jevsharp[^1] | JevSharp 1.2.3 | .NET 10.0.0 | 0.250 | 0.200 | 1.500 | 40,000 | 40% | 4,096 |",
         "| typesafe-ai-sdk-js | @typesafe-ai/sdk 1.2.3 | Node.js 24.1.0 | 0.500 | 0.200 | 1.500 | 4,940 | 5% | — |",
     ]
@@ -261,14 +261,14 @@ def test_a_malformed_saved_run_exits_with_2(tmp_path, content):
     assert "Usage:" in run.stderr
 
 
-ORDER = {"latencyRounds": 20, "callsPerRound": 100, "rotation": 2, "throughput": ["jevsharp", "raw", "jev"]}
+ORDER = {"latencyRounds": 20, "callsPerRound": 100, "rotation": 2, "throughput": ["jevsharp", "raw", "minos"]}
 
 
 def test_a_dotnet_result_without_bytes_is_refused(tmp_path):
     dotnet = dotnet_file()
     dotnet["results"][0]["allocatedBytesPerCall"] = None
 
-    with pytest.raises(merge.MergeError, match="jev: a .NET result has no allocatedBytesPerCall"):
+    with pytest.raises(merge.MergeError, match="minos: a .NET result has no allocatedBytesPerCall"):
         merge.render(merge.load([write(tmp_path, "dotnet-box.json", dotnet)]), "Minos.NET")
 
 
@@ -284,7 +284,7 @@ def test_the_order_line_follows_the_machine_line_and_a_saved_run_keeps_it(tmp_pa
     lines = text.splitlines()
     order = lines.index(
         "Order: latency in 20 interleaved rounds of 100 calls per .NET client, rotated by round from rotation 2; "
-        "throughput jevsharp, raw, jev."
+        "throughput jevsharp, raw, minos."
     )
     assert lines[order - 2].startswith("Machine: box;")
     with open(saved, encoding="utf-8") as f:
@@ -323,7 +323,7 @@ def test_across_runs_gives_each_runs_ceiling_and_each_clients_lowest_and_highest
     rows = [r for r in table_rows(text) if not r.startswith(("| [run", "| Run"))]
     assert rows == [
         "| raw | 1.000 to 2.000 | 60,000 to 120,000 | 60% to 80% | 800 |",
-        "| **jev** | 1.000 to 2.000 | 50,000 to 100,000 | 50% to 67% | 1,024 |",
+        "| **minos** | 1.000 to 2.000 | 50,000 to 100,000 | 50% to 67% | 1,024 |",
         "| jevsharp | 1.000 to 2.000 | 40,000 to 80,001 | 40% to 53% | 4,096 |",
         "| typesafe-ai-sdk-js | 1.000 to 2.000 | 4,940 to 9,880 | 5% to 7% | — |",
     ]

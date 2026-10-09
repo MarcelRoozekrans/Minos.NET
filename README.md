@@ -73,13 +73,13 @@ The guide lives at [jev.zeroalloc.net](https://jev.zeroalloc.net):
 
 - [Getting started](https://jev.zeroalloc.net/): install Minos.NET, point it at TypeSafe or OpenRouter, and run your first typed evaluation.
 - [Question types](https://jev.zeroalloc.net/question-types): Noul, Choice and Score, what each answer holds, and how confidence differs from probability.
-- [Typed evaluation](https://jev.zeroalloc.net/typed-evaluation): declare Jev questions as a C# type, give them a typed state, and pick the `EvaluateAsync` overload.
+- [Typed evaluation](https://jev.zeroalloc.net/typed-evaluation): declare questions as a C# type, give them a typed state, and pick the `EvaluateAsync` overload.
 - [Question sets at run time](https://jev.zeroalloc.net/question-sets-at-run-time): build a question set from data with the builder, evaluate it, and read answers through handles.
 - [The client and its errors](https://jev.zeroalloc.net/client-and-errors): create and configure a `DecisionClient`, its retries and time-outs, every kind of `DecisionError`, and the raw request API.
 - [Dependency injection](https://jev.zeroalloc.net/dependency-injection): register `IDecisionClient` in a .NET host, key several clients, and bind options from configuration.
 - [Logging, traces and metrics](https://jev.zeroalloc.net/observability): what the client logs, which spans and metrics it emits, and what it never records.
 - [Native AOT and allocations](https://jev.zeroalloc.net/native-aot): what Native AOT compatibility means, the one reflection the client uses, and the allocation budgets that guard it.
-- [Diagnostics](https://jev.zeroalloc.net/diagnostics): every JEV analyzer rule with its severity, the two code fixes, and how to suppress a rule.
+- [Diagnostics](https://jev.zeroalloc.net/diagnostics): every MIN analyzer rule with its severity, the two code fixes, and how to suppress a rule.
 - [Testing your code](https://jev.zeroalloc.net/testing-your-code): test code that calls Jev with a fake `IDecisionClient` or a real `DecisionClient` over a canned HTTP reply.
 - [Patterns](https://jev.zeroalloc.net/patterns): four ways to use Jev answers, each with a guide of its own.
 - [Speculative fan-out](https://jev.zeroalloc.net/patterns/fan-out): ask every question you might need in one request and read only the answers that matter.
@@ -99,7 +99,7 @@ Building this repository needs the SDK version pinned in `global.json` (10.0.401
 
 ## Testing
 
-`dotnet test` runs the unit tests, the generator tests, the analyzer and code-fix tests, the WireMock integration tests, and the pack tests, which pack the library and check the package's contents. A solution-wide `dotnet test` never makes a billed call: the live smoke tests in `tests/Minos.NET.Live.Tests` call the real APIs and only run when `JEV_LIVE=1` is set *and* the provider's key (`TYPESAFE_API_KEY` or `OPENROUTER_API_KEY`) is set; otherwise every one of them reports skipped. To run them locally, opt in explicitly with the key set: `JEV_LIVE=1 dotnet test tests/Minos.NET.Live.Tests`. Each run makes a few small billed evaluations. Override the model with `JEV_LIVE_MODEL`, or `JEV_LIVE_OPENROUTER_MODEL` for OpenRouter. Maintainers can also run them in CI with the manual **Live smoke** workflow, which reads the keys from the `live-api` environment; restrict that environment's deployment branches to `main`.
+`dotnet test` runs the unit tests, the generator tests, the analyzer and code-fix tests, the WireMock integration tests, and the pack tests, which pack the library and check the package's contents. A solution-wide `dotnet test` never makes a billed call: the live smoke tests in `tests/Minos.NET.Live.Tests` call the real APIs and only run when `MINOS_LIVE=1` is set *and* the provider's key (`TYPESAFE_API_KEY` or `OPENROUTER_API_KEY`) is set; otherwise every one of them reports skipped. To run them locally, opt in explicitly with the key set: `MINOS_LIVE=1 dotnet test tests/Minos.NET.Live.Tests`. Each run makes a few small billed evaluations. Override the model with `MINOS_LIVE_MODEL`, or `MINOS_LIVE_OPENROUTER_MODEL` for OpenRouter. Maintainers can also run them in CI with the manual **Live smoke** workflow, which reads the keys from the `live-api` environment; restrict that environment's deployment branches to `main`.
 
 ## License
 

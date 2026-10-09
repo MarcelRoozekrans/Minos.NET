@@ -12,8 +12,8 @@ its options do, what happens when a call fails, and how to read the failure. It 
 listing models.
 
 The failure side matters because a call to a remote model fails in ordinary ways. The network drops, the key is wrong,
-the service is busy. Jev reports every such failure as a value, a `DecisionError`, so a failure of the call itself arrives as
-a value to check, not as an exception to catch.
+the service is busy. Minos reports every such failure as a value, a `DecisionError`, so a failure of the call itself
+arrives as a value to check, not as an exception to catch.
 
 ## Creating a client
 
@@ -51,7 +51,7 @@ There are two families of constructor.
   fake handler under the client. Two things follow. The `HttpClient`'s own `BaseAddress` wins over
   `DecisionClientOptions.BaseAddress` when it is set, and it must end in `/`. And its own `Timeout` applies, not
   `DecisionClientOptions.Timeout`, unless you set it up with `DecisionClient.ConfigureHttpClient`, which the
-  [dependency injection](dependency-injection.md#using-jev-without-the-package) page shows.
+  [dependency injection](dependency-injection.md#using-minos-without-the-package) page shows.
 
 Both families take a `null` options object to mean "all defaults and environment variables", and both have an overload
 that also takes an `ILoggerFactory`. With one, the client logs each operation and each retried attempt, as [Logging,
@@ -178,7 +178,7 @@ fail in the constructor, it can only be because an environment variable changed 
 
 ## Retries
 
-Jev retries a failed call for you. These failures are retried:
+Minos retries a failed call for you. These failures are retried:
 
 - rate limiting, HTTP 429;
 - overload, HTTP 503 and 529;
@@ -215,16 +215,16 @@ public static DecisionClientOptions NoRetries(string apiKey)
 
 ### Retry-After
 
-A busy service usually says how long to wait. Jev reads two headers: `retry-after-ms`, in milliseconds, and the standard
-`Retry-After`, either as a number of seconds or as an HTTP date. When both are present, `retry-after-ms` wins, provided
-it is a non-negative number. An invalid `retry-after-ms` is ignored and `Retry-After` is used. The wait replaces the
-backoff for the next attempt and is waited for as asked, never beyond `MaxRetryDelay`. A server that asks for an hour is
-waited for `MaxRetryDelay`, 30 seconds by default, and then asked again. The value is also available to you, as
-`DecisionError.RetryAfter`, on a failure that comes back.
+A busy service usually says how long to wait. Minos reads two headers: `retry-after-ms`, in milliseconds, and the
+standard `Retry-After`, either as a number of seconds or as an HTTP date. When both are present, `retry-after-ms` wins,
+provided it is a non-negative number. An invalid `retry-after-ms` is ignored and `Retry-After` is used. The wait
+replaces the backoff for the next attempt and is waited for as asked, never beyond `MaxRetryDelay`. A server that asks
+for an hour is waited for `MaxRetryDelay`, 30 seconds by default, and then asked again. The value is also available to
+you, as `DecisionError.RetryAfter`, on a failure that comes back.
 
 TypeSafe's [API reference](https://docs.typesafe.ai/api) asks clients to back off exponentially on a 429 or 529, and
-does not say whether those responses carry either header; its official Python SDK reads both. Jev's own live runs
-have not yet met a 429 or 529, so as of October 2026 whether TypeSafe sends a wait is unconfirmed. Either way the
+does not say whether those responses carry either header; its official Python SDK reads both. This library's own live
+runs have not yet met a 429 or 529, so as of October 2026 whether TypeSafe sends a wait is unconfirmed. Either way the
 client behaves correctly: it waits as asked when a header is present, and backs off when none is.
 
 ### The cost of retrying
@@ -234,8 +234,8 @@ the server may already have processed it, and it may charge for it. Retrying the
 processed, and charged, again. If a duplicate charge matters more to you than resilience, set `MaxRetries = 0`.
 
 If you route the client through a handler that retries by itself, such as a standard resilience handler, set
-`MaxRetries = 0` too. Otherwise the two sets of retries multiply: three attempts of Jev's inside each of three attempts
-of the handler is nine requests.
+`MaxRetries = 0` too. Otherwise the two sets of retries multiply: three attempts of the client inside each of three
+attempts of the handler is nine requests.
 
 ## Time-outs
 
@@ -358,14 +358,14 @@ kinds.
 // add detail when there is some: StatusCode, RetryAfter, Detail and Exception.
 public static string Describe(DecisionError error) => error.Kind switch
 {
-    DecisionErrorKind.Unauthorized => "Jev rejected the API key. Check the key and what it may access.",
-    DecisionErrorKind.Validation => $"Jev rejected the request: {error.Detail?.GetRawText() ?? error.Message}",
+    DecisionErrorKind.Unauthorized => "The service rejected the API key. Check the key and what it may access.",
+    DecisionErrorKind.Validation => $"The service rejected the request: {error.Detail?.GetRawText() ?? error.Message}",
     DecisionErrorKind.RateLimited or DecisionErrorKind.Overloaded when error.RetryAfter is { } wait
-        => $"Jev is busy. It asks for {(int)wait.TotalMilliseconds} ms before the next call.",
-    DecisionErrorKind.RateLimited or DecisionErrorKind.Overloaded => "Jev is busy. Try again later.",
-    DecisionErrorKind.Server or DecisionErrorKind.Http => $"Jev failed with HTTP {error.StatusCode}: {error.Message}",
-    DecisionErrorKind.Network or DecisionErrorKind.Timeout => $"Jev could not be reached: {error.Exception?.Message ?? error.Message}",
-    DecisionErrorKind.InvalidResponse => $"Jev replied with something unreadable: {error.Message}",
+        => $"The service is busy. It asks for {(int)wait.TotalMilliseconds} ms before the next call.",
+    DecisionErrorKind.RateLimited or DecisionErrorKind.Overloaded => "The service is busy. Try again later.",
+    DecisionErrorKind.Server or DecisionErrorKind.Http => $"The service failed with HTTP {error.StatusCode}: {error.Message}",
+    DecisionErrorKind.Network or DecisionErrorKind.Timeout => $"The service could not be reached: {error.Exception?.Message ?? error.Message}",
+    DecisionErrorKind.InvalidResponse => $"The service replied with something unreadable: {error.Message}",
     DecisionErrorKind.Unsupported => $"The provider cannot do that: {error.Message}",
     DecisionErrorKind.InvalidQuestions => $"The question set is invalid, {error.Failures.Count} rules broken.",
     DecisionErrorKind.Disposed => "The client was disposed while the call was running.",

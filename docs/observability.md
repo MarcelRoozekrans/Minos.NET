@@ -2,7 +2,7 @@
 id: observability
 title: Logging, traces and metrics
 sidebar_position: 7
-description: What the Jev client logs, which spans and metrics it emits, what it never records, and what listening costs.
+description: What the Minos client logs, which spans and metrics it emits, what it never records, and what listening costs.
 ---
 
 # Logging, traces and metrics
@@ -78,12 +78,12 @@ such as a JSON console or Serilog, receives each `{Placeholder}` below as a fiel
 
 | Id | Event | Level | Message template |
 | --- | --- | --- | --- |
-| 1001 | `EvaluationSucceeded` | Debug | `Jev {Operation} on {Model} via {Provider} succeeded: {QuestionCount} questions in {DurationMs} ms.` |
-| 1002 | `EvaluationFailed` | Warning | `Jev {Operation} on {Model} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}` |
-| 1003 | `AttemptRetrying` | Warning | `Jev attempt {Attempt} failed with {ErrorKind}, status {StatusCode}, retry-after {RetryAfter}; retrying.` |
-| 1004 | `ModelsListed` | Debug | `Jev list-models via {Provider} succeeded: {ModelCount} models in {DurationMs} ms.` |
-| 1005 | `ModelsListFailed` | Warning | `Jev list-models via {Provider} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}` |
-| 1006 | `UnexpectedException` | Error | `Jev {Operation} threw an unexpected exception.` The exception is attached to the record. |
+| 1001 | `EvaluationSucceeded` | Debug | `Minos {Operation} on {Model} via {Provider} succeeded: {QuestionCount} questions in {DurationMs} ms.` |
+| 1002 | `EvaluationFailed` | Warning | `Minos {Operation} on {Model} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}` |
+| 1003 | `AttemptRetrying` | Warning | `Minos attempt {Attempt} failed with {ErrorKind}, status {StatusCode}, retry-after {RetryAfter}; retrying.` |
+| 1004 | `ModelsListed` | Debug | `Minos list-models via {Provider} succeeded: {ModelCount} models in {DurationMs} ms.` |
+| 1005 | `ModelsListFailed` | Warning | `Minos list-models via {Provider} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}` |
+| 1006 | `UnexpectedException` | Error | `Minos {Operation} threw an unexpected exception.` The exception is attached to the record. |
 
 A call logs once, when it completes, and logs again for each attempt it is about to retry.
 
@@ -157,8 +157,8 @@ example `evaluate jev-latest`, for an evaluation and `list_models` for a model l
 call, including the retries. A call that fails on every attempt is still one span.
 
 To see the spans in an application, subscribe to the source named `Minos`, and nothing needs configuring on the
-client. Add the source `ZeroAlloc.Rest` as well to see each HTTP attempt. Jev's span is the parent of every attempt's
-span, so a call that was retried shows as one Jev span over several attempt spans.
+client. Add the source `ZeroAlloc.Rest` as well to see each HTTP attempt. The Minos span is the parent of every
+attempt's span, so a call that was retried shows as one Minos span over several attempt spans.
 
 ### Subscribing with OpenTelemetry
 
@@ -208,7 +208,7 @@ using System.Diagnostics.Metrics;
 
 public sealed record DecisionMeasurement(string Name, string? Unit, double Value, KeyValuePair<string, object?>[] Tags);
 
-// Listens to everything Jev emits. OpenTelemetry does the same once it is told to add the source and the meter
+// Listens to everything Minos emits. OpenTelemetry does the same once it is told to add the source and the meter
 // named Minos, and then exports what it hears.
 public sealed class DecisionTelemetryListener : IDisposable
 {
@@ -313,7 +313,7 @@ marks the span `Error`, with no description. `error.type` says what went wrong, 
 the same as the caller sees.
 
 The GenAI conventions name no operation for evaluating or for listing models, and no provider called TypeSafe or
-OpenRouter, and they ask instrumentations to document their own. Jev's are the values in the table: the operation is
+OpenRouter, and they ask instrumentations to document their own. Minos uses the values in the table: the operation is
 `evaluate` or `list_models`, and the provider is `typesafe` or `openrouter`.
 
 ### When an exception is thrown
@@ -323,7 +323,7 @@ marks the span `Error` with no description, the same as a failed result, and set
 exception's type, such as `System.Threading.Tasks.TaskCanceledException`. The message is left out because it is the
 runtime's own text, and the library cannot vouch for it. The duration metric carries the same `error.type`, once. This
 is ZeroAlloc.Telemetry 1.11.0, the library that generates the instrumentation, with
-`ExceptionDescription = false` on each of Jev's operations.
+`ExceptionDescription = false` on each Minos operation.
 
 ## Metrics
 
@@ -358,7 +358,7 @@ The same values on a span and on a metric are the same strings, so you can filte
 
 ## What is never emitted
 
-Jev puts none of these in a span attribute, a metric attribute or a span description: the state, the instructions, the
+Minos puts none of these in a span attribute, a metric attribute or a span description: the state, the instructions, the
 criteria, the answers or their probabilities, the API key, a header value, `DecisionError.Message`, `DecisionError.Detail` or an
 exception message. The one thing a thrown exception adds to a span is the full name of its type, as described above.
 

@@ -40,7 +40,7 @@ public sealed class GettingStartedTests
         {
             var summary = await GettingStartedEvaluation.TriageAsync(client, "Anything.", CancellationToken.None);
 
-            Assert.StartsWith("Jev failed, ", summary, StringComparison.Ordinal);
+            Assert.StartsWith("The call failed, ", summary, StringComparison.Ordinal);
         }
     }
 

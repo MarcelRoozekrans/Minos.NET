@@ -4,7 +4,7 @@ using Minos.Validation;
 
 namespace Minos.Tests;
 
-/// <summary>Each rule of the spec's table: failures with their JEV id and question key, advice as warnings.</summary>
+/// <summary>Each rule of the spec's table: failures with their MIN id and question key, advice as warnings.</summary>
 public sealed class QuestionValidationTests
 {
     [Fact]

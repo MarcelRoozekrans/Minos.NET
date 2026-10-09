@@ -8,7 +8,7 @@ namespace Minos.DependencyInjection.Tests;
 public sealed class AddDecisionClientTelemetryTests
 {
     [Fact]
-    public async Task ResolvedClient_EmitsADecisionSpan_WithNoTelemetrySetup()
+    public async Task ResolvedClient_EmitsAMinosSpan_WithNoTelemetrySetup()
     {
         using var capture = new TelemetryCapture();
         var handler = Noul();

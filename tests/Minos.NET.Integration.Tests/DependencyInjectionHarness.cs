@@ -32,22 +32,22 @@ internal static class DependencyInjectionHarness
     {
         var settings = new Dictionary<string, string?>(StringComparer.Ordinal)
         {
-            ["Jev:ApiKey"] = "integration-key",
-            ["Jev:BaseAddress"] = fixture.BaseAddress.AbsoluteUri,
-            ["Jev:MaxRetries"] = maxRetries.ToString(CultureInfo.InvariantCulture),
-            ["Jev:InitialBackoff"] = "00:00:00.010",
-            ["Jev:MaxRetryDelay"] = "00:00:05",
-            ["Jev:Jitter"] = "false",
+            ["Minos:ApiKey"] = "integration-key",
+            ["Minos:BaseAddress"] = fixture.BaseAddress.AbsoluteUri,
+            ["Minos:MaxRetries"] = maxRetries.ToString(CultureInfo.InvariantCulture),
+            ["Minos:InitialBackoff"] = "00:00:00.010",
+            ["Minos:MaxRetryDelay"] = "00:00:05",
+            ["Minos:Jitter"] = "false",
         };
         if (timeout is { } perAttempt)
         {
-            settings["Jev:Timeout"] = perAttempt.ToString("c", CultureInfo.InvariantCulture);
+            settings["Minos:Timeout"] = perAttempt.ToString("c", CultureInfo.InvariantCulture);
         }
 
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
         var services = new ServiceCollection();
         services
-            .AddDecisionClient(configuration.GetSection("Jev"))
+            .AddDecisionClient(configuration.GetSection("Minos"))
             .AddHttpMessageHandler(() => new CountingHandler(attempts));
         return services.BuildServiceProvider();
     }

@@ -1,6 +1,6 @@
 namespace Minos;
 
-/// <summary>Default values shared by the Jev client, matching TypeSafe's official SDKs.</summary>
+/// <summary>Default values shared by the Minos client, matching TypeSafe's official SDKs.</summary>
 public static class DecisionDefaults
 {
     /// <summary>Environment variable the client reads a TypeSafe API key from.</summary>

@@ -136,7 +136,7 @@ internal static class ModelBuilder
     /// <summary>
     /// The stubs for an invalid set: one for each question property that is an unimplemented partial definition,
     /// whatever its shape. CS9248, an unimplemented partial property, is a declaration error, and csc skips every
-    /// analyzer in the compilation after one, so a single missing stub would hide all the JEV errors.
+    /// analyzer in the compilation after one, so a single missing stub would hide all the MIN errors.
     /// </summary>
     /// <remarks>
     /// Nothing is stubbed for a property that is not a partial definition, which needs no implementation; for one the

@@ -62,7 +62,7 @@ public sealed class AddDecisionClientTests
         var records = provider.GetFakeLogCollector().GetSnapshot();
         Assert.Contains(records, record => record.Id.Id == 1001 && string.Equals(record.Category, "Minos.DecisionClient", StringComparison.Ordinal));
 
-        // The factory's own request logs are off for Jev's clients: they allocate on every call, logging or not.
+        // The factory's own request logs are off for the Minos clients: they allocate on every call, logging or not.
         Assert.DoesNotContain(records, record => record.Category?.StartsWith("System.Net.Http.HttpClient", StringComparison.Ordinal) == true);
     }
 

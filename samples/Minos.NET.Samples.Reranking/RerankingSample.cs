@@ -8,7 +8,7 @@ public sealed record RankedQuery(string Query, string BestId, IReadOnlyList<stri
     /// <summary>Whether the best article is among the first <paramref name="k"/> of the keyword order.</summary>
     public bool KeywordHit(int k) => IsHit(KeywordOrder, BestId, k);
 
-    /// <summary>Whether the best article is among the first <paramref name="k"/> of the Jev order.</summary>
+    /// <summary>Whether the best article is among the first <paramref name="k"/> of the model's order.</summary>
     public bool DecisionHit(int k) => IsHit(DecisionOrder, BestId, k);
 
     private static bool IsHit(IReadOnlyList<string> order, string bestId, int k)
@@ -42,12 +42,12 @@ public sealed record RerankingReport(IReadOnlyList<RankedQuery> Queries)
         {
             text.Append(q.Query).Append('\n');
             text.Append("  keyword  ").Append(Top3(q.KeywordOrder)).Append("  ").Append(Marker(q.KeywordHit(1), q.KeywordHit(3))).Append('\n');
-            text.Append("  jev      ").Append(Top3(q.DecisionOrder)).Append("  ").Append(Marker(q.DecisionHit(1), q.DecisionHit(3))).Append("\n\n");
+            text.Append("  model    ").Append(Top3(q.DecisionOrder)).Append("  ").Append(Marker(q.DecisionHit(1), q.DecisionHit(3))).Append("\n\n");
         }
 
         var n = Queries.Count.ToString(CultureInfo.InvariantCulture);
-        text.Append(CultureInfo.InvariantCulture, $"hit@1 keyword {KeywordHitsAt1}/{n} -> jev {DecisionHitsAt1}/{n}\n");
-        text.Append(CultureInfo.InvariantCulture, $"hit@3 keyword {KeywordHitsAt3}/{n} -> jev {DecisionHitsAt3}/{n}\n");
+        text.Append(CultureInfo.InvariantCulture, $"hit@1 keyword {KeywordHitsAt1}/{n} -> model {DecisionHitsAt1}/{n}\n");
+        text.Append(CultureInfo.InvariantCulture, $"hit@3 keyword {KeywordHitsAt3}/{n} -> model {DecisionHitsAt3}/{n}\n");
         return text.ToString();
     }
 

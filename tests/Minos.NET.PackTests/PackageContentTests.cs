@@ -295,7 +295,7 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
             }
             """);
 
-        // The runtime attributes flow: a consumer can name them, though it needs no reference of its own to use Jev.
+        // The runtime attributes flow: a consumer can name them, though it needs no reference of its own to use Minos.
         File.WriteAllText(Path.Combine(consumer, "Attributes.cs"), """
             namespace Consumer;
 

@@ -2,7 +2,7 @@
 id: native-aot
 title: Native AOT and allocations
 sidebar_position: 8
-description: What it means that the Jev client is Native AOT compatible, the one reflection it uses, how CI checks every public member, and the allocation budgets that guard it.
+description: What it means that the Minos client is Native AOT compatible, the one reflection it uses, how CI checks every public member, and the allocation budgets that guard it.
 ---
 
 # Native AOT and allocations
@@ -144,7 +144,7 @@ check, not that the call asserts the right thing.
 ## What the client allocates
 
 An allocation is memory the garbage collector must later reclaim. A client that allocates little causes few collections,
-which keeps the pauses short in a program that makes many calls. Jev is built to allocate little. The typed and
+which keeps the pauses short in a program that makes many calls. Minos is built to allocate little. The typed and
 built-set calls write the request into a pooled buffer and read the response from one, and reading an answer creates no
 object.
 
@@ -164,7 +164,7 @@ object.
 
 These claims are enforced, not only measured. The smoke application runs each path below repeatedly, mostly under
 `AllocationGate` from the ZeroAlloc.TestHelpers package, and fails if the path allocates more than its budget. The calls
-run over a canned in-memory handler, so the budgets measure Jev's own work and not the network.
+run over a canned in-memory handler, so the budgets measure the client's own work and not the network.
 
 ### The allocation budgets
 

@@ -5,7 +5,7 @@ namespace Minos.Tests;
 
 /// <summary>
 /// Listens to the <c>Minos</c> source and meter for one test, and to the <c>ZeroAlloc.Rest</c> source when asked.
-/// It keeps every stopped span, the tags each Jev span carried when the sampler saw it, and every measurement.
+/// It keeps every stopped span, the tags each Minos span carried when the sampler saw it, and every measurement.
 /// </summary>
 /// <remarks>Uses the source name as a literal, not <c>DecisionTelemetry.SourceName</c>, so the integration tests can link it.</remarks>
 internal sealed class TelemetryCapture : IDisposable
@@ -64,19 +64,19 @@ internal sealed class TelemetryCapture : IDisposable
         }
     }
 
-    /// <summary>Gets the one stopped Jev span; throws when there is not exactly one.</summary>
+    /// <summary>Gets the one stopped Minos span; throws when there is not exactly one.</summary>
     public Activity Span()
     {
         var spans = Spans(DecisionSource);
-        return spans.Length == 1 ? spans[0] : throw new InvalidOperationException($"Expected one Jev span, found {spans.Length}.");
+        return spans.Length == 1 ? spans[0] : throw new InvalidOperationException($"Expected one Minos span, found {spans.Length}.");
     }
 
-    /// <summary>Gets the tags the one Jev span carried when the sampler saw it.</summary>
+    /// <summary>Gets the tags the one Minos span carried when the sampler saw it.</summary>
     public KeyValuePair<string, object?>[] StartTags()
     {
         lock (_gate)
         {
-            return _starts.Count == 1 ? _starts[0] : throw new InvalidOperationException($"Expected one Jev span start, found {_starts.Count}.");
+            return _starts.Count == 1 ? _starts[0] : throw new InvalidOperationException($"Expected one Minos span start, found {_starts.Count}.");
         }
     }
 

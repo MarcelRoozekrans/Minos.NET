@@ -56,7 +56,7 @@ public readonly struct DecisionContent : IEquatable<DecisionContent>
             JsonValueKind.String => new DecisionContent(json.GetString()!),
             JsonValueKind.Object or JsonValueKind.Array => new DecisionContent(json.Clone()),
             _ => throw new ArgumentException(
-                "Jev content must be a string, object or array.", nameof(json)),
+                "Decision content must be a string, object or array.", nameof(json)),
         };
     }
 
@@ -95,7 +95,7 @@ public readonly struct DecisionContent : IEquatable<DecisionContent>
     {
         JsonValueKind.String => new DecisionContent(json.GetString()!),
         JsonValueKind.Object or JsonValueKind.Array => new DecisionContent(json),
-        _ => throw new ArgumentException("Jev content must be a JSON string, object or array.", paramName),
+        _ => throw new ArgumentException("Decision content must be a JSON string, object or array.", paramName),
     };
 
     /// <summary>Checks that <paramref name="utf8Json"/> is exactly one complete JSON value. Does not allocate.</summary>

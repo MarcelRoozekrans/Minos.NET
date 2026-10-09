@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Minos.Samples;
 
-/// <summary>Wires a sample's Jev client for its mode.</summary>
+/// <summary>Wires a sample's Minos client for its mode.</summary>
 public static class SampleHost
 {
     /// <summary>
@@ -42,7 +42,7 @@ public static class SampleHost
         var configuration = new ConfigurationBuilder().AddJsonFile(Path.Combine(sampleDirectory, "appsettings.json")).Build();
         var services = new ServiceCollection();
         services.AddSampleDecisionClient(
-            configuration.GetSection("Jev"), SampleMode.Replay, Path.Combine(sampleDirectory, "recordings.json"), sampleName, new RecordingSession());
+            configuration.GetSection("Minos"), SampleMode.Replay, Path.Combine(sampleDirectory, "recordings.json"), sampleName, new RecordingSession());
         return services.BuildServiceProvider();
     }
 

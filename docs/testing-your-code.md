@@ -384,7 +384,7 @@ in a test.
 
 A check against the real API still has a place: a small, optional test that you run by hand, to confirm that a question
 set is understood. Keep it out of the normal run, and have it skip unless someone opts in. This repository's own live
-tests are skipped unless `JEV_LIVE=1` and an API key are set, because their calls are billed.
+tests are skipped unless `MINOS_LIVE=1` and an API key are set, because their calls are billed.
 
 ## Next
 

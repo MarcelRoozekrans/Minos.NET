@@ -129,7 +129,7 @@ public sealed class CodeFixTests
             ReferenceAssemblies = ReferenceAssemblies.Net.Net100,
             CompilerDiagnostics = CompilerDiagnostics.None,
         };
-        AddDecisionReference(test);
+        AddMinosReference(test);
         return test.RunAsync();
     }
 
@@ -240,7 +240,7 @@ public sealed class CodeFixTests
             CompilerDiagnostics = CompilerDiagnostics.None,
         };
         test.TestState.AnalyzerConfigFiles.Add(("/.editorconfig", "root = true\n\n[*]\nend_of_line = lf\n"));
-        AddDecisionReference(test);
+        AddMinosReference(test);
         return test.RunAsync();
     }
 
@@ -268,7 +268,7 @@ public sealed class CodeFixTests
             }
         }
 
-        AddDecisionReference(test);
+        AddMinosReference(test);
         return test.RunAsync();
     }
 
@@ -288,18 +288,18 @@ public sealed class CodeFixTests
             test.BatchFixedCode = fixedCode;
         }
 
-        AddDecisionReference(test);
+        AddMinosReference(test);
         return test.RunAsync();
     }
 
-    private static void AddDecisionReference(CSharpCodeFixTest<QuestionSetAnalyzer, AddDescriptionCodeFixProvider, DefaultVerifier> test)
+    private static void AddMinosReference(CSharpCodeFixTest<QuestionSetAnalyzer, AddDescriptionCodeFixProvider, DefaultVerifier> test)
         => test.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(QuestionsAttribute).Assembly.Location));
 
     private static void AddReferences(
         CSharpCodeFixTest<QuestionSetAnalyzer, AddDescriptionCodeFixProvider, DefaultVerifier> test,
         params MetadataReference[] additionalReferences)
     {
-        AddDecisionReference(test);
+        AddMinosReference(test);
         foreach (var reference in additionalReferences)
         {
             test.TestState.AdditionalReferences.Add(reference);

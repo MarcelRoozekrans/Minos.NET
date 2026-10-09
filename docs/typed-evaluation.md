@@ -2,7 +2,7 @@
 id: typed-evaluation
 title: Typed evaluation
 sidebar_position: 3
-description: Declare Jev questions as a C# type, give them a typed state, and pick the EvaluateAsync overload.
+description: Declare questions as a C# type, give them a typed state, and pick the EvaluateAsync overload.
 ---
 
 # Typed evaluation

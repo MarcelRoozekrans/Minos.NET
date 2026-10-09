@@ -1,5 +1,5 @@
 {
-  "name": "zeroalloc-jev-benchmarks-compare-js",
+  "name": "minos-net-benchmarks-compare-js",
   "version": "0.0.0",
   "private": true,
   "description": "Benchmarks TypeSafe's official JS SDK against the shared local mock.",

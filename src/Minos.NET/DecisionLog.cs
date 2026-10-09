@@ -46,7 +46,7 @@ internal static partial class DecisionLog
         EventId = 1001,
         EventName = nameof(EvaluationSucceeded),
         Level = LogLevel.Debug,
-        Message = "Jev {Operation} on {Model} via {Provider} succeeded: {QuestionCount} questions in {DurationMs} ms.")]
+        Message = "Minos {Operation} on {Model} via {Provider} succeeded: {QuestionCount} questions in {DurationMs} ms.")]
     public static partial void EvaluationSucceeded(
         ILogger logger, string operation, string model, DecisionProvider provider, int questionCount, double durationMs);
 
@@ -55,7 +55,7 @@ internal static partial class DecisionLog
         EventId = 1002,
         EventName = nameof(EvaluationFailed),
         Level = LogLevel.Warning,
-        Message = "Jev {Operation} on {Model} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}")]
+        Message = "Minos {Operation} on {Model} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}")]
     public static partial void EvaluationFailed(
         ILogger logger, string operation, string model, DecisionErrorKind errorKind, int? statusCode, double durationMs, string errorMessage);
 
@@ -64,7 +64,7 @@ internal static partial class DecisionLog
         EventId = 1003,
         EventName = nameof(AttemptRetrying),
         Level = LogLevel.Warning,
-        Message = "Jev attempt {Attempt} failed with {ErrorKind}, status {StatusCode}, retry-after {RetryAfter}; retrying.")]
+        Message = "Minos attempt {Attempt} failed with {ErrorKind}, status {StatusCode}, retry-after {RetryAfter}; retrying.")]
     public static partial void AttemptRetrying(ILogger logger, int attempt, DecisionErrorKind errorKind, int? statusCode, TimeSpan? retryAfter);
 
     /// <summary>A model listing succeeded.</summary>
@@ -72,7 +72,7 @@ internal static partial class DecisionLog
         EventId = 1004,
         EventName = nameof(ModelsListed),
         Level = LogLevel.Debug,
-        Message = "Jev " + ListModels + " via {Provider} succeeded: {ModelCount} models in {DurationMs} ms.")]
+        Message = "Minos " + ListModels + " via {Provider} succeeded: {ModelCount} models in {DurationMs} ms.")]
     public static partial void ModelsListed(ILogger logger, DecisionProvider provider, int modelCount, double durationMs);
 
     /// <summary>A model listing failed, after any retries.</summary>
@@ -80,7 +80,7 @@ internal static partial class DecisionLog
         EventId = 1005,
         EventName = nameof(ModelsListFailed),
         Level = LogLevel.Warning,
-        Message = "Jev " + ListModels + " via {Provider} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}")]
+        Message = "Minos " + ListModels + " via {Provider} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}")]
     public static partial void ModelsListFailed(
         ILogger logger, DecisionProvider provider, DecisionErrorKind errorKind, int? statusCode, double durationMs, string errorMessage);
 
@@ -89,7 +89,7 @@ internal static partial class DecisionLog
         EventId = 1006,
         EventName = nameof(UnexpectedException),
         Level = LogLevel.Error,
-        Message = "Jev {Operation} threw an unexpected exception.")]
+        Message = "Minos {Operation} threw an unexpected exception.")]
     public static partial void UnexpectedException(ILogger logger, string operation, Exception exception);
 
     /// <summary>The message to log for <paramref name="error"/>: its own, except where it can carry request or response text.</summary>

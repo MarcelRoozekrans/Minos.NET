@@ -2,17 +2,17 @@
 id: diagnostics
 title: Diagnostics
 sidebar_position: 9
-description: Every JEV analyzer rule with its severity, the two code fixes, and how to suppress a rule that does not apply.
+description: Every MIN analyzer rule with its severity, the two code fixes, and how to suppress a rule that does not apply.
 ---
 
 # Diagnostics
 
-A question set is code that Jev turns into a request, so mistakes in it are best found while you type, not when a call
+A question set is code that Minos turns into a request, so mistakes in it are best found while you type, not when a call
 fails. `Minos.NET` ships a set of Roslyn analyzers for this. They live inside the package, next to the
 `[Questions]` generator, so there is nothing else to install. The editor shows their findings as you type, and the
 build reports them too.
 
-Every rule has an id that starts with `JEV`, a severity and a short title. The severity says how much the finding
+Every rule has an id that starts with `MIN`, a severity and a short title. The severity says how much the finding
 matters:
 
 - **Error** stops the build, because the question set cannot work.
@@ -31,7 +31,7 @@ The rules come in two groups.
 
 A set with any error is invalid. The generator writes no `QuestionsUtf8`, no `Parse` and no `IQuestionSet` for it,
 so `EvaluateAsync<T>` does not compile for that type. The generator still gives each unimplemented question property a
-stub that throws. That way a command-line build reports the JEV error, and not CS9248, "partial property must have an
+stub that throws. That way a command-line build reports the MIN error, and not CS9248, "partial property must have an
 implementation part", which would hide it.
 
 One thing can still hide the analyzers. An error in your own declaration, such as CS0238 for `sealed` on a property that
@@ -154,7 +154,7 @@ properties throw. Fix the declaration instead.
 
 ## Next
 
-- [Testing your code](testing-your-code.md): test code that uses Jev with fakes and canned replies.
+- [Testing your code](testing-your-code.md): test code that uses Minos with fakes and canned replies.
 - [Typed evaluation](typed-evaluation.md): declaring question sets, which these rules check.
 - [Question sets at run time](question-sets-at-run-time.md): the same limits and rule ids, checked when you call
   `Build()`.

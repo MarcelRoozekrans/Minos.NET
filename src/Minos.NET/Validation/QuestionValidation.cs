@@ -30,7 +30,7 @@ internal static class QuestionValidation
         foreach (ref readonly var failure in result.Failures)
         {
             var item = new QuestionFailure(
-                failure.ErrorCode ?? throw new UnreachableException("Every question rule names its JEV id."),
+                failure.ErrorCode ?? throw new UnreachableException("Every question rule names its MIN id."),
                 KeyOf(questions, failure.PropertyName),
                 failure.ErrorMessage);
             (failure.Severity == Severity.Error ? failures : warnings).Add(item);

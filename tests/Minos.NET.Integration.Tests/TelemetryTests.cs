@@ -5,7 +5,7 @@ using WireMock.ResponseBuilders;
 
 namespace Minos.Integration.Tests;
 
-/// <summary>A retried evaluation over real sockets: one Jev span parents each attempt's ZeroAlloc.Rest span.</summary>
+/// <summary>A retried evaluation over real sockets: one Minos span parents each attempt's ZeroAlloc.Rest span.</summary>
 [Collection(TelemetryListeners.Name)]
 public sealed class TelemetryTests : IClassFixture<WireMockFixture>
 {
@@ -18,7 +18,7 @@ public sealed class TelemetryTests : IClassFixture<WireMockFixture>
     }
 
     [Fact]
-    public async Task RetriedEvaluation_IsOneDecisionSpan_OverTwoRestSpans()
+    public async Task RetriedEvaluation_IsOneMinosSpan_OverTwoRestSpans()
     {
         _fixture.Server
             .Given(Request.Create().WithPath("/v1/systemone").UsingPost())

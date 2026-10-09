@@ -12,7 +12,7 @@ namespace Minos.Benchmarks.Compare;
 public class CompareBenchmarks
 {
     /// <summary>The environment variable that carries the mock's address into BenchmarkDotNet's benchmark processes.</summary>
-    public const string BaseUrlVariable = "JEV_COMPARE_BASE_URL";
+    public const string BaseUrlVariable = "MINOS_COMPARE_BASE_URL";
 
     /// <summary>How many checked calls each client makes in its global setup, before BenchmarkDotNet measures.</summary>
     public const int WarmupCalls = 3;

@@ -47,7 +47,7 @@ public sealed class InboxTriage(IDecisionClient client)
         var result = await client.EvaluateAsync<InboxCheck>(message, cancellationToken);
         if (result.IsFailure)
         {
-            return $"Jev failed, {result.Error.Kind}";
+            return $"The call failed, {result.Error.Kind}";
         }
 
         return result.Value.IsUrgent.Value ? "urgent" : "can wait";
@@ -112,7 +112,7 @@ with different retry settings. Register each under a name, and ask for each by t
 
 <!-- snippet: DependencyInjection_Keyed -->
 ```cs
-public static void AddKeyedDecision(IHostApplicationBuilder builder)
+public static void AddKeyedClients(IHostApplicationBuilder builder)
 {
     builder.Services.AddDecisionClient("typesafe", options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
     builder.Services.AddDecisionClient("openrouter", options =>
@@ -135,7 +135,7 @@ public sealed class InboxRouter([FromKeyedServices("openrouter")] IDecisionClien
         var result = await client.EvaluateAsync<InboxCheck>(message, cancellationToken);
         if (result.IsFailure)
         {
-            return $"Jev failed, {result.Error.Kind}";
+            return $"The call failed, {result.Error.Kind}";
         }
 
         return result.Value.IsUrgent.Value ? "urgent, via OpenRouter" : "can wait, via OpenRouter";
@@ -155,7 +155,7 @@ Instead of a delegate, you can bind a client's options from configuration, such 
 
 ```json
 {
-  "Jev": {
+  "Minos": {
     "Provider": "TypeSafe",
     "Model": "jev-latest",
     "Timeout": "00:01:00",
@@ -171,15 +171,15 @@ Instead of a delegate, you can bind a client's options from configuration, such 
 }
 ```
 
-Pass the section to `AddDecisionClient`. The first call binds `Jev` to the default client, and the second binds `OpenRouter`
-to a client keyed `openrouter`.
+Pass the section to `AddDecisionClient`. The first call binds `Minos` to the default client, and the second binds
+`OpenRouter` to a client keyed `openrouter`.
 
 <!-- snippet: DependencyInjection_Configuration -->
 ```cs
 // Each client reads its own section.
 public static void AddFromConfiguration(IHostApplicationBuilder builder)
 {
-    builder.Services.AddDecisionClient(builder.Configuration.GetSection("Jev"));
+    builder.Services.AddDecisionClient(builder.Configuration.GetSection("Minos"));
     builder.Services.AddDecisionClient("openrouter", builder.Configuration.GetSection("OpenRouter"));
 }
 ```
@@ -189,8 +189,8 @@ Things to know when you bind:
 
 - **Time spans** are written `hh:mm:ss`, with fractions of a second after a dot, as `InitialBackoff` shows.
 - **Keep the key out of `appsettings.json`.** Leave `ApiKey` unset to use `TYPESAFE_API_KEY` or `OPENROUTER_API_KEY`, or
-  supply it from user secrets or an environment variable. The setting is `Jev:ApiKey`, and as an environment variable
-  the colon becomes a double underscore, `Jev__ApiKey`.
+  supply it from user secrets or an environment variable. The setting is `Minos:ApiKey`, and as an environment variable
+  the colon becomes a double underscore, `Minos__ApiKey`.
 - **A delegate registered later overrides bound values.** Calling `AddDecisionClient(options => ...)` after binding changes
   only the properties it sets.
 - **A value the binder cannot convert**, such as `"MaxRetries": "abc"`, fails with the binder's
@@ -201,7 +201,7 @@ Things to know when you bind:
   after it is built has no effect.
 
 ```shell
-dotnet user-secrets set "Jev:ApiKey" "your-key"
+dotnet user-secrets set "Minos:ApiKey" "your-key"
 ```
 
 ## Checking the options at start-up
@@ -223,7 +223,7 @@ public static async Task<string> TryStartAsync(IHost host)
     }
     catch (OptionsValidationException exception)
     {
-        return $"Jev is misconfigured: {string.Join(' ', exception.Failures)}";
+        return $"Minos is misconfigured: {string.Join(' ', exception.Failures)}";
     }
 }
 ```
@@ -234,11 +234,11 @@ client is first resolved.
 
 Some things still need valid options, an API key included:
 
-- **Creating Jev's named `HttpClient` from `IHttpClientFactory` yourself.** It reads the same options, so a call such as
-  `CreateClient("Minos.NET")` fails with the same exception when they are invalid.
+- **Creating the client's named `HttpClient` from `IHttpClientFactory` yourself.** It reads the same options, so a call
+  such as `CreateClient("Minos.NET")` fails with the same exception when they are invalid.
 - **A test host that replaces the client.** If the application registers its own `IDecisionClient` before `AddDecisionClient`, the
   application's client wins, but the options are still validated. A test that swaps the client needs a placeholder key,
-  for example `AddDecisionClient(options => options.ApiKey = "test")`, or a `Jev:ApiKey` setting.
+  for example `AddDecisionClient(options => options.ApiKey = "test")`, or a `Minos:ApiKey` setting.
 
 ## What gets registered
 
@@ -262,8 +262,8 @@ the key for a keyed client. You rarely need the name, except to change what is b
 - **Its settings.** `DecisionClient.ConfigureHttpClient` gives the `HttpClient` its base address, the per-attempt `Timeout`
   and the `Minos.NET` User-Agent.
 - **Its handlers.** Add your own through the builder `AddDecisionClient` returns. A handler sees every request and every
-  retry. `ConfigureHttpClientDefaults` adds a handler to every `HttpClient` the factory makes, and Jev's included,
-  whether you call it before or after `AddDecisionClient`.
+  retry. `ConfigureHttpClientDefaults` adds a handler to every `HttpClient` the factory makes, the Minos clients
+  included, whether you call it before or after `AddDecisionClient`.
 
 <!-- snippet: DependencyInjection_Handlers -->
 ```cs
@@ -288,7 +288,7 @@ public static class HandlerRegistration
             .AddHttpMessageHandler<TraceHeaderHandler>();
     }
 
-    // ConfigureHttpClientDefaults adds a handler to every HttpClient the factory makes, Jev's included.
+    // ConfigureHttpClientDefaults adds a handler to every HttpClient the factory makes, the Minos clients included.
     public static void AddTracedEverywhere(IServiceCollection services, string apiKey)
     {
         services.AddTransient<TraceHeaderHandler>();
@@ -296,8 +296,8 @@ public static class HandlerRegistration
         services.AddDecisionClient(options => options.ApiKey = apiKey);
     }
 
-    // To keep a defaults handler off Jev's client, clear the handlers of its builder. This also clears any you added
-    // through that builder, so add those inside the delegate, after the Clear.
+    // To keep a defaults handler off the Minos client, clear the handlers of its builder. This also clears any you
+    // added through that builder, so add those inside the delegate, after the Clear.
     public static IHttpClientBuilder AddDecisionWithoutDefaultHandlers(IServiceCollection services, string apiKey)
     {
         services.AddTransient<TraceHeaderHandler>();
@@ -307,7 +307,7 @@ public static class HandlerRegistration
             .ConfigureAdditionalHttpMessageHandlers((handlers, _) => handlers.Clear());
     }
 
-    // When a handler of yours retries, such as a standard resilience handler, turn Jev's own retries off,
+    // When a handler of yours retries, such as a standard resilience handler, turn the client's own retries off,
     // so the two do not multiply.
     public static void AddWithOwnRetries(IServiceCollection services, string apiKey)
         => services.AddDecisionClient(options =>
@@ -321,33 +321,34 @@ public static class HandlerRegistration
 
 ### Host-wide defaults
 
-`ConfigureHttpClientDefaults` is how a host applies one setup to every `HttpClient`, and it reaches Jev's clients too.
-Two things in it do not:
+`ConfigureHttpClientDefaults` is how a host applies one setup to every `HttpClient`, and it reaches the Minos clients
+too. Two things in it do not:
 
-- **A primary handler set in the defaults is replaced.** Jev's client always uses its own `SocketsHttpHandler`, whether
-  the defaults are registered before or after `AddDecisionClient`. A defaults primary handler never sees Jev's requests.
-- **The defaults' loggers are removed** from Jev's clients, in either order, as the next section says.
+- **A primary handler set in the defaults is replaced.** The Minos client always uses its own `SocketsHttpHandler`,
+  whether the defaults are registered before or after `AddDecisionClient`. A defaults primary handler never sees the
+  client's requests.
+- **The defaults' loggers are removed** from the Minos clients, in either order, as the next section says.
 
 The usual cause of trouble is a defaults handler that retries, most often Aspire ServiceDefaults'
-`AddStandardResilienceHandler()`. Its retries multiply with Jev's, so set `MaxRetries = 0`, as the snippet does and as
-[the cost of retrying](client-and-errors.md#the-cost-of-retrying) explains. It has time-outs of its own too, and the
-advice is to keep them at or above `Timeout`. That last point is advice, not something the tests here check.
+`AddStandardResilienceHandler()`. Its retries multiply with the client's own, so set `MaxRetries = 0`, as the snippet
+does and as [the cost of retrying](client-and-errors.md#the-cost-of-retrying) explains. It has time-outs of its own too,
+and the advice is to keep them at or above `Timeout`. That last point is advice, not something the tests here check.
 
-To keep a defaults handler off Jev's client, clear the additional handlers of its builder, as the last method in the
+To keep a defaults handler off the Minos client, clear the additional handlers of its builder, as the last method in the
 snippet does. This also removes every handler you added yourself through that builder, so add yours in the same call
 with `ConfigureAdditionalHttpMessageHandlers`, after the `Clear()`, if you want them.
 
 ### The factory's request logs
 
 The factory has request logs of its own, with the categories `System.Net.Http.HttpClient.*`. They are turned off for
-Jev's clients. Jev's client already logs each operation and each retried attempt, in the `Minos.DecisionClient`
+the Minos clients. The client already logs each operation and each retried attempt, in the `Minos.DecisionClient`
 category, and the factory's logging handlers add work to every request. Call `AddDefaultLogger()` on the builder
 `AddDecisionClient` returns to bring the factory's logs back.
 
-Without a logging provider, or with Jev's log levels turned off, the client logs nothing. [Logging, traces and
+Without a logging provider, or with the Minos log levels turned off, the client logs nothing. [Logging, traces and
 metrics](observability.md#logging) lists the events and their levels.
 
-## Using Jev without the package
+## Using Minos without the package
 
 The package is a convenience. `DecisionClient.ConfigureHttpClient(httpClient, options)` configures any `HttpClient` the way
 the client configures its own: it applies the per-attempt `Timeout`, the base address when the `HttpClient` has none,
@@ -357,7 +358,7 @@ instance on a named client of your own.
 <!-- snippet: DependencyInjection_WithoutPackage -->
 ```cs
 // A named HttpClient of your own, set up the way AddDecisionClient sets up its client.
-public static void AddDecisionHttpClient(IServiceCollection services, DecisionClientOptions options)
+public static void AddMinosHttpClient(IServiceCollection services, DecisionClientOptions options)
     => services.AddHttpClient("minos")
         .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(2) })
         .SetHandlerLifetime(Timeout.InfiniteTimeSpan)

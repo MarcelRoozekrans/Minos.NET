@@ -6,7 +6,7 @@ namespace Minos.Validation;
 
 /// <summary>
 /// One question of a set built at run time, as ZeroAlloc.Validation checks it against the API's rules. Every rule
-/// names its JEV id in <see cref="ValidationFailure.ErrorCode"/>, the same id the analyzers report for a
+/// names its MIN id in <see cref="ValidationFailure.ErrorCode"/>, the same id the analyzers report for a
 /// <c>[Questions]</c> set; advice is <see cref="Severity.Warning"/>.
 /// </summary>
 [Validate]

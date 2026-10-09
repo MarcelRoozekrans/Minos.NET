@@ -61,7 +61,7 @@ public static class DecisionServiceCollectionExtensions
     /// </summary>
     /// <param name="services">The services to add to.</param>
     /// <param name="configuration">
-    /// The configuration to bind, typically a section such as <c>builder.Configuration.GetSection("Jev")</c>. Its keys are
+    /// The configuration to bind, typically a section such as <c>builder.Configuration.GetSection("Minos")</c>. Its keys are
     /// the <see cref="DecisionClientOptions"/> property names. A configure delegate registered later for the default client
     /// overrides bound values. Changes after the client is built are not picked up.
     /// </param>
@@ -121,7 +121,7 @@ public static class DecisionServiceCollectionExtensions
     /// <param name="services">The services to add to.</param>
     /// <param name="name">The client's service key and options name.</param>
     /// <param name="configuration">
-    /// The configuration to bind, typically a section such as <c>builder.Configuration.GetSection("Jev:OpenRouter")</c>.
+    /// The configuration to bind, typically a section such as <c>builder.Configuration.GetSection("Minos:OpenRouter")</c>.
     /// Its keys are the <see cref="DecisionClientOptions"/> property names. A configure delegate registered later for the same
     /// name overrides bound values. Changes after the client is built are not picked up.
     /// </param>

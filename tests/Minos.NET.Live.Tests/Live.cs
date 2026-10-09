@@ -16,7 +16,7 @@ internal static class Live
     /// Creates an owned <see cref="DecisionClient"/> whose key comes from the environment. <see
     /// cref="DecisionClientOptions.MaxRetries"/> is 0, so each evaluation bills at most once and a transient failure
     /// surfaces instead of being hidden by a retry. <see cref="DecisionClientOptions.Model"/> is set from <see
-    /// cref="Model"/>, so a typed call honours <c>JEV_LIVE_MODEL</c> and <c>JEV_LIVE_OPENROUTER_MODEL</c> the same
+    /// cref="Model"/>, so a typed call honours <c>MINOS_LIVE_MODEL</c> and <c>MINOS_LIVE_OPENROUTER_MODEL</c> the same
     /// way <see cref="Request"/> does for the untyped tests.
     /// </summary>
     /// <param name="provider">The provider to call.</param>
@@ -24,19 +24,19 @@ internal static class Live
         => new(new DecisionClientOptions { Provider = provider, MaxRetries = 0, Model = Model(provider) });
 
     /// <summary>
-    /// Gets the model to send: <c>JEV_LIVE_OPENROUTER_MODEL</c> for OpenRouter, else <c>JEV_LIVE_MODEL</c>, else
+    /// Gets the model to send: <c>MINOS_LIVE_OPENROUTER_MODEL</c> for OpenRouter, else <c>MINOS_LIVE_MODEL</c>, else
     /// <see cref="DecisionDefaults.Model"/>.
     /// </summary>
     /// <param name="provider">The provider the model is sent to.</param>
     public static string Model(DecisionProvider provider)
     {
         if (provider == DecisionProvider.OpenRouter
-            && Environment.GetEnvironmentVariable("JEV_LIVE_OPENROUTER_MODEL") is { Length: > 0 } openRouterModel)
+            && Environment.GetEnvironmentVariable("MINOS_LIVE_OPENROUTER_MODEL") is { Length: > 0 } openRouterModel)
         {
             return openRouterModel;
         }
 
-        return Environment.GetEnvironmentVariable("JEV_LIVE_MODEL") is { Length: > 0 } model
+        return Environment.GetEnvironmentVariable("MINOS_LIVE_MODEL") is { Length: > 0 } model
             ? model
             : DecisionDefaults.Model;
     }

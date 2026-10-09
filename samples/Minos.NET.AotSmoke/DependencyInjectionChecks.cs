@@ -52,13 +52,13 @@ internal static class DependencyInjectionChecks
         => new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.Ordinal)
             {
-                ["Jev:ApiKey"] = "smoke-key",
-                ["Jev:BaseAddress"] = "https://example.test/api/",
-                ["Jev:Timeout"] = "00:00:30",
-                ["Jev:MaxRetries"] = "3",
-                ["Jev:InitialBackoff"] = "00:00:00.250",
-                ["Jev:MaxRetryDelay"] = "00:00:10",
-                ["Jev:Jitter"] = "false",
+                ["Minos:ApiKey"] = "smoke-key",
+                ["Minos:BaseAddress"] = "https://example.test/api/",
+                ["Minos:Timeout"] = "00:00:30",
+                ["Minos:MaxRetries"] = "3",
+                ["Minos:InitialBackoff"] = "00:00:00.250",
+                ["Minos:MaxRetryDelay"] = "00:00:10",
+                ["Minos:Jitter"] = "false",
                 ["OpenRouter:Provider"] = "OpenRouter",
                 ["OpenRouter:ApiKey"] = "smoke-openrouter-key",
                 ["OpenRouter:BaseAddress"] = "https://openrouter.example.test/api/",
@@ -69,7 +69,7 @@ internal static class DependencyInjectionChecks
     /// <summary>Registers the default client bound from <see cref="BoundConfiguration"/>, over a canned handler.</summary>
     public static void RegisterBoundDefaultClient(IServiceCollection services)
         => services
-            .AddDecisionClient(BoundConfiguration().GetSection("Jev"))
+            .AddDecisionClient(BoundConfiguration().GetSection("Minos"))
             .ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
 
     [Covers("static Microsoft.Extensions.DependencyInjection.DecisionServiceCollectionExtensions.AddDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!")]

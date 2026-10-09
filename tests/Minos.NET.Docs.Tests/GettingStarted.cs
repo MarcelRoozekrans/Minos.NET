@@ -59,7 +59,7 @@ public static class GettingStartedEvaluation
         // error, a rejected key and an unreadable response all arrive here, with a Kind and a Message.
         if (result.IsFailure)
         {
-            return $"Jev failed, {result.Error.Kind}: {result.Error.Message}";
+            return $"The call failed, {result.Error.Kind}: {result.Error.Message}";
         }
 
         var check = result.Value;

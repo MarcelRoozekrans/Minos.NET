@@ -343,7 +343,7 @@ internal static class Program
             invalid.IsFailure
                 && invalid.Error.Kind == DecisionErrorKind.InvalidQuestions
                 && string.Equals(invalid.Error.Failures[0].Rule, "MIN001", StringComparison.Ordinal),
-            "a built question set that breaks a rule fails with its JEV id");
+            "a built question set that breaks a rule fails with its MIN id");
     }
 
     [Covers("Minos.QuestionSetBuilder.Choice<T>(string! key, Minos.DecisionContent instructions, out Minos.ChoiceHandle<T> question) -> Minos.QuestionSetBuilder!")]

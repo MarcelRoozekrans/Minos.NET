@@ -4,7 +4,7 @@ using Minos.Telemetry;
 
 namespace Minos;
 
-/// <summary>Why a Jev call failed.</summary>
+/// <summary>Why a call failed.</summary>
 /// <remarks>
 /// Every failure a call can have is returned as a <see cref="DecisionError"/>. Only programming errors, such as a missing
 /// API key or a <see langword="null"/> request, and cancellation the caller asked for are thrown.

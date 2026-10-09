@@ -71,7 +71,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The rule ids, shared with the generator and the analyzers, so a runtime failure names the same JEV id. -->
+    <!-- The rule ids, shared with the generator and the analyzers, so a runtime failure names the same MIN id. -->
     <Compile Include="..\Minos.NET.Generator\DiagnosticIds.cs" Link="Shared\DiagnosticIds.cs" />
     <Compile Include="..\Minos.NET.Generator\DecisionLimits.cs" Link="Shared\DecisionLimits.cs" />
     <!-- One snake_case algorithm for the generator's keys and the runtime option sets. -->

@@ -93,14 +93,14 @@ public static class ClientFailures
     // add detail when there is some: StatusCode, RetryAfter, Detail and Exception.
     public static string Describe(DecisionError error) => error.Kind switch
     {
-        DecisionErrorKind.Unauthorized => "Jev rejected the API key. Check the key and what it may access.",
-        DecisionErrorKind.Validation => $"Jev rejected the request: {error.Detail?.GetRawText() ?? error.Message}",
+        DecisionErrorKind.Unauthorized => "The service rejected the API key. Check the key and what it may access.",
+        DecisionErrorKind.Validation => $"The service rejected the request: {error.Detail?.GetRawText() ?? error.Message}",
         DecisionErrorKind.RateLimited or DecisionErrorKind.Overloaded when error.RetryAfter is { } wait
-            => $"Jev is busy. It asks for {(int)wait.TotalMilliseconds} ms before the next call.",
-        DecisionErrorKind.RateLimited or DecisionErrorKind.Overloaded => "Jev is busy. Try again later.",
-        DecisionErrorKind.Server or DecisionErrorKind.Http => $"Jev failed with HTTP {error.StatusCode}: {error.Message}",
-        DecisionErrorKind.Network or DecisionErrorKind.Timeout => $"Jev could not be reached: {error.Exception?.Message ?? error.Message}",
-        DecisionErrorKind.InvalidResponse => $"Jev replied with something unreadable: {error.Message}",
+            => $"The service is busy. It asks for {(int)wait.TotalMilliseconds} ms before the next call.",
+        DecisionErrorKind.RateLimited or DecisionErrorKind.Overloaded => "The service is busy. Try again later.",
+        DecisionErrorKind.Server or DecisionErrorKind.Http => $"The service failed with HTTP {error.StatusCode}: {error.Message}",
+        DecisionErrorKind.Network or DecisionErrorKind.Timeout => $"The service could not be reached: {error.Exception?.Message ?? error.Message}",
+        DecisionErrorKind.InvalidResponse => $"The service replied with something unreadable: {error.Message}",
         DecisionErrorKind.Unsupported => $"The provider cannot do that: {error.Message}",
         DecisionErrorKind.InvalidQuestions => $"The question set is invalid, {error.Failures.Count} rules broken.",
         DecisionErrorKind.Disposed => "The client was disposed while the call was running.",

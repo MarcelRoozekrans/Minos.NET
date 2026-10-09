@@ -23,7 +23,7 @@ var recordingsPath = SampleHost.RecordingsPath(mode, SampleName);
 
 var session = new RecordingSession();
 var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings { Args = args, ContentRootPath = AppContext.BaseDirectory });
-builder.Services.AddSampleDecisionClient(builder.Configuration.GetSection("Jev"), mode, recordingsPath, SampleName, session);
+builder.Services.AddSampleDecisionClient(builder.Configuration.GetSection("Minos"), mode, recordingsPath, SampleName, session);
 using var host = builder.Build();
 
 var client = host.Services.GetRequiredService<IDecisionClient>();

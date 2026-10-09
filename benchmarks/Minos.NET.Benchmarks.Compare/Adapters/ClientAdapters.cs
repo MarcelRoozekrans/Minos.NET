@@ -3,7 +3,10 @@ namespace Minos.Benchmarks.Compare.Adapters;
 /// <summary>Every benchmark client, by name, in the order the harness runs them.</summary>
 public static class ClientAdapters
 {
-    /// <summary>The Minos.NET client.</summary>
+    /// <summary>
+    /// The Minos.NET client. Its id stays <c>zeroalloc-jev</c>, the key the published results in
+    /// <c>benchmarks/compare/results</c> and the docs' tables were measured under, so new runs merge with them.
+    /// </summary>
     public const string Minos = "zeroalloc-jev";
 
     /// <summary>The hand-written <see cref="HttpClient"/> and System.Text.Json client.</summary>

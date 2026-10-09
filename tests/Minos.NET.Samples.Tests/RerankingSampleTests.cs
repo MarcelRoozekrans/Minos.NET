@@ -204,9 +204,9 @@ public sealed class RerankingSampleTests
         ]);
 
         Assert.Equal(
-            "first\n  keyword  a b c  hit@3\n  jev      b a c  hit@1\n\n"
-            + "second\n  keyword  a b c  miss\n  jev      a b c  miss\n\n"
-            + "hit@1 keyword 0/2 -> jev 1/2\nhit@3 keyword 1/2 -> jev 1/2\n",
+            "first\n  keyword  a b c  hit@3\n  model    b a c  hit@1\n\n"
+            + "second\n  keyword  a b c  miss\n  model    a b c  miss\n\n"
+            + "hit@1 keyword 0/2 -> model 1/2\nhit@3 keyword 1/2 -> model 1/2\n",
             report.Render());
     }
 
@@ -236,7 +236,7 @@ public sealed class RerankingSampleTests
         Assert.Equal(2, report.KeywordHitsAt3);
         Assert.Equal(5, report.DecisionHitsAt1);
         Assert.Equal(5, report.DecisionHitsAt3);
-        Assert.EndsWith("hit@1 keyword 1/5 -> jev 5/5\nhit@3 keyword 2/5 -> jev 5/5\n", report.Render(), StringComparison.Ordinal);
+        Assert.EndsWith("hit@1 keyword 1/5 -> model 5/5\nhit@3 keyword 2/5 -> model 5/5\n", report.Render(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -275,7 +275,7 @@ public sealed class RerankingSampleTests
         var counter = new CountingHandler();
         var services = new ServiceCollection();
         services.AddSampleDecisionClient(
-            configuration.GetSection("Jev"), SampleMode.Replay, Path.Combine(directory, "recordings.json"), Sample, new RecordingSession())
+            configuration.GetSection("Minos"), SampleMode.Replay, Path.Combine(directory, "recordings.json"), Sample, new RecordingSession())
             .AddHttpMessageHandler(() => counter);
         using var provider = services.BuildServiceProvider();
 

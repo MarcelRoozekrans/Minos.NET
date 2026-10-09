@@ -18,7 +18,7 @@ public sealed class SampleHostTests : IDisposable
     {
         System.IO.File.WriteAllText(
             Path.Combine(_directory, "appsettings.json"),
-            """{ "Jev": { "Provider": "OpenRouter", "MaxRetries": 0 } }""");
+            """{ "Minos": { "Provider": "OpenRouter", "MaxRetries": 0 } }""");
 
         // The hash of the exact body the client sends, taken from the request itself and never written by hand.
         var hash = await CaptureRequestHashAsync();
@@ -63,7 +63,7 @@ public sealed class SampleHostTests : IDisposable
         var configuration = new ConfigurationBuilder().Build();
 
         Assert.ThrowsAny<ArgumentException>(
-            () => new ServiceCollection().AddSampleDecisionClient(configuration.GetSection("Jev"), SampleMode.Replay, null, Sample, new RecordingSession()));
+            () => new ServiceCollection().AddSampleDecisionClient(configuration.GetSection("Minos"), SampleMode.Replay, null, Sample, new RecordingSession()));
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public sealed class SampleHostTests : IDisposable
     {
         var configuration = new ConfigurationBuilder().Build();
 
-        var builder = new ServiceCollection().AddSampleDecisionClient(configuration.GetSection("Jev"), SampleMode.Live, null, Sample, new RecordingSession());
+        var builder = new ServiceCollection().AddSampleDecisionClient(configuration.GetSection("Minos"), SampleMode.Live, null, Sample, new RecordingSession());
 
         Assert.NotNull(builder);
     }
@@ -86,7 +86,7 @@ public sealed class SampleHostTests : IDisposable
         var services = new ServiceCollection();
         services
             .AddSampleDecisionClient(
-                configuration.GetSection("Jev"),
+                configuration.GetSection("Minos"),
                 SampleMode.Replay,
                 Path.Combine(_directory, "recordings.json"),
                 Sample,

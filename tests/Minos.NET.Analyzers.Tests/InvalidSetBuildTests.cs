@@ -2,8 +2,8 @@ namespace Minos.Analyzers.Tests;
 
 /// <summary>
 /// An invalid set as a build sees it, with the analyzer and the generator together. The generator's throwing stubs
-/// implement the partial question properties, so the JEV error is the only error, with no CS9248 beside it. On the
-/// command line, CS9248 would stop the build before the analyzer ran, hiding the JEV error.
+/// implement the partial question properties, so the MIN error is the only error, with no CS9248 beside it. On the
+/// command line, CS9248 would stop the build before the analyzer ran, hiding the MIN error.
 /// </summary>
 public sealed class InvalidSetBuildTests
 {
@@ -50,5 +50,5 @@ public sealed class InvalidSetBuildTests
 
     [Theory]
     [MemberData(nameof(Cases))]
-    public Task InvalidSet_ReportsOnlyTheDecisionError(string source) => AnalyzerVerifier.VerifyWithGeneratorAsync(source);
+    public Task InvalidSet_ReportsOnlyTheAnalyzerError(string source) => AnalyzerVerifier.VerifyWithGeneratorAsync(source);
 }

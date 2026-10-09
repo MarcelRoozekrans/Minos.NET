@@ -289,9 +289,9 @@ measured calls then rented them again:
   Together, 5254 + 41.4 + 66.2 = 5362 B, the 5363 B that Phase 5.1 recorded.
 
 The order of the measuring loops is the fix: collect first and wait for the trim to finish, then warm up, then measure.
-Jev's own helpers have measured that way since Phase 5.3, #79, and the yielding check now warms up for 2000 calls.
-ZeroAlloc.TestHelpers 1.5.1 fixed `AllocationGate` the same way, TestHelpers#62, and Jev pins it, so every gate now
-reads the path's true cost.
+The library's own helpers have measured that way since Phase 5.3, #79, and the yielding check now warms up for 2000
+calls. ZeroAlloc.TestHelpers 1.5.1 fixed `AllocationGate` the same way, TestHelpers#62, and Minos pins it, so every gate
+now reads the path's true cost.
 
 **The trace.** The smoke app of each phase merge on `main` since Phase 3.2 was published under win-x64 Native AOT with
 the fixed measuring order patched in, three runs each. Every figure was the same in every run:
@@ -479,5 +479,5 @@ they differ.
 ## Next
 
 - [Getting started](getting-started.md): the guide from the beginning.
-- [Testing your code](testing-your-code.md): test code that uses Jev with canned answers.
+- [Testing your code](testing-your-code.md): test code that uses Minos with canned answers.
 - [Samples](samples.md): three runnable cookbook samples.

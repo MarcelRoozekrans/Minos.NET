@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace Minos;
 
-/// <summary>A set of Jev questions declared as a C# type. The <c>[Questions]</c> source generator implements it.</summary>
+/// <summary>A set of questions declared as a C# type. The <c>[Questions]</c> source generator implements it.</summary>
 /// <typeparam name="TSelf">The implementing type.</typeparam>
 public interface IQuestionSet<TSelf>
     where TSelf : IQuestionSet<TSelf>

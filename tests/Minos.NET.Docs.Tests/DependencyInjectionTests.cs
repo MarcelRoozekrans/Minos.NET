@@ -69,7 +69,7 @@ public sealed class DependencyInjectionTests
         var builder = NewBuilder();
         using var typeSafe = new ScriptedDecision.Handler([Reply.Ok(UrgentResponse)]);
         using var openRouter = new ScriptedDecision.Handler([Reply.Ok(UrgentResponse)]);
-        KeyedRegistration.AddKeyedDecision(builder);
+        KeyedRegistration.AddKeyedClients(builder);
         builder.Services.AddHttpClient("Minos.NET:typesafe").ConfigurePrimaryHttpMessageHandler(() => typeSafe);
         builder.Services.AddHttpClient("Minos.NET:openrouter").ConfigurePrimaryHttpMessageHandler(() => openRouter);
         using var host = builder.Build();
@@ -117,7 +117,7 @@ public sealed class DependencyInjectionTests
     public void TheAppsettingsOnThePage_BindToTheOptions()
     {
         var builder = NewBuilder();
-        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.Ordinal) { ["Jev:ApiKey"] = "typesafe-key" });
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.Ordinal) { ["Minos:ApiKey"] = "typesafe-key" });
         using var json = new MemoryStream(Encoding.UTF8.GetBytes(PageBlock("json")));
         builder.Configuration.AddJsonStream(json);
         KeyedRegistration.AddFromConfiguration(builder);
@@ -144,8 +144,8 @@ public sealed class DependencyInjectionTests
     public void ADelegateRegisteredLater_OverridesBoundValues_AndARepeatCallRegistersNoSecondClient()
     {
         var builder = NewBuilder();
-        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.Ordinal) { ["Jev:MaxRetries"] = "5" });
-        builder.Services.AddDecisionClient(builder.Configuration.GetSection("Jev"));
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.Ordinal) { ["Minos:MaxRetries"] = "5" });
+        builder.Services.AddDecisionClient(builder.Configuration.GetSection("Minos"));
         builder.Services.AddDecisionClient(options =>
         {
             options.ApiKey = "key";
@@ -176,7 +176,7 @@ public sealed class DependencyInjectionTests
 
         var message = await KeyedRegistration.TryStartAsync(host);
 
-        Assert.Equal("Jev is misconfigured: MaxRetries must be between 0 and 10. (Parameter 'options')", message);
+        Assert.Equal("Minos is misconfigured: MaxRetries must be between 0 and 10. (Parameter 'options')", message);
     }
 
     [Fact]
@@ -212,10 +212,10 @@ public sealed class DependencyInjectionTests
         var builder = NewBuilder();
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.Ordinal)
         {
-            ["Jev:ApiKey"] = "key",
-            ["Jev:MaxRetries"] = "abc",
+            ["Minos:ApiKey"] = "key",
+            ["Minos:MaxRetries"] = "abc",
         });
-        builder.Services.AddDecisionClient(builder.Configuration.GetSection("Jev"));
+        builder.Services.AddDecisionClient(builder.Configuration.GetSection("Minos"));
         using var host = builder.Build();
 
         var exception = await Assert.ThrowsAnyAsync<Exception>(() => host.StartAsync());
@@ -297,7 +297,7 @@ public sealed class DependencyInjectionTests
     }
 
     [Fact]
-    public async Task ClearingTheAdditionalHandlers_KeepsADefaultsHandlerOffDecisionsClient()
+    public async Task ClearingTheAdditionalHandlers_KeepsADefaultsHandlerOffTheMinosClient()
     {
         var withDefaults = new ServiceCollection();
         using var first = new ScriptedDecision.Handler([Reply.Ok(UrgentResponse)]);
@@ -340,7 +340,7 @@ public sealed class DependencyInjectionTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task ADefaultsPrimaryHandlerAndLogger_NeverReachDecisionsClient(bool defaultsFirst)
+    public async Task ADefaultsPrimaryHandlerAndLogger_NeverReachTheMinosClient(bool defaultsFirst)
     {
         var capture = new CategoryCapture();
         var defaultsPrimary = new CountingHandler();
@@ -351,7 +351,7 @@ public sealed class DependencyInjectionTests
             defaults.ConfigurePrimaryHttpMessageHandler(() => defaultsPrimary);
             defaults.AddDefaultLogger();
         });
-        void Jev() => services.AddDecisionClient(options =>
+        void AddMinos() => services.AddDecisionClient(options =>
         {
             options.ApiKey = "key";
             options.MaxRetries = 0;
@@ -361,17 +361,17 @@ public sealed class DependencyInjectionTests
         if (defaultsFirst)
         {
             Defaults();
-            Jev();
+            AddMinos();
         }
         else
         {
-            Jev();
+            AddMinos();
             Defaults();
         }
 
         await using var provider = services.BuildServiceProvider();
 
-        // Jev's own SocketsHttpHandler is used, so the call fails as a refused connection and the defaults' handler is untouched.
+        // The client's own SocketsHttpHandler is used, so the call fails as a refused connection and the defaults' handler is untouched.
         var result = await provider.GetRequiredService<IDecisionClient>().EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
         using var control = provider.GetRequiredService<IHttpClientFactory>().CreateClient("other");
         using var controlResponse = await control.GetAsync(new Uri("http://other.example/"));
@@ -399,7 +399,7 @@ public sealed class DependencyInjectionTests
         using var environment = new KeyEnvironment(typeSafe: null, openRouter: null);
         var options = new DecisionClientOptions { Timeout = TimeSpan.FromSeconds(15) };
         var services = new ServiceCollection();
-        WithoutThePackage.AddDecisionHttpClient(services, options);
+        WithoutThePackage.AddMinosHttpClient(services, options);
         using var provider = services.BuildServiceProvider();
 
         using var http = provider.GetRequiredService<IHttpClientFactory>().CreateClient("minos");
@@ -414,7 +414,7 @@ public sealed class DependencyInjectionTests
     {
         var options = new DecisionClientOptions { ApiKey = "key" };
         var services = new ServiceCollection();
-        WithoutThePackage.AddDecisionHttpClient(services, options);
+        WithoutThePackage.AddMinosHttpClient(services, options);
         using var provider = services.BuildServiceProvider();
 
         using var client = WithoutThePackage.Create(provider.GetRequiredService<IHttpClientFactory>(), options);

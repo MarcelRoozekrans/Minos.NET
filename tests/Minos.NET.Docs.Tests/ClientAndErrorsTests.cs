@@ -39,16 +39,16 @@ public sealed class ClientAndErrorsTests
         {
             var message = await RawRequests.UrgencyAsync(client, "Help!", CancellationToken.None);
 
-            Assert.Equal("Jev rejected the API key. Check the key and what it may access.", message);
+            Assert.Equal("The service rejected the API key. Check the key and what it may access.", message);
         }
 
         Assert.Collection(requests, _ => { });
     }
 
     [Theory]
-    [InlineData(422, "{\"detail\":\"questions is required\"}", "Jev rejected the request: {\"detail\":\"questions is required\"}")]
-    [InlineData(400, "not json", "Jev rejected the request: The API returned HTTP 400.")]
-    [InlineData(418, "", "Jev failed with HTTP 418: The API returned HTTP 418.")]
+    [InlineData(422, "{\"detail\":\"questions is required\"}", "The service rejected the request: {\"detail\":\"questions is required\"}")]
+    [InlineData(400, "not json", "The service rejected the request: The API returned HTTP 400.")]
+    [InlineData(418, "", "The service failed with HTTP 418: The API returned HTTP 418.")]
     public async Task Describe_ReadsTheStatusAndTheDetail(int status, string body, string expected)
     {
         var (http, client, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Error(status, body));
@@ -121,9 +121,9 @@ public sealed class ClientAndErrorsTests
     }
 
     [Theory]
-    [InlineData(500, "Jev failed with HTTP 500: The API returned HTTP 500.")]
-    [InlineData(503, "Jev is busy. Try again later.")]
-    [InlineData(429, "Jev is busy. Try again later.")]
+    [InlineData(500, "The service failed with HTTP 500: The API returned HTTP 500.")]
+    [InlineData(503, "The service is busy. Try again later.")]
+    [InlineData(429, "The service is busy. Try again later.")]
     public async Task Describe_ReadsAServerFailureAfterTheRetriesAreUsedUp(int status, string expected)
     {
         var (http, client, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(1), Reply.Error(status));
@@ -144,7 +144,7 @@ public sealed class ClientAndErrorsTests
         using (client)
         {
             Assert.Equal(
-                "Jev is busy. It asks for 1500 ms before the next call.",
+                "The service is busy. It asks for 1500 ms before the next call.",
                 await RawRequests.UrgencyAsync(client, "Help!", CancellationToken.None));
         }
     }
@@ -157,7 +157,7 @@ public sealed class ClientAndErrorsTests
         using (client)
         {
             Assert.Equal(
-                "Jev could not be reached: The connection was refused.",
+                "The service could not be reached: The connection was refused.",
                 await RawRequests.UrgencyAsync(client, "Help!", CancellationToken.None));
         }
 
@@ -169,7 +169,7 @@ public sealed class ClientAndErrorsTests
 
             Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);
             Assert.Equal(200, result.Error.StatusCode);
-            Assert.StartsWith("Jev replied with something unreadable", ClientFailures.Describe(result.Error), StringComparison.Ordinal);
+            Assert.StartsWith("The service replied with something unreadable", ClientFailures.Describe(result.Error), StringComparison.Ordinal);
         }
     }
 

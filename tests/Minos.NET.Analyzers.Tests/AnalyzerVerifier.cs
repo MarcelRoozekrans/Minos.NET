@@ -52,7 +52,7 @@ internal static class AnalyzerVerifier
 
     /// <summary>
     /// Verifies a set the analyzer rejects, as a build sees it: the generator runs too and the compiler's errors are
-    /// checked, so the marked-up JEV diagnostics must be the only errors. The generator's throwing stubs implement the
+    /// checked, so the marked-up MIN diagnostics must be the only errors. The generator's throwing stubs implement the
     /// partial question properties, so no CS9248 may appear.
     /// </summary>
     public static Task VerifyWithGeneratorAsync(string source)

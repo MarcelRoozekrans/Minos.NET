@@ -76,9 +76,9 @@ public sealed class DecisionLogTests
         Assert.Equal("3", LogAssert.Field(record, "QuestionCount"));
         Assert.Equal(2.5.ToString(CultureInfo.InvariantCulture), LogAssert.Field(record, "DurationMs"));
         Assert.Equal(
-            "Jev {Operation} on {Model} via {Provider} succeeded: {QuestionCount} questions in {DurationMs} ms.",
+            "Minos {Operation} on {Model} via {Provider} succeeded: {QuestionCount} questions in {DurationMs} ms.",
             LogAssert.Field(record, "{OriginalFormat}"));
-        Assert.Equal("Jev evaluate on jev-latest via TypeSafe succeeded: 3 questions in 2.5 ms.", record.Message);
+        Assert.Equal("Minos evaluate on jev-latest via TypeSafe succeeded: 3 questions in 2.5 ms.", record.Message);
     }
 
     [Fact]
@@ -94,9 +94,9 @@ public sealed class DecisionLogTests
         Assert.Equal("429", LogAssert.Field(record, "StatusCode"));
         Assert.Equal("00:00:03", LogAssert.Field(record, "RetryAfter"));
         Assert.Equal(
-            "Jev attempt {Attempt} failed with {ErrorKind}, status {StatusCode}, retry-after {RetryAfter}; retrying.",
+            "Minos attempt {Attempt} failed with {ErrorKind}, status {StatusCode}, retry-after {RetryAfter}; retrying.",
             LogAssert.Field(record, "{OriginalFormat}"));
-        Assert.Equal("Jev attempt 2 failed with RateLimited, status 429, retry-after 00:00:03; retrying.", record.Message);
+        Assert.Equal("Minos attempt 2 failed with RateLimited, status 429, retry-after 00:00:03; retrying.", record.Message);
     }
 
     [Fact]
@@ -109,7 +109,7 @@ public sealed class DecisionLogTests
         var record = logger.LatestRecord;
         Assert.Null(LogAssert.Field(record, "RetryAfter"));
         Assert.Equal("500", LogAssert.Field(record, "StatusCode"));
-        Assert.Equal("Jev attempt 1 failed with Server, status 500, retry-after (null); retrying.", record.Message);
+        Assert.Equal("Minos attempt 1 failed with Server, status 500, retry-after (null); retrying.", record.Message);
     }
 
     [Fact]
@@ -124,9 +124,9 @@ public sealed class DecisionLogTests
         Assert.Equal("7", LogAssert.Field(record, "ModelCount"));
         Assert.Equal(2.5.ToString(CultureInfo.InvariantCulture), LogAssert.Field(record, "DurationMs"));
         Assert.Equal(
-            "Jev list-models via {Provider} succeeded: {ModelCount} models in {DurationMs} ms.",
+            "Minos list-models via {Provider} succeeded: {ModelCount} models in {DurationMs} ms.",
             LogAssert.Field(record, "{OriginalFormat}"));
-        Assert.Equal("Jev list-models via OpenRouter succeeded: 7 models in 2.5 ms.", record.Message);
+        Assert.Equal("Minos list-models via OpenRouter succeeded: 7 models in 2.5 ms.", record.Message);
     }
 
     [Fact]
@@ -143,9 +143,9 @@ public sealed class DecisionLogTests
         Assert.Equal(2.5.ToString(CultureInfo.InvariantCulture), LogAssert.Field(record, "DurationMs"));
         Assert.Equal("The API returned HTTP 401.", LogAssert.Field(record, "ErrorMessage"));
         Assert.Equal(
-            "Jev list-models via {Provider} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}",
+            "Minos list-models via {Provider} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}",
             LogAssert.Field(record, "{OriginalFormat}"));
-        Assert.Equal("Jev list-models via OpenRouter failed with Unauthorized, status 401, in 2.5 ms: The API returned HTTP 401.", record.Message);
+        Assert.Equal("Minos list-models via OpenRouter failed with Unauthorized, status 401, in 2.5 ms: The API returned HTTP 401.", record.Message);
     }
 
     [Fact]
@@ -157,8 +157,8 @@ public sealed class DecisionLogTests
 
         var record = logger.LatestRecord;
         Assert.Equal("list-models", LogAssert.Field(record, "Operation"));
-        Assert.Equal("Jev {Operation} threw an unexpected exception.", LogAssert.Field(record, "{OriginalFormat}"));
-        Assert.Equal("Jev list-models threw an unexpected exception.", record.Message);
+        Assert.Equal("Minos {Operation} threw an unexpected exception.", LogAssert.Field(record, "{OriginalFormat}"));
+        Assert.Equal("Minos list-models threw an unexpected exception.", record.Message);
     }
 
     [Fact]
@@ -175,11 +175,11 @@ public sealed class DecisionLogTests
         Assert.Equal("429", LogAssert.Field(record, "StatusCode"));
         Assert.Equal(12.5.ToString(CultureInfo.InvariantCulture), LogAssert.Field(record, "DurationMs"));
         Assert.Equal(
-            "Jev evaluate-typed on jev-latest failed with RateLimited, status 429, in 12.5 ms: The API returned HTTP 429.",
+            "Minos evaluate-typed on jev-latest failed with RateLimited, status 429, in 12.5 ms: The API returned HTTP 429.",
             record.Message);
         Assert.Equal("The API returned HTTP 429.", LogAssert.Field(record, "ErrorMessage"));
         Assert.Equal(
-            "Jev {Operation} on {Model} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}",
+            "Minos {Operation} on {Model} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}",
             LogAssert.Field(record, "{OriginalFormat}"));
 
         // Provider is fixed per client and retry-after is on AttemptRetrying: neither is a field here.

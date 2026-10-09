@@ -6,7 +6,7 @@ using System.Diagnostics.Metrics;
 
 public sealed record DecisionMeasurement(string Name, string? Unit, double Value, KeyValuePair<string, object?>[] Tags);
 
-// Listens to everything Jev emits. OpenTelemetry does the same once it is told to add the source and the meter
+// Listens to everything Minos emits. OpenTelemetry does the same once it is told to add the source and the meter
 // named Minos, and then exports what it hears.
 public sealed class DecisionTelemetryListener : IDisposable
 {

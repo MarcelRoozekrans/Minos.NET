@@ -35,7 +35,7 @@ public static class ObservabilityOpenTelemetry
 public sealed class ObservabilityOpenTelemetryTests
 {
     [Fact]
-    public void TheWiring_SubscribesOpenTelemetryToDecisionsSourceAndMeter()
+    public void TheWiring_SubscribesOpenTelemetryToTheMinosSourceAndMeter()
     {
         // Metrics need a reader before OpenTelemetry enables an instrument, as an exporter would bring.
         using var provider = new ServiceCollection()

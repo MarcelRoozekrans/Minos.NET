@@ -43,7 +43,7 @@ internal static class TelemetryChecks
                 && minosSpans[0].Status == ActivityStatusCode.Unset
                 && rest.Length == 2
                 && rest.All(attempt => attempt.ParentSpanId == minosSpans[0].SpanId),
-            "a retried evaluation is one Jev client span over two ZeroAlloc.Rest attempt spans under Native AOT");
+            "a retried evaluation is one Minos client span over two ZeroAlloc.Rest attempt spans under Native AOT");
         Program.Check(
             startTags.Exists(tag => tag.Key is "server.address" && tag.Value is "example.test")
                 && startTags.Exists(tag => tag.Key is "server.port" && tag.Value is 443)

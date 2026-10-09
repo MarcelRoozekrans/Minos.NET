@@ -138,13 +138,13 @@ public sealed class DiagnosticTests
 
         Assert.Contains("partial record C", stub, StringComparison.Ordinal);
         Assert.Contains(
-            "public partial global::Minos.Choice<global::Demo.E> A1 { get => throw new global::System.InvalidOperationException(\"This [Questions] set is invalid; see the JEV diagnostics.\"); }",
+            "public partial global::Minos.Choice<global::Demo.E> A1 { get => throw new global::System.InvalidOperationException(\"This [Questions] set is invalid; see the MIN diagnostics.\"); }",
             stub,
             StringComparison.Ordinal);
         Assert.Contains("internal partial global::Minos.Noul A2 { get => throw", stub, StringComparison.Ordinal);
         Assert.Contains(
-            "public virtual partial global::Minos.Noul A3 { get => throw new global::System.InvalidOperationException(\"This [Questions] set is invalid; see the JEV diagnostics.\"); "
-                + "private set => throw new global::System.InvalidOperationException(\"This [Questions] set is invalid; see the JEV diagnostics.\"); }",
+            "public virtual partial global::Minos.Noul A3 { get => throw new global::System.InvalidOperationException(\"This [Questions] set is invalid; see the MIN diagnostics.\"); "
+                + "private set => throw new global::System.InvalidOperationException(\"This [Questions] set is invalid; see the MIN diagnostics.\"); }",
             stub,
             StringComparison.Ordinal);
         Assert.DoesNotContain("NotAQuestion", stub, StringComparison.Ordinal);
@@ -235,7 +235,7 @@ public sealed class DiagnosticTests
                 {
                     partial class Inner<T>
                     {
-                        public partial global::Minos.Noul Answer { get => throw new global::System.InvalidOperationException("This [Questions] set is invalid; see the JEV diagnostics."); }
+                        public partial global::Minos.Noul Answer { get => throw new global::System.InvalidOperationException("This [Questions] set is invalid; see the MIN diagnostics."); }
                     }
                 }
             }

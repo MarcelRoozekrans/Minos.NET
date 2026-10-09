@@ -8,8 +8,8 @@ internal static class SourceEmitter
 {
     private const string Reader = "global::Minos.AnswerReader";
 
-    // The whole message is a string literal the stub getters throw; JEV errors keep the stubs from ever running.
-    private const string InvalidSetMessage = "\"This [Questions] set is invalid; see the JEV diagnostics.\"";
+    // The whole message is a string literal the stub getters throw; MIN errors keep the stubs from ever running.
+    private const string InvalidSetMessage = "\"This [Questions] set is invalid; see the MIN diagnostics.\"";
 
     public static string HintName(QuestionSetModel model) => HintName(model.Namespace, model.TypeName);
 
@@ -25,7 +25,7 @@ internal static class SourceEmitter
     /// <summary>
     /// Implements an invalid set's partial question properties with accessors that throw, and nothing else: no
     /// <c>QuestionsUtf8</c>, no <c>Parse</c> and no <c>IQuestionSet</c>. Without them, each property would be
-    /// CS9248, a declaration error that stops a command-line build before the analyzer reports the JEV error.
+    /// CS9248, a declaration error that stops a command-line build before the analyzer reports the MIN error.
     /// </summary>
     public static string EmitStubs(InvalidSetModel model)
     {

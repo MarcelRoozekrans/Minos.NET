@@ -1,6 +1,6 @@
 namespace Minos;
 
-/// <summary>What went wrong in a failed Jev call.</summary>
+/// <summary>What went wrong in a failed call.</summary>
 public enum DecisionErrorKind
 {
     /// <summary>The API key is missing, invalid or lacks access: HTTP 401 or 403.</summary>
