@@ -233,6 +233,44 @@ public sealed class JevErrorMapperTests
     public void Detail_MalformedJson_IsNull()
         => Assert.Null(Mapper.Map(Status(422, body: "{not json", contentType: "application/json")).Detail);
 
+    // Bodies TypeSafe really sent, captured by the Live smoke workflow's run 37913354273 on 2026-10-09.
+    private const string TypeSafeValidationBody = """{"detail":[{"type":"too_short","loc":["body","questions"],"msg":"Dictionary should have at least 1 item after validation, not 0","input":{},"ctx":{"field_type":"Dictionary","min_length":1,"actual_length":0}}]}""";
+
+    private const string TypeSafeUnauthorizedBody = """{"detail":{"error_type":"authentication_error","message":"Cannot authenticate with the server. Please check your API key and try again."}}""";
+
+    [Fact]
+    public void TypeSafesValidationBody_IsKeptAsDetail_WithEachProblemsLocationAndMessage()
+    {
+        var error = Mapper.Map(Status(422, body: TypeSafeValidationBody, contentType: "application/json"));
+
+        Assert.Equal(JevErrorKind.Validation, error.Kind);
+        Assert.Equal(422, error.StatusCode);
+        Assert.Null(error.RetryAfter);
+        Assert.NotNull(error.Detail);
+
+        var problems = error.Detail.Value.GetProperty("detail");
+        Assert.Equal(JsonValueKind.Array, problems.ValueKind);
+        Assert.Equal(1, problems.GetArrayLength());
+        Assert.Equal("too_short", problems[0].GetProperty("type").GetString());
+        Assert.Equal("""["body","questions"]""", problems[0].GetProperty("loc").GetRawText());
+        Assert.Equal("Dictionary should have at least 1 item after validation, not 0", problems[0].GetProperty("msg").GetString());
+    }
+
+    [Fact]
+    public void TypeSafesUnauthorizedBody_IsKeptAsDetail_AsAnObjectNotAList()
+    {
+        var error = Mapper.Map(Status(401, body: TypeSafeUnauthorizedBody, contentType: "application/json"));
+
+        Assert.Equal(JevErrorKind.Unauthorized, error.Kind);
+        Assert.Equal(401, error.StatusCode);
+        Assert.Null(error.RetryAfter);
+        Assert.NotNull(error.Detail);
+
+        var detail = error.Detail.Value.GetProperty("detail");
+        Assert.Equal(JsonValueKind.Object, detail.ValueKind);
+        Assert.Equal("authentication_error", detail.GetProperty("error_type").GetString());
+    }
+
     [Fact]
     public void ToString_WithStatus_IncludesKindAndStatus()
         => Assert.StartsWith("RateLimited (429): ", Mapper.Map(Status(429)).ToString(), StringComparison.Ordinal);

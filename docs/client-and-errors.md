@@ -93,7 +93,7 @@ you asked for it. Everything else, including every network and service failure, 
 | `Provider` | `JevProvider.TypeSafe` | `TypeSafe` or `OpenRouter` | Where requests go. |
 | `ApiKey` | none | any text without control characters; blank counts as unset | The key sent as a bearer token. When unset, the client reads `TYPESAFE_API_KEY`, or `OPENROUTER_API_KEY` for OpenRouter. |
 | `BaseAddress` | the provider's address | absolute `http` or `https` URI, no query or fragment | The API root, for a proxy or a test server. When unset, the client reads `TYPESAFE_BASE_URL` for TypeSafe only, then uses `https://api.typesafe.ai/` or `https://openrouter.ai/api/`. |
-| `Model` | `jev-latest` | not blank | The model that typed evaluation and built question sets ask, as a versioned id such as `jev-1.13.0` or an alias. |
+| `Model` | `jev-latest` | not blank | The model that typed evaluation and built question sets ask: an alias such as `jev-latest` (or TypeSafe's `jev-preview`), or a versioned id such as `jev-1.13.0`. See [Listing models](#listing-models). |
 | `Timeout` | 60 seconds | positive, or `Timeout.InfiniteTimeSpan`, and at most about 24.8 days | How long one attempt may take. |
 | `MaxRetries` | 2 | 0 to 10 | How many times a failed call is tried again. 0 turns retries off. |
 | `InitialBackoff` | 500 ms | positive, and at most about 24.8 days | The first wait between attempts. It doubles for each further retry. |
@@ -222,6 +222,11 @@ backoff for the next attempt and is waited for as asked, never beyond `MaxRetryD
 waited for `MaxRetryDelay`, 30 seconds by default, and then asked again. The value is also available to you, as
 `JevError.RetryAfter`, on a failure that comes back.
 
+TypeSafe's [API reference](https://docs.typesafe.ai/api) asks clients to back off exponentially on a 429 or 529, and
+does not say whether those responses carry either header; its official Python SDK reads both. Jev's own live runs
+have not yet met a 429 or 529, so as of October 2026 whether TypeSafe sends a wait is unconfirmed. Either way the
+client behaves correctly: it waits as asked when a header is present, and backs off when none is.
+
 ### The cost of retrying
 
 Retrying can be billed twice. When a time-out, a network failure or a 5xx happens after the request reached the server,
@@ -267,6 +272,55 @@ and `Exception` are `init` properties, so set only the ones that apply with an o
 | `Detail` | The error response body as a `JsonElement`, when it is JSON, for example the field a 422 rejected. |
 | `Exception` | The exception behind a network, time-out or unreadable-response failure. |
 | `Failures` | For `InvalidQuestions` only, the rules a question set breaks. Empty for every other kind. |
+
+`Detail` holds whatever JSON the service sent, and its shape depends on the error. TypeSafe answers a 422 with a list
+of problems, each with the path of the field (`loc`) and what is wrong with it (`msg`). This is a real one, for a
+request with no questions:
+
+```json
+{"detail":[{"type":"too_short","loc":["body","questions"],"msg":"Dictionary should have at least 1 item after validation, not 0","input":{},"ctx":{"field_type":"Dictionary","min_length":1,"actual_length":0}}]}
+```
+
+A 401, by contrast, carries one object: `{"detail":{"error_type":"authentication_error","message":"…"}}`. Check the
+shape before reading it:
+
+<!-- snippet: ClientAndErrors_ValidationProblems -->
+```cs
+// TypeSafe answers a 422 with a list of problems. Each one says where it is, as a path such as body.questions,
+// and what is wrong. Other errors carry a different body, and a problem may be malformed, so check each shape.
+public static IReadOnlyList<string> List(JevError error)
+{
+    var problems = new List<string>();
+    if (error is not { Kind: JevErrorKind.Validation, Detail: { ValueKind: JsonValueKind.Object } body }
+        || !body.TryGetProperty("detail", out var detail)
+        || detail.ValueKind != JsonValueKind.Array)
+    {
+        return problems;
+    }
+
+    foreach (var problem in detail.EnumerateArray())
+    {
+        // Skip an entry that is not shaped like a problem rather than fail while handling an error.
+        if (problem.ValueKind != JsonValueKind.Object
+            || !problem.TryGetProperty("loc", out var loc) || loc.ValueKind != JsonValueKind.Array
+            || !problem.TryGetProperty("msg", out var msg) || msg.ValueKind != JsonValueKind.String)
+        {
+            continue;
+        }
+
+        var path = new List<string>();
+        foreach (var part in loc.EnumerateArray())
+        {
+            path.Add(part.ToString());
+        }
+
+        problems.Add($"{string.Join('.', path)}: {msg.GetString()}");
+    }
+
+    return problems;
+}
+```
+<!-- endSnippet -->
 
 `ToString()` gives a one-line form, such as `Overloaded (503): The API returned HTTP 503.`
 
@@ -403,6 +457,12 @@ public static async Task<string> ModelsAsync(IJevClient jev, CancellationToken c
 
 Listing models is available on TypeSafe's API only. On OpenRouter the call returns an `Unsupported` error and sends no
 request, because OpenRouter has its own models API.
+
+As of October 2026, TypeSafe lists only the aliases, `jev-latest` for the newest stable release and `jev-preview` for
+the newest release of any kind. A versioned id such as `jev-1.13.0` is accepted as a `Model` too, listed or not, as
+TypeSafe's [models page](https://docs.typesafe.ai/models) describes. Whichever you send, the response's `Model` names
+the versioned model that answered, so log it if you need to know which release produced a result. OpenRouter accepts
+`jev-latest` too, and reports its own model id in the response.
 
 ## Next
 

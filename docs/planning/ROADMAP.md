@@ -254,11 +254,12 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-04-phase-5.3-aot-and-measurement-verification.md`
 **Completed:** 2026-10-07
 
-### Phase 5.4: Live and alias verification [status: pending]
+### Phase 5.4: Live and alias verification [status: active]
 **Goal:** Pass the TypeSafe live suite with a real key, record whether TypeSafe sends Retry-After and what its 422 body looks like, and check the `jev-latest` and `jev-preview` aliases live on both providers. Starts when the maintainer has a TypeSafe key.
 **Surface:** Infra
 **HelpWanted:** no
-**Plan:** _to be written_
+**Spec:** `docs/superpowers/specs/2026-10-09-phase-5.4-live-and-alias-verification-design.md`
+**Plan:** `docs/superpowers/plans/2026-10-09-phase-5.4-live-and-alias-verification.md`
 
 ### Phase 5.5: 1.0 release [status: pending]
 **Goal:** Add the NuGet publishing workflow (#29), cut 1.0.0 through release-please, state the version in the guide and README, then add api-compat (#28) against the 1.0.0 package.
