@@ -21,15 +21,15 @@ the Unshipped half is moved into the Shipped half as each version goes out:
 Both are discovered rather than listed, so a new analyzer project or package is
 covered without editing this script.
 
-The ship-release-tracking reusable workflow runs this on the release PR branch
-with the version that PR releases, so the release commit carries the move. The
-script is idempotent: with nothing unshipped it changes no file.
+release-please.yml's ship-release-tracking job runs this on the release PR
+branch with the version that PR releases, so the release commit carries the
+move. The script is idempotent: with nothing unshipped it changes no file.
 
 --check changes nothing. It lists every Unshipped entry and exits 1 if there is
-any. The release-tracking reusable workflow runs it on release PRs, so a release
-cannot merge with entries unmoved.
+any. ci.yml's release-tracking job runs it on release PRs, so a release cannot
+merge with entries unmoved.
 
-This is the shared copy in ZeroAlloc-Net/.github. It started as
+This repository runs its own copy, from the two jobs above. It started as
 scripts/ship-release-tracking.py in ZeroAlloc.ORM, which proved it on the 2.0.1
 release; see ZeroAlloc-Net/.github#38.
 """

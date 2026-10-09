@@ -3,7 +3,6 @@ import type { Config } from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 const repository = 'https://github.com/MarcelRoozekrans/Minos.NET';
-const nuget = 'https://www.nuget.org/packages/Minos.NET';
 
 const config: Config = {
   title: 'Minos',
@@ -61,7 +60,6 @@ const config: Config = {
       logo: { alt: 'Minos', src: 'img/logo.svg' },
       items: [
         { type: 'docSidebar', sidebarId: 'guideSidebar', position: 'left', label: 'Guide' },
-        { href: nuget, label: 'NuGet', position: 'right' },
         { href: repository, label: 'GitHub', position: 'right' },
       ],
     },
@@ -80,7 +78,6 @@ const config: Config = {
           title: 'More',
           items: [
             { label: 'GitHub', href: repository },
-            { label: 'NuGet', href: nuget },
           ],
         },
       ],

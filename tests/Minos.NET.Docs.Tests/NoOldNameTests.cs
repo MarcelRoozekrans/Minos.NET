@@ -14,11 +14,16 @@ public sealed partial class NoOldNameTests
         "CHANGELOG.md", "docs/planning/", "docs/plans/", "docs/superpowers/", "benchmarks/compare/results/", "tools/rename/",
     ];
 
-    // Shipped analyzer releases and public API records, the removed entries of the unshipped API record, and npm's lock.
+    // Shipped analyzer releases and public API records, and npm's lock.
     private static readonly string[] ExcludedNames =
     [
-        "AnalyzerReleases.Shipped.md", "PublicAPI.Shipped.txt", "PublicAPI.Unshipped.txt", "package-lock.json",
+        "AnalyzerReleases.Shipped.md", "PublicAPI.Shipped.txt", "package-lock.json",
     ];
+
+    // The unshipped public API record is read, but its *REMOVED* lines name the API that shipped under the old name and
+    // are skipped. Every line it adds must use the new name.
+    private const string UnshippedApi = "PublicAPI.Unshipped.txt";
+    private const string RemovedApiEntry = "*REMOVED*";
 
     // Every tracked file is read as text except these binary types.
     private static readonly string[] BinaryExtensions =
@@ -84,8 +89,14 @@ public sealed partial class NoOldNameTests
             var lines = File.ReadAllLines(Path.Combine(PublishedPages.Root, path), Encoding.UTF8);
             var section = "";
             var generated = false;
+            var unshippedApi = path.EndsWith(UnshippedApi, StringComparison.Ordinal);
             for (var i = 0; i < lines.Length; i++)
             {
+                if (unshippedApi && lines[i].StartsWith(RemovedApiEntry, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
                 if (lines[i].StartsWith('#'))
                 {
                     section = lines[i].Trim();

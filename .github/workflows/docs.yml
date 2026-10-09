@@ -41,13 +41,16 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
-# The build job reads the repository and nothing else. The deploy job takes pages: write and
-# id-token: write at the job level, so the build job, which runs on pull requests from forks, never has them.
+# The docs job reads the repository and nothing else. The deploy job takes pages: write and
+# id-token: write at the job level, so the docs job, which runs on pull requests from forks, never has them.
 permissions:
   contents: read
 
 jobs:
-  build:
+  # Named docs, not build, so its check does not share a name with ci.yml's build job. It is not a required check:
+  # the path filter means it runs only when the site's input changes.
+  docs:
+    name: docs
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -74,7 +77,7 @@ jobs:
           path: build
 
   deploy:
-    needs: build
+    needs: docs
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     timeout-minutes: 10

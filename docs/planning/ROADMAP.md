@@ -346,7 +346,7 @@ compress_memory: disabled
 **Plan:** _to be written_
 
 ### Phase 7.4: Publish 1.0 [status: pending]
-**Goal:** Publish 1.0.0 the way Thalos.NET, Rag.NET and AdoNet.Async do: GitVersion, release-please, and NuGet Trusted Publishing from `ci.yml`'s `publish-nuget` job, rehearsed against a local feed. Reuse what still applies from the paused Phase 5.5 branch, such as the package inspection. Then turn on api-compat (#29, #28).
+**Goal:** Publish 1.0.0 the way Thalos.NET, Rag.NET and AdoNet.Async do: GitVersion, release-please, and NuGet Trusted Publishing from `ci.yml`'s `publish-nuget` job, rehearsed against a local feed. Reuse what still applies from the paused Phase 5.5 branch, such as the package inspection. Then turn on api-compat (#29, #28), and add the NuGet links to the docs site's navbar and footer once the packages exist.
 **Surface:** Infra
 **HelpWanted:** no
 **Plan:** _to be written_
