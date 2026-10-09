@@ -1,13 +1,47 @@
-# Session State — 2026-10-07 (Phase 5.3 complete, PR to open)
+# Session State — 2026-10-09 (Phase 5.4 complete, 5.5 next)
 
-**Date:** 2026-10-07
+**Date:** 2026-10-09
 
 ## Current Position
-- **Milestone:** 5 — 1.0 hardening, active since 2026-10-04 (design `docs/superpowers/specs/2026-10-04-milestone-5-design.md`). Phases: 5.1 and 5.2 merged (releases 0.4.0 and 0.5.0); 5.3 complete; 5.4 live and alias verification waits for a TypeSafe API key from the maintainer; 5.5 is the 1.0 release.
-- **Phase:** 5.3 — AOT, trim and measurement verification is complete on branch `phase/5.3-verification`; it lands through a PR to `main`.
-- **Next task:** open and merge the Phase 5.3 PR (ask whether `aot-surface` becomes a required check), check its release-please entries before merging the release PR, then Phase 5.4 once the maintainer has a TypeSafe key — otherwise go straight to planning 5.5's publishing work.
-- **Maintainer decisions for Milestone 5:** 1.0.0 ships to NuGet only after the TypeSafe live suite passes with a real key; the old 5.3 was split so the keyless work could go first.
-- **Operational note:** .website's bot-opened "update submodules" PRs hold their `build` run for approval ("action_required"); approve the run, then merge with the admin override. CI on a branch without a PR: `gh workflow run ci.yml --ref <branch>` (add `-f aot-smoke-runs=20` to repeat the AOT smoke run).
+- **Milestone:** 5 — 1.0 hardening, active since 2026-10-04. Design: `docs/superpowers/specs/2026-10-04-milestone-5-design.md`.
+  - 5.1 to 5.4 are complete. Releases so far: 0.4.0, 0.5.0, 0.5.1, 0.5.2 (Phase 5.4, #108) and 0.5.3 (#111).
+  - 5.5, the 1.0 release, is next.
+- **Phase:** 5.4 — Live and alias verification, complete.
+- **Next task:** Phase 5.5. Brainstorm and plan:
+  - the NuGet publishing workflow (#29);
+  - 1.0.0 through release-please;
+  - the version in the guide and README;
+  - api-compat (#28) against the 1.0.0 package.
+
+  1.0.0 may now publish: the TypeSafe live suite has passed with a real key.
+- **Maintainer decisions for Milestone 5:**
+  - 1.0.0 ships to NuGet only after the TypeSafe live suite passes with a real key. That condition was met on 2026-10-09.
+  - The old 5.3 was split so the keyless work could go first.
+- **Operational notes:**
+  - **Live keys:** `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY` are in the `live-api` environment, which deploys only from `main`. Run the suite with `gh workflow run live-smoke.yml --ref main`. About 13 small billed calls per run.
+  - **Website updates:** .website's bot-opened "update submodules" PRs hold their `build` run for approval (`action_required`). Approve it with `gh api -X POST repos/ZeroAlloc-Net/.website/actions/runs/<id>/approve`, then merge with `--admin`, after asking the maintainer.
+  - **`za-docs-jev` preview check:** it failed on PRs because its Cloudflare non-production deploy command was `npx wrangler preview` with no `previews` block. The maintainer changed the setting on 2026-10-09; confirm on the next bot PR.
+  - **CI on a branch without a PR:** `gh workflow run ci.yml --ref <branch>`. Add `-f aot-smoke-runs=20` to repeat the AOT smoke run.
+
+## What Phase 5.4 shipped
+- **Live evidence:** Live smoke on `main`.
+  - Probe [run 37913354273](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37913354273): 8/8, the first run with a real TypeSafe key.
+  - Post-merge [run 37918889031](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37918889031): 12/13.
+  - [Run 37925900075](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37925900075): 13/13.
+- **Aliases:**
+  - TypeSafe answers `jev-latest` and `jev-preview` with `jev-1.13.0`, and accepts `jev-1.13.0` as a model. Its `/v1/models` lists only the two aliases.
+  - OpenRouter answers `jev-latest` as `typesafe/jev-1.13-20260917`. It has no `jev-preview`: HTTP 400, "Model typesafe/jev-preview does not exist", because OpenRouter prefixes the alias itself.
+  - `OpenRouter_Preview_IsRejectedAsAnUnknownModel` pins that rejection, and fails when OpenRouter starts offering the preview (#111).
+- **Error bodies:**
+  - TypeSafe's 422 is `{"detail":[{type, loc, msg, input, ctx}]}` and its 401 is `{"detail":{error_type, message}}`. OpenRouter's errors are `{"error":{message, code}}`.
+  - Pinned in `JevErrorMapperTests`, and asserted live in `InvalidRequest_IsValidation`.
+- **Retry-After:** not seen live; no 429 or 529 was met. TypeSafe's API docs say only to back off, and its Python SDK reads both headers. This is recorded in the guide.
+- **Guide (`client-and-errors.md`):**
+  - the real 422 example, and the `ValidationProblems.List` snippet, which skips malformed entries;
+  - OpenRouter's error shape;
+  - the Retry-After record;
+  - model ids: aliases, versioned ids, and `jev-preview` as TypeSafe-only.
+- **Website:** jev.zeroalloc.net had been stale since Phase 4.4, because .website#84 was never merged and so `Json = true` was still shown. It was merged on 2026-10-09 and the site now serves the current guide.
 
 ## What Phase 5.3 shipped
 - `samples/ZeroAlloc.Jev.AotSurface` + `aot-surface` CI job: roots both packages (`TrimmerRootAssembly`, `TrimMode=full`) and instantiates every public open generic over an enum (rooting cannot instantiate `where T : struct` generics), so every public member is trim and AOT analysed; 0 warnings on win-x64 and linux-x64. A test fails if a new public generic is not instantiated.
