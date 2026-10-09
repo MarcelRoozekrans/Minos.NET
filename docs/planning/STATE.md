@@ -5,7 +5,7 @@
 ## Current Position
 - **Roadmap:** re-planned on 2026-10-09 (`docs/superpowers/specs/2026-10-09-roadmap-design.md`).
   - The library becomes a provider-neutral decision client before 1.0.
-  - **Milestone 5 (1.0 hardening):** re-scoped to Phases 5.1–5.4, all complete. Ready for `audit-milestone`, then `complete-milestone`.
+  - **Milestone 5 (1.0 hardening):** complete on 2026-10-09. The audit passed, with one warning: no pre-push-review reports (`docs/plans/2026-10-09-milestone-5-audit.md`). There is no tag; release-please owns releases.
   - **New milestones:**
     - 6, Provider-neutral core: the name, neutral model, `IDecisionClient`, both adapters, conformance and docs;
     - 7, 1.0 release;
@@ -35,8 +35,9 @@
 - **Publishing:** blocked until Milestone 7. Do not push `phase/5.5-release` as a PR, and do not merge anything carrying `Release-As: 1.0.0`.
 
 ## Recommended Next Step
-1. Run `audit-milestone` for Milestone 5 against its re-scoped definition of done, then `complete-milestone`. Release-please owns releases, so no tag.
-2. Run `new-milestone` for Milestone 6, then Phase 6.1: brainstorm the name decision.
+1. Run `new-milestone` for Milestone 6, Provider-neutral core: a milestone-scope brainstorm, `MILESTONE.md` and ROADMAP.md.
+2. Then Phase 6.1: brainstorm the name decision (#120).
+3. From Milestone 6 on, run `pre-push-review` on each feature branch before its PR. The Milestone 5 audit found no reports on file.
 
 ## Operational notes
 - **Live keys:** `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY` are in the `live-api` environment, which deploys only from `main`. Run the suite with `gh workflow run live-smoke.yml --ref main`. About 13 small billed calls per run.

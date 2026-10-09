@@ -218,15 +218,16 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-03-phase-4.4-docs-site.md`
 **Completed:** 2026-10-03
 
-## Milestone 5: 1.0 hardening [status: active]
+## Milestone 5: 1.0 hardening [status: complete]
 **Goal:** Harden the client before 1.0: a reviewed public API, benchmarks against hand-written .NET and TypeSafe's official JS and Python SDKs, a passing TypeSafe live run, and full-surface Native AOT verification. Re-scoped 2026-10-09: the 1.0 publish moved to Milestone 7, after the provider-neutral rework in Milestone 6 (`docs/superpowers/specs/2026-10-09-roadmap-design.md`).
 **Started:** 2026-10-04
+**Completed:** 2026-10-09
 **Design:** `docs/superpowers/specs/2026-10-04-milestone-5-design.md`
 **Definition of Done:**
-- [ ] Public API reviewed: sealing, naming, nullability and XML docs; #67, #23, #24 and #25 resolved; Telemetry 1.11.0 adopted (#85); #21 closed
-- [ ] Published benchmarks against a raw HttpClient + STJ client and the official JS and Python SDKs, on one local mock server
-- [ ] TypeSafe live suite passed once with a real key; `jev-latest` and `jev-preview` checked live
-- [ ] Full-surface AOT/trim verification green; #68, #73, #74 and #79 closed
+- [x] Public API reviewed: sealing, naming, nullability and XML docs; #67, #23, #24 and #25 resolved; Telemetry 1.11.0 adopted (#85); #21 closed
+- [x] Published benchmarks against a raw HttpClient + STJ client and the official JS and Python SDKs, on one local mock server
+- [x] TypeSafe live suite passed once with a real key; `jev-latest` and `jev-preview` checked live
+- [x] Full-surface AOT/trim verification green; #68, #73, #74 and #79 closed
 
 ### Phase 5.1: Public API review [status: complete]
 **Goal:** Review and freeze the public surface (sealing, naming, nullability, XML docs), make the breaking changes #67, #23, #24 and #25, adopt Telemetry 1.11.0 (#85) and close #21.
