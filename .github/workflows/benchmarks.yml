@@ -9,9 +9,9 @@ name: Benchmarks
 #                      executes. Takes about a minute; the numbers it prints are meaningless.
 #   full  (manual)     real measurements, via "Run workflow". Uploads BenchmarkDotNet.Artifacts.
 #
-# The smoke job runs the org's shared gate. BenchmarkDotNet exits 0 when a filter matches nothing
+# The smoke job runs a gate copied from the author's former org workflow. BenchmarkDotNet exits 0 when a filter matches nothing
 # and counts a crashed benchmark as executed, so the gate checks that every benchmark reported a
-# result instead. See ZeroAlloc-Net/.github .github/workflows/benchmark-smoke.yml.
+# result instead. See the smoke job below.
 
 on:
   pull_request:
@@ -33,11 +33,137 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: true
 
 jobs:
+  # The org's shared smoke gate, inlined at ZeroAlloc-Net/.github 607a5d3 (same author) so this repository depends on no
+  # org workflow. The job name keeps the check displayed as "smoke / benchmarks".
   smoke:
+    name: smoke / benchmarks
     if: github.event_name != 'workflow_dispatch'
-    uses: ZeroAlloc-Net/.github/.github/workflows/benchmark-smoke.yml@main
-    with:
-      project: benchmarks/Minos.NET.Benchmarks
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          # Installs the calling repo's global.json pin, as nuget-release.yml does. Relying on
+          # the runner image is how a publish failed on a lagging image, see #34.
+          global-json-file: global.json
+          dotnet-version: '10.0.x'
+
+      - name: Build
+        env:
+          PROJECT: benchmarks/Minos.NET.Benchmarks
+          FRAMEWORK: ''
+        run: |
+          set -euo pipefail
+          fw=()
+          [ -n "$FRAMEWORK" ] && fw=(--framework "$FRAMEWORK")
+          dotnet build "$PROJECT" -c Release "${fw[@]}"
+
+      # The expected set. Anything listed here that has no report afterwards never ran.
+      - name: List benchmarks
+        env:
+          PROJECT: benchmarks/Minos.NET.Benchmarks
+          FRAMEWORK: ''
+          FILTER: '*'
+        run: |
+          set -euo pipefail
+          fw=()
+          [ -n "$FRAMEWORK" ] && fw=(--framework "$FRAMEWORK")
+          dotnet run --project "$PROJECT" -c Release --no-build "${fw[@]}" -- \
+            --list flat --filter "$FILTER" | tee "$RUNNER_TEMP/bench-list.txt"
+
+      # --iterationCount and friends override whatever job the benchmark classes declare via
+      # attributes. --job Dry does not: it is *added* alongside an attribute-declared job, so a
+      # class carrying [SimpleJob] would still run a full measurement.
+      - name: Run benchmarks (one operation each)
+        env:
+          PROJECT: benchmarks/Minos.NET.Benchmarks
+          FRAMEWORK: ''
+          FILTER: '*'
+        run: |
+          set -euo pipefail
+          fw=()
+          [ -n "$FRAMEWORK" ] && fw=(--framework "$FRAMEWORK")
+          dotnet run --project "$PROJECT" -c Release --no-build "${fw[@]}" -- \
+            --filter "$FILTER" \
+            --iterationCount 1 --warmupCount 1 --invocationCount 1 --unrollFactor 1 \
+            --exporters json --artifacts "$RUNNER_TEMP/bdn" \
+            2>&1 | tee "$RUNNER_TEMP/bench.log"
+
+      - name: Verify every benchmark produced a result
+        env:
+          LIST_FILE: ${{ runner.temp }}/bench-list.txt
+          LOG_FILE: ${{ runner.temp }}/bench.log
+          RESULTS_DIR: ${{ runner.temp }}/bdn/results
+        run: |
+          python3 - <<'PY'
+          import glob, json, os, re, sys
+
+          summary = open(os.environ["GITHUB_STEP_SUMMARY"], "a", encoding="utf-8")
+          errors = []
+
+          def fail(msg):
+              errors.append(msg)
+              print(f"::error::{msg}")
+
+          # --list flat prints one Namespace.Type.Method per line. Lines BenchmarkDotNet
+          # writes about itself start with //; blank lines are separators.
+          with open(os.environ["LIST_FILE"], encoding="utf-8") as f:
+              expected = {l.strip() for l in f if l.strip() and not l.lstrip().startswith("//")}
+
+          reported = {}
+          for path in sorted(glob.glob(os.path.join(os.environ["RESULTS_DIR"], "*.json"))):
+              with open(path, encoding="utf-8") as f:
+                  for b in json.load(f).get("Benchmarks", []):
+                      ns = b.get("Namespace")
+                      key = f"{ns}.{b['Type']}.{b['Method']}" if ns else f"{b['Type']}.{b['Method']}"
+                      reported.setdefault(key, []).append(b)
+
+          cases = [b for bs in reported.values() for b in bs]
+          crashed = [b for b in cases if not b.get("Statistics")]
+          missing = sorted(expected - reported.keys())
+
+          if not expected:
+              fail("No benchmarks discovered. The filter matched nothing, or no class is discoverable.")
+          if not cases:
+              fail("No benchmark reported a result. See the run log for a validation or build error.")
+          for b in crashed:
+              fail(f"No result for {b.get('DisplayInfo') or b.get('FullName')}. "
+                   "The benchmark or its setup crashed; see the run log.")
+          for name in missing:
+              fail(f"{name} was discovered but never reported. The run was aborted before reaching it.")
+
+          # Backstop: markers BenchmarkDotNet writes for failures. Each has a structured
+          # counterpart above; this catches a failure mode that one day stops showing there.
+          markers = [
+              "No Workload Results were obtained from the run",
+              "BenchmarkDotNet has failed to build the auto-generated boilerplate code",
+              "Detected error exit code from one of the benchmarks",
+          ]
+          with open(os.environ["LOG_FILE"], encoding="utf-8", errors="replace") as f:
+              log = f.read()
+          for m in markers:
+              if m in log:
+                  fail(f"Run log contains: {m}")
+
+          # The guard the original smoke job had, kept as-is.
+          executed = re.findall(r"executed benchmarks: (\d+)", log)
+          if not executed or int(executed[-1]) == 0:
+              fail("BenchmarkDotNet reports zero executed benchmarks.")
+
+          ok = len(cases) - len(crashed)
+          summary.write("### Benchmark smoke\n\n")
+          summary.write(f"- discovered: **{len(expected)}** benchmark method(s)\n")
+          summary.write(f"- reported: **{len(cases)}** case(s), **{ok}** with a result\n")
+          if errors:
+              summary.write("\nFailures:\n")
+              for e in errors:
+                  summary.write(f"- {e}\n")
+          print(f"discovered={len(expected)} cases={len(cases)} with_result={ok} failures={len(errors)}")
+          sys.exit(1 if errors else 0)
+          PY
 
   full:
     name: full

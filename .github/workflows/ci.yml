@@ -157,7 +157,11 @@ jobs:
       - name: Publish AOT with both packages rooted
         run: dotnet publish samples/Minos.NET.AotSurface/Minos.NET.AotSurface.csproj -r linux-x64 -c Release -o ./aot-surface-out
 
-  # Shared from ZeroAlloc-Net/.github: a release PR must mark released analyzer rules and public API as shipped.
+  # A release PR must have marked released analyzer rules and public API as shipped.
   release-tracking:
     if: ${{ github.event_name == 'pull_request' && startsWith(github.head_ref, 'release-please--') }}
-    uses: ZeroAlloc-Net/.github/.github/workflows/release-tracking.yml@main
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Check nothing is left unshipped
+        run: python3 tools/release/ship_release_tracking.py --check
