@@ -9,7 +9,7 @@ Stages, each run over every tracked text file except the protected ones:
   publicapi-a        PublicAPI.Unshipped.txt = removed + renamed Shipped lines, through stage a
   publicapi-ab       the same through stages a and b
   analyzer-releases  AnalyzerReleases.Unshipped.md lists MIN rules as new and JEV rules as removed
-  report             every C# string literal still containing ZeroAlloc.Jev, for a manual decision
+  report             every C# line still containing ZeroAlloc.Jev, literal or not, for a manual decision
 """
 import pathlib
 import re
@@ -32,7 +32,14 @@ PROJECT_SUFFIXES = (r"(?:Generator|Analyzers|CodeFixes|DependencyInjection|AotSm
 _FILE_NAME = re.compile(r"ZeroAlloc\.Jev((?:\.[A-Za-z]+)*)\.(slnx|csproj|dll|nupkg|xml)\b")
 
 
+_REPO_URL = re.compile(r"ZeroAlloc-Net/ZeroAlloc\.Jev(?![A-Za-z0-9-])")
+_ALIAS = re.compile(r"(\busing\s+\w+\s*=\s*)ZeroAlloc\.Jev\b")
+
+
 def stage_a(text: str, kind: str) -> str:
+    # The repository moves out of the ZeroAlloc-Net organisation, so its URL is not a project rename.
+    text = _REPO_URL.sub("MarcelRoozekrans/Minos.NET", text)
+    text = _ALIAS.sub(r"\1Minos", text)
     text = _FILE_NAME.sub(lambda m: f"Minos.NET{m.group(1)}.{m.group(2)}", text)
     if kind == "build":
         text = re.sub(r"<RootNamespace>ZeroAlloc\.Jev", "<RootNamespace>Minos", text)
@@ -61,30 +68,71 @@ TYPE_MAP = [
     ("JevServiceCollectionExtensions", "DecisionServiceCollectionExtensions"), ("AddJevClient", "AddDecisionClient"),
     ("SetupZeroAllocJevAsync", "SetupMinosAsync"), ("ZeroAllocJev", "Minos"), ("ZeroAlloc_Jev", "Minos"),
     ("JevAdapter", "MinosAdapter"), ("JevRelease", "MinosRelease"),
+    ("JevCheckReleaseVersion", "MinosCheckReleaseVersion"), ("JevLocalVersion", "MinosLocalVersion"),
 ]
+# Project-owned names that are safe even in a file that also uses a third-party Jev library.
+_SAFE_IN_THIRD_PARTY = {"SetupZeroAllocJevAsync", "ZeroAllocJev", "ZeroAlloc_Jev", "JevAdapter"}
+# A file that imports or qualifies JevSharp or Jev.Net names types we must not rename.
+_THIRD_PARTY = re.compile(r"\bJevSharp\.[A-Z]|\busing\s+(?:[\w.]+\s*=\s*)?Jev\.Net\b|\bJev\.Net\.[A-Z]")
 # Third-party clients and TypeSafe's model aliases keep their names.
-_PROTECTED_WORD = re.compile(r"\w*(?:JevSharp|JevNet|JevLatest)\w*|Jev\.Net\b")
+# Configuration keys such as Jev__ApiKey and Jev:ApiKey keep their section name.
+_PROTECTED_WORD = re.compile(r"\w*(?:JevSharp|JevNet|JevLatest)\w*|Jev\.Net\b|Jev__\w*|Jev:\w*")
+_PROTECTED_SLUG = re.compile(r"\w*(?:jevsharp|jevnet|jevlatest)\w*|jev__\w*")
 _MASK = "\x00{}\x00"
 
 
-def stage_b(text: str) -> str:
+def is_third_party(text: str) -> bool:
+    return bool(_THIRD_PARTY.search(text))
+
+
+def _apply_b(text: str, protected: re.Pattern, type_map, generic: str, lower: bool) -> str:
     masked: list[str] = []
 
     def mask(m: re.Match) -> str:
         masked.append(m.group(0))
         return _MASK.format(len(masked) - 1)
 
-    text = _PROTECTED_WORD.sub(mask, text)
-    for old, new in TYPE_MAP:
+    text = protected.sub(mask, text)
+    for old, new in type_map:
         text = text.replace(old, new)
     # Any other identifier with Jev in it: Jev next to another identifier character, not followed by a digit,
     # which is an analyzer ID for stage c. The bare word Jev, as in "TypeSafe's Jev", is prose and stays.
-    text = re.sub(r"(?<=[A-Za-z_])Jev(?![0-9])|Jev(?=[A-Z_s][A-Za-z_]*)", "Decision", text)
+    text = re.sub(generic, "decision" if lower else "Decision", text)
     return re.sub(r"\x00(\d+)\x00", lambda m: masked[int(m.group(1))], text)
+
+
+_GENERIC = r"(?<=[A-Za-z_])Jev(?![0-9])|Jev(?=[A-Z_s][A-Za-z_]*)"
+_GENERIC_SLUG = r"(?<=[a-z_])jev(?![0-9])|jev(?=[a-z_]+)"
+_SLUG_MAP = sorted(((o.lower(), n.lower()) for o, n in TYPE_MAP), key=lambda t: -len(t[0]))
+
+
+def stage_b(text: str) -> str:
+    return _apply_b(text, _PROTECTED_WORD, TYPE_MAP, _GENERIC, False)
+
+
+def stage_b_file(text: str) -> str:
+    """Stage b for a C# file: a file using JevSharp or Jev.Net types gets only the project-owned safe renames."""
+    if is_third_party(text):
+        safe = [(o, n) for o, n in TYPE_MAP if o in _SAFE_IN_THIRD_PARTY]
+        return _apply_b(text, _PROTECTED_WORD, safe, r"(?!)", False)
+    return stage_b(text)
+
+
+def _slug_b(slug: str) -> str:
+    return _apply_b(slug, _PROTECTED_SLUG, _SLUG_MAP, _GENERIC_SLUG, True)
+
+
+_LINK_TARGET = re.compile(r"(\]\([^)\s#]*#)([^)\s]+)(?=\))")
+
+
+def stage_b_anchors(text: str) -> str:
+    """Markdown link anchors follow the renamed headings: (#jevcontent) becomes (#decisioncontent)."""
+    return _LINK_TARGET.sub(lambda m: m.group(1) + _slug_b(m.group(2)), text)
 
 
 def stage_c(text: str) -> str:
     text = re.sub(r"\bJEV(\d{3})\b", r"MIN\1", text)
+    text = re.sub(r"(?<=#)jev(\d{3})\b", r"min\1", text)
     return re.sub(r"Jev(\d{3})", r"Min\1", text)
 
 
@@ -106,7 +154,7 @@ def rebuild_unshipped(shipped: str, transform) -> str:
                       *sorted("*REMOVED*" + line for line in changed)]) + "\n"
 
 
-def analyzer_unshipped(shipped_md: str) -> str:
+def analyzer_unshipped(shipped_md: str) -> str | None:
     live: dict[str, str] = {}
     section = ""
     for line in shipped_md.splitlines():
@@ -118,12 +166,19 @@ def analyzer_unshipped(shipped_md: str) -> str:
                 live[m.group(1)] = line
             elif section == "### Removed Rules":
                 live.pop(m.group(1), None)
+    if not live:
+        return None
     header = "Rule ID | Category | Severity | Notes\n--------|----------|----------|-------"
     new = [re.sub(r"^JEV(\d{3}) \| [^|]+ \|", r"MIN\1 | Minos |", line) for line in live.values()]
     return ("; Unshipped analyzer release.\n"
             "; https://github.com/dotnet/roslyn-analyzers/blob/main/src/Microsoft.CodeAnalysis.Analyzers/ReleaseTrackingAnalyzers.Help.md\n\n"
             f"### New Rules\n\n{header}\n" + "\n".join(sorted(new)) +
             f"\n\n### Removed Rules\n\n{header}\n" + "\n".join(sorted(live.values())) + "\n")
+
+
+def report_lines(text: str) -> list[tuple[int, str]]:
+    """Every line still holding ZeroAlloc.Jev, in a literal, a raw string or code, for a manual decision."""
+    return [(n, line.strip()) for n, line in enumerate(text.splitlines(), 1) if "ZeroAlloc.Jev" in line]
 
 
 def _tracked() -> list[str]:
@@ -133,6 +188,8 @@ def _tracked() -> list[str]:
 
 def _kind(path: str) -> str | None:
     p = pathlib.PurePosixPath(path)
+    if p.name in ("PublicAPI.Unshipped.txt", "AnalyzerReleases.Unshipped.md"):
+        return None  # regenerated by publicapi-* and analyzer-releases
     if p.suffix == ".cs":
         return "cs"
     if p.suffix in (".md", ".mdx"):
@@ -150,6 +207,27 @@ def _rewrite(fn, dry: bool) -> None:
         file = ROOT / path
         old = file.read_text(encoding="utf-8")
         new = fn(old, kind)
+        if new != old:
+            print(f"rewrite {path}")
+            if not dry:
+                file.write_text(new, encoding="utf-8", newline="")
+
+
+def _rewrite_b(dry: bool) -> None:
+    for path in _tracked():
+        kind = _kind(path)
+        if kind is None:
+            continue
+        file = ROOT / path
+        old = file.read_text(encoding="utf-8")
+        if kind == "cs":
+            if is_third_party(old):
+                print(f"skip-b {path} (third-party types)")
+            new = stage_b_file(old)
+        elif kind == "md":
+            new = stage_b_anchors(stage_b(old))
+        else:
+            new = stage_b(old)
         if new != old:
             print(f"rewrite {path}")
             if not dry:
@@ -176,7 +254,7 @@ def main(argv: list[str]) -> int:
     elif cmd == "a":
         _rewrite(stage_a, dry)
     elif cmd == "b":
-        _rewrite(lambda t, k: stage_b(t), dry)
+        _rewrite_b(dry)
     elif cmd == "c":
         _rewrite(lambda t, k: stage_c(t), dry)
     elif cmd in ("publicapi-a", "publicapi-ab"):
@@ -190,15 +268,17 @@ def main(argv: list[str]) -> int:
     elif cmd == "analyzer-releases":
         for shipped in ROOT.glob("src/*/AnalyzerReleases.Shipped.md"):
             out = analyzer_unshipped(shipped.read_text(encoding="utf-8"))
+            if out is None:
+                print(f"skip {shipped.parent.name}: no live rules")
+                continue
             print(f"rewrite {shipped.parent.name}/AnalyzerReleases.Unshipped.md")
             if not dry:
                 (shipped.parent / "AnalyzerReleases.Unshipped.md").write_text(out, encoding="utf-8", newline="")
     elif cmd == "report":
         for path in _tracked():
             if path.endswith(".cs"):
-                for n, line in enumerate((ROOT / path).read_text(encoding="utf-8").splitlines(), 1):
-                    for lit in re.findall(r'"[^"\n]*ZeroAlloc\.Jev[^"\n]*"', line):
-                        print(f"{path}:{n}: {lit}")
+                for n, line in report_lines((ROOT / path).read_text(encoding="utf-8")):
+                    print(f"{path}:{n}: {line}")
     else:
         print(__doc__)
         return 2
