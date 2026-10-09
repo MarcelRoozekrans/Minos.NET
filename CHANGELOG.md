@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.5.2](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/compare/v0.5.1...v0.5.2) (2026-10-09)
+
+
+### Documentation
+
+* **docs:** add the phase 5.4 design and implementation plan from a first live run against TypeSafe ([38b92b8](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/38b92b850151a38526a3d15bea055761c3c082ac))
+* **docs:** record that TypeSafe documents no Retry-After and that versioned model ids are accepted ([38b92b8](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/38b92b850151a38526a3d15bea055761c3c082ac))
+* **docs:** show the 422 body TypeSafe really sends and how to read its problems ([38b92b8](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/38b92b850151a38526a3d15bea055761c3c082ac))
+
+
+### Tests
+
+* **tests:** assert the live 422 shape instead of throwing when it changes ([38b92b8](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/38b92b850151a38526a3d15bea055761c3c082ac))
+* **tests:** check the jev-latest and jev-preview aliases live on both providers ([38b92b8](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/38b92b850151a38526a3d15bea055761c3c082ac))
+* **tests:** pin the 422 and 401 bodies TypeSafe really sends ([38b92b8](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/38b92b850151a38526a3d15bea055761c3c082ac))
+
 ## [0.5.1](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/compare/v0.5.0...v0.5.1) (2026-10-07)
 
 
