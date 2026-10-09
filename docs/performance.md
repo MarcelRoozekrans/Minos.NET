@@ -7,7 +7,7 @@ description: What the client costs per call, how it compares with other clients,
 
 # Performance
 
-`benchmarks/ZeroAlloc.Jev.Benchmarks` measures the client's hot paths with BenchmarkDotNet: the
+`benchmarks/Minos.NET.Benchmarks` measures the client's hot paths with BenchmarkDotNet: the
 generated `[JevQuestions]` `Parse` method and the `JevAnswerReader` primitives it is built from
 (`ParseBenchmarks`), `JevClient.EvaluateAsync` / `ListModelsAsync` against an in-memory
 `HttpMessageHandler` (`ClientBenchmarks`) and question sets built at run time (`QuestionSetBenchmarks`).
@@ -15,7 +15,7 @@ generated `[JevQuestions]` `Parse` method and the `JevAnswerReader` primitives i
 Run it locally with:
 
 ```
-dotnet run -c Release --project benchmarks/ZeroAlloc.Jev.Benchmarks -- --filter '*'
+dotnet run -c Release --project benchmarks/Minos.NET.Benchmarks -- --filter '*'
 ```
 
 or trigger the manual **Benchmarks** GitHub Actions workflow's `full` job, which uploads the
@@ -65,7 +65,7 @@ set has, and a map, built once at Build, would add a hash per answer for a savin
 
 The budgets come from the AOT smoke app and the unit test, which measure on their own inputs, not the benchmark's:
 `Build` measures 6592 B and `EvaluateBuiltSet` 4288 B on published win-x64 AOT, each plus about 10% rounded up to the
-next 64 B; the parse measures 216 B, rounded up to 256 B. The parse budget is gated in `tests/ZeroAlloc.Jev.Tests`
+next 64 B; the parse measures 216 B, rounded up to 256 B. The parse budget is gated in `tests/Minos.NET.Tests`
 under the JIT, since parsing is internal and the AOT smoke app uses only the public API; it allocates only the
 `JevAnswers` object, its probability buffer and its slot array.
 
@@ -266,10 +266,10 @@ next 64 B:
 - The new budgets were measured on win-x64, and Linux CI holds them too: the `aot-smoke` job passed every gate on
   linux-x64, in [run 37207773054][aot-smoke-run] on commit `bf1ef0b`, with the DI-resolved client at 3992 B there as
   well.
-- In the [client comparison](#comparison) below, ZeroAlloc.Jev allocates fewer bytes per call than the hand-written
+- In the [client comparison](#comparison) below, Minos.NET allocates fewer bytes per call than the hand-written
   `HttpClient` client; its Bytes/call column has the figures.
 
-[aot-smoke-run]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37207773054
+[aot-smoke-run]: https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/37207773054
 
 ### Phase 5.3 — The allocation creep
 
@@ -318,7 +318,7 @@ the reason its comment gives.
 
 ## Comparison
 
-ZeroAlloc.Jev against six other clients, all calling one local mock with the same request:
+Minos.NET against six other clients, all calling one local mock with the same request:
 - `raw-httpclient`, the client a developer would write by hand with `HttpClient` and System.Text.Json. Like every
   other client, it builds and serializes the request on every call, here with a source-generated serializer context;
 - the community .NET clients JevSharp, TypeSafe.AI.Sdk and Jev.Net, the three most downloaded of eleven on NuGet;
@@ -392,17 +392,17 @@ The table is `merge.py`'s output for [the first of the published runs][ci-json],
 whole, and a docs test fails if the two differ. The run used a GitHub-hosted `ubuntu-latest` runner; the machine line
 gives its CPU and the cores the mock and the clients ran on.
 
-In this run and in both others under [Across runs](#across-runs), ZeroAlloc.Jev had the lowest mean latency, the
+In this run and in both others under [Across runs](#across-runs), Minos.NET had the lowest mean latency, the
 highest throughput and the fewest bytes per call of any client. Its throughput lead over the raw client is small; the
 other clients stay well behind both, and their throughput order was the same in every run: Jev.Net, TypeSafe.AI.Sdk,
 JevSharp, the JS SDK and the Python SDK.
 
-In every run the raw client and ZeroAlloc.Jev come close to the mock ceiling, and they can pass it: the ceiling is
+In every run the raw client and Minos.NET come close to the mock ceiling, and they can pass it: the ceiling is
 only a lower bound on what the mock can serve, the best rate the raw client reached in its own, separate measurement.
 The Of mock ceiling column in each table shows how close each run came. Near the ceiling, the mock's own speed may
 narrow the gap between those two. The other clients stay well below it in every run, so their figures are their own.
 
-**ZeroAlloc.Jev is built from the branch.** Its Library cell shows the version a build that is not a release gets, the
+**Minos.NET is built from the branch.** Its Library cell shows the version a build that is not a release gets, the
 last release with a `-local` suffix, followed by the commit CI built, as in `<release>-local+<commit>`. So the tables
 measure branch commit `fcc4cee`, not a published release. A pull-request run builds GitHub's merge of the branch into
 `main`, so the commit in the version is that merge commit; the run line names the branch commit it came from.
@@ -466,15 +466,15 @@ they differ.
   run, and prints the table that goes between the comparison markers on this page. `merge.py --across` with the
   published runs prints the tables that go between the across-runs markers.
 
-[workload]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/benchmarks/compare/workload/README.md
-[library-checks]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/docs/plans/2026-10-04-phase-5.2-library-checks.md
-[ci-json]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/benchmarks/compare/results/ci-run-1.json
-[results]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/tree/main/benchmarks/compare/results
-[js-readme]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/benchmarks/compare-js/README.md#why-the-js-throughput-is-lower
-[py-readme]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/benchmarks/compare-py/README.md#why-the-python-throughput-is-lower
-[py-requirements]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/benchmarks/compare-py/requirements.txt
-[issue-97]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/issues/97
-[compare-readme]: https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/benchmarks/compare/README.md
+[workload]: https://github.com/MarcelRoozekrans/Minos.NET/blob/main/benchmarks/compare/workload/README.md
+[library-checks]: https://github.com/MarcelRoozekrans/Minos.NET/blob/main/docs/plans/2026-10-04-phase-5.2-library-checks.md
+[ci-json]: https://github.com/MarcelRoozekrans/Minos.NET/blob/main/benchmarks/compare/results/ci-run-1.json
+[results]: https://github.com/MarcelRoozekrans/Minos.NET/tree/main/benchmarks/compare/results
+[js-readme]: https://github.com/MarcelRoozekrans/Minos.NET/blob/main/benchmarks/compare-js/README.md#why-the-js-throughput-is-lower
+[py-readme]: https://github.com/MarcelRoozekrans/Minos.NET/blob/main/benchmarks/compare-py/README.md#why-the-python-throughput-is-lower
+[py-requirements]: https://github.com/MarcelRoozekrans/Minos.NET/blob/main/benchmarks/compare-py/requirements.txt
+[issue-97]: https://github.com/MarcelRoozekrans/Minos.NET/issues/97
+[compare-readme]: https://github.com/MarcelRoozekrans/Minos.NET/blob/main/benchmarks/compare/README.md
 
 ## Next
 

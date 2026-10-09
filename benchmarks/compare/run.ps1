@@ -16,7 +16,7 @@ Usage: run.ps1 [options]
   --machine <name>        The machine name in the results and their folder. Default: this computer's name.
   --project <name>        The project under test. It names the .NET projects <name>.Benchmarks.Mock and
                           <name>.Benchmarks.Compare under the bench root, and marks the project's rows in the table.
-                          Default: ZeroAlloc.Jev.
+                          Default: Minos.NET.
   --bench-root <dir>      The folder holding those two projects, which are required, and compare-js and compare-py,
                           which are run when present. Default: the benchmarks folder of this repository.
   --results <dir>         Where results go, in a <machine> subfolder. Default: results next to this script.
@@ -38,7 +38,7 @@ function Exit-Usage([string] $message) {
 
 $smoke = $false
 $machine = [Environment]::MachineName
-$project = 'ZeroAlloc.Jev'
+$project = 'Minos.NET'
 $benchRoot = Join-Path $PSScriptRoot '..'
 $resultsRoot = Join-Path $PSScriptRoot 'results'
 $port = 5005

@@ -1,22 +1,22 @@
-# ZeroAlloc.Jev
+# Minos.NET
 
-![ZeroAlloc.Jev](https://raw.githubusercontent.com/ZeroAlloc-Net/ZeroAlloc.Jev/main/assets/icon.png)
+![Minos.NET](https://raw.githubusercontent.com/MarcelRoozekrans/Minos.NET/main/assets/icon.png)
 
-[![CI](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/workflows/ci.yml/badge.svg)](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/workflows/ci.yml)
+[![CI](https://github.com/MarcelRoozekrans/Minos.NET/actions/workflows/ci.yml/badge.svg)](https://github.com/MarcelRoozekrans/Minos.NET/actions/workflows/ci.yml)
 
 Unofficial .NET client for [TypeSafe AI](https://typesafe.ai)'s **Jev**, the first System One model: send a `state` and typed questions (Noul, Choice, Score) and get calibrated, typed answers back — directly from TypeSafe or through OpenRouter.
 
 You declare the questions as a C# type, and a source generator writes the request and the answer parsing at compile time, so generated question sets need no reflection and the client runs under Native AOT.
 
-> **Not affiliated with TypeSafe AI.** ZeroAlloc.Jev is a community project in the [ZeroAlloc](https://github.com/ZeroAlloc-Net) family. TypeSafe publishes official SDKs for Python and JavaScript; see [docs.typesafe.ai](https://docs.typesafe.ai).
+> **Not affiliated with TypeSafe AI.** Minos.NET is a community project in the [ZeroAlloc](https://github.com/ZeroAlloc-Net) family. TypeSafe publishes official SDKs for Python and JavaScript; see [docs.typesafe.ai](https://docs.typesafe.ai).
 
-**Status:** early development, not yet published to NuGet. See [the roadmap](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/docs/planning/ROADMAP.md).
+**Status:** early development, not yet published to NuGet. See [the roadmap](https://github.com/MarcelRoozekrans/Minos.NET/blob/main/docs/planning/ROADMAP.md).
 
 ## Install
 
 ```
-dotnet add package ZeroAlloc.Jev
-dotnet add package ZeroAlloc.Jev.DependencyInjection
+dotnet add package Minos.NET
+dotnet add package Minos.NET.DependencyInjection
 ```
 
 You need the .NET 10 SDK, and any IDE or build that hosts the `[JevQuestions]` generator must host Roslyn 5.0 or later; [Getting started](https://jev.zeroalloc.net/) has the details.
@@ -25,7 +25,7 @@ You need the .NET 10 SDK, and any IDE or build that hosts the `[JevQuestions]` g
 
 <!-- snippet: Readme_Example -->
 ```cs
-using ZeroAlloc.Jev;
+using Minos;
 
 public enum Lane
 {
@@ -71,7 +71,7 @@ public static class ReadmeExample
 
 The guide lives at [jev.zeroalloc.net](https://jev.zeroalloc.net):
 
-- [Getting started](https://jev.zeroalloc.net/): install ZeroAlloc.Jev, point it at TypeSafe or OpenRouter, and run your first typed evaluation.
+- [Getting started](https://jev.zeroalloc.net/): install Minos.NET, point it at TypeSafe or OpenRouter, and run your first typed evaluation.
 - [Question types](https://jev.zeroalloc.net/question-types): Noul, Choice and Score, what each answer holds, and how confidence differs from probability.
 - [Typed evaluation](https://jev.zeroalloc.net/typed-evaluation): declare Jev questions as a C# type, give them a typed state, and pick the `EvaluateAsync` overload.
 - [Question sets at run time](https://jev.zeroalloc.net/question-sets-at-run-time): build a question set from data with the builder, evaluate it, and read answers through handles.
@@ -91,7 +91,7 @@ The guide lives at [jev.zeroalloc.net](https://jev.zeroalloc.net):
 
 ## Samples
 
-Runnable cookbook apps live in [`samples/`](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/tree/main/samples); they replay recorded answers, so they run offline.
+Runnable cookbook apps live in [`samples/`](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples); they replay recorded answers, so they run offline.
 
 ## Building
 
@@ -99,8 +99,8 @@ Building this repository needs the SDK version pinned in `global.json` (10.0.401
 
 ## Testing
 
-`dotnet test` runs the unit tests, the generator tests, the analyzer and code-fix tests, the WireMock integration tests, and the pack tests, which pack the library and check the package's contents. A solution-wide `dotnet test` never makes a billed call: the live smoke tests in `tests/ZeroAlloc.Jev.Live.Tests` call the real APIs and only run when `JEV_LIVE=1` is set *and* the provider's key (`TYPESAFE_API_KEY` or `OPENROUTER_API_KEY`) is set; otherwise every one of them reports skipped. To run them locally, opt in explicitly with the key set: `JEV_LIVE=1 dotnet test tests/ZeroAlloc.Jev.Live.Tests`. Each run makes a few small billed evaluations. Override the model with `JEV_LIVE_MODEL`, or `JEV_LIVE_OPENROUTER_MODEL` for OpenRouter. Maintainers can also run them in CI with the manual **Live smoke** workflow, which reads the keys from the `live-api` environment; restrict that environment's deployment branches to `main`.
+`dotnet test` runs the unit tests, the generator tests, the analyzer and code-fix tests, the WireMock integration tests, and the pack tests, which pack the library and check the package's contents. A solution-wide `dotnet test` never makes a billed call: the live smoke tests in `tests/Minos.NET.Live.Tests` call the real APIs and only run when `JEV_LIVE=1` is set *and* the provider's key (`TYPESAFE_API_KEY` or `OPENROUTER_API_KEY`) is set; otherwise every one of them reports skipped. To run them locally, opt in explicitly with the key set: `JEV_LIVE=1 dotnet test tests/Minos.NET.Live.Tests`. Each run makes a few small billed evaluations. Override the model with `JEV_LIVE_MODEL`, or `JEV_LIVE_OPENROUTER_MODEL` for OpenRouter. Maintainers can also run them in CI with the manual **Live smoke** workflow, which reads the keys from the `live-api` environment; restrict that environment's deployment branches to `main`.
 
 ## License
 
-[MIT](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/blob/main/LICENSE)
+[MIT](https://github.com/MarcelRoozekrans/Minos.NET/blob/main/LICENSE)

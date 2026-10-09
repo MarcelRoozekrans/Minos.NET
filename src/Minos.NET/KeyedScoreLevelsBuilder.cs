@@ -1,0 +1,27 @@
+using System.Globalization;
+using Minos.Validation;
+
+namespace Minos;
+
+/// <summary>Adds the levels of a keyed Score question built with <see cref="JevQuestionSetBuilder"/>, lowest first, keyed by index.</summary>
+/// <remarks>Valid only inside its callback: once the question method returns, its methods throw <see cref="InvalidOperationException"/>.</remarks>
+public sealed class KeyedScoreLevelsBuilder
+{
+    private readonly QuestionDraft _draft;
+
+    internal KeyedScoreLevelsBuilder(QuestionDraft draft) => _draft = draft;
+
+    /// <summary>Adds the next level.</summary>
+    /// <param name="criterion">What the level means.</param>
+    /// <returns>This builder.</returns>
+    /// <exception cref="InvalidOperationException">The configurator is used after its callback returned.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="criterion"/> is <see langword="null"/>.</exception>
+    public KeyedScoreLevelsBuilder Level(JevCriterion criterion)
+    {
+        _draft.EnsureOpen();
+        ArgumentNullException.ThrowIfNull(criterion);
+        var key = _draft.Options.Count.ToString(CultureInfo.InvariantCulture);
+        _draft.Options.Add(new OptionSpec(key, key, criterion, -1));
+        return this;
+    }
+}

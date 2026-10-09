@@ -12,8 +12,8 @@ and why, how many tokens you used, and how sure Jev was. `JevClient` reports all
 .NET has built in:
 
 - **Logs**, through `Microsoft.Extensions.Logging`, when you give the client an `ILoggerFactory`.
-- **Traces**, as `System.Diagnostics` spans, from an `ActivitySource` named `ZeroAlloc.Jev`.
-- **Metrics**, as `System.Diagnostics.Metrics` instruments, from a `Meter` named `ZeroAlloc.Jev`.
+- **Traces**, as `System.Diagnostics` spans, from an `ActivitySource` named `Minos`.
+- **Metrics**, as `System.Diagnostics.Metrics` instruments, from a `Meter` named `Minos`.
 
 All three describe the call and never its content. Your state, your questions, the answers, your API key and the
 server's error text stay out of every one of them, and the sections below say exactly where the line is drawn. All
@@ -27,7 +27,7 @@ Pass an `ILoggerFactory` when you create the client, as [the client page](client
 Without one, or with `null`, the client logs nothing. A client that [dependency injection](dependency-injection.md)
 registers logs through the container's `ILoggerFactory`, so there is nothing to pass.
 
-The client logs in the category `ZeroAlloc.Jev.JevClient`. This example makes one evaluation and returns what was
+The client logs in the category `Minos.JevClient`. This example makes one evaluation and returns what was
 logged. `FakeLoggerProvider`, from `Microsoft.Extensions.Diagnostics.Testing`, keeps the records in memory. An
 application would add a real provider, such as the console, instead.
 
@@ -39,7 +39,7 @@ dotnet add package Microsoft.Extensions.Diagnostics.Testing
 ```cs
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
-using ZeroAlloc.Jev;
+using Minos;
 
 // One question, so that the events are easy to read.
 [JevQuestions]
@@ -156,28 +156,28 @@ The client opens one span for each operation, of kind `Client`. Its name is `eva
 example `evaluate jev-latest`, for an evaluation and `list_models` for a model listing. The span measures the whole
 call, including the retries. A call that fails on every attempt is still one span.
 
-To see the spans in an application, subscribe to the source named `ZeroAlloc.Jev`, and nothing needs configuring on the
+To see the spans in an application, subscribe to the source named `Minos`, and nothing needs configuring on the
 client. Add the source `ZeroAlloc.Rest` as well to see each HTTP attempt. Jev's span is the parent of every attempt's
 span, so a call that was retried shows as one Jev span over several attempt spans.
 
 ### Subscribing with OpenTelemetry
 
 The source and the meter share one name. Both also carry the package's informational version as their version, which
-is the version of the `ZeroAlloc.Jev` package you installed.
+is the version of the `Minos.NET` package you installed.
 
 <!-- snippet: Observability_OpenTelemetryNames -->
 ```cs
 // The two names an OpenTelemetry setup needs. The source carries the spans and the meter carries the metrics.
 public static class JevTelemetryNames
 {
-    public const string Source = "ZeroAlloc.Jev";
+    public const string Source = "Minos";
 
-    public const string Meter = "ZeroAlloc.Jev";
+    public const string Meter = "Minos";
 }
 ```
 <!-- endSnippet -->
 
-The `ZeroAlloc.Jev` package takes no OpenTelemetry dependency, and neither does `ZeroAlloc.Jev.DependencyInjection`.
+The `Minos.NET` package takes no OpenTelemetry dependency, and neither does `Minos.NET.DependencyInjection`.
 Your application brings OpenTelemetry itself, usually the `OpenTelemetry.Extensions.Hosting` package, whose
 `AddOpenTelemetry()` starts the setup. Pass the source to `WithTracing` with `AddSource`, and the meter to `WithMetrics`
 with `AddMeter`:
@@ -209,10 +209,10 @@ using System.Diagnostics.Metrics;
 public sealed record JevMeasurement(string Name, string? Unit, double Value, KeyValuePair<string, object?>[] Tags);
 
 // Listens to everything Jev emits. OpenTelemetry does the same once it is told to add the source and the meter
-// named ZeroAlloc.Jev, and then exports what it hears.
+// named Minos, and then exports what it hears.
 public sealed class JevTelemetryListener : IDisposable
 {
-    private const string Name = "ZeroAlloc.Jev";
+    private const string Name = "Minos";
 
     private readonly Lock _gate = new();
     private readonly ActivityListener _activities;
@@ -327,7 +327,7 @@ is ZeroAlloc.Telemetry 1.11.0, the library that generates the instrumentation, w
 
 ## Metrics
 
-The meter named `ZeroAlloc.Jev` has six instruments. To collect them with OpenTelemetry, pass the name to `AddMeter`, as
+The meter named `Minos` has six instruments. To collect them with OpenTelemetry, pass the name to `AddMeter`, as
 [the traces section](#subscribing-with-opentelemetry) shows. Every evaluation records its duration, and a successful
 evaluation also records its tokens and one confidence point for each Choice or Score answer.
 

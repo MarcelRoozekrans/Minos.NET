@@ -37,7 +37,7 @@ jobs:
     if: github.event_name != 'workflow_dispatch'
     uses: ZeroAlloc-Net/.github/.github/workflows/benchmark-smoke.yml@main
     with:
-      project: benchmarks/ZeroAlloc.Jev.Benchmarks
+      project: benchmarks/Minos.NET.Benchmarks
 
   full:
     name: full
@@ -57,13 +57,13 @@ jobs:
           dotnet-version: 10.0.x
 
       - name: Build
-        run: dotnet build benchmarks/ZeroAlloc.Jev.Benchmarks -c Release
+        run: dotnet build benchmarks/Minos.NET.Benchmarks -c Release
 
       - name: Run benchmarks
         env:
           FILTER: ${{ inputs.filter }}
         run: |
-          dotnet run --project benchmarks/ZeroAlloc.Jev.Benchmarks -c Release --no-build -- \
+          dotnet run --project benchmarks/Minos.NET.Benchmarks -c Release --no-build -- \
             --filter "$FILTER"
 
       - uses: actions/upload-artifact@v7

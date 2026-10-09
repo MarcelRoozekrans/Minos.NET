@@ -1,0 +1,35 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Minos.NET/Minos.NET.csproj" />
+    <Project Path="src/Minos.NET.DependencyInjection/Minos.NET.DependencyInjection.csproj" />
+    <Project Path="src/Minos.NET.Generator/Minos.NET.Generator.csproj" />
+    <Project Path="src/Minos.NET.Analyzers/Minos.NET.Analyzers.csproj" />
+    <Project Path="src/Minos.NET.CodeFixes/Minos.NET.CodeFixes.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Minos.NET.Tests/Minos.NET.Tests.csproj" />
+    <Project Path="tests/Minos.NET.DependencyInjection.Tests/Minos.NET.DependencyInjection.Tests.csproj" />
+    <Project Path="tests/Minos.NET.Generator.Tests/Minos.NET.Generator.Tests.csproj" />
+    <Project Path="tests/Minos.NET.Analyzers.Tests/Minos.NET.Analyzers.Tests.csproj" />
+    <Project Path="tests/Minos.NET.Integration.Tests/Minos.NET.Integration.Tests.csproj" />
+    <Project Path="tests/Minos.NET.Live.Tests/Minos.NET.Live.Tests.csproj" />
+    <Project Path="tests/Minos.NET.Docs.Tests/Minos.NET.Docs.Tests.csproj" />
+    <Project Path="tests/Minos.NET.PackTests/Minos.NET.PackTests.csproj" />
+    <Project Path="tests/Minos.NET.Samples.Tests/Minos.NET.Samples.Tests.csproj" />
+    <Project Path="tests/Minos.NET.Benchmarks.Tests/Minos.NET.Benchmarks.Tests.csproj" />
+    <Project Path="tests/Minos.NET.AotSmoke.Tests/Minos.NET.AotSmoke.Tests.csproj" />
+  </Folder>
+  <Folder Name="/samples/">
+    <Project Path="samples/Minos.NET.AotSmoke/Minos.NET.AotSmoke.csproj" />
+    <Project Path="samples/Minos.NET.AotSurface/Minos.NET.AotSurface.csproj" />
+    <Project Path="samples/Minos.NET.Samples.Shared/Minos.NET.Samples.Shared.csproj" />
+    <Project Path="samples/Minos.NET.Samples.Guardrails/Minos.NET.Samples.Guardrails.csproj" />
+    <Project Path="samples/Minos.NET.Samples.IntentRouting/Minos.NET.Samples.IntentRouting.csproj" />
+    <Project Path="samples/Minos.NET.Samples.Reranking/Minos.NET.Samples.Reranking.csproj" />
+  </Folder>
+  <Folder Name="/benchmarks/">
+    <Project Path="benchmarks/Minos.NET.Benchmarks/Minos.NET.Benchmarks.csproj" />
+    <Project Path="benchmarks/Minos.NET.Benchmarks.Compare/Minos.NET.Benchmarks.Compare.csproj" />
+    <Project Path="benchmarks/Minos.NET.Benchmarks.Mock/Minos.NET.Benchmarks.Mock.csproj" />
+  </Folder>
+</Solution>

@@ -1,7 +1,7 @@
 # JS comparison harness
 
 Measures TypeSafe's official JS SDK, `@typesafe-ai/sdk` 0.6.0, against the shared local mock. It follows the .NET
-harness in `benchmarks/ZeroAlloc.Jev.Benchmarks.Compare`: the same workload (`benchmarks/compare/workload`), the same
+harness in `benchmarks/Minos.NET.Benchmarks.Compare`: the same workload (`benchmarks/compare/workload`), the same
 latency and throughput method, and the same result format.
 
 ```sh
@@ -9,7 +9,7 @@ npm ci
 node bench.mjs --base-url http://127.0.0.1:5005 --out ../../results [--smoke] [--machine <name>] [--cores <list>] [--mock-cores <list>]
 ```
 
-Start the mock first: `dotnet run -c Release --project benchmarks/ZeroAlloc.Jev.Benchmarks.Mock`. It stops when its
+Start the mock first: `dotnet run -c Release --project benchmarks/Minos.NET.Benchmarks.Mock`. It stops when its
 stdin closes, so keep stdin open when you start it from a script.
 
 It writes `js-<machine>.json`. The machine name defaults to the one the .NET harness uses: on Windows the NetBIOS

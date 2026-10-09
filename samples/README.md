@@ -4,16 +4,16 @@ Three cookbook samples show Jev doing real work in a small console app. Each one
 
 | Sample | What it shows |
 | --- | --- |
-| [Guardrails](ZeroAlloc.Jev.Samples.Guardrails) | Screens chat messages before they reach a language model, with one request per message and two policies over the same answers. Inspired by TypeSafe's [Guardrails for LLMs](https://docs.typesafe.ai/cookbooks/llm_guardrails) cookbook. |
-| [Intent routing](ZeroAlloc.Jev.Samples.IntentRouting) | Decides per request whether code, an assistant model or a person handles it, using Jev as the cheap first step. Inspired by TypeSafe's [intent routing](https://docs.typesafe.ai/patterns/intent-routing) pattern and its [Function calling](https://docs.typesafe.ai/cookbooks/function_calling) cookbook. |
-| [Re-ranking](ZeroAlloc.Jev.Samples.Reranking) | Re-orders a keyword shortlist of help articles by how well each answers the question, in one fan-out request. Inspired by TypeSafe's [Re-ranking](https://docs.typesafe.ai/cookbooks/rerank_typesafe) cookbook. |
+| [Guardrails](Minos.NET.Samples.Guardrails) | Screens chat messages before they reach a language model, with one request per message and two policies over the same answers. Inspired by TypeSafe's [Guardrails for LLMs](https://docs.typesafe.ai/cookbooks/llm_guardrails) cookbook. |
+| [Intent routing](Minos.NET.Samples.IntentRouting) | Decides per request whether code, an assistant model or a person handles it, using Jev as the cheap first step. Inspired by TypeSafe's [intent routing](https://docs.typesafe.ai/patterns/intent-routing) pattern and its [Function calling](https://docs.typesafe.ai/cookbooks/function_calling) cookbook. |
+| [Re-ranking](Minos.NET.Samples.Reranking) | Re-orders a keyword shortlist of help articles by how well each answers the question, in one fan-out request. Inspired by TypeSafe's [Re-ranking](https://docs.typesafe.ai/cookbooks/rerank_typesafe) cookbook. |
 
 Every sample is our own work. Each is inspired by TypeSafe's material, linked in the table above, but the code, the data and the policies are written here.
 
 ## Run a sample
 
 ```
-dotnet run --project samples/ZeroAlloc.Jev.Samples.Guardrails
+dotnet run --project samples/Minos.NET.Samples.Guardrails
 ```
 
 Replay and record read and write the recordings in your clone of the repository: each sample's `recordings.json` in its source folder. Run those two modes from a clone, not from a copied build output. `--live` reads no recordings and runs from anywhere.
@@ -30,6 +30,6 @@ The checked-in recordings are real OpenRouter answers from the model `typesafe/j
 
 ## Not a sample
 
-`ZeroAlloc.Jev.AotSmoke` in this folder is the Native AOT smoke app that CI publishes and runs. It checks that the client survives trimming and AOT compilation, and it is not a cookbook sample.
+`Minos.NET.AotSmoke` in this folder is the Native AOT smoke app that CI publishes and runs. It checks that the client survives trimming and AOT compilation, and it is not a cookbook sample.
 
-`ZeroAlloc.Jev.AotSurface` is not a sample either. CI publishes it with Native AOT and full trimming, rooting both packages whole, so their members are checked for trim and AOT safety, not only the members an app calls. Rooting reaches every non-generic member and every generic one the compiler can share across reference types. A value-type generic, such as `Choice<T>` over an enum, has no such shared form, so the host instantiates every public generic type and method over its own types, and a test fails when one is missing. It is published, never run.
+`Minos.NET.AotSurface` is not a sample either. CI publishes it with Native AOT and full trimming, rooting both packages whole, so their members are checked for trim and AOT safety, not only the members an app calls. Rooting reaches every non-generic member and every generic one the compiler can share across reference types. A value-type generic, such as `Choice<T>` over an enum, has no such shared form, so the host instantiates every public generic type and method over its own types, and a test fails when one is missing. It is published, never run.

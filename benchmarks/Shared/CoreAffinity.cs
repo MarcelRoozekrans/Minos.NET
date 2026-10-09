@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Numerics;
 using System.Text;
 
-namespace ZeroAlloc.Jev.Benchmarks.Shared;
+namespace Minos.Benchmarks.Shared;
 
 /// <summary>
 /// The <c>--cores</c> option the mock and the harness share, so a runner can give each its own half of the CPU cores.

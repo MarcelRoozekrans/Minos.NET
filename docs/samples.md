@@ -15,9 +15,9 @@ cookbook or pattern, which its README credits, and the code, the data and the po
 
 | Sample | What it shows | Run it | Live requests |
 | --- | --- | --- | --- |
-| [Guardrails](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/tree/main/samples/ZeroAlloc.Jev.Samples.Guardrails) | Screens 15 chat messages before they reach a language model: one request per message, and two policies over the same answers. | `dotnet run --project samples/ZeroAlloc.Jev.Samples.Guardrails` | 15 |
-| [Intent routing](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/tree/main/samples/ZeroAlloc.Jev.Samples.IntentRouting) | Decides for each of 12 travel requests whether code, an assistant model or a person handles it, with Jev as the cheap first step. | `dotnet run --project samples/ZeroAlloc.Jev.Samples.IntentRouting` | 12 |
-| [Re-ranking](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/tree/main/samples/ZeroAlloc.Jev.Samples.Reranking) | Re-orders a keyword shortlist of help articles by how well each answers the question, in one fan-out request per question. | `dotnet run --project samples/ZeroAlloc.Jev.Samples.Reranking` | 5 |
+| [Guardrails](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples/Minos.NET.Samples.Guardrails) | Screens 15 chat messages before they reach a language model: one request per message, and two policies over the same answers. | `dotnet run --project samples/Minos.NET.Samples.Guardrails` | 15 |
+| [Intent routing](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples/Minos.NET.Samples.IntentRouting) | Decides for each of 12 travel requests whether code, an assistant model or a person handles it, with Jev as the cheap first step. | `dotnet run --project samples/Minos.NET.Samples.IntentRouting` | 12 |
+| [Re-ranking](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples/Minos.NET.Samples.Reranking) | Re-orders a keyword shortlist of help articles by how well each answers the question, in one fan-out request per question. | `dotnet run --project samples/Minos.NET.Samples.Reranking` | 5 |
 
 The three pair with the [patterns](patterns/index.md): Guardrails reads several answers from one request, as
 [fan-out](patterns/fan-out.md) does. Intent routing is the [intent routing](patterns/intent-routing.md) pattern with a
@@ -34,9 +34,9 @@ Run a sample from the root of a clone of the repository, with the .NET SDK insta
 a mode goes after `--`, as the next section shows.
 
 ```shell
-git clone https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev.git
-cd ZeroAlloc.Jev
-dotnet run --project samples/ZeroAlloc.Jev.Samples.Guardrails
+git clone https://github.com/MarcelRoozekrans/Minos.NET.git
+cd Minos.NET
+dotnet run --project samples/Minos.NET.Samples.Guardrails
 ```
 
 A sample runs in one of three modes, chosen by one argument after `--`. No argument means replay. More than one
@@ -50,13 +50,13 @@ argument, or one that is not a mode, prints the usage and exits with code 2.
   as well.
 
 ```shell
-dotnet run --project samples/ZeroAlloc.Jev.Samples.Guardrails -- --live
+dotnet run --project samples/Minos.NET.Samples.Guardrails -- --live
 ```
 
 ### Work from a clone for replay and record
 
 Replay and record read and write `recordings.json` in the sample's own source folder. A sample finds that folder by
-walking up from the running program until it meets `ZeroAlloc.Jev.slnx`, the solution file at the root of the
+walking up from the running program until it meets `Minos.NET.slnx`, the solution file at the root of the
 repository. So both modes work only where that file is above the program, which means a clone, and not a build output
 that you copied somewhere else. Record writes into the source folder on purpose, so that the next replay shows the new
 recording with no rebuild. `--live` reads no recordings and runs from anywhere.
@@ -99,7 +99,7 @@ A sample that is not run goes stale, so the CI workflow checks them in three way
 So when a change to the library moves a request, CI fails with the message that names the sample and the command to
 record it again, so a stale sample is caught by CI and not by a reader.
 
-`samples/ZeroAlloc.Jev.AotSmoke` is also in that folder. It is not a cookbook sample: it is the Native AOT smoke app
+`samples/Minos.NET.AotSmoke` is also in that folder. It is not a cookbook sample: it is the Native AOT smoke app
 that CI publishes and runs. [Native AOT](native-aot.md#where-it-is-checked) describes it.
 
 ## Next

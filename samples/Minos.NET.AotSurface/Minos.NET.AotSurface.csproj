@@ -1,0 +1,44 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    Publishes with Native AOT and roots Minos.NET and Minos.NET.DependencyInjection whole, so ILC analyses
+    their members for trim and AOT safety, not only the members an app happens to call. Rooting reaches every
+    non-generic member and every generic one ILC can share across reference types; a value-type generic, such as
+    Choice<T> where T : struct, Enum, has no shared form and is skipped. So this assembly is rooted too: SurfaceGenerics
+    instantiates every public generic type and method, and the members the generator emits for the question sets are
+    analysed as well. SurfaceGenericsTests fails when a public generic is not instantiated here. Every warning is an
+    error, including IL2xxx and IL3xxx, and none is suppressed. CI publishes it in the aot-surface job; it is never run.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Minos.AotSurface</RootNamespace>
+    <IsPackable>false</IsPackable>
+    <PublishAot>true</PublishAot>
+    <TrimMode>full</TrimMode>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <OptimizationPreference>Size</OptimizationPreference>
+
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <TrimmerRootAssembly Include="Minos.NET" />
+    <TrimmerRootAssembly Include="Minos.NET.DependencyInjection" />
+    <TrimmerRootAssembly Include="Minos.NET.AotSurface" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Minos.NET\Minos.NET.csproj" />
+    <ProjectReference Include="..\..\src\Minos.NET.DependencyInjection\Minos.NET.DependencyInjection.csproj" />
+    <ProjectReference Include="..\..\src\Minos.NET.Generator\Minos.NET.Generator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      UndefineProperties="PublishAot" />
+    <ProjectReference Include="..\..\src\Minos.NET.Analyzers\Minos.NET.Analyzers.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false"
+                      UndefineProperties="PublishAot" />
+  </ItemGroup>
+
+  <!-- Writes the compiler inputs the test that checks every public generic is instantiated here rebuilds this from. -->
+  <Import Project="../JevCompileInputs.targets" />
+</Project>

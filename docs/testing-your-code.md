@@ -22,7 +22,7 @@ answers into one of three routes: escalate it, put it in a queue, or send it to 
 
 <!-- snippet: TestingYourCode_Triager -->
 ```cs
-using ZeroAlloc.Jev;
+using Minos;
 
 public enum TriageDesk
 {
@@ -97,7 +97,7 @@ text, `JsonElement` and UTF-8 overloads, all end up in the one method the fake w
 <!-- snippet: TestingYourCode_Fake -->
 ```cs
 using System.Text.Json;
-using ZeroAlloc.Jev;
+using Minos;
 using ZeroAlloc.Results;
 
 // A fake implements the two abstract members. Every other member of IJevClient has a default that calls EvaluateAsync.

@@ -8,7 +8,7 @@ description: Every JEV analyzer rule with its severity, the two code fixes, and 
 # Diagnostics
 
 A question set is code that Jev turns into a request, so mistakes in it are best found while you type, not when a call
-fails. `ZeroAlloc.Jev` ships a set of Roslyn analyzers for this. They live inside the package, next to the
+fails. `Minos.NET` ships a set of Roslyn analyzers for this. They live inside the package, next to the
 `[JevQuestions]` generator, so there is nothing else to install. The editor shows their findings as you type, and the
 build reports them too.
 
@@ -88,7 +88,7 @@ becomes `"HTTP error"` and `NEEDS_ATTENTION` becomes `"Needs attention"`. That i
 something that tells the model what the option means, because the model reads the description.
 
 Both fixes can fix every occurrence in a document, a project or a solution at once. The fix adds a `using` for
-`ZeroAlloc.Jev` only when the attribute is not already in scope. There is no fix when the enum is declared in another
+`Minos.NET` only when the attribute is not already in scope. There is no fix when the enum is declared in another
 assembly, because there is no member in your code to put the attribute on.
 
 ## Suppressing a rule
@@ -100,7 +100,7 @@ because the suppression works.
 
 <!-- snippet: Diagnostics_Suppress -->
 ```cs
-using ZeroAlloc.Jev;
+using Minos;
 
 // The Jev API's guidance is 2 to 10 levels for a Score, so JEV005 warns about this enum. A 0 to 10 scale has 11
 // levels by definition, so the warning is suppressed here, for this enum only, and the reason is written next to it.

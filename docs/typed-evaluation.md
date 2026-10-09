@@ -7,7 +7,7 @@ description: Declare Jev questions as a C# type, give them a typed state, and pi
 
 # Typed evaluation
 
-Typed evaluation is the main way to use ZeroAlloc.Jev. You declare the questions once, as a partial record. A source
+Typed evaluation is the main way to use Minos.NET. You declare the questions once, as a partial record. A source
 generator turns them into the request at compile time and into a parser for the answers, so a call is one line and the
 answers come back as typed properties. This page covers the declaration, the state you hand to Jev, and the ways to
 call it. [Getting started](getting-started.md) has the shortest working example, and
@@ -29,7 +29,7 @@ The type needs JSON metadata generated at compile time, so that serializing it t
 ```cs
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using ZeroAlloc.Jev;
+using Minos;
 
 // The state is what Jev reads: any type that serializes to a JSON object, array or string.
 public sealed record SupportTicket(string Subject, string Body, string Plan);
@@ -311,7 +311,7 @@ value. `TryGetString` and `TryGetJson` read the content back.
 
 ## What the package ships
 
-`ZeroAlloc.Jev` carries the source generator and the [analyzers](diagnostics.md), so there is nothing else to install.
+`Minos.NET` carries the source generator and the [analyzers](diagnostics.md), so there is nothing else to install.
 The generator writes `QuestionsUtf8` and `Parse` for each `[JevQuestions]` type. The analyzers check the declaration as
 you type: the shape of the type, the keys, the enums and the backticked names. A set with an error gets no generated
 members, and the generator stubs its properties, so the build reports the analyzer's error and not a confusing

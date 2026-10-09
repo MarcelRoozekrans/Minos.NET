@@ -3,12 +3,12 @@ id: getting-started
 title: Getting started
 slug: /
 sidebar_position: 1
-description: Install ZeroAlloc.Jev, point it at TypeSafe or OpenRouter, and run your first typed evaluation.
+description: Install Minos.NET, point it at TypeSafe or OpenRouter, and run your first typed evaluation.
 ---
 
 # Getting started
 
-ZeroAlloc.Jev is an unofficial .NET client for [TypeSafe AI](https://typesafe.ai)'s **Jev**, the first System One
+Minos.NET is an unofficial .NET client for [TypeSafe AI](https://typesafe.ai)'s **Jev**, the first System One
 model. TypeSafe calls Jev a System One model: it answers typed questions directly instead of generating text, and
 [their guide](https://docs.typesafe.ai/concepts/system-one) explains the idea. You send Jev the text or JSON to judge,
 called the state, and a few typed questions about it. Jev answers each question with a typed result and a calibrated
@@ -19,7 +19,7 @@ The library turns those questions and answers into ordinary C# types. You declar
 source generator writes the request, and the reply comes back as properties you can read. There is no JSON to build or
 parse by hand.
 
-> **Not affiliated with TypeSafe AI.** ZeroAlloc.Jev is a community project in the
+> **Not affiliated with TypeSafe AI.** Minos.NET is a community project in the
 > [ZeroAlloc](https://github.com/ZeroAlloc-Net) family. TypeSafe publishes official SDKs for Python and JavaScript;
 > see [docs.typesafe.ai](https://docs.typesafe.ai).
 
@@ -47,20 +47,20 @@ The packages are not yet published to NuGet. Once they are, `dotnet add package`
 Until then you can build them yourself, as the next section shows.
 
 ```shell
-dotnet add package ZeroAlloc.Jev
+dotnet add package Minos.NET
 ```
 
-`ZeroAlloc.Jev` is the core. It already contains the source generator and the [analyzers](diagnostics.md), so there is
+`Minos.NET` is the core. It already contains the source generator and the [analyzers](diagnostics.md), so there is
 nothing else to install for typed questions. If you use dependency injection in a .NET host, add the integration package
 as well, which [dependency injection](dependency-injection.md) covers:
 
 ```shell
-dotnet add package ZeroAlloc.Jev.DependencyInjection
+dotnet add package Minos.NET.DependencyInjection
 ```
 
 ### What the package brings with it
 
-`ZeroAlloc.Jev` has one runtime dependency from Microsoft, `Microsoft.Extensions.Logging.Abstractions` 10.0.0 or later,
+`Minos.NET` has one runtime dependency from Microsoft, `Microsoft.Extensions.Logging.Abstractions` 10.0.0 or later,
 for the logging interfaces that [the client's logging](observability.md#logging) uses. Its other runtime dependencies
 are ZeroAlloc libraries.
 
@@ -71,7 +71,7 @@ clean and gets no extra source from them.
 
 ### Before the package is published
 
-Clone the [ZeroAlloc.Jev repository](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev), pack both packages into a folder,
+Clone the [Minos.NET repository](https://github.com/MarcelRoozekrans/Minos.NET), pack both packages into a folder,
 and register that folder as a local NuGet source. Use the folder's absolute path. On Windows, give
 `dotnet nuget add source` a native path such as `C:\src\jev\nupkgs`, because a path that mixes forward and back
 slashes is rejected as invalid.
@@ -85,8 +85,8 @@ as `1.0.0-beta.1`, a local build is `1.0.0-0.local.beta.1` instead, which sorts 
 use the version from the packed files' names.
 
 ```shell
-dotnet pack src/ZeroAlloc.Jev -c Release -o /absolute/path/nupkgs
-dotnet pack src/ZeroAlloc.Jev.DependencyInjection -c Release -o /absolute/path/nupkgs
+dotnet pack src/Minos.NET -c Release -o /absolute/path/nupkgs
+dotnet pack src/Minos.NET.DependencyInjection -c Release -o /absolute/path/nupkgs
 dotnet nuget add source /absolute/path/nupkgs --name zeroalloc-jev-local
 ```
 
@@ -94,8 +94,8 @@ Then add the packages with that version, in place of the commands above. Replace
 version:
 
 ```shell
-dotnet add package ZeroAlloc.Jev --version <release>-local
-dotnet add package ZeroAlloc.Jev.DependencyInjection --version <release>-local
+dotnet add package Minos.NET --version <release>-local
+dotnet add package Minos.NET.DependencyInjection --version <release>-local
 ```
 
 Remove the source when you switch to the published packages: `dotnet nuget remove source zeroalloc-jev-local`.
@@ -141,7 +141,7 @@ description that tells Jev what the option means.
 
 <!-- snippet: GettingStarted_Questions -->
 ```cs
-using ZeroAlloc.Jev;
+using Minos;
 
 public enum SupportTeam
 {

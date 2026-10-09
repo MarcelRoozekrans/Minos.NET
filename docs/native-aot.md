@@ -12,17 +12,17 @@ time, and the compiler removes code that it cannot see being used, which is call
 is small, but a library has to cooperate. Code that finds types or members by name at run time, which is reflection,
 can lose the very things it looks for.
 
-`ZeroAlloc.Jev` is written for this. This page says what that covers, where it is checked, and what the client
+`Minos.NET` is written for this. This page says what that covers, where it is checked, and what the client
 allocates, because a program that avoids the just-in-time compiler usually cares about memory as well.
 
 ## What is Native AOT compatible
 
-- **The client.** `ZeroAlloc.Jev` sets `IsAotCompatible`, which turns on the trimming and Native AOT analyzers for the
+- **The client.** `Minos.NET` sets `IsAotCompatible`, which turns on the trimming and Native AOT analyzers for the
   library's own build. Sending requests, mapping every failure to a `JevError`, retries, logging and telemetry all run
   under Native AOT.
 - **The generated question sets.** The `[JevQuestions]` generator writes the question JSON and the answer parsing as
   ordinary C# at compile time. The set uses no reflection at run time, and neither does reading an answer.
-- **Dependency injection.** `ZeroAlloc.Jev.DependencyInjection` is Native AOT compatible too. It binds options from
+- **Dependency injection.** `Minos.NET.DependencyInjection` is Native AOT compatible too. It binds options from
   configuration with the configuration binding source generator, so binding uses no reflection and needs nothing set up
   in your program. [Dependency injection](dependency-injection.md#options-from-configuration) covers the options.
 
@@ -71,7 +71,7 @@ Three checks guard it, and each answers a different question.
 
 ### The smoke application: does it run
 
-The repository holds a smoke application, `samples/ZeroAlloc.Jev.AotSmoke`. The `aot-smoke` job of the CI workflow
+The repository holds a smoke application, `samples/Minos.NET.AotSmoke`. The `aot-smoke` job of the CI workflow
 publishes it with `PublishAot` and runs the native executable. The project treats every warning as an error, including
 the whole `IL2xxx` and `IL3xxx` range, so a trimming or AOT warning anywhere in what the application uses fails the
 build. The program exits with a failure if any check fails.
@@ -89,14 +89,14 @@ The checks run the real client over a canned HTTP handler. They cover:
 ### The whole-assembly check: is anything unsafe
 
 A publish only analyses what the program reaches, so the smoke application cannot vouch for a member that no check
-calls. The `aot-surface` job closes that gap. It publishes `samples/ZeroAlloc.Jev.AotSurface` with `PublishAot` and
-full trimming, and roots `ZeroAlloc.Jev` and `ZeroAlloc.Jev.DependencyInjection` whole through `TrimmerRootAssembly`.
+calls. The `aot-surface` job closes that gap. It publishes `samples/Minos.NET.AotSurface` with `PublishAot` and
+full trimming, and roots `Minos.NET` and `Minos.NET.DependencyInjection` whole through `TrimmerRootAssembly`.
 
 Rooting analyses every non-generic member of both packages, called or not, and every generic member the compiler can
 share across reference types. A value-type generic has no such shared form, so rooting alone skips it. That covers
 `Choice<T>`, `Score<T>` and the other generics over an enum, whose type parameter is `where T : struct, Enum`. The host
 therefore instantiates every public generic type and generic method of both packages over its own types, and the
-compiler analyses them through those instantiations. A test in `tests/ZeroAlloc.Jev.AotSmoke.Tests` fails when a public
+compiler analyses them through those instantiations. A test in `tests/Minos.NET.AotSmoke.Tests` fails when a public
 generic is not instantiated in the host. The host is rooted as well. Its `[JevQuestions]` sets, one with a Noul, a
 Choice and a Score and one with a typed state, mean the code the generator writes is analysed in full too.
 
@@ -108,7 +108,7 @@ a member of a generic type over an enum.
 ### The coverage rule: does the smoke application leave anything out
 
 The smoke application has to call everything a user can call, or its own pass says too little. The test project
-`tests/ZeroAlloc.Jev.AotSmoke.Tests` enforces that, and it runs with the rest of the test suite.
+`tests/Minos.NET.AotSmoke.Tests` enforces that, and it runs with the rest of the test suite.
 
 An **entry point** is a public or protected method or constructor that you call. The list is read from the four
 `PublicAPI` files, so a new public member is an entry point the day it is added. These are not entry points, and the
@@ -197,7 +197,7 @@ regression cannot reach a release unnoticed.
 | `TypedEvaluateRoundTripWhileListening` | A typed call with the listeners attached. | 5056 |
 | `EvaluateBuiltSetRoundTripWhileListening` | A built-set call with the listeners attached. | 5376 |
 | `EvaluateRoundTripThroughBoundConfiguration` | A raw call through a client bound from configuration, equal to a hand-built client's own measurement. | same as the hand-built client |
-| `DisabledLoggerAddsNothingWhereAnEnabledOneDoes` | Asynchronous calls with no factory, a null factory and an enabled logger. Checks the disabled ones add no more than 16 B per call, a tolerance for the noise of a process-wide counter ([#104](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/issues/104)). | no byte budget |
+| `DisabledLoggerAddsNothingWhereAnEnabledOneDoes` | Asynchronous calls with no factory, a null factory and an enabled logger. Checks the disabled ones add no more than 16 B per call, a tolerance for the noise of a process-wide counter ([#104](https://github.com/MarcelRoozekrans/Minos.NET/issues/104)). | no byte budget |
 | `TelemetryOffAsynchronousTypedEvaluation` | A typed call that completes asynchronously, with nothing listening. The median of five runs. | 4608 |
 
 The two logging rows with a logger that does nothing keep the budgets of the calls without one, because the client takes

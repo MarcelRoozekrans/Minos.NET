@@ -9,11 +9,11 @@ description: Register IJevClient in a .NET host with AddJevClient, key several c
 
 In an application built on the .NET generic host, such as an ASP.NET Core site or a worker service, you do not create
 the client yourself. You register it once, and the container hands it to every class that asks for an `IJevClient`. The
-`ZeroAlloc.Jev.DependencyInjection` package does the registering. It sets up the client over `IHttpClientFactory`, reads
+`Minos.NET.DependencyInjection` package does the registering. It sets up the client over `IHttpClientFactory`, reads
 its options from code or from configuration, and checks them when the host starts.
 
 ```shell
-dotnet add package ZeroAlloc.Jev.DependencyInjection
+dotnet add package Minos.NET.DependencyInjection
 ```
 
 The extension methods live in the `Microsoft.Extensions.DependencyInjection` namespace, so no extra `using` is needed
@@ -29,7 +29,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
-using ZeroAlloc.Jev;
+using Minos;
 
 // One yes/no question, so the example stays short.
 [JevQuestions]
@@ -235,7 +235,7 @@ client is first resolved.
 Some things still need valid options, an API key included:
 
 - **Creating Jev's named `HttpClient` from `IHttpClientFactory` yourself.** It reads the same options, so a call such as
-  `CreateClient("ZeroAlloc.Jev")` fails with the same exception when they are invalid.
+  `CreateClient("Minos.NET")` fails with the same exception when they are invalid.
 - **A test host that replaces the client.** If the application registers its own `IJevClient` before `AddJevClient`, the
   application's client wins, but the options are still validated. A test that swaps the client needs a placeholder key,
   for example `AddJevClient(options => options.ApiKey = "test")`, or a `Jev:ApiKey` setting.
@@ -254,13 +254,13 @@ Some things still need valid options, an API key included:
 
 ## The HttpClient from the factory
 
-The client's `HttpClient` comes from `IHttpClientFactory`. It is named `ZeroAlloc.Jev`, or `ZeroAlloc.Jev:` followed by
+The client's `HttpClient` comes from `IHttpClientFactory`. It is named `Minos.NET`, or `Minos.NET:` followed by
 the key for a keyed client. You rarely need the name, except to change what is behind it in a test.
 
 - **Its handler.** The primary handler is a `SocketsHttpHandler` that recycles its connections every two minutes, so a
   change in DNS is picked up. The factory never rotates it, because the singleton keeps its `HttpClient` for life.
 - **Its settings.** `JevClient.ConfigureHttpClient` gives the `HttpClient` its base address, the per-attempt `Timeout`
-  and the `ZeroAlloc.Jev` User-Agent.
+  and the `Minos.NET` User-Agent.
 - **Its handlers.** Add your own through the builder `AddJevClient` returns. A handler sees every request and every
   retry. `ConfigureHttpClientDefaults` adds a handler to every `HttpClient` the factory makes, and Jev's included,
   whether you call it before or after `AddJevClient`.
@@ -340,7 +340,7 @@ with `ConfigureAdditionalHttpMessageHandlers`, after the `Clear()`, if you want 
 ### The factory's request logs
 
 The factory has request logs of its own, with the categories `System.Net.Http.HttpClient.*`. They are turned off for
-Jev's clients. Jev's client already logs each operation and each retried attempt, in the `ZeroAlloc.Jev.JevClient`
+Jev's clients. Jev's client already logs each operation and each retried attempt, in the `Minos.JevClient`
 category, and the factory's logging handlers add work to every request. Call `AddDefaultLogger()` on the builder
 `AddJevClient` returns to bring the factory's logs back.
 

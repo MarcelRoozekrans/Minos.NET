@@ -49,7 +49,7 @@ def dotnet_file():
     return {
         "machine": machine(mockCeilingPerSecond=100000.0, os="Microsoft Windows 10.0.26200 .NET", date="2026-10-04T10:05:00Z"),
         "results": [
-            result("jev", "ZeroAlloc.Jev", ".NET", "10.0.0", 50000.0, 1024),
+            result("jev", "Minos.NET", ".NET", "10.0.0", 50000.0, 1024),
             result("jevsharp", "JevSharp", ".NET", "10.0.0", 40000.4, 4096, note="Sends no auth header."),
             result("raw", "HttpClient, System.Text.Json", ".NET", "10.0.0", 60000.0, 800),
         ],
@@ -79,27 +79,27 @@ def table_rows(text):
 
 
 def test_rows_are_sorted_by_throughput_with_every_column(files):
-    text = merge.render(merge.load(files), "ZeroAlloc.Jev")
+    text = merge.render(merge.load(files), "Minos.NET")
 
     assert table_rows(text) == [
         "| raw | HttpClient, System.Text.Json 1.2.3 | .NET 10.0.0 | 0.250 | 0.200 | 1.500 | 60,000 | 60% | 800 |",
-        "| **jev** | ZeroAlloc.Jev 1.2.3 | .NET 10.0.0 | 0.250 | 0.200 | 1.500 | 50,000 | 50% | 1,024 |",
+        "| **jev** | Minos.NET 1.2.3 | .NET 10.0.0 | 0.250 | 0.200 | 1.500 | 50,000 | 50% | 1,024 |",
         "| jevsharp[^1] | JevSharp 1.2.3 | .NET 10.0.0 | 0.250 | 0.200 | 1.500 | 40,000 | 40% | 4,096 |",
         "| typesafe-ai-sdk-js | @typesafe-ai/sdk 1.2.3 | Node.js 24.1.0 | 0.500 | 0.200 | 1.500 | 4,940 | 5% | — |",
     ]
 
 
 def test_the_header_names_the_project_and_every_column(files):
-    lines = merge.render(merge.load(files), "ZeroAlloc.Jev").splitlines()
+    lines = merge.render(merge.load(files), "Minos.NET").splitlines()
 
-    assert lines[0] == "### ZeroAlloc.Jev: client comparison"
+    assert lines[0] == "### Minos.NET: client comparison"
     assert lines[2] == (
         "| Client | Library | Runtime | Mean (ms) | p50 (ms) | p99 (ms) | Throughput (/s) | Of mock ceiling | Bytes/call |"
     )
 
 
 def test_the_machine_line_and_the_footnotes_follow_the_table(files):
-    text = merge.render(merge.load(files), "ZeroAlloc.Jev")
+    text = merge.render(merge.load(files), "Minos.NET")
 
     # The OS and CPU come from the file with the ceiling; the date is the latest.
     assert (
@@ -114,13 +114,13 @@ def test_harnesses_on_different_cores_are_listed_by_runtime(tmp_path):
     js["machine"]["cores"] = None
     files = [write(tmp_path, "dotnet-box.json", dotnet_file()), write(tmp_path, "js-box.json", js)]
 
-    text = merge.render(merge.load(files), "ZeroAlloc.Jev")
+    text = merge.render(merge.load(files), "Minos.NET")
 
     assert "client cores: 0-11 (.NET); unpinned (Node.js);" in text
 
 
 def test_without_a_ceiling_the_share_is_a_dash(tmp_path):
-    text = merge.render(merge.load([write(tmp_path, "js-box.json", js_file())]), "ZeroAlloc.Jev")
+    text = merge.render(merge.load([write(tmp_path, "js-box.json", js_file())]), "Minos.NET")
 
     assert table_rows(text)[0].split(" | ")[7] == "—"
     assert "mock ceiling: —." in text
@@ -132,7 +132,7 @@ def test_files_from_two_machines_are_refused(tmp_path):
     files = [write(tmp_path, "dotnet-box.json", dotnet_file()), write(tmp_path, "js-other.json", js)]
 
     with pytest.raises(merge.MergeError, match="machine name"):
-        merge.render(merge.load(files), "ZeroAlloc.Jev")
+        merge.render(merge.load(files), "Minos.NET")
 
 
 def test_files_with_two_mock_core_sets_are_refused(tmp_path):
@@ -141,28 +141,28 @@ def test_files_with_two_mock_core_sets_are_refused(tmp_path):
     files = [write(tmp_path, "dotnet-box.json", dotnet_file()), write(tmp_path, "js-box.json", js)]
 
     with pytest.raises(merge.MergeError, match="mock's cores"):
-        merge.render(merge.load(files), "ZeroAlloc.Jev")
+        merge.render(merge.load(files), "Minos.NET")
 
 
 def test_the_command_line_prints_the_table(files):
     run = subprocess.run(
-        [sys.executable, MERGE, *files, "--project", "ZeroAlloc.Jev"], capture_output=True, check=False
+        [sys.executable, MERGE, *files, "--project", "Minos.NET"], capture_output=True, check=False
     )
 
     assert run.returncode == 0, run.stderr
     out = run.stdout.decode("utf-8")
-    assert out.startswith("### ZeroAlloc.Jev: client comparison\n")
+    assert out.startswith("### Minos.NET: client comparison\n")
     assert "| typesafe-ai-sdk-js |" in out and "— |" in out
 
 
 @pytest.mark.parametrize(
     "args",
     [
-        ["--project", "ZeroAlloc.Jev"],
-        ["missing.json", "--project", "ZeroAlloc.Jev"],
+        ["--project", "Minos.NET"],
+        ["missing.json", "--project", "Minos.NET"],
         ["{file}"],
         ["{file}", "--project", " "],
-        ["{bad}", "--project", "ZeroAlloc.Jev"],
+        ["{bad}", "--project", "Minos.NET"],
     ],
 )
 def test_a_wrong_command_line_exits_with_2(tmp_path, args):
@@ -180,7 +180,7 @@ RUN_URL = "https://github.com/o/r/actions/runs/123"
 
 
 def test_the_run_line_names_the_run_and_the_short_commit(files):
-    text = merge.render(merge.load(files), "ZeroAlloc.Jev", {"url": RUN_URL, "commit": "bf1ef0b9a521470cf"})
+    text = merge.render(merge.load(files), "Minos.NET", {"url": RUN_URL, "commit": "bf1ef0b9a521470cf"})
 
     lines = text.splitlines()
     run = lines.index(f"Run: [run 123]({RUN_URL}), commit `bf1ef0b`.")
@@ -189,8 +189,8 @@ def test_the_run_line_names_the_run_and_the_short_commit(files):
 
 
 def test_without_a_run_there_is_no_run_line(files):
-    assert "Run:" not in merge.render(merge.load(files), "ZeroAlloc.Jev")
-    assert "Run:" not in merge.render(merge.load(files), "ZeroAlloc.Jev", {})
+    assert "Run:" not in merge.render(merge.load(files), "Minos.NET")
+    assert "Run:" not in merge.render(merge.load(files), "Minos.NET", {})
 
 
 def test_a_saved_run_keeps_every_file_whole_and_renders_the_same_table(files, tmp_path):
@@ -206,8 +206,8 @@ def test_a_saved_run_keeps_every_file_whole_and_renders_the_same_table(files, tm
     assert {k: data["files"][0][k] for k in ("machine", "results")} == dotnet_file()
     assert {k: data["files"][1][k] for k in ("machine", "results")} == js_file()
     assert merge.load_run([saved]) == run
-    assert merge.render(merge.load([saved]), "ZeroAlloc.Jev", merge.load_run([saved])) == merge.render(
-        merge.load(files), "ZeroAlloc.Jev", run
+    assert merge.render(merge.load([saved]), "Minos.NET", merge.load_run([saved])) == merge.render(
+        merge.load(files), "Minos.NET", run
     )
 
 
@@ -230,11 +230,11 @@ def test_two_saved_runs_that_name_different_runs_are_refused(files, tmp_path):
 def test_the_command_line_saves_a_run_and_reads_it_back(files, tmp_path):
     saved = str(tmp_path / "ci.json")
     first = subprocess.run(
-        [sys.executable, MERGE, *files, "--project", "ZeroAlloc.Jev", "--run-url", RUN_URL, "--commit", "abc1234", "--save", saved],
+        [sys.executable, MERGE, *files, "--project", "Minos.NET", "--run-url", RUN_URL, "--commit", "abc1234", "--save", saved],
         capture_output=True,
         check=False,
     )
-    second = subprocess.run([sys.executable, MERGE, saved, "--project", "ZeroAlloc.Jev"], capture_output=True, check=False)
+    second = subprocess.run([sys.executable, MERGE, saved, "--project", "Minos.NET"], capture_output=True, check=False)
 
     assert first.returncode == 0, first.stderr
     assert second.returncode == 0, second.stderr
@@ -255,7 +255,7 @@ def test_the_command_line_saves_a_run_and_reads_it_back(files, tmp_path):
 def test_a_malformed_saved_run_exits_with_2(tmp_path, content):
     bad = write(tmp_path, "ci.json", content)
 
-    run = subprocess.run([sys.executable, MERGE, bad, "--project", "ZeroAlloc.Jev"], capture_output=True, text=True, check=False)
+    run = subprocess.run([sys.executable, MERGE, bad, "--project", "Minos.NET"], capture_output=True, text=True, check=False)
 
     assert run.returncode == 2
     assert "Usage:" in run.stderr
@@ -269,7 +269,7 @@ def test_a_dotnet_result_without_bytes_is_refused(tmp_path):
     dotnet["results"][0]["allocatedBytesPerCall"] = None
 
     with pytest.raises(merge.MergeError, match="jev: a .NET result has no allocatedBytesPerCall"):
-        merge.render(merge.load([write(tmp_path, "dotnet-box.json", dotnet)]), "ZeroAlloc.Jev")
+        merge.render(merge.load([write(tmp_path, "dotnet-box.json", dotnet)]), "Minos.NET")
 
 
 def test_the_order_line_follows_the_machine_line_and_a_saved_run_keeps_it(tmp_path):
@@ -278,7 +278,7 @@ def test_the_order_line_follows_the_machine_line_and_a_saved_run_keeps_it(tmp_pa
     files = [write(tmp_path, "dotnet-box.json", dotnet), write(tmp_path, "js-box.json", js_file())]
     saved = str(tmp_path / "ci.json")
 
-    text = merge.render(merge.load(files), "ZeroAlloc.Jev", None, merge.load_orders(files))
+    text = merge.render(merge.load(files), "Minos.NET", None, merge.load_orders(files))
     merge.save(files, saved, {})
 
     lines = text.splitlines()
@@ -289,11 +289,11 @@ def test_the_order_line_follows_the_machine_line_and_a_saved_run_keeps_it(tmp_pa
     assert lines[order - 2].startswith("Machine: box;")
     with open(saved, encoding="utf-8") as f:
         assert json.load(f)["files"][0]["order"] == ORDER
-    assert merge.render(merge.load([saved]), "ZeroAlloc.Jev", None, merge.load_orders([saved])) == text
+    assert merge.render(merge.load([saved]), "Minos.NET", None, merge.load_orders([saved])) == text
 
 
 def test_without_an_order_there_is_no_order_line(files):
-    assert "Order:" not in merge.render(merge.load(files), "ZeroAlloc.Jev", None, merge.load_orders(files))
+    assert "Order:" not in merge.render(merge.load(files), "Minos.NET", None, merge.load_orders(files))
 
 
 def saved_run(tmp_path, name, url, scale, ceiling, cpu="AMD EPYC 7763"):
@@ -315,9 +315,9 @@ def test_across_runs_gives_each_runs_ceiling_and_each_clients_lowest_and_highest
         saved_run(tmp_path, "bbb", RUN_URL + "4", 2.0, 150000.0, cpu="AMD EPYC 9V74"),
     ]
 
-    text = merge.render_across(merge.load_across(runs), "ZeroAlloc.Jev")
+    text = merge.render_across(merge.load_across(runs), "Minos.NET")
 
-    assert text.splitlines()[0] == "### ZeroAlloc.Jev: across runs"
+    assert text.splitlines()[0] == "### Minos.NET: across runs"
     assert f"| [run 123]({RUN_URL}) | `aaa0000` | AMD EPYC 7763 | 100,000 |" in text.splitlines()
     assert f"| [run 1234]({RUN_URL}4) | `bbb0000` | AMD EPYC 9V74 | 150,000 |" in text.splitlines()
     rows = [r for r in table_rows(text) if not r.startswith(("| [run", "| Run"))]
@@ -331,7 +331,7 @@ def test_across_runs_gives_each_runs_ceiling_and_each_clients_lowest_and_highest
 
 
 def test_across_one_run_gives_single_figures(tmp_path):
-    text = merge.render_across(merge.load_across([saved_run(tmp_path, "aaa", RUN_URL, 1.0, 100000.0)]), "ZeroAlloc.Jev")
+    text = merge.render_across(merge.load_across([saved_run(tmp_path, "aaa", RUN_URL, 1.0, 100000.0)]), "Minos.NET")
 
     assert "| raw | 1.000 | 60,000 | 60% | 800 |" in text.splitlines()
 
@@ -344,21 +344,21 @@ def test_across_runs_with_different_clients_is_refused(tmp_path):
     merge.save([write(tmp_path, "bbb-dotnet.json", dotnet)], second, {"url": RUN_URL + "4"})
 
     with pytest.raises(merge.MergeError, match="clients differ"):
-        merge.render_across(merge.load_across([first, second]), "ZeroAlloc.Jev")
+        merge.render_across(merge.load_across([first, second]), "Minos.NET")
 
 
 def test_the_command_line_prints_the_across_runs_table(tmp_path):
     runs = [saved_run(tmp_path, "aaa", RUN_URL, 1.0, 100000.0), saved_run(tmp_path, "bbb", RUN_URL + "4", 2.0, 150000.0)]
 
-    result = subprocess.run([sys.executable, MERGE, "--across", *runs, "--project", "ZeroAlloc.Jev"], capture_output=True, check=False)
+    result = subprocess.run([sys.executable, MERGE, "--across", *runs, "--project", "Minos.NET"], capture_output=True, check=False)
     refused = subprocess.run(
-        [sys.executable, MERGE, "--across", *runs, "--project", "ZeroAlloc.Jev", "--save", str(tmp_path / "x.json")],
+        [sys.executable, MERGE, "--across", *runs, "--project", "Minos.NET", "--save", str(tmp_path / "x.json")],
         capture_output=True,
         text=True,
         check=False,
     )
 
     assert result.returncode == 0, result.stderr
-    assert result.stdout.decode("utf-8") == merge.render_across(merge.load_across(runs), "ZeroAlloc.Jev")
+    assert result.stdout.decode("utf-8") == merge.render_across(merge.load_across(runs), "Minos.NET")
     assert refused.returncode == 2
     assert "--across takes no" in refused.stderr

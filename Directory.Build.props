@@ -55,7 +55,7 @@
     <Company>Marcel Roozekrans</Company>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://jev.zeroalloc.net</PackageProjectUrl>
-    <RepositoryUrl>https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev</RepositoryUrl>
+    <RepositoryUrl>https://github.com/MarcelRoozekrans/Minos.NET</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageIcon>icon.png</PackageIcon>

@@ -23,7 +23,7 @@ one, share it, and dispose it when the program stops. Creating a client per call
 <!-- snippet: ClientAndErrors_Constructors -->
 ```cs
 using Microsoft.Extensions.Logging;
-using ZeroAlloc.Jev;
+using Minos;
 
 public static class ClientConstructors
 {

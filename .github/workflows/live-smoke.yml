@@ -30,4 +30,4 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           JEV_LIVE_MODEL: ${{ vars.JEV_LIVE_MODEL }}
           JEV_LIVE_OPENROUTER_MODEL: ${{ vars.JEV_LIVE_OPENROUTER_MODEL }}
-        run: dotnet test tests/ZeroAlloc.Jev.Live.Tests -c Release --logger "console;verbosity=detailed"
+        run: dotnet test tests/Minos.NET.Live.Tests -c Release --logger "console;verbosity=detailed"
