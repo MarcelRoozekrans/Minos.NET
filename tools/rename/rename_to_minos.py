@@ -26,22 +26,37 @@ HISTORY_PATH = re.compile(r"^(CHANGELOG\.md|docs/(planning|plans|superpowers)/|b
 SHIPPED_PATH = re.compile(r"(^|/)(AnalyzerReleases\.Shipped\.md|PublicAPI\.Shipped\.txt)$")
 PROTECTED_PATH = re.compile(HISTORY_PATH.pattern + "|" + SHIPPED_PATH.pattern)
 BUILD_SUFFIXES = {".csproj", ".props", ".targets", ".slnx", ".yml", ".yaml", ".ps1", ".sh", ".py", ".json", ".txt"}
-PROJECT_SUFFIXES = (r"(?:Generator|Analyzers|CodeFixes|DependencyInjection|AotSmoke|AotSurface|Samples(?:\.[A-Za-z]+)?"
-                    r"|Benchmarks(?:\.[A-Za-z]+)?|Tests|Analyzers\.Tests|AotSmoke\.Tests|Benchmarks\.Tests"
-                    r"|DependencyInjection\.Tests|Docs\.Tests|Generator\.Tests|Integration\.Tests|Live\.Tests|PackTests"
-                    r"|Samples\.Tests)")
+# Project name suffixes, longest first so Analyzers.Tests wins over Analyzers.
+PROJECT_SUFFIXES = (r"(?:Analyzers\.Tests|AotSmoke\.Tests|Benchmarks\.Tests|DependencyInjection\.Tests|Docs\.Tests"
+                    r"|Generator\.Tests|Integration\.Tests|Live\.Tests|Samples\.Tests|PackTests|DependencyInjection"
+                    r"|Samples(?:\.[A-Za-z]+)?|Benchmarks(?:\.[A-Za-z]+)?|CodeFixes|AotSurface|AotSmoke|Analyzers"
+                    r"|Generator|Tests)")
 
 _FILE_NAME = re.compile(r"ZeroAlloc\.Jev((?:\.[A-Za-z]+)*)\.(slnx|csproj|dll|nupkg|xml)\b")
 
 
 _REPO_URL = re.compile(r"ZeroAlloc-Net/ZeroAlloc\.Jev(?![A-Za-z0-9-])")
 _ALIAS = re.compile(r"(\busing\s+\w+\s*=\s*)ZeroAlloc\.Jev\b")
+_HTTP_CLIENT = re.compile(r"\bHttpClient\.ZeroAlloc\.Jev\b")
+_PROJECT_NAME = re.compile(r"\bZeroAlloc\.Jev\.(" + PROJECT_SUFFIXES + r")(?![A-Za-z0-9_])")
+
+
+def _project_or_namespace(text: str) -> str:
+    """ZeroAlloc.Jev.<Project> followed by a dot and an uppercase letter is a namespace, so Minos.<Project>.
+    Anything else names a project, package, path or assembly, so Minos.NET.<Project>."""
+    def swap(m: re.Match) -> str:
+        namespace = re.match(r"\.[A-Z]", text[m.end():m.end() + 2]) is not None
+        return ("Minos." if namespace else "Minos.NET.") + m.group(1)
+    text = _PROJECT_NAME.sub(swap, text)
+    # Any other qualified name, in code or in C# source held in a string, is a namespace.
+    return re.sub(r"\bZeroAlloc\.Jev(?=\.[A-Z])", "Minos", text)
 
 
 def stage_a(text: str, kind: str) -> str:
     # The repository moves out of the ZeroAlloc-Net organisation, so its URL is not a project rename.
     text = _REPO_URL.sub("MarcelRoozekrans/Minos.NET", text)
     text = _ALIAS.sub(r"\1Minos", text)
+    text = _HTTP_CLIENT.sub("HttpClient.Minos.NET", text)  # the logger category of the named HttpClient
     text = _FILE_NAME.sub(lambda m: f"Minos.NET{m.group(1)}.{m.group(2)}", text)
     if kind == "build":
         text = re.sub(r"<RootNamespace>ZeroAlloc\.Jev", "<RootNamespace>Minos", text)
@@ -49,13 +64,11 @@ def stage_a(text: str, kind: str) -> str:
         return text.replace("ZeroAlloc.Jev", "Minos.NET")
     if kind == "md":
         text = re.sub(r"(?:\b|(?<=\\[nrt]))(namespace|using)(\s+(?:static\s+)?)ZeroAlloc\.Jev\b", r"\1\2Minos", text)
-        text = re.sub(r"\bZeroAlloc\.Jev(?=\.[A-Z])(?!\." + PROJECT_SUFFIXES + r"\b)", "Minos", text)
+        text = _project_or_namespace(text)
         return text.replace("ZeroAlloc.Jev", "Minos.NET")
     text = re.sub(r"(?:\b|(?<=\\[nrt]))(namespace|using)(\s+(?:static\s+)?)ZeroAlloc\.Jev\b", r"\1\2Minos", text)
     text = text.replace('"ZeroAlloc.Jev/', '"Minos.NET/')
-    # A qualified name, in code or in C# source held in a string. An exact project-name literal such as
-    # "ZeroAlloc.Jev.Generator" may be an assembly name, so it is left for the report.
-    return re.sub(r"\bZeroAlloc\.Jev(?=\.[A-Z])(?!\." + PROJECT_SUFFIXES + r'")', "Minos", text)
+    return _project_or_namespace(text)
 
 
 TYPE_MAP = [
