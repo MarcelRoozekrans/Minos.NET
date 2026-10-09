@@ -35,11 +35,10 @@ const config: Config = {
           sidebarPath: './sidebars.ts',
           editUrl: `${repository}/edit/main/`,
           // The guide is docs/*.md and docs/patterns/. The rest of docs/ is the project's own records: the roadmap
-          // and state (planning), design and implementation plans (plans, superpowers), review artefacts and the
+          // and state (planning), design and implementation plans and review reports (plans, superpowers) and the
           // logo's construction record (design). They stay readable in the repository and are not published.
           exclude: [
             '**/README.md',
-            '**/pre-push-review*.md',
             '**/plans/**',
             '**/planning/**',
             '**/superpowers/**',
