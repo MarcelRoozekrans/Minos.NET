@@ -3,6 +3,7 @@ using System.Net.Sockets;
 using WireMock;
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
+using WireMock.Server;
 
 namespace Minos.Integration.Tests;
 
@@ -97,10 +98,14 @@ public sealed class FailureTests : IClassFixture<WireMockFixture>
         // As in CallerCancellation_MidRequest_Throws, the server signals when it has the request and holds the response,
         // so the disposal lands mid-request by construction. The client owns its HttpClient and a real
         // SocketsHttpHandler, so disposing it tears the request down as it would in production.
+        // The test counts requests on the server, so it gets a server of its own: an attempt another test in this class
+        // abandoned, such as SlowResponse_TimesOutPerAttempt's, can reach the shared server late and would match this
+        // test's mapping, counting as a second request.
+        using var server = WireMockServer.Start();
         var received = 0;
         var firstReceived = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        _fixture.Server
+        server
             .Given(Request.Create().WithPath("/v1/systemone").UsingPost())
             .RespondWith(Response.Create().WithCallback(async _ =>
             {
@@ -112,7 +117,7 @@ public sealed class FailureTests : IClassFixture<WireMockFixture>
 
         try
         {
-            var client = IntegrationClient.Create(_fixture.BaseAddress, maxRetries: 2);
+            var client = IntegrationClient.Create(new Uri(server.Urls[0] + "/"), maxRetries: 2);
 
             var call = client.EvaluateAsync(Fixtures.NoulRequest()).AsTask();
             await firstReceived.Task.WaitAsync(HangGuard);
