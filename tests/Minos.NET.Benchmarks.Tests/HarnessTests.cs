@@ -260,7 +260,7 @@ public sealed class HarnessTests : IAsyncLifetime
             new MachineInfo("box", "Linux", "CPU", "2026-10-04T00:00:00Z", 30000, null, null),
             [new ClientResult("jev-net", "Jev.Net", "0.4.0", ".NET", "10.0.0", new LatencyFigures(1, 1, 2), 8000, 16, 1024)])
         {
-            Order = new MeasurementOrder(20, 100, 2, ["jevsharp", "typesafe-ai-sdk", "jev-net", "zeroalloc-jev", "raw-httpclient"]),
+            Order = new MeasurementOrder(20, 100, 2, [ClientAdapters.JevSharp, ClientAdapters.TypeSafeSdk, ClientAdapters.JevNet, ClientAdapters.Minos, ClientAdapters.Raw]),
         };
 
         using var json = JsonDocument.Parse(file.ToJson());
@@ -268,7 +268,7 @@ public sealed class HarnessTests : IAsyncLifetime
 
         Assert.Equal(["machine", "results", "order"], json.RootElement.EnumerateObject().Select(p => p.Name));
         Assert.Equal(["latencyRounds", "callsPerRound", "rotation", "throughput"], order.EnumerateObject().Select(p => p.Name));
-        Assert.Equal("jevsharp", order.GetProperty("throughput")[0].GetString());
+        Assert.Equal(ClientAdapters.JevSharp, order.GetProperty("throughput")[0].GetString());
     }
 
     public async Task InitializeAsync() => _server = await MockHost.StartAsync(0, ResponsePath, CancellationToken.None);
