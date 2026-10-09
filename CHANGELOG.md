@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.3](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/compare/v0.5.2...v0.5.3) (2026-10-09)
+
+
+### Tests
+
+* **tests:** pin that OpenRouter rejects jev-preview, and document it ([6f97863](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/commit/6f97863477b7f05f4108536b53d701c49eb34cf4))
+
 ## [0.5.2](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/compare/v0.5.1...v0.5.2) (2026-10-09)
 
 
