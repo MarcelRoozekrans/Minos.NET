@@ -25,7 +25,7 @@
   - At Phase 7.4, rebase or replay that branch onto the renamed code and update the package ids.
 
 ## Open Decisions
-- **Package name (blocks any publish).** The maintainer proposes repositioning the library as a provider-neutral decision client, for example `ZeroAlloc.Decisions` with provider packages, because OpenAI's Decisions API and Cloudflare's Clef have launched. The proposal is recorded verbatim in `docs/plans/2026-10-09-provider-neutral-direction.md`, items 1 to 6.
+- **Name: decided 2026-10-09: Minos.** The repository moves to `MarcelRoozekrans/Minos.NET` and leaves the ZeroAlloc org. Packages are `Minos.NET[.X]`, the namespace is `Minos`, analyzer IDs are `MIN`. See the Phase 6.1 spec. The repositioning as a provider-neutral decision client follows OpenAI's Decisions API and Cloudflare's Clef launching. The proposal is recorded verbatim in `docs/plans/2026-10-09-provider-neutral-direction.md`, items 1 to 6.
   - **Item 1, blocking:** rename packages, namespaces, `[JevQuestions]`, `IJevClient`, `JevError`, the JEV analyzer IDs and the docs site before the first NuGet publish.
   - Nothing is published under `ZeroAlloc.Jev` yet; both ids were still free on nuget.org on 2026-10-09.
 - **Issues:** items 1–6 are tracked in #120 (new) and #115–#119, updated on 2026-10-09 to the revised text; #29 and #28 re-pointed to Phase 7.4.
@@ -44,7 +44,7 @@
 - **Website updates:**
   - .website's bot "update submodules" PRs hold their `build` run (`action_required`). Approve it with `gh api -X POST repos/ZeroAlloc-Net/.website/actions/runs/<id>/approve`, then merge with `--admin`, after asking the maintainer.
   - jev.zeroalloc.net only updates when that PR merges.
-- **Org-wide publishing:** the per-repository publish jobs have drifted; one shared workflow is tracked in ZeroAlloc-Net/.github#49. Jev's job already matches its target.
+- **Org-wide publishing:** ZeroAlloc-Net/.github#49 tracks one shared publish workflow for the org. It no longer applies here: Minos publishes the way Thalos.NET does.
 - **CI on a branch without a PR:** `gh workflow run ci.yml --ref <branch>`. Add `-f aot-smoke-runs=20` to repeat the AOT smoke run.
 
 ## What Phase 5.4 shipped

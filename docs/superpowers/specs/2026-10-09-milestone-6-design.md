@@ -71,7 +71,9 @@ No release-tag line: `docs/planning/CONVENTIONS.md` says "Milestone completion t
 
 - **Maintainer actions:**
   - renaming the GitHub repository;
-  - renaming the .website app and its Cloudflare project or domain;
+  - transferring the repository to `MarcelRoozekrans/Minos.NET` (decided in Phase 6.1: the project leaves the ZeroAlloc org and is renamed Minos);
+  - enabling GitHub Pages and re-creating the org-provided secrets and ruleset on the personal repository;
+  - removing the org's docs app and redirecting jev.zeroalloc.net;
   - providing an OpenAI API key in `live-api` for Phase 6.5's live runs.
 - **OpenAI's Decisions API** has been in public beta since 2026-10-06, so its schema may change.
 - **The local `/v1/systemone` server** used in tests, chosen in Phase 6.4, must be runnable on GitHub-hosted runners or documented as a manual run. Its licence must allow it.

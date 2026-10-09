@@ -274,8 +274,8 @@ compress_memory: disabled
 - [ ] A conformance suite passes against recorded TypeSafe and OpenAI fixtures
 - [ ] A Providers docs page documents the presets and the capability matrix
 
-### Phase 6.1: Name decision and rename [status: active]
-**Goal:** Decide the vendor-neutral name, provider-package layout and the fate of `ZeroAlloc.Jev`, then rename packages, namespaces, attributes, `IJevClient`/`JevError`, analyzer IDs, repository and docs site, before the first NuGet publish (#120).
+### Phase 6.1: Rename to Minos and move out of the ZeroAlloc org [status: active]
+**Goal:** Rename to Minos (`Minos.NET` packages, `Minos` namespace, `MIN` analyzer IDs, the approved type-naming rule) and move the repository to `MarcelRoozekrans/Minos.NET`. Follow the maintainer's personal-library conventions: an in-repo Docusaurus site on GitHub Pages, an own logo, no ZeroAlloc-org workflows. The README explains the name. No behaviour change (#120).
 **Surface:** Refactor
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-10-09-phase-6.1-rename-design.md`
@@ -345,7 +345,7 @@ compress_memory: disabled
 **Plan:** _to be written_
 
 ### Phase 7.4: Publish 1.0 [status: pending]
-**Goal:** Publish 1.0.0 through the reviewed pipeline from the paused Phase 5.5 (branch `phase/5.5-release`, spec `docs/superpowers/specs/2026-10-09-phase-5.5-1.0-release-design.md`) under the new name, then turn on api-compat (#29, #28).
+**Goal:** Publish 1.0.0 the way Thalos.NET, Rag.NET and AdoNet.Async do: GitVersion, release-please, and NuGet Trusted Publishing from `ci.yml`'s `publish-nuget` job, rehearsed against a local feed. Reuse what still applies from the paused Phase 5.5 branch, such as the package inspection. Then turn on api-compat (#29, #28).
 **Surface:** Infra
 **HelpWanted:** no
 **Plan:** _to be written_
