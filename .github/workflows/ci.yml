@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ main, 'release-please--**' ]
+    branches: [ main ]
   pull_request:
     branches: [ main ]
   workflow_dispatch:
@@ -157,9 +157,10 @@ jobs:
       - name: Publish AOT with both packages rooted
         run: dotnet publish samples/Minos.NET.AotSurface/Minos.NET.AotSurface.csproj -r linux-x64 -c Release -o ./aot-surface-out
 
-  # A release PR must have marked released analyzer rules and public API as shipped.
+  # A release PR must have marked released analyzer rules and public API as shipped. release-please.yml dispatches this
+  # workflow on the release branch, so the branch comes from github.ref_name when there is no pull request.
   release-tracking:
-    if: ${{ github.event_name == 'pull_request' && startsWith(github.head_ref, 'release-please--') }}
+    if: ${{ startsWith(github.head_ref || github.ref_name, 'release-please--') }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
