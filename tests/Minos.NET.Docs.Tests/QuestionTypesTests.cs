@@ -32,7 +32,7 @@ public sealed class QuestionTypesTests
     [Fact]
     public async Task ReadNoul_GivesTheProbability_AndValueFromHalfUp()
     {
-        var analysis = await CannedJev.EvaluateAsync<TicketAnalysis>(TicketResponse, "Help!");
+        var analysis = await CannedDecision.EvaluateAsync<TicketAnalysis>(TicketResponse, "Help!");
 
         Assert.Equal((true, 0.92), AnswerReading.ReadNoul(analysis.IsUrgent));
         Assert.False(AnswerReading.ReadNoul(new Noul(0.49)).Yes);
@@ -42,7 +42,7 @@ public sealed class QuestionTypesTests
     [Fact]
     public async Task ReadChoice_GivesTheOption_TheConfidence_AndEveryProbability()
     {
-        var analysis = await CannedJev.EvaluateAsync<TicketAnalysis>(TicketResponse, "Help!");
+        var analysis = await CannedDecision.EvaluateAsync<TicketAnalysis>(TicketResponse, "Help!");
 
         Assert.Equal((Department.Billing, 0.64, 0.7, 0.1), AnswerReading.ReadChoice(analysis.Department));
         Assert.Equal(Department.Technical, AnswerReading.RunnerUp(analysis.Department));
@@ -51,7 +51,7 @@ public sealed class QuestionTypesTests
     [Fact]
     public async Task ReadScore_GivesTheLevel_TheExpectedLevel_AndTheNormalizedOne()
     {
-        var analysis = await CannedJev.EvaluateAsync<TicketAnalysis>(TicketResponse, "Help!");
+        var analysis = await CannedDecision.EvaluateAsync<TicketAnalysis>(TicketResponse, "Help!");
 
         Assert.Equal((Mood.Annoyed, 0.5, 0.25, 0.7), AnswerReading.ReadScore(analysis.Mood));
     }
@@ -60,7 +60,7 @@ public sealed class QuestionTypesTests
     public async Task KeyedAnswers_ReadByKeyAndByLevelIndex()
     {
         var advisor = new PlanAdvisor([("free", "No cost"), ("pro-plan", "One user"), ("team-plan", "Many users")]);
-        var (http, jev, requests) = CannedJev.Client(KeyedResponse);
+        var (http, jev, requests) = CannedDecision.Client(KeyedResponse);
         using (http)
         using (jev)
         {
@@ -75,14 +75,14 @@ public sealed class QuestionTypesTests
     [Fact]
     public async Task ReadingAnswers_AllocatesNothing()
     {
-        var analysis = await CannedJev.EvaluateAsync<TicketAnalysis>(TicketResponse, "Help!");
+        var analysis = await CannedDecision.EvaluateAsync<TicketAnalysis>(TicketResponse, "Help!");
 
-        var built = JevQuestionSet.CreateBuilder()
+        var built = QuestionSet.CreateBuilder()
             .Choice("plan", "Which plan fits this customer?", out var plan, o => o.Option("free").Option("pro-plan").Option("team-plan"))
             .Score("effort", "How much setup work does the customer need?", out var effort, l => l.Level("Minutes").Level("Hours").Level("Days"))
             .Build();
         Assert.True(built.IsSuccess);
-        var (http, jev, _) = CannedJev.Client(KeyedResponse);
+        var (http, jev, _) = CannedDecision.Client(KeyedResponse);
         using var httpScope = http;
         using var jevScope = jev;
         var evaluated = await jev.EvaluateAsync(built.Value, "A team of twelve.", CancellationToken.None);
@@ -92,7 +92,7 @@ public sealed class QuestionTypesTests
         var sum = 0.0;
 
         // Every read the page calls free: the typed Noul, Choice and Score reads, the keyed reads through
-        // JevAnswers.Get, and enumerating a keyed probability map.
+        // Answers.Get, and enumerating a keyed probability map.
         AllocationGate.AssertBudget(
             0,
             1000,

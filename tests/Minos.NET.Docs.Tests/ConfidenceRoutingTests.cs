@@ -22,7 +22,7 @@ public sealed class ConfidenceRoutingTests
     [InlineData("other", 0.97, ShopAction.HandToPerson)]
     public async Task EachActionHasItsOwnGate(string intent, double confidence, ShopAction expected)
     {
-        var message = await CannedJev.EvaluateAsync<ChatMessage>(Response(intent, confidence), "I want my money back for order 1042.");
+        var message = await CannedDecision.EvaluateAsync<ChatMessage>(Response(intent, confidence), "I want my money back for order 1042.");
 
         Assert.Equal(expected, ShopRouting.Route(message));
     }

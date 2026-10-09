@@ -4,7 +4,7 @@ using System.Text.Encodings.Web;
 namespace Minos.Serialization;
 
 /// <summary>
-/// Escapes JSON text exactly as the <c>[JevQuestions]</c> generator's <c>JsonText.AppendJsonString</c> does, so a
+/// Escapes JSON text exactly as the <c>[Questions]</c> generator's <c>JsonText.AppendJsonString</c> does, so a
 /// question set built at run time writes the same bytes as a generated one: <c>\"</c>, <c>\\</c>, <c>\n</c>, <c>\r</c>
 /// and <c>\t</c>; every other character outside printable ASCII as a lowercase <c>\uXXXX</c> escape, a character
 /// outside the Basic Multilingual Plane as its surrogate pair's two escapes; printable ASCII as is. A lone surrogate

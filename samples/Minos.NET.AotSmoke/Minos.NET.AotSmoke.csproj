@@ -12,7 +12,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Minos.NET\Minos.NET.csproj" />
-    <!-- AddJevClient, so registration, resolution and the factory's HttpClient run under Native AOT. -->
+    <!-- AddDecisionClient, so registration, resolution and the factory's HttpClient run under Native AOT. -->
     <ProjectReference Include="..\..\src\Minos.NET.DependencyInjection\Minos.NET.DependencyInjection.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.Generator\Minos.NET.Generator.csproj"
                       OutputItemType="Analyzer"
@@ -25,10 +25,10 @@
     <PackageReference Include="ZeroAlloc.TestHelpers" PrivateAssets="all" />
     <!-- A real LoggerFactory, so the logging checks run the path a consumer's app runs under Native AOT. -->
     <PackageReference Include="Microsoft.Extensions.Logging" />
-    <!-- ConfigurationBuilder and AddInMemoryCollection, so binding through AddJevClient runs under Native AOT. -->
+    <!-- ConfigurationBuilder and AddInMemoryCollection, so binding through AddDecisionClient runs under Native AOT. -->
     <PackageReference Include="Microsoft.Extensions.Configuration" />
   </ItemGroup>
 
   <!-- Writes the compiler inputs the entry-point coverage test rebuilds this compilation from. -->
-  <Import Project="../JevCompileInputs.targets" />
+  <Import Project="../DecisionCompileInputs.targets" />
 </Project>

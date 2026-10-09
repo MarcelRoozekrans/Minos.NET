@@ -61,7 +61,7 @@ public sealed class TelemetryPrivacyTests : IDisposable
         var result = await client.EvaluateAsync<DepartmentRouting>(State);
 
         // The error message quotes the rejected answer; the span carries only its kind.
-        Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);
         AssertNoSecret(capture);
     }
 
@@ -83,17 +83,17 @@ public sealed class TelemetryPrivacyTests : IDisposable
         AssertNoSecret(capture);
     }
 
-    private JevClient Client(StubHandler handler)
+    private DecisionClient Client(StubHandler handler)
     {
         var http = new HttpClient(handler);
         _httpClients.Add(http);
-        return new JevClient(http, new JevClientOptions { ApiKey = ApiKey, MaxRetries = 0 });
+        return new DecisionClient(http, new DecisionClientOptions { ApiKey = ApiKey, MaxRetries = 0 });
     }
 
     private static SystemOneRequest Request() => new()
     {
         State = State,
-        Questions = new Dictionary<string, JevQuestion>(StringComparer.Ordinal)
+        Questions = new Dictionary<string, Question>(StringComparer.Ordinal)
         {
             ["q"] = new NoulQuestion { Instructions = Instructions },
         },

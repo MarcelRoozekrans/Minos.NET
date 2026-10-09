@@ -2,7 +2,7 @@ using Minos.Validation;
 
 namespace Minos;
 
-/// <summary>A question as the builder collects it, before <see cref="JevQuestionSetBuilder.Build"/> checks and writes it.</summary>
+/// <summary>A question as the builder collects it, before <see cref="QuestionSetBuilder.Build"/> checks and writes it.</summary>
 /// <param name="key">The wire key.</param>
 /// <param name="kind">The question's kind.</param>
 /// <param name="instructions">The instructions.</param>
@@ -12,17 +12,17 @@ namespace Minos;
 /// </param>
 /// <param name="enumMembers">For an enum Score, the members every level must cover once; else <see langword="null"/>.</param>
 internal sealed class QuestionDraft(
-    string key, QuestionKind kind, JevContent instructions, Func<QuestionSpec, IJevOptionKeys>? enumOptions, string[]? enumMembers)
+    string key, QuestionKind kind, DecisionContent instructions, Func<QuestionSpec, IDecisionOptionKeys>? enumOptions, string[]? enumMembers)
 {
     public string Key { get; } = key;
 
     public QuestionKind Kind { get; } = kind;
 
-    public JevContent Instructions { get; } = instructions;
+    public DecisionContent Instructions { get; } = instructions;
 
-    public JevContent? WhenTrue { get; set; }
+    public DecisionContent? WhenTrue { get; set; }
 
-    public JevContent? WhenFalse { get; set; }
+    public DecisionContent? WhenFalse { get; set; }
 
     public List<OptionSpec> Options { get; } = [];
 
@@ -54,7 +54,7 @@ internal sealed class QuestionDraft(
     /// The option set answers are read with: the enum's, a keyed set over <paramref name="spec"/>'s keys, or none for a
     /// Noul. Called only for a spec that passed validation, so an enum Score's levels cover each member once.
     /// </summary>
-    public IJevOptionKeys? PlanOptions(QuestionSpec spec)
+    public IDecisionOptionKeys? PlanOptions(QuestionSpec spec)
     {
         if (Kind == QuestionKind.Noul)
         {

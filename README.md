@@ -19,7 +19,7 @@ dotnet add package Minos.NET
 dotnet add package Minos.NET.DependencyInjection
 ```
 
-You need the .NET 10 SDK, and any IDE or build that hosts the `[JevQuestions]` generator must host Roslyn 5.0 or later; [Getting started](https://jev.zeroalloc.net/) has the details.
+You need the .NET 10 SDK, and any IDE or build that hosts the `[Questions]` generator must host Roslyn 5.0 or later; [Getting started](https://jev.zeroalloc.net/) has the details.
 
 ## Example
 
@@ -36,7 +36,7 @@ public enum Lane
     Technical,
 }
 
-[JevQuestions]
+[Questions]
 public partial record Triage
 {
     [Noul("Does this convey urgency?")]
@@ -49,14 +49,14 @@ public partial record Triage
 public static class ReadmeExample
 {
     // A one-off run. The client reads TYPESAFE_API_KEY. A long-running app creates one client and shares it, or
-    // registers it with AddJevClient.
+    // registers it with AddDecisionClient.
     public static async Task<string> RunAsync(string message, CancellationToken cancellationToken)
     {
-        using var jev = new JevClient();
+        using var jev = new DecisionClient();
         return await RouteAsync(jev, message, cancellationToken);
     }
 
-    public static async Task<string> RouteAsync(IJevClient jev, string message, CancellationToken cancellationToken)
+    public static async Task<string> RouteAsync(IDecisionClient jev, string message, CancellationToken cancellationToken)
     {
         var result = await jev.EvaluateAsync<Triage>(message, cancellationToken);
         return result.IsFailure
@@ -75,12 +75,12 @@ The guide lives at [jev.zeroalloc.net](https://jev.zeroalloc.net):
 - [Question types](https://jev.zeroalloc.net/question-types): Noul, Choice and Score, what each answer holds, and how confidence differs from probability.
 - [Typed evaluation](https://jev.zeroalloc.net/typed-evaluation): declare Jev questions as a C# type, give them a typed state, and pick the `EvaluateAsync` overload.
 - [Question sets at run time](https://jev.zeroalloc.net/question-sets-at-run-time): build a question set from data with the builder, evaluate it, and read answers through handles.
-- [The client and its errors](https://jev.zeroalloc.net/client-and-errors): create and configure a `JevClient`, its retries and time-outs, every kind of `JevError`, and the raw request API.
-- [Dependency injection](https://jev.zeroalloc.net/dependency-injection): register `IJevClient` in a .NET host, key several clients, and bind options from configuration.
+- [The client and its errors](https://jev.zeroalloc.net/client-and-errors): create and configure a `DecisionClient`, its retries and time-outs, every kind of `DecisionError`, and the raw request API.
+- [Dependency injection](https://jev.zeroalloc.net/dependency-injection): register `IDecisionClient` in a .NET host, key several clients, and bind options from configuration.
 - [Logging, traces and metrics](https://jev.zeroalloc.net/observability): what the client logs, which spans and metrics it emits, and what it never records.
 - [Native AOT and allocations](https://jev.zeroalloc.net/native-aot): what Native AOT compatibility means, the one reflection the client uses, and the allocation budgets that guard it.
 - [Diagnostics](https://jev.zeroalloc.net/diagnostics): every JEV analyzer rule with its severity, the two code fixes, and how to suppress a rule.
-- [Testing your code](https://jev.zeroalloc.net/testing-your-code): test code that calls Jev with a fake `IJevClient` or a real `JevClient` over a canned HTTP reply.
+- [Testing your code](https://jev.zeroalloc.net/testing-your-code): test code that calls Jev with a fake `IDecisionClient` or a real `DecisionClient` over a canned HTTP reply.
 - [Patterns](https://jev.zeroalloc.net/patterns): four ways to use Jev answers, each with a guide of its own.
 - [Speculative fan-out](https://jev.zeroalloc.net/patterns/fan-out): ask every question you might need in one request and read only the answers that matter.
 - [Confidence routing](https://jev.zeroalloc.net/patterns/confidence-routing): gate each action on the answer confidence, with a threshold sized to the cost of being wrong.
@@ -95,7 +95,7 @@ Runnable cookbook apps live in [`samples/`](https://github.com/MarcelRoozekrans/
 
 ## Building
 
-Building this repository needs the SDK version pinned in `global.json` (10.0.401 or later, via `rollForward: latestMinor`). The `[JevQuestions]` generator compiles against Roslyn 5.0, so builds and IDEs must host Roslyn 5.0 or later — Visual Studio 2026 version 18.0 is the first release that qualifies. An older IDE shows generator errors even when `dotnet build` succeeds.
+Building this repository needs the SDK version pinned in `global.json` (10.0.401 or later, via `rollForward: latestMinor`). The `[Questions]` generator compiles against Roslyn 5.0, so builds and IDEs must host Roslyn 5.0 or later — Visual Studio 2026 version 18.0 is the first release that qualifies. An older IDE shows generator errors even when `dotnet build` succeeds.
 
 ## Testing
 

@@ -17,7 +17,7 @@ public enum SupportTeam
 
 // Two questions about one message. The generator writes the question JSON at compile time, and the
 // properties hold the typed answers once Jev has replied.
-[JevQuestions]
+[Questions]
 public partial record TicketCheck
 {
     [Noul("Does this convey urgency?")]
@@ -32,17 +32,17 @@ public static class GettingStartedClients
 {
     #region GettingStarted_Clients
     // TypeSafe is the default provider. With no ApiKey set, the client reads TYPESAFE_API_KEY.
-    // JevClient is disposable and meant to be long-lived: create it once, share it, and dispose it at shutdown.
+    // DecisionClient is disposable and meant to be long-lived: create it once, share it, and dispose it at shutdown.
     public static async Task<string> ViaTypeSafeAsync(string message, CancellationToken cancellationToken)
     {
-        using var jev = new JevClient(new JevClientOptions());
+        using var jev = new DecisionClient(new DecisionClientOptions());
         return await GettingStartedEvaluation.TriageAsync(jev, message, cancellationToken);
     }
 
     // OpenRouter: name the provider. With no ApiKey set, the client reads OPENROUTER_API_KEY.
     public static async Task<string> ViaOpenRouterAsync(string message, CancellationToken cancellationToken)
     {
-        using var jev = new JevClient(new JevClientOptions { Provider = JevProvider.OpenRouter });
+        using var jev = new DecisionClient(new DecisionClientOptions { Provider = DecisionProvider.OpenRouter });
         return await GettingStartedEvaluation.TriageAsync(jev, message, cancellationToken);
     }
     #endregion
@@ -51,7 +51,7 @@ public static class GettingStartedClients
 public static class GettingStartedEvaluation
 {
     #region GettingStarted_Evaluate
-    public static async Task<string> TriageAsync(IJevClient jev, string message, CancellationToken cancellationToken)
+    public static async Task<string> TriageAsync(IDecisionClient jev, string message, CancellationToken cancellationToken)
     {
         var result = await jev.EvaluateAsync<TicketCheck>(message, cancellationToken);
 

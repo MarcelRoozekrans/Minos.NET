@@ -88,7 +88,7 @@ public sealed class ResponseSerializationTests
             """;
 
         Assert.Throws<JsonException>(
-            () => JsonSerializer.Deserialize(Json, JevJsonContext.Default.SystemOneResponse));
+            () => JsonSerializer.Deserialize(Json, DecisionJsonContext.Default.SystemOneResponse));
     }
 
     [Fact]
@@ -110,13 +110,13 @@ public sealed class ResponseSerializationTests
             """;
 
         Assert.Throws<JsonException>(
-            () => JsonSerializer.Deserialize(Json, JevJsonContext.Default.SystemOneResponse));
+            () => JsonSerializer.Deserialize(Json, DecisionJsonContext.Default.SystemOneResponse));
     }
 
     [Fact]
     public void Models_Deserialize()
     {
-        var list = JsonSerializer.Deserialize(Fixture.Text("models.json"), JevJsonContext.Default.ModelList);
+        var list = JsonSerializer.Deserialize(Fixture.Text("models.json"), DecisionJsonContext.Default.ModelList);
 
         Assert.NotNull(list);
         Assert.Equal(2, list.Models.Count);
@@ -149,7 +149,7 @@ public sealed class ResponseSerializationTests
 
     private static SystemOneResponse Deserialize(string fixture)
     {
-        var response = JsonSerializer.Deserialize(Fixture.Text(fixture), JevJsonContext.Default.SystemOneResponse);
+        var response = JsonSerializer.Deserialize(Fixture.Text(fixture), DecisionJsonContext.Default.SystemOneResponse);
         Assert.NotNull(response);
         return response;
     }

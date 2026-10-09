@@ -70,7 +70,7 @@ internal static class AnalyzerVerifier
             TestCode = "using Minos;\n" + source,
             ReferenceAssemblies = ReferenceAssemblies.Net.Net100,
         };
-        test.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(JevQuestionsAttribute).Assembly.Location));
+        test.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(QuestionsAttribute).Assembly.Location));
         return test;
     }
 

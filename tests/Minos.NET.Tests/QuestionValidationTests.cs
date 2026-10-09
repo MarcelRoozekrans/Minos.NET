@@ -50,7 +50,7 @@ public sealed class QuestionValidationTests
 
         Assert.Empty(warnings);
         Assert.Equal(2, failures.Length);
-        Assert.All(failures, failure => Assert.Equal(new JevQuestionFailure("JEV104", "urgency", failure.Message), failure));
+        Assert.All(failures, failure => Assert.Equal(new QuestionFailure("JEV104", "urgency", failure.Message), failure));
     }
 
     [Fact]
@@ -85,7 +85,7 @@ public sealed class QuestionValidationTests
 
     [Fact]
     public void DescriptionDeeperThan60Levels_FailsJev108()
-        => AssertFailure("JEV108", "team", Choice("team", "Which team?", Option("a", JevCriterion.Json(Nested(61)))));
+        => AssertFailure("JEV108", "team", Choice("team", "Which team?", Option("a", Criterion.Json(Nested(61)))));
 
     [Fact]
     public void BlankInstructions_WarnJev003() => AssertWarning("JEV003", "q", Noul("q", "   "));
@@ -93,8 +93,8 @@ public sealed class QuestionValidationTests
     [Fact]
     public void EmptyJsonInstructions_WarnJev003()
     {
-        AssertWarning("JEV003", "q", Noul("q", JevContent.FromUtf8Json("{}"u8)));
-        AssertWarning("JEV003", "q", Noul("q", JevContent.FromUtf8Json("[]"u8)));
+        AssertWarning("JEV003", "q", Noul("q", DecisionContent.FromUtf8Json("{}"u8)));
+        AssertWarning("JEV003", "q", Noul("q", DecisionContent.FromUtf8Json("[]"u8)));
     }
 
     [Fact]
@@ -102,15 +102,15 @@ public sealed class QuestionValidationTests
 
     [Fact]
     public void EmptyJsonDescription_WarnsJev003()
-        => AssertWarning("JEV003", "team", Choice("team", "Which team?", Option("a", JevCriterion.Json(JevContent.FromUtf8Json("{}"u8)))));
+        => AssertWarning("JEV003", "team", Choice("team", "Which team?", Option("a", Criterion.Json(DecisionContent.FromUtf8Json("{}"u8)))));
 
     [Fact]
     public void BlankExampleEntry_WarnsJev003()
-        => AssertWarning("JEV003", "team", Choice("team", "Which team?", Option("a", JevCriterion.Text("A").WithExamples("  "))));
+        => AssertWarning("JEV003", "team", Choice("team", "Which team?", Option("a", Criterion.Text("A").WithExamples("  "))));
 
     [Fact]
     public void NullNotForEntry_WarnsJev003()
-        => AssertWarning("JEV003", "team", Choice("team", "Which team?", Option("a", JevCriterion.Text("A").WithNotFor(null, "x"))));
+        => AssertWarning("JEV003", "team", Choice("team", "Which team?", Option("a", Criterion.Text("A").WithNotFor(null, "x"))));
 
     [Fact]
     public void BlankNoulDescription_WarnsJev003() => AssertWarning("JEV003", "q", Noul("q", "Is it?") with { WhenTrue = "" });
@@ -195,16 +195,16 @@ public sealed class QuestionValidationTests
         Assert.Empty(warnings);
     }
 
-    private static QuestionSpec Noul(string key, JevContent instructions)
+    private static QuestionSpec Noul(string key, DecisionContent instructions)
         => new() { Key = key, Kind = QuestionKind.Noul, Instructions = instructions, Options = [] };
 
-    private static QuestionSpec Choice(string key, JevContent instructions, params OptionSpec[] options)
+    private static QuestionSpec Choice(string key, DecisionContent instructions, params OptionSpec[] options)
         => new() { Key = key, Kind = QuestionKind.Choice, Instructions = instructions, Options = options };
 
-    private static QuestionSpec Score(string key, JevContent instructions, params OptionSpec[] options)
+    private static QuestionSpec Score(string key, DecisionContent instructions, params OptionSpec[] options)
         => new() { Key = key, Kind = QuestionKind.Score, Instructions = instructions, Options = options };
 
-    private static OptionSpec Option(string key, JevCriterion? criterion) => new(key, key, criterion, -1);
+    private static OptionSpec Option(string key, Criterion? criterion) => new(key, key, criterion, -1);
 
     // An enum Score over members named in ForChoice order, which is declaration order, given the levels at the
     // members' indexes, in call order.
@@ -219,7 +219,7 @@ public sealed class QuestionValidationTests
                 new OptionSpec(level.ToString(CultureInfo.InvariantCulture), members[member], "Level", member))],
         };
 
-    private static JevQuestionFailure OnlyFailure(QuestionSpec question)
+    private static QuestionFailure OnlyFailure(QuestionSpec question)
     {
         var (failures, warnings) = QuestionValidation.Validate([question]);
 
@@ -230,10 +230,10 @@ public sealed class QuestionValidationTests
     private static OptionSpec[] Levels(int count)
         => [.. Enumerable.Range(0, count).Select(i => Option(i.ToString(CultureInfo.InvariantCulture), "Level"))];
 
-    private static JevContent Nested(int depth)
-        => JevContent.FromUtf8Json(Encoding.UTF8.GetBytes(new string('[', depth) + new string(']', depth)));
+    private static DecisionContent Nested(int depth)
+        => DecisionContent.FromUtf8Json(Encoding.UTF8.GetBytes(new string('[', depth) + new string(']', depth)));
 
-    private static JevQuestionFailure Only(JevQuestionFailure[] items)
+    private static QuestionFailure Only(QuestionFailure[] items)
     {
         // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
 #pragma warning disable HLQ005

@@ -29,7 +29,7 @@ public sealed class GeneratedQuestionSetTests
     {
         var json = "{\"state\":\"x\",\"questions\":" + Encoding.UTF8.GetString(StructuredRouting.QuestionsUtf8) + "}";
 
-        var request = JsonSerializer.Deserialize(json, JevJsonContext.Default.SystemOneRequest)!;
+        var request = JsonSerializer.Deserialize(json, DecisionJsonContext.Default.SystemOneRequest)!;
 
         var department = Assert.IsType<ChoiceQuestion>(request.Questions["department"]);
         Assert.True(department.Criteria["billing"]!.Value.TryGetJson(out var billing));
@@ -42,7 +42,7 @@ public sealed class GeneratedQuestionSetTests
     {
         var json = "{\"state\":\"x\",\"questions\":" + Encoding.UTF8.GetString(TicketTriage.QuestionsUtf8) + "}";
 
-        var request = JsonSerializer.Deserialize(json, JevJsonContext.Default.SystemOneRequest)!;
+        var request = JsonSerializer.Deserialize(json, DecisionJsonContext.Default.SystemOneRequest)!;
 
         Assert.IsType<NoulQuestion>(request.Questions["requests_credentials"]);
         var team = Assert.IsType<ChoiceQuestion>(request.Questions["team"]);
@@ -55,7 +55,7 @@ public sealed class GeneratedQuestionSetTests
     [Fact]
     public void Noul_ParsesFixture()
     {
-        var answers = Answers.Parse<UrgencyCheck>(Fixture.Text("response-noul.json"));
+        var answers = ResponseAnswers.Parse<UrgencyCheck>(Fixture.Text("response-noul.json"));
 
         Assert.Equal(0.95, answers.IsUrgent.Probability);
         Assert.True(answers.IsUrgent.Value);
@@ -63,12 +63,12 @@ public sealed class GeneratedQuestionSetTests
 
     [Fact]
     public void Noul_TypeLast_ParsesFixture()
-        => Assert.Equal(0.4, Answers.Parse<UrgencyCheck>(Fixture.Text("response-type-last.json")).IsUrgent.Probability);
+        => Assert.Equal(0.4, ResponseAnswers.Parse<UrgencyCheck>(Fixture.Text("response-type-last.json")).IsUrgent.Probability);
 
     [Fact]
     public void Choice_ParsesFixture()
     {
-        var department = Answers.Parse<DepartmentRouting>(Fixture.Text("response-choice.json")).Department;
+        var department = ResponseAnswers.Parse<DepartmentRouting>(Fixture.Text("response-choice.json")).Department;
 
         Assert.Equal(Department.Billing, department.Value);
         Assert.Equal(0.81, department.Confidence);
@@ -80,8 +80,8 @@ public sealed class GeneratedQuestionSetTests
     [Fact]
     public void Choice_ParsedTwice_AreEqualByRecordEquality()
     {
-        var first = Answers.Parse<DepartmentRouting>(Fixture.Text("response-choice.json"));
-        var second = Answers.Parse<DepartmentRouting>(Fixture.Text("response-choice.json"));
+        var first = ResponseAnswers.Parse<DepartmentRouting>(Fixture.Text("response-choice.json"));
+        var second = ResponseAnswers.Parse<DepartmentRouting>(Fixture.Text("response-choice.json"));
 
         Assert.Equal(first, second);
         Assert.Equal(first.GetHashCode(), second.GetHashCode());
@@ -90,8 +90,8 @@ public sealed class GeneratedQuestionSetTests
     [Fact]
     public void Score_ParsedTwice_AreEqualByRecordEquality()
     {
-        var first = Answers.Parse<FrustrationCheck>(Fixture.Text("response-score.json"));
-        var second = Answers.Parse<FrustrationCheck>(Fixture.Text("response-score.json"));
+        var first = ResponseAnswers.Parse<FrustrationCheck>(Fixture.Text("response-score.json"));
+        var second = ResponseAnswers.Parse<FrustrationCheck>(Fixture.Text("response-score.json"));
 
         Assert.Equal(first, second);
         Assert.Equal(first.GetHashCode(), second.GetHashCode());
@@ -100,7 +100,7 @@ public sealed class GeneratedQuestionSetTests
     [Fact]
     public void Score_ParsesFixture()
     {
-        var frustration = Answers.Parse<FrustrationCheck>(Fixture.Text("response-score.json")).Frustration;
+        var frustration = ResponseAnswers.Parse<FrustrationCheck>(Fixture.Text("response-score.json")).Frustration;
 
         Assert.Equal(Frustration.Frustrated, frustration.Value);
         Assert.Equal(1.05, frustration.Expected);
@@ -120,7 +120,7 @@ public sealed class GeneratedQuestionSetTests
             }}
             """;
 
-        var triage = Answers.Parse<TicketTriage>(response);
+        var triage = ResponseAnswers.Parse<TicketTriage>(response);
 
         Assert.Equal(0.1, triage.RequestsCredentials.Probability);
         Assert.Equal(Department.Technical, triage.Team.Value);
@@ -135,11 +135,11 @@ public sealed class GeneratedQuestionSetTests
     [InlineData("""{"answers":{"department":{"type":"noul","noul":0.5}}}""")]
     [InlineData("""{"answers":{"department":{"type":"choice","choice":"legal","probabilities":{},"confidence":0.5}}}""")]
     public void Choice_InvalidAnswers_Throw(string response)
-        => Assert.ThrowsAny<JsonException>(() => Answers.Parse<DepartmentRouting>(response));
+        => Assert.ThrowsAny<JsonException>(() => ResponseAnswers.Parse<DepartmentRouting>(response));
 
     [Fact]
     public void Score_UnknownLevel_Throws()
-        => Assert.ThrowsAny<JsonException>(() => Answers.Parse<FrustrationCheck>(
+        => Assert.ThrowsAny<JsonException>(() => ResponseAnswers.Parse<FrustrationCheck>(
             """{"answers":{"frustration":{"type":"score","score":1,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"3":1.0},"confidence":0.5}}}"""));
 
     [Fact]
@@ -172,7 +172,7 @@ public sealed class GeneratedQuestionSetTests
         var criteria = JsonNode.Parse(EdgeCases.QuestionsUtf8)!["priority"]!["criteria"]!.AsObject();
         Assert.Equal(ExpectedPriorityCriteriaKeys, criteria.Select(pair => pair.Key));
 
-        var priority = Answers.Parse<EdgeCases>("""
+        var priority = ResponseAnswers.Parse<EdgeCases>("""
             {"answers":{
               "tricky":{"type":"noul","noul":0.5},
               "priority":{"type":"choice","choice":"urgent","probabilities":{"low":0.3,"urgent":0.7},"confidence":0.6}
@@ -185,7 +185,7 @@ public sealed class GeneratedQuestionSetTests
     }
 
     private static void AssertQuestions<T>(string fixture)
-        where T : IJevQuestionSet<T>
+        where T : IQuestionSet<T>
     {
         var expected = Fixture.Load(fixture)["questions"];
         var actual = JsonNode.Parse(T.QuestionsUtf8);

@@ -9,10 +9,10 @@ public sealed class SystemOneResponse
     public required string Model { get; init; }
 
     /// <summary>Gets the answers, keyed by the question ids from the request.</summary>
-    public required IReadOnlyDictionary<string, JevAnswer> Answers { get; init; }
+    public required IReadOnlyDictionary<string, Answer> Answers { get; init; }
 
     /// <summary>Gets the token usage for the request.</summary>
-    public required JevUsage Usage { get; init; }
+    public required DecisionUsage Usage { get; init; }
 
     /// <summary>Gets the generation id OpenRouter assigns; <see langword="null"/> on TypeSafe's API.</summary>
     public string? Id { get; init; }

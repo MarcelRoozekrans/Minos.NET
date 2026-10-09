@@ -190,8 +190,8 @@ public sealed class RerankingSampleTests
 
         Assert.Equal(1, report.KeywordHitsAt1);
         Assert.Equal(3, report.KeywordHitsAt3);
-        Assert.Equal(1, report.JevHitsAt1);
-        Assert.Equal(2, report.JevHitsAt3);
+        Assert.Equal(1, report.DecisionHitsAt1);
+        Assert.Equal(2, report.DecisionHitsAt3);
     }
 
     [Fact]
@@ -215,8 +215,8 @@ public sealed class RerankingSampleTests
     {
         var report = await Run();
 
-        Assert.True(report.JevHitsAt1 >= report.KeywordHitsAt1);
-        Assert.True(report.JevHitsAt3 >= report.KeywordHitsAt3);
+        Assert.True(report.DecisionHitsAt1 >= report.KeywordHitsAt1);
+        Assert.True(report.DecisionHitsAt3 >= report.KeywordHitsAt3);
     }
 
     [Fact]
@@ -224,7 +224,7 @@ public sealed class RerankingSampleTests
     {
         var report = await Run();
 
-        Assert.True(report.JevHitsAt1 > report.KeywordHitsAt1);
+        Assert.True(report.DecisionHitsAt1 > report.KeywordHitsAt1);
     }
 
     [Fact]
@@ -234,8 +234,8 @@ public sealed class RerankingSampleTests
 
         Assert.Equal(1, report.KeywordHitsAt1);
         Assert.Equal(2, report.KeywordHitsAt3);
-        Assert.Equal(5, report.JevHitsAt1);
-        Assert.Equal(5, report.JevHitsAt3);
+        Assert.Equal(5, report.DecisionHitsAt1);
+        Assert.Equal(5, report.DecisionHitsAt3);
         Assert.EndsWith("hit@1 keyword 1/5 -> jev 5/5\nhit@3 keyword 2/5 -> jev 5/5\n", report.Render(), StringComparison.Ordinal);
     }
 
@@ -251,7 +251,7 @@ public sealed class RerankingSampleTests
         {
             Assert.Equal(Queries.All[i].Text, report.Queries[i].Query);
             Assert.Equal(keyword[i], FirstThree(report.Queries[i].KeywordOrder));
-            Assert.Equal(jev[i], FirstThree(report.Queries[i].JevOrder));
+            Assert.Equal(jev[i], FirstThree(report.Queries[i].DecisionOrder));
         }
     }
 
@@ -262,8 +262,8 @@ public sealed class RerankingSampleTests
 
         foreach (var q in report.Queries)
         {
-            Assert.Equal(8, q.JevOrder.Count);
-            Assert.Equal(Sorted(q.KeywordOrder), Sorted(q.JevOrder));
+            Assert.Equal(8, q.DecisionOrder.Count);
+            Assert.Equal(Sorted(q.KeywordOrder), Sorted(q.DecisionOrder));
         }
     }
 
@@ -274,12 +274,12 @@ public sealed class RerankingSampleTests
         var configuration = new ConfigurationBuilder().AddJsonFile(Path.Combine(directory, "appsettings.json")).Build();
         var counter = new CountingHandler();
         var services = new ServiceCollection();
-        services.AddSampleJevClient(
+        services.AddSampleDecisionClient(
             configuration.GetSection("Jev"), SampleMode.Replay, Path.Combine(directory, "recordings.json"), Sample, new RecordingSession())
             .AddHttpMessageHandler(() => counter);
         using var provider = services.BuildServiceProvider();
 
-        var report = await RerankingSample.RunAsync(provider.GetRequiredService<IJevClient>(), CancellationToken.None);
+        var report = await RerankingSample.RunAsync(provider.GetRequiredService<IDecisionClient>(), CancellationToken.None);
 
         Assert.Equal(5, report.Queries.Count);
         Assert.Equal(5, counter.Requests);
@@ -291,8 +291,8 @@ public sealed class RerankingSampleTests
         var report = new RerankingReport([new RankedQuery("q", "b", ["a", "b"], ["a", "b"])]);
         var changed = report with { Queries = [new RankedQuery("q", "b", ["a", "b"], ["b", "a"])] };
 
-        Assert.Equal(0, report.JevHitsAt1);
-        Assert.Equal(1, changed.JevHitsAt1);
+        Assert.Equal(0, report.DecisionHitsAt1);
+        Assert.Equal(1, changed.DecisionHitsAt1);
     }
 
     [Fact]
@@ -301,7 +301,7 @@ public sealed class RerankingSampleTests
     private static async Task<RerankingReport> Run()
     {
         using var provider = SampleHost.BuildReplayProvider(SampleHost.SampleDirectory(Sample), Sample);
-        return await RerankingSample.RunAsync(provider.GetRequiredService<IJevClient>(), CancellationToken.None);
+        return await RerankingSample.RunAsync(provider.GetRequiredService<IDecisionClient>(), CancellationToken.None);
     }
 
     private static string[] FirstThree(IReadOnlyList<string> order) => [.. order.Take(3)];

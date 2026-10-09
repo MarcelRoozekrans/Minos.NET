@@ -3,13 +3,13 @@ using System.Text;
 
 namespace Minos.Samples.Reranking;
 
-public sealed record RankedQuery(string Query, string BestId, IReadOnlyList<string> KeywordOrder, IReadOnlyList<string> JevOrder)
+public sealed record RankedQuery(string Query, string BestId, IReadOnlyList<string> KeywordOrder, IReadOnlyList<string> DecisionOrder)
 {
     /// <summary>Whether the best article is among the first <paramref name="k"/> of the keyword order.</summary>
     public bool KeywordHit(int k) => IsHit(KeywordOrder, BestId, k);
 
     /// <summary>Whether the best article is among the first <paramref name="k"/> of the Jev order.</summary>
-    public bool JevHit(int k) => IsHit(JevOrder, BestId, k);
+    public bool DecisionHit(int k) => IsHit(DecisionOrder, BestId, k);
 
     private static bool IsHit(IReadOnlyList<string> order, string bestId, int k)
     {
@@ -31,9 +31,9 @@ public sealed record RerankingReport(IReadOnlyList<RankedQuery> Queries)
 
     public int KeywordHitsAt3 => Queries.Count(q => q.KeywordHit(3));
 
-    public int JevHitsAt1 => Queries.Count(q => q.JevHit(1));
+    public int DecisionHitsAt1 => Queries.Count(q => q.DecisionHit(1));
 
-    public int JevHitsAt3 => Queries.Count(q => q.JevHit(3));
+    public int DecisionHitsAt3 => Queries.Count(q => q.DecisionHit(3));
 
     public string Render()
     {
@@ -42,12 +42,12 @@ public sealed record RerankingReport(IReadOnlyList<RankedQuery> Queries)
         {
             text.Append(q.Query).Append('\n');
             text.Append("  keyword  ").Append(Top3(q.KeywordOrder)).Append("  ").Append(Marker(q.KeywordHit(1), q.KeywordHit(3))).Append('\n');
-            text.Append("  jev      ").Append(Top3(q.JevOrder)).Append("  ").Append(Marker(q.JevHit(1), q.JevHit(3))).Append("\n\n");
+            text.Append("  jev      ").Append(Top3(q.DecisionOrder)).Append("  ").Append(Marker(q.DecisionHit(1), q.DecisionHit(3))).Append("\n\n");
         }
 
         var n = Queries.Count.ToString(CultureInfo.InvariantCulture);
-        text.Append(CultureInfo.InvariantCulture, $"hit@1 keyword {KeywordHitsAt1}/{n} -> jev {JevHitsAt1}/{n}\n");
-        text.Append(CultureInfo.InvariantCulture, $"hit@3 keyword {KeywordHitsAt3}/{n} -> jev {JevHitsAt3}/{n}\n");
+        text.Append(CultureInfo.InvariantCulture, $"hit@1 keyword {KeywordHitsAt1}/{n} -> jev {DecisionHitsAt1}/{n}\n");
+        text.Append(CultureInfo.InvariantCulture, $"hit@3 keyword {KeywordHitsAt3}/{n} -> jev {DecisionHitsAt3}/{n}\n");
         return text.ToString();
     }
 
@@ -61,7 +61,7 @@ public static class RerankingSample
 {
     public const int ShortlistSize = 8;
 
-    public static async Task<RerankingReport> RunAsync(IJevClient jev, CancellationToken cancellationToken)
+    public static async Task<RerankingReport> RunAsync(IDecisionClient jev, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(jev);
         var ranked = new List<RankedQuery>();
@@ -70,7 +70,7 @@ public static class RerankingSample
             var candidates = KeywordShortlist.Top(query.Text, Articles.All, ShortlistSize);
 
             // The candidates change with every query, so the question set is built at run time.
-            var builder = JevQuestionSet.CreateBuilder();
+            var builder = QuestionSet.CreateBuilder();
             var handles = new NoulHandle[candidates.Count];
             for (var i = 0; i < candidates.Count; i++)
             {

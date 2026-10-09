@@ -6,7 +6,7 @@ using Minos.Generator;
 namespace Minos.Analyzers;
 
 /// <summary>
-/// Reports the <c>[JevQuestions]</c> diagnostics. It runs the same model builder as the generator, which reports
+/// Reports the <c>[Questions]</c> diagnostics. It runs the same model builder as the generator, which reports
 /// nothing and emits only throwing stubs for an invalid set, so the two cannot disagree about what is valid.
 /// </summary>
 /// <remarks>
@@ -19,7 +19,7 @@ namespace Minos.Analyzers;
 [DiagnosticAnalyzer(LanguageNames.CSharp)]
 public sealed class QuestionSetAnalyzer : DiagnosticAnalyzer
 {
-    private const string JevQuestionsAttribute = "Minos.JevQuestionsAttribute";
+    private const string QuestionsAttribute = "Minos.QuestionsAttribute";
 
     private static readonly ImmutableArray<DiagnosticDescriptor> Descriptors = ImmutableArray.Create(
         Diagnostics.EmptyChoiceEnum,
@@ -52,7 +52,7 @@ public sealed class QuestionSetAnalyzer : DiagnosticAnalyzer
         context.ConfigureGeneratedCodeAnalysis(GeneratedCodeAnalysisFlags.Analyze | GeneratedCodeAnalysisFlags.ReportDiagnostics);
         context.RegisterCompilationStartAction(static start =>
         {
-            var attributeType = start.Compilation.GetTypeByMetadataName(JevQuestionsAttribute);
+            var attributeType = start.Compilation.GetTypeByMetadataName(QuestionsAttribute);
             if (attributeType is not null)
             {
                 var enumUsages = new EnumUsageIndex(start.Compilation, attributeType);
@@ -74,7 +74,7 @@ public sealed class QuestionSetAnalyzer : DiagnosticAnalyzer
         });
     }
 
-    /// <summary>The rules of a <c>[JevQuestions]</c> type and its properties.</summary>
+    /// <summary>The rules of a <c>[Questions]</c> type and its properties.</summary>
     private static void AnalyzeSet(SymbolAnalysisContext context, INamedTypeSymbol type, INamedTypeSymbol attributeType)
     {
         foreach (var attribute in type.GetAttributes())

@@ -5,7 +5,7 @@ using Minos.Validation;
 namespace Minos;
 
 /// <summary>
-/// Gives the levels of an enum Score question built with <see cref="JevQuestionSetBuilder"/>, lowest first: level
+/// Gives the levels of an enum Score question built with <see cref="QuestionSetBuilder"/>, lowest first: level
 /// <c>i</c> is the member of the <c>i</c>-th <see cref="Level"/> call. Every distinct member must be given exactly once
 /// (JEV104, JEV106). Listed in declaration order, the levels match the generator's for the same enum.
 /// </summary>
@@ -30,7 +30,7 @@ public sealed class ScoreLevelsBuilder<[DynamicallyAccessedMembers(DynamicallyAc
     /// <exception cref="InvalidOperationException">The configurator is used after its callback returned.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="criterion"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="level"/> is not a member of <typeparamref name="T"/>.</exception>
-    public ScoreLevelsBuilder<T> Level(T level, JevCriterion criterion)
+    public ScoreLevelsBuilder<T> Level(T level, Criterion criterion)
     {
         _draft.EnsureOpen();
         ArgumentNullException.ThrowIfNull(criterion);

@@ -8,7 +8,7 @@ using ZeroAlloc.Results;
 namespace Minos.Benchmarks;
 
 /// <summary>Twenty Noul questions, the generated counterpart of <see cref="QuestionSetBenchmarks"/>' built twenty-question set.</summary>
-[JevQuestions]
+[Questions]
 public partial record BenchTwenty
 {
     [Noul("Question 1?")] public partial Noul Q01 { get; }
@@ -39,16 +39,16 @@ public class QuestionSetBenchmarks
 {
     private const string State = "Help! My payouts have been failing for 3 days.";
 
-    private JevQuestionSetBuilder _builder = null!;
-    private JevQuestionSet _triage = null!;
-    private JevQuestionSet _twenty = null!;
+    private QuestionSetBuilder _builder = null!;
+    private QuestionSet _triage = null!;
+    private QuestionSet _twenty = null!;
     private byte[] _twentyAnswers = [];
     private HttpClient _http = null!;
-    private JevClient _client = null!;
+    private DecisionClient _client = null!;
 
     /// <summary>The Noul, enum Choice and enum Score of <see cref="ClientBenchmarks.TypedEvaluateAsync"/>, as a builder.</summary>
-    internal static JevQuestionSetBuilder TriageBuilder()
-        => JevQuestionSet.CreateBuilder()
+    internal static QuestionSetBuilder TriageBuilder()
+        => QuestionSet.CreateBuilder()
             .Noul("requests_credentials", "Does `message` ask for a credential?", out _)
             .Choice<Team>("team", "Which team should handle `message`?", out _, o => o
                 .Describe(Team.Billing, "Charges, invoices, refunds")
@@ -62,7 +62,7 @@ public class QuestionSetBenchmarks
         _builder = TriageBuilder();
         _triage = _builder.Build().Value;
 
-        var twenty = JevQuestionSet.CreateBuilder();
+        var twenty = QuestionSet.CreateBuilder();
         var answers = new StringBuilder("{");
         for (var i = 1; i <= 20; i++)
         {
@@ -84,17 +84,17 @@ public class QuestionSetBenchmarks
         _http.Dispose();
     }
 
-    /// <summary><see cref="JevQuestionSetBuilder.Build"/> of a Noul, an enum Choice and an enum Score.</summary>
+    /// <summary><see cref="QuestionSetBuilder.Build"/> of a Noul, an enum Choice and an enum Score.</summary>
     [Benchmark]
-    public Result<JevQuestionSet, JevError> Build() => _builder.Build();
+    public Result<QuestionSet, DecisionError> Build() => _builder.Build();
 
     /// <summary>The same three questions as <see cref="ClientBenchmarks.TypedEvaluateAsync"/>, evaluated as a built set.</summary>
     [Benchmark]
-    public ValueTask<Result<JevAnswers, JevError>> EvaluateBuiltSet() => _client.EvaluateAsync(_triage, State);
+    public ValueTask<Result<Answers, DecisionError>> EvaluateBuiltSet() => _client.EvaluateAsync(_triage, State);
 
     /// <summary>Parses twenty answers by the built set's linear key scan.</summary>
     [Benchmark]
-    public JevAnswers ParseBuiltTwenty()
+    public Answers ParseBuiltTwenty()
     {
         var reader = new Utf8JsonReader(_twentyAnswers);
         reader.Read();

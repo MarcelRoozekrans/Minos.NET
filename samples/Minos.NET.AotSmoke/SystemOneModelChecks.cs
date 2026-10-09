@@ -15,11 +15,11 @@ internal static class SystemOneModelChecks
     public static async Task HandBuiltQuestionsAreSent()
     {
         using var http = Program.Http(HttpStatusCode.OK, Program.TriageResponse);
-        using var client = new JevClient(http, Program.Options());
+        using var client = new DecisionClient(http, Program.Options());
         var request = new SystemOneRequest
         {
             State = SmokeAnswers.State,
-            Questions = new Dictionary<string, JevQuestion>(StringComparer.Ordinal)
+            Questions = new Dictionary<string, Question>(StringComparer.Ordinal)
             {
                 ["requests_credentials"] = new NoulQuestion
                 {
@@ -29,7 +29,7 @@ internal static class SystemOneModelChecks
                 ["team"] = new ChoiceQuestion
                 {
                     Instructions = "Which team should handle `message`?",
-                    Criteria = new Dictionary<string, JevContent?>(StringComparer.Ordinal) { ["billing"] = "Charges", ["account"] = null },
+                    Criteria = new Dictionary<string, DecisionContent?>(StringComparer.Ordinal) { ["billing"] = "Charges", ["account"] = null },
                 },
                 ["urgency"] = new ScoreQuestion
                 {
@@ -53,7 +53,7 @@ internal static class SystemOneModelChecks
     public static async Task HandBuiltModelCardEqualsTheListedOne()
     {
         using var http = Program.Http(HttpStatusCode.OK, Program.ModelsResponse);
-        using var client = new JevClient(http, Program.Options());
+        using var client = new DecisionClient(http, Program.Options());
         var expected = new ModelList
         {
             Models =

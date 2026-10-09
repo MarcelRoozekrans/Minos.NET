@@ -118,8 +118,8 @@ public sealed class EvaluatedTests
     {
         var evaluated = Evaluate(Fixture.Text("response-noul.json"));
 
-        var call = Evaluated.Unwrap(new ValueTask<ZeroAlloc.Results.Result<Evaluated<string>, JevError>>(
-            ZeroAlloc.Results.Result<Evaluated<string>, JevError>.Success(evaluated)));
+        var call = Evaluated.Unwrap(new ValueTask<ZeroAlloc.Results.Result<Evaluated<string>, DecisionError>>(
+            ZeroAlloc.Results.Result<Evaluated<string>, DecisionError>.Success(evaluated)));
 
         Assert.True(call.IsCompletedSuccessfully);
         Assert.Equal("answers", (await call).Value);
@@ -139,14 +139,14 @@ public sealed class EvaluatedTests
     public async Task Unwrap_OfAnAsynchronousSuccess_DisposesAndReturnsTheAnswers()
     {
         var evaluated = Evaluate(Fixture.Text("response-noul.json"));
-        var source = new TaskCompletionSource<ZeroAlloc.Results.Result<Evaluated<string>, JevError>>(TaskCreationOptions.RunContinuationsAsynchronously);
+        var source = new TaskCompletionSource<ZeroAlloc.Results.Result<Evaluated<string>, DecisionError>>(TaskCreationOptions.RunContinuationsAsynchronously);
 
-        var call = Evaluated.Unwrap(new ValueTask<ZeroAlloc.Results.Result<Evaluated<string>, JevError>>(source.Task));
+        var call = Evaluated.Unwrap(new ValueTask<ZeroAlloc.Results.Result<Evaluated<string>, DecisionError>>(source.Task));
 
         Assert.False(call.IsCompleted);
         Assert.Equal("jev-1.13.0", evaluated.ResponseModel);
 
-        source.SetResult(ZeroAlloc.Results.Result<Evaluated<string>, JevError>.Success(evaluated));
+        source.SetResult(ZeroAlloc.Results.Result<Evaluated<string>, DecisionError>.Success(evaluated));
 
         Assert.Equal("answers", (await call).Value);
         Assert.Throws<ObjectDisposedException>(() => evaluated.ResponseModel);
@@ -155,10 +155,10 @@ public sealed class EvaluatedTests
     [Fact]
     public async Task Unwrap_OfAFailure_KeepsTheError()
     {
-        var error = new JevError(JevErrorKind.Server, "boom");
+        var error = new DecisionError(DecisionErrorKind.Server, "boom");
 
-        var result = await Evaluated.Unwrap(new ValueTask<ZeroAlloc.Results.Result<Evaluated<string>, JevError>>(
-            ZeroAlloc.Results.Result<Evaluated<string>, JevError>.Failure(error)));
+        var result = await Evaluated.Unwrap(new ValueTask<ZeroAlloc.Results.Result<Evaluated<string>, DecisionError>>(
+            ZeroAlloc.Results.Result<Evaluated<string>, DecisionError>.Failure(error)));
 
         Assert.Same(error, result.Error);
     }

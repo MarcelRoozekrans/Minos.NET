@@ -22,7 +22,7 @@ namespace Minos;
 /// from <see cref="Levels"/>, keyed by index. Attributes on the members, such as <c>[Criteria(Key = …)]</c> or
 /// <c>[Level]</c>, are not read.
 /// </remarks>
-internal sealed class EnumOptionSet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] T> : JevOptionSet<T>
+internal sealed class EnumOptionSet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] T> : DecisionOptionSet<T>
     where T : struct, Enum
 {
     // Created on first use; a race creates two equal sets and keeps one, which is harmless.

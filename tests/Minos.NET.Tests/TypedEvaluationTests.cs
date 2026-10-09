@@ -15,7 +15,7 @@ public sealed class TypedEvaluationTests
         var result = TypedEvaluation.ParseResponse<UrgencyCheck>(Encoding.UTF8.GetBytes(Fixture.Text(fixture)));
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(Answers.Parse<UrgencyCheck>(Fixture.Text(fixture)), result.Value);
+        Assert.Equal(ResponseAnswers.Parse<UrgencyCheck>(Fixture.Text(fixture)), result.Value);
     }
 
     [Fact]
@@ -49,7 +49,7 @@ public sealed class TypedEvaluationTests
         var result = TypedEvaluation.ParseResponse<UrgencyCheck>(Encoding.UTF8.GetBytes(json), statusCode: 200);
 
         Assert.True(result.IsFailure);
-        Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);
         Assert.Equal(200, result.Error.StatusCode);
         Assert.Contains(messagePart, result.Error.Message, StringComparison.Ordinal);
         Assert.Null(result.Error.Exception);
@@ -66,7 +66,7 @@ public sealed class TypedEvaluationTests
         var result = TypedEvaluation.ParseResponse<UrgencyCheck>(Encoding.UTF8.GetBytes(json));
 
         Assert.True(result.IsFailure);
-        Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);
         Assert.Null(result.Error.StatusCode);
         Assert.IsAssignableFrom<JsonException>(result.Error.Exception);
     }
@@ -109,7 +109,7 @@ public sealed class TypedEvaluationTests
     {
         var result = TypedEvaluation.ParseAnswersObject<UrgencyCheck>("{}"u8, statusCode: 200);
 
-        Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);
         Assert.Equal(200, result.Error.StatusCode);
         Assert.IsType<JsonException>(result.Error.Exception);
     }
@@ -117,8 +117,8 @@ public sealed class TypedEvaluationTests
     [Fact]
     public void FromResponse_ParsesConsecutiveResponses()
     {
-        var noul = JsonSerializer.Deserialize(Fixture.Text("response-noul.json"), Serialization.JevJsonContext.Default.SystemOneResponse)!;
-        var choice = JsonSerializer.Deserialize(Fixture.Text("response-choice.json"), Serialization.JevJsonContext.Default.SystemOneResponse)!;
+        var noul = JsonSerializer.Deserialize(Fixture.Text("response-noul.json"), Serialization.DecisionJsonContext.Default.SystemOneResponse)!;
+        var choice = JsonSerializer.Deserialize(Fixture.Text("response-choice.json"), Serialization.DecisionJsonContext.Default.SystemOneResponse)!;
 
         var first = TypedEvaluation.FromResponse<UrgencyCheck>(noul);
         var second = TypedEvaluation.FromResponse<DepartmentRouting>(choice);

@@ -2,7 +2,7 @@ using Minos.Validation;
 
 namespace Minos;
 
-/// <summary>Adds the options of a keyed Choice question built with <see cref="JevQuestionSetBuilder"/>, in wire order.</summary>
+/// <summary>Adds the options of a keyed Choice question built with <see cref="QuestionSetBuilder"/>, in wire order.</summary>
 /// <remarks>Valid only inside its callback: once the question method returns, its methods throw <see cref="InvalidOperationException"/>.</remarks>
 public sealed class KeyedChoiceOptionsBuilder
 {
@@ -29,7 +29,7 @@ public sealed class KeyedChoiceOptionsBuilder
     /// <returns>This builder.</returns>
     /// <exception cref="InvalidOperationException">The configurator is used after its callback returned.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="key"/> or <paramref name="criterion"/> is <see langword="null"/>.</exception>
-    public KeyedChoiceOptionsBuilder Option(string key, JevCriterion criterion)
+    public KeyedChoiceOptionsBuilder Option(string key, Criterion criterion)
     {
         _draft.EnsureOpen();
         ArgumentNullException.ThrowIfNull(key);

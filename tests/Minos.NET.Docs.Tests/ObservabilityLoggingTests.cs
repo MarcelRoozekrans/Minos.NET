@@ -23,16 +23,16 @@ public sealed partial class ObservabilityLoggingTests
         { "models": [ { "name": "jev-latest", "description": "The most recent stable release.", "release_date": "2026-09-15" } ] }
         """;
 
-    private static JevClientOptions Options(int maxRetries = 0)
+    private static DecisionClientOptions Options(int maxRetries = 0)
     {
-        var options = ScriptedJev.Quick(maxRetries);
+        var options = ScriptedDecision.Quick(maxRetries);
         options.ApiKey = SecretKey;
         return options;
     }
 
-    private static async Task<IReadOnlyList<FakeLogRecord>> LogAsync(JevClientOptions options, params Reply[] script)
+    private static async Task<IReadOnlyList<FakeLogRecord>> LogAsync(DecisionClientOptions options, params Reply[] script)
     {
-        var (http, _) = ScriptedJev.Http(options, script);
+        var (http, _) = ScriptedDecision.Http(options, script);
         using (http)
         {
             return await ObservedLogging.EvaluateAndCollectAsync(http, options, CancellationToken.None);
@@ -73,7 +73,7 @@ public sealed partial class ObservabilityLoggingTests
         Assert.Equal(1001, record.Id.Id);
         Assert.Equal("EvaluationSucceeded", record.Id.Name);
         Assert.Equal(LogLevel.Debug, record.Level);
-        Assert.Equal("Minos.JevClient", record.Category);
+        Assert.Equal("Minos.DecisionClient", record.Category);
         Assert.Equal("evaluate-typed", Field(record, "Operation"));
         Assert.Equal("jev-latest", Field(record, "Model"));
         Assert.Equal("TypeSafe", Field(record, "Provider"));
@@ -166,11 +166,11 @@ public sealed partial class ObservabilityLoggingTests
     public async Task AModelListing_LogsItsOwnEvents()
     {
         var options = Options();
-        var (http, _) = ScriptedJev.Http(options, Reply.Ok(ModelsResponse));
+        var (http, _) = ScriptedDecision.Http(options, Reply.Ok(ModelsResponse));
         using (http)
         using (var provider = new FakeLoggerProvider())
         using (var loggers = LoggerFactory.Create(builder => builder.AddProvider(provider).SetMinimumLevel(LogLevel.Debug)))
-        using (var jev = new JevClient(http, options, loggers))
+        using (var jev = new DecisionClient(http, options, loggers))
         {
             await jev.ListModelsAsync(CancellationToken.None);
 
@@ -186,12 +186,12 @@ public sealed partial class ObservabilityLoggingTests
     public async Task AModelListingOnOpenRouter_LogsAFailure_WithoutSendingARequest()
     {
         var options = Options();
-        options.Provider = JevProvider.OpenRouter;
-        var (http, requests) = ScriptedJev.Http(options, Reply.Ok(ModelsResponse));
+        options.Provider = DecisionProvider.OpenRouter;
+        var (http, requests) = ScriptedDecision.Http(options, Reply.Ok(ModelsResponse));
         using (http)
         using (var provider = new FakeLoggerProvider())
         using (var loggers = LoggerFactory.Create(builder => builder.AddProvider(provider).SetMinimumLevel(LogLevel.Debug)))
-        using (var jev = new JevClient(http, options, loggers))
+        using (var jev = new DecisionClient(http, options, loggers))
         {
             await jev.ListModelsAsync(CancellationToken.None);
 
@@ -210,7 +210,7 @@ public sealed partial class ObservabilityLoggingTests
         using var http = new HttpClient(new ThrowingHandler()) { BaseAddress = new Uri("https://docs.example/api/") };
         using var provider = new FakeLoggerProvider();
         using var loggers = LoggerFactory.Create(builder => builder.AddProvider(provider).SetMinimumLevel(LogLevel.Debug));
-        using var jev = new JevClient(http, options, loggers);
+        using var jev = new DecisionClient(http, options, loggers);
 
         var thrown = await Assert.ThrowsAsync<InvalidOperationException>(
             async () => await jev.EvaluateAsync<ObservedUrgency>("Help!", CancellationToken.None));
@@ -233,11 +233,11 @@ public sealed partial class ObservabilityLoggingTests
     public async Task WithTheLevelsTurnedOff_NothingIsLogged()
     {
         var options = Options();
-        var (http, _) = ScriptedJev.Http(options, Reply.Ok(UrgentResponse));
+        var (http, _) = ScriptedDecision.Http(options, Reply.Ok(UrgentResponse));
         using (http)
         using (var provider = new FakeLoggerProvider())
         using (var loggers = LoggerFactory.Create(builder => builder.AddProvider(provider).SetMinimumLevel(LogLevel.None)))
-        using (var jev = new JevClient(http, options, loggers))
+        using (var jev = new DecisionClient(http, options, loggers))
         {
             var result = await jev.EvaluateAsync<ObservedUrgency>("Help!", CancellationToken.None);
 
@@ -246,9 +246,9 @@ public sealed partial class ObservabilityLoggingTests
         }
     }
 
-    // The table's ids, event names, levels and message templates are JevLog's, read from its source.
+    // The table's ids, event names, levels and message templates are DecisionLog's, read from its source.
     [Fact]
-    public void TheEventTableOnThePage_IsJevLogsLoggerMessageAttributes()
+    public void TheEventTableOnThePage_IsDecisionLogsLoggerMessageAttributes()
     {
         var rows = PageTables.Rows(Page, "The events");
 
@@ -263,11 +263,11 @@ public sealed partial class ObservabilityLoggingTests
         Assert.Equal([1001, 1002, 1003, 1004, 1005, 1006], Events().Select(e => e.Id));
     }
 
-    // The two fixed messages on the page are the constants JevLog logs instead of the error's own message.
+    // The two fixed messages on the page are the constants DecisionLog logs instead of the error's own message.
     [Fact]
-    public void TheFixedMessagesOnThePage_AreJevLogsConstants()
+    public void TheFixedMessagesOnThePage_AreDecisionLogsConstants()
     {
-        var source = File.ReadAllText(Path.Combine(PublishedPages.Root, "src", "Minos.NET", "JevLog.cs"));
+        var source = File.ReadAllText(Path.Combine(PublishedPages.Root, "src", "Minos.NET", "DecisionLog.cs"));
         var rows = PageTables.Rows(Page, "What is never logged");
 
         Assert.Equal(["InvalidResponse", "Network"], rows.Select(row => PageTables.Code(row[0])));
@@ -277,7 +277,7 @@ public sealed partial class ObservabilityLoggingTests
 
     private static (int Id, string Name, string Level, string Template)[] Events()
     {
-        var source = File.ReadAllText(Path.Combine(PublishedPages.Root, "src", "Minos.NET", "JevLog.cs"));
+        var source = File.ReadAllText(Path.Combine(PublishedPages.Root, "src", "Minos.NET", "DecisionLog.cs"));
         var events = new List<(int, string, string, string)>();
         foreach (Match match in LoggerMessage().Matches(source))
         {

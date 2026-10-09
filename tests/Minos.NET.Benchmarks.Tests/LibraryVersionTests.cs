@@ -19,10 +19,10 @@ public sealed partial class LibraryVersionTests
     }
 
     [Fact]
-    public void ZeroAlloc_Jev_reports_its_local_version_and_short_commit_when_one_is_recorded()
+    public void Minos_reports_its_local_version_and_short_commit_when_one_is_recorded()
     {
-        using var adapter = new JevAdapter(new Uri("http://127.0.0.1:1/"));
-        var informational = typeof(JevClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
+        using var adapter = new MinosAdapter(new Uri("http://127.0.0.1:1/"));
+        var informational = typeof(DecisionClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
 
         // A build that is not a release is versioned as the manifest's last release with the -local suffix, so the
         // table shows a branch build as one. A build without git metadata, such as one from a source tarball, records

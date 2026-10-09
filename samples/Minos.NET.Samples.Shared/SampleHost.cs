@@ -7,12 +7,12 @@ namespace Minos.Samples;
 public static class SampleHost
 {
     /// <summary>
-    /// Registers the default <see cref="IJevClient"/> bound from <paramref name="jevSection"/>, then applies
+    /// Registers the default <see cref="IDecisionClient"/> bound from <paramref name="jevSection"/>, then applies
     /// <paramref name="mode"/>. Replay needs no key, so it supplies a placeholder that is never sent anywhere.
     /// <paramref name="recordingsPath"/> is read in replay only, so a live run may pass <see langword="null"/>.
     /// </summary>
     /// <exception cref="ArgumentException">Replay is asked for without a recordings path.</exception>
-    public static IHttpClientBuilder AddSampleJevClient(
+    public static IHttpClientBuilder AddSampleDecisionClient(
         this IServiceCollection services,
         IConfiguration jevSection,
         SampleMode mode,
@@ -20,12 +20,12 @@ public static class SampleHost
         string sampleName,
         RecordingSession session)
     {
-        var builder = services.AddJevClient(jevSection);
+        var builder = services.AddDecisionClient(jevSection);
         switch (mode)
         {
             case SampleMode.Replay:
                 ArgumentException.ThrowIfNullOrEmpty(recordingsPath);
-                services.AddJevClient(options => options.ApiKey ??= "replay-no-key");
+                services.AddDecisionClient(options => options.ApiKey ??= "replay-no-key");
                 builder.ConfigurePrimaryHttpMessageHandler(() => new ReplayHandler(RecordingsFile.Load(recordingsPath), sampleName));
                 break;
             case SampleMode.Record:
@@ -41,7 +41,7 @@ public static class SampleHost
     {
         var configuration = new ConfigurationBuilder().AddJsonFile(Path.Combine(sampleDirectory, "appsettings.json")).Build();
         var services = new ServiceCollection();
-        services.AddSampleJevClient(
+        services.AddSampleDecisionClient(
             configuration.GetSection("Jev"), SampleMode.Replay, Path.Combine(sampleDirectory, "recordings.json"), sampleName, new RecordingSession());
         return services.BuildServiceProvider();
     }

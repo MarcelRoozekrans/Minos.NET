@@ -80,7 +80,7 @@ public enum AliasBeforeLarge
 }
 
 /// <summary>The generator's keys and order for the enums the runtime option sets are compared against.</summary>
-[JevQuestions]
+[Questions]
 public partial record DeclarationOrderChecks
 {
     [Choice("Which one, after?")]
@@ -188,12 +188,12 @@ public sealed class EnumOptionSetTests
     [Fact]
     public void ReadChoice_OverARuntimeSet_EqualsTheGeneratedSetsAnswer()
     {
-        var generated = Answers.Parse<DepartmentRouting>(Fixture.Text("response-choice.json")).Department;
+        var generated = ResponseAnswers.Parse<DepartmentRouting>(Fixture.Text("response-choice.json")).Department;
         var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(
             """{"type":"choice","choice":"billing","probabilities":{"billing":0.88,"technical":0.12,"sales":0.0},"confidence":0.81}"""));
         reader.Read();
 
-        var runtime = JevAnswerReader.ReadChoice(ref reader, EnumOptionSet<Department>.ForChoice, new double[4], 0);
+        var runtime = AnswerReader.ReadChoice(ref reader, EnumOptionSet<Department>.ForChoice, new double[4], 0);
 
         Assert.Equal(generated, runtime);
     }

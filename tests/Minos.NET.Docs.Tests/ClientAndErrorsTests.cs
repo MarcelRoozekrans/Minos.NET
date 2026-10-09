@@ -33,7 +33,7 @@ public sealed class ClientAndErrorsTests
     [Fact]
     public async Task Describe_TurnsARejectedKeyIntoAnAction()
     {
-        var (http, jev, requests) = ScriptedJev.Client(ScriptedJev.Quick(), Reply.Error(401));
+        var (http, jev, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(), Reply.Error(401));
         using (http)
         using (jev)
         {
@@ -51,7 +51,7 @@ public sealed class ClientAndErrorsTests
     [InlineData(418, "", "Jev failed with HTTP 418: The API returned HTTP 418.")]
     public async Task Describe_ReadsTheStatusAndTheDetail(int status, string body, string expected)
     {
-        var (http, jev, _) = ScriptedJev.Client(ScriptedJev.Quick(0), Reply.Error(status, body));
+        var (http, jev, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Error(status, body));
         using (http)
         using (jev)
         {
@@ -62,14 +62,14 @@ public sealed class ClientAndErrorsTests
     [Fact]
     public async Task ValidationProblems_ReadsWhereAndWhatFromTypeSafesRealBody()
     {
-        var (http, jev, _) = ScriptedJev.Client(ScriptedJev.Quick(0), Reply.Error(422, TypeSafeValidationBody));
+        var (http, jev, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Error(422, TypeSafeValidationBody));
         using (http)
         using (jev)
         {
             var result = await jev.EvaluateAsync(new SystemOneRequest
             {
                 State = "Help!",
-                Questions = new Dictionary<string, JevQuestion>(),
+                Questions = new Dictionary<string, Question>(),
             });
 
             Assert.True(result.IsFailure);
@@ -83,14 +83,14 @@ public sealed class ClientAndErrorsTests
     public async Task ValidationProblems_SkipsMalformedProblems()
     {
         const string body = """{"detail":[{"loc":["body","state"],"msg":"too long"},{"msg":"x"},3,{"loc":"body","msg":"y"},{"loc":["body"],"msg":7}]}""";
-        var (http, jev, _) = ScriptedJev.Client(ScriptedJev.Quick(0), Reply.Error(422, body));
+        var (http, jev, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Error(422, body));
         using (http)
         using (jev)
         {
             var result = await jev.EvaluateAsync(new SystemOneRequest
             {
                 State = "Help!",
-                Questions = new Dictionary<string, JevQuestion>(),
+                Questions = new Dictionary<string, Question>(),
             });
 
             Assert.True(result.IsFailure);
@@ -105,14 +105,14 @@ public sealed class ClientAndErrorsTests
     [InlineData(422, "not json")]
     public async Task ValidationProblems_IsEmpty_WhenThereIsNoListOfProblems(int status, string body)
     {
-        var (http, jev, _) = ScriptedJev.Client(ScriptedJev.Quick(0), Reply.Error(status, body));
+        var (http, jev, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Error(status, body));
         using (http)
         using (jev)
         {
             var result = await jev.EvaluateAsync(new SystemOneRequest
             {
                 State = "Help!",
-                Questions = new Dictionary<string, JevQuestion>(),
+                Questions = new Dictionary<string, Question>(),
             });
 
             Assert.True(result.IsFailure);
@@ -126,7 +126,7 @@ public sealed class ClientAndErrorsTests
     [InlineData(429, "Jev is busy. Try again later.")]
     public async Task Describe_ReadsAServerFailureAfterTheRetriesAreUsedUp(int status, string expected)
     {
-        var (http, jev, requests) = ScriptedJev.Client(ScriptedJev.Quick(1), Reply.Error(status));
+        var (http, jev, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(1), Reply.Error(status));
         using (http)
         using (jev)
         {
@@ -139,7 +139,7 @@ public sealed class ClientAndErrorsTests
     [Fact]
     public async Task Describe_ReportsTheWaitTheServerAskedFor()
     {
-        var (http, jev, _) = ScriptedJev.Client(ScriptedJev.Quick(0), Reply.Error(429, string.Empty, ("retry-after-ms", "1500")));
+        var (http, jev, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Error(429, string.Empty, ("retry-after-ms", "1500")));
         using (http)
         using (jev)
         {
@@ -152,7 +152,7 @@ public sealed class ClientAndErrorsTests
     [Fact]
     public async Task Describe_ReportsANetworkFailureAndAnUnreadableReply()
     {
-        var (http, jev, _) = ScriptedJev.Client(ScriptedJev.Quick(0), Reply.Refused);
+        var (http, jev, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Refused);
         using (http)
         using (jev)
         {
@@ -161,13 +161,13 @@ public sealed class ClientAndErrorsTests
                 await RawRequests.UrgencyAsync(jev, "Help!", CancellationToken.None));
         }
 
-        var (http2, jev2, _) = ScriptedJev.Client(ScriptedJev.Quick(0), Reply.Ok("this is not json"));
+        var (http2, jev2, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Ok("this is not json"));
         using (http2)
         using (jev2)
         {
             var result = await jev2.ListModelsAsync(CancellationToken.None);
 
-            Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);
+            Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);
             Assert.Equal(200, result.Error.StatusCode);
             Assert.StartsWith("Jev replied with something unreadable", ClientFailures.Describe(result.Error), StringComparison.Ordinal);
         }
@@ -176,7 +176,7 @@ public sealed class ClientAndErrorsTests
     [Fact]
     public async Task TheRawRequest_SendsTheQuestionsAndReadsTheAnswers()
     {
-        var (http, jev, requests) = ScriptedJev.Client(ScriptedJev.Quick(), Reply.Ok(UrgencyResponse));
+        var (http, jev, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(), Reply.Ok(UrgencyResponse));
         using (http)
         using (jev)
         {
@@ -196,21 +196,21 @@ public sealed class ClientAndErrorsTests
     [Fact]
     public async Task ModelsAsync_ListsTheModels_AndOpenRouterIsUnsupportedWithoutARequest()
     {
-        var (http, jev, _) = ScriptedJev.Client(ScriptedJev.Quick(), Reply.Ok(ModelsResponse));
+        var (http, jev, _) = ScriptedDecision.Client(ScriptedDecision.Quick(), Reply.Ok(ModelsResponse));
         using (http)
         using (jev)
         {
             Assert.Equal("jev-latest (2026-09-15), jev-preview (2026-09-16)", await ModelListing.ModelsAsync(jev, CancellationToken.None));
         }
 
-        var options = new JevClientOptions { Provider = JevProvider.OpenRouter, ApiKey = "docs-key" };
-        using var handler = new ScriptedJev.Handler([Reply.Ok(ModelsResponse)]);
+        var options = new DecisionClientOptions { Provider = DecisionProvider.OpenRouter, ApiKey = "docs-key" };
+        using var handler = new ScriptedDecision.Handler([Reply.Ok(ModelsResponse)]);
         using var openRouterHttp = new HttpClient(handler);
-        using var openRouter = new JevClient(openRouterHttp, options);
+        using var openRouter = new DecisionClient(openRouterHttp, options);
 
         var result = await openRouter.ListModelsAsync(CancellationToken.None);
 
-        Assert.Equal(JevErrorKind.Unsupported, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.Unsupported, result.Error.Kind);
         Assert.Empty(handler.Requests);
         Assert.StartsWith(
             "The provider cannot do that",
@@ -222,7 +222,7 @@ public sealed class ClientAndErrorsTests
     public void TheOptionsOnThePage_AreTheDefaults()
     {
         var spelledOut = ClientOptions.SpelledOut("docs-key");
-        var defaults = new JevClientOptions();
+        var defaults = new DecisionClientOptions();
 
         Assert.Equal(defaults.Provider, spelledOut.Provider);
         Assert.Equal(defaults.Model, spelledOut.Model);
@@ -233,7 +233,7 @@ public sealed class ClientAndErrorsTests
         Assert.Equal(defaults.Jitter, spelledOut.Jitter);
         Assert.Null(defaults.ApiKey);
         Assert.Null(defaults.BaseAddress);
-        Assert.Equal("jev-latest", JevDefaults.Model);
+        Assert.Equal("jev-latest", DecisionDefaults.Model);
     }
 
     [Fact]
@@ -245,18 +245,18 @@ public sealed class ClientAndErrorsTests
         Assert.Null(ClientOptions.Problem(ClientOptions.Strict("docs-key")));
         Assert.Equal(
             "MaxRetries must be between 0 and 10. (Parameter 'options')",
-            ClientOptions.Problem(new JevClientOptions { ApiKey = "docs-key", MaxRetries = 11 }));
-        Assert.Null(ClientOptions.Problem(new JevClientOptions { ApiKey = "docs-key", MaxRetries = 10 }));
+            ClientOptions.Problem(new DecisionClientOptions { ApiKey = "docs-key", MaxRetries = 11 }));
+        Assert.Null(ClientOptions.Problem(new DecisionClientOptions { ApiKey = "docs-key", MaxRetries = 10 }));
         Assert.StartsWith(
             "MaxRetryDelay must be at least InitialBackoff",
-            ClientOptions.Problem(new JevClientOptions
+            ClientOptions.Problem(new DecisionClientOptions
             {
                 ApiKey = "docs-key",
                 InitialBackoff = TimeSpan.FromSeconds(2),
                 MaxRetryDelay = TimeSpan.FromSeconds(1),
             }),
             StringComparison.Ordinal);
-        Assert.Throws<ArgumentException>(() => new JevClient(new JevClientOptions { ApiKey = "docs-key", MaxRetries = 11 }));
+        Assert.Throws<ArgumentException>(() => new DecisionClient(new DecisionClientOptions { ApiKey = "docs-key", MaxRetries = 11 }));
     }
 
     [Fact]
@@ -264,25 +264,25 @@ public sealed class ClientAndErrorsTests
     {
         using var environment = new KeyEnvironment(typeSafe: null, openRouter: null);
 
-        var typeSafe = ClientOptions.Problem(new JevClientOptions());
-        var openRouter = ClientOptions.Problem(new JevClientOptions { Provider = JevProvider.OpenRouter });
+        var typeSafe = ClientOptions.Problem(new DecisionClientOptions());
+        var openRouter = ClientOptions.Problem(new DecisionClientOptions { Provider = DecisionProvider.OpenRouter });
 
         Assert.Contains("TYPESAFE_API_KEY", typeSafe, StringComparison.Ordinal);
         Assert.Contains("OPENROUTER_API_KEY", openRouter, StringComparison.Ordinal);
 
         KeyEnvironment.Set(typeSafe: "from-the-environment", openRouter: null);
 
-        Assert.Null(ClientOptions.Problem(new JevClientOptions()));
+        Assert.Null(ClientOptions.Problem(new DecisionClientOptions()));
         Assert.Contains(
             "OPENROUTER_API_KEY",
-            ClientOptions.Problem(new JevClientOptions { Provider = JevProvider.OpenRouter }),
+            ClientOptions.Problem(new DecisionClientOptions { Provider = DecisionProvider.OpenRouter }),
             StringComparison.Ordinal);
     }
 
     [Fact]
     public async Task ARetryableFailure_IsRetriedAndTheAttemptNumberIsSent()
     {
-        var (http, jev, requests) = ScriptedJev.Client(ScriptedJev.Quick(), Reply.Error(503), Reply.Error(500), Reply.Ok(UrgencyResponse));
+        var (http, jev, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(), Reply.Error(503), Reply.Error(500), Reply.Ok(UrgencyResponse));
         using (http)
         using (jev)
         {
@@ -295,14 +295,14 @@ public sealed class ClientAndErrorsTests
     }
 
     [Theory]
-    [InlineData(429, JevErrorKind.RateLimited)]
-    [InlineData(503, JevErrorKind.Overloaded)]
-    [InlineData(529, JevErrorKind.Overloaded)]
-    [InlineData(500, JevErrorKind.Server)]
-    [InlineData(408, JevErrorKind.Http)]
-    public async Task EachRetriedStatus_IsTriedMaxRetriesPlusOneTimes_ThenReportedWithItsKind(int status, JevErrorKind kind)
+    [InlineData(429, DecisionErrorKind.RateLimited)]
+    [InlineData(503, DecisionErrorKind.Overloaded)]
+    [InlineData(529, DecisionErrorKind.Overloaded)]
+    [InlineData(500, DecisionErrorKind.Server)]
+    [InlineData(408, DecisionErrorKind.Http)]
+    public async Task EachRetriedStatus_IsTriedMaxRetriesPlusOneTimes_ThenReportedWithItsKind(int status, DecisionErrorKind kind)
     {
-        var (http, jev, requests) = ScriptedJev.Client(ScriptedJev.Quick(), Reply.Error(status));
+        var (http, jev, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(), Reply.Error(status));
         using (http)
         using (jev)
         {
@@ -323,7 +323,7 @@ public sealed class ClientAndErrorsTests
     [InlineData(422)]
     public async Task AClientError_IsNotRetried(int status)
     {
-        var (http, jev, requests) = ScriptedJev.Client(ScriptedJev.Quick(), Reply.Error(status));
+        var (http, jev, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(), Reply.Error(status));
         using (http)
         using (jev)
         {
@@ -338,13 +338,13 @@ public sealed class ClientAndErrorsTests
     [Fact]
     public async Task ANetworkFailure_IsRetried()
     {
-        var (http, jev, requests) = ScriptedJev.Client(ScriptedJev.Quick(1), Reply.Refused);
+        var (http, jev, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(1), Reply.Refused);
         using (http)
         using (jev)
         {
             var result = await jev.EvaluateAsync(Request(), CancellationToken.None);
 
-            Assert.Equal(JevErrorKind.Network, result.Error.Kind);
+            Assert.Equal(DecisionErrorKind.Network, result.Error.Kind);
             Assert.IsType<HttpRequestException>(result.Error.Exception);
         }
 
@@ -355,13 +355,13 @@ public sealed class ClientAndErrorsTests
     public async Task MaxRetriesZero_SendsOneRequest()
     {
         var options = ClientOptions.NoRetries("docs-key");
-        var (http, jev, requests) = ScriptedJev.Client(options, Reply.Error(503));
+        var (http, jev, requests) = ScriptedDecision.Client(options, Reply.Error(503));
         using (http)
         using (jev)
         {
             var result = await jev.EvaluateAsync(Request(), CancellationToken.None);
 
-            Assert.Equal(JevErrorKind.Overloaded, result.Error.Kind);
+            Assert.Equal(DecisionErrorKind.Overloaded, result.Error.Kind);
         }
 
         Assert.Collection(requests, _ => { });
@@ -379,7 +379,7 @@ public sealed class ClientAndErrorsTests
         await AssertRetryAfterAsync(null);
 
         var date = DateTimeOffset.UtcNow.AddMinutes(10).ToString("R", CultureInfo.InvariantCulture);
-        var (http, jev, _) = ScriptedJev.Client(ScriptedJev.Quick(0), Reply.Error(429, string.Empty, ("Retry-After", date)));
+        var (http, jev, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Error(429, string.Empty, ("Retry-After", date)));
         using (http)
         using (jev)
         {
@@ -393,8 +393,8 @@ public sealed class ClientAndErrorsTests
     public async Task ARetryAfterLongerThanMaxRetryDelay_IsCappedAtIt()
     {
         // The server asks for an hour. MaxRetryDelay is 5 ms, so the retry happens at once.
-        var (http, jev, requests) = ScriptedJev.Client(
-            ScriptedJev.Quick(1), Reply.Error(429, string.Empty, ("Retry-After", "3600")), Reply.Ok(UrgencyResponse));
+        var (http, jev, requests) = ScriptedDecision.Client(
+            ScriptedDecision.Quick(1), Reply.Error(429, string.Empty, ("Retry-After", "3600")), Reply.Ok(UrgencyResponse));
         using (http)
         using (jev)
         using (var limit = new CancellationTokenSource(TimeSpan.FromSeconds(20)))
@@ -411,9 +411,9 @@ public sealed class ClientAndErrorsTests
     public async Task ARetryAfterBelowMaxRetryDelay_IsWaitedFor()
     {
         // The backoff alone would be 1 ms, so a wait of about 400 ms can only come from the server's header.
-        var options = ScriptedJev.Quick(1);
+        var options = ScriptedDecision.Quick(1);
         options.MaxRetryDelay = TimeSpan.FromSeconds(5);
-        var (http, jev, requests) = ScriptedJev.Client(
+        var (http, jev, requests) = ScriptedDecision.Client(
             options, Reply.Error(429, string.Empty, ("retry-after-ms", "400")), Reply.Ok(UrgencyResponse));
         using (http)
         using (jev)
@@ -432,16 +432,16 @@ public sealed class ClientAndErrorsTests
     [Fact]
     public async Task AnAttemptThatTakesTooLong_IsATimeout_AndIsRetried()
     {
-        var options = ScriptedJev.Quick(1);
+        var options = ScriptedDecision.Quick(1);
         options.Timeout = TimeSpan.FromMilliseconds(100);
-        var (http, jev, requests) = ScriptedJev.Client(
+        var (http, jev, requests) = ScriptedDecision.Client(
             options, new Reply(HttpStatusCode.OK, UrgencyResponse, Delay: TimeSpan.FromSeconds(30)));
         using (http)
         using (jev)
         {
             var result = await jev.EvaluateAsync(Request(), CancellationToken.None);
 
-            Assert.Equal(JevErrorKind.Timeout, result.Error.Kind);
+            Assert.Equal(DecisionErrorKind.Timeout, result.Error.Kind);
             Assert.NotNull(result.Error.Exception);
         }
 
@@ -451,8 +451,8 @@ public sealed class ClientAndErrorsTests
     [Fact]
     public async Task Cancelling_ThrowsInsteadOfReturningAFailure()
     {
-        var (http, jev, _) = ScriptedJev.Client(
-            ScriptedJev.Quick(), new Reply(HttpStatusCode.OK, UrgencyResponse, Delay: TimeSpan.FromSeconds(30)));
+        var (http, jev, _) = ScriptedDecision.Client(
+            ScriptedDecision.Quick(), new Reply(HttpStatusCode.OK, UrgencyResponse, Delay: TimeSpan.FromSeconds(30)));
         using (http)
         using (jev)
         using (var cancelled = new CancellationTokenSource(TimeSpan.FromMilliseconds(50)))
@@ -464,7 +464,7 @@ public sealed class ClientAndErrorsTests
     [Fact]
     public async Task ABorrowedHttpClient_IsNotDisposedWithTheClient()
     {
-        using var handler = new ScriptedJev.Handler([Reply.Ok(UrgencyResponse)]);
+        using var handler = new ScriptedDecision.Handler([Reply.Ok(UrgencyResponse)]);
         using var borrowed = new HttpClient(handler) { BaseAddress = new Uri("https://docs.example/api/") };
         var jev = ClientConstructors.Borrowed(borrowed, "docs-key");
         jev.Dispose();
@@ -478,21 +478,21 @@ public sealed class ClientAndErrorsTests
     [Fact]
     public void ABorrowedHttpClient_KeepsItsOwnTimeout_UnlessConfiguredThroughConfigureHttpClient()
     {
-        var options = new JevClientOptions { ApiKey = "docs-key", Timeout = TimeSpan.FromSeconds(5) };
+        var options = new DecisionClientOptions { ApiKey = "docs-key", Timeout = TimeSpan.FromSeconds(5) };
         using var borrowed = new HttpClient();
-        using var jev = new JevClient(borrowed, options);
+        using var jev = new DecisionClient(borrowed, options);
 
         Assert.Equal(TimeSpan.FromSeconds(100), borrowed.Timeout);
 
         using var configured = new HttpClient();
-        JevClient.ConfigureHttpClient(configured, options);
+        DecisionClient.ConfigureHttpClient(configured, options);
 
         Assert.Equal(TimeSpan.FromSeconds(5), configured.Timeout);
     }
 
     private static async Task AssertRetryAfterAsync(TimeSpan? expected, params (string Name, string Value)[] headers)
     {
-        var (http, jev, _) = ScriptedJev.Client(ScriptedJev.Quick(0), Reply.Error(429, string.Empty, headers));
+        var (http, jev, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Error(429, string.Empty, headers));
         using (http)
         using (jev)
         {
@@ -502,12 +502,12 @@ public sealed class ClientAndErrorsTests
         }
     }
 
-    // The JevDefaults table lists every public member of the class, with the values the class holds.
+    // The DecisionDefaults table lists every public member of the class, with the values the class holds.
     [Fact]
-    public void TheJevDefaultsTable_ListsEveryMemberWithItsValue()
+    public void TheDecisionDefaultsTable_ListsEveryMemberWithItsValue()
     {
-        var rows = PageTables.Rows("client-and-errors.md", "JevDefaults");
-        var actual = typeof(JevDefaults)
+        var rows = PageTables.Rows("client-and-errors.md", "DecisionDefaults");
+        var actual = typeof(DecisionDefaults)
             .GetMembers(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.DeclaredOnly)
             .Where(member => member.MemberType is System.Reflection.MemberTypes.Field or System.Reflection.MemberTypes.Property)
             .Select(member => member.Name)
@@ -515,28 +515,28 @@ public sealed class ClientAndErrorsTests
 
         Assert.Equal(actual, rows.Select(row => PageTables.Code(row[0])).Order(StringComparer.Ordinal));
         var values = rows.ToDictionary(row => PageTables.Code(row[0]), row => PageTables.Code(row[1]), StringComparer.Ordinal);
-        Assert.Equal(JevDefaults.ApiKeyEnvironmentVariable, values[nameof(JevDefaults.ApiKeyEnvironmentVariable)]);
-        Assert.Equal(JevDefaults.OpenRouterApiKeyEnvironmentVariable, values[nameof(JevDefaults.OpenRouterApiKeyEnvironmentVariable)]);
-        Assert.Equal(JevDefaults.BaseAddressEnvironmentVariable, values[nameof(JevDefaults.BaseAddressEnvironmentVariable)]);
-        Assert.Equal(JevDefaults.Model, values[nameof(JevDefaults.Model)]);
-        Assert.Equal(JevDefaults.TypeSafeBaseAddress.ToString(), values[nameof(JevDefaults.TypeSafeBaseAddress)]);
-        Assert.Equal(JevDefaults.OpenRouterBaseAddress.ToString(), values[nameof(JevDefaults.OpenRouterBaseAddress)]);
+        Assert.Equal(DecisionDefaults.ApiKeyEnvironmentVariable, values[nameof(DecisionDefaults.ApiKeyEnvironmentVariable)]);
+        Assert.Equal(DecisionDefaults.OpenRouterApiKeyEnvironmentVariable, values[nameof(DecisionDefaults.OpenRouterApiKeyEnvironmentVariable)]);
+        Assert.Equal(DecisionDefaults.BaseAddressEnvironmentVariable, values[nameof(DecisionDefaults.BaseAddressEnvironmentVariable)]);
+        Assert.Equal(DecisionDefaults.Model, values[nameof(DecisionDefaults.Model)]);
+        Assert.Equal(DecisionDefaults.TypeSafeBaseAddress.ToString(), values[nameof(DecisionDefaults.TypeSafeBaseAddress)]);
+        Assert.Equal(DecisionDefaults.OpenRouterBaseAddress.ToString(), values[nameof(DecisionDefaults.OpenRouterBaseAddress)]);
     }
 
     // The kinds table lists every member of the enum, with the same name.
     [Fact]
-    public void TheKindsTable_ListsEveryJevErrorKind()
+    public void TheKindsTable_ListsEveryDecisionErrorKind()
     {
         var rows = PageTables.Rows("client-and-errors.md", "The kinds");
 
         Assert.Equal(
-            Enum.GetNames<JevErrorKind>().Order(StringComparer.Ordinal),
+            Enum.GetNames<DecisionErrorKind>().Order(StringComparer.Ordinal),
             rows.Select(row => PageTables.Code(row[0])).Order(StringComparer.Ordinal));
     }
 
     private static SystemOneRequest Request() => new()
     {
         State = "Help!",
-        Questions = new Dictionary<string, JevQuestion> { ["is_urgent"] = new NoulQuestion { Instructions = "Urgent?" } },
+        Questions = new Dictionary<string, Question> { ["is_urgent"] = new NoulQuestion { Instructions = "Urgent?" } },
     };
 }

@@ -11,18 +11,18 @@ public sealed class ApiRuleTests
     [Fact]
     public Task EmptyChoiceEnum_ReportsOnTheEnum()
         => AnalyzerVerifier.VerifyAsync(
-            "public enum {|JEV001:E|} { } [JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }");
+            "public enum {|JEV001:E|} { } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }");
 
     [Fact]
     public Task EmptyChoiceEnum_SharedByTwoProperties_ReportsOnce()
         => AnalyzerVerifier.VerifyAsync(
-            "public enum {|JEV001:E|} { } [JevQuestions] public partial class C { "
+            "public enum {|JEV001:E|} { } [Questions] public partial class C { "
                 + "[Choice(\"q1\")] public partial Choice<E> A1 { get; } [Choice(\"q2\")] public partial Choice<E> A2 { get; } }");
 
     [Fact]
     public Task EmptyScoreEnum_ReportsOnTheEnum()
         => AnalyzerVerifier.VerifyAsync(
-            "public enum {|JEV002:L|} { } [JevQuestions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }");
+            "public enum {|JEV002:L|} { } [Questions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }");
 
     [Fact]
     public async Task EmptyEnum_FromReferencedAssembly_ReportsOnTheProperty()
@@ -31,7 +31,7 @@ public sealed class ApiRuleTests
             .EmitToReference();
 
         await AnalyzerVerifier.VerifyAsync(
-            "using External; [JevQuestions] public partial class C { "
+            "using External; [Questions] public partial class C { "
                 + "[Choice(\"q1\")] public partial Choice<Empty> {|JEV001:A1|} { get; } "
                 + "[Score(\"q2\")] public partial Score<Empty> {|JEV002:A2|} { get; } }",
             reference);
@@ -41,28 +41,28 @@ public sealed class ApiRuleTests
     public Task NonEmptyEnums_ReportNothing()
         => AnalyzerVerifier.VerifyNoDiagnosticsAsync(
             "public enum E { [Criteria(\"x\")] A } public enum L { [Level(\"a\")] A, [Level(\"b\")] B } "
-                + "[JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> A1 { get; } "
+                + "[Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> A1 { get; } "
                 + "[Score(\"q\")] public partial Score<L> A2 { get; } }");
 
     // ---- JEV003: empty text ----
 
     public static TheoryData<string> EmptyTextCases => new()
     {
-        "[JevQuestions] public partial class C { [Noul({|JEV003:\"\"|})] public partial Noul Answer { get; } }",
-        "[JevQuestions] public partial class C { [Noul({|JEV003:\"   \"|})] public partial Noul Answer { get; } }",
-        "[JevQuestions] public partial class C { [Noul({|JEV003:instructions: \" \"|})] public partial Noul Answer { get; } }",
+        "[Questions] public partial class C { [Noul({|JEV003:\"\"|})] public partial Noul Answer { get; } }",
+        "[Questions] public partial class C { [Noul({|JEV003:\"   \"|})] public partial Noul Answer { get; } }",
+        "[Questions] public partial class C { [Noul({|JEV003:instructions: \" \"|})] public partial Noul Answer { get; } }",
         "public enum E { [Criteria({|JEV003:\"\"|})] A } "
-            + "[JevQuestions] public partial class C { [Choice({|JEV003:\" \"|})] public partial Choice<E> Answer { get; } }",
+            + "[Questions] public partial class C { [Choice({|JEV003:\" \"|})] public partial Choice<E> Answer { get; } }",
         "public enum L { [Level(\"a\")] A, [Level({|JEV003:\"  \"|})] B } "
-            + "[JevQuestions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }",
-        "public enum L { [Level(\"a\")] A, [Level({|JEV003:\"\"|})] B } [JevQuestions] public partial class C { "
+            + "[Questions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }",
+        "public enum L { [Level(\"a\")] A, [Level({|JEV003:\"\"|})] B } [Questions] public partial class C { "
             + "[Score(\"q1\")] public partial Score<L> A1 { get; } [Score(\"q2\")] public partial Score<L> A2 { get; } }",
         "public enum E { [Criteria(\"a\", {|JEV003:Examples = [\" \"]|})] A } "
-            + "[JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
+            + "[Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
         "public enum E { [Criteria(\"a\", {|JEV003:NotFor = new string[] { null! }|})] A } "
-            + "[JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
+            + "[Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
         "public enum L { [Level(\"a\", {|JEV003:Examples = [\"\"]|})] A, [Level(\"b\")] B } "
-            + "[JevQuestions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }",
+            + "[Questions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }",
     };
 
     [Theory]
@@ -71,13 +71,13 @@ public sealed class ApiRuleTests
 
     public static TheoryData<string> NonEmptyTextCases => new()
     {
-        "[JevQuestions] public partial class C { [Noul(\"Is it urgent?\")] public partial Noul Answer { get; } }",
-        "[JevQuestions] public partial class C { [Noul(null)] public partial Noul Answer { get; } }",
+        "[Questions] public partial class C { [Noul(\"Is it urgent?\")] public partial Noul Answer { get; } }",
+        "[Questions] public partial class C { [Noul(null)] public partial Noul Answer { get; } }",
         "public enum E { [Criteria(null)] A, [Criteria(\"b\")] B } public enum L { [Level(null)] A, [Level(\"b\")] B } "
-            + "[JevQuestions] public partial class C { [Choice(null)] public partial Choice<E> A1 { get; } "
+            + "[Questions] public partial class C { [Choice(null)] public partial Choice<E> A1 { get; } "
             + "[Score(null)] public partial Score<L> A2 { get; } }",
         "public enum E { [Criteria(\"a\", Examples = [\"x\"], NotFor = [])] A } "
-            + "[JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
+            + "[Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
     };
 
     [Theory]
@@ -116,7 +116,7 @@ public sealed class ApiRuleTests
     [MemberData(nameof(MatchingTokens))]
     public Task StateReference_MatchingToken_ReportsNothing(string token)
         => AnalyzerVerifier.VerifyNoDiagnosticsAsync(
-            State + "[JevQuestions(State = typeof(TicketState))] public partial class C { "
+            State + "[Questions(State = typeof(TicketState))] public partial class C { "
                 + $"[Noul(\"Is `{token}` high?\")] public partial Noul Answer {{ get; }} }}");
 
     public static TheoryData<string> SkippedInstructions => new()
@@ -133,19 +133,19 @@ public sealed class ApiRuleTests
     [MemberData(nameof(SkippedInstructions))]
     public Task StateReference_NonIdentifierToken_IsSkipped(string instructions)
         => AnalyzerVerifier.VerifyNoDiagnosticsAsync(
-            State + "[JevQuestions(State = typeof(TicketState))] public partial class C { "
+            State + "[Questions(State = typeof(TicketState))] public partial class C { "
                 + $"[Noul(\"{instructions}\")] public partial Noul Answer {{ get; }} }}");
 
     [Fact]
     public Task StateReference_Typo_ReportsOnTheInstructions()
         => AnalyzerVerifier.VerifyAsync(
-            State + "[JevQuestions(State = typeof(TicketState))] public partial class C { "
+            State + "[Questions(State = typeof(TicketState))] public partial class C { "
                 + "[Noul({|JEV004:\"Is `CustomerTeir` gold and `open_tickets` high?\"|})] public partial Noul Answer { get; } }");
 
     [Fact]
     public Task StateReference_StaticOrNonPublicMember_Reports()
         => AnalyzerVerifier.VerifyAsync(
-            State + "[JevQuestions(State = typeof(TicketState))] public partial class C { "
+            State + "[Questions(State = typeof(TicketState))] public partial class C { "
                 + "[Noul({|JEV004:\"Is `StaticCount` set?\"|})] public partial Noul A1 { get; } "
                 + "[Noul({|JEV004:\"Is `hidden` set?\"|})] public partial Noul A2 { get; } }");
 
@@ -153,39 +153,39 @@ public sealed class ApiRuleTests
     public Task StateReference_InheritedMember_Matches()
         => AnalyzerVerifier.VerifyNoDiagnosticsAsync(
             "public class BaseState { public int Priority { get; set; } } public sealed class DerivedState : BaseState { } "
-                + "[JevQuestions(State = typeof(DerivedState))] public partial class C { "
+                + "[Questions(State = typeof(DerivedState))] public partial class C { "
                 + "[Noul(\"Is `priority` high?\")] public partial Noul Answer { get; } }");
 
     [Fact]
     public Task StateReference_ChoiceAndScoreInstructions_AreChecked()
         => AnalyzerVerifier.VerifyAsync(
             State + "public enum E { [Criteria(\"x\")] A } public enum L { [Level(\"a\")] A, [Level(\"b\")] B } "
-                + "[JevQuestions(State = typeof(TicketState))] public partial class C { "
+                + "[Questions(State = typeof(TicketState))] public partial class C { "
                 + "[Choice({|JEV004:\"`nope`\"|})] public partial Choice<E> A1 { get; } "
                 + "[Score({|JEV004:\"`nada`\"|})] public partial Score<L> A2 { get; } }");
 
     [Fact]
     public Task StateReference_WithoutState_ReportsNothing()
         => AnalyzerVerifier.VerifyNoDiagnosticsAsync(
-            "[JevQuestions] public partial class C { [Noul(\"Is `anything` set?\")] public partial Noul Answer { get; } }");
+            "[Questions] public partial class C { [Noul(\"Is `anything` set?\")] public partial Noul Answer { get; } }");
 
     [Fact]
     public Task StateReference_ArrayState_MatchesTheElementType()
         => AnalyzerVerifier.VerifyNoDiagnosticsAsync(
-            State + "[JevQuestions(State = typeof(TicketState[]))] public partial class C { "
+            State + "[Questions(State = typeof(TicketState[]))] public partial class C { "
                 + "[Noul(\"Is any `customer_tier` gold or `sla` breached?\")] public partial Noul Answer { get; } }");
 
     [Fact]
     public Task StateReference_ArrayState_Typo_Reports()
         => AnalyzerVerifier.VerifyAsync(
-            State + "[JevQuestions(State = typeof(TicketState[][]))] public partial class C { "
+            State + "[Questions(State = typeof(TicketState[][]))] public partial class C { "
                 + "[Noul({|JEV004:\"Is any `customer_teir` gold?\"|})] public partial Noul Answer { get; } }");
 
     [Fact]
     public Task StateReference_PositionalRecordState_MatchesItsParameters()
         => AnalyzerVerifier.VerifyAsync(
             "public sealed record Ticket(string Subject, int OpenTickets); "
-                + "[JevQuestions(State = typeof(Ticket))] public partial class C { "
+                + "[Questions(State = typeof(Ticket))] public partial class C { "
                 + "[Noul(\"Does `subject` or `open-tickets` show urgency?\")] public partial Noul A1 { get; } "
                 + "[Noul({|JEV004:\"Does `body` show urgency?\"|})] public partial Noul A2 { get; } }");
 
@@ -201,7 +201,7 @@ public sealed class ApiRuleTests
         var members = Members(levels, index => $"[Level(\"level {index}\")] M{index}");
         var enumName = reports ? "{|JEV005:L|}" : "L";
         var source = $"public enum {enumName} {{ {members} }} "
-            + "[JevQuestions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }";
+            + "[Questions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }";
 
         return reports ? AnalyzerVerifier.VerifyAsync(source) : AnalyzerVerifier.VerifyNoDiagnosticsAsync(source);
     }
@@ -214,7 +214,7 @@ public sealed class ApiRuleTests
         var members = Members(options, index => $"[Criteria(\"option {index}\")] M{index}");
         var enumName = reports ? "{|JEV005:E|}" : "E";
         var source = $"public enum {enumName} {{ {members} }} "
-            + "[JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }";
+            + "[Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }";
 
         return reports ? AnalyzerVerifier.VerifyAsync(source) : AnalyzerVerifier.VerifyNoDiagnosticsAsync(source);
     }
@@ -230,7 +230,7 @@ public sealed class ApiRuleTests
             .EmitToReference();
 
         await AnalyzerVerifier.VerifyAsync(
-            "using External; [JevQuestions] public partial class C { [Score(\"q\")] public partial Score<Levels> {|JEV005:Answer|} { get; } }",
+            "using External; [Questions] public partial class C { [Score(\"q\")] public partial Score<Levels> {|JEV005:Answer|} { get; } }",
             reference);
     }
 
@@ -238,7 +238,7 @@ public sealed class ApiRuleTests
     public Task ScoreLevelCount_IgnoresAliases()
         => AnalyzerVerifier.VerifyNoDiagnosticsAsync(
             "public enum L { [Level(\"a\")] A, [Level(\"b\")] B, Alias = A } "
-                + "[JevQuestions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }");
+                + "[Questions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }");
 
     // ---- JEV006: a Choice option without [Criteria] ----
 
@@ -246,14 +246,14 @@ public sealed class ApiRuleTests
     public Task ChoiceMemberWithoutCriteria_ReportsPerBareMember()
         => AnalyzerVerifier.VerifyAsync(
             "public enum E { [Criteria(\"x\")] A, {|JEV006:B|}, {|JEV006:C|} } "
-                + "[JevQuestions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }");
+                + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }");
 
     [Fact]
     public Task ChoiceMemberWithoutCriteria_SharedEnum_ReportsOnce()
         => AnalyzerVerifier.VerifyAsync(
-            "public enum E { [Criteria(\"x\")] A, {|JEV006:B|} } [JevQuestions] public partial class Q { "
+            "public enum E { [Criteria(\"x\")] A, {|JEV006:B|} } [Questions] public partial class Q { "
                 + "[Choice(\"q1\")] public partial Choice<E> A1 { get; } [Choice(\"q2\")] public partial Choice<E> A2 { get; } } "
-                + "[JevQuestions] public partial class R { [Choice(\"q3\")] public partial Choice<E> A3 { get; } }");
+                + "[Questions] public partial class R { [Choice(\"q3\")] public partial Choice<E> A3 { get; } }");
 
     [Fact]
     public async Task ChoiceMemberWithoutCriteria_FromReferencedAssembly_ReportsEachMemberOnTheProperty()
@@ -262,7 +262,7 @@ public sealed class ApiRuleTests
             .EmitToReference();
 
         await AnalyzerVerifier.VerifyAsync(
-            "using External; [JevQuestions] public partial class C { "
+            "using External; [Questions] public partial class C { "
                 + "[Choice(\"q\")] public partial Choice<Bare> {|JEV006:{|JEV006:Answer|}|} { get; } }",
             reference);
     }
@@ -271,7 +271,7 @@ public sealed class ApiRuleTests
     public Task ChoiceMembersWithCriteria_ReportNothing()
         => AnalyzerVerifier.VerifyNoDiagnosticsAsync(
             "public enum E { [Criteria(\"x\")] A, [Criteria(\"y\", Key = \"why\")] B } "
-                + "[JevQuestions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }");
+                + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }");
 
     private static string Members(int count, Func<int, string> member)
     {

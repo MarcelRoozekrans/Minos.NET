@@ -40,5 +40,5 @@
   </ItemGroup>
 
   <!-- Writes the compiler inputs the test that checks every public generic is instantiated here rebuilds this from. -->
-  <Import Project="../JevCompileInputs.targets" />
+  <Import Project="../DecisionCompileInputs.targets" />
 </Project>

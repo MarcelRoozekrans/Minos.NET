@@ -9,8 +9,8 @@ using ZeroAlloc.Telemetry;
 namespace Minos.Tests;
 
 /// <summary>
-/// The generated <c>JevOperationsInstrumented</c> proxy over a fake implementation: every attribute
-/// <see cref="IJevOperations"/> uses, and what the proxy reads when nothing listens.
+/// The generated <c>DecisionOperationsInstrumented</c> proxy over a fake implementation: every attribute
+/// <see cref="IDecisionOperations"/> uses, and what the proxy reads when nothing listens.
 /// </summary>
 [Collection(TelemetryListeners.Name)]
 public sealed class OperationsProxyTests
@@ -23,7 +23,7 @@ public sealed class OperationsProxyTests
         using var capture = new TelemetryCapture();
         var fake = new FakeOperations("{}") { Raw = Response("response-openrouter.json") };
 
-        var result = await new JevOperationsInstrumented(fake).EvaluateAsync(Request(), "openrouter", Endpoint, CancellationToken.None);
+        var result = await new DecisionOperationsInstrumented(fake).EvaluateAsync(Request(), "openrouter", Endpoint, CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         var span = capture.Span();
@@ -57,7 +57,7 @@ public sealed class OperationsProxyTests
         using var capture = new TelemetryCapture();
         var fake = new FakeOperations("{}") { Raw = Response("response-noul.json") };
 
-        await new JevOperationsInstrumented(fake).EvaluateAsync(Request(), "typesafe", Endpoint, CancellationToken.None);
+        await new DecisionOperationsInstrumented(fake).EvaluateAsync(Request(), "typesafe", Endpoint, CancellationToken.None);
 
         var span = capture.Span();
         Assert.Null(span.GetTagItem("gen_ai.response.id"));
@@ -70,10 +70,10 @@ public sealed class OperationsProxyTests
         using var capture = new TelemetryCapture();
         var mixed = JsonSerializer.Deserialize(
             $$"""{"model":"jev-1.13.0","answers":{"a":{{TelemetryBodies.ChoiceJson}},"b":{{TelemetryBodies.NoulJson}},"c":{{TelemetryBodies.ScoreJson}}},"usage":{"input_tokens":5,"output_tokens":2} }""",
-            JevJsonContext.Default.SystemOneResponse)!;
+            DecisionJsonContext.Default.SystemOneResponse)!;
         var fake = new FakeOperations("{}") { Raw = mixed };
 
-        await new JevOperationsInstrumented(fake).EvaluateAsync(Request(), "typesafe", Endpoint, CancellationToken.None);
+        await new DecisionOperationsInstrumented(fake).EvaluateAsync(Request(), "typesafe", Endpoint, CancellationToken.None);
 
         Assert.Equal([0.81, 0.92], capture.Points("jev.answer.confidence").Select(point => point.Value));
     }
@@ -84,7 +84,7 @@ public sealed class OperationsProxyTests
         using var capture = new TelemetryCapture();
         var fake = new FakeOperations(Fixture.Text("response-choice.json"));
 
-        var result = await Evaluated.Unwrap(new JevOperationsInstrumented(fake).EvaluateTypedAsync<DepartmentRouting>(
+        var result = await Evaluated.Unwrap(new DecisionOperationsInstrumented(fake).EvaluateTypedAsync<DepartmentRouting>(
             TelemetryBodies.EmptyBody(), "jev-test-model", "typesafe", Endpoint, 1, CancellationToken.None));
 
         Assert.Equal(Department.Billing, result.Value.Department.Value);
@@ -108,7 +108,7 @@ public sealed class OperationsProxyTests
     {
         const string Message = "a message that must not leak";
         using var capture = new TelemetryCapture();
-        var proxy = new JevOperationsInstrumented(new FakeOperations("{}") { Error = new JevError(JevErrorKind.RateLimited, Message) { StatusCode = 429 } });
+        var proxy = new DecisionOperationsInstrumented(new FakeOperations("{}") { Error = new DecisionError(DecisionErrorKind.RateLimited, Message) { StatusCode = 429 } });
 
         var failed = operation switch
         {
@@ -151,9 +151,9 @@ public sealed class OperationsProxyTests
         const string Message = "an exception message that must not leak";
         using var capture = new TelemetryCapture();
         Exception thrown = cancelled ? new OperationCanceledException(Message) : new InvalidOperationException(Message);
-        var proxy = new JevOperationsInstrumented(new FakeOperations("{}")
+        var proxy = new DecisionOperationsInstrumented(new FakeOperations("{}")
         {
-            Error = new JevError(JevErrorKind.Network, "not reached"),
+            Error = new DecisionError(DecisionErrorKind.Network, "not reached"),
             Throws = thrown,
         });
 
@@ -190,7 +190,7 @@ public sealed class OperationsProxyTests
     {
         const string Message = "a list failure that must not leak";
         using var capture = new TelemetryCapture();
-        var proxy = new JevOperationsInstrumented(new FakeOperations("{}") { Throws = new InvalidOperationException(Message) });
+        var proxy = new DecisionOperationsInstrumented(new FakeOperations("{}") { Throws = new InvalidOperationException(Message) });
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await proxy.ListModelsAsync("typesafe", Endpoint, CancellationToken.None));
 
@@ -208,13 +208,13 @@ public sealed class OperationsProxyTests
     public async Task BuiltSet_TagsItsOperationAndQuestionCount()
     {
         using var capture = new TelemetryCapture();
-        var set = JevQuestionSet.CreateBuilder()
+        var set = QuestionSet.CreateBuilder()
             .Noul("is_urgent", "Does this convey urgency?", out _)
             .Choice<Department>("department", "Which team?", out _)
             .Build().Value;
         var fake = new FakeOperations("""{"model":"jev-1.13.0","answers":{"is_urgent":{"type":"noul","noul":0.4},"department":{"type":"choice","choice":"billing","probabilities":{"billing":0.88,"technical":0.12},"confidence":0.81}},"usage":{"input_tokens":5,"output_tokens":2}}""");
 
-        await Evaluated.Unwrap(new JevOperationsInstrumented(fake).EvaluateBuiltSetAsync(
+        await Evaluated.Unwrap(new DecisionOperationsInstrumented(fake).EvaluateBuiltSetAsync(
             TelemetryBodies.EmptyBody(), set, "jev-test-model", "typesafe", Endpoint, CancellationToken.None));
 
         Assert.Equal("evaluate-built-set", capture.StartTags().Tag("jev.operation"));
@@ -226,7 +226,7 @@ public sealed class OperationsProxyTests
     public async Task ListModels_IsAListModelsSpan_WithOnlyTheDurationMetric()
     {
         using var capture = new TelemetryCapture();
-        var proxy = new JevOperationsInstrumented(new FakeOperations("{}"));
+        var proxy = new DecisionOperationsInstrumented(new FakeOperations("{}"));
 
         await proxy.ListModelsAsync("typesafe", Endpoint, CancellationToken.None);
 
@@ -249,7 +249,7 @@ public sealed class OperationsProxyTests
     public async Task ListModelsFailure_CarriesItsErrorType()
     {
         using var capture = new TelemetryCapture();
-        var proxy = new JevOperationsInstrumented(new FakeOperations("{}") { Error = new JevError(JevErrorKind.Unauthorized, "no") { StatusCode = 401 } });
+        var proxy = new DecisionOperationsInstrumented(new FakeOperations("{}") { Error = new DecisionError(DecisionErrorKind.Unauthorized, "no") { StatusCode = 401 } });
 
         await proxy.ListModelsAsync("typesafe", Endpoint, CancellationToken.None);
 
@@ -263,8 +263,8 @@ public sealed class OperationsProxyTests
     {
         using var capture = new TelemetryCapture();
         var fake = new FakeOperations(Fixture.Text("response-choice.json")) { Raw = Response("response-choice.json") };
-        var proxy = new JevOperationsInstrumented(fake);
-        var set = JevQuestionSet.CreateBuilder().Choice<Department>("department", "Which team?", out _).Build().Value;
+        var proxy = new DecisionOperationsInstrumented(fake);
+        var set = QuestionSet.CreateBuilder().Choice<Department>("department", "Which team?", out _).Build().Value;
 
         // Every method records, so every instrument any of the four declares is published before it is checked.
         await proxy.EvaluateAsync(Request(), "typesafe", Endpoint, CancellationToken.None);
@@ -276,32 +276,32 @@ public sealed class OperationsProxyTests
 
         Assert.Equal(4, capture.Points("gen_ai.client.operation.duration").Length);
         Assert.Equal(3, capture.Points("jev.answer.confidence").Length);
-        AssertInstrument(capture, "gen_ai.client.operation.duration", "s", JevTelemetry.DurationBuckets.ToArray());
-        AssertInstrument(capture, "gen_ai.client.inference.operation.input_tokens", "{token}", JevTelemetry.TokenBuckets.ToArray());
-        AssertInstrument(capture, "gen_ai.client.inference.operation.output_tokens", "{token}", JevTelemetry.TokenBuckets.ToArray());
-        AssertInstrument(capture, "jev.answer.confidence", "1", JevTelemetry.ConfidenceBuckets.ToArray());
+        AssertInstrument(capture, "gen_ai.client.operation.duration", "s", DecisionTelemetry.DurationBuckets.ToArray());
+        AssertInstrument(capture, "gen_ai.client.inference.operation.input_tokens", "{token}", DecisionTelemetry.TokenBuckets.ToArray());
+        AssertInstrument(capture, "gen_ai.client.inference.operation.output_tokens", "{token}", DecisionTelemetry.TokenBuckets.ToArray());
+        AssertInstrument(capture, "jev.answer.confidence", "1", DecisionTelemetry.ConfidenceBuckets.ToArray());
         Assert.IsType<Counter<long>>(capture.Instrument("gen_ai.client.inference.usage.input_tokens"));
         Assert.Equal("{token}", capture.Instrument("gen_ai.client.inference.usage.output_tokens").Unit);
 
-        var version = typeof(JevClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
+        var version = typeof(DecisionClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
         Assert.All(capture.Spans("Minos"), span => Assert.Equal(version, span.Source.Version));
         Assert.Equal(version, capture.Instrument("jev.answer.confidence").Meter.Version);
     }
 
     [Fact]
-    public void EveryHistogramAttribute_RepeatsJevTelemetrysUnitAndBuckets()
+    public void EveryHistogramAttribute_RepeatsDecisionTelemetrysUnitAndBuckets()
     {
         var expected = new Dictionary<string, (string Unit, double[] Buckets)>(StringComparer.Ordinal)
         {
-            ["gen_ai.client.operation.duration"] = ("s", JevTelemetry.DurationBuckets.ToArray()),
-            ["gen_ai.client.inference.operation.input_tokens"] = ("{token}", JevTelemetry.TokenBuckets.ToArray()),
-            ["gen_ai.client.inference.operation.output_tokens"] = ("{token}", JevTelemetry.TokenBuckets.ToArray()),
-            ["jev.answer.confidence"] = ("1", JevTelemetry.ConfidenceBuckets.ToArray()),
+            ["gen_ai.client.operation.duration"] = ("s", DecisionTelemetry.DurationBuckets.ToArray()),
+            ["gen_ai.client.inference.operation.input_tokens"] = ("{token}", DecisionTelemetry.TokenBuckets.ToArray()),
+            ["gen_ai.client.inference.operation.output_tokens"] = ("{token}", DecisionTelemetry.TokenBuckets.ToArray()),
+            ["jev.answer.confidence"] = ("1", DecisionTelemetry.ConfidenceBuckets.ToArray()),
         };
         var declared = 0;
 
         // Reads the literals themselves, so a drifted copy fails here even if the generator keeps one instrument per name.
-        foreach (var method in typeof(IJevOperations).GetMethods())
+        foreach (var method in typeof(IDecisionOperations).GetMethods())
         {
             foreach (var histogram in method.GetCustomAttributes<HistogramAttribute>())
             {
@@ -324,7 +324,7 @@ public sealed class OperationsProxyTests
     public async Task Duration_IsRecordedInSeconds()
     {
         using var capture = new TelemetryCapture(traces: false);
-        var proxy = new JevOperationsInstrumented(new FakeOperations("{}") { Delay = TimeSpan.FromMilliseconds(50) });
+        var proxy = new DecisionOperationsInstrumented(new FakeOperations("{}") { Delay = TimeSpan.FromMilliseconds(50) });
 
         await proxy.ListModelsAsync("typesafe", Endpoint, CancellationToken.None);
 
@@ -339,7 +339,7 @@ public sealed class OperationsProxyTests
     public async Task NothingListening_ReadsNoDeferredMember()
     {
         var fake = new FakeOperations(Fixture.Text("response-choice.json")) { DisposedResponse = true };
-        var proxy = new JevOperationsInstrumented(fake);
+        var proxy = new DecisionOperationsInstrumented(fake);
 
         // The response is already returned, so reading ResponseModel, a token count or Confidences would throw.
         var result = await proxy.EvaluateTypedAsync<DepartmentRouting>(
@@ -353,7 +353,7 @@ public sealed class OperationsProxyTests
     {
         using var capture = new TelemetryCapture(traces: false);
         var fake = new FakeOperations(Fixture.Text("response-choice.json")) { DisposedResponse = true };
-        var proxy = new JevOperationsInstrumented(fake);
+        var proxy = new DecisionOperationsInstrumented(fake);
 
         // The positive control for the test above: with a meter listener the proxy reads them, and the read throws.
         await Assert.ThrowsAsync<ObjectDisposedException>(async () => await proxy.EvaluateTypedAsync<DepartmentRouting>(
@@ -366,11 +366,11 @@ public sealed class OperationsProxyTests
         var answers = new CountingAnswers(Response("response-choice.json").Answers);
         var fake = new FakeOperations("{}") { Raw = WithAnswers(Response("response-choice.json"), answers) };
 
-        await new JevOperationsInstrumented(fake).EvaluateAsync(Request(), "typesafe", Endpoint, CancellationToken.None);
+        await new DecisionOperationsInstrumented(fake).EvaluateAsync(Request(), "typesafe", Endpoint, CancellationToken.None);
         Assert.Equal(0, answers.Enumerations);
 
         using var capture = new TelemetryCapture(traces: false);
-        await new JevOperationsInstrumented(fake).EvaluateAsync(Request(), "typesafe", Endpoint, CancellationToken.None);
+        await new DecisionOperationsInstrumented(fake).EvaluateAsync(Request(), "typesafe", Endpoint, CancellationToken.None);
         Assert.Equal(1, answers.Enumerations);
     }
 
@@ -429,16 +429,16 @@ public sealed class OperationsProxyTests
     }
 
     private static SystemOneRequest Request()
-        => JsonSerializer.Deserialize(Fixture.Text("request-noul.json"), JevJsonContext.Default.SystemOneRequest)!;
+        => JsonSerializer.Deserialize(Fixture.Text("request-noul.json"), DecisionJsonContext.Default.SystemOneRequest)!;
 
     private static SystemOneResponse Response(string fixture)
-        => JsonSerializer.Deserialize(Fixture.Text(fixture), JevJsonContext.Default.SystemOneResponse)!;
+        => JsonSerializer.Deserialize(Fixture.Text(fixture), DecisionJsonContext.Default.SystemOneResponse)!;
 
-    private static SystemOneResponse WithAnswers(SystemOneResponse response, IReadOnlyDictionary<string, JevAnswer> answers)
+    private static SystemOneResponse WithAnswers(SystemOneResponse response, IReadOnlyDictionary<string, Answer> answers)
         => new() { Model = response.Model, Usage = response.Usage, Answers = answers };
 
     /// <summary>Counts how often <c>Values</c> is enumerated, which only <see cref="SystemOneResponse.Confidences"/> does here.</summary>
-    private sealed class CountingAnswers(IReadOnlyDictionary<string, JevAnswer> inner) : IReadOnlyDictionary<string, JevAnswer>
+    private sealed class CountingAnswers(IReadOnlyDictionary<string, Answer> inner) : IReadOnlyDictionary<string, Answer>
     {
         public int Enumerations { get; private set; }
 
@@ -446,7 +446,7 @@ public sealed class OperationsProxyTests
 
         public IEnumerable<string> Keys => inner.Keys;
 
-        public IEnumerable<JevAnswer> Values
+        public IEnumerable<Answer> Values
         {
             get
             {
@@ -455,13 +455,13 @@ public sealed class OperationsProxyTests
             }
         }
 
-        public JevAnswer this[string key] => inner[key];
+        public Answer this[string key] => inner[key];
 
         public bool ContainsKey(string key) => inner.ContainsKey(key);
 
-        public bool TryGetValue(string key, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out JevAnswer value) => inner.TryGetValue(key, out value);
+        public bool TryGetValue(string key, [System.Diagnostics.CodeAnalysis.MaybeNullWhen(false)] out Answer value) => inner.TryGetValue(key, out value);
 
-        IEnumerator<KeyValuePair<string, JevAnswer>> IEnumerable<KeyValuePair<string, JevAnswer>>.GetEnumerator() => inner.GetEnumerator();
+        IEnumerator<KeyValuePair<string, Answer>> IEnumerable<KeyValuePair<string, Answer>>.GetEnumerator() => inner.GetEnumerator();
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => inner.GetEnumerator();
     }

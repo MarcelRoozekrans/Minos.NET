@@ -4,11 +4,11 @@ namespace Minos.Docs.Tests;
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 
-public sealed record JevMeasurement(string Name, string? Unit, double Value, KeyValuePair<string, object?>[] Tags);
+public sealed record DecisionMeasurement(string Name, string? Unit, double Value, KeyValuePair<string, object?>[] Tags);
 
 // Listens to everything Jev emits. OpenTelemetry does the same once it is told to add the source and the meter
 // named Minos, and then exports what it hears.
-public sealed class JevTelemetryListener : IDisposable
+public sealed class DecisionTelemetryListener : IDisposable
 {
     private const string Name = "Minos";
 
@@ -16,7 +16,7 @@ public sealed class JevTelemetryListener : IDisposable
     private readonly ActivityListener _activities;
     private readonly MeterListener _meters = new();
 
-    public JevTelemetryListener()
+    public DecisionTelemetryListener()
     {
         _activities = new ActivityListener
         {
@@ -63,7 +63,7 @@ public sealed class JevTelemetryListener : IDisposable
 
     public IList<KeyValuePair<string, object?>[]> StartTags { get; } = [];
 
-    public IList<JevMeasurement> Measurements { get; } = [];
+    public IList<DecisionMeasurement> Measurements { get; } = [];
 
     public IDictionary<string, Instrument> Instruments { get; } = new Dictionary<string, Instrument>();
 
@@ -77,7 +77,7 @@ public sealed class JevTelemetryListener : IDisposable
     {
         lock (_gate)
         {
-            Measurements.Add(new JevMeasurement(instrument.Name, instrument.Unit, value, tags.ToArray()));
+            Measurements.Add(new DecisionMeasurement(instrument.Name, instrument.Unit, value, tags.ToArray()));
         }
     }
 }

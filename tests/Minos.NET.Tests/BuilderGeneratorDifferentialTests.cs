@@ -33,7 +33,7 @@ public enum DiffLevel
 }
 
 /// <summary>The same questions as <see cref="BuilderGeneratorDifferentialTests.Built"/>, declared for the generator.</summary>
-[JevQuestions]
+[Questions]
 public partial record DiffSet
 {
     [Noul(EdgeCases.TrickyInstructions, WhenTrue = "Explicitly time-sensitive", WhenFalse = "No urgency expressed")]
@@ -51,7 +51,7 @@ public partial record DiffSet
 
 /// <summary>
 /// The builder and the generator send byte-identical questions: escaping, snake_case keys, skipped aliases. Declared
-/// sets are text only, so structured JSON is checked on the builder side alone, in <see cref="JevQuestionSetBuilderTests"/>.
+/// sets are text only, so structured JSON is checked on the builder side alone, in <see cref="QuestionSetBuilderTests"/>.
 /// </summary>
 public sealed class BuilderGeneratorDifferentialTests
 {
@@ -64,21 +64,21 @@ public sealed class BuilderGeneratorDifferentialTests
         Assert.True(DiffSet.QuestionsUtf8.SequenceEqual(built.QuestionsUtf8));
     }
 
-    internal static JevQuestionSet Built()
+    internal static QuestionSet Built()
     {
-        var built = JevQuestionSet.CreateBuilder()
+        var built = QuestionSet.CreateBuilder()
             .Noul("is_urgent", EdgeCases.TrickyInstructions, out _, c => c
                 .WhenTrue("Explicitly time-sensitive")
                 .WhenFalse("No urgency expressed"))
             .Noul("is_duplicate", "Is `message` a duplicate?", out _)
             .Choice<DiffTeam>("route_to", "Which team should handle `message`?", out _, o => o
-                .Describe(DiffTeam.Billing, JevCriterion.Text("Payments, invoicing, refunds")
+                .Describe(DiffTeam.Billing, Criterion.Text("Payments, invoicing, refunds")
                     .WithExamples("I was charged twice")
                     .WithNotFor("How much is Pro?"))
                 .Describe(DiffTeam.AccountSecurity, "Login, profile, permissions"))
             .Score<DiffLevel>("urgency_level", "How urgent is `message`?", out _, l => l
                 .Level(DiffLevel.Low, "Can wait")
-                .Level(DiffLevel.Medium, JevCriterion.Text("This week").WithExamples("Within five days"))
+                .Level(DiffLevel.Medium, Criterion.Text("This week").WithExamples("Within five days"))
                 .Level(DiffLevel.VeryHigh, "Today"))
             .Build();
 

@@ -34,7 +34,7 @@ internal sealed record QuestionModel(
     string EnumType,
     EquatableArray<OptionModel> Options);
 
-/// <summary>One <c>[JevQuestions]</c> type.</summary>
+/// <summary>One <c>[Questions]</c> type.</summary>
 /// <param name="StateTypeName">
 /// The fully qualified name of the <c>State</c> named argument's type, or <see langword="null"/> when the
 /// attribute carries no <c>State</c>. A string, never an <see cref="ISymbol"/>, so the model stays
@@ -79,7 +79,7 @@ internal sealed record StubPropertyModel(
 internal sealed record StubTypeModel(string Modifiers, string Keyword, string Name, string TypeParameters, int Arity);
 
 /// <summary>
-/// An invalid <c>[JevQuestions]</c> type whose partial question properties the generator implements anyway. The
+/// An invalid <c>[Questions]</c> type whose partial question properties the generator implements anyway. The
 /// stubs keep the compiler from reporting CS9248, an unimplemented partial property: that declaration error would
 /// stop a command-line build before the analyzer runs, hiding the JEV error that explains the problem. The type may
 /// be one JEV101 rejects, as long as a partial part can complete it: a nested, generic, abstract or static type, or
@@ -96,7 +96,7 @@ internal sealed record InvalidSetModel(
     EquatableArray<StubPropertyModel> Properties);
 
 /// <summary>
-/// What <see cref="ModelBuilder"/> finds for one <c>[JevQuestions]</c> type: a model when the type is valid, the stubs
+/// What <see cref="ModelBuilder"/> finds for one <c>[Questions]</c> type: a model when the type is valid, the stubs
 /// to emit when it is invalid but has implementable question properties, and the problems found. The generator keeps
 /// the model or the stubs; the analyzer reports the diagnostics.
 /// </summary>
@@ -111,7 +111,7 @@ internal sealed record QuestionSetResult(
     EquatableArray<DiagnosticInfo> Diagnostics);
 
 /// <summary>
-/// A problem with a <c>[JevQuestions]</c> type, by rule id. It carries no <see cref="DiagnosticDescriptor"/>:
+/// A problem with a <c>[Questions]</c> type, by rule id. It carries no <see cref="DiagnosticDescriptor"/>:
 /// the descriptors live only in Minos.NET.Analyzers, so the generator, which shares this file, defines no rules.
 /// </summary>
 /// <param name="Id">One of the <see cref="DiagnosticIds"/>.</param>

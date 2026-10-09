@@ -18,7 +18,7 @@ internal static class SmokeAnswers
     public const string JsonState = """{"subject":"Payouts failing","body":"Help! My payouts have been failing for 3 days."}""";
 
     /// <summary>Whether <paramref name="result"/> is the triage every canned triage response answers.</summary>
-    public static bool IsTriage(Result<SmokeTriage, JevError> result)
+    public static bool IsTriage(Result<SmokeTriage, DecisionError> result)
         => result.IsSuccess
             && !result.Value.RequestsCredentials.Value
             && result.Value.Team.Value == Team.Account
@@ -47,10 +47,10 @@ internal static class SmokeAnswers
     }
 
     /// <summary>The answers to <paramref name="set"/>, from <paramref name="responseJson"/> over a canned handler.</summary>
-    public static async Task<JevAnswers> EvaluateAsync(JevQuestionSet set, string responseJson)
+    public static async Task<Answers> EvaluateAsync(QuestionSet set, string responseJson)
     {
         using var http = Program.Http(HttpStatusCode.OK, responseJson);
-        using var client = new JevClient(http, Program.Options());
+        using var client = new DecisionClient(http, Program.Options());
         var result = await client.EvaluateAsync(set, State).ConfigureAwait(false);
         return result.IsSuccess ? result.Value : throw new InvalidOperationException("The canned answers did not parse: " + result.Error.Message);
     }

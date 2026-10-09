@@ -93,6 +93,6 @@ public sealed class IntentRoutingSampleTests
     private static async Task<RoutingReport> Run()
     {
         using var provider = SampleHost.BuildReplayProvider(SampleHost.SampleDirectory(Sample), Sample);
-        return await IntentRoutingSample.RunAsync(provider.GetRequiredService<IJevClient>(), CancellationToken.None);
+        return await IntentRoutingSample.RunAsync(provider.GetRequiredService<IDecisionClient>(), CancellationToken.None);
     }
 }

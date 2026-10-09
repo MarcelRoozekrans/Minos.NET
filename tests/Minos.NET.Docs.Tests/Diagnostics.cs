@@ -22,7 +22,7 @@ public enum Recommendation
 }
 #pragma warning restore JEV005
 
-[JevQuestions]
+[Questions]
 public partial record SurveyReply
 {
     [Score("How likely is this customer to recommend us to a friend?")]

@@ -7,7 +7,7 @@ internal static class Sources
 
         namespace Demo;
 
-        [JevQuestions]
+        [Questions]
         public partial record UrgencyCheck
         {
             [Noul("Does this convey urgency?", WhenTrue = "Explicitly time-sensitive", WhenFalse = "No urgency expressed")]
@@ -27,7 +27,7 @@ internal static class Sources
             Other,
         }
 
-        [JevQuestions]
+        [Questions]
         public partial record DepartmentRouting
         {
             [Choice("Which team should handle this?")]
@@ -47,7 +47,7 @@ internal static class Sources
             [Level("Very angry")] VeryAngry,
         }
 
-        [JevQuestions]
+        [Questions]
         public partial record FrustrationCheck
         {
             [Score("How frustrated is the customer?")]
@@ -74,7 +74,7 @@ internal static class Sources
             [Level("Today")] High,
         }
 
-        [JevQuestions]
+        [Questions]
         internal partial class TicketTriage
         {
             [Noul("Does `message` ask for a \"credential\"?", WhenFalse = "No credential is requested")]
@@ -116,7 +116,7 @@ internal static class Sources
             High,
         }
 
-        [JevQuestions]
+        [Questions]
         public partial record StructuredRouting
         {
             [Choice("Which team should handle this?")]
@@ -137,7 +137,7 @@ internal static class Sources
         {
         }
 
-        [JevQuestions]
+        [Questions]
         public partial record EmptyChoiceQuestion
         {
             [Choice("Pick one")]
@@ -155,7 +155,7 @@ internal static class Sources
         {
         }
 
-        [JevQuestions]
+        [Questions]
         public partial record EmptyScoreQuestion
         {
             [Score("Rate it")]
@@ -170,7 +170,7 @@ internal static class Sources
 
         namespace @class;
 
-        [JevQuestions]
+        [Questions]
         public partial record @event
         {
             [Noul("q")]
@@ -179,7 +179,7 @@ internal static class Sources
         """;
 
     // A set with a State type: the generated declaration implements the two-argument
-    // IJevQuestionSet<TSelf, TState>, naming the state type fully qualified.
+    // IQuestionSet<TSelf, TState>, naming the state type fully qualified.
     public const string WithState = """
         using Minos;
 
@@ -187,7 +187,7 @@ internal static class Sources
 
         public sealed record TicketContext(string CustomerId);
 
-        [JevQuestions(State = typeof(TicketContext))]
+        [Questions(State = typeof(TicketContext))]
         public partial record Set
         {
             [Noul("Is this urgent?")]
@@ -204,7 +204,7 @@ internal static class Sources
 
         public abstract record StateBase;
 
-        [JevQuestions(State = typeof(StateBase))]
+        [Questions(State = typeof(StateBase))]
         public partial record AbstractStateSet
         {
             [Noul("q")]
@@ -223,7 +223,7 @@ internal static class Sources
             public sealed record Inner(int Value);
         }
 
-        [JevQuestions(State = typeof(Outer.Inner))]
+        [Questions(State = typeof(Outer.Inner))]
         public partial record NestedStateSet
         {
             [Noul("q")]
@@ -239,7 +239,7 @@ internal static class Sources
 
         public sealed class Wrapper<T>;
 
-        [JevQuestions(State = typeof(Wrapper<int>))]
+        [Questions(State = typeof(Wrapper<int>))]
         public partial record ClosedGenericStateSet
         {
             [Noul("q")]
@@ -248,7 +248,7 @@ internal static class Sources
         """;
 
     // A State type that is an array: a JSON array is a legitimate state shape, and the generated set implements
-    // IJevQuestionSet<TSelf, TElement[]>, naming the element type fully qualified with the array suffix.
+    // IQuestionSet<TSelf, TElement[]>, naming the element type fully qualified with the array suffix.
     public const string WithArrayState = """
         using Minos;
 
@@ -256,7 +256,7 @@ internal static class Sources
 
         public sealed record ChatMessage(string Role, string Content);
 
-        [JevQuestions(State = typeof(ChatMessage[]))]
+        [Questions(State = typeof(ChatMessage[]))]
         public partial record ArrayStateSet
         {
             [Noul("q")]
@@ -277,7 +277,7 @@ internal static class Sources
             [Criteria("Denied")] @for,
         }
 
-        [JevQuestions]
+        [Questions]
         public partial record KeywordMemberCheck
         {
             [Choice("What is the verdict?")]

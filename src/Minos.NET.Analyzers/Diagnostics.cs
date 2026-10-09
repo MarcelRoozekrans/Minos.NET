@@ -62,7 +62,7 @@ internal static class Diagnostics
     public static readonly DiagnosticDescriptor UnsupportedType = new(
         DiagnosticIds.UnsupportedType,
         "Unsupported question set type",
-        "'{0}' must be a non-generic, non-abstract, non-static, top-level partial class or record that is not file-local to use [JevQuestions]",
+        "'{0}' must be a non-generic, non-abstract, non-static, top-level partial class or record that is not file-local to use [Questions]",
         Category,
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);

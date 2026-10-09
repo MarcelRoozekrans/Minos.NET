@@ -3,7 +3,7 @@ using Minos.Validation;
 
 namespace Minos;
 
-/// <summary>Adds the levels of a keyed Score question built with <see cref="JevQuestionSetBuilder"/>, lowest first, keyed by index.</summary>
+/// <summary>Adds the levels of a keyed Score question built with <see cref="QuestionSetBuilder"/>, lowest first, keyed by index.</summary>
 /// <remarks>Valid only inside its callback: once the question method returns, its methods throw <see cref="InvalidOperationException"/>.</remarks>
 public sealed class KeyedScoreLevelsBuilder
 {
@@ -16,7 +16,7 @@ public sealed class KeyedScoreLevelsBuilder
     /// <returns>This builder.</returns>
     /// <exception cref="InvalidOperationException">The configurator is used after its callback returned.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="criterion"/> is <see langword="null"/>.</exception>
-    public KeyedScoreLevelsBuilder Level(JevCriterion criterion)
+    public KeyedScoreLevelsBuilder Level(Criterion criterion)
     {
         _draft.EnsureOpen();
         ArgumentNullException.ThrowIfNull(criterion);

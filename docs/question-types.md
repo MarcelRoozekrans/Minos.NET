@@ -38,7 +38,7 @@ public enum Mood
     Pleased,
 }
 
-[JevQuestions]
+[Questions]
 public partial record TicketAnalysis
 {
     [Noul("Does this convey urgency?")]
@@ -169,14 +169,14 @@ hold the same things, with strings in place of enum members.
 ```cs
 public sealed class PlanAdvisor
 {
-    private readonly JevQuestionSet _questions;
+    private readonly QuestionSet _questions;
     private readonly KeyedChoiceHandle _plan;
     private readonly KeyedScoreHandle _effort;
 
     // The options and levels come from run-time data, so no enum describes them: keys and levels are plain values.
     public PlanAdvisor(IEnumerable<(string Key, string Summary)> plans)
     {
-        var built = JevQuestionSet.CreateBuilder()
+        var built = QuestionSet.CreateBuilder()
             .Choice("plan", "Which plan fits this customer?", out _plan, options =>
             {
                 foreach (var (key, summary) in plans)
@@ -194,7 +194,7 @@ public sealed class PlanAdvisor
     }
 
     public async Task<(string Plan, double PlanProbability, int EffortLevel, double EffortNormalized)?> AdviseAsync(
-        IJevClient jev, string message, CancellationToken cancellationToken)
+        IDecisionClient jev, string message, CancellationToken cancellationToken)
     {
         var result = await jev.EvaluateAsync(_questions, message, cancellationToken);
         if (result.IsFailure)
@@ -214,7 +214,7 @@ public sealed class PlanAdvisor
 <!-- endSnippet -->
 
 Building a set at run time is covered on its [own page](question-sets-at-run-time.md). The point here is the shape of
-the answers: they are read with `JevAnswers.Get` and a handle, and they hold the same numbers as the typed forms.
+the answers: they are read with `Answers.Get` and a handle, and they hold the same numbers as the typed forms.
 
 ## Confidence is not probability
 
@@ -237,7 +237,7 @@ confidence threshold sized to the cost of being wrong, with `ConfidenceThreshold
 
 The answers of one call share one buffer, and each probability map is a view over it. Reading `Value`, `Probability`,
 `Expected`, `Normalized` or `Confidence`, looking up a probability, enumerating a `Probabilities` map and calling
-`JevAnswers.Get` all allocate nothing. `foreach` over a map yields each option with its probability, in the order of
+`Answers.Get` all allocate nothing. `foreach` over a map yields each option with its probability, in the order of
 the enum's members, as `RunnerUp` above does. A member that repeats an earlier member's value is an alias and is
 skipped, and explicit values do not reorder anything. A keyed map enumerates its keys in the order they were added.
 

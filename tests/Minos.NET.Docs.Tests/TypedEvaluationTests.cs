@@ -32,7 +32,7 @@ public sealed class TypedEvaluationTests
     [Fact]
     public async Task ReviewAsync_SendsTheStateAndReadsTheTypedAnswers()
     {
-        var (http, jev, requests) = CannedJev.Client(ReviewResponse);
+        var (http, jev, requests) = CannedDecision.Client(ReviewResponse);
         using (http)
         using (jev)
         {
@@ -52,7 +52,7 @@ public sealed class TypedEvaluationTests
     [Fact]
     public async Task ReviewAsync_ReportsAFailureAsNull()
     {
-        var (http, jev, _) = CannedJev.Client("this is not json");
+        var (http, jev, _) = CannedDecision.Client("this is not json");
         using (http)
         using (jev)
         {
@@ -63,7 +63,7 @@ public sealed class TypedEvaluationTests
     [Fact]
     public async Task ATypedAnswer_HoldsEveryQuestionsAnswer()
     {
-        var review = await CannedJev.EvaluateAsync<TicketReview>(ReviewResponse, "text");
+        var review = await CannedDecision.EvaluateAsync<TicketReview>(ReviewResponse, "text");
 
         Assert.Equal(0.91, review.IsUrgent.Probability);
         Assert.Equal(0.72, review.Desk.Confidence);
@@ -126,7 +126,7 @@ public sealed class TypedEvaluationTests
     [Fact]
     public async Task TheTStateOverload_RejectsANullStateOrNullMetadata()
     {
-        var (http, jev, _) = CannedJev.Client(ReviewResponse);
+        var (http, jev, _) = CannedDecision.Client(ReviewResponse);
         using (http)
         using (jev)
         {
@@ -141,7 +141,7 @@ public sealed class TypedEvaluationTests
     public async Task EachStateForm_IsSentInItsOwnShape()
     {
         using var element = JsonDocument.Parse("""{"subject":"Payouts failing"}""");
-        var (http, jev, requests) = CannedJev.Client(UrgencyResponse);
+        var (http, jev, requests) = CannedDecision.Client(UrgencyResponse);
         using (http)
         using (jev)
         {
@@ -165,7 +165,7 @@ public sealed class TypedEvaluationTests
     [Fact]
     public async Task ASetWithAState_AlsoTakesTextAsItsState()
     {
-        var (http, jev, requests) = CannedJev.Client(ReviewResponse);
+        var (http, jev, requests) = CannedDecision.Client(ReviewResponse);
         using (http)
         using (jev)
         {
@@ -182,7 +182,7 @@ public sealed class TypedEvaluationTests
     [Fact]
     public async Task ARejectedState_ThrowsInsteadOfFailing()
     {
-        var (http, jev, _) = CannedJev.Client(UrgencyResponse);
+        var (http, jev, _) = CannedDecision.Client(UrgencyResponse);
         using (http)
         using (jev)
         {
@@ -200,19 +200,19 @@ public sealed class TypedEvaluationTests
     [Fact]
     public async Task AMissingAnswer_IsAFailureOfKindInvalidResponse()
     {
-        var (http, jev, _) = CannedJev.Client(UrgencyResponse);
+        var (http, jev, _) = CannedDecision.Client(UrgencyResponse);
         using (http)
         using (jev)
         {
             var result = await jev.EvaluateAsync<TicketReview>("Help!", CancellationToken.None);
 
             Assert.True(result.IsFailure);
-            Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);
+            Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);
         }
     }
 
     [Fact]
-    public void JevContent_HoldsTextOrStructuredJson()
+    public void DecisionContent_HoldsTextOrStructuredJson()
     {
         var forms = TicketReviewing.ContentForms(Ticket);
 
@@ -226,26 +226,26 @@ public sealed class TypedEvaluationTests
     }
 
     [Fact]
-    public void JevContent_AJsonStringBecomesText_AndAnythingElseThrows()
+    public void DecisionContent_AJsonStringBecomesText_AndAnythingElseThrows()
     {
-        Assert.True(JevContent.FromUtf8Json("\"plain text\""u8).IsString);
-        Assert.Equal("plain text", JevContent.FromUtf8Json("\"plain text\""u8).ToString());
+        Assert.True(DecisionContent.FromUtf8Json("\"plain text\""u8).IsString);
+        Assert.Equal("plain text", DecisionContent.FromUtf8Json("\"plain text\""u8).ToString());
 
         var number = (JsonTypeInfo<int>)JsonSerializerOptions.Default.GetTypeInfo(typeof(int));
-        Assert.Throws<ArgumentException>(() => JevContent.FromValue(42, number));
-        Assert.Throws<ArgumentException>(() => JevContent.FromUtf8Json("42"u8));
-        Assert.Throws<ArgumentException>(() => JevContent.FromUtf8Json("true"u8));
-        Assert.Throws<ArgumentException>(() => JevContent.FromUtf8Json("null"u8));
-        Assert.Throws<ArgumentException>(() => JevContent.FromUtf8Json("{} {}"u8));
-        Assert.Throws<ArgumentException>(() => JevContent.FromUtf8Json(ReadOnlySpan<byte>.Empty));
-        Assert.Throws<ArgumentNullException>(() => JevContent.FromString(null!));
-        Assert.Throws<ArgumentNullException>(() => JevContent.FromValue(Ticket, null!));
+        Assert.Throws<ArgumentException>(() => DecisionContent.FromValue(42, number));
+        Assert.Throws<ArgumentException>(() => DecisionContent.FromUtf8Json("42"u8));
+        Assert.Throws<ArgumentException>(() => DecisionContent.FromUtf8Json("true"u8));
+        Assert.Throws<ArgumentException>(() => DecisionContent.FromUtf8Json("null"u8));
+        Assert.Throws<ArgumentException>(() => DecisionContent.FromUtf8Json("{} {}"u8));
+        Assert.Throws<ArgumentException>(() => DecisionContent.FromUtf8Json(ReadOnlySpan<byte>.Empty));
+        Assert.Throws<ArgumentNullException>(() => DecisionContent.FromString(null!));
+        Assert.Throws<ArgumentNullException>(() => DecisionContent.FromValue(Ticket, null!));
     }
 
     [Fact]
-    public void JevContent_TextConvertsImplicitly()
+    public void DecisionContent_TextConvertsImplicitly()
     {
-        JevContent text = "Help!";
+        DecisionContent text = "Help!";
 
         Assert.True(text.TryGetString(out var value));
         Assert.Equal("Help!", value);

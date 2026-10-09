@@ -1,6 +1,7 @@
 using TypeSafe.AI.Sdk;
 using TypeSafeSdkClient = TypeSafe.AI.Sdk.TypeSafeClient;
 using TypeSafeSdkOptions = TypeSafe.AI.Sdk.TypeSafeClientOptions;
+using TypeSafeSdkQuestion = TypeSafe.AI.Sdk.Question;
 
 namespace Minos.Benchmarks.Compare.Adapters;
 
@@ -12,7 +13,7 @@ public sealed class TypeSafeSdkAdapter : IClientAdapter, IUsesBenchmarkTransport
 {
     private readonly HttpClient _http;
     private readonly TypeSafeSdkClient _client;
-    private readonly Dictionary<string, Question> _questions;
+    private readonly Dictionary<string, TypeSafeSdkQuestion> _questions;
 
     /// <summary>Initializes a new instance of the <see cref="TypeSafeSdkAdapter"/> class.</summary>
     /// <param name="baseAddress">The mock's root address; requests go to <c>/v1/systemone</c> under it.</param>
@@ -33,10 +34,10 @@ public sealed class TypeSafeSdkAdapter : IClientAdapter, IUsesBenchmarkTransport
             criteria[option] = description;
         }
 
-        _questions = new Dictionary<string, Question>(StringComparer.Ordinal)
+        _questions = new Dictionary<string, TypeSafeSdkQuestion>(StringComparer.Ordinal)
         {
-            [Workload.IntentKey] = Question.Choice(Workload.IntentInstructions, criteria),
-            [Workload.TravelsSoonKey] = Question.Noul(Workload.TravelsSoonInstructions, criteria: null),
+            [Workload.IntentKey] = TypeSafeSdkQuestion.Choice(Workload.IntentInstructions, criteria),
+            [Workload.TravelsSoonKey] = TypeSafeSdkQuestion.Noul(Workload.TravelsSoonInstructions, criteria: null),
         };
     }
 

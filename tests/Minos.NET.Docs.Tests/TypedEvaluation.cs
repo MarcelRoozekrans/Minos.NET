@@ -47,7 +47,7 @@ public enum Impact
 
 // State = typeof(SupportTicket) links the questions to the state type. The backticked names in the instructions
 // are checked against that type's members when you build.
-[JevQuestions(State = typeof(SupportTicket))]
+[Questions(State = typeof(SupportTicket))]
 public partial record TicketReview
 {
     [Noul(
@@ -66,7 +66,7 @@ public partial record TicketReview
 
 #region TypedEvaluation_Stateless
 // Without State, the questions stand alone, and any text or JSON can be the state.
-[JevQuestions]
+[Questions]
 public partial record UrgencyCheck
 {
     [Noul("Does this convey urgency?")]
@@ -78,7 +78,7 @@ public static class TicketReviewing
 {
     #region TypedEvaluation_Evaluate
     public static async Task<(bool Urgent, Desk Desk, Impact Impact)?> ReviewAsync(
-        IJevClient jev, SupportTicket ticket, CancellationToken cancellationToken)
+        IDecisionClient jev, SupportTicket ticket, CancellationToken cancellationToken)
     {
         // The state type and its JSON metadata travel together. The call serializes the ticket and sends it
         // with the questions.
@@ -97,7 +97,7 @@ public static class TicketReviewing
     #region TypedEvaluation_OtherStates
     // A question set without a State type takes its state as text, as a JsonElement or as UTF-8 JSON.
     public static async Task<int> EvaluateEachFormAsync(
-        IJevClient jev,
+        IDecisionClient jev,
         string text,
         JsonElement element,
         ReadOnlyMemory<byte> utf8Json,
@@ -119,14 +119,14 @@ public static class TicketReviewing
     #endregion
 
     #region TypedEvaluation_Content
-    // JevContent holds a state, a question's instructions or a description: text, or a JSON object or array.
-    public static JevContent[] ContentForms(SupportTicket ticket)
+    // DecisionContent holds a state, a question's instructions or a description: text, or a JSON object or array.
+    public static DecisionContent[] ContentForms(SupportTicket ticket)
     {
         return
         [
-            JevContent.FromString("Help! My payouts have been failing for 3 days."),
-            JevContent.FromValue(ticket, SupportTicketJson.Default.SupportTicket),
-            JevContent.FromUtf8Json("""{"subject":"Payouts failing"}"""u8),
+            DecisionContent.FromString("Help! My payouts have been failing for 3 days."),
+            DecisionContent.FromValue(ticket, SupportTicketJson.Default.SupportTicket),
+            DecisionContent.FromUtf8Json("""{"subject":"Payouts failing"}"""u8),
         ];
     }
     #endregion

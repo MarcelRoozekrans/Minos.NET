@@ -29,7 +29,7 @@ internal static class TelemetryChecks
         ActivitySource.AddActivityListener(listener);
         var handler = new SequenceHandler(Program.NoulResponse, HttpStatusCode.ServiceUnavailable, HttpStatusCode.OK);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("https://example.test/api/") };
-        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key", InitialBackoff = TimeSpan.FromMilliseconds(10) });
+        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key", InitialBackoff = TimeSpan.FromMilliseconds(10) });
 
         var result = await client.EvaluateAsync(Program.Request()).ConfigureAwait(false);
 
@@ -79,7 +79,7 @@ internal static class TelemetryChecks
         // check accepts 0.04 and up, leaving 10 ms of slack for timer and stopwatch granularity, which still rules out
         // milliseconds.
         using var http = new HttpClient(new DelayedHandler(TimeSpan.FromMilliseconds(50), Program.TriageResponse)) { BaseAddress = new Uri("https://example.test/api/") };
-        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
 
         var result = await client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State).ConfigureAwait(false);
 
@@ -106,7 +106,7 @@ internal static class TelemetryChecks
         };
         ActivitySource.AddActivityListener(listener);
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.UnprocessableEntity, Program.ValidationResponse)) { BaseAddress = new Uri("https://example.test/api/") };
-        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
 
         var result = await client.EvaluateAsync(Program.Request()).ConfigureAwait(false);
 
@@ -119,7 +119,7 @@ internal static class TelemetryChecks
             "a failed evaluation is an Error span with its error.type and no description under Native AOT");
     }
 
-    [Covers("Minos.JevClient.EvaluateAsync(Minos.SystemOneRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOneResponse!, Minos.JevError!>>")]
+    [Covers("Minos.DecisionClient.EvaluateAsync(Minos.SystemOneRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOneResponse!, Minos.DecisionError!>>")]
     public static async Task CancelledEvaluationSetsErrorTypeWithoutItsMessage()
     {
         var spans = new List<Activity>();
@@ -131,7 +131,7 @@ internal static class TelemetryChecks
         };
         ActivitySource.AddActivityListener(listener);
         using var http = new HttpClient(new DelayedHandler(TimeSpan.FromSeconds(30), Program.NoulResponse)) { BaseAddress = new Uri("https://example.test/api/") };
-        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key", MaxRetries = 0 });
+        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key", MaxRetries = 0 });
         using var cancel = new CancellationTokenSource(TimeSpan.FromMilliseconds(100));
         Exception? raised = null;
 

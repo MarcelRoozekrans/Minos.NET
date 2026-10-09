@@ -3,7 +3,7 @@ using System.Net;
 namespace Minos.Tests;
 
 /// <summary>
-/// <see cref="JevClient.ConfigureHttpClient(HttpClient, JevClientOptions)"/>: what an <see cref="HttpClient"/> from
+/// <see cref="DecisionClient.ConfigureHttpClient(HttpClient, DecisionClientOptions)"/>: what an <see cref="HttpClient"/> from
 /// <c>IHttpClientFactory</c> gets, through the internal overload with a fake environment.
 /// </summary>
 public sealed class ConfigureHttpClientTests
@@ -13,7 +13,7 @@ public sealed class ConfigureHttpClientTests
     {
         using var http = new HttpClient();
 
-        Configure(http, new JevClientOptions { BaseAddress = new Uri("http://proxy.local/jev") });
+        Configure(http, new DecisionClientOptions { BaseAddress = new Uri("http://proxy.local/jev") });
 
         Assert.Equal(new Uri("http://proxy.local/jev/"), http.BaseAddress);
     }
@@ -23,7 +23,7 @@ public sealed class ConfigureHttpClientTests
     {
         using var http = new HttpClient { BaseAddress = new Uri("http://mine.local/api/") };
 
-        Configure(http, new JevClientOptions { BaseAddress = new Uri("http://option.local/") });
+        Configure(http, new DecisionClientOptions { BaseAddress = new Uri("http://option.local/") });
 
         Assert.Equal(new Uri("http://mine.local/api/"), http.BaseAddress);
     }
@@ -33,7 +33,7 @@ public sealed class ConfigureHttpClientTests
     {
         using var http = new HttpClient();
 
-        Configure(http, new JevClientOptions(), ("TYPESAFE_BASE_URL", "http://env.local/jev"));
+        Configure(http, new DecisionClientOptions(), ("TYPESAFE_BASE_URL", "http://env.local/jev"));
 
         Assert.Equal(new Uri("http://env.local/jev/"), http.BaseAddress);
     }
@@ -43,7 +43,7 @@ public sealed class ConfigureHttpClientTests
     {
         using var http = new HttpClient();
 
-        Configure(http, new JevClientOptions { Provider = JevProvider.OpenRouter }, ("TYPESAFE_BASE_URL", "http://env.local/"));
+        Configure(http, new DecisionClientOptions { Provider = DecisionProvider.OpenRouter }, ("TYPESAFE_BASE_URL", "http://env.local/"));
 
         Assert.Equal(new Uri("https://openrouter.ai/api/"), http.BaseAddress);
     }
@@ -64,7 +64,7 @@ public sealed class ConfigureHttpClientTests
     {
         using var http = new HttpClient();
 
-        Configure(http, new JevClientOptions { Timeout = TimeSpan.FromSeconds(7) });
+        Configure(http, new DecisionClientOptions { Timeout = TimeSpan.FromSeconds(7) });
 
         Assert.Equal(TimeSpan.FromSeconds(7), http.Timeout);
     }
@@ -74,7 +74,7 @@ public sealed class ConfigureHttpClientTests
     {
         using var http = new HttpClient();
 
-        Configure(http, new JevClientOptions { Timeout = Timeout.InfiniteTimeSpan });
+        Configure(http, new DecisionClientOptions { Timeout = Timeout.InfiniteTimeSpan });
 
         Assert.Equal(Timeout.InfiniteTimeSpan, http.Timeout);
     }
@@ -96,7 +96,7 @@ public sealed class ConfigureHttpClientTests
     {
         using var http = new HttpClient();
 
-        var exception = Record.Exception(() => Configure(http, new JevClientOptions { ApiKey = null }));
+        var exception = Record.Exception(() => Configure(http, new DecisionClientOptions { ApiKey = null }));
 
         Assert.Null(exception);
     }
@@ -109,7 +109,7 @@ public sealed class ConfigureHttpClientTests
         using var http = new HttpClient();
 
         var exception = Assert.Throws<ArgumentException>(
-            () => Configure(http, new JevClientOptions { Timeout = TimeSpan.FromSeconds(seconds) }));
+            () => Configure(http, new DecisionClientOptions { Timeout = TimeSpan.FromSeconds(seconds) }));
 
         Assert.StartsWith("The time-out must be positive.", exception.Message, StringComparison.Ordinal);
         Assert.Equal("options", exception.ParamName);
@@ -121,7 +121,7 @@ public sealed class ConfigureHttpClientTests
         using var http = new HttpClient();
 
         var exception = Assert.Throws<ArgumentException>(
-            () => Configure(http, new JevClientOptions { BaseAddress = new Uri("v1", UriKind.Relative) }));
+            () => Configure(http, new DecisionClientOptions { BaseAddress = new Uri("v1", UriKind.Relative) }));
 
         Assert.StartsWith("The base address must be an absolute URI.", exception.Message, StringComparison.Ordinal);
         Assert.Equal("options", exception.ParamName);
@@ -133,7 +133,7 @@ public sealed class ConfigureHttpClientTests
         using var http = new HttpClient();
 
         var exception = Assert.Throws<ArgumentException>(
-            () => Configure(http, new JevClientOptions { BaseAddress = new Uri("http://host/api?key=value") }));
+            () => Configure(http, new DecisionClientOptions { BaseAddress = new Uri("http://host/api?key=value") }));
 
         Assert.StartsWith("The base address must not contain a query or fragment.", exception.Message, StringComparison.Ordinal);
     }
@@ -144,7 +144,7 @@ public sealed class ConfigureHttpClientTests
         using var http = new HttpClient();
 
         var exception = Assert.Throws<InvalidOperationException>(
-            () => Configure(http, new JevClientOptions(), ("TYPESAFE_BASE_URL", "not a url")));
+            () => Configure(http, new DecisionClientOptions(), ("TYPESAFE_BASE_URL", "not a url")));
 
         Assert.Equal("The TYPESAFE_BASE_URL environment variable is not an absolute URI.", exception.Message);
     }
@@ -155,7 +155,7 @@ public sealed class ConfigureHttpClientTests
         using var http = new HttpClient();
 
         var exception = Assert.Throws<ArgumentException>(
-            () => Configure(http, new JevClientOptions { Provider = (JevProvider)42 }));
+            () => Configure(http, new DecisionClientOptions { Provider = (DecisionProvider)42 }));
 
         Assert.StartsWith("Unknown provider 42.", exception.Message, StringComparison.Ordinal);
     }
@@ -166,7 +166,7 @@ public sealed class ConfigureHttpClientTests
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(100) };
 
         var exception = Assert.Throws<ArgumentOutOfRangeException>(
-            () => Configure(http, new JevClientOptions { Timeout = TimeSpan.FromMilliseconds((double)int.MaxValue + 1), BaseAddress = new Uri("http://option.local/") }));
+            () => Configure(http, new DecisionClientOptions { Timeout = TimeSpan.FromMilliseconds((double)int.MaxValue + 1), BaseAddress = new Uri("http://option.local/") }));
 
         Assert.StartsWith("The time-out must not exceed", exception.Message, StringComparison.Ordinal);
         Assert.Equal("options", exception.ParamName);
@@ -180,7 +180,7 @@ public sealed class ConfigureHttpClientTests
     {
         using var http = new HttpClient();
 
-        Configure(http, new JevClientOptions { Timeout = TimeSpan.FromMilliseconds(int.MaxValue) });
+        Configure(http, new DecisionClientOptions { Timeout = TimeSpan.FromMilliseconds(int.MaxValue) });
 
         Assert.Equal(TimeSpan.FromMilliseconds(int.MaxValue), http.Timeout);
     }
@@ -188,7 +188,7 @@ public sealed class ConfigureHttpClientTests
     [Fact]
     public void TooLongTimeout_Throws_FromTheConstructor()
         => Assert.Throws<ArgumentOutOfRangeException>(
-            () => new JevClient(new JevClientOptions { ApiKey = "k", Timeout = TimeSpan.FromMilliseconds((double)int.MaxValue + 1) }));
+            () => new DecisionClient(new DecisionClientOptions { ApiKey = "k", Timeout = TimeSpan.FromMilliseconds((double)int.MaxValue + 1) }));
 
     [Fact]
     public void FailedConfiguration_LeavesTheClientUnchanged()
@@ -196,7 +196,7 @@ public sealed class ConfigureHttpClientTests
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(100) };
 
         _ = Assert.Throws<ArgumentException>(
-            () => Configure(http, new JevClientOptions { Timeout = TimeSpan.Zero, BaseAddress = new Uri("http://option.local/") }));
+            () => Configure(http, new DecisionClientOptions { Timeout = TimeSpan.Zero, BaseAddress = new Uri("http://option.local/") }));
 
         Assert.Null(http.BaseAddress);
         Assert.Equal(TimeSpan.FromSeconds(100), http.Timeout);
@@ -211,7 +211,7 @@ public sealed class ConfigureHttpClientTests
         using var response = await http.GetAsync(new Uri("probe", UriKind.Relative));
 
         _ = Assert.Throws<InvalidOperationException>(
-            () => JevClient.ConfigureHttpClient(http, new JevClientOptions { Timeout = TimeSpan.FromSeconds(7) }));
+            () => DecisionClient.ConfigureHttpClient(http, new DecisionClientOptions { Timeout = TimeSpan.FromSeconds(7) }));
 
         Assert.Equal(new Uri("http://mine.local/"), http.BaseAddress);
         Assert.Empty(http.DefaultRequestHeaders.UserAgent);
@@ -225,7 +225,7 @@ public sealed class ConfigureHttpClientTests
         using var http = new HttpClient(handler);
         using var response = await http.GetAsync(new Uri("http://mine.local/probe"));
 
-        _ = Assert.Throws<InvalidOperationException>(() => JevClient.ConfigureHttpClient(http, null));
+        _ = Assert.Throws<InvalidOperationException>(() => DecisionClient.ConfigureHttpClient(http, null));
 
         Assert.Null(http.BaseAddress);
         Assert.Empty(http.DefaultRequestHeaders.UserAgent);
@@ -233,22 +233,22 @@ public sealed class ConfigureHttpClientTests
 
     [Fact]
     public void NullHttpClient_Throws()
-        => Assert.Throws<ArgumentNullException>(() => JevClient.ConfigureHttpClient(null!, new JevClientOptions()));
+        => Assert.Throws<ArgumentNullException>(() => DecisionClient.ConfigureHttpClient(null!, new DecisionClientOptions()));
 
     [Fact]
     public void PublicOverload_ConfiguresTheClient()
     {
         using var http = new HttpClient();
 
-        JevClient.ConfigureHttpClient(http, new JevClientOptions { BaseAddress = new Uri("http://option.local/"), Timeout = TimeSpan.FromSeconds(5) });
+        DecisionClient.ConfigureHttpClient(http, new DecisionClientOptions { BaseAddress = new Uri("http://option.local/"), Timeout = TimeSpan.FromSeconds(5) });
 
         Assert.Equal(new Uri("http://option.local/"), http.BaseAddress);
         Assert.Equal(TimeSpan.FromSeconds(5), http.Timeout);
         Assert.Matches("^Minos\\.NET/[^ +]+$", http.DefaultRequestHeaders.UserAgent.ToString());
     }
 
-    private static void Configure(HttpClient http, JevClientOptions? options, params (string Name, string Value)[] environment)
-        => JevClient.ConfigureHttpClient(
+    private static void Configure(HttpClient http, DecisionClientOptions? options, params (string Name, string Value)[] environment)
+        => DecisionClient.ConfigureHttpClient(
             http,
             options,
             name => Array.Find(environment, variable => string.Equals(variable.Name, name, StringComparison.Ordinal)).Value);

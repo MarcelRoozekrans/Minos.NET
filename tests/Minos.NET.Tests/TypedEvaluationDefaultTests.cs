@@ -12,20 +12,20 @@ public sealed record TicketContext(string Subject, string Body);
 [JsonSerializable(typeof(TicketContext))]
 internal sealed partial class TicketContextJsonContext : JsonSerializerContext;
 
-[JevQuestions(State = typeof(TicketContext))]
+[Questions(State = typeof(TicketContext))]
 public partial record TicketUrgency
 {
     [Noul("Does the ticket convey urgency?")]
     public partial Noul IsUrgent { get; }
 }
 
-/// <summary>Covers the typed <c>EvaluateAsync</c> default interface methods on <see cref="IJevClient"/>.</summary>
+/// <summary>Covers the typed <c>EvaluateAsync</c> default interface methods on <see cref="IDecisionClient"/>.</summary>
 public sealed class TypedEvaluationDefaultTests
 {
     [Fact]
     public async Task String_ReturnsTypedAnswers()
     {
-        IJevClient client = FakeClient.Returning("response-noul.json");
+        IDecisionClient client = FakeClient.Returning("response-noul.json");
 
         var result = await client.EvaluateAsync<UrgencyCheck>("text");
 
@@ -39,12 +39,12 @@ public sealed class TypedEvaluationDefaultTests
     {
         var fake = FakeClient.Returning("response-noul.json");
 
-        await ((IJevClient)fake).EvaluateAsync<UrgencyCheck>("text");
+        await ((IDecisionClient)fake).EvaluateAsync<UrgencyCheck>("text");
 
         var request = fake.OnlyRequest();
         Assert.True(request.State.TryGetString(out var state));
         Assert.Equal("text", state);
-        Assert.Equal(JevDefaults.Model, request.Model);
+        Assert.Equal(DecisionDefaults.Model, request.Model);
         AssertQuestionsEqual(UrgencyCheck.QuestionsUtf8, request);
     }
 
@@ -54,7 +54,7 @@ public sealed class TypedEvaluationDefaultTests
         var fake = FakeClient.Returning("response-noul.json");
         using var cts = new CancellationTokenSource();
 
-        await ((IJevClient)fake).EvaluateAsync<UrgencyCheck>("text", cts.Token);
+        await ((IDecisionClient)fake).EvaluateAsync<UrgencyCheck>("text", cts.Token);
 
         Assert.Equal(cts.Token, fake.LastToken);
     }
@@ -67,8 +67,8 @@ public sealed class TypedEvaluationDefaultTests
         var fromUtf8 = FakeClient.Returning("response-noul.json");
         using var document = JsonDocument.Parse(json);
 
-        var elementResult = await ((IJevClient)fromElement).EvaluateAsync<UrgencyCheck>(document.RootElement);
-        var utf8Result = await ((IJevClient)fromUtf8).EvaluateUtf8Async<UrgencyCheck>(Encoding.UTF8.GetBytes(json));
+        var elementResult = await ((IDecisionClient)fromElement).EvaluateAsync<UrgencyCheck>(document.RootElement);
+        var utf8Result = await ((IDecisionClient)fromUtf8).EvaluateUtf8Async<UrgencyCheck>(Encoding.UTF8.GetBytes(json));
 
         Assert.True(elementResult.IsSuccess);
         Assert.True(utf8Result.IsSuccess);
@@ -85,7 +85,7 @@ public sealed class TypedEvaluationDefaultTests
     {
         var fake = FakeClient.Returning("response-noul.json");
 
-        await ((IJevClient)fake).EvaluateUtf8Async<UrgencyCheck>("\"plain text\""u8.ToArray());
+        await ((IDecisionClient)fake).EvaluateUtf8Async<UrgencyCheck>("\"plain text\""u8.ToArray());
 
         Assert.True(fake.OnlyRequest().State.TryGetString(out var state));
         Assert.Equal("plain text", state);
@@ -102,7 +102,7 @@ public sealed class TypedEvaluationDefaultTests
         var fake = FakeClient.Returning("response-noul.json");
 
         var exception = await Assert.ThrowsAsync<ArgumentException>(
-            async () => await ((IJevClient)fake).EvaluateUtf8Async<UrgencyCheck>(Encoding.UTF8.GetBytes(json)));
+            async () => await ((IDecisionClient)fake).EvaluateUtf8Async<UrgencyCheck>(Encoding.UTF8.GetBytes(json)));
 
         Assert.Equal("utf8JsonState", exception.ParamName);
         Assert.Empty(fake.Requests);
@@ -114,7 +114,7 @@ public sealed class TypedEvaluationDefaultTests
         var fake = FakeClient.Returning("response-noul.json");
 
         await Assert.ThrowsAsync<ArgumentException>(
-            async () => await ((IJevClient)fake).EvaluateUtf8Async<UrgencyCheck>("42"u8.ToArray()));
+            async () => await ((IDecisionClient)fake).EvaluateUtf8Async<UrgencyCheck>("42"u8.ToArray()));
 
         Assert.Empty(fake.Requests);
     }
@@ -125,7 +125,7 @@ public sealed class TypedEvaluationDefaultTests
         var fake = FakeClient.Returning("response-noul.json");
 
         await Assert.ThrowsAsync<ArgumentNullException>(
-            async () => await ((IJevClient)fake).EvaluateAsync<UrgencyCheck>((string)null!));
+            async () => await ((IDecisionClient)fake).EvaluateAsync<UrgencyCheck>((string)null!));
 
         Assert.Empty(fake.Requests);
     }
@@ -136,7 +136,7 @@ public sealed class TypedEvaluationDefaultTests
         var fake = FakeClient.Returning("response-noul.json");
 
         await Assert.ThrowsAsync<ArgumentException>(
-            async () => await ((IJevClient)fake).EvaluateAsync<UrgencyCheck>(default(JsonElement)));
+            async () => await ((IDecisionClient)fake).EvaluateAsync<UrgencyCheck>(default(JsonElement)));
 
         Assert.Empty(fake.Requests);
     }
@@ -147,7 +147,7 @@ public sealed class TypedEvaluationDefaultTests
         var fake = FakeClient.Returning("response-noul.json");
         var ticket = new TicketContext("Payouts failing", "Help! My payouts have been failing for 3 days.");
 
-        var result = await ((IJevClient)fake).EvaluateAsync<TicketUrgency, TicketContext>(
+        var result = await ((IDecisionClient)fake).EvaluateAsync<TicketUrgency, TicketContext>(
             ticket, TicketContextJsonContext.Default.TicketContext);
 
         Assert.True(result.IsSuccess);
@@ -156,7 +156,7 @@ public sealed class TypedEvaluationDefaultTests
         Assert.True(request.State.TryGetJson(out var state));
         using var expected = JsonDocument.Parse(JsonSerializer.SerializeToUtf8Bytes(ticket, TicketContextJsonContext.Default.TicketContext));
         Assert.True(JsonElement.DeepEquals(expected.RootElement, state));
-        Assert.Equal(JevDefaults.Model, request.Model);
+        Assert.Equal(DecisionDefaults.Model, request.Model);
         AssertQuestionsEqual(TicketUrgency.QuestionsUtf8, request);
     }
 
@@ -167,9 +167,9 @@ public sealed class TypedEvaluationDefaultTests
         var ticket = new TicketContext("s", "b");
 
         await Assert.ThrowsAsync<ArgumentNullException>(
-            async () => await ((IJevClient)fake).EvaluateAsync<TicketUrgency, TicketContext>(null!, TicketContextJsonContext.Default.TicketContext));
+            async () => await ((IDecisionClient)fake).EvaluateAsync<TicketUrgency, TicketContext>(null!, TicketContextJsonContext.Default.TicketContext));
         await Assert.ThrowsAsync<ArgumentNullException>(
-            async () => await ((IJevClient)fake).EvaluateAsync<TicketUrgency, TicketContext>(ticket, null!));
+            async () => await ((IDecisionClient)fake).EvaluateAsync<TicketUrgency, TicketContext>(ticket, null!));
 
         Assert.Empty(fake.Requests);
     }
@@ -177,8 +177,8 @@ public sealed class TypedEvaluationDefaultTests
     [Fact]
     public async Task ChoiceAndScore_ReturnTypedAnswers()
     {
-        var routing = await ((IJevClient)FakeClient.Returning("response-choice.json")).EvaluateAsync<DepartmentRouting>("text");
-        var frustration = await ((IJevClient)FakeClient.Returning("response-score.json")).EvaluateAsync<FrustrationCheck>("text");
+        var routing = await ((IDecisionClient)FakeClient.Returning("response-choice.json")).EvaluateAsync<DepartmentRouting>("text");
+        var frustration = await ((IDecisionClient)FakeClient.Returning("response-score.json")).EvaluateAsync<FrustrationCheck>("text");
 
         Assert.Equal(Department.Billing, routing.Value.Department.Value);
         Assert.Equal(0.88, routing.Value.Department.Probabilities[Department.Billing]);
@@ -189,8 +189,8 @@ public sealed class TypedEvaluationDefaultTests
     [Fact]
     public async Task FailedResponse_ReturnsTheSameError()
     {
-        var error = new JevError(JevErrorKind.RateLimited, "Slow down.") { StatusCode = 429 };
-        IJevClient client = new FakeClient(Result<SystemOneResponse, JevError>.Failure(error));
+        var error = new DecisionError(DecisionErrorKind.RateLimited, "Slow down.") { StatusCode = 429 };
+        IDecisionClient client = new FakeClient(Result<SystemOneResponse, DecisionError>.Failure(error));
 
         var result = await client.EvaluateAsync<UrgencyCheck>("text");
 
@@ -201,48 +201,48 @@ public sealed class TypedEvaluationDefaultTests
     [Fact]
     public async Task AnswersTheParserRejects_GiveInvalidResponse_WithTheJsonException()
     {
-        IJevClient client = FakeClient.Returning("response-choice.json");
+        IDecisionClient client = FakeClient.Returning("response-choice.json");
 
         var result = await client.EvaluateAsync<UrgencyCheck>("text");
 
         Assert.True(result.IsFailure);
-        Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);
         Assert.IsType<JsonException>(result.Error.Exception);
     }
 
     [Fact]
     public async Task ResponseWithNullAnswers_GivesInvalidResponse()
     {
-        IJevClient client = FakeClient.WithAnswers(null!);
+        IDecisionClient client = FakeClient.WithAnswers(null!);
 
         var result = await client.EvaluateAsync<UrgencyCheck>("text");
 
         Assert.True(result.IsFailure);
-        Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);
         Assert.IsType<JsonException>(result.Error.Exception);
     }
 
     [Fact]
     public async Task ResponseWithEmptyAnswers_GivesInvalidResponse()
     {
-        IJevClient client = FakeClient.WithAnswers(new Dictionary<string, JevAnswer>(StringComparer.Ordinal));
+        IDecisionClient client = FakeClient.WithAnswers(new Dictionary<string, Answer>(StringComparer.Ordinal));
 
         var result = await client.EvaluateAsync<UrgencyCheck>("text");
 
         Assert.True(result.IsFailure);
-        Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);
         Assert.IsType<JsonException>(result.Error.Exception);
     }
 
     private static void AssertQuestionsEqual(ReadOnlySpan<byte> expectedQuestions, SystemOneRequest request)
     {
         var expected = JsonNode.Parse(expectedQuestions.ToArray());
-        var actual = JsonNode.Parse(JsonSerializer.Serialize(request, JevJsonContext.Default.SystemOneRequest))!["questions"];
+        var actual = JsonNode.Parse(JsonSerializer.Serialize(request, DecisionJsonContext.Default.SystemOneRequest))!["questions"];
         Assert.True(JsonNode.DeepEquals(expected, actual), actual?.ToJsonString());
     }
 
     /// <summary>Implements only the two abstract members, so every typed call runs the default interface methods.</summary>
-    private sealed class FakeClient(Result<SystemOneResponse, JevError> result) : IJevClient
+    private sealed class FakeClient(Result<SystemOneResponse, DecisionError> result) : IDecisionClient
     {
         public List<SystemOneRequest> Requests { get; } = [];
 
@@ -257,25 +257,25 @@ public sealed class TypedEvaluationDefaultTests
         }
 
         public static FakeClient Returning(string fixture)
-            => new(Result<SystemOneResponse, JevError>.Success(
-                JsonSerializer.Deserialize(Fixture.Text(fixture), JevJsonContext.Default.SystemOneResponse)!));
+            => new(Result<SystemOneResponse, DecisionError>.Success(
+                JsonSerializer.Deserialize(Fixture.Text(fixture), DecisionJsonContext.Default.SystemOneResponse)!));
 
-        public static FakeClient WithAnswers(IReadOnlyDictionary<string, JevAnswer> answers)
-            => new(Result<SystemOneResponse, JevError>.Success(new SystemOneResponse
+        public static FakeClient WithAnswers(IReadOnlyDictionary<string, Answer> answers)
+            => new(Result<SystemOneResponse, DecisionError>.Success(new SystemOneResponse
             {
                 Model = "jev-1.13.0",
                 Answers = answers,
-                Usage = new JevUsage { InputTokens = 1, OutputTokens = 1 },
+                Usage = new DecisionUsage { InputTokens = 1, OutputTokens = 1 },
             }));
 
-        public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken cancellationToken)
+        public ValueTask<Result<SystemOneResponse, DecisionError>> EvaluateAsync(SystemOneRequest request, CancellationToken cancellationToken)
         {
             Requests.Add(request);
             LastToken = cancellationToken;
             return ValueTask.FromResult(result);
         }
 
-        public ValueTask<Result<ModelList, JevError>> ListModelsAsync(CancellationToken cancellationToken = default)
+        public ValueTask<Result<ModelList, DecisionError>> ListModelsAsync(CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
     }
 }

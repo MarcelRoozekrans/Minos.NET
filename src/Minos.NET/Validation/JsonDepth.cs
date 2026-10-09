@@ -31,6 +31,6 @@ internal static class JsonDepth
         }
     }
 
-    /// <summary>Whether <paramref name="content"/> is JSON nested deeper than <see cref="JevLimits.MaximumJsonDepth"/>.</summary>
-    public static bool Exceeds(JevContent content) => content.TryGetJson(out var json) && Of(json) > JevLimits.MaximumJsonDepth;
+    /// <summary>Whether <paramref name="content"/> is JSON nested deeper than <see cref="DecisionLimits.MaximumJsonDepth"/>.</summary>
+    public static bool Exceeds(DecisionContent content) => content.TryGetJson(out var json) && Of(json) > DecisionLimits.MaximumJsonDepth;
 }

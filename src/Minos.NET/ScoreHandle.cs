@@ -1,8 +1,8 @@
 namespace Minos;
 
 /// <summary>
-/// Identifies an enum Score question of a set built with <see cref="JevQuestionSetBuilder"/>; pass it to
-/// <see cref="JevAnswers"/> to read its answer. It works only with answers to a set built by the same builder.
+/// Identifies an enum Score question of a set built with <see cref="QuestionSetBuilder"/>; pass it to
+/// <see cref="Answers"/> to read its answer. It works only with answers to a set built by the same builder.
 /// </summary>
 /// <typeparam name="T">The enum whose members are the levels.</typeparam>
 public readonly struct ScoreHandle<T>

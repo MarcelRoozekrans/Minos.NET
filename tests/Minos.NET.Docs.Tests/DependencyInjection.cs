@@ -8,15 +8,15 @@ using Microsoft.Extensions.Options;
 using Minos;
 
 // One yes/no question, so the example stays short.
-[JevQuestions]
+[Questions]
 public partial record InboxCheck
 {
     [Noul("Does this convey urgency?")]
     public partial Noul IsUrgent { get; }
 }
 
-// A class asks for IJevClient in its constructor, and the container supplies the shared client.
-public sealed class InboxTriage(IJevClient jev)
+// A class asks for IDecisionClient in its constructor, and the container supplies the shared client.
+public sealed class InboxTriage(IDecisionClient jev)
 {
     public async Task<string> TriageAsync(string message, CancellationToken cancellationToken)
     {
@@ -31,21 +31,21 @@ public sealed class InboxTriage(IJevClient jev)
 }
 #endregion
 
-public static class JevRegistration
+public static class DecisionRegistration
 {
     #region DependencyInjection_Register
     // The key is read from configuration, such as user secrets, and never written into the code.
-    public static IHttpClientBuilder AddJev(IHostApplicationBuilder builder)
+    public static IHttpClientBuilder AddDecision(IHostApplicationBuilder builder)
     {
         builder.Services.AddSingleton<InboxTriage>();
-        return builder.Services.AddJevClient(options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
+        return builder.Services.AddDecisionClient(options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
     }
     #endregion
 }
 
 #region DependencyInjection_KeyedConsumer
 // A keyed client is asked for by its key.
-public sealed class InboxRouter([FromKeyedServices("openrouter")] IJevClient jev)
+public sealed class InboxRouter([FromKeyedServices("openrouter")] IDecisionClient jev)
 {
     public async Task<string> TriageAsync(string message, CancellationToken cancellationToken)
     {
@@ -63,12 +63,12 @@ public sealed class InboxRouter([FromKeyedServices("openrouter")] IJevClient jev
 public static class KeyedRegistration
 {
     #region DependencyInjection_Keyed
-    public static void AddKeyedJev(IHostApplicationBuilder builder)
+    public static void AddKeyedDecision(IHostApplicationBuilder builder)
     {
-        builder.Services.AddJevClient("typesafe", options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
-        builder.Services.AddJevClient("openrouter", options =>
+        builder.Services.AddDecisionClient("typesafe", options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
+        builder.Services.AddDecisionClient("openrouter", options =>
         {
-            options.Provider = JevProvider.OpenRouter;
+            options.Provider = DecisionProvider.OpenRouter;
             options.ApiKey = builder.Configuration["OpenRouter:ApiKey"];
         });
         builder.Services.AddSingleton<InboxRouter>();
@@ -80,8 +80,8 @@ public static class KeyedRegistration
     // and everything else from the defaults.
     public static void AddFromEnvironment(IServiceCollection services)
     {
-        services.AddJevClient();
-        services.AddJevClient("backup");
+        services.AddDecisionClient();
+        services.AddDecisionClient("backup");
     }
     #endregion
 
@@ -89,8 +89,8 @@ public static class KeyedRegistration
     // Each client reads its own section.
     public static void AddFromConfiguration(IHostApplicationBuilder builder)
     {
-        builder.Services.AddJevClient(builder.Configuration.GetSection("Jev"));
-        builder.Services.AddJevClient("openrouter", builder.Configuration.GetSection("OpenRouter"));
+        builder.Services.AddDecisionClient(builder.Configuration.GetSection("Jev"));
+        builder.Services.AddDecisionClient("openrouter", builder.Configuration.GetSection("OpenRouter"));
     }
     #endregion
 
@@ -124,12 +124,12 @@ public sealed class TraceHeaderHandler : DelegatingHandler
 
 public static class HandlerRegistration
 {
-    // AddJevClient returns the builder of the client's HttpClient, so handlers are added the usual way.
-    public static IHttpClientBuilder AddTracedJev(IServiceCollection services, string apiKey)
+    // AddDecisionClient returns the builder of the client's HttpClient, so handlers are added the usual way.
+    public static IHttpClientBuilder AddTracedDecision(IServiceCollection services, string apiKey)
     {
         services.AddTransient<TraceHeaderHandler>();
         return services
-            .AddJevClient(options => options.ApiKey = apiKey)
+            .AddDecisionClient(options => options.ApiKey = apiKey)
             .AddHttpMessageHandler<TraceHeaderHandler>();
     }
 
@@ -138,24 +138,24 @@ public static class HandlerRegistration
     {
         services.AddTransient<TraceHeaderHandler>();
         services.ConfigureHttpClientDefaults(defaults => defaults.AddHttpMessageHandler<TraceHeaderHandler>());
-        services.AddJevClient(options => options.ApiKey = apiKey);
+        services.AddDecisionClient(options => options.ApiKey = apiKey);
     }
 
     // To keep a defaults handler off Jev's client, clear the handlers of its builder. This also clears any you added
     // through that builder, so add those inside the delegate, after the Clear.
-    public static IHttpClientBuilder AddJevWithoutDefaultHandlers(IServiceCollection services, string apiKey)
+    public static IHttpClientBuilder AddDecisionWithoutDefaultHandlers(IServiceCollection services, string apiKey)
     {
         services.AddTransient<TraceHeaderHandler>();
         services.ConfigureHttpClientDefaults(defaults => defaults.AddHttpMessageHandler<TraceHeaderHandler>());
         return services
-            .AddJevClient(options => options.ApiKey = apiKey)
+            .AddDecisionClient(options => options.ApiKey = apiKey)
             .ConfigureAdditionalHttpMessageHandlers((handlers, _) => handlers.Clear());
     }
 
     // When a handler of yours retries, such as a standard resilience handler, turn Jev's own retries off,
     // so the two do not multiply.
     public static void AddWithOwnRetries(IServiceCollection services, string apiKey)
-        => services.AddJevClient(options =>
+        => services.AddDecisionClient(options =>
         {
             options.ApiKey = apiKey;
             options.MaxRetries = 0;
@@ -166,14 +166,14 @@ public static class HandlerRegistration
 public static class WithoutThePackage
 {
     #region DependencyInjection_WithoutPackage
-    // A named HttpClient of your own, set up the way AddJevClient sets up its client.
-    public static void AddJevHttpClient(IServiceCollection services, JevClientOptions options)
+    // A named HttpClient of your own, set up the way AddDecisionClient sets up its client.
+    public static void AddDecisionHttpClient(IServiceCollection services, DecisionClientOptions options)
         => services.AddHttpClient("jev")
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(2) })
             .SetHandlerLifetime(Timeout.InfiniteTimeSpan)
-            .ConfigureHttpClient(http => JevClient.ConfigureHttpClient(http, options));
+            .ConfigureHttpClient(http => DecisionClient.ConfigureHttpClient(http, options));
 
-    public static JevClient Create(IHttpClientFactory factory, JevClientOptions options)
+    public static DecisionClient Create(IHttpClientFactory factory, DecisionClientOptions options)
         => new(factory.CreateClient("jev"), options);
     #endregion
 }

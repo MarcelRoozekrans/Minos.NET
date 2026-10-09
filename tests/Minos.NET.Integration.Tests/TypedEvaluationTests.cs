@@ -6,7 +6,7 @@ using WireMock.ResponseBuilders;
 namespace Minos.Integration.Tests;
 
 /// <summary>Matches <c>request-noul.json</c> and <c>response-noul.json</c> exactly, for the typed round trip below.</summary>
-[JevQuestions]
+[Questions]
 public partial record NoulTriage
 {
     [Noul("Does this convey urgency?", WhenTrue = "Explicitly time-sensitive", WhenFalse = "No urgency expressed")]
@@ -37,7 +37,7 @@ public enum IntegrationSeverity
 }
 
 /// <summary>Matches <c>request-structured-criteria.json</c> exactly.</summary>
-[JevQuestions]
+[Questions]
 public partial record StructuredTriage
 {
     [Choice("Which team should handle this?")]
@@ -130,8 +130,8 @@ public sealed class TypedEvaluationTests : IClassFixture<WireMockFixture>
                 .WithBody("""{"model":"jev-1.13.0","answers":{"is_duplicate":{"type":"noul","noul":0.9}},"usage":{"input_tokens":300,"output_tokens":20}}"""));
 
         // Declared sets are text only, so structured instructions come from a built set.
-        var built = JevQuestionSet.CreateBuilder()
-            .Noul("is_duplicate", JevContent.FromUtf8Json("""
+        var built = QuestionSet.CreateBuilder()
+            .Noul("is_duplicate", DecisionContent.FromUtf8Json("""
                 {
                   "potential_duplicate": { "name": "John Smith", "location": "Oakland, California", "last_employer": "Google" },
                   "question": "Is the resume for the same person as `potential_duplicate`?"
@@ -166,15 +166,15 @@ public sealed class TypedEvaluationTests : IClassFixture<WireMockFixture>
                 .WithHeader("Content-Type", "application/json")
                 .WithBody("""{"model":"jev-1.13.0","answers":{"is_urgent":{"type":"noul","noul":0.95},"department":{"type":"choice","choice":"billing","probabilities":{"billing":0.9,"technical":0.05,"sales":0.03,"other":0.02},"confidence":0.9},"product":{"type":"choice","choice":"pro-plan","probabilities":{"pro-plan":0.7,"team-plan":0.2,"other":0.1},"confidence":0.7},"effort":{"type":"score","score":0.9,"legend":{"0":"Minutes","1":"Hours","2":"Days"},"probabilities":{"0":0.3,"1":0.5,"2":0.2},"confidence":0.6}},"usage":{"input_tokens":300,"output_tokens":20}}"""));
 
-        var built = JevQuestionSet.CreateBuilder()
+        var built = QuestionSet.CreateBuilder()
             .Noul("is_urgent", "Does this convey urgency?", out var urgent, c => c
                 .WhenTrue("Explicitly time-sensitive")
                 .WhenFalse("No urgency expressed"))
             .Choice<IntegrationDepartment>("department", "Which team should handle this?", out var department, o => o
-                .Describe(IntegrationDepartment.Billing, JevCriterion.Text("Payments, invoicing, refunds")
+                .Describe(IntegrationDepartment.Billing, Criterion.Text("Payments, invoicing, refunds")
                     .WithExamples("I was charged twice")
                     .WithNotFor("How much is Pro?"))
-                .Describe(IntegrationDepartment.Technical, JevCriterion.Text("Bugs, outages, integrations").WithExamples("The API returns 500"))
+                .Describe(IntegrationDepartment.Technical, Criterion.Text("Bugs, outages, integrations").WithExamples("The API returns 500"))
                 .Describe(IntegrationDepartment.Sales, "Pricing, upgrades, new accounts"))
             .Choice("product", "Which product is `message` about?", out var product, o => o
                 .Option("pro-plan", "The Pro subscription")

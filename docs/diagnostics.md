@@ -9,7 +9,7 @@ description: Every JEV analyzer rule with its severity, the two code fixes, and 
 
 A question set is code that Jev turns into a request, so mistakes in it are best found while you type, not when a call
 fails. `Minos.NET` ships a set of Roslyn analyzers for this. They live inside the package, next to the
-`[JevQuestions]` generator, so there is nothing else to install. The editor shows their findings as you type, and the
+`[Questions]` generator, so there is nothing else to install. The editor shows their findings as you type, and the
 build reports them too.
 
 Every rule has an id that starts with `JEV`, a severity and a short title. The severity says how much the finding
@@ -29,7 +29,7 @@ The rules come in two groups.
 - **JEV101 to JEV107 check what the generator can turn into code.** They are all errors, because a declaration the
   generator cannot read cannot be turned into a request.
 
-A set with any error is invalid. The generator writes no `QuestionsUtf8`, no `Parse` and no `IJevQuestionSet` for it,
+A set with any error is invalid. The generator writes no `QuestionsUtf8`, no `Parse` and no `IQuestionSet` for it,
 so `EvaluateAsync<T>` does not compile for that type. The generator still gives each unimplemented question property a
 stub that throws. That way a command-line build reports the JEV error, and not CS9248, "partial property must have an
 implementation part", which would hide it.
@@ -48,7 +48,7 @@ shows them.
 | JEV004 | Warning | Instructions refer to an unknown state member | A name in backticks in the instructions matches no public property or field of the `State` type, as [typed evaluation](typed-evaluation.md#referring-to-the-state-in-a-question) describes. For an array state the element type is checked. |
 | JEV005 | Warning | Option or level count outside the API guidance | A Score enum has fewer than 2 or more than 10 levels, or a Choice enum has more than 255 options. |
 | JEV006 | Info | Choice option has no description | A member of a Choice enum has no `[Criteria]`. It is still an option, sent with no description, and a description usually helps. |
-| JEV101 | Error | Unsupported question set type | The type with `[JevQuestions]` is not a non-generic, non-abstract, non-static, top-level partial class or record that is not file-local. |
+| JEV101 | Error | Unsupported question set type | The type with `[Questions]` is not a non-generic, non-abstract, non-static, top-level partial class or record that is not file-local. |
 | JEV102 | Error | Unsupported question property | A question property is not a partial, get-only instance property, or it is `virtual`, `new`, `sealed` or `override`, or it is named `Parse` or `QuestionsUtf8`, which the generator reserves. |
 | JEV103 | Error | Question attribute does not match the property type | A question property has more than one question attribute, or one that does not fit its type: `[Noul]` needs a `Noul`, `[Choice]` a `Choice<T>` and `[Score]` a `Score<T>`. |
 | JEV104 | Error | Score level has no description | A member of a Score enum has no `[Level]`. The API does not accept a level without a description. |
@@ -121,7 +121,7 @@ public enum Recommendation
 }
 #pragma warning restore JEV005
 
-[JevQuestions]
+[Questions]
 public partial record SurveyReply
 {
     [Score("How likely is this customer to recommend us to a friend?")]
@@ -149,7 +149,7 @@ A project-wide `<NoWarn>JEV005</NoWarn>` in the project file works too.
 
 An error does not go away that way. Suppressing JEV001, JEV002 or one of JEV101 to JEV107 hides the message, but the set
 stays invalid. The generator does not read the diagnostics. It applies the same rules itself, so a suppressed set still
-gets no `QuestionsUtf8`, no `Parse` and no `IJevQuestionSet`. `EvaluateAsync<T>` does not compile for it, and the stub
+gets no `QuestionsUtf8`, no `Parse` and no `IQuestionSet`. `EvaluateAsync<T>` does not compile for it, and the stub
 properties throw. Fix the declaration instead.
 
 ## Next

@@ -1,7 +1,7 @@
 namespace Minos;
 
 /// <summary>The answer to a <see cref="ChoiceQuestion"/>.</summary>
-public sealed class ChoiceAnswer : JevAnswer
+public sealed class ChoiceAnswer : Answer
 {
     /// <summary>Gets the highest-probability option.</summary>
     public required string Choice { get; init; }

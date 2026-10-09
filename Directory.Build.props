@@ -18,8 +18,8 @@
     <NuGetAuditMode>direct</NuGetAuditMode>
     <!--
       The version comes from release-please's manifest, which the release commit bumps, so it names the last release.
-      Only a semantic version under the manifest's "." key is taken; anything else leaves JevReleaseVersion empty, and
-      the JevCheckReleaseVersion target below fails the build naming the problem.
+      Only a semantic version under the manifest's "." key is taken; anything else leaves MinosReleaseVersion empty, and
+      the MinosCheckReleaseVersion target below fails the build naming the problem.
 
       - A normal build, local or CI, is versioned <manifest version>-local, such as 0.4.0-local, and the SDK appends the
         commit to the informational version, as in 0.4.0-local+<sha>. The prerelease suffix keeps a local pack from
@@ -30,7 +30,7 @@
         Appending to the prerelease would sort above it, since a longer prerelease with the same start is the higher
         one; a leading numeric 0 identifier sorts below every alphanumeric one, so the local build sorts below every
         1.0.0 prerelease, as a -local build sorts below its release.
-      - A release build passes -p:JevRelease=true, which drops the suffix and gives the manifest's version exactly. It
+      - A release build passes -p:MinosRelease=true, which drops the suffix and gives the manifest's version exactly. It
         is a global property for the whole build, not a pack setting: the version is compiled into every assembly's
         informational version, and so into the User-Agent and the telemetry version. So it must reach the build that
         compiles the DLLs as well as the pack, or the pack must build them itself. A dotnet pack with no-build after a
@@ -38,15 +38,15 @@
         passes it to both its build and its pack for a tagged release; nothing else should.
       - AssemblyVersion and FileVersion stay numeric, <major>.<minor>.<patch>.0, whichever build it is.
     -->
-    <JevReleaseManifest>$(MSBuildThisFileDirectory).release-please-manifest.json</JevReleaseManifest>
-    <JevReleaseVersion Condition="Exists('$(JevReleaseManifest)')">$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(JevReleaseManifest)')), '(?&lt;="\."\s*:\s*")[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(?=")'))</JevReleaseVersion>
-    <JevReleaseVersionCore Condition="'$(JevReleaseVersion)' != ''">$([System.Text.RegularExpressions.Regex]::Match('$(JevReleaseVersion)', '^[0-9]+\.[0-9]+\.[0-9]+'))</JevReleaseVersionCore>
-    <JevLocalVersion Condition="'$(JevReleaseVersion)' != '' And $(JevReleaseVersion.Contains('-'))">$(JevReleaseVersionCore)-0.local.$(JevReleaseVersion.Substring($([MSBuild]::Add($(JevReleaseVersionCore.Length), 1))))</JevLocalVersion>
-    <JevLocalVersion Condition="'$(JevReleaseVersion)' != '' And !$(JevReleaseVersion.Contains('-'))">$(JevReleaseVersion)-local</JevLocalVersion>
-    <Version Condition="'$(JevReleaseVersion)' != '' And '$(JevRelease)' == 'true'">$(JevReleaseVersion)</Version>
-    <Version Condition="'$(JevReleaseVersion)' != '' And '$(JevRelease)' != 'true'">$(JevLocalVersion)</Version>
-    <AssemblyVersion Condition="'$(JevReleaseVersionCore)' != ''">$(JevReleaseVersionCore).0</AssemblyVersion>
-    <FileVersion Condition="'$(JevReleaseVersionCore)' != ''">$(JevReleaseVersionCore).0</FileVersion>
+    <MinosReleaseManifest>$(MSBuildThisFileDirectory).release-please-manifest.json</MinosReleaseManifest>
+    <MinosReleaseVersion Condition="Exists('$(MinosReleaseManifest)')">$([System.Text.RegularExpressions.Regex]::Match($([System.IO.File]::ReadAllText('$(MinosReleaseManifest)')), '(?&lt;="\."\s*:\s*")[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(?=")'))</MinosReleaseVersion>
+    <MinosReleaseVersionCore Condition="'$(MinosReleaseVersion)' != ''">$([System.Text.RegularExpressions.Regex]::Match('$(MinosReleaseVersion)', '^[0-9]+\.[0-9]+\.[0-9]+'))</MinosReleaseVersionCore>
+    <MinosLocalVersion Condition="'$(MinosReleaseVersion)' != '' And $(MinosReleaseVersion.Contains('-'))">$(MinosReleaseVersionCore)-0.local.$(MinosReleaseVersion.Substring($([MSBuild]::Add($(MinosReleaseVersionCore.Length), 1))))</MinosLocalVersion>
+    <MinosLocalVersion Condition="'$(MinosReleaseVersion)' != '' And !$(MinosReleaseVersion.Contains('-'))">$(MinosReleaseVersion)-local</MinosLocalVersion>
+    <Version Condition="'$(MinosReleaseVersion)' != '' And '$(MinosRelease)' == 'true'">$(MinosReleaseVersion)</Version>
+    <Version Condition="'$(MinosReleaseVersion)' != '' And '$(MinosRelease)' != 'true'">$(MinosLocalVersion)</Version>
+    <AssemblyVersion Condition="'$(MinosReleaseVersionCore)' != ''">$(MinosReleaseVersionCore).0</AssemblyVersion>
+    <FileVersion Condition="'$(MinosReleaseVersionCore)' != ''">$(MinosReleaseVersionCore).0</FileVersion>
   </PropertyGroup>
 
   <!-- NuGet metadata -->
@@ -87,10 +87,10 @@
   </ItemGroup>
 
   <!-- Fails before any build or pack whose version could not be read from the release manifest, instead of building it as 1.0.0. -->
-  <Target Name="JevCheckReleaseVersion" BeforeTargets="BeforeBuild;GenerateNuspec">
-    <Error Condition="!Exists('$(JevReleaseManifest)')"
-           Text="The release manifest $(JevReleaseManifest) is missing. The build reads the version from it; restore the file from git." />
-    <Error Condition="Exists('$(JevReleaseManifest)') And '$(JevReleaseVersion)' == ''"
-           Text="The release manifest $(JevReleaseManifest) has no semantic version under its &quot;.&quot; key, such as { &quot;.&quot;: &quot;0.3.3&quot; }. Fix the file; the build reads the version from it." />
+  <Target Name="MinosCheckReleaseVersion" BeforeTargets="BeforeBuild;GenerateNuspec">
+    <Error Condition="!Exists('$(MinosReleaseManifest)')"
+           Text="The release manifest $(MinosReleaseManifest) is missing. The build reads the version from it; restore the file from git." />
+    <Error Condition="Exists('$(MinosReleaseManifest)') And '$(MinosReleaseVersion)' == ''"
+           Text="The release manifest $(MinosReleaseManifest) has no semantic version under its &quot;.&quot; key, such as { &quot;.&quot;: &quot;0.3.3&quot; }. Fix the file; the build reads the version from it." />
   </Target>
 </Project>

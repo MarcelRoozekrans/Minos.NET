@@ -48,8 +48,8 @@ internal static class AllocationChecks
             passDescription: "the generated Parse stays within its allocation budget");
     }
 
-    /// <summary><see cref="JevAnswerReader.ReadNoul"/> over a fixed Noul answer.</summary>
-    [Covers("static Minos.JevAnswerReader.ReadNoul(ref System.Text.Json.Utf8JsonReader reader) -> Minos.Noul")]
+    /// <summary><see cref="AnswerReader.ReadNoul"/> over a fixed Noul answer.</summary>
+    [Covers("static Minos.AnswerReader.ReadNoul(ref System.Text.Json.Utf8JsonReader reader) -> Minos.Noul")]
     public static void ReadNoul()
     {
         var answer = Encoding.UTF8.GetBytes(NoulAnswerJson);
@@ -61,14 +61,14 @@ internal static class AllocationChecks
             {
                 var reader = new Utf8JsonReader(answer);
                 reader.Read();
-                _ = JevAnswerReader.ReadNoul(ref reader);
+                _ = AnswerReader.ReadNoul(ref reader);
             },
             label: "ReadNoul",
             passDescription: "ReadNoul stays within its allocation budget");
     }
 
-    /// <summary><see cref="JevAnswerReader.ReadChoice{T}"/> into a caller-owned buffer.</summary>
-    [Covers("static Minos.JevAnswerReader.ReadChoice<T>(ref System.Text.Json.Utf8JsonReader reader, Minos.JevOptionSet<T>! options, double[]! buffer, int offset) -> Minos.Choice<T>")]
+    /// <summary><see cref="AnswerReader.ReadChoice{T}"/> into a caller-owned buffer.</summary>
+    [Covers("static Minos.AnswerReader.ReadChoice<T>(ref System.Text.Json.Utf8JsonReader reader, Minos.DecisionOptionSet<T>! options, double[]! buffer, int offset) -> Minos.Choice<T>")]
     public static void ReadChoice()
     {
         var answer = Encoding.UTF8.GetBytes(ChoiceAnswerJson);
@@ -81,14 +81,14 @@ internal static class AllocationChecks
             {
                 var reader = new Utf8JsonReader(answer);
                 reader.Read();
-                _ = JevAnswerReader.ReadChoice(ref reader, TeamOptions.Instance, buffer, 0);
+                _ = AnswerReader.ReadChoice(ref reader, TeamOptions.Instance, buffer, 0);
             },
             label: "ReadChoice",
             passDescription: "ReadChoice stays within its allocation budget");
     }
 
-    /// <summary><see cref="JevAnswerReader.ReadScore{T}"/> into a caller-owned buffer.</summary>
-    [Covers("static Minos.JevAnswerReader.ReadScore<T>(ref System.Text.Json.Utf8JsonReader reader, Minos.JevOptionSet<T>! options, double[]! buffer, int offset) -> Minos.Score<T>")]
+    /// <summary><see cref="AnswerReader.ReadScore{T}"/> into a caller-owned buffer.</summary>
+    [Covers("static Minos.AnswerReader.ReadScore<T>(ref System.Text.Json.Utf8JsonReader reader, Minos.DecisionOptionSet<T>! options, double[]! buffer, int offset) -> Minos.Score<T>")]
     public static void ReadScore()
     {
         var answer = Encoding.UTF8.GetBytes(ScoreAnswerJson);
@@ -101,25 +101,25 @@ internal static class AllocationChecks
             {
                 var reader = new Utf8JsonReader(answer);
                 reader.Read();
-                _ = JevAnswerReader.ReadScore(ref reader, UrgencyOptions.Instance, buffer, 0);
+                _ = AnswerReader.ReadScore(ref reader, UrgencyOptions.Instance, buffer, 0);
             },
             label: "ReadScore",
             passDescription: "ReadScore stays within its allocation budget");
     }
 
-    /// <summary><see cref="JevClient.EvaluateAsync"/> over a canned handler: request serialization and response
-    /// deserialization through the public API only, since <c>JevJsonContext</c> is internal.</summary>
+    /// <summary><see cref="DecisionClient.EvaluateAsync"/> over a canned handler: request serialization and response
+    /// deserialization through the public API only, since <c>DecisionJsonContext</c> is internal.</summary>
     public static void EvaluateRoundTrip()
     {
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, NoulResponseJson))
         {
             BaseAddress = new Uri("https://example.test/api/"),
         };
-        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
         var request = new SystemOneRequest
         {
             State = SmokeAnswers.State,
-            Questions = new Dictionary<string, JevQuestion>(StringComparer.Ordinal)
+            Questions = new Dictionary<string, Question>(StringComparer.Ordinal)
             {
                 ["is_urgent"] = new NoulQuestion { Instructions = "Does this convey urgency?" },
             },
@@ -138,7 +138,7 @@ internal static class AllocationChecks
             passDescription: "EvaluateAsync stays within its allocation budget");
     }
 
-    /// <summary><see cref="JevClient.EvaluateAsync{T}(string)"/> over a canned handler: the raw, pooled-buffer
+    /// <summary><see cref="DecisionClient.EvaluateAsync{T}(string)"/> over a canned handler: the raw, pooled-buffer
     /// path, through the public API only, since <c>TypedEvaluation</c> and <c>RawJson</c> are internal.</summary>
     public static void TypedEvaluateRoundTrip()
     {
@@ -146,12 +146,12 @@ internal static class AllocationChecks
         {
             BaseAddress = new Uri("https://example.test/api/"),
         };
-        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
 
         // Measured 2984 B/call on published win-x64 AOT: the request's Utf8JsonWriter and RawJson, plus
         // ZeroAlloc.Rest's own per-attempt allocations (HttpRequestMessage, headers, the MemoryStream the body is
         // copied into, and StreamContent), plus the response's HttpResponseMessage and body buffering, and the
-        // async state machines. There is no SystemOneRequest, SystemOneResponse, JevAnswer or questions dictionary
+        // async state machines. There is no SystemOneRequest, SystemOneResponse, Answer or questions dictionary
         // on this path, which is why it comes in well below EvaluateRoundTrip's 3928 B measurement. It measured
         // 3368 B/call before ZeroAlloc.Rest 3.2.1 and 3784 B/call when first budgeted in Phase 1.8. Budget: about 10%
         // headroom over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
@@ -166,7 +166,7 @@ internal static class AllocationChecks
     public static void EvaluateRoundTripWithNullLoggerFactory()
     {
         // Budget: EvaluateRoundTrip's own, 4352 B, unchanged. With no level enabled the client takes the unlogged path:
-        // no logging wrapper and no LoggingJevApi state machine, so nothing may be added.
+        // no logging wrapper and no LoggingDecisionApi state machine, so nothing may be added.
         EvaluateRoundTripThrough(
             NullLoggerFactory.Instance,
             budgetBytes: 4352,
@@ -204,7 +204,7 @@ internal static class AllocationChecks
         // so the enabled logger adds nothing on the synchronous path the canned handler takes: each event's state is a
         // struct handed to a logger that discards it, the timing is two Stopwatch timestamps, and no state machine is
         // boxed while a call completes synchronously. A call that completes asynchronously also allocates the
-        // LoggingJevApi and LogEvaluationAsync state machines, which this gate cannot see. Budget: about 10% headroom
+        // LoggingDecisionApi and LogEvaluationAsync state machines, which this gate cannot see. Budget: about 10% headroom
         // over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
         EvaluateRoundTripThrough(
             DiscardingLoggerFactory.Instance,
@@ -225,7 +225,7 @@ internal static class AllocationChecks
         // so the enabled logger adds nothing on the synchronous path the canned handler takes: each event's state is a
         // struct handed to a logger that discards it, the timing is two Stopwatch timestamps, and no state machine is
         // boxed while a call completes synchronously. A call that completes asynchronously also allocates the
-        // LoggingJevApi and LogEvaluationAsync state machines, which this gate cannot see. Budget: about 10% headroom
+        // LoggingDecisionApi and LogEvaluationAsync state machines, which this gate cannot see. Budget: about 10% headroom
         // over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
         TypedEvaluateRoundTripThrough(
             DiscardingLoggerFactory.Instance,
@@ -246,7 +246,7 @@ internal static class AllocationChecks
     public static async Task DisabledLoggerAddsNothingWhereAnEnabledOneDoes()
     {
         var request = Program.Request();
-        Func<JevClient, ValueTask<Result<SystemOneResponse, JevError>>> evaluate = client => client.EvaluateAsync(request);
+        Func<DecisionClient, ValueTask<Result<SystemOneResponse, DecisionError>>> evaluate = client => client.EvaluateAsync(request);
         var unlogged = await MedianYieldingAsync(NoulResponseJson, null, evaluate).ConfigureAwait(false);
         var disabled = await MedianYieldingAsync(NoulResponseJson, NullLoggerFactory.Instance, evaluate).ConfigureAwait(false);
         var enabled = await MedianYieldingAsync(NoulResponseJson, DiscardingLoggerFactory.Instance, evaluate).ConfigureAwait(false);
@@ -271,7 +271,7 @@ internal static class AllocationChecks
     // bytes, and one that allocated less than usual saves some. The least of several runs is therefore biased low and
     // lets one lucky run set a baseline; the median ignores an outlier on either side.
     private static async Task<long> MedianYieldingAsync<TResult>(
-        string responseJson, ILoggerFactory? loggerFactory, Func<JevClient, ValueTask<TResult>> call)
+        string responseJson, ILoggerFactory? loggerFactory, Func<DecisionClient, ValueTask<TResult>> call)
     {
         const int Runs = 5;
         var runs = new List<long>(Runs);
@@ -295,7 +295,7 @@ internal static class AllocationChecks
     // pool keeps one array per size in each thread's own slot, and the continuations rotate over several pool threads: 100
     // calls left some threads unstocked, so a window still rented fresh 16 KB arrays, 0 to 2 per window, up to 66 B/call.
     private static async Task<long> MeasureYieldingAsync<TResult>(
-        string responseJson, ILoggerFactory? loggerFactory, Func<JevClient, ValueTask<TResult>> call)
+        string responseJson, ILoggerFactory? loggerFactory, Func<DecisionClient, ValueTask<TResult>> call)
     {
         const int WarmupIterations = 2000;
         const int YieldingIterations = 500;
@@ -303,7 +303,7 @@ internal static class AllocationChecks
         {
             BaseAddress = new Uri("https://example.test/api/"),
         };
-        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" }, loggerFactory);
+        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" }, loggerFactory);
 
         GC.Collect();
         GC.WaitForPendingFinalizers();
@@ -330,7 +330,7 @@ internal static class AllocationChecks
         {
             BaseAddress = new Uri("https://example.test/api/"),
         };
-        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" }, loggerFactory);
+        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" }, loggerFactory);
         var request = Program.Request();
 
         GateValueTask(budgetBytes, () => client.EvaluateAsync(request), label, passDescription);
@@ -343,7 +343,7 @@ internal static class AllocationChecks
         {
             BaseAddress = new Uri("https://example.test/api/"),
         };
-        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" }, loggerFactory);
+        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" }, loggerFactory);
 
         GateValueTask(
             budgetBytes,
@@ -352,69 +352,69 @@ internal static class AllocationChecks
             passDescription);
     }
 
-    /// <summary><see cref="JevContent.FromValue{T}(T, System.Text.Json.Serialization.Metadata.JsonTypeInfo{T})"/> over the smoke state.</summary>
-    [Covers("static Minos.JevContent.FromValue<T>(T value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo) -> Minos.JevContent")]
+    /// <summary><see cref="DecisionContent.FromValue{T}(T, System.Text.Json.Serialization.Metadata.JsonTypeInfo{T})"/> over the smoke state.</summary>
+    [Covers("static Minos.DecisionContent.FromValue<T>(T value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo) -> Minos.DecisionContent")]
     public static void ContentFromValue()
     {
         var state = new SmokeState("Payouts failing", SmokeAnswers.State);
 
         // Measured 280 B/call on published win-x64 AOT: JsonSerializer.SerializeToElement serializes SmokeState's
-        // Subject and Body strings and builds a JsonDocument over the result, which JevContent then wraps without
+        // Subject and Body strings and builds a JsonDocument over the result, which DecisionContent then wraps without
         // copying. A linux-x64 measurement (dotnet/sdk:10.0 container, 2026-09-28) matches exactly: 280 B/call. The
         // budget keeps about 10% headroom (320 B, rounded to the next 64 B) over that measurement, since
         // JsonDocument's internal buffer sizing can still differ across runtime patch versions on either platform.
         Gate(
             budgetBytes: 320,
-            action: () => _ = JevContent.FromValue(state, SmokeStateJsonContext.Default.SmokeState),
+            action: () => _ = DecisionContent.FromValue(state, SmokeStateJsonContext.Default.SmokeState),
             label: "ContentFromValue",
-            passDescription: "JevContent.FromValue stays within its allocation budget");
+            passDescription: "DecisionContent.FromValue stays within its allocation budget");
     }
 
-    /// <summary><see cref="JevContent.FromUtf8Json(ReadOnlySpan{byte})"/> over a fixed object.</summary>
-    [Covers("static Minos.JevContent.FromUtf8Json(System.ReadOnlySpan<byte> utf8Json) -> Minos.JevContent")]
+    /// <summary><see cref="DecisionContent.FromUtf8Json(ReadOnlySpan{byte})"/> over a fixed object.</summary>
+    [Covers("static Minos.DecisionContent.FromUtf8Json(System.ReadOnlySpan<byte> utf8Json) -> Minos.DecisionContent")]
     public static void ContentFromUtf8Json()
     {
         var json = Encoding.UTF8.GetBytes("""{"message":"Please send me your password","channel":"email"}""");
 
         // Measured 256 B/call on published win-x64 AOT: JsonElement.ParseValue parses the fixed JSON object into a
-        // JsonDocument, which JevContent then wraps without copying. A linux-x64 measurement (dotnet/sdk:10.0
+        // JsonDocument, which DecisionContent then wraps without copying. A linux-x64 measurement (dotnet/sdk:10.0
         // container, 2026-09-28) matches exactly: 256 B/call. The budget keeps about 10% headroom (320 B, rounded
         // to the next 64 B) over that measurement, for the same cross-platform, cross-patch-version reason as
         // ContentFromValue's gate.
         Gate(
             budgetBytes: 320,
-            action: () => _ = JevContent.FromUtf8Json(json),
+            action: () => _ = DecisionContent.FromUtf8Json(json),
             label: "ContentFromUtf8Json",
-            passDescription: "JevContent.FromUtf8Json stays within its allocation budget");
+            passDescription: "DecisionContent.FromUtf8Json stays within its allocation budget");
     }
 
-    /// <summary><see cref="JevQuestionSetBuilder.Build"/> over a three-question set: a Noul, an enum Choice and a keyed Choice.</summary>
+    /// <summary><see cref="QuestionSetBuilder.Build"/> over a three-question set: a Noul, an enum Choice and a keyed Choice.</summary>
     public static void BuildQuestionSet()
     {
         var builder = SmokeBuiltSet.Builder(out _, out _, out _);
 
         // Measured 6592 B/call on published win-x64 AOT: the builder's question and warning lists, the Utf8JsonWriter and
-        // its ArrayBufferWriter growth, the UTF-8 keys and the resulting JevQuestionSet. Budget: about 10% headroom, 7251 B,
+        // its ArrayBufferWriter growth, the UTF-8 keys and the resulting QuestionSet. Budget: about 10% headroom, 7251 B,
         // rounded up to the next multiple of 64, 7296 B, since writer growth and list capacities follow runtime internals.
         Gate(
             budgetBytes: 7296,
             action: () => _ = builder.Build(),
             label: "BuildQuestionSet",
-            passDescription: "JevQuestionSetBuilder.Build stays within its allocation budget");
+            passDescription: "QuestionSetBuilder.Build stays within its allocation budget");
     }
 
-    /// <summary><see cref="JevClient.EvaluateAsync(JevQuestionSet, JevContent)"/> over a canned handler.</summary>
+    /// <summary><see cref="DecisionClient.EvaluateAsync(QuestionSet, DecisionContent)"/> over a canned handler.</summary>
     public static void EvaluateBuiltSetRoundTrip()
     {
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, SmokeBuiltSet.ResponseJson))
         {
             BaseAddress = new Uri("https://example.test/api/"),
         };
-        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
         var set = SmokeBuiltSet.Full(out _, out _, out _, out _);
 
-        // Measured 3272 B/call on published win-x64 AOT: the JevQuestionSet's pre-built request body copied into a pooled
-        // buffer, HttpClient's request and response objects and body buffering, the JevAnswers result and the async state
+        // Measured 3272 B/call on published win-x64 AOT: the QuestionSet's pre-built request body copied into a pooled
+        // buffer, HttpClient's request and response objects and body buffering, the Answers result and the async state
         // machines if the call does not complete synchronously. It measured 3656 B/call before ZeroAlloc.Rest 3.2.1 and
         // 4288 B/call when first budgeted in Phase 2.4. Budget: about 10% headroom over the measurement, rounded up to
         // the next multiple of 64 B, per the Phase 1.8 rule.
@@ -427,14 +427,14 @@ internal static class AllocationChecks
 
     private static double sink;
 
-    /// <summary><see cref="JevAnswers.Get(NoulHandle)"/> and its overloads, over one evaluation's answers.</summary>
-    public static void JevAnswersGet()
+    /// <summary><see cref="Answers.Get(NoulHandle)"/> and its overloads, over one evaluation's answers.</summary>
+    public static void AnswersGet()
     {
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, SmokeBuiltSet.ResponseJson))
         {
             BaseAddress = new Uri("https://example.test/api/"),
         };
-        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
         var set = SmokeBuiltSet.Full(out var credentials, out var team, out var product, out var urgency);
         var answers = client.EvaluateAsync(set, "Help!").AsTask().GetAwaiter().GetResult().Value;
 
@@ -452,8 +452,8 @@ internal static class AllocationChecks
                 sink += (noul.Value ? 1 : 0) + (int)teamAnswer.Value + productAnswer.Value.Length + (int)urgencyAnswer.Value
                     + teamAnswer.Confidence + productAnswer.Confidence + urgencyAnswer.Confidence + urgencyAnswer.Expected;
             },
-            label: "JevAnswersGet",
-            passDescription: "JevAnswers.Get allocates nothing");
+            label: "AnswersGet",
+            passDescription: "Answers.Get allocates nothing");
     }
 
     /// <summary>
@@ -462,16 +462,16 @@ internal static class AllocationChecks
     /// </summary>
     [Covers("Minos.ConfidenceThresholds.Classify(double confidence) -> Minos.ConfidenceTier")]
     [Covers("Minos.ConfidenceThresholds.ConfidenceThresholds(double medium, double high) -> void")]
-    [Covers("Minos.JevQuestionSetBuilder.Score(string! key, Minos.JevContent instructions, out Minos.KeyedScoreHandle question, System.Action<Minos.KeyedScoreLevelsBuilder!>! configure) -> Minos.JevQuestionSetBuilder!")]
-    [Covers("Minos.KeyedScoreLevelsBuilder.Level(Minos.JevCriterion! criterion) -> Minos.KeyedScoreLevelsBuilder!")]
-    [Covers("Minos.JevAnswers.Get(Minos.KeyedScoreHandle question) -> Minos.KeyedScore")]
+    [Covers("Minos.QuestionSetBuilder.Score(string! key, Minos.DecisionContent instructions, out Minos.KeyedScoreHandle question, System.Action<Minos.KeyedScoreLevelsBuilder!>! configure) -> Minos.QuestionSetBuilder!")]
+    [Covers("Minos.KeyedScoreLevelsBuilder.Level(Minos.Criterion! criterion) -> Minos.KeyedScoreLevelsBuilder!")]
+    [Covers("Minos.Answers.Get(Minos.KeyedScoreHandle question) -> Minos.KeyedScore")]
     public static void PatternHelpers()
     {
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, SmokeBuiltSet.ResponseJson))
         {
             BaseAddress = new Uri("https://example.test/api/"),
         };
-        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
         var set = SmokeBuiltSet.Full(out _, out _, out _, out var urgency);
         var urgencyAnswer = client.EvaluateAsync(set, "Help!").AsTask().GetAwaiter().GetResult().Value.Get(urgency);
 
@@ -479,7 +479,7 @@ internal static class AllocationChecks
         {
             BaseAddress = new Uri("https://example.test/api/"),
         };
-        using var keyedClient = new JevClient(keyedHttp, new JevClientOptions { ApiKey = "smoke-key" });
+        using var keyedClient = new DecisionClient(keyedHttp, new DecisionClientOptions { ApiKey = "smoke-key" });
         var riskSet = SmokeBuiltSet.KeyedRisk(out var risk);
         var riskAnswer = keyedClient.EvaluateAsync(riskSet, "Help!").AsTask().GetAwaiter().GetResult().Value.Get(risk);
 
@@ -519,7 +519,7 @@ internal static class AllocationChecks
         {
             BaseAddress = new Uri("https://example.test/api/"),
         };
-        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
         var set = SmokeBuiltSet.Full(out var credentials, out _, out _, out _);
         var first = client.EvaluateAsync(set, "Help!").AsTask().GetAwaiter().GetResult().Value.Get(credentials);
         var second = client.EvaluateAsync(set, "Help!").AsTask().GetAwaiter().GetResult().Value.Get(credentials);
@@ -541,22 +541,22 @@ internal static class AllocationChecks
     }
 
     /// <summary>
-    /// <see cref="EvaluateRoundTrip"/>'s call through a client <c>AddJevClient</c> registered, against the same call on a
-    /// hand-built client over an <see cref="HttpClient"/> that <see cref="JevClient.ConfigureHttpClient"/> configured the
+    /// <see cref="EvaluateRoundTrip"/>'s call through a client <c>AddDecisionClient</c> registered, against the same call on a
+    /// hand-built client over an <see cref="HttpClient"/> that <see cref="DecisionClient.ConfigureHttpClient"/> configured the
     /// same way. Registration and the first resolve happen once and are not budgeted.
     /// </summary>
-    [Covers("static Minos.JevClient.ConfigureHttpClient(System.Net.Http.HttpClient! httpClient, Minos.JevClientOptions? options) -> void")]
+    [Covers("static Minos.DecisionClient.ConfigureHttpClient(System.Net.Http.HttpClient! httpClient, Minos.DecisionClientOptions? options) -> void")]
     public static void EvaluateRoundTripThroughDependencyInjection()
     {
         var services = new ServiceCollection();
         DependencyInjectionChecks.RegisterDefaultClient(services);
         using var provider = services.BuildServiceProvider();
-        var resolved = provider.GetRequiredService<IJevClient>();
+        var resolved = provider.GetRequiredService<IDecisionClient>();
 
         // The same canned body as RegisterDefaultClient's handler, so both sides of the comparison parse one response.
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
-        JevClient.ConfigureHttpClient(http, new JevClientOptions { BaseAddress = new Uri("https://example.test/api/") });
-        using var handBuilt = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+        DecisionClient.ConfigureHttpClient(http, new DecisionClientOptions { BaseAddress = new Uri("https://example.test/api/") });
+        using var handBuilt = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
         var request = Program.Request();
 
         // DI adds nothing per call: the hand-built client's own total in this run is the budget.
@@ -567,7 +567,7 @@ internal static class AllocationChecks
             "EvaluateAsync through a DI-resolved client allocates no more than through a hand-built one");
 
         // Measured 3992 B/call on published win-x64 AOT: EvaluateRoundTrip's call plus the User-Agent header the factory's
-        // HttpClient sends, and nothing from the container or the factory, whose request logging AddJevClient removes.
+        // HttpClient sends, and nothing from the container or the factory, whose request logging AddDecisionClient removes.
         // Budget: about 10% headroom over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
         GateValueTask(
             budgetBytes: 4416,
@@ -586,12 +586,12 @@ internal static class AllocationChecks
         var services = new ServiceCollection();
         DependencyInjectionChecks.RegisterBoundDefaultClient(services);
         using var provider = services.BuildServiceProvider();
-        var resolved = provider.GetRequiredService<IJevClient>();
+        var resolved = provider.GetRequiredService<IDecisionClient>();
 
         // The bound section's base address and key, and the same canned body, so both sides make the same call.
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
-        JevClient.ConfigureHttpClient(http, new JevClientOptions { BaseAddress = new Uri("https://example.test/api/") });
-        using var handBuilt = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+        DecisionClient.ConfigureHttpClient(http, new DecisionClientOptions { BaseAddress = new Uri("https://example.test/api/") });
+        using var handBuilt = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
         var request = Program.Request();
 
         RelativeGateValueTask(
@@ -608,7 +608,7 @@ internal static class AllocationChecks
     {
         using var telemetry = new DiscardingTelemetry();
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, NoulResponseJson)) { BaseAddress = new Uri("https://example.test/api/") };
-        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
         var request = Program.Request();
 
         // Measured 5296 B/call on published win-x64 AOT. The call pays EvaluateRoundTrip's bytes plus the Activity, its
@@ -628,7 +628,7 @@ internal static class AllocationChecks
     {
         using var telemetry = new DiscardingTelemetry();
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, TriageResponseJson)) { BaseAddress = new Uri("https://example.test/api/") };
-        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
 
         // Measured 4544 B/call on published win-x64 AOT. The call pays TypedEvaluateRoundTrip's bytes plus the span, tags
         // and measurements, and the deferred reads, which allocate only the response model's string, once per attribute
@@ -648,7 +648,7 @@ internal static class AllocationChecks
     {
         using var telemetry = new DiscardingTelemetry();
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, SmokeBuiltSet.ResponseJson)) { BaseAddress = new Uri("https://example.test/api/") };
-        using var client = new JevClient(http, new JevClientOptions { ApiKey = "smoke-key" });
+        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
         var set = SmokeBuiltSet.Full(out _, out _, out _, out _);
 
         // Measured 4832 B/call on published win-x64 AOT. The call pays EvaluateBuiltSetRoundTrip's bytes plus the span,
@@ -728,7 +728,7 @@ internal static class AllocationChecks
     }
 
     /// <summary>Mirrors the generated option set for <see cref="Team"/>, since the real one is a private nested class.</summary>
-    private sealed class TeamOptions : JevOptionSet<Team>
+    private sealed class TeamOptions : DecisionOptionSet<Team>
     {
         public static readonly TeamOptions Instance = new();
 
@@ -765,7 +765,7 @@ internal static class AllocationChecks
     }
 
     /// <summary>Mirrors the generated option set for <see cref="Urgency"/>, since the real one is a private nested class.</summary>
-    private sealed class UrgencyOptions : JevOptionSet<Urgency>
+    private sealed class UrgencyOptions : DecisionOptionSet<Urgency>
     {
         public static readonly UrgencyOptions Instance = new();
 

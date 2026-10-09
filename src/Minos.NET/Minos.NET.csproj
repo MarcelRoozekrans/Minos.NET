@@ -27,7 +27,7 @@
 
   <ItemGroup>
     <!--
-      Build the [JevQuestions] source generator, its analyzer and its code fixes first and ship them in this
+      Build the [Questions] source generator, its analyzer and its code fixes first and ship them in this
       package under analyzers/dotnet/cs. Minos.NET itself does not run any of them, and none may become a
       package dependency.
     -->
@@ -73,30 +73,30 @@
   <ItemGroup>
     <!-- The rule ids, shared with the generator and the analyzers, so a runtime failure names the same JEV id. -->
     <Compile Include="..\Minos.NET.Generator\DiagnosticIds.cs" Link="Shared\DiagnosticIds.cs" />
-    <Compile Include="..\Minos.NET.Generator\JevLimits.cs" Link="Shared\JevLimits.cs" />
+    <Compile Include="..\Minos.NET.Generator\DecisionLimits.cs" Link="Shared\DecisionLimits.cs" />
     <!-- One snake_case algorithm for the generator's keys and the runtime option sets. -->
     <Compile Include="..\Minos.NET.Generator\SnakeCase.cs" Link="Shared\SnakeCase.cs" />
   </ItemGroup>
 
   <!-- Pack the generator, analyzer and code fixes from their real build output rather than a hard-coded bin path (#14). -->
-  <Target Name="PackJevGenerator" BeforeTargets="_GetPackageFiles">
+  <Target Name="PackDecisionGenerator" BeforeTargets="_GetPackageFiles">
     <MSBuild Projects="..\Minos.NET.Generator\Minos.NET.Generator.csproj"
              Targets="GetTargetPath"
              Properties="Configuration=$(Configuration)">
-      <Output TaskParameter="TargetOutputs" ItemName="_JevAnalyzerAssemblies" />
+      <Output TaskParameter="TargetOutputs" ItemName="_DecisionAnalyzerAssemblies" />
     </MSBuild>
     <MSBuild Projects="..\Minos.NET.Analyzers\Minos.NET.Analyzers.csproj"
              Targets="GetTargetPath"
              Properties="Configuration=$(Configuration)">
-      <Output TaskParameter="TargetOutputs" ItemName="_JevAnalyzerAssemblies" />
+      <Output TaskParameter="TargetOutputs" ItemName="_DecisionAnalyzerAssemblies" />
     </MSBuild>
     <MSBuild Projects="..\Minos.NET.CodeFixes\Minos.NET.CodeFixes.csproj"
              Targets="GetTargetPath"
              Properties="Configuration=$(Configuration)">
-      <Output TaskParameter="TargetOutputs" ItemName="_JevAnalyzerAssemblies" />
+      <Output TaskParameter="TargetOutputs" ItemName="_DecisionAnalyzerAssemblies" />
     </MSBuild>
     <ItemGroup>
-      <None Include="@(_JevAnalyzerAssemblies)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
+      <None Include="@(_DecisionAnalyzerAssemblies)" Pack="true" PackagePath="analyzers/dotnet/cs" Visible="false" />
     </ItemGroup>
   </Target>
 </Project>

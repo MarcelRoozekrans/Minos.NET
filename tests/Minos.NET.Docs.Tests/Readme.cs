@@ -12,7 +12,7 @@ public enum Lane
     Technical,
 }
 
-[JevQuestions]
+[Questions]
 public partial record Triage
 {
     [Noul("Does this convey urgency?")]
@@ -25,14 +25,14 @@ public partial record Triage
 public static class ReadmeExample
 {
     // A one-off run. The client reads TYPESAFE_API_KEY. A long-running app creates one client and shares it, or
-    // registers it with AddJevClient.
+    // registers it with AddDecisionClient.
     public static async Task<string> RunAsync(string message, CancellationToken cancellationToken)
     {
-        using var jev = new JevClient();
+        using var jev = new DecisionClient();
         return await RouteAsync(jev, message, cancellationToken);
     }
 
-    public static async Task<string> RouteAsync(IJevClient jev, string message, CancellationToken cancellationToken)
+    public static async Task<string> RouteAsync(IDecisionClient jev, string message, CancellationToken cancellationToken)
     {
         var result = await jev.EvaluateAsync<Triage>(message, cancellationToken);
         return result.IsFailure

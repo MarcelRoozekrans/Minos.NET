@@ -3,7 +3,7 @@ using System.Diagnostics.CodeAnalysis;
 namespace Minos;
 
 /// <summary>
-/// Describes the options of an enum Choice question built with <see cref="JevQuestionSetBuilder"/>. Every distinct
+/// Describes the options of an enum Choice question built with <see cref="QuestionSetBuilder"/>. Every distinct
 /// member is an option, in declaration order, as the generator sends them; one left undescribed sends
 /// <see langword="null"/>.
 /// </summary>
@@ -28,7 +28,7 @@ public sealed class ChoiceOptionsBuilder<[DynamicallyAccessedMembers(Dynamically
     /// <exception cref="InvalidOperationException">The configurator is used after its callback returned.</exception>
     /// <exception cref="ArgumentNullException"><paramref name="criterion"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="option"/> is not a member of <typeparamref name="T"/>.</exception>
-    public ChoiceOptionsBuilder<T> Describe(T option, JevCriterion criterion)
+    public ChoiceOptionsBuilder<T> Describe(T option, Criterion criterion)
     {
         _draft.EnsureOpen();
         ArgumentNullException.ThrowIfNull(criterion);

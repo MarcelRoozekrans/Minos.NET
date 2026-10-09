@@ -7,12 +7,12 @@ namespace Minos.Validation;
 /// <summary>
 /// One question of a set built at run time, as ZeroAlloc.Validation checks it against the API's rules. Every rule
 /// names its JEV id in <see cref="ValidationFailure.ErrorCode"/>, the same id the analyzers report for a
-/// <c>[JevQuestions]</c> set; advice is <see cref="Severity.Warning"/>.
+/// <c>[Questions]</c> set; advice is <see cref="Severity.Warning"/>.
 /// </summary>
 [Validate]
 internal sealed record QuestionSpec
 {
-    private static readonly string DepthLimit = JevLimits.MaximumJsonDepth.ToString(CultureInfo.InvariantCulture);
+    private static readonly string DepthLimit = DecisionLimits.MaximumJsonDepth.ToString(CultureInfo.InvariantCulture);
 
     [NotEmpty(ErrorCode = DiagnosticIds.DuplicateKey, Message = "The question key is empty.")]
     public required string Key { get; init; }
@@ -21,15 +21,15 @@ internal sealed record QuestionSpec
 
     [NotBlankContent(Severity = Severity.Warning, ErrorCode = DiagnosticIds.EmptyText,
         Message = "The instructions are empty or whitespace, or an empty JSON object or array.")]
-    public required JevContent Instructions { get; init; }
+    public required DecisionContent Instructions { get; init; }
 
     [NotBlankContent(Severity = Severity.Warning, ErrorCode = DiagnosticIds.EmptyText,
         Message = "What a yes answer means is empty or whitespace, or an empty JSON object or array.")]
-    public JevContent? WhenTrue { get; init; }
+    public DecisionContent? WhenTrue { get; init; }
 
     [NotBlankContent(Severity = Severity.Warning, ErrorCode = DiagnosticIds.EmptyText,
         Message = "What a no answer means is empty or whitespace, or an empty JSON object or array.")]
-    public JevContent? WhenFalse { get; init; }
+    public DecisionContent? WhenFalse { get; init; }
 
     public required OptionSpec[] Options { get; init; }
 
@@ -39,14 +39,14 @@ internal sealed record QuestionSpec
     /// </summary>
     public string[]? EnumMembers { get; init; }
 
-    [GreaterThanOrEqualTo(JevLimits.MinimumOptions, When = nameof(IsChoice), ErrorCode = DiagnosticIds.EmptyChoiceEnum,
+    [GreaterThanOrEqualTo(DecisionLimits.MinimumOptions, When = nameof(IsChoice), ErrorCode = DiagnosticIds.EmptyChoiceEnum,
         Message = "A Choice question needs at least one option.")]
-    [GreaterThanOrEqualTo(JevLimits.MinimumOptions, When = nameof(NeedsLevels), ErrorCode = DiagnosticIds.EmptyScoreEnum,
+    [GreaterThanOrEqualTo(DecisionLimits.MinimumOptions, When = nameof(NeedsLevels), ErrorCode = DiagnosticIds.EmptyScoreEnum,
         Message = "A Score question needs at least one level.")]
-    [LessThanOrEqualTo(JevLimits.MaximumChoiceOptions, When = nameof(IsChoice), Severity = Severity.Warning,
+    [LessThanOrEqualTo(DecisionLimits.MaximumChoiceOptions, When = nameof(IsChoice), Severity = Severity.Warning,
         ErrorCode = DiagnosticIds.OptionCountOutsideGuidance,
         Message = "A Choice question has more than 255 options, beyond the API's guidance.")]
-    [InclusiveBetween(JevLimits.MinimumScoreLevels, JevLimits.MaximumScoreLevels, When = nameof(IsScoreWithLevels),
+    [InclusiveBetween(DecisionLimits.MinimumScoreLevels, DecisionLimits.MaximumScoreLevels, When = nameof(IsScoreWithLevels),
         Severity = Severity.Warning, ErrorCode = DiagnosticIds.OptionCountOutsideGuidance,
         Message = "A Score question has fewer than 2 or more than 10 levels, outside the API's guidance.")]
     public int OptionCount => Options.Length;
@@ -141,7 +141,7 @@ internal sealed record QuestionSpec
 
     /// <summary>
     /// JEV108: instructions, a description, or what a yes or no answer means, nested deeper than
-    /// <see cref="JevLimits.MaximumJsonDepth"/> levels.
+    /// <see cref="DecisionLimits.MaximumJsonDepth"/> levels.
     /// </summary>
     [CustomValidation]
     public ValidationFailure[] ValidateJsonDepth()

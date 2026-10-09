@@ -27,7 +27,7 @@ public sealed record RoutingReport(IReadOnlyList<RoutedRequest> Requests)
 /// <summary>Classifies each request with one Jev call and routes it: code, an assistant model or a person.</summary>
 public static class IntentRoutingSample
 {
-    public static async Task<RoutingReport> RunAsync(IJevClient jev, CancellationToken cancellationToken)
+    public static async Task<RoutingReport> RunAsync(IDecisionClient jev, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(jev);
         var routed = new List<RoutedRequest>();

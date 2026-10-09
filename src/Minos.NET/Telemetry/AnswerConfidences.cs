@@ -8,7 +8,7 @@ namespace Minos.Telemetry;
 /// </summary>
 /// <param name="answers">The response's answers.</param>
 [StructLayout(LayoutKind.Auto)]
-internal readonly struct AnswerConfidences(IReadOnlyDictionary<string, JevAnswer> answers)
+internal readonly struct AnswerConfidences(IReadOnlyDictionary<string, Answer> answers)
 {
     /// <summary>Starts an enumeration.</summary>
     public Enumerator GetEnumerator() => new(answers);
@@ -21,14 +21,14 @@ internal readonly struct AnswerConfidences(IReadOnlyDictionary<string, JevAnswer
     [StructLayout(LayoutKind.Auto)]
     internal struct Enumerator : IDisposable
     {
-        private readonly IEnumerator<JevAnswer>? _other;
+        private readonly IEnumerator<Answer>? _other;
         private readonly bool _isDictionary;
-        private Dictionary<string, JevAnswer>.ValueCollection.Enumerator _values;
+        private Dictionary<string, Answer>.ValueCollection.Enumerator _values;
         private double _current;
 
-        public Enumerator(IReadOnlyDictionary<string, JevAnswer> answers)
+        public Enumerator(IReadOnlyDictionary<string, Answer> answers)
         {
-            if (answers is Dictionary<string, JevAnswer> dictionary)
+            if (answers is Dictionary<string, Answer> dictionary)
             {
                 _isDictionary = true;
                 _values = dictionary.Values.GetEnumerator();

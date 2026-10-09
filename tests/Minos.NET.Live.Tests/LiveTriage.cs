@@ -25,10 +25,10 @@ public enum Frustration
 }
 
 /// <summary>
-/// The same triage questions as <see cref="Live.Request"/>, declared with <c>[JevQuestions]</c> so the generated
+/// The same triage questions as <see cref="Live.Request"/>, declared with <c>[Questions]</c> so the generated
 /// question set and typed answer parser can be exercised against a real response.
 /// </summary>
-[JevQuestions]
+[Questions]
 public partial record LiveTriage
 {
     [Noul("Does this convey urgency?")]

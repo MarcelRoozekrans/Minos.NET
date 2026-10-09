@@ -3,7 +3,7 @@ namespace Minos.AotSmoke;
 /// <summary>
 /// The question handles' parameterless constructors under Native AOT: <see cref="NoulHandle"/>,
 /// <see cref="ChoiceHandle{T}"/>, <see cref="ScoreHandle{T}"/>, <see cref="KeyedChoiceHandle"/> and
-/// <see cref="KeyedScoreHandle"/>. A default handle belongs to no question set, so <see cref="JevAnswers"/> rejects it.
+/// <see cref="KeyedScoreHandle"/>. A default handle belongs to no question set, so <see cref="Answers"/> rejects it.
 /// </summary>
 internal static class QuestionHandleChecks
 {
@@ -24,6 +24,6 @@ internal static class QuestionHandleChecks
                 && SmokeAssert.Throws<ArgumentException>(() => answers.Get(new ScoreHandle<Urgency>()))
                 && SmokeAssert.Throws<ArgumentException>(() => answers.Get(new KeyedChoiceHandle()))
                 && SmokeAssert.Throws<ArgumentException>(() => answers.Get(new KeyedScoreHandle())),
-            "JevAnswers.Get rejects a default handle of every kind under Native AOT");
+            "Answers.Get rejects a default handle of every kind under Native AOT");
     }
 }

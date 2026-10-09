@@ -6,10 +6,10 @@ namespace Minos.Generator;
 /// <summary>Writes the C# source for one question set.</summary>
 internal static class SourceEmitter
 {
-    private const string Reader = "global::Minos.JevAnswerReader";
+    private const string Reader = "global::Minos.AnswerReader";
 
     // The whole message is a string literal the stub getters throw; JEV errors keep the stubs from ever running.
-    private const string InvalidSetMessage = "\"This [JevQuestions] set is invalid; see the JEV diagnostics.\"";
+    private const string InvalidSetMessage = "\"This [Questions] set is invalid; see the JEV diagnostics.\"";
 
     public static string HintName(QuestionSetModel model) => HintName(model.Namespace, model.TypeName);
 
@@ -24,7 +24,7 @@ internal static class SourceEmitter
 
     /// <summary>
     /// Implements an invalid set's partial question properties with accessors that throw, and nothing else: no
-    /// <c>QuestionsUtf8</c>, no <c>Parse</c> and no <c>IJevQuestionSet</c>. Without them, each property would be
+    /// <c>QuestionsUtf8</c>, no <c>Parse</c> and no <c>IQuestionSet</c>. Without them, each property would be
     /// CS9248, a declaration error that stops a command-line build before the analyzer reports the JEV error.
     /// </summary>
     public static string EmitStubs(InvalidSetModel model)
@@ -70,7 +70,7 @@ internal static class SourceEmitter
     private static string Indent(int depth) => new(' ', depth * 4);
 
     private static string HintName(string? ns, string typeName)
-        => ((ns is null ? string.Empty : ns + ".") + typeName + ".JevQuestions.g.cs").Replace("@", string.Empty);
+        => ((ns is null ? string.Empty : ns + ".") + typeName + ".Questions.g.cs").Replace("@", string.Empty);
 
     public static string Emit(QuestionSetModel model)
     {
@@ -86,7 +86,7 @@ internal static class SourceEmitter
 
         var stateArgument = model.StateTypeName is null ? string.Empty : ", " + model.StateTypeName;
         code.Line("partial " + (model.IsRecord ? "record " : "class ") + model.TypeName
-            + " : global::Minos.IJevQuestionSet<" + model.FullyQualifiedName + stateArgument + ">");
+            + " : global::Minos.IQuestionSet<" + model.FullyQualifiedName + stateArgument + ">");
         code.Line("{");
 
         foreach (var question in model.Questions)
@@ -197,7 +197,7 @@ internal static class SourceEmitter
         var name = OptionSet(question);
         var enumType = question.EnumType;
 
-        code.Line("    private sealed class " + name + " : global::Minos.JevOptionSet<" + enumType + ">");
+        code.Line("    private sealed class " + name + " : global::Minos.DecisionOptionSet<" + enumType + ">");
         code.Line("    {");
         code.Line("        public static readonly " + name + " Instance = new();");
         code.Line();
@@ -317,9 +317,9 @@ internal static class SourceEmitter
         _ => "global::Minos.Score<" + question.EnumType + ">",
     };
 
-    private static string Field(QuestionModel question) => "__jev_" + question.PropertyName.TrimStart('@');
+    private static string Field(QuestionModel question) => "__minos_" + question.PropertyName.TrimStart('@');
 
-    private static string OptionSet(QuestionModel question) => "__JevOptions_" + question.PropertyName.TrimStart('@');
+    private static string OptionSet(QuestionModel question) => "__DecisionOptions_" + question.PropertyName.TrimStart('@');
 
     private static string Int(int value) => value.ToString(CultureInfo.InvariantCulture);
 

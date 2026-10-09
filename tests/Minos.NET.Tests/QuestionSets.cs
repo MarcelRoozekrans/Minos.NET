@@ -1,13 +1,13 @@
 namespace Minos.Tests;
 
-[JevQuestions]
+[Questions]
 public partial record UrgencyCheck
 {
     [Noul("Does this convey urgency?", WhenTrue = "Explicitly time-sensitive", WhenFalse = "No urgency expressed")]
     public partial Noul IsUrgent { get; }
 }
 
-[JevQuestions]
+[Questions]
 public partial record MinimalUrgencyCheck
 {
     [Noul("Does this convey urgency?")]
@@ -28,7 +28,7 @@ public enum Department
     Other,
 }
 
-[JevQuestions]
+[Questions]
 public partial record DepartmentRouting
 {
     [Choice("Which team should handle this?")]
@@ -58,7 +58,7 @@ public enum StructuredSeverity
     High,
 }
 
-[JevQuestions]
+[Questions]
 public partial record StructuredRouting
 {
     [Choice("Which team should handle this?")]
@@ -80,14 +80,14 @@ public enum Frustration
     VeryAngry,
 }
 
-[JevQuestions]
+[Questions]
 public partial record FrustrationCheck
 {
     [Score("How frustrated is the customer?")]
     public partial Score<Frustration> Frustration { get; }
 }
 
-[JevQuestions]
+[Questions]
 public partial class TicketTriage
 {
     [Noul("Does `message` ask for a credential?")]
@@ -116,7 +116,7 @@ public enum Priority
 #pragma warning restore CA1069
 }
 
-[JevQuestions]
+[Questions]
 public partial record EdgeCases
 {
     public const string TrickyInstructions = "Quote \" backslash \\ newline \n control \u0001 accent é emoji 😀 backtick `message`";
@@ -145,6 +145,6 @@ public enum DeepOption
 internal static class BuiltSets
 {
     /// <summary>One Noul, <c>is_urgent</c>, which <c>response-noul.json</c> answers.</summary>
-    public static JevQuestionSet UrgencyOnly()
-        => JevQuestionSet.CreateBuilder().Noul("is_urgent", "Does this convey urgency?", out _).Build().Value;
+    public static QuestionSet UrgencyOnly()
+        => QuestionSet.CreateBuilder().Noul("is_urgent", "Does this convey urgency?", out _).Build().Value;
 }

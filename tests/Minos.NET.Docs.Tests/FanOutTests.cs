@@ -41,7 +41,7 @@ public sealed class FanOutTests
     [Fact]
     public async Task CrashWithDataLoss_PagesOnCall_AndReachesCompetitiveResearch()
     {
-        var review = await CannedJev.EvaluateAsync<AppReview>(CrashResponse, "Crashed on launch and wiped my notes. Moving to NoteRival.");
+        var review = await CannedDecision.EvaluateAsync<AppReview>(CrashResponse, "Crashed on launch and wiped my notes. Moving to NoteRival.");
 
         Assert.Equal(ReviewActions.PageOnCall | ReviewActions.ToCompetitiveResearch, ReviewRouting.Route(review));
     }
@@ -49,7 +49,7 @@ public sealed class FanOutTests
     [Fact]
     public async Task PricingReview_IgnoresTheDataLossAnswer()
     {
-        var review = await CannedJev.EvaluateAsync<AppReview>(PricingResponse, "Price doubled overnight, and I lost my save when I cancelled.");
+        var review = await CannedDecision.EvaluateAsync<AppReview>(PricingResponse, "Price doubled overnight, and I lost my save when I cancelled.");
 
         // The data-loss answer is present and high, but unread: the review is about pricing, not a crash.
         Assert.True(review.MentionsDataLoss.Probability > 0.6);
@@ -59,7 +59,7 @@ public sealed class FanOutTests
     [Fact]
     public async Task TriageAsync_RoutesThroughTheClient_InOneRequest()
     {
-        var (http, jev, requests) = CannedJev.Client(CrashResponse);
+        var (http, jev, requests) = CannedDecision.Client(CrashResponse);
         using (http)
         using (jev)
         {
@@ -79,21 +79,21 @@ public sealed class FanOutTests
     {
         var response = string.Equals(responseName, nameof(CrashResponse), StringComparison.Ordinal) ? CrashResponse : PricingResponse;
 
-        var (typedHttp, typedJev, typedRequests) = CannedJev.Client(response);
+        var (typedHttp, typedDecision, typedRequests) = CannedDecision.Client(response);
         using (typedHttp)
-        using (typedJev)
+        using (typedDecision)
         {
-            Assert.Equal(expected, await ReviewTriage.TriageAsync(typedJev, "A review.", CancellationToken.None));
+            Assert.Equal(expected, await ReviewTriage.TriageAsync(typedDecision, "A review.", CancellationToken.None));
         }
 
-        var (http, jev, requests) = CannedJev.Client(response);
+        var (http, jev, requests) = CannedDecision.Client(response);
         using (http)
         using (jev)
         {
             Assert.Equal(expected, await new BuiltReviewTriage().TriageAsync(jev, "A review.", CancellationToken.None));
         }
 
-        // The same five keys as the [JevQuestions] type, and the same questions under them, options and levels included.
+        // The same five keys as the [Questions] type, and the same questions under them, options and levels included.
         Assert.Collection(requests, body =>
         {
             Assert.Equal(QuestionKeys, QuestionKeysOf(body));

@@ -29,33 +29,33 @@ public sealed class CodeFixTests
     public Task MissingCriteria_AddsAttributeFromMemberName()
         => VerifyAsync(
             "public enum E { [Criteria(\"x\")] A, {|JEV006:Billing|} } "
-                + "[JevQuestions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
+                + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
             "public enum E { [Criteria(\"x\")] A, [Criteria(\"Billing\")] Billing } "
-                + "[JevQuestions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }");
+                + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }");
 
     [Fact]
     public Task MissingCriteria_LowercasesLaterWords()
         => VerifyAsync(
             "public enum E { [Criteria(\"x\")] A, {|JEV006:NeedsAttention|} } "
-                + "[JevQuestions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
+                + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
             "public enum E { [Criteria(\"x\")] A, [Criteria(\"Needs attention\")] NeedsAttention } "
-                + "[JevQuestions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }");
+                + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }");
 
     [Fact]
     public Task MissingCriteria_KeepsAnAcronymUppercase()
         => VerifyAsync(
             "public enum E { [Criteria(\"x\")] A, {|JEV006:HTTPError|} } "
-                + "[JevQuestions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
+                + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
             "public enum E { [Criteria(\"x\")] A, [Criteria(\"HTTP error\")] HTTPError } "
-                + "[JevQuestions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }");
+                + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }");
 
     [Fact]
     public Task MissingLevel_AddsAttributeFromMemberName()
         => VerifyAsync(
             "public enum L { [Level(\"a\")] A, {|JEV104:NeedsReview|} } "
-                + "[JevQuestions] public partial class Q { [Score(\"q\")] public partial Score<L> Answer { get; } }",
+                + "[Questions] public partial class Q { [Score(\"q\")] public partial Score<L> Answer { get; } }",
             "public enum L { [Level(\"a\")] A, [Level(\"Needs review\")] NeedsReview } "
-                + "[JevQuestions] public partial class Q { [Score(\"q\")] public partial Score<L> Answer { get; } }");
+                + "[Questions] public partial class Q { [Score(\"q\")] public partial Score<L> Answer { get; } }");
 
     [Fact]
     public async Task MissingLevel_OnPropertyFromReferencedAssembly_OffersNoFix()
@@ -68,7 +68,7 @@ public sealed class CodeFixTests
 
         // Neither enum member has [Level], so JEV104 fires once per member (Levels.A and Levels.B), both at the
         // same property location: the nested markup matches AnalyzerVerifier's own convention for this case.
-        var source = "using Minos; using External; [JevQuestions] public partial class Q { "
+        var source = "using Minos; using External; [Questions] public partial class Q { "
             + "[Score(\"q\")] public partial Score<Levels> {|JEV104:{|JEV104:Answer|}|} { get; } }";
         var test = new CSharpCodeFixTest<QuestionSetAnalyzer, AddDescriptionCodeFixProvider, DefaultVerifier>
         {
@@ -86,9 +86,9 @@ public sealed class CodeFixTests
     public Task FixAll_InDocument_FixesEveryMember()
         => VerifyAsync(
             "public enum E { [Criteria(\"x\")] A, {|JEV006:B|}, {|JEV006:C|}, {|JEV006:HTTPError|} } "
-                + "[JevQuestions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
+                + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
             "public enum E { [Criteria(\"x\")] A, [Criteria(\"B\")] B, [Criteria(\"C\")] C, [Criteria(\"HTTP error\")] HTTPError } "
-                + "[JevQuestions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
+                + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
             batch: true);
 
     [Fact]
@@ -101,7 +101,7 @@ public sealed class CodeFixTests
                 // A note about B
                 [System.Obsolete] {|JEV006:B|},
             }
-            [JevQuestions] public partial class Q { [Choice("q")] public partial Choice<E> Answer { get; } }
+            [Questions] public partial class Q { [Choice("q")] public partial Choice<E> Answer { get; } }
             """,
             """
             public enum E
@@ -110,7 +110,7 @@ public sealed class CodeFixTests
                 // A note about B
                 [System.Obsolete] [Criteria("B")] B,
             }
-            [JevQuestions] public partial class Q { [Choice("q")] public partial Choice<E> Answer { get; } }
+            [Questions] public partial class Q { [Choice("q")] public partial Choice<E> Answer { get; } }
             """);
 
     [Fact]
@@ -119,17 +119,17 @@ public sealed class CodeFixTests
         var test = new CSharpCodeFixTest<QuestionSetAnalyzer, AddDescriptionCodeFixProvider, DefaultVerifier>
         {
             TestCode = "public enum E { [Minos.Criteria(\"x\")] A, {|JEV006:B|} } "
-                + "[Minos.JevQuestions] public partial class Q { "
+                + "[Minos.Questions] public partial class Q { "
                 + "[Minos.Choice(\"q\")] public partial Minos.Choice<E> Answer { get; } }",
             // A single line has no line break of its own to follow and there is no .editorconfig, so the using ends
             // with the workspace's default new line, Environment.NewLine: "\n" on Linux, "\r\n" on Windows.
             FixedCode = "using Minos;" + Environment.NewLine + Environment.NewLine + "public enum E { [Minos.Criteria(\"x\")] A, [Criteria(\"B\")] B } "
-                + "[Minos.JevQuestions] public partial class Q { "
+                + "[Minos.Questions] public partial class Q { "
                 + "[Minos.Choice(\"q\")] public partial Minos.Choice<E> Answer { get; } }",
             ReferenceAssemblies = ReferenceAssemblies.Net.Net100,
             CompilerDiagnostics = CompilerDiagnostics.None,
         };
-        AddJevReference(test);
+        AddDecisionReference(test);
         return test.RunAsync();
     }
 
@@ -140,14 +140,14 @@ public sealed class CodeFixTests
                 """
                 using Jev = Minos;
                 public enum E { [Jev.Criteria("x")] A, {|JEV006:B|} }
-                [Jev.JevQuestions] public partial class Q { [Jev.Choice("q")] public partial Jev.Choice<E> {|CS9248:Answer|} { get; } }
+                [Jev.Questions] public partial class Q { [Jev.Choice("q")] public partial Jev.Choice<E> {|CS9248:Answer|} { get; } }
                 """,
             ],
             [
                 """
                 using Jev = Minos;
                 public enum E { [Jev.Criteria("x")] A, [Jev.Criteria("B")] B }
-                [Jev.JevQuestions] public partial class Q { [Jev.Choice("q")] public partial Jev.Choice<E> {|CS9248:Answer|} { get; } }
+                [Jev.Questions] public partial class Q { [Jev.Choice("q")] public partial Jev.Choice<E> {|CS9248:Answer|} { get; } }
                 """,
             ]);
 
@@ -161,7 +161,7 @@ public sealed class CodeFixTests
                     using Minos;
 
                     public enum E { [Criteria("x")] A, {|JEV006:B|} }
-                    [JevQuestions] public partial class Q { [Choice("q")] public partial Choice<E> {|CS9248:Answer|} { get; } }
+                    [Questions] public partial class Q { [Choice("q")] public partial Choice<E> {|CS9248:Answer|} { get; } }
                 }
                 """,
             ],
@@ -172,7 +172,7 @@ public sealed class CodeFixTests
                     using Minos;
 
                     public enum E { [Criteria("x")] A, [Criteria("B")] B }
-                    [JevQuestions] public partial class Q { [Choice("q")] public partial Choice<E> {|CS9248:Answer|} { get; } }
+                    [Questions] public partial class Q { [Choice("q")] public partial Choice<E> {|CS9248:Answer|} { get; } }
                 }
                 """,
             ]);
@@ -186,7 +186,7 @@ public sealed class CodeFixTests
                 namespace N;
 
                 public enum E { [Criteria("x")] A, {|JEV006:B|} }
-                [JevQuestions] public partial class Q { [Choice("q")] public partial Choice<E> {|CS9248:Answer|} { get; } }
+                [Questions] public partial class Q { [Choice("q")] public partial Choice<E> {|CS9248:Answer|} { get; } }
                 """,
             ],
             [
@@ -195,7 +195,7 @@ public sealed class CodeFixTests
                 namespace N;
 
                 public enum E { [Criteria("x")] A, [Criteria("B")] B }
-                [JevQuestions] public partial class Q { [Choice("q")] public partial Choice<E> {|CS9248:Answer|} { get; } }
+                [Questions] public partial class Q { [Choice("q")] public partial Choice<E> {|CS9248:Answer|} { get; } }
                 """,
             ]);
 
@@ -203,7 +203,7 @@ public sealed class CodeFixTests
     public Task LfFileWithoutUsing_StaysLf()
     {
         // Built with explicit "\n" rather than a raw string literal, whose line breaks follow this file's own.
-        const string Set = "[Minos.JevQuestions]\npublic partial class Q\n{\n"
+        const string Set = "[Minos.Questions]\npublic partial class Q\n{\n"
             + "    [Minos.Choice(\"q\")] public partial Minos.Choice<E> {|CS9248:Answer|} { get; }\n}\n";
         const string Source = "public enum E\n{\n    [Minos.Criteria(\"x\")] A,\n"
             + "    {|JEV006:B|},\n    {|JEV006:NeedsAttention|},\n}\n\n" + Set;
@@ -217,7 +217,7 @@ public sealed class CodeFixTests
     public Task CrlfFile_AttributeOnItsOwnLine_KeepsTheLayout()
     {
         // A member whose attribute list has a line of its own gets the new list on a line of its own too.
-        const string Set = "[JevQuestions]\r\npublic partial class Q\r\n{\r\n"
+        const string Set = "[Questions]\r\npublic partial class Q\r\n{\r\n"
             + "    [Choice(\"q\")] public partial Choice<E> {|CS9248:Answer|} { get; }\r\n}\r\n";
         return VerifyCompilesAsync(
             ["using Minos;\r\n\r\npublic enum E\r\n{\r\n    [Criteria(\"x\")] A,\r\n    [System.Obsolete]\r\n    {|JEV006:B|},\r\n}\r\n\r\n" + Set],
@@ -231,16 +231,16 @@ public sealed class CodeFixTests
         var test = new CSharpCodeFixTest<QuestionSetAnalyzer, AddDescriptionCodeFixProvider, DefaultVerifier>
         {
             TestCode = "public enum E { [Minos.Criteria(\"x\")] A, {|JEV006:B|} } "
-                + "[Minos.JevQuestions] public partial class Q { "
+                + "[Minos.Questions] public partial class Q { "
                 + "[Minos.Choice(\"q\")] public partial Minos.Choice<E> Answer { get; } }",
             FixedCode = "using Minos;\n\npublic enum E { [Minos.Criteria(\"x\")] A, [Criteria(\"B\")] B } "
-                + "[Minos.JevQuestions] public partial class Q { "
+                + "[Minos.Questions] public partial class Q { "
                 + "[Minos.Choice(\"q\")] public partial Minos.Choice<E> Answer { get; } }",
             ReferenceAssemblies = ReferenceAssemblies.Net.Net100,
             CompilerDiagnostics = CompilerDiagnostics.None,
         };
         test.TestState.AnalyzerConfigFiles.Add(("/.editorconfig", "root = true\n\n[*]\nend_of_line = lf\n"));
-        AddJevReference(test);
+        AddDecisionReference(test);
         return test.RunAsync();
     }
 
@@ -268,7 +268,7 @@ public sealed class CodeFixTests
             }
         }
 
-        AddJevReference(test);
+        AddDecisionReference(test);
         return test.RunAsync();
     }
 
@@ -288,18 +288,18 @@ public sealed class CodeFixTests
             test.BatchFixedCode = fixedCode;
         }
 
-        AddJevReference(test);
+        AddDecisionReference(test);
         return test.RunAsync();
     }
 
-    private static void AddJevReference(CSharpCodeFixTest<QuestionSetAnalyzer, AddDescriptionCodeFixProvider, DefaultVerifier> test)
-        => test.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(JevQuestionsAttribute).Assembly.Location));
+    private static void AddDecisionReference(CSharpCodeFixTest<QuestionSetAnalyzer, AddDescriptionCodeFixProvider, DefaultVerifier> test)
+        => test.TestState.AdditionalReferences.Add(MetadataReference.CreateFromFile(typeof(QuestionsAttribute).Assembly.Location));
 
     private static void AddReferences(
         CSharpCodeFixTest<QuestionSetAnalyzer, AddDescriptionCodeFixProvider, DefaultVerifier> test,
         params MetadataReference[] additionalReferences)
     {
-        AddJevReference(test);
+        AddDecisionReference(test);
         foreach (var reference in additionalReferences)
         {
             test.TestState.AdditionalReferences.Add(reference);

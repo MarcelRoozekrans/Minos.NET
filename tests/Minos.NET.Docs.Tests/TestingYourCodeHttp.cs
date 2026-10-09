@@ -50,7 +50,7 @@ public sealed class TestingYourCodeHttpTests
         var handler = new CannedHandler(HttpStatusCode.OK, UrgentBody);
         using var http = new HttpClient(handler);
         // A dummy key passes validation, and no retries means a failing reply is returned at once.
-        using var jev = new JevClient(http, new JevClientOptions { ApiKey = "test-key", MaxRetries = 0 });
+        using var jev = new DecisionClient(http, new DecisionClientOptions { ApiKey = "test-key", MaxRetries = 0 });
 
         var route = await new TicketTriager(jev).RouteAsync("Payouts have been failing for 3 days.", CancellationToken.None);
 
@@ -68,12 +68,12 @@ public sealed class TestingYourCodeHttpTests
     {
         var handler = new CannedHandler(HttpStatusCode.Unauthorized, """{"error":"Invalid API key"}""");
         using var http = new HttpClient(handler);
-        using var jev = new JevClient(http, new JevClientOptions { ApiKey = "test-key", MaxRetries = 0 });
+        using var jev = new DecisionClient(http, new DecisionClientOptions { ApiKey = "test-key", MaxRetries = 0 });
 
         var result = await jev.EvaluateAsync<TriageQuestions>("Any ticket.", CancellationToken.None);
 
         Assert.True(result.IsFailure);
-        Assert.Equal(JevErrorKind.Unauthorized, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.Unauthorized, result.Error.Kind);
         Assert.Equal(TriageRoute.Review, await new TicketTriager(jev).RouteAsync("Any ticket.", CancellationToken.None));
     }
     #endregion

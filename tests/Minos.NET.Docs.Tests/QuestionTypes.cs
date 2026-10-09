@@ -26,7 +26,7 @@ public enum Mood
     Pleased,
 }
 
-[JevQuestions]
+[Questions]
 public partial record TicketAnalysis
 {
     [Noul("Does this convey urgency?")]
@@ -96,14 +96,14 @@ public static class AnswerReading
 #region QuestionTypes_Keyed
 public sealed class PlanAdvisor
 {
-    private readonly JevQuestionSet _questions;
+    private readonly QuestionSet _questions;
     private readonly KeyedChoiceHandle _plan;
     private readonly KeyedScoreHandle _effort;
 
     // The options and levels come from run-time data, so no enum describes them: keys and levels are plain values.
     public PlanAdvisor(IEnumerable<(string Key, string Summary)> plans)
     {
-        var built = JevQuestionSet.CreateBuilder()
+        var built = QuestionSet.CreateBuilder()
             .Choice("plan", "Which plan fits this customer?", out _plan, options =>
             {
                 foreach (var (key, summary) in plans)
@@ -121,7 +121,7 @@ public sealed class PlanAdvisor
     }
 
     public async Task<(string Plan, double PlanProbability, int EffortLevel, double EffortNormalized)?> AdviseAsync(
-        IJevClient jev, string message, CancellationToken cancellationToken)
+        IDecisionClient jev, string message, CancellationToken cancellationToken)
     {
         var result = await jev.EvaluateAsync(_questions, message, cancellationToken);
         if (result.IsFailure)

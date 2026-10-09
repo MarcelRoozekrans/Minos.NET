@@ -3,7 +3,7 @@ using System.Diagnostics;
 
 namespace Minos.Integration.Tests;
 
-/// <summary>Builds a <see cref="JevClient"/> configured for the WireMock fixtures: a fixed key, no jitter and short backoffs.</summary>
+/// <summary>Builds a <see cref="DecisionClient"/> configured for the WireMock fixtures: a fixed key, no jitter and short backoffs.</summary>
 /// <remarks>
 /// Only a test that sets <c>timeout</c> gets a per-attempt budget of its own; everything else keeps the library's
 /// default. A fixture-wide budget of a few seconds is not something these tests check, and on a loaded machine a
@@ -11,12 +11,12 @@ namespace Minos.Integration.Tests;
 /// </remarks>
 internal static class IntegrationClient
 {
-    public static JevClient Create(
+    public static DecisionClient Create(
         Uri baseAddress,
         int maxRetries = 0,
         TimeSpan? timeout = null,
         TimeSpan? initialBackoff = null,
-        JevProvider provider = JevProvider.TypeSafe)
+        DecisionProvider provider = DecisionProvider.TypeSafe)
     {
         var options = Options(maxRetries, initialBackoff, provider);
         options.BaseAddress = baseAddress;
@@ -25,22 +25,22 @@ internal static class IntegrationClient
             options.Timeout = perAttempt;
         }
 
-        return new JevClient(options);
+        return new DecisionClient(options);
     }
 
     /// <summary>
     /// Builds a client over <paramref name="attempts"/>' <see cref="HttpClient"/>, so the test observes each attempt
     /// on the client side; its base address and per-attempt time-out come from that <see cref="HttpClient"/>.
     /// </summary>
-    public static JevClient Create(AttemptRecorder attempts, int maxRetries = 0, TimeSpan? initialBackoff = null)
-        => new(attempts.HttpClient, Options(maxRetries, initialBackoff, JevProvider.TypeSafe));
+    public static DecisionClient Create(AttemptRecorder attempts, int maxRetries = 0, TimeSpan? initialBackoff = null)
+        => new(attempts.HttpClient, Options(maxRetries, initialBackoff, DecisionProvider.TypeSafe));
 
     /// <summary>
     /// Applies the fixtures' configuration to <paramref name="options"/>: the fixed key, no jitter, a 5 second maximum
-    /// retry delay and a short backoff. The hand-built clients and the ones from <c>AddJevClient</c> both configure
+    /// retry delay and a short backoff. The hand-built clients and the ones from <c>AddDecisionClient</c> both configure
     /// through this.
     /// </summary>
-    public static void Configure(JevClientOptions options, int maxRetries, TimeSpan? initialBackoff = null)
+    public static void Configure(DecisionClientOptions options, int maxRetries, TimeSpan? initialBackoff = null)
     {
         options.ApiKey = "integration-key";
         options.MaxRetries = maxRetries;
@@ -49,9 +49,9 @@ internal static class IntegrationClient
         options.Jitter = false;
     }
 
-    private static JevClientOptions Options(int maxRetries, TimeSpan? initialBackoff, JevProvider provider)
+    private static DecisionClientOptions Options(int maxRetries, TimeSpan? initialBackoff, DecisionProvider provider)
     {
-        var options = new JevClientOptions { Provider = provider };
+        var options = new DecisionClientOptions { Provider = provider };
         Configure(options, maxRetries, initialBackoff);
         return options;
     }
@@ -114,7 +114,7 @@ internal static class Fixtures
         => new()
         {
             State = "Help! My payouts have been failing for 3 days.",
-            Questions = new Dictionary<string, JevQuestion>(StringComparer.Ordinal)
+            Questions = new Dictionary<string, Question>(StringComparer.Ordinal)
             {
                 ["is_urgent"] = new NoulQuestion
                 {

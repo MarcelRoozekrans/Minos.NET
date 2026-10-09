@@ -17,36 +17,36 @@ public sealed class AliasLiveTests
 
     public AliasLiveTests(ITestOutputHelper output) => _output = output;
 
-    [LiveFact(JevProvider.TypeSafe)]
+    [LiveFact(DecisionProvider.TypeSafe)]
     public async Task TypeSafe_Latest_AnswersWithAVersionedModel()
-        => AssertVersioned((await EvaluateAsync(JevProvider.TypeSafe, Latest)).Model);
+        => AssertVersioned((await EvaluateAsync(DecisionProvider.TypeSafe, Latest)).Model);
 
-    [LiveFact(JevProvider.TypeSafe)]
+    [LiveFact(DecisionProvider.TypeSafe)]
     public async Task TypeSafe_Preview_AnswersWithAVersionedModel()
-        => AssertVersioned((await EvaluateAsync(JevProvider.TypeSafe, Live.Preview)).Model);
+        => AssertVersioned((await EvaluateAsync(DecisionProvider.TypeSafe, Live.Preview)).Model);
 
-    [LiveFact(JevProvider.TypeSafe)]
+    [LiveFact(DecisionProvider.TypeSafe)]
     public async Task TypeSafe_TheVersionedIdAnAliasResolvesTo_IsAcceptedAsAModel()
     {
-        var versioned = (await EvaluateAsync(JevProvider.TypeSafe, Latest)).Model;
+        var versioned = (await EvaluateAsync(DecisionProvider.TypeSafe, Latest)).Model;
         AssertVersioned(versioned);
 
-        var pinned = await EvaluateAsync(JevProvider.TypeSafe, versioned);
+        var pinned = await EvaluateAsync(DecisionProvider.TypeSafe, versioned);
 
         Assert.Equal(versioned, pinned.Model);
     }
 
     // OpenRouter reports its own model ids, such as typesafe/jev-1.13-20260917, so only their presence is asserted.
-    [LiveFact(JevProvider.OpenRouter)]
+    [LiveFact(DecisionProvider.OpenRouter)]
     public async Task OpenRouter_Latest_Answers()
-        => Assert.False(string.IsNullOrWhiteSpace((await EvaluateAsync(JevProvider.OpenRouter, Latest)).Model));
+        => Assert.False(string.IsNullOrWhiteSpace((await EvaluateAsync(DecisionProvider.OpenRouter, Latest)).Model));
 
     // OpenRouter prefixes the alias itself and has no typesafe/jev-preview: it answers HTTP 400, "Model
     // typesafe/jev-preview does not exist". Seen first in the Live smoke run 37918889031 on 2026-10-09.
-    [LiveFact(JevProvider.OpenRouter)]
+    [LiveFact(DecisionProvider.OpenRouter)]
     public async Task OpenRouter_Preview_IsRejectedAsAnUnknownModel()
     {
-        using var client = Live.Client(JevProvider.OpenRouter);
+        using var client = Live.Client(DecisionProvider.OpenRouter);
 
         var result = await client.EvaluateAsync(Live.Request(Live.Preview));
 
@@ -57,7 +57,7 @@ public sealed class AliasLiveTests
 
         Assert.True(result.IsFailure, "OpenRouter now offers jev-preview: update the guide's Listing models section and this test.");
         Live.LogError(_output, result.Error);
-        Assert.Equal(JevErrorKind.Validation, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.Validation, result.Error.Kind);
         Assert.Equal(400, result.Error.StatusCode);
     }
 
@@ -66,7 +66,7 @@ public sealed class AliasLiveTests
             model.Length > 4 && model.StartsWith("jev-", StringComparison.Ordinal) && char.IsAsciiDigit(model[4]),
             "Expected a versioned id such as jev-1.13.0, but the response named '" + model + "'.");
 
-    private async Task<SystemOneResponse> EvaluateAsync(JevProvider provider, string model)
+    private async Task<SystemOneResponse> EvaluateAsync(DecisionProvider provider, string model)
     {
         using var client = Live.Client(provider);
 

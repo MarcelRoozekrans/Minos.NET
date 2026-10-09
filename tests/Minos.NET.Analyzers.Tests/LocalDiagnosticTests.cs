@@ -30,7 +30,7 @@ public sealed class LocalDiagnosticTests
     [MemberData(nameof(EnumRules))]
     public async Task EnumRule_IsFoundAnalysingTheEnumDocumentAlone(string id, string enumSource, string question, string span)
     {
-        var (compilation, enumTree, _) = await CompileAsync(enumSource, $"[JevQuestions] public partial class Q {{ {question} }}");
+        var (compilation, enumTree, _) = await CompileAsync(enumSource, $"[Questions] public partial class Q {{ {question} }}");
         var analyzers = compilation.WithAnalyzers([new QuestionSetAnalyzer()]);
 
         var diagnostics = await analyzers.GetAnalyzerSemanticDiagnosticsAsync(
@@ -45,7 +45,7 @@ public sealed class LocalDiagnosticTests
     public async Task EnumRule_IsLocal(string id, string enumSource, string question, string span)
     {
         _ = span;
-        var (compilation, enumTree, setTree) = await CompileAsync(enumSource, $"[JevQuestions] public partial class Q {{ {question} }}");
+        var (compilation, enumTree, setTree) = await CompileAsync(enumSource, $"[Questions] public partial class Q {{ {question} }}");
 
         var result = await compilation.WithAnalyzers([new QuestionSetAnalyzer()]).GetAnalysisResultAsync(CancellationToken.None);
 
@@ -62,9 +62,9 @@ public sealed class LocalDiagnosticTests
     {
         var (compilation, _, _) = await CompileAsync(
             "public enum E { [Criteria(\"x\")] A, B, C }",
-            "[JevQuestions] public partial class Q { [Choice(\"q1\")] public partial Choice<E> A1 { get; } "
+            "[Questions] public partial class Q { [Choice(\"q1\")] public partial Choice<E> A1 { get; } "
                 + "[Choice(\"q2\")] public partial Choice<E> A2 { get; } } "
-                + "[JevQuestions] public partial class R { [Choice(\"q3\")] public partial Choice<E> A3 { get; } }");
+                + "[Questions] public partial class R { [Choice(\"q3\")] public partial Choice<E> A3 { get; } }");
 
         var diagnostics = await compilation.WithAnalyzers([new QuestionSetAnalyzer()]).GetAnalyzerDiagnosticsAsync(CancellationToken.None);
 
@@ -80,7 +80,7 @@ public sealed class LocalDiagnosticTests
     {
         var (compilation, _, _) = await CompileAsync(
             "public enum E { [Criteria(\"x\")] A, [Level(\"b\")] B }",
-            "[JevQuestions] public partial class Q { [Choice(\"q1\")] public partial Choice<E> A1 { get; } "
+            "[Questions] public partial class Q { [Choice(\"q1\")] public partial Choice<E> A1 { get; } "
                 + "[Score(\"q2\")] public partial Score<E> A2 { get; } }");
 
         var diagnostics = await compilation.WithAnalyzers([new QuestionSetAnalyzer()]).GetAnalyzerDiagnosticsAsync(CancellationToken.None);
@@ -96,7 +96,7 @@ public sealed class LocalDiagnosticTests
     {
         var (compilation, _, _) = await CompileAsync(
             "public enum E { }",
-            "[JevQuestions] public partial class Q { [Noul(\"q\")] public partial Noul Answer { get; } }");
+            "[Questions] public partial class Q { [Noul(\"q\")] public partial Noul Answer { get; } }");
 
         var diagnostics = await compilation.WithAnalyzers([new QuestionSetAnalyzer()]).GetAnalyzerDiagnosticsAsync(CancellationToken.None);
 

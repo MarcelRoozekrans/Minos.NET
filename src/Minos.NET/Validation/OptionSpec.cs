@@ -8,4 +8,4 @@ namespace Minos.Validation;
 /// For an enum question, the member's index in <c>EnumOptionSet&lt;T&gt;.ForChoice</c>, which is how an enum Score's
 /// levels are matched to its members; <c>-1</c> for a keyed option or level.
 /// </param>
-internal readonly record struct OptionSpec(string Key, string Name, JevCriterion? Criterion, int Member);
+internal readonly record struct OptionSpec(string Key, string Name, Criterion? Criterion, int Member);

@@ -27,7 +27,7 @@ namespace Minos.CodeFixes;
 [Shared]
 public sealed class AddDescriptionCodeFixProvider : CodeFixProvider
 {
-    private const string JevNamespace = "Minos";
+    private const string DecisionNamespace = "Minos";
     private const string EndOfLineKey = "end_of_line";
 
     /// <inheritdoc />
@@ -70,7 +70,7 @@ public sealed class AddDescriptionCodeFixProvider : CodeFixProvider
         // GetSyntaxRootAsync returns the identical cached tree and member's identity is still valid within it.
         var root = (await document.GetSyntaxRootAsync(cancellationToken).ConfigureAwait(false))!;
         var model = (await document.GetSemanticModelAsync(cancellationToken).ConfigureAwait(false))!;
-        var metadataName = $"{JevNamespace}.{attributeName}Attribute";
+        var metadataName = $"{DecisionNamespace}.{attributeName}Attribute";
 
         // The attribute is written fully qualified and left to the simplifier to shorten to what binds at the member.
         // ImportAdder is asked for a using only when nothing in scope reaches the attribute yet. On its own it mishandles

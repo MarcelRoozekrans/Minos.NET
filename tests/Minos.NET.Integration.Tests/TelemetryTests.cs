@@ -18,7 +18,7 @@ public sealed class TelemetryTests : IClassFixture<WireMockFixture>
     }
 
     [Fact]
-    public async Task RetriedEvaluation_IsOneJevSpan_OverTwoRestSpans()
+    public async Task RetriedEvaluation_IsOneDecisionSpan_OverTwoRestSpans()
     {
         _fixture.Server
             .Given(Request.Create().WithPath("/v1/systemone").UsingPost())

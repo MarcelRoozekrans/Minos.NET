@@ -22,13 +22,13 @@ public class TelemetryBenchmarks : IDisposable
     private HttpClient _builtSetHttp = null!;
     private HttpClient _listModelsHttp = null!;
     private HttpClient _typedYieldingHttp = null!;
-    private JevClient _evaluateClient = null!;
-    private JevClient _typedClient = null!;
-    private JevClient _builtSetClient = null!;
-    private JevClient _listModelsClient = null!;
-    private JevClient _typedYieldingClient = null!;
+    private DecisionClient _evaluateClient = null!;
+    private DecisionClient _typedClient = null!;
+    private DecisionClient _builtSetClient = null!;
+    private DecisionClient _listModelsClient = null!;
+    private DecisionClient _typedYieldingClient = null!;
     private SystemOneRequest _request = null!;
-    private JevQuestionSet _triage = null!;
+    private QuestionSet _triage = null!;
 
     [GlobalSetup]
     public void Setup()
@@ -43,7 +43,7 @@ public class TelemetryBenchmarks : IDisposable
         _request = new SystemOneRequest
         {
             State = State,
-            Questions = new Dictionary<string, JevQuestion>(StringComparer.Ordinal)
+            Questions = new Dictionary<string, Question>(StringComparer.Ordinal)
             {
                 ["is_urgent"] = new NoulQuestion { Instructions = "Does this convey urgency?" },
             },
@@ -78,21 +78,21 @@ public class TelemetryBenchmarks : IDisposable
 
     /// <summary><see cref="ClientBenchmarks.EvaluateAsync"/> while listening.</summary>
     [Benchmark]
-    public ValueTask<Result<SystemOneResponse, JevError>> EvaluateListeningAsync() => _evaluateClient.EvaluateAsync(_request);
+    public ValueTask<Result<SystemOneResponse, DecisionError>> EvaluateListeningAsync() => _evaluateClient.EvaluateAsync(_request);
 
     /// <summary><see cref="ClientBenchmarks.TypedEvaluateAsync"/> while listening: the deferred reads run.</summary>
     [Benchmark]
-    public ValueTask<Result<BenchTriage, JevError>> TypedEvaluateListeningAsync() => _typedClient.EvaluateAsync<BenchTriage>(State);
+    public ValueTask<Result<BenchTriage, DecisionError>> TypedEvaluateListeningAsync() => _typedClient.EvaluateAsync<BenchTriage>(State);
 
     /// <summary><see cref="QuestionSetBenchmarks.EvaluateBuiltSet"/>'s three-question triage set while listening.</summary>
     [Benchmark]
-    public ValueTask<Result<JevAnswers, JevError>> EvaluateBuiltSetListeningAsync() => _builtSetClient.EvaluateAsync(_triage, State);
+    public ValueTask<Result<Answers, DecisionError>> EvaluateBuiltSetListeningAsync() => _builtSetClient.EvaluateAsync(_triage, State);
 
     /// <summary><see cref="ClientBenchmarks.ListModelsAsync"/> while listening.</summary>
     [Benchmark]
-    public ValueTask<Result<ModelList, JevError>> ListModelsListeningAsync() => _listModelsClient.ListModelsAsync();
+    public ValueTask<Result<ModelList, DecisionError>> ListModelsListeningAsync() => _listModelsClient.ListModelsAsync();
 
     /// <summary><see cref="ClientBenchmarks.TypedEvaluateYieldingAsync"/> while listening: the proxy's own state machine runs too.</summary>
     [Benchmark]
-    public ValueTask<Result<BenchTriage, JevError>> TypedEvaluateYieldingListeningAsync() => _typedYieldingClient.EvaluateAsync<BenchTriage>(State);
+    public ValueTask<Result<BenchTriage, DecisionError>> TypedEvaluateYieldingListeningAsync() => _typedYieldingClient.EvaluateAsync<BenchTriage>(State);
 }

@@ -20,10 +20,10 @@ internal sealed record SmokeCheck(IMethodSymbol Method, List<string> Declared, H
 /// <c>GetEnumerator</c>, <c>MoveNext</c> and <c>Dispose</c> a <c>foreach</c> runs, and, transitively, whatever the
 /// smoke app's own methods, constructors, accessors and lambdas it reaches call in turn, generated code included. A
 /// constructor of a smoke type also calls its base constructor. A call is matched by the signature of the member it
-/// binds to, so a call on a <c>JevClient</c> covers <c>JevClient</c>'s member, and a call through an
-/// <c>IJevClient</c> covers the interface's. A default interface method counts only when its own body runs: the
+/// binds to, so a call on a <c>DecisionClient</c> covers <c>DecisionClient</c>'s member, and a call through an
+/// <c>IDecisionClient</c> covers the interface's. A default interface method counts only when its own body runs: the
 /// receiver's static type, or the type its local was created as, must not override it, so a default called on a
-/// <c>JevClient</c> or on a client resolved from a container does not count, nor does one on a local that is assigned
+/// <c>DecisionClient</c> or on a client resolved from a container does not count, nor does one on a local that is assigned
 /// again after its declaration. A call inside <c>nameof</c> runs nothing and does not count.
 /// </remarks>
 internal static class SmokeChecks

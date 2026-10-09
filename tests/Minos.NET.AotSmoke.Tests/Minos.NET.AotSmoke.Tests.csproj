@@ -23,7 +23,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- Each sample's compiler inputs, written by its JevWriteCompileInputs target in this configuration. -->
+    <!-- Each sample's compiler inputs, written by its DecisionWriteCompileInputs target in this configuration. -->
     <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
       <_Parameter1>AotSmokeCompileInputs</_Parameter1>
       <_Parameter2>$([System.IO.Path]::GetFullPath('$(MSBuildThisFileDirectory)../../samples/Minos.NET.AotSmoke/obj/$(Configuration)/$(TargetFramework)/compile-inputs.txt'))</_Parameter2>

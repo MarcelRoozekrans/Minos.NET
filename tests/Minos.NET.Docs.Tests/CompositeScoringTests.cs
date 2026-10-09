@@ -23,7 +23,7 @@ public sealed class CompositeScoringTests
     [Fact]
     public async Task Weights_CombineNormalizedScores()
     {
-        var review = await CannedJev.EvaluateAsync<PullRequestReview>(Response, "diff --git a/src/Cart.cs b/src/Cart.cs ...");
+        var review = await CannedDecision.EvaluateAsync<PullRequestReview>(Response, "diff --git a/src/Cart.cs b/src/Cart.cs ...");
 
         // Normalized divides by the top level's index: 4 on a 5-level rubric, 2 on a 3-level one.
         //   correctness 3.2 / 4 = 0.80, test_coverage 2.0 / 4 = 0.50, readability 1.5 / 2 = 0.75, scope_focus 0.5 / 2 = 0.25

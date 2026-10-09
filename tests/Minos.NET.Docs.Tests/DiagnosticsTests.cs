@@ -88,24 +88,24 @@ public sealed partial class DiagnosticsTests
             rows.Where(row => row[1] is "Warning" or "Info").Select(row => row[0]));
     }
 
-    // JEV005's numbers are JevLimits' numbers, which the generator, the analyzers and Build all share.
+    // JEV005's numbers are DecisionLimits' numbers, which the generator, the analyzers and Build all share.
     [Fact]
-    public void TheJev005Limits_AreJevLimits()
+    public void TheJev005Limits_AreDecisionLimits()
     {
-        var limits = Source("src", "Minos.NET.Generator", "JevLimits.cs");
+        var limits = Source("src", "Minos.NET.Generator", "DecisionLimits.cs");
         var row = Array.Find(PageTables.Rows(Page, "The rules"), r => string.Equals(r[0], "JEV005", StringComparison.Ordinal))![3];
 
         Assert.Contains($"fewer than {Limit(limits, "MinimumScoreLevels")} or more than {Limit(limits, "MaximumScoreLevels")} levels", row, StringComparison.Ordinal);
         Assert.Contains($"more than {Limit(limits, "MaximumChoiceOptions")} options", row, StringComparison.Ordinal);
     }
 
-    // The run-time builder's own rule: its id is DiagnosticIds.InvalidJson and its depth is JevLimits.MaximumJsonDepth,
+    // The run-time builder's own rule: its id is DiagnosticIds.InvalidJson and its depth is DecisionLimits.MaximumJsonDepth,
     // which Build checks. It has no analyzer descriptor, so it is not in the analyzer table. The row names the three
     // places QuestionSpec.ValidateJsonDepth checks: the instructions, a description and a yes/no meaning.
     [Fact]
-    public void TheBuilderSection_IsInvalidJson_AtJevLimitsDepth()
+    public void TheBuilderSection_IsInvalidJson_AtDecisionLimitsDepth()
     {
-        var limits = Source("src", "Minos.NET.Generator", "JevLimits.cs");
+        var limits = Source("src", "Minos.NET.Generator", "DecisionLimits.cs");
         var invalidJson = Regex.Match(
             Source("src", "Minos.NET.Generator", "DiagnosticIds.cs"),
             @"public const string InvalidJson = ""(?<id>JEV\d+)"";",
@@ -161,7 +161,7 @@ public sealed partial class DiagnosticsTests
     [Fact]
     public void TheSuppressedEnum_HasMoreLevelsThanJev005Allows()
     {
-        var limit = Limit(Source("src", "Minos.NET.Generator", "JevLimits.cs"), "MaximumScoreLevels");
+        var limit = Limit(Source("src", "Minos.NET.Generator", "DecisionLimits.cs"), "MaximumScoreLevels");
 
         Assert.True(Enum.GetValues<Recommendation>().Length > limit);
         Assert.Contains("has 11 levels on purpose", PageTables.Text(Page), StringComparison.Ordinal);
@@ -171,7 +171,7 @@ public sealed partial class DiagnosticsTests
     [Fact]
     public async Task TheSuppressedSet_IsStillAValidSet_ThatEvaluates()
     {
-        var reply = await CannedJev.EvaluateAsync<SurveyReply>(
+        var reply = await CannedDecision.EvaluateAsync<SurveyReply>(
             """
             {
               "model": "jev-1.13.0",

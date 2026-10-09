@@ -22,7 +22,7 @@ public class CompareBenchmarks
     /// <summary>Gets the client each benchmark method measures, by method name.</summary>
     public static IReadOnlyDictionary<string, string> ClientByBenchmark { get; } = new Dictionary<string, string>(StringComparer.Ordinal)
     {
-        [nameof(ZeroAllocJev)] = ClientAdapters.Jev,
+        [nameof(Minos)] = ClientAdapters.Jev,
         [nameof(RawHttpClient)] = ClientAdapters.Raw,
         [nameof(JevSharp)] = ClientAdapters.JevSharp,
         [nameof(TypeSafeSdk)] = ClientAdapters.TypeSafeSdk,
@@ -31,8 +31,8 @@ public class CompareBenchmarks
 
     /// <summary>Creates and warms up the Minos.NET client.</summary>
     /// <returns>A task that completes when the client is warm.</returns>
-    [GlobalSetup(Target = nameof(ZeroAllocJev))]
-    public Task SetupZeroAllocJevAsync() => StartAsync(ClientAdapters.Jev);
+    [GlobalSetup(Target = nameof(Minos))]
+    public Task SetupMinosAsync() => StartAsync(ClientAdapters.Jev);
 
     /// <summary>Creates and warms up the raw baseline.</summary>
     /// <returns>A task that completes when the client is warm.</returns>
@@ -61,7 +61,7 @@ public class CompareBenchmarks
     /// <summary>One Minos.NET call.</summary>
     /// <returns>What the call read.</returns>
     [Benchmark]
-    public ValueTask<CallOutcome> ZeroAllocJev() => _adapter.CallAsync(CancellationToken.None);
+    public ValueTask<CallOutcome> Minos() => _adapter.CallAsync(CancellationToken.None);
 
     /// <summary>One raw baseline call.</summary>
     /// <returns>What the call read.</returns>

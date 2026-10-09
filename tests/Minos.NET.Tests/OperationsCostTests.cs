@@ -29,8 +29,8 @@ public sealed class OperationsCostTests(ITestOutputHelper output)
     [Fact]
     public void NothingListening_RawCall_AddsNothing()
     {
-        var proxy = new JevOperationsInstrumented(Completed.Instance);
-        var request = JsonSerializer.Deserialize(Fixture.Text("request-noul.json"), JevJsonContext.Default.SystemOneRequest)!;
+        var proxy = new DecisionOperationsInstrumented(Completed.Instance);
+        var request = JsonSerializer.Deserialize(Fixture.Text("request-noul.json"), DecisionJsonContext.Default.SystemOneRequest)!;
 
         AllocationGate.AssertBudgetValueTask(0, 1000, () => proxy.EvaluateAsync(request, "typesafe", Endpoint, CancellationToken.None), "ProxyRaw");
     }
@@ -38,7 +38,7 @@ public sealed class OperationsCostTests(ITestOutputHelper output)
     [Fact]
     public void NothingListening_ListModels_AddsNothing()
     {
-        var proxy = new JevOperationsInstrumented(Completed.Instance);
+        var proxy = new DecisionOperationsInstrumented(Completed.Instance);
 
         AllocationGate.AssertBudgetValueTask(0, 1000, () => proxy.ListModelsAsync("typesafe", Endpoint, CancellationToken.None), "ProxyListModels");
     }
@@ -46,7 +46,7 @@ public sealed class OperationsCostTests(ITestOutputHelper output)
     [Fact]
     public void NothingListening_SynchronousTypedCall_AndItsUnwrap_AddNothing()
     {
-        var proxy = new JevOperationsInstrumented(Completed.Instance);
+        var proxy = new DecisionOperationsInstrumented(Completed.Instance);
         var body = TelemetryBodies.EmptyBody();
 
         AllocationGate.AssertBudgetValueTask(
@@ -59,7 +59,7 @@ public sealed class OperationsCostTests(ITestOutputHelper output)
     [Fact]
     public void NothingListening_SynchronousBuiltSetCall_AndItsUnwrap_AddNothing()
     {
-        var proxy = new JevOperationsInstrumented(Completed.Instance);
+        var proxy = new DecisionOperationsInstrumented(Completed.Instance);
         var body = TelemetryBodies.EmptyBody();
 
         AllocationGate.AssertBudgetValueTask(
@@ -73,7 +73,7 @@ public sealed class OperationsCostTests(ITestOutputHelper output)
     public async Task NothingListening_AsynchronousTypedCall_TheUnwrapStaysWithinTheBudgetHeadroom()
     {
         var fake = new FakeOperations(Fixture.Text("response-choice.json")) { Yield = true };
-        var proxy = new JevOperationsInstrumented(fake);
+        var proxy = new DecisionOperationsInstrumented(fake);
 
         async Task ProxiedAsync()
         {
@@ -128,50 +128,50 @@ public sealed class OperationsCostTests(ITestOutputHelper output)
     }
 
     /// <summary>Returns the same completed results every call, so a gate measures the proxy and nothing else.</summary>
-    private sealed class Completed : IJevOperations
+    private sealed class Completed : IDecisionOperations
     {
         public static readonly Completed Instance = new();
 
-        public static readonly JevQuestionSet Set = BuiltSets.UrgencyOnly();
+        public static readonly QuestionSet Set = BuiltSets.UrgencyOnly();
 
         private static readonly SystemOneResponse Response =
-            JsonSerializer.Deserialize(Fixture.Text("response-noul.json"), JevJsonContext.Default.SystemOneResponse)!;
+            JsonSerializer.Deserialize(Fixture.Text("response-noul.json"), DecisionJsonContext.Default.SystemOneResponse)!;
 
         private static readonly ModelList Models = new() { Models = [] };
 
         // Declared after Set, so Set is initialized first.
-        private static readonly Result<Evaluated<JevAnswers>, JevError> BuiltSet = Result<Evaluated<JevAnswers>, JevError>.Success(
-            new Evaluated<JevAnswers>(
+        private static readonly Result<Evaluated<Answers>, DecisionError> BuiltSet = Result<Evaluated<Answers>, DecisionError>.Success(
+            new Evaluated<Answers>(
                 TypedEvaluation.ParseResponse(Encoding.UTF8.GetBytes(Fixture.Text("response-noul.json")), Set.Parser).Value,
                 TelemetryBodies.RawJsonOf(Fixture.Text("response-noul.json"))));
 
-        public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, string provider, Uri endpoint, CancellationToken ct)
-            => new(Result<SystemOneResponse, JevError>.Success(Response));
+        public ValueTask<Result<SystemOneResponse, DecisionError>> EvaluateAsync(SystemOneRequest request, string provider, Uri endpoint, CancellationToken ct)
+            => new(Result<SystemOneResponse, DecisionError>.Success(Response));
 
         // Each typed method owns and disposes body, as the interface requires. A gate passes the same body every call, and
         // only the first Dispose returns it; the later ones do nothing and allocate nothing.
-        public ValueTask<Result<Evaluated<T>, JevError>> EvaluateTypedAsync<T>(RawJson body, string model, string provider, Uri endpoint, int questionCount, CancellationToken ct)
-            where T : IJevQuestionSet<T>
+        public ValueTask<Result<Evaluated<T>, DecisionError>> EvaluateTypedAsync<T>(RawJson body, string model, string provider, Uri endpoint, int questionCount, CancellationToken ct)
+            where T : IQuestionSet<T>
         {
             body.Dispose();
             return new(Typed<T>.Result);
         }
 
-        public ValueTask<Result<Evaluated<JevAnswers>, JevError>> EvaluateBuiltSetAsync(RawJson body, JevQuestionSet questionSet, string model, string provider, Uri endpoint, CancellationToken ct)
+        public ValueTask<Result<Evaluated<Answers>, DecisionError>> EvaluateBuiltSetAsync(RawJson body, QuestionSet questionSet, string model, string provider, Uri endpoint, CancellationToken ct)
         {
             body.Dispose();
             return new(BuiltSet);
         }
 
-        public ValueTask<Result<ModelList, JevError>> ListModelsAsync(string provider, Uri endpoint, CancellationToken ct)
-            => new(Result<ModelList, JevError>.Success(Models));
+        public ValueTask<Result<ModelList, DecisionError>> ListModelsAsync(string provider, Uri endpoint, CancellationToken ct)
+            => new(Result<ModelList, DecisionError>.Success(Models));
 
         // One completed result per set type, built once: the unwrap disposes its response every call, which is harmless
         // after the first, since nothing reads it while nothing listens.
         private static class Typed<T>
-            where T : IJevQuestionSet<T>
+            where T : IQuestionSet<T>
         {
-            public static readonly Result<Evaluated<T>, JevError> Result = Result<Evaluated<T>, JevError>.Success(
+            public static readonly Result<Evaluated<T>, DecisionError> Result = Result<Evaluated<T>, DecisionError>.Success(
                 new Evaluated<T>(
                     TypedEvaluation.ParseResponse<T>(Encoding.UTF8.GetBytes(Fixture.Text("response-noul.json"))).Value,
                     TelemetryBodies.RawJsonOf(Fixture.Text("response-noul.json"))));

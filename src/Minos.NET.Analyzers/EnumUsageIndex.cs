@@ -4,7 +4,7 @@ using Minos.Generator;
 
 namespace Minos.Analyzers;
 
-/// <summary>How the <c>[JevQuestions]</c> sets of a compilation use an enum.</summary>
+/// <summary>How the <c>[Questions]</c> sets of a compilation use an enum.</summary>
 [Flags]
 internal enum EnumUsage
 {
@@ -14,7 +14,7 @@ internal enum EnumUsage
 }
 
 /// <summary>
-/// Which enums of a compilation the <c>[JevQuestions]</c> sets use, and how: the enum's own analysis needs it to
+/// Which enums of a compilation the <c>[Questions]</c> sets use, and how: the enum's own analysis needs it to
 /// know which rules apply. Built once per compilation, on the first enum that asks, and safe to read from
 /// concurrent symbol actions.
 /// </summary>

@@ -23,10 +23,10 @@ var recordingsPath = SampleHost.RecordingsPath(mode, SampleName);
 
 var session = new RecordingSession();
 var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings { Args = args, ContentRootPath = AppContext.BaseDirectory });
-builder.Services.AddSampleJevClient(builder.Configuration.GetSection("Jev"), mode, recordingsPath, SampleName, session);
+builder.Services.AddSampleDecisionClient(builder.Configuration.GetSection("Jev"), mode, recordingsPath, SampleName, session);
 using var host = builder.Build();
 
-var jev = host.Services.GetRequiredService<IJevClient>();
+var jev = host.Services.GetRequiredService<IDecisionClient>();
 var report = await IntentRoutingSample.RunAsync(jev, CancellationToken.None).ConfigureAwait(false);
 Console.Write(report.Render());
 

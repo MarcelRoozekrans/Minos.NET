@@ -51,21 +51,21 @@ internal static class Evaluated
     /// Returns the answers and the response buffer. A call that completed synchronously is unwrapped inline and
     /// allocates nothing; otherwise one async method awaits it, the only allocation telemetry adds when nothing listens.
     /// </summary>
-    public static ValueTask<Result<T, JevError>> Unwrap<T>(ValueTask<Result<Evaluated<T>, JevError>> call)
-        => call.IsCompletedSuccessfully ? new ValueTask<Result<T, JevError>>(Answers(call.Result)) : UnwrapAsync(call);
+    public static ValueTask<Result<T, DecisionError>> Unwrap<T>(ValueTask<Result<Evaluated<T>, DecisionError>> call)
+        => call.IsCompletedSuccessfully ? new ValueTask<Result<T, DecisionError>>(Answers(call.Result)) : UnwrapAsync(call);
 
-    private static async ValueTask<Result<T, JevError>> UnwrapAsync<T>(ValueTask<Result<Evaluated<T>, JevError>> call)
+    private static async ValueTask<Result<T, DecisionError>> UnwrapAsync<T>(ValueTask<Result<Evaluated<T>, DecisionError>> call)
         => Answers(await call.ConfigureAwait(false));
 
-    private static Result<T, JevError> Answers<T>(Result<Evaluated<T>, JevError> result)
+    private static Result<T, DecisionError> Answers<T>(Result<Evaluated<T>, DecisionError> result)
     {
         if (result.IsFailure)
         {
-            return Result<T, JevError>.Failure(result.Error);
+            return Result<T, DecisionError>.Failure(result.Error);
         }
 
         var evaluated = result.Value;
         evaluated.Dispose();
-        return Result<T, JevError>.Success(evaluated.Answers);
+        return Result<T, DecisionError>.Success(evaluated.Answers);
     }
 }

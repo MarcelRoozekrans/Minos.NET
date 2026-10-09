@@ -1,4 +1,12 @@
 #nullable enable
+Minos.Answer
+Minos.AnswerReader
+Minos.Answers
+Minos.Answers.Get(Minos.KeyedChoiceHandle question) -> Minos.KeyedChoice
+Minos.Answers.Get(Minos.KeyedScoreHandle question) -> Minos.KeyedScore
+Minos.Answers.Get(Minos.NoulHandle question) -> Minos.Noul
+Minos.Answers.Get<T>(Minos.ChoiceHandle<T> question) -> Minos.Choice<T>
+Minos.Answers.Get<T>(Minos.ScoreHandle<T> question) -> Minos.Score<T>
 Minos.Choice<T>
 Minos.Choice<T>.Choice() -> void
 Minos.Choice<T>.Choice(T value, double confidence, Minos.ProbabilityMap<T> probabilities) -> void
@@ -22,10 +30,10 @@ Minos.ChoiceAttribute.Key.set -> void
 Minos.ChoiceHandle<T>
 Minos.ChoiceHandle<T>.ChoiceHandle() -> void
 Minos.ChoiceOptionsBuilder<T>
-Minos.ChoiceOptionsBuilder<T>.Describe(T option, Minos.JevCriterion! criterion) -> Minos.ChoiceOptionsBuilder<T>!
+Minos.ChoiceOptionsBuilder<T>.Describe(T option, Minos.Criterion! criterion) -> Minos.ChoiceOptionsBuilder<T>!
 Minos.ChoiceQuestion
 Minos.ChoiceQuestion.ChoiceQuestion() -> void
-Minos.ChoiceQuestion.Criteria.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Minos.JevContent?>!
+Minos.ChoiceQuestion.Criteria.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Minos.DecisionContent?>!
 Minos.ChoiceQuestion.Criteria.init -> void
 Minos.ConfidenceThresholds
 Minos.ConfidenceThresholds.Classify(double confidence) -> Minos.ConfidenceTier
@@ -47,153 +55,115 @@ Minos.CriteriaAttribute.Key.get -> string?
 Minos.CriteriaAttribute.Key.set -> void
 Minos.CriteriaAttribute.NotFor.get -> string![]?
 Minos.CriteriaAttribute.NotFor.set -> void
-Minos.IJevClient
-Minos.IJevClient.EvaluateAsync(Minos.JevQuestionSet! questionSet, Minos.JevContent state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.JevAnswers!, Minos.JevError!>>
-Minos.IJevClient.EvaluateAsync(Minos.JevQuestionSet! questionSet, Minos.JevContent state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.JevAnswers!, Minos.JevError!>>
-Minos.IJevClient.EvaluateAsync(Minos.SystemOneRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOneResponse!, Minos.JevError!>>
-Minos.IJevClient.EvaluateAsync(Minos.SystemOneRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOneResponse!, Minos.JevError!>>
-Minos.IJevClient.EvaluateAsync<T, TState>(TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.JevError!>>
-Minos.IJevClient.EvaluateAsync<T, TState>(TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.JevError!>>
-Minos.IJevClient.EvaluateAsync<T>(System.Text.Json.JsonElement state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.JevError!>>
-Minos.IJevClient.EvaluateAsync<T>(System.Text.Json.JsonElement state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.JevError!>>
-Minos.IJevClient.EvaluateAsync<T>(string! state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.JevError!>>
-Minos.IJevClient.EvaluateAsync<T>(string! state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.JevError!>>
-Minos.IJevClient.EvaluateUtf8Async<T>(System.ReadOnlyMemory<byte> utf8JsonState, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.JevError!>>
-Minos.IJevClient.ListModelsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.ModelList!, Minos.JevError!>>
-Minos.IJevQuestionSet<TSelf, TState>
-Minos.IJevQuestionSet<TSelf>
-Minos.IJevQuestionSet<TSelf>.Parse(ref System.Text.Json.Utf8JsonReader answers) -> TSelf
-Minos.IJevQuestionSet<TSelf>.QuestionsUtf8.get -> System.ReadOnlySpan<byte>
-Minos.JevAnswer
-Minos.JevAnswerReader
-Minos.JevAnswers
-Minos.JevAnswers.Get(Minos.KeyedChoiceHandle question) -> Minos.KeyedChoice
-Minos.JevAnswers.Get(Minos.KeyedScoreHandle question) -> Minos.KeyedScore
-Minos.JevAnswers.Get(Minos.NoulHandle question) -> Minos.Noul
-Minos.JevAnswers.Get<T>(Minos.ChoiceHandle<T> question) -> Minos.Choice<T>
-Minos.JevAnswers.Get<T>(Minos.ScoreHandle<T> question) -> Minos.Score<T>
-Minos.JevClient
-Minos.JevClient.Dispose() -> void
-Minos.JevClient.EvaluateAsync(Minos.JevQuestionSet! questionSet, Minos.JevContent state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.JevAnswers!, Minos.JevError!>>
-Minos.JevClient.EvaluateAsync(Minos.JevQuestionSet! questionSet, Minos.JevContent state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.JevAnswers!, Minos.JevError!>>
-Minos.JevClient.EvaluateAsync(Minos.SystemOneRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOneResponse!, Minos.JevError!>>
-Minos.JevClient.EvaluateAsync(Minos.SystemOneRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOneResponse!, Minos.JevError!>>
-Minos.JevClient.EvaluateAsync<T, TState>(TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.JevError!>>
-Minos.JevClient.EvaluateAsync<T, TState>(TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.JevError!>>
-Minos.JevClient.EvaluateAsync<T>(System.Text.Json.JsonElement state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.JevError!>>
-Minos.JevClient.EvaluateAsync<T>(System.Text.Json.JsonElement state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.JevError!>>
-Minos.JevClient.EvaluateAsync<T>(string! state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.JevError!>>
-Minos.JevClient.EvaluateAsync<T>(string! state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.JevError!>>
-Minos.JevClient.EvaluateUtf8Async<T>(System.ReadOnlyMemory<byte> utf8JsonState, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.JevError!>>
-Minos.JevClient.JevClient() -> void
-Minos.JevClient.JevClient(Minos.JevClientOptions? options) -> void
-Minos.JevClient.JevClient(Minos.JevClientOptions? options, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory) -> void
-Minos.JevClient.JevClient(System.Net.Http.HttpClient! httpClient) -> void
-Minos.JevClient.JevClient(System.Net.Http.HttpClient! httpClient, Minos.JevClientOptions? options) -> void
-Minos.JevClient.JevClient(System.Net.Http.HttpClient! httpClient, Minos.JevClientOptions? options, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory) -> void
-Minos.JevClient.ListModelsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.ModelList!, Minos.JevError!>>
-Minos.JevClientOptions
-Minos.JevClientOptions.ApiKey.get -> string?
-Minos.JevClientOptions.ApiKey.set -> void
-Minos.JevClientOptions.BaseAddress.get -> System.Uri?
-Minos.JevClientOptions.BaseAddress.set -> void
-Minos.JevClientOptions.InitialBackoff.get -> System.TimeSpan
-Minos.JevClientOptions.InitialBackoff.set -> void
-Minos.JevClientOptions.JevClientOptions() -> void
-Minos.JevClientOptions.Jitter.get -> bool
-Minos.JevClientOptions.Jitter.set -> void
-Minos.JevClientOptions.MaxRetries.get -> int
-Minos.JevClientOptions.MaxRetries.set -> void
-Minos.JevClientOptions.MaxRetryDelay.get -> System.TimeSpan
-Minos.JevClientOptions.MaxRetryDelay.set -> void
-Minos.JevClientOptions.Model.get -> string!
-Minos.JevClientOptions.Model.set -> void
-Minos.JevClientOptions.Provider.get -> Minos.JevProvider
-Minos.JevClientOptions.Provider.set -> void
-Minos.JevClientOptions.Timeout.get -> System.TimeSpan
-Minos.JevClientOptions.Timeout.set -> void
-Minos.JevClientOptions.Validate() -> void
-Minos.JevContent
-Minos.JevContent.Equals(Minos.JevContent other) -> bool
-Minos.JevContent.IsString.get -> bool
-Minos.JevContent.JevContent() -> void
-Minos.JevContent.TryGetJson(out System.Text.Json.JsonElement json) -> bool
-Minos.JevContent.TryGetString(out string? text) -> bool
-Minos.JevCriterion
-Minos.JevCriterion.WithExamples(params System.ReadOnlySpan<string?> examples) -> Minos.JevCriterion!
-Minos.JevCriterion.WithNotFor(params System.ReadOnlySpan<string?> notFor) -> Minos.JevCriterion!
-Minos.JevDefaults
-Minos.JevError
-Minos.JevError.Detail.get -> System.Text.Json.JsonElement?
-Minos.JevError.Detail.init -> void
-Minos.JevError.Exception.get -> System.Exception?
-Minos.JevError.Exception.init -> void
-Minos.JevError.Failures.get -> System.Collections.Generic.IReadOnlyList<Minos.JevQuestionFailure!>!
-Minos.JevError.JevError(Minos.JevErrorKind kind, string! message) -> void
-Minos.JevError.Kind.get -> Minos.JevErrorKind
-Minos.JevError.Message.get -> string!
-Minos.JevError.RetryAfter.get -> System.TimeSpan?
-Minos.JevError.RetryAfter.init -> void
-Minos.JevError.StatusCode.get -> int?
-Minos.JevError.StatusCode.init -> void
-Minos.JevErrorKind
-Minos.JevErrorKind.Disposed = 12 -> Minos.JevErrorKind
-Minos.JevErrorKind.Http = 6 -> Minos.JevErrorKind
-Minos.JevErrorKind.InvalidQuestions = 11 -> Minos.JevErrorKind
-Minos.JevErrorKind.InvalidResponse = 9 -> Minos.JevErrorKind
-Minos.JevErrorKind.Network = 7 -> Minos.JevErrorKind
-Minos.JevErrorKind.Overloaded = 4 -> Minos.JevErrorKind
-Minos.JevErrorKind.RateLimited = 3 -> Minos.JevErrorKind
-Minos.JevErrorKind.Server = 5 -> Minos.JevErrorKind
-Minos.JevErrorKind.Timeout = 8 -> Minos.JevErrorKind
-Minos.JevErrorKind.Unauthorized = 1 -> Minos.JevErrorKind
-Minos.JevErrorKind.Unsupported = 10 -> Minos.JevErrorKind
-Minos.JevErrorKind.Validation = 2 -> Minos.JevErrorKind
-Minos.JevOptionSet<T>
-Minos.JevOptionSet<T>.JevOptionSet() -> void
-Minos.JevProvider
-Minos.JevProvider.OpenRouter = 1 -> Minos.JevProvider
-Minos.JevProvider.TypeSafe = 0 -> Minos.JevProvider
-Minos.JevQuestion
-Minos.JevQuestion.Instructions.get -> Minos.JevContent
-Minos.JevQuestion.Instructions.init -> void
-Minos.JevQuestionFailure
-Minos.JevQuestionFailure.<Clone>$() -> Minos.JevQuestionFailure!
-Minos.JevQuestionFailure.Deconstruct(out string! Rule, out string? QuestionKey, out string! Message) -> void
-Minos.JevQuestionFailure.Equals(Minos.JevQuestionFailure? other) -> bool
-Minos.JevQuestionFailure.JevQuestionFailure(string! Rule, string? QuestionKey, string! Message) -> void
-Minos.JevQuestionFailure.Message.get -> string!
-Minos.JevQuestionFailure.Message.init -> void
-Minos.JevQuestionFailure.QuestionKey.get -> string?
-Minos.JevQuestionFailure.QuestionKey.init -> void
-Minos.JevQuestionFailure.Rule.get -> string!
-Minos.JevQuestionFailure.Rule.init -> void
-Minos.JevQuestionSet
-Minos.JevQuestionSet.QuestionsUtf8.get -> System.ReadOnlySpan<byte>
-Minos.JevQuestionSet.Warnings.get -> System.Collections.Generic.IReadOnlyList<Minos.JevQuestionFailure!>!
-Minos.JevQuestionSetBuilder
-Minos.JevQuestionSetBuilder.Build() -> ZeroAlloc.Results.Result<Minos.JevQuestionSet!, Minos.JevError!>
-Minos.JevQuestionSetBuilder.Choice(string! key, Minos.JevContent instructions, out Minos.KeyedChoiceHandle question, System.Action<Minos.KeyedChoiceOptionsBuilder!>! configure) -> Minos.JevQuestionSetBuilder!
-Minos.JevQuestionSetBuilder.Choice<T>(string! key, Minos.JevContent instructions, out Minos.ChoiceHandle<T> question) -> Minos.JevQuestionSetBuilder!
-Minos.JevQuestionSetBuilder.Choice<T>(string! key, Minos.JevContent instructions, out Minos.ChoiceHandle<T> question, System.Action<Minos.ChoiceOptionsBuilder<T>!>! configure) -> Minos.JevQuestionSetBuilder!
-Minos.JevQuestionSetBuilder.Noul(string! key, Minos.JevContent instructions, out Minos.NoulHandle question) -> Minos.JevQuestionSetBuilder!
-Minos.JevQuestionSetBuilder.Noul(string! key, Minos.JevContent instructions, out Minos.NoulHandle question, System.Action<Minos.NoulCriteriaBuilder!>! configure) -> Minos.JevQuestionSetBuilder!
-Minos.JevQuestionSetBuilder.Score(string! key, Minos.JevContent instructions, out Minos.KeyedScoreHandle question, System.Action<Minos.KeyedScoreLevelsBuilder!>! configure) -> Minos.JevQuestionSetBuilder!
-Minos.JevQuestionSetBuilder.Score<T>(string! key, Minos.JevContent instructions, out Minos.ScoreHandle<T> question, System.Action<Minos.ScoreLevelsBuilder<T>!>! configure) -> Minos.JevQuestionSetBuilder!
-Minos.JevQuestionsAttribute
-Minos.JevQuestionsAttribute.JevQuestionsAttribute() -> void
-Minos.JevQuestionsAttribute.State.get -> System.Type?
-Minos.JevQuestionsAttribute.State.set -> void
-Minos.JevUsage
-Minos.JevUsage.<Clone>$() -> Minos.JevUsage!
-Minos.JevUsage.Cost.get -> double?
-Minos.JevUsage.Cost.init -> void
-Minos.JevUsage.Equals(Minos.JevUsage? other) -> bool
-Minos.JevUsage.InputTokens.get -> int
-Minos.JevUsage.InputTokens.init -> void
-Minos.JevUsage.JevUsage() -> void
-Minos.JevUsage.OutputTokens.get -> int
-Minos.JevUsage.OutputTokens.init -> void
+Minos.Criterion
+Minos.Criterion.WithExamples(params System.ReadOnlySpan<string?> examples) -> Minos.Criterion!
+Minos.Criterion.WithNotFor(params System.ReadOnlySpan<string?> notFor) -> Minos.Criterion!
+Minos.DecisionClient
+Minos.DecisionClient.DecisionClient() -> void
+Minos.DecisionClient.DecisionClient(Minos.DecisionClientOptions? options) -> void
+Minos.DecisionClient.DecisionClient(Minos.DecisionClientOptions? options, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory) -> void
+Minos.DecisionClient.DecisionClient(System.Net.Http.HttpClient! httpClient) -> void
+Minos.DecisionClient.DecisionClient(System.Net.Http.HttpClient! httpClient, Minos.DecisionClientOptions? options) -> void
+Minos.DecisionClient.DecisionClient(System.Net.Http.HttpClient! httpClient, Minos.DecisionClientOptions? options, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory) -> void
+Minos.DecisionClient.Dispose() -> void
+Minos.DecisionClient.EvaluateAsync(Minos.QuestionSet! questionSet, Minos.DecisionContent state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.Answers!, Minos.DecisionError!>>
+Minos.DecisionClient.EvaluateAsync(Minos.QuestionSet! questionSet, Minos.DecisionContent state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.Answers!, Minos.DecisionError!>>
+Minos.DecisionClient.EvaluateAsync(Minos.SystemOneRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOneResponse!, Minos.DecisionError!>>
+Minos.DecisionClient.EvaluateAsync(Minos.SystemOneRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOneResponse!, Minos.DecisionError!>>
+Minos.DecisionClient.EvaluateAsync<T, TState>(TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.DecisionClient.EvaluateAsync<T, TState>(TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.DecisionClient.EvaluateAsync<T>(System.Text.Json.JsonElement state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.DecisionClient.EvaluateAsync<T>(System.Text.Json.JsonElement state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.DecisionClient.EvaluateAsync<T>(string! state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.DecisionClient.EvaluateAsync<T>(string! state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.DecisionClient.EvaluateUtf8Async<T>(System.ReadOnlyMemory<byte> utf8JsonState, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.DecisionClient.ListModelsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.ModelList!, Minos.DecisionError!>>
+Minos.DecisionClientOptions
+Minos.DecisionClientOptions.ApiKey.get -> string?
+Minos.DecisionClientOptions.ApiKey.set -> void
+Minos.DecisionClientOptions.BaseAddress.get -> System.Uri?
+Minos.DecisionClientOptions.BaseAddress.set -> void
+Minos.DecisionClientOptions.DecisionClientOptions() -> void
+Minos.DecisionClientOptions.InitialBackoff.get -> System.TimeSpan
+Minos.DecisionClientOptions.InitialBackoff.set -> void
+Minos.DecisionClientOptions.Jitter.get -> bool
+Minos.DecisionClientOptions.Jitter.set -> void
+Minos.DecisionClientOptions.MaxRetries.get -> int
+Minos.DecisionClientOptions.MaxRetries.set -> void
+Minos.DecisionClientOptions.MaxRetryDelay.get -> System.TimeSpan
+Minos.DecisionClientOptions.MaxRetryDelay.set -> void
+Minos.DecisionClientOptions.Model.get -> string!
+Minos.DecisionClientOptions.Model.set -> void
+Minos.DecisionClientOptions.Provider.get -> Minos.DecisionProvider
+Minos.DecisionClientOptions.Provider.set -> void
+Minos.DecisionClientOptions.Timeout.get -> System.TimeSpan
+Minos.DecisionClientOptions.Timeout.set -> void
+Minos.DecisionClientOptions.Validate() -> void
+Minos.DecisionContent
+Minos.DecisionContent.DecisionContent() -> void
+Minos.DecisionContent.Equals(Minos.DecisionContent other) -> bool
+Minos.DecisionContent.IsString.get -> bool
+Minos.DecisionContent.TryGetJson(out System.Text.Json.JsonElement json) -> bool
+Minos.DecisionContent.TryGetString(out string? text) -> bool
+Minos.DecisionDefaults
+Minos.DecisionError
+Minos.DecisionError.DecisionError(Minos.DecisionErrorKind kind, string! message) -> void
+Minos.DecisionError.Detail.get -> System.Text.Json.JsonElement?
+Minos.DecisionError.Detail.init -> void
+Minos.DecisionError.Exception.get -> System.Exception?
+Minos.DecisionError.Exception.init -> void
+Minos.DecisionError.Failures.get -> System.Collections.Generic.IReadOnlyList<Minos.QuestionFailure!>!
+Minos.DecisionError.Kind.get -> Minos.DecisionErrorKind
+Minos.DecisionError.Message.get -> string!
+Minos.DecisionError.RetryAfter.get -> System.TimeSpan?
+Minos.DecisionError.RetryAfter.init -> void
+Minos.DecisionError.StatusCode.get -> int?
+Minos.DecisionError.StatusCode.init -> void
+Minos.DecisionErrorKind
+Minos.DecisionErrorKind.Disposed = 12 -> Minos.DecisionErrorKind
+Minos.DecisionErrorKind.Http = 6 -> Minos.DecisionErrorKind
+Minos.DecisionErrorKind.InvalidQuestions = 11 -> Minos.DecisionErrorKind
+Minos.DecisionErrorKind.InvalidResponse = 9 -> Minos.DecisionErrorKind
+Minos.DecisionErrorKind.Network = 7 -> Minos.DecisionErrorKind
+Minos.DecisionErrorKind.Overloaded = 4 -> Minos.DecisionErrorKind
+Minos.DecisionErrorKind.RateLimited = 3 -> Minos.DecisionErrorKind
+Minos.DecisionErrorKind.Server = 5 -> Minos.DecisionErrorKind
+Minos.DecisionErrorKind.Timeout = 8 -> Minos.DecisionErrorKind
+Minos.DecisionErrorKind.Unauthorized = 1 -> Minos.DecisionErrorKind
+Minos.DecisionErrorKind.Unsupported = 10 -> Minos.DecisionErrorKind
+Minos.DecisionErrorKind.Validation = 2 -> Minos.DecisionErrorKind
+Minos.DecisionOptionSet<T>
+Minos.DecisionOptionSet<T>.DecisionOptionSet() -> void
+Minos.DecisionProvider
+Minos.DecisionProvider.OpenRouter = 1 -> Minos.DecisionProvider
+Minos.DecisionProvider.TypeSafe = 0 -> Minos.DecisionProvider
+Minos.DecisionUsage
+Minos.DecisionUsage.<Clone>$() -> Minos.DecisionUsage!
+Minos.DecisionUsage.Cost.get -> double?
+Minos.DecisionUsage.Cost.init -> void
+Minos.DecisionUsage.DecisionUsage() -> void
+Minos.DecisionUsage.Equals(Minos.DecisionUsage? other) -> bool
+Minos.DecisionUsage.InputTokens.get -> int
+Minos.DecisionUsage.InputTokens.init -> void
+Minos.DecisionUsage.OutputTokens.get -> int
+Minos.DecisionUsage.OutputTokens.init -> void
+Minos.IDecisionClient
+Minos.IDecisionClient.EvaluateAsync(Minos.QuestionSet! questionSet, Minos.DecisionContent state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.Answers!, Minos.DecisionError!>>
+Minos.IDecisionClient.EvaluateAsync(Minos.QuestionSet! questionSet, Minos.DecisionContent state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.Answers!, Minos.DecisionError!>>
+Minos.IDecisionClient.EvaluateAsync(Minos.SystemOneRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOneResponse!, Minos.DecisionError!>>
+Minos.IDecisionClient.EvaluateAsync(Minos.SystemOneRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOneResponse!, Minos.DecisionError!>>
+Minos.IDecisionClient.EvaluateAsync<T, TState>(TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.IDecisionClient.EvaluateAsync<T, TState>(TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.IDecisionClient.EvaluateAsync<T>(System.Text.Json.JsonElement state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.IDecisionClient.EvaluateAsync<T>(System.Text.Json.JsonElement state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.IDecisionClient.EvaluateAsync<T>(string! state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.IDecisionClient.EvaluateAsync<T>(string! state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.IDecisionClient.EvaluateUtf8Async<T>(System.ReadOnlyMemory<byte> utf8JsonState, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.IDecisionClient.ListModelsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.ModelList!, Minos.DecisionError!>>
+Minos.IQuestionSet<TSelf, TState>
+Minos.IQuestionSet<TSelf>
+Minos.IQuestionSet<TSelf>.Parse(ref System.Text.Json.Utf8JsonReader answers) -> TSelf
+Minos.IQuestionSet<TSelf>.QuestionsUtf8.get -> System.ReadOnlySpan<byte>
 Minos.KeyedChoice
 Minos.KeyedChoice.Confidence.get -> double
 Minos.KeyedChoice.Equals(Minos.KeyedChoice other) -> bool
@@ -205,7 +175,7 @@ Minos.KeyedChoiceHandle
 Minos.KeyedChoiceHandle.KeyedChoiceHandle() -> void
 Minos.KeyedChoiceOptionsBuilder
 Minos.KeyedChoiceOptionsBuilder.Option(string! key) -> Minos.KeyedChoiceOptionsBuilder!
-Minos.KeyedChoiceOptionsBuilder.Option(string! key, Minos.JevCriterion! criterion) -> Minos.KeyedChoiceOptionsBuilder!
+Minos.KeyedChoiceOptionsBuilder.Option(string! key, Minos.Criterion! criterion) -> Minos.KeyedChoiceOptionsBuilder!
 Minos.KeyedProbabilityMap
 Minos.KeyedProbabilityMap.Count.get -> int
 Minos.KeyedProbabilityMap.Enumerator
@@ -229,7 +199,7 @@ Minos.KeyedScore.Probabilities.get -> Minos.KeyedProbabilityMap
 Minos.KeyedScoreHandle
 Minos.KeyedScoreHandle.KeyedScoreHandle() -> void
 Minos.KeyedScoreLevelsBuilder
-Minos.KeyedScoreLevelsBuilder.Level(Minos.JevCriterion! criterion) -> Minos.KeyedScoreLevelsBuilder!
+Minos.KeyedScoreLevelsBuilder.Level(Minos.Criterion! criterion) -> Minos.KeyedScoreLevelsBuilder!
 Minos.LevelAttribute
 Minos.LevelAttribute.Description.get -> string!
 Minos.LevelAttribute.Examples.get -> string![]?
@@ -274,13 +244,13 @@ Minos.NoulCriteria
 Minos.NoulCriteria.<Clone>$() -> Minos.NoulCriteria!
 Minos.NoulCriteria.Equals(Minos.NoulCriteria? other) -> bool
 Minos.NoulCriteria.NoulCriteria() -> void
-Minos.NoulCriteria.WhenFalse.get -> Minos.JevContent?
+Minos.NoulCriteria.WhenFalse.get -> Minos.DecisionContent?
 Minos.NoulCriteria.WhenFalse.init -> void
-Minos.NoulCriteria.WhenTrue.get -> Minos.JevContent?
+Minos.NoulCriteria.WhenTrue.get -> Minos.DecisionContent?
 Minos.NoulCriteria.WhenTrue.init -> void
 Minos.NoulCriteriaBuilder
-Minos.NoulCriteriaBuilder.WhenFalse(Minos.JevContent description) -> Minos.NoulCriteriaBuilder!
-Minos.NoulCriteriaBuilder.WhenTrue(Minos.JevContent description) -> Minos.NoulCriteriaBuilder!
+Minos.NoulCriteriaBuilder.WhenFalse(Minos.DecisionContent description) -> Minos.NoulCriteriaBuilder!
+Minos.NoulCriteriaBuilder.WhenTrue(Minos.DecisionContent description) -> Minos.NoulCriteriaBuilder!
 Minos.NoulHandle
 Minos.NoulHandle.NoulHandle() -> void
 Minos.NoulQuestion
@@ -297,6 +267,36 @@ Minos.ProbabilityMap<T>.Equals(Minos.ProbabilityMap<T> other) -> bool
 Minos.ProbabilityMap<T>.GetEnumerator() -> Minos.ProbabilityMap<T>.Enumerator
 Minos.ProbabilityMap<T>.ProbabilityMap() -> void
 Minos.ProbabilityMap<T>.this[T option].get -> double
+Minos.Question
+Minos.Question.Instructions.get -> Minos.DecisionContent
+Minos.Question.Instructions.init -> void
+Minos.QuestionFailure
+Minos.QuestionFailure.<Clone>$() -> Minos.QuestionFailure!
+Minos.QuestionFailure.Deconstruct(out string! Rule, out string? QuestionKey, out string! Message) -> void
+Minos.QuestionFailure.Equals(Minos.QuestionFailure? other) -> bool
+Minos.QuestionFailure.Message.get -> string!
+Minos.QuestionFailure.Message.init -> void
+Minos.QuestionFailure.QuestionFailure(string! Rule, string? QuestionKey, string! Message) -> void
+Minos.QuestionFailure.QuestionKey.get -> string?
+Minos.QuestionFailure.QuestionKey.init -> void
+Minos.QuestionFailure.Rule.get -> string!
+Minos.QuestionFailure.Rule.init -> void
+Minos.QuestionSet
+Minos.QuestionSet.QuestionsUtf8.get -> System.ReadOnlySpan<byte>
+Minos.QuestionSet.Warnings.get -> System.Collections.Generic.IReadOnlyList<Minos.QuestionFailure!>!
+Minos.QuestionSetBuilder
+Minos.QuestionSetBuilder.Build() -> ZeroAlloc.Results.Result<Minos.QuestionSet!, Minos.DecisionError!>
+Minos.QuestionSetBuilder.Choice(string! key, Minos.DecisionContent instructions, out Minos.KeyedChoiceHandle question, System.Action<Minos.KeyedChoiceOptionsBuilder!>! configure) -> Minos.QuestionSetBuilder!
+Minos.QuestionSetBuilder.Choice<T>(string! key, Minos.DecisionContent instructions, out Minos.ChoiceHandle<T> question) -> Minos.QuestionSetBuilder!
+Minos.QuestionSetBuilder.Choice<T>(string! key, Minos.DecisionContent instructions, out Minos.ChoiceHandle<T> question, System.Action<Minos.ChoiceOptionsBuilder<T>!>! configure) -> Minos.QuestionSetBuilder!
+Minos.QuestionSetBuilder.Noul(string! key, Minos.DecisionContent instructions, out Minos.NoulHandle question) -> Minos.QuestionSetBuilder!
+Minos.QuestionSetBuilder.Noul(string! key, Minos.DecisionContent instructions, out Minos.NoulHandle question, System.Action<Minos.NoulCriteriaBuilder!>! configure) -> Minos.QuestionSetBuilder!
+Minos.QuestionSetBuilder.Score(string! key, Minos.DecisionContent instructions, out Minos.KeyedScoreHandle question, System.Action<Minos.KeyedScoreLevelsBuilder!>! configure) -> Minos.QuestionSetBuilder!
+Minos.QuestionSetBuilder.Score<T>(string! key, Minos.DecisionContent instructions, out Minos.ScoreHandle<T> question, System.Action<Minos.ScoreLevelsBuilder<T>!>! configure) -> Minos.QuestionSetBuilder!
+Minos.QuestionsAttribute
+Minos.QuestionsAttribute.QuestionsAttribute() -> void
+Minos.QuestionsAttribute.State.get -> System.Type?
+Minos.QuestionsAttribute.State.set -> void
 Minos.Score<T>
 Minos.Score<T>.Confidence.get -> double
 Minos.Score<T>.Equals(Minos.Score<T> other) -> bool
@@ -324,21 +324,21 @@ Minos.ScoreAttribute.ScoreAttribute(string! instructions) -> void
 Minos.ScoreHandle<T>
 Minos.ScoreHandle<T>.ScoreHandle() -> void
 Minos.ScoreLevelsBuilder<T>
-Minos.ScoreLevelsBuilder<T>.Level(T level, Minos.JevCriterion! criterion) -> Minos.ScoreLevelsBuilder<T>!
+Minos.ScoreLevelsBuilder<T>.Level(T level, Minos.Criterion! criterion) -> Minos.ScoreLevelsBuilder<T>!
 Minos.ScoreQuestion
-Minos.ScoreQuestion.Criteria.get -> System.Collections.Generic.IReadOnlyList<Minos.JevContent>!
+Minos.ScoreQuestion.Criteria.get -> System.Collections.Generic.IReadOnlyList<Minos.DecisionContent>!
 Minos.ScoreQuestion.Criteria.init -> void
 Minos.ScoreQuestion.ScoreQuestion() -> void
 Minos.SystemOneRequest
 Minos.SystemOneRequest.Model.get -> string!
 Minos.SystemOneRequest.Model.init -> void
-Minos.SystemOneRequest.Questions.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Minos.JevQuestion!>!
+Minos.SystemOneRequest.Questions.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Minos.Question!>!
 Minos.SystemOneRequest.Questions.init -> void
-Minos.SystemOneRequest.State.get -> Minos.JevContent
+Minos.SystemOneRequest.State.get -> Minos.DecisionContent
 Minos.SystemOneRequest.State.init -> void
 Minos.SystemOneRequest.SystemOneRequest() -> void
 Minos.SystemOneResponse
-Minos.SystemOneResponse.Answers.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Minos.JevAnswer!>!
+Minos.SystemOneResponse.Answers.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Minos.Answer!>!
 Minos.SystemOneResponse.Answers.init -> void
 Minos.SystemOneResponse.Id.get -> string?
 Minos.SystemOneResponse.Id.init -> void
@@ -347,29 +347,26 @@ Minos.SystemOneResponse.Model.init -> void
 Minos.SystemOneResponse.Provider.get -> string?
 Minos.SystemOneResponse.Provider.init -> void
 Minos.SystemOneResponse.SystemOneResponse() -> void
-Minos.SystemOneResponse.Usage.get -> Minos.JevUsage!
+Minos.SystemOneResponse.Usage.get -> Minos.DecisionUsage!
 Minos.SystemOneResponse.Usage.init -> void
-abstract Minos.JevOptionSet<T>.Count.get -> int
-abstract Minos.JevOptionSet<T>.IndexOf(T value) -> int
-abstract Minos.JevOptionSet<T>.IndexOfKey(ref System.Text.Json.Utf8JsonReader reader) -> int
-abstract Minos.JevOptionSet<T>.this[int index].get -> T
-const Minos.JevDefaults.ApiKeyEnvironmentVariable = "TYPESAFE_API_KEY" -> string!
-const Minos.JevDefaults.BaseAddressEnvironmentVariable = "TYPESAFE_BASE_URL" -> string!
-const Minos.JevDefaults.OpenRouterApiKeyEnvironmentVariable = "OPENROUTER_API_KEY" -> string!
+abstract Minos.DecisionOptionSet<T>.Count.get -> int
+abstract Minos.DecisionOptionSet<T>.IndexOf(T value) -> int
+abstract Minos.DecisionOptionSet<T>.IndexOfKey(ref System.Text.Json.Utf8JsonReader reader) -> int
+abstract Minos.DecisionOptionSet<T>.this[int index].get -> T
+const Minos.DecisionDefaults.ApiKeyEnvironmentVariable = "TYPESAFE_API_KEY" -> string!
+const Minos.DecisionDefaults.BaseAddressEnvironmentVariable = "TYPESAFE_BASE_URL" -> string!
+const Minos.DecisionDefaults.OpenRouterApiKeyEnvironmentVariable = "OPENROUTER_API_KEY" -> string!
 override Minos.Choice<T>.Equals(object? obj) -> bool
 override Minos.Choice<T>.GetHashCode() -> int
 override Minos.ConfidenceThresholds.Equals(object? obj) -> bool
 override Minos.ConfidenceThresholds.GetHashCode() -> int
-override Minos.JevContent.Equals(object? obj) -> bool
-override Minos.JevContent.GetHashCode() -> int
-override Minos.JevContent.ToString() -> string!
-override Minos.JevError.ToString() -> string!
-override Minos.JevQuestionFailure.Equals(object? obj) -> bool
-override Minos.JevQuestionFailure.GetHashCode() -> int
-override Minos.JevQuestionFailure.ToString() -> string!
-override Minos.JevUsage.Equals(object? obj) -> bool
-override Minos.JevUsage.GetHashCode() -> int
-override Minos.JevUsage.ToString() -> string!
+override Minos.DecisionContent.Equals(object? obj) -> bool
+override Minos.DecisionContent.GetHashCode() -> int
+override Minos.DecisionContent.ToString() -> string!
+override Minos.DecisionError.ToString() -> string!
+override Minos.DecisionUsage.Equals(object? obj) -> bool
+override Minos.DecisionUsage.GetHashCode() -> int
+override Minos.DecisionUsage.ToString() -> string!
 override Minos.KeyedChoice.Equals(object? obj) -> bool
 override Minos.KeyedChoice.GetHashCode() -> int
 override Minos.KeyedProbabilityMap.Equals(object? obj) -> bool
@@ -386,38 +383,38 @@ override Minos.NoulCriteria.GetHashCode() -> int
 override Minos.NoulCriteria.ToString() -> string!
 override Minos.ProbabilityMap<T>.Equals(object? obj) -> bool
 override Minos.ProbabilityMap<T>.GetHashCode() -> int
+override Minos.QuestionFailure.Equals(object? obj) -> bool
+override Minos.QuestionFailure.GetHashCode() -> int
+override Minos.QuestionFailure.ToString() -> string!
 override Minos.Score<T>.Equals(object? obj) -> bool
 override Minos.Score<T>.GetHashCode() -> int
+static Minos.AnswerReader.EnsureStartObject(ref System.Text.Json.Utf8JsonReader reader) -> void
+static Minos.AnswerReader.MissingAnswer(string! key) -> System.Text.Json.JsonException!
+static Minos.AnswerReader.NextProperty(ref System.Text.Json.Utf8JsonReader reader) -> bool
+static Minos.AnswerReader.ReadChoice<T>(ref System.Text.Json.Utf8JsonReader reader, Minos.DecisionOptionSet<T>! options, double[]! buffer, int offset) -> Minos.Choice<T>
+static Minos.AnswerReader.ReadNoul(ref System.Text.Json.Utf8JsonReader reader) -> Minos.Noul
+static Minos.AnswerReader.ReadScore<T>(ref System.Text.Json.Utf8JsonReader reader, Minos.DecisionOptionSet<T>! options, double[]! buffer, int offset) -> Minos.Score<T>
 static Minos.Choice<T>.operator !=(Minos.Choice<T> left, Minos.Choice<T> right) -> bool
 static Minos.Choice<T>.operator ==(Minos.Choice<T> left, Minos.Choice<T> right) -> bool
 static Minos.ConfidenceThresholds.Default.get -> Minos.ConfidenceThresholds
 static Minos.ConfidenceThresholds.operator !=(Minos.ConfidenceThresholds left, Minos.ConfidenceThresholds right) -> bool
 static Minos.ConfidenceThresholds.operator ==(Minos.ConfidenceThresholds left, Minos.ConfidenceThresholds right) -> bool
-static Minos.JevAnswerReader.EnsureStartObject(ref System.Text.Json.Utf8JsonReader reader) -> void
-static Minos.JevAnswerReader.MissingAnswer(string! key) -> System.Text.Json.JsonException!
-static Minos.JevAnswerReader.NextProperty(ref System.Text.Json.Utf8JsonReader reader) -> bool
-static Minos.JevAnswerReader.ReadChoice<T>(ref System.Text.Json.Utf8JsonReader reader, Minos.JevOptionSet<T>! options, double[]! buffer, int offset) -> Minos.Choice<T>
-static Minos.JevAnswerReader.ReadNoul(ref System.Text.Json.Utf8JsonReader reader) -> Minos.Noul
-static Minos.JevAnswerReader.ReadScore<T>(ref System.Text.Json.Utf8JsonReader reader, Minos.JevOptionSet<T>! options, double[]! buffer, int offset) -> Minos.Score<T>
-static Minos.JevClient.ConfigureHttpClient(System.Net.Http.HttpClient! httpClient, Minos.JevClientOptions? options) -> void
-static Minos.JevContent.FromJson(System.Text.Json.JsonElement json) -> Minos.JevContent
-static Minos.JevContent.FromString(string! text) -> Minos.JevContent
-static Minos.JevContent.FromUtf8Json(System.ReadOnlySpan<byte> utf8Json) -> Minos.JevContent
-static Minos.JevContent.FromValue<T>(T value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo) -> Minos.JevContent
-static Minos.JevContent.implicit operator Minos.JevContent(string! text) -> Minos.JevContent
-static Minos.JevContent.operator !=(Minos.JevContent left, Minos.JevContent right) -> bool
-static Minos.JevContent.operator ==(Minos.JevContent left, Minos.JevContent right) -> bool
-static Minos.JevCriterion.Json(Minos.JevContent json) -> Minos.JevCriterion!
-static Minos.JevCriterion.Text(string! description) -> Minos.JevCriterion!
-static Minos.JevCriterion.implicit operator Minos.JevCriterion!(string! description) -> Minos.JevCriterion!
-static Minos.JevDefaults.Model.get -> string!
-static Minos.JevDefaults.OpenRouterBaseAddress.get -> System.Uri!
-static Minos.JevDefaults.TypeSafeBaseAddress.get -> System.Uri!
-static Minos.JevQuestionFailure.operator !=(Minos.JevQuestionFailure? left, Minos.JevQuestionFailure? right) -> bool
-static Minos.JevQuestionFailure.operator ==(Minos.JevQuestionFailure? left, Minos.JevQuestionFailure? right) -> bool
-static Minos.JevQuestionSet.CreateBuilder() -> Minos.JevQuestionSetBuilder!
-static Minos.JevUsage.operator !=(Minos.JevUsage? left, Minos.JevUsage? right) -> bool
-static Minos.JevUsage.operator ==(Minos.JevUsage? left, Minos.JevUsage? right) -> bool
+static Minos.Criterion.Json(Minos.DecisionContent json) -> Minos.Criterion!
+static Minos.Criterion.Text(string! description) -> Minos.Criterion!
+static Minos.Criterion.implicit operator Minos.Criterion!(string! description) -> Minos.Criterion!
+static Minos.DecisionClient.ConfigureHttpClient(System.Net.Http.HttpClient! httpClient, Minos.DecisionClientOptions? options) -> void
+static Minos.DecisionContent.FromJson(System.Text.Json.JsonElement json) -> Minos.DecisionContent
+static Minos.DecisionContent.FromString(string! text) -> Minos.DecisionContent
+static Minos.DecisionContent.FromUtf8Json(System.ReadOnlySpan<byte> utf8Json) -> Minos.DecisionContent
+static Minos.DecisionContent.FromValue<T>(T value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo) -> Minos.DecisionContent
+static Minos.DecisionContent.implicit operator Minos.DecisionContent(string! text) -> Minos.DecisionContent
+static Minos.DecisionContent.operator !=(Minos.DecisionContent left, Minos.DecisionContent right) -> bool
+static Minos.DecisionContent.operator ==(Minos.DecisionContent left, Minos.DecisionContent right) -> bool
+static Minos.DecisionDefaults.Model.get -> string!
+static Minos.DecisionDefaults.OpenRouterBaseAddress.get -> System.Uri!
+static Minos.DecisionDefaults.TypeSafeBaseAddress.get -> System.Uri!
+static Minos.DecisionUsage.operator !=(Minos.DecisionUsage? left, Minos.DecisionUsage? right) -> bool
+static Minos.DecisionUsage.operator ==(Minos.DecisionUsage? left, Minos.DecisionUsage? right) -> bool
 static Minos.KeyedChoice.operator !=(Minos.KeyedChoice left, Minos.KeyedChoice right) -> bool
 static Minos.KeyedChoice.operator ==(Minos.KeyedChoice left, Minos.KeyedChoice right) -> bool
 static Minos.KeyedProbabilityMap.operator !=(Minos.KeyedProbabilityMap left, Minos.KeyedProbabilityMap right) -> bool
@@ -432,6 +429,9 @@ static Minos.NoulCriteria.operator !=(Minos.NoulCriteria? left, Minos.NoulCriter
 static Minos.NoulCriteria.operator ==(Minos.NoulCriteria? left, Minos.NoulCriteria? right) -> bool
 static Minos.ProbabilityMap<T>.operator !=(Minos.ProbabilityMap<T> left, Minos.ProbabilityMap<T> right) -> bool
 static Minos.ProbabilityMap<T>.operator ==(Minos.ProbabilityMap<T> left, Minos.ProbabilityMap<T> right) -> bool
+static Minos.QuestionFailure.operator !=(Minos.QuestionFailure? left, Minos.QuestionFailure? right) -> bool
+static Minos.QuestionFailure.operator ==(Minos.QuestionFailure? left, Minos.QuestionFailure? right) -> bool
+static Minos.QuestionSet.CreateBuilder() -> Minos.QuestionSetBuilder!
 static Minos.Score<T>.operator !=(Minos.Score<T> left, Minos.Score<T> right) -> bool
 static Minos.Score<T>.operator ==(Minos.Score<T> left, Minos.Score<T> right) -> bool
 *REMOVED*ZeroAlloc.Jev.Choice<T>

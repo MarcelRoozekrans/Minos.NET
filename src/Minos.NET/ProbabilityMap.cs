@@ -13,7 +13,7 @@ public readonly struct ProbabilityMap<T> : IEquatable<ProbabilityMap<T>>
 {
     private readonly double[]? _buffer;
     private readonly int _offset;
-    private readonly JevOptionSet<T>? _options;
+    private readonly DecisionOptionSet<T>? _options;
 
     /// <summary>Initializes a new instance of the <see cref="ProbabilityMap{T}"/> struct.</summary>
     /// <param name="buffer">The buffer holding the probabilities.</param>
@@ -23,9 +23,9 @@ public readonly struct ProbabilityMap<T> : IEquatable<ProbabilityMap<T>>
     /// <exception cref="ArgumentOutOfRangeException">The options do not fit in <paramref name="buffer"/> from <paramref name="offset"/>.</exception>
     /// <remarks>
     /// Internal: the buffer-plus-offset representation is generated-code plumbing that application code has no
-    /// meaningful way to construct. <see cref="JevAnswerReader"/> and the generated <c>Parse</c> methods build every instance.
+    /// meaningful way to construct. <see cref="AnswerReader"/> and the generated <c>Parse</c> methods build every instance.
     /// </remarks>
-    internal ProbabilityMap(double[] buffer, int offset, JevOptionSet<T> options)
+    internal ProbabilityMap(double[] buffer, int offset, DecisionOptionSet<T> options)
     {
         ArgumentNullException.ThrowIfNull(buffer);
         ArgumentNullException.ThrowIfNull(options);

@@ -83,7 +83,7 @@ public sealed class QuestionSpecValidationTests
         QuestionSpec[] specs =
         [
             Spec(isChoice: true, "billing", "account"),
-            Spec(isChoice: true, "a") with { Options = [new OptionSpec("a", "a", JevCriterion.Json(JevContent.FromUtf8Json("{\"a\":[1]}"u8)), -1)] },
+            Spec(isChoice: true, "a") with { Options = [new OptionSpec("a", "a", Criterion.Json(DecisionContent.FromUtf8Json("{\"a\":[1]}"u8)), -1)] },
             new QuestionSpec
             {
                 Key = "urgency",

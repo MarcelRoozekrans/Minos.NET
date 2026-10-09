@@ -7,12 +7,12 @@ namespace Minos.Validation;
 /// Fails text that is empty or whitespace and JSON that is exactly <c>{}</c> or <c>[]</c> (JEV003); <see langword="null"/>
 /// passes, as the API accepts an absent description.
 /// </summary>
-internal sealed class NotBlankContentAttribute : ValidationAttribute<JevContent?>
+internal sealed class NotBlankContentAttribute : ValidationAttribute<DecisionContent?>
 {
-    public override bool IsValid(JevContent? value) => value is not { } content || !IsBlank(content);
+    public override bool IsValid(DecisionContent? value) => value is not { } content || !IsBlank(content);
 
     /// <summary>Whether <paramref name="content"/> is blank text or an empty JSON object or array.</summary>
-    public static bool IsBlank(JevContent content)
+    public static bool IsBlank(DecisionContent content)
     {
         if (content.TryGetString(out var text))
         {

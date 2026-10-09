@@ -22,7 +22,7 @@ public enum Urgency
 }
 
 /// <summary>A question set the generator turns into question JSON and a typed parser at compile time.</summary>
-[JevQuestions]
+[Questions]
 public partial record SmokeTriage
 {
     [Noul("Does `message` ask for a credential?")]
@@ -45,7 +45,7 @@ public enum SmokeTeam
 }
 
 /// <summary>Structured criteria, generated at compile time and published with Native AOT.</summary>
-[JevQuestions]
+[Questions]
 public partial record SmokeStructured
 {
     [Noul("Does `message` ask for a credential?")]

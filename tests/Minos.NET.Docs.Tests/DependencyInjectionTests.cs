@@ -30,8 +30,8 @@ public sealed class DependencyInjectionTests
     public async Task ARegisteredClient_IsResolvedAndEvaluates()
     {
         var builder = NewBuilder();
-        using var handler = new ScriptedJev.Handler([Reply.Ok(UrgentResponse)]);
-        JevRegistration.AddJev(builder).ConfigurePrimaryHttpMessageHandler(() => handler);
+        using var handler = new ScriptedDecision.Handler([Reply.Ok(UrgentResponse)]);
+        DecisionRegistration.AddDecision(builder).ConfigurePrimaryHttpMessageHandler(() => handler);
         using var host = builder.Build();
         await host.StartAsync();
 
@@ -46,16 +46,16 @@ public sealed class DependencyInjectionTests
                 Assert.Equal(new Uri("https://api.typesafe.ai/v1/systemone"), sent.Uri);
                 Assert.Equal("Bearer typesafe-key", sent.Authorization);
             });
-        Assert.Same(host.Services.GetRequiredService<IJevClient>(), host.Services.GetRequiredService<IJevClient>());
+        Assert.Same(host.Services.GetRequiredService<IDecisionClient>(), host.Services.GetRequiredService<IDecisionClient>());
     }
 
     [Fact]
     public async Task TheContainer_DisposesTheClientWithTheProvider()
     {
         var builder = NewBuilder();
-        JevRegistration.AddJev(builder);
+        DecisionRegistration.AddDecision(builder);
         var host = builder.Build();
-        var client = host.Services.GetRequiredService<IJevClient>();
+        var client = host.Services.GetRequiredService<IDecisionClient>();
 
         host.Dispose();
 
@@ -67,16 +67,16 @@ public sealed class DependencyInjectionTests
     public async Task KeyedClients_EachGoToTheirOwnProvider()
     {
         var builder = NewBuilder();
-        using var typeSafe = new ScriptedJev.Handler([Reply.Ok(UrgentResponse)]);
-        using var openRouter = new ScriptedJev.Handler([Reply.Ok(UrgentResponse)]);
-        KeyedRegistration.AddKeyedJev(builder);
+        using var typeSafe = new ScriptedDecision.Handler([Reply.Ok(UrgentResponse)]);
+        using var openRouter = new ScriptedDecision.Handler([Reply.Ok(UrgentResponse)]);
+        KeyedRegistration.AddKeyedDecision(builder);
         builder.Services.AddHttpClient("Minos.NET:typesafe").ConfigurePrimaryHttpMessageHandler(() => typeSafe);
         builder.Services.AddHttpClient("Minos.NET:openrouter").ConfigurePrimaryHttpMessageHandler(() => openRouter);
         using var host = builder.Build();
         await host.StartAsync();
 
         var outcome = await host.Services.GetRequiredService<InboxRouter>().TriageAsync("Help!", CancellationToken.None);
-        var direct = await host.Services.GetRequiredKeyedService<IJevClient>("typesafe")
+        var direct = await host.Services.GetRequiredKeyedService<IDecisionClient>("typesafe")
             .EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
 
         Assert.Equal("urgent, via OpenRouter", outcome);
@@ -96,9 +96,9 @@ public sealed class DependencyInjectionTests
                 Assert.Equal("Bearer typesafe-key", sent.Authorization);
             });
         Assert.NotSame(
-            host.Services.GetRequiredKeyedService<IJevClient>("typesafe"),
-            host.Services.GetRequiredKeyedService<IJevClient>("openrouter"));
-        Assert.Null(host.Services.GetService<IJevClient>());
+            host.Services.GetRequiredKeyedService<IDecisionClient>("typesafe"),
+            host.Services.GetRequiredKeyedService<IDecisionClient>("openrouter"));
+        Assert.Null(host.Services.GetService<IDecisionClient>());
     }
 
     [Fact]
@@ -109,8 +109,8 @@ public sealed class DependencyInjectionTests
         KeyedRegistration.AddFromEnvironment(services);
         using var provider = services.BuildServiceProvider();
 
-        Assert.NotNull(provider.GetRequiredService<IJevClient>());
-        Assert.NotNull(provider.GetRequiredKeyedService<IJevClient>("backup"));
+        Assert.NotNull(provider.GetRequiredService<IDecisionClient>());
+        Assert.NotNull(provider.GetRequiredKeyedService<IDecisionClient>("backup"));
     }
 
     [Fact]
@@ -123,11 +123,11 @@ public sealed class DependencyInjectionTests
         KeyedRegistration.AddFromConfiguration(builder);
         using var host = builder.Build();
 
-        var options = host.Services.GetRequiredService<IOptionsMonitor<JevClientOptions>>();
+        var options = host.Services.GetRequiredService<IOptionsMonitor<DecisionClientOptions>>();
         var typeSafe = options.Get(Microsoft.Extensions.Options.Options.DefaultName);
         var openRouter = options.Get("openrouter");
 
-        Assert.Equal(JevProvider.TypeSafe, typeSafe.Provider);
+        Assert.Equal(DecisionProvider.TypeSafe, typeSafe.Provider);
         Assert.Equal("jev-latest", typeSafe.Model);
         Assert.Equal(TimeSpan.FromMinutes(1), typeSafe.Timeout);
         Assert.Equal(2, typeSafe.MaxRetries);
@@ -135,7 +135,7 @@ public sealed class DependencyInjectionTests
         Assert.Equal(TimeSpan.FromSeconds(30), typeSafe.MaxRetryDelay);
         Assert.True(typeSafe.Jitter);
         Assert.Equal("typesafe-key", typeSafe.ApiKey);
-        Assert.Equal(JevProvider.OpenRouter, openRouter.Provider);
+        Assert.Equal(DecisionProvider.OpenRouter, openRouter.Provider);
         Assert.Equal(0, openRouter.MaxRetries);
         Assert.Equal("openrouter-key", openRouter.ApiKey);
     }
@@ -145,21 +145,21 @@ public sealed class DependencyInjectionTests
     {
         var builder = NewBuilder();
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.Ordinal) { ["Jev:MaxRetries"] = "5" });
-        builder.Services.AddJevClient(builder.Configuration.GetSection("Jev"));
-        builder.Services.AddJevClient(options =>
+        builder.Services.AddDecisionClient(builder.Configuration.GetSection("Jev"));
+        builder.Services.AddDecisionClient(options =>
         {
             options.ApiKey = "key";
             options.MaxRetries = 1;
         });
-        builder.Services.AddJevClient(options => options.Model = "jev-preview");
+        builder.Services.AddDecisionClient(options => options.Model = "jev-preview");
         using var host = builder.Build();
 
-        var options = host.Services.GetRequiredService<IOptionsMonitor<JevClientOptions>>().CurrentValue;
+        var options = host.Services.GetRequiredService<IOptionsMonitor<DecisionClientOptions>>().CurrentValue;
 
         Assert.Equal(1, options.MaxRetries);
         Assert.Equal("jev-preview", options.Model);
         Assert.Collection(
-            builder.Services.Where(descriptor => descriptor.ServiceType == typeof(IJevClient)),
+            builder.Services.Where(descriptor => descriptor.ServiceType == typeof(IDecisionClient)),
             descriptor => Assert.Null(descriptor.ServiceKey));
     }
 
@@ -167,7 +167,7 @@ public sealed class DependencyInjectionTests
     public async Task AnInvalidValue_FailsTheHostAtStartup_WithTheCoresMessage()
     {
         var builder = NewBuilder();
-        builder.Services.AddJevClient(options =>
+        builder.Services.AddDecisionClient(options =>
         {
             options.ApiKey = "key";
             options.MaxRetries = 11;
@@ -184,7 +184,7 @@ public sealed class DependencyInjectionTests
     {
         using var environment = new KeyEnvironment(typeSafe: null, openRouter: null);
         var builder = NewBuilder();
-        builder.Services.AddJevClient();
+        builder.Services.AddDecisionClient();
         using var host = builder.Build();
 
         var exception = await Assert.ThrowsAsync<OptionsValidationException>(() => host.StartAsync());
@@ -196,14 +196,14 @@ public sealed class DependencyInjectionTests
     public void WithoutAHost_TheFailureComesWhenTheClientIsFirstResolved()
     {
         var services = new ServiceCollection();
-        services.AddJevClient(options =>
+        services.AddDecisionClient(options =>
         {
             options.ApiKey = "key";
             options.MaxRetries = 11;
         });
         using var provider = services.BuildServiceProvider();
 
-        Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IJevClient>());
+        Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IDecisionClient>());
     }
 
     [Fact]
@@ -215,7 +215,7 @@ public sealed class DependencyInjectionTests
             ["Jev:ApiKey"] = "key",
             ["Jev:MaxRetries"] = "abc",
         });
-        builder.Services.AddJevClient(builder.Configuration.GetSection("Jev"));
+        builder.Services.AddDecisionClient(builder.Configuration.GetSection("Jev"));
         using var host = builder.Build();
 
         var exception = await Assert.ThrowsAnyAsync<Exception>(() => host.StartAsync());
@@ -227,7 +227,7 @@ public sealed class DependencyInjectionTests
     public async Task TheNamedHttpClient_AndAReplacedClient_StillNeedValidOptions()
     {
         var services = new ServiceCollection();
-        services.AddJevClient(options =>
+        services.AddDecisionClient(options =>
         {
             options.ApiKey = "key";
             options.MaxRetries = 11;
@@ -239,9 +239,9 @@ public sealed class DependencyInjectionTests
 
         var builder = NewBuilder();
         using var http = new HttpClient();
-        using var replacement = new JevClient(http, new JevClientOptions { ApiKey = "placeholder" });
-        builder.Services.AddSingleton<IJevClient>(replacement);
-        builder.Services.AddJevClient(options => options.MaxRetries = 11);
+        using var replacement = new DecisionClient(http, new DecisionClientOptions { ApiKey = "placeholder" });
+        builder.Services.AddSingleton<IDecisionClient>(replacement);
+        builder.Services.AddDecisionClient(options => options.MaxRetries = 11);
         using var host = builder.Build();
 
         await Assert.ThrowsAsync<OptionsValidationException>(() => host.StartAsync());
@@ -252,43 +252,43 @@ public sealed class DependencyInjectionTests
     {
         var builder = NewBuilder();
         using var http = new HttpClient();
-        using var own = new JevClient(http, new JevClientOptions { ApiKey = "own" });
-        builder.Services.AddSingleton<IJevClient>(own);
-        builder.Services.AddJevClient(options => options.ApiKey = "placeholder");
+        using var own = new DecisionClient(http, new DecisionClientOptions { ApiKey = "own" });
+        builder.Services.AddSingleton<IDecisionClient>(own);
+        builder.Services.AddDecisionClient(options => options.ApiKey = "placeholder");
         using var host = builder.Build();
         await host.StartAsync();
 
-        Assert.Same(own, host.Services.GetRequiredService<IJevClient>());
+        Assert.Same(own, host.Services.GetRequiredService<IDecisionClient>());
     }
 
     [Fact]
     public async Task AHandlerOfYours_SeesTheRequest_FromTheBuilderOrTheDefaults()
     {
         var viaBuilder = new ServiceCollection();
-        using var first = new ScriptedJev.Handler([Reply.Ok(UrgentResponse)]);
-        HandlerRegistration.AddTracedJev(viaBuilder, "key").ConfigurePrimaryHttpMessageHandler(() => first);
+        using var first = new ScriptedDecision.Handler([Reply.Ok(UrgentResponse)]);
+        HandlerRegistration.AddTracedDecision(viaBuilder, "key").ConfigurePrimaryHttpMessageHandler(() => first);
         await using (var provider = viaBuilder.BuildServiceProvider())
         {
-            await provider.GetRequiredService<IJevClient>().EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
+            await provider.GetRequiredService<IDecisionClient>().EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
         }
 
         var viaDefaults = new ServiceCollection();
-        using var second = new ScriptedJev.Handler([Reply.Ok(UrgentResponse)]);
+        using var second = new ScriptedDecision.Handler([Reply.Ok(UrgentResponse)]);
         HandlerRegistration.AddTracedEverywhere(viaDefaults, "key");
         viaDefaults.AddHttpClient("Minos.NET").ConfigurePrimaryHttpMessageHandler(() => second);
         await using (var provider = viaDefaults.BuildServiceProvider())
         {
-            await provider.GetRequiredService<IJevClient>().EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
+            await provider.GetRequiredService<IDecisionClient>().EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
         }
 
         var after = new ServiceCollection();
-        using var third = new ScriptedJev.Handler([Reply.Ok(UrgentResponse)]);
+        using var third = new ScriptedDecision.Handler([Reply.Ok(UrgentResponse)]);
         after.AddTransient<TraceHeaderHandler>();
-        after.AddJevClient(options => options.ApiKey = "key").ConfigurePrimaryHttpMessageHandler(() => third);
+        after.AddDecisionClient(options => options.ApiKey = "key").ConfigurePrimaryHttpMessageHandler(() => third);
         after.ConfigureHttpClientDefaults(defaults => defaults.AddHttpMessageHandler<TraceHeaderHandler>());
         await using (var provider = after.BuildServiceProvider())
         {
-            await provider.GetRequiredService<IJevClient>().EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
+            await provider.GetRequiredService<IDecisionClient>().EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
         }
 
         Assert.Collection(first.Requests, sent => Assert.True(sent.HasTraceHeader));
@@ -297,23 +297,23 @@ public sealed class DependencyInjectionTests
     }
 
     [Fact]
-    public async Task ClearingTheAdditionalHandlers_KeepsADefaultsHandlerOffJevsClient()
+    public async Task ClearingTheAdditionalHandlers_KeepsADefaultsHandlerOffDecisionsClient()
     {
         var withDefaults = new ServiceCollection();
-        using var first = new ScriptedJev.Handler([Reply.Ok(UrgentResponse)]);
+        using var first = new ScriptedDecision.Handler([Reply.Ok(UrgentResponse)]);
         HandlerRegistration.AddTracedEverywhere(withDefaults, "key");
         withDefaults.AddHttpClient("Minos.NET").ConfigurePrimaryHttpMessageHandler(() => first);
         await using (var provider = withDefaults.BuildServiceProvider())
         {
-            await provider.GetRequiredService<IJevClient>().EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
+            await provider.GetRequiredService<IDecisionClient>().EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
         }
 
         var cleared = new ServiceCollection();
-        using var second = new ScriptedJev.Handler([Reply.Ok(UrgentResponse)]);
-        HandlerRegistration.AddJevWithoutDefaultHandlers(cleared, "key").ConfigurePrimaryHttpMessageHandler(() => second);
+        using var second = new ScriptedDecision.Handler([Reply.Ok(UrgentResponse)]);
+        HandlerRegistration.AddDecisionWithoutDefaultHandlers(cleared, "key").ConfigurePrimaryHttpMessageHandler(() => second);
         await using (var provider = cleared.BuildServiceProvider())
         {
-            await provider.GetRequiredService<IJevClient>().EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
+            await provider.GetRequiredService<IDecisionClient>().EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
         }
 
         Assert.Collection(first.Requests, sent => Assert.True(sent.HasTraceHeader));
@@ -324,15 +324,15 @@ public sealed class DependencyInjectionTests
     public async Task ClearingTheAdditionalHandlers_AlsoClearsOnesAddedThroughTheBuilder()
     {
         var services = new ServiceCollection();
-        using var stub = new ScriptedJev.Handler([Reply.Ok(UrgentResponse)]);
+        using var stub = new ScriptedDecision.Handler([Reply.Ok(UrgentResponse)]);
         services.AddTransient<TraceHeaderHandler>();
-        services.AddJevClient(options => options.ApiKey = "key")
+        services.AddDecisionClient(options => options.ApiKey = "key")
             .ConfigurePrimaryHttpMessageHandler(() => stub)
             .AddHttpMessageHandler<TraceHeaderHandler>()
             .ConfigureAdditionalHttpMessageHandlers((handlers, _) => handlers.Clear());
         await using var provider = services.BuildServiceProvider();
 
-        await provider.GetRequiredService<IJevClient>().EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
+        await provider.GetRequiredService<IDecisionClient>().EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
 
         Assert.Collection(stub.Requests, sent => Assert.False(sent.HasTraceHeader));
     }
@@ -340,7 +340,7 @@ public sealed class DependencyInjectionTests
     [Theory]
     [InlineData(true)]
     [InlineData(false)]
-    public async Task ADefaultsPrimaryHandlerAndLogger_NeverReachJevsClient(bool defaultsFirst)
+    public async Task ADefaultsPrimaryHandlerAndLogger_NeverReachDecisionsClient(bool defaultsFirst)
     {
         var capture = new CategoryCapture();
         var defaultsPrimary = new CountingHandler();
@@ -351,7 +351,7 @@ public sealed class DependencyInjectionTests
             defaults.ConfigurePrimaryHttpMessageHandler(() => defaultsPrimary);
             defaults.AddDefaultLogger();
         });
-        void Jev() => services.AddJevClient(options =>
+        void Jev() => services.AddDecisionClient(options =>
         {
             options.ApiKey = "key";
             options.MaxRetries = 0;
@@ -372,11 +372,11 @@ public sealed class DependencyInjectionTests
         await using var provider = services.BuildServiceProvider();
 
         // Jev's own SocketsHttpHandler is used, so the call fails as a refused connection and the defaults' handler is untouched.
-        var result = await provider.GetRequiredService<IJevClient>().EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
+        var result = await provider.GetRequiredService<IDecisionClient>().EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
         using var control = provider.GetRequiredService<IHttpClientFactory>().CreateClient("other");
         using var controlResponse = await control.GetAsync(new Uri("http://other.example/"));
 
-        Assert.Equal(JevErrorKind.Network, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.Network, result.Error.Kind);
         Assert.Equal(1, defaultsPrimary.Count);
         Assert.Contains(capture.Categories, category => category.StartsWith("System.Net.Http.HttpClient.other", StringComparison.Ordinal));
         Assert.DoesNotContain(capture.Categories, category => category.StartsWith("System.Net.Http.HttpClient.Minos.NET", StringComparison.Ordinal));
@@ -388,7 +388,7 @@ public sealed class DependencyInjectionTests
         var withoutFactoryLogs = await CategoriesLoggedAsync(addDefaultLogger: false);
         var withFactoryLogs = await CategoriesLoggedAsync(addDefaultLogger: true);
 
-        Assert.Contains("Minos.JevClient", withoutFactoryLogs);
+        Assert.Contains("Minos.DecisionClient", withoutFactoryLogs);
         Assert.DoesNotContain(withoutFactoryLogs, category => category.StartsWith("System.Net.Http.HttpClient", StringComparison.Ordinal));
         Assert.Contains(withFactoryLogs, category => category.StartsWith("System.Net.Http.HttpClient", StringComparison.Ordinal));
     }
@@ -397,9 +397,9 @@ public sealed class DependencyInjectionTests
     public void ConfigureHttpClient_SetsUpAnyHttpClient_WithoutAnApiKey()
     {
         using var environment = new KeyEnvironment(typeSafe: null, openRouter: null);
-        var options = new JevClientOptions { Timeout = TimeSpan.FromSeconds(15) };
+        var options = new DecisionClientOptions { Timeout = TimeSpan.FromSeconds(15) };
         var services = new ServiceCollection();
-        WithoutThePackage.AddJevHttpClient(services, options);
+        WithoutThePackage.AddDecisionHttpClient(services, options);
         using var provider = services.BuildServiceProvider();
 
         using var http = provider.GetRequiredService<IHttpClientFactory>().CreateClient("jev");
@@ -412,9 +412,9 @@ public sealed class DependencyInjectionTests
     [Fact]
     public void ACreatedClient_UsesTheFactorysHttpClient()
     {
-        var options = new JevClientOptions { ApiKey = "key" };
+        var options = new DecisionClientOptions { ApiKey = "key" };
         var services = new ServiceCollection();
-        WithoutThePackage.AddJevHttpClient(services, options);
+        WithoutThePackage.AddDecisionHttpClient(services, options);
         using var provider = services.BuildServiceProvider();
 
         using var jev = WithoutThePackage.Create(provider.GetRequiredService<IHttpClientFactory>(), options);
@@ -443,15 +443,15 @@ public sealed class DependencyInjectionTests
         var capture = new CategoryCapture();
         var services = new ServiceCollection();
         services.AddLogging(logging => logging.SetMinimumLevel(LogLevel.Trace).AddProvider(capture));
-        using var handler = new ScriptedJev.Handler([Reply.Ok(UrgentResponse)]);
-        var builder = services.AddJevClient(options => options.ApiKey = "key").ConfigurePrimaryHttpMessageHandler(() => handler);
+        using var handler = new ScriptedDecision.Handler([Reply.Ok(UrgentResponse)]);
+        var builder = services.AddDecisionClient(options => options.ApiKey = "key").ConfigurePrimaryHttpMessageHandler(() => handler);
         if (addDefaultLogger)
         {
             builder.AddDefaultLogger();
         }
 
         await using var provider = services.BuildServiceProvider();
-        var result = await provider.GetRequiredService<IJevClient>().EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
+        var result = await provider.GetRequiredService<IDecisionClient>().EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
         Assert.True(result.IsSuccess);
         return capture.Categories;
     }

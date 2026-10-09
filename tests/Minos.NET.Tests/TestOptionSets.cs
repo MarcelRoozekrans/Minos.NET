@@ -17,7 +17,7 @@ internal enum Urgency
 }
 
 /// <summary>Hand-written stand-in for a generated Choice option set: wire keys red, green, blue.</summary>
-internal sealed class ColorOptions : JevOptionSet<Color>
+internal sealed class ColorOptions : DecisionOptionSet<Color>
 {
     private ColorOptions()
     {
@@ -60,7 +60,7 @@ internal sealed class ColorOptions : JevOptionSet<Color>
 }
 
 /// <summary>Hand-written stand-in for a generated Score level set: wire keys "0", "1", "2".</summary>
-internal sealed class UrgencyLevels : JevOptionSet<Urgency>
+internal sealed class UrgencyLevels : DecisionOptionSet<Urgency>
 {
     private UrgencyLevels()
     {
@@ -103,7 +103,7 @@ internal sealed class UrgencyLevels : JevOptionSet<Urgency>
 }
 
 /// <summary>A different Color option set (fewer options), for equality tests that need option sets to differ by count.</summary>
-internal sealed class ColorOptionsSubset : JevOptionSet<Color>
+internal sealed class ColorOptionsSubset : DecisionOptionSet<Color>
 {
     private ColorOptionsSubset()
     {
@@ -140,7 +140,7 @@ internal sealed class ColorOptionsSubset : JevOptionSet<Color>
 
 /// <summary>A different Color option set with the same count but a different wire order, for equality tests that
 /// need option sets to differ position by position rather than by count.</summary>
-internal sealed class ColorOptionsReversed : JevOptionSet<Color>
+internal sealed class ColorOptionsReversed : DecisionOptionSet<Color>
 {
     private ColorOptionsReversed()
     {

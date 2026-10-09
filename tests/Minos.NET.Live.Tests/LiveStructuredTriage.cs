@@ -14,10 +14,10 @@ public enum StructuredTeam
 
 /// <summary>
 /// A routing question whose <see cref="StructuredTeam"/> criteria carry <c>Examples</c> and <c>NotFor</c> on more
-/// than one option, declared with <c>[JevQuestions]</c> so the structured criterion objects can be exercised
+/// than one option, declared with <c>[Questions]</c> so the structured criterion objects can be exercised
 /// against a real response.
 /// </summary>
-[JevQuestions]
+[Questions]
 public partial record LiveStructuredRouting
 {
     [Choice("Which team should handle this?")]

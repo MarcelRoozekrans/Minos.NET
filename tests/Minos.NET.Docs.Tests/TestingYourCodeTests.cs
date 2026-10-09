@@ -8,7 +8,7 @@ public sealed class TestingYourCodeTests
     [Fact]
     public async Task EveryTypedOverload_GoesThroughTheFakesOneEvaluateMethod()
     {
-        IJevClient jev = FakeJev.Answering(0.9, TriageDesk.Billing, 0.8);
+        IDecisionClient jev = FakeDecision.Answering(0.9, TriageDesk.Billing, 0.8);
 
         Assert.True((await jev.EvaluateAsync<TriageQuestions>("text")).IsSuccess);
         Assert.True((await jev.EvaluateAsync<TriageQuestions>("text", CancellationToken.None)).IsSuccess);
@@ -16,13 +16,13 @@ public sealed class TestingYourCodeTests
         Assert.True((await jev.EvaluateAsync<TriageQuestions>(JsonElement.Parse("\"text\""))).IsSuccess);
         Assert.True((await jev.EvaluateAsync<TriageQuestions>(JsonElement.Parse("{}"), CancellationToken.None)).IsSuccess);
 
-        Assert.Equal(5, ((FakeJev)jev).Requests.Count);
+        Assert.Equal(5, ((FakeDecision)jev).Requests.Count);
     }
 
     [Fact]
     public async Task ATwoWordOption_IsKeyedInSnakeCase_ByTheFake()
     {
-        IJevClient jev = FakeJev.Answering(0.1, TriageDesk.ProductTeam, 0.9);
+        IDecisionClient jev = FakeDecision.Answering(0.1, TriageDesk.ProductTeam, 0.9);
 
         var result = await jev.EvaluateAsync<TriageQuestions>("text");
 
@@ -38,7 +38,7 @@ public sealed class TestingYourCodeTests
                            "desk": { "type": "choice", "choice": "billing", "probabilities": { "billing": 1 }, "confidence": 0.9 } } }
             """;
 
-        var answers = await CannedJev.EvaluateAsync<TriageQuestions>(body, "text");
+        var answers = await CannedDecision.EvaluateAsync<TriageQuestions>(body, "text");
 
         Assert.True(answers.IsUrgent.Value);
         Assert.Equal(TriageDesk.Billing, answers.Desk.Value);
@@ -50,14 +50,14 @@ public sealed class TestingYourCodeTests
     [InlineData("""{ "answers": { "is_urgent": { "type": "noul", "noul": 0.9 } } }""")]
     public async Task ACannedBodyThatLeavesOutAKeyField_IsAnInvalidResponse(string body)
     {
-        var (http, jev, _) = CannedJev.Client(body);
+        var (http, jev, _) = CannedDecision.Client(body);
         using (http)
         using (jev)
         {
             var result = await jev.EvaluateAsync<TriageQuestions>("text", CancellationToken.None);
 
             Assert.True(result.IsFailure);
-            Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);
+            Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);
         }
     }
 
@@ -68,7 +68,7 @@ public sealed class TestingYourCodeTests
         using var http = new HttpClient(handler);
 
         Assert.Null(http.BaseAddress);
-        using var jev = new JevClient(http, new JevClientOptions { ApiKey = "test-key", MaxRetries = 0 });
+        using var jev = new DecisionClient(http, new DecisionClientOptions { ApiKey = "test-key", MaxRetries = 0 });
 
         Assert.NotNull(http.BaseAddress);
         Assert.Equal(TriageRoute.Queue, await new TicketTriager(jev).RouteAsync("text", CancellationToken.None));

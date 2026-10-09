@@ -5,7 +5,7 @@ namespace Minos.Tests;
 
 /// <summary>
 /// A real <see cref="LoggerFactory"/> over Microsoft's <see cref="FakeLoggerProvider"/>, for tests that construct
-/// <see cref="JevClient"/> through its public constructors. Uses no internal type, so the integration tests link it.
+/// <see cref="DecisionClient"/> through its public constructors. Uses no internal type, so the integration tests link it.
 /// </summary>
 internal sealed class LogCapture : IDisposable
 {

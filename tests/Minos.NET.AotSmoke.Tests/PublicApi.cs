@@ -13,7 +13,7 @@ namespace Minos.AotSmoke.Tests;
 /// <item>Property and indexer accessors, fields, constants and enum members: they are data, read or written through
 /// the entry points that take or return them, and are covered through their types.</item>
 /// <item>Operators, user-defined conversions included: they are syntax over an entry point, such as <c>==</c> over a
-/// declared <c>Equals(T)</c>, or over a factory such as <c>JevContent.FromString</c>.</item>
+/// declared <c>Equals(T)</c>, or over a factory such as <c>DecisionContent.FromString</c>.</item>
 /// <item><c>override</c>s of <see cref="object"/>'s <c>Equals(object)</c>, <c>GetHashCode()</c> and
 /// <c>ToString()</c>: they are the runtime's contract, not this library's API.</item>
 /// <item>The members the compiler generates for a record, such as <c>&lt;Clone&gt;$</c>, <c>Deconstruct</c>,
@@ -22,7 +22,7 @@ namespace Minos.AotSmoke.Tests;
 /// record member its author wrote, such as a hand-written <c>Deconstruct</c> or <c>Equals(T? other)</c>, counts. A
 /// struct's <c>Equals(T other)</c> is the one its author wrote for <see cref="IEquatable{T}"/>, and it counts.</item>
 /// </list>
-/// <para>Abstract members and the default interface methods on <c>IJevClient</c> are entry points like any other.</para>
+/// <para>Abstract members and the default interface methods on <c>IDecisionClient</c> are entry points like any other.</para>
 /// </remarks>
 internal static class PublicApi
 {

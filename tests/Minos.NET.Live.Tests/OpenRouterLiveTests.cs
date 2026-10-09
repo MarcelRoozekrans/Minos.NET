@@ -8,12 +8,12 @@ public sealed class OpenRouterLiveTests
 
     public OpenRouterLiveTests(ITestOutputHelper output) => _output = output;
 
-    [LiveFact(JevProvider.OpenRouter)]
+    [LiveFact(DecisionProvider.OpenRouter)]
     public async Task Evaluate_AnswersEveryQuestion()
     {
-        using var client = Live.Client(JevProvider.OpenRouter);
+        using var client = Live.Client(DecisionProvider.OpenRouter);
 
-        var result = await client.EvaluateAsync(Live.Request(JevProvider.OpenRouter));
+        var result = await client.EvaluateAsync(Live.Request(DecisionProvider.OpenRouter));
 
         if (result.IsFailure)
         {

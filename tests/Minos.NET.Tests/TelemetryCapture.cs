@@ -7,10 +7,10 @@ namespace Minos.Tests;
 /// Listens to the <c>Minos</c> source and meter for one test, and to the <c>ZeroAlloc.Rest</c> source when asked.
 /// It keeps every stopped span, the tags each Jev span carried when the sampler saw it, and every measurement.
 /// </summary>
-/// <remarks>Uses the source name as a literal, not <c>JevTelemetry.SourceName</c>, so the integration tests can link it.</remarks>
+/// <remarks>Uses the source name as a literal, not <c>DecisionTelemetry.SourceName</c>, so the integration tests can link it.</remarks>
 internal sealed class TelemetryCapture : IDisposable
 {
-    private const string JevSource = "Minos";
+    private const string DecisionSource = "Minos";
     private const string RestSource = "ZeroAlloc.Rest";
 
     private readonly Lock _gate = new();
@@ -25,7 +25,7 @@ internal sealed class TelemetryCapture : IDisposable
     {
         _activities = new ActivityListener
         {
-            ShouldListenTo = source => source.Name is JevSource || (rest && source.Name is RestSource),
+            ShouldListenTo = source => source.Name is DecisionSource || (rest && source.Name is RestSource),
             Sample = Sample,
             ActivityStopped = Stopped,
         };
@@ -67,7 +67,7 @@ internal sealed class TelemetryCapture : IDisposable
     /// <summary>Gets the one stopped Jev span; throws when there is not exactly one.</summary>
     public Activity Span()
     {
-        var spans = Spans(JevSource);
+        var spans = Spans(DecisionSource);
         return spans.Length == 1 ? spans[0] : throw new InvalidOperationException($"Expected one Jev span, found {spans.Length}.");
     }
 
@@ -110,7 +110,7 @@ internal sealed class TelemetryCapture : IDisposable
 
     private ActivitySamplingResult Sample(ref ActivityCreationOptions<ActivityContext> options)
     {
-        if (options.Source.Name is JevSource)
+        if (options.Source.Name is DecisionSource)
         {
             var tags = options.Tags is { } given ? given.ToArray() : [];
             lock (_gate)
@@ -132,7 +132,7 @@ internal sealed class TelemetryCapture : IDisposable
 
     private void Published(Instrument instrument, MeterListener listener)
     {
-        if (instrument.Meter.Name is not JevSource)
+        if (instrument.Meter.Name is not DecisionSource)
         {
             return;
         }

@@ -3,7 +3,7 @@
     <RootNamespace>Minos.DependencyInjection</RootNamespace>
     <PackageId>Minos.NET.DependencyInjection</PackageId>
     <Title>Minos.NET.DependencyInjection</Title>
-    <Description>Registers Minos.NET's IJevClient in a .NET host over IHttpClientFactory, as a default client or as keyed clients with their own options, bound from IConfiguration and validated at startup. Native AOT-compatible. Not affiliated with or endorsed by TypeSafe AI.</Description>
+    <Description>Registers Minos.NET's IDecisionClient in a .NET host over IHttpClientFactory, as a default client or as keyed clients with their own options, bound from IConfiguration and validated at startup. Native AOT-compatible. Not affiliated with or endorsed by TypeSafe AI.</Description>
     <PackageTags>$(PackageTags);dependency-injection;httpclientfactory</PackageTags>
     <!-- Hand-written registrations over Microsoft.Extensions.Http, with no reflection: enables IsTrimmable and the trim and AOT analyzers. -->
     <IsAotCompatible>true</IsAotCompatible>

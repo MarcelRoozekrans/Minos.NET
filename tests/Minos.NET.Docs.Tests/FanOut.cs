@@ -40,7 +40,7 @@ public enum Sentiment
 // Five questions, one request. Not every answer matters for every review: data loss is only read for crash
 // reports, and no rule below reads WouldRecommend at all. Each question adds some tokens, but they all share
 // the one round trip, so it is cheaper to ask them all than to decide first which ones apply.
-[JevQuestions]
+[Questions]
 public partial record AppReview
 {
     [Choice("What is the review mainly about?")]
@@ -107,7 +107,7 @@ public static class ReviewTriage
 {
     #region FanOutCall
     public static async Task<ReviewActions?> TriageAsync(
-        IJevClient jev, string reviewText, CancellationToken cancellationToken)
+        IDecisionClient jev, string reviewText, CancellationToken cancellationToken)
     {
         var result = await jev.EvaluateAsync<AppReview>(reviewText, cancellationToken);
         // On failure, result.Error.Kind and .Message say why: log them and leave the review for a person.
@@ -119,7 +119,7 @@ public static class ReviewTriage
 #region FanOutBuilt
 public sealed class BuiltReviewTriage
 {
-    private readonly JevQuestionSet _questions;
+    private readonly QuestionSet _questions;
     private readonly ChoiceHandle<ReviewTopic> _topic;
     private readonly ScoreHandle<Sentiment> _sentiment;
     private readonly NoulHandle _mentionsDataLoss;
@@ -129,7 +129,7 @@ public sealed class BuiltReviewTriage
     // handle, and the handle reads that question's answer.
     public BuiltReviewTriage()
     {
-        var built = JevQuestionSet.CreateBuilder()
+        var built = QuestionSet.CreateBuilder()
             .Choice("topic", "What is the review mainly about?", out _topic, options => options
                 .Describe(ReviewTopic.Crash, "The app crashes, freezes or closes on its own")
                 .Describe(ReviewTopic.Performance, "The app is slow, drains the battery or uses too much data")
@@ -155,7 +155,7 @@ public sealed class BuiltReviewTriage
     }
 
     public async Task<ReviewActions?> TriageAsync(
-        IJevClient jev, string reviewText, CancellationToken cancellationToken)
+        IDecisionClient jev, string reviewText, CancellationToken cancellationToken)
     {
         var result = await jev.EvaluateAsync(_questions, reviewText, cancellationToken);
         if (result.IsFailure)

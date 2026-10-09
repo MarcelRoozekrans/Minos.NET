@@ -7,7 +7,7 @@ namespace Minos.Transport;
 /// <summary>
 /// Writes a <c>/v1/systemone</c> request body straight into a pooled <see cref="RawJson"/>: the questions are copied from
 /// the bytes the caller passes, a generated set's <c>QuestionsUtf8</c> or a built set's, and no <see cref="SystemOneRequest"/>
-/// is built. The body is JSON-equal to the one <see cref="TypedEvaluation.CreateRequest(ReadOnlySpan{byte}, JevContent, string, string)"/>
+/// is built. The body is JSON-equal to the one <see cref="TypedEvaluation.CreateRequest(ReadOnlySpan{byte}, DecisionContent, string, string)"/>
 /// serializes to for the same questions, state and model.
 /// </summary>
 internal static class TypedRequestWriter
@@ -47,13 +47,13 @@ internal static class TypedRequestWriter
         return Compose<JsonElement>(questionsUtf8, state, UnknownStateSize, model, pool, static (writer, _, element) => element.WriteTo(writer));
     }
 
-    /// <summary>Writes a request with a <see cref="JevContent"/> state: text as a string, JSON as its value.</summary>
+    /// <summary>Writes a request with a <see cref="DecisionContent"/> state: text as a string, JSON as its value.</summary>
     /// <param name="questionsUtf8">The <c>questions</c> object, copied as is.</param>
     /// <param name="state">The state, which must be initialized.</param>
     /// <param name="model">The model.</param>
     /// <param name="pool">The pool the body's buffer is rented from.</param>
     /// <returns>The body, which the caller owns and must dispose.</returns>
-    public static RawJson Write(ReadOnlySpan<byte> questionsUtf8, JevContent state, string model, ArrayPool<byte> pool)
+    public static RawJson Write(ReadOnlySpan<byte> questionsUtf8, DecisionContent state, string model, ArrayPool<byte> pool)
     {
         if (state.TryGetString(out var text))
         {

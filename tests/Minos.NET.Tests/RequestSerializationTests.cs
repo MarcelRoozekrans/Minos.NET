@@ -14,7 +14,7 @@ public sealed class RequestSerializationTests
         var request = new SystemOneRequest
         {
             State = State,
-            Questions = new Dictionary<string, JevQuestion>
+            Questions = new Dictionary<string, Question>
             {
                 ["is_urgent"] = new NoulQuestion { Instructions = "Does this convey urgency?" },
             },
@@ -29,7 +29,7 @@ public sealed class RequestSerializationTests
         var request = new SystemOneRequest
         {
             State = State,
-            Questions = new Dictionary<string, JevQuestion>
+            Questions = new Dictionary<string, Question>
             {
                 ["is_urgent"] = new NoulQuestion
                 {
@@ -52,12 +52,12 @@ public sealed class RequestSerializationTests
         var request = new SystemOneRequest
         {
             State = State,
-            Questions = new Dictionary<string, JevQuestion>
+            Questions = new Dictionary<string, Question>
             {
                 ["department"] = new ChoiceQuestion
                 {
                     Instructions = "Which team should handle this?",
-                    Criteria = new Dictionary<string, JevContent?>
+                    Criteria = new Dictionary<string, DecisionContent?>
                     {
                         ["billing"] = "Payments, invoicing, refunds",
                         ["technical"] = "Bugs, outages, integrations",
@@ -77,7 +77,7 @@ public sealed class RequestSerializationTests
         var request = new SystemOneRequest
         {
             State = State,
-            Questions = new Dictionary<string, JevQuestion>
+            Questions = new Dictionary<string, Question>
             {
                 ["frustration"] = new ScoreQuestion
                 {
@@ -95,15 +95,15 @@ public sealed class RequestSerializationTests
     {
         var request = new SystemOneRequest
         {
-            State = JevContent.FromJson(Json("""
+            State = DecisionContent.FromJson(Json("""
                 {"resume":{"name":"John Smith","location":"Oakland, CA","last_employer":"Google"}}
                 """)),
             Model = "jev-1.13.0",
-            Questions = new Dictionary<string, JevQuestion>
+            Questions = new Dictionary<string, Question>
             {
                 ["is_duplicate"] = new NoulQuestion
                 {
-                    Instructions = JevContent.FromJson(Json("""
+                    Instructions = DecisionContent.FromJson(Json("""
                         {
                           "potential_duplicate": {"name":"John Smith","location":"Oakland, California","last_employer":"Google"},
                           "question": "Is the resume for the same person as `potential_duplicate`?"
@@ -119,15 +119,15 @@ public sealed class RequestSerializationTests
     [Fact]
     public void Model_DefaultsToJevLatest()
     {
-        var request = new SystemOneRequest { State = State, Questions = new Dictionary<string, JevQuestion>() };
+        var request = new SystemOneRequest { State = State, Questions = new Dictionary<string, Question>() };
 
-        Assert.Equal(JevDefaults.Model, request.Model);
+        Assert.Equal(DecisionDefaults.Model, request.Model);
     }
 
     [Fact]
-    public void JevJsonOptions_UseTheSourceGeneratedContext()
+    public void DecisionJsonOptions_UseTheSourceGeneratedContext()
     {
-        Assert.IsType<JevJsonContext>(JevJson.Options.TypeInfoResolver);
+        Assert.IsType<DecisionJsonContext>(DecisionJson.Options.TypeInfoResolver);
     }
 
     [Fact]
@@ -137,11 +137,11 @@ public sealed class RequestSerializationTests
         {
             State = State,
             Model = null!,
-            Questions = new Dictionary<string, JevQuestion>(),
+            Questions = new Dictionary<string, Question>(),
         };
 
         Assert.Throws<JsonException>(
-            () => JsonSerializer.SerializeToNode(request, JevJsonContext.Default.SystemOneRequest));
+            () => JsonSerializer.SerializeToNode(request, DecisionJsonContext.Default.SystemOneRequest));
     }
 
     [Fact]
@@ -150,12 +150,12 @@ public sealed class RequestSerializationTests
         var request = new SystemOneRequest
         {
             State = State,
-            Questions = new Dictionary<string, JevQuestion>
+            Questions = new Dictionary<string, Question>
             {
                 ["IsUrgent"] = new ChoiceQuestion
                 {
                     Instructions = "Which team should handle this?",
-                    Criteria = new Dictionary<string, JevContent?> { ["Billing"] = "Payments and invoicing" },
+                    Criteria = new Dictionary<string, DecisionContent?> { ["Billing"] = "Payments and invoicing" },
                 },
             },
         };
@@ -181,7 +181,7 @@ public sealed class RequestSerializationTests
         var request = new SystemOneRequest
         {
             State = State,
-            Questions = new Dictionary<string, JevQuestion>
+            Questions = new Dictionary<string, Question>
             {
                 ["is_urgent"] = new NoulQuestion
                 {
@@ -209,14 +209,14 @@ public sealed class RequestSerializationTests
     [Fact]
     public void TypeInfoResolver_ResolvesAllTopLevelTypes()
     {
-        Assert.NotNull(JevJson.Options.GetTypeInfo(typeof(SystemOneRequest)));
-        Assert.NotNull(JevJson.Options.GetTypeInfo(typeof(SystemOneResponse)));
-        Assert.NotNull(JevJson.Options.GetTypeInfo(typeof(ModelList)));
+        Assert.NotNull(DecisionJson.Options.GetTypeInfo(typeof(SystemOneRequest)));
+        Assert.NotNull(DecisionJson.Options.GetTypeInfo(typeof(SystemOneResponse)));
+        Assert.NotNull(DecisionJson.Options.GetTypeInfo(typeof(ModelList)));
     }
 
     private static void AssertSerializesTo(SystemOneRequest request, string fixture)
     {
-        var actual = JsonSerializer.SerializeToNode(request, JevJsonContext.Default.SystemOneRequest);
+        var actual = JsonSerializer.SerializeToNode(request, DecisionJsonContext.Default.SystemOneRequest);
         var expected = Fixture.Load(fixture);
 
         Assert.True(
@@ -226,7 +226,7 @@ public sealed class RequestSerializationTests
 
     private static void AssertSerializesToJson(SystemOneRequest request, string expectedJson)
     {
-        var actual = JsonSerializer.SerializeToNode(request, JevJsonContext.Default.SystemOneRequest);
+        var actual = JsonSerializer.SerializeToNode(request, DecisionJsonContext.Default.SystemOneRequest);
         var expected = JsonNode.Parse(expectedJson);
 
         Assert.True(

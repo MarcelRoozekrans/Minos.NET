@@ -74,10 +74,10 @@ public sealed class TypedAnswerTests
     }
 
     [Fact]
-    public void JevOptionSet_IsHiddenFromIntelliSense_LikeJevAnswerReader()
+    public void DecisionOptionSet_IsHiddenFromIntelliSense_LikeAnswerReader()
     {
-        Assert.Equal(EditorBrowsableState.Never, Hidden(typeof(JevAnswerReader)));
-        Assert.Equal(EditorBrowsableState.Never, Hidden(typeof(JevOptionSet<>)));
+        Assert.Equal(EditorBrowsableState.Never, Hidden(typeof(AnswerReader)));
+        Assert.Equal(EditorBrowsableState.Never, Hidden(typeof(DecisionOptionSet<>)));
 
         static EditorBrowsableState? Hidden(Type type)
             => type.GetCustomAttribute<EditorBrowsableAttribute>()?.State;

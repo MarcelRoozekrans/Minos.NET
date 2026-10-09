@@ -7,12 +7,12 @@ namespace Minos.Live.Tests;
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class LiveFactAttribute : FactAttribute
 {
-    public LiveFactAttribute(JevProvider provider)
+    public LiveFactAttribute(DecisionProvider provider)
     {
         Provider = provider;
-        var variable = provider == JevProvider.OpenRouter
-            ? JevDefaults.OpenRouterApiKeyEnvironmentVariable
-            : JevDefaults.ApiKeyEnvironmentVariable;
+        var variable = provider == DecisionProvider.OpenRouter
+            ? DecisionDefaults.OpenRouterApiKeyEnvironmentVariable
+            : DecisionDefaults.ApiKeyEnvironmentVariable;
         var optedIn = string.Equals(Environment.GetEnvironmentVariable("JEV_LIVE"), "1", StringComparison.Ordinal);
         var keySet = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(variable));
 
@@ -25,5 +25,5 @@ public sealed class LiveFactAttribute : FactAttribute
         };
     }
 
-    public JevProvider Provider { get; }
+    public DecisionProvider Provider { get; }
 }

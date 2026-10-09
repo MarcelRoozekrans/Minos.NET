@@ -12,7 +12,7 @@ public sealed class BuiltSetAllocationTests
     [Fact]
     public void ParsingABuiltSetsAnswers_StaysWithinItsBudget()
     {
-        var built = JevQuestionSet.CreateBuilder()
+        var built = QuestionSet.CreateBuilder()
             .Noul("is_urgent", "Does this convey urgency?", out _)
             .Choice<Department>("department", "Which team?", out _)
             .Score("effort", "How much effort?", out _, l => l.Level("Minutes").Level("Hours").Level("Days"))
@@ -21,7 +21,7 @@ public sealed class BuiltSetAllocationTests
         var set = built.Value;
         var answers = Encoding.UTF8.GetBytes(AnswersJson);
 
-        // Measured 216 B/call under the JIT on win-x64: the JevAnswers object, its double[7] probability buffer and its
+        // Measured 216 B/call under the JIT on win-x64: the Answers object, its double[7] probability buffer and its
         // AnswerSlot[3]. Budget: only fixed-layout objects, so the measurement rounded up to the next multiple of 64, 256 B.
         AllocationGate.AssertBudget(
             256,

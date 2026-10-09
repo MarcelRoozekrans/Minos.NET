@@ -43,6 +43,26 @@ public sealed class GeneratorTests
     public void KeywordMembers_Generates() => AssertGenerates(Sources.KeywordMembers);
 
     [Fact]
+    public void QuestionsAttribute_IsRecognisedByItsMetadataName()
+    {
+        const string source = """
+            using Minos;
+            namespace Demo;
+            [Questions]
+            public partial class UrgencyCheck
+            {
+                [Noul("Is this urgent?")]
+                public partial Noul IsUrgent { get; }
+            }
+            """;
+
+        var driver = GeneratorHarness.Run(source, out _, out var diagnostics);
+
+        Assert.Empty(diagnostics);
+        Assert.Contains(driver.GetRunResult().Results[0].GeneratedSources, generated => string.Equals(generated.HintName, "Demo.UrgencyCheck.Questions.g.cs", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void UnrelatedEdit_KeepsQuestionSetsCached()
     {
         var compilation = GeneratorHarness.Compile(Sources.Mixed);
@@ -64,7 +84,7 @@ public sealed class GeneratorTests
     [Fact]
     public void InvalidType_UnrelatedEdit_KeepsQuestionSetsCached()
     {
-        var compilation = GeneratorHarness.Compile("using Minos;\n[JevQuestions] public class NotPartial { }");
+        var compilation = GeneratorHarness.Compile("using Minos;\n[Questions] public class NotPartial { }");
         var driver = GeneratorHarness.CreateDriver().RunGenerators(compilation);
 
         var edited = compilation.AddSyntaxTrees(
@@ -108,7 +128,7 @@ public sealed class GeneratorTests
     public void InvalidState_UnrelatedEdit_KeepsQuestionSetsCached()
     {
         var compilation = GeneratorHarness.Compile(
-            "using Minos;\n[JevQuestions(State = typeof(IFoo))] public partial class C { } public interface IFoo { }");
+            "using Minos;\n[Questions(State = typeof(IFoo))] public partial class C { } public interface IFoo { }");
         var driver = GeneratorHarness.CreateDriver().RunGenerators(compilation);
 
         var edited = compilation.AddSyntaxTrees(

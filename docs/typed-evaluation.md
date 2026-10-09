@@ -46,7 +46,7 @@ the backticked names in the next section.
 
 ## Declaring the questions
 
-Mark a partial record with `[JevQuestions]`, and declare each question as a partial, get-only property with the
+Mark a partial record with `[Questions]`, and declare each question as a partial, get-only property with the
 matching attribute.
 
 | Property type | Attribute | What it asks |
@@ -92,7 +92,7 @@ public enum Impact
 
 // State = typeof(SupportTicket) links the questions to the state type. The backticked names in the instructions
 // are checked against that type's members when you build.
-[JevQuestions(State = typeof(SupportTicket))]
+[Questions(State = typeof(SupportTicket))]
 public partial record TicketReview
 {
     [Noul(
@@ -123,7 +123,7 @@ A few things in that declaration are worth reading closely.
 - **`WhenTrue` and `WhenFalse` describe a Noul's answers.** They say what a yes and a no mean for that question. Both
   are optional.
 - **`State = typeof(SupportTicket)` links the set to its state type.** The generated type then implements
-  `IJevQuestionSet<TicketReview, SupportTicket>`. The type must be a class, struct, record or array type.
+  `IQuestionSet<TicketReview, SupportTicket>`. The type must be a class, struct, record or array type.
 
 `description`, `examples` and `not_for` are a convention of this library that the model reads from the criterion
 object. The Jev API itself has no such fields. The generated questions for `TicketReview` look like this:
@@ -180,18 +180,18 @@ The check only runs for a set with a `State` type.
 
 A declared question's instructions, criteria and levels are always text. For instructions or a description that is a
 JSON object or array, such as a policy or a few labelled facts next to the question, build the set at run time: pass
-a [`JevContent`](#jevcontent) as the instructions, and describe an option with `JevCriterion.Json`.
+a [`DecisionContent`](#decisioncontent) as the instructions, and describe an option with `Criterion.Json`.
 [Question sets at run time](question-sets-at-run-time.md#describing-options) shows both.
 
 ## Evaluating
 
-Call `EvaluateAsync<T>` on an `IJevClient`. It returns a `Result` and not the answers, because a call can fail in many
+Call `EvaluateAsync<T>` on an `IDecisionClient`. It returns a `Result` and not the answers, because a call can fail in many
 ways. Check `IsFailure` before reading `Value`.
 
 <!-- snippet: TypedEvaluation_Evaluate -->
 ```cs
 public static async Task<(bool Urgent, Desk Desk, Impact Impact)?> ReviewAsync(
-    IJevClient jev, SupportTicket ticket, CancellationToken cancellationToken)
+    IDecisionClient jev, SupportTicket ticket, CancellationToken cancellationToken)
 {
     // The state type and its JSON metadata travel together. The call serializes the ticket and sends it
     // with the questions.
@@ -233,7 +233,7 @@ state.
 <!-- snippet: TypedEvaluation_Stateless -->
 ```cs
 // Without State, the questions stand alone, and any text or JSON can be the state.
-[JevQuestions]
+[Questions]
 public partial record UrgencyCheck
 {
     [Noul("Does this convey urgency?")]
@@ -246,7 +246,7 @@ public partial record UrgencyCheck
 ```cs
 // A question set without a State type takes its state as text, as a JsonElement or as UTF-8 JSON.
 public static async Task<int> EvaluateEachFormAsync(
-    IJevClient jev,
+    IDecisionClient jev,
     string text,
     JsonElement element,
     ReadOnlyMemory<byte> utf8Json,
@@ -272,38 +272,38 @@ A state that is not a JSON string, object or array, such as the number `42`, is 
 throw `ArgumentException` for it, and do not return a failed `Result`. A `null` string throws
 `ArgumentNullException`. Failures that can happen in correct code, such as a rejected key or an unreadable reply,
 come back in the `Result`. In particular, a response that is missing an answer, or that has one of the wrong type, is a
-failure with kind `JevErrorKind.InvalidResponse`.
+failure with kind `DecisionErrorKind.InvalidResponse`.
 
-The model is the one in `JevClientOptions.Model`, which defaults to the alias `jev-latest`. `JevClient` writes the
-request straight from the generated JSON into pooled buffers. Any other `IJevClient`, such as a hand-written fake in a
+The model is the one in `DecisionClientOptions.Model`, which defaults to the alias `jev-latest`. `DecisionClient` writes the
+request straight from the generated JSON into pooled buffers. Any other `IDecisionClient`, such as a hand-written fake in a
 test, works as well, through the default interface methods that go by way of
 [`SystemOneRequest`](client-and-errors.md#the-raw-request-api).
 
-## JevContent
+## DecisionContent
 
-`JevContent` is the type the library uses for a value that is either text or structured JSON. A typed call builds one
+`DecisionContent` is the type the library uses for a value that is either text or structured JSON. A typed call builds one
 for you. You meet it directly when you [build a question set at run time](question-sets-at-run-time.md),
-where the state, each question's instructions and each description are all `JevContent`.
+where the state, each question's instructions and each description are all `DecisionContent`.
 
 <!-- snippet: TypedEvaluation_Content -->
 ```cs
-// JevContent holds a state, a question's instructions or a description: text, or a JSON object or array.
-public static JevContent[] ContentForms(SupportTicket ticket)
+// DecisionContent holds a state, a question's instructions or a description: text, or a JSON object or array.
+public static DecisionContent[] ContentForms(SupportTicket ticket)
 {
     return
     [
-        JevContent.FromString("Help! My payouts have been failing for 3 days."),
-        JevContent.FromValue(ticket, SupportTicketJson.Default.SupportTicket),
-        JevContent.FromUtf8Json("""{"subject":"Payouts failing"}"""u8),
+        DecisionContent.FromString("Help! My payouts have been failing for 3 days."),
+        DecisionContent.FromValue(ticket, SupportTicketJson.Default.SupportTicket),
+        DecisionContent.FromUtf8Json("""{"subject":"Payouts failing"}"""u8),
     ];
 }
 ```
 <!-- endSnippet -->
 
-- `JevContent.FromString` makes text content. A string also converts to a `JevContent` implicitly.
-- `JevContent.FromValue` serializes a value through its source-generated `JsonTypeInfo<T>`.
-- `JevContent.FromUtf8Json` parses UTF-8 JSON you already have. The content does not keep a reference to the bytes.
-- `JevContent.FromJson` wraps a `JsonElement`.
+- `DecisionContent.FromString` makes text content. A string also converts to a `DecisionContent` implicitly.
+- `DecisionContent.FromValue` serializes a value through its source-generated `JsonTypeInfo<T>`.
+- `DecisionContent.FromUtf8Json` parses UTF-8 JSON you already have. The content does not keep a reference to the bytes.
+- `DecisionContent.FromJson` wraps a `JsonElement`.
 
 JSON content must be a single string, object or array. A JSON string becomes text content. The factory methods throw
 `ArgumentException` for a number, `true`, `false` or `null`, and for malformed input, empty input or more than one
@@ -312,12 +312,12 @@ value. `TryGetString` and `TryGetJson` read the content back.
 ## What the package ships
 
 `Minos.NET` carries the source generator and the [analyzers](diagnostics.md), so there is nothing else to install.
-The generator writes `QuestionsUtf8` and `Parse` for each `[JevQuestions]` type. The analyzers check the declaration as
+The generator writes `QuestionsUtf8` and `Parse` for each `[Questions]` type. The analyzers check the declaration as
 you type: the shape of the type, the keys, the enums and the backticked names. A set with an error gets no generated
 members, and the generator stubs its properties, so the build reports the analyzer's error and not a confusing
 missing-implementation one.
 
-The type that carries `[JevQuestions]` must be a non-generic, non-abstract, non-static, top-level partial class or
+The type that carries `[Questions]` must be a non-generic, non-abstract, non-static, top-level partial class or
 record, and it needs a constructor that can be called without arguments. Its question properties must be partial,
 get-only instance properties.
 
@@ -326,4 +326,4 @@ get-only instance properties.
 - [Question sets built at run time](question-sets-at-run-time.md): when the questions, options or keys come from data.
 - [Question types](question-types.md): what each answer holds.
 - [Patterns](patterns/index.md): complete examples that put the answers to work.
-- [The client and its errors](client-and-errors.md): the options, retries, and every `JevError` a call can return.
+- [The client and its errors](client-and-errors.md): the options, retries, and every `DecisionError` a call can return.

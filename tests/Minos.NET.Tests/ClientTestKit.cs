@@ -5,7 +5,7 @@ using ZeroAlloc.Results;
 
 namespace Minos.Tests;
 
-/// <summary>What the <see cref="JevClient"/> test classes share: a client over a stub handler and a fake client.</summary>
+/// <summary>What the <see cref="DecisionClient"/> test classes share: a client over a stub handler and a fake client.</summary>
 internal static class ClientTestKit
 {
     public const string TestModel = "jev-test-model";
@@ -29,22 +29,22 @@ internal static class ClientTestKit
     }
 
     /// <summary>Creates a client over <paramref name="handler"/>; the caller disposes <paramref name="httpClients"/>.</summary>
-    public static JevClient Client(
-        List<HttpClient> httpClients, StubHandler handler, CountingPool? pool = null, JevProvider provider = JevProvider.TypeSafe)
+    public static DecisionClient Client(
+        List<HttpClient> httpClients, StubHandler handler, CountingPool? pool = null, DecisionProvider provider = DecisionProvider.TypeSafe)
     {
         var http = new HttpClient(handler);
         httpClients.Add(http);
-        var settings = JevClientSettings.Resolve(
-            new JevClientOptions { ApiKey = "test-key", Provider = provider, Model = TestModel, MaxRetries = 0 },
+        var settings = DecisionClientSettings.Resolve(
+            new DecisionClientOptions { ApiKey = "test-key", Provider = provider, Model = TestModel, MaxRetries = 0 },
             _ => null);
-        return new JevClient(settings, http, ownedHandler: null, TimeProvider.System, pool ?? new CountingPool());
+        return new DecisionClient(settings, http, ownedHandler: null, TimeProvider.System, pool ?? new CountingPool());
     }
 
     /// <summary>
     /// Implements only the abstract members, so typed and built-set calls run the default interface methods. Answers
     /// with <paramref name="responseJson"/>, or the <c>response-noul.json</c> fixture.
     /// </summary>
-    public sealed class CapturingClient(string? responseJson = null) : IJevClient
+    public sealed class CapturingClient(string? responseJson = null) : IDecisionClient
     {
         private readonly List<SystemOneRequest> _requests = [];
 
@@ -56,14 +56,14 @@ internal static class ClientTestKit
 #pragma warning restore HLQ005
         }
 
-        public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(SystemOneRequest request, CancellationToken cancellationToken)
+        public ValueTask<Result<SystemOneResponse, DecisionError>> EvaluateAsync(SystemOneRequest request, CancellationToken cancellationToken)
         {
             _requests.Add(request);
-            return ValueTask.FromResult(Result<SystemOneResponse, JevError>.Success(
-                JsonSerializer.Deserialize(responseJson ?? Fixture.Text("response-noul.json"), JevJsonContext.Default.SystemOneResponse)!));
+            return ValueTask.FromResult(Result<SystemOneResponse, DecisionError>.Success(
+                JsonSerializer.Deserialize(responseJson ?? Fixture.Text("response-noul.json"), DecisionJsonContext.Default.SystemOneResponse)!));
         }
 
-        public ValueTask<Result<ModelList, JevError>> ListModelsAsync(CancellationToken cancellationToken = default)
+        public ValueTask<Result<ModelList, DecisionError>> ListModelsAsync(CancellationToken cancellationToken = default)
             => throw new NotSupportedException();
     }
 }

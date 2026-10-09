@@ -11,12 +11,12 @@ public sealed class TypeSafeLiveTests
 
     public TypeSafeLiveTests(ITestOutputHelper output) => _output = output;
 
-    [LiveFact(JevProvider.TypeSafe)]
+    [LiveFact(DecisionProvider.TypeSafe)]
     public async Task Evaluate_AnswersEveryQuestion()
     {
-        using var client = Live.Client(JevProvider.TypeSafe);
+        using var client = Live.Client(DecisionProvider.TypeSafe);
 
-        var result = await client.EvaluateAsync(Live.Request(JevProvider.TypeSafe));
+        var result = await client.EvaluateAsync(Live.Request(DecisionProvider.TypeSafe));
 
         if (result.IsFailure)
         {
@@ -27,10 +27,10 @@ public sealed class TypeSafeLiveTests
         Live.AssertAnsweredEveryQuestion(result.Value);
     }
 
-    [LiveFact(JevProvider.TypeSafe)]
+    [LiveFact(DecisionProvider.TypeSafe)]
     public async Task ListModels_IncludesTheDefaultModel()
     {
-        using var client = Live.Client(JevProvider.TypeSafe);
+        using var client = Live.Client(DecisionProvider.TypeSafe);
 
         var result = await client.ListModelsAsync();
 
@@ -42,14 +42,14 @@ public sealed class TypeSafeLiveTests
         Assert.True(result.IsSuccess);
         Assert.NotEmpty(result.Value.Models);
         _output.WriteLine("Models: " + string.Join(", ", result.Value.Models.Select(model => model.Name)));
-        Assert.Contains(result.Value.Models, model => string.Equals(model.Name, JevDefaults.Model, StringComparison.Ordinal));
+        Assert.Contains(result.Value.Models, model => string.Equals(model.Name, DecisionDefaults.Model, StringComparison.Ordinal));
         Assert.Contains(result.Value.Models, model => string.Equals(model.Name, Live.Preview, StringComparison.Ordinal));
     }
 
-    [LiveFact(JevProvider.TypeSafe)]
+    [LiveFact(DecisionProvider.TypeSafe)]
     public async Task GeneratedQuestionSet_ParsesTypedAnswers()
     {
-        using var client = Live.Client(JevProvider.TypeSafe);
+        using var client = Live.Client(DecisionProvider.TypeSafe);
 
         var result = await client.EvaluateAsync<LiveTriage>(
             "Help! My payouts have been failing for 3 days and nobody answers.");
@@ -76,10 +76,10 @@ public sealed class TypeSafeLiveTests
         Assert.InRange(triage.Frustration.Expected, 0.0, 2.0);
     }
 
-    [LiveFact(JevProvider.TypeSafe)]
+    [LiveFact(DecisionProvider.TypeSafe)]
     public async Task StructuredCriteria_ParsesTypedAnswers()
     {
-        using var client = Live.Client(JevProvider.TypeSafe);
+        using var client = Live.Client(DecisionProvider.TypeSafe);
 
         var result = await client.EvaluateAsync<LiveStructuredRouting>(
             "Help! My payouts have been failing for 3 days and nobody answers.");
@@ -99,34 +99,34 @@ public sealed class TypeSafeLiveTests
         Assert.InRange(routing.Team.Probabilities[routing.Team.Value], 0.0, 1.0);
     }
 
-    [LiveFact(JevProvider.TypeSafe)]
+    [LiveFact(DecisionProvider.TypeSafe)]
     public async Task BadKey_IsUnauthorized()
     {
-        using var client = new JevClient(new JevClientOptions { ApiKey = "invalid-key-for-live-test", MaxRetries = 0 });
+        using var client = new DecisionClient(new DecisionClientOptions { ApiKey = "invalid-key-for-live-test", MaxRetries = 0 });
 
-        var result = await client.EvaluateAsync(Live.Request(JevProvider.TypeSafe));
+        var result = await client.EvaluateAsync(Live.Request(DecisionProvider.TypeSafe));
 
         Assert.True(result.IsFailure);
         Live.LogError(_output, result.Error);
-        Assert.Equal(JevErrorKind.Unauthorized, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.Unauthorized, result.Error.Kind);
     }
 
-    [LiveFact(JevProvider.TypeSafe)]
+    [LiveFact(DecisionProvider.TypeSafe)]
     public async Task InvalidRequest_IsValidation()
     {
-        using var client = new JevClient(new JevClientOptions { MaxRetries = 0 });
+        using var client = new DecisionClient(new DecisionClientOptions { MaxRetries = 0 });
         var request = new SystemOneRequest
         {
             State = "Help! My payouts have been failing for 3 days and nobody answers.",
-            Model = Live.Model(JevProvider.TypeSafe),
-            Questions = new Dictionary<string, JevQuestion>(),
+            Model = Live.Model(DecisionProvider.TypeSafe),
+            Questions = new Dictionary<string, Question>(),
         };
 
         var result = await client.EvaluateAsync(request);
 
         Assert.True(result.IsFailure);
         Live.LogError(_output, result.Error);
-        Assert.Equal(JevErrorKind.Validation, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.Validation, result.Error.Kind);
         // TypeSafe's 422 lists each problem with where it is and what is wrong; the guide's example relies on it.
         Assert.Equal(422, result.Error.StatusCode);
         Assert.NotNull(result.Error.Detail);
@@ -142,13 +142,13 @@ public sealed class TypeSafeLiveTests
         Assert.Equal(JsonValueKind.String, msg.ValueKind);
     }
 
-    [LiveFact(JevProvider.TypeSafe)]
+    [LiveFact(DecisionProvider.TypeSafe)]
     public async Task BuiltQuestionSet_ParsesAKeyedChoice()
     {
-        using var client = Live.Client(JevProvider.TypeSafe);
-        var built = JevQuestionSet.CreateBuilder()
+        using var client = Live.Client(DecisionProvider.TypeSafe);
+        var built = QuestionSet.CreateBuilder()
             .Choice("team", "Which team should handle this?", out var team, o => o
-                .Option("billing", JevCriterion.Text("Payments, invoicing, refunds").WithExamples("I was charged twice"))
+                .Option("billing", Criterion.Text("Payments, invoicing, refunds").WithExamples("I was charged twice"))
                 .Option("technical", "Bugs, outages, integrations")
                 .Option("sales", "Pricing, upgrades, new accounts"))
             .Build();

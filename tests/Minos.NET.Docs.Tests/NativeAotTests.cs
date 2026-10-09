@@ -76,7 +76,7 @@ public sealed partial class NativeAotTests
     {
         var checks = AllocationChecks();
 
-        Assert.All(["ReadNoul", "ReadChoice", "ReadScore", "JevAnswersGet", "PatternHelpers", "NoulEquals"], gate => Assert.Contains(0, Budgets(checks, gate)));
+        Assert.All(["ReadNoul", "ReadChoice", "ReadScore", "AnswersGet", "PatternHelpers", "NoulEquals"], gate => Assert.Contains(0, Budgets(checks, gate)));
     }
 
     [Fact]

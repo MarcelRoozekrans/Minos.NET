@@ -49,16 +49,16 @@ public sealed class ObservabilityTelemetryTests
         { "models": [ { "name": "jev-latest", "description": "The most recent stable release.", "release_date": "2026-09-15" } ] }
         """;
 
-    private static JevClientOptions Options(int maxRetries = 0)
+    private static DecisionClientOptions Options(int maxRetries = 0)
     {
-        var options = ScriptedJev.Quick(maxRetries);
+        var options = ScriptedDecision.Quick(maxRetries);
         options.Model = Model;
         return options;
     }
 
-    private static async Task RunAsync(Func<JevClient, Task> call, JevClientOptions options, params Reply[] script)
+    private static async Task RunAsync(Func<DecisionClient, Task> call, DecisionClientOptions options, params Reply[] script)
     {
-        var (http, jev, _) = ScriptedJev.Client(options, script);
+        var (http, jev, _) = ScriptedDecision.Client(options, script);
         using (http)
         using (jev)
         {
@@ -66,24 +66,24 @@ public sealed class ObservabilityTelemetryTests
         }
     }
 
-    private static Task Typed(JevClient jev) => jev.EvaluateAsync<TicketAnalysis>("Help! SECRET-STATE", CancellationToken.None).AsTask();
+    private static Task Typed(DecisionClient jev) => jev.EvaluateAsync<TicketAnalysis>("Help! SECRET-STATE", CancellationToken.None).AsTask();
 
-    private static Task Raw(JevClient jev) => RawRequests.UrgencyAsync(jev, "Help! SECRET-STATE", CancellationToken.None);
+    private static Task Raw(DecisionClient jev) => RawRequests.UrgencyAsync(jev, "Help! SECRET-STATE", CancellationToken.None);
 
-    private static Task Listing(JevClient jev) => jev.ListModelsAsync(CancellationToken.None).AsTask();
+    private static Task Listing(DecisionClient jev) => jev.ListModelsAsync(CancellationToken.None).AsTask();
 
     private static string[] Keys(IEnumerable<KeyValuePair<string, object?>> tags) => [.. tags.Select(tag => tag.Key)];
 
     private static string Value(KeyValuePair<string, object?>[] tags, string key)
         => Convert.ToString(tags.First(tag => string.Equals(tag.Key, key, StringComparison.Ordinal)).Value, CultureInfo.InvariantCulture)!;
 
-    private static JevMeasurement[] Points(JevTelemetryListener listener, string metric)
+    private static DecisionMeasurement[] Points(DecisionTelemetryListener listener, string metric)
         => [.. listener.Measurements.Where(point => string.Equals(point.Name, metric, StringComparison.Ordinal))];
 
-    private static SortedSet<string> Attributes(JevTelemetryListener listener, string metric)
+    private static SortedSet<string> Attributes(DecisionTelemetryListener listener, string metric)
         => new(Points(listener, metric).SelectMany(point => Keys(point.Tags)), StringComparer.Ordinal);
 
-    private static double[] Buckets(JevTelemetryListener listener, string metric)
+    private static double[] Buckets(DecisionTelemetryListener listener, string metric)
         => [.. ((Histogram<double>)listener.Instruments[metric]).Advice!.HistogramBucketBoundaries!];
 
     private static string Describe(IEnumerable<KeyValuePair<string, object?>> tags)
@@ -97,7 +97,7 @@ public sealed class ObservabilityTelemetryTests
     [Fact]
     public async Task ATypedEvaluation_IsOneClientSpan_NamedAfterTheModel_WithTheTagsOnThePage()
     {
-        using var listener = new JevTelemetryListener();
+        using var listener = new DecisionTelemetryListener();
 
         await RunAsync(Typed, Options(), Reply.Ok(TicketResponse));
 
@@ -121,7 +121,7 @@ public sealed class ObservabilityTelemetryTests
     [Fact]
     public async Task AModelListing_IsAListModelsSpan_ThatNamesNoModel()
     {
-        using var listener = new JevTelemetryListener();
+        using var listener = new DecisionTelemetryListener();
 
         await RunAsync(Listing, Options(), Reply.Ok(ModelsResponse));
 
@@ -136,9 +136,9 @@ public sealed class ObservabilityTelemetryTests
     [Fact]
     public async Task OpenRouterNeverGetsAModelListingSpan_BecauseNoRequestIsMade()
     {
-        using var listener = new JevTelemetryListener();
+        using var listener = new DecisionTelemetryListener();
         var options = Options();
-        options.Provider = JevProvider.OpenRouter;
+        options.Provider = DecisionProvider.OpenRouter;
 
         await RunAsync(Listing, options, Reply.Ok(ModelsResponse));
 
@@ -148,7 +148,7 @@ public sealed class ObservabilityTelemetryTests
     [Fact]
     public async Task AFailedResult_MarksTheSpanError_WithItsKind_AndNoDescription()
     {
-        using var listener = new JevTelemetryListener();
+        using var listener = new DecisionTelemetryListener();
 
         await RunAsync(Typed, Options(), Reply.Error(422, "{\"detail\":\"SECRET-ERROR-BODY\"}"));
 
@@ -160,7 +160,7 @@ public sealed class ObservabilityTelemetryTests
     }
 
     [Fact]
-    public async Task ARetriedCall_IsOneJevSpan_OverTheRestSpansOfItsAttempts()
+    public async Task ARetriedCall_IsOneDecisionSpan_OverTheRestSpansOfItsAttempts()
     {
         var spans = new List<Activity>();
         using var activities = new ActivityListener
@@ -200,8 +200,8 @@ public sealed class ObservabilityTelemetryTests
     [Fact]
     public async Task ACancelledCall_MarksTheSpanError_WithTheExceptionsTypeAndNoDescription()
     {
-        using var listener = new JevTelemetryListener();
-        var (http, jev, _) = ScriptedJev.Client(Options(), new Reply(HttpStatusCode.OK, TicketResponse, Delay: TimeSpan.FromSeconds(30)));
+        using var listener = new DecisionTelemetryListener();
+        var (http, jev, _) = ScriptedDecision.Client(Options(), new Reply(HttpStatusCode.OK, TicketResponse, Delay: TimeSpan.FromSeconds(30)));
         OperationCanceledException raised;
         using (http)
         using (jev)
@@ -238,7 +238,7 @@ public sealed class ObservabilityTelemetryTests
     [Fact]
     public async Task TheSpanTableOnThePage_IsTheAttributesTheClientSets()
     {
-        using var listener = new JevTelemetryListener();
+        using var listener = new DecisionTelemetryListener();
         await RunAsync(Typed, Options(), Reply.Ok(TicketResponse));
         await RunAsync(Raw, Options(), Reply.Ok(OpenRouterResponse));
         await RunAsync(Typed, Options(), Reply.Error(422));
@@ -265,7 +265,7 @@ public sealed class ObservabilityTelemetryTests
     [Fact]
     public async Task TheMetricTableOnThePage_IsTheInstrumentsTheMeterPublishes()
     {
-        using var listener = new JevTelemetryListener();
+        using var listener = new DecisionTelemetryListener();
         await RunAsync(Typed, Options(), Reply.Ok(TicketResponse));
         await RunAsync(Typed, Options(), Reply.Error(422));
         await RunAsync(Listing, Options(), Reply.Ok(ModelsResponse));
@@ -293,7 +293,7 @@ public sealed class ObservabilityTelemetryTests
     [Fact]
     public async Task TheBucketAdviceOnThePage_IsTheInstrumentsAdvice()
     {
-        using var listener = new JevTelemetryListener();
+        using var listener = new DecisionTelemetryListener();
         await RunAsync(Typed, Options(), Reply.Ok(TicketResponse));
         var page = PageTables.Text(Page);
 
@@ -316,7 +316,7 @@ public sealed class ObservabilityTelemetryTests
     [Fact]
     public async Task Confidence_IsOnePointForEachChoiceAndScoreAnswer_AndNoneForNoul()
     {
-        using var listener = new JevTelemetryListener();
+        using var listener = new DecisionTelemetryListener();
 
         await RunAsync(Typed, Options(), Reply.Ok(TicketResponse));
         Assert.Equal([0.64, 0.7], Points(listener, "jev.answer.confidence").Select(point => point.Value).Order());
@@ -332,7 +332,7 @@ public sealed class ObservabilityTelemetryTests
     [Fact]
     public async Task TheDuration_CarriesTheResponseModelOnSuccess_AndTheErrorTypeOnFailure_NeverBoth()
     {
-        using var listener = new JevTelemetryListener();
+        using var listener = new DecisionTelemetryListener();
         await RunAsync(Typed, Options(), Reply.Ok(TicketResponse));
         await RunAsync(Typed, Options(), Reply.Error(422));
         await RunAsync(Listing, Options(), Reply.Ok(ModelsResponse));
@@ -354,7 +354,7 @@ public sealed class ObservabilityTelemetryTests
     [Fact]
     public async Task Counters_AddTheTokens_WithATextModality()
     {
-        using var listener = new JevTelemetryListener();
+        using var listener = new DecisionTelemetryListener();
 
         await RunAsync(Typed, Options(), Reply.Ok(TicketResponse));
 
@@ -368,7 +368,7 @@ public sealed class ObservabilityTelemetryTests
     [Fact]
     public async Task NoSpanAndNoMetric_CarriesTheState_TheKey_OrTheServersErrorBody()
     {
-        using var listener = new JevTelemetryListener();
+        using var listener = new DecisionTelemetryListener();
         var options = Options();
         options.ApiKey = "SECRET-KEY-VALUE";
         await RunAsync(Typed, options, Reply.Ok(TicketResponse));

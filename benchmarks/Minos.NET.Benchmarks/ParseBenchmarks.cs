@@ -26,7 +26,7 @@ public enum Urgency
 }
 
 /// <summary>A question set the generator turns into question JSON and a typed parser at compile time.</summary>
-[JevQuestions]
+[Questions]
 public partial record BenchTriage
 {
     [Noul("Does `message` ask for a credential?")]
@@ -42,7 +42,7 @@ public partial record BenchTriage
 /// <summary>A single-Noul question set whose wire key matches <c>NoulResponseJson</c>'s <c>is_urgent</c> answer,
 /// so <see cref="ClientBenchmarks.TypedEvaluateNoulAsync"/> compares like for like against
 /// <see cref="ClientBenchmarks.EvaluateAsync"/> over the same canned response.</summary>
-[JevQuestions]
+[Questions]
 public partial record BenchUrgency
 {
     [Noul("Does this convey urgency?")]
@@ -84,35 +84,35 @@ public class ParseBenchmarks
         return BenchTriage.Parse(ref reader);
     }
 
-    /// <summary><see cref="JevAnswerReader.ReadNoul"/> over a fixed Noul answer.</summary>
+    /// <summary><see cref="AnswerReader.ReadNoul"/> over a fixed Noul answer.</summary>
     [Benchmark]
     public Noul ReadNoul()
     {
         var reader = new Utf8JsonReader(_noulAnswer);
         reader.Read();
-        return JevAnswerReader.ReadNoul(ref reader);
+        return AnswerReader.ReadNoul(ref reader);
     }
 
-    /// <summary><see cref="JevAnswerReader.ReadChoice{T}"/> into a caller-owned buffer.</summary>
+    /// <summary><see cref="AnswerReader.ReadChoice{T}"/> into a caller-owned buffer.</summary>
     [Benchmark]
     public Choice<Team> ReadChoice()
     {
         var reader = new Utf8JsonReader(_choiceAnswer);
         reader.Read();
-        return JevAnswerReader.ReadChoice(ref reader, TeamOptions.Instance, _teamBuffer, 0);
+        return AnswerReader.ReadChoice(ref reader, TeamOptions.Instance, _teamBuffer, 0);
     }
 
-    /// <summary><see cref="JevAnswerReader.ReadScore{T}"/> into a caller-owned buffer.</summary>
+    /// <summary><see cref="AnswerReader.ReadScore{T}"/> into a caller-owned buffer.</summary>
     [Benchmark]
     public Score<Urgency> ReadScore()
     {
         var reader = new Utf8JsonReader(_scoreAnswer);
         reader.Read();
-        return JevAnswerReader.ReadScore(ref reader, UrgencyOptions.Instance, _urgencyBuffer, 0);
+        return AnswerReader.ReadScore(ref reader, UrgencyOptions.Instance, _urgencyBuffer, 0);
     }
 
     /// <summary>Mirrors the generated option set for <see cref="Team"/>, since the real one is a private nested class.</summary>
-    private sealed class TeamOptions : JevOptionSet<Team>
+    private sealed class TeamOptions : DecisionOptionSet<Team>
     {
         public static readonly TeamOptions Instance = new();
 
@@ -149,7 +149,7 @@ public class ParseBenchmarks
     }
 
     /// <summary>Mirrors the generated option set for <see cref="Urgency"/>, since the real one is a private nested class.</summary>
-    private sealed class UrgencyOptions : JevOptionSet<Urgency>
+    private sealed class UrgencyOptions : DecisionOptionSet<Urgency>
     {
         public static readonly UrgencyOptions Instance = new();
 

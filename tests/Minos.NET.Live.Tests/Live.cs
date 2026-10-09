@@ -13,24 +13,24 @@ internal static class Live
     private static readonly string[] TeamOptions = ["billing", "technical", "sales"];
 
     /// <summary>
-    /// Creates an owned <see cref="JevClient"/> whose key comes from the environment. <see
-    /// cref="JevClientOptions.MaxRetries"/> is 0, so each evaluation bills at most once and a transient failure
-    /// surfaces instead of being hidden by a retry. <see cref="JevClientOptions.Model"/> is set from <see
+    /// Creates an owned <see cref="DecisionClient"/> whose key comes from the environment. <see
+    /// cref="DecisionClientOptions.MaxRetries"/> is 0, so each evaluation bills at most once and a transient failure
+    /// surfaces instead of being hidden by a retry. <see cref="DecisionClientOptions.Model"/> is set from <see
     /// cref="Model"/>, so a typed call honours <c>JEV_LIVE_MODEL</c> and <c>JEV_LIVE_OPENROUTER_MODEL</c> the same
     /// way <see cref="Request"/> does for the untyped tests.
     /// </summary>
     /// <param name="provider">The provider to call.</param>
-    public static JevClient Client(JevProvider provider)
-        => new(new JevClientOptions { Provider = provider, MaxRetries = 0, Model = Model(provider) });
+    public static DecisionClient Client(DecisionProvider provider)
+        => new(new DecisionClientOptions { Provider = provider, MaxRetries = 0, Model = Model(provider) });
 
     /// <summary>
     /// Gets the model to send: <c>JEV_LIVE_OPENROUTER_MODEL</c> for OpenRouter, else <c>JEV_LIVE_MODEL</c>, else
-    /// <see cref="JevDefaults.Model"/>.
+    /// <see cref="DecisionDefaults.Model"/>.
     /// </summary>
     /// <param name="provider">The provider the model is sent to.</param>
-    public static string Model(JevProvider provider)
+    public static string Model(DecisionProvider provider)
     {
-        if (provider == JevProvider.OpenRouter
+        if (provider == DecisionProvider.OpenRouter
             && Environment.GetEnvironmentVariable("JEV_LIVE_OPENROUTER_MODEL") is { Length: > 0 } openRouterModel)
         {
             return openRouterModel;
@@ -38,12 +38,12 @@ internal static class Live
 
         return Environment.GetEnvironmentVariable("JEV_LIVE_MODEL") is { Length: > 0 } model
             ? model
-            : JevDefaults.Model;
+            : DecisionDefaults.Model;
     }
 
     /// <summary>Builds a probe request with one Noul, one Choice and one Score question.</summary>
     /// <param name="provider">The provider the request is sent to; picks the model.</param>
-    public static SystemOneRequest Request(JevProvider provider) => Request(Model(provider));
+    public static SystemOneRequest Request(DecisionProvider provider) => Request(Model(provider));
 
     /// <summary>Builds the probe request for a given model id or alias.</summary>
     /// <param name="model">The model to send, such as <c>jev-preview</c> or a versioned id.</param>
@@ -51,13 +51,13 @@ internal static class Live
     {
         State = State,
         Model = model,
-        Questions = new Dictionary<string, JevQuestion>
+        Questions = new Dictionary<string, Question>
         {
             ["is_urgent"] = new NoulQuestion { Instructions = "Does this convey urgency?" },
             ["team"] = new ChoiceQuestion
             {
                 Instructions = "Which team should handle this?",
-                Criteria = new Dictionary<string, JevContent?>
+                Criteria = new Dictionary<string, DecisionContent?>
                 {
                     ["billing"] = "Payments, invoicing, refunds",
                     ["technical"] = "Bugs, outages, integrations",
@@ -91,11 +91,11 @@ internal static class Live
 
     /// <summary>
     /// Logs a failed call's public fields: kind, status, retry-after and the JSON detail body. Never the request's
-    /// <c>Authorization</c> value, which <see cref="JevError"/> never carries.
+    /// <c>Authorization</c> value, which <see cref="DecisionError"/> never carries.
     /// </summary>
     /// <param name="output">Where to write.</param>
     /// <param name="error">The failure to log.</param>
-    public static void LogError(ITestOutputHelper output, JevError error)
+    public static void LogError(ITestOutputHelper output, DecisionError error)
     {
         output.WriteLine("Kind: " + error.Kind.ToString());
         output.WriteLine("Status: " + (error.StatusCode?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? "(none)"));

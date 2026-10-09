@@ -7,7 +7,7 @@ namespace Minos.Tests;
 /// Sends distinctive text everywhere a caller or the server puts content: the state, a question key, the instructions,
 /// the criteria, the API key, an answer, an error body and a malformed body. None of it may reach a log record's
 /// message, structured values or exception. Each test first proves the text really travelled, in the captured request
-/// or in <see cref="JevError.Detail"/>, so a pass is not vacuous. The status kinds the mapper produces, Http,
+/// or in <see cref="DecisionError.Detail"/>, so a pass is not vacuous. The status kinds the mapper produces, Http,
 /// Validation, RateLimited, Server, Overloaded and Unauthorized, and Network, Timeout and InvalidResponse, are all covered.
 /// </summary>
 public sealed class LoggingPrivacyTests : IDisposable
@@ -42,13 +42,13 @@ public sealed class LoggingPrivacyTests : IDisposable
         AssertNoSecret(logs);
     }
 
-    // Every status kind the mapper produces, each with a secret in the JSON error body that becomes JevError.Detail.
+    // Every status kind the mapper produces, each with a secret in the JSON error body that becomes DecisionError.Detail.
     [Theory]
-    [InlineData(404, JevErrorKind.Http)]
-    [InlineData(422, JevErrorKind.Validation)]
-    [InlineData(429, JevErrorKind.RateLimited)]
-    [InlineData(500, JevErrorKind.Server)]
-    public async Task StatusError_LogsNoDetail(int status, JevErrorKind kind)
+    [InlineData(404, DecisionErrorKind.Http)]
+    [InlineData(422, DecisionErrorKind.Validation)]
+    [InlineData(429, DecisionErrorKind.RateLimited)]
+    [InlineData(500, DecisionErrorKind.Server)]
+    public async Task StatusError_LogsNoDetail(int status, DecisionErrorKind kind)
     {
         using var logs = new LogCapture();
         var handler = StubHandler.Json((HttpStatusCode)status, """{"detail":"zq-secret-detail"}""");
@@ -71,7 +71,7 @@ public sealed class LoggingPrivacyTests : IDisposable
 
         var result = await client.EvaluateAsync(SecretRequest());
 
-        Assert.Equal(JevErrorKind.Overloaded, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.Overloaded, result.Error.Kind);
         AssertSentTheSecrets(handler);
         Assert.Contains(Secret, result.Error.Detail!.Value.GetRawText(), StringComparison.Ordinal);
         Assert.Equal([1003, 1002], logs.EventIds);
@@ -87,7 +87,7 @@ public sealed class LoggingPrivacyTests : IDisposable
 
         var result = await client.EvaluateAsync(SecretRequest());
 
-        Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);
         AssertSentTheSecrets(handler);
 
         // The JSON reader's message quotes only the first rejected character, not the body, so the body cannot be
@@ -107,7 +107,7 @@ public sealed class LoggingPrivacyTests : IDisposable
 
         var result = await client.EvaluateAsync<DepartmentRouting>("zq-secret-state");
 
-        Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);
         Assert.Contains(Secret, result.Error.Message, StringComparison.Ordinal);
         AssertNoSecret(logs);
     }
@@ -122,7 +122,7 @@ public sealed class LoggingPrivacyTests : IDisposable
                 HttpStatusCode.OK,
                 """{"model":"m","answers":{"zq-secret-key":{"type":"noul","noul":0.4}},"usage":{"input_tokens":1,"output_tokens":1}}"""));
         using var client = Client(handler, logs);
-        var set = JevQuestionSet.CreateBuilder()
+        var set = QuestionSet.CreateBuilder()
             .Noul("zq-secret-key", "zq-secret-instructions", out _, c => c.WhenTrue("zq-secret-true").WhenFalse("zq-secret-false"))
             .Build()
             .Value;
@@ -148,7 +148,7 @@ public sealed class LoggingPrivacyTests : IDisposable
 
         var result = await client.ListModelsAsync();
 
-        Assert.Equal(JevErrorKind.Unauthorized, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.Unauthorized, result.Error.Kind);
         Assert.Contains(ApiKey, handler.Requests[0].Authorization, StringComparison.Ordinal);
         Assert.Contains(Secret, result.Error.Detail!.Value.GetRawText(), StringComparison.Ordinal);
         AssertNoSecret(logs);
@@ -163,7 +163,7 @@ public sealed class LoggingPrivacyTests : IDisposable
 
         var result = await client.EvaluateAsync(SecretRequest());
 
-        Assert.Equal(JevErrorKind.Network, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.Network, result.Error.Kind);
         AssertSentTheSecrets(handler);
 
         // A real handler can echo request data into its exception message; the precondition is that it reached the error.
@@ -184,12 +184,12 @@ public sealed class LoggingPrivacyTests : IDisposable
 
         var result = await client.EvaluateAsync(SecretRequest());
 
-        Assert.Equal(JevErrorKind.Timeout, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.Timeout, result.Error.Kind);
         AssertSentTheSecrets(handler);
         AssertNoSecret(logs);
     }
 
-    private JevClient Client(StubHandler handler, LogCapture logs, TimeSpan? timeout = null)
+    private DecisionClient Client(StubHandler handler, LogCapture logs, TimeSpan? timeout = null)
     {
         var http = new HttpClient(handler);
         if (timeout is { } perAttempt)
@@ -198,9 +198,9 @@ public sealed class LoggingPrivacyTests : IDisposable
         }
 
         _httpClients.Add(http);
-        return new JevClient(
+        return new DecisionClient(
             http,
-            new JevClientOptions
+            new DecisionClientOptions
             {
                 ApiKey = ApiKey,
                 Model = "jev-latest",
@@ -214,7 +214,7 @@ public sealed class LoggingPrivacyTests : IDisposable
     private static SystemOneRequest SecretRequest() => new()
     {
         State = "zq-secret-state: my card number is 4111 1111 1111 1111",
-        Questions = new Dictionary<string, JevQuestion>(StringComparer.Ordinal)
+        Questions = new Dictionary<string, Question>(StringComparer.Ordinal)
         {
             ["zq-secret-key"] = new NoulQuestion
             {

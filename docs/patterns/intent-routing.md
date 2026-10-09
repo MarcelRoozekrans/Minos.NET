@@ -45,7 +45,7 @@ public enum Effort
     Project,
 }
 
-[JevQuestions]
+[Questions]
 public partial record HelpdeskTicket
 {
     [Choice("What does the employee need?")]

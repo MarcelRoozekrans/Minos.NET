@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Minos.Generator;
 
-/// <summary>Generates the question JSON and typed answer parser for every <c>[JevQuestions]</c> type.</summary>
+/// <summary>Generates the question JSON and typed answer parser for every <c>[Questions]</c> type.</summary>
 [Generator(LanguageNames.CSharp)]
 public sealed class QuestionSetGenerator : IIncrementalGenerator
 {
@@ -14,7 +14,7 @@ public sealed class QuestionSetGenerator : IIncrementalGenerator
     {
         var questionSets = context.SyntaxProvider
             .ForAttributeWithMetadataName(
-                "Minos.JevQuestionsAttribute",
+                "Minos.QuestionsAttribute",
                 static (node, _) => node is TypeDeclarationSyntax,
                 static (attributeContext, cancellationToken) =>
                 {

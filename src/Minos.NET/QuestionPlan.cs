@@ -5,4 +5,4 @@ namespace Minos;
 /// <param name="Key">The wire key, for the missing-answer message.</param>
 /// <param name="Options">The options or levels; <see langword="null"/> for a Noul.</param>
 /// <param name="Offset">The start of this question's slice of the shared probability buffer.</param>
-internal readonly record struct QuestionPlan(QuestionKind Kind, string Key, IJevOptionKeys? Options, int Offset);
+internal readonly record struct QuestionPlan(QuestionKind Kind, string Key, IDecisionOptionKeys? Options, int Offset);

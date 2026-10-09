@@ -89,7 +89,7 @@ public enum FocusLevel
 
 // Four atomic judgements about a pull request. Two use a 5-level rubric and two a 3-level one, so their raw
 // Expected values are on different scales; Normalized puts every one of them on 0 to 1.
-[JevQuestions]
+[Questions]
 public partial record PullRequestReview
 {
     [Score("How correct is the change?")]

@@ -31,7 +31,7 @@ public sealed class FailureTests : IClassFixture<WireMockFixture>
         var result = await client.EvaluateAsync(Fixtures.NoulRequest());
 
         Assert.True(result.IsFailure);
-        Assert.Equal(JevErrorKind.Timeout, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.Timeout, result.Error.Kind);
         Assert.Equal(2, attempts.Count);
     }
 
@@ -52,7 +52,7 @@ public sealed class FailureTests : IClassFixture<WireMockFixture>
         var result = await client.EvaluateAsync(Fixtures.NoulRequest());
 
         Assert.True(result.IsFailure);
-        Assert.Equal(JevErrorKind.Network, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.Network, result.Error.Kind);
     }
 
     [Fact]
@@ -125,7 +125,7 @@ public sealed class FailureTests : IClassFixture<WireMockFixture>
             var result = await call.WaitAsync(HangGuard);
 
             Assert.True(result.IsFailure);
-            Assert.Equal(JevErrorKind.Disposed, result.Error.Kind);
+            Assert.Equal(DecisionErrorKind.Disposed, result.Error.Kind);
             Assert.Equal(1, Volatile.Read(ref received));
             await Assert.ThrowsAsync<ObjectDisposedException>(async () => await client.EvaluateAsync(Fixtures.NoulRequest()));
         }

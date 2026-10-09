@@ -14,47 +14,47 @@ public sealed class DiagnosticTests
     // from those in Jev101UnstubbableSources.
     public static TheoryData<string> InvalidSources => new()
     {
-        "[JevQuestions] public class NotPartial { }",
-        "[JevQuestions] public partial class Generic<T> { }",
-        "public partial class Outer { [JevQuestions] public partial class Inner { } }",
-        "[JevQuestions] public abstract partial class Base { }",
-        "[JevQuestions] file partial class FileLocal { }",
-        "[JevQuestions] public partial class C { [Noul(\"q\")] public partial Noul Parse { get; } }",
-        "[JevQuestions] public partial class C { [Noul(\"q\")] public partial Noul QuestionsUtf8 { get; } }",
-        "[JevQuestions] public partial class C { [Choice(\"q\")] public partial Noul Answer { get; } }",
-        "[JevQuestions] public partial class C { [Noul(\"q\")][Choice(\"q\")] public partial Noul Answer { get; } }",
-        "[JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<int> Answer { get; } }",
-        "[JevQuestions] public partial class C { [Choice(\"q\")][Score(\"q\")] public partial Noul Answer { get; } }",
-        "public enum L { [Level(\"a\")] A, B } [JevQuestions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }",
-        "public enum L { [Level(\"a\")] A, B } [JevQuestions] public partial class C { "
+        "[Questions] public class NotPartial { }",
+        "[Questions] public partial class Generic<T> { }",
+        "public partial class Outer { [Questions] public partial class Inner { } }",
+        "[Questions] public abstract partial class Base { }",
+        "[Questions] file partial class FileLocal { }",
+        "[Questions] public partial class C { [Noul(\"q\")] public partial Noul Parse { get; } }",
+        "[Questions] public partial class C { [Noul(\"q\")] public partial Noul QuestionsUtf8 { get; } }",
+        "[Questions] public partial class C { [Choice(\"q\")] public partial Noul Answer { get; } }",
+        "[Questions] public partial class C { [Noul(\"q\")][Choice(\"q\")] public partial Noul Answer { get; } }",
+        "[Questions] public partial class C { [Choice(\"q\")] public partial Choice<int> Answer { get; } }",
+        "[Questions] public partial class C { [Choice(\"q\")][Score(\"q\")] public partial Noul Answer { get; } }",
+        "public enum L { [Level(\"a\")] A, B } [Questions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }",
+        "public enum L { [Level(\"a\")] A, B } [Questions] public partial class C { "
             + "[Score(\"q1\")] public partial Score<L> Answer1 { get; } [Score(\"q2\")] internal partial Score<L> Answer2 { get; } }",
-        "[JevQuestions] public partial record R(int X) { [Noul(\"q\")] public partial Noul Answer { get; } }",
-        "[JevQuestions] public partial class C { public required int Foo; [Noul(\"q\")] public partial Noul Answer { get; } }",
+        "[Questions] public partial record R(int X) { [Noul(\"q\")] public partial Noul Answer { get; } }",
+        "[Questions] public partial class C { public required int Foo; [Noul(\"q\")] public partial Noul Answer { get; } }",
         "public class Base { public required int Foo; } "
-            + "[JevQuestions] public partial class C : Base { [Noul(\"q\")] public partial Noul Answer { get; } }",
-        "[JevQuestions] public partial class C { [Noul(\"a\")] public partial Noul IsUrgent { get; } [Noul(\"b\", Key = \"is_urgent\")] private partial Noul Other { get; } }",
-        "public enum E { [Criteria(\"x\", Key = \"b\")] A, [Criteria(\"y\")] B } [JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
-        "[JevQuestions(State = typeof(IFoo))] public partial class C { [Noul(\"q\")] public partial Noul Answer { get; } } public interface IFoo { }",
-        "[JevQuestions(State = typeof(System.Collections.Generic.List<>))] public partial class C { }",
-        "[JevQuestions(State = typeof(void))] public partial class C { }",
-        "[JevQuestions(State = typeof(MyDelegate))] public partial class C { } public delegate void MyDelegate();",
-        "[JevQuestions(State = typeof(MyEnum))] public partial class C { } public enum MyEnum { A }",
-        "[JevQuestions(State = typeof(StaticState))] public partial class C { } public static class StaticState { }",
-        "public enum E { } [JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
-        "public enum L { } [JevQuestions] public partial record C { [Score(\"q\")] internal partial Score<L> Answer { get; } }",
-        "namespace @class; public enum E { } [JevQuestions] public partial class @event { [Choice(\"q\")] public partial Choice<E> @int { get; } }",
-        "[JevQuestions] public partial class C { [Noul(\"q\")] public partial Noul Answer { get; set; } }",
-        "[JevQuestions] public partial class C { [Noul(\"q\")] public partial Noul Answer { internal get; private init; } }",
-        "[JevQuestions] public partial class C { [Noul(\"q\")] public static partial Noul Answer { get; } }",
-        "[JevQuestions] public partial class C { [Noul(\"q\")] public virtual partial Noul Answer { get; } }",
-        "[JevQuestions] public partial class C { [Noul(\"q\")] public sealed partial Noul Answer { get; } }",
-        "[JevQuestions] public partial class C { [Noul(\"q\")] public required partial Noul Answer { get; set; } }",
+            + "[Questions] public partial class C : Base { [Noul(\"q\")] public partial Noul Answer { get; } }",
+        "[Questions] public partial class C { [Noul(\"a\")] public partial Noul IsUrgent { get; } [Noul(\"b\", Key = \"is_urgent\")] private partial Noul Other { get; } }",
+        "public enum E { [Criteria(\"x\", Key = \"b\")] A, [Criteria(\"y\")] B } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
+        "[Questions(State = typeof(IFoo))] public partial class C { [Noul(\"q\")] public partial Noul Answer { get; } } public interface IFoo { }",
+        "[Questions(State = typeof(System.Collections.Generic.List<>))] public partial class C { }",
+        "[Questions(State = typeof(void))] public partial class C { }",
+        "[Questions(State = typeof(MyDelegate))] public partial class C { } public delegate void MyDelegate();",
+        "[Questions(State = typeof(MyEnum))] public partial class C { } public enum MyEnum { A }",
+        "[Questions(State = typeof(StaticState))] public partial class C { } public static class StaticState { }",
+        "public enum E { } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
+        "public enum L { } [Questions] public partial record C { [Score(\"q\")] internal partial Score<L> Answer { get; } }",
+        "namespace @class; public enum E { } [Questions] public partial class @event { [Choice(\"q\")] public partial Choice<E> @int { get; } }",
+        "[Questions] public partial class C { [Noul(\"q\")] public partial Noul Answer { get; set; } }",
+        "[Questions] public partial class C { [Noul(\"q\")] public partial Noul Answer { internal get; private init; } }",
+        "[Questions] public partial class C { [Noul(\"q\")] public static partial Noul Answer { get; } }",
+        "[Questions] public partial class C { [Noul(\"q\")] public virtual partial Noul Answer { get; } }",
+        "[Questions] public partial class C { [Noul(\"q\")] public sealed partial Noul Answer { get; } }",
+        "[Questions] public partial class C { [Noul(\"q\")] public required partial Noul Answer { get; set; } }",
         "public class Base { public virtual Noul Answer => default; } "
-            + "[JevQuestions] public partial class C : Base { [Noul(\"q\")] public override partial Noul Answer { get; } }",
+            + "[Questions] public partial class C : Base { [Noul(\"q\")] public override partial Noul Answer { get; } }",
         "public class Base { public virtual Noul Answer => default; } "
-            + "[JevQuestions] public partial class C : Base { [Noul(\"q\")] public sealed override partial Noul Answer { get; } }",
+            + "[Questions] public partial class C : Base { [Noul(\"q\")] public sealed override partial Noul Answer { get; } }",
         "public class Base { public Noul Answer => default; } "
-            + "[JevQuestions] public partial class C : Base { [Noul(\"q\")] public new partial Noul Answer { get; } }",
+            + "[Questions] public partial class C : Base { [Noul(\"q\")] public new partial Noul Answer { get; } }",
     };
 
     [Theory]
@@ -73,11 +73,11 @@ public sealed class DiagnosticTests
     // the compiler's own error at the argument, and the generator adds nothing to it.
     public static TheoryData<string> JsonNamedArgumentSources => new()
     {
-        "[JevQuestions] public partial class C { [Noul(\"{}\", Json = true)] public partial Noul Answer { get; } }",
-        "public enum E { [Criteria(\"a\")] A } [JevQuestions] public partial class C { [Choice(\"[]\", Json = true)] public partial Choice<E> Answer { get; } }",
-        "public enum L { [Level(\"a\")] A, [Level(\"b\")] B } [JevQuestions] public partial class C { [Score(\"[]\", Json = true)] public partial Score<L> Answer { get; } }",
-        "public enum E { [Criteria(\"{}\", Json = true)] A } [JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
-        "public enum L { [Level(\"{}\", Json = true)] A, [Level(\"b\")] B } [JevQuestions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }",
+        "[Questions] public partial class C { [Noul(\"{}\", Json = true)] public partial Noul Answer { get; } }",
+        "public enum E { [Criteria(\"a\")] A } [Questions] public partial class C { [Choice(\"[]\", Json = true)] public partial Choice<E> Answer { get; } }",
+        "public enum L { [Level(\"a\")] A, [Level(\"b\")] B } [Questions] public partial class C { [Score(\"[]\", Json = true)] public partial Score<L> Answer { get; } }",
+        "public enum E { [Criteria(\"{}\", Json = true)] A } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
+        "public enum L { [Level(\"{}\", Json = true)] A, [Level(\"b\")] B } [Questions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }",
     };
 
     [Theory]
@@ -113,7 +113,7 @@ public sealed class DiagnosticTests
     public void NonPartialQuestionProperty_NeedsNoStub_AndGeneratesNothing()
     {
         var driver = GeneratorHarness.Run(
-            "using Minos;\n[JevQuestions] public partial class C { [Noul(\"q\")] public Noul Answer { get; } }",
+            "using Minos;\n[Questions] public partial class C { [Noul(\"q\")] public Noul Answer { get; } }",
             out _,
             out var diagnostics);
 
@@ -125,7 +125,7 @@ public sealed class DiagnosticTests
     public void InvalidSet_StubsEveryPartialQuestionProperty_MirroringItsDeclaration()
     {
         var driver = GeneratorHarness.Run(
-            "using Minos;\nnamespace Demo; public enum E { } [JevQuestions] public partial record C { "
+            "using Minos;\nnamespace Demo; public enum E { } [Questions] public partial record C { "
                 + "[Choice(\"q\")] public partial Choice<E> A1 { get; } [Noul(\"q\")] internal partial Noul A2 { get; } "
                 + "[Noul(\"q\")] public virtual partial Noul A3 { get; private set; } public partial int NotAQuestion { get; } }",
             out _,
@@ -138,13 +138,13 @@ public sealed class DiagnosticTests
 
         Assert.Contains("partial record C", stub, StringComparison.Ordinal);
         Assert.Contains(
-            "public partial global::Minos.Choice<global::Demo.E> A1 { get => throw new global::System.InvalidOperationException(\"This [JevQuestions] set is invalid; see the JEV diagnostics.\"); }",
+            "public partial global::Minos.Choice<global::Demo.E> A1 { get => throw new global::System.InvalidOperationException(\"This [Questions] set is invalid; see the JEV diagnostics.\"); }",
             stub,
             StringComparison.Ordinal);
         Assert.Contains("internal partial global::Minos.Noul A2 { get => throw", stub, StringComparison.Ordinal);
         Assert.Contains(
-            "public virtual partial global::Minos.Noul A3 { get => throw new global::System.InvalidOperationException(\"This [JevQuestions] set is invalid; see the JEV diagnostics.\"); "
-                + "private set => throw new global::System.InvalidOperationException(\"This [JevQuestions] set is invalid; see the JEV diagnostics.\"); }",
+            "public virtual partial global::Minos.Noul A3 { get => throw new global::System.InvalidOperationException(\"This [Questions] set is invalid; see the JEV diagnostics.\"); "
+                + "private set => throw new global::System.InvalidOperationException(\"This [Questions] set is invalid; see the JEV diagnostics.\"); }",
             stub,
             StringComparison.Ordinal);
         Assert.DoesNotContain("NotAQuestion", stub, StringComparison.Ordinal);
@@ -154,23 +154,23 @@ public sealed class DiagnosticTests
     // class at all. Each gets its stubs, so a build shows JEV101 rather than CS9248.
     public static TheoryData<string> Jev101StubbableSources => new()
     {
-        "public partial class Outer { [JevQuestions] public partial class Inner { [Noul(\"q\")] public partial Noul Answer { get; } } }",
-        "[JevQuestions] public partial class Set<T> { [Noul(\"q\")] public partial Noul Answer { get; } }",
-        "[JevQuestions] public partial class Set<T> where T : struct, System.Enum { [Choice(\"q\")] public partial Choice<T> Answer { get; } }",
-        "[JevQuestions] public partial class Set<T> where T : class? { [Noul(\"q\")] public partial Noul Answer { get; } public T? Value => default; }",
-        "[JevQuestions] public abstract partial class Set { [Noul(\"q\")] public partial Noul Answer { get; } }",
-        "[JevQuestions] public abstract partial record Set { [Noul(\"q\")] protected internal partial Noul Answer { get; } }",
-        "[JevQuestions] public static partial class Set { [Noul(\"q\")] public static partial Noul Answer { get; } }",
-        "[JevQuestions] public partial struct Set { [Noul(\"q\")] public partial Noul Answer { get; } }",
+        "public partial class Outer { [Questions] public partial class Inner { [Noul(\"q\")] public partial Noul Answer { get; } } }",
+        "[Questions] public partial class Set<T> { [Noul(\"q\")] public partial Noul Answer { get; } }",
+        "[Questions] public partial class Set<T> where T : struct, System.Enum { [Choice(\"q\")] public partial Choice<T> Answer { get; } }",
+        "[Questions] public partial class Set<T> where T : class? { [Noul(\"q\")] public partial Noul Answer { get; } public T? Value => default; }",
+        "[Questions] public abstract partial class Set { [Noul(\"q\")] public partial Noul Answer { get; } }",
+        "[Questions] public abstract partial record Set { [Noul(\"q\")] protected internal partial Noul Answer { get; } }",
+        "[Questions] public static partial class Set { [Noul(\"q\")] public static partial Noul Answer { get; } }",
+        "[Questions] public partial struct Set { [Noul(\"q\")] public partial Noul Answer { get; } }",
         "namespace Demo; public partial struct Outer<TKey> where TKey : notnull { internal partial record Middle { "
-            + "[JevQuestions] private partial class Inner<T> { [Noul(\"q\")] public partial Noul Answer { get; } } } }",
-        "public partial interface IOuter<in TIn, out TOut> { [JevQuestions] public partial class Inner { [Noul(\"q\")] public partial Noul Answer { get; } } }",
-        "public readonly partial struct Outer { [JevQuestions] public partial class Inner { [Noul(\"q\")] public partial Noul Answer { get; } } }",
-        "public ref partial struct Outer { [JevQuestions] public partial class Inner { [Noul(\"q\")] public partial Noul Answer { get; } } }",
-        "public static partial class Outer { [JevQuestions] internal partial class Inner { [Noul(\"q\")] public partial Noul Answer { get; } } }",
-        "public sealed partial record class Outer { [JevQuestions] public partial record Inner { [Noul(\"q\")] public partial Noul Answer { get; } } }",
-        "public partial record struct Outer { [JevQuestions] protected internal partial class Inner { [Noul(\"q\")] public partial Noul Answer { get; } } }",
-        "namespace @class; public partial class @event<@int> { [JevQuestions] public partial class @string { [Noul(\"q\")] public partial Noul @bool { get; } } }",
+            + "[Questions] private partial class Inner<T> { [Noul(\"q\")] public partial Noul Answer { get; } } } }",
+        "public partial interface IOuter<in TIn, out TOut> { [Questions] public partial class Inner { [Noul(\"q\")] public partial Noul Answer { get; } } }",
+        "public readonly partial struct Outer { [Questions] public partial class Inner { [Noul(\"q\")] public partial Noul Answer { get; } } }",
+        "public ref partial struct Outer { [Questions] public partial class Inner { [Noul(\"q\")] public partial Noul Answer { get; } } }",
+        "public static partial class Outer { [Questions] internal partial class Inner { [Noul(\"q\")] public partial Noul Answer { get; } } }",
+        "public sealed partial record class Outer { [Questions] public partial record Inner { [Noul(\"q\")] public partial Noul Answer { get; } } }",
+        "public partial record struct Outer { [Questions] protected internal partial class Inner { [Noul(\"q\")] public partial Noul Answer { get; } } }",
+        "namespace @class; public partial class @event<@int> { [Questions] public partial class @string { [Noul(\"q\")] public partial Noul @bool { get; } } }",
     };
 
     [Theory]
@@ -190,11 +190,11 @@ public sealed class DiagnosticTests
     // not partial or is file-local. A declaration in another file could not reach it, so nothing is generated.
     public static TheoryData<string> Jev101UnstubbableSources => new()
     {
-        "[JevQuestions] public class NotPartial { [Noul(\"q\")] public partial Noul Answer { get; } }",
-        "[JevQuestions] file partial class FileLocal { [Noul(\"q\")] public partial Noul Answer { get; } }",
-        "public class Outer { [JevQuestions] public partial class Inner { [Noul(\"q\")] public partial Noul Answer { get; } } }",
-        "public partial class Outer { public class Middle { [JevQuestions] public partial class Inner { [Noul(\"q\")] public partial Noul Answer { get; } } } }",
-        "file partial class Outer { [JevQuestions] public partial class Inner { [Noul(\"q\")] public partial Noul Answer { get; } } }",
+        "[Questions] public class NotPartial { [Noul(\"q\")] public partial Noul Answer { get; } }",
+        "[Questions] file partial class FileLocal { [Noul(\"q\")] public partial Noul Answer { get; } }",
+        "public class Outer { [Questions] public partial class Inner { [Noul(\"q\")] public partial Noul Answer { get; } } }",
+        "public partial class Outer { public class Middle { [Questions] public partial class Inner { [Noul(\"q\")] public partial Noul Answer { get; } } } }",
+        "file partial class Outer { [Questions] public partial class Inner { [Noul(\"q\")] public partial Noul Answer { get; } } }",
     };
 
     [Theory]
@@ -212,7 +212,7 @@ public sealed class DiagnosticTests
     {
         var driver = GeneratorHarness.Run(
             "using Minos;\nnamespace Demo; public partial struct Outer<TKey> where TKey : notnull { internal partial record Middle { "
-                + "[JevQuestions] private partial class Inner<T> { [Noul(\"q\")] public partial Noul Answer { get; } } } }",
+                + "[Questions] private partial class Inner<T> { [Noul(\"q\")] public partial Noul Answer { get; } } } }",
             out _,
             out _);
 
@@ -221,7 +221,7 @@ public sealed class DiagnosticTests
         var tree = Assert.Single(driver.GetRunResult().GeneratedTrees);
 #pragma warning restore HLQ005
 
-        Assert.EndsWith("Demo.Outer`1.Middle.Inner`1.JevQuestions.g.cs", tree.FilePath, StringComparison.Ordinal);
+        Assert.EndsWith("Demo.Outer`1.Middle.Inner`1.Questions.g.cs", tree.FilePath, StringComparison.Ordinal);
         Assert.Equal(
             """
             // <auto-generated/>
@@ -235,7 +235,7 @@ public sealed class DiagnosticTests
                 {
                     partial class Inner<T>
                     {
-                        public partial global::Minos.Noul Answer { get => throw new global::System.InvalidOperationException("This [JevQuestions] set is invalid; see the JEV diagnostics."); }
+                        public partial global::Minos.Noul Answer { get => throw new global::System.InvalidOperationException("This [Questions] set is invalid; see the JEV diagnostics."); }
                     }
                 }
             }
@@ -249,10 +249,10 @@ public sealed class DiagnosticTests
     {
         var driver = GeneratorHarness.Run(
             "using Minos;\nnamespace Demo; "
-                + "[JevQuestions] public abstract partial class Set { [Noul(\"q\")] public partial Noul Answer { get; } } "
-                + "[JevQuestions] public partial class Set<T> { [Noul(\"q\")] public partial Noul Answer { get; } } "
-                + "[JevQuestions] public partial class Set<T1, T2> { [Noul(\"q\")] public partial Noul Answer { get; } } "
-                + "public partial class Outer { [JevQuestions] public partial class Set { [Noul(\"q\")] public partial Noul Answer { get; } } }",
+                + "[Questions] public abstract partial class Set { [Noul(\"q\")] public partial Noul Answer { get; } } "
+                + "[Questions] public partial class Set<T> { [Noul(\"q\")] public partial Noul Answer { get; } } "
+                + "[Questions] public partial class Set<T1, T2> { [Noul(\"q\")] public partial Noul Answer { get; } } "
+                + "public partial class Outer { [Questions] public partial class Set { [Noul(\"q\")] public partial Noul Answer { get; } } }",
             out var output,
             out var diagnostics);
 
@@ -277,13 +277,13 @@ public sealed class DiagnosticTests
     // The sources the analyzer warns about with JEV003–006: advice, not errors, so the generator still emits the set.
     public static TheoryData<string> AdvisorySources => new()
     {
-        "[JevQuestions] public partial class C { [Noul(\"  \")] public partial Noul Answer { get; } }",
-        "public enum E { [Criteria(\"\")] A } [JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
-        "public enum L { [Level(\"a\")] A, [Level(\" \")] B } [JevQuestions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }",
+        "[Questions] public partial class C { [Noul(\"  \")] public partial Noul Answer { get; } }",
+        "public enum E { [Criteria(\"\")] A } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
+        "public enum L { [Level(\"a\")] A, [Level(\" \")] B } [Questions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }",
         "public sealed class S { public int Known { get; set; } } "
-            + "[JevQuestions(State = typeof(S))] public partial class C { [Noul(\"Is `unknown` set?\")] public partial Noul Answer { get; } }",
-        "public enum L { [Level(\"a\")] A } [JevQuestions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }",
-        "public enum E { A, B } [JevQuestions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
+            + "[Questions(State = typeof(S))] public partial class C { [Noul(\"Is `unknown` set?\")] public partial Noul Answer { get; } }",
+        "public enum L { [Level(\"a\")] A } [Questions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }",
+        "public enum E { A, B } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
     };
 
     [Theory]
@@ -293,17 +293,17 @@ public sealed class DiagnosticTests
         var driver = GeneratorHarness.Run("using Minos;\n" + source, out var output, out var diagnostics);
 
         Assert.Empty(diagnostics);
-        Assert.Contains(driver.GetRunResult().GeneratedTrees, tree => tree.ToString().Contains("IJevQuestionSet", StringComparison.Ordinal));
+        Assert.Contains(driver.GetRunResult().GeneratedTrees, tree => tree.ToString().Contains("IQuestionSet", StringComparison.Ordinal));
         Assert.Empty(output.GetDiagnostics().Where(d => d.Severity >= DiagnosticSeverity.Warning));
     }
 
-    /// <summary>No generated source carries the question set: no <c>IJevQuestionSet</c>, <c>QuestionsUtf8</c> or <c>Parse</c>.</summary>
+    /// <summary>No generated source carries the question set: no <c>IQuestionSet</c>, <c>QuestionsUtf8</c> or <c>Parse</c>.</summary>
     private static void AssertNoQuestionSet(GeneratorDriver driver)
     {
         foreach (var tree in driver.GetRunResult().GeneratedTrees)
         {
             var text = tree.ToString();
-            Assert.DoesNotContain("IJevQuestionSet", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("IQuestionSet", text, StringComparison.Ordinal);
             Assert.DoesNotContain("ReadOnlySpan<byte> QuestionsUtf8", text, StringComparison.Ordinal);
             Assert.DoesNotContain("Parse(ref", text, StringComparison.Ordinal);
         }

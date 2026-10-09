@@ -12,7 +12,7 @@ internal sealed partial class SmokeStateJsonContext : JsonSerializerContext;
 /// A question set linked to <see cref="SmokeState"/>, so <c>EvaluateAsync&lt;T, TState&gt;</c> can be exercised
 /// under Native AOT alongside the plain-text <see cref="SmokeTriage"/>.
 /// </summary>
-[JevQuestions(State = typeof(SmokeState))]
+[Questions(State = typeof(SmokeState))]
 public partial record SmokeStateTriage
 {
     [Noul("Does `body` ask for a credential?")]

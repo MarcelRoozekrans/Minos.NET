@@ -15,7 +15,7 @@ public sealed class IntentRoutingTests
     public async Task EachTicketGoesToTheCheapestCapableHandler(
         string intent, double confidence, double effort, HelpdeskRoute expected)
     {
-        var ticket = await CannedJev.EvaluateAsync<HelpdeskTicket>(Response(intent, confidence, effort), "I can't sign in to my laptop.");
+        var ticket = await CannedDecision.EvaluateAsync<HelpdeskTicket>(Response(intent, confidence, effort), "I can't sign in to my laptop.");
 
         Assert.Equal(expected, HelpdeskRouting.Route(ticket));
     }

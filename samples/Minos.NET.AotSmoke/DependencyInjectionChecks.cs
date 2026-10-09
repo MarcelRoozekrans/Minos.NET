@@ -5,43 +5,43 @@ using Microsoft.Extensions.Options;
 
 namespace Minos.AotSmoke;
 
-/// <summary><c>AddJevClient</c> under Native AOT: default and keyed clients, configured by delegates or bound from configuration, registered, resolved and evaluated.</summary>
+/// <summary><c>AddDecisionClient</c> under Native AOT: default and keyed clients, configured by delegates or bound from configuration, registered, resolved and evaluated.</summary>
 internal static class DependencyInjectionChecks
 {
     /// <summary>Registers the default client over a canned handler. The allocation gates register theirs the same way.</summary>
     public static void RegisterDefaultClient(IServiceCollection services)
         => services
-            .AddJevClient(options =>
+            .AddDecisionClient(options =>
             {
                 options.ApiKey = "smoke-key";
                 options.BaseAddress = new Uri("https://example.test/api/");
             })
             .ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
 
-    [Covers("static Microsoft.Extensions.DependencyInjection.JevServiceCollectionExtensions.AddJevClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Minos.JevClientOptions!>! configure) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!")]
-    [Covers("static Microsoft.Extensions.DependencyInjection.JevServiceCollectionExtensions.AddJevClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, System.Action<Minos.JevClientOptions!>! configure) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!")]
+    [Covers("static Microsoft.Extensions.DependencyInjection.DecisionServiceCollectionExtensions.AddDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Minos.DecisionClientOptions!>! configure) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!")]
+    [Covers("static Microsoft.Extensions.DependencyInjection.DecisionServiceCollectionExtensions.AddDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, System.Action<Minos.DecisionClientOptions!>! configure) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!")]
     public static async Task DefaultAndKeyedClientsEvaluate()
     {
         var services = new ServiceCollection();
         RegisterDefaultClient(services);
         services
-            .AddJevClient("openrouter", options =>
+            .AddDecisionClient("openrouter", options =>
             {
-                options.Provider = JevProvider.OpenRouter;
+                options.Provider = DecisionProvider.OpenRouter;
                 options.ApiKey = "smoke-openrouter-key";
                 options.BaseAddress = new Uri("https://openrouter.example.test/api/");
             })
             .ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
         using var provider = services.BuildServiceProvider();
 
-        var client = provider.GetRequiredService<IJevClient>();
-        var keyed = provider.GetRequiredKeyedService<IJevClient>("openrouter");
+        var client = provider.GetRequiredService<IDecisionClient>();
+        var keyed = provider.GetRequiredKeyedService<IDecisionClient>("openrouter");
         var result = await client.EvaluateAsync(Program.Request()).ConfigureAwait(false);
         var keyedResult = await keyed.EvaluateAsync(Program.Request()).ConfigureAwait(false);
 
         Program.Check(
-            ReferenceEquals(client, provider.GetRequiredService<IJevClient>()) && !ReferenceEquals(client, keyed),
-            "AddJevClient registers one default client and a separate keyed client under Native AOT");
+            ReferenceEquals(client, provider.GetRequiredService<IDecisionClient>()) && !ReferenceEquals(client, keyed),
+            "AddDecisionClient registers one default client and a separate keyed client under Native AOT");
         Program.Check(
             result.IsSuccess && keyedResult.IsSuccess,
             "the default and the keyed client each evaluate through the factory's HttpClient under Native AOT");
@@ -69,20 +69,20 @@ internal static class DependencyInjectionChecks
     /// <summary>Registers the default client bound from <see cref="BoundConfiguration"/>, over a canned handler.</summary>
     public static void RegisterBoundDefaultClient(IServiceCollection services)
         => services
-            .AddJevClient(BoundConfiguration().GetSection("Jev"))
+            .AddDecisionClient(BoundConfiguration().GetSection("Jev"))
             .ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
 
-    [Covers("static Microsoft.Extensions.DependencyInjection.JevServiceCollectionExtensions.AddJevClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!")]
-    [Covers("static Microsoft.Extensions.DependencyInjection.JevServiceCollectionExtensions.AddJevClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!")]
+    [Covers("static Microsoft.Extensions.DependencyInjection.DecisionServiceCollectionExtensions.AddDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!")]
+    [Covers("static Microsoft.Extensions.DependencyInjection.DecisionServiceCollectionExtensions.AddDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!")]
     public static async Task ClientsBoundFromConfigurationEvaluate()
     {
         var services = new ServiceCollection();
         RegisterBoundDefaultClient(services);
         services
-            .AddJevClient("openrouter", BoundConfiguration().GetSection("OpenRouter"))
+            .AddDecisionClient("openrouter", BoundConfiguration().GetSection("OpenRouter"))
             .ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
         using var provider = services.BuildServiceProvider();
-        var monitor = provider.GetRequiredService<IOptionsMonitor<JevClientOptions>>();
+        var monitor = provider.GetRequiredService<IOptionsMonitor<DecisionClientOptions>>();
         var defaults = monitor.Get(Options.DefaultName);
         var keyed = monitor.Get("openrouter");
 
@@ -92,48 +92,48 @@ internal static class DependencyInjectionChecks
                 && defaults.InitialBackoff == TimeSpan.FromMilliseconds(250)
                 && defaults.MaxRetryDelay == TimeSpan.FromSeconds(10)
                 && defaults.BaseAddress == new Uri("https://example.test/api/"),
-            "AddJevClient binds every default client setting from configuration under Native AOT");
+            "AddDecisionClient binds every default client setting from configuration under Native AOT");
         Program.Check(
-            keyed is { Provider: JevProvider.OpenRouter, ApiKey: "smoke-openrouter-key", Model: "jev-1.13.0" },
-            "AddJevClient binds a keyed client's own section under Native AOT");
+            keyed is { Provider: DecisionProvider.OpenRouter, ApiKey: "smoke-openrouter-key", Model: "jev-1.13.0" },
+            "AddDecisionClient binds a keyed client's own section under Native AOT");
 
-        var result = await provider.GetRequiredService<IJevClient>().EvaluateAsync(Program.Request()).ConfigureAwait(false);
-        var keyedResult = await provider.GetRequiredKeyedService<IJevClient>("openrouter")
+        var result = await provider.GetRequiredService<IDecisionClient>().EvaluateAsync(Program.Request()).ConfigureAwait(false);
+        var keyedResult = await provider.GetRequiredKeyedService<IDecisionClient>("openrouter")
             .EvaluateAsync(Program.Request()).ConfigureAwait(false);
         Program.Check(
             result.IsSuccess && keyedResult.IsSuccess,
             "the default and the keyed client bound from configuration each evaluate under Native AOT");
     }
 
-    [Covers("static Microsoft.Extensions.DependencyInjection.JevServiceCollectionExtensions.AddJevClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!")]
-    [Covers("static Microsoft.Extensions.DependencyInjection.JevServiceCollectionExtensions.AddJevClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!")]
+    [Covers("static Microsoft.Extensions.DependencyInjection.DecisionServiceCollectionExtensions.AddDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!")]
+    [Covers("static Microsoft.Extensions.DependencyInjection.DecisionServiceCollectionExtensions.AddDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name) -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!")]
     public static async Task ClientsConfiguredFromTheEnvironmentEvaluate()
     {
         using (SmokeAssert.TypeSafeEnvironment())
         {
             var services = new ServiceCollection();
-            services.AddJevClient().ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
-            services.AddJevClient("secondary").ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
+            services.AddDecisionClient().ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
+            services.AddDecisionClient("secondary").ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
             using var provider = services.BuildServiceProvider();
 
-            var client = provider.GetRequiredService<IJevClient>();
-            var keyed = provider.GetRequiredKeyedService<IJevClient>("secondary");
+            var client = provider.GetRequiredService<IDecisionClient>();
+            var keyed = provider.GetRequiredKeyedService<IDecisionClient>("secondary");
             var result = await client.EvaluateAsync(Program.Request()).ConfigureAwait(false);
             var keyedResult = await keyed.EvaluateAsync(Program.Request()).ConfigureAwait(false);
 
             Program.Check(
                 !ReferenceEquals(client, keyed) && result.IsSuccess && keyedResult.IsSuccess,
-                "AddJevClient() and AddJevClient(name) take the key and base address from the environment and evaluate under Native AOT");
+                "AddDecisionClient() and AddDecisionClient(name) take the key and base address from the environment and evaluate under Native AOT");
         }
 
         var unconfigured = new ServiceCollection();
-        unconfigured.AddJevClient();
+        unconfigured.AddDecisionClient();
         using var unconfiguredProvider = unconfigured.BuildServiceProvider();
         using (SmokeAssert.NoApiKeyEnvironment())
         {
             Program.Check(
-                SmokeAssert.Throws<OptionsValidationException>(() => unconfiguredProvider.GetRequiredService<IJevClient>()),
-                "AddJevClient() with no key in options or the environment fails options validation under Native AOT");
+                SmokeAssert.Throws<OptionsValidationException>(() => unconfiguredProvider.GetRequiredService<IDecisionClient>()),
+                "AddDecisionClient() with no key in options or the environment fails options validation under Native AOT");
         }
     }
 
@@ -148,13 +148,13 @@ internal static class DependencyInjectionChecks
             })
             .Build();
         var services = new ServiceCollection();
-        services.AddJevClient(configuration);
+        services.AddDecisionClient(configuration);
         using var provider = services.BuildServiceProvider();
 
         string? failure = null;
         try
         {
-            _ = provider.GetRequiredService<IJevClient>();
+            _ = provider.GetRequiredService<IDecisionClient>();
         }
         catch (OptionsValidationException exception)
         {

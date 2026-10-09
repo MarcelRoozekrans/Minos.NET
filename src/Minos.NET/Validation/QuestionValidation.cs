@@ -4,7 +4,7 @@ using ZeroAlloc.Validation;
 
 namespace Minos.Validation;
 
-/// <summary>Checks a set built at run time and turns ZeroAlloc.Validation's failures into <see cref="JevQuestionFailure"/>s.</summary>
+/// <summary>Checks a set built at run time and turns ZeroAlloc.Validation's failures into <see cref="QuestionFailure"/>s.</summary>
 internal static class QuestionValidation
 {
     private const string QuestionPrefix = "Questions[";
@@ -15,7 +15,7 @@ internal static class QuestionValidation
     /// <summary>Checks <paramref name="questions"/> against the API's rules.</summary>
     /// <param name="questions">The questions, in wire order.</param>
     /// <returns>The failures, which make the set invalid, and the warnings, which do not.</returns>
-    public static (JevQuestionFailure[] Failures, JevQuestionFailure[] Warnings) Validate(QuestionSpec[] questions)
+    public static (QuestionFailure[] Failures, QuestionFailure[] Warnings) Validate(QuestionSpec[] questions)
     {
         var result = Validator.Validate(new QuestionSetSpec { Questions = questions });
         // ZeroAlloc.Validation reports IsValid == false when any failure exists, warnings included, so none are dropped here;
@@ -25,11 +25,11 @@ internal static class QuestionValidation
             return ([], []);
         }
 
-        var failures = new List<JevQuestionFailure>();
-        var warnings = new List<JevQuestionFailure>();
+        var failures = new List<QuestionFailure>();
+        var warnings = new List<QuestionFailure>();
         foreach (ref readonly var failure in result.Failures)
         {
-            var item = new JevQuestionFailure(
+            var item = new QuestionFailure(
                 failure.ErrorCode ?? throw new UnreachableException("Every question rule names its JEV id."),
                 KeyOf(questions, failure.PropertyName),
                 failure.ErrorMessage);

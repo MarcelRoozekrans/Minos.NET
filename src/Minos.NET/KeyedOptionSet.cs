@@ -7,7 +7,7 @@ namespace Minos;
 /// The options of a keyed Choice or the levels of a keyed Score, in wire order. Keys are looked up by a linear,
 /// allocation-free scan, <see cref="Utf8Keys.IndexOf"/>.
 /// </summary>
-internal sealed class KeyedOptionSet : IJevOptionKeys
+internal sealed class KeyedOptionSet : IDecisionOptionKeys
 {
     private readonly string[] _keys;
     private readonly byte[][] _utf8Keys;

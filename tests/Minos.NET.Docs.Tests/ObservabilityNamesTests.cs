@@ -20,7 +20,7 @@ public sealed class ObservabilityNamesTests
         var meters = new List<Meter>();
         using var activities = new ActivityListener
         {
-            ShouldListenTo = source => string.Equals(source.Name, JevTelemetryNames.Source, StringComparison.Ordinal),
+            ShouldListenTo = source => string.Equals(source.Name, DecisionTelemetryNames.Source, StringComparison.Ordinal),
             Sample = (ref ActivityCreationOptions<ActivityContext> _) => ActivitySamplingResult.AllDataAndRecorded,
             ActivityStopped = span =>
             {
@@ -35,7 +35,7 @@ public sealed class ObservabilityNamesTests
         {
             InstrumentPublished = (instrument, listener) =>
             {
-                if (string.Equals(instrument.Meter.Name, JevTelemetryNames.Meter, StringComparison.Ordinal))
+                if (string.Equals(instrument.Meter.Name, DecisionTelemetryNames.Meter, StringComparison.Ordinal))
                 {
                     lock (meters)
                     {
@@ -48,14 +48,14 @@ public sealed class ObservabilityNamesTests
         };
         instruments.Start();
 
-        var (http, jev, _) = ScriptedJev.Client(ScriptedJev.Quick(0), Reply.Ok(UrgencyResponse));
+        var (http, jev, _) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Ok(UrgencyResponse));
         using (http)
         using (jev)
         {
             await RawRequests.UrgencyAsync(jev, "Help!", CancellationToken.None);
         }
 
-        var version = typeof(JevClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
+        var version = typeof(DecisionClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
         Assert.False(string.IsNullOrEmpty(version));
         Assert.Equal(version, Only.Of(spanSources).Version);
         Assert.Equal(version, Only.Of(meters.Select(m => m.Version).Distinct(StringComparer.Ordinal)));
@@ -65,11 +65,11 @@ public sealed class ObservabilityNamesTests
     [Fact]
     public void TheNamesOnThePage_AreTheLibrariesConstant()
     {
-        var telemetry = File.ReadAllText(Path.Combine(PublishedPages.Root, "src", "Minos.NET", "Telemetry", "JevTelemetry.cs"));
-        var operations = File.ReadAllText(Path.Combine(PublishedPages.Root, "src", "Minos.NET", "Telemetry", "IJevOperations.cs"));
+        var telemetry = File.ReadAllText(Path.Combine(PublishedPages.Root, "src", "Minos.NET", "Telemetry", "DecisionTelemetry.cs"));
+        var operations = File.ReadAllText(Path.Combine(PublishedPages.Root, "src", "Minos.NET", "Telemetry", "IDecisionOperations.cs"));
 
-        Assert.Contains($"SourceName = \"{JevTelemetryNames.Source}\"", telemetry, StringComparison.Ordinal);
-        Assert.Equal(JevTelemetryNames.Source, JevTelemetryNames.Meter);
+        Assert.Contains($"SourceName = \"{DecisionTelemetryNames.Source}\"", telemetry, StringComparison.Ordinal);
+        Assert.Equal(DecisionTelemetryNames.Source, DecisionTelemetryNames.Meter);
         Assert.Contains("[Instrument(SourceName)]", operations, StringComparison.Ordinal);
     }
 

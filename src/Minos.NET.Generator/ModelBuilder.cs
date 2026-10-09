@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Minos.Generator;
 
-/// <summary>Turns a <c>[JevQuestions]</c> type symbol into a cacheable model and its diagnostics.</summary>
+/// <summary>Turns a <c>[Questions]</c> type symbol into a cacheable model and its diagnostics.</summary>
 internal static class ModelBuilder
 {
     private const string NoulAttribute = "Minos.NoulAttribute";
@@ -35,8 +35,8 @@ internal static class ModelBuilder
     /// share one copy of the rules. Any syntax needed, such as the <c>State</c> argument's location, is reached
     /// through the symbols' syntax references.
     /// </summary>
-    /// <param name="type">The type carrying <c>[JevQuestions]</c>.</param>
-    /// <param name="attribute">The <c>[JevQuestions]</c> application on <paramref name="type"/>.</param>
+    /// <param name="type">The type carrying <c>[Questions]</c>.</param>
+    /// <param name="attribute">The <c>[Questions]</c> application on <paramref name="type"/>.</param>
     /// <param name="cancellationToken">Cancels the build.</param>
     public static QuestionSetResult Build(INamedTypeSymbol type, AttributeData attribute, CancellationToken cancellationToken)
     {
@@ -270,7 +270,7 @@ internal static class ModelBuilder
             && !property.IsSealed
             && !HasNewModifier(property, cancellationToken);
 
-    /// <summary>Reads and validates the <c>[JevQuestions(State = ...)]</c> named argument, if present.</summary>
+    /// <summary>Reads and validates the <c>[Questions(State = ...)]</c> named argument, if present.</summary>
     /// <returns>The state type, or <see langword="null"/> when there is none or it is invalid.</returns>
     private static ITypeSymbol? BuildState(
         AttributeData attribute,
@@ -288,7 +288,7 @@ internal static class ModelBuilder
             if (!IsValidStateType(stateType))
             {
                 // StateArgumentLocation returns null only when the attribute application has no source syntax
-                // at all, which is not reachable from a [JevQuestions]-decorated declaration (always in source).
+                // at all, which is not reachable from a [Questions]-decorated declaration (always in source).
                 // The type's own location is the best defensive fallback then; it is not the attribute's location.
                 var location = StateArgumentLocation(attribute, cancellationToken) ?? DiagnosticInfo.SourceLocation(type);
                 diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.InvalidStateType, location, stateType.ToDisplayString()));
@@ -304,7 +304,7 @@ internal static class ModelBuilder
     // A static class has no value, so no instance of it could ever flow through EvaluateAsync<T, TState>: rejected.
     // An abstract class is accepted: a derived instance is a legitimate polymorphic state when its JsonTypeInfo
     // handles the derived types. An array is accepted too, provided its element type is itself valid: a JSON
-    // array is a legitimate state shape, and the generated set implements IJevQuestionSet<TSelf, TElement[]>.
+    // array is a legitimate state shape, and the generated set implements IQuestionSet<TSelf, TElement[]>.
     private static bool IsValidStateType(ITypeSymbol type)
     {
         if (type.TypeKind == TypeKind.Array)
@@ -614,14 +614,14 @@ internal static class ModelBuilder
         List<DiagnosticInfo> diagnostics)
     {
         var isScore = kind == QuestionKind.Score;
-        if (count < JevLimits.MinimumOptions)
+        if (count < DecisionLimits.MinimumOptions)
         {
             var id = isScore ? DiagnosticIds.EmptyScoreEnum : DiagnosticIds.EmptyChoiceEnum;
             diagnostics.Add(DiagnosticInfo.Create(id, location, enumType.Name));
         }
         else if (isScore
-            ? count is < JevLimits.MinimumScoreLevels or > JevLimits.MaximumScoreLevels
-            : count > JevLimits.MaximumChoiceOptions)
+            ? count is < DecisionLimits.MinimumScoreLevels or > DecisionLimits.MaximumScoreLevels
+            : count > DecisionLimits.MaximumChoiceOptions)
         {
             diagnostics.Add(DiagnosticInfo.Create(
                 DiagnosticIds.OptionCountOutsideGuidance,
@@ -630,8 +630,8 @@ internal static class ModelBuilder
                 enumType.Name,
                 count.ToString(CultureInfo.InvariantCulture),
                 isScore
-                    ? $"{JevLimits.MinimumScoreLevels} to {JevLimits.MaximumScoreLevels} levels"
-                    : $"at most {JevLimits.MaximumChoiceOptions} options"));
+                    ? $"{DecisionLimits.MinimumScoreLevels} to {DecisionLimits.MaximumScoreLevels} levels"
+                    : $"at most {DecisionLimits.MaximumChoiceOptions} options"));
         }
     }
 

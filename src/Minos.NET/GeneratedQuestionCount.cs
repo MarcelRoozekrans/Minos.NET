@@ -3,21 +3,21 @@ using System.Text.Json;
 namespace Minos;
 
 /// <summary>
-/// The number of questions in a <c>[JevQuestions]</c> set, for the client's logs and its
+/// The number of questions in a <c>[Questions]</c> set, for the client's logs and its
 /// <c>jev.request.question_count</c> span tag: the top-level properties of its
-/// <see cref="IJevQuestionSet{TSelf}.QuestionsUtf8"/>, the questions object the generator wrote at compile time.
+/// <see cref="IQuestionSet{TSelf}.QuestionsUtf8"/>, the questions object the generator wrote at compile time.
 /// </summary>
 /// <remarks>
 /// Read once per set type, on the type's first typed evaluation. It is not a generated constant: the set is compiled
 /// into the caller's assembly, where an internal member is out of this library's reach, and a public one would be a
-/// new member of <see cref="IJevQuestionSet{TSelf}"/>. The bytes the Minos.NET generator writes are always a valid
+/// new member of <see cref="IQuestionSet{TSelf}"/>. The bytes the Minos.NET generator writes are always a valid
 /// JSON object. A hand-written set may not be: when the top-level object cannot be read to its end, whether the bytes
 /// are truncated or are not JSON, the count is 0 and the static initializer does not throw, so the request proceeds
 /// as it did before the count was always read.
 /// </remarks>
 /// <typeparam name="T">The question set.</typeparam>
 internal static class GeneratedQuestionCount<T>
-    where T : IJevQuestionSet<T>
+    where T : IQuestionSet<T>
 {
     /// <summary>The set's question count, or 0 when its questions are not a complete JSON object.</summary>
     public static readonly int Value = Count(T.QuestionsUtf8);

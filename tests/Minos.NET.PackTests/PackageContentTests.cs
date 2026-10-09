@@ -273,7 +273,7 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
 
             namespace Consumer;
 
-            [JevQuestions]
+            [Questions]
             public partial record UrgencyCheck
             {
                 [Noul("Does this convey urgency?")]
@@ -291,7 +291,7 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
 
             public static class Logging
             {
-                public static JevClient Create() => new(new JevClientOptions { ApiKey = "consumer-key" }, NullLoggerFactory.Instance);
+                public static DecisionClient Create() => new(new DecisionClientOptions { ApiKey = "consumer-key" }, NullLoggerFactory.Instance);
             }
             """);
 

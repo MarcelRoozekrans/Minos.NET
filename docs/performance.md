@@ -8,8 +8,8 @@ description: What the client costs per call, how it compares with other clients,
 # Performance
 
 `benchmarks/Minos.NET.Benchmarks` measures the client's hot paths with BenchmarkDotNet: the
-generated `[JevQuestions]` `Parse` method and the `JevAnswerReader` primitives it is built from
-(`ParseBenchmarks`), `JevClient.EvaluateAsync` / `ListModelsAsync` against an in-memory
+generated `[Questions]` `Parse` method and the `AnswerReader` primitives it is built from
+(`ParseBenchmarks`), `DecisionClient.EvaluateAsync` / `ListModelsAsync` against an in-memory
 `HttpMessageHandler` (`ClientBenchmarks`) and question sets built at run time (`QuestionSetBenchmarks`).
 
 Run it locally with:
@@ -25,7 +25,7 @@ or trigger the manual **Benchmarks** GitHub Actions workflow's `full` job, which
 
 To be recorded from the first full run.
 
-### Phase 2.3 — JevContent factories
+### Phase 2.3 — DecisionContent factories
 
 | Benchmark | Mean | Allocated | AOT smoke budget |
 |---|---|---|---|
@@ -52,7 +52,7 @@ benchmark, and the same rounding gives it 320 B too.
 | `QuestionSetBenchmarks.EvaluateBuiltSet` | 4.234 us | 3808 B | 4736 B (AOT smoke, a different set) |
 | `QuestionSetBenchmarks.ParseBuiltTwenty` | 3.087 us | 568 B | 256 B (unit test, a different three-question set) |
 | `QuestionSetBenchmarks.ParseGeneratedTwenty` | 2.457 us | 176 B | — |
-| `JevAnswers.Get` | — | — | 0 B (AOT smoke) |
+| `Answers.Get` | — | — | 0 B (AOT smoke) |
 
 Measured on a 12th Gen Intel Core i9-12900HK, Windows 11 (10.0.26200.9457), .NET SDK 10.0.401 with runtime 10.0.12,
 with `--job short`, so the means are indicative only.
@@ -67,7 +67,7 @@ The budgets come from the AOT smoke app and the unit test, which measure on thei
 `Build` measures 6592 B and `EvaluateBuiltSet` 4288 B on published win-x64 AOT, each plus about 10% rounded up to the
 next 64 B; the parse measures 216 B, rounded up to 256 B. The parse budget is gated in `tests/Minos.NET.Tests`
 under the JIT, since parsing is internal and the AOT smoke app uses only the public API; it allocates only the
-`JevAnswers` object, its probability buffer and its slot array.
+`Answers` object, its probability buffer and its slot array.
 
 ### Phase 3.1 — Logging
 
@@ -182,7 +182,7 @@ The `ClientBenchmarks.EvaluateAsync` row ran in a separate job on a loaded machi
 
 **DI adds nothing per call.**
 - Both `DependencyInjectionBenchmarks` rows make `ClientBenchmarks.EvaluateAsync`'s call.
-- The hand-built client runs over an `HttpClient` that `JevClient.ConfigureHttpClient` configured, as the factory's is.
+- The hand-built client runs over an `HttpClient` that `DecisionClient.ConfigureHttpClient` configured, as the factory's is.
   So both send the User-Agent header. That header costs 64 B per call over `ClientBenchmarks.EvaluateAsync`, whose
   borrowed client sends none.
 - Under published win-x64 AOT, the gate `EvaluateRoundTripThroughDependencyInjectionAgainstHandBuilt` holds the
@@ -201,7 +201,7 @@ The `ClientBenchmarks.EvaluateAsync` row ran in a separate job on a loaded machi
 the redacted request URI and open a logging scope on every request, before they check whether any logger is enabled.
 - With those handlers, the resolved client measured 4720 B against 4376 B per call, under both the JIT and published
   win-x64 AOT. That is 344 B more. This was measured while planning, on 2026-10-01.
-- So `AddJevClient` removes them with `RemoveAllLoggers()`. The client still logs each operation and each retried attempt
+- So `AddDecisionClient` removes them with `RemoveAllLoggers()`. The client still logs each operation and each retried attempt
   itself.
 - `AddDefaultLogger()` on the returned builder brings them back, at that cost.
 

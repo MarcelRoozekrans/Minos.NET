@@ -11,7 +11,7 @@ public enum TriageDesk
 }
 
 // Two questions about a ticket's text. The wire keys are the property names in snake_case: is_urgent and desk.
-[JevQuestions]
+[Questions]
 public partial record TriageQuestions
 {
     [Noul("Does this ticket need help right away?")]
@@ -28,8 +28,8 @@ public enum TriageRoute
     Review,
 }
 
-// The class under test. It asks for an IJevClient, so a test can hand it any implementation.
-public sealed class TicketTriager(IJevClient jev)
+// The class under test. It asks for an IDecisionClient, so a test can hand it any implementation.
+public sealed class TicketTriager(IDecisionClient jev)
 {
     public async Task<TriageRoute> RouteAsync(string ticketText, CancellationToken cancellationToken)
     {
@@ -58,7 +58,7 @@ public sealed class TestingYourCodeFakeTests
     [Fact]
     public async Task AnUrgentTicket_IsEscalated_AndTheTicketTextIsWhatWasAsked()
     {
-        var jev = FakeJev.Answering(urgent: 0.92, TriageDesk.Billing, deskConfidence: 0.8);
+        var jev = FakeDecision.Answering(urgent: 0.92, TriageDesk.Billing, deskConfidence: 0.8);
         var triager = new TicketTriager(jev);
 
         var route = await triager.RouteAsync("Payouts have been failing for 3 days.", CancellationToken.None);
@@ -72,9 +72,9 @@ public sealed class TestingYourCodeFakeTests
     }
 
     [Fact]
-    public async Task WhenJevFails_ThePersonReviews()
+    public async Task WhenDecisionFails_ThePersonReviews()
     {
-        var triager = new TicketTriager(FakeJev.Failing(JevErrorKind.Network));
+        var triager = new TicketTriager(FakeDecision.Failing(DecisionErrorKind.Network));
 
         var route = await triager.RouteAsync("Any ticket.", CancellationToken.None);
 
@@ -91,7 +91,7 @@ public sealed class TestingYourCodeFakeTests
     [InlineData(0.10, 0.59, TriageRoute.Review)]
     public async Task EachAnswer_PinsOneDecision(double urgent, double deskConfidence, TriageRoute expected)
     {
-        var triager = new TicketTriager(FakeJev.Answering(urgent, TriageDesk.Technical, deskConfidence));
+        var triager = new TicketTriager(FakeDecision.Answering(urgent, TriageDesk.Technical, deskConfidence));
 
         Assert.Equal(expected, await triager.RouteAsync("A ticket.", CancellationToken.None));
     }

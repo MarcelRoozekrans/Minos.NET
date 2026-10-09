@@ -29,7 +29,7 @@ public sealed class ErrorMappingTests : IClassFixture<WireMockFixture>
         var result = await client.EvaluateAsync(Fixtures.NoulRequest());
 
         Assert.True(result.IsFailure);
-        Assert.Equal(JevErrorKind.Unauthorized, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.Unauthorized, result.Error.Kind);
         Assert.Equal(401, result.Error.StatusCode);
         Assert.NotNull(result.Error.Detail);
         Assert.Equal("bad key", result.Error.Detail!.Value.GetProperty("error").GetString());
@@ -50,15 +50,15 @@ public sealed class ErrorMappingTests : IClassFixture<WireMockFixture>
         var result = await client.EvaluateAsync(Fixtures.NoulRequest());
 
         Assert.True(result.IsFailure);
-        Assert.Equal(JevErrorKind.Validation, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.Validation, result.Error.Kind);
         Assert.Equal(422, result.Error.StatusCode);
         Assert.NotNull(result.Error.Detail);
         Assert.Equal("bad key", result.Error.Detail!.Value.GetProperty("error").GetString());
     }
 
-    // JevError exposes no raw response body and no truncation flag (only Kind, Message, StatusCode, RetryAfter,
-    // Detail and Exception - see src/Minos.NET/JevError.cs). The only observable signal of the 16 KiB
-    // (IJevApi's MaxErrorBodyBytes) cutoff is Detail: JevErrorMapper.Detail returns null whenever the body was
+    // DecisionError exposes no raw response body and no truncation flag (only Kind, Message, StatusCode, RetryAfter,
+    // Detail and Exception - see src/Minos.NET/DecisionError.cs). The only observable signal of the 16 KiB
+    // (IDecisionApi's MaxErrorBodyBytes) cutoff is Detail: DecisionErrorMapper.Detail returns null whenever the body was
     // truncated, before it even tries to parse. So this sends a body that is otherwise-valid JSON once complete -
     // if it were not truncated, Detail would parse successfully - and asserts Detail is null, which is the kept
     // body being cut off rather than the body simply failing to parse.
@@ -79,7 +79,7 @@ public sealed class ErrorMappingTests : IClassFixture<WireMockFixture>
         var result = await client.EvaluateAsync(Fixtures.NoulRequest());
 
         Assert.True(result.IsFailure);
-        Assert.Equal(JevErrorKind.Server, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.Server, result.Error.Kind);
         Assert.Equal(500, result.Error.StatusCode);
         Assert.Null(result.Error.Detail);
     }
@@ -99,6 +99,6 @@ public sealed class ErrorMappingTests : IClassFixture<WireMockFixture>
         var result = await client.EvaluateAsync(Fixtures.NoulRequest());
 
         Assert.True(result.IsFailure);
-        Assert.Equal(JevErrorKind.InvalidResponse, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);
     }
 }

@@ -3,14 +3,14 @@ using System.Text;
 
 namespace Minos.Samples.Tests;
 
-/// <summary>Builds a question set from a canned response body, through a real <see cref="JevClient"/> over a stub handler.</summary>
+/// <summary>Builds a question set from a canned response body, through a real <see cref="DecisionClient"/> over a stub handler.</summary>
 internal static class Canned
 {
     public static async Task<T> EvaluateAsync<T>(string json)
-        where T : IJevQuestionSet<T>
+        where T : IQuestionSet<T>
     {
         using var http = new HttpClient(new Handler(json)) { BaseAddress = new Uri("https://canned.example/api/") };
-        using var jev = new JevClient(http, new JevClientOptions { ApiKey = "canned-key", MaxRetries = 0 });
+        using var jev = new DecisionClient(http, new DecisionClientOptions { ApiKey = "canned-key", MaxRetries = 0 });
         var result = await jev.EvaluateAsync<T>("any message", CancellationToken.None);
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Kind + ": " + result.Error.Message : null);
         return result.Value;

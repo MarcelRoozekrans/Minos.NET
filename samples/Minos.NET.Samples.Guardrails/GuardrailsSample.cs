@@ -22,7 +22,7 @@ public sealed record GuardrailsReport(IReadOnlyList<ScreenedMessage> Messages)
 /// <summary>Screens each message once and decides it under both policies: one request per message, no second call.</summary>
 public static class GuardrailsSample
 {
-    public static async Task<GuardrailsReport> RunAsync(IJevClient jev, CancellationToken cancellationToken)
+    public static async Task<GuardrailsReport> RunAsync(IDecisionClient jev, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(jev);
         var results = new List<ScreenedMessage>();

@@ -122,7 +122,7 @@ public sealed class AdapterTests : IAsyncLifetime, IDisposable
     }
 
     [Fact]
-    public async Task The_raw_baseline_sends_the_body_ZeroAlloc_Jev_sends()
+    public async Task The_raw_baseline_sends_the_body_Minos_sends()
     {
         using var jev = ClientAdapters.Create(ClientAdapters.Jev, RecorderAddress);
         using var raw = ClientAdapters.Create(ClientAdapters.Raw, RecorderAddress);

@@ -21,7 +21,7 @@ public sealed class LinkTests
     public static string Slug(string heading) => Markdown.Slug(heading);
 
     [Theory]
-    [InlineData("`JevError` kinds", "jeverror-kinds")]
+    [InlineData("`DecisionError` kinds", "decisionerror-kinds")]
     [InlineData("Built at run time", "built-at-run-time")]
     [InlineData("C# notes", "c-notes")]
     [InlineData("What's new?", "whats-new")]

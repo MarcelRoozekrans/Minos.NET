@@ -18,7 +18,7 @@ internal static class CompilationHelper
     // against, and a type shared between the two (an enum's base type, for one) would not bind as the same symbol.
     private static readonly Lazy<Task<ImmutableArray<MetadataReference>>> References = new(async () =>
         (await ReferenceAssemblies.Net.Net100.ResolveAsync(LanguageNames.CSharp, CancellationToken.None))
-            .Add(MetadataReference.CreateFromFile(typeof(JevQuestionsAttribute).Assembly.Location)));
+            .Add(MetadataReference.CreateFromFile(typeof(QuestionsAttribute).Assembly.Location)));
 
     public static Task<CSharpCompilation> CompileAsync(string source, string assemblyName = "CompilationHelperTest")
         => CompileAsync([CSharpSyntaxTree.ParseText(source, ParseOptions)], assemblyName);

@@ -16,7 +16,7 @@ public enum ShopIntent
     Other,
 }
 
-[JevQuestions]
+[Questions]
 public partial record ChatMessage
 {
     [Choice("What does the customer want to do?")]

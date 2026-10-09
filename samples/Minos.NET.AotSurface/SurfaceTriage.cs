@@ -22,7 +22,7 @@ public enum SurfaceUrgency
 }
 
 /// <summary>One question set of each kind, so ILC analyses the code the generator emits as well as the packages.</summary>
-[JevQuestions]
+[Questions]
 public partial record SurfaceTriage
 {
     [Noul("Does `message` ask for a credential?")]

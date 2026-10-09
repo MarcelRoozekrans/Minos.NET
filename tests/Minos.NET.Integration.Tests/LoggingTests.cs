@@ -34,8 +34,8 @@ public sealed class LoggingTests : IClassFixture<WireMockFixture>
                 .WithBody(Fixture.Text("response-noul.json")));
 
         using var logs = new LogCapture();
-        using var client = new JevClient(
-            new JevClientOptions
+        using var client = new DecisionClient(
+            new DecisionClientOptions
             {
                 ApiKey = "integration-key",
                 BaseAddress = _fixture.BaseAddress,
@@ -57,7 +57,7 @@ public sealed class LoggingTests : IClassFixture<WireMockFixture>
         Assert.Equal("503", LogAssert.Field(retrying, "StatusCode"));
 
         var succeeded = logs.Only(1001);
-        Assert.Equal("Minos.JevClient", succeeded.Category);
+        Assert.Equal("Minos.DecisionClient", succeeded.Category);
         Assert.Equal("evaluate", LogAssert.Field(succeeded, "Operation"));
         Assert.Equal("jev-latest", LogAssert.Field(succeeded, "Model"));
         Assert.Equal("TypeSafe", LogAssert.Field(succeeded, "Provider"));

@@ -26,7 +26,7 @@ public sealed class AnswerConfidencesTests
         {
             Model = response.Model,
             Usage = response.Usage,
-            Answers = new ReadOnlyDictionary<string, JevAnswer>(new Dictionary<string, JevAnswer>(response.Answers, StringComparer.Ordinal)),
+            Answers = new ReadOnlyDictionary<string, Answer>(new Dictionary<string, Answer>(response.Answers, StringComparer.Ordinal)),
         };
 
         Assert.Equal([0.81], Read(wrapped.Confidences));
@@ -54,7 +54,7 @@ public sealed class AnswerConfidencesTests
     }
 
     private static SystemOneResponse Response(string fixture)
-        => JsonSerializer.Deserialize(Fixture.Text(fixture), JevJsonContext.Default.SystemOneResponse)!;
+        => JsonSerializer.Deserialize(Fixture.Text(fixture), DecisionJsonContext.Default.SystemOneResponse)!;
 
     private static double[] Read(AnswerConfidences confidences)
     {

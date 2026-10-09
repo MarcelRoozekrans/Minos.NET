@@ -70,7 +70,7 @@ body. A recording never holds a header or a key.
 
 Replay works by matching: the sample sends its request as usual, and a replacing handler hashes the body and returns the
 recorded answer for that hash, without touching the network. This is the same idea as the canned handler on the
-[testing page](testing-your-code.md#way-two-a-real-jevclient-over-a-canned-http-reply), kept in a file.
+[testing page](testing-your-code.md#way-two-a-real-decisionclient-over-a-canned-http-reply), kept in a file.
 
 It follows that a recording is only good for the request that made it. Change a sample's questions or its data, or
 change the request format of the client in the core library, and the request body changes, its hash changes, and the

@@ -6,7 +6,7 @@ namespace Minos.Serialization;
 
 /// <summary>
 /// Writes a built set's <c>questions</c> object in the generator's layout and escaping, so a set built at run time
-/// sends the same bytes as the equivalent <c>[JevQuestions]</c> set.
+/// sends the same bytes as the equivalent <c>[Questions]</c> set.
 /// </summary>
 internal static class QuestionsWriter
 {
@@ -95,7 +95,7 @@ internal static class QuestionsWriter
         }
     }
 
-    private static void WriteContent(Utf8JsonWriter writer, JevContent content)
+    private static void WriteContent(Utf8JsonWriter writer, DecisionContent content)
     {
         if (content.TryGetString(out var text))
         {

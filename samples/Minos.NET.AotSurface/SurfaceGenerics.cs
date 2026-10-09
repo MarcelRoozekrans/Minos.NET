@@ -21,14 +21,14 @@ public static class SurfaceGenerics
     [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(Choice<SurfaceTeam>))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(ChoiceHandle<SurfaceTeam>))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(ChoiceOptionsBuilder<SurfaceTeam>))]
-    [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(JevOptionSet<SurfaceTeam>))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(DecisionOptionSet<SurfaceTeam>))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(ProbabilityMap<SurfaceTeam>))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(ProbabilityMap<SurfaceTeam>.Enumerator))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(Score<SurfaceUrgency>))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(ScoreHandle<SurfaceUrgency>))]
     [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(ScoreLevelsBuilder<SurfaceUrgency>))]
-    [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(IJevQuestionSet<SurfaceTriage>))]
-    [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(IJevQuestionSet<SurfaceStateTriage, SurfaceState>))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(IQuestionSet<SurfaceTriage>))]
+    [DynamicDependency(DynamicallyAccessedMemberTypes.All, typeof(IQuestionSet<SurfaceStateTriage, SurfaceState>))]
     public static void Types()
     {
     }
@@ -36,24 +36,24 @@ public static class SurfaceGenerics
     /// <summary>Calls every public generic method that does not evaluate.</summary>
     /// <remarks>The builder callbacks are empty, so a generic type's members are reached only through
     /// <see cref="Types"/>.</remarks>
-    public static void Methods(JevAnswers answers, JevOptionSet<SurfaceTeam> teams, JevOptionSet<SurfaceUrgency> levels, SurfaceState state)
+    public static void Methods(Answers answers, DecisionOptionSet<SurfaceTeam> teams, DecisionOptionSet<SurfaceUrgency> levels, SurfaceState state)
     {
         var reader = new Utf8JsonReader([]);
-        _ = JevAnswerReader.ReadChoice(ref reader, teams, [], 0);
-        _ = JevAnswerReader.ReadScore(ref reader, levels, [], 0);
+        _ = AnswerReader.ReadChoice(ref reader, teams, [], 0);
+        _ = AnswerReader.ReadScore(ref reader, levels, [], 0);
 
-        _ = JevQuestionSet.CreateBuilder()
+        _ = QuestionSet.CreateBuilder()
             .Choice<SurfaceTeam>("team", "Which team?", out var team)
             .Choice<SurfaceTeam>("described_team", "Which team?", out _, static _ => { })
             .Score<SurfaceUrgency>("urgency", "How urgent?", out var urgency, static _ => { });
         _ = answers.Get(team);
         _ = answers.Get(urgency);
 
-        _ = JevContent.FromValue(state, SurfaceStateJsonContext.Default.SurfaceState);
+        _ = DecisionContent.FromValue(state, SurfaceStateJsonContext.Default.SurfaceState);
     }
 
     /// <summary>Calls every public generic evaluation method, on the interface and on the client.</summary>
-    public static async Task EvaluateAsync(IJevClient client, JevClient jevClient, JsonElement json, SurfaceState state)
+    public static async Task EvaluateAsync(IDecisionClient client, DecisionClient jevClient, JsonElement json, SurfaceState state)
     {
         var stateInfo = SurfaceStateJsonContext.Default.SurfaceState;
 

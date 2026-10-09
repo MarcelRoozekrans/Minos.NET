@@ -24,7 +24,7 @@ public sealed class GeneratedQuestionCountTests
     public void QuestionsThatAreNotAnObject_CountZero() => Assert.Equal(0, GeneratedQuestionCount<ArraySet>.Value);
 
     private static void AssertCount<T>(int expected)
-        where T : IJevQuestionSet<T>
+        where T : IQuestionSet<T>
     {
         Assert.Equal(expected, GeneratedQuestionCount<T>.Value);
 
@@ -33,21 +33,21 @@ public sealed class GeneratedQuestionCountTests
     }
 
     // Hand-written sets with questions the generator would never write.
-    private sealed class TruncatedSet : IJevQuestionSet<TruncatedSet>
+    private sealed class TruncatedSet : IQuestionSet<TruncatedSet>
     {
         public static ReadOnlySpan<byte> QuestionsUtf8 => "{\"a\":{\"kind\":\"noul\"},\"b\":{\"kind\":"u8;
 
         public static TruncatedSet Parse(ref Utf8JsonReader answers) => throw new NotSupportedException();
     }
 
-    private sealed class NotJsonSet : IJevQuestionSet<NotJsonSet>
+    private sealed class NotJsonSet : IQuestionSet<NotJsonSet>
     {
         public static ReadOnlySpan<byte> QuestionsUtf8 => "{not json"u8;
 
         public static NotJsonSet Parse(ref Utf8JsonReader answers) => throw new NotSupportedException();
     }
 
-    private sealed class ArraySet : IJevQuestionSet<ArraySet>
+    private sealed class ArraySet : IQuestionSet<ArraySet>
     {
         public static ReadOnlySpan<byte> QuestionsUtf8 => "[1,2]"u8;
 

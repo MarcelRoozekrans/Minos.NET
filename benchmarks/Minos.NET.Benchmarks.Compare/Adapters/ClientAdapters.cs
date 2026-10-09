@@ -28,7 +28,7 @@ public static class ClientAdapters
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="client"/> is not a known client.</exception>
     public static IClientAdapter Create(string client, Uri baseAddress) => client switch
     {
-        Jev => new JevAdapter(baseAddress),
+        Jev => new MinosAdapter(baseAddress),
         Raw => new RawHttpAdapter(baseAddress),
         JevSharp => new JevSharpAdapter(baseAddress),
         TypeSafeSdk => new TypeSafeSdkAdapter(baseAddress),

@@ -97,6 +97,6 @@ public sealed class GuardrailsSampleTests
     private static async Task<GuardrailsReport> Run()
     {
         using var provider = SampleHost.BuildReplayProvider(SampleHost.SampleDirectory(Sample), Sample);
-        return await GuardrailsSample.RunAsync(provider.GetRequiredService<IJevClient>(), CancellationToken.None);
+        return await GuardrailsSample.RunAsync(provider.GetRequiredService<IDecisionClient>(), CancellationToken.None);
     }
 }

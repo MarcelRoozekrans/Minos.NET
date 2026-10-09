@@ -3,6 +3,7 @@ using JevNetChoice = Jev.Net.Choice;
 using JevNetClient = Jev.Net.TypeSafeClient;
 using JevNetNoul = Jev.Net.Noul;
 using JevNetOptions = Jev.Net.TypeSafeClientOptions;
+using JevNetQuestion = Jev.Net.Question;
 using JevNetRetryPolicy = Jev.Net.RetryPolicy;
 
 namespace Minos.Benchmarks.Compare.Adapters;
@@ -15,7 +16,7 @@ public sealed class JevNetAdapter : IClientAdapter, IUsesBenchmarkTransport
 {
     private readonly HttpClient _http;
     private readonly JevNetClient _client;
-    private readonly Dictionary<string, Question> _questions;
+    private readonly Dictionary<string, JevNetQuestion> _questions;
 
     /// <summary>Initializes a new instance of the <see cref="JevNetAdapter"/> class.</summary>
     /// <param name="baseAddress">The mock's root address; requests go to <c>/v1/systemone</c> under it.</param>
@@ -37,7 +38,7 @@ public sealed class JevNetAdapter : IClientAdapter, IUsesBenchmarkTransport
             criteria[option] = description;
         }
 
-        _questions = new Dictionary<string, Question>(StringComparer.Ordinal)
+        _questions = new Dictionary<string, JevNetQuestion>(StringComparer.Ordinal)
         {
             [Workload.IntentKey] = new JevNetChoice(criteria, Workload.IntentInstructions),
             [Workload.TravelsSoonKey] = new JevNetNoul(Workload.TravelsSoonInstructions),

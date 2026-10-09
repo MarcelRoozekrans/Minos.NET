@@ -104,7 +104,7 @@ public sealed class RetryTests : IClassFixture<WireMockFixture>
         var result = await client.EvaluateAsync(Fixtures.NoulRequest());
 
         Assert.True(result.IsFailure);
-        Assert.Equal(JevErrorKind.Overloaded, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.Overloaded, result.Error.Kind);
         Assert.Equal(3, _fixture.Server.LogEntries.Count);
     }
 
@@ -120,7 +120,7 @@ public sealed class RetryTests : IClassFixture<WireMockFixture>
         var result = await client.EvaluateAsync(Fixtures.NoulRequest());
 
         Assert.True(result.IsFailure);
-        Assert.Equal(JevErrorKind.Validation, result.Error.Kind);
+        Assert.Equal(DecisionErrorKind.Validation, result.Error.Kind);
         // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
 #pragma warning disable HLQ005
         Assert.Single(_fixture.Server.LogEntries);

@@ -15,7 +15,7 @@ public enum TravelIntent
     Other,
 }
 
-[JevQuestions]
+[Questions]
 public partial record TravelRequest
 {
     [Choice("What does the traveller want?")]

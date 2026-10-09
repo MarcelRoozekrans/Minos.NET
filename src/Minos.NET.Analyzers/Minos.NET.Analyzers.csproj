@@ -30,7 +30,7 @@
     <Compile Include="..\Minos.NET.Generator\Models.cs" Link="Shared\Models.cs" />
     <Compile Include="..\Minos.NET.Generator\JsonText.cs" Link="Shared\JsonText.cs" />
     <Compile Include="..\Minos.NET.Generator\DiagnosticIds.cs" Link="Shared\DiagnosticIds.cs" />
-    <Compile Include="..\Minos.NET.Generator\JevLimits.cs" Link="Shared\JevLimits.cs" />
+    <Compile Include="..\Minos.NET.Generator\DecisionLimits.cs" Link="Shared\DecisionLimits.cs" />
     <Compile Include="..\Minos.NET.Generator\EquatableArray.cs" Link="Shared\EquatableArray.cs" />
     <Compile Include="..\Minos.NET.Generator\SnakeCase.cs" Link="Shared\SnakeCase.cs" />
     <Compile Include="..\Minos.NET.Generator\IsExternalInit.cs" Link="Shared\IsExternalInit.cs" />

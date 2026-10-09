@@ -39,11 +39,11 @@ internal static class SmokeAssert
     /// </summary>
     public static EnvironmentScope TypeSafeEnvironment()
         => new(
-            (JevDefaults.ApiKeyEnvironmentVariable, "smoke-key"),
-            (JevDefaults.BaseAddressEnvironmentVariable, "https://example.test/api/"));
+            (DecisionDefaults.ApiKeyEnvironmentVariable, "smoke-key"),
+            (DecisionDefaults.BaseAddressEnvironmentVariable, "https://example.test/api/"));
 
     /// <summary>Removes the TypeSafe key environment variable until disposed, then restores it.</summary>
-    public static EnvironmentScope NoApiKeyEnvironment() => new((JevDefaults.ApiKeyEnvironmentVariable, null));
+    public static EnvironmentScope NoApiKeyEnvironment() => new((DecisionDefaults.ApiKeyEnvironmentVariable, null));
 
     internal sealed class EnvironmentScope : IDisposable
     {

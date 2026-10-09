@@ -73,7 +73,7 @@ public sealed partial class SamplesTests
     [Fact]
     public void TheLiveModes_NeedTheOpenRouterKeyVariable()
     {
-        Assert.Contains("`" + JevDefaults.OpenRouterApiKeyEnvironmentVariable + "`", PageTables.Text("samples.md"), StringComparison.Ordinal);
+        Assert.Contains("`" + DecisionDefaults.OpenRouterApiKeyEnvironmentVariable + "`", PageTables.Text("samples.md"), StringComparison.Ordinal);
     }
 
     [Fact]

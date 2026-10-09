@@ -6,7 +6,7 @@ namespace Minos.PackTests;
 
 /// <summary>
 /// The version Directory.Build.props gives a build, for a manifest it is pointed at: a build that is not a release is a
-/// prerelease that sorts below the manifest's version, and -p:JevRelease=true gives that version exactly, in the
+/// prerelease that sorts below the manifest's version, and -p:MinosRelease=true gives that version exactly, in the
 /// assembly's informational version as well as the package's.
 /// </summary>
 public sealed class VersionSchemeTests : IDisposable
@@ -71,7 +71,7 @@ public sealed class VersionSchemeTests : IDisposable
         string[] arguments =
         [
             "msbuild", Path.Combine(root, "src", "Minos.NET", "Minos.NET.csproj"), "-nologo",
-            "-t:GetAssemblyVersion", $"-p:JevReleaseManifest={_manifest}", $"-p:JevRelease={(release ? "true" : "false")}",
+            "-t:GetAssemblyVersion", $"-p:MinosReleaseManifest={_manifest}", $"-p:MinosRelease={(release ? "true" : "false")}",
             "-getProperty:Version", "-getProperty:PackageVersion", "-getProperty:InformationalVersion",
             "-getProperty:AssemblyVersion", "-getProperty:FileVersion",
         ];

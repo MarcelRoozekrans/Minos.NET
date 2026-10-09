@@ -5,15 +5,15 @@ using ZeroAlloc.Results;
 namespace Minos.Tests;
 
 /// <summary>
-/// An <see cref="IJevOperations"/> that answers every call from one response body, so the generated proxy's spans and
+/// An <see cref="IDecisionOperations"/> that answers every call from one response body, so the generated proxy's spans and
 /// metrics can be checked without a transport.
 /// </summary>
-internal sealed class FakeOperations(string responseJson) : IJevOperations
+internal sealed class FakeOperations(string responseJson) : IDecisionOperations
 {
     private readonly string _responseJson = responseJson;
 
     /// <summary>Gets or sets the error every call fails with; <see langword="null"/> succeeds.</summary>
-    public JevError? Error { get; set; }
+    public DecisionError? Error { get; set; }
 
     /// <summary>Gets or sets whether each call yields first, so it completes asynchronously.</summary>
     public bool Yield { get; set; }
@@ -33,35 +33,35 @@ internal sealed class FakeOperations(string responseJson) : IJevOperations
     /// <summary>Gets or sets the model list.</summary>
     public ModelList Models { get; set; } = new() { Models = [] };
 
-    public ValueTask<Result<SystemOneResponse, JevError>> EvaluateAsync(
+    public ValueTask<Result<SystemOneResponse, DecisionError>> EvaluateAsync(
         SystemOneRequest request, string provider, Uri endpoint, CancellationToken ct)
         => Complete(Error is { } error
-            ? Result<SystemOneResponse, JevError>.Failure(error)
-            : Result<SystemOneResponse, JevError>.Success(Raw ?? throw new InvalidOperationException("Set Raw first.")));
+            ? Result<SystemOneResponse, DecisionError>.Failure(error)
+            : Result<SystemOneResponse, DecisionError>.Success(Raw ?? throw new InvalidOperationException("Set Raw first.")));
 
-    public ValueTask<Result<Evaluated<T>, JevError>> EvaluateTypedAsync<T>(
+    public ValueTask<Result<Evaluated<T>, DecisionError>> EvaluateTypedAsync<T>(
         RawJson body, string model, string provider, Uri endpoint, int questionCount, CancellationToken ct)
-        where T : IJevQuestionSet<T>
+        where T : IQuestionSet<T>
     {
         body.Dispose();
         return Complete(Typed(GeneratedAnswerParser<T>.Instance));
     }
 
-    public ValueTask<Result<Evaluated<JevAnswers>, JevError>> EvaluateBuiltSetAsync(
-        RawJson body, JevQuestionSet questionSet, string model, string provider, Uri endpoint, CancellationToken ct)
+    public ValueTask<Result<Evaluated<Answers>, DecisionError>> EvaluateBuiltSetAsync(
+        RawJson body, QuestionSet questionSet, string model, string provider, Uri endpoint, CancellationToken ct)
     {
         body.Dispose();
         return Complete(Typed(questionSet.Parser));
     }
 
-    public ValueTask<Result<ModelList, JevError>> ListModelsAsync(string provider, Uri endpoint, CancellationToken ct)
-        => Complete(Error is { } error ? Result<ModelList, JevError>.Failure(error) : Result<ModelList, JevError>.Success(Models));
+    public ValueTask<Result<ModelList, DecisionError>> ListModelsAsync(string provider, Uri endpoint, CancellationToken ct)
+        => Complete(Error is { } error ? Result<ModelList, DecisionError>.Failure(error) : Result<ModelList, DecisionError>.Success(Models));
 
-    private Result<Evaluated<TResult>, JevError> Typed<TResult>(AnswerParser<TResult> parse)
+    private Result<Evaluated<TResult>, DecisionError> Typed<TResult>(AnswerParser<TResult> parse)
     {
         if (Error is { } error)
         {
-            return Result<Evaluated<TResult>, JevError>.Failure(error);
+            return Result<Evaluated<TResult>, DecisionError>.Failure(error);
         }
 
         var response = TelemetryBodies.RawJsonOf(_responseJson);
@@ -71,7 +71,7 @@ internal sealed class FakeOperations(string responseJson) : IJevOperations
             response.Dispose();
         }
 
-        return Result<Evaluated<TResult>, JevError>.Success(new Evaluated<TResult>(answers, response));
+        return Result<Evaluated<TResult>, DecisionError>.Success(new Evaluated<TResult>(answers, response));
     }
 
     private ValueTask<TResult> Complete<TResult>(TResult result)

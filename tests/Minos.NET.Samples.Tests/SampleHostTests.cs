@@ -34,7 +34,7 @@ public sealed class SampleHostTests : IDisposable
         // Whatever the process environment holds, the placeholder key passes startup validation and the replay handler
         // is the primary handler, so no request can leave the process.
         await using var provider = SampleHost.BuildReplayProvider(_directory, Sample);
-        var client = provider.GetRequiredService<IJevClient>();
+        var client = provider.GetRequiredService<IDecisionClient>();
 
         var answered = await client.EvaluateAsync(Request("Is this urgent?"));
         Assert.True(answered.IsSuccess);
@@ -63,7 +63,7 @@ public sealed class SampleHostTests : IDisposable
         var configuration = new ConfigurationBuilder().Build();
 
         Assert.ThrowsAny<ArgumentException>(
-            () => new ServiceCollection().AddSampleJevClient(configuration.GetSection("Jev"), SampleMode.Replay, null, Sample, new RecordingSession()));
+            () => new ServiceCollection().AddSampleDecisionClient(configuration.GetSection("Jev"), SampleMode.Replay, null, Sample, new RecordingSession()));
     }
 
     [Fact]
@@ -71,7 +71,7 @@ public sealed class SampleHostTests : IDisposable
     {
         var configuration = new ConfigurationBuilder().Build();
 
-        var builder = new ServiceCollection().AddSampleJevClient(configuration.GetSection("Jev"), SampleMode.Live, null, Sample, new RecordingSession());
+        var builder = new ServiceCollection().AddSampleDecisionClient(configuration.GetSection("Jev"), SampleMode.Live, null, Sample, new RecordingSession());
 
         Assert.NotNull(builder);
     }
@@ -85,7 +85,7 @@ public sealed class SampleHostTests : IDisposable
         var configuration = new ConfigurationBuilder().AddJsonFile(Path.Combine(_directory, "appsettings.json")).Build();
         var services = new ServiceCollection();
         services
-            .AddSampleJevClient(
+            .AddSampleDecisionClient(
                 configuration.GetSection("Jev"),
                 SampleMode.Replay,
                 Path.Combine(_directory, "recordings.json"),
@@ -94,7 +94,7 @@ public sealed class SampleHostTests : IDisposable
             .ConfigurePrimaryHttpMessageHandler(() => capture);
         await using var provider = services.BuildServiceProvider();
 
-        _ = await provider.GetRequiredService<IJevClient>().EvaluateAsync(Request("Is this urgent?"));
+        _ = await provider.GetRequiredService<IDecisionClient>().EvaluateAsync(Request("Is this urgent?"));
 
         return capture.Hash ?? throw new InvalidOperationException("The client sent nothing.");
     }
@@ -103,7 +103,7 @@ public sealed class SampleHostTests : IDisposable
         => new()
         {
             State = "A fixed state.",
-            Questions = new Dictionary<string, JevQuestion> { ["urgent"] = new NoulQuestion { Instructions = question } },
+            Questions = new Dictionary<string, Question> { ["urgent"] = new NoulQuestion { Instructions = question } },
         };
 
     // Stands in for the primary handler: it records the hash of the body and answers with a canned response.

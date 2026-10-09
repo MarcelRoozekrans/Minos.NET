@@ -16,7 +16,7 @@ public sealed class ReadmeTests
     [Fact]
     public async Task RouteAsync_ReadsBothAnswers()
     {
-        var (http, jev, requests) = CannedJev.Client(Response);
+        var (http, jev, requests) = CannedDecision.Client(Response);
         using (http)
         using (jev)
         {
@@ -31,7 +31,7 @@ public sealed class ReadmeTests
     [Fact]
     public async Task RouteAsync_ReportsAFailureInsteadOfThrowing()
     {
-        var (http, jev, _) = CannedJev.Client("this is not json");
+        var (http, jev, _) = CannedDecision.Client("this is not json");
         using (http)
         using (jev)
         {

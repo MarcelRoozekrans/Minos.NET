@@ -5,11 +5,11 @@ namespace Minos.DependencyInjection.Tests;
 /// <summary>What the registration tests share: options, a canned handler, a request and request checks.</summary>
 internal static class Registrations
 {
-    /// <summary>The User-Agent <see cref="JevClient"/> sends: one product token with no build metadata.</summary>
+    /// <summary>The User-Agent <see cref="DecisionClient"/> sends: one product token with no build metadata.</summary>
     public const string UserAgentPattern = "^Minos\\.NET/[^ +]+$";
 
     /// <summary>Configures a TypeSafe client with a key, a base address and no retries.</summary>
-    public static Action<JevClientOptions> Options(string baseAddress, string apiKey = "di-key")
+    public static Action<DecisionClientOptions> Options(string baseAddress, string apiKey = "di-key")
         => options =>
         {
             options.ApiKey = apiKey;
@@ -24,7 +24,7 @@ internal static class Registrations
     public static SystemOneRequest Request() => new()
     {
         State = "Help! My payouts have been failing for 3 days.",
-        Questions = new Dictionary<string, JevQuestion>(StringComparer.Ordinal)
+        Questions = new Dictionary<string, Question>(StringComparer.Ordinal)
         {
             ["is_urgent"] = new NoulQuestion { Instructions = "Does this convey urgency?" },
         },

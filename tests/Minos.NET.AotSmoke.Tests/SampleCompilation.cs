@@ -11,7 +11,7 @@ using Microsoft.CodeAnalysis.Text;
 namespace Minos.AotSmoke.Tests;
 
 /// <summary>
-/// A sample's compilation, rebuilt from the inputs its <c>JevWriteCompileInputs</c> target writes: the same sources,
+/// A sample's compilation, rebuilt from the inputs its <c>DecisionWriteCompileInputs</c> target writes: the same sources,
 /// references, defines, language version, nullable context, parser features and warning options, with the same source
 /// generators run over them under the same editorconfig and MSBuild options. Tests check the result against the real
 /// build: no errors or warnings, as the real build's TreatWarningsAsErrors guarantees, and the same generated files the
