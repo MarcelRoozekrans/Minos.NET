@@ -40,10 +40,14 @@ internal static class Live
 
     /// <summary>Builds a probe request with one Noul, one Choice and one Score question.</summary>
     /// <param name="provider">The provider the request is sent to; picks the model.</param>
-    public static SystemOneRequest Request(JevProvider provider) => new()
+    public static SystemOneRequest Request(JevProvider provider) => Request(Model(provider));
+
+    /// <summary>Builds the probe request for a given model id or alias.</summary>
+    /// <param name="model">The model to send, such as <c>jev-preview</c> or a versioned id.</param>
+    public static SystemOneRequest Request(string model) => new()
     {
         State = State,
-        Model = Model(provider),
+        Model = model,
         Questions = new Dictionary<string, JevQuestion>
         {
             ["is_urgent"] = new NoulQuestion { Instructions = "Does this convey urgency?" },
@@ -95,4 +99,11 @@ internal static class Live
         output.WriteLine("Retry-After: " + (error.RetryAfter?.ToString() ?? "(none, header absent)"));
         output.WriteLine("Body: " + (error.Detail is { } detail ? detail.ToString() : "(not JSON, or no body)"));
     }
+
+    /// <summary>Logs the model a request named and the model the provider reports as having answered.</summary>
+    /// <param name="output">Where to write.</param>
+    /// <param name="requested">The model id or alias the request named.</param>
+    /// <param name="response">The response, whose <see cref="SystemOneResponse.Model"/> names the model that answered.</param>
+    public static void LogServedModel(ITestOutputHelper output, string requested, SystemOneResponse response)
+        => output.WriteLine("Requested " + requested + ", answered by " + response.Model);
 }
