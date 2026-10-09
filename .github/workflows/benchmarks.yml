@@ -24,6 +24,10 @@ on:
         description: 'Benchmark filter, matched against namespace.type.method'
         default: '*'
         required: false
+      smoke-only:
+        description: 'Run only the smoke gate; release-please.yml uses this to check its release PR'
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -37,7 +41,7 @@ jobs:
   # org workflow. The job name keeps the check displayed as "smoke / benchmarks".
   smoke:
     name: smoke / benchmarks
-    if: github.event_name != 'workflow_dispatch'
+    if: github.event_name != 'workflow_dispatch' || inputs.smoke-only
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -167,7 +171,7 @@ jobs:
 
   full:
     name: full
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && !inputs.smoke-only
     runs-on: ubuntu-latest
     timeout-minutes: 90
     steps:
