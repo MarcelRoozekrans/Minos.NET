@@ -11,7 +11,7 @@ public sealed partial class NoOldNameTests
     // History and measured data, read whole.
     private static readonly string[] ExcludedPrefixes =
     [
-        "CHANGELOG.md", "docs/planning/", "docs/plans/", "docs/superpowers/", "benchmarks/compare/results/", "tools/rename/",
+        "CHANGELOG.md", "docs/planning/", "docs/plans/", "docs/superpowers/", "benchmarks/compare/results/",
     ];
 
     // Shipped analyzer releases and public API records, and npm's lock.
