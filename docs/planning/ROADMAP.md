@@ -219,16 +219,14 @@ compress_memory: disabled
 **Completed:** 2026-10-03
 
 ## Milestone 5: 1.0 hardening [status: active]
-**Goal:** Ship ZeroAlloc.Jev 1.0.0 to NuGet, with a reviewed and frozen public API, benchmarks against hand-written .NET and TypeSafe's official JS and Python SDKs, a passing TypeSafe live run, and full-surface Native AOT verification.
+**Goal:** Harden the client before 1.0: a reviewed public API, benchmarks against hand-written .NET and TypeSafe's official JS and Python SDKs, a passing TypeSafe live run, and full-surface Native AOT verification. Re-scoped 2026-10-09: the 1.0 publish moved to Milestone 7, after the provider-neutral rework in Milestone 6 (`docs/superpowers/specs/2026-10-09-roadmap-design.md`).
 **Started:** 2026-10-04
 **Design:** `docs/superpowers/specs/2026-10-04-milestone-5-design.md`
 **Definition of Done:**
 - [ ] Public API reviewed: sealing, naming, nullability and XML docs; #67, #23, #24 and #25 resolved; Telemetry 1.11.0 adopted (#85); #21 closed
-- [ ] `PublicAPI.Shipped.txt` describes 1.0.0, and api-compat (#28) guards later changes
 - [ ] Published benchmarks against a raw HttpClient + STJ client and the official JS and Python SDKs, on one local mock server
 - [ ] TypeSafe live suite passed once with a real key; `jev-latest` and `jev-preview` checked live
 - [ ] Full-surface AOT/trim verification green; #68, #73, #74 and #79 closed
-- [ ] 1.0.0 published to NuGet through release-please and a publishing workflow (#29); the guide states its version
 
 ### Phase 5.1: Public API review [status: complete]
 **Goal:** Review and freeze the public surface (sealing, naming, nullability, XML docs), make the breaking changes #67, #23, #24 and #25, adopt Telemetry 1.11.0 (#85) and close #21.
@@ -263,8 +261,199 @@ compress_memory: disabled
 **Completed:** 2026-10-09
 **Evidence:** Live smoke on main: probe [run 37913354273](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37913354273) (8/8), post-merge [run 37918889031](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37918889031) (12/13, OpenRouter rejects jev-preview, fixed in #111) and [run 37925900075](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37925900075) (13/13). TypeSafe answers jev-latest and jev-preview with jev-1.13.0 and accepts jev-1.13.0 as a model; OpenRouter answers jev-latest as typesafe/jev-1.13-20260917 and has no jev-preview.
 
-### Phase 5.5: 1.0 release [status: pending]
-**Goal:** Add the NuGet publishing workflow (#29), cut 1.0.0 through release-please, state the version in the guide and README, then add api-compat (#28) against the 1.0.0 package.
+## Milestone 6: Provider-neutral core [status: pending]
+**Goal:** Rename to a vendor-neutral name and reshape the core around a neutral question model, an `IDecisionClient` and two protocol adapters, `/v1/systemone` and OpenAI's `/v1/decisions`, validated by a conformance suite, before any 1.0 API freeze.
+**Design:** `docs/superpowers/specs/2026-10-09-roadmap-design.md`
+**Definition of Done:**
+- [ ] A vendor-neutral name is decided and applied to packages, namespaces, attributes, client and error types, analyzer IDs, the repository and the docs site; the fate of `ZeroAlloc.Jev` is decided
+- [ ] The generator emits a provider-neutral question set; serialization lives in protocol adapters
+- [ ] `IDecisionClient` with a builder pipeline carries retries, telemetry and logging
+- [ ] The same question type runs against TypeSafe, OpenAI and a local `/v1/systemone` server by configuration only, with capability flags and typed errors for unsupported combinations
+- [ ] A conformance suite passes against recorded TypeSafe and OpenAI fixtures
+- [ ] A Providers docs page documents the presets and the capability matrix
+
+### Phase 6.1: Name decision and rename [status: pending]
+**Goal:** Decide the vendor-neutral name, provider-package layout and the fate of `ZeroAlloc.Jev`, then rename packages, namespaces, attributes, `IJevClient`/`JevError`, analyzer IDs, repository and docs site, before the first NuGet publish (#120).
+**Surface:** Refactor
+**HelpWanted:** no
+**Plan:** _to be written_
+
+### Phase 6.2: Neutral question model and adapter boundary [status: pending]
+**Goal:** The generator emits a provider-neutral question-set description; `/v1/systemone` serialization moves behind a protocol-adapter boundary, with no behaviour change (#115).
+**Surface:** Refactor
+**HelpWanted:** no
+**Plan:** _to be written_
+
+### Phase 6.3: IDecisionClient abstraction and pipeline [status: pending]
+**Goal:** An `IDecisionClient` following Microsoft.Extensions.AI conventions, with a builder pipeline in which retries, telemetry and logging become stages (core of #119).
+**Surface:** Backend
+**HelpWanted:** no
+**Plan:** _to be written_
+
+### Phase 6.4: /v1/systemone adapter [status: pending]
+**Goal:** Configurable base URL and model with presets for TypeSafe, OpenRouter, Cloudflare Clef, vLLM-SR and local servers; capability flags with typed errors naming provider and question; optional auth; keyed DI clients (#115).
+**Surface:** Backend
+**HelpWanted:** no
+**Plan:** _to be written_
+
+### Phase 6.5: OpenAI /v1/decisions adapter and image state [status: pending]
+**Goal:** An adapter for OpenAI's Decisions API, its schema and question-type mapping verified against OpenAI's docs, and typed state that can carry images where a provider supports it (#115).
+**Surface:** Backend
+**HelpWanted:** no
+**Plan:** _to be written_
+
+### Phase 6.6: Conformance suite [status: pending]
+**Goal:** Checks any endpoint's request and response shapes, multi-question requests, distributions, error shapes and model reporting, green against recorded TypeSafe and OpenAI fixtures (#116, conformance part).
 **Surface:** Infra
+**HelpWanted:** no
+**Plan:** _to be written_
+
+### Phase 6.7: Providers docs and samples [status: pending]
+**Goal:** A Providers page with presets and the capability matrix, and a sample running one question type against three providers by configuration only.
+**Surface:** Docs
+**HelpWanted:** no
+**Plan:** _to be written_
+
+## Milestone 7: 1.0 release [status: pending]
+**Goal:** Review, verify and publish the provider-neutral library as 1.0.0 on NuGet, with api-compat guarding every later change.
+**Design:** `docs/superpowers/specs/2026-10-09-roadmap-design.md`
+**Definition of Done:**
+- [ ] The renamed public API is reviewed and `PublicAPI.Shipped.txt` describes 1.0.0
+- [ ] Live runs pass against TypeSafe, OpenRouter, OpenAI and a local `/v1/systemone` server
+- [ ] Native AOT and trim verification covers the whole public API with no warnings; every allocation budget is unchanged or tightened
+- [ ] 1.0.0 is on NuGet through release-please and the publish job (#29), the guide states its version, and api-compat guards later changes (#28)
+
+### Phase 7.1: Public API review of the renamed surface [status: pending]
+**Goal:** Review sealing, naming, nullability and XML docs of the provider-neutral surface before it freezes.
+**Surface:** Refactor
+**HelpWanted:** no
+**Plan:** _to be written_
+
+### Phase 7.2: Live verification across providers [status: pending]
+**Goal:** Pass live suites against TypeSafe, OpenRouter, OpenAI and a local `/v1/systemone` server.
+**Surface:** Infra
+**HelpWanted:** no
+**Plan:** _to be written_
+
+### Phase 7.3: AOT, trim and benchmark re-verification [status: pending]
+**Goal:** Re-run the whole-surface AOT/trim check and the benchmarks on the new API; no allocation budget loosened.
+**Surface:** Infra
+**HelpWanted:** no
+**Plan:** _to be written_
+
+### Phase 7.4: Publish 1.0 [status: pending]
+**Goal:** Publish 1.0.0 through the reviewed pipeline from the paused Phase 5.5 (branch `phase/5.5-release`, spec `docs/superpowers/specs/2026-10-09-phase-5.5-1.0-release-design.md`) under the new name, then turn on api-compat (#29, #28).
+**Surface:** Infra
+**HelpWanted:** no
+**Plan:** _to be written_
+
+## Milestone 8: Choosing a provider and a threshold [status: pending]
+**Goal:** A dotnet tool that measures accuracy, calibration, selective-prediction coverage, latency and cost per provider on a labeled dataset, and docs that use it to choose providers and thresholds.
+**Design:** `docs/superpowers/specs/2026-10-09-roadmap-design.md`
+**Definition of Done:**
+- [ ] A documented JSONL dataset format of state, questions and ground truth
+- [ ] Reports with accuracy, ECE and reliability per question kind, a coverage/accuracy threshold sweep, latency and cost
+- [ ] A calibration report for at least two providers on a public sample dataset
+- [ ] A "Choosing a provider and a threshold" guide backed by the tool
+
+### Phase 8.1: Labeled dataset format and loader [status: pending]
+**Goal:** The JSONL dataset format, shared later by the decision export, and its loader (#116).
+**Surface:** Data
+**HelpWanted:** no
+**Plan:** _to be written_
+
+### Phase 8.2: Calibration metrics and report [status: pending]
+**Goal:** Accuracy, ECE, reliability diagrams, the threshold sweep, latency and cost, as markdown and JSON reports (#116).
+**Surface:** Backend
+**HelpWanted:** no
+**Plan:** _to be written_
+
+### Phase 8.3: Dotnet tool packaging [status: pending]
+**Goal:** One dotnet tool for conformance and calibration against any configured provider (#116).
+**Surface:** Infra
+**HelpWanted:** no
+**Plan:** _to be written_
+
+### Phase 8.4: Choosing a provider and a threshold guide [status: pending]
+**Goal:** A guide backed by the tool's reports on a public sample dataset.
+**Surface:** Docs
+**HelpWanted:** no
+**Plan:** _to be written_
+
+## Milestone 9: Hosted to local [status: pending]
+**Goal:** Record decisions and outcomes, export them in an open format, shadow-compare a candidate provider, and serve decisions in-process from .NET if the inference spike says go.
+**Design:** `docs/superpowers/specs/2026-10-09-roadmap-design.md`
+**Definition of Done:**
+- [ ] An opt-in decision recorder with outcome labels and redaction hooks, and a JSONL export with a documented schema
+- [ ] A shadow-mode report between two providers: agreement, calibration and threshold sweep
+- [ ] A go/no-go write-up for in-process inference with numbers and licence notes; on a go, a local provider that answers Noul, Choice and Score in-process
+- [ ] A "Moving decisions to a cheaper or local model" guide
+
+### Phase 9.1: Decision recorder and outcome labels [status: pending]
+**Goal:** An opt-in recorder decorating `IDecisionClient`, storing state, questions, answers, provider, model version and request id, with an API to attach outcomes later (#118).
+**Surface:** Backend
+**HelpWanted:** no
+**Plan:** _to be written_
+
+### Phase 9.2: JSONL export and redaction hooks [status: pending]
+**Goal:** Export in the state/questions record shape open models train on, matching Milestone 8's dataset format, with PII redaction hooks (#118).
+**Surface:** Data
+**HelpWanted:** no
+**Plan:** _to be written_
+
+### Phase 9.3: Shadow mode and its report [status: pending]
+**Goal:** Run a candidate provider alongside the primary without acting on it, reporting agreement, calibration and a threshold sweep with Milestone 8's report code (#118).
+**Surface:** Backend
+**HelpWanted:** no
+**Plan:** _to be written_
+
+### Phase 9.4: Spike: in-process decision-model inference [status: pending]
+**Goal:** ONNX Runtime from .NET with a decision head and calibration in C#, on a small permissive model, measured for latency, allocations, AOT size and CPU vs GPU; go/no-go write-up. Has no API dependency and may run earlier (#117).
+**Surface:** Backend
+**HelpWanted:** no
+**Plan:** _to be written_
+
+### Phase 9.5: Local provider package [status: pending]
+**Goal:** On a go from 9.4, an in-process provider so existing typed question sets run unchanged, measurable by the Milestone 8 tool (#117).
+**Surface:** Backend
+**HelpWanted:** no
+**Plan:** _to be written_
+
+### Phase 9.6: Moving decisions to a cheaper or local model guide [status: pending]
+**Goal:** The record, export, shadow and switch path as one guide (#118).
+**Surface:** Docs
+**HelpWanted:** no
+**Plan:** _to be written_
+
+## Milestone 10: Escalation [status: pending]
+**Goal:** Fast decisions first, escalating on low confidence to another provider or an `IChatClient`, with a provider fallback chain, as `IDecisionClient` middleware.
+**Design:** `docs/superpowers/specs/2026-10-09-roadmap-design.md`
+**Definition of Done:**
+- [ ] Escalation middleware with per-question thresholds that records which path answered
+- [ ] A provider fallback chain composing with DI and keyed clients
+- [ ] A ticket-triage sample with local-first decisions, escalation on low confidence and metrics showing the split
+- [ ] A guide turning confidence routing into a framework feature, and a proposal discussion opened on dotnet/extensions
+
+### Phase 10.1: Escalation middleware [status: pending]
+**Goal:** Per-question thresholds sized to the cost of being wrong; fall back to another decision provider or an `IChatClient` with structured output; record the path (#119).
+**Surface:** Backend
+**HelpWanted:** no
+**Plan:** _to be written_
+
+### Phase 10.2: Provider fallback chain [status: pending]
+**Goal:** For example local, then Clef, then OpenAI, composing with DI and keyed clients (#119).
+**Surface:** Backend
+**HelpWanted:** no
+**Plan:** _to be written_
+
+### Phase 10.3: Ticket-triage sample [status: pending]
+**Goal:** Local-first decisions with escalation on low confidence and metrics showing the split (#119).
+**Surface:** Mixed
+**HelpWanted:** no
+**Plan:** _to be written_
+
+### Phase 10.4: Confidence routing as a framework feature [status: pending]
+**Goal:** Turn the confidence-routing pattern guide into a framework feature, and open a discussion on dotnet/extensions proposing the abstraction (#119).
+**Surface:** Docs
 **HelpWanted:** no
 **Plan:** _to be written_

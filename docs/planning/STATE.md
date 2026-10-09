@@ -1,42 +1,42 @@
-# Session State — 2026-10-09 (Phase 5.5 paused: release on hold for a vendor-neutral rename)
+# Session State — 2026-10-09 (roadmap re-planned: provider-neutral core before 1.0)
 
 **Date:** 2026-10-09
 
 ## Current Position
-- **Milestone:** 5 — 1.0 hardening, active since 2026-10-04. Phases 5.1 to 5.4 are complete. Phase 5.5, the 1.0 release, is active and **paused by the maintainer**.
-- **Phase:** 5.5 — 1.0 release. Spec `docs/superpowers/specs/2026-10-09-phase-5.5-1.0-release-design.md`, plan `docs/superpowers/plans/2026-10-09-phase-5.5-1.0-release.md`.
-- **Branch `phase/5.5-release`, local only, not pushed, no PR:**
-  - **Task 1 (done, reviewed):** `tools/release/inspect_packages.py` with 20 unit tests, run by a new CI step. It checks the two packages, their versions, the DLLs' informational version and the DI package's dependency before any push. `.gitignore` re-includes `tools/release/`.
-  - **Task 2 (done, reviewed):**
-    - a `publish` job in `release-please.yml` that pushes to nuget.org and GitHub Packages, then attaches the packages to the release;
-    - the `publish-from-manifest.yml` rescue workflow;
-    - the `api-compat` job in `ci.yml`;
-    - both workflows refuse any 0.x version.
-  - **Task 3 (done, review pending, commit 57d7319):**
-    - the guide's release-please version line;
-    - `extra-files` in `release-please-config.json`;
-    - the README Status line now says "published on NuGet";
-    - Install wording;
-    - `VersionLineTests`.
-  - **SDD ledger:** `.superpowers/sdd/2026-10-09-phase-5.5-1.0-release/progress.md`, git-ignored and local. It records every task, review and ruling.
-- **Last completed:** Task 3's implementation; its review was not run.
-- **Not done:** Task 3 review, the final whole-branch review, Task 4 (push and PR, with `Release-As: 1.0.0`), Task 5 (cut and verify 1.0.0).
+- **Roadmap:** re-planned on 2026-10-09 (`docs/superpowers/specs/2026-10-09-roadmap-design.md`).
+  - The library becomes a provider-neutral decision client before 1.0.
+  - **Milestone 5 (1.0 hardening):** re-scoped to Phases 5.1–5.4, all complete. Ready for `audit-milestone`, then `complete-milestone`.
+  - **New milestones:**
+    - 6, Provider-neutral core: the name, neutral model, `IDecisionClient`, both adapters, conformance and docs;
+    - 7, 1.0 release;
+    - 8, Choosing a provider and a threshold;
+    - 9, Hosted to local;
+    - 10, Escalation.
+  - Issues #120 (the name, blocking) and #115–#119 track the work.
+- **Old Phase 5.5 (1.0 release):** removed from Milestone 5 and folded into Phase 7.4.
+  - Its reviewed pipeline work sits on the local branch `phase/5.5-release`, not pushed:
+    - inspection script;
+    - publish job with a 0.x guard;
+    - rescue workflow;
+    - api-compat;
+    - guide version line.
+  - Task 3 there was implemented but not reviewed.
+  - The SDD ledger is `.superpowers/sdd/2026-10-09-phase-5.5-1.0-release/progress.md`, local and git-ignored.
+  - At Phase 7.4, rebase or replay that branch onto the renamed code and update the package ids.
 
 ## Open Decisions
 - **Package name (blocks any publish).** The maintainer proposes repositioning the library as a provider-neutral decision client, for example `ZeroAlloc.Decisions` with provider packages, because OpenAI's Decisions API and Cloudflare's Clef have launched. The proposal is recorded verbatim in `docs/plans/2026-10-09-provider-neutral-direction.md`, items 1 to 6.
   - **Item 1, blocking:** rename packages, namespaces, `[JevQuestions]`, `IJevClient`, `JevError`, the JEV analyzer IDs and the docs site before the first NuGet publish.
   - Nothing is published under `ZeroAlloc.Jev` yet; both ids were still free on nuget.org on 2026-10-09.
-- **Whether to file items 1–6 as GitHub issues.** Not filed. The maintainer has not decided.
-- **What Milestone 5 becomes.** Its definition of done says "1.0.0 published" and "public API frozen". Item 2 changes the generator's output and the public API, so 1.0 likely moves after the rename and the provider-neutral model. This needs a roadmap re-plan.
+- **Issues:** items 1–6 are tracked in #120 (new) and #115–#119, updated on 2026-10-09 to the revised text; #29 and #28 re-pointed to Phase 7.4.
 - **The `za-docs-jev` Cloudflare preview check.** The maintainer changed its non-production deploy command on 2026-10-09. Not yet confirmed on a new PR; .website #82 and #83 still failed at 11:39 and 11:46.
 
 ## Blockers
-- **Release:** blocked on the name decision. Do not push `phase/5.5-release`, do not open its PR, and do not merge anything carrying `Release-As: 1.0.0`.
+- **Publishing:** blocked until Milestone 7. Do not push `phase/5.5-release` as a PR, and do not merge anything carrying `Release-As: 1.0.0`.
 
 ## Recommended Next Step
-1. Brainstorm the name decision, item 1, with the maintainer and record it in `docs/planning/`.
-2. Re-plan the roadmap from Milestone 5 onward around the provider-neutral direction, through `plan-roadmap` or `new-milestone`. Keep the Phase 5.5 pipeline work: only the package ids in `tools/release/inspect_packages.py`, the guide line and the docs change with the name.
-3. Then finish Phase 5.5 under the new name: Task 3 review, final review, PR, and 1.0.0.
+1. Run `audit-milestone` for Milestone 5 against its re-scoped definition of done, then `complete-milestone`. Release-please owns releases, so no tag.
+2. Run `new-milestone` for Milestone 6, then Phase 6.1: brainstorm the name decision.
 
 ## Operational notes
 - **Live keys:** `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY` are in the `live-api` environment, which deploys only from `main`. Run the suite with `gh workflow run live-smoke.yml --ref main`. About 13 small billed calls per run.
