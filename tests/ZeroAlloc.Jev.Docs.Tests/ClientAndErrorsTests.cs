@@ -79,8 +79,28 @@ public sealed class ClientAndErrorsTests
         }
     }
 
+    [Fact]
+    public async Task ValidationProblems_SkipsMalformedProblems()
+    {
+        const string body = """{"detail":[{"loc":["body","state"],"msg":"too long"},{"msg":"x"},3,{"loc":"body","msg":"y"},{"loc":["body"],"msg":7}]}""";
+        var (http, jev, _) = ScriptedJev.Client(ScriptedJev.Quick(0), Reply.Error(422, body));
+        using (http)
+        using (jev)
+        {
+            var result = await jev.EvaluateAsync(new SystemOneRequest
+            {
+                State = "Help!",
+                Questions = new Dictionary<string, JevQuestion>(),
+            });
+
+            Assert.True(result.IsFailure);
+            Assert.Equal(["body.state: too long"], ValidationProblems.List(result.Error));
+        }
+    }
+
     [Theory]
     [InlineData(401, TypeSafeUnauthorizedBody)]
+    [InlineData(422, TypeSafeUnauthorizedBody)]
     [InlineData(422, "{\"detail\":\"questions is required\"}")]
     [InlineData(422, "not json")]
     public async Task ValidationProblems_IsEmpty_WhenThereIsNoListOfProblems(int status, string body)

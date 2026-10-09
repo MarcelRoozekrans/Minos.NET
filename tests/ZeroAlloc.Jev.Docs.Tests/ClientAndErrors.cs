@@ -115,7 +115,7 @@ public static class ValidationProblems
 {
     #region ClientAndErrors_ValidationProblems
     // TypeSafe answers a 422 with a list of problems. Each one says where it is, as a path such as body.questions,
-    // and what is wrong. Other errors carry a different body, so check its shape before reading it.
+    // and what is wrong. Other errors carry a different body, and a problem may be malformed, so check each shape.
     public static IReadOnlyList<string> List(JevError error)
     {
         var problems = new List<string>();
@@ -128,13 +128,21 @@ public static class ValidationProblems
 
         foreach (var problem in detail.EnumerateArray())
         {
+            // Skip an entry that is not shaped like a problem rather than fail while handling an error.
+            if (problem.ValueKind != JsonValueKind.Object
+                || !problem.TryGetProperty("loc", out var loc) || loc.ValueKind != JsonValueKind.Array
+                || !problem.TryGetProperty("msg", out var msg) || msg.ValueKind != JsonValueKind.String)
+            {
+                continue;
+            }
+
             var path = new List<string>();
-            foreach (var part in problem.GetProperty("loc").EnumerateArray())
+            foreach (var part in loc.EnumerateArray())
             {
                 path.Add(part.ToString());
             }
 
-            problems.Add($"{string.Join('.', path)}: {problem.GetProperty("msg").GetString()}");
+            problems.Add($"{string.Join('.', path)}: {msg.GetString()}");
         }
 
         return problems;

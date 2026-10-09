@@ -223,9 +223,9 @@ waited for `MaxRetryDelay`, 30 seconds by default, and then asked again. The val
 `JevError.RetryAfter`, on a failure that comes back.
 
 TypeSafe's [API reference](https://docs.typesafe.ai/api) asks clients to back off exponentially on a 429 or 529, and
-does not say whether those responses carry either header; its official Python SDK reads both. Jev's own live runs have not
-yet met a 429 or 529, so as of October 2026 whether TypeSafe sends a wait is unconfirmed. Either way the client
-behaves correctly: it waits as asked when a header is present, and backs off when none is.
+does not say whether those responses carry either header; its official Python SDK reads both. Jev's own live runs
+have not yet met a 429 or 529, so as of October 2026 whether TypeSafe sends a wait is unconfirmed. Either way the
+client behaves correctly: it waits as asked when a header is present, and backs off when none is.
 
 ### The cost of retrying
 
@@ -287,7 +287,7 @@ shape before reading it:
 <!-- snippet: ClientAndErrors_ValidationProblems -->
 ```cs
 // TypeSafe answers a 422 with a list of problems. Each one says where it is, as a path such as body.questions,
-// and what is wrong. Other errors carry a different body, so check its shape before reading it.
+// and what is wrong. Other errors carry a different body, and a problem may be malformed, so check each shape.
 public static IReadOnlyList<string> List(JevError error)
 {
     var problems = new List<string>();
@@ -300,13 +300,21 @@ public static IReadOnlyList<string> List(JevError error)
 
     foreach (var problem in detail.EnumerateArray())
     {
+        // Skip an entry that is not shaped like a problem rather than fail while handling an error.
+        if (problem.ValueKind != JsonValueKind.Object
+            || !problem.TryGetProperty("loc", out var loc) || loc.ValueKind != JsonValueKind.Array
+            || !problem.TryGetProperty("msg", out var msg) || msg.ValueKind != JsonValueKind.String)
+        {
+            continue;
+        }
+
         var path = new List<string>();
-        foreach (var part in problem.GetProperty("loc").EnumerateArray())
+        foreach (var part in loc.EnumerateArray())
         {
             path.Add(part.ToString());
         }
 
-        problems.Add($"{string.Join('.', path)}: {problem.GetProperty("msg").GetString()}");
+        problems.Add($"{string.Join('.', path)}: {msg.GetString()}");
     }
 
     return problems;
