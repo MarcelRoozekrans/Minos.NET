@@ -3,10 +3,11 @@ using Xunit.Abstractions;
 namespace ZeroAlloc.Jev.Live.Tests;
 
 /// <summary>
-/// Checks that both providers accept the model aliases <c>jev-latest</c> and <c>jev-preview</c>, and that TypeSafe
-/// accepts the versioned id an alias resolves to. TypeSafe documents that versioned ids are accepted although its model
-/// listing shows only the aliases. No test assumes the two aliases answer with the same model: they diverge as soon as
-/// a preview ships.
+/// Checks the model aliases live. TypeSafe accepts <c>jev-latest</c> and <c>jev-preview</c>, and the versioned id an
+/// alias resolves to: it documents that versioned ids are accepted although its model listing shows only the aliases.
+/// OpenRouter accepts <c>jev-latest</c> but not <c>jev-preview</c>, which the guide documents; the test that pins the
+/// rejection fails as soon as OpenRouter starts offering the preview, so the guide can be updated. No test assumes the
+/// two aliases answer with the same model: they diverge as soon as a preview ships.
 /// </summary>
 public sealed class AliasLiveTests
 {
@@ -40,9 +41,25 @@ public sealed class AliasLiveTests
     public async Task OpenRouter_Latest_Answers()
         => Assert.False(string.IsNullOrWhiteSpace((await EvaluateAsync(JevProvider.OpenRouter, Latest)).Model));
 
+    // OpenRouter prefixes the alias itself and has no typesafe/jev-preview: it answers HTTP 400, "Model
+    // typesafe/jev-preview does not exist". Seen first in the Live smoke run 37918889031 on 2026-10-09.
     [LiveFact(JevProvider.OpenRouter)]
-    public async Task OpenRouter_Preview_Answers()
-        => Assert.False(string.IsNullOrWhiteSpace((await EvaluateAsync(JevProvider.OpenRouter, Live.Preview)).Model));
+    public async Task OpenRouter_Preview_IsRejectedAsAnUnknownModel()
+    {
+        using var client = Live.Client(JevProvider.OpenRouter);
+
+        var result = await client.EvaluateAsync(Live.Request(Live.Preview));
+
+        if (result.IsSuccess)
+        {
+            Live.LogServedModel(_output, Live.Preview, result.Value);
+        }
+
+        Assert.True(result.IsFailure, "OpenRouter now offers jev-preview: update the guide's Listing models section and this test.");
+        Live.LogError(_output, result.Error);
+        Assert.Equal(JevErrorKind.Validation, result.Error.Kind);
+        Assert.Equal(400, result.Error.StatusCode);
+    }
 
     private static void AssertVersioned(string model)
         => Assert.True(

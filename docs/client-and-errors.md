@@ -281,8 +281,8 @@ request with no questions:
 {"detail":[{"type":"too_short","loc":["body","questions"],"msg":"Dictionary should have at least 1 item after validation, not 0","input":{},"ctx":{"field_type":"Dictionary","min_length":1,"actual_length":0}}]}
 ```
 
-A 401, by contrast, carries one object: `{"detail":{"error_type":"authentication_error","message":"…"}}`. Check the
-shape before reading it:
+A 401, by contrast, carries one object: `{"detail":{"error_type":"authentication_error","message":"…"}}`, and
+OpenRouter's errors use its own shape, `{"error":{"message":"…","code":400}}`. Check the shape before reading it:
 
 <!-- snippet: ClientAndErrors_ValidationProblems -->
 ```cs
@@ -461,8 +461,11 @@ request, because OpenRouter has its own models API.
 As of October 2026, TypeSafe lists only the aliases, `jev-latest` for the newest stable release and `jev-preview` for
 the newest release of any kind. A versioned id such as `jev-1.13.0` is accepted as a `Model` too, listed or not, as
 TypeSafe's [models page](https://docs.typesafe.ai/models) describes. Whichever you send, the response's `Model` names
-the versioned model that answered, so log it if you need to know which release produced a result. OpenRouter accepts
-`jev-latest` too, and reports its own model id in the response.
+the versioned model that answered, so log it if you need to know which release produced a result.
+
+Through OpenRouter, `jev-latest` works and the response reports OpenRouter's own model id, such as
+`typesafe/jev-1.13-20260917`. As of October 2026 OpenRouter does not offer `jev-preview`: a request for it fails with
+`Validation` and HTTP 400, and OpenRouter's body says the model `typesafe/jev-preview` does not exist.
 
 ## Next
 
