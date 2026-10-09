@@ -127,6 +127,7 @@ public sealed class LinkTests
     [InlineData("../planning/x.md")]
     [InlineData("../plans/x.md")]
     [InlineData("../superpowers/x.md")]
+    [InlineData("../design/x.md")]
     public void Check_RejectsAnUnpublishedFolder(string target)
     {
         var problem = LinkChecker.Check(Page, [], target);

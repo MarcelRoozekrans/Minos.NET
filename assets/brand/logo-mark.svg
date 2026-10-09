@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-label="Minos.NET">
+  <!-- Minos.NET — the coil. Seed: a semicircle of centreline r 36 about A (128,144), declared weight 24.
+       Semicircles alternate between A (128,144) and B (96,144), 32 apart; each half-turn adds 32 to the radius:
+       r 36 (A, upper), 68 (B, lower), 100 (A, upper) — 1.5 turns, after Minos's coiled tail in Inferno V.
+       Filled outline, one contour: outer edges r + 12, inner edges r - 12. Channel 40 (target 32.72 at w 24 + dark), eye 48.
+       Ink x 16 ... 240, y 32 ... 224, centred on 128. See docs/design/LOGO.md § Construction. -->
+  <!-- OPTICAL: inner ry 24.96 / 56.96 / 88.96 (edges y 119.04 / 200.96 / 55.04) · horizontal strokes read heavier · 24 x 0.96 = 23.04 at every horizontal tangent; outer edges held on the grid, the inner (free) edge moves -->
+  <path fill="currentColor"
+        d="M80 144A48 48 0 0 1 176 144A80 80 0 0 1 16 144A112 112 0 0 1 240 144H216
+           A88 88.96 0 0 0 40 144A56 56.96 0 0 0 152 144A24 24.96 0 0 0 104 144Z"/>
+</svg>

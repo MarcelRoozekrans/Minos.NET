@@ -487,3 +487,6 @@ $RECYCLE.BIN/
 
 # The comparison runner's per-machine output; the published runs sit in benchmarks/compare/results/ itself.
 benchmarks/compare/results/*/
+
+# Screenshots and logs the Playwright MCP server writes into the working directory.
+.playwright-mcp/

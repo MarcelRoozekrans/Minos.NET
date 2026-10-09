@@ -68,6 +68,19 @@ public sealed class DependencyInjectionPackageTests : IClassFixture<DependencyIn
         Assert.Equal("10.0.0", Version(dependencies, "Microsoft.Extensions.Options.ConfigurationExtensions"));
     }
 
+    // The shared metadata, with the DI package's own tags after the shared ones.
+    [Fact]
+    public void CarriesTheMinosMetadata_AndItsOwnTags()
+    {
+        var metadata = XDocument.Load(_fixture.NuspecPath).Root!.Element(Nuspec + "metadata")!;
+
+        Assert.Equal("https://marcelroozekrans.github.io/Minos.NET/", (string?)metadata.Element(Nuspec + "projectUrl"));
+        Assert.Equal("https://github.com/MarcelRoozekrans/Minos.NET", (string?)metadata.Element(Nuspec + "repository")!.Attribute("url"));
+        Assert.Equal("Copyright (c) 2026 Marcel Roozekrans", (string?)metadata.Element(Nuspec + "copyright"));
+        Assert.Equal("icon.png", (string?)metadata.Element(Nuspec + "icon"));
+        Assert.Equal(PackageContentTests.PackageTags + " dependency-injection httpclientfactory", (string?)metadata.Element(Nuspec + "tags"));
+    }
+
     // The net10.0 group's dependencies.
     private XElement[] Dependencies()
     {

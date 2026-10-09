@@ -1,9 +1,9 @@
 namespace Minos.Docs.Tests;
 
-/// <summary>The pages the docs site publishes: every <c>docs/**/*.md</c> except the planning folders and README files.</summary>
+/// <summary>The pages the docs site publishes: every <c>docs/**/*.md</c> except the planning folders, the brand record in design/, and README files.</summary>
 internal static class PublishedPages
 {
-    private static readonly string[] Unpublished = ["planning", "plans", "superpowers"];
+    private static readonly string[] Unpublished = ["design", "planning", "plans", "superpowers"];
 
     public static string Root { get; } = FindRoot();
 

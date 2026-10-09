@@ -1,14 +1,18 @@
-# Minos.NET
+# Minos
 
-![Minos.NET](https://raw.githubusercontent.com/MarcelRoozekrans/Minos.NET/main/assets/icon.png)
+> Named after Minos, the judge of the dead in Greek myth.
+
+![Minos](https://raw.githubusercontent.com/MarcelRoozekrans/Minos.NET/main/assets/brand/icon-192.png)
 
 [![CI](https://github.com/MarcelRoozekrans/Minos.NET/actions/workflows/ci.yml/badge.svg)](https://github.com/MarcelRoozekrans/Minos.NET/actions/workflows/ci.yml)
 
-Unofficial .NET client for [TypeSafe AI](https://typesafe.ai)'s **Jev**, the first System One model: send a `state` and typed questions (Noul, Choice, Score) and get calibrated, typed answers back — directly from TypeSafe or through OpenRouter.
+Unofficial .NET client for decision models: send a `state` and typed questions (Noul, Choice, Score) and get calibrated, typed answers back.
+
+Minos speaks TypeSafe's Jev `/v1/systemone` API directly or through OpenRouter; more providers are planned.
 
 You declare the questions as a C# type, and a source generator writes the request and the answer parsing at compile time, so generated question sets need no reflection and the client runs under Native AOT.
 
-> **Not affiliated with TypeSafe AI.** Minos.NET is a community project in the [ZeroAlloc](https://github.com/ZeroAlloc-Net) family. TypeSafe publishes official SDKs for Python and JavaScript; see [docs.typesafe.ai](https://docs.typesafe.ai).
+> **Not affiliated with TypeSafe AI.** Minos is a community project. TypeSafe publishes official SDKs for Python and JavaScript; see [docs.typesafe.ai](https://docs.typesafe.ai).
 
 **Status:** early development, not yet published to NuGet. See [the roadmap](https://github.com/MarcelRoozekrans/Minos.NET/blob/main/docs/planning/ROADMAP.md).
 
@@ -100,6 +104,17 @@ Building this repository needs the SDK version pinned in `global.json` (10.0.401
 ## Testing
 
 `dotnet test` runs the unit tests, the generator tests, the analyzer and code-fix tests, the WireMock integration tests, and the pack tests, which pack the library and check the package's contents. A solution-wide `dotnet test` never makes a billed call: the live smoke tests in `tests/Minos.NET.Live.Tests` call the real APIs and only run when `MINOS_LIVE=1` is set *and* the provider's key (`TYPESAFE_API_KEY` or `OPENROUTER_API_KEY`) is set; otherwise every one of them reports skipped. To run them locally, opt in explicitly with the key set: `MINOS_LIVE=1 dotnet test tests/Minos.NET.Live.Tests`. Each run makes a few small billed evaluations. Override the model with `MINOS_LIVE_MODEL`, or `MINOS_LIVE_OPENROUTER_MODEL` for OpenRouter. Maintainers can also run them in CI with the manual **Live smoke** workflow, which reads the keys from the `live-api` environment; restrict that environment's deployment branches to `main`.
+
+## About the name
+
+In Greek mythology, **Minos** was king of Crete and, after his death, one of the three judges of the underworld. Every soul
+came before him and left with a verdict. That is what this library does. You hand it a state and a few typed questions,
+and a decision model returns a verdict for each one: yes or no, which option, how severe, with a calibrated confidence.
+
+Minos does not care which model judges. TypeSafe's Jev, OpenAI's Decisions API or a model running on your own machine
+all answer the same typed questions. The name also keeps it in the same Cretan story as its siblings: Minos had
+[Daedalus](https://github.com/MarcelRoozekrans/Daedalus.NET) build the Labyrinth, and set
+[Talos](https://github.com/MarcelRoozekrans/Thalos.NET) to guard his island.
 
 ## License
 

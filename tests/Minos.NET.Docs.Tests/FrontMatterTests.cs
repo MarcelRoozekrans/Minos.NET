@@ -38,7 +38,8 @@ public sealed class FrontMatterTests
         Assert.DoesNotContain(PublishedPages.All, p =>
             p.StartsWith("docs/planning/", StringComparison.Ordinal)
             || p.StartsWith("docs/plans/", StringComparison.Ordinal)
-            || p.StartsWith("docs/superpowers/", StringComparison.Ordinal));
+            || p.StartsWith("docs/superpowers/", StringComparison.Ordinal)
+            || p.StartsWith("docs/design/", StringComparison.Ordinal));
     }
 
     [Fact]

@@ -39,10 +39,14 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
         "ZeroAlloc.Validation",
     ];
 
-    // The shared ZeroAlloc icon: the SHA-256 of assets/icon.svg and assets/icon.png in ZeroAlloc-Net/ZeroAlloc.Rest.
-    // Every ZeroAlloc package carries the same mark, so a different file here means the icon drifted from the org's.
-    private const string SharedIconSvgSha256 = "94bbd8999ebb3184b5c2d1c0fd22e406b3e8e8b38eca1039cb4e326f4abd3448";
-    private const string SharedIconPngSha256 = "6d408bdc8252bda318e9b661864684c543dc692fe6d4304d8fb31125d0e384af";
+    // The Minos logo, the coil in Minoan bronze: the SHA-256 of the master mark, assets/brand/logo-mark.svg, and of
+    // assets/brand/icon-128.png, its bronze 128 px raster that every package ships as icon.png. docs/design/LOGO.md is
+    // the record of both. A different file here means the logo changed; update LOGO.md and these pins together.
+    private const string LogoSvgSha256 = "4cde06e728d895e5bc9603de8063126096d82e9fb79d5e8993f8d74e409e3063";
+    private const string LogoPngSha256 = "7dc40942000d2010ed96300a2c72b44365d953e8cab107981bba78f45b7b0235";
+
+    /// <summary>The tags every package carries; nuget.org splits them on spaces.</summary>
+    internal const string PackageTags = "minos decisions decision-model jev typesafe systemone openrouter client sdk source-generator aot native-aot zero-allocation";
 
     private readonly PackFixture _fixture;
 
@@ -62,18 +66,34 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
         using var stream = entry.Open();
         using var packed = new MemoryStream();
         stream.CopyTo(packed);
-        var onDisk = File.ReadAllBytes(Path.Combine(PackedProject.FindRepoRoot(), "assets", "icon.png"));
-        Assert.True(onDisk.AsSpan().SequenceEqual(packed.ToArray()), "Found a packed icon.png that differs from assets/icon.png.");
+        var onDisk = File.ReadAllBytes(Path.Combine(PackedProject.FindRepoRoot(), "assets", "brand", "icon-128.png"));
+        Assert.True(onDisk.AsSpan().SequenceEqual(packed.ToArray()), "Found a packed icon.png that differs from assets/brand/icon-128.png.");
     }
 
     [Theory]
-    [InlineData("icon.svg", SharedIconSvgSha256)]
-    [InlineData("icon.png", SharedIconPngSha256)]
-    public void TheIcon_IsTheSharedZeroAllocIcon(string file, string sha256)
+    [InlineData("logo-mark.svg", LogoSvgSha256)]
+    [InlineData("icon-128.png", LogoPngSha256)]
+    public void TheIcon_IsTheMinosLogo(string file, string sha256)
     {
-        var bytes = File.ReadAllBytes(Path.Combine(PackedProject.FindRepoRoot(), "assets", file));
+        var bytes = File.ReadAllBytes(Path.Combine(PackedProject.FindRepoRoot(), "assets", "brand", file));
 
         Assert.Equal(sha256, Convert.ToHexStringLower(SHA256.HashData(bytes)));
+    }
+
+    // The shared metadata from Directory.Build.props, as nuget.org shows it.
+    [Fact]
+    public void CarriesTheMinosMetadata()
+    {
+        XNamespace ns = "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd";
+        var metadata = XDocument.Load(_fixture.NuspecPath).Root!.Element(ns + "metadata")!;
+
+        Assert.Equal("Marcel Roozekrans", (string?)metadata.Element(ns + "authors"));
+        Assert.Equal("Copyright (c) 2026 Marcel Roozekrans", (string?)metadata.Element(ns + "copyright"));
+        Assert.Equal("MIT", (string?)metadata.Element(ns + "license"));
+        Assert.Equal("https://marcelroozekrans.github.io/Minos.NET/", (string?)metadata.Element(ns + "projectUrl"));
+        Assert.Equal("https://github.com/MarcelRoozekrans/Minos.NET", (string?)metadata.Element(ns + "repository")!.Attribute("url"));
+        Assert.Equal("README.md", (string?)metadata.Element(ns + "readme"));
+        Assert.Equal(PackageTags, (string?)metadata.Element(ns + "tags"));
     }
 
     [Fact]

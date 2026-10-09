@@ -6,7 +6,9 @@ namespace Minos.Docs.Tests;
 public sealed partial class ReadmeLinkTests
 {
     private const string Site = "https://jev.zeroalloc.net";
-    private const string Logo = "https://raw.githubusercontent.com/MarcelRoozekrans/Minos.NET/main/assets/icon.png";
+    // The bronze 192 px raster of the Minos mark. A PNG, because the mark's SVGs paint in currentColor, which an image
+    // renders black on GitHub's dark theme, and nuget.org renders no raw HTML that could swap in a dark variant.
+    private const string Logo = "https://raw.githubusercontent.com/MarcelRoozekrans/Minos.NET/main/assets/brand/icon-192.png";
 
     private static readonly string[] ReadmeLines = File.ReadAllLines(Path.Combine(PublishedPages.Root, "README.md"));
 
@@ -146,6 +148,32 @@ public sealed partial class ReadmeLinkTests
         Assert.Equal([Logo], images);
     }
 
+    [Fact]
+    public void TheLogo_IsAFileInTheRepository()
+    {
+        const string Prefix = "https://raw.githubusercontent.com/MarcelRoozekrans/Minos.NET/main/";
+        Assert.StartsWith(Prefix, Logo, StringComparison.Ordinal);
+        Assert.True(File.Exists(Path.Combine(PublishedPages.Root, Logo[Prefix.Length..])), $"{Logo} names no file in the repository.");
+    }
+
+    // The title, then the one-line note on the name, as in Thalos.NET.
+    [Fact]
+    public void TheReadme_OpensWithTheTitleAndTheNoteOnTheName()
+    {
+        var lines = ReadmeLines.Where(l => l.Length > 0).Take(2).ToArray();
+
+        Assert.Equal(["# Minos", "> Named after Minos, the judge of the dead in Greek myth."], lines);
+    }
+
+    // The longer story of the name, as in Daedalus.NET, sits just before the licence.
+    [Fact]
+    public void TheReadme_ExplainsTheNameBeforeTheLicense()
+    {
+        var headings = ReadmeLines.Where(l => l.StartsWith("## ", StringComparison.Ordinal)).ToList();
+
+        Assert.Equal(["## About the name", "## License"], headings.TakeLast(2));
+    }
+
     // nuget.org shows a package README with raw HTML switched off, so a tag would appear as literal text.
     [Fact]
     public void TheReadme_HasNoRawHtmlOutsideCode()
@@ -267,7 +295,7 @@ public sealed partial class ReadmeLinkTests
     [GeneratedRegex(@"^https://github\.com/[^/]+/[^/]+/(?:blob|tree)/[^/]+/docs/(?<path>.*)$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex GuideInRepository();
 
-    [GeneratedRegex(@"^!\[Minos\.NET\]\((?<src>[^)]+)\)$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"^!\[Minos\]\((?<src>[^)]+)\)$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex LogoImage();
 
     [GeneratedRegex(@"`[^`]*`", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
