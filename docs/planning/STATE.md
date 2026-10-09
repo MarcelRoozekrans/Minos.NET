@@ -1,27 +1,50 @@
-# Session State — 2026-10-09 (Phase 5.4 complete, 5.5 next)
+# Session State — 2026-10-09 (roadmap re-planned: provider-neutral core before 1.0)
 
 **Date:** 2026-10-09
 
 ## Current Position
-- **Milestone:** 5 — 1.0 hardening, active since 2026-10-04. Design: `docs/superpowers/specs/2026-10-04-milestone-5-design.md`.
-  - 5.1 to 5.4 are complete. Releases so far: 0.4.0, 0.5.0, 0.5.1, 0.5.2 (Phase 5.4, #108) and 0.5.3 (#111).
-  - 5.5, the 1.0 release, is next.
-- **Phase:** 5.4 — Live and alias verification, complete.
-- **Next task:** Phase 5.5. Brainstorm and plan:
-  - the NuGet publishing workflow (#29);
-  - 1.0.0 through release-please;
-  - the version in the guide and README;
-  - api-compat (#28) against the 1.0.0 package.
+- **Roadmap:** re-planned on 2026-10-09 (`docs/superpowers/specs/2026-10-09-roadmap-design.md`).
+  - The library becomes a provider-neutral decision client before 1.0.
+  - **Milestone 5 (1.0 hardening):** re-scoped to Phases 5.1–5.4, all complete. Ready for `audit-milestone`, then `complete-milestone`.
+  - **New milestones:**
+    - 6, Provider-neutral core: the name, neutral model, `IDecisionClient`, both adapters, conformance and docs;
+    - 7, 1.0 release;
+    - 8, Choosing a provider and a threshold;
+    - 9, Hosted to local;
+    - 10, Escalation.
+  - Issues #120 (the name, blocking) and #115–#119 track the work.
+- **Old Phase 5.5 (1.0 release):** removed from Milestone 5 and folded into Phase 7.4.
+  - Its reviewed pipeline work sits on the local branch `phase/5.5-release`, not pushed:
+    - inspection script;
+    - publish job with a 0.x guard;
+    - rescue workflow;
+    - api-compat;
+    - guide version line.
+  - Task 3 there was implemented but not reviewed.
+  - The SDD ledger is `.superpowers/sdd/2026-10-09-phase-5.5-1.0-release/progress.md`, local and git-ignored.
+  - At Phase 7.4, rebase or replay that branch onto the renamed code and update the package ids.
 
-  1.0.0 may now publish: the TypeSafe live suite has passed with a real key.
-- **Maintainer decisions for Milestone 5:**
-  - 1.0.0 ships to NuGet only after the TypeSafe live suite passes with a real key. That condition was met on 2026-10-09.
-  - The old 5.3 was split so the keyless work could go first.
-- **Operational notes:**
-  - **Live keys:** `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY` are in the `live-api` environment, which deploys only from `main`. Run the suite with `gh workflow run live-smoke.yml --ref main`. About 13 small billed calls per run.
-  - **Website updates:** .website's bot-opened "update submodules" PRs hold their `build` run for approval (`action_required`). Approve it with `gh api -X POST repos/ZeroAlloc-Net/.website/actions/runs/<id>/approve`, then merge with `--admin`, after asking the maintainer.
-  - **`za-docs-jev` preview check:** it failed on PRs because its Cloudflare non-production deploy command was `npx wrangler preview` with no `previews` block. The maintainer changed the setting on 2026-10-09; confirm on the next bot PR.
-  - **CI on a branch without a PR:** `gh workflow run ci.yml --ref <branch>`. Add `-f aot-smoke-runs=20` to repeat the AOT smoke run.
+## Open Decisions
+- **Package name (blocks any publish).** The maintainer proposes repositioning the library as a provider-neutral decision client, for example `ZeroAlloc.Decisions` with provider packages, because OpenAI's Decisions API and Cloudflare's Clef have launched. The proposal is recorded verbatim in `docs/plans/2026-10-09-provider-neutral-direction.md`, items 1 to 6.
+  - **Item 1, blocking:** rename packages, namespaces, `[JevQuestions]`, `IJevClient`, `JevError`, the JEV analyzer IDs and the docs site before the first NuGet publish.
+  - Nothing is published under `ZeroAlloc.Jev` yet; both ids were still free on nuget.org on 2026-10-09.
+- **Issues:** items 1–6 are tracked in #120 (new) and #115–#119, updated on 2026-10-09 to the revised text; #29 and #28 re-pointed to Phase 7.4.
+- **The `za-docs-jev` Cloudflare preview check.** The maintainer changed its non-production deploy command on 2026-10-09. Not yet confirmed on a new PR; .website #82 and #83 still failed at 11:39 and 11:46.
+
+## Blockers
+- **Publishing:** blocked until Milestone 7. Do not push `phase/5.5-release` as a PR, and do not merge anything carrying `Release-As: 1.0.0`.
+
+## Recommended Next Step
+1. Run `audit-milestone` for Milestone 5 against its re-scoped definition of done, then `complete-milestone`. Release-please owns releases, so no tag.
+2. Run `new-milestone` for Milestone 6, then Phase 6.1: brainstorm the name decision.
+
+## Operational notes
+- **Live keys:** `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY` are in the `live-api` environment, which deploys only from `main`. Run the suite with `gh workflow run live-smoke.yml --ref main`. About 13 small billed calls per run.
+- **Website updates:**
+  - .website's bot "update submodules" PRs hold their `build` run (`action_required`). Approve it with `gh api -X POST repos/ZeroAlloc-Net/.website/actions/runs/<id>/approve`, then merge with `--admin`, after asking the maintainer.
+  - jev.zeroalloc.net only updates when that PR merges.
+- **Org-wide publishing:** the per-repository publish jobs have drifted; one shared workflow is tracked in ZeroAlloc-Net/.github#49. Jev's job already matches its target.
+- **CI on a branch without a PR:** `gh workflow run ci.yml --ref <branch>`. Add `-f aot-smoke-runs=20` to repeat the AOT smoke run.
 
 ## What Phase 5.4 shipped
 - **Live evidence:** Live smoke on `main`.
