@@ -288,6 +288,7 @@ compress_memory: disabled
 **Surface:** Refactor
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-10-10-phase-6.2-neutral-question-model-design.md`
+**Impact analysis:** `docs/plans/2026-10-10-phase-6.2-neutral-question-model-impact-analysis.md`
 **Plan:** _to be written_
 
 ### Phase 6.3: IDecisionClient abstraction and pipeline [status: pending]
