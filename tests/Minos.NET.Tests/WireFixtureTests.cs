@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using System.Text;
 using Minos.Tests.WireFixtureSets;
 
@@ -6,23 +5,11 @@ namespace Minos.Tests;
 
 internal static class WireFixtures
 {
-    // Capture mode overwrites the files and passes by design; it is only for writing them once.
-    // Set MINOS_CAPTURE_WIRE_FIXTURES=1 once, on main's behaviour, to write the files; every other run compares.
-    public static bool Capturing => string.Equals(Environment.GetEnvironmentVariable("MINOS_CAPTURE_WIRE_FIXTURES"), "1", StringComparison.Ordinal);
-
+    // The files are fixed; to recapture one on purpose, write its bytes from a scratch test and review the diff.
     public static byte[] Read(string name) => File.ReadAllBytes(Path.Combine(AppContext.BaseDirectory, "WireFixtures", name + ".json"));
-
-    public static void Write(string name, ReadOnlySpan<byte> bytes, [CallerFilePath] string caller = "")
-        => File.WriteAllBytes(Path.Combine(Path.GetDirectoryName(caller)!, "WireFixtures", name + ".json"), bytes.ToArray());
 
     public static void AssertMatches(string name, ReadOnlySpan<byte> actual)
     {
-        if (Capturing)
-        {
-            Write(name, actual);
-            return;
-        }
-
         var expected = Read(name);
         Assert.Equal(Encoding.UTF8.GetString(expected), Encoding.UTF8.GetString(actual));
         Assert.True(actual.SequenceEqual(expected));
