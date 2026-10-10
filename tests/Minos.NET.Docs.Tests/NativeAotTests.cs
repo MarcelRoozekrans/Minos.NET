@@ -127,8 +127,7 @@ public sealed partial class NativeAotTests
     public void TheProseFigures_ArePerformanceMds()
     {
         var performance = Source("docs", "performance.md");
-
-        Assert.Contains("`Build` measures 6592 B", performance, StringComparison.Ordinal);
+        Assert.Contains("measures 2648 B against an unchanged budget of 7296 B", performance, StringComparison.Ordinal);
         Assert.Contains("2984 B", performance, StringComparison.Ordinal);
         Assert.Contains("211 B", performance, StringComparison.Ordinal);
         Assert.Contains("4544 B", performance, StringComparison.Ordinal);
@@ -144,7 +143,7 @@ public sealed partial class NativeAotTests
     {
         var aot = Source("docs", "native-aot.md");
         Assert.Contains("2984 B under Native AOT", aot, StringComparison.Ordinal);
-        Assert.Contains("It measures 6592 B", aot, StringComparison.Ordinal);
+        Assert.Contains("It measures 2648 B", aot, StringComparison.Ordinal);
         Assert.Contains("211 B, measured under the JIT", aot, StringComparison.Ordinal);
 
         var observability = Source("docs", "observability.md");

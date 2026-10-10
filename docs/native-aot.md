@@ -155,7 +155,7 @@ object.
   probabilities of its answers, and nothing else.
 - **A whole call allocates a few kilobytes.** Over the canned handler, a typed call measures 2984 B under Native AOT,
   and [Performance](performance.md) has the measurements for the other paths.
-- **Building a question set allocates the set.** It measures 6592 B, so build it once and share it, as the
+- **Building a question set allocates the set.** It measures 2648 B, so build it once and share it, as the
   [run-time page](question-sets-at-run-time.md) advises.
 - **Logging and telemetry add nothing to synchronous calls until something listens.** With no logger, or every level
   off, a call allocates nothing extra. With nothing listening to the source or the meter, telemetry adds nothing to the
