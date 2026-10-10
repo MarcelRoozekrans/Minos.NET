@@ -1,6 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using Minos.Protocols;
 using Minos.Validation;
 using ZeroAlloc.Results;
 
@@ -172,19 +171,17 @@ public sealed class QuestionSetBuilder
         }
 
         var plan = new QuestionPlan[specs.Length];
-        var keys = new string[specs.Length];
         var offset = 0;
         for (var i = 0; i < specs.Length; i++)
         {
             var options = _questions[i].PlanOptions(specs[i]);
             plan[i] = new QuestionPlan(specs[i].Kind, specs[i].Key, options, offset);
-            keys[i] = specs[i].Key;
             offset += options?.Count ?? 0;
         }
 
         var definition = ToDefinition(specs);
         return Result<QuestionSet, DecisionError>.Success(
-            new QuestionSet(_identity, SystemOneProtocol.QuestionsUtf8(definition).ToArray(), definition, warnings, plan, Utf8Keys.Encode(keys), offset));
+            new QuestionSet(_identity, definition, warnings, plan));
     }
 
     private static QuestionSetDefinition ToDefinition(QuestionSpec[] specs)

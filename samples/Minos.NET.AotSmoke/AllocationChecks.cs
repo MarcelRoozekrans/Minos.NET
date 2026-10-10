@@ -393,9 +393,10 @@ internal static class AllocationChecks
     {
         var builder = SmokeBuiltSet.Builder(out _, out _, out _);
 
-        // Measured 6592 B/call on published win-x64 AOT: the builder's question and warning lists, the Utf8JsonWriter and
-        // its ArrayBufferWriter growth, the UTF-8 keys and the resulting QuestionSet. Budget: about 10% headroom, 7251 B,
-        // rounded up to the next multiple of 64, 7296 B, since writer growth and list capacities follow runtime internals.
+        // Measured 2648 B/call on published win-x64 AOT (6592 B/call before the questions were written on first use,
+        // not at Build): the builder's question and warning lists, the question definition graph with its UTF-8 keys and
+        // the resulting QuestionSet. Budget unchanged: it was about 10% headroom over 6592 B, 7251 B, rounded up to the
+        // next multiple of 64, 7296 B.
         Gate(
             budgetBytes: 7296,
             action: () => _ = builder.Build(),

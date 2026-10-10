@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Minos.Protocols;
 
 namespace Minos;
 
@@ -10,24 +11,20 @@ namespace Minos;
 /// <remarks>Immutable and safe to share across threads: build it once and reuse it.</remarks>
 public sealed class QuestionSet
 {
-    private readonly byte[] _questionsUtf8;
     private readonly AnswerParser<Answers> _parser;
 
     internal QuestionSet(
-        object identity, byte[] questionsUtf8, QuestionSetDefinition definition, QuestionFailure[] warnings, QuestionPlan[] plan, byte[][] utf8Keys, int probabilityCount)
+        object identity, QuestionSetDefinition definition, QuestionFailure[] warnings, QuestionPlan[] plan)
     {
         Identity = identity;
         _parser = Parse;
-        _questionsUtf8 = questionsUtf8;
         Definition = definition;
         Warnings = warnings.Length == 0 ? [] : new System.Collections.ObjectModel.ReadOnlyCollection<QuestionFailure>(warnings);
         Plan = plan;
-        QuestionKeys = utf8Keys;
-        ProbabilityCount = probabilityCount;
     }
 
-    /// <summary>Gets the <c>questions</c> object of a <c>/v1/systemone</c> request, as UTF-8 JSON, written once at build.</summary>
-    public ReadOnlySpan<byte> QuestionsUtf8 => _questionsUtf8;
+    /// <summary>Gets the <c>questions</c> object of a <c>/v1/systemone</c> request, as UTF-8 JSON, written on first use and cached.</summary>
+    public ReadOnlySpan<byte> QuestionsUtf8 => SystemOneProtocol.QuestionsUtf8(Definition);
 
     /// <summary>Gets the set's questions, independent of any provider's wire format.</summary>
     public QuestionSetDefinition Definition { get; }
@@ -42,10 +39,10 @@ public sealed class QuestionSet
     internal QuestionPlan[] Plan { get; }
 
     /// <summary>Gets the question keys as UTF-8, in <see cref="Plan"/> order, for <see cref="Utf8Keys.IndexOf"/>.</summary>
-    internal byte[][] QuestionKeys { get; }
+    internal byte[][] QuestionKeys => Definition.KeysUtf8;
 
     /// <summary>Gets the length of the probability buffer one parse needs.</summary>
-    internal int ProbabilityCount { get; }
+    internal int ProbabilityCount => Definition.ProbabilityCount;
 
     /// <summary>Starts a new set.</summary>
     /// <returns>An empty builder.</returns>
