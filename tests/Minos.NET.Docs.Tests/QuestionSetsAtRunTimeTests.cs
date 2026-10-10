@@ -78,7 +78,7 @@ public sealed class QuestionSetsAtRunTimeTests
     {
         var (set, team) = CriteriaExample.Create();
 
-        using var actual = JsonDocument.Parse(set.QuestionsUtf8.ToArray());
+        using var actual = await CannedDecision.QuestionsSentAsync(set, "{}");
         using var expected = JsonDocument.Parse("""
             {
               "team": {
@@ -277,11 +277,11 @@ public sealed class QuestionSetsAtRunTimeTests
     }
 
     [Fact]
-    public void EnumQuestions_KeyTheMembersInSnakeCase_AndSkipAliases()
+    public async Task EnumQuestions_KeyTheMembersInSnakeCase_AndSkipAliases()
     {
         var set = QuestionSet.CreateBuilder().Choice("route", "Where to?", out ChoiceHandle<Route> _).Build().Value;
 
-        using var questions = JsonDocument.Parse(set.QuestionsUtf8.ToArray());
+        using var questions = await CannedDecision.QuestionsSentAsync(set, "{}");
         var criteria = questions.RootElement.GetProperty("route").GetProperty("criteria");
         Assert.Equal(["send_to_billing", "needs_human"], criteria.EnumerateObject().Select(p => p.Name).ToArray());
     }
@@ -292,7 +292,7 @@ public sealed class QuestionSetsAtRunTimeTests
         // Department carries [Criteria] on its members; the builder sends no description for them.
         var set = QuestionSet.CreateBuilder().Choice("d", "Which?", out ChoiceHandle<Department> department).Build().Value;
 
-        using var questions = JsonDocument.Parse(set.QuestionsUtf8.ToArray());
+        using var questions = await CannedDecision.QuestionsSentAsync(set, "{}");
         var criteria = questions.RootElement.GetProperty("d").GetProperty("criteria");
         Assert.Equal(JsonValueKind.Null, criteria.GetProperty("billing").ValueKind);
 

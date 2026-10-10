@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using System.Text.Json;
 
 namespace Minos.Docs.Tests;
 
@@ -17,6 +18,33 @@ internal static class CannedDecision
         return result.Value;
     }
 
+    /// <summary>The <c>questions</c> object a typed evaluation of <typeparamref name="T"/> sends, read from the request body the client posted.</summary>
+    public static async Task<JsonDocument> QuestionsSentAsync<T>(string responseJson)
+        where T : IQuestionSet<T>
+    {
+        var (http, client, requests) = Client(responseJson);
+        using (http)
+        using (client)
+        {
+            _ = await client.EvaluateAsync<T>("text", CancellationToken.None);
+        }
+
+        return Questions(requests[0]);
+    }
+
+    /// <summary>The <c>questions</c> object a built set sends, read from the request body the client posted.</summary>
+    public static async Task<JsonDocument> QuestionsSentAsync(QuestionSet set, string responseJson)
+    {
+        var (http, client, requests) = Client(responseJson);
+        using (http)
+        using (client)
+        {
+            _ = await client.EvaluateAsync(set, "text");
+        }
+
+        return Questions(requests[0]);
+    }
+
     /// <summary>
     /// A client over a canned response, for snippets that take an <see cref="IDecisionClient"/>; the caller disposes both.
     /// <c>Requests</c> holds the body of every request the client sent, in order.
@@ -26,6 +54,12 @@ internal static class CannedDecision
         var handler = new Handler(responseJson);
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://docs.example/api/") };
         return (http, new DecisionClient(http, new DecisionClientOptions { ApiKey = "docs-key", MaxRetries = 0 }), handler.Requests);
+    }
+
+    private static JsonDocument Questions(string requestBody)
+    {
+        using var body = JsonDocument.Parse(requestBody);
+        return JsonDocument.Parse(body.RootElement.GetProperty("questions").GetRawText());
     }
 
     private sealed class Handler(string responseJson) : HttpMessageHandler

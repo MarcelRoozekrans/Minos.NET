@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using Minos.Protocols;
 
 namespace Minos.Tests;
 
@@ -34,7 +35,7 @@ public sealed class QuestionSetPlanTests
         Assert.Equal(12, set.Definition.ProbabilityCount);
         Assert.Equal(keys.Select(k => Encoding.UTF8.GetBytes(k)), set.Definition.KeysUtf8);
 
-        using var document = JsonDocument.Parse(set.QuestionsUtf8.ToArray());
+        using var document = JsonDocument.Parse(SystemOneProtocol.QuestionsUtf8(set.Definition).ToArray());
         var wire = document.RootElement.EnumerateObject().ToArray();
         Assert.Equal(keys, wire.Select(p => p.Name));
 
@@ -56,10 +57,7 @@ public sealed class QuestionSetPlanTests
 
             Assert.NotNull(plan.Options);
             Assert.Equal(wireKeys.Length, plan.Options.Count);
-            for (var n = 0; n < wireKeys.Length; n++)
-            {
-                Assert.Equal(n, IndexOfKey(plan.Options, wireKeys[n]));
-            }
+            Assert.Equal(Utf8Keys.Encode(wireKeys), set.Definition.OptionKeysUtf8[i]);
         }
     }
 
@@ -67,11 +65,4 @@ public sealed class QuestionSetPlanTests
         => criteria.ValueKind == JsonValueKind.Array
             ? Enumerable.Range(0, criteria.GetArrayLength()).Select(n => n.ToString(CultureInfo.InvariantCulture)).ToArray()
             : criteria.EnumerateObject().Select(p => p.Name).ToArray();
-
-    private static int IndexOfKey(IDecisionOptionKeys options, string key)
-    {
-        var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(key)));
-        Assert.True(reader.Read());
-        return options.IndexOfKey(ref reader);
-    }
 }

@@ -1,5 +1,6 @@
 using System.Text.Json;
 using Minos.Tests.WireFixtureSets;
+using Minos.Protocols;
 
 namespace Minos.Tests;
 
@@ -24,7 +25,7 @@ public sealed class GeneratedQuestionCountTests
     {
         Assert.Equal(expected, GeneratedQuestionCount<T>.Value);
 
-        using var questions = JsonDocument.Parse(T.QuestionsUtf8.ToArray());
+        using var questions = JsonDocument.Parse(SystemOneProtocol.QuestionsUtf8(T.Definition).ToArray());
         Assert.Equal(expected, questions.RootElement.GetPropertyCount());
     }
 }

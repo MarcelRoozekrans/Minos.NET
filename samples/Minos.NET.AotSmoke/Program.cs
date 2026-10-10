@@ -15,6 +15,7 @@ internal static class Program
     internal const string ValidationResponse = """{"detail":"questions.is_urgent.instructions is required"}""";
     internal const string TriageAnswers = """{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}}""";
     internal const string TriageResponse = """{"model":"jev-1.13.0","answers":{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}},"usage":{"input_tokens":296,"output_tokens":20}}""";
+    internal const string StructuredResponse = """{"model":"jev-1.13.0","answers":{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7}},"usage":{"input_tokens":296,"output_tokens":20}}""";
     internal const string CredentialsResponse = """{"model":"jev-1.13.0","answers":{"requests_credentials":{"type":"noul","noul":0.1}},"usage":{"input_tokens":296,"output_tokens":20}}""";
 
     private static int failures;
@@ -27,8 +28,8 @@ internal static class Program
         await MalformedBodyIsInvalidResponse().ConfigureAwait(false);
         await OpenRouterModelListingIsUnsupported().ConfigureAwait(false);
         await OverloadedThenSuccessIsRetried().ConfigureAwait(false);
-        GeneratedQuestionSetRoundTrips();
-        StructuredQuestionSetRoundTrips();
+        await GeneratedQuestionSetRoundTrips().ConfigureAwait(false);
+        await StructuredQuestionSetRoundTrips().ConfigureAwait(false);
         await TypedEvaluateAsyncParsesAnswers().ConfigureAwait(false);
         await TypedEvaluateAsyncWithTStateParsesAnswers().ConfigureAwait(false);
         await DefaultInterfaceMethodFallbackParsesAnswers().ConfigureAwait(false);
@@ -63,16 +64,16 @@ internal static class Program
         DecisionClientOptionsChecks.ValidateAcceptsValidOptionsAndRejectsInvalidOnes();
         DecisionContentChecks.TextContentRoundTrips();
         DecisionContentChecks.JsonContentRoundTrips();
-        CriterionChecks.NotForTextsAreSentWithTheDescription();
-        QuestionSetBuilderChecks.NoulCriteriaAndUndescribedKeyedOptionsAreSent();
+        await CriterionChecks.NotForTextsAreSentWithTheDescription().ConfigureAwait(false);
+        await QuestionSetBuilderChecks.NoulCriteriaAndUndescribedKeyedOptionsAreSent().ConfigureAwait(false);
         await QuestionHandleChecks.DefaultHandlesAreRejected().ConfigureAwait(false);
         DefinitionChecks.QuestionSetDefinitionKeepsItsQuestions();
         DefinitionChecks.EmptyAnswerSlotsHoldNoAnswers();
         DefinitionChecks.AnswerSlotsRefuseAnIndexOutOfRange();
-        NoulChecks.EmptyNoulIsFalse();
-        ChoiceChecks.ChoiceIsRebuiltAndCompared();
-        ScoreChecks.ScoreIsRebuiltAndCompared();
-        ProbabilityMapChecks.ProbabilityMapEnumeratesAndCompares();
+        await NoulChecks.EmptyNoulIsFalse().ConfigureAwait(false);
+        await ChoiceChecks.ChoiceIsRebuiltAndCompared().ConfigureAwait(false);
+        await ScoreChecks.ScoreIsRebuiltAndCompared().ConfigureAwait(false);
+        await ProbabilityMapChecks.ProbabilityMapEnumeratesAndCompares().ConfigureAwait(false);
         await KeyedChoiceChecks.KeyedChoiceIsRebuiltAndCompared().ConfigureAwait(false);
         await KeyedScoreChecks.KeyedScoreIsRebuiltAndCompared().ConfigureAwait(false);
         await KeyedProbabilityMapChecks.KeyedProbabilityMapEnumeratesAndCompares().ConfigureAwait(false);
@@ -87,7 +88,7 @@ internal static class Program
         IQuestionSetChecks.ParseRunsThroughTheInterface();
         IQuestionSetChecks.CreateRunsThroughTheInterface();
 
-        AllocationChecks.GeneratedParse();
+        await AllocationChecks.AnswerSlotAccessors().ConfigureAwait(false);
         AllocationChecks.ReadNoul();
         AllocationChecks.ReadChoice();
         AllocationChecks.ReadScore();
@@ -192,16 +193,17 @@ internal static class Program
 
     [Covers("static Minos.AnswerReader.EnsureStartObject(ref System.Text.Json.Utf8JsonReader reader) -> void")]
     [Covers("static Minos.AnswerReader.NextProperty(ref System.Text.Json.Utf8JsonReader reader) -> bool")]
-    private static void GeneratedQuestionSetRoundTrips()
+    private static async Task GeneratedQuestionSetRoundTrips()
     {
-        using var questions = JsonDocument.Parse(SmokeTriage.QuestionsUtf8.ToArray());
+        using var questions = await CapturingHandler.QuestionsSentAsync<SmokeTriage>(TriageResponse).ConfigureAwait(false);
         Check(
             string.Equals(
                 questions.RootElement.GetProperty("team").GetProperty("criteria").GetProperty("account").GetString(),
                 "Login, profile, permissions",
                 StringComparison.Ordinal),
-            "QuestionsUtf8 carries the Choice criteria");
+            "the questions sent for a generated set carry the Choice criteria");
 
+        // The generated Parse stays covered here until the public parse API is removed; typed evaluation reads answers through Create.
         var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(TriageAnswers));
         reader.Read();
         var triage = SmokeTriage.Parse(ref reader);
@@ -211,9 +213,9 @@ internal static class Program
     }
 
     [Covers("static Minos.Criterion.Json(Minos.DecisionContent json) -> Minos.Criterion!")]
-    private static void StructuredQuestionSetRoundTrips()
+    private static async Task StructuredQuestionSetRoundTrips()
     {
-        using var generated = JsonDocument.Parse(SmokeStructured.QuestionsUtf8.ToArray());
+        using var generated = await CapturingHandler.QuestionsSentAsync<SmokeStructured>(StructuredResponse).ConfigureAwait(false);
         Check(
             string.Equals(
                 generated.RootElement.GetProperty("team").GetProperty("criteria").GetProperty("billing").GetProperty("not_for")[0].GetString(),
@@ -221,7 +223,7 @@ internal static class Program
                 StringComparison.Ordinal),
             "Examples and NotFor are sent as a criterion object");
 
-        using var built = JsonDocument.Parse(SmokeBuiltSet.Structured().QuestionsUtf8.ToArray());
+        using var built = await CapturingHandler.QuestionsSentAsync(SmokeBuiltSet.Structured(), CredentialsResponse).ConfigureAwait(false);
         var root = built.RootElement;
         Check(
             root.GetProperty("requests_credentials").GetProperty("instructions").GetProperty("policy").GetProperty("strict").GetBoolean(),
@@ -354,8 +356,9 @@ internal static class Program
     private static async Task BuiltEnumChoiceReadsTheFieldsInDeclarationOrder()
     {
         var set = SmokeBuiltSet.AliasedChoice(out var channel);
+        using var sent = await CapturingHandler.QuestionsSentAsync(set, SmokeBuiltSet.AliasedChoiceResponseJson).ConfigureAwait(false);
         Check(
-            string.Equals(Encoding.UTF8.GetString(set.QuestionsUtf8), SmokeBuiltSet.AliasedChoiceQuestions, StringComparison.Ordinal),
+            string.Equals(sent.RootElement.GetRawText(), SmokeBuiltSet.AliasedChoiceQuestions, StringComparison.Ordinal),
             "a built enum Choice sends its options in declaration order, the alias skipped, under Native AOT");
 
         using var http = Http(HttpStatusCode.OK, SmokeBuiltSet.AliasedChoiceResponseJson);

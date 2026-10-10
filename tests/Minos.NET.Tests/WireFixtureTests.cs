@@ -59,11 +59,6 @@ public sealed class WireFixtureTests
 
     [Theory]
     [MemberData(nameof(BuiltCaseNames))]
-    public void Built_QuestionsMatchTheFixture(string name)
-        => WireFixtures.AssertMatches("built-" + name, BuiltCases[name]().QuestionsUtf8);
-
-    [Theory]
-    [MemberData(nameof(BuiltCaseNames))]
     public void Built_ProtocolQuestionsMatchTheFixture(string name)
         => WireFixtures.AssertMatches("built-" + name, Minos.Protocols.SystemOneProtocol.QuestionsUtf8(BuiltCases[name]().Definition));
 
@@ -109,19 +104,9 @@ public sealed class WireFixtureTests
         _ => throw new ArgumentOutOfRangeException(nameof(name)),
     };
 
-    // The generated literal, which stays until the generator stops emitting QuestionsUtf8.
-    internal static ReadOnlySpan<byte> GeneratedQuestions(string name) => name switch
-    {
-        "NoulOnly" => WfNoulOnly.QuestionsUtf8,
-        "ChoiceOnly" => WfChoiceOnly.QuestionsUtf8,
-        "ScoreOnly" => WfScoreOnly.QuestionsUtf8,
-        "Mixed" => WfMixed.QuestionsUtf8,
-        "Structured" => WfStructured.QuestionsUtf8,
-        "KeywordMembers" => WfKeywordMembers.QuestionsUtf8,
-        "WithState" => WfWithState.QuestionsUtf8,
-        "Escapes" => WfEscapes.QuestionsUtf8,
-        _ => throw new ArgumentOutOfRangeException(nameof(name)),
-    };
+    // The questions the protocol writes for a generated set's definition.
+    internal static ReadOnlySpan<byte> GeneratedQuestions(string name)
+        => Minos.Protocols.SystemOneProtocol.QuestionsUtf8(GeneratedDefinition(name));
 }
 
 /// <summary>Every builder chain whose questions are pinned as a fixture, declared once and shared with the tests that assert on it.</summary>

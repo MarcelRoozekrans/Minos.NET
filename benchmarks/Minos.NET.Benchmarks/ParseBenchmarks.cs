@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using BenchmarkDotNet.Attributes;
+using Minos.Protocols;
 
 namespace Minos.Benchmarks;
 
@@ -49,11 +50,17 @@ public partial record BenchUrgency
     public partial Noul IsUrgent { get; }
 }
 
-/// <summary>Benchmarks the generated <c>BenchTriage.Parse</c> and the reader primitives it is built from, over the
-/// same kind of fixed inputs as the Native AOT smoke app's allocation gates.</summary>
+/// <summary>Benchmarks the systemone protocol's read of <c>BenchTriage</c>'s answers and the reader primitives it is
+/// built from, over the same kind of fixed inputs as the Native AOT smoke app's allocation gates.</summary>
 [MemoryDiagnoser]
 public class ParseBenchmarks
 {
+    // One cached factory, as the typed client path keeps, so the benchmark measures the read and not a delegate allocation.
+    private static readonly AnswerFactory<BenchTriage> TriageFactory = static answers => BenchTriage.Create(answers);
+
+    private static readonly byte[][] TeamKeys = Utf8Keys.Encode(["billing", "account"]);
+    private static readonly byte[][] UrgencyKeys = Utf8Keys.Encode(["0", "1", "2"]);
+
     private byte[] _triageAnswers = [];
     private byte[] _noulAnswer = [];
     private byte[] _choiceAnswer = [];
@@ -71,124 +78,43 @@ public class ParseBenchmarks
             """{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7}""");
         _scoreAnswer = Encoding.UTF8.GetBytes(
             """{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}""");
-        _teamBuffer = new double[TeamOptions.Instance.Count];
-        _urgencyBuffer = new double[UrgencyOptions.Instance.Count];
+        _teamBuffer = new double[TeamKeys.Length];
+        _urgencyBuffer = new double[UrgencyKeys.Length];
     }
 
-    /// <summary>The generated <c>BenchTriage.Parse</c>, over the whole triage answer set.</summary>
+    /// <summary>The protocol's read of the whole triage answer set into <c>BenchTriage</c>.</summary>
     [Benchmark]
-    public BenchTriage GeneratedParse()
+    public BenchTriage ProtocolReadAnswers()
     {
         var reader = new Utf8JsonReader(_triageAnswers);
         reader.Read();
-        return BenchTriage.Parse(ref reader);
+        return SystemOneProtocol.Instance.ReadAnswers(ref reader, BenchTriage.Definition, TriageFactory);
     }
 
-    /// <summary><see cref="AnswerReader.ReadNoul"/> over a fixed Noul answer.</summary>
+    /// <summary><see cref="SystemOneAnswers.ReadNoul"/> over a fixed Noul answer.</summary>
     [Benchmark]
-    public Noul ReadNoul()
+    public double ReadNoul()
     {
         var reader = new Utf8JsonReader(_noulAnswer);
         reader.Read();
-        return AnswerReader.ReadNoul(ref reader);
+        return SystemOneAnswers.ReadNoul(ref reader);
     }
 
-    /// <summary><see cref="AnswerReader.ReadChoice{T}"/> into a caller-owned buffer.</summary>
+    /// <summary><see cref="SystemOneAnswers.ReadChoice"/> into a caller-owned buffer.</summary>
     [Benchmark]
-    public Choice<Team> ReadChoice()
+    public (int Choice, double Confidence) ReadChoice()
     {
         var reader = new Utf8JsonReader(_choiceAnswer);
         reader.Read();
-        return AnswerReader.ReadChoice(ref reader, TeamOptions.Instance, _teamBuffer, 0);
+        return SystemOneAnswers.ReadChoice(ref reader, TeamKeys, _teamBuffer, 0);
     }
 
-    /// <summary><see cref="AnswerReader.ReadScore{T}"/> into a caller-owned buffer.</summary>
+    /// <summary><see cref="SystemOneAnswers.ReadScore"/> into a caller-owned buffer.</summary>
     [Benchmark]
-    public Score<Urgency> ReadScore()
+    public (int Level, double Expected, double Confidence) ReadScore()
     {
         var reader = new Utf8JsonReader(_scoreAnswer);
         reader.Read();
-        return AnswerReader.ReadScore(ref reader, UrgencyOptions.Instance, _urgencyBuffer, 0);
-    }
-
-    /// <summary>Mirrors the generated option set for <see cref="Team"/>, since the real one is a private nested class.</summary>
-    private sealed class TeamOptions : DecisionOptionSet<Team>
-    {
-        public static readonly TeamOptions Instance = new();
-
-        public override int Count => 2;
-
-        public override Team this[int index] => index switch
-        {
-            0 => Team.Billing,
-            1 => Team.Account,
-            _ => throw new ArgumentOutOfRangeException(nameof(index)),
-        };
-
-        public override int IndexOf(Team value) => value switch
-        {
-            Team.Billing => 0,
-            Team.Account => 1,
-            _ => -1,
-        };
-
-        public override int IndexOfKey(ref Utf8JsonReader reader)
-        {
-            if (reader.ValueTextEquals("billing"u8))
-            {
-                return 0;
-            }
-
-            if (reader.ValueTextEquals("account"u8))
-            {
-                return 1;
-            }
-
-            return -1;
-        }
-    }
-
-    /// <summary>Mirrors the generated option set for <see cref="Urgency"/>, since the real one is a private nested class.</summary>
-    private sealed class UrgencyOptions : DecisionOptionSet<Urgency>
-    {
-        public static readonly UrgencyOptions Instance = new();
-
-        public override int Count => 3;
-
-        public override Urgency this[int index] => index switch
-        {
-            0 => Urgency.Low,
-            1 => Urgency.Medium,
-            2 => Urgency.High,
-            _ => throw new ArgumentOutOfRangeException(nameof(index)),
-        };
-
-        public override int IndexOf(Urgency value) => value switch
-        {
-            Urgency.Low => 0,
-            Urgency.Medium => 1,
-            Urgency.High => 2,
-            _ => -1,
-        };
-
-        public override int IndexOfKey(ref Utf8JsonReader reader)
-        {
-            if (reader.ValueTextEquals("0"u8))
-            {
-                return 0;
-            }
-
-            if (reader.ValueTextEquals("1"u8))
-            {
-                return 1;
-            }
-
-            if (reader.ValueTextEquals("2"u8))
-            {
-                return 2;
-            }
-
-            return -1;
-        }
+        return SystemOneAnswers.ReadScore(ref reader, UrgencyKeys, _urgencyBuffer, 0);
     }
 }

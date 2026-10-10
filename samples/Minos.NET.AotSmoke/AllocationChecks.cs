@@ -20,32 +20,41 @@ internal static class AllocationChecks
     private const string NoulAnswerJson = """{"type":"noul","noul":0.95}""";
     private const string ChoiceAnswerJson = """{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7}""";
     private const string ScoreAnswerJson = """{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}""";
-    private const string TriageAnswersJson = """{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}}""";
     // The iteration count of every synchronous gate, the relative ones included.
     private const int GateIterations = 1000;
 
     private const string NoulResponseJson = """{"model":"jev-1.13.0","answers":{"is_urgent":{"type":"noul","noul":0.95}},"usage":{"input_tokens":296,"output_tokens":20}}""";
     private const string TriageResponseJson = """{"model":"jev-1.13.0","answers":{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}},"usage":{"input_tokens":296,"output_tokens":20}}""";
 
-    /// <summary>The generated <c>SmokeTriage.Parse</c>, over the whole triage answer set.</summary>
-    public static void GeneratedParse()
+    /// <summary>
+    /// <c>AnswerSlots.Noul</c>, <c>Choice</c> and <c>Score</c> over the slots a protocol read from the triage answers.
+    /// The slots are a ref struct the protocol owns, so the gate runs inside a hand-written <c>Create</c> that
+    /// <see cref="DecisionClient.EvaluateAsync{T}(string)"/> calls, and counts only the allocations of the accessor loops.
+    /// </summary>
+    public static async Task AnswerSlotAccessors()
     {
-        var answers = Encoding.UTF8.GetBytes(TriageAnswersJson);
+        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, TriageResponseJson))
+        {
+            BaseAddress = new Uri("https://example.test/api/"),
+        };
+        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
 
-        // Measured ~176 B/call on published win-x64 AOT: the SmokeTriage result record plus its shared probability
-        // buffer (double[3]), rounded up to the next multiple of 64. This gate allocates only the result record
-        // and its arrays, whose sizes are identical on 64-bit Linux and Windows, so the thin margin above the
-        // measurement is deliberate, not an oversight.
-        Gate(
-            budgetBytes: 192,
-            action: () =>
-            {
-                var reader = new Utf8JsonReader(answers);
-                reader.Read();
-                _ = SmokeTriage.Parse(ref reader);
-            },
-            label: "GeneratedParse",
-            passDescription: "the generated Parse stays within its allocation budget");
+        var result = await client.EvaluateAsync<SlotProbe>(SmokeAnswers.State).ConfigureAwait(false);
+        Program.Check(result.IsSuccess, "the slot probe is created over the triage answers");
+
+        // Measured 0 B/call on published win-x64 AOT for each accessor: Noul reads a double off the slot span, and
+        // Choice and Score return structs over the protocol's probability array. Each gate takes the 0 B budget of the
+        // AnswerReader primitive that reads the same answer, so none may allocate.
+        const long BudgetBytes = 0;
+        Program.Check(
+            SlotProbe.NoulBytes is >= 0 and <= BudgetBytes,
+            $"AnswerSlots.Noul stays within its allocation budget: {SlotProbe.NoulBytes} B over {GateIterations} calls against {BudgetBytes} B");
+        Program.Check(
+            SlotProbe.ChoiceBytes is >= 0 and <= BudgetBytes,
+            $"AnswerSlots.Choice stays within its allocation budget: {SlotProbe.ChoiceBytes} B over {GateIterations} calls against {BudgetBytes} B");
+        Program.Check(
+            SlotProbe.ScoreBytes is >= 0 and <= BudgetBytes,
+            $"AnswerSlots.Score stays within its allocation budget: {SlotProbe.ScoreBytes} B over {GateIterations} calls against {BudgetBytes} B");
     }
 
     /// <summary><see cref="AnswerReader.ReadNoul"/> over a fixed Noul answer.</summary>
@@ -725,6 +734,66 @@ internal static class AllocationChecks
         catch (InvalidOperationException exception)
         {
             Program.Check(false, exception.Message);
+        }
+    }
+
+    /// <summary>
+    /// A hand-written question set over the triage questions whose <c>Create</c> measures the accessors of the
+    /// <see cref="AnswerSlots"/> it is handed. Its leftover <c>QuestionsUtf8</c> and <c>Parse</c> only satisfy the
+    /// interface until the public parse API is removed.
+    /// </summary>
+    private sealed class SlotProbe : IQuestionSet<SlotProbe>
+    {
+        private static int sink;
+
+        public static long NoulBytes { get; private set; } = -1;
+
+        public static long ChoiceBytes { get; private set; } = -1;
+
+        public static long ScoreBytes { get; private set; } = -1;
+
+        public static ReadOnlySpan<byte> QuestionsUtf8 => default;
+
+        public static QuestionSetDefinition Definition => SmokeTriage.Definition;
+
+        public static SlotProbe Parse(ref Utf8JsonReader answers) => throw new NotSupportedException();
+
+        public static SlotProbe Create(AnswerSlots answers)
+        {
+            var teams = TeamOptions.Instance;
+            var urgencies = UrgencyOptions.Instance;
+            var total = 0;
+
+            // Warm-up, so first-call work such as static construction is not counted.
+            for (var i = 0; i < GateIterations; i++)
+            {
+                total += (answers.Noul(0).Value ? 1 : 0) + (int)answers.Choice(1, teams).Value + (int)answers.Score(2, urgencies).Value;
+            }
+
+            var before = GC.GetAllocatedBytesForCurrentThread();
+            for (var i = 0; i < GateIterations; i++)
+            {
+                total += answers.Noul(0).Value ? 1 : 0;
+            }
+
+            var afterNoul = GC.GetAllocatedBytesForCurrentThread();
+            for (var i = 0; i < GateIterations; i++)
+            {
+                total += (int)answers.Choice(1, teams).Value;
+            }
+
+            var afterChoice = GC.GetAllocatedBytesForCurrentThread();
+            for (var i = 0; i < GateIterations; i++)
+            {
+                total += (int)answers.Score(2, urgencies).Value;
+            }
+
+            var afterScore = GC.GetAllocatedBytesForCurrentThread();
+            NoulBytes = afterNoul - before;
+            ChoiceBytes = afterChoice - afterNoul;
+            ScoreBytes = afterScore - afterChoice;
+            sink = total;
+            return new SlotProbe();
         }
     }
 

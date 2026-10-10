@@ -2,6 +2,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using Minos.Serialization;
+using Minos.Protocols;
 
 namespace Minos.Tests;
 
@@ -27,7 +28,7 @@ public sealed class GeneratedQuestionSetTests
     [Fact]
     public void StructuredCriteria_DeserializeThroughWireModel()
     {
-        var json = "{\"state\":\"x\",\"questions\":" + Encoding.UTF8.GetString(StructuredRouting.QuestionsUtf8) + "}";
+        var json = "{\"state\":\"x\",\"questions\":" + Encoding.UTF8.GetString(SystemOneProtocol.QuestionsUtf8(StructuredRouting.Definition)) + "}";
 
         var request = JsonSerializer.Deserialize(json, DecisionJsonContext.Default.SystemOneRequest)!;
 
@@ -40,7 +41,7 @@ public sealed class GeneratedQuestionSetTests
     [Fact]
     public void Questions_DeserializeThroughWireModel()
     {
-        var json = "{\"state\":\"x\",\"questions\":" + Encoding.UTF8.GetString(TicketTriage.QuestionsUtf8) + "}";
+        var json = "{\"state\":\"x\",\"questions\":" + Encoding.UTF8.GetString(SystemOneProtocol.QuestionsUtf8(TicketTriage.Definition)) + "}";
 
         var request = JsonSerializer.Deserialize(json, DecisionJsonContext.Default.SystemOneRequest)!;
 
@@ -143,7 +144,7 @@ public sealed class GeneratedQuestionSetTests
             """{"answers":{"frustration":{"type":"score","score":1,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"3":1.0},"confidence":0.5}}}"""));
 
     [Fact]
-    public void Parse_LeavesReaderOnTheAnswersEnd()
+    public void ReadAnswers_LeavesReaderOnTheAnswersEnd()
     {
         var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(Fixture.Text("response-noul.json")));
         while (reader.Read() && !(reader.TokenType == JsonTokenType.PropertyName && reader.ValueTextEquals("answers"u8)))
@@ -151,7 +152,7 @@ public sealed class GeneratedQuestionSetTests
         }
 
         reader.Read();
-        UrgencyCheck.Parse(ref reader);
+        SystemOneProtocol.Instance.ReadAnswers(ref reader, UrgencyCheck.Definition, static answers => UrgencyCheck.Create(answers));
 
         Assert.Equal(JsonTokenType.EndObject, reader.TokenType);
         Assert.True(reader.Read());
@@ -161,7 +162,7 @@ public sealed class GeneratedQuestionSetTests
     [Fact]
     public void Escaping_RoundTripsExactly()
     {
-        var questions = JsonNode.Parse(EdgeCases.QuestionsUtf8)!;
+        var questions = JsonNode.Parse(SystemOneProtocol.QuestionsUtf8(EdgeCases.Definition))!;
 
         Assert.Equal(EdgeCases.TrickyInstructions, (string?)questions["tricky"]!["instructions"]);
     }
@@ -169,7 +170,7 @@ public sealed class GeneratedQuestionSetTests
     [Fact]
     public void ExplicitValues_KeyOverride_AndAliases()
     {
-        var criteria = JsonNode.Parse(EdgeCases.QuestionsUtf8)!["priority"]!["criteria"]!.AsObject();
+        var criteria = JsonNode.Parse(SystemOneProtocol.QuestionsUtf8(EdgeCases.Definition))!["priority"]!["criteria"]!.AsObject();
         Assert.Equal(ExpectedPriorityCriteriaKeys, criteria.Select(pair => pair.Key));
 
         var priority = ResponseAnswers.Parse<EdgeCases>("""
@@ -188,7 +189,7 @@ public sealed class GeneratedQuestionSetTests
         where T : IQuestionSet<T>
     {
         var expected = Fixture.Load(fixture)["questions"];
-        var actual = JsonNode.Parse(T.QuestionsUtf8);
+        var actual = JsonNode.Parse(SystemOneProtocol.QuestionsUtf8(T.Definition));
 
         Assert.True(
             JsonNode.DeepEquals(expected, actual),

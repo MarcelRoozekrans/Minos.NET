@@ -45,17 +45,7 @@ internal sealed class ColorOptions : DecisionOptionSet<Color>
 
     public override int IndexOfKey(ref Utf8JsonReader reader)
     {
-        if (reader.ValueTextEquals("red"u8))
-        {
-            return 0;
-        }
-
-        if (reader.ValueTextEquals("green"u8))
-        {
-            return 1;
-        }
-
-        return reader.ValueTextEquals("blue"u8) ? 2 : -1;
+        throw new NotSupportedException();
     }
 }
 
@@ -88,17 +78,7 @@ internal sealed class UrgencyLevels : DecisionOptionSet<Urgency>
 
     public override int IndexOfKey(ref Utf8JsonReader reader)
     {
-        if (reader.ValueTextEquals("0"u8))
-        {
-            return 0;
-        }
-
-        if (reader.ValueTextEquals("1"u8))
-        {
-            return 1;
-        }
-
-        return reader.ValueTextEquals("2"u8) ? 2 : -1;
+        throw new NotSupportedException();
     }
 }
 
@@ -129,12 +109,7 @@ internal sealed class ColorOptionsSubset : DecisionOptionSet<Color>
 
     public override int IndexOfKey(ref Utf8JsonReader reader)
     {
-        if (reader.ValueTextEquals("red"u8))
-        {
-            return 0;
-        }
-
-        return reader.ValueTextEquals("green"u8) ? 1 : -1;
+        throw new NotSupportedException();
     }
 }
 
@@ -168,16 +143,6 @@ internal sealed class ColorOptionsReversed : DecisionOptionSet<Color>
 
     public override int IndexOfKey(ref Utf8JsonReader reader)
     {
-        if (reader.ValueTextEquals("blue"u8))
-        {
-            return 0;
-        }
-
-        if (reader.ValueTextEquals("green"u8))
-        {
-            return 1;
-        }
-
-        return reader.ValueTextEquals("red"u8) ? 2 : -1;
+        throw new NotSupportedException();
     }
 }

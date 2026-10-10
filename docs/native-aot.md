@@ -181,7 +181,7 @@ regression cannot reach a release unnoticed.
 | `AnswersGet` | Reading answers of a built set through its handles. | 0 |
 | `PatternHelpers` | The confidence and normalization helpers of the patterns. | 0 |
 | `NoulEquals` | Comparing two `Noul` answers, directly and through `EqualityComparer<Noul>.Default`. | 0 |
-| `GeneratedParse` | Parsing a typed set of three answers. | 192 |
+| `AnswerSlotAccessors` | Reading a `Noul`, a `Choice<T>` and a `Score<T>` from the answer slots of a typed set. | 0 |
 | `EvaluateRoundTrip` | A raw `EvaluateAsync` call. | 4352 |
 | `TypedEvaluateRoundTrip` | A typed `EvaluateAsync<T>` call. | 3328 |
 | `EvaluateBuiltSetRoundTrip` | An `EvaluateAsync` call over a built set. | 3648 |

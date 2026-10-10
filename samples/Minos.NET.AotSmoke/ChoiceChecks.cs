@@ -6,9 +6,9 @@ internal static class ChoiceChecks
     [Covers("Minos.Choice<T>.Choice() -> void")]
     [Covers("Minos.Choice<T>.Choice(T value, double confidence, Minos.ProbabilityMap<T> probabilities) -> void")]
     [Covers("Minos.Choice<T>.Equals(Minos.Choice<T> other) -> bool")]
-    public static void ChoiceIsRebuiltAndCompared()
+    public static async Task ChoiceIsRebuiltAndCompared()
     {
-        var parsed = SmokeAnswers.Triage().Team;
+        var parsed = (await SmokeAnswers.TriageAsync().ConfigureAwait(false)).Team;
         var rebuilt = new Choice<Team>(parsed.Value, parsed.Confidence, parsed.Probabilities);
         var empty = new Choice<Team>();
 

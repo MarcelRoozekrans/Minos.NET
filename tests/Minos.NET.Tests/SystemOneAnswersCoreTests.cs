@@ -1,20 +1,23 @@
 using System.Text;
 using System.Text.Json;
+using Minos.Protocols;
 
 namespace Minos.Tests;
 
-/// <summary>The non-generic Choice and Score core that the generic readers and the keyed answers share.</summary>
-public sealed class AnswerReaderCoreTests
+/// <summary>The Choice and Score readers over option keys, which typed and keyed answers share.</summary>
+public sealed class SystemOneAnswersCoreTests
 {
     private static readonly KeyedOptionSet Products = new(["pro-plan", "team-plan", "other"]);
+    private static readonly byte[][] ProductKeys = Utf8Keys.Encode(["pro-plan", "team-plan", "other"]);
+    private static readonly byte[][] LevelKeys = Utf8Keys.Encode(["0", "1", "2"]);
 
     [Fact]
-    public void ReadChoiceCore_ReadsTheIndexConfidenceAndProbabilities_AtTheOffset()
+    public void ReadChoice_ReadsTheIndexConfidenceAndProbabilities_AtTheOffset()
     {
         var buffer = new double[5];
         var reader = Reader("""{"type":"choice","choice":"team-plan","probabilities":{"pro-plan":0.25,"team-plan":0.7},"confidence":0.66}""");
 
-        var (choice, confidence) = AnswerReader.ReadChoiceCore(ref reader, Products, buffer, 2);
+        var (choice, confidence) = SystemOneAnswers.ReadChoice(ref reader, ProductKeys, buffer, 2);
 
         Assert.Equal(1, choice);
         Assert.Equal(0.66, confidence);
@@ -23,33 +26,25 @@ public sealed class AnswerReaderCoreTests
     }
 
     [Fact]
-    public void ReadChoiceCore_UnknownKey_Throws()
+    public void ReadChoice_UnknownKey_Throws()
         => Assert.Throws<JsonException>(() =>
         {
             var reader = Reader("""{"type":"choice","choice":"legacy-plan","probabilities":{},"confidence":0.5}""");
-            AnswerReader.ReadChoiceCore(ref reader, Products, new double[3], 0);
+            SystemOneAnswers.ReadChoice(ref reader, ProductKeys, new double[3], 0);
         });
 
     [Fact]
-    public void ReadScoreCore_ReadsTheArgmax_TheLowerLevelOnATie()
+    public void ReadScore_ReadsTheArgmax_TheLowerLevelOnATie()
     {
         var buffer = new double[3];
         var reader = Reader("""{"type":"score","score":0.8,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.4,"1":0.4,"2":0.2},"confidence":0.5}""");
 
-        var (level, expected, confidence) = AnswerReader.ReadScoreCore(ref reader, KeyedOptionSet.Levels(3), buffer, 0);
+        var (level, expected, confidence) = SystemOneAnswers.ReadScore(ref reader, LevelKeys, buffer, 0);
 
         Assert.Equal(0, level);
         Assert.Equal(0.8, expected);
         Assert.Equal(0.5, confidence);
     }
-
-    [Fact]
-    public void ReadScoreCore_WithoutLevels_Throws()
-        => Assert.Equal("options", Assert.Throws<ArgumentException>(() =>
-        {
-            var reader = Reader("""{"type":"score","score":0,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{},"confidence":1}""");
-            AnswerReader.ReadScoreCore(ref reader, KeyedOptionSet.Levels(0), [], 0);
-        }).ParamName);
 
     [Fact]
     public void KeyedOptionSet_MapsKeysBothWays()
@@ -63,12 +58,12 @@ public sealed class AnswerReaderCoreTests
     }
 
     [Fact]
-    public void KeyedOptionSet_IndexOfKey_ComparesTheUnescapedUtf8()
+    public void Utf8Keys_IndexOf_ComparesTheUnescapedUtf8()
     {
-        var options = new KeyedOptionSet(["café", "tea"]);
+        var keys = Utf8Keys.Encode(["café", "tea"]);
         var reader = Reader("\"caf\\u00e9\"");
 
-        Assert.Equal(0, options.IndexOfKey(ref reader));
+        Assert.Equal(0, Utf8Keys.IndexOf(ref reader, keys));
     }
 
     [Fact]

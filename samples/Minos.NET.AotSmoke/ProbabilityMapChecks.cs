@@ -8,9 +8,10 @@ internal static class ProbabilityMapChecks
     [Covers("Minos.ProbabilityMap<T>.Enumerator.Enumerator() -> void")]
     [Covers("Minos.ProbabilityMap<T>.Enumerator.MoveNext() -> bool")]
     [Covers("Minos.ProbabilityMap<T>.Equals(Minos.ProbabilityMap<T> other) -> bool")]
-    public static void ProbabilityMapEnumeratesAndCompares()
+    public static async Task ProbabilityMapEnumeratesAndCompares()
     {
-        var probabilities = SmokeAnswers.Triage().Team.Probabilities;
+        var triage = await SmokeAnswers.TriageAsync().ConfigureAwait(false);
+        var probabilities = triage.Team.Probabilities;
         var options = new List<Team>();
         var sum = 0.0;
         foreach (var (option, probability) in probabilities)
@@ -25,7 +26,7 @@ internal static class ProbabilityMapChecks
             options.SequenceEqual([Team.Billing, Team.Account]) && Math.Abs(sum - 1.0) < 1e-12,
             "a parsed ProbabilityMap enumerates every option with its probability under Native AOT");
         Program.Check(
-            probabilities.Equals(SmokeAnswers.Triage().Team.Probabilities)
+            probabilities.Equals(triage.Team.Probabilities)
                 && !probabilities.Equals(empty)
                 && empty.Equals(default)
                 && empty.Count == 0

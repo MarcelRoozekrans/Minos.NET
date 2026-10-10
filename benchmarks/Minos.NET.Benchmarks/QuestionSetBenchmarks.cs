@@ -3,6 +3,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using BenchmarkDotNet.Attributes;
+using Minos.Protocols;
 using ZeroAlloc.Results;
 
 namespace Minos.Benchmarks;
@@ -37,6 +38,8 @@ public partial record BenchTwenty
 [MemoryDiagnoser]
 public class QuestionSetBenchmarks
 {
+    private static readonly AnswerFactory<BenchTwenty> TwentyFactory = static answers => BenchTwenty.Create(answers);
+
     private const string State = "Help! My payouts have been failing for 3 days.";
 
     private QuestionSetBuilder _builder = null!;
@@ -101,12 +104,12 @@ public class QuestionSetBenchmarks
         return _twenty.Parser(ref reader);
     }
 
-    /// <summary>Parses the same twenty answers with the generated parser, as the baseline for the key scan.</summary>
+    /// <summary>Parses the same twenty answers through the protocol into the generated type, as the baseline for the built set.</summary>
     [Benchmark]
     public BenchTwenty ParseGeneratedTwenty()
     {
         var reader = new Utf8JsonReader(_twentyAnswers);
         reader.Read();
-        return BenchTwenty.Parse(ref reader);
+        return SystemOneProtocol.Instance.ReadAnswers(ref reader, BenchTwenty.Definition, TwentyFactory);
     }
 }

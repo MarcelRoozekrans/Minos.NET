@@ -9,6 +9,6 @@ internal static class Program
     private static int Main()
     {
         _ = new QuestionSetDefinition(QuestionDefinition.Noul("n", "N?")).Questions.Count;
-        return SurfaceTriage.QuestionsUtf8.IsEmpty ? 1 : 0;
+        return SurfaceTriage.Definition.Questions.Count == 0 ? 1 : 0;
     }
 }

@@ -6,7 +6,7 @@ namespace Minos.AotSmoke;
 internal static class CriterionChecks
 {
     [Covers("Minos.Criterion.WithNotFor(params System.ReadOnlySpan<string?> notFor) -> Minos.Criterion!")]
-    public static void NotForTextsAreSentWithTheDescription()
+    public static async Task NotForTextsAreSentWithTheDescription()
     {
         var built = QuestionSet.CreateBuilder()
             .Choice<Team>("team", "Which team should handle `message`?", out _, options => options
@@ -20,7 +20,7 @@ internal static class CriterionChecks
             return;
         }
 
-        using var questions = JsonDocument.Parse(built.Value.QuestionsUtf8.ToArray());
+        using var questions = await CapturingHandler.QuestionsSentAsync(built.Value, Program.CredentialsResponse).ConfigureAwait(false);
         var billing = questions.RootElement.GetProperty("team").GetProperty("criteria").GetProperty("billing");
         Program.Check(
             string.Equals(billing.GetProperty("description").GetString(), "Charges, invoices, refunds", StringComparison.Ordinal)

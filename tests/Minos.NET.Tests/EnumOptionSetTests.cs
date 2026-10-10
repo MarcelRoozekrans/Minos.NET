@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
+using Minos.Protocols;
 
 namespace Minos.Tests;
 
@@ -115,7 +116,7 @@ public sealed class EnumOptionSetTests
 
         Assert.Equal([OutOfOrderLevel.High, OutOfOrderLevel.Low, OutOfOrderLevel.Medium], new[] { options[0], options[1], options[2] });
         Assert.Equal(["high", "low", "medium"], Keys(options));
-        Assert.Equal(GeneratedKeys(DeclarationOrderChecks.QuestionsUtf8, "out_of_order"), Keys(options));
+        Assert.Equal(GeneratedKeys(SystemOneProtocol.QuestionsUtf8(DeclarationOrderChecks.Definition), "out_of_order"), Keys(options));
     }
 
     [Fact]
@@ -145,7 +146,7 @@ public sealed class EnumOptionSetTests
 
         // The generator sends the same two options in the same order. Its second key is "urgent" only because it reads
         // High's [Criteria(Key = "urgent")], which the builder does not.
-        Assert.Equal(["low", "urgent"], GeneratedKeys(EdgeCases.QuestionsUtf8, "priority"));
+        Assert.Equal(["low", "urgent"], GeneratedKeys(SystemOneProtocol.QuestionsUtf8(EdgeCases.Definition), "priority"));
     }
 
     [Fact]
@@ -158,7 +159,7 @@ public sealed class EnumOptionSetTests
         Assert.Equal("item03", options.KeyAt(3));
         Assert.Equal(3, options.IndexOf(AliasAfterLarge.Legacy));
         Assert.DoesNotContain("legacy", Keys(options));
-        Assert.Equal(GeneratedKeys(DeclarationOrderChecks.QuestionsUtf8, "after"), Keys(options));
+        Assert.Equal(GeneratedKeys(SystemOneProtocol.QuestionsUtf8(DeclarationOrderChecks.Definition), "after"), Keys(options));
     }
 
     [Fact]
@@ -171,7 +172,7 @@ public sealed class EnumOptionSetTests
         Assert.Equal("old", options.KeyAt(5));
         Assert.Equal(5, options.IndexOf(AliasBeforeLarge.Current));
         Assert.DoesNotContain("current", Keys(options));
-        Assert.Equal(GeneratedKeys(DeclarationOrderChecks.QuestionsUtf8, "before"), Keys(options));
+        Assert.Equal(GeneratedKeys(SystemOneProtocol.QuestionsUtf8(DeclarationOrderChecks.Definition), "before"), Keys(options));
     }
 
     [Fact]
@@ -193,7 +194,10 @@ public sealed class EnumOptionSetTests
             """{"type":"choice","choice":"billing","probabilities":{"billing":0.88,"technical":0.12,"sales":0.0},"confidence":0.81}"""));
         reader.Read();
 
-        var runtime = AnswerReader.ReadChoice(ref reader, EnumOptionSet<Department>.ForChoice, new double[4], 0);
+        var options = EnumOptionSet<Department>.ForChoice;
+        var buffer = new double[4];
+        var (index, confidence) = SystemOneAnswers.ReadChoice(ref reader, Utf8Keys.Encode(Keys(options)), buffer, 0);
+        var runtime = new Choice<Department>(options[index], confidence, new ProbabilityMap<Department>(buffer, 0, options));
 
         Assert.Equal(generated, runtime);
     }

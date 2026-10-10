@@ -1,4 +1,5 @@
 using System.Text;
+using Minos.Protocols;
 
 namespace Minos.Tests;
 
@@ -60,8 +61,8 @@ public sealed class BuilderGeneratorDifferentialTests
     {
         var built = Built();
 
-        Assert.Equal(Encoding.ASCII.GetString(DiffSet.QuestionsUtf8), Encoding.ASCII.GetString(built.QuestionsUtf8));
-        Assert.True(DiffSet.QuestionsUtf8.SequenceEqual(built.QuestionsUtf8));
+        Assert.Equal(Encoding.ASCII.GetString(SystemOneProtocol.QuestionsUtf8(DiffSet.Definition)), Encoding.ASCII.GetString(SystemOneProtocol.QuestionsUtf8(built.Definition)));
+        Assert.True(SystemOneProtocol.QuestionsUtf8(DiffSet.Definition).SequenceEqual(SystemOneProtocol.QuestionsUtf8(built.Definition)));
     }
 
     [Fact]
