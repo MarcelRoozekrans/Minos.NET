@@ -1,1 +1,28 @@
 #nullable enable
+Minos.AnswerSlots
+Minos.AnswerSlots.AnswerSlots() -> void
+Minos.AnswerSlots.Choice<T>(int index, Minos.DecisionOptionSet<T>! options) -> Minos.Choice<T>
+Minos.AnswerSlots.Count.get -> int
+Minos.AnswerSlots.Noul(int index) -> Minos.Noul
+Minos.AnswerSlots.Score<T>(int index, Minos.DecisionOptionSet<T>! options) -> Minos.Score<T>
+Minos.OptionDefinition
+Minos.OptionDefinition.Criterion.get -> Minos.Criterion?
+Minos.OptionDefinition.Key.get -> string!
+Minos.OptionDefinition.OptionDefinition(string! key, Minos.Criterion? criterion) -> void
+Minos.QuestionDefinition
+Minos.QuestionDefinition.Instructions.get -> Minos.DecisionContent
+Minos.QuestionDefinition.Key.get -> string!
+Minos.QuestionDefinition.Kind.get -> Minos.QuestionKind
+Minos.QuestionDefinition.Options.get -> System.Collections.Generic.IReadOnlyList<Minos.OptionDefinition!>!
+Minos.QuestionDefinition.WhenFalse.get -> Minos.DecisionContent?
+Minos.QuestionDefinition.WhenTrue.get -> Minos.DecisionContent?
+Minos.QuestionKind
+Minos.QuestionKind.Choice = 1 -> Minos.QuestionKind
+Minos.QuestionKind.Noul = 0 -> Minos.QuestionKind
+Minos.QuestionKind.Score = 2 -> Minos.QuestionKind
+Minos.QuestionSetDefinition
+Minos.QuestionSetDefinition.QuestionSetDefinition(params System.ReadOnlySpan<Minos.QuestionDefinition!> questions) -> void
+Minos.QuestionSetDefinition.Questions.get -> System.Collections.Generic.IReadOnlyList<Minos.QuestionDefinition!>!
+static Minos.QuestionDefinition.Choice(string! key, Minos.DecisionContent instructions, params System.ReadOnlySpan<Minos.OptionDefinition!> options) -> Minos.QuestionDefinition!
+static Minos.QuestionDefinition.Noul(string! key, Minos.DecisionContent instructions, Minos.DecisionContent? whenTrue = null, Minos.DecisionContent? whenFalse = null) -> Minos.QuestionDefinition!
+static Minos.QuestionDefinition.Score(string! key, Minos.DecisionContent instructions, params System.ReadOnlySpan<Minos.Criterion!> levels) -> Minos.QuestionDefinition!

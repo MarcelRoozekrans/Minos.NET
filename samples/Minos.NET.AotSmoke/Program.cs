@@ -66,6 +66,8 @@ internal static class Program
         CriterionChecks.NotForTextsAreSentWithTheDescription();
         QuestionSetBuilderChecks.NoulCriteriaAndUndescribedKeyedOptionsAreSent();
         await QuestionHandleChecks.DefaultHandlesAreRejected().ConfigureAwait(false);
+        DefinitionChecks.QuestionSetDefinitionKeepsItsQuestions();
+        DefinitionChecks.EmptyAnswerSlotsHoldNoAnswers();
         NoulChecks.EmptyNoulIsFalse();
         ChoiceChecks.ChoiceIsRebuiltAndCompared();
         ScoreChecks.ScoreIsRebuiltAndCompared();

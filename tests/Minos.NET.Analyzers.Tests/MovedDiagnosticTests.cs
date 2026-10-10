@@ -133,7 +133,7 @@ public sealed class MovedDiagnosticTests
             ?? throw new InvalidOperationException("Type 'E' not found in the compiled source.");
 
         var info = SingleDiagnostic(
-            ModelBuilder.ValidateEnum(enumType, QuestionKind.Choice, CancellationToken.None), DiagnosticIds.EmptyText);
+            ModelBuilder.ValidateEnum(enumType, Minos.Generator.QuestionKind.Choice, CancellationToken.None), DiagnosticIds.EmptyText);
 
         Assert.Equal(
             "An entry of Examples on the [Criteria] description of 'E.A' is empty or whitespace: write the text, or remove the entry",
@@ -150,7 +150,7 @@ public sealed class MovedDiagnosticTests
             ?? throw new InvalidOperationException("Type 'E' not found in the compiled source.");
 
         var info = SingleDiagnostic(
-            ModelBuilder.ValidateEnum(enumType, QuestionKind.Score, CancellationToken.None), DiagnosticIds.EmptyText);
+            ModelBuilder.ValidateEnum(enumType, Minos.Generator.QuestionKind.Score, CancellationToken.None), DiagnosticIds.EmptyText);
 
         Assert.StartsWith(
             "The [Level] description of 'E.B' is empty or whitespace", Format(Diagnostics.EmptyText, info), StringComparison.Ordinal);

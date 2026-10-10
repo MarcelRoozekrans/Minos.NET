@@ -6,5 +6,9 @@ namespace Minos.AotSurface;
 /// </summary>
 internal static class Program
 {
-    private static int Main() => SurfaceTriage.QuestionsUtf8.IsEmpty ? 1 : 0;
+    private static int Main()
+    {
+        _ = new QuestionSetDefinition(QuestionDefinition.Noul("n", "N?")).Questions.Count;
+        return SurfaceTriage.QuestionsUtf8.IsEmpty ? 1 : 0;
+    }
 }

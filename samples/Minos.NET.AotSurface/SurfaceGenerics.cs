@@ -36,7 +36,7 @@ public static class SurfaceGenerics
     /// <summary>Calls every public generic method that does not evaluate.</summary>
     /// <remarks>The builder callbacks are empty, so a generic type's members are reached only through
     /// <see cref="Types"/>.</remarks>
-    public static void Methods(Answers answers, DecisionOptionSet<SurfaceTeam> teams, DecisionOptionSet<SurfaceUrgency> levels, SurfaceState state)
+    public static void Methods(Answers answers, AnswerSlots slots, DecisionOptionSet<SurfaceTeam> teams, DecisionOptionSet<SurfaceUrgency> levels, SurfaceState state)
     {
         var reader = new Utf8JsonReader([]);
         _ = AnswerReader.ReadChoice(ref reader, teams, [], 0);
@@ -48,6 +48,9 @@ public static class SurfaceGenerics
             .Score<SurfaceUrgency>("urgency", "How urgent?", out var urgency, static _ => { });
         _ = answers.Get(team);
         _ = answers.Get(urgency);
+
+        _ = slots.Choice(0, teams);
+        _ = slots.Score(0, levels);
 
         _ = DecisionContent.FromValue(state, SurfaceStateJsonContext.Default.SurfaceState);
     }
