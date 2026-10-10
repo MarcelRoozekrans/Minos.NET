@@ -34,7 +34,10 @@ public partial record BenchTwenty
     [Noul("Question 20?")] public partial Noul Q20 { get; }
 }
 
-/// <summary>Question sets built at run time: building one, evaluating one, and parsing twenty answers against the generated parser.</summary>
+/// <summary>
+/// Question sets built at run time: building one, writing a new definition's questions once, evaluating one, and parsing
+/// twenty answers against the generated parser.
+/// </summary>
 [MemoryDiagnoser]
 public class QuestionSetBenchmarks
 {
@@ -44,6 +47,7 @@ public class QuestionSetBenchmarks
 
     private QuestionSetBuilder _builder = null!;
     private QuestionSet _triage = null!;
+    private QuestionDefinition[] _triageQuestions = [];
     private QuestionSet _twenty = null!;
     private byte[] _twentyAnswers = [];
     private HttpClient _http = null!;
@@ -64,6 +68,7 @@ public class QuestionSetBenchmarks
     {
         _builder = TriageBuilder();
         _triage = _builder.Build().Value;
+        _triageQuestions = [.. _triage.Definition.Questions];
 
         var twenty = QuestionSet.CreateBuilder();
         var answers = new StringBuilder("{");
@@ -90,6 +95,17 @@ public class QuestionSetBenchmarks
     /// <summary><see cref="QuestionSetBuilder.Build"/> of a Noul, an enum Choice and an enum Score.</summary>
     [Benchmark]
     public Result<QuestionSet, DecisionError> Build() => _builder.Build();
+
+    /// <summary>A new definition over the triage set's three questions, the baseline for <see cref="NewDefinitionAndQuestionsJson"/>.</summary>
+    [Benchmark]
+    public QuestionSetDefinition NewDefinition() => new(_triageQuestions);
+
+    /// <summary>
+    /// A new definition over the same questions, then its first <c>questions</c> object: the one-time cost per set, outside
+    /// any per-call budget. The difference from <see cref="NewDefinition"/> is the first serialization alone.
+    /// </summary>
+    [Benchmark]
+    public int NewDefinitionAndQuestionsJson() => SystemOneProtocol.QuestionsJson(new QuestionSetDefinition(_triageQuestions)).Length;
 
     /// <summary>The same three questions as <see cref="ClientBenchmarks.TypedEvaluateAsync"/>, evaluated as a built set.</summary>
     [Benchmark]

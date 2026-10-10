@@ -327,6 +327,22 @@ can be tightened under that rule. The old `GeneratedParse` gate, 192 B over 176 
 `GeneratedSetAllocationTests` in the unit suite holds the protocol's whole read of the answers, buffer included, to the
 same 192 B.
 
+### Phase 6.2 — The neutral question model
+
+A set's `questions` JSON is now written by the protocol from its definition on the first call, and cached on the
+definition for every later call. That first write is a one-time cost per set, so it is measured here and kept out of
+every per-call budget.
+
+| Benchmark | Mean | Allocated |
+|---|---:|---:|
+| `QuestionSetBenchmarks.NewDefinition` | 167.3 ns | 856 B |
+| `QuestionSetBenchmarks.NewDefinitionAndQuestionsJson` | 953.8 ns | 6088 B |
+
+Both build a new definition over the three triage questions of `QuestionSetBenchmarks.Build`; the second then writes its
+`questions` object. The difference, about 0.8 us and 5232 B, is the one-time cost of a set's first serialization: the
+growing buffer, the JSON writer and the finished byte array. Measured on 2026-10-10 on the machine in
+[Comparison](#comparison), with `--job short`, so the means are indicative only.
+
 ## Comparison
 
 Minos.NET against six other clients, all calling one local mock with the same request:
