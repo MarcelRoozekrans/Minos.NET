@@ -15,14 +15,14 @@ public sealed class QuestionSet
     private readonly AnswerFactory<Answers> _create;
 
     internal QuestionSet(
-        object identity, QuestionSetDefinition definition, QuestionFailure[] warnings, QuestionPlan[] plan)
+        object identity, QuestionSetDefinition definition, QuestionFailure[] warnings, object?[] optionSets)
     {
         Identity = identity;
         Definition = definition;
         _create = answers => new Answers(this, answers.Probabilities, answers.HeapSlots ?? answers.Slots.ToArray());
         _parser = (ref Utf8JsonReader answers) => SystemOneProtocol.Instance.ReadAnswers(ref answers, Definition, _create);
         Warnings = warnings.Length == 0 ? [] : new System.Collections.ObjectModel.ReadOnlyCollection<QuestionFailure>(warnings);
-        Plan = plan;
+        OptionSets = optionSets;
     }
 
     /// <summary>Gets the set's questions, independent of any provider's wire format.</summary>
@@ -34,8 +34,11 @@ public sealed class QuestionSet
     /// <summary>Gets the identity token of the builder that created this set; every set that builder builds shares it.</summary>
     internal object Identity { get; }
 
-    /// <summary>Gets how to read each question's answer, in wire order.</summary>
-    internal QuestionPlan[] Plan { get; }
+    /// <summary>
+    /// Gets each question's option set, in wire order, for the typed handles: an <see cref="EnumOptionSet{T}"/> or a
+    /// <see cref="KeyedOptionSet"/>, or <see langword="null"/> for a Noul. Everything else comes from <see cref="Definition"/>.
+    /// </summary>
+    internal object?[] OptionSets { get; }
 
     /// <summary>Starts a new set.</summary>
     /// <returns>An empty builder.</returns>

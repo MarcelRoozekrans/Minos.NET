@@ -369,7 +369,7 @@ public sealed class DecisionClient : IDecisionClient, IDisposable
             Evaluated.Unwrap(_operations.EvaluateBuiltSetAsync(body, questionSet, _model, _providerName, _endpoint, cancellationToken)),
             DecisionLog.EvaluateBuiltSet,
             _model,
-            questionSet.Plan.Length,
+            questionSet.Definition.Questions.Count,
             started,
             cancellationToken);
     }

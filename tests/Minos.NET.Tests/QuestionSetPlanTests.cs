@@ -5,11 +5,11 @@ using Minos.Protocols;
 
 namespace Minos.Tests;
 
-/// <summary>What a built set keeps for reading answers: the plan, the keys, the offsets and the handle indexes.</summary>
+/// <summary>What a built set keeps for reading answers: the definition's kinds, keys and offsets, the option sets and the handle indexes.</summary>
 public sealed class QuestionSetPlanTests
 {
     [Fact]
-    public void MixedSet_PlansEachQuestionInWireOrder()
+    public void MixedSet_KeepsEachQuestionInWireOrder()
     {
         var builder = QuestionSet.CreateBuilder()
             .Noul("urgent", "Urgent?", out var noul)
@@ -32,7 +32,9 @@ public sealed class QuestionSetPlanTests
         string[] keys = ["urgent", "team", "mood", "product", "effort"];
         int[] offsets = [0, 0, 4, 7, 9];
         Type?[] optionSets = [null, typeof(EnumOptionSet<Department>), typeof(EnumOptionSet<Frustration>), typeof(KeyedOptionSet), typeof(KeyedOptionSet)];
-        Assert.Equal(kinds.Length, set.Plan.Length);
+        Assert.Equal(kinds.Length, set.Definition.Questions.Count);
+        Assert.Equal(kinds.Length, set.OptionSets.Length);
+        Assert.Equal(offsets, set.Definition.Offsets);
         Assert.Equal(12, set.Definition.ProbabilityCount);
         Assert.Equal(keys.Select(k => Encoding.UTF8.GetBytes(k)), set.Definition.KeysUtf8);
 
@@ -42,22 +44,22 @@ public sealed class QuestionSetPlanTests
 
         for (var i = 0; i < kinds.Length; i++)
         {
-            var plan = set.Plan[i];
-            Assert.Equal(kinds[i], plan.Kind);
-            Assert.Equal(keys[i], plan.Key);
-            Assert.Equal(offsets[i], plan.Offset);
+            var question = set.Definition.Questions[i];
+            var options = set.OptionSets[i];
+            Assert.Equal(kinds[i], question.Kind);
+            Assert.Equal(keys[i], question.Key);
 
             if (kinds[i] == QuestionKind.Noul)
             {
-                Assert.Null(plan.Options);
+                Assert.Null(options);
                 continue;
             }
 
             var criteria = wire[i].Value.GetProperty("criteria");
             var wireKeys = WireKeys(criteria);
 
-            Assert.IsType(optionSets[i]!, plan.Options);
-            Assert.Equal(wireKeys.Length, Count(plan.Options));
+            Assert.IsType(optionSets[i]!, options);
+            Assert.Equal(wireKeys.Length, Count(options));
             Assert.Equal(Utf8Keys.Encode(wireKeys), set.Definition.OptionKeysUtf8[i]);
         }
     }
@@ -67,7 +69,7 @@ public sealed class QuestionSetPlanTests
         EnumOptionSet<Department> department => department.Count,
         EnumOptionSet<Frustration> frustration => frustration.Count,
         KeyedOptionSet keyed => keyed.Count,
-        _ => throw new InvalidOperationException("The plan holds an option set this test does not expect."),
+        _ => throw new InvalidOperationException("The set holds an option set this test does not expect."),
     };
 
     private static string[] WireKeys(JsonElement criteria)

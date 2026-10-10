@@ -54,7 +54,7 @@ internal sealed class QuestionDraft(
     /// The option set answers are read with: the enum's, a keyed set over <paramref name="spec"/>'s keys, or none for a
     /// Noul. Called only for a spec that passed validation, so an enum Score's levels cover each member once.
     /// </summary>
-    public object? PlanOptions(QuestionSpec spec)
+    public object? OptionSet(QuestionSpec spec)
     {
         if (Kind == QuestionKind.Noul)
         {

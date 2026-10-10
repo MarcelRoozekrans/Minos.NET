@@ -170,17 +170,15 @@ public sealed class QuestionSetBuilder
             return Result<QuestionSet, DecisionError>.Failure(new DecisionError(Summary(failures), failures));
         }
 
-        var plan = new QuestionPlan[specs.Length];
-        var offset = 0;
+        var optionSets = new object?[specs.Length];
         for (var i = 0; i < specs.Length; i++)
         {
-            plan[i] = new QuestionPlan(specs[i].Kind, specs[i].Key, _questions[i].PlanOptions(specs[i]), offset);
-            offset += specs[i].Options.Length;
+            optionSets[i] = _questions[i].OptionSet(specs[i]);
         }
 
         var definition = ToDefinition(specs);
         return Result<QuestionSet, DecisionError>.Success(
-            new QuestionSet(_identity, definition, warnings, plan));
+            new QuestionSet(_identity, definition, warnings, optionSets));
     }
 
     private static QuestionSetDefinition ToDefinition(QuestionSpec[] specs)
