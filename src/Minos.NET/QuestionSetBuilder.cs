@@ -1,6 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
-using Minos.Serialization;
+using Minos.Protocols;
 using Minos.Validation;
 using ZeroAlloc.Results;
 
@@ -182,8 +182,45 @@ public sealed class QuestionSetBuilder
             offset += options?.Count ?? 0;
         }
 
+        var definition = ToDefinition(specs);
         return Result<QuestionSet, DecisionError>.Success(
-            new QuestionSet(_identity, QuestionsWriter.Write(specs), warnings, plan, Utf8Keys.Encode(keys), offset));
+            new QuestionSet(_identity, SystemOneProtocol.Instance.QuestionsUtf8(definition).ToArray(), definition, warnings, plan, Utf8Keys.Encode(keys), offset));
+    }
+
+    private static QuestionSetDefinition ToDefinition(QuestionSpec[] specs)
+    {
+        var questions = new QuestionDefinition[specs.Length];
+        for (var i = 0; i < specs.Length; i++)
+        {
+            var spec = specs[i];
+            var options = spec.Options;
+            switch (spec.Kind)
+            {
+                case QuestionKind.Noul:
+                    questions[i] = QuestionDefinition.Noul(spec.Key, spec.Instructions, spec.WhenTrue, spec.WhenFalse);
+                    break;
+                case QuestionKind.Choice:
+                    var choices = new OptionDefinition[options.Length];
+                    for (var j = 0; j < choices.Length; j++)
+                    {
+                        choices[j] = new OptionDefinition(options[j].Key, options[j].Criterion);
+                    }
+
+                    questions[i] = QuestionDefinition.Choice(spec.Key, spec.Instructions, choices);
+                    break;
+                default:
+                    var levels = new Criterion[options.Length];
+                    for (var j = 0; j < levels.Length; j++)
+                    {
+                        levels[j] = options[j].Criterion!;
+                    }
+
+                    questions[i] = QuestionDefinition.Score(spec.Key, spec.Instructions, levels);
+                    break;
+            }
+        }
+
+        return new QuestionSetDefinition(questions);
     }
 
     private static QuestionDraft Draft(

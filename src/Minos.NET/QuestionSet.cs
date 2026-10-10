@@ -14,11 +14,12 @@ public sealed class QuestionSet
     private readonly AnswerParser<Answers> _parser;
 
     internal QuestionSet(
-        object identity, byte[] questionsUtf8, QuestionFailure[] warnings, QuestionPlan[] plan, byte[][] utf8Keys, int probabilityCount)
+        object identity, byte[] questionsUtf8, QuestionSetDefinition definition, QuestionFailure[] warnings, QuestionPlan[] plan, byte[][] utf8Keys, int probabilityCount)
     {
         Identity = identity;
         _parser = Parse;
         _questionsUtf8 = questionsUtf8;
+        Definition = definition;
         Warnings = warnings.Length == 0 ? [] : new System.Collections.ObjectModel.ReadOnlyCollection<QuestionFailure>(warnings);
         Plan = plan;
         QuestionKeys = utf8Keys;
@@ -27,6 +28,9 @@ public sealed class QuestionSet
 
     /// <summary>Gets the <c>questions</c> object of a <c>/v1/systemone</c> request, as UTF-8 JSON, written once at build.</summary>
     public ReadOnlySpan<byte> QuestionsUtf8 => _questionsUtf8;
+
+    /// <summary>Gets the set's questions, independent of any provider's wire format.</summary>
+    public QuestionSetDefinition Definition { get; }
 
     /// <summary>Gets the advice the set's questions break: MIN003 and MIN005, which do not stop the build.</summary>
     public IReadOnlyList<QuestionFailure> Warnings { get; }

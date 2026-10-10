@@ -62,6 +62,29 @@ public sealed class WireFixtureTests
     public void Built_QuestionsMatchTheFixture(string name)
         => WireFixtures.AssertMatches("built-" + name, BuiltCases[name]().QuestionsUtf8);
 
+    [Theory]
+    [MemberData(nameof(BuiltCaseNames))]
+    public void Built_ProtocolQuestionsMatchTheFixture(string name)
+        => WireFixtures.AssertMatches("built-" + name, Minos.Protocols.SystemOneProtocol.Instance.QuestionsUtf8(BuiltCases[name]().Definition));
+
+    [Theory]
+    [MemberData(nameof(BuiltCaseNames))]
+    public void Built_ScoreLevelsAreKeyedByPosition(string name)
+    {
+        foreach (var question in BuiltCases[name]().Definition.Questions)
+        {
+            if (question.Kind != QuestionKind.Score)
+            {
+                continue;
+            }
+
+            for (var i = 0; i < question.Options.Count; i++)
+            {
+                Assert.Equal(i.ToString(System.Globalization.CultureInfo.InvariantCulture), question.Options[i].Key);
+            }
+        }
+    }
+
     // Task 4 replaces each arm with SystemOneProtocol.Instance.QuestionsUtf8(T.Definition).
     internal static ReadOnlySpan<byte> GeneratedQuestions(string name) => name switch
     {

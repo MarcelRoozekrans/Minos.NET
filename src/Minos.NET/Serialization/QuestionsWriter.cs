@@ -1,6 +1,5 @@
 using System.Buffers;
 using System.Text.Json;
-using Minos.Validation;
 
 namespace Minos.Serialization;
 
@@ -12,14 +11,14 @@ internal static class QuestionsWriter
 {
     private static readonly JsonWriterOptions Options = new() { Encoder = GeneratorJsonEncoder.Instance };
 
-    /// <summary>Writes <paramref name="questions"/>, which have passed validation.</summary>
-    public static byte[] Write(QuestionSpec[] questions)
+    /// <summary>Writes the <c>questions</c> object of <paramref name="definition"/>.</summary>
+    public static byte[] Write(QuestionSetDefinition definition)
     {
         var buffer = new ArrayBufferWriter<byte>();
         using (var writer = new Utf8JsonWriter(buffer, Options))
         {
             writer.WriteStartObject();
-            foreach (var question in questions)
+            foreach (var question in definition.QuestionArray)
             {
                 writer.WritePropertyName(question.Key);
                 writer.WriteStartObject();
@@ -43,7 +42,7 @@ internal static class QuestionsWriter
         _ => "score"u8,
     };
 
-    private static void WriteCriteria(Utf8JsonWriter writer, QuestionSpec question)
+    private static void WriteCriteria(Utf8JsonWriter writer, QuestionDefinition question)
     {
         switch (question.Kind)
         {
@@ -66,7 +65,7 @@ internal static class QuestionsWriter
 
             case QuestionKind.Choice:
                 writer.WriteStartObject("criteria"u8);
-                foreach (var option in question.Options)
+                foreach (var option in question.OptionArray)
                 {
                     writer.WritePropertyName(option.Key);
                     if (option.Criterion is null)
@@ -84,7 +83,7 @@ internal static class QuestionsWriter
 
             case QuestionKind.Score:
                 writer.WriteStartArray("criteria"u8);
-                foreach (var option in question.Options)
+                foreach (var option in question.OptionArray)
                 {
                     // Both Score Level methods require a criterion, so every level has one, in the order it was given.
                     option.Criterion!.WriteTo(writer);

@@ -21,10 +21,6 @@ internal static class TypedRequestWriter
     // The four whitespace bytes JSON allows between tokens: space, tab, line feed and carriage return.
     private static ReadOnlySpan<byte> JsonWhitespace => [0x20, 0x09, 0x0A, 0x0D];
 
-    // Writes the state value at the writer's current position; the helper below owns everything around it.
-    private delegate void StateWriter<TArg>(Utf8JsonWriter writer, RawJson body, TArg arg)
-        where TArg : allows ref struct;
-
     /// <summary>Writes a request with a text state.</summary>
     /// <param name="questionsUtf8">The <c>questions</c> object, copied as is.</param>
     /// <param name="state">The text.</param>
@@ -125,7 +121,7 @@ internal static class TypedRequestWriter
 
     // Rents the body and writes {"state":, then the state through writeState, then ,"model":…,"questions":…}. The body
     // is disposed if anything throws, so the caller owns it only once it is returned.
-    private static RawJson Compose<TArg>(
+    internal static RawJson Compose<TArg>(
         ReadOnlySpan<byte> questionsUtf8, TArg arg, int stateSizeHint, string model, ArrayPool<byte> pool, StateWriter<TArg> writeState)
         where TArg : allows ref struct
     {
