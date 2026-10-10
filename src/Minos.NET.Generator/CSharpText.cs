@@ -4,7 +4,7 @@ using System.Text;
 namespace Minos.Generator;
 
 /// <summary>Escaping for the C# text the generator emits.</summary>
-internal static class JsonText
+internal static class CSharpText
 {
     /// <summary>Returns <paramref name="value"/> as a regular C# string literal, for use as a string or with the <c>u8</c> suffix.</summary>
     public static string CSharpLiteral(string value)

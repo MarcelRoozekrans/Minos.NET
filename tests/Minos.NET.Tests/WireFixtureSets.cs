@@ -125,7 +125,7 @@ public partial record WfWithState
 // Keys, including the option key, omit the lone surrogate (the generator cannot emit one into its C# key literals); every other text carries it. Every character the encoder escapes or passes through: < > & ' + / are raw, \r \t DEL U+2028 U+0085 escape, a lone surrogate becomes U+FFFD.
 public enum WfEscapedChoice
 {
-    [Criteria("c < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end", Key = "k < > & ' + / \r \t \u007F \u2028 \u0085 end")]
+    [Criteria("c < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end", Key = "k < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end")]
     Tricky,
 
     [Criteria("plain")]
@@ -147,9 +147,9 @@ public partial record WfEscapes
     [Noul("n < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end", Key = "n < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end", WhenTrue = "t < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end", WhenFalse = "f < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end")]
     public partial Noul Plain { get; }
 
-    [Choice("c < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end", Key = "c < > & ' + / \r \t \u007F \u2028 \u0085 end")]
+    [Choice("c < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end", Key = "c < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end")]
     public partial Choice<WfEscapedChoice> Choice { get; }
 
-    [Score("s < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end", Key = "s < > & ' + / \r \t \u007F \u2028 \u0085 end")]
+    [Score("s < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end", Key = "s < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end")]
     public partial Score<WfEscapedLevel> Score { get; }
 }

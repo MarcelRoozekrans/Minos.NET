@@ -10,7 +10,7 @@ namespace Minos.Protocols;
 /// </summary>
 internal static class SystemOneQuestionsWriter
 {
-    private static readonly JsonWriterOptions Options = new() { Encoder = GeneratorJsonEncoder.Instance };
+    private static readonly JsonWriterOptions Options = new() { Encoder = SystemOneJsonEncoder.Instance };
 
     /// <summary>Writes the <c>questions</c> object of <paramref name="definition"/>.</summary>
     public static byte[] Write(QuestionSetDefinition definition)

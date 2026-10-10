@@ -11,7 +11,7 @@ internal static class ReferenceJsonEscaping
 {
     /// <summary>
     /// Appends <paramref name="value"/> as a JSON string. Every character outside printable ASCII becomes a
-    /// <c>\uXXXX</c> escape, so the JSON is plain ASCII. A lone surrogate becomes <c>�</c>.
+    /// <c>\uXXXX</c> escape, so the JSON is plain ASCII. A lone surrogate becomes <c>\ufffd</c>.
     /// </summary>
     public static StringBuilder AppendJsonString(this StringBuilder json, string value)
     {
@@ -44,6 +44,8 @@ internal static class ReferenceJsonEscaping
                     }
                     else if (char.IsSurrogate(c))
                     {
+                        // A lone surrogate is not text: System.Text.Json rejects its escape, so send the replacement
+                        // character, as the .NET UTF-8 encoder does.
                         json.Append("\\ufffd");
                     }
                     else if (c < ' ' || c > '~')

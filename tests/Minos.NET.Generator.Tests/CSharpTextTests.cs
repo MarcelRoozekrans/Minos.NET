@@ -5,27 +5,27 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 
 namespace Minos.Generator.Tests;
 
-public sealed class JsonTextTests
+public sealed class CSharpTextTests
 {
     [Fact]
     public void CSharpLiteral_EscapesQuotesAndBackslashes()
-        => Assert.Equal(@"""{\""a\"":\""\\n\""}""", JsonText.CSharpLiteral("{\"a\":\"\\n\"}"));
+        => Assert.Equal(@"""{\""a\"":\""\\n\""}""", CSharpText.CSharpLiteral("{\"a\":\"\\n\"}"));
 
     [Fact]
     public void CSharpLiteral_EscapesControlCharacters()
-        => Assert.Equal("\"a\\u000ab\"", JsonText.CSharpLiteral("a\nb"));
+        => Assert.Equal("\"a\\u000ab\"", CSharpText.CSharpLiteral("a\nb"));
 
     [Fact]
     public void CSharpLiteral_EscapesLineSeparator()
-        => Assert.Equal("\"a\\u2028b\"", JsonText.CSharpLiteral("a\u2028b"));
+        => Assert.Equal("\"a\\u2028b\"", CSharpText.CSharpLiteral("a\u2028b"));
 
     [Fact]
     public void CSharpLiteral_EscapesParagraphSeparator()
-        => Assert.Equal("\"a\\u2029b\"", JsonText.CSharpLiteral("a\u2029b"));
+        => Assert.Equal("\"a\\u2029b\"", CSharpText.CSharpLiteral("a\u2029b"));
 
     [Fact]
     public void CSharpLiteral_EscapesNextLine()
-        => Assert.Equal("\"a\\u0085b\"", JsonText.CSharpLiteral("a\u0085b"));
+        => Assert.Equal("\"a\\u0085b\"", CSharpText.CSharpLiteral("a\u0085b"));
 
     [Fact]
     public void CSharpLiteral_NonAscii_RoundTrips()
@@ -33,7 +33,7 @@ public sealed class JsonTextTests
         var value = "caf" + (char)0x00E9 + " " + char.ConvertFromUtf32(0x1F600);
         var expected = "\"" + string.Concat(value.Select(Escape)) + "\"";
 
-        var literal = JsonText.CSharpLiteral(value);
+        var literal = CSharpText.CSharpLiteral(value);
 
         Assert.Equal(expected, literal);
         Assert.All(literal, c => Assert.InRange(c, ' ', '~'));

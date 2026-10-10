@@ -28,7 +28,6 @@
   <ItemGroup>
     <Compile Include="..\Minos.NET.Generator\ModelBuilder.cs" Link="Shared\ModelBuilder.cs" />
     <Compile Include="..\Minos.NET.Generator\Models.cs" Link="Shared\Models.cs" />
-    <Compile Include="..\Minos.NET.Generator\JsonText.cs" Link="Shared\JsonText.cs" />
     <Compile Include="..\Minos.NET.Generator\DiagnosticIds.cs" Link="Shared\DiagnosticIds.cs" />
     <Compile Include="..\Minos.NET.Generator\DecisionLimits.cs" Link="Shared\DecisionLimits.cs" />
     <Compile Include="..\Minos.NET.Generator\EquatableArray.cs" Link="Shared\EquatableArray.cs" />

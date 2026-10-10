@@ -6,7 +6,7 @@ using Minos.Serialization;
 namespace Minos.Tests;
 
 /// <summary>The runtime encoder escapes exactly as the generator did, which <see cref="ReferenceJsonEscaping"/> keeps.</summary>
-public sealed class GeneratorJsonEncoderTests
+public sealed class SystemOneJsonEncoderTests
 {
     public static TheoryData<string> Texts => new()
     {
@@ -129,7 +129,7 @@ public sealed class GeneratorJsonEncoderTests
     private static string Write(Action<Utf8JsonWriter> write)
     {
         var buffer = new ArrayBufferWriter<byte>();
-        using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { Encoder = GeneratorJsonEncoder.Instance }))
+        using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { Encoder = SystemOneJsonEncoder.Instance }))
         {
             write(writer);
         }

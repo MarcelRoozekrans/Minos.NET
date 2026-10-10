@@ -73,7 +73,7 @@ public sealed class CriterionTests
     private static string Wire(Criterion criterion)
     {
         var buffer = new ArrayBufferWriter<byte>();
-        using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { Encoder = GeneratorJsonEncoder.Instance }))
+        using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { Encoder = SystemOneJsonEncoder.Instance }))
         {
             criterion.WriteTo(writer);
         }

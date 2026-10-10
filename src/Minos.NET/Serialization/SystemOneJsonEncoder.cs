@@ -4,18 +4,19 @@ using System.Text.Encodings.Web;
 namespace Minos.Serialization;
 
 /// <summary>
-/// Escapes JSON text exactly as the <c>[Questions]</c> generator escaped the <c>questions</c> literal it emitted before
-/// Phase 6.2, so every set still sends the same bytes: <c>\"</c>, <c>\\</c>, <c>\n</c>, <c>\r</c>
-/// and <c>\t</c>; every other character outside printable ASCII as a lowercase <c>\uXXXX</c> escape, a character
-/// outside the Basic Multilingual Plane as its surrogate pair's two escapes; printable ASCII as is. A lone surrogate
-/// reaches the encoder as U+FFFD, which it writes as <c>\ufffd</c>, as the generator does.
+/// The escaping of the <c>/v1/systemone</c> <c>questions</c> object that <see cref="Minos.Protocols.SystemOneQuestionsWriter"/>
+/// writes: <c>\"</c>, <c>\\</c>, <c>\n</c>, <c>\r</c> and <c>\t</c>; every other character outside printable
+/// ASCII as a lowercase <c>\uXXXX</c> escape, a character outside the Basic Multilingual Plane as its surrogate
+/// pair's two escapes; printable ASCII as is. A lone surrogate reaches the encoder as U+FFFD, which it writes
+/// as <c>\ufffd</c>. These are the bytes the <c>[Questions]</c> generator emitted before Phase 6.2, so the wire is
+/// unchanged.
 /// </summary>
-internal sealed class GeneratorJsonEncoder : JavaScriptEncoder
+internal sealed class SystemOneJsonEncoder : JavaScriptEncoder
 {
     /// <summary>The one instance; it is stateless and safe to share.</summary>
-    public static readonly GeneratorJsonEncoder Instance = new();
+    public static readonly SystemOneJsonEncoder Instance = new();
 
-    private GeneratorJsonEncoder()
+    private SystemOneJsonEncoder()
     {
     }
 

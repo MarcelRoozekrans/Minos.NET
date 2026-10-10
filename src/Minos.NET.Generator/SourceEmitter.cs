@@ -134,7 +134,7 @@ internal static class SourceEmitter
             var question = model.Questions[i];
             var arguments = new List<string>
             {
-                JsonText.CSharpLiteral(question.Key),
+                CSharpText.CSharpLiteral(question.Key),
                 Content(question.Instructions),
             };
 
@@ -155,7 +155,7 @@ internal static class SourceEmitter
 
                 case QuestionKind.Choice:
                     arguments.AddRange(question.Options.Select(option => "new global::Minos.OptionDefinition("
-                        + JsonText.CSharpLiteral(option.Key) + ", "
+                        + CSharpText.CSharpLiteral(option.Key) + ", "
                         + (option.Description is null ? "null" : Criterion(option)) + ")"));
                     break;
 
@@ -179,19 +179,19 @@ internal static class SourceEmitter
             }
         }
 
-        static string Content(string text) => "global::Minos.DecisionContent.FromString(" + JsonText.CSharpLiteral(text) + ")";
+        static string Content(string text) => "global::Minos.DecisionContent.FromString(" + CSharpText.CSharpLiteral(text) + ")";
 
         static string Criterion(OptionModel option)
         {
-            var criterion = "global::Minos.Criterion.Text(" + JsonText.CSharpLiteral(option.Description ?? string.Empty) + ")";
+            var criterion = "global::Minos.Criterion.Text(" + CSharpText.CSharpLiteral(option.Description ?? string.Empty) + ")";
             if (option.Examples.Length > 0)
             {
-                criterion += ".WithExamples(" + string.Join(", ", option.Examples.Select(JsonText.CSharpLiteral)) + ")";
+                criterion += ".WithExamples(" + string.Join(", ", option.Examples.Select(CSharpText.CSharpLiteral)) + ")";
             }
 
             if (option.NotFor.Length > 0)
             {
-                criterion += ".WithNotFor(" + string.Join(", ", option.NotFor.Select(JsonText.CSharpLiteral)) + ")";
+                criterion += ".WithNotFor(" + string.Join(", ", option.NotFor.Select(CSharpText.CSharpLiteral)) + ")";
             }
 
             return criterion;
