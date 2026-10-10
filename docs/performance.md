@@ -8,7 +8,7 @@ description: What the client costs per call, how it compares with other clients,
 # Performance
 
 `benchmarks/Minos.NET.Benchmarks` measures the client's hot paths with BenchmarkDotNet: the
-generated `[Questions]` `Parse` method and the `AnswerReader` primitives it is built from
+protocol's reading of the answers into slots plus the generated `[Questions]` `Create` method
 (`ParseBenchmarks`), `DecisionClient.EvaluateAsync` / `ListModelsAsync` against an in-memory
 `HttpMessageHandler` (`ClientBenchmarks`) and question sets built at run time (`QuestionSetBenchmarks`).
 
@@ -33,8 +33,8 @@ To be recorded from the first full run.
 | `ContentBenchmarks.FromUtf8Json` | 708.7 ns | 256 B | 320 B |
 
 Measured on a 12th Gen Intel Core i9-12900HK, Windows 11 (10.0.26200.9457), .NET SDK 10.0.401, with
-`--job short`. Question sets add no runtime cost: `Examples` and `NotFor` change only the
-static `QuestionsUtf8` literal.
+`--job short`. Question sets add no cost per call: `Examples` and `NotFor` change only the
+questions object, which is written once per set from its definition and cached.
 
 The means come from `--job short`, which runs few iterations and leaves wide error bars; treat them as
 indicative only. The first full run supersedes them.
@@ -56,6 +56,11 @@ benchmark, and the same rounding gives it 320 B too.
 
 Measured on a 12th Gen Intel Core i9-12900HK, Windows 11 (10.0.26200.9457), .NET SDK 10.0.401 with runtime 10.0.12,
 with `--job short`, so the means are indicative only.
+
+These are the Phase 2.4 figures. Since the neutral question model, a generated and a built set go through the same
+protocol read, which finds each answer's key in the definition's UTF-8 keys and fills a slot. The generated `Create`
+then builds the typed result from the slots, so the two no longer differ in how they scan. The comparison below is how
+it was measured then.
 
 A built set finds each answer's question by a linear `ValueTextEquals` scan over its UTF-8 keys, where the generated
 parser compiles one `if` chain. At twenty questions the scan costs about 0.63 us more, 3.087 us against 2.457 us, or

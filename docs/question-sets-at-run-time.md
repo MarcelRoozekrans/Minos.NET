@@ -258,6 +258,49 @@ public static IReadOnlyList<string> Advice()
 A `switch` over `DecisionErrorKind` needs a case for `InvalidQuestions`, since a failed `Build()` is the one place it
 appears. [The client and its errors](client-and-errors.md#errors) lists the other kinds.
 
+## Reading a question set's definition
+
+A generated set and a built set both expose `Definition`. It lists the questions in wire order. Each question has its
+key, its kind, its instructions, its Noul criteria (`WhenTrue` and `WhenFalse`) and its options. A Score's levels are
+in `Options`, keyed by position: "0", "1", and so on.
+
+The definition says what the set asks and says nothing about how a provider is asked. The client hands it to the
+provider's protocol, which turns it into that provider's request and reads the answers back. Because both kinds of set
+share this one form, a set you have today can work against another provider once its protocol exists, with no change
+to the set. More providers are planned from Phase 6.4.
+
+<!-- snippet: QuestionSetsAtRunTime_Definition -->
+```cs
+// TicketCheck is the generated set from getting started; the builder makes the same two questions.
+var built = QuestionSet.CreateBuilder()
+    .Noul("is_urgent", "Does this convey urgency?", out NoulHandle _)
+    .Choice("team", "Which team should handle this?", out ChoiceHandle<SupportTeam> _)
+    .Build();
+
+var shapes = new List<string>();
+foreach (var definition in new[] { TicketCheck.Definition, built.Value.Definition })
+{
+    var lines = new List<string>();
+    foreach (var question in definition.Questions)
+    {
+        // Options holds a Choice's options or a Score's levels, and is empty for a Noul.
+        var keys = new List<string>();
+        foreach (var option in question.Options)
+        {
+            keys.Add(option.Key);
+        }
+
+        lines.Add($"{question.Key} {question.Kind} [{string.Join(", ", keys)}]");
+    }
+
+    shapes.Add(string.Join("; ", lines));
+}
+
+// Both print: is_urgent Noul []; team Choice [billing, technical, sales]
+Assert.Equal(shapes[0], shapes[1]);
+```
+<!-- endSnippet -->
+
 ## Handles
 
 A handle belongs to the builder that made it. It works with the answers to any set that builder built, provided the

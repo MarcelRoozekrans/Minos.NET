@@ -122,7 +122,7 @@ public partial record WfWithState
     public partial Noul IsUrgent { get; }
 }
 
-// Keys, including the option key, omit the lone surrogate (the generator cannot emit one into its C# key literals); every other text carries it. Every character the encoder escapes or passes through: < > & ' + / are raw, \r \t DEL U+2028 U+0085 escape, a lone surrogate becomes U+FFFD.
+// Every text, keys included, carries the lone surrogate. Every character the encoder escapes or passes through: < > & ' + / are raw, \r \t DEL U+2028 U+0085 escape, a lone surrogate becomes U+FFFD.
 public enum WfEscapedChoice
 {
     [Criteria("c < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end", Key = "k < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end")]

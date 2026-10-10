@@ -232,6 +232,41 @@ public sealed class QuestionSetsAtRunTimeTests
     }
 
     [Fact]
+    public void Definition_ListsTheSameQuestionsForAGeneratedAndABuiltSet()
+    {
+        #region QuestionSetsAtRunTime_Definition
+        // TicketCheck is the generated set from getting started; the builder makes the same two questions.
+        var built = QuestionSet.CreateBuilder()
+            .Noul("is_urgent", "Does this convey urgency?", out NoulHandle _)
+            .Choice("team", "Which team should handle this?", out ChoiceHandle<SupportTeam> _)
+            .Build();
+
+        var shapes = new List<string>();
+        foreach (var definition in new[] { TicketCheck.Definition, built.Value.Definition })
+        {
+            var lines = new List<string>();
+            foreach (var question in definition.Questions)
+            {
+                // Options holds a Choice's options or a Score's levels, and is empty for a Noul.
+                var keys = new List<string>();
+                foreach (var option in question.Options)
+                {
+                    keys.Add(option.Key);
+                }
+
+                lines.Add($"{question.Key} {question.Kind} [{string.Join(", ", keys)}]");
+            }
+
+            shapes.Add(string.Join("; ", lines));
+        }
+
+        // Both print: is_urgent Noul []; team Choice [billing, technical, sales]
+        Assert.Equal(shapes[0], shapes[1]);
+        #endregion
+        Assert.Equal("is_urgent Noul []; team Choice [billing, technical, sales]", shapes[0]);
+    }
+
+    [Fact]
     public async Task AMissingAnswer_FailsTheCallAsInvalidResponse()
     {
         var set = QuestionSet.CreateBuilder().Noul("a", "A?", out NoulHandle _).Noul("b", "B?", out NoulHandle _).Build().Value;

@@ -29,7 +29,7 @@ The rules come in two groups.
 - **MIN101 to MIN107 check what the generator can turn into code.** They are all errors, because a declaration the
   generator cannot read cannot be turned into a request.
 
-A set with any error is invalid. The generator writes no `QuestionsUtf8`, no `Parse` and no `IQuestionSet` for it,
+A set with any error is invalid. The generator writes no `Definition`, no `Create` and no `IQuestionSet` for it,
 so `EvaluateAsync<T>` does not compile for that type. The generator still gives each unimplemented question property a
 stub that throws. That way a command-line build reports the MIN error, and not CS9248, "partial property must have an
 implementation part", which would hide it.
@@ -49,7 +49,7 @@ shows them.
 | MIN005 | Warning | Option or level count outside the API guidance | A Score enum has fewer than 2 or more than 10 levels, or a Choice enum has more than 255 options. |
 | MIN006 | Info | Choice option has no description | A member of a Choice enum has no `[Criteria]`. It is still an option, sent with no description, and a description usually helps. |
 | MIN101 | Error | Unsupported question set type | The type with `[Questions]` is not a non-generic, non-abstract, non-static, top-level partial class or record that is not file-local. |
-| MIN102 | Error | Unsupported question property | A question property is not a partial, get-only instance property, or it is `virtual`, `new`, `sealed` or `override`, or it is named `Parse` or `QuestionsUtf8`, which the generator reserves. |
+| MIN102 | Error | Unsupported question property | A question property is not a partial, get-only instance property, or it is `virtual`, `new`, `sealed` or `override`, or it is named `Definition` or `Create`, which the generator reserves. |
 | MIN103 | Error | Question attribute does not match the property type | A question property has more than one question attribute, or one that does not fit its type: `[Noul]` needs a `Noul`, `[Choice]` a `Choice<T>` and `[Score]` a `Score<T>`. |
 | MIN104 | Error | Score level has no description | A member of a Score enum has no `[Level]`. The API does not accept a level without a description. |
 | MIN105 | Error | Question set has no parameterless constructor | The set has no constructor that can be called without arguments, or it has `required` members and that constructor lacks `[SetsRequiredMembers]`. A constructor whose parameters all have defaults counts. |
@@ -149,7 +149,7 @@ A project-wide `<NoWarn>MIN005</NoWarn>` in the project file works too.
 
 An error does not go away that way. Suppressing MIN001, MIN002 or one of MIN101 to MIN107 hides the message, but the set
 stays invalid. The generator does not read the diagnostics. It applies the same rules itself, so a suppressed set still
-gets no `QuestionsUtf8`, no `Parse` and no `IQuestionSet`. `EvaluateAsync<T>` does not compile for it, and the stub
+gets no `Definition`, no `Create` and no `IQuestionSet`. `EvaluateAsync<T>` does not compile for it, and the stub
 properties throw. Fix the declaration instead.
 
 ## Next

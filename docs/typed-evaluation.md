@@ -312,7 +312,7 @@ value. `TryGetString` and `TryGetJson` read the content back.
 ## What the package ships
 
 `Minos.NET` carries the source generator and the [analyzers](diagnostics.md), so there is nothing else to install.
-The generator writes `QuestionsUtf8` and `Parse` for each `[Questions]` type. The analyzers check the declaration as
+The generator writes `Definition` and `Create` for each `[Questions]` type. The analyzers check the declaration as
 you type: the shape of the type, the keys, the enums and the backticked names. A set with an error gets no generated
 members, and the generator stubs its properties, so the build reports the analyzer's error and not a confusing
 missing-implementation one.
