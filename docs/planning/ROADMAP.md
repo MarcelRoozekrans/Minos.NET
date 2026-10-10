@@ -283,10 +283,11 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-09-phase-6.1-rename-to-minos.md`
 **Completed:** 2026-10-10
 
-### Phase 6.2: Neutral question model and adapter boundary [status: pending]
+### Phase 6.2: Neutral question model and adapter boundary [status: active]
 **Goal:** The generator emits a provider-neutral question-set description; `/v1/systemone` serialization moves behind a protocol-adapter boundary, with no behaviour change (#115).
 **Surface:** Refactor
 **HelpWanted:** no
+**Spec:** `docs/superpowers/specs/2026-10-10-phase-6.2-neutral-question-model-design.md`
 **Plan:** _to be written_
 
 ### Phase 6.3: IDecisionClient abstraction and pipeline [status: pending]
