@@ -5,9 +5,9 @@ httpcore2==2.13.1
 httpx2==2.13.1
 idna==3.20
 pydantic==2.14.0
-pydantic_core==2.46.5
+pydantic_core==2.50.0
 tenacity==9.2.1
 truststore==0.10.4
-typesafe-sdk==0.7.2
+typesafe-sdk==0.7.4
 typing-inspection==0.4.4
 typing_extensions==4.16.0
