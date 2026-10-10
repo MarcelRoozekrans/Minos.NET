@@ -21,7 +21,7 @@
 ## Branching
 
 **Model:** feature-branch
-**PR required:** yes (ruleset "Main" on ZeroAlloc-Net/ZeroAlloc.Jev, 2026-09-27; the branch-protection endpoint does not report rulesets)
+**PR required:** yes (ruleset "Main" on MarcelRoozekrans/Minos.NET, updated 2026-10-09; the branch-protection endpoint does not report rulesets)
 **Protected branches:** main
 
 ## Versioning & Release

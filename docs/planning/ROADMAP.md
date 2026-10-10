@@ -274,13 +274,14 @@ compress_memory: disabled
 - [ ] A conformance suite passes against recorded TypeSafe and OpenAI fixtures
 - [ ] A Providers docs page documents the presets and the capability matrix
 
-### Phase 6.1: Rename to Minos and move out of the ZeroAlloc org [status: active]
+### Phase 6.1: Rename to Minos and move out of the ZeroAlloc org [status: complete]
 **Goal:** Rename to Minos (`Minos.NET` packages, `Minos` namespace, `MIN` analyzer IDs, the approved type-naming rule) and move the repository to `MarcelRoozekrans/Minos.NET`. Follow the maintainer's personal-library conventions: an in-repo Docusaurus site on GitHub Pages, an own logo, no ZeroAlloc-org workflows. The README explains the name. No behaviour change (#120).
 **Surface:** Refactor
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-10-09-phase-6.1-rename-design.md`
 **Impact analysis:** `docs/plans/2026-10-09-phase-6.1-rename-impact-analysis.md`
 **Plan:** `docs/superpowers/plans/2026-10-09-phase-6.1-rename-to-minos.md`
+**Completed:** 2026-10-10
 
 ### Phase 6.2: Neutral question model and adapter boundary [status: pending]
 **Goal:** The generator emits a provider-neutral question-set description; `/v1/systemone` serialization moves behind a protocol-adapter boundary, with no behaviour change (#115).
