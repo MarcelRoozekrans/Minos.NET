@@ -28,7 +28,7 @@ internal sealed class SystemOneProtocol : IDecisionProtocol
 
     public RawJson WriteRequest<TArg>(QuestionSetDefinition definition, TArg state, int stateSizeHint, StateWriter<TArg> writeState, string model, ArrayPool<byte> pool)
         where TArg : allows ref struct
-        => TypedRequestWriter.Compose(QuestionsJson(definition), state, stateSizeHint, model, pool, writeState);
+        => SystemOneRequestWriter.Write(QuestionsJson(definition), state, stateSizeHint, writeState, model, pool);
 
     public TResult ReadAnswers<TResult>(ref Utf8JsonReader answers, QuestionSetDefinition definition, AnswerFactory<TResult> create)
     {

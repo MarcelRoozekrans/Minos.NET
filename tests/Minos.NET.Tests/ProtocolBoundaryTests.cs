@@ -4,15 +4,22 @@ namespace Minos.Tests;
 
 public sealed class ProtocolBoundaryTests
 {
-    // The /v1/systemone answer and question field names. Only the protocol, and the files Phase 6.3 moves behind it,
-    // may name them.
+    // The /v1/systemone request envelope, question and answer field names. Only the protocol, and the files Phase 6.3
+    // moves behind it, may name them.
     // Only the u8 literal form is matched, on purpose: plain strings would flag XML doc param names. A plain string or a
     // JsonPropertyName use of these names is not caught.
-    private static readonly string[] WireNames = ["\"probabilities\"u8", "\"legend\"u8", "\"noul\"u8", "\"criteria\"u8", "\"instructions\"u8"];
+    private static readonly string[] WireNames =
+    [
+        "\"state\"u8", "\"model\"u8", "\"questions\"u8",
+        "\"probabilities\"u8", "\"legend\"u8", "\"noul\"u8", "\"criteria\"u8", "\"instructions\"u8",
+    ];
 
     private static readonly string[] Allowed =
     [
         "Protocols/",
+
+        // Phase 6.3: response envelope.
+        "Telemetry/ResponseFields.cs",
     ];
 
     [Fact]
