@@ -10,6 +10,9 @@ public sealed class GeneratorTests
     public void NoulOnly_Generates() => AssertGenerates(Sources.NoulOnly);
 
     [Fact]
+    public void NoulWhenTrueOnly_Generates() => AssertGenerates(Sources.NoulWhenTrueOnly);
+
+    [Fact]
     public void ChoiceOnly_Generates() => AssertGenerates(Sources.ChoiceOnly);
 
     [Fact]

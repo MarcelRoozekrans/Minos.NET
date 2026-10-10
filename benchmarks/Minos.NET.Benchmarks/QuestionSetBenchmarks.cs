@@ -3,6 +3,7 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using BenchmarkDotNet.Attributes;
+using Minos.Protocols;
 using ZeroAlloc.Results;
 
 namespace Minos.Benchmarks;
@@ -33,14 +34,20 @@ public partial record BenchTwenty
     [Noul("Question 20?")] public partial Noul Q20 { get; }
 }
 
-/// <summary>Question sets built at run time: building one, evaluating one, and parsing twenty answers against the generated parser.</summary>
+/// <summary>
+/// Question sets built at run time: building one, writing a new definition's questions once, evaluating one, and parsing
+/// twenty answers against the generated parser.
+/// </summary>
 [MemoryDiagnoser]
 public class QuestionSetBenchmarks
 {
+    private static readonly AnswerFactory<BenchTwenty> TwentyFactory = static answers => BenchTwenty.Create(answers);
+
     private const string State = "Help! My payouts have been failing for 3 days.";
 
     private QuestionSetBuilder _builder = null!;
     private QuestionSet _triage = null!;
+    private QuestionDefinition[] _triageQuestions = [];
     private QuestionSet _twenty = null!;
     private byte[] _twentyAnswers = [];
     private HttpClient _http = null!;
@@ -61,6 +68,7 @@ public class QuestionSetBenchmarks
     {
         _builder = TriageBuilder();
         _triage = _builder.Build().Value;
+        _triageQuestions = [.. _triage.Definition.Questions];
 
         var twenty = QuestionSet.CreateBuilder();
         var answers = new StringBuilder("{");
@@ -88,6 +96,17 @@ public class QuestionSetBenchmarks
     [Benchmark]
     public Result<QuestionSet, DecisionError> Build() => _builder.Build();
 
+    /// <summary>A new definition over the triage set's three questions, the baseline for <see cref="NewDefinitionAndQuestionsJson"/>.</summary>
+    [Benchmark]
+    public QuestionSetDefinition NewDefinition() => new(_triageQuestions);
+
+    /// <summary>
+    /// A new definition over the same questions, then its first <c>questions</c> object: the one-time cost per set, outside
+    /// any per-call budget. The difference from <see cref="NewDefinition"/> is the first serialization alone.
+    /// </summary>
+    [Benchmark]
+    public int NewDefinitionAndQuestionsJson() => SystemOneProtocol.QuestionsJson(new QuestionSetDefinition(_triageQuestions)).Length;
+
     /// <summary>The same three questions as <see cref="ClientBenchmarks.TypedEvaluateAsync"/>, evaluated as a built set.</summary>
     [Benchmark]
     public ValueTask<Result<Answers, DecisionError>> EvaluateBuiltSet() => _client.EvaluateAsync(_triage, State);
@@ -98,15 +117,15 @@ public class QuestionSetBenchmarks
     {
         var reader = new Utf8JsonReader(_twentyAnswers);
         reader.Read();
-        return _twenty.Parse(ref reader);
+        return _twenty.Parser(ref reader);
     }
 
-    /// <summary>Parses the same twenty answers with the generated parser, as the baseline for the key scan.</summary>
+    /// <summary>Parses the same twenty answers through the protocol into the generated type, as the baseline for the built set.</summary>
     [Benchmark]
     public BenchTwenty ParseGeneratedTwenty()
     {
         var reader = new Utf8JsonReader(_twentyAnswers);
         reader.Read();
-        return BenchTwenty.Parse(ref reader);
+        return SystemOneProtocol.Instance.ReadAnswers(ref reader, BenchTwenty.Definition, TwentyFactory);
     }
 }

@@ -1,4 +1,4 @@
-# Session State — 2026-10-10 (Phase 6.1 complete: the project is Minos.NET)
+# Session State — 2026-10-10 (Phase 6.2 complete: the neutral question model)
 
 **Date:** 2026-10-10
 
@@ -22,11 +22,18 @@
     - The `Main` ruleset requires `build`, `aot-smoke`, `aot-surface`, `smoke / benchmarks` and `release-tracking`, with a pull-request bypass for the admin role, as in Thalos.NET.
     - The `live-api` environment came along with both keys; Live smoke on `main` passed 13/13 (run 37988954091).
     - `tools/rename/` is deleted.
-  - **Still open, maintainer:**
-    - Redirect `jev.zeroalloc.net` to the Pages URL, then merge ZeroAlloc-Net/.website#87, which removes `repos/jev`, `apps/docs-jev` and the home-page card, and retire the `za-docs-jev` Cloudflare project.
-    - Confirm Renovate covers Minos.NET; its check suite already appears on #128.
-    - Remove the `sonarqubecloud` app from the repository if SonarCloud is not used on the personal account.
-  - **Leave #128 (0.6.0) open** until a release is wanted: merging it tags v0.6.0 and creates a GitHub release, and publishes nothing.
+  - **Done after the move:** ZeroAlloc-Net/.website#87 merged and the `za-docs-jev` worker retired, on 2026-10-10. #128 merged: v0.6.0 is a GitHub release, and nothing was published to NuGet. Renovate runs on Minos.NET.
+  - **Still open, maintainer:** remove the `sonarqubecloud` app from the repository if SonarCloud is not used on the personal account.
+- **Milestone 6, Phase 6.2 (neutral question model and adapter boundary):** complete on 2026-10-10.
+  - **Merged:** #139, in the 0.7.0 release PR #141 as a breaking change. Pre-push review PASS: `docs/plans/2026-10-10-phase-6.2-pre-push-review.md`. Live smoke on `main` passed 13/13 (run 38043667198).
+  - **What shipped:**
+    - the public `QuestionSetDefinition`, `QuestionDefinition`, `OptionDefinition` and `QuestionKind`, exposed by generated and built sets, plus the read-only `Criterion` getters;
+    - generated `Create(AnswerSlots)` in place of the JSON parser;
+    - the internal `IDecisionProtocol` with `SystemOneProtocol`, which writes the questions JSON once per set and caches it, writes the request envelope, and reads answers into stack-allocated slots.
+  - **Removed:** `QuestionsUtf8`, `Parse`, `AnswerReader` and `IndexOfKey`. MIN102 reserves `Definition` and `Create`; an empty `Key` is MIN106.
+  - **Deferred to Phase 6.3**, in its ROADMAP goal: the endpoint path, the response envelope and telemetry reading, `DecisionErrorMapper`, and the default `IDecisionClient` typed path.
+  - #140 fixed the benchmark requirements: pydantic_core moves with pydantic, and pydantic updates wait for dashboard approval.
+  - **Leave #141 (0.7.0) open** until a release is wanted.
 - **Old Phase 5.5 (1.0 release):** removed from Milestone 5 and folded into Phase 7.4.
   - Its reviewed pipeline work sits on the local branch `phase/5.5-release`, not pushed:
     - inspection script;
@@ -43,15 +50,15 @@
   - **Item 1, blocking:** rename packages, namespaces, `[JevQuestions]`, `IJevClient`, `JevError`, the JEV analyzer IDs and the docs site before the first NuGet publish.
   - Nothing is published under `ZeroAlloc.Jev` yet; both ids were still free on nuget.org on 2026-10-09.
 - **Issues:** items 1–6 are tracked in #120 (new) and #115–#119, updated on 2026-10-09 to the revised text; #29 and #28 re-pointed to Phase 7.4.
-- **The `za-docs-jev` Cloudflare preview check.** The maintainer changed its non-production deploy command on 2026-10-09. Not yet confirmed on a new PR; .website #82 and #83 still failed at 11:39 and 11:46.
 
 ## Blockers
 - **Publishing:** blocked until Milestone 7. Do not push `phase/5.5-release` as a PR, and do not merge anything carrying `Release-As: 1.0.0`.
 
 ## Recommended Next Step
 1. Milestone 6, Provider-neutral core, is active (design `docs/superpowers/specs/2026-10-09-milestone-6-design.md`).
-2. Next: Phase 6.2, neutral question model and adapter boundary (#115). It needs a brainstorm and, as a Refactor phase, an impact analysis.
+2. Next: Phase 6.3, the `IDecisionClient` abstraction and pipeline (#119). It needs a brainstorm; its open question is whether `IDecisionClient` lives in the core or in an `.Extensions.AI` package. Its goal also carries the parts Phase 6.2 left outside the seam.
 3. Run `pre-push-review` on each feature branch before its PR, and keep the report in `docs/plans/`: the docs tests treat every file at the top of `docs/` as a site page.
+4. Allocation gates run only in the published AOT smoke executable, not in `dotnet test`: publish and run it for any change under `src/`.
 
 ## Operational notes
 - **Live keys:** `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY` are in the `live-api` environment, which deploys only from `main`. Run the suite with `gh workflow run live-smoke.yml --ref main`. About 13 small billed calls per run.
@@ -201,7 +208,7 @@
 ## What Phase 2.4 shipped
 - `JevQuestionSet.CreateBuilder()`: Noul, enum and keyed Choice, enum and keyed Score questions with configurators (closed after their callback) and handles. `Build()` returns `Result<JevQuestionSet, JevError>` after checking the analyzers' rules with ZeroAlloc.Validation 2.0.3; failures come back as the new `JevErrorKind.InvalidQuestions` with `JevError.Failures`, warnings on `JevQuestionSet.Warnings`. `QuestionsUtf8` is byte-identical to the generator's for the same set, which a differential test pins.
 - `JevAnswers.Get(handle)` reads `Noul`, `Choice<T>`, `Score<T>`, `KeyedChoice` and `KeyedScore` without allocating; a handle from another builder, a `default` handle or one added after the build throws `ArgumentException`. `IJevClient.EvaluateAsync(JevQuestionSet questionSet, JevContent state)` with its CancellationToken overload are default interface methods; `JevClient` overrides them on its pooled path.
-- Shared single sources: `JevLimits` (generator, analyzers, library), `Utf8Keys`, the generator's linked `SnakeCase.cs` and `DiagnosticIds.cs`, and `GeneratorJsonEncoder`, which escapes as the generator does.
+- Shared single sources: `JevLimits` (generator, analyzers, library), `Utf8Keys`, the generator's linked `SnakeCase.cs` and `DiagnosticIds.cs`, and `SystemOneJsonEncoder`, which escapes as the generator does.
 - Budgets: Build 7296 B, evaluating a built set 4736 B, parsing a built set 256 B, `JevAnswers.Get` 0 B. A 20-question built parse runs at 1.26× the generated one, so no key map.
 - Maintainer decisions: enum options are read from the enum's public fields in declaration order under `DynamicallyAccessedMembers` (exception to the no-reflection goal, since `Enum.GetName` names aliases by the alias in larger enums; verified under Native AOT). NuGet flows ZeroAlloc.Validation's analyzers to consumers transitively (NuGet/Home#6720); they stay inert. Score answers require `legend`, as the TypeSafe API does (#61, fixed in #64).
 - Upstream: ZeroAlloc-Net/ZeroAlloc.Validation#282 (InclusiveBetween with When ignored its upper bound) was fixed in 2.0.3 by the zeroalloc-ae session, which owns upstream ZeroAlloc work.

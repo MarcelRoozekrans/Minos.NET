@@ -1,7 +1,6 @@
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
-using System.Text.Json;
 using Minos.Generator;
 
 namespace Minos;
@@ -31,14 +30,12 @@ internal sealed class EnumOptionSet<[DynamicallyAccessedMembers(DynamicallyAcces
     private readonly T[] _values;
     private readonly string[] _names;
     private readonly string[] _keys;
-    private readonly byte[][] _utf8Keys;
 
     private EnumOptionSet(T[] values, string[] names, string[] keys)
     {
         _values = values;
         _names = names;
         _keys = keys;
-        _utf8Keys = Utf8Keys.Encode(keys);
     }
 
     /// <summary>
@@ -94,8 +91,6 @@ internal sealed class EnumOptionSet<[DynamicallyAccessedMembers(DynamicallyAcces
 
         return -1;
     }
-
-    public override int IndexOfKey(ref Utf8JsonReader reader) => Utf8Keys.IndexOf(ref reader, _utf8Keys);
 
     private static EnumOptionSet<T> Create()
     {

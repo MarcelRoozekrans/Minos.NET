@@ -6,9 +6,9 @@ internal static class ScoreChecks
     [Covers("Minos.Score<T>.Score() -> void")]
     [Covers("Minos.Score<T>.Score(T value, double expected, double confidence, Minos.ProbabilityMap<T> probabilities) -> void")]
     [Covers("Minos.Score<T>.Equals(Minos.Score<T> other) -> bool")]
-    public static void ScoreIsRebuiltAndCompared()
+    public static async Task ScoreIsRebuiltAndCompared()
     {
-        var parsed = SmokeAnswers.Triage().Urgency;
+        var parsed = (await SmokeAnswers.TriageAsync().ConfigureAwait(false)).Urgency;
         var rebuilt = new Score<Urgency>(parsed.Value, parsed.Expected, parsed.Confidence, parsed.Probabilities);
         var shifted = new Score<Urgency>(parsed.Value, parsed.Expected - 0.5, parsed.Confidence, parsed.Probabilities);
         var empty = new Score<Urgency>();

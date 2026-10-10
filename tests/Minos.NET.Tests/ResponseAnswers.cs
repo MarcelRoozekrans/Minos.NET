@@ -1,9 +1,10 @@
 using System.Text;
 using System.Text.Json;
+using Minos.Protocols;
 
 namespace Minos.Tests;
 
-/// <summary>Positions a reader on a response's <c>answers</c> object and runs the generated parser.</summary>
+/// <summary>Positions a reader on a response's <c>answers</c> object and reads them through the protocol into the generated type.</summary>
 internal static class ResponseAnswers
 {
     public static T Parse<T>(string responseJson)
@@ -17,7 +18,7 @@ internal static class ResponseAnswers
             reader.Read();
             if (isAnswers)
             {
-                return T.Parse(ref reader);
+                return SystemOneProtocol.Instance.ReadAnswers(ref reader, T.Definition, static answers => T.Create(answers));
             }
 
             reader.Skip();

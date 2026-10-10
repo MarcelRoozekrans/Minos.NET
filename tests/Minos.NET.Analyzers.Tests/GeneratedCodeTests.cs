@@ -3,7 +3,7 @@ namespace Minos.Analyzers.Tests;
 /// <summary>
 /// The rules decide what the generator emits, so they report wherever the declaration lives, generated code included.
 /// Without them, an invalid set or enum in a <c>// &lt;auto-generated/&gt;</c> file would build to an unexplained
-/// compiler error, such as CS0117 for the missing <c>QuestionsUtf8</c>.
+/// compiler error, such as CS0117 for the missing <c>Definition</c>.
 /// </summary>
 public sealed class GeneratedCodeTests
 {

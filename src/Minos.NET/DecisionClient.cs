@@ -4,6 +4,7 @@ using System.Reflection;
 using System.Text.Json;
 using System.Text.Json.Serialization.Metadata;
 using Microsoft.Extensions.Logging;
+using Minos.Protocols;
 using Minos.Serialization;
 using Minos.Telemetry;
 using Minos.Transport;
@@ -275,7 +276,7 @@ public sealed class DecisionClient : IDecisionClient, IDisposable
         ArgumentNullException.ThrowIfNull(state);
         ObjectDisposedException.ThrowIf(_disposed, this);
         var started = DecisionLog.StartTiming(_logger);
-        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.Write(T.QuestionsUtf8, state, _model, _pool), cancellationToken);
+        return EvaluateGeneratedAsync<T>(started, SystemOneProtocol.Instance.WriteRequest(T.Definition, state, _model, _pool), cancellationToken);
     }
 
     /// <inheritdoc />
@@ -297,7 +298,7 @@ public sealed class DecisionClient : IDecisionClient, IDisposable
         TypedEvaluation.EnsureStateKind(state.ValueKind, nameof(state));
         ObjectDisposedException.ThrowIf(_disposed, this);
         var started = DecisionLog.StartTiming(_logger);
-        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.Write(T.QuestionsUtf8, state, _model, _pool), cancellationToken);
+        return EvaluateGeneratedAsync<T>(started, SystemOneProtocol.Instance.WriteRequest(T.Definition, state, _model, _pool), cancellationToken);
     }
 
     /// <inheritdoc />
@@ -313,7 +314,7 @@ public sealed class DecisionClient : IDecisionClient, IDisposable
         TypedEvaluation.EnsureStateJson(utf8JsonState.Span, nameof(utf8JsonState));
         ObjectDisposedException.ThrowIf(_disposed, this);
         var started = DecisionLog.StartTiming(_logger);
-        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.WriteUtf8(T.QuestionsUtf8, utf8JsonState.Span, _model, _pool), cancellationToken);
+        return EvaluateGeneratedAsync<T>(started, SystemOneProtocol.Instance.WriteUtf8Request(T.Definition, utf8JsonState.Span, _model, _pool), cancellationToken);
     }
 
     /// <inheritdoc />
@@ -342,7 +343,7 @@ public sealed class DecisionClient : IDecisionClient, IDisposable
         ArgumentNullException.ThrowIfNull(stateTypeInfo);
         ObjectDisposedException.ThrowIf(_disposed, this);
         var started = DecisionLog.StartTiming(_logger);
-        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.Write(T.QuestionsUtf8, state, stateTypeInfo, _model, _pool), cancellationToken);
+        return EvaluateGeneratedAsync<T>(started, SystemOneProtocol.Instance.WriteRequest(T.Definition, state, stateTypeInfo, _model, _pool), cancellationToken);
     }
 
     /// <inheritdoc />
@@ -352,7 +353,7 @@ public sealed class DecisionClient : IDecisionClient, IDisposable
 
     /// <inheritdoc />
     /// <remarks>
-    /// Writes the request straight from the set's <see cref="QuestionSet.QuestionsUtf8"/>, with
+    /// Writes the request straight from the set's <see cref="QuestionSet.Definition"/>, with
     /// <see cref="DecisionClientOptions.Model"/>, and reads the answers straight from the response body, in pooled buffers,
     /// without building a <see cref="SystemOneRequest"/> or <see cref="SystemOneResponse"/>. Retries and errors work as
     /// for <see cref="EvaluateAsync(SystemOneRequest, CancellationToken)"/>.
@@ -363,12 +364,12 @@ public sealed class DecisionClient : IDecisionClient, IDisposable
         DecisionContent.EnsureInitialized(state, nameof(state));
         ObjectDisposedException.ThrowIf(_disposed, this);
         var started = DecisionLog.StartTiming(_logger);
-        var body = TypedRequestWriter.Write(questionSet.QuestionsUtf8, state, _model, _pool);
+        var body = SystemOneProtocol.Instance.WriteRequest(questionSet.Definition, state, _model, _pool);
         return WithLogging(
             Evaluated.Unwrap(_operations.EvaluateBuiltSetAsync(body, questionSet, _model, _providerName, _endpoint, cancellationToken)),
             DecisionLog.EvaluateBuiltSet,
             _model,
-            questionSet.Plan.Length,
+            questionSet.Definition.Questions.Count,
             started,
             cancellationToken);
     }

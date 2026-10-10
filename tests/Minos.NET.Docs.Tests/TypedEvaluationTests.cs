@@ -71,9 +71,9 @@ public sealed class TypedEvaluationTests
     }
 
     [Fact]
-    public void TheGeneratedQuestions_UseSnakeCaseKeysAndStructuredCriteria()
+    public async Task TheGeneratedQuestions_UseSnakeCaseKeysAndStructuredCriteria()
     {
-        using var actual = JsonDocument.Parse(TicketReview.QuestionsUtf8.ToArray());
+        using var actual = await CannedDecision.QuestionsSentAsync<TicketReview>(ReviewResponse);
         using var expected = JsonDocument.Parse("""
             {
               "is_urgent": {
@@ -111,14 +111,14 @@ public sealed class TypedEvaluationTests
     }
 
     [Fact]
-    public void TheWireJsonOnThePage_IsWhatTheGeneratorWrites()
+    public async Task TheWireJsonOnThePage_IsWhatTheGeneratorWrites()
     {
         var lines = File.ReadAllLines(Path.Combine(PublishedPages.Root, "docs", "typed-evaluation.md"));
         var start = Array.FindIndex(lines, line => string.Equals(line, "```json", StringComparison.Ordinal));
         Assert.True(start >= 0, "The page has a json block.");
         var end = Array.FindIndex(lines, start + 1, line => string.Equals(line, "```", StringComparison.Ordinal));
         using var onPage = JsonDocument.Parse(string.Join('\n', lines[(start + 1)..end]));
-        using var generated = JsonDocument.Parse(TicketReview.QuestionsUtf8.ToArray());
+        using var generated = await CannedDecision.QuestionsSentAsync<TicketReview>(ReviewResponse);
 
         Assert.True(JsonElement.DeepEquals(onPage.RootElement, generated.RootElement));
     }

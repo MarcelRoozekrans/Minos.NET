@@ -10,32 +10,22 @@ partial record FrustrationCheck : global::Minos.IQuestionSet<global::Demo.Frustr
 
     public partial global::Minos.Score<global::Demo.Frustration> Frustration { get => __minos_Frustration; }
 
-    /// <summary>Gets the <c>questions</c> object of a <c>/v1/systemone</c> request, as UTF-8 JSON.</summary>
-    public static global::System.ReadOnlySpan<byte> QuestionsUtf8 => "{\"frustration\":{\"type\":\"score\",\"instructions\":\"How frustrated is the customer?\",\"criteria\":[\"Calm\",\"Frustrated\",\"Very angry\"]}}"u8;
+    /// <summary>Gets the provider-neutral definition of the set's questions.</summary>
+    public static global::Minos.QuestionSetDefinition Definition { get; } = new global::Minos.QuestionSetDefinition(
+        global::Minos.QuestionDefinition.Score(
+            "frustration",
+            global::Minos.DecisionContent.FromString("How frustrated is the customer?"),
+            global::Minos.Criterion.Text("Calm"),
+            global::Minos.Criterion.Text("Frustrated"),
+            global::Minos.Criterion.Text("Very angry")));
 
-    /// <summary>Reads the typed answers from the <c>answers</c> object of a <c>/v1/systemone</c> response.</summary>
-    /// <param name="answers">A reader over complete JSON, positioned on the start of the <c>answers</c> object. It is left on the object's end.</param>
+    /// <summary>Creates the typed answers from the slots a protocol read for <see cref="Definition"/>.</summary>
+    /// <param name="answers">One slot per question, in <see cref="Definition"/> order.</param>
     /// <returns>The typed answers.</returns>
-    public static global::Demo.FrustrationCheck Parse(ref global::System.Text.Json.Utf8JsonReader answers)
+    public static global::Demo.FrustrationCheck Create(global::Minos.AnswerSlots answers)
     {
-        global::Minos.AnswerReader.EnsureStartObject(ref answers);
-        var buffer = new double[3];
         var result = new global::Demo.FrustrationCheck();
-        var found0 = false;
-        while (global::Minos.AnswerReader.NextProperty(ref answers))
-        {
-            if (answers.ValueTextEquals("frustration"u8))
-            {
-                answers.Read();
-                result.__minos_Frustration = global::Minos.AnswerReader.ReadScore(ref answers, __DecisionOptions_Frustration.Instance, buffer, 0);
-                found0 = true;
-            }
-            else
-            {
-                answers.Skip();
-            }
-        }
-        if (!found0) throw global::Minos.AnswerReader.MissingAnswer("frustration");
+        result.__minos_Frustration = answers.Score(0, __DecisionOptions_Frustration.Instance);
         return result;
     }
 
@@ -60,13 +50,5 @@ partial record FrustrationCheck : global::Minos.IQuestionSet<global::Demo.Frustr
             global::Demo.Frustration.VeryAngry => 2,
             _ => -1,
         };
-
-        public override int IndexOfKey(ref global::System.Text.Json.Utf8JsonReader reader)
-        {
-            if (reader.ValueTextEquals("0"u8)) return 0;
-            if (reader.ValueTextEquals("1"u8)) return 1;
-            if (reader.ValueTextEquals("2"u8)) return 2;
-            return -1;
-        }
     }
 }

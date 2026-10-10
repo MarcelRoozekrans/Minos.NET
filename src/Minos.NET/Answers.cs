@@ -37,7 +37,7 @@ public sealed class Answers
         where T : struct, Enum
     {
         var slot = Slot(question.Owner, question.Index, nameof(question));
-        var options = (EnumOptionSet<T>)_set.Plan[question.Index].Options!;
+        var options = (EnumOptionSet<T>)_set.OptionSets[question.Index]!;
         return new Choice<T>(options[slot.ValueIndex], slot.Confidence, new ProbabilityMap<T>(_probabilities, slot.Offset, options));
     }
 
@@ -50,7 +50,7 @@ public sealed class Answers
         where T : struct, Enum
     {
         var slot = Slot(question.Owner, question.Index, nameof(question));
-        var options = (EnumOptionSet<T>)_set.Plan[question.Index].Options!;
+        var options = (EnumOptionSet<T>)_set.OptionSets[question.Index]!;
         return new Score<T>(options[slot.ValueIndex], slot.Value, slot.Confidence, new ProbabilityMap<T>(_probabilities, slot.Offset, options));
     }
 
@@ -61,7 +61,7 @@ public sealed class Answers
     public KeyedChoice Get(KeyedChoiceHandle question)
     {
         var slot = Slot(question.Owner, question.Index, nameof(question));
-        var options = (KeyedOptionSet)_set.Plan[question.Index].Options!;
+        var options = (KeyedOptionSet)_set.OptionSets[question.Index]!;
         return new KeyedChoice(options[slot.ValueIndex], slot.Confidence, new KeyedProbabilityMap(_probabilities, slot.Offset, options));
     }
 
@@ -72,7 +72,7 @@ public sealed class Answers
     public KeyedScore Get(KeyedScoreHandle question)
     {
         var slot = Slot(question.Owner, question.Index, nameof(question));
-        var options = (KeyedOptionSet)_set.Plan[question.Index].Options!;
+        var options = (KeyedOptionSet)_set.OptionSets[question.Index]!;
         return new KeyedScore(slot.ValueIndex, slot.Value, slot.Confidence, new KeyedProbabilityMap(_probabilities, slot.Offset, options));
     }
 

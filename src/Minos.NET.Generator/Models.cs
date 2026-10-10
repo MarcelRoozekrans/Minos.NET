@@ -12,23 +12,29 @@ internal enum QuestionKind
 /// <summary>One Choice option or Score level, in wire order.</summary>
 /// <param name="MemberName">The enum member, escaped as a C# identifier.</param>
 /// <param name="Key">The wire key: snake_case name or override for a Choice, the level index for a Score.</param>
-/// <param name="DescriptionJson">
-/// The criterion or level as a wire fragment: a JSON string, or a criterion object when <c>Examples</c> or
-/// <c>NotFor</c> is set. <see langword="null"/> sends JSON <c>null</c>.
+/// <param name="Description">
+/// The criterion or level text, raw; <see langword="null"/> for a Choice member without <c>[Criteria]</c>.
 /// </param>
-internal sealed record OptionModel(string MemberName, string Key, string? DescriptionJson);
+/// <param name="Examples">The non-null <c>Examples</c> texts, raw, in order.</param>
+/// <param name="NotFor">The non-null <c>NotFor</c> texts, raw, in order.</param>
+internal sealed record OptionModel(
+    string MemberName,
+    string Key,
+    string? Description,
+    EquatableArray<string> Examples,
+    EquatableArray<string> NotFor);
 
 /// <summary>One question property.</summary>
 /// <param name="PropertyName">The property, escaped as a C# identifier.</param>
 /// <param name="Modifiers">The declaration's accessibility modifiers, repeated on the implementation.</param>
 /// <param name="EnumType">The fully qualified enum for Choice and Score; empty for Noul.</param>
-/// <param name="InstructionsJson">The instructions as a wire fragment: a JSON string.</param>
+/// <param name="Instructions">The instructions, raw.</param>
 internal sealed record QuestionModel(
     string PropertyName,
     string Modifiers,
     QuestionKind Kind,
     string Key,
-    string InstructionsJson,
+    string Instructions,
     string? WhenTrue,
     string? WhenFalse,
     string EnumType,

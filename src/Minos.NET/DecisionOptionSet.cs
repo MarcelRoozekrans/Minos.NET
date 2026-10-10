@@ -1,5 +1,4 @@
 using System.ComponentModel;
-using System.Text.Json;
 
 namespace Minos;
 
@@ -7,11 +6,11 @@ namespace Minos;
 /// <typeparam name="T">The enum whose members are the options or levels.</typeparam>
 /// <remarks>
 /// Infrastructure for the code the <c>[Questions]</c> source generator emits; application code does not use it.
-/// The generator emits one sealed subclass per question. It maps enum values, indices and wire keys with switches, so no
+/// The generator emits one sealed subclass per question. It maps enum values and indices with switches, so no
 /// reflection is involved.
 /// </remarks>
 [EditorBrowsable(EditorBrowsableState.Never)]
-public abstract class DecisionOptionSet<T> : IDecisionOptionKeys
+public abstract class DecisionOptionSet<T>
     where T : struct, Enum
 {
     /// <summary>Gets the number of options.</summary>
@@ -27,9 +26,4 @@ public abstract class DecisionOptionSet<T> : IDecisionOptionKeys
     /// <param name="value">The enum value.</param>
     /// <returns>The position, or -1 when <paramref name="value"/> is not an option.</returns>
     public abstract int IndexOf(T value);
-
-    /// <summary>Returns the position of the option whose wire key is the reader's current token.</summary>
-    /// <param name="reader">A reader positioned on a <see cref="JsonTokenType.PropertyName"/> or <see cref="JsonTokenType.String"/> token.</param>
-    /// <returns>The position, or -1 when no option has that key.</returns>
-    public abstract int IndexOfKey(ref Utf8JsonReader reader);
 }

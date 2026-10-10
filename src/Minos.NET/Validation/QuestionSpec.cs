@@ -86,13 +86,13 @@ internal sealed record QuestionSpec
                 continue;
             }
 
-            if (criterion.IsJson ? NotBlankContentAttribute.IsBlank(criterion.JsonContent) : string.IsNullOrWhiteSpace(criterion.Description))
+            if (criterion.JsonContent is { } json ? NotBlankContentAttribute.IsBlank(json) : string.IsNullOrWhiteSpace(criterion.Description))
             {
                 Add(ref failures, Severity.Warning, DiagnosticIds.EmptyText,
                     $"The description of '{option.Name}' in '{Key}' is empty or whitespace, or an empty JSON object or array.");
             }
 
-            if (HasBlankEntry(criterion.Examples) || HasBlankEntry(criterion.NotFor))
+            if (HasBlankEntry(criterion.ExampleEntries) || HasBlankEntry(criterion.NotForEntries))
             {
                 Add(ref failures, Severity.Warning, DiagnosticIds.EmptyText,
                     $"An example or not-for entry of '{option.Name}' in '{Key}' is null, empty or whitespace.");
@@ -164,7 +164,7 @@ internal sealed record QuestionSpec
 
         foreach (ref readonly var option in Options.AsSpan())
         {
-            if (option.Criterion is { IsJson: true } criterion && JsonDepth.Exceeds(criterion.JsonContent))
+            if (option.Criterion?.JsonContent is { } json && JsonDepth.Exceeds(json))
             {
                 AddDepth(ref failures, $"The description of '{option.Name}'");
             }

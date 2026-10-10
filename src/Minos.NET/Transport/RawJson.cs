@@ -4,7 +4,7 @@ namespace Minos.Transport;
 
 /// <summary>
 /// A UTF-8 JSON body in a buffer rented from an <see cref="ArrayPool{T}"/>: a request body written by
-/// <see cref="TypedRequestWriter"/>, or a response body read by <see cref="DecisionRawSerializer"/>.
+/// <see cref="Protocols.SystemOneRequestWriter"/>, or a response body read by <see cref="DecisionRawSerializer"/>.
 /// </summary>
 /// <remarks>
 /// It is also the <see cref="IBufferWriter{T}"/> that fills it, growing by renting a larger buffer, copying and

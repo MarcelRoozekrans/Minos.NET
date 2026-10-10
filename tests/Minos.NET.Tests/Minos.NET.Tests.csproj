@@ -27,11 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <!-- The generator's escaping, as the reference the runtime encoder must match byte for byte. -->
-    <Compile Include="..\..\src\Minos.NET.Generator\JsonText.cs" Link="Shared\JsonText.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Include="Fixtures\**\*.json" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="WireFixtures\**\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

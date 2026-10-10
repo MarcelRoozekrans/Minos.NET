@@ -13,7 +13,7 @@ internal static class QuestionSetBuilderChecks
     [Covers("Minos.NoulCriteriaBuilder.WhenTrue(Minos.DecisionContent description) -> Minos.NoulCriteriaBuilder!")]
     [Covers("Minos.NoulCriteriaBuilder.WhenFalse(Minos.DecisionContent description) -> Minos.NoulCriteriaBuilder!")]
     [Covers("Minos.KeyedChoiceOptionsBuilder.Option(string! key) -> Minos.KeyedChoiceOptionsBuilder!")]
-    public static void NoulCriteriaAndUndescribedKeyedOptionsAreSent()
+    public static async Task NoulCriteriaAndUndescribedKeyedOptionsAreSent()
     {
         var built = QuestionSet.CreateBuilder()
             .Noul("requests_credentials", "Does `message` ask for a credential?", out _, criteria => criteria
@@ -30,7 +30,7 @@ internal static class QuestionSetBuilderChecks
             return;
         }
 
-        using var questions = JsonDocument.Parse(built.Value.QuestionsUtf8.ToArray());
+        using var questions = await CapturingHandler.QuestionsSentAsync(built.Value, Program.CredentialsResponse).ConfigureAwait(false);
         var noul = questions.RootElement.GetProperty("requests_credentials").GetProperty("criteria");
         var product = questions.RootElement.GetProperty("product").GetProperty("criteria");
         Program.Check(
