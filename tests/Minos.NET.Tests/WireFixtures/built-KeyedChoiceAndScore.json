@@ -1,0 +1,1 @@
+{"product":{"type":"choice","instructions":"Which product is `message` about?","criteria":{"pro-plan":"The Pro subscription","team-plan":{"description":"The Team subscription","examples":["We have 12 seats"]},"other":null}},"effort":{"type":"score","instructions":"How much effort will this take?","criteria":["Minutes","Hours","Days"]}}

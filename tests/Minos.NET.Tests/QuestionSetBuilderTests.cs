@@ -11,64 +11,32 @@ public sealed class QuestionSetBuilderTests
 {
     [Fact]
     public void Noul_MatchesFixture()
-        => AssertQuestions("request-noul.json", QuestionSet.CreateBuilder()
-            .Noul("is_urgent", "Does this convey urgency?", out _, c => c
-                .WhenTrue("Explicitly time-sensitive")
-                .WhenFalse("No urgency expressed")));
+        => AssertQuestions("request-noul.json", BuiltWireCases.Noul());
 
     [Fact]
     public void NoulWithoutCriteria_MatchesFixture()
-        => AssertQuestions("request-noul-minimal.json", QuestionSet.CreateBuilder()
-            .Noul("is_urgent", "Does this convey urgency?", out _));
+        => AssertQuestions("request-noul-minimal.json", BuiltWireCases.NoulWithoutCriteria());
 
     [Fact]
     public void EnumChoice_WithAnUndescribedMember_MatchesFixture()
-        => AssertQuestions("request-choice.json", QuestionSet.CreateBuilder()
-            .Choice<Department>("department", "Which team should handle this?", out _, o => o
-                .Describe(Department.Billing, "Payments, invoicing, refunds")
-                .Describe(Department.Technical, "Bugs, outages, integrations")
-                .Describe(Department.Sales, "Pricing, upgrades, new accounts")));
+        => AssertQuestions("request-choice.json", BuiltWireCases.EnumChoiceWithAnUndescribedMember());
 
     [Fact]
     public void EnumScore_MatchesFixture()
-        => AssertQuestions("request-score.json", QuestionSet.CreateBuilder()
-            .Score<Frustration>("frustration", "How frustrated is the customer?", out _, l => l
-                .Level(Frustration.Calm, "Calm")
-                .Level(Frustration.Frustrated, "Frustrated")
-                .Level(Frustration.VeryAngry, "Very angry")));
+        => AssertQuestions("request-score.json", BuiltWireCases.EnumScore());
 
     [Fact]
     public void StructuredCriteria_MatchFixture()
-        => AssertQuestions("request-structured-criteria.json", QuestionSet.CreateBuilder()
-            .Choice<StructuredDepartment>("department", "Which team should handle this?", out _, o => o
-                .Describe(StructuredDepartment.Billing, Criterion.Text("Payments, invoicing, refunds")
-                    .WithExamples("I was charged twice")
-                    .WithNotFor("How much is Pro?"))
-                .Describe(StructuredDepartment.Technical, Criterion.Text("Bugs, outages, integrations").WithExamples("The API returns 500"))
-                .Describe(StructuredDepartment.Sales, Criterion.Text("Pricing, upgrades, new accounts").WithExamples().WithNotFor()))
-            .Score<StructuredSeverity>("severity", "How severe is this?", out _, l => l
-                .Level(StructuredSeverity.Low, Criterion.Text("Cosmetic").WithNotFor("Data loss"))
-                .Level(StructuredSeverity.High, "Blocks work")));
+        => AssertQuestions("request-structured-criteria.json", BuiltWireCases.StructuredCriteria());
 
     [Fact]
     public void JsonInstructions_MatchFixture()
-        => AssertQuestions("request-structured.json", QuestionSet.CreateBuilder()
-            .Noul("is_duplicate", DecisionContent.FromUtf8Json("""
-                {
-                  "potential_duplicate": { "name": "John Smith", "location": "Oakland, California", "last_employer": "Google" },
-                  "question": "Is the resume for the same person as `potential_duplicate`?"
-                }
-                """u8), out _));
+        => AssertQuestions("request-structured.json", BuiltWireCases.JsonInstructions());
 
     [Fact]
     public void JsonAtDepthLimit_DeserializesThroughWireModel()
     {
-        var deep = DecisionContent.FromUtf8Json(Encoding.UTF8.GetBytes(DeepJson.Text));
-        var built = Built(QuestionSet.CreateBuilder()
-            .Noul("is_deep", deep, out _)
-            .Choice<DeepOption>("depth", "How deep?", out _, o => o
-                .Describe(DeepOption.Shallow, Criterion.Json(deep))
-                .Describe(DeepOption.Deep, Criterion.Json(deep))));
+        var built = BuiltWireCases.JsonAtDepthLimit();
         var json = "{\"state\":\"x\",\"questions\":" + Encoding.UTF8.GetString(built.QuestionsUtf8) + "}";
         Assert.Equal(64, MaxNesting(json));
 
@@ -98,21 +66,12 @@ public sealed class QuestionSetBuilderTests
 
     [Fact]
     public void KeyedChoiceAndScore_MatchFixture()
-        => AssertQuestions("request-keyed.json", QuestionSet.CreateBuilder()
-            .Choice("product", "Which product is `message` about?", out _, o => o
-                .Option("pro-plan", "The Pro subscription")
-                .Option("team-plan", Criterion.Text("The Team subscription").WithExamples("We have 12 seats"))
-                .Option("other"))
-            .Score("effort", "How much effort will this take?", out _, l => l.Level("Minutes").Level("Hours").Level("Days")));
+        => AssertQuestions("request-keyed.json", BuiltWireCases.KeyedChoiceAndScore());
 
     [Fact]
     public void EnumScore_SendsTheLevelsInCallOrder()
     {
-        var built = Built(QuestionSet.CreateBuilder()
-            .Score<Frustration>("mood", "How?", out _, l => l
-                .Level(Frustration.VeryAngry, "Very angry")
-                .Level(Frustration.Calm, "Calm")
-                .Level(Frustration.Frustrated, "Frustrated")));
+        var built = BuiltWireCases.EnumScoreInCallOrder();
 
         Assert.Equal(
             """{"mood":{"type":"score","instructions":"How?","criteria":["Very angry","Calm","Frustrated"]}}""",
@@ -340,10 +299,10 @@ public sealed class QuestionSetBuilderTests
             Encoding.ASCII.GetString(second.QuestionsUtf8));
     }
 
-    private static void AssertQuestions(string fixture, QuestionSetBuilder builder)
+    private static void AssertQuestions(string fixture, QuestionSet built)
     {
         var expected = Fixture.Load(fixture)["questions"];
-        var actual = JsonNode.Parse(Built(builder).QuestionsUtf8);
+        var actual = JsonNode.Parse(built.QuestionsUtf8);
 
         Assert.True(JsonNode.DeepEquals(expected, actual), $"Expected {expected?.ToJsonString()} but built {actual?.ToJsonString()}.");
     }
