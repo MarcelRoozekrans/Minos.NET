@@ -68,6 +68,7 @@ internal static class Program
         await QuestionHandleChecks.DefaultHandlesAreRejected().ConfigureAwait(false);
         DefinitionChecks.QuestionSetDefinitionKeepsItsQuestions();
         DefinitionChecks.EmptyAnswerSlotsHoldNoAnswers();
+        DefinitionChecks.AnswerSlotsRefuseAnIndexOutOfRange();
         NoulChecks.EmptyNoulIsFalse();
         ChoiceChecks.ChoiceIsRebuiltAndCompared();
         ScoreChecks.ScoreIsRebuiltAndCompared();

@@ -34,6 +34,13 @@ public sealed class QuestionDefinitionTests
     }
 
     [Fact]
+    public void Noul_RejectsUninitializedCriteria()
+    {
+        Assert.Throws<ArgumentException>(() => QuestionDefinition.Noul("n", "N?", whenTrue: default(DecisionContent)));
+        Assert.Throws<ArgumentException>(() => QuestionDefinition.Noul("n", "N?", whenFalse: default(DecisionContent)));
+    }
+
+    [Fact]
     public void Choice_WithoutOptions_Throws()
         => Assert.Throws<ArgumentException>(() => QuestionDefinition.Choice("c", "Which?"));
 

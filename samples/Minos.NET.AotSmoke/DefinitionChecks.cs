@@ -40,4 +40,32 @@ internal static class DefinitionChecks
 
         Program.Check(empty.Count == 0, "the default AnswerSlots holds no answers under Native AOT");
     }
+
+    // Smoke code cannot build an AnswerSlots with answers: its constructor is internal. The success path runs under
+    // AOT through the generated Create methods and the typed evaluation checks. Here the index guard runs first, before
+    // the definition or the option set is touched, so the option set is never used and a null one stands in.
+    [Covers("Minos.AnswerSlots.Noul(int index) -> Minos.Noul")]
+    [Covers("Minos.AnswerSlots.Choice<T>(int index, Minos.DecisionOptionSet<T>! options) -> Minos.Choice<T>")]
+    [Covers("Minos.AnswerSlots.Score<T>(int index, Minos.DecisionOptionSet<T>! options) -> Minos.Score<T>")]
+    public static void AnswerSlotsRefuseAnIndexOutOfRange()
+    {
+        Program.Check(
+            ThrowsOutOfRange(static () => new AnswerSlots().Noul(0))
+                && ThrowsOutOfRange(static () => new AnswerSlots().Choice(0, (DecisionOptionSet<Team>)null!))
+                && ThrowsOutOfRange(static () => new AnswerSlots().Score(0, (DecisionOptionSet<Urgency>)null!)),
+            "AnswerSlots refuses an index outside its answers under Native AOT");
+    }
+
+    private static bool ThrowsOutOfRange(Action read)
+    {
+        try
+        {
+            read();
+            return false;
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return true;
+        }
+    }
 }

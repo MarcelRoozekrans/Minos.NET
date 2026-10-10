@@ -38,4 +38,14 @@ public sealed class AnswerSlotsTests
     public void OptionCountMismatch_Throws()
         => Assert.Throws<ArgumentException>(() =>
             new AnswerSlots([default, new(0, 0, 0.5, 0), default], new double[6], Definition).Choice(1, ColorOptionsSubset.Instance));
+
+    [Fact]
+    public void WrongKind_Noul_Throws()
+        => Assert.Throws<InvalidOperationException>(() =>
+            new AnswerSlots([default, default, default], new double[6], Definition).Noul(1));
+
+    [Fact]
+    public void WrongKind_Score_Throws()
+        => Assert.Throws<InvalidOperationException>(() =>
+            new AnswerSlots([default, default, default], new double[6], Definition).Score(1, UrgencyLevels.Instance));
 }

@@ -45,7 +45,7 @@ public sealed class QuestionDefinition
     /// <param name="whenFalse">What a no answer means, or <see langword="null"/>.</param>
     /// <returns>The question.</returns>
     public static QuestionDefinition Noul(string key, DecisionContent instructions, DecisionContent? whenTrue = null, DecisionContent? whenFalse = null)
-        => new(CheckKey(key), QuestionKind.Noul, Checked(instructions), whenTrue, whenFalse, []);
+        => new(CheckKey(key), QuestionKind.Noul, Checked(instructions), CheckedOrNull(whenTrue, nameof(whenTrue)), CheckedOrNull(whenFalse, nameof(whenFalse)), []);
 
     /// <summary>Defines a question with one answer from <paramref name="options"/>.</summary>
     /// <param name="key">The question's wire key.</param>
@@ -95,6 +95,16 @@ public sealed class QuestionDefinition
     {
         ArgumentException.ThrowIfNullOrEmpty(key);
         return key;
+    }
+
+    private static DecisionContent? CheckedOrNull(DecisionContent? content, string paramName)
+    {
+        if (content is { } value)
+        {
+            DecisionContent.EnsureInitialized(value, paramName);
+        }
+
+        return content;
     }
 
     private static DecisionContent Checked(DecisionContent instructions)
