@@ -48,17 +48,18 @@ internal static class AllocationChecks
     }
 
     /// <summary>
-    /// The generated <c>SmokeTriage.Create</c> over the slots a protocol read from the triage answers: the result record
-    /// and the arrays it keeps. Together with the protocol's own probability buffer, which the typed evaluation gates
-    /// count, it is the work the old generated <c>Parse</c> gate held to 192 B.
+    /// The generated <c>SmokeTriage.Create</c> over the slots a protocol read from the triage answers: the result record,
+    /// which holds its typed answers inline. Together with the protocol's own probability buffer, which the typed
+    /// evaluation gates count, it is the work the old generated <c>Parse</c> gate held to 192 B.
     /// </summary>
     public static async Task GeneratedCreate()
     {
         await RunSlotProbeAsync().ConfigureAwait(false);
 
-        // Measured 112 B/call on published win-x64 AOT: the SmokeTriage record and the slot copy it keeps, with the
-        // protocol's probability buffer outside the loop. Budget: about 10% headroom over the measurement, rounded up to
-        // the next multiple of 64 B, per the Phase 1.8 rule, and below the 192 B of the generated Parse it replaces.
+        // Measured 112 B/call on published win-x64 AOT: the SmokeTriage record alone, whose Noul, Choice and Score
+        // answers are structs held inline over the protocol's probability buffer, which is allocated outside the loop.
+        // Budget: about 10% headroom over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8
+        // rule, and below the 192 B of the generated Parse it replaces.
         const long BudgetBytes = 128;
         Program.Check(
             SlotProbe.CreateBytes >= 0 && SlotProbe.CreateBytes <= BudgetBytes * GateIterations,

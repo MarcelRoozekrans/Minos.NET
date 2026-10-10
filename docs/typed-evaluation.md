@@ -7,10 +7,10 @@ description: Declare questions as a C# type, give them a typed state, and pick t
 
 # Typed evaluation
 
-Typed evaluation is the main way to use Minos.NET. You declare the questions once, as a partial record. A source
-generator turns them into a question definition at compile time, which the client writes as the request, and into a parser for the answers, so a call is one line and the
-answers come back as typed properties. This page covers the declaration, the state you hand to Jev, and the ways to
-call it. [Getting started](getting-started.md) has the shortest working example, and
+Typed evaluation is the main way to use Minos.NET. You declare the questions once, as a partial record. At compile
+time a source generator writes the question definition, which the client turns into the request, and a `Create` method
+that builds the record from the answers the client reads back. So a call is one line, and the answers come back as
+typed properties. This page covers the declaration, the state you hand to Jev, and the ways to call it. [Getting started](getting-started.md) has the shortest working example, and
 [Question types](question-types.md) covers what each answer holds.
 
 When the questions are only known at run time, use [question sets built at run time](question-sets-at-run-time.md)
