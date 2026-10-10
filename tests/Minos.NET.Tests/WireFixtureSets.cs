@@ -45,10 +45,6 @@ public enum WfTeam
     [Criteria("Charges, invoices, refunds")] Billing = 10,
     [Criteria("Login, profile, permissions, or security")] Account = 20,
     [Criteria("No listed team fits")] Other = 30,
-    // Deliberate alias: test data for the alias rule, which the builder and the generator both skip.
-#pragma warning disable CA1069
-    Legacy = 10,
-#pragma warning restore CA1069
 }
 
 public enum WfUrgency
@@ -124,4 +120,36 @@ public partial record WfWithState
 {
     [Noul("Is this urgent?")]
     public partial Noul IsUrgent { get; }
+}
+
+// Keys, including the option key, omit the lone surrogate (the generator cannot emit one into its C# key literals); every other text carries it. Every character the encoder escapes or passes through: < > & ' + / are raw, \r \t DEL U+2028 U+0085 escape, a lone surrogate becomes U+FFFD.
+public enum WfEscapedChoice
+{
+    [Criteria("c < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end", Key = "k < > & ' + / \r \t \u007F \u2028 \u0085 end")]
+    Tricky,
+
+    [Criteria("plain")]
+    Plain,
+}
+
+public enum WfEscapedLevel
+{
+    [Level("l < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end")]
+    Tricky,
+
+    [Level("plain")]
+    Plain,
+}
+
+[Questions]
+public partial record WfEscapes
+{
+    [Noul("n < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end", Key = "n < > & ' + / \r \t \u007F \u2028 \u0085 end", WhenTrue = "t < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end", WhenFalse = "f < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end")]
+    public partial Noul Plain { get; }
+
+    [Choice("c < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end", Key = "c < > & ' + / \r \t \u007F \u2028 \u0085 end")]
+    public partial Choice<WfEscapedChoice> Choice { get; }
+
+    [Score("s < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end", Key = "s < > & ' + / \r \t \u007F \u2028 \u0085 end")]
+    public partial Score<WfEscapedLevel> Score { get; }
 }

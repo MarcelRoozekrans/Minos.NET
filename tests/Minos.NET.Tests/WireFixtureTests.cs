@@ -6,6 +6,7 @@ namespace Minos.Tests;
 
 internal static class WireFixtures
 {
+    // Capture mode overwrites the files and passes by design; it is only for writing them once.
     // Set MINOS_CAPTURE_WIRE_FIXTURES=1 once, on main's behaviour, to write the files; every other run compares.
     public static bool Capturing => string.Equals(Environment.GetEnvironmentVariable("MINOS_CAPTURE_WIRE_FIXTURES"), "1", StringComparison.Ordinal);
 
@@ -30,7 +31,7 @@ internal static class WireFixtures
 
 public sealed class WireFixtureTests
 {
-    public static TheoryData<string> GeneratedCases => ["NoulOnly", "ChoiceOnly", "ScoreOnly", "Mixed", "Structured", "KeywordMembers", "WithState"];
+    public static TheoryData<string> GeneratedCases => ["NoulOnly", "ChoiceOnly", "ScoreOnly", "Mixed", "Structured", "KeywordMembers", "WithState", "Escapes"];
 
     internal static readonly Dictionary<string, Func<QuestionSet>> BuiltCases = new()
     {
@@ -46,6 +47,7 @@ public sealed class WireFixtureTests
         ["JsonCriterion"] = BuiltWireCases.JsonCriterion,
         ["JsonAtDepthLimit"] = BuiltWireCases.JsonAtDepthLimit,
         ["KeyedChoiceAndScore"] = BuiltWireCases.KeyedChoiceAndScore,
+        ["Escapes"] = BuiltWireCases.Escapes,
     };
 
     public static TheoryData<string> BuiltCaseNames => [.. BuiltCases.Keys];
@@ -70,6 +72,7 @@ public sealed class WireFixtureTests
         "Structured" => WfStructured.QuestionsUtf8,
         "KeywordMembers" => WfKeywordMembers.QuestionsUtf8,
         "WithState" => WfWithState.QuestionsUtf8,
+        "Escapes" => WfEscapes.QuestionsUtf8,
         _ => throw new ArgumentOutOfRangeException(nameof(name)),
     };
 }
@@ -149,7 +152,22 @@ internal static class BuiltWireCases
             .Option("other"))
         .Score("effort", "How much effort will this take?", out _, l => l.Level("Minutes").Level("Hours").Level("Days")));
 
-    private static QuestionSet Built(QuestionSetBuilder builder)
+    // Characters the encoder escapes or passes through, and a lone surrogate built in code: xUnit theory data would mangle it.
+    public static QuestionSet Escapes()
+    {
+        var text = "< > & ' + / \r \t \u007F \u2028 \u0085 " + new string((char)0xD800, 1) + " end";
+        var json = DecisionContent.FromUtf8Json("""{"q":"café \u00e9 \u003c < \u0026 &"}"""u8);
+        return Built(QuestionSet.CreateBuilder()
+            .Noul("n " + text, "n " + text, out _, c => c.WhenTrue("t " + text).WhenFalse("f " + text))
+            .Noul("json_instructions", json, out _)
+            .Choice("c " + text, "c " + text, out _, o => o
+                .Option("k " + text, "o " + text)
+                .Option("json_criterion", Criterion.Json(json))
+                .Option("other"))
+            .Score("s " + text, "s " + text, out _, l => l.Level("l " + text).Level(Criterion.Json(json))));
+    }
+
+    public static QuestionSet Built(QuestionSetBuilder builder)
     {
         var built = builder.Build();
         Assert.True(built.IsSuccess, built.IsFailure ? built.Error.ToString() : null);

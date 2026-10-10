@@ -213,7 +213,7 @@ public sealed class QuestionSetBuilderTests
             Assert.Equal("configure failed", Assert.Throws<InvalidOperationException>(call).Message);
         }
 
-        Assert.Equal("""{"kept":{"type":"noul","instructions":"Kept?"}}""", Encoding.ASCII.GetString(Built(builder).QuestionsUtf8));
+        Assert.Equal("""{"kept":{"type":"noul","instructions":"Kept?"}}""", Encoding.ASCII.GetString(BuiltWireCases.Built(builder).QuestionsUtf8));
     }
 
     [Fact]
@@ -230,7 +230,7 @@ public sealed class QuestionSetBuilderTests
             .Score<Frustration>("s", "S?", out _, l => score = l.Level(Frustration.Calm, "a").Level(Frustration.Frustrated, "b").Level(Frustration.VeryAngry, "c"))
             .Choice("kc", "KC?", out _, o => keyedChoice = o.Option("a"))
             .Score("ks", "KS?", out _, l => keyedScore = l.Level("a"));
-        var before = Built(builder).QuestionsUtf8.ToArray();
+        var before = BuiltWireCases.Built(builder).QuestionsUtf8.ToArray();
 
         Assert.Throws<InvalidOperationException>(() => noul!.WhenTrue("x"));
         Assert.Throws<InvalidOperationException>(() => noul!.WhenFalse("x"));
@@ -240,7 +240,7 @@ public sealed class QuestionSetBuilderTests
         Assert.Throws<InvalidOperationException>(() => keyedChoice!.Option("b", "x"));
         Assert.Throws<InvalidOperationException>(() => keyedScore!.Level("x"));
 
-        Assert.Equal(before, Built(builder).QuestionsUtf8.ToArray());
+        Assert.Equal(before, BuiltWireCases.Built(builder).QuestionsUtf8.ToArray());
     }
 
     [Fact]
@@ -256,7 +256,7 @@ public sealed class QuestionSetBuilderTests
         }));
 
         Assert.Throws<InvalidOperationException>(() => stored!.Option("late"));
-        Assert.Equal("""{"kept":{"type":"noul","instructions":"Kept?"}}""", Encoding.ASCII.GetString(Built(builder).QuestionsUtf8));
+        Assert.Equal("""{"kept":{"type":"noul","instructions":"Kept?"}}""", Encoding.ASCII.GetString(BuiltWireCases.Built(builder).QuestionsUtf8));
     }
 
     [Fact]
@@ -274,8 +274,8 @@ public sealed class QuestionSetBuilderTests
     [Fact]
     public void EmptyWarningsAndFailures_AreSharedAndReadOnly()
     {
-        var first = Built(QuestionSet.CreateBuilder().Noul("a", "A?", out _));
-        var second = Built(QuestionSet.CreateBuilder().Noul("b", "B?", out _));
+        var first = BuiltWireCases.Built(QuestionSet.CreateBuilder().Noul("a", "A?", out _));
+        var second = BuiltWireCases.Built(QuestionSet.CreateBuilder().Noul("b", "B?", out _));
         var other = new DecisionError(DecisionErrorKind.Timeout, "The request timed out.");
 
         Assert.Empty(first.Warnings);
@@ -289,9 +289,9 @@ public sealed class QuestionSetBuilderTests
     public void Build_TakesASnapshot()
     {
         var builder = QuestionSet.CreateBuilder().Noul("a", "A?", out _);
-        var first = Built(builder);
+        var first = BuiltWireCases.Built(builder);
         builder.Noul("b", "B?", out _);
-        var second = Built(builder);
+        var second = BuiltWireCases.Built(builder);
 
         Assert.Equal("""{"a":{"type":"noul","instructions":"A?"}}""", Encoding.ASCII.GetString(first.QuestionsUtf8));
         Assert.Equal(
@@ -307,10 +307,4 @@ public sealed class QuestionSetBuilderTests
         Assert.True(JsonNode.DeepEquals(expected, actual), $"Expected {expected?.ToJsonString()} but built {actual?.ToJsonString()}.");
     }
 
-    private static QuestionSet Built(QuestionSetBuilder builder)
-    {
-        var built = builder.Build();
-        Assert.True(built.IsSuccess, built.IsFailure ? built.Error.ToString() : null);
-        return built.Value;
-    }
 }
