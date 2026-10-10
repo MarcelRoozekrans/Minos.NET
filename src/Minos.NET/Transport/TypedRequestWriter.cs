@@ -6,7 +6,7 @@ namespace Minos.Transport;
 
 /// <summary>
 /// Writes a <c>/v1/systemone</c> request body straight into a pooled <see cref="RawJson"/>: the questions are copied from
-/// the bytes the caller passes, a generated set's <c>QuestionsUtf8</c> or a built set's, and no <see cref="SystemOneRequest"/>
+/// the bytes the caller passes, the protocol's questions bytes for a set's definition, and no <see cref="SystemOneRequest"/>
 /// is built. The body is JSON-equal to the one <see cref="TypedEvaluation.CreateRequest(ReadOnlySpan{byte}, DecisionContent, string, string)"/>
 /// serializes to for the same questions, state and model.
 /// </summary>

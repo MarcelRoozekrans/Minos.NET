@@ -34,4 +34,43 @@ public sealed class BuiltSetAllocationTests
             },
             "ParseBuiltSet");
     }
+
+    [Fact]
+    public void ParsingAnOversizedBuiltSet_ReadsEveryAnswer_AndAllocatesOneSlotArray()
+    {
+        const int count = 70;
+        var builder = QuestionSet.CreateBuilder();
+        var handles = new NoulHandle[count];
+        for (var i = 0; i < count; i++)
+        {
+            builder.Noul("q" + i, "Question?", out handles[i]);
+        }
+
+        var built = builder.Build();
+        Assert.True(built.IsSuccess);
+        var set = built.Value;
+        var json = "{" + string.Join(",", Enumerable.Range(0, count).Select(i => "\"q" + i + "\":{\"type\":\"noul\",\"noul\":0." + (i % 10) + "}")) + "}";
+        var bytes = Encoding.UTF8.GetBytes(json);
+
+        Answers Parse()
+        {
+            var reader = new Utf8JsonReader(bytes);
+            reader.Read();
+            return set.Parser(ref reader);
+        }
+
+        var answers = Parse();
+        for (var i = 0; i < count; i++)
+        {
+            Assert.Equal(i % 10 / 10.0, answers.Get(handles[i]).Probability, 6);
+        }
+
+        // The Answers object, its empty probability buffer and one AnswerSlot[70] (16 B header plus 70 slots of at most 32 B).
+        // A second slot array would add over 2 KB, so the bound catches it.
+        Parse();
+        var before = GC.GetAllocatedBytesForCurrentThread();
+        Parse();
+        var allocated = GC.GetAllocatedBytesForCurrentThread() - before;
+        Assert.InRange(allocated, 1, 3000);
+    }
 }

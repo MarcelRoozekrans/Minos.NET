@@ -19,7 +19,7 @@ public sealed class QuestionSet
     {
         Identity = identity;
         Definition = definition;
-        _create = answers => new Answers(this, answers.Probabilities, answers.Slots.ToArray());
+        _create = answers => new Answers(this, answers.Probabilities, answers.HeapSlots ?? answers.Slots.ToArray());
         _parser = (ref Utf8JsonReader answers) => SystemOneProtocol.Instance.ReadAnswers(ref answers, Definition, _create);
         Warnings = warnings.Length == 0 ? [] : new System.Collections.ObjectModel.ReadOnlyCollection<QuestionFailure>(warnings);
         Plan = plan;

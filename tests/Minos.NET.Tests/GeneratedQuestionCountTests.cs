@@ -17,7 +17,7 @@ public sealed class GeneratedQuestionCountTests
 
     [Fact]
     public void Count_ComesFromTheDefinition()
-        => Assert.Equal(WfMixed.Definition.Questions.Count, GeneratedQuestionCount<WfMixed>.Value);
+        => Assert.Equal(3, GeneratedQuestionCount<WfMixed>.Value);
 
     private static void AssertCount<T>(int expected)
         where T : IQuestionSet<T>

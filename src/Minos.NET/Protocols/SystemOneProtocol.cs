@@ -36,7 +36,8 @@ internal sealed class SystemOneProtocol : IDecisionProtocol
         var questions = definition.QuestionArray;
         var count = questions.Length;
         var probabilities = definition.ProbabilityCount == 0 ? [] : new double[definition.ProbabilityCount];
-        Span<AnswerSlot> slots = count <= MaxStackSlots ? stackalloc AnswerSlot[count] : new AnswerSlot[count];
+        var heapSlots = count <= MaxStackSlots ? null : new AnswerSlot[count];
+        Span<AnswerSlot> slots = heapSlots ?? stackalloc AnswerSlot[count];
         Span<bool> found = count <= MaxStackFlags ? stackalloc bool[count] : new bool[count];
 
         while (SystemOneAnswers.NextProperty(ref answers))
@@ -77,6 +78,6 @@ internal sealed class SystemOneProtocol : IDecisionProtocol
             }
         }
 
-        return create(new AnswerSlots(slots, probabilities, definition));
+        return create(new AnswerSlots(slots, probabilities, definition, heapSlots));
     }
 }

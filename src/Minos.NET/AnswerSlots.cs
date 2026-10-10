@@ -13,17 +13,21 @@ public readonly ref struct AnswerSlots
     private readonly double[] _probabilities;
     private readonly QuestionSetDefinition _definition;
 
-    internal AnswerSlots(ReadOnlySpan<AnswerSlot> slots, double[] probabilities, QuestionSetDefinition definition)
+    internal AnswerSlots(ReadOnlySpan<AnswerSlot> slots, double[] probabilities, QuestionSetDefinition definition, AnswerSlot[]? heapSlots = null)
     {
         _slots = slots;
         _probabilities = probabilities;
         _definition = definition;
+        HeapSlots = heapSlots;
     }
 
     /// <summary>Gets the number of answers.</summary>
     public int Count => _slots.Length;
 
     internal ReadOnlySpan<AnswerSlot> Slots => _slots;
+
+    /// <summary>Gets the array backing <see cref="Slots"/> when the protocol heap-allocated it, else <see langword="null"/>; a factory that keeps the slots can take it instead of copying.</summary>
+    internal AnswerSlot[]? HeapSlots { get; }
 
     internal double[] Probabilities => _probabilities;
 

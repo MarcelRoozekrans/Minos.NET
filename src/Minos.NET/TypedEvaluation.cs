@@ -102,7 +102,7 @@ internal static class TypedEvaluation
             State = state,
             Model = model,
             Questions = JsonSerializer.Deserialize(questionsUtf8, DecisionJsonContext.Default.IReadOnlyDictionaryStringQuestion)
-                ?? throw new InvalidOperationException(setName + ".QuestionsUtf8 is JSON null."),
+                ?? throw new InvalidOperationException(setName + "'s questions are JSON null."),
         };
 
     /// <summary>
