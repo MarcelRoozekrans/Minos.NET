@@ -1,7 +1,7 @@
 using System.Buffers;
 using System.Text;
 using System.Text.Json;
-using Minos.Serialization;
+using Minos.Protocols;
 
 namespace Minos.Tests;
 

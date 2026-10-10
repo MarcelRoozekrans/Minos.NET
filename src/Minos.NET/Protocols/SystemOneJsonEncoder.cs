@@ -1,10 +1,10 @@
 using System.Globalization;
 using System.Text.Encodings.Web;
 
-namespace Minos.Serialization;
+namespace Minos.Protocols;
 
 /// <summary>
-/// The escaping of the <c>/v1/systemone</c> <c>questions</c> object that <see cref="Minos.Protocols.SystemOneQuestionsWriter"/>
+/// The escaping of the <c>/v1/systemone</c> <c>questions</c> object that <see cref="SystemOneQuestionsWriter"/>
 /// writes: <c>\"</c>, <c>\\</c>, <c>\n</c>, <c>\r</c> and <c>\t</c>; every other character outside printable
 /// ASCII as a lowercase <c>\uXXXX</c> escape, a character outside the Basic Multilingual Plane as its surrogate
 /// pair's two escapes; printable ASCII as is. A lone surrogate reaches the encoder as U+FFFD, which it writes

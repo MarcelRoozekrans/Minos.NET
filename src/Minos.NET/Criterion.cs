@@ -1,10 +1,9 @@
-using System.Text.Json;
-
 namespace Minos;
 
 /// <summary>
-/// Describes a Choice option or a Score level of a question built with <see cref="QuestionSetBuilder"/>: a plain
-/// text, a text with <see cref="WithExamples"/> and <see cref="WithNotFor"/> texts, or JSON.
+/// Describes a Choice option or a Score level: a plain text, a text with <see cref="WithExamples"/> and
+/// <see cref="WithNotFor"/> texts, or JSON. <see cref="QuestionSetBuilder"/> takes one per option or level, and an
+/// <see cref="OptionDefinition"/> carries one, in a built set's definition and in a generated set's alike.
 /// </summary>
 /// <remarks>
 /// A text with examples or not-for texts is sent as the criterion object <c>{"description", "examples", "not_for"}</c>,
@@ -78,61 +77,6 @@ public sealed class Criterion
     /// <returns>The criterion.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="description"/> is <see langword="null"/>.</exception>
     public static implicit operator Criterion(string description) => Text(description);
-
-    /// <summary>Writes the criterion's wire fragment.</summary>
-    internal void WriteTo(Utf8JsonWriter writer)
-    {
-        if (_description is null)
-        {
-            _json.TryGetJson(out var json);
-            json.WriteTo(writer);
-            return;
-        }
-
-        if (!HasAny(_examples) && !HasAny(_notFor))
-        {
-            writer.WriteStringValue(_description);
-            return;
-        }
-
-        writer.WriteStartObject();
-        writer.WriteString("description"u8, _description);
-        WriteList(writer, "examples"u8, _examples);
-        WriteList(writer, "not_for"u8, _notFor);
-        writer.WriteEndObject();
-    }
-
-    private static bool HasAny(string?[] values)
-    {
-        foreach (var value in values)
-        {
-            if (value is not null)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static void WriteList(Utf8JsonWriter writer, ReadOnlySpan<byte> name, string?[] values)
-    {
-        if (!HasAny(values))
-        {
-            return;
-        }
-
-        writer.WriteStartArray(name);
-        foreach (var value in values)
-        {
-            if (value is not null)
-            {
-                writer.WriteStringValue(value);
-            }
-        }
-
-        writer.WriteEndArray();
-    }
 
     private string TextOnly()
         => _description ?? throw new InvalidOperationException(

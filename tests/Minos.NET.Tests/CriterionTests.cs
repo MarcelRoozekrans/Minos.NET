@@ -1,11 +1,11 @@
 using System.Buffers;
 using System.Text;
 using System.Text.Json;
-using Minos.Serialization;
+using Minos.Protocols;
 
 namespace Minos.Tests;
 
-/// <summary>Criterion writes exactly the attribute path's wire shapes.</summary>
+/// <summary>The protocol writes a criterion in exactly the attribute path's wire shapes.</summary>
 public sealed class CriterionTests
 {
     [Fact]
@@ -75,7 +75,7 @@ public sealed class CriterionTests
         var buffer = new ArrayBufferWriter<byte>();
         using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { Encoder = SystemOneJsonEncoder.Instance }))
         {
-            criterion.WriteTo(writer);
+            SystemOneQuestionsWriter.WriteCriterion(writer, criterion);
         }
 
         return Encoding.UTF8.GetString(buffer.WrittenSpan);

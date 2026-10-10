@@ -1,6 +1,5 @@
 using System.Buffers;
 using System.Text.Json;
-using Minos.Serialization;
 
 namespace Minos.Protocols;
 
@@ -75,7 +74,7 @@ internal static class SystemOneQuestionsWriter
                     }
                     else
                     {
-                        option.Criterion.WriteTo(writer);
+                        WriteCriterion(writer, option.Criterion);
                     }
                 }
 
@@ -87,12 +86,69 @@ internal static class SystemOneQuestionsWriter
                 foreach (var option in question.OptionArray)
                 {
                     // Both Score Level methods require a criterion, so every level has one, in the order it was given.
-                    option.Criterion!.WriteTo(writer);
+                    WriteCriterion(writer, option.Criterion!);
                 }
 
                 writer.WriteEndArray();
                 break;
         }
+    }
+
+    /// <summary>
+    /// Writes a criterion: JSON as its value, a text with no examples or not-for texts as a string, and otherwise the
+    /// criterion object <c>{"description", "examples", "not_for"}</c>, leaving out an empty list and null entries.
+    /// </summary>
+    internal static void WriteCriterion(Utf8JsonWriter writer, Criterion criterion)
+    {
+        if (criterion.Description is not { } description)
+        {
+            WriteContent(writer, criterion.JsonContent);
+            return;
+        }
+
+        if (!HasAny(criterion.Examples) && !HasAny(criterion.NotFor))
+        {
+            writer.WriteStringValue(description);
+            return;
+        }
+
+        writer.WriteStartObject();
+        writer.WriteString("description"u8, description);
+        WriteList(writer, "examples"u8, criterion.Examples);
+        WriteList(writer, "not_for"u8, criterion.NotFor);
+        writer.WriteEndObject();
+    }
+
+    private static bool HasAny(ReadOnlySpan<string?> values)
+    {
+        foreach (ref readonly var value in values)
+        {
+            if (value is not null)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void WriteList(Utf8JsonWriter writer, ReadOnlySpan<byte> name, ReadOnlySpan<string?> values)
+    {
+        if (!HasAny(values))
+        {
+            return;
+        }
+
+        writer.WriteStartArray(name);
+        foreach (ref readonly var value in values)
+        {
+            if (value is not null)
+            {
+                writer.WriteStringValue(value);
+            }
+        }
+
+        writer.WriteEndArray();
     }
 
     private static void WriteContent(Utf8JsonWriter writer, DecisionContent content)

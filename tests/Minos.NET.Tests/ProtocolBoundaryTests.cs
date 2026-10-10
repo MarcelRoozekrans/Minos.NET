@@ -12,6 +12,7 @@ public sealed class ProtocolBoundaryTests
     [
         "\"state\"u8", "\"model\"u8", "\"questions\"u8",
         "\"probabilities\"u8", "\"legend\"u8", "\"noul\"u8", "\"criteria\"u8", "\"instructions\"u8",
+        "\"description\"u8", "\"examples\"u8", "\"not_for\"u8",
     ];
 
     private static readonly string[] Allowed =
