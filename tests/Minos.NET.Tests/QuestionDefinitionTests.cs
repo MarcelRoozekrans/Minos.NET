@@ -45,6 +45,16 @@ public sealed class QuestionDefinitionTests
         => Assert.Throws<ArgumentException>(() => QuestionDefinition.Choice("c", "Which?"));
 
     [Fact]
+    public void Choice_WithARepeatedOptionKey_Throws()
+    {
+        var exception = Assert.Throws<ArgumentException>(() => QuestionDefinition.Choice(
+            "c", "Which?", new OptionDefinition("x", "X"), new OptionDefinition("y", "Y"), new OptionDefinition("x", "X again")));
+
+        Assert.Equal("options", exception.ParamName);
+        Assert.Contains("'x'", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Score_WithoutLevels_Throws()
         => Assert.Throws<ArgumentException>(() => QuestionDefinition.Score("s", "How much?"));
 

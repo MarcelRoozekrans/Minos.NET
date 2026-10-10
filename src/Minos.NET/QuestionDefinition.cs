@@ -52,7 +52,9 @@ public sealed class QuestionDefinition
     /// <param name="instructions">What the model is asked.</param>
     /// <param name="options">The options, in wire order.</param>
     /// <returns>The question.</returns>
-    /// <exception cref="ArgumentException"><paramref name="options"/> is empty or contains <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="options"/> is empty, contains <see langword="null"/>, or repeats an option key.
+    /// </exception>
     public static QuestionDefinition Choice(string key, DecisionContent instructions, params ReadOnlySpan<OptionDefinition> options)
     {
         if (options.IsEmpty)
@@ -60,9 +62,20 @@ public sealed class QuestionDefinition
             throw new ArgumentException("A Choice question needs at least one option.", nameof(options));
         }
 
+        var seen = 0;
         foreach (ref readonly var option in options)
         {
             ArgumentNullException.ThrowIfNull(option, nameof(options));
+            foreach (ref readonly var earlier in options[..seen])
+            {
+                if (string.Equals(earlier.Key, option.Key, StringComparison.Ordinal))
+                {
+                    // The answer names one key, so a second option with the same key could never be chosen.
+                    throw new ArgumentException($"Two options share the key '{option.Key}'.", nameof(options));
+                }
+            }
+
+            seen++;
         }
 
         return new(CheckKey(key), QuestionKind.Choice, Checked(instructions), null, null, options.ToArray());
