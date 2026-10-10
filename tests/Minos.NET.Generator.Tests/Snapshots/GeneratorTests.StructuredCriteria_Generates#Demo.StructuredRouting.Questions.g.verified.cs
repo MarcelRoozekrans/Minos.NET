@@ -12,9 +12,6 @@ partial record StructuredRouting : global::Minos.IQuestionSet<global::Demo.Struc
     public partial global::Minos.Choice<global::Demo.StructuredDepartment> Department { get => __minos_Department; }
     public partial global::Minos.Score<global::Demo.StructuredSeverity> Severity { get => __minos_Severity; }
 
-    /// <summary>Gets the <c>questions</c> object of a <c>/v1/systemone</c> request, as UTF-8 JSON.</summary>
-    public static global::System.ReadOnlySpan<byte> QuestionsUtf8 => "{\"department\":{\"type\":\"choice\",\"instructions\":\"Which team should handle this?\",\"criteria\":{\"billing\":{\"description\":\"Payments, invoicing, refunds\",\"examples\":[\"I was charged twice\"],\"not_for\":[\"How much is Pro?\"]},\"technical\":{\"description\":\"Bugs, outages, integrations\",\"examples\":[\"The API returns 500\"]},\"sales\":\"Pricing, upgrades, new accounts\",\"other\":null}},\"severity\":{\"type\":\"score\",\"instructions\":\"How severe is this?\",\"criteria\":[{\"description\":\"Cosmetic\",\"not_for\":[\"Data loss\"]},\"Blocks work\"]}}"u8;
-
     /// <summary>Gets the provider-neutral definition of the set's questions.</summary>
     public static global::Minos.QuestionSetDefinition Definition { get; } = new global::Minos.QuestionSetDefinition(
         global::Minos.QuestionDefinition.Choice(
@@ -41,40 +38,6 @@ partial record StructuredRouting : global::Minos.IQuestionSet<global::Demo.Struc
         return result;
     }
 
-    /// <summary>Reads the typed answers from the <c>answers</c> object of a <c>/v1/systemone</c> response.</summary>
-    /// <param name="answers">A reader over complete JSON, positioned on the start of the <c>answers</c> object. It is left on the object's end.</param>
-    /// <returns>The typed answers.</returns>
-    public static global::Demo.StructuredRouting Parse(ref global::System.Text.Json.Utf8JsonReader answers)
-    {
-        global::Minos.AnswerReader.EnsureStartObject(ref answers);
-        var buffer = new double[6];
-        var result = new global::Demo.StructuredRouting();
-        var found0 = false;
-        var found1 = false;
-        while (global::Minos.AnswerReader.NextProperty(ref answers))
-        {
-            if (answers.ValueTextEquals("department"u8))
-            {
-                answers.Read();
-                result.__minos_Department = global::Minos.AnswerReader.ReadChoice(ref answers, __DecisionOptions_Department.Instance, buffer, 0);
-                found0 = true;
-            }
-            else if (answers.ValueTextEquals("severity"u8))
-            {
-                answers.Read();
-                result.__minos_Severity = global::Minos.AnswerReader.ReadScore(ref answers, __DecisionOptions_Severity.Instance, buffer, 4);
-                found1 = true;
-            }
-            else
-            {
-                answers.Skip();
-            }
-        }
-        if (!found0) throw global::Minos.AnswerReader.MissingAnswer("department");
-        if (!found1) throw global::Minos.AnswerReader.MissingAnswer("severity");
-        return result;
-    }
-
     private sealed class __DecisionOptions_Department : global::Minos.DecisionOptionSet<global::Demo.StructuredDepartment>
     {
         public static readonly __DecisionOptions_Department Instance = new();
@@ -98,15 +61,6 @@ partial record StructuredRouting : global::Minos.IQuestionSet<global::Demo.Struc
             global::Demo.StructuredDepartment.Other => 3,
             _ => -1,
         };
-
-        public override int IndexOfKey(ref global::System.Text.Json.Utf8JsonReader reader)
-        {
-            if (reader.ValueTextEquals("billing"u8)) return 0;
-            if (reader.ValueTextEquals("technical"u8)) return 1;
-            if (reader.ValueTextEquals("sales"u8)) return 2;
-            if (reader.ValueTextEquals("other"u8)) return 3;
-            return -1;
-        }
     }
 
     private sealed class __DecisionOptions_Severity : global::Minos.DecisionOptionSet<global::Demo.StructuredSeverity>
@@ -128,12 +82,5 @@ partial record StructuredRouting : global::Minos.IQuestionSet<global::Demo.Struc
             global::Demo.StructuredSeverity.High => 1,
             _ => -1,
         };
-
-        public override int IndexOfKey(ref global::System.Text.Json.Utf8JsonReader reader)
-        {
-            if (reader.ValueTextEquals("0"u8)) return 0;
-            if (reader.ValueTextEquals("1"u8)) return 1;
-            return -1;
-        }
     }
 }

@@ -17,8 +17,8 @@ public sealed class MovedDiagnosticTests
         "[Questions] public partial class C { [Noul(\"q\")] public Noul {|MIN102:Answer|} { get; } }",
         "[Questions] public partial class C { [Noul(\"q\")] public partial Noul {|MIN102:Answer|} { get; set; } }",
         "[Questions] public partial class C { [Noul(\"q\")] public static partial Noul {|MIN102:Answer|} { get; } }",
-        "[Questions] public partial class C { [Noul(\"q\")] public partial Noul {|MIN102:Parse|} { get; } }",
-        "[Questions] public partial class C { [Noul(\"q\")] public partial Noul {|MIN102:QuestionsUtf8|} { get; } }",
+        "[Questions] public partial class C { [Noul(\"q\")] public partial Noul {|MIN102:Create|} { get; } }",
+        "[Questions] public partial class C { [Noul(\"q\")] public partial Noul {|MIN102:Definition|} { get; } }",
         "[Questions] public partial class C { [Noul(\"q\")] public virtual partial Noul {|MIN102:Answer|} { get; } }",
         "[Questions] public partial class C { [Noul(\"q\")] public sealed partial Noul {|MIN102:Answer|} { get; } }",
         "public class Base { public virtual Noul Answer => default; } "
@@ -59,6 +59,8 @@ public sealed class MovedDiagnosticTests
         "public enum E { [Criteria(\"x\")] A, [Criteria(\"y\")] B } "
             + "[Questions(State = typeof(S))] public partial record C { [Choice(\"q\")] public partial Choice<E> Answer { get; } } public sealed class S { }",
         "[Questions] public partial record R(int X = 0) { [Noul(\"q\")] public partial Noul Answer { get; } }",
+        "[Questions] public partial class C { [Noul(\"q\")] public partial Noul Parse { get; } }",
+        "[Questions] public partial class C { [Noul(\"q\")] public partial Noul QuestionsUtf8 { get; } }",
         "[Questions] public partial class C { public C(int x = 0) { } [Noul(\"q\")] public partial Noul Answer { get; } }",
         "[Questions] public partial class C { public required int Foo; "
             + "[System.Diagnostics.CodeAnalysis.SetsRequiredMembers] public C() { } [Noul(\"q\")] public partial Noul Answer { get; } }",

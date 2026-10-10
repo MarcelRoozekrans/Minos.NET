@@ -27,10 +27,10 @@ public sealed class TypedRequestWriterTests
     [Fact]
     public void WriteUtf8_CopiesTheGivenQuestions()
     {
-        using var body = TypedRequestWriter.WriteUtf8(SystemOneProtocol.QuestionsUtf8(UrgencyCheck.Definition), """{"a":1}"""u8, "m", new CountingPool());
+        using var body = TypedRequestWriter.WriteUtf8(SystemOneProtocol.QuestionsJson(UrgencyCheck.Definition), """{"a":1}"""u8, "m", new CountingPool());
 
         var sent = JsonNode.Parse(body.Span)!;
-        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(SystemOneProtocol.QuestionsUtf8(UrgencyCheck.Definition)), sent["questions"]));
+        Assert.True(JsonNode.DeepEquals(JsonNode.Parse(SystemOneProtocol.QuestionsJson(UrgencyCheck.Definition)), sent["questions"]));
         Assert.Equal(1, (int)sent["state"]!["a"]!);
     }
 
@@ -40,10 +40,10 @@ public sealed class TypedRequestWriterTests
         var pool = new CountingPool();
         using var state = JsonDocument.Parse("""{"a":1}""");
 
-        using (var body = TypedRequestWriter.Write(SystemOneProtocol.QuestionsUtf8(UrgencyCheck.Definition), state.RootElement, "m", pool))
+        using (var body = TypedRequestWriter.Write(SystemOneProtocol.QuestionsJson(UrgencyCheck.Definition), state.RootElement, "m", pool))
         {
             var sent = JsonNode.Parse(body.Span)!;
-            Assert.True(JsonNode.DeepEquals(JsonNode.Parse(SystemOneProtocol.QuestionsUtf8(UrgencyCheck.Definition)), sent["questions"]));
+            Assert.True(JsonNode.DeepEquals(JsonNode.Parse(SystemOneProtocol.QuestionsJson(UrgencyCheck.Definition)), sent["questions"]));
             Assert.Equal(1, (int)sent["state"]!["a"]!);
             Assert.Equal("m", (string?)sent["model"]);
         }
@@ -57,10 +57,10 @@ public sealed class TypedRequestWriterTests
         var pool = new CountingPool();
 
         using (var body = TypedRequestWriter.Write(
-            SystemOneProtocol.QuestionsUtf8(UrgencyCheck.Definition), new ContentSample("Ada", 36), ContentJsonContext.Default.ContentSample, "m", pool))
+            SystemOneProtocol.QuestionsJson(UrgencyCheck.Definition), new ContentSample("Ada", 36), ContentJsonContext.Default.ContentSample, "m", pool))
         {
             var sent = JsonNode.Parse(body.Span)!;
-            Assert.True(JsonNode.DeepEquals(JsonNode.Parse(SystemOneProtocol.QuestionsUtf8(UrgencyCheck.Definition)), sent["questions"]));
+            Assert.True(JsonNode.DeepEquals(JsonNode.Parse(SystemOneProtocol.QuestionsJson(UrgencyCheck.Definition)), sent["questions"]));
             Assert.Equal("Ada", (string?)sent["state"]!["name"]);
             Assert.Equal(36, (int)sent["state"]!["age"]!);
             Assert.Equal("m", (string?)sent["model"]);

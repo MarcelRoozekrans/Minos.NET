@@ -38,7 +38,7 @@ public sealed class QuestionSetBuilderTests
     public void JsonAtDepthLimit_DeserializesThroughWireModel()
     {
         var built = BuiltWireCases.JsonAtDepthLimit();
-        var json = "{\"state\":\"x\",\"questions\":" + Encoding.UTF8.GetString(SystemOneProtocol.QuestionsUtf8(built.Definition)) + "}";
+        var json = "{\"state\":\"x\",\"questions\":" + Encoding.UTF8.GetString(SystemOneProtocol.QuestionsJson(built.Definition)) + "}";
         Assert.Equal(64, MaxNesting(json));
 
         var request = JsonSerializer.Deserialize(json, DecisionJsonContext.Default.SystemOneRequest)!;
@@ -76,7 +76,7 @@ public sealed class QuestionSetBuilderTests
 
         Assert.Equal(
             """{"mood":{"type":"score","instructions":"How?","criteria":["Very angry","Calm","Frustrated"]}}""",
-            Encoding.ASCII.GetString(SystemOneProtocol.QuestionsUtf8(built.Definition)));
+            Encoding.ASCII.GetString(SystemOneProtocol.QuestionsJson(built.Definition)));
     }
 
     [Fact]
@@ -214,7 +214,7 @@ public sealed class QuestionSetBuilderTests
             Assert.Equal("configure failed", Assert.Throws<InvalidOperationException>(call).Message);
         }
 
-        Assert.Equal("""{"kept":{"type":"noul","instructions":"Kept?"}}""", Encoding.ASCII.GetString(SystemOneProtocol.QuestionsUtf8(BuiltWireCases.Built(builder).Definition)));
+        Assert.Equal("""{"kept":{"type":"noul","instructions":"Kept?"}}""", Encoding.ASCII.GetString(SystemOneProtocol.QuestionsJson(BuiltWireCases.Built(builder).Definition)));
     }
 
     [Fact]
@@ -231,7 +231,7 @@ public sealed class QuestionSetBuilderTests
             .Score<Frustration>("s", "S?", out _, l => score = l.Level(Frustration.Calm, "a").Level(Frustration.Frustrated, "b").Level(Frustration.VeryAngry, "c"))
             .Choice("kc", "KC?", out _, o => keyedChoice = o.Option("a"))
             .Score("ks", "KS?", out _, l => keyedScore = l.Level("a"));
-        var before = SystemOneProtocol.QuestionsUtf8(BuiltWireCases.Built(builder).Definition).ToArray();
+        var before = SystemOneProtocol.QuestionsJson(BuiltWireCases.Built(builder).Definition).ToArray();
 
         Assert.Throws<InvalidOperationException>(() => noul!.WhenTrue("x"));
         Assert.Throws<InvalidOperationException>(() => noul!.WhenFalse("x"));
@@ -241,7 +241,7 @@ public sealed class QuestionSetBuilderTests
         Assert.Throws<InvalidOperationException>(() => keyedChoice!.Option("b", "x"));
         Assert.Throws<InvalidOperationException>(() => keyedScore!.Level("x"));
 
-        Assert.Equal(before, SystemOneProtocol.QuestionsUtf8(BuiltWireCases.Built(builder).Definition).ToArray());
+        Assert.Equal(before, SystemOneProtocol.QuestionsJson(BuiltWireCases.Built(builder).Definition).ToArray());
     }
 
     [Fact]
@@ -257,7 +257,7 @@ public sealed class QuestionSetBuilderTests
         }));
 
         Assert.Throws<InvalidOperationException>(() => stored!.Option("late"));
-        Assert.Equal("""{"kept":{"type":"noul","instructions":"Kept?"}}""", Encoding.ASCII.GetString(SystemOneProtocol.QuestionsUtf8(BuiltWireCases.Built(builder).Definition)));
+        Assert.Equal("""{"kept":{"type":"noul","instructions":"Kept?"}}""", Encoding.ASCII.GetString(SystemOneProtocol.QuestionsJson(BuiltWireCases.Built(builder).Definition)));
     }
 
     [Fact]
@@ -294,16 +294,16 @@ public sealed class QuestionSetBuilderTests
         builder.Noul("b", "B?", out _);
         var second = BuiltWireCases.Built(builder);
 
-        Assert.Equal("""{"a":{"type":"noul","instructions":"A?"}}""", Encoding.ASCII.GetString(SystemOneProtocol.QuestionsUtf8(first.Definition)));
+        Assert.Equal("""{"a":{"type":"noul","instructions":"A?"}}""", Encoding.ASCII.GetString(SystemOneProtocol.QuestionsJson(first.Definition)));
         Assert.Equal(
             """{"a":{"type":"noul","instructions":"A?"},"b":{"type":"noul","instructions":"B?"}}""",
-            Encoding.ASCII.GetString(SystemOneProtocol.QuestionsUtf8(second.Definition)));
+            Encoding.ASCII.GetString(SystemOneProtocol.QuestionsJson(second.Definition)));
     }
 
     private static void AssertQuestions(string fixture, QuestionSet built)
     {
         var expected = Fixture.Load(fixture)["questions"];
-        var actual = JsonNode.Parse(SystemOneProtocol.QuestionsUtf8(built.Definition));
+        var actual = JsonNode.Parse(SystemOneProtocol.QuestionsJson(built.Definition));
 
         Assert.True(JsonNode.DeepEquals(expected, actual), $"Expected {expected?.ToJsonString()} but built {actual?.ToJsonString()}.");
     }

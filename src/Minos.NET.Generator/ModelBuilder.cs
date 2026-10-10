@@ -1,5 +1,4 @@
 using System.Globalization;
-using System.Text;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -20,7 +19,7 @@ internal static class ModelBuilder
 
     // The generator emits these two static members onto every question set: a question property carrying
     // either name would collide with the generated declaration.
-    private static readonly string[] ReservedPropertyNames = ["Parse", "QuestionsUtf8"];
+    private static readonly string[] ReservedPropertyNames = ["Create", "Definition"];
 
     // The Examples and NotFor texts of a Choice member without [Criteria].
     private static readonly EquatableArray<string> NoTexts = new([]);
@@ -455,7 +454,6 @@ internal static class ModelBuilder
             Modifiers(property, cancellationToken),
             kind,
             key,
-            TextFragment(instructions),
             instructions,
             Named(attribute, "WhenTrue"),
             Named(attribute, "WhenFalse"),
@@ -579,7 +577,6 @@ internal static class ModelBuilder
             {
                 var criteria = Find(field, CriteriaAttribute);
                 var what = $"The [Criteria] description of '{enumType.Name}.{field.Name}'";
-                string? descriptionFragment = null;
                 if (criteria is null)
                 {
                     diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.MissingCriteria, At(field), enumType.Name, field.Name));
@@ -589,7 +586,6 @@ internal static class ModelBuilder
                     CheckText(criteria, what, At(field), diagnostics, cancellationToken);
                     CheckEntries(criteria, "Examples", what, At(field), diagnostics, cancellationToken);
                     CheckEntries(criteria, "NotFor", what, At(field), diagnostics, cancellationToken);
-                    descriptionFragment = DescriptionFragment(criteria);
                 }
 
                 var optionKey = (criteria is null ? null : Named(criteria, "Key")) ?? SnakeCase.Convert(field.Name);
@@ -604,7 +600,6 @@ internal static class ModelBuilder
                 options.Add(new OptionModel(
                     Identifier(field.Name),
                     optionKey,
-                    descriptionFragment,
                     criteria is null ? null : Positional(criteria),
                     criteria is null ? NoTexts : new EquatableArray<string>(NamedStrings(criteria, "Examples")),
                     criteria is null ? NoTexts : new EquatableArray<string>(NamedStrings(criteria, "NotFor"))));
@@ -618,7 +613,6 @@ internal static class ModelBuilder
                 options.Add(new OptionModel(
                     Identifier(field.Name),
                     options.Count.ToString(CultureInfo.InvariantCulture),
-                    DescriptionFragment(level),
                     Positional(level),
                     new EquatableArray<string>(NamedStrings(level, "Examples")),
                     new EquatableArray<string>(NamedStrings(level, "NotFor"))));
@@ -781,45 +775,6 @@ internal static class ModelBuilder
         => attribute.ConstructorArguments.Length > 0 && attribute.ConstructorArguments[0].Value is string value
             ? value
             : string.Empty;
-
-    /// <summary>A plain text as its wire fragment, a JSON string.</summary>
-    private static string TextFragment(string text) => new StringBuilder().AppendJsonString(text).ToString();
-
-    /// <summary>
-    /// A <c>[Criteria]</c> or <c>[Level]</c> description as its wire fragment: the plain text as a JSON string, or a
-    /// criterion object when <c>Examples</c> or <c>NotFor</c> holds a text. <see langword="null"/> entries are left out.
-    /// </summary>
-    private static string DescriptionFragment(AttributeData attribute)
-    {
-        var examples = NamedStrings(attribute, "Examples");
-        var notFor = NamedStrings(attribute, "NotFor");
-        var description = Positional(attribute);
-        if (examples.Length == 0 && notFor.Length == 0)
-        {
-            return TextFragment(description);
-        }
-
-        var json = new StringBuilder("{\"description\":").AppendJsonString(description);
-        AppendArray(json, "examples", examples);
-        AppendArray(json, "not_for", notFor);
-        return json.Append('}').ToString();
-
-        static void AppendArray(StringBuilder json, string name, string[] values)
-        {
-            if (values.Length == 0)
-            {
-                return;
-            }
-
-            json.Append(",\"").Append(name).Append("\":[");
-            for (var i = 0; i < values.Length; i++)
-            {
-                json.Append(i > 0 ? "," : string.Empty).AppendJsonString(values[i]);
-            }
-
-            json.Append(']');
-        }
-    }
 
     /// <summary>The non-null strings of an array-valued named argument; empty when it is absent or <see langword="null"/>.</summary>
     private static string[] NamedStrings(AttributeData attribute, string name)

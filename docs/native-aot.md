@@ -175,9 +175,6 @@ regression cannot reach a release unnoticed.
 
 | Gate | What it measures | Budget in bytes |
 | --- | --- | --- |
-| `ReadNoul` | Reading a `Noul` answer. | 0 |
-| `ReadChoice` | Reading a `Choice<T>` answer. | 0 |
-| `ReadScore` | Reading a `Score<T>` answer. | 0 |
 | `AnswersGet` | Reading answers of a built set through its handles. | 0 |
 | `PatternHelpers` | The confidence and normalization helpers of the patterns. | 0 |
 | `NoulEquals` | Comparing two `Noul` answers, directly and through `EqualityComparer<Noul>.Default`. | 0 |

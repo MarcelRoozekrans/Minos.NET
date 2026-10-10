@@ -174,9 +174,8 @@ public sealed class QuestionSetBuilder
         var offset = 0;
         for (var i = 0; i < specs.Length; i++)
         {
-            var options = _questions[i].PlanOptions(specs[i]);
-            plan[i] = new QuestionPlan(specs[i].Kind, specs[i].Key, options, offset);
-            offset += options?.Count ?? 0;
+            plan[i] = new QuestionPlan(specs[i].Kind, specs[i].Key, _questions[i].PlanOptions(specs[i]), offset);
+            offset += specs[i].Options.Length;
         }
 
         var definition = ToDefinition(specs);
@@ -221,7 +220,7 @@ public sealed class QuestionSetBuilder
     }
 
     private static QuestionDraft Draft(
-        string key, QuestionKind kind, DecisionContent instructions, Func<QuestionSpec, IDecisionOptionKeys>? enumOptions, string[]? enumMembers)
+        string key, QuestionKind kind, DecisionContent instructions, Func<QuestionSpec, object>? enumOptions, string[]? enumMembers)
     {
         ArgumentNullException.ThrowIfNull(key);
         DecisionContent.EnsureInitialized(instructions, nameof(instructions));

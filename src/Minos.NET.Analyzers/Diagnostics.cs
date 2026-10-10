@@ -94,7 +94,7 @@ internal static class Diagnostics
     public static readonly DiagnosticDescriptor NoParameterlessConstructor = new(
         DiagnosticIds.NoParameterlessConstructor,
         "Question set has no parameterless constructor",
-        "'{0}' needs a parameterless constructor so the generated Parse method can create it{1}",
+        "'{0}' needs a parameterless constructor so the generated Create method can create it{1}",
         Category,
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);

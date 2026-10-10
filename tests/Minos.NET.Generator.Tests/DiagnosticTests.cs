@@ -19,8 +19,8 @@ public sealed class DiagnosticTests
         "public partial class Outer { [Questions] public partial class Inner { } }",
         "[Questions] public abstract partial class Base { }",
         "[Questions] file partial class FileLocal { }",
-        "[Questions] public partial class C { [Noul(\"q\")] public partial Noul Parse { get; } }",
-        "[Questions] public partial class C { [Noul(\"q\")] public partial Noul QuestionsUtf8 { get; } }",
+        "[Questions] public partial class C { [Noul(\"q\")] public partial Noul Create { get; } }",
+        "[Questions] public partial class C { [Noul(\"q\")] public partial Noul Definition { get; } }",
         "[Questions] public partial class C { [Choice(\"q\")] public partial Noul Answer { get; } }",
         "[Questions] public partial class C { [Noul(\"q\")][Choice(\"q\")] public partial Noul Answer { get; } }",
         "[Questions] public partial class C { [Choice(\"q\")] public partial Choice<int> Answer { get; } }",
@@ -299,15 +299,34 @@ public sealed class DiagnosticTests
         Assert.Empty(output.GetDiagnostics().Where(d => d.Severity >= DiagnosticSeverity.Warning));
     }
 
-    /// <summary>No generated source carries the question set: no <c>IQuestionSet</c>, <c>QuestionsUtf8</c> or <c>Parse</c>.</summary>
+    /// <summary>
+    /// The generator no longer emits <c>Parse</c> or <c>QuestionsUtf8</c>, so a question property may take either name:
+    /// the set is generated and compiles.
+    /// </summary>
+    [Theory]
+    [InlineData("Parse")]
+    [InlineData("QuestionsUtf8")]
+    public void PropertyNamedLikeARemovedMember_IsNoLongerReserved(string name)
+    {
+        var source = "using Minos;\nnamespace Demo;\n[Questions] public partial class Named { [Noul(\"Is this urgent?\")] public partial Noul "
+            + name + " { get; } }";
+
+        var driver = GeneratorHarness.Run(source, out var output, out var diagnostics);
+
+        Assert.Empty(diagnostics);
+        Assert.Contains(driver.GetRunResult().GeneratedTrees, tree => tree.ToString().Contains("IQuestionSet", StringComparison.Ordinal));
+        Assert.Empty(output.GetDiagnostics().Where(d => d.Severity >= DiagnosticSeverity.Warning));
+    }
+
+    /// <summary>No generated source carries the question set: no <c>IQuestionSet</c>, <c>Definition</c> or <c>Create</c>.</summary>
     private static void AssertNoQuestionSet(GeneratorDriver driver)
     {
         foreach (var tree in driver.GetRunResult().GeneratedTrees)
         {
             var text = tree.ToString();
             Assert.DoesNotContain("IQuestionSet", text, StringComparison.Ordinal);
-            Assert.DoesNotContain("ReadOnlySpan<byte> QuestionsUtf8", text, StringComparison.Ordinal);
-            Assert.DoesNotContain("Parse(ref", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("QuestionSetDefinition Definition", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("Create(global::Minos.AnswerSlots", text, StringComparison.Ordinal);
         }
     }
 }

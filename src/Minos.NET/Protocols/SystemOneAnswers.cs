@@ -3,7 +3,7 @@ using System.Text.Json;
 
 namespace Minos.Protocols;
 
-/// <summary>Reads the answers of a <c>/v1/systemone</c> response into numbers. Messages match <see cref="AnswerReader"/>.</summary>
+/// <summary>Reads the answers of a <c>/v1/systemone</c> response into numbers.</summary>
 internal static class SystemOneAnswers
 {
     /// <summary>Throws unless <paramref name="reader"/> is positioned on the start of an object.</summary>

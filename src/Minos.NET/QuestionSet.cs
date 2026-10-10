@@ -25,9 +25,6 @@ public sealed class QuestionSet
         Plan = plan;
     }
 
-    /// <summary>Gets the <c>questions</c> object of a <c>/v1/systemone</c> request, as UTF-8 JSON, written on first use and cached.</summary>
-    public ReadOnlySpan<byte> QuestionsUtf8 => SystemOneProtocol.QuestionsUtf8(Definition);
-
     /// <summary>Gets the set's questions, independent of any provider's wire format.</summary>
     public QuestionSetDefinition Definition { get; }
 

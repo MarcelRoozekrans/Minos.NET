@@ -6,8 +6,6 @@ namespace Minos.Generator;
 /// <summary>Writes the C# source for one question set.</summary>
 internal static class SourceEmitter
 {
-    private const string Reader = "global::Minos.AnswerReader";
-
     // The whole message is a string literal the stub getters throw; MIN errors keep the stubs from ever running.
     private const string InvalidSetMessage = "\"This [Questions] set is invalid; see the MIN diagnostics.\"";
 
@@ -24,7 +22,7 @@ internal static class SourceEmitter
 
     /// <summary>
     /// Implements an invalid set's partial question properties with accessors that throw, and nothing else: no
-    /// <c>QuestionsUtf8</c>, no <c>Parse</c> and no <c>IQuestionSet</c>. Without them, each property would be
+    /// <c>Definition</c>, no <c>Create</c> and no <c>IQuestionSet</c>. Without them, each property would be
     /// CS9248, a declaration error that stops a command-line build before the analyzer reports the MIN error.
     /// </summary>
     public static string EmitStubs(InvalidSetModel model)
@@ -103,15 +101,9 @@ internal static class SourceEmitter
         }
 
         code.Line();
-        code.Line("    /// <summary>Gets the <c>questions</c> object of a <c>/v1/systemone</c> request, as UTF-8 JSON.</summary>");
-        code.Line("    public static global::System.ReadOnlySpan<byte> QuestionsUtf8 => "
-            + JsonText.CSharpLiteral(QuestionsJson(model)) + "u8;");
-        code.Line();
         EmitDefinition(code, model);
         code.Line();
         EmitCreate(code, model);
-        code.Line();
-        EmitParse(code, model);
 
         foreach (var question in model.Questions)
         {
@@ -231,76 +223,6 @@ internal static class SourceEmitter
         code.Line("    }");
     }
 
-    private static void EmitParse(CodeWriter code, QuestionSetModel model)
-    {
-        var bufferLength = model.Questions.Sum(question => question.Options.Length);
-        var needsBuffer = model.Questions.Any(question => question.Kind != QuestionKind.Noul);
-
-        code.Line("    /// <summary>Reads the typed answers from the <c>answers</c> object of a <c>/v1/systemone</c> response.</summary>");
-        code.Line("    /// <param name=\"answers\">A reader over complete JSON, positioned on the start of the <c>answers</c> object. It is left on the object's end.</param>");
-        code.Line("    /// <returns>The typed answers.</returns>");
-        code.Line("    public static " + model.FullyQualifiedName + " Parse(ref global::System.Text.Json.Utf8JsonReader answers)");
-        code.Line("    {");
-        code.Line("        " + Reader + ".EnsureStartObject(ref answers);");
-        if (needsBuffer)
-        {
-            code.Line("        var buffer = " + (bufferLength > 0
-                ? "new double[" + Int(bufferLength) + "];"
-                : "global::System.Array.Empty<double>();"));
-        }
-
-        code.Line("        var result = new " + model.FullyQualifiedName + "();");
-        for (var i = 0; i < model.Questions.Length; i++)
-        {
-            code.Line("        var found" + Int(i) + " = false;");
-        }
-
-        code.Line("        while (" + Reader + ".NextProperty(ref answers))");
-        code.Line("        {");
-
-        var offset = 0;
-        for (var i = 0; i < model.Questions.Length; i++)
-        {
-            var question = model.Questions[i];
-            var call = question.Kind switch
-            {
-                QuestionKind.Noul => Reader + ".ReadNoul(ref answers)",
-                QuestionKind.Choice => Reader + ".ReadChoice(ref answers, " + OptionSet(question) + ".Instance, buffer, " + Int(offset) + ")",
-                _ => Reader + ".ReadScore(ref answers, " + OptionSet(question) + ".Instance, buffer, " + Int(offset) + ")",
-            };
-
-            code.Line("            " + (i == 0 ? "if" : "else if") + " (answers.ValueTextEquals(" + JsonText.CSharpLiteral(question.Key) + "u8))");
-            code.Line("            {");
-            code.Line("                answers.Read();");
-            code.Line("                result." + Field(question) + " = " + call + ";");
-            code.Line("                found" + Int(i) + " = true;");
-            code.Line("            }");
-            offset += question.Options.Length;
-        }
-
-        if (model.Questions.Length == 0)
-        {
-            code.Line("            answers.Skip();");
-        }
-        else
-        {
-            code.Line("            else");
-            code.Line("            {");
-            code.Line("                answers.Skip();");
-            code.Line("            }");
-        }
-
-        code.Line("        }");
-        for (var i = 0; i < model.Questions.Length; i++)
-        {
-            code.Line("        if (!found" + Int(i) + ") throw " + Reader + ".MissingAnswer("
-                + JsonText.CSharpLiteral(model.Questions[i].Key) + ");");
-        }
-
-        code.Line("        return result;");
-        code.Line("    }");
-    }
-
     private static void EmitOptionSet(CodeWriter code, QuestionModel question)
     {
         var name = OptionSet(question);
@@ -331,92 +253,7 @@ internal static class SourceEmitter
 
         code.Line("            _ => -1,");
         code.Line("        };");
-        code.Line();
-        code.Line("        public override int IndexOfKey(ref global::System.Text.Json.Utf8JsonReader reader)");
-        code.Line("        {");
-        for (var i = 0; i < question.Options.Length; i++)
-        {
-            code.Line("            if (reader.ValueTextEquals(" + JsonText.CSharpLiteral(question.Options[i].Key) + "u8)) return " + Int(i) + ";");
-        }
-
-        code.Line("            return -1;");
-        code.Line("        }");
         code.Line("    }");
-    }
-
-    private static string QuestionsJson(QuestionSetModel model)
-    {
-        var json = new StringBuilder().Append('{');
-        for (var i = 0; i < model.Questions.Length; i++)
-        {
-            var question = model.Questions[i];
-            if (i > 0)
-            {
-                json.Append(',');
-            }
-
-            json.AppendJsonString(question.Key).Append(":{\"type\":");
-            json.AppendJsonString(question.Kind switch
-            {
-                QuestionKind.Noul => "noul",
-                QuestionKind.Choice => "choice",
-                _ => "score",
-            });
-            json.Append(",\"instructions\":").Append(question.InstructionsJson);
-
-            switch (question.Kind)
-            {
-                case QuestionKind.Noul when question.WhenTrue is not null || question.WhenFalse is not null:
-                    json.Append(",\"criteria\":{");
-                    if (question.WhenTrue is not null)
-                    {
-                        json.Append("\"true\":").AppendJsonString(question.WhenTrue);
-                    }
-
-                    if (question.WhenFalse is not null)
-                    {
-                        json.Append(question.WhenTrue is null ? "\"false\":" : ",\"false\":").AppendJsonString(question.WhenFalse);
-                    }
-
-                    json.Append('}');
-                    break;
-
-                case QuestionKind.Choice:
-                    json.Append(",\"criteria\":{");
-                    for (var j = 0; j < question.Options.Length; j++)
-                    {
-                        var option = question.Options[j];
-                        if (j > 0)
-                        {
-                            json.Append(',');
-                        }
-
-                        json.AppendJsonString(option.Key).Append(':').Append(option.DescriptionJson ?? "null");
-                    }
-
-                    json.Append('}');
-                    break;
-
-                case QuestionKind.Score:
-                    json.Append(",\"criteria\":[");
-                    for (var j = 0; j < question.Options.Length; j++)
-                    {
-                        if (j > 0)
-                        {
-                            json.Append(',');
-                        }
-
-                        json.Append(question.Options[j].DescriptionJson ?? "\"\"");
-                    }
-
-                    json.Append(']');
-                    break;
-            }
-
-            json.Append('}');
-        }
-
-        return json.Append('}').ToString();
     }
 
     private static string PropertyType(QuestionModel question) => question.Kind switch

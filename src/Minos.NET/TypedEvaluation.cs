@@ -88,7 +88,7 @@ internal static class TypedEvaluation
     /// <returns>The request.</returns>
     public static SystemOneRequest CreateRequest<T>(DecisionContent state, string model)
         where T : IQuestionSet<T>
-        => CreateRequest(SystemOneProtocol.QuestionsUtf8(T.Definition), state, model, typeof(T).Name);
+        => CreateRequest(SystemOneProtocol.QuestionsJson(T.Definition), state, model, typeof(T).Name);
 
     /// <summary>Builds the request that asks the given questions about <paramref name="state"/>.</summary>
     /// <param name="questionsUtf8">The <c>questions</c> object.</param>
@@ -130,7 +130,7 @@ internal static class TypedEvaluation
     /// <param name="ct">Cancels the call.</param>
     /// <returns>The answers, or the <see cref="DecisionError"/> that prevented them.</returns>
     public static ValueTask<Result<Answers, DecisionError>> EvaluateAsync(IDecisionClient client, QuestionSet questionSet, DecisionContent state, CancellationToken ct)
-        => EvaluateCoreAsync(client, CreateRequest(SystemOneProtocol.QuestionsUtf8(questionSet.Definition), state, DecisionDefaults.Model, nameof(QuestionSet)), questionSet.Parser, ct);
+        => EvaluateCoreAsync(client, CreateRequest(SystemOneProtocol.QuestionsJson(questionSet.Definition), state, DecisionDefaults.Model, nameof(QuestionSet)), questionSet.Parser, ct);
 
     /// <summary>Reads typed answers from an untyped response by re-serializing its answers.</summary>
     /// <typeparam name="T">The question set.</typeparam>

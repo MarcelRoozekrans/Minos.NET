@@ -4,8 +4,8 @@ using System.Text.Encodings.Web;
 namespace Minos.Serialization;
 
 /// <summary>
-/// Escapes JSON text exactly as the <c>[Questions]</c> generator's <c>JsonText.AppendJsonString</c> does, so a
-/// question set built at run time writes the same bytes as a generated one: <c>\"</c>, <c>\\</c>, <c>\n</c>, <c>\r</c>
+/// Escapes JSON text exactly as the <c>[Questions]</c> generator escaped the <c>questions</c> literal it emitted before
+/// Phase 6.2, so every set still sends the same bytes: <c>\"</c>, <c>\\</c>, <c>\n</c>, <c>\r</c>
 /// and <c>\t</c>; every other character outside printable ASCII as a lowercase <c>\uXXXX</c> escape, a character
 /// outside the Basic Multilingual Plane as its surrogate pair's two escapes; printable ASCII as is. A lone surrogate
 /// reaches the encoder as U+FFFD, which it writes as <c>\ufffd</c>, as the generator does.

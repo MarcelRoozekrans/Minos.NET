@@ -61,8 +61,8 @@ public sealed class BuilderGeneratorDifferentialTests
     {
         var built = Built();
 
-        Assert.Equal(Encoding.ASCII.GetString(SystemOneProtocol.QuestionsUtf8(DiffSet.Definition)), Encoding.ASCII.GetString(SystemOneProtocol.QuestionsUtf8(built.Definition)));
-        Assert.True(SystemOneProtocol.QuestionsUtf8(DiffSet.Definition).SequenceEqual(SystemOneProtocol.QuestionsUtf8(built.Definition)));
+        Assert.Equal(Encoding.ASCII.GetString(SystemOneProtocol.QuestionsJson(DiffSet.Definition)), Encoding.ASCII.GetString(SystemOneProtocol.QuestionsJson(built.Definition)));
+        Assert.True(SystemOneProtocol.QuestionsJson(DiffSet.Definition).SequenceEqual(SystemOneProtocol.QuestionsJson(built.Definition)));
     }
 
     [Fact]
@@ -73,7 +73,7 @@ public sealed class BuilderGeneratorDifferentialTests
 
         Assert.Equal(generated.Questions.Select(q => (q.Key, q.Kind, q.Options.Count)), built.Questions.Select(q => (q.Key, q.Kind, q.Options.Count)));
         Assert.Equal(generated.Questions.SelectMany(q => q.Options).Select(o => o.Key), built.Questions.SelectMany(q => q.Options).Select(o => o.Key));
-        Assert.True(Minos.Protocols.SystemOneProtocol.QuestionsUtf8(generated).SequenceEqual(Minos.Protocols.SystemOneProtocol.QuestionsUtf8(built)));
+        Assert.True(Minos.Protocols.SystemOneProtocol.QuestionsJson(generated).SequenceEqual(Minos.Protocols.SystemOneProtocol.QuestionsJson(built)));
     }
 
     internal static QuestionSet Built()

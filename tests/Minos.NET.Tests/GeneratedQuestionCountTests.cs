@@ -25,7 +25,7 @@ public sealed class GeneratedQuestionCountTests
     {
         Assert.Equal(expected, GeneratedQuestionCount<T>.Value);
 
-        using var questions = JsonDocument.Parse(SystemOneProtocol.QuestionsUtf8(T.Definition).ToArray());
+        using var questions = JsonDocument.Parse(SystemOneProtocol.QuestionsJson(T.Definition).ToArray());
         Assert.Equal(expected, questions.RootElement.GetPropertyCount());
     }
 }

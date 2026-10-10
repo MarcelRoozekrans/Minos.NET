@@ -116,7 +116,7 @@ public sealed class EnumOptionSetTests
 
         Assert.Equal([OutOfOrderLevel.High, OutOfOrderLevel.Low, OutOfOrderLevel.Medium], new[] { options[0], options[1], options[2] });
         Assert.Equal(["high", "low", "medium"], Keys(options));
-        Assert.Equal(GeneratedKeys(SystemOneProtocol.QuestionsUtf8(DeclarationOrderChecks.Definition), "out_of_order"), Keys(options));
+        Assert.Equal(GeneratedKeys(SystemOneProtocol.QuestionsJson(DeclarationOrderChecks.Definition), "out_of_order"), Keys(options));
     }
 
     [Fact]
@@ -146,7 +146,7 @@ public sealed class EnumOptionSetTests
 
         // The generator sends the same two options in the same order. Its second key is "urgent" only because it reads
         // High's [Criteria(Key = "urgent")], which the builder does not.
-        Assert.Equal(["low", "urgent"], GeneratedKeys(SystemOneProtocol.QuestionsUtf8(EdgeCases.Definition), "priority"));
+        Assert.Equal(["low", "urgent"], GeneratedKeys(SystemOneProtocol.QuestionsJson(EdgeCases.Definition), "priority"));
     }
 
     [Fact]
@@ -159,7 +159,7 @@ public sealed class EnumOptionSetTests
         Assert.Equal("item03", options.KeyAt(3));
         Assert.Equal(3, options.IndexOf(AliasAfterLarge.Legacy));
         Assert.DoesNotContain("legacy", Keys(options));
-        Assert.Equal(GeneratedKeys(SystemOneProtocol.QuestionsUtf8(DeclarationOrderChecks.Definition), "after"), Keys(options));
+        Assert.Equal(GeneratedKeys(SystemOneProtocol.QuestionsJson(DeclarationOrderChecks.Definition), "after"), Keys(options));
     }
 
     [Fact]
@@ -172,7 +172,7 @@ public sealed class EnumOptionSetTests
         Assert.Equal("old", options.KeyAt(5));
         Assert.Equal(5, options.IndexOf(AliasBeforeLarge.Current));
         Assert.DoesNotContain("current", Keys(options));
-        Assert.Equal(GeneratedKeys(SystemOneProtocol.QuestionsUtf8(DeclarationOrderChecks.Definition), "before"), Keys(options));
+        Assert.Equal(GeneratedKeys(SystemOneProtocol.QuestionsJson(DeclarationOrderChecks.Definition), "before"), Keys(options));
     }
 
     [Fact]

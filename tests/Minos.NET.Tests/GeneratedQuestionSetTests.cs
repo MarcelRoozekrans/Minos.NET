@@ -28,7 +28,7 @@ public sealed class GeneratedQuestionSetTests
     [Fact]
     public void StructuredCriteria_DeserializeThroughWireModel()
     {
-        var json = "{\"state\":\"x\",\"questions\":" + Encoding.UTF8.GetString(SystemOneProtocol.QuestionsUtf8(StructuredRouting.Definition)) + "}";
+        var json = "{\"state\":\"x\",\"questions\":" + Encoding.UTF8.GetString(SystemOneProtocol.QuestionsJson(StructuredRouting.Definition)) + "}";
 
         var request = JsonSerializer.Deserialize(json, DecisionJsonContext.Default.SystemOneRequest)!;
 
@@ -41,7 +41,7 @@ public sealed class GeneratedQuestionSetTests
     [Fact]
     public void Questions_DeserializeThroughWireModel()
     {
-        var json = "{\"state\":\"x\",\"questions\":" + Encoding.UTF8.GetString(SystemOneProtocol.QuestionsUtf8(TicketTriage.Definition)) + "}";
+        var json = "{\"state\":\"x\",\"questions\":" + Encoding.UTF8.GetString(SystemOneProtocol.QuestionsJson(TicketTriage.Definition)) + "}";
 
         var request = JsonSerializer.Deserialize(json, DecisionJsonContext.Default.SystemOneRequest)!;
 
@@ -162,7 +162,7 @@ public sealed class GeneratedQuestionSetTests
     [Fact]
     public void Escaping_RoundTripsExactly()
     {
-        var questions = JsonNode.Parse(SystemOneProtocol.QuestionsUtf8(EdgeCases.Definition))!;
+        var questions = JsonNode.Parse(SystemOneProtocol.QuestionsJson(EdgeCases.Definition))!;
 
         Assert.Equal(EdgeCases.TrickyInstructions, (string?)questions["tricky"]!["instructions"]);
     }
@@ -170,7 +170,7 @@ public sealed class GeneratedQuestionSetTests
     [Fact]
     public void ExplicitValues_KeyOverride_AndAliases()
     {
-        var criteria = JsonNode.Parse(SystemOneProtocol.QuestionsUtf8(EdgeCases.Definition))!["priority"]!["criteria"]!.AsObject();
+        var criteria = JsonNode.Parse(SystemOneProtocol.QuestionsJson(EdgeCases.Definition))!["priority"]!["criteria"]!.AsObject();
         Assert.Equal(ExpectedPriorityCriteriaKeys, criteria.Select(pair => pair.Key));
 
         var priority = ResponseAnswers.Parse<EdgeCases>("""
@@ -189,7 +189,7 @@ public sealed class GeneratedQuestionSetTests
         where T : IQuestionSet<T>
     {
         var expected = Fixture.Load(fixture)["questions"];
-        var actual = JsonNode.Parse(SystemOneProtocol.QuestionsUtf8(T.Definition));
+        var actual = JsonNode.Parse(SystemOneProtocol.QuestionsJson(T.Definition));
 
         Assert.True(
             JsonNode.DeepEquals(expected, actual),

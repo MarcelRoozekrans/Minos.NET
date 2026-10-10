@@ -20,7 +20,7 @@ public sealed class GeneratedSetAllocationTests
         var answers = Encoding.UTF8.GetBytes(AnswersJson);
 
         // The old generated Parse held the smoke triage to 192 B (measured 176 B). The protocol's probability buffer and
-        // the generated Create's result are the same work, so the budget is the same.
+        // the generated Create's result are the same work, so the budget is the same. WfMixed measures 184 B/call here.
         AllocationGate.AssertBudget(
             192,
             1000,

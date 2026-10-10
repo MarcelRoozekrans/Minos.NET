@@ -55,36 +55,12 @@ public sealed class WireFixtureTests
     [Theory]
     [MemberData(nameof(BuiltCaseNames))]
     public void Built_ProtocolQuestionsMatchTheFixture(string name)
-        => WireFixtures.AssertMatches("built-" + name, Minos.Protocols.SystemOneProtocol.QuestionsUtf8(BuiltCases[name]().Definition));
-
-    [Theory]
-    [MemberData(nameof(BuiltCaseNames))]
-    public void Built_DefinitionOptionKeysResolveToTheSamePositionsInTheAnswerPath(string name)
-    {
-        var set = BuiltCases[name]();
-        var questions = set.Definition.Questions;
-        for (var q = 0; q < questions.Count; q++)
-        {
-            if (questions[q].Kind == QuestionKind.Noul)
-            {
-                continue;
-            }
-
-            var options = set.Plan[q].Options!;
-            Assert.Equal(questions[q].Options.Count, options.Count);
-            for (var i = 0; i < questions[q].Options.Count; i++)
-            {
-                var reader = new System.Text.Json.Utf8JsonReader(Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(questions[q].Options[i].Key)));
-                reader.Read();
-                Assert.Equal(i, options.IndexOfKey(ref reader));
-            }
-        }
-    }
+        => WireFixtures.AssertMatches("built-" + name, Minos.Protocols.SystemOneProtocol.QuestionsJson(BuiltCases[name]().Definition));
 
     [Theory]
     [MemberData(nameof(GeneratedCases))]
     public void Generated_ProtocolQuestionsMatchTheFixture(string name)
-        => WireFixtures.AssertMatches("generated-" + name, Minos.Protocols.SystemOneProtocol.QuestionsUtf8(GeneratedDefinition(name)));
+        => WireFixtures.AssertMatches("generated-" + name, Minos.Protocols.SystemOneProtocol.QuestionsJson(GeneratedDefinition(name)));
 
     internal static QuestionSetDefinition GeneratedDefinition(string name) => name switch
     {

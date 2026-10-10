@@ -83,16 +83,12 @@ internal static class Program
         await SystemOneModelChecks.HandBuiltQuestionsAreSent().ConfigureAwait(false);
         await SystemOneModelChecks.HandBuiltModelCardEqualsTheListedOne().ConfigureAwait(false);
         QuestionAttributeChecks.AttributesKeepWhatTheyAreGiven();
-        AnswerReaderChecks.MissingAnswerNamesTheQuestion();
+        await MissingAnswerChecks.MissingAnswerNamesTheQuestion().ConfigureAwait(false);
         DecisionOptionSetChecks.HandWrittenOptionSetMapsOptions();
-        IQuestionSetChecks.ParseRunsThroughTheInterface();
         IQuestionSetChecks.CreateRunsThroughTheInterface();
 
         await AllocationChecks.AnswerSlotAccessors().ConfigureAwait(false);
         await AllocationChecks.GeneratedCreate().ConfigureAwait(false);
-        AllocationChecks.ReadNoul();
-        AllocationChecks.ReadChoice();
-        AllocationChecks.ReadScore();
         AllocationChecks.EvaluateRoundTrip();
         AllocationChecks.TypedEvaluateRoundTrip();
         AllocationChecks.EvaluateRoundTripWithNullLoggerFactory();
@@ -192,8 +188,6 @@ internal static class Program
         Check(result.IsSuccess && handler.Calls == 2, "a 503 is retried through the resilience proxy");
     }
 
-    [Covers("static Minos.AnswerReader.EnsureStartObject(ref System.Text.Json.Utf8JsonReader reader) -> void")]
-    [Covers("static Minos.AnswerReader.NextProperty(ref System.Text.Json.Utf8JsonReader reader) -> bool")]
     private static async Task GeneratedQuestionSetRoundTrips()
     {
         using var questions = await CapturingHandler.QuestionsSentAsync<SmokeTriage>(TriageResponse).ConfigureAwait(false);
@@ -203,14 +197,6 @@ internal static class Program
                 "Login, profile, permissions",
                 StringComparison.Ordinal),
             "the questions sent for a generated set carry the Choice criteria");
-
-        // The generated Parse stays covered here until the public parse API is removed; typed evaluation reads answers through Create.
-        var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(TriageAnswers));
-        reader.Read();
-        var triage = SmokeTriage.Parse(ref reader);
-        Check(
-            !triage.RequestsCredentials.Value && triage.Team.Value == Team.Account && triage.Urgency.Value == Urgency.High,
-            "the generated Parse reads typed answers");
     }
 
     [Covers("static Minos.Criterion.Json(Minos.DecisionContent json) -> Minos.Criterion!")]

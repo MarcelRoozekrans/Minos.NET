@@ -276,7 +276,7 @@ public sealed class DecisionClient : IDecisionClient, IDisposable
         ArgumentNullException.ThrowIfNull(state);
         ObjectDisposedException.ThrowIf(_disposed, this);
         var started = DecisionLog.StartTiming(_logger);
-        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.Write(SystemOneProtocol.QuestionsUtf8(T.Definition), state, _model, _pool), cancellationToken);
+        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.Write(SystemOneProtocol.QuestionsJson(T.Definition), state, _model, _pool), cancellationToken);
     }
 
     /// <inheritdoc />
@@ -298,7 +298,7 @@ public sealed class DecisionClient : IDecisionClient, IDisposable
         TypedEvaluation.EnsureStateKind(state.ValueKind, nameof(state));
         ObjectDisposedException.ThrowIf(_disposed, this);
         var started = DecisionLog.StartTiming(_logger);
-        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.Write(SystemOneProtocol.QuestionsUtf8(T.Definition), state, _model, _pool), cancellationToken);
+        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.Write(SystemOneProtocol.QuestionsJson(T.Definition), state, _model, _pool), cancellationToken);
     }
 
     /// <inheritdoc />
@@ -314,7 +314,7 @@ public sealed class DecisionClient : IDecisionClient, IDisposable
         TypedEvaluation.EnsureStateJson(utf8JsonState.Span, nameof(utf8JsonState));
         ObjectDisposedException.ThrowIf(_disposed, this);
         var started = DecisionLog.StartTiming(_logger);
-        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.WriteUtf8(SystemOneProtocol.QuestionsUtf8(T.Definition), utf8JsonState.Span, _model, _pool), cancellationToken);
+        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.WriteUtf8(SystemOneProtocol.QuestionsJson(T.Definition), utf8JsonState.Span, _model, _pool), cancellationToken);
     }
 
     /// <inheritdoc />
@@ -343,7 +343,7 @@ public sealed class DecisionClient : IDecisionClient, IDisposable
         ArgumentNullException.ThrowIfNull(stateTypeInfo);
         ObjectDisposedException.ThrowIf(_disposed, this);
         var started = DecisionLog.StartTiming(_logger);
-        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.Write(SystemOneProtocol.QuestionsUtf8(T.Definition), state, stateTypeInfo, _model, _pool), cancellationToken);
+        return EvaluateGeneratedAsync<T>(started, TypedRequestWriter.Write(SystemOneProtocol.QuestionsJson(T.Definition), state, stateTypeInfo, _model, _pool), cancellationToken);
     }
 
     /// <inheritdoc />
@@ -364,7 +364,7 @@ public sealed class DecisionClient : IDecisionClient, IDisposable
         DecisionContent.EnsureInitialized(state, nameof(state));
         ObjectDisposedException.ThrowIf(_disposed, this);
         var started = DecisionLog.StartTiming(_logger);
-        var body = TypedRequestWriter.Write(SystemOneProtocol.QuestionsUtf8(questionSet.Definition), state, _model, _pool);
+        var body = TypedRequestWriter.Write(SystemOneProtocol.QuestionsJson(questionSet.Definition), state, _model, _pool);
         return WithLogging(
             Evaluated.Unwrap(_operations.EvaluateBuiltSetAsync(body, questionSet, _model, _providerName, _endpoint, cancellationToken)),
             DecisionLog.EvaluateBuiltSet,

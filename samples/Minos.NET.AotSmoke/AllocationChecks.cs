@@ -17,9 +17,6 @@ namespace Minos.AotSmoke;
 /// </summary>
 internal static class AllocationChecks
 {
-    private const string NoulAnswerJson = """{"type":"noul","noul":0.95}""";
-    private const string ChoiceAnswerJson = """{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7}""";
-    private const string ScoreAnswerJson = """{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}""";
     // The iteration count of every synchronous gate, the relative ones included.
     private const int GateIterations = 1000;
 
@@ -36,8 +33,8 @@ internal static class AllocationChecks
         await RunSlotProbeAsync().ConfigureAwait(false);
 
         // Measured 0 B/call on published win-x64 AOT for each accessor: Noul reads a double off the slot span, and
-        // Choice and Score return structs over the protocol's probability array. Each gate takes the 0 B budget of the
-        // AnswerReader primitive that reads the same answer, so none may allocate.
+        // Choice and Score return structs over the protocol's probability array. Each gate keeps the 0 B budget of the
+        // public answer reader that read the same answer before Phase 6.2, so none may allocate.
         const long BudgetBytes = 0;
         Program.Check(
             SlotProbe.NoulBytes is >= 0 and <= BudgetBytes,
@@ -63,10 +60,9 @@ internal static class AllocationChecks
         // protocol's probability buffer outside the loop. Budget: about 10% headroom over the measurement, rounded up to
         // the next multiple of 64 B, per the Phase 1.8 rule, and below the 192 B of the generated Parse it replaces.
         const long BudgetBytes = 128;
-        var perCall = SlotProbe.CreateBytes / GateIterations;
         Program.Check(
-            SlotProbe.CreateBytes >= 0 && perCall <= BudgetBytes,
-            $"SmokeTriage.Create stays within its allocation budget: {perCall} B/call against {BudgetBytes} B");
+            SlotProbe.CreateBytes >= 0 && SlotProbe.CreateBytes <= BudgetBytes * GateIterations,
+            $"SmokeTriage.Create stays within its allocation budget: {SlotProbe.CreateBytes} B over {GateIterations} calls against {BudgetBytes} B/call");
     }
 
     private static async Task RunSlotProbeAsync()
@@ -79,65 +75,6 @@ internal static class AllocationChecks
 
         var result = await client.EvaluateAsync<SlotProbe>(SmokeAnswers.State).ConfigureAwait(false);
         Program.Check(result.IsSuccess, "the slot probe is created over the triage answers");
-    }
-
-    /// <summary><see cref="AnswerReader.ReadNoul"/> over a fixed Noul answer.</summary>
-    [Covers("static Minos.AnswerReader.ReadNoul(ref System.Text.Json.Utf8JsonReader reader) -> Minos.Noul")]
-    public static void ReadNoul()
-    {
-        var answer = Encoding.UTF8.GetBytes(NoulAnswerJson);
-
-        // Measured 0 B/call on published win-x64 AOT: ReadNoul only reads a struct off the span.
-        Gate(
-            budgetBytes: 0,
-            action: () =>
-            {
-                var reader = new Utf8JsonReader(answer);
-                reader.Read();
-                _ = AnswerReader.ReadNoul(ref reader);
-            },
-            label: "ReadNoul",
-            passDescription: "ReadNoul stays within its allocation budget");
-    }
-
-    /// <summary><see cref="AnswerReader.ReadChoice{T}"/> into a caller-owned buffer.</summary>
-    [Covers("static Minos.AnswerReader.ReadChoice<T>(ref System.Text.Json.Utf8JsonReader reader, Minos.DecisionOptionSet<T>! options, double[]! buffer, int offset) -> Minos.Choice<T>")]
-    public static void ReadChoice()
-    {
-        var answer = Encoding.UTF8.GetBytes(ChoiceAnswerJson);
-        var buffer = new double[TeamOptions.Instance.Count];
-
-        // Measured 0 B/call on published win-x64 AOT: ReadChoice writes into the caller-owned buffer and returns a struct.
-        Gate(
-            budgetBytes: 0,
-            action: () =>
-            {
-                var reader = new Utf8JsonReader(answer);
-                reader.Read();
-                _ = AnswerReader.ReadChoice(ref reader, TeamOptions.Instance, buffer, 0);
-            },
-            label: "ReadChoice",
-            passDescription: "ReadChoice stays within its allocation budget");
-    }
-
-    /// <summary><see cref="AnswerReader.ReadScore{T}"/> into a caller-owned buffer.</summary>
-    [Covers("static Minos.AnswerReader.ReadScore<T>(ref System.Text.Json.Utf8JsonReader reader, Minos.DecisionOptionSet<T>! options, double[]! buffer, int offset) -> Minos.Score<T>")]
-    public static void ReadScore()
-    {
-        var answer = Encoding.UTF8.GetBytes(ScoreAnswerJson);
-        var buffer = new double[UrgencyOptions.Instance.Count];
-
-        // Measured 0 B/call on published win-x64 AOT: ReadScore writes into the caller-owned buffer and returns a struct.
-        Gate(
-            budgetBytes: 0,
-            action: () =>
-            {
-                var reader = new Utf8JsonReader(answer);
-                reader.Read();
-                _ = AnswerReader.ReadScore(ref reader, UrgencyOptions.Instance, buffer, 0);
-            },
-            label: "ReadScore",
-            passDescription: "ReadScore stays within its allocation budget");
     }
 
     /// <summary><see cref="DecisionClient.EvaluateAsync"/> over a canned handler: request serialization and response
@@ -763,8 +700,7 @@ internal static class AllocationChecks
 
     /// <summary>
     /// A hand-written question set over the triage questions whose <c>Create</c> measures the accessors of the
-    /// <see cref="AnswerSlots"/> it is handed. Its leftover <c>QuestionsUtf8</c> and <c>Parse</c> only satisfy the
-    /// interface until the public parse API is removed.
+    /// <see cref="AnswerSlots"/> it is handed.
     /// </summary>
     private sealed class SlotProbe : IQuestionSet<SlotProbe>
     {
@@ -778,11 +714,7 @@ internal static class AllocationChecks
 
         public static long CreateBytes { get; private set; } = -1;
 
-        public static ReadOnlySpan<byte> QuestionsUtf8 => default;
-
         public static QuestionSetDefinition Definition => SmokeTriage.Definition;
-
-        public static SlotProbe Parse(ref Utf8JsonReader answers) => throw new NotSupportedException();
 
         public static SlotProbe Create(AnswerSlots answers)
         {
@@ -850,21 +782,6 @@ internal static class AllocationChecks
             Team.Account => 1,
             _ => -1,
         };
-
-        public override int IndexOfKey(ref Utf8JsonReader reader)
-        {
-            if (reader.ValueTextEquals("billing"u8))
-            {
-                return 0;
-            }
-
-            if (reader.ValueTextEquals("account"u8))
-            {
-                return 1;
-            }
-
-            return -1;
-        }
     }
 
     /// <summary>Mirrors the generated option set for <see cref="Urgency"/>, since the real one is a private nested class.</summary>
@@ -889,25 +806,5 @@ internal static class AllocationChecks
             Urgency.High => 2,
             _ => -1,
         };
-
-        public override int IndexOfKey(ref Utf8JsonReader reader)
-        {
-            if (reader.ValueTextEquals("0"u8))
-            {
-                return 0;
-            }
-
-            if (reader.ValueTextEquals("1"u8))
-            {
-                return 1;
-            }
-
-            if (reader.ValueTextEquals("2"u8))
-            {
-                return 2;
-            }
-
-            return -1;
-        }
     }
 }

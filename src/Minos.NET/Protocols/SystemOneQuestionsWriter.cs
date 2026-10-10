@@ -1,13 +1,14 @@
 using System.Buffers;
 using System.Text.Json;
+using Minos.Serialization;
 
-namespace Minos.Serialization;
+namespace Minos.Protocols;
 
 /// <summary>
-/// Writes a built set's <c>questions</c> object in the generator's layout and escaping, so a set built at run time
-/// sends the same bytes as the equivalent <c>[Questions]</c> set.
+/// Writes the <c>questions</c> object of a <c>/v1/systemone</c> request for a definition, in the layout and escaping
+/// the generator used to emit, so every set, generated or built, sends the same bytes as before.
 /// </summary>
-internal static class QuestionsWriter
+internal static class SystemOneQuestionsWriter
 {
     private static readonly JsonWriterOptions Options = new() { Encoder = GeneratorJsonEncoder.Instance };
 

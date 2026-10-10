@@ -23,12 +23,12 @@ internal sealed class SystemOneProtocol : IDecisionProtocol
     }
 
     /// <summary>Gets the <c>questions</c> object for <paramref name="definition"/>, written once and cached on it.</summary>
-    public static ReadOnlySpan<byte> QuestionsUtf8(QuestionSetDefinition definition)
-        => definition.GetOrAddProtocolData(CacheSlot, static d => QuestionsWriter.Write(d));
+    public static ReadOnlySpan<byte> QuestionsJson(QuestionSetDefinition definition)
+        => definition.GetOrAddProtocolData(CacheSlot, static d => SystemOneQuestionsWriter.Write(d));
 
     public RawJson WriteRequest<TArg>(QuestionSetDefinition definition, TArg state, int stateSizeHint, StateWriter<TArg> writeState, string model, ArrayPool<byte> pool)
         where TArg : allows ref struct
-        => TypedRequestWriter.Compose(QuestionsUtf8(definition), state, stateSizeHint, model, pool, writeState);
+        => TypedRequestWriter.Compose(QuestionsJson(definition), state, stateSizeHint, model, pool, writeState);
 
     public TResult ReadAnswers<TResult>(ref Utf8JsonReader answers, QuestionSetDefinition definition, AnswerFactory<TResult> create)
     {

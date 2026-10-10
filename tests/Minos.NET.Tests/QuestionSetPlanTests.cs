@@ -31,11 +31,12 @@ public sealed class QuestionSetPlanTests
         QuestionKind[] kinds = [QuestionKind.Noul, QuestionKind.Choice, QuestionKind.Score, QuestionKind.Choice, QuestionKind.Score];
         string[] keys = ["urgent", "team", "mood", "product", "effort"];
         int[] offsets = [0, 0, 4, 7, 9];
+        Type?[] optionSets = [null, typeof(EnumOptionSet<Department>), typeof(EnumOptionSet<Frustration>), typeof(KeyedOptionSet), typeof(KeyedOptionSet)];
         Assert.Equal(kinds.Length, set.Plan.Length);
         Assert.Equal(12, set.Definition.ProbabilityCount);
         Assert.Equal(keys.Select(k => Encoding.UTF8.GetBytes(k)), set.Definition.KeysUtf8);
 
-        using var document = JsonDocument.Parse(SystemOneProtocol.QuestionsUtf8(set.Definition).ToArray());
+        using var document = JsonDocument.Parse(SystemOneProtocol.QuestionsJson(set.Definition).ToArray());
         var wire = document.RootElement.EnumerateObject().ToArray();
         Assert.Equal(keys, wire.Select(p => p.Name));
 
@@ -55,11 +56,19 @@ public sealed class QuestionSetPlanTests
             var criteria = wire[i].Value.GetProperty("criteria");
             var wireKeys = WireKeys(criteria);
 
-            Assert.NotNull(plan.Options);
-            Assert.Equal(wireKeys.Length, plan.Options.Count);
+            Assert.IsType(optionSets[i]!, plan.Options);
+            Assert.Equal(wireKeys.Length, Count(plan.Options));
             Assert.Equal(Utf8Keys.Encode(wireKeys), set.Definition.OptionKeysUtf8[i]);
         }
     }
+
+    private static int Count(object? options) => options switch
+    {
+        EnumOptionSet<Department> department => department.Count,
+        EnumOptionSet<Frustration> frustration => frustration.Count,
+        KeyedOptionSet keyed => keyed.Count,
+        _ => throw new InvalidOperationException("The plan holds an option set this test does not expect."),
+    };
 
     private static string[] WireKeys(JsonElement criteria)
         => criteria.ValueKind == JsonValueKind.Array

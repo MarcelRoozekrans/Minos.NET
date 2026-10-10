@@ -14,10 +14,10 @@ public sealed class SystemOneProtocolTests
         QuestionDefinition.Score("s", "S?", "Low", "High"));
 
     [Fact]
-    public void QuestionsUtf8_IsCachedOnTheDefinition()
+    public void QuestionsJson_IsCachedOnTheDefinition()
     {
-        var first = SystemOneProtocol.QuestionsUtf8(Definition);
-        var second = SystemOneProtocol.QuestionsUtf8(Definition);
+        var first = SystemOneProtocol.QuestionsJson(Definition);
+        var second = SystemOneProtocol.QuestionsJson(Definition);
 
         Assert.True(Unsafe.AreSame(ref MemoryMarshal.GetReference(first), ref MemoryMarshal.GetReference(second)));
     }

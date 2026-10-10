@@ -46,7 +46,7 @@ public sealed class TypedEvaluationDefaultTests
         Assert.True(request.State.TryGetString(out var state));
         Assert.Equal("text", state);
         Assert.Equal(DecisionDefaults.Model, request.Model);
-        AssertQuestionsEqual(SystemOneProtocol.QuestionsUtf8(UrgencyCheck.Definition), request);
+        AssertQuestionsEqual(SystemOneProtocol.QuestionsJson(UrgencyCheck.Definition), request);
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public sealed class TypedEvaluationDefaultTests
         Assert.True(fromUtf8.OnlyRequest().State.TryGetJson(out var utf8State));
         Assert.True(JsonElement.DeepEquals(elementState, utf8State));
         Assert.True(JsonElement.DeepEquals(document.RootElement, utf8State));
-        AssertQuestionsEqual(SystemOneProtocol.QuestionsUtf8(UrgencyCheck.Definition), fromUtf8.Requests[0]);
+        AssertQuestionsEqual(SystemOneProtocol.QuestionsJson(UrgencyCheck.Definition), fromUtf8.Requests[0]);
     }
 
     [Fact]
@@ -158,7 +158,7 @@ public sealed class TypedEvaluationDefaultTests
         using var expected = JsonDocument.Parse(JsonSerializer.SerializeToUtf8Bytes(ticket, TicketContextJsonContext.Default.TicketContext));
         Assert.True(JsonElement.DeepEquals(expected.RootElement, state));
         Assert.Equal(DecisionDefaults.Model, request.Model);
-        AssertQuestionsEqual(SystemOneProtocol.QuestionsUtf8(TicketUrgency.Definition), request);
+        AssertQuestionsEqual(SystemOneProtocol.QuestionsJson(TicketUrgency.Definition), request);
     }
 
     [Fact]

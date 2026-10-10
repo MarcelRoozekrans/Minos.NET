@@ -10,9 +10,6 @@ partial record Set : global::Minos.IQuestionSet<global::Demo.Set, global::Demo.T
 
     public partial global::Minos.Noul IsUrgent { get => __minos_IsUrgent; }
 
-    /// <summary>Gets the <c>questions</c> object of a <c>/v1/systemone</c> request, as UTF-8 JSON.</summary>
-    public static global::System.ReadOnlySpan<byte> QuestionsUtf8 => "{\"is_urgent\":{\"type\":\"noul\",\"instructions\":\"Is this urgent?\"}}"u8;
-
     /// <summary>Gets the provider-neutral definition of the set's questions.</summary>
     public static global::Minos.QuestionSetDefinition Definition { get; } = new global::Minos.QuestionSetDefinition(
         global::Minos.QuestionDefinition.Noul(
@@ -26,31 +23,6 @@ partial record Set : global::Minos.IQuestionSet<global::Demo.Set, global::Demo.T
     {
         var result = new global::Demo.Set();
         result.__minos_IsUrgent = answers.Noul(0);
-        return result;
-    }
-
-    /// <summary>Reads the typed answers from the <c>answers</c> object of a <c>/v1/systemone</c> response.</summary>
-    /// <param name="answers">A reader over complete JSON, positioned on the start of the <c>answers</c> object. It is left on the object's end.</param>
-    /// <returns>The typed answers.</returns>
-    public static global::Demo.Set Parse(ref global::System.Text.Json.Utf8JsonReader answers)
-    {
-        global::Minos.AnswerReader.EnsureStartObject(ref answers);
-        var result = new global::Demo.Set();
-        var found0 = false;
-        while (global::Minos.AnswerReader.NextProperty(ref answers))
-        {
-            if (answers.ValueTextEquals("is_urgent"u8))
-            {
-                answers.Read();
-                result.__minos_IsUrgent = global::Minos.AnswerReader.ReadNoul(ref answers);
-                found0 = true;
-            }
-            else
-            {
-                answers.Skip();
-            }
-        }
-        if (!found0) throw global::Minos.AnswerReader.MissingAnswer("is_urgent");
         return result;
     }
 }

@@ -38,10 +38,6 @@ public static class SurfaceGenerics
     /// <see cref="Types"/>.</remarks>
     public static void Methods(Answers answers, AnswerSlots slots, DecisionOptionSet<SurfaceTeam> teams, DecisionOptionSet<SurfaceUrgency> levels, SurfaceState state)
     {
-        var reader = new Utf8JsonReader([]);
-        _ = AnswerReader.ReadChoice(ref reader, teams, [], 0);
-        _ = AnswerReader.ReadScore(ref reader, levels, [], 0);
-
         _ = QuestionSet.CreateBuilder()
             .Choice<SurfaceTeam>("team", "Which team?", out var team)
             .Choice<SurfaceTeam>("described_team", "Which team?", out _, static _ => { })

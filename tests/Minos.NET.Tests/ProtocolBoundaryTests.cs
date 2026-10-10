@@ -13,8 +13,6 @@ public sealed class ProtocolBoundaryTests
     private static readonly string[] Allowed =
     [
         "Protocols/",
-        "Serialization/QuestionsWriter.cs",
-        "AnswerReader.cs",                 // removed in Task 7
     ];
 
     [Fact]
