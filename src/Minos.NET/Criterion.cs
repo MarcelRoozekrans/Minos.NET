@@ -1,3 +1,5 @@
+using System.Collections.ObjectModel;
+
 namespace Minos;
 
 /// <summary>
@@ -24,17 +26,33 @@ public sealed class Criterion
         _json = json;
         _examples = examples;
         _notFor = notFor;
+        Examples = Texts(examples);
+        NotFor = Texts(notFor);
     }
 
-    internal bool IsJson => _description is null;
+    /// <summary>Gets what the option or level means, for a text criterion; <see langword="null"/> for a JSON one.</summary>
+    public string? Description => _description;
 
-    internal string? Description => _description;
+    /// <summary>Gets the JSON object or array, for a JSON criterion; <see langword="null"/> for a text one.</summary>
+    public DecisionContent? JsonContent => _description is null ? _json : (DecisionContent?)null;
 
-    internal DecisionContent JsonContent => _json;
+    /// <summary>
+    /// Gets the texts that belong to the option or level, in the order given, without the <see langword="null"/>
+    /// entries: exactly the entries that are sent. Empty when there are none, and always for a JSON criterion.
+    /// </summary>
+    public IReadOnlyList<string> Examples { get; }
 
-    internal ReadOnlySpan<string?> Examples => _examples;
+    /// <summary>
+    /// Gets the texts that do not belong to the option or level, in the order given, without the
+    /// <see langword="null"/> entries: exactly the entries that are sent. Empty when there are none, and always for a
+    /// JSON criterion.
+    /// </summary>
+    public IReadOnlyList<string> NotFor { get; }
 
-    internal ReadOnlySpan<string?> NotFor => _notFor;
+    // The entries as given, null ones included, for the builder's blank-entry warning.
+    internal ReadOnlySpan<string?> ExampleEntries => _examples;
+
+    internal ReadOnlySpan<string?> NotForEntries => _notFor;
 
     /// <summary>Creates a criterion from a plain text.</summary>
     /// <param name="description">What the option or level means.</param>
@@ -77,6 +95,36 @@ public sealed class Criterion
     /// <returns>The criterion.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="description"/> is <see langword="null"/>.</exception>
     public static implicit operator Criterion(string description) => Text(description);
+
+    // The non-null entries, read-only, computed once per criterion; no list is allocated when there are none.
+    private static ReadOnlyCollection<string> Texts(string?[] entries)
+    {
+        var count = 0;
+        foreach (var entry in entries)
+        {
+            if (entry is not null)
+            {
+                count++;
+            }
+        }
+
+        if (count == 0)
+        {
+            return ReadOnlyCollection<string>.Empty;
+        }
+
+        var texts = new string[count];
+        var next = 0;
+        foreach (var entry in entries)
+        {
+            if (entry is not null)
+            {
+                texts[next++] = entry;
+            }
+        }
+
+        return new ReadOnlyCollection<string>(texts);
+    }
 
     private string TextOnly()
         => _description ?? throw new InvalidOperationException(

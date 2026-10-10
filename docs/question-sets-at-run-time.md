@@ -262,7 +262,8 @@ appears. [The client and its errors](client-and-errors.md#errors) lists the othe
 
 A generated set and a built set both expose `Definition`. It lists the questions in wire order. Each question has its
 key, its kind, its instructions, its Noul criteria (`WhenTrue` and `WhenFalse`) and its options. A Score's levels are
-in `Options`, keyed by position: "0", "1", and so on.
+in `Options`, keyed by position: "0", "1", and so on. An option's `Criterion` reads back too: `Description` for a
+text, `JsonContent` for JSON, and `Examples` and `NotFor` with the texts that are sent, null entries left out.
 
 The definition says what the set asks and says nothing about how a provider is asked. The client hands it to the
 provider's protocol, which turns it into that provider's request and reads the answers back. Because both kinds of set
@@ -313,8 +314,9 @@ error, so it throws and does not return a failed `Result`.
 
 ## Build once and share
 
-Building validates the questions and writes the request JSON, so do it once and keep the set, as `TenantRouter` does in
-its constructor. A `QuestionSet` is immutable and safe to share across threads. A builder is not thread-safe.
+Building validates the questions and makes the definition, and the first call writes its questions JSON, which every
+later call reuses. So build once and keep the set, as `TenantRouter` does in its constructor. A `QuestionSet` is
+immutable and safe to share across threads. A builder is not thread-safe.
 
 An enum question reads the enum's public fields, which is safe to trim and for [Native
 AOT](native-aot.md#the-one-use-of-reflection): the builder's generic parameters are annotated so that the trimmer keeps

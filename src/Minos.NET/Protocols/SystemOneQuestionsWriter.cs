@@ -102,11 +102,11 @@ internal static class SystemOneQuestionsWriter
     {
         if (criterion.Description is not { } description)
         {
-            WriteContent(writer, criterion.JsonContent);
+            WriteContent(writer, criterion.JsonContent!.Value);
             return;
         }
 
-        if (!HasAny(criterion.Examples) && !HasAny(criterion.NotFor))
+        if (criterion.Examples.Count == 0 && criterion.NotFor.Count == 0)
         {
             writer.WriteStringValue(description);
             return;
@@ -119,33 +119,17 @@ internal static class SystemOneQuestionsWriter
         writer.WriteEndObject();
     }
 
-    private static bool HasAny(ReadOnlySpan<string?> values)
+    private static void WriteList(Utf8JsonWriter writer, ReadOnlySpan<byte> name, IReadOnlyList<string> values)
     {
-        foreach (ref readonly var value in values)
-        {
-            if (value is not null)
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static void WriteList(Utf8JsonWriter writer, ReadOnlySpan<byte> name, ReadOnlySpan<string?> values)
-    {
-        if (!HasAny(values))
+        if (values.Count == 0)
         {
             return;
         }
 
         writer.WriteStartArray(name);
-        foreach (ref readonly var value in values)
+        for (var i = 0; i < values.Count; i++)
         {
-            if (value is not null)
-            {
-                writer.WriteStringValue(value);
-            }
+            writer.WriteStringValue(values[i]);
         }
 
         writer.WriteEndArray();

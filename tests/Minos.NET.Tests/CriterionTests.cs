@@ -60,6 +60,43 @@ public sealed class CriterionTests
     }
 
     [Fact]
+    public void TextWithExamplesAndNotFor_ExposesTheSentEntriesInOrder()
+    {
+        var criterion = Criterion.Text("Refunds").WithExamples("first", null, "second").WithNotFor(null, "Pricing", null);
+
+        Assert.Equal("Refunds", criterion.Description);
+        Assert.Null(criterion.JsonContent);
+        Assert.Equal(["first", "second"], criterion.Examples);
+        Assert.Equal(["Pricing"], criterion.NotFor);
+        Assert.Same(criterion.Examples, criterion.Examples);
+        Assert.True(Assert.IsAssignableFrom<ICollection<string>>(criterion.Examples).IsReadOnly);
+        Assert.Equal("""{"description":"Refunds","examples":["first","second"],"not_for":["Pricing"]}""", Wire(criterion));
+    }
+
+    [Fact]
+    public void JsonCriterion_ExposesItsContentAndNoText()
+    {
+        var json = DecisionContent.FromUtf8Json("""{"owner":"identity"}"""u8);
+        var criterion = Criterion.Json(json);
+
+        Assert.Null(criterion.Description);
+        Assert.Equal(json, criterion.JsonContent);
+        Assert.Empty(criterion.Examples);
+        Assert.Empty(criterion.NotFor);
+    }
+
+    [Fact]
+    public void ImplicitString_ExposesTheTextAndEmptyLists()
+    {
+        Criterion criterion = "Refunds";
+
+        Assert.Equal("Refunds", criterion.Description);
+        Assert.Null(criterion.JsonContent);
+        Assert.Empty(criterion.Examples);
+        Assert.Empty(criterion.NotFor);
+    }
+
+    [Fact]
     public void InvalidArguments_Throw()
     {
         Assert.Equal("description", Assert.Throws<ArgumentNullException>(() => Criterion.Text(null!)).ParamName);

@@ -5,6 +5,10 @@ Minos.AnswerSlots.Choice<T>(int index, Minos.DecisionOptionSet<T>! options) -> M
 Minos.AnswerSlots.Count.get -> int
 Minos.AnswerSlots.Noul(int index) -> Minos.Noul
 Minos.AnswerSlots.Score<T>(int index, Minos.DecisionOptionSet<T>! options) -> Minos.Score<T>
+Minos.Criterion.Description.get -> string?
+Minos.Criterion.Examples.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Minos.Criterion.JsonContent.get -> Minos.DecisionContent?
+Minos.Criterion.NotFor.get -> System.Collections.Generic.IReadOnlyList<string!>!
 Minos.IQuestionSet<TSelf>.Create(Minos.AnswerSlots answers) -> TSelf
 Minos.IQuestionSet<TSelf>.Definition.get -> Minos.QuestionSetDefinition!
 Minos.OptionDefinition
