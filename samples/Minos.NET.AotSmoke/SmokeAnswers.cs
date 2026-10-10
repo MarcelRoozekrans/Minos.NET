@@ -24,12 +24,13 @@ internal static class SmokeAnswers
             && result.Value.Team.Value == Team.Account
             && result.Value.Urgency.Value == Urgency.High;
 
-    /// <summary>The triage answers, parsed by the generated <c>SmokeTriage.Parse</c>.</summary>
-    public static SmokeTriage Triage()
+    /// <summary>The triage answers, read through the generated <c>SmokeTriage.Create</c> over a canned handler.</summary>
+    public static async Task<SmokeTriage> TriageAsync()
     {
-        var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(Program.TriageAnswers));
-        reader.Read();
-        return SmokeTriage.Parse(ref reader);
+        using var http = Program.Http(HttpStatusCode.OK, Program.TriageResponse);
+        using var client = new DecisionClient(http, Program.Options());
+        var result = await client.EvaluateAsync<SmokeTriage>(State).ConfigureAwait(false);
+        return result.IsSuccess ? result.Value : throw new InvalidOperationException("The canned triage did not parse: " + result.Error.Message);
     }
 
     /// <summary>The keyed Choice answer of <see cref="SmokeBuiltSet.Full"/>, evaluated over a canned handler.</summary>

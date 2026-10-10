@@ -1,16 +1,11 @@
 using System.Globalization;
-using System.Text.Json;
 
 namespace Minos;
 
-/// <summary>
-/// The options of a keyed Choice or the levels of a keyed Score, in wire order. Keys are looked up by a linear,
-/// allocation-free scan, <see cref="Utf8Keys.IndexOf"/>.
-/// </summary>
-internal sealed class KeyedOptionSet : IDecisionOptionKeys
+/// <summary>The options of a keyed Choice or the levels of a keyed Score, in wire order.</summary>
+internal sealed class KeyedOptionSet
 {
     private readonly string[] _keys;
-    private readonly byte[][] _utf8Keys;
 
     /// <summary>Initializes a new instance of the <see cref="KeyedOptionSet"/> class.</summary>
     /// <param name="keys">The wire keys, in wire order. The set keeps the array.</param>
@@ -21,7 +16,6 @@ internal sealed class KeyedOptionSet : IDecisionOptionKeys
     public KeyedOptionSet(string[] keys)
     {
         _keys = keys;
-        _utf8Keys = Utf8Keys.Encode(keys);
     }
 
     /// <summary>Gets the number of options.</summary>
@@ -67,7 +61,4 @@ internal sealed class KeyedOptionSet : IDecisionOptionKeys
 
         return -1;
     }
-
-    /// <inheritdoc/>
-    public int IndexOfKey(ref Utf8JsonReader reader) => Utf8Keys.IndexOf(ref reader, _utf8Keys);
 }

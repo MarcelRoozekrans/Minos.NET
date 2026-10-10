@@ -1,10 +1,11 @@
-using System.Text.Json;
+using System.Collections.ObjectModel;
 
 namespace Minos;
 
 /// <summary>
-/// Describes a Choice option or a Score level of a question built with <see cref="QuestionSetBuilder"/>: a plain
-/// text, a text with <see cref="WithExamples"/> and <see cref="WithNotFor"/> texts, or JSON.
+/// Describes a Choice option or a Score level: a plain text, a text with <see cref="WithExamples"/> and
+/// <see cref="WithNotFor"/> texts, or JSON. <see cref="QuestionSetBuilder"/> takes one per option or level, and an
+/// <see cref="OptionDefinition"/> carries one, in a built set's definition and in a generated set's alike.
 /// </summary>
 /// <remarks>
 /// A text with examples or not-for texts is sent as the criterion object <c>{"description", "examples", "not_for"}</c>,
@@ -25,17 +26,33 @@ public sealed class Criterion
         _json = json;
         _examples = examples;
         _notFor = notFor;
+        Examples = Texts(examples);
+        NotFor = Texts(notFor);
     }
 
-    internal bool IsJson => _description is null;
+    /// <summary>Gets what the option or level means, for a text criterion; <see langword="null"/> for a JSON one.</summary>
+    public string? Description => _description;
 
-    internal string? Description => _description;
+    /// <summary>Gets the JSON object or array, for a JSON criterion; <see langword="null"/> for a text one.</summary>
+    public DecisionContent? JsonContent => _description is null ? _json : (DecisionContent?)null;
 
-    internal DecisionContent JsonContent => _json;
+    /// <summary>
+    /// Gets the texts that belong to the option or level, in the order given, without the <see langword="null"/>
+    /// entries: exactly the entries that are sent. Empty when there are none, and always for a JSON criterion.
+    /// </summary>
+    public IReadOnlyList<string> Examples { get; }
 
-    internal ReadOnlySpan<string?> Examples => _examples;
+    /// <summary>
+    /// Gets the texts that do not belong to the option or level, in the order given, without the
+    /// <see langword="null"/> entries: exactly the entries that are sent. Empty when there are none, and always for a
+    /// JSON criterion.
+    /// </summary>
+    public IReadOnlyList<string> NotFor { get; }
 
-    internal ReadOnlySpan<string?> NotFor => _notFor;
+    // The entries as given, null ones included, for the builder's blank-entry warning.
+    internal ReadOnlySpan<string?> ExampleEntries => _examples;
+
+    internal ReadOnlySpan<string?> NotForEntries => _notFor;
 
     /// <summary>Creates a criterion from a plain text.</summary>
     /// <param name="description">What the option or level means.</param>
@@ -79,59 +96,34 @@ public sealed class Criterion
     /// <exception cref="ArgumentNullException"><paramref name="description"/> is <see langword="null"/>.</exception>
     public static implicit operator Criterion(string description) => Text(description);
 
-    /// <summary>Writes the criterion's wire fragment.</summary>
-    internal void WriteTo(Utf8JsonWriter writer)
+    // The non-null entries, read-only, computed once per criterion; no list is allocated when there are none.
+    private static ReadOnlyCollection<string> Texts(string?[] entries)
     {
-        if (_description is null)
+        var count = 0;
+        foreach (var entry in entries)
         {
-            _json.TryGetJson(out var json);
-            json.WriteTo(writer);
-            return;
-        }
-
-        if (!HasAny(_examples) && !HasAny(_notFor))
-        {
-            writer.WriteStringValue(_description);
-            return;
-        }
-
-        writer.WriteStartObject();
-        writer.WriteString("description"u8, _description);
-        WriteList(writer, "examples"u8, _examples);
-        WriteList(writer, "not_for"u8, _notFor);
-        writer.WriteEndObject();
-    }
-
-    private static bool HasAny(string?[] values)
-    {
-        foreach (var value in values)
-        {
-            if (value is not null)
+            if (entry is not null)
             {
-                return true;
+                count++;
             }
         }
 
-        return false;
-    }
-
-    private static void WriteList(Utf8JsonWriter writer, ReadOnlySpan<byte> name, string?[] values)
-    {
-        if (!HasAny(values))
+        if (count == 0)
         {
-            return;
+            return ReadOnlyCollection<string>.Empty;
         }
 
-        writer.WriteStartArray(name);
-        foreach (var value in values)
+        var texts = new string[count];
+        var next = 0;
+        foreach (var entry in entries)
         {
-            if (value is not null)
+            if (entry is not null)
             {
-                writer.WriteStringValue(value);
+                texts[next++] = entry;
             }
         }
 
-        writer.WriteEndArray();
+        return new ReadOnlyCollection<string>(texts);
     }
 
     private string TextOnly()

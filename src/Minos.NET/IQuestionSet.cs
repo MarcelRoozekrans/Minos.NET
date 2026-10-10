@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Minos;
 
 /// <summary>A set of questions declared as a C# type. The <c>[Questions]</c> source generator implements it.</summary>
@@ -7,14 +5,13 @@ namespace Minos;
 public interface IQuestionSet<TSelf>
     where TSelf : IQuestionSet<TSelf>
 {
-    /// <summary>Gets the <c>questions</c> object of a <c>/v1/systemone</c> request, as UTF-8 JSON.</summary>
-    static abstract ReadOnlySpan<byte> QuestionsUtf8 { get; }
+    /// <summary>Gets the provider-neutral definition of the set's questions.</summary>
+    static abstract QuestionSetDefinition Definition { get; }
 
-    /// <summary>Reads the typed answers from the <c>answers</c> object of a <c>/v1/systemone</c> response.</summary>
-    /// <param name="answers">A reader over complete JSON, positioned on the start of the <c>answers</c> object. It is left on the object's end.</param>
+    /// <summary>Creates the typed answers from the slots a protocol read for <see cref="Definition"/>.</summary>
+    /// <param name="answers">One slot per question, in <see cref="Definition"/> order.</param>
     /// <returns>The typed answers.</returns>
-    /// <exception cref="JsonException">An answer is missing, has the wrong type, names an unknown option or level, or lacks a required field.</exception>
-    static abstract TSelf Parse(ref Utf8JsonReader answers);
+    static abstract TSelf Create(AnswerSlots answers);
 }
 
 /// <summary>

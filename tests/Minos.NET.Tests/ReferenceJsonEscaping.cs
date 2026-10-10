@@ -1,15 +1,17 @@
 using System.Globalization;
 using System.Text;
 
-namespace Minos.Generator;
+namespace Minos.Tests;
 
-/// <summary>Escaping for the JSON and C# text the generator emits.</summary>
-internal static class JsonText
+/// <summary>
+/// The JSON string escaping the <c>[Questions]</c> generator wrote into its <c>questions</c> literals before Phase 6.2,
+/// kept as the reference the runtime encoder must match byte for byte, so the wire stays unchanged.
+/// </summary>
+internal static class ReferenceJsonEscaping
 {
     /// <summary>
     /// Appends <paramref name="value"/> as a JSON string. Every character outside printable ASCII becomes a
-    /// <c>\uXXXX</c> escape, so the JSON is plain ASCII whatever the source file's encoding. A lone surrogate
-    /// becomes <c>\ufffd</c>.
+    /// <c>\uXXXX</c> escape, so the JSON is plain ASCII. A lone surrogate becomes <c>\ufffd</c>.
     /// </summary>
     public static StringBuilder AppendJsonString(this StringBuilder json, string value)
     {
@@ -64,33 +66,4 @@ internal static class JsonText
 
     private static void AppendEscape(StringBuilder json, char c)
         => json.Append("\\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
-
-    /// <summary>Returns <paramref name="value"/> as a regular C# string literal, for use as a string or with the <c>u8</c> suffix.</summary>
-    public static string CSharpLiteral(string value)
-    {
-        var literal = new StringBuilder(value.Length + 2).Append('"');
-        foreach (var c in value)
-        {
-            if (c == '"' || c == '\\')
-            {
-                literal.Append('\\').Append(c);
-            }
-            else if (c < ' ' || c > '~')
-            {
-                // Every character outside printable ASCII becomes a \uXXXX escape, matching
-                // AppendJsonString's guarantee that the emitted text is plain ASCII whatever the source
-                // file's encoding. This also covers U+2028 LINE SEPARATOR, U+2029 PARAGRAPH SEPARATOR and
-                // U+0085 NEXT LINE, which are treated as newlines inside a regular C# string literal even
-                // though they are not '\n' or '\r', so a raw one here would produce CS1010 "Newline in
-                // constant" in the generated file.
-                literal.Append("\\u").Append(((int)c).ToString("x4", CultureInfo.InvariantCulture));
-            }
-            else
-            {
-                literal.Append(c);
-            }
-        }
-
-        return literal.Append('"').ToString();
-    }
 }

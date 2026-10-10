@@ -78,7 +78,7 @@ public sealed class QuestionSetsAtRunTimeTests
     {
         var (set, team) = CriteriaExample.Create();
 
-        using var actual = JsonDocument.Parse(set.QuestionsUtf8.ToArray());
+        using var actual = await CannedDecision.QuestionsSentAsync(set, "{}");
         using var expected = JsonDocument.Parse("""
             {
               "team": {
@@ -232,6 +232,41 @@ public sealed class QuestionSetsAtRunTimeTests
     }
 
     [Fact]
+    public void Definition_ListsTheSameQuestionsForAGeneratedAndABuiltSet()
+    {
+        #region QuestionSetsAtRunTime_Definition
+        // TicketCheck is the generated set from getting started; the builder makes the same two questions.
+        var built = QuestionSet.CreateBuilder()
+            .Noul("is_urgent", "Does this convey urgency?", out NoulHandle _)
+            .Choice("team", "Which team should handle this?", out ChoiceHandle<SupportTeam> _)
+            .Build();
+
+        var shapes = new List<string>();
+        foreach (var definition in new[] { TicketCheck.Definition, built.Value.Definition })
+        {
+            var lines = new List<string>();
+            foreach (var question in definition.Questions)
+            {
+                // Options holds a Choice's options or a Score's levels, and is empty for a Noul.
+                var keys = new List<string>();
+                foreach (var option in question.Options)
+                {
+                    keys.Add(option.Key);
+                }
+
+                lines.Add($"{question.Key} {question.Kind} [{string.Join(", ", keys)}]");
+            }
+
+            shapes.Add(string.Join("; ", lines));
+        }
+
+        // Both print: is_urgent Noul []; team Choice [billing, technical, sales]
+        Assert.Equal(shapes[0], shapes[1]);
+        #endregion
+        Assert.Equal("is_urgent Noul []; team Choice [billing, technical, sales]", shapes[0]);
+    }
+
+    [Fact]
     public async Task AMissingAnswer_FailsTheCallAsInvalidResponse()
     {
         var set = QuestionSet.CreateBuilder().Noul("a", "A?", out NoulHandle _).Noul("b", "B?", out NoulHandle _).Build().Value;
@@ -277,11 +312,11 @@ public sealed class QuestionSetsAtRunTimeTests
     }
 
     [Fact]
-    public void EnumQuestions_KeyTheMembersInSnakeCase_AndSkipAliases()
+    public async Task EnumQuestions_KeyTheMembersInSnakeCase_AndSkipAliases()
     {
         var set = QuestionSet.CreateBuilder().Choice("route", "Where to?", out ChoiceHandle<Route> _).Build().Value;
 
-        using var questions = JsonDocument.Parse(set.QuestionsUtf8.ToArray());
+        using var questions = await CannedDecision.QuestionsSentAsync(set, "{}");
         var criteria = questions.RootElement.GetProperty("route").GetProperty("criteria");
         Assert.Equal(["send_to_billing", "needs_human"], criteria.EnumerateObject().Select(p => p.Name).ToArray());
     }
@@ -292,7 +327,7 @@ public sealed class QuestionSetsAtRunTimeTests
         // Department carries [Criteria] on its members; the builder sends no description for them.
         var set = QuestionSet.CreateBuilder().Choice("d", "Which?", out ChoiceHandle<Department> department).Build().Value;
 
-        using var questions = JsonDocument.Parse(set.QuestionsUtf8.ToArray());
+        using var questions = await CannedDecision.QuestionsSentAsync(set, "{}");
         var criteria = questions.RootElement.GetProperty("d").GetProperty("criteria");
         Assert.Equal(JsonValueKind.Null, criteria.GetProperty("billing").ValueKind);
 

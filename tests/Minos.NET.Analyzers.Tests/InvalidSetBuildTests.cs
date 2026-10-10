@@ -14,7 +14,7 @@ public sealed class InvalidSetBuildTests
         "public enum L { [Level(\"a\")] A, {|MIN104:B|} } [Questions] public partial record C { "
             + "[Score(\"q\")] public partial Score<L> Answer { get; } [Noul(\"q2\")] private partial Noul Other { get; } }",
         "[Questions] public partial class C { [Noul(\"q\")][Choice(\"q\")] public partial Noul {|MIN103:Answer|} { get; } }",
-        "[Questions] public partial class C { [Noul(\"q\")] public partial Noul {|MIN102:Parse|} { get; } }",
+        "[Questions] public partial class C { [Noul(\"q\")] public partial Noul {|MIN102:Create|} { get; } }",
         "[Questions] public partial record {|MIN105:R|}(int X) { [Noul(\"q\")] public partial Noul Answer { get; } }",
         "[Questions] public partial class {|MIN106:C|} { [Noul(\"a\")] public partial Noul IsUrgent { get; } "
             + "[Noul(\"b\", Key = \"is_urgent\")] public partial Noul Other { get; } }",

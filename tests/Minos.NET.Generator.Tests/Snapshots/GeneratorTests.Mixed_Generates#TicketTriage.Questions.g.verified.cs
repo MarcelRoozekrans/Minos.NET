@@ -12,48 +12,34 @@ partial class TicketTriage : global::Minos.IQuestionSet<global::TicketTriage>
     public partial global::Minos.Choice<global::Team> Team { get => __minos_Team; }
     internal partial global::Minos.Score<global::Urgency> Urgency { get => __minos_Urgency; }
 
-    /// <summary>Gets the <c>questions</c> object of a <c>/v1/systemone</c> request, as UTF-8 JSON.</summary>
-    public static global::System.ReadOnlySpan<byte> QuestionsUtf8 => "{\"requests_credentials\":{\"type\":\"noul\",\"instructions\":\"Does `message` ask for a \\\"credential\\\"?\",\"criteria\":{\"false\":\"No credential is requested\"}},\"route_to\":{\"type\":\"choice\",\"instructions\":\"Which team should handle `message`?\",\"criteria\":{\"billing\":\"Charges, invoices, refunds\",\"account\":\"Login, profile, permissions, or security\",\"other\":\"No listed team fits\"}},\"urgency\":{\"type\":\"score\",\"instructions\":\"How urgent is `message`?\",\"criteria\":[\"Can wait\",\"This week\",\"Today\"]}}"u8;
+    /// <summary>Gets the provider-neutral definition of the set's questions.</summary>
+    public static global::Minos.QuestionSetDefinition Definition { get; } = new global::Minos.QuestionSetDefinition(
+        global::Minos.QuestionDefinition.Noul(
+            "requests_credentials",
+            global::Minos.DecisionContent.FromString("Does `message` ask for a \"credential\"?"),
+            whenFalse: global::Minos.DecisionContent.FromString("No credential is requested")),
+        global::Minos.QuestionDefinition.Choice(
+            "route_to",
+            global::Minos.DecisionContent.FromString("Which team should handle `message`?"),
+            new global::Minos.OptionDefinition("billing", global::Minos.Criterion.Text("Charges, invoices, refunds")),
+            new global::Minos.OptionDefinition("account", global::Minos.Criterion.Text("Login, profile, permissions, or security")),
+            new global::Minos.OptionDefinition("other", global::Minos.Criterion.Text("No listed team fits"))),
+        global::Minos.QuestionDefinition.Score(
+            "urgency",
+            global::Minos.DecisionContent.FromString("How urgent is `message`?"),
+            global::Minos.Criterion.Text("Can wait"),
+            global::Minos.Criterion.Text("This week"),
+            global::Minos.Criterion.Text("Today")));
 
-    /// <summary>Reads the typed answers from the <c>answers</c> object of a <c>/v1/systemone</c> response.</summary>
-    /// <param name="answers">A reader over complete JSON, positioned on the start of the <c>answers</c> object. It is left on the object's end.</param>
+    /// <summary>Creates the typed answers from the slots a protocol read for <see cref="Definition"/>.</summary>
+    /// <param name="answers">One slot per question, in <see cref="Definition"/> order.</param>
     /// <returns>The typed answers.</returns>
-    public static global::TicketTriage Parse(ref global::System.Text.Json.Utf8JsonReader answers)
+    public static global::TicketTriage Create(global::Minos.AnswerSlots answers)
     {
-        global::Minos.AnswerReader.EnsureStartObject(ref answers);
-        var buffer = new double[6];
         var result = new global::TicketTriage();
-        var found0 = false;
-        var found1 = false;
-        var found2 = false;
-        while (global::Minos.AnswerReader.NextProperty(ref answers))
-        {
-            if (answers.ValueTextEquals("requests_credentials"u8))
-            {
-                answers.Read();
-                result.__minos_RequestsCredentials = global::Minos.AnswerReader.ReadNoul(ref answers);
-                found0 = true;
-            }
-            else if (answers.ValueTextEquals("route_to"u8))
-            {
-                answers.Read();
-                result.__minos_Team = global::Minos.AnswerReader.ReadChoice(ref answers, __DecisionOptions_Team.Instance, buffer, 0);
-                found1 = true;
-            }
-            else if (answers.ValueTextEquals("urgency"u8))
-            {
-                answers.Read();
-                result.__minos_Urgency = global::Minos.AnswerReader.ReadScore(ref answers, __DecisionOptions_Urgency.Instance, buffer, 3);
-                found2 = true;
-            }
-            else
-            {
-                answers.Skip();
-            }
-        }
-        if (!found0) throw global::Minos.AnswerReader.MissingAnswer("requests_credentials");
-        if (!found1) throw global::Minos.AnswerReader.MissingAnswer("route_to");
-        if (!found2) throw global::Minos.AnswerReader.MissingAnswer("urgency");
+        result.__minos_RequestsCredentials = answers.Noul(0);
+        result.__minos_Team = answers.Choice(1, __DecisionOptions_Team.Instance);
+        result.__minos_Urgency = answers.Score(2, __DecisionOptions_Urgency.Instance);
         return result;
     }
 
@@ -78,14 +64,6 @@ partial class TicketTriage : global::Minos.IQuestionSet<global::TicketTriage>
             global::Team.Other => 2,
             _ => -1,
         };
-
-        public override int IndexOfKey(ref global::System.Text.Json.Utf8JsonReader reader)
-        {
-            if (reader.ValueTextEquals("billing"u8)) return 0;
-            if (reader.ValueTextEquals("account"u8)) return 1;
-            if (reader.ValueTextEquals("other"u8)) return 2;
-            return -1;
-        }
     }
 
     private sealed class __DecisionOptions_Urgency : global::Minos.DecisionOptionSet<global::Urgency>
@@ -109,13 +87,5 @@ partial class TicketTriage : global::Minos.IQuestionSet<global::TicketTriage>
             global::Urgency.High => 2,
             _ => -1,
         };
-
-        public override int IndexOfKey(ref global::System.Text.Json.Utf8JsonReader reader)
-        {
-            if (reader.ValueTextEquals("0"u8)) return 0;
-            if (reader.ValueTextEquals("1"u8)) return 1;
-            if (reader.ValueTextEquals("2"u8)) return 2;
-            return -1;
-        }
     }
 }

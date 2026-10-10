@@ -122,7 +122,7 @@ internal interface IDecisionOperations
     [MetricTagFromResult(ResponseModel, "Value.ResponseModel", When = "IsSuccess", Metric = OutputTokenHistogram)]
     ValueTask<Result<Evaluated<Answers>, DecisionError>> EvaluateBuiltSetAsync(
         RawJson body,
-        [TraceTag(QuestionCount, "Plan.Length")]
+        [TraceTag(QuestionCount, "Definition.Questions.Count")]
         QuestionSet questionSet,
         [TraceTag(RequestModel)]
         [MetricTag(RequestModel)]

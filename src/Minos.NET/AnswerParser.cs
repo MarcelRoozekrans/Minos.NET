@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Minos.Protocols;
 
 namespace Minos;
 
@@ -9,11 +10,14 @@ namespace Minos;
 /// <exception cref="JsonException">An answer is missing, has the wrong type, names an unknown option or level, or lacks a required field.</exception>
 internal delegate TResult AnswerParser<TResult>(ref Utf8JsonReader answers);
 
-/// <summary>The one <see cref="AnswerParser{TResult}"/> over a <c>[Questions]</c> set's static <c>Parse</c>.</summary>
+/// <summary>The one <see cref="AnswerParser{TResult}"/> over the protocol and a <c>[Questions]</c> set's generated <c>Create</c>.</summary>
 /// <typeparam name="T">The question set.</typeparam>
 internal static class GeneratedAnswerParser<T>
     where T : IQuestionSet<T>
 {
+    private static readonly AnswerFactory<T> Create = static answers => T.Create(answers);
+
     /// <summary>The parser, created once per set type.</summary>
-    public static readonly AnswerParser<T> Instance = static (ref Utf8JsonReader answers) => T.Parse(ref answers);
+    public static readonly AnswerParser<T> Instance =
+        static (ref Utf8JsonReader answers) => SystemOneProtocol.Instance.ReadAnswers(ref answers, T.Definition, Create);
 }

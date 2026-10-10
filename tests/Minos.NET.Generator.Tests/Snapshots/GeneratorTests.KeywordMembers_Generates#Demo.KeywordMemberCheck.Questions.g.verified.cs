@@ -10,32 +10,21 @@ partial record KeywordMemberCheck : global::Minos.IQuestionSet<global::Demo.Keyw
 
     public partial global::Minos.Choice<global::Demo.Verdict> @class { get => __minos_class; }
 
-    /// <summary>Gets the <c>questions</c> object of a <c>/v1/systemone</c> request, as UTF-8 JSON.</summary>
-    public static global::System.ReadOnlySpan<byte> QuestionsUtf8 => "{\"class\":{\"type\":\"choice\",\"instructions\":\"What is the verdict?\",\"criteria\":{\"approved\":\"Approved\",\"for\":\"Denied\"}}}"u8;
+    /// <summary>Gets the provider-neutral definition of the set's questions.</summary>
+    public static global::Minos.QuestionSetDefinition Definition { get; } = new global::Minos.QuestionSetDefinition(
+        global::Minos.QuestionDefinition.Choice(
+            "class",
+            global::Minos.DecisionContent.FromString("What is the verdict?"),
+            new global::Minos.OptionDefinition("approved", global::Minos.Criterion.Text("Approved")),
+            new global::Minos.OptionDefinition("for", global::Minos.Criterion.Text("Denied"))));
 
-    /// <summary>Reads the typed answers from the <c>answers</c> object of a <c>/v1/systemone</c> response.</summary>
-    /// <param name="answers">A reader over complete JSON, positioned on the start of the <c>answers</c> object. It is left on the object's end.</param>
+    /// <summary>Creates the typed answers from the slots a protocol read for <see cref="Definition"/>.</summary>
+    /// <param name="answers">One slot per question, in <see cref="Definition"/> order.</param>
     /// <returns>The typed answers.</returns>
-    public static global::Demo.KeywordMemberCheck Parse(ref global::System.Text.Json.Utf8JsonReader answers)
+    public static global::Demo.KeywordMemberCheck Create(global::Minos.AnswerSlots answers)
     {
-        global::Minos.AnswerReader.EnsureStartObject(ref answers);
-        var buffer = new double[2];
         var result = new global::Demo.KeywordMemberCheck();
-        var found0 = false;
-        while (global::Minos.AnswerReader.NextProperty(ref answers))
-        {
-            if (answers.ValueTextEquals("class"u8))
-            {
-                answers.Read();
-                result.__minos_class = global::Minos.AnswerReader.ReadChoice(ref answers, __DecisionOptions_class.Instance, buffer, 0);
-                found0 = true;
-            }
-            else
-            {
-                answers.Skip();
-            }
-        }
-        if (!found0) throw global::Minos.AnswerReader.MissingAnswer("class");
+        result.__minos_class = answers.Choice(0, __DecisionOptions_class.Instance);
         return result;
     }
 
@@ -58,12 +47,5 @@ partial record KeywordMemberCheck : global::Minos.IQuestionSet<global::Demo.Keyw
             global::Demo.Verdict.@for => 1,
             _ => -1,
         };
-
-        public override int IndexOfKey(ref global::System.Text.Json.Utf8JsonReader reader)
-        {
-            if (reader.ValueTextEquals("approved"u8)) return 0;
-            if (reader.ValueTextEquals("for"u8)) return 1;
-            return -1;
-        }
     }
 }

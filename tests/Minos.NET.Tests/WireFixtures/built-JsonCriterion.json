@@ -1,0 +1,1 @@
+{"department":{"type":"choice","instructions":"Which team should handle this?","criteria":{"billing":{"handles":["charges","refunds"],"note":"Say \"billing\""},"technical":"Bugs, outages, integrations","sales":"Pricing, upgrades, new accounts","other":null}}}

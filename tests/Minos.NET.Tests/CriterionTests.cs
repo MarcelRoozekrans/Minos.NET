@@ -1,11 +1,11 @@
 using System.Buffers;
 using System.Text;
 using System.Text.Json;
-using Minos.Serialization;
+using Minos.Protocols;
 
 namespace Minos.Tests;
 
-/// <summary>Criterion writes exactly the attribute path's wire shapes.</summary>
+/// <summary>The protocol writes a criterion in exactly the attribute path's wire shapes.</summary>
 public sealed class CriterionTests
 {
     [Fact]
@@ -60,6 +60,43 @@ public sealed class CriterionTests
     }
 
     [Fact]
+    public void TextWithExamplesAndNotFor_ExposesTheSentEntriesInOrder()
+    {
+        var criterion = Criterion.Text("Refunds").WithExamples("first", null, "second").WithNotFor(null, "Pricing", null);
+
+        Assert.Equal("Refunds", criterion.Description);
+        Assert.Null(criterion.JsonContent);
+        Assert.Equal(["first", "second"], criterion.Examples);
+        Assert.Equal(["Pricing"], criterion.NotFor);
+        Assert.Same(criterion.Examples, criterion.Examples);
+        Assert.True(Assert.IsAssignableFrom<ICollection<string>>(criterion.Examples).IsReadOnly);
+        Assert.Equal("""{"description":"Refunds","examples":["first","second"],"not_for":["Pricing"]}""", Wire(criterion));
+    }
+
+    [Fact]
+    public void JsonCriterion_ExposesItsContentAndNoText()
+    {
+        var json = DecisionContent.FromUtf8Json("""{"owner":"identity"}"""u8);
+        var criterion = Criterion.Json(json);
+
+        Assert.Null(criterion.Description);
+        Assert.Equal(json, criterion.JsonContent);
+        Assert.Empty(criterion.Examples);
+        Assert.Empty(criterion.NotFor);
+    }
+
+    [Fact]
+    public void ImplicitString_ExposesTheTextAndEmptyLists()
+    {
+        Criterion criterion = "Refunds";
+
+        Assert.Equal("Refunds", criterion.Description);
+        Assert.Null(criterion.JsonContent);
+        Assert.Empty(criterion.Examples);
+        Assert.Empty(criterion.NotFor);
+    }
+
+    [Fact]
     public void InvalidArguments_Throw()
     {
         Assert.Equal("description", Assert.Throws<ArgumentNullException>(() => Criterion.Text(null!)).ParamName);
@@ -73,9 +110,9 @@ public sealed class CriterionTests
     private static string Wire(Criterion criterion)
     {
         var buffer = new ArrayBufferWriter<byte>();
-        using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { Encoder = GeneratorJsonEncoder.Instance }))
+        using (var writer = new Utf8JsonWriter(buffer, new JsonWriterOptions { Encoder = SystemOneJsonEncoder.Instance }))
         {
-            criterion.WriteTo(writer);
+            SystemOneQuestionsWriter.WriteCriterion(writer, criterion);
         }
 
         return Encoding.UTF8.GetString(buffer.WrittenSpan);

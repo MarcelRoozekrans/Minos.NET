@@ -1,5 +1,3 @@
-using System.Text.Json;
-
 namespace Minos.Tests;
 
 internal enum Color
@@ -42,21 +40,6 @@ internal sealed class ColorOptions : DecisionOptionSet<Color>
         Color.Blue => 2,
         _ => -1,
     };
-
-    public override int IndexOfKey(ref Utf8JsonReader reader)
-    {
-        if (reader.ValueTextEquals("red"u8))
-        {
-            return 0;
-        }
-
-        if (reader.ValueTextEquals("green"u8))
-        {
-            return 1;
-        }
-
-        return reader.ValueTextEquals("blue"u8) ? 2 : -1;
-    }
 }
 
 /// <summary>Hand-written stand-in for a generated Score level set: wire keys "0", "1", "2".</summary>
@@ -85,21 +68,6 @@ internal sealed class UrgencyLevels : DecisionOptionSet<Urgency>
         Urgency.High => 2,
         _ => -1,
     };
-
-    public override int IndexOfKey(ref Utf8JsonReader reader)
-    {
-        if (reader.ValueTextEquals("0"u8))
-        {
-            return 0;
-        }
-
-        if (reader.ValueTextEquals("1"u8))
-        {
-            return 1;
-        }
-
-        return reader.ValueTextEquals("2"u8) ? 2 : -1;
-    }
 }
 
 /// <summary>A different Color option set (fewer options), for equality tests that need option sets to differ by count.</summary>
@@ -126,16 +94,6 @@ internal sealed class ColorOptionsSubset : DecisionOptionSet<Color>
         Color.Green => 1,
         _ => -1,
     };
-
-    public override int IndexOfKey(ref Utf8JsonReader reader)
-    {
-        if (reader.ValueTextEquals("red"u8))
-        {
-            return 0;
-        }
-
-        return reader.ValueTextEquals("green"u8) ? 1 : -1;
-    }
 }
 
 /// <summary>A different Color option set with the same count but a different wire order, for equality tests that
@@ -165,19 +123,4 @@ internal sealed class ColorOptionsReversed : DecisionOptionSet<Color>
         Color.Red => 2,
         _ => -1,
     };
-
-    public override int IndexOfKey(ref Utf8JsonReader reader)
-    {
-        if (reader.ValueTextEquals("blue"u8))
-        {
-            return 0;
-        }
-
-        if (reader.ValueTextEquals("green"u8))
-        {
-            return 1;
-        }
-
-        return reader.ValueTextEquals("red"u8) ? 2 : -1;
-    }
 }

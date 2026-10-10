@@ -11,7 +11,7 @@
     -->
     <IsAotCompatible>true</IsAotCompatible>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- GeneratorJsonEncoder overrides JavaScriptEncoder's pointer-based members. -->
+    <!-- SystemOneJsonEncoder overrides JavaScriptEncoder's pointer-based members. -->
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!--
       ZeroAlloc.Validation's generator emits every {Model}Validator internal: they check this library's internal

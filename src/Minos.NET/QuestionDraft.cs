@@ -12,7 +12,7 @@ namespace Minos;
 /// </param>
 /// <param name="enumMembers">For an enum Score, the members every level must cover once; else <see langword="null"/>.</param>
 internal sealed class QuestionDraft(
-    string key, QuestionKind kind, DecisionContent instructions, Func<QuestionSpec, IDecisionOptionKeys>? enumOptions, string[]? enumMembers)
+    string key, QuestionKind kind, DecisionContent instructions, Func<QuestionSpec, object>? enumOptions, string[]? enumMembers)
 {
     public string Key { get; } = key;
 
@@ -54,7 +54,7 @@ internal sealed class QuestionDraft(
     /// The option set answers are read with: the enum's, a keyed set over <paramref name="spec"/>'s keys, or none for a
     /// Noul. Called only for a spec that passed validation, so an enum Score's levels cover each member once.
     /// </summary>
-    public IDecisionOptionKeys? PlanOptions(QuestionSpec spec)
+    public object? OptionSet(QuestionSpec spec)
     {
         if (Kind == QuestionKind.Noul)
         {

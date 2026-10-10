@@ -23,7 +23,7 @@ public readonly struct ProbabilityMap<T> : IEquatable<ProbabilityMap<T>>
     /// <exception cref="ArgumentOutOfRangeException">The options do not fit in <paramref name="buffer"/> from <paramref name="offset"/>.</exception>
     /// <remarks>
     /// Internal: the buffer-plus-offset representation is generated-code plumbing that application code has no
-    /// meaningful way to construct. <see cref="AnswerReader"/> and the generated <c>Parse</c> methods build every instance.
+    /// meaningful way to construct. <see cref="AnswerSlots"/> and the built set's <c>Answers</c> build every instance.
     /// </remarks>
     internal ProbabilityMap(double[] buffer, int offset, DecisionOptionSet<T> options)
     {

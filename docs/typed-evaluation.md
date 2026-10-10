@@ -7,11 +7,12 @@ description: Declare questions as a C# type, give them a typed state, and pick t
 
 # Typed evaluation
 
-Typed evaluation is the main way to use Minos.NET. You declare the questions once, as a partial record. A source
-generator turns them into the request at compile time and into a parser for the answers, so a call is one line and the
-answers come back as typed properties. This page covers the declaration, the state you hand to Jev, and the ways to
-call it. [Getting started](getting-started.md) has the shortest working example, and
-[Question types](question-types.md) covers what each answer holds.
+Typed evaluation is the main way to use Minos.NET. You declare the questions once, as a partial record. At compile
+time a source generator writes the question definition, which the client turns into the request, and a `Create` method
+that builds the record from the answers the client reads back. So a call is one line, and the answers come back as
+typed properties. This page covers the declaration, the state you hand to Jev, and the ways to call it.
+[Getting started](getting-started.md) has the shortest working example, and [Question types](question-types.md) covers
+what each answer holds.
 
 When the questions are only known at run time, use [question sets built at run time](question-sets-at-run-time.md)
 instead.
@@ -162,8 +163,9 @@ object. The Jev API itself has no such fields. The generated questions for `Tick
 ```
 
 A Choice's options are keyed by the member name in snake_case, or by `Key` on the member's `[Criteria]` when one is
-set. A Score's levels are keyed by their index, and `[Level]` has no `Key`. Because this JSON is written at compile
-time, the question text and criteria are fixed: they cannot vary per call. What varies per call is the state.
+set. A Score's levels are keyed by their index, and `[Level]` has no `Key`. The generator
+fixes the question text and criteria in the definition it writes at compile time, and the client writes this JSON from
+it: they cannot vary per call. What varies per call is the state.
 
 ### Referring to the state in a question
 
@@ -185,8 +187,8 @@ a [`DecisionContent`](#decisioncontent) as the instructions, and describe an opt
 
 ## Evaluating
 
-Call `EvaluateAsync<T>` on an `IDecisionClient`. It returns a `Result` and not the answers, because a call can fail in many
-ways. Check `IsFailure` before reading `Value`.
+Call `EvaluateAsync<T>` on an `IDecisionClient`. It returns a `Result` and not the answers, because a call can fail in
+many ways. Check `IsFailure` before reading `Value`.
 
 <!-- snippet: TypedEvaluation_Evaluate -->
 ```cs
@@ -274,15 +276,16 @@ throw `ArgumentException` for it, and do not return a failed `Result`. A `null` 
 come back in the `Result`. In particular, a response that is missing an answer, or that has one of the wrong type, is a
 failure with kind `DecisionErrorKind.InvalidResponse`.
 
-The model is the one in `DecisionClientOptions.Model`, which defaults to the alias `jev-latest`. `DecisionClient` writes the
-request straight from the generated JSON into pooled buffers. Any other `IDecisionClient`, such as a hand-written fake in a
-test, works as well, through the default interface methods that go by way of
+The model is the one in `DecisionClientOptions.Model`, which defaults to the alias `jev-latest`. The generator emits
+a question definition, and `DecisionClient` writes the request from it through the systemone protocol into pooled
+buffers. The protocol caches the questions JSON of each set after the first call. Any other `IDecisionClient`, such as
+a hand-written fake in a test, works as well, through the default interface methods that go by way of
 [`SystemOneRequest`](client-and-errors.md#the-raw-request-api).
 
 ## DecisionContent
 
-`DecisionContent` is the type the library uses for a value that is either text or structured JSON. A typed call builds one
-for you. You meet it directly when you [build a question set at run time](question-sets-at-run-time.md),
+`DecisionContent` is the type the library uses for a value that is either text or structured JSON. A typed call builds
+one for you. You meet it directly when you [build a question set at run time](question-sets-at-run-time.md),
 where the state, each question's instructions and each description are all `DecisionContent`.
 
 <!-- snippet: TypedEvaluation_Content -->
@@ -312,7 +315,7 @@ value. `TryGetString` and `TryGetJson` read the content back.
 ## What the package ships
 
 `Minos.NET` carries the source generator and the [analyzers](diagnostics.md), so there is nothing else to install.
-The generator writes `QuestionsUtf8` and `Parse` for each `[Questions]` type. The analyzers check the declaration as
+The generator writes `Definition` and `Create` for each `[Questions]` type. The analyzers check the declaration as
 you type: the shape of the type, the keys, the enums and the backticked names. A set with an error gets no generated
 members, and the generator stubs its properties, so the build reports the analyzer's error and not a confusing
 missing-implementation one.
