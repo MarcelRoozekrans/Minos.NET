@@ -38,6 +38,8 @@ public sealed class MovedDiagnosticTests
             + "[Questions] public partial class {|MIN105:C|} : Base { [Noul(\"q\")] public partial Noul Answer { get; } }",
         "[Questions] public partial class {|MIN106:C|} { [Noul(\"a\")] public partial Noul IsUrgent { get; } [Noul(\"b\", Key = \"is_urgent\")] public partial Noul Other { get; } }",
         "public enum E { [Criteria(\"x\", Key = \"b\")] A, [Criteria(\"y\")] B } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> {|MIN106:Answer|} { get; } }",
+        "[Questions] public partial class C { [Noul(\"q\", {|MIN106:Key = \"\"|})] public partial Noul Answer { get; } }",
+        "public enum E { [Criteria(\"x\", {|MIN106:Key = \"\"|})] A, [Criteria(\"y\")] B } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
         "[Questions({|MIN107:State = typeof(IFoo)|})] public partial class C { } public interface IFoo { }",
         "[Questions({|MIN107:State = typeof(System.Collections.Generic.List<>)|})] public partial class C { }",
         "[Questions({|MIN107:State = typeof(void)|})] public partial class C { }",
@@ -154,6 +156,56 @@ public sealed class MovedDiagnosticTests
 
         Assert.StartsWith(
             "The [Level] description of 'E.B' is empty or whitespace", Format(Diagnostics.EmptyText, info), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task DuplicateKey_DuplicatedQuestionKey_MessageNamesTheKeyAndTheSet()
+    {
+        var (type, attribute) = await GetQuestionSetAsync(
+            "[Questions] public partial class C { [Noul(\"a\")] public partial Noul IsUrgent { get; } [Noul(\"b\", Key = \"is_urgent\")] public partial Noul Other { get; } }");
+
+        var info = SingleDiagnostic(ModelBuilder.Build(type, attribute, CancellationToken.None).Diagnostics, DiagnosticIds.DuplicateKey);
+
+        Assert.Equal("The wire key 'is_urgent' is used more than once in 'C'", Format(Diagnostics.DuplicateKey, info));
+    }
+
+    [Fact]
+    public async Task DuplicateKey_EmptyQuestionKey_UsesTheBuilderMessage()
+    {
+        var (type, attribute) = await GetQuestionSetAsync(
+            "[Questions] public partial class C { [Noul(\"q\", Key = \"\")] public partial Noul Answer { get; } }");
+
+        var result = ModelBuilder.Build(type, attribute, CancellationToken.None);
+        var info = SingleDiagnostic(result.Diagnostics, DiagnosticIds.DuplicateKey);
+
+        Assert.Equal("The question key is empty.", Format(Diagnostics.DuplicateKey, info));
+        Assert.Null(result.Model);
+    }
+
+    [Fact]
+    public async Task DuplicateKey_EmptyOptionKey_MessageNamesTheMember()
+    {
+        var compilation = await CompilationHelper.CompileAsync(
+            "using Minos;\npublic enum E { [Criteria(\"x\", Key = \"\")] A, [Criteria(\"y\")] B }");
+        var enumType = compilation.GetTypeByMetadataName("E")
+            ?? throw new InvalidOperationException("Type 'E' not found in the compiled source.");
+
+        var info = SingleDiagnostic(
+            ModelBuilder.ValidateEnum(enumType, Minos.Generator.QuestionKind.Choice, CancellationToken.None), DiagnosticIds.DuplicateKey);
+
+        Assert.Equal("The option key of 'E.A' is empty.", Format(Diagnostics.DuplicateKey, info));
+    }
+
+    [Fact]
+    public async Task DuplicateKey_EmptyOptionKeyOfEnumFromReferencedAssembly_ReportsOnProperty()
+    {
+        var reference = (await CompilationHelper.CompileAsync(
+                "using Minos; namespace External; public enum Grade { [Criteria(\"Good\", Key = \"\")] Good, [Criteria(\"Bad\")] Bad }", "External"))
+            .EmitToReference();
+
+        await AnalyzerVerifier.VerifyAsync(
+            "using External; [Questions] public partial class C { [Choice(\"q\")] public partial Choice<Grade> {|MIN106:Answer|} { get; } }",
+            reference);
     }
 
     [Fact]

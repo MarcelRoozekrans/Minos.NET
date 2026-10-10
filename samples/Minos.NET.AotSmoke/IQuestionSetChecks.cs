@@ -5,7 +5,7 @@ namespace Minos.AotSmoke;
 
 /// <summary>
 /// <see cref="IQuestionSet{TSelf}.Parse"/> and <see cref="IQuestionSet{TSelf}.Create"/> called through the interface's
-/// static abstract members under Native AOT, as the library's own typed evaluation calls them.
+/// static abstract members under Native AOT, the way generic library code calls them.
 /// </summary>
 internal static class IQuestionSetChecks
 {
@@ -19,6 +19,12 @@ internal static class IQuestionSetChecks
             "IQuestionSet<TSelf>.Parse, called through a type parameter, reads typed answers under Native AOT");
     }
 
+    /// <summary>
+    /// Proves only that a call through the type parameter dispatches to the generated <c>Create</c>: empty slots stop it
+    /// at the first accessor's index guard. Its success path, reading real slots, is not run here; it runs under
+    /// Native AOT through the typed evaluation checks once typed evaluation reads answers through <c>Create</c> rather
+    /// than <c>Parse</c>.
+    /// </summary>
     [Covers("Minos.IQuestionSet<TSelf>.Create(Minos.AnswerSlots answers) -> TSelf")]
     public static void CreateRunsThroughTheInterface()
     {

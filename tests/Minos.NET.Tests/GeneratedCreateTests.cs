@@ -17,21 +17,28 @@ public sealed class GeneratedCreateTests
         """u8;
 
     [Fact]
-    public void Create_ThroughTheProtocol_EqualsParse()
+    public void Create_ThroughTheProtocol_ReadsEveryAnswer()
     {
-        var parseReader = new Utf8JsonReader(MixedAnswers);
-        parseReader.Read();
-        var parsed = WfMixed.Parse(ref parseReader);
-
         var reader = new Utf8JsonReader(MixedAnswers);
         reader.Read();
         var created = SystemOneProtocol.Instance.ReadAnswers(ref reader, WfMixed.Definition, static answers => WfMixed.Create(answers));
 
-        Assert.Equal(parsed.RequestsCredentials.Probability, created.RequestsCredentials.Probability);
-        Assert.Equal(parsed.Team.Value, created.Team.Value);
-        Assert.Equal(parsed.Team.Confidence, created.Team.Confidence);
-        Assert.Equal(parsed.Urgency.Value, created.Urgency.Value);
-        Assert.Equal(parsed.Urgency.Expected, created.Urgency.Expected);
+        Assert.Equal(0.2, created.RequestsCredentials.Probability);
+
+        Assert.Equal(WfTeam.Account, created.Team.Value);
+        Assert.Equal(0.7, created.Team.Confidence);
+        Assert.Equal(3, created.Team.Probabilities.Count);
+        Assert.Equal(0.1, created.Team.Probabilities[WfTeam.Billing]);
+        Assert.Equal(0.8, created.Team.Probabilities[WfTeam.Account]);
+        Assert.Equal(0.1, created.Team.Probabilities[WfTeam.Other]);
+
+        Assert.Equal(WfUrgency.High, created.Urgency.Value);
+        Assert.Equal(1.4, created.Urgency.Expected);
+        Assert.Equal(0.5, created.Urgency.Confidence);
+        Assert.Equal(3, created.Urgency.Probabilities.Count);
+        Assert.Equal(0.1, created.Urgency.Probabilities[WfUrgency.Low]);
+        Assert.Equal(0.4, created.Urgency.Probabilities[WfUrgency.Medium]);
+        Assert.Equal(0.5, created.Urgency.Probabilities[WfUrgency.High]);
     }
 
     [Fact]

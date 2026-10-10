@@ -437,6 +437,16 @@ internal static class ModelBuilder
         }
 
         var instructions = Positional(attribute);
+        var key = Named(attribute, "Key") ?? SnakeCase.Convert(property.Name);
+        if (key.Length == 0)
+        {
+            // The definition's factories refuse an empty key, as the run-time builder does with the same rule.
+            diagnostics.Add(DiagnosticInfo.Create(
+                DiagnosticIds.DuplicateKey,
+                NamedArgumentLocation(attribute, "Key", property, cancellationToken),
+                "The question key is empty."));
+        }
+
         CheckText(attribute, what, property, diagnostics, cancellationToken);
         stateMembers?.CheckReferences(attribute, property, diagnostics, cancellationToken);
 
@@ -444,7 +454,7 @@ internal static class ModelBuilder
             Identifier(property.Name),
             Modifiers(property, cancellationToken),
             kind,
-            Named(attribute, "Key") ?? SnakeCase.Convert(property.Name),
+            key,
             TextFragment(instructions),
             instructions,
             Named(attribute, "WhenTrue"),
@@ -582,9 +592,18 @@ internal static class ModelBuilder
                     descriptionFragment = DescriptionFragment(criteria);
                 }
 
+                var optionKey = (criteria is null ? null : Named(criteria, "Key")) ?? SnakeCase.Convert(field.Name);
+                if (criteria is not null && optionKey.Length == 0)
+                {
+                    diagnostics.Add(DiagnosticInfo.Create(
+                        DiagnosticIds.DuplicateKey,
+                        NamedArgumentLocation(criteria, "Key", At(field), cancellationToken),
+                        $"The option key of '{enumType.Name}.{field.Name}' is empty."));
+                }
+
                 options.Add(new OptionModel(
                     Identifier(field.Name),
-                    (criteria is null ? null : Named(criteria, "Key")) ?? SnakeCase.Convert(field.Name),
+                    optionKey,
                     descriptionFragment,
                     criteria is null ? null : Positional(criteria),
                     criteria is null ? NoTexts : new EquatableArray<string>(NamedStrings(criteria, "Examples")),
@@ -742,7 +761,8 @@ internal static class ModelBuilder
     {
         foreach (var group in keys.GroupBy(key => key, StringComparer.Ordinal).Where(group => group.Count() > 1))
         {
-            diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.DuplicateKey, location, group.Key, owner));
+            diagnostics.Add(DiagnosticInfo.Create(
+                DiagnosticIds.DuplicateKey, location, $"The wire key '{group.Key}' is used more than once in '{owner}'"));
         }
     }
 

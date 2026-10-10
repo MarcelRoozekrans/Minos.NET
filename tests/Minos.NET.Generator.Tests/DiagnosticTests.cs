@@ -34,6 +34,8 @@ public sealed class DiagnosticTests
             + "[Questions] public partial class C : Base { [Noul(\"q\")] public partial Noul Answer { get; } }",
         "[Questions] public partial class C { [Noul(\"a\")] public partial Noul IsUrgent { get; } [Noul(\"b\", Key = \"is_urgent\")] private partial Noul Other { get; } }",
         "public enum E { [Criteria(\"x\", Key = \"b\")] A, [Criteria(\"y\")] B } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
+        "[Questions] public partial class C { [Noul(\"q\", Key = \"\")] public partial Noul Answer { get; } }",
+        "public enum E { [Criteria(\"x\", Key = \"\")] A, [Criteria(\"y\")] B } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
         "[Questions(State = typeof(IFoo))] public partial class C { [Noul(\"q\")] public partial Noul Answer { get; } } public interface IFoo { }",
         "[Questions(State = typeof(System.Collections.Generic.List<>))] public partial class C { }",
         "[Questions(State = typeof(void))] public partial class C { }",

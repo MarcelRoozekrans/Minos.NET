@@ -15,6 +15,20 @@ internal static class Sources
         }
         """;
 
+    // Only WhenTrue set: the Definition passes whenTrue alone, by name.
+    public const string NoulWhenTrueOnly = """
+        using Minos;
+
+        namespace Demo;
+
+        [Questions]
+        public partial record UrgencyHint
+        {
+            [Noul("Does this convey urgency?", WhenTrue = "Explicitly time-sensitive")]
+            public partial Noul IsUrgent { get; }
+        }
+        """;
+
     public const string ChoiceOnly = """
         using Minos;
 

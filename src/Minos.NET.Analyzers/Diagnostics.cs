@@ -102,7 +102,7 @@ internal static class Diagnostics
     public static readonly DiagnosticDescriptor DuplicateKey = new(
         DiagnosticIds.DuplicateKey,
         "Duplicate wire key",
-        "The wire key '{0}' is used more than once in '{1}'",
+        "{0}",
         Category,
         DiagnosticSeverity.Error,
         isEnabledByDefault: true);

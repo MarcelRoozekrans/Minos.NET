@@ -53,7 +53,7 @@ shows them.
 | MIN103 | Error | Question attribute does not match the property type | A question property has more than one question attribute, or one that does not fit its type: `[Noul]` needs a `Noul`, `[Choice]` a `Choice<T>` and `[Score]` a `Score<T>`. |
 | MIN104 | Error | Score level has no description | A member of a Score enum has no `[Level]`. The API does not accept a level without a description. |
 | MIN105 | Error | Question set has no parameterless constructor | The set has no constructor that can be called without arguments, or it has `required` members and that constructor lacks `[SetsRequiredMembers]`. A constructor whose parameters all have defaults counts. |
-| MIN106 | Error | Duplicate wire key | Two questions in the set use the same wire key, or two options of one Choice do. |
+| MIN106 | Error | Duplicate wire key | Two questions in the set use the same wire key, or two options of one Choice do, or a `Key` on a question attribute or a `[Criteria]` is empty. |
 | MIN107 | Error | Invalid state type | The `State` type is not a class, struct, record or array type. |
 
 A [set built at run time](question-sets-at-run-time.md#checking-the-set) is checked against the same limits, with the
