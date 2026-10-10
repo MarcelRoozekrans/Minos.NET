@@ -10,8 +10,9 @@ description: Declare questions as a C# type, give them a typed state, and pick t
 Typed evaluation is the main way to use Minos.NET. You declare the questions once, as a partial record. At compile
 time a source generator writes the question definition, which the client turns into the request, and a `Create` method
 that builds the record from the answers the client reads back. So a call is one line, and the answers come back as
-typed properties. This page covers the declaration, the state you hand to Jev, and the ways to call it. [Getting started](getting-started.md) has the shortest working example, and
-[Question types](question-types.md) covers what each answer holds.
+typed properties. This page covers the declaration, the state you hand to Jev, and the ways to call it.
+[Getting started](getting-started.md) has the shortest working example, and [Question types](question-types.md) covers
+what each answer holds.
 
 When the questions are only known at run time, use [question sets built at run time](question-sets-at-run-time.md)
 instead.
@@ -186,8 +187,8 @@ a [`DecisionContent`](#decisioncontent) as the instructions, and describe an opt
 
 ## Evaluating
 
-Call `EvaluateAsync<T>` on an `IDecisionClient`. It returns a `Result` and not the answers, because a call can fail in many
-ways. Check `IsFailure` before reading `Value`.
+Call `EvaluateAsync<T>` on an `IDecisionClient`. It returns a `Result` and not the answers, because a call can fail in
+many ways. Check `IsFailure` before reading `Value`.
 
 <!-- snippet: TypedEvaluation_Evaluate -->
 ```cs
@@ -275,15 +276,16 @@ throw `ArgumentException` for it, and do not return a failed `Result`. A `null` 
 come back in the `Result`. In particular, a response that is missing an answer, or that has one of the wrong type, is a
 failure with kind `DecisionErrorKind.InvalidResponse`.
 
-The model is the one in `DecisionClientOptions.Model`, which defaults to the alias `jev-latest`. `DecisionClient` writes the
-request straight from the generated JSON into pooled buffers. Any other `IDecisionClient`, such as a hand-written fake in a
-test, works as well, through the default interface methods that go by way of
+The model is the one in `DecisionClientOptions.Model`, which defaults to the alias `jev-latest`. The generator emits
+a question definition, and `DecisionClient` writes the request from it through the systemone protocol into pooled
+buffers. The protocol caches the questions JSON of each set after the first call. Any other `IDecisionClient`, such as
+a hand-written fake in a test, works as well, through the default interface methods that go by way of
 [`SystemOneRequest`](client-and-errors.md#the-raw-request-api).
 
 ## DecisionContent
 
-`DecisionContent` is the type the library uses for a value that is either text or structured JSON. A typed call builds one
-for you. You meet it directly when you [build a question set at run time](question-sets-at-run-time.md),
+`DecisionContent` is the type the library uses for a value that is either text or structured JSON. A typed call builds
+one for you. You meet it directly when you [build a question set at run time](question-sets-at-run-time.md),
 where the state, each question's instructions and each description are all `DecisionContent`.
 
 <!-- snippet: TypedEvaluation_Content -->

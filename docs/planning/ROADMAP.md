@@ -292,7 +292,7 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-10-phase-6.2-neutral-question-model.md`
 
 ### Phase 6.3: IDecisionClient abstraction and pipeline [status: pending]
-**Goal:** An `IDecisionClient` following Microsoft.Extensions.AI conventions, with a builder pipeline in which retries, telemetry and logging become stages (core of #119). The client chooses its protocol, and the parts Phase 6.2 left outside the seam move behind it: the endpoint path in `IDecisionApi`, finding `answers` in the response envelope, telemetry's `ResponseFields` and `ConfidenceValues`, and `DecisionErrorMapper`.
+**Goal:** An `IDecisionClient` following Microsoft.Extensions.AI conventions, with a builder pipeline in which retries, telemetry and logging become stages (core of #119). The client chooses its protocol, and the parts Phase 6.2 left outside the seam move behind it: the endpoint path in `IDecisionApi`, finding `answers` in the response envelope, telemetry's `ResponseFields` and `ConfidenceValues`, `DecisionErrorMapper`, and the typed path of the default `IDecisionClient` interface methods, which still builds a raw `SystemOneRequest` for clients other than `DecisionClient`.
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
