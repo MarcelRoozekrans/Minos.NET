@@ -31,8 +31,8 @@ public sealed class QuestionSetPlanTests
         string[] keys = ["urgent", "team", "mood", "product", "effort"];
         int[] offsets = [0, 0, 4, 7, 9];
         Assert.Equal(kinds.Length, set.Plan.Length);
-        Assert.Equal(12, set.ProbabilityCount);
-        Assert.Equal(keys.Select(k => Encoding.UTF8.GetBytes(k)), set.QuestionKeys);
+        Assert.Equal(12, set.Definition.ProbabilityCount);
+        Assert.Equal(keys.Select(k => Encoding.UTF8.GetBytes(k)), set.Definition.KeysUtf8);
 
         using var document = JsonDocument.Parse(set.QuestionsUtf8.ToArray());
         var wire = document.RootElement.EnumerateObject().ToArray();

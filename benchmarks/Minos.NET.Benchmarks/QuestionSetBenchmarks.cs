@@ -98,7 +98,7 @@ public class QuestionSetBenchmarks
     {
         var reader = new Utf8JsonReader(_twentyAnswers);
         reader.Read();
-        return _twenty.Parse(ref reader);
+        return _twenty.Parser(ref reader);
     }
 
     /// <summary>Parses the same twenty answers with the generated parser, as the baseline for the key scan.</summary>

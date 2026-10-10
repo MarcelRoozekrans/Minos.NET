@@ -30,7 +30,7 @@ public sealed class BuiltSetAllocationTests
             {
                 var reader = new Utf8JsonReader(answers);
                 reader.Read();
-                _ = set.Parse(ref reader);
+                _ = set.Parser(ref reader);
             },
             "ParseBuiltSet");
     }
