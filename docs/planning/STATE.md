@@ -1,6 +1,6 @@
-# Session State — 2026-10-09 (roadmap re-planned: provider-neutral core before 1.0)
+# Session State — 2026-10-10 (Phase 6.1 complete: the project is Minos.NET)
 
-**Date:** 2026-10-09
+**Date:** 2026-10-10
 
 ## Current Position
 - **Roadmap:** re-planned on 2026-10-09 (`docs/superpowers/specs/2026-10-09-roadmap-design.md`).
@@ -13,27 +13,20 @@
     - 9, Hosted to local;
     - 10, Escalation.
   - Issues #120 (the name, blocking) and #115–#119 track the work.
-- **Milestone 6, Phase 6.1 (rename to Minos):** active, on branch `phase/6.1-rename`.
-  - **Done:** the rename is implemented and reviewed task by task, to plan `docs/superpowers/plans/2026-10-09-phase-6.1-rename-to-minos.md`:
-    - `Minos.NET` packages, the `Minos` namespace and the new type names;
-    - `MIN` analyzer IDs and `minos.*` telemetry keys;
-    - the bronze coil logo;
-    - the README with "About the name";
-    - an in-repo Docusaurus site for GitHub Pages;
-    - CI with no ZeroAlloc-org dependencies;
-    - the no-old-name guard test.
-  - **Not done:** the PR, then the maintainer actions below.
-  - **Maintainer actions after the PR merges**, in order:
-    - [x] Transfer `ZeroAlloc-Net/ZeroAlloc.Jev` to `MarcelRoozekrans` and rename it `Minos.NET`. GitHub redirects old URLs, so the published benchmark run links keep working. Done 2026-10-09.
-    - [x] ~~Re-create `RELEASE_PLEASE_TOKEN`~~ Dropped instead: release-please runs on the built-in token, as in Thalos.NET, and dispatches CI and the benchmark smoke run on its release branch, so the release PR still gets its required checks with no stored credential.
-    - [x] Check that the `live-api` environment came along with `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY` and its `main`-only branch policy. It did.
-    - [x] Re-create the `main` ruleset with the required checks: `build`, `aot-smoke`, `aot-surface`, `smoke / benchmarks`, and `release-tracking` on release PRs. Not `docs`: it only runs when docs change. The ruleset came along with the transfer; the two checks and a pull-request bypass for the admin role, as in Thalos.NET, were added.
-    - [ ] Enable Renovate for the repository; it uses the `local>MarcelRoozekrans/renovate-config` preset.
-    - [ ] GitHub Pages: set the source to "GitHub Actions", then run `docs.yml` and check https://marcelroozekrans.github.io/Minos.NET/. The source is set; a dispatched run did not deploy until `docs.yml` allowed it.
-    - [ ] Redirect `jev.zeroalloc.net` to the Pages URL. Then open a ZeroAlloc-Net/.website PR that removes `repos/jev`, `apps/docs-jev` and the home-page entry, and retire the `za-docs-jev` Cloudflare project.
-    - [x] Run Live smoke on `main` and expect 13/13. Its variables are now `MINOS_LIVE*`. 13/13 on 2026-10-09, run 37988954091.
-    - [x] Check that the first release-please run on the personal repository opens its PR. It regenerated #128 and dispatched its five required checks, all green.
-    - [x] Delete `tools/rename/` once the PR is merged, together with the guard's exclusion for it.
+- **Milestone 6, Phase 6.1 (rename to Minos):** complete on 2026-10-10.
+  - **Merged:** #127, the rename, in the 0.6.0 release PR #128 as a breaking change. Pre-push review PASS: `docs/plans/2026-10-09-phase-6.1-pre-push-review.md`.
+  - **The repository is `MarcelRoozekrans/Minos.NET`**, transferred on 2026-10-09; GitHub redirects the old URLs.
+  - **After the move:**
+    - #131: release-please runs on the built-in token, with no `RELEASE_PLEASE_TOKEN`. Its `check-release-pr` job dispatches `ci.yml` and the benchmark smoke run on the release branch, so the five required checks report on the release PR without a stored credential. GitHub also creates the PR's own runs for a bot-opened PR but holds them as "action_required"; they can be ignored or approved.
+    - #134: a dispatched `docs.yml` run on `main` now deploys. The site is live at https://marcelroozekrans.github.io/Minos.NET/.
+    - The `Main` ruleset requires `build`, `aot-smoke`, `aot-surface`, `smoke / benchmarks` and `release-tracking`, with a pull-request bypass for the admin role, as in Thalos.NET.
+    - The `live-api` environment came along with both keys; Live smoke on `main` passed 13/13 (run 37988954091).
+    - `tools/rename/` is deleted.
+  - **Still open, maintainer:**
+    - Redirect `jev.zeroalloc.net` to the Pages URL, then merge ZeroAlloc-Net/.website#87, which removes `repos/jev`, `apps/docs-jev` and the home-page card, and retire the `za-docs-jev` Cloudflare project.
+    - Confirm Renovate covers Minos.NET; its check suite already appears on #128.
+    - Remove the `sonarqubecloud` app from the repository if SonarCloud is not used on the personal account.
+  - **Leave #128 (0.6.0) open** until a release is wanted: merging it tags v0.6.0 and creates a GitHub release, and publishes nothing.
 - **Old Phase 5.5 (1.0 release):** removed from Milestone 5 and folded into Phase 7.4.
   - Its reviewed pipeline work sits on the local branch `phase/5.5-release`, not pushed:
     - inspection script;
@@ -57,8 +50,8 @@
 
 ## Recommended Next Step
 1. Milestone 6, Provider-neutral core, is active (design `docs/superpowers/specs/2026-10-09-milestone-6-design.md`).
-2. Next: Phase 6.1: brainstorm the name decision (#120).
-3. From Milestone 6 on, run `pre-push-review` on each feature branch before its PR. The Milestone 5 audit found no reports on file.
+2. Next: Phase 6.2, neutral question model and adapter boundary (#115). It needs a brainstorm and, as a Refactor phase, an impact analysis.
+3. Run `pre-push-review` on each feature branch before its PR, and keep the report in `docs/plans/`: the docs tests treat every file at the top of `docs/` as a site page.
 
 ## Operational notes
 - **Live keys:** `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY` are in the `live-api` environment, which deploys only from `main`. Run the suite with `gh workflow run live-smoke.yml --ref main`. About 13 small billed calls per run.
