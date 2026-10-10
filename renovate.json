@@ -36,6 +36,12 @@
       "enabled": false
     },
     {
+      "description": "The other half of the rule above: Renovate moved pydantic alone in #135, to 2.14.0, which needs pydantic_core 2.50.0, and the pip freeze stopped installing again. A pydantic update now waits for approval on the dependency dashboard, so whoever approves it also moves pydantic_core to the version the new pydantic pins and regenerates the file.",
+      "matchFileNames": ["benchmarks/compare-py/requirements.txt"],
+      "matchPackageNames": ["pydantic"],
+      "dependencyDashboardApproval": true
+    },
+    {
       "description": "Group ZeroAlloc packages; they are this library's external dependencies",
       "matchPackageNames": ["ZeroAlloc.{/,}**"],
       "groupName": "ZeroAlloc"
