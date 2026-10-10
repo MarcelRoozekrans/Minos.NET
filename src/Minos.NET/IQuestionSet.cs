@@ -15,6 +15,14 @@ public interface IQuestionSet<TSelf>
     /// <returns>The typed answers.</returns>
     /// <exception cref="JsonException">An answer is missing, has the wrong type, names an unknown option or level, or lacks a required field.</exception>
     static abstract TSelf Parse(ref Utf8JsonReader answers);
+
+    /// <summary>Gets the provider-neutral definition of the set's questions.</summary>
+    static abstract QuestionSetDefinition Definition { get; }
+
+    /// <summary>Creates the typed answers from the slots a protocol read for <see cref="Definition"/>.</summary>
+    /// <param name="answers">One slot per question, in <see cref="Definition"/> order.</param>
+    /// <returns>The typed answers.</returns>
+    static abstract TSelf Create(AnswerSlots answers);
 }
 
 /// <summary>

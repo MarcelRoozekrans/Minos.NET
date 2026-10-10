@@ -4,8 +4,8 @@ using System.Text.Json;
 namespace Minos.AotSmoke;
 
 /// <summary>
-/// <see cref="IQuestionSet{TSelf}.Parse"/> called through the interface's static abstract member under Native AOT,
-/// as the library's own typed evaluation calls it.
+/// <see cref="IQuestionSet{TSelf}.Parse"/> and <see cref="IQuestionSet{TSelf}.Create"/> called through the interface's
+/// static abstract members under Native AOT, as the library's own typed evaluation calls them.
 /// </summary>
 internal static class IQuestionSetChecks
 {
@@ -18,6 +18,29 @@ internal static class IQuestionSetChecks
             !triage.RequestsCredentials.Value && triage.Team.Value == Team.Account && triage.Urgency.Value == Urgency.High,
             "IQuestionSet<TSelf>.Parse, called through a type parameter, reads typed answers under Native AOT");
     }
+
+    [Covers("Minos.IQuestionSet<TSelf>.Create(Minos.AnswerSlots answers) -> TSelf")]
+    public static void CreateRunsThroughTheInterface()
+    {
+        bool refused;
+        try
+        {
+            CreateFrom<SmokeTriage>(default);
+            refused = false;
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            refused = true;
+        }
+
+        Program.Check(
+            refused,
+            "IQuestionSet<TSelf>.Create, called through a type parameter, reaches the generated Create, which refuses empty slots, under Native AOT");
+    }
+
+    private static T CreateFrom<T>(AnswerSlots answers)
+        where T : IQuestionSet<T>
+        => T.Create(answers);
 
     private static T ParseThroughInterface<T>(byte[] answers)
         where T : IQuestionSet<T>

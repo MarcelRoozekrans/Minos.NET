@@ -13,6 +13,22 @@ partial record AbstractStateSet : global::Minos.IQuestionSet<global::Demo.Abstra
     /// <summary>Gets the <c>questions</c> object of a <c>/v1/systemone</c> request, as UTF-8 JSON.</summary>
     public static global::System.ReadOnlySpan<byte> QuestionsUtf8 => "{\"answer\":{\"type\":\"noul\",\"instructions\":\"q\"}}"u8;
 
+    /// <summary>Gets the provider-neutral definition of the set's questions.</summary>
+    public static global::Minos.QuestionSetDefinition Definition { get; } = new global::Minos.QuestionSetDefinition(
+        global::Minos.QuestionDefinition.Noul(
+            "answer",
+            global::Minos.DecisionContent.FromString("q")));
+
+    /// <summary>Creates the typed answers from the slots a protocol read for <see cref="Definition"/>.</summary>
+    /// <param name="answers">One slot per question, in <see cref="Definition"/> order.</param>
+    /// <returns>The typed answers.</returns>
+    public static global::Demo.AbstractStateSet Create(global::Minos.AnswerSlots answers)
+    {
+        var result = new global::Demo.AbstractStateSet();
+        result.__minos_Answer = answers.Noul(0);
+        return result;
+    }
+
     /// <summary>Reads the typed answers from the <c>answers</c> object of a <c>/v1/systemone</c> response.</summary>
     /// <param name="answers">A reader over complete JSON, positioned on the start of the <c>answers</c> object. It is left on the object's end.</param>
     /// <returns>The typed answers.</returns>

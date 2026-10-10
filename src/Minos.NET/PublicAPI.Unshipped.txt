@@ -5,6 +5,8 @@ Minos.AnswerSlots.Choice<T>(int index, Minos.DecisionOptionSet<T>! options) -> M
 Minos.AnswerSlots.Count.get -> int
 Minos.AnswerSlots.Noul(int index) -> Minos.Noul
 Minos.AnswerSlots.Score<T>(int index, Minos.DecisionOptionSet<T>! options) -> Minos.Score<T>
+Minos.IQuestionSet<TSelf>.Create(Minos.AnswerSlots answers) -> TSelf
+Minos.IQuestionSet<TSelf>.Definition.get -> Minos.QuestionSetDefinition!
 Minos.OptionDefinition
 Minos.OptionDefinition.Criterion.get -> Minos.Criterion?
 Minos.OptionDefinition.Key.get -> string!

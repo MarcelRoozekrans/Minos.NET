@@ -91,7 +91,25 @@ public sealed class WireFixtureTests
         }
     }
 
-    // Task 4 replaces each arm with SystemOneProtocol.QuestionsUtf8(T.Definition).
+    [Theory]
+    [MemberData(nameof(GeneratedCases))]
+    public void Generated_ProtocolQuestionsMatchTheFixture(string name)
+        => WireFixtures.AssertMatches("generated-" + name, Minos.Protocols.SystemOneProtocol.QuestionsUtf8(GeneratedDefinition(name)));
+
+    internal static QuestionSetDefinition GeneratedDefinition(string name) => name switch
+    {
+        "NoulOnly" => WfNoulOnly.Definition,
+        "ChoiceOnly" => WfChoiceOnly.Definition,
+        "ScoreOnly" => WfScoreOnly.Definition,
+        "Mixed" => WfMixed.Definition,
+        "Structured" => WfStructured.Definition,
+        "KeywordMembers" => WfKeywordMembers.Definition,
+        "WithState" => WfWithState.Definition,
+        "Escapes" => WfEscapes.Definition,
+        _ => throw new ArgumentOutOfRangeException(nameof(name)),
+    };
+
+    // The generated literal, which stays until the generator stops emitting QuestionsUtf8.
     internal static ReadOnlySpan<byte> GeneratedQuestions(string name) => name switch
     {
         "NoulOnly" => WfNoulOnly.QuestionsUtf8,

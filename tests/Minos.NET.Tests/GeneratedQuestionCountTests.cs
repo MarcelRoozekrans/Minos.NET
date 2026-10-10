@@ -38,6 +38,10 @@ public sealed class GeneratedQuestionCountTests
         public static ReadOnlySpan<byte> QuestionsUtf8 => "{\"a\":{\"kind\":\"noul\"},\"b\":{\"kind\":"u8;
 
         public static TruncatedSet Parse(ref Utf8JsonReader answers) => throw new NotSupportedException();
+
+        public static QuestionSetDefinition Definition { get; } = new(QuestionDefinition.Noul("a", "A?"));
+
+        public static TruncatedSet Create(AnswerSlots answers) => throw new NotSupportedException();
     }
 
     private sealed class NotJsonSet : IQuestionSet<NotJsonSet>
@@ -45,6 +49,10 @@ public sealed class GeneratedQuestionCountTests
         public static ReadOnlySpan<byte> QuestionsUtf8 => "{not json"u8;
 
         public static NotJsonSet Parse(ref Utf8JsonReader answers) => throw new NotSupportedException();
+
+        public static QuestionSetDefinition Definition { get; } = new(QuestionDefinition.Noul("a", "A?"));
+
+        public static NotJsonSet Create(AnswerSlots answers) => throw new NotSupportedException();
     }
 
     private sealed class ArraySet : IQuestionSet<ArraySet>
@@ -52,5 +60,9 @@ public sealed class GeneratedQuestionCountTests
         public static ReadOnlySpan<byte> QuestionsUtf8 => "[1,2]"u8;
 
         public static ArraySet Parse(ref Utf8JsonReader answers) => throw new NotSupportedException();
+
+        public static QuestionSetDefinition Definition { get; } = new(QuestionDefinition.Noul("a", "A?"));
+
+        public static ArraySet Create(AnswerSlots answers) => throw new NotSupportedException();
     }
 }

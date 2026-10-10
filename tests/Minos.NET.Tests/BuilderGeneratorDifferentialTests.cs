@@ -64,6 +64,17 @@ public sealed class BuilderGeneratorDifferentialTests
         Assert.True(DiffSet.QuestionsUtf8.SequenceEqual(built.QuestionsUtf8));
     }
 
+    [Fact]
+    public void BuiltSet_DefinitionMatchesTheGeneratedSet()
+    {
+        var built = Built().Definition;
+        var generated = DiffSet.Definition;
+
+        Assert.Equal(generated.Questions.Select(q => (q.Key, q.Kind, q.Options.Count)), built.Questions.Select(q => (q.Key, q.Kind, q.Options.Count)));
+        Assert.Equal(generated.Questions.SelectMany(q => q.Options).Select(o => o.Key), built.Questions.SelectMany(q => q.Options).Select(o => o.Key));
+        Assert.True(Minos.Protocols.SystemOneProtocol.QuestionsUtf8(generated).SequenceEqual(Minos.Protocols.SystemOneProtocol.QuestionsUtf8(built)));
+    }
+
     internal static QuestionSet Built()
     {
         var built = QuestionSet.CreateBuilder()

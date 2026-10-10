@@ -22,6 +22,9 @@ internal static class ModelBuilder
     // either name would collide with the generated declaration.
     private static readonly string[] ReservedPropertyNames = ["Parse", "QuestionsUtf8"];
 
+    // The Examples and NotFor texts of a Choice member without [Criteria].
+    private static readonly EquatableArray<string> NoTexts = new([]);
+
     // MIN003's second message argument: the advice that fits what is empty. The text follows the subject in the message.
     private const string EmptyTextAdvice = "is empty or whitespace: write the text, or pass null to send none";
     private const string EmptyEntryAdvice = "is empty or whitespace: write the text, or remove the entry";
@@ -433,7 +436,7 @@ internal static class ModelBuilder
             ReportDuplicates(options.Select(option => option.Key), property, property.Name, diagnostics);
         }
 
-        var instructions = TextFragment(Positional(attribute));
+        var instructions = Positional(attribute);
         CheckText(attribute, what, property, diagnostics, cancellationToken);
         stateMembers?.CheckReferences(attribute, property, diagnostics, cancellationToken);
 
@@ -442,6 +445,7 @@ internal static class ModelBuilder
             Modifiers(property, cancellationToken),
             kind,
             Named(attribute, "Key") ?? SnakeCase.Convert(property.Name),
+            TextFragment(instructions),
             instructions,
             Named(attribute, "WhenTrue"),
             Named(attribute, "WhenFalse"),
@@ -581,7 +585,10 @@ internal static class ModelBuilder
                 options.Add(new OptionModel(
                     Identifier(field.Name),
                     (criteria is null ? null : Named(criteria, "Key")) ?? SnakeCase.Convert(field.Name),
-                    descriptionFragment));
+                    descriptionFragment,
+                    criteria is null ? null : Positional(criteria),
+                    criteria is null ? NoTexts : new EquatableArray<string>(NamedStrings(criteria, "Examples")),
+                    criteria is null ? NoTexts : new EquatableArray<string>(NamedStrings(criteria, "NotFor"))));
             }
             else if (Find(field, LevelAttribute) is { } level)
             {
@@ -592,7 +599,10 @@ internal static class ModelBuilder
                 options.Add(new OptionModel(
                     Identifier(field.Name),
                     options.Count.ToString(CultureInfo.InvariantCulture),
-                    DescriptionFragment(level)));
+                    DescriptionFragment(level),
+                    Positional(level),
+                    new EquatableArray<string>(NamedStrings(level, "Examples")),
+                    new EquatableArray<string>(NamedStrings(level, "NotFor"))));
             }
             else
             {

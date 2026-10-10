@@ -15,6 +15,37 @@ partial class TicketTriage : global::Minos.IQuestionSet<global::TicketTriage>
     /// <summary>Gets the <c>questions</c> object of a <c>/v1/systemone</c> request, as UTF-8 JSON.</summary>
     public static global::System.ReadOnlySpan<byte> QuestionsUtf8 => "{\"requests_credentials\":{\"type\":\"noul\",\"instructions\":\"Does `message` ask for a \\\"credential\\\"?\",\"criteria\":{\"false\":\"No credential is requested\"}},\"route_to\":{\"type\":\"choice\",\"instructions\":\"Which team should handle `message`?\",\"criteria\":{\"billing\":\"Charges, invoices, refunds\",\"account\":\"Login, profile, permissions, or security\",\"other\":\"No listed team fits\"}},\"urgency\":{\"type\":\"score\",\"instructions\":\"How urgent is `message`?\",\"criteria\":[\"Can wait\",\"This week\",\"Today\"]}}"u8;
 
+    /// <summary>Gets the provider-neutral definition of the set's questions.</summary>
+    public static global::Minos.QuestionSetDefinition Definition { get; } = new global::Minos.QuestionSetDefinition(
+        global::Minos.QuestionDefinition.Noul(
+            "requests_credentials",
+            global::Minos.DecisionContent.FromString("Does `message` ask for a \"credential\"?"),
+            whenFalse: global::Minos.DecisionContent.FromString("No credential is requested")),
+        global::Minos.QuestionDefinition.Choice(
+            "route_to",
+            global::Minos.DecisionContent.FromString("Which team should handle `message`?"),
+            new global::Minos.OptionDefinition("billing", global::Minos.Criterion.Text("Charges, invoices, refunds")),
+            new global::Minos.OptionDefinition("account", global::Minos.Criterion.Text("Login, profile, permissions, or security")),
+            new global::Minos.OptionDefinition("other", global::Minos.Criterion.Text("No listed team fits"))),
+        global::Minos.QuestionDefinition.Score(
+            "urgency",
+            global::Minos.DecisionContent.FromString("How urgent is `message`?"),
+            global::Minos.Criterion.Text("Can wait"),
+            global::Minos.Criterion.Text("This week"),
+            global::Minos.Criterion.Text("Today")));
+
+    /// <summary>Creates the typed answers from the slots a protocol read for <see cref="Definition"/>.</summary>
+    /// <param name="answers">One slot per question, in <see cref="Definition"/> order.</param>
+    /// <returns>The typed answers.</returns>
+    public static global::TicketTriage Create(global::Minos.AnswerSlots answers)
+    {
+        var result = new global::TicketTriage();
+        result.__minos_RequestsCredentials = answers.Noul(0);
+        result.__minos_Team = answers.Choice(1, __DecisionOptions_Team.Instance);
+        result.__minos_Urgency = answers.Score(2, __DecisionOptions_Urgency.Instance);
+        return result;
+    }
+
     /// <summary>Reads the typed answers from the <c>answers</c> object of a <c>/v1/systemone</c> response.</summary>
     /// <param name="answers">A reader over complete JSON, positioned on the start of the <c>answers</c> object. It is left on the object's end.</param>
     /// <returns>The typed answers.</returns>

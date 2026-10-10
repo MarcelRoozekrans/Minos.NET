@@ -107,6 +107,10 @@ internal static class SourceEmitter
         code.Line("    public static global::System.ReadOnlySpan<byte> QuestionsUtf8 => "
             + JsonText.CSharpLiteral(QuestionsJson(model)) + "u8;");
         code.Line();
+        EmitDefinition(code, model);
+        code.Line();
+        EmitCreate(code, model);
+        code.Line();
         EmitParse(code, model);
 
         foreach (var question in model.Questions)
@@ -120,6 +124,111 @@ internal static class SourceEmitter
 
         code.Line("}");
         return code.ToString();
+    }
+
+    private static void EmitDefinition(CodeWriter code, QuestionSetModel model)
+    {
+        code.Line("    /// <summary>Gets the provider-neutral definition of the set's questions.</summary>");
+        const string Declaration = "    public static global::Minos.QuestionSetDefinition Definition { get; } = new global::Minos.QuestionSetDefinition(";
+        if (model.Questions.Length == 0)
+        {
+            code.Line(Declaration + ");");
+            return;
+        }
+
+        code.Line(Declaration);
+        for (var i = 0; i < model.Questions.Length; i++)
+        {
+            var question = model.Questions[i];
+            var arguments = new List<string>
+            {
+                JsonText.CSharpLiteral(question.Key),
+                Content(question.Instructions),
+            };
+
+            switch (question.Kind)
+            {
+                case QuestionKind.Noul:
+                    if (question.WhenTrue is not null)
+                    {
+                        arguments.Add("whenTrue: " + Content(question.WhenTrue));
+                    }
+
+                    if (question.WhenFalse is not null)
+                    {
+                        arguments.Add("whenFalse: " + Content(question.WhenFalse));
+                    }
+
+                    break;
+
+                case QuestionKind.Choice:
+                    arguments.AddRange(question.Options.Select(option => "new global::Minos.OptionDefinition("
+                        + JsonText.CSharpLiteral(option.Key) + ", "
+                        + (option.Description is null ? "null" : Criterion(option)) + ")"));
+                    break;
+
+                default:
+                    arguments.AddRange(question.Options.Select(Criterion));
+                    break;
+            }
+
+            var factory = question.Kind switch
+            {
+                QuestionKind.Noul => "Noul",
+                QuestionKind.Choice => "Choice",
+                _ => "Score",
+            };
+
+            code.Line("        global::Minos.QuestionDefinition." + factory + "(");
+            for (var j = 0; j < arguments.Count; j++)
+            {
+                var last = j == arguments.Count - 1;
+                code.Line("            " + arguments[j] + (!last ? "," : i == model.Questions.Length - 1 ? "));" : "),"));
+            }
+        }
+
+        static string Content(string text) => "global::Minos.DecisionContent.FromString(" + JsonText.CSharpLiteral(text) + ")";
+
+        static string Criterion(OptionModel option)
+        {
+            var criterion = "global::Minos.Criterion.Text(" + JsonText.CSharpLiteral(option.Description ?? string.Empty) + ")";
+            if (option.Examples.Length > 0)
+            {
+                criterion += ".WithExamples(" + string.Join(", ", option.Examples.Select(JsonText.CSharpLiteral)) + ")";
+            }
+
+            if (option.NotFor.Length > 0)
+            {
+                criterion += ".WithNotFor(" + string.Join(", ", option.NotFor.Select(JsonText.CSharpLiteral)) + ")";
+            }
+
+            return criterion;
+        }
+    }
+
+    private static void EmitCreate(CodeWriter code, QuestionSetModel model)
+    {
+        code.Line("    /// <summary>Creates the typed answers from the slots a protocol read for <see cref=\"Definition\"/>.</summary>");
+        code.Line("    /// <param name=\"answers\">One slot per question, in <see cref=\"Definition\"/> order.</param>");
+        code.Line("    /// <returns>The typed answers.</returns>");
+        code.Line("    public static " + model.FullyQualifiedName + " Create(global::Minos.AnswerSlots answers)");
+        code.Line("    {");
+        code.Line("        var result = new " + model.FullyQualifiedName + "();");
+        for (var i = 0; i < model.Questions.Length; i++)
+        {
+            var question = model.Questions[i];
+            var read = question.Kind switch
+            {
+                QuestionKind.Noul => "answers.Noul(" + Int(i) + ")",
+                QuestionKind.Choice => "answers.Choice(" + Int(i) + ", " + OptionSet(question) + ".Instance)",
+                _ => "answers.Score(" + Int(i) + ", " + OptionSet(question) + ".Instance)",
+            };
+
+            code.Line("        result." + Field(question) + " = " + read + ";");
+        }
+
+        code.Line("        return result;");
+        code.Line("    }");
     }
 
     private static void EmitParse(CodeWriter code, QuestionSetModel model)

@@ -15,6 +15,32 @@ partial record StructuredRouting : global::Minos.IQuestionSet<global::Demo.Struc
     /// <summary>Gets the <c>questions</c> object of a <c>/v1/systemone</c> request, as UTF-8 JSON.</summary>
     public static global::System.ReadOnlySpan<byte> QuestionsUtf8 => "{\"department\":{\"type\":\"choice\",\"instructions\":\"Which team should handle this?\",\"criteria\":{\"billing\":{\"description\":\"Payments, invoicing, refunds\",\"examples\":[\"I was charged twice\"],\"not_for\":[\"How much is Pro?\"]},\"technical\":{\"description\":\"Bugs, outages, integrations\",\"examples\":[\"The API returns 500\"]},\"sales\":\"Pricing, upgrades, new accounts\",\"other\":null}},\"severity\":{\"type\":\"score\",\"instructions\":\"How severe is this?\",\"criteria\":[{\"description\":\"Cosmetic\",\"not_for\":[\"Data loss\"]},\"Blocks work\"]}}"u8;
 
+    /// <summary>Gets the provider-neutral definition of the set's questions.</summary>
+    public static global::Minos.QuestionSetDefinition Definition { get; } = new global::Minos.QuestionSetDefinition(
+        global::Minos.QuestionDefinition.Choice(
+            "department",
+            global::Minos.DecisionContent.FromString("Which team should handle this?"),
+            new global::Minos.OptionDefinition("billing", global::Minos.Criterion.Text("Payments, invoicing, refunds").WithExamples("I was charged twice").WithNotFor("How much is Pro?")),
+            new global::Minos.OptionDefinition("technical", global::Minos.Criterion.Text("Bugs, outages, integrations").WithExamples("The API returns 500")),
+            new global::Minos.OptionDefinition("sales", global::Minos.Criterion.Text("Pricing, upgrades, new accounts")),
+            new global::Minos.OptionDefinition("other", null)),
+        global::Minos.QuestionDefinition.Score(
+            "severity",
+            global::Minos.DecisionContent.FromString("How severe is this?"),
+            global::Minos.Criterion.Text("Cosmetic").WithNotFor("Data loss"),
+            global::Minos.Criterion.Text("Blocks work")));
+
+    /// <summary>Creates the typed answers from the slots a protocol read for <see cref="Definition"/>.</summary>
+    /// <param name="answers">One slot per question, in <see cref="Definition"/> order.</param>
+    /// <returns>The typed answers.</returns>
+    public static global::Demo.StructuredRouting Create(global::Minos.AnswerSlots answers)
+    {
+        var result = new global::Demo.StructuredRouting();
+        result.__minos_Department = answers.Choice(0, __DecisionOptions_Department.Instance);
+        result.__minos_Severity = answers.Score(1, __DecisionOptions_Severity.Instance);
+        return result;
+    }
+
     /// <summary>Reads the typed answers from the <c>answers</c> object of a <c>/v1/systemone</c> response.</summary>
     /// <param name="answers">A reader over complete JSON, positioned on the start of the <c>answers</c> object. It is left on the object's end.</param>
     /// <returns>The typed answers.</returns>

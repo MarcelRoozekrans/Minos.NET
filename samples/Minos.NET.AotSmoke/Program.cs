@@ -85,6 +85,7 @@ internal static class Program
         AnswerReaderChecks.MissingAnswerNamesTheQuestion();
         DecisionOptionSetChecks.HandWrittenOptionSetMapsOptions();
         IQuestionSetChecks.ParseRunsThroughTheInterface();
+        IQuestionSetChecks.CreateRunsThroughTheInterface();
 
         AllocationChecks.GeneratedParse();
         AllocationChecks.ReadNoul();

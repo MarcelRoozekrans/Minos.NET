@@ -13,6 +13,24 @@ partial record UrgencyCheck : global::Minos.IQuestionSet<global::Demo.UrgencyChe
     /// <summary>Gets the <c>questions</c> object of a <c>/v1/systemone</c> request, as UTF-8 JSON.</summary>
     public static global::System.ReadOnlySpan<byte> QuestionsUtf8 => "{\"is_urgent\":{\"type\":\"noul\",\"instructions\":\"Does this convey urgency?\",\"criteria\":{\"true\":\"Explicitly time-sensitive\",\"false\":\"No urgency expressed\"}}}"u8;
 
+    /// <summary>Gets the provider-neutral definition of the set's questions.</summary>
+    public static global::Minos.QuestionSetDefinition Definition { get; } = new global::Minos.QuestionSetDefinition(
+        global::Minos.QuestionDefinition.Noul(
+            "is_urgent",
+            global::Minos.DecisionContent.FromString("Does this convey urgency?"),
+            whenTrue: global::Minos.DecisionContent.FromString("Explicitly time-sensitive"),
+            whenFalse: global::Minos.DecisionContent.FromString("No urgency expressed")));
+
+    /// <summary>Creates the typed answers from the slots a protocol read for <see cref="Definition"/>.</summary>
+    /// <param name="answers">One slot per question, in <see cref="Definition"/> order.</param>
+    /// <returns>The typed answers.</returns>
+    public static global::Demo.UrgencyCheck Create(global::Minos.AnswerSlots answers)
+    {
+        var result = new global::Demo.UrgencyCheck();
+        result.__minos_IsUrgent = answers.Noul(0);
+        return result;
+    }
+
     /// <summary>Reads the typed answers from the <c>answers</c> object of a <c>/v1/systemone</c> response.</summary>
     /// <param name="answers">A reader over complete JSON, positioned on the start of the <c>answers</c> object. It is left on the object's end.</param>
     /// <returns>The typed answers.</returns>
