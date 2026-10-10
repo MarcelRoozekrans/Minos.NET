@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.6.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.5.3...v0.6.0) (2026-10-10)
+
+
+### ⚠ BREAKING CHANGES
+
+* **core:** the package ids are now Minos.NET and Minos.NET.DependencyInjection, the namespace is Minos, and the public types follow the Minos naming rule: Questions, QuestionSet, Answer, Criterion, IDecisionClient, DecisionClient, DecisionError, AddDecisionClient. Analyzer rule ids JEV0xx become MIN0xx, the runtime builder failure is MIN108, and the analyzer category is Minos. The telemetry source and meter are Minos with minos.* attribute keys, the logger category is Minos.DecisionClient with log messages prefixed Minos, and the HttpClient name and User-Agent are Minos.NET. The DecisionContent exception texts, the generated hint names *.Questions.g.cs and the __minos_ field prefix, and the project and docs URLs change with it.
+
+### Code Refactoring
+
+* **core:** rename ZeroAlloc.Jev to Minos ([d74c0d6](https://github.com/MarcelRoozekrans/Minos.NET/commit/d74c0d61a1443ae28e6b7d68f23f0a07e2562ba4))
+
 ## [0.5.3](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/compare/v0.5.2...v0.5.3) (2026-10-09)
 
 
