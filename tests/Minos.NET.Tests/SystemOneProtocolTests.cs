@@ -16,8 +16,8 @@ public sealed class SystemOneProtocolTests
     [Fact]
     public void QuestionsUtf8_IsCachedOnTheDefinition()
     {
-        var first = SystemOneProtocol.Instance.QuestionsUtf8(Definition);
-        var second = SystemOneProtocol.Instance.QuestionsUtf8(Definition);
+        var first = SystemOneProtocol.QuestionsUtf8(Definition);
+        var second = SystemOneProtocol.QuestionsUtf8(Definition);
 
         Assert.True(Unsafe.AreSame(ref MemoryMarshal.GetReference(first), ref MemoryMarshal.GetReference(second)));
     }

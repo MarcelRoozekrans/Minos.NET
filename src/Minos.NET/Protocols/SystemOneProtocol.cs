@@ -10,22 +10,21 @@ internal sealed class SystemOneProtocol : IDecisionProtocol
 {
     private const int CacheSlot = 0;
 
-    // The definition's cache slot this protocol owns; each protocol has one.
-    private readonly int _cacheSlot;
-
     // Slots for this many questions live on the stack; larger sets rent nothing and allocate, as before.
     private const int MaxStackSlots = 64;
+
+    // Found flags are one byte each, so they stay on the stack for more questions than slots do.
+    private const int MaxStackFlags = 256;
 
     public static SystemOneProtocol Instance { get; } = new();
 
     private SystemOneProtocol()
     {
-        _cacheSlot = CacheSlot;
     }
 
     /// <summary>Gets the <c>questions</c> object for <paramref name="definition"/>, written once and cached on it.</summary>
-    public ReadOnlySpan<byte> QuestionsUtf8(QuestionSetDefinition definition)
-        => definition.GetOrAddProtocolData(_cacheSlot, static d => QuestionsWriter.Write(d));
+    public static ReadOnlySpan<byte> QuestionsUtf8(QuestionSetDefinition definition)
+        => definition.GetOrAddProtocolData(CacheSlot, static d => QuestionsWriter.Write(d));
 
     public RawJson WriteRequest<TArg>(QuestionSetDefinition definition, TArg state, int stateSizeHint, StateWriter<TArg> writeState, string model, ArrayPool<byte> pool)
         where TArg : allows ref struct
@@ -38,7 +37,7 @@ internal sealed class SystemOneProtocol : IDecisionProtocol
         var count = questions.Length;
         var probabilities = definition.ProbabilityCount == 0 ? [] : new double[definition.ProbabilityCount];
         Span<AnswerSlot> slots = count <= MaxStackSlots ? stackalloc AnswerSlot[count] : new AnswerSlot[count];
-        Span<bool> found = count <= MaxStackSlots ? stackalloc bool[count] : new bool[count];
+        Span<bool> found = count <= MaxStackFlags ? stackalloc bool[count] : new bool[count];
 
         while (SystemOneAnswers.NextProperty(ref answers))
         {

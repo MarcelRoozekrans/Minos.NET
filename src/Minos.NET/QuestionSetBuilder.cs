@@ -184,7 +184,7 @@ public sealed class QuestionSetBuilder
 
         var definition = ToDefinition(specs);
         return Result<QuestionSet, DecisionError>.Success(
-            new QuestionSet(_identity, SystemOneProtocol.Instance.QuestionsUtf8(definition).ToArray(), definition, warnings, plan, Utf8Keys.Encode(keys), offset));
+            new QuestionSet(_identity, SystemOneProtocol.QuestionsUtf8(definition).ToArray(), definition, warnings, plan, Utf8Keys.Encode(keys), offset));
     }
 
     private static QuestionSetDefinition ToDefinition(QuestionSpec[] specs)

@@ -65,27 +65,33 @@ public sealed class WireFixtureTests
     [Theory]
     [MemberData(nameof(BuiltCaseNames))]
     public void Built_ProtocolQuestionsMatchTheFixture(string name)
-        => WireFixtures.AssertMatches("built-" + name, Minos.Protocols.SystemOneProtocol.Instance.QuestionsUtf8(BuiltCases[name]().Definition));
+        => WireFixtures.AssertMatches("built-" + name, Minos.Protocols.SystemOneProtocol.QuestionsUtf8(BuiltCases[name]().Definition));
 
     [Theory]
     [MemberData(nameof(BuiltCaseNames))]
-    public void Built_ScoreLevelsAreKeyedByPosition(string name)
+    public void Built_DefinitionOptionKeysResolveToTheSamePositionsInTheAnswerPath(string name)
     {
-        foreach (var question in BuiltCases[name]().Definition.Questions)
+        var set = BuiltCases[name]();
+        var questions = set.Definition.Questions;
+        for (var q = 0; q < questions.Count; q++)
         {
-            if (question.Kind != QuestionKind.Score)
+            if (questions[q].Kind == QuestionKind.Noul)
             {
                 continue;
             }
 
-            for (var i = 0; i < question.Options.Count; i++)
+            var options = set.Plan[q].Options!;
+            Assert.Equal(questions[q].Options.Count, options.Count);
+            for (var i = 0; i < questions[q].Options.Count; i++)
             {
-                Assert.Equal(i.ToString(System.Globalization.CultureInfo.InvariantCulture), question.Options[i].Key);
+                var reader = new System.Text.Json.Utf8JsonReader(Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(questions[q].Options[i].Key)));
+                reader.Read();
+                Assert.Equal(i, options.IndexOfKey(ref reader));
             }
         }
     }
 
-    // Task 4 replaces each arm with SystemOneProtocol.Instance.QuestionsUtf8(T.Definition).
+    // Task 4 replaces each arm with SystemOneProtocol.QuestionsUtf8(T.Definition).
     internal static ReadOnlySpan<byte> GeneratedQuestions(string name) => name switch
     {
         "NoulOnly" => WfNoulOnly.QuestionsUtf8,
