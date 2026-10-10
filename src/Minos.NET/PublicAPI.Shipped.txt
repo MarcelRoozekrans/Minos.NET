@@ -1,436 +1,436 @@
 #nullable enable
-abstract ZeroAlloc.Jev.JevOptionSet<T>.Count.get -> int
-abstract ZeroAlloc.Jev.JevOptionSet<T>.IndexOf(T value) -> int
-abstract ZeroAlloc.Jev.JevOptionSet<T>.IndexOfKey(ref System.Text.Json.Utf8JsonReader reader) -> int
-abstract ZeroAlloc.Jev.JevOptionSet<T>.this[int index].get -> T
-const ZeroAlloc.Jev.JevDefaults.ApiKeyEnvironmentVariable = "TYPESAFE_API_KEY" -> string!
-const ZeroAlloc.Jev.JevDefaults.BaseAddressEnvironmentVariable = "TYPESAFE_BASE_URL" -> string!
-const ZeroAlloc.Jev.JevDefaults.OpenRouterApiKeyEnvironmentVariable = "OPENROUTER_API_KEY" -> string!
-override ZeroAlloc.Jev.Choice<T>.Equals(object? obj) -> bool
-override ZeroAlloc.Jev.Choice<T>.GetHashCode() -> int
-override ZeroAlloc.Jev.ConfidenceThresholds.Equals(object? obj) -> bool
-override ZeroAlloc.Jev.ConfidenceThresholds.GetHashCode() -> int
-override ZeroAlloc.Jev.JevContent.Equals(object? obj) -> bool
-override ZeroAlloc.Jev.JevContent.GetHashCode() -> int
-override ZeroAlloc.Jev.JevContent.ToString() -> string!
-override ZeroAlloc.Jev.JevError.ToString() -> string!
-override ZeroAlloc.Jev.JevQuestionFailure.Equals(object? obj) -> bool
-override ZeroAlloc.Jev.JevQuestionFailure.GetHashCode() -> int
-override ZeroAlloc.Jev.JevQuestionFailure.ToString() -> string!
-override ZeroAlloc.Jev.JevUsage.Equals(object? obj) -> bool
-override ZeroAlloc.Jev.JevUsage.GetHashCode() -> int
-override ZeroAlloc.Jev.JevUsage.ToString() -> string!
-override ZeroAlloc.Jev.KeyedChoice.Equals(object? obj) -> bool
-override ZeroAlloc.Jev.KeyedChoice.GetHashCode() -> int
-override ZeroAlloc.Jev.KeyedProbabilityMap.Equals(object? obj) -> bool
-override ZeroAlloc.Jev.KeyedProbabilityMap.GetHashCode() -> int
-override ZeroAlloc.Jev.KeyedScore.Equals(object? obj) -> bool
-override ZeroAlloc.Jev.KeyedScore.GetHashCode() -> int
-override ZeroAlloc.Jev.ModelCard.Equals(object? obj) -> bool
-override ZeroAlloc.Jev.ModelCard.GetHashCode() -> int
-override ZeroAlloc.Jev.ModelCard.ToString() -> string!
-override ZeroAlloc.Jev.Noul.Equals(object? obj) -> bool
-override ZeroAlloc.Jev.Noul.GetHashCode() -> int
-override ZeroAlloc.Jev.NoulCriteria.Equals(object? obj) -> bool
-override ZeroAlloc.Jev.NoulCriteria.GetHashCode() -> int
-override ZeroAlloc.Jev.NoulCriteria.ToString() -> string!
-override ZeroAlloc.Jev.ProbabilityMap<T>.Equals(object? obj) -> bool
-override ZeroAlloc.Jev.ProbabilityMap<T>.GetHashCode() -> int
-override ZeroAlloc.Jev.Score<T>.Equals(object? obj) -> bool
-override ZeroAlloc.Jev.Score<T>.GetHashCode() -> int
-static ZeroAlloc.Jev.Choice<T>.operator !=(ZeroAlloc.Jev.Choice<T> left, ZeroAlloc.Jev.Choice<T> right) -> bool
-static ZeroAlloc.Jev.Choice<T>.operator ==(ZeroAlloc.Jev.Choice<T> left, ZeroAlloc.Jev.Choice<T> right) -> bool
-static ZeroAlloc.Jev.ConfidenceThresholds.Default.get -> ZeroAlloc.Jev.ConfidenceThresholds
-static ZeroAlloc.Jev.ConfidenceThresholds.operator !=(ZeroAlloc.Jev.ConfidenceThresholds left, ZeroAlloc.Jev.ConfidenceThresholds right) -> bool
-static ZeroAlloc.Jev.ConfidenceThresholds.operator ==(ZeroAlloc.Jev.ConfidenceThresholds left, ZeroAlloc.Jev.ConfidenceThresholds right) -> bool
-static ZeroAlloc.Jev.JevAnswerReader.EnsureStartObject(ref System.Text.Json.Utf8JsonReader reader) -> void
-static ZeroAlloc.Jev.JevAnswerReader.MissingAnswer(string! key) -> System.Text.Json.JsonException!
-static ZeroAlloc.Jev.JevAnswerReader.NextProperty(ref System.Text.Json.Utf8JsonReader reader) -> bool
-static ZeroAlloc.Jev.JevAnswerReader.ReadChoice<T>(ref System.Text.Json.Utf8JsonReader reader, ZeroAlloc.Jev.JevOptionSet<T>! options, double[]! buffer, int offset) -> ZeroAlloc.Jev.Choice<T>
-static ZeroAlloc.Jev.JevAnswerReader.ReadNoul(ref System.Text.Json.Utf8JsonReader reader) -> ZeroAlloc.Jev.Noul
-static ZeroAlloc.Jev.JevAnswerReader.ReadScore<T>(ref System.Text.Json.Utf8JsonReader reader, ZeroAlloc.Jev.JevOptionSet<T>! options, double[]! buffer, int offset) -> ZeroAlloc.Jev.Score<T>
-static ZeroAlloc.Jev.JevClient.ConfigureHttpClient(System.Net.Http.HttpClient! httpClient, ZeroAlloc.Jev.JevClientOptions? options) -> void
-static ZeroAlloc.Jev.JevContent.FromJson(System.Text.Json.JsonElement json) -> ZeroAlloc.Jev.JevContent
-static ZeroAlloc.Jev.JevContent.FromString(string! text) -> ZeroAlloc.Jev.JevContent
-static ZeroAlloc.Jev.JevContent.FromUtf8Json(System.ReadOnlySpan<byte> utf8Json) -> ZeroAlloc.Jev.JevContent
-static ZeroAlloc.Jev.JevContent.FromValue<T>(T value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo) -> ZeroAlloc.Jev.JevContent
-static ZeroAlloc.Jev.JevContent.implicit operator ZeroAlloc.Jev.JevContent(string! text) -> ZeroAlloc.Jev.JevContent
-static ZeroAlloc.Jev.JevContent.operator !=(ZeroAlloc.Jev.JevContent left, ZeroAlloc.Jev.JevContent right) -> bool
-static ZeroAlloc.Jev.JevContent.operator ==(ZeroAlloc.Jev.JevContent left, ZeroAlloc.Jev.JevContent right) -> bool
-static ZeroAlloc.Jev.JevCriterion.implicit operator ZeroAlloc.Jev.JevCriterion!(string! description) -> ZeroAlloc.Jev.JevCriterion!
-static ZeroAlloc.Jev.JevCriterion.Json(ZeroAlloc.Jev.JevContent json) -> ZeroAlloc.Jev.JevCriterion!
-static ZeroAlloc.Jev.JevCriterion.Text(string! description) -> ZeroAlloc.Jev.JevCriterion!
-static ZeroAlloc.Jev.JevDefaults.Model.get -> string!
-static ZeroAlloc.Jev.JevDefaults.OpenRouterBaseAddress.get -> System.Uri!
-static ZeroAlloc.Jev.JevDefaults.TypeSafeBaseAddress.get -> System.Uri!
-static ZeroAlloc.Jev.JevQuestionFailure.operator !=(ZeroAlloc.Jev.JevQuestionFailure? left, ZeroAlloc.Jev.JevQuestionFailure? right) -> bool
-static ZeroAlloc.Jev.JevQuestionFailure.operator ==(ZeroAlloc.Jev.JevQuestionFailure? left, ZeroAlloc.Jev.JevQuestionFailure? right) -> bool
-static ZeroAlloc.Jev.JevQuestionSet.CreateBuilder() -> ZeroAlloc.Jev.JevQuestionSetBuilder!
-static ZeroAlloc.Jev.JevUsage.operator !=(ZeroAlloc.Jev.JevUsage? left, ZeroAlloc.Jev.JevUsage? right) -> bool
-static ZeroAlloc.Jev.JevUsage.operator ==(ZeroAlloc.Jev.JevUsage? left, ZeroAlloc.Jev.JevUsage? right) -> bool
-static ZeroAlloc.Jev.KeyedChoice.operator !=(ZeroAlloc.Jev.KeyedChoice left, ZeroAlloc.Jev.KeyedChoice right) -> bool
-static ZeroAlloc.Jev.KeyedChoice.operator ==(ZeroAlloc.Jev.KeyedChoice left, ZeroAlloc.Jev.KeyedChoice right) -> bool
-static ZeroAlloc.Jev.KeyedProbabilityMap.operator !=(ZeroAlloc.Jev.KeyedProbabilityMap left, ZeroAlloc.Jev.KeyedProbabilityMap right) -> bool
-static ZeroAlloc.Jev.KeyedProbabilityMap.operator ==(ZeroAlloc.Jev.KeyedProbabilityMap left, ZeroAlloc.Jev.KeyedProbabilityMap right) -> bool
-static ZeroAlloc.Jev.KeyedScore.operator !=(ZeroAlloc.Jev.KeyedScore left, ZeroAlloc.Jev.KeyedScore right) -> bool
-static ZeroAlloc.Jev.KeyedScore.operator ==(ZeroAlloc.Jev.KeyedScore left, ZeroAlloc.Jev.KeyedScore right) -> bool
-static ZeroAlloc.Jev.ModelCard.operator !=(ZeroAlloc.Jev.ModelCard? left, ZeroAlloc.Jev.ModelCard? right) -> bool
-static ZeroAlloc.Jev.ModelCard.operator ==(ZeroAlloc.Jev.ModelCard? left, ZeroAlloc.Jev.ModelCard? right) -> bool
-static ZeroAlloc.Jev.Noul.operator !=(ZeroAlloc.Jev.Noul left, ZeroAlloc.Jev.Noul right) -> bool
-static ZeroAlloc.Jev.Noul.operator ==(ZeroAlloc.Jev.Noul left, ZeroAlloc.Jev.Noul right) -> bool
-static ZeroAlloc.Jev.NoulCriteria.operator !=(ZeroAlloc.Jev.NoulCriteria? left, ZeroAlloc.Jev.NoulCriteria? right) -> bool
-static ZeroAlloc.Jev.NoulCriteria.operator ==(ZeroAlloc.Jev.NoulCriteria? left, ZeroAlloc.Jev.NoulCriteria? right) -> bool
-static ZeroAlloc.Jev.ProbabilityMap<T>.operator !=(ZeroAlloc.Jev.ProbabilityMap<T> left, ZeroAlloc.Jev.ProbabilityMap<T> right) -> bool
-static ZeroAlloc.Jev.ProbabilityMap<T>.operator ==(ZeroAlloc.Jev.ProbabilityMap<T> left, ZeroAlloc.Jev.ProbabilityMap<T> right) -> bool
-static ZeroAlloc.Jev.Score<T>.operator !=(ZeroAlloc.Jev.Score<T> left, ZeroAlloc.Jev.Score<T> right) -> bool
-static ZeroAlloc.Jev.Score<T>.operator ==(ZeroAlloc.Jev.Score<T> left, ZeroAlloc.Jev.Score<T> right) -> bool
-ZeroAlloc.Jev.Choice<T>
-ZeroAlloc.Jev.Choice<T>.Choice() -> void
-ZeroAlloc.Jev.Choice<T>.Choice(T value, double confidence, ZeroAlloc.Jev.ProbabilityMap<T> probabilities) -> void
-ZeroAlloc.Jev.Choice<T>.Confidence.get -> double
-ZeroAlloc.Jev.Choice<T>.Equals(ZeroAlloc.Jev.Choice<T> other) -> bool
-ZeroAlloc.Jev.Choice<T>.Probabilities.get -> ZeroAlloc.Jev.ProbabilityMap<T>
-ZeroAlloc.Jev.Choice<T>.Value.get -> T
-ZeroAlloc.Jev.ChoiceAnswer
-ZeroAlloc.Jev.ChoiceAnswer.Choice.get -> string!
-ZeroAlloc.Jev.ChoiceAnswer.Choice.init -> void
-ZeroAlloc.Jev.ChoiceAnswer.ChoiceAnswer() -> void
-ZeroAlloc.Jev.ChoiceAnswer.Confidence.get -> double
-ZeroAlloc.Jev.ChoiceAnswer.Confidence.init -> void
-ZeroAlloc.Jev.ChoiceAnswer.Probabilities.get -> System.Collections.Generic.IReadOnlyDictionary<string!, double>!
-ZeroAlloc.Jev.ChoiceAnswer.Probabilities.init -> void
-ZeroAlloc.Jev.ChoiceAttribute
-ZeroAlloc.Jev.ChoiceAttribute.ChoiceAttribute(string! instructions) -> void
-ZeroAlloc.Jev.ChoiceAttribute.Instructions.get -> string!
-ZeroAlloc.Jev.ChoiceAttribute.Key.get -> string?
-ZeroAlloc.Jev.ChoiceAttribute.Key.set -> void
-ZeroAlloc.Jev.ChoiceHandle<T>
-ZeroAlloc.Jev.ChoiceHandle<T>.ChoiceHandle() -> void
-ZeroAlloc.Jev.ChoiceOptionsBuilder<T>
-ZeroAlloc.Jev.ChoiceOptionsBuilder<T>.Describe(T option, ZeroAlloc.Jev.JevCriterion! criterion) -> ZeroAlloc.Jev.ChoiceOptionsBuilder<T>!
-ZeroAlloc.Jev.ChoiceQuestion
-ZeroAlloc.Jev.ChoiceQuestion.ChoiceQuestion() -> void
-ZeroAlloc.Jev.ChoiceQuestion.Criteria.get -> System.Collections.Generic.IReadOnlyDictionary<string!, ZeroAlloc.Jev.JevContent?>!
-ZeroAlloc.Jev.ChoiceQuestion.Criteria.init -> void
-ZeroAlloc.Jev.ConfidenceThresholds
-ZeroAlloc.Jev.ConfidenceThresholds.Classify(double confidence) -> ZeroAlloc.Jev.ConfidenceTier
-ZeroAlloc.Jev.ConfidenceThresholds.ConfidenceThresholds() -> void
-ZeroAlloc.Jev.ConfidenceThresholds.ConfidenceThresholds(double medium, double high) -> void
-ZeroAlloc.Jev.ConfidenceThresholds.Equals(ZeroAlloc.Jev.ConfidenceThresholds other) -> bool
-ZeroAlloc.Jev.ConfidenceThresholds.High.get -> double
-ZeroAlloc.Jev.ConfidenceThresholds.Medium.get -> double
-ZeroAlloc.Jev.ConfidenceTier
-ZeroAlloc.Jev.ConfidenceTier.High = 2 -> ZeroAlloc.Jev.ConfidenceTier
-ZeroAlloc.Jev.ConfidenceTier.Low = 0 -> ZeroAlloc.Jev.ConfidenceTier
-ZeroAlloc.Jev.ConfidenceTier.Medium = 1 -> ZeroAlloc.Jev.ConfidenceTier
-ZeroAlloc.Jev.CriteriaAttribute
-ZeroAlloc.Jev.CriteriaAttribute.CriteriaAttribute(string! description) -> void
-ZeroAlloc.Jev.CriteriaAttribute.Description.get -> string!
-ZeroAlloc.Jev.CriteriaAttribute.Examples.get -> string![]?
-ZeroAlloc.Jev.CriteriaAttribute.Examples.set -> void
-ZeroAlloc.Jev.CriteriaAttribute.Key.get -> string?
-ZeroAlloc.Jev.CriteriaAttribute.Key.set -> void
-ZeroAlloc.Jev.CriteriaAttribute.NotFor.get -> string![]?
-ZeroAlloc.Jev.CriteriaAttribute.NotFor.set -> void
-ZeroAlloc.Jev.IJevClient
-ZeroAlloc.Jev.IJevClient.EvaluateAsync(ZeroAlloc.Jev.JevQuestionSet! questionSet, ZeroAlloc.Jev.JevContent state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.JevAnswers!, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.IJevClient.EvaluateAsync(ZeroAlloc.Jev.JevQuestionSet! questionSet, ZeroAlloc.Jev.JevContent state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.JevAnswers!, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.IJevClient.EvaluateAsync(ZeroAlloc.Jev.SystemOneRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.SystemOneResponse!, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.IJevClient.EvaluateAsync(ZeroAlloc.Jev.SystemOneRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.SystemOneResponse!, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.IJevClient.EvaluateAsync<T, TState>(TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.IJevClient.EvaluateAsync<T, TState>(TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.IJevClient.EvaluateAsync<T>(string! state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.IJevClient.EvaluateAsync<T>(string! state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.IJevClient.EvaluateAsync<T>(System.Text.Json.JsonElement state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.IJevClient.EvaluateAsync<T>(System.Text.Json.JsonElement state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.IJevClient.EvaluateUtf8Async<T>(System.ReadOnlyMemory<byte> utf8JsonState, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.IJevClient.ListModelsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.ModelList!, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.IJevQuestionSet<TSelf, TState>
-ZeroAlloc.Jev.IJevQuestionSet<TSelf>
-ZeroAlloc.Jev.IJevQuestionSet<TSelf>.Parse(ref System.Text.Json.Utf8JsonReader answers) -> TSelf
-ZeroAlloc.Jev.IJevQuestionSet<TSelf>.QuestionsUtf8.get -> System.ReadOnlySpan<byte>
-ZeroAlloc.Jev.JevAnswer
-ZeroAlloc.Jev.JevAnswerReader
-ZeroAlloc.Jev.JevAnswers
-ZeroAlloc.Jev.JevAnswers.Get(ZeroAlloc.Jev.KeyedChoiceHandle question) -> ZeroAlloc.Jev.KeyedChoice
-ZeroAlloc.Jev.JevAnswers.Get(ZeroAlloc.Jev.KeyedScoreHandle question) -> ZeroAlloc.Jev.KeyedScore
-ZeroAlloc.Jev.JevAnswers.Get(ZeroAlloc.Jev.NoulHandle question) -> ZeroAlloc.Jev.Noul
-ZeroAlloc.Jev.JevAnswers.Get<T>(ZeroAlloc.Jev.ChoiceHandle<T> question) -> ZeroAlloc.Jev.Choice<T>
-ZeroAlloc.Jev.JevAnswers.Get<T>(ZeroAlloc.Jev.ScoreHandle<T> question) -> ZeroAlloc.Jev.Score<T>
-ZeroAlloc.Jev.JevClient
-ZeroAlloc.Jev.JevClient.Dispose() -> void
-ZeroAlloc.Jev.JevClient.EvaluateAsync(ZeroAlloc.Jev.JevQuestionSet! questionSet, ZeroAlloc.Jev.JevContent state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.JevAnswers!, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.JevClient.EvaluateAsync(ZeroAlloc.Jev.JevQuestionSet! questionSet, ZeroAlloc.Jev.JevContent state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.JevAnswers!, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.JevClient.EvaluateAsync(ZeroAlloc.Jev.SystemOneRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.SystemOneResponse!, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.JevClient.EvaluateAsync(ZeroAlloc.Jev.SystemOneRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.SystemOneResponse!, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.JevClient.EvaluateAsync<T, TState>(TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.JevClient.EvaluateAsync<T, TState>(TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.JevClient.EvaluateAsync<T>(string! state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.JevClient.EvaluateAsync<T>(string! state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.JevClient.EvaluateAsync<T>(System.Text.Json.JsonElement state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.JevClient.EvaluateAsync<T>(System.Text.Json.JsonElement state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.JevClient.EvaluateUtf8Async<T>(System.ReadOnlyMemory<byte> utf8JsonState, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.JevClient.JevClient() -> void
-ZeroAlloc.Jev.JevClient.JevClient(System.Net.Http.HttpClient! httpClient) -> void
-ZeroAlloc.Jev.JevClient.JevClient(System.Net.Http.HttpClient! httpClient, ZeroAlloc.Jev.JevClientOptions? options) -> void
-ZeroAlloc.Jev.JevClient.JevClient(System.Net.Http.HttpClient! httpClient, ZeroAlloc.Jev.JevClientOptions? options, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory) -> void
-ZeroAlloc.Jev.JevClient.JevClient(ZeroAlloc.Jev.JevClientOptions? options) -> void
-ZeroAlloc.Jev.JevClient.JevClient(ZeroAlloc.Jev.JevClientOptions? options, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory) -> void
-ZeroAlloc.Jev.JevClient.ListModelsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<ZeroAlloc.Jev.ModelList!, ZeroAlloc.Jev.JevError!>>
-ZeroAlloc.Jev.JevClientOptions
-ZeroAlloc.Jev.JevClientOptions.ApiKey.get -> string?
-ZeroAlloc.Jev.JevClientOptions.ApiKey.set -> void
-ZeroAlloc.Jev.JevClientOptions.BaseAddress.get -> System.Uri?
-ZeroAlloc.Jev.JevClientOptions.BaseAddress.set -> void
-ZeroAlloc.Jev.JevClientOptions.InitialBackoff.get -> System.TimeSpan
-ZeroAlloc.Jev.JevClientOptions.InitialBackoff.set -> void
-ZeroAlloc.Jev.JevClientOptions.JevClientOptions() -> void
-ZeroAlloc.Jev.JevClientOptions.Jitter.get -> bool
-ZeroAlloc.Jev.JevClientOptions.Jitter.set -> void
-ZeroAlloc.Jev.JevClientOptions.MaxRetries.get -> int
-ZeroAlloc.Jev.JevClientOptions.MaxRetries.set -> void
-ZeroAlloc.Jev.JevClientOptions.MaxRetryDelay.get -> System.TimeSpan
-ZeroAlloc.Jev.JevClientOptions.MaxRetryDelay.set -> void
-ZeroAlloc.Jev.JevClientOptions.Model.get -> string!
-ZeroAlloc.Jev.JevClientOptions.Model.set -> void
-ZeroAlloc.Jev.JevClientOptions.Provider.get -> ZeroAlloc.Jev.JevProvider
-ZeroAlloc.Jev.JevClientOptions.Provider.set -> void
-ZeroAlloc.Jev.JevClientOptions.Timeout.get -> System.TimeSpan
-ZeroAlloc.Jev.JevClientOptions.Timeout.set -> void
-ZeroAlloc.Jev.JevClientOptions.Validate() -> void
-ZeroAlloc.Jev.JevContent
-ZeroAlloc.Jev.JevContent.Equals(ZeroAlloc.Jev.JevContent other) -> bool
-ZeroAlloc.Jev.JevContent.IsString.get -> bool
-ZeroAlloc.Jev.JevContent.JevContent() -> void
-ZeroAlloc.Jev.JevContent.TryGetJson(out System.Text.Json.JsonElement json) -> bool
-ZeroAlloc.Jev.JevContent.TryGetString(out string? text) -> bool
-ZeroAlloc.Jev.JevCriterion
-ZeroAlloc.Jev.JevCriterion.WithExamples(params System.ReadOnlySpan<string?> examples) -> ZeroAlloc.Jev.JevCriterion!
-ZeroAlloc.Jev.JevCriterion.WithNotFor(params System.ReadOnlySpan<string?> notFor) -> ZeroAlloc.Jev.JevCriterion!
-ZeroAlloc.Jev.JevDefaults
-ZeroAlloc.Jev.JevError
-ZeroAlloc.Jev.JevError.Detail.get -> System.Text.Json.JsonElement?
-ZeroAlloc.Jev.JevError.Detail.init -> void
-ZeroAlloc.Jev.JevError.Exception.get -> System.Exception?
-ZeroAlloc.Jev.JevError.Exception.init -> void
-ZeroAlloc.Jev.JevError.Failures.get -> System.Collections.Generic.IReadOnlyList<ZeroAlloc.Jev.JevQuestionFailure!>!
-ZeroAlloc.Jev.JevError.JevError(ZeroAlloc.Jev.JevErrorKind kind, string! message) -> void
-ZeroAlloc.Jev.JevError.Kind.get -> ZeroAlloc.Jev.JevErrorKind
-ZeroAlloc.Jev.JevError.Message.get -> string!
-ZeroAlloc.Jev.JevError.RetryAfter.get -> System.TimeSpan?
-ZeroAlloc.Jev.JevError.RetryAfter.init -> void
-ZeroAlloc.Jev.JevError.StatusCode.get -> int?
-ZeroAlloc.Jev.JevError.StatusCode.init -> void
-ZeroAlloc.Jev.JevErrorKind
-ZeroAlloc.Jev.JevErrorKind.Disposed = 12 -> ZeroAlloc.Jev.JevErrorKind
-ZeroAlloc.Jev.JevErrorKind.Http = 6 -> ZeroAlloc.Jev.JevErrorKind
-ZeroAlloc.Jev.JevErrorKind.InvalidQuestions = 11 -> ZeroAlloc.Jev.JevErrorKind
-ZeroAlloc.Jev.JevErrorKind.InvalidResponse = 9 -> ZeroAlloc.Jev.JevErrorKind
-ZeroAlloc.Jev.JevErrorKind.Network = 7 -> ZeroAlloc.Jev.JevErrorKind
-ZeroAlloc.Jev.JevErrorKind.Overloaded = 4 -> ZeroAlloc.Jev.JevErrorKind
-ZeroAlloc.Jev.JevErrorKind.RateLimited = 3 -> ZeroAlloc.Jev.JevErrorKind
-ZeroAlloc.Jev.JevErrorKind.Server = 5 -> ZeroAlloc.Jev.JevErrorKind
-ZeroAlloc.Jev.JevErrorKind.Timeout = 8 -> ZeroAlloc.Jev.JevErrorKind
-ZeroAlloc.Jev.JevErrorKind.Unauthorized = 1 -> ZeroAlloc.Jev.JevErrorKind
-ZeroAlloc.Jev.JevErrorKind.Unsupported = 10 -> ZeroAlloc.Jev.JevErrorKind
-ZeroAlloc.Jev.JevErrorKind.Validation = 2 -> ZeroAlloc.Jev.JevErrorKind
-ZeroAlloc.Jev.JevOptionSet<T>
-ZeroAlloc.Jev.JevOptionSet<T>.JevOptionSet() -> void
-ZeroAlloc.Jev.JevProvider
-ZeroAlloc.Jev.JevProvider.OpenRouter = 1 -> ZeroAlloc.Jev.JevProvider
-ZeroAlloc.Jev.JevProvider.TypeSafe = 0 -> ZeroAlloc.Jev.JevProvider
-ZeroAlloc.Jev.JevQuestion
-ZeroAlloc.Jev.JevQuestion.Instructions.get -> ZeroAlloc.Jev.JevContent
-ZeroAlloc.Jev.JevQuestion.Instructions.init -> void
-ZeroAlloc.Jev.JevQuestionFailure
-ZeroAlloc.Jev.JevQuestionFailure.<Clone>$() -> ZeroAlloc.Jev.JevQuestionFailure!
-ZeroAlloc.Jev.JevQuestionFailure.Deconstruct(out string! Rule, out string? QuestionKey, out string! Message) -> void
-ZeroAlloc.Jev.JevQuestionFailure.Equals(ZeroAlloc.Jev.JevQuestionFailure? other) -> bool
-ZeroAlloc.Jev.JevQuestionFailure.JevQuestionFailure(string! Rule, string? QuestionKey, string! Message) -> void
-ZeroAlloc.Jev.JevQuestionFailure.Message.get -> string!
-ZeroAlloc.Jev.JevQuestionFailure.Message.init -> void
-ZeroAlloc.Jev.JevQuestionFailure.QuestionKey.get -> string?
-ZeroAlloc.Jev.JevQuestionFailure.QuestionKey.init -> void
-ZeroAlloc.Jev.JevQuestionFailure.Rule.get -> string!
-ZeroAlloc.Jev.JevQuestionFailure.Rule.init -> void
-ZeroAlloc.Jev.JevQuestionsAttribute
-ZeroAlloc.Jev.JevQuestionsAttribute.JevQuestionsAttribute() -> void
-ZeroAlloc.Jev.JevQuestionsAttribute.State.get -> System.Type?
-ZeroAlloc.Jev.JevQuestionsAttribute.State.set -> void
-ZeroAlloc.Jev.JevQuestionSet
-ZeroAlloc.Jev.JevQuestionSet.QuestionsUtf8.get -> System.ReadOnlySpan<byte>
-ZeroAlloc.Jev.JevQuestionSet.Warnings.get -> System.Collections.Generic.IReadOnlyList<ZeroAlloc.Jev.JevQuestionFailure!>!
-ZeroAlloc.Jev.JevQuestionSetBuilder
-ZeroAlloc.Jev.JevQuestionSetBuilder.Build() -> ZeroAlloc.Results.Result<ZeroAlloc.Jev.JevQuestionSet!, ZeroAlloc.Jev.JevError!>
-ZeroAlloc.Jev.JevQuestionSetBuilder.Choice(string! key, ZeroAlloc.Jev.JevContent instructions, out ZeroAlloc.Jev.KeyedChoiceHandle question, System.Action<ZeroAlloc.Jev.KeyedChoiceOptionsBuilder!>! configure) -> ZeroAlloc.Jev.JevQuestionSetBuilder!
-ZeroAlloc.Jev.JevQuestionSetBuilder.Choice<T>(string! key, ZeroAlloc.Jev.JevContent instructions, out ZeroAlloc.Jev.ChoiceHandle<T> question) -> ZeroAlloc.Jev.JevQuestionSetBuilder!
-ZeroAlloc.Jev.JevQuestionSetBuilder.Choice<T>(string! key, ZeroAlloc.Jev.JevContent instructions, out ZeroAlloc.Jev.ChoiceHandle<T> question, System.Action<ZeroAlloc.Jev.ChoiceOptionsBuilder<T>!>! configure) -> ZeroAlloc.Jev.JevQuestionSetBuilder!
-ZeroAlloc.Jev.JevQuestionSetBuilder.Noul(string! key, ZeroAlloc.Jev.JevContent instructions, out ZeroAlloc.Jev.NoulHandle question) -> ZeroAlloc.Jev.JevQuestionSetBuilder!
-ZeroAlloc.Jev.JevQuestionSetBuilder.Noul(string! key, ZeroAlloc.Jev.JevContent instructions, out ZeroAlloc.Jev.NoulHandle question, System.Action<ZeroAlloc.Jev.NoulCriteriaBuilder!>! configure) -> ZeroAlloc.Jev.JevQuestionSetBuilder!
-ZeroAlloc.Jev.JevQuestionSetBuilder.Score(string! key, ZeroAlloc.Jev.JevContent instructions, out ZeroAlloc.Jev.KeyedScoreHandle question, System.Action<ZeroAlloc.Jev.KeyedScoreLevelsBuilder!>! configure) -> ZeroAlloc.Jev.JevQuestionSetBuilder!
-ZeroAlloc.Jev.JevQuestionSetBuilder.Score<T>(string! key, ZeroAlloc.Jev.JevContent instructions, out ZeroAlloc.Jev.ScoreHandle<T> question, System.Action<ZeroAlloc.Jev.ScoreLevelsBuilder<T>!>! configure) -> ZeroAlloc.Jev.JevQuestionSetBuilder!
-ZeroAlloc.Jev.JevUsage
-ZeroAlloc.Jev.JevUsage.<Clone>$() -> ZeroAlloc.Jev.JevUsage!
-ZeroAlloc.Jev.JevUsage.Cost.get -> double?
-ZeroAlloc.Jev.JevUsage.Cost.init -> void
-ZeroAlloc.Jev.JevUsage.Equals(ZeroAlloc.Jev.JevUsage? other) -> bool
-ZeroAlloc.Jev.JevUsage.InputTokens.get -> int
-ZeroAlloc.Jev.JevUsage.InputTokens.init -> void
-ZeroAlloc.Jev.JevUsage.JevUsage() -> void
-ZeroAlloc.Jev.JevUsage.OutputTokens.get -> int
-ZeroAlloc.Jev.JevUsage.OutputTokens.init -> void
-ZeroAlloc.Jev.KeyedChoice
-ZeroAlloc.Jev.KeyedChoice.Confidence.get -> double
-ZeroAlloc.Jev.KeyedChoice.Equals(ZeroAlloc.Jev.KeyedChoice other) -> bool
-ZeroAlloc.Jev.KeyedChoice.KeyedChoice() -> void
-ZeroAlloc.Jev.KeyedChoice.KeyedChoice(string! value, double confidence, ZeroAlloc.Jev.KeyedProbabilityMap probabilities) -> void
-ZeroAlloc.Jev.KeyedChoice.Probabilities.get -> ZeroAlloc.Jev.KeyedProbabilityMap
-ZeroAlloc.Jev.KeyedChoice.Value.get -> string!
-ZeroAlloc.Jev.KeyedChoiceHandle
-ZeroAlloc.Jev.KeyedChoiceHandle.KeyedChoiceHandle() -> void
-ZeroAlloc.Jev.KeyedChoiceOptionsBuilder
-ZeroAlloc.Jev.KeyedChoiceOptionsBuilder.Option(string! key) -> ZeroAlloc.Jev.KeyedChoiceOptionsBuilder!
-ZeroAlloc.Jev.KeyedChoiceOptionsBuilder.Option(string! key, ZeroAlloc.Jev.JevCriterion! criterion) -> ZeroAlloc.Jev.KeyedChoiceOptionsBuilder!
-ZeroAlloc.Jev.KeyedProbabilityMap
-ZeroAlloc.Jev.KeyedProbabilityMap.Count.get -> int
-ZeroAlloc.Jev.KeyedProbabilityMap.Enumerator
-ZeroAlloc.Jev.KeyedProbabilityMap.Enumerator.Current.get -> (string! Key, double Probability)
-ZeroAlloc.Jev.KeyedProbabilityMap.Enumerator.Enumerator() -> void
-ZeroAlloc.Jev.KeyedProbabilityMap.Enumerator.MoveNext() -> bool
-ZeroAlloc.Jev.KeyedProbabilityMap.Equals(ZeroAlloc.Jev.KeyedProbabilityMap other) -> bool
-ZeroAlloc.Jev.KeyedProbabilityMap.GetEnumerator() -> ZeroAlloc.Jev.KeyedProbabilityMap.Enumerator
-ZeroAlloc.Jev.KeyedProbabilityMap.KeyedProbabilityMap() -> void
-ZeroAlloc.Jev.KeyedProbabilityMap.this[int index].get -> double
-ZeroAlloc.Jev.KeyedProbabilityMap.this[string! key].get -> double
-ZeroAlloc.Jev.KeyedScore
-ZeroAlloc.Jev.KeyedScore.Confidence.get -> double
-ZeroAlloc.Jev.KeyedScore.Equals(ZeroAlloc.Jev.KeyedScore other) -> bool
-ZeroAlloc.Jev.KeyedScore.Expected.get -> double
-ZeroAlloc.Jev.KeyedScore.KeyedScore() -> void
-ZeroAlloc.Jev.KeyedScore.KeyedScore(int level, double expected, double confidence, ZeroAlloc.Jev.KeyedProbabilityMap probabilities) -> void
-ZeroAlloc.Jev.KeyedScore.Level.get -> int
-ZeroAlloc.Jev.KeyedScore.Normalized.get -> double
-ZeroAlloc.Jev.KeyedScore.Probabilities.get -> ZeroAlloc.Jev.KeyedProbabilityMap
-ZeroAlloc.Jev.KeyedScoreHandle
-ZeroAlloc.Jev.KeyedScoreHandle.KeyedScoreHandle() -> void
-ZeroAlloc.Jev.KeyedScoreLevelsBuilder
-ZeroAlloc.Jev.KeyedScoreLevelsBuilder.Level(ZeroAlloc.Jev.JevCriterion! criterion) -> ZeroAlloc.Jev.KeyedScoreLevelsBuilder!
-ZeroAlloc.Jev.LevelAttribute
-ZeroAlloc.Jev.LevelAttribute.Description.get -> string!
-ZeroAlloc.Jev.LevelAttribute.Examples.get -> string![]?
-ZeroAlloc.Jev.LevelAttribute.Examples.set -> void
-ZeroAlloc.Jev.LevelAttribute.LevelAttribute(string! description) -> void
-ZeroAlloc.Jev.LevelAttribute.NotFor.get -> string![]?
-ZeroAlloc.Jev.LevelAttribute.NotFor.set -> void
-ZeroAlloc.Jev.ModelCard
-ZeroAlloc.Jev.ModelCard.<Clone>$() -> ZeroAlloc.Jev.ModelCard!
-ZeroAlloc.Jev.ModelCard.Description.get -> string!
-ZeroAlloc.Jev.ModelCard.Description.init -> void
-ZeroAlloc.Jev.ModelCard.Equals(ZeroAlloc.Jev.ModelCard? other) -> bool
-ZeroAlloc.Jev.ModelCard.ModelCard() -> void
-ZeroAlloc.Jev.ModelCard.Name.get -> string!
-ZeroAlloc.Jev.ModelCard.Name.init -> void
-ZeroAlloc.Jev.ModelCard.ReleaseDate.get -> string!
-ZeroAlloc.Jev.ModelCard.ReleaseDate.init -> void
-ZeroAlloc.Jev.ModelList
-ZeroAlloc.Jev.ModelList.ModelList() -> void
-ZeroAlloc.Jev.ModelList.Models.get -> System.Collections.Generic.IReadOnlyList<ZeroAlloc.Jev.ModelCard!>!
-ZeroAlloc.Jev.ModelList.Models.init -> void
-ZeroAlloc.Jev.Noul
-ZeroAlloc.Jev.Noul.Equals(ZeroAlloc.Jev.Noul other) -> bool
-ZeroAlloc.Jev.Noul.Noul() -> void
-ZeroAlloc.Jev.Noul.Noul(double probability) -> void
-ZeroAlloc.Jev.Noul.Probability.get -> double
-ZeroAlloc.Jev.Noul.Value.get -> bool
-ZeroAlloc.Jev.NoulAnswer
-ZeroAlloc.Jev.NoulAnswer.Noul.get -> double
-ZeroAlloc.Jev.NoulAnswer.Noul.init -> void
-ZeroAlloc.Jev.NoulAnswer.NoulAnswer() -> void
-ZeroAlloc.Jev.NoulAttribute
-ZeroAlloc.Jev.NoulAttribute.Instructions.get -> string!
-ZeroAlloc.Jev.NoulAttribute.Key.get -> string?
-ZeroAlloc.Jev.NoulAttribute.Key.set -> void
-ZeroAlloc.Jev.NoulAttribute.NoulAttribute(string! instructions) -> void
-ZeroAlloc.Jev.NoulAttribute.WhenFalse.get -> string?
-ZeroAlloc.Jev.NoulAttribute.WhenFalse.set -> void
-ZeroAlloc.Jev.NoulAttribute.WhenTrue.get -> string?
-ZeroAlloc.Jev.NoulAttribute.WhenTrue.set -> void
-ZeroAlloc.Jev.NoulCriteria
-ZeroAlloc.Jev.NoulCriteria.<Clone>$() -> ZeroAlloc.Jev.NoulCriteria!
-ZeroAlloc.Jev.NoulCriteria.Equals(ZeroAlloc.Jev.NoulCriteria? other) -> bool
-ZeroAlloc.Jev.NoulCriteria.NoulCriteria() -> void
-ZeroAlloc.Jev.NoulCriteria.WhenFalse.get -> ZeroAlloc.Jev.JevContent?
-ZeroAlloc.Jev.NoulCriteria.WhenFalse.init -> void
-ZeroAlloc.Jev.NoulCriteria.WhenTrue.get -> ZeroAlloc.Jev.JevContent?
-ZeroAlloc.Jev.NoulCriteria.WhenTrue.init -> void
-ZeroAlloc.Jev.NoulCriteriaBuilder
-ZeroAlloc.Jev.NoulCriteriaBuilder.WhenFalse(ZeroAlloc.Jev.JevContent description) -> ZeroAlloc.Jev.NoulCriteriaBuilder!
-ZeroAlloc.Jev.NoulCriteriaBuilder.WhenTrue(ZeroAlloc.Jev.JevContent description) -> ZeroAlloc.Jev.NoulCriteriaBuilder!
-ZeroAlloc.Jev.NoulHandle
-ZeroAlloc.Jev.NoulHandle.NoulHandle() -> void
-ZeroAlloc.Jev.NoulQuestion
-ZeroAlloc.Jev.NoulQuestion.Criteria.get -> ZeroAlloc.Jev.NoulCriteria?
-ZeroAlloc.Jev.NoulQuestion.Criteria.init -> void
-ZeroAlloc.Jev.NoulQuestion.NoulQuestion() -> void
-ZeroAlloc.Jev.ProbabilityMap<T>
-ZeroAlloc.Jev.ProbabilityMap<T>.Count.get -> int
-ZeroAlloc.Jev.ProbabilityMap<T>.Enumerator
-ZeroAlloc.Jev.ProbabilityMap<T>.Enumerator.Current.get -> (T Option, double Probability)
-ZeroAlloc.Jev.ProbabilityMap<T>.Enumerator.Enumerator() -> void
-ZeroAlloc.Jev.ProbabilityMap<T>.Enumerator.MoveNext() -> bool
-ZeroAlloc.Jev.ProbabilityMap<T>.Equals(ZeroAlloc.Jev.ProbabilityMap<T> other) -> bool
-ZeroAlloc.Jev.ProbabilityMap<T>.GetEnumerator() -> ZeroAlloc.Jev.ProbabilityMap<T>.Enumerator
-ZeroAlloc.Jev.ProbabilityMap<T>.ProbabilityMap() -> void
-ZeroAlloc.Jev.ProbabilityMap<T>.this[T option].get -> double
-ZeroAlloc.Jev.Score<T>
-ZeroAlloc.Jev.Score<T>.Confidence.get -> double
-ZeroAlloc.Jev.Score<T>.Equals(ZeroAlloc.Jev.Score<T> other) -> bool
-ZeroAlloc.Jev.Score<T>.Expected.get -> double
-ZeroAlloc.Jev.Score<T>.Normalized.get -> double
-ZeroAlloc.Jev.Score<T>.Probabilities.get -> ZeroAlloc.Jev.ProbabilityMap<T>
-ZeroAlloc.Jev.Score<T>.Score() -> void
-ZeroAlloc.Jev.Score<T>.Score(T value, double expected, double confidence, ZeroAlloc.Jev.ProbabilityMap<T> probabilities) -> void
-ZeroAlloc.Jev.Score<T>.Value.get -> T
-ZeroAlloc.Jev.ScoreAnswer
-ZeroAlloc.Jev.ScoreAnswer.Confidence.get -> double
-ZeroAlloc.Jev.ScoreAnswer.Confidence.init -> void
-ZeroAlloc.Jev.ScoreAnswer.Legend.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
-ZeroAlloc.Jev.ScoreAnswer.Legend.init -> void
-ZeroAlloc.Jev.ScoreAnswer.Probabilities.get -> System.Collections.Generic.IReadOnlyDictionary<string!, double>!
-ZeroAlloc.Jev.ScoreAnswer.Probabilities.init -> void
-ZeroAlloc.Jev.ScoreAnswer.Score.get -> double
-ZeroAlloc.Jev.ScoreAnswer.Score.init -> void
-ZeroAlloc.Jev.ScoreAnswer.ScoreAnswer() -> void
-ZeroAlloc.Jev.ScoreAttribute
-ZeroAlloc.Jev.ScoreAttribute.Instructions.get -> string!
-ZeroAlloc.Jev.ScoreAttribute.Key.get -> string?
-ZeroAlloc.Jev.ScoreAttribute.Key.set -> void
-ZeroAlloc.Jev.ScoreAttribute.ScoreAttribute(string! instructions) -> void
-ZeroAlloc.Jev.ScoreHandle<T>
-ZeroAlloc.Jev.ScoreHandle<T>.ScoreHandle() -> void
-ZeroAlloc.Jev.ScoreLevelsBuilder<T>
-ZeroAlloc.Jev.ScoreLevelsBuilder<T>.Level(T level, ZeroAlloc.Jev.JevCriterion! criterion) -> ZeroAlloc.Jev.ScoreLevelsBuilder<T>!
-ZeroAlloc.Jev.ScoreQuestion
-ZeroAlloc.Jev.ScoreQuestion.Criteria.get -> System.Collections.Generic.IReadOnlyList<ZeroAlloc.Jev.JevContent>!
-ZeroAlloc.Jev.ScoreQuestion.Criteria.init -> void
-ZeroAlloc.Jev.ScoreQuestion.ScoreQuestion() -> void
-ZeroAlloc.Jev.SystemOneRequest
-ZeroAlloc.Jev.SystemOneRequest.Model.get -> string!
-ZeroAlloc.Jev.SystemOneRequest.Model.init -> void
-ZeroAlloc.Jev.SystemOneRequest.Questions.get -> System.Collections.Generic.IReadOnlyDictionary<string!, ZeroAlloc.Jev.JevQuestion!>!
-ZeroAlloc.Jev.SystemOneRequest.Questions.init -> void
-ZeroAlloc.Jev.SystemOneRequest.State.get -> ZeroAlloc.Jev.JevContent
-ZeroAlloc.Jev.SystemOneRequest.State.init -> void
-ZeroAlloc.Jev.SystemOneRequest.SystemOneRequest() -> void
-ZeroAlloc.Jev.SystemOneResponse
-ZeroAlloc.Jev.SystemOneResponse.Answers.get -> System.Collections.Generic.IReadOnlyDictionary<string!, ZeroAlloc.Jev.JevAnswer!>!
-ZeroAlloc.Jev.SystemOneResponse.Answers.init -> void
-ZeroAlloc.Jev.SystemOneResponse.Id.get -> string?
-ZeroAlloc.Jev.SystemOneResponse.Id.init -> void
-ZeroAlloc.Jev.SystemOneResponse.Model.get -> string!
-ZeroAlloc.Jev.SystemOneResponse.Model.init -> void
-ZeroAlloc.Jev.SystemOneResponse.Provider.get -> string?
-ZeroAlloc.Jev.SystemOneResponse.Provider.init -> void
-ZeroAlloc.Jev.SystemOneResponse.SystemOneResponse() -> void
-ZeroAlloc.Jev.SystemOneResponse.Usage.get -> ZeroAlloc.Jev.JevUsage!
-ZeroAlloc.Jev.SystemOneResponse.Usage.init -> void
+abstract Minos.DecisionOptionSet<T>.Count.get -> int
+abstract Minos.DecisionOptionSet<T>.IndexOf(T value) -> int
+abstract Minos.DecisionOptionSet<T>.IndexOfKey(ref System.Text.Json.Utf8JsonReader reader) -> int
+abstract Minos.DecisionOptionSet<T>.this[int index].get -> T
+const Minos.DecisionDefaults.ApiKeyEnvironmentVariable = "TYPESAFE_API_KEY" -> string!
+const Minos.DecisionDefaults.BaseAddressEnvironmentVariable = "TYPESAFE_BASE_URL" -> string!
+const Minos.DecisionDefaults.OpenRouterApiKeyEnvironmentVariable = "OPENROUTER_API_KEY" -> string!
+Minos.Answer
+Minos.AnswerReader
+Minos.Answers
+Minos.Answers.Get(Minos.KeyedChoiceHandle question) -> Minos.KeyedChoice
+Minos.Answers.Get(Minos.KeyedScoreHandle question) -> Minos.KeyedScore
+Minos.Answers.Get(Minos.NoulHandle question) -> Minos.Noul
+Minos.Answers.Get<T>(Minos.ChoiceHandle<T> question) -> Minos.Choice<T>
+Minos.Answers.Get<T>(Minos.ScoreHandle<T> question) -> Minos.Score<T>
+Minos.Choice<T>
+Minos.Choice<T>.Choice() -> void
+Minos.Choice<T>.Choice(T value, double confidence, Minos.ProbabilityMap<T> probabilities) -> void
+Minos.Choice<T>.Confidence.get -> double
+Minos.Choice<T>.Equals(Minos.Choice<T> other) -> bool
+Minos.Choice<T>.Probabilities.get -> Minos.ProbabilityMap<T>
+Minos.Choice<T>.Value.get -> T
+Minos.ChoiceAnswer
+Minos.ChoiceAnswer.Choice.get -> string!
+Minos.ChoiceAnswer.Choice.init -> void
+Minos.ChoiceAnswer.ChoiceAnswer() -> void
+Minos.ChoiceAnswer.Confidence.get -> double
+Minos.ChoiceAnswer.Confidence.init -> void
+Minos.ChoiceAnswer.Probabilities.get -> System.Collections.Generic.IReadOnlyDictionary<string!, double>!
+Minos.ChoiceAnswer.Probabilities.init -> void
+Minos.ChoiceAttribute
+Minos.ChoiceAttribute.ChoiceAttribute(string! instructions) -> void
+Minos.ChoiceAttribute.Instructions.get -> string!
+Minos.ChoiceAttribute.Key.get -> string?
+Minos.ChoiceAttribute.Key.set -> void
+Minos.ChoiceHandle<T>
+Minos.ChoiceHandle<T>.ChoiceHandle() -> void
+Minos.ChoiceOptionsBuilder<T>
+Minos.ChoiceOptionsBuilder<T>.Describe(T option, Minos.Criterion! criterion) -> Minos.ChoiceOptionsBuilder<T>!
+Minos.ChoiceQuestion
+Minos.ChoiceQuestion.ChoiceQuestion() -> void
+Minos.ChoiceQuestion.Criteria.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Minos.DecisionContent?>!
+Minos.ChoiceQuestion.Criteria.init -> void
+Minos.ConfidenceThresholds
+Minos.ConfidenceThresholds.Classify(double confidence) -> Minos.ConfidenceTier
+Minos.ConfidenceThresholds.ConfidenceThresholds() -> void
+Minos.ConfidenceThresholds.ConfidenceThresholds(double medium, double high) -> void
+Minos.ConfidenceThresholds.Equals(Minos.ConfidenceThresholds other) -> bool
+Minos.ConfidenceThresholds.High.get -> double
+Minos.ConfidenceThresholds.Medium.get -> double
+Minos.ConfidenceTier
+Minos.ConfidenceTier.High = 2 -> Minos.ConfidenceTier
+Minos.ConfidenceTier.Low = 0 -> Minos.ConfidenceTier
+Minos.ConfidenceTier.Medium = 1 -> Minos.ConfidenceTier
+Minos.CriteriaAttribute
+Minos.CriteriaAttribute.CriteriaAttribute(string! description) -> void
+Minos.CriteriaAttribute.Description.get -> string!
+Minos.CriteriaAttribute.Examples.get -> string![]?
+Minos.CriteriaAttribute.Examples.set -> void
+Minos.CriteriaAttribute.Key.get -> string?
+Minos.CriteriaAttribute.Key.set -> void
+Minos.CriteriaAttribute.NotFor.get -> string![]?
+Minos.CriteriaAttribute.NotFor.set -> void
+Minos.Criterion
+Minos.Criterion.WithExamples(params System.ReadOnlySpan<string?> examples) -> Minos.Criterion!
+Minos.Criterion.WithNotFor(params System.ReadOnlySpan<string?> notFor) -> Minos.Criterion!
+Minos.DecisionClient
+Minos.DecisionClient.DecisionClient() -> void
+Minos.DecisionClient.DecisionClient(Minos.DecisionClientOptions? options) -> void
+Minos.DecisionClient.DecisionClient(Minos.DecisionClientOptions? options, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory) -> void
+Minos.DecisionClient.DecisionClient(System.Net.Http.HttpClient! httpClient) -> void
+Minos.DecisionClient.DecisionClient(System.Net.Http.HttpClient! httpClient, Minos.DecisionClientOptions? options) -> void
+Minos.DecisionClient.DecisionClient(System.Net.Http.HttpClient! httpClient, Minos.DecisionClientOptions? options, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory) -> void
+Minos.DecisionClient.Dispose() -> void
+Minos.DecisionClient.EvaluateAsync(Minos.QuestionSet! questionSet, Minos.DecisionContent state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.Answers!, Minos.DecisionError!>>
+Minos.DecisionClient.EvaluateAsync(Minos.QuestionSet! questionSet, Minos.DecisionContent state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.Answers!, Minos.DecisionError!>>
+Minos.DecisionClient.EvaluateAsync(Minos.SystemOneRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOneResponse!, Minos.DecisionError!>>
+Minos.DecisionClient.EvaluateAsync(Minos.SystemOneRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOneResponse!, Minos.DecisionError!>>
+Minos.DecisionClient.EvaluateAsync<T, TState>(TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.DecisionClient.EvaluateAsync<T, TState>(TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.DecisionClient.EvaluateAsync<T>(string! state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.DecisionClient.EvaluateAsync<T>(string! state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.DecisionClient.EvaluateAsync<T>(System.Text.Json.JsonElement state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.DecisionClient.EvaluateAsync<T>(System.Text.Json.JsonElement state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.DecisionClient.EvaluateUtf8Async<T>(System.ReadOnlyMemory<byte> utf8JsonState, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.DecisionClient.ListModelsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.ModelList!, Minos.DecisionError!>>
+Minos.DecisionClientOptions
+Minos.DecisionClientOptions.ApiKey.get -> string?
+Minos.DecisionClientOptions.ApiKey.set -> void
+Minos.DecisionClientOptions.BaseAddress.get -> System.Uri?
+Minos.DecisionClientOptions.BaseAddress.set -> void
+Minos.DecisionClientOptions.DecisionClientOptions() -> void
+Minos.DecisionClientOptions.InitialBackoff.get -> System.TimeSpan
+Minos.DecisionClientOptions.InitialBackoff.set -> void
+Minos.DecisionClientOptions.Jitter.get -> bool
+Minos.DecisionClientOptions.Jitter.set -> void
+Minos.DecisionClientOptions.MaxRetries.get -> int
+Minos.DecisionClientOptions.MaxRetries.set -> void
+Minos.DecisionClientOptions.MaxRetryDelay.get -> System.TimeSpan
+Minos.DecisionClientOptions.MaxRetryDelay.set -> void
+Minos.DecisionClientOptions.Model.get -> string!
+Minos.DecisionClientOptions.Model.set -> void
+Minos.DecisionClientOptions.Provider.get -> Minos.DecisionProvider
+Minos.DecisionClientOptions.Provider.set -> void
+Minos.DecisionClientOptions.Timeout.get -> System.TimeSpan
+Minos.DecisionClientOptions.Timeout.set -> void
+Minos.DecisionClientOptions.Validate() -> void
+Minos.DecisionContent
+Minos.DecisionContent.DecisionContent() -> void
+Minos.DecisionContent.Equals(Minos.DecisionContent other) -> bool
+Minos.DecisionContent.IsString.get -> bool
+Minos.DecisionContent.TryGetJson(out System.Text.Json.JsonElement json) -> bool
+Minos.DecisionContent.TryGetString(out string? text) -> bool
+Minos.DecisionDefaults
+Minos.DecisionError
+Minos.DecisionError.DecisionError(Minos.DecisionErrorKind kind, string! message) -> void
+Minos.DecisionError.Detail.get -> System.Text.Json.JsonElement?
+Minos.DecisionError.Detail.init -> void
+Minos.DecisionError.Exception.get -> System.Exception?
+Minos.DecisionError.Exception.init -> void
+Minos.DecisionError.Failures.get -> System.Collections.Generic.IReadOnlyList<Minos.QuestionFailure!>!
+Minos.DecisionError.Kind.get -> Minos.DecisionErrorKind
+Minos.DecisionError.Message.get -> string!
+Minos.DecisionError.RetryAfter.get -> System.TimeSpan?
+Minos.DecisionError.RetryAfter.init -> void
+Minos.DecisionError.StatusCode.get -> int?
+Minos.DecisionError.StatusCode.init -> void
+Minos.DecisionErrorKind
+Minos.DecisionErrorKind.Disposed = 12 -> Minos.DecisionErrorKind
+Minos.DecisionErrorKind.Http = 6 -> Minos.DecisionErrorKind
+Minos.DecisionErrorKind.InvalidQuestions = 11 -> Minos.DecisionErrorKind
+Minos.DecisionErrorKind.InvalidResponse = 9 -> Minos.DecisionErrorKind
+Minos.DecisionErrorKind.Network = 7 -> Minos.DecisionErrorKind
+Minos.DecisionErrorKind.Overloaded = 4 -> Minos.DecisionErrorKind
+Minos.DecisionErrorKind.RateLimited = 3 -> Minos.DecisionErrorKind
+Minos.DecisionErrorKind.Server = 5 -> Minos.DecisionErrorKind
+Minos.DecisionErrorKind.Timeout = 8 -> Minos.DecisionErrorKind
+Minos.DecisionErrorKind.Unauthorized = 1 -> Minos.DecisionErrorKind
+Minos.DecisionErrorKind.Unsupported = 10 -> Minos.DecisionErrorKind
+Minos.DecisionErrorKind.Validation = 2 -> Minos.DecisionErrorKind
+Minos.DecisionOptionSet<T>
+Minos.DecisionOptionSet<T>.DecisionOptionSet() -> void
+Minos.DecisionProvider
+Minos.DecisionProvider.OpenRouter = 1 -> Minos.DecisionProvider
+Minos.DecisionProvider.TypeSafe = 0 -> Minos.DecisionProvider
+Minos.DecisionUsage
+Minos.DecisionUsage.<Clone>$() -> Minos.DecisionUsage!
+Minos.DecisionUsage.Cost.get -> double?
+Minos.DecisionUsage.Cost.init -> void
+Minos.DecisionUsage.DecisionUsage() -> void
+Minos.DecisionUsage.Equals(Minos.DecisionUsage? other) -> bool
+Minos.DecisionUsage.InputTokens.get -> int
+Minos.DecisionUsage.InputTokens.init -> void
+Minos.DecisionUsage.OutputTokens.get -> int
+Minos.DecisionUsage.OutputTokens.init -> void
+Minos.IDecisionClient
+Minos.IDecisionClient.EvaluateAsync(Minos.QuestionSet! questionSet, Minos.DecisionContent state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.Answers!, Minos.DecisionError!>>
+Minos.IDecisionClient.EvaluateAsync(Minos.QuestionSet! questionSet, Minos.DecisionContent state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.Answers!, Minos.DecisionError!>>
+Minos.IDecisionClient.EvaluateAsync(Minos.SystemOneRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOneResponse!, Minos.DecisionError!>>
+Minos.IDecisionClient.EvaluateAsync(Minos.SystemOneRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOneResponse!, Minos.DecisionError!>>
+Minos.IDecisionClient.EvaluateAsync<T, TState>(TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.IDecisionClient.EvaluateAsync<T, TState>(TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.IDecisionClient.EvaluateAsync<T>(string! state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.IDecisionClient.EvaluateAsync<T>(string! state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.IDecisionClient.EvaluateAsync<T>(System.Text.Json.JsonElement state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.IDecisionClient.EvaluateAsync<T>(System.Text.Json.JsonElement state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.IDecisionClient.EvaluateUtf8Async<T>(System.ReadOnlyMemory<byte> utf8JsonState, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+Minos.IDecisionClient.ListModelsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.ModelList!, Minos.DecisionError!>>
+Minos.IQuestionSet<TSelf, TState>
+Minos.IQuestionSet<TSelf>
+Minos.IQuestionSet<TSelf>.Parse(ref System.Text.Json.Utf8JsonReader answers) -> TSelf
+Minos.IQuestionSet<TSelf>.QuestionsUtf8.get -> System.ReadOnlySpan<byte>
+Minos.KeyedChoice
+Minos.KeyedChoice.Confidence.get -> double
+Minos.KeyedChoice.Equals(Minos.KeyedChoice other) -> bool
+Minos.KeyedChoice.KeyedChoice() -> void
+Minos.KeyedChoice.KeyedChoice(string! value, double confidence, Minos.KeyedProbabilityMap probabilities) -> void
+Minos.KeyedChoice.Probabilities.get -> Minos.KeyedProbabilityMap
+Minos.KeyedChoice.Value.get -> string!
+Minos.KeyedChoiceHandle
+Minos.KeyedChoiceHandle.KeyedChoiceHandle() -> void
+Minos.KeyedChoiceOptionsBuilder
+Minos.KeyedChoiceOptionsBuilder.Option(string! key) -> Minos.KeyedChoiceOptionsBuilder!
+Minos.KeyedChoiceOptionsBuilder.Option(string! key, Minos.Criterion! criterion) -> Minos.KeyedChoiceOptionsBuilder!
+Minos.KeyedProbabilityMap
+Minos.KeyedProbabilityMap.Count.get -> int
+Minos.KeyedProbabilityMap.Enumerator
+Minos.KeyedProbabilityMap.Enumerator.Current.get -> (string! Key, double Probability)
+Minos.KeyedProbabilityMap.Enumerator.Enumerator() -> void
+Minos.KeyedProbabilityMap.Enumerator.MoveNext() -> bool
+Minos.KeyedProbabilityMap.Equals(Minos.KeyedProbabilityMap other) -> bool
+Minos.KeyedProbabilityMap.GetEnumerator() -> Minos.KeyedProbabilityMap.Enumerator
+Minos.KeyedProbabilityMap.KeyedProbabilityMap() -> void
+Minos.KeyedProbabilityMap.this[int index].get -> double
+Minos.KeyedProbabilityMap.this[string! key].get -> double
+Minos.KeyedScore
+Minos.KeyedScore.Confidence.get -> double
+Minos.KeyedScore.Equals(Minos.KeyedScore other) -> bool
+Minos.KeyedScore.Expected.get -> double
+Minos.KeyedScore.KeyedScore() -> void
+Minos.KeyedScore.KeyedScore(int level, double expected, double confidence, Minos.KeyedProbabilityMap probabilities) -> void
+Minos.KeyedScore.Level.get -> int
+Minos.KeyedScore.Normalized.get -> double
+Minos.KeyedScore.Probabilities.get -> Minos.KeyedProbabilityMap
+Minos.KeyedScoreHandle
+Minos.KeyedScoreHandle.KeyedScoreHandle() -> void
+Minos.KeyedScoreLevelsBuilder
+Minos.KeyedScoreLevelsBuilder.Level(Minos.Criterion! criterion) -> Minos.KeyedScoreLevelsBuilder!
+Minos.LevelAttribute
+Minos.LevelAttribute.Description.get -> string!
+Minos.LevelAttribute.Examples.get -> string![]?
+Minos.LevelAttribute.Examples.set -> void
+Minos.LevelAttribute.LevelAttribute(string! description) -> void
+Minos.LevelAttribute.NotFor.get -> string![]?
+Minos.LevelAttribute.NotFor.set -> void
+Minos.ModelCard
+Minos.ModelCard.<Clone>$() -> Minos.ModelCard!
+Minos.ModelCard.Description.get -> string!
+Minos.ModelCard.Description.init -> void
+Minos.ModelCard.Equals(Minos.ModelCard? other) -> bool
+Minos.ModelCard.ModelCard() -> void
+Minos.ModelCard.Name.get -> string!
+Minos.ModelCard.Name.init -> void
+Minos.ModelCard.ReleaseDate.get -> string!
+Minos.ModelCard.ReleaseDate.init -> void
+Minos.ModelList
+Minos.ModelList.ModelList() -> void
+Minos.ModelList.Models.get -> System.Collections.Generic.IReadOnlyList<Minos.ModelCard!>!
+Minos.ModelList.Models.init -> void
+Minos.Noul
+Minos.Noul.Equals(Minos.Noul other) -> bool
+Minos.Noul.Noul() -> void
+Minos.Noul.Noul(double probability) -> void
+Minos.Noul.Probability.get -> double
+Minos.Noul.Value.get -> bool
+Minos.NoulAnswer
+Minos.NoulAnswer.Noul.get -> double
+Minos.NoulAnswer.Noul.init -> void
+Minos.NoulAnswer.NoulAnswer() -> void
+Minos.NoulAttribute
+Minos.NoulAttribute.Instructions.get -> string!
+Minos.NoulAttribute.Key.get -> string?
+Minos.NoulAttribute.Key.set -> void
+Minos.NoulAttribute.NoulAttribute(string! instructions) -> void
+Minos.NoulAttribute.WhenFalse.get -> string?
+Minos.NoulAttribute.WhenFalse.set -> void
+Minos.NoulAttribute.WhenTrue.get -> string?
+Minos.NoulAttribute.WhenTrue.set -> void
+Minos.NoulCriteria
+Minos.NoulCriteria.<Clone>$() -> Minos.NoulCriteria!
+Minos.NoulCriteria.Equals(Minos.NoulCriteria? other) -> bool
+Minos.NoulCriteria.NoulCriteria() -> void
+Minos.NoulCriteria.WhenFalse.get -> Minos.DecisionContent?
+Minos.NoulCriteria.WhenFalse.init -> void
+Minos.NoulCriteria.WhenTrue.get -> Minos.DecisionContent?
+Minos.NoulCriteria.WhenTrue.init -> void
+Minos.NoulCriteriaBuilder
+Minos.NoulCriteriaBuilder.WhenFalse(Minos.DecisionContent description) -> Minos.NoulCriteriaBuilder!
+Minos.NoulCriteriaBuilder.WhenTrue(Minos.DecisionContent description) -> Minos.NoulCriteriaBuilder!
+Minos.NoulHandle
+Minos.NoulHandle.NoulHandle() -> void
+Minos.NoulQuestion
+Minos.NoulQuestion.Criteria.get -> Minos.NoulCriteria?
+Minos.NoulQuestion.Criteria.init -> void
+Minos.NoulQuestion.NoulQuestion() -> void
+Minos.ProbabilityMap<T>
+Minos.ProbabilityMap<T>.Count.get -> int
+Minos.ProbabilityMap<T>.Enumerator
+Minos.ProbabilityMap<T>.Enumerator.Current.get -> (T Option, double Probability)
+Minos.ProbabilityMap<T>.Enumerator.Enumerator() -> void
+Minos.ProbabilityMap<T>.Enumerator.MoveNext() -> bool
+Minos.ProbabilityMap<T>.Equals(Minos.ProbabilityMap<T> other) -> bool
+Minos.ProbabilityMap<T>.GetEnumerator() -> Minos.ProbabilityMap<T>.Enumerator
+Minos.ProbabilityMap<T>.ProbabilityMap() -> void
+Minos.ProbabilityMap<T>.this[T option].get -> double
+Minos.Question
+Minos.Question.Instructions.get -> Minos.DecisionContent
+Minos.Question.Instructions.init -> void
+Minos.QuestionFailure
+Minos.QuestionFailure.<Clone>$() -> Minos.QuestionFailure!
+Minos.QuestionFailure.Deconstruct(out string! Rule, out string? QuestionKey, out string! Message) -> void
+Minos.QuestionFailure.Equals(Minos.QuestionFailure? other) -> bool
+Minos.QuestionFailure.Message.get -> string!
+Minos.QuestionFailure.Message.init -> void
+Minos.QuestionFailure.QuestionFailure(string! Rule, string? QuestionKey, string! Message) -> void
+Minos.QuestionFailure.QuestionKey.get -> string?
+Minos.QuestionFailure.QuestionKey.init -> void
+Minos.QuestionFailure.Rule.get -> string!
+Minos.QuestionFailure.Rule.init -> void
+Minos.QuestionsAttribute
+Minos.QuestionsAttribute.QuestionsAttribute() -> void
+Minos.QuestionsAttribute.State.get -> System.Type?
+Minos.QuestionsAttribute.State.set -> void
+Minos.QuestionSet
+Minos.QuestionSet.QuestionsUtf8.get -> System.ReadOnlySpan<byte>
+Minos.QuestionSet.Warnings.get -> System.Collections.Generic.IReadOnlyList<Minos.QuestionFailure!>!
+Minos.QuestionSetBuilder
+Minos.QuestionSetBuilder.Build() -> ZeroAlloc.Results.Result<Minos.QuestionSet!, Minos.DecisionError!>
+Minos.QuestionSetBuilder.Choice(string! key, Minos.DecisionContent instructions, out Minos.KeyedChoiceHandle question, System.Action<Minos.KeyedChoiceOptionsBuilder!>! configure) -> Minos.QuestionSetBuilder!
+Minos.QuestionSetBuilder.Choice<T>(string! key, Minos.DecisionContent instructions, out Minos.ChoiceHandle<T> question) -> Minos.QuestionSetBuilder!
+Minos.QuestionSetBuilder.Choice<T>(string! key, Minos.DecisionContent instructions, out Minos.ChoiceHandle<T> question, System.Action<Minos.ChoiceOptionsBuilder<T>!>! configure) -> Minos.QuestionSetBuilder!
+Minos.QuestionSetBuilder.Noul(string! key, Minos.DecisionContent instructions, out Minos.NoulHandle question) -> Minos.QuestionSetBuilder!
+Minos.QuestionSetBuilder.Noul(string! key, Minos.DecisionContent instructions, out Minos.NoulHandle question, System.Action<Minos.NoulCriteriaBuilder!>! configure) -> Minos.QuestionSetBuilder!
+Minos.QuestionSetBuilder.Score(string! key, Minos.DecisionContent instructions, out Minos.KeyedScoreHandle question, System.Action<Minos.KeyedScoreLevelsBuilder!>! configure) -> Minos.QuestionSetBuilder!
+Minos.QuestionSetBuilder.Score<T>(string! key, Minos.DecisionContent instructions, out Minos.ScoreHandle<T> question, System.Action<Minos.ScoreLevelsBuilder<T>!>! configure) -> Minos.QuestionSetBuilder!
+Minos.Score<T>
+Minos.Score<T>.Confidence.get -> double
+Minos.Score<T>.Equals(Minos.Score<T> other) -> bool
+Minos.Score<T>.Expected.get -> double
+Minos.Score<T>.Normalized.get -> double
+Minos.Score<T>.Probabilities.get -> Minos.ProbabilityMap<T>
+Minos.Score<T>.Score() -> void
+Minos.Score<T>.Score(T value, double expected, double confidence, Minos.ProbabilityMap<T> probabilities) -> void
+Minos.Score<T>.Value.get -> T
+Minos.ScoreAnswer
+Minos.ScoreAnswer.Confidence.get -> double
+Minos.ScoreAnswer.Confidence.init -> void
+Minos.ScoreAnswer.Legend.get -> System.Collections.Generic.IReadOnlyDictionary<string!, string!>!
+Minos.ScoreAnswer.Legend.init -> void
+Minos.ScoreAnswer.Probabilities.get -> System.Collections.Generic.IReadOnlyDictionary<string!, double>!
+Minos.ScoreAnswer.Probabilities.init -> void
+Minos.ScoreAnswer.Score.get -> double
+Minos.ScoreAnswer.Score.init -> void
+Minos.ScoreAnswer.ScoreAnswer() -> void
+Minos.ScoreAttribute
+Minos.ScoreAttribute.Instructions.get -> string!
+Minos.ScoreAttribute.Key.get -> string?
+Minos.ScoreAttribute.Key.set -> void
+Minos.ScoreAttribute.ScoreAttribute(string! instructions) -> void
+Minos.ScoreHandle<T>
+Minos.ScoreHandle<T>.ScoreHandle() -> void
+Minos.ScoreLevelsBuilder<T>
+Minos.ScoreLevelsBuilder<T>.Level(T level, Minos.Criterion! criterion) -> Minos.ScoreLevelsBuilder<T>!
+Minos.ScoreQuestion
+Minos.ScoreQuestion.Criteria.get -> System.Collections.Generic.IReadOnlyList<Minos.DecisionContent>!
+Minos.ScoreQuestion.Criteria.init -> void
+Minos.ScoreQuestion.ScoreQuestion() -> void
+Minos.SystemOneRequest
+Minos.SystemOneRequest.Model.get -> string!
+Minos.SystemOneRequest.Model.init -> void
+Minos.SystemOneRequest.Questions.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Minos.Question!>!
+Minos.SystemOneRequest.Questions.init -> void
+Minos.SystemOneRequest.State.get -> Minos.DecisionContent
+Minos.SystemOneRequest.State.init -> void
+Minos.SystemOneRequest.SystemOneRequest() -> void
+Minos.SystemOneResponse
+Minos.SystemOneResponse.Answers.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Minos.Answer!>!
+Minos.SystemOneResponse.Answers.init -> void
+Minos.SystemOneResponse.Id.get -> string?
+Minos.SystemOneResponse.Id.init -> void
+Minos.SystemOneResponse.Model.get -> string!
+Minos.SystemOneResponse.Model.init -> void
+Minos.SystemOneResponse.Provider.get -> string?
+Minos.SystemOneResponse.Provider.init -> void
+Minos.SystemOneResponse.SystemOneResponse() -> void
+Minos.SystemOneResponse.Usage.get -> Minos.DecisionUsage!
+Minos.SystemOneResponse.Usage.init -> void
+override Minos.Choice<T>.Equals(object? obj) -> bool
+override Minos.Choice<T>.GetHashCode() -> int
+override Minos.ConfidenceThresholds.Equals(object? obj) -> bool
+override Minos.ConfidenceThresholds.GetHashCode() -> int
+override Minos.DecisionContent.Equals(object? obj) -> bool
+override Minos.DecisionContent.GetHashCode() -> int
+override Minos.DecisionContent.ToString() -> string!
+override Minos.DecisionError.ToString() -> string!
+override Minos.DecisionUsage.Equals(object? obj) -> bool
+override Minos.DecisionUsage.GetHashCode() -> int
+override Minos.DecisionUsage.ToString() -> string!
+override Minos.KeyedChoice.Equals(object? obj) -> bool
+override Minos.KeyedChoice.GetHashCode() -> int
+override Minos.KeyedProbabilityMap.Equals(object? obj) -> bool
+override Minos.KeyedProbabilityMap.GetHashCode() -> int
+override Minos.KeyedScore.Equals(object? obj) -> bool
+override Minos.KeyedScore.GetHashCode() -> int
+override Minos.ModelCard.Equals(object? obj) -> bool
+override Minos.ModelCard.GetHashCode() -> int
+override Minos.ModelCard.ToString() -> string!
+override Minos.Noul.Equals(object? obj) -> bool
+override Minos.Noul.GetHashCode() -> int
+override Minos.NoulCriteria.Equals(object? obj) -> bool
+override Minos.NoulCriteria.GetHashCode() -> int
+override Minos.NoulCriteria.ToString() -> string!
+override Minos.ProbabilityMap<T>.Equals(object? obj) -> bool
+override Minos.ProbabilityMap<T>.GetHashCode() -> int
+override Minos.QuestionFailure.Equals(object? obj) -> bool
+override Minos.QuestionFailure.GetHashCode() -> int
+override Minos.QuestionFailure.ToString() -> string!
+override Minos.Score<T>.Equals(object? obj) -> bool
+override Minos.Score<T>.GetHashCode() -> int
+static Minos.AnswerReader.EnsureStartObject(ref System.Text.Json.Utf8JsonReader reader) -> void
+static Minos.AnswerReader.MissingAnswer(string! key) -> System.Text.Json.JsonException!
+static Minos.AnswerReader.NextProperty(ref System.Text.Json.Utf8JsonReader reader) -> bool
+static Minos.AnswerReader.ReadChoice<T>(ref System.Text.Json.Utf8JsonReader reader, Minos.DecisionOptionSet<T>! options, double[]! buffer, int offset) -> Minos.Choice<T>
+static Minos.AnswerReader.ReadNoul(ref System.Text.Json.Utf8JsonReader reader) -> Minos.Noul
+static Minos.AnswerReader.ReadScore<T>(ref System.Text.Json.Utf8JsonReader reader, Minos.DecisionOptionSet<T>! options, double[]! buffer, int offset) -> Minos.Score<T>
+static Minos.Choice<T>.operator !=(Minos.Choice<T> left, Minos.Choice<T> right) -> bool
+static Minos.Choice<T>.operator ==(Minos.Choice<T> left, Minos.Choice<T> right) -> bool
+static Minos.ConfidenceThresholds.Default.get -> Minos.ConfidenceThresholds
+static Minos.ConfidenceThresholds.operator !=(Minos.ConfidenceThresholds left, Minos.ConfidenceThresholds right) -> bool
+static Minos.ConfidenceThresholds.operator ==(Minos.ConfidenceThresholds left, Minos.ConfidenceThresholds right) -> bool
+static Minos.Criterion.implicit operator Minos.Criterion!(string! description) -> Minos.Criterion!
+static Minos.Criterion.Json(Minos.DecisionContent json) -> Minos.Criterion!
+static Minos.Criterion.Text(string! description) -> Minos.Criterion!
+static Minos.DecisionClient.ConfigureHttpClient(System.Net.Http.HttpClient! httpClient, Minos.DecisionClientOptions? options) -> void
+static Minos.DecisionContent.FromJson(System.Text.Json.JsonElement json) -> Minos.DecisionContent
+static Minos.DecisionContent.FromString(string! text) -> Minos.DecisionContent
+static Minos.DecisionContent.FromUtf8Json(System.ReadOnlySpan<byte> utf8Json) -> Minos.DecisionContent
+static Minos.DecisionContent.FromValue<T>(T value, System.Text.Json.Serialization.Metadata.JsonTypeInfo<T>! typeInfo) -> Minos.DecisionContent
+static Minos.DecisionContent.implicit operator Minos.DecisionContent(string! text) -> Minos.DecisionContent
+static Minos.DecisionContent.operator !=(Minos.DecisionContent left, Minos.DecisionContent right) -> bool
+static Minos.DecisionContent.operator ==(Minos.DecisionContent left, Minos.DecisionContent right) -> bool
+static Minos.DecisionDefaults.Model.get -> string!
+static Minos.DecisionDefaults.OpenRouterBaseAddress.get -> System.Uri!
+static Minos.DecisionDefaults.TypeSafeBaseAddress.get -> System.Uri!
+static Minos.DecisionUsage.operator !=(Minos.DecisionUsage? left, Minos.DecisionUsage? right) -> bool
+static Minos.DecisionUsage.operator ==(Minos.DecisionUsage? left, Minos.DecisionUsage? right) -> bool
+static Minos.KeyedChoice.operator !=(Minos.KeyedChoice left, Minos.KeyedChoice right) -> bool
+static Minos.KeyedChoice.operator ==(Minos.KeyedChoice left, Minos.KeyedChoice right) -> bool
+static Minos.KeyedProbabilityMap.operator !=(Minos.KeyedProbabilityMap left, Minos.KeyedProbabilityMap right) -> bool
+static Minos.KeyedProbabilityMap.operator ==(Minos.KeyedProbabilityMap left, Minos.KeyedProbabilityMap right) -> bool
+static Minos.KeyedScore.operator !=(Minos.KeyedScore left, Minos.KeyedScore right) -> bool
+static Minos.KeyedScore.operator ==(Minos.KeyedScore left, Minos.KeyedScore right) -> bool
+static Minos.ModelCard.operator !=(Minos.ModelCard? left, Minos.ModelCard? right) -> bool
+static Minos.ModelCard.operator ==(Minos.ModelCard? left, Minos.ModelCard? right) -> bool
+static Minos.Noul.operator !=(Minos.Noul left, Minos.Noul right) -> bool
+static Minos.Noul.operator ==(Minos.Noul left, Minos.Noul right) -> bool
+static Minos.NoulCriteria.operator !=(Minos.NoulCriteria? left, Minos.NoulCriteria? right) -> bool
+static Minos.NoulCriteria.operator ==(Minos.NoulCriteria? left, Minos.NoulCriteria? right) -> bool
+static Minos.ProbabilityMap<T>.operator !=(Minos.ProbabilityMap<T> left, Minos.ProbabilityMap<T> right) -> bool
+static Minos.ProbabilityMap<T>.operator ==(Minos.ProbabilityMap<T> left, Minos.ProbabilityMap<T> right) -> bool
+static Minos.QuestionFailure.operator !=(Minos.QuestionFailure? left, Minos.QuestionFailure? right) -> bool
+static Minos.QuestionFailure.operator ==(Minos.QuestionFailure? left, Minos.QuestionFailure? right) -> bool
+static Minos.QuestionSet.CreateBuilder() -> Minos.QuestionSetBuilder!
+static Minos.Score<T>.operator !=(Minos.Score<T> left, Minos.Score<T> right) -> bool
+static Minos.Score<T>.operator ==(Minos.Score<T> left, Minos.Score<T> right) -> bool
