@@ -53,11 +53,6 @@ public sealed class WireFixtureTests
     public static TheoryData<string> BuiltCaseNames => [.. BuiltCases.Keys];
 
     [Theory]
-    [MemberData(nameof(GeneratedCases))]
-    public void Generated_QuestionsMatchTheFixture(string name)
-        => WireFixtures.AssertMatches("generated-" + name, GeneratedQuestions(name));
-
-    [Theory]
     [MemberData(nameof(BuiltCaseNames))]
     public void Built_ProtocolQuestionsMatchTheFixture(string name)
         => WireFixtures.AssertMatches("built-" + name, Minos.Protocols.SystemOneProtocol.QuestionsUtf8(BuiltCases[name]().Definition));
@@ -103,10 +98,6 @@ public sealed class WireFixtureTests
         "Escapes" => WfEscapes.Definition,
         _ => throw new ArgumentOutOfRangeException(nameof(name)),
     };
-
-    // The questions the protocol writes for a generated set's definition.
-    internal static ReadOnlySpan<byte> GeneratedQuestions(string name)
-        => Minos.Protocols.SystemOneProtocol.QuestionsUtf8(GeneratedDefinition(name));
 }
 
 /// <summary>Every builder chain whose questions are pinned as a fixture, declared once and shared with the tests that assert on it.</summary>

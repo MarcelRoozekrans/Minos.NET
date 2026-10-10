@@ -313,7 +313,10 @@ the fixed measuring order patched in, three runs each. Every figure was the same
 run. The yielding telemetry-off check measures 4181 to 4185 B against the 4184 B its comment records.
 
 The budgets stay as they are. Each is already the true cost plus about 10%, rounded up to the next 64 B, so no budget
-can be tightened under that rule.
+can be tightened under that rule. The old `GeneratedParse` gate, 192 B over 176 B, is now split in two:
+`GeneratedCreate` in the smoke app holds the generated `Create` to 128 B over its 112 B measurement, and
+`GeneratedSetAllocationTests` in the unit suite holds the protocol's whole read of the answers, buffer included, to the
+same 192 B.
 
 ## Comparison
 

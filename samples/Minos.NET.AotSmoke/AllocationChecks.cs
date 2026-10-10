@@ -33,14 +33,7 @@ internal static class AllocationChecks
     /// </summary>
     public static async Task AnswerSlotAccessors()
     {
-        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, TriageResponseJson))
-        {
-            BaseAddress = new Uri("https://example.test/api/"),
-        };
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
-
-        var result = await client.EvaluateAsync<SlotProbe>(SmokeAnswers.State).ConfigureAwait(false);
-        Program.Check(result.IsSuccess, "the slot probe is created over the triage answers");
+        await RunSlotProbeAsync().ConfigureAwait(false);
 
         // Measured 0 B/call on published win-x64 AOT for each accessor: Noul reads a double off the slot span, and
         // Choice and Score return structs over the protocol's probability array. Each gate takes the 0 B budget of the
@@ -55,6 +48,37 @@ internal static class AllocationChecks
         Program.Check(
             SlotProbe.ScoreBytes is >= 0 and <= BudgetBytes,
             $"AnswerSlots.Score stays within its allocation budget: {SlotProbe.ScoreBytes} B over {GateIterations} calls against {BudgetBytes} B");
+    }
+
+    /// <summary>
+    /// The generated <c>SmokeTriage.Create</c> over the slots a protocol read from the triage answers: the result record
+    /// and the arrays it keeps. Together with the protocol's own probability buffer, which the typed evaluation gates
+    /// count, it is the work the old generated <c>Parse</c> gate held to 192 B.
+    /// </summary>
+    public static async Task GeneratedCreate()
+    {
+        await RunSlotProbeAsync().ConfigureAwait(false);
+
+        // Measured 112 B/call on published win-x64 AOT: the SmokeTriage record and the slot copy it keeps, with the
+        // protocol's probability buffer outside the loop. Budget: about 10% headroom over the measurement, rounded up to
+        // the next multiple of 64 B, per the Phase 1.8 rule, and below the 192 B of the generated Parse it replaces.
+        const long BudgetBytes = 128;
+        var perCall = SlotProbe.CreateBytes / GateIterations;
+        Program.Check(
+            SlotProbe.CreateBytes >= 0 && perCall <= BudgetBytes,
+            $"SmokeTriage.Create stays within its allocation budget: {perCall} B/call against {BudgetBytes} B");
+    }
+
+    private static async Task RunSlotProbeAsync()
+    {
+        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, TriageResponseJson))
+        {
+            BaseAddress = new Uri("https://example.test/api/"),
+        };
+        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
+
+        var result = await client.EvaluateAsync<SlotProbe>(SmokeAnswers.State).ConfigureAwait(false);
+        Program.Check(result.IsSuccess, "the slot probe is created over the triage answers");
     }
 
     /// <summary><see cref="AnswerReader.ReadNoul"/> over a fixed Noul answer.</summary>
@@ -752,6 +776,8 @@ internal static class AllocationChecks
 
         public static long ScoreBytes { get; private set; } = -1;
 
+        public static long CreateBytes { get; private set; } = -1;
+
         public static ReadOnlySpan<byte> QuestionsUtf8 => default;
 
         public static QuestionSetDefinition Definition => SmokeTriage.Definition;
@@ -789,6 +815,13 @@ internal static class AllocationChecks
             }
 
             var afterScore = GC.GetAllocatedBytesForCurrentThread();
+            var beforeCreate = GC.GetAllocatedBytesForCurrentThread();
+            for (var i = 0; i < GateIterations; i++)
+            {
+                total += SmokeTriage.Create(answers).RequestsCredentials.Value ? 1 : 0;
+            }
+
+            CreateBytes = GC.GetAllocatedBytesForCurrentThread() - beforeCreate;
             NoulBytes = afterNoul - before;
             ChoiceBytes = afterChoice - afterNoul;
             ScoreBytes = afterScore - afterChoice;

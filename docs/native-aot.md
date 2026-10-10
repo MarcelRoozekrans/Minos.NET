@@ -182,6 +182,7 @@ regression cannot reach a release unnoticed.
 | `PatternHelpers` | The confidence and normalization helpers of the patterns. | 0 |
 | `NoulEquals` | Comparing two `Noul` answers, directly and through `EqualityComparer<Noul>.Default`. | 0 |
 | `AnswerSlotAccessors` | Reading a `Noul`, a `Choice<T>` and a `Score<T>` from the answer slots of a typed set. | 0 |
+| `GeneratedCreate` | The generated `Create` of a typed set building its result from the answer slots, which replaces the old `GeneratedParse` gate of 192. The protocol's probability buffer is counted by the typed round trips and by a test in the unit suite, which holds the whole read to 192. | 128 |
 | `EvaluateRoundTrip` | A raw `EvaluateAsync` call. | 4352 |
 | `TypedEvaluateRoundTrip` | A typed `EvaluateAsync<T>` call. | 3328 |
 | `EvaluateBuiltSetRoundTrip` | An `EvaluateAsync` call over a built set. | 3648 |

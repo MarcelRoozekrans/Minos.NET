@@ -74,8 +74,9 @@ public sealed class TypedAnswerTests
     }
 
     [Fact]
-    public void DecisionOptionSet_IsHiddenFromIntelliSense()
+    public void DecisionOptionSet_IsHiddenFromIntelliSense_LikeAnswerReader()
     {
+        Assert.Equal(EditorBrowsableState.Never, Hidden(typeof(AnswerReader)));
         Assert.Equal(EditorBrowsableState.Never, Hidden(typeof(DecisionOptionSet<>)));
 
         static EditorBrowsableState? Hidden(Type type)

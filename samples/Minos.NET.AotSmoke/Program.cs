@@ -89,6 +89,7 @@ internal static class Program
         IQuestionSetChecks.CreateRunsThroughTheInterface();
 
         await AllocationChecks.AnswerSlotAccessors().ConfigureAwait(false);
+        await AllocationChecks.GeneratedCreate().ConfigureAwait(false);
         AllocationChecks.ReadNoul();
         AllocationChecks.ReadChoice();
         AllocationChecks.ReadScore();
