@@ -8,7 +8,7 @@ description: Declare questions as a C# type, give them a typed state, and pick t
 # Typed evaluation
 
 Typed evaluation is the main way to use Minos.NET. You declare the questions once, as a partial record. A source
-generator turns them into the request at compile time and into a parser for the answers, so a call is one line and the
+generator turns them into a question definition at compile time, which the client writes as the request, and into a parser for the answers, so a call is one line and the
 answers come back as typed properties. This page covers the declaration, the state you hand to Jev, and the ways to
 call it. [Getting started](getting-started.md) has the shortest working example, and
 [Question types](question-types.md) covers what each answer holds.
@@ -162,8 +162,9 @@ object. The Jev API itself has no such fields. The generated questions for `Tick
 ```
 
 A Choice's options are keyed by the member name in snake_case, or by `Key` on the member's `[Criteria]` when one is
-set. A Score's levels are keyed by their index, and `[Level]` has no `Key`. Because this JSON is written at compile
-time, the question text and criteria are fixed: they cannot vary per call. What varies per call is the state.
+set. A Score's levels are keyed by their index, and `[Level]` has no `Key`. The generator
+fixes the question text and criteria in the definition it writes at compile time, and the client writes this JSON from
+it: they cannot vary per call. What varies per call is the state.
 
 ### Referring to the state in a question
 

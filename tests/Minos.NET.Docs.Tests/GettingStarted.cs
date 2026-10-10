@@ -15,7 +15,7 @@ public enum SupportTeam
     Sales,
 }
 
-// Two questions about one message. The generator writes the question JSON at compile time, and the
+// Two questions about one message. The generator writes the question definition at compile time, and the
 // properties hold the typed answers once Jev has replied.
 [Questions]
 public partial record TicketCheck

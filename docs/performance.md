@@ -33,7 +33,7 @@ To be recorded from the first full run.
 | `ContentBenchmarks.FromUtf8Json` | 708.7 ns | 256 B | 320 B |
 
 Measured on a 12th Gen Intel Core i9-12900HK, Windows 11 (10.0.26200.9457), .NET SDK 10.0.401, with
-`--job short`. Question sets add no cost per call: `Examples` and `NotFor` change only the
+`--job short`. Question sets add no cost per call after the first: `Examples` and `NotFor` change only the
 questions object, which is written once per set from its definition and cached.
 
 The means come from `--job short`, which runs few iterations and leaves wide error bars; treat them as
@@ -48,8 +48,8 @@ benchmark, and the same rounding gives it 320 B too.
 
 | Benchmark | Mean | Allocated | Budget |
 |---|---|---|---|
-| `QuestionSetBenchmarks.Build` | 1.903 us | 6728 B | 7296 B (AOT smoke, a different three-question set) |
-| `QuestionSetBenchmarks.EvaluateBuiltSet` | 4.234 us | 3808 B | 4736 B (AOT smoke, a different set) |
+| `QuestionSetBenchmarks.Build` | 1.903 us | 6728 B | 7296 B (AOT smoke, a different three-question set, unchanged) |
+| `QuestionSetBenchmarks.EvaluateBuiltSet` | 4.234 us | 3808 B | 3648 B today, 4736 B then (AOT smoke, a different set) |
 | `QuestionSetBenchmarks.ParseBuiltTwenty` | 3.087 us | 568 B | 256 B (unit test, a different three-question set) |
 | `QuestionSetBenchmarks.ParseGeneratedTwenty` | 2.457 us | 176 B | — |
 | `Answers.Get` | — | — | 0 B (AOT smoke) |
@@ -57,22 +57,23 @@ benchmark, and the same rounding gives it 320 B too.
 Measured on a 12th Gen Intel Core i9-12900HK, Windows 11 (10.0.26200.9457), .NET SDK 10.0.401 with runtime 10.0.12,
 with `--job short`, so the means are indicative only.
 
-These are the Phase 2.4 figures. Since the neutral question model, a generated and a built set go through the same
-protocol read, which finds each answer's key in the definition's UTF-8 keys and fills a slot. The generated `Create`
-then builds the typed result from the slots, so the two no longer differ in how they scan. The comparison below is how
-it was measured then.
+These are the Phase 2.4 measurements, taken before the neutral question model, so every benchmark figure in this
+section is historical. Today a generated and a built set go through the same protocol read, which finds each answer's
+key in the definition's UTF-8 keys and fills a slot, and the generated `Create` builds the typed result from the slots.
+The two no longer differ in how they scan.
 
-A built set finds each answer's question by a linear `ValueTextEquals` scan over its UTF-8 keys, where the generated
-parser compiles one `if` chain. At twenty questions the scan costs about 0.63 us more, 3.087 us against 2.457 us, or
-26% (1.26 times the generated parse), and allocates 568 B against 176 B mostly for the larger slot array. That is well
-inside twice the generated parse, so it does not call for a UTF-8 key map: the scan is short at the sizes a question
-set has, and a map, built once at Build, would add a hash per answer for a saving of well under a microsecond.
+In Phase 2.4 a built set found each answer's question by a linear `ValueTextEquals` scan over its UTF-8 keys, where the
+generated parser compiled one `if` chain. At twenty questions the scan cost about 0.63 us more, 3.087 us against
+2.457 us, or 26% (1.26 times the generated parse), and allocated 568 B against 176 B mostly for the larger slot array.
+That was well inside twice the generated parse, so it did not call for a UTF-8 key map: the scan is short at the sizes a
+question set has, and a map, built once at Build, would add a hash per answer for a saving of well under a microsecond.
+The scan is still a linear one over the UTF-8 keys, now for both kinds of set.
 
-The budgets come from the AOT smoke app and the unit test, which measure on their own inputs, not the benchmark's:
-`Build` measures 6592 B and `EvaluateBuiltSet` 4288 B on published win-x64 AOT, each plus about 10% rounded up to the
-next 64 B; the parse measures 216 B, rounded up to 256 B. The parse budget is gated in `tests/Minos.NET.Tests`
-under the JIT, since parsing is internal and the AOT smoke app uses only the public API; it allocates only the
-`Answers` object, its probability buffer and its slot array.
+The budgets come from the AOT smoke app, which measures on its own inputs, not the benchmark's. Today `Build`
+measures 2648 B against an unchanged budget of 7296 B, and the built-set round trip measures 3272 B against 3648 B.
+Phase 2.4 first budgeted them from 6592 B and 4288 B. The parse budget of 256 B, from a 216 B measurement in Phase 2.4,
+is gated in `tests/Minos.NET.Tests` under the JIT, since parsing is internal and the AOT smoke app uses only the public
+API.
 
 ### Phase 3.1 — Logging
 
@@ -137,7 +138,7 @@ with `--job short`, so the means are indicative only. BenchmarkDotNet prints All
 decimals, so each figure is good to about 5 B.
 `QuestionSetBenchmarks.EvaluateBuiltSet` and `TelemetryBenchmarks.EvaluateBuiltSetListeningAsync` evaluate the same
 three-question triage set, off and listening, so those two rows compare directly. The AOT built-set gates evaluate
-`SmokeBuiltSet.Full`, four questions, so they have no row here: `EvaluateBuiltSetRoundTrip` holds 4736 B, and
+`SmokeBuiltSet.Full`, four questions, so they have no row here: `EvaluateBuiltSetRoundTrip` held 4736 B then (3648 B today), and
 `EvaluateBuiltSetRoundTripWhileListening` measures 5216 B against 5760 B.
 
 **Telemetry off.** With nothing listening, the generated proxy returns each operation's own task, so it adds nothing.
