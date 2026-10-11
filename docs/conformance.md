@@ -41,19 +41,19 @@ be off by 0.01.
 | Check | What it checks | Skipped when |
 | --- | --- | --- |
 | `S1` | The response is a JSON object with exactly one answer per question asked. | No request was sent. |
-| `S2` | Each answer's `type` fits its question: a Noul is `noul` on System One and `predicate` on OpenAI; a Choice and a Score are `choice` and `score` on both. | No answer was examined; `S1` reports it. |
+| `S2` | Each answer's `type` fits its question: a Noul is `noul` on System One and `predicate` on OpenAI; a Choice and a Score are `choice` and `score` on both. | No answer could be read; `S1` reports it. |
 | `S3` | Minos reads the response without an error, and its result reads every key with its kind. | Never. |
-| `D1` | Every probability is a finite number from 0 to 1. | No answer was examined; `S1` reports it. |
-| `D2` | A Choice's or a Score's probabilities sum to 1 and cover exactly the options or levels sent. | The probe asks no Choice or Score, or no answer was examined. |
-| `D3` | A Score's `score` is the sum of each level times its probability, where OpenAI gives each level in a probability's `value`. | The probe asks no Score, or no answer was examined. |
-| `D4` | A reported confidence is from 0 to 1. | No answer reports one, as for a Noul. |
-| `M1` | The `mixed` answers are matched by key, so a provider or a parser that relies on their order fails. | Minos returned an error. |
+| `D1` | Every probability is a finite number from 0 to 1. | No answer could be read; `S1` reports it. |
+| `D2` | A Choice's or a Score's probabilities sum to 1 and cover exactly the options or levels sent. | The probe asks no Choice or Score, or no answer could be read. |
+| `D3` | A Score's `score` is the sum of each level times its probability, where OpenAI gives each level in a probability's `value`. | The probe asks no Score, or no answer could be read. |
+| `D4` | A reported confidence is from 0 to 1. | No answer could be read, or none carries a `confidence`. |
+| `M1` | The `mixed` answers are matched by key, so a provider or a parser that relies on their order fails. | Minos returned an error, no answer could be read, or Minos's answer count differs from the questions asked. |
 | `E1` | `invalid` gets a 400 or a 422 with a JSON body, which Minos maps to `Validation` with a message. A JSON body that leaves `DecisionError.Detail` null fails, and the failure names Minos. | No request was sent. |
 | `E2` | `bad-key` gets a 401 or a 403, which Minos maps to `Unauthorized` and does not retry. | No request was sent. |
-| `E3` | An error response's request-id header equals `DecisionError.RequestId`. | The response carries none, as OpenRouter's 401 does. |
-| `E4` | A 429 met during the run has its `Retry-After` in `DecisionError.RetryAfter` and its request id read. | No 429 was met. One cannot be provoked, so the suite keeps no made-up 429. |
+| `E3` | An error response's request-id header equals `DecisionError.RequestId`. | There is no error response, or it carries none, as OpenRouter's 401 does. |
+| `E4` | A 429 met during the run has its `retry-after-ms` or `Retry-After` in `DecisionError.RetryAfter` and its request id read. | No 429 was met. One cannot be provoked, so the suite keeps no made-up 429. |
 | `R1` | A successful response names a model, and `DecisionResponse.Model` is the same. | The response names none and the target promises none. |
-| `R2` | The reported model fits the requested one by the target's rule. | The target states no rule. |
+| `R2` | The reported model fits the requested one by the target's rule. | The target states no rule, Minos returned an error, no answer could be read, or the response names no model. |
 | `R3` | The usage, when there is one, has whole, non-negative token counts. | The response reports no usage. |
 
 The report states the model rule `R2` applied. TypeSafe answers an alias such as `jev-latest` with a versioned id of the
@@ -69,7 +69,7 @@ three modes:
 
 - `Live` sends real requests and saves nothing.
 - `Record` sends real requests and saves the exchange of each probe, errors included, to a fixture file.
-- `Replay` answers each probe from a fixture file by its id, and never retries. A fixture that names a probe the suite
+- `Replay` answers each probe from a fixture file by its id, once: the target must not retry, because a second request for a probe fails the run. A fixture that names a probe the suite
   does not have, names one twice, or lacks one fails the run rather than skipping the probe.
 
 <!-- snippet: Conformance_Record -->
@@ -105,10 +105,16 @@ public static async Task<ConformanceReport> RecordAsync(Uri server, string model
 ```
 <!-- endSnippet -->
 
-A recording sends one request per probe, seven in all, and each one is billed. The fixture keeps the request body, the
-status, the response body, its media type and only these headers: `x-request-id`, `x-typesafe-request-id`,
-`request-id`, `retry-after` and `retry-after-ms`. It never keeps your key or any other header. For `bad-key` the runner
-swaps your key for an invalid one itself, so a target needs no second factory for it.
+A recording sends at most one request per probe, seven in all, when the client does not retry. The runner sets no
+retries itself, which is why the snippet sets `MaxRetries = 0`. A probe the client's capabilities rule out sends nothing,
+and each request the provider accepts may be billed. The fixture keeps the request body, the status, the response body, its
+media type and only these headers: `x-request-id`, `x-typesafe-request-id`, `request-id`, `retry-after` and
+`retry-after-ms`. It never records your key or any other request header.
+
+For `bad-key` the runner replaces the `Authorization` and `x-api-key` request headers with an invalid key, and stops the
+probe unsent if a header it finds cannot be replaced. A target whose endpoint authenticates another way, such as in a
+different header or a query string, still sends its own credential on `bad-key`, so its factory must not use a real key
+for that.
 
 The report comes as JSON, from `ToJson`, and as markdown, from `ToMarkdown`. It names the target, the model and its rule,
 the mode, the fixture's source and date, and has one row per check.
