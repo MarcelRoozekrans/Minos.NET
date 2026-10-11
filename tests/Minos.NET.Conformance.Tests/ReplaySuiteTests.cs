@@ -14,7 +14,8 @@ public sealed class ReplaySuiteTests
         // As TypeSafe's, and the invalid probe has no recorded body yet. OpenRouter's 401 sends no request-id header.
         ["openrouter"] = ["noul:D2", "noul:D3", "noul:D4", "choice:D3", "invalid:E1", "invalid:E3", "bad-key:E3", "run:E4"],
 
-        // The guide's examples name no model and no usage, and OpenAI states no model rule yet.
+        // The guide's examples name no model and no usage, and OpenAI states no model rule yet. The invalid probe has no
+        // recorded body, so E1 and E3 skip; the bad-key x-request-id value was dropped, so its E3 skips; no 429 was met, so E4 skips.
         ["openai"] =
         [
             "noul:D2", "noul:D3", "noul:D4", "noul:R1", "noul:R2", "noul:R3",

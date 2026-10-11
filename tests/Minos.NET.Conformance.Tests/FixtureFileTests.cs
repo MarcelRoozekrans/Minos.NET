@@ -24,6 +24,7 @@ public sealed partial class FixtureFileTests
     }
 
     // The shape of an API key, such as sk-or-v1-..., sk-proj-... or sk-ant-..., not the bare prefix: a body may say "risk-based".
+    // It covers sk- keys, which is the shape the three providers in scope use.
     [GeneratedRegex("sk-[A-Za-z0-9_-]{20,}", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex KeyShape();
 
@@ -46,34 +47,86 @@ public sealed partial class FixtureFileTests
     [Theory]
     [MemberData(nameof(Files))]
     public void AFixture_HoldsNoKeyNoAuthHeaderAndOnlyAllowlistedHeaders(string file)
-    {
-        var text = File.ReadAllText(Path.Combine(Fixtures.SourceDirectory, file));
-        using var json = JsonDocument.Parse(text);
+        => Assert.Empty(Problems(File.ReadAllText(Path.Combine(Fixtures.SourceDirectory, file))));
 
-        // The bodies are nested JSON, so the whole file's text is scanned, bodies and request bodies included.
-        Assert.DoesNotMatch(KeyShape(), text);
-        Assert.All(Forbidden, word => Assert.DoesNotContain(word, text, StringComparison.OrdinalIgnoreCase));
-        Assert.DoesNotContain(ExchangeCapture.InvalidKey, text, StringComparison.Ordinal);
+    [Fact]
+    public void TheScan_CatchesAnAuthorizationHeader()
+        => Assert.NotEmpty(Problems("""{"target":"t","exchanges":[{"probe":"p","headers":{"Authorization":"x"}}]}"""));
+
+    [Fact]
+    public void TheScan_CatchesBearerText()
+        => Assert.NotEmpty(Problems("""{"target":"t","note":"Bearer abc123","exchanges":[]}"""));
+
+    [Fact]
+    public void TheScan_CatchesAnUnlistedHeader()
+        => Assert.Contains("header x-secret", Problems("""{"target":"t","exchanges":[{"probe":"p","headers":{"x-secret":"1"}}]}"""));
+
+    [Fact]
+    public void TheScan_CatchesAnUnknownRootProperty()
+        => Assert.Contains("root property extra", Problems("""{"target":"t","extra":1,"exchanges":[]}"""));
+
+    [Fact]
+    public void TheScan_CatchesAnUnknownExchangeProperty()
+        => Assert.Contains("exchange property extra", Problems("""{"target":"t","exchanges":[{"probe":"p","extra":1}]}"""));
+
+    [Fact]
+    public void TheScan_PassesACleanFixture()
+        => Assert.Empty(Problems("""{"target":"t","exchanges":[{"probe":"p","status":200}]}"""));
+
+    // The bodies are nested JSON, so the whole text is scanned, bodies and request bodies included.
+    private static List<string> Problems(string text)
+    {
+        var problems = new List<string>();
+        if (KeyShape().IsMatch(text))
+        {
+            problems.Add("key shape");
+        }
+
+        foreach (var word in Forbidden)
+        {
+            if (text.Contains(word, StringComparison.OrdinalIgnoreCase))
+            {
+                problems.Add("forbidden word " + word);
+            }
+        }
+
+        if (text.Contains(ExchangeCapture.InvalidKey, StringComparison.Ordinal))
+        {
+            problems.Add("the invalid key");
+        }
+
+        using var json = JsonDocument.Parse(text);
         foreach (var property in json.RootElement.EnumerateObject())
         {
-            Assert.Contains(property.Name, RootProperties);
+            if (!RootProperties.Contains(property.Name))
+            {
+                problems.Add("root property " + property.Name);
+            }
         }
 
         foreach (var exchange in json.RootElement.GetProperty("exchanges").EnumerateArray())
         {
             foreach (var property in exchange.EnumerateObject())
             {
-                Assert.Contains(property.Name, ExchangeProperties);
+                if (!ExchangeProperties.Contains(property.Name))
+                {
+                    problems.Add("exchange property " + property.Name);
+                }
             }
 
             if (exchange.TryGetProperty("headers", out var headers))
             {
                 foreach (var header in headers.EnumerateObject())
                 {
-                    Assert.Contains(header.Name, ExchangeCapture.RecordedHeaders);
+                    if (!ExchangeCapture.RecordedHeaders.Contains(header.Name))
+                    {
+                        problems.Add("header " + header.Name);
+                    }
                 }
             }
         }
+
+        return problems;
     }
 
     [Fact]
