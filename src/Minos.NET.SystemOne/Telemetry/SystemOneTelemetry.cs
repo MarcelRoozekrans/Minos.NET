@@ -9,9 +9,6 @@ internal static class SystemOneTelemetry
     /// <summary>The custom GenAI provider value for OpenRouter.</summary>
     public const string OpenRouter = "openrouter";
 
-    /// <summary>The custom GenAI provider value for Cloudflare Workers AI.</summary>
-    public const string Cloudflare = "cloudflare";
-
     /// <summary>The custom GenAI provider value for a vLLM Semantic Router.</summary>
     public const string VllmSemanticRouter = "vllm-sr";
 
@@ -22,7 +19,6 @@ internal static class SystemOneTelemetry
     public static string ProviderOf(SystemOneProvider provider) => provider switch
     {
         SystemOneProvider.OpenRouter => OpenRouter,
-        SystemOneProvider.CloudflareWorkersAi => Cloudflare,
         SystemOneProvider.VllmSemanticRouter => VllmSemanticRouter,
         SystemOneProvider.Custom => Custom,
         _ => TypeSafe,

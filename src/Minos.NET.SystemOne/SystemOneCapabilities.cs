@@ -12,8 +12,6 @@ namespace Minos.SystemOne;
 /// images, model listing.</description></item>
 /// <item><description><see cref="SystemOneProvider.OpenRouter"/>: every kind, no question limit, 255 Choice options, no
 /// images, no model listing.</description></item>
-/// <item><description><see cref="SystemOneProvider.CloudflareWorkersAi"/>: every kind, 64 questions, 255 Choice options,
-/// images, no model listing.</description></item>
 /// <item><description><see cref="SystemOneProvider.VllmSemanticRouter"/>: every kind, no question or option limit, no
 /// images, no model listing.</description></item>
 /// <item><description><see cref="SystemOneProvider.Custom"/>: every kind, no question or option limit, no images, model

@@ -195,17 +195,12 @@ public static void AddFromConfiguration(IHostApplicationBuilder builder)
 ```
 <!-- endSnippet -->
 
-The keys for the other providers are `AccountId`, `Path` and `Capabilities`, with the capabilities in a section of their
+The keys for the other providers are `Path` and `Capabilities`, with the capabilities in a section of their
 own. `QuestionKinds` is a comma-separated list. A capability you leave out keeps the [preset's
 default](client-and-errors.md#the-defaults).
 
 ```json
 {
-  "Cloudflare": {
-    "Provider": "CloudflareWorkersAi",
-    "AccountId": "0123456789abcdef0123456789abcdef",
-    "Model": "clef-flash"
-  },
   "Local": {
     "Provider": "Custom",
     "BaseAddress": "http://localhost:8080/",
@@ -222,17 +217,15 @@ default](client-and-errors.md#the-defaults).
 
 <!-- snippet: DependencyInjection_ConfigurationProviders -->
 ```cs
-// Provider, AccountId, Path and Capabilities bind like any other option.
+// Provider, Path and Capabilities bind like any other option.
 public static void AddProvidersFromConfiguration(IHostApplicationBuilder builder)
 {
-    builder.Services.AddSystemOneClient("cloudflare", builder.Configuration.GetSection("Cloudflare"));
     builder.Services.AddSystemOneClient("local", builder.Configuration.GetSection("Local"));
 }
 ```
 <!-- endSnippet -->
 
-The Cloudflare token stays out of the file, as the next list says for any key: it comes from `CLOUDFLARE_API_TOKEN`, or
-from `Cloudflare:ApiKey` in user secrets. `Local` sends no key at all.
+`Local` sends no key at all.
 
 Things to know when you bind:
 
@@ -259,8 +252,7 @@ Each registration checks its options when the host starts, so a wrong value stop
 the first request. It runs `SystemOneClientOptions.Validate()`, the same check the client's constructor runs, and the
 failure is an `OptionsValidationException` that carries the core's own message. That covers a missing API key, an
 invalid base address, `MaxRetries` outside 0 to 10, a backoff out of range, a blank model, and an invalid `Timeout`. It
-covers the provider settings too: a provider with no model, a missing `BaseAddress` for `Custom`, a missing or invalid
-`AccountId` for Cloudflare, and a `Capabilities` override that allows no question kind.
+covers the provider settings too: a provider with no model, a missing `BaseAddress` for `Custom`, and a `Capabilities` override that allows no question kind.
 
 <!-- snippet: DependencyInjection_Startup -->
 ```cs

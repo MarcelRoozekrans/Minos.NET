@@ -34,21 +34,6 @@ public static class InvalidOptionsCases
         ["WhiteSpaceModel"] = new(() => new() { ApiKey = "k", Model = " \t\n" }, typeof(ArgumentException)),
         ["NullModelWithoutPresetDefault"] = new(
             () => new() { ApiKey = "k", Provider = SystemOneProvider.Custom, BaseAddress = new Uri("http://host/") }, typeof(ArgumentException)),
-        ["CloudflareModelNotASingleName"] = new(
-            () => new() { ApiKey = "k", Provider = SystemOneProvider.CloudflareWorkersAi, AccountId = "abc123", Model = "@cf/x" },
-            typeof(ArgumentException)),
-        ["CloudflareWithoutAccountId"] = new(
-            () => new() { ApiKey = "k", Provider = SystemOneProvider.CloudflareWorkersAi, Model = "clef" },
-            typeof(ArgumentException),
-            ("CLOUDFLARE_ACCOUNT_ID", " ")),
-        ["CloudflareAccountIdNotAlphanumeric"] = new(
-            () => new() { ApiKey = "k", Provider = SystemOneProvider.CloudflareWorkersAi, AccountId = "a/b", Model = "clef" },
-            typeof(ArgumentException)),
-        ["CloudflareAccountIdEnvironmentNotAlphanumeric"] = new(
-            () => new() { ApiKey = "k", Provider = SystemOneProvider.CloudflareWorkersAi, Model = "clef" },
-            typeof(ArgumentException),
-            ("CLOUDFLARE_ACCOUNT_ID", "a/b")),
-        ["AccountIdOnAnotherProvider"] = new(() => new() { ApiKey = "k", AccountId = "abc123" }, typeof(ArgumentException)),
         ["CustomWithoutBaseAddress"] = new(
             () => new() { ApiKey = "k", Provider = SystemOneProvider.Custom, Model = "m" }, typeof(ArgumentException)),
         ["VllmSemanticRouterWithoutBaseAddress"] = new(
@@ -76,12 +61,6 @@ public static class InvalidOptionsCases
             () => new() { ApiKey = "k", BaseAddress = new Uri("ftp://host/api/") }, typeof(ArgumentException)),
         ["MissingTypeSafeApiKey"] = new(() => new(), typeof(InvalidOperationException)),
         ["MissingOpenRouterApiKey"] = new(() => new() { Provider = SystemOneProvider.OpenRouter }, typeof(InvalidOperationException)),
-        ["MissingCloudflareApiToken"] = new(
-            () => new() { Provider = SystemOneProvider.CloudflareWorkersAi, AccountId = "abc123", Model = "clef" }, typeof(InvalidOperationException)),
-        ["CloudflareApiTokenEnvironmentWithControlCharacter"] = new(
-            () => new() { Provider = SystemOneProvider.CloudflareWorkersAi, AccountId = "abc123", Model = "clef" },
-            typeof(InvalidOperationException),
-            ("CLOUDFLARE_API_TOKEN", "ab\u0001cd")),
         ["ApiKeyEnvironmentWithControlCharacter"] = new(
             () => new(), typeof(InvalidOperationException), ("TYPESAFE_API_KEY", "ab\u0001cd")),
         ["BaseAddressEnvironmentNotAUri"] = new(

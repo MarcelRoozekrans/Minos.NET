@@ -18,7 +18,7 @@ internal interface IDecisionApi
 {
     /// <summary>
     /// The raw attempt: POSTs a <see cref="SystemOneRequest"/> to <paramref name="path"/>, relative to the base address,
-    /// which is <see cref="SystemOneClientSettings.PathFor"/> the request's model.
+    /// which is <see cref="SystemOneClientSettings.Path"/>.
     /// </summary>
     [Post("{**path}")]
     ValueTask<Result<SystemOneResponse, DecisionError>> EvaluateAsync(
@@ -31,7 +31,7 @@ internal interface IDecisionApi
     /// <summary>
     /// The protocol-neutral attempt: POSTs pre-written UTF-8 JSON to <paramref name="path"/>, relative to the base address,
     /// and returns the raw response body. <see cref="DecisionTransport"/> sends one attempt through it, passing
-    /// <see cref="SystemOneClientSettings.PathFor"/> the request's model. The caller owns both <see cref="RawJson"/> values.
+    /// <see cref="SystemOneClientSettings.Path"/>. The caller owns both <see cref="RawJson"/> values.
     /// </summary>
     /// <remarks>
     /// <c>{**path}</c> escapes each segment and keeps the <c>/</c> between them, so <c>v1/systemone</c> is sent as is.

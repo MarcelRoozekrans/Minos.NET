@@ -88,15 +88,14 @@ you asked for it. Everything else, including every network and service failure, 
 
 ## Options
 
-`SystemOneClientOptions` has thirteen properties, and every one is optional.
+`SystemOneClientOptions` has twelve properties, and every one is optional.
 
 | Property | Default | Valid values | What it does |
 | --- | --- | --- | --- |
-| `Provider` | `SystemOneProvider.TypeSafe` | `TypeSafe`, `OpenRouter`, `CloudflareWorkersAi`, `VllmSemanticRouter` or `Custom` | Where requests go. The [providers](#providers) section lists what each one sets. |
-| `ApiKey` | none | any text without control characters; blank counts as unset | The key sent as a bearer token. When unset, the client reads `TYPESAFE_API_KEY` for TypeSafe, `OPENROUTER_API_KEY` for OpenRouter and `CLOUDFLARE_API_TOKEN` for Cloudflare. `VllmSemanticRouter` and `Custom` read no variable and send no key unless this is set. |
+| `Provider` | `SystemOneProvider.TypeSafe` | `TypeSafe`, `OpenRouter`, `VllmSemanticRouter` or `Custom` | Where requests go. The [providers](#providers) section lists what each one sets. |
+| `ApiKey` | none | any text without control characters; blank counts as unset | The key sent as a bearer token. When unset, the client reads `TYPESAFE_API_KEY` for TypeSafe, `OPENROUTER_API_KEY` for OpenRouter. `VllmSemanticRouter` and `Custom` read no variable and send no key unless this is set. |
 | `BaseAddress` | the provider's address | absolute `http` or `https` URI, no query or fragment | The API root, for a proxy, a test server or a server you run. When unset, the client reads `TYPESAFE_BASE_URL` for TypeSafe only, then uses the provider's address. `VllmSemanticRouter` and `Custom` have none, so it is required for them. |
-| `Model` | the preset's default: `jev-latest` for TypeSafe and OpenRouter; required for the others | not blank; for Cloudflare a single name of letters, digits, `.`, `_` and `-` | The model that typed evaluation and built question sets ask: an alias such as `jev-latest` (or TypeSafe's `jev-preview`), or a versioned id such as `jev-1.13.0`. Surrounding whitespace is trimmed. See [Listing models](#listing-models). |
-| `AccountId` | none | letters and digits; `CloudflareWorkersAi` only | The Cloudflare account. When unset, the client reads `CLOUDFLARE_ACCOUNT_ID`. Required for Cloudflare, and rejected for any other provider. |
+| `Model` | the preset's default: `jev-latest` for TypeSafe and OpenRouter; required for the others | not blank | The model that typed evaluation and built question sets ask: an alias such as `jev-latest` (or TypeSafe's `jev-preview`), or a versioned id such as `jev-1.13.0`. Surrounding whitespace is trimmed. See [Listing models](#listing-models). |
 | `Path` | `v1/systemone` | relative, no leading `/`, no query, fragment or `..`; `Custom` and `VllmSemanticRouter` only | The request path under `BaseAddress`. Surrounding whitespace is trimmed, and blank counts as unset. Rejected for a hosted provider, so a key cannot be sent to another path on a host you did not choose. |
 | `Capabilities` | the preset's | see [Capabilities](#capabilities) | What the provider accepts, checked before a request is sent. Each property you leave unset keeps the preset's value. |
 | `Timeout` | 60 seconds | positive, or `Timeout.InfiniteTimeSpan`, and at most about 24.8 days | How long one attempt may take. |
@@ -107,7 +106,7 @@ you asked for it. Everything else, including every network and service failure, 
 | `UseStandardPipeline` | `true` | `true` or `false` | Whether a `DecisionRequest` call runs through the standard [pipeline](pipeline.md) of telemetry, logging and retries. `false` leaves one attempt per call, for a pipeline of your own. |
 
 Each option you set beats the environment. The order is: the option, then the environment variable, then the provider's
-default. A blank API key counts as unset. `TYPESAFE_BASE_URL` applies to TypeSafe only, so an OpenRouter or Cloudflare
+default. A blank API key counts as unset. `TYPESAFE_BASE_URL` applies to TypeSafe only, so an OpenRouter
 key is never sent to a TypeSafe proxy.
 
 The first snippet spells out the options that have a fixed default, with that value. You rarely write all of them. It
@@ -116,9 +115,9 @@ is here so the table above has code to match.
 <!-- snippet: ClientAndErrors_Options -->
 ```cs
 // Every option set to the value it has when you leave it out, apart from the API key, which has no default:
-// without one, the client reads TYPESAFE_API_KEY, OPENROUTER_API_KEY for OpenRouter or CLOUDFLARE_API_TOKEN for
-// Cloudflare. Custom and VllmSemanticRouter read no key from the environment and send none unless ApiKey is set.
-// BaseAddress, Model, AccountId, Path and Capabilities are also left out: the provider decides them, and the model is
+// without one, the client reads TYPESAFE_API_KEY, or OPENROUTER_API_KEY for OpenRouter. Custom and
+// VllmSemanticRouter read no key from the environment and send none unless ApiKey is set.
+// BaseAddress, Model, Path and Capabilities are also left out: the provider decides them, and the model is
 // jev-latest for TypeSafe.
 public static SystemOneClientOptions SpelledOut(string apiKey)
     => new()
@@ -151,9 +150,6 @@ message.
 | `Model` | `jev-latest` | The model alias used when a request does not name one. A property, so a changed default is not compiled into your code. |
 | `TypeSafeBaseAddress` | `https://api.typesafe.ai/` | The root address of TypeSafe's API. A property. |
 | `OpenRouterBaseAddress` | `https://openrouter.ai/api/` | The root address of OpenRouter's System One API. A property. |
-| `CloudflareApiTokenEnvironmentVariable` | `CLOUDFLARE_API_TOKEN` | The variable a Cloudflare API token is read from. |
-| `CloudflareAccountIdEnvironmentVariable` | `CLOUDFLARE_ACCOUNT_ID` | The variable a Cloudflare account id is read from. |
-| `CloudflareBaseAddress` | `https://api.cloudflare.com/client/v4/` | The root address of Cloudflare's API; the account segment is appended to it. A property. |
 
 ### Checking options early
 
@@ -199,7 +195,6 @@ model and the [capabilities](#capabilities). Every preset speaks the same `/v1/s
 | --- | --- | --- | --- | --- |
 | `TypeSafe` | `https://api.typesafe.ai/` | `v1/systemone` | required, from `TYPESAFE_API_KEY` | `jev-latest` |
 | `OpenRouter` | `https://openrouter.ai/api/` | `v1/systemone` | required, from `OPENROUTER_API_KEY` | `jev-latest` |
-| `CloudflareWorkersAi` | `https://api.cloudflare.com/client/v4/accounts/{AccountId}/ai/run/@cf/cloudflare/` | the model name | required, from `CLOUDFLARE_API_TOKEN` | none |
 | `VllmSemanticRouter` | your `BaseAddress`, required | `v1/systemone`, or your `Path` | none, unless `ApiKey` is set | none |
 | `Custom` | your `BaseAddress`, required | `v1/systemone`, or your `Path` | none, unless `ApiKey` is set | none |
 
@@ -207,34 +202,7 @@ A preset with no default model fails when the client is created, or when the hos
 full comparison of the providers, with the capability matrix, is coming on a Providers page. Until then the tables on
 this page are the reference.
 
-### Cloudflare Workers AI
-
-Cloudflare's address has the account and the model in it. The client builds it from `AccountId`, so you set the
-account, the model and a token, and the base address stays at its default.
-
-<!-- snippet: ClientAndErrors_Cloudflare -->
-```cs
-// Cloudflare Workers AI needs the account and the model. The API token is not set here: the client reads it from
-// CLOUDFLARE_API_TOKEN, and the account id could come from CLOUDFLARE_ACCOUNT_ID the same way.
-public static SystemOneClientOptions Cloudflare(string accountId)
-    => new()
-    {
-        Provider = SystemOneProvider.CloudflareWorkersAi,
-        AccountId = accountId,
-        Model = "clef-flash",
-    };
-```
-<!-- endSnippet -->
-
-- **The token** is read from `CLOUDFLARE_API_TOKEN`, as the snippet's comment says, unless you set `ApiKey`.
-- **The account** is `AccountId`, or `CLOUDFLARE_ACCOUNT_ID` when it is unset. It is letters and digits only, and it is
-  required.
-- **The model** is required, and it is the last segment of the request address, so it must be a single name of letters,
-  digits, `.`, `_` and `-`. A model with a `/` in it is rejected when the client is created, and a request that names
-  such a model, through a `SystemOneRequest`, returns `Validation` without being sent.
-- **The base address** is `https://api.cloudflare.com/client/v4/`, with `accounts/{AccountId}/ai/run/@cf/cloudflare/`
-  added to it. Set `BaseAddress` to put a proxy in front, and the same segment is added. An `HttpClient` you lend, with
-  a `BaseAddress` of its own, replaces the whole address, so its address must already end in that segment.
+Cloudflare Workers AI's Clef models are planned, see [#151](https://github.com/MarcelRoozekrans/Minos.NET/issues/151).
 
 ### Custom servers
 
@@ -267,8 +235,8 @@ public static SystemOneClientOptions Custom()
 
 ## Capabilities
 
-A provider can accept less than the protocol allows. Cloudflare takes at most 64 questions in a request, for example,
-and a server you run may answer one kind of question only. Minos checks a question set against what the provider
+A provider can accept less than the protocol allows. A server you run, for example, may answer one kind of question
+only. Minos checks a question set against what the provider
 accepts before it sends the request. A set the provider would refuse comes back as a failure at once, with no request,
 no retry and no cost.
 
@@ -280,7 +248,6 @@ Each preset has defaults for the five capabilities. "None" means no limit.
 | --- | --- | --- | --- | --- | --- |
 | `TypeSafe` | every kind | none | 255 | no | yes |
 | `OpenRouter` | every kind | none | 255 | no | no |
-| `CloudflareWorkersAi` | every kind | 64 | 255 | yes | no |
 | `VllmSemanticRouter` | every kind | none | none | no | no |
 | `Custom` | every kind | none | none | no | yes |
 

@@ -12,7 +12,7 @@ using ZeroAlloc.Results;
 namespace Minos.SystemOne;
 
 /// <summary>
-/// Calls a Jev System One API: TypeSafe's, directly or through OpenRouter, Cloudflare Workers AI, a vLLM Semantic Router, or
+/// Calls a Jev System One API: TypeSafe's, directly or through OpenRouter, a vLLM Semantic Router, or
 /// another server that speaks the <c>/v1/systemone</c> protocol. <see cref="SystemOneClientOptions.Provider"/> picks one.
 /// </summary>
 /// <remarks>
@@ -76,9 +76,7 @@ public sealed class SystemOneClient : IDecisionClient
     /// <param name="httpClient">
     /// The client to send requests with; it is not disposed. Its own <see cref="HttpClient.BaseAddress"/> wins over
     /// <see cref="SystemOneClientOptions.BaseAddress"/> when set, and must end in '/'. It must then be the full API root,
-    /// including Cloudflare's <c>accounts/{AccountId}/ai/run/@cf/cloudflare/</c> segment for
-    /// <see cref="SystemOneProvider.CloudflareWorkersAi"/>, because it replaces both <see cref="SystemOneClientOptions.BaseAddress"/>
-    /// and the address <see cref="SystemOneClientOptions.AccountId"/> would build. When it is <see langword="null"/>, this
+    /// because it replaces <see cref="SystemOneClientOptions.BaseAddress"/>. When it is <see langword="null"/>, this
     /// constructor sets it, so <paramref name="httpClient"/> must not have sent a request yet.
     /// </param>
     /// <exception cref="ArgumentNullException"><paramref name="httpClient"/> is <see langword="null"/>.</exception>
@@ -93,9 +91,7 @@ public sealed class SystemOneClient : IDecisionClient
     /// <param name="httpClient">
     /// The client to send requests with; it is not disposed. Its own <see cref="HttpClient.BaseAddress"/> wins over
     /// <see cref="SystemOneClientOptions.BaseAddress"/> when set, and must end in '/'. It must then be the full API root,
-    /// including Cloudflare's <c>accounts/{AccountId}/ai/run/@cf/cloudflare/</c> segment for
-    /// <see cref="SystemOneProvider.CloudflareWorkersAi"/>, because it replaces both <see cref="SystemOneClientOptions.BaseAddress"/>
-    /// and the address <see cref="SystemOneClientOptions.AccountId"/> would build. When it is <see langword="null"/>, this
+    /// because it replaces <see cref="SystemOneClientOptions.BaseAddress"/>. When it is <see langword="null"/>, this
     /// constructor sets it, so <paramref name="httpClient"/> must not have sent a request yet.
     /// </param>
     /// <param name="options">The configuration; <see langword="null"/> uses defaults and environment variables.</param>
@@ -138,9 +134,7 @@ public sealed class SystemOneClient : IDecisionClient
     /// <param name="httpClient">
     /// The client to send requests with; it is not disposed. Its own <see cref="HttpClient.BaseAddress"/> wins over
     /// <see cref="SystemOneClientOptions.BaseAddress"/> when set, and must end in '/'. It must then be the full API root,
-    /// including Cloudflare's <c>accounts/{AccountId}/ai/run/@cf/cloudflare/</c> segment for
-    /// <see cref="SystemOneProvider.CloudflareWorkersAi"/>, because it replaces both <see cref="SystemOneClientOptions.BaseAddress"/>
-    /// and the address <see cref="SystemOneClientOptions.AccountId"/> would build. When it is <see langword="null"/>, this
+    /// because it replaces <see cref="SystemOneClientOptions.BaseAddress"/>. When it is <see langword="null"/>, this
     /// constructor sets it, so <paramref name="httpClient"/> must not have sent a request yet.
     /// </param>
     /// <param name="options">The configuration; <see langword="null"/> uses defaults and environment variables.</param>
@@ -259,16 +253,15 @@ public sealed class SystemOneClient : IDecisionClient
     /// <param name="options">The configuration; <see langword="null"/> uses defaults and environment variables.</param>
     /// <remarks>
     /// Sets <see cref="HttpClient.BaseAddress"/> from <see cref="SystemOneClientOptions.BaseAddress"/>, the
-    /// <see cref="SystemOneDefaults.BaseAddressEnvironmentVariable"/> environment variable or the provider's default, with
-    /// Cloudflare's account segment appended for <see cref="SystemOneProvider.CloudflareWorkersAi"/>, only when
+    /// <see cref="SystemOneDefaults.BaseAddressEnvironmentVariable"/> environment variable or the provider's default, only when
     /// <paramref name="httpClient"/> has none. Sets <see cref="HttpClient.Timeout"/> to <see cref="SystemOneClientOptions.Timeout"/>,
     /// the per-attempt time-out, and adds the <c>Minos.NET</c> User-Agent unless it is already there. It reads no
     /// API key, so it can run before one is configured.
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="httpClient"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException">
-    /// The provider, the time-out or the base address option is invalid, or the base address or the Cloudflare account id
-    /// the provider needs is missing or invalid.
+    /// The provider, the time-out or the base address option is invalid, or the base address
+    /// the provider needs is missing.
     /// </exception>
     /// <exception cref="InvalidOperationException">The base address environment variable is invalid, or <paramref name="httpClient"/> has already sent a request.</exception>
     public static void ConfigureHttpClient(HttpClient httpClient, SystemOneClientOptions? options)

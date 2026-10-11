@@ -36,7 +36,6 @@ public sealed class DecisionTelemetryTests
     [Theory]
     [InlineData(SystemOneProvider.TypeSafe, "typesafe")]
     [InlineData(SystemOneProvider.OpenRouter, "openrouter")]
-    [InlineData(SystemOneProvider.CloudflareWorkersAi, "cloudflare")]
     [InlineData(SystemOneProvider.VllmSemanticRouter, "vllm-sr")]
     [InlineData(SystemOneProvider.Custom, "custom")]
     public void Provider_HasItsGenAiValue(SystemOneProvider provider, string expected) => Assert.Equal(expected, SystemOneTelemetry.ProviderOf(provider));

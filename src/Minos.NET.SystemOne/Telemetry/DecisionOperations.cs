@@ -10,9 +10,7 @@ namespace Minos.SystemOne.Telemetry;
 /// </summary>
 /// <param name="api">The transport.</param>
 /// <param name="settings">
-/// The resolved settings: the <c>Authorization</c> header value, or none, and the path for a request's model. On
-/// Cloudflare, where the model is the path, a model that is not a single name is a <see cref="DecisionErrorKind.Validation"/>
-/// failure that is never sent.
+/// The resolved settings: the <c>Authorization</c> header value, or none, and the request path.
 /// </param>
 /// <param name="retry">The retry loop each call runs through; <see langword="null"/> sends one attempt per call.</param>
 /// <param name="disposed">Reads whether the client has been disposed.</param>
@@ -21,7 +19,7 @@ internal sealed class DecisionOperations(IDecisionApi api, SystemOneClientSettin
     // The state holds the settings rather than the path and header they give, so it stays three references wide.
     private static readonly Func<(IDecisionApi Api, SystemOneRequest Request, SystemOneClientSettings Settings), int, CancellationToken, ValueTask<Result<SystemOneResponse, DecisionError>>> EvaluateAttempt
         = static (state, retryCount, ct) => state.Api.EvaluateAsync(
-            state.Request, state.Settings.PathFor(state.Request.Model), state.Settings.Authorization, retryCount, ct);
+            state.Request, state.Settings.Path, state.Settings.Authorization, retryCount, ct);
 
     private static readonly Func<(IDecisionApi Api, string? Authorization), int, CancellationToken, ValueTask<Result<ModelList, DecisionError>>> ListModelsAttempt
         = static (state, retryCount, ct) => state.Api.ListModelsAsync(state.Authorization, retryCount, ct);
@@ -32,14 +30,8 @@ internal sealed class DecisionOperations(IDecisionApi api, SystemOneClientSettin
     public async ValueTask<Result<SystemOneResponse, DecisionError>> EvaluateAsync(
         SystemOneRequest request, string provider, Uri endpoint, CancellationToken ct)
     {
-        if (!settings.AcceptsModel(request.Model))
-        {
-            return Result<SystemOneResponse, DecisionError>.Failure(
-                new DecisionError(DecisionErrorKind.Validation, SystemOneClientSettings.CloudflareModelMessage));
-        }
-
         var result = await Retried(
-            api.EvaluateAsync(request, settings.PathFor(request.Model), settings.Authorization, retryCount: null, ct),
+            api.EvaluateAsync(request, settings.Path, settings.Authorization, retryCount: null, ct),
             (api, request, settings),
             EvaluateAttempt,
             ct).ConfigureAwait(false);

@@ -108,7 +108,7 @@ public sealed class SystemOnePackageTests : IClassFixture<SystemOnePackFixture>
         Assert.Equal("https://github.com/MarcelRoozekrans/Minos.NET", (string?)metadata.Element(Nuspec + "repository")!.Attribute("url"));
         Assert.Equal("Copyright (c) 2026 Marcel Roozekrans", (string?)metadata.Element(Nuspec + "copyright"));
         Assert.Equal("icon.png", (string?)metadata.Element(Nuspec + "icon"));
-        Assert.Equal(PackageContentTests.PackageTags + " systemone jev typesafe openrouter cloudflare vllm", (string?)metadata.Element(Nuspec + "tags"));
+        Assert.Equal(PackageContentTests.PackageTags + " systemone jev typesafe openrouter vllm", (string?)metadata.Element(Nuspec + "tags"));
     }
 
     // The package's own ZeroAlloc.Telemetry reference carries the same PrivateAssets as the core's, and NuGet still flows

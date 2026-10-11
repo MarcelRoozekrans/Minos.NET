@@ -26,9 +26,9 @@ public static class ClientOptions
 {
     #region ClientAndErrors_Options
     // Every option set to the value it has when you leave it out, apart from the API key, which has no default:
-    // without one, the client reads TYPESAFE_API_KEY, OPENROUTER_API_KEY for OpenRouter or CLOUDFLARE_API_TOKEN for
-    // Cloudflare. Custom and VllmSemanticRouter read no key from the environment and send none unless ApiKey is set.
-    // BaseAddress, Model, AccountId, Path and Capabilities are also left out: the provider decides them, and the model is
+    // without one, the client reads TYPESAFE_API_KEY, or OPENROUTER_API_KEY for OpenRouter. Custom and
+    // VllmSemanticRouter read no key from the environment and send none unless ApiKey is set.
+    // BaseAddress, Model, Path and Capabilities are also left out: the provider decides them, and the model is
     // jev-latest for TypeSafe.
     public static SystemOneClientOptions SpelledOut(string apiKey)
         => new()
@@ -210,18 +210,6 @@ public static class ModelListing
 
 public static class ProviderOptions
 {
-    #region ClientAndErrors_Cloudflare
-    // Cloudflare Workers AI needs the account and the model. The API token is not set here: the client reads it from
-    // CLOUDFLARE_API_TOKEN, and the account id could come from CLOUDFLARE_ACCOUNT_ID the same way.
-    public static SystemOneClientOptions Cloudflare(string accountId)
-        => new()
-        {
-            Provider = SystemOneProvider.CloudflareWorkersAi,
-            AccountId = accountId,
-            Model = "clef-flash",
-        };
-    #endregion
-
     #region ClientAndErrors_Custom
     // A server you run. Custom has no default address or model, so both are set. The path is optional and defaults to
     // v1/systemone. No key is read from the environment, and none is sent unless ApiKey is set.

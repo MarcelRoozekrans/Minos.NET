@@ -301,7 +301,7 @@ compress_memory: disabled
 **Completed:** 2026-10-11
 
 ### Phase 6.4: /v1/systemone adapter [status: pending]
-**Goal:** Configurable base URL and model with presets for TypeSafe, OpenRouter, Cloudflare Clef, vLLM-SR and local servers; capability flags with typed errors naming provider and question; optional auth; keyed DI clients (#115).
+**Goal:** Configurable base URL and model with presets for TypeSafe, OpenRouter, vLLM-SR and local servers (Cloudflare Clef: #151); capability flags with typed errors naming provider and question; optional auth; keyed DI clients (#115).
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_

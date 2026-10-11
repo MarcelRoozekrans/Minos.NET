@@ -6,17 +6,14 @@ namespace Minos.SystemOne.Transport;
 /// </summary>
 internal sealed class SystemOneClientSettings
 {
-    /// <summary>The <c>/v1/systemone</c> path every preset but Cloudflare posts to, unless <see cref="SystemOneClientOptions.Path"/> overrides it.</summary>
+    /// <summary>The <c>/v1/systemone</c> path every preset posts to, unless <see cref="SystemOneClientOptions.Path"/> overrides it.</summary>
     private const string DefaultPath = "v1/systemone";
-
-    /// <summary>What a Cloudflare model that is not a single path segment is rejected with, by the options and by the transport.</summary>
-    public const string CloudflareModelMessage = "A Cloudflare model must be a single name such as clef-flash.";
 
     private SystemOneClientSettings(
         SystemOneProvider provider,
         string? apiKey,
         Uri baseAddress,
-        string? fixedPath,
+        string path,
         string model,
         CapabilitySet capabilities,
         TimeSpan timeout,
@@ -30,7 +27,7 @@ internal sealed class SystemOneClientSettings
         ApiKey = apiKey;
         Authorization = apiKey is null ? null : "Bearer " + apiKey;
         BaseAddress = baseAddress;
-        FixedPath = fixedPath;
+        Path = path;
         Model = model;
         Capabilities = capabilities;
         ProviderName = SystemOneTelemetry.ProviderOf(provider);
@@ -51,11 +48,11 @@ internal sealed class SystemOneClientSettings
     /// <remarks>Built once here, so no call allocates it.</remarks>
     public string? Authorization { get; }
 
-    /// <summary>Gets the API root, ending in '/'; for Cloudflare it includes the account segment.</summary>
+    /// <summary>Gets the API root, ending in '/'.</summary>
     public Uri BaseAddress { get; }
 
-    /// <summary>Gets the request path relative to <see cref="BaseAddress"/>, or <see langword="null"/> for Cloudflare, where the path is the model.</summary>
-    public string? FixedPath { get; }
+    /// <summary>Gets the request path relative to <see cref="BaseAddress"/>.</summary>
+    public string Path { get; }
 
     /// <summary>Gets the resolved default model: the option, trimmed, or the preset's default.</summary>
     public string Model { get; }
@@ -94,23 +91,17 @@ internal sealed class SystemOneClientSettings
         RetrySettings.Check(options.MaxRetries, options.InitialBackoff, options.MaxRetryDelay, nameof(options));
 
         var provider = options.Provider;
-        var cloudflare = provider == SystemOneProvider.CloudflareWorkersAi;
-        if (!cloudflare && NonBlank(options.AccountId) is not null)
-        {
-            throw new ArgumentException("AccountId applies only to the CloudflareWorkersAi provider.", nameof(options));
-        }
-
         var path = ResolvePath(options);
         var model = ResolveModel(options);
         var capabilities = ResolveCapabilities(options);
         var apiKey = ResolveApiKey(options, environment);
-        var baseAddress = ResolveBaseAddress(options, environment);
+        var baseAddress = WithTrailingSlash(ResolveRoot(options, environment));
 
         return new SystemOneClientSettings(
             provider,
             apiKey,
             baseAddress,
-            cloudflare ? null : path,
+            path,
             model,
             capabilities,
             options.Timeout,
@@ -127,7 +118,7 @@ internal sealed class SystemOneClientSettings
     /// </summary>
     /// <param name="options">The caller's options, or <see langword="null"/> for all defaults.</param>
     /// <param name="environment">Reads an environment variable; tests pass a fake.</param>
-    /// <exception cref="ArgumentException">The provider, the time-out, the base address or the Cloudflare account id is invalid.</exception>
+    /// <exception cref="ArgumentException">The provider, the time-out, or the base address is invalid.</exception>
     /// <exception cref="InvalidOperationException">The base address environment variable is invalid.</exception>
     public static SystemOneHttpSettings ResolveHttp(SystemOneClientOptions? options, Func<string, string?> environment)
     {
@@ -137,17 +128,8 @@ internal sealed class SystemOneClientSettings
         EnsureKnownProvider(options);
         EnsureValidTimeout(options);
 
-        return new SystemOneHttpSettings(ResolveBaseAddress(options, environment), options.Timeout);
+        return new SystemOneHttpSettings(WithTrailingSlash(ResolveRoot(options, environment)), options.Timeout);
     }
-
-    /// <summary>Gets the request path for <paramref name="model"/>: <see cref="FixedPath"/>, or the model itself for Cloudflare.</summary>
-    public string PathFor(string model) => FixedPath ?? model;
-
-    /// <summary>
-    /// Gets whether a request may be sent with <paramref name="model"/>: always, unless the model is the path, as on
-    /// Cloudflare, where it must be a single name.
-    /// </summary>
-    public bool AcceptsModel(string? model) => FixedPath is not null || IsSingleName(model);
 
     public override string ToString()
         => "Provider=" + Provider.ToString() + ", BaseAddress=" + BaseAddress.AbsoluteUri + ", ApiKey=***";
@@ -174,7 +156,7 @@ internal sealed class SystemOneClientSettings
     }
 
     // Path applies to the presets whose server you name; on a hosted one it would send the key elsewhere on that host.
-    // Like ApiKey and AccountId, a blank Path counts as unset, and surrounding whitespace is trimmed.
+    // Like ApiKey, a blank Path counts as unset, and surrounding whitespace is trimmed.
     private static string ResolvePath(SystemOneClientOptions options)
     {
         if (NonBlank(options.Path) is not { } untrimmed)
@@ -200,7 +182,6 @@ internal sealed class SystemOneClientSettings
 
     private static string ResolveModel(SystemOneClientOptions options)
     {
-        string model;
         if (options.Model is { } explicitModel)
         {
             if (string.IsNullOrWhiteSpace(explicitModel))
@@ -208,24 +189,16 @@ internal sealed class SystemOneClientSettings
                 throw new ArgumentException("The model must not be blank.", nameof(options));
             }
 
-            model = explicitModel.Trim();
-        }
-        else if (options.Provider is SystemOneProvider.TypeSafe or SystemOneProvider.OpenRouter)
-        {
-            model = SystemOneDefaults.Model;
-        }
-        else
-        {
-            throw new ArgumentException(
-                NameOf(options.Provider) + " has no default model. Set SystemOneClientOptions.Model.", nameof(options));
+            return explicitModel.Trim();
         }
 
-        if (options.Provider == SystemOneProvider.CloudflareWorkersAi && !IsSingleName(model))
+        if (options.Provider is SystemOneProvider.TypeSafe or SystemOneProvider.OpenRouter)
         {
-            throw new ArgumentException(CloudflareModelMessage, nameof(options));
+            return SystemOneDefaults.Model;
         }
 
-        return model;
+        throw new ArgumentException(
+            NameOf(options.Provider) + " has no default model. Set SystemOneClientOptions.Model.", nameof(options));
     }
 
     // The preset's defaults with each override that is set; a null Capabilities counts as no overrides.
@@ -302,24 +275,8 @@ internal sealed class SystemOneClientSettings
     {
         SystemOneProvider.TypeSafe => SystemOneDefaults.ApiKeyEnvironmentVariable,
         SystemOneProvider.OpenRouter => SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable,
-        SystemOneProvider.CloudflareWorkersAi => SystemOneDefaults.CloudflareApiTokenEnvironmentVariable,
         _ => null,
     };
-
-    // The address the client sends to, ending in '/': the option or the preset's default, then, for Cloudflare, the
-    // account segment.
-    private static Uri ResolveBaseAddress(SystemOneClientOptions options, Func<string, string?> environment)
-    {
-        var root = WithTrailingSlash(ResolveRoot(options, environment));
-        if (options.Provider != SystemOneProvider.CloudflareWorkersAi)
-        {
-            return root;
-        }
-
-        // The account id is letters and digits only, so it cannot change the path; the '@' is a literal path character
-        // that Uri leaves unescaped.
-        return new Uri(root.AbsoluteUri + "accounts/" + ResolveAccountId(options, environment) + "/ai/run/@cf/cloudflare/");
-    }
 
     private static Uri ResolveRoot(SystemOneClientOptions options, Func<string, string?> environment)
     {
@@ -351,64 +308,18 @@ internal sealed class SystemOneClientSettings
                 return FromEnvironment(environment(SystemOneDefaults.BaseAddressEnvironmentVariable)) ?? SystemOneDefaults.TypeSafeBaseAddress;
             case SystemOneProvider.OpenRouter:
                 return SystemOneDefaults.OpenRouterBaseAddress;
-            case SystemOneProvider.CloudflareWorkersAi:
-                return SystemOneDefaults.CloudflareBaseAddress;
             default:
                 throw new ArgumentException(NameOf(options.Provider) + " needs a BaseAddress.", nameof(options));
         }
-    }
-
-    private static string ResolveAccountId(SystemOneClientOptions options, Func<string, string?> environment)
-    {
-        var accountId = NonBlank(options.AccountId) ?? NonBlank(environment(SystemOneDefaults.CloudflareAccountIdEnvironmentVariable));
-        if (accountId is null)
-        {
-            throw new ArgumentException(
-                "CloudflareWorkersAi needs an AccountId. Set SystemOneClientOptions.AccountId or the "
-                    + SystemOneDefaults.CloudflareAccountIdEnvironmentVariable + " environment variable.",
-                nameof(options));
-        }
-
-        accountId = accountId.Trim();
-        foreach (var c in accountId)
-        {
-            if (!char.IsAsciiLetterOrDigit(c))
-            {
-                throw new ArgumentException("The Cloudflare account id must contain only letters and digits.", nameof(options));
-            }
-        }
-
-        return accountId;
     }
 
     private static string NameOf(SystemOneProvider provider) => provider switch
     {
         SystemOneProvider.TypeSafe => nameof(SystemOneProvider.TypeSafe),
         SystemOneProvider.OpenRouter => nameof(SystemOneProvider.OpenRouter),
-        SystemOneProvider.CloudflareWorkersAi => nameof(SystemOneProvider.CloudflareWorkersAi),
         SystemOneProvider.VllmSemanticRouter => nameof(SystemOneProvider.VllmSemanticRouter),
         _ => nameof(SystemOneProvider.Custom),
     };
-
-    // A Cloudflare model is the last path segment: letters, digits, '.', '_' and '-' only, and never '.' or '..', which
-    // would move the request up the account's path.
-    private static bool IsSingleName(string? model)
-    {
-        if (string.IsNullOrEmpty(model) || model is "." or "..")
-        {
-            return false;
-        }
-
-        foreach (var c in model)
-        {
-            if (!char.IsAsciiLetterOrDigit(c) && c is not ('.' or '_' or '-'))
-            {
-                return false;
-            }
-        }
-
-        return true;
-    }
 
     // Relative to the base address and below it: no leading '/', which would drop the base address's own path, no query
     // or fragment, and no '..' segment. A backslash is checked like '/' as defence in depth: {**path} percent-encodes it

@@ -3,8 +3,8 @@
     <RootNamespace>Minos.SystemOne</RootNamespace>
     <PackageId>Minos.NET.SystemOne</PackageId>
     <Title>Minos.NET.SystemOne</Title>
-    <Description>The /v1/systemone protocol for Minos.NET: TypeSafe's Jev API, OpenRouter, Cloudflare Workers AI's Clef models, vLLM Semantic Router and compatible local servers, with presets, capability checks and DI registration. Native AOT-compatible. Not affiliated with or endorsed by TypeSafe AI, OpenRouter, Cloudflare or the vLLM project.</Description>
-    <PackageTags>$(PackageTags);systemone;jev;typesafe;openrouter;cloudflare;vllm</PackageTags>
+    <Description>The /v1/systemone protocol for Minos.NET: TypeSafe's Jev API, OpenRouter, vLLM Semantic Router and compatible local servers, with presets, capability checks and DI registration. Native AOT-compatible. Not affiliated with or endorsed by TypeSafe AI, OpenRouter or the vLLM project.</Description>
+    <PackageTags>$(PackageTags);systemone;jev;typesafe;openrouter;vllm</PackageTags>
     <IsAotCompatible>true</IsAotCompatible>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!-- SystemOneJsonEncoder overrides JavaScriptEncoder's pointer-based members. -->

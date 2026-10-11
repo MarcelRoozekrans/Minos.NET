@@ -114,7 +114,7 @@ A call logs once, when it completes, and logs again for each attempt it is about
   and a [built question set](question-sets-at-run-time.md) included, and, for the raw System One calls, `evaluate` for
   `EvaluateAsync(SystemOneRequest)` and `list-models` for model listing.
 - **`Provider`**, in events 1001, 1004 and 1005, is the provider name of the client's `DecisionClientMetadata`, the same
-  value as the span's `gen_ai.provider.name`: `typesafe`, `openrouter`, `cloudflare`, `vllm-sr` or `custom`.
+  value as the span's `gen_ai.provider.name`: `typesafe`, `openrouter`, `vllm-sr` or `custom`.
 - **Success** is a Debug event, 1001 for an evaluation and 1004 for a model listing. `QuestionCount` is the number of
   questions asked.
 - **Failure** is a Warning, 1002 or 1005. It covers every failure the call returns as a
@@ -323,7 +323,7 @@ named `minos.*`.
 | Attribute | Set | Value |
 | --- | --- | --- |
 | `gen_ai.operation.name` | start | `evaluate` or `list_models` |
-| `gen_ai.provider.name` | start | `typesafe`, `openrouter`, `cloudflare`, `vllm-sr` or `custom` |
+| `gen_ai.provider.name` | start | `typesafe`, `openrouter`, `vllm-sr` or `custom` |
 | `gen_ai.request.model` | start | The requested model. Evaluations only. |
 | `server.address` | start | The host of the base address. |
 | `server.port` | start | The port of the base address. |
@@ -343,7 +343,7 @@ the same as the caller sees.
 
 The GenAI conventions name no operation for evaluating or for listing models, and no provider called TypeSafe or
 OpenRouter, and they ask instrumentations to document their own. Minos uses the values in the table: the operation is
-`evaluate` or `list_models`, and the provider is `typesafe`, `openrouter`, `cloudflare`, `vllm-sr` or `custom`.
+`evaluate` or `list_models`, and the provider is `typesafe`, `openrouter`, `vllm-sr` or `custom`.
 
 ### When an exception is thrown
 

@@ -137,7 +137,6 @@ public sealed class CapabilityTests : IDisposable
     [Theory]
     [InlineData(SystemOneProvider.TypeSafe, true)]
     [InlineData(SystemOneProvider.OpenRouter, false)]
-    [InlineData(SystemOneProvider.CloudflareWorkersAi, false)]
     [InlineData(SystemOneProvider.VllmSemanticRouter, false)]
     [InlineData(SystemOneProvider.Custom, true)]
     public void Model_listing_follows_the_preset(SystemOneProvider provider, bool expected)
@@ -148,7 +147,6 @@ public sealed class CapabilityTests : IDisposable
     {
         Assert.Equal(new CapabilitySet(SystemOneQuestionKinds.All, null, 255, false, true), CapabilitySet.For(SystemOneProvider.TypeSafe));
         Assert.Equal(new CapabilitySet(SystemOneQuestionKinds.All, null, 255, false, false), CapabilitySet.For(SystemOneProvider.OpenRouter));
-        Assert.Equal(new CapabilitySet(SystemOneQuestionKinds.All, 64, 255, true, false), CapabilitySet.For(SystemOneProvider.CloudflareWorkersAi));
         Assert.Equal(new CapabilitySet(SystemOneQuestionKinds.All, null, null, false, false), CapabilitySet.For(SystemOneProvider.VllmSemanticRouter));
         Assert.Equal(new CapabilitySet(SystemOneQuestionKinds.All, null, null, false, true), CapabilitySet.For(SystemOneProvider.Custom));
     }
@@ -156,9 +154,9 @@ public sealed class CapabilityTests : IDisposable
     [Fact]
     public void Set_overrides_win_and_unset_ones_keep_the_preset_default()
     {
-        var caps = CapabilitySet.For(SystemOneProvider.CloudflareWorkersAi).With(new SystemOneCapabilities { MaxQuestions = 8, ModelListing = true });
+        var caps = CapabilitySet.For(SystemOneProvider.OpenRouter).With(new SystemOneCapabilities { MaxQuestions = 8, ModelListing = true });
 
-        Assert.Equal(new CapabilitySet(SystemOneQuestionKinds.All, 8, 255, true, true), caps);
+        Assert.Equal(new CapabilitySet(SystemOneQuestionKinds.All, 8, 255, false, true), caps);
     }
 
     [Fact]
@@ -179,12 +177,12 @@ public sealed class CapabilityTests : IDisposable
     [Fact]
     public void ToOptions_is_a_fresh_fully_set_copy()
     {
-        var caps = CapabilitySet.For(SystemOneProvider.CloudflareWorkersAi);
+        var caps = CapabilitySet.For(SystemOneProvider.OpenRouter);
 
         var options = caps.ToOptions();
 
         Assert.Equal(
-            (SystemOneQuestionKinds.All, 64, 255, true, false),
+            (SystemOneQuestionKinds.All, (int?)null, (int?)255, (bool?)false, (bool?)false),
             (options.QuestionKinds, options.MaxQuestions, options.MaxChoiceOptions, options.Images, options.ModelListing));
         Assert.NotSame(options, caps.ToOptions());
     }
@@ -324,7 +322,6 @@ public sealed class CapabilityTests : IDisposable
     [Theory]
     [InlineData(SystemOneProvider.VllmSemanticRouter, "Model listing is not available on VllmSemanticRouter.")]
     [InlineData(SystemOneProvider.OpenRouter, "Model listing is not available on OpenRouter.")]
-    [InlineData(SystemOneProvider.CloudflareWorkersAi, "Model listing is not available on CloudflareWorkersAi.")]
     public async Task ListModels_without_ModelListing_is_Unsupported_without_a_request(SystemOneProvider provider, string message)
     {
         var handler = StubHandler.Json(HttpStatusCode.OK, Fixture.Text("models.json"));
@@ -387,11 +384,7 @@ public sealed class CapabilityTests : IDisposable
 
     private static Action<SystemOneClientOptions> Hosted(SystemOneProvider provider) => options =>
     {
-        if (provider == SystemOneProvider.CloudflareWorkersAi)
-        {
-            options.AccountId = "abc123";
-        }
-        else if (provider is SystemOneProvider.VllmSemanticRouter or SystemOneProvider.Custom)
+        if (provider is SystemOneProvider.VllmSemanticRouter or SystemOneProvider.Custom)
         {
             options.BaseAddress = new Uri("http://local.test/api/");
         }

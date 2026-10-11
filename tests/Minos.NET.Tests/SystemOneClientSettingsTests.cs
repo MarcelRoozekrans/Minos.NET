@@ -176,17 +176,11 @@ public sealed class SystemOneClientSettingsTests
         => Assert.Equal("jev-latest", Resolve(new SystemOneClientOptions { ApiKey = "k", Provider = provider, Model = null }).Model);
 
     [Theory]
-    [InlineData(SystemOneProvider.CloudflareWorkersAi)]
     [InlineData(SystemOneProvider.VllmSemanticRouter)]
     [InlineData(SystemOneProvider.Custom)]
     public void NullModel_WithoutAPresetDefault_Throws_NamingTheProvider(SystemOneProvider provider)
     {
         var options = new SystemOneClientOptions { ApiKey = "k", Provider = provider, BaseAddress = new Uri("http://host/") };
-        if (provider == SystemOneProvider.CloudflareWorkersAi)
-        {
-            options.AccountId = "abc123";
-        }
-
         var exception = Assert.Throws<ArgumentException>(() => Resolve(options));
 
         Assert.Equal("options", exception.ParamName);

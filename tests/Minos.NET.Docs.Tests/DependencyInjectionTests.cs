@@ -145,19 +145,14 @@ public sealed class DependencyInjectionTests
     public void TheProviderSettingsOnThePage_BindToTheOptions()
     {
         var builder = NewBuilder();
-        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.Ordinal) { ["Cloudflare:ApiKey"] = "cloudflare-token" });
         using var json = new MemoryStream(Encoding.UTF8.GetBytes(PageBlock("json", 1)));
         builder.Configuration.AddJsonStream(json);
         KeyedRegistration.AddProvidersFromConfiguration(builder);
         using var host = builder.Build();
 
         var options = host.Services.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>();
-        var cloudflare = options.Get("cloudflare");
         var local = options.Get("local");
 
-        Assert.Equal(SystemOneProvider.CloudflareWorkersAi, cloudflare.Provider);
-        Assert.Equal("0123456789abcdef0123456789abcdef", cloudflare.AccountId);
-        Assert.Equal("clef-flash", cloudflare.Model);
         Assert.Equal(SystemOneProvider.Custom, local.Provider);
         Assert.Equal(new Uri("http://localhost:8080/"), local.BaseAddress);
         Assert.Equal("api/v1/systemone", local.Path);
@@ -166,10 +161,7 @@ public sealed class DependencyInjectionTests
         Assert.Equal(16, local.Capabilities.MaxQuestions);
         Assert.False(local.Capabilities.ModelListing);
         Assert.Null(local.Capabilities.MaxChoiceOptions);
-        Assert.Null(cloudflare.Capabilities.QuestionKinds);
         local.Validate();
-        Assert.Equal("cloudflare-token", cloudflare.ApiKey);
-        cloudflare.Validate();
     }
 
     [Fact]

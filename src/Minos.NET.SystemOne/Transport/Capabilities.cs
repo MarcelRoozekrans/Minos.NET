@@ -22,7 +22,6 @@ internal readonly record struct CapabilitySet(
     {
         SystemOneProvider.TypeSafe => new(SystemOneQuestionKinds.All, null, 255, Images: false, ModelListing: true),
         SystemOneProvider.OpenRouter => new(SystemOneQuestionKinds.All, null, 255, Images: false, ModelListing: false),
-        SystemOneProvider.CloudflareWorkersAi => new(SystemOneQuestionKinds.All, 64, 255, Images: true, ModelListing: false),
         SystemOneProvider.VllmSemanticRouter => new(SystemOneQuestionKinds.All, null, null, Images: false, ModelListing: false),
         _ => new(SystemOneQuestionKinds.All, null, null, Images: false, ModelListing: true),
     };

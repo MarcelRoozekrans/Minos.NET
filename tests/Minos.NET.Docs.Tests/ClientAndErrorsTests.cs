@@ -524,9 +524,6 @@ public sealed class ClientAndErrorsTests
         Assert.Equal(SystemOneDefaults.Model, values[nameof(SystemOneDefaults.Model)]);
         Assert.Equal(SystemOneDefaults.TypeSafeBaseAddress.ToString(), values[nameof(SystemOneDefaults.TypeSafeBaseAddress)]);
         Assert.Equal(SystemOneDefaults.OpenRouterBaseAddress.ToString(), values[nameof(SystemOneDefaults.OpenRouterBaseAddress)]);
-        Assert.Equal(SystemOneDefaults.CloudflareApiTokenEnvironmentVariable, values[nameof(SystemOneDefaults.CloudflareApiTokenEnvironmentVariable)]);
-        Assert.Equal(SystemOneDefaults.CloudflareAccountIdEnvironmentVariable, values[nameof(SystemOneDefaults.CloudflareAccountIdEnvironmentVariable)]);
-        Assert.Equal(SystemOneDefaults.CloudflareBaseAddress.ToString(), values[nameof(SystemOneDefaults.CloudflareBaseAddress)]);
     }
 
     // The kinds table lists every member of the enum, with the same name.
@@ -541,51 +538,11 @@ public sealed class ClientAndErrorsTests
     }
 
     [Fact]
-    public async Task TheCloudflarePreset_SendsToTheAccountAndTheModel_WithTheTokenFromTheEnvironment()
-    {
-        using var environment = new Variables((SystemOneDefaults.CloudflareApiTokenEnvironmentVariable, "cf-token"));
-        var options = ProviderOptions.Cloudflare("0123456789abcdef0123456789abcdef");
-        var (client, handler, http) = Direct(options, Reply.Ok(UrgencyResponse));
-        using (http)
-        using (handler)
-        using (client)
-        {
-            _ = await client.EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
-        }
-
-        Assert.Collection(handler.Requests, _ => { });
-        var sent = handler.Requests[0];
-        Assert.Equal(
-            "https://api.cloudflare.com/client/v4/accounts/0123456789abcdef0123456789abcdef/ai/run/@cf/cloudflare/clef-flash",
-            sent.Uri!.AbsoluteUri);
-        Assert.Equal("Bearer cf-token", sent.Authorization);
-    }
-
-    [Fact]
-    public void TheCloudflarePreset_NeedsTheAccountAndTheModel()
-    {
-        using var environment = new Variables(
-            (SystemOneDefaults.CloudflareApiTokenEnvironmentVariable, "cf-token"),
-            (SystemOneDefaults.CloudflareAccountIdEnvironmentVariable, null));
-
-        Assert.Contains(
-            "CLOUDFLARE_ACCOUNT_ID",
-            ClientOptions.Problem(new SystemOneClientOptions { Provider = SystemOneProvider.CloudflareWorkersAi, Model = "clef-flash" }),
-            StringComparison.Ordinal);
-        Assert.Contains(
-            "no default model",
-            ClientOptions.Problem(new SystemOneClientOptions { Provider = SystemOneProvider.CloudflareWorkersAi, AccountId = "abc123" }),
-            StringComparison.Ordinal);
-        Assert.Null(ClientOptions.Problem(ProviderOptions.Cloudflare("abc123")));
-    }
-
-    [Fact]
     public async Task TheCustomPreset_SendsToTheAddressAndPath_AndNeverReadsAKeyFromTheEnvironment()
     {
         using var environment = new Variables(
             (SystemOneDefaults.ApiKeyEnvironmentVariable, "typesafe-key"),
-            (SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable, "openrouter-key"),
-            (SystemOneDefaults.CloudflareApiTokenEnvironmentVariable, "cloudflare-token"));
+            (SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable, "openrouter-key"));
         var (client, handler, http) = Direct(ProviderOptions.Custom(), Reply.Ok(UrgencyResponse));
         using (http)
         using (handler)
@@ -619,8 +576,6 @@ public sealed class ClientAndErrorsTests
         using var environment = new Variables(
             (SystemOneDefaults.ApiKeyEnvironmentVariable, null),
             (SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable, null),
-            (SystemOneDefaults.CloudflareApiTokenEnvironmentVariable, null),
-            (SystemOneDefaults.CloudflareAccountIdEnvironmentVariable, null),
             (SystemOneDefaults.BaseAddressEnvironmentVariable, null));
         var rows = PageTables.Rows("client-and-errors.md", "The presets");
 
@@ -630,14 +585,13 @@ public sealed class ClientAndErrorsTests
         foreach (var row in rows)
         {
             var provider = Enum.Parse<SystemOneProvider>(PageTables.Code(row[0]));
-            var hosted = provider is SystemOneProvider.TypeSafe or SystemOneProvider.OpenRouter or SystemOneProvider.CloudflareWorkersAi;
+            var hosted = provider is SystemOneProvider.TypeSafe or SystemOneProvider.OpenRouter;
             var keyVariable = hosted ? PageTables.Code(row[3]) : null;
             var modelCodes = PageTables.AllCode(row[4]);
             var model = modelCodes.Length > 0 ? modelCodes[0] : null;
             var options = new SystemOneClientOptions
             {
                 Provider = provider,
-                AccountId = provider == SystemOneProvider.CloudflareWorkersAi ? "abc123" : null,
                 BaseAddress = hosted ? null : new Uri("http://localhost:8080/"),
                 Model = model is null ? "my-model" : null,
             };
@@ -667,25 +621,16 @@ public sealed class ClientAndErrorsTests
             using var http = new HttpClient();
             SystemOneClient.ConfigureHttpClient(http, options);
             var expected = hosted
-                ? PageTables.Code(row[1]).Replace("{AccountId}", "abc123", StringComparison.Ordinal)
+                ? PageTables.Code(row[1])
                 : "http://localhost:8080/";
             Assert.Equal(expected, http.BaseAddress!.AbsoluteUri);
-            if (provider == SystemOneProvider.CloudflareWorkersAi)
-            {
-                Assert.Empty(PageTables.AllCode(row[2]));
-            }
-            else
-            {
-                Assert.Equal("v1/systemone", PageTables.AllCode(row[2])[0]);
-            }
+            Assert.Equal("v1/systemone", PageTables.AllCode(row[2])[0]);
         }
 
         Assert.Equal(SystemOneDefaults.TypeSafeBaseAddress.AbsoluteUri, PageTables.Code(rows[0][1]));
         Assert.Equal(SystemOneDefaults.OpenRouterBaseAddress.AbsoluteUri, PageTables.Code(rows[1][1]));
-        Assert.Equal(SystemOneDefaults.CloudflareBaseAddress.AbsoluteUri + "accounts/{AccountId}/ai/run/@cf/cloudflare/", PageTables.Code(rows[2][1]));
         Assert.Equal(SystemOneDefaults.ApiKeyEnvironmentVariable, PageTables.Code(rows[0][3]));
         Assert.Equal(SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable, PageTables.Code(rows[1][3]));
-        Assert.Equal(SystemOneDefaults.CloudflareApiTokenEnvironmentVariable, PageTables.Code(rows[2][3]));
     }
 
     [Fact]
@@ -695,8 +640,8 @@ public sealed class ClientAndErrorsTests
         var properties = typeof(SystemOneClientOptions).GetProperties().Select(property => property.Name).ToArray();
 
         Assert.Equal(properties.Order(StringComparer.Ordinal), rows.Select(row => PageTables.Code(row[0])).Order(StringComparer.Ordinal));
-        Assert.Equal(13, properties.Length);
-        Assert.Contains("has thirteen properties", PageTables.Text("client-and-errors.md"), StringComparison.Ordinal);
+        Assert.Equal(12, properties.Length);
+        Assert.Contains("has twelve properties", PageTables.Text("client-and-errors.md"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -714,7 +659,6 @@ public sealed class ClientAndErrorsTests
             {
                 Provider = provider,
                 ApiKey = "key",
-                AccountId = provider == SystemOneProvider.CloudflareWorkersAi ? "abc123" : null,
                 BaseAddress = new Uri("http://localhost:8080/"),
                 Model = "my-model",
             };
@@ -781,14 +725,12 @@ public sealed class ClientAndErrorsTests
     [Fact]
     public void TheResolvedCapabilities_AreThePresetsWithTheOverridesApplied()
     {
-        var cloudflare = ProviderOptions.Cloudflare("abc123");
-        cloudflare.ApiKey = "key";
         using var http = new HttpClient();
-        using var client = new SystemOneClient(http, cloudflare);
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { Provider = SystemOneProvider.OpenRouter, ApiKey = "key" });
         using var noul = new SystemOneClient(http, CapabilityOptions.NoulOnly());
         using var own = new AlwaysUrgent();
 
-        Assert.Equal("All, at most 64 questions, model listing off", CapabilityOptions.Describe(client));
+        Assert.Equal("All, no question limit, model listing off", CapabilityOptions.Describe(client));
         Assert.Equal("Noul, no question limit, model listing on", CapabilityOptions.Describe(noul));
         Assert.Equal("This client has no System One capabilities.", CapabilityOptions.Describe(own));
         Assert.NotSame(client.GetService<SystemOneCapabilities>(), client.GetService<SystemOneCapabilities>());

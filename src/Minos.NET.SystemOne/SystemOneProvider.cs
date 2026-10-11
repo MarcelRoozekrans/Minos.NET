@@ -10,13 +10,6 @@ public enum SystemOneProvider
     OpenRouter,
 
     /// <summary>
-    /// Cloudflare Workers AI, at <c>https://api.cloudflare.com/client/v4/accounts/{AccountId}/ai/run/@cf/cloudflare/{model}</c>,
-    /// with a Cloudflare API token. It needs <see cref="SystemOneClientOptions.AccountId"/> and
-    /// <see cref="SystemOneClientOptions.Model"/>.
-    /// </summary>
-    CloudflareWorkersAi,
-
-    /// <summary>
     /// A vLLM Semantic Router you run, at <see cref="SystemOneClientOptions.BaseAddress"/>. A key is sent only when
     /// <see cref="SystemOneClientOptions.ApiKey"/> is set. It needs <see cref="SystemOneClientOptions.Model"/>.
     /// </summary>

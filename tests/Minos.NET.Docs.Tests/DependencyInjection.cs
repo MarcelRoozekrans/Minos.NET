@@ -98,10 +98,9 @@ public static class KeyedRegistration
     #endregion
 
     #region DependencyInjection_ConfigurationProviders
-    // Provider, AccountId, Path and Capabilities bind like any other option.
+    // Provider, Path and Capabilities bind like any other option.
     public static void AddProvidersFromConfiguration(IHostApplicationBuilder builder)
     {
-        builder.Services.AddSystemOneClient("cloudflare", builder.Configuration.GetSection("Cloudflare"));
         builder.Services.AddSystemOneClient("local", builder.Configuration.GetSection("Local"));
     }
     #endregion

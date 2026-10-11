@@ -8,7 +8,7 @@
 
 Unofficial .NET client for decision models: send a `state` and typed questions (Noul, Choice, Score) and get calibrated, typed answers back.
 
-Minos speaks the `/v1/systemone` protocol of TypeSafe's Jev: to TypeSafe directly, through OpenRouter, to Cloudflare Workers AI, or to a server you run, such as a vLLM Semantic Router. The core is provider-neutral, and `Minos.NET.SystemOne` is the client for this protocol.
+Minos speaks the `/v1/systemone` protocol of TypeSafe's Jev: to TypeSafe directly, through OpenRouter, or to a server you run, such as a vLLM Semantic Router. The core is provider-neutral, and `Minos.NET.SystemOne` is the client for this protocol.
 
 You declare the questions as a C# type, and a source generator writes the request and the answer parsing at compile time, so generated question sets need no reflection and the client runs under Native AOT.
 

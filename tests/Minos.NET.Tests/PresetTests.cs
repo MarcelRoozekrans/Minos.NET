@@ -19,23 +19,10 @@ public sealed class PresetTests
         var settings = SystemOneClientSettings.Resolve(new SystemOneClientOptions { Provider = provider, ApiKey = "k" }, Env());
 
         Assert.Equal(new Uri(address), settings.BaseAddress);
-        Assert.Equal("v1/systemone", settings.PathFor("jev-latest"));
+        Assert.Equal("v1/systemone", settings.Path);
         Assert.Equal("jev-latest", settings.Model);
         Assert.Equal(name, settings.ProviderName);
         Assert.Equal("Bearer k", settings.Authorization);
-    }
-
-    [Fact]
-    public void Cloudflare_puts_the_account_in_the_address_and_the_model_in_the_path()
-    {
-        var settings = SystemOneClientSettings.Resolve(
-            new SystemOneClientOptions { Provider = SystemOneProvider.CloudflareWorkersAi, Model = "clef-flash" },
-            Env(("CLOUDFLARE_API_TOKEN", "t"), ("CLOUDFLARE_ACCOUNT_ID", "abc123")));
-
-        Assert.Equal(new Uri("https://api.cloudflare.com/client/v4/accounts/abc123/ai/run/@cf/cloudflare/"), settings.BaseAddress);
-        Assert.Equal("clef", settings.PathFor("clef"));
-        Assert.Equal("cloudflare", settings.ProviderName);
-        Assert.Equal("Bearer t", settings.Authorization);
     }
 
     [Theory]
@@ -45,12 +32,12 @@ public sealed class PresetTests
     {
         var settings = SystemOneClientSettings.Resolve(
             new SystemOneClientOptions { Provider = provider, BaseAddress = new Uri("http://localhost:8000"), Model = "m" },
-            Env(("TYPESAFE_API_KEY", "leak"), ("OPENROUTER_API_KEY", "leak"), ("CLOUDFLARE_API_TOKEN", "leak")));
+            Env(("TYPESAFE_API_KEY", "leak"), ("OPENROUTER_API_KEY", "leak")));
 
         Assert.Null(settings.ApiKey);
         Assert.Null(settings.Authorization);
         Assert.Equal(new Uri("http://localhost:8000/"), settings.BaseAddress);
-        Assert.Equal("v1/systemone", settings.PathFor("m"));
+        Assert.Equal("v1/systemone", settings.Path);
         Assert.Equal(name, settings.ProviderName);
     }
 
@@ -61,7 +48,7 @@ public sealed class PresetTests
             new SystemOneClientOptions { Provider = SystemOneProvider.Custom, BaseAddress = new Uri("http://localhost:8080/api/"), Path = "decide/v1/systemone", Model = "m", ApiKey = "k" },
             Env());
 
-        Assert.Equal("decide/v1/systemone", settings.PathFor("m"));
+        Assert.Equal("decide/v1/systemone", settings.Path);
         Assert.Equal("Bearer k", settings.Authorization);
     }
 
@@ -75,35 +62,30 @@ public sealed class PresetTests
             new SystemOneClientOptions { Provider = SystemOneProvider.Custom, BaseAddress = new Uri("http://localhost:8080/api/"), Path = path, Model = "m" },
             Env());
 
-        Assert.Equal(expected, settings.PathFor("m"));
+        Assert.Equal(expected, settings.Path);
     }
 
     [Fact]
     public void A_blank_path_on_a_hosted_preset_counts_as_unset()
         => Assert.Equal(
             "v1/systemone",
-            SystemOneClientSettings.Resolve(new SystemOneClientOptions { ApiKey = "k", Path = " " }, Env()).PathFor("jev-latest"));
+            SystemOneClientSettings.Resolve(new SystemOneClientOptions { ApiKey = "k", Path = " " }, Env()).Path);
 
     [Theory]
     [MemberData(nameof(InvalidPresetCases))]
     public void Invalid_preset_options_throw(SystemOneClientOptions options, string message)
     {
-        var exception = Assert.Throws<ArgumentException>(() => SystemOneClientSettings.Resolve(options, Env(("CLOUDFLARE_API_TOKEN", "t"))));
+        var exception = Assert.Throws<ArgumentException>(() => SystemOneClientSettings.Resolve(options, Env()));
         Assert.StartsWith(message, exception.Message, StringComparison.Ordinal);
     }
 
     public static TheoryData<SystemOneClientOptions, string> InvalidPresetCases() => new()
     {
-        { new() { Provider = SystemOneProvider.CloudflareWorkersAi, Model = "clef" }, "CloudflareWorkersAi needs an AccountId." },
-        { new() { Provider = SystemOneProvider.CloudflareWorkersAi, Model = "clef", AccountId = "a/b" }, "The Cloudflare account id must contain only letters and digits." },
-        { new() { Provider = SystemOneProvider.CloudflareWorkersAi, AccountId = "a" }, "CloudflareWorkersAi has no default model." },
-        { new() { Provider = SystemOneProvider.CloudflareWorkersAi, AccountId = "a", Model = "@cf/x" }, "A Cloudflare model must be a single name" },
         { new() { Provider = SystemOneProvider.Custom, Model = "m" }, "Custom needs a BaseAddress." },
         { new() { Provider = SystemOneProvider.VllmSemanticRouter, Model = "m" }, "VllmSemanticRouter needs a BaseAddress." },
         { new() { Provider = SystemOneProvider.Custom, BaseAddress = new("http://h/") }, "Custom has no default model." },
         { new() { Provider = SystemOneProvider.TypeSafe, ApiKey = "k", Path = "x" }, "Path applies only to the Custom and VllmSemanticRouter providers." },
         { new() { Provider = SystemOneProvider.Custom, BaseAddress = new("http://h/"), Model = "m", Path = "/x" }, "The path must be relative" },
         { new() { Provider = SystemOneProvider.Custom, BaseAddress = new("http://h/"), Model = "m", Path = "a/../b" }, "The path must be relative" },
-        { new() { Provider = SystemOneProvider.TypeSafe, ApiKey = "k", AccountId = "a" }, "AccountId applies only to the CloudflareWorkersAi provider." },
     };
 }
