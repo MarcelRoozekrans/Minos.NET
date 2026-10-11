@@ -40,7 +40,8 @@ public sealed class LocalSystemOneTests
             sum += probability;
         }
 
-        Assert.InRange(sum, 1 - 1e-6, 1 + 1e-6);
+        // ollajev reports probabilities to 4 decimals, so three rounded values can sum to about 1.5e-4 off 1.
+        Assert.InRange(sum, 1 - 1e-3, 1 + 1e-3);
 
         Assert.True(Enum.IsDefined(triage.Frustration.Value));
         Assert.InRange(triage.Frustration.Expected, 0.0, 2.0);

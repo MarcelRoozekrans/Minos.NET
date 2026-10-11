@@ -79,8 +79,10 @@ public sealed partial class NoOldNameTests
         // The logo's design record quotes the brief as it was given, during the rename.
         new("docs/design/LOGO.md", null, LogoBriefRename()),
 
-        // The local-systemone workflow installs and runs the third-party ollajev server, which reads OLLAJEV_DEVICE.
+        // The local-systemone workflow installs and runs the third-party ollajev server, which reads OLLAJEV_DEVICE; the
+        // local test names it where it explains how precise its answers are.
         new(".github/workflows/local-systemone.yml", null, LocalServerPackage()),
+        new("tests/Minos.NET.Live.Tests/LocalSystemOneTests.cs", null, LocalServerPackage()),
     ];
 
     [Fact]

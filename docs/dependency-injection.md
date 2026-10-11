@@ -208,8 +208,7 @@ default](client-and-errors.md#the-defaults).
     "Model": "local-model",
     "Capabilities": {
       "QuestionKinds": "Noul, Choice",
-      "MaxQuestions": 16,
-      "ModelListing": false
+      "MaxQuestions": 16
     }
   }
 }
