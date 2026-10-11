@@ -20,6 +20,8 @@ internal readonly record struct CapabilitySet(
     /// <returns>What the preset's vendor accepts.</returns>
     internal static CapabilitySet For(SystemOneProvider provider) => provider switch
     {
+        // 255 options per Choice question is the limit TypeSafe's API page documents, https://docs.typesafe.ai/api.
+        // OpenRouter passes requests through to TypeSafe's model, so it has the same limit.
         SystemOneProvider.TypeSafe => new(SystemOneQuestionKinds.All, null, 255, Images: false, ModelListing: true),
         SystemOneProvider.OpenRouter => new(SystemOneQuestionKinds.All, null, 255, Images: false, ModelListing: false),
         SystemOneProvider.VllmSemanticRouter => new(SystemOneQuestionKinds.All, null, null, Images: false, ModelListing: false),

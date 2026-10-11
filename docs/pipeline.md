@@ -299,6 +299,8 @@ compiler finds every one of these. Typed calls, `[Questions]` records and fakes 
 | `Model` is a `string` that defaults to `jev-latest` | `Model` is a `string?` that defaults to `null`, which takes the preset's default: `jev-latest` for TypeSafe and OpenRouter. The new presets have none, so the options need a `Model` for them |
 | The raw calls log the provider as `TypeSafe` or `OpenRouter` in events 1001, 1004 and 1005 | They log its telemetry name, `typesafe` or `openrouter`, as the typed calls do. The new presets log `vllm-sr` and `custom` |
 | `ListModelsAsync` on a provider without model listing returns `Unsupported` with "Model listing is only available on TypeSafe's API; OpenRouter has its own Models API." | The message is "Model listing is not available on {provider}.", for every provider whose `ModelListing` capability is off |
+| A Choice question with more than 255 options is sent, with only the MIN005 warning at build time | On TypeSafe and OpenRouter it returns `Unsupported` with MIN203 before sending. `Capabilities.MaxChoiceOptions` can raise the limit |
+| `Minos.NET.DependencyInjection` brings `Microsoft.Extensions.Http` and `Microsoft.Extensions.Options.ConfigurationExtensions` | It no longer does. `Minos.NET.SystemOne` brings them, so code that used them without installing `Minos.NET.SystemOne` adds the package references itself |
 
 `SystemOneClientOptions` also gains `Path` and `Capabilities`, and `SystemOneProvider` gains
 `VllmSemanticRouter` and `Custom`, all described on the
@@ -314,10 +316,10 @@ are the ones of that release; [Upgrading from 0.8](#upgrading-from-08) has the l
 
 | In 0.7 | From 0.8 |
 | --- | --- |
-| `client.EvaluateAsync(SystemOneRequest)` and `client.ListModelsAsync()` on an `IDecisionClient` | `client.GetService<SystemOneClient>()!.EvaluateAsync(...)` and `.ListModelsAsync(...)`, or hold a `SystemOneClient` |
-| `client.EvaluateAsync<T>(state)`, a default interface method or a `SystemOneClient` member | The same call, now an extension method in `DecisionClientExtensions`, in the `Minos` namespace |
+| `client.EvaluateAsync(SystemOneRequest)` and `client.ListModelsAsync()` on an `IDecisionClient` | `client.GetService<DecisionClient>()!.EvaluateAsync(...)` and `.ListModelsAsync(...)`, or hold a `DecisionClient` |
+| `client.EvaluateAsync<T>(state)`, a default interface method or a `DecisionClient` member | The same call, now an extension method in `DecisionClientExtensions`, in the `Minos` namespace |
 | A fake implements `EvaluateAsync(SystemOneRequest)` and `ListModelsAsync` | A fake implements `EvaluateAsync(DecisionRequest)`, `GetService` and `Dispose`, and returns a `DecisionResponse` built with its public constructor |
-| `AddDecisionClient` returns `IHttpClientBuilder` | It returns a builder whose `HttpClient` property is the old builder; after [0.8](#upgrading-from-08) that is `AddSystemOneClient` and `SystemOneClientServiceBuilder` |
+| `AddDecisionClient` returns `IHttpClientBuilder` | It returns a builder whose `HttpClient` property is the old builder; [0.9](#upgrading-from-08) renamed it to `AddSystemOneClient` and `SystemOneClientServiceBuilder` |
 | `IDecisionClient` is not disposable | `IDecisionClient` derives from `IDisposable` |
 | `EvaluateUtf8Async<T>` writes the state into the request before it returns | It copies the bytes once when you call it, the state's length plus 24 B, and a retry sends that copy, so you may still reuse the buffer as soon as the call returns |
 

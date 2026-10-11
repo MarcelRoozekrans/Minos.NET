@@ -15,7 +15,7 @@ internal static class DecisionLimits
     /// <summary>The most Score levels the API sketch's guidance recommends (MIN005); the schema sets no bound.</summary>
     public const int MaximumScoreLevels = 10;
 
-    /// <summary>The most Choice options the API sketch's guidance recommends (MIN005); the schema sets no bound.</summary>
+    /// <summary>The most Choice options TypeSafe's API page documents, https://docs.typesafe.ai/api (MIN005); the schema sets no bound.</summary>
     public const int MaximumChoiceOptions = 255;
 
     /// <summary>
