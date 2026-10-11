@@ -292,7 +292,8 @@ problem it found. Each is a `QuestionFailure` with a rule id, the key of the que
 
 The error's `Message` is the first failure's. `MIN202` comes first, then each question in the order it is sent. The
 MIN2 series is for these provider limits, and MIN201 to MIN203 keep their meaning, so you can match on them. The rules
-MIN001 to MIN107 are about the API's own limits, and [diagnostics](diagnostics.md) lists them.
+MIN001 to MIN006 are the API's own rules, MIN101 to MIN108 are about what the generator can turn into code, and
+[diagnostics](diagnostics.md) lists them.
 
 <!-- snippet: ClientAndErrors_Unsupported -->
 ```cs

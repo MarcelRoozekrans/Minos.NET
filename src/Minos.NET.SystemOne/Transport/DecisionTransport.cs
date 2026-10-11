@@ -7,7 +7,7 @@ namespace Minos.SystemOne.Transport;
 
 /// <summary>
 /// One attempt per call: checks the question set against the provider's capabilities, writes the request through the
-/// protocol, POSTs it to the settings' path for its model, and reads the response or maps the error through it. It never
+/// protocol, POSTs it to the settings' path, and reads the response or maps the error through it. It never
 /// retries, logs or traces; stages do that.
 /// </summary>
 /// <remarks>
@@ -22,16 +22,16 @@ namespace Minos.SystemOne.Transport;
 /// <param name="api">The REST client that sends the attempt.</param>
 /// <param name="protocol">Writes the request and reads the response.</param>
 /// <param name="settings">
-/// The resolved settings: the <c>Authorization</c> header value, or none, and the request path.
+/// The resolved settings: the <c>Authorization</c> header value, or none, the request path and the model a request without one uses.
 /// </param>
-/// <param name="metadata">What <see cref="GetService"/> returns for <see cref="DecisionClientMetadata"/>; its default model fills a request without one.</param>
+/// <param name="metadata">What <see cref="GetService"/> returns for <see cref="DecisionClientMetadata"/>.</param>
 /// <param name="pool">The pool the request body is rented from.</param>
 /// <param name="disposed">Reads whether the owning client has been disposed.</param>
 internal sealed class DecisionTransport(
     IDecisionApi api, IDecisionProtocol protocol, SystemOneClientSettings settings, DecisionClientMetadata metadata, ArrayPool<byte> pool, Func<bool> disposed)
     : IDecisionClient
 {
-    private readonly string _model = metadata.DefaultModel ?? SystemOneDefaults.Model;
+    private readonly string _model = settings.Model;
     private readonly CapabilitySet _capabilities = settings.Capabilities;
     private readonly SystemOneProvider _provider = settings.Provider;
 

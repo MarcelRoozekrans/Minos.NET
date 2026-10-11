@@ -48,7 +48,10 @@ public enum DecisionErrorKind
     /// <summary>A successful response could not be read as the expected JSON.</summary>
     InvalidResponse = 9,
 
-    /// <summary>The operation is not available on the configured provider.</summary>
+    /// <summary>
+    /// The operation is not available on the configured provider. A question set the provider's capabilities do not
+    /// accept is this kind too, and <see cref="DecisionError.Failures"/> lists each capability failure.
+    /// </summary>
     Unsupported = 10,
 
     /// <summary>
