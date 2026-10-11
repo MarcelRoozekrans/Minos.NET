@@ -341,8 +341,6 @@ public sealed class DecisionErrorMapperTests
         Assert.Null(error.RequestId);
     }
 
-    private static Dictionary<string, IReadOnlyList<string>> Headers() => [];
-
     [Fact]
     public void Status_CarriesTheRequestId_FromTheHeaders()
     {
@@ -378,4 +376,6 @@ public sealed class DecisionErrorMapperTests
     [Fact]
     public void ToString_WithARequestIdButNoStatus_IncludesTheRequestId()
         => Assert.Equal("Http (request req_abc): odd", new DecisionError(DecisionErrorKind.Http, "odd") { RequestId = "req_abc" }.ToString());
+
+    private static Dictionary<string, IReadOnlyList<string>> Headers() => [];
 }

@@ -59,15 +59,6 @@ public sealed class FixtureFormatTests
         Assert.Equal("s", exchange.Request!.Value.GetProperty("state").GetString());
     }
 
-    private static ConformanceFixture Header(string source, string? model, string? recorded) => new()
-    {
-        Target = "typesafe",
-        Source = source,
-        Model = model,
-        Recorded = recorded,
-        Exchanges = [],
-    };
-
     [Fact]
     public void AFixture_RoundTrips_LeavingNullsOut()
     {
@@ -92,4 +83,13 @@ public sealed class FixtureFormatTests
         Assert.DoesNotContain("\"note\"", json, StringComparison.Ordinal);
         Assert.EndsWith("}\n", json, StringComparison.Ordinal);
     }
+
+    private static ConformanceFixture Header(string source, string? model, string? recorded) => new()
+    {
+        Target = "typesafe",
+        Source = source,
+        Model = model,
+        Recorded = recorded,
+        Exchanges = [],
+    };
 }

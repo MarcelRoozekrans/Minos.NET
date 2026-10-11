@@ -142,16 +142,6 @@ public sealed class DecisionClientTests : IDisposable
     }
 
     [Fact]
-    public async Task Evaluate_TransportFailure_HasNoRequestId()
-    {
-        using var client = Borrowing(new StubHandler((_, _) => throw new HttpRequestException("connection refused")));
-
-        var result = await client.EvaluateAsync(NoulRequest());
-
-        Assert.Null(result.Error.RequestId);
-    }
-
-    [Fact]
     public async Task Evaluate_TransportFailure_IsNetwork()
     {
         using var client = Borrowing(new StubHandler((_, _) => throw new HttpRequestException("connection refused")));
@@ -160,6 +150,7 @@ public sealed class DecisionClientTests : IDisposable
 
         Assert.Equal(DecisionErrorKind.Network, result.Error.Kind);
         Assert.IsType<HttpRequestException>(result.Error.Exception);
+        Assert.Null(result.Error.RequestId);
     }
 
     [Fact]

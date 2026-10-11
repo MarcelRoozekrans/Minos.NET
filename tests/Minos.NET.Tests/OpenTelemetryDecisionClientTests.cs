@@ -301,18 +301,6 @@ public sealed class OpenTelemetryDecisionClientTests
         Assert.Throws<ArgumentNullException>("innerClient", () => new OpenTelemetryDecisionClient(null!));
     }
 
-    private static Result<DecisionResponse, DecisionError> Fail(DecisionErrorKind kind)
-        => Result<DecisionResponse, DecisionError>.Failure(new DecisionError(kind, "x"));
-
-    private static Result<DecisionResponse, DecisionError> OkWithEnvelope()
-    {
-        var built = new DecisionResponse(
-            QuestionSets.TriageDefinition(),
-            [QuestionAnswer.Noul(0.9), QuestionAnswer.Choice(1, 0.8, [0.1, 0.8, 0.1]), QuestionAnswer.Score(2, 1.7, 0.6, [0.1, 0.1, 0.8])]);
-        return Result<DecisionResponse, DecisionError>.Success(
-            new DecisionResponse(built.Definition, built.Slots, built.Probabilities, "minos-1", 10, 3, 0.002, "r-1", "typesafe"));
-    }
-
     [Fact]
     public async Task Failure_with_a_request_id_tags_the_span_but_not_the_metrics()
     {
@@ -324,5 +312,17 @@ public sealed class OpenTelemetryDecisionClientTests
 
         Assert.Equal("req_span", capture.Span().GetTagItem("minos.request_id"));
         Assert.Null(capture.OnlyPoint("gen_ai.client.operation.duration").Tag("minos.request_id"));
+    }
+
+    private static Result<DecisionResponse, DecisionError> Fail(DecisionErrorKind kind)
+        => Result<DecisionResponse, DecisionError>.Failure(new DecisionError(kind, "x"));
+
+    private static Result<DecisionResponse, DecisionError> OkWithEnvelope()
+    {
+        var built = new DecisionResponse(
+            QuestionSets.TriageDefinition(),
+            [QuestionAnswer.Noul(0.9), QuestionAnswer.Choice(1, 0.8, [0.1, 0.8, 0.1]), QuestionAnswer.Score(2, 1.7, 0.6, [0.1, 0.1, 0.8])]);
+        return Result<DecisionResponse, DecisionError>.Success(
+            new DecisionResponse(built.Definition, built.Slots, built.Probabilities, "minos-1", 10, 3, 0.002, "r-1", "typesafe"));
     }
 }

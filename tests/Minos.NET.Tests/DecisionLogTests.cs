@@ -190,11 +190,6 @@ public sealed class DecisionLogTests
         Assert.Equal(
             ["Operation", "Model", "ErrorKind", "StatusCode", "RequestId", "DurationMs", "ErrorMessage", "{OriginalFormat}"],
             record.StructuredState!.Select(pair => pair.Key));
-
-        // Provider is fixed per client and retry-after is on AttemptRetrying: neither is a field here.
-        var keys = record.StructuredState!.Select(pair => pair.Key).ToArray();
-        Assert.DoesNotContain("Provider", keys);
-        Assert.DoesNotContain("RetryAfter", keys);
     }
 
     [Fact]
