@@ -158,8 +158,8 @@ internal static class OpenAIChecks
             "OpenAIDecisionClientOptions.Validate accepts valid options and rejects invalid ones under Native AOT");
     }
 
-    /// <summary>Registers the default client over a canned handler. The allocation gates register theirs the same way.</summary>
-    public static void RegisterDefaultClient(IServiceCollection services)
+    /// <summary>Registers the default client over a canned handler.</summary>
+    private static void RegisterDefaultClient(IServiceCollection services)
         => services
             .AddOpenAIDecisionClient(options =>
             {
@@ -198,7 +198,7 @@ internal static class OpenAIChecks
     }
 
     /// <summary>The smoke app's configuration: a default client and a secondary one, each in its own section.</summary>
-    public static IConfigurationRoot BoundConfiguration()
+    private static IConfigurationRoot BoundConfiguration()
         => new ConfigurationBuilder()
             .AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.Ordinal)
             {
