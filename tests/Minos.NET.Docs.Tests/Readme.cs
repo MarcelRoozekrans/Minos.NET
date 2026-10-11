@@ -2,6 +2,7 @@ namespace Minos.Docs.Tests;
 
 #region Readme_Example
 using Minos;
+using Minos.SystemOne;
 
 public enum Lane
 {
@@ -28,7 +29,7 @@ public static class ReadmeExample
     // registers it with AddDecisionClient.
     public static async Task<string> RunAsync(string message, CancellationToken cancellationToken)
     {
-        using var client = new DecisionClient();
+        using var client = new SystemOneClient();
         return await RouteAsync(client, message, cancellationToken);
     }
 

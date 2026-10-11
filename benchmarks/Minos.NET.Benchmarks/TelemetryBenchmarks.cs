@@ -1,6 +1,7 @@
 using System.Net;
 using BenchmarkDotNet.Attributes;
 using Minos.Shared;
+using Minos.SystemOne;
 using ZeroAlloc.Results;
 
 namespace Minos.Benchmarks;
@@ -22,11 +23,11 @@ public class TelemetryBenchmarks : IDisposable
     private HttpClient _builtSetHttp = null!;
     private HttpClient _listModelsHttp = null!;
     private HttpClient _typedYieldingHttp = null!;
-    private DecisionClient _evaluateClient = null!;
-    private DecisionClient _typedClient = null!;
-    private DecisionClient _builtSetClient = null!;
-    private DecisionClient _listModelsClient = null!;
-    private DecisionClient _typedYieldingClient = null!;
+    private SystemOneClient _evaluateClient = null!;
+    private SystemOneClient _typedClient = null!;
+    private SystemOneClient _builtSetClient = null!;
+    private SystemOneClient _listModelsClient = null!;
+    private SystemOneClient _typedYieldingClient = null!;
     private SystemOneRequest _request = null!;
     private QuestionSet _triage = null!;
 

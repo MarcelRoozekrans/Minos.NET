@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Minos.Protocols;
+using Minos.SystemOne.Protocols;
 using Minos.Tests.WireFixtureSets;
 
 namespace Minos.Tests;

@@ -1,7 +1,9 @@
 using System.Net;
 using System.Text;
-using Minos.Protocols;
-using Minos.Serialization;
+using Minos.SystemOne;
+using Minos.SystemOne.Protocols;
+using Minos.SystemOne.Serialization;
+using Minos.SystemOne.Transport;
 using Minos.Transport;
 using ZeroAlloc.Rest.SystemTextJson;
 using ZeroAlloc.Results;
@@ -113,10 +115,10 @@ public sealed class DecisionTransportTests : IDisposable
         var handler = StubHandler.Json(HttpStatusCode.ServiceUnavailable, "{}");
         var http = new HttpClient(handler);
         _httpClients.Add(http);
-        var settings = DecisionClientSettings.Resolve(
-            new DecisionClientOptions { ApiKey = "test-key", Model = ClientTestKit.TestModel, MaxRetries = 3, InitialBackoff = TimeSpan.FromMilliseconds(1), UseStandardPipeline = false },
+        var settings = SystemOneClientSettings.Resolve(
+            new SystemOneClientOptions { ApiKey = "test-key", Model = ClientTestKit.TestModel, MaxRetries = 3, InitialBackoff = TimeSpan.FromMilliseconds(1), UseStandardPipeline = false },
             _ => null);
-        using var client = new DecisionClient(settings, http, ownedHandler: null, TimeProvider.System);
+        using var client = new SystemOneClient(settings, http, ownedHandler: null, TimeProvider.System);
 
         var result = await client.EvaluateAsync(new DecisionRequest(QuestionSets.UrgencyDefinition(), "s"));
 
@@ -127,14 +129,14 @@ public sealed class DecisionTransportTests : IDisposable
     [Fact]
     public void Metadata_names_the_provider_endpoint_and_model()
     {
-        using var client = ClientTestKit.Client(_httpClients, StubHandler.Json(HttpStatusCode.OK, "{}"), provider: DecisionProvider.OpenRouter);
+        using var client = ClientTestKit.Client(_httpClients, StubHandler.Json(HttpStatusCode.OK, "{}"), provider: SystemOneProvider.OpenRouter);
 
         var metadata = client.GetService<DecisionClientMetadata>();
 
         Assert.Equal("openrouter", metadata!.ProviderName);
         Assert.Equal(ClientTestKit.TestModel, metadata.DefaultModel);
         Assert.NotNull(metadata.Endpoint);
-        Assert.Same(client, client.GetService<DecisionClient>());
+        Assert.Same(client, client.GetService<SystemOneClient>());
         Assert.Same(client, client.GetService<IDecisionClient>());
         Assert.Null(client.GetService<string>());
         Assert.Null(client.GetService<DecisionClientMetadata>(serviceKey: "key"));

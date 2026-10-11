@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Minos.Shared;
+using Minos.SystemOne;
 using ZeroAlloc.Results;
 using ZeroAlloc.TestHelpers;
 
@@ -72,13 +73,13 @@ internal static class AllocationChecks
         {
             BaseAddress = new Uri("https://example.test/api/"),
         };
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key" });
 
         var result = await client.EvaluateAsync<SlotProbe>(SmokeAnswers.State).ConfigureAwait(false);
         Program.Check(result.IsSuccess, "the slot probe is created over the triage answers");
     }
 
-    /// <summary><see cref="DecisionClient.EvaluateAsync"/> over a canned handler: request serialization and response
+    /// <summary><see cref="SystemOneClient.EvaluateAsync"/> over a canned handler: request serialization and response
     /// deserialization through the public API only, since <c>DecisionJsonContext</c> is internal.</summary>
     public static void EvaluateRoundTrip()
     {
@@ -86,7 +87,7 @@ internal static class AllocationChecks
         {
             BaseAddress = new Uri("https://example.test/api/"),
         };
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key" });
         var request = new SystemOneRequest
         {
             State = SmokeAnswers.State,
@@ -117,7 +118,7 @@ internal static class AllocationChecks
         {
             BaseAddress = new Uri("https://example.test/api/"),
         };
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key" });
 
         // Measured 3248 B/call on published win-x64 AOT through the standard pipeline: the request's Utf8JsonWriter and
         // RawJson, ZeroAlloc.Rest's own per-attempt allocations (HttpRequestMessage, headers, the MemoryStream the body is
@@ -136,7 +137,7 @@ internal static class AllocationChecks
     public static void NeutralEvaluateRoundTrip()
     {
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, TriageResponseJson)) { BaseAddress = new Uri("https://example.test/api/") };
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key" });
         var request = new DecisionRequest(SmokeTriage.Definition, SmokeAnswers.State);
 
         // Measured 3072 B/call on published win-x64 AOT on ZeroAlloc.Rest 3.3.1: the request's Utf8JsonWriter and
@@ -157,7 +158,7 @@ internal static class AllocationChecks
     {
         using var telemetry = new DiscardingTelemetry();
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, TriageResponseJson)) { BaseAddress = new Uri("https://example.test/api/") };
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key" });
         var request = new DecisionRequest(SmokeTriage.Definition, SmokeAnswers.State);
 
         // Measured 4440 B/call on published win-x64 AOT on ZeroAlloc.Rest 3.3.1: NeutralEvaluateRoundTrip's 3072 B plus
@@ -172,11 +173,11 @@ internal static class AllocationChecks
         Program.Check(telemetry.StoppedSpans > 0, "the discarding listeners recorded spans, so the neutral call ran the listening path");
     }
 
-    /// <summary><see cref="NeutralEvaluateRoundTrip"/> with <see cref="DecisionClientOptions.UseStandardPipeline"/> off: the transport alone.</summary>
+    /// <summary><see cref="NeutralEvaluateRoundTrip"/> with <see cref="SystemOneClientOptions.UseStandardPipeline"/> off: the transport alone.</summary>
     public static void BareTransportRoundTrip()
     {
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, TriageResponseJson)) { BaseAddress = new Uri("https://example.test/api/") };
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key", UseStandardPipeline = false });
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key", UseStandardPipeline = false });
         var request = new DecisionRequest(SmokeTriage.Definition, SmokeAnswers.State);
 
         // Measured 3072 B/call on published win-x64 AOT on ZeroAlloc.Rest 3.3.1, the same as NeutralEvaluateRoundTrip:
@@ -208,7 +209,7 @@ internal static class AllocationChecks
     public static void Utf8StateEvaluateRoundTrip()
     {
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, TriageResponseJson)) { BaseAddress = new Uri("https://example.test/api/") };
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key" });
         ReadOnlyMemory<byte> state = Encoding.UTF8.GetBytes(SmokeAnswers.JsonState);
 
         // Measured 3360 B/call on published win-x64 AOT on ZeroAlloc.Rest 3.3.1: TypedEvaluateRoundTrip's request,
@@ -228,7 +229,7 @@ internal static class AllocationChecks
     public static void TypedStateEvaluateRoundTrip()
     {
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, Program.CredentialsResponse)) { BaseAddress = new Uri("https://example.test/api/") };
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key" });
         var state = new SmokeState("Payouts failing", SmokeAnswers.State);
 
         // Measured 2840 B/call on published win-x64 AOT on ZeroAlloc.Rest 3.3.1, over a one-question response: the
@@ -328,7 +329,7 @@ internal static class AllocationChecks
     public static async Task DisabledLoggerAddsNothingWhereAnEnabledOneDoes()
     {
         var request = Program.Request();
-        Func<DecisionClient, ValueTask<Result<SystemOneResponse, DecisionError>>> evaluate = client => client.EvaluateAsync(request);
+        Func<SystemOneClient, ValueTask<Result<SystemOneResponse, DecisionError>>> evaluate = client => client.EvaluateAsync(request);
         var unlogged = await MedianYieldingAsync(NoulResponseJson, null, evaluate).ConfigureAwait(false);
         var disabled = await MedianYieldingAsync(NoulResponseJson, NullLoggerFactory.Instance, evaluate).ConfigureAwait(false);
         var enabled = await MedianYieldingAsync(NoulResponseJson, DiscardingLoggerFactory.Instance, evaluate).ConfigureAwait(false);
@@ -353,7 +354,7 @@ internal static class AllocationChecks
     // bytes, and one that allocated less than usual saves some. The least of several runs is therefore biased low and
     // lets one lucky run set a baseline; the median ignores an outlier on either side.
     private static async Task<long> MedianYieldingAsync<TResult>(
-        string responseJson, ILoggerFactory? loggerFactory, Func<DecisionClient, ValueTask<TResult>> call)
+        string responseJson, ILoggerFactory? loggerFactory, Func<SystemOneClient, ValueTask<TResult>> call)
     {
         const int Runs = 5;
         var runs = new List<long>(Runs);
@@ -377,7 +378,7 @@ internal static class AllocationChecks
     // pool keeps one array per size in each thread's own slot, and the continuations rotate over several pool threads: 100
     // calls left some threads unstocked, so a window still rented fresh 16 KB arrays, 0 to 2 per window, up to 66 B/call.
     private static async Task<long> MeasureYieldingAsync<TResult>(
-        string responseJson, ILoggerFactory? loggerFactory, Func<DecisionClient, ValueTask<TResult>> call)
+        string responseJson, ILoggerFactory? loggerFactory, Func<SystemOneClient, ValueTask<TResult>> call)
     {
         const int WarmupIterations = 2000;
         const int YieldingIterations = 500;
@@ -385,7 +386,7 @@ internal static class AllocationChecks
         {
             BaseAddress = new Uri("https://example.test/api/"),
         };
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" }, loggerFactory);
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key" }, loggerFactory);
 
         GC.Collect();
         GC.WaitForPendingFinalizers();
@@ -412,7 +413,7 @@ internal static class AllocationChecks
         {
             BaseAddress = new Uri("https://example.test/api/"),
         };
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" }, loggerFactory);
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key" }, loggerFactory);
         var request = Program.Request();
 
         GateValueTask(budgetBytes, () => client.EvaluateAsync(request), label, passDescription);
@@ -425,7 +426,7 @@ internal static class AllocationChecks
         {
             BaseAddress = new Uri("https://example.test/api/"),
         };
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" }, loggerFactory);
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key" }, loggerFactory);
 
         GateValueTask(
             budgetBytes,
@@ -493,7 +494,7 @@ internal static class AllocationChecks
         {
             BaseAddress = new Uri("https://example.test/api/"),
         };
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key" });
         var set = SmokeBuiltSet.Full(out _, out _, out _, out _);
 
         // Measured 3440 B/call on published win-x64 AOT through the standard pipeline: the QuestionSet's pre-built request
@@ -518,7 +519,7 @@ internal static class AllocationChecks
         {
             BaseAddress = new Uri("https://example.test/api/"),
         };
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key" });
         var set = SmokeBuiltSet.Full(out var credentials, out var team, out var product, out var urgency);
         var answers = client.EvaluateAsync(set, "Help!").AsTask().GetAwaiter().GetResult().Value;
 
@@ -555,7 +556,7 @@ internal static class AllocationChecks
         {
             BaseAddress = new Uri("https://example.test/api/"),
         };
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key" });
         var set = SmokeBuiltSet.Full(out _, out _, out _, out var urgency);
         var urgencyAnswer = client.EvaluateAsync(set, "Help!").AsTask().GetAwaiter().GetResult().Value.Get(urgency);
 
@@ -563,7 +564,7 @@ internal static class AllocationChecks
         {
             BaseAddress = new Uri("https://example.test/api/"),
         };
-        using var keyedClient = new DecisionClient(keyedHttp, new DecisionClientOptions { ApiKey = "smoke-key" });
+        using var keyedClient = new SystemOneClient(keyedHttp, new SystemOneClientOptions { ApiKey = "smoke-key" });
         var riskSet = SmokeBuiltSet.KeyedRisk(out var risk);
         var riskAnswer = keyedClient.EvaluateAsync(riskSet, "Help!").AsTask().GetAwaiter().GetResult().Value.Get(risk);
 
@@ -603,7 +604,7 @@ internal static class AllocationChecks
         {
             BaseAddress = new Uri("https://example.test/api/"),
         };
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key" });
         var set = SmokeBuiltSet.Full(out var credentials, out _, out _, out _);
         var first = client.EvaluateAsync(set, "Help!").AsTask().GetAwaiter().GetResult().Value.Get(credentials);
         var second = client.EvaluateAsync(set, "Help!").AsTask().GetAwaiter().GetResult().Value.Get(credentials);
@@ -626,21 +627,21 @@ internal static class AllocationChecks
 
     /// <summary>
     /// <see cref="EvaluateRoundTrip"/>'s call through a client <c>AddDecisionClient</c> registered, against the same call on a
-    /// hand-built client over an <see cref="HttpClient"/> that <see cref="DecisionClient.ConfigureHttpClient"/> configured the
+    /// hand-built client over an <see cref="HttpClient"/> that <see cref="SystemOneClient.ConfigureHttpClient"/> configured the
     /// same way. Registration and the first resolve happen once and are not budgeted.
     /// </summary>
-    [Covers("static Minos.DecisionClient.ConfigureHttpClient(System.Net.Http.HttpClient! httpClient, Minos.DecisionClientOptions? options) -> void")]
+    [Covers("static Minos.SystemOne.SystemOneClient.ConfigureHttpClient(System.Net.Http.HttpClient! httpClient, Minos.SystemOne.SystemOneClientOptions? options) -> void")]
     public static void EvaluateRoundTripThroughDependencyInjection()
     {
         var services = new ServiceCollection();
         DependencyInjectionChecks.RegisterDefaultClient(services);
         using var provider = services.BuildServiceProvider();
-        var resolved = provider.GetRequiredService<IDecisionClient>().GetService<DecisionClient>()!;
+        var resolved = provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!;
 
         // The same canned body as RegisterDefaultClient's handler, so both sides of the comparison parse one response.
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
-        DecisionClient.ConfigureHttpClient(http, new DecisionClientOptions { BaseAddress = new Uri("https://example.test/api/") });
-        using var handBuilt = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
+        SystemOneClient.ConfigureHttpClient(http, new SystemOneClientOptions { BaseAddress = new Uri("https://example.test/api/") });
+        using var handBuilt = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key" });
         var request = Program.Request();
 
         // DI adds nothing per call: the hand-built client's own total in this run is the budget.
@@ -670,12 +671,12 @@ internal static class AllocationChecks
         var services = new ServiceCollection();
         DependencyInjectionChecks.RegisterBoundDefaultClient(services);
         using var provider = services.BuildServiceProvider();
-        var resolved = provider.GetRequiredService<IDecisionClient>().GetService<DecisionClient>()!;
+        var resolved = provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!;
 
         // The bound section's base address and key, and the same canned body, so both sides make the same call.
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
-        DecisionClient.ConfigureHttpClient(http, new DecisionClientOptions { BaseAddress = new Uri("https://example.test/api/") });
-        using var handBuilt = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
+        SystemOneClient.ConfigureHttpClient(http, new SystemOneClientOptions { BaseAddress = new Uri("https://example.test/api/") });
+        using var handBuilt = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key" });
         var request = Program.Request();
 
         RelativeGateValueTask(
@@ -692,7 +693,7 @@ internal static class AllocationChecks
     {
         using var telemetry = new DiscardingTelemetry();
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, NoulResponseJson)) { BaseAddress = new Uri("https://example.test/api/") };
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key" });
         var request = Program.Request();
 
         // Measured 5296 B/call on published win-x64 AOT. The call pays EvaluateRoundTrip's bytes plus the Activity, its
@@ -712,7 +713,7 @@ internal static class AllocationChecks
     {
         using var telemetry = new DiscardingTelemetry();
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, TriageResponseJson)) { BaseAddress = new Uri("https://example.test/api/") };
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key" });
 
         // Measured 4616 B/call on published win-x64 AOT, 4544 B/call before the pipeline. The call pays
         // TypedEvaluateRoundTrip's bytes plus the span, tags and measurements. Budget: about 10% headroom over the measurement, rounded up to the next multiple of 64 B, per the
@@ -731,7 +732,7 @@ internal static class AllocationChecks
     {
         using var telemetry = new DiscardingTelemetry();
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, SmokeBuiltSet.ResponseJson)) { BaseAddress = new Uri("https://example.test/api/") };
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" });
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key" });
         var set = SmokeBuiltSet.Full(out _, out _, out _, out _);
 
         // Measured 4808 B/call on published win-x64 AOT, 4832 B/call before the pipeline. The call pays

@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Minos.SystemOne;
 using static Minos.DependencyInjection.Tests.Registrations;
 
 namespace Minos.DependencyInjection.Tests;
@@ -17,7 +18,7 @@ public sealed class AddDecisionClientEnvironmentTests
         services.AddDecisionClient(options => options.ApiKey = "di-key").HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
         using var provider = services.BuildServiceProvider();
 
-        _ = await provider.GetRequiredService<IDecisionClient>().GetService<DecisionClient>()!.EvaluateAsync(Request());
+        _ = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request());
 
         Assert.Equal(new Uri("http://env.local/minos/v1/systemone"), OnlyRequest(handler).Uri);
     }
@@ -33,7 +34,7 @@ public sealed class AddDecisionClientEnvironmentTests
         var exception = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IDecisionClient>());
 
         Assert.Equal(
-            "No API key is configured. Set DecisionClientOptions.ApiKey or the TYPESAFE_API_KEY environment variable.",
+            "No API key is configured. Set SystemOneClientOptions.ApiKey or the TYPESAFE_API_KEY environment variable.",
             exception.Message);
     }
 
@@ -48,7 +49,7 @@ public sealed class AddDecisionClientEnvironmentTests
         var exception = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IHttpClientFactory>().CreateClient("Minos.NET"));
 
         Assert.Equal(
-            "No API key is configured. Set DecisionClientOptions.ApiKey or the TYPESAFE_API_KEY environment variable.",
+            "No API key is configured. Set SystemOneClientOptions.ApiKey or the TYPESAFE_API_KEY environment variable.",
             exception.Message);
     }
 

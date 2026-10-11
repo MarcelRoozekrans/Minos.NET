@@ -3,8 +3,8 @@ using System.Buffers;
 namespace Minos.Transport;
 
 /// <summary>
-/// A UTF-8 JSON body in a buffer rented from an <see cref="ArrayPool{T}"/>: a request body written by
-/// <see cref="Protocols.SystemOneRequestWriter"/>, or a response body read by <see cref="DecisionRawSerializer"/>.
+/// A UTF-8 JSON body in a buffer rented from an <see cref="ArrayPool{T}"/>: a request body written by Minos.NET.SystemOne's
+/// <c>SystemOneRequestWriter</c>, or a response body read by its <c>DecisionRawSerializer</c>.
 /// </summary>
 /// <remarks>
 /// It is also the <see cref="IBufferWriter{T}"/> that fills it, growing by renting a larger buffer, copying and

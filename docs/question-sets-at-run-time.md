@@ -180,7 +180,7 @@ A response that is missing the answer to one of the set's questions fails the ca
 Answers to keys the set does not contain are ignored.
 
 Any `IDecisionClient` can evaluate a built set, including a hand-written fake that implements only the two abstract methods.
-`DecisionClient` has a direct path for it, as it does for typed sets.
+`SystemOneClient` has a direct path for it, as it does for typed sets.
 
 ## Checking the set
 

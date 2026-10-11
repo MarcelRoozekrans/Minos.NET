@@ -1,7 +1,8 @@
 using System.Text.Json;
-using Microsoft.Extensions.Logging;
-using Minos.Serialization;
-using Minos.Telemetry;
+using Minos.SystemOne;
+using Minos.SystemOne.Serialization;
+using Minos.SystemOne.Telemetry;
+using Minos.SystemOne.Transport;
 using Minos.Transport;
 using ZeroAlloc.Results;
 using ZeroAlloc.TestHelpers;

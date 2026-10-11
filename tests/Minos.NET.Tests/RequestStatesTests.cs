@@ -1,7 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Minos.Protocols;
-using Minos.Transport;
+using Minos.SystemOne.Protocols;
+using Minos.SystemOne.Transport;
 
 namespace Minos.Tests;
 

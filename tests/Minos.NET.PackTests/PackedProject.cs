@@ -15,7 +15,11 @@ internal sealed class PackedProject : IDisposable
     private readonly string _tempDir;
 
     /// <param name="projectName">The project's directory and file name under <c>src</c>, such as <c>Minos.NET</c>.</param>
-    public PackedProject(string projectName)
+    /// <param name="alongside">
+    /// Other projects under <c>src</c> to pack into the same directory at the same version, so a consumer of the packed
+    /// project can restore its <c>Minos.NET</c> dependencies from there.
+    /// </param>
+    public PackedProject(string projectName, params string[] alongside)
     {
         var repoRoot = FindRepoRoot();
         var configuration = typeof(PackedProject).Assembly
@@ -25,45 +29,15 @@ internal sealed class PackedProject : IDisposable
         _tempDir = Path.Combine(Path.GetTempPath(), "minos-pack-tests-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempDir);
 
-        var projectPath = Path.Combine(repoRoot, "src", projectName, projectName + ".csproj");
-
-        // Redirect the generated .nuspec into our own temp dir: dotnet pack writes it under
-        // the project's obj/, and this test can otherwise race a concurrent solution build or pack step there.
-        var nuspecOutputPath = Path.Combine(_tempDir, "nuspec-obj") + Path.DirectorySeparatorChar;
-
-        var startInfo = new ProcessStartInfo("dotnet")
+        foreach (var project in alongside.Prepend(projectName))
         {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            WorkingDirectory = repoRoot,
-        };
-        startInfo.ArgumentList.Add("pack");
-        startInfo.ArgumentList.Add(projectPath);
-        startInfo.ArgumentList.Add("-c");
-        startInfo.ArgumentList.Add(configuration);
-        startInfo.ArgumentList.Add("-o");
-        startInfo.ArgumentList.Add(_tempDir);
-        startInfo.ArgumentList.Add($"-p:NuspecOutputPath={nuspecOutputPath}");
-        startInfo.ArgumentList.Add($"-p:PackageVersion={PackageVersion}");
-
-        using var process = Process.Start(startInfo)
-            ?? throw new InvalidOperationException("Failed to start 'dotnet pack'.");
-        var stdout = process.StandardOutput.ReadToEnd();
-        var stderr = process.StandardError.ReadToEnd();
-        process.WaitForExit();
-
-        if (process.ExitCode != 0)
-        {
-            throw new InvalidOperationException(BuildPackFailureMessage(process.ExitCode, stdout, stderr));
+            Pack(repoRoot, configuration, project);
         }
 
-        var nupkg = Directory.GetFiles(_tempDir, "*.nupkg").FirstOrDefault();
-        if (nupkg is null)
+        var nupkg = Path.Combine(_tempDir, $"{projectName}.{PackageVersion}.nupkg");
+        if (!File.Exists(nupkg))
         {
-            throw new InvalidOperationException(
-                $"'dotnet pack' exited 0 but produced no .nupkg in '{_tempDir}'.{Environment.NewLine}" +
-                BuildPackFailureMessage(process.ExitCode, stdout, stderr));
+            throw new InvalidOperationException($"'dotnet pack' exited 0 but produced no '{Path.GetFileName(nupkg)}' in '{_tempDir}'.");
         }
 
         NupkgPath = nupkg;
@@ -93,6 +67,43 @@ internal sealed class PackedProject : IDisposable
         catch (UnauthorizedAccessException)
         {
             // Best effort: a lingering handle on Windows must not fail the test run.
+        }
+    }
+
+    // Packs one project into the temp directory at PackageVersion.
+    private void Pack(string repoRoot, string configuration, string projectName)
+    {
+        var projectPath = Path.Combine(repoRoot, "src", projectName, projectName + ".csproj");
+
+        // Redirect the generated .nuspec into our own temp dir: dotnet pack writes it under
+        // the project's obj/, and this test can otherwise race a concurrent solution build or pack step there.
+        var nuspecOutputPath = Path.Combine(_tempDir, "nuspec-obj", projectName) + Path.DirectorySeparatorChar;
+
+        var startInfo = new ProcessStartInfo("dotnet")
+        {
+            RedirectStandardOutput = true,
+            RedirectStandardError = true,
+            UseShellExecute = false,
+            WorkingDirectory = repoRoot,
+        };
+        startInfo.ArgumentList.Add("pack");
+        startInfo.ArgumentList.Add(projectPath);
+        startInfo.ArgumentList.Add("-c");
+        startInfo.ArgumentList.Add(configuration);
+        startInfo.ArgumentList.Add("-o");
+        startInfo.ArgumentList.Add(_tempDir);
+        startInfo.ArgumentList.Add($"-p:NuspecOutputPath={nuspecOutputPath}");
+        startInfo.ArgumentList.Add($"-p:PackageVersion={PackageVersion}");
+
+        using var process = Process.Start(startInfo)
+            ?? throw new InvalidOperationException("Failed to start 'dotnet pack'.");
+        var stdout = process.StandardOutput.ReadToEnd();
+        var stderr = process.StandardError.ReadToEnd();
+        process.WaitForExit();
+
+        if (process.ExitCode != 0)
+        {
+            throw new InvalidOperationException(BuildPackFailureMessage(process.ExitCode, stdout, stderr));
         }
     }
 

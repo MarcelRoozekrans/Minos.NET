@@ -3,6 +3,7 @@ using System.Diagnostics.Metrics;
 using System.Globalization;
 using System.Net;
 using System.Text;
+using Minos.SystemOne;
 
 namespace Minos.Docs.Tests;
 
@@ -49,14 +50,14 @@ public sealed class ObservabilityTelemetryTests
         { "models": [ { "name": "jev-latest", "description": "The most recent stable release.", "release_date": "2026-09-15" } ] }
         """;
 
-    private static DecisionClientOptions Options(int maxRetries = 0)
+    private static SystemOneClientOptions Options(int maxRetries = 0)
     {
         var options = ScriptedDecision.Quick(maxRetries);
         options.Model = Model;
         return options;
     }
 
-    private static async Task RunAsync(Func<DecisionClient, Task> call, DecisionClientOptions options, params Reply[] script)
+    private static async Task RunAsync(Func<SystemOneClient, Task> call, SystemOneClientOptions options, params Reply[] script)
     {
         var (http, client, _) = ScriptedDecision.Client(options, script);
         using (http)
@@ -66,11 +67,11 @@ public sealed class ObservabilityTelemetryTests
         }
     }
 
-    private static Task Typed(DecisionClient client) => client.EvaluateAsync<TicketAnalysis>("Help! SECRET-STATE", CancellationToken.None).AsTask();
+    private static Task Typed(SystemOneClient client) => client.EvaluateAsync<TicketAnalysis>("Help! SECRET-STATE", CancellationToken.None).AsTask();
 
-    private static Task Raw(DecisionClient client) => RawRequests.UrgencyAsync(client, "Help! SECRET-STATE", CancellationToken.None);
+    private static Task Raw(SystemOneClient client) => RawRequests.UrgencyAsync(client, "Help! SECRET-STATE", CancellationToken.None);
 
-    private static Task Listing(DecisionClient client) => client.ListModelsAsync(CancellationToken.None).AsTask();
+    private static Task Listing(SystemOneClient client) => client.ListModelsAsync(CancellationToken.None).AsTask();
 
     private static string[] Keys(IEnumerable<KeyValuePair<string, object?>> tags) => [.. tags.Select(tag => tag.Key)];
 
@@ -138,7 +139,7 @@ public sealed class ObservabilityTelemetryTests
     {
         using var listener = new DecisionTelemetryListener();
         var options = Options();
-        options.Provider = DecisionProvider.OpenRouter;
+        options.Provider = SystemOneProvider.OpenRouter;
 
         await RunAsync(Listing, options, Reply.Ok(ModelsResponse));
 

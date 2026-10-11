@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Text.Json;
+using Minos.SystemOne;
 
 namespace Minos.Docs.Tests;
 
@@ -203,10 +204,10 @@ public sealed class ClientAndErrorsTests
             Assert.Equal("jev-latest (2026-09-15), jev-preview (2026-09-16)", await ModelListing.ModelsAsync(client, CancellationToken.None));
         }
 
-        var options = new DecisionClientOptions { Provider = DecisionProvider.OpenRouter, ApiKey = "docs-key" };
+        var options = new SystemOneClientOptions { Provider = SystemOneProvider.OpenRouter, ApiKey = "docs-key" };
         using var handler = new ScriptedDecision.Handler([Reply.Ok(ModelsResponse)]);
         using var openRouterHttp = new HttpClient(handler);
-        using var openRouter = new DecisionClient(openRouterHttp, options);
+        using var openRouter = new SystemOneClient(openRouterHttp, options);
 
         var result = await openRouter.ListModelsAsync(CancellationToken.None);
 
@@ -222,7 +223,7 @@ public sealed class ClientAndErrorsTests
     public void TheOptionsOnThePage_AreTheDefaults()
     {
         var spelledOut = ClientOptions.SpelledOut("docs-key");
-        var defaults = new DecisionClientOptions();
+        var defaults = new SystemOneClientOptions();
 
         Assert.Equal(defaults.Provider, spelledOut.Provider);
         Assert.Equal(defaults.Model, spelledOut.Model);
@@ -234,7 +235,7 @@ public sealed class ClientAndErrorsTests
         Assert.Equal(defaults.UseStandardPipeline, spelledOut.UseStandardPipeline);
         Assert.Null(defaults.ApiKey);
         Assert.Null(defaults.BaseAddress);
-        Assert.Equal("jev-latest", DecisionDefaults.Model);
+        Assert.Equal("jev-latest", SystemOneDefaults.Model);
     }
 
     [Fact]
@@ -246,18 +247,18 @@ public sealed class ClientAndErrorsTests
         Assert.Null(ClientOptions.Problem(ClientOptions.Strict("docs-key")));
         Assert.Equal(
             "MaxRetries must be between 0 and 10. (Parameter 'options')",
-            ClientOptions.Problem(new DecisionClientOptions { ApiKey = "docs-key", MaxRetries = 11 }));
-        Assert.Null(ClientOptions.Problem(new DecisionClientOptions { ApiKey = "docs-key", MaxRetries = 10 }));
+            ClientOptions.Problem(new SystemOneClientOptions { ApiKey = "docs-key", MaxRetries = 11 }));
+        Assert.Null(ClientOptions.Problem(new SystemOneClientOptions { ApiKey = "docs-key", MaxRetries = 10 }));
         Assert.StartsWith(
             "MaxRetryDelay must be at least InitialBackoff",
-            ClientOptions.Problem(new DecisionClientOptions
+            ClientOptions.Problem(new SystemOneClientOptions
             {
                 ApiKey = "docs-key",
                 InitialBackoff = TimeSpan.FromSeconds(2),
                 MaxRetryDelay = TimeSpan.FromSeconds(1),
             }),
             StringComparison.Ordinal);
-        Assert.Throws<ArgumentException>(() => new DecisionClient(new DecisionClientOptions { ApiKey = "docs-key", MaxRetries = 11 }));
+        Assert.Throws<ArgumentException>(() => new SystemOneClient(new SystemOneClientOptions { ApiKey = "docs-key", MaxRetries = 11 }));
     }
 
     [Fact]
@@ -265,18 +266,18 @@ public sealed class ClientAndErrorsTests
     {
         using var environment = new KeyEnvironment(typeSafe: null, openRouter: null);
 
-        var typeSafe = ClientOptions.Problem(new DecisionClientOptions());
-        var openRouter = ClientOptions.Problem(new DecisionClientOptions { Provider = DecisionProvider.OpenRouter });
+        var typeSafe = ClientOptions.Problem(new SystemOneClientOptions());
+        var openRouter = ClientOptions.Problem(new SystemOneClientOptions { Provider = SystemOneProvider.OpenRouter });
 
         Assert.Contains("TYPESAFE_API_KEY", typeSafe, StringComparison.Ordinal);
         Assert.Contains("OPENROUTER_API_KEY", openRouter, StringComparison.Ordinal);
 
         KeyEnvironment.Set(typeSafe: "from-the-environment", openRouter: null);
 
-        Assert.Null(ClientOptions.Problem(new DecisionClientOptions()));
+        Assert.Null(ClientOptions.Problem(new SystemOneClientOptions()));
         Assert.Contains(
             "OPENROUTER_API_KEY",
-            ClientOptions.Problem(new DecisionClientOptions { Provider = DecisionProvider.OpenRouter }),
+            ClientOptions.Problem(new SystemOneClientOptions { Provider = SystemOneProvider.OpenRouter }),
             StringComparison.Ordinal);
     }
 
@@ -479,14 +480,14 @@ public sealed class ClientAndErrorsTests
     [Fact]
     public void ABorrowedHttpClient_KeepsItsOwnTimeout_UnlessConfiguredThroughConfigureHttpClient()
     {
-        var options = new DecisionClientOptions { ApiKey = "docs-key", Timeout = TimeSpan.FromSeconds(5) };
+        var options = new SystemOneClientOptions { ApiKey = "docs-key", Timeout = TimeSpan.FromSeconds(5) };
         using var borrowed = new HttpClient();
-        using var client = new DecisionClient(borrowed, options);
+        using var client = new SystemOneClient(borrowed, options);
 
         Assert.Equal(TimeSpan.FromSeconds(100), borrowed.Timeout);
 
         using var configured = new HttpClient();
-        DecisionClient.ConfigureHttpClient(configured, options);
+        SystemOneClient.ConfigureHttpClient(configured, options);
 
         Assert.Equal(TimeSpan.FromSeconds(5), configured.Timeout);
     }
@@ -503,12 +504,12 @@ public sealed class ClientAndErrorsTests
         }
     }
 
-    // The DecisionDefaults table lists every public member of the class, with the values the class holds.
+    // The SystemOneDefaults table lists every public member of the class, with the values the class holds.
     [Fact]
     public void TheDecisionDefaultsTable_ListsEveryMemberWithItsValue()
     {
-        var rows = PageTables.Rows("client-and-errors.md", "DecisionDefaults");
-        var actual = typeof(DecisionDefaults)
+        var rows = PageTables.Rows("client-and-errors.md", "SystemOneDefaults");
+        var actual = typeof(SystemOneDefaults)
             .GetMembers(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static | System.Reflection.BindingFlags.DeclaredOnly)
             .Where(member => member.MemberType is System.Reflection.MemberTypes.Field or System.Reflection.MemberTypes.Property)
             .Select(member => member.Name)
@@ -516,12 +517,12 @@ public sealed class ClientAndErrorsTests
 
         Assert.Equal(actual, rows.Select(row => PageTables.Code(row[0])).Order(StringComparer.Ordinal));
         var values = rows.ToDictionary(row => PageTables.Code(row[0]), row => PageTables.Code(row[1]), StringComparer.Ordinal);
-        Assert.Equal(DecisionDefaults.ApiKeyEnvironmentVariable, values[nameof(DecisionDefaults.ApiKeyEnvironmentVariable)]);
-        Assert.Equal(DecisionDefaults.OpenRouterApiKeyEnvironmentVariable, values[nameof(DecisionDefaults.OpenRouterApiKeyEnvironmentVariable)]);
-        Assert.Equal(DecisionDefaults.BaseAddressEnvironmentVariable, values[nameof(DecisionDefaults.BaseAddressEnvironmentVariable)]);
-        Assert.Equal(DecisionDefaults.Model, values[nameof(DecisionDefaults.Model)]);
-        Assert.Equal(DecisionDefaults.TypeSafeBaseAddress.ToString(), values[nameof(DecisionDefaults.TypeSafeBaseAddress)]);
-        Assert.Equal(DecisionDefaults.OpenRouterBaseAddress.ToString(), values[nameof(DecisionDefaults.OpenRouterBaseAddress)]);
+        Assert.Equal(SystemOneDefaults.ApiKeyEnvironmentVariable, values[nameof(SystemOneDefaults.ApiKeyEnvironmentVariable)]);
+        Assert.Equal(SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable, values[nameof(SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable)]);
+        Assert.Equal(SystemOneDefaults.BaseAddressEnvironmentVariable, values[nameof(SystemOneDefaults.BaseAddressEnvironmentVariable)]);
+        Assert.Equal(SystemOneDefaults.Model, values[nameof(SystemOneDefaults.Model)]);
+        Assert.Equal(SystemOneDefaults.TypeSafeBaseAddress.ToString(), values[nameof(SystemOneDefaults.TypeSafeBaseAddress)]);
+        Assert.Equal(SystemOneDefaults.OpenRouterBaseAddress.ToString(), values[nameof(SystemOneDefaults.OpenRouterBaseAddress)]);
     }
 
     // The kinds table lists every member of the enum, with the same name.

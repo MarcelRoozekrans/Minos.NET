@@ -4,6 +4,7 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Minos;
 using Minos.DependencyInjection;
+using Minos.SystemOne;
 using OptionsDefaults = Microsoft.Extensions.Options.Options;
 
 namespace Microsoft.Extensions.DependencyInjection;
@@ -12,11 +13,11 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// <remarks>
 /// Each registration returns a <see cref="DecisionClientServiceBuilder"/>, and stages added to it, also through repeat
 /// calls, land on one pipeline around the registered client, built once when the container first resolves it.
-/// Each registration is one <see cref="DecisionClient"/> singleton over its own named <see cref="HttpClient"/>, which
-/// <see cref="DecisionClient.ConfigureHttpClient(HttpClient, DecisionClientOptions)"/> configures from the registration's named
-/// <see cref="DecisionClientOptions"/>. The client reads those options once, when the container first builds it, and logs
+/// Each registration is one <see cref="SystemOneClient"/> singleton over its own named <see cref="HttpClient"/>, which
+/// <see cref="SystemOneClient.ConfigureHttpClient(HttpClient, SystemOneClientOptions)"/> configures from the registration's named
+/// <see cref="SystemOneClientOptions"/>. The client reads those options once, when the container first builds it, and logs
 /// through the container's <see cref="ILoggerFactory"/>. Its spans and metrics come from the <c>Minos</c> source
-/// and meter. Invalid options fail a generic host at startup, through <see cref="DecisionClientOptions.Validate()"/> and
+/// and meter. Invalid options fail a generic host at startup, through <see cref="SystemOneClientOptions.Validate()"/> and
 /// <c>ValidateOnStart</c>. Without a host they throw when the client is first resolved. Either way a value that fails
 /// validation throws an <see cref="OptionsValidationException"/> that carries the core's message, and a configuration
 /// value the binder cannot convert fails at the same point with the binder's <see cref="InvalidOperationException"/>.
@@ -31,7 +32,7 @@ public static class DecisionServiceCollectionExtensions
     private const string HttpClientName = "Minos.NET";
 
     /// <summary>
-    /// Registers the default <see cref="IDecisionClient"/>, configured from the default named <see cref="DecisionClientOptions"/>,
+    /// Registers the default <see cref="IDecisionClient"/>, configured from the default named <see cref="SystemOneClientOptions"/>,
     /// defaults and environment variables.
     /// </summary>
     /// <param name="services">The services to add to.</param>
@@ -46,11 +47,11 @@ public static class DecisionServiceCollectionExtensions
     /// <summary>Registers the default <see cref="IDecisionClient"/>, configured by <paramref name="configure"/>.</summary>
     /// <param name="services">The services to add to.</param>
     /// <param name="configure">
-    /// Configures the default named <see cref="DecisionClientOptions"/>. Each call adds its delegate, and they run in order.
+    /// Configures the default named <see cref="SystemOneClientOptions"/>. Each call adds its delegate, and they run in order.
     /// </param>
     /// <returns>The registration's pipeline builder; its <see cref="DecisionClientServiceBuilder.HttpClient"/> property is the builder of the client's <see cref="System.Net.Http.HttpClient"/>.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="services"/> or <paramref name="configure"/> is <see langword="null"/>.</exception>
-    public static DecisionClientServiceBuilder AddDecisionClient(this IServiceCollection services, Action<DecisionClientOptions> configure)
+    public static DecisionClientServiceBuilder AddDecisionClient(this IServiceCollection services, Action<SystemOneClientOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configure);
@@ -58,13 +59,13 @@ public static class DecisionServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Registers the default <see cref="IDecisionClient"/>, its <see cref="DecisionClientOptions"/> bound from
+    /// Registers the default <see cref="IDecisionClient"/>, its <see cref="SystemOneClientOptions"/> bound from
     /// <paramref name="configuration"/>.
     /// </summary>
     /// <param name="services">The services to add to.</param>
     /// <param name="configuration">
     /// The configuration to bind, typically a section such as <c>builder.Configuration.GetSection("Minos")</c>. Its keys are
-    /// the <see cref="DecisionClientOptions"/> property names. A configure delegate registered later for the default client
+    /// the <see cref="SystemOneClientOptions"/> property names. A configure delegate registered later for the default client
     /// overrides bound values. Changes after the client is built are not picked up.
     /// </param>
     /// <returns>The registration's pipeline builder; its <see cref="DecisionClientServiceBuilder.HttpClient"/> property is the builder of the client's <see cref="System.Net.Http.HttpClient"/>.</returns>
@@ -78,7 +79,7 @@ public static class DecisionServiceCollectionExtensions
 
     /// <summary>
     /// Registers an <see cref="IDecisionClient"/> keyed by <paramref name="name"/>, configured from the
-    /// <see cref="DecisionClientOptions"/> named <paramref name="name"/>, defaults and environment variables. Inject it with
+    /// <see cref="SystemOneClientOptions"/> named <paramref name="name"/>, defaults and environment variables. Inject it with
     /// <c>[FromKeyedServices(name)]</c>.
     /// </summary>
     /// <param name="services">The services to add to.</param>
@@ -100,7 +101,7 @@ public static class DecisionServiceCollectionExtensions
     /// <param name="services">The services to add to.</param>
     /// <param name="name">The client's service key and options name.</param>
     /// <param name="configure">
-    /// Configures the <see cref="DecisionClientOptions"/> named <paramref name="name"/>. Each call adds its delegate, and they
+    /// Configures the <see cref="SystemOneClientOptions"/> named <paramref name="name"/>. Each call adds its delegate, and they
     /// run in order.
     /// </param>
     /// <returns>The registration's pipeline builder; its <see cref="DecisionClientServiceBuilder.HttpClient"/> property is the builder of the client's <see cref="System.Net.Http.HttpClient"/>.</returns>
@@ -108,7 +109,7 @@ public static class DecisionServiceCollectionExtensions
     /// <paramref name="services"/>, <paramref name="name"/> or <paramref name="configure"/> is <see langword="null"/>.
     /// </exception>
     /// <exception cref="ArgumentException"><paramref name="name"/> is empty.</exception>
-    public static DecisionClientServiceBuilder AddDecisionClient(this IServiceCollection services, string name, Action<DecisionClientOptions> configure)
+    public static DecisionClientServiceBuilder AddDecisionClient(this IServiceCollection services, string name, Action<SystemOneClientOptions> configure)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentException.ThrowIfNullOrEmpty(name);
@@ -117,14 +118,14 @@ public static class DecisionServiceCollectionExtensions
     }
 
     /// <summary>
-    /// Registers an <see cref="IDecisionClient"/> keyed by <paramref name="name"/>, its <see cref="DecisionClientOptions"/> bound
+    /// Registers an <see cref="IDecisionClient"/> keyed by <paramref name="name"/>, its <see cref="SystemOneClientOptions"/> bound
     /// from <paramref name="configuration"/>. Inject it with <c>[FromKeyedServices(name)]</c>.
     /// </summary>
     /// <param name="services">The services to add to.</param>
     /// <param name="name">The client's service key and options name.</param>
     /// <param name="configuration">
     /// The configuration to bind, typically a section such as <c>builder.Configuration.GetSection("Minos:OpenRouter")</c>.
-    /// Its keys are the <see cref="DecisionClientOptions"/> property names. A configure delegate registered later for the same
+    /// Its keys are the <see cref="SystemOneClientOptions"/> property names. A configure delegate registered later for the same
     /// name overrides bound values. Changes after the client is built are not picked up.
     /// </param>
     /// <returns>The registration's pipeline builder; its <see cref="DecisionClientServiceBuilder.HttpClient"/> property is the builder of the client's <see cref="System.Net.Http.HttpClient"/>.</returns>
@@ -141,7 +142,7 @@ public static class DecisionServiceCollectionExtensions
     }
 
     private static DecisionClientServiceBuilder AddDefault(
-        IServiceCollection services, Action<DecisionClientOptions>? configure, IConfiguration? configuration)
+        IServiceCollection services, Action<SystemOneClientOptions>? configure, IConfiguration? configuration)
     {
         var builder = AddOptionsAndHttpClient(services, OptionsDefaults.DefaultName, HttpClientName, name: null, configure, configuration);
         services.TryAddSingleton<IDecisionClient>(provider => builder.Build(provider));
@@ -149,7 +150,7 @@ public static class DecisionServiceCollectionExtensions
     }
 
     private static DecisionClientServiceBuilder AddKeyed(
-        IServiceCollection services, string name, Action<DecisionClientOptions>? configure, IConfiguration? configuration)
+        IServiceCollection services, string name, Action<SystemOneClientOptions>? configure, IConfiguration? configuration)
     {
         var httpClientName = HttpClientName + ":" + name;
         var builder = AddOptionsAndHttpClient(services, name, httpClientName, name, configure, configuration);
@@ -171,10 +172,10 @@ public static class DecisionServiceCollectionExtensions
         string optionsName,
         string httpClientName,
         string? name,
-        Action<DecisionClientOptions>? configure,
+        Action<SystemOneClientOptions>? configure,
         IConfiguration? configuration)
     {
-        var options = services.AddOptions<DecisionClientOptions>(optionsName);
+        var options = services.AddOptions<SystemOneClientOptions>(optionsName);
 
         // Source-generated through EnableConfigurationBindingGenerator, so this Bind uses no reflection.
         if (configuration is not null)
@@ -196,12 +197,12 @@ public static class DecisionServiceCollectionExtensions
         var httpClient = services.AddHttpClient(httpClientName);
         var builder = new DecisionClientServiceBuilder(httpClient, name, provider => Create(provider, optionsName, httpClientName));
         services.AddKeyedSingleton(httpClientName, builder);
-        services.AddSingleton<IValidateOptions<DecisionClientOptions>>(new DecisionClientOptionsValidator(optionsName));
+        services.AddSingleton<IValidateOptions<SystemOneClientOptions>>(new DecisionClientOptionsValidator(optionsName));
         options.ValidateOnStart();
         httpClient
             .ConfigurePrimaryHttpMessageHandler(static () => new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(2) })
             .SetHandlerLifetime(Timeout.InfiniteTimeSpan)
-            .ConfigureHttpClient((provider, client) => DecisionClient.ConfigureHttpClient(client, OptionsOf(provider, optionsName)))
+            .ConfigureHttpClient((provider, client) => SystemOneClient.ConfigureHttpClient(client, OptionsOf(provider, optionsName)))
             .RemoveAllLoggers();
         return builder;
     }
@@ -224,12 +225,12 @@ public static class DecisionServiceCollectionExtensions
         return null;
     }
 
-    private static DecisionClient Create(IServiceProvider provider, string optionsName, string httpClientName)
+    private static SystemOneClient Create(IServiceProvider provider, string optionsName, string httpClientName)
         => new(
             provider.GetRequiredService<IHttpClientFactory>().CreateClient(httpClientName),
             OptionsOf(provider, optionsName),
             provider.GetService<ILoggerFactory>());
 
-    private static DecisionClientOptions OptionsOf(IServiceProvider provider, string optionsName)
-        => provider.GetRequiredService<IOptionsMonitor<DecisionClientOptions>>().Get(optionsName);
+    private static SystemOneClientOptions OptionsOf(IServiceProvider provider, string optionsName)
+        => provider.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>().Get(optionsName);
 }

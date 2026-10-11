@@ -1,4 +1,5 @@
-using Minos.Telemetry;
+using Minos.SystemOne;
+using Minos.SystemOne.Telemetry;
 using ZeroAlloc.Results;
 
 namespace Minos.Tests;

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Minos.SystemOne;
 
 namespace Minos.AotSmoke;
 
@@ -127,15 +128,15 @@ internal static class Program
         return failures == 0 ? 0 : 1;
     }
 
-    [Covers("Minos.DecisionClient.DecisionClient(System.Net.Http.HttpClient! httpClient, Minos.DecisionClientOptions? options) -> void")]
-    [Covers("Minos.DecisionClient.EvaluateAsync(Minos.SystemOneRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOneResponse!, Minos.DecisionError!>>")]
-    [Covers("Minos.DecisionClientOptions.DecisionClientOptions() -> void")]
-    [Covers("Minos.SystemOneRequest.SystemOneRequest() -> void")]
-    [Covers("Minos.NoulQuestion.NoulQuestion() -> void")]
+    [Covers("Minos.SystemOne.SystemOneClient.SystemOneClient(System.Net.Http.HttpClient! httpClient, Minos.SystemOne.SystemOneClientOptions? options) -> void")]
+    [Covers("Minos.SystemOne.SystemOneClient.EvaluateAsync(Minos.SystemOne.SystemOneRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOne.SystemOneResponse!, Minos.DecisionError!>>")]
+    [Covers("Minos.SystemOne.SystemOneClientOptions.SystemOneClientOptions() -> void")]
+    [Covers("Minos.SystemOne.SystemOneRequest.SystemOneRequest() -> void")]
+    [Covers("Minos.SystemOne.NoulQuestion.NoulQuestion() -> void")]
     private static async Task EvaluateParsesAnswers()
     {
         using var http = Http(HttpStatusCode.OK, NoulResponse);
-        using var client = new DecisionClient(http, Options());
+        using var client = new SystemOneClient(http, Options());
 
         var result = await client.EvaluateAsync(Request()).ConfigureAwait(false);
 
@@ -145,7 +146,7 @@ internal static class Program
     private static async Task ValidationErrorCarriesDetail()
     {
         using var http = Http(HttpStatusCode.UnprocessableEntity, ValidationResponse);
-        using var client = new DecisionClient(http, Options());
+        using var client = new SystemOneClient(http, Options());
 
         var result = await client.EvaluateAsync(Request()).ConfigureAwait(false);
 
@@ -157,11 +158,11 @@ internal static class Program
             "a 422 maps to Validation with its JSON detail");
     }
 
-    [Covers("Minos.DecisionClient.ListModelsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.ModelList!, Minos.DecisionError!>>")]
+    [Covers("Minos.SystemOne.SystemOneClient.ListModelsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOne.ModelList!, Minos.DecisionError!>>")]
     private static async Task ListModelsReturnsModels()
     {
         using var http = Http(HttpStatusCode.OK, ModelsResponse);
-        using var client = new DecisionClient(http, Options());
+        using var client = new SystemOneClient(http, Options());
 
         var result = await client.ListModelsAsync().ConfigureAwait(false);
 
@@ -173,7 +174,7 @@ internal static class Program
     private static async Task MalformedBodyIsInvalidResponse()
     {
         using var http = Http(HttpStatusCode.OK, "not json");
-        using var client = new DecisionClient(http, Options());
+        using var client = new SystemOneClient(http, Options());
 
         var result = await client.EvaluateAsync(Request()).ConfigureAwait(false);
 
@@ -183,7 +184,7 @@ internal static class Program
     private static async Task OpenRouterModelListingIsUnsupported()
     {
         using var http = Http(HttpStatusCode.OK, ModelsResponse);
-        using var client = new DecisionClient(http, Options(DecisionProvider.OpenRouter));
+        using var client = new SystemOneClient(http, Options(SystemOneProvider.OpenRouter));
 
         var result = await client.ListModelsAsync().ConfigureAwait(false);
 
@@ -194,7 +195,7 @@ internal static class Program
     {
         var handler = new SequenceHandler(NoulResponse, HttpStatusCode.ServiceUnavailable, HttpStatusCode.OK);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("https://example.test/api/") };
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key", InitialBackoff = TimeSpan.FromMilliseconds(10) });
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key", InitialBackoff = TimeSpan.FromMilliseconds(10) });
 
         var result = await client.EvaluateAsync(Request()).ConfigureAwait(false);
 
@@ -240,7 +241,7 @@ internal static class Program
     private static async Task TypedEvaluateAsyncParsesAnswers()
     {
         using var http = Http(HttpStatusCode.OK, TriageResponse);
-        using var client = new DecisionClient(http, Options());
+        using var client = new SystemOneClient(http, Options());
 
         var result = await client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State).ConfigureAwait(false);
 
@@ -256,7 +257,7 @@ internal static class Program
     private static async Task TypedEvaluateAsyncWithTStateParsesAnswers()
     {
         using var http = Http(HttpStatusCode.OK, CredentialsResponse);
-        using var client = new DecisionClient(http, Options());
+        using var client = new SystemOneClient(http, Options());
         var state = new SmokeState("Payouts failing", SmokeAnswers.State);
 
         var result = await client.EvaluateAsync<SmokeStateTriage, SmokeState>(state, SmokeStateJsonContext.Default.SmokeState).ConfigureAwait(false);
@@ -289,13 +290,13 @@ internal static class Program
             "a hand-built DecisionResponse creates typed answers through the typed extension under Native AOT");
     }
 
-    [Covers("Minos.SystemOneResponse.SystemOneResponse() -> void")]
-    [Covers("Minos.NoulAnswer.NoulAnswer() -> void")]
-    [Covers("Minos.ChoiceAnswer.ChoiceAnswer() -> void")]
-    [Covers("Minos.ScoreAnswer.ScoreAnswer() -> void")]
+    [Covers("Minos.SystemOne.SystemOneResponse.SystemOneResponse() -> void")]
+    [Covers("Minos.SystemOne.NoulAnswer.NoulAnswer() -> void")]
+    [Covers("Minos.SystemOne.ChoiceAnswer.ChoiceAnswer() -> void")]
+    [Covers("Minos.SystemOne.ScoreAnswer.ScoreAnswer() -> void")]
     private static void SystemOneResponseModelConstructs()
     {
-        // The raw System One response model, as a caller of DecisionClient's raw EvaluateAsync builds one in a test.
+        // The raw System One response model, as a caller of SystemOneClient's raw EvaluateAsync builds one in a test.
         var response = new SystemOneResponse
         {
             Model = "minos-smoke",
@@ -348,7 +349,7 @@ internal static class Program
         Check(set.Warnings.Count == 0, "a question set built at run time passes its rules");
 
         using var http = Http(HttpStatusCode.OK, SmokeBuiltSet.ResponseJson);
-        using var client = new DecisionClient(http, Options());
+        using var client = new SystemOneClient(http, Options());
 
         var result = await client.EvaluateAsync(set, SmokeAnswers.State).ConfigureAwait(false);
 
@@ -378,7 +379,7 @@ internal static class Program
             "a built enum Choice sends its options in declaration order, the alias skipped, under Native AOT");
 
         using var http = Http(HttpStatusCode.OK, SmokeBuiltSet.AliasedChoiceResponseJson);
-        using var client = new DecisionClient(http, Options());
+        using var client = new SystemOneClient(http, Options());
 
         var result = await client.EvaluateAsync(set, "Sent from my phone's mail app.").ConfigureAwait(false);
 
@@ -392,7 +393,7 @@ internal static class Program
     internal static HttpClient Http(HttpStatusCode status, string body)
         => new(new CannedHandler(status, body)) { BaseAddress = new Uri("https://example.test/api/") };
 
-    internal static DecisionClientOptions Options(DecisionProvider provider = DecisionProvider.TypeSafe)
+    internal static SystemOneClientOptions Options(SystemOneProvider provider = SystemOneProvider.TypeSafe)
         => new() { ApiKey = "smoke-key", Provider = provider };
 
     internal static SystemOneRequest Request() => new()

@@ -1,4 +1,5 @@
 using System.Net;
+using Minos.SystemOne;
 
 namespace Minos.AotSmoke;
 
@@ -9,13 +10,13 @@ namespace Minos.AotSmoke;
 /// </summary>
 internal static class SystemOneModelChecks
 {
-    [Covers("Minos.ChoiceQuestion.ChoiceQuestion() -> void")]
-    [Covers("Minos.ScoreQuestion.ScoreQuestion() -> void")]
-    [Covers("Minos.NoulCriteria.NoulCriteria() -> void")]
+    [Covers("Minos.SystemOne.ChoiceQuestion.ChoiceQuestion() -> void")]
+    [Covers("Minos.SystemOne.ScoreQuestion.ScoreQuestion() -> void")]
+    [Covers("Minos.SystemOne.NoulCriteria.NoulCriteria() -> void")]
     public static async Task HandBuiltQuestionsAreSent()
     {
         using var http = Program.Http(HttpStatusCode.OK, Program.TriageResponse);
-        using var client = new DecisionClient(http, Program.Options());
+        using var client = new SystemOneClient(http, Program.Options());
         var request = new SystemOneRequest
         {
             State = SmokeAnswers.State,
@@ -48,12 +49,12 @@ internal static class SystemOneModelChecks
             "a request with hand-built Choice and Score questions and Noul criteria evaluates under Native AOT");
     }
 
-    [Covers("Minos.ModelList.ModelList() -> void")]
-    [Covers("Minos.ModelCard.ModelCard() -> void")]
+    [Covers("Minos.SystemOne.ModelList.ModelList() -> void")]
+    [Covers("Minos.SystemOne.ModelCard.ModelCard() -> void")]
     public static async Task HandBuiltModelCardEqualsTheListedOne()
     {
         using var http = Program.Http(HttpStatusCode.OK, Program.ModelsResponse);
-        using var client = new DecisionClient(http, Program.Options());
+        using var client = new SystemOneClient(http, Program.Options());
         var expected = new ModelList
         {
             Models =

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Minos.SystemOne;
 using ZeroAlloc.Results;
 
 namespace Minos.AotSmoke;
@@ -28,7 +29,7 @@ internal static class SmokeAnswers
     public static async Task<SmokeTriage> TriageAsync()
     {
         using var http = Program.Http(HttpStatusCode.OK, Program.TriageResponse);
-        using var client = new DecisionClient(http, Program.Options());
+        using var client = new SystemOneClient(http, Program.Options());
         var result = await client.EvaluateAsync<SmokeTriage>(State).ConfigureAwait(false);
         return result.IsSuccess ? result.Value : throw new InvalidOperationException("The canned triage did not parse: " + result.Error.Message);
     }
@@ -51,7 +52,7 @@ internal static class SmokeAnswers
     public static async Task<Answers> EvaluateAsync(QuestionSet set, string responseJson)
     {
         using var http = Program.Http(HttpStatusCode.OK, responseJson);
-        using var client = new DecisionClient(http, Program.Options());
+        using var client = new SystemOneClient(http, Program.Options());
         var result = await client.EvaluateAsync(set, State).ConfigureAwait(false);
         return result.IsSuccess ? result.Value : throw new InvalidOperationException("The canned answers did not parse: " + result.Error.Message);
     }

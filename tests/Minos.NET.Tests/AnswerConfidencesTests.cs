@@ -1,7 +1,8 @@
 using System.Collections.ObjectModel;
 using System.Text.Json;
-using Minos.Serialization;
-using Minos.Telemetry;
+using Minos.SystemOne;
+using Minos.SystemOne.Serialization;
+using Minos.SystemOne.Telemetry;
 using ZeroAlloc.TestHelpers;
 
 namespace Minos.Tests;

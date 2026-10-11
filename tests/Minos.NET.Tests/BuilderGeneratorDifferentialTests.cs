@@ -1,5 +1,5 @@
 using System.Text;
-using Minos.Protocols;
+using Minos.SystemOne.Protocols;
 
 namespace Minos.Tests;
 
@@ -73,7 +73,7 @@ public sealed class BuilderGeneratorDifferentialTests
 
         Assert.Equal(generated.Questions.Select(q => (q.Key, q.Kind, q.Options.Count)), built.Questions.Select(q => (q.Key, q.Kind, q.Options.Count)));
         Assert.Equal(generated.Questions.SelectMany(q => q.Options).Select(o => o.Key), built.Questions.SelectMany(q => q.Options).Select(o => o.Key));
-        Assert.True(Minos.Protocols.SystemOneProtocol.QuestionsJson(generated).SequenceEqual(Minos.Protocols.SystemOneProtocol.QuestionsJson(built)));
+        Assert.True(Minos.SystemOne.Protocols.SystemOneProtocol.QuestionsJson(generated).SequenceEqual(Minos.SystemOne.Protocols.SystemOneProtocol.QuestionsJson(built)));
     }
 
     internal static QuestionSet Built()

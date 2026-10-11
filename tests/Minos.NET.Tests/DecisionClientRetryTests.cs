@@ -1,8 +1,9 @@
 using System.Diagnostics;
 using System.Net;
 using System.Text.Json;
-using Minos.Serialization;
-using Minos.Transport;
+using Minos.SystemOne;
+using Minos.SystemOne.Serialization;
+using Minos.SystemOne.Transport;
 
 namespace Minos.Tests;
 
@@ -56,7 +57,7 @@ public sealed class DecisionClientRetryTests : IDisposable
 
             return Success();
         });
-        using var client = new DecisionClient(Settings(timeout: TimeSpan.FromMilliseconds(400)), httpClient: null, handler, TimeProvider.System);
+        using var client = new SystemOneClient(Settings(timeout: TimeSpan.FromMilliseconds(400)), httpClient: null, handler, TimeProvider.System);
 
         var result = await client.EvaluateAsync(Request());
 
@@ -296,7 +297,7 @@ public sealed class DecisionClientRetryTests : IDisposable
         }
     }
 
-    private DecisionClient Client(
+    private SystemOneClient Client(
         StubHandler handler,
         int maxRetries = 2,
         TimeSpan? initialBackoff = null,
@@ -305,7 +306,7 @@ public sealed class DecisionClientRetryTests : IDisposable
     {
         var http = new HttpClient(handler);
         _httpClients.Add(http);
-        return new DecisionClient(
+        return new SystemOneClient(
             Settings(maxRetries: maxRetries, initialBackoff: initialBackoff, maxRetryDelay: maxRetryDelay),
             http,
             ownedHandler: null,
@@ -313,13 +314,13 @@ public sealed class DecisionClientRetryTests : IDisposable
             pool ?? new CountingPool());
     }
 
-    private static DecisionClientSettings Settings(
+    private static SystemOneClientSettings Settings(
         int maxRetries = 2,
         TimeSpan? initialBackoff = null,
         TimeSpan? maxRetryDelay = null,
         TimeSpan? timeout = null)
-        => DecisionClientSettings.Resolve(
-            new DecisionClientOptions
+        => SystemOneClientSettings.Resolve(
+            new SystemOneClientOptions
             {
                 ApiKey = "test-key",
                 MaxRetries = maxRetries,

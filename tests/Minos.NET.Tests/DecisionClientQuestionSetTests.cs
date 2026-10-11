@@ -1,12 +1,12 @@
 using System.Net;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Minos.Serialization;
+using Minos.SystemOne;
 using static Minos.Tests.ClientTestKit;
 
 namespace Minos.Tests;
 
-/// <summary>A built set evaluates the same through <see cref="DecisionClientExtensions"/> and through DecisionClient's pooled path.</summary>
+/// <summary>A built set evaluates the same through <see cref="DecisionClientExtensions"/> and through SystemOneClient's pooled path.</summary>
 public sealed class DecisionClientQuestionSetTests : IDisposable
 {
     private const string ResponseJson = """{"model":"jev-1.13.0","answers":{"is_urgent":{"type":"noul","noul":0.95},"department":{"type":"choice","choice":"technical","probabilities":{"billing":0.1,"technical":0.8,"sales":0.1},"confidence":0.8},"product":{"type":"choice","choice":"pro-plan","probabilities":{"pro-plan":0.6,"team-plan":0.4},"confidence":0.6},"effort":{"type":"score","score":1.2,"legend":{"0":"Minutes","1":"Hours","2":"Days"},"probabilities":{"0":0.1,"1":0.6,"2":0.3},"confidence":0.7}},"usage":{"input_tokens":10,"output_tokens":5}}""";
@@ -143,8 +143,8 @@ public sealed class DecisionClientQuestionSetTests : IDisposable
         var handler = StubHandler.Json(HttpStatusCode.OK, ResponseJson);
         var http = new HttpClient(handler);
         _httpClients.Add(http);
-        var options = new DecisionClientOptions { ApiKey = "test-key", Model = "jev-first", MaxRetries = 0 };
-        using var client = new DecisionClient(http, options);
+        var options = new SystemOneClientOptions { ApiKey = "test-key", Model = "jev-first", MaxRetries = 0 };
+        using var client = new SystemOneClient(http, options);
 
         // The client resolved its options when it was constructed, so a later change does not reach it.
         options.Model = "jev-second";
@@ -196,5 +196,5 @@ public sealed class DecisionClientQuestionSetTests : IDisposable
         return built.Value;
     }
 
-    private DecisionClient Client(StubHandler handler, CountingPool? pool = null) => ClientTestKit.Client(_httpClients, handler, pool);
+    private SystemOneClient Client(StubHandler handler, CountingPool? pool = null) => ClientTestKit.Client(_httpClients, handler, pool);
 }

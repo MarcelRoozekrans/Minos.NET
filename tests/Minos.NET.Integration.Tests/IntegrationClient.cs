@@ -1,9 +1,10 @@
 using System.Collections.Concurrent;
 using System.Diagnostics;
+using Minos.SystemOne;
 
 namespace Minos.Integration.Tests;
 
-/// <summary>Builds a <see cref="DecisionClient"/> configured for the WireMock fixtures: a fixed key, no jitter and short backoffs.</summary>
+/// <summary>Builds a <see cref="SystemOneClient"/> configured for the WireMock fixtures: a fixed key, no jitter and short backoffs.</summary>
 /// <remarks>
 /// Only a test that sets <c>timeout</c> gets a per-attempt budget of its own; everything else keeps the library's
 /// default. A fixture-wide budget of a few seconds is not something these tests check, and on a loaded machine a
@@ -11,12 +12,12 @@ namespace Minos.Integration.Tests;
 /// </remarks>
 internal static class IntegrationClient
 {
-    public static DecisionClient Create(
+    public static SystemOneClient Create(
         Uri baseAddress,
         int maxRetries = 0,
         TimeSpan? timeout = null,
         TimeSpan? initialBackoff = null,
-        DecisionProvider provider = DecisionProvider.TypeSafe)
+        SystemOneProvider provider = SystemOneProvider.TypeSafe)
     {
         var options = Options(maxRetries, initialBackoff, provider);
         options.BaseAddress = baseAddress;
@@ -25,22 +26,22 @@ internal static class IntegrationClient
             options.Timeout = perAttempt;
         }
 
-        return new DecisionClient(options);
+        return new SystemOneClient(options);
     }
 
     /// <summary>
     /// Builds a client over <paramref name="attempts"/>' <see cref="HttpClient"/>, so the test observes each attempt
     /// on the client side; its base address and per-attempt time-out come from that <see cref="HttpClient"/>.
     /// </summary>
-    public static DecisionClient Create(AttemptRecorder attempts, int maxRetries = 0, TimeSpan? initialBackoff = null)
-        => new(attempts.HttpClient, Options(maxRetries, initialBackoff, DecisionProvider.TypeSafe));
+    public static SystemOneClient Create(AttemptRecorder attempts, int maxRetries = 0, TimeSpan? initialBackoff = null)
+        => new(attempts.HttpClient, Options(maxRetries, initialBackoff, SystemOneProvider.TypeSafe));
 
     /// <summary>
     /// Applies the fixtures' configuration to <paramref name="options"/>: the fixed key, no jitter, a 5 second maximum
     /// retry delay and a short backoff. The hand-built clients and the ones from <c>AddDecisionClient</c> both configure
     /// through this.
     /// </summary>
-    public static void Configure(DecisionClientOptions options, int maxRetries, TimeSpan? initialBackoff = null)
+    public static void Configure(SystemOneClientOptions options, int maxRetries, TimeSpan? initialBackoff = null)
     {
         options.ApiKey = "integration-key";
         options.MaxRetries = maxRetries;
@@ -49,9 +50,9 @@ internal static class IntegrationClient
         options.Jitter = false;
     }
 
-    private static DecisionClientOptions Options(int maxRetries, TimeSpan? initialBackoff, DecisionProvider provider)
+    private static SystemOneClientOptions Options(int maxRetries, TimeSpan? initialBackoff, SystemOneProvider provider)
     {
-        var options = new DecisionClientOptions { Provider = provider };
+        var options = new SystemOneClientOptions { Provider = provider };
         Configure(options, maxRetries, initialBackoff);
         return options;
     }

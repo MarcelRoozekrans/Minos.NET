@@ -54,16 +54,17 @@ public sealed class DependencyInjectionPackageTests : IClassFixture<DependencyIn
     }
 
     [Fact]
-    public void DependsOnTheCorePackageHttpAndOptionsConfigurationOnly()
+    public void DependsOnTheMinosPackagesHttpAndOptionsConfigurationOnly()
     {
         var dependencies = Dependencies();
 
         Assert.Equal(
-            ["Microsoft.Extensions.Http", "Microsoft.Extensions.Options.ConfigurationExtensions", "Minos.NET"],
+            ["Microsoft.Extensions.Http", "Microsoft.Extensions.Options.ConfigurationExtensions", "Minos.NET", "Minos.NET.SystemOne"],
             dependencies.Select(dependency => (string)dependency.Attribute("id")!).Order(StringComparer.Ordinal).ToArray());
 
-        // The core package is packed at the same version; both Microsoft floors are the first .NET 10 release.
+        // The Minos packages are packed at the same version; both Microsoft floors are the first .NET 10 release.
         Assert.Equal(_fixture.PackageVersion, Version(dependencies, "Minos.NET"));
+        Assert.Equal(_fixture.PackageVersion, Version(dependencies, "Minos.NET.SystemOne"));
         Assert.Equal("10.0.0", Version(dependencies, "Microsoft.Extensions.Http"));
         Assert.Equal("10.0.0", Version(dependencies, "Microsoft.Extensions.Options.ConfigurationExtensions"));
     }

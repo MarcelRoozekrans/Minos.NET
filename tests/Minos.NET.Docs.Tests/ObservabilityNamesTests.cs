@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Reflection;
+using Minos.SystemOne;
 
 namespace Minos.Docs.Tests;
 
@@ -55,7 +56,7 @@ public sealed class ObservabilityNamesTests
             await RawRequests.UrgencyAsync(client, "Help!", CancellationToken.None);
         }
 
-        var version = typeof(DecisionClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
+        var version = typeof(SystemOneClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
         Assert.False(string.IsNullOrEmpty(version));
         Assert.Equal(version, Only.Of(spanSources).Version);
         Assert.Equal(version, Only.Of(meters.Select(m => m.Version).Distinct(StringComparer.Ordinal)));
@@ -66,16 +67,17 @@ public sealed class ObservabilityNamesTests
     public void TheNamesOnThePage_AreTheLibrariesConstant()
     {
         var telemetry = File.ReadAllText(Path.Combine(PublishedPages.Root, "src", "Minos.NET", "Telemetry", "DecisionTelemetry.cs"));
-        var operations = File.ReadAllText(Path.Combine(PublishedPages.Root, "src", "Minos.NET", "Telemetry", "IDecisionOperations.cs"));
+        var operations = File.ReadAllText(Path.Combine(PublishedPages.Root, "src", "Minos.NET.SystemOne", "Telemetry", "IDecisionOperations.cs"));
 
         Assert.Contains($"SourceName = \"{DecisionTelemetryNames.Source}\"", telemetry, StringComparison.Ordinal);
         Assert.Equal(DecisionTelemetryNames.Source, DecisionTelemetryNames.Meter);
         Assert.Contains("[Instrument(SourceName)]", operations, StringComparison.Ordinal);
     }
 
-    // The page says neither package depends on OpenTelemetry.
+    // The page says no package depends on OpenTelemetry.
     [Theory]
     [InlineData("Minos.NET")]
+    [InlineData("Minos.NET.SystemOne")]
     [InlineData("Minos.NET.DependencyInjection")]
     public void ThePackages_TakeNoOpenTelemetryDependency(string project)
     {

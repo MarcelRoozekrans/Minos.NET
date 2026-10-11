@@ -1,12 +1,13 @@
 using System.Net;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Minos.SystemOne;
 
 namespace Minos.Tests;
 
 /// <summary>
 /// Compiles every constructor call shape callers use, so a new overload that makes one ambiguous breaks this build.
-/// <c>new DecisionClient(null, null)</c> is the one shape that no longer compiles: CS0121, since both two-parameter
+/// <c>new SystemOneClient(null, null)</c> is the one shape that no longer compiles: CS0121, since both two-parameter
 /// overloads accept two null literals and nullability takes no part in overload resolution. It always threw before.
 /// </summary>
 public sealed class DecisionClientConstructorShapeTests : IDisposable
@@ -24,42 +25,42 @@ public sealed class DecisionClientConstructorShapeTests : IDisposable
     [Fact]
     public void EveryCallShape_Compiles()
     {
-        DecisionClientOptions? options = new() { ApiKey = "test-key" };
+        SystemOneClientOptions? options = new() { ApiKey = "test-key" };
         ILoggerFactory factory = NullLoggerFactory.Instance;
         var http = Http();
 
         // Compiled, not run: the value of this test is that it compiles. The shapes without options read
         // TYPESAFE_API_KEY, which a test machine need not set.
-        _ = new Func<DecisionClient>[]
+        _ = new Func<SystemOneClient>[]
         {
-            () => new DecisionClient(),
-            () => new DecisionClient(options),
-            () => new DecisionClient(http),
-            () => new DecisionClient(http, options),
-            () => new DecisionClient(http, null),
-            () => new DecisionClient(null!, options),
-            () => new DecisionClient(options, factory),
-            () => new DecisionClient(options, null),
-            () => new DecisionClient(null, factory),
-            () => new DecisionClient(http, options, factory),
-            () => new DecisionClient(http, options, null),
+            () => new SystemOneClient(),
+            () => new SystemOneClient(options),
+            () => new SystemOneClient(http),
+            () => new SystemOneClient(http, options),
+            () => new SystemOneClient(http, null),
+            () => new SystemOneClient(null!, options),
+            () => new SystemOneClient(options, factory),
+            () => new SystemOneClient(options, null),
+            () => new SystemOneClient(null, factory),
+            () => new SystemOneClient(http, options, factory),
+            () => new SystemOneClient(http, options, null),
         };
     }
 
     [Fact]
     public void ShapesWithAKey_Construct()
     {
-        DecisionClientOptions? options = new() { ApiKey = "test-key" };
+        SystemOneClientOptions? options = new() { ApiKey = "test-key" };
         ILoggerFactory factory = NullLoggerFactory.Instance;
 
-        Func<DecisionClient>[] shapes =
+        Func<SystemOneClient>[] shapes =
         [
-            () => new DecisionClient(options),
-            () => new DecisionClient(Http(), options),
-            () => new DecisionClient(options, factory),
-            () => new DecisionClient(options, null),
-            () => new DecisionClient(Http(), options, factory),
-            () => new DecisionClient(Http(), options, null),
+            () => new SystemOneClient(options),
+            () => new SystemOneClient(Http(), options),
+            () => new SystemOneClient(options, factory),
+            () => new SystemOneClient(options, null),
+            () => new SystemOneClient(Http(), options, factory),
+            () => new SystemOneClient(Http(), options, null),
         ];
 
         foreach (var create in shapes)
@@ -70,7 +71,7 @@ public sealed class DecisionClientConstructorShapeTests : IDisposable
 
     [Fact]
     public void LoggingConstructor_OverANullHttpClient_Throws()
-        => Assert.Throws<ArgumentNullException>(() => new DecisionClient(null!, new DecisionClientOptions { ApiKey = "k" }, NullLoggerFactory.Instance));
+        => Assert.Throws<ArgumentNullException>(() => new SystemOneClient(null!, new SystemOneClientOptions { ApiKey = "k" }, NullLoggerFactory.Instance));
 
     private HttpClient Http()
     {

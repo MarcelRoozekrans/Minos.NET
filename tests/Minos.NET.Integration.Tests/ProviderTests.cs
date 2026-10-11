@@ -1,4 +1,5 @@
 using System.Net;
+using Minos.SystemOne;
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
 
@@ -49,7 +50,7 @@ public sealed class ProviderTests : IClassFixture<WireMockFixture>
                 .WithBody(Fixture.Text("response-openrouter.json")));
 
         var baseAddress = new Uri(_fixture.BaseAddress, "api/");
-        using var client = IntegrationClient.Create(baseAddress, provider: DecisionProvider.OpenRouter);
+        using var client = IntegrationClient.Create(baseAddress, provider: SystemOneProvider.OpenRouter);
 
         var result = await client.EvaluateAsync(Fixtures.NoulRequest());
 
@@ -70,7 +71,7 @@ public sealed class ProviderTests : IClassFixture<WireMockFixture>
                 .WithBody(Fixture.Text("response-noul.json")));
 
         using var http = new HttpClient { BaseAddress = new Uri(_fixture.BaseAddress, "custom/") };
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "integration-key", MaxRetries = 0 });
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "integration-key", MaxRetries = 0 });
 
         var result = await client.EvaluateAsync(Fixtures.NoulRequest());
 

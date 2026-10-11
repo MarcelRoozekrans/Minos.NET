@@ -1,6 +1,7 @@
 using System.Diagnostics;
 using System.Net;
 using System.Text;
+using Minos.SystemOne;
 
 namespace Minos.Tests;
 
@@ -83,11 +84,11 @@ public sealed class TelemetryPrivacyTests : IDisposable
         AssertNoSecret(capture);
     }
 
-    private DecisionClient Client(StubHandler handler)
+    private SystemOneClient Client(StubHandler handler)
     {
         var http = new HttpClient(handler);
         _httpClients.Add(http);
-        return new DecisionClient(http, new DecisionClientOptions { ApiKey = ApiKey, MaxRetries = 0 });
+        return new SystemOneClient(http, new SystemOneClientOptions { ApiKey = ApiKey, MaxRetries = 0 });
     }
 
     private static SystemOneRequest Request() => new()

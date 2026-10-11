@@ -2,6 +2,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
+using Minos.SystemOne;
 using ZeroAlloc.Results;
 
 namespace Minos.Docs.Tests;
@@ -29,7 +30,7 @@ public sealed class PipelineTests
     [Fact]
     public async Task TheDefaultClient_RetriesATransientFailure()
     {
-        var (http, requests) = ScriptedDecision.Http(new DecisionClientOptions(), Reply.Error(503), Reply.Ok(UrgentResponse));
+        var (http, requests) = ScriptedDecision.Http(new SystemOneClientOptions(), Reply.Error(503), Reply.Ok(UrgentResponse));
         using (http)
         {
             Assert.True(await DefaultPipeline.IsUrgentAsync(http, "docs-key", "Help! The server is down.", CancellationToken.None));
@@ -42,7 +43,7 @@ public sealed class PipelineTests
     public async Task TheCustomPipeline_TracesLogsRetriesAndAuditsEveryAttempt()
     {
         var log = new MemoryAuditLog();
-        var (http, requests) = ScriptedDecision.Http(new DecisionClientOptions(), Reply.Error(503), Reply.Ok(UrgentResponse));
+        var (http, requests) = ScriptedDecision.Http(new SystemOneClientOptions(), Reply.Error(503), Reply.Ok(UrgentResponse));
         using var provider = new FakeLoggerProvider();
         using var loggers = LoggerFactory.Create(builder => builder.AddProvider(provider).SetMinimumLevel(LogLevel.Debug));
         using (http)
@@ -126,7 +127,7 @@ public sealed class PipelineTests
 
         Assert.True(result.Value.IsUrgent.Value);
         Assert.IsType<AuditStage>(client);
-        Assert.NotNull(client.GetService<DecisionClient>());
+        Assert.NotNull(client.GetService<SystemOneClient>());
         Assert.Equal([true], log.Outcomes);
         Assert.Collection(handler.Requests, sent => Assert.True(sent.HasTraceHeader));
     }

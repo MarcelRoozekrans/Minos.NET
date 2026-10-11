@@ -93,9 +93,10 @@ public sealed partial class NativeAotTests
     }
 
     [Fact]
-    public void BothPackages_AreAotCompatible_AndTheDependencyInjectionPackageBindsWithAGenerator()
+    public void ThePackages_AreAotCompatible_AndTheDependencyInjectionPackageBindsWithAGenerator()
     {
         Assert.Contains("<IsAotCompatible>true</IsAotCompatible>", Source("src", "Minos.NET", "Minos.NET.csproj"), StringComparison.Ordinal);
+        Assert.Contains("<IsAotCompatible>true</IsAotCompatible>", Source("src", "Minos.NET.SystemOne", "Minos.NET.SystemOne.csproj"), StringComparison.Ordinal);
 
         var injection = Source("src", "Minos.NET.DependencyInjection", "Minos.NET.DependencyInjection.csproj");
         Assert.Contains("<IsAotCompatible>true</IsAotCompatible>", injection, StringComparison.Ordinal);

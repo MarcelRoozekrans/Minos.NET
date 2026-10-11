@@ -1,5 +1,4 @@
 using Microsoft.Extensions.Logging;
-using Minos.Transport;
 using ZeroAlloc.Resilience;
 using ZeroAlloc.Results;
 

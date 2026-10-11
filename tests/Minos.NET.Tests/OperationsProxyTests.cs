@@ -2,7 +2,9 @@ using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using System.Reflection;
 using System.Text.Json;
-using Minos.Serialization;
+using Minos.SystemOne;
+using Minos.SystemOne.Serialization;
+using Minos.SystemOne.Telemetry;
 using Minos.Telemetry;
 using ZeroAlloc.Telemetry;
 
@@ -217,7 +219,7 @@ public sealed class OperationsProxyTests
         Assert.IsType<Counter<long>>(capture.Instrument("gen_ai.client.inference.usage.input_tokens"));
         Assert.Equal("{token}", capture.Instrument("gen_ai.client.inference.usage.output_tokens").Unit);
 
-        var version = typeof(DecisionClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
+        var version = typeof(SystemOneClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
         Assert.All(capture.Spans("Minos"), span => Assert.Equal(version, span.Source.Version));
         Assert.Equal(version, capture.Instrument("minos.answer.confidence").Meter.Version);
     }

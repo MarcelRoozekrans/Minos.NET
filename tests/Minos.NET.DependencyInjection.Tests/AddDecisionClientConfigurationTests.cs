@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Minos.SystemOne;
 using static Minos.DependencyInjection.Tests.Registrations;
 
 namespace Minos.DependencyInjection.Tests;
@@ -25,9 +26,9 @@ public sealed class AddDecisionClientConfigurationTests
         services.AddDecisionClient(configuration.GetSection("Minos"));
         using var provider = services.BuildServiceProvider();
 
-        var options = provider.GetRequiredService<IOptionsMonitor<DecisionClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName);
+        var options = provider.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName);
 
-        Assert.Equal(DecisionProvider.OpenRouter, options.Provider);
+        Assert.Equal(SystemOneProvider.OpenRouter, options.Provider);
         Assert.Equal("bound-key", options.ApiKey);
         Assert.Equal(new Uri("http://bound.local/api/"), options.BaseAddress);
         Assert.Equal("jev-1.13.0", options.Model);
@@ -47,7 +48,7 @@ public sealed class AddDecisionClientConfigurationTests
         services.AddDecisionClient(configuration).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
         using var provider = services.BuildServiceProvider();
 
-        var result = await provider.GetRequiredService<IDecisionClient>().GetService<DecisionClient>()!.EvaluateAsync(Request());
+        var result = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request());
 
         Assert.True(result.IsSuccess);
         Assert.Equal(new Uri("http://bound.local/api/v1/systemone"), OnlyRequest(handler).Uri);
@@ -67,13 +68,13 @@ public sealed class AddDecisionClientConfigurationTests
         services.AddDecisionClient(configuration.GetSection("Default"));
         services.AddDecisionClient("openrouter", configuration.GetSection("OpenRouter"));
         using var provider = services.BuildServiceProvider();
-        var monitor = provider.GetRequiredService<IOptionsMonitor<DecisionClientOptions>>();
+        var monitor = provider.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>();
 
         var defaults = monitor.Get(Microsoft.Extensions.Options.Options.DefaultName);
         var keyed = monitor.Get("openrouter");
 
-        Assert.Equal((DecisionProvider.TypeSafe, "default-key", 1), (defaults.Provider, defaults.ApiKey, defaults.MaxRetries));
-        Assert.Equal((DecisionProvider.OpenRouter, "openrouter-key", 5), (keyed.Provider, keyed.ApiKey, keyed.MaxRetries));
+        Assert.Equal((SystemOneProvider.TypeSafe, "default-key", 1), (defaults.Provider, defaults.ApiKey, defaults.MaxRetries));
+        Assert.Equal((SystemOneProvider.OpenRouter, "openrouter-key", 5), (keyed.Provider, keyed.ApiKey, keyed.MaxRetries));
         Assert.NotSame(provider.GetRequiredService<IDecisionClient>(), provider.GetRequiredKeyedService<IDecisionClient>("openrouter"));
     }
 
@@ -86,7 +87,7 @@ public sealed class AddDecisionClientConfigurationTests
         services.AddDecisionClient(options => options.MaxRetries = 0);
         using var provider = services.BuildServiceProvider();
 
-        var options = provider.GetRequiredService<IOptionsMonitor<DecisionClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName);
+        var options = provider.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName);
 
         Assert.Equal(0, options.MaxRetries);
         Assert.Equal("bound-key", options.ApiKey);

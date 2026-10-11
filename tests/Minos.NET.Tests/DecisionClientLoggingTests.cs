@@ -4,12 +4,12 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
-using Minos.Serialization;
 using Minos.SystemOne;
+using Minos.SystemOne.Serialization;
 
 namespace Minos.Tests;
 
-/// <summary>What <see cref="DecisionClient"/> logs through an <see cref="ILoggerFactory"/>.</summary>
+/// <summary>What <see cref="SystemOneClient"/> logs through an <see cref="ILoggerFactory"/>.</summary>
 public sealed class DecisionClientLoggingTests : IDisposable
 {
     private readonly List<HttpClient> _httpClients = [];
@@ -311,7 +311,7 @@ public sealed class DecisionClientLoggingTests : IDisposable
     {
         using var logs = new LogCapture();
         var handler = StubHandler.Json(HttpStatusCode.OK, Fixture.Text("models.json"));
-        using var client = Client(handler, logs.Factory, provider: DecisionProvider.OpenRouter);
+        using var client = Client(handler, logs.Factory, provider: SystemOneProvider.OpenRouter);
 
         Assert.True((await client.ListModelsAsync()).IsFailure);
 
@@ -406,13 +406,13 @@ public sealed class DecisionClientLoggingTests : IDisposable
         }
     }
 
-    private DecisionClient Client(StubHandler handler, ILoggerFactory? loggerFactory, int maxRetries = 0, DecisionProvider provider = DecisionProvider.TypeSafe)
+    private SystemOneClient Client(StubHandler handler, ILoggerFactory? loggerFactory, int maxRetries = 0, SystemOneProvider provider = SystemOneProvider.TypeSafe)
     {
         var http = new HttpClient(handler);
         _httpClients.Add(http);
-        return new DecisionClient(
+        return new SystemOneClient(
             http,
-            new DecisionClientOptions
+            new SystemOneClientOptions
             {
                 ApiKey = "test-key",
                 Provider = provider,

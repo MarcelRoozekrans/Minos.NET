@@ -6,6 +6,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Minos;
+using Minos.SystemOne;
 
 // One yes/no question, so the example stays short.
 [Questions]
@@ -68,7 +69,7 @@ public static class KeyedRegistration
         builder.Services.AddDecisionClient("typesafe", options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
         builder.Services.AddDecisionClient("openrouter", options =>
         {
-            options.Provider = DecisionProvider.OpenRouter;
+            options.Provider = SystemOneProvider.OpenRouter;
             options.ApiKey = builder.Configuration["OpenRouter:ApiKey"];
         });
         builder.Services.AddSingleton<InboxRouter>();
@@ -168,13 +169,13 @@ public static class WithoutThePackage
 {
     #region DependencyInjection_WithoutPackage
     // A named HttpClient of your own, set up the way AddDecisionClient sets up its client.
-    public static void AddMinosHttpClient(IServiceCollection services, DecisionClientOptions options)
+    public static void AddMinosHttpClient(IServiceCollection services, SystemOneClientOptions options)
         => services.AddHttpClient("minos")
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(2) })
             .SetHandlerLifetime(Timeout.InfiniteTimeSpan)
-            .ConfigureHttpClient(http => DecisionClient.ConfigureHttpClient(http, options));
+            .ConfigureHttpClient(http => SystemOneClient.ConfigureHttpClient(http, options));
 
-    public static DecisionClient Create(IHttpClientFactory factory, DecisionClientOptions options)
+    public static SystemOneClient Create(IHttpClientFactory factory, SystemOneClientOptions options)
         => new(factory.CreateClient("minos"), options);
     #endregion
 }

@@ -1,22 +1,23 @@
 using System.Net;
 using BenchmarkDotNet.Attributes;
 using Microsoft.Extensions.DependencyInjection;
+using Minos.SystemOne;
 using ZeroAlloc.Results;
 
 namespace Minos.Benchmarks;
 
 /// <summary>
 /// <see cref="ClientBenchmarks.EvaluateAsync"/>'s call through a client <c>AddDecisionClient</c> registered, against the same
-/// call on a hand-built client over an <see cref="HttpClient"/> that <see cref="DecisionClient.ConfigureHttpClient"/>
+/// call on a hand-built client over an <see cref="HttpClient"/> that <see cref="SystemOneClient.ConfigureHttpClient"/>
 /// configured the same way. Both send the User-Agent, which <see cref="ClientBenchmarks"/>' borrowed clients do not.
 /// </summary>
 [MemoryDiagnoser]
 public class DependencyInjectionBenchmarks : IDisposable
 {
     private ServiceProvider _provider = null!;
-    private DecisionClient _resolvedClient = null!;
+    private SystemOneClient _resolvedClient = null!;
     private HttpClient _handBuiltHttp = null!;
-    private DecisionClient _handBuiltClient = null!;
+    private SystemOneClient _handBuiltClient = null!;
     private SystemOneRequest _request = null!;
 
     [GlobalSetup]
@@ -31,11 +32,11 @@ public class DependencyInjectionBenchmarks : IDisposable
             })
             .HttpClient.ConfigurePrimaryHttpMessageHandler(() => new ClientBenchmarks.CannedHandler(HttpStatusCode.OK, ClientBenchmarks.NoulResponseJson));
         _provider = services.BuildServiceProvider();
-        _resolvedClient = _provider.GetRequiredService<IDecisionClient>().GetService<DecisionClient>()!;
+        _resolvedClient = _provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!;
 
         _handBuiltHttp = new HttpClient(new ClientBenchmarks.CannedHandler(HttpStatusCode.OK, ClientBenchmarks.NoulResponseJson));
-        DecisionClient.ConfigureHttpClient(_handBuiltHttp, new DecisionClientOptions { BaseAddress = new Uri("https://example.test/api/") });
-        _handBuiltClient = new DecisionClient(_handBuiltHttp, new DecisionClientOptions { ApiKey = "bench" });
+        SystemOneClient.ConfigureHttpClient(_handBuiltHttp, new SystemOneClientOptions { BaseAddress = new Uri("https://example.test/api/") });
+        _handBuiltClient = new SystemOneClient(_handBuiltHttp, new SystemOneClientOptions { ApiKey = "bench" });
 
         _request = ClientBenchmarks.Request();
     }

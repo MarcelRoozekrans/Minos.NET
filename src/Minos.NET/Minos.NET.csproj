@@ -3,7 +3,7 @@
     <RootNamespace>Minos</RootNamespace>
     <PackageId>Minos.NET</PackageId>
     <Title>Minos.NET</Title>
-    <Description>Unofficial .NET client for TypeSafe AI's Jev System One model, directly or through OpenRouter. Source-generated, Native AOT-compatible and allocation-conscious, with typed questions and answers and Result-based errors. Not affiliated with or endorsed by TypeSafe AI.</Description>
+    <Description>Typed, source-generated decision questions for .NET, provider-neutral: the question model, IDecisionClient and its pipeline. Add a protocol package such as Minos.NET.SystemOne to call a provider. Native AOT-compatible and allocation-conscious.</Description>
     <!--
       Trim- and AOT-safe by design. The one reflection, EnumOptionSet reading an enum's public fields for question sets
       built at run time, is declared through DynamicallyAccessedMembers, so the trimmer keeps those fields. Enables
@@ -11,12 +11,10 @@
     -->
     <IsAotCompatible>true</IsAotCompatible>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- SystemOneJsonEncoder overrides JavaScriptEncoder's pointer-based members. -->
-    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!--
       ZeroAlloc.Validation's generator emits every {Model}Validator internal: they check this library's internal
       question specs and are no part of its API. Every ZeroAlloc generator reads this one property; the
-      ZeroAlloc.Rest output it also covers is internal already.
+      ZeroAlloc.Telemetry proxy it also covers is internal already.
     -->
     <ZeroAllocGeneratedAccessibility>Internal</ZeroAllocGeneratedAccessibility>
   </PropertyGroup>
@@ -44,6 +42,8 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Minos.NET.Tests" />
+    <!-- The /v1/systemone protocol package builds on the question model's internal raw forms. -->
+    <InternalsVisibleTo Include="Minos.NET.SystemOne" />
     <!-- The benchmarks time the internal parse of a built set in isolation, which no public member exposes. -->
     <InternalsVisibleTo Include="Minos.NET.Benchmarks" />
   </ItemGroup>
@@ -52,8 +52,6 @@
     <!-- ILogger and the [LoggerMessage] generator; a runtime dependency that flows to consumers. -->
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="ZeroAlloc.Resilience" />
-    <PackageReference Include="ZeroAlloc.Rest" />
-    <PackageReference Include="ZeroAlloc.Rest.SystemTextJson" />
     <PackageReference Include="ZeroAlloc.Results" />
     <!--
       PrivateAssets keeps ZeroAlloc.Validation's build and buildtransitive assets out of consumers' builds, and the

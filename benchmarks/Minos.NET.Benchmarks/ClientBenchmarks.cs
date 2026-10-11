@@ -3,12 +3,13 @@ using System.Text;
 using BenchmarkDotNet.Attributes;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Minos.SystemOne;
 using ZeroAlloc.Results;
 using Minos.Shared;
 
 namespace Minos.Benchmarks;
 
-/// <summary>Benchmarks <see cref="DecisionClient"/>'s hot paths against an in-memory <see cref="HttpMessageHandler"/>,
+/// <summary>Benchmarks <see cref="SystemOneClient"/>'s hot paths against an in-memory <see cref="HttpMessageHandler"/>,
 /// through the public API only, since <c>DecisionJsonContext</c> is internal.</summary>
 [MemoryDiagnoser]
 public class ClientBenchmarks
@@ -21,22 +22,22 @@ public class ClientBenchmarks
     private HttpClient _listModelsHttp = null!;
     private HttpClient _typedEvaluateHttp = null!;
     private HttpClient _typedEvaluateNoulHttp = null!;
-    private DecisionClient _evaluateClient = null!;
-    private DecisionClient _listModelsClient = null!;
-    private DecisionClient _typedEvaluateClient = null!;
-    private DecisionClient _typedEvaluateNoulClient = null!;
+    private SystemOneClient _evaluateClient = null!;
+    private SystemOneClient _listModelsClient = null!;
+    private SystemOneClient _typedEvaluateClient = null!;
+    private SystemOneClient _typedEvaluateNoulClient = null!;
     private HttpClient _evaluateLoggedHttp = null!;
     private HttpClient _typedEvaluateLoggedHttp = null!;
-    private DecisionClient _evaluateLoggedClient = null!;
-    private DecisionClient _typedEvaluateLoggedClient = null!;
+    private SystemOneClient _evaluateLoggedClient = null!;
+    private SystemOneClient _typedEvaluateLoggedClient = null!;
     private HttpClient _evaluateYieldingHttp = null!;
     private HttpClient _evaluateYieldingLoggedHttp = null!;
     private HttpClient _evaluateYieldingNullLoggedHttp = null!;
-    private DecisionClient _evaluateYieldingNullLoggedClient = null!;
-    private DecisionClient _evaluateYieldingClient = null!;
-    private DecisionClient _evaluateYieldingLoggedClient = null!;
+    private SystemOneClient _evaluateYieldingNullLoggedClient = null!;
+    private SystemOneClient _evaluateYieldingClient = null!;
+    private SystemOneClient _evaluateYieldingLoggedClient = null!;
     private HttpClient _typedEvaluateYieldingHttp = null!;
-    private DecisionClient _typedEvaluateYieldingClient = null!;
+    private SystemOneClient _typedEvaluateYieldingClient = null!;
     private SystemOneRequest _request = null!;
     private string _typedState = null!;
 
@@ -92,11 +93,11 @@ public class ClientBenchmarks
         _typedEvaluateYieldingHttp.Dispose();
     }
 
-    /// <summary><see cref="DecisionClient.EvaluateAsync"/> over a fixed Noul response.</summary>
+    /// <summary><see cref="SystemOneClient.EvaluateAsync"/> over a fixed Noul response.</summary>
     [Benchmark]
     public ValueTask<Result<SystemOneResponse, DecisionError>> EvaluateAsync() => _evaluateClient.EvaluateAsync(_request);
 
-    /// <summary><see cref="DecisionClient.ListModelsAsync"/> over a fixed models response.</summary>
+    /// <summary><see cref="SystemOneClient.ListModelsAsync"/> over a fixed models response.</summary>
     [Benchmark]
     public ValueTask<Result<ModelList, DecisionError>> ListModelsAsync() => _listModelsClient.ListModelsAsync();
 
@@ -139,19 +140,19 @@ public class ClientBenchmarks
     [Benchmark]
     public ValueTask<Result<BenchTriage, DecisionError>> TypedEvaluateYieldingAsync() => _typedEvaluateYieldingClient.EvaluateAsync<BenchTriage>(_typedState);
 
-    internal static (HttpClient Http, DecisionClient Client) CreateClient(string responseJson)
+    internal static (HttpClient Http, SystemOneClient Client) CreateClient(string responseJson)
         => CreateClient(responseJson, loggerFactory: null);
 
-    internal static (HttpClient Http, DecisionClient Client) CreateClient(string responseJson, ILoggerFactory? loggerFactory)
+    internal static (HttpClient Http, SystemOneClient Client) CreateClient(string responseJson, ILoggerFactory? loggerFactory)
         => CreateClient(new CannedHandler(HttpStatusCode.OK, responseJson), loggerFactory);
 
-    internal static (HttpClient Http, DecisionClient Client) CreateClient(HttpMessageHandler handler, ILoggerFactory? loggerFactory)
+    internal static (HttpClient Http, SystemOneClient Client) CreateClient(HttpMessageHandler handler, ILoggerFactory? loggerFactory)
     {
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://example.test/api/") };
         // Default retry options: the handler always returns 200, so no retry ever fires, and
         // the benchmark measures the resilience proxy's per-call overhead that users get by default.
         // A null factory builds exactly the client the two-argument constructor builds.
-        var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "bench" }, loggerFactory);
+        var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "bench" }, loggerFactory);
         return (http, client);
     }
 

@@ -2,7 +2,7 @@
 id: client-and-errors
 title: The client and its errors
 sidebar_position: 5
-description: Create and configure a DecisionClient, understand its retries and time-outs, handle every kind of DecisionError, and use the raw request API.
+description: Create and configure a SystemOneClient, understand its retries and time-outs, handle every kind of DecisionError, and use the raw request API.
 ---
 
 # The client and its errors
@@ -17,40 +17,41 @@ arrives as a value to check, not as an exception to catch.
 
 ## Creating a client
 
-`DecisionClient` is the class that implements `IDecisionClient`. It is thread-safe and meant to live for the whole program: create
+`SystemOneClient` is the class that implements `IDecisionClient`. It is thread-safe and meant to live for the whole program: create
 one, share it, and dispose it when the program stops. Creating a client per call wastes connections.
 
 <!-- snippet: ClientAndErrors_Constructors -->
 ```cs
 using Microsoft.Extensions.Logging;
 using Minos;
+using Minos.SystemOne;
 
 public static class ClientConstructors
 {
     // The client creates its own HttpClient, and disposing the client disposes it.
-    public static DecisionClient Owned(string apiKey)
-        => new(new DecisionClientOptions { ApiKey = apiKey });
+    public static SystemOneClient Owned(string apiKey)
+        => new(new SystemOneClientOptions { ApiKey = apiKey });
 
     // You pass an HttpClient you manage, for example one from IHttpClientFactory. The client never disposes it.
-    public static DecisionClient Borrowed(HttpClient http, string apiKey)
-        => new(http, new DecisionClientOptions { ApiKey = apiKey });
+    public static SystemOneClient Borrowed(HttpClient http, string apiKey)
+        => new(http, new SystemOneClientOptions { ApiKey = apiKey });
 
     // Either form also takes an ILoggerFactory, and then logs each operation and each retried attempt.
-    public static DecisionClient Logged(string apiKey, ILoggerFactory loggers)
-        => new(new DecisionClientOptions { ApiKey = apiKey }, loggers);
+    public static SystemOneClient Logged(string apiKey, ILoggerFactory loggers)
+        => new(new SystemOneClientOptions { ApiKey = apiKey }, loggers);
 }
 ```
 <!-- endSnippet -->
 
 There are two families of constructor.
 
-- **The client owns its `HttpClient`.** `new DecisionClient(options)`, or `new DecisionClient()` for all defaults. The client
+- **The client owns its `HttpClient`.** `new SystemOneClient(options)`, or `new SystemOneClient()` for all defaults. The client
   creates the `HttpClient`, applies the options to it, and disposes it in `Dispose`.
-- **You lend an `HttpClient`.** `new DecisionClient(http, options)`. The client uses it and never disposes it, so whoever
+- **You lend an `HttpClient`.** `new SystemOneClient(http, options)`. The client uses it and never disposes it, so whoever
   created it still owns it. This is how a client over `IHttpClientFactory` works, and it is what a test does to put a
   fake handler under the client. Two things follow. The `HttpClient`'s own `BaseAddress` wins over
-  `DecisionClientOptions.BaseAddress` when it is set, and it must end in `/`. And its own `Timeout` applies, not
-  `DecisionClientOptions.Timeout`, unless you set it up with `DecisionClient.ConfigureHttpClient`, which the
+  `SystemOneClientOptions.BaseAddress` when it is set, and it must end in `/`. And its own `Timeout` applies, not
+  `SystemOneClientOptions.Timeout`, unless you set it up with `SystemOneClient.ConfigureHttpClient`, which the
   [dependency injection](dependency-injection.md#using-minos-without-the-package) page shows.
 
 Both families take a `null` options object to mean "all defaults and environment variables", and both have an overload
@@ -59,11 +60,11 @@ traces and metrics](observability.md#logging) describes. What it logs never cont
 answers, the API key or a header value.
 
 Two calls with bare `null` literals do not compile (CS0121), because more than one constructor accepts them.
-`new DecisionClient(null)` matches both `(DecisionClientOptions?)` and `(HttpClient)`. `new DecisionClient(null, null)` matches both
-`(DecisionClientOptions?, ILoggerFactory?)` and `(HttpClient, DecisionClientOptions?)`; before the logging overloads it compiled
+`new SystemOneClient(null)` matches both `(SystemOneClientOptions?)` and `(HttpClient)`. `new SystemOneClient(null, null)` matches both
+`(SystemOneClientOptions?, ILoggerFactory?)` and `(HttpClient, SystemOneClientOptions?)`; before the logging overloads it compiled
 and always threw `ArgumentNullException` for the missing `HttpClient`. For all defaults and environment variables, write
-`new DecisionClient()`. Any other call resolves once its `null` has a type, for example
-`new DecisionClient((DecisionClientOptions?)null)`.
+`new SystemOneClient()`. Any other call resolves once its `null` has a type, for example
+`new SystemOneClient((SystemOneClientOptions?)null)`.
 
 A client throws instead of returning a failure only for mistakes in the calling code. A missing API key, an invalid
 option or a `null` request throws when you create the client or make the call. Calling a disposed client throws
@@ -86,11 +87,11 @@ you asked for it. Everything else, including every network and service failure, 
 
 ## Options
 
-`DecisionClientOptions` has ten properties, and every one is optional.
+`SystemOneClientOptions` has ten properties, and every one is optional.
 
 | Property | Default | Valid values | What it does |
 | --- | --- | --- | --- |
-| `Provider` | `DecisionProvider.TypeSafe` | `TypeSafe` or `OpenRouter` | Where requests go. |
+| `Provider` | `SystemOneProvider.TypeSafe` | `TypeSafe` or `OpenRouter` | Where requests go. |
 | `ApiKey` | none | any text without control characters; blank counts as unset | The key sent as a bearer token. When unset, the client reads `TYPESAFE_API_KEY`, or `OPENROUTER_API_KEY` for OpenRouter. |
 | `BaseAddress` | the provider's address | absolute `http` or `https` URI, no query or fragment | The API root, for a proxy or a test server. When unset, the client reads `TYPESAFE_BASE_URL` for TypeSafe only, then uses `https://api.typesafe.ai/` or `https://openrouter.ai/api/`. |
 | `Model` | `jev-latest` | not blank | The model that typed evaluation and built question sets ask: an alias such as `jev-latest` (or TypeSafe's `jev-preview`), or a versioned id such as `jev-1.13.0`. See [Listing models](#listing-models). |
@@ -113,11 +114,11 @@ is here so the table above has code to match.
 // Every option set to the value it has when you leave it out, apart from the API key, which has no default:
 // without one, the client reads TYPESAFE_API_KEY, or OPENROUTER_API_KEY for OpenRouter.
 // BaseAddress is also left out: it defaults to the provider's own address.
-public static DecisionClientOptions SpelledOut(string apiKey)
+public static SystemOneClientOptions SpelledOut(string apiKey)
     => new()
     {
         ApiKey = apiKey,
-        Provider = DecisionProvider.TypeSafe,
+        Provider = SystemOneProvider.TypeSafe,
         Model = "jev-latest",
         Timeout = TimeSpan.FromSeconds(60),
         MaxRetries = 2,
@@ -131,10 +132,10 @@ public static DecisionClientOptions SpelledOut(string apiKey)
 
 A `SystemOneRequest` names its own model, so `Model` applies to typed evaluation and to question sets only.
 
-### DecisionDefaults
+### SystemOneDefaults
 
-`DecisionDefaults` is the static class that holds the values the client falls back on. Use it instead of typing the same
-text yourself, for example to send `DecisionDefaults.Model` explicitly or to name an environment variable in a message.
+`SystemOneDefaults` is the static class that holds the values the client falls back on. Use it instead of typing the same
+text yourself, for example to send `SystemOneDefaults.Model` explicitly or to name an environment variable in a message.
 
 | Member | Value | What it is |
 | --- | --- | --- |
@@ -155,7 +156,7 @@ start-up.
 ```cs
 // Validate runs the check the constructors run, without creating a client. It throws ArgumentException for a value
 // that is out of range, and InvalidOperationException when no API key can be found.
-public static string? Problem(DecisionClientOptions options)
+public static string? Problem(SystemOneClientOptions options)
 {
     try
     {
@@ -206,7 +207,7 @@ extra of up to half its length, and a wait never exceeds `MaxRetryDelay`. Each r
 <!-- snippet: ClientAndErrors_Retries -->
 ```cs
 // Four retries, waiting about 1 s, 2 s, 4 s and then 8 s, each wait at most 20 s.
-public static DecisionClientOptions Patient(string apiKey)
+public static SystemOneClientOptions Patient(string apiKey)
     => new()
     {
         ApiKey = apiKey,
@@ -216,7 +217,7 @@ public static DecisionClientOptions Patient(string apiKey)
     };
 
 // No retries: a failed call is reported at once. Use this where a duplicate, billed request is worse than a failure.
-public static DecisionClientOptions NoRetries(string apiKey)
+public static SystemOneClientOptions NoRetries(string apiKey)
     => new() { ApiKey = apiKey, MaxRetries = 0 };
 ```
 <!-- endSnippet -->
@@ -249,14 +250,14 @@ attempts of the handler is nine requests.
 
 `Timeout` bounds one attempt, not the whole call. A call with retries can take up to `(MaxRetries + 1) times Timeout`
 plus the waits between attempts. Its time-out applies to a client that owns its `HttpClient`, and to one you set up with
-`DecisionClient.ConfigureHttpClient`, as `AddDecisionClient` does. An `HttpClient` you pass without that keeps its own `Timeout`,
+`SystemOneClient.ConfigureHttpClient`, as `AddDecisionClient` does. An `HttpClient` you pass without that keeps its own `Timeout`,
 which is 100 seconds unless you changed it.
 
 <!-- snippet: ClientAndErrors_Timeouts -->
 ```cs
 // Each attempt may take 10 s, and there is one retry. The worst case for one call is therefore two attempts of
 // 10 s each, plus one wait of at most MaxRetryDelay between them.
-public static DecisionClientOptions Strict(string apiKey)
+public static SystemOneClientOptions Strict(string apiKey)
     => new() { ApiKey = apiKey, Timeout = TimeSpan.FromSeconds(10), MaxRetries = 1 };
 ```
 <!-- endSnippet -->
@@ -394,9 +395,9 @@ most uses. Underneath them is the raw API, the shape of the HTTP request: a stat
 with ids you choose. You rarely need it, but it is there when you want the exact wire form, or are building your own
 layer.
 
-The raw calls, `EvaluateAsync(SystemOneRequest)` and `ListModelsAsync`, are members of `DecisionClient`, not of
+The raw calls, `EvaluateAsync(SystemOneRequest)` and `ListModelsAsync`, are members of `SystemOneClient`, not of
 `IDecisionClient`. Code that holds an `IDecisionClient`, such as a class that takes one from dependency injection,
-reaches them with `client.GetService<DecisionClient>()`, which finds the `DecisionClient` under any stages wrapped
+reaches them with `client.GetService<SystemOneClient>()`, which finds the `SystemOneClient` under any stages wrapped
 around it and returns `null` when there is none. [Finding a stage or the
 transport](pipeline.md#finding-a-stage-or-the-transport) has an example. The raw calls do not run through the
 pipeline's stages: they have their own span and log, and retry with the client's settings.
@@ -405,7 +406,7 @@ pipeline's stages: they have their own span and log, and retry with the client's
 ```cs
 // The raw API names its own model and questions, with ids you choose. Use it when the questions are not known at
 // compile time and the question set builder does not fit. Typed evaluation is shorter wherever it can be used.
-public static async Task<string> UrgencyAsync(DecisionClient client, string message, CancellationToken cancellationToken)
+public static async Task<string> UrgencyAsync(SystemOneClient client, string message, CancellationToken cancellationToken)
 {
     var result = await client.EvaluateAsync(
         new SystemOneRequest
@@ -446,20 +447,21 @@ where the generator, the [analyzers](diagnostics.md) and the
 
 ### When your code has its own Question or Answer
 
-The raw API's base types are `Minos.Question` and `Minos.Answer`. If your application has a `Question` or `Answer` of
-its own, a file that imports both namespaces cannot name either type bare: the compiler reports CS0104, an ambiguous
-reference. A `using` alias settles it, because an alias outranks a namespace import. Alias your own type to the short
+The raw API's base types are `Minos.SystemOne.Question` and `Minos.SystemOne.Answer`. If your application has a
+`Question` or `Answer` of its own, a file that imports both namespaces cannot name either type bare: the compiler
+reports CS0104, an ambiguous reference. A `using` alias settles it, because an alias outranks a namespace import. Alias your own type to the short
 name, and give Minos's type a name of its own.
 
 <!-- snippet: ClientAndErrors_NameClash -->
 ```cs
-using Minos;
+using Minos.SystemOne;
 using Shop.Surveys;
 
-// Shop.Surveys and Minos both have a Question, so a bare Question in this file would be ambiguous: error CS0104. An
-// alias outranks a using of a whole namespace, so these two settle it. Question is your own, MinosQuestion is Minos's.
+// Shop.Surveys and Minos.SystemOne both have a Question, so a bare Question in this file would be ambiguous: error
+// CS0104. An alias outranks a using of a whole namespace, so these two settle it. Question is your own, MinosQuestion is
+// Minos's.
 using Question = Shop.Surveys.Question;
-using MinosQuestion = Minos.Question;
+using MinosQuestion = Minos.SystemOne.Question;
 
 public static class SurveyRequests
 {
@@ -478,7 +480,7 @@ public static class SurveyRequests
 ```
 <!-- endSnippet -->
 
-Code in a namespace under `Minos` never sees the clash: it finds Minos's types first.
+Code in a namespace under `Minos.SystemOne` never sees the clash: it finds Minos's types first.
 
 ## Listing models
 
@@ -487,7 +489,7 @@ Code in a namespace under `Minos` never sees the clash: it finds Minos's types f
 
 <!-- snippet: ClientAndErrors_Models -->
 ```cs
-public static async Task<string> ModelsAsync(DecisionClient client, CancellationToken cancellationToken)
+public static async Task<string> ModelsAsync(SystemOneClient client, CancellationToken cancellationToken)
 {
     var result = await client.ListModelsAsync(cancellationToken);
     if (result.IsFailure)

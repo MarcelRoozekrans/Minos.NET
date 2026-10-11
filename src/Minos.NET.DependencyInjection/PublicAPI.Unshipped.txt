@@ -1,1 +1,5 @@
 #nullable enable
+*REMOVED*static Microsoft.Extensions.DependencyInjection.DecisionServiceCollectionExtensions.AddDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, System.Action<Minos.DecisionClientOptions!>! configure) -> Minos.DecisionClientServiceBuilder!
+*REMOVED*static Microsoft.Extensions.DependencyInjection.DecisionServiceCollectionExtensions.AddDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Minos.DecisionClientOptions!>! configure) -> Minos.DecisionClientServiceBuilder!
+static Microsoft.Extensions.DependencyInjection.DecisionServiceCollectionExtensions.AddDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, System.Action<Minos.SystemOne.SystemOneClientOptions!>! configure) -> Minos.DecisionClientServiceBuilder!
+static Microsoft.Extensions.DependencyInjection.DecisionServiceCollectionExtensions.AddDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Minos.SystemOne.SystemOneClientOptions!>! configure) -> Minos.DecisionClientServiceBuilder!

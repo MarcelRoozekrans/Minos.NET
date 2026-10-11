@@ -1,3 +1,5 @@
+using Minos.SystemOne;
+
 namespace Minos.Live.Tests;
 
 /// <summary>
@@ -7,12 +9,12 @@ namespace Minos.Live.Tests;
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class LiveFactAttribute : FactAttribute
 {
-    public LiveFactAttribute(DecisionProvider provider)
+    public LiveFactAttribute(SystemOneProvider provider)
     {
         Provider = provider;
-        var variable = provider == DecisionProvider.OpenRouter
-            ? DecisionDefaults.OpenRouterApiKeyEnvironmentVariable
-            : DecisionDefaults.ApiKeyEnvironmentVariable;
+        var variable = provider == SystemOneProvider.OpenRouter
+            ? SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable
+            : SystemOneDefaults.ApiKeyEnvironmentVariable;
         var optedIn = string.Equals(Environment.GetEnvironmentVariable("MINOS_LIVE"), "1", StringComparison.Ordinal);
         var keySet = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(variable));
 
@@ -25,5 +27,5 @@ public sealed class LiveFactAttribute : FactAttribute
         };
     }
 
-    public DecisionProvider Provider { get; }
+    public SystemOneProvider Provider { get; }
 }

@@ -1,3 +1,5 @@
+using Minos.SystemOne;
+
 namespace Minos.AotSmoke;
 
 /// <summary>Helpers for checks that expect a throw, or that need an environment variable for one check only.</summary>
@@ -39,11 +41,11 @@ internal static class SmokeAssert
     /// </summary>
     public static EnvironmentScope TypeSafeEnvironment()
         => new(
-            (DecisionDefaults.ApiKeyEnvironmentVariable, "smoke-key"),
-            (DecisionDefaults.BaseAddressEnvironmentVariable, "https://example.test/api/"));
+            (SystemOneDefaults.ApiKeyEnvironmentVariable, "smoke-key"),
+            (SystemOneDefaults.BaseAddressEnvironmentVariable, "https://example.test/api/"));
 
     /// <summary>Removes the TypeSafe key environment variable until disposed, then restores it.</summary>
-    public static EnvironmentScope NoApiKeyEnvironment() => new((DecisionDefaults.ApiKeyEnvironmentVariable, null));
+    public static EnvironmentScope NoApiKeyEnvironment() => new((SystemOneDefaults.ApiKeyEnvironmentVariable, null));
 
     internal sealed class EnvironmentScope : IDisposable
     {

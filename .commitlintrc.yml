@@ -23,6 +23,7 @@ rules:
     - - core
       - generator
       - di
+      - systemone
       - tests
       - benchmarks
       - samples

@@ -12,7 +12,7 @@ is an `IDecisionClient` that wraps the one inside it. It can act before the call
 the call on. Telemetry, logging and retries are stages like this, and you can add your own, such as an audit record or
 a cache.
 
-This page shows the standard pipeline that every `DecisionClient` runs, how to build your own, how to write a stage,
+This page shows the standard pipeline that every `SystemOneClient` runs, how to build your own, how to write a stage,
 how to find a stage again, and how stages fit with dependency injection. It ends with what changed for code written
 against 0.7.
 
@@ -24,12 +24,13 @@ question set's `Definition`, the `State`, an optional `Model` and the `RetryAtte
 [built question set](question-sets-at-run-time.md) calls are extension methods that build a `DecisionRequest` and make
 that one call, so they go through the pipeline too.
 
-A `DecisionClient` builds the standard pipeline for you, so a client you create is already traced and retried, and
+A `SystemOneClient` builds the standard pipeline for you, so a client you create is already traced and retried, and
 logged when you give it a logger factory.
 
 <!-- snippet: Pipeline_Default -->
 ```cs
 using Minos;
+using Minos.SystemOne;
 
 // One yes/no question, so the examples stay short.
 [Questions]
@@ -41,12 +42,12 @@ public partial record PipelineCheck
 
 public static class DefaultPipeline
 {
-    // A DecisionClient already runs the standard pipeline: one span and one set of metrics per call, one log record when
+    // A SystemOneClient already runs the standard pipeline: one span and one set of metrics per call, one log record when
     // it was given a logger factory, and up to two retries of a transient failure. There is nothing to set up.
     public static async Task<bool> IsUrgentAsync(
         HttpClient http, string apiKey, string message, CancellationToken cancellationToken)
     {
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = apiKey });
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = apiKey });
 
         // The typed call builds a DecisionRequest from PipelineCheck.Definition and the message, and sends it through
         // the pipeline.
@@ -86,7 +87,7 @@ so they do not run through the stages. They have their own span and log, and ret
 
 ## Building your own pipeline
 
-Set `DecisionClientOptions.UseStandardPipeline` to `false`, and the client is the bare transport: one attempt per call,
+Set `SystemOneClientOptions.UseStandardPipeline` to `false`, and the client is the bare transport: one attempt per call,
 with no span, no log and no retry. Then build the pipeline you want around it. `AsBuilder()` starts a
 `DecisionClientBuilder` from any client, each `Use…` call adds a stage, and `Build()` returns the outermost one.
 
@@ -96,7 +97,7 @@ with no span, no log and no retry. Then build the pipeline you want around it. `
 public static IDecisionClient Build(HttpClient http, string apiKey, ILoggerFactory loggerFactory, IAuditLog log)
 {
     // With the standard pipeline off, the client is the bare transport: one attempt per call, and no span or log.
-    var transport = new DecisionClient(http, new DecisionClientOptions { ApiKey = apiKey, UseStandardPipeline = false });
+    var transport = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = apiKey, UseStandardPipeline = false });
 
     // The first Use is the outermost stage. The audit stage is the innermost, so it records every attempt.
     return transport.AsBuilder()
@@ -116,7 +117,7 @@ public static IDecisionClient Build(HttpClient http, string apiKey, ILoggerFacto
 - **`UseLogging(loggerFactory)`** adds the logging stage. Without a factory, it uses the `ILoggerFactory` of the
   services passed to `Build`. With neither, it adds nothing.
 - **`UseRetries(configure)`** adds the retry stage. Its settings start from the inner client's own, which a
-  `DecisionClient` offers from its options, and `configure` changes them. It logs event 1003 through the `ILoggerFactory`
+  `SystemOneClient` offers from its options, and `configure` changes them. It logs event 1003 through the `ILoggerFactory`
   of the services passed to `Build`, and waits on their `TimeProvider`, so `Build()` without services, as above, retries
   without logging 1003.
 - **`Build(services)`** creates the stages, inner first. Pass an `IServiceProvider` when a stage needs services.
@@ -215,14 +216,14 @@ result for you, and returns `null` when nothing in the pipeline is a `T`.
 ```cs
 public static async Task<string> DescribeAsync(IDecisionClient client, CancellationToken cancellationToken)
 {
-    // The provider, the endpoint and the default model, which the DecisionClient at the bottom provides.
+    // The provider, the endpoint and the default model, which the SystemOneClient at the bottom provides.
     var metadata = client.GetService<DecisionClientMetadata>();
 
     // A stage, found by its type: null when the pipeline has none, as with UseStandardPipeline off.
     var retries = client.GetService<RetryingDecisionClient>();
 
-    // The raw System One calls are on the concrete DecisionClient, not on IDecisionClient.
-    var models = await client.GetService<DecisionClient>()!.ListModelsAsync(cancellationToken);
+    // The raw System One calls are on the concrete SystemOneClient, not on IDecisionClient.
+    var models = await client.GetService<SystemOneClient>()!.ListModelsAsync(cancellationToken);
 
     var listed = models.IsSuccess ? $"{models.Value.Models.Count} models" : models.Error.Kind.ToString();
     return $"{metadata?.ProviderName} at {metadata?.Endpoint}, retries {(retries is null ? "off" : "on")}, {listed}";
@@ -230,9 +231,9 @@ public static async Task<string> DescribeAsync(IDecisionClient client, Cancellat
 ```
 <!-- endSnippet -->
 
-A `DecisionClient` answers with:
+A `SystemOneClient` answers with:
 
-- **itself**, for `DecisionClient` or `IDecisionClient`. This is how code that holds an `IDecisionClient` reaches the
+- **itself**, for `SystemOneClient` or `IDecisionClient`. This is how code that holds an `IDecisionClient` reaches the
   raw System One calls, which are not on the interface.
 - **a copy of its retry settings**, for `DecisionRetryOptions`. `UseRetries()` starts from these.
 - **its `DecisionClientMetadata`**: the `ProviderName`, `typesafe` or `openrouter`, the `Endpoint` it sends to, and the
@@ -266,7 +267,7 @@ public static void AddAuditedDecision(IServiceCollection services, IConfiguratio
 
 - **Keep the result of `AddDecisionClient`.** `Use` and the `Use…` extensions return the base `DecisionClientBuilder`,
   which has no `HttpClient`, so reach `HttpClient` from the registration's own builder, as the snippet does.
-- **Stages wrap the registered `DecisionClient`,** which still runs its standard pipeline. So a stage you add sits
+- **Stages wrap the registered `SystemOneClient`,** which still runs its standard pipeline. So a stage you add sits
   outside the span and the retries, and sees one call and its final result.
 - **The pipeline is built once,** when the container first resolves the client, and `Build` gets the container. So
   `UseLogging()` takes the container's `ILoggerFactory`, and `UseRetries()` its `ILoggerFactory` and `TimeProvider`.
@@ -285,8 +286,8 @@ public static void AddAuditedDecision(IServiceCollection services, IConfiguratio
 
 | In 0.7 | From 0.8 |
 | --- | --- |
-| `client.EvaluateAsync(SystemOneRequest)` and `client.ListModelsAsync()` on an `IDecisionClient` | `client.GetService<DecisionClient>()!.EvaluateAsync(...)` and `.ListModelsAsync(...)`, or hold a `DecisionClient` |
-| `client.EvaluateAsync<T>(state)`, a default interface method or a `DecisionClient` member | The same call, now an extension method in `DecisionClientExtensions`, in the `Minos` namespace |
+| `client.EvaluateAsync(SystemOneRequest)` and `client.ListModelsAsync()` on an `IDecisionClient` | `client.GetService<SystemOneClient>()!.EvaluateAsync(...)` and `.ListModelsAsync(...)`, or hold a `SystemOneClient` |
+| `client.EvaluateAsync<T>(state)`, a default interface method or a `SystemOneClient` member | The same call, now an extension method in `DecisionClientExtensions`, in the `Minos` namespace |
 | A fake implements `EvaluateAsync(SystemOneRequest)` and `ListModelsAsync` | A fake implements `EvaluateAsync(DecisionRequest)`, `GetService` and `Dispose`, and returns a `DecisionResponse` built with its public constructor |
 | `AddDecisionClient` returns `IHttpClientBuilder` | It returns `DecisionClientServiceBuilder`, whose `HttpClient` property is the old builder |
 | `IDecisionClient` is not disposable | `IDecisionClient` derives from `IDisposable` |

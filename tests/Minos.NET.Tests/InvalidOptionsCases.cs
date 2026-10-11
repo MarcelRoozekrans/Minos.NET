@@ -1,7 +1,9 @@
+using Minos.SystemOne;
+
 namespace Minos.Tests;
 
 /// <summary>
-/// Every invalid <see cref="DecisionClientOptions"/> case: the options, the environment variables it runs against, and the
+/// Every invalid <see cref="SystemOneClientOptions"/> case: the options, the environment variables it runs against, and the
 /// exception the settings resolver throws for it. <see cref="DecisionClientSettingsTests"/> and
 /// <see cref="DecisionClientOptionsValidateTests"/> both run every case, so a case added here is covered by both.
 /// </summary>
@@ -9,7 +11,7 @@ public static class InvalidOptionsCases
 {
     private static readonly Dictionary<string, InvalidOptionsCase> Cases = new(StringComparer.Ordinal)
     {
-        ["UnknownProvider"] = new(() => new() { ApiKey = "k", Provider = (DecisionProvider)42 }, typeof(ArgumentException)),
+        ["UnknownProvider"] = new(() => new() { ApiKey = "k", Provider = (SystemOneProvider)42 }, typeof(ArgumentException)),
         ["ZeroTimeout"] = new(() => new() { ApiKey = "k", Timeout = TimeSpan.Zero }, typeof(ArgumentException)),
         ["NegativeTimeout"] = new(() => new() { ApiKey = "k", Timeout = TimeSpan.FromSeconds(-1) }, typeof(ArgumentException)),
         ["TimeoutBeyondIntMilliseconds"] = new(
@@ -41,7 +43,7 @@ public static class InvalidOptionsCases
         ["BaseAddressWithNonHttpScheme"] = new(
             () => new() { ApiKey = "k", BaseAddress = new Uri("ftp://host/api/") }, typeof(ArgumentException)),
         ["MissingTypeSafeApiKey"] = new(() => new(), typeof(InvalidOperationException)),
-        ["MissingOpenRouterApiKey"] = new(() => new() { Provider = DecisionProvider.OpenRouter }, typeof(InvalidOperationException)),
+        ["MissingOpenRouterApiKey"] = new(() => new() { Provider = SystemOneProvider.OpenRouter }, typeof(InvalidOperationException)),
         ["ApiKeyEnvironmentWithControlCharacter"] = new(
             () => new(), typeof(InvalidOperationException), ("TYPESAFE_API_KEY", "ab\u0001cd")),
         ["BaseAddressEnvironmentNotAUri"] = new(
@@ -86,7 +88,7 @@ public static class InvalidOptionsCases
 /// <param name="exception">The exact exception type the resolver throws.</param>
 /// <param name="environment">The fake environment variables the case runs against.</param>
 public sealed class InvalidOptionsCase(
-    Func<DecisionClientOptions> options, Type exception, params (string Name, string Value)[] environment)
+    Func<SystemOneClientOptions> options, Type exception, params (string Name, string Value)[] environment)
 {
     /// <summary>Gets the exact exception type the resolver throws.</summary>
     public Type Exception { get; } = exception;
@@ -95,7 +97,7 @@ public sealed class InvalidOptionsCase(
     public (string Name, string Value)[] Environment { get; } = environment;
 
     /// <summary>Creates the case's options.</summary>
-    public DecisionClientOptions Options() => options();
+    public SystemOneClientOptions Options() => options();
 
     /// <summary>Reads a fake environment variable, or <see langword="null"/> when the case does not set it.</summary>
     public string? Lookup(string name)

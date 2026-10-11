@@ -1,3 +1,4 @@
+using Minos.SystemOne;
 using Xunit.Abstractions;
 
 namespace Minos.Live.Tests;
@@ -13,24 +14,24 @@ internal static class Live
     private static readonly string[] TeamOptions = ["billing", "technical", "sales"];
 
     /// <summary>
-    /// Creates an owned <see cref="DecisionClient"/> whose key comes from the environment. <see
-    /// cref="DecisionClientOptions.MaxRetries"/> is 0, so each evaluation bills at most once and a transient failure
-    /// surfaces instead of being hidden by a retry. <see cref="DecisionClientOptions.Model"/> is set from <see
+    /// Creates an owned <see cref="SystemOneClient"/> whose key comes from the environment. <see
+    /// cref="SystemOneClientOptions.MaxRetries"/> is 0, so each evaluation bills at most once and a transient failure
+    /// surfaces instead of being hidden by a retry. <see cref="SystemOneClientOptions.Model"/> is set from <see
     /// cref="Model"/>, so a typed call honours <c>MINOS_LIVE_MODEL</c> and <c>MINOS_LIVE_OPENROUTER_MODEL</c> the same
     /// way <see cref="Request"/> does for the untyped tests.
     /// </summary>
     /// <param name="provider">The provider to call.</param>
-    public static DecisionClient Client(DecisionProvider provider)
-        => new(new DecisionClientOptions { Provider = provider, MaxRetries = 0, Model = Model(provider) });
+    public static SystemOneClient Client(SystemOneProvider provider)
+        => new(new SystemOneClientOptions { Provider = provider, MaxRetries = 0, Model = Model(provider) });
 
     /// <summary>
     /// Gets the model to send: <c>MINOS_LIVE_OPENROUTER_MODEL</c> for OpenRouter, else <c>MINOS_LIVE_MODEL</c>, else
-    /// <see cref="DecisionDefaults.Model"/>.
+    /// <see cref="SystemOneDefaults.Model"/>.
     /// </summary>
     /// <param name="provider">The provider the model is sent to.</param>
-    public static string Model(DecisionProvider provider)
+    public static string Model(SystemOneProvider provider)
     {
-        if (provider == DecisionProvider.OpenRouter
+        if (provider == SystemOneProvider.OpenRouter
             && Environment.GetEnvironmentVariable("MINOS_LIVE_OPENROUTER_MODEL") is { Length: > 0 } openRouterModel)
         {
             return openRouterModel;
@@ -38,12 +39,12 @@ internal static class Live
 
         return Environment.GetEnvironmentVariable("MINOS_LIVE_MODEL") is { Length: > 0 } model
             ? model
-            : DecisionDefaults.Model;
+            : SystemOneDefaults.Model;
     }
 
     /// <summary>Builds a probe request with one Noul, one Choice and one Score question.</summary>
     /// <param name="provider">The provider the request is sent to; picks the model.</param>
-    public static SystemOneRequest Request(DecisionProvider provider) => Request(Model(provider));
+    public static SystemOneRequest Request(SystemOneProvider provider) => Request(Model(provider));
 
     /// <summary>Builds the probe request for a given model id or alias.</summary>
     /// <param name="model">The model to send, such as <c>jev-preview</c> or a versioned id.</param>

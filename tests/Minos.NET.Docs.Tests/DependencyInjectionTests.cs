@@ -5,6 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Minos.SystemOne;
 
 namespace Minos.Docs.Tests;
 
@@ -123,11 +124,11 @@ public sealed class DependencyInjectionTests
         KeyedRegistration.AddFromConfiguration(builder);
         using var host = builder.Build();
 
-        var options = host.Services.GetRequiredService<IOptionsMonitor<DecisionClientOptions>>();
+        var options = host.Services.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>();
         var typeSafe = options.Get(Microsoft.Extensions.Options.Options.DefaultName);
         var openRouter = options.Get("openrouter");
 
-        Assert.Equal(DecisionProvider.TypeSafe, typeSafe.Provider);
+        Assert.Equal(SystemOneProvider.TypeSafe, typeSafe.Provider);
         Assert.Equal("jev-latest", typeSafe.Model);
         Assert.Equal(TimeSpan.FromMinutes(1), typeSafe.Timeout);
         Assert.Equal(2, typeSafe.MaxRetries);
@@ -135,7 +136,7 @@ public sealed class DependencyInjectionTests
         Assert.Equal(TimeSpan.FromSeconds(30), typeSafe.MaxRetryDelay);
         Assert.True(typeSafe.Jitter);
         Assert.Equal("typesafe-key", typeSafe.ApiKey);
-        Assert.Equal(DecisionProvider.OpenRouter, openRouter.Provider);
+        Assert.Equal(SystemOneProvider.OpenRouter, openRouter.Provider);
         Assert.Equal(0, openRouter.MaxRetries);
         Assert.Equal("openrouter-key", openRouter.ApiKey);
     }
@@ -154,7 +155,7 @@ public sealed class DependencyInjectionTests
         builder.Services.AddDecisionClient(options => options.Model = "jev-preview");
         using var host = builder.Build();
 
-        var options = host.Services.GetRequiredService<IOptionsMonitor<DecisionClientOptions>>().CurrentValue;
+        var options = host.Services.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>().CurrentValue;
 
         Assert.Equal(1, options.MaxRetries);
         Assert.Equal("jev-preview", options.Model);
@@ -239,7 +240,7 @@ public sealed class DependencyInjectionTests
 
         var builder = NewBuilder();
         using var http = new HttpClient();
-        using var replacement = new DecisionClient(http, new DecisionClientOptions { ApiKey = "placeholder" });
+        using var replacement = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "placeholder" });
         builder.Services.AddSingleton<IDecisionClient>(replacement);
         builder.Services.AddDecisionClient(options => options.MaxRetries = 11);
         using var host = builder.Build();
@@ -252,7 +253,7 @@ public sealed class DependencyInjectionTests
     {
         var builder = NewBuilder();
         using var http = new HttpClient();
-        using var own = new DecisionClient(http, new DecisionClientOptions { ApiKey = "own" });
+        using var own = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "own" });
         builder.Services.AddSingleton<IDecisionClient>(own);
         builder.Services.AddDecisionClient(options => options.ApiKey = "placeholder");
         using var host = builder.Build();
@@ -397,7 +398,7 @@ public sealed class DependencyInjectionTests
     public void ConfigureHttpClient_SetsUpAnyHttpClient_WithoutAnApiKey()
     {
         using var environment = new KeyEnvironment(typeSafe: null, openRouter: null);
-        var options = new DecisionClientOptions { Timeout = TimeSpan.FromSeconds(15) };
+        var options = new SystemOneClientOptions { Timeout = TimeSpan.FromSeconds(15) };
         var services = new ServiceCollection();
         WithoutThePackage.AddMinosHttpClient(services, options);
         using var provider = services.BuildServiceProvider();
@@ -412,7 +413,7 @@ public sealed class DependencyInjectionTests
     [Fact]
     public void ACreatedClient_UsesTheFactorysHttpClient()
     {
-        var options = new DecisionClientOptions { ApiKey = "key" };
+        var options = new SystemOneClientOptions { ApiKey = "key" };
         var services = new ServiceCollection();
         WithoutThePackage.AddMinosHttpClient(services, options);
         using var provider = services.BuildServiceProvider();

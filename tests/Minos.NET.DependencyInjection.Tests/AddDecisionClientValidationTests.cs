@@ -1,11 +1,12 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Minos.SystemOne;
 using static Minos.DependencyInjection.Tests.Registrations;
 
 namespace Minos.DependencyInjection.Tests;
 
-/// <summary>Every <c>AddDecisionClient</c> registration validates its options through <see cref="DecisionClientOptions.Validate()"/>.</summary>
+/// <summary>Every <c>AddDecisionClient</c> registration validates its options through <see cref="SystemOneClientOptions.Validate()"/>.</summary>
 public sealed class AddDecisionClientValidationTests
 {
     private const string MaxRetriesMessage = "MaxRetries must be between 0 and 10. (Parameter 'options')";
@@ -40,7 +41,7 @@ public sealed class AddDecisionClientValidationTests
     [Fact]
     public void TheFailure_IsTheCoresOwnMessage()
     {
-        var options = new DecisionClientOptions();
+        var options = new SystemOneClientOptions();
         Invalid(options);
         var core = Assert.Throws<ArgumentException>(options.Validate);
 
@@ -126,7 +127,7 @@ public sealed class AddDecisionClientValidationTests
     }
 
     // A key and a base address, so no environment variable is read, and one invalid value.
-    private static void Invalid(DecisionClientOptions options)
+    private static void Invalid(SystemOneClientOptions options)
     {
         Options("http://invalid.local/")(options);
         options.MaxRetries = 11;

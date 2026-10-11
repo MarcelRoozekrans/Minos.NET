@@ -1,5 +1,6 @@
 using System.Text.Json;
-using Minos.Serialization;
+using Minos.SystemOne;
+using Minos.SystemOne.Serialization;
 
 namespace Minos.Tests;
 

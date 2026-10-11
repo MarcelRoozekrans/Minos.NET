@@ -1,4 +1,5 @@
-using Minos.Transport;
+using Minos.SystemOne;
+using Minos.SystemOne.Transport;
 
 namespace Minos.Tests;
 
@@ -9,7 +10,7 @@ public sealed class DecisionClientSettingsTests
     {
         var settings = Resolve(null, ("TYPESAFE_API_KEY", "env-key"));
 
-        Assert.Equal(DecisionProvider.TypeSafe, settings.Provider);
+        Assert.Equal(SystemOneProvider.TypeSafe, settings.Provider);
         Assert.Equal("env-key", settings.ApiKey);
         Assert.Equal(new Uri("https://api.typesafe.ai/"), settings.BaseAddress);
         Assert.Equal(TimeSpan.FromSeconds(60), settings.Timeout);
@@ -19,7 +20,7 @@ public sealed class DecisionClientSettingsTests
     public void OpenRouter_UsesItsKeyVariableAndBaseAddress()
     {
         var settings = Resolve(
-            new DecisionClientOptions { Provider = DecisionProvider.OpenRouter },
+            new SystemOneClientOptions { Provider = SystemOneProvider.OpenRouter },
             ("TYPESAFE_API_KEY", "typesafe-key"),
             ("OPENROUTER_API_KEY", "openrouter-key"));
 
@@ -29,18 +30,18 @@ public sealed class DecisionClientSettingsTests
 
     [Fact]
     public void ExplicitApiKey_WinsOverEnvironment()
-        => Assert.Equal("explicit", Resolve(new DecisionClientOptions { ApiKey = "explicit" }, ("TYPESAFE_API_KEY", "env-key")).ApiKey);
+        => Assert.Equal("explicit", Resolve(new SystemOneClientOptions { ApiKey = "explicit" }, ("TYPESAFE_API_KEY", "env-key")).ApiKey);
 
     [Fact]
     public void BlankApiKey_FallsBackToEnvironment()
-        => Assert.Equal("env-key", Resolve(new DecisionClientOptions { ApiKey = "  " }, ("TYPESAFE_API_KEY", "env-key")).ApiKey);
+        => Assert.Equal("env-key", Resolve(new SystemOneClientOptions { ApiKey = "  " }, ("TYPESAFE_API_KEY", "env-key")).ApiKey);
 
     [Theory]
-    [InlineData(DecisionProvider.TypeSafe, "TYPESAFE_API_KEY")]
-    [InlineData(DecisionProvider.OpenRouter, "OPENROUTER_API_KEY")]
-    public void MissingApiKey_Throws_NamingTheVariable(DecisionProvider provider, string variable)
+    [InlineData(SystemOneProvider.TypeSafe, "TYPESAFE_API_KEY")]
+    [InlineData(SystemOneProvider.OpenRouter, "OPENROUTER_API_KEY")]
+    public void MissingApiKey_Throws_NamingTheVariable(SystemOneProvider provider, string variable)
     {
-        var exception = Assert.Throws<InvalidOperationException>(() => Resolve(new DecisionClientOptions { Provider = provider }));
+        var exception = Assert.Throws<InvalidOperationException>(() => Resolve(new SystemOneClientOptions { Provider = provider }));
 
         Assert.Contains(variable, exception.Message, StringComparison.Ordinal);
     }
@@ -49,7 +50,7 @@ public sealed class DecisionClientSettingsTests
     public void BaseAddressOption_WinsOverEnvironment()
     {
         var settings = Resolve(
-            new DecisionClientOptions { ApiKey = "k", BaseAddress = new Uri("http://option.local/") },
+            new SystemOneClientOptions { ApiKey = "k", BaseAddress = new Uri("http://option.local/") },
             ("TYPESAFE_BASE_URL", "http://env.local/"));
 
         Assert.Equal(new Uri("http://option.local/"), settings.BaseAddress);
@@ -59,25 +60,25 @@ public sealed class DecisionClientSettingsTests
     public void TypeSafe_BaseAddressEnvironment_WinsOverProviderDefault()
         => Assert.Equal(
             new Uri("http://env.local/"),
-            Resolve(new DecisionClientOptions { ApiKey = "k" }, ("TYPESAFE_BASE_URL", "http://env.local/")).BaseAddress);
+            Resolve(new SystemOneClientOptions { ApiKey = "k" }, ("TYPESAFE_BASE_URL", "http://env.local/")).BaseAddress);
 
     [Fact]
     public void OpenRouter_IgnoresTypeSafeBaseAddressEnvironment()
         => Assert.Equal(
             new Uri("https://openrouter.ai/api/"),
-            Resolve(new DecisionClientOptions { ApiKey = "k", Provider = DecisionProvider.OpenRouter }, ("TYPESAFE_BASE_URL", "http://env.local/")).BaseAddress);
+            Resolve(new SystemOneClientOptions { ApiKey = "k", Provider = SystemOneProvider.OpenRouter }, ("TYPESAFE_BASE_URL", "http://env.local/")).BaseAddress);
 
     [Fact]
     public void BaseAddress_GetsTrailingSlash()
         => Assert.Equal(
             new Uri("http://localhost:5000/api/"),
-            Resolve(new DecisionClientOptions { ApiKey = "k", BaseAddress = new Uri("http://localhost:5000/api") }).BaseAddress);
+            Resolve(new SystemOneClientOptions { ApiKey = "k", BaseAddress = new Uri("http://localhost:5000/api") }).BaseAddress);
 
     [Fact]
     public void InvalidBaseAddressEnvironment_Throws_NamingTheVariable()
     {
         var exception = Assert.Throws<InvalidOperationException>(
-            () => Resolve(new DecisionClientOptions { ApiKey = "k" }, ("TYPESAFE_BASE_URL", "not a url")));
+            () => Resolve(new SystemOneClientOptions { ApiKey = "k" }, ("TYPESAFE_BASE_URL", "not a url")));
 
         Assert.Contains("TYPESAFE_BASE_URL", exception.Message, StringComparison.Ordinal);
     }
@@ -86,7 +87,7 @@ public sealed class DecisionClientSettingsTests
     public void BaseAddressEnvironmentWithQuery_Throws_NamingTheVariable()
     {
         var exception = Assert.Throws<InvalidOperationException>(
-            () => Resolve(new DecisionClientOptions { ApiKey = "k" }, ("TYPESAFE_BASE_URL", "http://host/api?key=value")));
+            () => Resolve(new SystemOneClientOptions { ApiKey = "k" }, ("TYPESAFE_BASE_URL", "http://host/api?key=value")));
 
         Assert.Contains("TYPESAFE_BASE_URL", exception.Message, StringComparison.Ordinal);
     }
@@ -95,14 +96,14 @@ public sealed class DecisionClientSettingsTests
     public void BaseAddressEnvironmentWithNonHttpScheme_Throws_NamingTheVariable()
     {
         var exception = Assert.Throws<InvalidOperationException>(
-            () => Resolve(new DecisionClientOptions { ApiKey = "k" }, ("TYPESAFE_BASE_URL", "ftp://host/api/")));
+            () => Resolve(new SystemOneClientOptions { ApiKey = "k" }, ("TYPESAFE_BASE_URL", "ftp://host/api/")));
 
         Assert.Contains("TYPESAFE_BASE_URL", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
     public void ApiKeyOption_TrimsSurroundingWhitespace()
-        => Assert.Equal("abc", Resolve(new DecisionClientOptions { ApiKey = "abc\n" }).ApiKey);
+        => Assert.Equal("abc", Resolve(new SystemOneClientOptions { ApiKey = "abc\n" }).ApiKey);
 
     [Fact]
     public void ApiKeyEnvironment_TrimsSurroundingWhitespace()
@@ -113,7 +114,7 @@ public sealed class DecisionClientSettingsTests
     {
         var key = "ab" + (char)1 + "cd";
 
-        var exception = Assert.Throws<ArgumentException>(() => Resolve(new DecisionClientOptions { ApiKey = key }));
+        var exception = Assert.Throws<ArgumentException>(() => Resolve(new SystemOneClientOptions { ApiKey = key }));
 
         Assert.DoesNotContain(key, exception.Message, StringComparison.Ordinal);
     }
@@ -133,16 +134,16 @@ public sealed class DecisionClientSettingsTests
     public void InfiniteTimeout_IsAllowed()
         => Assert.Equal(
             Timeout.InfiniteTimeSpan,
-            Resolve(new DecisionClientOptions { ApiKey = "k", Timeout = Timeout.InfiniteTimeSpan }).Timeout);
+            Resolve(new SystemOneClientOptions { ApiKey = "k", Timeout = Timeout.InfiniteTimeSpan }).Timeout);
 
     [Fact]
     public void ToString_DoesNotRevealTheApiKey()
-        => Assert.DoesNotContain("secret-key", Resolve(new DecisionClientOptions { ApiKey = "secret-key" }).ToString(), StringComparison.Ordinal);
+        => Assert.DoesNotContain("secret-key", Resolve(new SystemOneClientOptions { ApiKey = "secret-key" }).ToString(), StringComparison.Ordinal);
 
     [Fact]
     public void RetryDefaults_MatchTheOfficialSdk()
     {
-        var settings = Resolve(new DecisionClientOptions { ApiKey = "k" });
+        var settings = Resolve(new SystemOneClientOptions { ApiKey = "k" });
 
         Assert.Equal(2, settings.MaxRetries);
         Assert.Equal(TimeSpan.FromMilliseconds(500), settings.InitialBackoff);
@@ -153,7 +154,7 @@ public sealed class DecisionClientSettingsTests
     [Fact]
     public void RetryOptions_AreCarriedOver()
     {
-        var settings = Resolve(new DecisionClientOptions
+        var settings = Resolve(new SystemOneClientOptions
         {
             ApiKey = "k",
             MaxRetries = 0,
@@ -170,11 +171,11 @@ public sealed class DecisionClientSettingsTests
 
     [Fact]
     public void Model_DefaultsToDecisionDefaultsModel()
-        => Assert.Equal(DecisionDefaults.Model, Resolve(new DecisionClientOptions { ApiKey = "k" }).Model);
+        => Assert.Equal(SystemOneDefaults.Model, Resolve(new SystemOneClientOptions { ApiKey = "k" }).Model);
 
     [Fact]
     public void ModelOption_IsTrimmedAndCarriedOver()
-        => Assert.Equal("jev-1.13.0", Resolve(new DecisionClientOptions { ApiKey = "k", Model = "  jev-1.13.0\n" }).Model);
+        => Assert.Equal("jev-1.13.0", Resolve(new SystemOneClientOptions { ApiKey = "k", Model = "  jev-1.13.0\n" }).Model);
 
     [Theory]
     [InlineData("")]
@@ -184,7 +185,7 @@ public sealed class DecisionClientSettingsTests
     public void BlankModel_Throws(string? model)
     {
         var exception = Assert.Throws<ArgumentException>(
-            () => Resolve(new DecisionClientOptions { ApiKey = "k", Model = model! }));
+            () => Resolve(new SystemOneClientOptions { ApiKey = "k", Model = model! }));
 
         Assert.Equal("options", exception.ParamName);
     }
@@ -195,14 +196,14 @@ public sealed class DecisionClientSettingsTests
     {
         var invalid = InvalidOptionsCases.Get(name);
 
-        var exception = Record.Exception(() => DecisionClientSettings.Resolve(invalid.Options(), invalid.Lookup));
+        var exception = Record.Exception(() => SystemOneClientSettings.Resolve(invalid.Options(), invalid.Lookup));
 
         Assert.NotNull(exception);
         Assert.IsType(invalid.Exception, exception);
     }
 
-    private static DecisionClientSettings Resolve(DecisionClientOptions? options, params (string Name, string Value)[] environment)
-        => DecisionClientSettings.Resolve(
+    private static SystemOneClientSettings Resolve(SystemOneClientOptions? options, params (string Name, string Value)[] environment)
+        => SystemOneClientSettings.Resolve(
             options,
             name => Array.Find(environment, variable => string.Equals(variable.Name, name, StringComparison.Ordinal)).Value);
 }

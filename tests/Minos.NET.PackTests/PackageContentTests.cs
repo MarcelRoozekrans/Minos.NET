@@ -6,10 +6,13 @@ using System.Xml.Linq;
 
 namespace Minos.PackTests;
 
-/// <summary>Packs the shipping <c>Minos.NET</c> project once, through <see cref="PackedProject"/>.</summary>
+/// <summary>
+/// Packs the shipping <c>Minos.NET</c> project once, through <see cref="PackedProject"/>, with <c>Minos.NET.SystemOne</c>
+/// beside it at the same version for the packed consumer.
+/// </summary>
 public sealed class PackFixture : IDisposable
 {
-    private readonly PackedProject _packed = new("Minos.NET");
+    private readonly PackedProject _packed = new("Minos.NET", "Minos.NET.SystemOne");
 
     public string NupkgPath => _packed.NupkgPath;
 
@@ -31,8 +34,6 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
     private static readonly string[] ExpectedRuntimeDependencyIds =
     [
         "Microsoft.Extensions.Logging.Abstractions",
-        "ZeroAlloc.Rest",
-        "ZeroAlloc.Rest.SystemTextJson",
         "ZeroAlloc.Results",
         "ZeroAlloc.Telemetry",
         "ZeroAlloc.Resilience",
@@ -199,12 +200,12 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
     }
 
     [Fact]
-    public void ValidationDependency_ExcludesBuildAndAnalyzers() => AssertExcludesBuildAndAnalyzers("ZeroAlloc.Validation");
+    public void ValidationDependency_ExcludesBuildAndAnalyzers() => AssertExcludesBuildAndAnalyzers(_fixture.NuspecPath, "ZeroAlloc.Validation");
 
     [Fact]
     public void TelemetryDependency_IsTheFloor_AndExcludesBuildAndAnalyzers()
     {
-        var dependency = AssertExcludesBuildAndAnalyzers("ZeroAlloc.Telemetry");
+        var dependency = AssertExcludesBuildAndAnalyzers(_fixture.NuspecPath, "ZeroAlloc.Telemetry");
 
         // 1.11.0 sets error.type on the exception path and can leave the exception message out of the span status.
         // It also keeps 1.10.0's several [TraceTag] on one parameter, which the endpoint and request tags need.
@@ -212,10 +213,10 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
     }
 
     // Finds the nuspec dependency on id and checks that its PrivateAssets keep Build and Analyzers out of consumers.
-    private XElement AssertExcludesBuildAndAnalyzers(string id)
+    internal static XElement AssertExcludesBuildAndAnalyzers(string nuspecPath, string id)
     {
         XNamespace ns = "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd";
-        var nuspec = XDocument.Load(_fixture.NuspecPath);
+        var nuspec = XDocument.Load(nuspecPath);
 
         // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
 #pragma warning disable HLQ005
@@ -259,7 +260,7 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nuget", "packages");
 
         // A private packages folder, with the machine's cache as a read-only fallback for the other dependencies: the
-        // freshly packed, uniquely versioned Minos.NET can only come from the pack output.
+        // freshly packed, uniquely versioned Minos.NET and Minos.NET.SystemOne can only come from the pack output.
         File.WriteAllText(Path.Combine(consumer, "nuget.config"), $"""
             <?xml version="1.0" encoding="utf-8"?>
             <configuration>
@@ -283,6 +284,7 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
               </PropertyGroup>
               <ItemGroup>
                 <PackageReference Include="Minos.NET" Version="{_fixture.PackageVersion}" />
+                <PackageReference Include="Minos.NET.SystemOne" Version="{_fixture.PackageVersion}" />
               </ItemGroup>
             </Project>
             """);
@@ -301,17 +303,17 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
             }
             """);
 
-        // The logging constructor, through the flowed Microsoft.Extensions.Logging.Abstractions: the dependency must
-        // reach the consumer's compilation, not just the nuspec.
+        // The protocol package's logging constructor, through the flowed Microsoft.Extensions.Logging.Abstractions: the
+        // dependency must reach the consumer's compilation, not just the nuspec.
         File.WriteAllText(Path.Combine(consumer, "Logging.cs"), """
             using Microsoft.Extensions.Logging.Abstractions;
-            using Minos;
+            using Minos.SystemOne;
 
             namespace Consumer;
 
             public static class Logging
             {
-                public static DecisionClient Create() => new(new DecisionClientOptions { ApiKey = "consumer-key" }, NullLoggerFactory.Instance);
+                public static SystemOneClient Create() => new(new SystemOneClientOptions { ApiKey = "consumer-key" }, NullLoggerFactory.Instance);
             }
             """);
 
@@ -368,7 +370,7 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
         Assert.DoesNotContain(generators, name => name.StartsWith("Microsoft.Extensions.Logging.Generators", StringComparison.Ordinal));
     }
 
-    private static string RunDotnet(string workingDirectory, params string[] arguments)
+    internal static string RunDotnet(string workingDirectory, params string[] arguments)
     {
         var startInfo = new ProcessStartInfo("dotnet")
         {

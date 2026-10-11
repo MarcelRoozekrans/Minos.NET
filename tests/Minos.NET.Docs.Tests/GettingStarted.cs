@@ -2,6 +2,7 @@ namespace Minos.Docs.Tests;
 
 #region GettingStarted_Questions
 using Minos;
+using Minos.SystemOne;
 
 public enum SupportTeam
 {
@@ -32,17 +33,17 @@ public static class GettingStartedClients
 {
     #region GettingStarted_Clients
     // TypeSafe is the default provider. With no ApiKey set, the client reads TYPESAFE_API_KEY.
-    // DecisionClient is disposable and meant to be long-lived: create it once, share it, and dispose it at shutdown.
+    // SystemOneClient is disposable and meant to be long-lived: create it once, share it, and dispose it at shutdown.
     public static async Task<string> ViaTypeSafeAsync(string message, CancellationToken cancellationToken)
     {
-        using var client = new DecisionClient(new DecisionClientOptions());
+        using var client = new SystemOneClient(new SystemOneClientOptions());
         return await GettingStartedEvaluation.TriageAsync(client, message, cancellationToken);
     }
 
     // OpenRouter: name the provider. With no ApiKey set, the client reads OPENROUTER_API_KEY.
     public static async Task<string> ViaOpenRouterAsync(string message, CancellationToken cancellationToken)
     {
-        using var client = new DecisionClient(new DecisionClientOptions { Provider = DecisionProvider.OpenRouter });
+        using var client = new SystemOneClient(new SystemOneClientOptions { Provider = SystemOneProvider.OpenRouter });
         return await GettingStartedEvaluation.TriageAsync(client, message, cancellationToken);
     }
     #endregion

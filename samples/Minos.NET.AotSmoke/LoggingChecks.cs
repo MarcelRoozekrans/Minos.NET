@@ -1,20 +1,21 @@
 using System.Net;
 using Microsoft.Extensions.Logging;
+using Minos.SystemOne;
 
 namespace Minos.AotSmoke;
 
 /// <summary>The client's log events under Native AOT, through a real <see cref="LoggerFactory"/> over an in-process provider.</summary>
 internal static class LoggingChecks
 {
-    [Covers("Minos.DecisionClient.DecisionClient(System.Net.Http.HttpClient! httpClient, Minos.DecisionClientOptions? options, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory) -> void")]
+    [Covers("Minos.SystemOne.SystemOneClient.SystemOneClient(System.Net.Http.HttpClient! httpClient, Minos.SystemOne.SystemOneClientOptions? options, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory) -> void")]
     public static async Task RetriedEvaluationLogsTheRetryAndTheSuccess()
     {
         using var provider = new CapturingLoggerProvider();
         using var factory = new LoggerFactory([provider], new LoggerFilterOptions { MinLevel = LogLevel.Debug });
         var handler = new SequenceHandler(Program.NoulResponse, HttpStatusCode.ServiceUnavailable, HttpStatusCode.OK);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("https://example.test/api/") };
-        using var client = new DecisionClient(
-            http, new DecisionClientOptions { ApiKey = "smoke-key", InitialBackoff = TimeSpan.FromMilliseconds(10) }, factory);
+        using var client = new SystemOneClient(
+            http, new SystemOneClientOptions { ApiKey = "smoke-key", InitialBackoff = TimeSpan.FromMilliseconds(10) }, factory);
 
         var result = await client.EvaluateAsync(Program.Request()).ConfigureAwait(false);
         var records = provider.Records;
@@ -36,7 +37,7 @@ internal static class LoggingChecks
         using var provider = new CapturingLoggerProvider();
         using var factory = new LoggerFactory([provider], new LoggerFilterOptions { MinLevel = LogLevel.Debug });
         using var http = Http(HttpStatusCode.OK, Program.TriageResponse);
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" }, factory);
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key" }, factory);
 
         var result = await client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State).ConfigureAwait(false);
         var records = provider.Records;
@@ -55,7 +56,7 @@ internal static class LoggingChecks
         using var provider = new CapturingLoggerProvider();
         using var factory = new LoggerFactory([provider], new LoggerFilterOptions { MinLevel = LogLevel.Debug });
         using var http = Http(HttpStatusCode.UnprocessableEntity, Program.ValidationResponse);
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" }, factory);
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key" }, factory);
 
         var result = await client.EvaluateAsync(Program.Request()).ConfigureAwait(false);
         var records = provider.Records;
@@ -76,7 +77,7 @@ internal static class LoggingChecks
         using var provider = new CapturingLoggerProvider();
         using var factory = new LoggerFactory([provider], new LoggerFilterOptions { MinLevel = LogLevel.Debug });
         using var http = Http(HttpStatusCode.OK, Program.ModelsResponse);
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "smoke-key" }, factory);
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key" }, factory);
 
         var result = await client.ListModelsAsync().ConfigureAwait(false);
         var records = provider.Records;

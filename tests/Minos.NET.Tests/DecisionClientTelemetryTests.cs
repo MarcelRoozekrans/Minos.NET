@@ -2,11 +2,12 @@ using System.Diagnostics;
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using Minos.Serialization;
+using Minos.SystemOne;
+using Minos.SystemOne.Serialization;
 
 namespace Minos.Tests;
 
-/// <summary>What <see cref="DecisionClient"/> traces and measures for each operation, through the generated proxy.</summary>
+/// <summary>What <see cref="SystemOneClient"/> traces and measures for each operation, through the generated proxy.</summary>
 [Collection(TelemetryListeners.Name)]
 public sealed class DecisionClientTelemetryTests : IDisposable
 {
@@ -239,7 +240,7 @@ public sealed class DecisionClientTelemetryTests : IDisposable
     {
         using var capture = new TelemetryCapture();
         var handler = StubHandler.Json(HttpStatusCode.OK, Fixture.Text("models.json"));
-        using var client = ClientTestKit.Client(_httpClients, handler, provider: DecisionProvider.OpenRouter);
+        using var client = ClientTestKit.Client(_httpClients, handler, provider: SystemOneProvider.OpenRouter);
 
         var result = await client.ListModelsAsync();
 
@@ -254,7 +255,7 @@ public sealed class DecisionClientTelemetryTests : IDisposable
     {
         using var capture = new TelemetryCapture();
         using var client = ClientTestKit.Client(
-            _httpClients, StubHandler.Json(HttpStatusCode.OK, Fixture.Text("response-openrouter.json")), provider: DecisionProvider.OpenRouter);
+            _httpClients, StubHandler.Json(HttpStatusCode.OK, Fixture.Text("response-openrouter.json")), provider: SystemOneProvider.OpenRouter);
 
         await client.EvaluateAsync(Request());
 
@@ -272,7 +273,7 @@ public sealed class DecisionClientTelemetryTests : IDisposable
         using var logs = new LogCapture();
         var http = new HttpClient(StubHandler.Json(HttpStatusCode.OK, Fixture.Text("response-noul.json")));
         _httpClients.Add(http);
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "test-key", MaxRetries = 0 }, logs.Factory);
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "test-key", MaxRetries = 0 }, logs.Factory);
 
         await client.EvaluateAsync(Request());
 

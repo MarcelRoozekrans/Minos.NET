@@ -2,18 +2,19 @@ using System.Buffers;
 using System.Text;
 using System.Text.Json.Nodes;
 using Microsoft.Extensions.Logging;
-using Minos.Protocols;
-using Minos.Transport;
+using Minos.SystemOne;
+using Minos.SystemOne.Protocols;
+using Minos.SystemOne.Transport;
 using ZeroAlloc.Results;
 
 namespace Minos.Tests;
 
-/// <summary>What the <see cref="DecisionClient"/> test classes share: a client over a stub handler and a fake client.</summary>
+/// <summary>What the <see cref="SystemOneClient"/> test classes share: a client over a stub handler and a fake client.</summary>
 internal static class ClientTestKit
 {
     public const string TestModel = "jev-test-model";
 
-    // The exception must come from the call itself, before any task exists: argument checks, in DecisionClient's members
+    // The exception must come from the call itself, before any task exists: argument checks, in SystemOneClient's members
     // and in DecisionClientExtensions, throw synchronously rather than faulting the returned task.
     public static TException ThrowsSynchronously<TException>(Func<Task> call)
         where TException : Exception
@@ -32,7 +33,7 @@ internal static class ClientTestKit
 #pragma warning restore HLQ005
     }
 
-    /// <summary>The body <see cref="DecisionClient"/> sends for <paramref name="request"/> with <see cref="TestModel"/>, as JSON.</summary>
+    /// <summary>The body <see cref="SystemOneClient"/> sends for <paramref name="request"/> with <see cref="TestModel"/>, as JSON.</summary>
     public static JsonNode ExpectedBody(DecisionRequest request)
     {
         using var body = SystemOneProtocol.Instance.WriteRequest(request.Definition, request.State, TestModel, ArrayPool<byte>.Shared);
@@ -43,20 +44,20 @@ internal static class ClientTestKit
     /// Creates a client over <paramref name="handler"/>; the caller disposes <paramref name="httpClients"/>. It does not
     /// retry unless <paramref name="configure"/>, which runs on the options before they are resolved, says so.
     /// </summary>
-    public static DecisionClient Client(
+    public static SystemOneClient Client(
         List<HttpClient> httpClients,
         StubHandler handler,
         CountingPool? pool = null,
-        DecisionProvider provider = DecisionProvider.TypeSafe,
+        SystemOneProvider provider = SystemOneProvider.TypeSafe,
         ILoggerFactory? loggerFactory = null,
-        Action<DecisionClientOptions>? configure = null)
+        Action<SystemOneClientOptions>? configure = null)
     {
         var http = new HttpClient(handler);
         httpClients.Add(http);
-        var options = new DecisionClientOptions { ApiKey = "test-key", Provider = provider, Model = TestModel, MaxRetries = 0 };
+        var options = new SystemOneClientOptions { ApiKey = "test-key", Provider = provider, Model = TestModel, MaxRetries = 0 };
         configure?.Invoke(options);
-        var settings = DecisionClientSettings.Resolve(options, _ => null);
-        return new DecisionClient(
+        var settings = SystemOneClientSettings.Resolve(options, _ => null);
+        return new SystemOneClient(
             settings, http, ownedHandler: null, TimeProvider.System, pool ?? new CountingPool(), loggerFactory?.CreateLogger(DecisionLog.Category));
     }
 

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Minos.SystemOne;
 
 namespace Minos.Integration.Tests;
 
@@ -21,12 +22,12 @@ public sealed class DependencyInjectionTimeoutTests : IClassFixture<WireMockFixt
     public async Task SlowResponse_TimesOutPerAttempt_WithTheOptionsTimeout()
     {
         // The server holds every response until the test has its result, so an attempt can only end through the
-        // options' per-attempt time-out, which the factory's HttpClient got from DecisionClient.ConfigureHttpClient.
+        // options' per-attempt time-out, which the factory's HttpClient got from SystemOneClient.ConfigureHttpClient.
         using var held = _fixture.HoldEveryResponse();
         var attempts = new DependencyInjectionHarness.AttemptCount();
         using var provider = DependencyInjectionHarness.Provider(_fixture, attempts, timeout: TimeSpan.FromMilliseconds(300));
 
-        var result = await provider.GetRequiredService<IDecisionClient>().GetService<DecisionClient>()!.EvaluateAsync(Fixtures.NoulRequest());
+        var result = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Fixtures.NoulRequest());
 
         Assert.True(result.IsFailure);
         Assert.Equal(DecisionErrorKind.Timeout, result.Error.Kind);
@@ -42,7 +43,7 @@ public sealed class DependencyInjectionTimeoutTests : IClassFixture<WireMockFixt
         using var provider = DependencyInjectionHarness.BoundProvider(
             _fixture, attempts, maxRetries: 0, timeout: TimeSpan.FromMilliseconds(300));
 
-        var result = await provider.GetRequiredService<IDecisionClient>().GetService<DecisionClient>()!.EvaluateAsync(Fixtures.NoulRequest());
+        var result = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Fixtures.NoulRequest());
 
         Assert.True(result.IsFailure);
         Assert.Equal(DecisionErrorKind.Timeout, result.Error.Kind);

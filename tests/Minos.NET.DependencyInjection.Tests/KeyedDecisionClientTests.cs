@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Options;
+using Minos.SystemOne;
 using static Minos.DependencyInjection.Tests.Registrations;
 
 namespace Minos.DependencyInjection.Tests;
@@ -18,7 +19,7 @@ public sealed class KeyedDecisionClientTests
 
         var keyed = provider.GetRequiredKeyedService<IDecisionClient>("openrouter");
 
-        Assert.IsType<DecisionClient>(keyed);
+        Assert.IsType<SystemOneClient>(keyed);
         Assert.Same(keyed, provider.GetRequiredKeyedService<IDecisionClient>("openrouter"));
         Assert.NotSame(provider.GetRequiredService<IDecisionClient>(), keyed);
         Assert.Null(provider.GetKeyedService<IDecisionClient>("typesafe"));
@@ -38,8 +39,8 @@ public sealed class KeyedDecisionClientTests
             .HttpClient.ConfigurePrimaryHttpMessageHandler(() => keyedHandler);
         using var provider = services.BuildServiceProvider();
 
-        _ = await provider.GetRequiredService<IDecisionClient>().GetService<DecisionClient>()!.EvaluateAsync(Request());
-        _ = await provider.GetRequiredKeyedService<IDecisionClient>("openrouter").GetService<DecisionClient>()!.EvaluateAsync(Request());
+        _ = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request());
+        _ = await provider.GetRequiredKeyedService<IDecisionClient>("openrouter").GetService<SystemOneClient>()!.EvaluateAsync(Request());
 
         var defaultRequest = OnlyRequest(defaultHandler);
         Assert.Equal(new Uri("http://default.local/v1/systemone"), defaultRequest.Uri);
@@ -68,7 +69,7 @@ public sealed class KeyedDecisionClientTests
         services
             .AddDecisionClient("openrouter", options =>
             {
-                options.Provider = DecisionProvider.OpenRouter;
+                options.Provider = SystemOneProvider.OpenRouter;
                 options.ApiKey = "openrouter-key";
                 options.BaseAddress = new Uri("http://openrouter.local/api/");
                 options.Model = "jev-openrouter";
@@ -103,9 +104,9 @@ public sealed class KeyedDecisionClientTests
         Assert.Matches(UserAgentPattern, openRouterRequest.UserAgent);
 
         // Each name's options hold their own provider, which the wire cannot show: the base addresses are overridden.
-        var monitor = provider.GetRequiredService<IOptionsMonitor<DecisionClientOptions>>();
-        Assert.Equal(DecisionProvider.TypeSafe, monitor.Get("typesafe").Provider);
-        Assert.Equal(DecisionProvider.OpenRouter, monitor.Get("openrouter").Provider);
+        var monitor = provider.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>();
+        Assert.Equal(SystemOneProvider.TypeSafe, monitor.Get("typesafe").Provider);
+        Assert.Equal(SystemOneProvider.OpenRouter, monitor.Get("openrouter").Provider);
         var factory = provider.GetRequiredService<IHttpClientFactory>();
         using var typesafeHttp = factory.CreateClient("Minos.NET:typesafe");
         using var openRouterHttp = factory.CreateClient("Minos.NET:openrouter");
@@ -138,7 +139,7 @@ public sealed class KeyedDecisionClientTests
         services.AddDecisionClient("openrouter");
         using var provider = services.BuildServiceProvider();
 
-        _ = await provider.GetRequiredKeyedService<IDecisionClient>("openrouter").GetService<DecisionClient>()!.EvaluateAsync(Request());
+        _ = await provider.GetRequiredKeyedService<IDecisionClient>("openrouter").GetService<SystemOneClient>()!.EvaluateAsync(Request());
 
         var registrations = services.Where(descriptor => descriptor.ServiceType == typeof(IDecisionClient)).ToArray();
         Assert.True(registrations.Length == 1, $"Expected one IDecisionClient registration, found {registrations.Length}.");
@@ -153,7 +154,7 @@ public sealed class KeyedDecisionClientTests
     {
         IServiceCollection? none = null;
         var services = new ServiceCollection();
-        Action<DecisionClientOptions> configure = _ => { };
+        Action<SystemOneClientOptions> configure = _ => { };
 
         Assert.Equal("services", Assert.Throws<ArgumentNullException>(() => none!.AddDecisionClient("openrouter")).ParamName);
         Assert.Equal("services", Assert.Throws<ArgumentNullException>(() => none!.AddDecisionClient("openrouter", configure)).ParamName);
@@ -161,7 +162,7 @@ public sealed class KeyedDecisionClientTests
         Assert.Equal("name", Assert.Throws<ArgumentNullException>(() => services.AddDecisionClient(null!, configure)).ParamName);
         Assert.Equal("name", Assert.Throws<ArgumentException>(() => services.AddDecisionClient(string.Empty)).ParamName);
         Assert.Equal("name", Assert.Throws<ArgumentException>(() => services.AddDecisionClient(string.Empty, configure)).ParamName);
-        Assert.Equal("configure", Assert.Throws<ArgumentNullException>(() => services.AddDecisionClient("openrouter", (Action<DecisionClientOptions>)null!)).ParamName);
+        Assert.Equal("configure", Assert.Throws<ArgumentNullException>(() => services.AddDecisionClient("openrouter", (Action<SystemOneClientOptions>)null!)).ParamName);
         Assert.Empty(services);
     }
 }

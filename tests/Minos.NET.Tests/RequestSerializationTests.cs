@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Minos.Serialization;
+using Minos.SystemOne;
+using Minos.SystemOne.Serialization;
 
 namespace Minos.Tests;
 
@@ -121,7 +122,7 @@ public sealed class RequestSerializationTests
     {
         var request = new SystemOneRequest { State = State, Questions = new Dictionary<string, Question>() };
 
-        Assert.Equal(DecisionDefaults.Model, request.Model);
+        Assert.Equal(SystemOneDefaults.Model, request.Model);
     }
 
     [Fact]

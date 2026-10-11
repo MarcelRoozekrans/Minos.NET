@@ -1,4 +1,5 @@
 using System.Net;
+using Minos.SystemOne;
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
 
@@ -34,8 +35,8 @@ public sealed class LoggingTests : IClassFixture<WireMockFixture>
                 .WithBody(Fixture.Text("response-noul.json")));
 
         using var logs = new LogCapture();
-        using var client = new DecisionClient(
-            new DecisionClientOptions
+        using var client = new SystemOneClient(
+            new SystemOneClientOptions
             {
                 ApiKey = "integration-key",
                 BaseAddress = _fixture.BaseAddress,

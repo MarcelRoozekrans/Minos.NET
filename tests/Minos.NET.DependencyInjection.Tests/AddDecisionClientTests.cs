@@ -3,6 +3,7 @@ using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
+using Minos.SystemOne;
 using static Minos.DependencyInjection.Tests.Registrations;
 
 namespace Minos.DependencyInjection.Tests;
@@ -19,7 +20,7 @@ public sealed class AddDecisionClientTests
 
         var client = provider.GetRequiredService<IDecisionClient>();
 
-        Assert.IsType<DecisionClient>(client);
+        Assert.IsType<SystemOneClient>(client);
         Assert.Same(client, provider.GetRequiredService<IDecisionClient>());
         using var scope = provider.CreateScope();
         Assert.Same(client, scope.ServiceProvider.GetRequiredService<IDecisionClient>());
@@ -56,7 +57,7 @@ public sealed class AddDecisionClientTests
         services.AddDecisionClient(Options("http://default.local/")).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
         using var provider = services.BuildServiceProvider();
 
-        var result = await provider.GetRequiredService<IDecisionClient>().GetService<DecisionClient>()!.EvaluateAsync(Request());
+        var result = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request());
 
         Assert.True(result.IsSuccess);
         var records = provider.GetFakeLogCollector().GetSnapshot();
@@ -75,7 +76,7 @@ public sealed class AddDecisionClientTests
         services.AddDecisionClient(Options("http://default.local/")).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler).AddDefaultLogger();
         using var provider = services.BuildServiceProvider();
 
-        _ = await provider.GetRequiredService<IDecisionClient>().GetService<DecisionClient>()!.EvaluateAsync(Request());
+        _ = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request());
 
         Assert.Contains(
             provider.GetFakeLogCollector().GetSnapshot(),
@@ -90,7 +91,7 @@ public sealed class AddDecisionClientTests
         services.AddDecisionClient(Options("http://default.local/")).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
         using var provider = services.BuildServiceProvider();
 
-        var result = await provider.GetRequiredService<IDecisionClient>().GetService<DecisionClient>()!.EvaluateAsync(Request());
+        var result = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request());
 
         Assert.True(result.IsSuccess);
 
@@ -110,7 +111,7 @@ public sealed class AddDecisionClientTests
             .AddHttpMessageHandler(() => new RecordingHandler(seen));
         using var provider = services.BuildServiceProvider();
 
-        _ = await provider.GetRequiredService<IDecisionClient>().GetService<DecisionClient>()!.EvaluateAsync(Request());
+        _ = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request());
 
         Assert.Equal([new Uri("http://default.local/v1/systemone")], seen);
     }
@@ -125,7 +126,7 @@ public sealed class AddDecisionClientTests
         services.AddDecisionClient();
         using var provider = services.BuildServiceProvider();
 
-        _ = await provider.GetRequiredService<IDecisionClient>().GetService<DecisionClient>()!.EvaluateAsync(Request());
+        _ = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request());
 
         var registrations = services.Where(descriptor => descriptor.ServiceType == typeof(IDecisionClient)).ToArray();
         Assert.True(registrations.Length == 1, $"Expected one IDecisionClient registration, found {registrations.Length}.");
@@ -145,7 +146,7 @@ public sealed class AddDecisionClientTests
 
         Assert.Equal("services", Assert.Throws<ArgumentNullException>(() => none!.AddDecisionClient()).ParamName);
         Assert.Equal("services", Assert.Throws<ArgumentNullException>(() => none!.AddDecisionClient(_ => { })).ParamName);
-        Assert.Equal("configure", Assert.Throws<ArgumentNullException>(() => services.AddDecisionClient((Action<DecisionClientOptions>)null!)).ParamName);
+        Assert.Equal("configure", Assert.Throws<ArgumentNullException>(() => services.AddDecisionClient((Action<SystemOneClientOptions>)null!)).ParamName);
         Assert.Empty(services);
     }
 
@@ -156,7 +157,7 @@ public sealed class AddDecisionClientTests
         var services = new ServiceCollection();
         services.AddDecisionClient(Options("http://default.local/")).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
         using var provider = services.BuildServiceProvider();
-        var client = provider.GetRequiredService<IDecisionClient>().GetService<DecisionClient>()!;
+        var client = provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!;
         _ = await client.EvaluateAsync(Request());
 
         // The spec's claim: the singleton borrows its HttpClient, so disposing the client leaves the handler alone.
@@ -176,7 +177,7 @@ public sealed class AddDecisionClientTests
         var services = new ServiceCollection();
         services.AddDecisionClient(Options("http://default.local/")).HttpClient.ConfigurePrimaryHttpMessageHandler(() => Noul());
         var provider = services.BuildServiceProvider();
-        var client = provider.GetRequiredService<IDecisionClient>().GetService<DecisionClient>()!;
+        var client = provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!;
         _ = await client.EvaluateAsync(Request());
 
         provider.Dispose();
@@ -213,7 +214,7 @@ public sealed class AddDecisionClientTests
     [Fact]
     public void AClientTheAppRegisteredFirst_DoesNotStopTheFactoryClientBeingConfigured()
     {
-        using var own = new DecisionClient(new DecisionClientOptions { ApiKey = "own-key" });
+        using var own = new SystemOneClient(new SystemOneClientOptions { ApiKey = "own-key" });
         var services = new ServiceCollection();
         services.AddSingleton<IDecisionClient>(own);
         services.AddDecisionClient(Options("http://default.local/"));

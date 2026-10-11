@@ -2,7 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Minos.Protocols;
+using Minos.SystemOne.Protocols;
 
 namespace Minos.Tests;
 

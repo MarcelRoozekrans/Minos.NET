@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Minos.SystemOne;
 
 namespace Minos.Docs.Tests;
 
@@ -73,7 +74,7 @@ public sealed partial class SamplesTests
     [Fact]
     public void TheLiveModes_NeedTheOpenRouterKeyVariable()
     {
-        Assert.Contains("`" + DecisionDefaults.OpenRouterApiKeyEnvironmentVariable + "`", PageTables.Text("samples.md"), StringComparison.Ordinal);
+        Assert.Contains("`" + SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable + "`", PageTables.Text("samples.md"), StringComparison.Ordinal);
     }
 
     [Fact]

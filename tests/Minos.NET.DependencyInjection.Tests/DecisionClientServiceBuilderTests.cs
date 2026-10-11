@@ -1,5 +1,6 @@
 using System.Net;
 using Microsoft.Extensions.DependencyInjection;
+using Minos.SystemOne;
 using static Minos.DependencyInjection.Tests.Registrations;
 
 namespace Minos.DependencyInjection.Tests;
@@ -30,7 +31,7 @@ public sealed class DecisionClientServiceBuilderTests
         var client = provider.GetRequiredService<IDecisionClient>();
 
         Assert.IsType<Marker>(client);
-        Assert.NotNull(client.GetService<DecisionClient>());
+        Assert.NotNull(client.GetService<SystemOneClient>());
     }
 
     [Fact]
@@ -70,7 +71,7 @@ public sealed class DecisionClientServiceBuilderTests
             .AddHttpMessageHandler(() => new RecordingHandler(seen));
         using var provider = services.BuildServiceProvider();
 
-        _ = await provider.GetRequiredService<IDecisionClient>().GetService<DecisionClient>()!.EvaluateAsync(Request());
+        _ = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request());
 
         Assert.Equal([new Uri("http://default.local/v1/systemone")], seen);
     }
@@ -108,7 +109,7 @@ public sealed class DecisionClientServiceBuilderTests
     public void An_app_registered_client_still_wins()
     {
         var services = new ServiceCollection();
-        var mine = new Marker(new DecisionClient(new DecisionClientOptions { ApiKey = "k" }));
+        var mine = new Marker(new SystemOneClient(new SystemOneClientOptions { ApiKey = "k" }));
         services.AddSingleton<IDecisionClient>(mine);
         services.AddDecisionClient(o => o.ApiKey = "k");
 
