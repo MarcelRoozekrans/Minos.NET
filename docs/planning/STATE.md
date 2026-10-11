@@ -1,4 +1,4 @@
-# Session State — 2026-10-11 (Phase 6.4 complete: the /v1/systemone adapter)
+# Session State — 2026-10-11 (Phase 6.5 complete: the OpenAI /v1/decisions adapter and image state)
 
 **Date:** 2026-10-11
 
@@ -55,7 +55,19 @@
     - provider-neutral DI: `AddDecisionClient` takes a factory; `AddSystemOneClient` returns `SystemOneClientServiceBuilder`, which carries `HttpClient`.
     - the `local-systemone` CI job, not required, runs ollajev 0.4.0 with `Mapika/decider-2b-GGUF:Q4_K_M` on push to `main` (`docs/plans/2026-10-11-phase-6.4-local-server-spike.md`).
   - **Filed:** #151, Cloudflare Workers AI's Clef preset, taken out because there is no Cloudflare account to record against.
-  - **Leave #153 (0.9.0) open** until a release is wanted.
+  - #153 (0.9.0) merged: v0.9.0 is a GitHub release.
+- **Milestone 6, Phase 6.5 (OpenAI /v1/decisions adapter and image state):** complete on 2026-10-11.
+  - **Merged:** #156, in the 0.10.0 release PR #157 with one breaking change. Pre-push review PASS: `docs/plans/2026-10-11-phase-6.5-pre-push-review.md`.
+  - **What shipped:**
+    - image state in the core: `DecisionImage`, with data URLs written unescaped, and `DecisionRequest.Images`, compared by value. SystemOne sends images in `state` as a text part followed by `image_url` parts; a top-level `images` field is rejected by the providers.
+    - `DecisionCapabilities` and `QuestionKinds` in the core, replacing 0.9.0's `SystemOneCapabilities` and `SystemOneQuestionKinds`, and a client answers `GetService` for `DecisionCapabilities`. New run-time checks MIN204 (Noul `WhenTrue`/`WhenFalse` on OpenAI), MIN205 (criterion `Examples`/`NotFor`) and MIN206 (images unsupported). `DecisionErrorKind.Refused = 13`.
+    - the new package `Minos.NET.OpenAI`, in beta and written from OpenAI's docs: `OpenAIDecisionClient`, its options, `OpenAIDefaults` (`https://api.openai.com/v1/`, `OPENAI_API_KEY`, `OPENAI_BASE_URL` including `/v1`) and `AddOpenAIDecisionClient`.
+    - provider differences documented in the guide.
+    - AOT gates: SystemOne image call 2888 B, OpenAI typed call 3384 B, OpenAI image call 2776 B. The SystemOne typed call is 3256 B.
+  - **Live tests through OpenRouter:** images on `perplexity/pplx-decider-v1.1-27b`, Clef on `cloudflare/clef-flash` (closes #151), and Luna on `openai/gpt-6-luna-decisions`, which runs only when the `MINOS_LIVE_LUNA` variable is 1. OpenRouter's zero-data-retention setting (https://openrouter.ai/settings/privacy) blocks Luna on this account; turning it off is the maintainer's call.
+  - **#115** stays open for Phases 6.6 and 6.7; its analyzer item is covered at run time by MIN206, because image use is not statically knowable.
+  - **CI fix after the merge:** Renovate #154 had moved `local-systemone.yml` to Python 3.15, and ollajev 0.4.0 requires Python >=3.12,<3.13, so the job failed on `main` from #154 on. It is back on 3.12, and a Renovate rule keeps it below 3.13.
+  - **Leave #157 (0.10.0) open** until a release is wanted.
 - **Old Phase 5.5 (1.0 release):** removed from Milestone 5 and folded into Phase 7.4.
   - Its reviewed pipeline work sits on the local branch `phase/5.5-release`, not pushed:
     - inspection script;
@@ -78,12 +90,12 @@
 
 ## Recommended Next Step
 1. Milestone 6, Provider-neutral core, is active (design `docs/superpowers/specs/2026-10-09-milestone-6-design.md`).
-2. Next: Phase 6.5, the OpenAI `/v1/decisions` adapter and image state (#115). It needs a brainstorm. It builds on Phase 6.4's package split, as a `Minos.NET.OpenAI` package beside `Minos.NET.SystemOne`, and on `SystemOneCapabilities.Images`, which 6.4 declares but does not enforce.
+2. Next: Phase 6.6, the conformance suite (#116, conformance part). It needs a brainstorm. It checks any endpoint's request and response shapes against recorded TypeSafe and OpenAI fixtures, so it builds on both adapters' fixture tests from Phases 6.4 and 6.5.
 3. Run `pre-push-review` on each feature branch before its PR, and keep the report in `docs/plans/`: the docs tests treat every file at the top of `docs/` as a site page.
 4. Allocation gates run only in the published AOT smoke executable, not in `dotnet test`: publish and run it for any change under `src/`.
 
 ## Operational notes
-- **Live keys:** `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY` are in the `live-api` environment, which deploys only from `main`. Run the suite with `gh workflow run live-smoke.yml --ref main`. About 13 small billed calls per run.
+- **Live keys:** `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY` are in the `live-api` environment, which deploys only from `main`. Run the suite with `gh workflow run live-smoke.yml --ref main`. About 13 small billed calls per run, plus the image and Clef tests Phase 6.5 added; Luna runs too when `MINOS_LIVE_LUNA` is 1.
 - **Website updates:**
   - .website's bot "update submodules" PRs hold their `build` run (`action_required`). Approve it with `gh api -X POST repos/ZeroAlloc-Net/.website/actions/runs/<id>/approve`, then merge with `--admin`, after asking the maintainer.
   - jev.zeroalloc.net only updates when that PR merges.

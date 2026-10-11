@@ -308,12 +308,13 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-11-phase-6.4-systemone-adapter.md`
 **Completed:** 2026-10-11
 
-### Phase 6.5: OpenAI /v1/decisions adapter and image state [status: active]
+### Phase 6.5: OpenAI /v1/decisions adapter and image state [status: complete]
 **Goal:** An adapter for OpenAI's Decisions API, its schema and question-type mapping verified against OpenAI's docs, and typed state that can carry images where a provider supports it (#115).
 **Surface:** Backend
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-10-11-phase-6.5-openai-decisions-adapter-design.md`
 **Plan:** `docs/superpowers/plans/2026-10-11-phase-6.5-openai-decisions-adapter.md`
+**Completed:** 2026-10-11
 
 ### Phase 6.6: Conformance suite [status: pending]
 **Goal:** Checks any endpoint's request and response shapes, multi-question requests, distributions, error shapes and model reporting, green against recorded TypeSafe and OpenAI fixtures (#116, conformance part).
