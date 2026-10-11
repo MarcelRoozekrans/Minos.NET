@@ -6,6 +6,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Minos.NET\Minos.NET.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.SystemOne\Minos.NET.SystemOne.csproj" />
+    <ProjectReference Include="..\..\src\Minos.NET.Conformance\Minos.NET.Conformance.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.Generator\Minos.NET.Generator.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
@@ -23,5 +24,10 @@
 
   <ItemGroup>
     <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The TypeSafe and OpenRouter targets the replay suite uses, so a recording and its replay ask the same thing. -->
+    <Compile Include="..\Minos.NET.Conformance.Tests\SystemOneTargets.cs" Link="SystemOneTargets.cs" />
   </ItemGroup>
 </Project>
