@@ -32,7 +32,7 @@ jobs:
       - name: Setup Python
         uses: actions/setup-python@v7
         with:
-          python-version: '3.15'
+          python-version: '3.12'
 
       # Building the llama-cpp-python wheel is most of the 8 minute install; pip's cache keeps the built wheel.
       - name: Cache pip
