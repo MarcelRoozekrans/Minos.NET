@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 
 namespace Minos.Transport;
@@ -76,20 +77,17 @@ internal static class RequestStates
         return protocol.WriteRequest(definition, json, images, model, pool);
     }
 
-    // As text, a string element is its value and anything else its raw JSON text.
+    // As text, a string element is its value and anything else its raw JSON text. Neither allocates: a string element
+    // writes itself as the JSON string it is, and anything else writes its raw UTF-8 straight from the document.
     private static void WriteJsonElement(Utf8JsonWriter writer, JsonElement element, bool asText)
     {
-        if (!asText)
+        if (!asText || element.ValueKind == JsonValueKind.String)
         {
             element.WriteTo(writer);
         }
-        else if (element.ValueKind == JsonValueKind.String)
-        {
-            writer.WriteStringValue(element.GetString());
-        }
         else
         {
-            writer.WriteStringValue(element.GetRawText());
+            writer.WriteStringValue(JsonMarshal.GetRawUtf8Value(element));
         }
     }
 
