@@ -71,7 +71,8 @@ internal sealed class OpenAIDecisionsProtocol : IDecisionProtocol
     /// <inheritdoc />
     /// <remarks>
     /// Each element of the <c>answers</c> array is matched to its question by <c>name</c>, which may come before or after
-    /// <c>type</c>; an answer for a name the set does not have is skipped.
+    /// <c>type</c>; an answer for a name the set does not have is skipped, and a second answer or refusal for a question
+    /// is an error.
     /// </remarks>
     /// <exception cref="RefusalException">The model refused at least one question; checked before any missing answer.</exception>
     public TResult ReadAnswers<TResult>(ref Utf8JsonReader answers, QuestionSetDefinition definition, AnswerFactory<TResult> create)
@@ -83,7 +84,7 @@ internal sealed class OpenAIDecisionsProtocol : IDecisionProtocol
         var heapSlots = count <= MaxStackSlots ? null : new AnswerSlot[count];
         Span<AnswerSlot> slots = heapSlots ?? stackalloc AnswerSlot[count];
 
-        // Found and Refused bits per question.
+        // Whether each question has been answered or refused.
         Span<byte> flags = count <= MaxStackFlags ? stackalloc byte[count] : new byte[count];
         flags.Clear();
         List<string>? refused = null;
@@ -97,14 +98,16 @@ internal sealed class OpenAIDecisionsProtocol : IDecisionProtocol
                 continue;
             }
 
+            // One answer or refusal per question: a second one would silently replace the first.
+            if (flags[index] != 0)
+            {
+                throw new JsonException($"The response has more than one answer for '{questions[index].Key}'.");
+            }
+
             if (type == OpenAIAnswers.AnswerType.Refusal)
             {
-                if ((flags[index] & Refused) == 0)
-                {
-                    flags[index] |= Refused;
-                    (refused ??= []).Add(questions[index].Key);
-                }
-
+                flags[index] = Refused;
+                (refused ??= []).Add(questions[index].Key);
                 answers.Skip();
                 continue;
             }
@@ -127,7 +130,7 @@ internal sealed class OpenAIDecisionsProtocol : IDecisionProtocol
                     break;
             }
 
-            flags[index] |= Found;
+            flags[index] = Found;
         }
 
         // A refused question has no answer, so a refusal is reported before the missing-answer check.

@@ -9,7 +9,7 @@ internal sealed class RefusalException : Exception
 {
     /// <summary>Initializes a new instance that names no question.</summary>
     public RefusalException()
-        : this([])
+        : this("The model refused to answer.")
     {
     }
 

@@ -178,12 +178,54 @@ public sealed class OpenAIResponseReaderTests
     }
 
     [Fact]
+    public void ChoiceProbabilities_InADifferentOrderFromTheOptions_MapByValue()
+    {
+        var choice = """{"type":"choice","name":"topic","choice":"other","probabilities":[{"value":"other","probability":0.7},{"value":"billing","probability":0.3}],"confidence":0.4}""";
+
+        var response = Success(Body($$"""{"answers":[{{Predicate}},{{choice}},{{Score}}]}"""), TestSets.AllKinds());
+
+        var topic = response.Answers[1];
+        Assert.Equal(1, topic.ChosenIndex);
+        Assert.Equal([0.3, 0.7], topic.Probabilities.ToArray());
+    }
+
+    [Theory]
+    [InlineData("""{"type":"predicate","name":"refund","probability":0.1}""")]
+    [InlineData("""{"type":"refusal","name":"refund"}""")]
+    public void ASecondAnswerForAnAnsweredQuestion_IsInvalidResponse(string second)
+    {
+        var error = Failure(Body($$"""{"answers":[{{Predicate}},{{Choice}},{{second}},{{Score}}]}"""), TestSets.AllKinds());
+
+        Assert.Equal(DecisionErrorKind.InvalidResponse, error.Kind);
+        Assert.EndsWith("The response has more than one answer for 'refund'.", error.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("""{"type":"predicate","name":"refund","probability":0.1}""")]
+    [InlineData("""{"type":"refusal","name":"refund"}""")]
+    public void ASecondAnswerForARefusedQuestion_IsInvalidResponse(string second)
+    {
+        var error = Failure(Body($$"""{"answers":[{"type":"refusal","name":"refund"},{{second}},{{Choice}},{{Score}}]}"""), TestSets.AllKinds());
+
+        Assert.Equal(DecisionErrorKind.InvalidResponse, error.Kind);
+        Assert.EndsWith("The response has more than one answer for 'refund'.", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ARefusalException_ThatNamesNoQuestion_HasANeutralMessage()
+    {
+        Assert.Equal("The model refused to answer.", new RefusalException().Message);
+        Assert.Empty(new RefusalException().Keys);
+    }
+
+    [Fact]
     public void Usage_InputTokens_IsRead()
     {
         var response = Success(Body($$$"""{"answers":[{{{Predicate}}},{{{Choice}}},{{{Score}}}],"usage":{"input_tokens":296}}"""), TestSets.AllKinds());
 
         Assert.Equal(296, response.InputTokens);
         Assert.Null(response.OutputTokens);
+        Assert.Null(response.Usage);
     }
 
     [Fact]
