@@ -28,8 +28,8 @@ The rules come in two groups.
   Score level range behind MIN005 is guidance from the API sketch, not a limit of the schema. TypeSafe's API documents
   at most 255 options for a Choice question. MIN005 warns about a larger set at build time, and since 0.9 the TypeSafe
   and OpenRouter presets also refuse it before sending, with `Unsupported` and MIN203.
-- **MIN101 to MIN108 check what the generator can turn into code.** They are all errors, because a declaration the
-  generator cannot read cannot be turned into a request. The generator reports MIN101 to MIN107 at build time, for a
+- **MIN101 to MIN108 are errors about declarations that cannot be turned into a request.** The generator cannot read
+  them, so it cannot write the call. The generator reports MIN101 to MIN107 at build time, for a
   `[Questions]` type. MIN108 has no analyzer: it is reported only by `Build()` of a set built at run time.
 
 A set with any error is invalid. The generator writes no `Definition`, no `Create` and no `IQuestionSet` for it,
@@ -150,7 +150,7 @@ dotnet_diagnostic.MIN006.severity = warning
 
 A project-wide `<NoWarn>MIN005</NoWarn>` in the project file works too.
 
-An error does not go away that way. Suppressing MIN001, MIN002 or one of MIN101 to MIN108 hides the message, but the set
+An error does not go away that way. Suppressing MIN001, MIN002 or one of MIN101 to MIN107 hides the message, but the set
 stays invalid. The generator does not read the diagnostics. It applies the same rules itself, so a suppressed set still
 gets no `Definition`, no `Create` and no `IQuestionSet`. `EvaluateAsync<T>` does not compile for it, and the stub
 properties throw. Fix the declaration instead.
