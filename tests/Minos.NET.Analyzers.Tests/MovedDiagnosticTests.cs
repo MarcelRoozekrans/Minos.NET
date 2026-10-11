@@ -268,12 +268,9 @@ public sealed class MovedDiagnosticTests
     }
 
     /// <summary>The one diagnostic with <paramref name="id"/>, for the message-content facts.</summary>
-    // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single()
     // (#38 tracks this repo-wide false positive; the pragma lives here once instead of at every call site).
-#pragma warning disable HLQ005
     private static DiagnosticInfo SingleDiagnostic(IEnumerable<DiagnosticInfo> diagnostics, string id)
         => Assert.Single(diagnostics, d => string.Equals(d.Id, id, StringComparison.Ordinal));
-#pragma warning restore HLQ005
 
     private static string Format(DiagnosticDescriptor descriptor, DiagnosticInfo info)
         => string.Format(

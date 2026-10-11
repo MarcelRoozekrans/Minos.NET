@@ -30,10 +30,7 @@ internal sealed class LogCapture : IDisposable
     {
         var matches = Records.Where(record => record.Id.Id == eventId).ToArray();
 
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
         return Assert.Single(matches);
-#pragma warning restore HLQ005
     }
 
     public void Dispose()

@@ -115,10 +115,7 @@ public sealed class DecisionClientLoggingTests : IDisposable
         var result = await client.EvaluateAsync(Request());
 
         Assert.Equal(DecisionErrorKind.Validation, result.Error.Kind);
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single, not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
         Assert.Single(handler.Requests);
-#pragma warning restore HLQ005
         Assert.DoesNotContain(1003, logs.EventIds);
     }
 
@@ -132,10 +129,7 @@ public sealed class DecisionClientLoggingTests : IDisposable
         var result = await client.EvaluateAsync(Request());
 
         Assert.True(result.IsFailure);
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single, not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
         Assert.Single(handler.Requests);
-#pragma warning restore HLQ005
         Assert.DoesNotContain(1003, logs.EventIds);
     }
 

@@ -58,8 +58,8 @@ public sealed class ObservabilityNamesTests
 
         var version = typeof(SystemOneClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
         Assert.False(string.IsNullOrEmpty(version));
-        Assert.Equal(version, Only.Of(spanSources).Version);
-        Assert.Equal(version, Only.Of(meters.Select(m => m.Version).Distinct(StringComparer.Ordinal)));
+        Assert.Equal(version, Assert.Single(spanSources).Version);
+        Assert.Equal(version, Assert.Single(meters.Select(m => m.Version).Distinct(StringComparer.Ordinal)));
     }
 
     // The library names its source and meter in one constant, the page's two constants repeat it.

@@ -121,10 +121,7 @@ public sealed class LocalDiagnosticTests
     private static string SpanText(Diagnostic diagnostic)
         => diagnostic.Location.SourceTree!.GetText().ToString(diagnostic.Location.SourceSpan);
 
-    // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single()
     // (#38 tracks this repo-wide false positive).
-#pragma warning disable HLQ005
     private static Diagnostic SingleWithId(ImmutableArray<Diagnostic> diagnostics, string id)
         => Assert.Single(diagnostics, diagnostic => string.Equals(diagnostic.Id, id, StringComparison.Ordinal));
-#pragma warning restore HLQ005
 }

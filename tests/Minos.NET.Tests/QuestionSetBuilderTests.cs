@@ -121,10 +121,7 @@ public sealed class QuestionSetBuilderTests
         var built = QuestionSet.CreateBuilder().Noul("q", "   ", out _).Build();
 
         Assert.True(built.IsSuccess);
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
         var warning = Assert.Single(built.Value.Warnings);
-#pragma warning restore HLQ005
         Assert.Equal(new QuestionFailure("MIN003", "q", warning.Message), warning);
     }
 

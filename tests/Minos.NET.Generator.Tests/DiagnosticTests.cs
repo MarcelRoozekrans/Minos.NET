@@ -133,10 +133,7 @@ public sealed class DiagnosticTests
             out _,
             out _);
 
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single() (#38).
-#pragma warning disable HLQ005
         var stub = Assert.Single(driver.GetRunResult().GeneratedTrees).ToString();
-#pragma warning restore HLQ005
 
         Assert.Contains("partial record C", stub, StringComparison.Ordinal);
         Assert.Contains(
@@ -218,10 +215,7 @@ public sealed class DiagnosticTests
             out _,
             out _);
 
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single() (#38).
-#pragma warning disable HLQ005
         var tree = Assert.Single(driver.GetRunResult().GeneratedTrees);
-#pragma warning restore HLQ005
 
         Assert.EndsWith("Demo.Outer`1.Middle.Inner`1.Questions.g.cs", tree.FilePath, StringComparison.Ordinal);
         Assert.Equal(

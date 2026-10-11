@@ -102,7 +102,7 @@ public sealed class ObservabilityTelemetryTests
 
         await RunAsync(Typed, Options(), Reply.Ok(TicketResponse));
 
-        var span = Only.Of(listener.Spans);
+        var span = Assert.Single(listener.Spans);
         Assert.Equal($"evaluate {Model}", span.DisplayName);
         Assert.Equal(ActivityKind.Client, span.Kind);
         Assert.Equal(ActivityStatusCode.Unset, span.Status);
@@ -126,7 +126,7 @@ public sealed class ObservabilityTelemetryTests
 
         await RunAsync(Listing, Options(), Reply.Ok(ModelsResponse));
 
-        var span = Only.Of(listener.Spans);
+        var span = Assert.Single(listener.Spans);
         Assert.Equal("list_models", span.DisplayName);
         Assert.Equal("list_models", span.GetTagItem("gen_ai.operation.name"));
         Assert.Equal("list-models", span.GetTagItem("minos.operation"));
@@ -153,7 +153,7 @@ public sealed class ObservabilityTelemetryTests
 
         await RunAsync(Typed, Options(), Reply.Error(422, "{\"detail\":\"SECRET-ERROR-BODY\"}"));
 
-        var span = Only.Of(listener.Spans);
+        var span = Assert.Single(listener.Spans);
         Assert.Equal(ActivityStatusCode.Error, span.Status);
         Assert.Null(span.StatusDescription);
         Assert.Equal("Validation", span.GetTagItem("error.type"));
@@ -180,7 +180,7 @@ public sealed class ObservabilityTelemetryTests
 
         await RunAsync(Typed, Options(2), Reply.Error(503), Reply.Ok(TicketResponse));
 
-        var clientSpan = Only.Of([.. spans.Where(span => span.Source.Name is "Minos")]);
+        var clientSpan = Assert.Single([.. spans.Where(span => span.Source.Name is "Minos")]);
         var rest = spans.Where(span => span.Source.Name is "ZeroAlloc.Rest").ToArray();
         Assert.Equal(2, rest.Length);
         Assert.All(rest, attempt => Assert.Equal(clientSpan.SpanId, attempt.ParentSpanId));
@@ -212,11 +212,11 @@ public sealed class ObservabilityTelemetryTests
                 async () => await client.EvaluateAsync<TicketAnalysis>("Help!", cancel.Token));
         }
 
-        var span = Only.Of(listener.Spans);
+        var span = Assert.Single(listener.Spans);
         Assert.Equal(ActivityStatusCode.Error, span.Status);
         Assert.True(string.IsNullOrEmpty(span.StatusDescription));
         Assert.Equal(raised.GetType().FullName, span.GetTagItem("error.type"));
-        var duration = Only.Of(Points(listener, "gen_ai.client.operation.duration"));
+        var duration = Assert.Single(Points(listener, "gen_ai.client.operation.duration"));
         Assert.Equal(1, Keys(duration.Tags).Count(key => string.Equals(key, "error.type", StringComparison.Ordinal)));
         Assert.Equal(raised.GetType().FullName, duration.Tags.First(tag => string.Equals(tag.Key, "error.type", StringComparison.Ordinal)).Value);
     }
@@ -359,8 +359,8 @@ public sealed class ObservabilityTelemetryTests
 
         await RunAsync(Typed, Options(), Reply.Ok(TicketResponse));
 
-        var input = Only.Of(Points(listener, "gen_ai.client.inference.usage.input_tokens"));
-        var output = Only.Of(Points(listener, "gen_ai.client.inference.usage.output_tokens"));
+        var input = Assert.Single(Points(listener, "gen_ai.client.inference.usage.input_tokens"));
+        var output = Assert.Single(Points(listener, "gen_ai.client.inference.usage.output_tokens"));
         Assert.Equal(150, input.Value);
         Assert.Equal(20, output.Value);
         Assert.Equal("text", Value(input.Tags, "gen_ai.token.modality"));

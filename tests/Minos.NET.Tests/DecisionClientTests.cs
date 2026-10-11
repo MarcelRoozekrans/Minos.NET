@@ -32,10 +32,7 @@ public sealed class DecisionClientTests : IDisposable
 
         Assert.True(result.IsSuccess);
         Assert.Equal(0.95, Assert.IsType<NoulAnswer>(result.Value.Answers["is_urgent"]).Noul);
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
         var sent = Assert.Single(handler.Requests);
-#pragma warning restore HLQ005
         Assert.Equal(HttpMethod.Post, sent.Method);
         Assert.Equal(new Uri("https://api.typesafe.ai/v1/systemone"), sent.Uri);
         Assert.Equal("Bearer test-key", sent.Authorization);
@@ -51,10 +48,7 @@ public sealed class DecisionClientTests : IDisposable
         var result = await client.EvaluateAsync(NoulRequest());
 
         Assert.Equal("gen-1727400000-abc123", result.Value.Id);
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
         Assert.Equal(new Uri("https://openrouter.ai/api/v1/systemone"), Assert.Single(handler.Requests).Uri);
-#pragma warning restore HLQ005
     }
 
     [Fact]
@@ -67,10 +61,7 @@ public sealed class DecisionClientTests : IDisposable
 
         Assert.True(result.IsSuccess);
         Assert.NotEmpty(result.Value.Models);
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
         var sent = Assert.Single(handler.Requests);
-#pragma warning restore HLQ005
         Assert.Equal(HttpMethod.Get, sent.Method);
         Assert.Equal(new Uri("https://api.typesafe.ai/v1/models"), sent.Uri);
         Assert.Equal("Bearer test-key", sent.Authorization);
@@ -208,10 +199,7 @@ public sealed class DecisionClientTests : IDisposable
         _ = await client.EvaluateAsync(NoulRequest());
         client.Dispose();
 
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
         var sent = Assert.Single(handler.Requests);
-#pragma warning restore HLQ005
         Assert.StartsWith("Minos.NET/", sent.UserAgent, StringComparison.Ordinal);
         Assert.DoesNotContain('+', sent.UserAgent);
         Assert.True(handler.Disposed);
@@ -227,10 +215,7 @@ public sealed class DecisionClientTests : IDisposable
         _ = await client.EvaluateAsync(NoulRequest());
         client.Dispose();
 
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
         Assert.Equal(new Uri("http://proxy.local/minos/v1/systemone"), Assert.Single(handler.Requests).Uri);
-#pragma warning restore HLQ005
         Assert.False(handler.Disposed);
         Assert.Null(http.DefaultRequestHeaders.Authorization);
     }
@@ -281,10 +266,7 @@ public sealed class DecisionClientTests : IDisposable
         _ = await client.EvaluateAsync(NoulRequest());
         client.Dispose();
 
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
         Assert.Equal(new Uri("https://api.typesafe.ai/v1/systemone"), Assert.Single(handler.Requests).Uri);
-#pragma warning restore HLQ005
     }
 
     [Fact]

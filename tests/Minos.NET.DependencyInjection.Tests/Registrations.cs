@@ -32,8 +32,7 @@ internal static class Registrations
     };
 
     /// <summary>
-    /// Gets the one request <paramref name="handler"/> received. Used instead of xUnit's <c>Assert.Single</c>, which
-    /// HLQ005 reports.
+    /// Gets the one request <paramref name="handler"/> received.
     /// </summary>
     public static StubHandler.Captured OnlyRequest(StubHandler handler)
         => handler.Requests is [var only]

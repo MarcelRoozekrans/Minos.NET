@@ -85,7 +85,6 @@ internal sealed class TelemetryCapture : IDisposable
 
     /// <summary>
     /// Gets the one measurement, of <paramref name="metric"/> or of any metric; throws when there is not exactly one.
-    /// Used instead of xUnit's <c>Assert.Single</c>, which HLQ005 reports.
     /// </summary>
     public CapturedPoint OnlyPoint(string? metric = null)
     {
