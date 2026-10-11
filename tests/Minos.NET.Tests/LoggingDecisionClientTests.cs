@@ -137,7 +137,20 @@ public sealed class LoggingDecisionClientTests
         Assert.Equal("minos-default", LogAssert.Field(record, "Model"));
         Assert.Equal("Validation", LogAssert.Field(record, "ErrorKind"));
         Assert.Equal("422", LogAssert.Field(record, "StatusCode"));
+        Assert.Null(LogAssert.Field(record, "RequestId"));
         Assert.Equal("The API returned HTTP 422.", LogAssert.Field(record, "ErrorMessage"));
+    }
+
+    [Fact]
+    public async Task Logs_failure_with_the_request_id()
+    {
+        using var logs = new LogCapture(LogLevel.Debug);
+        var error = new DecisionError(DecisionErrorKind.Unauthorized, "The API returned HTTP 401.") { StatusCode = 401, RequestId = "req_log" };
+        using var stage = new LoggingDecisionClient(new Scripted(Result<DecisionResponse, DecisionError>.Failure(error), Metadata()), Logger(logs));
+
+        await stage.EvaluateAsync(Request);
+
+        Assert.Equal("req_log", LogAssert.Field(logs.Only(1002), "RequestId"));
     }
 
     [Theory]

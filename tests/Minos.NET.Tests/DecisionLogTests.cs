@@ -14,7 +14,7 @@ public sealed class DecisionLogTests
         var logger = new FakeLogger();
 
         DecisionLog.EvaluationSucceeded(logger, SystemOneLog.Evaluate, "m", "TypeSafe", 1, 2.5);
-        DecisionLog.EvaluationFailed(logger, SystemOneLog.Evaluate, "m", DecisionErrorKind.Server, 500, 2.5, "The API returned HTTP 500.");
+        DecisionLog.EvaluationFailed(logger, SystemOneLog.Evaluate, "m", DecisionErrorKind.Server, 500, null, 2.5, "The API returned HTTP 500.");
         DecisionLog.AttemptRetrying(logger, 1, DecisionErrorKind.Server, 500, null);
         SystemOneLog.ModelsListed(logger, "TypeSafe", 2, 2.5);
         SystemOneLog.ModelsListFailed(logger, "TypeSafe", DecisionErrorKind.Unauthorized, 401, 2.5, "The API returned HTTP 401.");
@@ -163,25 +163,33 @@ public sealed class DecisionLogTests
     }
 
     [Fact]
-    public void EvaluationFailed_CarriesItsSixFields()
+    public void EvaluationFailed_CarriesItsSevenFields()
     {
         var logger = new FakeLogger();
 
-        DecisionLog.EvaluationFailed(logger, DecisionLog.EvaluateSet, "jev-latest", DecisionErrorKind.RateLimited, 429, 12.5, "The API returned HTTP 429.");
+        DecisionLog.EvaluationFailed(
+            logger, DecisionLog.EvaluateSet, "jev-latest", DecisionErrorKind.RateLimited, 429, "req_abc", 12.5, "The API returned HTTP 429.");
 
         var record = logger.LatestRecord;
+        Assert.Equal(1002, record.Id.Id);
+        Assert.Equal("EvaluationFailed", record.Id.Name);
+        Assert.Equal(LogLevel.Warning, record.Level);
         Assert.Equal("evaluate-set", LogAssert.Field(record, "Operation"));
         Assert.Equal("jev-latest", LogAssert.Field(record, "Model"));
         Assert.Equal("RateLimited", LogAssert.Field(record, "ErrorKind"));
         Assert.Equal("429", LogAssert.Field(record, "StatusCode"));
+        Assert.Equal("req_abc", LogAssert.Field(record, "RequestId"));
         Assert.Equal(12.5.ToString(CultureInfo.InvariantCulture), LogAssert.Field(record, "DurationMs"));
         Assert.Equal(
-            "Minos evaluate-set on jev-latest failed with RateLimited, status 429, in 12.5 ms: The API returned HTTP 429.",
+            "Minos evaluate-set on jev-latest failed with RateLimited, status 429, request id req_abc, in 12.5 ms: The API returned HTTP 429.",
             record.Message);
         Assert.Equal("The API returned HTTP 429.", LogAssert.Field(record, "ErrorMessage"));
         Assert.Equal(
-            "Minos {Operation} on {Model} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}",
+            "Minos {Operation} on {Model} failed with {ErrorKind}, status {StatusCode}, request id {RequestId}, in {DurationMs} ms: {ErrorMessage}",
             LogAssert.Field(record, "{OriginalFormat}"));
+        Assert.Equal(
+            ["Operation", "Model", "ErrorKind", "StatusCode", "RequestId", "DurationMs", "ErrorMessage", "{OriginalFormat}"],
+            record.StructuredState!.Select(pair => pair.Key));
 
         // Provider is fixed per client and retry-after is on AttemptRetrying: neither is a field here.
         var keys = record.StructuredState!.Select(pair => pair.Key).ToArray();
@@ -194,9 +202,13 @@ public sealed class DecisionLogTests
     {
         var logger = new FakeLogger();
 
-        DecisionLog.EvaluationFailed(logger, SystemOneLog.Evaluate, "m", DecisionErrorKind.Timeout, null, 1, "The request timed out.");
+        DecisionLog.EvaluationFailed(logger, SystemOneLog.Evaluate, "m", DecisionErrorKind.Timeout, null, null, 1, "The request timed out.");
 
         Assert.Null(LogAssert.Field(logger.LatestRecord, "StatusCode"));
+        Assert.Null(LogAssert.Field(logger.LatestRecord, "RequestId"));
+        Assert.Equal(
+            "Minos evaluate on m failed with Timeout, status , request id , in 1 ms: The request timed out.",
+            logger.LatestRecord.Message);
     }
 
     [Fact]
@@ -205,7 +217,7 @@ public sealed class DecisionLogTests
         var logger = new FakeLogger();
         logger.ControlLevel(LogLevel.Warning, enabled: false);
 
-        DecisionLog.EvaluationFailed(logger, SystemOneLog.Evaluate, "m", DecisionErrorKind.Server, 500, 1, "x");
+        DecisionLog.EvaluationFailed(logger, SystemOneLog.Evaluate, "m", DecisionErrorKind.Server, 500, null, 1, "x");
 
         Assert.Equal(0, logger.Collector.Count);
     }

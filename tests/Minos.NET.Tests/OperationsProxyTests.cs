@@ -382,4 +382,18 @@ public sealed class OperationsProxyTests
 
         System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => inner.GetEnumerator();
     }
+
+    [Fact]
+    public async Task RawFailure_WithARequestId_TagsTheSpan()
+    {
+        using var capture = new TelemetryCapture();
+        var fake = new FakeOperations
+        {
+            Error = new DecisionError(DecisionErrorKind.Unauthorized, "The API returned HTTP 401.") { StatusCode = 401, RequestId = "req_raw" },
+        };
+
+        await new DecisionOperationsInstrumented(fake).EvaluateAsync(Request(), "typesafe", Endpoint, CancellationToken.None);
+
+        Assert.Equal("req_raw", capture.Span().GetTagItem("minos.request_id"));
+    }
 }

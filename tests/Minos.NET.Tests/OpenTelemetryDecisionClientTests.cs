@@ -119,6 +119,7 @@ public sealed class OpenTelemetryDecisionClientTests
         var expected = DecisionTelemetry.ErrorTypeOf(DecisionErrorKind.Server);
         Assert.Equal(ActivityStatusCode.Error, span.Status);
         Assert.Equal(expected, span.GetTagItem("error.type"));
+        Assert.Null(span.GetTagItem("minos.request_id"));
         Assert.Null(span.GetTagItem("gen_ai.response.model"));
         var point = capture.OnlyPoint("gen_ai.client.operation.duration");
         Assert.Equal(expected, point.Tag("error.type"));
@@ -310,5 +311,18 @@ public sealed class OpenTelemetryDecisionClientTests
             [QuestionAnswer.Noul(0.9), QuestionAnswer.Choice(1, 0.8, [0.1, 0.8, 0.1]), QuestionAnswer.Score(2, 1.7, 0.6, [0.1, 0.1, 0.8])]);
         return Result<DecisionResponse, DecisionError>.Success(
             new DecisionResponse(built.Definition, built.Slots, built.Probabilities, "minos-1", 10, 3, 0.002, "r-1", "typesafe"));
+    }
+
+    [Fact]
+    public async Task Failure_with_a_request_id_tags_the_span_but_not_the_metrics()
+    {
+        using var capture = new TelemetryCapture();
+        var error = new DecisionError(DecisionErrorKind.Unauthorized, "x") { StatusCode = 401, RequestId = "req_span" };
+        using var stage = new OpenTelemetryDecisionClient(new Scripted(Result<DecisionResponse, DecisionError>.Failure(error)));
+
+        await stage.EvaluateAsync(Request);
+
+        Assert.Equal("req_span", capture.Span().GetTagItem("minos.request_id"));
+        Assert.Null(capture.OnlyPoint("gen_ai.client.operation.duration").Tag("minos.request_id"));
     }
 }
