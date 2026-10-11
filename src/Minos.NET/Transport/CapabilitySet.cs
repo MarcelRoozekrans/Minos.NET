@@ -36,15 +36,15 @@ internal readonly record struct CapabilitySet(
         ModelListing = ModelListing,
     };
 
-    // The capability failures for a request: MIN202 first, then MIN201 and MIN203 in question order, then MIN206.
-    // providerName appears in each message, as "TypeSafe does not support Score questions." does.
     /// <summary>
     /// Checks a request against these capabilities. Walks the questions once and allocates nothing when the request
     /// passes; the failures and their messages are built only once one is found.
     /// </summary>
     /// <param name="definition">The question set about to be sent.</param>
     /// <param name="imageCount">How many images the request carries.</param>
-    /// <param name="providerName">The provider, named in each message, such as <c>TypeSafe</c>.</param>
+    /// <param name="providerName">
+    /// The provider, named in each message, as <c>TypeSafe</c> is in "TypeSafe does not support Score questions.".
+    /// </param>
     /// <returns>
     /// <see langword="null"/> when the request is supported; otherwise every failure: the MIN202 set-level one first, then
     /// each question's in wire order, MIN201 before MIN203, then MIN206 for images.

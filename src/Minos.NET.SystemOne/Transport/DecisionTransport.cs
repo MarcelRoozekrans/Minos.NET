@@ -6,7 +6,7 @@ using ZeroAlloc.Results;
 namespace Minos.SystemOne.Transport;
 
 /// <summary>
-/// One attempt per call: checks the question set against the provider's capabilities, writes the request through the
+/// One attempt per call: checks the request, its questions and images, against the provider's capabilities, writes the request through the
 /// protocol, POSTs it to the settings' path, and reads the response or maps the error through it. It never
 /// retries, logs or traces; stages do that.
 /// </summary>
@@ -15,9 +15,9 @@ namespace Minos.SystemOne.Transport;
 /// disposed returns <see cref="DecisionErrorKind.Disposed"/> without being sent. An attempt torn down by disposing an
 /// owned <see cref="HttpClient"/> is mapped to <see cref="DecisionErrorKind.Disposed"/> by <paramref name="api"/>'s
 /// <see cref="DecisionErrorMapper"/>, and one whose send throws <see cref="ObjectDisposedException"/> once the client is
-/// disposed is reported as <see cref="DecisionErrorKind.Disposed"/> here. A question set the provider's capabilities do not
+/// disposed is reported as <see cref="DecisionErrorKind.Disposed"/> here. A request the provider's capabilities do not
 /// accept returns <see cref="DecisionErrorKind.Unsupported"/> without being sent, before any buffer is rented; the check
-/// runs after the disposed check and before the request body is written, and allocates nothing when the set passes.
+/// runs after the disposed check and before the request body is written, and allocates nothing when the request passes.
 /// </remarks>
 /// <param name="api">The REST client that sends the attempt.</param>
 /// <param name="protocol">Writes the request and reads the response.</param>

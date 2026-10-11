@@ -357,8 +357,9 @@ public sealed class CapabilityTests : IDisposable
             provider: SystemOneProvider.OpenRouter,
             configure: options => options.Capabilities = new() { Images = true });
 
-        _ = await client.EvaluateAsync<MinimalUrgencyCheck>("a ticket", [Png]);
+        var result = await client.EvaluateAsync<MinimalUrgencyCheck>("a ticket", [Png]);
 
+        Assert.True(result.IsSuccess);
         _ = ClientTestKit.OnlyRequest(handler);
     }
 
