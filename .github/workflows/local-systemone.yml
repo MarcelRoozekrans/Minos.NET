@@ -6,7 +6,7 @@ name: Local systemone
 # The model is a GGUF file run by llama.cpp, so no code from its repository executes; never pass --trust.
 on:
   push:
-    branches: [ main ]
+    branches: [ main, phase/6.4-systemone-adapter ]
     paths:
       - 'src/**'
       - 'tests/Minos.NET.Live.Tests/**'
