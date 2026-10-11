@@ -116,7 +116,8 @@ is here so the table above has code to match.
 <!-- snippet: ClientAndErrors_Options -->
 ```cs
 // Every option set to the value it has when you leave it out, apart from the API key, which has no default:
-// without one, the client reads TYPESAFE_API_KEY, or OPENROUTER_API_KEY for OpenRouter.
+// without one, the client reads TYPESAFE_API_KEY, OPENROUTER_API_KEY for OpenRouter or CLOUDFLARE_API_TOKEN for
+// Cloudflare. Custom and VllmSemanticRouter read no key from the environment and send none unless ApiKey is set.
 // BaseAddress, Model, AccountId, Path and Capabilities are also left out: the provider decides them, and the model is
 // jev-latest for TypeSafe.
 public static SystemOneClientOptions SpelledOut(string apiKey)

@@ -237,7 +237,7 @@ A `SystemOneClient` answers with:
 - **itself**, for `SystemOneClient` or `IDecisionClient`. This is how code that holds an `IDecisionClient` reaches the
   raw System One calls, which are not on the interface.
 - **a copy of its retry settings**, for `DecisionRetryOptions`. `UseRetries()` starts from these.
-- **its `DecisionClientMetadata`**: the `ProviderName`, `typesafe` or `openrouter`, the `Endpoint` it sends to, and the
+- **its `DecisionClientMetadata`**: the `ProviderName`, `typesafe`, `openrouter`, `cloudflare`, `vllm-sr` or `custom`, the `Endpoint` it sends to, and the
   `DefaultModel` from its options. The telemetry and logging stages read it.
 - **a stage of its standard pipeline**, such as `RetryingDecisionClient`, when there is one.
 
@@ -297,6 +297,7 @@ compiler finds every one of these. Typed calls, `[Questions]` records and fakes 
 | `DecisionClientServiceBuilder.HttpClient` | `SystemOneClientServiceBuilder.HttpClient`. `DecisionClientServiceBuilder` is the provider-neutral base, without `HttpClient` |
 | `Model` is a `string` that defaults to `jev-latest` | `Model` is a `string?` that defaults to `null`, which takes the preset's default: `jev-latest` for TypeSafe and OpenRouter. The new presets have none, so the options need a `Model` for them |
 | The raw calls log the provider as `TypeSafe` or `OpenRouter` in events 1001, 1004 and 1005 | They log its telemetry name, `typesafe` or `openrouter`, as the typed calls do. The new presets log `cloudflare`, `vllm-sr` and `custom` |
+| `ListModelsAsync` on a provider without model listing returns `Unsupported` with "Model listing is only available on TypeSafe's API; OpenRouter has its own Models API." | The message is "Model listing is not available on {provider}.", for every provider whose `ModelListing` capability is off |
 
 `SystemOneClientOptions` also gains `AccountId`, `Path` and `Capabilities`, and `SystemOneProvider` gains
 `CloudflareWorkersAi`, `VllmSemanticRouter` and `Custom`, all described on the
