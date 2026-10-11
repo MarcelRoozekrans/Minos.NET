@@ -27,9 +27,22 @@ public sealed class ErrorCheckTests
     [Fact]
     public void E1_ABodyThatIsNotJson_Fails()
     {
+        var exchange = ConformanceExchange.FromHttp(ConformanceProbe.Invalid.Id, requestBody: null, 400, "text/plain", headers: null, "Bad request");
+        var outcome = new ProbeOutcome(
+            ConformanceProbe.Invalid,
+            [exchange],
+            null,
+            new DecisionError(DecisionErrorKind.Validation, "The API returned HTTP 400.") { StatusCode = 400 });
+
+        Assert.Equal("The error body is not JSON.", ConformanceChecks.E1(outcome).Detail);
+    }
+
+    [Fact]
+    public void E1_AJsonBodyWithoutDetail_BlamesMinos()
+    {
         var outcome = Failed(ConformanceProbe.Invalid, 400, "{}", new DecisionError(DecisionErrorKind.Validation, "The API returned HTTP 400.") { StatusCode = 400 });
 
-        Assert.Equal("The error body is not JSON, so Minos has no Detail.", ConformanceChecks.E1(outcome).Detail);
+        Assert.Equal("The error body is JSON, but Minos left DecisionError.Detail null.", ConformanceChecks.E1(outcome).Detail);
     }
 
     [Fact]
@@ -140,5 +153,18 @@ public sealed class ErrorCheckTests
         var outcome = Failed(ConformanceProbe.Noul, 429, "{}", Error(DecisionErrorKind.RateLimited, 429, "{}"), ("x-typesafe-request-id", "req_7"));
 
         Assert.Equal("Noul: x-typesafe-request-id is req_7, but DecisionError.RequestId is null.", ConformanceChecks.E4([outcome]).Detail);
+    }
+
+    [Fact]
+    public void E4_AnOversizedRetryAfterMs_IsClampedLikeTheCore()
+    {
+        var outcome = Failed(
+            ConformanceProbe.Noul,
+            429,
+            "{}",
+            Error(DecisionErrorKind.RateLimited, 429, "{}", retryAfter: TimeSpan.FromMilliseconds(int.MaxValue)),
+            ("retry-after-ms", "99999999999999999999999999"));
+
+        Assert.Equal(CheckOutcome.Pass, ConformanceChecks.E4([outcome]).Outcome);
     }
 }

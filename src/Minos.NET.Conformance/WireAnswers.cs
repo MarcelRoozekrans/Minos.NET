@@ -64,10 +64,24 @@ internal sealed record WireAnswer(string Key, string? Type, JsonElement Body)
                 return null;
             }
 
-            var key = entry.TryGetProperty("label", out var label) && label.ValueKind == JsonValueKind.String ? label.GetString()
-                : entry.TryGetProperty("value", out var value) && value.ValueKind is JsonValueKind.String ? value.GetString()
-                : entry.TryGetProperty("value", out value) && value.ValueKind is JsonValueKind.Number ? value.GetRawText()
-                : null;
+            // A Score level is its value, as the core reads it; the label is display text and may differ.
+            var isScore = string.Equals(Type, "score", StringComparison.Ordinal);
+            string? key = null;
+            if (entry.TryGetProperty("value", out var value))
+            {
+                key = value.ValueKind switch
+                {
+                    JsonValueKind.String => value.GetString(),
+                    JsonValueKind.Number => value.GetRawText(),
+                    _ => null,
+                };
+            }
+
+            if (key is null && !isScore && entry.TryGetProperty("label", out var label) && label.ValueKind == JsonValueKind.String)
+            {
+                key = label.GetString();
+            }
+
             if (key is null)
             {
                 return null;

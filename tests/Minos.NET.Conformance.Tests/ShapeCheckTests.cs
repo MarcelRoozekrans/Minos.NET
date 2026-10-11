@@ -127,4 +127,10 @@ public sealed class ShapeCheckTests
 
         Assert.Equal("Answer 0 is 'is_calm', not 'is_urgent'.", result.Detail);
     }
+
+    [Fact]
+    public void S2_NoAnswers_IsSkipped()
+        => Assert.Equal(
+            new CheckResult("S2", CheckOutcome.Skipped, "No answer to check; S1 reports it."),
+            ConformanceChecks.S2(Answered(ConformanceProbe.Noul, """{"answers":{}}""", null), ConformanceWire.SystemOne));
 }

@@ -64,7 +64,7 @@ public sealed class ModelCheckTests
         const string Body = """{"model":"jev-1.13.0","answers":{"is_urgent":{"type":"noul","noul":0.95}},"usage":{"input_tokens":-1,"output_tokens":2.5}}""";
 
         Assert.Equal(
-            "Input_tokens is -1; output_tokens is 2.5.",
+            "Usage: input_tokens is -1; output_tokens is 2.5.",
             ConformanceChecks.R3(Answered(ConformanceProbe.Noul, Body, Noul(0.95))).Detail);
     }
 

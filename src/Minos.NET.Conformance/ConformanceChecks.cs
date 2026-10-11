@@ -15,6 +15,9 @@ public static class ConformanceChecks
     // Floating-point slack, so a sum that is 0.01 off on paper, such as 0.5 + 0.49, is still within the tolerance.
     private const double Rounding = 1e-9;
 
+    // The longest wait the core reads from a header; it clamps larger values to it.
+    private static readonly TimeSpan MaxDelay = TimeSpan.FromMilliseconds(int.MaxValue);
+
     private static readonly Check[] PerProbe =
     [
         new("S1", IsAnswer, static (outcome, target) => S1(outcome, target.Wire)),
@@ -36,6 +39,7 @@ public static class ConformanceChecks
     /// <summary>Gets every check id, in the order the report lists them; E4 reads the whole run.</summary>
     public static IReadOnlyList<string> Ids { get; } = ["S1", "S2", "S3", "D1", "D2", "D3", "D4", "M1", "E1", "E2", "E3", "E4", "R1", "R2", "R3"];
 
+    // The names and their order must match src/Minos.NET/Transport/RequestIdHeader.cs, which DecisionError.RequestId reads.
     /// <summary>Gets the request-id headers E3 and E4 read, in the order <see cref="DecisionError.RequestId"/> reads them.</summary>
     public static IReadOnlyList<string> RequestIdHeaders { get; } = ["x-request-id", "x-typesafe-request-id", "request-id"];
 
@@ -149,14 +153,26 @@ public static class ConformanceChecks
             return CheckResult.Skip("S2", problem);
         }
 
+        var examined = 0;
         var problems = new List<string>();
         foreach (var question in outcome.Probe.Definition.Questions)
         {
             var expected = WireAnswers.TypeOf(question.Kind, wire);
-            if (WireAnswers.Find(answers, question.Key) is { } answer && !string.Equals(answer.Type, expected, StringComparison.Ordinal))
+            if (WireAnswers.Find(answers, question.Key) is not { } answer)
+            {
+                continue;
+            }
+
+            examined++;
+            if (!string.Equals(answer.Type, expected, StringComparison.Ordinal))
             {
                 problems.Add("'" + question.Key + "' is " + (answer.Type is null ? "untyped" : "'" + answer.Type + "'") + ", not '" + expected + "'");
             }
+        }
+
+        if (examined == 0)
+        {
+            return CheckResult.Skip("S2", "No answer to check; S1 reports it.");
         }
 
         return problems.Count == 0
@@ -224,6 +240,7 @@ public static class ConformanceChecks
         }
 
         var count = 0;
+        var examined = 0;
         var problems = new List<string>();
         foreach (var question in outcome.Probe.Definition.Questions)
         {
@@ -232,6 +249,7 @@ public static class ConformanceChecks
                 continue;
             }
 
+            examined++;
             if (question.Kind == QuestionKind.Noul)
             {
                 count++;
@@ -268,6 +286,11 @@ public static class ConformanceChecks
             }
         }
 
+        if (examined == 0)
+        {
+            return CheckResult.Skip("D1", "No answer to check; S1 reports it.");
+        }
+
         return problems.Count == 0
             ? CheckResult.Passed("D1", Invariant($"All {count} probabilities are finite and in [0, 1]."))
             : CheckResult.Failed("D1", Sentence(problems));
@@ -290,6 +313,7 @@ public static class ConformanceChecks
             return CheckResult.Skip("D2", problem);
         }
 
+        var examined = 0;
         var problems = new List<string>();
         foreach (var question in outcome.Probe.Definition.Questions)
         {
@@ -297,6 +321,8 @@ public static class ConformanceChecks
             {
                 continue;
             }
+
+            examined++;
 
             if (answer.Probabilities(wire) is not { } probabilities)
             {
@@ -340,6 +366,11 @@ public static class ConformanceChecks
             }
         }
 
+        if (examined == 0)
+        {
+            return CheckResult.Skip("D2", "No answer to check; S1 reports it.");
+        }
+
         return problems.Count == 0
             ? CheckResult.Passed("D2", "Each Choice and Score sums to 1 within 0.01 over exactly the options sent.")
             : CheckResult.Failed("D2", Sentence(problems));
@@ -362,6 +393,7 @@ public static class ConformanceChecks
             return CheckResult.Skip("D3", problem);
         }
 
+        var examined = 0;
         var problems = new List<string>();
         foreach (var question in outcome.Probe.Definition.Questions)
         {
@@ -369,6 +401,8 @@ public static class ConformanceChecks
             {
                 continue;
             }
+
+            examined++;
 
             if (answer.Number("score") is not { } score)
             {
@@ -400,6 +434,11 @@ public static class ConformanceChecks
             {
                 problems.Add(Invariant($"'{question.Key}' scores {score}, but its probabilities give {expected:0.####}"));
             }
+        }
+
+        if (examined == 0)
+        {
+            return CheckResult.Skip("D3", "No answer to check; S1 reports it.");
         }
 
         return problems.Count == 0
@@ -534,9 +573,14 @@ public static class ConformanceChecks
             return CheckResult.Failed("E1", "Minos returned no error.");
         }
 
+        if (!last.TryGetJson(out _))
+        {
+            return CheckResult.Failed("E1", "The error body is not JSON.");
+        }
+
         if (error.Detail is null)
         {
-            return CheckResult.Failed("E1", "The error body is not JSON, so Minos has no Detail.");
+            return CheckResult.Failed("E1", "The error body is JSON, but Minos left DecisionError.Detail null.");
         }
 
         if (error.Kind != DecisionErrorKind.Validation)
@@ -765,7 +809,7 @@ public static class ConformanceChecks
 
         if (problems.Count > 0)
         {
-            return CheckResult.Failed("R3", Sentence(problems));
+            return CheckResult.Failed("R3", "Usage: " + string.Join("; ", problems) + ".");
         }
 
         return counts.Count == 0
@@ -826,7 +870,7 @@ public static class ConformanceChecks
             && double.TryParse(milliseconds.Trim(), NumberStyles.AllowDecimalPoint, CultureInfo.InvariantCulture, out var ms)
             && double.IsFinite(ms))
         {
-            return (true, TimeSpan.FromMilliseconds(ms));
+            return (true, ms >= MaxDelay.TotalMilliseconds ? MaxDelay : TimeSpan.FromMilliseconds(ms));
         }
 
         if (exchange.Header("retry-after") is not { } value)
@@ -834,9 +878,16 @@ public static class ConformanceChecks
             return (false, null);
         }
 
-        return ulong.TryParse(value.Trim(), NumberStyles.None, CultureInfo.InvariantCulture, out var seconds) && seconds <= int.MaxValue / 1000
-            ? (true, TimeSpan.FromSeconds(seconds))
-            : (true, null);
+        var text = value.Trim();
+        if (text.Length == 0 || !text.All(char.IsAsciiDigit))
+        {
+            return (true, null);
+        }
+
+        // Like the core, an oversized count of seconds is clamped, and a digit string too long for a ulong is the maximum.
+        return (true, ulong.TryParse(text, NumberStyles.None, CultureInfo.InvariantCulture, out var seconds) && seconds <= (ulong)(int.MaxValue / 1000)
+            ? TimeSpan.FromSeconds(seconds)
+            : MaxDelay);
     }
 
     private static string NotSent(ProbeOutcome outcome)

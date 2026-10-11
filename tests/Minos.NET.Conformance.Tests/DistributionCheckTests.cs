@@ -121,4 +121,32 @@ public sealed class DistributionCheckTests
         => Assert.Equal(
             new CheckResult("D4", CheckOutcome.Skipped, "No answer reports a confidence."),
             ConformanceChecks.D4(Answered(ConformanceProbe.Noul, NoulBody, null), ConformanceWire.SystemOne));
+
+    [Fact]
+    public void D1_NoAnswers_IsSkipped()
+        => Assert.Equal(
+            new CheckResult("D1", CheckOutcome.Skipped, "No answer to check; S1 reports it."),
+            ConformanceChecks.D1(Answered(ConformanceProbe.Noul, """{"answers":{}}""", null), ConformanceWire.SystemOne));
+
+    [Fact]
+    public void D2_NoAnswers_IsSkipped()
+        => Assert.Equal(
+            new CheckResult("D2", CheckOutcome.Skipped, "No answer to check; S1 reports it."),
+            ConformanceChecks.D2(Answered(ConformanceProbe.Choice, """{"answers":{}}""", null), ConformanceWire.SystemOne));
+
+    [Fact]
+    public void D3_NoAnswers_IsSkipped()
+        => Assert.Equal(
+            new CheckResult("D3", CheckOutcome.Skipped, "No answer to check; S1 reports it."),
+            ConformanceChecks.D3(Answered(ConformanceProbe.Score, """{"answers":{}}""", null), ConformanceWire.SystemOne));
+
+    [Fact]
+    public void D2_AndD3_ReadADecisionsScoreLevelByValue_NotByLabel()
+    {
+        const string Body = """{"answers":[{"type":"score","name":"frustration","score":1.05,"probabilities":[{"value":0,"label":"Calm","probability":0.0},{"value":1,"label":"Frustrated","probability":0.95},{"value":2,"label":"Furious","probability":0.05}],"confidence":0.5}]}""";
+        var outcome = Answered(ConformanceProbe.Score, Body, null);
+
+        Assert.Equal(CheckOutcome.Pass, ConformanceChecks.D2(outcome, ConformanceWire.Decisions).Outcome);
+        Assert.Equal(CheckOutcome.Pass, ConformanceChecks.D3(outcome, ConformanceWire.Decisions).Outcome);
+    }
 }
