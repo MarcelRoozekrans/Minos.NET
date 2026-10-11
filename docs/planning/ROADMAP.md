@@ -316,10 +316,11 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-11-phase-6.5-openai-decisions-adapter.md`
 **Completed:** 2026-10-11
 
-### Phase 6.6: Conformance suite [status: pending]
+### Phase 6.6: Conformance suite [status: active]
 **Goal:** Checks any endpoint's request and response shapes, multi-question requests, distributions, error shapes and model reporting, green against recorded TypeSafe and OpenAI fixtures (#116, conformance part).
 **Surface:** Infra
 **HelpWanted:** no
+**Spec:** `docs/superpowers/specs/2026-10-11-phase-6.6-conformance-suite-design.md`
 **Plan:** _to be written_
 
 ### Phase 6.7: Providers docs and samples [status: pending]
