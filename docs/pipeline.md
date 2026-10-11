@@ -237,8 +237,9 @@ A `SystemOneClient` answers with:
 - **itself**, for `SystemOneClient` or `IDecisionClient`. This is how code that holds an `IDecisionClient` reaches the
   raw System One calls, which are not on the interface.
 - **a copy of its retry settings**, for `DecisionRetryOptions`. `UseRetries()` starts from these.
-- **its `DecisionClientMetadata`**: the `ProviderName`, `typesafe`, `openrouter`, `cloudflare`, `vllm-sr` or `custom`, the `Endpoint` it sends to, and the
-  `DefaultModel` from its options. The telemetry and logging stages read it.
+- **its `DecisionClientMetadata`**: the `ProviderName`, which is `typesafe`, `openrouter`, `cloudflare`, `vllm-sr` or
+  `custom`, the `Endpoint` it sends to, and the `DefaultModel` from its options. The telemetry and logging stages read
+  it.
 - **a stage of its standard pipeline**, such as `RetryingDecisionClient`, when there is one.
 
 A [fake `IDecisionClient`](testing-your-code.md#way-one-a-fake-idecisionclient) can return `null` for everything. The
