@@ -1,4 +1,4 @@
-# Session State — 2026-10-11 (Phase 6.3 complete: the IDecisionClient pipeline)
+# Session State — 2026-10-11 (Phase 6.4 complete: the /v1/systemone adapter)
 
 **Date:** 2026-10-11
 
@@ -35,7 +35,7 @@
   - #140 fixed the benchmark requirements: pydantic_core moves with pydantic, and pydantic updates wait for dashboard approval.
   - #141 (0.7.0) merged: v0.7.0 is a GitHub release.
 - **Milestone 6, Phase 6.3 (IDecisionClient abstraction and pipeline):** complete on 2026-10-11.
-  - **Merged:** #146, in the 0.8.0 release PR #148 as a breaking change. Pre-push review PASS: `docs/plans/2026-10-10-phase-6.3-pre-push-review.md`. The live smoke has not been run on `main` yet.
+  - **Merged:** #146, in the 0.8.0 release PR #148 as a breaking change. Pre-push review PASS: `docs/plans/2026-10-10-phase-6.3-pre-push-review.md`. Live smoke on `main` passed 13/13 (run 38113477733).
   - **What shipped:**
     - `IDecisionClient` is one neutral `EvaluateAsync(DecisionRequest)` returning `Result<DecisionResponse, DecisionError>`, plus `GetService` and `IDisposable`. The typed and built-set calls are `DecisionClientExtensions`.
     - The pipeline: `DelegatingDecisionClient`, `DecisionClientBuilder` with `AsBuilder`, and the retry, logging and OpenTelemetry stages. `DecisionClient` runs them in that order over an internal one-attempt `DecisionTransport`; `UseStandardPipeline = false` leaves the bare transport, and then the raw calls do not retry either.
@@ -45,7 +45,17 @@
   - **Upstream:** ZeroAlloc.Rest#422 added the `{**path}` route token (3.3.0) and #425 made it cost 0 B (3.3.1). Minos uses Rest 3.3.1 and Results 1.4.0.
   - **Filed:** #145, the PackTests hang under MSBuild node reuse; set `MSBUILDDISABLENODEREUSE=1` until it is fixed.
   - **Release-please:** a multi-commit override needs every commit after the first in `BEGIN_NESTED_COMMIT` … `END_NESTED_COMMIT`, or the breaking-change notes are mis-assigned. #146's body was fixed that way and #148 is correct.
-  - **Leave #148 (0.8.0) open** until a release is wanted. #119 stays open: its escalation, fallback chain and sample are Milestone 10.
+  - #148 (0.8.0) merged: v0.8.0 is a GitHub release. #119 stays open: its escalation, fallback chain and sample are Milestone 10.
+- **Milestone 6, Phase 6.4 (/v1/systemone adapter):** complete on 2026-10-11.
+  - **Merged:** #152, in the 0.9.0 release PR #153 with four breaking changes. Pre-push review PASS: `docs/plans/2026-10-11-phase-6.4-pre-push-review.md`. Live smoke on `main` passed 13/13 (run 38135005980).
+  - **What shipped:**
+    - the new package `Minos.NET.SystemOne`, namespace `Minos.SystemOne`, with `SystemOneClient`, `SystemOneClientOptions`, `SystemOneProvider` and `SystemOneDefaults`. The core `Minos.NET` no longer depends on ZeroAlloc.Rest.
+    - presets `TypeSafe`, `OpenRouter`, `VllmSemanticRouter` and `Custom`, with a nullable `Model` that defaults per preset and an optional key: only TypeSafe and OpenRouter read a key from the environment.
+    - `SystemOneCapabilities`, checked before sending: MIN201 to MIN203 return `Unsupported` and are never retried. A Choice with more than 255 options is now refused on TypeSafe and OpenRouter.
+    - provider-neutral DI: `AddDecisionClient` takes a factory; `AddSystemOneClient` returns `SystemOneClientServiceBuilder`, which carries `HttpClient`.
+    - the `local-systemone` CI job, not required, runs ollajev 0.4.0 with `Mapika/decider-2b-GGUF:Q4_K_M` on push to `main` (`docs/plans/2026-10-11-phase-6.4-local-server-spike.md`).
+  - **Filed:** #151, Cloudflare Workers AI's Clef preset, taken out because there is no Cloudflare account to record against.
+  - **Leave #153 (0.9.0) open** until a release is wanted.
 - **Old Phase 5.5 (1.0 release):** removed from Milestone 5 and folded into Phase 7.4.
   - Its reviewed pipeline work sits on the local branch `phase/5.5-release`, not pushed:
     - inspection script;
@@ -68,8 +78,7 @@
 
 ## Recommended Next Step
 1. Milestone 6, Provider-neutral core, is active (design `docs/superpowers/specs/2026-10-09-milestone-6-design.md`).
-2. Next: Phase 6.4, the `/v1/systemone` adapter (#115). It needs a brainstorm. It builds on Phase 6.3's protocol seam and `DecisionClientMetadata`: presets for TypeSafe, OpenRouter, Clef, vLLM-SR and local servers, capability flags, optional auth and keyed DI clients.
-   - Before it, optionally run the live smoke on `main` to confirm Phase 6.3 against the real APIs.
+2. Next: Phase 6.5, the OpenAI `/v1/decisions` adapter and image state (#115). It needs a brainstorm. It builds on Phase 6.4's package split, as a `Minos.NET.OpenAI` package beside `Minos.NET.SystemOne`, and on `SystemOneCapabilities.Images`, which 6.4 declares but does not enforce.
 3. Run `pre-push-review` on each feature branch before its PR, and keep the report in `docs/plans/`: the docs tests treat every file at the top of `docs/` as a site page.
 4. Allocation gates run only in the published AOT smoke executable, not in `dotnet test`: publish and run it for any change under `src/`.
 

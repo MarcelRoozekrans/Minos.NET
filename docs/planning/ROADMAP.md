@@ -300,11 +300,13 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-10-phase-6.3-decision-client-pipeline.md`
 **Completed:** 2026-10-11
 
-### Phase 6.4: /v1/systemone adapter [status: pending]
+### Phase 6.4: /v1/systemone adapter [status: complete]
 **Goal:** Configurable base URL and model with presets for TypeSafe, OpenRouter, vLLM-SR and local servers (Cloudflare Clef: #151); capability flags with typed errors naming provider and question; optional auth; keyed DI clients (#115).
 **Surface:** Backend
 **HelpWanted:** no
-**Plan:** _to be written_
+**Spec:** `docs/superpowers/specs/2026-10-11-phase-6.4-systemone-adapter-design.md`
+**Plan:** `docs/superpowers/plans/2026-10-11-phase-6.4-systemone-adapter.md`
+**Completed:** 2026-10-11
 
 ### Phase 6.5: OpenAI /v1/decisions adapter and image state [status: pending]
 **Goal:** An adapter for OpenAI's Decisions API, its schema and question-type mapping verified against OpenAI's docs, and typed state that can carry images where a provider supports it (#115).
