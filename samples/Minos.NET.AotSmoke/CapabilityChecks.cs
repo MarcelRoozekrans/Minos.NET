@@ -40,7 +40,7 @@ internal static class CapabilityChecks
                 && string.Equals(result.Error.Failures[0].Rule, "MIN201", StringComparison.Ordinal)
                 && string.Equals(result.Error.Failures[0].QuestionKey, "topic", StringComparison.Ordinal)
                 && handler.Calls == 0,
-            "a Choice question on a Noul-only provider is Unsupported and never sent, nor retried, under Native AOT");
+            "a Choice question on a Noul-only provider is Unsupported and no request is sent under Native AOT");
 
         var capabilities = client.GetService<SystemOneCapabilities>();
         Program.Check(

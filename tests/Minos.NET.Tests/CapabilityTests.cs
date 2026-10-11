@@ -1,4 +1,5 @@
 using System.Net;
+using Microsoft.Extensions.Logging;
 using Minos.SystemOne;
 using Minos.SystemOne.Transport;
 
@@ -246,13 +247,18 @@ public sealed class CapabilityTests : IDisposable
     [Fact]
     public async Task The_retry_stage_does_not_retry_Unsupported()
     {
+        // The check runs in the transport, below the retry stage, so the handler sees no request either way. The retry
+        // stage logs AttemptRetrying, 1003, before each retry, so its absence is what shows Unsupported is not retried.
+        using var logs = new LogCapture();
         var handler = Noul();
-        using var client = Custom(handler, SystemOneQuestionKinds.Noul, maxRetries: 2);
+        using var client = Custom(handler, SystemOneQuestionKinds.Noul, maxRetries: 2, logs.Factory);
 
         var result = await client.EvaluateAsync(new DecisionRequest(NoulAndChoice, "a ticket"));
 
         Assert.Equal(DecisionErrorKind.Unsupported, result.Error.Kind);
         Assert.Empty(handler.Requests);
+        Assert.Equal("Unsupported", LogAssert.Field(logs.Only(1002), "ErrorKind"));
+        Assert.DoesNotContain(1003, logs.EventIds);
     }
 
     [Fact]
@@ -394,11 +400,12 @@ public sealed class CapabilityTests : IDisposable
     private static StubHandler Noul()
         => StubHandler.Json(HttpStatusCode.OK, """{"model":"m","answers":{"refund":{"type":"noul","noul":0.9}}}""");
 
-    private SystemOneClient Custom(StubHandler handler, SystemOneQuestionKinds kinds, int maxRetries = 0)
+    private SystemOneClient Custom(StubHandler handler, SystemOneQuestionKinds kinds, int maxRetries = 0, ILoggerFactory? loggerFactory = null)
         => ClientTestKit.Client(
             _httpClients,
             handler,
             provider: SystemOneProvider.Custom,
+            loggerFactory: loggerFactory,
             configure: options =>
             {
                 options.BaseAddress = new Uri("http://local.test/api/");
