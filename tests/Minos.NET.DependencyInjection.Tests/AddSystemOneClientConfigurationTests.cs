@@ -80,6 +80,62 @@ public sealed class AddSystemOneClientConfigurationTests
     }
 
     [Fact]
+    public void CapabilityKeys_Bind_IncludingTheFlagsFromACommaList()
+    {
+        var configuration = Configuration(
+            ("Local:Provider", "Custom"),
+            ("Local:BaseAddress", "http://local.test/api/"),
+            ("Local:Model", "m"),
+            ("Local:Capabilities:QuestionKinds", "Noul, Choice"),
+            ("Local:Capabilities:MaxQuestions", "8"),
+            ("Local:Capabilities:MaxChoiceOptions", "16"),
+            ("Local:Capabilities:Images", "true"),
+            ("Local:Capabilities:ModelListing", "false"));
+        var services = new ServiceCollection();
+        services.AddSystemOneClient("local", configuration.GetSection("Local"));
+        using var provider = services.BuildServiceProvider();
+
+        var bound = provider.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>().Get("local").Capabilities;
+        var resolved = provider.GetRequiredKeyedService<IDecisionClient>("local").GetService<SystemOneCapabilities>()!;
+
+        var expected = (SystemOneQuestionKinds.Noul | SystemOneQuestionKinds.Choice, 8, 16, true, false);
+        Assert.Equal(expected, (bound.QuestionKinds, bound.MaxQuestions, bound.MaxChoiceOptions, bound.Images, bound.ModelListing));
+        Assert.Equal(expected, (resolved.QuestionKinds, resolved.MaxQuestions, resolved.MaxChoiceOptions, resolved.Images, resolved.ModelListing));
+    }
+
+    [Fact]
+    public void UnboundCapabilities_StayUnset_AndTheClientUsesThePresetDefaults()
+    {
+        var configuration = Configuration(("ApiKey", "bound-key"), ("BaseAddress", "http://bound.local/"));
+        var services = new ServiceCollection();
+        services.AddSystemOneClient(configuration);
+        using var provider = services.BuildServiceProvider();
+
+        var bound = provider.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName).Capabilities;
+        var resolved = provider.GetRequiredService<IDecisionClient>().GetService<SystemOneCapabilities>()!;
+
+        Assert.Equal(
+            ((SystemOneQuestionKinds?)null, (int?)null, (int?)null, (bool?)null, (bool?)null),
+            (bound.QuestionKinds, bound.MaxQuestions, bound.MaxChoiceOptions, bound.Images, bound.ModelListing));
+        Assert.Equal(
+            (SystemOneQuestionKinds.All, (int?)null, 255, false, true),
+            (resolved.QuestionKinds, resolved.MaxQuestions, resolved.MaxChoiceOptions, resolved.Images, resolved.ModelListing));
+    }
+
+    [Fact]
+    public void InvalidBoundCapability_FailsValidation_WithTheCoresMessage()
+    {
+        var configuration = Configuration(("ApiKey", "bound-key"), ("BaseAddress", "http://bound.local/"), ("Capabilities:MaxQuestions", "0"));
+        var services = new ServiceCollection();
+        services.AddSystemOneClient("bound", configuration);
+        using var provider = services.BuildServiceProvider();
+
+        var exception = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredKeyedService<IDecisionClient>("bound"));
+
+        Assert.Equal(["Capabilities.MaxQuestions must be at least 1. (Parameter 'options')"], exception.Failures);
+    }
+
+    [Fact]
     public void UnboundModel_StaysUnset_AndTheClientUsesThePresetDefault()
     {
         var configuration = Configuration(("ApiKey", "bound-key"), ("BaseAddress", "http://bound.local/"));

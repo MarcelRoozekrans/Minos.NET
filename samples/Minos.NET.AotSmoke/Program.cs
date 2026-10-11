@@ -95,6 +95,8 @@ internal static class Program
         await MissingAnswerChecks.MissingAnswerNamesTheQuestion().ConfigureAwait(false);
         DecisionOptionSetChecks.HandWrittenOptionSetMapsOptions();
         IQuestionSetChecks.CreateRunsThroughTheInterface();
+        await CapabilityChecks.UnsupportedQuestionKindIsNotSent().ConfigureAwait(false);
+        CapabilityChecks.CapabilitiesBindFromConfiguration();
 
         await AllocationChecks.AnswerSlotAccessors().ConfigureAwait(false);
         await AllocationChecks.GeneratedCreate().ConfigureAwait(false);
@@ -189,7 +191,11 @@ internal static class Program
 
         var result = await client.ListModelsAsync().ConfigureAwait(false);
 
-        Check(result.IsFailure && result.Error.Kind == DecisionErrorKind.Unsupported, "model listing on OpenRouter is Unsupported");
+        Check(
+            result.IsFailure
+                && result.Error.Kind == DecisionErrorKind.Unsupported
+                && string.Equals(result.Error.Message, "Model listing is not available on OpenRouter.", StringComparison.Ordinal),
+            "model listing on OpenRouter is Unsupported");
     }
 
     private static async Task OverloadedThenSuccessIsRetried()

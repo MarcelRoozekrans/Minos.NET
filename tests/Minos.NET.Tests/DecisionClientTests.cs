@@ -86,6 +86,7 @@ public sealed class DecisionClientTests : IDisposable
 
         Assert.True(result.IsFailure);
         Assert.Equal(DecisionErrorKind.Unsupported, result.Error.Kind);
+        Assert.Equal("Model listing is not available on OpenRouter.", result.Error.Message);
         Assert.Empty(handler.Requests);
     }
 

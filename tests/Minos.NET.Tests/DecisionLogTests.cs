@@ -213,7 +213,7 @@ public sealed class DecisionLogTests
     [Theory]
     [InlineData(DecisionErrorKind.Validation, "The API returned HTTP 422.")]
     [InlineData(DecisionErrorKind.Timeout, "The request timed out.")]
-    [InlineData(DecisionErrorKind.Unsupported, "Model listing is only available on TypeSafe's API.")]
+    [InlineData(DecisionErrorKind.Unsupported, "Model listing is not available on OpenRouter.")]
     public void SafeMessage_KeepsALibraryMessage(DecisionErrorKind kind, string message)
         => Assert.Equal(message, DecisionLog.SafeMessage(new DecisionError(kind, message)));
 

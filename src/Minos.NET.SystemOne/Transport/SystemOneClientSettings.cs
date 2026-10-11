@@ -18,6 +18,7 @@ internal sealed class SystemOneClientSettings
         Uri baseAddress,
         string? fixedPath,
         string model,
+        CapabilitySet capabilities,
         TimeSpan timeout,
         int maxRetries,
         TimeSpan initialBackoff,
@@ -31,6 +32,7 @@ internal sealed class SystemOneClientSettings
         BaseAddress = baseAddress;
         FixedPath = fixedPath;
         Model = model;
+        Capabilities = capabilities;
         ProviderName = SystemOneTelemetry.ProviderOf(provider);
         Timeout = timeout;
         MaxRetries = maxRetries;
@@ -57,6 +59,9 @@ internal sealed class SystemOneClientSettings
 
     /// <summary>Gets the resolved default model: the option, trimmed, or the preset's default.</summary>
     public string Model { get; }
+
+    /// <summary>Gets the preset's capabilities with the options' overrides applied.</summary>
+    public CapabilitySet Capabilities { get; }
 
     /// <summary>Gets the provider's telemetry name, such as <c>typesafe</c>.</summary>
     public string ProviderName { get; }
@@ -97,6 +102,7 @@ internal sealed class SystemOneClientSettings
 
         var path = ResolvePath(options);
         var model = ResolveModel(options);
+        var capabilities = ResolveCapabilities(options);
         var apiKey = ResolveApiKey(options, environment);
         var baseAddress = ResolveBaseAddress(options, environment);
 
@@ -106,6 +112,7 @@ internal sealed class SystemOneClientSettings
             baseAddress,
             cloudflare ? null : path,
             model,
+            capabilities,
             options.Timeout,
             options.MaxRetries,
             options.InitialBackoff,
@@ -219,6 +226,41 @@ internal sealed class SystemOneClientSettings
         }
 
         return model;
+    }
+
+    // The preset's defaults with each override that is set; a null Capabilities counts as no overrides.
+    private static CapabilitySet ResolveCapabilities(SystemOneClientOptions options)
+    {
+        var defaults = CapabilitySet.For(options.Provider);
+        if (options.Capabilities is not { } overrides)
+        {
+            return defaults;
+        }
+
+        if (overrides.QuestionKinds is { } kinds)
+        {
+            if (kinds == SystemOneQuestionKinds.None)
+            {
+                throw new ArgumentException("Capabilities.QuestionKinds must allow at least one question kind.", nameof(options));
+            }
+
+            if ((kinds & ~SystemOneQuestionKinds.All) != SystemOneQuestionKinds.None)
+            {
+                throw new ArgumentException("Capabilities.QuestionKinds has an unknown flag.", nameof(options));
+            }
+        }
+
+        if (overrides.MaxQuestions is < 1)
+        {
+            throw new ArgumentException("Capabilities.MaxQuestions must be at least 1.", nameof(options));
+        }
+
+        if (overrides.MaxChoiceOptions is < 2)
+        {
+            throw new ArgumentException("Capabilities.MaxChoiceOptions must be at least 2.", nameof(options));
+        }
+
+        return defaults.With(overrides);
     }
 
     // The hosted presets require a key, from the option or their own variable. Custom and VllmSemanticRouter send one only

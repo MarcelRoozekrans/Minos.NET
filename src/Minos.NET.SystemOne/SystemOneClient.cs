@@ -41,6 +41,7 @@ public sealed class SystemOneClient : IDecisionClient
     private readonly string _providerName;
     private readonly Uri _endpoint;
     private readonly SystemOneProvider _provider;
+    private readonly CapabilitySet _capabilities;
     private readonly ILogger? _logger;
     private readonly DecisionClientMetadata _metadata;
     private readonly DecisionRetryOptions _retryOptions;
@@ -204,6 +205,7 @@ public sealed class SystemOneClient : IDecisionClient
         }
 
         _provider = settings.Provider;
+        _capabilities = settings.Capabilities;
         _retryOptions = new DecisionRetryOptions
         {
             MaxRetries = settings.MaxRetries,
@@ -296,7 +298,9 @@ public sealed class SystemOneClient : IDecisionClient
     /// Runs the client's pipeline: with <see cref="SystemOneClientOptions.UseStandardPipeline"/>, telemetry, logging when
     /// the client has a logger factory, and retries with the options' retry settings; without it, one attempt. The
     /// request is sent with <see cref="SystemOneClientOptions.Model"/> when <see cref="DecisionRequest.Model"/> is
-    /// <see langword="null"/>, and every pooled buffer is returned before the call completes.
+    /// <see langword="null"/>, and every pooled buffer is returned before the call completes. A question set that
+    /// <see cref="SystemOneClientOptions.Capabilities"/> does not accept returns <see cref="DecisionErrorKind.Unsupported"/>
+    /// without a request, and is not retried.
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
     /// <exception cref="ObjectDisposedException">The client has been disposed.</exception>
@@ -314,7 +318,8 @@ public sealed class SystemOneClient : IDecisionClient
 
     /// <inheritdoc />
     /// <remarks>
-    /// Returns this client for a type it is, a new <see cref="DecisionRetryOptions"/> from its retry settings, its
+    /// Returns this client for a type it is, a new <see cref="DecisionRetryOptions"/> from its retry settings, a new
+    /// <see cref="SystemOneCapabilities"/> with its resolved capabilities, every property set, its
     /// <see cref="DecisionClientMetadata"/>, then whatever its pipeline's stages return, such as
     /// <see cref="RetryingDecisionClient"/>.
     /// </remarks>
@@ -332,6 +337,11 @@ public sealed class SystemOneClient : IDecisionClient
             if (serviceType == typeof(DecisionRetryOptions))
             {
                 return _retryOptions.Clone();
+            }
+
+            if (serviceType == typeof(SystemOneCapabilities))
+            {
+                return _capabilities.ToOptions();
             }
 
             if (serviceType.IsInstanceOfType(_metadata))
@@ -371,9 +381,15 @@ public sealed class SystemOneClient : IDecisionClient
             cancellationToken);
     }
 
-    /// <summary>Lists the models and aliases available to the account. TypeSafe's API only.</summary>
+    /// <summary>
+    /// Lists the models and aliases available to the account, with <c>GET v1/models</c>, on a provider whose
+    /// <see cref="SystemOneCapabilities.ModelListing"/> is on: by default TypeSafe and <see cref="SystemOneProvider.Custom"/>.
+    /// </summary>
     /// <param name="cancellationToken">Cancels the call; cancellation throws <see cref="OperationCanceledException"/>.</param>
-    /// <returns>The models, or the <see cref="DecisionError"/> that prevented them; <see cref="DecisionErrorKind.Unsupported"/> on OpenRouter.</returns>
+    /// <returns>
+    /// The models, or the <see cref="DecisionError"/> that prevented them; <see cref="DecisionErrorKind.Unsupported"/>,
+    /// without a request, where <see cref="SystemOneCapabilities.ModelListing"/> is off.
+    /// </returns>
     /// <exception cref="ObjectDisposedException">The client has been disposed.</exception>
     public ValueTask<Result<ModelList, DecisionError>> ListModelsAsync(CancellationToken cancellationToken = default)
     {
@@ -381,12 +397,11 @@ public sealed class SystemOneClient : IDecisionClient
         var started = DecisionLog.StartTiming(_logger);
 
         // Created before any call, so it bypasses the proxy: no request is sent, and no span or metric is recorded.
-        if (_provider == SystemOneProvider.OpenRouter)
+        if (!_capabilities.ModelListing)
         {
             return WithModelLogging(
                 ValueTask.FromResult(Result<ModelList, DecisionError>.Failure(new DecisionError(
-                    DecisionErrorKind.Unsupported,
-                    "Model listing is only available on TypeSafe's API; OpenRouter has its own Models API."))),
+                    DecisionErrorKind.Unsupported, "Model listing is not available on " + _provider.ToString() + "."))),
                 started,
                 cancellationToken);
         }

@@ -81,6 +81,14 @@ public sealed class SystemOneClientOptions
     public string? Path { get; set; }
 
     /// <summary>
+    /// Gets or sets what the provider accepts, checked before a request is sent. Each property left unset takes the
+    /// <see cref="Provider"/> preset's default; see <see cref="SystemOneCapabilities"/> for the defaults and the check.
+    /// Binds from configuration under <c>Capabilities</c>, with <see cref="SystemOneCapabilities.QuestionKinds"/> as a
+    /// comma-separated list such as <c>"Noul, Choice"</c>.
+    /// </summary>
+    public SystemOneCapabilities Capabilities { get; set; } = new();
+
+    /// <summary>
     /// Gets or sets how long a single attempt may take. Defaults to 60 seconds. Applies to an <see cref="HttpClient"/>
     /// the client creates, and to one configured with <see cref="SystemOneClient.ConfigureHttpClient(HttpClient, SystemOneClientOptions)"/>,
     /// as <c>AddSystemOneClient</c>'s are; another <see cref="HttpClient"/> you pass keeps its own time-out. With retries, a call
@@ -150,7 +158,10 @@ public sealed class SystemOneClientOptions
     /// account id in <see cref="AccountId"/> or <see cref="SystemOneDefaults.CloudflareAccountIdEnvironmentVariable"/>, or one
     /// with characters other than letters and digits; <see cref="AccountId"/> set for a provider other than
     /// <see cref="SystemOneProvider.CloudflareWorkersAi"/>; <see cref="Path"/> set for a hosted provider; or a path that is not
-    /// relative, starts with <c>/</c>, or contains a query, a fragment or a <c>..</c> segment.
+    /// relative, starts with <c>/</c>, or contains a query, a fragment or a <c>..</c> segment; or a
+    /// <see cref="Capabilities"/> override that allows no question kind or names an unknown one, a
+    /// <see cref="SystemOneCapabilities.MaxQuestions"/> below 1, or a <see cref="SystemOneCapabilities.MaxChoiceOptions"/>
+    /// below 2.
     /// </exception>
     /// <exception cref="InvalidOperationException">
     /// No API key is configured for a provider that requires one, or the <see cref="SystemOneDefaults.ApiKeyEnvironmentVariable"/>,

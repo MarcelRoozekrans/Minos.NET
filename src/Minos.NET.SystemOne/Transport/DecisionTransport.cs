@@ -6,15 +6,18 @@ using ZeroAlloc.Results;
 namespace Minos.SystemOne.Transport;
 
 /// <summary>
-/// One attempt per call: writes the request through the protocol, POSTs it to the settings' path for its model, and reads
-/// the response or maps the error through it. It never retries, logs or traces; stages do that.
+/// One attempt per call: checks the question set against the provider's capabilities, writes the request through the
+/// protocol, POSTs it to the settings' path for its model, and reads the response or maps the error through it. It never
+/// retries, logs or traces; stages do that.
 /// </summary>
 /// <remarks>
 /// Every pooled buffer is returned before the call completes. An attempt that would start after the owning client was
 /// disposed returns <see cref="DecisionErrorKind.Disposed"/> without being sent. An attempt torn down by disposing an
 /// owned <see cref="HttpClient"/> is mapped to <see cref="DecisionErrorKind.Disposed"/> by <paramref name="api"/>'s
 /// <see cref="DecisionErrorMapper"/>, and one whose send throws <see cref="ObjectDisposedException"/> once the client is
-/// disposed is reported as <see cref="DecisionErrorKind.Disposed"/> here.
+/// disposed is reported as <see cref="DecisionErrorKind.Disposed"/> here. A question set the provider's capabilities do not
+/// accept returns <see cref="DecisionErrorKind.Unsupported"/> without being sent, before any buffer is rented; the check
+/// runs after the disposed check and before the model check, and allocates nothing when the set passes.
 /// </remarks>
 /// <param name="api">The REST client that sends the attempt.</param>
 /// <param name="protocol">Writes the request and reads the response.</param>
@@ -31,6 +34,8 @@ internal sealed class DecisionTransport(
     : IDecisionClient
 {
     private readonly string _model = metadata.DefaultModel ?? SystemOneDefaults.Model;
+    private readonly CapabilitySet _capabilities = settings.Capabilities;
+    private readonly SystemOneProvider _provider = settings.Provider;
 
     public ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
     {
@@ -38,6 +43,11 @@ internal sealed class DecisionTransport(
         if (disposed())
         {
             return new(Result<DecisionResponse, DecisionError>.Failure(DecisionErrors.Disposed(null)));
+        }
+
+        if (_capabilities.Check(request.Definition, _provider) is { } unsupported)
+        {
+            return new(Result<DecisionResponse, DecisionError>.Failure(unsupported));
         }
 
         var model = request.Model ?? _model;
