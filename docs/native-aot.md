@@ -193,6 +193,7 @@ regression cannot reach a release unnoticed.
 | `PassThroughStage` | A `DelegatingDecisionClient` that overrides nothing, over an inner call that completes synchronously. | 0 |
 | `Utf8StateEvaluateRoundTrip` | A typed `EvaluateUtf8Async<T>` call, which copies the caller's bytes once and sends them as written. | 3712 |
 | `TypedStateEvaluateRoundTrip` | A typed `EvaluateAsync<T, TState>` call, which serializes its state once into an array. | 3136 |
+| `SystemOneImageRoundTrip` | A typed `EvaluateAsync<T, TState>` call with one 64 B image, sent as a data URL beside the state. | 3200 |
 | `EvaluateBuiltSetRoundTrip` | An `EvaluateAsync` call over a built set. | 3648 |
 | `BuildQuestionSet` | Building a question set. | 7296 |
 | `ContentFromValue` | `DecisionContent.FromValue`. | 320 |

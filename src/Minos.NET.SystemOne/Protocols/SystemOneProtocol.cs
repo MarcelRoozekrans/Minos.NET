@@ -26,12 +26,11 @@ internal sealed class SystemOneProtocol : IDecisionProtocol
     public static ReadOnlySpan<byte> QuestionsJson(QuestionSetDefinition definition)
         => definition.GetOrAddProtocolData(CacheSlot, static d => SystemOneQuestionsWriter.Write(d));
 
-    // This protocol does not write images yet.
     public RawJson WriteRequest<TArg>(
         QuestionSetDefinition definition, TArg state, int stateSizeHint, StateWriter<TArg> writeState,
         IReadOnlyList<DecisionImage> images, string model, ArrayPool<byte> pool)
         where TArg : allows ref struct
-        => SystemOneRequestWriter.Write(QuestionsJson(definition), state, stateSizeHint, writeState, model, pool);
+        => SystemOneRequestWriter.Write(QuestionsJson(definition), state, stateSizeHint, writeState, images, model, pool);
 
     // System One has no limits of its own beyond the capability check.
     public void CollectUnsupported(QuestionSetDefinition definition, string providerName, ref List<QuestionFailure>? failures)

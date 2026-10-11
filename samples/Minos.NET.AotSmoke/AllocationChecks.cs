@@ -245,6 +245,35 @@ internal static class AllocationChecks
             passDescription: "EvaluateAsync<T, TState> stays within its allocation budget");
     }
 
+    /// <summary>A typed Noul call with one 64 B image over a canned handler: <see cref="TypedStateEvaluateRoundTrip"/>'s call with the image sent beside the state.</summary>
+    public static void SystemOneImageRoundTrip()
+    {
+        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, Program.CredentialsResponse)) { BaseAddress = new Uri("https://example.test/api/") };
+        using var client = new SystemOneClient(http, new SystemOneClientOptions
+        {
+            ApiKey = "smoke-key",
+            Provider = SystemOneProvider.OpenRouter,
+            Capabilities = new DecisionCapabilities { Images = true },
+        });
+        var state = new SmokeState("Payouts failing", SmokeAnswers.State);
+        var png = new byte[64];
+        png[0] = 0x89;
+        png[1] = 0x50;
+        png[2] = 0x4E;
+        png[3] = 0x47;
+        DecisionImage[] images = [DecisionImage.FromBytes(png, "image/png")];
+
+        // Measured 2888 B/call on published win-x64 AOT, against TypedStateEvaluateRoundTrip's 2840 B for the same call without
+        // the image: the image's base64 text is encoded into a pooled buffer and the request body is sized for it up front,
+        // so the image costs only the DecisionRequest's copy of the one-image list. Budget: about 10% headroom over the
+        // measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
+        GateValueTask(
+            budgetBytes: 3200,
+            action: () => client.EvaluateAsync<SmokeStateTriage, SmokeState>(state, SmokeStateJsonContext.Default.SmokeState, images),
+            label: "SystemOneImageRoundTrip",
+            passDescription: "EvaluateAsync<T, TState> with an image stays within its allocation budget");
+    }
+
     /// <summary><see cref="EvaluateRoundTrip"/> through <see cref="NullLoggerFactory"/>, whose logger has every level disabled.</summary>
     public static void EvaluateRoundTripWithNullLoggerFactory()
     {

@@ -360,7 +360,10 @@ public sealed class CapabilityTests : IDisposable
         var result = await client.EvaluateAsync<MinimalUrgencyCheck>("a ticket", [Png]);
 
         Assert.True(result.IsSuccess);
-        _ = ClientTestKit.OnlyRequest(handler);
+        Assert.Contains(
+            """{"type":"image_url","image_url":{"url":"data:image/png;base64,iVBORw=="}}""",
+            ClientTestKit.OnlyRequest(handler).Body,
+            StringComparison.Ordinal);
     }
 
     [Fact]

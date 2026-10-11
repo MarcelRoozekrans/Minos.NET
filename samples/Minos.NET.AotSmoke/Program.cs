@@ -113,6 +113,7 @@ internal static class Program
         AllocationChecks.PassThroughStage();
         AllocationChecks.Utf8StateEvaluateRoundTrip();
         AllocationChecks.TypedStateEvaluateRoundTrip();
+        AllocationChecks.SystemOneImageRoundTrip();
         AllocationChecks.EvaluateRoundTripWithNullLoggerFactory();
         AllocationChecks.TypedEvaluateRoundTripWithEveryLevelFiltered();
         AllocationChecks.EvaluateRoundTripWithDiscardingLogger();
