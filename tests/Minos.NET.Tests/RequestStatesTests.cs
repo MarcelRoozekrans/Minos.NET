@@ -138,7 +138,7 @@ public sealed class RequestStatesTests
         public ZeroAlloc.Results.Result<DecisionResponse, DecisionError> ReadResponse(ReadOnlySpan<byte> body, QuestionSetDefinition definition)
             => throw new NotSupportedException();
 
-        public DecisionError MapError(int statusCode, ReadOnlySpan<byte> body, bool bodyTruncated, string? contentType, TimeSpan? retryAfter)
+        public DecisionError MapError(int statusCode, ReadOnlySpan<byte> body, bool bodyTruncated, string? contentType, TimeSpan? retryAfter, string? requestId)
             => throw new NotSupportedException();
     }
 }

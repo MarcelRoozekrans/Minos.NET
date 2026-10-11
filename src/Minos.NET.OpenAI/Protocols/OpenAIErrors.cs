@@ -10,13 +10,14 @@ namespace Minos.OpenAI.Protocols;
 /// </summary>
 internal static class OpenAIErrors
 {
-    public static DecisionError Map(int statusCode, ReadOnlySpan<byte> body, bool bodyTruncated, string? contentType, TimeSpan? retryAfter)
+    public static DecisionError Map(int statusCode, ReadOnlySpan<byte> body, bool bodyTruncated, string? contentType, TimeSpan? retryAfter, string? requestId)
     {
         var detail = ErrorBodies.Detail(body, bodyTruncated, contentType);
         return new DecisionError(ErrorBodies.KindOf(statusCode), (detail is { } json ? ErrorMessage(json) : null) ?? ErrorBodies.GenericMessage(statusCode))
         {
             StatusCode = statusCode,
             RetryAfter = retryAfter,
+            RequestId = requestId,
             Detail = detail,
         };
     }

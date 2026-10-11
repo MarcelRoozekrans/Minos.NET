@@ -338,7 +338,44 @@ public sealed class DecisionErrorMapperTests
         Assert.Null(error.RetryAfter);
         Assert.Null(error.Detail);
         Assert.Null(error.Exception);
+        Assert.Null(error.RequestId);
     }
 
     private static Dictionary<string, IReadOnlyList<string>> Headers() => [];
+
+    [Fact]
+    public void Status_CarriesTheRequestId_FromTheHeaders()
+    {
+        var error = Mapper.Map(WithHeaders(401, ("x-typesafe-request-id", "req_0123456789abcdef")));
+
+        Assert.Equal(DecisionErrorKind.Unauthorized, error.Kind);
+        Assert.Equal("req_0123456789abcdef", error.RequestId);
+    }
+
+    [Fact]
+    public void Status_WithoutARequestIdHeader_HasNoRequestId()
+        => Assert.Null(Mapper.Map(Status(500)).RequestId);
+
+    [Fact]
+    public void TimeoutTransportDeserializationAndDisposal_HaveNoRequestId_EvenWithTheHeader()
+    {
+        var headers = new Dictionary<string, IReadOnlyList<string>> { ["x-request-id"] = ["req_never"] };
+        var disposedMapper = new DecisionErrorMapper(new FixedTimeProvider(Now), disposed: () => true, SystemOneProtocol.Instance);
+        var cancelled = new TaskCanceledException("timed out");
+
+        Assert.Null(Mapper.Map(new HttpError((HttpStatusCode)0, headers, "t") { Kind = HttpErrorKind.Timeout, Exception = cancelled }).RequestId);
+        Assert.Null(Mapper.Map(new HttpError((HttpStatusCode)0, headers, "n") { Kind = HttpErrorKind.Transport, Exception = new HttpRequestException("n") }).RequestId);
+        Assert.Null(Mapper.Map(new HttpError(HttpStatusCode.OK, headers, "d") { Kind = HttpErrorKind.Deserialization, Exception = new JsonException("d") }).RequestId);
+        Assert.Null(disposedMapper.Map(new HttpError((HttpStatusCode)0, headers, "t") { Kind = HttpErrorKind.Timeout, Exception = cancelled }).RequestId);
+    }
+
+    [Fact]
+    public void ToString_WithStatusAndRequestId_IncludesBoth()
+        => Assert.Equal(
+            "Unauthorized (401, request req_abc): The API returned HTTP 401.",
+            Mapper.Map(WithHeaders(401, ("x-request-id", "req_abc"))).ToString());
+
+    [Fact]
+    public void ToString_WithARequestIdButNoStatus_IncludesTheRequestId()
+        => Assert.Equal("Http (request req_abc): odd", new DecisionError(DecisionErrorKind.Http, "odd") { RequestId = "req_abc" }.ToString());
 }

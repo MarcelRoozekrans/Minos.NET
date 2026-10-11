@@ -1,1 +1,3 @@
 #nullable enable
+Minos.DecisionError.RequestId.get -> string?
+Minos.DecisionError.RequestId.init -> void

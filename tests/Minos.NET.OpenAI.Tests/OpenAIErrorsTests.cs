@@ -18,7 +18,7 @@ public sealed class OpenAIErrorsTests
     [InlineData(529, DecisionErrorKind.Overloaded)]
     public void Status_MapsToKind_WithTheGenericMessage(int status, DecisionErrorKind kind)
     {
-        var error = OpenAIDecisionsProtocol.Instance.MapError(status, default, bodyTruncated: false, contentType: null, retryAfter: TimeSpan.FromSeconds(3));
+        var error = OpenAIDecisionsProtocol.Instance.MapError(status, default, bodyTruncated: false, contentType: null, retryAfter: TimeSpan.FromSeconds(3), requestId: null);
 
         Assert.Equal(kind, error.Kind);
         Assert.Equal($"The API returned HTTP {status}.", error.Message);
@@ -30,7 +30,7 @@ public sealed class OpenAIErrorsTests
     [Fact]
     public void OpenAIErrorBody_GivesItsMessage_AndTheWholeBodyAsDetail()
     {
-        var error = OpenAIDecisionsProtocol.Instance.MapError(400, System.Text.Encoding.UTF8.GetBytes(OpenAIBody), false, "application/json", null);
+        var error = OpenAIDecisionsProtocol.Instance.MapError(400, System.Text.Encoding.UTF8.GetBytes(OpenAIBody), false, "application/json", null, null);
 
         Assert.Equal(DecisionErrorKind.Validation, error.Kind);
         Assert.Equal("Bad model", error.Message);
@@ -44,7 +44,7 @@ public sealed class OpenAIErrorsTests
     [InlineData(null, false)]
     public void TruncatedOrNonJsonBody_GivesTheGenericMessage_AndNoDetail(string? contentType, bool truncated)
     {
-        var error = OpenAIDecisionsProtocol.Instance.MapError(400, System.Text.Encoding.UTF8.GetBytes(OpenAIBody), truncated, contentType, null);
+        var error = OpenAIDecisionsProtocol.Instance.MapError(400, System.Text.Encoding.UTF8.GetBytes(OpenAIBody), truncated, contentType, null, null);
 
         Assert.Equal("The API returned HTTP 400.", error.Message);
         Assert.Null(error.Detail);
@@ -55,7 +55,7 @@ public sealed class OpenAIErrorsTests
     [InlineData("""{"error":{"message":"Bad model"}} x""")]
     public void InvalidJsonBody_GivesTheGenericMessage_AndNoDetail(string body)
     {
-        var error = OpenAIDecisionsProtocol.Instance.MapError(400, System.Text.Encoding.UTF8.GetBytes(body), false, "application/json", null);
+        var error = OpenAIDecisionsProtocol.Instance.MapError(400, System.Text.Encoding.UTF8.GetBytes(body), false, "application/json", null, null);
 
         Assert.Equal("The API returned HTTP 400.", error.Message);
         Assert.Null(error.Detail);
@@ -70,10 +70,16 @@ public sealed class OpenAIErrorsTests
     [InlineData("""["Bad model"]""")]
     public void JsonBodyWithoutAnErrorMessage_GivesTheGenericMessage_AndTheBodyAsDetail(string body)
     {
-        var error = OpenAIDecisionsProtocol.Instance.MapError(503, System.Text.Encoding.UTF8.GetBytes(body), false, "application/json", null);
+        var error = OpenAIDecisionsProtocol.Instance.MapError(503, System.Text.Encoding.UTF8.GetBytes(body), false, "application/json", null, null);
 
         Assert.Equal(DecisionErrorKind.Overloaded, error.Kind);
         Assert.Equal("The API returned HTTP 503.", error.Message);
         Assert.Equal(body, error.Detail!.Value.GetRawText());
     }
+
+    [Fact]
+    public void TheRequestId_IsKept()
+        => Assert.Equal(
+            "req_abc",
+            OpenAIDecisionsProtocol.Instance.MapError(401, System.Text.Encoding.UTF8.GetBytes(OpenAIBody), false, "application/json", null, "req_abc").RequestId);
 }
