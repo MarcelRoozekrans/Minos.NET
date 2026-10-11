@@ -104,6 +104,15 @@ internal static class Program
         await CapabilityChecks.ImagesToAProviderWithoutImagesAreNotSent().ConfigureAwait(false);
         CapabilityChecks.CapabilitiesBindFromConfiguration();
 
+        await OpenAIChecks.ClientsThatOwnTheirHttpClientRefuseCallsAfterDispose().ConfigureAwait(false);
+        await OpenAIChecks.ClientsOverAnHttpClientEvaluateTheTriageAnswers().ConfigureAwait(false);
+        await OpenAIChecks.RefusalIsRefused().ConfigureAwait(false);
+        OpenAIChecks.ClientAnswersItsServices();
+        OpenAIChecks.ConfigureHttpClientAndValidateApplyTheOptions();
+        await OpenAIChecks.DefaultAndKeyedClientsEvaluate().ConfigureAwait(false);
+        await OpenAIChecks.ClientsBoundFromConfigurationEvaluate().ConfigureAwait(false);
+        await OpenAIChecks.ClientsConfiguredFromTheEnvironmentEvaluate().ConfigureAwait(false);
+
         await AllocationChecks.AnswerSlotAccessors().ConfigureAwait(false);
         await AllocationChecks.GeneratedCreate().ConfigureAwait(false);
         AllocationChecks.EvaluateRoundTrip();
@@ -114,6 +123,8 @@ internal static class Program
         AllocationChecks.Utf8StateEvaluateRoundTrip();
         AllocationChecks.TypedStateEvaluateRoundTrip();
         AllocationChecks.SystemOneImageRoundTrip();
+        AllocationChecks.OpenAITypedRoundTrip();
+        AllocationChecks.OpenAIImageRoundTrip();
         AllocationChecks.EvaluateRoundTripWithNullLoggerFactory();
         AllocationChecks.TypedEvaluateRoundTripWithEveryLevelFiltered();
         AllocationChecks.EvaluateRoundTripWithDiscardingLogger();

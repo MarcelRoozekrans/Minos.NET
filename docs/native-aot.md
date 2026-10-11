@@ -194,6 +194,8 @@ regression cannot reach a release unnoticed.
 | `Utf8StateEvaluateRoundTrip` | A typed `EvaluateUtf8Async<T>` call, which copies the caller's bytes once and sends them as written. | 3712 |
 | `TypedStateEvaluateRoundTrip` | A typed `EvaluateAsync<T, TState>` call, which serializes its state once into an array. | 3136 |
 | `SystemOneImageRoundTrip` | A typed `EvaluateAsync<T, TState>` call with one 64 B image, sent as a data URL beside the state. | 3200 |
+| `OpenAITypedRoundTrip` | A typed `EvaluateAsync<T>` call over an `OpenAIDecisionClient`, over a three-kind response. | 3776 |
+| `OpenAIImageRoundTrip` | A typed `EvaluateAsync<T, TState>` call over an `OpenAIDecisionClient` with one 64 B image. | 3072 |
 | `EvaluateBuiltSetRoundTrip` | An `EvaluateAsync` call over a built set. | 3648 |
 | `BuildQuestionSet` | Building a question set. | 7296 |
 | `ContentFromValue` | `DecisionContent.FromValue`. | 320 |

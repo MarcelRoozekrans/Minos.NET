@@ -78,6 +78,7 @@ public sealed class ObservabilityNamesTests
     [Theory]
     [InlineData("Minos.NET")]
     [InlineData("Minos.NET.SystemOne")]
+    [InlineData("Minos.NET.OpenAI")]
     [InlineData("Minos.NET.DependencyInjection")]
     public void ThePackages_TakeNoOpenTelemetryDependency(string project)
     {

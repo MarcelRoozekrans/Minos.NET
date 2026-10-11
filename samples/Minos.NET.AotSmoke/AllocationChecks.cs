@@ -4,6 +4,7 @@ using System.Text.Json;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Minos.OpenAI;
 using Minos.Shared;
 using Minos.SystemOne;
 using ZeroAlloc.Results;
@@ -271,6 +272,43 @@ internal static class AllocationChecks
             action: () => client.EvaluateAsync<SmokeStateTriage, SmokeState>(state, SmokeStateJsonContext.Default.SmokeState, images),
             label: "SystemOneImageRoundTrip",
             passDescription: "EvaluateAsync<T, TState> with an image stays within its allocation budget");
+    }
+
+    /// <summary>A typed three-kind call over an <see cref="OpenAIDecisionClient"/>: a predicate, a choice and a score.</summary>
+    public static void OpenAITypedRoundTrip()
+    {
+        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, OpenAIChecks.TriageResponse)) { BaseAddress = new Uri("https://example.test/api/") };
+        using var client = new OpenAIDecisionClient(http, new OpenAIDecisionClientOptions { ApiKey = "smoke-key" });
+
+        // Measured 3400 B/call on published win-x64 AOT. Budget: about 10% headroom over the measurement,
+        // rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
+        GateValueTask(
+            budgetBytes: 3776,
+            action: () => client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State),
+            label: "OpenAITypedRoundTrip",
+            passDescription: "EvaluateAsync<T> over an OpenAIDecisionClient stays within its allocation budget");
+    }
+
+    /// <summary>A typed Noul call with one 64 B image over an <see cref="OpenAIDecisionClient"/>: the call <see cref="SystemOneImageRoundTrip"/> makes over a SystemOneClient.</summary>
+    public static void OpenAIImageRoundTrip()
+    {
+        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, OpenAIChecks.CredentialsResponse)) { BaseAddress = new Uri("https://example.test/api/") };
+        using var client = new OpenAIDecisionClient(http, new OpenAIDecisionClientOptions { ApiKey = "smoke-key" });
+        var state = new SmokeState("Payouts failing", SmokeAnswers.State);
+        var png = new byte[64];
+        png[0] = 0x89;
+        png[1] = 0x50;
+        png[2] = 0x4E;
+        png[3] = 0x47;
+        DecisionImage[] images = [DecisionImage.FromBytes(png, "image/png")];
+
+        // Measured 2792 B/call on published win-x64 AOT, over a one-question response with one 64 B image. Budget:
+        // about 10% headroom over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
+        GateValueTask(
+            budgetBytes: 3072,
+            action: () => client.EvaluateAsync<SmokeStateTriage, SmokeState>(state, SmokeStateJsonContext.Default.SmokeState, images),
+            label: "OpenAIImageRoundTrip",
+            passDescription: "EvaluateAsync<T, TState> with an image over an OpenAIDecisionClient stays within its allocation budget");
     }
 
     /// <summary><see cref="EvaluateRoundTrip"/> through <see cref="NullLoggerFactory"/>, whose logger has every level disabled.</summary>
