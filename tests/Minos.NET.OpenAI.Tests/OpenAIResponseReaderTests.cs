@@ -241,6 +241,18 @@ public sealed class OpenAIResponseReaderTests
     }
 
     [Fact]
+    public void Usage_WithBothCountsAndACost_ReadsAllThree()
+    {
+        var response = Success(
+            Body($$$"""{"answers":[{{{Predicate}}},{{{Choice}}},{{{Score}}}],"usage":{"input_tokens":296,"output_tokens":0,"cost":0.0000296}}"""),
+            TestSets.AllKinds());
+
+        Assert.Equal(296, response.Usage!.InputTokens);
+        Assert.Equal(0, response.Usage.OutputTokens);
+        Assert.Equal(0.0000296, response.Usage.Cost);
+    }
+
+    [Fact]
     public void Usage_Absent_IsTheEmptyUsage()
     {
         var response = Success(Fixture("success-all-kinds.json"), TestSets.AllKinds());
