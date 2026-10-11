@@ -1,6 +1,6 @@
 namespace Minos;
 
-/// <summary>The pipeline builder of one <c>AddDecisionClient</c> registration.</summary>
+/// <summary>The pipeline builder of one decision client registration.</summary>
 /// <remarks>
 /// Stages added here wrap the registered client. The container builds the pipeline once, when the client is first
 /// resolved, so stages read its services: <c>UseLogging()</c> its

@@ -42,24 +42,47 @@ public sealed class AddDecisionClientFactoryTests
         Assert.Same(first, second);
     }
 
-    [Fact]
-    public void Mixing_a_factory_and_a_SystemOne_registration_under_one_name_throws()
+    [Theory]
+    [InlineData(null, true)]
+    [InlineData(null, false)]
+    [InlineData("x", true)]
+    [InlineData("x", false)]
+    public void Mixing_a_factory_and_a_SystemOne_registration_under_one_name_throws_and_registers_nothing(string? name, bool factoryFirst)
     {
         var services = new ServiceCollection();
-        services.AddDecisionClient("x", _ => new FakeDecisionClient());
+        Action factory = name is null
+            ? () => services.AddDecisionClient(_ => new FakeDecisionClient())
+            : () => services.AddDecisionClient(name, _ => new FakeDecisionClient());
+        Action systemOne = name is null
+            ? () => services.AddSystemOneClient(o => o.ApiKey = "k")
+            : () => services.AddSystemOneClient(name, o => o.ApiKey = "k");
+        (factoryFirst ? factory : systemOne)();
+        var registered = services.Count;
 
-        var exception = Assert.Throws<InvalidOperationException>(() => services.AddSystemOneClient("x", o => o.ApiKey = "k"));
-        Assert.Equal("The decision client 'x' is already registered with a different provider.", exception.Message);
+        var exception = Assert.Throws<InvalidOperationException>(factoryFirst ? systemOne : factory);
+
+        Assert.Equal(
+            name is null
+                ? "The default decision client is already registered with a different provider."
+                : "The decision client 'x' is already registered with a different provider.",
+            exception.Message);
+        Assert.Equal(registered, services.Count);
     }
 
     [Fact]
-    public void Mixing_a_SystemOne_and_a_factory_registration_for_the_default_client_throws()
+    public void NullArguments_Throw_AndRegisterNothing()
     {
+        IServiceCollection? none = null;
         var services = new ServiceCollection();
-        services.AddSystemOneClient(o => o.ApiKey = "k");
+        Func<IServiceProvider, IDecisionClient> factory = _ => new FakeDecisionClient();
 
-        var exception = Assert.Throws<InvalidOperationException>(() => services.AddDecisionClient(_ => new FakeDecisionClient()));
-        Assert.Equal("The default decision client is already registered with a different provider.", exception.Message);
+        Assert.Equal("services", Assert.Throws<ArgumentNullException>(() => none!.AddDecisionClient(factory)).ParamName);
+        Assert.Equal("factory", Assert.Throws<ArgumentNullException>(() => services.AddDecisionClient(null!)).ParamName);
+        Assert.Equal("services", Assert.Throws<ArgumentNullException>(() => none!.AddDecisionClient("x", factory)).ParamName);
+        Assert.Equal("name", Assert.Throws<ArgumentNullException>(() => services.AddDecisionClient(null!, factory)).ParamName);
+        Assert.Equal("name", Assert.Throws<ArgumentException>(() => services.AddDecisionClient(string.Empty, factory)).ParamName);
+        Assert.Equal("factory", Assert.Throws<ArgumentNullException>(() => services.AddDecisionClient("x", null!)).ParamName);
+        Assert.Empty(services);
     }
 
     [Fact]

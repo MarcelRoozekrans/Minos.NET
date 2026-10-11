@@ -24,7 +24,8 @@ allocates, because a program that avoids the just-in-time compiler usually cares
   ordinary C# at compile time. The set uses no reflection at run time, and neither does reading an answer.
 - **Dependency injection.** `Minos.NET.DependencyInjection` and the `AddSystemOneClient` registrations in
   `Minos.NET.SystemOne` are Native AOT compatible too. `AddSystemOneClient` binds options from configuration with the
-  configuration binding source generator, so binding uses no reflection and needs nothing set up in your program. [Dependency injection](dependency-injection.md#options-from-configuration) covers the options.
+  configuration binding source generator, so binding uses no reflection and needs nothing set up in your program.
+  [Dependency injection](dependency-injection.md#options-from-configuration) covers the options.
 
 ## The one use of reflection
 
@@ -89,12 +90,12 @@ The checks run the real client over a canned HTTP handler. They cover:
 ### The whole-assembly check: is anything unsafe
 
 A publish only analyses what the program reaches, so the smoke application cannot vouch for a member that no check
-calls. The `aot-surface` job closes that gap. It publishes `samples/Minos.NET.AotSurface` with `PublishAot` and
-full trimming, and roots `Minos.NET`, `Minos.NET.SystemOne` and `Minos.NET.DependencyInjection` whole through
+calls. The `aot-surface` job closes that gap. It publishes `samples/Minos.NET.AotSurface` with `PublishAot` and full
+trimming, and roots `Minos.NET`, `Minos.NET.SystemOne` and `Minos.NET.DependencyInjection` whole through
 `TrimmerRootAssembly`.
 
-Rooting analyses every non-generic member of the three packages, called or not, and every generic member the compiler can
-share across reference types. A value-type generic has no such shared form, so rooting alone skips it. That covers
+Rooting analyses every non-generic member of the three packages, called or not, and every generic member the compiler
+can share across reference types. A value-type generic has no such shared form, so rooting alone skips it. That covers
 `Choice<T>`, `Score<T>` and the other generics over an enum, whose type parameter is `where T : struct, Enum`. The host
 therefore instantiates every public generic type and generic method of the three packages over its own types, and the
 compiler analyses them through those instantiations. A test in `tests/Minos.NET.AotSmoke.Tests` fails when a public
