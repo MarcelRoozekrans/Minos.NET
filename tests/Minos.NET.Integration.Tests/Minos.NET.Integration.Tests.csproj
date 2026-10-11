@@ -6,6 +6,7 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Minos.NET\Minos.NET.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.SystemOne\Minos.NET.SystemOne.csproj" />
+    <ProjectReference Include="..\..\src\Minos.NET.OpenAI\Minos.NET.OpenAI.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.DependencyInjection\Minos.NET.DependencyInjection.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.Generator\Minos.NET.Generator.csproj"
                       OutputItemType="Analyzer"
@@ -38,5 +39,6 @@
     <Compile Include="..\Minos.NET.Tests\TelemetryCapture.cs" Link="TelemetryCapture.cs" />
     <Compile Include="..\Minos.NET.Tests\TelemetryListeners.cs" Link="TelemetryListeners.cs" />
     <None Include="..\Minos.NET.Tests\Fixtures\**\*.json" Link="Fixtures\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Minos.NET.OpenAI.Tests\Fixtures\*.json" Link="Fixtures\OpenAI\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

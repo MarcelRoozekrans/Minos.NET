@@ -1,6 +1,5 @@
 using System.Buffers;
 using System.Net.Http.Headers;
-using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Minos.SystemOne.Protocols;
 using Minos.SystemOne.Serialization;
@@ -36,7 +35,7 @@ namespace Minos.SystemOne;
 /// </remarks>
 public sealed class SystemOneClient : IDecisionClient
 {
-    private static readonly ProductInfoHeaderValue UserAgent = CreateUserAgent();
+    private static readonly ProductInfoHeaderValue UserAgent = HttpClientSetup.CreateUserAgent(typeof(SystemOneClient).Assembly);
 
     private readonly DecisionOperationsInstrumented _operations;
     private readonly HttpClient? _ownedHttpClient;
@@ -188,12 +187,12 @@ public sealed class SystemOneClient : IDecisionClient
         if (httpClient is null)
         {
             httpClient = new HttpClient(ownedHandler ?? new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(2) });
-            ApplyHttpSettings(httpClient, new SystemOneHttpSettings(settings.BaseAddress, settings.Timeout));
+            HttpClientSetup.Apply(httpClient, new HttpSettings(settings.BaseAddress, settings.Timeout), UserAgent);
             _ownedHttpClient = httpClient;
         }
         else if (httpClient.BaseAddress is not null)
         {
-            ValidateBorrowedBaseAddress(httpClient);
+            HttpClientSetup.CheckBorrowedBaseAddress(httpClient);
         }
         else
         {
@@ -277,7 +276,7 @@ public sealed class SystemOneClient : IDecisionClient
     internal static void ConfigureHttpClient(HttpClient httpClient, SystemOneClientOptions? options, Func<string, string?> environment)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
-        ApplyHttpSettings(httpClient, SystemOneClientSettings.ResolveHttp(options, environment));
+        HttpClientSetup.Apply(httpClient, SystemOneClientSettings.ResolveHttp(options, environment), UserAgent);
     }
 
     /// <summary>Asks the request's questions about its state.</summary>
@@ -510,48 +509,6 @@ public sealed class SystemOneClient : IDecisionClient
         }
     }
 
-    // Validates a caller-supplied HttpClient.BaseAddress with the same rules as a configured address. The caller's
-    // client is never modified, so unlike a configured address (which gets a trailing slash appended), the path here
-    // must already end in '/'.
-    private static void ValidateBorrowedBaseAddress(HttpClient httpClient)
-    {
-        var baseAddress = httpClient.BaseAddress!;
-
-        if (!baseAddress.IsAbsoluteUri)
-        {
-            throw new ArgumentException("httpClient.BaseAddress must be an absolute URI.", nameof(httpClient));
-        }
-
-        if (!string.Equals(baseAddress.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal)
-            && !string.Equals(baseAddress.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal))
-        {
-            throw new ArgumentException("httpClient.BaseAddress must use the http or https scheme.", nameof(httpClient));
-        }
-
-        if (baseAddress.Query.Length > 0 || baseAddress.Fragment.Length > 0)
-        {
-            throw new ArgumentException("httpClient.BaseAddress must not contain a query or fragment.", nameof(httpClient));
-        }
-
-        if (!baseAddress.AbsoluteUri.EndsWith('/'))
-        {
-            throw new ArgumentException("httpClient.BaseAddress must end with '/'.", nameof(httpClient));
-        }
-    }
-
-    // What an owned HttpClient gets and ConfigureHttpClient applies: the base address when there is none, the per-attempt
-    // time-out, and the User-Agent once.
-    private static void ApplyHttpSettings(HttpClient httpClient, SystemOneHttpSettings settings)
-    {
-        // Timeout first: its setter can throw, and nothing else has been changed by then.
-        httpClient.Timeout = settings.Timeout;
-        httpClient.BaseAddress ??= settings.BaseAddress;
-        if (!httpClient.DefaultRequestHeaders.UserAgent.Contains(UserAgent))
-        {
-            httpClient.DefaultRequestHeaders.UserAgent.Add(UserAgent);
-        }
-    }
-
     private static SystemOneClientSettings ResolveSettings(SystemOneClientOptions? options)
         => SystemOneClientSettings.Resolve(options, Environment.GetEnvironmentVariable);
 
@@ -560,33 +517,5 @@ public sealed class SystemOneClient : IDecisionClient
     {
         ArgumentNullException.ThrowIfNull(httpClient);
         return ResolveSettings(options);
-    }
-
-    // ProductInfoHeaderValue's constructor throws FormatException for a version that is not a valid product token;
-    // a User-Agent header must never prevent client construction, so this falls back to "0.0.0" instead.
-    private static ProductInfoHeaderValue CreateUserAgent()
-    {
-        try
-        {
-            return new ProductInfoHeaderValue("Minos.NET", ClientVersion());
-        }
-        catch (FormatException)
-        {
-            return new ProductInfoHeaderValue("Minos.NET", "0.0.0");
-        }
-    }
-
-    private static string ClientVersion()
-    {
-        var version = typeof(SystemOneClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
-        if (string.IsNullOrEmpty(version))
-        {
-            return "0.0.0";
-        }
-
-        // Strip build metadata (e.g. a source-control commit hash appended after '+' by the build), which is not
-        // part of the version a caller would want to see or compare in a User-Agent header.
-        var buildMetadata = version.IndexOf('+', StringComparison.Ordinal);
-        return buildMetadata < 0 ? version : version[..buildMetadata];
     }
 }

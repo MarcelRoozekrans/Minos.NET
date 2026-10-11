@@ -27,7 +27,6 @@
     <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="ZeroAlloc.Rest" />
-    <PackageReference Include="ZeroAlloc.Rest.SystemTextJson" />
     <PackageReference Include="ZeroAlloc.Results" />
   </ItemGroup>
 

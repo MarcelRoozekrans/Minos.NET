@@ -8,12 +8,19 @@
     <ProjectReference Include="..\..\src\Minos.NET\Minos.NET.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.OpenAI\Minos.NET.OpenAI.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.DependencyInjection\Minos.NET.DependencyInjection.csproj" />
+    <!-- The generator, for the typed [Questions] record the client tests ask. -->
+    <ProjectReference Include="..\..\src\Minos.NET.Generator\Minos.NET.Generator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
+    <!-- FakeLogger and LoggerFactory, for LogCapture. -->
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
   </ItemGroup>
 
   <ItemGroup>
@@ -21,6 +28,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Protocol-neutral log helpers, which use no SystemOne type. -->
+    <Compile Include="..\Minos.NET.Tests\LogCapture.cs" Link="LogCapture.cs" />
+    <Compile Include="..\Minos.NET.Tests\LogAssert.cs" Link="LogAssert.cs" />
     <None Include="Fixtures\**\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
