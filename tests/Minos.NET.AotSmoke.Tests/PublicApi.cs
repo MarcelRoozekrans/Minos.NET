@@ -29,7 +29,7 @@ internal static class PublicApi
     private const string Arrow = " -> ";
     private const string RemovedPrefix = "*REMOVED*";
 
-    private static readonly string[][] Packages =
+    internal static readonly string[][] Packages =
     [
         ["src/Minos.NET/PublicAPI.Shipped.txt", "src/Minos.NET/PublicAPI.Unshipped.txt"],
         ["src/Minos.NET.SystemOne/PublicAPI.Shipped.txt", "src/Minos.NET.SystemOne/PublicAPI.Unshipped.txt"],

@@ -101,7 +101,6 @@ Minos.SystemOne.SystemOneClientOptions.MaxRetries.get -> int
 Minos.SystemOne.SystemOneClientOptions.MaxRetries.set -> void
 Minos.SystemOne.SystemOneClientOptions.MaxRetryDelay.get -> System.TimeSpan
 Minos.SystemOne.SystemOneClientOptions.MaxRetryDelay.set -> void
-*REMOVED*Minos.SystemOne.SystemOneClientOptions.Model.get -> string!
 Minos.SystemOne.SystemOneClientOptions.Model.get -> string?
 Minos.SystemOne.SystemOneClientOptions.Model.set -> void
 Minos.SystemOne.SystemOneClientOptions.Path.get -> string?
