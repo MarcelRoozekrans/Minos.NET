@@ -29,7 +29,8 @@ The rules come in two groups.
   at most 255 options for a Choice question. MIN005 warns about a larger set at build time, and since 0.9 the TypeSafe
   and OpenRouter presets also refuse it before sending, with `Unsupported` and MIN203.
 - **MIN101 to MIN108 check what the generator can turn into code.** They are all errors, because a declaration the
-  generator cannot read cannot be turned into a request.
+  generator cannot read cannot be turned into a request. The generator reports MIN101 to MIN107 at build time, for a
+  `[Questions]` type. MIN108 has no analyzer: it is reported only by `Build()` of a set built at run time.
 
 A set with any error is invalid. The generator writes no `Definition`, no `Create` and no `IQuestionSet` for it,
 so `EvaluateAsync<T>` does not compile for that type. The generator still gives each unimplemented question property a
