@@ -246,7 +246,7 @@ public sealed partial class ObservabilityLoggingTests
         }
     }
 
-    // The table's ids, event names, levels and message templates are DecisionLog's, read from its source.
+    // The table's ids, event names, levels and message templates are DecisionLog's and SystemOneLog's, read from their source.
     [Fact]
     public void TheEventTableOnThePage_IsDecisionLogsLoggerMessageAttributes()
     {
@@ -277,18 +277,22 @@ public sealed partial class ObservabilityLoggingTests
 
     private static (int Id, string Name, string Level, string Template)[] Events()
     {
-        var source = File.ReadAllText(Path.Combine(PublishedPages.Root, "src", "Minos.NET", "DecisionLog.cs"));
-        var events = new List<(int, string, string, string)>();
-        foreach (Match match in LoggerMessage().Matches(source))
+        // The raw calls' events (1004 and 1005) live in SystemOneLog, the rest in DecisionLog.
+        var events = new List<(int Id, string Name, string Level, string Template)>();
+        foreach (var file in new[] { Path.Combine("src", "Minos.NET", "DecisionLog.cs"), Path.Combine("src", "Minos.NET", "Transport", "SystemOneLog.cs") })
         {
-            events.Add((
-                int.Parse(match.Groups["id"].Value, CultureInfo.InvariantCulture),
-                match.Groups["name"].Value,
-                match.Groups["level"].Value,
-                Template(match.Groups["message"].Value)));
+            var source = File.ReadAllText(Path.Combine(PublishedPages.Root, file));
+            foreach (Match match in LoggerMessage().Matches(source))
+            {
+                events.Add((
+                    int.Parse(match.Groups["id"].Value, CultureInfo.InvariantCulture),
+                    match.Groups["name"].Value,
+                    match.Groups["level"].Value,
+                    Template(match.Groups["message"].Value)));
+            }
         }
 
-        return [.. events];
+        return [.. events.OrderBy(e => e.Id)];
     }
 
     // The attribute's Message is a string literal, or literals joined by + with the ListModels constant.

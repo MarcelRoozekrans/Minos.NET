@@ -1,5 +1,3 @@
-using Minos.Transport;
-
 namespace Minos;
 
 /// <summary>How <see cref="RetryingDecisionClient"/> retries.</summary>

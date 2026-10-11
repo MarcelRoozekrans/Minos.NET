@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Minos.SystemOne;
 using ZeroAlloc.Results;
 using ZeroAlloc.Telemetry;
 using static Minos.Telemetry.DecisionTelemetry;
@@ -22,7 +23,7 @@ internal interface IDecisionOperations
     /// <summary>Evaluates an untyped request.</summary>
     [Trace("evaluate {request.Model}", Kind = ActivityKind.Client, ErrorWhen = "IsFailure", TagsAtStart = true, ExceptionDescription = false)]
     [TraceTagConstant(OperationName, EvaluateOperation)]
-    [TraceTagConstant(DecisionOperation, DecisionLog.Evaluate)]
+    [TraceTagConstant(DecisionOperation, SystemOneLog.Evaluate)]
     [TraceTagFromResult(ResponseModel, "Value.Model", When = "IsSuccess")]
     [TraceTagFromResult(InputTokens, "Value.Usage.InputTokens", When = "IsSuccess")]
     [TraceTagFromResult(OutputTokens, "Value.Usage.OutputTokens", When = "IsSuccess")]
@@ -38,7 +39,7 @@ internal interface IDecisionOperations
     [MetricTagConstant(OperationName, EvaluateOperation)]
     [MetricTagConstant(TokenModality, Text, Metric = InputTokenCounter)]
     [MetricTagConstant(TokenModality, Text, Metric = OutputTokenCounter)]
-    [MetricTagConstant(DecisionOperation, DecisionLog.Evaluate, Metric = AnswerConfidence)]
+    [MetricTagConstant(DecisionOperation, SystemOneLog.Evaluate, Metric = AnswerConfidence)]
     [MetricTagFromResult(ErrorType, "Error.ErrorType", When = "IsFailure", Metric = OperationDuration)]
     [MetricTagFromResult(ResponseModel, "Value.Model", When = "IsSuccess", Metric = OperationDuration)]
     [MetricTagFromResult(ResponseModel, "Value.Model", When = "IsSuccess", Metric = InputTokenHistogram)]
@@ -61,7 +62,7 @@ internal interface IDecisionOperations
     /// <summary>Lists the models; never called for OpenRouter, whose failure the client returns before any call.</summary>
     [Trace(ListModelsOperation, Kind = ActivityKind.Client, ErrorWhen = "IsFailure", TagsAtStart = true, ExceptionDescription = false)]
     [TraceTagConstant(OperationName, ListModelsOperation)]
-    [TraceTagConstant(DecisionOperation, DecisionLog.ListModels)]
+    [TraceTagConstant(DecisionOperation, SystemOneLog.ListModels)]
     [TraceTagFromResult(ErrorType, "Error.ErrorType", When = "IsFailure")]
     [Histogram(OperationDuration, Unit = Seconds, Buckets = new[] { 0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56, 5.12, 10.24, 20.48, 40.96, 81.92 })]
     [MetricTagConstant(OperationName, ListModelsOperation)]

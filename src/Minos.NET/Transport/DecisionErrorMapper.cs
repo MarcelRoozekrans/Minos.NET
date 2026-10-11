@@ -12,14 +12,6 @@ namespace Minos.Transport;
 /// <param name="protocol">The wire format that maps an error status and its body.</param>
 internal sealed class DecisionErrorMapper(TimeProvider time, Func<bool>? disposed, IDecisionProtocol protocol) : IHttpErrorMapper<DecisionError>
 {
-    private const string DisposedMessage = "The client was disposed while the request was in flight.";
-
-    /// <summary>The failure for an attempt that the client's disposal tore down or kept from being sent.</summary>
-    /// <param name="exception">The exception the teardown caused, or <see langword="null"/> when nothing was sent.</param>
-    /// <returns>A <see cref="DecisionErrorKind.Disposed"/> error.</returns>
-    public static DecisionError Disposed(Exception? exception)
-        => new(DecisionErrorKind.Disposed, DisposedMessage) { Exception = exception };
-
     public DecisionError Map(HttpError error)
     {
         ArgumentNullException.ThrowIfNull(error);
@@ -30,7 +22,7 @@ internal sealed class DecisionErrorMapper(TimeProvider time, Func<bool>? dispose
         // Timeout. Deciding here, before the retry proxy sees the failure, keeps a disposed client from retrying.
         if (error.Kind is HttpErrorKind.Timeout or HttpErrorKind.Transport && disposed is not null && disposed())
         {
-            return Disposed(error.Exception);
+            return DecisionErrors.Disposed(error.Exception);
         }
 
         return error.Kind switch

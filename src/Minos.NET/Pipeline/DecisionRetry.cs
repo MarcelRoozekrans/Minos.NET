@@ -6,7 +6,7 @@ using ZeroAlloc.Results;
 namespace Minos;
 
 /// <summary>
-/// The retry loop shared by <see cref="RetryingDecisionClient"/> and <see cref="DecisionClient"/>'s raw calls. Delays come
+/// The retry loop shared by <see cref="RetryingDecisionClient"/> and the <c>SystemOneClient</c>'s raw calls. Delays come
 /// from ZeroAlloc.Resilience's <see cref="RetryPolicy"/>, so backoff, jitter, the cap and a response's Retry-After behave
 /// as they always have.
 /// </summary>
@@ -121,7 +121,7 @@ internal sealed class DecisionRetry
             // A retry that would start after Dispose is not sent.
             if (_disposed())
             {
-                return Result<T, DecisionError>.Failure(DecisionErrorMapper.Disposed(null));
+                return Result<T, DecisionError>.Failure(DecisionErrors.Disposed(null));
             }
 
             try
@@ -131,7 +131,7 @@ internal sealed class DecisionRetry
             catch (ObjectDisposedException exception) when (_disposed())
             {
                 // Dispose landed after the check above: the inner client threw rather than answer.
-                return Result<T, DecisionError>.Failure(DecisionErrorMapper.Disposed(exception));
+                return Result<T, DecisionError>.Failure(DecisionErrors.Disposed(exception));
             }
 
             index++;

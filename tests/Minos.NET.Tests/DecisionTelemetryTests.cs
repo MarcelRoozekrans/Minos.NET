@@ -1,3 +1,4 @@
+using Minos.SystemOne;
 using Minos.Telemetry;
 
 namespace Minos.Tests;
@@ -35,7 +36,7 @@ public sealed class DecisionTelemetryTests
     [Theory]
     [InlineData(DecisionProvider.TypeSafe, "typesafe")]
     [InlineData(DecisionProvider.OpenRouter, "openrouter")]
-    public void Provider_HasItsGenAiValue(DecisionProvider provider, string expected) => Assert.Equal(expected, DecisionTelemetry.ProviderOf(provider));
+    public void Provider_HasItsGenAiValue(DecisionProvider provider, string expected) => Assert.Equal(expected, SystemOneTelemetry.ProviderOf(provider));
 
     [Fact]
     public void Buckets_AreTheSpecsBoundaries()

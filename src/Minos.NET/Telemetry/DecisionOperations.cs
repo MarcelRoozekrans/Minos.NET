@@ -63,7 +63,7 @@ internal sealed class DecisionOperations(IDecisionApi api, string authorization,
 
         var faulted = attempt.AsTask();
         return faulted.Exception?.InnerException is ObjectDisposedException exception && disposed()
-            ? new(Result<T, DecisionError>.Failure(DecisionErrorMapper.Disposed(exception)))
+            ? new(Result<T, DecisionError>.Failure(DecisionErrors.Disposed(exception)))
             : new ValueTask<Result<T, DecisionError>>(faulted);
     }
 

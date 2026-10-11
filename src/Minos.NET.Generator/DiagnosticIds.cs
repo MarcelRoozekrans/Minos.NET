@@ -26,6 +26,15 @@ internal static class DiagnosticIds
     // Reported only by the run-time builder, for a built set's JSON nested too deep: declared sets are text only.
     public const string InvalidJson = "MIN108";
 
+    /// <summary>A provider cannot answer a question of this kind.</summary>
+    public const string UnsupportedQuestionKind = "MIN201";
+
+    /// <summary>A request holds more questions than the provider accepts.</summary>
+    public const string TooManyQuestions = "MIN202";
+
+    /// <summary>A Choice question has more options than the provider accepts.</summary>
+    public const string TooManyChoiceOptions = "MIN203";
+
     /// <summary>Whether a diagnostic with <paramref name="id"/> is advice only: the set is still valid and generated.</summary>
     public static bool IsAdvisory(string id)
         => id is EmptyText or UnknownStateReference or OptionCountOutsideGuidance or MissingCriteria;

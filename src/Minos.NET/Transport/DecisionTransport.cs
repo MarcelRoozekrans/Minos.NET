@@ -32,7 +32,7 @@ internal sealed class DecisionTransport(
         ArgumentNullException.ThrowIfNull(request);
         if (disposed())
         {
-            return new(Result<DecisionResponse, DecisionError>.Failure(DecisionErrorMapper.Disposed(null)));
+            return new(Result<DecisionResponse, DecisionError>.Failure(DecisionErrors.Disposed(null)));
         }
 
         var body = protocol.WriteRequest(request.Definition, request.State, request.Model ?? _model, pool);
@@ -65,7 +65,7 @@ internal sealed class DecisionTransport(
             {
                 // Dispose landed after the check above but before the send checked it: the HttpClient threw rather than
                 // answer, and ZeroAlloc.Rest rethrows that unmapped.
-                return Result<DecisionResponse, DecisionError>.Failure(DecisionErrorMapper.Disposed(exception));
+                return Result<DecisionResponse, DecisionError>.Failure(DecisionErrors.Disposed(exception));
             }
 
             if (sent.IsFailure)

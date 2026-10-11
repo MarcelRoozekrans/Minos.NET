@@ -17,14 +17,8 @@ internal static partial class DecisionLog
     /// <summary>The logger category: <c>loggerFactory.CreateLogger(Category)</c>.</summary>
     public const string Category = "Minos.DecisionClient";
 
-    /// <summary>The operation name of <see cref="DecisionClient.EvaluateAsync(SystemOneRequest, CancellationToken)"/>.</summary>
-    public const string Evaluate = "evaluate";
-
     /// <summary>The operation name of every neutral <see cref="IDecisionClient.EvaluateAsync"/> call, typed and built sets included.</summary>
     public const string EvaluateSet = "evaluate-set";
-
-    /// <summary>The operation name of <see cref="DecisionClient.ListModelsAsync(CancellationToken)"/>.</summary>
-    public const string ListModels = "list-models";
 
     /// <summary>
     /// What is logged instead of an <see cref="DecisionErrorKind.InvalidResponse"/> error's message, which can quote the
@@ -63,23 +57,6 @@ internal static partial class DecisionLog
         Level = LogLevel.Warning,
         Message = "Minos attempt {Attempt} failed with {ErrorKind}, status {StatusCode}, retry-after {RetryAfter}; retrying.")]
     public static partial void AttemptRetrying(ILogger logger, int attempt, DecisionErrorKind errorKind, int? statusCode, TimeSpan? retryAfter);
-
-    /// <summary>A model listing succeeded.</summary>
-    [LoggerMessage(
-        EventId = 1004,
-        EventName = nameof(ModelsListed),
-        Level = LogLevel.Debug,
-        Message = "Minos " + ListModels + " via {Provider} succeeded: {ModelCount} models in {DurationMs} ms.")]
-    public static partial void ModelsListed(ILogger logger, DecisionProvider provider, int modelCount, double durationMs);
-
-    /// <summary>A model listing failed, after any retries.</summary>
-    [LoggerMessage(
-        EventId = 1005,
-        EventName = nameof(ModelsListFailed),
-        Level = LogLevel.Warning,
-        Message = "Minos " + ListModels + " via {Provider} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}")]
-    public static partial void ModelsListFailed(
-        ILogger logger, DecisionProvider provider, DecisionErrorKind errorKind, int? statusCode, double durationMs, string errorMessage);
 
     /// <summary>An operation threw: a programming error, since every call failure is returned as a <see cref="DecisionError"/>.</summary>
     [LoggerMessage(

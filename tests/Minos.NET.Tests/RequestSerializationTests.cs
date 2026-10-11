@@ -127,7 +127,7 @@ public sealed class RequestSerializationTests
     [Fact]
     public void DecisionJsonOptions_UseTheSourceGeneratedContext()
     {
-        Assert.IsType<DecisionJsonContext>(DecisionJson.Options.TypeInfoResolver);
+        Assert.IsType<DecisionJsonContext>(Options.TypeInfoResolver);
     }
 
     [Fact]
@@ -209,9 +209,9 @@ public sealed class RequestSerializationTests
     [Fact]
     public void TypeInfoResolver_ResolvesAllTopLevelTypes()
     {
-        Assert.NotNull(DecisionJson.Options.GetTypeInfo(typeof(SystemOneRequest)));
-        Assert.NotNull(DecisionJson.Options.GetTypeInfo(typeof(SystemOneResponse)));
-        Assert.NotNull(DecisionJson.Options.GetTypeInfo(typeof(ModelList)));
+        Assert.NotNull(Options.GetTypeInfo(typeof(SystemOneRequest)));
+        Assert.NotNull(Options.GetTypeInfo(typeof(SystemOneResponse)));
+        Assert.NotNull(Options.GetTypeInfo(typeof(ModelList)));
     }
 
     private static void AssertSerializesTo(SystemOneRequest request, string fixture)
@@ -239,4 +239,6 @@ public sealed class RequestSerializationTests
         using var document = JsonDocument.Parse(json);
         return document.RootElement.Clone();
     }
+
+    private static System.Text.Json.JsonSerializerOptions Options => DecisionJsonContext.Default.Options;
 }

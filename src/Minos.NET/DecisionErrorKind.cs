@@ -11,37 +11,37 @@ public enum DecisionErrorKind
 
     /// <summary>
     /// Too many requests: HTTP 429. The client already retries this, honouring <see cref="DecisionError.RetryAfter"/> when
-    /// it is set, and returns it only after <see cref="DecisionClientOptions.MaxRetries"/> retries are used up.
+    /// it is set, and returns it only after <see cref="DecisionRetryOptions.MaxRetries"/> retries are used up.
     /// </summary>
     RateLimited = 3,
 
     /// <summary>
     /// The service is overloaded: HTTP 529 or 503. The client already retries this with backoff, and returns it only
-    /// after <see cref="DecisionClientOptions.MaxRetries"/> retries are used up.
+    /// after <see cref="DecisionRetryOptions.MaxRetries"/> retries are used up.
     /// </summary>
     Overloaded = 4,
 
     /// <summary>
     /// The service failed: any other HTTP 5xx status. The client already retries this with backoff, and returns it
-    /// only after <see cref="DecisionClientOptions.MaxRetries"/> retries are used up.
+    /// only after <see cref="DecisionRetryOptions.MaxRetries"/> retries are used up.
     /// </summary>
     Server = 5,
 
     /// <summary>
     /// Any other unsuccessful HTTP status. For a 408, the client already retries this with backoff, and returns it only
-    /// after <see cref="DecisionClientOptions.MaxRetries"/> retries are used up.
+    /// after <see cref="DecisionRetryOptions.MaxRetries"/> retries are used up.
     /// </summary>
     Http = 6,
 
     /// <summary>
     /// No response arrived: a DNS, connection or TLS failure. The client already retries this with backoff, and
-    /// returns it only after <see cref="DecisionClientOptions.MaxRetries"/> retries are used up.
+    /// returns it only after <see cref="DecisionRetryOptions.MaxRetries"/> retries are used up.
     /// </summary>
     Network = 7,
 
     /// <summary>
     /// The request exceeded the client time-out. The client already retries this with backoff, and returns it only
-    /// after <see cref="DecisionClientOptions.MaxRetries"/> retries are used up.
+    /// after <see cref="DecisionRetryOptions.MaxRetries"/> retries are used up.
     /// </summary>
     Timeout = 8,
 

@@ -4,6 +4,7 @@ using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Minos.Protocols;
 using Minos.Serialization;
+using Minos.SystemOne;
 using Minos.Telemetry;
 using Minos.Transport;
 using ZeroAlloc.Rest.SystemTextJson;
@@ -199,7 +200,7 @@ public sealed class DecisionClient : IDecisionClient
             MaxRetryDelay = settings.MaxRetryDelay,
             Jitter = settings.Jitter,
         };
-        _providerName = DecisionTelemetry.ProviderOf(settings.Provider);
+        _providerName = SystemOneTelemetry.ProviderOf(settings.Provider);
         _endpoint = httpClient.BaseAddress!;
         _logger = logger;
         // A disposed client never retries. Only an owned HttpClient is disposed with the client, so only an owned one can
@@ -434,18 +435,18 @@ public sealed class DecisionClient : IDecisionClient
             if (result.IsSuccess)
             {
                 var providerName = ProviderName(_provider);
-                DecisionLog.EvaluationSucceeded(logger, DecisionLog.Evaluate, model, providerName, questionCount, durationMs);
+                DecisionLog.EvaluationSucceeded(logger, SystemOneLog.Evaluate, model, providerName, questionCount, durationMs);
             }
             else
             {
                 var error = result.Error;
                 var message = DecisionLog.SafeMessage(error);
-                DecisionLog.EvaluationFailed(logger, DecisionLog.Evaluate, model, error.Kind, error.StatusCode, durationMs, message);
+                DecisionLog.EvaluationFailed(logger, SystemOneLog.Evaluate, model, error.Kind, error.StatusCode, durationMs, message);
             }
 
             return result;
         }
-        catch (Exception exception) when (DecisionLog.LogUnexpected(logger, DecisionLog.Evaluate, exception, ct))
+        catch (Exception exception) when (DecisionLog.LogUnexpected(logger, SystemOneLog.Evaluate, exception, ct))
         {
             throw;
         }
@@ -468,18 +469,20 @@ public sealed class DecisionClient : IDecisionClient
             if (result.IsSuccess)
             {
                 var modelCount = result.Value.Models.Count;
-                DecisionLog.ModelsListed(logger, _provider, modelCount, durationMs);
+                var providerName = ProviderName(_provider);
+                SystemOneLog.ModelsListed(logger, providerName, modelCount, durationMs);
             }
             else
             {
                 var error = result.Error;
                 var message = DecisionLog.SafeMessage(error);
-                DecisionLog.ModelsListFailed(logger, _provider, error.Kind, error.StatusCode, durationMs, message);
+                var providerName = ProviderName(_provider);
+                SystemOneLog.ModelsListFailed(logger, providerName, error.Kind, error.StatusCode, durationMs, message);
             }
 
             return result;
         }
-        catch (Exception exception) when (DecisionLog.LogUnexpected(logger, DecisionLog.ListModels, exception, ct))
+        catch (Exception exception) when (DecisionLog.LogUnexpected(logger, SystemOneLog.ListModels, exception, ct))
         {
             throw;
         }

@@ -5,6 +5,7 @@ using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Minos.Serialization;
+using Minos.SystemOne;
 
 namespace Minos.Tests;
 
@@ -172,7 +173,7 @@ public sealed class DecisionClientLoggingTests : IDisposable
 
         var record = logs.Only(1001);
         Assert.Equal(LogLevel.Debug, record.Level);
-        Assert.Equal(DecisionLog.Evaluate, LogAssert.Field(record, "Operation"));
+        Assert.Equal(SystemOneLog.Evaluate, LogAssert.Field(record, "Operation"));
         Assert.Equal("jev-latest", LogAssert.Field(record, "Model"));
         Assert.Equal("TypeSafe", LogAssert.Field(record, "Provider"));
         Assert.Equal("1", LogAssert.Field(record, "QuestionCount"));
@@ -192,7 +193,7 @@ public sealed class DecisionClientLoggingTests : IDisposable
         Assert.Equal(DecisionErrorKind.Validation, result.Error.Kind);
         var record = logs.Only(1002);
         Assert.Equal(LogLevel.Warning, record.Level);
-        Assert.Equal(DecisionLog.Evaluate, LogAssert.Field(record, "Operation"));
+        Assert.Equal(SystemOneLog.Evaluate, LogAssert.Field(record, "Operation"));
         Assert.Equal("jev-latest", LogAssert.Field(record, "Model"));
         Assert.Equal("Validation", LogAssert.Field(record, "ErrorKind"));
         Assert.Equal("422", LogAssert.Field(record, "StatusCode"));
@@ -332,7 +333,7 @@ public sealed class DecisionClientLoggingTests : IDisposable
         Assert.Equal("bug", thrown.Message);
         var record = logs.Only(1006);
         Assert.Equal(LogLevel.Error, record.Level);
-        Assert.Equal(DecisionLog.Evaluate, LogAssert.Field(record, "Operation"));
+        Assert.Equal(SystemOneLog.Evaluate, LogAssert.Field(record, "Operation"));
         Assert.Same(thrown, record.Exception);
         Assert.Equal([1006], logs.EventIds);
     }
@@ -345,7 +346,7 @@ public sealed class DecisionClientLoggingTests : IDisposable
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await client.ListModelsAsync());
 
-        Assert.Equal(DecisionLog.ListModels, LogAssert.Field(logs.Only(1006), "Operation"));
+        Assert.Equal(SystemOneLog.ListModels, LogAssert.Field(logs.Only(1006), "Operation"));
     }
 
     [Fact]

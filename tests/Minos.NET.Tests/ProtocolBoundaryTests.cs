@@ -19,9 +19,6 @@ public sealed class ProtocolBoundaryTests
     private static readonly string[] Allowed =
     [
         "Protocols/",
-
-        // Phase 6.3: response envelope.
-        "Telemetry/ResponseFields.cs",
     ];
 
     [Fact]
