@@ -1,6 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using Minos.SystemOne.Protocols;
+using Minos.Transport;
 
 namespace Minos.Tests;
 
@@ -169,12 +170,12 @@ public sealed class SystemOneAnswersTests
             reader.Read();
             reader.Read();
             reader.Read();
-            SystemOneAnswers.NextProperty(ref reader);
+            AnswerReading.NextProperty(ref reader);
         });
 
     [Fact]
     public void MissingAnswer_NamesTheKey()
-        => Assert.Contains("'team'", SystemOneAnswers.MissingAnswer("team").Message, StringComparison.Ordinal);
+        => Assert.Contains("'team'", AnswerReading.MissingAnswer("team").Message, StringComparison.Ordinal);
 
     private static Utf8JsonReader At(string json)
     {

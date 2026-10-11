@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Text;
 using System.Text.Json;
+using Minos.Transport;
 
 namespace Minos.OpenAI.Protocols;
 
@@ -26,46 +27,6 @@ internal static class OpenAIAnswers
         Refusal,
     }
 
-    /// <summary>Throws unless <paramref name="reader"/> is positioned on the start of an array.</summary>
-    public static void EnsureStartArray(ref Utf8JsonReader reader)
-    {
-        if (reader.TokenType != JsonTokenType.StartArray)
-        {
-            throw new JsonException($"Expected a JSON array but found {reader.TokenType.ToString()}.");
-        }
-    }
-
-    /// <summary>Throws unless <paramref name="reader"/> is positioned on the start of an object.</summary>
-    public static void EnsureStartObject(ref Utf8JsonReader reader)
-    {
-        if (reader.TokenType != JsonTokenType.StartObject)
-        {
-            throw new JsonException($"Expected a JSON object but found {reader.TokenType.ToString()}.");
-        }
-    }
-
-    /// <summary>Advances to the next element of the current array; false at the array's end.</summary>
-    public static bool NextElement(ref Utf8JsonReader reader)
-    {
-        if (!reader.Read())
-        {
-            throw new JsonException("The JSON ends inside an array.");
-        }
-
-        return reader.TokenType != JsonTokenType.EndArray;
-    }
-
-    /// <summary>Advances to the next property of the current object; false at the object's end.</summary>
-    public static bool NextProperty(ref Utf8JsonReader reader)
-    {
-        if (!reader.Read())
-        {
-            throw new JsonException("The JSON ends inside an object.");
-        }
-
-        return reader.TokenType == JsonTokenType.PropertyName;
-    }
-
     /// <summary>
     /// Scans an answer object for its <c>name</c> and <c>type</c>, in either order, without allocating. The reader is a
     /// copy, positioned on the answer's start, so the caller's reader stays there.
@@ -75,10 +36,10 @@ internal static class OpenAIAnswers
     /// <returns>The question's index, or -1 for a name the set does not have, and the answer's type.</returns>
     public static (int Index, AnswerType Type) Probe(Utf8JsonReader probe, byte[][] keys)
     {
-        EnsureStartObject(ref probe);
+        AnswerReading.EnsureStartObject(ref probe);
         int? index = null;
         AnswerType? type = null;
-        while (NextProperty(ref probe))
+        while (AnswerReading.NextProperty(ref probe))
         {
             if (probe.ValueTextEquals("name"u8))
             {
@@ -107,7 +68,7 @@ internal static class OpenAIAnswers
             }
         }
 
-        return (index ?? throw MissingField("name"), type ?? throw MissingField("type"));
+        return (index ?? throw AnswerReading.MissingField("name"), type ?? throw AnswerReading.MissingField("type"));
     }
 
     /// <summary>Throws unless an answer of <paramref name="type"/> answers a question of <paramref name="kind"/>.</summary>
@@ -129,13 +90,13 @@ internal static class OpenAIAnswers
     /// <summary>Reads a predicate answer's probability. The reader is left on the answer's end.</summary>
     public static double ReadPredicate(ref Utf8JsonReader reader)
     {
-        EnsureStartObject(ref reader);
+        AnswerReading.EnsureStartObject(ref reader);
         double? probability = null;
-        while (NextProperty(ref reader))
+        while (AnswerReading.NextProperty(ref reader))
         {
             if (reader.ValueTextEquals("probability"u8))
             {
-                probability = ReadNumber(ref reader);
+                probability = AnswerReading.ReadNumber(ref reader);
             }
             else
             {
@@ -143,17 +104,17 @@ internal static class OpenAIAnswers
             }
         }
 
-        return probability ?? throw MissingField("probability");
+        return probability ?? throw AnswerReading.MissingField("probability");
     }
 
     /// <summary>Reads a choice answer's option index and confidence, writing its probabilities into <paramref name="buffer"/> from <paramref name="offset"/>.</summary>
     public static (int Choice, double Confidence) ReadChoice(ref Utf8JsonReader reader, byte[][] optionKeys, double[] buffer, int offset)
     {
-        EnsureStartObject(ref reader);
+        AnswerReading.EnsureStartObject(ref reader);
         var hasProbabilities = false;
         var choice = -1;
         double? confidence = null;
-        while (NextProperty(ref reader))
+        while (AnswerReading.NextProperty(ref reader))
         {
             if (reader.ValueTextEquals("choice"u8))
             {
@@ -167,7 +128,7 @@ internal static class OpenAIAnswers
             }
             else if (reader.ValueTextEquals("confidence"u8))
             {
-                confidence = ReadNumber(ref reader);
+                confidence = AnswerReading.ReadNumber(ref reader);
             }
             else
             {
@@ -175,9 +136,9 @@ internal static class OpenAIAnswers
             }
         }
 
-        Require(choice >= 0, "choice");
-        Require(hasProbabilities, "probabilities");
-        return (choice, confidence ?? throw MissingField("confidence"));
+        AnswerReading.Require(choice >= 0, "choice");
+        AnswerReading.Require(hasProbabilities, "probabilities");
+        return (choice, confidence ?? throw AnswerReading.MissingField("confidence"));
     }
 
     /// <summary>
@@ -186,15 +147,15 @@ internal static class OpenAIAnswers
     /// </summary>
     public static (int Level, double Expected, double Confidence) ReadScore(ref Utf8JsonReader reader, int levels, double[] buffer, int offset)
     {
-        EnsureStartObject(ref reader);
+        AnswerReading.EnsureStartObject(ref reader);
         var hasProbabilities = false;
         double? expected = null;
         double? confidence = null;
-        while (NextProperty(ref reader))
+        while (AnswerReading.NextProperty(ref reader))
         {
             if (reader.ValueTextEquals("score"u8))
             {
-                expected = ReadNumber(ref reader);
+                expected = AnswerReading.ReadNumber(ref reader);
             }
             else if (reader.ValueTextEquals("probabilities"u8))
             {
@@ -203,7 +164,7 @@ internal static class OpenAIAnswers
             }
             else if (reader.ValueTextEquals("confidence"u8))
             {
-                confidence = ReadNumber(ref reader);
+                confidence = AnswerReading.ReadNumber(ref reader);
             }
             else
             {
@@ -211,7 +172,7 @@ internal static class OpenAIAnswers
             }
         }
 
-        Require(hasProbabilities, "probabilities");
+        AnswerReading.Require(hasProbabilities, "probabilities");
 
         var best = 0;
         for (var i = 1; i < levels; i++)
@@ -222,11 +183,8 @@ internal static class OpenAIAnswers
             }
         }
 
-        return (best, expected ?? throw MissingField("score"), confidence ?? throw MissingField("confidence"));
+        return (best, expected ?? throw AnswerReading.MissingField("score"), confidence ?? throw AnswerReading.MissingField("confidence"));
     }
-
-    /// <summary>Creates the exception thrown when the response has no answer for a declared question.</summary>
-    public static JsonException MissingAnswer(string key) => new($"The response has no answer for '{key}'.");
 
     private static ReadOnlySpan<byte> TypeName(AnswerType type) => type switch
     {
@@ -239,14 +197,14 @@ internal static class OpenAIAnswers
     private static void ReadChoiceProbabilities(ref Utf8JsonReader reader, byte[][] optionKeys, double[] buffer, int offset)
     {
         reader.Read();
-        EnsureStartArray(ref reader);
+        AnswerReading.EnsureStartArray(ref reader);
         Array.Clear(buffer, offset, optionKeys.Length);
-        while (NextElement(ref reader))
+        while (AnswerReading.NextElement(ref reader))
         {
-            EnsureStartObject(ref reader);
+            AnswerReading.EnsureStartObject(ref reader);
             var index = -1;
             double? probability = null;
-            while (NextProperty(ref reader))
+            while (AnswerReading.NextProperty(ref reader))
             {
                 if (reader.ValueTextEquals("value"u8))
                 {
@@ -255,7 +213,7 @@ internal static class OpenAIAnswers
                 }
                 else if (reader.ValueTextEquals("probability"u8))
                 {
-                    probability = ReadNumber(ref reader);
+                    probability = AnswerReading.ReadNumber(ref reader);
                 }
                 else
                 {
@@ -263,8 +221,8 @@ internal static class OpenAIAnswers
                 }
             }
 
-            Require(index >= 0, "value");
-            buffer[offset + index] = probability ?? throw MissingField("probability");
+            AnswerReading.Require(index >= 0, "value");
+            buffer[offset + index] = probability ?? throw AnswerReading.MissingField("probability");
         }
     }
 
@@ -272,14 +230,14 @@ internal static class OpenAIAnswers
     private static void ReadScoreProbabilities(ref Utf8JsonReader reader, int levels, double[] buffer, int offset)
     {
         reader.Read();
-        EnsureStartArray(ref reader);
+        AnswerReading.EnsureStartArray(ref reader);
         Array.Clear(buffer, offset, levels);
-        while (NextElement(ref reader))
+        while (AnswerReading.NextElement(ref reader))
         {
-            EnsureStartObject(ref reader);
+            AnswerReading.EnsureStartObject(ref reader);
             var index = -1;
             double? probability = null;
-            while (NextProperty(ref reader))
+            while (AnswerReading.NextProperty(ref reader))
             {
                 if (reader.ValueTextEquals("value"u8))
                 {
@@ -288,7 +246,7 @@ internal static class OpenAIAnswers
                 }
                 else if (reader.ValueTextEquals("probability"u8))
                 {
-                    probability = ReadNumber(ref reader);
+                    probability = AnswerReading.ReadNumber(ref reader);
                 }
                 else
                 {
@@ -296,8 +254,8 @@ internal static class OpenAIAnswers
                 }
             }
 
-            Require(index >= 0, "value");
-            buffer[offset + index] = probability ?? throw MissingField("probability");
+            AnswerReading.Require(index >= 0, "value");
+            buffer[offset + index] = probability ?? throw AnswerReading.MissingField("probability");
         }
     }
 
@@ -316,17 +274,6 @@ internal static class OpenAIAnswers
         return index;
     }
 
-    private static double ReadNumber(ref Utf8JsonReader reader)
-    {
-        reader.Read();
-        if (reader.TokenType != JsonTokenType.Number || !reader.TryGetDouble(out var value))
-        {
-            throw new JsonException($"Expected a number but found {reader.TokenType.ToString()}.");
-        }
-
-        return value;
-    }
-
     private static int ReadOptionIndex(ref Utf8JsonReader reader, byte[][] optionKeys)
     {
         if (reader.TokenType != JsonTokenType.String)
@@ -342,14 +289,4 @@ internal static class OpenAIAnswers
 
         return index;
     }
-
-    private static void Require(bool present, string field)
-    {
-        if (!present)
-        {
-            throw MissingField(field);
-        }
-    }
-
-    private static JsonException MissingField(string field) => new($"The answer has no '{field}' field.");
 }

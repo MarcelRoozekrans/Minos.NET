@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Minos.Transport;
 using ZeroAlloc.Results;
 
 namespace Minos.OpenAI.Protocols;
@@ -9,7 +10,7 @@ namespace Minos.OpenAI.Protocols;
 /// <see cref="DecisionErrorKind.Refused"/> when the model refused a question. <c>model</c>, <c>id</c> and <c>usage</c>
 /// are optional and read leniently: a field of the wrong type is treated as absent, never as an error. The first
 /// occurrence of a field decides it, even when that occurrence has the wrong type; a repeat is skipped, and so is a
-/// second <c>usage</c> object. The guide documents no usage object, so its token counts are read only when present.
+/// second <c>usage</c> object. The guide documents no usage object, so its token counts and cost are read only when present.
 /// </remarks>
 internal static class OpenAIResponseReader
 {
@@ -20,23 +21,21 @@ internal static class OpenAIResponseReader
     // last one is returned as that same string instead of a new one per response. A race only replaces the cached value.
     private static string? lastModel;
 
-    // Utf8JsonReader treats a leading UTF-8 BOM as an invalid start of a value; a body read here tolerates one.
-    private static ReadOnlySpan<byte> Utf8Bom => [0xEF, 0xBB, 0xBF];
-
     public static Result<DecisionResponse, DecisionError> Read(OpenAIDecisionsProtocol protocol, ReadOnlySpan<byte> body, QuestionSetDefinition definition)
     {
-        var reader = new Utf8JsonReader(body.StartsWith(Utf8Bom) ? body[Utf8Bom.Length..] : body);
+        var reader = new Utf8JsonReader(ResponseReading.SkipUtf8Bom(body));
         try
         {
             if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)
             {
-                return Invalid("The response body is not a JSON object.");
+                return ResponseReading.Invalid("The response body is not a JSON object.");
             }
 
             (AnswerSlot[] Slots, double[] Probabilities)? answers = null;
             string? model = null, id = null;
             bool modelSeen = false, idSeen = false, usageSeen = false;
             int? inputTokens = null, outputTokens = null;
+            double? cost = null;
             while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName)
             {
                 if (reader.ValueTextEquals("answers"u8))
@@ -44,12 +43,12 @@ internal static class OpenAIResponseReader
                     reader.Read();
                     if (answers is not null)
                     {
-                        return Invalid("The response has more than one answers property.");
+                        return ResponseReading.Invalid("The response has more than one answers property.");
                     }
 
                     if (reader.TokenType == JsonTokenType.Null)
                     {
-                        return Invalid("The response's answers are null.");
+                        return ResponseReading.Invalid("The response's answers are null.");
                     }
 
                     answers = protocol.ReadAnswers(ref reader, definition, Capture);
@@ -64,7 +63,7 @@ internal static class OpenAIResponseReader
                     else
                     {
                         modelSeen = true;
-                        model = CachedStringOrSkip(ref reader, ref lastModel);
+                        model = ResponseReading.CachedStringOrSkip(ref reader, ref lastModel);
                     }
                 }
                 else if (reader.ValueTextEquals("id"u8))
@@ -77,7 +76,7 @@ internal static class OpenAIResponseReader
                     else
                     {
                         idSeen = true;
-                        id = StringOrSkip(ref reader);
+                        id = ResponseReading.StringOrSkip(ref reader);
                     }
                 }
                 else if (reader.ValueTextEquals("usage"u8))
@@ -90,7 +89,7 @@ internal static class OpenAIResponseReader
                     else
                     {
                         usageSeen = true;
-                        ReadUsage(ref reader, ref inputTokens, ref outputTokens);
+                        ResponseReading.ReadUsage(ref reader, ref inputTokens, ref outputTokens, ref cost);
                     }
                 }
                 else
@@ -105,8 +104,8 @@ internal static class OpenAIResponseReader
 
             return answers is { } read
                 ? Result<DecisionResponse, DecisionError>.Success(
-                    new DecisionResponse(definition, read.Slots, read.Probabilities, model, inputTokens, outputTokens, cost: null, id, provider: null))
-                : Invalid("The response has no answers.");
+                    new DecisionResponse(definition, read.Slots, read.Probabilities, model, inputTokens, outputTokens, cost, id, provider: null))
+                : ResponseReading.Invalid("The response has no answers.");
         }
         catch (RefusalException refusal)
         {
@@ -114,13 +113,7 @@ internal static class OpenAIResponseReader
         }
         catch (JsonException exception)
         {
-            return Result<DecisionResponse, DecisionError>.Failure(new DecisionError(
-                DecisionErrorKind.InvalidResponse,
-                "The response could not be read as the question set's answers: " + exception.Message)
-            {
-                StatusCode = 200,
-                Exception = exception,
-            });
+            return ResponseReading.Unreadable(exception);
         }
     }
 
@@ -138,67 +131,4 @@ internal static class OpenAIResponseReader
             StatusCode = 200,
         };
     }
-
-    private static string? CachedStringOrSkip(ref Utf8JsonReader reader, ref string? cache)
-    {
-        if (reader.TokenType != JsonTokenType.String)
-        {
-            reader.Skip();
-            return null;
-        }
-
-        var cached = Volatile.Read(ref cache);
-        if (cached is not null && reader.ValueTextEquals(cached))
-        {
-            return cached;
-        }
-
-        var value = reader.GetString();
-        Volatile.Write(ref cache, value);
-        return value;
-    }
-
-    private static string? StringOrSkip(ref Utf8JsonReader reader)
-    {
-        if (reader.TokenType == JsonTokenType.String)
-        {
-            return reader.GetString();
-        }
-
-        reader.Skip();
-        return null;
-    }
-
-    private static void ReadUsage(ref Utf8JsonReader reader, ref int? inputTokens, ref int? outputTokens)
-    {
-        if (reader.TokenType != JsonTokenType.StartObject)
-        {
-            reader.Skip();
-            return;
-        }
-
-        bool inputSeen = false, outputSeen = false;
-        while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName)
-        {
-            var field = reader.ValueTextEquals("input_tokens"u8) ? 1 : reader.ValueTextEquals("output_tokens"u8) ? 2 : 0;
-            reader.Read();
-            switch (field)
-            {
-                case 1 when !inputSeen:
-                    inputSeen = true;
-                    inputTokens = reader.TokenType == JsonTokenType.Number && reader.TryGetInt32(out var input) ? input : null;
-                    break;
-                case 2 when !outputSeen:
-                    outputSeen = true;
-                    outputTokens = reader.TokenType == JsonTokenType.Number && reader.TryGetInt32(out var output) ? output : null;
-                    break;
-                default:
-                    reader.Skip();
-                    break;
-            }
-        }
-    }
-
-    private static Result<DecisionResponse, DecisionError> Invalid(string message)
-        => Result<DecisionResponse, DecisionError>.Failure(new DecisionError(DecisionErrorKind.InvalidResponse, message) { StatusCode = 200 });
 }

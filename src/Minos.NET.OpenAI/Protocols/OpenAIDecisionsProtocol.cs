@@ -76,7 +76,7 @@ internal sealed class OpenAIDecisionsProtocol : IDecisionProtocol
     /// <exception cref="RefusalException">The model refused at least one question; checked before any missing answer.</exception>
     public TResult ReadAnswers<TResult>(ref Utf8JsonReader answers, QuestionSetDefinition definition, AnswerFactory<TResult> create)
     {
-        OpenAIAnswers.EnsureStartArray(ref answers);
+        AnswerReading.EnsureStartArray(ref answers);
         var questions = definition.QuestionArray;
         var count = questions.Length;
         var probabilities = definition.ProbabilityCount == 0 ? [] : new double[definition.ProbabilityCount];
@@ -88,7 +88,7 @@ internal sealed class OpenAIDecisionsProtocol : IDecisionProtocol
         flags.Clear();
         List<string>? refused = null;
 
-        while (OpenAIAnswers.NextElement(ref answers))
+        while (AnswerReading.NextElement(ref answers))
         {
             var (index, type) = OpenAIAnswers.Probe(answers, definition.KeysUtf8);
             if (index < 0)
@@ -140,7 +140,7 @@ internal sealed class OpenAIDecisionsProtocol : IDecisionProtocol
         {
             if ((flags[i] & Found) == 0)
             {
-                throw OpenAIAnswers.MissingAnswer(questions[i].Key);
+                throw AnswerReading.MissingAnswer(questions[i].Key);
             }
         }
 
