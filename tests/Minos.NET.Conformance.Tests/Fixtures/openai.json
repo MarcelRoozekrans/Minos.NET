@@ -1,0 +1,56 @@
+{
+  "target": "openai",
+  "source": "guide",
+  "note": "The success bodies are the answers of the example in OpenAI's Decisions guide, https://developers.openai.com/api/docs/guides/decisions, as Phase 6.5's fixtures used them on 2026-10-11, renamed to this suite's keys: refund is is_urgent; topic is department, with other as technical, or product, with billing and other as pro-plan and team-plan; urgency is frustration, or effort. mixed lists them in another order than the probe asks. The guide shows no model and no usage. bad-key is the 401 OpenAI sent to the header probe on 2026-10-11; it carried an x-request-id header whose value was not kept, so the header is left out. No invalid-request body from OpenAI exists yet, so that probe is skipped.",
+  "exchanges": [
+    {
+      "probe": "noul",
+      "status": 200,
+      "contentType": "application/json",
+      "response": {"answers":[
+        {"type":"predicate","name":"is_urgent","probability":0.92}]}
+    },
+    {
+      "probe": "choice",
+      "status": 200,
+      "contentType": "application/json",
+      "response": {"answers":[
+        {"type":"choice","name":"department","choice":"billing","probabilities":[{"value":"billing","probability":0.8},{"value":"technical","probability":0.2}],"confidence":0.6}]}
+    },
+    {
+      "probe": "score",
+      "status": 200,
+      "contentType": "application/json",
+      "response": {"answers":[
+        {"type":"score","name":"frustration","score":1.1,"probabilities":[{"value":0,"label":"0","probability":0.1},{"value":1,"label":"1","probability":0.7},{"value":2,"label":"2","probability":0.2}],"confidence":0.5}]}
+    },
+    {
+      "probe": "mixed",
+      "status": 200,
+      "contentType": "application/json",
+      "response": {"answers":[
+        {"type":"choice","name":"department","choice":"billing","probabilities":[{"value":"billing","probability":0.8},{"value":"technical","probability":0.2}],"confidence":0.6},
+        {"type":"score","name":"frustration","score":1.1,"probabilities":[{"value":0,"label":"0","probability":0.1},{"value":1,"label":"1","probability":0.7},{"value":2,"label":"2","probability":0.2}],"confidence":0.5},
+        {"type":"predicate","name":"is_urgent","probability":0.92}]}
+    },
+    {
+      "probe": "keyed",
+      "status": 200,
+      "contentType": "application/json",
+      "response": {"answers":[
+        {"type":"choice","name":"product","choice":"pro-plan","probabilities":[{"value":"pro-plan","probability":0.8},{"value":"team-plan","probability":0.2}],"confidence":0.6},
+        {"type":"score","name":"effort","score":1.1,"probabilities":[{"value":0,"label":"0","probability":0.1},{"value":1,"label":"1","probability":0.7},{"value":2,"label":"2","probability":0.2}],"confidence":0.5}]}
+    },
+    {
+      "probe": "invalid",
+      "skipped": "No invalid-request body from OpenAI exists yet; the guide documents none, and there is no key to record one."
+    },
+    {
+      "probe": "bad-key",
+      "recorded": "2026-10-11",
+      "status": 401,
+      "contentType": "application/json",
+      "response": {"error":{"message":"A valid API key is required.","type":"invalid_request_error","param":null,"code":null}}
+    }
+  ]
+}
