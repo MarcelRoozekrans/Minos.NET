@@ -91,6 +91,21 @@ public sealed class OpenAIDecisionClientTests : IDisposable
     }
 
     [Fact]
+    public void Capabilities_ReportNoModelListing_EvenWhenTheOptionsAskForOne()
+    {
+        using var client = Client(
+            _httpClients,
+            new StubHandler((_, _) => Task.FromResult(Success())),
+            configure: o => o.Capabilities = new DecisionCapabilities { ModelListing = true, MaxQuestions = 4 });
+
+        var capabilities = client.GetService<DecisionCapabilities>();
+
+        Assert.NotNull(capabilities);
+        Assert.False(capabilities.ModelListing);
+        Assert.Equal(4, capabilities.MaxQuestions);
+    }
+
+    [Fact]
     public void RetryOptions_AreAClone_OfTheResolvedSettings()
     {
         using var client = Client(_httpClients, new StubHandler((_, _) => Task.FromResult(Success())), configure: o => o.MaxRetries = 4);

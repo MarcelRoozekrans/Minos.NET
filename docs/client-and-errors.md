@@ -468,6 +468,9 @@ Each preset, and OpenAI, has defaults for the five capabilities. "None" means no
 `Images` says whether the provider takes [images](#images). A request with images to a provider whose `Images` is off
 returns `Unsupported` with `MIN206`, and nothing is sent.
 
+OpenAI's `ModelListing` is always off: `OpenAIDecisionClient` has no model listing, so it ignores
+`Capabilities.ModelListing`, and `GetService<DecisionCapabilities>()` reports `false` whatever you set.
+
 ### Overriding them
 
 `SystemOneClientOptions.Capabilities` and `OpenAIDecisionClientOptions.Capabilities` are a `DecisionCapabilities`,

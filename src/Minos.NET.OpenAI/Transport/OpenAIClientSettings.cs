@@ -56,7 +56,10 @@ internal sealed class OpenAIClientSettings
     /// <summary>Gets the resolved default model: the option, trimmed, or <see cref="OpenAIDefaults.Model"/>.</summary>
     public string Model { get; }
 
-    /// <summary>Gets OpenAI's capabilities with the options' overrides applied.</summary>
+    /// <summary>
+    /// Gets OpenAI's capabilities with the options' overrides applied, except <c>ModelListing</c>, which is always
+    /// <see langword="false"/>: the client has no model listing.
+    /// </summary>
     public CapabilitySet Capabilities { get; }
 
     public TimeSpan Timeout { get; }
@@ -85,7 +88,10 @@ internal sealed class OpenAIClientSettings
         RetrySettings.Check(options.MaxRetries, options.InitialBackoff, options.MaxRetryDelay, nameof(options));
 
         var model = options.Model is { } explicitModel ? ClientSettingRules.CheckModel(explicitModel, nameof(options)) : OpenAIDefaults.Model;
-        var capabilities = ClientSettingRules.ResolveCapabilities(Defaults, options.Capabilities, nameof(options));
+        // The client has no model listing, so ModelListing stays false whatever the options say, and GetService reports
+        // the truth.
+        var capabilities = ClientSettingRules.ResolveCapabilities(Defaults, options.Capabilities, nameof(options))
+            with { ModelListing = false };
         var apiKey = ResolveApiKey(options, environment);
         var baseAddress = ClientSettingRules.WithTrailingSlash(ResolveRoot(options, environment));
 
