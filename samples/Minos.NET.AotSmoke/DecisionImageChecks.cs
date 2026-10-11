@@ -38,6 +38,23 @@ internal static class DecisionImageChecks
             "DecisionImage rejects an unsupported type, empty data and a remote URL under Native AOT");
     }
 
+    [Covers("Minos.DecisionRequest.Equals(Minos.DecisionRequest? other) -> bool")]
+    public static void RequestsCompareTheirImagesByValue()
+    {
+        var definition = new QuestionSetDefinition(QuestionDefinition.Noul("is_urgent", DecisionContent.FromString("Does this convey urgency?")));
+        var state = DecisionContent.FromString(SmokeAnswers.State);
+        var request = new DecisionRequest(definition, state) { Images = [DecisionImage.FromBytes(PngBytes, "image/png")] };
+        var same = new DecisionRequest(definition, state) { Images = [DecisionImage.FromBytes((byte[])PngBytes.Clone(), "image/png")] };
+
+        Program.Check(
+            request.Equals(same)
+                && request.GetHashCode() == same.GetHashCode()
+                && !request.Equals(new DecisionRequest(definition, state))
+                && !request.Equals(new DecisionRequest(definition, state) { Images = [DecisionImage.FromBytes(PngBytes, "image/gif")] })
+                && !request.Equals(null),
+            "DecisionRequest.Equals compares the images by value under Native AOT");
+    }
+
     [Covers("static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, string! state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>")]
     [Covers("static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, string! state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>")]
     [Covers("static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, System.Text.Json.JsonElement state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>")]

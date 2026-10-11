@@ -29,7 +29,7 @@ public readonly struct DecisionImage : IEquatable<DecisionImage>
 
     internal bool IsInitialized => _data is not null;
 
-    // "data:" + type + ";base64," + the base64 text.
+    // "data:" + type + ";base64," + the padded base64 text: exactly the bytes of the URL.
     internal int DataUrlLength => 5 + MediaType.Length + 8 + Base64.GetMaxEncodedToUtf8Length(_data!.Length);
 
     /// <summary>Creates an image from its bytes. The bytes are copied.</summary>
@@ -112,18 +112,25 @@ public readonly struct DecisionImage : IEquatable<DecisionImage>
     public override int GetHashCode() => HashCode.Combine(MediaType, _data?.Length ?? 0);
 
     /// <summary>Writes the image as a data URL, one JSON string value, base64-encoding into a pooled buffer.</summary>
+    /// <remarks>
+    /// The text is the media type, which is one of the supported ASCII types, and base64, so it needs no JSON escaping.
+    /// It is written raw because the writer's default encoder would escape the plus sign.
+    /// </remarks>
     internal void WriteDataUrl(Utf8JsonWriter writer)
     {
-        var length = DataUrlLength;
-        var rented = ArrayPool<byte>.Shared.Rent(length);
+        var rented = ArrayPool<byte>.Shared.Rent(DataUrlLength + 2);
         try
         {
-            var url = rented.AsSpan();
-            var written = Encoding.ASCII.GetBytes("data:", url);
-            written += Encoding.ASCII.GetBytes(MediaType, url[written..]);
-            written += Encoding.ASCII.GetBytes(";base64,", url[written..]);
-            Base64.EncodeToUtf8(_data, url[written..], out _, out var encoded);
-            writer.WriteStringValue(url[..(written + encoded)]);
+            var buffer = rented.AsSpan();
+            buffer[0] = (byte)'"';
+            var written = 1;
+            written += Encoding.ASCII.GetBytes("data:", buffer[written..]);
+            written += Encoding.ASCII.GetBytes(MediaType, buffer[written..]);
+            written += Encoding.ASCII.GetBytes(";base64,", buffer[written..]);
+            Base64.EncodeToUtf8(_data, buffer[written..], out _, out var encoded);
+            written += encoded;
+            buffer[written++] = (byte)'"';
+            writer.WriteRawValue(buffer[..written], skipInputValidation: true);
         }
         finally
         {

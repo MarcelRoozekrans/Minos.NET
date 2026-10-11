@@ -64,6 +64,7 @@ internal static class Program
         await IDecisionClientChecks.TypedStateExtensionsSendTheStateAndCreateAnswers().ConfigureAwait(false);
         await IDecisionClientChecks.BuiltSetExtensionsSendTheStateAndReadAnswers().ConfigureAwait(false);
         DecisionImageChecks.ImagesAreCreatedFromBytesAndDataUrlsAndCompared();
+        DecisionImageChecks.RequestsCompareTheirImagesByValue();
         await DecisionImageChecks.TypedExtensionsSendTheImagesWithTheState().ConfigureAwait(false);
         await DecisionImageChecks.TypedStateExtensionsSendTheImagesWithTheState().ConfigureAwait(false);
         await DecisionImageChecks.BuiltSetExtensionsSendTheImagesWithTheState().ConfigureAwait(false);

@@ -71,4 +71,29 @@ public sealed record DecisionRequest
             _retryAttempt = value;
         }
     }
+
+    /// <inheritdoc />
+    public bool Equals(DecisionRequest? other)
+        => other is not null
+            && EqualityComparer<QuestionSetDefinition>.Default.Equals(Definition, other.Definition)
+            && State.Equals(other.State)
+            && string.Equals(Model, other.Model, StringComparison.Ordinal)
+            && _retryAttempt == other._retryAttempt
+            && _images.AsSpan().SequenceEqual(other._images);
+
+    /// <inheritdoc />
+    public override int GetHashCode()
+    {
+        var hash = default(HashCode);
+        hash.Add(Definition);
+        hash.Add(State);
+        hash.Add(Model, StringComparer.Ordinal);
+        hash.Add(_retryAttempt);
+        foreach (var image in _images)
+        {
+            hash.Add(image);
+        }
+
+        return hash.ToHashCode();
+    }
 }

@@ -43,6 +43,24 @@ public sealed class DecisionRequestImagesTests
     }
 
     [Fact]
+    public void Equality_ComparesImagesByValue()
+    {
+        var definition = QuestionSets.UrgencyDefinition();
+        var state = DecisionContent.FromString("s");
+        var request = new DecisionRequest(definition, state) { Images = Pair() };
+
+        Assert.Equal(request, new DecisionRequest(definition, state) { Images = Pair() });
+        Assert.Equal(request.GetHashCode(), new DecisionRequest(definition, state) { Images = Pair() }.GetHashCode());
+        Assert.NotEqual(request, new DecisionRequest(definition, state) { Images = [Png] });
+        Assert.NotEqual(request, new DecisionRequest(definition, state) { Images = [Gif, Png] });
+        Assert.NotEqual(request, new DecisionRequest(definition, state));
+        Assert.NotEqual(request, request with { RetryAttempt = 1 });
+        Assert.NotEqual(request, request with { Model = "m" });
+        Assert.NotEqual(request, new DecisionRequest(QuestionSets.UrgencyDefinition(), state) { Images = Pair() });
+        Assert.False(request.Equals((DecisionRequest?)null));
+    }
+
+    [Fact]
     public async Task Typed_text_overloads_carry_the_images_and_the_same_state()
     {
         var fake = new ClientTestKit.CapturingClient();
@@ -53,8 +71,8 @@ public sealed class DecisionRequestImagesTests
         await fake.EvaluateAsync<UrgencyCheck>("a ticket", Pair(), cancellation.Token);
 
         Assert.Equal(3, fake.Requests.Count);
-        AssertSame(fake.Requests[0], fake.Requests[1], expectedImages: true);
-        AssertSame(fake.Requests[0], fake.Requests[2], expectedImages: true);
+        AssertSame(fake.Requests[0], fake.Requests[1]);
+        AssertSame(fake.Requests[0], fake.Requests[2]);
         Assert.Equal(cancellation.Token, fake.LastToken);
         Assert.Empty(fake.Requests[0].Images);
     }
@@ -70,8 +88,8 @@ public sealed class DecisionRequestImagesTests
         await fake.EvaluateAsync<UrgencyCheck>(document.RootElement, Pair());
         await fake.EvaluateAsync<UrgencyCheck>(document.RootElement, Pair(), cancellation.Token);
 
-        AssertSame(fake.Requests[0], fake.Requests[1], expectedImages: true);
-        AssertSame(fake.Requests[0], fake.Requests[2], expectedImages: true);
+        AssertSame(fake.Requests[0], fake.Requests[1]);
+        AssertSame(fake.Requests[0], fake.Requests[2]);
         Assert.Equal(cancellation.Token, fake.LastToken);
     }
 
@@ -86,8 +104,8 @@ public sealed class DecisionRequestImagesTests
         await fake.EvaluateUtf8Async<UrgencyCheck>(utf8, Pair());
         await fake.EvaluateUtf8Async<UrgencyCheck>(utf8, Pair(), cancellation.Token);
 
-        AssertSame(fake.Requests[0], fake.Requests[1], expectedImages: true);
-        AssertSame(fake.Requests[0], fake.Requests[2], expectedImages: true);
+        AssertSame(fake.Requests[0], fake.Requests[1]);
+        AssertSame(fake.Requests[0], fake.Requests[2]);
         Assert.Equal(cancellation.Token, fake.LastToken);
     }
 
@@ -103,8 +121,8 @@ public sealed class DecisionRequestImagesTests
         await fake.EvaluateAsync<TicketUrgency, TicketContext>(state, info, Pair());
         await fake.EvaluateAsync<TicketUrgency, TicketContext>(state, info, Pair(), cancellation.Token);
 
-        AssertSame(fake.Requests[0], fake.Requests[1], expectedImages: true);
-        AssertSame(fake.Requests[0], fake.Requests[2], expectedImages: true);
+        AssertSame(fake.Requests[0], fake.Requests[1]);
+        AssertSame(fake.Requests[0], fake.Requests[2]);
         Assert.Equal(cancellation.Token, fake.LastToken);
     }
 
@@ -120,8 +138,8 @@ public sealed class DecisionRequestImagesTests
         await fake.EvaluateAsync(set, state, Pair());
         await fake.EvaluateAsync(set, state, Pair(), cancellation.Token);
 
-        AssertSame(fake.Requests[0], fake.Requests[1], expectedImages: true);
-        AssertSame(fake.Requests[0], fake.Requests[2], expectedImages: true);
+        AssertSame(fake.Requests[0], fake.Requests[1]);
+        AssertSame(fake.Requests[0], fake.Requests[2]);
         Assert.Equal(cancellation.Token, fake.LastToken);
         await Assert.ThrowsAsync<ArgumentException>(async () => await fake.EvaluateAsync(set, default, Pair()));
     }
@@ -161,11 +179,11 @@ public sealed class DecisionRequestImagesTests
         Assert.Empty(fake.Requests);
     }
 
-    private static void AssertSame(DecisionRequest plain, DecisionRequest withImages, bool expectedImages)
+    private static void AssertSame(DecisionRequest plain, DecisionRequest withImages)
     {
         Assert.Equal(plain.State, withImages.State);
         Assert.Same(plain.Definition, withImages.Definition);
         Assert.Null(withImages.Model);
-        Assert.Equal(expectedImages ? new[] { Png, Gif } : [], withImages.Images);
+        Assert.Equal(new[] { Png, Gif }, withImages.Images);
     }
 }

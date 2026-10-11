@@ -95,6 +95,23 @@ public sealed class DecisionImageTests
     }
 
     [Fact]
+    public void WriteDataUrl_WritesPlusAndSlashUnescaped()
+    {
+        var image = DecisionImage.FromBytes(new byte[] { 0xFB, 0xFF }, "image/webp");
+        var buffer = new System.Buffers.ArrayBufferWriter<byte>();
+        using (var writer = new System.Text.Json.Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartArray();
+            image.WriteDataUrl(writer);
+            image.WriteDataUrl(writer);
+            writer.WriteEndArray();
+        }
+
+        Assert.Equal("[\"data:image/webp;base64,+/8=\",\"data:image/webp;base64,+/8=\"]", System.Text.Encoding.UTF8.GetString(buffer.WrittenSpan));
+        Assert.Equal("data:image/webp;base64,+/8=".Length, image.DataUrlLength);
+    }
+
+    [Fact]
     public void Default_IsRejectedByTheRequest()
         => Assert.Throws<ArgumentException>("value", () => new DecisionRequest(QuestionSets.UrgencyDefinition(), DecisionContent.FromString("s")) { Images = [default] });
 }
