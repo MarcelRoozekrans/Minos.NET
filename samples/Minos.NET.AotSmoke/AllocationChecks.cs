@@ -263,10 +263,9 @@ internal static class AllocationChecks
         png[3] = 0x47;
         DecisionImage[] images = [DecisionImage.FromBytes(png, "image/png")];
 
-        // Measured 2888 B/call on published win-x64 AOT, against TypedStateEvaluateRoundTrip's 2840 B for the same call without
-        // the image: the image's base64 text is encoded into a pooled buffer and the request body is sized for it up front,
-        // so the image costs only the DecisionRequest's copy of the one-image list. Budget: about 10% headroom over the
-        // measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
+        // Measured 2888 B/call on published win-x64 AOT with one image, against TypedStateEvaluateRoundTrip's 2840 B for the
+        // same call without it, about 48 B more. Budget: about 10% headroom over the measurement, rounded up to the next
+        // multiple of 64 B, per the Phase 1.8 rule.
         GateValueTask(
             budgetBytes: 3200,
             action: () => client.EvaluateAsync<SmokeStateTriage, SmokeState>(state, SmokeStateJsonContext.Default.SmokeState, images),
