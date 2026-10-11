@@ -1,5 +1,36 @@
 # Changelog
 
+## [0.9.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.8.0...v0.9.0) (2026-10-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* **systemone:** DecisionClient, DecisionClientOptions, DecisionProvider, DecisionDefaults and the raw System One types move to the Minos.NET.SystemOne package and namespace Minos.SystemOne, renamed SystemOneClient, SystemOneClientOptions, SystemOneProvider and SystemOneDefaults. The core Minos.NET package no longer depends on ZeroAlloc.Rest.
+* **di:** AddDecisionClient now takes a client factory. The options-based registrations are AddSystemOneClient in Minos.NET.SystemOne and return SystemOneClientServiceBuilder, which carries HttpClient; DecisionClientServiceBuilder no longer does. Minos.NET.DependencyInjection no longer brings Microsoft.Extensions.Http or Microsoft.Extensions.Options.ConfigurationExtensions; Minos.NET.SystemOne does.
+* **systemone:** SystemOneClientOptions.Model is nullable and defaults to the preset's model; providers without a default model must set it. The raw-call and model-list logs name the provider by its telemetry name, such as typesafe.
+* **systemone:** a Choice question with more than 255 options now returns Unsupported with MIN203 on the TypeSafe and OpenRouter presets instead of being sent; Capabilities.MaxChoiceOptions raises the limit. ListModelsAsync on a provider without model listing returns Model listing is not available on the provider.
+
+### Features
+
+* **systemone:** capability flags checked before a request is sent ([87dd073](https://github.com/MarcelRoozekrans/Minos.NET/commit/87dd073984f356bb11a0ede66ad6304fa0746338))
+* **systemone:** presets for vLLM Semantic Router and custom servers, with optional auth ([87dd073](https://github.com/MarcelRoozekrans/Minos.NET/commit/87dd073984f356bb11a0ede66ad6304fa0746338))
+
+
+### Code Refactoring
+
+* **di:** provider-neutral DI with AddSystemOneClient in Minos.NET.SystemOne ([87dd073](https://github.com/MarcelRoozekrans/Minos.NET/commit/87dd073984f356bb11a0ede66ad6304fa0746338))
+* **systemone:** move the /v1/systemone protocol into Minos.NET.SystemOne ([87dd073](https://github.com/MarcelRoozekrans/Minos.NET/commit/87dd073984f356bb11a0ede66ad6304fa0746338))
+
+
+### Documentation
+
+* **docs:** presets, capabilities and AddSystemOneClient ([87dd073](https://github.com/MarcelRoozekrans/Minos.NET/commit/87dd073984f356bb11a0ede66ad6304fa0746338))
+
+
+### Tests
+
+* **tests:** recorded fixtures for every preset and a local systemone server job ([87dd073](https://github.com/MarcelRoozekrans/Minos.NET/commit/87dd073984f356bb11a0ede66ad6304fa0746338))
+
 ## [0.8.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.7.0...v0.8.0) (2026-10-10)
 
 
