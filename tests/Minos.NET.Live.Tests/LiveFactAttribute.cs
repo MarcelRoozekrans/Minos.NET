@@ -35,7 +35,8 @@ public sealed class LiveFactAttribute : FactAttribute
 
     /// <summary>
     /// Gets or sets an extra opt-in variable that must be <c>1</c> for the test to run, such as <c>MINOS_LIVE_LUNA</c>
-    /// for a model only an account with zero data retention enabled can call.
+    /// for a model that needs an OpenRouter account allowing endpoints which retain data: an account that allows only
+    /// zero-data-retention endpoints gets a 404 with <c>zdr-violation-by-account</c>.
     /// </summary>
     public string? RequiresEnvironment
     {
@@ -45,7 +46,7 @@ public sealed class LiveFactAttribute : FactAttribute
             _requiresEnvironment = value;
             Skip = _skip is null && value is not null
                 && !string.Equals(Environment.GetEnvironmentVariable(value), "1", StringComparison.Ordinal)
-                ? "Set " + value + "=1 to run this live test; the model needs an account with zero data retention enabled, and the call is billed."
+                ? "Set " + value + "=1 to run this live test; the model needs an OpenRouter account that allows endpoints which retain data, as zero-data-retention-only accounts get 404 zdr-violation-by-account, and the call is billed."
                 : _skip;
         }
     }

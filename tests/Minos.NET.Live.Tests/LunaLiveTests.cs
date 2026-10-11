@@ -9,7 +9,10 @@ public sealed class LunaLiveTests
 
     public LunaLiveTests(ITestOutputHelper output) => _output = output;
 
-    /// <summary>Opt-in: runs only with <c>MINOS_LIVE_LUNA=1</c>, for an account with zero data retention enabled.</summary>
+    /// <summary>
+    /// Opt-in: runs only with <c>MINOS_LIVE_LUNA=1</c>, for an OpenRouter account that allows endpoints which retain data;
+    /// zero-data-retention-only accounts get 404 <c>zdr-violation-by-account</c>.
+    /// </summary>
     [LiveFact(SystemOneProvider.OpenRouter, RequiresEnvironment = "MINOS_LIVE_LUNA")]
     public async Task Luna_AnswersText()
     {
