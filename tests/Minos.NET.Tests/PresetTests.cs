@@ -66,6 +66,25 @@ public sealed class PresetTests
     }
 
     [Theory]
+    [InlineData(" decide/v1/systemone\t", "decide/v1/systemone")]
+    [InlineData("   ", "v1/systemone")]
+    [InlineData("", "v1/systemone")]
+    public void Path_is_trimmed_and_a_blank_one_counts_as_unset(string path, string expected)
+    {
+        var settings = SystemOneClientSettings.Resolve(
+            new SystemOneClientOptions { Provider = SystemOneProvider.Custom, BaseAddress = new Uri("http://localhost:8080/api/"), Path = path, Model = "m" },
+            Env());
+
+        Assert.Equal(expected, settings.PathFor("m"));
+    }
+
+    [Fact]
+    public void A_blank_path_on_a_hosted_preset_counts_as_unset()
+        => Assert.Equal(
+            "v1/systemone",
+            SystemOneClientSettings.Resolve(new SystemOneClientOptions { ApiKey = "k", Path = " " }, Env()).PathFor("jev-latest"));
+
+    [Theory]
     [MemberData(nameof(InvalidPresetCases))]
     public void Invalid_preset_options_throw(SystemOneClientOptions options, string message)
     {

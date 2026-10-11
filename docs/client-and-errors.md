@@ -92,10 +92,10 @@ you asked for it. Everything else, including every network and service failure, 
 
 | Property | Default | Valid values | What it does |
 | --- | --- | --- | --- |
-| `Provider` | `SystemOneProvider.TypeSafe` | `TypeSafe` or `OpenRouter` | Where requests go. |
+| `Provider` | `SystemOneProvider.TypeSafe` | `TypeSafe`, `OpenRouter`, `CloudflareWorkersAi`, `VllmSemanticRouter` or `Custom` | Where requests go. |
 | `ApiKey` | none | any text without control characters; blank counts as unset | The key sent as a bearer token. When unset, the client reads `TYPESAFE_API_KEY`, or `OPENROUTER_API_KEY` for OpenRouter. |
 | `BaseAddress` | the provider's address | absolute `http` or `https` URI, no query or fragment | The API root, for a proxy or a test server. When unset, the client reads `TYPESAFE_BASE_URL` for TypeSafe only, then uses `https://api.typesafe.ai/` or `https://openrouter.ai/api/`. |
-| `Model` | `jev-latest` | not blank | The model that typed evaluation and built question sets ask: an alias such as `jev-latest` (or TypeSafe's `jev-preview`), or a versioned id such as `jev-1.13.0`. See [Listing models](#listing-models). |
+| `Model` | the preset's default: `jev-latest` for TypeSafe and OpenRouter; required for the others | not blank | The model that typed evaluation and built question sets ask: an alias such as `jev-latest` (or TypeSafe's `jev-preview`), or a versioned id such as `jev-1.13.0`. See [Listing models](#listing-models). |
 | `Timeout` | 60 seconds | positive, or `Timeout.InfiniteTimeSpan`, and at most about 24.8 days | How long one attempt may take. |
 | `MaxRetries` | 2 | 0 to 10 | How many times a failed call is tried again. 0 turns retries off. |
 | `InitialBackoff` | 500 ms | positive, and at most about 24.8 days | The first wait between attempts. It doubles for each further retry. |

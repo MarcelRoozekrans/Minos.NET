@@ -167,12 +167,15 @@ internal sealed class SystemOneClientSettings
     }
 
     // Path applies to the presets whose server you name; on a hosted one it would send the key elsewhere on that host.
+    // Like ApiKey and AccountId, a blank Path counts as unset, and surrounding whitespace is trimmed.
     private static string ResolvePath(SystemOneClientOptions options)
     {
-        if (NonBlank(options.Path) is not { } path)
+        if (NonBlank(options.Path) is not { } untrimmed)
         {
             return DefaultPath;
         }
+
+        var path = untrimmed.Trim();
 
         if (options.Provider is not (SystemOneProvider.Custom or SystemOneProvider.VllmSemanticRouter))
         {
@@ -366,7 +369,8 @@ internal sealed class SystemOneClientSettings
     }
 
     // Relative to the base address and below it: no leading '/', which would drop the base address's own path, no query
-    // or fragment, and no '..' segment. A backslash counts as a separator, as http URIs treat it as one.
+    // or fragment, and no '..' segment. A backslash is checked like '/' as defence in depth: {**path} percent-encodes it
+    // today, but an http URI would treat an unescaped one as a separator, so a future escaping change cannot open the path.
     private static bool IsRelativePath(string path)
     {
         if (path[0] is '/' or '\\' || path.Contains('?', StringComparison.Ordinal) || path.Contains('#', StringComparison.Ordinal))

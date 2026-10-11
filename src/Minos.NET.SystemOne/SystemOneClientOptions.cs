@@ -46,7 +46,9 @@ public sealed class SystemOneClientOptions
     /// another provider, so an OpenRouter or Cloudflare key is never sent to a TypeSafe proxy. For
     /// <see cref="SystemOneProvider.CloudflareWorkersAi"/>, <c>accounts/{AccountId}/ai/run/@cf/cloudflare/</c> is appended to
     /// it. <see cref="SystemOneProvider.VllmSemanticRouter"/> and <see cref="SystemOneProvider.Custom"/> have no default
-    /// address, so it must be set for them.
+    /// address, so it must be set for them. An <see cref="HttpClient"/> passed to a <see cref="SystemOneClient"/> constructor
+    /// with its own <see cref="HttpClient.BaseAddress"/> wins over this option; that address must then be the full API root,
+    /// including Cloudflare's account segment.
     /// </summary>
     public Uri? BaseAddress { get; set; }
 
@@ -63,15 +65,18 @@ public sealed class SystemOneClientOptions
     /// <summary>
     /// Gets or sets the Cloudflare account id, for <see cref="SystemOneProvider.CloudflareWorkersAi"/> only. When unset, the
     /// client reads <see cref="SystemOneDefaults.CloudflareAccountIdEnvironmentVariable"/>. Cloudflare Workers AI requires
-    /// one, of letters and digits only. Setting it for another provider is rejected.
+    /// one, of letters and digits only. Setting it for another provider is rejected. An <see cref="HttpClient"/> passed to a
+    /// <see cref="SystemOneClient"/> constructor with its own <see cref="HttpClient.BaseAddress"/> replaces the address this
+    /// option builds, so that address must already end in <c>accounts/{AccountId}/ai/run/@cf/cloudflare/</c>; the option is
+    /// still required and checked.
     /// </summary>
     public string? AccountId { get; set; }
 
     /// <summary>
     /// Gets or sets the request path, relative to <see cref="BaseAddress"/>, for <see cref="SystemOneProvider.Custom"/> and
     /// <see cref="SystemOneProvider.VllmSemanticRouter"/> only. When unset, <c>v1/systemone</c>. It must be relative, must not
-    /// start with <c>/</c>, and must not contain a query, a fragment or a <c>..</c> segment. Setting it for a hosted
-    /// provider is rejected.
+    /// start with <c>/</c>, and must not contain a query, a fragment or a <c>..</c> segment. Surrounding whitespace is
+    /// trimmed, and a blank value counts as unset. Setting it for a hosted provider is rejected.
     /// </summary>
     public string? Path { get; set; }
 

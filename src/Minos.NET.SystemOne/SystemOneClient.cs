@@ -74,8 +74,11 @@ public sealed class SystemOneClient : IDecisionClient
     /// </summary>
     /// <param name="httpClient">
     /// The client to send requests with; it is not disposed. Its own <see cref="HttpClient.BaseAddress"/> wins over
-    /// <see cref="SystemOneClientOptions.BaseAddress"/> when set, and must end in '/'; when it is <see langword="null"/>,
-    /// this constructor sets it, so <paramref name="httpClient"/> must not have sent a request yet.
+    /// <see cref="SystemOneClientOptions.BaseAddress"/> when set, and must end in '/'. It must then be the full API root,
+    /// including Cloudflare's <c>accounts/{AccountId}/ai/run/@cf/cloudflare/</c> segment for
+    /// <see cref="SystemOneProvider.CloudflareWorkersAi"/>, because it replaces both <see cref="SystemOneClientOptions.BaseAddress"/>
+    /// and the address <see cref="SystemOneClientOptions.AccountId"/> would build. When it is <see langword="null"/>, this
+    /// constructor sets it, so <paramref name="httpClient"/> must not have sent a request yet.
     /// </param>
     /// <exception cref="ArgumentNullException"><paramref name="httpClient"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="httpClient"/> already has an invalid base address.</exception>
@@ -88,8 +91,11 @@ public sealed class SystemOneClient : IDecisionClient
     /// <summary>Initializes a new instance of the <see cref="SystemOneClient"/> class over a caller-owned <see cref="HttpClient"/>.</summary>
     /// <param name="httpClient">
     /// The client to send requests with; it is not disposed. Its own <see cref="HttpClient.BaseAddress"/> wins over
-    /// <see cref="SystemOneClientOptions.BaseAddress"/> when set, and must end in '/'; when it is <see langword="null"/>,
-    /// this constructor sets it, so <paramref name="httpClient"/> must not have sent a request yet.
+    /// <see cref="SystemOneClientOptions.BaseAddress"/> when set, and must end in '/'. It must then be the full API root,
+    /// including Cloudflare's <c>accounts/{AccountId}/ai/run/@cf/cloudflare/</c> segment for
+    /// <see cref="SystemOneProvider.CloudflareWorkersAi"/>, because it replaces both <see cref="SystemOneClientOptions.BaseAddress"/>
+    /// and the address <see cref="SystemOneClientOptions.AccountId"/> would build. When it is <see langword="null"/>, this
+    /// constructor sets it, so <paramref name="httpClient"/> must not have sent a request yet.
     /// </param>
     /// <param name="options">The configuration; <see langword="null"/> uses defaults and environment variables.</param>
     /// <exception cref="ArgumentNullException"><paramref name="httpClient"/> is <see langword="null"/>.</exception>
@@ -130,8 +136,11 @@ public sealed class SystemOneClient : IDecisionClient
     /// </summary>
     /// <param name="httpClient">
     /// The client to send requests with; it is not disposed. Its own <see cref="HttpClient.BaseAddress"/> wins over
-    /// <see cref="SystemOneClientOptions.BaseAddress"/> when set, and must end in '/'; when it is <see langword="null"/>,
-    /// this constructor sets it, so <paramref name="httpClient"/> must not have sent a request yet.
+    /// <see cref="SystemOneClientOptions.BaseAddress"/> when set, and must end in '/'. It must then be the full API root,
+    /// including Cloudflare's <c>accounts/{AccountId}/ai/run/@cf/cloudflare/</c> segment for
+    /// <see cref="SystemOneProvider.CloudflareWorkersAi"/>, because it replaces both <see cref="SystemOneClientOptions.BaseAddress"/>
+    /// and the address <see cref="SystemOneClientOptions.AccountId"/> would build. When it is <see langword="null"/>, this
+    /// constructor sets it, so <paramref name="httpClient"/> must not have sent a request yet.
     /// </param>
     /// <param name="options">The configuration; <see langword="null"/> uses defaults and environment variables.</param>
     /// <param name="loggerFactory">
