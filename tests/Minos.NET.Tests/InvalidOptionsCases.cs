@@ -45,9 +45,9 @@ public static class InvalidOptionsCases
         ["PathWithParentSegment"] = new(() => new() { ApiKey = "k", Provider = SystemOneProvider.Custom, BaseAddress = new Uri("http://host/"), Model = "m", Path = "a/../b" }, typeof(ArgumentException)),
         ["AbsolutePath"] = new(() => new() { ApiKey = "k", Provider = SystemOneProvider.Custom, BaseAddress = new Uri("http://host/"), Model = "m", Path = "http://other/x" }, typeof(ArgumentException)),
         ["NoQuestionKinds"] = new(
-            () => new() { ApiKey = "k", Capabilities = new() { QuestionKinds = SystemOneQuestionKinds.None } }, typeof(ArgumentException)),
+            () => new() { ApiKey = "k", Capabilities = new() { QuestionKinds = QuestionKinds.None } }, typeof(ArgumentException)),
         ["UnknownQuestionKindFlag"] = new(
-            () => new() { ApiKey = "k", Capabilities = new() { QuestionKinds = (SystemOneQuestionKinds)8 } }, typeof(ArgumentException)),
+            () => new() { ApiKey = "k", Capabilities = new() { QuestionKinds = (QuestionKinds)8 } }, typeof(ArgumentException)),
         ["ZeroMaxQuestions"] = new(() => new() { ApiKey = "k", Capabilities = new() { MaxQuestions = 0 } }, typeof(ArgumentException)),
         ["OneMaxChoiceOptions"] = new(() => new() { ApiKey = "k", Capabilities = new() { MaxChoiceOptions = 1 } }, typeof(ArgumentException)),
         ["ApiKeyWithControlCharacter"] = new(() => new() { ApiKey = "ab\u0001cd" }, typeof(ArgumentException)),

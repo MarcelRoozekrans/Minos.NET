@@ -101,6 +101,7 @@ internal static class Program
         DecisionOptionSetChecks.HandWrittenOptionSetMapsOptions();
         IQuestionSetChecks.CreateRunsThroughTheInterface();
         await CapabilityChecks.UnsupportedQuestionKindIsNotSent().ConfigureAwait(false);
+        await CapabilityChecks.ImagesToAProviderWithoutImagesAreNotSent().ConfigureAwait(false);
         CapabilityChecks.CapabilitiesBindFromConfiguration();
 
         await AllocationChecks.AnswerSlotAccessors().ConfigureAwait(false);

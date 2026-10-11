@@ -250,11 +250,11 @@ Each preset has defaults for the five capabilities. "None" means no limit.
 | `VllmSemanticRouter` | every kind | none | none | no | no |
 | `Custom` | every kind | none | none | no | no |
 
-`Images` is declared but not checked yet.
+A request with images to a provider whose `Images` is off returns `Unsupported` with `MIN206`, without a request.
 
 ### Overriding them
 
-`SystemOneClientOptions.Capabilities` is a `SystemOneCapabilities` with one nullable property for each capability. A
+`SystemOneClientOptions.Capabilities` is a `DecisionCapabilities` with one nullable property for each capability. A
 property you set wins, and one you leave `null` keeps the preset's value. This server answers Noul questions only:
 
 <!-- snippet: ClientAndErrors_Capabilities -->
@@ -267,12 +267,12 @@ public static SystemOneClientOptions NoulOnly()
         Provider = SystemOneProvider.Custom,
         BaseAddress = new Uri("http://localhost:8080/"),
         Model = "noul-small",
-        Capabilities = new SystemOneCapabilities { QuestionKinds = SystemOneQuestionKinds.Noul },
+        Capabilities = new DecisionCapabilities { QuestionKinds = QuestionKinds.Noul },
     };
 ```
 <!-- endSnippet -->
 
-`QuestionKinds` is a flags enum, `SystemOneQuestionKinds`, with `Noul`, `Choice` and `Score`, and `All` for the three.
+The `QuestionKinds` property is a flags enum of the same name, with `Noul`, `Choice` and `Score`, and `All` for the three.
 In configuration it binds from a comma-separated list, such as `"Noul, Choice"`, as
 [dependency injection](dependency-injection.md#options-from-configuration) shows. An override must make sense: at least
 one question kind, no flag that does not exist, `MaxQuestions` of at least 1, and `MaxChoiceOptions` of at least 2.
@@ -289,9 +289,10 @@ problem it found. Each is a `QuestionFailure` with a rule id, the key of the que
 | `MIN201` | The set has a question of a kind the provider does not accept. | the question | `Custom does not support Choice questions.` |
 | `MIN202` | The set has more questions than `MaxQuestions`. | none | `Custom accepts at most 1 question per request; the set has 2.` |
 | `MIN203` | A Choice question has more options than `MaxChoiceOptions`. | the question | `Custom accepts at most 2 options per Choice question; 'team' has 3.` |
+| `MIN206` | The request has images and `Images` is off. | none | `Custom does not support images.` |
 
-The error's `Message` is the first failure's. `MIN202` comes first, then each question in the order it is sent. The
-MIN2 series is for these provider limits, and MIN201 to MIN203 keep their meaning, so you can match on them. The rules
+The error's `Message` is the first failure's. `MIN202` comes first, then each question in the order it is sent, then
+`MIN206`. The MIN2 series is for these provider limits, and MIN201 to MIN203 keep their meaning, so you can match on them. The rules
 MIN001 to MIN006 are the API's own rules, MIN101 to MIN108 are about what the generator can turn into code, and
 [diagnostics](diagnostics.md) lists them.
 
@@ -322,7 +323,7 @@ sends what you built, and the provider's own answer comes back.
 
 ### Reading the resolved capabilities
 
-`GetService<SystemOneCapabilities>()` returns what a client resolved, with every property set: the preset's defaults
+`GetService<DecisionCapabilities>()` returns what a client resolved, with every property set: the preset's defaults
 and your overrides together. It is a new instance each time, so changing it changes nothing.
 
 <!-- snippet: ClientAndErrors_ResolvedCapabilities -->
@@ -331,7 +332,7 @@ and your overrides together. It is a new instance each time, so changing it chan
 // GetService returns a new instance each time, so changing it changes nothing in the client.
 public static string Describe(IDecisionClient client)
 {
-    var capabilities = client.GetService<SystemOneCapabilities>();
+    var capabilities = client.GetService<DecisionCapabilities>();
     if (capabilities is null)
     {
         return "This client has no System One capabilities.";
@@ -521,6 +522,7 @@ The values start at 1, so `default(DecisionErrorKind)` is no kind.
 | `Unsupported` | The provider does not offer the operation, such as listing models on OpenRouter, or does not accept the question set, such as a Choice question on a Noul-only server. See [Capabilities](#capabilities). | No | Do not call it on that provider, or change the set. No request was sent. |
 | `InvalidQuestions` | A question set built at run time breaks the API's rules. Only a failed `Build()` returns it, and no request is sent. | No | Fix the set. `Failures` lists each rule. |
 | `Disposed` | The client was disposed while the call was in flight, which tore its request down or kept a due retry from being sent. | No | Stop. The client is gone. A call started after disposal throws `ObjectDisposedException` instead. |
+| `Refused` | The model refused to answer one or more questions. `Failures` names each one, with rule `refusal`. OpenAI's Decisions API reports refusals; System One providers do not. | No | Rephrase the state or the questions. Retrying the same request gets the same refusal. |
 
 The "Retried" column describes what the client does before it returns the error. A `RateLimited`, `Overloaded`,
 `Server`, `Network` or `Timeout` error, or an `Http` error for a 408, that reaches you has already been retried

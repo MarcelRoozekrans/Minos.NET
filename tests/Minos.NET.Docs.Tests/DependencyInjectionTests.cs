@@ -157,14 +157,14 @@ public sealed class DependencyInjectionTests
         Assert.Equal(new Uri("http://localhost:8080/"), local.BaseAddress);
         Assert.Equal("api/v1/systemone", local.Path);
         Assert.Equal("local-model", local.Model);
-        Assert.Equal(SystemOneQuestionKinds.Noul | SystemOneQuestionKinds.Choice, local.Capabilities.QuestionKinds);
+        Assert.Equal(QuestionKinds.Noul | QuestionKinds.Choice, local.Capabilities.QuestionKinds);
         Assert.Equal(16, local.Capabilities.MaxQuestions);
         Assert.Null(local.Capabilities.ModelListing);
         Assert.Null(local.Capabilities.MaxChoiceOptions);
         local.Validate();
 
         // ModelListing is left out, so it keeps the Custom preset's default: off.
-        var resolved = host.Services.GetRequiredKeyedService<IDecisionClient>("local").GetService<SystemOneCapabilities>()!;
+        var resolved = host.Services.GetRequiredKeyedService<IDecisionClient>("local").GetService<DecisionCapabilities>()!;
         Assert.False(resolved.ModelListing);
     }
 

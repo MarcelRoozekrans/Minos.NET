@@ -33,7 +33,8 @@ internal sealed class DecisionTransport(
 {
     private readonly string _model = settings.Model;
     private readonly CapabilitySet _capabilities = settings.Capabilities;
-    private readonly SystemOneProvider _provider = settings.Provider;
+    // Computed once, so the check names the preset without allocating per call.
+    private readonly string _providerLabel = settings.Provider.ToString();
 
     public ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
     {
@@ -43,9 +44,9 @@ internal sealed class DecisionTransport(
             return new(Result<DecisionResponse, DecisionError>.Failure(DecisionErrors.Disposed(null)));
         }
 
-        if (_capabilities.Check(request.Definition, _provider) is { } unsupported)
+        if (_capabilities.Collect(request.Definition, request.Images.Count, _providerLabel) is { } failures)
         {
-            return new(Result<DecisionResponse, DecisionError>.Failure(unsupported));
+            return new(Result<DecisionResponse, DecisionError>.Failure(CapabilitySet.Unsupported(failures)));
         }
 
         var model = request.Model ?? _model;

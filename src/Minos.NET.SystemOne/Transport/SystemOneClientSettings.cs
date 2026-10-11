@@ -1,3 +1,5 @@
+using Minos.Transport;
+
 namespace Minos.SystemOne.Transport;
 
 /// <summary>
@@ -204,7 +206,7 @@ internal sealed class SystemOneClientSettings
     // The preset's defaults with each override that is set; a null Capabilities counts as no overrides.
     private static CapabilitySet ResolveCapabilities(SystemOneClientOptions options)
     {
-        var defaults = CapabilitySet.For(options.Provider);
+        var defaults = SystemOneCapabilityDefaults.For(options.Provider);
         if (options.Capabilities is not { } overrides)
         {
             return defaults;
@@ -212,12 +214,12 @@ internal sealed class SystemOneClientSettings
 
         if (overrides.QuestionKinds is { } kinds)
         {
-            if (kinds == SystemOneQuestionKinds.None)
+            if (kinds == QuestionKinds.None)
             {
                 throw new ArgumentException("Capabilities.QuestionKinds must allow at least one question kind.", nameof(options));
             }
 
-            if ((kinds & ~SystemOneQuestionKinds.All) != SystemOneQuestionKinds.None)
+            if ((kinds & ~QuestionKinds.All) != QuestionKinds.None)
             {
                 throw new ArgumentException("Capabilities.QuestionKinds has an unknown flag.", nameof(options));
             }

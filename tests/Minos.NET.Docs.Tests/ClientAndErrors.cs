@@ -235,7 +235,7 @@ public static class CapabilityOptions
             Provider = SystemOneProvider.Custom,
             BaseAddress = new Uri("http://localhost:8080/"),
             Model = "noul-small",
-            Capabilities = new SystemOneCapabilities { QuestionKinds = SystemOneQuestionKinds.Noul },
+            Capabilities = new DecisionCapabilities { QuestionKinds = QuestionKinds.Noul },
         };
     #endregion
 
@@ -264,7 +264,7 @@ public static class CapabilityOptions
     // GetService returns a new instance each time, so changing it changes nothing in the client.
     public static string Describe(IDecisionClient client)
     {
-        var capabilities = client.GetService<SystemOneCapabilities>();
+        var capabilities = client.GetService<DecisionCapabilities>();
         if (capabilities is null)
         {
             return "This client has no System One capabilities.";

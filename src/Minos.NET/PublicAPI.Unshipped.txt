@@ -137,6 +137,19 @@
 *REMOVED*static Minos.ModelCard.operator ==(Minos.ModelCard? left, Minos.ModelCard? right) -> bool
 *REMOVED*static Minos.NoulCriteria.operator !=(Minos.NoulCriteria? left, Minos.NoulCriteria? right) -> bool
 *REMOVED*static Minos.NoulCriteria.operator ==(Minos.NoulCriteria? left, Minos.NoulCriteria? right) -> bool
+Minos.DecisionCapabilities
+Minos.DecisionCapabilities.DecisionCapabilities() -> void
+Minos.DecisionCapabilities.Images.get -> bool?
+Minos.DecisionCapabilities.Images.set -> void
+Minos.DecisionCapabilities.MaxChoiceOptions.get -> int?
+Minos.DecisionCapabilities.MaxChoiceOptions.set -> void
+Minos.DecisionCapabilities.MaxQuestions.get -> int?
+Minos.DecisionCapabilities.MaxQuestions.set -> void
+Minos.DecisionCapabilities.ModelListing.get -> bool?
+Minos.DecisionCapabilities.ModelListing.set -> void
+Minos.DecisionCapabilities.QuestionKinds.get -> Minos.QuestionKinds?
+Minos.DecisionCapabilities.QuestionKinds.set -> void
+Minos.DecisionErrorKind.Refused = 13 -> Minos.DecisionErrorKind
 Minos.DecisionImage
 Minos.DecisionImage.Data.get -> System.ReadOnlyMemory<byte>
 Minos.DecisionImage.DecisionImage() -> void
@@ -144,6 +157,12 @@ Minos.DecisionImage.Equals(Minos.DecisionImage other) -> bool
 Minos.DecisionImage.MediaType.get -> string!
 Minos.DecisionRequest.Images.get -> System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>!
 Minos.DecisionRequest.Images.init -> void
+Minos.QuestionKinds
+Minos.QuestionKinds.All = Minos.QuestionKinds.Noul | Minos.QuestionKinds.Choice | Minos.QuestionKinds.Score -> Minos.QuestionKinds
+Minos.QuestionKinds.Choice = 2 -> Minos.QuestionKinds
+Minos.QuestionKinds.None = 0 -> Minos.QuestionKinds
+Minos.QuestionKinds.Noul = 1 -> Minos.QuestionKinds
+Minos.QuestionKinds.Score = 4 -> Minos.QuestionKinds
 override Minos.DecisionImage.Equals(object? obj) -> bool
 override Minos.DecisionImage.GetHashCode() -> int
 static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! client, Minos.QuestionSet! questionSet, Minos.DecisionContent state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.Answers!, Minos.DecisionError!>>

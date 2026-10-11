@@ -60,18 +60,6 @@ Minos.SystemOne.ScoreQuestion
 Minos.SystemOne.ScoreQuestion.Criteria.get -> System.Collections.Generic.IReadOnlyList<Minos.DecisionContent>!
 Minos.SystemOne.ScoreQuestion.Criteria.init -> void
 Minos.SystemOne.ScoreQuestion.ScoreQuestion() -> void
-Minos.SystemOne.SystemOneCapabilities
-Minos.SystemOne.SystemOneCapabilities.Images.get -> bool?
-Minos.SystemOne.SystemOneCapabilities.Images.set -> void
-Minos.SystemOne.SystemOneCapabilities.MaxChoiceOptions.get -> int?
-Minos.SystemOne.SystemOneCapabilities.MaxChoiceOptions.set -> void
-Minos.SystemOne.SystemOneCapabilities.MaxQuestions.get -> int?
-Minos.SystemOne.SystemOneCapabilities.MaxQuestions.set -> void
-Minos.SystemOne.SystemOneCapabilities.ModelListing.get -> bool?
-Minos.SystemOne.SystemOneCapabilities.ModelListing.set -> void
-Minos.SystemOne.SystemOneCapabilities.QuestionKinds.get -> Minos.SystemOne.SystemOneQuestionKinds?
-Minos.SystemOne.SystemOneCapabilities.QuestionKinds.set -> void
-Minos.SystemOne.SystemOneCapabilities.SystemOneCapabilities() -> void
 Minos.SystemOne.SystemOneClient
 Minos.SystemOne.SystemOneClient.Dispose() -> void
 Minos.SystemOne.SystemOneClient.EvaluateAsync(Minos.DecisionRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>
@@ -91,7 +79,7 @@ Minos.SystemOne.SystemOneClientOptions.ApiKey.get -> string?
 Minos.SystemOne.SystemOneClientOptions.ApiKey.set -> void
 Minos.SystemOne.SystemOneClientOptions.BaseAddress.get -> System.Uri?
 Minos.SystemOne.SystemOneClientOptions.BaseAddress.set -> void
-Minos.SystemOne.SystemOneClientOptions.Capabilities.get -> Minos.SystemOne.SystemOneCapabilities!
+Minos.SystemOne.SystemOneClientOptions.Capabilities.get -> Minos.DecisionCapabilities!
 Minos.SystemOne.SystemOneClientOptions.Capabilities.set -> void
 Minos.SystemOne.SystemOneClientOptions.InitialBackoff.get -> System.TimeSpan
 Minos.SystemOne.SystemOneClientOptions.InitialBackoff.set -> void
@@ -121,12 +109,6 @@ Minos.SystemOne.SystemOneProvider.Custom = 3 -> Minos.SystemOne.SystemOneProvide
 Minos.SystemOne.SystemOneProvider.OpenRouter = 1 -> Minos.SystemOne.SystemOneProvider
 Minos.SystemOne.SystemOneProvider.TypeSafe = 0 -> Minos.SystemOne.SystemOneProvider
 Minos.SystemOne.SystemOneProvider.VllmSemanticRouter = 2 -> Minos.SystemOne.SystemOneProvider
-Minos.SystemOne.SystemOneQuestionKinds
-Minos.SystemOne.SystemOneQuestionKinds.All = Minos.SystemOne.SystemOneQuestionKinds.Noul | Minos.SystemOne.SystemOneQuestionKinds.Choice | Minos.SystemOne.SystemOneQuestionKinds.Score -> Minos.SystemOne.SystemOneQuestionKinds
-Minos.SystemOne.SystemOneQuestionKinds.Choice = 2 -> Minos.SystemOne.SystemOneQuestionKinds
-Minos.SystemOne.SystemOneQuestionKinds.None = 0 -> Minos.SystemOne.SystemOneQuestionKinds
-Minos.SystemOne.SystemOneQuestionKinds.Noul = 1 -> Minos.SystemOne.SystemOneQuestionKinds
-Minos.SystemOne.SystemOneQuestionKinds.Score = 4 -> Minos.SystemOne.SystemOneQuestionKinds
 Minos.SystemOne.SystemOneRequest
 Minos.SystemOne.SystemOneRequest.Model.get -> string!
 Minos.SystemOne.SystemOneRequest.Model.init -> void

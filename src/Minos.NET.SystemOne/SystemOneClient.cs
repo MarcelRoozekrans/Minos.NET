@@ -6,6 +6,7 @@ using Minos.SystemOne.Protocols;
 using Minos.SystemOne.Serialization;
 using Minos.SystemOne.Telemetry;
 using Minos.SystemOne.Transport;
+using Minos.Transport;
 using ZeroAlloc.Rest.SystemTextJson;
 using ZeroAlloc.Results;
 
@@ -291,8 +292,8 @@ public sealed class SystemOneClient : IDecisionClient
     /// Runs the client's pipeline: with <see cref="SystemOneClientOptions.UseStandardPipeline"/>, telemetry, logging when
     /// the client has a logger factory, and retries with the options' retry settings; without it, one attempt. The
     /// request is sent with <see cref="SystemOneClientOptions.Model"/> when <see cref="DecisionRequest.Model"/> is
-    /// <see langword="null"/>, and every pooled buffer is returned before the call completes. A question set that
-    /// <see cref="SystemOneClientOptions.Capabilities"/> does not accept returns <see cref="DecisionErrorKind.Unsupported"/>
+    /// <see langword="null"/>, and every pooled buffer is returned before the call completes. A request that
+    /// <see cref="SystemOneClientOptions.Capabilities"/> does not accept, such as one with images, returns <see cref="DecisionErrorKind.Unsupported"/>
     /// without a request, and is not retried.
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
@@ -312,7 +313,7 @@ public sealed class SystemOneClient : IDecisionClient
     /// <inheritdoc />
     /// <remarks>
     /// Returns this client for a type it is, a new <see cref="DecisionRetryOptions"/> from its retry settings, a new
-    /// <see cref="SystemOneCapabilities"/> with its resolved capabilities, every property set, its
+    /// <see cref="DecisionCapabilities"/> with its resolved capabilities, every property set, its
     /// <see cref="DecisionClientMetadata"/>, then whatever its pipeline's stages return, such as
     /// <see cref="RetryingDecisionClient"/>.
     /// </remarks>
@@ -332,7 +333,7 @@ public sealed class SystemOneClient : IDecisionClient
                 return _retryOptions.Clone();
             }
 
-            if (serviceType == typeof(SystemOneCapabilities))
+            if (serviceType == typeof(DecisionCapabilities))
             {
                 return _capabilities.ToOptions();
             }
@@ -376,12 +377,12 @@ public sealed class SystemOneClient : IDecisionClient
 
     /// <summary>
     /// Lists the models and aliases available to the account, with <c>GET v1/models</c>, on a provider whose
-    /// <see cref="SystemOneCapabilities.ModelListing"/> is on: by default TypeSafe only.
+    /// <see cref="DecisionCapabilities.ModelListing"/> is on: by default TypeSafe only.
     /// </summary>
     /// <param name="cancellationToken">Cancels the call; cancellation throws <see cref="OperationCanceledException"/>.</param>
     /// <returns>
     /// The models, or the <see cref="DecisionError"/> that prevented them; <see cref="DecisionErrorKind.Unsupported"/>,
-    /// without a request, where <see cref="SystemOneCapabilities.ModelListing"/> is off.
+    /// without a request, where <see cref="DecisionCapabilities.ModelListing"/> is off.
     /// </returns>
     /// <exception cref="ObjectDisposedException">The client has been disposed.</exception>
     public ValueTask<Result<ModelList, DecisionError>> ListModelsAsync(CancellationToken cancellationToken = default)

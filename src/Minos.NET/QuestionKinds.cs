@@ -1,9 +1,9 @@
-namespace Minos.SystemOne;
+namespace Minos;
 
-/// <summary>The question kinds a provider accepts, as flags for <see cref="SystemOneCapabilities.QuestionKinds"/>.</summary>
+/// <summary>The question kinds a provider accepts, as flags for <see cref="DecisionCapabilities.QuestionKinds"/>.</summary>
 /// <remarks>Binds from configuration as a comma-separated list, such as <c>"Noul, Choice"</c>.</remarks>
 [Flags]
-public enum SystemOneQuestionKinds
+public enum QuestionKinds
 {
     /// <summary>No question kind. Not a valid capability; it is here as the empty value of the flags.</summary>
     None = 0,

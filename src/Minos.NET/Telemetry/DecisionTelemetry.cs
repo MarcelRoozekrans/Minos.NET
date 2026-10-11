@@ -118,6 +118,7 @@ internal static class DecisionTelemetry
         DecisionErrorKind.Unsupported => nameof(DecisionErrorKind.Unsupported),
         DecisionErrorKind.InvalidQuestions => nameof(DecisionErrorKind.InvalidQuestions),
         DecisionErrorKind.Disposed => nameof(DecisionErrorKind.Disposed),
+        DecisionErrorKind.Refused => nameof(DecisionErrorKind.Refused),
         _ => Other,
     };
 }

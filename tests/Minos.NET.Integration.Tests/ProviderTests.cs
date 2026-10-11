@@ -143,7 +143,7 @@ public sealed class ProviderTests : IClassFixture<WireMockFixture>
                 .WithHeader("Content-Type", "application/json")
                 .WithBody(Fixture.Text("response-422-noul-only.json")));
 
-        using var client = NoulOnlyServerClient(SystemOneQuestionKinds.Noul);
+        using var client = NoulOnlyServerClient(QuestionKinds.Noul);
 
         var result = await client.EvaluateAsync<StructuredTriage>("Help! My payouts have been failing for 3 days.");
 
@@ -180,14 +180,14 @@ public sealed class ProviderTests : IClassFixture<WireMockFixture>
         _ = OnlyRequest();
     }
 
-    private SystemOneClient NoulOnlyServerClient(SystemOneQuestionKinds? kinds)
+    private SystemOneClient NoulOnlyServerClient(QuestionKinds? kinds)
         => new(new SystemOneClientOptions
         {
             Provider = SystemOneProvider.Custom,
             BaseAddress = _fixture.BaseAddress,
             Model = "noul-small",
             MaxRetries = 0,
-            Capabilities = new SystemOneCapabilities { QuestionKinds = kinds },
+            Capabilities = new DecisionCapabilities { QuestionKinds = kinds },
         });
 
     private IRequestMessage OnlyRequest()
