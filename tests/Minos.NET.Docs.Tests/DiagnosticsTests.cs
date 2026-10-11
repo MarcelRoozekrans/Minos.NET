@@ -129,6 +129,27 @@ public sealed partial class DiagnosticsTests
             StringComparison.Ordinal);
     }
 
+    // The provider rules have no analyzer: the client reports them at run time. The table lists every MIN2xx id of
+    // DiagnosticIds, in order.
+    [Fact]
+    public void TheClientSection_IsEveryProviderRule()
+    {
+        var ids = new List<string>();
+        foreach (Match match in IdConstant().Matches(Source("src", "Minos.NET.Generator", "DiagnosticIds.cs")))
+        {
+            if (match.Groups["id"].Value.StartsWith("MIN2", StringComparison.Ordinal))
+            {
+                ids.Add(match.Groups["id"].Value);
+            }
+        }
+
+        var rows = PageTables.Rows(Page, "Reported by the client");
+
+        Assert.Equal(["MIN201", "MIN202", "MIN203", "MIN204", "MIN205", "MIN206"], ids.Order(StringComparer.Ordinal));
+        Assert.Equal(ids.Order(StringComparer.Ordinal), rows.Select(row => row[0]));
+        Assert.DoesNotContain(Descriptors(), rule => rule.Id.StartsWith("MIN2", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void TheCodeFixTable_IsTheProvidersFixableRules_AndItsTitleFormat()
     {

@@ -56,13 +56,22 @@ protocol, and so do the servers you run. It brings `Minos.NET`, so there is noth
 install for typed questions. It also brings `Minos.NET.DependencyInjection`, which is what you use in a .NET host, as
 [dependency injection](dependency-injection.md) covers.
 
+For OpenAI's Decisions API, which is in public beta, install `Minos.NET.OpenAI` instead, or beside it. It holds
+`OpenAIDecisionClient`, in the `Minos.OpenAI` namespace, and brings `Minos.NET` and `Minos.NET.DependencyInjection` the
+same way. Its provider name in logs and telemetry is `openai`. [OpenAI](client-and-errors.md#openai) covers it.
+
+```shell
+dotnet add package Minos.NET.OpenAI
+```
+
 ### What the packages bring with them
 
 `Minos.NET` has one runtime dependency from Microsoft, `Microsoft.Extensions.Logging.Abstractions` 10.0.0 or later, for
 the logging interfaces that [the client's logging](observability.md#logging) uses. Its other runtime dependencies are
 ZeroAlloc libraries. `Minos.NET.SystemOne` adds `Microsoft.Extensions.Http` and
 `Microsoft.Extensions.Options.ConfigurationExtensions`, for the `IHttpClientFactory` and the configuration binding of
-`AddSystemOneClient`, and `Minos.NET.DependencyInjection` adds `Microsoft.Extensions.DependencyInjection.Abstractions`.
+`AddSystemOneClient`, and `Minos.NET.OpenAI` adds the same two for `AddOpenAIDecisionClient`.
+`Minos.NET.DependencyInjection` adds `Microsoft.Extensions.DependencyInjection.Abstractions`.
 
 NuGet also passes the analyzers and source generators of those dependencies on to your build. The ones that arrive are
 those of ZeroAlloc.Validation, ZeroAlloc.Telemetry, and Microsoft.Extensions.Logging.Abstractions. They do nothing
@@ -87,6 +96,7 @@ use the version from the packed files' names.
 ```shell
 dotnet pack src/Minos.NET -c Release -o /absolute/path/nupkgs
 dotnet pack src/Minos.NET.SystemOne -c Release -o /absolute/path/nupkgs
+dotnet pack src/Minos.NET.OpenAI -c Release -o /absolute/path/nupkgs
 dotnet pack src/Minos.NET.DependencyInjection -c Release -o /absolute/path/nupkgs
 dotnet nuget add source /absolute/path/nupkgs --name minos-net-local
 ```
@@ -98,6 +108,8 @@ version:
 dotnet add package Minos.NET.SystemOne --version <release>-local
 dotnet add package Minos.NET.DependencyInjection --version <release>-local
 ```
+
+For OpenAI, add `Minos.NET.OpenAI` with the same version.
 
 Remove the source when you switch to the published packages: `dotnet nuget remove source minos-net-local`.
 
@@ -111,6 +123,10 @@ Remove the source when you switch to the published packages: `dotnet nuget remov
 | `SystemOneProvider.OpenRouter`          | `https://openrouter.ai/api/`        | `OPENROUTER_API_KEY`   |
 | `SystemOneProvider.VllmSemanticRouter`  | the `BaseAddress` you set           | none                   |
 | `SystemOneProvider.Custom`              | the `BaseAddress` you set           | none                   |
+
+OpenAI's Decisions API is not one of these. It has its own client, `OpenAIDecisionClient`, which sends to
+`https://api.openai.com/` and reads `OPENAI_API_KEY`; [OpenAI](client-and-errors.md#openai) shows it, and [provider
+differences](client-and-errors.md#provider-differences) compares it with the presets.
 
 `TypeSafe` is the default. Set `ApiKey` on the options, or leave it unset and the client reads the matching environment
 variable. `VllmSemanticRouter` and `Custom` read none and send no key unless you set `ApiKey`. The

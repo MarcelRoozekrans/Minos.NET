@@ -8,7 +8,7 @@
 
 Unofficial .NET client for decision models: send a `state` and typed questions (Noul, Choice, Score) and get calibrated, typed answers back.
 
-Minos speaks the `/v1/systemone` protocol of TypeSafe's Jev: to TypeSafe directly, through OpenRouter, or to a server you run, such as a vLLM Semantic Router. The core is provider-neutral, and `Minos.NET.SystemOne` is the client for this protocol.
+Minos speaks the `/v1/systemone` protocol of TypeSafe's Jev: to TypeSafe directly, through OpenRouter, or to a server you run, such as a vLLM Semantic Router. The core is provider-neutral, and `Minos.NET.SystemOne` is the client for this protocol. `Minos.NET.OpenAI` is the client for OpenAI's Decisions API, `/v1/decisions`, which is in public beta; its provider name in logs and telemetry is `openai`.
 
 You declare the questions as a C# type, and a source generator writes the request and the answer parsing at compile time, so generated question sets need no reflection and the client runs under Native AOT.
 
@@ -21,6 +21,12 @@ You declare the questions as a C# type, and a source generator writes the reques
 ```
 dotnet add package Minos.NET.SystemOne
 dotnet add package Minos.NET.DependencyInjection
+```
+
+For OpenAI's Decisions API, add `Minos.NET.OpenAI` instead of, or beside, `Minos.NET.SystemOne`:
+
+```
+dotnet add package Minos.NET.OpenAI
 ```
 
 You need the .NET 10 SDK, and any IDE or build that hosts the `[Questions]` generator must host Roslyn 5.0 or later; [Getting started](https://marcelroozekrans.github.io/Minos.NET/) has the details.
@@ -80,12 +86,12 @@ The guide lives at [marcelroozekrans.github.io/Minos.NET](https://marcelroozekra
 - [Question types](https://marcelroozekrans.github.io/Minos.NET/question-types): Noul, Choice and Score, what each answer holds, and how confidence differs from probability.
 - [Typed evaluation](https://marcelroozekrans.github.io/Minos.NET/typed-evaluation): declare questions as a C# type, give them a typed state, and pick the `EvaluateAsync` overload.
 - [Question sets at run time](https://marcelroozekrans.github.io/Minos.NET/question-sets-at-run-time): build a question set from data with the builder, evaluate it, and read answers through handles.
-- [The client and its errors](https://marcelroozekrans.github.io/Minos.NET/client-and-errors): create and configure a `SystemOneClient`, its retries and time-outs, every kind of `DecisionError`, and the raw request API.
+- [The client and its errors](https://marcelroozekrans.github.io/Minos.NET/client-and-errors): create and configure a `SystemOneClient` or an `OpenAIDecisionClient`, the differences between providers, images, retries and time-outs, every kind of `DecisionError`, and the raw request API.
 - [Dependency injection](https://marcelroozekrans.github.io/Minos.NET/dependency-injection): register `IDecisionClient` in a .NET host, key several clients, and bind options from configuration.
 - [The client pipeline](https://marcelroozekrans.github.io/Minos.NET/pipeline): the stages every call goes through, building your own pipeline, writing a stage, and upgrading from 0.7.
 - [Logging, traces and metrics](https://marcelroozekrans.github.io/Minos.NET/observability): what the client logs, which spans and metrics it emits, and what it never records.
 - [Native AOT and allocations](https://marcelroozekrans.github.io/Minos.NET/native-aot): what Native AOT compatibility means, the one reflection the client uses, and the allocation budgets that guard it.
-- [Diagnostics](https://marcelroozekrans.github.io/Minos.NET/diagnostics): every MIN analyzer rule with its severity, the two code fixes, and how to suppress a rule.
+- [Diagnostics](https://marcelroozekrans.github.io/Minos.NET/diagnostics): every MIN analyzer rule with its severity, the provider rules the client checks at run time, the two code fixes, and how to suppress a rule.
 - [Testing your code](https://marcelroozekrans.github.io/Minos.NET/testing-your-code): test code that calls Jev with a fake `IDecisionClient` or a real `SystemOneClient` over a canned HTTP reply.
 - [Patterns](https://marcelroozekrans.github.io/Minos.NET/patterns): four ways to use Jev answers, each with a guide of its own.
 - [Speculative fan-out](https://marcelroozekrans.github.io/Minos.NET/patterns/fan-out): ask every question you might need in one request and read only the answers that matter.
@@ -105,7 +111,7 @@ Building this repository needs the SDK version pinned in `global.json` (10.0.401
 
 ## Testing
 
-`dotnet test` runs the unit tests, the generator tests, the analyzer and code-fix tests, the WireMock integration tests, and the pack tests, which pack the library and check the package's contents. A solution-wide `dotnet test` never makes a billed call: the live smoke tests in `tests/Minos.NET.Live.Tests` call the real APIs and only run when `MINOS_LIVE=1` is set *and* the provider's key (`TYPESAFE_API_KEY` or `OPENROUTER_API_KEY`) is set; otherwise every one of them reports skipped. To run them locally, opt in explicitly with the key set: `MINOS_LIVE=1 dotnet test tests/Minos.NET.Live.Tests`. Each run makes a few small billed evaluations. Override the model with `MINOS_LIVE_MODEL`, or `MINOS_LIVE_OPENROUTER_MODEL` for OpenRouter. Maintainers can also run them in CI with the manual **Live smoke** workflow, which reads the keys from the `live-api` environment; restrict that environment's deployment branches to `main`.
+`dotnet test` runs the unit tests, the generator tests, the analyzer and code-fix tests, the WireMock integration tests, and the pack tests, which pack the library and check the package's contents. A solution-wide `dotnet test` never makes a billed call: the live smoke tests in `tests/Minos.NET.Live.Tests` call the real APIs and only run when `MINOS_LIVE=1` is set *and* the provider's key (`TYPESAFE_API_KEY` or `OPENROUTER_API_KEY`) is set; otherwise every one of them reports skipped. To run them locally, opt in explicitly with the key set: `MINOS_LIVE=1 dotnet test tests/Minos.NET.Live.Tests`. Each run makes a few small billed evaluations. Override the model with `MINOS_LIVE_MODEL`, or `MINOS_LIVE_OPENROUTER_MODEL` for OpenRouter. The Luna test through OpenRouter also needs `MINOS_LIVE_LUNA=1`, because Luna is unavailable to accounts that allow only zero-data-retention endpoints. There is no live OpenAI test yet. Maintainers can also run them in CI with the manual **Live smoke** workflow, which reads the keys from the `live-api` environment; restrict that environment's deployment branches to `main`.
 
 ## About the name
 

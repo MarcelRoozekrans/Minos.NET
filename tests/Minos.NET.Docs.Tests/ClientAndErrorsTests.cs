@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Text.Json;
+using Minos.OpenAI;
 using Minos.SystemOne;
 
 namespace Minos.Docs.Tests;
@@ -650,20 +651,20 @@ public sealed class ClientAndErrorsTests
         var rows = PageTables.Rows("client-and-errors.md", "The defaults");
 
         Assert.Equal(
-            Enum.GetNames<SystemOneProvider>().Order(StringComparer.Ordinal),
+            Enum.GetNames<SystemOneProvider>().Append("OpenAI").Order(StringComparer.Ordinal),
             rows.Select(row => PageTables.Code(row[0])).Order(StringComparer.Ordinal));
         foreach (var row in rows)
         {
-            var provider = Enum.Parse<SystemOneProvider>(PageTables.Code(row[0]));
-            var options = new SystemOneClientOptions
-            {
-                Provider = provider,
-                ApiKey = "key",
-                BaseAddress = new Uri("http://localhost:8080/"),
-                Model = "my-model",
-            };
             using var http = new HttpClient();
-            using var client = new SystemOneClient(http, options);
+            using IDecisionClient client = string.Equals(PageTables.Code(row[0]), "OpenAI", StringComparison.Ordinal)
+                ? new OpenAIDecisionClient(http, new OpenAIDecisionClientOptions { ApiKey = "key" })
+                : new SystemOneClient(http, new SystemOneClientOptions
+                {
+                    Provider = Enum.Parse<SystemOneProvider>(PageTables.Code(row[0])),
+                    ApiKey = "key",
+                    BaseAddress = new Uri("http://localhost:8080/"),
+                    Model = "my-model",
+                });
 
             var capabilities = Assert.IsType<DecisionCapabilities>(client.GetService(typeof(DecisionCapabilities)));
 
@@ -728,11 +729,13 @@ public sealed class ClientAndErrorsTests
         using var http = new HttpClient();
         using var client = new SystemOneClient(http, new SystemOneClientOptions { Provider = SystemOneProvider.OpenRouter, ApiKey = "key" });
         using var noul = new SystemOneClient(http, CapabilityOptions.NoulOnly());
+        using var openAI = new OpenAIDecisionClient(http, new OpenAIDecisionClientOptions { ApiKey = "key" });
         using var own = new AlwaysUrgent();
 
-        Assert.Equal("All, no question limit, model listing off", CapabilityOptions.Describe(client));
-        Assert.Equal("Noul, no question limit, model listing off", CapabilityOptions.Describe(noul));
-        Assert.Equal("This client has no System One capabilities.", CapabilityOptions.Describe(own));
+        Assert.Equal("All, no question limit, images off, model listing off", CapabilityOptions.Describe(client));
+        Assert.Equal("Noul, no question limit, images off, model listing off", CapabilityOptions.Describe(noul));
+        Assert.Equal("All, no question limit, images on, model listing off", CapabilityOptions.Describe(openAI));
+        Assert.Equal("This client does not report its capabilities.", CapabilityOptions.Describe(own));
         Assert.NotSame(client.GetService<DecisionCapabilities>(), client.GetService<DecisionCapabilities>());
     }
 

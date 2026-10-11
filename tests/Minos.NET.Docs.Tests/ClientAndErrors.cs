@@ -107,6 +107,7 @@ public static class ClientFailures
         DecisionErrorKind.Unsupported => $"The provider cannot do that: {error.Message}",
         DecisionErrorKind.InvalidQuestions => $"The question set is invalid, {error.Failures.Count} rules broken.",
         DecisionErrorKind.Disposed => "The client was disposed while the call was running.",
+        DecisionErrorKind.Refused => $"{error.Message} Rephrase the questions or the state.",
 
         // A kind added in a later version still produces a useful message.
         _ => error.ToString(),
@@ -267,12 +268,13 @@ public static class CapabilityOptions
         var capabilities = client.GetService<DecisionCapabilities>();
         if (capabilities is null)
         {
-            return "This client has no System One capabilities.";
+            return "This client does not report its capabilities.";
         }
 
         var questions = capabilities.MaxQuestions is { } most ? $"at most {most} questions" : "no question limit";
+        var images = capabilities.Images == true ? "on" : "off";
         var listing = capabilities.ModelListing == true ? "on" : "off";
-        return $"{capabilities.QuestionKinds}, {questions}, model listing {listing}";
+        return $"{capabilities.QuestionKinds}, {questions}, images {images}, model listing {listing}";
     }
     #endregion
 }

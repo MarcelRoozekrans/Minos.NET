@@ -2,7 +2,7 @@
 id: diagnostics
 title: Diagnostics
 sidebar_position: 10
-description: Every MIN analyzer rule with its severity, the two code fixes, and how to suppress a rule that does not apply.
+description: Every MIN analyzer rule with its severity, the provider rules the client checks at run time, the two code fixes, and how to suppress a rule that does not apply.
 ---
 
 # Diagnostics
@@ -70,6 +70,26 @@ carry JSON. A declared set's instructions and descriptions are always text.
 | Id | Outcome | It fires when |
 | --- | --- | --- |
 | MIN108 | `Build()` fails | JSON instructions, a JSON description, or a JSON yes/no meaning nests more than 60 levels deep. |
+
+### Reported by the client
+
+MIN201 to MIN206 are provider rules, checked at run time. Whether a request breaks one depends on the provider, its
+[capabilities](client-and-errors.md#capabilities) and the images of the call, and none of those is known when the code
+is compiled, so no analyzer reports them. The client checks them before it sends anything. A request that breaks any of
+them returns a `DecisionError` of kind `Unsupported`, with one `QuestionFailure` per problem in
+`DecisionError.Failures`. It is never retried, and no request is sent.
+
+| Id | It fires when |
+| --- | --- |
+| MIN201 | A question's kind is not in the provider's `QuestionKinds`. |
+| MIN202 | The set has more questions than the provider's `MaxQuestions`. |
+| MIN203 | A Choice question has more options than the provider's `MaxChoiceOptions`, 255 on TypeSafe and OpenRouter. |
+| MIN204 | A Noul has `WhenTrue` or `WhenFalse`, and the provider is OpenAI, whose predicate takes only instructions. |
+| MIN205 | A criterion has `Examples` or `NotFor`, and the provider is OpenAI, whose descriptions are plain strings. |
+| MIN206 | The request has images, and the provider's `Images` is off. |
+
+[The Unsupported error](client-and-errors.md#the-unsupported-error) shows the messages and the order of the failures,
+and [provider differences](client-and-errors.md#provider-differences) which provider each rule applies to.
 
 ### Where a rule is reported
 
