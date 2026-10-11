@@ -80,8 +80,10 @@ public sealed partial class NoOldNameTests
         new("docs/design/LOGO.md", null, LogoBriefRename()),
 
         // The local-systemone workflow installs and runs the third-party ollajev server, which reads OLLAJEV_DEVICE; the
-        // local test names it where it explains how precise its answers are.
+        // local test names it where it explains how precise its answers are, and the Renovate rule that caps the
+        // workflow's Python names the ollajev requirement it follows.
         new(".github/workflows/local-systemone.yml", null, LocalServerPackage()),
+        new("renovate.json", null, LocalServerPackage()),
         new("tests/Minos.NET.Live.Tests/LocalSystemOneTests.cs", null, LocalServerPackage()),
     ];
 

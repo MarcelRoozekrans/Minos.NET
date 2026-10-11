@@ -42,6 +42,12 @@
       "dependencyDashboardApproval": true
     },
     {
+      "description": "ollajev 0.4.0, the local server local-systemone.yml installs, declares Requires-Python >=3.12,<3.13, so pip finds no version on a newer Python. Renovate moved the workflow to 3.15 in #154 and the job stopped installing. Raise this cap together with the ollajev pin once a release supports the newer Python.",
+      "matchFileNames": [".github/workflows/local-systemone.yml"],
+      "matchDepNames": ["python"],
+      "allowedVersions": "<3.13"
+    },
+    {
       "description": "Group ZeroAlloc packages; they are this library's external dependencies",
       "matchPackageNames": ["ZeroAlloc.{/,}**"],
       "groupName": "ZeroAlloc"
