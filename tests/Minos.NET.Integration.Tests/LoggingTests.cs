@@ -1,4 +1,5 @@
 using System.Net;
+using Minos.SystemOne;
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
 
@@ -34,8 +35,8 @@ public sealed class LoggingTests : IClassFixture<WireMockFixture>
                 .WithBody(Fixture.Text("response-noul.json")));
 
         using var logs = new LogCapture();
-        using var client = new DecisionClient(
-            new DecisionClientOptions
+        using var client = new SystemOneClient(
+            new SystemOneClientOptions
             {
                 ApiKey = "integration-key",
                 BaseAddress = _fixture.BaseAddress,
@@ -60,7 +61,7 @@ public sealed class LoggingTests : IClassFixture<WireMockFixture>
         Assert.Equal("Minos.DecisionClient", succeeded.Category);
         Assert.Equal("evaluate", LogAssert.Field(succeeded, "Operation"));
         Assert.Equal("jev-latest", LogAssert.Field(succeeded, "Model"));
-        Assert.Equal("TypeSafe", LogAssert.Field(succeeded, "Provider"));
+        Assert.Equal("typesafe", LogAssert.Field(succeeded, "Provider"));
         Assert.Equal("1", LogAssert.Field(succeeded, "QuestionCount"));
     }
 }

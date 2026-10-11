@@ -1,7 +1,9 @@
 using System.Net;
 using System.Text;
-using Minos.Protocols;
-using Minos.Serialization;
+using Minos.SystemOne;
+using Minos.SystemOne.Protocols;
+using Minos.SystemOne.Serialization;
+using Minos.SystemOne.Transport;
 using Minos.Transport;
 using ZeroAlloc.Rest.SystemTextJson;
 using ZeroAlloc.Results;
@@ -28,7 +30,7 @@ public sealed class DecisionTransportTests : IDisposable
         "{}"u8.CopyTo(body.GetSpan(2));
         body.Advance(2);
 
-        var result = await api.SendAsync(body, SystemOneProtocol.Instance.EndpointPath, "Bearer k", retryCount: null, CancellationToken.None);
+        var result = await api.SendAsync(body, "v1/systemone", "Bearer k", retryCount: null, CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         result.Value.Dispose();
@@ -113,10 +115,10 @@ public sealed class DecisionTransportTests : IDisposable
         var handler = StubHandler.Json(HttpStatusCode.ServiceUnavailable, "{}");
         var http = new HttpClient(handler);
         _httpClients.Add(http);
-        var settings = DecisionClientSettings.Resolve(
-            new DecisionClientOptions { ApiKey = "test-key", Model = ClientTestKit.TestModel, MaxRetries = 3, InitialBackoff = TimeSpan.FromMilliseconds(1), UseStandardPipeline = false },
+        var settings = SystemOneClientSettings.Resolve(
+            new SystemOneClientOptions { ApiKey = "test-key", Model = ClientTestKit.TestModel, MaxRetries = 3, InitialBackoff = TimeSpan.FromMilliseconds(1), UseStandardPipeline = false },
             _ => null);
-        using var client = new DecisionClient(settings, http, ownedHandler: null, TimeProvider.System);
+        using var client = new SystemOneClient(settings, http, ownedHandler: null, TimeProvider.System);
 
         var result = await client.EvaluateAsync(new DecisionRequest(QuestionSets.UrgencyDefinition(), "s"));
 
@@ -127,14 +129,14 @@ public sealed class DecisionTransportTests : IDisposable
     [Fact]
     public void Metadata_names_the_provider_endpoint_and_model()
     {
-        using var client = ClientTestKit.Client(_httpClients, StubHandler.Json(HttpStatusCode.OK, "{}"), provider: DecisionProvider.OpenRouter);
+        using var client = ClientTestKit.Client(_httpClients, StubHandler.Json(HttpStatusCode.OK, "{}"), provider: SystemOneProvider.OpenRouter);
 
         var metadata = client.GetService<DecisionClientMetadata>();
 
         Assert.Equal("openrouter", metadata!.ProviderName);
         Assert.Equal(ClientTestKit.TestModel, metadata.DefaultModel);
         Assert.NotNull(metadata.Endpoint);
-        Assert.Same(client, client.GetService<DecisionClient>());
+        Assert.Same(client, client.GetService<SystemOneClient>());
         Assert.Same(client, client.GetService<IDecisionClient>());
         Assert.Null(client.GetService<string>());
         Assert.Null(client.GetService<DecisionClientMetadata>(serviceKey: "key"));
@@ -156,7 +158,10 @@ public sealed class DecisionTransportTests : IDisposable
         var api = new CountingApi();
         var pool = new CountingPool();
         using var transport = new DecisionTransport(
-            api, SystemOneProtocol.Instance, "Bearer k", new DecisionClientMetadata("typesafe", null, null), pool, static () => true);
+            api,
+            SystemOneProtocol.Instance,
+            SystemOneClientSettings.Resolve(new SystemOneClientOptions { ApiKey = "k" }, static _ => null),
+            new DecisionClientMetadata("typesafe", null, null), pool, static () => true);
 
         var call = transport.EvaluateAsync(new DecisionRequest(QuestionSets.UrgencyDefinition(), "s"));
 
@@ -182,16 +187,13 @@ public sealed class DecisionTransportTests : IDisposable
         public int Calls { get; private set; }
 
         public ValueTask<Result<SystemOneResponse, DecisionError>> EvaluateAsync(
-            SystemOneRequest body, string authorization, int? retryCount, CancellationToken ct)
+            SystemOneRequest body, string path, string? authorization, int? retryCount, CancellationToken ct)
             => throw Called();
 
-        public ValueTask<Result<RawJson, DecisionError>> EvaluateRawAsync(RawJson body, string authorization, int? retryCount, CancellationToken ct)
+        public ValueTask<Result<RawJson, DecisionError>> SendAsync(RawJson body, string path, string? authorization, int? retryCount, CancellationToken ct)
             => throw Called();
 
-        public ValueTask<Result<RawJson, DecisionError>> SendAsync(RawJson body, string path, string authorization, int? retryCount, CancellationToken ct)
-            => throw Called();
-
-        public ValueTask<Result<ModelList, DecisionError>> ListModelsAsync(string authorization, int? retryCount, CancellationToken ct)
+        public ValueTask<Result<ModelList, DecisionError>> ListModelsAsync(string? authorization, int? retryCount, CancellationToken ct)
             => throw Called();
 
         private InvalidOperationException Called()

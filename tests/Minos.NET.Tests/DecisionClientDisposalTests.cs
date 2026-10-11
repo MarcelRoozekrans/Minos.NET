@@ -3,8 +3,9 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using Minos.Serialization;
-using Minos.Transport;
+using Minos.SystemOne;
+using Minos.SystemOne.Serialization;
+using Minos.SystemOne.Transport;
 using ZeroAlloc.Results;
 
 namespace Minos.Tests;
@@ -148,7 +149,7 @@ public sealed class DecisionClientDisposalTests
     {
         using var logs = new LogCapture();
         using var capture = new TelemetryCapture();
-        DecisionClient? client = null;
+        SystemOneClient? client = null;
         var handler = new StubHandler((_, _) =>
         {
             client!.Dispose();
@@ -193,7 +194,7 @@ public sealed class DecisionClientDisposalTests
         using var logs = new LogCapture();
         using var capture = new TelemetryCapture();
         var pool = new CountingPool();
-        DecisionClient? client = null;
+        SystemOneClient? client = null;
         var handler = new StubHandler((_, _) =>
         {
             client!.Dispose();
@@ -235,7 +236,7 @@ public sealed class DecisionClientDisposalTests
     {
         var gate = new Gate(() => Status(HttpStatusCode.ServiceUnavailable));
         using var http = new HttpClient(gate.Handler);
-        var client = new DecisionClient(Settings(maxRetries: 2), http, ownedHandler: null, TimeProvider.System);
+        var client = new SystemOneClient(Settings(maxRetries: 2), http, ownedHandler: null, TimeProvider.System);
 
         var call = client.EvaluateAsync(Request()).AsTask();
         var result = await DisposeWhileBlocked(gate, client, call);
@@ -251,7 +252,7 @@ public sealed class DecisionClientDisposalTests
     {
         var gate = new Gate(Success);
         using var http = new HttpClient(gate.Handler);
-        var client = new DecisionClient(Settings(maxRetries: 2), http, ownedHandler: null, TimeProvider.System);
+        var client = new SystemOneClient(Settings(maxRetries: 2), http, ownedHandler: null, TimeProvider.System);
 
         var call = client.EvaluateAsync(Request()).AsTask();
         var result = await DisposeWhileBlocked(gate, client, call);
@@ -292,7 +293,7 @@ public sealed class DecisionClientDisposalTests
         Assert.Equal("Disposed", span.GetTagItem("error.type"));
     }
 
-    private static async Task<Result<T, DecisionError>> DisposeWhileBlocked<T>(Gate gate, DecisionClient client, Task<Result<T, DecisionError>> call)
+    private static async Task<Result<T, DecisionError>> DisposeWhileBlocked<T>(Gate gate, SystemOneClient client, Task<Result<T, DecisionError>> call)
     {
         await gate.Entered.Task;
         client.Dispose();
@@ -309,13 +310,13 @@ public sealed class DecisionClientDisposalTests
     }
 
     // An owned client over the handler, with two retries and a short backoff unless told otherwise.
-    private static DecisionClient Owned(
+    private static SystemOneClient Owned(
         StubHandler handler, int maxRetries = 2, TimeSpan? timeout = null, CountingPool? pool = null, ILogger? logger = null)
         => new(Settings(maxRetries, timeout), httpClient: null, handler, TimeProvider.System, pool ?? new CountingPool(), logger);
 
-    private static DecisionClientSettings Settings(int maxRetries, TimeSpan? timeout = null)
-        => DecisionClientSettings.Resolve(
-            new DecisionClientOptions
+    private static SystemOneClientSettings Settings(int maxRetries, TimeSpan? timeout = null)
+        => SystemOneClientSettings.Resolve(
+            new SystemOneClientOptions
             {
                 ApiKey = "test-key",
                 Model = ClientTestKit.TestModel,

@@ -3,7 +3,8 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using BenchmarkDotNet.Attributes;
-using Minos.Protocols;
+using Minos.SystemOne;
+using Minos.SystemOne.Protocols;
 using ZeroAlloc.Results;
 
 namespace Minos.Benchmarks;
@@ -52,7 +53,7 @@ public class QuestionSetBenchmarks
     private AnswerFactory<Answers> _twentyFactory = null!;
     private byte[] _twentyAnswers = [];
     private HttpClient _http = null!;
-    private DecisionClient _client = null!;
+    private SystemOneClient _client = null!;
 
     /// <summary>The Noul, enum Choice and enum Score of <see cref="ClientBenchmarks.TypedEvaluateAsync"/>, as a builder.</summary>
     internal static QuestionSetBuilder TriageBuilder()

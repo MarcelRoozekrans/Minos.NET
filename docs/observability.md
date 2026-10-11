@@ -8,14 +8,14 @@ description: What the Minos client logs, which spans and metrics it emits, what 
 # Logging, traces and metrics
 
 A client that calls a remote model needs to be observable: you want to know how long each call took, which ones failed
-and why, how many tokens you used, and how sure Jev was. `DecisionClient` reports all of this through the three signals that
-.NET has built in:
+and why, how many tokens you used, and how sure Jev was. `SystemOneClient` reports all of this through the three signals
+that .NET has built in:
 
 - **Logs**, through `Microsoft.Extensions.Logging`, when you give the client an `ILoggerFactory`.
 - **Traces**, as `System.Diagnostics` spans, from an `ActivitySource` named `Minos`.
 - **Metrics**, as `System.Diagnostics.Metrics` instruments, from a `Meter` named `Minos`.
 
-Each signal comes from a stage of the [client pipeline](pipeline.md), which every `DecisionClient` builds for you.
+Each signal comes from a stage of the [client pipeline](pipeline.md), which every `SystemOneClient` builds for you.
 [Which stage emits what](#which-stage-emits-what) has the details.
 
 All three describe the call and never its content. Your state, your questions, the answers, your API key and the
@@ -28,14 +28,14 @@ call that completes asynchronously. [The cost of listening](#the-cost-of-listeni
 
 A call through `EvaluateAsync(DecisionRequest)`, which every typed and built-set call makes, is observed by the stages
 of the [pipeline](pipeline.md#what-every-call-goes-through). The raw System One calls do not run through the stages,
-so `DecisionClient` instruments them itself.
+so `SystemOneClient` instruments them itself.
 
 | Signal | Emitted by | When |
 | --- | --- | --- |
 | The span `evaluate {model}` and the six metrics | `OpenTelemetryDecisionClient` | Once per call, over every attempt. |
 | Events 1001, 1002 and 1006 | `LoggingDecisionClient` | Once per call, when the client has a logger factory. |
 | Event 1003 | `RetryingDecisionClient` | For each attempt it retries, when it has a logger. |
-| The spans `evaluate {model}` and `list_models`, their metrics, and events 1001 to 1006 of the raw calls | `DecisionClient` | For `EvaluateAsync(SystemOneRequest)` and `ListModelsAsync`. |
+| The spans `evaluate {model}` and `list_models`, their metrics, and events 1001 to 1006 of the raw calls | `SystemOneClient` | For `EvaluateAsync(SystemOneRequest)` and `ListModelsAsync`. |
 
 With `UseStandardPipeline` set to `false`, a `DecisionRequest` call emits none of these until you add the stages
 yourself, as [Building your own pipeline](pipeline.md#building-your-own-pipeline) shows. The raw calls still emit
@@ -62,6 +62,7 @@ dotnet add package Microsoft.Extensions.Diagnostics.Testing
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Minos;
+using Minos.SystemOne;
 
 // One question, so that the events are easy to read.
 [Questions]
@@ -76,13 +77,13 @@ public static class ObservedLogging
     // A client logs through the ILoggerFactory it is given. FakeLoggerProvider keeps every record in memory, which
     // is what a test wants. An application would add its own provider instead, such as the console or Serilog.
     public static async Task<IReadOnlyList<FakeLogRecord>> EvaluateAndCollectAsync(
-        HttpClient http, DecisionClientOptions options, CancellationToken cancellationToken)
+        HttpClient http, SystemOneClientOptions options, CancellationToken cancellationToken)
     {
         using var provider = new FakeLoggerProvider();
         using var loggers = LoggerFactory.Create(builder => builder
             .AddProvider(provider)
             .SetMinimumLevel(LogLevel.Debug));
-        using var client = new DecisionClient(http, options, loggers);
+        using var client = new SystemOneClient(http, options, loggers);
 
         // The result is not inspected here: each outcome, a success or a failure, is one log event.
         await client.EvaluateAsync<ObservedUrgency>("Help! The server is down.", cancellationToken);
@@ -112,9 +113,8 @@ A call logs once, when it completes, and logs again for each attempt it is about
 - **`Operation`** names the call: `evaluate-set` for every `EvaluateAsync(DecisionRequest)` call, the typed overloads
   and a [built question set](question-sets-at-run-time.md) included, and, for the raw System One calls, `evaluate` for
   `EvaluateAsync(SystemOneRequest)` and `list-models` for model listing.
-- **`Provider`**, in event 1001 of an `evaluate-set` call, is the provider name of the client's
-  `DecisionClientMetadata`, `typesafe` or `openrouter`, the same value as the span's `gen_ai.provider.name`. The raw
-  calls log `TypeSafe` or `OpenRouter` in events 1001, 1004 and 1005.
+- **`Provider`**, in events 1001, 1004 and 1005, is the provider name of the client's `DecisionClientMetadata`, the same
+  value as the span's `gen_ai.provider.name`: `typesafe`, `openrouter`, `vllm-sr` or `custom`.
 - **Success** is a Debug event, 1001 for an evaluation and 1004 for a model listing. `QuestionCount` is the number of
   questions asked.
 - **Failure** is a Warning, 1002 or 1005. It covers every failure the call returns as a
@@ -206,10 +206,10 @@ public static class DecisionTelemetryNames
 ```
 <!-- endSnippet -->
 
-The `Minos.NET` package takes no OpenTelemetry dependency, and neither does `Minos.NET.DependencyInjection`.
-Your application brings OpenTelemetry itself, usually the `OpenTelemetry.Extensions.Hosting` package, whose
-`AddOpenTelemetry()` starts the setup. Pass the source to `WithTracing` with `AddSource`, and the meter to `WithMetrics`
-with `AddMeter`:
+No Minos package takes an OpenTelemetry dependency: not `Minos.NET`, `Minos.NET.SystemOne` or
+`Minos.NET.DependencyInjection`. Your application brings OpenTelemetry itself, usually the
+`OpenTelemetry.Extensions.Hosting` package, whose `AddOpenTelemetry()` starts the setup. Pass the source to
+`WithTracing` with `AddSource`, and the meter to `WithMetrics` with `AddMeter`:
 
 <!-- snippet: Observability_OpenTelemetryWiring -->
 ```cs
@@ -323,7 +323,7 @@ named `minos.*`.
 | Attribute | Set | Value |
 | --- | --- | --- |
 | `gen_ai.operation.name` | start | `evaluate` or `list_models` |
-| `gen_ai.provider.name` | start | `typesafe` or `openrouter` |
+| `gen_ai.provider.name` | start | `typesafe`, `openrouter`, `vllm-sr` or `custom` |
 | `gen_ai.request.model` | start | The requested model. Evaluations only. |
 | `server.address` | start | The host of the base address. |
 | `server.port` | start | The port of the base address. |
@@ -343,7 +343,7 @@ the same as the caller sees.
 
 The GenAI conventions name no operation for evaluating or for listing models, and no provider called TypeSafe or
 OpenRouter, and they ask instrumentations to document their own. Minos uses the values in the table: the operation is
-`evaluate` or `list_models`, and the provider is `typesafe` or `openrouter`.
+`evaluate` or `list_models`, and the provider is `typesafe`, `openrouter`, `vllm-sr` or `custom`.
 
 ### When an exception is thrown
 

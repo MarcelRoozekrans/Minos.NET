@@ -1,3 +1,4 @@
+using Minos.SystemOne;
 using Xunit.Abstractions;
 
 namespace Minos.Live.Tests;
@@ -8,12 +9,12 @@ public sealed class OpenRouterLiveTests
 
     public OpenRouterLiveTests(ITestOutputHelper output) => _output = output;
 
-    [LiveFact(DecisionProvider.OpenRouter)]
+    [LiveFact(SystemOneProvider.OpenRouter)]
     public async Task Evaluate_AnswersEveryQuestion()
     {
-        using var client = Live.Client(DecisionProvider.OpenRouter);
+        using var client = Live.Client(SystemOneProvider.OpenRouter);
 
-        var result = await client.EvaluateAsync(Live.Request(DecisionProvider.OpenRouter));
+        var result = await client.EvaluateAsync(Live.Request(SystemOneProvider.OpenRouter));
 
         if (result.IsFailure)
         {

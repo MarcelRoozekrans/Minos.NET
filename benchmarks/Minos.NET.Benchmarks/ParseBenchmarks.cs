@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.Json;
 using BenchmarkDotNet.Attributes;
-using Minos.Protocols;
+using Minos.SystemOne.Protocols;
 
 namespace Minos.Benchmarks;
 

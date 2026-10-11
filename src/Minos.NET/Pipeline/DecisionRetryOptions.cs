@@ -1,5 +1,3 @@
-using Minos.Transport;
-
 namespace Minos;
 
 /// <summary>How <see cref="RetryingDecisionClient"/> retries.</summary>
@@ -41,7 +39,7 @@ public sealed class DecisionRetryOptions
         ShouldRetry = ShouldRetry,
     };
 
-    // The same rules and messages as DecisionClientOptions' retry settings: see RetrySettings.
+    // The same rules and messages as SystemOneClientOptions' retry settings: see RetrySettings.
     internal void Validate(string paramName)
     {
         RetrySettings.CheckShouldRetry(ShouldRetry, paramName);

@@ -42,12 +42,12 @@ public sealed class WireFixtureTests
     [Theory]
     [MemberData(nameof(BuiltCaseNames))]
     public void Built_ProtocolQuestionsMatchTheFixture(string name)
-        => WireFixtures.AssertMatches("built-" + name, Minos.Protocols.SystemOneProtocol.QuestionsJson(BuiltCases[name]().Definition));
+        => WireFixtures.AssertMatches("built-" + name, Minos.SystemOne.Protocols.SystemOneProtocol.QuestionsJson(BuiltCases[name]().Definition));
 
     [Theory]
     [MemberData(nameof(GeneratedCases))]
     public void Generated_ProtocolQuestionsMatchTheFixture(string name)
-        => WireFixtures.AssertMatches("generated-" + name, Minos.Protocols.SystemOneProtocol.QuestionsJson(GeneratedDefinition(name)));
+        => WireFixtures.AssertMatches("generated-" + name, Minos.SystemOne.Protocols.SystemOneProtocol.QuestionsJson(GeneratedDefinition(name)));
 
     internal static QuestionSetDefinition GeneratedDefinition(string name) => name switch
     {

@@ -7,7 +7,7 @@ public static class RetryingDecisionClientBuilderExtensions
 {
     /// <summary>Adds a retry stage.</summary>
     /// <param name="builder">The builder.</param>
-    /// <param name="configure">Changes the settings. They start from the inner client's own retry settings when it offers them, such as a <see cref="DecisionClient"/>'s, and from the defaults otherwise.</param>
+    /// <param name="configure">Changes the settings. They start from the inner client's own retry settings when it offers them, such as a <c>SystemOneClient</c>'s, and from the defaults otherwise.</param>
     /// <returns><paramref name="builder"/>.</returns>
     /// <remarks>The stage logs through the build's <see cref="ILoggerFactory"/> and waits on its <see cref="TimeProvider"/>, when the services have them.</remarks>
     /// <exception cref="ArgumentNullException"><paramref name="builder"/> is <see langword="null"/>.</exception>

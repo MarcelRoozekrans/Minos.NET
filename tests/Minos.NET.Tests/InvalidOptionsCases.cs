@@ -1,15 +1,17 @@
+using Minos.SystemOne;
+
 namespace Minos.Tests;
 
 /// <summary>
-/// Every invalid <see cref="DecisionClientOptions"/> case: the options, the environment variables it runs against, and the
-/// exception the settings resolver throws for it. <see cref="DecisionClientSettingsTests"/> and
+/// Every invalid <see cref="SystemOneClientOptions"/> case: the options, the environment variables it runs against, and the
+/// exception the settings resolver throws for it. <see cref="SystemOneClientSettingsTests"/> and
 /// <see cref="DecisionClientOptionsValidateTests"/> both run every case, so a case added here is covered by both.
 /// </summary>
 public static class InvalidOptionsCases
 {
     private static readonly Dictionary<string, InvalidOptionsCase> Cases = new(StringComparer.Ordinal)
     {
-        ["UnknownProvider"] = new(() => new() { ApiKey = "k", Provider = (DecisionProvider)42 }, typeof(ArgumentException)),
+        ["UnknownProvider"] = new(() => new() { ApiKey = "k", Provider = (SystemOneProvider)42 }, typeof(ArgumentException)),
         ["ZeroTimeout"] = new(() => new() { ApiKey = "k", Timeout = TimeSpan.Zero }, typeof(ArgumentException)),
         ["NegativeTimeout"] = new(() => new() { ApiKey = "k", Timeout = TimeSpan.FromSeconds(-1) }, typeof(ArgumentException)),
         ["TimeoutBeyondIntMilliseconds"] = new(
@@ -30,7 +32,24 @@ public static class InvalidOptionsCases
             () => new() { ApiKey = "k", MaxRetryDelay = TimeSpan.FromDays(30) }, typeof(ArgumentException)),
         ["EmptyModel"] = new(() => new() { ApiKey = "k", Model = string.Empty }, typeof(ArgumentException)),
         ["WhiteSpaceModel"] = new(() => new() { ApiKey = "k", Model = " \t\n" }, typeof(ArgumentException)),
-        ["NullModel"] = new(() => new() { ApiKey = "k", Model = null! }, typeof(ArgumentException)),
+        ["NullModelWithoutPresetDefault"] = new(
+            () => new() { ApiKey = "k", Provider = SystemOneProvider.Custom, BaseAddress = new Uri("http://host/") }, typeof(ArgumentException)),
+        ["CustomWithoutBaseAddress"] = new(
+            () => new() { ApiKey = "k", Provider = SystemOneProvider.Custom, Model = "m" }, typeof(ArgumentException)),
+        ["VllmSemanticRouterWithoutBaseAddress"] = new(
+            () => new() { ApiKey = "k", Provider = SystemOneProvider.VllmSemanticRouter, Model = "m" }, typeof(ArgumentException)),
+        ["PathOnHostedProvider"] = new(() => new() { ApiKey = "k", Path = "x" }, typeof(ArgumentException)),
+        ["RootedPath"] = new(() => new() { ApiKey = "k", Provider = SystemOneProvider.Custom, BaseAddress = new Uri("http://host/"), Model = "m", Path = "/x" }, typeof(ArgumentException)),
+        ["PathWithQuery"] = new(() => new() { ApiKey = "k", Provider = SystemOneProvider.Custom, BaseAddress = new Uri("http://host/"), Model = "m", Path = "x?y=1" }, typeof(ArgumentException)),
+        ["PathWithFragment"] = new(() => new() { ApiKey = "k", Provider = SystemOneProvider.Custom, BaseAddress = new Uri("http://host/"), Model = "m", Path = "x#y" }, typeof(ArgumentException)),
+        ["PathWithParentSegment"] = new(() => new() { ApiKey = "k", Provider = SystemOneProvider.Custom, BaseAddress = new Uri("http://host/"), Model = "m", Path = "a/../b" }, typeof(ArgumentException)),
+        ["AbsolutePath"] = new(() => new() { ApiKey = "k", Provider = SystemOneProvider.Custom, BaseAddress = new Uri("http://host/"), Model = "m", Path = "http://other/x" }, typeof(ArgumentException)),
+        ["NoQuestionKinds"] = new(
+            () => new() { ApiKey = "k", Capabilities = new() { QuestionKinds = SystemOneQuestionKinds.None } }, typeof(ArgumentException)),
+        ["UnknownQuestionKindFlag"] = new(
+            () => new() { ApiKey = "k", Capabilities = new() { QuestionKinds = (SystemOneQuestionKinds)8 } }, typeof(ArgumentException)),
+        ["ZeroMaxQuestions"] = new(() => new() { ApiKey = "k", Capabilities = new() { MaxQuestions = 0 } }, typeof(ArgumentException)),
+        ["OneMaxChoiceOptions"] = new(() => new() { ApiKey = "k", Capabilities = new() { MaxChoiceOptions = 1 } }, typeof(ArgumentException)),
         ["ApiKeyWithControlCharacter"] = new(() => new() { ApiKey = "ab\u0001cd" }, typeof(ArgumentException)),
         ["RelativeBaseAddress"] = new(
             () => new() { ApiKey = "k", BaseAddress = new Uri("v1", UriKind.Relative) }, typeof(ArgumentException)),
@@ -41,7 +60,7 @@ public static class InvalidOptionsCases
         ["BaseAddressWithNonHttpScheme"] = new(
             () => new() { ApiKey = "k", BaseAddress = new Uri("ftp://host/api/") }, typeof(ArgumentException)),
         ["MissingTypeSafeApiKey"] = new(() => new(), typeof(InvalidOperationException)),
-        ["MissingOpenRouterApiKey"] = new(() => new() { Provider = DecisionProvider.OpenRouter }, typeof(InvalidOperationException)),
+        ["MissingOpenRouterApiKey"] = new(() => new() { Provider = SystemOneProvider.OpenRouter }, typeof(InvalidOperationException)),
         ["ApiKeyEnvironmentWithControlCharacter"] = new(
             () => new(), typeof(InvalidOperationException), ("TYPESAFE_API_KEY", "ab\u0001cd")),
         ["BaseAddressEnvironmentNotAUri"] = new(
@@ -86,7 +105,7 @@ public static class InvalidOptionsCases
 /// <param name="exception">The exact exception type the resolver throws.</param>
 /// <param name="environment">The fake environment variables the case runs against.</param>
 public sealed class InvalidOptionsCase(
-    Func<DecisionClientOptions> options, Type exception, params (string Name, string Value)[] environment)
+    Func<SystemOneClientOptions> options, Type exception, params (string Name, string Value)[] environment)
 {
     /// <summary>Gets the exact exception type the resolver throws.</summary>
     public Type Exception { get; } = exception;
@@ -95,7 +114,7 @@ public sealed class InvalidOptionsCase(
     public (string Name, string Value)[] Environment { get; } = environment;
 
     /// <summary>Creates the case's options.</summary>
-    public DecisionClientOptions Options() => options();
+    public SystemOneClientOptions Options() => options();
 
     /// <summary>Reads a fake environment variable, or <see langword="null"/> when the case does not set it.</summary>
     public string? Lookup(string name)

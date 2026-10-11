@@ -2,37 +2,38 @@ using System.Net;
 using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging.Abstractions;
+using Minos.SystemOne;
 
 namespace Minos.AotSmoke;
 
 /// <summary>
-/// <see cref="DecisionClient"/>'s constructors, <see cref="DecisionClient.Dispose"/> and the evaluation overloads the other
-/// checks leave out, each called on a <see cref="DecisionClient"/> under Native AOT.
+/// <see cref="SystemOneClient"/>'s constructors, <see cref="SystemOneClient.Dispose"/> and the evaluation overloads the other
+/// checks leave out, each called on a <see cref="SystemOneClient"/> under Native AOT.
 /// </summary>
 internal static class DecisionClientChecks
 {
 
-    [Covers("Minos.DecisionClient.DecisionClient() -> void")]
-    [Covers("Minos.DecisionClient.DecisionClient(Minos.DecisionClientOptions? options) -> void")]
-    [Covers("Minos.DecisionClient.DecisionClient(Minos.DecisionClientOptions? options, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory) -> void")]
-    [Covers("Minos.DecisionClient.Dispose() -> void")]
+    [Covers("Minos.SystemOne.SystemOneClient.SystemOneClient() -> void")]
+    [Covers("Minos.SystemOne.SystemOneClient.SystemOneClient(Minos.SystemOne.SystemOneClientOptions? options) -> void")]
+    [Covers("Minos.SystemOne.SystemOneClient.SystemOneClient(Minos.SystemOne.SystemOneClientOptions? options, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory) -> void")]
+    [Covers("Minos.SystemOne.SystemOneClient.Dispose() -> void")]
     public static async Task ClientsThatOwnTheirHttpClientRefuseCallsAfterDispose()
     {
         using (SmokeAssert.NoApiKeyEnvironment())
         {
             Program.Check(
-                SmokeAssert.Throws<InvalidOperationException>(() => new DecisionClient().Dispose()),
-                "new DecisionClient() without TYPESAFE_API_KEY throws under Native AOT");
+                SmokeAssert.Throws<InvalidOperationException>(() => new SystemOneClient().Dispose()),
+                "new SystemOneClient() without TYPESAFE_API_KEY throws under Native AOT");
         }
 
-        DecisionClient fromEnvironment;
+        SystemOneClient fromEnvironment;
         using (SmokeAssert.TypeSafeEnvironment())
         {
-            fromEnvironment = new DecisionClient();
+            fromEnvironment = new SystemOneClient();
         }
 
-        var fromOptions = new DecisionClient(Program.Options());
-        var withLogging = new DecisionClient(Program.Options(), NullLoggerFactory.Instance);
+        var fromOptions = new SystemOneClient(Program.Options());
+        var withLogging = new SystemOneClient(Program.Options(), NullLoggerFactory.Instance);
         fromEnvironment.Dispose();
         fromOptions.Dispose();
         withLogging.Dispose();
@@ -42,17 +43,17 @@ internal static class DecisionClientChecks
             await SmokeAssert.ThrowsAsync<ObjectDisposedException>(() => fromEnvironment.EvaluateAsync(Program.Request()).AsTask()).ConfigureAwait(false)
                 && await SmokeAssert.ThrowsAsync<ObjectDisposedException>(() => fromOptions.EvaluateAsync(Program.Request()).AsTask()).ConfigureAwait(false)
                 && await SmokeAssert.ThrowsAsync<ObjectDisposedException>(() => withLogging.EvaluateAsync(Program.Request()).AsTask()).ConfigureAwait(false),
-            "a DecisionClient that owns its HttpClient is built from the environment or options, disposes twice and then refuses calls, under Native AOT");
+            "a SystemOneClient that owns its HttpClient is built from the environment or options, disposes twice and then refuses calls, under Native AOT");
     }
 
-    [Covers("Minos.DecisionClient.DecisionClient(System.Net.Http.HttpClient! httpClient) -> void")]
+    [Covers("Minos.SystemOne.SystemOneClient.SystemOneClient(System.Net.Http.HttpClient! httpClient) -> void")]
     public static async Task ClientOverAnHttpClientReadsTheKeyFromTheEnvironment()
     {
         using var http = Program.Http(HttpStatusCode.OK, Program.NoulResponse);
-        DecisionClient client;
+        SystemOneClient client;
         using (SmokeAssert.TypeSafeEnvironment())
         {
-            client = new DecisionClient(http);
+            client = new SystemOneClient(http);
         }
 
         using (client)
@@ -61,7 +62,7 @@ internal static class DecisionClientChecks
 
             Program.Check(
                 result.IsSuccess && result.Value.Answers["is_urgent"] is NoulAnswer { Noul: 0.95 },
-                "new DecisionClient(httpClient) takes its key from TYPESAFE_API_KEY and evaluates under Native AOT");
+                "new SystemOneClient(httpClient) takes its key from TYPESAFE_API_KEY and evaluates under Native AOT");
         }
     }
 
@@ -70,7 +71,7 @@ internal static class DecisionClientChecks
     {
         var set = SmokeBuiltSet.Full(out var credentials, out var team, out var product, out var urgency);
         using var http = Program.Http(HttpStatusCode.OK, SmokeBuiltSet.ResponseJson);
-        using var client = new DecisionClient(http, Program.Options());
+        using var client = new SystemOneClient(http, Program.Options());
         using var cancellation = new CancellationTokenSource();
 
         var result = await client.EvaluateAsync(set, SmokeAnswers.State, cancellation.Token).ConfigureAwait(false);
@@ -81,19 +82,19 @@ internal static class DecisionClientChecks
                 && result.Value.Get(team).Value == Team.Account
                 && string.Equals(result.Value.Get(product).Value, "pro-plan", StringComparison.Ordinal)
                 && result.Value.Get(urgency).Value == Urgency.High,
-            "EvaluateAsync(set, state, cancellationToken) on a DecisionClient evaluates a built set under Native AOT");
+            "EvaluateAsync(set, state, cancellationToken) on a SystemOneClient evaluates a built set under Native AOT");
     }
 
     [Covers("static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, string! state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>")]
     public static async Task TypedTextStateEvaluatesWithACancellationToken()
     {
         using var http = Program.Http(HttpStatusCode.OK, Program.TriageResponse);
-        using var client = new DecisionClient(http, Program.Options());
+        using var client = new SystemOneClient(http, Program.Options());
         using var cancellation = new CancellationTokenSource();
 
         var result = await client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State, cancellation.Token).ConfigureAwait(false);
 
-        Program.Check(SmokeAnswers.IsTriage(result), "EvaluateAsync<T>(string, cancellationToken) on a DecisionClient parses typed answers under Native AOT");
+        Program.Check(SmokeAnswers.IsTriage(result), "EvaluateAsync<T>(string, cancellationToken) on a SystemOneClient parses typed answers under Native AOT");
     }
 
     [Covers("static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, System.Text.Json.JsonElement state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>")]
@@ -101,7 +102,7 @@ internal static class DecisionClientChecks
     public static async Task TypedJsonStateEvaluates()
     {
         using var http = Program.Http(HttpStatusCode.OK, Program.TriageResponse);
-        using var client = new DecisionClient(http, Program.Options());
+        using var client = new SystemOneClient(http, Program.Options());
         using var state = JsonDocument.Parse(SmokeAnswers.JsonState);
         using var cancellation = new CancellationTokenSource();
 
@@ -110,32 +111,32 @@ internal static class DecisionClientChecks
 
         Program.Check(
             SmokeAnswers.IsTriage(result) && SmokeAnswers.IsTriage(cancellable),
-            "EvaluateAsync<T>(JsonElement) and its cancellable overload on a DecisionClient parse typed answers under Native AOT");
+            "EvaluateAsync<T>(JsonElement) and its cancellable overload on a SystemOneClient parse typed answers under Native AOT");
         Program.Check(
             await SmokeAssert.ThrowsAsync<ArgumentException>(() => client.EvaluateAsync<SmokeTriage>(default(JsonElement)).AsTask()).ConfigureAwait(false),
-            "EvaluateAsync<T>(JsonElement) on a DecisionClient rejects an undefined JSON state under Native AOT");
+            "EvaluateAsync<T>(JsonElement) on a SystemOneClient rejects an undefined JSON state under Native AOT");
     }
 
     [Covers("static Minos.DecisionClientExtensions.EvaluateUtf8Async<T>(this Minos.IDecisionClient! client, System.ReadOnlyMemory<byte> utf8JsonState) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>")]
     public static async Task TypedUtf8StateEvaluates()
     {
         using var http = Program.Http(HttpStatusCode.OK, Program.TriageResponse);
-        using var client = new DecisionClient(http, Program.Options());
+        using var client = new SystemOneClient(http, Program.Options());
         var state = Encoding.UTF8.GetBytes(SmokeAnswers.JsonState);
 
         var result = await client.EvaluateUtf8Async<SmokeTriage>(state).ConfigureAwait(false);
 
-        Program.Check(SmokeAnswers.IsTriage(result), "EvaluateUtf8Async<T> on a DecisionClient parses typed answers from a UTF-8 JSON state under Native AOT");
+        Program.Check(SmokeAnswers.IsTriage(result), "EvaluateUtf8Async<T> on a SystemOneClient parses typed answers from a UTF-8 JSON state under Native AOT");
         Program.Check(
             await SmokeAssert.ThrowsAsync<ArgumentException>(() => client.EvaluateUtf8Async<SmokeTriage>("{} {}"u8.ToArray()).AsTask()).ConfigureAwait(false),
-            "EvaluateUtf8Async<T> on a DecisionClient rejects a state that is not one JSON value under Native AOT");
+            "EvaluateUtf8Async<T> on a SystemOneClient rejects a state that is not one JSON value under Native AOT");
     }
 
     [Covers("static Minos.DecisionClientExtensions.EvaluateAsync<T, TState>(this Minos.IDecisionClient! client, TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>")]
     public static async Task TypedStateEvaluatesWithACancellationToken()
     {
         using var http = Program.Http(HttpStatusCode.OK, Program.CredentialsResponse);
-        using var client = new DecisionClient(http, Program.Options());
+        using var client = new SystemOneClient(http, Program.Options());
         using var cancellation = new CancellationTokenSource();
         var state = new SmokeState("Payouts failing", SmokeAnswers.State);
 
@@ -145,6 +146,6 @@ internal static class DecisionClientChecks
 
         Program.Check(
             result.IsSuccess && !result.Value.RequestsCredentials.Value,
-            "EvaluateAsync<T, TState>(state, stateTypeInfo, cancellationToken) on a DecisionClient parses typed answers under Native AOT");
+            "EvaluateAsync<T, TState>(state, stateTypeInfo, cancellationToken) on a SystemOneClient parses typed answers under Native AOT");
     }
 }

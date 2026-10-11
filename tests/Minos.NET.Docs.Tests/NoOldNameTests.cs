@@ -52,9 +52,9 @@ public sealed partial class NoOldNameTests
         // The live alias test recognises a versioned model id by its "jev-" prefix.
         new("tests/Minos.NET.Live.Tests/AliasLiveTests.cs", null, ModelIdPrefix()),
 
-        // The jev NuGet tag, so the package is found by the model's name.
-        new("Directory.Build.props", null, PackageTag()),
-        new("tests/Minos.NET.PackTests/PackageContentTests.cs", null, NuspecTag()),
+        // The jev NuGet tag on the protocol package, so it is found by the model's name.
+        new("src/Minos.NET.SystemOne/Minos.NET.SystemOne.csproj", null, PackageTag()),
+        new("tests/Minos.NET.PackTests/SystemOnePackageTests.cs", null, NuspecTag()),
 
         // The JEV rules shipped before the rename; the test that reads that history names them.
         new("tests/Minos.NET.Docs.Tests/DiagnosticsTests.cs", null, ShippedRuleHistory()),
@@ -78,6 +78,11 @@ public sealed partial class NoOldNameTests
 
         // The logo's design record quotes the brief as it was given, during the rename.
         new("docs/design/LOGO.md", null, LogoBriefRename()),
+
+        // The local-systemone workflow installs and runs the third-party ollajev server, which reads OLLAJEV_DEVICE; the
+        // local test names it where it explains how precise its answers are.
+        new(".github/workflows/local-systemone.yml", null, LocalServerPackage()),
+        new("tests/Minos.NET.Live.Tests/LocalSystemOneTests.cs", null, LocalServerPackage()),
     ];
 
     [Fact]
@@ -247,10 +252,10 @@ public sealed partial class NoOldNameTests
     [GeneratedRegex(@"""jev-""", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex ModelIdPrefix();
 
-    [GeneratedRegex(@"(?<=<PackageTags>[\w;-]*)(?<=[>;])jev(?=;)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"(?<=<PackageTags>[\w;$()-]*)(?<=;)jev(?=;)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex PackageTag();
 
-    [GeneratedRegex(@"(?<=PackageTags = ""[\w -]*)(?<= )jev(?= )", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    [GeneratedRegex(@"(?<=PackageTags \+ ""[\w -]*)(?<= )jev(?= )", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex NuspecTag();
 
     [GeneratedRegex(@"\bJev108AndJev109_\w+|\bJEV(?:10[89]\b|\\d\+|(?= ids\b))|ZeroAlloc\\\.Jev", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
@@ -290,4 +295,8 @@ public sealed partial class NoOldNameTests
 
     [GeneratedRegex(@"being renamed from ZeroAlloc\.Jev\b", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex LogoBriefRename();
+
+    // The third-party ollajev package and command, and the OLLAJEV_DEVICE variable it reads; not inside a longer word.
+    [GeneratedRegex(@"(?<![\w.])(?:ollajev|OLLAJEV_DEVICE)(?!\w)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex LocalServerPackage();
 }

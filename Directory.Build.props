@@ -61,7 +61,7 @@
     <PackageIcon>icon.png</PackageIcon>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <Copyright>Copyright (c) 2026 Marcel Roozekrans</Copyright>
-    <PackageTags>minos;decisions;decision-model;jev;typesafe;systemone;openrouter;client;sdk;source-generator;aot;native-aot;zero-allocation</PackageTags>
+    <PackageTags>minos;decisions;decision-model;client;sdk;source-generator;aot;native-aot;zero-allocation</PackageTags>
   </PropertyGroup>
 
   <!-- Pack root README and icon into every NuGet package. The icon is the Minos mark's 128 px bronze raster, packed as icon.png. -->

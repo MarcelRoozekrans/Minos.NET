@@ -1,4 +1,4 @@
-using Minos.Protocols;
+using Minos.SystemOne.Protocols;
 
 namespace Minos.Tests;
 

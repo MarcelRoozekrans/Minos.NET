@@ -1,6 +1,6 @@
 using System.Text;
 using System.Text.Json;
-using Minos.Protocols;
+using Minos.SystemOne.Protocols;
 using ZeroAlloc.TestHelpers;
 
 namespace Minos.Tests;

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text.Json;
+using Minos.SystemOne;
 
 namespace Minos.AotSmoke;
 
@@ -11,7 +12,7 @@ internal static class MissingAnswerChecks
     public static async Task MissingAnswerNamesTheQuestion()
     {
         using var http = Program.Http(HttpStatusCode.OK, ResponseWithoutTeam);
-        using var client = new DecisionClient(http, Program.Options());
+        using var client = new SystemOneClient(http, Program.Options());
 
         var result = await client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State).ConfigureAwait(false);
 

@@ -1,10 +1,11 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Minos.SystemOne;
 
 namespace Minos.Docs.Tests;
 
-/// <summary>Evaluates a question set against a canned response, through a real <see cref="DecisionClient"/>.</summary>
+/// <summary>Evaluates a question set against a canned response, through a real <see cref="SystemOneClient"/>.</summary>
 internal static class CannedDecision
 {
     /// <summary>Sends <paramref name="state"/> and returns the typed answers parsed from <paramref name="responseJson"/>.</summary>
@@ -12,7 +13,7 @@ internal static class CannedDecision
         where T : IQuestionSet<T>
     {
         using var http = new HttpClient(new Handler(responseJson)) { BaseAddress = new Uri("https://docs.example/api/") };
-        using var client = new DecisionClient(http, new DecisionClientOptions { ApiKey = "docs-key", MaxRetries = 0 });
+        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "docs-key", MaxRetries = 0 });
         var result = await client.EvaluateAsync<T>(state, CancellationToken.None);
         Assert.True(result.IsSuccess, result.IsFailure ? $"{result.Error.Kind}: {result.Error.Message}" : null);
         return result.Value;
@@ -49,11 +50,11 @@ internal static class CannedDecision
     /// A client over a canned response, for snippets that take an <see cref="IDecisionClient"/>; the caller disposes both.
     /// <c>Requests</c> holds the body of every request the client sent, in order.
     /// </summary>
-    public static (HttpClient Http, DecisionClient Client, IReadOnlyList<string> Requests) Client(string responseJson)
+    public static (HttpClient Http, SystemOneClient Client, IReadOnlyList<string> Requests) Client(string responseJson)
     {
         var handler = new Handler(responseJson);
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://docs.example/api/") };
-        return (http, new DecisionClient(http, new DecisionClientOptions { ApiKey = "docs-key", MaxRetries = 0 }), handler.Requests);
+        return (http, new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "docs-key", MaxRetries = 0 }), handler.Requests);
     }
 
     private static JsonDocument Questions(string requestBody)

@@ -22,13 +22,22 @@ public sealed class DecisionError
         Message = message;
     }
 
+    /// <summary>Initializes a new error of <paramref name="kind"/> that lists the questions it is about.</summary>
+    /// <param name="kind">What went wrong.</param>
+    /// <param name="message">A short, human-readable description.</param>
+    /// <param name="failures">The questions and the rules they break.</param>
+    internal DecisionError(DecisionErrorKind kind, string message, IReadOnlyList<QuestionFailure> failures)
+        : this(kind, message)
+    {
+        Failures = failures.Count == 0 ? [] : new System.Collections.ObjectModel.ReadOnlyCollection<QuestionFailure>([.. failures]);
+    }
+
     /// <summary>Initializes a new <see cref="DecisionErrorKind.InvalidQuestions"/> error.</summary>
     /// <param name="message">A short, human-readable description.</param>
     /// <param name="failures">The rules the question set breaks.</param>
     internal DecisionError(string message, IReadOnlyList<QuestionFailure> failures)
-        : this(DecisionErrorKind.InvalidQuestions, message)
+        : this(DecisionErrorKind.InvalidQuestions, message, failures)
     {
-        Failures = failures.Count == 0 ? [] : new System.Collections.ObjectModel.ReadOnlyCollection<QuestionFailure>([.. failures]);
     }
 
     /// <summary>Gets what went wrong.</summary>
@@ -53,8 +62,10 @@ public sealed class DecisionError
     public Exception? Exception { get; init; }
 
     /// <summary>
-    /// Gets the rules a question set built with <see cref="QuestionSetBuilder"/> breaks, when <see cref="Kind"/> is
-    /// <see cref="DecisionErrorKind.InvalidQuestions"/>; empty for every other kind.
+    /// Gets the questions a failure is about, with the rules they break: those a question set built with
+    /// <see cref="QuestionSetBuilder"/> breaks when <see cref="Kind"/> is <see cref="DecisionErrorKind.InvalidQuestions"/>, and
+    /// those a provider cannot answer when <see cref="Kind"/> is <see cref="DecisionErrorKind.Unsupported"/>; empty for every
+    /// other failure.
     /// </summary>
     public IReadOnlyList<QuestionFailure> Failures { get; } = [];
 

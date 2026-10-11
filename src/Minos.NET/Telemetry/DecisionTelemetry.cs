@@ -13,7 +13,7 @@ internal static class DecisionTelemetry
     /// <summary>The GenAI operation: <see cref="EvaluateOperation"/> or <see cref="ListModelsOperation"/>.</summary>
     public const string OperationName = "gen_ai.operation.name";
 
-    /// <summary>The GenAI provider: <see cref="TypeSafe"/> or <see cref="OpenRouter"/>.</summary>
+    /// <summary>The GenAI provider: the protocol package's name for the provider, such as <c>typesafe</c> or <c>openrouter</c>.</summary>
     public const string ProviderName = "gen_ai.provider.name";
 
     /// <summary>The model the request asked for.</summary>
@@ -57,12 +57,6 @@ internal static class DecisionTelemetry
 
     /// <summary>The custom GenAI operation value, and the span name, for model listing.</summary>
     public const string ListModelsOperation = "list_models";
-
-    /// <summary>The custom GenAI provider value for TypeSafe's API.</summary>
-    public const string TypeSafe = "typesafe";
-
-    /// <summary>The custom GenAI provider value for OpenRouter.</summary>
-    public const string OpenRouter = "openrouter";
 
     /// <summary>The token modality Jev always uses.</summary>
     public const string Text = "text";
@@ -108,9 +102,6 @@ internal static class DecisionTelemetry
 
     /// <summary>Gets the confidence buckets; the attributes repeat them, as for <see cref="DurationBuckets"/>.</summary>
     public static ReadOnlySpan<double> ConfidenceBuckets => [0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99];
-
-    /// <summary>Gets the GenAI provider value for <paramref name="provider"/>.</summary>
-    public static string ProviderOf(DecisionProvider provider) => provider == DecisionProvider.OpenRouter ? OpenRouter : TypeSafe;
 
     /// <summary>Gets the <c>error.type</c> value for <paramref name="kind"/>: its name, as a literal, so reading it allocates nothing.</summary>
     public static string ErrorTypeOf(DecisionErrorKind kind) => kind switch

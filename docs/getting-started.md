@@ -3,7 +3,7 @@ id: getting-started
 title: Getting started
 slug: /
 sidebar_position: 1
-description: Install Minos.NET, point it at TypeSafe or OpenRouter, and run your first typed evaluation.
+description: Install Minos.NET.SystemOne, point it at TypeSafe, OpenRouter or a server of your own, and run your first typed evaluation.
 ---
 
 # Getting started
@@ -12,8 +12,8 @@ Minos.NET is an unofficial .NET client for [TypeSafe AI](https://typesafe.ai)'s 
 model. TypeSafe calls Jev a System One model: it answers typed questions directly instead of generating text, and
 [their guide](https://docs.typesafe.ai/concepts/system-one) explains the idea. You send Jev the text or JSON to judge,
 called the state, and a few typed questions about it. Jev answers each question with a typed result and a calibrated
-confidence, meaning a number meant to track how often such answers are right. You can reach it directly at TypeSafe,
-or through OpenRouter.
+confidence, meaning a number meant to track how often such answers are right. You can reach it directly at TypeSafe or
+through OpenRouter. Servers that speak the same protocol work the same way, such as one you run.
 
 The library turns those questions and answers into ordinary C# types. You declare the questions on a partial record, a
 source generator writes the request, and the reply comes back as properties you can read. There is no JSON to build or
@@ -46,22 +46,23 @@ The packages are not yet published to NuGet. Once they are, `dotnet add package`
 Until then you can build them yourself, as the next section shows.
 
 ```shell
-dotnet add package Minos.NET
+dotnet add package Minos.NET.SystemOne
 ```
 
-`Minos.NET` is the core. It already contains the source generator and the [analyzers](diagnostics.md), so there is
-nothing else to install for typed questions. If you use dependency injection in a .NET host, add the integration package
-as well, which [dependency injection](dependency-injection.md) covers:
+The core is provider-neutral: `Minos.NET` holds the question types, the source generator, the
+[analyzers](diagnostics.md), the pipeline and `IDecisionClient`, and knows no provider. `Minos.NET.SystemOne` is the
+client for the `/v1/systemone` protocol, in the `Minos.SystemOne` namespace. TypeSafe and OpenRouter serve that
+protocol, and so do the servers you run. It brings `Minos.NET`, so there is nothing else to
+install for typed questions. It also brings `Minos.NET.DependencyInjection`, which is what you use in a .NET host, as
+[dependency injection](dependency-injection.md) covers.
 
-```shell
-dotnet add package Minos.NET.DependencyInjection
-```
+### What the packages bring with them
 
-### What the package brings with it
-
-`Minos.NET` has one runtime dependency from Microsoft, `Microsoft.Extensions.Logging.Abstractions` 10.0.0 or later,
-for the logging interfaces that [the client's logging](observability.md#logging) uses. Its other runtime dependencies
-are ZeroAlloc libraries.
+`Minos.NET` has one runtime dependency from Microsoft, `Microsoft.Extensions.Logging.Abstractions` 10.0.0 or later, for
+the logging interfaces that [the client's logging](observability.md#logging) uses. Its other runtime dependencies are
+ZeroAlloc libraries. `Minos.NET.SystemOne` adds `Microsoft.Extensions.Http` and
+`Microsoft.Extensions.Options.ConfigurationExtensions`, for the `IHttpClientFactory` and the configuration binding of
+`AddSystemOneClient`, and `Minos.NET.DependencyInjection` adds `Microsoft.Extensions.DependencyInjection.Abstractions`.
 
 NuGet also passes the analyzers and source generators of those dependencies on to your build. The ones that arrive are
 those of ZeroAlloc.Validation, ZeroAlloc.Telemetry, and Microsoft.Extensions.Logging.Abstractions. They do nothing
@@ -70,7 +71,7 @@ clean and gets no extra source from them.
 
 ### Before the package is published
 
-Clone the [Minos.NET repository](https://github.com/MarcelRoozekrans/Minos.NET), pack both packages into a folder,
+Clone the [Minos.NET repository](https://github.com/MarcelRoozekrans/Minos.NET), pack the packages into a folder,
 and register that folder as a local NuGet source. Use the folder's absolute path. On Windows, give
 `dotnet nuget add source` a native path such as `C:\src\minos\nupkgs`, because a path that mixes forward and back
 slashes is rejected as invalid.
@@ -85,6 +86,7 @@ use the version from the packed files' names.
 
 ```shell
 dotnet pack src/Minos.NET -c Release -o /absolute/path/nupkgs
+dotnet pack src/Minos.NET.SystemOne -c Release -o /absolute/path/nupkgs
 dotnet pack src/Minos.NET.DependencyInjection -c Release -o /absolute/path/nupkgs
 dotnet nuget add source /absolute/path/nupkgs --name minos-net-local
 ```
@@ -93,7 +95,7 @@ Then add the packages with that version, in place of the commands above. Replace
 version:
 
 ```shell
-dotnet add package Minos.NET --version <release>-local
+dotnet add package Minos.NET.SystemOne --version <release>-local
 dotnet add package Minos.NET.DependencyInjection --version <release>-local
 ```
 
@@ -101,32 +103,37 @@ Remove the source when you switch to the published packages: `dotnet nuget remov
 
 ## Providers and keys
 
-`DecisionClientOptions.Provider` says where requests go, and `DecisionProvider` has two values.
+`SystemOneClientOptions.Provider` says where requests go, and `SystemOneProvider` has four values.
 
-| Provider                 | Requests go to               | Environment variable |
-| ------------------------ | ---------------------------- | -------------------- |
-| `DecisionProvider.TypeSafe`   | `https://api.typesafe.ai/`   | `TYPESAFE_API_KEY`   |
-| `DecisionProvider.OpenRouter` | `https://openrouter.ai/api/` | `OPENROUTER_API_KEY` |
+| Provider                                | Requests go to                      | Environment variable   |
+| --------------------------------------- | ----------------------------------- | ---------------------- |
+| `SystemOneProvider.TypeSafe`            | `https://api.typesafe.ai/`          | `TYPESAFE_API_KEY`     |
+| `SystemOneProvider.OpenRouter`          | `https://openrouter.ai/api/`        | `OPENROUTER_API_KEY`   |
+| `SystemOneProvider.VllmSemanticRouter`  | the `BaseAddress` you set           | none                   |
+| `SystemOneProvider.Custom`              | the `BaseAddress` you set           | none                   |
 
-`TypeSafe` is the default. Set `ApiKey` on the options, or leave it unset and the client reads the matching
-environment variable. `DecisionClient` is disposable and meant to be long-lived: create one, share it, and dispose it at
-shutdown, as the snippet below does for its short example. The client throws `InvalidOperationException` when it is
-created with no key available, so a missing key shows up at start-up rather than on the first call.
+`TypeSafe` is the default. Set `ApiKey` on the options, or leave it unset and the client reads the matching environment
+variable. `VllmSemanticRouter` and `Custom` read none and send no key unless you set `ApiKey`. The
+[client page](client-and-errors.md#providers) has the full table of presets, with the paths and default models, and
+says what to set for a server of your own. `SystemOneClient` is disposable and meant to be
+long-lived: create one, share it, and dispose it at shutdown, as the snippet below does for its short example. The
+client throws `InvalidOperationException` when it is created with no key available for a provider that needs one, so a
+missing key shows up at start-up rather than on the first call.
 
 <!-- snippet: GettingStarted_Clients -->
 ```cs
 // TypeSafe is the default provider. With no ApiKey set, the client reads TYPESAFE_API_KEY.
-// DecisionClient is disposable and meant to be long-lived: create it once, share it, and dispose it at shutdown.
+// SystemOneClient is disposable and meant to be long-lived: create it once, share it, and dispose it at shutdown.
 public static async Task<string> ViaTypeSafeAsync(string message, CancellationToken cancellationToken)
 {
-    using var client = new DecisionClient(new DecisionClientOptions());
+    using var client = new SystemOneClient(new SystemOneClientOptions());
     return await GettingStartedEvaluation.TriageAsync(client, message, cancellationToken);
 }
 
 // OpenRouter: name the provider. With no ApiKey set, the client reads OPENROUTER_API_KEY.
 public static async Task<string> ViaOpenRouterAsync(string message, CancellationToken cancellationToken)
 {
-    using var client = new DecisionClient(new DecisionClientOptions { Provider = DecisionProvider.OpenRouter });
+    using var client = new SystemOneClient(new SystemOneClientOptions { Provider = SystemOneProvider.OpenRouter });
     return await GettingStartedEvaluation.TriageAsync(client, message, cancellationToken);
 }
 ```
@@ -141,6 +148,7 @@ description that tells Jev what the option means.
 <!-- snippet: GettingStarted_Questions -->
 ```cs
 using Minos;
+using Minos.SystemOne;
 
 public enum SupportTeam
 {
@@ -198,7 +206,7 @@ Given a message such as "Help! My payouts have been failing for 3 days.", a typi
 error, and `result.Error.Message` explains it. [The client and its errors](client-and-errors.md#errors) lists every kind
 and what to do about each.
 
-The call needs an `IDecisionClient`. `DecisionClient` implements it, and a test can hand in a fake, as
+The call needs an `IDecisionClient`. `SystemOneClient` implements it, and a test can hand in a fake, as
 [testing your code](testing-your-code.md) shows. See the [patterns](patterns/index.md) for complete, runnable uses of
 these answers.
 

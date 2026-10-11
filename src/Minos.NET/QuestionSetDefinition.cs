@@ -9,7 +9,7 @@ namespace Minos;
 /// <remarks>Immutable and safe to share across threads.</remarks>
 public sealed class QuestionSetDefinition
 {
-    // One cache slot per protocol; SystemOneProtocol uses slot 0.
+    // One cache slot per protocol; the /v1/systemone protocol uses slot 0.
     private readonly object?[] _protocolData = new object?[1];
 
     /// <summary>Creates a definition from <paramref name="questions"/>, in wire order.</summary>

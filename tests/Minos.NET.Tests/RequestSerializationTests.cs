@@ -1,6 +1,7 @@
 using System.Text.Json;
 using System.Text.Json.Nodes;
-using Minos.Serialization;
+using Minos.SystemOne;
+using Minos.SystemOne.Serialization;
 
 namespace Minos.Tests;
 
@@ -121,13 +122,13 @@ public sealed class RequestSerializationTests
     {
         var request = new SystemOneRequest { State = State, Questions = new Dictionary<string, Question>() };
 
-        Assert.Equal(DecisionDefaults.Model, request.Model);
+        Assert.Equal(SystemOneDefaults.Model, request.Model);
     }
 
     [Fact]
-    public void DecisionJsonOptions_UseTheSourceGeneratedContext()
+    public void SerializerOptions_ResolveTypesFromTheSourceGeneratedContext()
     {
-        Assert.IsType<DecisionJsonContext>(DecisionJson.Options.TypeInfoResolver);
+        Assert.IsType<DecisionJsonContext>(Options.TypeInfoResolver);
     }
 
     [Fact]
@@ -209,9 +210,9 @@ public sealed class RequestSerializationTests
     [Fact]
     public void TypeInfoResolver_ResolvesAllTopLevelTypes()
     {
-        Assert.NotNull(DecisionJson.Options.GetTypeInfo(typeof(SystemOneRequest)));
-        Assert.NotNull(DecisionJson.Options.GetTypeInfo(typeof(SystemOneResponse)));
-        Assert.NotNull(DecisionJson.Options.GetTypeInfo(typeof(ModelList)));
+        Assert.NotNull(Options.GetTypeInfo(typeof(SystemOneRequest)));
+        Assert.NotNull(Options.GetTypeInfo(typeof(SystemOneResponse)));
+        Assert.NotNull(Options.GetTypeInfo(typeof(ModelList)));
     }
 
     private static void AssertSerializesTo(SystemOneRequest request, string fixture)
@@ -239,4 +240,6 @@ public sealed class RequestSerializationTests
         using var document = JsonDocument.Parse(json);
         return document.RootElement.Clone();
     }
+
+    private static JsonSerializerOptions Options => DecisionJsonContext.Default.Options;
 }

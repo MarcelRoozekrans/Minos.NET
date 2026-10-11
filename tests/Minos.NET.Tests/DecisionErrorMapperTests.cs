@@ -1,8 +1,8 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
-using Minos.Protocols;
-using Minos.Transport;
+using Minos.SystemOne.Protocols;
+using Minos.SystemOne.Transport;
 using ZeroAlloc.Rest;
 
 namespace Minos.Tests;

@@ -1,11 +1,11 @@
 using System.Net;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
-using Minos.Serialization;
+using Minos.SystemOne.Serialization;
 
 namespace Minos.Tests;
 
-/// <summary>The standard pipeline <see cref="DecisionClient"/> composes, and <see cref="DecisionClientOptions.UseStandardPipeline"/>.</summary>
+/// <summary>The standard pipeline <see cref="SystemOneClient"/> composes, and <see cref="SystemOneClientOptions.UseStandardPipeline"/>.</summary>
 public sealed class DecisionClientPipelineTests : IDisposable
 {
     private readonly List<HttpClient> _httpClients = [];

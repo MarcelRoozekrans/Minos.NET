@@ -1,3 +1,5 @@
+using Minos.SystemOne;
+
 namespace Minos.Live.Tests;
 
 /// <summary>
@@ -7,12 +9,12 @@ namespace Minos.Live.Tests;
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class LiveFactAttribute : FactAttribute
 {
-    public LiveFactAttribute(DecisionProvider provider)
+    public LiveFactAttribute(SystemOneProvider provider)
     {
         Provider = provider;
-        var variable = provider == DecisionProvider.OpenRouter
-            ? DecisionDefaults.OpenRouterApiKeyEnvironmentVariable
-            : DecisionDefaults.ApiKeyEnvironmentVariable;
+        var variable = provider == SystemOneProvider.OpenRouter
+            ? SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable
+            : SystemOneDefaults.ApiKeyEnvironmentVariable;
         var optedIn = string.Equals(Environment.GetEnvironmentVariable("MINOS_LIVE"), "1", StringComparison.Ordinal);
         var keySet = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(variable));
 
@@ -25,5 +27,27 @@ public sealed class LiveFactAttribute : FactAttribute
         };
     }
 
-    public DecisionProvider Provider { get; }
+    public SystemOneProvider Provider { get; }
+}
+
+/// <summary>
+/// A fact that runs only when <c>MINOS_LOCAL_SYSTEMONE_URL</c> names a <c>/v1/systemone</c> server to call, such as one
+/// the <c>local-systemone</c> workflow starts. The server is local, so nothing is billed and no key is needed.
+/// </summary>
+[AttributeUsage(AttributeTargets.Method)]
+public sealed class LocalSystemOneFactAttribute : FactAttribute
+{
+    /// <summary>The variable holding the server's base address, such as <c>http://127.0.0.1:8000/</c>.</summary>
+    public const string UrlVariable = "MINOS_LOCAL_SYSTEMONE_URL";
+
+    /// <summary>The variable holding the model the server serves.</summary>
+    public const string ModelVariable = "MINOS_LOCAL_SYSTEMONE_MODEL";
+
+    public LocalSystemOneFactAttribute()
+    {
+        if (string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(UrlVariable)))
+        {
+            Skip = "Set " + UrlVariable + " and " + ModelVariable + " to run this test against a local /v1/systemone server.";
+        }
+    }
 }

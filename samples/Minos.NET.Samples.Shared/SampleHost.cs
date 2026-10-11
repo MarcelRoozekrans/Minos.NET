@@ -1,5 +1,6 @@
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Minos.SystemOne;
 
 namespace Minos.Samples;
 
@@ -12,7 +13,7 @@ public static class SampleHost
     /// <paramref name="recordingsPath"/> is read in replay only, so a live run may pass <see langword="null"/>.
     /// </summary>
     /// <exception cref="ArgumentException">Replay is asked for without a recordings path.</exception>
-    public static DecisionClientServiceBuilder AddSampleDecisionClient(
+    public static SystemOneClientServiceBuilder AddSampleDecisionClient(
         this IServiceCollection services,
         IConfiguration clientSection,
         SampleMode mode,
@@ -20,12 +21,12 @@ public static class SampleHost
         string sampleName,
         RecordingSession session)
     {
-        var builder = services.AddDecisionClient(clientSection);
+        var builder = services.AddSystemOneClient(clientSection);
         switch (mode)
         {
             case SampleMode.Replay:
                 ArgumentException.ThrowIfNullOrEmpty(recordingsPath);
-                services.AddDecisionClient(options => options.ApiKey ??= "replay-no-key");
+                services.AddSystemOneClient(options => options.ApiKey ??= "replay-no-key");
                 builder.HttpClient.ConfigurePrimaryHttpMessageHandler(() => new ReplayHandler(RecordingsFile.Load(recordingsPath), sampleName));
                 break;
             case SampleMode.Record:

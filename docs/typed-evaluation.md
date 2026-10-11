@@ -276,7 +276,7 @@ throw `ArgumentException` for it, and do not return a failed `Result`. A `null` 
 come back in the `Result`. In particular, a response that is missing an answer, or that has one of the wrong type, is a
 failure with kind `DecisionErrorKind.InvalidResponse`.
 
-The model is the one in `DecisionClientOptions.Model`, which defaults to the alias `jev-latest`.
+The model is the one in `SystemOneClientOptions.Model`, which defaults to the alias `jev-latest`.
 
 ### How a typed call reaches the client
 
@@ -287,7 +287,7 @@ generated `Create`. So a typed call runs through the client's [pipeline](pipelin
 retries, and a hand-written fake in a test answers it by implementing that one call, as
 [Testing your code](testing-your-code.md#way-one-a-fake-idecisionclient) shows.
 
-Inside a `DecisionClient`, the protocol writes the request from the definition into pooled buffers, and caches the
+Inside a `SystemOneClient`, the protocol writes the request from the definition into pooled buffers, and caches the
 questions JSON of each set after the first call.
 
 Each overload sends the same request as before the [pipeline](pipeline.md). `EvaluateUtf8Async<T>` copies your bytes

@@ -1,4 +1,5 @@
-using Minos.Transport;
+using Minos.SystemOne;
+using Minos.SystemOne.Transport;
 
 namespace Minos.Tests;
 
@@ -10,7 +11,7 @@ public sealed class DecisionClientOptionsValidateTests
     {
         var invalid = InvalidOptionsCases.Get(name);
 
-        var expected = Record.Exception(() => DecisionClientSettings.Resolve(invalid.Options(), invalid.Lookup));
+        var expected = Record.Exception(() => SystemOneClientSettings.Resolve(invalid.Options(), invalid.Lookup));
         var actual = Record.Exception(() => invalid.Options().Validate(invalid.Lookup));
 
         AssertSameException(expected, actual);
@@ -22,7 +23,7 @@ public sealed class DecisionClientOptionsValidateTests
     {
         var invalid = InvalidOptionsCases.Get(name);
 
-        var expected = Record.Exception(() => new DecisionClient(invalid.Options()).Dispose());
+        var expected = Record.Exception(() => new SystemOneClient(invalid.Options()).Dispose());
         var actual = Record.Exception(() => invalid.Options().Validate());
 
         AssertSameException(expected, actual);
@@ -32,7 +33,7 @@ public sealed class DecisionClientOptionsValidateTests
     public void Validate_AcceptsValidOptions()
     {
         // The key and the base address are both set, so the process environment is never read.
-        var options = new DecisionClientOptions { ApiKey = "k", BaseAddress = new Uri("http://localhost/") };
+        var options = new SystemOneClientOptions { ApiKey = "k", BaseAddress = new Uri("http://localhost/") };
 
         Assert.Null(Record.Exception(options.Validate));
     }
@@ -40,12 +41,12 @@ public sealed class DecisionClientOptionsValidateTests
     [Fact]
     public void Validate_AcceptsAKeyFromTheEnvironment()
         => Assert.Null(Record.Exception(
-            () => new DecisionClientOptions().Validate(name => string.Equals(name, "TYPESAFE_API_KEY", StringComparison.Ordinal) ? "env-key" : null)));
+            () => new SystemOneClientOptions().Validate(name => string.Equals(name, "TYPESAFE_API_KEY", StringComparison.Ordinal) ? "env-key" : null)));
 
     [Fact]
     public void Validate_LeavesTheOptionsUnchanged()
     {
-        var options = new DecisionClientOptions { ApiKey = " k ", Model = "  jev-1.13.0\n" };
+        var options = new SystemOneClientOptions { ApiKey = " k ", Model = "  jev-1.13.0\n" };
 
         options.Validate(_ => null);
 

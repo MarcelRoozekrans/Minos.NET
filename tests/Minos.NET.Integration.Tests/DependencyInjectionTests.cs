@@ -1,12 +1,13 @@
 using System.Net;
 using Microsoft.Extensions.DependencyInjection;
+using Minos.SystemOne;
 using WireMock.RequestBuilders;
 using WireMock.ResponseBuilders;
 
 namespace Minos.Integration.Tests;
 
 /// <summary>
-/// A client from <c>AddDecisionClient</c> over WireMock, sending through the factory's <see cref="HttpClient"/> and its default
+/// A client from <c>AddSystemOneClient</c> over WireMock, sending through the factory's <see cref="HttpClient"/> and its default
 /// primary handler. Attempts are counted on the client, by a handler added through the returned builder, so no test
 /// here reads WireMock's log. The held-response time-out test lives in <see cref="DependencyInjectionTimeoutTests"/>,
 /// because <see cref="WireMockFixture"/> forbids sharing a class with a test that leaves a response pending.
@@ -40,7 +41,7 @@ public sealed class DependencyInjectionTests : IClassFixture<WireMockFixture>
         var attempts = new DependencyInjectionHarness.AttemptCount();
         using var provider = DependencyInjectionHarness.Provider(_fixture, attempts, timeout: null);
 
-        var result = await provider.GetRequiredService<IDecisionClient>().GetService<DecisionClient>()!.EvaluateAsync(Fixtures.NoulRequest());
+        var result = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Fixtures.NoulRequest());
 
         Assert.True(result.IsSuccess);
         Assert.Equal(0.95, Assert.IsType<NoulAnswer>(result.Value.Answers["is_urgent"]).Noul, 3);
@@ -56,7 +57,7 @@ public sealed class DependencyInjectionTests : IClassFixture<WireMockFixture>
         var attempts = new DependencyInjectionHarness.AttemptCount();
         using var provider = DependencyInjectionHarness.BoundProvider(_fixture, attempts, maxRetries: 3, timeout: null);
 
-        var result = await provider.GetRequiredService<IDecisionClient>().GetService<DecisionClient>()!.EvaluateAsync(Fixtures.NoulRequest());
+        var result = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Fixtures.NoulRequest());
 
         Assert.True(result.IsFailure);
         Assert.Equal(503, result.Error.StatusCode);

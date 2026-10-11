@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Minos.SystemOne;
 
 namespace Minos.AotSmoke;
 
@@ -21,7 +22,7 @@ internal sealed class CapturingHandler(string responseBody) : HttpMessageHandler
     {
         var handler = new CapturingHandler(responseBody);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("https://example.test/api/") };
-        using var client = new DecisionClient(http, Program.Options());
+        using var client = new SystemOneClient(http, Program.Options());
         _ = await client.EvaluateAsync(set, SmokeAnswers.State).ConfigureAwait(false);
         return handler.Questions();
     }
@@ -35,7 +36,7 @@ internal sealed class CapturingHandler(string responseBody) : HttpMessageHandler
     {
         var handler = new CapturingHandler(responseBody);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("https://example.test/api/") };
-        using var client = new DecisionClient(http, Program.Options());
+        using var client = new SystemOneClient(http, Program.Options());
         _ = await client.EvaluateAsync<T>(SmokeAnswers.State).ConfigureAwait(false);
         return handler.Questions();
     }

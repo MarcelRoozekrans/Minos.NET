@@ -54,18 +54,18 @@ public sealed class DependencyInjectionPackageTests : IClassFixture<DependencyIn
     }
 
     [Fact]
-    public void DependsOnTheCorePackageHttpAndOptionsConfigurationOnly()
+    public void DependsOnTheCorePackageAndTheDependencyInjectionAbstractionsOnly()
     {
         var dependencies = Dependencies();
 
         Assert.Equal(
-            ["Microsoft.Extensions.Http", "Microsoft.Extensions.Options.ConfigurationExtensions", "Minos.NET"],
+            ["Microsoft.Extensions.DependencyInjection.Abstractions", "Minos.NET"],
             dependencies.Select(dependency => (string)dependency.Attribute("id")!).Order(StringComparer.Ordinal).ToArray());
 
-        // The core package is packed at the same version; both Microsoft floors are the first .NET 10 release.
+        // The core package is packed at the same version. The Microsoft floor is the one core's ZeroAlloc.Resilience
+        // already requires, so the direct reference is no downgrade.
         Assert.Equal(_fixture.PackageVersion, Version(dependencies, "Minos.NET"));
-        Assert.Equal("10.0.0", Version(dependencies, "Microsoft.Extensions.Http"));
-        Assert.Equal("10.0.0", Version(dependencies, "Microsoft.Extensions.Options.ConfigurationExtensions"));
+        Assert.Equal("10.0.12", Version(dependencies, "Microsoft.Extensions.DependencyInjection.Abstractions"));
     }
 
     // The shared metadata, with the DI package's own tags after the shared ones.
@@ -78,7 +78,7 @@ public sealed class DependencyInjectionPackageTests : IClassFixture<DependencyIn
         Assert.Equal("https://github.com/MarcelRoozekrans/Minos.NET", (string?)metadata.Element(Nuspec + "repository")!.Attribute("url"));
         Assert.Equal("Copyright (c) 2026 Marcel Roozekrans", (string?)metadata.Element(Nuspec + "copyright"));
         Assert.Equal("icon.png", (string?)metadata.Element(Nuspec + "icon"));
-        Assert.Equal(PackageContentTests.PackageTags + " dependency-injection httpclientfactory", (string?)metadata.Element(Nuspec + "tags"));
+        Assert.Equal(PackageContentTests.PackageTags + " dependency-injection", (string?)metadata.Element(Nuspec + "tags"));
     }
 
     // The net10.0 group's dependencies.

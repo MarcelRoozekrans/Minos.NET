@@ -4,11 +4,12 @@ using System.Text;
 using System.Text.Json;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
-using Minos.Serialization;
+using Minos.SystemOne;
+using Minos.SystemOne.Serialization;
 
 namespace Minos.Tests;
 
-/// <summary>What <see cref="DecisionClient"/> logs through an <see cref="ILoggerFactory"/>.</summary>
+/// <summary>What <see cref="SystemOneClient"/> logs through an <see cref="ILoggerFactory"/>.</summary>
 public sealed class DecisionClientLoggingTests : IDisposable
 {
     private readonly List<HttpClient> _httpClients = [];
@@ -172,9 +173,9 @@ public sealed class DecisionClientLoggingTests : IDisposable
 
         var record = logs.Only(1001);
         Assert.Equal(LogLevel.Debug, record.Level);
-        Assert.Equal(DecisionLog.Evaluate, LogAssert.Field(record, "Operation"));
+        Assert.Equal(SystemOneLog.Evaluate, LogAssert.Field(record, "Operation"));
         Assert.Equal("jev-latest", LogAssert.Field(record, "Model"));
-        Assert.Equal("TypeSafe", LogAssert.Field(record, "Provider"));
+        Assert.Equal("typesafe", LogAssert.Field(record, "Provider"));
         Assert.Equal("1", LogAssert.Field(record, "QuestionCount"));
         AssertDuration(record);
         Assert.Equal([1001], logs.EventIds);
@@ -192,7 +193,7 @@ public sealed class DecisionClientLoggingTests : IDisposable
         Assert.Equal(DecisionErrorKind.Validation, result.Error.Kind);
         var record = logs.Only(1002);
         Assert.Equal(LogLevel.Warning, record.Level);
-        Assert.Equal(DecisionLog.Evaluate, LogAssert.Field(record, "Operation"));
+        Assert.Equal(SystemOneLog.Evaluate, LogAssert.Field(record, "Operation"));
         Assert.Equal("jev-latest", LogAssert.Field(record, "Model"));
         Assert.Equal("Validation", LogAssert.Field(record, "ErrorKind"));
         Assert.Equal("422", LogAssert.Field(record, "StatusCode"));
@@ -285,7 +286,7 @@ public sealed class DecisionClientLoggingTests : IDisposable
 
         var record = logs.Only(1004);
         Assert.Equal(LogLevel.Debug, record.Level);
-        Assert.Equal("TypeSafe", LogAssert.Field(record, "Provider"));
+        Assert.Equal("typesafe", LogAssert.Field(record, "Provider"));
         Assert.Equal("2", LogAssert.Field(record, "ModelCount"));
         AssertDuration(record);
     }
@@ -310,12 +311,12 @@ public sealed class DecisionClientLoggingTests : IDisposable
     {
         using var logs = new LogCapture();
         var handler = StubHandler.Json(HttpStatusCode.OK, Fixture.Text("models.json"));
-        using var client = Client(handler, logs.Factory, provider: DecisionProvider.OpenRouter);
+        using var client = Client(handler, logs.Factory, provider: SystemOneProvider.OpenRouter);
 
         Assert.True((await client.ListModelsAsync()).IsFailure);
 
         var record = logs.Only(1005);
-        Assert.Equal("OpenRouter", LogAssert.Field(record, "Provider"));
+        Assert.Equal("openrouter", LogAssert.Field(record, "Provider"));
         Assert.Equal("Unsupported", LogAssert.Field(record, "ErrorKind"));
         Assert.Null(LogAssert.Field(record, "StatusCode"));
         Assert.Empty(handler.Requests);
@@ -332,7 +333,7 @@ public sealed class DecisionClientLoggingTests : IDisposable
         Assert.Equal("bug", thrown.Message);
         var record = logs.Only(1006);
         Assert.Equal(LogLevel.Error, record.Level);
-        Assert.Equal(DecisionLog.Evaluate, LogAssert.Field(record, "Operation"));
+        Assert.Equal(SystemOneLog.Evaluate, LogAssert.Field(record, "Operation"));
         Assert.Same(thrown, record.Exception);
         Assert.Equal([1006], logs.EventIds);
     }
@@ -345,7 +346,7 @@ public sealed class DecisionClientLoggingTests : IDisposable
 
         await Assert.ThrowsAsync<InvalidOperationException>(async () => await client.ListModelsAsync());
 
-        Assert.Equal(DecisionLog.ListModels, LogAssert.Field(logs.Only(1006), "Operation"));
+        Assert.Equal(SystemOneLog.ListModels, LogAssert.Field(logs.Only(1006), "Operation"));
     }
 
     [Fact]
@@ -405,13 +406,13 @@ public sealed class DecisionClientLoggingTests : IDisposable
         }
     }
 
-    private DecisionClient Client(StubHandler handler, ILoggerFactory? loggerFactory, int maxRetries = 0, DecisionProvider provider = DecisionProvider.TypeSafe)
+    private SystemOneClient Client(StubHandler handler, ILoggerFactory? loggerFactory, int maxRetries = 0, SystemOneProvider provider = SystemOneProvider.TypeSafe)
     {
         var http = new HttpClient(handler);
         _httpClients.Add(http);
-        return new DecisionClient(
+        return new SystemOneClient(
             http,
-            new DecisionClientOptions
+            new SystemOneClientOptions
             {
                 ApiKey = "test-key",
                 Provider = provider,

@@ -3,8 +3,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
-using Minos.Serialization;
-using Minos.Transport;
+using Minos.SystemOne;
 using ZeroAlloc.Results;
 using static Minos.Tests.ClientTestKit;
 
@@ -61,7 +60,7 @@ public partial record PaddedUrgency
 [JsonSerializable(typeof(TicketContext))]
 internal sealed partial class IndentedTicketContextJsonContext : JsonSerializerContext;
 
-/// <summary>Covers <see cref="DecisionClient"/>'s own typed <c>EvaluateAsync</c> overloads, the raw UTF-8 path.</summary>
+/// <summary>Covers <see cref="SystemOneClient"/>'s own typed <c>EvaluateAsync</c> overloads, the raw UTF-8 path.</summary>
 public sealed class DecisionClientTypedTests : IDisposable
 {
     private const string TicketJson = """{"messages":[{"role":"user","content":"Help!"}]}""";
@@ -493,7 +492,7 @@ public sealed class DecisionClientTypedTests : IDisposable
     public async Task OpenRouter_UsesTheApiPrefix()
     {
         var handler = StubHandler.Json(HttpStatusCode.OK, Fixture.Text("response-openrouter.json"));
-        using var client = Client(handler, provider: DecisionProvider.OpenRouter);
+        using var client = Client(handler, provider: SystemOneProvider.OpenRouter);
 
         var result = await client.EvaluateAsync<UrgencyCheck>("text");
 
@@ -591,7 +590,7 @@ public sealed class DecisionClientTypedTests : IDisposable
 
     private async Task AssertSendsTheDefaultRequest<T>(
         Func<IDecisionClient, ValueTask<Result<T, DecisionError>>> viaDefaultPath,
-        Func<DecisionClient, ValueTask<Result<T, DecisionError>>> viaDecisionClient,
+        Func<SystemOneClient, ValueTask<Result<T, DecisionError>>> viaDecisionClient,
         string? respondWith = "response-noul.json")
         where T : IQuestionSet<T>
     {
@@ -625,7 +624,7 @@ public sealed class DecisionClientTypedTests : IDisposable
     // The body main's request writer produced: the state, the client's model, then the definition's questions.
     private static string ExpectedBytes(QuestionSetDefinition definition, string stateJson)
         => "{\"state\":" + stateJson + ",\"model\":\"" + TestModel + "\",\"questions\":"
-            + Encoding.UTF8.GetString(Minos.Protocols.SystemOneProtocol.QuestionsJson(definition)) + "}";
+            + Encoding.UTF8.GetString(Minos.SystemOne.Protocols.SystemOneProtocol.QuestionsJson(definition)) + "}";
 
     private static string SerializedIntoAWriter<TState>(TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState> typeInfo)
     {
@@ -638,6 +637,6 @@ public sealed class DecisionClientTypedTests : IDisposable
         return Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
 
-    private DecisionClient Client(StubHandler handler, CountingPool? pool = null, DecisionProvider provider = DecisionProvider.TypeSafe)
+    private SystemOneClient Client(StubHandler handler, CountingPool? pool = null, SystemOneProvider provider = SystemOneProvider.TypeSafe)
         => ClientTestKit.Client(_httpClients, handler, pool, provider);
 }

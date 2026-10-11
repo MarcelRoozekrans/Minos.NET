@@ -1,15 +1,16 @@
 using System.Net;
+using Minos.SystemOne;
 
 namespace Minos.DependencyInjection.Tests;
 
 /// <summary>What the registration tests share: options, a canned handler, a request and request checks.</summary>
 internal static class Registrations
 {
-    /// <summary>The User-Agent <see cref="DecisionClient"/> sends: one product token with no build metadata.</summary>
+    /// <summary>The User-Agent <see cref="SystemOneClient"/> sends: one product token with no build metadata.</summary>
     public const string UserAgentPattern = "^Minos\\.NET/[^ +]+$";
 
     /// <summary>Configures a TypeSafe client with a key, a base address and no retries.</summary>
-    public static Action<DecisionClientOptions> Options(string baseAddress, string apiKey = "di-key")
+    public static Action<SystemOneClientOptions> Options(string baseAddress, string apiKey = "di-key")
         => options =>
         {
             options.ApiKey = apiKey;
@@ -49,5 +50,19 @@ internal static class Registrations
         }
 
         return chain;
+    }
+}
+
+/// <summary>A minimal <see cref="IDecisionClient"/> for the factory registrations: every call fails as unsupported.</summary>
+internal sealed class FakeDecisionClient : IDecisionClient
+{
+    public ValueTask<ZeroAlloc.Results.Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
+        => new(new DecisionError(DecisionErrorKind.Unsupported, "The fake client answers nothing."));
+
+    public object? GetService(Type serviceType, object? serviceKey = null)
+        => serviceKey is null && serviceType.IsInstanceOfType(this) ? this : null;
+
+    public void Dispose()
+    {
     }
 }

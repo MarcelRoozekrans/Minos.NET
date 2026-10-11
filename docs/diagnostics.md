@@ -25,9 +25,12 @@ The rules come in two groups.
 
 - **MIN001 to MIN006 check the set against the Jev API's own rules.** MIN001 and MIN002 follow the schema of TypeSafe's
   official SDK, which needs at least one option or level. The others are advice and never block the generator. The
-  limits behind MIN005 are guidance from the API sketch, not a limit of the schema.
-- **MIN101 to MIN107 check what the generator can turn into code.** They are all errors, because a declaration the
-  generator cannot read cannot be turned into a request.
+  Score level range behind MIN005 is guidance from the API sketch, not a limit of the schema. TypeSafe's API documents
+  at most 255 options for a Choice question. MIN005 warns about a larger set at build time, and since 0.9 the TypeSafe
+  and OpenRouter presets also refuse it before sending, with `Unsupported` and MIN203.
+- **MIN101 to MIN108 are errors about declarations that cannot be turned into a request.** The generator cannot read
+  them, so it cannot write the call. The generator reports MIN101 to MIN107 at build time, for a
+  `[Questions]` type. MIN108 has no analyzer: it is reported only by `Build()` of a set built at run time.
 
 A set with any error is invalid. The generator writes no `Definition`, no `Create` and no `IQuestionSet` for it,
 so `EvaluateAsync<T>` does not compile for that type. The generator still gives each unimplemented question property a
@@ -46,7 +49,7 @@ shows them.
 | MIN002 | Error | Score enum has no members | The enum of a `Score<T>` has no members. The API needs at least one level. |
 | MIN003 | Warning | Empty instructions or description | Instructions, a description, or an `Examples` or `NotFor` entry is empty or only white space. A `null` text is fine, because the API accepts none. |
 | MIN004 | Warning | Instructions refer to an unknown state member | A name in backticks in the instructions matches no public property or field of the `State` type, as [typed evaluation](typed-evaluation.md#referring-to-the-state-in-a-question) describes. For an array state the element type is checked. |
-| MIN005 | Warning | Option or level count outside the API guidance | A Score enum has fewer than 2 or more than 10 levels, or a Choice enum has more than 255 options. |
+| MIN005 | Warning | Option or level count outside the API guidance | A Score enum has fewer than 2 or more than 10 levels, or a Choice enum has more than 255 options, the most TypeSafe's API documents. |
 | MIN006 | Info | Choice option has no description | A member of a Choice enum has no `[Criteria]`. It is still an option, sent with no description, and a description usually helps. |
 | MIN101 | Error | Unsupported question set type | The type with `[Questions]` is not a non-generic, non-abstract, non-static, top-level partial class or record that is not file-local. |
 | MIN102 | Error | Unsupported question property | A question property is not a partial, get-only instance property, or it is `virtual`, `new`, `sealed` or `override`, or it is named `Definition` or `Create`, which the generator reserves. |

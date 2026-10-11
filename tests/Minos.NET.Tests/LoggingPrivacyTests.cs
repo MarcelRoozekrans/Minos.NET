@@ -1,5 +1,6 @@
 using System.Net;
 using System.Text;
+using Minos.SystemOne;
 
 namespace Minos.Tests;
 
@@ -189,7 +190,7 @@ public sealed class LoggingPrivacyTests : IDisposable
         AssertNoSecret(logs);
     }
 
-    private DecisionClient Client(StubHandler handler, LogCapture logs, TimeSpan? timeout = null)
+    private SystemOneClient Client(StubHandler handler, LogCapture logs, TimeSpan? timeout = null)
     {
         var http = new HttpClient(handler);
         if (timeout is { } perAttempt)
@@ -198,9 +199,9 @@ public sealed class LoggingPrivacyTests : IDisposable
         }
 
         _httpClients.Add(http);
-        return new DecisionClient(
+        return new SystemOneClient(
             http,
-            new DecisionClientOptions
+            new SystemOneClientOptions
             {
                 ApiKey = ApiKey,
                 Model = "jev-latest",

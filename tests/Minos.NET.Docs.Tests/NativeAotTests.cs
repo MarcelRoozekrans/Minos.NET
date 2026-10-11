@@ -93,13 +93,14 @@ public sealed partial class NativeAotTests
     }
 
     [Fact]
-    public void BothPackages_AreAotCompatible_AndTheDependencyInjectionPackageBindsWithAGenerator()
+    public void ThePackages_AreAotCompatible_AndTheSystemOneRegistrationBindsWithAGenerator()
     {
         Assert.Contains("<IsAotCompatible>true</IsAotCompatible>", Source("src", "Minos.NET", "Minos.NET.csproj"), StringComparison.Ordinal);
+        Assert.Contains("<IsAotCompatible>true</IsAotCompatible>", Source("src", "Minos.NET.DependencyInjection", "Minos.NET.DependencyInjection.csproj"), StringComparison.Ordinal);
 
-        var injection = Source("src", "Minos.NET.DependencyInjection", "Minos.NET.DependencyInjection.csproj");
-        Assert.Contains("<IsAotCompatible>true</IsAotCompatible>", injection, StringComparison.Ordinal);
-        Assert.Contains("<EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>", injection, StringComparison.Ordinal);
+        var systemOne = Source("src", "Minos.NET.SystemOne", "Minos.NET.SystemOne.csproj");
+        Assert.Contains("<IsAotCompatible>true</IsAotCompatible>", systemOne, StringComparison.Ordinal);
+        Assert.Contains("<EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>", systemOne, StringComparison.Ordinal);
     }
 
     // The one reflection: the enum option set reads public fields, and says so to the trimmer.

@@ -1,0 +1,1 @@
+{"detail":[{"type":"literal_error","loc":["body","questions","department","type"],"msg":"Input should be 'noul'","input":"choice","ctx":{"expected":"'noul'"}}]}

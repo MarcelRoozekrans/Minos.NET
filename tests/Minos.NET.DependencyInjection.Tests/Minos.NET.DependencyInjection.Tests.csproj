@@ -5,6 +5,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\Minos.NET.DependencyInjection\Minos.NET.DependencyInjection.csproj" />
+    <ProjectReference Include="..\..\src\Minos.NET.SystemOne\Minos.NET.SystemOne.csproj" />
   </ItemGroup>
 
   <ItemGroup>

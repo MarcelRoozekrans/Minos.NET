@@ -1,4 +1,6 @@
 using System.Text;
+using Minos.SystemOne;
+using Minos.SystemOne.Transport;
 using Minos.Transport;
 
 namespace Minos.Tests;

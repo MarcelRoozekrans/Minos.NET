@@ -1,5 +1,6 @@
 using System.Reflection;
 using System.Text.Json;
+using Minos.SystemOne;
 
 namespace Minos.Docs.Tests;
 
@@ -54,16 +55,18 @@ public sealed class GettingStartedTests
         Assert.Equal(0.77, check.Team.Confidence);
     }
 
-    // The install section's note on what the package brings: one Microsoft runtime dependency, and the dependencies'
+    // The install section's note on what the packages bring: one Microsoft runtime dependency, and the dependencies'
     // analyzers, which flow whatever PrivateAssets says, NuGet/Home#6720. The pack tests check the packed nuspec.
     [Fact]
     public void TheInstallNote_MatchesThePackagesDependencies()
     {
         var project = File.ReadAllText(Path.Combine(PublishedPages.Root, "src", "Minos.NET", "Minos.NET.csproj"));
+        var systemOne = File.ReadAllText(Path.Combine(PublishedPages.Root, "src", "Minos.NET.SystemOne", "Minos.NET.SystemOne.csproj"));
         var packages = File.ReadAllText(Path.Combine(PublishedPages.Root, "Directory.Packages.props"));
         var page = PageTables.Text("getting-started.md");
 
         Assert.Contains("<PackageReference Include=\"Microsoft.Extensions.Logging.Abstractions\" />", project, StringComparison.Ordinal);
+        Assert.Contains("<PackageReference Include=\"Microsoft.Extensions.Logging.Abstractions\" />", systemOne, StringComparison.Ordinal);
         Assert.Contains("<PackageVersion Include=\"Microsoft.Extensions.Logging.Abstractions\" Version=\"10.0.0\" />", packages, StringComparison.Ordinal);
         Assert.Contains("`Microsoft.Extensions.Logging.Abstractions` 10.0.0 or later", page, StringComparison.Ordinal);
 
@@ -71,6 +74,7 @@ public sealed class GettingStartedTests
         Assert.Contains("NuGet may still flow the analyzer", project, StringComparison.Ordinal);
         Assert.Contains("<PackageReference Include=\"ZeroAlloc.Validation\" PrivateAssets=\"analyzers;build;buildtransitive\" />", project, StringComparison.Ordinal);
         Assert.Contains("<PackageReference Include=\"ZeroAlloc.Telemetry\" PrivateAssets=\"analyzers;build;buildtransitive\" />", project, StringComparison.Ordinal);
+        Assert.Contains("<PackageReference Include=\"ZeroAlloc.Telemetry\" PrivateAssets=\"analyzers;build;buildtransitive\" />", systemOne, StringComparison.Ordinal);
         Assert.Contains("`[Validate]` types, `[Instrument]` types or your own `[LoggerMessage]` methods", page, StringComparison.Ordinal);
     }
 
@@ -82,14 +86,14 @@ public sealed class GettingStartedTests
     {
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(PublishedPages.Root, ".release-please-manifest.json")));
         var release = manifest.RootElement.GetProperty(".").GetString()!;
-        var informational = typeof(DecisionClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
+        var informational = typeof(SystemOneClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
         var built = informational.Split('+')[0];
         var page = PageTables.Text("getting-started.md");
 
         var dash = release.IndexOf('-', StringComparison.Ordinal);
         Assert.Equal(dash < 0 ? release + "-local" : release[..dash] + "-0.local." + release[(dash + 1)..], built);
-        Assert.Equal(new Version(release.Split('-')[0] + ".0"), typeof(DecisionClient).Assembly.GetName().Version);
-        Assert.Contains("dotnet add package Minos.NET --version <release>-local", page, StringComparison.Ordinal);
+        Assert.Equal(new Version(release.Split('-')[0] + ".0"), typeof(SystemOneClient).Assembly.GetName().Version);
+        Assert.Contains("dotnet add package Minos.NET.SystemOne --version <release>-local", page, StringComparison.Ordinal);
         Assert.Contains("dotnet add package Minos.NET.DependencyInjection --version <release>-local", page, StringComparison.Ordinal);
         Assert.Contains("A local build is versioned as the last release with a `-local` suffix", page, StringComparison.Ordinal);
         Assert.DoesNotContain("0.0.0-local", page, StringComparison.Ordinal);

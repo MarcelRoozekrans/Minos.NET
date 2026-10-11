@@ -3,6 +3,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
+using Minos.SystemOne;
 
 namespace Minos.Docs.Tests;
 
@@ -23,14 +24,14 @@ public sealed partial class ObservabilityLoggingTests
         { "models": [ { "name": "jev-latest", "description": "The most recent stable release.", "release_date": "2026-09-15" } ] }
         """;
 
-    private static DecisionClientOptions Options(int maxRetries = 0)
+    private static SystemOneClientOptions Options(int maxRetries = 0)
     {
         var options = ScriptedDecision.Quick(maxRetries);
         options.ApiKey = SecretKey;
         return options;
     }
 
-    private static async Task<IReadOnlyList<FakeLogRecord>> LogAsync(DecisionClientOptions options, params Reply[] script)
+    private static async Task<IReadOnlyList<FakeLogRecord>> LogAsync(SystemOneClientOptions options, params Reply[] script)
     {
         var (http, _) = ScriptedDecision.Http(options, script);
         using (http)
@@ -170,7 +171,7 @@ public sealed partial class ObservabilityLoggingTests
         using (http)
         using (var provider = new FakeLoggerProvider())
         using (var loggers = LoggerFactory.Create(builder => builder.AddProvider(provider).SetMinimumLevel(LogLevel.Debug)))
-        using (var client = new DecisionClient(http, options, loggers))
+        using (var client = new SystemOneClient(http, options, loggers))
         {
             await client.ListModelsAsync(CancellationToken.None);
 
@@ -178,7 +179,7 @@ public sealed partial class ObservabilityLoggingTests
             Assert.Equal(1004, listed.Id.Id);
             Assert.Equal(LogLevel.Debug, listed.Level);
             Assert.Equal("1", Field(listed, "ModelCount"));
-            Assert.Equal("TypeSafe", Field(listed, "Provider"));
+            Assert.Equal("typesafe", Field(listed, "Provider"));
         }
     }
 
@@ -186,12 +187,12 @@ public sealed partial class ObservabilityLoggingTests
     public async Task AModelListingOnOpenRouter_LogsAFailure_WithoutSendingARequest()
     {
         var options = Options();
-        options.Provider = DecisionProvider.OpenRouter;
+        options.Provider = SystemOneProvider.OpenRouter;
         var (http, requests) = ScriptedDecision.Http(options, Reply.Ok(ModelsResponse));
         using (http)
         using (var provider = new FakeLoggerProvider())
         using (var loggers = LoggerFactory.Create(builder => builder.AddProvider(provider).SetMinimumLevel(LogLevel.Debug)))
-        using (var client = new DecisionClient(http, options, loggers))
+        using (var client = new SystemOneClient(http, options, loggers))
         {
             await client.ListModelsAsync(CancellationToken.None);
 
@@ -210,7 +211,7 @@ public sealed partial class ObservabilityLoggingTests
         using var http = new HttpClient(new ThrowingHandler()) { BaseAddress = new Uri("https://docs.example/api/") };
         using var provider = new FakeLoggerProvider();
         using var loggers = LoggerFactory.Create(builder => builder.AddProvider(provider).SetMinimumLevel(LogLevel.Debug));
-        using var client = new DecisionClient(http, options, loggers);
+        using var client = new SystemOneClient(http, options, loggers);
 
         var thrown = await Assert.ThrowsAsync<InvalidOperationException>(
             async () => await client.EvaluateAsync<ObservedUrgency>("Help!", CancellationToken.None));
@@ -237,7 +238,7 @@ public sealed partial class ObservabilityLoggingTests
         using (http)
         using (var provider = new FakeLoggerProvider())
         using (var loggers = LoggerFactory.Create(builder => builder.AddProvider(provider).SetMinimumLevel(LogLevel.None)))
-        using (var client = new DecisionClient(http, options, loggers))
+        using (var client = new SystemOneClient(http, options, loggers))
         {
             var result = await client.EvaluateAsync<ObservedUrgency>("Help!", CancellationToken.None);
 
@@ -246,7 +247,7 @@ public sealed partial class ObservabilityLoggingTests
         }
     }
 
-    // The table's ids, event names, levels and message templates are DecisionLog's, read from its source.
+    // The table's ids, event names, levels and message templates are DecisionLog's and SystemOneLog's, read from their source.
     [Fact]
     public void TheEventTableOnThePage_IsDecisionLogsLoggerMessageAttributes()
     {
@@ -277,18 +278,22 @@ public sealed partial class ObservabilityLoggingTests
 
     private static (int Id, string Name, string Level, string Template)[] Events()
     {
-        var source = File.ReadAllText(Path.Combine(PublishedPages.Root, "src", "Minos.NET", "DecisionLog.cs"));
-        var events = new List<(int, string, string, string)>();
-        foreach (Match match in LoggerMessage().Matches(source))
+        // The raw calls' events (1004 and 1005) live in SystemOneLog, the rest in DecisionLog.
+        var events = new List<(int Id, string Name, string Level, string Template)>();
+        foreach (var file in new[] { Path.Combine("src", "Minos.NET", "DecisionLog.cs"), Path.Combine("src", "Minos.NET.SystemOne", "SystemOneLog.cs") })
         {
-            events.Add((
-                int.Parse(match.Groups["id"].Value, CultureInfo.InvariantCulture),
-                match.Groups["name"].Value,
-                match.Groups["level"].Value,
-                Template(match.Groups["message"].Value)));
+            var source = File.ReadAllText(Path.Combine(PublishedPages.Root, file));
+            foreach (Match match in LoggerMessage().Matches(source))
+            {
+                events.Add((
+                    int.Parse(match.Groups["id"].Value, CultureInfo.InvariantCulture),
+                    match.Groups["name"].Value,
+                    match.Groups["level"].Value,
+                    Template(match.Groups["message"].Value)));
+            }
         }
 
-        return [.. events];
+        return [.. events.OrderBy(e => e.Id)];
     }
 
     // The attribute's Message is a string literal, or literals joined by + with the ListModels constant.

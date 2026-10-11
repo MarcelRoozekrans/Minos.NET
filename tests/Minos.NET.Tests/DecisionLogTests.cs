@@ -1,6 +1,7 @@
 using System.Globalization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
+using Minos.SystemOne;
 
 namespace Minos.Tests;
 
@@ -12,12 +13,12 @@ public sealed class DecisionLogTests
     {
         var logger = new FakeLogger();
 
-        DecisionLog.EvaluationSucceeded(logger, DecisionLog.Evaluate, "m", "TypeSafe", 1, 2.5);
-        DecisionLog.EvaluationFailed(logger, DecisionLog.Evaluate, "m", DecisionErrorKind.Server, 500, 2.5, "The API returned HTTP 500.");
+        DecisionLog.EvaluationSucceeded(logger, SystemOneLog.Evaluate, "m", "TypeSafe", 1, 2.5);
+        DecisionLog.EvaluationFailed(logger, SystemOneLog.Evaluate, "m", DecisionErrorKind.Server, 500, 2.5, "The API returned HTTP 500.");
         DecisionLog.AttemptRetrying(logger, 1, DecisionErrorKind.Server, 500, null);
-        DecisionLog.ModelsListed(logger, DecisionProvider.TypeSafe, 2, 2.5);
-        DecisionLog.ModelsListFailed(logger, DecisionProvider.TypeSafe, DecisionErrorKind.Unauthorized, 401, 2.5, "The API returned HTTP 401.");
-        DecisionLog.UnexpectedException(logger, DecisionLog.ListModels, new InvalidOperationException("bug"));
+        SystemOneLog.ModelsListed(logger, "TypeSafe", 2, 2.5);
+        SystemOneLog.ModelsListFailed(logger, "TypeSafe", DecisionErrorKind.Unauthorized, 401, 2.5, "The API returned HTTP 401.");
+        DecisionLog.UnexpectedException(logger, SystemOneLog.ListModels, new InvalidOperationException("bug"));
 
         (int, string, LogLevel)[] expected =
         [
@@ -52,10 +53,10 @@ public sealed class DecisionLogTests
         Assert.Equal("429", LogAssert.Field(retrying, "StatusCode"));
         Assert.Equal("00:00:03", LogAssert.Field(retrying, "RetryAfter"));
 
-        DecisionLog.ModelsListed(logger, DecisionProvider.TypeSafe, 7, 2.5);
+        SystemOneLog.ModelsListed(logger, "TypeSafe", 7, 2.5);
         Assert.Equal("7", LogAssert.Field(logger.LatestRecord, "ModelCount"));
 
-        DecisionLog.ModelsListFailed(logger, DecisionProvider.TypeSafe, DecisionErrorKind.Network, null, 2.5, "Connection refused");
+        SystemOneLog.ModelsListFailed(logger, "TypeSafe", DecisionErrorKind.Network, null, 2.5, "Connection refused");
         var failed = logger.LatestRecord;
         Assert.Equal("Network", LogAssert.Field(failed, "ErrorKind"));
         Assert.Null(LogAssert.Field(failed, "StatusCode"));
@@ -67,7 +68,7 @@ public sealed class DecisionLogTests
     {
         var logger = new FakeLogger();
 
-        DecisionLog.EvaluationSucceeded(logger, DecisionLog.Evaluate, "jev-latest", "TypeSafe", 3, 2.5);
+        DecisionLog.EvaluationSucceeded(logger, SystemOneLog.Evaluate, "jev-latest", "TypeSafe", 3, 2.5);
 
         var record = logger.LatestRecord;
         Assert.Equal("evaluate", LogAssert.Field(record, "Operation"));
@@ -117,7 +118,7 @@ public sealed class DecisionLogTests
     {
         var logger = new FakeLogger();
 
-        DecisionLog.ModelsListed(logger, DecisionProvider.OpenRouter, 7, 2.5);
+        SystemOneLog.ModelsListed(logger, "OpenRouter", 7, 2.5);
 
         var record = logger.LatestRecord;
         Assert.Equal("OpenRouter", LogAssert.Field(record, "Provider"));
@@ -134,7 +135,7 @@ public sealed class DecisionLogTests
     {
         var logger = new FakeLogger();
 
-        DecisionLog.ModelsListFailed(logger, DecisionProvider.OpenRouter, DecisionErrorKind.Unauthorized, 401, 2.5, "The API returned HTTP 401.");
+        SystemOneLog.ModelsListFailed(logger, "OpenRouter", DecisionErrorKind.Unauthorized, 401, 2.5, "The API returned HTTP 401.");
 
         var record = logger.LatestRecord;
         Assert.Equal("OpenRouter", LogAssert.Field(record, "Provider"));
@@ -153,7 +154,7 @@ public sealed class DecisionLogTests
     {
         var logger = new FakeLogger();
 
-        DecisionLog.UnexpectedException(logger, DecisionLog.ListModels, new InvalidOperationException("bug"));
+        DecisionLog.UnexpectedException(logger, SystemOneLog.ListModels, new InvalidOperationException("bug"));
 
         var record = logger.LatestRecord;
         Assert.Equal("list-models", LogAssert.Field(record, "Operation"));
@@ -193,7 +194,7 @@ public sealed class DecisionLogTests
     {
         var logger = new FakeLogger();
 
-        DecisionLog.EvaluationFailed(logger, DecisionLog.Evaluate, "m", DecisionErrorKind.Timeout, null, 1, "The request timed out.");
+        DecisionLog.EvaluationFailed(logger, SystemOneLog.Evaluate, "m", DecisionErrorKind.Timeout, null, 1, "The request timed out.");
 
         Assert.Null(LogAssert.Field(logger.LatestRecord, "StatusCode"));
     }
@@ -204,7 +205,7 @@ public sealed class DecisionLogTests
         var logger = new FakeLogger();
         logger.ControlLevel(LogLevel.Warning, enabled: false);
 
-        DecisionLog.EvaluationFailed(logger, DecisionLog.Evaluate, "m", DecisionErrorKind.Server, 500, 1, "x");
+        DecisionLog.EvaluationFailed(logger, SystemOneLog.Evaluate, "m", DecisionErrorKind.Server, 500, 1, "x");
 
         Assert.Equal(0, logger.Collector.Count);
     }
@@ -212,7 +213,7 @@ public sealed class DecisionLogTests
     [Theory]
     [InlineData(DecisionErrorKind.Validation, "The API returned HTTP 422.")]
     [InlineData(DecisionErrorKind.Timeout, "The request timed out.")]
-    [InlineData(DecisionErrorKind.Unsupported, "Model listing is only available on TypeSafe's API.")]
+    [InlineData(DecisionErrorKind.Unsupported, "Model listing is not available on OpenRouter.")]
     public void SafeMessage_KeepsALibraryMessage(DecisionErrorKind kind, string message)
         => Assert.Equal(message, DecisionLog.SafeMessage(new DecisionError(kind, message)));
 
@@ -276,7 +277,7 @@ public sealed class DecisionLogTests
         var logger = new FakeLogger();
         var bug = new InvalidOperationException("bug");
 
-        Assert.False(DecisionLog.LogUnexpected(logger, DecisionLog.Evaluate, bug, CancellationToken.None));
+        Assert.False(DecisionLog.LogUnexpected(logger, SystemOneLog.Evaluate, bug, CancellationToken.None));
 
         var record = logger.LatestRecord;
         Assert.Equal(1006, record.Id.Id);
@@ -292,7 +293,7 @@ public sealed class DecisionLogTests
         using var cancellation = new CancellationTokenSource();
         cancellation.Cancel();
 
-        Assert.False(DecisionLog.LogUnexpected(logger, DecisionLog.Evaluate, new OperationCanceledException(cancellation.Token), cancellation.Token));
+        Assert.False(DecisionLog.LogUnexpected(logger, SystemOneLog.Evaluate, new OperationCanceledException(cancellation.Token), cancellation.Token));
 
         Assert.Equal(0, logger.Collector.Count);
     }

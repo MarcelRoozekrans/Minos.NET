@@ -1,12 +1,11 @@
 using System.Runtime.CompilerServices;
-using Minos.Protocols;
 
 namespace Minos.Tests;
 
 public sealed class ProtocolBoundaryTests
 {
-    // The /v1/systemone request envelope, question and answer field names. Only the protocol, and the files Phase 6.3
-    // moves behind it, may name them.
+    // The /v1/systemone request envelope, question and answer field names. Only the protocol package's protocol may
+    // name them.
     // Only the u8 literal form is matched, on purpose: plain strings would flag XML doc param names. A plain string or a
     // JsonPropertyName use of these names is not caught.
     private static readonly string[] WireNames =
@@ -19,18 +18,17 @@ public sealed class ProtocolBoundaryTests
     private static readonly string[] Allowed =
     [
         "Protocols/",
-
-        // Phase 6.3: response envelope.
-        "Telemetry/ResponseFields.cs",
     ];
+
+    // The core package is provider-neutral: no file in it names a /v1/systemone field.
+    [Fact]
+    public void TheCoreNamesNoSystemOneWireField()
+        => Assert.Empty(SourceFiles("Minos.NET").Where(f => WireNames.Any(n => f.Text.Contains(n, StringComparison.Ordinal))).Select(f => f.Path));
 
     [Fact]
     public void OnlyTheProtocolNamesTheSystemOneWireFields()
     {
-        var root = Path.GetFullPath(Path.Combine(SourceDirectory(), "..", "..", "src", "Minos.NET"));
-        var offenders = Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
-            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
-            .Select(f => (Path: Path.GetRelativePath(root, f).Replace('\\', '/'), Text: File.ReadAllText(f)))
+        var offenders = SourceFiles("Minos.NET.SystemOne")
             .Where(f => !Allowed.Any(a => f.Path.StartsWith(a, StringComparison.Ordinal)))
             .Where(f => WireNames.Any(n => f.Text.Contains(n, StringComparison.Ordinal)))
             .Select(f => f.Path)
@@ -40,23 +38,29 @@ public sealed class ProtocolBoundaryTests
     }
 
     [Fact]
-    public void TheSystemOneProtocolOwnsTheEndpointPath()
-        => Assert.Equal("v1/systemone", SystemOneProtocol.Instance.EndpointPath);
+    public void TheCoreNamesNoEndpointPath()
+        => Assert.Empty(SourceFiles("Minos.NET").Where(f => f.Text.Contains("\"v1/systemone\"", StringComparison.Ordinal)).Select(f => f.Path));
 
-    // Transport/IDecisionApi.cs keeps the literal for its Post attribute: the raw call stays, and Phase 6.3 adds the neutral one.
+    // The resolved settings own the request path, per preset; every call, raw or neutral, takes it from them.
     [Fact]
-    public void OnlyTheProtocolAndTheApiInterfaceNameTheEndpointPath()
+    public void OnlyTheSettingsNameTheEndpointPath()
     {
-        var root = Path.GetFullPath(Path.Combine(SourceDirectory(), "..", "..", "src", "Minos.NET"));
-        var offenders = Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
-            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
-            .Select(f => (Path: Path.GetRelativePath(root, f).Replace('\\', '/'), Text: File.ReadAllText(f)))
-            .Where(f => !f.Path.StartsWith("Protocols/", StringComparison.Ordinal) && !string.Equals(f.Path, "Transport/IDecisionApi.cs", StringComparison.Ordinal))
+        var offenders = SourceFiles("Minos.NET.SystemOne")
+            .Where(f => !string.Equals(f.Path, "Transport/SystemOneClientSettings.cs", StringComparison.Ordinal))
             .Where(f => f.Text.Contains("\"v1/systemone\"", StringComparison.Ordinal))
             .Select(f => f.Path)
             .ToList();
 
         Assert.Empty(offenders);
+    }
+
+    // Every hand-written source file of one src project, by its path relative to the project.
+    private static IEnumerable<(string Path, string Text)> SourceFiles(string project)
+    {
+        var root = Path.GetFullPath(Path.Combine(SourceDirectory(), "..", "..", "src", project));
+        return Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
+            .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
+            .Select(f => (Path.GetRelativePath(root, f).Replace('\\', '/'), File.ReadAllText(f)));
     }
 
     private static string SourceDirectory([CallerFilePath] string path = "") => Path.GetDirectoryName(path)!;

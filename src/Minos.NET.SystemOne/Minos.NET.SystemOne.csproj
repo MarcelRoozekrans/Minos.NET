@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Minos.SystemOne</RootNamespace>
+    <PackageId>Minos.NET.SystemOne</PackageId>
+    <Title>Minos.NET.SystemOne</Title>
+    <Description>The /v1/systemone protocol for Minos.NET: TypeSafe's Jev API, OpenRouter, vLLM Semantic Router and compatible local servers, with presets, capability checks and DI registration. Native AOT-compatible. Not affiliated with or endorsed by TypeSafe AI, OpenRouter or the vLLM project.</Description>
+    <PackageTags>$(PackageTags);systemone;jev;typesafe;openrouter;vllm</PackageTags>
+    <IsAotCompatible>true</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- SystemOneJsonEncoder overrides JavaScriptEncoder's pointer-based members. -->
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Every ZeroAlloc generator here, Rest and Telemetry, emits internal types. -->
+    <ZeroAllocGeneratedAccessibility>Internal</ZeroAllocGeneratedAccessibility>
+    <!-- AddSystemOneClient's Bind is source-generated, with no reflection, so consumers stay trim- and AOT-clean with no setup of their own. -->
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Minos.NET\Minos.NET.csproj" />
+    <!-- AddSystemOneClient builds on the provider-neutral registration, through its InternalsVisibleTo. -->
+    <ProjectReference Include="..\Minos.NET.DependencyInjection\Minos.NET.DependencyInjection.csproj" />
+    <!-- IHttpClientFactory and AddHttpClient, for the registration's named HttpClient. -->
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <!-- OptionsBuilder.Bind over IConfiguration; brings Configuration.Abstractions and Configuration.Binder. -->
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="ZeroAlloc.Rest" />
+    <PackageReference Include="ZeroAlloc.Rest.SystemTextJson" />
+    <PackageReference Include="ZeroAlloc.Results" />
+    <!-- Its own reference: core's PrivateAssets keeps the proxy generator from flowing here. Same PrivateAssets and nuspec exclusions as core. -->
+    <PackageReference Include="ZeroAlloc.Telemetry" PrivateAssets="analyzers;build;buildtransitive" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Minos.NET.Tests" />
+    <InternalsVisibleTo Include="Minos.NET.Benchmarks" />
+  </ItemGroup>
+</Project>
