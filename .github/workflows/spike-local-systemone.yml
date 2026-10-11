@@ -16,9 +16,9 @@ jobs:
       - name: Install
         run: |
           pip install --extra-index-url https://download.pytorch.org/whl/cpu ollajev==0.4.0
-          ollajev pull SupersonicLabs/Julia-1
+          ollajev pull Mapika/decider-2b-GGUF:Q4_K_M
           ollajev list
-          ollajev show SupersonicLabs/Julia-1 || true
+          ollajev show Mapika/decider-2b-GGUF:Q4_K_M || true
       - name: Discover the CLI
         run: |
           ollajev --help || true
@@ -31,12 +31,12 @@ jobs:
         env:
           OLLAJEV_DEVICE: cpu
         run: |
-          nohup ollajev serve SupersonicLabs/Julia-1 --port 8000 --no-browser > serve.log 2>&1 &
+          nohup ollajev serve Mapika/decider-2b-GGUF:Q4_K_M --port 8000 --no-browser > serve.log 2>&1 &
           for i in $(seq 1 60); do curl -sf http://127.0.0.1:8000/v1/models && break; sleep 5; done
           echo; cat serve.log
       - name: Ask all three kinds
         run: |
-          MODEL=SupersonicLabs/Julia-1
+          MODEL=Mapika/decider-2b-GGUF:Q4_K_M
           curl -s http://127.0.0.1:8000/v1/models; echo
           echo "model=$MODEL"
           curl -s -w '\n%{http_code}\n' http://127.0.0.1:8000/v1/systemone -H 'Content-Type: application/json' -d "{\"model\":\"$MODEL\",\"state\":\"The customer asks for a refund on a broken kettle.\",\"questions\":{\"refund\":{\"type\":\"noul\",\"instructions\":\"Does the customer ask for a refund?\"},\"topic\":{\"type\":\"choice\",\"instructions\":\"What is the topic?\",\"criteria\":{\"billing\":\"Payments and refunds\",\"shipping\":\"Delivery\",\"other\":\"Anything else\"}},\"urgency\":{\"type\":\"score\",\"instructions\":\"How urgent is it?\",\"criteria\":[\"Not urgent\",\"Somewhat urgent\",\"Very urgent\"]}}}"
