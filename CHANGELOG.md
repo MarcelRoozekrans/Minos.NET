@@ -1,5 +1,29 @@
 # Changelog
 
+## [0.10.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.9.0...v0.10.0) (2026-10-11)
+
+
+### ⚠ BREAKING CHANGES
+
+* **core:** SystemOneCapabilities and SystemOneQuestionKinds from 0.9.0 become Minos.DecisionCapabilities and Minos.QuestionKinds in the core. SystemOneClientOptions.Capabilities takes a DecisionCapabilities, and a client answers GetService for DecisionCapabilities.
+
+### Features
+
+* **core:** DecisionCapabilities, QuestionKinds and the Refused error kind, shared by every provider ([c728625](https://github.com/MarcelRoozekrans/Minos.NET/commit/c72862581c7ca502b85e7910ae17788f2fccbffe))
+* **core:** image state with DecisionImage and DecisionRequest.Images ([c728625](https://github.com/MarcelRoozekrans/Minos.NET/commit/c72862581c7ca502b85e7910ae17788f2fccbffe))
+* **openai:** Minos.NET.OpenAI for OpenAI's /v1/decisions, in beta ([c728625](https://github.com/MarcelRoozekrans/Minos.NET/commit/c72862581c7ca502b85e7910ae17788f2fccbffe))
+* **systemone:** send images as content parts in the state ([c728625](https://github.com/MarcelRoozekrans/Minos.NET/commit/c72862581c7ca502b85e7910ae17788f2fccbffe))
+
+
+### Documentation
+
+* **docs:** provider differences, images and the OpenAI adapter ([c728625](https://github.com/MarcelRoozekrans/Minos.NET/commit/c72862581c7ca502b85e7910ae17788f2fccbffe))
+
+
+### Tests
+
+* **tests:** image, Clef and Luna live tests through OpenRouter ([c728625](https://github.com/MarcelRoozekrans/Minos.NET/commit/c72862581c7ca502b85e7910ae17788f2fccbffe))
+
 ## [0.9.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.8.0...v0.9.0) (2026-10-11)
 
 
