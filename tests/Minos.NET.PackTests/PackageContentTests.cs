@@ -46,8 +46,8 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
     private const string LogoSvgSha256 = "4cde06e728d895e5bc9603de8063126096d82e9fb79d5e8993f8d74e409e3063";
     private const string LogoPngSha256 = "7dc40942000d2010ed96300a2c72b44365d953e8cab107981bba78f45b7b0235";
 
-    /// <summary>The tags every package carries; nuget.org splits them on spaces.</summary>
-    internal const string PackageTags = "minos decisions decision-model jev typesafe systemone openrouter client sdk source-generator aot native-aot zero-allocation";
+    /// <summary>The provider-neutral tags every package carries; nuget.org splits them on spaces.</summary>
+    internal const string PackageTags = "minos decisions decision-model client sdk source-generator aot native-aot zero-allocation";
 
     private readonly PackFixture _fixture;
 

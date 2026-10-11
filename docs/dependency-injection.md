@@ -57,8 +57,8 @@ public sealed class InboxTriage(IDecisionClient client)
 ```
 <!-- endSnippet -->
 
-`AddDecisionClient` registers the client. The overload with an `Action<SystemOneClientOptions>` sets the options in code. Here the
-key comes from configuration, such as user secrets, so it is never written into the program.
+`AddDecisionClient` registers the client. The overload with an `Action<SystemOneClientOptions>` sets the options in
+code. Here the key comes from configuration, such as user secrets, so it is never written into the program.
 
 <!-- snippet: DependencyInjection_Register -->
 ```cs
@@ -212,9 +212,9 @@ dotnet user-secrets set "Minos:ApiKey" "your-key"
 ## Checking the options at start-up
 
 Each registration checks its options when the host starts, so a wrong value stops the program at launch instead of on
-the first request. It runs `SystemOneClientOptions.Validate()`, the same check the client's constructor runs, and the failure
-is an `OptionsValidationException` that carries the core's own message. That covers a missing API key, an invalid base
-address, `MaxRetries` outside 0 to 10, a backoff out of range, a blank model, and an invalid `Timeout`.
+the first request. It runs `SystemOneClientOptions.Validate()`, the same check the client's constructor runs, and the
+failure is an `OptionsValidationException` that carries the core's own message. That covers a missing API key, an
+invalid base address, `MaxRetries` outside 0 to 10, a backoff out of range, a blank model, and an invalid `Timeout`.
 
 <!-- snippet: DependencyInjection_Startup -->
 ```cs
@@ -265,8 +265,8 @@ the key for a keyed client. You rarely need the name, except to change what is b
 
 - **Its handler.** The primary handler is a `SocketsHttpHandler` that recycles its connections every two minutes, so a
   change in DNS is picked up. The factory never rotates it, because the singleton keeps its `HttpClient` for life.
-- **Its settings.** `SystemOneClient.ConfigureHttpClient` gives the `HttpClient` its base address, the per-attempt `Timeout`
-  and the `Minos.NET` User-Agent.
+- **Its settings.** `SystemOneClient.ConfigureHttpClient` gives the `HttpClient` its base address, the per-attempt
+  `Timeout` and the `Minos.NET` User-Agent.
 - **Its handlers.** Add your own through the `HttpClient` property of the builder `AddDecisionClient` returns. A
   handler sees every request and every retry. `ConfigureHttpClientDefaults` adds a handler to every `HttpClient` the
   factory makes, the Minos clients included, whether you call it before or after `AddDecisionClient`.
@@ -357,10 +357,10 @@ metrics](observability.md#logging) lists the events and their levels.
 
 ## Using Minos without the package
 
-The package is a convenience. `SystemOneClient.ConfigureHttpClient(httpClient, options)` configures any `HttpClient` the way
-the client configures its own: it applies the per-attempt `Timeout`, the base address when the `HttpClient` has none,
-and the User-Agent. It needs no API key and leaves the handler alone. Call it before the client sends a request, for
-instance on a named client of your own.
+The package is a convenience. `SystemOneClient.ConfigureHttpClient(httpClient, options)` configures any `HttpClient` the
+way the client configures its own: it applies the per-attempt `Timeout`, the base address when the `HttpClient` has
+none, and the User-Agent. It needs no API key and leaves the handler alone. Call it before the client sends a request,
+for instance on a named client of your own.
 
 <!-- snippet: DependencyInjection_WithoutPackage -->
 ```cs
@@ -376,12 +376,12 @@ public static SystemOneClient Create(IHttpClientFactory factory, SystemOneClient
 ```
 <!-- endSnippet -->
 
-The `SystemOneClient` that `Create` makes still needs an API key. `ConfigureHttpClient` sets up the `HttpClient` only, so the
-key comes from `options.ApiKey` or the environment variable, as for any client.
+The `SystemOneClient` that `Create` makes still needs an API key. `ConfigureHttpClient` sets up the `HttpClient` only,
+so the key comes from `options.ApiKey` or the environment variable, as for any client.
 
 The `SocketsHttpHandler` and the infinite handler lifetime do for this client what the package does for its own: a
-long-lived `SystemOneClient` keeps one handler for life, so the connections recycle themselves and the factory does not rotate
-the handler.
+long-lived `SystemOneClient` keeps one handler for life, so the connections recycle themselves and the factory does not
+rotate the handler.
 
 ## Next
 

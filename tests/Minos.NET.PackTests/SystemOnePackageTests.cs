@@ -90,8 +90,8 @@ public sealed class SystemOnePackageTests : IClassFixture<SystemOnePackFixture>
         Assert.Equal("1.11.0", (string?)dependency.Attribute("version"));
     }
 
-    // The shared metadata, with the protocol package's own tags after the shared ones. NuGet drops the tags the shared
-    // list already has: systemone, typesafe and openrouter.
+    // The shared metadata, with the protocol package's own tags after the shared ones: the vendor tags live here, not
+    // in the provider-neutral core.
     [Fact]
     public void CarriesTheMinosMetadata_AndItsOwnTags()
     {
@@ -101,7 +101,7 @@ public sealed class SystemOnePackageTests : IClassFixture<SystemOnePackFixture>
         Assert.Equal("https://github.com/MarcelRoozekrans/Minos.NET", (string?)metadata.Element(Nuspec + "repository")!.Attribute("url"));
         Assert.Equal("Copyright (c) 2026 Marcel Roozekrans", (string?)metadata.Element(Nuspec + "copyright"));
         Assert.Equal("icon.png", (string?)metadata.Element(Nuspec + "icon"));
-        Assert.Equal(PackageContentTests.PackageTags + " cloudflare vllm", (string?)metadata.Element(Nuspec + "tags"));
+        Assert.Equal(PackageContentTests.PackageTags + " systemone jev typesafe openrouter cloudflare vllm", (string?)metadata.Element(Nuspec + "tags"));
     }
 
     // The package's own ZeroAlloc.Telemetry reference carries the same PrivateAssets as the core's, and NuGet still flows

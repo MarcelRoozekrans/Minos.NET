@@ -5,8 +5,8 @@ using Minos.SystemOne;
 using Shop.Surveys;
 
 // Shop.Surveys and Minos.SystemOne both have a Question, so a bare Question in this file would be ambiguous: error
-// CS0104. An alias outranks a using of a whole namespace, so these two settle it. Question is your own, MinosQuestion is
-// Minos's.
+// CS0104. An alias outranks a using of a whole namespace, so these two settle it. Question is your own, MinosQuestion
+// is Minos's.
 using Question = Shop.Surveys.Question;
 using MinosQuestion = Minos.SystemOne.Question;
 

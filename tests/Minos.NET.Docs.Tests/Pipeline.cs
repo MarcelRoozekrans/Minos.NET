@@ -19,8 +19,8 @@ public partial record PipelineCheck
 
 public static class DefaultPipeline
 {
-    // A SystemOneClient already runs the standard pipeline: one span and one set of metrics per call, one log record when
-    // it was given a logger factory, and up to two retries of a transient failure. There is nothing to set up.
+    // A SystemOneClient already runs the standard pipeline: one span and one set of metrics per call, one log record
+    // when it was given a logger factory, and up to two retries of a transient failure. There is nothing to set up.
     public static async Task<bool> IsUrgentAsync(
         HttpClient http, string apiKey, string message, CancellationToken cancellationToken)
     {
@@ -41,7 +41,8 @@ public static class CustomPipeline
     public static IDecisionClient Build(HttpClient http, string apiKey, ILoggerFactory loggerFactory, IAuditLog log)
     {
         // With the standard pipeline off, the client is the bare transport: one attempt per call, and no span or log.
-        var transport = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = apiKey, UseStandardPipeline = false });
+        var transport = new SystemOneClient(
+            http, new SystemOneClientOptions { ApiKey = apiKey, UseStandardPipeline = false });
 
         // The first Use is the outermost stage. The audit stage is the innermost, so it records every attempt.
         return transport.AsBuilder()

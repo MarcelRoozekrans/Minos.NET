@@ -81,8 +81,8 @@ a host supplies the real client. A test does not need a container: it builds the
 
 ## Way one: a fake `IDecisionClient`
 
-`IDecisionClient` is the library's interface for calling Jev, and `SystemOneClient` implements it. A **fake** is a small class of
-your own that implements it and returns a fixed reply, with no HTTP at all.
+`IDecisionClient` is the library's interface for calling Jev, and `SystemOneClient` implements it. A **fake** is a small
+class of your own that implements it and returns a fixed reply, with no HTTP at all.
 
 A fake implements three members:
 

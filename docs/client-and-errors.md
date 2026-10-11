@@ -17,8 +17,8 @@ arrives as a value to check, not as an exception to catch.
 
 ## Creating a client
 
-`SystemOneClient` is the class that implements `IDecisionClient`. It is thread-safe and meant to live for the whole program: create
-one, share it, and dispose it when the program stops. Creating a client per call wastes connections.
+`SystemOneClient` is the class that implements `IDecisionClient`. It is thread-safe and meant to live for the whole
+program: create one, share it, and dispose it when the program stops. Creating a client per call wastes connections.
 
 <!-- snippet: ClientAndErrors_Constructors -->
 ```cs
@@ -45,11 +45,11 @@ public static class ClientConstructors
 
 There are two families of constructor.
 
-- **The client owns its `HttpClient`.** `new SystemOneClient(options)`, or `new SystemOneClient()` for all defaults. The client
-  creates the `HttpClient`, applies the options to it, and disposes it in `Dispose`.
-- **You lend an `HttpClient`.** `new SystemOneClient(http, options)`. The client uses it and never disposes it, so whoever
-  created it still owns it. This is how a client over `IHttpClientFactory` works, and it is what a test does to put a
-  fake handler under the client. Two things follow. The `HttpClient`'s own `BaseAddress` wins over
+- **The client owns its `HttpClient`.** `new SystemOneClient(options)`, or `new SystemOneClient()` for all defaults. The
+  client creates the `HttpClient`, applies the options to it, and disposes it in `Dispose`.
+- **You lend an `HttpClient`.** `new SystemOneClient(http, options)`. The client uses it and never disposes it, so
+  whoever created it still owns it. This is how a client over `IHttpClientFactory` works, and it is what a test does to
+  put a fake handler under the client. Two things follow. The `HttpClient`'s own `BaseAddress` wins over
   `SystemOneClientOptions.BaseAddress` when it is set, and it must end in `/`. And its own `Timeout` applies, not
   `SystemOneClientOptions.Timeout`, unless you set it up with `SystemOneClient.ConfigureHttpClient`, which the
   [dependency injection](dependency-injection.md#using-minos-without-the-package) page shows.
@@ -60,9 +60,10 @@ traces and metrics](observability.md#logging) describes. What it logs never cont
 answers, the API key or a header value.
 
 Two calls with bare `null` literals do not compile (CS0121), because more than one constructor accepts them.
-`new SystemOneClient(null)` matches both `(SystemOneClientOptions?)` and `(HttpClient)`. `new SystemOneClient(null, null)` matches both
-`(SystemOneClientOptions?, ILoggerFactory?)` and `(HttpClient, SystemOneClientOptions?)`; before the logging overloads it compiled
-and always threw `ArgumentNullException` for the missing `HttpClient`. For all defaults and environment variables, write
+`new SystemOneClient(null)` matches both `(SystemOneClientOptions?)` and `(HttpClient)`.
+`new SystemOneClient(null, null)` matches both `(SystemOneClientOptions?, ILoggerFactory?)` and
+`(HttpClient, SystemOneClientOptions?)`; before the logging overloads it compiled and always threw
+`ArgumentNullException` for the missing `HttpClient`. For all defaults and environment variables, write
 `new SystemOneClient()`. Any other call resolves once its `null` has a type, for example
 `new SystemOneClient((SystemOneClientOptions?)null)`.
 
@@ -134,8 +135,9 @@ A `SystemOneRequest` names its own model, so `Model` applies to typed evaluation
 
 ### SystemOneDefaults
 
-`SystemOneDefaults` is the static class that holds the values the client falls back on. Use it instead of typing the same
-text yourself, for example to send `SystemOneDefaults.Model` explicitly or to name an environment variable in a message.
+`SystemOneDefaults` is the static class that holds the values the client falls back on. Use it instead of typing the
+same text yourself, for example to send `SystemOneDefaults.Model` explicitly or to name an environment variable in a
+message.
 
 | Member | Value | What it is |
 | --- | --- | --- |
@@ -250,8 +252,8 @@ attempts of the handler is nine requests.
 
 `Timeout` bounds one attempt, not the whole call. A call with retries can take up to `(MaxRetries + 1) times Timeout`
 plus the waits between attempts. Its time-out applies to a client that owns its `HttpClient`, and to one you set up with
-`SystemOneClient.ConfigureHttpClient`, as `AddDecisionClient` does. An `HttpClient` you pass without that keeps its own `Timeout`,
-which is 100 seconds unless you changed it.
+`SystemOneClient.ConfigureHttpClient`, as `AddDecisionClient` does. An `HttpClient` you pass without that keeps its own
+`Timeout`, which is 100 seconds unless you changed it.
 
 <!-- snippet: ClientAndErrors_Timeouts -->
 ```cs
@@ -406,7 +408,8 @@ pipeline's stages: they have their own span and log, and retry with the client's
 ```cs
 // The raw API names its own model and questions, with ids you choose. Use it when the questions are not known at
 // compile time and the question set builder does not fit. Typed evaluation is shorter wherever it can be used.
-public static async Task<string> UrgencyAsync(SystemOneClient client, string message, CancellationToken cancellationToken)
+public static async Task<string> UrgencyAsync(
+    SystemOneClient client, string message, CancellationToken cancellationToken)
 {
     var result = await client.EvaluateAsync(
         new SystemOneRequest
@@ -449,8 +452,8 @@ where the generator, the [analyzers](diagnostics.md) and the
 
 The raw API's base types are `Minos.SystemOne.Question` and `Minos.SystemOne.Answer`. If your application has a
 `Question` or `Answer` of its own, a file that imports both namespaces cannot name either type bare: the compiler
-reports CS0104, an ambiguous reference. A `using` alias settles it, because an alias outranks a namespace import. Alias your own type to the short
-name, and give Minos's type a name of its own.
+reports CS0104, an ambiguous reference. A `using` alias settles it, because an alias outranks a namespace import. Alias
+your own type to the short name, and give Minos's type a name of its own.
 
 <!-- snippet: ClientAndErrors_NameClash -->
 ```cs
@@ -458,8 +461,8 @@ using Minos.SystemOne;
 using Shop.Surveys;
 
 // Shop.Surveys and Minos.SystemOne both have a Question, so a bare Question in this file would be ambiguous: error
-// CS0104. An alias outranks a using of a whole namespace, so these two settle it. Question is your own, MinosQuestion is
-// Minos's.
+// CS0104. An alias outranks a using of a whole namespace, so these two settle it. Question is your own, MinosQuestion
+// is Minos's.
 using Question = Shop.Surveys.Question;
 using MinosQuestion = Minos.SystemOne.Question;
 

@@ -50,16 +50,15 @@ dotnet add package Minos.NET.SystemOne
 ```
 
 `Minos.NET.SystemOne` is the client for the `/v1/systemone` protocol, which TypeSafe and OpenRouter serve, in the
-`Minos.SystemOne` namespace. It brings
-`Minos.NET`, the core, which already contains the source generator and the [analyzers](diagnostics.md), so there is
-nothing else to install for typed questions. If you use dependency injection in a .NET host, add the integration package
-as well, which [dependency injection](dependency-injection.md) covers:
+`Minos.SystemOne` namespace. It brings `Minos.NET`, the core, which already contains the source generator and the
+[analyzers](diagnostics.md), so there is nothing else to install for typed questions. If you use dependency injection in
+a .NET host, add the integration package as well, which [dependency injection](dependency-injection.md) covers:
 
 ```shell
 dotnet add package Minos.NET.DependencyInjection
 ```
 
-### What the package brings with it
+### What the packages bring with them
 
 `Minos.NET` and `Minos.NET.SystemOne` have one runtime dependency from Microsoft,
 `Microsoft.Extensions.Logging.Abstractions` 10.0.0 or later, for the logging interfaces that
@@ -111,10 +110,10 @@ Remove the source when you switch to the published packages: `dotnet nuget remov
 | `SystemOneProvider.TypeSafe`   | `https://api.typesafe.ai/`   | `TYPESAFE_API_KEY`   |
 | `SystemOneProvider.OpenRouter` | `https://openrouter.ai/api/` | `OPENROUTER_API_KEY` |
 
-`TypeSafe` is the default. Set `ApiKey` on the options, or leave it unset and the client reads the matching
-environment variable. `SystemOneClient` is disposable and meant to be long-lived: create one, share it, and dispose it at
-shutdown, as the snippet below does for its short example. The client throws `InvalidOperationException` when it is
-created with no key available, so a missing key shows up at start-up rather than on the first call.
+`TypeSafe` is the default. Set `ApiKey` on the options, or leave it unset and the client reads the matching environment
+variable. `SystemOneClient` is disposable and meant to be long-lived: create one, share it, and dispose it at shutdown,
+as the snippet below does for its short example. The client throws `InvalidOperationException` when it is created with
+no key available, so a missing key shows up at start-up rather than on the first call.
 
 <!-- snippet: GettingStarted_Clients -->
 ```cs

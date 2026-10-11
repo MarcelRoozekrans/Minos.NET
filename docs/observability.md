@@ -8,8 +8,8 @@ description: What the Minos client logs, which spans and metrics it emits, what 
 # Logging, traces and metrics
 
 A client that calls a remote model needs to be observable: you want to know how long each call took, which ones failed
-and why, how many tokens you used, and how sure Jev was. `SystemOneClient` reports all of this through the three signals that
-.NET has built in:
+and why, how many tokens you used, and how sure Jev was. `SystemOneClient` reports all of this through the three signals
+that .NET has built in:
 
 - **Logs**, through `Microsoft.Extensions.Logging`, when you give the client an `ILoggerFactory`.
 - **Traces**, as `System.Diagnostics` spans, from an `ActivitySource` named `Minos`.
@@ -208,9 +208,9 @@ public static class DecisionTelemetryNames
 <!-- endSnippet -->
 
 No Minos package takes an OpenTelemetry dependency: not `Minos.NET`, `Minos.NET.SystemOne` or
-`Minos.NET.DependencyInjection`. Your application brings OpenTelemetry itself, usually the `OpenTelemetry.Extensions.Hosting` package, whose
-`AddOpenTelemetry()` starts the setup. Pass the source to `WithTracing` with `AddSource`, and the meter to `WithMetrics`
-with `AddMeter`:
+`Minos.NET.DependencyInjection`. Your application brings OpenTelemetry itself, usually the
+`OpenTelemetry.Extensions.Hosting` package, whose `AddOpenTelemetry()` starts the setup. Pass the source to
+`WithTracing` with `AddSource`, and the meter to `WithMetrics` with `AddMeter`:
 
 <!-- snippet: Observability_OpenTelemetryWiring -->
 ```cs

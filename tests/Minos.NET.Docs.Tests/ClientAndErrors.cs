@@ -157,7 +157,8 @@ public static class RawRequests
     #region ClientAndErrors_RawRequest
     // The raw API names its own model and questions, with ids you choose. Use it when the questions are not known at
     // compile time and the question set builder does not fit. Typed evaluation is shorter wherever it can be used.
-    public static async Task<string> UrgencyAsync(SystemOneClient client, string message, CancellationToken cancellationToken)
+    public static async Task<string> UrgencyAsync(
+        SystemOneClient client, string message, CancellationToken cancellationToken)
     {
         var result = await client.EvaluateAsync(
             new SystemOneRequest

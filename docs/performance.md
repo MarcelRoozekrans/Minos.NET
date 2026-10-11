@@ -192,9 +192,9 @@ The `ClientBenchmarks.EvaluateAsync` row ran in a separate job on a loaded machi
 
 **DI adds nothing per call.**
 - Both `DependencyInjectionBenchmarks` rows make `ClientBenchmarks.EvaluateAsync`'s call.
-- The hand-built client runs over an `HttpClient` that `SystemOneClient.ConfigureHttpClient` configured, as the factory's is.
-  So both send the User-Agent header. That header costs 64 B per call over `ClientBenchmarks.EvaluateAsync`, whose
-  borrowed client sends none.
+- The hand-built client runs over an `HttpClient` that `SystemOneClient.ConfigureHttpClient` configured, as the
+  factory's is. So both send the User-Agent header. That header costs 64 B per call over
+  `ClientBenchmarks.EvaluateAsync`, whose borrowed client sends none.
 - Under published win-x64 AOT, the gate `EvaluateRoundTripThroughDependencyInjectionAgainstHandBuilt` holds the
   resolved client's total over 1000 calls to the hand-built client's own total from the same run. Since Phase 5.3
   both measure exactly 3992000 B, 3992 B per call. The resolved client also has an absolute budget of 4416 B per

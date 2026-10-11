@@ -16,14 +16,9 @@ public sealed class ProtocolBoundaryTests
         "\"description\"u8", "\"examples\"u8", "\"not_for\"u8",
     ];
 
-    // The raw wire types bind the same names through JsonPropertyName, which the u8 match does not see.
     private static readonly string[] Allowed =
     [
         "Protocols/",
-        "Serialization/",
-        "SystemOneRequest.cs", "SystemOneResponse.cs", "ModelList.cs", "ModelCard.cs",
-        "Question.cs", "NoulQuestion.cs", "ChoiceQuestion.cs", "ScoreQuestion.cs", "NoulCriteria.cs",
-        "Answer.cs", "NoulAnswer.cs", "ChoiceAnswer.cs", "ScoreAnswer.cs",
     ];
 
     // The core package is provider-neutral: no file in it names a /v1/systemone field.
@@ -35,7 +30,7 @@ public sealed class ProtocolBoundaryTests
     public void OnlyTheProtocolNamesTheSystemOneWireFields()
     {
         var offenders = SourceFiles("Minos.NET.SystemOne")
-            .Where(f => !Allowed.Any(a => a.EndsWith('/') ? f.Path.StartsWith(a, StringComparison.Ordinal) : string.Equals(f.Path, a, StringComparison.Ordinal)))
+            .Where(f => !Allowed.Any(a => f.Path.StartsWith(a, StringComparison.Ordinal)))
             .Where(f => WireNames.Any(n => f.Text.Contains(n, StringComparison.Ordinal)))
             .Select(f => f.Path)
             .ToList();

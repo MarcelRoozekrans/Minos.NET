@@ -42,8 +42,8 @@ public partial record PipelineCheck
 
 public static class DefaultPipeline
 {
-    // A SystemOneClient already runs the standard pipeline: one span and one set of metrics per call, one log record when
-    // it was given a logger factory, and up to two retries of a transient failure. There is nothing to set up.
+    // A SystemOneClient already runs the standard pipeline: one span and one set of metrics per call, one log record
+    // when it was given a logger factory, and up to two retries of a transient failure. There is nothing to set up.
     public static async Task<bool> IsUrgentAsync(
         HttpClient http, string apiKey, string message, CancellationToken cancellationToken)
     {
@@ -97,7 +97,8 @@ with no span, no log and no retry. Then build the pipeline you want around it. `
 public static IDecisionClient Build(HttpClient http, string apiKey, ILoggerFactory loggerFactory, IAuditLog log)
 {
     // With the standard pipeline off, the client is the bare transport: one attempt per call, and no span or log.
-    var transport = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = apiKey, UseStandardPipeline = false });
+    var transport = new SystemOneClient(
+        http, new SystemOneClientOptions { ApiKey = apiKey, UseStandardPipeline = false });
 
     // The first Use is the outermost stage. The audit stage is the innermost, so it records every attempt.
     return transport.AsBuilder()
@@ -117,9 +118,9 @@ public static IDecisionClient Build(HttpClient http, string apiKey, ILoggerFacto
 - **`UseLogging(loggerFactory)`** adds the logging stage. Without a factory, it uses the `ILoggerFactory` of the
   services passed to `Build`. With neither, it adds nothing.
 - **`UseRetries(configure)`** adds the retry stage. Its settings start from the inner client's own, which a
-  `SystemOneClient` offers from its options, and `configure` changes them. It logs event 1003 through the `ILoggerFactory`
-  of the services passed to `Build`, and waits on their `TimeProvider`, so `Build()` without services, as above, retries
-  without logging 1003.
+  `SystemOneClient` offers from its options, and `configure` changes them. It logs event 1003 through the
+  `ILoggerFactory` of the services passed to `Build`, and waits on their `TimeProvider`, so `Build()` without services,
+  as above, retries without logging 1003.
 - **`Build(services)`** creates the stages, inner first. Pass an `IServiceProvider` when a stage needs services.
 
 The retry stage takes a `DecisionRetryOptions`:
