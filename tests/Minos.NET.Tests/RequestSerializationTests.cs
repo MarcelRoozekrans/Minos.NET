@@ -125,7 +125,7 @@ public sealed class RequestSerializationTests
     }
 
     [Fact]
-    public void DecisionJsonOptions_UseTheSourceGeneratedContext()
+    public void SerializerOptions_ResolveTypesFromTheSourceGeneratedContext()
     {
         Assert.IsType<DecisionJsonContext>(Options.TypeInfoResolver);
     }
@@ -240,5 +240,5 @@ public sealed class RequestSerializationTests
         return document.RootElement.Clone();
     }
 
-    private static System.Text.Json.JsonSerializerOptions Options => DecisionJsonContext.Default.Options;
+    private static JsonSerializerOptions Options => DecisionJsonContext.Default.Options;
 }

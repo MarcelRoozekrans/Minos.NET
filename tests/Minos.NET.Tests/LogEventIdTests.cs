@@ -16,7 +16,6 @@ public sealed class LogEventIdTests
             .Select(attribute => attribute.EventId)
             .ToList();
 
-        Assert.Equal(6, ids.Count);
-        Assert.Equal(ids.Count, ids.Distinct().Count());
+        Assert.Equal([1001, 1002, 1003, 1004, 1005, 1006], ids.Order());
     }
 }

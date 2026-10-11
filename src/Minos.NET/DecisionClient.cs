@@ -466,17 +466,16 @@ public sealed class DecisionClient : IDecisionClient
         {
             var result = await call.ConfigureAwait(false);
             var durationMs = DecisionLog.ElapsedMilliseconds(started);
+            var providerName = ProviderName(_provider);
             if (result.IsSuccess)
             {
                 var modelCount = result.Value.Models.Count;
-                var providerName = ProviderName(_provider);
                 SystemOneLog.ModelsListed(logger, providerName, modelCount, durationMs);
             }
             else
             {
                 var error = result.Error;
                 var message = DecisionLog.SafeMessage(error);
-                var providerName = ProviderName(_provider);
                 SystemOneLog.ModelsListFailed(logger, providerName, error.Kind, error.StatusCode, durationMs, message);
             }
 
