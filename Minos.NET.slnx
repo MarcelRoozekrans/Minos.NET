@@ -2,6 +2,7 @@
   <Folder Name="/src/">
     <Project Path="src/Minos.NET/Minos.NET.csproj" />
     <Project Path="src/Minos.NET.SystemOne/Minos.NET.SystemOne.csproj" />
+    <Project Path="src/Minos.NET.OpenAI/Minos.NET.OpenAI.csproj" />
     <Project Path="src/Minos.NET.DependencyInjection/Minos.NET.DependencyInjection.csproj" />
     <Project Path="src/Minos.NET.Generator/Minos.NET.Generator.csproj" />
     <Project Path="src/Minos.NET.Analyzers/Minos.NET.Analyzers.csproj" />
@@ -9,6 +10,7 @@
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/Minos.NET.Tests/Minos.NET.Tests.csproj" />
+    <Project Path="tests/Minos.NET.OpenAI.Tests/Minos.NET.OpenAI.Tests.csproj" />
     <Project Path="tests/Minos.NET.DependencyInjection.Tests/Minos.NET.DependencyInjection.Tests.csproj" />
     <Project Path="tests/Minos.NET.Generator.Tests/Minos.NET.Generator.Tests.csproj" />
     <Project Path="tests/Minos.NET.Analyzers.Tests/Minos.NET.Analyzers.Tests.csproj" />

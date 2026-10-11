@@ -1,0 +1,42 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Minos.OpenAI</RootNamespace>
+    <PackageId>Minos.NET.OpenAI</PackageId>
+    <Title>Minos.NET.OpenAI</Title>
+    <Description>OpenAI's Decisions API, POST /v1/decisions, for Minos.NET's IDecisionClient: GPT-6 Luna with text and image state. The API is in public beta. Native AOT-compatible.</Description>
+    <PackageTags>$(PackageTags);openai</PackageTags>
+    <IsAotCompatible>true</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- Every ZeroAlloc generator here emits internal types. -->
+    <ZeroAllocGeneratedAccessibility>Internal</ZeroAllocGeneratedAccessibility>
+    <!-- The registration's Bind is source-generated, with no reflection, so consumers stay trim- and AOT-clean with no setup of their own. -->
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Minos.NET\Minos.NET.csproj" />
+    <!-- The registration builds on the provider-neutral one, through its InternalsVisibleTo. -->
+    <ProjectReference Include="..\Minos.NET.DependencyInjection\Minos.NET.DependencyInjection.csproj" />
+    <!-- IHttpClientFactory and AddHttpClient, for the registration's named HttpClient. -->
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <!-- OptionsBuilder.Bind over IConfiguration; brings Configuration.Abstractions and Configuration.Binder. -->
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="ZeroAlloc.Rest" />
+    <PackageReference Include="ZeroAlloc.Rest.SystemTextJson" />
+    <PackageReference Include="ZeroAlloc.Results" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The ZeroAlloc.Rest adapters both protocol packages compile. No assembly may see both copies: see the plan's CS0436 rule. -->
+    <Compile Include="..\Shared\Rest\*.cs" Link="Shared\Rest\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Minos.NET.OpenAI.Tests" />
+  </ItemGroup>
+</Project>
