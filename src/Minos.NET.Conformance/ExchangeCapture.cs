@@ -1,5 +1,3 @@
-using System.Net.Http.Headers;
-
 namespace Minos.Conformance;
 
 /// <summary>
@@ -69,19 +67,27 @@ public sealed class ExchangeCapture : DelegatingHandler
         return response;
     }
 
+    // Fails closed: the raw header is read, so a key that does not parse as a credential is still replaced, and a header
+    // that cannot be replaced stops the probe instead of sending the real key.
     private static void SwapKey(HttpRequestMessage request)
     {
-        if (request.Headers.Authorization is { } authorization)
-        {
-            request.Headers.Authorization = new AuthenticationHeaderValue(authorization.Scheme, InvalidKey);
-        }
-
-        if (request.Headers.Remove("x-api-key"))
-        {
-            request.Headers.TryAddWithoutValidation("x-api-key", InvalidKey);
-        }
+        Replace(request, "Authorization", static raw => raw.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) ? "Bearer " + InvalidKey : InvalidKey);
+        Replace(request, "x-api-key", static _ => InvalidKey);
     }
 
+    private static void Replace(HttpRequestMessage request, string name, Func<string, string> swapped)
+    {
+        if (!request.Headers.TryGetValues(name, out var values))
+        {
+            return;
+        }
+
+        var raw = string.Join(", ", values);
+        if (!request.Headers.Remove(name) || !request.Headers.TryAddWithoutValidation(name, swapped(raw)))
+        {
+            throw new InvalidOperationException("The bad-key probe could not replace the " + name + " header, so it was not sent.");
+        }
+    }
     private static Dictionary<string, string>? Allowlisted(HttpResponseMessage response)
     {
         Dictionary<string, string>? kept = null;

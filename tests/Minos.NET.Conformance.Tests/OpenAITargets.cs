@@ -8,10 +8,15 @@ namespace Minos.Conformance.Tests;
 /// </summary>
 internal static class OpenAITargets
 {
-    public static ConformanceTarget OpenAI(string? apiKey = null)
+    public static ConformanceTarget OpenAI(string? apiKey = null, int? maxRetries = null)
         => new("openai", ConformanceWire.Decisions, OpenAIDefaults.Model, modelRule: null, http =>
         {
             var options = new OpenAIDecisionClientOptions { ApiKey = apiKey, Model = OpenAIDefaults.Model };
+            if (maxRetries is { } retries)
+            {
+                options.MaxRetries = retries;
+            }
+
             OpenAIDecisionClient.ConfigureHttpClient(http, options);
             return new OpenAIDecisionClient(http, options);
         });

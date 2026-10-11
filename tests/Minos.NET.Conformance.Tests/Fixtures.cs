@@ -11,9 +11,9 @@ internal static class Fixtures
 
     public static ConformanceTarget Replay(string target) => target switch
     {
-        "typesafe" => SystemOneTargets.TypeSafe(ReplayKey),
-        "openrouter" => SystemOneTargets.OpenRouter(ReplayKey),
-        "openai" => OpenAITargets.OpenAI(ReplayKey),
+        "typesafe" => SystemOneTargets.TypeSafe(ReplayKey, maxRetries: 0),
+        "openrouter" => SystemOneTargets.OpenRouter(ReplayKey, maxRetries: 0),
+        "openai" => OpenAITargets.OpenAI(ReplayKey, maxRetries: 0),
         _ => throw new ArgumentOutOfRangeException(nameof(target), target, "No such target."),
     };
 

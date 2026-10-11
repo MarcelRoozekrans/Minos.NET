@@ -137,6 +137,84 @@ public sealed class RunnerTests : IDisposable
     }
 
     [Fact]
+    public async Task Replay_ARepeatedProbeId_FailsTheRunBeforeAnyProbeRuns()
+    {
+        var fixture = ConformanceFixture.Load(Fixtures.Path("typesafe"));
+        var path = Path.Combine(_directory, "typesafe.json");
+        new ConformanceFixture
+        {
+            Target = fixture.Target,
+            Source = fixture.Source,
+            Exchanges = [.. fixture.Exchanges, fixture.Find("noul")!],
+        }.Save(path);
+        var network = new Network(Fixture("typesafe"));
+
+        var error = await Assert.ThrowsAsync<InvalidDataException>(
+            () => Runner(network).RunAsync(SystemOneTargets.TypeSafe("test-key"), ConformanceMode.Replay, path));
+
+        Assert.Equal("The fixture names these probes more than once: noul.", error.Message);
+        Assert.Empty(network.Authorization);
+    }
+
+    [Fact]
+    public async Task Replay_AnExchangeThatIsSkipped_SkipsItsChecksWithTheReason()
+    {
+        var fixture = ConformanceFixture.Load(Fixtures.Path("typesafe"));
+        var path = Path.Combine(_directory, "typesafe.json");
+        new ConformanceFixture
+        {
+            Target = fixture.Target,
+            Source = fixture.Source,
+            Exchanges = [.. fixture.Exchanges.Select(exchange => string.Equals(exchange.Probe, "invalid", StringComparison.Ordinal)
+                ? new ConformanceExchange { Probe = "invalid", Skipped = "No invalid-request body recorded yet." }
+                : exchange)],
+        }.Save(path);
+
+        var report = await new ConformanceRunner().RunAsync(SystemOneTargets.TypeSafe("test-key"), ConformanceMode.Replay, path);
+
+        var invalid = Assert.Single(report.Probes, probe => string.Equals(probe.Probe, "invalid", StringComparison.Ordinal));
+        Assert.Equal("The fixture skips it: No invalid-request body recorded yet.", invalid.Skipped);
+        Assert.NotEmpty(invalid.Checks);
+        Assert.All(invalid.Checks, check =>
+        {
+            Assert.Equal(CheckOutcome.Skipped, check.Outcome);
+            Assert.Equal("The fixture skips it: No invalid-request body recorded yet.", check.Detail);
+        });
+        Assert.Equal(0, report.Failed);
+    }
+
+    [Fact]
+    public async Task TheBadKeyProbe_NeverSendsAKeyThatDoesNotParseAsACredential()
+    {
+        var sent = new List<string>();
+        using var recorder = new Recorder(sent);
+        using var capture = new ExchangeCapture(recorder);
+        using var http = new HttpClient(capture);
+        var badKey = ConformanceProbe.All.First(probe => probe.Kind == ProbeKind.BadKey);
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri("https://example.test/"));
+        Assert.True(request.Headers.TryAddWithoutValidation("Authorization", "Bearer real,key"));
+
+        capture.Begin(badKey);
+        await http.SendAsync(request);
+
+        Assert.Equal(["Bearer " + ExchangeCapture.InvalidKey], sent);
+    }
+
+    [Fact]
+    public async Task AFixtureHandler_RefusesASecondRequestForTheSameProbe()
+    {
+        using var capture = new ExchangeCapture(new FixtureHandler(ConformanceFixture.Load(Fixtures.Path("typesafe"))));
+        using var http = new HttpClient(capture);
+        capture.Begin(ConformanceProbe.All.First(probe => string.Equals(probe.Id, "noul", StringComparison.Ordinal)));
+
+        using var first = await http.PostAsync(new Uri("https://example.test/"), new StringContent("{}"));
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() => http.PostAsync(new Uri("https://example.test/"), new StringContent("{}")));
+
+        Assert.Contains("noul", error.Message, StringComparison.Ordinal);
+        Assert.Contains("second request", error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task ARequestOutsideAProbe_IsRefused()
     {
         using var capture = new ExchangeCapture(new Network(Fixture("typesafe")));
@@ -175,6 +253,15 @@ public sealed class RunnerTests : IDisposable
             }
 
             return response;
+        }
+    }
+
+    private sealed class Recorder(List<string> sent) : HttpMessageHandler
+    {
+        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
+        {
+            sent.Add(string.Join(", ", request.Headers.GetValues("Authorization")));
+            return Task.FromResult(new HttpResponseMessage(System.Net.HttpStatusCode.OK) { Content = new StringContent("{}") });
         }
     }
 
