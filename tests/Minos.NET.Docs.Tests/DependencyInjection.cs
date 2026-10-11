@@ -46,7 +46,7 @@ public static class DecisionRegistration
 
 #region DependencyInjection_KeyedConsumer
 // A keyed client is asked for by its key.
-public sealed class InboxRouter([FromKeyedServices("openrouter")] IDecisionClient client)
+public sealed class InboxRouter([FromKeyedServices("local")] IDecisionClient client)
 {
     public async Task<string> TriageAsync(string message, CancellationToken cancellationToken)
     {
@@ -56,7 +56,7 @@ public sealed class InboxRouter([FromKeyedServices("openrouter")] IDecisionClien
             return $"The call failed, {result.Error.Kind}";
         }
 
-        return result.Value.IsUrgent.Value ? "urgent, via OpenRouter" : "can wait, via OpenRouter";
+        return result.Value.IsUrgent.Value ? "urgent, via the local server" : "can wait, via the local server";
     }
 }
 #endregion
@@ -67,10 +67,12 @@ public static class KeyedRegistration
     public static void AddKeyedClients(IHostApplicationBuilder builder)
     {
         builder.Services.AddSystemOneClient("typesafe", options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
-        builder.Services.AddSystemOneClient("openrouter", options =>
+        builder.Services.AddSystemOneClient("local", options =>
         {
-            options.Provider = SystemOneProvider.OpenRouter;
-            options.ApiKey = builder.Configuration["OpenRouter:ApiKey"];
+            // A server you run: Custom has no default address or model, and sends no key unless ApiKey is set.
+            options.Provider = SystemOneProvider.Custom;
+            options.BaseAddress = new Uri("http://localhost:8080/");
+            options.Model = "local-model";
         });
         builder.Services.AddSingleton<InboxRouter>();
     }
@@ -92,6 +94,15 @@ public static class KeyedRegistration
     {
         builder.Services.AddSystemOneClient(builder.Configuration.GetSection("Minos"));
         builder.Services.AddSystemOneClient("openrouter", builder.Configuration.GetSection("OpenRouter"));
+    }
+    #endregion
+
+    #region DependencyInjection_ConfigurationProviders
+    // Provider, AccountId, Path and Capabilities bind like any other option.
+    public static void AddProvidersFromConfiguration(IHostApplicationBuilder builder)
+    {
+        builder.Services.AddSystemOneClient("cloudflare", builder.Configuration.GetSection("Cloudflare"));
+        builder.Services.AddSystemOneClient("local", builder.Configuration.GetSection("Local"));
     }
     #endregion
 
@@ -164,6 +175,16 @@ public static class HandlerRegistration
         });
 }
 #endregion
+
+public static class NeutralRegistration
+{
+    #region DependencyInjection_Factory
+    // AddDecisionClient takes a factory and knows no provider. Use it for a client of your own, or one from another
+    // protocol package. It returns the neutral DecisionClientServiceBuilder: Use stages, but no HttpClient property.
+    public static DecisionClientServiceBuilder AddOwnClient(IServiceCollection services)
+        => services.AddDecisionClient(provider => new AlwaysUrgent());
+    #endregion
+}
 
 public static class WithoutThePackage
 {

@@ -8,8 +8,8 @@ description: Create and configure a SystemOneClient, understand its retries and 
 # The client and its errors
 
 Every page so far has called `EvaluateAsync` on an `IDecisionClient`. This page is about that client: how to create one, what
-its options do, what happens when a call fails, and how to read the failure. It also covers the raw request API and
-listing models.
+its options do, which providers it reaches and what each accepts, what happens when a call fails, and how to read the
+failure. It also covers the raw request API and listing models.
 
 The failure side matters because a call to a remote model fails in ordinary ways. The network drops, the key is wrong,
 the service is busy. Minos reports every such failure as a value, a `DecisionError`, so a failure of the call itself
@@ -88,14 +88,17 @@ you asked for it. Everything else, including every network and service failure, 
 
 ## Options
 
-`SystemOneClientOptions` has ten properties, and every one is optional.
+`SystemOneClientOptions` has thirteen properties, and every one is optional.
 
 | Property | Default | Valid values | What it does |
 | --- | --- | --- | --- |
-| `Provider` | `SystemOneProvider.TypeSafe` | `TypeSafe`, `OpenRouter`, `CloudflareWorkersAi`, `VllmSemanticRouter` or `Custom` | Where requests go. |
-| `ApiKey` | none | any text without control characters; blank counts as unset | The key sent as a bearer token. When unset, the client reads `TYPESAFE_API_KEY`, or `OPENROUTER_API_KEY` for OpenRouter. |
-| `BaseAddress` | the provider's address | absolute `http` or `https` URI, no query or fragment | The API root, for a proxy or a test server. When unset, the client reads `TYPESAFE_BASE_URL` for TypeSafe only, then uses `https://api.typesafe.ai/` or `https://openrouter.ai/api/`. |
-| `Model` | the preset's default: `jev-latest` for TypeSafe and OpenRouter; required for the others | not blank | The model that typed evaluation and built question sets ask: an alias such as `jev-latest` (or TypeSafe's `jev-preview`), or a versioned id such as `jev-1.13.0`. See [Listing models](#listing-models). |
+| `Provider` | `SystemOneProvider.TypeSafe` | `TypeSafe`, `OpenRouter`, `CloudflareWorkersAi`, `VllmSemanticRouter` or `Custom` | Where requests go. The [providers](#providers) section lists what each one sets. |
+| `ApiKey` | none | any text without control characters; blank counts as unset | The key sent as a bearer token. When unset, the client reads `TYPESAFE_API_KEY` for TypeSafe, `OPENROUTER_API_KEY` for OpenRouter and `CLOUDFLARE_API_TOKEN` for Cloudflare. `VllmSemanticRouter` and `Custom` read no variable and send no key unless this is set. |
+| `BaseAddress` | the provider's address | absolute `http` or `https` URI, no query or fragment | The API root, for a proxy, a test server or a server you run. When unset, the client reads `TYPESAFE_BASE_URL` for TypeSafe only, then uses the provider's address. `VllmSemanticRouter` and `Custom` have none, so it is required for them. |
+| `Model` | the preset's default: `jev-latest` for TypeSafe and OpenRouter; required for the others | not blank; for Cloudflare a single name of letters, digits, `.`, `_` and `-` | The model that typed evaluation and built question sets ask: an alias such as `jev-latest` (or TypeSafe's `jev-preview`), or a versioned id such as `jev-1.13.0`. Surrounding whitespace is trimmed. See [Listing models](#listing-models). |
+| `AccountId` | none | letters and digits; `CloudflareWorkersAi` only | The Cloudflare account. When unset, the client reads `CLOUDFLARE_ACCOUNT_ID`. Required for Cloudflare, and rejected for any other provider. |
+| `Path` | `v1/systemone` | relative, no leading `/`, no query, fragment or `..`; `Custom` and `VllmSemanticRouter` only | The request path under `BaseAddress`. Surrounding whitespace is trimmed, and blank counts as unset. Rejected for a hosted provider, so a key cannot be sent to another path on a host you did not choose. |
+| `Capabilities` | the preset's | see [Capabilities](#capabilities) | What the provider accepts, checked before a request is sent. Each property you leave unset keeps the preset's value. |
 | `Timeout` | 60 seconds | positive, or `Timeout.InfiniteTimeSpan`, and at most about 24.8 days | How long one attempt may take. |
 | `MaxRetries` | 2 | 0 to 10 | How many times a failed call is tried again. 0 turns retries off. |
 | `InitialBackoff` | 500 ms | positive, and at most about 24.8 days | The first wait between attempts. It doubles for each further retry. |
@@ -104,17 +107,18 @@ you asked for it. Everything else, including every network and service failure, 
 | `UseStandardPipeline` | `true` | `true` or `false` | Whether a `DecisionRequest` call runs through the standard [pipeline](pipeline.md) of telemetry, logging and retries. `false` leaves one attempt per call, for a pipeline of your own. |
 
 Each option you set beats the environment. The order is: the option, then the environment variable, then the provider's
-default. A blank API key counts as unset. `TYPESAFE_BASE_URL` never applies to OpenRouter, so an OpenRouter key is
-never sent to a TypeSafe proxy.
+default. A blank API key counts as unset. `TYPESAFE_BASE_URL` applies to TypeSafe only, so an OpenRouter or Cloudflare
+key is never sent to a TypeSafe proxy.
 
-The first snippet spells out every option that has a default, with its default value. You rarely write all of them. It
+The first snippet spells out the options that have a fixed default, with that value. You rarely write all of them. It
 is here so the table above has code to match.
 
 <!-- snippet: ClientAndErrors_Options -->
 ```cs
 // Every option set to the value it has when you leave it out, apart from the API key, which has no default:
 // without one, the client reads TYPESAFE_API_KEY, or OPENROUTER_API_KEY for OpenRouter.
-// BaseAddress and Model are also left out: they default to the provider's own address and model, jev-latest for TypeSafe.
+// BaseAddress, Model, AccountId, Path and Capabilities are also left out: the provider decides them, and the model is
+// jev-latest for TypeSafe.
 public static SystemOneClientOptions SpelledOut(string apiKey)
     => new()
     {
@@ -182,6 +186,200 @@ public static string? Problem(SystemOneClientOptions options)
 An invalid option throws `ArgumentException`. A missing API key, or an invalid key or base address environment variable,
 throws `InvalidOperationException`. The message says which option or variable is wrong. If a value could pass here and
 fail in the constructor, it can only be because an environment variable changed in between.
+
+## Providers
+
+`Provider` picks a preset. A preset sets the base address, the request path, where the key comes from, the default
+model and the [capabilities](#capabilities). Every preset speaks the same `/v1/systemone` protocol.
+
+### The presets
+
+| Provider | Base address | Path | Key | Default model |
+| --- | --- | --- | --- | --- |
+| `TypeSafe` | `https://api.typesafe.ai/` | `v1/systemone` | required, from `TYPESAFE_API_KEY` | `jev-latest` |
+| `OpenRouter` | `https://openrouter.ai/api/` | `v1/systemone` | required, from `OPENROUTER_API_KEY` | `jev-latest` |
+| `CloudflareWorkersAi` | `https://api.cloudflare.com/client/v4/accounts/{AccountId}/ai/run/@cf/cloudflare/` | the model name | required, from `CLOUDFLARE_API_TOKEN` | none |
+| `VllmSemanticRouter` | your `BaseAddress`, required | `v1/systemone`, or your `Path` | none, unless `ApiKey` is set | none |
+| `Custom` | your `BaseAddress`, required | `v1/systemone`, or your `Path` | none, unless `ApiKey` is set | none |
+
+A preset with no default model fails when the client is created, or when the host starts, until you set `Model`. The
+full comparison of the providers, with the capability matrix, is coming on a Providers page. Until then the tables on
+this page are the reference.
+
+### Cloudflare Workers AI
+
+Cloudflare's address has the account and the model in it. The client builds it from `AccountId`, so you set the
+account, the model and a token, and the base address stays at its default.
+
+<!-- snippet: ClientAndErrors_Cloudflare -->
+```cs
+// Cloudflare Workers AI needs the account and the model. The API token is not set here: the client reads it from
+// CLOUDFLARE_API_TOKEN, and the account id could come from CLOUDFLARE_ACCOUNT_ID the same way.
+public static SystemOneClientOptions Cloudflare(string accountId)
+    => new()
+    {
+        Provider = SystemOneProvider.CloudflareWorkersAi,
+        AccountId = accountId,
+        Model = "clef-flash",
+    };
+```
+<!-- endSnippet -->
+
+- **The token** is read from `CLOUDFLARE_API_TOKEN`, as the snippet's comment says, unless you set `ApiKey`.
+- **The account** is `AccountId`, or `CLOUDFLARE_ACCOUNT_ID` when it is unset. It is letters and digits only, and it is
+  required.
+- **The model** is required, and it is the last segment of the request address, so it must be a single name of letters,
+  digits, `.`, `_` and `-`. A model with a `/` in it is rejected when the client is created, and a request that names
+  such a model, through a `SystemOneRequest`, returns `Validation` without being sent.
+- **The base address** is `https://api.cloudflare.com/client/v4/`, with `accounts/{AccountId}/ai/run/@cf/cloudflare/`
+  added to it. Set `BaseAddress` to put a proxy in front, and the same segment is added. An `HttpClient` you lend, with
+  a `BaseAddress` of its own, replaces the whole address, so its address must already end in that segment.
+
+### Custom servers
+
+`Custom` and `VllmSemanticRouter` are for a server you run, such as a vLLM Semantic Router, or any other server that
+speaks `/v1/systemone`. They are the same apart from the name that telemetry reports. The server's address and the
+model are yours to give.
+
+<!-- snippet: ClientAndErrors_Custom -->
+```cs
+// A server you run. Custom has no default address or model, so both are set. The path is optional and defaults to
+// v1/systemone. No key is read from the environment, and none is sent unless ApiKey is set.
+public static SystemOneClientOptions Custom()
+    => new()
+    {
+        Provider = SystemOneProvider.Custom,
+        BaseAddress = new Uri("http://localhost:8080/"),
+        Path = "api/v1/systemone",
+        Model = "local-model",
+    };
+```
+<!-- endSnippet -->
+
+- **`BaseAddress` and `Model` are required.** Neither has a default.
+- **`Path`** is relative to `BaseAddress` and defaults to `v1/systemone`. It must not start with `/`, and it must not
+  contain a query, a fragment or a `..` segment. Only these two providers accept it.
+- **`Custom` and `VllmSemanticRouter` never read a key from the environment.** A key in `TYPESAFE_API_KEY` or
+  `OPENROUTER_API_KEY` is never sent to a server you name. Without `ApiKey` the client sends no `Authorization` header
+  at all; with it, a bearer token.
+- **`TYPESAFE_BASE_URL` does not apply** to them either.
+
+## Capabilities
+
+A provider can accept less than the protocol allows. Cloudflare takes at most 64 questions in a request, for example,
+and a server you run may answer one kind of question only. Minos checks a question set against what the provider
+accepts before it sends the request. A set the provider would refuse comes back as a failure at once, with no request,
+no retry and no cost.
+
+### The defaults
+
+Each preset has defaults for the five capabilities. "None" means no limit.
+
+| Provider | Question kinds | Most questions | Most Choice options | Images | Model listing |
+| --- | --- | --- | --- | --- | --- |
+| `TypeSafe` | every kind | none | 255 | no | yes |
+| `OpenRouter` | every kind | none | 255 | no | no |
+| `CloudflareWorkersAi` | every kind | 64 | 255 | yes | no |
+| `VllmSemanticRouter` | every kind | none | none | no | no |
+| `Custom` | every kind | none | none | no | yes |
+
+`Images` is declared but not checked yet.
+
+### Overriding them
+
+`SystemOneClientOptions.Capabilities` is a `SystemOneCapabilities` with one nullable property for each capability. A
+property you set wins, and one you leave `null` keeps the preset's value. This server answers Noul questions only:
+
+<!-- snippet: ClientAndErrors_Capabilities -->
+```cs
+// A server that only answers Noul questions. Each property left unset keeps the Custom preset's default, so
+// this changes the accepted kinds and nothing else.
+public static SystemOneClientOptions NoulOnly()
+    => new()
+    {
+        Provider = SystemOneProvider.Custom,
+        BaseAddress = new Uri("http://localhost:8080/"),
+        Model = "noul-small",
+        Capabilities = new SystemOneCapabilities { QuestionKinds = SystemOneQuestionKinds.Noul },
+    };
+```
+<!-- endSnippet -->
+
+`QuestionKinds` is a flags enum, `SystemOneQuestionKinds`, with `Noul`, `Choice` and `Score`, and `All` for the three.
+In configuration it binds from a comma-separated list, such as `"Noul, Choice"`, as
+[dependency injection](dependency-injection.md#options-from-configuration) shows. An override must make sense: at least
+one question kind, no flag that does not exist, `MaxQuestions` of at least 1, and `MaxChoiceOptions` of at least 2.
+Otherwise the options fail when the client is created or the host starts, like any invalid option.
+
+### The Unsupported error
+
+A typed call, or a call with a [question set built at run time](question-sets-at-run-time.md), checks the set before it
+is sent. A set that breaks a capability returns a `DecisionError` of kind `Unsupported`, and `Failures` lists every
+problem it found. Each is a `QuestionFailure` with a rule id, the key of the question and a message:
+
+| Rule | Failure | `QuestionKey` | Message, for `Custom` |
+| --- | --- | --- | --- |
+| `MIN201` | The set has a question of a kind the provider does not accept. | the question | `Custom does not support Choice questions.` |
+| `MIN202` | The set has more questions than `MaxQuestions`. | none | `Custom accepts at most 1 question per request; the set has 2.` |
+| `MIN203` | A Choice question has more options than `MaxChoiceOptions`. | the question | `Custom accepts at most 2 options per Choice question; 'team' has 3.` |
+
+The error's `Message` is the first failure's. `MIN202` comes first, then each question in the order it is sent. The
+MIN2 series is for these provider limits, and MIN201 to MIN203 keep their meaning, so you can match on them. The rules
+MIN001 to MIN107 are about the API's own limits, and [diagnostics](diagnostics.md) lists them.
+
+<!-- snippet: ClientAndErrors_Unsupported -->
+```cs
+// An Unsupported error from a capability check lists every problem in Failures: the rule id, the question it
+// is about and a message. The set was not sent.
+public static IReadOnlyList<string> Problems(DecisionError error)
+{
+    var problems = new List<string>();
+    if (error.Kind != DecisionErrorKind.Unsupported)
+    {
+        return problems;
+    }
+
+    foreach (var failure in error.Failures)
+    {
+        problems.Add($"{failure.Rule} {failure.QuestionKey}: {failure.Message}");
+    }
+
+    return problems;
+}
+```
+<!-- endSnippet -->
+
+`Unsupported` is not retried, and no request was sent. The raw `EvaluateAsync(SystemOneRequest)` call is not checked: it
+sends what you built, and the provider's own answer comes back.
+
+### Reading the resolved capabilities
+
+`GetService<SystemOneCapabilities>()` returns what a client resolved, with every property set: the preset's defaults
+and your overrides together. It is a new instance each time, so changing it changes nothing.
+
+<!-- snippet: ClientAndErrors_ResolvedCapabilities -->
+```cs
+// The capabilities a client resolved: the preset's defaults with your overrides applied, every property set.
+// GetService returns a new instance each time, so changing it changes nothing in the client.
+public static string Describe(IDecisionClient client)
+{
+    var capabilities = client.GetService<SystemOneCapabilities>();
+    if (capabilities is null)
+    {
+        return "This client has no System One capabilities.";
+    }
+
+    var questions = capabilities.MaxQuestions is { } most ? $"at most {most} questions" : "no question limit";
+    var listing = capabilities.ModelListing == true ? "on" : "off";
+    return $"{capabilities.QuestionKinds}, {questions}, model listing {listing}";
+}
+```
+<!-- endSnippet -->
+
+### What is not a capability
+
+The size of the state is not checked. A model has a context size, and Minos has no capability for it: a state that is
+too long for the server is the server's to refuse, and its refusal comes back as a `DecisionError` like any other.
 
 ## Retries
 
@@ -254,7 +452,7 @@ attempts of the handler is nine requests.
 
 `Timeout` bounds one attempt, not the whole call. A call with retries can take up to `(MaxRetries + 1) times Timeout`
 plus the waits between attempts. Its time-out applies to a client that owns its `HttpClient`, and to one you set up with
-`SystemOneClient.ConfigureHttpClient`, as `AddDecisionClient` does. An `HttpClient` you pass without that keeps its own
+`SystemOneClient.ConfigureHttpClient`, as `AddSystemOneClient` does. An `HttpClient` you pass without that keeps its own
 `Timeout`, which is 100 seconds unless you changed it.
 
 <!-- snippet: ClientAndErrors_Timeouts -->
@@ -284,7 +482,7 @@ and `Exception` are `init` properties, so set only the ones that apply with an o
 | `RetryAfter` | How long the service asked you to wait, or `null`. |
 | `Detail` | The error response body as a `JsonElement`, when it is JSON, for example the field a 422 rejected. |
 | `Exception` | The exception behind a network, time-out or unreadable-response failure. |
-| `Failures` | For `InvalidQuestions` only, the rules a question set breaks. Empty for every other kind. |
+| `Failures` | For `InvalidQuestions` and for an `Unsupported` capability check, the rules a question set breaks. Empty for every other kind. |
 
 `Detail` holds whatever JSON the service sent, and its shape depends on the error. TypeSafe answers a 422 with a list
 of problems, each with the path of the field (`loc`) and what is wrong with it (`msg`). This is a real one, for a
@@ -352,7 +550,7 @@ The values start at 1, so `default(DecisionErrorKind)` is no kind.
 | `Network` | No response: a DNS, connection or TLS failure. | Yes | Check connectivity. `Exception` holds the cause. |
 | `Timeout` | An attempt exceeded `Timeout`. | Yes | Raise `Timeout`, or ask fewer questions. |
 | `InvalidResponse` | A successful response could not be read as the expected JSON, or an answer was missing. `StatusCode` is then 200, or the other 2xx status that arrived. | No | Report it. The service replied with something this library does not understand. |
-| `Unsupported` | The operation is not available on the provider, such as listing models on OpenRouter. | No | Do not call it on that provider. No request was sent. |
+| `Unsupported` | The provider does not offer the operation, such as listing models on OpenRouter, or does not accept the question set, such as a Choice question on a Noul-only server. See [Capabilities](#capabilities). | No | Do not call it on that provider, or change the set. No request was sent. |
 | `InvalidQuestions` | A question set built at run time breaks the API's rules. Only a failed `Build()` returns it, and no request is sent. | No | Fix the set. `Failures` lists each rule. |
 | `Disposed` | The client was disposed while the call was in flight, which tore its request down or kept a due retry from being sent. | No | Stop. The client is gone. A call started after disposal throws `ObjectDisposedException` instead. |
 
@@ -513,8 +711,10 @@ public static async Task<string> ModelsAsync(SystemOneClient client, Cancellatio
 ```
 <!-- endSnippet -->
 
-Listing models is available on TypeSafe's API only. On OpenRouter the call returns an `Unsupported` error and sends no
-request, because OpenRouter has its own models API.
+Listing models follows the `ModelListing` [capability](#capabilities), which is on for `TypeSafe` and `Custom` and off
+for the others. Where it is off, the call returns an `Unsupported` error and sends no request. Its message names the
+provider, such as "Model listing is not available on OpenRouter." OpenRouter has its own models API. A `Custom` server
+that has no `GET v1/models` can switch the call off with `Capabilities.ModelListing = false`.
 
 As of October 2026, TypeSafe lists only the aliases, `jev-latest` for the newest stable release and `jev-preview` for
 the newest release of any kind. A versioned id such as `jev-1.13.0` is accepted as a `Model` too, listed or not, as

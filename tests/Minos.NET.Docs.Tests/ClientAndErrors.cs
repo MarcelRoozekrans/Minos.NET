@@ -27,7 +27,8 @@ public static class ClientOptions
     #region ClientAndErrors_Options
     // Every option set to the value it has when you leave it out, apart from the API key, which has no default:
     // without one, the client reads TYPESAFE_API_KEY, or OPENROUTER_API_KEY for OpenRouter.
-    // BaseAddress and Model are also left out: they default to the provider's own address and model, jev-latest for TypeSafe.
+    // BaseAddress, Model, AccountId, Path and Capabilities are also left out: the provider decides them, and the model is
+    // jev-latest for TypeSafe.
     public static SystemOneClientOptions SpelledOut(string apiKey)
         => new()
         {
@@ -202,6 +203,87 @@ public static class ModelListing
         }
 
         return string.Join(", ", names);
+    }
+    #endregion
+}
+
+public static class ProviderOptions
+{
+    #region ClientAndErrors_Cloudflare
+    // Cloudflare Workers AI needs the account and the model. The API token is not set here: the client reads it from
+    // CLOUDFLARE_API_TOKEN, and the account id could come from CLOUDFLARE_ACCOUNT_ID the same way.
+    public static SystemOneClientOptions Cloudflare(string accountId)
+        => new()
+        {
+            Provider = SystemOneProvider.CloudflareWorkersAi,
+            AccountId = accountId,
+            Model = "clef-flash",
+        };
+    #endregion
+
+    #region ClientAndErrors_Custom
+    // A server you run. Custom has no default address or model, so both are set. The path is optional and defaults to
+    // v1/systemone. No key is read from the environment, and none is sent unless ApiKey is set.
+    public static SystemOneClientOptions Custom()
+        => new()
+        {
+            Provider = SystemOneProvider.Custom,
+            BaseAddress = new Uri("http://localhost:8080/"),
+            Path = "api/v1/systemone",
+            Model = "local-model",
+        };
+    #endregion
+}
+
+public static class CapabilityOptions
+{
+    #region ClientAndErrors_Capabilities
+    // A server that only answers Noul questions. Each property left unset keeps the Custom preset's default, so
+    // this changes the accepted kinds and nothing else.
+    public static SystemOneClientOptions NoulOnly()
+        => new()
+        {
+            Provider = SystemOneProvider.Custom,
+            BaseAddress = new Uri("http://localhost:8080/"),
+            Model = "noul-small",
+            Capabilities = new SystemOneCapabilities { QuestionKinds = SystemOneQuestionKinds.Noul },
+        };
+    #endregion
+
+    #region ClientAndErrors_Unsupported
+    // An Unsupported error from a capability check lists every problem in Failures: the rule id, the question it
+    // is about and a message. The set was not sent.
+    public static IReadOnlyList<string> Problems(DecisionError error)
+    {
+        var problems = new List<string>();
+        if (error.Kind != DecisionErrorKind.Unsupported)
+        {
+            return problems;
+        }
+
+        foreach (var failure in error.Failures)
+        {
+            problems.Add($"{failure.Rule} {failure.QuestionKey}: {failure.Message}");
+        }
+
+        return problems;
+    }
+    #endregion
+
+    #region ClientAndErrors_ResolvedCapabilities
+    // The capabilities a client resolved: the preset's defaults with your overrides applied, every property set.
+    // GetService returns a new instance each time, so changing it changes nothing in the client.
+    public static string Describe(IDecisionClient client)
+    {
+        var capabilities = client.GetService<SystemOneCapabilities>();
+        if (capabilities is null)
+        {
+            return "This client has no System One capabilities.";
+        }
+
+        var questions = capabilities.MaxQuestions is { } most ? $"at most {most} questions" : "no question limit";
+        var listing = capabilities.ModelListing == true ? "on" : "off";
+        return $"{capabilities.QuestionKinds}, {questions}, model listing {listing}";
     }
     #endregion
 }

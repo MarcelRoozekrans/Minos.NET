@@ -8,7 +8,7 @@
 
 Unofficial .NET client for decision models: send a `state` and typed questions (Noul, Choice, Score) and get calibrated, typed answers back.
 
-Minos speaks TypeSafe's Jev `/v1/systemone` API directly or through OpenRouter; more providers are planned.
+Minos speaks the `/v1/systemone` protocol of TypeSafe's Jev: to TypeSafe directly, through OpenRouter, to Cloudflare Workers AI, or to a server you run, such as a vLLM Semantic Router. The core is provider-neutral, and `Minos.NET.SystemOne` is the client for this protocol.
 
 You declare the questions as a C# type, and a source generator writes the request and the answer parsing at compile time, so generated question sets need no reflection and the client runs under Native AOT.
 
@@ -76,7 +76,7 @@ public static class ReadmeExample
 
 The guide lives at [marcelroozekrans.github.io/Minos.NET](https://marcelroozekrans.github.io/Minos.NET):
 
-- [Getting started](https://marcelroozekrans.github.io/Minos.NET/): install Minos.NET, point it at TypeSafe or OpenRouter, and run your first typed evaluation.
+- [Getting started](https://marcelroozekrans.github.io/Minos.NET/): install Minos.NET.SystemOne, point it at TypeSafe, OpenRouter or a server of your own, and run your first typed evaluation.
 - [Question types](https://marcelroozekrans.github.io/Minos.NET/question-types): Noul, Choice and Score, what each answer holds, and how confidence differs from probability.
 - [Typed evaluation](https://marcelroozekrans.github.io/Minos.NET/typed-evaluation): declare questions as a C# type, give them a typed state, and pick the `EvaluateAsync` overload.
 - [Question sets at run time](https://marcelroozekrans.github.io/Minos.NET/question-sets-at-run-time): build a question set from data with the builder, evaluate it, and read answers through handles.

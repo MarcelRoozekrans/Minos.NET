@@ -69,10 +69,10 @@ public sealed class DependencyInjectionTests
     {
         var builder = NewBuilder();
         using var typeSafe = new ScriptedDecision.Handler([Reply.Ok(UrgentResponse)]);
-        using var openRouter = new ScriptedDecision.Handler([Reply.Ok(UrgentResponse)]);
+        using var local = new ScriptedDecision.Handler([Reply.Ok(UrgentResponse)]);
         KeyedRegistration.AddKeyedClients(builder);
         builder.Services.AddHttpClient("Minos.NET:typesafe").ConfigurePrimaryHttpMessageHandler(() => typeSafe);
-        builder.Services.AddHttpClient("Minos.NET:openrouter").ConfigurePrimaryHttpMessageHandler(() => openRouter);
+        builder.Services.AddHttpClient("Minos.NET:local").ConfigurePrimaryHttpMessageHandler(() => local);
         using var host = builder.Build();
         await host.StartAsync();
 
@@ -80,14 +80,14 @@ public sealed class DependencyInjectionTests
         var direct = await host.Services.GetRequiredKeyedService<IDecisionClient>("typesafe")
             .EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
 
-        Assert.Equal("urgent, via OpenRouter", outcome);
+        Assert.Equal("urgent, via the local server", outcome);
         Assert.True(direct.IsSuccess);
         Assert.Collection(
-            openRouter.Requests,
+            local.Requests,
             sent =>
             {
-                Assert.Equal(new Uri("https://openrouter.ai/api/v1/systemone"), sent.Uri);
-                Assert.Equal("Bearer openrouter-key", sent.Authorization);
+                Assert.Equal(new Uri("http://localhost:8080/v1/systemone"), sent.Uri);
+                Assert.Null(sent.Authorization);
             });
         Assert.Collection(
             typeSafe.Requests,
@@ -98,7 +98,7 @@ public sealed class DependencyInjectionTests
             });
         Assert.NotSame(
             host.Services.GetRequiredKeyedService<IDecisionClient>("typesafe"),
-            host.Services.GetRequiredKeyedService<IDecisionClient>("openrouter"));
+            host.Services.GetRequiredKeyedService<IDecisionClient>("local"));
         Assert.Null(host.Services.GetService<IDecisionClient>());
     }
 
@@ -139,6 +139,55 @@ public sealed class DependencyInjectionTests
         Assert.Equal(SystemOneProvider.OpenRouter, openRouter.Provider);
         Assert.Equal(0, openRouter.MaxRetries);
         Assert.Equal("openrouter-key", openRouter.ApiKey);
+    }
+
+    [Fact]
+    public void TheProviderSettingsOnThePage_BindToTheOptions()
+    {
+        var builder = NewBuilder();
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.Ordinal) { ["Cloudflare:ApiKey"] = "cloudflare-token" });
+        using var json = new MemoryStream(Encoding.UTF8.GetBytes(PageBlock("json", 1)));
+        builder.Configuration.AddJsonStream(json);
+        KeyedRegistration.AddProvidersFromConfiguration(builder);
+        using var host = builder.Build();
+
+        var options = host.Services.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>();
+        var cloudflare = options.Get("cloudflare");
+        var local = options.Get("local");
+
+        Assert.Equal(SystemOneProvider.CloudflareWorkersAi, cloudflare.Provider);
+        Assert.Equal("0123456789abcdef0123456789abcdef", cloudflare.AccountId);
+        Assert.Equal("clef-flash", cloudflare.Model);
+        Assert.Equal(SystemOneProvider.Custom, local.Provider);
+        Assert.Equal(new Uri("http://localhost:8080/"), local.BaseAddress);
+        Assert.Equal("api/v1/systemone", local.Path);
+        Assert.Equal("local-model", local.Model);
+        Assert.Equal(SystemOneQuestionKinds.Noul | SystemOneQuestionKinds.Choice, local.Capabilities.QuestionKinds);
+        Assert.Equal(16, local.Capabilities.MaxQuestions);
+        Assert.False(local.Capabilities.ModelListing);
+        Assert.Null(local.Capabilities.MaxChoiceOptions);
+        Assert.Null(cloudflare.Capabilities.QuestionKinds);
+        local.Validate();
+        Assert.Equal("cloudflare-token", cloudflare.ApiKey);
+        cloudflare.Validate();
+    }
+
+    [Fact]
+    public async Task TheFactoryOverload_RegistersAClientOfYourOwn_WithOnlyTheNeutralBuilder()
+    {
+        var services = new ServiceCollection();
+
+        var builder = NeutralRegistration.AddOwnClient(services);
+        await using var provider = services.BuildServiceProvider();
+        var result = await provider.GetRequiredService<IDecisionClient>().EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
+
+        Assert.IsType<DecisionClientServiceBuilder>(builder);
+        Assert.Null(builder.Name);
+        Assert.True(result.IsSuccess);
+        Assert.True(result.Value.IsUrgent.Value);
+        Assert.Throws<InvalidOperationException>(() => services.AddSystemOneClient(options => options.ApiKey = "key"));
+        Assert.DoesNotContain(typeof(DecisionClientServiceBuilder).GetProperties(), property => string.Equals(property.Name, "HttpClient", StringComparison.Ordinal));
+        Assert.NotNull(typeof(SystemOneClientServiceBuilder).GetProperty("HttpClient"));
     }
 
     [Fact]
@@ -430,11 +479,17 @@ public sealed class DependencyInjectionTests
         return builder;
     }
 
-    private static string PageBlock(string language)
+    private static string PageBlock(string language, int index = 0)
     {
         var lines = File.ReadAllLines(Path.Combine(PublishedPages.Root, "docs", "dependency-injection.md"));
-        var start = Array.FindIndex(lines, line => string.Equals(line, "```" + language, StringComparison.Ordinal));
-        Assert.True(start >= 0, "The page has a block of " + language);
+        var fence = "```" + language;
+        var start = -1;
+        for (var found = 0; found <= index; found++)
+        {
+            start = Array.FindIndex(lines, start + 1, line => string.Equals(line, fence, StringComparison.Ordinal));
+            Assert.True(start >= 0, "The page has a block of " + language);
+        }
+
         var end = Array.FindIndex(lines, start + 1, line => string.Equals(line, "```", StringComparison.Ordinal));
         return string.Join('\n', lines[(start + 1)..end]);
     }

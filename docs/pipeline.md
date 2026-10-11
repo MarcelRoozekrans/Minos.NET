@@ -2,7 +2,7 @@
 id: pipeline
 title: The client pipeline
 sidebar_position: 7
-description: The stages every call goes through (telemetry, logging and retries), building your own pipeline, writing a stage, turning the standard pipeline off, stages with dependency injection, and upgrading from 0.7.
+description: The stages every call goes through (telemetry, logging and retries), building your own pipeline, writing a stage, turning the standard pipeline off, stages with dependency injection, and upgrading from 0.7 and 0.8.
 ---
 
 # The client pipeline
@@ -246,9 +246,10 @@ stages then report the provider and the model as `unknown`.
 
 ## With dependency injection
 
-`AddDecisionClient` returns a `DecisionClientServiceBuilder`: a `DecisionClientBuilder` for the registered client, with
-two more properties. `HttpClient` is the `IHttpClientBuilder` of the client's `HttpClient`, and `Name` is the
-registration's name, or `null` for the default client.
+`AddSystemOneClient` returns a `SystemOneClientServiceBuilder`. It is a `DecisionClientServiceBuilder`, which is a
+`DecisionClientBuilder` for the registered client with the registration's `Name`, or `null` for the default client.
+`SystemOneClientServiceBuilder` adds `HttpClient`, the `IHttpClientBuilder` of the client's `HttpClient`. The neutral
+`AddDecisionClient(factory)` returns the `DecisionClientServiceBuilder` and has no `HttpClient`.
 
 <!-- snippet: Pipeline_DI -->
 ```cs
@@ -266,8 +267,9 @@ public static void AddAuditedDecision(IServiceCollection services, IConfiguratio
 ```
 <!-- endSnippet -->
 
-- **Keep the result of `AddDecisionClient`.** `Use` and the `Use…` extensions return the base `DecisionClientBuilder`,
-  which has no `HttpClient`, so reach `HttpClient` from the registration's own builder, as the snippet does.
+- **Keep the result of `AddSystemOneClient`.** `Use` and the `Use…` extensions return the base
+  `DecisionClientBuilder`, which has no `HttpClient`, so reach `HttpClient` from the registration's own builder, as the
+  snippet does.
 - **Stages wrap the registered `SystemOneClient`,** which still runs its standard pipeline. So a stage you add sits
   outside the span and the retries, and sees one call and its final result.
 - **The pipeline is built once,** when the container first resolves the client, and `Build` gets the container. So
@@ -275,22 +277,45 @@ public static void AddAuditedDecision(IServiceCollection services, IConfiguratio
 - **A repeat call for the same name returns the same builder,** so stages from either call land on one pipeline.
 - **With `UseStandardPipeline` off,** for example from configuration, the registered client is the bare transport. Add
   the stages you want, and `UseRetries()` starts from the registration's own retry settings, configuration included.
-- **Your own `IDecisionClient` still wins.** If you registered one first, `AddDecisionClient` does not replace it, and
+- **Your own `IDecisionClient` still wins.** If you registered one first, `AddSystemOneClient` does not replace it, and
   the builder's stages are not used.
 
 [Dependency injection](dependency-injection.md) covers the rest of the registration.
 
+## Upgrading from 0.8
+
+The System One client moved out of `Minos.NET` into its own package, `Minos.NET.SystemOne`, so that `Minos.NET` and
+`Minos.NET.DependencyInjection` know no provider. Types were renamed with it, and the registration split in two. The
+compiler finds every one of these. Typed calls, `[Questions]` records and fakes of `IDecisionClient` compile unchanged.
+
+| In 0.8 | After |
+| --- | --- |
+| The System One client is in `Minos.NET` | It is in `Minos.NET.SystemOne`, which brings `Minos.NET`. Install it with `dotnet add package Minos.NET.SystemOne` |
+| `DecisionClient`, `DecisionClientOptions`, `DecisionProvider` and `DecisionDefaults`, in the `Minos` namespace | `SystemOneClient`, `SystemOneClientOptions`, `SystemOneProvider` and `SystemOneDefaults`, in `Minos.SystemOne` |
+| `SystemOneRequest`, `SystemOneResponse`, `ModelList`, `ModelCard` and the question and answer classes, in `Minos` | The same names, in `Minos.SystemOne`. Add `using Minos.SystemOne;` |
+| `AddDecisionClient()`, with options, a configuration section or a name | `AddSystemOneClient()`, with the same six overloads. `AddDecisionClient` now takes only a factory |
+| `DecisionClientServiceBuilder.HttpClient` | `SystemOneClientServiceBuilder.HttpClient`. `DecisionClientServiceBuilder` is the provider-neutral base, without `HttpClient` |
+| `Model` is a `string` that defaults to `jev-latest` | `Model` is a `string?` that defaults to `null`, which takes the preset's default: `jev-latest` for TypeSafe and OpenRouter. The new presets have none, so the options need a `Model` for them |
+| The raw calls log the provider as `TypeSafe` or `OpenRouter` in events 1001, 1004 and 1005 | They log its telemetry name, `typesafe` or `openrouter`, as the typed calls do. The new presets log `cloudflare`, `vllm-sr` and `custom` |
+
+`SystemOneClientOptions` also gains `AccountId`, `Path` and `Capabilities`, and `SystemOneProvider` gains
+`CloudflareWorkersAi`, `VllmSemanticRouter` and `Custom`, all described on the
+[client page](client-and-errors.md#providers). A set that breaks a provider's
+[capabilities](client-and-errors.md#capabilities) returns an `Unsupported` failure, with `Failures` filled in, before
+any request is sent.
+
 ## Upgrading from 0.7
 
 0.8 makes `IDecisionClient` one neutral call, which breaks code that implements the interface or uses what
-`AddDecisionClient` returns. Code that only calls the typed overloads compiles unchanged.
+`AddDecisionClient` returned. Code that only calls the typed overloads compiles unchanged. The 0.8 names in this table
+are the ones of that release; [Upgrading from 0.8](#upgrading-from-08) has the later renames.
 
 | In 0.7 | From 0.8 |
 | --- | --- |
 | `client.EvaluateAsync(SystemOneRequest)` and `client.ListModelsAsync()` on an `IDecisionClient` | `client.GetService<SystemOneClient>()!.EvaluateAsync(...)` and `.ListModelsAsync(...)`, or hold a `SystemOneClient` |
 | `client.EvaluateAsync<T>(state)`, a default interface method or a `SystemOneClient` member | The same call, now an extension method in `DecisionClientExtensions`, in the `Minos` namespace |
 | A fake implements `EvaluateAsync(SystemOneRequest)` and `ListModelsAsync` | A fake implements `EvaluateAsync(DecisionRequest)`, `GetService` and `Dispose`, and returns a `DecisionResponse` built with its public constructor |
-| `AddDecisionClient` returns `IHttpClientBuilder` | It returns `DecisionClientServiceBuilder`, whose `HttpClient` property is the old builder |
+| `AddDecisionClient` returns `IHttpClientBuilder` | It returns a builder whose `HttpClient` property is the old builder; after [0.8](#upgrading-from-08) that is `AddSystemOneClient` and `SystemOneClientServiceBuilder` |
 | `IDecisionClient` is not disposable | `IDecisionClient` derives from `IDisposable` |
 | `EvaluateUtf8Async<T>` writes the state into the request before it returns | It copies the bytes once when you call it, the state's length plus 24 B, and a retry sends that copy, so you may still reuse the buffer as soon as the call returns |
 
@@ -329,7 +354,8 @@ Two observability values change, because the pipeline sees only a `DecisionReque
 - **`minos.operation` and the log's `{Operation}` are `evaluate-set`** for every typed and built-set call. They were
   `evaluate-typed` and `evaluate-built-set`. The raw calls keep `evaluate` and `list-models`.
 - **Event 1001 logs `{Provider}` as the metadata's provider name**, such as `typesafe`, where it logged `TypeSafe`.
-  The raw calls still log `TypeSafe` or `OpenRouter`.
+  The raw calls logged `TypeSafe` or `OpenRouter` in 0.8; [later versions](#upgrading-from-08) log the same name as the
+  typed calls.
 
 The span of a typed or built-set call also gains `gen_ai.response.id` and `minos.usage.cost` when OpenRouter reports
 them, which only the raw call recorded before.
