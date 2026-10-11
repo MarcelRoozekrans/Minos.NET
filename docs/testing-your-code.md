@@ -349,7 +349,7 @@ A few details are worth knowing.
   never uses it.
 - **Set `MaxRetries` to 0 when a test replies with an error.** The client retries a 429, a 5xx and a network failure
   with a growing wait, as [Retries](client-and-errors.md#retries) describes, so an error reply under the defaults makes
-  three attempts and slows the test. A 401, as in the second test, is never retried.
+  three attempts and slows the test. A 401, as in the second test, is not retried by default.
 - **The handler sees the real request.** The first test reads the body it was sent, and checks the state and a question
   key. That is a check a fake cannot make.
 

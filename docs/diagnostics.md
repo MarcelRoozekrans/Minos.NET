@@ -77,7 +77,8 @@ MIN201 to MIN206 are provider rules, checked at run time. Whether a request brea
 [capabilities](client-and-errors.md#capabilities) and the images of the call, and none of those is known when the code
 is compiled, so no analyzer reports them. The client checks them before it sends anything. A request that breaks any of
 them returns a `DecisionError` of kind `Unsupported`, with one `QuestionFailure` per problem in
-`DecisionError.Failures`. It is never retried, and no request is sent.
+`DecisionError.Failures`. No request is sent, and it is not retried by default: `DecisionRetryOptions.IsTransient`
+excludes it, though a custom `ShouldRetry` can retry it.
 
 | Id | It fires when |
 | --- | --- |
