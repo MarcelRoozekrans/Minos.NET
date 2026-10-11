@@ -36,6 +36,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The ZeroAlloc.Rest adapters both protocol packages compile. No assembly may see both copies: see the plan's CS0436 rule. -->
+    <Compile Include="..\Shared\Rest\*.cs" Link="Shared\Rest\%(Filename)%(Extension)" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="Minos.NET.Tests" />
     <InternalsVisibleTo Include="Minos.NET.Benchmarks" />
   </ItemGroup>

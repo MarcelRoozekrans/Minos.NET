@@ -7,6 +7,7 @@ using Minos.SystemOne.Serialization;
 using Minos.SystemOne.Telemetry;
 using Minos.SystemOne.Transport;
 using Minos.Transport;
+using Minos.Transport.Rest;
 using ZeroAlloc.Rest.SystemTextJson;
 using ZeroAlloc.Results;
 
@@ -224,7 +225,11 @@ public sealed class SystemOneClient : IDecisionClient
 
         // The standard chain, outermost first: one span over every attempt, one outcome log inside it, then retries. Each
         // stage reads the metadata through GetService, which the chain answers from the transport at its bottom.
-        IDecisionClient pipeline = new DecisionTransport(api, SystemOneProtocol.Instance, settings, _metadata, pool, disposed);
+        var path = settings.Path;
+        var authorization = settings.Authorization;
+        RawSend send = (body, retryCount, ct) => api.SendAsync(body, path, authorization, retryCount, ct);
+        IDecisionClient pipeline = new DecisionTransport(
+            send, SystemOneProtocol.Instance, settings.Capabilities, settings.Provider.ToString(), settings.Model, _metadata, pool, disposed);
         DecisionRetry? rawRetry = null;
         if (settings.UseStandardPipeline)
         {

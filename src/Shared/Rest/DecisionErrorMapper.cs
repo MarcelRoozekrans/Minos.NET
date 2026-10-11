@@ -1,12 +1,11 @@
-using Minos.SystemOne.Protocols;
 using ZeroAlloc.Rest;
 
-namespace Minos.SystemOne.Transport;
+namespace Minos.Transport.Rest;
 
 /// <summary>Maps every ZeroAlloc.Rest failure to a <see cref="DecisionError"/>.</summary>
 /// <param name="time">The clock used to turn an HTTP-date <c>Retry-After</c> into a delay.</param>
 /// <param name="disposed">
-/// Reads whether the <see cref="SystemOneClient"/> that owns the <see cref="HttpClient"/> has been disposed, or
+/// Reads whether the client that owns the <see cref="HttpClient"/> has been disposed, or
 /// <see langword="null"/> for a borrowed <see cref="HttpClient"/>, which disposing the client never tears down.
 /// </param>
 /// <param name="protocol">The wire format that maps an error status and its body.</param>

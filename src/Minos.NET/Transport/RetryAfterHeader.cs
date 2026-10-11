@@ -1,6 +1,6 @@
 using System.Globalization;
 
-namespace Minos.SystemOne.Transport;
+namespace Minos.Transport;
 
 /// <summary>Parses the HTTP <c>Retry-After</c> and <c>retry-after-ms</c> headers.</summary>
 internal static class RetryAfterHeader

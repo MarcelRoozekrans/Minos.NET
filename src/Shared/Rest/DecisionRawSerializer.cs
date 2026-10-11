@@ -1,16 +1,15 @@
 using System.Buffers;
-using Minos.Transport;
 using ZeroAlloc.Rest;
 
-namespace Minos.SystemOne.Transport;
+namespace Minos.Transport.Rest;
 
 /// <summary>
-/// The serializer for <see cref="IDecisionApi.SendAsync"/>: it passes <see cref="RawJson"/> bodies through as bytes,
-/// without parsing them or building an object model.
+/// The serializer for a package's raw REST send, the one its <see cref="RawSend"/> calls: it passes
+/// <see cref="RawJson"/> bodies through as bytes, without parsing them or building an object model.
 /// </summary>
 internal sealed class DecisionRawSerializer : IRestSerializer
 {
-    // Large enough for a typical /v1/systemone response, small enough to stay out of the large object heap.
+    // Large enough for a typical decision response, small enough to stay out of the large object heap.
     private const int InitialResponseCapacity = 4096;
 
     // The least free space each read is offered, so reads near the end of the buffer do not shrink to a few bytes.

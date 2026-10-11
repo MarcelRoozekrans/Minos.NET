@@ -1,6 +1,5 @@
 using System.Buffers;
 using System.Text.Json;
-using Minos.SystemOne.Transport;
 using Minos.Transport;
 
 namespace Minos.SystemOne.Protocols;
@@ -28,7 +27,7 @@ internal static class SystemOneRequestWriter
             {
                 writer.WriteStartObject();
                 writer.WritePropertyName("state"u8);
-                writeState(writer, body, state);
+                writeState(writer, body, state, asText: false);
                 writer.WriteString("model"u8, model);
                 writer.WritePropertyName("questions"u8);
                 writer.WriteRawValue(questionsUtf8, skipInputValidation: true);

@@ -1,6 +1,5 @@
 using System.Buffers;
 using System.Text.Json;
-using Minos.SystemOne.Transport;
 using Minos.Transport;
 using ZeroAlloc.Results;
 
@@ -27,9 +26,17 @@ internal sealed class SystemOneProtocol : IDecisionProtocol
     public static ReadOnlySpan<byte> QuestionsJson(QuestionSetDefinition definition)
         => definition.GetOrAddProtocolData(CacheSlot, static d => SystemOneQuestionsWriter.Write(d));
 
-    public RawJson WriteRequest<TArg>(QuestionSetDefinition definition, TArg state, int stateSizeHint, StateWriter<TArg> writeState, string model, ArrayPool<byte> pool)
+    // This protocol does not write images yet.
+    public RawJson WriteRequest<TArg>(
+        QuestionSetDefinition definition, TArg state, int stateSizeHint, StateWriter<TArg> writeState,
+        IReadOnlyList<DecisionImage> images, string model, ArrayPool<byte> pool)
         where TArg : allows ref struct
         => SystemOneRequestWriter.Write(QuestionsJson(definition), state, stateSizeHint, writeState, model, pool);
+
+    // System One has no limits of its own beyond the capability check.
+    public void CollectUnsupported(QuestionSetDefinition definition, string providerName, ref List<QuestionFailure>? failures)
+    {
+    }
 
     public Result<DecisionResponse, DecisionError> ReadResponse(ReadOnlySpan<byte> body, QuestionSetDefinition definition)
         => SystemOneResponseReader.Read(this, body, definition);
