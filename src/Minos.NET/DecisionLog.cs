@@ -8,9 +8,8 @@ namespace Minos;
 /// instructions, criteria, answers, API key, a header value or <see cref="DecisionError.Detail"/>.
 /// </summary>
 /// <remarks>
-/// No event has more than six fields, and each template keeps its placeholders in parameter order, so the generator
-/// emits a <c>LoggerMessage.Define</c> call rather than a state struct, whose reference-type <c>GetEnumerator</c>
-/// NetFabric.Hyperlinq.Analyzer's HLQ006 rejects.
+/// Each template keeps its placeholders in parameter order, so the generator emits a <c>LoggerMessage.Define</c> call
+/// rather than a state struct.
 /// </remarks>
 internal static partial class DecisionLog
 {

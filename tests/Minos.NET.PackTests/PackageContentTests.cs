@@ -188,12 +188,9 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
         XNamespace ns = "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd";
         var nuspec = XDocument.Load(_fixture.NuspecPath);
 
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
         var dependency = Assert.Single(
             nuspec.Descendants(ns + "dependency"),
             d => string.Equals((string?)d.Attribute("id"), "Microsoft.Extensions.Logging.Abstractions", StringComparison.Ordinal));
-#pragma warning restore HLQ005
 
         // A floor, not a pin: 10.0.0 lets a consumer on any .NET 10 servicing release of the extensions resolve it.
         Assert.Equal("10.0.0", (string?)dependency.Attribute("version"));
@@ -218,12 +215,9 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
         XNamespace ns = "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd";
         var nuspec = XDocument.Load(nuspecPath);
 
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
         var dependency = Assert.Single(
             nuspec.Descendants(ns + "dependency"),
             d => string.Equals((string?)d.Attribute("id"), id, StringComparison.Ordinal));
-#pragma warning restore HLQ005
         var exclude = (string?)dependency.Attribute("exclude");
         var include = (string?)dependency.Attribute("include");
 

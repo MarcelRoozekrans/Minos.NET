@@ -111,10 +111,7 @@ public sealed class TypedEvaluationTests : IClassFixture<WireMockFixture>
 
         Assert.True(result.IsSuccess);
         Assert.Equal(IntegrationDepartment.Billing, result.Value.Department.Value);
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
         var entry = Assert.Single(_fixture.Server.LogEntries);
-#pragma warning restore HLQ005
         var expected = JsonNode.Parse(Fixture.Text("request-structured-criteria.json"));
         Assert.True(JsonNode.DeepEquals(expected, JsonNode.Parse(entry.RequestMessage!.Body!)));
     }
@@ -146,10 +143,7 @@ public sealed class TypedEvaluationTests : IClassFixture<WireMockFixture>
 
         Assert.True(result.IsSuccess);
         Assert.Equal(0.9, result.Value.Get(duplicate).Probability);
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
         var entry = Assert.Single(_fixture.Server.LogEntries);
-#pragma warning restore HLQ005
         var fixture = JsonNode.Parse(Fixture.Text("request-structured.json"));
         var expected = fixture?["questions"];
         var actual = JsonNode.Parse(entry.RequestMessage!.Body!)?["questions"];
@@ -213,10 +207,7 @@ public sealed class TypedEvaluationTests : IClassFixture<WireMockFixture>
         Assert.Equal(0.3, effortAnswer.Probabilities[0]);
         Assert.Equal(0.5, effortAnswer.Probabilities[1]);
         Assert.Equal(0.2, effortAnswer.Probabilities[2]);
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
         var entry = Assert.Single(_fixture.Server.LogEntries);
-#pragma warning restore HLQ005
         var expected = JsonNode.Parse(Fixture.Text("request-built-set.json"));
         Assert.True(JsonNode.DeepEquals(expected, JsonNode.Parse(entry.RequestMessage!.Body!)));
     }

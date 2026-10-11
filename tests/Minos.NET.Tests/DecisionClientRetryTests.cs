@@ -333,10 +333,7 @@ public sealed class DecisionClientRetryTests : IDisposable
 
     private static void AssertOneAttempt(StubHandler handler)
     {
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
         _ = Assert.Single(handler.Requests);
-#pragma warning restore HLQ005
     }
 
     private static TimeSpan Gap(StubHandler handler, int index)

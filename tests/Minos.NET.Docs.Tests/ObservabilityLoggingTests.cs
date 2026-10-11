@@ -51,7 +51,7 @@ public sealed partial class ObservabilityLoggingTests
             }
         }
 
-        return Only.Of(fields);
+        return Assert.Single(fields);
     }
 
     private static string Everything(FakeLogRecord record)
@@ -70,7 +70,7 @@ public sealed partial class ObservabilityLoggingTests
     {
         var records = await LogAsync(Options(), Reply.Ok(UrgentResponse));
 
-        var record = Only.Of(records);
+        var record = Assert.Single(records);
         Assert.Equal(1001, record.Id.Id);
         Assert.Equal("EvaluationSucceeded", record.Id.Name);
         Assert.Equal(LogLevel.Debug, record.Level);
@@ -111,7 +111,7 @@ public sealed partial class ObservabilityLoggingTests
     {
         var records = await LogAsync(Options(), Reply.Refused);
 
-        var record = Only.Of(records);
+        var record = Assert.Single(records);
         Assert.Equal(1002, record.Id.Id);
         Assert.Equal("Network", Field(record, "ErrorKind"));
         Assert.Equal("The request could not be sent.", Field(record, "ErrorMessage"));
@@ -124,7 +124,7 @@ public sealed partial class ObservabilityLoggingTests
     {
         var records = await LogAsync(Options(), Reply.Ok("this is not json"));
 
-        var record = Only.Of(records);
+        var record = Assert.Single(records);
         Assert.Equal(1002, record.Id.Id);
         Assert.Equal("InvalidResponse", Field(record, "ErrorKind"));
         Assert.Equal("The response could not be read.", Field(record, "ErrorMessage"));
@@ -135,7 +135,7 @@ public sealed partial class ObservabilityLoggingTests
     {
         var records = await LogAsync(Options(), Reply.Error(401));
 
-        var record = Only.Of(records);
+        var record = Assert.Single(records);
         Assert.Equal("Unauthorized", Field(record, "ErrorKind"));
         Assert.Equal("401", Field(record, "StatusCode"));
         Assert.False(string.IsNullOrWhiteSpace(Field(record, "ErrorMessage")));
@@ -175,7 +175,7 @@ public sealed partial class ObservabilityLoggingTests
         {
             await client.ListModelsAsync(CancellationToken.None);
 
-            var listed = Only.Of(provider.Collector.GetSnapshot());
+            var listed = Assert.Single(provider.Collector.GetSnapshot());
             Assert.Equal(1004, listed.Id.Id);
             Assert.Equal(LogLevel.Debug, listed.Level);
             Assert.Equal("1", Field(listed, "ModelCount"));
@@ -196,7 +196,7 @@ public sealed partial class ObservabilityLoggingTests
         {
             await client.ListModelsAsync(CancellationToken.None);
 
-            var failed = Only.Of(provider.Collector.GetSnapshot());
+            var failed = Assert.Single(provider.Collector.GetSnapshot());
             Assert.Equal(1005, failed.Id.Id);
             Assert.Equal(LogLevel.Warning, failed.Level);
             Assert.Equal("Unsupported", Field(failed, "ErrorKind"));
@@ -216,7 +216,7 @@ public sealed partial class ObservabilityLoggingTests
         var thrown = await Assert.ThrowsAsync<InvalidOperationException>(
             async () => await client.EvaluateAsync<ObservedUrgency>("Help!", CancellationToken.None));
 
-        var record = Only.Of(provider.Collector.GetSnapshot());
+        var record = Assert.Single(provider.Collector.GetSnapshot());
         Assert.Equal(1006, record.Id.Id);
         Assert.Equal(LogLevel.Error, record.Level);
         Assert.Same(thrown, record.Exception);

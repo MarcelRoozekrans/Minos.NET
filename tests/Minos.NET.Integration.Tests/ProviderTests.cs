@@ -32,10 +32,7 @@ public sealed class ProviderTests : IClassFixture<WireMockFixture>
         var result = await client.EvaluateAsync(Fixtures.NoulRequest());
 
         Assert.True(result.IsSuccess);
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
         var entry = Assert.Single(_fixture.Server.LogEntries);
-#pragma warning restore HLQ005
         // A log entry WireMock has already recorded always carries its RequestMessage.
         Assert.Equal("/api/v1/systemone", entry.RequestMessage!.Path);
     }

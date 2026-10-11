@@ -121,9 +121,6 @@ public sealed class RetryTests : IClassFixture<WireMockFixture>
 
         Assert.True(result.IsFailure);
         Assert.Equal(DecisionErrorKind.Validation, result.Error.Kind);
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
         Assert.Single(_fixture.Server.LogEntries);
-#pragma warning restore HLQ005
     }
 }

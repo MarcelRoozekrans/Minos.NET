@@ -28,10 +28,7 @@ internal static class ClientTestKit
 
     public static StubHandler.Captured OnlyRequest(StubHandler handler)
     {
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
         return Assert.Single(handler.Requests);
-#pragma warning restore HLQ005
     }
 
     /// <summary>The body <see cref="SystemOneClient"/> sends for <paramref name="request"/> with <see cref="TestModel"/>, as JSON.</summary>
@@ -77,10 +74,7 @@ internal static class ClientTestKit
 
         public DecisionRequest OnlyRequest()
         {
-            // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
             return Assert.Single(Requests);
-#pragma warning restore HLQ005
         }
 
         public ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)

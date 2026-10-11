@@ -121,9 +121,6 @@ public sealed class QuestionSpecValidationTests
     {
         var failures = result.Failures.ToArray();
 
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
         return Assert.Single(failures);
-#pragma warning restore HLQ005
     }
 }
