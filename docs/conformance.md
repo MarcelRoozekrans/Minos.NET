@@ -49,12 +49,12 @@ be off by 0.01.
 | `D4` | A reported confidence is from 0 to 1. | No answer could be read, or none carries a `confidence`. |
 | `M1` | The `mixed` answers are matched by key, so a provider or a parser that relies on their order fails. | Minos returned an error, no answer could be read, or Minos's answer count differs from the questions asked. |
 | `E1` | `invalid` gets a 400 or a 422 with a JSON body, which Minos maps to `Validation` with a message. A JSON body that leaves `DecisionError.Detail` null fails, and the failure names Minos. | No request was sent. |
-| `E2` | `bad-key` gets a 401 or a 403, which Minos maps to `Unauthorized` and does not retry. | No request was sent. |
+| `E2` | `bad-key` gets a 401 or a 403, which Minos maps to `Unauthorized`, with one request sent under the client's retry setting. | No request was sent. |
 | `E3` | An error response's request-id header equals `DecisionError.RequestId`. | There is no error response, or it carries none, as OpenRouter's 401 does. |
 | `E4` | A 429 met during the run has its `retry-after-ms` or `Retry-After` in `DecisionError.RetryAfter` and its request id read. | No 429 was met. One cannot be provoked, so the suite keeps no made-up 429. |
-| `R1` | A successful response names a model, and `DecisionResponse.Model` is the same. | The response names none and the target promises none. |
+| `R1` | A successful response names a model, and `DecisionResponse.Model` is the same. | Minos returned an error, the body is not a JSON object, or the response names none and the target promises none. |
 | `R2` | The reported model fits the requested one by the target's rule. | The target states no rule, Minos returned an error, no answer could be read, or the response names no model. |
-| `R3` | The usage, when there is one, has whole, non-negative token counts. | The response reports no usage. |
+| `R3` | The usage, when there is one, has whole, non-negative token counts. | Minos returned an error, the body is not a JSON object, the response reports no usage, or the usage has no token counts. |
 
 The report states the model rule `R2` applied. TypeSafe answers an alias such as `jev-latest` with a versioned id of the
 same family, such as `jev-1.13.0`. OpenRouter answers with a prefixed form, such as `~typesafe/jev-latest` or
@@ -69,8 +69,9 @@ three modes:
 
 - `Live` sends real requests and saves nothing.
 - `Record` sends real requests and saves the exchange of each probe, errors included, to a fixture file.
-- `Replay` answers each probe from a fixture file by its id, once: the target must not retry, because a second request for a probe fails the run. A fixture that names a probe the suite
-  does not have, names one twice, or lacks one fails the run rather than skipping the probe.
+- `Replay` answers each probe from a fixture file by its id, once: the target must not retry, because a second request
+  for a probe fails the run. A fixture that names a probe the suite does not have, names one twice, or
+  lacks one fails the run rather than skipping the probe.
 
 <!-- snippet: Conformance_Record -->
 ```cs

@@ -834,7 +834,10 @@ client reads it from the error response's headers, trying three names in this or
 | --- | --- | --- |
 | `x-request-id` | OpenAI | `req_` and 32 hex digits |
 | `x-typesafe-request-id` | TypeSafe | `req_` and 32 hex digits |
-| `request-id` | No provider we know of sends it on an error yet. OpenRouter lists it in `Access-Control-Expose-Headers`, but its 401 carries none. | |
+| `request-id` | None known | none known |
+
+No provider we know of sends `request-id` on an error yet. OpenRouter lists it in `Access-Control-Expose-Headers`, but its
+401 carries none.
 
 `RequestId` is `null` when the error response carries none of the three, as OpenRouter's 401 does, and for every failure
 without an HTTP error response: a network failure, a time-out, a disposal, a success body that could not be read and a
