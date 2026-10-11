@@ -280,7 +280,7 @@ internal static class AllocationChecks
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, OpenAIChecks.TriageResponse)) { BaseAddress = new Uri("https://example.test/v1/") };
         using var client = new OpenAIDecisionClient(http, new OpenAIDecisionClientOptions { ApiKey = "smoke-key" });
 
-        // Measured 3400 B/call on published win-x64 AOT. Budget: about 10% headroom over the measurement,
+        // Measured 3384 B/call on published win-x64 AOT. Budget: about 10% headroom over the measurement,
         // rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
         GateValueTask(
             budgetBytes: 3776,
@@ -302,7 +302,7 @@ internal static class AllocationChecks
         png[3] = 0x47;
         DecisionImage[] images = [DecisionImage.FromBytes(png, "image/png")];
 
-        // Measured 2792 B/call on published win-x64 AOT, over a one-question response with one 64 B image. Budget:
+        // Measured 2776 B/call on published win-x64 AOT, over a one-question response with one 64 B image. Budget:
         // about 10% headroom over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
         GateValueTask(
             budgetBytes: 3072,

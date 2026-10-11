@@ -360,8 +360,8 @@ measurement plus about 10%, rounded up to the next 64 B, per the Phase 1.8 rule.
 | `Utf8StateEvaluateRoundTrip` | A typed `EvaluateUtf8Async<T>` call | 3360 B | 3712 B |
 | `TypedStateEvaluateRoundTrip` | A typed `EvaluateAsync<T, TState>` call, over a one-question response | 2840 B | 3136 B |
 | `SystemOneImageRoundTrip` | The same call with one 64 B image sent beside the state | 2888 B | 3200 B |
-| `OpenAITypedRoundTrip` | A typed `EvaluateAsync<T>` call over an `OpenAIDecisionClient`, over a three-kind response | 3400 B | 3776 B |
-| `OpenAIImageRoundTrip` | A typed `EvaluateAsync<T, TState>` call over an `OpenAIDecisionClient`, over a one-question response with one 64 B image | 2792 B | 3072 B |
+| `OpenAITypedRoundTrip` | A typed `EvaluateAsync<T>` call over an `OpenAIDecisionClient`, over a three-kind response | 3384 B | 3776 B |
+| `OpenAIImageRoundTrip` | A typed `EvaluateAsync<T, TState>` call over an `OpenAIDecisionClient`, over a one-question response with one 64 B image | 2776 B | 3072 B |
 
 What each one allocates:
 
