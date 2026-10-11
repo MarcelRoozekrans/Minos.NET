@@ -12,12 +12,7 @@ public sealed partial class DiagnosticsTests
     // Each rule: the id from DiagnosticIds.cs, and the title and severity from its descriptor in Diagnostics.cs.
     private static (string Id, string Severity, string Title)[] Descriptors()
     {
-        var ids = new Dictionary<string, string>(StringComparer.Ordinal);
-        foreach (Match match in IdConstant().Matches(Source("src", "Minos.NET.Generator", "DiagnosticIds.cs")))
-        {
-            ids[match.Groups["name"].Value] = match.Groups["id"].Value;
-        }
-
+        var ids = DiagnosticIdSource.ByName();
         var rules = new List<(string, string, string)>();
         foreach (Match match in Descriptor().Matches(Source("src", "Minos.NET.Analyzers", "Diagnostics.cs")))
         {
@@ -134,19 +129,11 @@ public sealed partial class DiagnosticsTests
     [Fact]
     public void TheClientSection_IsEveryProviderRule()
     {
-        var ids = new List<string>();
-        foreach (Match match in IdConstant().Matches(Source("src", "Minos.NET.Generator", "DiagnosticIds.cs")))
-        {
-            if (match.Groups["id"].Value.StartsWith("MIN2", StringComparison.Ordinal))
-            {
-                ids.Add(match.Groups["id"].Value);
-            }
-        }
-
+        var ids = DiagnosticIdSource.ProviderRules();
         var rows = PageTables.Rows(Page, "Reported by the client");
 
-        Assert.Equal(["MIN201", "MIN202", "MIN203", "MIN204", "MIN205", "MIN206"], ids.Order(StringComparer.Ordinal));
-        Assert.Equal(ids.Order(StringComparer.Ordinal), rows.Select(row => row[0]));
+        Assert.Equal(["MIN201", "MIN202", "MIN203", "MIN204", "MIN205", "MIN206"], ids);
+        Assert.Equal(ids, rows.Select(row => row[0]));
         Assert.DoesNotContain(Descriptors(), rule => rule.Id.StartsWith("MIN2", StringComparison.Ordinal));
     }
 
@@ -242,9 +229,6 @@ public sealed partial class DiagnosticsTests
 
     private static int Limit(string limits, string name)
         => int.Parse(Regex.Match(limits, $@"{name} = (\d+);", RegexOptions.None, TimeSpan.FromSeconds(1)).Groups[1].Value, CultureInfo.InvariantCulture);
-
-    [GeneratedRegex(@"public const string (?<name>\w+) = ""(?<id>MIN\d+)"";", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex IdConstant();
 
     [GeneratedRegex(
         @"new\(\s*DiagnosticIds\.(?<name>\w+),\s*""(?<title>[^""]*)"",\s*""[^""]*"",\s*Category,\s*DiagnosticSeverity\.(?<severity>\w+),",

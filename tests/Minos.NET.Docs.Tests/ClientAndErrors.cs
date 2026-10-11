@@ -261,7 +261,8 @@ public static class CapabilityOptions
     #endregion
 
     #region ClientAndErrors_ResolvedCapabilities
-    // The capabilities a client resolved: the preset's defaults with your overrides applied, every property set.
+    // The capabilities a client resolved: the preset's or OpenAI's defaults with your overrides applied, every property
+    // set.
     // GetService returns a new instance each time, so changing it changes nothing in the client.
     public static string Describe(IDecisionClient client)
     {

@@ -265,7 +265,8 @@ public static class OpenAIClients
 
     // The same typed call as on any IDecisionClient. The set is checked against what OpenAI can express before
     // anything is sent.
-    public static async Task<string> TriageAsync(OpenAIDecisionClient client, string message, CancellationToken cancellationToken)
+    public static async Task<string> TriageAsync(
+        OpenAIDecisionClient client, string message, CancellationToken cancellationToken)
     {
         var result = await client.EvaluateAsync<InboxCheck>(message, cancellationToken);
         return result.IsFailure
@@ -303,7 +304,8 @@ holds one provider, so registering the same name with both throws `InvalidOperat
 public static OpenAIDecisionClientServiceBuilder AddBothProviders(IHostApplicationBuilder builder)
 {
     builder.Services.AddSystemOneClient(options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
-    return builder.Services.AddOpenAIDecisionClient("openai", options => options.ApiKey = builder.Configuration["OpenAI:ApiKey"]);
+    return builder.Services.AddOpenAIDecisionClient(
+        "openai", options => options.ApiKey = builder.Configuration["OpenAI:ApiKey"]);
 }
 ```
 <!-- endSnippet -->
@@ -392,17 +394,16 @@ you set change the kinds, the limits, images and model listing.
 | Criterion `Examples` and `NotFor` | Sent, in a criterion object | Sent, in a criterion object | Sent, in a criterion object | Sent, in a criterion object | MIN205, not sent |
 | JSON instructions, criteria and state | Sent as JSON | Sent as JSON | Sent as JSON | Sent as JSON | Sent as the JSON's raw text, in a string |
 | Limits | 255 options per Choice, MIN203; no question limit | 255 options per Choice, MIN203; no question limit | None published | None published | None published |
-| Images | Off: Jev reads text only. In `state`, as `image_url` parts, once switched on | Off: switch on with `Images = true` for a model that reads images. In `state`, as `image_url` parts | Off. In `state`, as `image_url` parts, once switched on | Off. In `state`, as `image_url` parts, once switched on | On. In `input`, as `input_image` parts |
+| Images | Off: Jev reads text only, MIN206 while off. In `state`, as `image_url` parts, once switched on; data URLs only | Off: switch on with `Images = true` for a model that reads images, MIN206 while off. In `state`, as `image_url` parts; data URLs only | Off, MIN206 while off. In `state`, as `image_url` parts, once switched on; data URLs only | Off, MIN206 while off. In `state`, as `image_url` parts, once switched on; data URLs only | On. In `input`, as `input_image` parts; data URLs only |
 | Refusals | None in the protocol | None in the protocol | None in the protocol | None in the protocol | `Refused`, one failure per refused question, rule `refusal` |
 | Noul confidence, usage and cost | A Noul has a probability and no confidence. `usage` has the input and output tokens | A Noul has a probability and no confidence. `usage` has the tokens and `cost` in US dollars; the response has a generation `id` and the upstream `provider` | A Noul has a probability and no confidence. `usage` as the server sends it | A Noul has a probability and no confidence. `usage` as the server sends it | A Noul has a probability and no confidence. Usage is not documented: tokens and `cost` are read when present, and `Usage` is `null` unless both token counts are |
 | Model listing | `ListModelsAsync` | `Unsupported`; OpenRouter has its own models API | `Unsupported`, unless `ModelListing = true` | `Unsupported`, unless `ModelListing = true` | No `ListModelsAsync` |
 | Auth | Required: `ApiKey` or `TYPESAFE_API_KEY` | Required: `ApiKey` or `OPENROUTER_API_KEY` | Optional: `ApiKey` only | Optional: `ApiKey` only | Required: `ApiKey` or `OPENAI_API_KEY` |
-| Status | Tested live | Tested live, with images and Clef | Recorded fixtures | Recorded fixtures and a local server in CI | Public beta since 2026-10-06, built from the guide's examples, not tested live |
+| Status | Tested live | Tested live, with images and Clef | WireMock tests | WireMock tests, and a local server in CI | Public beta since 2026-10-06; WireMock tests built from the guide's examples, not tested live |
 
 Choice and Score answers carry a confidence on every provider. A limit you set in `Capabilities` applies on every
-provider: MIN202 for more questions than `MaxQuestions`, MIN203 for more options than `MaxChoiceOptions`. Images are
-data URLs only, everywhere, and a request with images to a provider whose `Images` is off returns MIN206 without
-sending. [Images](#images) has the details.
+provider: MIN202 for more questions than `MaxQuestions`, MIN203 for more options than `MaxChoiceOptions`. A request with
+images to a provider whose `Images` is off returns MIN206 without sending. [Images](#images) has the details.
 
 #### Notes from the probes
 
@@ -468,8 +469,9 @@ returns `Unsupported` with `MIN206`, and nothing is sent.
 
 ### Overriding them
 
-`SystemOneClientOptions.Capabilities` and `OpenAIDecisionClientOptions.Capabilities` are a `DecisionCapabilities`, with
-one nullable property for each capability. A property you set wins, and one you leave `null` keeps the default. This server answers Noul questions only:
+`SystemOneClientOptions.Capabilities` and `OpenAIDecisionClientOptions.Capabilities` are a `DecisionCapabilities`,
+with one nullable property for each capability. A property you set wins, and one you leave `null` keeps the default.
+This server answers Noul questions only:
 
 <!-- snippet: ClientAndErrors_Capabilities -->
 ```cs
@@ -546,7 +548,8 @@ defaults and your overrides together. Both clients answer it, and a client that 
 
 <!-- snippet: ClientAndErrors_ResolvedCapabilities -->
 ```cs
-// The capabilities a client resolved: the preset's defaults with your overrides applied, every property set.
+// The capabilities a client resolved: the preset's or OpenAI's defaults with your overrides applied, every property
+// set.
 // GetService returns a new instance each time, so changing it changes nothing in the client.
 public static string Describe(IDecisionClient client)
 {
@@ -602,7 +605,8 @@ public static async Task<string> CheckReturnAsync(
 
     // The overload with images takes them after the state. A provider without image support returns Unsupported
     // with MIN206, and nothing is sent.
-    var result = await client.EvaluateAsync<ReturnPhotoCheck>("A return request for a kettle.", images, cancellationToken);
+    var result = await client.EvaluateAsync<ReturnPhotoCheck>(
+        "A return request for a kettle.", images, cancellationToken);
     return result.IsFailure
         ? ClientFailures.Describe(result.Error)
         : result.Value.IsDamaged.Value ? "damaged" : "not damaged";

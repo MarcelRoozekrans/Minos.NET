@@ -412,7 +412,8 @@ dotnet add package Minos.NET.OpenAI
 public static OpenAIDecisionClientServiceBuilder AddBothProviders(IHostApplicationBuilder builder)
 {
     builder.Services.AddSystemOneClient(options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
-    return builder.Services.AddOpenAIDecisionClient("openai", options => options.ApiKey = builder.Configuration["OpenAI:ApiKey"]);
+    return builder.Services.AddOpenAIDecisionClient(
+        "openai", options => options.ApiKey = builder.Configuration["OpenAI:ApiKey"]);
 }
 ```
 <!-- endSnippet -->

@@ -32,7 +32,7 @@ public sealed partial class ProviderDifferencesTests
     [Fact]
     public void EveryProviderRuleInTheTable_IsADiagnosticId()
     {
-        var ids = ProviderRuleIds();
+        var ids = DiagnosticIdSource.ProviderRules();
         var (_, rows) = Table();
         var used = rows.SelectMany(row => row).SelectMany(cell => MinId().Matches(cell).Select(match => match.Value)).ToList();
 
@@ -43,18 +43,11 @@ public sealed partial class ProviderDifferencesTests
     [Fact]
     public void EveryProviderRule_AppearsInTheSection()
     {
-        var ids = ProviderRuleIds();
+        var ids = DiagnosticIdSource.ProviderRules();
         var section = Section();
 
         Assert.Equal(["MIN201", "MIN202", "MIN203", "MIN204", "MIN205", "MIN206"], ids);
         Assert.All(ids, id => Assert.Contains(id, section, StringComparison.Ordinal));
-    }
-
-    // The MIN2xx constants of DiagnosticIds, the provider rules, in order.
-    private static List<string> ProviderRuleIds()
-    {
-        var source = File.ReadAllText(Path.Combine(PublishedPages.Root, "src", "Minos.NET.Generator", "DiagnosticIds.cs"));
-        return [.. IdConstant().Matches(source).Select(match => match.Groups["id"].Value).Order(StringComparer.Ordinal)];
     }
 
     // The lines from the heading to the next heading of the same or a higher level.
@@ -92,9 +85,6 @@ public sealed partial class ProviderDifferencesTests
         => Array.ConvertAll(line.Trim().Trim('|').Split('|'), cell => cell.Trim());
 
     private static string Unquote(string cell) => cell.Trim('`');
-
-    [GeneratedRegex(@"public const string \w+ = ""(?<id>MIN2\d\d)"";", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
-    private static partial Regex IdConstant();
 
     [GeneratedRegex(@"\bMIN2\d\d\b", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex MinId();

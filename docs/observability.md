@@ -114,8 +114,8 @@ A call logs once, when it completes, and logs again for each attempt it is about
   and a [built question set](question-sets-at-run-time.md) included, and, for the raw System One calls, `evaluate` for
   `EvaluateAsync(SystemOneRequest)` and `list-models` for model listing.
 - **`Provider`**, in events 1001, 1004 and 1005, is the provider name of the client's `DecisionClientMetadata`, the same
-  value as the span's `gen_ai.provider.name`: `typesafe`, `openrouter`, `vllm-sr` or `custom` for a `SystemOneClient`, and
-  `openai` for an `OpenAIDecisionClient`.
+  value as the span's `gen_ai.provider.name`: `typesafe`, `openrouter`, `vllm-sr` or `custom` for a
+  `SystemOneClient`, and `openai` for an `OpenAIDecisionClient`.
 - **Success** is a Debug event, 1001 for an evaluation and 1004 for a model listing. `QuestionCount` is the number of
   questions asked.
 - **Failure** is a Warning, 1002 or 1005. It covers every failure the call returns as a

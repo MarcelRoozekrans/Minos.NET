@@ -238,8 +238,8 @@ A `SystemOneClient` answers with:
   raw System One calls, which are not on the interface.
 - **a copy of its retry settings**, for `DecisionRetryOptions`. `UseRetries()` starts from these.
 - **its `DecisionClientMetadata`**: the `ProviderName`, which is `typesafe`, `openrouter`, `vllm-sr` or
-  `custom` (an `OpenAIDecisionClient` reports `openai`), the `Endpoint` it sends to, and the `DefaultModel` from its options. The telemetry and logging stages read
-  it.
+  `custom` (an `OpenAIDecisionClient` reports `openai`), the `Endpoint` it sends to, and the `DefaultModel` from its
+  options. The telemetry and logging stages read it.
 - **a stage of its standard pipeline**, such as `RetryingDecisionClient`, when there is one.
 
 A [fake `IDecisionClient`](testing-your-code.md#way-one-a-fake-idecisionclient) can return `null` for everything. The

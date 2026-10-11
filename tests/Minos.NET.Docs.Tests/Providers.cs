@@ -15,7 +15,8 @@ public static class OpenAIClients
 
     // The same typed call as on any IDecisionClient. The set is checked against what OpenAI can express before
     // anything is sent.
-    public static async Task<string> TriageAsync(OpenAIDecisionClient client, string message, CancellationToken cancellationToken)
+    public static async Task<string> TriageAsync(
+        OpenAIDecisionClient client, string message, CancellationToken cancellationToken)
     {
         var result = await client.EvaluateAsync<InboxCheck>(message, cancellationToken);
         return result.IsFailure
@@ -78,7 +79,8 @@ public static class ImageCalls
 
         // The overload with images takes them after the state. A provider without image support returns Unsupported
         // with MIN206, and nothing is sent.
-        var result = await client.EvaluateAsync<ReturnPhotoCheck>("A return request for a kettle.", images, cancellationToken);
+        var result = await client.EvaluateAsync<ReturnPhotoCheck>(
+            "A return request for a kettle.", images, cancellationToken);
         return result.IsFailure
             ? ClientFailures.Describe(result.Error)
             : result.Value.IsDamaged.Value ? "damaged" : "not damaged";

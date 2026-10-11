@@ -57,10 +57,11 @@ public sealed class ProvidersTests
         Assert.Equal(OpenAIDefaults.Model, PageTables.Code(rows[2][1]));
     }
 
+    // A 503 is retried, and the retry is sent exactly as the first attempt: OpenAI has no retry-count header.
     [Fact]
-    public async Task TheOpenAIClient_SendsAPredicate_AndReadsItsProbability()
+    public async Task TheOpenAIClient_SendsAPredicate_RetriesWithoutARetryCount_AndReadsItsProbability()
     {
-        var (http, client, handler) = OpenAI(Reply.Ok(OpenAIUrgent));
+        var (http, client, handler) = OpenAI(Reply.Error(503), Reply.Ok(OpenAIUrgent));
         using (http)
         using (handler)
         using (client)
@@ -68,16 +69,14 @@ public sealed class ProvidersTests
             Assert.Equal("urgent", await OpenAIClients.TriageAsync(client, "Help!", CancellationToken.None));
         }
 
-        Assert.Collection(
-            handler.Requests,
-            sent =>
-            {
-                Assert.Equal("https://docs.example/v1/decisions", sent.Uri!.AbsoluteUri);
-                Assert.Equal("Bearer docs-key", sent.Authorization);
-                Assert.Null(sent.RetryCount);
-                Assert.Contains("\"input\":\"Help!\"", sent.Body, StringComparison.Ordinal);
-                Assert.Contains("\"type\":\"predicate\"", sent.Body, StringComparison.Ordinal);
-            });
+        Assert.Equal(2, handler.Requests.Count);
+        var (first, retry) = (handler.Requests[0], handler.Requests[1]);
+        Assert.Equal("https://docs.example/v1/decisions", retry.Uri!.AbsoluteUri);
+        Assert.Equal("Bearer docs-key", retry.Authorization);
+        Assert.Null(retry.RetryCount);
+        Assert.Equal(first.Body, retry.Body);
+        Assert.Contains("\"input\":\"Help!\"", retry.Body, StringComparison.Ordinal);
+        Assert.Contains("\"type\":\"predicate\"", retry.Body, StringComparison.Ordinal);
     }
 
     [Fact]
