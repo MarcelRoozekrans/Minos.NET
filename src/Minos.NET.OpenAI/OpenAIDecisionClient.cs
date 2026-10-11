@@ -209,7 +209,7 @@ public sealed class OpenAIDecisionClient : IDecisionClient
             new DecisionErrorMapper(time, _ownedHttpClient is null ? null : disposed, OpenAIDecisionsProtocol.Instance));
 
         // OpenAI has no retry-count header, so every attempt is sent the same way and the retry count is not used.
-                var authorization = settings.Authorization;
+        var authorization = settings.Authorization;
         RawSend send = (body, _, ct) => api.SendAsync(body, OpenAIClientSettings.Path, authorization, ct);
 
         // The standard chain, outermost first: one span over every attempt, one outcome log inside it, then retries. Each

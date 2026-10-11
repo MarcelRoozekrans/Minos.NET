@@ -1,6 +1,4 @@
 using System.Diagnostics;
-using System.Net;
-using System.Text;
 
 namespace Minos.OpenAI.Tests;
 
@@ -10,20 +8,6 @@ internal sealed class StubHandler(Func<HttpRequestMessage, CancellationToken, Ta
     public List<Captured> Requests { get; } = [];
 
     public bool Disposed { get; private set; }
-
-    public static StubHandler Json(HttpStatusCode status, string body, string mediaType = "application/json")
-        => new((_, _) => Task.FromResult(new HttpResponseMessage(status) { Content = new StringContent(body, Encoding.UTF8, mediaType) }));
-
-    public static StubHandler Sequence(params Func<HttpResponseMessage>[] responses)
-    {
-        var next = 0;
-        return new StubHandler((_, _) =>
-        {
-            var index = Math.Min(next, responses.Length - 1);
-            next++;
-            return Task.FromResult(responses[index]());
-        });
-    }
 
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {

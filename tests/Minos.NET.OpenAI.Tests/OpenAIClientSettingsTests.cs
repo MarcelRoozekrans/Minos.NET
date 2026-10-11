@@ -217,6 +217,28 @@ public sealed class OpenAIClientSettingsTests
         Assert.StartsWith(message, exception.Message, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void MaxQuestionsBelowOne_Throws(int max)
+    {
+        var exception = Assert.Throws<ArgumentException>(
+            () => Resolve(Keyed(o => o.Capabilities = new DecisionCapabilities { MaxQuestions = max })));
+
+        Assert.StartsWith("Capabilities.MaxQuestions must be at least 1.", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(1)]
+    [InlineData(0)]
+    public void MaxChoiceOptionsBelowTwo_Throws(int max)
+    {
+        var exception = Assert.Throws<ArgumentException>(
+            () => Resolve(Keyed(o => o.Capabilities = new DecisionCapabilities { MaxChoiceOptions = max })));
+
+        Assert.StartsWith("Capabilities.MaxChoiceOptions must be at least 2.", exception.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void ToString_DoesNotRevealTheApiKey()
         => Assert.DoesNotContain("secret-key", Resolve(new OpenAIDecisionClientOptions { ApiKey = "secret-key" }).ToString(), StringComparison.Ordinal);

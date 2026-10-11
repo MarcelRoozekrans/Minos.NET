@@ -48,13 +48,11 @@ internal static class OpenAIClientTestKit
 {
     public const string TestModel = "gpt-test-model";
 
+    /// <summary>Gets the one request <paramref name="handler"/> received.</summary>
     public static StubHandler.Captured OnlyRequest(StubHandler handler)
-    {
-        // HLQ005 fires on the method name alone: this is xUnit's Assert.Single(IEnumerable), not System.Linq.Enumerable.Single().
-#pragma warning disable HLQ005
-        return Assert.Single(handler.Requests);
-#pragma warning restore HLQ005
-    }
+        => handler.Requests is [var only]
+            ? only
+            : throw new InvalidOperationException($"Expected one request, found {handler.Requests.Count}.");
 
     public static string FixtureText(string name) => File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", name));
 

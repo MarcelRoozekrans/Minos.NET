@@ -148,7 +148,7 @@ internal sealed class SystemOneClientSettings
     // Like ApiKey, a blank Path counts as unset, and surrounding whitespace is trimmed.
     private static string ResolvePath(SystemOneClientOptions options)
     {
-        if (NonBlank(options.Path) is not { } untrimmed)
+        if (ClientSettingRules.NonBlank(options.Path) is not { } untrimmed)
         {
             return DefaultPath;
         }
@@ -193,7 +193,7 @@ internal sealed class SystemOneClientSettings
     // when the option sets it, so a vendor key from the environment never reaches a server the caller names.
     private static string? ResolveApiKey(SystemOneClientOptions options, Func<string, string?> environment)
     {
-        if (NonBlank(options.ApiKey) is { } explicitKey)
+        if (ClientSettingRules.NonBlank(options.ApiKey) is { } explicitKey)
         {
             return ClientSettingRules.CheckApiKey(explicitKey, nameof(options));
         }
@@ -203,7 +203,7 @@ internal sealed class SystemOneClientSettings
             return null;
         }
 
-        if (NonBlank(environment(keyVariable)) is { } environmentKey)
+        if (ClientSettingRules.NonBlank(environment(keyVariable)) is { } environmentKey)
         {
             return ClientSettingRules.CheckEnvironmentApiKey(environmentKey, keyVariable);
         }
@@ -274,7 +274,4 @@ internal sealed class SystemOneClientSettings
 
         return true;
     }
-
-    private static string? NonBlank(string? value) => ClientSettingRules.NonBlank(value);
 }
-
