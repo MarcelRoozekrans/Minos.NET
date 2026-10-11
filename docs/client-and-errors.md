@@ -248,7 +248,7 @@ Each preset has defaults for the five capabilities. "None" means no limit.
 | `TypeSafe` | every kind | none | 255 | no | yes |
 | `OpenRouter` | every kind | none | 255 | no | no |
 | `VllmSemanticRouter` | every kind | none | none | no | no |
-| `Custom` | every kind | none | none | no | yes |
+| `Custom` | every kind | none | none | no | no |
 
 `Images` is declared but not checked yet.
 
@@ -678,10 +678,11 @@ public static async Task<string> ModelsAsync(SystemOneClient client, Cancellatio
 ```
 <!-- endSnippet -->
 
-Listing models follows the `ModelListing` [capability](#capabilities), which is on for `TypeSafe` and `Custom` and off
-for the others. Where it is off, the call returns an `Unsupported` error and sends no request. Its message names the
-provider, such as "Model listing is not available on OpenRouter." OpenRouter has its own models API. A `Custom` server
-that has no `GET v1/models` can switch the call off with `Capabilities.ModelListing = false`.
+Listing models follows the `ModelListing` [capability](#capabilities), which is on for `TypeSafe` only. Where it is
+off, the call returns an `Unsupported` error and sends no request. Its message names the provider, such as "Model
+listing is not available on OpenRouter." OpenRouter has its own models API. A `Custom` server's `GET v1/models` need not
+answer in TypeSafe's shape, so listing is off there too; a `Custom` server that does answer in that shape can switch the
+call on with `Capabilities.ModelListing = true`.
 
 As of October 2026, TypeSafe lists only the aliases, `jev-latest` for the newest stable release and `jev-preview` for
 the newest release of any kind. A versioned id such as `jev-1.13.0` is accepted as a `Model` too, listed or not, as

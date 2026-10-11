@@ -23,7 +23,7 @@ internal readonly record struct CapabilitySet(
         SystemOneProvider.TypeSafe => new(SystemOneQuestionKinds.All, null, 255, Images: false, ModelListing: true),
         SystemOneProvider.OpenRouter => new(SystemOneQuestionKinds.All, null, 255, Images: false, ModelListing: false),
         SystemOneProvider.VllmSemanticRouter => new(SystemOneQuestionKinds.All, null, null, Images: false, ModelListing: false),
-        _ => new(SystemOneQuestionKinds.All, null, null, Images: false, ModelListing: true),
+        _ => new(SystemOneQuestionKinds.All, null, null, Images: false, ModelListing: false),
     };
 
     /// <summary>Applies the overrides: each one set wins, each one left <see langword="null"/> keeps this value.</summary>

@@ -731,7 +731,7 @@ public sealed class ClientAndErrorsTests
         using var own = new AlwaysUrgent();
 
         Assert.Equal("All, no question limit, model listing off", CapabilityOptions.Describe(client));
-        Assert.Equal("Noul, no question limit, model listing on", CapabilityOptions.Describe(noul));
+        Assert.Equal("Noul, no question limit, model listing off", CapabilityOptions.Describe(noul));
         Assert.Equal("This client has no System One capabilities.", CapabilityOptions.Describe(own));
         Assert.NotSame(client.GetService<SystemOneCapabilities>(), client.GetService<SystemOneCapabilities>());
     }
@@ -739,7 +739,9 @@ public sealed class ClientAndErrorsTests
     [Fact]
     public async Task ModelListing_FollowsTheCapability_AndAnUnsupportedListSendsNothing()
     {
-        var (client, handler, http) = Direct(ProviderOptions.Custom(), Reply.Ok(ModelsResponse));
+        var options = ProviderOptions.Custom();
+        options.Capabilities = new SystemOneCapabilities { ModelListing = true };
+        var (client, handler, http) = Direct(options, Reply.Ok(ModelsResponse));
         using (http)
         using (handler)
         using (client)
@@ -749,9 +751,8 @@ public sealed class ClientAndErrorsTests
 
         Assert.Collection(handler.Requests, sent => Assert.Equal("http://localhost:8080/v1/models", sent.Uri!.AbsoluteUri));
 
-        var options = ProviderOptions.Custom();
-        options.Capabilities = new SystemOneCapabilities { ModelListing = false };
-        var (refused, refusedHandler, refusedHttp) = Direct(options, Reply.Ok(ModelsResponse));
+        // Custom's default is off: a self-hosted server's model list need not use TypeSafe's shape.
+        var (refused, refusedHandler, refusedHttp) = Direct(ProviderOptions.Custom(), Reply.Ok(ModelsResponse));
         using (refusedHttp)
         using (refusedHandler)
         using (refused)

@@ -14,8 +14,8 @@ namespace Minos.SystemOne;
 /// images, no model listing.</description></item>
 /// <item><description><see cref="SystemOneProvider.VllmSemanticRouter"/>: every kind, no question or option limit, no
 /// images, no model listing.</description></item>
-/// <item><description><see cref="SystemOneProvider.Custom"/>: every kind, no question or option limit, no images, model
-/// listing.</description></item>
+/// <item><description><see cref="SystemOneProvider.Custom"/>: every kind, no question or option limit, no images, no
+/// model listing, because a self-hosted server's <c>GET v1/models</c> need not use TypeSafe's shape.</description></item>
 /// </list>
 /// <para>
 /// A neutral, typed or built-set call whose question set breaks one is not sent: it returns a

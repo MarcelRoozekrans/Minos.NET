@@ -376,7 +376,7 @@ public sealed class SystemOneClient : IDecisionClient
 
     /// <summary>
     /// Lists the models and aliases available to the account, with <c>GET v1/models</c>, on a provider whose
-    /// <see cref="SystemOneCapabilities.ModelListing"/> is on: by default TypeSafe and <see cref="SystemOneProvider.Custom"/>.
+    /// <see cref="SystemOneCapabilities.ModelListing"/> is on: by default TypeSafe only.
     /// </summary>
     /// <param name="cancellationToken">Cancels the call; cancellation throws <see cref="OperationCanceledException"/>.</param>
     /// <returns>

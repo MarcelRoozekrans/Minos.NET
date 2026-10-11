@@ -44,7 +44,7 @@ internal static class CapabilityChecks
 
         var capabilities = client.GetService<SystemOneCapabilities>();
         Program.Check(
-            capabilities is { QuestionKinds: SystemOneQuestionKinds.Noul, MaxQuestions: null, MaxChoiceOptions: null, Images: false, ModelListing: true }
+            capabilities is { QuestionKinds: SystemOneQuestionKinds.Noul, MaxQuestions: null, MaxChoiceOptions: null, Images: false, ModelListing: false }
                 && !ReferenceEquals(capabilities, client.GetService<SystemOneCapabilities>()),
             "GetService returns the resolved capabilities as a new instance under Native AOT");
     }

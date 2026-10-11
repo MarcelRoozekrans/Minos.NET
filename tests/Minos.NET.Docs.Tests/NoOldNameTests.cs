@@ -78,6 +78,9 @@ public sealed partial class NoOldNameTests
 
         // The logo's design record quotes the brief as it was given, during the rename.
         new("docs/design/LOGO.md", null, LogoBriefRename()),
+
+        // The local-systemone workflow installs and runs the third-party ollajev server, which reads OLLAJEV_DEVICE.
+        new(".github/workflows/local-systemone.yml", null, LocalServerPackage()),
     ];
 
     [Fact]
@@ -290,4 +293,8 @@ public sealed partial class NoOldNameTests
 
     [GeneratedRegex(@"being renamed from ZeroAlloc\.Jev\b", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex LogoBriefRename();
+
+    // The third-party ollajev package and command, and the OLLAJEV_DEVICE variable it reads; not inside a longer word.
+    [GeneratedRegex(@"(?<![\w.])(?:ollajev|OLLAJEV_DEVICE)(?!\w)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex LocalServerPackage();
 }

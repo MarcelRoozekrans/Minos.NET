@@ -138,7 +138,7 @@ public sealed class CapabilityTests : IDisposable
     [InlineData(SystemOneProvider.TypeSafe, true)]
     [InlineData(SystemOneProvider.OpenRouter, false)]
     [InlineData(SystemOneProvider.VllmSemanticRouter, false)]
-    [InlineData(SystemOneProvider.Custom, true)]
+    [InlineData(SystemOneProvider.Custom, false)]
     public void Model_listing_follows_the_preset(SystemOneProvider provider, bool expected)
         => Assert.Equal(expected, CapabilitySet.For(provider).ModelListing);
 
@@ -148,7 +148,7 @@ public sealed class CapabilityTests : IDisposable
         Assert.Equal(new CapabilitySet(SystemOneQuestionKinds.All, null, 255, false, true), CapabilitySet.For(SystemOneProvider.TypeSafe));
         Assert.Equal(new CapabilitySet(SystemOneQuestionKinds.All, null, 255, false, false), CapabilitySet.For(SystemOneProvider.OpenRouter));
         Assert.Equal(new CapabilitySet(SystemOneQuestionKinds.All, null, null, false, false), CapabilitySet.For(SystemOneProvider.VllmSemanticRouter));
-        Assert.Equal(new CapabilitySet(SystemOneQuestionKinds.All, null, null, false, true), CapabilitySet.For(SystemOneProvider.Custom));
+        Assert.Equal(new CapabilitySet(SystemOneQuestionKinds.All, null, null, false, false), CapabilitySet.For(SystemOneProvider.Custom));
     }
 
     [Fact]
@@ -304,7 +304,7 @@ public sealed class CapabilityTests : IDisposable
         var second = client.GetService<SystemOneCapabilities>()!;
 
         Assert.Equal(
-            (SystemOneQuestionKinds.Noul, (int?)null, (int?)null, (bool?)false, (bool?)true),
+            (SystemOneQuestionKinds.Noul, (int?)null, (int?)null, (bool?)false, (bool?)false),
             (first.QuestionKinds, first.MaxQuestions, first.MaxChoiceOptions, first.Images, first.ModelListing));
         Assert.NotSame(first, second);
         first.MaxQuestions = 1;
@@ -322,6 +322,7 @@ public sealed class CapabilityTests : IDisposable
     [Theory]
     [InlineData(SystemOneProvider.VllmSemanticRouter, "Model listing is not available on VllmSemanticRouter.")]
     [InlineData(SystemOneProvider.OpenRouter, "Model listing is not available on OpenRouter.")]
+    [InlineData(SystemOneProvider.Custom, "Model listing is not available on Custom.")]
     public async Task ListModels_without_ModelListing_is_Unsupported_without_a_request(SystemOneProvider provider, string message)
     {
         var handler = StubHandler.Json(HttpStatusCode.OK, Fixture.Text("models.json"));
@@ -335,10 +336,18 @@ public sealed class CapabilityTests : IDisposable
     }
 
     [Fact]
-    public async Task ListModels_on_Custom_sends_GET_v1_models()
+    public async Task ListModels_on_Custom_with_listing_on_sends_GET_v1_models()
     {
         var handler = StubHandler.Json(HttpStatusCode.OK, Fixture.Text("models.json"));
-        using var client = Custom(handler, SystemOneQuestionKinds.All);
+        using var client = ClientTestKit.Client(
+            _httpClients,
+            handler,
+            provider: SystemOneProvider.Custom,
+            configure: options =>
+            {
+                Hosted(SystemOneProvider.Custom)(options);
+                options.Capabilities.ModelListing = true;
+            });
 
         var result = await client.ListModelsAsync();
 
