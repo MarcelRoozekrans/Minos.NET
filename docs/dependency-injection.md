@@ -419,7 +419,8 @@ public static OpenAIDecisionClientServiceBuilder AddBothProviders(IHostApplicati
 <!-- endSnippet -->
 
 - **The key is required.** Without `ApiKey` the client reads `OPENAI_API_KEY`, and the host fails at start-up when
-  neither is set. `BaseAddress` falls back on `OPENAI_BASE_URL`, then `https://api.openai.com/`.
+  neither is set. `BaseAddress` falls back on `OPENAI_BASE_URL`, then `https://api.openai.com/v1/`. It is the
+  versioned API root, as in OpenAI's official SDKs: requests go to `decisions` under it.
 - **Configuration binds the same way.** The keys are the property names of `OpenAIDecisionClientOptions`, such as
   `ApiKey`, `Model` and `Capabilities:QuestionKinds`.
 - **A name holds one provider.** Registering the same name with `AddSystemOneClient` and `AddOpenAIDecisionClient`

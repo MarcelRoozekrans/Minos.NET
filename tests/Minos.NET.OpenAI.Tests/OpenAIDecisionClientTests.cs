@@ -47,6 +47,20 @@ public sealed class OpenAIDecisionClientTests : IDisposable
         Assert.Equal(0, pool.Outstanding);
     }
 
+    // The base address is the versioned root, as in OpenAI's SDKs, so a proxy's own path prefix is kept.
+    [Fact]
+    public async Task VersionedBaseAddress_WithAPathPrefix_PostsToDecisionsUnderIt()
+    {
+        var handler = new StubHandler((_, _) => Task.FromResult(Success()));
+        using var client = new OpenAIDecisionClient(
+            Settings(o => o.BaseAddress = new Uri("https://proxy.example/openai/v1")), httpClient: null, handler, TimeProvider.System, new CountingPool(), logger: null);
+
+        var result = await client.EvaluateAsync<TicketCheck>("I was charged twice.");
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
+        Assert.Equal(new Uri("https://proxy.example/openai/v1/decisions"), OnlyRequest(handler).Uri);
+    }
+
     [Fact]
     public void Metadata_NamesOpenAI_TheEndpointAndTheModel()
     {
@@ -57,9 +71,9 @@ public sealed class OpenAIDecisionClientTests : IDisposable
 
         Assert.NotNull(metadata);
         Assert.Equal("openai", metadata.ProviderName);
-        Assert.Equal(new Uri("https://api.openai.com/"), metadata.Endpoint);
+        Assert.Equal(new Uri("https://api.openai.com/v1/"), metadata.Endpoint);
         Assert.Equal(TestModel, metadata.DefaultModel);
-        Assert.Equal(new Uri("https://api.openai.com/"), defaults.GetService<DecisionClientMetadata>()!.Endpoint);
+        Assert.Equal(new Uri("https://api.openai.com/v1/"), defaults.GetService<DecisionClientMetadata>()!.Endpoint);
     }
 
     [Fact]
@@ -249,7 +263,7 @@ public sealed class OpenAIDecisionClientTests : IDisposable
 
         using var client = new OpenAIDecisionClient(http, new OpenAIDecisionClientOptions { ApiKey = "k" });
 
-        Assert.Equal(new Uri("https://api.openai.com/"), http.BaseAddress);
+        Assert.Equal(new Uri("https://api.openai.com/v1/"), http.BaseAddress);
     }
 
     [Fact]

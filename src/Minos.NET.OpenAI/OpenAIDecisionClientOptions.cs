@@ -16,12 +16,13 @@ public sealed class OpenAIDecisionClientOptions
     public string? ApiKey { get; set; }
 
     /// <summary>
-    /// Gets or sets the API root, for a proxy or a test server. When unset, the client reads
-    /// <see cref="OpenAIDefaults.BaseAddressEnvironmentVariable"/>, then uses <see cref="OpenAIDefaults.BaseAddress"/>.
-    /// Requests go to <c>v1/decisions</c> under it. It must be an absolute http or https URI without a query or fragment;
-    /// a trailing '/' is added when missing. An <see cref="HttpClient"/> passed to an <see cref="OpenAIDecisionClient"/>
-    /// constructor with its own <see cref="HttpClient.BaseAddress"/> wins over this option; that address must then be the
-    /// full API root.
+    /// Gets or sets the versioned API root, for a proxy or a test server. When unset, the client reads
+    /// <see cref="OpenAIDefaults.BaseAddressEnvironmentVariable"/>, then uses <see cref="OpenAIDefaults.BaseAddress"/>,
+    /// <c>https://api.openai.com/v1/</c>. As in OpenAI's official SDKs, the root includes the API version: requests go to
+    /// <c>decisions</c> under it, so a proxy is set as <c>https://proxy.example/v1</c>. It must be an absolute http or
+    /// https URI without a query or fragment; a trailing '/' is added when missing. An <see cref="HttpClient"/> passed to
+    /// an <see cref="OpenAIDecisionClient"/> constructor with its own <see cref="HttpClient.BaseAddress"/> wins over this
+    /// option; that address must then be the full versioned API root.
     /// </summary>
     public Uri? BaseAddress { get; set; }
 

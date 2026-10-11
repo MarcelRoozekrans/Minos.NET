@@ -125,8 +125,8 @@ Remove the source when you switch to the published packages: `dotnet nuget remov
 | `SystemOneProvider.Custom`              | the `BaseAddress` you set           | none                   |
 
 OpenAI's Decisions API is not one of these. It has its own client, `OpenAIDecisionClient`, which sends to
-`https://api.openai.com/` and reads `OPENAI_API_KEY`; [OpenAI](client-and-errors.md#openai) shows it, and [provider
-differences](client-and-errors.md#provider-differences) compares it with the presets.
+`https://api.openai.com/v1/decisions` and reads `OPENAI_API_KEY`; [OpenAI](client-and-errors.md#openai) shows it, and
+[provider differences](client-and-errors.md#provider-differences) compares it with the presets.
 
 `TypeSafe` is the default. Set `ApiKey` on the options, or leave it unset and the client reads the matching environment
 variable. `VllmSemanticRouter` and `Custom` read none and send no key unless you set `ApiKey`. The

@@ -36,7 +36,7 @@ public sealed class ProvidersTests
         Assert.Equal("openai", metadata.ProviderName);
         Assert.Equal(OpenAIDefaults.Model, metadata.DefaultModel);
         Assert.Equal("gpt-6-luna", OpenAIDefaults.Model);
-        Assert.Equal(new Uri("https://api.openai.com/"), OpenAIDefaults.BaseAddress);
+        Assert.Equal(new Uri("https://api.openai.com/v1/"), OpenAIDefaults.BaseAddress);
         Assert.Null(client.GetService<SystemOneClient>());
     }
 
@@ -235,7 +235,7 @@ public sealed class ProvidersTests
     private static (HttpClient Http, OpenAIDecisionClient Client, ScriptedDecision.Handler Handler) OpenAI(params Reply[] script)
     {
         var handler = new ScriptedDecision.Handler(script);
-        var http = new HttpClient(handler, disposeHandler: false) { BaseAddress = new Uri("https://docs.example/") };
+        var http = new HttpClient(handler, disposeHandler: false) { BaseAddress = new Uri("https://docs.example/v1/") };
         var options = new OpenAIDecisionClientOptions { ApiKey = "docs-key", MaxRetries = 2, InitialBackoff = TimeSpan.FromMilliseconds(1), MaxRetryDelay = TimeSpan.FromMilliseconds(5) };
         OpenAIDecisionClient.ConfigureHttpClient(http, options);
         return (http, new OpenAIDecisionClient(http, options), handler);

@@ -32,7 +32,7 @@ public sealed class OpenAIRegistrationTests
     {
         var handler = StubHandler.Json(HttpStatusCode.OK, Answer);
         var services = new ServiceCollection();
-        services.AddOpenAIDecisionClient(OpenAIOptions("http://default.local/api")).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
+        services.AddOpenAIDecisionClient(OpenAIOptions("http://default.local/api/v1")).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
         using var provider = services.BuildServiceProvider();
 
         var result = await provider.GetRequiredService<IDecisionClient>().EvaluateAsync(OneNoul(), "Help!");
@@ -261,6 +261,6 @@ public sealed class OpenAIRegistrationEnvironmentTests
 
         var client = provider.GetRequiredService<IDecisionClient>();
 
-        Assert.Equal(new Uri("https://api.openai.com/"), client.GetService<DecisionClientMetadata>()!.Endpoint);
+        Assert.Equal(new Uri("https://api.openai.com/v1/"), client.GetService<DecisionClientMetadata>()!.Endpoint);
     }
 }

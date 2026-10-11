@@ -22,7 +22,7 @@ internal interface IOpenAIDecisionsApi
     /// <see cref="RawJson"/> values.
     /// </summary>
     /// <remarks>
-    /// <c>{**path}</c> escapes each segment and keeps the <c>/</c> between them, so <c>v1/decisions</c> is sent as is.
+    /// <c>{**path}</c> escapes each segment and keeps the <c>/</c> between them, so <c>decisions</c> is sent as is, under the base address's own path.
     /// </remarks>
     [Post("{**path}")]
     [Serializer(typeof(DecisionRawSerializer))]

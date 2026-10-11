@@ -15,8 +15,8 @@ public sealed class OpenAIClientSettingsTests
 
         Assert.Equal("env-key", settings.ApiKey);
         Assert.Equal("Bearer env-key", settings.Authorization);
-        Assert.Equal(new Uri("https://api.openai.com/"), settings.BaseAddress);
-        Assert.Equal("v1/decisions", OpenAIClientSettings.Path);
+        Assert.Equal(new Uri("https://api.openai.com/v1/"), settings.BaseAddress);
+        Assert.Equal("decisions", OpenAIClientSettings.Path);
         Assert.Equal("gpt-6-luna", settings.Model);
         Assert.Equal(TimeSpan.FromSeconds(60), settings.Timeout);
         Assert.Equal(2, settings.MaxRetries);
@@ -32,7 +32,7 @@ public sealed class OpenAIClientSettingsTests
         Assert.Equal("OPENAI_API_KEY", OpenAIDefaults.ApiKeyEnvironmentVariable);
         Assert.Equal("OPENAI_BASE_URL", OpenAIDefaults.BaseAddressEnvironmentVariable);
         Assert.Equal("gpt-6-luna", OpenAIDefaults.Model);
-        Assert.Equal(new Uri("https://api.openai.com/"), OpenAIDefaults.BaseAddress);
+        Assert.Equal(new Uri("https://api.openai.com/v1/"), OpenAIDefaults.BaseAddress);
     }
 
     [Fact]
@@ -87,7 +87,7 @@ public sealed class OpenAIClientSettingsTests
 
     [Fact]
     public void BaseAddressEnvironment_WinsOverTheDefault_AndGetsATrailingSlash()
-        => Assert.Equal(new Uri("http://env.local/v1proxy/"), Resolve(Keyed(), ("OPENAI_BASE_URL", "http://env.local/v1proxy")).BaseAddress);
+        => Assert.Equal(new Uri("http://env.local/openai/v1/"), Resolve(Keyed(), ("OPENAI_BASE_URL", "http://env.local/openai/v1")).BaseAddress);
 
     [Fact]
     public void BaseAddressOption_GetsATrailingSlash()

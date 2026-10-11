@@ -52,7 +52,7 @@ internal static class SmokeAssert
     public static EnvironmentScope OpenAIEnvironment()
         => new(
             (OpenAIDefaults.ApiKeyEnvironmentVariable, "smoke-key"),
-            (OpenAIDefaults.BaseAddressEnvironmentVariable, "https://example.test/api/"));
+            (OpenAIDefaults.BaseAddressEnvironmentVariable, "https://example.test/v1/"));
 
     /// <summary>Removes the OpenAI key environment variable until disposed, then restores it.</summary>
     public static EnvironmentScope NoOpenAIKeyEnvironment() => new((OpenAIDefaults.ApiKeyEnvironmentVariable, null));

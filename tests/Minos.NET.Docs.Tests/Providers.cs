@@ -9,7 +9,7 @@ using Minos.OpenAI;
 public static class OpenAIClients
 {
     // The key is required. Without ApiKey the client reads OPENAI_API_KEY, and without a key it throws when it is
-    // created. The model defaults to gpt-6-luna and the address to https://api.openai.com/.
+    // created. The model defaults to gpt-6-luna and the address to https://api.openai.com/v1/.
     public static OpenAIDecisionClient Create(string apiKey)
         => new(new OpenAIDecisionClientOptions { ApiKey = apiKey });
 

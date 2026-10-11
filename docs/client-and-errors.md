@@ -244,8 +244,9 @@ public static SystemOneClientOptions Custom()
 > formal schema, error body, limits or usage object. It has not yet run against the live API, and the format may change
 > during the beta.
 
-`OpenAIDecisionClient` sends a question set to `POST v1/decisions`. It is in its own package and the `Minos.OpenAI`
-namespace. Like `Minos.NET.SystemOne`, the package brings `Minos.NET` and `Minos.NET.DependencyInjection`.
+`OpenAIDecisionClient` sends a question set to `POST /v1/decisions`, the `decisions` path under its versioned base
+address. It is in its own package and the `Minos.OpenAI` namespace. Like `Minos.NET.SystemOne`, the package brings
+`Minos.NET` and `Minos.NET.DependencyInjection`.
 
 ```shell
 dotnet add package Minos.NET.OpenAI
@@ -259,7 +260,7 @@ using Minos.OpenAI;
 public static class OpenAIClients
 {
     // The key is required. Without ApiKey the client reads OPENAI_API_KEY, and without a key it throws when it is
-    // created. The model defaults to gpt-6-luna and the address to https://api.openai.com/.
+    // created. The model defaults to gpt-6-luna and the address to https://api.openai.com/v1/.
     public static OpenAIDecisionClient Create(string apiKey)
         => new(new OpenAIDecisionClientOptions { ApiKey = apiKey });
 
@@ -282,7 +283,7 @@ public static class OpenAIClients
 | Property | Default | What it does |
 | --- | --- | --- |
 | `ApiKey` | none; the client reads `OPENAI_API_KEY` | The key sent as a bearer token. A key is required: without one the client throws `InvalidOperationException` when it is created, or the host fails at start-up. |
-| `BaseAddress` | `OPENAI_BASE_URL`, then `https://api.openai.com/` | The API root, for a proxy or a test server. Requests go to `v1/decisions` under it. |
+| `BaseAddress` | `OPENAI_BASE_URL`, then `https://api.openai.com/v1/` | The versioned API root, for a proxy or a test server. Requests go to `decisions` under it. As in OpenAI's official SDKs, the root includes `/v1`, so a proxy is set as `https://proxy.example/v1`, and `OPENAI_BASE_URL` set for another OpenAI tool works unchanged. |
 | `Model` | `gpt-6-luna` | The model a request without its own asks. `gpt-6-luna` is the only model OpenAI's guide names. |
 | `Capabilities` | OpenAI's, see [The defaults](#the-defaults) | What the API accepts, checked before a request is sent. |
 | `Timeout`, `MaxRetries`, `InitialBackoff`, `MaxRetryDelay`, `Jitter`, `UseStandardPipeline` | as on `SystemOneClientOptions` | The same meaning, defaults and valid values as in [Options](#options). |

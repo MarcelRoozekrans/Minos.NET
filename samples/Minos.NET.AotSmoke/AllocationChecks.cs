@@ -277,7 +277,7 @@ internal static class AllocationChecks
     /// <summary>A typed three-kind call over an <see cref="OpenAIDecisionClient"/>: a predicate, a choice and a score.</summary>
     public static void OpenAITypedRoundTrip()
     {
-        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, OpenAIChecks.TriageResponse)) { BaseAddress = new Uri("https://example.test/api/") };
+        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, OpenAIChecks.TriageResponse)) { BaseAddress = new Uri("https://example.test/v1/") };
         using var client = new OpenAIDecisionClient(http, new OpenAIDecisionClientOptions { ApiKey = "smoke-key" });
 
         // Measured 3400 B/call on published win-x64 AOT. Budget: about 10% headroom over the measurement,
@@ -292,7 +292,7 @@ internal static class AllocationChecks
     /// <summary>A typed Noul call with one 64 B image over an <see cref="OpenAIDecisionClient"/>: the call <see cref="SystemOneImageRoundTrip"/> makes over a SystemOneClient.</summary>
     public static void OpenAIImageRoundTrip()
     {
-        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, OpenAIChecks.CredentialsResponse)) { BaseAddress = new Uri("https://example.test/api/") };
+        using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, OpenAIChecks.CredentialsResponse)) { BaseAddress = new Uri("https://example.test/v1/") };
         using var client = new OpenAIDecisionClient(http, new OpenAIDecisionClientOptions { ApiKey = "smoke-key" });
         var state = new SmokeState("Payouts failing", SmokeAnswers.State);
         var png = new byte[64];

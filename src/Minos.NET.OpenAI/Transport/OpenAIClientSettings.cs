@@ -8,8 +8,11 @@ namespace Minos.OpenAI.Transport;
 /// </summary>
 internal sealed class OpenAIClientSettings
 {
-    /// <summary>The path every request posts to, relative to <see cref="BaseAddress"/>.</summary>
-    public const string Path = "v1/decisions";
+    /// <summary>
+    /// The path every request posts to, relative to <see cref="BaseAddress"/>, the versioned API root. Relative, so a
+    /// base such as <c>https://proxy.example/openai/v1/</c> keeps its path.
+    /// </summary>
+    public const string Path = "decisions";
 
     /// <summary>The provider's name in capability and unsupported-request messages.</summary>
     public const string ProviderLabel = "OpenAI";
@@ -47,7 +50,7 @@ internal sealed class OpenAIClientSettings
     /// <remarks>Built once here, so no call allocates it.</remarks>
     public string Authorization { get; }
 
-    /// <summary>Gets the API root, ending in '/'.</summary>
+    /// <summary>Gets the versioned API root, ending in '/'.</summary>
     public Uri BaseAddress { get; }
 
     /// <summary>Gets the resolved default model: the option, trimmed, or <see cref="OpenAIDefaults.Model"/>.</summary>

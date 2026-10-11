@@ -26,7 +26,7 @@ internal static class OpenAIChecks
 
     /// <summary>Gets an <see cref="HttpClient"/> over a canned handler, with the base address a client over it needs.</summary>
     internal static HttpClient Http(string body, HttpStatusCode status = HttpStatusCode.OK)
-        => new(new CannedHandler(status, body)) { BaseAddress = new Uri("https://example.test/api/") };
+        => new(new CannedHandler(status, body)) { BaseAddress = new Uri("https://example.test/v1/") };
 
     [Covers("Minos.OpenAI.OpenAIDecisionClient.OpenAIDecisionClient() -> void")]
     [Covers("Minos.OpenAI.OpenAIDecisionClient.OpenAIDecisionClient(Minos.OpenAI.OpenAIDecisionClientOptions? options) -> void")]
@@ -142,12 +142,12 @@ internal static class OpenAIChecks
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, CredentialsResponse));
         OpenAIDecisionClient.ConfigureHttpClient(http, new OpenAIDecisionClientOptions { Timeout = TimeSpan.FromSeconds(7) });
         using var custom = new HttpClient(new CannedHandler(HttpStatusCode.OK, CredentialsResponse));
-        OpenAIDecisionClient.ConfigureHttpClient(custom, new OpenAIDecisionClientOptions { BaseAddress = new Uri("https://example.test/api/") });
+        OpenAIDecisionClient.ConfigureHttpClient(custom, new OpenAIDecisionClientOptions { BaseAddress = new Uri("https://example.test/v1/") });
 
         Program.Check(
             http.BaseAddress == OpenAIDefaults.BaseAddress
                 && http.Timeout == TimeSpan.FromSeconds(7)
-                && custom.BaseAddress == new Uri("https://example.test/api/")
+                && custom.BaseAddress == new Uri("https://example.test/v1/")
                 && OpenAIDefaults.Model.Length > 0,
             "OpenAIDecisionClient.ConfigureHttpClient applies the base address and timeout, and defaults to OpenAI's, under Native AOT");
 
@@ -164,7 +164,7 @@ internal static class OpenAIChecks
             .AddOpenAIDecisionClient(options =>
             {
                 options.ApiKey = "smoke-key";
-                options.BaseAddress = new Uri("https://example.test/api/");
+                options.BaseAddress = new Uri("https://example.test/v1/");
             })
             .HttpClient.ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, CredentialsResponse));
 
@@ -178,7 +178,7 @@ internal static class OpenAIChecks
             .AddOpenAIDecisionClient("secondary", options =>
             {
                 options.ApiKey = "smoke-secondary-key";
-                options.BaseAddress = new Uri("https://secondary.example.test/api/");
+                options.BaseAddress = new Uri("https://secondary.example.test/v1/");
             })
             .HttpClient.ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, CredentialsResponse));
         using var provider = services.BuildServiceProvider();
@@ -203,7 +203,7 @@ internal static class OpenAIChecks
             .AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.Ordinal)
             {
                 ["OpenAI:ApiKey"] = "smoke-key",
-                ["OpenAI:BaseAddress"] = "https://example.test/api/",
+                ["OpenAI:BaseAddress"] = "https://example.test/v1/",
                 ["OpenAI:Timeout"] = "00:00:30",
                 ["OpenAI:MaxRetries"] = "3",
                 ["OpenAI:InitialBackoff"] = "00:00:00.250",
@@ -211,7 +211,7 @@ internal static class OpenAIChecks
                 ["OpenAI:Jitter"] = "false",
                 ["OpenAI:Model"] = "smoke-model",
                 ["Secondary:ApiKey"] = "smoke-secondary-key",
-                ["Secondary:BaseAddress"] = "https://secondary.example.test/api/",
+                ["Secondary:BaseAddress"] = "https://secondary.example.test/v1/",
             })
             .Build();
 
@@ -237,10 +237,10 @@ internal static class OpenAIChecks
                 && defaults.Timeout == TimeSpan.FromSeconds(30)
                 && defaults.InitialBackoff == TimeSpan.FromMilliseconds(250)
                 && defaults.MaxRetryDelay == TimeSpan.FromSeconds(10)
-                && defaults.BaseAddress == new Uri("https://example.test/api/"),
+                && defaults.BaseAddress == new Uri("https://example.test/v1/"),
             "AddOpenAIDecisionClient binds every default client setting from configuration under Native AOT");
         Program.Check(
-            keyed is { ApiKey: "smoke-secondary-key" } && keyed.BaseAddress == new Uri("https://secondary.example.test/api/"),
+            keyed is { ApiKey: "smoke-secondary-key" } && keyed.BaseAddress == new Uri("https://secondary.example.test/v1/"),
             "AddOpenAIDecisionClient binds a keyed client's own section under Native AOT");
 
         var request = new DecisionRequest(SmokeStateTriage.Definition, SmokeAnswers.State);
