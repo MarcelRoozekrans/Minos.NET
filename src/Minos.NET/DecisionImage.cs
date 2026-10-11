@@ -13,18 +13,22 @@ public readonly struct DecisionImage : IEquatable<DecisionImage>
 {
     private static readonly string[] SupportedTypes = ["image/png", "image/jpeg", "image/webp", "image/gif"];
 
+    private readonly string? _mediaType;
     private readonly byte[]? _data;
 
     private DecisionImage(string mediaType, byte[] data)
     {
-        MediaType = mediaType;
+        _mediaType = mediaType;
         _data = data;
     }
 
-    /// <summary>Gets the media type, such as <c>image/png</c>.</summary>
-    public string MediaType { get; }
+    /// <summary>
+    /// Gets the media type, such as <c>image/png</c>. An uninitialized <see cref="DecisionImage"/>, the
+    /// <see langword="default"/> value, has an empty media type and no data; <see cref="DecisionRequest.Images"/> rejects it.
+    /// </summary>
+    public string MediaType => _mediaType ?? string.Empty;
 
-    /// <summary>Gets the image bytes.</summary>
+    /// <summary>Gets the image bytes; empty for the <see langword="default"/> value.</summary>
     public ReadOnlyMemory<byte> Data => _data;
 
     internal bool IsInitialized => _data is not null;

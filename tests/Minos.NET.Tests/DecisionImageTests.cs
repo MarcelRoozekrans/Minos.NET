@@ -111,6 +111,18 @@ public sealed class DecisionImageTests
         Assert.Equal("data:image/webp;base64,+/8=".Length, image.DataUrlLength);
     }
 
+    // MediaType is declared non-null, so the default value reports an empty string rather than null.
+    [Fact]
+    public void Default_HasAnEmptyMediaTypeAndNoData()
+    {
+        var image = default(DecisionImage);
+
+        Assert.Equal(string.Empty, image.MediaType);
+        Assert.True(image.Data.IsEmpty);
+        Assert.False(image.IsInitialized);
+        Assert.Equal(default(DecisionImage).GetHashCode(), image.GetHashCode());
+    }
+
     [Fact]
     public void Default_IsRejectedByTheRequest()
         => Assert.Throws<ArgumentException>("value", () => new DecisionRequest(QuestionSets.UrgencyDefinition(), DecisionContent.FromString("s")) { Images = [default] });
