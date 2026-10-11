@@ -11,7 +11,10 @@ using ZeroAlloc.Results;
 
 namespace Minos.SystemOne;
 
-/// <summary>Calls TypeSafe's Jev System One API, directly or through OpenRouter.</summary>
+/// <summary>
+/// Calls a Jev System One API: TypeSafe's, directly or through OpenRouter, Cloudflare Workers AI, a vLLM Semantic Router, or
+/// another server that speaks the <c>/v1/systemone</c> protocol. <see cref="SystemOneClientOptions.Provider"/> picks one.
+/// </summary>
 /// <remarks>
 /// Thread-safe. Create one per application and reuse it; dispose it when the application stops. Pass an
 /// <see cref="ILoggerFactory"/> to log each operation, each retried attempt and each unexpected exception; a neutral
@@ -199,7 +202,7 @@ public sealed class SystemOneClient : IDecisionClient
             MaxRetryDelay = settings.MaxRetryDelay,
             Jitter = settings.Jitter,
         };
-        _providerName = SystemOneTelemetry.ProviderOf(settings.Provider);
+        _providerName = settings.ProviderName;
         _endpoint = httpClient.BaseAddress!;
         _logger = logger;
         // A disposed client never retries. Only an owned HttpClient is disposed with the client, so only an owned one can
@@ -212,11 +215,10 @@ public sealed class SystemOneClient : IDecisionClient
             new DecisionRawSerializer(pool),
             new DecisionErrorMapper(time, _ownedHttpClient is null ? null : disposed, SystemOneProtocol.Instance));
         _metadata = new DecisionClientMetadata(_providerName, _endpoint, settings.Model);
-        var authorization = "Bearer " + settings.ApiKey;
 
         // The standard chain, outermost first: one span over every attempt, one outcome log inside it, then retries. Each
         // stage reads the metadata through GetService, which the chain answers from the transport at its bottom.
-        IDecisionClient pipeline = new DecisionTransport(api, SystemOneProtocol.Instance, authorization, _metadata, pool, disposed);
+        IDecisionClient pipeline = new DecisionTransport(api, SystemOneProtocol.Instance, settings, _metadata, pool, disposed);
         DecisionRetry? rawRetry = null;
         if (settings.UseStandardPipeline)
         {
@@ -235,7 +237,7 @@ public sealed class SystemOneClient : IDecisionClient
         _pipeline = pipeline;
 
         // Always wired: with nothing listening, the generated proxy returns each operation's own task.
-        _operations = new DecisionOperationsInstrumented(new DecisionOperations(api, authorization, rawRetry, disposed));
+        _operations = new DecisionOperationsInstrumented(new DecisionOperations(api, settings, rawRetry, disposed));
     }
 
     /// <summary>
@@ -246,13 +248,17 @@ public sealed class SystemOneClient : IDecisionClient
     /// <param name="options">The configuration; <see langword="null"/> uses defaults and environment variables.</param>
     /// <remarks>
     /// Sets <see cref="HttpClient.BaseAddress"/> from <see cref="SystemOneClientOptions.BaseAddress"/>, the
-    /// <see cref="SystemOneDefaults.BaseAddressEnvironmentVariable"/> environment variable or the provider's default, only when
+    /// <see cref="SystemOneDefaults.BaseAddressEnvironmentVariable"/> environment variable or the provider's default, with
+    /// Cloudflare's account segment appended for <see cref="SystemOneProvider.CloudflareWorkersAi"/>, only when
     /// <paramref name="httpClient"/> has none. Sets <see cref="HttpClient.Timeout"/> to <see cref="SystemOneClientOptions.Timeout"/>,
     /// the per-attempt time-out, and adds the <c>Minos.NET</c> User-Agent unless it is already there. It reads no
     /// API key, so it can run before one is configured.
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="httpClient"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException">The provider, the time-out or the base address option is invalid.</exception>
+    /// <exception cref="ArgumentException">
+    /// The provider, the time-out or the base address option is invalid, or the base address or the Cloudflare account id
+    /// the provider needs is missing or invalid.
+    /// </exception>
     /// <exception cref="InvalidOperationException">The base address environment variable is invalid, or <paramref name="httpClient"/> has already sent a request.</exception>
     public static void ConfigureHttpClient(HttpClient httpClient, SystemOneClientOptions? options)
         => ConfigureHttpClient(httpClient, options, Environment.GetEnvironmentVariable);
@@ -433,8 +439,7 @@ public sealed class SystemOneClient : IDecisionClient
             var durationMs = DecisionLog.ElapsedMilliseconds(started);
             if (result.IsSuccess)
             {
-                var providerName = ProviderName(_provider);
-                DecisionLog.EvaluationSucceeded(logger, SystemOneLog.Evaluate, model, providerName, questionCount, durationMs);
+                DecisionLog.EvaluationSucceeded(logger, SystemOneLog.Evaluate, model, _providerName, questionCount, durationMs);
             }
             else
             {
@@ -451,9 +456,6 @@ public sealed class SystemOneClient : IDecisionClient
         }
     }
 
-    private static string ProviderName(SystemOneProvider provider)
-        => provider == SystemOneProvider.OpenRouter ? nameof(SystemOneProvider.OpenRouter) : nameof(SystemOneProvider.TypeSafe);
-
     private ValueTask<Result<ModelList, DecisionError>> WithModelLogging(
         ValueTask<Result<ModelList, DecisionError>> call, long started, CancellationToken ct)
         => _logger is { } logger && DecisionLog.IsAnyEnabled(logger) ? LogModelsAsync(logger, call, started, ct) : call;
@@ -465,17 +467,16 @@ public sealed class SystemOneClient : IDecisionClient
         {
             var result = await call.ConfigureAwait(false);
             var durationMs = DecisionLog.ElapsedMilliseconds(started);
-            var providerName = ProviderName(_provider);
             if (result.IsSuccess)
             {
                 var modelCount = result.Value.Models.Count;
-                SystemOneLog.ModelsListed(logger, providerName, modelCount, durationMs);
+                SystemOneLog.ModelsListed(logger, _providerName, modelCount, durationMs);
             }
             else
             {
                 var error = result.Error;
                 var message = DecisionLog.SafeMessage(error);
-                SystemOneLog.ModelsListFailed(logger, providerName, error.Kind, error.StatusCode, durationMs, message);
+                SystemOneLog.ModelsListFailed(logger, _providerName, error.Kind, error.StatusCode, durationMs, message);
             }
 
             return result;

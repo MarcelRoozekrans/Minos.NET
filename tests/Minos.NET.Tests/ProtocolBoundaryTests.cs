@@ -1,5 +1,4 @@
 using System.Runtime.CompilerServices;
-using Minos.SystemOne.Protocols;
 
 namespace Minos.Tests;
 
@@ -39,19 +38,15 @@ public sealed class ProtocolBoundaryTests
     }
 
     [Fact]
-    public void TheSystemOneProtocolOwnsTheEndpointPath()
-        => Assert.Equal("v1/systemone", SystemOneProtocol.Instance.EndpointPath);
-
-    [Fact]
     public void TheCoreNamesNoEndpointPath()
         => Assert.Empty(SourceFiles("Minos.NET").Where(f => f.Text.Contains("\"v1/systemone\"", StringComparison.Ordinal)).Select(f => f.Path));
 
-    // Transport/IDecisionApi.cs keeps the literal for its Post attribute: the raw call stays, and Phase 6.3 adds the neutral one.
+    // The resolved settings own the request path, per preset; every call, raw or neutral, takes it from them.
     [Fact]
-    public void OnlyTheProtocolAndTheApiInterfaceNameTheEndpointPath()
+    public void OnlyTheSettingsNameTheEndpointPath()
     {
         var offenders = SourceFiles("Minos.NET.SystemOne")
-            .Where(f => !f.Path.StartsWith("Protocols/", StringComparison.Ordinal) && !string.Equals(f.Path, "Transport/IDecisionApi.cs", StringComparison.Ordinal))
+            .Where(f => !string.Equals(f.Path, "Transport/SystemOneClientSettings.cs", StringComparison.Ordinal))
             .Where(f => f.Text.Contains("\"v1/systemone\"", StringComparison.Ordinal))
             .Select(f => f.Path)
             .ToList();

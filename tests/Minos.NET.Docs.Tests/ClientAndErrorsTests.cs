@@ -235,6 +235,7 @@ public sealed class ClientAndErrorsTests
         Assert.Equal(defaults.UseStandardPipeline, spelledOut.UseStandardPipeline);
         Assert.Null(defaults.ApiKey);
         Assert.Null(defaults.BaseAddress);
+        Assert.Null(defaults.Model);
         Assert.Equal("jev-latest", SystemOneDefaults.Model);
     }
 
@@ -523,6 +524,9 @@ public sealed class ClientAndErrorsTests
         Assert.Equal(SystemOneDefaults.Model, values[nameof(SystemOneDefaults.Model)]);
         Assert.Equal(SystemOneDefaults.TypeSafeBaseAddress.ToString(), values[nameof(SystemOneDefaults.TypeSafeBaseAddress)]);
         Assert.Equal(SystemOneDefaults.OpenRouterBaseAddress.ToString(), values[nameof(SystemOneDefaults.OpenRouterBaseAddress)]);
+        Assert.Equal(SystemOneDefaults.CloudflareApiTokenEnvironmentVariable, values[nameof(SystemOneDefaults.CloudflareApiTokenEnvironmentVariable)]);
+        Assert.Equal(SystemOneDefaults.CloudflareAccountIdEnvironmentVariable, values[nameof(SystemOneDefaults.CloudflareAccountIdEnvironmentVariable)]);
+        Assert.Equal(SystemOneDefaults.CloudflareBaseAddress.ToString(), values[nameof(SystemOneDefaults.CloudflareBaseAddress)]);
     }
 
     // The kinds table lists every member of the enum, with the same name.

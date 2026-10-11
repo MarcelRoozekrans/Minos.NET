@@ -31,8 +31,6 @@ internal sealed class SystemOneProtocol : IDecisionProtocol
         where TArg : allows ref struct
         => SystemOneRequestWriter.Write(QuestionsJson(definition), state, stateSizeHint, writeState, model, pool);
 
-    public string EndpointPath => "v1/systemone";
-
     public Result<DecisionResponse, DecisionError> ReadResponse(ReadOnlySpan<byte> body, QuestionSetDefinition definition)
         => SystemOneResponseReader.Read(this, body, definition);
 

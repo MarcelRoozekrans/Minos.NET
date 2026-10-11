@@ -114,13 +114,12 @@ is here so the table above has code to match.
 ```cs
 // Every option set to the value it has when you leave it out, apart from the API key, which has no default:
 // without one, the client reads TYPESAFE_API_KEY, or OPENROUTER_API_KEY for OpenRouter.
-// BaseAddress is also left out: it defaults to the provider's own address.
+// BaseAddress and Model are also left out: they default to the provider's own address and model, jev-latest for TypeSafe.
 public static SystemOneClientOptions SpelledOut(string apiKey)
     => new()
     {
         ApiKey = apiKey,
         Provider = SystemOneProvider.TypeSafe,
-        Model = "jev-latest",
         Timeout = TimeSpan.FromSeconds(60),
         MaxRetries = 2,
         InitialBackoff = TimeSpan.FromMilliseconds(500),
@@ -147,6 +146,9 @@ message.
 | `Model` | `jev-latest` | The model alias used when a request does not name one. A property, so a changed default is not compiled into your code. |
 | `TypeSafeBaseAddress` | `https://api.typesafe.ai/` | The root address of TypeSafe's API. A property. |
 | `OpenRouterBaseAddress` | `https://openrouter.ai/api/` | The root address of OpenRouter's System One API. A property. |
+| `CloudflareApiTokenEnvironmentVariable` | `CLOUDFLARE_API_TOKEN` | The variable a Cloudflare API token is read from. |
+| `CloudflareAccountIdEnvironmentVariable` | `CLOUDFLARE_ACCOUNT_ID` | The variable a Cloudflare account id is read from. |
+| `CloudflareBaseAddress` | `https://api.cloudflare.com/client/v4/` | The root address of Cloudflare's API; the account segment is appended to it. A property. |
 
 ### Checking options early
 

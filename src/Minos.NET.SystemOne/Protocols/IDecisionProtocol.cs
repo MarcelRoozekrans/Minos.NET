@@ -20,14 +20,6 @@ internal interface IDecisionProtocol
     /// <exception cref="JsonException">An answer is missing, has the wrong type, names an unknown option or level, or lacks a required field.</exception>
     TResult ReadAnswers<TResult>(ref Utf8JsonReader answers, QuestionSetDefinition definition, AnswerFactory<TResult> create);
 
-    /// <summary>Gets the path, relative to the client's base address, that requests are POSTed to.</summary>
-    /// <remarks>
-    /// It must not start with <c>/</c>: a leading slash makes the URL root-relative to <see cref="HttpClient.BaseAddress"/>,
-    /// so it drops the base address's own path, such as OpenRouter's <c>/api/</c>. Segments are separated by <c>/</c>,
-    /// which is sent unescaped, as <c>v1/systemone</c>.
-    /// </remarks>
-    string EndpointPath { get; }
-
     /// <summary>Reads a successful response body into a <see cref="DecisionResponse"/> for <paramref name="definition"/>.</summary>
     /// <returns>The response, or an <see cref="DecisionErrorKind.InvalidResponse"/> error with status 200.</returns>
     Result<DecisionResponse, DecisionError> ReadResponse(ReadOnlySpan<byte> body, QuestionSetDefinition definition);

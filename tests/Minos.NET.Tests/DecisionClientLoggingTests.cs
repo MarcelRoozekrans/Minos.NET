@@ -175,7 +175,7 @@ public sealed class DecisionClientLoggingTests : IDisposable
         Assert.Equal(LogLevel.Debug, record.Level);
         Assert.Equal(SystemOneLog.Evaluate, LogAssert.Field(record, "Operation"));
         Assert.Equal("jev-latest", LogAssert.Field(record, "Model"));
-        Assert.Equal("TypeSafe", LogAssert.Field(record, "Provider"));
+        Assert.Equal("typesafe", LogAssert.Field(record, "Provider"));
         Assert.Equal("1", LogAssert.Field(record, "QuestionCount"));
         AssertDuration(record);
         Assert.Equal([1001], logs.EventIds);
@@ -286,7 +286,7 @@ public sealed class DecisionClientLoggingTests : IDisposable
 
         var record = logs.Only(1004);
         Assert.Equal(LogLevel.Debug, record.Level);
-        Assert.Equal("TypeSafe", LogAssert.Field(record, "Provider"));
+        Assert.Equal("typesafe", LogAssert.Field(record, "Provider"));
         Assert.Equal("2", LogAssert.Field(record, "ModelCount"));
         AssertDuration(record);
     }
@@ -316,7 +316,7 @@ public sealed class DecisionClientLoggingTests : IDisposable
         Assert.True((await client.ListModelsAsync()).IsFailure);
 
         var record = logs.Only(1005);
-        Assert.Equal("OpenRouter", LogAssert.Field(record, "Provider"));
+        Assert.Equal("openrouter", LogAssert.Field(record, "Provider"));
         Assert.Equal("Unsupported", LogAssert.Field(record, "ErrorKind"));
         Assert.Null(LogAssert.Field(record, "StatusCode"));
         Assert.Empty(handler.Requests);

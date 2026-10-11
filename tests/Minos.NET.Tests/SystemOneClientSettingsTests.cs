@@ -3,7 +3,7 @@ using Minos.SystemOne.Transport;
 
 namespace Minos.Tests;
 
-public sealed class DecisionClientSettingsTests
+public sealed class SystemOneClientSettingsTests
 {
     [Fact]
     public void Defaults_TypeSafe()
@@ -169,6 +169,30 @@ public sealed class DecisionClientSettingsTests
         Assert.False(settings.Jitter);
     }
 
+    [Theory]
+    [InlineData(SystemOneProvider.TypeSafe)]
+    [InlineData(SystemOneProvider.OpenRouter)]
+    public void NullModel_ResolvesToThePresetDefault(SystemOneProvider provider)
+        => Assert.Equal("jev-latest", Resolve(new SystemOneClientOptions { ApiKey = "k", Provider = provider, Model = null }).Model);
+
+    [Theory]
+    [InlineData(SystemOneProvider.CloudflareWorkersAi)]
+    [InlineData(SystemOneProvider.VllmSemanticRouter)]
+    [InlineData(SystemOneProvider.Custom)]
+    public void NullModel_WithoutAPresetDefault_Throws_NamingTheProvider(SystemOneProvider provider)
+    {
+        var options = new SystemOneClientOptions { ApiKey = "k", Provider = provider, BaseAddress = new Uri("http://host/") };
+        if (provider == SystemOneProvider.CloudflareWorkersAi)
+        {
+            options.AccountId = "abc123";
+        }
+
+        var exception = Assert.Throws<ArgumentException>(() => Resolve(options));
+
+        Assert.Equal("options", exception.ParamName);
+        Assert.StartsWith(provider.ToString() + " has no default model. Set SystemOneClientOptions.Model.", exception.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Model_DefaultsToDecisionDefaultsModel()
         => Assert.Equal(SystemOneDefaults.Model, Resolve(new SystemOneClientOptions { ApiKey = "k" }).Model);
@@ -181,11 +205,10 @@ public sealed class DecisionClientSettingsTests
     [InlineData("")]
     [InlineData("   ")]
     [InlineData("\t\n")]
-    [InlineData(null)]
-    public void BlankModel_Throws(string? model)
+    public void BlankModel_Throws(string model)
     {
         var exception = Assert.Throws<ArgumentException>(
-            () => Resolve(new SystemOneClientOptions { ApiKey = "k", Model = model! }));
+            () => Resolve(new SystemOneClientOptions { ApiKey = "k", Model = model }));
 
         Assert.Equal("options", exception.ParamName);
     }

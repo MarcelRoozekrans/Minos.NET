@@ -4,7 +4,7 @@ namespace Minos.Tests;
 
 /// <summary>
 /// Every invalid <see cref="SystemOneClientOptions"/> case: the options, the environment variables it runs against, and the
-/// exception the settings resolver throws for it. <see cref="DecisionClientSettingsTests"/> and
+/// exception the settings resolver throws for it. <see cref="SystemOneClientSettingsTests"/> and
 /// <see cref="DecisionClientOptionsValidateTests"/> both run every case, so a case added here is covered by both.
 /// </summary>
 public static class InvalidOptionsCases
@@ -32,7 +32,33 @@ public static class InvalidOptionsCases
             () => new() { ApiKey = "k", MaxRetryDelay = TimeSpan.FromDays(30) }, typeof(ArgumentException)),
         ["EmptyModel"] = new(() => new() { ApiKey = "k", Model = string.Empty }, typeof(ArgumentException)),
         ["WhiteSpaceModel"] = new(() => new() { ApiKey = "k", Model = " \t\n" }, typeof(ArgumentException)),
-        ["NullModel"] = new(() => new() { ApiKey = "k", Model = null! }, typeof(ArgumentException)),
+        ["NullModelWithoutPresetDefault"] = new(
+            () => new() { ApiKey = "k", Provider = SystemOneProvider.Custom, BaseAddress = new Uri("http://host/") }, typeof(ArgumentException)),
+        ["CloudflareModelNotASingleName"] = new(
+            () => new() { ApiKey = "k", Provider = SystemOneProvider.CloudflareWorkersAi, AccountId = "abc123", Model = "@cf/x" },
+            typeof(ArgumentException)),
+        ["CloudflareWithoutAccountId"] = new(
+            () => new() { ApiKey = "k", Provider = SystemOneProvider.CloudflareWorkersAi, Model = "clef" },
+            typeof(ArgumentException),
+            ("CLOUDFLARE_ACCOUNT_ID", " ")),
+        ["CloudflareAccountIdNotAlphanumeric"] = new(
+            () => new() { ApiKey = "k", Provider = SystemOneProvider.CloudflareWorkersAi, AccountId = "a/b", Model = "clef" },
+            typeof(ArgumentException)),
+        ["CloudflareAccountIdEnvironmentNotAlphanumeric"] = new(
+            () => new() { ApiKey = "k", Provider = SystemOneProvider.CloudflareWorkersAi, Model = "clef" },
+            typeof(ArgumentException),
+            ("CLOUDFLARE_ACCOUNT_ID", "a/b")),
+        ["AccountIdOnAnotherProvider"] = new(() => new() { ApiKey = "k", AccountId = "abc123" }, typeof(ArgumentException)),
+        ["CustomWithoutBaseAddress"] = new(
+            () => new() { ApiKey = "k", Provider = SystemOneProvider.Custom, Model = "m" }, typeof(ArgumentException)),
+        ["VllmSemanticRouterWithoutBaseAddress"] = new(
+            () => new() { ApiKey = "k", Provider = SystemOneProvider.VllmSemanticRouter, Model = "m" }, typeof(ArgumentException)),
+        ["PathOnHostedProvider"] = new(() => new() { ApiKey = "k", Path = "x" }, typeof(ArgumentException)),
+        ["RootedPath"] = new(() => new() { ApiKey = "k", Provider = SystemOneProvider.Custom, BaseAddress = new Uri("http://host/"), Model = "m", Path = "/x" }, typeof(ArgumentException)),
+        ["PathWithQuery"] = new(() => new() { ApiKey = "k", Provider = SystemOneProvider.Custom, BaseAddress = new Uri("http://host/"), Model = "m", Path = "x?y=1" }, typeof(ArgumentException)),
+        ["PathWithFragment"] = new(() => new() { ApiKey = "k", Provider = SystemOneProvider.Custom, BaseAddress = new Uri("http://host/"), Model = "m", Path = "x#y" }, typeof(ArgumentException)),
+        ["PathWithParentSegment"] = new(() => new() { ApiKey = "k", Provider = SystemOneProvider.Custom, BaseAddress = new Uri("http://host/"), Model = "m", Path = "a/../b" }, typeof(ArgumentException)),
+        ["AbsolutePath"] = new(() => new() { ApiKey = "k", Provider = SystemOneProvider.Custom, BaseAddress = new Uri("http://host/"), Model = "m", Path = "http://other/x" }, typeof(ArgumentException)),
         ["ApiKeyWithControlCharacter"] = new(() => new() { ApiKey = "ab\u0001cd" }, typeof(ArgumentException)),
         ["RelativeBaseAddress"] = new(
             () => new() { ApiKey = "k", BaseAddress = new Uri("v1", UriKind.Relative) }, typeof(ArgumentException)),
@@ -44,6 +70,12 @@ public static class InvalidOptionsCases
             () => new() { ApiKey = "k", BaseAddress = new Uri("ftp://host/api/") }, typeof(ArgumentException)),
         ["MissingTypeSafeApiKey"] = new(() => new(), typeof(InvalidOperationException)),
         ["MissingOpenRouterApiKey"] = new(() => new() { Provider = SystemOneProvider.OpenRouter }, typeof(InvalidOperationException)),
+        ["MissingCloudflareApiToken"] = new(
+            () => new() { Provider = SystemOneProvider.CloudflareWorkersAi, AccountId = "abc123", Model = "clef" }, typeof(InvalidOperationException)),
+        ["CloudflareApiTokenEnvironmentWithControlCharacter"] = new(
+            () => new() { Provider = SystemOneProvider.CloudflareWorkersAi, AccountId = "abc123", Model = "clef" },
+            typeof(InvalidOperationException),
+            ("CLOUDFLARE_API_TOKEN", "ab\u0001cd")),
         ["ApiKeyEnvironmentWithControlCharacter"] = new(
             () => new(), typeof(InvalidOperationException), ("TYPESAFE_API_KEY", "ab\u0001cd")),
         ["BaseAddressEnvironmentNotAUri"] = new(

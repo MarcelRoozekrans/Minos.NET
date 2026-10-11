@@ -30,7 +30,7 @@ public sealed class DecisionTransportTests : IDisposable
         "{}"u8.CopyTo(body.GetSpan(2));
         body.Advance(2);
 
-        var result = await api.SendAsync(body, SystemOneProtocol.Instance.EndpointPath, "Bearer k", retryCount: null, CancellationToken.None);
+        var result = await api.SendAsync(body, "v1/systemone", "Bearer k", retryCount: null, CancellationToken.None);
 
         Assert.True(result.IsSuccess);
         result.Value.Dispose();
@@ -158,7 +158,10 @@ public sealed class DecisionTransportTests : IDisposable
         var api = new CountingApi();
         var pool = new CountingPool();
         using var transport = new DecisionTransport(
-            api, SystemOneProtocol.Instance, "Bearer k", new DecisionClientMetadata("typesafe", null, null), pool, static () => true);
+            api,
+            SystemOneProtocol.Instance,
+            SystemOneClientSettings.Resolve(new SystemOneClientOptions { ApiKey = "k" }, static _ => null),
+            new DecisionClientMetadata("typesafe", null, null), pool, static () => true);
 
         var call = transport.EvaluateAsync(new DecisionRequest(QuestionSets.UrgencyDefinition(), "s"));
 
@@ -184,16 +187,13 @@ public sealed class DecisionTransportTests : IDisposable
         public int Calls { get; private set; }
 
         public ValueTask<Result<SystemOneResponse, DecisionError>> EvaluateAsync(
-            SystemOneRequest body, string authorization, int? retryCount, CancellationToken ct)
+            SystemOneRequest body, string path, string? authorization, int? retryCount, CancellationToken ct)
             => throw Called();
 
-        public ValueTask<Result<RawJson, DecisionError>> EvaluateRawAsync(RawJson body, string authorization, int? retryCount, CancellationToken ct)
+        public ValueTask<Result<RawJson, DecisionError>> SendAsync(RawJson body, string path, string? authorization, int? retryCount, CancellationToken ct)
             => throw Called();
 
-        public ValueTask<Result<RawJson, DecisionError>> SendAsync(RawJson body, string path, string authorization, int? retryCount, CancellationToken ct)
-            => throw Called();
-
-        public ValueTask<Result<ModelList, DecisionError>> ListModelsAsync(string authorization, int? retryCount, CancellationToken ct)
+        public ValueTask<Result<ModelList, DecisionError>> ListModelsAsync(string? authorization, int? retryCount, CancellationToken ct)
             => throw Called();
 
         private InvalidOperationException Called()

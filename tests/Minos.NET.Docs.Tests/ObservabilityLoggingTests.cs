@@ -179,7 +179,7 @@ public sealed partial class ObservabilityLoggingTests
             Assert.Equal(1004, listed.Id.Id);
             Assert.Equal(LogLevel.Debug, listed.Level);
             Assert.Equal("1", Field(listed, "ModelCount"));
-            Assert.Equal("TypeSafe", Field(listed, "Provider"));
+            Assert.Equal("typesafe", Field(listed, "Provider"));
         }
     }
 

@@ -9,30 +9,71 @@ namespace Minos.SystemOne;
 /// </remarks>
 public sealed class SystemOneClientOptions
 {
-    /// <summary>Gets or sets where requests go. Defaults to <see cref="SystemOneProvider.TypeSafe"/>.</summary>
+    /// <summary>
+    /// Gets or sets where requests go. Defaults to <see cref="SystemOneProvider.TypeSafe"/>. The provider sets the default
+    /// base address, the request path, where the API key comes from and the default model:
+    /// <list type="bullet">
+    /// <item><description><see cref="SystemOneProvider.TypeSafe"/>: <c>https://api.typesafe.ai/</c>, or
+    /// <see cref="SystemOneDefaults.BaseAddressEnvironmentVariable"/>; path <c>v1/systemone</c>; a key is required; model
+    /// <c>jev-latest</c>.</description></item>
+    /// <item><description><see cref="SystemOneProvider.OpenRouter"/>: <c>https://openrouter.ai/api/</c>; path
+    /// <c>v1/systemone</c>; a key is required; model <c>jev-latest</c>.</description></item>
+    /// <item><description><see cref="SystemOneProvider.CloudflareWorkersAi"/>: <c>https://api.cloudflare.com/client/v4/</c>,
+    /// followed by <c>accounts/{AccountId}/ai/run/@cf/cloudflare/</c>; the model is the path; a token is required; no default
+    /// model.</description></item>
+    /// <item><description><see cref="SystemOneProvider.VllmSemanticRouter"/> and <see cref="SystemOneProvider.Custom"/>:
+    /// <see cref="BaseAddress"/> is required; path <see cref="Path"/>, or <c>v1/systemone</c>; a key only when
+    /// <see cref="ApiKey"/> is set; no default model.</description></item>
+    /// </list>
+    /// </summary>
     public SystemOneProvider Provider { get; set; } = SystemOneProvider.TypeSafe;
 
     /// <summary>
-    /// Gets or sets the API key. When unset, the client reads <see cref="SystemOneDefaults.ApiKeyEnvironmentVariable"/> for
-    /// TypeSafe or <see cref="SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable"/> for OpenRouter.
+    /// Gets or sets the API key, sent as a Bearer token. When unset, the client reads
+    /// <see cref="SystemOneDefaults.ApiKeyEnvironmentVariable"/> for TypeSafe,
+    /// <see cref="SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable"/> for OpenRouter or
+    /// <see cref="SystemOneDefaults.CloudflareApiTokenEnvironmentVariable"/> for Cloudflare Workers AI; those providers
+    /// require one. <see cref="SystemOneProvider.VllmSemanticRouter"/> and <see cref="SystemOneProvider.Custom"/> never read
+    /// a key from the environment, so a vendor key is never sent to a server you name; without this option they send no
+    /// <c>Authorization</c> header.
     /// </summary>
     public string? ApiKey { get; set; }
 
     /// <summary>
-    /// Gets or sets the API root, for a proxy or a test server. When unset, the client reads
-    /// <see cref="SystemOneDefaults.BaseAddressEnvironmentVariable"/> for <see cref="SystemOneProvider.TypeSafe"/> only, then uses
-    /// the provider's default address. <see cref="SystemOneDefaults.BaseAddressEnvironmentVariable"/> never applies to
-    /// <see cref="SystemOneProvider.OpenRouter"/>, so an OpenRouter key is never sent to a TypeSafe proxy.
+    /// Gets or sets the API root, for a proxy, a test server or a server you run. When unset, the client reads
+    /// <see cref="SystemOneDefaults.BaseAddressEnvironmentVariable"/> for <see cref="SystemOneProvider.TypeSafe"/> only, then
+    /// uses the provider's default address. <see cref="SystemOneDefaults.BaseAddressEnvironmentVariable"/> never applies to
+    /// another provider, so an OpenRouter or Cloudflare key is never sent to a TypeSafe proxy. For
+    /// <see cref="SystemOneProvider.CloudflareWorkersAi"/>, <c>accounts/{AccountId}/ai/run/@cf/cloudflare/</c> is appended to
+    /// it. <see cref="SystemOneProvider.VllmSemanticRouter"/> and <see cref="SystemOneProvider.Custom"/> have no default
+    /// address, so it must be set for them.
     /// </summary>
     public Uri? BaseAddress { get; set; }
 
     /// <summary>
     /// Gets or sets the model that typed evaluation calls, including <c>EvaluateUtf8Async</c>, and built question sets
-    /// ask, as a versioned id such as <c>jev-1.13.0</c> or an alias. Defaults to <see cref="SystemOneDefaults.Model"/>.
-    /// Surrounding whitespace is trimmed; a blank value is rejected.
+    /// ask, as a versioned id such as <c>jev-1.13.0</c> or an alias. When unset, the preset's default: jev-latest for
+    /// TypeSafe and OpenRouter. The other providers have none, so it must be set.
+    /// Surrounding whitespace is trimmed; a blank value is rejected. A Cloudflare Workers AI model must be a single name,
+    /// such as <c>clef-flash</c>, of letters, digits, <c>.</c>, <c>_</c> and <c>-</c>.
     /// A <see cref="SystemOneRequest"/> names its own model, so this option does not apply to it.
     /// </summary>
-    public string Model { get; set; } = SystemOneDefaults.Model;
+    public string? Model { get; set; }
+
+    /// <summary>
+    /// Gets or sets the Cloudflare account id, for <see cref="SystemOneProvider.CloudflareWorkersAi"/> only. When unset, the
+    /// client reads <see cref="SystemOneDefaults.CloudflareAccountIdEnvironmentVariable"/>. Cloudflare Workers AI requires
+    /// one, of letters and digits only. Setting it for another provider is rejected.
+    /// </summary>
+    public string? AccountId { get; set; }
+
+    /// <summary>
+    /// Gets or sets the request path, relative to <see cref="BaseAddress"/>, for <see cref="SystemOneProvider.Custom"/> and
+    /// <see cref="SystemOneProvider.VllmSemanticRouter"/> only. When unset, <c>v1/systemone</c>. It must be relative, must not
+    /// start with <c>/</c>, and must not contain a query, a fragment or a <c>..</c> segment. Setting it for a hosted
+    /// provider is rejected.
+    /// </summary>
+    public string? Path { get; set; }
 
     /// <summary>
     /// Gets or sets how long a single attempt may take. Defaults to 60 seconds. Applies to an <see cref="HttpClient"/>
@@ -96,11 +137,20 @@ public sealed class SystemOneClientOptions
     /// The constructors run the same check, so options that pass here construct a client, as long as the environment
     /// variables do not change in between. <c>AddSystemOneClient</c> runs it at host startup.
     /// </remarks>
-    /// <exception cref="ArgumentException">An option has an invalid value.</exception>
+    /// <exception cref="ArgumentException">
+    /// An option has an invalid value: an unknown provider; an invalid time-out or retry setting; a blank model, or none for
+    /// a provider without a default model; a Cloudflare model that is not a single name; an API key with a control
+    /// character; a base address that is not an absolute http or https URI, or has a query or fragment; no base address
+    /// for <see cref="SystemOneProvider.VllmSemanticRouter"/> or <see cref="SystemOneProvider.Custom"/>; no Cloudflare
+    /// account id in <see cref="AccountId"/> or <see cref="SystemOneDefaults.CloudflareAccountIdEnvironmentVariable"/>, or one
+    /// with characters other than letters and digits; <see cref="AccountId"/> set for a provider other than
+    /// <see cref="SystemOneProvider.CloudflareWorkersAi"/>; <see cref="Path"/> set for a hosted provider; or a path that is not
+    /// relative, starts with <c>/</c>, or contains a query, a fragment or a <c>..</c> segment.
+    /// </exception>
     /// <exception cref="InvalidOperationException">
-    /// No API key is configured, or the <see cref="SystemOneDefaults.ApiKeyEnvironmentVariable"/>,
-    /// <see cref="SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable"/> or <see cref="SystemOneDefaults.BaseAddressEnvironmentVariable"/>
-    /// environment variable is invalid.
+    /// No API key is configured for a provider that requires one, or the <see cref="SystemOneDefaults.ApiKeyEnvironmentVariable"/>,
+    /// <see cref="SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable"/>, <see cref="SystemOneDefaults.CloudflareApiTokenEnvironmentVariable"/>
+    /// or <see cref="SystemOneDefaults.BaseAddressEnvironmentVariable"/> environment variable is invalid.
     /// </exception>
     public void Validate() => Validate(Environment.GetEnvironmentVariable);
 

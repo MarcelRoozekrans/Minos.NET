@@ -55,6 +55,81 @@ public sealed class AddSystemOneClientConfigurationTests
     }
 
     [Fact]
+    public void PresetKeys_Bind()
+    {
+        var configuration = Configuration(
+            ("Cloudflare:Provider", "CloudflareWorkersAi"),
+            ("Cloudflare:ApiKey", "cf-token"),
+            ("Cloudflare:AccountId", "abc123"),
+            ("Cloudflare:Model", "clef-flash"),
+            ("Local:Provider", "Custom"),
+            ("Local:BaseAddress", "http://local.test/api/"),
+            ("Local:Path", "decide/v1/systemone"),
+            ("Local:Model", "m"));
+        var services = new ServiceCollection();
+        services.AddSystemOneClient("cloudflare", configuration.GetSection("Cloudflare"));
+        services.AddSystemOneClient("local", configuration.GetSection("Local"));
+        using var provider = services.BuildServiceProvider();
+        var monitor = provider.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>();
+
+        var cloudflare = monitor.Get("cloudflare");
+        var local = monitor.Get("local");
+
+        Assert.Equal((SystemOneProvider.CloudflareWorkersAi, "abc123", "clef-flash"), (cloudflare.Provider, cloudflare.AccountId, cloudflare.Model));
+        Assert.Equal((SystemOneProvider.Custom, "decide/v1/systemone", (string?)null), (local.Provider, local.Path, local.ApiKey));
+    }
+
+    [Fact]
+    public void UnboundModel_StaysUnset_AndTheClientUsesThePresetDefault()
+    {
+        var configuration = Configuration(("ApiKey", "bound-key"), ("BaseAddress", "http://bound.local/"));
+        var services = new ServiceCollection();
+        services.AddSystemOneClient(configuration);
+        using var provider = services.BuildServiceProvider();
+
+        var options = provider.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName);
+
+        Assert.Null(options.Model);
+        Assert.Equal("jev-latest", provider.GetRequiredService<IDecisionClient>().GetService<DecisionClientMetadata>()!.DefaultModel);
+    }
+
+    [Fact]
+    public async Task BoundCustomClient_SendsToItsPath_WithoutAKey()
+    {
+        var configuration = Configuration(
+            ("Provider", "Custom"), ("BaseAddress", "http://local.test/api/"), ("Path", "decide/v1/systemone"), ("Model", "m"), ("MaxRetries", "0"));
+        var handler = Noul();
+        var services = new ServiceCollection();
+        services.AddSystemOneClient(configuration).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
+        using var provider = services.BuildServiceProvider();
+
+        var result = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request());
+
+        Assert.True(result.IsSuccess);
+        var sent = OnlyRequest(handler);
+        Assert.Equal(new Uri("http://local.test/api/decide/v1/systemone"), sent.Uri);
+        Assert.Null(sent.Authorization);
+    }
+
+    [Fact]
+    public async Task BoundCloudflareClient_SendsToItsAccountAndModel()
+    {
+        var configuration = Configuration(
+            ("Provider", "CloudflareWorkersAi"), ("ApiKey", "cf-token"), ("AccountId", "abc123"), ("Model", "clef-flash"), ("MaxRetries", "0"));
+        var handler = Noul();
+        var services = new ServiceCollection();
+        services.AddSystemOneClient(configuration).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
+        using var provider = services.BuildServiceProvider();
+
+        var result = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request());
+
+        Assert.True(result.IsSuccess);
+        var sent = OnlyRequest(handler);
+        Assert.Equal("https://api.cloudflare.com/client/v4/accounts/abc123/ai/run/@cf/cloudflare/jev-latest", sent.Uri!.AbsoluteUri);
+        Assert.Equal("Bearer cf-token", sent.Authorization);
+    }
+
+    [Fact]
     public void KeyedAndDefaultBindings_StaySeparate()
     {
         var configuration = Configuration(

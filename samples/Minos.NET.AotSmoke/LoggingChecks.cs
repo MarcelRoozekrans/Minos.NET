@@ -28,6 +28,7 @@ internal static class LoggingChecks
                 && records[0].Field("StatusCode") is 503
                 && records[1] is { EventId: 1001, Level: LogLevel.Debug }
                 && records[1].Field("Operation") is "evaluate"
+                && records[1].Field("Provider") is "typesafe"
                 && records[1].Field("QuestionCount") is 1,
             "a retried evaluation logs AttemptRetrying, then EvaluationSucceeded, under Native AOT");
     }
@@ -83,8 +84,12 @@ internal static class LoggingChecks
         var records = provider.Records;
 
         Program.Check(
-            result.IsSuccess && records.Length == 1 && records[0].EventId == 1004 && records[0].Field("ModelCount") is 1,
-            "a model listing logs ModelsListed under Native AOT");
+            result.IsSuccess
+                && records.Length == 1
+                && records[0].EventId == 1004
+                && records[0].Field("Provider") is "typesafe"
+                && records[0].Field("ModelCount") is 1,
+            "a model listing logs ModelsListed, naming the provider by its telemetry name, under Native AOT");
     }
 
     private static HttpClient Http(HttpStatusCode status, string body)

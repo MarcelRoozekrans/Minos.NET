@@ -9,15 +9,21 @@ namespace Minos.SystemOne.Telemetry;
 /// and unused here.
 /// </summary>
 /// <param name="api">The transport.</param>
-/// <param name="authorization">The <c>Authorization</c> header value.</param>
+/// <param name="settings">
+/// The resolved settings: the <c>Authorization</c> header value, or none, and the path for a request's model. On
+/// Cloudflare, where the model is the path, a model that is not a single name is a <see cref="DecisionErrorKind.Validation"/>
+/// failure that is never sent.
+/// </param>
 /// <param name="retry">The retry loop each call runs through; <see langword="null"/> sends one attempt per call.</param>
 /// <param name="disposed">Reads whether the client has been disposed.</param>
-internal sealed class DecisionOperations(IDecisionApi api, string authorization, DecisionRetry? retry, Func<bool> disposed) : IDecisionOperations
+internal sealed class DecisionOperations(IDecisionApi api, SystemOneClientSettings settings, DecisionRetry? retry, Func<bool> disposed) : IDecisionOperations
 {
-    private static readonly Func<(IDecisionApi Api, SystemOneRequest Request, string Authorization), int, CancellationToken, ValueTask<Result<SystemOneResponse, DecisionError>>> EvaluateAttempt
-        = static (state, retryCount, ct) => state.Api.EvaluateAsync(state.Request, state.Authorization, retryCount, ct);
+    // The state holds the settings rather than the path and header they give, so it stays three references wide.
+    private static readonly Func<(IDecisionApi Api, SystemOneRequest Request, SystemOneClientSettings Settings), int, CancellationToken, ValueTask<Result<SystemOneResponse, DecisionError>>> EvaluateAttempt
+        = static (state, retryCount, ct) => state.Api.EvaluateAsync(
+            state.Request, state.Settings.PathFor(state.Request.Model), state.Settings.Authorization, retryCount, ct);
 
-    private static readonly Func<(IDecisionApi Api, string Authorization), int, CancellationToken, ValueTask<Result<ModelList, DecisionError>>> ListModelsAttempt
+    private static readonly Func<(IDecisionApi Api, string? Authorization), int, CancellationToken, ValueTask<Result<ModelList, DecisionError>>> ListModelsAttempt
         = static (state, retryCount, ct) => state.Api.ListModelsAsync(state.Authorization, retryCount, ct);
 
     // ZeroAlloc.Rest 3.0 itself rejects an empty or null success body as a Deserialization error before this runs, since
@@ -26,8 +32,17 @@ internal sealed class DecisionOperations(IDecisionApi api, string authorization,
     public async ValueTask<Result<SystemOneResponse, DecisionError>> EvaluateAsync(
         SystemOneRequest request, string provider, Uri endpoint, CancellationToken ct)
     {
+        if (!settings.AcceptsModel(request.Model))
+        {
+            return Result<SystemOneResponse, DecisionError>.Failure(
+                new DecisionError(DecisionErrorKind.Validation, SystemOneClientSettings.CloudflareModelMessage));
+        }
+
         var result = await Retried(
-            api.EvaluateAsync(request, authorization, retryCount: null, ct), (api, request, authorization), EvaluateAttempt, ct).ConfigureAwait(false);
+            api.EvaluateAsync(request, settings.PathFor(request.Model), settings.Authorization, retryCount: null, ct),
+            (api, request, settings),
+            EvaluateAttempt,
+            ct).ConfigureAwait(false);
 
         if (result.IsSuccess && HasNullAnswer(result.Value))
         {
@@ -40,7 +55,7 @@ internal sealed class DecisionOperations(IDecisionApi api, string authorization,
     // ZeroAlloc.Rest 3.0 itself rejects an empty or null success body as a Deserialization error before this runs,
     // since ModelList is non-nullable in IDecisionApi, so no null check remains needed here.
     public ValueTask<Result<ModelList, DecisionError>> ListModelsAsync(string provider, Uri endpoint, CancellationToken ct)
-        => Retried(api.ListModelsAsync(authorization, retryCount: null, ct), (api, authorization), ListModelsAttempt, ct);
+        => Retried(api.ListModelsAsync(settings.Authorization, retryCount: null, ct), (api, settings.Authorization), ListModelsAttempt, ct);
 
     // Without a retry loop the first call is the only one; the retry loop guards its own attempts against a racing Dispose.
     private ValueTask<Result<T, DecisionError>> Retried<TState, T>(

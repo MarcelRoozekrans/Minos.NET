@@ -27,13 +27,12 @@ public static class ClientOptions
     #region ClientAndErrors_Options
     // Every option set to the value it has when you leave it out, apart from the API key, which has no default:
     // without one, the client reads TYPESAFE_API_KEY, or OPENROUTER_API_KEY for OpenRouter.
-    // BaseAddress is also left out: it defaults to the provider's own address.
+    // BaseAddress and Model are also left out: they default to the provider's own address and model, jev-latest for TypeSafe.
     public static SystemOneClientOptions SpelledOut(string apiKey)
         => new()
         {
             ApiKey = apiKey,
             Provider = SystemOneProvider.TypeSafe,
-            Model = "jev-latest",
             Timeout = TimeSpan.FromSeconds(60),
             MaxRetries = 2,
             InitialBackoff = TimeSpan.FromMilliseconds(500),

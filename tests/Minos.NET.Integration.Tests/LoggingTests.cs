@@ -61,7 +61,7 @@ public sealed class LoggingTests : IClassFixture<WireMockFixture>
         Assert.Equal("Minos.DecisionClient", succeeded.Category);
         Assert.Equal("evaluate", LogAssert.Field(succeeded, "Operation"));
         Assert.Equal("jev-latest", LogAssert.Field(succeeded, "Model"));
-        Assert.Equal("TypeSafe", LogAssert.Field(succeeded, "Provider"));
+        Assert.Equal("typesafe", LogAssert.Field(succeeded, "Provider"));
         Assert.Equal("1", LogAssert.Field(succeeded, "QuestionCount"));
     }
 }
