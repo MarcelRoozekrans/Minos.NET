@@ -200,6 +200,26 @@ public sealed class RunnerTests : IDisposable
         Assert.Equal(["Bearer " + ExchangeCapture.InvalidKey], sent);
     }
 
+    [Theory]
+    [InlineData("Basic xyz", "Basic ")]
+    [InlineData("Token xyz", "Token ")]
+    [InlineData("secret key", "")]
+    [InlineData("secret", "")]
+    public async Task TheBadKeyProbe_KeepsAKnownScheme_AndSwapsTheRest(string original, string expectedPrefix)
+    {
+        var sent = new List<string>();
+        using var recorder = new Recorder(sent);
+        using var capture = new ExchangeCapture(recorder);
+        using var http = new HttpClient(capture);
+        using var request = new HttpRequestMessage(HttpMethod.Post, new Uri("https://example.test/"));
+        Assert.True(request.Headers.TryAddWithoutValidation("Authorization", original));
+
+        capture.Begin(ConformanceProbe.All.First(probe => probe.Kind == ProbeKind.BadKey));
+        await http.SendAsync(request);
+
+        Assert.Equal([expectedPrefix + ExchangeCapture.InvalidKey], sent);
+    }
+
     [Fact]
     public async Task AFixtureHandler_RefusesASecondRequestForTheSameProbe()
     {

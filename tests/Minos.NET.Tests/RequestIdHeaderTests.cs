@@ -8,6 +8,10 @@ public sealed class RequestIdHeaderTests
     public void Names_AreTriedInThisOrder()
         => Assert.Equal(["x-request-id", "x-typesafe-request-id", "request-id"], RequestIdHeader.Names);
 
+    [Fact]
+    public void Names_MatchTheConformanceSuitesList()
+        => Assert.Equal(Minos.Conformance.ConformanceChecks.RequestIdHeaders, RequestIdHeader.Names);
+
     [Theory]
     [InlineData("x-request-id", "req_openai")]
     [InlineData("x-typesafe-request-id", "req_typesafe")]

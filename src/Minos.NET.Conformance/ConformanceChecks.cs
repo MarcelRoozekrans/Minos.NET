@@ -39,8 +39,8 @@ public static class ConformanceChecks
     /// <summary>Gets every check id, in the order the report lists them; E4 reads the whole run.</summary>
     public static IReadOnlyList<string> Ids { get; } = ["S1", "S2", "S3", "D1", "D2", "D3", "D4", "M1", "E1", "E2", "E3", "E4", "R1", "R2", "R3"];
 
-    // The names and their order must match src/Minos.NET/Transport/RequestIdHeader.cs, which DecisionError.RequestId reads.
     /// <summary>Gets the request-id headers E3 and E4 read, in the order <see cref="DecisionError.RequestId"/> reads them.</summary>
+    /// <remarks>The names and their order must match the core's internal <c>RequestIdHeader.Names</c>, which a core test pins.</remarks>
     public static IReadOnlyList<string> RequestIdHeaders { get; } = ["x-request-id", "x-typesafe-request-id", "request-id"];
 
     /// <summary>Gets the ids of the checks that apply to a probe, in report order.</summary>
@@ -615,7 +615,7 @@ public static class ConformanceChecks
         }
 
         return outcome.Exchanges.Count == 1
-            ? CheckResult.Passed("E2", "HTTP " + StatusText(last) + ", mapped to Unauthorized, sent once.")
+            ? CheckResult.Passed("E2", "HTTP " + StatusText(last) + ", mapped to Unauthorized, one request sent under the client's retry setting.")
             : CheckResult.Failed("E2", Invariant($"The request was sent {outcome.Exchanges.Count} times; an Unauthorized error is not retried."));
     }
 

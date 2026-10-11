@@ -25,7 +25,7 @@ internal sealed record WireAnswer(string Key, string? Type, JsonElement Body)
 
     /// <summary>
     /// Reads the probabilities by option key: an object of numbers on System One, an array of <c>value</c>,
-    /// <c>label</c> and <c>probability</c> on Decisions, keyed by the label when there is one. A value that is not a number
+    /// <c>label</c> and <c>probability</c> on Decisions, keyed by the <c>value</c>; the label is used only for a Choice entry without one. A value that is not a number
     /// is kept as <see langword="null"/>, so D1 can name it.
     /// </summary>
     /// <returns>The probabilities, or <see langword="null"/> when they are missing or not in the wire's shape.</returns>

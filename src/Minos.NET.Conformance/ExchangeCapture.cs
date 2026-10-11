@@ -14,6 +14,8 @@ public sealed class ExchangeCapture : DelegatingHandler
     /// <summary>The request option that tells the fixture handler which probe a request belongs to.</summary>
     internal static readonly HttpRequestOptionsKey<string> ProbeOption = new("minos.conformance.probe");
 
+    private static readonly string[] KnownSchemes = ["Bearer", "Basic", "Digest", "Token"];
+
     private readonly List<ConformanceExchange> _exchanges = [];
     private ConformanceProbe? _probe;
 
@@ -25,7 +27,7 @@ public sealed class ExchangeCapture : DelegatingHandler
     }
 
     /// <summary>Gets the response headers an exchange keeps, by lower-case name.</summary>
-    public static IReadOnlyList<string> RecordedHeaders { get; } = ["x-request-id", "x-typesafe-request-id", "request-id", "retry-after", "retry-after-ms"];
+    public static IReadOnlyList<string> RecordedHeaders { get; } = [.. ConformanceChecks.RequestIdHeaders, "retry-after", "retry-after-ms"];
 
     /// <summary>Starts recording a probe's exchanges.</summary>
     /// <param name="probe">The probe whose requests follow.</param>
@@ -71,8 +73,29 @@ public sealed class ExchangeCapture : DelegatingHandler
     // that cannot be replaced stops the probe instead of sending the real key.
     private static void SwapKey(HttpRequestMessage request)
     {
-        Replace(request, "Authorization", static raw => raw.StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase) ? "Bearer " + InvalidKey : InvalidKey);
+        Replace(request, "Authorization", static raw => KeepScheme(raw));
         Replace(request, "x-api-key", static _ => InvalidKey);
+    }
+
+    // Keeps a known credential scheme, such as Bearer or Basic, and swaps everything after it. Any other value becomes the
+    // bare key, so a key that happens to contain a space is never partly sent.
+    private static string KeepScheme(string raw)
+    {
+        var trimmed = raw.TrimStart();
+        var space = trimmed.IndexOf(' ', StringComparison.Ordinal);
+        if (space > 0)
+        {
+            var scheme = trimmed[..space];
+            foreach (var known in KnownSchemes)
+            {
+                if (string.Equals(scheme, known, StringComparison.OrdinalIgnoreCase))
+                {
+                    return known + " " + InvalidKey;
+                }
+            }
+        }
+
+        return InvalidKey;
     }
 
     private static void Replace(HttpRequestMessage request, string name, Func<string, string> swapped)
@@ -88,6 +111,7 @@ public sealed class ExchangeCapture : DelegatingHandler
             throw new InvalidOperationException("The bad-key probe could not replace the " + name + " header, so it was not sent.");
         }
     }
+
     private static Dictionary<string, string>? Allowlisted(HttpResponseMessage response)
     {
         Dictionary<string, string>? kept = null;

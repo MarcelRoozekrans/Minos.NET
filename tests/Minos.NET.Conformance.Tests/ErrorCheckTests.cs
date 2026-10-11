@@ -54,7 +54,7 @@ public sealed class ErrorCheckTests
     [Fact]
     public void E2_A401MappedToUnauthorizedAndSentOnce_Passes()
         => Assert.Equal(
-            new CheckResult("E2", CheckOutcome.Pass, "HTTP 401, mapped to Unauthorized, sent once."),
+            new CheckResult("E2", CheckOutcome.Pass, "HTTP 401, mapped to Unauthorized, one request sent under the client's retry setting."),
             ConformanceChecks.E2(Failed(ConformanceProbe.BadKey, 401, UnauthorizedBody, Error(DecisionErrorKind.Unauthorized, 401, UnauthorizedBody))));
 
     [Fact]

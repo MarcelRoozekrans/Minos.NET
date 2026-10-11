@@ -69,7 +69,7 @@ public sealed class DistributionCheckTests
             ConformanceChecks.D2(ChoiceWith("\"billing\":0.8,\"technical\":0.2,\"sales\":0.0"), ConformanceWire.SystemOne).Detail);
 
     [Fact]
-    public void D2_ReadsDecisionsScoreLevelsByLabel()
+    public void D2_ReadsDecisionsScoreArrays()
     {
         const string Body = """{"answers":[{"type":"score","name":"frustration","score":1.1,"probabilities":[{"value":0,"label":"0","probability":0.1},{"value":1,"label":"1","probability":0.7},{"value":2,"label":"2","probability":0.2}],"confidence":0.5}]}""";
 

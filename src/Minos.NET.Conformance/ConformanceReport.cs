@@ -90,17 +90,9 @@ public sealed class ConformanceReport
         text.Append(CultureInfo.InvariantCulture, $"- Result: {Passed} passed, {Failed} failed, {Skipped} skipped").Append("\n\n");
         text.Append("| Probe | Check | Outcome | Detail |\n");
         text.Append("| --- | --- | --- | --- |\n");
-        foreach (var probe in Probes)
+        foreach (var (scope, check) in AllChecks())
         {
-            foreach (var check in probe.Checks)
-            {
-                Row(text, probe.Probe, check);
-            }
-        }
-
-        foreach (var check in RunChecks)
-        {
-            Row(text, RunScope, check);
+            Row(text, scope, check);
         }
 
         return text.ToString();
@@ -120,18 +112,26 @@ public sealed class ConformanceReport
         _ => "skipped",
     };
 
-    private int Count(CheckOutcome outcome)
+    private IEnumerable<(string Scope, CheckResult Check)> AllChecks()
     {
-        var count = 0;
         foreach (var probe in Probes)
         {
             foreach (var check in probe.Checks)
             {
-                count += check.Outcome == outcome ? 1 : 0;
+                yield return (probe.Probe, check);
             }
         }
 
         foreach (var check in RunChecks)
+        {
+            yield return (RunScope, check);
+        }
+    }
+
+    private int Count(CheckOutcome outcome)
+    {
+        var count = 0;
+        foreach (var (_, check) in AllChecks())
         {
             count += check.Outcome == outcome ? 1 : 0;
         }
@@ -142,22 +142,11 @@ public sealed class ConformanceReport
     private List<string> Named(CheckOutcome outcome)
     {
         var named = new List<string>();
-        foreach (var probe in Probes)
-        {
-            foreach (var check in probe.Checks)
-            {
-                if (check.Outcome == outcome)
-                {
-                    named.Add(probe.Probe + ":" + check.Id);
-                }
-            }
-        }
-
-        foreach (var check in RunChecks)
+        foreach (var (scope, check) in AllChecks())
         {
             if (check.Outcome == outcome)
             {
-                named.Add(RunScope + ":" + check.Id);
+                named.Add(scope + ":" + check.Id);
             }
         }
 
