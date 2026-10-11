@@ -840,7 +840,7 @@ client reads it from the error response's headers, trying three names in this or
 without an HTTP error response: a network failure, a time-out, a disposal, a success body that could not be read and a
 refusal. All three providers also send Cloudflare's `CF-RAY` header, which names the CDN hop rather than your request, so
 it is not read. Neither is a body field, such as OpenRouter's generation `id`. These headers were checked on 2026-10-11 with
-an invalid key against each endpoint.
+an invalid key against each endpoint, and the [conformance suite](conformance.md) checks them again on every recording.
 
 Log event 1002 and the evaluation's span carry the id too, as `RequestId` and `minos.request_id`; see
 [Logging, traces and metrics](observability.md).

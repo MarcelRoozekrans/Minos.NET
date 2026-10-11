@@ -10,6 +10,7 @@
     <ProjectReference Include="..\..\src\Minos.NET.SystemOne\Minos.NET.SystemOne.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.OpenAI\Minos.NET.OpenAI.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.DependencyInjection\Minos.NET.DependencyInjection.csproj" />
+    <ProjectReference Include="..\..\src\Minos.NET.Conformance\Minos.NET.Conformance.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.Generator\Minos.NET.Generator.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
