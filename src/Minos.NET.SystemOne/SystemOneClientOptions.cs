@@ -39,10 +39,10 @@ public sealed class SystemOneClientOptions
     /// Gets or sets the API root, for a proxy, a test server or a server you run. When unset, the client reads
     /// <see cref="SystemOneDefaults.BaseAddressEnvironmentVariable"/> for <see cref="SystemOneProvider.TypeSafe"/> only, then
     /// uses the provider's default address. <see cref="SystemOneDefaults.BaseAddressEnvironmentVariable"/> never applies to
-    /// another provider, so an OpenRouter key is never sent to a TypeSafe proxy. 
-    /// <see cref="SystemOneProvider.VllmSemanticRouter"/> and <see cref="SystemOneProvider.Custom"/> have no default
-    /// address, so it must be set for them. An <see cref="HttpClient"/> passed to a <see cref="SystemOneClient"/> constructor
-    /// with its own <see cref="HttpClient.BaseAddress"/> wins over this option; that address must then be the full API root.
+    /// another provider, so an OpenRouter key is never sent to a TypeSafe proxy.
+    /// <see cref="SystemOneProvider.VllmSemanticRouter"/> and <see cref="SystemOneProvider.Custom"/> have no default address,
+    /// so it must be set for them. An <see cref="HttpClient"/> passed to a <see cref="SystemOneClient"/> constructor with its
+    /// own <see cref="HttpClient.BaseAddress"/> wins over this option; that address must then be the full API root.
     /// </summary>
     public Uri? BaseAddress { get; set; }
 

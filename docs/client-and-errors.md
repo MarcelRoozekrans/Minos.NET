@@ -93,7 +93,7 @@ you asked for it. Everything else, including every network and service failure, 
 | Property | Default | Valid values | What it does |
 | --- | --- | --- | --- |
 | `Provider` | `SystemOneProvider.TypeSafe` | `TypeSafe`, `OpenRouter`, `VllmSemanticRouter` or `Custom` | Where requests go. The [providers](#providers) section lists what each one sets. |
-| `ApiKey` | none | any text without control characters; blank counts as unset | The key sent as a bearer token. When unset, the client reads `TYPESAFE_API_KEY` for TypeSafe, `OPENROUTER_API_KEY` for OpenRouter. `VllmSemanticRouter` and `Custom` read no variable and send no key unless this is set. |
+| `ApiKey` | none | any text without control characters; blank counts as unset | The key sent as a bearer token. When unset, the client reads `TYPESAFE_API_KEY` for TypeSafe and `OPENROUTER_API_KEY` for OpenRouter. `VllmSemanticRouter` and `Custom` read no variable and send no key unless this is set. |
 | `BaseAddress` | the provider's address | absolute `http` or `https` URI, no query or fragment | The API root, for a proxy, a test server or a server you run. When unset, the client reads `TYPESAFE_BASE_URL` for TypeSafe only, then uses the provider's address. `VllmSemanticRouter` and `Custom` have none, so it is required for them. |
 | `Model` | the preset's default: `jev-latest` for TypeSafe and OpenRouter; required for the others | not blank | The model that typed evaluation and built question sets ask: an alias such as `jev-latest` (or TypeSafe's `jev-preview`), or a versioned id such as `jev-1.13.0`. Surrounding whitespace is trimmed. See [Listing models](#listing-models). |
 | `Path` | `v1/systemone` | relative, no leading `/`, no query, fragment or `..`; `Custom` and `VllmSemanticRouter` only | The request path under `BaseAddress`. Surrounding whitespace is trimmed, and blank counts as unset. Rejected for a hosted provider, so a key cannot be sent to another path on a host you did not choose. |
@@ -236,9 +236,8 @@ public static SystemOneClientOptions Custom()
 ## Capabilities
 
 A provider can accept less than the protocol allows. A server you run, for example, may answer one kind of question
-only. Minos checks a question set against what the provider
-accepts before it sends the request. A set the provider would refuse comes back as a failure at once, with no request,
-no retry and no cost.
+only. Minos checks a question set against what the provider accepts before it sends the request. A set the provider
+would refuse comes back as a failure at once, with no request, no retry and no cost.
 
 ### The defaults
 

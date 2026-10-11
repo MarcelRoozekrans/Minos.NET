@@ -6,7 +6,7 @@ using ZeroAlloc.Results;
 
 namespace Minos.SystemOne.Protocols;
 
-/// <summary>The <c>/v1/systemone</c> wire format: TypeSafe, OpenRouter, Clef and compatible servers.</summary>
+/// <summary>The <c>/v1/systemone</c> wire format: TypeSafe, OpenRouter, vLLM Semantic Router and compatible servers.</summary>
 internal sealed class SystemOneProtocol : IDecisionProtocol
 {
     private const int CacheSlot = 0;
