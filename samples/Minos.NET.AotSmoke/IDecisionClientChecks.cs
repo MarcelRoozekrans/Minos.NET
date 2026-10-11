@@ -162,7 +162,7 @@ internal static class IDecisionClientChecks
     {
         var services = new ServiceCollection();
         services
-            .AddDecisionClient(options =>
+            .AddSystemOneClient(options =>
             {
                 options.ApiKey = "smoke-key";
                 options.BaseAddress = new Uri("https://example.test/api/");

@@ -52,3 +52,17 @@ internal static class Registrations
         return chain;
     }
 }
+
+/// <summary>A minimal <see cref="IDecisionClient"/> for the factory registrations: every call fails as unsupported.</summary>
+internal sealed class FakeDecisionClient : IDecisionClient
+{
+    public ValueTask<ZeroAlloc.Results.Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
+        => new(new DecisionError(DecisionErrorKind.Unsupported, "The fake client answers nothing."));
+
+    public object? GetService(Type serviceType, object? serviceKey = null)
+        => serviceKey is null && serviceType.IsInstanceOfType(this) ? this : null;
+
+    public void Dispose()
+    {
+    }
+}

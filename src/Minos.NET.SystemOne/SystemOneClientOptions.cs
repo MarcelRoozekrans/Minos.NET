@@ -37,7 +37,7 @@ public sealed class SystemOneClientOptions
     /// <summary>
     /// Gets or sets how long a single attempt may take. Defaults to 60 seconds. Applies to an <see cref="HttpClient"/>
     /// the client creates, and to one configured with <see cref="SystemOneClient.ConfigureHttpClient(HttpClient, SystemOneClientOptions)"/>,
-    /// as <c>AddDecisionClient</c>'s are; another <see cref="HttpClient"/> you pass keeps its own time-out. With retries, a call
+    /// as <c>AddSystemOneClient</c>'s are; another <see cref="HttpClient"/> you pass keeps its own time-out. With retries, a call
     /// can take up to <c>(MaxRetries + 1) × Timeout</c> plus the waits between attempts. Must be positive or
     /// <see cref="System.Threading.Timeout.InfiniteTimeSpan"/>, and at most <see cref="int.MaxValue"/> milliseconds,
     /// which is about 24.8 days.
@@ -94,7 +94,7 @@ public sealed class SystemOneClientOptions
     /// </summary>
     /// <remarks>
     /// The constructors run the same check, so options that pass here construct a client, as long as the environment
-    /// variables do not change in between. <c>AddDecisionClient</c> runs it at host startup.
+    /// variables do not change in between. <c>AddSystemOneClient</c> runs it at host startup.
     /// </remarks>
     /// <exception cref="ArgumentException">An option has an invalid value.</exception>
     /// <exception cref="InvalidOperationException">

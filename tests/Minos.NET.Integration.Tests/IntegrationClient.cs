@@ -38,7 +38,7 @@ internal static class IntegrationClient
 
     /// <summary>
     /// Applies the fixtures' configuration to <paramref name="options"/>: the fixed key, no jitter, a 5 second maximum
-    /// retry delay and a short backoff. The hand-built clients and the ones from <c>AddDecisionClient</c> both configure
+    /// retry delay and a short backoff. The hand-built clients and the ones from <c>AddSystemOneClient</c> both configure
     /// through this.
     /// </summary>
     public static void Configure(SystemOneClientOptions options, int maxRetries, TimeSpan? initialBackoff = null)

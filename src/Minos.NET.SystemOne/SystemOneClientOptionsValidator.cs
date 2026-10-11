@@ -1,16 +1,15 @@
 using Microsoft.Extensions.Options;
-using Minos.SystemOne;
 using OptionsDefaults = Microsoft.Extensions.Options.Options;
 
-namespace Minos.DependencyInjection;
+namespace Minos.SystemOne;
 
 /// <summary>
-/// Validates one <c>AddDecisionClient</c> registration's <see cref="SystemOneClientOptions"/> through
+/// Validates one <c>AddSystemOneClient</c> registration's <see cref="SystemOneClientOptions"/> through
 /// <see cref="SystemOneClientOptions.Validate()"/>, the check the client's constructor runs, so startup and construction apply
 /// one rule set. Options of any other name are skipped.
 /// </summary>
 /// <param name="optionsName">The registration's options name: the empty default name, or a keyed client's key.</param>
-internal sealed class DecisionClientOptionsValidator(string optionsName) : IValidateOptions<SystemOneClientOptions>
+internal sealed class SystemOneClientOptionsValidator(string optionsName) : IValidateOptions<SystemOneClientOptions>
 {
     public ValidateOptionsResult Validate(string? name, SystemOneClientOptions options)
     {

@@ -8,11 +8,11 @@ namespace Minos.PackTests;
 
 /// <summary>
 /// Packs the shipping <c>Minos.NET</c> project once, through <see cref="PackedProject"/>, with <c>Minos.NET.SystemOne</c>
-/// beside it at the same version for the packed consumer.
+/// and the <c>Minos.NET.DependencyInjection</c> package it depends on beside it at the same version for the packed consumer.
 /// </summary>
 public sealed class PackFixture : IDisposable
 {
-    private readonly PackedProject _packed = new("Minos.NET", "Minos.NET.SystemOne");
+    private readonly PackedProject _packed = new("Minos.NET", "Minos.NET.SystemOne", "Minos.NET.DependencyInjection");
 
     public string NupkgPath => _packed.NupkgPath;
 
@@ -260,7 +260,7 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
             : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), ".nuget", "packages");
 
         // A private packages folder, with the machine's cache as a read-only fallback for the other dependencies: the
-        // freshly packed, uniquely versioned Minos.NET and Minos.NET.SystemOne can only come from the pack output.
+        // freshly packed, uniquely versioned Minos packages can only come from the pack output.
         File.WriteAllText(Path.Combine(consumer, "nuget.config"), $"""
             <?xml version="1.0" encoding="utf-8"?>
             <configuration>

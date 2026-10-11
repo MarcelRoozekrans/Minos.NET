@@ -42,6 +42,7 @@ internal static class Program
         await LoggingChecks.FailedEvaluationLogsTheLibraryMessageOnly().ConfigureAwait(false);
         await LoggingChecks.ModelListingLogsTheModelCount().ConfigureAwait(false);
         await DependencyInjectionChecks.DefaultAndKeyedClientsEvaluate().ConfigureAwait(false);
+        await DependencyInjectionChecks.FactoryClientsEvaluate().ConfigureAwait(false);
         await DependencyInjectionChecks.ClientsBoundFromConfigurationEvaluate().ConfigureAwait(false);
         DependencyInjectionChecks.InvalidConfigurationFailsValidation();
         await TelemetryChecks.RetriedEvaluationIsOneSpanOverTwoAttempts().ConfigureAwait(false);

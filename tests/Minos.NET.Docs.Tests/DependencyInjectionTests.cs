@@ -146,13 +146,13 @@ public sealed class DependencyInjectionTests
     {
         var builder = NewBuilder();
         builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.Ordinal) { ["Minos:MaxRetries"] = "5" });
-        builder.Services.AddDecisionClient(builder.Configuration.GetSection("Minos"));
-        builder.Services.AddDecisionClient(options =>
+        builder.Services.AddSystemOneClient(builder.Configuration.GetSection("Minos"));
+        builder.Services.AddSystemOneClient(options =>
         {
             options.ApiKey = "key";
             options.MaxRetries = 1;
         });
-        builder.Services.AddDecisionClient(options => options.Model = "jev-preview");
+        builder.Services.AddSystemOneClient(options => options.Model = "jev-preview");
         using var host = builder.Build();
 
         var options = host.Services.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>().CurrentValue;
@@ -168,7 +168,7 @@ public sealed class DependencyInjectionTests
     public async Task AnInvalidValue_FailsTheHostAtStartup_WithTheCoresMessage()
     {
         var builder = NewBuilder();
-        builder.Services.AddDecisionClient(options =>
+        builder.Services.AddSystemOneClient(options =>
         {
             options.ApiKey = "key";
             options.MaxRetries = 11;
@@ -185,7 +185,7 @@ public sealed class DependencyInjectionTests
     {
         using var environment = new KeyEnvironment(typeSafe: null, openRouter: null);
         var builder = NewBuilder();
-        builder.Services.AddDecisionClient();
+        builder.Services.AddSystemOneClient();
         using var host = builder.Build();
 
         var exception = await Assert.ThrowsAsync<OptionsValidationException>(() => host.StartAsync());
@@ -197,7 +197,7 @@ public sealed class DependencyInjectionTests
     public void WithoutAHost_TheFailureComesWhenTheClientIsFirstResolved()
     {
         var services = new ServiceCollection();
-        services.AddDecisionClient(options =>
+        services.AddSystemOneClient(options =>
         {
             options.ApiKey = "key";
             options.MaxRetries = 11;
@@ -216,7 +216,7 @@ public sealed class DependencyInjectionTests
             ["Minos:ApiKey"] = "key",
             ["Minos:MaxRetries"] = "abc",
         });
-        builder.Services.AddDecisionClient(builder.Configuration.GetSection("Minos"));
+        builder.Services.AddSystemOneClient(builder.Configuration.GetSection("Minos"));
         using var host = builder.Build();
 
         var exception = await Assert.ThrowsAnyAsync<Exception>(() => host.StartAsync());
@@ -228,7 +228,7 @@ public sealed class DependencyInjectionTests
     public async Task TheNamedHttpClient_AndAReplacedClient_StillNeedValidOptions()
     {
         var services = new ServiceCollection();
-        services.AddDecisionClient(options =>
+        services.AddSystemOneClient(options =>
         {
             options.ApiKey = "key";
             options.MaxRetries = 11;
@@ -242,7 +242,7 @@ public sealed class DependencyInjectionTests
         using var http = new HttpClient();
         using var replacement = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "placeholder" });
         builder.Services.AddSingleton<IDecisionClient>(replacement);
-        builder.Services.AddDecisionClient(options => options.MaxRetries = 11);
+        builder.Services.AddSystemOneClient(options => options.MaxRetries = 11);
         using var host = builder.Build();
 
         await Assert.ThrowsAsync<OptionsValidationException>(() => host.StartAsync());
@@ -255,7 +255,7 @@ public sealed class DependencyInjectionTests
         using var http = new HttpClient();
         using var own = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "own" });
         builder.Services.AddSingleton<IDecisionClient>(own);
-        builder.Services.AddDecisionClient(options => options.ApiKey = "placeholder");
+        builder.Services.AddSystemOneClient(options => options.ApiKey = "placeholder");
         using var host = builder.Build();
         await host.StartAsync();
 
@@ -285,7 +285,7 @@ public sealed class DependencyInjectionTests
         var after = new ServiceCollection();
         using var third = new ScriptedDecision.Handler([Reply.Ok(UrgentResponse)]);
         after.AddTransient<TraceHeaderHandler>();
-        after.AddDecisionClient(options => options.ApiKey = "key").HttpClient.ConfigurePrimaryHttpMessageHandler(() => third);
+        after.AddSystemOneClient(options => options.ApiKey = "key").HttpClient.ConfigurePrimaryHttpMessageHandler(() => third);
         after.ConfigureHttpClientDefaults(defaults => defaults.AddHttpMessageHandler<TraceHeaderHandler>());
         await using (var provider = after.BuildServiceProvider())
         {
@@ -327,7 +327,7 @@ public sealed class DependencyInjectionTests
         var services = new ServiceCollection();
         using var stub = new ScriptedDecision.Handler([Reply.Ok(UrgentResponse)]);
         services.AddTransient<TraceHeaderHandler>();
-        services.AddDecisionClient(options => options.ApiKey = "key")
+        services.AddSystemOneClient(options => options.ApiKey = "key")
             .HttpClient.ConfigurePrimaryHttpMessageHandler(() => stub)
             .AddHttpMessageHandler<TraceHeaderHandler>()
             .ConfigureAdditionalHttpMessageHandlers((handlers, _) => handlers.Clear());
@@ -352,7 +352,7 @@ public sealed class DependencyInjectionTests
             defaults.ConfigurePrimaryHttpMessageHandler(() => defaultsPrimary);
             defaults.AddDefaultLogger();
         });
-        void AddMinos() => services.AddDecisionClient(options =>
+        void AddMinos() => services.AddSystemOneClient(options =>
         {
             options.ApiKey = "key";
             options.MaxRetries = 0;
@@ -445,7 +445,7 @@ public sealed class DependencyInjectionTests
         var services = new ServiceCollection();
         services.AddLogging(logging => logging.SetMinimumLevel(LogLevel.Trace).AddProvider(capture));
         using var handler = new ScriptedDecision.Handler([Reply.Ok(UrgentResponse)]);
-        var builder = services.AddDecisionClient(options => options.ApiKey = "key").HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
+        var builder = services.AddSystemOneClient(options => options.ApiKey = "key").HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
         if (addDefaultLogger)
         {
             builder.AddDefaultLogger();

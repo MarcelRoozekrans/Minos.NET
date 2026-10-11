@@ -6,7 +6,7 @@ namespace Minos.DependencyInjection.Tests;
 
 /// <summary>A resolved client's telemetry, which is always on, with no setup beyond a listener on the <c>Minos</c> source.</summary>
 [Collection(TelemetryListeners.Name)]
-public sealed class AddDecisionClientTelemetryTests
+public sealed class AddSystemOneClientTelemetryTests
 {
     [Fact]
     public async Task ResolvedClient_EmitsAMinosSpan_WithNoTelemetrySetup()
@@ -14,7 +14,7 @@ public sealed class AddDecisionClientTelemetryTests
         using var capture = new TelemetryCapture();
         var handler = Noul();
         var services = new ServiceCollection();
-        services.AddDecisionClient(Options("http://default.local/")).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
+        services.AddSystemOneClient(Options("http://default.local/")).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
         using var provider = services.BuildServiceProvider();
 
         var result = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request());

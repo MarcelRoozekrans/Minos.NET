@@ -4,7 +4,7 @@ using Minos.SystemOne;
 namespace Minos.Integration.Tests;
 
 /// <summary>
-/// A client from <c>AddDecisionClient</c> whose response the server holds. It has its own <see cref="WireMockFixture"/> and
+/// A client from <c>AddSystemOneClient</c> whose response the server holds. It has its own <see cref="WireMockFixture"/> and
 /// shares its class with no test that reads the log or uses scenario state, because the held request stays pending
 /// after the test ends.
 /// </summary>

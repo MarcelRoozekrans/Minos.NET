@@ -11,6 +11,8 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <!-- Every ZeroAlloc generator here, Rest and Telemetry, emits internal types. -->
     <ZeroAllocGeneratedAccessibility>Internal</ZeroAllocGeneratedAccessibility>
+    <!-- AddSystemOneClient's Bind is source-generated, with no reflection, so consumers stay trim- and AOT-clean with no setup of their own. -->
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,6 +21,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Minos.NET\Minos.NET.csproj" />
+    <!-- AddSystemOneClient builds on the provider-neutral registration, through its InternalsVisibleTo. -->
+    <ProjectReference Include="..\Minos.NET.DependencyInjection\Minos.NET.DependencyInjection.csproj" />
+    <!-- IHttpClientFactory and AddHttpClient, for the registration's named HttpClient. -->
+    <PackageReference Include="Microsoft.Extensions.Http" />
+    <!-- OptionsBuilder.Bind over IConfiguration; brings Configuration.Abstractions and Configuration.Binder. -->
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" />
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="ZeroAlloc.Rest" />
     <PackageReference Include="ZeroAlloc.Rest.SystemTextJson" />

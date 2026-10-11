@@ -6,8 +6,8 @@ using static Minos.DependencyInjection.Tests.Registrations;
 
 namespace Minos.DependencyInjection.Tests;
 
-/// <summary>Every <c>AddDecisionClient</c> registration validates its options through <see cref="SystemOneClientOptions.Validate()"/>.</summary>
-public sealed class AddDecisionClientValidationTests
+/// <summary>Every <c>AddSystemOneClient</c> registration validates its options through <see cref="SystemOneClientOptions.Validate()"/>.</summary>
+public sealed class AddSystemOneClientValidationTests
 {
     private const string MaxRetriesMessage = "MaxRetries must be between 0 and 10. (Parameter 'options')";
 
@@ -15,7 +15,7 @@ public sealed class AddDecisionClientValidationTests
     public void InvalidDefaultOptions_Throw_OptionsValidationException_OnTheFirstResolve()
     {
         var services = new ServiceCollection();
-        services.AddDecisionClient(Invalid);
+        services.AddSystemOneClient(Invalid);
         using var provider = services.BuildServiceProvider();
 
         var exception = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IDecisionClient>());
@@ -28,7 +28,7 @@ public sealed class AddDecisionClientValidationTests
     public void InvalidKeyedOptions_Throw_OptionsValidationException_OnTheFirstResolve()
     {
         var services = new ServiceCollection();
-        services.AddDecisionClient("openrouter", Invalid);
+        services.AddSystemOneClient("openrouter", Invalid);
         using var provider = services.BuildServiceProvider();
 
         var exception = Assert.Throws<OptionsValidationException>(
@@ -53,9 +53,9 @@ public sealed class AddDecisionClientValidationTests
     {
         // A keyed client's invalid options must not fail the default client, and the reverse.
         var services = new ServiceCollection();
-        services.AddDecisionClient(Options("http://default.local/"));
-        services.AddDecisionClient("broken", Invalid);
-        services.AddDecisionClient("valid", Options("http://valid.local/"));
+        services.AddSystemOneClient(Options("http://default.local/"));
+        services.AddSystemOneClient("broken", Invalid);
+        services.AddSystemOneClient("valid", Options("http://valid.local/"));
         using var provider = services.BuildServiceProvider();
 
         Assert.NotNull(provider.GetRequiredService<IDecisionClient>());
@@ -68,8 +68,8 @@ public sealed class AddDecisionClientValidationTests
     {
         // Validators added through TryAddEnumerable would collapse into one, leaving the second name unchecked.
         var services = new ServiceCollection();
-        services.AddDecisionClient("first", Options("http://first.local/"));
-        services.AddDecisionClient("second", Invalid);
+        services.AddSystemOneClient("first", Options("http://first.local/"));
+        services.AddSystemOneClient("second", Invalid);
         using var provider = services.BuildServiceProvider();
 
         Assert.Throws<OptionsValidationException>(() => provider.GetRequiredKeyedService<IDecisionClient>("second"));
@@ -79,9 +79,9 @@ public sealed class AddDecisionClientValidationTests
     public void RepeatCalls_DoNotStackValidators()
     {
         var services = new ServiceCollection();
-        services.AddDecisionClient(Invalid);
-        services.AddDecisionClient(Invalid);
-        services.AddDecisionClient();
+        services.AddSystemOneClient(Invalid);
+        services.AddSystemOneClient(Invalid);
+        services.AddSystemOneClient();
         using var provider = services.BuildServiceProvider();
 
         var exception = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IDecisionClient>());
@@ -93,7 +93,7 @@ public sealed class AddDecisionClientValidationTests
     public async Task InvalidOptions_FailTheHost_AtStartAsync()
     {
         var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true });
-        builder.Services.AddDecisionClient(Invalid);
+        builder.Services.AddSystemOneClient(Invalid);
         using var host = builder.Build();
 
         var exception = await Assert.ThrowsAsync<OptionsValidationException>(() => host.StartAsync());
@@ -105,8 +105,8 @@ public sealed class AddDecisionClientValidationTests
     public async Task InvalidKeyedOptions_FailTheHost_AtStartAsync()
     {
         var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true });
-        builder.Services.AddDecisionClient(Options("http://default.local/"));
-        builder.Services.AddDecisionClient("openrouter", Invalid);
+        builder.Services.AddSystemOneClient(Options("http://default.local/"));
+        builder.Services.AddSystemOneClient("openrouter", Invalid);
         using var host = builder.Build();
 
         var exception = await Assert.ThrowsAsync<OptionsValidationException>(() => host.StartAsync());
@@ -118,8 +118,8 @@ public sealed class AddDecisionClientValidationTests
     public async Task ValidOptions_StartTheHost()
     {
         var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true });
-        builder.Services.AddDecisionClient(Options("http://default.local/"));
-        builder.Services.AddDecisionClient("openrouter", Options("http://openrouter.local/"));
+        builder.Services.AddSystemOneClient(Options("http://default.local/"));
+        builder.Services.AddSystemOneClient("openrouter", Options("http://openrouter.local/"));
         using var host = builder.Build();
 
         await host.StartAsync();

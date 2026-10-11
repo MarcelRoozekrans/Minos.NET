@@ -6,8 +6,8 @@ using static Minos.DependencyInjection.Tests.Registrations;
 
 namespace Minos.DependencyInjection.Tests;
 
-/// <summary><c>AddDecisionClient</c> with options bound from <see cref="IConfiguration"/>.</summary>
-public sealed class AddDecisionClientConfigurationTests
+/// <summary><c>AddSystemOneClient</c> with options bound from <see cref="IConfiguration"/>.</summary>
+public sealed class AddSystemOneClientConfigurationTests
 {
     [Fact]
     public void EveryKey_Binds()
@@ -23,7 +23,7 @@ public sealed class AddDecisionClientConfigurationTests
             ("Minos:MaxRetryDelay", "00:00:03"),
             ("Minos:Jitter", "false"));
         var services = new ServiceCollection();
-        services.AddDecisionClient(configuration.GetSection("Minos"));
+        services.AddSystemOneClient(configuration.GetSection("Minos"));
         using var provider = services.BuildServiceProvider();
 
         var options = provider.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName);
@@ -45,7 +45,7 @@ public sealed class AddDecisionClientConfigurationTests
         var configuration = Configuration(("ApiKey", "bound-key"), ("BaseAddress", "http://bound.local/api/"), ("MaxRetries", "0"));
         var handler = Noul();
         var services = new ServiceCollection();
-        services.AddDecisionClient(configuration).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
+        services.AddSystemOneClient(configuration).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
         using var provider = services.BuildServiceProvider();
 
         var result = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request());
@@ -65,8 +65,8 @@ public sealed class AddDecisionClientConfigurationTests
             ("OpenRouter:ApiKey", "openrouter-key"),
             ("OpenRouter:MaxRetries", "5"));
         var services = new ServiceCollection();
-        services.AddDecisionClient(configuration.GetSection("Default"));
-        services.AddDecisionClient("openrouter", configuration.GetSection("OpenRouter"));
+        services.AddSystemOneClient(configuration.GetSection("Default"));
+        services.AddSystemOneClient("openrouter", configuration.GetSection("OpenRouter"));
         using var provider = services.BuildServiceProvider();
         var monitor = provider.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>();
 
@@ -83,8 +83,8 @@ public sealed class AddDecisionClientConfigurationTests
     {
         var configuration = Configuration(("ApiKey", "bound-key"), ("MaxRetries", "4"));
         var services = new ServiceCollection();
-        services.AddDecisionClient(configuration);
-        services.AddDecisionClient(options => options.MaxRetries = 0);
+        services.AddSystemOneClient(configuration);
+        services.AddSystemOneClient(options => options.MaxRetries = 0);
         using var provider = services.BuildServiceProvider();
 
         var options = provider.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName);
@@ -98,7 +98,7 @@ public sealed class AddDecisionClientConfigurationTests
     {
         var configuration = Configuration(("ApiKey", "bound-key"), ("BaseAddress", "http://bound.local/"), ("MaxRetries", "11"));
         var services = new ServiceCollection();
-        services.AddDecisionClient("bound", configuration);
+        services.AddSystemOneClient("bound", configuration);
         using var provider = services.BuildServiceProvider();
 
         var exception = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredKeyedService<IDecisionClient>("bound"));
@@ -111,7 +111,7 @@ public sealed class AddDecisionClientConfigurationTests
     {
         var configuration = Configuration(("ApiKey", "bound-key"), ("BaseAddress", "http://bound.local/"), ("MaxRetries", "abc"));
         var services = new ServiceCollection();
-        services.AddDecisionClient(configuration);
+        services.AddSystemOneClient(configuration);
         using var provider = services.BuildServiceProvider();
 
         var exception = Assert.Throws<InvalidOperationException>(() => provider.GetRequiredService<IDecisionClient>());
@@ -126,12 +126,12 @@ public sealed class AddDecisionClientConfigurationTests
         var configuration = Configuration();
         IServiceCollection? none = null;
 
-        Assert.Equal("services", Assert.Throws<ArgumentNullException>(() => none!.AddDecisionClient(configuration)).ParamName);
-        Assert.Equal("services", Assert.Throws<ArgumentNullException>(() => none!.AddDecisionClient("bound", configuration)).ParamName);
-        Assert.Equal("configuration", Assert.Throws<ArgumentNullException>(() => services.AddDecisionClient((IConfiguration)null!)).ParamName);
-        Assert.Equal("configuration", Assert.Throws<ArgumentNullException>(() => services.AddDecisionClient("bound", (IConfiguration)null!)).ParamName);
-        Assert.Equal("name", Assert.Throws<ArgumentNullException>(() => services.AddDecisionClient(null!, configuration)).ParamName);
-        Assert.Equal("name", Assert.Throws<ArgumentException>(() => services.AddDecisionClient(string.Empty, configuration)).ParamName);
+        Assert.Equal("services", Assert.Throws<ArgumentNullException>(() => none!.AddSystemOneClient(configuration)).ParamName);
+        Assert.Equal("services", Assert.Throws<ArgumentNullException>(() => none!.AddSystemOneClient("bound", configuration)).ParamName);
+        Assert.Equal("configuration", Assert.Throws<ArgumentNullException>(() => services.AddSystemOneClient((IConfiguration)null!)).ParamName);
+        Assert.Equal("configuration", Assert.Throws<ArgumentNullException>(() => services.AddSystemOneClient("bound", (IConfiguration)null!)).ParamName);
+        Assert.Equal("name", Assert.Throws<ArgumentNullException>(() => services.AddSystemOneClient(null!, configuration)).ParamName);
+        Assert.Equal("name", Assert.Throws<ArgumentException>(() => services.AddSystemOneClient(string.Empty, configuration)).ParamName);
     }
 
     private static IConfigurationRoot Configuration(params (string Key, string Value)[] settings)

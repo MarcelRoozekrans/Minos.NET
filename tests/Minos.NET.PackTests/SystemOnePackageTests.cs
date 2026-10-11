@@ -6,11 +6,11 @@ namespace Minos.PackTests;
 
 /// <summary>
 /// Packs the shipping <c>Minos.NET.SystemOne</c> project once, through <see cref="PackedProject"/>, with <c>Minos.NET</c>
-/// beside it at the same version for the packed consumer.
+/// and <c>Minos.NET.DependencyInjection</c> beside it at the same version for the packed consumer.
 /// </summary>
 public sealed class SystemOnePackFixture : IDisposable
 {
-    private readonly PackedProject _packed = new("Minos.NET.SystemOne", "Minos.NET");
+    private readonly PackedProject _packed = new("Minos.NET.SystemOne", "Minos.NET", "Minos.NET.DependencyInjection");
 
     public string NupkgPath => _packed.NupkgPath;
 
@@ -19,7 +19,7 @@ public sealed class SystemOnePackFixture : IDisposable
     /// <summary>Gets the version this fixture packs, which its <c>Minos.NET</c> dependency shares.</summary>
     public string PackageVersion => _packed.PackageVersion;
 
-    /// <summary>Gets the directory holding both packed <c>.nupkg</c> files, usable as a local package source.</summary>
+    /// <summary>Gets the directory holding the packed <c>.nupkg</c> files, usable as a local package source.</summary>
     public string OutputDirectory => _packed.OutputDirectory;
 
     public void Dispose() => _packed.Dispose();
@@ -62,14 +62,17 @@ public sealed class SystemOnePackageTests : IClassFixture<SystemOnePackFixture>
     }
 
     [Fact]
-    public void DependsOnTheCorePackageAndItsRuntimePackagesOnly()
+    public void DependsOnTheMinosPackagesAndTheirRuntimePackagesOnly()
     {
         var dependencies = Dependencies();
 
         Assert.Equal(
             [
+                "Microsoft.Extensions.Http",
                 "Microsoft.Extensions.Logging.Abstractions",
+                "Microsoft.Extensions.Options.ConfigurationExtensions",
                 "Minos.NET",
+                "Minos.NET.DependencyInjection",
                 "ZeroAlloc.Rest",
                 "ZeroAlloc.Rest.SystemTextJson",
                 "ZeroAlloc.Results",
@@ -77,9 +80,13 @@ public sealed class SystemOnePackageTests : IClassFixture<SystemOnePackFixture>
             ],
             dependencies.Select(dependency => (string)dependency.Attribute("id")!).Order(StringComparer.Ordinal).ToArray());
 
-        // The core package is packed at the same version; release-please versions every package together.
+        // The Minos packages are packed at the same version; release-please versions every package together. The
+        // Microsoft floors are the first .NET 10 release.
         Assert.Equal(_fixture.PackageVersion, Version(dependencies, "Minos.NET"));
+        Assert.Equal(_fixture.PackageVersion, Version(dependencies, "Minos.NET.DependencyInjection"));
         Assert.Equal("10.0.0", Version(dependencies, "Microsoft.Extensions.Logging.Abstractions"));
+        Assert.Equal("10.0.0", Version(dependencies, "Microsoft.Extensions.Http"));
+        Assert.Equal("10.0.0", Version(dependencies, "Microsoft.Extensions.Options.ConfigurationExtensions"));
     }
 
     [Fact]

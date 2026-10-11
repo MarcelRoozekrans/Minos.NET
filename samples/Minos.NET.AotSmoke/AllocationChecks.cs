@@ -626,7 +626,7 @@ internal static class AllocationChecks
     }
 
     /// <summary>
-    /// <see cref="EvaluateRoundTrip"/>'s call through a client <c>AddDecisionClient</c> registered, against the same call on a
+    /// <see cref="EvaluateRoundTrip"/>'s call through a client <c>AddSystemOneClient</c> registered, against the same call on a
     /// hand-built client over an <see cref="HttpClient"/> that <see cref="SystemOneClient.ConfigureHttpClient"/> configured the
     /// same way. Registration and the first resolve happen once and are not budgeted.
     /// </summary>
@@ -652,7 +652,7 @@ internal static class AllocationChecks
             "EvaluateAsync through a DI-resolved client allocates no more than through a hand-built one");
 
         // Measured 3992 B/call on published win-x64 AOT: EvaluateRoundTrip's call plus the User-Agent header the factory's
-        // HttpClient sends, and nothing from the container or the factory, whose request logging AddDecisionClient removes.
+        // HttpClient sends, and nothing from the container or the factory, whose request logging AddSystemOneClient removes.
         // Budget: about 10% headroom over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
         GateValueTask(
             budgetBytes: 4416,

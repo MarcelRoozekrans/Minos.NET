@@ -7,7 +7,7 @@ using ZeroAlloc.Results;
 namespace Minos.Benchmarks;
 
 /// <summary>
-/// <see cref="ClientBenchmarks.EvaluateAsync"/>'s call through a client <c>AddDecisionClient</c> registered, against the same
+/// <see cref="ClientBenchmarks.EvaluateAsync"/>'s call through a client <c>AddSystemOneClient</c> registered, against the same
 /// call on a hand-built client over an <see cref="HttpClient"/> that <see cref="SystemOneClient.ConfigureHttpClient"/>
 /// configured the same way. Both send the User-Agent, which <see cref="ClientBenchmarks"/>' borrowed clients do not.
 /// </summary>
@@ -25,7 +25,7 @@ public class DependencyInjectionBenchmarks : IDisposable
     {
         var services = new ServiceCollection();
         services
-            .AddDecisionClient(options =>
+            .AddSystemOneClient(options =>
             {
                 options.ApiKey = "bench";
                 options.BaseAddress = new Uri("https://example.test/api/");

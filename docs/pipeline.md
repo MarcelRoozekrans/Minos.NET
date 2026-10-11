@@ -255,7 +255,7 @@ registration's name, or `null` for the default client.
 public static void AddAuditedDecision(IServiceCollection services, IConfiguration configuration)
 {
     services.AddTransient<TraceHeaderHandler>();
-    var decision = services.AddDecisionClient(configuration.GetSection("Minos"));
+    var decision = services.AddSystemOneClient(configuration.GetSection("Minos"));
 
     // Handlers go on the HttpClient builder, and see every attempt, retries included.
     decision.HttpClient.AddHttpMessageHandler<TraceHeaderHandler>();

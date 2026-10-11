@@ -5,16 +5,16 @@ using static Minos.DependencyInjection.Tests.Registrations;
 
 namespace Minos.DependencyInjection.Tests;
 
-/// <summary>The <see cref="DecisionClientServiceBuilder"/> that <c>AddDecisionClient</c> returns, and the stages added through it.</summary>
-public sealed class DecisionClientServiceBuilderTests
+/// <summary>The <see cref="SystemOneClientServiceBuilder"/> that <c>AddSystemOneClient</c> returns, and the stages added through it.</summary>
+public sealed class SystemOneClientServiceBuilderTests
 {
     [Fact]
     public void Returns_a_builder_naming_the_registration()
     {
         var services = new ServiceCollection();
 
-        var builder = services.AddDecisionClient(o => o.ApiKey = "k");
-        var keyed = services.AddDecisionClient("second", o => o.ApiKey = "k");
+        var builder = services.AddSystemOneClient(o => o.ApiKey = "k");
+        var keyed = services.AddSystemOneClient("second", o => o.ApiKey = "k");
 
         Assert.Null(builder.Name);
         Assert.Equal("second", keyed.Name);
@@ -25,7 +25,7 @@ public sealed class DecisionClientServiceBuilderTests
     public void Stages_wrap_the_registered_client()
     {
         var services = new ServiceCollection();
-        services.AddDecisionClient(o => o.ApiKey = "k").Use(inner => new Marker(inner));
+        services.AddSystemOneClient(o => o.ApiKey = "k").Use(inner => new Marker(inner));
 
         using var provider = services.BuildServiceProvider();
         var client = provider.GetRequiredService<IDecisionClient>();
@@ -39,8 +39,8 @@ public sealed class DecisionClientServiceBuilderTests
     {
         var services = new ServiceCollection();
 
-        var first = services.AddDecisionClient(o => o.ApiKey = "k");
-        var second = services.AddDecisionClient();
+        var first = services.AddSystemOneClient(o => o.ApiKey = "k");
+        var second = services.AddSystemOneClient();
 
         Assert.Same(first, second);
     }
@@ -49,8 +49,8 @@ public sealed class DecisionClientServiceBuilderTests
     public void Keyed_registrations_have_their_own_builders()
     {
         var services = new ServiceCollection();
-        services.AddDecisionClient("a", o => o.ApiKey = "k").Use(inner => new Marker(inner));
-        services.AddDecisionClient("b", o => o.ApiKey = "k");
+        services.AddSystemOneClient("a", o => o.ApiKey = "k").Use(inner => new Marker(inner));
+        services.AddSystemOneClient("b", o => o.ApiKey = "k");
 
         using var provider = services.BuildServiceProvider();
 
@@ -65,7 +65,7 @@ public sealed class DecisionClientServiceBuilderTests
         var seen = new List<Uri?>();
         var services = new ServiceCollection();
         services
-            .AddDecisionClient(Options("http://default.local/"))
+            .AddSystemOneClient(Options("http://default.local/"))
             .HttpClient
             .ConfigurePrimaryHttpMessageHandler(() => handler)
             .AddHttpMessageHandler(() => new RecordingHandler(seen));
@@ -81,7 +81,7 @@ public sealed class DecisionClientServiceBuilderTests
     {
         var handler = StubHandler.Json(HttpStatusCode.ServiceUnavailable, "{}");
         var services = new ServiceCollection();
-        var builder = services.AddDecisionClient(o =>
+        var builder = services.AddSystemOneClient(o =>
         {
             o.ApiKey = "k";
             o.BaseAddress = new Uri("http://default.local/");
@@ -111,7 +111,7 @@ public sealed class DecisionClientServiceBuilderTests
         var services = new ServiceCollection();
         var mine = new Marker(new SystemOneClient(new SystemOneClientOptions { ApiKey = "k" }));
         services.AddSingleton<IDecisionClient>(mine);
-        services.AddDecisionClient(o => o.ApiKey = "k");
+        services.AddSystemOneClient(o => o.ApiKey = "k");
 
         using var provider = services.BuildServiceProvider();
 

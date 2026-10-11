@@ -7,7 +7,7 @@ using WireMock.ResponseBuilders;
 namespace Minos.Integration.Tests;
 
 /// <summary>
-/// A client from <c>AddDecisionClient</c> over WireMock, sending through the factory's <see cref="HttpClient"/> and its default
+/// A client from <c>AddSystemOneClient</c> over WireMock, sending through the factory's <see cref="HttpClient"/> and its default
 /// primary handler. Attempts are counted on the client, by a handler added through the returned builder, so no test
 /// here reads WireMock's log. The held-response time-out test lives in <see cref="DependencyInjectionTimeoutTests"/>,
 /// because <see cref="WireMockFixture"/> forbids sharing a class with a test that leaves a response pending.

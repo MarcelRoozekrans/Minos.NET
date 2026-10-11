@@ -5,9 +5,9 @@ using static Minos.DependencyInjection.Tests.Registrations;
 
 namespace Minos.DependencyInjection.Tests;
 
-/// <summary><c>AddDecisionClient</c> with the environment variables the core reads, set for one test at a time.</summary>
+/// <summary><c>AddSystemOneClient</c> with the environment variables the core reads, set for one test at a time.</summary>
 [Collection(ProcessEnvironment.Name)]
-public sealed class AddDecisionClientEnvironmentTests
+public sealed class AddSystemOneClientEnvironmentTests
 {
     [Fact]
     public async Task TypeSafeBaseUrl_IsTheFactoryClientsBaseAddress()
@@ -15,7 +15,7 @@ public sealed class AddDecisionClientEnvironmentTests
         using var environment = new EnvironmentVariables(("TYPESAFE_BASE_URL", "http://env.local/minos"));
         var handler = Noul();
         var services = new ServiceCollection();
-        services.AddDecisionClient(options => options.ApiKey = "di-key").HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
+        services.AddSystemOneClient(options => options.ApiKey = "di-key").HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
         using var provider = services.BuildServiceProvider();
 
         _ = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request());
@@ -28,7 +28,7 @@ public sealed class AddDecisionClientEnvironmentTests
     {
         using var environment = new EnvironmentVariables(("TYPESAFE_API_KEY", null));
         var services = new ServiceCollection();
-        services.AddDecisionClient(options => options.BaseAddress = new Uri("http://default.local/"));
+        services.AddSystemOneClient(options => options.BaseAddress = new Uri("http://default.local/"));
         using var provider = services.BuildServiceProvider();
 
         var exception = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IDecisionClient>());
@@ -43,7 +43,7 @@ public sealed class AddDecisionClientEnvironmentTests
     {
         using var environment = new EnvironmentVariables(("TYPESAFE_API_KEY", null));
         var services = new ServiceCollection();
-        services.AddDecisionClient(options => options.BaseAddress = new Uri("http://default.local/"));
+        services.AddSystemOneClient(options => options.BaseAddress = new Uri("http://default.local/"));
         using var provider = services.BuildServiceProvider();
 
         var exception = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredService<IHttpClientFactory>().CreateClient("Minos.NET"));
@@ -58,7 +58,7 @@ public sealed class AddDecisionClientEnvironmentTests
     {
         using var environment = new EnvironmentVariables(("TYPESAFE_API_KEY", "env-key"));
         var services = new ServiceCollection();
-        services.AddDecisionClient(options => options.BaseAddress = new Uri("http://default.local/"));
+        services.AddSystemOneClient(options => options.BaseAddress = new Uri("http://default.local/"));
         using var provider = services.BuildServiceProvider();
 
         Assert.NotNull(provider.GetRequiredService<IDecisionClient>());
