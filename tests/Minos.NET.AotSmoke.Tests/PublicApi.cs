@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis;
 namespace Minos.AotSmoke.Tests;
 
 /// <summary>
-/// The public entry points the three packages declare in their PublicAPI files: every public constructor and method, with
+/// The public entry points the four packages declare in their PublicAPI files: every public constructor and method, with
 /// its signature exactly as RS0016 prints it, after applying the <c>*REMOVED*</c> lines.
 /// </summary>
 /// <remarks>
@@ -33,6 +33,7 @@ internal static class PublicApi
     [
         ["src/Minos.NET/PublicAPI.Shipped.txt", "src/Minos.NET/PublicAPI.Unshipped.txt"],
         ["src/Minos.NET.SystemOne/PublicAPI.Shipped.txt", "src/Minos.NET.SystemOne/PublicAPI.Unshipped.txt"],
+        ["src/Minos.NET.OpenAI/PublicAPI.Shipped.txt", "src/Minos.NET.OpenAI/PublicAPI.Unshipped.txt"],
         [
             "src/Minos.NET.DependencyInjection/PublicAPI.Shipped.txt",
             "src/Minos.NET.DependencyInjection/PublicAPI.Unshipped.txt",
@@ -41,14 +42,14 @@ internal static class PublicApi
 
     private const string CompilerGeneratedAttribute = "System.Runtime.CompilerServices.CompilerGeneratedAttribute";
 
-    private static readonly string[] PackageNames = ["Minos.NET", "Minos.NET.SystemOne", "Minos.NET.DependencyInjection"];
+    private static readonly string[] PackageNames = ["Minos.NET", "Minos.NET.SystemOne", "Minos.NET.OpenAI", "Minos.NET.DependencyInjection"];
 
     private static readonly string[] ObjectMembers = ["Equals(object? obj)", "GetHashCode()", "ToString()"];
 
-    /// <summary>Every line the three packages declare, after applying the <c>*REMOVED*</c> lines.</summary>
+    /// <summary>Every line the four packages declare, after applying the <c>*REMOVED*</c> lines.</summary>
     public static List<string> Lines { get; } = ReadLines();
 
-    /// <summary>The PublicAPI lines of the record members the compiler generated in the three packages.</summary>
+    /// <summary>The PublicAPI lines of the record members the compiler generated in the four packages.</summary>
     // Initialised before EntryPoints, which reads it.
     private static HashSet<string> GeneratedRecordMembers { get; } = FindGeneratedRecordMembers(
         PackageNames.Select(name => FindAssembly(SampleCompilation.Smoke.Compilation, name)));

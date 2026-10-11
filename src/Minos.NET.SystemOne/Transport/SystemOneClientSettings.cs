@@ -1,3 +1,5 @@
+using Minos.Transport;
+
 namespace Minos.SystemOne.Transport;
 
 /// <summary>
@@ -86,7 +88,7 @@ internal sealed class SystemOneClientSettings
         options ??= new SystemOneClientOptions();
 
         EnsureKnownProvider(options);
-        EnsureValidTimeout(options);
+        ClientSettingRules.CheckTimeout(options.Timeout, nameof(options));
 
         RetrySettings.Check(options.MaxRetries, options.InitialBackoff, options.MaxRetryDelay, nameof(options));
 
@@ -95,7 +97,7 @@ internal sealed class SystemOneClientSettings
         var model = ResolveModel(options);
         var capabilities = ResolveCapabilities(options);
         var apiKey = ResolveApiKey(options, environment);
-        var baseAddress = WithTrailingSlash(ResolveRoot(options, environment));
+        var baseAddress = ClientSettingRules.WithTrailingSlash(ResolveRoot(options, environment));
 
         return new SystemOneClientSettings(
             provider,
@@ -120,15 +122,15 @@ internal sealed class SystemOneClientSettings
     /// <param name="environment">Reads an environment variable; tests pass a fake.</param>
     /// <exception cref="ArgumentException">The provider, the time-out, or the base address is invalid.</exception>
     /// <exception cref="InvalidOperationException">The base address environment variable is invalid.</exception>
-    public static SystemOneHttpSettings ResolveHttp(SystemOneClientOptions? options, Func<string, string?> environment)
+    public static HttpSettings ResolveHttp(SystemOneClientOptions? options, Func<string, string?> environment)
     {
         ArgumentNullException.ThrowIfNull(environment);
         options ??= new SystemOneClientOptions();
 
         EnsureKnownProvider(options);
-        EnsureValidTimeout(options);
+        ClientSettingRules.CheckTimeout(options.Timeout, nameof(options));
 
-        return new SystemOneHttpSettings(WithTrailingSlash(ResolveRoot(options, environment)), options.Timeout);
+        return new HttpSettings(ClientSettingRules.WithTrailingSlash(ResolveRoot(options, environment)), options.Timeout);
     }
 
     public override string ToString()
@@ -142,24 +144,11 @@ internal sealed class SystemOneClientSettings
         }
     }
 
-    private static void EnsureValidTimeout(SystemOneClientOptions options)
-    {
-        if (options.Timeout <= TimeSpan.Zero && options.Timeout != System.Threading.Timeout.InfiniteTimeSpan)
-        {
-            throw new ArgumentException("The time-out must be positive.", nameof(options));
-        }
-
-        if (options.Timeout > RetrySettings.MaxMilliseconds)
-        {
-            throw new ArgumentOutOfRangeException(nameof(options), options.Timeout, "The time-out must not exceed " + RetrySettings.MaxMilliseconds.TotalMilliseconds.ToString(System.Globalization.CultureInfo.InvariantCulture) + " milliseconds.");
-        }
-    }
-
     // Path applies to the presets whose server you name; on a hosted one it would send the key elsewhere on that host.
     // Like ApiKey, a blank Path counts as unset, and surrounding whitespace is trimmed.
     private static string ResolvePath(SystemOneClientOptions options)
     {
-        if (NonBlank(options.Path) is not { } untrimmed)
+        if (ClientSettingRules.NonBlank(options.Path) is not { } untrimmed)
         {
             return DefaultPath;
         }
@@ -184,12 +173,7 @@ internal sealed class SystemOneClientSettings
     {
         if (options.Model is { } explicitModel)
         {
-            if (string.IsNullOrWhiteSpace(explicitModel))
-            {
-                throw new ArgumentException("The model must not be blank.", nameof(options));
-            }
-
-            return explicitModel.Trim();
+            return ClientSettingRules.CheckModel(explicitModel, nameof(options));
         }
 
         if (options.Provider is SystemOneProvider.TypeSafe or SystemOneProvider.OpenRouter)
@@ -203,52 +187,15 @@ internal sealed class SystemOneClientSettings
 
     // The preset's defaults with each override that is set; a null Capabilities counts as no overrides.
     private static CapabilitySet ResolveCapabilities(SystemOneClientOptions options)
-    {
-        var defaults = CapabilitySet.For(options.Provider);
-        if (options.Capabilities is not { } overrides)
-        {
-            return defaults;
-        }
-
-        if (overrides.QuestionKinds is { } kinds)
-        {
-            if (kinds == SystemOneQuestionKinds.None)
-            {
-                throw new ArgumentException("Capabilities.QuestionKinds must allow at least one question kind.", nameof(options));
-            }
-
-            if ((kinds & ~SystemOneQuestionKinds.All) != SystemOneQuestionKinds.None)
-            {
-                throw new ArgumentException("Capabilities.QuestionKinds has an unknown flag.", nameof(options));
-            }
-        }
-
-        if (overrides.MaxQuestions is < 1)
-        {
-            throw new ArgumentException("Capabilities.MaxQuestions must be at least 1.", nameof(options));
-        }
-
-        if (overrides.MaxChoiceOptions is < 2)
-        {
-            throw new ArgumentException("Capabilities.MaxChoiceOptions must be at least 2.", nameof(options));
-        }
-
-        return defaults.With(overrides);
-    }
+        => ClientSettingRules.ResolveCapabilities(SystemOneCapabilityDefaults.For(options.Provider), options.Capabilities, nameof(options));
 
     // The hosted presets require a key, from the option or their own variable. Custom and VllmSemanticRouter send one only
     // when the option sets it, so a vendor key from the environment never reaches a server the caller names.
     private static string? ResolveApiKey(SystemOneClientOptions options, Func<string, string?> environment)
     {
-        if (NonBlank(options.ApiKey) is { } explicitKey)
+        if (ClientSettingRules.NonBlank(options.ApiKey) is { } explicitKey)
         {
-            var trimmed = explicitKey.Trim();
-            if (HasControlCharacter(trimmed))
-            {
-                throw new ArgumentException("The API key contains a control character.", nameof(options));
-            }
-
-            return trimmed;
+            return ClientSettingRules.CheckApiKey(explicitKey, nameof(options));
         }
 
         if (KeyVariable(options.Provider) is not { } keyVariable)
@@ -256,15 +203,9 @@ internal sealed class SystemOneClientSettings
             return null;
         }
 
-        if (NonBlank(environment(keyVariable)) is { } environmentKey)
+        if (ClientSettingRules.NonBlank(environment(keyVariable)) is { } environmentKey)
         {
-            var trimmed = environmentKey.Trim();
-            if (HasControlCharacter(trimmed))
-            {
-                throw new InvalidOperationException("The " + keyVariable + " environment variable contains a control character.");
-            }
-
-            return trimmed;
+            return ClientSettingRules.CheckEnvironmentApiKey(environmentKey, keyVariable);
         }
 
         throw new InvalidOperationException(
@@ -282,22 +223,7 @@ internal sealed class SystemOneClientSettings
     {
         if (options.BaseAddress is { } explicitAddress)
         {
-            if (!explicitAddress.IsAbsoluteUri)
-            {
-                throw new ArgumentException("The base address must be an absolute URI.", nameof(options));
-            }
-
-            if (HasQueryOrFragment(explicitAddress))
-            {
-                throw new ArgumentException("The base address must not contain a query or fragment.", nameof(options));
-            }
-
-            if (!IsHttpScheme(explicitAddress))
-            {
-                throw new ArgumentException("The base address must use the http or https scheme.", nameof(options));
-            }
-
-            return explicitAddress;
+            return ClientSettingRules.CheckBaseAddress(explicitAddress, nameof(options));
         }
 
         switch (options.Provider)
@@ -305,7 +231,9 @@ internal sealed class SystemOneClientSettings
             case SystemOneProvider.TypeSafe:
                 // TYPESAFE_BASE_URL applies only to SystemOneProvider.TypeSafe: no other provider's base address is taken
                 // from it, so another provider's key is never sent to a TypeSafe proxy.
-                return FromEnvironment(environment(SystemOneDefaults.BaseAddressEnvironmentVariable)) ?? SystemOneDefaults.TypeSafeBaseAddress;
+                return ClientSettingRules.BaseAddressFromEnvironment(
+                        environment(SystemOneDefaults.BaseAddressEnvironmentVariable), SystemOneDefaults.BaseAddressEnvironmentVariable)
+                    ?? SystemOneDefaults.TypeSafeBaseAddress;
             case SystemOneProvider.OpenRouter:
                 return SystemOneDefaults.OpenRouterBaseAddress;
             default:
@@ -346,56 +274,4 @@ internal sealed class SystemOneClientSettings
 
         return true;
     }
-
-    private static bool HasControlCharacter(string value)
-    {
-        foreach (var c in value)
-        {
-            if (char.IsControl(c))
-            {
-                return true;
-            }
-        }
-
-        return false;
-    }
-
-    private static string? NonBlank(string? value) => string.IsNullOrWhiteSpace(value) ? null : value;
-
-    private static Uri? FromEnvironment(string? value)
-    {
-        if (NonBlank(value) is not { } text)
-        {
-            return null;
-        }
-
-        if (!Uri.TryCreate(text, UriKind.Absolute, out var uri))
-        {
-            throw new InvalidOperationException(
-                "The " + SystemOneDefaults.BaseAddressEnvironmentVariable + " environment variable is not an absolute URI.");
-        }
-
-        if (HasQueryOrFragment(uri))
-        {
-            throw new InvalidOperationException(
-                "The " + SystemOneDefaults.BaseAddressEnvironmentVariable + " environment variable must not contain a query or fragment.");
-        }
-
-        if (!IsHttpScheme(uri))
-        {
-            throw new InvalidOperationException(
-                "The " + SystemOneDefaults.BaseAddressEnvironmentVariable + " environment variable must use the http or https scheme.");
-        }
-
-        return uri;
-    }
-
-    private static bool HasQueryOrFragment(Uri uri) => uri.Query.Length > 0 || uri.Fragment.Length > 0;
-
-    private static bool IsHttpScheme(Uri uri)
-        => string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal)
-            || string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal);
-
-    private static Uri WithTrailingSlash(Uri uri)
-        => uri.AbsoluteUri.EndsWith('/') ? uri : new Uri(uri.AbsoluteUri + "/");
 }

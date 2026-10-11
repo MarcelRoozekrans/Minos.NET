@@ -23,5 +23,6 @@
   <ItemGroup>
     <!-- DecisionClientRegistration and the builder's internal constructor, for the protocol packages' registrations. -->
     <InternalsVisibleTo Include="Minos.NET.SystemOne" />
+    <InternalsVisibleTo Include="Minos.NET.OpenAI" />
   </ItemGroup>
 </Project>

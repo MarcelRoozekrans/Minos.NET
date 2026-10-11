@@ -174,7 +174,7 @@ internal static class IDecisionClientChecks
 
     // The response a real client reads from canned JSON for exactly this definition, so the fallback client answers as
     // the service would, for the definition the extension asks about.
-    private static async Task<DecisionResponse> ResponseFor(string responseJson, QuestionSetDefinition definition)
+    internal static async Task<DecisionResponse> ResponseFor(string responseJson, QuestionSetDefinition definition)
     {
         using var http = Program.Http(HttpStatusCode.OK, responseJson);
         using var client = new SystemOneClient(http, Program.Options());

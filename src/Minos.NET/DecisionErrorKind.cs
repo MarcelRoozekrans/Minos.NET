@@ -66,4 +66,12 @@ public enum DecisionErrorKind
     /// throws <see cref="ObjectDisposedException"/> instead.
     /// </summary>
     Disposed = 12,
+
+    /// <summary>
+    /// The model refused to answer one or more questions. <see cref="DecisionError.Failures"/> names each refused question,
+    /// with rule <c>refusal</c>. It is not retried by default: <see cref="DecisionRetryOptions.IsTransient"/> excludes it,
+    /// though a custom <see cref="DecisionRetryOptions.ShouldRetry"/> can retry it. OpenAI's Decisions API reports
+    /// refusals; System One providers do not.
+    /// </summary>
+    Refused = 13,
 }

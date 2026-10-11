@@ -1,4 +1,5 @@
 using Minos.Transport;
+using Minos.Transport.Rest;
 using ZeroAlloc.Rest.Attributes;
 using ZeroAlloc.Results;
 
@@ -30,8 +31,9 @@ internal interface IDecisionApi
 
     /// <summary>
     /// The protocol-neutral attempt: POSTs pre-written UTF-8 JSON to <paramref name="path"/>, relative to the base address,
-    /// and returns the raw response body. <see cref="DecisionTransport"/> sends one attempt through it, passing
-    /// <see cref="SystemOneClientSettings.Path"/>. The caller owns both <see cref="RawJson"/> values.
+    /// and returns the raw response body. <see cref="DecisionTransport"/> sends one attempt through it, by the
+    /// <see cref="RawSend"/> the client builds, passing <see cref="SystemOneClientSettings.Path"/>. The caller owns both
+    /// <see cref="RawJson"/> values.
     /// </summary>
     /// <remarks>
     /// <c>{**path}</c> escapes each segment and keeps the <c>/</c> between them, so <c>v1/systemone</c> is sent as is.

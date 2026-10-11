@@ -5,6 +5,7 @@ using Microsoft.Extensions.Logging;
 using Minos.SystemOne;
 using Minos.SystemOne.Protocols;
 using Minos.SystemOne.Transport;
+using Minos.Transport;
 using ZeroAlloc.Results;
 
 namespace Minos.Tests;
@@ -36,7 +37,7 @@ internal static class ClientTestKit
     /// <summary>The body <see cref="SystemOneClient"/> sends for <paramref name="request"/> with <see cref="TestModel"/>, as JSON.</summary>
     public static JsonNode ExpectedBody(DecisionRequest request)
     {
-        using var body = SystemOneProtocol.Instance.WriteRequest(request.Definition, request.State, TestModel, ArrayPool<byte>.Shared);
+        using var body = SystemOneProtocol.Instance.WriteRequest(request.Definition, request.State, request.Images, TestModel, ArrayPool<byte>.Shared);
         return JsonNode.Parse(Encoding.UTF8.GetString(body.Span))!;
     }
 

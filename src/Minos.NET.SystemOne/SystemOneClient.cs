@@ -1,11 +1,12 @@
 using System.Buffers;
 using System.Net.Http.Headers;
-using System.Reflection;
 using Microsoft.Extensions.Logging;
 using Minos.SystemOne.Protocols;
 using Minos.SystemOne.Serialization;
 using Minos.SystemOne.Telemetry;
 using Minos.SystemOne.Transport;
+using Minos.Transport;
+using Minos.Transport.Rest;
 using ZeroAlloc.Rest.SystemTextJson;
 using ZeroAlloc.Results;
 
@@ -34,7 +35,7 @@ namespace Minos.SystemOne;
 /// </remarks>
 public sealed class SystemOneClient : IDecisionClient
 {
-    private static readonly ProductInfoHeaderValue UserAgent = CreateUserAgent();
+    private static readonly ProductInfoHeaderValue UserAgent = HttpClientSetup.CreateUserAgent(typeof(SystemOneClient).Assembly);
 
     private readonly DecisionOperationsInstrumented _operations;
     private readonly HttpClient? _ownedHttpClient;
@@ -186,12 +187,12 @@ public sealed class SystemOneClient : IDecisionClient
         if (httpClient is null)
         {
             httpClient = new HttpClient(ownedHandler ?? new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(2) });
-            ApplyHttpSettings(httpClient, new SystemOneHttpSettings(settings.BaseAddress, settings.Timeout));
+            HttpClientSetup.Apply(httpClient, new HttpSettings(settings.BaseAddress, settings.Timeout), UserAgent);
             _ownedHttpClient = httpClient;
         }
         else if (httpClient.BaseAddress is not null)
         {
-            ValidateBorrowedBaseAddress(httpClient);
+            HttpClientSetup.CheckBorrowedBaseAddress(httpClient);
         }
         else
         {
@@ -223,7 +224,11 @@ public sealed class SystemOneClient : IDecisionClient
 
         // The standard chain, outermost first: one span over every attempt, one outcome log inside it, then retries. Each
         // stage reads the metadata through GetService, which the chain answers from the transport at its bottom.
-        IDecisionClient pipeline = new DecisionTransport(api, SystemOneProtocol.Instance, settings, _metadata, pool, disposed);
+        var path = settings.Path;
+        var authorization = settings.Authorization;
+        RawSend send = (body, retryCount, ct) => api.SendAsync(body, path, authorization, retryCount, ct);
+        IDecisionClient pipeline = new DecisionTransport(
+            send, SystemOneProtocol.Instance, settings.Capabilities, settings.Provider.ToString(), settings.Model, _metadata, pool, disposed);
         DecisionRetry? rawRetry = null;
         if (settings.UseStandardPipeline)
         {
@@ -271,7 +276,7 @@ public sealed class SystemOneClient : IDecisionClient
     internal static void ConfigureHttpClient(HttpClient httpClient, SystemOneClientOptions? options, Func<string, string?> environment)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
-        ApplyHttpSettings(httpClient, SystemOneClientSettings.ResolveHttp(options, environment));
+        HttpClientSetup.Apply(httpClient, SystemOneClientSettings.ResolveHttp(options, environment), UserAgent);
     }
 
     /// <summary>Asks the request's questions about its state.</summary>
@@ -291,8 +296,8 @@ public sealed class SystemOneClient : IDecisionClient
     /// Runs the client's pipeline: with <see cref="SystemOneClientOptions.UseStandardPipeline"/>, telemetry, logging when
     /// the client has a logger factory, and retries with the options' retry settings; without it, one attempt. The
     /// request is sent with <see cref="SystemOneClientOptions.Model"/> when <see cref="DecisionRequest.Model"/> is
-    /// <see langword="null"/>, and every pooled buffer is returned before the call completes. A question set that
-    /// <see cref="SystemOneClientOptions.Capabilities"/> does not accept returns <see cref="DecisionErrorKind.Unsupported"/>
+    /// <see langword="null"/>, and every pooled buffer is returned before the call completes. A request that
+    /// <see cref="SystemOneClientOptions.Capabilities"/> does not accept, such as one with images, returns <see cref="DecisionErrorKind.Unsupported"/>
     /// without a request, and is not retried.
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
@@ -312,7 +317,7 @@ public sealed class SystemOneClient : IDecisionClient
     /// <inheritdoc />
     /// <remarks>
     /// Returns this client for a type it is, a new <see cref="DecisionRetryOptions"/> from its retry settings, a new
-    /// <see cref="SystemOneCapabilities"/> with its resolved capabilities, every property set, its
+    /// <see cref="DecisionCapabilities"/> with its resolved capabilities, every property set, its
     /// <see cref="DecisionClientMetadata"/>, then whatever its pipeline's stages return, such as
     /// <see cref="RetryingDecisionClient"/>.
     /// </remarks>
@@ -332,7 +337,7 @@ public sealed class SystemOneClient : IDecisionClient
                 return _retryOptions.Clone();
             }
 
-            if (serviceType == typeof(SystemOneCapabilities))
+            if (serviceType == typeof(DecisionCapabilities))
             {
                 return _capabilities.ToOptions();
             }
@@ -376,12 +381,12 @@ public sealed class SystemOneClient : IDecisionClient
 
     /// <summary>
     /// Lists the models and aliases available to the account, with <c>GET v1/models</c>, on a provider whose
-    /// <see cref="SystemOneCapabilities.ModelListing"/> is on: by default TypeSafe only.
+    /// <see cref="DecisionCapabilities.ModelListing"/> is on: by default TypeSafe only.
     /// </summary>
     /// <param name="cancellationToken">Cancels the call; cancellation throws <see cref="OperationCanceledException"/>.</param>
     /// <returns>
     /// The models, or the <see cref="DecisionError"/> that prevented them; <see cref="DecisionErrorKind.Unsupported"/>,
-    /// without a request, where <see cref="SystemOneCapabilities.ModelListing"/> is off.
+    /// without a request, where <see cref="DecisionCapabilities.ModelListing"/> is off.
     /// </returns>
     /// <exception cref="ObjectDisposedException">The client has been disposed.</exception>
     public ValueTask<Result<ModelList, DecisionError>> ListModelsAsync(CancellationToken cancellationToken = default)
@@ -504,48 +509,6 @@ public sealed class SystemOneClient : IDecisionClient
         }
     }
 
-    // Validates a caller-supplied HttpClient.BaseAddress with the same rules as a configured address. The caller's
-    // client is never modified, so unlike a configured address (which gets a trailing slash appended), the path here
-    // must already end in '/'.
-    private static void ValidateBorrowedBaseAddress(HttpClient httpClient)
-    {
-        var baseAddress = httpClient.BaseAddress!;
-
-        if (!baseAddress.IsAbsoluteUri)
-        {
-            throw new ArgumentException("httpClient.BaseAddress must be an absolute URI.", nameof(httpClient));
-        }
-
-        if (!string.Equals(baseAddress.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal)
-            && !string.Equals(baseAddress.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal))
-        {
-            throw new ArgumentException("httpClient.BaseAddress must use the http or https scheme.", nameof(httpClient));
-        }
-
-        if (baseAddress.Query.Length > 0 || baseAddress.Fragment.Length > 0)
-        {
-            throw new ArgumentException("httpClient.BaseAddress must not contain a query or fragment.", nameof(httpClient));
-        }
-
-        if (!baseAddress.AbsoluteUri.EndsWith('/'))
-        {
-            throw new ArgumentException("httpClient.BaseAddress must end with '/'.", nameof(httpClient));
-        }
-    }
-
-    // What an owned HttpClient gets and ConfigureHttpClient applies: the base address when there is none, the per-attempt
-    // time-out, and the User-Agent once.
-    private static void ApplyHttpSettings(HttpClient httpClient, SystemOneHttpSettings settings)
-    {
-        // Timeout first: its setter can throw, and nothing else has been changed by then.
-        httpClient.Timeout = settings.Timeout;
-        httpClient.BaseAddress ??= settings.BaseAddress;
-        if (!httpClient.DefaultRequestHeaders.UserAgent.Contains(UserAgent))
-        {
-            httpClient.DefaultRequestHeaders.UserAgent.Add(UserAgent);
-        }
-    }
-
     private static SystemOneClientSettings ResolveSettings(SystemOneClientOptions? options)
         => SystemOneClientSettings.Resolve(options, Environment.GetEnvironmentVariable);
 
@@ -554,33 +517,5 @@ public sealed class SystemOneClient : IDecisionClient
     {
         ArgumentNullException.ThrowIfNull(httpClient);
         return ResolveSettings(options);
-    }
-
-    // ProductInfoHeaderValue's constructor throws FormatException for a version that is not a valid product token;
-    // a User-Agent header must never prevent client construction, so this falls back to "0.0.0" instead.
-    private static ProductInfoHeaderValue CreateUserAgent()
-    {
-        try
-        {
-            return new ProductInfoHeaderValue("Minos.NET", ClientVersion());
-        }
-        catch (FormatException)
-        {
-            return new ProductInfoHeaderValue("Minos.NET", "0.0.0");
-        }
-    }
-
-    private static string ClientVersion()
-    {
-        var version = typeof(SystemOneClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion;
-        if (string.IsNullOrEmpty(version))
-        {
-            return "0.0.0";
-        }
-
-        // Strip build metadata (e.g. a source-control commit hash appended after '+' by the build), which is not
-        // part of the version a caller would want to see or compare in a User-Agent header.
-        var buildMetadata = version.IndexOf('+', StringComparison.Ordinal);
-        return buildMetadata < 0 ? version : version[..buildMetadata];
     }
 }

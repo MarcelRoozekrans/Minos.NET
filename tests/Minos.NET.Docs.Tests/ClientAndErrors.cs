@@ -107,6 +107,7 @@ public static class ClientFailures
         DecisionErrorKind.Unsupported => $"The provider cannot do that: {error.Message}",
         DecisionErrorKind.InvalidQuestions => $"The question set is invalid, {error.Failures.Count} rules broken.",
         DecisionErrorKind.Disposed => "The client was disposed while the call was running.",
+        DecisionErrorKind.Refused => $"{error.Message} Rephrase the questions or the state.",
 
         // A kind added in a later version still produces a useful message.
         _ => error.ToString(),
@@ -235,7 +236,7 @@ public static class CapabilityOptions
             Provider = SystemOneProvider.Custom,
             BaseAddress = new Uri("http://localhost:8080/"),
             Model = "noul-small",
-            Capabilities = new SystemOneCapabilities { QuestionKinds = SystemOneQuestionKinds.Noul },
+            Capabilities = new DecisionCapabilities { QuestionKinds = QuestionKinds.Noul },
         };
     #endregion
 
@@ -260,19 +261,21 @@ public static class CapabilityOptions
     #endregion
 
     #region ClientAndErrors_ResolvedCapabilities
-    // The capabilities a client resolved: the preset's defaults with your overrides applied, every property set.
+    // The capabilities a client resolved: the preset's or OpenAI's defaults with your overrides applied, every property
+    // set.
     // GetService returns a new instance each time, so changing it changes nothing in the client.
     public static string Describe(IDecisionClient client)
     {
-        var capabilities = client.GetService<SystemOneCapabilities>();
+        var capabilities = client.GetService<DecisionCapabilities>();
         if (capabilities is null)
         {
-            return "This client has no System One capabilities.";
+            return "This client does not report its capabilities.";
         }
 
         var questions = capabilities.MaxQuestions is { } most ? $"at most {most} questions" : "no question limit";
+        var images = capabilities.Images == true ? "on" : "off";
         var listing = capabilities.ModelListing == true ? "on" : "off";
-        return $"{capabilities.QuestionKinds}, {questions}, model listing {listing}";
+        return $"{capabilities.QuestionKinds}, {questions}, images {images}, model listing {listing}";
     }
     #endregion
 }

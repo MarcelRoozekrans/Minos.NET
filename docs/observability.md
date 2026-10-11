@@ -114,7 +114,8 @@ A call logs once, when it completes, and logs again for each attempt it is about
   and a [built question set](question-sets-at-run-time.md) included, and, for the raw System One calls, `evaluate` for
   `EvaluateAsync(SystemOneRequest)` and `list-models` for model listing.
 - **`Provider`**, in events 1001, 1004 and 1005, is the provider name of the client's `DecisionClientMetadata`, the same
-  value as the span's `gen_ai.provider.name`: `typesafe`, `openrouter`, `vllm-sr` or `custom`.
+  value as the span's `gen_ai.provider.name`: `typesafe`, `openrouter`, `vllm-sr` or `custom` for a
+  `SystemOneClient`, and `openai` for an `OpenAIDecisionClient`.
 - **Success** is a Debug event, 1001 for an evaluation and 1004 for a model listing. `QuestionCount` is the number of
   questions asked.
 - **Failure** is a Warning, 1002 or 1005. It covers every failure the call returns as a
@@ -206,7 +207,7 @@ public static class DecisionTelemetryNames
 ```
 <!-- endSnippet -->
 
-No Minos package takes an OpenTelemetry dependency: not `Minos.NET`, `Minos.NET.SystemOne` or
+No Minos package takes an OpenTelemetry dependency: not `Minos.NET`, `Minos.NET.SystemOne`, `Minos.NET.OpenAI` or
 `Minos.NET.DependencyInjection`. Your application brings OpenTelemetry itself, usually the
 `OpenTelemetry.Extensions.Hosting` package, whose `AddOpenTelemetry()` starts the setup. Pass the source to
 `WithTracing` with `AddSource`, and the meter to `WithMetrics` with `AddMeter`:
@@ -323,7 +324,7 @@ named `minos.*`.
 | Attribute | Set | Value |
 | --- | --- | --- |
 | `gen_ai.operation.name` | start | `evaluate` or `list_models` |
-| `gen_ai.provider.name` | start | `typesafe`, `openrouter`, `vllm-sr` or `custom` |
+| `gen_ai.provider.name` | start | `typesafe`, `openrouter`, `vllm-sr`, `custom` or `openai` |
 | `gen_ai.request.model` | start | The requested model. Evaluations only. |
 | `server.address` | start | The host of the base address. |
 | `server.port` | start | The port of the base address. |
@@ -332,8 +333,8 @@ named `minos.*`.
 | `gen_ai.response.model` | success | The model that answered. Evaluations only. |
 | `gen_ai.usage.input_tokens` | success | The input tokens. Evaluations only. |
 | `gen_ai.usage.output_tokens` | success | The output tokens. Evaluations only. |
-| `gen_ai.response.id` | success | OpenRouter's generation id, when it reports one. Evaluations only. |
-| `minos.usage.cost` | success | The cost in US dollars, when OpenRouter reports it. Evaluations only. |
+| `gen_ai.response.id` | success | The provider's response id, such as OpenRouter's generation id, when it reports one. Evaluations only. |
+| `minos.usage.cost` | success | The cost in US dollars, when the provider reports it, as OpenRouter does. Evaluations only. |
 | `error.type` | failure | The name of the `DecisionErrorKind`, such as `RateLimited`, or the full type name of a thrown exception. |
 
 The start attributes are set when the span is created, so a sampler sees them and can decide on them. A failed result
@@ -343,7 +344,7 @@ the same as the caller sees.
 
 The GenAI conventions name no operation for evaluating or for listing models, and no provider called TypeSafe or
 OpenRouter, and they ask instrumentations to document their own. Minos uses the values in the table: the operation is
-`evaluate` or `list_models`, and the provider is `typesafe`, `openrouter`, `vllm-sr` or `custom`.
+`evaluate` or `list_models`, and the provider is `typesafe`, `openrouter`, `vllm-sr`, `custom` or `openai`.
 
 ### When an exception is thrown
 

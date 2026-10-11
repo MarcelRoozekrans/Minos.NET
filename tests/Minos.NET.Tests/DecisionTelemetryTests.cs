@@ -31,7 +31,7 @@ public sealed class DecisionTelemetryTests
 
     [Fact]
     public void ErrorKinds_AreNumberedFromOneInOrder()
-        => Assert.Equal(Enumerable.Range(1, 12), Enum.GetValues<DecisionErrorKind>().Select(kind => (int)kind));
+        => Assert.Equal(Enumerable.Range(1, 13), Enum.GetValues<DecisionErrorKind>().Select(kind => (int)kind));
 
     [Theory]
     [InlineData(SystemOneProvider.TypeSafe, "typesafe")]

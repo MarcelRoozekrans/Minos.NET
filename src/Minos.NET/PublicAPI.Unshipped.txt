@@ -1,1 +1,43 @@
 #nullable enable
+Minos.DecisionCapabilities
+Minos.DecisionCapabilities.DecisionCapabilities() -> void
+Minos.DecisionCapabilities.Images.get -> bool?
+Minos.DecisionCapabilities.Images.set -> void
+Minos.DecisionCapabilities.MaxChoiceOptions.get -> int?
+Minos.DecisionCapabilities.MaxChoiceOptions.set -> void
+Minos.DecisionCapabilities.MaxQuestions.get -> int?
+Minos.DecisionCapabilities.MaxQuestions.set -> void
+Minos.DecisionCapabilities.ModelListing.get -> bool?
+Minos.DecisionCapabilities.ModelListing.set -> void
+Minos.DecisionCapabilities.QuestionKinds.get -> Minos.QuestionKinds?
+Minos.DecisionCapabilities.QuestionKinds.set -> void
+Minos.DecisionErrorKind.Refused = 13 -> Minos.DecisionErrorKind
+Minos.DecisionImage
+Minos.DecisionImage.Data.get -> System.ReadOnlyMemory<byte>
+Minos.DecisionImage.DecisionImage() -> void
+Minos.DecisionImage.Equals(Minos.DecisionImage other) -> bool
+Minos.DecisionImage.MediaType.get -> string!
+Minos.DecisionRequest.Images.get -> System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>!
+Minos.DecisionRequest.Images.init -> void
+Minos.QuestionKinds
+Minos.QuestionKinds.All = Minos.QuestionKinds.Noul | Minos.QuestionKinds.Choice | Minos.QuestionKinds.Score -> Minos.QuestionKinds
+Minos.QuestionKinds.Choice = 2 -> Minos.QuestionKinds
+Minos.QuestionKinds.None = 0 -> Minos.QuestionKinds
+Minos.QuestionKinds.Noul = 1 -> Minos.QuestionKinds
+Minos.QuestionKinds.Score = 4 -> Minos.QuestionKinds
+override Minos.DecisionImage.Equals(object? obj) -> bool
+override Minos.DecisionImage.GetHashCode() -> int
+static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! client, Minos.QuestionSet! questionSet, Minos.DecisionContent state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.Answers!, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! client, Minos.QuestionSet! questionSet, Minos.DecisionContent state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.Answers!, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateAsync<T, TState>(this Minos.IDecisionClient! client, TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateAsync<T, TState>(this Minos.IDecisionClient! client, TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, System.Text.Json.JsonElement state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, System.Text.Json.JsonElement state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, string! state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, string! state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateUtf8Async<T>(this Minos.IDecisionClient! client, System.ReadOnlyMemory<byte> utf8JsonState, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateUtf8Async<T>(this Minos.IDecisionClient! client, System.ReadOnlyMemory<byte> utf8JsonState, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+static Minos.DecisionImage.FromBytes(System.ReadOnlyMemory<byte> data, string! mediaType) -> Minos.DecisionImage
+static Minos.DecisionImage.FromDataUrl(string! dataUrl) -> Minos.DecisionImage
+static Minos.DecisionImage.operator !=(Minos.DecisionImage left, Minos.DecisionImage right) -> bool
+static Minos.DecisionImage.operator ==(Minos.DecisionImage left, Minos.DecisionImage right) -> bool

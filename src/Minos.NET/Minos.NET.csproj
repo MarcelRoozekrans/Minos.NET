@@ -44,6 +44,9 @@
     <InternalsVisibleTo Include="Minos.NET.Tests" />
     <!-- The /v1/systemone protocol package builds on the question model's internal raw forms. -->
     <InternalsVisibleTo Include="Minos.NET.SystemOne" />
+    <!-- The /v1/decisions protocol package, likewise, and its unit tests, which must not see the SystemOne internals. -->
+    <InternalsVisibleTo Include="Minos.NET.OpenAI" />
+    <InternalsVisibleTo Include="Minos.NET.OpenAI.Tests" />
     <!-- The benchmarks time the internal parse of a built set in isolation, which no public member exposes. -->
     <InternalsVisibleTo Include="Minos.NET.Benchmarks" />
   </ItemGroup>

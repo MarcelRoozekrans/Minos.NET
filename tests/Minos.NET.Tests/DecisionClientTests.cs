@@ -344,7 +344,7 @@ public sealed class DecisionClientTests : IDisposable
     [Theory]
     [InlineData(typeof(IDecisionClient), 1)]
     [InlineData(typeof(SystemOneClient), 3)]
-    [InlineData(typeof(DecisionClientExtensions), 5)]
+    [InlineData(typeof(DecisionClientExtensions), 10)]
     public void EveryCancellationTokenParameter_IsNamedCancellationToken(Type type, int count)
     {
         // A parameter name is public API: callers can pass the token by name, as the BCL names it.

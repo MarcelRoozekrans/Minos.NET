@@ -10,7 +10,7 @@ namespace Minos.AotSmoke.Tests;
 /// </summary>
 public sealed class EntryPointCoverageTests
 {
-    private static readonly string[] Packages = ["Minos.NET", "Minos.NET.SystemOne", "Minos.NET.DependencyInjection"];
+    private static readonly string[] Packages = ["Minos.NET", "Minos.NET.SystemOne", "Minos.NET.OpenAI", "Minos.NET.DependencyInjection"];
 
     [Fact]
     public void The_rebuilt_smoke_compilation_has_no_warnings_or_errors_like_the_real_build()

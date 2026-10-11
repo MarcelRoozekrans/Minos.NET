@@ -63,6 +63,11 @@ internal static class Program
         await IDecisionClientChecks.TypedExtensionsSendTheStateAndCreateAnswers().ConfigureAwait(false);
         await IDecisionClientChecks.TypedStateExtensionsSendTheStateAndCreateAnswers().ConfigureAwait(false);
         await IDecisionClientChecks.BuiltSetExtensionsSendTheStateAndReadAnswers().ConfigureAwait(false);
+        DecisionImageChecks.ImagesAreCreatedFromBytesAndDataUrlsAndCompared();
+        DecisionImageChecks.RequestsCompareTheirImagesByValue();
+        await DecisionImageChecks.TypedExtensionsSendTheImagesWithTheState().ConfigureAwait(false);
+        await DecisionImageChecks.TypedStateExtensionsSendTheImagesWithTheState().ConfigureAwait(false);
+        await DecisionImageChecks.BuiltSetExtensionsSendTheImagesWithTheState().ConfigureAwait(false);
         PipelineChecks.ResponseAnswersEnumerateInDefinitionOrder();
         PipelineChecks.MetadataDescribesTheClient();
         await PipelineChecks.CustomStageDelegatesEveryCall().ConfigureAwait(false);
@@ -96,7 +101,17 @@ internal static class Program
         DecisionOptionSetChecks.HandWrittenOptionSetMapsOptions();
         IQuestionSetChecks.CreateRunsThroughTheInterface();
         await CapabilityChecks.UnsupportedQuestionKindIsNotSent().ConfigureAwait(false);
+        await CapabilityChecks.ImagesToAProviderWithoutImagesAreNotSent().ConfigureAwait(false);
         CapabilityChecks.CapabilitiesBindFromConfiguration();
+
+        await OpenAIChecks.ClientsThatOwnTheirHttpClientRefuseCallsAfterDispose().ConfigureAwait(false);
+        await OpenAIChecks.ClientsOverAnHttpClientEvaluateTheTriageAnswers().ConfigureAwait(false);
+        await OpenAIChecks.RefusalIsRefused().ConfigureAwait(false);
+        OpenAIChecks.ClientAnswersItsServices();
+        OpenAIChecks.ConfigureHttpClientAndValidateApplyTheOptions();
+        await OpenAIChecks.DefaultAndKeyedClientsEvaluate().ConfigureAwait(false);
+        await OpenAIChecks.ClientsBoundFromConfigurationEvaluate().ConfigureAwait(false);
+        await OpenAIChecks.ClientsConfiguredFromTheEnvironmentEvaluate().ConfigureAwait(false);
 
         await AllocationChecks.AnswerSlotAccessors().ConfigureAwait(false);
         await AllocationChecks.GeneratedCreate().ConfigureAwait(false);
@@ -107,6 +122,9 @@ internal static class Program
         AllocationChecks.PassThroughStage();
         AllocationChecks.Utf8StateEvaluateRoundTrip();
         AllocationChecks.TypedStateEvaluateRoundTrip();
+        AllocationChecks.SystemOneImageRoundTrip();
+        AllocationChecks.OpenAITypedRoundTrip();
+        AllocationChecks.OpenAIImageRoundTrip();
         AllocationChecks.EvaluateRoundTripWithNullLoggerFactory();
         AllocationChecks.TypedEvaluateRoundTripWithEveryLevelFiltered();
         AllocationChecks.EvaluateRoundTripWithDiscardingLogger();

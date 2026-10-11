@@ -54,14 +54,57 @@ public sealed class ProtocolBoundaryTests
         Assert.Empty(offenders);
     }
 
+    // The ZeroAlloc.Rest adapters are shared by every protocol package, so they name no protocol's fields or path.
+    [Fact]
+    public void TheSharedRestSourceNamesNoSystemOneWireFieldOrEndpointPath()
+    {
+        var offenders = SourceFiles("Shared/Rest")
+            .Where(f => f.Text.Contains("\"v1/systemone\"", StringComparison.Ordinal) || WireNames.Any(n => f.Text.Contains(n, StringComparison.Ordinal)))
+            .Select(f => f.Path)
+            .ToList();
+
+        Assert.Empty(offenders);
+    }
+
+    // The OpenAI package sends to its own endpoint. It names OpenAI's fields, some of which share a System One name, so
+    // only the path is checked. Until the package exists there is nothing to scan.
+    [Fact]
+    public void TheOpenAIPackageNamesNoSystemOneEndpointPath()
+    {
+        if (!Directory.Exists(SourceRoot("Minos.NET.OpenAI")))
+        {
+            return;
+        }
+
+        var offenders = SourceFiles("Minos.NET.OpenAI")
+            .Where(f => f.Text.Contains("\"v1/systemone\"", StringComparison.Ordinal))
+            .Select(f => f.Path)
+            .ToList();
+
+        Assert.Empty(offenders);
+    }
+
+    // The core sends through a RawSend delegate; each protocol package owns its ZeroAlloc.Rest client.
+    [Fact]
+    public void TheCoreDoesNotReferenceZeroAllocRest()
+    {
+        var project = File.ReadAllText(Path.Combine(SourceRoot("Minos.NET"), "Minos.NET.csproj"));
+        Assert.DoesNotContain("\"ZeroAlloc.Rest", project, StringComparison.Ordinal);
+
+        Assert.Empty(SourceFiles("Minos.NET").Where(f => f.Text.Contains("using ZeroAlloc.Rest", StringComparison.Ordinal)).Select(f => f.Path));
+    }
+
     // Every hand-written source file of one src project, by its path relative to the project.
     private static IEnumerable<(string Path, string Text)> SourceFiles(string project)
     {
-        var root = Path.GetFullPath(Path.Combine(SourceDirectory(), "..", "..", "src", project));
+        var root = SourceRoot(project);
         return Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)
             .Where(f => !f.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.Ordinal))
             .Select(f => (Path.GetRelativePath(root, f).Replace('\\', '/'), File.ReadAllText(f)));
     }
+
+    private static string SourceRoot(string project)
+        => Path.GetFullPath(Path.Combine(SourceDirectory(), "..", "..", "src", project));
 
     private static string SourceDirectory([CallerFilePath] string path = "") => Path.GetDirectoryName(path)!;
 }

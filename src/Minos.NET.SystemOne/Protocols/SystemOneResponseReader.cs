@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Minos.Transport;
 using ZeroAlloc.Results;
 
 namespace Minos.SystemOne.Protocols;
@@ -21,18 +22,14 @@ internal static class SystemOneResponseReader
     private static string? lastModel;
     private static string? lastProvider;
 
-    // Utf8JsonReader treats a leading UTF-8 BOM as an invalid start of a value, while the raw path's stream-based
-    // deserializer skips one; a body read here must match that tolerance.
-    private static ReadOnlySpan<byte> Utf8Bom => [0xEF, 0xBB, 0xBF];
-
     public static Result<DecisionResponse, DecisionError> Read(SystemOneProtocol protocol, ReadOnlySpan<byte> body, QuestionSetDefinition definition)
     {
-        var reader = new Utf8JsonReader(SkipUtf8Bom(body));
+        var reader = new Utf8JsonReader(ResponseReading.SkipUtf8Bom(body));
         try
         {
             if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)
             {
-                return Invalid("The response body is not a JSON object.");
+                return ResponseReading.Invalid("The response body is not a JSON object.");
             }
 
             (AnswerSlot[] Slots, double[] Probabilities)? answers = null;
@@ -47,12 +44,12 @@ internal static class SystemOneResponseReader
                     reader.Read();
                     if (answers is not null)
                     {
-                        return Invalid("The response has more than one answers property.");
+                        return ResponseReading.Invalid("The response has more than one answers property.");
                     }
 
                     if (reader.TokenType == JsonTokenType.Null)
                     {
-                        return Invalid("The response's answers are null.");
+                        return ResponseReading.Invalid("The response's answers are null.");
                     }
 
                     answers = protocol.ReadAnswers(ref reader, definition, Capture);
@@ -67,7 +64,7 @@ internal static class SystemOneResponseReader
                     else
                     {
                         modelSeen = true;
-                        model = CachedStringOrSkip(ref reader, ref lastModel);
+                        model = ResponseReading.CachedStringOrSkip(ref reader, ref lastModel);
                     }
                 }
                 else if (reader.ValueTextEquals("id"u8))
@@ -80,7 +77,7 @@ internal static class SystemOneResponseReader
                     else
                     {
                         idSeen = true;
-                        id = StringOrSkip(ref reader);
+                        id = ResponseReading.StringOrSkip(ref reader);
                     }
                 }
                 else if (reader.ValueTextEquals("provider"u8))
@@ -93,7 +90,7 @@ internal static class SystemOneResponseReader
                     else
                     {
                         providerSeen = true;
-                        provider = CachedStringOrSkip(ref reader, ref lastProvider);
+                        provider = ResponseReading.CachedStringOrSkip(ref reader, ref lastProvider);
                     }
                 }
                 else if (reader.ValueTextEquals("usage"u8))
@@ -106,7 +103,7 @@ internal static class SystemOneResponseReader
                     else
                     {
                         usageSeen = true;
-                        ReadUsage(ref reader, ref inputTokens, ref outputTokens, ref cost);
+                        ResponseReading.ReadUsage(ref reader, ref inputTokens, ref outputTokens, ref cost);
                     }
                 }
                 else
@@ -122,87 +119,11 @@ internal static class SystemOneResponseReader
             return answers is { } read
                 ? Result<DecisionResponse, DecisionError>.Success(
                     new DecisionResponse(definition, read.Slots, read.Probabilities, model, inputTokens, outputTokens, cost, id, provider))
-                : Invalid("The response has no answers.");
+                : ResponseReading.Invalid("The response has no answers.");
         }
         catch (JsonException exception)
         {
-            return Result<DecisionResponse, DecisionError>.Failure(new DecisionError(
-                DecisionErrorKind.InvalidResponse,
-                "The response could not be read as the question set's answers: " + exception.Message)
-            {
-                StatusCode = 200,
-                Exception = exception,
-            });
+            return ResponseReading.Unreadable(exception);
         }
     }
-
-    internal static string? CachedStringOrSkip(ref Utf8JsonReader reader, ref string? cache)
-    {
-        if (reader.TokenType != JsonTokenType.String)
-        {
-            reader.Skip();
-            return null;
-        }
-
-        var cached = Volatile.Read(ref cache);
-        if (cached is not null && reader.ValueTextEquals(cached))
-        {
-            return cached;
-        }
-
-        var value = reader.GetString();
-        Volatile.Write(ref cache, value);
-        return value;
-    }
-
-    private static string? StringOrSkip(ref Utf8JsonReader reader)
-    {
-        if (reader.TokenType == JsonTokenType.String)
-        {
-            return reader.GetString();
-        }
-
-        reader.Skip();
-        return null;
-    }
-
-    private static void ReadUsage(ref Utf8JsonReader reader, ref int? inputTokens, ref int? outputTokens, ref double? cost)
-    {
-        if (reader.TokenType != JsonTokenType.StartObject)
-        {
-            reader.Skip();
-            return;
-        }
-
-        bool inputSeen = false, outputSeen = false, costSeen = false;
-        while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName)
-        {
-            var field = reader.ValueTextEquals("input_tokens"u8) ? 1 : reader.ValueTextEquals("output_tokens"u8) ? 2 : reader.ValueTextEquals("cost"u8) ? 3 : 0;
-            reader.Read();
-            switch (field)
-            {
-                case 1 when !inputSeen:
-                    inputSeen = true;
-                    inputTokens = reader.TokenType == JsonTokenType.Number && reader.TryGetInt32(out var input) ? input : null;
-                    break;
-                case 2 when !outputSeen:
-                    outputSeen = true;
-                    outputTokens = reader.TokenType == JsonTokenType.Number && reader.TryGetInt32(out var output) ? output : null;
-                    break;
-                case 3 when !costSeen:
-                    costSeen = true;
-                    cost = reader.TokenType == JsonTokenType.Number && reader.TryGetDouble(out var value) ? value : null;
-                    break;
-                default:
-                    reader.Skip();
-                    break;
-            }
-        }
-    }
-
-    private static Result<DecisionResponse, DecisionError> Invalid(string message)
-        => Result<DecisionResponse, DecisionError>.Failure(new DecisionError(DecisionErrorKind.InvalidResponse, message) { StatusCode = 200 });
-
-    private static ReadOnlySpan<byte> SkipUtf8Bom(ReadOnlySpan<byte> json)
-        => json.StartsWith(Utf8Bom) ? json[Utf8Bom.Length..] : json;
 }

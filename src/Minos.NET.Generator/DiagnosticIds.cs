@@ -35,6 +35,24 @@ internal static class DiagnosticIds
     /// <summary>A Choice question has more options than the provider accepts.</summary>
     public const string TooManyChoiceOptions = "MIN203";
 
+    /// <summary>
+    /// A Noul question has <c>WhenTrue</c> or <c>WhenFalse</c>, which the provider cannot send. A run-time provider rule
+    /// with no analyzer, like MIN201 to MIN203.
+    /// </summary>
+    public const string NoulCriteriaUnsupported = "MIN204";
+
+    /// <summary>
+    /// A criterion has <c>Examples</c> or <c>NotFor</c>, which the provider cannot send. A run-time provider rule with no
+    /// analyzer, like MIN201 to MIN203.
+    /// </summary>
+    public const string CriterionDetailUnsupported = "MIN205";
+
+    /// <summary>
+    /// A request has images and the provider does not accept them. A run-time provider rule with no analyzer, like
+    /// MIN201 to MIN203.
+    /// </summary>
+    public const string ImagesUnsupported = "MIN206";
+
     /// <summary>Whether a diagnostic with <paramref name="id"/> is advice only: the set is still valid and generated.</summary>
     public static bool IsAdvisory(string id)
         => id is EmptyText or UnknownStateReference or OptionCountOutsideGuidance or MissingCriteria;

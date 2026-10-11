@@ -238,8 +238,8 @@ A `SystemOneClient` answers with:
   raw System One calls, which are not on the interface.
 - **a copy of its retry settings**, for `DecisionRetryOptions`. `UseRetries()` starts from these.
 - **its `DecisionClientMetadata`**: the `ProviderName`, which is `typesafe`, `openrouter`, `vllm-sr` or
-  `custom`, the `Endpoint` it sends to, and the `DefaultModel` from its options. The telemetry and logging stages read
-  it.
+  `custom` (an `OpenAIDecisionClient` reports `openai`), the `Endpoint` it sends to, and the `DefaultModel` from its
+  options. The telemetry and logging stages read it.
 - **a stage of its standard pipeline**, such as `RetryingDecisionClient`, when there is one.
 
 A [fake `IDecisionClient`](testing-your-code.md#way-one-a-fake-idecisionclient) can return `null` for everything. The
@@ -361,7 +361,7 @@ Two observability values change, because the pipeline sees only a `DecisionReque
   The raw calls logged `TypeSafe` or `OpenRouter` in 0.8; [later versions](#upgrading-from-08) log the same name as the
   typed calls.
 
-The span of a typed or built-set call also gains `gen_ai.response.id` and `minos.usage.cost` when OpenRouter reports
+The span of a typed or built-set call also gains `gen_ai.response.id` and `minos.usage.cost` when the provider reports
 them, which only the raw call recorded before.
 
 ## Next

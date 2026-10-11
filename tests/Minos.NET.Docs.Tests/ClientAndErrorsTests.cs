@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Net;
 using System.Text.Json;
+using Minos.OpenAI;
 using Minos.SystemOne;
 
 namespace Minos.Docs.Tests;
@@ -650,24 +651,24 @@ public sealed class ClientAndErrorsTests
         var rows = PageTables.Rows("client-and-errors.md", "The defaults");
 
         Assert.Equal(
-            Enum.GetNames<SystemOneProvider>().Order(StringComparer.Ordinal),
+            Enum.GetNames<SystemOneProvider>().Append("OpenAI").Order(StringComparer.Ordinal),
             rows.Select(row => PageTables.Code(row[0])).Order(StringComparer.Ordinal));
         foreach (var row in rows)
         {
-            var provider = Enum.Parse<SystemOneProvider>(PageTables.Code(row[0]));
-            var options = new SystemOneClientOptions
-            {
-                Provider = provider,
-                ApiKey = "key",
-                BaseAddress = new Uri("http://localhost:8080/"),
-                Model = "my-model",
-            };
             using var http = new HttpClient();
-            using var client = new SystemOneClient(http, options);
+            using IDecisionClient client = string.Equals(PageTables.Code(row[0]), "OpenAI", StringComparison.Ordinal)
+                ? new OpenAIDecisionClient(http, new OpenAIDecisionClientOptions { ApiKey = "key" })
+                : new SystemOneClient(http, new SystemOneClientOptions
+                {
+                    Provider = Enum.Parse<SystemOneProvider>(PageTables.Code(row[0])),
+                    ApiKey = "key",
+                    BaseAddress = new Uri("http://localhost:8080/"),
+                    Model = "my-model",
+                });
 
-            var capabilities = Assert.IsType<SystemOneCapabilities>(client.GetService(typeof(SystemOneCapabilities)));
+            var capabilities = Assert.IsType<DecisionCapabilities>(client.GetService(typeof(DecisionCapabilities)));
 
-            Assert.Equal(SystemOneQuestionKinds.All, capabilities.QuestionKinds);
+            Assert.Equal(QuestionKinds.All, capabilities.QuestionKinds);
             Assert.Equal("every kind", row[1]);
             Assert.Equal(Limit(row[2]), capabilities.MaxQuestions);
             Assert.Equal(Limit(row[3]), capabilities.MaxChoiceOptions);
@@ -703,7 +704,7 @@ public sealed class ClientAndErrorsTests
     public async Task TheLimits_AreMin202ForTheQuestionsAndMin203ForTheChoiceOptions()
     {
         var options = CapabilityOptions.NoulOnly();
-        options.Capabilities = new SystemOneCapabilities { MaxQuestions = 1, MaxChoiceOptions = 2 };
+        options.Capabilities = new DecisionCapabilities { MaxQuestions = 1, MaxChoiceOptions = 2 };
         var (client, handler, http) = Direct(options, Reply.Ok(UrgencyResponse));
         using (http)
         using (handler)
@@ -728,19 +729,21 @@ public sealed class ClientAndErrorsTests
         using var http = new HttpClient();
         using var client = new SystemOneClient(http, new SystemOneClientOptions { Provider = SystemOneProvider.OpenRouter, ApiKey = "key" });
         using var noul = new SystemOneClient(http, CapabilityOptions.NoulOnly());
+        using var openAI = new OpenAIDecisionClient(http, new OpenAIDecisionClientOptions { ApiKey = "key" });
         using var own = new AlwaysUrgent();
 
-        Assert.Equal("All, no question limit, model listing off", CapabilityOptions.Describe(client));
-        Assert.Equal("Noul, no question limit, model listing off", CapabilityOptions.Describe(noul));
-        Assert.Equal("This client has no System One capabilities.", CapabilityOptions.Describe(own));
-        Assert.NotSame(client.GetService<SystemOneCapabilities>(), client.GetService<SystemOneCapabilities>());
+        Assert.Equal("All, no question limit, images off, model listing off", CapabilityOptions.Describe(client));
+        Assert.Equal("Noul, no question limit, images off, model listing off", CapabilityOptions.Describe(noul));
+        Assert.Equal("All, no question limit, images on, model listing off", CapabilityOptions.Describe(openAI));
+        Assert.Equal("This client does not report its capabilities.", CapabilityOptions.Describe(own));
+        Assert.NotSame(client.GetService<DecisionCapabilities>(), client.GetService<DecisionCapabilities>());
     }
 
     [Fact]
     public async Task ModelListing_FollowsTheCapability_AndAnUnsupportedListSendsNothing()
     {
         var options = ProviderOptions.Custom();
-        options.Capabilities = new SystemOneCapabilities { ModelListing = true };
+        options.Capabilities = new DecisionCapabilities { ModelListing = true };
         var (client, handler, http) = Direct(options, Reply.Ok(ModelsResponse));
         using (http)
         using (handler)

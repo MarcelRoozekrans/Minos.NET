@@ -9,6 +9,9 @@ namespace Minos.Live.Tests;
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class LiveFactAttribute : FactAttribute
 {
+    private readonly string? _skip;
+    private string? _requiresEnvironment;
+
     public LiveFactAttribute(SystemOneProvider provider)
     {
         Provider = provider;
@@ -18,16 +21,35 @@ public sealed class LiveFactAttribute : FactAttribute
         var optedIn = string.Equals(Environment.GetEnvironmentVariable("MINOS_LIVE"), "1", StringComparison.Ordinal);
         var keySet = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(variable));
 
-        Skip = (optedIn, keySet) switch
+        _skip = (optedIn, keySet) switch
         {
             (false, false) => "Set MINOS_LIVE=1 and " + variable + " to run this live test; it calls the real API and is billed.",
             (false, true) => "Set MINOS_LIVE=1 to run this live test; it calls the real API and is billed.",
             (true, false) => "Set " + variable + " to run this live test; it calls the real API and is billed.",
             (true, true) => null,
         };
+        Skip = _skip;
     }
 
     public SystemOneProvider Provider { get; }
+
+    /// <summary>
+    /// Gets or sets an extra opt-in variable that must be <c>1</c> for the test to run, such as <c>MINOS_LIVE_LUNA</c>
+    /// for a model that needs an OpenRouter account allowing endpoints which retain data: an account that allows only
+    /// zero-data-retention endpoints gets a 404 with <c>zdr-violation-by-account</c>.
+    /// </summary>
+    public string? RequiresEnvironment
+    {
+        get => _requiresEnvironment;
+        set
+        {
+            _requiresEnvironment = value;
+            Skip = _skip is null && value is not null
+                && !string.Equals(Environment.GetEnvironmentVariable(value), "1", StringComparison.Ordinal)
+                ? "Set " + value + "=1 to run this live test; the model needs an OpenRouter account that allows endpoints which retain data, as zero-data-retention-only accounts get 404 zdr-violation-by-account, and the call is billed."
+                : _skip;
+        }
+    }
 }
 
 /// <summary>

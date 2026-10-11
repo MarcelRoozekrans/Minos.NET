@@ -18,8 +18,9 @@ dotnet add package Minos.NET.SystemOne
 ```
 
 The extension methods live in the `Microsoft.Extensions.DependencyInjection` namespace, so no extra `using` is needed
-beyond the one you already have for the container. [The neutral `AddDecisionClient`](#the-neutral-adddecisionclient)
-is for a client that is not a `SystemOneClient`.
+beyond the one you already have for the container. [OpenAI](#openai) registers OpenAI's client from
+`Minos.NET.OpenAI` the same way, and [the neutral `AddDecisionClient`](#the-neutral-adddecisionclient) is for any other
+client.
 
 ## Register a client
 
@@ -392,6 +393,41 @@ property of the builder `AddSystemOneClient` returns to bring the factory's logs
 
 Without a logging provider, or with the Minos log levels turned off, the client logs nothing. [Logging, traces and
 metrics](observability.md#logging) lists the events and their levels.
+
+## OpenAI
+
+`Minos.NET.OpenAI` has `AddOpenAIDecisionClient`, which registers an `OpenAIDecisionClient` for OpenAI's Decisions API.
+It works as `AddSystemOneClient` does: the same six overloads, default and keyed, options from code or configuration,
+checked at start-up, over a named `HttpClient` from `IHttpClientFactory`. It returns an
+`OpenAIDecisionClientServiceBuilder`, whose `HttpClient` property is the builder of that `HttpClient`.
+
+```shell
+dotnet add package Minos.NET.OpenAI
+```
+
+<!-- snippet: DependencyInjection_OpenAI -->
+```cs
+// TypeSafe as the default client, and OpenAI beside it under the key "openai". Each key comes from configuration;
+// without one, the OpenAI client reads OPENAI_API_KEY, and the host fails at start-up when there is none.
+public static OpenAIDecisionClientServiceBuilder AddBothProviders(IHostApplicationBuilder builder)
+{
+    builder.Services.AddSystemOneClient(options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
+    return builder.Services.AddOpenAIDecisionClient(
+        "openai", options => options.ApiKey = builder.Configuration["OpenAI:ApiKey"]);
+}
+```
+<!-- endSnippet -->
+
+- **The key is required.** Without `ApiKey` the client reads `OPENAI_API_KEY`, and the host fails at start-up when
+  neither is set. `BaseAddress` falls back on `OPENAI_BASE_URL`, then `https://api.openai.com/v1/`. It is the
+  versioned API root, as in OpenAI's official SDKs: requests go to `decisions` under it.
+- **Configuration binds the same way.** The keys are the property names of `OpenAIDecisionClientOptions`, such as
+  `ApiKey`, `Model` and `Capabilities:QuestionKinds`.
+- **A name holds one provider.** Registering the same name with `AddSystemOneClient` and `AddOpenAIDecisionClient`
+  throws `InvalidOperationException`. Use different names, as the snippet does, to have both.
+- **Its provider name is `openai`**, in its logs, spans and metrics.
+
+[OpenAI](client-and-errors.md#openai) has the options, what OpenAI cannot express, and refusals.
 
 ## The neutral AddDecisionClient
 

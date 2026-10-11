@@ -1,12 +1,14 @@
+using System.Buffers;
 using System.Net;
 using System.Text;
+using System.Text.Json;
 using Minos.SystemOne;
 using Minos.SystemOne.Protocols;
 using Minos.SystemOne.Serialization;
 using Minos.SystemOne.Transport;
 using Minos.Transport;
+using Minos.Transport.Rest;
 using ZeroAlloc.Rest.SystemTextJson;
-using ZeroAlloc.Results;
 
 namespace Minos.Tests;
 
@@ -155,12 +157,20 @@ public sealed class DecisionTransportTests : IDisposable
     [Fact]
     public async Task An_attempt_after_the_client_was_disposed_is_Disposed_without_being_sent()
     {
-        var api = new CountingApi();
+        var calls = 0;
+        RawSend send = (_, _, _) =>
+        {
+            calls++;
+            throw new InvalidOperationException("The transport sent an attempt after disposal.");
+        };
         var pool = new CountingPool();
+        var settings = SystemOneClientSettings.Resolve(new SystemOneClientOptions { ApiKey = "k" }, static _ => null);
         using var transport = new DecisionTransport(
-            api,
+            send,
             SystemOneProtocol.Instance,
-            SystemOneClientSettings.Resolve(new SystemOneClientOptions { ApiKey = "k" }, static _ => null),
+            settings.Capabilities,
+            settings.Provider.ToString(),
+            settings.Model,
             new DecisionClientMetadata("typesafe", null, null), pool, static () => true);
 
         var call = transport.EvaluateAsync(new DecisionRequest(QuestionSets.UrgencyDefinition(), "s"));
@@ -168,7 +178,46 @@ public sealed class DecisionTransportTests : IDisposable
         Assert.True(call.IsCompletedSuccessfully);
         var result = await call;
         Assert.Equal(DecisionErrorKind.Disposed, result.Error.Kind);
-        Assert.Equal(0, api.Calls);
+        Assert.Equal(0, calls);
+        Assert.Equal(0, pool.Rented);
+        Assert.Equal(0, pool.Outstanding);
+    }
+
+    [Fact]
+    public async Task Capability_failures_come_before_the_protocols_in_one_Unsupported_error_and_nothing_is_sent()
+    {
+        var calls = 0;
+        var pool = new CountingPool();
+        // Three questions against a limit of two, and no Score: MIN202, then MIN201 for severity.
+        var capabilities = new CapabilitySet(QuestionKinds.Noul | QuestionKinds.Choice, MaxQuestions: 2, MaxChoiceOptions: null, Images: false, ModelListing: false);
+        using var transport = Transport(capabilities, new FailingProtocol("is_urgent", "department"), pool, () => calls++);
+
+        var result = await transport.EvaluateAsync(new DecisionRequest(QuestionSets.TriageDefinition(), "s"));
+
+        Assert.Equal(DecisionErrorKind.Unsupported, result.Error.Kind);
+        Assert.Equal(
+            new (string, string?)[] { ("MIN202", null), ("MIN201", "severity"), ("TEST1", "is_urgent"), ("TEST1", "department") },
+            result.Error.Failures.Select(f => (f.Rule, f.QuestionKey)).ToArray());
+        Assert.Equal(result.Error.Failures[0].Message, result.Error.Message);
+        Assert.Equal(0, calls);
+        Assert.Equal(0, pool.Rented);
+        Assert.Equal(0, pool.Outstanding);
+    }
+
+    [Fact]
+    public async Task A_protocol_failure_alone_is_Unsupported_and_nothing_is_sent()
+    {
+        var calls = 0;
+        var pool = new CountingPool();
+        var capabilities = new CapabilitySet(QuestionKinds.All, MaxQuestions: null, MaxChoiceOptions: null, Images: true, ModelListing: true);
+        using var transport = Transport(capabilities, new FailingProtocol("department"), pool, () => calls++);
+
+        var result = await transport.EvaluateAsync(new DecisionRequest(QuestionSets.TriageDefinition(), "s"));
+
+        Assert.Equal(DecisionErrorKind.Unsupported, result.Error.Kind);
+        Assert.Equal([new QuestionFailure("TEST1", "department", "test does not support department.")], result.Error.Failures);
+        Assert.Equal("test does not support department.", result.Error.Message);
+        Assert.Equal(0, calls);
         Assert.Equal(0, pool.Rented);
         Assert.Equal(0, pool.Outstanding);
     }
@@ -181,25 +230,44 @@ public sealed class DecisionTransportTests : IDisposable
         }
     }
 
-    // Counts every call; none of them is expected to run.
-    private sealed class CountingApi : IDecisionApi
+    private static DecisionTransport Transport(CapabilitySet capabilities, IDecisionProtocol protocol, CountingPool pool, Action onSend)
     {
-        public int Calls { get; private set; }
-
-        public ValueTask<Result<SystemOneResponse, DecisionError>> EvaluateAsync(
-            SystemOneRequest body, string path, string? authorization, int? retryCount, CancellationToken ct)
-            => throw Called();
-
-        public ValueTask<Result<RawJson, DecisionError>> SendAsync(RawJson body, string path, string? authorization, int? retryCount, CancellationToken ct)
-            => throw Called();
-
-        public ValueTask<Result<ModelList, DecisionError>> ListModelsAsync(string? authorization, int? retryCount, CancellationToken ct)
-            => throw Called();
-
-        private InvalidOperationException Called()
+        RawSend send = (_, _, _) =>
         {
-            Calls++;
-            return new InvalidOperationException("The transport sent an attempt after disposal.");
+            onSend();
+            throw new InvalidOperationException("The transport sent an unsupported request.");
+        };
+        return new DecisionTransport(
+            send, protocol, capabilities, "test", "m", new DecisionClientMetadata("test", null, null), pool, static () => false);
+    }
+
+    // Fails each named question, in question order; anything else it is asked to do is a test failure.
+    private sealed class FailingProtocol(params string[] keys) : IDecisionProtocol
+    {
+        public RawJson WriteRequest<TArg>(
+            QuestionSetDefinition definition, TArg state, int stateSizeHint, StateWriter<TArg> writeState,
+            IReadOnlyList<DecisionImage> images, string model, ArrayPool<byte> pool)
+            where TArg : allows ref struct
+            => throw new InvalidOperationException("The transport wrote an unsupported request.");
+
+        public void CollectUnsupported(QuestionSetDefinition definition, string providerName, ref List<QuestionFailure>? failures)
+        {
+            foreach (var question in definition.QuestionArray)
+            {
+                if (keys.Contains(question.Key))
+                {
+                    (failures ??= []).Add(new QuestionFailure("TEST1", question.Key, providerName + " does not support " + question.Key + "."));
+                }
+            }
         }
+
+        public TResult ReadAnswers<TResult>(ref Utf8JsonReader answers, QuestionSetDefinition definition, AnswerFactory<TResult> create)
+            => throw new NotSupportedException();
+
+        public ZeroAlloc.Results.Result<DecisionResponse, DecisionError> ReadResponse(ReadOnlySpan<byte> body, QuestionSetDefinition definition)
+            => throw new NotSupportedException();
+
+        public DecisionError MapError(int statusCode, ReadOnlySpan<byte> body, bool bodyTruncated, string? contentType, TimeSpan? retryAfter)
+            => throw new NotSupportedException();
     }
 }

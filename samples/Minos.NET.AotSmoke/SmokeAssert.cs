@@ -1,3 +1,4 @@
+using Minos.OpenAI;
 using Minos.SystemOne;
 
 namespace Minos.AotSmoke;
@@ -46,6 +47,15 @@ internal static class SmokeAssert
 
     /// <summary>Removes the TypeSafe key environment variable until disposed, then restores it.</summary>
     public static EnvironmentScope NoApiKeyEnvironment() => new((SystemOneDefaults.ApiKeyEnvironmentVariable, null));
+
+    /// <summary>Sets the OpenAI key and base address environment variables until disposed, then restores them.</summary>
+    public static EnvironmentScope OpenAIEnvironment()
+        => new(
+            (OpenAIDefaults.ApiKeyEnvironmentVariable, "smoke-key"),
+            (OpenAIDefaults.BaseAddressEnvironmentVariable, "https://example.test/v1/"));
+
+    /// <summary>Removes the OpenAI key environment variable until disposed, then restores it.</summary>
+    public static EnvironmentScope NoOpenAIKeyEnvironment() => new((OpenAIDefaults.ApiKeyEnvironmentVariable, null));
 
     internal sealed class EnvironmentScope : IDisposable
     {

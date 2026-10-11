@@ -1,0 +1,5 @@
+{"answers":[
+  {"type":"predicate","name":"refund","probability":0.92},
+  {"type":"choice","name":"topic","choice":"billing","probabilities":[{"value":"billing","probability":0.8},{"value":"other","probability":0.2}],"confidence":0.6},
+  {"type":"score","name":"urgency","score":1.1,"probabilities":[{"value":0,"label":"0","probability":0.1},{"value":1,"label":"1","probability":0.7},{"value":2,"label":"2","probability":0.2}],"confidence":0.5},
+  {"type":"refusal","name":"other_question"}]}

@@ -22,9 +22,10 @@ allocates, because a program that avoids the just-in-time compiler usually cares
   under Native AOT.
 - **The generated question sets.** The `[Questions]` generator writes the question JSON and the answer parsing as
   ordinary C# at compile time. The set uses no reflection at run time, and neither does reading an answer.
-- **Dependency injection.** `Minos.NET.DependencyInjection` and the `AddSystemOneClient` registrations in
-  `Minos.NET.SystemOne` are Native AOT compatible too. `AddSystemOneClient` binds options from configuration with the
-  configuration binding source generator, so binding uses no reflection and needs nothing set up in your program.
+- **Dependency injection.** `Minos.NET.DependencyInjection`, the `AddSystemOneClient` registrations in
+  `Minos.NET.SystemOne` and the `AddOpenAIDecisionClient` registrations in `Minos.NET.OpenAI`, whose provider name is
+  `openai`, are Native AOT compatible too. Both bind options from configuration with the configuration binding source
+  generator, so binding uses no reflection and needs nothing set up in your program.
   [Dependency injection](dependency-injection.md#options-from-configuration) covers the options.
 
 ## The one use of reflection
@@ -91,13 +92,13 @@ The checks run the real client over a canned HTTP handler. They cover:
 
 A publish only analyses what the program reaches, so the smoke application cannot vouch for a member that no check
 calls. The `aot-surface` job closes that gap. It publishes `samples/Minos.NET.AotSurface` with `PublishAot` and full
-trimming, and roots `Minos.NET`, `Minos.NET.SystemOne` and `Minos.NET.DependencyInjection` whole through
-`TrimmerRootAssembly`.
+trimming, and roots `Minos.NET`, `Minos.NET.SystemOne`, `Minos.NET.OpenAI` and `Minos.NET.DependencyInjection`
+whole through `TrimmerRootAssembly`.
 
-Rooting analyses every non-generic member of the three packages, called or not, and every generic member the compiler
+Rooting analyses every non-generic member of the four packages, called or not, and every generic member the compiler
 can share across reference types. A value-type generic has no such shared form, so rooting alone skips it. That covers
 `Choice<T>`, `Score<T>` and the other generics over an enum, whose type parameter is `where T : struct, Enum`. The host
-therefore instantiates every public generic type and generic method of the three packages over its own types, and the
+therefore instantiates every public generic type and generic method of the four packages over its own types, and the
 compiler analyses them through those instantiations. A test in `tests/Minos.NET.AotSmoke.Tests` fails when a public
 generic is not instantiated in the host. The host is rooted as well. Its `[Questions]` sets, one with a Noul, a
 Choice and a Score and one with a typed state, mean the code the generator writes is analysed in full too.
@@ -193,6 +194,9 @@ regression cannot reach a release unnoticed.
 | `PassThroughStage` | A `DelegatingDecisionClient` that overrides nothing, over an inner call that completes synchronously. | 0 |
 | `Utf8StateEvaluateRoundTrip` | A typed `EvaluateUtf8Async<T>` call, which copies the caller's bytes once and sends them as written. | 3712 |
 | `TypedStateEvaluateRoundTrip` | A typed `EvaluateAsync<T, TState>` call, which serializes its state once into an array. | 3136 |
+| `SystemOneImageRoundTrip` | A typed `EvaluateAsync<T, TState>` call with one 64 B image, sent as a data URL beside the state. | 3200 |
+| `OpenAITypedRoundTrip` | A typed `EvaluateAsync<T>` call over an `OpenAIDecisionClient`, over a three-kind response. | 3776 |
+| `OpenAIImageRoundTrip` | A typed `EvaluateAsync<T, TState>` call over an `OpenAIDecisionClient` with one 64 B image. | 3072 |
 | `EvaluateBuiltSetRoundTrip` | An `EvaluateAsync` call over a built set. | 3648 |
 | `BuildQuestionSet` | Building a question set. | 7296 |
 | `ContentFromValue` | `DecisionContent.FromValue`. | 320 |

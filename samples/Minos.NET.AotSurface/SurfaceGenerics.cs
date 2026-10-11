@@ -4,7 +4,7 @@ using System.Text.Json;
 namespace Minos.AotSurface;
 
 /// <summary>
-/// Instantiates every public generic type and generic method of the three packages over concrete types. Rooting an assembly
+/// Instantiates every public generic type and generic method of the four packages over concrete types. Rooting an assembly
 /// makes ILC analyse a generic member only through an instantiation it can share across reference types, and a
 /// value-type generic, such as <see cref="Choice{T}"/> with its <c>where T : struct, Enum</c>, has none, so rooting the
 /// packages alone skips it. The csproj roots this assembly, so ILC analyses these methods and, through them, every
@@ -68,5 +68,13 @@ public static class SurfaceGenerics
         _ = client.GetService<DecisionClientMetadata>();
         _ = await client.EvaluateAsync<SurfaceStateTriage, SurfaceState>(state, stateInfo).ConfigureAwait(false);
         _ = await client.EvaluateAsync<SurfaceStateTriage, SurfaceState>(state, stateInfo, CancellationToken.None).ConfigureAwait(false);
+        _ = await client.EvaluateAsync<SurfaceTriage>("state", []).ConfigureAwait(false);
+        _ = await client.EvaluateAsync<SurfaceTriage>("state", [], CancellationToken.None).ConfigureAwait(false);
+        _ = await client.EvaluateAsync<SurfaceTriage>(json, []).ConfigureAwait(false);
+        _ = await client.EvaluateAsync<SurfaceTriage>(json, [], CancellationToken.None).ConfigureAwait(false);
+        _ = await client.EvaluateUtf8Async<SurfaceTriage>("{}"u8.ToArray(), []).ConfigureAwait(false);
+        _ = await client.EvaluateUtf8Async<SurfaceTriage>("{}"u8.ToArray(), [], CancellationToken.None).ConfigureAwait(false);
+        _ = await client.EvaluateAsync<SurfaceStateTriage, SurfaceState>(state, stateInfo, []).ConfigureAwait(false);
+        _ = await client.EvaluateAsync<SurfaceStateTriage, SurfaceState>(state, stateInfo, [], CancellationToken.None).ConfigureAwait(false);
     }
 }

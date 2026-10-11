@@ -110,4 +110,62 @@ internal static class Live
     /// <param name="response">The response, whose <see cref="SystemOneResponse.Model"/> names the model that answered.</param>
     public static void LogServedModel(ITestOutputHelper output, string requested, SystemOneResponse response)
         => output.WriteLine("Requested " + requested + ", answered by " + response.Model);
+
+    /// <summary>Builds a question set, failing the test if the builder reports an error.</summary>
+    /// <param name="builder">The configured builder.</param>
+    public static QuestionSet Built(QuestionSetBuilder builder)
+    {
+        var built = builder.Build();
+        Assert.True(built.IsSuccess);
+        return built.Value;
+    }
+
+    /// <summary>A solid red 128x128 PNG, built so the test needs no binary fixture.</summary>
+    public static byte[] RedPng()
+    {
+        const int Size = 128;
+        var raw = new byte[Size * ((Size * 3) + 1)];
+        for (var row = 0; row < Size; row++)
+        {
+            var start = row * ((Size * 3) + 1);
+            for (var x = 0; x < Size; x++)
+            {
+                raw[start + 1 + (x * 3)] = 0xE0;
+                raw[start + 2 + (x * 3)] = 0x10;
+                raw[start + 3 + (x * 3)] = 0x10;
+            }
+        }
+
+        using var png = new MemoryStream();
+        png.Write([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+        WriteChunk(png, "IHDR", [0, 0, 0, Size, 0, 0, 0, Size, 8, 2, 0, 0, 0]);
+        using (var compressed = new MemoryStream())
+        {
+            using (var zlib = new System.IO.Compression.ZLibStream(compressed, System.IO.Compression.CompressionLevel.Optimal, leaveOpen: true))
+            {
+                zlib.Write(raw);
+            }
+
+            WriteChunk(png, "IDAT", compressed.ToArray());
+        }
+
+        WriteChunk(png, "IEND", []);
+        return png.ToArray();
+    }
+
+    private static void WriteChunk(Stream png, string type, byte[] data)
+    {
+        Span<byte> length = stackalloc byte[4];
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(length, data.Length);
+        png.Write(length);
+        var typeBytes = System.Text.Encoding.ASCII.GetBytes(type);
+        png.Write(typeBytes);
+        png.Write(data);
+        var crc = new System.IO.Hashing.Crc32();
+        crc.Append(typeBytes);
+        crc.Append(data);
+        Span<byte> crcBytes = stackalloc byte[4];
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(crcBytes, crc.GetCurrentHashAsUInt32());
+        png.Write(crcBytes);
+    }
 }

@@ -65,11 +65,28 @@ public sealed class SystemOneClientOptions
 
     /// <summary>
     /// Gets or sets what the provider accepts, checked before a request is sent. Each property left unset takes the
-    /// <see cref="Provider"/> preset's default; see <see cref="SystemOneCapabilities"/> for the defaults and the check.
-    /// Binds from configuration under <c>Capabilities</c>, with <see cref="SystemOneCapabilities.QuestionKinds"/> as a
+    /// <see cref="Provider"/> preset's default; see <see cref="DecisionCapabilities"/> for the check.
+    /// Binds from configuration under <c>Capabilities</c>, with <see cref="DecisionCapabilities.QuestionKinds"/> as a
     /// comma-separated list such as <c>"Noul, Choice"</c>.
     /// </summary>
-    public SystemOneCapabilities Capabilities { get; set; } = new();
+    /// <remarks>
+    /// <para>The preset defaults:</para>
+    /// <list type="bullet">
+    /// <item><description><see cref="SystemOneProvider.TypeSafe"/>: every kind, no question limit, 255 Choice options, no
+    /// images, model listing.</description></item>
+    /// <item><description><see cref="SystemOneProvider.OpenRouter"/>: every kind, no question limit, 255 Choice options, no
+    /// images, no model listing.</description></item>
+    /// <item><description><see cref="SystemOneProvider.VllmSemanticRouter"/>: every kind, no question or option limit, no
+    /// images, no model listing.</description></item>
+    /// <item><description><see cref="SystemOneProvider.Custom"/>: every kind, no question or option limit, no images, no
+    /// model listing, because a self-hosted server's <c>GET v1/models</c> need not use TypeSafe's shape.</description></item>
+    /// </list>
+    /// <para>
+    /// The raw <see cref="SystemOneClient.EvaluateAsync(SystemOneRequest, CancellationToken)"/> call is not checked.
+    /// <see cref="DecisionCapabilities.ModelListing"/> gates <see cref="SystemOneClient.ListModelsAsync(CancellationToken)"/>.
+    /// </para>
+    /// </remarks>
+    public DecisionCapabilities Capabilities { get; set; } = new();
 
     /// <summary>
     /// Gets or sets how long a single attempt may take. Defaults to 60 seconds. Applies to an <see cref="HttpClient"/>
@@ -140,7 +157,7 @@ public sealed class SystemOneClientOptions
     /// for <see cref="SystemOneProvider.VllmSemanticRouter"/> or <see cref="SystemOneProvider.Custom"/>; <see cref="Path"/> set for a hosted provider; or a path that is not
     /// relative, starts with <c>/</c>, or contains a query, a fragment or a <c>..</c> segment; or a
     /// <see cref="Capabilities"/> override that allows no question kind or names an unknown one, a
-    /// <see cref="SystemOneCapabilities.MaxQuestions"/> below 1, or a <see cref="SystemOneCapabilities.MaxChoiceOptions"/>
+    /// <see cref="DecisionCapabilities.MaxQuestions"/> below 1, or a <see cref="DecisionCapabilities.MaxChoiceOptions"/>
     /// below 2.
     /// </exception>
     /// <exception cref="InvalidOperationException">

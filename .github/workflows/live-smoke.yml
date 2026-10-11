@@ -1,6 +1,7 @@
 name: Live smoke
 
-# Calls the real TypeSafe and OpenRouter APIs, which bills a few small evaluations per run.
+# Calls the real TypeSafe and OpenRouter APIs, which bills a few small evaluations per run. The run also covers image
+# state and Clef through OpenRouter; the Luna test runs only when the MINOS_LIVE_LUNA variable is 1.
 # Manual only: never on pull requests or pushes, so forks can never reach the keys.
 # Maintainers must also restrict the live-api environment's deployment branches to main.
 on:
@@ -30,4 +31,5 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           MINOS_LIVE_MODEL: ${{ vars.MINOS_LIVE_MODEL }}
           MINOS_LIVE_OPENROUTER_MODEL: ${{ vars.MINOS_LIVE_OPENROUTER_MODEL }}
+          MINOS_LIVE_LUNA: ${{ vars.MINOS_LIVE_LUNA }}
         run: dotnet test tests/Minos.NET.Live.Tests -c Release --logger "console;verbosity=detailed"

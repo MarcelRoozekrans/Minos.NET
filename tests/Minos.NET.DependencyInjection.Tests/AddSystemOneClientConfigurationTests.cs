@@ -89,9 +89,9 @@ public sealed class AddSystemOneClientConfigurationTests
         using var provider = services.BuildServiceProvider();
 
         var bound = provider.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>().Get("local").Capabilities;
-        var resolved = provider.GetRequiredKeyedService<IDecisionClient>("local").GetService<SystemOneCapabilities>()!;
+        var resolved = provider.GetRequiredKeyedService<IDecisionClient>("local").GetService<DecisionCapabilities>()!;
 
-        var expected = (SystemOneQuestionKinds.Noul | SystemOneQuestionKinds.Choice, 8, 16, true, false);
+        var expected = (QuestionKinds.Noul | QuestionKinds.Choice, 8, 16, true, false);
         Assert.Equal(expected, (bound.QuestionKinds, bound.MaxQuestions, bound.MaxChoiceOptions, bound.Images, bound.ModelListing));
         Assert.Equal(expected, (resolved.QuestionKinds, resolved.MaxQuestions, resolved.MaxChoiceOptions, resolved.Images, resolved.ModelListing));
     }
@@ -105,13 +105,13 @@ public sealed class AddSystemOneClientConfigurationTests
         using var provider = services.BuildServiceProvider();
 
         var bound = provider.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName).Capabilities;
-        var resolved = provider.GetRequiredService<IDecisionClient>().GetService<SystemOneCapabilities>()!;
+        var resolved = provider.GetRequiredService<IDecisionClient>().GetService<DecisionCapabilities>()!;
 
         Assert.Equal(
-            ((SystemOneQuestionKinds?)null, (int?)null, (int?)null, (bool?)null, (bool?)null),
+            ((QuestionKinds?)null, (int?)null, (int?)null, (bool?)null, (bool?)null),
             (bound.QuestionKinds, bound.MaxQuestions, bound.MaxChoiceOptions, bound.Images, bound.ModelListing));
         Assert.Equal(
-            (SystemOneQuestionKinds.All, (int?)null, 255, false, true),
+            (QuestionKinds.All, (int?)null, 255, false, true),
             (resolved.QuestionKinds, resolved.MaxQuestions, resolved.MaxChoiceOptions, resolved.Images, resolved.ModelListing));
     }
 

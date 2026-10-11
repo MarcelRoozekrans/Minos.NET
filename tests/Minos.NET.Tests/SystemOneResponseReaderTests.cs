@@ -1,4 +1,5 @@
 using Minos.SystemOne.Protocols;
+using Minos.Transport;
 
 namespace Minos.Tests;
 
@@ -319,6 +320,6 @@ public sealed class SystemOneResponseReaderTests
     {
         var reader = new System.Text.Json.Utf8JsonReader(json);
         reader.Read();
-        return SystemOneResponseReader.CachedStringOrSkip(ref reader, ref cache);
+        return ResponseReading.CachedStringOrSkip(ref reader, ref cache);
     }
 }

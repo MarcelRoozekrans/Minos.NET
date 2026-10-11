@@ -1,6 +1,5 @@
 using System.Buffers;
 using System.Text.Json;
-using Minos.SystemOne.Transport;
 using Minos.Transport;
 using ZeroAlloc.Results;
 
@@ -27,9 +26,16 @@ internal sealed class SystemOneProtocol : IDecisionProtocol
     public static ReadOnlySpan<byte> QuestionsJson(QuestionSetDefinition definition)
         => definition.GetOrAddProtocolData(CacheSlot, static d => SystemOneQuestionsWriter.Write(d));
 
-    public RawJson WriteRequest<TArg>(QuestionSetDefinition definition, TArg state, int stateSizeHint, StateWriter<TArg> writeState, string model, ArrayPool<byte> pool)
+    public RawJson WriteRequest<TArg>(
+        QuestionSetDefinition definition, TArg state, int stateSizeHint, StateWriter<TArg> writeState,
+        IReadOnlyList<DecisionImage> images, string model, ArrayPool<byte> pool)
         where TArg : allows ref struct
-        => SystemOneRequestWriter.Write(QuestionsJson(definition), state, stateSizeHint, writeState, model, pool);
+        => SystemOneRequestWriter.Write(QuestionsJson(definition), state, stateSizeHint, writeState, images, model, pool);
+
+    // System One has no limits of its own beyond the capability check.
+    public void CollectUnsupported(QuestionSetDefinition definition, string providerName, ref List<QuestionFailure>? failures)
+    {
+    }
 
     public Result<DecisionResponse, DecisionError> ReadResponse(ReadOnlySpan<byte> body, QuestionSetDefinition definition)
         => SystemOneResponseReader.Read(this, body, definition);
@@ -39,7 +45,7 @@ internal sealed class SystemOneProtocol : IDecisionProtocol
 
     public TResult ReadAnswers<TResult>(ref Utf8JsonReader answers, QuestionSetDefinition definition, AnswerFactory<TResult> create)
     {
-        SystemOneAnswers.EnsureStartObject(ref answers);
+        AnswerReading.EnsureStartObject(ref answers);
         var questions = definition.QuestionArray;
         var count = questions.Length;
         var probabilities = definition.ProbabilityCount == 0 ? [] : new double[definition.ProbabilityCount];
@@ -47,7 +53,7 @@ internal sealed class SystemOneProtocol : IDecisionProtocol
         Span<AnswerSlot> slots = heapSlots ?? stackalloc AnswerSlot[count];
         Span<bool> found = count <= MaxStackFlags ? stackalloc bool[count] : new bool[count];
 
-        while (SystemOneAnswers.NextProperty(ref answers))
+        while (AnswerReading.NextProperty(ref answers))
         {
             var index = Utf8Keys.IndexOf(ref answers, definition.KeysUtf8);
             if (index < 0)
@@ -81,7 +87,7 @@ internal sealed class SystemOneProtocol : IDecisionProtocol
         {
             if (!found[i])
             {
-                throw SystemOneAnswers.MissingAnswer(questions[i].Key);
+                throw AnswerReading.MissingAnswer(questions[i].Key);
             }
         }
 

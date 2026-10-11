@@ -36,7 +36,7 @@ public sealed partial class NativeAotTests
         var checks = AllocationChecks();
         var rows = PageTables.Rows(Page, "The allocation budgets");
 
-        Assert.Equal(28, rows.Length);
+        Assert.Equal(31, rows.Length);
         Assert.Equal(rows.Length, new HashSet<string>(rows.Select(row => PageTables.Code(row[0])), StringComparer.Ordinal).Count);
         Assert.All(
             rows,
@@ -67,7 +67,7 @@ public sealed partial class NativeAotTests
             PageTables.Rows(Page, "The allocation budgets").Select(row => PageTables.Code(row[0])),
             StringComparer.Ordinal);
 
-        Assert.Equal(28, called.Count);
+        Assert.Equal(31, called.Count);
         Assert.Equal(called, listed);
     }
 
@@ -93,7 +93,7 @@ public sealed partial class NativeAotTests
     }
 
     [Fact]
-    public void ThePackages_AreAotCompatible_AndTheSystemOneRegistrationBindsWithAGenerator()
+    public void ThePackages_AreAotCompatible_AndTheProtocolRegistrationsBindWithAGenerator()
     {
         Assert.Contains("<IsAotCompatible>true</IsAotCompatible>", Source("src", "Minos.NET", "Minos.NET.csproj"), StringComparison.Ordinal);
         Assert.Contains("<IsAotCompatible>true</IsAotCompatible>", Source("src", "Minos.NET.DependencyInjection", "Minos.NET.DependencyInjection.csproj"), StringComparison.Ordinal);
@@ -101,6 +101,10 @@ public sealed partial class NativeAotTests
         var systemOne = Source("src", "Minos.NET.SystemOne", "Minos.NET.SystemOne.csproj");
         Assert.Contains("<IsAotCompatible>true</IsAotCompatible>", systemOne, StringComparison.Ordinal);
         Assert.Contains("<EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>", systemOne, StringComparison.Ordinal);
+
+        var openAI = Source("src", "Minos.NET.OpenAI", "Minos.NET.OpenAI.csproj");
+        Assert.Contains("<IsAotCompatible>true</IsAotCompatible>", openAI, StringComparison.Ordinal);
+        Assert.Contains("<EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>", openAI, StringComparison.Ordinal);
     }
 
     // The one reflection: the enum option set reads public fields, and says so to the trimmer.

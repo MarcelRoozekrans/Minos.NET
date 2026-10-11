@@ -9,8 +9,8 @@ namespace Minos;
 /// <remarks>Immutable and safe to share across threads.</remarks>
 public sealed class QuestionSetDefinition
 {
-    // One cache slot per protocol; the /v1/systemone protocol uses slot 0.
-    private readonly object?[] _protocolData = new object?[1];
+    // One cache slot per protocol: slot 0 is SystemOne's questions object and slot 1 OpenAI's questions array.
+    private readonly object?[] _protocolData = new object?[2];
 
     /// <summary>Creates a definition from <paramref name="questions"/>, in wire order.</summary>
     /// <param name="questions">The questions.</param>
