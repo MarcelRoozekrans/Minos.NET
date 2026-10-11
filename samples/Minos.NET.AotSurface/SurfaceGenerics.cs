@@ -68,5 +68,13 @@ public static class SurfaceGenerics
         _ = client.GetService<DecisionClientMetadata>();
         _ = await client.EvaluateAsync<SurfaceStateTriage, SurfaceState>(state, stateInfo).ConfigureAwait(false);
         _ = await client.EvaluateAsync<SurfaceStateTriage, SurfaceState>(state, stateInfo, CancellationToken.None).ConfigureAwait(false);
+        _ = await client.EvaluateAsync<SurfaceTriage>("state", []).ConfigureAwait(false);
+        _ = await client.EvaluateAsync<SurfaceTriage>("state", [], CancellationToken.None).ConfigureAwait(false);
+        _ = await client.EvaluateAsync<SurfaceTriage>(json, []).ConfigureAwait(false);
+        _ = await client.EvaluateAsync<SurfaceTriage>(json, [], CancellationToken.None).ConfigureAwait(false);
+        _ = await client.EvaluateUtf8Async<SurfaceTriage>("{}"u8.ToArray(), []).ConfigureAwait(false);
+        _ = await client.EvaluateUtf8Async<SurfaceTriage>("{}"u8.ToArray(), [], CancellationToken.None).ConfigureAwait(false);
+        _ = await client.EvaluateAsync<SurfaceStateTriage, SurfaceState>(state, stateInfo, []).ConfigureAwait(false);
+        _ = await client.EvaluateAsync<SurfaceStateTriage, SurfaceState>(state, stateInfo, [], CancellationToken.None).ConfigureAwait(false);
     }
 }

@@ -8,6 +8,7 @@ namespace Minos;
 public sealed record DecisionRequest
 {
     private readonly int _retryAttempt;
+    private readonly DecisionImage[] _images = [];
 
     /// <summary>Initializes a new instance of the <see cref="DecisionRequest"/> record.</summary>
     /// <param name="Definition">The questions to ask.</param>
@@ -30,6 +31,34 @@ public sealed record DecisionRequest
 
     /// <summary>Gets the model to ask, or <see langword="null"/> for the transport's configured model.</summary>
     public string? Model { get; init; }
+
+    /// <summary>Gets the images the questions are about, sent with the state; empty for a text-only decision.</summary>
+    /// <remarks>
+    /// A provider without image support returns <see cref="DecisionErrorKind.Unsupported"/> with MIN206 before sending.
+    /// The list is copied when set.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">The value is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">An image is the default, uninitialized value.</exception>
+    public IReadOnlyList<DecisionImage> Images
+    {
+        get => _images;
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            var images = value.Count == 0 ? [] : new DecisionImage[value.Count];
+            for (var i = 0; i < images.Length; i++)
+            {
+                if (!value[i].IsInitialized)
+                {
+                    throw new ArgumentException("An image is uninitialized: create it with FromBytes or FromDataUrl.", nameof(value));
+                }
+
+                images[i] = value[i];
+            }
+
+            _images = images;
+        }
+    }
 
     /// <summary>Gets the attempt number: 0 for the first attempt, 1 for the first retry, and so on.</summary>
     /// <exception cref="ArgumentOutOfRangeException">The value is negative.</exception>

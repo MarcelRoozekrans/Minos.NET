@@ -50,7 +50,7 @@ public static class DecisionClientExtensions
     {
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(state);
-        return Typed<T>(client, DecisionContent.FromString(state), cancellationToken);
+        return Typed<T>(client, DecisionContent.FromString(state), [], cancellationToken);
     }
 
     /// <summary>Asks <typeparamref name="T"/>'s questions about a JSON state and returns its typed answers.</summary>
@@ -80,7 +80,7 @@ public static class DecisionClientExtensions
     {
         ArgumentNullException.ThrowIfNull(client);
         TypedEvaluation.EnsureStateKind(state.ValueKind, nameof(state));
-        return Typed<T>(client, DecisionContent.FromJson(state), cancellationToken);
+        return Typed<T>(client, DecisionContent.FromJson(state), [], cancellationToken);
     }
 
     /// <summary>Asks <typeparamref name="T"/>'s questions about a UTF-8 JSON state and returns its typed answers.</summary>
@@ -123,7 +123,7 @@ public static class DecisionClientExtensions
     {
         ArgumentNullException.ThrowIfNull(client);
         TypedEvaluation.EnsureStateJson(utf8JsonState.Span, nameof(utf8JsonState));
-        return Typed<T>(client, DecisionContent.FromCheckedUtf8State(utf8JsonState.Span), cancellationToken);
+        return Typed<T>(client, DecisionContent.FromCheckedUtf8State(utf8JsonState.Span), [], cancellationToken);
     }
 
     /// <summary>
@@ -177,7 +177,7 @@ public static class DecisionClientExtensions
         }
 
         ArgumentNullException.ThrowIfNull(stateTypeInfo);
-        return Typed<T>(client, TypedEvaluation.SerializeState(state, stateTypeInfo, nameof(state)), cancellationToken);
+        return Typed<T>(client, TypedEvaluation.SerializeState(state, stateTypeInfo, nameof(state)), [], cancellationToken);
     }
 
     /// <summary>Asks a built question set's questions about a state and returns its answers.</summary>
@@ -207,16 +207,234 @@ public static class DecisionClientExtensions
         ArgumentNullException.ThrowIfNull(client);
         ArgumentNullException.ThrowIfNull(questionSet);
         DecisionContent.EnsureInitialized(state, nameof(state));
-        var call = client.EvaluateAsync(new DecisionRequest(questionSet.Definition, state), cancellationToken);
+        return BuiltSetCall(client, questionSet, state, [], cancellationToken);
+    }
+
+    /// <summary>Asks <typeparamref name="T"/> questions about a text state and images and returns its typed answers.</summary>
+    /// <typeparam name="T">A <c>[Questions]</c> question set.</typeparam>
+    /// <param name="client">The client to ask.</param>
+    /// <param name="state">The text to evaluate.</param>
+    /// <param name="images">The images the questions are about, sent with the state.</param>
+    /// <returns>The typed answers, or the <see cref="DecisionError"/> that prevented them.</returns>
+    /// <remarks>Calls <see cref="EvaluateAsync{T}(IDecisionClient, string, IReadOnlyList{DecisionImage}, CancellationToken)"/> without cancellation.</remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="client"/>, <paramref name="state"/> or <paramref name="images"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">The client answered a different question set than <typeparamref name="T"/>.</exception>
+    public static ValueTask<Result<T, DecisionError>> EvaluateAsync<T>(this IDecisionClient client, string state, IReadOnlyList<DecisionImage> images)
+        where T : IQuestionSet<T>
+        => EvaluateAsync<T>(client, state, images, CancellationToken.None);
+
+    /// <summary>Asks <typeparamref name="T"/> questions about a text state and images and returns its typed answers.</summary>
+    /// <typeparam name="T">A <c>[Questions]</c> question set.</typeparam>
+    /// <param name="client">The client to ask.</param>
+    /// <param name="state">The text to evaluate.</param>
+    /// <param name="images">The images the questions are about, sent with the state.</param>
+    /// <param name="cancellationToken">Cancels the call; cancellation throws <see cref="OperationCanceledException"/>.</param>
+    /// <returns>The typed answers, or the <see cref="DecisionError"/> that prevented them.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="client"/>, <paramref name="state"/> or <paramref name="images"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">The client answered a different question set than <typeparamref name="T"/>.</exception>
+    public static ValueTask<Result<T, DecisionError>> EvaluateAsync<T>(
+        this IDecisionClient client, string state, IReadOnlyList<DecisionImage> images, CancellationToken cancellationToken)
+        where T : IQuestionSet<T>
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(state);
+        ArgumentNullException.ThrowIfNull(images);
+        return Typed<T>(client, DecisionContent.FromString(state), images, cancellationToken);
+    }
+
+    /// <summary>Asks <typeparamref name="T"/> questions about a JSON state and images and returns its typed answers.</summary>
+    /// <typeparam name="T">A <c>[Questions]</c> question set.</typeparam>
+    /// <param name="client">The client to ask.</param>
+    /// <param name="state">The state: a JSON string is sent as text; an object or array as structured content.</param>
+    /// <param name="images">The images the questions are about, sent with the state.</param>
+    /// <returns>The typed answers, or the <see cref="DecisionError"/> that prevented them.</returns>
+    /// <remarks>Calls <see cref="EvaluateAsync{T}(IDecisionClient, JsonElement, IReadOnlyList{DecisionImage}, CancellationToken)"/> without cancellation.</remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="client"/> or <paramref name="images"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="state"/> is not a string, object or array.</exception>
+    /// <exception cref="InvalidOperationException">The client answered a different question set than <typeparamref name="T"/>.</exception>
+    public static ValueTask<Result<T, DecisionError>> EvaluateAsync<T>(this IDecisionClient client, JsonElement state, IReadOnlyList<DecisionImage> images)
+        where T : IQuestionSet<T>
+        => EvaluateAsync<T>(client, state, images, CancellationToken.None);
+
+    /// <summary>Asks <typeparamref name="T"/> questions about a JSON state and images and returns its typed answers.</summary>
+    /// <typeparam name="T">A <c>[Questions]</c> question set.</typeparam>
+    /// <param name="client">The client to ask.</param>
+    /// <param name="state">The state: a JSON string is sent as text; an object or array, such as records or a chat log, as structured content.</param>
+    /// <param name="images">The images the questions are about, sent with the state.</param>
+    /// <param name="cancellationToken">Cancels the call; cancellation throws <see cref="OperationCanceledException"/>.</param>
+    /// <returns>The typed answers, or the <see cref="DecisionError"/> that prevented them.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="client"/> or <paramref name="images"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="state"/> is not a string, object or array.</exception>
+    /// <exception cref="InvalidOperationException">The client answered a different question set than <typeparamref name="T"/>.</exception>
+    public static ValueTask<Result<T, DecisionError>> EvaluateAsync<T>(
+        this IDecisionClient client, JsonElement state, IReadOnlyList<DecisionImage> images, CancellationToken cancellationToken)
+        where T : IQuestionSet<T>
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        TypedEvaluation.EnsureStateKind(state.ValueKind, nameof(state));
+        ArgumentNullException.ThrowIfNull(images);
+        return Typed<T>(client, DecisionContent.FromJson(state), images, cancellationToken);
+    }
+
+    /// <summary>Asks <typeparamref name="T"/> questions about a UTF-8 JSON state and images and returns its typed answers.</summary>
+    /// <typeparam name="T">A <c>[Questions]</c> question set.</typeparam>
+    /// <param name="client">The client to ask.</param>
+    /// <param name="utf8JsonState">
+    /// The state as one UTF-8 JSON value: a string is sent as text; an object or array as structured content. Its bytes
+    /// are copied once, when the call is made, and sent as written on every attempt, so the buffer may be reused as soon
+    /// as the call returns.
+    /// </param>
+    /// <param name="images">The images the questions are about, sent with the state.</param>
+    /// <returns>The typed answers, or the <see cref="DecisionError"/> that prevented them.</returns>
+    /// <remarks>Calls <see cref="EvaluateUtf8Async{T}(IDecisionClient, ReadOnlyMemory{byte}, IReadOnlyList{DecisionImage}, CancellationToken)"/> without cancellation.</remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="client"/> or <paramref name="images"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="utf8JsonState"/> is not exactly one well-formed JSON string, object or array.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">The client answered a different question set than <typeparamref name="T"/>.</exception>
+    public static ValueTask<Result<T, DecisionError>> EvaluateUtf8Async<T>(
+        this IDecisionClient client, ReadOnlyMemory<byte> utf8JsonState, IReadOnlyList<DecisionImage> images)
+        where T : IQuestionSet<T>
+        => EvaluateUtf8Async<T>(client, utf8JsonState, images, CancellationToken.None);
+
+    /// <summary>Asks <typeparamref name="T"/> questions about a UTF-8 JSON state and images and returns its typed answers.</summary>
+    /// <typeparam name="T">A <c>[Questions]</c> question set.</typeparam>
+    /// <param name="client">The client to ask.</param>
+    /// <param name="utf8JsonState">
+    /// The state as one UTF-8 JSON value: a string is sent as text; an object or array as structured content. Its bytes
+    /// are copied once, when the call is made, and sent as written on every attempt, so the buffer may be reused as soon
+    /// as the call returns.
+    /// </param>
+    /// <param name="images">The images the questions are about, sent with the state.</param>
+    /// <param name="cancellationToken">Cancels the call; cancellation throws <see cref="OperationCanceledException"/>.</param>
+    /// <returns>The typed answers, or the <see cref="DecisionError"/> that prevented them.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="client"/> or <paramref name="images"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="utf8JsonState"/> is not exactly one well-formed JSON string, object or array.
+    /// </exception>
+    /// <exception cref="InvalidOperationException">The client answered a different question set than <typeparamref name="T"/>.</exception>
+    public static ValueTask<Result<T, DecisionError>> EvaluateUtf8Async<T>(
+        this IDecisionClient client, ReadOnlyMemory<byte> utf8JsonState, IReadOnlyList<DecisionImage> images, CancellationToken cancellationToken)
+        where T : IQuestionSet<T>
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        TypedEvaluation.EnsureStateJson(utf8JsonState.Span, nameof(utf8JsonState));
+        ArgumentNullException.ThrowIfNull(images);
+        return Typed<T>(client, DecisionContent.FromCheckedUtf8State(utf8JsonState.Span), images, cancellationToken);
+    }
+
+    /// <summary>
+    /// Asks <typeparamref name="T"/> questions about a typed state, the one its
+    /// <c>[Questions(State = typeof(TState))]</c> names, and images, and returns its typed answers.
+    /// </summary>
+    /// <typeparam name="T">A <c>[Questions]</c> question set linked to <typeparamref name="TState"/>.</typeparam>
+    /// <typeparam name="TState">The state type.</typeparam>
+    /// <param name="client">The client to ask.</param>
+    /// <param name="state">The state; it must serialize to a JSON string, object or array.</param>
+    /// <param name="stateTypeInfo">The source-generated metadata <paramref name="state"/> is serialized with.</param>
+    /// <param name="images">The images the questions are about, sent with the state.</param>
+    /// <returns>The typed answers, or the <see cref="DecisionError"/> that prevented them.</returns>
+    /// <remarks>
+    /// Calls <see cref="EvaluateAsync{T, TState}(IDecisionClient, TState, JsonTypeInfo{TState}, IReadOnlyList{DecisionImage}, CancellationToken)"/> without cancellation.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="client"/>, <paramref name="state"/>, <paramref name="stateTypeInfo"/> or <paramref name="images"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="ArgumentException"><paramref name="state"/> does not serialize to a string, object or array.</exception>
+    /// <exception cref="InvalidOperationException">The client answered a different question set than <typeparamref name="T"/>.</exception>
+    public static ValueTask<Result<T, DecisionError>> EvaluateAsync<T, TState>(
+        this IDecisionClient client, TState state, JsonTypeInfo<TState> stateTypeInfo, IReadOnlyList<DecisionImage> images)
+        where T : IQuestionSet<T, TState>
+        => EvaluateAsync<T, TState>(client, state, stateTypeInfo, images, CancellationToken.None);
+
+    /// <summary>
+    /// Asks <typeparamref name="T"/> questions about a typed state, the one its
+    /// <c>[Questions(State = typeof(TState))]</c> names, and images, and returns its typed answers.
+    /// </summary>
+    /// <typeparam name="T">A <c>[Questions]</c> question set linked to <typeparamref name="TState"/>.</typeparam>
+    /// <typeparam name="TState">The state type.</typeparam>
+    /// <param name="client">The client to ask.</param>
+    /// <param name="state">The state; it must serialize to a JSON string, object or array.</param>
+    /// <param name="stateTypeInfo">
+    /// The source-generated metadata <paramref name="state"/> is serialized with, from your <c>JsonSerializerContext</c>.
+    /// </param>
+    /// <param name="images">The images the questions are about, sent with the state.</param>
+    /// <param name="cancellationToken">Cancels the call; cancellation throws <see cref="OperationCanceledException"/>.</param>
+    /// <returns>The typed answers, or the <see cref="DecisionError"/> that prevented them.</returns>
+    /// <exception cref="ArgumentNullException">
+    /// <paramref name="client"/>, <paramref name="state"/>, <paramref name="stateTypeInfo"/> or <paramref name="images"/> is <see langword="null"/>.
+    /// </exception>
+    /// <exception cref="ArgumentException"><paramref name="state"/> does not serialize to a string, object or array.</exception>
+    /// <exception cref="InvalidOperationException">The client answered a different question set than <typeparamref name="T"/>.</exception>
+    public static ValueTask<Result<T, DecisionError>> EvaluateAsync<T, TState>(
+        this IDecisionClient client, TState state, JsonTypeInfo<TState> stateTypeInfo, IReadOnlyList<DecisionImage> images, CancellationToken cancellationToken)
+        where T : IQuestionSet<T, TState>
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        if (state is null)
+        {
+            throw new ArgumentNullException(nameof(state));
+        }
+
+        ArgumentNullException.ThrowIfNull(stateTypeInfo);
+        ArgumentNullException.ThrowIfNull(images);
+        return Typed<T>(client, TypedEvaluation.SerializeState(state, stateTypeInfo, nameof(state)), images, cancellationToken);
+    }
+
+    /// <summary>Asks a built question set's questions about a state and images and returns its answers.</summary>
+    /// <param name="client">The client to ask.</param>
+    /// <param name="questionSet">The set, from <see cref="QuestionSetBuilder.Build"/>.</param>
+    /// <param name="state">The state: text, or a JSON object or array.</param>
+    /// <param name="images">The images the questions are about, sent with the state.</param>
+    /// <returns>The answers, or the <see cref="DecisionError"/> that prevented them.</returns>
+    /// <remarks>Calls <see cref="EvaluateAsync(IDecisionClient, QuestionSet, DecisionContent, IReadOnlyList{DecisionImage}, CancellationToken)"/> without cancellation.</remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="client"/>, <paramref name="questionSet"/> or <paramref name="images"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="state"/> is uninitialized.</exception>
+    /// <exception cref="InvalidOperationException">The client answered a different question set than <paramref name="questionSet"/>.</exception>
+    public static ValueTask<Result<Answers, DecisionError>> EvaluateAsync(
+        this IDecisionClient client, QuestionSet questionSet, DecisionContent state, IReadOnlyList<DecisionImage> images)
+        => EvaluateAsync(client, questionSet, state, images, CancellationToken.None);
+
+    /// <summary>Asks a built question set's questions about a state and images and returns its answers.</summary>
+    /// <param name="client">The client to ask.</param>
+    /// <param name="questionSet">The set, from <see cref="QuestionSetBuilder.Build"/>.</param>
+    /// <param name="state">The state: text, or a JSON object or array.</param>
+    /// <param name="images">The images the questions are about, sent with the state.</param>
+    /// <param name="cancellationToken">Cancels the call; cancellation throws <see cref="OperationCanceledException"/>.</param>
+    /// <returns>The answers, or the <see cref="DecisionError"/> that prevented them.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="client"/>, <paramref name="questionSet"/> or <paramref name="images"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="state"/> is uninitialized.</exception>
+    /// <exception cref="InvalidOperationException">The client answered a different question set than <paramref name="questionSet"/>.</exception>
+    public static ValueTask<Result<Answers, DecisionError>> EvaluateAsync(
+        this IDecisionClient client, QuestionSet questionSet, DecisionContent state, IReadOnlyList<DecisionImage> images, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(questionSet);
+        DecisionContent.EnsureInitialized(state, nameof(state));
+        ArgumentNullException.ThrowIfNull(images);
+        return BuiltSetCall(client, questionSet, state, images, cancellationToken);
+    }
+
+    private static ValueTask<Result<Answers, DecisionError>> BuiltSetCall(
+        IDecisionClient client, QuestionSet questionSet, DecisionContent state, IReadOnlyList<DecisionImage> images, CancellationToken ct)
+    {
+        var request = images.Count > 0
+            ? new DecisionRequest(questionSet.Definition, state) { Images = images }
+            : new DecisionRequest(questionSet.Definition, state);
+        var call = client.EvaluateAsync(request, ct);
         return call.IsCompletedSuccessfully
             ? new(BuiltSet(questionSet, call.Result))
             : BuiltSetAsync(questionSet, call);
     }
 
-    private static ValueTask<Result<T, DecisionError>> Typed<T>(IDecisionClient client, DecisionContent state, CancellationToken ct)
+    private static ValueTask<Result<T, DecisionError>> Typed<T>(
+        IDecisionClient client, DecisionContent state, IReadOnlyList<DecisionImage> images, CancellationToken ct)
         where T : IQuestionSet<T>
     {
-        var call = client.EvaluateAsync(new DecisionRequest(T.Definition, state), ct);
+        var request = images.Count > 0
+            ? new DecisionRequest(T.Definition, state) { Images = images }
+            : new DecisionRequest(T.Definition, state);
+        var call = client.EvaluateAsync(request, ct);
         return call.IsCompletedSuccessfully ? new(Create<T>(call.Result)) : TypedAsync<T>(call);
     }
 

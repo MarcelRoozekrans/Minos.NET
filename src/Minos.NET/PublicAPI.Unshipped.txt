@@ -137,3 +137,26 @@
 *REMOVED*static Minos.ModelCard.operator ==(Minos.ModelCard? left, Minos.ModelCard? right) -> bool
 *REMOVED*static Minos.NoulCriteria.operator !=(Minos.NoulCriteria? left, Minos.NoulCriteria? right) -> bool
 *REMOVED*static Minos.NoulCriteria.operator ==(Minos.NoulCriteria? left, Minos.NoulCriteria? right) -> bool
+Minos.DecisionImage
+Minos.DecisionImage.Data.get -> System.ReadOnlyMemory<byte>
+Minos.DecisionImage.DecisionImage() -> void
+Minos.DecisionImage.Equals(Minos.DecisionImage other) -> bool
+Minos.DecisionImage.MediaType.get -> string!
+Minos.DecisionRequest.Images.get -> System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>!
+Minos.DecisionRequest.Images.init -> void
+override Minos.DecisionImage.Equals(object? obj) -> bool
+override Minos.DecisionImage.GetHashCode() -> int
+static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! client, Minos.QuestionSet! questionSet, Minos.DecisionContent state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.Answers!, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! client, Minos.QuestionSet! questionSet, Minos.DecisionContent state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.Answers!, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateAsync<T, TState>(this Minos.IDecisionClient! client, TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateAsync<T, TState>(this Minos.IDecisionClient! client, TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, string! state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, string! state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, System.Text.Json.JsonElement state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, System.Text.Json.JsonElement state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateUtf8Async<T>(this Minos.IDecisionClient! client, System.ReadOnlyMemory<byte> utf8JsonState, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateUtf8Async<T>(this Minos.IDecisionClient! client, System.ReadOnlyMemory<byte> utf8JsonState, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+static Minos.DecisionImage.FromBytes(System.ReadOnlyMemory<byte> data, string! mediaType) -> Minos.DecisionImage
+static Minos.DecisionImage.FromDataUrl(string! dataUrl) -> Minos.DecisionImage
+static Minos.DecisionImage.operator !=(Minos.DecisionImage left, Minos.DecisionImage right) -> bool
+static Minos.DecisionImage.operator ==(Minos.DecisionImage left, Minos.DecisionImage right) -> bool
