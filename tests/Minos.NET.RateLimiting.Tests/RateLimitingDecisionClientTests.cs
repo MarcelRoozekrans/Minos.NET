@@ -10,15 +10,13 @@ public sealed class RateLimitingDecisionClientTests
 
     private static readonly DecisionRequest Request = new(Definition, "s");
 
-    private static readonly TimeSpan Window = TimeSpan.FromMilliseconds(100);
-
     private static Result<DecisionResponse, DecisionError> Ok()
         => Result<DecisionResponse, DecisionError>.Success(new DecisionResponse(Definition, [QuestionAnswer.Noul(0.5)]));
 
     private static Result<DecisionResponse, DecisionError> Fail()
         => Result<DecisionResponse, DecisionError>.Failure(new DecisionError(DecisionErrorKind.Server, "x") { StatusCode = 500 });
 
-    /// <summary>An inner client that answers each call from a script, or holds it until <see cref="Release"/>.</summary>
+    /// <summary>An inner client that answers each call from a script, or holds it until <see cref="Held"/>.</summary>
     private sealed class Inner : IDecisionClient
     {
         private readonly Queue<Func<ValueTask<Result<DecisionResponse, DecisionError>>>> _script = new();
@@ -38,6 +36,12 @@ public sealed class RateLimitingDecisionClientTests
         public Inner ThenHold()
         {
             _script.Enqueue(() => new(Held.Task));
+            return this;
+        }
+
+        public Inner ThenFaulted()
+        {
+            _script.Enqueue(() => new(Task.FromException<Result<DecisionResponse, DecisionError>>(new InvalidOperationException("boom"))));
             return this;
         }
 
@@ -167,6 +171,63 @@ public sealed class RateLimitingDecisionClientTests
     }
 
     [Fact]
+    public async Task The_permit_is_released_when_the_inner_call_faults_after_the_stage_returned()
+    {
+        using var limiter = Concurrency(1);
+        var inner = new Inner().ThenHold();
+        using var stage = new RateLimitingDecisionClient(inner, limiter);
+        var held = stage.EvaluateAsync(Request).AsTask();
+
+        inner.Held.SetException(new InvalidOperationException("boom"));
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => held);
+        Assert.Equal(1, limiter.GetStatistics()!.CurrentAvailablePermits);
+    }
+
+    [Fact]
+    public async Task The_permit_is_released_when_the_inner_call_completed_already_faulted()
+    {
+        using var limiter = Concurrency(1);
+        var inner = new Inner().ThenFaulted();
+        using var stage = new RateLimitingDecisionClient(inner, limiter);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await stage.EvaluateAsync(Request));
+
+        Assert.Equal(1, limiter.GetStatistics()!.CurrentAvailablePermits);
+    }
+
+    [Fact]
+    public async Task The_permit_is_released_when_the_inner_call_is_cancelled_in_flight()
+    {
+        using var limiter = Concurrency(1);
+        var inner = new Inner().ThenHold();
+        using var stage = new RateLimitingDecisionClient(inner, limiter);
+        var held = stage.EvaluateAsync(Request).AsTask();
+
+        inner.Held.SetCanceled();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => held);
+        Assert.Equal(1, limiter.GetStatistics()!.CurrentAvailablePermits);
+    }
+
+    [Fact]
+    public async Task The_permit_is_released_when_a_queued_then_granted_call_throws()
+    {
+        using var limiter = Concurrency(1, queue: 1);
+        var inner = new Inner().ThenHold().ThenThrow();
+        using var stage = new RateLimitingDecisionClient(inner, limiter);
+        var first = stage.EvaluateAsync(Request).AsTask();
+        var queued = stage.EvaluateAsync(Request).AsTask();
+        Assert.False(queued.IsCompleted);
+
+        inner.Held.SetResult(Ok());
+        await first;
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => queued);
+        Assert.Equal(1, limiter.GetStatistics()!.CurrentAvailablePermits);
+    }
+
+    [Fact]
     public async Task Cancelling_a_queued_call_throws_and_sends_nothing()
     {
         using var limiter = Concurrency(1, queue: 1);
@@ -202,27 +263,22 @@ public sealed class RateLimitingDecisionClientTests
     public async Task UseRateLimiting_adds_the_stage_and_a_retry_stage_outside_it_retries_a_rejection()
     {
         var time = new FakeTimeProvider();
-        using var limiter = new FixedWindowRateLimiter(new FixedWindowRateLimiterOptions
-        {
-            PermitLimit = 1,
-            QueueLimit = 0,
-            Window = Window,
-            AutoReplenishment = false,
-        });
-        var inner = new Inner();
+        using var limiter = Concurrency(1);
+        var inner = new Inner().ThenHold();
         using var client = inner.AsBuilder()
             .Use(next => new RetryingDecisionClient(next, new DecisionRetryOptions { Jitter = false }, timeProvider: time))
             .UseRateLimiting(limiter)
             .Build();
-        await client.EvaluateAsync(Request);
+        var first = client.EvaluateAsync(Request).AsTask();
 
-        var call = client.EvaluateAsync(Request).AsTask();
-        // The limiter measures its window on the real clock, which the fake time cannot move: let it pass, then replenish.
-        await Task.Delay(Window * 2);
-        Assert.True(limiter.TryReplenish());
-        // The retry stage is waiting out the limiter's RetryAfter, one window, on the fake clock.
-        time.Advance(Window);
-        var result = await call;
+        // The one permit is held, so the second call is rejected and the retry stage waits on the fake clock.
+        var second = client.EvaluateAsync(Request).AsTask();
+        Assert.False(second.IsCompleted);
+        Assert.Equal(1, inner.Calls);
+        inner.Held.SetResult(Ok());
+        await first.WaitAsync(TimeSpan.FromSeconds(10));
+        time.Advance(TimeSpan.FromSeconds(30));
+        var result = await second.WaitAsync(TimeSpan.FromSeconds(10));
 
         Assert.True(result.IsSuccess);
         Assert.Equal(2, inner.Calls);
