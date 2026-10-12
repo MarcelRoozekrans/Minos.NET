@@ -17,7 +17,7 @@ permissions:
 jobs:
   live:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     environment: live-api
     steps:
       - uses: actions/checkout@v7
@@ -47,14 +47,17 @@ jobs:
           path: conformance-out
           if-no-files-found: warn
 
-      - name: Record the provider-switch sample against TypeSafe and OpenRouter
+      - name: Record the provider-switch sample against TypeSafe
         if: ${{ !cancelled() }}
         env:
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: dotnet run --project samples/Minos.NET.Samples.ProviderSwitch -c Release -- --provider typesafe --record
+
+      - name: Record the provider-switch sample against OpenRouter
+        if: ${{ !cancelled() }}
+        env:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
-        run: |
-          dotnet run --project samples/Minos.NET.Samples.ProviderSwitch -c Release -- --provider typesafe --record
-          dotnet run --project samples/Minos.NET.Samples.ProviderSwitch -c Release -- --provider openrouter --record
+        run: dotnet run --project samples/Minos.NET.Samples.ProviderSwitch -c Release -- --provider openrouter --record
 
       - name: Upload the provider-switch recordings
         if: ${{ !cancelled() }}

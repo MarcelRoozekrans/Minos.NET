@@ -105,8 +105,17 @@ public sealed partial class SamplesTests
         Assert.Contains(Run + "openrouter --record", live, StringComparison.Ordinal);
         Assert.Contains("path: samples/Minos.NET.Samples.ProviderSwitch/recordings/", live, StringComparison.Ordinal);
         Assert.Contains(Run + "local --record", local, StringComparison.Ordinal);
+        Assert.Contains("name: provider-switch-recordings", live, StringComparison.Ordinal);
+        Assert.Contains("name: provider-switch-local", local, StringComparison.Ordinal);
+        Assert.Contains("TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}", live, StringComparison.Ordinal);
+        Assert.Contains("OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}", live, StringComparison.Ordinal);
+        Assert.Equal(3, CountOf("if: ${{ !cancelled() }}", live));
+        Assert.Equal(2, CountOf("if: ${{ !cancelled() }}", local));
         Assert.Contains("path: samples/Minos.NET.Samples.ProviderSwitch/recordings/local.json", local, StringComparison.Ordinal);
     }
+
+    private static int CountOf(string needle, string text) =>
+        text.Split(needle, StringSplitOptions.None).Length - 1;
 
     [Fact]
     public void RecordingsLiveInTheSourceFolder_FoundBySolutionFile()
