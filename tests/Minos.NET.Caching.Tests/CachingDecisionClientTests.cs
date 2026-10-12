@@ -374,6 +374,24 @@ public sealed class CachingDecisionClientTests
     }
 
     [Fact]
+    public async Task An_L2_read_cancelled_by_the_cache_itself_is_a_miss_that_logs_event_1007()
+    {
+        using var memory = Responses.Memory();
+        var logger = new FakeLogger();
+        var inner = new ScriptedClient(TypeSafe);
+        using var stage = new CachingDecisionClient(inner, memory, new TimingOutDistributedCache(), logger: logger);
+        using var cancellation = new CancellationTokenSource();
+
+        var result = await stage.EvaluateAsync(Responses.Request(), cancellation.Token);
+
+        Assert.True(result.IsSuccess);
+        Assert.False(result.Value.IsCached);
+        Assert.Equal(1, inner.Calls);
+        var read = Assert.Single(logger.Collector.GetSnapshot(), record => record.Id.Id == 1007);
+        Assert.IsType<OperationCanceledException>(read.Exception);
+    }
+
+    [Fact]
     public async Task Without_metadata_the_provider_is_unknown_and_the_cache_still_works()
     {
         using var memory = Responses.Memory();
@@ -426,6 +444,31 @@ public sealed class CachingDecisionClientTests
 
         public Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options, CancellationToken token = default)
             => throw new NotSupportedException();
+
+        public void Refresh(string key) => throw new NotSupportedException();
+
+        public Task RefreshAsync(string key, CancellationToken token = default) => throw new NotSupportedException();
+
+        public void Remove(string key) => throw new NotSupportedException();
+
+        public Task RemoveAsync(string key, CancellationToken token = default) => throw new NotSupportedException();
+    }
+
+    /// <summary>
+    /// A distributed cache whose reads time out on its own token, as a Redis client's do, while the caller's token is not
+    /// cancelled. Writes succeed.
+    /// </summary>
+    private sealed class TimingOutDistributedCache : IDistributedCache
+    {
+        public byte[]? Get(string key) => throw new NotSupportedException();
+
+        public Task<byte[]?> GetAsync(string key, CancellationToken token = default)
+            => Task.FromException<byte[]?>(new OperationCanceledException("The cache read timed out."));
+
+        public void Set(string key, byte[] value, DistributedCacheEntryOptions options) => throw new NotSupportedException();
+
+        public Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options, CancellationToken token = default)
+            => Task.CompletedTask;
 
         public void Refresh(string key) => throw new NotSupportedException();
 

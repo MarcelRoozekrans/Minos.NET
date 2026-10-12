@@ -60,21 +60,25 @@ internal sealed class CachedDecision
 
     /// <summary>The cached response for <paramref name="definition"/>, or <see langword="null"/> when this entry does not fit it.</summary>
     /// <param name="definition">The request's definition.</param>
-    /// <param name="firstBuild"><see langword="true"/> when this call built the entry's first response, so a read from L2 can be promoted to L1.</param>
     /// <returns>The response, or <see langword="null"/>.</returns>
-    public DecisionResponse? ResponseFor(QuestionSetDefinition definition, out bool firstBuild)
+    /// <remarks>The first response built is kept, so the next call for the same definition instance returns it.</remarks>
+    public DecisionResponse? ResponseFor(QuestionSetDefinition definition)
     {
         var kept = Volatile.Read(ref _response);
         if (kept is not null && ReferenceEquals(kept.Definition, definition))
         {
-            firstBuild = false;
             return kept;
         }
 
         var built = Fits(definition)
             ? new DecisionResponse(definition, Slots, Probabilities, Model, InputTokens, OutputTokens, Cost, Id, Provider, isCached: true)
             : null;
-        firstBuild = kept is null && built is not null && Interlocked.CompareExchange(ref _response, built, null) is null;
+        if (kept is null && built is not null)
+        {
+            // Two threads may race on the first build: one keeps its response, the other returns its own.
+            Interlocked.CompareExchange(ref _response, built, null);
+        }
+
         return built;
     }
 

@@ -142,9 +142,9 @@ A call logs once, when it completes, and logs again for each attempt it is about
 A model listing against OpenRouter fails with `Unsupported` before any request is sent. It logs 1005, like any other
 failure.
 
-The logging stage writes 1001, 1002 and 1006 for an `evaluate-set` call, and the retry stage writes 1003. The raw
-calls log through the client itself: 1001, 1002 and 1006 for `EvaluateAsync(SystemOneRequest)`, 1004 and 1005 for a
-model listing, and 1003 for each attempt they retry. A
+The logging stage writes 1001, 1002 and 1006 for an `evaluate-set` call, the retry stage writes 1003, and the cache
+stage writes 1007 and 1008. The raw calls log through the client itself: 1001, 1002 and 1006 for
+`EvaluateAsync(SystemOneRequest)`, 1004 and 1005 for a model listing, and 1003 for each attempt they retry. A
 [hand-written `IDecisionClient`](testing-your-code.md#way-one-a-fake-idecisionclient) logs nothing, because it has no
 stages. To log a call to one, wrap it: `fake.AsBuilder().UseLogging(loggerFactory).Build()`.
 

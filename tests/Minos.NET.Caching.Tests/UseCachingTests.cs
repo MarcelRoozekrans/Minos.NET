@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
@@ -27,11 +28,8 @@ public sealed class UseCachingTests
     {
         var distributed = new FailingDistributedCache();
         var collector = new FakeLogCollector();
-        var collection = new ServiceCollection();
-        collection.AddMemoryCache();
-        collection.AddSingleton<IDistributedCache>(distributed);
-        collection.AddLogging(logging => logging.AddProvider(new FakeLoggerProvider(collector)));
-        using var services = collection.BuildServiceProvider();
+        using var logs = new FakeLoggerProvider(collector);
+        using var services = Responses.Services(distributed, logs);
         var inner = new ScriptedClient();
         using var client = inner.AsBuilder().UseCaching().Build(services);
 
@@ -83,6 +81,25 @@ public sealed class UseCachingTests
         var key = DecisionCacheKey.Create(Responses.Request(), "unknown", null, "app1:");
         Assert.True(distributed.Writes.ContainsKey(key));
         Assert.True(memory.TryGetValue(key, out _));
+    }
+
+    [Fact]
+    public async Task Caches_passed_to_it_win_over_the_ones_in_the_services()
+    {
+        var registered = new CountingDistributedCache();
+        using var services = Responses.Services(registered);
+        using var passedMemory = Responses.Memory();
+        var passed = new CountingDistributedCache();
+        using var client = new ScriptedClient().AsBuilder().UseCaching(passedMemory, passed).Build(services);
+
+        await client.EvaluateAsync(Responses.Request());
+
+        var key = DecisionCacheKey.Create(Responses.Request(), "unknown", null, "minos:");
+        Assert.True(passedMemory.TryGetValue(key, out _));
+        Assert.False(services.GetRequiredService<IMemoryCache>().TryGetValue(key, out _));
+        Assert.NotNull(passed.Peek(key));
+        Assert.Null(registered.Peek(key));
+        Assert.Equal(0, registered.ReadCount + registered.WriteCount);
     }
 
     [Fact]

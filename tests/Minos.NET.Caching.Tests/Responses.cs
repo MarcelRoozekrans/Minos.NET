@@ -1,6 +1,7 @@
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace Minos.Caching.Tests;
 
@@ -37,14 +38,22 @@ internal static class Responses
     /// <summary>A fresh, empty in-process cache.</summary>
     public static MemoryCache Memory() => new(new MemoryCacheOptions());
 
-    /// <summary>Services with an in-process cache, and <paramref name="distributed"/> as the distributed cache when one is given.</summary>
-    public static ServiceProvider Services(IDistributedCache? distributed = null)
+    /// <summary>
+    /// Services with an in-process cache, <paramref name="distributed"/> as the distributed cache and a logger factory
+    /// writing to <paramref name="logs"/>, each when one is given.
+    /// </summary>
+    public static ServiceProvider Services(IDistributedCache? distributed = null, ILoggerProvider? logs = null)
     {
         var services = new ServiceCollection();
         services.AddMemoryCache();
         if (distributed is not null)
         {
             services.AddSingleton(distributed);
+        }
+
+        if (logs is not null)
+        {
+            services.AddLogging(logging => logging.AddProvider(logs));
         }
 
         return services.BuildServiceProvider();

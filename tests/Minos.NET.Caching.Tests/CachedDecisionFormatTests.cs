@@ -51,7 +51,7 @@ public sealed class CachedDecisionFormatTests
     {
         var original = Responses.Answer();
 
-        var read = Read(Write(CachedDecision.From(original.AsCached()))).ResponseFor(Responses.Triage, out _);
+        var read = Read(Write(CachedDecision.From(original.AsCached()))).ResponseFor(Responses.Triage);
 
         Assert.NotNull(read);
         Assert.True(read.IsCached);
@@ -66,7 +66,7 @@ public sealed class CachedDecisionFormatTests
     [Fact]
     public void The_valid_entry_the_altered_cases_start_from_reads()
     {
-        Assert.NotNull(Read(StoredWith("model", "\"jev-1.13.0\"")).ResponseFor(Responses.Triage, out _));
+        Assert.NotNull(Read(StoredWith("model", "\"jev-1.13.0\"")).ResponseFor(Responses.Triage));
     }
 
     [Theory]
@@ -83,7 +83,7 @@ public sealed class CachedDecisionFormatTests
         var entry = Read(StoredWith(property, value));
 
         Assert.Same(CachedDecision.Unreadable, entry);
-        Assert.Null(entry.ResponseFor(Responses.Triage, out _));
+        Assert.Null(entry.ResponseFor(Responses.Triage));
     }
 
     [Theory]
@@ -112,13 +112,13 @@ public sealed class CachedDecisionFormatTests
     {
         var other = new QuestionSetDefinition(QuestionDefinition.Noul("is_urgent", "Is this urgent?"));
 
-        Assert.Null(Read(Write(Stored())).ResponseFor(other, out _));
+        Assert.Null(Read(Write(Stored())).ResponseFor(other));
     }
 
     [Fact]
     public void An_entry_built_from_the_stored_slots_fits()
     {
-        Assert.NotNull(Entry(Stored().Slots[1]).ResponseFor(Responses.Triage, out _));
+        Assert.NotNull(Entry(Stored().Slots[1]).ResponseFor(Responses.Triage));
     }
 
     [Theory]
@@ -130,6 +130,6 @@ public sealed class CachedDecisionFormatTests
         var choice = Stored().Slots[1];
         var entry = Entry(choice with { ValueIndex = valueIndex, Offset = choice.Offset + offsetShift });
 
-        Assert.Null(entry.ResponseFor(Responses.Triage, out _));
+        Assert.Null(entry.ResponseFor(Responses.Triage));
     }
 }

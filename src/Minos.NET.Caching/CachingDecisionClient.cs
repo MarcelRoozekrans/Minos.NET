@@ -79,7 +79,7 @@ public sealed class CachingDecisionClient : DelegatingDecisionClient
         ArgumentNullException.ThrowIfNull(request);
         var key = DecisionCacheKey.Create(request, _provider, _endpoint, _keyPrefix);
         if (_memory.TryGetValue(key, out var stored) && stored is CachedDecision entry
-            && entry.ResponseFor(request.Definition, out _) is { } hit)
+            && entry.ResponseFor(request.Definition) is { } hit)
         {
             return new(Result<DecisionResponse, DecisionError>.Success(hit));
         }
@@ -109,7 +109,7 @@ public sealed class CachingDecisionClient : DelegatingDecisionClient
         if (bytes is not null)
         {
             var entry = CachedDecisionFormat.Read(bytes);
-            if (entry.ResponseFor(request.Definition, out _) is { } hit)
+            if (entry.ResponseFor(request.Definition) is { } hit)
             {
                 _memory.Set(key, entry, _localOptions);
                 return Result<DecisionResponse, DecisionError>.Success(hit);
