@@ -114,7 +114,7 @@
 ## Recommended Next Step
 1. Milestone 7, the 1.0 release, is active (design `docs/superpowers/specs/2026-10-12-milestone-7-design.md`). Milestone 6 is complete; its audit passed on re-audit.
 2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.
-3. Next: Phase 7.1, the caching and rate-limiting stages (#143), starting with its spec.
+3. Next: Phase 7.1, the caching and rate-limiting stages (#143). The brainstorm is in progress on branch `phase/7.1-pipeline-stages`: the draft spec `docs/superpowers/specs/2026-10-12-phase-7.1-pipeline-stages-design.md` has Section 1 approved, Section 2 waiting for approval and Section 3 not yet presented. Resume at the draft's "Next steps".
 4. Before Phase 7.5 publishes, the maintainer adds a nuget.org Trusted Publishing policy for `MarcelRoozekrans/Minos.NET` and confirms the `Minos.NET*` ids are free.
 5. Release PR #171 (0.11.3) is open.
 6. Run `pre-push-review` on each feature branch before its PR, and keep the report in `docs/plans/`: the docs tests treat every file at the top of `docs/` as a site page.
