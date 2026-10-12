@@ -64,6 +64,9 @@ same way. Its provider name in logs and telemetry is `openai`. [OpenAI](provider
 dotnet add package Minos.NET.OpenAI
 ```
 
+Two optional pipeline stages ship as their own packages: `Minos.NET.Caching` for `UseHybridCache()` and
+`Minos.NET.RateLimiting` for `UseRateLimiting()`. [The pipeline page](pipeline.md#caching-decisions) covers both.
+
 ### What the packages bring with them
 
 `Minos.NET` has one runtime dependency from Microsoft, `Microsoft.Extensions.Logging.Abstractions` 10.0.0 or later, for

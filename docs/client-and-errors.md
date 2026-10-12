@@ -193,7 +193,7 @@ Minos retries a failed call for you. For a typed, built-set or `DecisionRequest`
 of the client's [pipeline](pipeline.md), `RetryingDecisionClient`, which the client builds from the options below. The
 raw System One calls retry with the same settings. These failures are retried:
 
-- rate limiting, HTTP 429;
+- rate limiting, HTTP 429, or the client's own rate limiter;
 - overload, HTTP 503 and 529;
 - any other server error, HTTP 5xx;
 - request time-out, HTTP 408;
@@ -375,7 +375,7 @@ The values start at 1, so `default(DecisionErrorKind)` is no kind.
 | --- | --- | --- | --- |
 | `Unauthorized` | HTTP 401 or 403: the key is missing, wrong or lacks access. | No | Fix the key. Retrying cannot help. |
 | `Validation` | HTTP 400 or 422: the request was rejected. `Detail` usually names the field. | No | Fix the request. This is a bug in the questions or the state. |
-| `RateLimited` | HTTP 429. | Yes | Slow down. It comes back only after the retries ran out, and `RetryAfter` says how long to wait. |
+| `RateLimited` | HTTP 429, or the client's own [rate limiter](pipeline.md#limiting-the-call-rate), with no `StatusCode`. | Yes | Slow down. It comes back only after the retries ran out, and `RetryAfter` says how long to wait. |
 | `Overloaded` | HTTP 503 or 529. | Yes | Try again later, or fall back. |
 | `Server` | Any other HTTP 5xx. | Yes | Treat it as an outage. |
 | `Http` | Any other unsuccessful status, such as 404, or 408. | Only 408 | Report it. The status is in `StatusCode`. |

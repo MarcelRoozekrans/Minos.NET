@@ -3,6 +3,8 @@ using System.Diagnostics.Metrics;
 using System.Globalization;
 using System.Net;
 using System.Text;
+using Microsoft.Extensions.DependencyInjection;
+using Minos.Caching;
 using Minos.SystemOne;
 
 namespace Minos.Docs.Tests;
@@ -64,6 +66,23 @@ public sealed class ObservabilityTelemetryTests
         using (client)
         {
             await call(client);
+        }
+    }
+
+    // The second of two identical calls through a cache stage: the one span that carries minos.cache.hit.
+    private static async Task CachedAsync(SystemOneClientOptions options, params Reply[] script)
+    {
+        options.UseStandardPipeline = false;
+        var services = new ServiceCollection();
+        services.AddHybridCache().AddDecisionSerializer();
+        await using var provider = services.BuildServiceProvider();
+        var (http, transport, _) = ScriptedDecision.Client(options, script);
+        using (http)
+        using (transport)
+        using (var cached = transport.AsBuilder().UseOpenTelemetry().UseHybridCache().Build(provider))
+        {
+            await cached.EvaluateAsync<TicketAnalysis>("Help! SECRET-STATE", CancellationToken.None);
+            await cached.EvaluateAsync<TicketAnalysis>("Help! SECRET-STATE", CancellationToken.None);
         }
     }
 
@@ -244,6 +263,7 @@ public sealed class ObservabilityTelemetryTests
         await RunAsync(Raw, Options(), Reply.Ok(OpenRouterResponse));
         await RunAsync(Typed, Options(), Reply.Error(422, string.Empty, ("x-typesafe-request-id", "req_docs")));
         await RunAsync(Listing, Options(), Reply.Ok(ModelsResponse));
+        await CachedAsync(Options(), Reply.Ok(TicketResponse));
 
         var onSpans = new SortedSet<string>(listener.Spans.SelectMany(span => Keys(span.TagObjects)), StringComparer.Ordinal);
         var atStart = new SortedSet<string>(listener.StartTags.SelectMany(Keys), StringComparer.Ordinal);

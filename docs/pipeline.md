@@ -142,6 +142,98 @@ Two things to keep in mind when you turn the standard pipeline off:
 - **Do not add a second retry stage over the standard pipeline.** With `UseStandardPipeline` left on, the client
   already retries, and a `UseRetries()` around it multiplies the attempts.
 
+## Caching decisions
+
+`Minos.NET.Caching` adds `UseHybridCache()`, a stage that answers a repeated decision from a
+[HybridCache](https://learn.microsoft.com/aspnet/core/performance/caching/hybrid): in process first, then from Redis
+or any other `IDistributedCache` the app registers.
+
+<!-- snippet: Pipeline_Caching -->
+```cs
+// Answers repeated decisions from memory, and from Redis or any IDistributedCache the app registers.
+public static IServiceCollection AddCachedDecisions(IServiceCollection services, string apiKey)
+{
+    services.AddHybridCache().AddDecisionSerializer();
+    services.AddSystemOneClient(options => options.ApiKey = apiKey)
+        .UseHybridCache(configure: cache => cache.Expiration = TimeSpan.FromHours(1));
+    return services;
+}
+```
+<!-- endSnippet -->
+
+- **Register the serializer.** `AddDecisionSerializer()` stores answers as compact JSON with no reflection, so the
+  cache stays trim- and AOT-safe. `Build` throws when the cache comes from the services and the serializer is missing.
+- **A repeat is the same definition, state, images and model, to the same provider and endpoint.** Two clients for
+  different providers never share an answer, even in one Redis instance. The retry attempt is not part of the key.
+- **Only successes are stored.** An error or a refusal passes through, and the next call asks the provider again.
+- **A hit is marked.** `DecisionResponse.IsCached` is `true`, the span and the duration and token metrics carry
+  `minos.cache.hit`, and log event 1001's `Cached` field is `True`. The response keeps the model, usage and cost of the
+  call that produced it, so filter on `minos.cache.hit` when you count spend.
+- **Concurrent misses are not merged.** Two identical calls that both miss each ask the provider. HybridCache's
+  stampede protection would cache failures as well, so the stage does not use it.
+- **A shared layer needs a real `IDistributedCache`,** such as Redis. An in-memory distributed cache adds nothing beside
+  the in-process one, and HybridCache ignores it.
+- **`DecisionCacheOptions`** sets `Expiration`, for the distributed cache, `LocalCacheExpiration`, for the in-process
+  one, and `KeyPrefix`, `minos:` by default, to keep apps that share a cache apart.
+
+## Limiting the call rate
+
+`Minos.NET.RateLimiting` adds `UseRateLimiting(limiter)`, a stage that takes one permit from a
+[`RateLimiter`](https://learn.microsoft.com/dotnet/api/system.threading.ratelimiting.ratelimiter) before each call
+is sent.
+
+<!-- snippet: Pipeline_RateLimiting -->
+```cs
+// At most 10 calls a second, shared by every client given the same limiter. A call waits up to 20 deep in the
+// queue; beyond that it fails with RateLimited and nothing is sent.
+public static readonly RateLimiter SharedLimiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
+{
+    TokenLimit = 10,
+    TokensPerPeriod = 10,
+    ReplenishmentPeriod = TimeSpan.FromSeconds(1),
+    QueueLimit = 20,
+    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+});
+
+public static IDecisionClient Build(SystemOneClient client) => client.AsBuilder().UseRateLimiting(SharedLimiter).Build();
+```
+<!-- endSnippet -->
+
+- **You own the limiter.** Any `RateLimiter` works: a token bucket, a fixed or sliding window, or a concurrency limiter.
+  Share one across clients to limit an account, not a client. The stage never disposes it.
+- **A call waits as the limiter says.** With a queue, a call waits for its permit; cancelling it while it waits throws
+  `OperationCanceledException`. A concurrency limiter counts calls in flight, because the permit is held until the call
+  completes.
+- **A rejected call is not sent.** It returns a `RateLimited` error whose `StatusCode` is null, which tells it apart from
+  a server's 429, and whose `RetryAfter` is the limiter's, when it gives one.
+
+### Stage order
+
+The first `Use` is the outermost stage. A client's standard pipeline runs inside every stage you add, so its retries
+take no extra permits. When you build the pipeline yourself, use this order:
+
+<!-- snippet: Pipeline_StageOrder -->
+```cs
+// The recommended order for a pipeline you build yourself: a cache hit takes no permit, and every attempt takes one.
+public static IDecisionClient Build(HttpClient http, string apiKey, RateLimiter limiter, IServiceProvider services)
+{
+    var transport = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = apiKey, UseStandardPipeline = false });
+    return transport.AsBuilder()
+        .UseOpenTelemetry()
+        .UseHybridCache()
+        .UseRetries()
+        .UseRateLimiting(limiter)
+        .Build(services);
+}
+```
+<!-- endSnippet -->
+
+1. telemetry, so the span covers the whole call;
+2. caching, so a hit takes no permit;
+3. retries, outside the limiter, so a local rejection is retried after its `RetryAfter`;
+4. rate limiting, so every attempt takes a permit;
+5. the transport.
+
 ## Writing a stage
 
 A stage derives from `DelegatingDecisionClient` and overrides `EvaluateAsync`. `base.EvaluateAsync` calls the client

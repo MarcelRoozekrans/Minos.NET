@@ -29,6 +29,9 @@ For OpenAI's Decisions API, add `Minos.NET.OpenAI` instead of, or beside, `Minos
 dotnet add package Minos.NET.OpenAI
 ```
 
+Two optional pipeline stages ship as their own packages: `Minos.NET.Caching` answers repeated decisions from a
+HybridCache, and `Minos.NET.RateLimiting` limits the call rate with a `RateLimiter`.
+
 You need the .NET 10 SDK, and any IDE or build that hosts the `[Questions]` generator must host Roslyn 5.0 or later; [Getting started](https://marcelroozekrans.github.io/Minos.NET/) has the details.
 
 ## Example

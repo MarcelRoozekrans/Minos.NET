@@ -79,7 +79,8 @@ public sealed partial class ObservabilityLoggingTests
         Assert.Equal("jev-latest", Field(record, "Model"));
         Assert.Equal("typesafe", Field(record, "Provider"));
         Assert.Equal("1", Field(record, "QuestionCount"));
-        Assert.Matches(@"^Minos evaluate-set on jev-latest via typesafe succeeded: 1 questions in [0-9.,]+ ms\.$", record.Message);
+        Assert.Equal("False", Field(record, "Cached"));
+        Assert.Matches(@"^Minos evaluate-set on jev-latest via typesafe succeeded: 1 questions in [0-9.,]+ ms, cached False\.$", record.Message);
     }
 
     [Fact]
