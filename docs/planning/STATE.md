@@ -107,10 +107,11 @@
 - **Publishing:** blocked until Milestone 7. Do not push `phase/5.5-release` as a PR, and do not merge anything carrying `Release-As: 1.0.0`.
 
 ## Recommended Next Step
-1. Milestone 6, Provider-neutral core, is active, and all its phases are complete (design `docs/superpowers/specs/2026-10-09-milestone-6-design.md`).
-2. Next: the Milestone 6 audit. Two items wait on an OpenAI key and are tracked in #161: a live run against OpenAI, and recorded OpenAI conformance fixtures. Release PR #168 (0.11.2) is open.
-3. Run `pre-push-review` on each feature branch before its PR, and keep the report in `docs/plans/`: the docs tests treat every file at the top of `docs/` as a site page.
-4. Allocation gates run only in the published AOT smoke executable, not in `dotnet test`: publish and run it for any change under `src/`.
+1. Milestone 6, Provider-neutral core, is active (design `docs/superpowers/specs/2026-10-09-milestone-6-design.md`).
+2. The audit on 2026-10-12 failed with one fixable gap: no test serialized one question set for both protocols. Gap Phase 6.8 adds that test. The live OpenAI run and the recorded OpenAI fixtures moved to Milestone 7, tracked in #161. Report: `docs/plans/2026-10-12-milestone-6-audit.md`.
+3. Next: merge Phase 6.8, re-run the audit, then complete Milestone 6 with no tag. Release PR #168 (0.11.2) is open.
+4. Run `pre-push-review` on each feature branch before its PR, and keep the report in `docs/plans/`: the docs tests treat every file at the top of `docs/` as a site page.
+5. Allocation gates run only in the published AOT smoke executable, not in `dotnet test`: publish and run it for any change under `src/`.
 
 ## Operational notes
 - **Live keys:** `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY` are in the `live-api` environment, which deploys only from `main`. Run the suite with `gh workflow run live-smoke.yml --ref main`. About 13 small billed calls per run, plus the image and Clef tests Phase 6.5 added and seven conformance probes per provider for TypeSafe and OpenRouter; Luna runs too when `MINOS_LIVE_LUNA` is 1. The run uploads the recorded fixtures as the `conformance-fixtures` artifact; copy them into `tests/Minos.NET.Conformance.Tests/Fixtures` through a PR. The same run records the provider-switch sample for TypeSafe and OpenRouter and uploads `typesafe.json` and `openrouter.json` as the `provider-switch-recordings` artifact; `local-systemone.yml` records `local.json` and uploads it as `provider-switch-local`. Download both into `samples/Minos.NET.Samples.ProviderSwitch/recordings/` with `gh run download` and commit them through a PR. A recorded sample call is billed too.
