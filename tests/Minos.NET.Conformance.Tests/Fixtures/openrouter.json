@@ -1,105 +1,299 @@
 {
   "target": "openrouter",
-  "source": "tests",
-  "note": "Built from tests/Minos.NET.Tests/Fixtures until the first recording. noul is response-openrouter.json; the other success probes carry the TypeSafe fixture's answers in OpenRouter's envelope, with its model and provider. bad-key is the 401 OpenRouter sent to the header probe on 2026-10-11, which carried no request-id header. No invalid-request body from OpenRouter is recorded yet, so that probe is skipped.",
+  "source": "recorded",
+  "model": "typesafe/jev-1.13-20260917",
+  "recorded": "2026-10-12",
   "exchanges": [
     {
       "probe": "noul",
+      "request": {
+        "state": "Help! My payouts have been failing for 3 days.",
+        "model": "jev-latest",
+        "questions": {
+          "is_urgent": {
+            "type": "noul",
+            "instructions": "Does this convey urgency?"
+          }
+        }
+      },
       "status": 200,
       "contentType": "application/json",
       "response": {
-        "id": "gen-1727400000-abc123",
-        "provider": "TypeSafe",
-        "model": "~typesafe/jev-latest",
+        "model": "typesafe/jev-1.13-20260917",
         "answers": {
-          "is_urgent": { "type": "noul", "noul": 0.95 }
+          "is_urgent": {
+            "type": "noul",
+            "noul": 0.95
+          }
         },
-        "usage": { "input_tokens": 296, "output_tokens": 20, "cost": 0.000296 }
+        "usage": {
+          "input_tokens": 283,
+          "output_tokens": 23,
+          "cost": 0.000011886
+        },
+        "id": "gen-dec-1791776858-mkPkzlPGm9O9b10Z8Fco",
+        "provider": "TypeSafe"
       }
     },
     {
       "probe": "choice",
+      "request": {
+        "state": "Help! My payouts have been failing for 3 days.",
+        "model": "jev-latest",
+        "questions": {
+          "department": {
+            "type": "choice",
+            "instructions": "Which team should handle this?",
+            "criteria": {
+              "billing": "Payments, invoicing, refunds",
+              "technical": "Bugs, outages, integrations"
+            }
+          }
+        }
+      },
       "status": 200,
       "contentType": "application/json",
       "response": {
-        "provider": "TypeSafe",
-        "model": "~typesafe/jev-latest",
+        "model": "typesafe/jev-1.13-20260917",
         "answers": {
-          "department": { "type": "choice", "choice": "billing", "probabilities": { "billing": 0.88, "technical": 0.12 }, "confidence": 0.81 }
+          "department": {
+            "type": "choice",
+            "choice": "billing",
+            "probabilities": {
+              "billing": 0.87,
+              "technical": 0.13
+            },
+            "confidence": 0.74
+          }
         },
-        "usage": { "input_tokens": 318, "output_tokens": 34 }
+        "usage": {
+          "input_tokens": 331,
+          "output_tokens": 31,
+          "cost": 0.000013902
+        },
+        "id": "gen-dec-1791776858-Qzmqsxb1rAynv8V7I4nr",
+        "provider": "TypeSafe"
       }
     },
     {
       "probe": "score",
+      "request": {
+        "state": "Help! My payouts have been failing for 3 days.",
+        "model": "jev-latest",
+        "questions": {
+          "frustration": {
+            "type": "score",
+            "instructions": "How frustrated is the customer?",
+            "criteria": [
+              "Calm",
+              "Frustrated",
+              "Very angry"
+            ]
+          }
+        }
+      },
       "status": 200,
       "contentType": "application/json",
       "response": {
-        "provider": "TypeSafe",
-        "model": "~typesafe/jev-latest",
+        "model": "typesafe/jev-1.13-20260917",
         "answers": {
           "frustration": {
             "type": "score",
-            "score": 1.05,
-            "legend": { "0": "Calm", "1": "Frustrated", "2": "Very angry" },
-            "probabilities": { "0": 0.0, "1": 0.95, "2": 0.05 },
-            "confidence": 0.92
+            "score": 1.04,
+            "legend": {
+              "0": "Calm",
+              "1": "Frustrated",
+              "2": "Very angry"
+            },
+            "probabilities": {
+              "0": 0,
+              "1": 0.96,
+              "2": 0.04
+            },
+            "confidence": 0.94
           }
         },
-        "usage": { "input_tokens": 304, "output_tokens": 18 }
+        "usage": {
+          "input_tokens": 312,
+          "output_tokens": 19,
+          "cost": 0.000013104
+        },
+        "id": "gen-dec-1791776858-fmOwu4zPeFxlFNxFJx1l",
+        "provider": "TypeSafe"
       }
     },
     {
       "probe": "mixed",
+      "request": {
+        "state": "Help! My payouts have been failing for 3 days.",
+        "model": "jev-latest",
+        "questions": {
+          "is_urgent": {
+            "type": "noul",
+            "instructions": "Does this convey urgency?"
+          },
+          "department": {
+            "type": "choice",
+            "instructions": "Which team should handle this?",
+            "criteria": {
+              "billing": "Payments, invoicing, refunds",
+              "technical": "Bugs, outages, integrations"
+            }
+          },
+          "frustration": {
+            "type": "score",
+            "instructions": "How frustrated is the customer?",
+            "criteria": [
+              "Calm",
+              "Frustrated",
+              "Very angry"
+            ]
+          }
+        }
+      },
       "status": 200,
       "contentType": "application/json",
       "response": {
-        "provider": "TypeSafe",
-        "model": "~typesafe/jev-latest",
+        "model": "typesafe/jev-1.13-20260917",
         "answers": {
-          "department": { "type": "choice", "choice": "billing", "probabilities": { "billing": 0.88, "technical": 0.12 }, "confidence": 0.81 },
+          "is_urgent": {
+            "type": "noul",
+            "noul": 0.95
+          },
+          "department": {
+            "type": "choice",
+            "choice": "billing",
+            "probabilities": {
+              "billing": 0.85,
+              "technical": 0.15
+            },
+            "confidence": 0.7
+          },
           "frustration": {
             "type": "score",
-            "score": 1.05,
-            "legend": { "0": "Calm", "1": "Frustrated", "2": "Very angry" },
-            "probabilities": { "0": 0.0, "1": 0.95, "2": 0.05 },
-            "confidence": 0.92
-          },
-          "is_urgent": { "type": "noul", "noul": 0.95 }
+            "score": 1.04,
+            "legend": {
+              "0": "Calm",
+              "1": "Frustrated",
+              "2": "Very angry"
+            },
+            "probabilities": {
+              "0": 0,
+              "1": 0.96,
+              "2": 0.04
+            },
+            "confidence": 0.94
+          }
         },
-        "usage": { "input_tokens": 918, "output_tokens": 72 }
+        "usage": {
+          "input_tokens": 384,
+          "output_tokens": 66,
+          "cost": 0.000016128
+        },
+        "id": "gen-dec-1791776858-Og4VYBFBsxiYQHU4zgtb",
+        "provider": "TypeSafe"
       }
     },
     {
       "probe": "keyed",
+      "request": {
+        "state": "Help! My payouts have been failing for 3 days.",
+        "model": "jev-latest",
+        "questions": {
+          "product": {
+            "type": "choice",
+            "instructions": "Which product is this about?",
+            "criteria": {
+              "pro-plan": "The Pro subscription",
+              "team-plan": "The Team subscription"
+            }
+          },
+          "effort": {
+            "type": "score",
+            "instructions": "How much effort will this take?",
+            "criteria": [
+              "Minutes",
+              "Hours",
+              "Days"
+            ]
+          }
+        }
+      },
       "status": 200,
       "contentType": "application/json",
       "response": {
-        "provider": "TypeSafe",
-        "model": "~typesafe/jev-latest",
+        "model": "typesafe/jev-1.13-20260917",
         "answers": {
-          "product": { "type": "choice", "choice": "pro-plan", "probabilities": { "pro-plan": 0.6, "team-plan": 0.4 }, "confidence": 0.6 },
+          "product": {
+            "type": "choice",
+            "choice": "pro-plan",
+            "probabilities": {
+              "pro-plan": 0.86,
+              "team-plan": 0.14
+            },
+            "confidence": 0.72
+          },
           "effort": {
             "type": "score",
-            "score": 1.2,
-            "legend": { "0": "Minutes", "1": "Hours", "2": "Days" },
-            "probabilities": { "0": 0.1, "1": 0.6, "2": 0.3 },
-            "confidence": 0.7
+            "score": 1.3,
+            "legend": {
+              "0": "Minutes",
+              "1": "Hours",
+              "2": "Days"
+            },
+            "probabilities": {
+              "0": 0.1,
+              "1": 0.5,
+              "2": 0.4
+            },
+            "confidence": 0.25
           }
         },
-        "usage": { "input_tokens": 10, "output_tokens": 5 }
+        "usage": {
+          "input_tokens": 362,
+          "output_tokens": 49,
+          "cost": 0.000015204
+        },
+        "id": "gen-dec-1791776858-2fPWF3z2Dyl8u4GtedzY",
+        "provider": "TypeSafe"
       }
     },
     {
       "probe": "invalid",
-      "skipped": "No invalid-request body from OpenRouter is recorded yet; the first record run adds it."
+      "request": {
+        "state": "Help! My payouts have been failing for 3 days.",
+        "model": "jev-latest",
+        "questions": {}
+      },
+      "status": 400,
+      "contentType": "application/json",
+      "response": {
+        "error": {
+          "message": "[\n  {\n    \"code\": \"custom\",\n    \"path\": [\n      \"questions\"\n    ],\n    \"message\": \"At least one question is required\"\n  }\n]",
+          "code": 400
+        }
+      }
     },
     {
       "probe": "bad-key",
-      "recorded": "2026-10-11",
+      "request": {
+        "state": "Help! My payouts have been failing for 3 days.",
+        "model": "jev-latest",
+        "questions": {
+          "is_urgent": {
+            "type": "noul",
+            "instructions": "Does this convey urgency?"
+          }
+        }
+      },
       "status": 401,
       "contentType": "application/json",
-      "response": {"error":{"message":"Missing Authentication header","code":401}}
+      "response": {
+        "error": {
+          "message": "Missing Authentication header",
+          "code": 401
+        }
+      }
     }
   ]
 }
