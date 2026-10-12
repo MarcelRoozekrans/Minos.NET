@@ -1,4 +1,4 @@
-# Session State — 2026-10-12 (Phase 6.7 complete: Providers docs and samples)
+# Session State — 2026-10-12 (Milestone 6 complete: Provider-neutral core)
 
 **Date:** 2026-10-12
 
@@ -77,7 +77,7 @@
   - **First recording:** Live smoke run 38201115464 on `main`, 2026-10-12. TypeSafe 51 passed, 0 failed, 5 skipped; OpenRouter 49 passed, 0 failed, 7 skipped. TypeSafe's errors carry `x-typesafe-request-id`, so `E3` passes there; OpenRouter's 400 and 401 carry no request-id header.
   - **Found by the recording and fixed in the complete-phase PR:** a recorded body dropped no account identifier, so OpenRouter's `user_id` would have been committed, and every exchange was written with the derived `isSuccess`. Both are left out now, and the fixture scan forbids `user_id`.
   - **Partly met:** the Milestone 6 item on recorded OpenAI fixtures. OpenAI's success fixtures are labelled `guide`; #161 tracks recording them once a key exists.
-  - #163 (0.11.0) merged: v0.11.0 and v0.11.1 are GitHub releases. Release PR #168 (0.11.2) is open.
+  - #163 (0.11.0) merged: v0.11.0 and v0.11.1 are GitHub releases.
 - **Milestone 6, Phase 6.7 (Providers docs and samples):** complete on 2026-10-12. Every Milestone 6 phase is now complete.
   - **Merged:** #167 (`bfea1c8`), with the recordings in the complete-phase PR that closes #166. Pre-push review PASS: `docs/plans/2026-10-12-phase-6.7-pre-push-review.md`.
   - **What shipped:**
@@ -85,7 +85,11 @@
     - the provider-switch sample, `samples/Minos.NET.Samples.ProviderSwitch`: it routes eight support tickets to a team with one Choice question, and `Minos:Active` or `--provider` picks TypeSafe, OpenRouter or a local server. No change under `src/`.
     - CI replays each file in the sample's `recordings/` folder with `--provider`.
   - **Recorded 2026-10-12:** Live smoke run 38214563649 recorded `typesafe.json` from `jev-1.13.0` and `openrouter.json` from `typesafe/jev-1.13-20260917`. Local systemone run 38212769290 recorded `local.json` from `Mapika/decider-2b-GGUF:Q4_K_M`. All three route every ticket to the same team. TypeSafe and OpenRouter answer 1.00 throughout, and the local model is less sure, 0.80 to 0.99.
-  - **Still open for the Milestone 6 audit,** both waiting on an OpenAI key and tracked in #161: a live run against OpenAI, and recorded OpenAI conformance fixtures.
+  - **Moved to Milestone 7 after the audit,** both waiting on an OpenAI key and tracked in #161: a live run against OpenAI, and recorded OpenAI conformance fixtures.
+- **Milestone 6, Phase 6.8 (One question set through both protocols):** complete on 2026-10-12, in #170 (`ec75f56`).
+  - The gap phase from the first audit: `ProtocolParityTests` sends one generated set through the System One and the OpenAI client and pins each request body against its own protocol's fixture. Pre-push review PASS: `docs/plans/2026-10-12-phase-6.8-pre-push-review.md`.
+  - v0.11.2 (#168) is a GitHub release. Release PR #171 (0.11.3) is open and carries #170's three commits.
+- **Milestone 6 (Provider-neutral core):** complete on 2026-10-12. The first audit failed with one fixable gap; the re-audit at ec75f56 passed (`docs/plans/2026-10-12-milestone-6-audit.md`). There is no tag; release-please owns releases.
 - **Old Phase 5.5 (1.0 release):** removed from Milestone 5 and folded into Phase 7.4.
   - Its reviewed pipeline work sits on the local branch `phase/5.5-release`, not pushed:
     - inspection script;
@@ -107,9 +111,9 @@
 - **Publishing:** blocked until Milestone 7. Do not push `phase/5.5-release` as a PR, and do not merge anything carrying `Release-As: 1.0.0`.
 
 ## Recommended Next Step
-1. Milestone 6, Provider-neutral core, is active (design `docs/superpowers/specs/2026-10-09-milestone-6-design.md`).
-2. The audit on 2026-10-12 failed with one fixable gap: no test serialized one question set for both protocols. Gap Phase 6.8 adds that test. The live OpenAI run and the recorded OpenAI fixtures moved to Milestone 7, tracked in #161. Report: `docs/plans/2026-10-12-milestone-6-audit.md`.
-3. Next: merge Phase 6.8, re-run the audit, then complete Milestone 6 with no tag. Release PR #168 (0.11.2) is open.
+1. Milestone 6, Provider-neutral core, is complete. The audit passed on re-audit (`docs/plans/2026-10-12-milestone-6-audit.md`).
+2. Next: start Milestone 7, the 1.0 release, with `new-milestone`: a milestone-scope brainstorm into `docs/superpowers/specs/YYYY-MM-DD-milestone-7-design.md`, then MILESTONE.md. Its Definition of Done now also carries the OpenAI-key items from Milestone 6, tracked in #161.
+3. Release PR #171 (0.11.3) is open.
 4. Run `pre-push-review` on each feature branch before its PR, and keep the report in `docs/plans/`: the docs tests treat every file at the top of `docs/` as a site page.
 5. Allocation gates run only in the published AOT smoke executable, not in `dotnet test`: publish and run it for any change under `src/`.
 
