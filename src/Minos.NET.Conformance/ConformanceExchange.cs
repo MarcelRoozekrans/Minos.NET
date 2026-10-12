@@ -1,4 +1,6 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
+using System.Text.Json.Serialization;
 
 namespace Minos.Conformance;
 
@@ -32,7 +34,15 @@ public sealed class ConformanceExchange
     /// <summary>Gets the response body: its JSON when <see cref="ContentType"/> is JSON and it parses, otherwise a JSON string holding its text.</summary>
     public JsonElement? Response { get; init; }
 
-    /// <summary>Gets whether <see cref="Status"/> is 2xx.</summary>
+    /// <summary>
+    /// Gets the response-body properties an exchange never keeps, at any depth: the account identifiers a provider echoes
+    /// back, such as the <c>user_id</c> in OpenRouter's error bodies. A fixture is committed, so it must not name the
+    /// account that recorded it.
+    /// </summary>
+    public static IReadOnlyList<string> DroppedProperties { get; } = ["user_id"];
+
+    /// <summary>Gets whether <see cref="Status"/> is 2xx. It is read from the status, so a fixture does not keep it.</summary>
+    [JsonIgnore]
     public bool IsSuccess => Status is >= 200 and < 300;
 
     /// <summary>Builds an exchange from what went over the wire.</summary>
@@ -57,7 +67,7 @@ public sealed class ConformanceExchange
             ContentType = contentType,
             Headers = headers is { Count: > 0 } ? headers : null,
             Response = IsJson(contentType) && TryParse(responseBody, out var json)
-                ? json
+                ? WithoutDroppedProperties(json)
                 : JsonSerializer.SerializeToElement(responseBody, ConformanceJsonContext.Default.String),
         };
     }
@@ -119,6 +129,47 @@ public sealed class ConformanceExchange
         var mediaType = (semicolon < 0 ? contentType : contentType[..semicolon]).Trim();
         return string.Equals(mediaType, "application/json", StringComparison.OrdinalIgnoreCase)
             || mediaType.EndsWith("+json", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static JsonElement WithoutDroppedProperties(JsonElement body)
+    {
+        var node = JsonNode.Parse(body.GetRawText());
+        if (!Drop(node))
+        {
+            return body;
+        }
+
+        using var document = JsonDocument.Parse(node!.ToJsonString());
+        return document.RootElement.Clone();
+    }
+
+    private static bool Drop(JsonNode? node)
+    {
+        var dropped = false;
+        switch (node)
+        {
+            case JsonObject properties:
+                foreach (var name in DroppedProperties)
+                {
+                    dropped |= properties.Remove(name);
+                }
+
+                foreach (var property in properties)
+                {
+                    dropped |= Drop(property.Value);
+                }
+
+                break;
+            case JsonArray items:
+                foreach (var item in items)
+                {
+                    dropped |= Drop(item);
+                }
+
+                break;
+        }
+
+        return dropped;
     }
 
     private static bool TryParse(string text, out JsonElement element)

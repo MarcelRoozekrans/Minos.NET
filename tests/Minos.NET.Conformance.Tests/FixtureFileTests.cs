@@ -5,7 +5,7 @@ namespace Minos.Conformance.Tests;
 
 public sealed partial class FixtureFileTests
 {
-    private static readonly string[] Forbidden = ["Bearer", "Authorization", "api_key", "x-api-key", "Cookie"];
+    private static readonly string[] Forbidden = ["Bearer", "Authorization", "api_key", "x-api-key", "Cookie", .. ConformanceExchange.DroppedProperties];
     private static readonly string[] RootProperties = ["exchanges", "model", "note", "recorded", "source", "target"];
     private static readonly string[] ExchangeProperties = ["contentType", "headers", "probe", "recorded", "request", "response", "skipped", "status"];
 
@@ -56,6 +56,10 @@ public sealed partial class FixtureFileTests
     [Fact]
     public void TheScan_CatchesBearerText()
         => Assert.NotEmpty(Problems("""{"target":"t","note":"Bearer abc123","exchanges":[]}"""));
+
+    [Fact]
+    public void TheScan_CatchesAnAccountIdentifier()
+        => Assert.Contains("forbidden word user_id", Problems("""{"target":"t","exchanges":[{"probe":"p","response":{"user_id":"user_1"}}]}"""));
 
     [Fact]
     public void TheScan_CatchesAnUnlistedHeader()
