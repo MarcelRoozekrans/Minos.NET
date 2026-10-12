@@ -324,10 +324,11 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-11-phase-6.6-conformance-suite.md`
 **Completed:** 2026-10-12
 
-### Phase 6.7: Providers docs and samples [status: pending]
+### Phase 6.7: Providers docs and samples [status: active]
 **Goal:** A Providers page with presets and the capability matrix, and a sample running one question type against three providers by configuration only.
 **Surface:** Docs
 **HelpWanted:** no
+**Spec:** `docs/superpowers/specs/2026-10-12-phase-6.7-providers-docs-and-samples-design.md`
 **Plan:** _to be written_
 
 ## Milestone 7: 1.0 release [status: pending]
