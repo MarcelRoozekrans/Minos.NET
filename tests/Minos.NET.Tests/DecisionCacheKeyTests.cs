@@ -73,6 +73,7 @@ public sealed class DecisionCacheKeyTests
         Assert.NotEqual(one, Key(Request() with { Images = [otherBytes] }));
         Assert.NotEqual(one, Key(Request() with { Images = [otherType] }));
         Assert.NotEqual(one, Key(Request() with { Images = [png, png] }));
+        Assert.NotEqual(Key(Request() with { Images = [png, otherBytes] }), Key(Request() with { Images = [otherBytes, png] }));
     }
 
     [Fact]
@@ -102,6 +103,10 @@ public sealed class DecisionCacheKeyTests
             new(QuestionDefinition.Choice("team", "Which team?", new OptionDefinition("billing", Criterion.Text("Payments").WithNotFor("refund")))),
             new(QuestionDefinition.Choice("team", "Which team?", new OptionDefinition("billing", null))),
             new(QuestionDefinition.Score("severity", "How severe?", "Low", "High")),
+            new(QuestionDefinition.Choice("team", "Which team?", new OptionDefinition("billing", Criterion.Json(DecisionContent.FromJson(JsonDocument.Parse("""{"area":"payments"}""").RootElement))))),
+            new(QuestionDefinition.Choice("team", "Which team?", new OptionDefinition("billing", Criterion.Json(DecisionContent.FromJson(JsonDocument.Parse("""{"area":"invoices"}""").RootElement))))),
+            // Same key, instructions and option keys and criteria as the Score above; only the kind differs.
+            new(QuestionDefinition.Choice("severity", "How severe?", new OptionDefinition("0", "Low"), new OptionDefinition("1", "High"))),
         ];
 
         var keys = variants.Select(definition => Key(new DecisionRequest(definition, "I was charged twice."))).Append(baseKey).ToArray();
