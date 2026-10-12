@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.11.4](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.11.3...v0.11.4) (2026-10-12)
+
+
+### Documentation
+
+* **milestone:** milestone 7 design, the 1.0 release ([98adacd](https://github.com/MarcelRoozekrans/Minos.NET/commit/98adacd150569868fc1825e9cebc5acdec80b382))
+
 ## [0.11.3](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.11.2...v0.11.3) (2026-10-12)
 
 
