@@ -25,6 +25,22 @@ public sealed class DecisionCacheKeyTests
         Assert.Equal(Prefix.Length + 43, key.Length);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(128)]
+    [InlineData(129)]
+    [InlineData(1000)]
+    public void Ends_with_the_same_digest_whatever_the_prefix_length(int length)
+    {
+        // Up to 128 characters the key is built on the stack, and beyond that in a pooled buffer.
+        var prefix = new string('p', length);
+
+        var key = DecisionCacheKey.Create(Request(), Provider, Endpoint, null, prefix);
+
+        Assert.StartsWith(prefix, key, StringComparison.Ordinal);
+        Assert.Equal(Key(Request())[Prefix.Length..], key[length..]);
+    }
+
     [Fact]
     public void Is_the_same_for_equal_requests_and_ignores_the_retry_attempt()
     {

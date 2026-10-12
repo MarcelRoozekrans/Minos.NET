@@ -219,11 +219,11 @@ internal static class AllocationChecks
         var request = new DecisionRequest(SmokeTriage.Definition, SmokeAnswers.State);
         client.EvaluateAsync(request).AsTask().GetAwaiter().GetResult();
 
-        // Measured 176 B/call on published win-x64 AOT: a hit reads the in-process cache and returns the stored response, so
-        // what remains is the lookup key built for each call. Budget: about 10% headroom over the measurement, rounded up to
-        // the next multiple of 64 B, per the Phase 1.8 rule.
+        // Measured 120 B/call on published win-x64 AOT: a hit reads the in-process cache and returns the stored response, so
+        // what remains is the lookup key string built for each call; its text is encoded in a stack buffer. Budget: about
+        // 10% headroom over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
         GateValueTask(
-            budgetBytes: 256,
+            budgetBytes: 192,
             action: () => client.EvaluateAsync(request),
             label: "CacheHit",
             passDescription: "an in-process cache hit stays within its allocation budget");

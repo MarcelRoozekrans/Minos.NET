@@ -28,6 +28,9 @@ internal static class DecisionCacheKey
     // The digest's unpadded Base64Url length.
     private const int EncodedLength = 43;
 
+    // The longest prefix encoded in a stack buffer; a longer one uses a pooled buffer.
+    private const int MaxStackPrefix = 128;
+
     /// <summary>Creates the key of <paramref name="request"/> for a client with the given metadata.</summary>
     /// <param name="request">The request.</param>
     /// <param name="provider">The client's provider name.</param>
@@ -67,11 +70,31 @@ internal static class DecisionCacheKey
             writer.Dispose();
         }
 
-        return string.Create(prefix.Length + EncodedLength, (prefix, Digest: digest.ToArray()), static (chars, state) =>
+        return Encode(prefix, digest);
+    }
+
+    // The prefix and the digest's Base64Url text, built in a stack buffer, or a pooled one for a long prefix, so the key
+    // string is the only allocation.
+    private static string Encode(string prefix, ReadOnlySpan<byte> digest)
+    {
+        var length = prefix.Length + EncodedLength;
+        char[]? rented = null;
+        Span<char> chars = prefix.Length <= MaxStackPrefix
+            ? stackalloc char[MaxStackPrefix + EncodedLength]
+            : rented = ArrayPool<char>.Shared.Rent(length);
+        try
         {
-            state.prefix.AsSpan().CopyTo(chars);
-            Base64Url.EncodeToChars(state.Digest, chars[state.prefix.Length..]);
-        });
+            prefix.AsSpan().CopyTo(chars);
+            Base64Url.EncodeToChars(digest, chars.Slice(prefix.Length, EncodedLength));
+            return new string(chars[..length]);
+        }
+        finally
+        {
+            if (rented is not null)
+            {
+                ArrayPool<char>.Shared.Return(rented);
+            }
+        }
     }
 
     private static byte[] DefinitionDigest(QuestionSetDefinition definition)
