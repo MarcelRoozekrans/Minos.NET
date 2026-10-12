@@ -62,6 +62,8 @@
       Microsoft.Extensions.Http.
     -->
     <PackageVersion Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="10.0.0" />
+    <!-- The caching package's HybridCache. Its floor is the first .NET 10 release, as for the other Microsoft packages. -->
+    <PackageVersion Include="Microsoft.Extensions.Caching.Hybrid" Version="10.0.0" />
     <!-- The rate-limiting package's RateLimiter. Its floor is the first .NET 10 release, as for the other Microsoft packages. -->
     <PackageVersion Include="System.Threading.RateLimiting" Version="10.0.0" />
     <!-- Runtime question set validation: its generators validate Minos.NET's own specs; NuGet still flows them to consumers, where they stay inert, NuGet/Home#6720 -->

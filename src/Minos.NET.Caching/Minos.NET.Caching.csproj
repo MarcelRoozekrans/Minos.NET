@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Minos.Caching</RootNamespace>
+    <PackageId>Minos.NET.Caching</PackageId>
+    <Title>Minos.NET.Caching</Title>
+    <Description>A HybridCache stage for Minos.NET's decision client pipeline: a repeated question set, state, images and model are answered from the in-process or distributed cache instead of the provider. Only successes are stored. Native AOT-compatible.</Description>
+    <PackageTags>$(PackageTags);caching;hybridcache</PackageTags>
+    <IsAotCompatible>true</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The cache key, the response's internal fields and its cached copy, through core's InternalsVisibleTo. -->
+    <ProjectReference Include="..\Minos.NET\Minos.NET.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" />
+    <PackageReference Include="ZeroAlloc.Results" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Minos.NET.Caching.Tests" />
+  </ItemGroup>
+</Project>

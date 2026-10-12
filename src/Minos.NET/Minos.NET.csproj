@@ -51,6 +51,8 @@
     <InternalsVisibleTo Include="Minos.NET.Benchmarks" />
     <!-- The caching stage builds its keys with the internal DecisionCacheKey. -->
     <InternalsVisibleTo Include="Minos.NET.Caching" />
+    <!-- Its tests build entries and keys from the same internals. -->
+    <InternalsVisibleTo Include="Minos.NET.Caching.Tests" />
   </ItemGroup>
 
   <ItemGroup>

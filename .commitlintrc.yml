@@ -26,6 +26,7 @@ rules:
       - systemone
       - openai
       - ratelimiting
+      - caching
       - conformance
       - tests
       - benchmarks

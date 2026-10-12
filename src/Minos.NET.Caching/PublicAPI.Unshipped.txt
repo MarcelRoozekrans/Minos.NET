@@ -1,0 +1,16 @@
+#nullable enable
+Minos.Caching.CachingDecisionClient
+Minos.Caching.CachingDecisionClient.CachingDecisionClient(Minos.IDecisionClient! innerClient, Microsoft.Extensions.Caching.Hybrid.HybridCache! cache, Minos.Caching.DecisionCacheOptions? options = null) -> void
+Minos.Caching.CachingDecisionClientBuilderExtensions
+Minos.Caching.DecisionCacheHybridCacheBuilderExtensions
+Minos.Caching.DecisionCacheOptions
+Minos.Caching.DecisionCacheOptions.DecisionCacheOptions() -> void
+Minos.Caching.DecisionCacheOptions.Expiration.get -> System.TimeSpan?
+Minos.Caching.DecisionCacheOptions.Expiration.set -> void
+Minos.Caching.DecisionCacheOptions.KeyPrefix.get -> string!
+Minos.Caching.DecisionCacheOptions.KeyPrefix.set -> void
+Minos.Caching.DecisionCacheOptions.LocalCacheExpiration.get -> System.TimeSpan?
+Minos.Caching.DecisionCacheOptions.LocalCacheExpiration.set -> void
+override Minos.Caching.CachingDecisionClient.EvaluateAsync(Minos.DecisionRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>
+static Minos.Caching.CachingDecisionClientBuilderExtensions.UseHybridCache(this Minos.DecisionClientBuilder! builder, Microsoft.Extensions.Caching.Hybrid.HybridCache? cache = null, System.Action<Minos.Caching.DecisionCacheOptions!>? configure = null) -> Minos.DecisionClientBuilder!
+static Minos.Caching.DecisionCacheHybridCacheBuilderExtensions.AddDecisionSerializer(this Microsoft.Extensions.Caching.Hybrid.IHybridCacheBuilder! builder) -> Microsoft.Extensions.Caching.Hybrid.IHybridCacheBuilder!
