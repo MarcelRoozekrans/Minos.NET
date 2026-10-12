@@ -18,6 +18,7 @@ One typed question set runs against TypeSafe, OpenRouter, OpenAI and a local `/v
 - [ ] Both adapters have recorded-fixture tests. An unsupported question kind, or image state on a provider without image input, fails with a typed error naming the provider and the question, never as a raw HTTP failure.
 - [ ] Live runs pass against TypeSafe, OpenRouter and OpenAI, and against one local `/v1/systemone` server, either in CI or documented as run.
 - [ ] The conformance suite runs green against recorded TypeSafe and OpenAI fixtures.
+  - Partly met on 2026-10-12: TypeSafe's and OpenRouter's fixtures are recorded and green. OpenAI's success fixtures come from its Decisions guide, because there is no OpenAI key; #161 tracks recording them.
 - [ ] A Providers docs page shows the presets and the capability matrix. A sample switches providers by configuration only.
 
 ## Phases
@@ -26,7 +27,7 @@ One typed question set runs against TypeSafe, OpenRouter, OpenAI and a local `/v
 3. Phase 6.3 — IDecisionClient abstraction and pipeline [complete]
 4. Phase 6.4 — /v1/systemone adapter [complete]
 5. Phase 6.5 — OpenAI /v1/decisions adapter and image state [complete]
-6. Phase 6.6 — Conformance suite [active]
+6. Phase 6.6 — Conformance suite [complete]
 7. Phase 6.7 — Providers docs and samples [pending]
 
 ## Audit History

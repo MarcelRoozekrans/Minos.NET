@@ -50,6 +50,26 @@ public sealed class FixtureFormatTests
     }
 
     [Fact]
+    public void AnAccountIdentifier_IsDroppedFromTheBody_AtAnyDepth()
+    {
+        const string Body = """{"error":{"message":"m","code":400},"user_id":"user_1","items":[{"user_id":"user_2","kept":1}]}""";
+
+        var exchange = ConformanceExchange.FromHttp("invalid", null, 400, "application/json", null, Body);
+
+        Assert.Equal("""{"error":{"message":"m","code":400},"items":[{"kept":1}]}""", exchange.ResponseText());
+    }
+
+    [Fact]
+    public void ABodyWithoutAnAccountIdentifier_IsKeptAsSent()
+    {
+        const string Body = """{ "answers": {} }""";
+
+        var exchange = ConformanceExchange.FromHttp("noul", null, 200, "application/json", null, Body);
+
+        Assert.Equal(Body, exchange.ResponseText());
+    }
+
+    [Fact]
     public void AJsonBody_IsKeptAsJson()
     {
         var exchange = ConformanceExchange.FromHttp("noul", "{\"state\":\"s\"}", 200, "application/json; charset=utf-8", null, "{\"answers\":{}}");
@@ -81,6 +101,7 @@ public sealed class FixtureFormatTests
         Assert.Equal(json, read.ToJson());
         Assert.Equal("req_1", read.Find("noul")!.Header("X-Request-Id"));
         Assert.DoesNotContain("\"note\"", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("isSuccess", json, StringComparison.Ordinal);
         Assert.EndsWith("}\n", json, StringComparison.Ordinal);
     }
 

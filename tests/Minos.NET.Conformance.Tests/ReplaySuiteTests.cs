@@ -8,11 +8,11 @@ public sealed class ReplaySuiteTests
 {
     private static readonly Dictionary<string, string[]> ExpectedSkips = new(StringComparer.Ordinal)
     {
-        // A Noul has no options, levels or confidence; the 422 and 401 kept no request-id header; no 429 is recorded.
-        ["typesafe"] = ["noul:D2", "noul:D3", "noul:D4", "choice:D3", "invalid:E3", "bad-key:E3", "run:E4"],
+        // A Noul has no options, levels or confidence, and a Choice probe asks no Score question; no 429 was met.
+        ["typesafe"] = ["noul:D2", "noul:D3", "noul:D4", "choice:D3", "run:E4"],
 
-        // As TypeSafe's, and the invalid probe has no recorded body yet. OpenRouter's 401 sends no request-id header.
-        ["openrouter"] = ["noul:D2", "noul:D3", "noul:D4", "choice:D3", "invalid:E1", "invalid:E3", "bad-key:E3", "run:E4"],
+        // As TypeSafe's, and OpenRouter's 400 and 401 carry no request-id header.
+        ["openrouter"] = ["noul:D2", "noul:D3", "noul:D4", "choice:D3", "invalid:E3", "bad-key:E3", "run:E4"],
 
         // The guide's examples name no model and no usage, and OpenAI states no model rule yet. The invalid probe has no
         // recorded body, so E1 and E3 skip; the bad-key x-request-id value was dropped, so its E3 skips; no 429 was met, so E4 skips.
@@ -63,10 +63,10 @@ public sealed class ReplaySuiteTests
     [Fact]
     public async Task Replay_AProbeTheFixtureSkips_IsSkippedWithItsReason()
     {
-        var report = await new ConformanceRunner().RunAsync(Fixtures.Replay("openrouter"), ConformanceMode.Replay, Fixtures.Path("openrouter"));
+        var report = await new ConformanceRunner().RunAsync(Fixtures.Replay("openai"), ConformanceMode.Replay, Fixtures.Path("openai"));
 
         var invalid = report.Probes.First(probe => string.Equals(probe.Probe, "invalid", StringComparison.Ordinal));
-        Assert.Equal("The fixture skips it: No invalid-request body from OpenRouter is recorded yet; the first record run adds it.", invalid.Skipped);
+        Assert.Equal("The fixture skips it: No invalid-request body from OpenAI exists yet; the guide documents none, and there is no key to record one.", invalid.Skipped);
         Assert.All(invalid.Checks, check => Assert.Equal(CheckOutcome.Skipped, check.Outcome));
     }
 }

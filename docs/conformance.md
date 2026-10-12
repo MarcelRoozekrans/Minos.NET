@@ -50,7 +50,7 @@ be off by 0.01.
 | `M1` | The `mixed` answers are matched by key, so a provider or a parser that relies on their order fails. | Minos returned an error, no answer could be read, or Minos's answer count differs from the questions asked. |
 | `E1` | `invalid` gets a 400 or a 422 with a JSON body, which Minos maps to `Validation` with a message. A JSON body that leaves `DecisionError.Detail` null fails, and the failure names Minos. | No request was sent. |
 | `E2` | `bad-key` gets a 401 or a 403, which Minos maps to `Unauthorized`, with one request sent under the client's retry setting. | No request was sent. |
-| `E3` | An error response's request-id header equals `DecisionError.RequestId`. | There is no error response, or it carries none, as OpenRouter's 401 does. |
+| `E3` | An error response's request-id header equals `DecisionError.RequestId`. | There is no error response, or it carries none, as OpenRouter's 400 and 401 do. |
 | `E4` | A 429 met during the run has its `retry-after-ms` or `Retry-After` in `DecisionError.RetryAfter` and its request id read. | No 429 was met. One cannot be provoked, so the suite keeps no made-up 429. |
 | `R1` | A successful response names a model, and `DecisionResponse.Model` is the same. | Minos returned an error, the body is not a JSON object, or the response names none and the target promises none. |
 | `R2` | The reported model fits the requested one by the target's rule. | The target states no rule, Minos returned an error, no answer could be read, or the response names no model. |
@@ -127,7 +127,7 @@ Each fixture says where its exchanges came from:
 | Source | Meaning |
 | --- | --- |
 | `recorded` | Recorded from the live endpoint by a `Record` run. The fixture must name the model and the date. |
-| `tests` | Built from the response fixtures of the client's own unit tests, until the first recording replaces it. |
+| `tests` | Built from the response fixtures of the client's own unit tests, for a target with no recording yet. |
 | `guide` | Built from the provider's documentation. |
 
 An exchange recorded apart from the rest carries its own date, and a fixture may skip a probe, with the reason, when no
@@ -135,8 +135,9 @@ exchange for it exists yet. In CI the suite must fail no check on any fixture, a
 checks its test expects, so a check that starts to skip fails the build.
 
 The Live smoke workflow records TypeSafe's and OpenRouter's fixtures on `main` and uploads them as an artifact; they
-reach the repository through a pull request. Until the first recording they are built from the unit tests' fixtures,
-with error bodies that earlier live runs captured.
+reach the repository through a pull request. Both were first recorded on 2026-10-12. A recording keeps only the
+allowlisted response headers, and drops from each body the account identifiers a provider echoes back, such as the
+`user_id` in OpenRouter's error bodies.
 
 ### Why OpenAI's success fixtures come from the guide
 
