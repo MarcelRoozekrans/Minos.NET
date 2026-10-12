@@ -329,7 +329,7 @@ compress_memory: disabled
 **Surface:** Docs
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-10-12-phase-6.7-providers-docs-and-samples-design.md`
-**Plan:** _to be written_
+**Plan:** `docs/superpowers/plans/2026-10-12-phase-6.7-providers-docs-and-samples.md`
 
 ## Milestone 7: 1.0 release [status: pending]
 **Goal:** Review, verify and publish the provider-neutral library as 1.0.0 on NuGet, with api-compat guarding every later change.
