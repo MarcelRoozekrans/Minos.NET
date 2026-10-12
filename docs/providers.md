@@ -566,7 +566,28 @@ dotnet run --project samples/Minos.NET.Samples.ProviderSwitch -- --provider loca
 
 Each provider's answers are recorded in a file of its own: `recordings/typesafe.json`, `recordings/openrouter.json` and
 `recordings/local.json`. TypeSafe and OpenRouter receive byte-identical requests, because both ask `jev-latest`, so one
-file could not hold both. To use several providers at once in one app, register each under a key, as
+file could not hold both.
+
+The sample's recorded answers, side by side, each ticket's team and confidence:
+
+| Ticket | TypeSafe | OpenRouter | Local |
+| --- | --- | --- | --- |
+| s01 | billing 1.00 | billing 1.00 | billing 0.99 |
+| s02 | technical 1.00 | technical 1.00 | technical 0.97 |
+| s03 | account 1.00 | account 1.00 | account 0.98 |
+| s04 | sales 1.00 | sales 1.00 | sales 0.95 |
+| s05 | technical 1.00 | technical 1.00 | technical 0.97 |
+| s06 | account 1.00 | account 1.00 | account 0.94 |
+| s07 | sales 1.00 | sales 1.00 | sales 0.80 |
+| s08 | billing 1.00 | billing 1.00 | billing 0.94 |
+| Model | `jev-1.13.0` | `typesafe/jev-1.13-20260917` | `Mapika/decider-2b-GGUF:Q4_K_M` |
+
+All three providers send every ticket to the same team. They differ in how sure they are. TypeSafe and OpenRouter ask
+the same model and answer with a confidence of 1.00 for every ticket. The small local model is less sure, from 0.94 to
+0.99 on most tickets and 0.80 on s07, so a confidence gate tuned on one provider needs a second look before another
+one takes its place.
+
+To use several providers at once in one app, register each under a key, as
 [several clients](dependency-injection.md#several-clients) shows.
 
 ## Running a local server

@@ -21,8 +21,7 @@ dotnet run --project samples/Minos.NET.Samples.ProviderSwitch
 ```
 
 By default the sample replays the provider that `Minos:Active` names, `TypeSafe`, from `recordings/typesafe.json`. It
-then needs no network and no key. The recordings arrive with issue #166, so until then a replay exits with code 1, and
-the sample is exercised by its tests in `tests/Minos.NET.Samples.Tests`. Pick another provider with `--provider`, or
+then needs no network and no key. Pick another provider with `--provider`, or
 with the environment variable `Minos__Active`:
 
 ```
@@ -48,4 +47,6 @@ To call a provider instead, pass `--live` or `--record` with it:
 
 `recordings/` holds one file per provider: `typesafe.json`, `openrouter.json` and `local.json`. The billed Live smoke
 workflow records the first two, and the free Local systemone workflow records `local.json`. Each run uploads the files
-as an artifact, and they reach the repository through a pull request.
+as an artifact, and they reach the repository through a pull request. All three were recorded on 2026-10-12:
+`typesafe.json` from the model `jev-1.13.0`, `openrouter.json` from `typesafe/jev-1.13-20260917`, and `local.json` from
+`Mapika/decider-2b-GGUF:Q4_K_M`.
