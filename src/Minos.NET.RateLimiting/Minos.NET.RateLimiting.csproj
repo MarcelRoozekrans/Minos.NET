@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Minos.RateLimiting</RootNamespace>
+    <PackageId>Minos.NET.RateLimiting</PackageId>
+    <Title>Minos.NET.RateLimiting</Title>
+    <Description>A rate-limiting stage for Minos.NET's decision client pipeline, over System.Threading.RateLimiting: each call takes a permit before it is sent, and a call the limiter rejects returns a RateLimited error without reaching the provider. Native AOT-compatible.</Description>
+    <PackageTags>$(PackageTags);rate-limiting</PackageTags>
+    <IsAotCompatible>true</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Minos.NET\Minos.NET.csproj" />
+    <PackageReference Include="System.Threading.RateLimiting" />
+    <PackageReference Include="ZeroAlloc.Results" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Minos.NET.RateLimiting.Tests" />
+  </ItemGroup>
+</Project>
