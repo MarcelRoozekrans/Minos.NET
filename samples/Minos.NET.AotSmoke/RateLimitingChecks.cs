@@ -30,8 +30,7 @@ internal static class RateLimitingChecks
             granted.IsSuccess
                 && rejected.IsFailure
                 && rejected.Error.Kind == DecisionErrorKind.RateLimited
-                && rejected.Error.StatusCode is null
-                && string.Equals(rejected.Error.Message, RateLimitingDecisionClient.RejectedMessage, StringComparison.Ordinal),
+                && rejected.Error.StatusCode is null,
             "the rate-limiting stage sends a granted call and rejects one over the limit with RateLimited under Native AOT");
     }
 }

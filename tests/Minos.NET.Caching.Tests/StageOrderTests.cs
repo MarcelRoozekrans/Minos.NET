@@ -35,7 +35,8 @@ public sealed class StageOrderTests
         Assert.False(miss.Value.IsCached);
         Assert.True(hit.Value.IsCached);
         Assert.Equal(DecisionErrorKind.RateLimited, otherState.Error.Kind);
-        Assert.Equal(RateLimitingDecisionClient.RejectedMessage, otherState.Error.Message);
+        // A local rejection: a server's 429 carries a status code.
+        Assert.Null(otherState.Error.StatusCode);
         Assert.Equal(1, inner.Calls);
     }
 

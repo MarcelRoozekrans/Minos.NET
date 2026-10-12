@@ -20,7 +20,7 @@ namespace Minos.RateLimiting;
 public sealed class RateLimitingDecisionClient : DelegatingDecisionClient
 {
     /// <summary>The message of the error a rejected call returns.</summary>
-    public const string RejectedMessage = "The client's rate limiter rejected the call before it was sent.";
+    internal const string RejectedMessage = "The client's rate limiter rejected the call before it was sent.";
 
     private readonly RateLimiter _limiter;
 

@@ -1,5 +1,4 @@
 #nullable enable
-const Minos.RateLimiting.RateLimitingDecisionClient.RejectedMessage = "The client's rate limiter rejected the call before it was sent." -> string!
 Minos.RateLimiting.RateLimitingDecisionClient
 Minos.RateLimiting.RateLimitingDecisionClient.RateLimitingDecisionClient(Minos.IDecisionClient! innerClient, System.Threading.RateLimiting.RateLimiter! limiter) -> void
 Minos.RateLimiting.RateLimitingDecisionClientBuilderExtensions
