@@ -2,19 +2,19 @@
 id: pipeline
 title: The client pipeline
 sidebar_position: 8
-description: The stages every call goes through (telemetry, logging and retries), building your own pipeline, writing a stage, turning the standard pipeline off, stages with dependency injection, and upgrading from 0.7 and 0.8.
+description: The stages every call goes through (telemetry, logging and retries), building your own pipeline, caching decisions, limiting the call rate, the stage order, writing a stage, turning the standard pipeline off, stages with dependency injection, and upgrading from 0.7 and 0.8.
 ---
 
 # The client pipeline
 
 Every evaluation goes through a **pipeline**: a chain of stages around a transport that sends the request. Each stage
 is an `IDecisionClient` that wraps the one inside it. It can act before the call, after it, or both, and then passes
-the call on. Telemetry, logging and retries are stages like this, and you can add your own, such as an audit record or
-a cache.
+the call on. Telemetry, logging and retries are stages like this. Two packages add a cache stage and a rate-limiting
+stage, and you can write your own, such as an audit record.
 
-This page shows the standard pipeline that every `SystemOneClient` runs, how to build your own, how to write a stage,
-how to find a stage again, and how stages fit with dependency injection. It ends with what changed for code written
-against 0.7.
+This page shows the standard pipeline that every `SystemOneClient` runs, how to build your own, how to cache decisions
+and limit the call rate, the order to put stages in, how to write a stage, how to find a stage again, and how stages fit
+with dependency injection. It ends with what changed for code written against 0.7 and 0.8.
 
 ## What every call goes through
 
@@ -169,12 +169,17 @@ public static IServiceCollection AddCachedDecisions(IServiceCollection services,
   models never share an answer, even in one Redis instance. The retry attempt is not part of the key.
 - **Only successes are stored,** in process and then in the distributed cache. An error or a refusal passes through,
   and the next call asks the provider again.
-- **A hit is marked.** `DecisionResponse.IsCached` is `true`, the span and the duration and token metrics carry
-  `minos.cache.hit`, and log event 1001's `Cached` field is `True`. The response keeps the model, usage and cost of the
-  call that produced it, so filter on `minos.cache.hit` when you count spend.
+- **A hit is marked.** `DecisionResponse.IsCached` is `true`. The response keeps the model, usage and cost of the call
+  that produced it, so filter on `minos.cache.hit` when you count spend.
+- **A hit is traced and logged only when telemetry and logging sit outside the cache stage.** Then the span and the
+  duration, token and confidence metrics carry `minos.cache.hit`, and log event 1001's `Cached` field is `True`. That
+  takes the standard pipeline off and the [stage order](#stage-order) below. With a client's standard pipeline on, its
+  telemetry and logging run inside the cache stage, so a hit makes no span, no metric and no log event.
 - **An in-process hit reads nothing.** It returns the stored response and completes at once. A hit in the distributed
   cache is read from compact JSON, with no reflection, and kept in process for the next call.
 - **Concurrent misses are not merged.** Two identical calls that both miss each ask the provider.
+- **A miss waits for the distributed write.** The answer is written to the distributed cache before the call returns,
+  and the write is not cancelled with the call, so a slow distributed cache delays every miss.
 - **A shared layer needs a real `IDistributedCache`,** such as Redis. `AddDistributedMemoryCache()` registers a
   `MemoryDistributedCache`, which only keeps a second copy in the same process: harmless, but of no use.
 - **A failing distributed cache never fails a call.** A read that throws is a miss, logged as a Warning, event 1007. A
@@ -183,6 +188,10 @@ public static IServiceCollection AddCachedDecisions(IServiceCollection services,
 - **`DecisionCacheOptions`** sets `Expiration`, 5 minutes by default, for both levels; `LocalCacheExpiration`, to keep
   the in-process copy for a different time; and `KeyPrefix`, `minos:` by default, to keep apps that share a cache
   apart. Each in-process entry has a `Size` of 1, so an `IMemoryCache` with a `SizeLimit` counts entries.
+- **Give System One clients that differ only in `Path` different key prefixes.** The key holds the client's base
+  address, not its `Path`, so two clients with the same provider and base address but different paths can share
+  entries. Until [#175](https://github.com/MarcelRoozekrans/Minos.NET/issues/175) is resolved, set a different
+  `KeyPrefix` on each.
 
 ## Limiting the call rate
 

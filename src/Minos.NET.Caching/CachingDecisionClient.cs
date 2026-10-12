@@ -20,7 +20,9 @@ namespace Minos.Caching;
 /// A hit returns the stored response, with <see cref="DecisionResponse.IsCached"/> set and the model, usage and cost of the
 /// call that first produced it. An in-process hit returns the stored instance and completes synchronously. A distributed
 /// hit is rebuilt against the request's definition and kept in process. Only a success is stored: an error or a refusal
-/// passes through unchanged. Concurrent identical misses each call the provider; there is no stampede protection.
+/// passes through unchanged. Concurrent identical misses each call the provider; there is no stampede protection. A miss
+/// awaits the distributed write, which is not cancelled with the call, before it returns, so a slow distributed cache
+/// delays each miss.
 /// </para>
 /// <para>
 /// A distributed cache that throws never fails a call: a failed read is a miss, logged as event 1007, and a failed write

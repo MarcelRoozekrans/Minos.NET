@@ -27,6 +27,9 @@ allocates, because a program that avoids the just-in-time compiler usually cares
   `openai`, are Native AOT compatible too. Both bind options from configuration with the configuration binding source
   generator, so binding uses no reflection and needs nothing set up in your program.
   [Dependency injection](dependency-injection.md#options-from-configuration) covers the options.
+- **The pipeline stages.** `UseCaching` in `Minos.NET.Caching` and `UseRateLimiting` in `Minos.NET.RateLimiting` run
+  under Native AOT. The cache stage stores answers in the distributed cache as compact JSON, written and read with
+  `Utf8JsonWriter` and `Utf8JsonReader`, so it uses no reflection.
 
 ## The one use of reflection
 
@@ -92,13 +95,13 @@ The checks run the real client over a canned HTTP handler. They cover:
 
 A publish only analyses what the program reaches, so the smoke application cannot vouch for a member that no check
 calls. The `aot-surface` job closes that gap. It publishes `samples/Minos.NET.AotSurface` with `PublishAot` and full
-trimming, and roots `Minos.NET`, `Minos.NET.SystemOne`, `Minos.NET.OpenAI` and `Minos.NET.DependencyInjection`
-whole through `TrimmerRootAssembly`.
+trimming, and roots `Minos.NET`, `Minos.NET.SystemOne`, `Minos.NET.OpenAI`, `Minos.NET.DependencyInjection`,
+`Minos.NET.Caching` and `Minos.NET.RateLimiting` whole through `TrimmerRootAssembly`.
 
-Rooting analyses every non-generic member of the four packages, called or not, and every generic member the compiler
+Rooting analyses every non-generic member of the six packages, called or not, and every generic member the compiler
 can share across reference types. A value-type generic has no such shared form, so rooting alone skips it. That covers
 `Choice<T>`, `Score<T>` and the other generics over an enum, whose type parameter is `where T : struct, Enum`. The host
-therefore instantiates every public generic type and generic method of the four packages over its own types, and the
+therefore instantiates every public generic type and generic method of the six packages over its own types, and the
 compiler analyses them through those instantiations. A test in `tests/Minos.NET.AotSmoke.Tests` fails when a public
 generic is not instantiated in the host. The host is rooted as well. Its `[Questions]` sets, one with a Noul, a
 Choice and a Score and one with a typed state, mean the code the generator writes is analysed in full too.
@@ -113,9 +116,9 @@ a member of a generic type over an enum.
 The smoke application has to call everything a user can call, or its own pass says too little. The test project
 `tests/Minos.NET.AotSmoke.Tests` enforces that, and it runs with the rest of the test suite.
 
-An **entry point** is a public or protected method or constructor that you call. The list is read from the four
-`PublicAPI` files, so a new public member is an entry point the day it is added. These are not entry points, and the
-test says why for each:
+An **entry point** is a public or protected method or constructor that you call. The list is read from the `PublicAPI`
+files of the six packages, so a new public member is an entry point the day it is added. These are not entry points,
+and the test says why for each:
 
 - type declarations, which are called through their constructors and methods;
 - property and indexer accessors, fields, constants and enum members, which are covered through their types;

@@ -120,7 +120,9 @@ A call logs once, when it completes, and logs again for each attempt it is about
   `DecisionClientMetadata`, the same value as the span's `gen_ai.provider.name`: `typesafe`, `openrouter`, `vllm-sr` or
   `custom` for a `SystemOneClient`, and `openai` for an `OpenAIDecisionClient`.
 - **Success** is a Debug event, 1001 for an evaluation and 1004 for a model listing. `QuestionCount` is the number of
-  questions asked. `Cached` is `True` when a [cache stage](pipeline.md#caching-decisions) answered the call, and `False` otherwise.
+  questions asked. `Cached` is `True` when a [cache stage](pipeline.md#caching-decisions) answered the call, and `False`
+  otherwise. A hit is logged only when the logging stage sits outside the cache stage; with a client's standard
+  pipeline on, the logging stage sits inside it, and a hit logs nothing.
 - **Failure** is a Warning, 1002 or 1005. It covers every failure the call returns as a
   [`DecisionError`](client-and-errors.md#errors), after the retries are used up, including an `InvalidResponse` from reading
   typed answers. `ErrorKind` is the `DecisionErrorKind`. `StatusCode` is the HTTP status, or null when no response arrived.
@@ -344,7 +346,7 @@ named `minos.*`.
 | `gen_ai.usage.output_tokens` | success | The output tokens. Evaluations only. |
 | `gen_ai.response.id` | success | The provider's response id, such as OpenRouter's generation id, when it reports one. Evaluations only. |
 | `minos.usage.cost` | success | The cost in US dollars, when the provider reports it, as OpenRouter does. Evaluations only. |
-| `minos.cache.hit` | success | `true` when a cache stage answered the call; absent otherwise. The duration and token metrics carry it too, so a dashboard can leave cached calls out of spend. A cached call reports the usage and cost of the call that first produced the answer. Evaluations only. |
+| `minos.cache.hit` | success | `true` when a cache stage answered the call; absent otherwise. The duration, token and confidence metrics carry it too, so a dashboard can leave cached calls out of spend. A cached call reports the usage and cost of the call that first produced the answer. Evaluations only. |
 | `error.type` | failure | The name of the `DecisionErrorKind`, such as `RateLimited`, or the full type name of a thrown exception. |
 | `minos.request_id` | failure | The provider's [request id](client-and-errors.md#request-ids), when the error response named one. Evaluations only. |
 
@@ -374,18 +376,21 @@ evaluation also records its tokens and one confidence point for each Choice or S
 
 | Metric | Kind | Unit | Attributes | Recorded |
 | --- | --- | --- | --- | --- |
-| `gen_ai.client.operation.duration` | Histogram | `s` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `server.address`, `server.port`, `gen_ai.response.model`, `error.type` | every call |
-| `gen_ai.client.inference.operation.input_tokens` | Histogram | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.response.model` | evaluation success |
-| `gen_ai.client.inference.operation.output_tokens` | Histogram | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.response.model` | evaluation success |
-| `gen_ai.client.inference.usage.input_tokens` | Counter | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.modality` | evaluation success |
-| `gen_ai.client.inference.usage.output_tokens` | Counter | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.modality` | evaluation success |
-| `minos.answer.confidence` | Histogram | `1` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `minos.operation` | each Choice or Score answer |
+| `gen_ai.client.operation.duration` | Histogram | `s` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `server.address`, `server.port`, `gen_ai.response.model`, `error.type`, `minos.cache.hit` | every call |
+| `gen_ai.client.inference.operation.input_tokens` | Histogram | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.response.model`, `minos.cache.hit` | evaluation success |
+| `gen_ai.client.inference.operation.output_tokens` | Histogram | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.response.model`, `minos.cache.hit` | evaluation success |
+| `gen_ai.client.inference.usage.input_tokens` | Counter | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.modality`, `minos.cache.hit` | evaluation success |
+| `gen_ai.client.inference.usage.output_tokens` | Counter | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.modality`, `minos.cache.hit` | evaluation success |
+| `minos.answer.confidence` | Histogram | `1` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `minos.operation`, `minos.cache.hit` | each Choice or Score answer |
 
 - **The duration** carries `gen_ai.response.model` on success and `error.type` on failure, never both. A model listing
   has no request or response model, so its duration carries only the operation, the provider, the server and, on
   failure, the error type.
 - **The token histograms** record the tokens of each evaluation. **The counters** keep the running total, and their
   `gen_ai.token.modality` is always `text`.
+- **`minos.cache.hit`** is `true` on the duration, token and confidence metrics of an evaluation that a
+  [cache stage](pipeline.md#caching-decisions) answered, and absent otherwise. A hit is traced and measured only when
+  the telemetry stage sits outside the cache stage; with a client's standard pipeline on, a hit records nothing.
 - **Confidence** is the `Confidence` of each Choice and Score answer, a number from 0 to 1.
   [Noul answers](question-types.md) have no confidence and record no point, so a set of Noul questions records none.
   A set with one Choice and one Score records two points for each call.

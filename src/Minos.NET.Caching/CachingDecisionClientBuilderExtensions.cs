@@ -20,9 +20,15 @@ public static class CachingDecisionClientBuilderExtensions
     /// <param name="configure">Changes the expiry and key prefix.</param>
     /// <returns><paramref name="builder"/>.</returns>
     /// <remarks>
+    /// <para>
     /// Register the in-process cache with <c>services.AddMemoryCache()</c>. The stage logs through the services'
-    /// <see cref="ILoggerFactory"/>, when there is one. Add the stage inside the telemetry and logging stages, so they record
-    /// each hit, and outside a rate-limiting stage, so a hit takes no permit.
+    /// <see cref="ILoggerFactory"/>, when there is one. Add the stage outside a rate-limiting stage, so a hit takes no permit.
+    /// </para>
+    /// <para>
+    /// A hit is traced and logged only when the telemetry and logging stages sit outside this one, which takes the client's
+    /// standard pipeline off and those stages added before this one. With a client's standard pipeline on, its telemetry
+    /// and logging run inside every stage added here, so a hit makes no span, no metric and no log event.
+    /// </para>
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="builder"/> is <see langword="null"/>.</exception>
     public static DecisionClientBuilder UseCaching(

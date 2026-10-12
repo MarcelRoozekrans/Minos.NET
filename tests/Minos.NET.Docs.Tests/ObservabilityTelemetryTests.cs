@@ -69,7 +69,7 @@ public sealed class ObservabilityTelemetryTests
         }
     }
 
-    // The second of two identical calls through a cache stage: the one span that carries minos.cache.hit.
+    // Two identical calls through a cache stage: the second is the one call whose span and metrics carry minos.cache.hit.
     private static async Task CachedAsync(SystemOneClientOptions options, params Reply[] script)
     {
         options.UseStandardPipeline = false;
@@ -291,6 +291,7 @@ public sealed class ObservabilityTelemetryTests
         await RunAsync(Typed, Options(), Reply.Ok(TicketResponse));
         await RunAsync(Typed, Options(), Reply.Error(422));
         await RunAsync(Listing, Options(), Reply.Ok(ModelsResponse));
+        await CachedAsync(Options(), Reply.Ok(TicketResponse));
 
         var rows = PageTables.Rows(Page, "Metrics");
 
