@@ -104,6 +104,8 @@ Minos.DecisionError.Exception.init -> void
 Minos.DecisionError.Failures.get -> System.Collections.Generic.IReadOnlyList<Minos.QuestionFailure!>!
 Minos.DecisionError.Kind.get -> Minos.DecisionErrorKind
 Minos.DecisionError.Message.get -> string!
+Minos.DecisionError.RequestId.get -> string?
+Minos.DecisionError.RequestId.init -> void
 Minos.DecisionError.RetryAfter.get -> System.TimeSpan?
 Minos.DecisionError.RetryAfter.init -> void
 Minos.DecisionError.StatusCode.get -> int?
