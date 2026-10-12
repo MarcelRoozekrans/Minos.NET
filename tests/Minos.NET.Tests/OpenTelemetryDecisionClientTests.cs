@@ -93,11 +93,12 @@ public sealed class OpenTelemetryDecisionClientTests
         Assert.Equal("r-1", span.GetTagItem("gen_ai.response.id"));
         Assert.Equal(0.002, span.GetTagItem("minos.usage.cost"));
         Assert.Null(span.GetTagItem("minos.cache.hit"));
+        Assert.NotEmpty(capture.Points("minos.answer.confidence"));
         Assert.All(capture.AllPoints, point => Assert.Null(point.Tag("minos.cache.hit")));
     }
 
     [Fact]
-    public async Task A_cached_response_tags_the_span_and_the_duration_and_token_metrics()
+    public async Task A_cached_response_tags_the_span_and_the_duration_token_and_confidence_metrics()
     {
         using var capture = new TelemetryCapture();
         var cached = Result<DecisionResponse, DecisionError>.Success(OkWithEnvelope().Value.AsCached());
@@ -118,6 +119,10 @@ public sealed class OpenTelemetryDecisionClientTests
             var point = Assert.Single(capture.Points(metric));
             Assert.True(point.Tag("minos.cache.hit") is true);
         }
+
+        var confidences = capture.Points("minos.answer.confidence");
+        Assert.NotEmpty(confidences);
+        Assert.All(confidences, point => Assert.True(point.Tag("minos.cache.hit") is true));
     }
 
     [Fact]

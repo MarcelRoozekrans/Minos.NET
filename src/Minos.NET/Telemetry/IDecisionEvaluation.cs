@@ -49,6 +49,7 @@ internal interface IDecisionEvaluation
     [MetricTagFromResult(CacheHit, "Value.CacheHitTag", When = "IsSuccess", Metric = OutputTokenHistogram)]
     [MetricTagFromResult(CacheHit, "Value.CacheHitTag", When = "IsSuccess", Metric = InputTokenCounter)]
     [MetricTagFromResult(CacheHit, "Value.CacheHitTag", When = "IsSuccess", Metric = OutputTokenCounter)]
+    [MetricTagFromResult(CacheHit, "Value.CacheHitTag", When = "IsSuccess", Metric = AnswerConfidence)]
     ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(
         [TraceTag(QuestionCount, "Definition.Questions.Count")]
         DecisionRequest request,
