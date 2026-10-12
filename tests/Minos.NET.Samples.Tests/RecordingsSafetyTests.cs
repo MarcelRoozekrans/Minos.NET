@@ -84,7 +84,7 @@ public sealed partial class RecordingsSafetyTests
     // A sample with Minos:Providers in its appsettings.json runs against several providers and keeps one file per provider.
     private static bool IsProviderSample(string dir)
         => new ConfigurationBuilder()
-            .AddJsonFile(Path.Combine(dir, "appsettings.json"))
+            .AddJsonFile(Path.Combine(dir, "appsettings.json"), optional: true)
             .Build()
             .GetSection(SampleProviders.ProvidersKey)
             .Exists();

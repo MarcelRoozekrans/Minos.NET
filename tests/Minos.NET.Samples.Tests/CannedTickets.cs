@@ -44,7 +44,13 @@ internal sealed class CannedTickets(string model) : HttpMessageHandler
         _hashes.Add(RequestHash.Of(body));
         using var json = JsonDocument.Parse(body);
         var state = json.RootElement.GetProperty("state").GetString();
-        var id = Tickets.All.First(t => string.Equals(t.Text, state, StringComparison.Ordinal)).Id;
+        var ticket = Tickets.All.FirstOrDefault(t => string.Equals(t.Text, state, StringComparison.Ordinal));
+        if (ticket.Id is null)
+        {
+            throw new InvalidOperationException("The request's state matches no ticket: " + state);
+        }
+
+        var id = ticket.Id;
         var (team, confidence) = Answers[id];
         return new HttpResponseMessage(HttpStatusCode.OK)
         {
