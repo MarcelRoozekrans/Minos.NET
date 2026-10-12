@@ -1,7 +1,9 @@
 name: Local systemone
 
 # Serves a small decision model on the runner with ollajev, CPU only, and runs LocalSystemOneTests against it through
-# the Custom preset with no key. No secrets: the server is local and nothing is billed. Not a required check.
+# the Custom preset with no key. It then records the provider-switch sample against it and uploads local.json as the
+# provider-switch-local artifact, which reaches the repository through a pull request. No secrets: the server is local
+# and nothing is billed. Not a required check.
 # The commands, the model and its Apache-2.0 licence are from docs/plans/2026-10-11-phase-6.4-local-server-spike.md.
 # The model is a GGUF file run by llama.cpp, so no code from its repository executes; never pass --trust.
 on:
@@ -10,6 +12,8 @@ on:
     paths:
       - 'src/**'
       - 'tests/Minos.NET.Live.Tests/**'
+      - 'samples/Minos.NET.Samples.Shared/**'
+      - 'samples/Minos.NET.Samples.ProviderSwitch/**'
       - '.github/workflows/local-systemone.yml'
   workflow_dispatch:
 
@@ -67,6 +71,18 @@ jobs:
           MINOS_LOCAL_SYSTEMONE_URL: http://127.0.0.1:8000/
           MINOS_LOCAL_SYSTEMONE_MODEL: Mapika/decider-2b-GGUF:Q4_K_M
         run: dotnet test tests/Minos.NET.Live.Tests -c Release --filter "FullyQualifiedName~LocalSystemOneTests" --logger "console;verbosity=detailed"
+
+      - name: Record the provider-switch sample against the local server
+        if: ${{ !cancelled() }}
+        run: dotnet run --project samples/Minos.NET.Samples.ProviderSwitch -c Release -- --provider local --record
+
+      - name: Upload the local recording
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: provider-switch-local
+          path: samples/Minos.NET.Samples.ProviderSwitch/recordings/local.json
+          if-no-files-found: warn
 
       - name: Server log
         if: always()

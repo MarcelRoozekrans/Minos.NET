@@ -78,16 +78,34 @@ public sealed partial class SamplesTests
     }
 
     [Fact]
-    public void TheCiStep_RunsEveryRecordedSampleInReplayWithAnEmptyKey()
+    public void TheCiStep_RunsEveryRecordedSampleInReplayWithEmptyKeys()
     {
         var workflow = File.ReadAllText(Path.Combine(PublishedPages.Root, ".github", "workflows", "ci.yml"));
 
+        Assert.Contains("shopt -s nullglob", workflow, StringComparison.Ordinal);
         Assert.Contains("for recordings in samples/*/recordings.json; do", workflow, StringComparison.Ordinal);
+        Assert.Contains("for recordings in samples/*/recordings/*.json; do", workflow, StringComparison.Ordinal);
+        Assert.Contains("-- --provider \"$provider\"", workflow, StringComparison.Ordinal);
         Assert.Contains("OPENROUTER_API_KEY: \"\"", workflow, StringComparison.Ordinal);
+        Assert.Contains("TYPESAFE_API_KEY: \"\"", workflow, StringComparison.Ordinal);
         Assert.Contains("test \"$status\" -eq 0", workflow, StringComparison.Ordinal);
         Assert.Contains("test -s \"$out\"", workflow, StringComparison.Ordinal);
         Assert.DoesNotContain("--live", workflow, StringComparison.Ordinal);
         Assert.DoesNotContain("--record", workflow, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheRecordingWorkflows_RecordEachProviderOfTheSwitchSample_AndUploadTheFiles()
+    {
+        var live = File.ReadAllText(Path.Combine(PublishedPages.Root, ".github", "workflows", "live-smoke.yml"));
+        var local = File.ReadAllText(Path.Combine(PublishedPages.Root, ".github", "workflows", "local-systemone.yml"));
+        const string Run = "dotnet run --project samples/Minos.NET.Samples.ProviderSwitch -c Release -- --provider ";
+
+        Assert.Contains(Run + "typesafe --record", live, StringComparison.Ordinal);
+        Assert.Contains(Run + "openrouter --record", live, StringComparison.Ordinal);
+        Assert.Contains("path: samples/Minos.NET.Samples.ProviderSwitch/recordings/", live, StringComparison.Ordinal);
+        Assert.Contains(Run + "local --record", local, StringComparison.Ordinal);
+        Assert.Contains("path: samples/Minos.NET.Samples.ProviderSwitch/recordings/local.json", local, StringComparison.Ordinal);
     }
 
     [Fact]

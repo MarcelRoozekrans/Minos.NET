@@ -42,12 +42,16 @@ jobs:
       - name: Run the cookbook samples in replay mode
         # Runs each sample's real entry point (argument parsing, config, host wiring) offline from its checked-in
         # recordings. ReplayHandler is what keeps replay offline: it is the primary handler and answers every request
-        # from the recordings, and replay supplies a placeholder key that passes validation. The empty
-        # OPENROUTER_API_KEY only guards against a sample that runs live by mistake: it then fails at startup instead
-        # of calling the API. Every folder with a recordings.json is a sample.
+        # from the recordings, and replay supplies a placeholder key that passes validation. The empty keys only guard
+        # against a sample that runs live by mistake: it then fails at startup instead of calling the API. Every folder
+        # with a recordings.json is a sample. A sample with several providers keeps one file per provider in
+        # recordings/ and runs once per file, with --provider set to the file's name. nullglob makes a recordings/
+        # folder with no files yet run nothing instead of failing.
         env:
           OPENROUTER_API_KEY: ""
+          TYPESAFE_API_KEY: ""
         run: |
+          shopt -s nullglob
           for recordings in samples/*/recordings.json; do
             dir=$(dirname "$recordings")
             name=$(basename "$dir")
@@ -55,6 +59,19 @@ jobs:
             echo "::group::$name"
             status=0
             timeout 120s dotnet run --project "$dir" --no-build -c Release > "$out" || status=$?
+            cat "$out"
+            echo "::endgroup::"
+            test "$status" -eq 0
+            test -s "$out"
+          done
+          for recordings in samples/*/recordings/*.json; do
+            dir=$(dirname "$(dirname "$recordings")")
+            name=$(basename "$dir")
+            provider=$(basename "$recordings" .json)
+            out="$RUNNER_TEMP/$name-$provider.txt"
+            echo "::group::$name, $provider"
+            status=0
+            timeout 120s dotnet run --project "$dir" --no-build -c Release -- --provider "$provider" > "$out" || status=$?
             cat "$out"
             echo "::endgroup::"
             test "$status" -eq 0
