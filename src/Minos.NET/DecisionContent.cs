@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Text.Json.Serialization.Metadata;
@@ -122,6 +123,39 @@ public readonly struct DecisionContent : IEquatable<DecisionContent>
 
         utf8Json = default;
         return false;
+    }
+
+    /// <summary>
+    /// Writes this content to a cache key: a tag for text, a caller's UTF-8 state or structured JSON, then its bytes.
+    /// Equal contents in different forms, such as text and the same text as a UTF-8 JSON string, get different keys;
+    /// that costs a cache miss, never a wrong answer.
+    /// </summary>
+    /// <param name="writer">The key being written.</param>
+    internal void WriteCacheKey(ref DecisionCacheKey.Writer writer)
+    {
+        switch (_value)
+        {
+            case string text:
+                writer.Tag((byte)'T');
+                writer.Text(text);
+                break;
+            case byte[] utf8:
+                writer.Tag((byte)'U');
+                writer.Bytes(utf8);
+                break;
+            default:
+                if (_json.ValueKind == JsonValueKind.Undefined)
+                {
+                    writer.Tag(0);
+                }
+                else
+                {
+                    writer.Tag((byte)'J');
+                    writer.Bytes(JsonMarshal.GetRawUtf8Value(_json));
+                }
+
+                break;
+        }
     }
 
     /// <summary>Wraps an element that already owns its document, with no second copy.</summary>
