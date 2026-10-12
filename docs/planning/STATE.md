@@ -1,4 +1,4 @@
-# Session State — 2026-10-12 (Milestone 6 complete: Provider-neutral core)
+# Session State — 2026-10-12 (Milestone 7 started: 1.0 release)
 
 **Date:** 2026-10-12
 
@@ -89,6 +89,7 @@
 - **Milestone 6, Phase 6.8 (One question set through both protocols):** complete on 2026-10-12, in #170 (`ec75f56`).
   - The gap phase from the first audit: `ProtocolParityTests` sends one generated set through the System One and the OpenAI client and pins each request body against its own protocol's fixture. Pre-push review PASS: `docs/plans/2026-10-12-phase-6.8-pre-push-review.md`.
   - v0.11.2 (#168) is a GitHub release. Release PR #171 (0.11.3) is open and carries #170's three commits.
+- **Milestone 7 (1.0 release):** started 2026-10-12 with five phases: caching and rate-limiting stages (#143), the public API review, live verification, AOT and benchmark re-verification (#104), and the 1.0 publish (#145, #29, #28).
 - **Milestone 6 (Provider-neutral core):** complete on 2026-10-12. The first audit failed with one fixable gap; the re-audit at ec75f56 passed (`docs/plans/2026-10-12-milestone-6-audit.md`). There is no tag; release-please owns releases.
 - **Old Phase 5.5 (1.0 release):** removed from Milestone 5 and folded into Phase 7.4.
   - Its reviewed pipeline work sits on the local branch `phase/5.5-release`, not pushed:
@@ -111,11 +112,13 @@
 - **Publishing:** blocked until Milestone 7. Do not push `phase/5.5-release` as a PR, and do not merge anything carrying `Release-As: 1.0.0`.
 
 ## Recommended Next Step
-1. Milestone 6, Provider-neutral core, is complete. The audit passed on re-audit (`docs/plans/2026-10-12-milestone-6-audit.md`).
-2. Next: start Milestone 7, the 1.0 release, with `new-milestone`: a milestone-scope brainstorm into `docs/superpowers/specs/YYYY-MM-DD-milestone-7-design.md`, then MILESTONE.md. Its Definition of Done now also carries the OpenAI-key items from Milestone 6, tracked in #161.
-3. Release PR #171 (0.11.3) is open.
-4. Run `pre-push-review` on each feature branch before its PR, and keep the report in `docs/plans/`: the docs tests treat every file at the top of `docs/` as a site page.
-5. Allocation gates run only in the published AOT smoke executable, not in `dotnet test`: publish and run it for any change under `src/`.
+1. Milestone 7, the 1.0 release, is active (design `docs/superpowers/specs/2026-10-12-milestone-7-design.md`). Milestone 6 is complete; its audit passed on re-audit.
+2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.
+3. Next: Phase 7.1, the caching and rate-limiting stages (#143), starting with its spec.
+4. Before Phase 7.5 publishes, the maintainer adds a nuget.org Trusted Publishing policy for `MarcelRoozekrans/Minos.NET` and confirms the `Minos.NET*` ids are free.
+5. Release PR #171 (0.11.3) is open.
+6. Run `pre-push-review` on each feature branch before its PR, and keep the report in `docs/plans/`: the docs tests treat every file at the top of `docs/` as a site page.
+7. Allocation gates run only in the published AOT smoke executable, not in `dotnet test`: publish and run it for any change under `src/`.
 
 ## Operational notes
 - **Live keys:** `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY` are in the `live-api` environment, which deploys only from `main`. Run the suite with `gh workflow run live-smoke.yml --ref main`. About 13 small billed calls per run, plus the image and Clef tests Phase 6.5 added and seven conformance probes per provider for TypeSafe and OpenRouter; Luna runs too when `MINOS_LIVE_LUNA` is 1. The run uploads the recorded fixtures as the `conformance-fixtures` artifact; copy them into `tests/Minos.NET.Conformance.Tests/Fixtures` through a PR. The same run records the provider-switch sample for TypeSafe and OpenRouter and uploads `typesafe.json` and `openrouter.json` as the `provider-switch-recordings` artifact; `local-systemone.yml` records `local.json` and uploads it as `provider-switch-local`. Download both into `samples/Minos.NET.Samples.ProviderSwitch/recordings/` with `gh run download` and commit them through a PR. A recorded sample call is billed too.
