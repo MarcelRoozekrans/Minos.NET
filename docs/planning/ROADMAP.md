@@ -324,12 +324,13 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-11-phase-6.6-conformance-suite.md`
 **Completed:** 2026-10-12
 
-### Phase 6.7: Providers docs and samples [status: active]
+### Phase 6.7: Providers docs and samples [status: complete]
 **Goal:** A Providers page with presets and the capability matrix, and a sample running one question type against three providers by configuration only.
 **Surface:** Docs
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-10-12-phase-6.7-providers-docs-and-samples-design.md`
 **Plan:** `docs/superpowers/plans/2026-10-12-phase-6.7-providers-docs-and-samples.md`
+**Completed:** 2026-10-12
 
 ## Milestone 7: 1.0 release [status: pending]
 **Goal:** Review, verify and publish the provider-neutral library as 1.0.0 on NuGet, with api-compat guarding every later change.
