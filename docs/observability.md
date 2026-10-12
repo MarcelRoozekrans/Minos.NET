@@ -1,7 +1,7 @@
 ---
 id: observability
 title: Logging, traces and metrics
-sidebar_position: 8
+sidebar_position: 9
 description: What the Minos client logs, which spans and metrics it emits, what it never records, and what listening costs.
 ---
 

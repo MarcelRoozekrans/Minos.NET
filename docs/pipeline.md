@@ -1,7 +1,7 @@
 ---
 id: pipeline
 title: The client pipeline
-sidebar_position: 7
+sidebar_position: 8
 description: The stages every call goes through (telemetry, logging and retries), building your own pipeline, writing a stage, turning the standard pipeline off, stages with dependency injection, and upgrading from 0.7 and 0.8.
 ---
 
@@ -304,8 +304,8 @@ compiler finds every one of these. Typed calls, `[Questions]` records and fakes 
 
 `SystemOneClientOptions` also gains `Path` and `Capabilities`, and `SystemOneProvider` gains
 `VllmSemanticRouter` and `Custom`, all described on the
-[client page](client-and-errors.md#providers). A set that breaks a provider's
-[capabilities](client-and-errors.md#capabilities) returns an `Unsupported` failure, with `Failures` filled in, before
+[Providers](providers.md#the-presets) page. A set that breaks a provider's
+[capabilities](providers.md#capabilities) returns an `Unsupported` failure, with `Failures` filled in, before
 any request is sent.
 
 ## Upgrading from 0.7

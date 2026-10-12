@@ -68,6 +68,86 @@ public sealed class SampleHostTests : IDisposable
     }
 
     [Fact]
+    public void Replay_WithoutTheProvidersFile_FailsAtOnce_NamingTheCommandForThatProvider()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        var missing = Path.Combine(_directory, "recordings", "local.json");
+
+        var exception = Assert.Throws<FileNotFoundException>(
+            () => new ServiceCollection().AddSampleDecisionClient(
+                configuration, SampleMode.Replay, missing, Sample, new RecordingSession(), "Local"));
+
+        Assert.Contains(missing, exception.Message, StringComparison.Ordinal);
+        Assert.Contains("dotnet run --project samples/" + Sample + " -- --provider local --record", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Replay_WithoutTheFile_AndNoProvider_NamesTheSample_AndTheDefaultCommand()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        var missing = Path.Combine(_directory, "recordings.json");
+
+        var exception = Assert.Throws<FileNotFoundException>(
+            () => new ServiceCollection().AddSampleDecisionClient(
+                configuration, SampleMode.Replay, missing, Sample, new RecordingSession()));
+
+        Assert.Contains("No recordings for " + Sample + " at " + missing, exception.Message, StringComparison.Ordinal);
+        Assert.Contains("dotnet run --project samples/" + Sample + " -- --record", exception.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("--provider", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void ProviderRecordingsFile_NeedsAProvider(string? provider)
+        => Assert.ThrowsAny<ArgumentException>(() => SampleHost.ProviderRecordingsFile(_directory, provider!));
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void ProviderRecordingsPath_NeedsAProvider_ForReplayAndRecord(string? provider)
+    {
+        Assert.ThrowsAny<ArgumentException>(() => SampleHost.ProviderRecordingsPath(SampleMode.Replay, Sample, provider!));
+        Assert.ThrowsAny<ArgumentException>(() => SampleHost.ProviderRecordingsPath(SampleMode.Record, Sample, provider!));
+    }
+
+    [Fact]
+    public async Task ProviderReplayProvider_AnswersFromTheActiveProvidersFile_AndNamesItsCommand()
+    {
+        System.IO.File.WriteAllText(
+            Path.Combine(_directory, "appsettings.json"),
+            """
+            { "Minos": { "Active": "TypeSafe", "Providers": {
+              "TypeSafe": { "Provider": "TypeSafe", "MaxRetries": 0 },
+              "Local": { "Provider": "Custom", "BaseAddress": "http://localhost:8000/", "Model": "local-model", "MaxRetries": 0 } } } }
+            """);
+        var local = SampleHost.ProviderRecordingsFile(_directory, "Local");
+        Directory.CreateDirectory(Path.GetDirectoryName(local)!);
+
+        // The replay wiring checks that the file exists, so an empty one stands in while the hash is captured.
+        new RecordingsFile { Provider = "Local", Model = "local-model", Recorded = "2026-10-12", Entries = [] }.Save(local);
+        var hash = await CaptureProviderRequestHashAsync("Local");
+        new RecordingsFile
+        {
+            Provider = "Local",
+            Model = "local-model",
+            Recorded = "2026-10-12",
+            Entries = [new RecordedResponse(hash, JsonElement.Parse(Body))],
+        }.Save(local);
+
+        await using var provider = SampleHost.BuildProviderReplayProvider(_directory, Sample, "local");
+        var client = provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!;
+
+        var answered = await client.EvaluateAsync(Request("Is this urgent?"));
+        Assert.True(answered.IsSuccess);
+        Assert.Equal(0.9, Assert.IsType<NoulAnswer>(answered.Value.Answers["urgent"]).Noul);
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            async () => await client.EvaluateAsync(Request("Something never recorded.")));
+        Assert.Contains("dotnet run --project samples/" + Sample + " -- --provider local --record", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Live_RegistersWithoutARecordingsPath()
     {
         var configuration = new ConfigurationBuilder().Build();
@@ -96,6 +176,31 @@ public sealed class SampleHostTests : IDisposable
         await using var provider = services.BuildServiceProvider();
 
         _ = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request("Is this urgent?"));
+
+        return capture.Hash ?? throw new InvalidOperationException("The client sent nothing.");
+    }
+
+    private async Task<string> CaptureProviderRequestHashAsync(string provider)
+    {
+        var capture = new CaptureHandler();
+        var configuration = new ConfigurationBuilder()
+            .AddJsonFile(Path.Combine(_directory, "appsettings.json"))
+            .AddInMemoryCollection([new KeyValuePair<string, string?>(SampleProviders.ActiveKey, provider)])
+            .Build();
+        var active = SampleProviders.Active(configuration);
+        var services = new ServiceCollection();
+        services
+            .AddSampleDecisionClient(
+                active,
+                SampleMode.Replay,
+                SampleHost.ProviderRecordingsFile(_directory, active.Key),
+                Sample,
+                new RecordingSession(),
+                active.Key)
+            .HttpClient.ConfigurePrimaryHttpMessageHandler(() => capture);
+        await using var serviceProvider = services.BuildServiceProvider();
+
+        _ = await serviceProvider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request("Is this urgent?"));
 
         return capture.Hash ?? throw new InvalidOperationException("The client sent nothing.");
     }

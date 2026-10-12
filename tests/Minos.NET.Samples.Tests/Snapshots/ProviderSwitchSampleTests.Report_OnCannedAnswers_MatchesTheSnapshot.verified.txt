@@ -1,0 +1,9 @@
+﻿s01  billing    0.97
+s02  technical  0.95
+s03  account    0.99
+s04  sales      0.93
+s05  technical  0.88
+s06  account    0.91
+s07  sales      0.62
+s08  billing    0.84
+Answered by TypeSafe with canned-model

@@ -4,6 +4,8 @@ name: Live smoke
 # state and Clef through OpenRouter; the Luna test runs only when the MINOS_LIVE_LUNA variable is 1. It records the
 # conformance fixtures for both, seven probes each, and uploads them as the conformance-fixtures artifact; they reach the
 # repository through a pull request, never from this workflow.
+# It also records the provider-switch sample against TypeSafe and OpenRouter, eight requests each, and uploads the two
+# files as the provider-switch-recordings artifact; they too reach the repository through a pull request.
 # Manual only: never on pull requests or pushes, so forks can never reach the keys.
 # Maintainers must also restrict the live-api environment's deployment branches to main.
 on:
@@ -15,7 +17,7 @@ permissions:
 jobs:
   live:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20
     environment: live-api
     steps:
       - uses: actions/checkout@v7
@@ -43,4 +45,24 @@ jobs:
         with:
           name: conformance-fixtures
           path: conformance-out
+          if-no-files-found: warn
+
+      - name: Record the provider-switch sample against TypeSafe
+        if: ${{ !cancelled() }}
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: dotnet run --project samples/Minos.NET.Samples.ProviderSwitch -c Release -- --provider typesafe --record
+
+      - name: Record the provider-switch sample against OpenRouter
+        if: ${{ !cancelled() }}
+        env:
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: dotnet run --project samples/Minos.NET.Samples.ProviderSwitch -c Release -- --provider openrouter --record
+
+      - name: Upload the provider-switch recordings
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: provider-switch-recordings
+          path: samples/Minos.NET.Samples.ProviderSwitch/recordings/
           if-no-files-found: warn

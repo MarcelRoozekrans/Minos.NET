@@ -31,6 +31,7 @@
     <Project Path="samples/Minos.NET.Samples.Guardrails/Minos.NET.Samples.Guardrails.csproj" />
     <Project Path="samples/Minos.NET.Samples.IntentRouting/Minos.NET.Samples.IntentRouting.csproj" />
     <Project Path="samples/Minos.NET.Samples.Reranking/Minos.NET.Samples.Reranking.csproj" />
+    <Project Path="samples/Minos.NET.Samples.ProviderSwitch/Minos.NET.Samples.ProviderSwitch.csproj" />
   </Folder>
   <Folder Name="/benchmarks/">
     <Project Path="benchmarks/Minos.NET.Benchmarks/Minos.NET.Benchmarks.csproj" />

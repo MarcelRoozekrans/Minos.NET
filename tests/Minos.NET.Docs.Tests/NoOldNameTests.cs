@@ -85,6 +85,10 @@ public sealed partial class NoOldNameTests
         new(".github/workflows/local-systemone.yml", null, LocalServerPackage()),
         new("renovate.json", null, LocalServerPackage()),
         new("tests/Minos.NET.Live.Tests/LocalSystemOneTests.cs", null, LocalServerPackage()),
+
+        // The Providers page and its test give the commands that run the same ollajev server.
+        new("docs/providers.md", null, LocalServerPackage()),
+        new("tests/Minos.NET.Docs.Tests/ProvidersPageTests.cs", null, LocalServerPackage()),
     ];
 
     [Fact]

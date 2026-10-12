@@ -1,0 +1,17 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Cookbook sample: one Choice question against TypeSafe, OpenRouter or a local server, chosen by configuration only. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Minos.Samples.ProviderSwitch</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Minos.NET\Minos.NET.csproj" />
+    <ProjectReference Include="..\Minos.NET.Samples.Shared\Minos.NET.Samples.Shared.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+</Project>

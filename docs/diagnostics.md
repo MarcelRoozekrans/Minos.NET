@@ -1,7 +1,7 @@
 ---
 id: diagnostics
 title: Diagnostics
-sidebar_position: 10
+sidebar_position: 11
 description: Every MIN analyzer rule with its severity, the provider rules the client checks at run time, the two code fixes, and how to suppress a rule that does not apply.
 ---
 
@@ -74,7 +74,7 @@ carry JSON. A declared set's instructions and descriptions are always text.
 ### Reported by the client
 
 MIN201 to MIN206 are provider rules, checked at run time. Whether a request breaks one depends on the provider, its
-[capabilities](client-and-errors.md#capabilities) and the images of the call, and none of those is known when the code
+[capabilities](providers.md#capabilities) and the images of the call, and none of those is known when the code
 is compiled, so no analyzer reports them. The client checks them before it sends anything. A request that breaks any of
 them returns a `DecisionError` of kind `Unsupported`, with one `QuestionFailure` per problem in
 `DecisionError.Failures`. No request is sent, and it is not retried by default: `DecisionRetryOptions.IsTransient`
@@ -89,8 +89,8 @@ excludes it, though a custom `ShouldRetry` can retry it.
 | MIN205 | A criterion has `Examples` or `NotFor`, and the provider is OpenAI, whose descriptions are plain strings. |
 | MIN206 | The request has images, and the provider's `Images` is off. |
 
-[The Unsupported error](client-and-errors.md#the-unsupported-error) shows the messages and the order of the failures,
-and [provider differences](client-and-errors.md#provider-differences) which provider each rule applies to.
+[The Unsupported error](providers.md#the-unsupported-error) shows the messages and the order of the failures,
+and [the provider matrix](providers.md#at-a-glance) which provider each rule applies to.
 
 ### Where a rule is reported
 

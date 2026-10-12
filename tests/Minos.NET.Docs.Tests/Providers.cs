@@ -104,7 +104,7 @@ public static class OpenRouterModels
 
     #region ClientAndErrors_OpenRouterModels
     // OpenRouter serves Clef and Luna in the System One format, so the OpenRouter preset reaches them by model id.
-    // The request is System One: the OpenRouter column of the provider differences applies, not the OpenAI one.
+    // The request is System One: the OpenRouter column of the provider matrix applies, not the OpenAI one.
     public static SystemOneClientOptions Clef()
         => new() { Provider = SystemOneProvider.OpenRouter, Model = "cloudflare/clef-flash" };
 

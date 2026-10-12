@@ -86,7 +86,8 @@ The guide lives at [marcelroozekrans.github.io/Minos.NET](https://marcelroozekra
 - [Question types](https://marcelroozekrans.github.io/Minos.NET/question-types): Noul, Choice and Score, what each answer holds, and how confidence differs from probability.
 - [Typed evaluation](https://marcelroozekrans.github.io/Minos.NET/typed-evaluation): declare questions as a C# type, give them a typed state, and pick the `EvaluateAsync` overload.
 - [Question sets at run time](https://marcelroozekrans.github.io/Minos.NET/question-sets-at-run-time): build a question set from data with the builder, evaluate it, and read answers through handles.
-- [The client and its errors](https://marcelroozekrans.github.io/Minos.NET/client-and-errors): create and configure a `SystemOneClient` or an `OpenAIDecisionClient`, the differences between providers, images, retries and time-outs, every kind of `DecisionError`, and the raw request API.
+- [The client and its errors](https://marcelroozekrans.github.io/Minos.NET/client-and-errors): create and configure a `SystemOneClient` or an `OpenAIDecisionClient`, retries and time-outs, every kind of `DecisionError`, and the raw request API.
+- [Providers](https://marcelroozekrans.github.io/Minos.NET/providers): the presets, servers you run and OpenAI, the capability matrix, images, and switching providers by configuration.
 - [Dependency injection](https://marcelroozekrans.github.io/Minos.NET/dependency-injection): register `IDecisionClient` in a .NET host, key several clients, and bind options from configuration.
 - [The client pipeline](https://marcelroozekrans.github.io/Minos.NET/pipeline): the stages every call goes through, building your own pipeline, writing a stage, and upgrading from 0.7.
 - [Logging, traces and metrics](https://marcelroozekrans.github.io/Minos.NET/observability): what the client logs, which spans and metrics it emits, and what it never records.
@@ -98,13 +99,13 @@ The guide lives at [marcelroozekrans.github.io/Minos.NET](https://marcelroozekra
 - [Confidence routing](https://marcelroozekrans.github.io/Minos.NET/patterns/confidence-routing): gate each action on the answer confidence, with a threshold sized to the cost of being wrong.
 - [Composite scoring](https://marcelroozekrans.github.io/Minos.NET/patterns/composite-scoring): break a judgement into small Scores and combine them with weights you own.
 - [Intent routing](https://marcelroozekrans.github.io/Minos.NET/patterns/intent-routing): make a cheap first decision that sends each request to code, a model or a person.
-- [Samples](https://marcelroozekrans.github.io/Minos.NET/samples): three runnable cookbook samples that replay recorded Jev answers offline.
+- [Samples](https://marcelroozekrans.github.io/Minos.NET/samples): four runnable cookbook samples; three replay recorded Jev answers offline, and one runs against three providers by configuration.
 - [Performance](https://marcelroozekrans.github.io/Minos.NET/performance): what the benchmarks measure, how to run them, and what the client costs per call.
 - [Conformance](https://marcelroozekrans.github.io/Minos.NET/conformance): the suite that checks any decision endpoint's shapes, probabilities, errors and models, and how to run it against your own.
 
 ## Samples
 
-Runnable cookbook apps live in [`samples/`](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples); they replay recorded answers, so they run offline.
+Runnable cookbook apps live in [`samples/`](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples); three replay recorded answers, so they run offline, and one runs against three providers by configuration.
 
 ## Building
 

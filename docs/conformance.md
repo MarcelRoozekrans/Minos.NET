@@ -1,7 +1,7 @@
 ---
 id: conformance
 title: Conformance
-sidebar_position: 15
+sidebar_position: 16
 description: The suite that checks any decision endpoint's request and response shapes, probabilities, errors, request ids and models, how to run it against your own endpoint, and where its fixtures come from.
 ---
 
@@ -30,7 +30,7 @@ Each probe is one request with a stable id. The probes ask only what every provi
 | `invalid` | A request with no questions. | A 400 or a 422. |
 | `bad-key` | The `noul` request with an invalid key. | A 401 or a 403. |
 
-A probe that the client's [capabilities](client-and-errors.md#capabilities) rule out, such as `choice` on a Noul-only
+A probe that the client's [capabilities](providers.md#capabilities) rule out, such as `choice` on a Noul-only
 server, is skipped with the reason, and so are its checks.
 
 ## The checks
@@ -149,5 +149,6 @@ tracks recording the rest once a key exists.
 
 ## Next
 
-- [The client and its errors](client-and-errors.md): the providers, how they differ, and every kind of `DecisionError`.
+- [Providers](providers.md): the providers the suite checks, and how they differ.
+- [The client and its errors](client-and-errors.md): every kind of `DecisionError`.
 - [Testing your code](testing-your-code.md): test your own code against canned answers instead of a live endpoint.

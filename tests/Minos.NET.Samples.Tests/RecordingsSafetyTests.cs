@@ -1,5 +1,6 @@
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Configuration;
 
 namespace Minos.Samples.Tests;
 
@@ -18,10 +19,9 @@ public sealed partial class RecordingsSafetyTests
         get
         {
             var data = new TheoryData<string>();
-            foreach (var path in Directory.EnumerateFiles(Path.Combine(Repository.Root, "samples"), "recordings.json", SearchOption.AllDirectories))
+            foreach (var path in Directory.EnumerateFiles(Path.Combine(Repository.Root, "samples"), "*.json", SearchOption.AllDirectories))
             {
-                if (!path.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar, StringComparison.Ordinal)
-                    && !path.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar, StringComparison.Ordinal))
+                if (IsRecording(path) && !InBuildOutput(path))
                 {
                     data.Add(Path.GetRelativePath(Repository.Root, path));
                 }
@@ -31,15 +31,25 @@ public sealed partial class RecordingsSafetyTests
         }
     }
 
+    // The provider files in recordings/ arrive with the first recording runs. EveryProviderSample_HasARecordingPerProvider
+    // is added with them and checks them: issue #166.
     [Fact]
-    public void EverySample_HasRecordings()
+    public void EverySingleProviderSample_HasRecordings()
     {
-        var samples = Directory.EnumerateDirectories(Path.Combine(Repository.Root, "samples"), "Minos.NET.Samples.*")
-            .Where(dir => !string.Equals(Path.GetFileName(dir), "Minos.NET.Samples.Shared", StringComparison.Ordinal))
-            .ToArray();
+        var samples = SampleFolders().Where(dir => !IsProviderSample(dir)).ToArray();
 
         Assert.NotEmpty(samples);
         Assert.All(samples, dir => Assert.True(File.Exists(Path.Combine(dir, "recordings.json")), dir + " has no recordings.json"));
+    }
+
+    // CI replays every recordings.json without --provider, so a sample with several providers must not have one.
+    [Fact]
+    public void EveryProviderSample_HasNoSingleRecordingsFile()
+    {
+        var samples = SampleFolders().Where(IsProviderSample).ToArray();
+
+        Assert.NotEmpty(samples);
+        Assert.All(samples, dir => Assert.False(File.Exists(Path.Combine(dir, "recordings.json")), dir + " has a recordings.json"));
     }
 
     [Fact]
@@ -66,4 +76,25 @@ public sealed partial class RecordingsSafetyTests
             json.RootElement.GetProperty("entries").EnumerateArray(),
             entry => Assert.Equal(AllowedEntryProperties, entry.EnumerateObject().Select(p => p.Name).Order(StringComparer.Ordinal)));
     }
+
+    private static string[] SampleFolders()
+        => [.. Directory.EnumerateDirectories(Path.Combine(Repository.Root, "samples"), "Minos.NET.Samples.*")
+            .Where(dir => !string.Equals(Path.GetFileName(dir), "Minos.NET.Samples.Shared", StringComparison.Ordinal))];
+
+    // A sample with Minos:Providers in its appsettings.json runs against several providers and keeps one file per provider.
+    private static bool IsProviderSample(string dir)
+        => new ConfigurationBuilder()
+            .AddJsonFile(Path.Combine(dir, "appsettings.json"), optional: true)
+            .Build()
+            .GetSection(SampleProviders.ProvidersKey)
+            .Exists();
+
+    // A sample's single recordings.json, or one provider's file in a recordings/ folder.
+    private static bool IsRecording(string path)
+        => string.Equals(Path.GetFileName(path), "recordings.json", StringComparison.Ordinal)
+            || string.Equals(Path.GetFileName(Path.GetDirectoryName(path)), "recordings", StringComparison.Ordinal);
+
+    private static bool InBuildOutput(string path)
+        => path.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar, StringComparison.Ordinal)
+            || path.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar, StringComparison.Ordinal);
 }
