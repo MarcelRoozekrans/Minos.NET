@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.11.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.10.0...v0.11.0) (2026-10-12)
+
+
+### Features
+
+* **conformance:** fifteen shape, distribution, multi-question, error and model checks ([0107b17](https://github.com/MarcelRoozekrans/Minos.NET/commit/0107b1776ca0bf32fff7611bd1b9cab2745938eb))
+* **conformance:** Minos.NET.Conformance with targets, probes, fixtures and the report ([0107b17](https://github.com/MarcelRoozekrans/Minos.NET/commit/0107b1776ca0bf32fff7611bd1b9cab2745938eb))
+* **conformance:** the runner, with live, record and replay modes ([0107b17](https://github.com/MarcelRoozekrans/Minos.NET/commit/0107b1776ca0bf32fff7611bd1b9cab2745938eb))
+* **core:** log and trace the request id of a failed call ([0107b17](https://github.com/MarcelRoozekrans/Minos.NET/commit/0107b1776ca0bf32fff7611bd1b9cab2745938eb))
+* **core:** read DecisionError.RequestId from the provider's request-id header ([0107b17](https://github.com/MarcelRoozekrans/Minos.NET/commit/0107b1776ca0bf32fff7611bd1b9cab2745938eb))
+
+
+### Documentation
+
+* **docs:** the Conformance page and request ids ([0107b17](https://github.com/MarcelRoozekrans/Minos.NET/commit/0107b1776ca0bf32fff7611bd1b9cab2745938eb))
+
+
+### Tests
+
+* **conformance:** replay the TypeSafe, OpenRouter and OpenAI fixtures ([0107b17](https://github.com/MarcelRoozekrans/Minos.NET/commit/0107b1776ca0bf32fff7611bd1b9cab2745938eb))
+
 ## [0.10.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.9.0...v0.10.0) (2026-10-11)
 
 
