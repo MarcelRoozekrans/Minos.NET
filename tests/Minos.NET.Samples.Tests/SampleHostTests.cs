@@ -82,6 +82,36 @@ public sealed class SampleHostTests : IDisposable
     }
 
     [Fact]
+    public void Replay_WithoutTheFile_AndNoProvider_NamesTheSample_AndTheDefaultCommand()
+    {
+        var configuration = new ConfigurationBuilder().Build();
+        var missing = Path.Combine(_directory, "recordings.json");
+
+        var exception = Assert.Throws<FileNotFoundException>(
+            () => new ServiceCollection().AddSampleDecisionClient(
+                configuration, SampleMode.Replay, missing, Sample, new RecordingSession()));
+
+        Assert.Contains("No recordings for " + Sample + " at " + missing, exception.Message, StringComparison.Ordinal);
+        Assert.Contains("dotnet run --project samples/" + Sample + " -- --record", exception.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("--provider", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void ProviderRecordingsFile_NeedsAProvider(string? provider)
+        => Assert.ThrowsAny<ArgumentException>(() => SampleHost.ProviderRecordingsFile(_directory, provider!));
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void ProviderRecordingsPath_NeedsAProvider_ForReplayAndRecord(string? provider)
+    {
+        Assert.ThrowsAny<ArgumentException>(() => SampleHost.ProviderRecordingsPath(SampleMode.Replay, Sample, provider!));
+        Assert.ThrowsAny<ArgumentException>(() => SampleHost.ProviderRecordingsPath(SampleMode.Record, Sample, provider!));
+    }
+
+    [Fact]
     public async Task ProviderReplayProvider_AnswersFromTheActiveProvidersFile_AndNamesItsCommand()
     {
         System.IO.File.WriteAllText(
