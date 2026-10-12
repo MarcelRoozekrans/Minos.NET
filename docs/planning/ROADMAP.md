@@ -342,36 +342,47 @@ compress_memory: disabled
 **Pre-push review:** `docs/plans/2026-10-12-phase-6.8-pre-push-review.md`
 **Completed:** 2026-10-12, in #170
 
-## Milestone 7: 1.0 release [status: pending]
-**Goal:** Review, verify and publish the provider-neutral library as 1.0.0 on NuGet, with api-compat guarding every later change.
-**Design:** `docs/superpowers/specs/2026-10-09-roadmap-design.md`
+## Milestone 7: 1.0 release [status: active]
+**Goal:** Ship Minos.NET 1.0.0 on NuGet with an API worth freezing: the caching and rate-limiting stages, one review of the whole public surface, live, AOT and allocation checks on the final API, and every package published as 1.0.0 through release-please and Trusted Publishing, with api-compat guarding later changes. The OpenAI adapter ships as 1.0.0, labelled unverified against the live API.
+**Started:** 2026-10-12
+**Design:** `docs/superpowers/specs/2026-10-12-milestone-7-design.md`
 **Definition of Done:**
-- [ ] The renamed public API is reviewed and `PublicAPI.Shipped.txt` describes 1.0.0
-- [ ] Live runs pass against TypeSafe, OpenRouter, OpenAI and a local `/v1/systemone` server
-- [ ] The conformance suite runs green against recorded OpenAI fixtures (#161), moved from Milestone 6 on 2026-10-12
-- [ ] Native AOT and trim verification covers the whole public API with no warnings; every allocation budget is unchanged or tightened
-- [ ] 1.0.0 is on NuGet through release-please and the publish job (#29), the guide states its version, and api-compat guards later changes (#28)
+- [ ] The client has caching and rate-limiting pipeline stages (#143), documented; core gains no new package dependency
+- [ ] The whole public API, including the new stages, is reviewed, and `PublicAPI.Shipped.txt` describes 1.0.0
+- [ ] Live runs pass on the final API against TypeSafe, OpenRouter and a local `/v1/systemone` server
+- [ ] The OpenAI adapter is labelled unverified against the live API on the Providers page, its README and its NuGet description, pinned by a docs test
+- [ ] Native AOT and trim verification covers the whole public API with no warnings; every allocation budget is unchanged or tightened; the yielding checks use TestHelpers 1.7.0's async API (#104)
+- [ ] The pack tests run locally without hanging (#145)
+- [ ] 1.0.0 of every package is on NuGet through release-please and Trusted Publishing (#29), the guide states its version, the site links to NuGet, and api-compat guards later changes (#28)
 
-### Phase 7.1: Public API review of the renamed surface [status: pending]
-**Goal:** Review sealing, naming, nullability and XML docs of the provider-neutral surface before it freezes.
+Removed on 2026-10-12, because the maintainer has no OpenAI account: the live OpenAI run and the recorded OpenAI conformance fixtures, both moved here from Milestone 6. #161 stays open.
+
+### Phase 7.1: Caching and rate-limiting stages [status: pending]
+**Goal:** `UseCaching` and `UseRateLimiting` pipeline stages (#143). Rate limiting wraps `System.Threading.RateLimiting` and fails with a `RateLimited` error before a request is sent; caching keys on the definition, state and model, with its storage and its effect on usage and telemetry decided in the phase spec.
+**Surface:** Backend
+**HelpWanted:** no
+**Plan:** _to be written_
+
+### Phase 7.2: Public API review of the whole surface [status: pending]
+**Goal:** Review sealing, naming, nullability and XML docs across every package, the new stages included; add the OpenAI "unverified" label with its docs test; check #51's Roslyn issues.
 **Surface:** Refactor
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 7.2: Live verification across providers [status: pending]
-**Goal:** Pass live suites against TypeSafe, OpenRouter, OpenAI and a local `/v1/systemone` server.
+### Phase 7.3: Live verification on the final API [status: pending]
+**Goal:** Pass the live suites and the provider-switch sample against TypeSafe, OpenRouter and a local `/v1/systemone` server; each billed run needs the maintainer's approval.
 **Surface:** Infra
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 7.3: AOT, trim and benchmark re-verification [status: pending]
-**Goal:** Re-run the whole-surface AOT/trim check and the benchmarks on the new API; no allocation budget loosened.
+### Phase 7.4: AOT, trim and benchmark re-verification [status: pending]
+**Goal:** Re-run the whole-surface AOT/trim check and the benchmarks on the final API with no allocation budget loosened, and move the yielding allocation checks to TestHelpers 1.7.0's async API (#104), re-measured over 30 or more runs.
 **Surface:** Infra
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 7.4: Publish 1.0 [status: pending]
-**Goal:** Publish 1.0.0 the way Thalos.NET, Rag.NET and AdoNet.Async do: GitVersion, release-please, and NuGet Trusted Publishing from `ci.yml`'s `publish-nuget` job, rehearsed against a local feed. Reuse what still applies from the paused Phase 5.5 branch, such as the package inspection. Then turn on api-compat (#29, #28), and add the NuGet links to the docs site's navbar and footer once the packages exist.
+### Phase 7.5: Publish 1.0 [status: pending]
+**Goal:** Publish 1.0.0 the way Thalos.NET, Rag.NET and AdoNet.Async do: release-please, and NuGet Trusted Publishing from `ci.yml`'s `publish-nuget` job, rehearsed against a local feed. Reuse what still applies from the paused Phase 5.5 branch, such as the package inspection. Fix the pack-test hang (#145), then turn on api-compat (#29, #28), and add the NuGet links to the docs site's navbar and footer.
 **Surface:** Infra
 **HelpWanted:** no
 **Plan:** _to be written_
