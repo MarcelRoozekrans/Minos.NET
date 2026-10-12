@@ -148,6 +148,7 @@ Minos.DecisionResponse.Answers.get -> Minos.QuestionAnswerList
 Minos.DecisionResponse.DecisionResponse(Minos.QuestionSetDefinition! definition, System.Collections.Generic.IReadOnlyList<Minos.QuestionAnswer>! answers, string? model = null, Minos.DecisionUsage? usage = null) -> void
 Minos.DecisionResponse.Definition.get -> Minos.QuestionSetDefinition!
 Minos.DecisionResponse.Id.get -> string?
+Minos.DecisionResponse.IsCached.get -> bool
 Minos.DecisionResponse.Model.get -> string?
 Minos.DecisionResponse.Provider.get -> string?
 Minos.DecisionResponse.Usage.get -> Minos.DecisionUsage?

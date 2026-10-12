@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.12.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.11.4...v0.12.0) (2026-10-12)
+
+
+### Features
+
+* **caching:** UseCaching stage in a new Minos.NET.Caching package, over IMemoryCache and an optional IDistributedCache ([cf10eaa](https://github.com/MarcelRoozekrans/Minos.NET/commit/cf10eaa104e067b4628f00b4e6f114077d150d69))
+* **core:** DecisionResponse.IsCached, the minos.cache.hit tag and the Cached field on log event 1001 ([cf10eaa](https://github.com/MarcelRoozekrans/Minos.NET/commit/cf10eaa104e067b4628f00b4e6f114077d150d69))
+* **ratelimiting:** UseRateLimiting stage in a new Minos.NET.RateLimiting package ([cf10eaa](https://github.com/MarcelRoozekrans/Minos.NET/commit/cf10eaa104e067b4628f00b4e6f114077d150d69))
+
+
+### Documentation
+
+* the caching and rate-limiting stages and their recommended order ([cf10eaa](https://github.com/MarcelRoozekrans/Minos.NET/commit/cf10eaa104e067b4628f00b4e6f114077d150d69))
+
 ## [0.11.4](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.11.3...v0.11.4) (2026-10-12)
 
 
