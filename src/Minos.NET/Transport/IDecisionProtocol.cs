@@ -47,5 +47,6 @@ internal interface IDecisionProtocol
     /// <param name="bodyTruncated">Whether the transport cut the body at its limit.</param>
     /// <param name="contentType">The body's media type, if any.</param>
     /// <param name="retryAfter">The wait the response asked for, already parsed from its headers by the transport.</param>
-    DecisionError MapError(int statusCode, ReadOnlySpan<byte> body, bool bodyTruncated, string? contentType, TimeSpan? retryAfter);
+    /// <param name="requestId">The provider's request id, already read from its headers by the transport, or <see langword="null"/>.</param>
+    DecisionError MapError(int statusCode, ReadOnlySpan<byte> body, bool bodyTruncated, string? contentType, TimeSpan? retryAfter, string? requestId);
 }

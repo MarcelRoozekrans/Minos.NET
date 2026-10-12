@@ -758,8 +758,8 @@ failure. Cancelling your own `CancellationToken` is different: it stops the call
 
 A failed call returns a `DecisionError`. Its `Kind` says what went wrong, and the other members add detail when there is any.
 
-You can build one yourself, for a test fake, with `new DecisionError(kind, message)`. `StatusCode`, `RetryAfter`, `Detail`
-and `Exception` are `init` properties, so set only the ones that apply with an object initializer.
+You can build one yourself, for a test fake, with `new DecisionError(kind, message)`. `StatusCode`, `RetryAfter`, `Detail`,
+`RequestId` and `Exception` are `init` properties, so set only the ones that apply with an object initializer.
 
 | Member | Holds |
 | --- | --- |
@@ -768,6 +768,7 @@ and `Exception` are `init` properties, so set only the ones that apply with an o
 | `StatusCode` | The HTTP status, or `null` when no response arrived. |
 | `RetryAfter` | How long the service asked you to wait, or `null`. |
 | `Detail` | The error response body as a `JsonElement`, when it is JSON, for example the field a 422 rejected. |
+| `RequestId` | The provider's id for the failed request, from the error response's headers, or `null`. See [Request ids](#request-ids). |
 | `Exception` | The exception behind a network, time-out or unreadable-response failure. |
 | `Failures` | For `InvalidQuestions` and for an `Unsupported` capability check, the rules a question set breaks. For `Refused`, the refused questions. Empty for every other kind. |
 
@@ -821,7 +822,31 @@ public static IReadOnlyList<string> List(DecisionError error)
 ```
 <!-- endSnippet -->
 
-`ToString()` gives a one-line form, such as `Overloaded (503): The API returned HTTP 503.`
+`ToString()` gives a one-line form, such as `Overloaded (503): The API returned HTTP 503.`, with the request id when
+there is one: `Unauthorized (401, request req_…): The API returned HTTP 401.`
+
+### Request ids
+
+`RequestId` is the provider's id for the request that failed. Quote it when you ask the provider about a failure. The
+client reads it from the error response's headers, trying three names in this order and taking the first one present:
+
+| Header | Sent by | Example value |
+| --- | --- | --- |
+| `x-request-id` | OpenAI | `req_` and 32 hex digits |
+| `x-typesafe-request-id` | TypeSafe | `req_` and 32 hex digits |
+| `request-id` | None known | none known |
+
+No provider we know of sends `request-id` on an error yet. OpenRouter lists it in `Access-Control-Expose-Headers`, but its
+401 carries none.
+
+`RequestId` is `null` when the error response carries none of the three, as OpenRouter's 401 does, and for every failure
+without an HTTP error response: a network failure, a time-out, a disposal, a success body that could not be read and a
+refusal. All three providers also send Cloudflare's `CF-RAY` header, which names the CDN hop rather than your request, so
+it is not read. Neither is a body field, such as OpenRouter's generation `id`. These headers were checked on 2026-10-11 with
+an invalid key against each endpoint, and the [conformance suite](conformance.md) checks them again on every recording.
+
+Log event 1002 and the evaluation's span carry the id too, as `RequestId` and `minos.request_id`; see
+[Logging, traces and metrics](observability.md).
 
 ### The kinds
 

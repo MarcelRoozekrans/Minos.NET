@@ -8,8 +8,8 @@ namespace Minos;
 /// instructions, criteria, answers, API key, a header value or <see cref="DecisionError.Detail"/>.
 /// </summary>
 /// <remarks>
-/// Each template keeps its placeholders in parameter order, so the generator emits a <c>LoggerMessage.Define</c> call
-/// rather than a state struct.
+/// Each template keeps its placeholders in parameter order. An event with at most six fields becomes a
+/// <c>LoggerMessage.Define</c> call; <see cref="EvaluationFailed"/>, with seven, becomes a generated state struct.
 /// </remarks>
 internal static partial class DecisionLog
 {
@@ -45,9 +45,9 @@ internal static partial class DecisionLog
         EventId = 1002,
         EventName = nameof(EvaluationFailed),
         Level = LogLevel.Warning,
-        Message = "Minos {Operation} on {Model} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}")]
+        Message = "Minos {Operation} on {Model} failed with {ErrorKind}, status {StatusCode}, request id {RequestId}, in {DurationMs} ms: {ErrorMessage}")]
     public static partial void EvaluationFailed(
-        ILogger logger, string operation, string model, DecisionErrorKind errorKind, int? statusCode, double durationMs, string errorMessage);
+        ILogger logger, string operation, string model, DecisionErrorKind errorKind, int? statusCode, string? requestId, double durationMs, string errorMessage);
 
     /// <summary>An attempt failed with an error the retry policy will retry.</summary>
     [LoggerMessage(

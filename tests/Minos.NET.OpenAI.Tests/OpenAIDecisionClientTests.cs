@@ -144,6 +144,39 @@ public sealed class OpenAIDecisionClientTests : IDisposable
     }
 
     [Fact]
+    public async Task A401_CarriesOpenAIsRequestId_FromItsRealBodyAndHeader()
+    {
+        var handler = new StubHandler((_, _) =>
+        {
+            var response = Json(
+                HttpStatusCode.Unauthorized,
+                """{"error":{"message":"A valid API key is required.","type":"invalid_request_error","param":null,"code":null}}""");
+            response.Headers.TryAddWithoutValidation("x-request-id", "req_0123456789abcdef0123456789abcdef");
+            return Task.FromResult(response);
+        });
+        using var client = Client(_httpClients, handler, configure: o => o.MaxRetries = 2);
+
+        var result = await client.EvaluateAsync(Request());
+
+        Assert.Equal(DecisionErrorKind.Unauthorized, result.Error.Kind);
+        Assert.Equal("A valid API key is required.", result.Error.Message);
+        Assert.Equal("req_0123456789abcdef0123456789abcdef", result.Error.RequestId);
+        _ = OnlyRequest(handler);
+    }
+
+    [Fact]
+    public async Task ARefusal_HasNoRequestId()
+    {
+        var handler = new StubHandler((_, _) => Task.FromResult(Json(HttpStatusCode.OK, FixtureText("refusal.json"))));
+        using var client = Client(_httpClients, handler);
+
+        var result = await client.EvaluateAsync(new DecisionRequest(TestSets.WithOtherQuestion(), DecisionContent.FromString("x")));
+
+        Assert.Equal(DecisionErrorKind.Refused, result.Error.Kind);
+        Assert.Null(result.Error.RequestId);
+    }
+
+    [Fact]
     public async Task ARefusal_IsNotRetried()
     {
         var handler = new StubHandler((_, _) => Task.FromResult(Json(HttpStatusCode.OK, FixtureText("refusal.json"))));

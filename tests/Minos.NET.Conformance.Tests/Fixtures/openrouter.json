@@ -1,0 +1,105 @@
+{
+  "target": "openrouter",
+  "source": "tests",
+  "note": "Built from tests/Minos.NET.Tests/Fixtures until the first recording. noul is response-openrouter.json; the other success probes carry the TypeSafe fixture's answers in OpenRouter's envelope, with its model and provider. bad-key is the 401 OpenRouter sent to the header probe on 2026-10-11, which carried no request-id header. No invalid-request body from OpenRouter is recorded yet, so that probe is skipped.",
+  "exchanges": [
+    {
+      "probe": "noul",
+      "status": 200,
+      "contentType": "application/json",
+      "response": {
+        "id": "gen-1727400000-abc123",
+        "provider": "TypeSafe",
+        "model": "~typesafe/jev-latest",
+        "answers": {
+          "is_urgent": { "type": "noul", "noul": 0.95 }
+        },
+        "usage": { "input_tokens": 296, "output_tokens": 20, "cost": 0.000296 }
+      }
+    },
+    {
+      "probe": "choice",
+      "status": 200,
+      "contentType": "application/json",
+      "response": {
+        "provider": "TypeSafe",
+        "model": "~typesafe/jev-latest",
+        "answers": {
+          "department": { "type": "choice", "choice": "billing", "probabilities": { "billing": 0.88, "technical": 0.12 }, "confidence": 0.81 }
+        },
+        "usage": { "input_tokens": 318, "output_tokens": 34 }
+      }
+    },
+    {
+      "probe": "score",
+      "status": 200,
+      "contentType": "application/json",
+      "response": {
+        "provider": "TypeSafe",
+        "model": "~typesafe/jev-latest",
+        "answers": {
+          "frustration": {
+            "type": "score",
+            "score": 1.05,
+            "legend": { "0": "Calm", "1": "Frustrated", "2": "Very angry" },
+            "probabilities": { "0": 0.0, "1": 0.95, "2": 0.05 },
+            "confidence": 0.92
+          }
+        },
+        "usage": { "input_tokens": 304, "output_tokens": 18 }
+      }
+    },
+    {
+      "probe": "mixed",
+      "status": 200,
+      "contentType": "application/json",
+      "response": {
+        "provider": "TypeSafe",
+        "model": "~typesafe/jev-latest",
+        "answers": {
+          "department": { "type": "choice", "choice": "billing", "probabilities": { "billing": 0.88, "technical": 0.12 }, "confidence": 0.81 },
+          "frustration": {
+            "type": "score",
+            "score": 1.05,
+            "legend": { "0": "Calm", "1": "Frustrated", "2": "Very angry" },
+            "probabilities": { "0": 0.0, "1": 0.95, "2": 0.05 },
+            "confidence": 0.92
+          },
+          "is_urgent": { "type": "noul", "noul": 0.95 }
+        },
+        "usage": { "input_tokens": 918, "output_tokens": 72 }
+      }
+    },
+    {
+      "probe": "keyed",
+      "status": 200,
+      "contentType": "application/json",
+      "response": {
+        "provider": "TypeSafe",
+        "model": "~typesafe/jev-latest",
+        "answers": {
+          "product": { "type": "choice", "choice": "pro-plan", "probabilities": { "pro-plan": 0.6, "team-plan": 0.4 }, "confidence": 0.6 },
+          "effort": {
+            "type": "score",
+            "score": 1.2,
+            "legend": { "0": "Minutes", "1": "Hours", "2": "Days" },
+            "probabilities": { "0": 0.1, "1": 0.6, "2": 0.3 },
+            "confidence": 0.7
+          }
+        },
+        "usage": { "input_tokens": 10, "output_tokens": 5 }
+      }
+    },
+    {
+      "probe": "invalid",
+      "skipped": "No invalid-request body from OpenRouter is recorded yet; the first record run adds it."
+    },
+    {
+      "probe": "bad-key",
+      "recorded": "2026-10-11",
+      "status": 401,
+      "contentType": "application/json",
+      "response": {"error":{"message":"Missing Authentication header","code":401}}
+    }
+  ]
+}

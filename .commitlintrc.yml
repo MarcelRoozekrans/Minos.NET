@@ -25,6 +25,7 @@ rules:
       - di
       - systemone
       - openai
+      - conformance
       - tests
       - benchmarks
       - samples

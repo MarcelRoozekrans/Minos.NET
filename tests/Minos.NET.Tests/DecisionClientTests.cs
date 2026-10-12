@@ -125,6 +125,23 @@ public sealed class DecisionClientTests : IDisposable
     }
 
     [Fact]
+    public async Task Evaluate_401_CarriesTypeSafesRequestId()
+    {
+        var handler = new StubHandler((_, _) =>
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.Unauthorized);
+            response.Headers.TryAddWithoutValidation("x-typesafe-request-id", "req_0123456789abcdef0123456789abcdef");
+            return Task.FromResult(response);
+        });
+        using var client = Borrowing(handler);
+
+        var result = await client.EvaluateAsync(NoulRequest());
+
+        Assert.Equal(DecisionErrorKind.Unauthorized, result.Error.Kind);
+        Assert.Equal("req_0123456789abcdef0123456789abcdef", result.Error.RequestId);
+    }
+
+    [Fact]
     public async Task Evaluate_TransportFailure_IsNetwork()
     {
         using var client = Borrowing(new StubHandler((_, _) => throw new HttpRequestException("connection refused")));
@@ -133,6 +150,7 @@ public sealed class DecisionClientTests : IDisposable
 
         Assert.Equal(DecisionErrorKind.Network, result.Error.Kind);
         Assert.IsType<HttpRequestException>(result.Error.Exception);
+        Assert.Null(result.Error.RequestId);
     }
 
     [Fact]

@@ -43,6 +43,9 @@ internal static class DecisionTelemetry
     /// <summary>The <see cref="DecisionErrorKind"/> name of a failure.</summary>
     public const string ErrorType = "error.type";
 
+    /// <summary>The provider's request id of a failure, from <see cref="DecisionError.RequestId"/>, when the error response named one.</summary>
+    public const string RequestId = "minos.request_id";
+
     /// <summary>The client's operation, the logging operation names: <c>evaluate</c>, <c>evaluate-set</c> or <c>list-models</c>.</summary>
     public const string DecisionOperation = "minos.operation";
 

@@ -87,7 +87,8 @@ public sealed class LoggingDecisionClient : DelegatingDecisionClient
         else
         {
             var error = result.Error;
-            DecisionLog.EvaluationFailed(_logger, DecisionLog.EvaluateSet, model, error.Kind, error.StatusCode, durationMs, DecisionLog.SafeMessage(error));
+            DecisionLog.EvaluationFailed(
+                _logger, DecisionLog.EvaluateSet, model, error.Kind, error.StatusCode, error.RequestId, durationMs, DecisionLog.SafeMessage(error));
         }
     }
 }

@@ -115,7 +115,7 @@ public sealed partial class ObservabilityLoggingTests
         Assert.Equal(1002, record.Id.Id);
         Assert.Equal("Network", Field(record, "ErrorKind"));
         Assert.Equal("The request could not be sent.", Field(record, "ErrorMessage"));
-        Assert.Contains("status (null)", record.Message, StringComparison.Ordinal);
+        Assert.Contains("status , request id , in", record.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("refused", record.Message, StringComparison.OrdinalIgnoreCase);
     }
 

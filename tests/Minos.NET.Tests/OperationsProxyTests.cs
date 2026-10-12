@@ -291,6 +291,20 @@ public sealed class OperationsProxyTests
         Assert.Equal(1, answers.Enumerations);
     }
 
+    [Fact]
+    public async Task RawFailure_WithARequestId_TagsTheSpan()
+    {
+        using var capture = new TelemetryCapture();
+        var fake = new FakeOperations
+        {
+            Error = new DecisionError(DecisionErrorKind.Unauthorized, "The API returned HTTP 401.") { StatusCode = 401, RequestId = "req_raw" },
+        };
+
+        await new DecisionOperationsInstrumented(fake).EvaluateAsync(Request(), "typesafe", Endpoint, CancellationToken.None);
+
+        Assert.Equal("req_raw", capture.Span().GetTagItem("minos.request_id"));
+    }
+
     private static void AssertSuccessMetrics(
         TelemetryCapture capture, string requestModel, string provider, string responseModel, string minosOperation, int inputTokens, int outputTokens, double[] confidences)
     {

@@ -102,7 +102,7 @@ such as a JSON console or Serilog, receives each `{Placeholder}` below as a fiel
 | Id | Event | Level | Message template |
 | --- | --- | --- | --- |
 | 1001 | `EvaluationSucceeded` | Debug | `Minos {Operation} on {Model} via {Provider} succeeded: {QuestionCount} questions in {DurationMs} ms.` |
-| 1002 | `EvaluationFailed` | Warning | `Minos {Operation} on {Model} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}` |
+| 1002 | `EvaluationFailed` | Warning | `Minos {Operation} on {Model} failed with {ErrorKind}, status {StatusCode}, request id {RequestId}, in {DurationMs} ms: {ErrorMessage}` |
 | 1003 | `AttemptRetrying` | Warning | `Minos attempt {Attempt} failed with {ErrorKind}, status {StatusCode}, retry-after {RetryAfter}; retrying.` |
 | 1004 | `ModelsListed` | Debug | `Minos list-models via {Provider} succeeded: {ModelCount} models in {DurationMs} ms.` |
 | 1005 | `ModelsListFailed` | Warning | `Minos list-models via {Provider} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}` |
@@ -120,8 +120,10 @@ A call logs once, when it completes, and logs again for each attempt it is about
   questions asked.
 - **Failure** is a Warning, 1002 or 1005. It covers every failure the call returns as a
   [`DecisionError`](client-and-errors.md#errors), after the retries are used up, including an `InvalidResponse` from reading
-  typed answers. `ErrorKind` is the `DecisionErrorKind`. `StatusCode` is the HTTP status, or null when no response arrived,
-  and the message then reads `status (null)`.
+  typed answers. `ErrorKind` is the `DecisionErrorKind`. `StatusCode` is the HTTP status, or null when no response arrived.
+  `RequestId`, in 1002 only, is the provider's [request id](client-and-errors.md#request-ids) from the error response, or
+  null. A null field is null in the structured state either way; in the message, 1005 writes it as `status (null)`, and
+  1002, which has seven fields, leaves it empty, as in `status , request id , in 12 ms`.
 - **A retry** is a Warning, 1003, logged for each failed attempt that the client will retry. `Attempt` is 1 for the
   first attempt, and it equals the `X-TypeSafe-Retry-Count` header of the retry that follows. The last attempt is not
   logged here, because the operation's failure event reports it. If your `CancellationToken` is cancelled while the
@@ -146,7 +148,7 @@ The library never logs these:
 
 - the state, the instructions and the criteria, which is everything you sent;
 - the answers;
-- the API key and the value of any header;
+- the API key and the value of any header, except the provider's request id in event 1002 and on the span;
 - `DecisionError.Detail`, which holds the body of the server's error response.
 
 An exception you can still see is the one in event 1006, which carries the exception as it was thrown. That includes an
@@ -336,6 +338,7 @@ named `minos.*`.
 | `gen_ai.response.id` | success | The provider's response id, such as OpenRouter's generation id, when it reports one. Evaluations only. |
 | `minos.usage.cost` | success | The cost in US dollars, when the provider reports it, as OpenRouter does. Evaluations only. |
 | `error.type` | failure | The name of the `DecisionErrorKind`, such as `RateLimited`, or the full type name of a thrown exception. |
+| `minos.request_id` | failure | The provider's [request id](client-and-errors.md#request-ids), when the error response named one. Evaluations only. |
 
 The start attributes are set when the span is created, so a sampler sees them and can decide on them. A failed result
 marks the span `Error`, with no description. `error.type` says what went wrong, and the description stays empty because

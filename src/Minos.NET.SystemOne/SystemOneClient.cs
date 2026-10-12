@@ -467,7 +467,7 @@ public sealed class SystemOneClient : IDecisionClient
             {
                 var error = result.Error;
                 var message = DecisionLog.SafeMessage(error);
-                DecisionLog.EvaluationFailed(logger, SystemOneLog.Evaluate, model, error.Kind, error.StatusCode, durationMs, message);
+                DecisionLog.EvaluationFailed(logger, SystemOneLog.Evaluate, model, error.Kind, error.StatusCode, error.RequestId, durationMs, message);
             }
 
             return result;

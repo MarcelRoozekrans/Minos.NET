@@ -40,8 +40,8 @@ internal sealed class SystemOneProtocol : IDecisionProtocol
     public Result<DecisionResponse, DecisionError> ReadResponse(ReadOnlySpan<byte> body, QuestionSetDefinition definition)
         => SystemOneResponseReader.Read(this, body, definition);
 
-    public DecisionError MapError(int statusCode, ReadOnlySpan<byte> body, bool bodyTruncated, string? contentType, TimeSpan? retryAfter)
-        => SystemOneErrors.Map(statusCode, body, bodyTruncated, contentType, retryAfter);
+    public DecisionError MapError(int statusCode, ReadOnlySpan<byte> body, bool bodyTruncated, string? contentType, TimeSpan? retryAfter, string? requestId)
+        => SystemOneErrors.Map(statusCode, body, bodyTruncated, contentType, retryAfter, requestId);
 
     public TResult ReadAnswers<TResult>(ref Utf8JsonReader answers, QuestionSetDefinition definition, AnswerFactory<TResult> create)
     {

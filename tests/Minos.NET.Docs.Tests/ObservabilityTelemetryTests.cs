@@ -242,7 +242,7 @@ public sealed class ObservabilityTelemetryTests
         using var listener = new DecisionTelemetryListener();
         await RunAsync(Typed, Options(), Reply.Ok(TicketResponse));
         await RunAsync(Raw, Options(), Reply.Ok(OpenRouterResponse));
-        await RunAsync(Typed, Options(), Reply.Error(422));
+        await RunAsync(Typed, Options(), Reply.Error(422, string.Empty, ("x-typesafe-request-id", "req_docs")));
         await RunAsync(Listing, Options(), Reply.Ok(ModelsResponse));
 
         var onSpans = new SortedSet<string>(listener.Spans.SelectMany(span => Keys(span.TagObjects)), StringComparer.Ordinal);
@@ -260,6 +260,7 @@ public sealed class ObservabilityTelemetryTests
             listener.Spans.Select(span => (string)span.GetTagItem("minos.operation")!).Distinct().Order(StringComparer.Ordinal));
         Assert.Equal("gen-1727400000-abc123", listener.Spans[1].GetTagItem("gen_ai.response.id"));
         Assert.Equal(0.000296, listener.Spans[1].GetTagItem("minos.usage.cost"));
+        Assert.Equal("req_docs", listener.Spans[2].GetTagItem("minos.request_id"));
     }
 
     // The metric table: the meter has exactly these instruments, with these kinds and units, and each records these attributes.

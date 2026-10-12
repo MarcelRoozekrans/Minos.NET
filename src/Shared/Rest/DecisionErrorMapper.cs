@@ -26,7 +26,8 @@ internal sealed class DecisionErrorMapper(TimeProvider time, Func<bool>? dispose
 
         return error.Kind switch
         {
-            HttpErrorKind.Status => protocol.MapError((int)error.StatusCode, error.Body.Span, error.BodyTruncated, error.ContentType, RetryAfter(error)),
+            HttpErrorKind.Status => protocol.MapError(
+                (int)error.StatusCode, error.Body.Span, error.BodyTruncated, error.ContentType, RetryAfter(error), RequestIdHeader.Read(error.Headers)),
             HttpErrorKind.Timeout => new DecisionError(DecisionErrorKind.Timeout, "The request timed out.") { Exception = error.Exception },
             HttpErrorKind.Transport => new DecisionError(
                 DecisionErrorKind.Network, error.Message ?? "The request could not be sent.") { Exception = error.Exception },

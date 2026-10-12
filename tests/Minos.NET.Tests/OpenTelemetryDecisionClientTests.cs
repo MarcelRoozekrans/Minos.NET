@@ -119,6 +119,7 @@ public sealed class OpenTelemetryDecisionClientTests
         var expected = DecisionTelemetry.ErrorTypeOf(DecisionErrorKind.Server);
         Assert.Equal(ActivityStatusCode.Error, span.Status);
         Assert.Equal(expected, span.GetTagItem("error.type"));
+        Assert.Null(span.GetTagItem("minos.request_id"));
         Assert.Null(span.GetTagItem("gen_ai.response.model"));
         var point = capture.OnlyPoint("gen_ai.client.operation.duration");
         Assert.Equal(expected, point.Tag("error.type"));
@@ -298,6 +299,19 @@ public sealed class OpenTelemetryDecisionClientTests
         await Assert.ThrowsAsync<ArgumentNullException>("request", async () => await stage.EvaluateAsync(null!));
         Assert.Throws<ArgumentNullException>("builder", () => OpenTelemetryDecisionClientBuilderExtensions.UseOpenTelemetry(null!));
         Assert.Throws<ArgumentNullException>("innerClient", () => new OpenTelemetryDecisionClient(null!));
+    }
+
+    [Fact]
+    public async Task Failure_with_a_request_id_tags_the_span_but_not_the_metrics()
+    {
+        using var capture = new TelemetryCapture();
+        var error = new DecisionError(DecisionErrorKind.Unauthorized, "x") { StatusCode = 401, RequestId = "req_span" };
+        using var stage = new OpenTelemetryDecisionClient(new Scripted(Result<DecisionResponse, DecisionError>.Failure(error)));
+
+        await stage.EvaluateAsync(Request);
+
+        Assert.Equal("req_span", capture.Span().GetTagItem("minos.request_id"));
+        Assert.Null(capture.OnlyPoint("gen_ai.client.operation.duration").Tag("minos.request_id"));
     }
 
     private static Result<DecisionResponse, DecisionError> Fail(DecisionErrorKind kind)

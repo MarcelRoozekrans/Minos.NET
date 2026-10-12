@@ -58,6 +58,14 @@ public sealed class DecisionError
     /// <summary>Gets the error response body when it is JSON, for example the field a 422 rejected.</summary>
     public JsonElement? Detail { get; init; }
 
+    /// <summary>
+    /// Gets the provider's id for the failed request, from the error response's <c>x-request-id</c>,
+    /// <c>x-typesafe-request-id</c> or <c>request-id</c> header, the first present in that order. It is
+    /// <see langword="null"/> when the response carried none, and for every failure without an HTTP error response, such
+    /// as a network failure, a time-out or a refusal. Quote it when you report a failed call to the provider.
+    /// </summary>
+    public string? RequestId { get; init; }
+
     /// <summary>Gets the exception behind a network, time-out or response-reading failure.</summary>
     public Exception? Exception { get; init; }
 
@@ -74,7 +82,11 @@ public sealed class DecisionError
 
     /// <inheritdoc />
     public override string ToString()
-        => StatusCode is { } status
-            ? $"{Kind.ToString()} ({status.ToString(CultureInfo.InvariantCulture)}): {Message}"
-            : $"{Kind.ToString()}: {Message}";
+        => (StatusCode, RequestId) switch
+        {
+            ({ } status, { } requestId) => $"{Kind.ToString()} ({status.ToString(CultureInfo.InvariantCulture)}, request {requestId}): {Message}",
+            ({ } status, null) => $"{Kind.ToString()} ({status.ToString(CultureInfo.InvariantCulture)}): {Message}",
+            (null, { } requestId) => $"{Kind.ToString()} (request {requestId}): {Message}",
+            _ => $"{Kind.ToString()}: {Message}",
+        };
 }

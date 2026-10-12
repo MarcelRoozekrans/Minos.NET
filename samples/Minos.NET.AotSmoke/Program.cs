@@ -93,6 +93,7 @@ internal static class Program
         await KeyedProbabilityMapChecks.KeyedProbabilityMapEnumeratesAndCompares().ConfigureAwait(false);
         ConfidenceThresholdsChecks.DefaultThresholdsEqualTheirExplicitValues();
         DecisionErrorChecks.HandBuiltErrorCarriesItsKindAndMessage();
+        await DecisionErrorChecks.HttpErrorCarriesTheRequestId().ConfigureAwait(false);
         QuestionFailureChecks.HandBuiltFailureEqualsTheReportedOne();
         await SystemOneModelChecks.HandBuiltQuestionsAreSent().ConfigureAwait(false);
         await SystemOneModelChecks.HandBuiltModelCardEqualsTheListedOne().ConfigureAwait(false);
