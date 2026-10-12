@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.11.3](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.11.2...v0.11.3) (2026-10-12)
+
+
+### Documentation
+
+* **milestone:** milestone 6 audit, FAIL with one fixable gap ([ec75f56](https://github.com/MarcelRoozekrans/Minos.NET/commit/ec75f56898d1cd6a73c12a8fd0f9f505a7eef13e))
+* **milestone:** milestone 6 re-audit, PASS ([f332ab0](https://github.com/MarcelRoozekrans/Minos.NET/commit/f332ab04b0a7a96a71f77ce90a0122fac97718c0))
+* **roadmap:** add gap phase 6.8 and move the OpenAI-key items to milestone 7 ([ec75f56](https://github.com/MarcelRoozekrans/Minos.NET/commit/ec75f56898d1cd6a73c12a8fd0f9f505a7eef13e))
+* **roadmap:** complete phase 6.8 ([f332ab0](https://github.com/MarcelRoozekrans/Minos.NET/commit/f332ab04b0a7a96a71f77ce90a0122fac97718c0))
+
+
+### Tests
+
+* **tests:** serialize one question set through both protocols, Phase 6.8 ([ec75f56](https://github.com/MarcelRoozekrans/Minos.NET/commit/ec75f56898d1cd6a73c12a8fd0f9f505a7eef13e))
+
 ## [0.11.2](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.11.1...v0.11.2) (2026-10-12)
 
 
