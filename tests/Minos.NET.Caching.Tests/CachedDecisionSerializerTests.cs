@@ -1,6 +1,7 @@
 using System.Buffers;
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Nodes;
 
 namespace Minos.Caching.Tests;
 
@@ -18,6 +19,30 @@ public sealed class CachedDecisionSerializerTests
     private static CachedDecision Read(byte[] bytes) => Serializer.Deserialize(new ReadOnlySequence<byte>(bytes));
 
     private static CachedDecision Stored() => CachedDecision.From(Responses.Answer().AsCached());
+
+    // A valid Triage entry with one property replaced by the JSON in value, or removed when value is null, so that
+    // property is the only thing wrong with it.
+    private static byte[] StoredWith(string property, string? value)
+    {
+        var json = JsonNode.Parse(Write(Stored()))!.AsObject();
+        if (value is null)
+        {
+            json.Remove(property);
+        }
+        else
+        {
+            json[property] = JsonNode.Parse(value);
+        }
+
+        return Encoding.UTF8.GetBytes(json.ToJsonString());
+    }
+
+    private static CachedDecision Entry(AnswerSlot slot1)
+    {
+        var stored = Stored();
+        AnswerSlot[] slots = [stored.Slots[0], slot1, stored.Slots[2]];
+        return new CachedDecision(slots, stored.Probabilities, stored.Model, stored.InputTokens, stored.OutputTokens, stored.Cost, stored.Id, stored.Provider);
+    }
 
     [Fact]
     public void Writes_compact_json_with_version_1()
@@ -39,25 +64,55 @@ public sealed class CachedDecisionSerializerTests
         Assert.NotNull(read);
         Assert.True(read.IsCached);
         Assert.Equal(original.Model, read.Model);
-        Assert.Equal(original.Id, read.Id);
-        Assert.Equal(original.Provider, read.Provider);
+        Assert.Equal("gen-0001", read.Id);
+        Assert.Equal("Together", read.Provider);
         Assert.Equal(original.Usage, read.Usage);
         Assert.Equal(original.Slots, read.Slots);
         Assert.Equal(original.Probabilities, read.Probabilities);
     }
 
+    [Fact]
+    public void The_valid_entry_the_altered_cases_start_from_reads()
+    {
+        Assert.NotNull(Read(StoredWith("model", "\"jev-1.13.0\"")).ResponseFor(Responses.Triage, out _));
+    }
+
     [Theory]
-    [InlineData("""{"v":2,"slots":[],"probabilities":[]}""")]
-    [InlineData("""{"slots":[],"probabilities":[]}""")]
+    [InlineData("v", "2")]
+    [InlineData("v", null)]
+    [InlineData("v", "null")]
+    [InlineData("model", "5")]
+    [InlineData("cost", "\"x\"")]
+    [InlineData("slots", "\"x\"")]
+    [InlineData("slots", "[[0,0.9]]")]
+    [InlineData("probabilities", "[\"x\"]")]
+    public void An_unknown_version_or_a_wrong_field_in_an_otherwise_valid_entry_reads_as_unreadable(string property, string? value)
+    {
+        var entry = Read(StoredWith(property, value));
+
+        Assert.Same(CachedDecision.Unreadable, entry);
+        Assert.Null(entry.ResponseFor(Responses.Triage, out _));
+    }
+
+    [Theory]
     [InlineData("not json")]
     [InlineData("")]
-    [InlineData("""{"v":1,"slots":[[0,0.9]],"probabilities":[]}""")]
-    [InlineData("""{"v":1,"slots":"x","probabilities":[]}""")]
-    public void An_unknown_version_or_a_corrupt_entry_reads_as_unreadable(string json)
+    [InlineData("[]")]
+    [InlineData("""{"v":1,"slots":[],"probabilities":[]""")]
+    public void Bytes_that_are_no_entry_read_as_unreadable(string json)
     {
-        var entry = Read(Encoding.UTF8.GetBytes(json));
+        Assert.Same(CachedDecision.Unreadable, Read(Encoding.UTF8.GetBytes(json)));
+    }
 
-        Assert.Null(entry.ResponseFor(Responses.Triage, out _));
+    [Fact]
+    public void Invalid_utf8_in_a_string_reads_as_unreadable()
+    {
+        var bytes = Write(Stored());
+        var at = bytes.AsSpan().IndexOf("jev-1.13.0"u8);
+        Assert.True(at > 0);
+        bytes[at] = 0xFF; // Never valid in UTF-8.
+
+        Assert.Same(CachedDecision.Unreadable, Read(bytes));
     }
 
     [Fact]
@@ -66,5 +121,23 @@ public sealed class CachedDecisionSerializerTests
         var other = new QuestionSetDefinition(QuestionDefinition.Noul("is_urgent", "Is this urgent?"));
 
         Assert.Null(Read(Write(Stored())).ResponseFor(other, out _));
+    }
+
+    [Fact]
+    public void An_entry_built_from_the_stored_slots_fits()
+    {
+        Assert.NotNull(Entry(Stored().Slots[1]).ResponseFor(Responses.Triage, out _));
+    }
+
+    [Theory]
+    [InlineData(3, 0)]
+    [InlineData(-1, 0)]
+    [InlineData(1, 1)]
+    public void A_slot_whose_option_or_offset_does_not_fit_its_question_is_a_miss(int valueIndex, int offsetShift)
+    {
+        var choice = Stored().Slots[1];
+        var entry = Entry(choice with { ValueIndex = valueIndex, Offset = choice.Offset + offsetShift });
+
+        Assert.Null(entry.ResponseFor(Responses.Triage, out _));
     }
 }

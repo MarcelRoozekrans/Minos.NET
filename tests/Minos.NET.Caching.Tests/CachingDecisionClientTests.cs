@@ -73,7 +73,8 @@ public sealed class CachingDecisionClientTests
     {
         using var services = Responses.Services();
         var typeSafe = new ScriptedClient(TypeSafe);
-        var openRouter = new ScriptedClient(new DecisionClientMetadata("openrouter", new Uri("https://openrouter.ai/api/"), "jev-latest"));
+        // The same provider at another endpoint, so only the endpoint tells the keys apart.
+        var openRouter = new ScriptedClient(new DecisionClientMetadata("typesafe", new Uri("https://eu.api.typesafe.ai/"), "jev-latest"));
         using var first = new CachingDecisionClient(typeSafe, services.Cache());
         using var second = new CachingDecisionClient(openRouter, services.Cache());
 
@@ -91,11 +92,13 @@ public sealed class CachingDecisionClientTests
     [InlineData(DecisionErrorKind.Validation)]
     public async Task A_failure_passes_through_and_is_never_stored(DecisionErrorKind kind)
     {
-        using var services = Responses.Services();
+        var shared = new SharedDistributedCache();
+        using var services = Responses.Services(shared);
         var inner = new ScriptedClient(TypeSafe).ThenFail(kind).ThenAnswer();
         using var stage = new CachingDecisionClient(inner, services.Cache());
 
         var failed = await stage.EvaluateAsync(Responses.Request());
+        Assert.Equal(0, shared.WriteCount);
         var retried = await stage.EvaluateAsync(Responses.Request());
 
         Assert.Equal(kind, failed.Error.Kind);
@@ -115,11 +118,16 @@ public sealed class CachingDecisionClientTests
         using var writer = new CachingDecisionClient(writerInner, writerServices.Cache());
         using var reader = new CachingDecisionClient(readerInner, readerServices.Cache());
         var stored = await writer.EvaluateAsync(Responses.Request());
+        Assert.Equal(1, shared.WriteCount);
 
         var hit = await reader.EvaluateAsync(Responses.Request());
         var again = await reader.EvaluateAsync(Responses.Request());
 
         Assert.Equal(0, readerInner.Calls);
+        // The promote wrote L1 only: the reader wrote nothing to L2.
+        Assert.Equal(1, shared.WriteCount);
+        Assert.Equal("gen-0001", hit.Value.Id);
+        Assert.Equal("Together", hit.Value.Provider);
         Assert.True(hit.Value.IsCached);
         Assert.Same(Responses.Triage, hit.Value.Definition);
         Assert.Equal(stored.Value.Model, hit.Value.Model);

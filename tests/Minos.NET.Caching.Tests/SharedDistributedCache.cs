@@ -16,8 +16,12 @@ namespace Minos.Caching.Tests;
 internal sealed class SharedDistributedCache : IDistributedCache
 {
     private readonly MemoryDistributedCache _inner = new(Options.Create(new MemoryDistributedCacheOptions()));
+    private int _writeCount;
 
     public ConcurrentDictionary<string, DistributedCacheEntryOptions> Writes { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>Gets how many writes reached this cache, a rewrite of a key included.</summary>
+    public int WriteCount => Volatile.Read(ref _writeCount);
 
     public byte[]? Get(string key) => _inner.Get(key);
 
@@ -26,12 +30,14 @@ internal sealed class SharedDistributedCache : IDistributedCache
     public void Set(string key, byte[] value, DistributedCacheEntryOptions options)
     {
         Writes[key] = options;
+        Interlocked.Increment(ref _writeCount);
         _inner.Set(key, value, options);
     }
 
     public Task SetAsync(string key, byte[] value, DistributedCacheEntryOptions options, CancellationToken token = default)
     {
         Writes[key] = options;
+        Interlocked.Increment(ref _writeCount);
         return _inner.SetAsync(key, value, options, token);
     }
 

@@ -22,7 +22,8 @@ public sealed class UseHybridCacheTests
     [Fact]
     public async Task Uses_a_cache_passed_to_it_and_applies_the_options()
     {
-        using var services = Responses.Services();
+        var shared = new SharedDistributedCache();
+        using var services = Responses.Services(shared);
         var options = default(DecisionCacheOptions);
         using var client = new ScriptedClient().AsBuilder()
             .UseHybridCache(services.Cache(), o => { o.KeyPrefix = "app1:"; options = o; })
@@ -32,6 +33,8 @@ public sealed class UseHybridCacheTests
 
         Assert.True(result.IsSuccess);
         Assert.Equal("app1:", options!.KeyPrefix);
+        // No metadata, so the provider is "unknown" and there is no endpoint.
+        Assert.True(shared.Writes.ContainsKey(DecisionCacheKey.Create(Responses.Request(), "unknown", null, "app1:")));
     }
 
     [Fact]
