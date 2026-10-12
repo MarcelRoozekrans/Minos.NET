@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.11.1](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.11.0...v0.11.1) (2026-10-12)
+
+
+### Bug Fixes
+
+* **conformance:** keep no account identifier or derived field in a recording ([826ff7f](https://github.com/MarcelRoozekrans/Minos.NET/commit/826ff7f256cb864994329f7c14e64ff9ce900ce5))
+
+
+### Documentation
+
+* **docs:** the conformance fixtures are recorded ([826ff7f](https://github.com/MarcelRoozekrans/Minos.NET/commit/826ff7f256cb864994329f7c14e64ff9ce900ce5))
+
+
+### Tests
+
+* **conformance:** replay the TypeSafe and OpenRouter fixtures recorded on main ([826ff7f](https://github.com/MarcelRoozekrans/Minos.NET/commit/826ff7f256cb864994329f7c14e64ff9ce900ce5))
+
 ## [0.11.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.10.0...v0.11.0) (2026-10-12)
 
 
