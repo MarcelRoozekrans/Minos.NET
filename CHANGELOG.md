@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.11.2](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.11.1...v0.11.2) (2026-10-12)
+
+
+### Documentation
+
+* **docs:** move the provider sections to a Providers page ([bfea1c8](https://github.com/MarcelRoozekrans/Minos.NET/commit/bfea1c89004a773d9946dd330d9baaaab1966b29))
+* **docs:** one capability matrix at the top of the Providers page ([bfea1c8](https://github.com/MarcelRoozekrans/Minos.NET/commit/bfea1c89004a773d9946dd330d9baaaab1966b29))
+* **docs:** switching providers, a local server and adding OpenAI ([bfea1c8](https://github.com/MarcelRoozekrans/Minos.NET/commit/bfea1c89004a773d9946dd330d9baaaab1966b29))
+* **docs:** the provider-switch sample's answers side by side ([05b2098](https://github.com/MarcelRoozekrans/Minos.NET/commit/05b2098c7efabd1b0e1dd2ce858ab435b0c203b9))
+* **samples:** recordings per provider and an active provider in the sample host ([bfea1c8](https://github.com/MarcelRoozekrans/Minos.NET/commit/bfea1c89004a773d9946dd330d9baaaab1966b29))
+* **samples:** the provider-switch sample ([bfea1c8](https://github.com/MarcelRoozekrans/Minos.NET/commit/bfea1c89004a773d9946dd330d9baaaab1966b29))
+
+
+### Tests
+
+* **samples:** replay the provider-switch sample's recorded TypeSafe, OpenRouter and local answers ([05b2098](https://github.com/MarcelRoozekrans/Minos.NET/commit/05b2098c7efabd1b0e1dd2ce858ab435b0c203b9))
+
 ## [0.11.1](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.11.0...v0.11.1) (2026-10-12)
 
 
