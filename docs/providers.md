@@ -49,7 +49,10 @@ provider does not take, MIN202 for more questions than `MaxQuestions`, MIN203 fo
 text and image models, so images are off for both until you switch them on; [Images](#images) says for which models.
 OpenRouter has its own models API, so model listing is off for it. A `Custom` or `VllmSemanticRouter` server switches
 listing on with `ModelListing = true`, and `OpenAIDecisionClient` has no `ListModelsAsync`. Choice and Score answers
-carry a confidence on every provider.
+carry a confidence on every provider. A limit that reads "none" for `VllmSemanticRouter`, `Custom` or OpenAI means
+the provider publishes none, not that it is known to be unlimited. A limit you set in `Capabilities` applies on every
+provider. The capabilities you set change the kinds, the limits, the images and the model listing the client checks.
+While model listing is off, a model-listing call returns the `Unsupported` kind.
 
 ## The presets
 
