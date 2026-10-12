@@ -147,8 +147,9 @@ jobs:
 
   aot-surface:
     runs-on: ubuntu-latest
-    # Publishes samples/Minos.NET.AotSurface with PublishAot=true and TrimMode=full. It roots the four packages,
-    # Minos.NET, Minos.NET.SystemOne, Minos.NET.OpenAI and Minos.NET.DependencyInjection, whole through
+    # Publishes samples/Minos.NET.AotSurface with PublishAot=true and TrimMode=full. It roots the six packages,
+    # Minos.NET, Minos.NET.SystemOne, Minos.NET.OpenAI, Minos.NET.DependencyInjection, Minos.NET.Caching and
+    # Minos.NET.RateLimiting, whole through
     # TrimmerRootAssembly, so ILC analyses their members, not only the ones aot-smoke calls, plus the code the
     # generator emits for the host's question sets. Rooting reaches every non-generic member and every generic one ILC can share across reference
     # types; value-type generics, such as Choice<T> over an enum, are analysed through the host's instantiations of
@@ -172,7 +173,7 @@ jobs:
       - name: Restore
         run: dotnet restore samples/Minos.NET.AotSurface/Minos.NET.AotSurface.csproj
 
-      - name: Publish AOT with the four packages rooted
+      - name: Publish AOT with the six packages rooted
         run: dotnet publish samples/Minos.NET.AotSurface/Minos.NET.AotSurface.csproj -r linux-x64 -c Release -o ./aot-surface-out
 
   # A release PR must have marked released analyzer rules and public API as shipped. release-please.yml dispatches this

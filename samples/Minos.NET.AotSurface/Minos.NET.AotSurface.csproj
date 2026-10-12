@@ -1,6 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
-    Publishes with Native AOT and roots Minos.NET, Minos.NET.SystemOne, Minos.NET.OpenAI and Minos.NET.DependencyInjection whole, so
+    Publishes with Native AOT and roots Minos.NET, Minos.NET.SystemOne, Minos.NET.OpenAI, Minos.NET.DependencyInjection, Minos.NET.Caching and
+    Minos.NET.RateLimiting whole, so
     ILC analyses their members for trim and AOT safety, not only the members an app happens to call. Rooting reaches
     every non-generic member and every generic one ILC can share across reference types; a value-type generic, such as
     Choice<T> where T : struct, Enum, has no shared form and is skipped. So this assembly is rooted too: SurfaceGenerics
@@ -25,6 +26,8 @@
     <TrimmerRootAssembly Include="Minos.NET.SystemOne" />
     <TrimmerRootAssembly Include="Minos.NET.OpenAI" />
     <TrimmerRootAssembly Include="Minos.NET.DependencyInjection" />
+    <TrimmerRootAssembly Include="Minos.NET.Caching" />
+    <TrimmerRootAssembly Include="Minos.NET.RateLimiting" />
     <TrimmerRootAssembly Include="Minos.NET.AotSurface" />
   </ItemGroup>
 
@@ -33,6 +36,8 @@
     <ProjectReference Include="..\..\src\Minos.NET.SystemOne\Minos.NET.SystemOne.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.OpenAI\Minos.NET.OpenAI.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.DependencyInjection\Minos.NET.DependencyInjection.csproj" />
+    <ProjectReference Include="..\..\src\Minos.NET.Caching\Minos.NET.Caching.csproj" />
+    <ProjectReference Include="..\..\src\Minos.NET.RateLimiting\Minos.NET.RateLimiting.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.Generator\Minos.NET.Generator.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"

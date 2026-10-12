@@ -114,6 +114,9 @@ internal static class Program
         await OpenAIChecks.ClientsBoundFromConfigurationEvaluate().ConfigureAwait(false);
         await OpenAIChecks.ClientsConfiguredFromTheEnvironmentEvaluate().ConfigureAwait(false);
 
+        await RateLimitingChecks.GrantedCallsGoAndARejectedOneIsNotSent().ConfigureAwait(false);
+        await CachingChecks.RepeatIsAnsweredFromTheCache().ConfigureAwait(false);
+
         await AllocationChecks.AnswerSlotAccessors().ConfigureAwait(false);
         await AllocationChecks.GeneratedCreate().ConfigureAwait(false);
         AllocationChecks.EvaluateRoundTrip();
@@ -121,6 +124,8 @@ internal static class Program
         AllocationChecks.NeutralEvaluateRoundTrip();
         AllocationChecks.BareTransportRoundTrip();
         AllocationChecks.PassThroughStage();
+        AllocationChecks.CacheHit();
+        AllocationChecks.GrantedPermit();
         AllocationChecks.Utf8StateEvaluateRoundTrip();
         AllocationChecks.TypedStateEvaluateRoundTrip();
         AllocationChecks.SystemOneImageRoundTrip();

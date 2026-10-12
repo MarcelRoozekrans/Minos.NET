@@ -1,10 +1,13 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using System.Threading.RateLimiting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
+using Minos.Caching;
 using Minos.OpenAI;
+using Minos.RateLimiting;
 using Minos.Shared;
 using Minos.SystemOne;
 using ZeroAlloc.Results;
@@ -204,6 +207,49 @@ internal static class AllocationChecks
             action: () => stage.EvaluateAsync(request),
             label: "PassThroughStage",
             passDescription: "a DelegatingDecisionClient that adds nothing allocates nothing");
+    }
+
+    /// <summary>A <see cref="Minos.Caching.CachingDecisionClient"/> answering from its in-process cache.</summary>
+    public static void CacheHit()
+    {
+        var services = new ServiceCollection();
+        services.AddMemoryCache();
+        using var provider = services.BuildServiceProvider();
+        using var client = new FixedResponseClient(PipelineChecks.TriageResponse()).AsBuilder().UseCaching().Build(provider);
+        var request = new DecisionRequest(SmokeTriage.Definition, SmokeAnswers.State);
+        client.EvaluateAsync(request).AsTask().GetAwaiter().GetResult();
+
+        // Measured 176 B/call on published win-x64 AOT: a hit reads the in-process cache and returns the stored response, so
+        // what remains is the lookup key built for each call. Budget: about 10% headroom over the measurement, rounded up to
+        // the next multiple of 64 B, per the Phase 1.8 rule.
+        GateValueTask(
+            budgetBytes: 256,
+            action: () => client.EvaluateAsync(request),
+            label: "CacheHit",
+            passDescription: "an in-process cache hit stays within its allocation budget");
+    }
+
+    /// <summary>A <see cref="Minos.RateLimiting.RateLimitingDecisionClient"/> granting a token-bucket permit around a client that allocates nothing.</summary>
+    public static void GrantedPermit()
+    {
+        using var limiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
+        {
+            TokenLimit = int.MaxValue,
+            TokensPerPeriod = int.MaxValue,
+            ReplenishmentPeriod = TimeSpan.FromSeconds(1),
+            QueueLimit = 0,
+            AutoReplenishment = true,
+        });
+        using var stage = new RateLimitingDecisionClient(new FixedResponseClient(PipelineChecks.TriageResponse()), limiter);
+        var request = new DecisionRequest(SmokeTriage.Definition, SmokeAnswers.State);
+
+        // Measured 0 B/call on published win-x64 AOT, and budgeted at exactly 0 B: a token-bucket permit is granted and
+        // released without allocating, around an inner client that allocates nothing.
+        GateValueTask(
+            budgetBytes: 0,
+            action: () => stage.EvaluateAsync(request),
+            label: "GrantedPermit",
+            passDescription: "a granted token-bucket permit stays within its allocation budget");
     }
 
     /// <summary><see cref="DecisionClientExtensions.EvaluateUtf8Async{T}(IDecisionClient, ReadOnlyMemory{byte})"/> over a canned handler.</summary>

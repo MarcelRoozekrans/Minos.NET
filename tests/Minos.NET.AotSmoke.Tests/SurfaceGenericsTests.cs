@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 namespace Minos.AotSmoke.Tests;
 
 /// <summary>
-/// The AOT surface host must instantiate every public generic type and generic method of the four packages. Rooting an
+/// The AOT surface host must instantiate every public generic type and generic method of the six packages. Rooting an
 /// assembly makes ILC analyse a generic member only through an instantiation it can share across reference types, and a
 /// value-type generic, such as <c>Choice&lt;T&gt;</c> with its <c>where T : struct, Enum</c>, has none, so the
 /// <c>aot-surface</c> job analyses such a member only through the host's instantiation of it. A generic type counts when
@@ -18,7 +18,7 @@ public sealed class SurfaceGenericsTests
     // DynamicallyAccessedMemberTypes.All, which is ~None.
     private const int AllMembers = -1;
 
-    private static readonly string[] Packages = ["Minos.NET", "Minos.NET.SystemOne", "Minos.NET.OpenAI", "Minos.NET.DependencyInjection"];
+    private static readonly string[] Packages = ["Minos.NET", "Minos.NET.SystemOne", "Minos.NET.OpenAI", "Minos.NET.DependencyInjection", "Minos.NET.Caching", "Minos.NET.RateLimiting"];
 
     [Fact]
     public void The_rebuilt_surface_compilation_has_no_warnings_or_errors_like_the_real_build()
@@ -74,11 +74,11 @@ public sealed class SurfaceGenericsTests
                 + "analyse them:\n" + string.Join('\n', missing));
     }
 
-    /// <summary>The public generic types of the four packages: generic types, and types nested in one.</summary>
+    /// <summary>The public generic types of the six packages: generic types, and types nested in one.</summary>
     internal static List<INamedTypeSymbol> PublicGenericTypes(Compilation compilation)
         => [.. Packages.SelectMany(name => PublicTypes(FindAssembly(compilation, name).GlobalNamespace)).Where(type => type.IsGenericType)];
 
-    /// <summary>The public and protected generic methods of the four packages' public types.</summary>
+    /// <summary>The public and protected generic methods of the six packages' public types.</summary>
     internal static List<IMethodSymbol> PublicGenericMethods(Compilation compilation)
         => [.. Packages
             .SelectMany(name => PublicTypes(FindAssembly(compilation, name).GlobalNamespace))
