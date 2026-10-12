@@ -126,7 +126,7 @@ Remove the source when you switch to the published packages: `dotnet nuget remov
 
 OpenAI's Decisions API is not one of these. It has its own client, `OpenAIDecisionClient`, which sends to
 `https://api.openai.com/v1/decisions` and reads `OPENAI_API_KEY`; [OpenAI](providers.md#openai) shows it, and
-[provider differences](providers.md#provider-differences) compares it with the presets.
+[the provider matrix](providers.md#at-a-glance) compares it with the presets.
 
 `TypeSafe` is the default. Set `ApiKey` on the options, or leave it unset and the client reads the matching environment
 variable. `VllmSemanticRouter` and `Custom` read none and send no key unless you set `ApiKey`. The

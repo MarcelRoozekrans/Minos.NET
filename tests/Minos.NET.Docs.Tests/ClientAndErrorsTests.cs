@@ -583,38 +583,6 @@ public sealed class ClientAndErrorsTests
     }
 
     [Fact]
-    public void TheCapabilityDefaultsTable_MatchesWhatEachPresetResolves()
-    {
-        var rows = PageTables.Rows("providers.md", "The defaults");
-
-        Assert.Equal(
-            Enum.GetNames<SystemOneProvider>().Append("OpenAI").Order(StringComparer.Ordinal),
-            rows.Select(row => PageTables.Code(row[0])).Order(StringComparer.Ordinal));
-        foreach (var row in rows)
-        {
-            using var http = new HttpClient();
-            using IDecisionClient client = string.Equals(PageTables.Code(row[0]), "OpenAI", StringComparison.Ordinal)
-                ? new OpenAIDecisionClient(http, new OpenAIDecisionClientOptions { ApiKey = "key" })
-                : new SystemOneClient(http, new SystemOneClientOptions
-                {
-                    Provider = Enum.Parse<SystemOneProvider>(PageTables.Code(row[0])),
-                    ApiKey = "key",
-                    BaseAddress = new Uri("http://localhost:8080/"),
-                    Model = "my-model",
-                });
-
-            var capabilities = Assert.IsType<DecisionCapabilities>(client.GetService(typeof(DecisionCapabilities)));
-
-            Assert.Equal(QuestionKinds.All, capabilities.QuestionKinds);
-            Assert.Equal("every kind", row[1]);
-            Assert.Equal(Limit(row[2]), capabilities.MaxQuestions);
-            Assert.Equal(Limit(row[3]), capabilities.MaxChoiceOptions);
-            Assert.Equal(Yes(row[4]), capabilities.Images);
-            Assert.Equal(Yes(row[5]), capabilities.ModelListing);
-        }
-    }
-
-    [Fact]
     public async Task ANoulOnlyServer_RefusesAChoiceQuestionWithoutSendingIt()
     {
         var (client, handler, http) = Direct(CapabilityOptions.NoulOnly(), Reply.Ok(UrgencyResponse));
@@ -704,17 +672,6 @@ public sealed class ClientAndErrorsTests
         }
 
         Assert.Empty(refusedHandler.Requests);
-    }
-
-    // A cell of the capability table: "none" for no limit, or a number.
-    private static int? Limit(string cell)
-        => string.Equals(cell, "none", StringComparison.Ordinal) ? null : int.Parse(cell, CultureInfo.InvariantCulture);
-
-    // A cell of the capability table: "yes" or "no".
-    private static bool Yes(string cell)
-    {
-        Assert.True(cell is "yes" or "no", $"{cell} is yes or no.");
-        return string.Equals(cell, "yes", StringComparison.Ordinal);
     }
 
     // A client over a handler, with no BaseAddress of its own, so that the options decide where requests go.

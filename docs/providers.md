@@ -16,8 +16,40 @@ covers what every client shares: its options, retries, time-outs and errors.
 model and the [capabilities](#capabilities). Every preset speaks the same `/v1/systemone` protocol.
 
 OpenAI's Decisions API speaks a protocol of its own, `/v1/decisions`. Its client, `OpenAIDecisionClient`, is in a
-separate package, `Minos.NET.OpenAI`, and [OpenAI](#openai) below describes it. [Provider
-differences](#provider-differences) compares the presets and OpenAI side by side.
+separate package, `Minos.NET.OpenAI`, and [OpenAI](#openai) below describes it. [At a glance](#at-a-glance)
+compares the presets and OpenAI side by side.
+
+## At a glance
+
+Each column is a provider: the four `SystemOneProvider` presets, which `SystemOneClient` reaches over System One, and
+OpenAI, which `OpenAIDecisionClient` reaches over its Decisions API. The first five rows are the
+[capabilities](#capabilities). Each of their cells is the default, which you can change, and "none" means no limit.
+
+| What | `TypeSafe` | `OpenRouter` | `VllmSemanticRouter` | `Custom` | `OpenAI` |
+| --- | --- | --- | --- | --- | --- |
+| Question kinds | every kind | every kind | every kind | every kind | every kind |
+| Most questions | none | none | none | none | none |
+| Most Choice options | 255 | 255 | none | none | none |
+| Images | no | no | no | no | yes |
+| Model listing | yes | no | no | no | no |
+| Wire format | System One: `POST v1/systemone`, a `questions` object keyed by id, an `answers` object | System One, as TypeSafe | System One, at `v1/systemone` or your `Path` | System One, at `v1/systemone` or your `Path` | Decisions: `POST v1/decisions`, a `questions` array and an `answers` array, matched by `name` |
+| Question wire names | `noul`, `choice`, `score` | `noul`, `choice`, `score` | `noul`, `choice`, `score` | `noul`, `choice`, `score` | `predicate` for a Noul, `choice`, `score` |
+| Noul `WhenTrue` and `WhenFalse` | Sent | Sent | Sent | Sent | MIN204, not sent |
+| Criterion `Examples` and `NotFor` | Sent, in a criterion object | Sent, in a criterion object | Sent, in a criterion object | Sent, in a criterion object | MIN205, not sent |
+| JSON instructions, criteria and state | Sent as JSON | Sent as JSON | Sent as JSON | Sent as JSON | Sent as the JSON's raw text, in a string |
+| Images on the wire | In `state`, as `image_url` parts; data URLs only | In `state`, as `image_url` parts; data URLs only | In `state`, as `image_url` parts; data URLs only | In `state`, as `image_url` parts; data URLs only | In `input`, as `input_image` parts; data URLs only |
+| Refusals | None in the protocol | None in the protocol | None in the protocol | None in the protocol | `Refused`, one failure per refused question, rule `refusal` |
+| Noul confidence, usage and cost | A Noul has a probability and no confidence. `usage` has the input and output tokens | A Noul has a probability and no confidence. `usage` has the tokens and `cost` in US dollars; the response has a generation `id` and the upstream `provider` | A Noul has a probability and no confidence. `usage` as the server sends it | A Noul has a probability and no confidence. `usage` as the server sends it | A Noul has a probability and no confidence. Usage is not documented: tokens and `cost` are read when present, and `Usage` is `null` unless both token counts are |
+| Auth | Required: `ApiKey` or `TYPESAFE_API_KEY` | Required: `ApiKey` or `OPENROUTER_API_KEY` | Optional: `ApiKey` only | Optional: `ApiKey` only | Required: `ApiKey` or `OPENAI_API_KEY` |
+| Status | Tested live | Tested live, with images and Clef | WireMock tests | WireMock tests, and a local server in CI | Public beta since 2026-10-06; WireMock tests built from the guide's examples, not tested live |
+
+A set that breaks a capability comes back as `Unsupported` before anything is sent: MIN201 for a question kind the
+provider does not take, MIN202 for more questions than `MaxQuestions`, MIN203 for more options than
+`MaxChoiceOptions`, and MIN206 for images while `Images` is off. TypeSafe's Jev reads text only, and OpenRouter mixes
+text and image models, so images are off for both until you switch them on; [Images](#images) says for which models.
+OpenRouter has its own models API, so model listing is off for it. A `Custom` or `VllmSemanticRouter` server switches
+listing on with `ModelListing = true`, and `OpenAIDecisionClient` has no `ListModelsAsync`. Choice and Score answers
+carry a confidence on every provider.
 
 ## The presets
 
@@ -208,28 +240,8 @@ public static IReadOnlyList<string> RefusedQuestions(DecisionError error)
 
 ## Provider differences
 
-What changes when you choose or switch a provider. The four presets speak System One through `SystemOneClient`, and
-OpenAI speaks its Decisions API through `OpenAIDecisionClient`. Each cell is the default; [capabilities](#capabilities)
-you set change the kinds, the limits, images and model listing.
-
-| Difference | `TypeSafe` | `OpenRouter` | `VllmSemanticRouter` | `Custom` | `OpenAI` |
-| --- | --- | --- | --- | --- | --- |
-| Wire format | System One: `POST v1/systemone`, a `questions` object keyed by id, an `answers` object | System One, as TypeSafe | System One, at `v1/systemone` or your `Path` | System One, at `v1/systemone` or your `Path` | Decisions: `POST v1/decisions`, a `questions` array and an `answers` array, matched by `name` |
-| Question kinds and their wire names | `noul`, `choice`, `score`; all three by default, MIN201 for one you turn off | `noul`, `choice`, `score`; all three by default, MIN201 for one you turn off | `noul`, `choice`, `score`; all three by default, MIN201 for one you turn off | `noul`, `choice`, `score`; all three by default, MIN201 for one you turn off | `predicate` for a Noul, `choice`, `score`; all three by default, MIN201 for one you turn off |
-| Noul `WhenTrue` and `WhenFalse` | Sent | Sent | Sent | Sent | MIN204, not sent |
-| Criterion `Examples` and `NotFor` | Sent, in a criterion object | Sent, in a criterion object | Sent, in a criterion object | Sent, in a criterion object | MIN205, not sent |
-| JSON instructions, criteria and state | Sent as JSON | Sent as JSON | Sent as JSON | Sent as JSON | Sent as the JSON's raw text, in a string |
-| Limits | 255 options per Choice, MIN203; no question limit | 255 options per Choice, MIN203; no question limit | None published | None published | None published |
-| Images | Off: Jev reads text only, MIN206 while off. In `state`, as `image_url` parts, once switched on; data URLs only | Off: switch on with `Images = true` for a model that reads images, MIN206 while off. In `state`, as `image_url` parts; data URLs only | Off, MIN206 while off. In `state`, as `image_url` parts, once switched on; data URLs only | Off, MIN206 while off. In `state`, as `image_url` parts, once switched on; data URLs only | On. In `input`, as `input_image` parts; data URLs only |
-| Refusals | None in the protocol | None in the protocol | None in the protocol | None in the protocol | `Refused`, one failure per refused question, rule `refusal` |
-| Noul confidence, usage and cost | A Noul has a probability and no confidence. `usage` has the input and output tokens | A Noul has a probability and no confidence. `usage` has the tokens and `cost` in US dollars; the response has a generation `id` and the upstream `provider` | A Noul has a probability and no confidence. `usage` as the server sends it | A Noul has a probability and no confidence. `usage` as the server sends it | A Noul has a probability and no confidence. Usage is not documented: tokens and `cost` are read when present, and `Usage` is `null` unless both token counts are |
-| Model listing | `ListModelsAsync` | `Unsupported`; OpenRouter has its own models API | `Unsupported`, unless `ModelListing = true` | `Unsupported`, unless `ModelListing = true` | No `ListModelsAsync` |
-| Auth | Required: `ApiKey` or `TYPESAFE_API_KEY` | Required: `ApiKey` or `OPENROUTER_API_KEY` | Optional: `ApiKey` only | Optional: `ApiKey` only | Required: `ApiKey` or `OPENAI_API_KEY` |
-| Status | Tested live | Tested live, with images and Clef | WireMock tests | WireMock tests, and a local server in CI | Public beta since 2026-10-06; WireMock tests built from the guide's examples, not tested live |
-
-Choice and Score answers carry a confidence on every provider. A limit you set in `Capabilities` applies on every
-provider: MIN202 for more questions than `MaxQuestions`, MIN203 for more options than `MaxChoiceOptions`. A request with
-images to a provider whose `Images` is off returns MIN206 without sending. [Images](#images) has the details.
+The [matrix at the top of this page](#at-a-glance) shows what changes when you choose or switch a provider. These
+notes add what a table cannot hold: what live probes found, and how OpenRouter reaches models other than Jev.
 
 ### Notes from the probes
 
@@ -262,7 +274,7 @@ maintainer's account allows only zero-data-retention endpoints.
 <!-- snippet: ClientAndErrors_OpenRouterModels -->
 ```cs
 // OpenRouter serves Clef and Luna in the System One format, so the OpenRouter preset reaches them by model id.
-// The request is System One: the OpenRouter column of the provider differences applies, not the OpenAI one.
+// The request is System One: the OpenRouter column of the provider matrix applies, not the OpenAI one.
 public static SystemOneClientOptions Clef()
     => new() { Provider = SystemOneProvider.OpenRouter, Model = "cloudflare/clef-flash" };
 
@@ -280,15 +292,8 @@ would refuse comes back as a failure at once, with no request, no retry and no c
 
 ### The defaults
 
-Each preset, and OpenAI, has defaults for the five capabilities. "None" means no limit.
-
-| Provider | Question kinds | Most questions | Most Choice options | Images | Model listing |
-| --- | --- | --- | --- | --- | --- |
-| `TypeSafe` | every kind | none | 255 | no | yes |
-| `OpenRouter` | every kind | none | 255 | no | no |
-| `VllmSemanticRouter` | every kind | none | none | no | no |
-| `Custom` | every kind | none | none | no | no |
-| `OpenAI` | every kind | none | none | yes | no |
+The first five rows of the [matrix](#at-a-glance) are each provider's defaults for the five capabilities. "None"
+means no limit.
 
 `Images` says whether the provider takes [images](#images). A request with images to a provider whose `Images` is off
 returns `Unsupported` with `MIN206`, and nothing is sent.

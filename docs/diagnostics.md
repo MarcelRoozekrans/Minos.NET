@@ -90,7 +90,7 @@ excludes it, though a custom `ShouldRetry` can retry it.
 | MIN206 | The request has images, and the provider's `Images` is off. |
 
 [The Unsupported error](providers.md#the-unsupported-error) shows the messages and the order of the failures,
-and [provider differences](providers.md#provider-differences) which provider each rule applies to.
+and [the provider matrix](providers.md#at-a-glance) which provider each rule applies to.
 
 ### Where a rule is reported
 
