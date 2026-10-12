@@ -1,0 +1,23 @@
+{
+  "model": "jev-1.13.0",
+  "answers": {
+    "refund": {
+      "type": "noul",
+      "noul": 0.92
+    },
+    "topic": {
+      "type": "choice",
+      "choice": "billing",
+      "probabilities": { "billing": 0.8, "other": 0.2 },
+      "confidence": 0.6
+    },
+    "urgency": {
+      "type": "score",
+      "score": 1.1,
+      "legend": { "0": "Not urgent", "1": "Soon", "2": "Right now" },
+      "probabilities": { "0": 0.1, "1": 0.7, "2": 0.2 },
+      "confidence": 0.5
+    }
+  },
+  "usage": { "input_tokens": 120, "output_tokens": 30 }
+}

@@ -332,12 +332,19 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-12-phase-6.7-providers-docs-and-samples.md`
 **Completed:** 2026-10-12
 
+### Phase 6.8: One question set through both protocols [status: pending]
+**Goal:** Close the Milestone 6 audit's gap: a test sends one generated question set through the `/v1/systemone` and OpenAI adapters and pins both request bodies, proving the set carries no wire JSON of its own (`docs/plans/2026-10-12-milestone-6-audit.md`, gap 1).
+**Surface:** Backend
+**HelpWanted:** no
+**Plan:** _none; a bounded change approved in chat on 2026-10-12_
+
 ## Milestone 7: 1.0 release [status: pending]
 **Goal:** Review, verify and publish the provider-neutral library as 1.0.0 on NuGet, with api-compat guarding every later change.
 **Design:** `docs/superpowers/specs/2026-10-09-roadmap-design.md`
 **Definition of Done:**
 - [ ] The renamed public API is reviewed and `PublicAPI.Shipped.txt` describes 1.0.0
 - [ ] Live runs pass against TypeSafe, OpenRouter, OpenAI and a local `/v1/systemone` server
+- [ ] The conformance suite runs green against recorded OpenAI fixtures (#161), moved from Milestone 6 on 2026-10-12
 - [ ] Native AOT and trim verification covers the whole public API with no warnings; every allocation budget is unchanged or tightened
 - [ ] 1.0.0 is on NuGet through release-please and the publish job (#29), the guide states its version, and api-compat guards later changes (#28)
 

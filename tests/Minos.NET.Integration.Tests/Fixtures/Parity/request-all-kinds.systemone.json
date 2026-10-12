@@ -1,0 +1,23 @@
+{
+  "state": "I was charged twice.",
+  "model": "jev-latest",
+  "questions": {
+    "refund": {
+      "type": "noul",
+      "instructions": "Is this a refund request?"
+    },
+    "topic": {
+      "type": "choice",
+      "instructions": "Which topic is this about?",
+      "criteria": {
+        "billing": "Payments and invoices",
+        "other": null
+      }
+    },
+    "urgency": {
+      "type": "score",
+      "instructions": "How urgent is this?",
+      "criteria": ["Not urgent", "Soon", "Right now"]
+    }
+  }
+}

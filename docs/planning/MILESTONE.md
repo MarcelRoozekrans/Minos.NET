@@ -17,8 +17,10 @@ One typed question set runs against TypeSafe, OpenRouter, OpenAI and a local `/v
 - [ ] `IDecisionClient` is the client abstraction, with retries, telemetry and logging as pipeline stages. Every allocation budget on the `/v1/systemone` path is unchanged or tightened.
 - [ ] Both adapters have recorded-fixture tests. An unsupported question kind, or image state on a provider without image input, fails with a typed error naming the provider and the question, never as a raw HTTP failure.
 - [ ] Live runs pass against TypeSafe, OpenRouter and OpenAI, and against one local `/v1/systemone` server, either in CI or documented as run.
+  - Moved in part to Milestone 7 on 2026-10-12: TypeSafe, OpenRouter and the local server pass; the OpenAI run waits for a key (#161), and Milestone 7's Definition of Done already requires it. Decided after the 2026-10-12 audit.
 - [ ] The conformance suite runs green against recorded TypeSafe and OpenAI fixtures.
   - Partly met on 2026-10-12: TypeSafe's and OpenRouter's fixtures are recorded and green. OpenAI's success fixtures come from its Decisions guide, because there is no OpenAI key; #161 tracks recording them.
+  - Moved in part to Milestone 7 on 2026-10-12: recording OpenAI's fixtures is in Milestone 7's Definition of Done. Decided after the 2026-10-12 audit.
 - [ ] A Providers docs page shows the presets and the capability matrix. A sample switches providers by configuration only.
 
 ## Phases
@@ -29,7 +31,9 @@ One typed question set runs against TypeSafe, OpenRouter, OpenAI and a local `/v
 5. Phase 6.5 — OpenAI /v1/decisions adapter and image state [complete]
 6. Phase 6.6 — Conformance suite [complete]
 7. Phase 6.7 — Providers docs and samples [complete]
+8. Phase 6.8 — One question set through both protocols [pending]
 
 ## Audit History
 | Date | Verdict | Gaps |
 |---|---|---|
+| 2026-10-12 | FAIL | No test serializes one question set for both protocols, closed by Phase 6.8; no live OpenAI run and no recorded OpenAI fixtures, both moved to Milestone 7 (#161). Report: `docs/plans/2026-10-12-milestone-6-audit.md` |
