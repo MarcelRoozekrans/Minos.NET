@@ -332,11 +332,13 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-12-phase-6.7-providers-docs-and-samples.md`
 **Completed:** 2026-10-12
 
-### Phase 6.8: One question set through both protocols [status: pending]
+### Phase 6.8: One question set through both protocols [status: complete]
 **Goal:** Close the Milestone 6 audit's gap: a test sends one generated question set through the `/v1/systemone` and OpenAI adapters and pins both request bodies, proving the set carries no wire JSON of its own (`docs/plans/2026-10-12-milestone-6-audit.md`, gap 1).
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _none; a bounded change approved in chat on 2026-10-12_
+**Pre-push review:** `docs/plans/2026-10-12-phase-6.8-pre-push-review.md`
+**Completed:** 2026-10-12, in #170
 
 ## Milestone 7: 1.0 release [status: pending]
 **Goal:** Review, verify and publish the provider-neutral library as 1.0.0 on NuGet, with api-compat guarding every later change.

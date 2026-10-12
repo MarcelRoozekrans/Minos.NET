@@ -31,7 +31,7 @@ One typed question set runs against TypeSafe, OpenRouter, OpenAI and a local `/v
 5. Phase 6.5 — OpenAI /v1/decisions adapter and image state [complete]
 6. Phase 6.6 — Conformance suite [complete]
 7. Phase 6.7 — Providers docs and samples [complete]
-8. Phase 6.8 — One question set through both protocols [pending]
+8. Phase 6.8 — One question set through both protocols [complete]
 
 ## Audit History
 | Date | Verdict | Gaps |
