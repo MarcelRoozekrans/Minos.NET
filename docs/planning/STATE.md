@@ -1,6 +1,6 @@
-# Session State — 2026-10-11 (Phase 6.5 complete: the OpenAI /v1/decisions adapter and image state)
+# Session State — 2026-10-12 (Phase 6.6 complete: the conformance suite)
 
-**Date:** 2026-10-11
+**Date:** 2026-10-12
 
 ## Current Position
 - **Roadmap:** re-planned on 2026-10-09 (`docs/superpowers/specs/2026-10-09-roadmap-design.md`).
@@ -67,7 +67,17 @@
   - **Live tests through OpenRouter:** images on `perplexity/pplx-decider-v1.1-27b`, Clef on `cloudflare/clef-flash` (closes #151), and Luna on `openai/gpt-6-luna-decisions`, which runs only when the `MINOS_LIVE_LUNA` variable is 1. OpenRouter's zero-data-retention setting (https://openrouter.ai/settings/privacy) blocks Luna on this account; turning it off is the maintainer's call.
   - **#115** stays open for Phases 6.6 and 6.7; its analyzer item is covered at run time by MIN206, because image use is not statically knowable.
   - **CI fix after the merge:** Renovate #154 had moved `local-systemone.yml` to Python 3.15, and ollajev 0.4.0 requires Python >=3.12,<3.13, so the job failed on `main` from #154 on. It is back on 3.12, and a Renovate rule keeps it below 3.13.
-  - **Leave #157 (0.10.0) open** until a release is wanted.
+  - #157 (0.10.0) merged: v0.10.0 is a GitHub release.
+- **Milestone 6, Phase 6.6 (conformance suite):** complete on 2026-10-12.
+  - **Merged:** #162, in the 0.11.0 release PR #163. Pre-push review PASS: `docs/plans/2026-10-11-phase-6.6-pre-push-review.md`.
+  - **What shipped:**
+    - `DecisionError.RequestId`, read from `x-request-id`, then `x-typesafe-request-id`, then `request-id` in the shared error mapper. Event 1002 logs it, and a failed call's span carries `minos.request_id`.
+    - `Minos.NET.Conformance`, not packed until Phase 8.3: targets, seven probes, fifteen checks S1 to R3, a runner with live, record and replay modes, JSON and markdown reports. A check that cannot run is skipped, never passed.
+    - The replay suite: no check may fail on any fixture, and each fixture skips exactly the expected checks.
+  - **First recording:** Live smoke run 38201115464 on `main`, 2026-10-12. TypeSafe 51 passed, 0 failed, 5 skipped; OpenRouter 49 passed, 0 failed, 7 skipped. TypeSafe's errors carry `x-typesafe-request-id`, so `E3` passes there; OpenRouter's 400 and 401 carry no request-id header.
+  - **Found by the recording and fixed in the complete-phase PR:** a recorded body dropped no account identifier, so OpenRouter's `user_id` would have been committed, and every exchange was written with the derived `isSuccess`. Both are left out now, and the fixture scan forbids `user_id`.
+  - **Partly met:** the Milestone 6 item on recorded OpenAI fixtures. OpenAI's success fixtures are labelled `guide`; #161 tracks recording them once a key exists.
+  - **Leave #163 (0.11.0) open** until a release is wanted.
 - **Old Phase 5.5 (1.0 release):** removed from Milestone 5 and folded into Phase 7.4.
   - Its reviewed pipeline work sits on the local branch `phase/5.5-release`, not pushed:
     - inspection script;
@@ -90,12 +100,12 @@
 
 ## Recommended Next Step
 1. Milestone 6, Provider-neutral core, is active (design `docs/superpowers/specs/2026-10-09-milestone-6-design.md`).
-2. Next: Phase 6.6, the conformance suite (#116, conformance part). It needs a brainstorm. It checks any endpoint's request and response shapes against recorded TypeSafe and OpenAI fixtures, so it builds on both adapters' fixture tests from Phases 6.4 and 6.5.
+2. Next: Phase 6.7, Providers docs and samples. It needs a brainstorm: a Providers page with the presets and the capability matrix, and a sample that runs one question type against three providers by configuration only.
 3. Run `pre-push-review` on each feature branch before its PR, and keep the report in `docs/plans/`: the docs tests treat every file at the top of `docs/` as a site page.
 4. Allocation gates run only in the published AOT smoke executable, not in `dotnet test`: publish and run it for any change under `src/`.
 
 ## Operational notes
-- **Live keys:** `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY` are in the `live-api` environment, which deploys only from `main`. Run the suite with `gh workflow run live-smoke.yml --ref main`. About 13 small billed calls per run, plus the image and Clef tests Phase 6.5 added; Luna runs too when `MINOS_LIVE_LUNA` is 1.
+- **Live keys:** `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY` are in the `live-api` environment, which deploys only from `main`. Run the suite with `gh workflow run live-smoke.yml --ref main`. About 13 small billed calls per run, plus the image and Clef tests Phase 6.5 added and seven conformance probes per provider for TypeSafe and OpenRouter; Luna runs too when `MINOS_LIVE_LUNA` is 1. The run uploads the recorded fixtures as the `conformance-fixtures` artifact; copy them into `tests/Minos.NET.Conformance.Tests/Fixtures` through a PR.
 - **Website updates:**
   - .website's bot "update submodules" PRs hold their `build` run (`action_required`). Approve it with `gh api -X POST repos/ZeroAlloc-Net/.website/actions/runs/<id>/approve`, then merge with `--admin`, after asking the maintainer.
   - jev.zeroalloc.net only updates when that PR merges.
