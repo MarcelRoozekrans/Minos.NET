@@ -1,0 +1,30 @@
+{
+  "model": "gpt-6-luna",
+  "input": "I was charged twice.",
+  "questions": [
+    {
+      "type": "predicate",
+      "name": "refund",
+      "instructions": "Is this a refund request?"
+    },
+    {
+      "type": "choice",
+      "name": "topic",
+      "instructions": "Which topic is this about?",
+      "choices": [
+        { "value": "billing", "description": "Payments and invoices" },
+        { "value": "other" }
+      ]
+    },
+    {
+      "type": "score",
+      "name": "urgency",
+      "instructions": "How urgent is this?",
+      "levels": [
+        { "label": "0", "description": "Not urgent" },
+        { "label": "1", "description": "Soon" },
+        { "label": "2", "description": "Right now" }
+      ]
+    }
+  ]
+}
