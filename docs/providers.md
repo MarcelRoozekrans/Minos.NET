@@ -23,7 +23,7 @@ compares the presets and OpenAI side by side.
 
 Each column is a provider: the four `SystemOneProvider` presets, which `SystemOneClient` reaches over System One, and
 OpenAI, which `OpenAIDecisionClient` reaches over its Decisions API. The first five rows are the
-[capabilities](#capabilities). Each of their cells is the default, which you can change, and "none" means no limit.
+[capabilities](#capabilities). Each of their cells is the default, which you can change, and "none" means no limit is published or set.
 
 | What | `TypeSafe` | `OpenRouter` | `VllmSemanticRouter` | `Custom` | `OpenAI` |
 | --- | --- | --- | --- | --- | --- |
@@ -51,7 +51,7 @@ OpenRouter has its own models API, so model listing is off for it. A `Custom` or
 listing on with `ModelListing = true`, and `OpenAIDecisionClient` has no `ListModelsAsync`. Choice and Score answers
 carry a confidence on every provider. A limit that reads "none" for `VllmSemanticRouter`, `Custom` or OpenAI means
 the provider publishes none, not that it is known to be unlimited. A limit you set in `Capabilities` applies on every
-provider. The capabilities you set change the kinds, the limits, the images and the model listing the client checks.
+provider. The capabilities you set change the kinds, the limits, the images and, for the System One presets, the model listing the client checks.
 While model listing is off, a model-listing call returns the `Unsupported` kind.
 
 ## The presets
@@ -296,7 +296,7 @@ would refuse comes back as a failure at once, with no request, no retry and no c
 ### The defaults
 
 The first five rows of the [matrix](#at-a-glance) are each provider's defaults for the five capabilities. "None"
-means no limit.
+means no limit is published or set.
 
 `Images` says whether the provider takes [images](#images). A request with images to a provider whose `Images` is off
 returns `Unsupported` with `MIN206`, and nothing is sent.
