@@ -1,4 +1,4 @@
-# Session State — 2026-10-12 (Phase 6.6 complete: the conformance suite)
+# Session State — 2026-10-12 (Phase 6.7 complete: Providers docs and samples)
 
 **Date:** 2026-10-12
 
@@ -77,7 +77,15 @@
   - **First recording:** Live smoke run 38201115464 on `main`, 2026-10-12. TypeSafe 51 passed, 0 failed, 5 skipped; OpenRouter 49 passed, 0 failed, 7 skipped. TypeSafe's errors carry `x-typesafe-request-id`, so `E3` passes there; OpenRouter's 400 and 401 carry no request-id header.
   - **Found by the recording and fixed in the complete-phase PR:** a recorded body dropped no account identifier, so OpenRouter's `user_id` would have been committed, and every exchange was written with the derived `isSuccess`. Both are left out now, and the fixture scan forbids `user_id`.
   - **Partly met:** the Milestone 6 item on recorded OpenAI fixtures. OpenAI's success fixtures are labelled `guide`; #161 tracks recording them once a key exists.
-  - **Leave #163 (0.11.0) open** until a release is wanted.
+  - #163 (0.11.0) merged: v0.11.0 and v0.11.1 are GitHub releases. Release PR #168 (0.11.2) is open.
+- **Milestone 6, Phase 6.7 (Providers docs and samples):** complete on 2026-10-12. Every Milestone 6 phase is now complete.
+  - **Merged:** #167 (`bfea1c8`), with the recordings in the complete-phase PR that closes #166. Pre-push review PASS: `docs/plans/2026-10-12-phase-6.7-pre-push-review.md`.
+  - **What shipped:**
+    - the Providers page: the presets, the merged capability matrix with the provider differences, switching providers, running a local server and adding OpenAI. The links into the moved sections were repointed.
+    - the provider-switch sample, `samples/Minos.NET.Samples.ProviderSwitch`: it routes eight support tickets to a team with one Choice question, and `Minos:Active` or `--provider` picks TypeSafe, OpenRouter or a local server. No change under `src/`.
+    - CI replays each file in the sample's `recordings/` folder with `--provider`.
+  - **Recorded 2026-10-12:** Live smoke run 38214563649 recorded `typesafe.json` from `jev-1.13.0` and `openrouter.json` from `typesafe/jev-1.13-20260917`. Local systemone run 38212769290 recorded `local.json` from `Mapika/decider-2b-GGUF:Q4_K_M`. All three route every ticket to the same team. TypeSafe and OpenRouter answer 1.00 throughout, and the local model is less sure, 0.80 to 0.99.
+  - **Still open for the Milestone 6 audit,** both waiting on an OpenAI key and tracked in #161: a live run against OpenAI, and recorded OpenAI conformance fixtures.
 - **Old Phase 5.5 (1.0 release):** removed from Milestone 5 and folded into Phase 7.4.
   - Its reviewed pipeline work sits on the local branch `phase/5.5-release`, not pushed:
     - inspection script;
@@ -99,13 +107,13 @@
 - **Publishing:** blocked until Milestone 7. Do not push `phase/5.5-release` as a PR, and do not merge anything carrying `Release-As: 1.0.0`.
 
 ## Recommended Next Step
-1. Milestone 6, Provider-neutral core, is active (design `docs/superpowers/specs/2026-10-09-milestone-6-design.md`).
-2. Next: Phase 6.7, Providers docs and samples. It needs a brainstorm: a Providers page with the presets and the capability matrix, and a sample that runs one question type against three providers by configuration only.
+1. Milestone 6, Provider-neutral core, is active, and all its phases are complete (design `docs/superpowers/specs/2026-10-09-milestone-6-design.md`).
+2. Next: the Milestone 6 audit. Two items wait on an OpenAI key and are tracked in #161: a live run against OpenAI, and recorded OpenAI conformance fixtures. Release PR #168 (0.11.2) is open.
 3. Run `pre-push-review` on each feature branch before its PR, and keep the report in `docs/plans/`: the docs tests treat every file at the top of `docs/` as a site page.
 4. Allocation gates run only in the published AOT smoke executable, not in `dotnet test`: publish and run it for any change under `src/`.
 
 ## Operational notes
-- **Live keys:** `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY` are in the `live-api` environment, which deploys only from `main`. Run the suite with `gh workflow run live-smoke.yml --ref main`. About 13 small billed calls per run, plus the image and Clef tests Phase 6.5 added and seven conformance probes per provider for TypeSafe and OpenRouter; Luna runs too when `MINOS_LIVE_LUNA` is 1. The run uploads the recorded fixtures as the `conformance-fixtures` artifact; copy them into `tests/Minos.NET.Conformance.Tests/Fixtures` through a PR.
+- **Live keys:** `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY` are in the `live-api` environment, which deploys only from `main`. Run the suite with `gh workflow run live-smoke.yml --ref main`. About 13 small billed calls per run, plus the image and Clef tests Phase 6.5 added and seven conformance probes per provider for TypeSafe and OpenRouter; Luna runs too when `MINOS_LIVE_LUNA` is 1. The run uploads the recorded fixtures as the `conformance-fixtures` artifact; copy them into `tests/Minos.NET.Conformance.Tests/Fixtures` through a PR. The same run records the provider-switch sample for TypeSafe and OpenRouter and uploads `typesafe.json` and `openrouter.json` as the `provider-switch-recordings` artifact; `local-systemone.yml` records `local.json` and uploads it as `provider-switch-local`. Download both into `samples/Minos.NET.Samples.ProviderSwitch/recordings/` with `gh run download` and commit them through a PR. A recorded sample call is billed too.
 - **Website updates:**
   - .website's bot "update submodules" PRs hold their `build` run (`action_required`). Approve it with `gh api -X POST repos/ZeroAlloc-Net/.website/actions/runs/<id>/approve`, then merge with `--admin`, after asking the maintainer.
   - jev.zeroalloc.net only updates when that PR merges.
