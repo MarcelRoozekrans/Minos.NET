@@ -8,11 +8,14 @@ public sealed class ReplayHandler : HttpMessageHandler
 {
     private readonly Dictionary<string, string> _responses;
     private readonly string _sampleName;
+    private readonly string _recordCommand;
 
-    public ReplayHandler(RecordingsFile recordings, string sampleName)
+    /// <param name="provider">The provider these recordings belong to, for a sample that has several; its record command names it.</param>
+    public ReplayHandler(RecordingsFile recordings, string sampleName, string? provider = null)
     {
         ArgumentNullException.ThrowIfNull(recordings);
         _sampleName = sampleName;
+        _recordCommand = SampleHost.RecordCommand(sampleName, provider);
         _responses = new Dictionary<string, string>(StringComparer.Ordinal);
         foreach (var entry in recordings.Entries)
         {
@@ -20,7 +23,7 @@ public sealed class ReplayHandler : HttpMessageHandler
             {
                 throw new InvalidOperationException(
                     "The recordings of " + sampleName + " hold the request hash " + entry.RequestHash + " more than once. "
-                    + "Remove the duplicate, or re-record with: dotnet run --project samples/" + sampleName + " -- --record");
+                    + "Remove the duplicate, or re-record with: " + _recordCommand);
             }
         }
     }
@@ -33,7 +36,7 @@ public sealed class ReplayHandler : HttpMessageHandler
         {
             throw new InvalidOperationException(
                 "No recorded answer for this request in " + _sampleName + ". Its questions, its data or the client's request "
-                + "format changed since it was recorded. Re-record with: dotnet run --project samples/" + _sampleName + " -- --record");
+                + "format changed since it was recorded. Re-record with: " + _recordCommand);
         }
 
         return new HttpResponseMessage(HttpStatusCode.OK)

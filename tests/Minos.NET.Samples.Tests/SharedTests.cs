@@ -60,6 +60,28 @@ public sealed class SharedTests
     }
 
     [Fact]
+    public async Task Replay_NamesTheProvidersRecordCommand_ForAnUnknownRequest()
+    {
+        using var http = new HttpClient(new ReplayHandler(File(), "Minos.NET.Samples.Example", "OpenRouter"));
+
+        var exception = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => http.PostAsync(new Uri("https://example.test/v1"), new StringContent("{}")));
+
+        Assert.Contains("dotnet run --project samples/Minos.NET.Samples.Example -- --provider openrouter --record", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Replay_NamesTheProvidersRecordCommand_ForADuplicateHash()
+    {
+        var recordings = File(new RecordedResponse("abc123", JsonElement.Parse(Body)), new RecordedResponse("abc123", JsonElement.Parse(Body)));
+
+        var exception = Assert.Throws<InvalidOperationException>(
+            () => new ReplayHandler(recordings, "Minos.NET.Samples.Example", "Local"));
+
+        Assert.Contains("-- --provider local --record", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Record_KeepsSuccessfulBodiesOnly_AndNoHeaders()
     {
         var session = new RecordingSession();
