@@ -192,6 +192,8 @@ regression cannot reach a release unnoticed.
 | `NeutralEvaluateRoundTrip` | A neutral `EvaluateAsync(DecisionRequest)` call on the standard pipeline. | 3392 |
 | `BareTransportRoundTrip` | A neutral call with `UseStandardPipeline` off, the transport alone. | 3392 |
 | `PassThroughStage` | A `DelegatingDecisionClient` that overrides nothing, over an inner call that completes synchronously. | 0 |
+| `CacheHit` | A `CachingDecisionClient` answering from its in-process cache; the 176 B measured is what a hit allocates per call. | 256 |
+| `GrantedPermit` | A `RateLimitingDecisionClient` granting a token-bucket permit, over an inner call that allocates nothing. | 0 |
 | `Utf8StateEvaluateRoundTrip` | A typed `EvaluateUtf8Async<T>` call, which copies the caller's bytes once and sends them as written. | 3712 |
 | `TypedStateEvaluateRoundTrip` | A typed `EvaluateAsync<T, TState>` call, which serializes its state once into an array. | 3136 |
 | `SystemOneImageRoundTrip` | A typed `EvaluateAsync<T, TState>` call with one 64 B image, sent as a data URL beside the state. | 3200 |
