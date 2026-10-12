@@ -69,7 +69,7 @@
     -->
     <PackageVersion Include="Microsoft.Extensions.Caching.Abstractions" Version="10.0.0" />
     <!-- Test and smoke-app only: MemoryCache and MemoryDistributedCache, through AddMemoryCache and AddDistributedMemoryCache. -->
-    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.0" />
+    <PackageVersion Include="Microsoft.Extensions.Caching.Memory" Version="10.0.12" />
     <!-- The rate-limiting package's RateLimiter. Its floor is the first .NET 10 release, as for the other Microsoft packages. -->
     <PackageVersion Include="System.Threading.RateLimiting" Version="10.0.0" />
     <!-- Runtime question set validation: its generators validate Minos.NET's own specs; NuGet still flows them to consumers, where they stay inert, NuGet/Home#6720 -->
