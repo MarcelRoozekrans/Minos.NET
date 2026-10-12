@@ -17,6 +17,8 @@
     <!-- FakeLogger, and a real LoggerFactory and ServiceCollection for the hosted cache. -->
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
+    <!-- FakeTimeProvider, to step a retry backoff. -->
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
   </ItemGroup>
 
   <ItemGroup>
