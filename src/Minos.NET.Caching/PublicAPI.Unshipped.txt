@@ -1,14 +1,1 @@
 #nullable enable
-Minos.Caching.CachingDecisionClient
-Minos.Caching.CachingDecisionClient.CachingDecisionClient(Minos.IDecisionClient! innerClient, Microsoft.Extensions.Caching.Memory.IMemoryCache! memoryCache, Microsoft.Extensions.Caching.Distributed.IDistributedCache? distributedCache = null, Minos.Caching.DecisionCacheOptions? options = null, Microsoft.Extensions.Logging.ILogger? logger = null) -> void
-Minos.Caching.CachingDecisionClientBuilderExtensions
-Minos.Caching.DecisionCacheOptions
-Minos.Caching.DecisionCacheOptions.DecisionCacheOptions() -> void
-Minos.Caching.DecisionCacheOptions.Expiration.get -> System.TimeSpan
-Minos.Caching.DecisionCacheOptions.Expiration.set -> void
-Minos.Caching.DecisionCacheOptions.KeyPrefix.get -> string!
-Minos.Caching.DecisionCacheOptions.KeyPrefix.set -> void
-Minos.Caching.DecisionCacheOptions.LocalCacheExpiration.get -> System.TimeSpan?
-Minos.Caching.DecisionCacheOptions.LocalCacheExpiration.set -> void
-override Minos.Caching.CachingDecisionClient.EvaluateAsync(Minos.DecisionRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>
-static Minos.Caching.CachingDecisionClientBuilderExtensions.UseCaching(this Minos.DecisionClientBuilder! builder, Microsoft.Extensions.Caching.Memory.IMemoryCache? memoryCache = null, Microsoft.Extensions.Caching.Distributed.IDistributedCache? distributedCache = null, System.Action<Minos.Caching.DecisionCacheOptions!>? configure = null) -> Minos.DecisionClientBuilder!
