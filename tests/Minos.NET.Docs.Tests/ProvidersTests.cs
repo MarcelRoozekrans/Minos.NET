@@ -43,14 +43,14 @@ public sealed class ProvidersTests
     [Fact]
     public void TheOpenAIOptionsTable_ListsEveryPropertyOfTheOptions()
     {
-        var rows = PageTables.Rows("client-and-errors.md", "OpenAI");
+        var rows = PageTables.Rows("providers.md", "OpenAI");
         var properties = typeof(OpenAIDecisionClientOptions).GetProperties().Select(property => property.Name).ToArray();
 
         Assert.Equal(
             properties.Order(StringComparer.Ordinal),
             rows.SelectMany(row => PageTables.AllCode(row[0])).Order(StringComparer.Ordinal));
         Assert.Equal(10, properties.Length);
-        Assert.Contains("`OpenAIDecisionClientOptions` has ten properties", PageTables.Text("client-and-errors.md"), StringComparison.Ordinal);
+        Assert.Contains("`OpenAIDecisionClientOptions` has ten properties", PageTables.Text("providers.md"), StringComparison.Ordinal);
         Assert.Equal(OpenAIDefaults.ApiKeyEnvironmentVariable, PageTables.AllCode(rows[0][1])[0]);
         Assert.Equal(OpenAIDefaults.BaseAddressEnvironmentVariable, PageTables.AllCode(rows[1][1])[0]);
         Assert.Equal(OpenAIDefaults.BaseAddress.AbsoluteUri, PageTables.AllCode(rows[1][1])[1]);

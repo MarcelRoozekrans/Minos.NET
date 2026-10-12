@@ -1,7 +1,7 @@
 ---
 id: dependency-injection
 title: Dependency injection
-sidebar_position: 6
+sidebar_position: 7
 description: Register IDecisionClient in a .NET host with AddSystemOneClient, key several clients, bind options from configuration, and check them at start-up.
 ---
 
@@ -198,7 +198,7 @@ public static void AddFromConfiguration(IHostApplicationBuilder builder)
 
 The keys for the other providers are `Path` and `Capabilities`, with the capabilities in a section of their
 own. `QuestionKinds` is a comma-separated list. A capability you leave out keeps the [preset's
-default](client-and-errors.md#the-defaults).
+default](providers.md#the-defaults).
 
 ```json
 {
@@ -427,7 +427,7 @@ public static OpenAIDecisionClientServiceBuilder AddBothProviders(IHostApplicati
   throws `InvalidOperationException`. Use different names, as the snippet does, to have both.
 - **Its provider name is `openai`**, in its logs, spans and metrics.
 
-[OpenAI](client-and-errors.md#openai) has the options, what OpenAI cannot express, and refusals.
+[OpenAI](providers.md#openai) has the options, what OpenAI cannot express, and refusals.
 
 ## The neutral AddDecisionClient
 

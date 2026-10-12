@@ -7,9 +7,9 @@ namespace Minos.Docs.Tests;
 // are the provider rules. It reads no cell's wording, so a cell can be reworded without breaking it.
 public sealed partial class ProviderDifferencesTests
 {
-    private const string Page = "client-and-errors.md";
+    private const string Page = "providers.md";
 
-    private const string Heading = "### Provider differences";
+    private const string Heading = "## Provider differences";
 
     [Fact]
     public void TheColumns_AreThePresets_ThenOpenAI()
@@ -60,7 +60,7 @@ public sealed partial class ProviderDifferencesTests
         var section = new List<string>();
         foreach (var line in lines[(start + 1)..])
         {
-            if (Level().Match(line) is { Success: true } heading && heading.Groups["hashes"].Length <= 3)
+            if (Level().Match(line) is { Success: true } heading && heading.Groups["hashes"].Length <= 2)
             {
                 break;
             }

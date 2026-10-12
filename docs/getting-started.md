@@ -58,7 +58,7 @@ install for typed questions. It also brings `Minos.NET.DependencyInjection`, whi
 
 For OpenAI's Decisions API, which is in public beta, install `Minos.NET.OpenAI` instead, or beside it. It holds
 `OpenAIDecisionClient`, in the `Minos.OpenAI` namespace, and brings `Minos.NET` and `Minos.NET.DependencyInjection` the
-same way. Its provider name in logs and telemetry is `openai`. [OpenAI](client-and-errors.md#openai) covers it.
+same way. Its provider name in logs and telemetry is `openai`. [OpenAI](providers.md#openai) covers it.
 
 ```shell
 dotnet add package Minos.NET.OpenAI
@@ -125,12 +125,12 @@ Remove the source when you switch to the published packages: `dotnet nuget remov
 | `SystemOneProvider.Custom`              | the `BaseAddress` you set           | none                   |
 
 OpenAI's Decisions API is not one of these. It has its own client, `OpenAIDecisionClient`, which sends to
-`https://api.openai.com/v1/decisions` and reads `OPENAI_API_KEY`; [OpenAI](client-and-errors.md#openai) shows it, and
-[provider differences](client-and-errors.md#provider-differences) compares it with the presets.
+`https://api.openai.com/v1/decisions` and reads `OPENAI_API_KEY`; [OpenAI](providers.md#openai) shows it, and
+[provider differences](providers.md#provider-differences) compares it with the presets.
 
 `TypeSafe` is the default. Set `ApiKey` on the options, or leave it unset and the client reads the matching environment
 variable. `VllmSemanticRouter` and `Custom` read none and send no key unless you set `ApiKey`. The
-[client page](client-and-errors.md#providers) has the full table of presets, with the paths and default models, and
+[Providers](providers.md#the-presets) page has the full table of presets, with the paths and default models, and
 says what to set for a server of your own. `SystemOneClient` is disposable and meant to be
 long-lived: create one, share it, and dispose it at shutdown, as the snippet below does for its short example. The
 client throws `InvalidOperationException` when it is created with no key available for a provider that needs one, so a
@@ -234,6 +234,7 @@ The guide has one page per topic.
 - [Typed evaluation](typed-evaluation.md): declaring questions, typed state and the evaluate overloads.
 - [Question sets at run time](question-sets-at-run-time.md): building a set from data.
 - [The client and its errors](client-and-errors.md): options, retries, time-outs and every `DecisionError`.
+- [Providers](providers.md): the presets, OpenAI, what each provider accepts, and switching between them.
 - [Dependency injection](dependency-injection.md): registering the client in a .NET host.
 - [Logging, traces and metrics](observability.md): what the client reports about each call.
 - [Native AOT and allocations](native-aot.md): running as a native executable, and the allocation budgets.

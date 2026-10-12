@@ -1,7 +1,7 @@
 ---
 id: performance
 title: Performance
-sidebar_position: 14
+sidebar_position: 15
 description: What the client costs per call, how it compares with other clients, and how to run the benchmarks.
 ---
 

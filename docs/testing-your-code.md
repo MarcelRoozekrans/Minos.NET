@@ -1,7 +1,7 @@
 ---
 id: testing-your-code
 title: Testing your code
-sidebar_position: 11
+sidebar_position: 12
 description: Test code that calls Jev with a fake IDecisionClient or a real SystemOneClient over a canned HTTP reply, and pin each decision.
 ---
 
