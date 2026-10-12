@@ -1,1 +1,2 @@
 #nullable enable
+Minos.DecisionResponse.IsCached.get -> bool

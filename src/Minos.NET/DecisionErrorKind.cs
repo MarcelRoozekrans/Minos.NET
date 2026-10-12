@@ -10,8 +10,11 @@ public enum DecisionErrorKind
     Validation = 2,
 
     /// <summary>
-    /// Too many requests: HTTP 429. The client already retries this, honouring <see cref="DecisionError.RetryAfter"/> when
-    /// it is set, and returns it only after <see cref="DecisionRetryOptions.MaxRetries"/> retries are used up.
+    /// Too many requests: HTTP 429, or a call the client's own rate limiter rejected before sending it, such as the
+    /// <c>UseRateLimiting</c> stage in <c>Minos.NET.RateLimiting</c>, whose <see cref="DecisionError.StatusCode"/> is
+    /// <see langword="null"/>. The client already retries a 429, honouring <see cref="DecisionError.RetryAfter"/> when it
+    /// is set, and returns it only after <see cref="DecisionRetryOptions.MaxRetries"/> retries are used up. A local
+    /// rejection is retried only by a retry stage added outside the rate limiter.
     /// </summary>
     RateLimited = 3,
 

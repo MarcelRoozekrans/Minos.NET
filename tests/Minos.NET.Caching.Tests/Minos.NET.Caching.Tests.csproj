@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Minos.Caching.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Minos.NET\Minos.NET.csproj" />
+    <ProjectReference Include="..\..\src\Minos.NET.Caching\Minos.NET.Caching.csproj" />
+    <!-- For the stage-order test, Task 5. -->
+    <ProjectReference Include="..\..\src\Minos.NET.RateLimiting\Minos.NET.RateLimiting.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <!-- MemoryCache and MemoryDistributedCache, the two levels the stage is tested over, and AddMemoryCache. -->
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
+    <!-- FakeLogger, and a real LoggerFactory and ServiceCollection for the build's services. -->
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+    <!-- FakeTimeProvider, to step a retry backoff. -->
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>

@@ -55,6 +55,9 @@ internal static class DecisionTelemetry
     /// <summary>The cost in US dollars OpenRouter reports.</summary>
     public const string Cost = "minos.usage.cost";
 
+    /// <summary>The span and metric tag set to <see langword="true"/> on a call a cache stage answered; absent otherwise.</summary>
+    public const string CacheHit = "minos.cache.hit";
+
     /// <summary>The custom GenAI operation value for an evaluation.</summary>
     public const string EvaluateOperation = "evaluate";
 

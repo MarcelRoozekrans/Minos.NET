@@ -9,6 +9,8 @@
     <ProjectReference Include="..\..\src\Minos.NET\Minos.NET.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.SystemOne\Minos.NET.SystemOne.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.OpenAI\Minos.NET.OpenAI.csproj" />
+    <ProjectReference Include="..\..\src\Minos.NET.Caching\Minos.NET.Caching.csproj" />
+    <ProjectReference Include="..\..\src\Minos.NET.RateLimiting\Minos.NET.RateLimiting.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.DependencyInjection\Minos.NET.DependencyInjection.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.Conformance\Minos.NET.Conformance.csproj" />
     <!-- The provider-switch sample, so the Providers page's side-by-side table is compared with its replayed answers. -->
@@ -24,6 +26,8 @@
   <ItemGroup>
     <!-- Host.CreateApplicationBuilder and its configuration, for the dependency injection page. -->
     <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <!-- AddMemoryCache, for the pipeline page's caching snippets. -->
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
     <!-- FakeLogger, for the observability page's logging example. -->
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
     <!-- AddOpenTelemetry, AddSource and AddMeter, for the observability page's wiring snippet. -->

@@ -79,7 +79,8 @@ public sealed partial class ObservabilityLoggingTests
         Assert.Equal("jev-latest", Field(record, "Model"));
         Assert.Equal("typesafe", Field(record, "Provider"));
         Assert.Equal("1", Field(record, "QuestionCount"));
-        Assert.Matches(@"^Minos evaluate-set on jev-latest via typesafe succeeded: 1 questions in [0-9.,]+ ms\.$", record.Message);
+        Assert.Equal("False", Field(record, "Cached"));
+        Assert.Matches(@"^Minos evaluate-set on jev-latest via typesafe succeeded: 1 questions in [0-9.,]+ ms, cached False\.$", record.Message);
     }
 
     [Fact]
@@ -259,9 +260,9 @@ public sealed partial class ObservabilityLoggingTests
     }
 
     [Fact]
-    public void TheEventTable_ReadsSixEvents()
+    public void TheEventTable_ReadsEightEvents()
     {
-        Assert.Equal([1001, 1002, 1003, 1004, 1005, 1006], Events().Select(e => e.Id));
+        Assert.Equal([1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008], Events().Select(e => e.Id));
     }
 
     // The two fixed messages on the page are the constants DecisionLog logs instead of the error's own message.

@@ -64,6 +64,9 @@ same way. Its provider name in logs and telemetry is `openai`. [OpenAI](provider
 dotnet add package Minos.NET.OpenAI
 ```
 
+Two optional pipeline stages ship as their own packages: `Minos.NET.Caching` for `UseCaching()` and
+`Minos.NET.RateLimiting` for `UseRateLimiting()`. [The pipeline page](pipeline.md#caching-decisions) covers both.
+
 ### What the packages bring with them
 
 `Minos.NET` has one runtime dependency from Microsoft, `Microsoft.Extensions.Logging.Abstractions` 10.0.0 or later, for
@@ -71,7 +74,10 @@ the logging interfaces that [the client's logging](observability.md#logging) use
 ZeroAlloc libraries. `Minos.NET.SystemOne` adds `Microsoft.Extensions.Http` and
 `Microsoft.Extensions.Options.ConfigurationExtensions`, for the `IHttpClientFactory` and the configuration binding of
 `AddSystemOneClient`, and `Minos.NET.OpenAI` adds the same two for `AddOpenAIDecisionClient`.
-`Minos.NET.DependencyInjection` adds `Microsoft.Extensions.DependencyInjection.Abstractions`.
+`Minos.NET.DependencyInjection` adds `Microsoft.Extensions.DependencyInjection.Abstractions`. `Minos.NET.Caching` adds
+`Microsoft.Extensions.Caching.Abstractions`, for `IMemoryCache` and `IDistributedCache`, and references
+`Microsoft.Extensions.Logging.Abstractions` for its own warnings. `Minos.NET.RateLimiting` adds
+`System.Threading.RateLimiting`, for `RateLimiter`.
 
 NuGet also passes the analyzers and source generators of those dependencies on to your build. The ones that arrive are
 those of ZeroAlloc.Validation, ZeroAlloc.Telemetry, and Microsoft.Extensions.Logging.Abstractions. They do nothing

@@ -2,19 +2,19 @@
 id: pipeline
 title: The client pipeline
 sidebar_position: 8
-description: The stages every call goes through (telemetry, logging and retries), building your own pipeline, writing a stage, turning the standard pipeline off, stages with dependency injection, and upgrading from 0.7 and 0.8.
+description: The stages every call goes through (telemetry, logging and retries), building your own pipeline, caching decisions, limiting the call rate, the stage order, writing a stage, turning the standard pipeline off, stages with dependency injection, and upgrading from 0.7 and 0.8.
 ---
 
 # The client pipeline
 
 Every evaluation goes through a **pipeline**: a chain of stages around a transport that sends the request. Each stage
 is an `IDecisionClient` that wraps the one inside it. It can act before the call, after it, or both, and then passes
-the call on. Telemetry, logging and retries are stages like this, and you can add your own, such as an audit record or
-a cache.
+the call on. Telemetry, logging and retries are stages like this. Two packages add a cache stage and a rate-limiting
+stage, and you can write your own, such as an audit record.
 
-This page shows the standard pipeline that every `SystemOneClient` runs, how to build your own, how to write a stage,
-how to find a stage again, and how stages fit with dependency injection. It ends with what changed for code written
-against 0.7.
+This page shows the standard pipeline that every `SystemOneClient` runs, how to build your own, how to cache decisions
+and limit the call rate, the order to put stages in, how to write a stage, how to find a stage again, and how stages fit
+with dependency injection. It ends with what changed for code written against 0.7 and 0.8.
 
 ## What every call goes through
 
@@ -141,6 +141,115 @@ Two things to keep in mind when you turn the standard pipeline off:
   factory, but a failed `EvaluateAsync(SystemOneRequest)` or `ListModelsAsync` is returned after one attempt.
 - **Do not add a second retry stage over the standard pipeline.** With `UseStandardPipeline` left on, the client
   already retries, and a `UseRetries()` around it multiplies the attempts.
+
+## Caching decisions
+
+`Minos.NET.Caching` adds `UseCaching()`, a stage that answers a repeated decision from two levels: an in-process
+`IMemoryCache` first, then Redis or any other `IDistributedCache` the app registers. Without a distributed cache, it
+caches in process only.
+
+<!-- snippet: Pipeline_Caching -->
+```cs
+// Answers repeated decisions from memory, and from Redis or any IDistributedCache the app registers.
+public static IServiceCollection AddCachedDecisions(IServiceCollection services, string apiKey)
+{
+    services.AddMemoryCache();
+    services.AddSystemOneClient(options => options.ApiKey = apiKey)
+        .UseCaching(configure: cache => cache.Expiration = TimeSpan.FromHours(1));
+    return services;
+}
+```
+<!-- endSnippet -->
+
+- **Register an in-process cache.** `services.AddMemoryCache()` registers one. `Build` throws when there is none in the
+  services and none is passed to `UseCaching`. A distributed cache in the services is used when one is registered,
+  and the stage logs through the services' `ILoggerFactory`, when there is one.
+- **A repeat is the same definition, state, images and model, to the same provider and endpoint.** The model is the
+  request's `Model`, or the client's default model when the request names none. Two clients for different providers or
+  models never share an answer, even in one Redis instance. The retry attempt is not part of the key.
+- **Only successes are stored,** in process and then in the distributed cache. An error or a refusal passes through,
+  and the next call asks the provider again.
+- **A hit is marked.** `DecisionResponse.IsCached` is `true`. The response keeps the model, usage and cost of the call
+  that produced it, so filter on `minos.cache.hit` when you count spend.
+- **A hit is traced and logged only when telemetry and logging sit outside the cache stage.** Then the span and the
+  duration, token and confidence metrics carry `minos.cache.hit`, and log event 1001's `Cached` field is `True`. That
+  takes the standard pipeline off and the [stage order](#stage-order) below. With a client's standard pipeline on, its
+  telemetry and logging run inside the cache stage, so a hit makes no span, no metric and no log event.
+- **An in-process hit reads nothing.** It returns the stored response and completes at once. A hit in the distributed
+  cache is read from compact JSON, with no reflection, and kept in process for the next call.
+- **Concurrent misses are not merged.** Two identical calls that both miss each ask the provider.
+- **A miss waits for the distributed write.** The answer is written to the distributed cache before the call returns,
+  and the write is not cancelled with the call, so a slow distributed cache delays every miss.
+- **A shared layer needs a real `IDistributedCache`,** such as Redis. `AddDistributedMemoryCache()` registers a
+  `MemoryDistributedCache`, which only keeps a second copy in the same process: harmless, but of no use.
+- **A failing distributed cache never fails a call.** A read that throws is a miss, logged as a Warning, event 1007. A
+  write that throws leaves the answer out of the distributed cache, logged as event 1008; the answer is still returned
+  and kept in process. Cancelling the call still throws `OperationCanceledException`.
+- **`DecisionCacheOptions`** sets `Expiration`, 5 minutes by default, for both levels; `LocalCacheExpiration`, to keep
+  the in-process copy for a different time; and `KeyPrefix`, `minos:` by default, to keep apps that share a cache
+  apart. Each in-process entry has a `Size` of 1, so an `IMemoryCache` with a `SizeLimit` counts entries.
+- **Give System One clients that differ only in `Path` different key prefixes.** The key holds the client's base
+  address, not its `Path`, so two clients with the same provider and base address but different paths can share
+  entries. Until [#175](https://github.com/MarcelRoozekrans/Minos.NET/issues/175) is resolved, set a different
+  `KeyPrefix` on each.
+
+## Limiting the call rate
+
+`Minos.NET.RateLimiting` adds `UseRateLimiting(limiter)`, a stage that takes one permit from a
+[`RateLimiter`](https://learn.microsoft.com/dotnet/api/system.threading.ratelimiting.ratelimiter) before each call
+is sent.
+
+<!-- snippet: Pipeline_RateLimiting -->
+```cs
+// At most 10 calls a second, shared by every client given the same limiter. A call waits up to 20 deep in the
+// queue; beyond that it fails with RateLimited and nothing is sent.
+public static readonly RateLimiter SharedLimiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions
+{
+    TokenLimit = 10,
+    TokensPerPeriod = 10,
+    ReplenishmentPeriod = TimeSpan.FromSeconds(1),
+    QueueLimit = 20,
+    QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+});
+
+public static IDecisionClient Build(SystemOneClient client) => client.AsBuilder().UseRateLimiting(SharedLimiter).Build();
+```
+<!-- endSnippet -->
+
+- **You own the limiter.** Any `RateLimiter` works: a token bucket, a fixed or sliding window, or a concurrency limiter.
+  Share one across clients to limit an account, not a client. The stage never disposes it.
+- **A call waits as the limiter says.** With a queue, a call waits for its permit; cancelling it while it waits throws
+  `OperationCanceledException`. A concurrency limiter counts calls in flight, because the permit is held until the call
+  completes.
+- **A rejected call is not sent.** It returns a `RateLimited` error whose `StatusCode` is null, which tells it apart from
+  a server's 429, and whose `RetryAfter` is the limiter's, when it gives one.
+
+### Stage order
+
+The first `Use` is the outermost stage. A client's standard pipeline runs inside every stage you add, so its retries
+take no extra permits. When you build the pipeline yourself, use this order:
+
+<!-- snippet: Pipeline_StageOrder -->
+```cs
+// The recommended order for a pipeline you build yourself: a cache hit takes no permit, and every attempt takes one.
+public static IDecisionClient Build(HttpClient http, string apiKey, RateLimiter limiter, IServiceProvider services)
+{
+    var transport = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = apiKey, UseStandardPipeline = false });
+    return transport.AsBuilder()
+        .UseOpenTelemetry()
+        .UseCaching()
+        .UseRetries()
+        .UseRateLimiting(limiter)
+        .Build(services);
+}
+```
+<!-- endSnippet -->
+
+1. telemetry, so the span covers the whole call;
+2. caching, so a hit takes no permit;
+3. retries, outside the limiter, so a local rejection is retried after its `RetryAfter`;
+4. rate limiting, so every attempt takes a permit;
+5. the transport.
 
 ## Writing a stage
 

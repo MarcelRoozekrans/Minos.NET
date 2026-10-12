@@ -35,6 +35,7 @@ so `SystemOneClient` instruments them itself.
 | The span `evaluate {model}` and the six metrics | `OpenTelemetryDecisionClient` | Once per call, over every attempt. |
 | Events 1001, 1002 and 1006 | `LoggingDecisionClient` | Once per call, when the client has a logger factory. |
 | Event 1003 | `RetryingDecisionClient` | For each attempt it retries, when it has a logger. |
+| Events 1007 and 1008 | `CachingDecisionClient` | When its distributed cache throws, and it has a logger. |
 | The spans `evaluate {model}` and `list_models`, their metrics, and events 1001 to 1006 of the raw calls | `SystemOneClient` | For `EvaluateAsync(SystemOneRequest)` and `ListModelsAsync`. |
 
 With `UseStandardPipeline` set to `false`, a `DecisionRequest` call emits none of these until you add the stages
@@ -101,23 +102,27 @@ such as a JSON console or Serilog, receives each `{Placeholder}` below as a fiel
 
 | Id | Event | Level | Message template |
 | --- | --- | --- | --- |
-| 1001 | `EvaluationSucceeded` | Debug | `Minos {Operation} on {Model} via {Provider} succeeded: {QuestionCount} questions in {DurationMs} ms.` |
+| 1001 | `EvaluationSucceeded` | Debug | `Minos {Operation} on {Model} via {Provider} succeeded: {QuestionCount} questions in {DurationMs} ms, cached {Cached}.` |
 | 1002 | `EvaluationFailed` | Warning | `Minos {Operation} on {Model} failed with {ErrorKind}, status {StatusCode}, request id {RequestId}, in {DurationMs} ms: {ErrorMessage}` |
 | 1003 | `AttemptRetrying` | Warning | `Minos attempt {Attempt} failed with {ErrorKind}, status {StatusCode}, retry-after {RetryAfter}; retrying.` |
 | 1004 | `ModelsListed` | Debug | `Minos list-models via {Provider} succeeded: {ModelCount} models in {DurationMs} ms.` |
 | 1005 | `ModelsListFailed` | Warning | `Minos list-models via {Provider} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}` |
 | 1006 | `UnexpectedException` | Error | `Minos {Operation} threw an unexpected exception.` The exception is attached to the record. |
+| 1007 | `CacheReadFailed` | Warning | `Minos cache read via {Provider} failed; the call goes to the provider.` The exception is attached to the record. |
+| 1008 | `CacheWriteFailed` | Warning | `Minos cache write via {Provider} failed; the answer is returned uncached.` The exception is attached to the record. |
 
 A call logs once, when it completes, and logs again for each attempt it is about to retry.
 
 - **`Operation`** names the call: `evaluate-set` for every `EvaluateAsync(DecisionRequest)` call, the typed overloads
   and a [built question set](question-sets-at-run-time.md) included, and, for the raw System One calls, `evaluate` for
   `EvaluateAsync(SystemOneRequest)` and `list-models` for model listing.
-- **`Provider`**, in events 1001, 1004 and 1005, is the provider name of the client's `DecisionClientMetadata`, the same
-  value as the span's `gen_ai.provider.name`: `typesafe`, `openrouter`, `vllm-sr` or `custom` for a
-  `SystemOneClient`, and `openai` for an `OpenAIDecisionClient`.
+- **`Provider`**, in events 1001, 1004, 1005, 1007 and 1008, is the provider name of the client's
+  `DecisionClientMetadata`, the same value as the span's `gen_ai.provider.name`: `typesafe`, `openrouter`, `vllm-sr` or
+  `custom` for a `SystemOneClient`, and `openai` for an `OpenAIDecisionClient`.
 - **Success** is a Debug event, 1001 for an evaluation and 1004 for a model listing. `QuestionCount` is the number of
-  questions asked.
+  questions asked. `Cached` is `True` when a [cache stage](pipeline.md#caching-decisions) answered the call, and `False`
+  otherwise. A hit is logged only when the logging stage sits outside the cache stage; with a client's standard
+  pipeline on, the logging stage sits inside it, and a hit logs nothing.
 - **Failure** is a Warning, 1002 or 1005. It covers every failure the call returns as a
   [`DecisionError`](client-and-errors.md#errors), after the retries are used up, including an `InvalidResponse` from reading
   typed answers. `ErrorKind` is the `DecisionErrorKind`. `StatusCode` is the HTTP status, or null when no response arrived.
@@ -129,6 +134,9 @@ A call logs once, when it completes, and logs again for each attempt it is about
   logged here, because the operation's failure event reports it. If your `CancellationToken` is cancelled while the
   client waits to retry, the retry does not happen even though the event was logged. Nor does it when the client is
   disposed before the retry starts, in which case the call returns `Disposed`.
+- **A failing distributed cache** is a Warning from the [cache stage](pipeline.md#caching-decisions), and never fails
+  the call: 1007 when a read throws, which the stage treats as a miss, and 1008 when a write throws, which leaves the
+  answer out of the distributed cache but still returns it.
 - **`UnexpectedException`** is an Error, 1006. It means a mistake in the calling code or a bug, because a failure of the
   call itself is a returned `DecisionError`. The exception continues up to you unchanged. A cancellation that you requested
   is not logged, and neither are the argument checks and the disposed-client check that throw before the call starts.
@@ -136,9 +144,9 @@ A call logs once, when it completes, and logs again for each attempt it is about
 A model listing against OpenRouter fails with `Unsupported` before any request is sent. It logs 1005, like any other
 failure.
 
-The logging stage writes 1001, 1002 and 1006 for an `evaluate-set` call, and the retry stage writes 1003. The raw
-calls log through the client itself: 1001, 1002 and 1006 for `EvaluateAsync(SystemOneRequest)`, 1004 and 1005 for a
-model listing, and 1003 for each attempt they retry. A
+The logging stage writes 1001, 1002 and 1006 for an `evaluate-set` call, the retry stage writes 1003, and the cache
+stage writes 1007 and 1008. The raw calls log through the client itself: 1001, 1002 and 1006 for
+`EvaluateAsync(SystemOneRequest)`, 1004 and 1005 for a model listing, and 1003 for each attempt they retry. A
 [hand-written `IDecisionClient`](testing-your-code.md#way-one-a-fake-idecisionclient) logs nothing, because it has no
 stages. To log a call to one, wrap it: `fake.AsBuilder().UseLogging(loggerFactory).Build()`.
 
@@ -152,7 +160,8 @@ The library never logs these:
 - `DecisionError.Detail`, which holds the body of the server's error response.
 
 An exception you can still see is the one in event 1006, which carries the exception as it was thrown. That includes an
-exception from a `DelegatingHandler` of your own, whose message the library cannot vouch for.
+exception from a `DelegatingHandler` of your own, whose message the library cannot vouch for. Events 1007 and 1008
+carry the distributed cache's own exception in the same way.
 
 `ErrorMessage` in events 1002 and 1005 is `DecisionError.Message`, with two exceptions. The message of an `InvalidResponse`
 error can quote what the server answered, and the message of a `Network` error is the transport's exception text, which
@@ -337,6 +346,7 @@ named `minos.*`.
 | `gen_ai.usage.output_tokens` | success | The output tokens. Evaluations only. |
 | `gen_ai.response.id` | success | The provider's response id, such as OpenRouter's generation id, when it reports one. Evaluations only. |
 | `minos.usage.cost` | success | The cost in US dollars, when the provider reports it, as OpenRouter does. Evaluations only. |
+| `minos.cache.hit` | success | `true` when a cache stage answered the call; absent otherwise. The duration, token and confidence metrics carry it too, so a dashboard can leave cached calls out of spend. A cached call reports the usage and cost of the call that first produced the answer. Evaluations only. |
 | `error.type` | failure | The name of the `DecisionErrorKind`, such as `RateLimited`, or the full type name of a thrown exception. |
 | `minos.request_id` | failure | The provider's [request id](client-and-errors.md#request-ids), when the error response named one. Evaluations only. |
 
@@ -366,18 +376,21 @@ evaluation also records its tokens and one confidence point for each Choice or S
 
 | Metric | Kind | Unit | Attributes | Recorded |
 | --- | --- | --- | --- | --- |
-| `gen_ai.client.operation.duration` | Histogram | `s` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `server.address`, `server.port`, `gen_ai.response.model`, `error.type` | every call |
-| `gen_ai.client.inference.operation.input_tokens` | Histogram | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.response.model` | evaluation success |
-| `gen_ai.client.inference.operation.output_tokens` | Histogram | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.response.model` | evaluation success |
-| `gen_ai.client.inference.usage.input_tokens` | Counter | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.modality` | evaluation success |
-| `gen_ai.client.inference.usage.output_tokens` | Counter | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.modality` | evaluation success |
-| `minos.answer.confidence` | Histogram | `1` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `minos.operation` | each Choice or Score answer |
+| `gen_ai.client.operation.duration` | Histogram | `s` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `server.address`, `server.port`, `gen_ai.response.model`, `error.type`, `minos.cache.hit` | every call |
+| `gen_ai.client.inference.operation.input_tokens` | Histogram | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.response.model`, `minos.cache.hit` | evaluation success |
+| `gen_ai.client.inference.operation.output_tokens` | Histogram | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.response.model`, `minos.cache.hit` | evaluation success |
+| `gen_ai.client.inference.usage.input_tokens` | Counter | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.modality`, `minos.cache.hit` | evaluation success |
+| `gen_ai.client.inference.usage.output_tokens` | Counter | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.modality`, `minos.cache.hit` | evaluation success |
+| `minos.answer.confidence` | Histogram | `1` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `minos.operation`, `minos.cache.hit` | each Choice or Score answer |
 
 - **The duration** carries `gen_ai.response.model` on success and `error.type` on failure, never both. A model listing
   has no request or response model, so its duration carries only the operation, the provider, the server and, on
   failure, the error type.
 - **The token histograms** record the tokens of each evaluation. **The counters** keep the running total, and their
   `gen_ai.token.modality` is always `text`.
+- **`minos.cache.hit`** is `true` on the duration, token and confidence metrics of an evaluation that a
+  [cache stage](pipeline.md#caching-decisions) answered, and absent otherwise. A hit is traced and measured only when
+  the telemetry stage sits outside the cache stage; with a client's standard pipeline on, a hit records nothing.
 - **Confidence** is the `Confidence` of each Choice and Score answer, a number from 0 to 1.
   [Noul answers](question-types.md) have no confidence and record no point, so a set of Noul questions records none.
   A set with one Choice and one Score records two points for each call.

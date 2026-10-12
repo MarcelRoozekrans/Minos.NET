@@ -8,6 +8,9 @@ public sealed class DecisionResponse
     // Set by the public constructor; a read response builds it on first access from the token counts it read.
     private DecisionUsage? _usage;
 
+    // One boxed true for every cached response, so the telemetry tag allocates nothing per hit.
+    private static readonly object BoxedTrue = true;
+
     /// <summary>Initializes a new instance of the <see cref="DecisionResponse"/> class from answers, such as for a test fake.</summary>
     /// <param name="definition">The questions the answers belong to.</param>
     /// <param name="answers">One answer per question, in definition order, made with the <see cref="QuestionAnswer"/> factories.</param>
@@ -85,7 +88,8 @@ public sealed class DecisionResponse
         int? outputTokens,
         double? cost,
         string? id,
-        string? provider)
+        string? provider,
+        bool isCached = false)
     {
         Definition = definition;
         Slots = slots;
@@ -96,6 +100,7 @@ public sealed class DecisionResponse
         Cost = cost;
         Id = id;
         Provider = provider;
+        IsCached = isCached;
     }
 
     /// <summary>Gets the questions the answers belong to.</summary>
@@ -120,6 +125,13 @@ public sealed class DecisionResponse
     /// <summary>Gets the upstream provider the response names, if any, such as OpenRouter's.</summary>
     public string? Provider { get; }
 
+    /// <summary>
+    /// Gets a value indicating whether this response came from a cache stage, such as <c>UseCaching</c> in
+    /// <c>Minos.NET.Caching</c>, rather than from the provider. A cached response reports the model, usage and cost of the
+    /// call that first produced it.
+    /// </summary>
+    public bool IsCached { get; }
+
     internal AnswerSlot[] Slots { get; }
 
     internal double[] Probabilities { get; }
@@ -132,6 +144,14 @@ public sealed class DecisionResponse
     internal double? Cost { get; }
 
     internal SlotConfidences Confidences => new(this);
+
+    // The minos.cache.hit tag's value: set on a cached response, absent otherwise, so an uncached span carries no tag.
+    internal object? CacheHitTag => IsCached ? BoxedTrue : null;
+
+    /// <summary>A copy that a cache stores: the same answers, model, usage, id and provider, marked as cached.</summary>
+    /// <returns>A new response sharing this one's arrays.</returns>
+    internal DecisionResponse AsCached()
+        => new(Definition, Slots, Probabilities, Model, InputTokens, OutputTokens, Cost, Id, Provider, isCached: true);
 
     // Publishes one instance: a thread that loses the race returns the winner's.
     private DecisionUsage? CreateUsage()

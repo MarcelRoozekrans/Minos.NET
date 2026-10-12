@@ -31,14 +31,14 @@ internal static partial class DecisionLog
     /// </summary>
     public const string RequestNotSent = "The request could not be sent.";
 
-    /// <summary>An evaluation succeeded.</summary>
+    /// <summary>An evaluation succeeded; <c>Cached</c> is whether a cache stage answered it.</summary>
     [LoggerMessage(
         EventId = 1001,
         EventName = nameof(EvaluationSucceeded),
         Level = LogLevel.Debug,
-        Message = "Minos {Operation} on {Model} via {Provider} succeeded: {QuestionCount} questions in {DurationMs} ms.")]
+        Message = "Minos {Operation} on {Model} via {Provider} succeeded: {QuestionCount} questions in {DurationMs} ms, cached {Cached}.")]
     public static partial void EvaluationSucceeded(
-        ILogger logger, string operation, string model, string provider, int questionCount, double durationMs);
+        ILogger logger, string operation, string model, string provider, int questionCount, double durationMs, bool cached);
 
     /// <summary>An evaluation failed, after any retries; the message is the error's <see cref="SafeMessage"/>.</summary>
     [LoggerMessage(
@@ -64,6 +64,22 @@ internal static partial class DecisionLog
         Level = LogLevel.Error,
         Message = "Minos {Operation} threw an unexpected exception.")]
     public static partial void UnexpectedException(ILogger logger, string operation, Exception exception);
+
+    /// <summary>A cache stage's distributed cache threw on a read; the stage treats it as a miss.</summary>
+    [LoggerMessage(
+        EventId = 1007,
+        EventName = nameof(CacheReadFailed),
+        Level = LogLevel.Warning,
+        Message = "Minos cache read via {Provider} failed; the call goes to the provider.")]
+    public static partial void CacheReadFailed(ILogger logger, string provider, Exception exception);
+
+    /// <summary>A cache stage's distributed cache threw on a write; the answer is returned without being stored there.</summary>
+    [LoggerMessage(
+        EventId = 1008,
+        EventName = nameof(CacheWriteFailed),
+        Level = LogLevel.Warning,
+        Message = "Minos cache write via {Provider} failed; the answer is returned uncached.")]
+    public static partial void CacheWriteFailed(ILogger logger, string provider, Exception exception);
 
     /// <summary>The message to log for <paramref name="error"/>: its own, except where it can carry request or response text.</summary>
     /// <param name="error">The error.</param>

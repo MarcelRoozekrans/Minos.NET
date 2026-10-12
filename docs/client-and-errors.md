@@ -203,6 +203,10 @@ raw System One calls retry with the same settings. These failures are retried:
 Everything else is reported at once: a rejected key (401, 403), an invalid request (400, 422), and any other status.
 Trying those again would give the same answer.
 
+A call the client's own [rate limiter](pipeline.md#limiting-the-call-rate) rejects is not retried either. The client's
+retries run inside the rate-limiting stage, so they never see a local rejection, which returns at once. Only a retry
+stage added outside the limiter retries it, as the [stage order](pipeline.md#stage-order) shows.
+
 With `UseStandardPipeline` set to `false`, nothing is retried, the raw calls included, until you add a retry stage
 yourself with `UseRetries()`. [Building your own pipeline](pipeline.md#building-your-own-pipeline) shows how, and how
 to retry other kinds of failure with `DecisionRetryOptions.ShouldRetry`.
@@ -375,7 +379,7 @@ The values start at 1, so `default(DecisionErrorKind)` is no kind.
 | --- | --- | --- | --- |
 | `Unauthorized` | HTTP 401 or 403: the key is missing, wrong or lacks access. | No | Fix the key. Retrying cannot help. |
 | `Validation` | HTTP 400 or 422: the request was rejected. `Detail` usually names the field. | No | Fix the request. This is a bug in the questions or the state. |
-| `RateLimited` | HTTP 429. | Yes | Slow down. It comes back only after the retries ran out, and `RetryAfter` says how long to wait. |
+| `RateLimited` | HTTP 429, or the client's own [rate limiter](pipeline.md#limiting-the-call-rate), with no `StatusCode`. | Only a 429 | Slow down. A 429 comes back only after the retries ran out. A local rejection comes back at once, and only a retry stage outside the limiter retries it. `RetryAfter` says how long to wait. |
 | `Overloaded` | HTTP 503 or 529. | Yes | Try again later, or fall back. |
 | `Server` | Any other HTTP 5xx. | Yes | Treat it as an outage. |
 | `Http` | Any other unsuccessful status, such as 404, or 408. | Only 408 | Report it. The status is in `StatusCode`. |

@@ -12,11 +12,14 @@ internal sealed class FixedResponseClient(DecisionResponse response) : IDecision
 
     public DecisionRequest? LastRequest { get; private set; }
 
+    public int Calls { get; private set; }
+
     public bool Disposed { get; private set; }
 
     public ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
     {
         LastRequest = request;
+        Calls++;
         return new(Result<DecisionResponse, DecisionError>.Success(response));
     }
 

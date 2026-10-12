@@ -461,7 +461,7 @@ public sealed class SystemOneClient : IDecisionClient
             var durationMs = DecisionLog.ElapsedMilliseconds(started);
             if (result.IsSuccess)
             {
-                DecisionLog.EvaluationSucceeded(logger, SystemOneLog.Evaluate, model, _providerName, questionCount, durationMs);
+                DecisionLog.EvaluationSucceeded(logger, SystemOneLog.Evaluate, model, _providerName, questionCount, durationMs, cached: false);
             }
             else
             {
