@@ -164,8 +164,9 @@ public static IServiceCollection AddCachedDecisions(IServiceCollection services,
 - **Register an in-process cache.** `services.AddMemoryCache()` registers one. `Build` throws when there is none in the
   services and none is passed to `UseCaching`. A distributed cache in the services is used when one is registered,
   and the stage logs through the services' `ILoggerFactory`, when there is one.
-- **A repeat is the same definition, state, images and model, to the same provider and endpoint.** Two clients for
-  different providers never share an answer, even in one Redis instance. The retry attempt is not part of the key.
+- **A repeat is the same definition, state, images and model, to the same provider and endpoint.** The model is the
+  request's `Model`, or the client's default model when the request names none. Two clients for different providers or
+  models never share an answer, even in one Redis instance. The retry attempt is not part of the key.
 - **Only successes are stored,** in process and then in the distributed cache. An error or a refusal passes through,
   and the next call asks the provider again.
 - **A hit is marked.** `DecisionResponse.IsCached` is `true`, the span and the duration and token metrics carry

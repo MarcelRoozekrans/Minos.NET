@@ -11,8 +11,8 @@ public sealed class DecisionCacheKeyTests
 
     private static readonly QuestionSetDefinition Triage = QuestionSets.TriageDefinition();
 
-    private static string Key(DecisionRequest request, string provider = Provider, string? endpoint = Endpoint)
-        => DecisionCacheKey.Create(request, provider, endpoint, Prefix);
+    private static string Key(DecisionRequest request, string provider = Provider, string? endpoint = Endpoint, string? defaultModel = null)
+        => DecisionCacheKey.Create(request, provider, endpoint, defaultModel, Prefix);
 
     private static DecisionRequest Request(string state = "I was charged twice.") => new(Triage, state);
 
@@ -57,6 +57,17 @@ public sealed class DecisionCacheKeyTests
 
         Assert.NotEqual(none, one);
         Assert.NotEqual(one, other);
+    }
+
+    [Fact]
+    public void Keys_the_default_model_when_the_request_names_none()
+    {
+        var latest = Key(Request(), defaultModel: "jev-latest");
+
+        Assert.NotEqual(Key(Request()), latest);
+        Assert.NotEqual(latest, Key(Request(), defaultModel: "jev-1.13.0"));
+        Assert.Equal(latest, Key(Request() with { Model = "jev-latest" }));
+        Assert.Equal(latest, Key(Request() with { Model = "jev-latest" }, defaultModel: "jev-1.13.0"));
     }
 
     [Fact]

@@ -60,7 +60,7 @@ public sealed class UseCachingTests
         var hit = await client.EvaluateAsync(Responses.Request());
 
         Assert.True(hit.Value.IsCached);
-        Assert.NotNull(services.GetRequiredService<IDistributedCache>().Get(DecisionCacheKey.Create(Responses.Request(), "unknown", null, "minos:")));
+        Assert.NotNull(services.GetRequiredService<IDistributedCache>().Get(DecisionCacheKey.Create(Responses.Request(), "unknown", null, null, "minos:")));
     }
 
     [Fact]
@@ -78,7 +78,7 @@ public sealed class UseCachingTests
         Assert.True(result.IsSuccess);
         Assert.Equal("app1:", options!.KeyPrefix);
         // No metadata, so the provider is "unknown" and there is no endpoint.
-        var key = DecisionCacheKey.Create(Responses.Request(), "unknown", null, "app1:");
+        var key = DecisionCacheKey.Create(Responses.Request(), "unknown", null, null, "app1:");
         Assert.True(distributed.Writes.ContainsKey(key));
         Assert.True(memory.TryGetValue(key, out _));
     }
@@ -94,7 +94,7 @@ public sealed class UseCachingTests
 
         await client.EvaluateAsync(Responses.Request());
 
-        var key = DecisionCacheKey.Create(Responses.Request(), "unknown", null, "minos:");
+        var key = DecisionCacheKey.Create(Responses.Request(), "unknown", null, null, "minos:");
         Assert.True(passedMemory.TryGetValue(key, out _));
         Assert.False(services.GetRequiredService<IMemoryCache>().TryGetValue(key, out _));
         Assert.NotNull(passed.Peek(key));

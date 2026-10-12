@@ -11,7 +11,7 @@ public sealed class CachingDecisionClientTests
     private static readonly DecisionClientMetadata TypeSafe = new("typesafe", new Uri("https://api.typesafe.ai/"), "jev-latest");
 
     private static string Key(string prefix = "minos:")
-        => DecisionCacheKey.Create(Responses.Request(), "typesafe", "https://api.typesafe.ai/", prefix);
+        => DecisionCacheKey.Create(Responses.Request(), "typesafe", "https://api.typesafe.ai/", "jev-latest", prefix);
 
     [Fact]
     public async Task A_miss_calls_the_provider_and_returns_its_response_uncached()
@@ -94,6 +94,40 @@ public sealed class CachingDecisionClientTests
 
         Assert.False(result.Value.IsCached);
         Assert.Equal(1, eu.Calls);
+    }
+
+    [Fact]
+    public async Task Two_clients_that_differ_only_in_their_default_model_never_share_an_answer()
+    {
+        using var memory = Responses.Memory();
+        var distributed = new CountingDistributedCache();
+        var latest = new ScriptedClient(TypeSafe);
+        // The same provider and endpoint, so only the default model tells the keys apart.
+        var pinned = new ScriptedClient(TypeSafe with { DefaultModel = "jev-1.13.0" });
+        using var first = new CachingDecisionClient(latest, memory, distributed);
+        using var second = new CachingDecisionClient(pinned, memory, distributed);
+
+        await first.EvaluateAsync(Responses.Request());
+        var result = await second.EvaluateAsync(Responses.Request());
+
+        Assert.False(result.Value.IsCached);
+        Assert.Equal(1, pinned.Calls);
+    }
+
+    [Fact]
+    public async Task A_request_naming_the_model_another_client_defaults_to_shares_its_answer()
+    {
+        using var memory = Responses.Memory();
+        var latest = new ScriptedClient(TypeSafe);
+        var pinned = new ScriptedClient(TypeSafe with { DefaultModel = "jev-1.13.0" });
+        using var first = new CachingDecisionClient(latest, memory);
+        using var second = new CachingDecisionClient(pinned, memory);
+
+        await first.EvaluateAsync(Responses.Request());
+        var result = await second.EvaluateAsync(Responses.Request() with { Model = "jev-latest" });
+
+        Assert.True(result.Value.IsCached);
+        Assert.Equal(0, pinned.Calls);
     }
 
     [Theory]

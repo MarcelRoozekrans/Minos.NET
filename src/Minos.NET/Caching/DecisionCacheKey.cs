@@ -8,7 +8,7 @@ namespace Minos;
 
 /// <summary>
 /// The cache key of a request, for <c>Minos.NET.Caching</c>: a SHA-256 digest over the definition, the state, the images,
-/// the model, and the client's provider and endpoint. The retry attempt is left out, so a retried call finds the entry
+/// the model the call runs on, and the client's provider and endpoint. The retry attempt is left out, so a retried call finds the entry
 /// its first attempt stored.
 /// </summary>
 /// <remarks>
@@ -28,7 +28,16 @@ internal static class DecisionCacheKey
     // The digest's unpadded Base64Url length.
     private const int EncodedLength = 43;
 
-    public static string Create(DecisionRequest request, string provider, string? endpoint, string prefix)
+    /// <summary>Creates the key of <paramref name="request"/> for a client with the given metadata.</summary>
+    /// <param name="request">The request.</param>
+    /// <param name="provider">The client's provider name.</param>
+    /// <param name="endpoint">The client's endpoint, if it has one.</param>
+    /// <param name="defaultModel">
+    /// The client's default model, keyed when the request names none, so clients that differ only in their default model
+    /// never share an entry, and a request naming a model shares one with a client defaulting to it.
+    /// </param>
+    /// <param name="prefix">The text the key starts with.</param>
+    public static string Create(DecisionRequest request, string provider, string? endpoint, string? defaultModel, string prefix)
     {
         var definition = request.Definition.GetOrAddProtocolData(DefinitionSlot, static d => DefinitionDigest(d));
         Span<byte> digest = stackalloc byte[DigestLength];
@@ -39,7 +48,7 @@ internal static class DecisionCacheKey
             writer.Tag(Layout);
             writer.Bytes(definition);
             request.State.WriteCacheKey(ref writer);
-            writer.Text(request.Model);
+            writer.Text(request.Model ?? defaultModel);
             writer.Text(provider);
             writer.Text(endpoint);
             var images = request.Images;

@@ -11,9 +11,10 @@ namespace Minos.Caching;
 /// </summary>
 /// <remarks>
 /// <para>
-/// The key is a SHA-256 digest over the definition, the state, the images and the model, and the provider and endpoint of
-/// the inner client's <see cref="DecisionClientMetadata"/>, so clients for different providers never share an answer. The
-/// retry attempt is not part of it. Both levels use the same key.
+/// The key is a SHA-256 digest over the definition, the state, the images, and the provider, endpoint and model of the
+/// inner client's <see cref="DecisionClientMetadata"/>, so clients for different providers or models never share an
+/// answer. The model is the request's own, or the client's default model when the request names none. The retry attempt
+/// is not part of it. Both levels use the same key.
 /// </para>
 /// <para>
 /// A hit returns the stored response, with <see cref="DecisionResponse.IsCached"/> set and the model, usage and cost of the
@@ -37,6 +38,7 @@ public sealed class CachingDecisionClient : DelegatingDecisionClient
     private readonly ILogger? _logger;
     private readonly string _provider;
     private readonly string? _endpoint;
+    private readonly string? _defaultModel;
     private readonly string _keyPrefix;
     private readonly MemoryCacheEntryOptions _localOptions;
     private readonly DistributedCacheEntryOptions _distributedOptions;
@@ -64,6 +66,7 @@ public sealed class CachingDecisionClient : DelegatingDecisionClient
         var metadata = innerClient.GetService<DecisionClientMetadata>();
         _provider = metadata?.ProviderName ?? UnknownProvider;
         _endpoint = metadata?.Endpoint?.AbsoluteUri;
+        _defaultModel = metadata?.DefaultModel;
         _keyPrefix = options.KeyPrefix;
         _localOptions = new MemoryCacheEntryOptions
         {
@@ -77,7 +80,7 @@ public sealed class CachingDecisionClient : DelegatingDecisionClient
     public override ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var key = DecisionCacheKey.Create(request, _provider, _endpoint, _keyPrefix);
+        var key = DecisionCacheKey.Create(request, _provider, _endpoint, _defaultModel, _keyPrefix);
         if (_memory.TryGetValue(key, out var stored) && stored is CachedDecision entry
             && entry.ResponseFor(request.Definition) is { } hit)
         {
