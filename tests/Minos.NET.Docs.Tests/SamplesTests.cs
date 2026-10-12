@@ -107,11 +107,23 @@ public sealed partial class SamplesTests
         Assert.Contains(Run + "local --record", local, StringComparison.Ordinal);
         Assert.Contains("name: provider-switch-recordings", live, StringComparison.Ordinal);
         Assert.Contains("name: provider-switch-local", local, StringComparison.Ordinal);
-        Assert.Contains("TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}", live, StringComparison.Ordinal);
-        Assert.Contains("OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}", live, StringComparison.Ordinal);
+        var typeSafeStep = StepBlock(live, "Record the provider-switch sample against TypeSafe");
+        var openRouterStep = StepBlock(live, "Record the provider-switch sample against OpenRouter");
+        Assert.Contains("TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}", typeSafeStep, StringComparison.Ordinal);
+        Assert.DoesNotContain("OPENROUTER_API_KEY", typeSafeStep, StringComparison.Ordinal);
+        Assert.Contains("OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}", openRouterStep, StringComparison.Ordinal);
+        Assert.DoesNotContain("TYPESAFE_API_KEY", openRouterStep, StringComparison.Ordinal);
         Assert.Equal(3, CountOf("if: ${{ !cancelled() }}", live));
         Assert.Equal(2, CountOf("if: ${{ !cancelled() }}", local));
         Assert.Contains("path: samples/Minos.NET.Samples.ProviderSwitch/recordings/local.json", local, StringComparison.Ordinal);
+    }
+
+    private static string StepBlock(string workflow, string stepName)
+    {
+        var start = workflow.IndexOf("- name: " + stepName, StringComparison.Ordinal);
+        Assert.True(start >= 0, stepName);
+        var next = workflow.IndexOf("\n      - name:", start + 1, StringComparison.Ordinal);
+        return next < 0 ? workflow[start..] : workflow[start..next];
     }
 
     private static int CountOf(string needle, string text) =>
