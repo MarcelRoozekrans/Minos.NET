@@ -6,7 +6,7 @@ using Minos.Caching;
 
 namespace Minos.AotSmoke;
 
-/// <summary>The caching stage under Native AOT: a miss, a hit, the distributed path, and the options.</summary>
+/// <summary>The caching stage under Native AOT: a miss and a hit in the in-process cache, the identity of the stored response, a read served by the distributed level to a cold in-process cache, and the options a hand-built client keeps.</summary>
 internal static class CachingChecks
 {
     [Covers("Minos.Caching.CachingDecisionClient.CachingDecisionClient(Minos.IDecisionClient! innerClient, Microsoft.Extensions.Caching.Memory.IMemoryCache! memoryCache, Microsoft.Extensions.Caching.Distributed.IDistributedCache? distributedCache = null, Minos.Caching.DecisionCacheOptions? options = null, Microsoft.Extensions.Logging.ILogger? logger = null) -> void")]
@@ -44,7 +44,8 @@ internal static class CachingChecks
 
         using var memory = new MemoryCache(new MemoryCacheOptions());
         var distributed = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
-        using var layered = new FixedResponseClient(PipelineChecks.TriageResponse())
+        var layeredInner = new FixedResponseClient(PipelineChecks.TriageResponse());
+        using var layered = layeredInner
             .AsBuilder()
             .UseCaching(memory, distributed)
             .Build();
@@ -52,8 +53,21 @@ internal static class CachingChecks
         var layeredHit = await layered.EvaluateAsync(request).ConfigureAwait(false);
 
         Program.Check(
-            layeredMiss.IsSuccess && !layeredMiss.Value.IsCached && layeredHit.IsSuccess && layeredHit.Value.IsCached,
-            "the caching stage writes through to a distributed cache and answers the repeat from the layers under Native AOT");
+            layeredMiss.IsSuccess && !layeredMiss.Value.IsCached && layeredHit.IsSuccess && layeredHit.Value.IsCached && layeredInner.Calls == 1,
+            "the caching stage writes through to a distributed cache and answers the repeat from the in-process level under Native AOT");
+
+        // A fresh in-process cache over the same distributed one: the answer can only come from the distributed level.
+        using var coldMemory = new MemoryCache(new MemoryCacheOptions());
+        var coldInner = new FixedResponseClient(PipelineChecks.TriageResponse());
+        using var cold = coldInner
+            .AsBuilder()
+            .UseCaching(coldMemory, distributed)
+            .Build();
+        var fromDistributed = await cold.EvaluateAsync(request).ConfigureAwait(false);
+
+        Program.Check(
+            fromDistributed.IsSuccess && fromDistributed.Value.IsCached && coldInner.Calls == 0,
+            "the caching stage answers from the distributed cache, without calling the inner client, when the in-process cache is cold under Native AOT");
 
         var options = new DecisionCacheOptions
         {

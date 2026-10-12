@@ -16,7 +16,7 @@
     <ProjectReference Include="..\..\src\Minos.NET.OpenAI\Minos.NET.OpenAI.csproj" />
     <!-- AddDecisionClient and AddSystemOneClient, so registration, resolution and the factory's HttpClient run under Native AOT. -->
     <ProjectReference Include="..\..\src\Minos.NET.DependencyInjection\Minos.NET.DependencyInjection.csproj" />
-    <!-- UseHybridCache and UseRateLimiting, so both pipeline stages run under Native AOT. -->
+    <!-- UseCaching and UseRateLimiting, so both pipeline stages run under Native AOT. -->
     <ProjectReference Include="..\..\src\Minos.NET.Caching\Minos.NET.Caching.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.RateLimiting\Minos.NET.RateLimiting.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.Generator\Minos.NET.Generator.csproj"
