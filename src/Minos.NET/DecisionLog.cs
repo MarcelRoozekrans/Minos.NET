@@ -31,14 +31,14 @@ internal static partial class DecisionLog
     /// </summary>
     public const string RequestNotSent = "The request could not be sent.";
 
-    /// <summary>An evaluation succeeded.</summary>
+    /// <summary>An evaluation succeeded; <c>Cached</c> is whether a cache stage answered it.</summary>
     [LoggerMessage(
         EventId = 1001,
         EventName = nameof(EvaluationSucceeded),
         Level = LogLevel.Debug,
-        Message = "Minos {Operation} on {Model} via {Provider} succeeded: {QuestionCount} questions in {DurationMs} ms.")]
+        Message = "Minos {Operation} on {Model} via {Provider} succeeded: {QuestionCount} questions in {DurationMs} ms, cached {Cached}.")]
     public static partial void EvaluationSucceeded(
-        ILogger logger, string operation, string model, string provider, int questionCount, double durationMs);
+        ILogger logger, string operation, string model, string provider, int questionCount, double durationMs, bool cached);
 
     /// <summary>An evaluation failed, after any retries; the message is the error's <see cref="SafeMessage"/>.</summary>
     [LoggerMessage(

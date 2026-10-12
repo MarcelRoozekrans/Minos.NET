@@ -92,6 +92,32 @@ public sealed class OpenTelemetryDecisionClientTests
         Assert.Equal(3, span.GetTagItem("gen_ai.usage.output_tokens"));
         Assert.Equal("r-1", span.GetTagItem("gen_ai.response.id"));
         Assert.Equal(0.002, span.GetTagItem("minos.usage.cost"));
+        Assert.Null(span.GetTagItem("minos.cache.hit"));
+        Assert.All(capture.AllPoints, point => Assert.Null(point.Tag("minos.cache.hit")));
+    }
+
+    [Fact]
+    public async Task A_cached_response_tags_the_span_and_the_duration_and_token_metrics()
+    {
+        using var capture = new TelemetryCapture();
+        var cached = Result<DecisionResponse, DecisionError>.Success(OkWithEnvelope().Value.AsCached());
+        using var stage = new OpenTelemetryDecisionClient(new Scripted(cached));
+
+        await stage.EvaluateAsync(Request);
+
+        Assert.Equal(true, capture.Span().GetTagItem("minos.cache.hit"));
+        foreach (var metric in new[]
+        {
+            "gen_ai.client.operation.duration",
+            "gen_ai.client.inference.operation.input_tokens",
+            "gen_ai.client.inference.operation.output_tokens",
+            "gen_ai.client.inference.usage.input_tokens",
+            "gen_ai.client.inference.usage.output_tokens",
+        })
+        {
+            var point = Assert.Single(capture.Points(metric));
+            Assert.True(point.Tag("minos.cache.hit") is true);
+        }
     }
 
     [Fact]

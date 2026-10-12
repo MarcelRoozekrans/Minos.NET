@@ -82,7 +82,7 @@ public sealed class LoggingDecisionClient : DelegatingDecisionClient
         var model = request.Model ?? _defaultModel;
         if (result.IsSuccess)
         {
-            DecisionLog.EvaluationSucceeded(_logger, DecisionLog.EvaluateSet, model, _provider, request.Definition.Questions.Count, durationMs);
+            DecisionLog.EvaluationSucceeded(_logger, DecisionLog.EvaluateSet, model, _provider, request.Definition.Questions.Count, durationMs, result.Value.IsCached);
         }
         else
         {

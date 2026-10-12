@@ -13,7 +13,7 @@ public sealed class DecisionLogTests
     {
         var logger = new FakeLogger();
 
-        DecisionLog.EvaluationSucceeded(logger, SystemOneLog.Evaluate, "m", "TypeSafe", 1, 2.5);
+        DecisionLog.EvaluationSucceeded(logger, SystemOneLog.Evaluate, "m", "TypeSafe", 1, 2.5, cached: false);
         DecisionLog.EvaluationFailed(logger, SystemOneLog.Evaluate, "m", DecisionErrorKind.Server, 500, null, 2.5, "The API returned HTTP 500.");
         DecisionLog.AttemptRetrying(logger, 1, DecisionErrorKind.Server, 500, null);
         SystemOneLog.ModelsListed(logger, "TypeSafe", 2, 2.5);
@@ -38,7 +38,7 @@ public sealed class DecisionLogTests
     {
         var logger = new FakeLogger();
 
-        DecisionLog.EvaluationSucceeded(logger, DecisionLog.EvaluateSet, "jev-latest", "openrouter", 4, 2.5);
+        DecisionLog.EvaluationSucceeded(logger, DecisionLog.EvaluateSet, "jev-latest", "openrouter", 4, 2.5, cached: false);
         var succeeded = logger.LatestRecord;
         Assert.Equal("evaluate-set", LogAssert.Field(succeeded, "Operation"));
         Assert.Equal("jev-latest", LogAssert.Field(succeeded, "Model"));
@@ -68,7 +68,7 @@ public sealed class DecisionLogTests
     {
         var logger = new FakeLogger();
 
-        DecisionLog.EvaluationSucceeded(logger, SystemOneLog.Evaluate, "jev-latest", "TypeSafe", 3, 2.5);
+        DecisionLog.EvaluationSucceeded(logger, SystemOneLog.Evaluate, "jev-latest", "TypeSafe", 3, 2.5, cached: true);
 
         var record = logger.LatestRecord;
         Assert.Equal("evaluate", LogAssert.Field(record, "Operation"));
@@ -76,10 +76,11 @@ public sealed class DecisionLogTests
         Assert.Equal("TypeSafe", LogAssert.Field(record, "Provider"));
         Assert.Equal("3", LogAssert.Field(record, "QuestionCount"));
         Assert.Equal(2.5.ToString(CultureInfo.InvariantCulture), LogAssert.Field(record, "DurationMs"));
+        Assert.Equal("True", LogAssert.Field(record, "Cached"));
         Assert.Equal(
-            "Minos {Operation} on {Model} via {Provider} succeeded: {QuestionCount} questions in {DurationMs} ms.",
+            "Minos {Operation} on {Model} via {Provider} succeeded: {QuestionCount} questions in {DurationMs} ms, cached {Cached}.",
             LogAssert.Field(record, "{OriginalFormat}"));
-        Assert.Equal("Minos evaluate on jev-latest via TypeSafe succeeded: 3 questions in 2.5 ms.", record.Message);
+        Assert.Equal("Minos evaluate on jev-latest via TypeSafe succeeded: 3 questions in 2.5 ms, cached True.", record.Message);
     }
 
     [Fact]

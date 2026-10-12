@@ -101,7 +101,7 @@ such as a JSON console or Serilog, receives each `{Placeholder}` below as a fiel
 
 | Id | Event | Level | Message template |
 | --- | --- | --- | --- |
-| 1001 | `EvaluationSucceeded` | Debug | `Minos {Operation} on {Model} via {Provider} succeeded: {QuestionCount} questions in {DurationMs} ms.` |
+| 1001 | `EvaluationSucceeded` | Debug | `Minos {Operation} on {Model} via {Provider} succeeded: {QuestionCount} questions in {DurationMs} ms, cached {Cached}.` |
 | 1002 | `EvaluationFailed` | Warning | `Minos {Operation} on {Model} failed with {ErrorKind}, status {StatusCode}, request id {RequestId}, in {DurationMs} ms: {ErrorMessage}` |
 | 1003 | `AttemptRetrying` | Warning | `Minos attempt {Attempt} failed with {ErrorKind}, status {StatusCode}, retry-after {RetryAfter}; retrying.` |
 | 1004 | `ModelsListed` | Debug | `Minos list-models via {Provider} succeeded: {ModelCount} models in {DurationMs} ms.` |
@@ -117,7 +117,7 @@ A call logs once, when it completes, and logs again for each attempt it is about
   value as the span's `gen_ai.provider.name`: `typesafe`, `openrouter`, `vllm-sr` or `custom` for a
   `SystemOneClient`, and `openai` for an `OpenAIDecisionClient`.
 - **Success** is a Debug event, 1001 for an evaluation and 1004 for a model listing. `QuestionCount` is the number of
-  questions asked.
+  questions asked. `Cached` is `True` when a [cache stage](pipeline.md#caching-decisions) answered the call, and `False` otherwise.
 - **Failure** is a Warning, 1002 or 1005. It covers every failure the call returns as a
   [`DecisionError`](client-and-errors.md#errors), after the retries are used up, including an `InvalidResponse` from reading
   typed answers. `ErrorKind` is the `DecisionErrorKind`. `StatusCode` is the HTTP status, or null when no response arrived.
@@ -337,6 +337,7 @@ named `minos.*`.
 | `gen_ai.usage.output_tokens` | success | The output tokens. Evaluations only. |
 | `gen_ai.response.id` | success | The provider's response id, such as OpenRouter's generation id, when it reports one. Evaluations only. |
 | `minos.usage.cost` | success | The cost in US dollars, when the provider reports it, as OpenRouter does. Evaluations only. |
+| `minos.cache.hit` | success | `true` when a cache stage answered the call; absent otherwise. The duration and token metrics carry it too, so a dashboard can leave cached calls out of spend. A cached call reports the usage and cost of the call that first produced the answer. Evaluations only. |
 | `error.type` | failure | The name of the `DecisionErrorKind`, such as `RateLimited`, or the full type name of a thrown exception. |
 | `minos.request_id` | failure | The provider's [request id](client-and-errors.md#request-ids), when the error response named one. Evaluations only. |
 
