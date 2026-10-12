@@ -194,6 +194,34 @@ public sealed class ProviderSwitchSampleTests
         }
     }
 
+    [Fact]
+    public async Task Report_TypeSafe_MatchesTheSnapshot() => TextSnapshot.VerifyText((await Replay("TypeSafe")).Render());
+
+    [Fact]
+    public async Task Report_OpenRouter_MatchesTheSnapshot() => TextSnapshot.VerifyText((await Replay("OpenRouter")).Render());
+
+    [Fact]
+    public async Task Report_Local_MatchesTheSnapshot() => TextSnapshot.VerifyText((await Replay("Local")).Render());
+
+    [Theory]
+    [InlineData("TypeSafe")]
+    [InlineData("OpenRouter")]
+    [InlineData("Local")]
+    public async Task EveryProvider_RoutesEveryTicket_ToOneOfTheTeams(string provider)
+    {
+        var report = await Replay(provider);
+
+        Assert.Equal(Tickets.All.Select(t => t.Id), report.Tickets.Select(t => t.Id));
+        Assert.All(report.Tickets, t => Assert.Contains(t.Team, TicketQuestions.Definition.Questions[0].Options.Select(o => o.Key)));
+        Assert.All(report.Tickets, t => Assert.InRange(t.Confidence, 0.0, 1.0));
+    }
+
+    private static async Task<ProviderSwitchReport> Replay(string provider)
+    {
+        await using var services = SampleHost.BuildProviderReplayProvider(SampleHost.SampleDirectory(Sample), Sample, provider);
+        return await ProviderSwitchSample.RunAsync(services.GetRequiredService<IDecisionClient>(), provider, CancellationToken.None);
+    }
+
     private static Task<ProviderSwitchReport> RunCanned(string provider = "TypeSafe", string model = "canned-model")
         => RunCanned(new CannedTickets(model), provider);
 

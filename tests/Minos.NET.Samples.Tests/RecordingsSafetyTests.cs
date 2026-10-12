@@ -31,8 +31,7 @@ public sealed partial class RecordingsSafetyTests
         }
     }
 
-    // The provider files in recordings/ arrive with the first recording runs. EveryProviderSample_HasARecordingPerProvider
-    // is added with them and checks them: issue #166.
+    // A sample with several providers keeps one file per provider in recordings/ instead; the test below checks those.
     [Fact]
     public void EverySingleProviderSample_HasRecordings()
     {
@@ -40,6 +39,30 @@ public sealed partial class RecordingsSafetyTests
 
         Assert.NotEmpty(samples);
         Assert.All(samples, dir => Assert.True(File.Exists(Path.Combine(dir, "recordings.json")), dir + " has no recordings.json"));
+    }
+
+    [Fact]
+    public void EveryProviderSample_HasARecordingPerProvider()
+    {
+        var samples = SampleFolders().Where(IsProviderSample).ToArray();
+
+        Assert.NotEmpty(samples);
+        Assert.All(samples, AssertHasRecordingPerProvider);
+    }
+
+    private static void AssertHasRecordingPerProvider(string dir)
+    {
+        var configuration = new ConfigurationBuilder().AddJsonFile(Path.Combine(dir, "appsettings.json")).Build();
+        var names = SampleProviders.Names(configuration);
+        var files = Directory.GetFiles(Path.Combine(dir, "recordings"), "*.json");
+
+        Assert.Equal(
+            names.Select(name => name.ToLowerInvariant() + ".json").Order(StringComparer.Ordinal),
+            files.Select(file => Path.GetFileName(file)).Order(StringComparer.Ordinal));
+        foreach (var name in names)
+        {
+            Assert.Equal(name, RecordingsFile.Load(SampleHost.ProviderRecordingsFile(dir, name)).Provider);
+        }
     }
 
     // CI replays every recordings.json without --provider, so a sample with several providers must not have one.

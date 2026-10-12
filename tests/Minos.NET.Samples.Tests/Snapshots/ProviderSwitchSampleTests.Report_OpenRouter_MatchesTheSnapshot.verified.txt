@@ -1,0 +1,9 @@
+﻿s01  billing    1.00
+s02  technical  1.00
+s03  account    1.00
+s04  sales      1.00
+s05  technical  1.00
+s06  account    1.00
+s07  sales      1.00
+s08  billing    1.00
+Answered by OpenRouter with typesafe/jev-1.13-20260917
