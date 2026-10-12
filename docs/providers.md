@@ -531,8 +531,8 @@ No key is in the file. TypeSafe's comes from `TYPESAFE_API_KEY` and OpenRouter's
 preset, and the local server needs none. The sections differ only in their provider settings, `Provider`,
 `BaseAddress` and `Model`; everything else, such as `MaxRetries`, is the same in each.
 
-A program can bind the active section and nothing else. This is a simpler example of the same binding than the
-sample's own code:
+A program can bind the active section and nothing else. This is a simpler version of what the sample does; the
+sample's own code also lists the configured providers:
 
 <!-- snippet: Providers_ActiveProvider -->
 ```cs

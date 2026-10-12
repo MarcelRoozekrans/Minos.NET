@@ -17,7 +17,7 @@ TypeSafe cookbook or pattern, which their READMEs credit, and the code, the data
 | --- | --- | --- | --- |
 | [Guardrails](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples/Minos.NET.Samples.Guardrails) | Screens 15 chat messages before they reach a language model: one request per message, and two policies over the same answers. | `dotnet run --project samples/Minos.NET.Samples.Guardrails` | 15 |
 | [Intent routing](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples/Minos.NET.Samples.IntentRouting) | Decides for each of 12 travel requests whether code, an assistant model or a person handles it, with Jev as the cheap first step. | `dotnet run --project samples/Minos.NET.Samples.IntentRouting` | 12 |
-| [Provider switch](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples/Minos.NET.Samples.ProviderSwitch) | Routes 8 support tickets to a team with one Choice question, through TypeSafe, OpenRouter or a local server, chosen by configuration only. | `dotnet run --project samples/Minos.NET.Samples.ProviderSwitch`, once recordings exist (#166) | 8 per provider |
+| [Provider switch](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples/Minos.NET.Samples.ProviderSwitch) | Routes 8 support tickets to a team with one Choice question, through TypeSafe, OpenRouter or a local server, chosen by configuration only. | `dotnet run --project samples/Minos.NET.Samples.ProviderSwitch`, once recordings exist ([#166](https://github.com/MarcelRoozekrans/Minos.NET/issues/166)) | 8 per provider |
 | [Re-ranking](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples/Minos.NET.Samples.Reranking) | Re-orders a keyword shortlist of help articles by how well each answers the question, in one fan-out request per question. | `dotnet run --project samples/Minos.NET.Samples.Reranking` | 5 |
 
 The provider-switch sample has no recordings yet. They arrive with
@@ -105,8 +105,8 @@ A sample that is not run goes stale, so the CI workflow checks them in three way
 - **They are built with everything else.** The samples are part of the solution, so the build compiles them with
   warnings treated as errors.
 - **Their tests run.** The sample tests check each policy and route with made-up answers, compare each sample's report
-  with a checked-in snapshot, and check that every recording holds no key and no header and that every sample has
-  recordings.
+  with a checked-in snapshot, and check that every recording holds no key and no header and that every single-provider
+  sample has recordings. The provider-switch sample's recordings arrive with issue #166.
 - **Each sample runs, for real, in replay.** After the tests, a CI step runs every folder under `samples/` that holds a
   `recordings.json`, through the sample's real entry point: argument parsing, configuration and host setup included. It
   also runs the provider-switch sample once for each file in its `recordings/` folder, with `--provider` set to the
