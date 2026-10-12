@@ -1,5 +1,5 @@
 using Microsoft.Extensions.Caching.Distributed;
-using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Minos.Caching.Tests;
@@ -34,18 +34,19 @@ internal static class Responses
             Triage, built.Slots, built.Probabilities, built.Model, built.InputTokens, built.OutputTokens, built.Cost, "gen-0001", "Together");
     }
 
-    /// <summary>A HybridCache with the decision serializer, over <paramref name="distributed"/> as L2 when one is given.</summary>
+    /// <summary>A fresh, empty in-process cache.</summary>
+    public static MemoryCache Memory() => new(new MemoryCacheOptions());
+
+    /// <summary>Services with an in-process cache, and <paramref name="distributed"/> as the distributed cache when one is given.</summary>
     public static ServiceProvider Services(IDistributedCache? distributed = null)
     {
         var services = new ServiceCollection();
+        services.AddMemoryCache();
         if (distributed is not null)
         {
             services.AddSingleton(distributed);
         }
 
-        services.AddHybridCache().AddDecisionSerializer();
         return services.BuildServiceProvider();
     }
-
-    public static HybridCache Cache(this ServiceProvider services) => services.GetRequiredService<HybridCache>();
 }

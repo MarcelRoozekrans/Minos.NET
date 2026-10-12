@@ -126,7 +126,7 @@ public sealed class DecisionResponse
     public string? Provider { get; }
 
     /// <summary>
-    /// Gets a value indicating whether this response came from a cache stage, such as <c>UseHybridCache</c> in
+    /// Gets a value indicating whether this response came from a cache stage, such as <c>UseCaching</c> in
     /// <c>Minos.NET.Caching</c>, rather than from the provider. A cached response reports the model, usage and cost of the
     /// call that first produced it.
     /// </summary>

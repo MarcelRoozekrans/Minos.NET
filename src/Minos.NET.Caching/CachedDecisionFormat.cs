@@ -1,6 +1,5 @@
 using System.Buffers;
 using System.Text.Json;
-using Microsoft.Extensions.Caching.Hybrid;
 
 namespace Minos.Caching;
 
@@ -13,50 +12,61 @@ namespace Minos.Caching;
 /// stage treats as a miss and overwrites on the next success, so a format change in a later version cannot break callers
 /// sharing one distributed cache.
 /// </remarks>
-internal sealed class CachedDecisionSerializer : IHybridCacheSerializer<CachedDecision>
+internal static class CachedDecisionFormat
 {
-    public void Serialize(CachedDecision value, IBufferWriter<byte> target)
+    /// <summary>The bytes the distributed cache stores for <paramref name="value"/>.</summary>
+    /// <param name="value">The entry.</param>
+    /// <returns>Its compact JSON, UTF-8 encoded.</returns>
+    public static byte[] Write(CachedDecision value)
     {
-        using var writer = new Utf8JsonWriter(target);
-        writer.WriteStartObject();
-        writer.WriteNumber("v"u8, CachedDecision.Version);
-        WriteString(writer, "model"u8, value.Model);
-        WriteNumber(writer, "input_tokens"u8, value.InputTokens);
-        WriteNumber(writer, "output_tokens"u8, value.OutputTokens);
-        if (value.Cost is { } cost)
+        var buffer = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer))
         {
-            writer.WriteNumber("cost"u8, cost);
-        }
+            writer.WriteStartObject();
+            writer.WriteNumber("v"u8, CachedDecision.Version);
+            WriteString(writer, "model"u8, value.Model);
+            WriteNumber(writer, "input_tokens"u8, value.InputTokens);
+            WriteNumber(writer, "output_tokens"u8, value.OutputTokens);
+            if (value.Cost is { } cost)
+            {
+                writer.WriteNumber("cost"u8, cost);
+            }
 
-        WriteString(writer, "id"u8, value.Id);
-        WriteString(writer, "provider"u8, value.Provider);
-        writer.WriteStartArray("slots"u8);
-        foreach (var slot in value.Slots)
-        {
-            writer.WriteStartArray();
-            writer.WriteNumberValue(slot.ValueIndex);
-            writer.WriteNumberValue(slot.Value);
-            writer.WriteNumberValue(slot.Confidence);
-            writer.WriteNumberValue(slot.Offset);
+            WriteString(writer, "id"u8, value.Id);
+            WriteString(writer, "provider"u8, value.Provider);
+            writer.WriteStartArray("slots"u8);
+            foreach (var slot in value.Slots)
+            {
+                writer.WriteStartArray();
+                writer.WriteNumberValue(slot.ValueIndex);
+                writer.WriteNumberValue(slot.Value);
+                writer.WriteNumberValue(slot.Confidence);
+                writer.WriteNumberValue(slot.Offset);
+                writer.WriteEndArray();
+            }
+
             writer.WriteEndArray();
+            writer.WriteStartArray("probabilities"u8);
+            foreach (var probability in value.Probabilities)
+            {
+                writer.WriteNumberValue(probability);
+            }
+
+            writer.WriteEndArray();
+            writer.WriteEndObject();
         }
 
-        writer.WriteEndArray();
-        writer.WriteStartArray("probabilities"u8);
-        foreach (var probability in value.Probabilities)
-        {
-            writer.WriteNumberValue(probability);
-        }
-
-        writer.WriteEndArray();
-        writer.WriteEndObject();
+        return buffer.WrittenSpan.ToArray();
     }
 
-    public CachedDecision Deserialize(ReadOnlySequence<byte> source)
+    /// <summary>The entry <paramref name="source"/> holds; never throws.</summary>
+    /// <param name="source">Bytes read from the distributed cache.</param>
+    /// <returns>The entry, or <see cref="CachedDecision.Unreadable"/> for an unknown version or bytes that are no entry.</returns>
+    public static CachedDecision Read(ReadOnlySpan<byte> source)
     {
         try
         {
-            return Read(source) ?? CachedDecision.Unreadable;
+            return TryRead(source) ?? CachedDecision.Unreadable;
         }
         catch (JsonException)
         {
@@ -72,7 +82,7 @@ internal sealed class CachedDecisionSerializer : IHybridCacheSerializer<CachedDe
 
     // Null when the version is unknown or a field has the wrong shape. Every token's type is checked before it is read,
     // so a shape error stops the read rather than reading on.
-    private static CachedDecision? Read(ReadOnlySequence<byte> source)
+    private static CachedDecision? TryRead(ReadOnlySpan<byte> source)
     {
         var reader = new Utf8JsonReader(source);
         if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)

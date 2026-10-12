@@ -19,6 +19,8 @@ public sealed class DecisionLogTests
         SystemOneLog.ModelsListed(logger, "TypeSafe", 2, 2.5);
         SystemOneLog.ModelsListFailed(logger, "TypeSafe", DecisionErrorKind.Unauthorized, 401, 2.5, "The API returned HTTP 401.");
         DecisionLog.UnexpectedException(logger, SystemOneLog.ListModels, new InvalidOperationException("bug"));
+        DecisionLog.CacheReadFailed(logger, "TypeSafe", new InvalidOperationException("down"));
+        DecisionLog.CacheWriteFailed(logger, "TypeSafe", new InvalidOperationException("down"));
 
         (int, string, LogLevel)[] expected =
         [
@@ -28,6 +30,8 @@ public sealed class DecisionLogTests
             (1004, "ModelsListed", LogLevel.Debug),
             (1005, "ModelsListFailed", LogLevel.Warning),
             (1006, "UnexpectedException", LogLevel.Error),
+            (1007, "CacheReadFailed", LogLevel.Warning),
+            (1008, "CacheWriteFailed", LogLevel.Warning),
         ];
         var actual = logger.Collector.GetSnapshot().Select(record => (record.Id.Id, record.Id.Name ?? string.Empty, record.Level)).ToArray();
         Assert.Equal(expected, actual);
@@ -161,6 +165,27 @@ public sealed class DecisionLogTests
         Assert.Equal("list-models", LogAssert.Field(record, "Operation"));
         Assert.Equal("Minos {Operation} threw an unexpected exception.", LogAssert.Field(record, "{OriginalFormat}"));
         Assert.Equal("Minos list-models threw an unexpected exception.", record.Message);
+    }
+
+    [Fact]
+    public void TheCacheFailures_CarryTheProviderTemplateAndException()
+    {
+        var logger = new FakeLogger();
+        var down = new InvalidOperationException("down");
+
+        DecisionLog.CacheReadFailed(logger, "openrouter", down);
+        var read = logger.LatestRecord;
+        DecisionLog.CacheWriteFailed(logger, "openrouter", down);
+        var write = logger.LatestRecord;
+
+        Assert.Equal("openrouter", LogAssert.Field(read, "Provider"));
+        Assert.Equal("Minos cache read via {Provider} failed; the call goes to the provider.", LogAssert.Field(read, "{OriginalFormat}"));
+        Assert.Equal("Minos cache read via openrouter failed; the call goes to the provider.", read.Message);
+        Assert.Same(down, read.Exception);
+        Assert.Equal("openrouter", LogAssert.Field(write, "Provider"));
+        Assert.Equal("Minos cache write via {Provider} failed; the answer is returned uncached.", LogAssert.Field(write, "{OriginalFormat}"));
+        Assert.Equal("Minos cache write via openrouter failed; the answer is returned uncached.", write.Message);
+        Assert.Same(down, write.Exception);
     }
 
     [Fact]

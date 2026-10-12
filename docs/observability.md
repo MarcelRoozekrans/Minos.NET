@@ -35,6 +35,7 @@ so `SystemOneClient` instruments them itself.
 | The span `evaluate {model}` and the six metrics | `OpenTelemetryDecisionClient` | Once per call, over every attempt. |
 | Events 1001, 1002 and 1006 | `LoggingDecisionClient` | Once per call, when the client has a logger factory. |
 | Event 1003 | `RetryingDecisionClient` | For each attempt it retries, when it has a logger. |
+| Events 1007 and 1008 | `CachingDecisionClient` | When its distributed cache throws, and it has a logger. |
 | The spans `evaluate {model}` and `list_models`, their metrics, and events 1001 to 1006 of the raw calls | `SystemOneClient` | For `EvaluateAsync(SystemOneRequest)` and `ListModelsAsync`. |
 
 With `UseStandardPipeline` set to `false`, a `DecisionRequest` call emits none of these until you add the stages
@@ -107,15 +108,17 @@ such as a JSON console or Serilog, receives each `{Placeholder}` below as a fiel
 | 1004 | `ModelsListed` | Debug | `Minos list-models via {Provider} succeeded: {ModelCount} models in {DurationMs} ms.` |
 | 1005 | `ModelsListFailed` | Warning | `Minos list-models via {Provider} failed with {ErrorKind}, status {StatusCode}, in {DurationMs} ms: {ErrorMessage}` |
 | 1006 | `UnexpectedException` | Error | `Minos {Operation} threw an unexpected exception.` The exception is attached to the record. |
+| 1007 | `CacheReadFailed` | Warning | `Minos cache read via {Provider} failed; the call goes to the provider.` The exception is attached to the record. |
+| 1008 | `CacheWriteFailed` | Warning | `Minos cache write via {Provider} failed; the answer is returned uncached.` The exception is attached to the record. |
 
 A call logs once, when it completes, and logs again for each attempt it is about to retry.
 
 - **`Operation`** names the call: `evaluate-set` for every `EvaluateAsync(DecisionRequest)` call, the typed overloads
   and a [built question set](question-sets-at-run-time.md) included, and, for the raw System One calls, `evaluate` for
   `EvaluateAsync(SystemOneRequest)` and `list-models` for model listing.
-- **`Provider`**, in events 1001, 1004 and 1005, is the provider name of the client's `DecisionClientMetadata`, the same
-  value as the span's `gen_ai.provider.name`: `typesafe`, `openrouter`, `vllm-sr` or `custom` for a
-  `SystemOneClient`, and `openai` for an `OpenAIDecisionClient`.
+- **`Provider`**, in events 1001, 1004, 1005, 1007 and 1008, is the provider name of the client's
+  `DecisionClientMetadata`, the same value as the span's `gen_ai.provider.name`: `typesafe`, `openrouter`, `vllm-sr` or
+  `custom` for a `SystemOneClient`, and `openai` for an `OpenAIDecisionClient`.
 - **Success** is a Debug event, 1001 for an evaluation and 1004 for a model listing. `QuestionCount` is the number of
   questions asked. `Cached` is `True` when a [cache stage](pipeline.md#caching-decisions) answered the call, and `False` otherwise.
 - **Failure** is a Warning, 1002 or 1005. It covers every failure the call returns as a
@@ -129,6 +132,9 @@ A call logs once, when it completes, and logs again for each attempt it is about
   logged here, because the operation's failure event reports it. If your `CancellationToken` is cancelled while the
   client waits to retry, the retry does not happen even though the event was logged. Nor does it when the client is
   disposed before the retry starts, in which case the call returns `Disposed`.
+- **A failing distributed cache** is a Warning from the [cache stage](pipeline.md#caching-decisions), and never fails
+  the call: 1007 when a read throws, which the stage treats as a miss, and 1008 when a write throws, which leaves the
+  answer out of the distributed cache but still returns it.
 - **`UnexpectedException`** is an Error, 1006. It means a mistake in the calling code or a bug, because a failure of the
   call itself is a returned `DecisionError`. The exception continues up to you unchanged. A cancellation that you requested
   is not logged, and neither are the argument checks and the disposed-client check that throw before the call starts.
@@ -152,7 +158,8 @@ The library never logs these:
 - `DecisionError.Detail`, which holds the body of the server's error response.
 
 An exception you can still see is the one in event 1006, which carries the exception as it was thrown. That includes an
-exception from a `DelegatingHandler` of your own, whose message the library cannot vouch for.
+exception from a `DelegatingHandler` of your own, whose message the library cannot vouch for. Events 1007 and 1008
+carry the distributed cache's own exception in the same way.
 
 `ErrorMessage` in events 1002 and 1005 is `DecisionError.Message`, with two exceptions. The message of an `InvalidResponse`
 error can quote what the server answered, and the message of a `Network` error is the transport's exception text, which

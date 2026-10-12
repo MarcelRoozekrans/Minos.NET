@@ -1,5 +1,3 @@
-using System.ComponentModel;
-
 namespace Minos.Caching;
 
 /// <summary>
@@ -7,19 +5,17 @@ namespace Minos.Caching;
 /// cache key already covers.
 /// </summary>
 /// <remarks>
-/// HybridCache keeps a sealed type marked <see cref="ImmutableObjectAttribute"/> in its in-process cache as the instance
-/// itself, so an L1 hit deserializes nothing. The response built for the first definition instance is kept and returned
-/// again for that same instance; an equal definition in another instance gets a response of its own, since the typed
-/// calls check the definition's identity. An entry the serializer could not read is <see cref="Unreadable"/> and builds
-/// nothing.
+/// The in-process cache keeps the entry itself, so a hit there reads nothing. The response built for the first definition
+/// instance is kept and returned again for that same instance; an equal definition in another instance gets a response of
+/// its own, since the typed calls check the definition's identity. An entry the format could not read is
+/// <see cref="Unreadable"/> and builds nothing.
 /// </remarks>
-[ImmutableObject(true)]
 internal sealed class CachedDecision
 {
-    /// <summary>The layout version the serializer writes and reads.</summary>
+    /// <summary>The layout version <see cref="CachedDecisionFormat"/> writes and reads.</summary>
     public const int Version = 1;
 
-    /// <summary>The entry for a stored value the serializer could not read: an unknown version, or corrupt bytes.</summary>
+    /// <summary>The entry for a stored value the format could not read: an unknown version, or corrupt bytes.</summary>
     public static readonly CachedDecision Unreadable = new([], [], null, null, null, null, null, null);
 
     private DecisionResponse? _response;

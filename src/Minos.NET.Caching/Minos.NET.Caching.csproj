@@ -3,8 +3,8 @@
     <RootNamespace>Minos.Caching</RootNamespace>
     <PackageId>Minos.NET.Caching</PackageId>
     <Title>Minos.NET.Caching</Title>
-    <Description>A HybridCache stage for Minos.NET's decision client pipeline: a repeated question set, state, images and model are answered from the in-process or distributed cache instead of the provider. Only successes are stored. Native AOT-compatible.</Description>
-    <PackageTags>$(PackageTags);caching;hybridcache</PackageTags>
+    <Description>A caching stage for Minos.NET's decision client pipeline: a repeated question set, state, images and model are answered from an in-process IMemoryCache, or from an optional IDistributedCache such as Redis, instead of the provider. Only successes are stored. Native AOT-compatible.</Description>
+    <PackageTags>$(PackageTags);caching;memorycache;distributedcache</PackageTags>
     <IsAotCompatible>true</IsAotCompatible>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
   </PropertyGroup>
@@ -16,7 +16,9 @@
   <ItemGroup>
     <!-- The cache key, the response's internal fields and its cached copy, through core's InternalsVisibleTo. -->
     <ProjectReference Include="..\Minos.NET\Minos.NET.csproj" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Abstractions" />
+    <!-- Events 1007 and 1008, through core's DecisionLog. -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
     <PackageReference Include="ZeroAlloc.Results" />
   </ItemGroup>
 

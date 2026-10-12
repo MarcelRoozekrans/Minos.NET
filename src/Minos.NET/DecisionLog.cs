@@ -65,6 +65,22 @@ internal static partial class DecisionLog
         Message = "Minos {Operation} threw an unexpected exception.")]
     public static partial void UnexpectedException(ILogger logger, string operation, Exception exception);
 
+    /// <summary>A cache stage's distributed cache threw on a read; the stage treats it as a miss.</summary>
+    [LoggerMessage(
+        EventId = 1007,
+        EventName = nameof(CacheReadFailed),
+        Level = LogLevel.Warning,
+        Message = "Minos cache read via {Provider} failed; the call goes to the provider.")]
+    public static partial void CacheReadFailed(ILogger logger, string provider, Exception exception);
+
+    /// <summary>A cache stage's distributed cache threw on a write; the answer is returned without being stored there.</summary>
+    [LoggerMessage(
+        EventId = 1008,
+        EventName = nameof(CacheWriteFailed),
+        Level = LogLevel.Warning,
+        Message = "Minos cache write via {Provider} failed; the answer is returned uncached.")]
+    public static partial void CacheWriteFailed(ILogger logger, string provider, Exception exception);
+
     /// <summary>The message to log for <paramref name="error"/>: its own, except where it can carry request or response text.</summary>
     /// <param name="error">The error.</param>
     /// <returns><see cref="DecisionError.Message"/>, or a fixed text for <see cref="DecisionErrorKind.InvalidResponse"/> (<see cref="UnreadableResponse"/>) and <see cref="DecisionErrorKind.Network"/> (<see cref="RequestNotSent"/>).</returns>

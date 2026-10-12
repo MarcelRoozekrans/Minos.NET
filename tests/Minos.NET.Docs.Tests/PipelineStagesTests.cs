@@ -36,7 +36,7 @@ public sealed class PipelineStagesTests
     public async Task TheRecommendedOrder_BuildsWithBothStages()
     {
         var services = new ServiceCollection();
-        services.AddHybridCache().AddDecisionSerializer();
+        services.AddMemoryCache();
         await using var provider = services.BuildServiceProvider();
         using var http = new HttpClient();
         using var limiter = new ConcurrencyLimiter(new ConcurrencyLimiterOptions { PermitLimit = 1, QueueLimit = 0 });

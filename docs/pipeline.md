@@ -144,37 +144,44 @@ Two things to keep in mind when you turn the standard pipeline off:
 
 ## Caching decisions
 
-`Minos.NET.Caching` adds `UseHybridCache()`, a stage that answers a repeated decision from a
-[HybridCache](https://learn.microsoft.com/aspnet/core/performance/caching/hybrid): in process first, then from Redis
-or any other `IDistributedCache` the app registers.
+`Minos.NET.Caching` adds `UseCaching()`, a stage that answers a repeated decision from two levels: an in-process
+`IMemoryCache` first, then Redis or any other `IDistributedCache` the app registers. Without a distributed cache, it
+caches in process only.
 
 <!-- snippet: Pipeline_Caching -->
 ```cs
 // Answers repeated decisions from memory, and from Redis or any IDistributedCache the app registers.
 public static IServiceCollection AddCachedDecisions(IServiceCollection services, string apiKey)
 {
-    services.AddHybridCache().AddDecisionSerializer();
+    services.AddMemoryCache();
     services.AddSystemOneClient(options => options.ApiKey = apiKey)
-        .UseHybridCache(configure: cache => cache.Expiration = TimeSpan.FromHours(1));
+        .UseCaching(configure: cache => cache.Expiration = TimeSpan.FromHours(1));
     return services;
 }
 ```
 <!-- endSnippet -->
 
-- **Register the serializer.** `AddDecisionSerializer()` stores answers as compact JSON with no reflection, so the
-  cache stays trim- and AOT-safe. `Build` throws when the cache comes from the services and the serializer is missing.
+- **Register an in-process cache.** `services.AddMemoryCache()` registers one. `Build` throws when there is none in the
+  services and none is passed to `UseCaching`. A distributed cache in the services is used when one is registered,
+  and the stage logs through the services' `ILoggerFactory`, when there is one.
 - **A repeat is the same definition, state, images and model, to the same provider and endpoint.** Two clients for
   different providers never share an answer, even in one Redis instance. The retry attempt is not part of the key.
-- **Only successes are stored.** An error or a refusal passes through, and the next call asks the provider again.
+- **Only successes are stored,** in process and then in the distributed cache. An error or a refusal passes through,
+  and the next call asks the provider again.
 - **A hit is marked.** `DecisionResponse.IsCached` is `true`, the span and the duration and token metrics carry
   `minos.cache.hit`, and log event 1001's `Cached` field is `True`. The response keeps the model, usage and cost of the
   call that produced it, so filter on `minos.cache.hit` when you count spend.
-- **Concurrent misses are not merged.** Two identical calls that both miss each ask the provider. HybridCache's
-  stampede protection would cache failures as well, so the stage does not use it.
-- **A shared layer needs a real `IDistributedCache`,** such as Redis. An in-memory distributed cache adds nothing beside
-  the in-process one, and HybridCache ignores it.
-- **`DecisionCacheOptions`** sets `Expiration`, for the distributed cache, `LocalCacheExpiration`, for the in-process
-  one, and `KeyPrefix`, `minos:` by default, to keep apps that share a cache apart.
+- **An in-process hit reads nothing.** It returns the stored response and completes at once. A hit in the distributed
+  cache is read from compact JSON, with no reflection, and kept in process for the next call.
+- **Concurrent misses are not merged.** Two identical calls that both miss each ask the provider.
+- **A shared layer needs a real `IDistributedCache`,** such as Redis. `AddDistributedMemoryCache()` registers a
+  `MemoryDistributedCache`, which only keeps a second copy in the same process: harmless, but of no use.
+- **A failing distributed cache never fails a call.** A read that throws is a miss, logged as a Warning, event 1007. A
+  write that throws leaves the answer out of the distributed cache, logged as event 1008; the answer is still returned
+  and kept in process. Cancelling the call still throws `OperationCanceledException`.
+- **`DecisionCacheOptions`** sets `Expiration`, 5 minutes by default, for both levels; `LocalCacheExpiration`, to keep
+  the in-process copy for a different time; and `KeyPrefix`, `minos:` by default, to keep apps that share a cache
+  apart. Each in-process entry has a `Size` of 1, so an `IMemoryCache` with a `SizeLimit` counts entries.
 
 ## Limiting the call rate
 
@@ -220,7 +227,7 @@ public static IDecisionClient Build(HttpClient http, string apiKey, RateLimiter 
     var transport = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = apiKey, UseStandardPipeline = false });
     return transport.AsBuilder()
         .UseOpenTelemetry()
-        .UseHybridCache()
+        .UseCaching()
         .UseRetries()
         .UseRateLimiting(limiter)
         .Build(services);

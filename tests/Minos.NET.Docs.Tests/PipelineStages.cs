@@ -12,9 +12,9 @@ public static class CachedPipeline
     // Answers repeated decisions from memory, and from Redis or any IDistributedCache the app registers.
     public static IServiceCollection AddCachedDecisions(IServiceCollection services, string apiKey)
     {
-        services.AddHybridCache().AddDecisionSerializer();
+        services.AddMemoryCache();
         services.AddSystemOneClient(options => options.ApiKey = apiKey)
-            .UseHybridCache(configure: cache => cache.Expiration = TimeSpan.FromHours(1));
+            .UseCaching(configure: cache => cache.Expiration = TimeSpan.FromHours(1));
         return services;
     }
     #endregion
@@ -47,7 +47,7 @@ public static class OrderedPipeline
         var transport = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = apiKey, UseStandardPipeline = false });
         return transport.AsBuilder()
             .UseOpenTelemetry()
-            .UseHybridCache()
+            .UseCaching()
             .UseRetries()
             .UseRateLimiting(limiter)
             .Build(services);

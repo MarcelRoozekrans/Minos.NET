@@ -14,7 +14,9 @@
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
-    <!-- FakeLogger, and a real LoggerFactory and ServiceCollection for the hosted cache. -->
+    <!-- MemoryCache and MemoryDistributedCache, the two levels the stage is tested over, and AddMemoryCache. -->
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
+    <!-- FakeLogger, and a real LoggerFactory and ServiceCollection for the build's services. -->
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
     <!-- FakeTimeProvider, to step a retry backoff. -->

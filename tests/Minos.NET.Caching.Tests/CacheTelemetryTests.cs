@@ -23,7 +23,7 @@ public sealed class CacheTelemetryTests
         using var client = new ScriptedClient().AsBuilder()
             .UseOpenTelemetry()
             .UseLogging(loggerFactory)
-            .UseHybridCache()
+            .UseCaching()
             .Build(services);
 
         // A model no other test uses: test classes run in parallel, and the listener hears every Minos span in the process.

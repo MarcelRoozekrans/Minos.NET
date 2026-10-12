@@ -1,42 +1,48 @@
-using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.Logging;
 
 namespace Minos.Caching;
 
 /// <summary>Adds <see cref="CachingDecisionClient"/> to a pipeline.</summary>
 public static class CachingDecisionClientBuilderExtensions
 {
-    /// <summary>Adds a stage that answers a repeated request from a <see cref="HybridCache"/> and stores each successful answer.</summary>
+    /// <summary>
+    /// Adds a stage that answers a repeated request from an in-process <see cref="IMemoryCache"/>, then from an optional
+    /// <see cref="IDistributedCache"/>, and stores each successful answer in both.
+    /// </summary>
     /// <param name="builder">The builder.</param>
-    /// <param name="cache">The cache; <see langword="null"/> to take the <see cref="HybridCache"/> of the services passed to <c>Build</c>.</param>
+    /// <param name="memoryCache">The in-process cache; <see langword="null"/> to take the <see cref="IMemoryCache"/> of the services passed to <c>Build</c>.</param>
+    /// <param name="distributedCache">
+    /// The distributed cache, such as Redis; <see langword="null"/> to take the <see cref="IDistributedCache"/> of the services
+    /// passed to <c>Build</c>, or to cache in process only when they have none.
+    /// </param>
     /// <param name="configure">Changes the expiry and key prefix.</param>
     /// <returns><paramref name="builder"/>.</returns>
     /// <remarks>
-    /// Register the cache with <c>services.AddHybridCache().AddDecisionSerializer()</c>. Add the stage inside the telemetry
-    /// and logging stages, so they record each hit, and outside a rate-limiting stage, so a hit takes no permit.
+    /// Register the in-process cache with <c>services.AddMemoryCache()</c>. The stage logs through the services'
+    /// <see cref="ILoggerFactory"/>, when there is one. Add the stage inside the telemetry and logging stages, so they record
+    /// each hit, and outside a rate-limiting stage, so a hit takes no permit.
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="builder"/> is <see langword="null"/>.</exception>
-    public static DecisionClientBuilder UseHybridCache(this DecisionClientBuilder builder, HybridCache? cache = null, Action<DecisionCacheOptions>? configure = null)
+    public static DecisionClientBuilder UseCaching(
+        this DecisionClientBuilder builder,
+        IMemoryCache? memoryCache = null,
+        IDistributedCache? distributedCache = null,
+        Action<DecisionCacheOptions>? configure = null)
     {
         ArgumentNullException.ThrowIfNull(builder);
         return builder.Use((inner, services) =>
         {
             var options = new DecisionCacheOptions();
             configure?.Invoke(options);
-            return new CachingDecisionClient(inner, cache ?? FromServices(services), options);
+            var memory = memoryCache
+                ?? services.GetService(typeof(IMemoryCache)) as IMemoryCache
+                ?? throw new InvalidOperationException(
+                    "UseCaching found no IMemoryCache: register one with services.AddMemoryCache() and pass the services to Build, or pass one to UseCaching.");
+            var distributed = distributedCache ?? services.GetService(typeof(IDistributedCache)) as IDistributedCache;
+            var logger = (services.GetService(typeof(ILoggerFactory)) as ILoggerFactory)?.CreateLogger(DecisionLog.Category);
+            return new CachingDecisionClient(inner, memory, distributed, options, logger);
         });
-    }
-
-    private static HybridCache FromServices(IServiceProvider services)
-    {
-        var cache = services.GetService(typeof(HybridCache)) as HybridCache
-            ?? throw new InvalidOperationException(
-                "UseHybridCache found no HybridCache: register one with services.AddHybridCache().AddDecisionSerializer() and pass the services to Build, or pass a cache to UseHybridCache.");
-        if (services.GetService(typeof(IHybridCacheSerializer<CachedDecision>)) is null)
-        {
-            throw new InvalidOperationException(
-                "The HybridCache has no serializer for decisions: register it with services.AddHybridCache().AddDecisionSerializer().");
-        }
-
-        return cache;
     }
 }

@@ -58,22 +58,24 @@ public sealed class CachingPackageTests : IClassFixture<CachingPackFixture>
     }
 
     [Fact]
-    public void DependsOnMinosNetAndHybridCacheOnly()
+    public void DependsOnMinosNetAndTheCacheAbstractionsOnly()
     {
         var dependencies = Dependencies();
 
         Assert.Equal(
             [
-                "Microsoft.Extensions.Caching.Hybrid",
+                "Microsoft.Extensions.Caching.Abstractions",
+                "Microsoft.Extensions.Logging.Abstractions",
                 "Minos.NET",
                 "ZeroAlloc.Results",
             ],
             dependencies.Select(dependency => (string)dependency.Attribute("id")!).Order(StringComparer.Ordinal).ToArray());
 
         // Minos.NET is packed at the same version; release-please versions every package together. The Microsoft
-        // floor is the first .NET 10 release.
+        // floors are the first .NET 10 release.
         Assert.Equal(_fixture.PackageVersion, Version(dependencies, "Minos.NET"));
-        Assert.Equal("10.0.0", Version(dependencies, "Microsoft.Extensions.Caching.Hybrid"));
+        Assert.Equal("10.0.0", Version(dependencies, "Microsoft.Extensions.Caching.Abstractions"));
+        Assert.Equal("10.0.0", Version(dependencies, "Microsoft.Extensions.Logging.Abstractions"));
     }
 
     [Fact]
@@ -85,7 +87,7 @@ public sealed class CachingPackageTests : IClassFixture<CachingPackFixture>
         Assert.Equal("https://github.com/MarcelRoozekrans/Minos.NET", (string?)metadata.Element(Nuspec + "repository")!.Attribute("url"));
         Assert.Equal("Copyright (c) 2026 Marcel Roozekrans", (string?)metadata.Element(Nuspec + "copyright"));
         Assert.Equal("icon.png", (string?)metadata.Element(Nuspec + "icon"));
-        Assert.Equal(PackageContentTests.PackageTags + " caching hybridcache", (string?)metadata.Element(Nuspec + "tags"));
+        Assert.Equal(PackageContentTests.PackageTags + " caching memorycache distributedcache", (string?)metadata.Element(Nuspec + "tags"));
     }
 
     [Fact]
@@ -120,6 +122,7 @@ public sealed class CachingPackageTests : IClassFixture<CachingPackFixture>
               </PropertyGroup>
               <ItemGroup>
                 <PackageReference Include="Minos.NET.Caching" Version="{_fixture.PackageVersion}" />
+                <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="10.0.0" />
               </ItemGroup>
             </Project>
             """);
@@ -133,10 +136,10 @@ public sealed class CachingPackageTests : IClassFixture<CachingPackFixture>
 
             public static class Client
             {
-                public static void Register(IServiceCollection services) => services.AddHybridCache().AddDecisionSerializer();
+                public static void Register(IServiceCollection services) => services.AddMemoryCache();
 
                 public static IDecisionClient Wrap(IDecisionClient inner, IServiceProvider services)
-                    => inner.AsBuilder().UseHybridCache(configure: options => options.KeyPrefix = "consumer:").Build(services);
+                    => inner.AsBuilder().UseCaching(configure: options => options.KeyPrefix = "consumer:").Build(services);
             }
             """);
 

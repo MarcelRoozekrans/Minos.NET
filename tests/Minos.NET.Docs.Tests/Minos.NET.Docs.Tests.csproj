@@ -26,6 +26,8 @@
   <ItemGroup>
     <!-- Host.CreateApplicationBuilder and its configuration, for the dependency injection page. -->
     <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <!-- AddMemoryCache, for the pipeline page's caching snippets. -->
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
     <!-- FakeLogger, for the observability page's logging example. -->
     <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
     <!-- AddOpenTelemetry, AddSource and AddMeter, for the observability page's wiring snippet. -->

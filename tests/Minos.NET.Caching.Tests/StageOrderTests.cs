@@ -21,7 +21,7 @@ public sealed class StageOrderTests
         var inner = new ScriptedClient();
         using var client = inner.AsBuilder()
             .UseOpenTelemetry()
-            .UseHybridCache()
+            .UseCaching()
             // Retries off: the third call's rejection would wait out MaxRetryDelay on the real clock. Task 3 covers a
             // retry stage retrying a rejection.
             .UseRetries(o => o.MaxRetries = 0)
@@ -45,13 +45,13 @@ public sealed class StageOrderTests
         var time = new FakeTimeProvider();
         var collection = new ServiceCollection();
         collection.AddSingleton<TimeProvider>(time);
-        collection.AddHybridCache().AddDecisionSerializer();
+        collection.AddMemoryCache();
         using var services = collection.BuildServiceProvider();
         using var counting = new CountingLimiter();
         var inner = new ScriptedClient().ThenFail(DecisionErrorKind.Server).ThenAnswer();
         using var client = inner.AsBuilder()
             .UseOpenTelemetry()
-            .UseHybridCache()
+            .UseCaching()
             .UseRetries(o => o.Jitter = false)
             .UseRateLimiting(counting)
             .Build(services);

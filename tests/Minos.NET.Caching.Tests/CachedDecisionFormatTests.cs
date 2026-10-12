@@ -1,22 +1,14 @@
-using System.Buffers;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 
 namespace Minos.Caching.Tests;
 
-public sealed class CachedDecisionSerializerTests
+public sealed class CachedDecisionFormatTests
 {
-    private static readonly CachedDecisionSerializer Serializer = new();
+    private static byte[] Write(CachedDecision entry) => CachedDecisionFormat.Write(entry);
 
-    private static byte[] Write(CachedDecision entry)
-    {
-        var buffer = new ArrayBufferWriter<byte>();
-        Serializer.Serialize(entry, buffer);
-        return buffer.WrittenSpan.ToArray();
-    }
-
-    private static CachedDecision Read(byte[] bytes) => Serializer.Deserialize(new ReadOnlySequence<byte>(bytes));
+    private static CachedDecision Read(byte[] bytes) => CachedDecisionFormat.Read(bytes);
 
     private static CachedDecision Stored() => CachedDecision.From(Responses.Answer().AsCached());
 

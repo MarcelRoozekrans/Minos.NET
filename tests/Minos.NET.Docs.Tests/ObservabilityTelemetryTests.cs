@@ -74,12 +74,12 @@ public sealed class ObservabilityTelemetryTests
     {
         options.UseStandardPipeline = false;
         var services = new ServiceCollection();
-        services.AddHybridCache().AddDecisionSerializer();
+        services.AddMemoryCache();
         await using var provider = services.BuildServiceProvider();
         var (http, transport, _) = ScriptedDecision.Client(options, script);
         using (http)
         using (transport)
-        using (var cached = transport.AsBuilder().UseOpenTelemetry().UseHybridCache().Build(provider))
+        using (var cached = transport.AsBuilder().UseOpenTelemetry().UseCaching().Build(provider))
         {
             await cached.EvaluateAsync<TicketAnalysis>("Help! SECRET-STATE", CancellationToken.None);
             await cached.EvaluateAsync<TicketAnalysis>("Help! SECRET-STATE", CancellationToken.None);
