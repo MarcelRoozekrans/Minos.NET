@@ -16,11 +16,13 @@
       "allowedVersions": "[5.0.0]"
     },
     {
-      "description": "The library's shipped floor for these three is the first .NET 10 release, so a consumer on any 10.0.x servicing release resolves without a conflict; the pack tests assert 10.0.0 in the nuspec. Microsoft.Extensions.Logging, Hosting and Configuration are test and smoke-app only and keep updating. Raising a floor is a deliberate change made by hand, together with the pack tests; the brackets mean exactly 10.0.0",
+      "description": "The library's shipped floor for these five is the first .NET 10 release, so a consumer on any 10.0.x servicing release resolves without a conflict; the pack tests assert 10.0.0 in the nuspec. Caching.Abstractions and System.Threading.RateLimiting are the floors of Minos.NET.Caching and Minos.NET.RateLimiting. Microsoft.Extensions.Logging, Hosting, Configuration and Caching.Memory are test and smoke-app only and keep updating. Raising a floor is a deliberate change made by hand, together with the pack tests; the brackets mean exactly 10.0.0",
       "matchPackageNames": [
         "Microsoft.Extensions.Logging.Abstractions",
         "Microsoft.Extensions.Http",
-        "Microsoft.Extensions.Options.ConfigurationExtensions"
+        "Microsoft.Extensions.Options.ConfigurationExtensions",
+        "Microsoft.Extensions.Caching.Abstractions",
+        "System.Threading.RateLimiting"
       ],
       "allowedVersions": "[10.0.0]"
     },

@@ -28,7 +28,7 @@ The OpenAI adapter ships as 1.0.0 too. Its docs and package description say that
 - #51 is checked in Phase 7.2, but it stays open while dotnet/roslyn#85804 and #77119 are unfixed.
 
 ## Phases
-1. Phase 7.1 — Caching and rate-limiting stages [pending]
+1. Phase 7.1 — Caching and rate-limiting stages [complete]
 2. Phase 7.2 — Public API review of the whole surface [pending]
 3. Phase 7.3 — Live verification on the final API [pending]
 4. Phase 7.4 — AOT, trim and benchmark re-verification [pending]

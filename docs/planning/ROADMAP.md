@@ -357,11 +357,13 @@ compress_memory: disabled
 
 Removed on 2026-10-12, because the maintainer has no OpenAI account: the live OpenAI run and the recorded OpenAI conformance fixtures, both moved here from Milestone 6. #161 stays open.
 
-### Phase 7.1: Caching and rate-limiting stages [status: pending]
+### Phase 7.1: Caching and rate-limiting stages [status: complete]
 **Goal:** `UseCaching` and `UseRateLimiting` pipeline stages (#143). Rate limiting wraps `System.Threading.RateLimiting` and fails with a `RateLimited` error before a request is sent; caching keys on the definition, state and model, with its storage and its effect on usage and telemetry decided in the phase spec.
 **Surface:** Backend
 **HelpWanted:** no
-**Plan:** _to be written_
+**Spec:** `docs/superpowers/specs/2026-10-12-phase-7.1-pipeline-stages-design.md`
+**Plan:** `docs/superpowers/plans/2026-10-12-phase-7.1-pipeline-stages.md`
+**Evidence:** #176, merged 2026-10-12, in release PR #177 (0.12.0); pre-push review PASS, `docs/plans/2026-10-12-phase-7.1-pre-push-review.md`. The packages are `Minos.NET.Caching`, over `IMemoryCache` and an optional `IDistributedCache`, and `Minos.NET.RateLimiting`. HybridCache was dropped because it is not AOT-clean (dotnet/extensions#5624). Follow-up for 7.2: #175.
 
 ### Phase 7.2: Public API review of the whole surface [status: pending]
 **Goal:** Review sealing, naming, nullability and XML docs across every package, the new stages included; add the OpenAI "unverified" label with its docs test; check #51's Roslyn issues.
