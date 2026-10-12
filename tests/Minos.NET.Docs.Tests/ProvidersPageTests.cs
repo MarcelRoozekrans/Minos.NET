@@ -1,5 +1,11 @@
 using System.Globalization;
+using System.Text;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using Minos.OpenAI;
 using Minos.SystemOne;
 
@@ -136,6 +142,130 @@ public sealed partial class ProvidersPageTests
 
         Assert.Equal(["MIN201", "MIN202", "MIN203", "MIN204", "MIN205", "MIN206"], ids);
         Assert.All(ids, id => Assert.Contains(id, section, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void TheSwitchingExample_IsTheSamplesAppsettings()
+    {
+        var sample = JsonNode.Parse(File.ReadAllText(
+            Path.Combine(PublishedPages.Root, "samples", "Minos.NET.Samples.ProviderSwitch", "appsettings.json")));
+
+        Assert.True(JsonNode.DeepEquals(sample, JsonNode.Parse(JsonBlock(0))), "The page's first json block is the sample's appsettings.json.");
+    }
+
+    [Theory]
+    [InlineData("TypeSafe", SystemOneProvider.TypeSafe)]
+    [InlineData("OpenRouter", SystemOneProvider.OpenRouter)]
+    [InlineData("local", SystemOneProvider.Custom)]
+    public void TheActiveProvider_IsBoundFromItsOwnSection(string active, SystemOneProvider expected)
+    {
+        using var json = new MemoryStream(Encoding.UTF8.GetBytes(JsonBlock(0)));
+        var builder = Builder(json, active);
+        ProviderSwitching.AddActiveProvider(builder);
+        using var host = builder.Build();
+
+        var options = host.Services.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName);
+
+        Assert.Equal(expected, options.Provider);
+        Assert.Equal(2, options.MaxRetries);
+        if (expected == SystemOneProvider.Custom)
+        {
+            Assert.Equal(new Uri("http://localhost:8000/"), options.BaseAddress);
+            Assert.Equal("Mapika/decider-2b-GGUF:Q4_K_M", options.Model);
+            Assert.Null(options.ApiKey);
+        }
+    }
+
+    [Fact]
+    public void AnUnknownActiveProvider_FailsNamingIt()
+    {
+        using var json = new MemoryStream(Encoding.UTF8.GetBytes(JsonBlock(0)));
+        var builder = Builder(json, "Elsewhere");
+
+        var exception = Assert.Throws<InvalidOperationException>(() => ProviderSwitching.AddActiveProvider(builder));
+
+        Assert.Contains("Elsewhere", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheLocalServerCommands_AreTheOnesCiRuns()
+    {
+        var workflow = File.ReadAllText(Path.Combine(PublishedPages.Root, ".github", "workflows", "local-systemone.yml"));
+        var section = Section("## Running a local server");
+        string[] commands =
+        [
+            "pip install --extra-index-url https://download.pytorch.org/whl/cpu ollajev==0.4.0",
+            "ollajev pull Mapika/decider-2b-GGUF:Q4_K_M",
+            "ollajev serve Mapika/decider-2b-GGUF:Q4_K_M --port 8000 --no-browser",
+        ];
+
+        Assert.All(commands, command => Assert.Contains(command, workflow, StringComparison.Ordinal));
+        Assert.All(commands, command => Assert.Contains(command, section, StringComparison.Ordinal));
+        Assert.Contains("OLLAJEV_DEVICE: cpu", workflow, StringComparison.Ordinal);
+        Assert.Contains("OLLAJEV_DEVICE=cpu", section, StringComparison.Ordinal);
+        Assert.Contains("http://localhost:8000/", section, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheOpenAISection_IsBoundThroughAddOpenAIDecisionClient()
+    {
+        using var json = new MemoryStream(Encoding.UTF8.GetBytes(JsonBlock(1)));
+        var builder = Builder(json, "OpenAI");
+        ProviderSwitching.AddActiveClient(builder);
+        using var host = builder.Build();
+
+        var client = host.Services.GetRequiredService<IDecisionClient>();
+        var options = host.Services.GetRequiredService<IOptionsMonitor<OpenAIDecisionClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName);
+
+        Assert.Equal("openai", client.GetService<DecisionClientMetadata>()!.ProviderName);
+        Assert.Equal("gpt-6-luna", options.Model);
+        Assert.Equal(2, options.MaxRetries);
+    }
+
+    [Fact]
+    public void AddActiveClient_StillBindsASystemOneSection()
+    {
+        using var json = new MemoryStream(Encoding.UTF8.GetBytes(JsonBlock(0)));
+        var builder = Builder(json, "OpenRouter");
+        ProviderSwitching.AddActiveClient(builder);
+        using var host = builder.Build();
+
+        Assert.Equal("openrouter", host.Services.GetRequiredService<IDecisionClient>().GetService<DecisionClientMetadata>()!.ProviderName);
+    }
+
+    [Fact]
+    public void AddingOpenAI_SaysTheSampleHasNoOpenAIRecording_AndLinksTheIssue()
+        => Assert.Contains("https://github.com/MarcelRoozekrans/Minos.NET/issues/161", Section("## Adding OpenAI"), StringComparison.Ordinal);
+
+    // A host with only the page's JSON, the active provider, and a key for each hosted provider, so no environment
+    // variable is read.
+    private static HostApplicationBuilder Builder(Stream json, string active)
+    {
+        var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true });
+        builder.Configuration.AddJsonStream(json);
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.Ordinal)
+        {
+            ["Minos:Active"] = active,
+            ["Minos:Providers:TypeSafe:ApiKey"] = "typesafe-key",
+            ["Minos:Providers:OpenRouter:ApiKey"] = "openrouter-key",
+            ["Minos:Providers:OpenAI:ApiKey"] = "openai-key",
+        });
+        return builder;
+    }
+
+    // The body of the page's json code block number index, counting from 0.
+    private static string JsonBlock(int index)
+    {
+        var lines = File.ReadAllLines(Path.Combine(PublishedPages.Root, "docs", Page));
+        var start = -1;
+        for (var found = 0; found <= index; found++)
+        {
+            start = Array.FindIndex(lines, start + 1, line => string.Equals(line, "```json", StringComparison.Ordinal));
+            Assert.True(start >= 0, $"{Page} has {index + 1} json blocks.");
+        }
+
+        var end = Array.FindIndex(lines, start + 1, line => string.Equals(line, "```", StringComparison.Ordinal));
+        return string.Join('\n', lines[(start + 1)..end]);
     }
 
     private static IDecisionClient Client(HttpClient http, string column)

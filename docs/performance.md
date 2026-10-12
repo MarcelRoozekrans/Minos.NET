@@ -565,4 +565,4 @@ they differ.
 
 - [Getting started](getting-started.md): the guide from the beginning.
 - [Testing your code](testing-your-code.md): test code that uses Minos with canned answers.
-- [Samples](samples.md): three runnable cookbook samples.
+- [Samples](samples.md): four runnable cookbook samples.

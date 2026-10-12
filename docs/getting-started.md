@@ -241,7 +241,7 @@ The guide has one page per topic.
 - [Diagnostics](diagnostics.md): every analyzer rule for question sets, and how to suppress one.
 - [Testing your code](testing-your-code.md): fakes and canned replies, so tests never call the real API.
 - [Patterns](patterns/index.md): four ways to put the answers to work.
-- [Samples](samples.md): three runnable cookbook samples that replay recorded answers.
+- [Samples](samples.md): four runnable cookbook samples; three replay recorded answers.
 - [Performance](performance.md): what a call costs, measured.
 
 ## Next

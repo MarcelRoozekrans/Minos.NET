@@ -1,44 +1,66 @@
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
 using Minos.SystemOne;
 
 namespace Minos.Docs.Tests;
 
-/// <summary>Ties the samples page to the sample folders, their recordings and the CI workflow.</summary>
+/// <summary>Ties the samples page to the sample folders, their recordings and the CI workflows.</summary>
 public sealed partial class SamplesTests
 {
     private static string Samples { get; } = Path.Combine(PublishedPages.Root, "samples");
 
-    /// <summary>The folders under samples/ that hold a recordings.json: the cookbook samples.</summary>
-    private static string[] SampleFolders { get; } = Directory.EnumerateDirectories(Samples)
-        .Where(dir => File.Exists(Path.Combine(dir, "recordings.json")))
+    /// <summary>The cookbook samples: every samples/Minos.NET.Samples.* folder except the shared library.</summary>
+    private static string[] SampleFolders { get; } = Directory.EnumerateDirectories(Samples, "Minos.NET.Samples.*")
         .Select(dir => Path.GetFileName(dir))
+        .Where(name => !string.Equals(name, "Minos.NET.Samples.Shared", StringComparison.Ordinal))
         .Order(StringComparer.Ordinal)
+        .ToArray();
+
+    /// <summary>The samples with one recordings.json. The provider-switch sample keeps one file per provider in recordings/.</summary>
+    private static string[] SingleRecordingFolders { get; } = SampleFolders
+        .Where(folder => File.Exists(Path.Combine(Samples, folder, "recordings.json")))
         .ToArray();
 
     [Fact]
     public void TheTable_ListsEverySampleFolder_AndNothingElse()
     {
-        var rows = PageTables.Rows("samples.md", "The three samples");
+        var rows = PageTables.Rows("samples.md", "The four samples");
 
         var listed = rows.Select(row => Folder(row[0])).Order(StringComparer.Ordinal).ToArray();
 
         Assert.Equal(SampleFolders, listed);
-        Assert.Equal(3, SampleFolders.Length);
+        Assert.Equal(4, SampleFolders.Length);
+        Assert.Equal(3, SingleRecordingFolders.Length);
     }
 
     [Fact]
     public void EachRow_HasTheRealCommandAndTheRecordedRequestCount()
     {
-        foreach (var row in PageTables.Rows("samples.md", "The three samples"))
+        foreach (var row in PageTables.Rows("samples.md", "The four samples"))
         {
             var folder = Folder(row[0]);
 
             Assert.Equal($"dotnet run --project samples/{folder}", PageTables.Code(row[2]));
-            using var recordings = JsonDocument.Parse(File.ReadAllText(Path.Combine(Samples, folder, "recordings.json")));
-            var entries = recordings.RootElement.GetProperty("entries").GetArrayLength();
-            Assert.Equal(entries.ToString(System.Globalization.CultureInfo.InvariantCulture), row[3]);
             Assert.True(File.Exists(Path.Combine(Samples, folder, "README.md")), folder + " has a README.");
+            var single = Path.Combine(Samples, folder, "recordings.json");
+            if (File.Exists(single))
+            {
+                Assert.Equal(Entries(single).ToString(CultureInfo.InvariantCulture), row[3]);
+                continue;
+            }
+
+            // A provider sample sends the same requests to each provider, so each provider's file holds one answer per
+            // request. Its count against the sample's own tickets is checked in ProviderSwitchSampleTests.
+            var perProvider = PerProvider().Match(row[3]);
+            Assert.True(perProvider.Success, $"'{row[3]}' reads '<n> per provider'.");
+            var count = int.Parse(perProvider.Groups["count"].Value, CultureInfo.InvariantCulture);
+            var recordings = Path.Combine(Samples, folder, "recordings");
+            foreach (var file in Directory.Exists(recordings) ? Directory.GetFiles(recordings, "*.json") : Array.Empty<string>())
+            {
+                Assert.Equal(count, Entries(file));
+            }
         }
     }
 
@@ -49,12 +71,18 @@ public sealed partial class SamplesTests
 
         foreach (var folder in SampleFolders)
         {
-            var program = File.ReadAllText(Path.Combine(Samples, folder, "Program.cs"));
-            Assert.Contains("[-- --replay | --live | --record]", program, StringComparison.Ordinal);
-            Assert.Contains("return 2;", program, StringComparison.Ordinal);
+            var code = new StringBuilder();
+            foreach (var file in Directory.GetFiles(Path.Combine(Samples, folder), "*.cs"))
+            {
+                code.Append(File.ReadAllText(file));
+            }
+
+            Assert.All(["--replay", "--live", "--record", "return 2;"], text => Assert.Contains(text, code.ToString(), StringComparison.Ordinal));
         }
 
-        Assert.All(["`--replay`", "`--live`", "`--record`", "exits with code 2"], mode => Assert.Contains(mode, page, StringComparison.Ordinal));
+        Assert.All(
+            ["`--replay`", "`--live`", "`--record`", "`--provider <name>`", "exits with code 2"],
+            mode => Assert.Contains(mode, page, StringComparison.Ordinal));
     }
 
     [Fact]
@@ -62,7 +90,7 @@ public sealed partial class SamplesTests
     {
         var page = PageTables.Text("samples.md");
 
-        foreach (var folder in SampleFolders)
+        foreach (var folder in SingleRecordingFolders)
         {
             using var recordings = JsonDocument.Parse(File.ReadAllText(Path.Combine(Samples, folder, "recordings.json")));
             Assert.Equal("OpenRouter", recordings.RootElement.GetProperty("provider").GetString());
@@ -72,9 +100,12 @@ public sealed partial class SamplesTests
     }
 
     [Fact]
-    public void TheLiveModes_NeedTheOpenRouterKeyVariable()
+    public void TheLiveModes_NeedTheKeyVariables()
     {
-        Assert.Contains("`" + SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable + "`", PageTables.Text("samples.md"), StringComparison.Ordinal);
+        var page = PageTables.Text("samples.md");
+
+        Assert.Contains("`" + SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable + "`", page, StringComparison.Ordinal);
+        Assert.Contains("`" + SystemOneDefaults.ApiKeyEnvironmentVariable + "`", page, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -146,6 +177,12 @@ public sealed partial class SamplesTests
         Assert.True(Directory.Exists(Path.Combine(Samples, "Minos.NET.AotSmoke")));
     }
 
+    private static int Entries(string path)
+    {
+        using var recordings = JsonDocument.Parse(File.ReadAllText(path));
+        return recordings.RootElement.GetProperty("entries").GetArrayLength();
+    }
+
     private static string Folder(string cell)
     {
         var match = SampleLink().Match(cell);
@@ -160,4 +197,7 @@ public sealed partial class SamplesTests
         RegexOptions.None,
         matchTimeoutMilliseconds: 1000)]
     private static partial Regex SampleLink();
+
+    [GeneratedRegex("^(?<count>[0-9]+) per provider$", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex PerProvider();
 }

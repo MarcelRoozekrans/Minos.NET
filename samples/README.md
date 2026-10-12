@@ -1,14 +1,15 @@
 # Samples
 
-Three cookbook samples show Jev doing real work in a small console app. Each one has its own README with the details.
+Four cookbook samples show Minos doing real work in a small console app. Each one has its own README with the details.
 
 | Sample | What it shows |
 | --- | --- |
 | [Guardrails](Minos.NET.Samples.Guardrails) | Screens chat messages before they reach a language model, with one request per message and two policies over the same answers. Inspired by TypeSafe's [Guardrails for LLMs](https://docs.typesafe.ai/cookbooks/llm_guardrails) cookbook. |
 | [Intent routing](Minos.NET.Samples.IntentRouting) | Decides per request whether code, an assistant model or a person handles it, using Jev as the cheap first step. Inspired by TypeSafe's [intent routing](https://docs.typesafe.ai/patterns/intent-routing) pattern and its [Function calling](https://docs.typesafe.ai/cookbooks/function_calling) cookbook. |
+| [Provider switch](Minos.NET.Samples.ProviderSwitch) | Routes support tickets with one Choice question through TypeSafe, OpenRouter or a local server, chosen by configuration only. |
 | [Re-ranking](Minos.NET.Samples.Reranking) | Re-orders a keyword shortlist of help articles by how well each answers the question, in one fan-out request. Inspired by TypeSafe's [Re-ranking](https://docs.typesafe.ai/cookbooks/rerank_typesafe) cookbook. |
 
-Every sample is our own work. Each is inspired by TypeSafe's material, linked in the table above, but the code, the data and the policies are written here.
+Every sample is our own work. Three are inspired by TypeSafe's material, linked in the table above, but the code, the data and the policies are written here.
 
 ## Run a sample
 
@@ -16,17 +17,19 @@ Every sample is our own work. Each is inspired by TypeSafe's material, linked in
 dotnet run --project samples/Minos.NET.Samples.Guardrails
 ```
 
-Replay and record read and write the recordings in your clone of the repository: each sample's `recordings.json` in its source folder. Run those two modes from a clone, not from a copied build output. `--live` reads no recordings and runs from anywhere.
+Replay and record read and write the recordings in your clone of the repository: each sample's `recordings.json` in its source folder, or for the provider-switch sample one file per provider in its `recordings/` folder. Run those two modes from a clone, not from a copied build output. `--live` reads no recordings and runs from anywhere.
 
 A sample runs in one of three modes, chosen by the argument after `--`:
 
-- **Replay** is the default and needs no network and no key. It answers every request from the checked-in `recordings.json`.
+- **Replay** is the default and needs no network and no key. It answers every request from the checked-in recordings.
 - `--live` calls the API and prints the report. It needs `OPENROUTER_API_KEY` and makes billed requests.
-- `--record` does the same as `--live` and then rewrites the sample's `recordings.json` from the responses. It needs `OPENROUTER_API_KEY` as well.
+- `--record` does the same as `--live` and then rewrites the sample's recordings from the responses. It needs `OPENROUTER_API_KEY` as well.
+
+The provider-switch sample also takes `--provider typesafe`, `openrouter` or `local`, and needs the key of the provider it calls: `TYPESAFE_API_KEY`, `OPENROUTER_API_KEY`, or none for a local server.
 
 ## The recordings
 
-The checked-in recordings are real OpenRouter answers from the model `typesafe/jev-1.13-20260917`, all recorded on 2026-10-02. A recording holds only the provider, the model, the date and the response bodies keyed by a hash of the request. It never holds headers or a key, and a test checks that. Record again with `--record` when a sample's questions or data change. A change to the client's request format in the core library changes the request of every sample, so it means re-recording all of them; replay names the sample and the command when a request has no recorded answer.
+The three single-provider samples hold real OpenRouter answers from the model `typesafe/jev-1.13-20260917`, all recorded on 2026-10-02. The provider-switch sample keeps one file per provider, recorded by the Live smoke and Local systemone workflows; those recordings arrive with [issue #166](https://github.com/MarcelRoozekrans/Minos.NET/issues/166), and until then its tests use answers made up in the test. A recording holds only the provider, the model, the date and the response bodies keyed by a hash of the request. It never holds headers or a key, and a test checks that. Record again with `--record` when a sample's questions or data change. A change to the client's request format in the core library changes the request of every sample, so it means re-recording all of them; replay names the sample and the command when a request has no recorded answer.
 
 ## Not a sample
 

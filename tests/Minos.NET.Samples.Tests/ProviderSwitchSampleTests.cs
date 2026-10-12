@@ -118,6 +118,16 @@ public sealed class ProviderSwitchSampleTests
     }
 
     [Fact]
+    public void TheSamplesPage_CountsOneRequestPerTicketPerProvider()
+    {
+        var page = File.ReadAllLines(Path.Combine(Repository.Root, "docs", "samples.md"));
+
+        var row = Assert.Single(page, line => line.StartsWith("| [Provider switch]", StringComparison.Ordinal));
+
+        Assert.EndsWith($"| {Tickets.All.Count.ToString(CultureInfo.InvariantCulture)} per provider |", row, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task AnUnknownProvider_ExitsWithTwo_AndNamesTheConfiguredOnes()
     {
         var (code, output, error) = await RunApp(["--provider", "openai"], SampleHost.SampleDirectory(Sample));

@@ -2,7 +2,7 @@
 id: providers
 title: Providers
 sidebar_position: 6
-description: The presets, servers you run and OpenAI, what each provider accepts and how they differ, and images.
+description: The presets, servers you run and OpenAI, what each provider accepts and how they differ, images, switching providers by configuration, and running a decision server on your own machine.
 ---
 
 # Providers
@@ -23,7 +23,8 @@ compares the presets and OpenAI side by side.
 
 Each column is a provider: the four `SystemOneProvider` presets, which `SystemOneClient` reaches over System One, and
 OpenAI, which `OpenAIDecisionClient` reaches over its Decisions API. The first five rows are the
-[capabilities](#capabilities). Each of their cells is the default, which you can change, and "none" means no limit is published or set.
+[capabilities](#capabilities). Each of their cells is the default, which you can change, and "none" means no limit is
+published or set.
 
 | What | `TypeSafe` | `OpenRouter` | `VllmSemanticRouter` | `Custom` | `OpenAI` |
 | --- | --- | --- | --- | --- | --- |
@@ -51,8 +52,8 @@ OpenRouter has its own models API, so model listing is off for it. A `Custom` or
 listing on with `ModelListing = true`, and `OpenAIDecisionClient` has no `ListModelsAsync`. Choice and Score answers
 carry a confidence on every provider. A limit that reads "none" for `VllmSemanticRouter`, `Custom` or OpenAI means
 the provider publishes none, not that it is known to be unlimited. A limit you set in `Capabilities` applies on every
-provider. The capabilities you set change the kinds, the limits, the images and, for the System One presets, the model listing the client checks.
-While model listing is off, a model-listing call returns the `Unsupported` kind.
+provider. The capabilities you set change the kinds, the limits, the images and, for the System One presets, the model
+listing the client checks. While model listing is off, a model-listing call returns the `Unsupported` kind.
 
 ## The presets
 
@@ -500,6 +501,135 @@ Without images, both protocols send exactly what they send for text alone. With 
   text, then one `{"type":"image_url","image_url":{"url":"data:…"}}` per image, in order.
 - **OpenAI** sends `input` as one user message: an `input_text` part with the state, then one `input_image` part per
   image, as [the mapping](#the-mapping) shows.
+
+## Switching providers
+
+An app that names its provider in configuration switches with no code change. The
+[provider-switch sample](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples/Minos.NET.Samples.ProviderSwitch)
+keeps one section per provider under `Minos:Providers`, and `Minos:Active` names the one to use. This is its
+`appsettings.json`:
+
+```json
+{
+  "Minos": {
+    "Active": "TypeSafe",
+    "Providers": {
+      "TypeSafe": { "Provider": "TypeSafe", "MaxRetries": 2 },
+      "OpenRouter": { "Provider": "OpenRouter", "MaxRetries": 2 },
+      "Local": {
+        "Provider": "Custom",
+        "BaseAddress": "http://localhost:8000/",
+        "Model": "Mapika/decider-2b-GGUF:Q4_K_M",
+        "MaxRetries": 2
+      }
+    }
+  }
+}
+```
+
+No key is in the file. TypeSafe's comes from `TYPESAFE_API_KEY` and OpenRouter's from `OPENROUTER_API_KEY`, as for any
+preset, and the local server needs none. The sections differ only in their provider settings, `Provider`,
+`BaseAddress` and `Model`; everything else, such as `MaxRetries`, is the same in each.
+
+A program can bind the active section and nothing else. This is a simpler example of the same binding than the
+sample's own code:
+
+<!-- snippet: Providers_ActiveProvider -->
+```cs
+// Minos:Active names one section under Minos:Providers, and the client is bound from that section alone. No other
+// code depends on the provider.
+public static IConfigurationSection ActiveSection(IConfiguration configuration)
+{
+    var active = configuration["Minos:Active"];
+    if (string.IsNullOrWhiteSpace(active))
+    {
+        throw new InvalidOperationException("Set Minos:Active to the provider to use.");
+    }
+
+    var section = configuration.GetSection("Minos:Providers").GetSection(active);
+    return section.Exists()
+        ? section
+        : throw new InvalidOperationException($"Minos:Providers has no section named {active}.");
+}
+
+public static SystemOneClientServiceBuilder AddActiveProvider(IHostApplicationBuilder builder)
+    => builder.Services.AddSystemOneClient(ActiveSection(builder.Configuration));
+```
+<!-- endSnippet -->
+
+`Minos:Active` is set in the file. The environment variable `Minos__Active` overrides it, as it overrides any setting
+in a .NET host, and so does the sample's `--provider` argument:
+
+```shell
+dotnet run --project samples/Minos.NET.Samples.ProviderSwitch -- --provider local
+```
+
+Each provider's answers are recorded in a file of its own: `recordings/typesafe.json`, `recordings/openrouter.json` and
+`recordings/local.json`. TypeSafe and OpenRouter receive byte-identical requests, because both ask `jev-latest`, so one
+file could not hold both. To use several providers at once in one app, register each under a key, as
+[several clients](dependency-injection.md#several-clients) shows.
+
+## Running a local server
+
+`Custom` reaches any server that speaks `/v1/systemone`, and a small one runs on an ordinary machine. The Local
+systemone workflow runs ollajev 0.4.0 with the decision model `Mapika/decider-2b-GGUF:Q4_K_M` on a CI runner with no
+GPU, with these commands:
+
+```shell
+pip install --extra-index-url https://download.pytorch.org/whl/cpu ollajev==0.4.0
+ollajev pull Mapika/decider-2b-GGUF:Q4_K_M
+OLLAJEV_DEVICE=cpu ollajev serve Mapika/decider-2b-GGUF:Q4_K_M --port 8000 --no-browser
+```
+
+The model is a 1.27 GB GGUF file under the Apache-2.0 licence, run by llama.cpp, so no code from its repository runs.
+Never pass `--trust`, which lets a model run code of its own. The server is ready when
+`GET http://127.0.0.1:8000/v1/models` answers. On the runner that took about 8 seconds, most of it loading the model.
+
+The `Local` section above points the `Custom` preset at it: `Provider` is `Custom`, `BaseAddress` is
+`http://localhost:8000/` and `Model` is `Mapika/decider-2b-GGUF:Q4_K_M`. No key is sent. The server answers all three
+question kinds, and reports probabilities to four decimals.
+
+## Adding OpenAI
+
+OpenAI's client is a type of its own, `OpenAIDecisionClient`, so its section is bound with `AddOpenAIDecisionClient`
+instead of `AddSystemOneClient`. Add a section for it:
+
+```json
+{
+  "Minos": {
+    "Active": "OpenAI",
+    "Providers": {
+      "OpenAI": { "Model": "gpt-6-luna", "MaxRetries": 2 }
+    }
+  }
+}
+```
+
+Then pick the registration by the section's name:
+
+<!-- snippet: Providers_AddOpenAI -->
+```cs
+// OpenAI has a client type of its own, so its section is bound with AddOpenAIDecisionClient. The code that asks for
+// IDecisionClient does not change. Without an ApiKey in the section, the client reads OPENAI_API_KEY.
+public static void AddActiveClient(IHostApplicationBuilder builder)
+{
+    var section = ActiveSection(builder.Configuration);
+    if (string.Equals(section.Key, "OpenAI", StringComparison.OrdinalIgnoreCase))
+    {
+        builder.Services.AddOpenAIDecisionClient(section);
+    }
+    else
+    {
+        builder.Services.AddSystemOneClient(section);
+    }
+}
+```
+<!-- endSnippet -->
+
+The code that asks for an `IDecisionClient` does not change. The key comes from `OPENAI_API_KEY`, and
+[OpenAI](#openai) above lists what OpenAI cannot express. The provider-switch sample has no OpenAI section, because
+there is no OpenAI key to record its answers with yet;
+[issue #161](https://github.com/MarcelRoozekrans/Minos.NET/issues/161) tracks that.
 
 ## Next
 
