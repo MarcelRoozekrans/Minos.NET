@@ -2,12 +2,32 @@
 
 | Metric | Value |
 |---|---|
-| Date | 2026-10-12 |
-| Commit | `main` at 05b2098, which is #169 |
 | Milestone | 6, Provider-neutral core, started 2026-10-09 |
-| Verdict | **FAIL**: 1 gap fixable now, 2 items blocked on an OpenAI key |
+| First audit | 2026-10-12, `main` at 05b2098, which is #169: **FAIL**, 1 gap fixable now, 2 items blocked on an OpenAI key |
+| Re-audit | 2026-10-12, `main` at ec75f56, which is #170: **PASS** |
 
-## Definition of done
+## Re-audit after Phase 6.8
+
+**Verdict: PASS.** Every criterion is met, and two of them were met as amended after the first audit. The rows below are the ones that changed; every other row stands as the first audit recorded it.
+
+| # | Criterion | Verdict | Evidence |
+|---|---|---|---|
+| 1 | All planned phases complete | Met | Phases 6.1 to 6.8 are `[status: complete]` in `ROADMAP.md`. Phase 6.8 was the gap phase, a bounded change approved in chat, with no plan file. |
+| 2 | All tests pass | Met | Local run on ec75f56: 0 warnings; 2,779 passed, 0 failed, 20 live skipped. CI run 38235600300 on ec75f56 passed `build`, `aot-smoke` and `aot-surface`; Docs run 38235600273 and Benchmarks run 38235600264 passed too. |
+| 4 | No wire JSON in the generator's output; **a test serializes one question set for both protocols** | **Met** | `ProtocolParityTests` in `tests/Minos.NET.Integration.Tests` sends `OpenAITicket`, with a Noul, a Choice and a Score, through a `SystemOneClient` and an `OpenAIDecisionClient`. Each body is pinned against a hand-written fixture for its own protocol, the question order is checked in both, and both typed results agree. A wrong expected value makes it fail. `ProtocolBoundaryTests` still keeps the wire names out of the core. |
+| 5 | Allocation budgets unchanged or tightened | Met | `git diff 05b2098 ec75f56 -- src samples` is empty, so nothing on the measured path changed since the first audit; `aot-smoke` passed in CI run 38235600300. |
+| 7 | Live runs pass against TypeSafe, OpenRouter, OpenAI and one local server | **Met as amended** | TypeSafe, OpenRouter and the local server pass, as the first audit recorded. The OpenAI run moved to Milestone 7 on 2026-10-12, as the maintainer decided after the first audit. Milestone 7's Definition of Done requires it, and #161 tracks it. |
+| 8 | The conformance suite runs green against recorded TypeSafe and OpenAI fixtures | **Met as amended** | Green on recorded TypeSafe and OpenRouter fixtures. Recording OpenAI's fixtures moved to Milestone 7 by the same decision; it is in Milestone 7's Definition of Done, and #161 tracks it. |
+
+**Code quality reviews:** Phase 6.8 adds `2026-10-12-phase-6.8-pre-push-review.md`, PASS with 0 warnings, so every phase from 6.1 to 6.8 has a PASS review.
+
+**Release:** skipped, as in the first audit. `CONVENTIONS.md` says milestone completion does not tag, because release-please owns releases. #170's three commits all appear in release PR #171, 0.11.3.
+
+**Gaps:** none.
+
+## First audit
+
+### Definition of done
 
 | # | Criterion | Verdict | Evidence |
 |---|---|---|---|
@@ -21,7 +41,7 @@
 | 8 | The conformance suite runs green against recorded TypeSafe and OpenAI fixtures | **Partly met, blocked** | Green on recorded TypeSafe and OpenRouter fixtures. OpenAI's fixture is labelled `guide`, because there is no key to record with. #161 tracks it. |
 | 9 | A Providers page with the presets and the capability matrix; a sample switches providers by configuration only | Met | `docs/providers.md` opens with the matrix, tested against each client's resolved capabilities. `samples/Minos.NET.Samples.ProviderSwitch` replays TypeSafe, OpenRouter and a local server; `TheProviderSections_DifferOnlyInProviderSettings` pins that only provider settings differ. |
 
-## Code quality reviews
+### Code quality reviews
 
 Every phase has a pre-push review with a PASS verdict in `docs/plans/`:
 
@@ -35,11 +55,11 @@ Every phase has a pre-push review with a PASS verdict in `docs/plans/`:
 | 6.6 | `2026-10-11-phase-6.6-pre-push-review.md` | PASS |
 | 6.7 | `2026-10-12-phase-6.7-pre-push-review.md` | PASS |
 
-## Release
+### Release
 
 `CONVENTIONS.md` says `Milestone completion tags a release: no`; release-please owns releases, so this criterion is skipped. Releases v0.6.0 to v0.11.1 shipped during the milestone, and #168 for 0.11.2 is open. Nothing is published to NuGet in this milestone, as its goal says.
 
-## Gaps
+### Gaps
 
 1. **No test serializes one question set for both protocols** (criterion 4). Fixable now: one test that sends the same generated set through a `SystemOneClient` and an `OpenAIDecisionClient`, captures both request bodies, and pins each against the wire format it expects.
 2. **No live OpenAI run** (criterion 7). Blocked: there is no OpenAI key. Tracked in #161.

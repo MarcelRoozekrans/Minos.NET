@@ -262,17 +262,19 @@ compress_memory: disabled
 **Completed:** 2026-10-09
 **Evidence:** Live smoke on main: probe [run 37913354273](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37913354273) (8/8), post-merge [run 37918889031](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37918889031) (12/13, OpenRouter rejects jev-preview, fixed in #111) and [run 37925900075](https://github.com/ZeroAlloc-Net/ZeroAlloc.Jev/actions/runs/37925900075) (13/13). TypeSafe answers jev-latest and jev-preview with jev-1.13.0 and accepts jev-1.13.0 as a model; OpenRouter answers jev-latest as typesafe/jev-1.13-20260917 and has no jev-preview.
 
-## Milestone 6: Provider-neutral core [status: active]
+## Milestone 6: Provider-neutral core [status: complete]
 **Goal:** Rename to a vendor-neutral name and reshape the core around a neutral question model, an `IDecisionClient` and two protocol adapters, `/v1/systemone` and OpenAI's `/v1/decisions`, validated by a conformance suite, before any 1.0 API freeze.
 **Started:** 2026-10-09
+**Completed:** 2026-10-12
 **Design:** `docs/superpowers/specs/2026-10-09-milestone-6-design.md`
+**Audit:** `docs/plans/2026-10-12-milestone-6-audit.md`, PASS on re-audit
 **Definition of Done:**
-- [ ] A vendor-neutral name is decided and applied to packages, namespaces, attributes, client and error types, analyzer IDs, the repository and the docs site; the fate of `ZeroAlloc.Jev` is decided
-- [ ] The generator emits a provider-neutral question set; serialization lives in protocol adapters
-- [ ] `IDecisionClient` with a builder pipeline carries retries, telemetry and logging
-- [ ] The same question type runs against TypeSafe, OpenAI and a local `/v1/systemone` server by configuration only, with capability flags and typed errors for unsupported combinations
-- [ ] A conformance suite passes against recorded TypeSafe and OpenAI fixtures
-- [ ] A Providers docs page documents the presets and the capability matrix
+- [x] A vendor-neutral name is decided and applied to packages, namespaces, attributes, client and error types, analyzer IDs, the repository and the docs site; the fate of `ZeroAlloc.Jev` is decided
+- [x] The generator emits a provider-neutral question set; serialization lives in protocol adapters
+- [x] `IDecisionClient` with a builder pipeline carries retries, telemetry and logging
+- [x] The same question type runs against TypeSafe, OpenAI and a local `/v1/systemone` server by configuration only, with capability flags and typed errors for unsupported combinations; the live OpenAI run moved to Milestone 7 (#161)
+- [x] A conformance suite passes against recorded TypeSafe fixtures; recording OpenAI's moved to Milestone 7 (#161)
+- [x] A Providers docs page documents the presets and the capability matrix
 
 ### Phase 6.1: Rename to Minos and move out of the ZeroAlloc org [status: complete]
 **Goal:** Rename to Minos (`Minos.NET` packages, `Minos` namespace, `MIN` analyzer IDs, the approved type-naming rule) and move the repository to `MarcelRoozekrans/Minos.NET`. Follow the maintainer's personal-library conventions: an in-repo Docusaurus site on GitHub Pages, an own logo, no ZeroAlloc-org workflows. The README explains the name. No behaviour change (#120).
@@ -332,11 +334,13 @@ compress_memory: disabled
 **Plan:** `docs/superpowers/plans/2026-10-12-phase-6.7-providers-docs-and-samples.md`
 **Completed:** 2026-10-12
 
-### Phase 6.8: One question set through both protocols [status: pending]
+### Phase 6.8: One question set through both protocols [status: complete]
 **Goal:** Close the Milestone 6 audit's gap: a test sends one generated question set through the `/v1/systemone` and OpenAI adapters and pins both request bodies, proving the set carries no wire JSON of its own (`docs/plans/2026-10-12-milestone-6-audit.md`, gap 1).
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _none; a bounded change approved in chat on 2026-10-12_
+**Pre-push review:** `docs/plans/2026-10-12-phase-6.8-pre-push-review.md`
+**Completed:** 2026-10-12, in #170
 
 ## Milestone 7: 1.0 release [status: pending]
 **Goal:** Review, verify and publish the provider-neutral library as 1.0.0 on NuGet, with api-compat guarding every later change.
