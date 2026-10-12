@@ -1,0 +1,9 @@
+﻿s01  billing    0.99
+s02  technical  0.97
+s03  account    0.98
+s04  sales      0.95
+s05  technical  0.97
+s06  account    0.94
+s07  sales      0.80
+s08  billing    0.94
+Answered by Local with Mapika/decider-2b-GGUF:Q4_K_M

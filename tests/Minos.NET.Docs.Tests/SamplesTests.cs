@@ -24,6 +24,23 @@ public sealed partial class SamplesTests
         .ToArray();
 
     [Fact]
+    public void TheProviderRecordings_AreFromTheModelsAndDatesThePageNames()
+    {
+        var page = PageTables.Text("samples.md");
+        var files = SampleFolders.Except(SingleRecordingFolders, StringComparer.Ordinal)
+            .SelectMany(folder => Directory.GetFiles(Path.Combine(Samples, folder, "recordings"), "*.json"))
+            .ToArray();
+
+        Assert.Equal(3, files.Length);
+        foreach (var file in files)
+        {
+            using var recordings = JsonDocument.Parse(File.ReadAllText(file));
+            Assert.Contains("`" + recordings.RootElement.GetProperty("model").GetString() + "`", page, StringComparison.Ordinal);
+            Assert.Contains(recordings.RootElement.GetProperty("recorded").GetString()!, page, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
     public void TheTable_ListsEverySampleFolder_AndNothingElse()
     {
         var rows = PageTables.Rows("samples.md", "The four samples");

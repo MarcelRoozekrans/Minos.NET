@@ -7,6 +7,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
 using Minos.OpenAI;
+using Minos.Samples;
+using Minos.Samples.ProviderSwitch;
 using Minos.SystemOne;
 
 namespace Minos.Docs.Tests;
@@ -23,6 +25,37 @@ public sealed partial class ProvidersPageTests
     private const string Matrix = "## At a glance";
 
     private static readonly string[] CapabilityRows = ["Question kinds", "Most questions", "Most Choice options", "Images", "Model listing"];
+
+    [Fact]
+    public async Task TheSideBySideTable_MatchesTheRecordings()
+    {
+        string[] providers = ["TypeSafe", "OpenRouter", "Local"];
+        var directory = SampleHost.SampleDirectory(ProviderSwitchApp.SampleName);
+        var reports = new List<ProviderSwitchReport>();
+        foreach (var provider in providers)
+        {
+            await using var services = SampleHost.BuildProviderReplayProvider(directory, ProviderSwitchApp.SampleName, provider);
+            reports.Add(await ProviderSwitchSample.RunAsync(services.GetRequiredService<IDecisionClient>(), provider, CancellationToken.None));
+        }
+
+        var expected = new List<string>
+        {
+            "| Ticket | " + string.Join(" | ", providers) + " |",
+            "| --- | --- | --- | --- |",
+        };
+        for (var i = 0; i < reports[0].Tickets.Count; i++)
+        {
+            expected.Add("| " + reports[0].Tickets[i].Id + " | " + string.Join(" | ", Cells(reports, i)) + " |");
+        }
+
+        expected.Add("| Model | " + string.Join(" | ", reports.Select(r => "`" + r.Model + "`")) + " |");
+
+        var table = SectionLines("## Switching providers").SkipWhile(line => !line.StartsWith('|')).TakeWhile(line => line.StartsWith('|'));
+        Assert.Equal(string.Join('\n', expected), string.Join('\n', table));
+    }
+
+    private static IEnumerable<string> Cells(List<ProviderSwitchReport> reports, int ticket)
+        => reports.Select(r => string.Create(CultureInfo.InvariantCulture, $"{r.Tickets[ticket].Team} {r.Tickets[ticket].Confidence:0.00}"));
 
     [Fact]
     public void ThePresetsTable_MatchesWhatEachPresetDoes()

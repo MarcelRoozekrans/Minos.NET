@@ -1,0 +1,215 @@
+{
+  "provider": "OpenRouter",
+  "model": "typesafe/jev-1.13-20260917",
+  "recorded": "2026-10-12",
+  "entries": [
+    {
+      "requestHash": "16d813143521601302d893c0eb15da2d50ffd04e637783eb14c4e19cdde1d058",
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "team": {
+            "type": "choice",
+            "choice": "account",
+            "probabilities": {
+              "billing": 0,
+              "technical": 0,
+              "account": 1,
+              "sales": 0
+            },
+            "confidence": 1
+          }
+        },
+        "usage": {
+          "input_tokens": 378,
+          "output_tokens": 45,
+          "cost": 0.000015876
+        },
+        "id": "gen-dec-1791787912-SRW7bdahB903mVADtjbJ",
+        "provider": "TypeSafe"
+      }
+    },
+    {
+      "requestHash": "5219283a9a63866352537ba231d3d22c3ea37ec355886bc25a518e9fcb6627e1",
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "team": {
+            "type": "choice",
+            "choice": "account",
+            "probabilities": {
+              "billing": 0,
+              "technical": 0,
+              "account": 1,
+              "sales": 0
+            },
+            "confidence": 1
+          }
+        },
+        "usage": {
+          "input_tokens": 375,
+          "output_tokens": 45,
+          "cost": 0.00001575
+        },
+        "id": "gen-dec-1791787911-LXRd9kshEvuPKbzow7OT",
+        "provider": "TypeSafe"
+      }
+    },
+    {
+      "requestHash": "524f835c1ee711aae8fe16e0bab103330040ee520555237a9ec578c571f73e91",
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "team": {
+            "type": "choice",
+            "choice": "sales",
+            "probabilities": {
+              "billing": 0,
+              "technical": 0,
+              "account": 0,
+              "sales": 1
+            },
+            "confidence": 1
+          }
+        },
+        "usage": {
+          "input_tokens": 384,
+          "output_tokens": 45,
+          "cost": 0.000016128
+        },
+        "id": "gen-dec-1791787911-7W7TsmR5TUUoJ2ySxOZg",
+        "provider": "TypeSafe"
+      }
+    },
+    {
+      "requestHash": "5caf85d754b293f49e2ba132b3479d5dd5f2f760b268b62177c46e0618ef66e3",
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "team": {
+            "type": "choice",
+            "choice": "billing",
+            "probabilities": {
+              "billing": 1,
+              "technical": 0,
+              "account": 0,
+              "sales": 0
+            },
+            "confidence": 1
+          }
+        },
+        "usage": {
+          "input_tokens": 378,
+          "output_tokens": 45,
+          "cost": 0.000015876
+        },
+        "id": "gen-dec-1791787912-9zzk5xClc0IYZ06haRtD",
+        "provider": "TypeSafe"
+      }
+    },
+    {
+      "requestHash": "5fb999ac77b56ba467b6cc34297dd7cf11e2f68bcaf211c752fb5c1d903ca930",
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "team": {
+            "type": "choice",
+            "choice": "sales",
+            "probabilities": {
+              "billing": 0,
+              "technical": 0,
+              "account": 0,
+              "sales": 1
+            },
+            "confidence": 1
+          }
+        },
+        "usage": {
+          "input_tokens": 374,
+          "output_tokens": 45,
+          "cost": 0.000015708
+        },
+        "id": "gen-dec-1791787912-s5XLltDfg61v9Bir2Xn7",
+        "provider": "TypeSafe"
+      }
+    },
+    {
+      "requestHash": "6476d7848d1aa12d94d3e902336d49c0afc46235569e27fab9153b70568431df",
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "team": {
+            "type": "choice",
+            "choice": "technical",
+            "probabilities": {
+              "billing": 0,
+              "technical": 1,
+              "account": 0,
+              "sales": 0
+            },
+            "confidence": 1
+          }
+        },
+        "usage": {
+          "input_tokens": 382,
+          "output_tokens": 45,
+          "cost": 0.000016044
+        },
+        "id": "gen-dec-1791787911-go4o6icFa0Az9EzFD9tx",
+        "provider": "TypeSafe"
+      }
+    },
+    {
+      "requestHash": "75eff749e00c03ff736a258b6c5ebaa31ff08daabc93b8e1b3c2b117724062ea",
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "team": {
+            "type": "choice",
+            "choice": "billing",
+            "probabilities": {
+              "billing": 1,
+              "technical": 0,
+              "account": 0,
+              "sales": 0
+            },
+            "confidence": 1
+          }
+        },
+        "usage": {
+          "input_tokens": 381,
+          "output_tokens": 45,
+          "cost": 0.000016002
+        },
+        "id": "gen-dec-1791787910-oVWVt24NiFO0wfhfQALI",
+        "provider": "TypeSafe"
+      }
+    },
+    {
+      "requestHash": "9b65ddbc78d3add4773c5c6f9d6794cc5b0004fb57b361f8ab4ba3395ef2b4c5",
+      "responseBody": {
+        "model": "typesafe/jev-1.13-20260917",
+        "answers": {
+          "team": {
+            "type": "choice",
+            "choice": "technical",
+            "probabilities": {
+              "billing": 0,
+              "technical": 1,
+              "account": 0,
+              "sales": 0
+            },
+            "confidence": 1
+          }
+        },
+        "usage": {
+          "input_tokens": 381,
+          "output_tokens": 45,
+          "cost": 0.000016002
+        },
+        "id": "gen-dec-1791787911-0dR0hjVQslNbMBq0rQKC",
+        "provider": "TypeSafe"
+      }
+    }
+  ]
+}

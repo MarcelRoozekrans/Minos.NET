@@ -382,5 +382,5 @@ tests are skipped unless `MINOS_LIVE=1` and an API key are set, because their ca
 ## Next
 
 - [Patterns](patterns/index.md): four ways to use the answers, with examples that run as tests against canned answers.
-- [Samples](samples.md): four runnable cookbook samples; three replay recorded answers instead of calling the API.
+- [Samples](samples.md): four runnable cookbook samples that replay recorded answers instead of calling the API.
 - [The client and its errors](client-and-errors.md): the options, and every `DecisionError` a test can provoke.
