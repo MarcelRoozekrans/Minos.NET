@@ -235,7 +235,12 @@ public sealed partial class ProvidersPageTests
 
     [Fact]
     public void AddingOpenAI_SaysTheSampleHasNoOpenAIRecording_AndLinksTheIssue()
-        => Assert.Contains("https://github.com/MarcelRoozekrans/Minos.NET/issues/161", Section("## Adding OpenAI"), StringComparison.Ordinal);
+    {
+        var section = Section("## Adding OpenAI");
+
+        Assert.Contains("The provider-switch sample has no OpenAI section, because", section, StringComparison.Ordinal);
+        Assert.Contains("https://github.com/MarcelRoozekrans/Minos.NET/issues/161", section, StringComparison.Ordinal);
+    }
 
     // A host with only the page's JSON, the active provider, and a key for each hosted provider, so no environment
     // variable is read.
