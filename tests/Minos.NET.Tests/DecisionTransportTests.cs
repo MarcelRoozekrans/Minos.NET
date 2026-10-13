@@ -30,8 +30,8 @@ public sealed class DecisionTransportTests : IDisposable
                 options.Path = "decide/v1/systemone";
             });
 
-        var http = client.GetService<DecisionClientMetadata>()!.Endpoint!;
-        Assert.EndsWith("/v1/systemone", http.AbsoluteUri, StringComparison.Ordinal);
+        var defaultEndpoint = client.GetService<DecisionClientMetadata>()!.Endpoint;
+        Assert.Equal(new Uri(SystemOneDefaults.TypeSafeBaseAddress, "v1/systemone"), defaultEndpoint);
         Assert.Equal(new Uri("http://localhost:8080/router/decide/v1/systemone"), custom.GetService<DecisionClientMetadata>()!.Endpoint);
     }
 
