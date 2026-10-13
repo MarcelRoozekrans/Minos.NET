@@ -162,8 +162,8 @@ public sealed class DecisionCacheKeyTests
     [Fact]
     public void Hashes_a_utf8_state_by_its_bytes()
     {
-        var first = new DecisionRequest(Triage, DecisionContent.FromCheckedUtf8State(Encoding.UTF8.GetBytes("""{"a":1}""")));
-        var second = new DecisionRequest(Triage, DecisionContent.FromCheckedUtf8State(Encoding.UTF8.GetBytes("""{"a":2}""")));
+        var first = new DecisionRequest(Triage, DecisionContent.FromCheckedUtf8State("""{"a":1}"""u8));
+        var second = new DecisionRequest(Triage, DecisionContent.FromCheckedUtf8State("""{"a":2}"""u8));
 
         Assert.NotEqual(Key(first), Key(second));
     }

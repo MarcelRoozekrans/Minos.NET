@@ -25,13 +25,13 @@ public sealed class SystemOneProtocolTests
     [Fact]
     public void ReadAnswers_FillsSlotsInDefinitionOrder()
     {
-        const string json = """
+        var json = """
             {"s":{"type":"score","score":0.8,"legend":{},"probabilities":{"0":0.2,"1":0.8},"confidence":0.6},
              "unknown":{"type":"noul","noul":1},
              "c":{"type":"choice","choice":"b","probabilities":{"a":0.3,"b":0.7},"confidence":0.4},
              "n":{"type":"noul","noul":0.9}}
-            """;
-        var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(json));
+            """u8;
+        var reader = new Utf8JsonReader(json);
         reader.Read();
 
         var result = SystemOneProtocol.Instance.ReadAnswers(ref reader, Definition, static answers =>
