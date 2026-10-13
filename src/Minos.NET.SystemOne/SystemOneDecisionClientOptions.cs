@@ -51,7 +51,7 @@ public sealed class SystemOneDecisionClientOptions
     /// ask, as a versioned id such as <c>jev-1.13.0</c> or an alias. When unset, the preset's default: jev-latest for
     /// TypeSafe and OpenRouter. The other providers have none, so it must be set.
     /// Surrounding whitespace is trimmed; a blank value is rejected.
-    /// A <see cref="SystemOneRequest"/> names its own model, so this option does not apply to it.
+    /// A <see cref="SystemOneRequest"/> that names no model of its own is sent with this one.
     /// </summary>
     public string? Model { get; set; }
 

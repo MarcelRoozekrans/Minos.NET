@@ -15,6 +15,7 @@ public sealed class RequestSerializationTests
         var request = new SystemOneRequest
         {
             State = State,
+            Model = SystemOneDefaults.Model,
             Questions = new Dictionary<string, Question>
             {
                 ["is_urgent"] = new NoulQuestion { Instructions = "Does this convey urgency?" },
@@ -30,6 +31,7 @@ public sealed class RequestSerializationTests
         var request = new SystemOneRequest
         {
             State = State,
+            Model = SystemOneDefaults.Model,
             Questions = new Dictionary<string, Question>
             {
                 ["is_urgent"] = new NoulQuestion
@@ -53,6 +55,7 @@ public sealed class RequestSerializationTests
         var request = new SystemOneRequest
         {
             State = State,
+            Model = SystemOneDefaults.Model,
             Questions = new Dictionary<string, Question>
             {
                 ["department"] = new ChoiceQuestion
@@ -78,6 +81,7 @@ public sealed class RequestSerializationTests
         var request = new SystemOneRequest
         {
             State = State,
+            Model = SystemOneDefaults.Model,
             Questions = new Dictionary<string, Question>
             {
                 ["frustration"] = new ScoreQuestion
@@ -118,11 +122,11 @@ public sealed class RequestSerializationTests
     }
 
     [Fact]
-    public void Model_DefaultsToJevLatest()
+    public void Model_DefaultsToNull_SoTheClientCanFillItIn()
     {
         var request = new SystemOneRequest { State = State, Questions = new Dictionary<string, Question>() };
 
-        Assert.Equal(SystemOneDefaults.Model, request.Model);
+        Assert.Null(request.Model);
     }
 
     [Fact]
@@ -132,25 +136,12 @@ public sealed class RequestSerializationTests
     }
 
     [Fact]
-    public void NullModel_Throws()
-    {
-        var request = new SystemOneRequest
-        {
-            State = State,
-            Model = null!,
-            Questions = new Dictionary<string, Question>(),
-        };
-
-        Assert.Throws<JsonException>(
-            () => JsonSerializer.SerializeToNode(request, DecisionJsonContext.Default.SystemOneRequest));
-    }
-
-    [Fact]
     public void KeysWithCapitals_AreWrittenUnchanged()
     {
         var request = new SystemOneRequest
         {
             State = State,
+            Model = SystemOneDefaults.Model,
             Questions = new Dictionary<string, Question>
             {
                 ["IsUrgent"] = new ChoiceQuestion
@@ -182,6 +173,7 @@ public sealed class RequestSerializationTests
         var request = new SystemOneRequest
         {
             State = State,
+            Model = SystemOneDefaults.Model,
             Questions = new Dictionary<string, Question>
             {
                 ["is_urgent"] = new NoulQuestion

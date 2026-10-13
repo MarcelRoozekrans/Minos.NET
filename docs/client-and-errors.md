@@ -99,7 +99,7 @@ you asked for it. Everything else, including every network and service failure, 
 | `Provider` | `SystemOneProvider.TypeSafe` | `TypeSafe`, `OpenRouter`, `VllmSemanticRouter` or `Custom` | Where requests go. The [Providers](providers.md#the-presets) page lists what each one sets. |
 | `ApiKey` | none | any text without control characters; blank counts as unset | The key sent as a bearer token. When unset, the client reads `TYPESAFE_API_KEY` for TypeSafe and `OPENROUTER_API_KEY` for OpenRouter. `VllmSemanticRouter` and `Custom` read no variable and send no key unless this is set. |
 | `BaseAddress` | the provider's address | absolute `http` or `https` URI, no query or fragment | The API root, for a proxy, a test server or a server you run. When unset, the client reads `TYPESAFE_BASE_URL` for TypeSafe only, then uses the provider's address. `VllmSemanticRouter` and `Custom` have none, so it is required for them. |
-| `Model` | the preset's default: `jev-latest` for TypeSafe and OpenRouter; required for the others | not blank | The model that typed evaluation and built question sets ask: an alias such as `jev-latest` (or TypeSafe's `jev-preview`), or a versioned id such as `jev-1.13.0`. Surrounding whitespace is trimmed. See [Listing models](#listing-models). |
+| `Model` | the preset's default: `jev-latest` for TypeSafe and OpenRouter; required for the others | not blank | The model that typed evaluation, built question sets and a raw `SystemOneRequest` with no model ask: an alias such as `jev-latest` (or TypeSafe's `jev-preview`), or a versioned id such as `jev-1.13.0`. Surrounding whitespace is trimmed. See [Listing models](#listing-models). |
 | `Path` | `v1/systemone` | relative, no leading `/`, no query, fragment or `..`; `Custom` and `VllmSemanticRouter` only | The request path under `BaseAddress`. Surrounding whitespace is trimmed, and blank counts as unset. Rejected for a hosted provider, so a key cannot be sent to another path on a host you did not choose. |
 | `Capabilities` | the preset's | see [Capabilities](providers.md#capabilities) | What the provider accepts, checked before a request is sent. Each property you leave unset keeps the preset's value. |
 | `Timeout` | 60 seconds | positive, or `Timeout.InfiniteTimeSpan`, and at most about 24.8 days | How long one attempt may take. |
@@ -138,7 +138,7 @@ public static SystemOneDecisionClientOptions SpelledOut(string apiKey)
 ```
 <!-- endSnippet -->
 
-A `SystemOneRequest` names its own model, so `Model` applies to typed evaluation and to question sets only.
+A `SystemOneRequest` that names no model of its own is sent with this one, so `Model` applies to every call of the client.
 
 ### SystemOneDefaults
 
@@ -445,7 +445,7 @@ calls do not run through the pipeline's stages: they have their own span and log
 
 <!-- snippet: ClientAndErrors_RawRequest -->
 ```cs
-// The raw API names its own model and questions, with ids you choose. Use it when the questions are not known at
+// The raw API names its own questions, with ids you choose, and may name a model. Use it when the questions are not known at
 // compile time and the question set builder does not fit. Typed evaluation is shorter wherever it can be used.
 public static async Task<string> UrgencyAsync(
     SystemOneDecisionClient client, string message, CancellationToken cancellationToken)
@@ -476,8 +476,8 @@ public static async Task<string> UrgencyAsync(
 <!-- endSnippet -->
 
 A `SystemOneRequest` has a required `State`, which is a `DecisionContent` (text converts to one, as
-[typed evaluation](typed-evaluation.md#decisioncontent) describes), a `Model` that defaults to `jev-latest`, and required
-`Questions`. The response is a `SystemOneResponse`: the versioned `Model` that answered, `Answers` keyed by the ids you
+[typed evaluation](typed-evaluation.md#decisioncontent) describes), an optional `Model` and required `Questions`. A `Model`
+you leave `null` is the client's `Model` option, or the provider's default; a blank one throws. The response is a `SystemOneResponse`: the versioned `Model` that answered, `Answers` keyed by the ids you
 sent, and `Usage` with the input and output token counts; a count the server left out is `null`. On OpenRouter the
 response also carries the generation `Id` and the `UpstreamProvider` OpenRouter routed the request to, and `Usage` carries
 the `Cost` in US dollars.
@@ -486,7 +486,9 @@ Each answer is a `NoulAnswer`, a `ChoiceAnswer` or a `ScoreAnswer`, so you patte
 that matching for you, which is the reason to prefer them. The raw API leaves the API's rules for questions to you,
 where the generator, the [analyzers](diagnostics.md) and the
 [question set builder](question-sets-at-run-time.md) check them for you. A question the service rejects comes back as a
-`Validation` error.
+`Validation` error. A request that is malformed in your own code, which is a blank `Model`, a default `State`, null
+`Questions`, a null question or a question whose `Instructions` is the default value, throws an `ArgumentException` before
+anything is sent.
 
 ### When your code has its own Question or Answer
 

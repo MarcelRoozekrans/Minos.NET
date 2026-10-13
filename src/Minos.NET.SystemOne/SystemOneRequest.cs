@@ -8,14 +8,16 @@ public sealed class SystemOneRequest
     /// <summary>Gets the content to evaluate: text, or structured JSON such as records or a chat log.</summary>
     public required DecisionContent State { get; init; }
 
-    /// <summary>Gets the model that handles the request. Defaults to <see cref="SystemOneDefaults.Model"/>.</summary>
+    /// <summary>
+    /// Gets the model that handles the request. When <see langword="null"/>, the client's
+    /// <see cref="SystemOneDecisionClientOptions.Model"/>, or the provider's default.
+    /// </summary>
     /// <remarks>
-    /// Never omitted from the request body even when <see langword="null"/>, so an
-    /// accidental <see langword="null"/> assignment is rejected as a <see cref="System.Text.Json.JsonException"/>
-    /// at serialization time instead of silently sending no model.
+    /// Must not be blank; the client throws <see cref="ArgumentException"/> before sending. The client resolves a
+    /// <see langword="null"/> model before it serializes the request, so the body always names one.
     /// </remarks>
     [JsonIgnore(Condition = JsonIgnoreCondition.Never)]
-    public string Model { get; init; } = SystemOneDefaults.Model;
+    public string? Model { get; init; }
 
     /// <summary>Gets the questions, keyed by ids you choose; answers come back under the same ids.</summary>
     public required IReadOnlyDictionary<string, Question> Questions { get; init; }

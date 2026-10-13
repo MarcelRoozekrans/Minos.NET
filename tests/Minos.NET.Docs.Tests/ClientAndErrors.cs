@@ -158,7 +158,7 @@ public static class ValidationProblems
 public static class RawRequests
 {
     #region ClientAndErrors_RawRequest
-    // The raw API names its own model and questions, with ids you choose. Use it when the questions are not known at
+    // The raw API names its own questions, with ids you choose, and may name a model. Use it when the questions are not known at
     // compile time and the question set builder does not fit. Typed evaluation is shorter wherever it can be used.
     public static async Task<string> UrgencyAsync(
         SystemOneDecisionClient client, string message, CancellationToken cancellationToken)

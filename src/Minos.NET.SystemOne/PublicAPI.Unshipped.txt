@@ -108,3 +108,5 @@ const Minos.SystemOne.SystemOneDefaults.TypeSafeBaseAddressEnvironmentVariable =
 *REMOVED*Minos.SystemOne.SystemOneResponse.Provider.init -> void
 Minos.SystemOne.SystemOneResponse.UpstreamProvider.get -> string?
 Minos.SystemOne.SystemOneResponse.UpstreamProvider.init -> void
+*REMOVED*Minos.SystemOne.SystemOneRequest.Model.get -> string!
+Minos.SystemOne.SystemOneRequest.Model.get -> string?

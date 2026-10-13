@@ -40,6 +40,7 @@ public sealed class SystemOneDecisionClient : IDecisionClient
     private readonly DecisionOperationsInstrumented _operations;
     private readonly HttpClient? _ownedHttpClient;
     private readonly string _providerName;
+    private readonly string _model;
     private readonly Uri _endpoint;
     private readonly SystemOneProvider _provider;
     private readonly CapabilitySet _capabilities;
@@ -209,6 +210,7 @@ public sealed class SystemOneDecisionClient : IDecisionClient
             Jitter = settings.Jitter,
         };
         _providerName = settings.ProviderName;
+        _model = settings.Model;
         _endpoint = httpClient.BaseAddress!;
         _logger = logger;
         // A disposed client never retries. Only an owned HttpClient is disposed with the client, so only an owned one can
@@ -356,6 +358,11 @@ public sealed class SystemOneDecisionClient : IDecisionClient
     /// <returns>The answers, or the <see cref="DecisionError"/> that prevented them.</returns>
     /// <remarks>Calls <see cref="EvaluateAsync(SystemOneRequest, CancellationToken)"/> without cancellation.</remarks>
     /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="request"/> has a blank <see cref="SystemOneRequest.Model"/>, a default
+    /// <see cref="SystemOneRequest.State"/>, null <see cref="SystemOneRequest.Questions"/>, a null question, or a question
+    /// whose <see cref="Question.Instructions"/> is the default value.
+    /// </exception>
     /// <exception cref="ObjectDisposedException">The client has been disposed.</exception>
     public ValueTask<Result<SystemOneResponse, DecisionError>> EvaluateAsync(SystemOneRequest request)
         => EvaluateAsync(request, CancellationToken.None);
@@ -365,16 +372,28 @@ public sealed class SystemOneDecisionClient : IDecisionClient
     /// <param name="cancellationToken">Cancels the call; cancellation throws <see cref="OperationCanceledException"/>.</param>
     /// <returns>The answers, or the <see cref="DecisionError"/> that prevented them.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="request"/> has a blank <see cref="SystemOneRequest.Model"/>, a default
+    /// <see cref="SystemOneRequest.State"/>, null <see cref="SystemOneRequest.Questions"/>, a null question, or a question
+    /// whose <see cref="Question.Instructions"/> is the default value.
+    /// </exception>
     /// <exception cref="ObjectDisposedException">The client has been disposed.</exception>
     public ValueTask<Result<SystemOneResponse, DecisionError>> EvaluateAsync(SystemOneRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
         ObjectDisposedException.ThrowIf(_disposed, this);
+        ValidateRaw(request);
+
+        // A named model is sent as is. Without one the request is copied with the client's model, so the caller's request
+        // is never changed and the span, the log and the body all name the same model.
+        var resolved = request.Model is null
+            ? new SystemOneRequest { State = request.State, Model = _model, Questions = request.Questions }
+            : request;
         var started = DecisionLog.StartTiming(_logger);
         return WithLogging(
-            _operations.EvaluateAsync(request, _providerName, _endpoint, cancellationToken),
-            request.Model,
-            _logger is null ? 0 : request.Questions is { } questions ? questions.Count : 0,
+            _operations.EvaluateAsync(resolved, _providerName, _endpoint, cancellationToken),
+            resolved.Model!,
+            _logger is null ? 0 : resolved.Questions.Count,
             started,
             cancellationToken);
     }
@@ -519,6 +538,32 @@ public sealed class SystemOneDecisionClient : IDecisionClient
         catch (Exception exception) when (DecisionLog.LogUnexpected(logger, SystemOneLog.ListModels, exception, ct))
         {
             throw;
+        }
+    }
+
+    // The raw call sends the request as given, so a malformed one is a mistake in the calling code and is thrown, not returned
+    // as a failure. The API's own rules for questions stay the server's job.
+    private static void ValidateRaw(SystemOneRequest request)
+    {
+        if (request.Model is { } model && string.IsNullOrWhiteSpace(model))
+        {
+            throw new ArgumentException("The model must be null or not blank.", nameof(request));
+        }
+
+        DecisionContent.EnsureInitialized(request.State, nameof(request));
+        if (request.Questions is not { } questions)
+        {
+            throw new ArgumentException("The request has no questions.", nameof(request));
+        }
+
+        foreach (var (id, question) in questions)
+        {
+            if (question is null)
+            {
+                throw new ArgumentException("Question '" + id + "' is null.", nameof(request));
+            }
+
+            DecisionContent.EnsureInitialized(question.Instructions, nameof(request));
         }
     }
 
