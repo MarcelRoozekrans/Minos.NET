@@ -23,6 +23,13 @@ internal static class AllocationChecks
     // The iteration count of every synchronous gate, the relative ones included.
     private const int GateIterations = 1000;
 
+    // Calls per measured window for the checks whose calls complete asynchronously.
+    private const int YieldingIterations = 500;
+
+    // The per-call tolerance of the relative gate on calls that complete asynchronously; DisabledLoggerAddsNothingWhereAnEnabledOneDoes
+    // records how it was measured.
+    private const int YieldingToleranceBytesPerCall = 64;
+
     private const string NoulResponseJson = """{"model":"jev-1.13.0","answers":{"is_urgent":{"type":"noul","noul":0.95}},"usage":{"input_tokens":296,"output_tokens":20}}""";
     private const string TriageResponseJson = """{"model":"jev-1.13.0","answers":{"requests_credentials":{"type":"noul","noul":0.1},"team":{"type":"choice","choice":"account","probabilities":{"billing":0.2,"account":0.8},"confidence":0.7},"urgency":{"type":"score","score":1.9,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.0,"1":0.1,"2":0.9},"confidence":0.8}},"usage":{"input_tokens":296,"output_tokens":20}}""";
 
@@ -440,81 +447,56 @@ internal static class AllocationChecks
     public static async Task DisabledLoggerAddsNothingWhereAnEnabledOneDoes()
     {
         var request = Program.Request();
-        Func<SystemOneDecisionClient, ValueTask<Result<SystemOneResponse, DecisionError>>> evaluate = client => client.EvaluateAsync(request);
-        var unlogged = await MedianYieldingAsync(NoulResponseJson, null, evaluate).ConfigureAwait(false);
-        var disabled = await MedianYieldingAsync(NoulResponseJson, NullLoggerFactory.Instance, evaluate).ConfigureAwait(false);
-        var enabled = await MedianYieldingAsync(NoulResponseJson, DiscardingLoggerFactory.Instance, evaluate).ConfigureAwait(false);
-        Console.WriteLine($"     yielding EvaluateAsync B/call: no factory {unlogged}, NullLoggerFactory {disabled}, discarding logger {enabled}");
+        using var unloggedHttp = YieldingHttpClient(NoulResponseJson);
+        using var unloggedClient = new SystemOneDecisionClient(unloggedHttp, new SystemOneDecisionClientOptions { ApiKey = "smoke-key" });
+        using var disabledHttp = YieldingHttpClient(NoulResponseJson);
+        using var disabledClient = new SystemOneDecisionClient(disabledHttp, new SystemOneDecisionClientOptions { ApiKey = "smoke-key" }, NullLoggerFactory.Instance);
+        using var enabledHttp = YieldingHttpClient(NoulResponseJson);
+        using var enabledClient = new SystemOneDecisionClient(enabledHttp, new SystemOneDecisionClientOptions { ApiKey = "smoke-key" }, DiscardingLoggerFactory.Instance);
+        Func<ValueTask<Result<SystemOneResponse, DecisionError>>> unlogged = () => unloggedClient.EvaluateAsync(request);
+        Func<ValueTask<Result<SystemOneResponse, DecisionError>>> disabled = () => disabledClient.EvaluateAsync(request);
+        Func<ValueTask<Result<SystemOneResponse, DecisionError>>> enabled = () => enabledClient.EvaluateAsync(request);
 
-        // The tolerance absorbs the spread that remains once the pools are stocked. It is observed, not attributed: a
-        // settled window still moves by 904 to 1384 B, about 2 to 3 B/call, from run to run. The counter has to be
-        // process-wide, since the continuations hop pool threads, so it would also count any runtime thread's allocation.
-        // Over 800 fresh runs of the published win-x64 app on 2026-10-07, the medians of the two sides differed by -7 to
-        // +10 B/call, 95% of them within -2 to +2. An earlier 8 B tolerance failed the one run at +10, so the tolerance
-        // is 16 B: above the largest excess seen, and far below what it guards against, since a logging wrapper's state
-        // machine adds hundreds of bytes per call. #104 tracks the tolerance and this helper's replacement.
+        var unloggedBytes = await AllocationGate.MeasureBytesPerCallAsync(YieldingIterations, unlogged).ConfigureAwait(false);
+        var disabledBytes = await AllocationGate.MeasureBytesPerCallAsync(YieldingIterations, disabled).ConfigureAwait(false);
+        var enabledBytes = await AllocationGate.MeasureBytesPerCallAsync(YieldingIterations, enabled).ConfigureAwait(false);
+        Console.WriteLine($"     yielding EvaluateAsync B/call: no factory {unloggedBytes}, NullLoggerFactory {disabledBytes}, discarding logger {enabledBytes}");
+
+        // AllocationGate counts every thread, since the continuations hop pool threads, so it also counts any runtime
+        // thread's allocation, and the two sides do not always land on the same pool threads. Over 60 runs of the
+        // published win-x64 app on 2026-10-13, 30 with 500 calls per window and 30 with 2000, NullLoggerFactory measured
+        // -23 to +61 B/call against no factory, almost all within -4 to +5; the 8 B default failed one run in 30 both
+        // times, and longer windows did not shrink the excess. The tolerance is therefore 64 B/call, above the largest
+        // excess seen and far below what the check guards against: the discarding logger added 196 B/call or more.
+        await RelativeGateAsync(
+            unlogged,
+            disabled,
+            "DisabledLoggerAddsNothing",
+            "a NullLoggerFactory adds no allocation to an asynchronously completing EvaluateAsync").ConfigureAwait(false);
         Program.Check(
-            disabled - unlogged <= 16,
-            "a NullLoggerFactory adds no allocation to an asynchronously completing EvaluateAsync");
-        Program.Check(
-            enabled - unlogged > 0,
+            enabledBytes - unloggedBytes > YieldingToleranceBytesPerCall,
             "the discarding logger adds allocation to an asynchronously completing EvaluateAsync, so this check sees the wrappers");
     }
 
-    // The median of five runs. Yielding runs vary in both directions: a runtime thread allocating during the loop adds
-    // bytes, and one that allocated less than usual saves some. The least of several runs is therefore biased low and
-    // lets one lucky run set a baseline; the median ignores an outlier on either side.
-    private static async Task<long> MedianYieldingAsync<TResult>(
-        string responseJson, ILoggerFactory? loggerFactory, Func<SystemOneDecisionClient, ValueTask<TResult>> call)
+    // An HttpClient over a handler that yields on every call, so the call completes asynchronously.
+    private static HttpClient YieldingHttpClient(string responseJson) =>
+        new(new YieldingHandler(HttpStatusCode.OK, responseJson)) { BaseAddress = new Uri("https://example.test/api/") };
+
+    // A relative gate for calls that complete asynchronously: candidate may allocate no more per call than baseline,
+    // plus YieldingToleranceBytesPerCall for a counter that sees every thread.
+    private static async Task RelativeGateAsync<T>(
+        Func<ValueTask<T>> baseline, Func<ValueTask<T>> candidate, string label, string passDescription)
     {
-        const int Runs = 5;
-        var runs = new List<long>(Runs);
-        for (var run = 0; run < Runs; run++)
+        try
         {
-            runs.Add(await MeasureYieldingAsync(responseJson, loggerFactory, call).ConfigureAwait(false));
+            await AllocationGate.AssertNoMoreThanAsync(
+                YieldingIterations, YieldingToleranceBytesPerCall, AllocationGate.DefaultAsyncWarmup, baseline, candidate, label).ConfigureAwait(false);
+            Program.Check(true, passDescription);
         }
-
-        runs.Sort();
-        return runs[Runs / 2];
-    }
-
-    // Bytes allocated per awaited call over a handler that yields, on any thread, since the continuation does not run on
-    // the caller's. The loop is sequential, so nothing else allocates meanwhile but the runtime. call is created once by
-    // the caller, so invoking it allocates nothing per call. ZeroAlloc.TestHelpers has no equivalent: its ValueTask
-    // measurements throw unless every call completes synchronously, and they count the calling thread only.
-    //
-    // The order matters, part of #79. A forced gen2 GC runs ArrayPool.Shared's trim, which under high machine memory load
-    // drops every pooled array, so the collections come first and wait for that trim, and the warm-up comes after them; a
-    // collection after the warm-up made the window pay for the refill, about 41 B/call. The warm-up is long because the
-    // pool keeps one array per size in each thread's own slot, and the continuations rotate over several pool threads: 100
-    // calls left some threads unstocked, so a window still rented fresh 16 KB arrays, 0 to 2 per window, up to 66 B/call.
-    private static async Task<long> MeasureYieldingAsync<TResult>(
-        string responseJson, ILoggerFactory? loggerFactory, Func<SystemOneDecisionClient, ValueTask<TResult>> call)
-    {
-        const int WarmupIterations = 2000;
-        const int YieldingIterations = 500;
-        using var http = new HttpClient(new YieldingHandler(HttpStatusCode.OK, responseJson))
+        catch (InvalidOperationException exception)
         {
-            BaseAddress = new Uri("https://example.test/api/"),
-        };
-        using var client = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = "smoke-key" }, loggerFactory);
-
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
-        GC.Collect();
-        GC.WaitForPendingFinalizers();
-        for (var i = 0; i < WarmupIterations; i++)
-        {
-            _ = await call(client).ConfigureAwait(false);
+            Program.Check(false, exception.Message);
         }
-
-        var before = GC.GetTotalAllocatedBytes(precise: true);
-        for (var i = 0; i < YieldingIterations; i++)
-        {
-            _ = await call(client).ConfigureAwait(false);
-        }
-
-        return (GC.GetTotalAllocatedBytes(precise: true) - before) / YieldingIterations;
     }
 
     // EvaluateRoundTrip's call, the same canned response and Program.Request(), through a logging client.
@@ -866,18 +848,30 @@ internal static class AllocationChecks
     /// </summary>
     public static async Task TelemetryOffAsynchronousTypedEvaluation()
     {
-        var median = await MedianYieldingAsync(TriageResponseJson, null, static client => client.EvaluateAsync<SmokeTriage>("Help!")).ConfigureAwait(false);
-        Console.WriteLine($"     yielding EvaluateAsync<T> B/call with telemetry off: {median}");
+        using var http = YieldingHttpClient(TriageResponseJson);
+        using var client = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = "smoke-key" });
+        Func<ValueTask<Result<SmokeTriage, DecisionError>>> evaluate = () => client.EvaluateAsync<SmokeTriage>("Help!");
+        var bytes = await AllocationGate.MeasureBytesPerCallAsync(YieldingIterations, evaluate).ConfigureAwait(false);
+        Console.WriteLine($"     yielding EvaluateAsync<T> B/call with telemetry off: {bytes}");
 
-        // Measured 4389 B/call, the median of five runs, on published win-x64 AOT, 4184 B/call before the pipeline. This is
+        // Measured 4342 to 4408 B/call over 60 runs on published win-x64 AOT on 2026-10-13, the least of three windows of
+        // 500 or 2000 calls; 4389 B/call, the median of five runs, before ZeroAlloc.TestHelpers 1.7.0, and 4184 B/call before the pipeline. This is
         // the whole asynchronously completing call: the transport's request and response, body buffering, parsing, the
         // DecisionRequest and DecisionResponse, and every boxed async state machine, among them the retry stage's and the
         // typed extension's. Budget: about 10% headroom over the measurement, rounded up
-        // to the next multiple of 64 B, per the Phase 1.8 rule.
-        const long BudgetBytes = 4608;
-        Program.Check(
-            median <= BudgetBytes,
-            $"an asynchronously completing EvaluateAsync<T> with telemetry off stays within its allocation budget: {median} B/call against {BudgetBytes} B");
+        // to the next multiple of 64 B, per the Phase 1.8 rule. The tolerance is 0, so the budget is not loosened: the
+        // headroom already covers the noise a counter of every thread sees.
+        const int BudgetBytes = 4608;
+        try
+        {
+            await AllocationGate.AssertBudgetAsync(BudgetBytes, 0, YieldingIterations, AllocationGate.DefaultAsyncWarmup, evaluate, "TelemetryOffAsynchronousTypedEvaluation")
+                .ConfigureAwait(false);
+            Program.Check(true, "an asynchronously completing EvaluateAsync<T> with telemetry off stays within its allocation budget");
+        }
+        catch (InvalidOperationException exception)
+        {
+            Program.Check(false, exception.Message);
+        }
     }
 
     private static void Gate(int budgetBytes, Action action, string label, string passDescription)
