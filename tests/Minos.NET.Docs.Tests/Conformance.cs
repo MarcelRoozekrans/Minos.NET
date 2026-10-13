@@ -19,15 +19,15 @@ public static class ConformanceRecording
             http =>
             {
                 // No retries, so each probe is sent once.
-                var options = new SystemOneClientOptions
+                var options = new SystemOneDecisionClientOptions
                 {
                     Provider = SystemOneProvider.Custom,
                     BaseAddress = server,
                     Model = model,
                     MaxRetries = 0,
                 };
-                SystemOneClient.ConfigureHttpClient(http, options);
-                return new SystemOneClient(http, options);
+                SystemOneDecisionClient.ConfigureHttpClient(http, options);
+                return new SystemOneDecisionClient(http, options);
             });
 
         var report = await new ConformanceRunner().RunAsync(target, ConformanceMode.Record, fixturePath);

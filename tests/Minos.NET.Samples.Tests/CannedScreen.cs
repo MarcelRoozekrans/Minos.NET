@@ -3,7 +3,7 @@ using Minos.Samples.Guardrails;
 
 namespace Minos.Samples.Tests;
 
-/// <summary>Builds a <see cref="MessageScreen"/> from chosen answers, through a real <see cref="SystemOneClient"/> over a stub handler.</summary>
+/// <summary>Builds a <see cref="MessageScreen"/> from chosen answers, through a real <see cref="SystemOneDecisionClient"/> over a stub handler.</summary>
 internal static class CannedScreen
 {
     public static async Task<MessageScreen> Of(

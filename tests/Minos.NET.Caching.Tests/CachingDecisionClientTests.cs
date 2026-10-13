@@ -113,7 +113,7 @@ public sealed class CachingDecisionClientTests
     {
         using var memory = Responses.Memory();
         var distributed = new CountingDistributedCache();
-        // Two System One clients on one base address that post to different paths, as SystemOneClient reports them.
+        // Two System One clients on one base address that post to different paths, as SystemOneDecisionClient reports them.
         var first = new ScriptedClient(new DecisionClientMetadata("custom", new Uri("http://localhost:8080/a/v1/systemone"), "m"));
         var second = new ScriptedClient(new DecisionClientMetadata("custom", new Uri("http://localhost:8080/b/v1/systemone"), "m"));
         using var a = new CachingDecisionClient(first, memory, distributed);

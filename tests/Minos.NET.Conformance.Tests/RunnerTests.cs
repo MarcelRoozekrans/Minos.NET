@@ -116,9 +116,9 @@ public sealed class RunnerTests : IDisposable
         var path = Write(Fixture("typesafe"));
         var target = new ConformanceTarget("typesafe", ConformanceWire.SystemOne, "jev-latest", ModelRule.TypeSafe, http =>
         {
-            var options = new SystemOneClientOptions { ApiKey = "test-key", Capabilities = new DecisionCapabilities { QuestionKinds = QuestionKinds.Noul } };
-            SystemOneClient.ConfigureHttpClient(http, options);
-            return new SystemOneClient(http, options);
+            var options = new SystemOneDecisionClientOptions { ApiKey = "test-key", Capabilities = new DecisionCapabilities { QuestionKinds = QuestionKinds.Noul } };
+            SystemOneDecisionClient.ConfigureHttpClient(http, options);
+            return new SystemOneDecisionClient(http, options);
         });
 
         var report = await new ConformanceRunner().RunAsync(target, ConformanceMode.Replay, path);

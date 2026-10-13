@@ -53,7 +53,7 @@ public static class SurfaceGenerics
 
     /// <summary>
     /// Calls every public generic evaluation method: the <see cref="DecisionClientExtensions"/> over the interface, which
-    /// a <see cref="SystemOneClient"/> reaches too, since it has no generic members of its own.
+    /// a <see cref="SystemOneDecisionClient"/> reaches too, since it has no generic members of its own.
     /// </summary>
     public static async Task EvaluateAsync(IDecisionClient client, JsonElement json, SurfaceState state)
     {

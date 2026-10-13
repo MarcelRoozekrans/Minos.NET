@@ -8,7 +8,7 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// Each registration returns a <see cref="DecisionClientServiceBuilder"/>, and stages added to it, also through repeat
 /// calls, land on one pipeline around the registered client, built once when the container first resolves it. The first
 /// registration of a name wins: a repeat call returns the same builder and does not replace the factory. A protocol
-/// package registers its own client the same way, through its own extension methods, such as <c>AddSystemOneClient</c>
+/// package registers its own client the same way, through its own extension methods, such as <c>AddSystemOneDecisionClient</c>
 /// in <c>Minos.NET.SystemOne</c>; one name holds one provider's registration. An <see cref="IDecisionClient"/> the app
 /// registers itself first still wins.
 /// </remarks>

@@ -21,7 +21,7 @@ internal static class CapabilityChecks
     {
         var handler = new CannedHandler(HttpStatusCode.OK, Program.NoulResponse);
         using var http = new HttpClient(handler);
-        using var client = new SystemOneClient(http, new SystemOneClientOptions
+        using var client = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions
         {
             Provider = SystemOneProvider.Custom,
             BaseAddress = new Uri("https://example.test/api/"),
@@ -53,7 +53,7 @@ internal static class CapabilityChecks
     {
         var handler = new CannedHandler(HttpStatusCode.OK, Program.NoulResponse);
         using var http = new HttpClient(handler);
-        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key", MaxRetries = 2 });
+        using var client = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = "smoke-key", MaxRetries = 2 });
         DecisionImage[] images = [DecisionImage.FromBytes(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, "image/png")];
 
         var result = await client.EvaluateAsync(new DecisionRequest(NoulAndChoice, SmokeAnswers.State) { Images = images }).ConfigureAwait(false);
@@ -83,7 +83,7 @@ internal static class CapabilityChecks
             })
             .Build();
         var services = new ServiceCollection();
-        services.AddSystemOneClient(configuration).HttpClient.ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
+        services.AddSystemOneDecisionClient(configuration).HttpClient.ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
         using var provider = services.BuildServiceProvider();
 
         var capabilities = provider.GetRequiredService<IDecisionClient>().GetService<DecisionCapabilities>();
@@ -91,6 +91,6 @@ internal static class CapabilityChecks
         Program.Check(
             capabilities is { MaxQuestions: 8, MaxChoiceOptions: null, SupportsModelListing: false }
                 && capabilities.QuestionKinds == (QuestionKinds.Noul | QuestionKinds.Choice),
-            "AddSystemOneClient binds Capabilities, the question kinds from a comma-separated list, under Native AOT");
+            "AddSystemOneDecisionClient binds Capabilities, the question kinds from a comma-separated list, under Native AOT");
     }
 }

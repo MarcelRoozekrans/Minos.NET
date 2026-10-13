@@ -73,7 +73,7 @@ Two optional pipeline stages ship as their own packages: `Minos.NET.Caching` for
 the logging interfaces that [the client's logging](observability.md#logging) uses. Its other runtime dependencies are
 ZeroAlloc libraries. `Minos.NET.SystemOne` adds `Microsoft.Extensions.Http` and
 `Microsoft.Extensions.Options.ConfigurationExtensions`, for the `IHttpClientFactory` and the configuration binding of
-`AddSystemOneClient`, and `Minos.NET.OpenAI` adds the same two for `AddOpenAIDecisionClient`.
+`AddSystemOneDecisionClient`, and `Minos.NET.OpenAI` adds the same two for `AddOpenAIDecisionClient`.
 `Minos.NET.DependencyInjection` adds `Microsoft.Extensions.DependencyInjection.Abstractions`. `Minos.NET.Caching` adds
 `Microsoft.Extensions.Caching.Abstractions`, for `IMemoryCache` and `IDistributedCache`, and references
 `Microsoft.Extensions.Logging.Abstractions` for its own warnings. `Minos.NET.RateLimiting` adds
@@ -121,7 +121,7 @@ Remove the source when you switch to the published packages: `dotnet nuget remov
 
 ## Providers and keys
 
-`SystemOneClientOptions.Provider` says where requests go, and `SystemOneProvider` has four values.
+`SystemOneDecisionClientOptions.Provider` says where requests go, and `SystemOneProvider` has four values.
 
 | Provider                                | Requests go to                      | Environment variable   |
 | --------------------------------------- | ----------------------------------- | ---------------------- |
@@ -137,7 +137,7 @@ OpenAI's Decisions API is not one of these. It has its own client, `OpenAIDecisi
 `TypeSafe` is the default. Set `ApiKey` on the options, or leave it unset and the client reads the matching environment
 variable. `VllmSemanticRouter` and `Custom` read none and send no key unless you set `ApiKey`. The
 [Providers](providers.md#the-presets) page has the full table of presets, with the paths and default models, and
-says what to set for a server of your own. `SystemOneClient` is disposable and meant to be
+says what to set for a server of your own. `SystemOneDecisionClient` is disposable and meant to be
 long-lived: create one, share it, and dispose it at shutdown, as the snippet below does for its short example. The
 client throws `InvalidOperationException` when it is created with no key available for a provider that needs one, so a
 missing key shows up at start-up rather than on the first call.
@@ -145,17 +145,17 @@ missing key shows up at start-up rather than on the first call.
 <!-- snippet: GettingStarted_Clients -->
 ```cs
 // TypeSafe is the default provider. With no ApiKey set, the client reads TYPESAFE_API_KEY.
-// SystemOneClient is disposable and meant to be long-lived: create it once, share it, and dispose it at shutdown.
+// SystemOneDecisionClient is disposable and meant to be long-lived: create it once, share it, and dispose it at shutdown.
 public static async Task<string> ViaTypeSafeAsync(string message, CancellationToken cancellationToken)
 {
-    using var client = new SystemOneClient(new SystemOneClientOptions());
+    using var client = new SystemOneDecisionClient(new SystemOneDecisionClientOptions());
     return await GettingStartedEvaluation.TriageAsync(client, message, cancellationToken);
 }
 
 // OpenRouter: name the provider. With no ApiKey set, the client reads OPENROUTER_API_KEY.
 public static async Task<string> ViaOpenRouterAsync(string message, CancellationToken cancellationToken)
 {
-    using var client = new SystemOneClient(new SystemOneClientOptions { Provider = SystemOneProvider.OpenRouter });
+    using var client = new SystemOneDecisionClient(new SystemOneDecisionClientOptions { Provider = SystemOneProvider.OpenRouter });
     return await GettingStartedEvaluation.TriageAsync(client, message, cancellationToken);
 }
 ```
@@ -228,7 +228,7 @@ Given a message such as "Help! My payouts have been failing for 3 days.", a typi
 error, and `result.Error.Message` explains it. [The client and its errors](client-and-errors.md#errors) lists every kind
 and what to do about each.
 
-The call needs an `IDecisionClient`. `SystemOneClient` implements it, and a test can hand in a fake, as
+The call needs an `IDecisionClient`. `SystemOneDecisionClient` implements it, and a test can hand in a fake, as
 [testing your code](testing-your-code.md) shows. See the [patterns](patterns/index.md) for complete, runnable uses of
 these answers.
 

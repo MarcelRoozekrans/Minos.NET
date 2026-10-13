@@ -7,7 +7,7 @@ description: The presets, servers you run and OpenAI, what each provider accepts
 
 # Providers
 
-Minos reaches several providers through one interface, `IDecisionClient`. `SystemOneClient` reaches TypeSafe,
+Minos reaches several providers through one interface, `IDecisionClient`. `SystemOneDecisionClient` reaches TypeSafe,
 OpenRouter and any server that speaks the System One protocol, through a preset. `OpenAIDecisionClient` reaches
 OpenAI's Decisions API. This page lists them and what sets them apart. [The client and its errors](client-and-errors.md)
 covers what every client shares: its options, retries, time-outs and errors.
@@ -21,8 +21,8 @@ compares the presets and OpenAI side by side.
 
 ## At a glance
 
-Each column is a provider: the four `SystemOneProvider` presets, which `SystemOneClient` reaches over System One, and
-OpenAI, which `OpenAIDecisionClient` reaches over its Decisions API. The first five rows are the
+Each column is a provider: the four `SystemOneProvider` presets, which `SystemOneDecisionClient` reaches over System
+One, and OpenAI, which `OpenAIDecisionClient` reaches over its Decisions API. The first five rows are the
 [capabilities](#capabilities). Each of their cells is the default, which you can change, and "none" means no limit is
 published or set.
 
@@ -79,7 +79,7 @@ model are yours to give.
 ```cs
 // A server you run. Custom has no default address or model, so both are set. The path is optional and defaults to
 // v1/systemone. No key is read from the environment, and none is sent unless ApiKey is set.
-public static SystemOneClientOptions Custom()
+public static SystemOneDecisionClientOptions Custom()
     => new()
     {
         Provider = SystemOneProvider.Custom,
@@ -147,17 +147,17 @@ public static class OpenAIClients
 | `BaseAddress` | `OPENAI_BASE_URL`, then `https://api.openai.com/v1/` | The versioned API root, for a proxy or a test server. Requests go to `decisions` under it. As in OpenAI's official SDKs, the root includes `/v1`, so a proxy is set as `https://proxy.example/v1`, and `OPENAI_BASE_URL` set for another OpenAI tool works unchanged. |
 | `Model` | `gpt-6-luna` | The model a request without its own asks. `gpt-6-luna` is the only model OpenAI's guide names. |
 | `Capabilities` | OpenAI's, see [The defaults](#the-defaults) | What the API accepts, checked before a request is sent. |
-| `Timeout`, `MaxRetries`, `InitialBackoff`, `MaxRetryDelay`, `Jitter`, `UseStandardPipeline` | as on `SystemOneClientOptions` | The same meaning, defaults and valid values as in [Options](client-and-errors.md#options). |
+| `Timeout`, `MaxRetries`, `InitialBackoff`, `MaxRetryDelay`, `Jitter`, `UseStandardPipeline` | as on `SystemOneDecisionClientOptions` | The same meaning, defaults and valid values as in [Options](client-and-errors.md#options). |
 
 `OpenAIDefaults` holds the fallbacks: `ApiKeyEnvironmentVariable`, `BaseAddressEnvironmentVariable`, `Model` and
-`BaseAddress`. The client has the same constructors as `SystemOneClient`, with an `HttpClient` it owns or one you lend,
-and with or without an `ILoggerFactory`. `Validate()` and `OpenAIDecisionClient.ConfigureHttpClient` work as they do
-there. It retries the same failures, without the `X-TypeSafe-Retry-Count` header, which is TypeSafe's. It reports the
-provider as `openai` in its logs, spans and metrics. It has no raw request API and no `ListModelsAsync`.
+`BaseAddress`. The client has the same constructors as `SystemOneDecisionClient`, with an `HttpClient` it owns or one
+you lend, and with or without an `ILoggerFactory`. `Validate()` and `OpenAIDecisionClient.ConfigureHttpClient` work as
+they do there. It retries the same failures, without the `X-TypeSafe-Retry-Count` header, which is TypeSafe's. It
+reports the provider as `openai` in its logs, spans and metrics. It has no raw request API and no `ListModelsAsync`.
 
-In a host, `AddOpenAIDecisionClient` registers it, with the same six overloads as `AddSystemOneClient`. It returns an
-`OpenAIDecisionClientServiceBuilder`, whose `HttpClient` property is the builder of the client's `HttpClient`. A name
-holds one provider, so registering the same name with both throws `InvalidOperationException`.
+In a host, `AddOpenAIDecisionClient` registers it, with the same six overloads as `AddSystemOneDecisionClient`. It
+returns an `OpenAIDecisionClientServiceBuilder`, whose `HttpClient` property is the builder of the client's
+`HttpClient`. A name holds one provider, so registering the same name with both throws `InvalidOperationException`.
 
 <!-- snippet: DependencyInjection_OpenAI -->
 ```cs
@@ -165,7 +165,7 @@ holds one provider, so registering the same name with both throws `InvalidOperat
 // without one, the OpenAI client reads OPENAI_API_KEY, and the host fails at start-up when there is none.
 public static OpenAIDecisionClientServiceBuilder AddBothProviders(IHostApplicationBuilder builder)
 {
-    builder.Services.AddSystemOneClient(options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
+    builder.Services.AddSystemOneDecisionClient(options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
     return builder.Services.AddOpenAIDecisionClient(
         "openai", options => options.ApiKey = builder.Configuration["OpenAI:ApiKey"]);
 }
@@ -279,11 +279,11 @@ maintainer's account allows only zero-data-retention endpoints.
 ```cs
 // OpenRouter serves Clef and Luna in the System One format, so the OpenRouter preset reaches them by model id.
 // The request is System One: the OpenRouter column of the provider matrix applies, not the OpenAI one.
-public static SystemOneClientOptions Clef()
+public static SystemOneDecisionClientOptions Clef()
     => new() { Provider = SystemOneProvider.OpenRouter, Model = "cloudflare/clef-flash" };
 
 // Luna through OpenRouter needs an account that allows endpoints which retain data; see the notes above.
-public static SystemOneClientOptions Luna()
+public static SystemOneDecisionClientOptions Luna()
     => new() { Provider = SystemOneProvider.OpenRouter, Model = "openai/gpt-6-luna-decisions" };
 ```
 <!-- endSnippet -->
@@ -307,15 +307,15 @@ OpenAI's `SupportsModelListing` is always off: `OpenAIDecisionClient` has no mod
 
 ### Overriding them
 
-`SystemOneClientOptions.Capabilities` and `OpenAIDecisionClientOptions.Capabilities` are a `DecisionCapabilities`,
-with one nullable property for each capability. A property you set wins, and one you leave `null` keeps the default.
-This server answers Noul questions only:
+`SystemOneDecisionClientOptions.Capabilities` and `OpenAIDecisionClientOptions.Capabilities` are a
+`DecisionCapabilities`, with one nullable property for each capability. A property you set wins, and one you leave
+`null` keeps the default. This server answers Noul questions only:
 
 <!-- snippet: ClientAndErrors_Capabilities -->
 ```cs
 // A server that only answers Noul questions. Each property left unset keeps the Custom preset's default, so
 // this changes the accepted kinds and nothing else.
-public static SystemOneClientOptions NoulOnly()
+public static SystemOneDecisionClientOptions NoulOnly()
     => new()
     {
         Provider = SystemOneProvider.Custom,
@@ -478,7 +478,7 @@ that reads images:
 ```cs
 // OpenRouter mixes text and image models, so images are off for the preset. Switch them on for a model that reads
 // images. Perplexity's decider read our test image correctly on 2026-10-11.
-public static SystemOneClientOptions PerplexityWithImages()
+public static SystemOneDecisionClientOptions PerplexityWithImages()
     => new()
     {
         Provider = SystemOneProvider.OpenRouter,
@@ -552,8 +552,8 @@ public static IConfigurationSection ActiveSection(IConfiguration configuration)
         : throw new InvalidOperationException($"Minos:Providers has no section named {active}.");
 }
 
-public static SystemOneClientServiceBuilder AddActiveProvider(IHostApplicationBuilder builder)
-    => builder.Services.AddSystemOneClient(ActiveSection(builder.Configuration));
+public static SystemOneDecisionClientServiceBuilder AddActiveProvider(IHostApplicationBuilder builder)
+    => builder.Services.AddSystemOneDecisionClient(ActiveSection(builder.Configuration));
 ```
 <!-- endSnippet -->
 
@@ -613,7 +613,7 @@ question kinds, and reports probabilities to four decimals.
 ## Adding OpenAI
 
 OpenAI's client is a type of its own, `OpenAIDecisionClient`, so its section is bound with `AddOpenAIDecisionClient`
-instead of `AddSystemOneClient`. Add a section for it:
+instead of `AddSystemOneDecisionClient`. Add a section for it:
 
 ```json
 {
@@ -641,7 +641,7 @@ public static void AddActiveClient(IHostApplicationBuilder builder)
     }
     else
     {
-        builder.Services.AddSystemOneClient(section);
+        builder.Services.AddSystemOneDecisionClient(section);
     }
 }
 ```

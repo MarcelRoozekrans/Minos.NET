@@ -24,14 +24,14 @@ public sealed partial class ObservabilityLoggingTests
         { "models": [ { "name": "jev-latest", "description": "The most recent stable release.", "release_date": "2026-09-15" } ] }
         """;
 
-    private static SystemOneClientOptions Options(int maxRetries = 0)
+    private static SystemOneDecisionClientOptions Options(int maxRetries = 0)
     {
         var options = ScriptedDecision.Quick(maxRetries);
         options.ApiKey = SecretKey;
         return options;
     }
 
-    private static async Task<IReadOnlyList<FakeLogRecord>> LogAsync(SystemOneClientOptions options, params Reply[] script)
+    private static async Task<IReadOnlyList<FakeLogRecord>> LogAsync(SystemOneDecisionClientOptions options, params Reply[] script)
     {
         var (http, _) = ScriptedDecision.Http(options, script);
         using (http)
@@ -172,7 +172,7 @@ public sealed partial class ObservabilityLoggingTests
         using (http)
         using (var provider = new FakeLoggerProvider())
         using (var loggers = LoggerFactory.Create(builder => builder.AddProvider(provider).SetMinimumLevel(LogLevel.Debug)))
-        using (var client = new SystemOneClient(http, options, loggers))
+        using (var client = new SystemOneDecisionClient(http, options, loggers))
         {
             await client.ListModelsAsync(CancellationToken.None);
 
@@ -193,7 +193,7 @@ public sealed partial class ObservabilityLoggingTests
         using (http)
         using (var provider = new FakeLoggerProvider())
         using (var loggers = LoggerFactory.Create(builder => builder.AddProvider(provider).SetMinimumLevel(LogLevel.Debug)))
-        using (var client = new SystemOneClient(http, options, loggers))
+        using (var client = new SystemOneDecisionClient(http, options, loggers))
         {
             await client.ListModelsAsync(CancellationToken.None);
 
@@ -212,7 +212,7 @@ public sealed partial class ObservabilityLoggingTests
         using var http = new HttpClient(new ThrowingHandler()) { BaseAddress = new Uri("https://docs.example/api/") };
         using var provider = new FakeLoggerProvider();
         using var loggers = LoggerFactory.Create(builder => builder.AddProvider(provider).SetMinimumLevel(LogLevel.Debug));
-        using var client = new SystemOneClient(http, options, loggers);
+        using var client = new SystemOneDecisionClient(http, options, loggers);
 
         var thrown = await Assert.ThrowsAsync<InvalidOperationException>(
             async () => await client.EvaluateAsync<ObservedUrgency>("Help!", CancellationToken.None));
@@ -239,7 +239,7 @@ public sealed partial class ObservabilityLoggingTests
         using (http)
         using (var provider = new FakeLoggerProvider())
         using (var loggers = LoggerFactory.Create(builder => builder.AddProvider(provider).SetMinimumLevel(LogLevel.None)))
-        using (var client = new SystemOneClient(http, options, loggers))
+        using (var client = new SystemOneDecisionClient(http, options, loggers))
         {
             var result = await client.EvaluateAsync<ObservedUrgency>("Help!", CancellationToken.None);
 

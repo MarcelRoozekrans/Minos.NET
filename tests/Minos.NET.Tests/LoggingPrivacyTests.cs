@@ -190,7 +190,7 @@ public sealed class LoggingPrivacyTests : IDisposable
         AssertNoSecret(logs);
     }
 
-    private SystemOneClient Client(StubHandler handler, LogCapture logs, TimeSpan? timeout = null)
+    private SystemOneDecisionClient Client(StubHandler handler, LogCapture logs, TimeSpan? timeout = null)
     {
         var http = new HttpClient(handler);
         if (timeout is { } perAttempt)
@@ -199,9 +199,9 @@ public sealed class LoggingPrivacyTests : IDisposable
         }
 
         _httpClients.Add(http);
-        return new SystemOneClient(
+        return new SystemOneDecisionClient(
             http,
-            new SystemOneClientOptions
+            new SystemOneDecisionClientOptions
             {
                 ApiKey = ApiKey,
                 Model = "jev-latest",

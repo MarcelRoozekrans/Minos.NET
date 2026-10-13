@@ -14,13 +14,13 @@ namespace Minos.SystemOne;
 
 /// <summary>
 /// Calls a Jev System One API: TypeSafe's, directly or through OpenRouter, a vLLM Semantic Router, or
-/// another server that speaks the <c>/v1/systemone</c> protocol. <see cref="SystemOneClientOptions.Provider"/> picks one.
+/// another server that speaks the <c>/v1/systemone</c> protocol. <see cref="SystemOneDecisionClientOptions.Provider"/> picks one.
 /// </summary>
 /// <remarks>
 /// Thread-safe. Create one per application and reuse it; dispose it when the application stops. Pass an
 /// <see cref="ILoggerFactory"/> to log each operation, each retried attempt and each unexpected exception; a neutral
 /// <see cref="EvaluateAsync(DecisionRequest, CancellationToken)"/> call is logged only with
-/// <see cref="SystemOneClientOptions.UseStandardPipeline"/>, while the raw System One calls are logged either way. What the
+/// <see cref="SystemOneDecisionClientOptions.UseStandardPipeline"/>, while the raw System One calls are logged either way. What the
 /// library writes never contains the state, questions, answers, API key, a header value or an error response body; the
 /// unexpected-exception event carries the exception as thrown, which can include one from your own handler.
 /// Spans and metrics come from the Minos ActivitySource and Meter; see the
@@ -29,13 +29,13 @@ namespace Minos.SystemOne;
 /// Each <see cref="EvaluateAsync(DecisionRequest, CancellationToken)"/> call runs the standard pipeline: one span and one
 /// set of metrics over the whole call (<see cref="OpenTelemetryDecisionClient"/>), one outcome log when a logger factory
 /// was given (<see cref="LoggingDecisionClient"/>), then retries (<see cref="RetryingDecisionClient"/>) around a transport
-/// that sends one attempt. <see cref="SystemOneClientOptions.UseStandardPipeline"/> set to <see langword="false"/> leaves the
+/// that sends one attempt. <see cref="SystemOneDecisionClientOptions.UseStandardPipeline"/> set to <see langword="false"/> leaves the
 /// transport alone. <see cref="GetService"/> finds each stage.
 /// </para>
 /// </remarks>
-public sealed class SystemOneClient : IDecisionClient
+public sealed class SystemOneDecisionClient : IDecisionClient
 {
-    private static readonly ProductInfoHeaderValue UserAgent = HttpClientSetup.CreateUserAgent(typeof(SystemOneClient).Assembly);
+    private static readonly ProductInfoHeaderValue UserAgent = HttpClientSetup.CreateUserAgent(typeof(SystemOneDecisionClient).Assembly);
 
     private readonly DecisionOperationsInstrumented _operations;
     private readonly HttpClient? _ownedHttpClient;
@@ -52,47 +52,47 @@ public sealed class SystemOneClient : IDecisionClient
     private volatile bool _disposed;
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SystemOneClient"/> class that creates and owns its
+    /// Initializes a new instance of the <see cref="SystemOneDecisionClient"/> class that creates and owns its
     /// <see cref="HttpClient"/>, using defaults and environment variables.
     /// </summary>
     /// <exception cref="InvalidOperationException">No API key is configured, or an environment variable is invalid.</exception>
-    public SystemOneClient()
-        : this((SystemOneClientOptions?)null)
+    public SystemOneDecisionClient()
+        : this((SystemOneDecisionClientOptions?)null)
     {
     }
 
-    /// <summary>Initializes a new instance of the <see cref="SystemOneClient"/> class that creates and owns its <see cref="HttpClient"/>.</summary>
+    /// <summary>Initializes a new instance of the <see cref="SystemOneDecisionClient"/> class that creates and owns its <see cref="HttpClient"/>.</summary>
     /// <param name="options">The configuration; <see langword="null"/> uses defaults and environment variables.</param>
     /// <exception cref="ArgumentException">An option has an invalid value.</exception>
     /// <exception cref="InvalidOperationException">No API key is configured, or an environment variable is invalid.</exception>
-    public SystemOneClient(SystemOneClientOptions? options)
+    public SystemOneDecisionClient(SystemOneDecisionClientOptions? options)
         : this(ResolveSettings(options), httpClient: null, ownedHandler: null, TimeProvider.System)
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SystemOneClient"/> class over a caller-owned <see cref="HttpClient"/>,
+    /// Initializes a new instance of the <see cref="SystemOneDecisionClient"/> class over a caller-owned <see cref="HttpClient"/>,
     /// using defaults and environment variables.
     /// </summary>
     /// <param name="httpClient">
     /// The client to send requests with; it is not disposed. Its own <see cref="HttpClient.BaseAddress"/> wins over
-    /// <see cref="SystemOneClientOptions.BaseAddress"/> when set, and must end in '/'. It must then be the full API root,
-    /// because it replaces <see cref="SystemOneClientOptions.BaseAddress"/>. When it is <see langword="null"/>, this
+    /// <see cref="SystemOneDecisionClientOptions.BaseAddress"/> when set, and must end in '/'. It must then be the full API root,
+    /// because it replaces <see cref="SystemOneDecisionClientOptions.BaseAddress"/>. When it is <see langword="null"/>, this
     /// constructor sets it, so <paramref name="httpClient"/> must not have sent a request yet.
     /// </param>
     /// <exception cref="ArgumentNullException"><paramref name="httpClient"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="httpClient"/> already has an invalid base address.</exception>
     /// <exception cref="InvalidOperationException">No API key is configured, or an environment variable is invalid.</exception>
-    public SystemOneClient(HttpClient httpClient)
-        : this(httpClient, (SystemOneClientOptions?)null)
+    public SystemOneDecisionClient(HttpClient httpClient)
+        : this(httpClient, (SystemOneDecisionClientOptions?)null)
     {
     }
 
-    /// <summary>Initializes a new instance of the <see cref="SystemOneClient"/> class over a caller-owned <see cref="HttpClient"/>.</summary>
+    /// <summary>Initializes a new instance of the <see cref="SystemOneDecisionClient"/> class over a caller-owned <see cref="HttpClient"/>.</summary>
     /// <param name="httpClient">
     /// The client to send requests with; it is not disposed. Its own <see cref="HttpClient.BaseAddress"/> wins over
-    /// <see cref="SystemOneClientOptions.BaseAddress"/> when set, and must end in '/'. It must then be the full API root,
-    /// because it replaces <see cref="SystemOneClientOptions.BaseAddress"/>. When it is <see langword="null"/>, this
+    /// <see cref="SystemOneDecisionClientOptions.BaseAddress"/> when set, and must end in '/'. It must then be the full API root,
+    /// because it replaces <see cref="SystemOneDecisionClientOptions.BaseAddress"/>. When it is <see langword="null"/>, this
     /// constructor sets it, so <paramref name="httpClient"/> must not have sent a request yet.
     /// </param>
     /// <param name="options">The configuration; <see langword="null"/> uses defaults and environment variables.</param>
@@ -101,13 +101,13 @@ public sealed class SystemOneClient : IDecisionClient
     /// An option has an invalid value, or <paramref name="httpClient"/> already has an invalid base address.
     /// </exception>
     /// <exception cref="InvalidOperationException">No API key is configured, or an environment variable is invalid.</exception>
-    public SystemOneClient(HttpClient httpClient, SystemOneClientOptions? options)
+    public SystemOneDecisionClient(HttpClient httpClient, SystemOneDecisionClientOptions? options)
         : this(ResolveSettings(httpClient, options), httpClient, ownedHandler: null, TimeProvider.System)
     {
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SystemOneClient"/> class that creates and owns its <see cref="HttpClient"/>
+    /// Initializes a new instance of the <see cref="SystemOneDecisionClient"/> class that creates and owns its <see cref="HttpClient"/>
     /// and logs through <paramref name="loggerFactory"/>.
     /// </summary>
     /// <param name="options">The configuration; <see langword="null"/> uses defaults and environment variables.</param>
@@ -117,7 +117,7 @@ public sealed class SystemOneClient : IDecisionClient
     /// </param>
     /// <exception cref="ArgumentException">An option has an invalid value.</exception>
     /// <exception cref="InvalidOperationException">No API key is configured, or an environment variable is invalid.</exception>
-    public SystemOneClient(SystemOneClientOptions? options, ILoggerFactory? loggerFactory)
+    public SystemOneDecisionClient(SystemOneDecisionClientOptions? options, ILoggerFactory? loggerFactory)
         : this(
             ResolveSettings(options),
             httpClient: null,
@@ -129,13 +129,13 @@ public sealed class SystemOneClient : IDecisionClient
     }
 
     /// <summary>
-    /// Initializes a new instance of the <see cref="SystemOneClient"/> class over a caller-owned <see cref="HttpClient"/> that
+    /// Initializes a new instance of the <see cref="SystemOneDecisionClient"/> class over a caller-owned <see cref="HttpClient"/> that
     /// logs through <paramref name="loggerFactory"/>.
     /// </summary>
     /// <param name="httpClient">
     /// The client to send requests with; it is not disposed. Its own <see cref="HttpClient.BaseAddress"/> wins over
-    /// <see cref="SystemOneClientOptions.BaseAddress"/> when set, and must end in '/'. It must then be the full API root,
-    /// because it replaces <see cref="SystemOneClientOptions.BaseAddress"/>. When it is <see langword="null"/>, this
+    /// <see cref="SystemOneDecisionClientOptions.BaseAddress"/> when set, and must end in '/'. It must then be the full API root,
+    /// because it replaces <see cref="SystemOneDecisionClientOptions.BaseAddress"/>. When it is <see langword="null"/>, this
     /// constructor sets it, so <paramref name="httpClient"/> must not have sent a request yet.
     /// </param>
     /// <param name="options">The configuration; <see langword="null"/> uses defaults and environment variables.</param>
@@ -148,7 +148,7 @@ public sealed class SystemOneClient : IDecisionClient
     /// An option has an invalid value, or <paramref name="httpClient"/> already has an invalid base address.
     /// </exception>
     /// <exception cref="InvalidOperationException">No API key is configured, or an environment variable is invalid.</exception>
-    public SystemOneClient(HttpClient httpClient, SystemOneClientOptions? options, ILoggerFactory? loggerFactory)
+    public SystemOneDecisionClient(HttpClient httpClient, SystemOneDecisionClientOptions? options, ILoggerFactory? loggerFactory)
         : this(
             ResolveSettings(httpClient, options),
             httpClient,
@@ -159,14 +159,14 @@ public sealed class SystemOneClient : IDecisionClient
     {
     }
 
-    internal SystemOneClient(SystemOneClientSettings settings, HttpClient? httpClient, HttpMessageHandler? ownedHandler, TimeProvider time)
+    internal SystemOneDecisionClient(SystemOneDecisionClientSettings settings, HttpClient? httpClient, HttpMessageHandler? ownedHandler, TimeProvider time)
         : this(settings, httpClient, ownedHandler, time, ArrayPool<byte>.Shared)
     {
     }
 
     // pool supplies the typed path's request and response buffers; tests pass a counting pool to check every one is returned.
-    internal SystemOneClient(
-        SystemOneClientSettings settings,
+    internal SystemOneDecisionClient(
+        SystemOneDecisionClientSettings settings,
         HttpClient? httpClient,
         HttpMessageHandler? ownedHandler,
         TimeProvider time,
@@ -176,8 +176,8 @@ public sealed class SystemOneClient : IDecisionClient
     }
 
     // logger is null when no factory was given, and then nothing in the pipeline or the operations changes.
-    internal SystemOneClient(
-        SystemOneClientSettings settings,
+    internal SystemOneDecisionClient(
+        SystemOneDecisionClientSettings settings,
         HttpClient? httpClient,
         HttpMessageHandler? ownedHandler,
         TimeProvider time,
@@ -251,15 +251,15 @@ public sealed class SystemOneClient : IDecisionClient
     }
 
     /// <summary>
-    /// Configures an <see cref="HttpClient"/> as <see cref="SystemOneClient"/> configures one it creates, except its handler, for a client you then
+    /// Configures an <see cref="HttpClient"/> as <see cref="SystemOneDecisionClient"/> configures one it creates, except its handler, for a client you then
     /// pass to a constructor that takes an <see cref="HttpClient"/>, such as one from <c>IHttpClientFactory</c>.
     /// </summary>
     /// <param name="httpClient">The client to configure. It must not have sent a request yet.</param>
     /// <param name="options">The configuration; <see langword="null"/> uses defaults and environment variables.</param>
     /// <remarks>
-    /// Sets <see cref="HttpClient.BaseAddress"/> from <see cref="SystemOneClientOptions.BaseAddress"/>, the
+    /// Sets <see cref="HttpClient.BaseAddress"/> from <see cref="SystemOneDecisionClientOptions.BaseAddress"/>, the
     /// <see cref="SystemOneDefaults.BaseAddressEnvironmentVariable"/> environment variable or the provider's default, only when
-    /// <paramref name="httpClient"/> has none. Sets <see cref="HttpClient.Timeout"/> to <see cref="SystemOneClientOptions.Timeout"/>,
+    /// <paramref name="httpClient"/> has none. Sets <see cref="HttpClient.Timeout"/> to <see cref="SystemOneDecisionClientOptions.Timeout"/>,
     /// the per-attempt time-out, and adds the <c>Minos.NET</c> User-Agent unless it is already there. It reads no
     /// API key, so it can run before one is configured.
     /// </remarks>
@@ -269,14 +269,14 @@ public sealed class SystemOneClient : IDecisionClient
     /// the provider needs is missing.
     /// </exception>
     /// <exception cref="InvalidOperationException">The base address environment variable is invalid, or <paramref name="httpClient"/> has already sent a request.</exception>
-    public static void ConfigureHttpClient(HttpClient httpClient, SystemOneClientOptions? options)
+    public static void ConfigureHttpClient(HttpClient httpClient, SystemOneDecisionClientOptions? options)
         => ConfigureHttpClient(httpClient, options, Environment.GetEnvironmentVariable);
 
     // environment reads an environment variable; tests pass a fake.
-    internal static void ConfigureHttpClient(HttpClient httpClient, SystemOneClientOptions? options, Func<string, string?> environment)
+    internal static void ConfigureHttpClient(HttpClient httpClient, SystemOneDecisionClientOptions? options, Func<string, string?> environment)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
-        HttpClientSetup.Apply(httpClient, SystemOneClientSettings.ResolveHttp(options, environment), UserAgent);
+        HttpClientSetup.Apply(httpClient, SystemOneDecisionClientSettings.ResolveHttp(options, environment), UserAgent);
     }
 
     /// <summary>Asks the request's questions about its state.</summary>
@@ -293,11 +293,11 @@ public sealed class SystemOneClient : IDecisionClient
     /// <param name="cancellationToken">Cancels the call; cancellation throws <see cref="OperationCanceledException"/>.</param>
     /// <returns>The answers, or the <see cref="DecisionError"/> that prevented them.</returns>
     /// <remarks>
-    /// Runs the client's pipeline: with <see cref="SystemOneClientOptions.UseStandardPipeline"/>, telemetry, logging when
+    /// Runs the client's pipeline: with <see cref="SystemOneDecisionClientOptions.UseStandardPipeline"/>, telemetry, logging when
     /// the client has a logger factory, and retries with the options' retry settings; without it, one attempt. The
-    /// request is sent with <see cref="SystemOneClientOptions.Model"/> when <see cref="DecisionRequest.Model"/> is
+    /// request is sent with <see cref="SystemOneDecisionClientOptions.Model"/> when <see cref="DecisionRequest.Model"/> is
     /// <see langword="null"/>, and every pooled buffer is returned before the call completes. A request that
-    /// <see cref="SystemOneClientOptions.Capabilities"/> does not accept, such as one with images, returns <see cref="DecisionErrorKind.Unsupported"/>
+    /// <see cref="SystemOneDecisionClientOptions.Capabilities"/> does not accept, such as one with images, returns <see cref="DecisionErrorKind.Unsupported"/>
     /// without a request, and is not retried.
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
@@ -509,11 +509,11 @@ public sealed class SystemOneClient : IDecisionClient
         }
     }
 
-    private static SystemOneClientSettings ResolveSettings(SystemOneClientOptions? options)
-        => SystemOneClientSettings.Resolve(options, Environment.GetEnvironmentVariable);
+    private static SystemOneDecisionClientSettings ResolveSettings(SystemOneDecisionClientOptions? options)
+        => SystemOneDecisionClientSettings.Resolve(options, Environment.GetEnvironmentVariable);
 
     // Validates httpClient before resolving settings, so an invalid options value never masks a null httpClient.
-    private static SystemOneClientSettings ResolveSettings(HttpClient httpClient, SystemOneClientOptions? options)
+    private static SystemOneDecisionClientSettings ResolveSettings(HttpClient httpClient, SystemOneDecisionClientOptions? options)
     {
         ArgumentNullException.ThrowIfNull(httpClient);
         return ResolveSettings(options);

@@ -12,7 +12,7 @@ public sealed class ImageLiveTests
     [LiveFact(SystemOneProvider.OpenRouter)]
     public async Task Perplexity_ReadsARedImage()
     {
-        using var client = new SystemOneClient(new SystemOneClientOptions
+        using var client = new SystemOneDecisionClient(new SystemOneDecisionClientOptions
         {
             Provider = SystemOneProvider.OpenRouter,
             MaxRetries = 0,

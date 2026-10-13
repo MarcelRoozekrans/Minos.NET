@@ -46,7 +46,7 @@ public sealed class ProtocolBoundaryTests
     public void OnlyTheSettingsNameTheEndpointPath()
     {
         var offenders = SourceFiles("Minos.NET.SystemOne")
-            .Where(f => !string.Equals(f.Path, "Transport/SystemOneClientSettings.cs", StringComparison.Ordinal))
+            .Where(f => !string.Equals(f.Path, "Transport/SystemOneDecisionClientSettings.cs", StringComparison.Ordinal))
             .Where(f => f.Text.Contains("\"v1/systemone\"", StringComparison.Ordinal))
             .Select(f => f.Path)
             .ToList();

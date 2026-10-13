@@ -4,14 +4,14 @@ using OptionsDefaults = Microsoft.Extensions.Options.Options;
 namespace Minos.SystemOne;
 
 /// <summary>
-/// Validates one <c>AddSystemOneClient</c> registration's <see cref="SystemOneClientOptions"/> through
-/// <see cref="SystemOneClientOptions.Validate()"/>, the check the client's constructor runs, so startup and construction apply
+/// Validates one <c>AddSystemOneDecisionClient</c> registration's <see cref="SystemOneDecisionClientOptions"/> through
+/// <see cref="SystemOneDecisionClientOptions.Validate()"/>, the check the client's constructor runs, so startup and construction apply
 /// one rule set. Options of any other name are skipped.
 /// </summary>
 /// <param name="optionsName">The registration's options name: the empty default name, or a keyed client's key.</param>
-internal sealed class SystemOneClientOptionsValidator(string optionsName) : IValidateOptions<SystemOneClientOptions>
+internal sealed class SystemOneDecisionClientOptionsValidator(string optionsName) : IValidateOptions<SystemOneDecisionClientOptions>
 {
-    public ValidateOptionsResult Validate(string? name, SystemOneClientOptions options)
+    public ValidateOptionsResult Validate(string? name, SystemOneDecisionClientOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
         if (!string.Equals(name ?? OptionsDefaults.DefaultName, optionsName, StringComparison.Ordinal))

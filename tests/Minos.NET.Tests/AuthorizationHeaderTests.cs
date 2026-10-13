@@ -5,7 +5,7 @@ using Minos.SystemOne.Serialization;
 
 namespace Minos.Tests;
 
-/// <summary>What a real <see cref="SystemOneClient"/> sends for each preset: the <c>Authorization</c> header and the URL.</summary>
+/// <summary>What a real <see cref="SystemOneDecisionClient"/> sends for each preset: the <c>Authorization</c> header and the URL.</summary>
 public sealed class AuthorizationHeaderTests : IDisposable
 {
     private readonly List<HttpClient> _httpClients = [];

@@ -8,7 +8,7 @@ using static Minos.DependencyInjection.Tests.Registrations;
 
 namespace Minos.DependencyInjection.Tests;
 
-/// <summary><c>AddOpenAIDecisionClient</c>: the same registration as <c>AddSystemOneClient</c>, for OpenAI's Decisions API.</summary>
+/// <summary><c>AddOpenAIDecisionClient</c>: the same registration as <c>AddSystemOneDecisionClient</c>, for OpenAI's Decisions API.</summary>
 public sealed class OpenAIRegistrationTests
 {
     private const string Answer = """{"answers":[{"type":"predicate","name":"is_urgent","probability":0.9}]}""";
@@ -166,7 +166,7 @@ public sealed class OpenAIRegistrationTests
     public void TheDefaultName_HeldBySystemOne_Throws()
     {
         var services = new ServiceCollection();
-        services.AddSystemOneClient(Options("http://default.local/"));
+        services.AddSystemOneDecisionClient(Options("http://default.local/"));
 
         var exception = Assert.Throws<InvalidOperationException>(() => services.AddOpenAIDecisionClient(OpenAIOptions("http://default.local/")));
 
@@ -179,23 +179,23 @@ public sealed class OpenAIRegistrationTests
         var services = new ServiceCollection();
         services.AddOpenAIDecisionClient(OpenAIOptions("http://default.local/"));
 
-        var exception = Assert.Throws<InvalidOperationException>(() => services.AddSystemOneClient(Options("http://default.local/")));
+        var exception = Assert.Throws<InvalidOperationException>(() => services.AddSystemOneDecisionClient(Options("http://default.local/")));
 
         Assert.Equal("The default decision client is already registered with a different provider.", exception.Message);
     }
 
     [Fact]
-    public void AKeyedOpenAIClient_BesideADefaultSystemOneClient_Works()
+    public void AKeyedOpenAIClient_BesideADefaultSystemOneDecisionClient_Works()
     {
         var services = new ServiceCollection();
-        services.AddSystemOneClient(Options("http://typesafe.local/"));
+        services.AddSystemOneDecisionClient(Options("http://typesafe.local/"));
         services.AddOpenAIDecisionClient("openai", OpenAIOptions("http://openai.local/"));
         using var provider = services.BuildServiceProvider();
 
         var systemOne = provider.GetRequiredService<IDecisionClient>();
         var openAI = provider.GetRequiredKeyedService<IDecisionClient>("openai");
 
-        Assert.IsType<Minos.SystemOne.SystemOneClient>(systemOne);
+        Assert.IsType<Minos.SystemOne.SystemOneDecisionClient>(systemOne);
         Assert.IsType<OpenAIDecisionClient>(openAI);
         Assert.Equal("typesafe", systemOne.GetService<DecisionClientMetadata>()!.ProviderName);
         Assert.Equal("openai", openAI.GetService<DecisionClientMetadata>()!.ProviderName);

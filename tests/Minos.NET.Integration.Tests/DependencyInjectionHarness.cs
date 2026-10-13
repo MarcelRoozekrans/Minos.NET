@@ -4,7 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Minos.Integration.Tests;
 
-/// <summary>Builds the <c>AddSystemOneClient</c> provider the dependency injection integration tests share.</summary>
+/// <summary>Builds the <c>AddSystemOneDecisionClient</c> provider the dependency injection integration tests share.</summary>
 internal static class DependencyInjectionHarness
 {
     // One retry, a short backoff and no jitter, through IntegrationClient.Configure as the hand-built clients are;
@@ -13,7 +13,7 @@ internal static class DependencyInjectionHarness
     {
         var services = new ServiceCollection();
         services
-            .AddSystemOneClient(options =>
+            .AddSystemOneDecisionClient(options =>
             {
                 IntegrationClient.Configure(options, maxRetries: 1);
                 options.BaseAddress = fixture.BaseAddress;
@@ -47,7 +47,7 @@ internal static class DependencyInjectionHarness
         var configuration = new ConfigurationBuilder().AddInMemoryCollection(settings).Build();
         var services = new ServiceCollection();
         services
-            .AddSystemOneClient(configuration.GetSection("Minos"))
+            .AddSystemOneDecisionClient(configuration.GetSection("Minos"))
             .HttpClient.AddHttpMessageHandler(() => new CountingHandler(attempts));
         return services.BuildServiceProvider();
     }

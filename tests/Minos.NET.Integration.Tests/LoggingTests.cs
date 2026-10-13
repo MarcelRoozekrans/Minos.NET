@@ -35,8 +35,8 @@ public sealed class LoggingTests : IClassFixture<WireMockFixture>
                 .WithBody(Fixture.Text("response-noul.json")));
 
         using var logs = new LogCapture();
-        using var client = new SystemOneClient(
-            new SystemOneClientOptions
+        using var client = new SystemOneDecisionClient(
+            new SystemOneDecisionClientOptions
             {
                 ApiKey = "integration-key",
                 BaseAddress = _fixture.BaseAddress,

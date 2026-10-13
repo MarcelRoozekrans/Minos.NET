@@ -2,7 +2,7 @@
 id: testing-your-code
 title: Testing your code
 sidebar_position: 12
-description: Test code that calls Jev with a fake IDecisionClient or a real SystemOneClient over a canned HTTP reply, and pin each decision.
+description: Test code that calls Jev with a fake IDecisionClient or a real SystemOneDecisionClient over a canned HTTP reply, and pin each decision.
 ---
 
 # Testing your code
@@ -81,8 +81,8 @@ a host supplies the real client. A test does not need a container: it builds the
 
 ## Way one: a fake `IDecisionClient`
 
-`IDecisionClient` is the library's interface for calling Jev, and `SystemOneClient` implements it. A **fake** is a small
-class of your own that implements it and returns a fixed reply, with no HTTP at all.
+`IDecisionClient` is the library's interface for calling Jev, and `SystemOneDecisionClient` implements it. A **fake** is
+a small class of your own that implements it and returns a fixed reply, with no HTTP at all.
 
 A fake implements three members:
 
@@ -264,14 +264,14 @@ A refusal names the questions it is about. `Refused` shows the constructor that 
 `QuestionFailure` per refused question, with the rule `refusal` and the question's wire key, and read them back from
 `Failures`. An `Unsupported` capability error lists its problems the same way.
 
-## Way two: a real `SystemOneClient` over a canned HTTP reply
+## Way two: a real `SystemOneDecisionClient` over a canned HTTP reply
 
-A fake never runs `SystemOneClient`. It skips the protocol, which writes the request from the question set and reads
-the answers from the reply, and the [pipeline](pipeline.md) of retries, logging and telemetry. So a fake cannot tell
-you that your question set builds the request you meant, or that a reply parses into the answers you read. For that,
-run a real `SystemOneClient` and replace only the network. A `SystemOneClient` can take an `HttpClient` you made, and an
-`HttpClient` can take a **message handler**: the object that actually sends the request. A handler of your own that
-answers from memory means the full client runs, and no packet leaves the machine.
+A fake never runs `SystemOneDecisionClient`. It skips the protocol, which writes the request from the question set and
+reads the answers from the reply, and the [pipeline](pipeline.md) of retries, logging and telemetry. So a fake cannot
+tell you that your question set builds the request you meant, or that a reply parses into the answers you read. For
+that, run a real `SystemOneDecisionClient` and replace only the network. A `SystemOneDecisionClient` can take an
+`HttpClient` you made, and an `HttpClient` can take a **message handler**: the object that actually sends the request. A
+handler of your own that answers from memory means the full client runs, and no packet leaves the machine.
 
 <!-- snippet: TestingYourCode_Handler -->
 ```cs
@@ -344,7 +344,7 @@ public async Task ARealClient_SendsTheQuestions_AndReadsTheCannedAnswers()
     var handler = new CannedHandler(HttpStatusCode.OK, UrgentBody);
     using var http = new HttpClient(handler);
     // A dummy key passes validation, and no retries means a failing reply is returned at once.
-    using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "test-key", MaxRetries = 0 });
+    using var client = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = "test-key", MaxRetries = 0 });
 
     var route = await new TicketTriager(client).RouteAsync("Payouts have been failing for 3 days.", CancellationToken.None);
 
@@ -362,7 +362,7 @@ public async Task ARejectedKey_BecomesAFailure_AndThePersonReviews()
 {
     var handler = new CannedHandler(HttpStatusCode.Unauthorized, """{"error":"Invalid API key"}""");
     using var http = new HttpClient(handler);
-    using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "test-key", MaxRetries = 0 });
+    using var client = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = "test-key", MaxRetries = 0 });
 
     var result = await client.EvaluateAsync<TriageQuestions>("Any ticket.", CancellationToken.None);
 

@@ -86,13 +86,13 @@ public sealed class GettingStartedTests
     {
         using var manifest = JsonDocument.Parse(File.ReadAllText(Path.Combine(PublishedPages.Root, ".release-please-manifest.json")));
         var release = manifest.RootElement.GetProperty(".").GetString()!;
-        var informational = typeof(SystemOneClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
+        var informational = typeof(SystemOneDecisionClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
         var built = informational.Split('+')[0];
         var page = PageTables.Text("getting-started.md");
 
         var dash = release.IndexOf('-', StringComparison.Ordinal);
         Assert.Equal(dash < 0 ? release + "-local" : release[..dash] + "-0.local." + release[(dash + 1)..], built);
-        Assert.Equal(new Version(release.Split('-')[0] + ".0"), typeof(SystemOneClient).Assembly.GetName().Version);
+        Assert.Equal(new Version(release.Split('-')[0] + ".0"), typeof(SystemOneDecisionClient).Assembly.GetName().Version);
         Assert.Contains("dotnet add package Minos.NET.SystemOne --version <release>-local", page, StringComparison.Ordinal);
         Assert.Contains("dotnet add package Minos.NET.DependencyInjection --version <release>-local", page, StringComparison.Ordinal);
         Assert.Contains("A local build is versioned as the last release with a `-local` suffix", page, StringComparison.Ordinal);

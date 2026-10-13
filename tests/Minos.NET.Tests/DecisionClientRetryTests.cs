@@ -57,7 +57,7 @@ public sealed class DecisionClientRetryTests : IDisposable
 
             return Success();
         });
-        using var client = new SystemOneClient(Settings(timeout: TimeSpan.FromMilliseconds(400)), httpClient: null, handler, TimeProvider.System);
+        using var client = new SystemOneDecisionClient(Settings(timeout: TimeSpan.FromMilliseconds(400)), httpClient: null, handler, TimeProvider.System);
 
         var result = await client.EvaluateAsync(Request());
 
@@ -297,7 +297,7 @@ public sealed class DecisionClientRetryTests : IDisposable
         }
     }
 
-    private SystemOneClient Client(
+    private SystemOneDecisionClient Client(
         StubHandler handler,
         int maxRetries = 2,
         TimeSpan? initialBackoff = null,
@@ -306,7 +306,7 @@ public sealed class DecisionClientRetryTests : IDisposable
     {
         var http = new HttpClient(handler);
         _httpClients.Add(http);
-        return new SystemOneClient(
+        return new SystemOneDecisionClient(
             Settings(maxRetries: maxRetries, initialBackoff: initialBackoff, maxRetryDelay: maxRetryDelay),
             http,
             ownedHandler: null,
@@ -314,13 +314,13 @@ public sealed class DecisionClientRetryTests : IDisposable
             pool ?? new CountingPool());
     }
 
-    private static SystemOneClientSettings Settings(
+    private static SystemOneDecisionClientSettings Settings(
         int maxRetries = 2,
         TimeSpan? initialBackoff = null,
         TimeSpan? maxRetryDelay = null,
         TimeSpan? timeout = null)
-        => SystemOneClientSettings.Resolve(
-            new SystemOneClientOptions
+        => SystemOneDecisionClientSettings.Resolve(
+            new SystemOneDecisionClientOptions
             {
                 ApiKey = "test-key",
                 MaxRetries = maxRetries,

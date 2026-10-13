@@ -84,11 +84,11 @@ public sealed class TelemetryPrivacyTests : IDisposable
         AssertNoSecret(capture);
     }
 
-    private SystemOneClient Client(StubHandler handler)
+    private SystemOneDecisionClient Client(StubHandler handler)
     {
         var http = new HttpClient(handler);
         _httpClients.Add(http);
-        return new SystemOneClient(http, new SystemOneClientOptions { ApiKey = ApiKey, MaxRetries = 0 });
+        return new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = ApiKey, MaxRetries = 0 });
     }
 
     private static SystemOneRequest Request() => new()

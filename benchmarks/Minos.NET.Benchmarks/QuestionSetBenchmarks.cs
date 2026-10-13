@@ -53,7 +53,7 @@ public class QuestionSetBenchmarks
     private AnswerFactory<QuestionSetAnswers> _twentyFactory = null!;
     private byte[] _twentyAnswers = [];
     private HttpClient _http = null!;
-    private SystemOneClient _client = null!;
+    private SystemOneDecisionClient _client = null!;
 
     /// <summary>The Noul, enum Choice and enum Score of <see cref="ClientBenchmarks.TypedEvaluateAsync"/>, as a builder.</summary>
     internal static QuestionSetBuilder TriageBuilder()

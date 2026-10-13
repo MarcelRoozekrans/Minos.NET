@@ -156,7 +156,7 @@ public sealed class SystemOnePackageTests : IClassFixture<SystemOnePackFixture>
 
             public static class Client
             {
-                public static SystemOneClient Create() => new(new SystemOneClientOptions { ApiKey = "consumer-key" });
+                public static SystemOneDecisionClient Create() => new(new SystemOneDecisionClientOptions { ApiKey = "consumer-key" });
             }
             """);
 

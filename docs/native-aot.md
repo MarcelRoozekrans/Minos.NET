@@ -22,7 +22,7 @@ allocates, because a program that avoids the just-in-time compiler usually cares
   under Native AOT.
 - **The generated question sets.** The `[Questions]` generator writes the question JSON and the answer parsing as
   ordinary C# at compile time. The set uses no reflection at run time, and neither does reading an answer.
-- **Dependency injection.** `Minos.NET.DependencyInjection`, the `AddSystemOneClient` registrations in
+- **Dependency injection.** `Minos.NET.DependencyInjection`, the `AddSystemOneDecisionClient` registrations in
   `Minos.NET.SystemOne` and the `AddOpenAIDecisionClient` registrations in `Minos.NET.OpenAI`, whose provider name is
   `openai`, are Native AOT compatible too. Both bind options from configuration with the configuration binding source
   generator, so binding uses no reflection and needs nothing set up in your program.

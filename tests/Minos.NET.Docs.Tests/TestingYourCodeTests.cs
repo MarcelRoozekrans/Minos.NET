@@ -106,7 +106,7 @@ public sealed class TestingYourCodeTests
         using var http = new HttpClient(handler);
 
         Assert.Null(http.BaseAddress);
-        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "test-key", MaxRetries = 0 });
+        using var client = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = "test-key", MaxRetries = 0 });
 
         Assert.NotNull(http.BaseAddress);
         Assert.Equal(TriageRoute.Queue, await new TicketTriager(client).RouteAsync("text", CancellationToken.None));

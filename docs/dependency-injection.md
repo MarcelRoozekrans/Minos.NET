@@ -2,16 +2,17 @@
 id: dependency-injection
 title: Dependency injection
 sidebar_position: 7
-description: Register IDecisionClient in a .NET host with AddSystemOneClient, key several clients, bind options from configuration, and check them at start-up.
+description: Register IDecisionClient in a .NET host with AddSystemOneDecisionClient, key several clients, bind options from configuration, and check them at start-up.
 ---
 
 # Dependency injection
 
 In an application built on the .NET generic host, such as an ASP.NET Core site or a worker service, you do not create
 the client yourself. You register it once, and the container hands it to every class that asks for an `IDecisionClient`.
-The registering is done by two packages. `Minos.NET.SystemOne` has `AddSystemOneClient`, which registers a
-`SystemOneClient` over `IHttpClientFactory`, reads its options from code or from configuration, and checks them when the
-host starts. It depends on `Minos.NET.DependencyInjection`, the provider-neutral part, so one install covers both:
+The registering is done by two packages. `Minos.NET.SystemOne` has `AddSystemOneDecisionClient`, which registers a
+`SystemOneDecisionClient` over `IHttpClientFactory`, reads its options from code or from configuration, and checks them
+when the host starts. It depends on `Minos.NET.DependencyInjection`, the provider-neutral part, so one install covers
+both:
 
 ```shell
 dotnet add package Minos.NET.SystemOne
@@ -60,16 +61,17 @@ public sealed class InboxTriage(IDecisionClient client)
 ```
 <!-- endSnippet -->
 
-`AddSystemOneClient` registers the client. The overload with an `Action<SystemOneClientOptions>` sets the options in
-code. Here the key comes from configuration, such as user secrets, so it is never written into the program.
+`AddSystemOneDecisionClient` registers the client. The overload with an `Action<SystemOneDecisionClientOptions>` sets
+the options in code. Here the key comes from configuration, such as user secrets, so it is never written into the
+program.
 
 <!-- snippet: DependencyInjection_Register -->
 ```cs
 // The key is read from configuration, such as user secrets, and never written into the code.
-public static SystemOneClientServiceBuilder AddDecision(IHostApplicationBuilder builder)
+public static SystemOneDecisionClientServiceBuilder AddDecision(IHostApplicationBuilder builder)
 {
     builder.Services.AddSingleton<InboxTriage>();
-    return builder.Services.AddSystemOneClient(options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
+    return builder.Services.AddSystemOneDecisionClient(options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
 }
 ```
 <!-- endSnippet -->
@@ -77,23 +79,24 @@ public static SystemOneClientServiceBuilder AddDecision(IHostApplicationBuilder 
 After that, the container builds an `InboxTriage` with the shared client whenever one is needed, and calls
 `TriageAsync` as before.
 
-`AddSystemOneClient` returns a `SystemOneClientServiceBuilder`, the registration's pipeline builder. Its `HttpClient`
-property is the `IHttpClientBuilder` of the client's `HttpClient`, which is where handlers are added, as
-[below](#the-httpclient-from-the-factory) shows. Its `Use` methods add stages around the client, as
-[The client pipeline](pipeline.md#with-dependency-injection) shows.
+`AddSystemOneDecisionClient` returns a `SystemOneDecisionClientServiceBuilder`, the registration's pipeline builder. Its
+`HttpClient` property is the `IHttpClientBuilder` of the client's `HttpClient`, which is where handlers are added, as
+[below](#the-httpclient-from-the-factory) shows. Its `Use` methods add stages around the client, as [The client
+pipeline](pipeline.md#with-dependency-injection) shows.
 
 ## The six overloads
 
-`AddSystemOneClient` has six overloads. Three register the default client, and three register a client under a name.
+`AddSystemOneDecisionClient` has six overloads. Three register the default client, and three register a client under a
+name.
 
 | Overload | Registers | Options come from |
 | --- | --- | --- |
-| `AddSystemOneClient()` | the default client | the defaults and the environment variables |
-| `AddSystemOneClient(Action<SystemOneClientOptions>)` | the default client | your delegate |
-| `AddSystemOneClient(IConfiguration)` | the default client | a configuration section |
-| `AddSystemOneClient(string name)` | a keyed client | the defaults and the environment variables |
-| `AddSystemOneClient(string name, Action<SystemOneClientOptions>)` | a keyed client | your delegate |
-| `AddSystemOneClient(string name, IConfiguration)` | a keyed client | a configuration section |
+| `AddSystemOneDecisionClient()` | the default client | the defaults and the environment variables |
+| `AddSystemOneDecisionClient(Action<SystemOneDecisionClientOptions>)` | the default client | your delegate |
+| `AddSystemOneDecisionClient(IConfiguration)` | the default client | a configuration section |
+| `AddSystemOneDecisionClient(string name)` | a keyed client | the defaults and the environment variables |
+| `AddSystemOneDecisionClient(string name, Action<SystemOneDecisionClientOptions>)` | a keyed client | your delegate |
+| `AddSystemOneDecisionClient(string name, IConfiguration)` | a keyed client | a configuration section |
 
 "The defaults and the environment variables" are the ones from [the client page](client-and-errors.md#options): the key
 comes from `TYPESAFE_API_KEY`, the base address from `TYPESAFE_BASE_URL` when it is set, and everything else has its
@@ -105,8 +108,8 @@ default.
 // and everything else from the defaults.
 public static void AddFromEnvironment(IServiceCollection services)
 {
-    services.AddSystemOneClient();
-    services.AddSystemOneClient("backup");
+    services.AddSystemOneDecisionClient();
+    services.AddSystemOneDecisionClient("backup");
 }
 ```
 <!-- endSnippet -->
@@ -123,8 +126,8 @@ keys with different retry settings. Register each under a name, and ask for each
 ```cs
 public static void AddKeyedClients(IHostApplicationBuilder builder)
 {
-    builder.Services.AddSystemOneClient("typesafe", options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
-    builder.Services.AddSystemOneClient("local", options =>
+    builder.Services.AddSystemOneDecisionClient("typesafe", options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
+    builder.Services.AddSystemOneDecisionClient("local", options =>
     {
         // A server you run: Custom has no default address or model, and sends no key unless ApiKey is set.
         options.Provider = SystemOneProvider.Custom;
@@ -162,7 +165,7 @@ default overloads.
 ## Options from configuration
 
 Instead of a delegate, you can bind a client's options from configuration, such as `appsettings.json`. The keys are the
-`SystemOneClientOptions` property names, and every key is optional.
+`SystemOneDecisionClientOptions` property names, and every key is optional.
 
 ```json
 {
@@ -182,16 +185,16 @@ Instead of a delegate, you can bind a client's options from configuration, such 
 }
 ```
 
-Pass the section to `AddSystemOneClient`. The first call binds `Minos` to the default client, and the second binds
-`OpenRouter` to a client keyed `openrouter`.
+Pass the section to `AddSystemOneDecisionClient`. The first call binds `Minos` to the default client, and the second
+binds `OpenRouter` to a client keyed `openrouter`.
 
 <!-- snippet: DependencyInjection_Configuration -->
 ```cs
 // Each client reads its own section.
 public static void AddFromConfiguration(IHostApplicationBuilder builder)
 {
-    builder.Services.AddSystemOneClient(builder.Configuration.GetSection("Minos"));
-    builder.Services.AddSystemOneClient("openrouter", builder.Configuration.GetSection("OpenRouter"));
+    builder.Services.AddSystemOneDecisionClient(builder.Configuration.GetSection("Minos"));
+    builder.Services.AddSystemOneDecisionClient("openrouter", builder.Configuration.GetSection("OpenRouter"));
 }
 ```
 <!-- endSnippet -->
@@ -220,7 +223,7 @@ default](providers.md#the-defaults).
 // Provider, Path and Capabilities bind like any other option.
 public static void AddProvidersFromConfiguration(IHostApplicationBuilder builder)
 {
-    builder.Services.AddSystemOneClient("local", builder.Configuration.GetSection("Local"));
+    builder.Services.AddSystemOneDecisionClient("local", builder.Configuration.GetSection("Local"));
 }
 ```
 <!-- endSnippet -->
@@ -233,8 +236,8 @@ Things to know when you bind:
 - **Keep the key out of `appsettings.json`.** Leave `ApiKey` unset to use the provider's variable, such as
   `TYPESAFE_API_KEY`, or supply it from user secrets or an environment variable. The setting is `Minos:ApiKey`, and as
   an environment variable the colon becomes a double underscore, `Minos__ApiKey`.
-- **A delegate registered later overrides bound values.** Calling `AddSystemOneClient(options => ...)` after binding
-  changes only the properties it sets.
+- **A delegate registered later overrides bound values.** Calling `AddSystemOneDecisionClient(options => ...)` after
+  binding changes only the properties it sets.
 - **A value the binder cannot convert**, such as `"MaxRetries": "abc"`, fails with the binder's
   `InvalidOperationException`, not with an `OptionsValidationException`. A value that converts but is out of range, such
   as `"MaxRetries": 11`, is checked like any other, as the next section says.
@@ -249,10 +252,11 @@ dotnet user-secrets set "Minos:ApiKey" "your-key"
 ## Checking the options at start-up
 
 Each registration checks its options when the host starts, so a wrong value stops the program at launch instead of on
-the first request. It runs `SystemOneClientOptions.Validate()`, the same check the client's constructor runs, and the
-failure is an `OptionsValidationException` that carries the core's own message. That covers a missing API key, an
-invalid base address, `MaxRetries` outside 0 to 10, a backoff out of range, a blank model, and an invalid `Timeout`. It
-covers the provider settings too: a provider with no model, a missing `BaseAddress` for `Custom`, and a `Capabilities` override that allows no question kind.
+the first request. It runs `SystemOneDecisionClientOptions.Validate()`, the same check the client's constructor runs,
+and the failure is an `OptionsValidationException` that carries the core's own message. That covers a missing API key,
+an invalid base address, `MaxRetries` outside 0 to 10, a backoff out of range, a blank model, and an invalid `Timeout`.
+It covers the provider settings too: a provider with no model, a missing `BaseAddress` for `Custom`, and a
+`Capabilities` override that allows no question kind.
 
 <!-- snippet: DependencyInjection_Startup -->
 ```cs
@@ -280,20 +284,21 @@ Some things still need valid options, an API key included:
 - **Creating the client's named `HttpClient` from `IHttpClientFactory` yourself.** It reads the same options, so a call
   such as `CreateClient("Minos.NET")` fails with the same exception when they are invalid.
 - **A test host that replaces the client.** If the application registers its own `IDecisionClient` before
-  `AddSystemOneClient`, the application's client wins, but the options are still validated. A test that swaps the client
-  needs a placeholder key, for example `AddSystemOneClient(options => options.ApiKey = "test")`, or a `Minos:ApiKey`
-  setting.
+  `AddSystemOneDecisionClient`, the application's client wins, but the options are still validated. A test that swaps
+  the client needs a placeholder key, for example `AddSystemOneDecisionClient(options => options.ApiKey = "test")`, or a
+  `Minos:ApiKey` setting.
 
 ## What gets registered
 
-- **One singleton per registration.** It is a `SystemOneClient`, wrapped in any stages you added to the registration's
-  builder, and is built once, when the container first resolves it. The client reads its named options then. The
-  default client reads the default options, and a keyed client reads the options named by its key. The client logs
-  through the container's `ILoggerFactory`, as [Logging, traces and metrics](observability.md#logging) describes.
+- **One singleton per registration.** It is a `SystemOneDecisionClient`, wrapped in any stages you added to the
+  registration's builder, and is built once, when the container first resolves it. The client reads its named options
+  then. The default client reads the default options, and a keyed client reads the options named by its key. The client
+  logs through the container's `ILoggerFactory`, as [Logging, traces and metrics](observability.md#logging) describes.
 - **A repeat call for the same name** adds its delegate, and the delegates run in order. It returns the same builder,
   so stages from either call land on one pipeline, and it does not register a second client.
-- **Your own registration wins.** `AddSystemOneClient` registers the client with `TryAdd`, so an `IDecisionClient` you
-  registered first stays. `AddSystemOneClient` still sets up the named `HttpClient` and the options in that case.
+- **Your own registration wins.** `AddSystemOneDecisionClient` registers the client with `TryAdd`, so an
+  `IDecisionClient` you registered first stays. `AddSystemOneDecisionClient` still sets up the named `HttpClient` and
+  the options in that case.
 - **Disposal.** The container disposes the client with the provider. The `HttpClient` belongs to the factory and is left
   alone.
 
@@ -304,11 +309,11 @@ the key for a keyed client. You rarely need the name, except to change what is b
 
 - **Its handler.** The primary handler is a `SocketsHttpHandler` that recycles its connections every two minutes, so a
   change in DNS is picked up. The factory never rotates it, because the singleton keeps its `HttpClient` for life.
-- **Its settings.** `SystemOneClient.ConfigureHttpClient` gives the `HttpClient` its base address, the per-attempt
-  `Timeout` and the `Minos.NET` User-Agent.
-- **Its handlers.** Add your own through the `HttpClient` property of the builder `AddSystemOneClient` returns. A
-  handler sees every request and every retry. `ConfigureHttpClientDefaults` adds a handler to every `HttpClient` the
-  factory makes, the Minos clients included, whether you call it before or after `AddSystemOneClient`.
+- **Its settings.** `SystemOneDecisionClient.ConfigureHttpClient` gives the `HttpClient` its base address, the
+  per-attempt `Timeout` and the `Minos.NET` User-Agent.
+- **Its handlers.** Add your own through the `HttpClient` property of the builder `AddSystemOneDecisionClient` returns.
+  A handler sees every request and every retry. `ConfigureHttpClientDefaults` adds a handler to every `HttpClient` the
+  factory makes, the Minos clients included, whether you call it before or after `AddSystemOneDecisionClient`.
 
 <!-- snippet: DependencyInjection_Handlers -->
 ```cs
@@ -324,13 +329,13 @@ public sealed class TraceHeaderHandler : DelegatingHandler
 
 public static class HandlerRegistration
 {
-    // The HttpClient property of the builder AddSystemOneClient returns is the client's HttpClient builder, so handlers
+    // The HttpClient property of the builder AddSystemOneDecisionClient returns is the client's HttpClient builder, so handlers
     // are added the usual way.
     public static IHttpClientBuilder AddTracedDecision(IServiceCollection services, string apiKey)
     {
         services.AddTransient<TraceHeaderHandler>();
         return services
-            .AddSystemOneClient(options => options.ApiKey = apiKey)
+            .AddSystemOneDecisionClient(options => options.ApiKey = apiKey)
             .HttpClient.AddHttpMessageHandler<TraceHeaderHandler>();
     }
 
@@ -339,7 +344,7 @@ public static class HandlerRegistration
     {
         services.AddTransient<TraceHeaderHandler>();
         services.ConfigureHttpClientDefaults(defaults => defaults.AddHttpMessageHandler<TraceHeaderHandler>());
-        services.AddSystemOneClient(options => options.ApiKey = apiKey);
+        services.AddSystemOneDecisionClient(options => options.ApiKey = apiKey);
     }
 
     // To keep a defaults handler off the Minos client, clear the handlers of its builder. This also clears any you
@@ -349,14 +354,14 @@ public static class HandlerRegistration
         services.AddTransient<TraceHeaderHandler>();
         services.ConfigureHttpClientDefaults(defaults => defaults.AddHttpMessageHandler<TraceHeaderHandler>());
         return services
-            .AddSystemOneClient(options => options.ApiKey = apiKey)
+            .AddSystemOneDecisionClient(options => options.ApiKey = apiKey)
             .HttpClient.ConfigureAdditionalHttpMessageHandlers((handlers, _) => handlers.Clear());
     }
 
     // When a handler of yours retries, such as a standard resilience handler, turn the client's own retries off,
     // so the two do not multiply.
     public static void AddWithOwnRetries(IServiceCollection services, string apiKey)
-        => services.AddSystemOneClient(options =>
+        => services.AddSystemOneDecisionClient(options =>
         {
             options.ApiKey = apiKey;
             options.MaxRetries = 0;
@@ -371,8 +376,8 @@ public static class HandlerRegistration
 too. Two things in it do not:
 
 - **A primary handler set in the defaults is replaced.** The Minos client always uses its own `SocketsHttpHandler`,
-  whether the defaults are registered before or after `AddSystemOneClient`. A defaults primary handler never sees the
-  client's requests.
+  whether the defaults are registered before or after `AddSystemOneDecisionClient`. A defaults primary handler never
+  sees the client's requests.
 - **The defaults' loggers are removed** from the Minos clients, in either order, as the next section says.
 
 The usual cause of trouble is a defaults handler that retries, most often Aspire ServiceDefaults'
@@ -389,7 +394,7 @@ with `ConfigureAdditionalHttpMessageHandlers`, after the `Clear()`, if you want 
 The factory has request logs of its own, with the categories `System.Net.Http.HttpClient.*`. They are turned off for
 the Minos clients. The client already logs each operation and each retried attempt, in the `Minos.DecisionClient`
 category, and the factory's logging handlers add work to every request. Call `AddDefaultLogger()` on the `HttpClient`
-property of the builder `AddSystemOneClient` returns to bring the factory's logs back.
+property of the builder `AddSystemOneDecisionClient` returns to bring the factory's logs back.
 
 Without a logging provider, or with the Minos log levels turned off, the client logs nothing. [Logging, traces and
 metrics](observability.md#logging) lists the events and their levels.
@@ -397,8 +402,8 @@ metrics](observability.md#logging) lists the events and their levels.
 ## OpenAI
 
 `Minos.NET.OpenAI` has `AddOpenAIDecisionClient`, which registers an `OpenAIDecisionClient` for OpenAI's Decisions API.
-It works as `AddSystemOneClient` does: the same six overloads, default and keyed, options from code or configuration,
-checked at start-up, over a named `HttpClient` from `IHttpClientFactory`. It returns an
+It works as `AddSystemOneDecisionClient` does: the same six overloads, default and keyed, options from code or
+configuration, checked at start-up, over a named `HttpClient` from `IHttpClientFactory`. It returns an
 `OpenAIDecisionClientServiceBuilder`, whose `HttpClient` property is the builder of that `HttpClient`.
 
 ```shell
@@ -411,7 +416,7 @@ dotnet add package Minos.NET.OpenAI
 // without one, the OpenAI client reads OPENAI_API_KEY, and the host fails at start-up when there is none.
 public static OpenAIDecisionClientServiceBuilder AddBothProviders(IHostApplicationBuilder builder)
 {
-    builder.Services.AddSystemOneClient(options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
+    builder.Services.AddSystemOneDecisionClient(options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
     return builder.Services.AddOpenAIDecisionClient(
         "openai", options => options.ApiKey = builder.Configuration["OpenAI:ApiKey"]);
 }
@@ -423,8 +428,8 @@ public static OpenAIDecisionClientServiceBuilder AddBothProviders(IHostApplicati
   versioned API root, as in OpenAI's official SDKs: requests go to `decisions` under it.
 - **Configuration binds the same way.** The keys are the property names of `OpenAIDecisionClientOptions`, such as
   `ApiKey`, `Model` and `Capabilities:QuestionKinds`.
-- **A name holds one provider.** Registering the same name with `AddSystemOneClient` and `AddOpenAIDecisionClient`
-  throws `InvalidOperationException`. Use different names, as the snippet does, to have both.
+- **A name holds one provider.** Registering the same name with `AddSystemOneDecisionClient` and
+  `AddOpenAIDecisionClient` throws `InvalidOperationException`. Use different names, as the snippet does, to have both.
 - **Its provider name is `openai`**, in its logs, spans and metrics.
 
 [OpenAI](providers.md#openai) has the options, what OpenAI cannot express, and refusals.
@@ -448,40 +453,40 @@ public static DecisionClientServiceBuilder AddOwnClient(IServiceCollection servi
 It returns a `DecisionClientServiceBuilder`, which has `Use` and the `Use…` extensions for
 [stages](pipeline.md#with-dependency-injection) and a `Name`, and nothing else. It has no `HttpClient` property,
 because the factory may make a client with no `HttpClient`. That property, the named `HttpClient` from
-`IHttpClientFactory`, the options and the start-up check belong to `AddSystemOneClient`, whose
-`SystemOneClientServiceBuilder` derives from `DecisionClientServiceBuilder` and adds `HttpClient`.
+`IHttpClientFactory`, the options and the start-up check belong to `AddSystemOneDecisionClient`, whose
+`SystemOneDecisionClientServiceBuilder` derives from `DecisionClientServiceBuilder` and adds `HttpClient`.
 
-A name holds one provider's registration. Registering the same name with `AddSystemOneClient` and with
+A name holds one provider's registration. Registering the same name with `AddSystemOneDecisionClient` and with
 `AddDecisionClient` throws `InvalidOperationException`, so two registrations cannot disagree about what the name is. A
 repeat call of the same kind returns the first call's builder.
 
 ## Using Minos without the package
 
-`AddSystemOneClient` is a convenience. `SystemOneClient.ConfigureHttpClient(httpClient, options)` configures any
-`HttpClient` the way the client configures its own: it applies the per-attempt `Timeout`, the base address when the
-`HttpClient` has none, and the User-Agent. It needs no API key and leaves the handler alone. Call it before the client
-sends a request, for instance on a named client of your own.
+`AddSystemOneDecisionClient` is a convenience. `SystemOneDecisionClient.ConfigureHttpClient(httpClient, options)`
+configures any `HttpClient` the way the client configures its own: it applies the per-attempt `Timeout`, the base
+address when the `HttpClient` has none, and the User-Agent. It needs no API key and leaves the handler alone. Call it
+before the client sends a request, for instance on a named client of your own.
 
 <!-- snippet: DependencyInjection_WithoutPackage -->
 ```cs
-// A named HttpClient of your own, set up the way AddSystemOneClient sets up its client.
-public static void AddMinosHttpClient(IServiceCollection services, SystemOneClientOptions options)
+// A named HttpClient of your own, set up the way AddSystemOneDecisionClient sets up its client.
+public static void AddMinosHttpClient(IServiceCollection services, SystemOneDecisionClientOptions options)
     => services.AddHttpClient("minos")
         .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(2) })
         .SetHandlerLifetime(Timeout.InfiniteTimeSpan)
-        .ConfigureHttpClient(http => SystemOneClient.ConfigureHttpClient(http, options));
+        .ConfigureHttpClient(http => SystemOneDecisionClient.ConfigureHttpClient(http, options));
 
-public static SystemOneClient Create(IHttpClientFactory factory, SystemOneClientOptions options)
+public static SystemOneDecisionClient Create(IHttpClientFactory factory, SystemOneDecisionClientOptions options)
     => new(factory.CreateClient("minos"), options);
 ```
 <!-- endSnippet -->
 
-The `SystemOneClient` that `Create` makes still needs an API key. `ConfigureHttpClient` sets up the `HttpClient` only,
-so the key comes from `options.ApiKey` or the environment variable, as for any client.
+The `SystemOneDecisionClient` that `Create` makes still needs an API key. `ConfigureHttpClient` sets up the `HttpClient`
+only, so the key comes from `options.ApiKey` or the environment variable, as for any client.
 
 The `SocketsHttpHandler` and the infinite handler lifetime do for this client what the package does for its own: a
-long-lived `SystemOneClient` keeps one handler for life, so the connections recycle themselves and the factory does not
-rotate the handler.
+long-lived `SystemOneDecisionClient` keeps one handler for life, so the connections recycle themselves and the factory
+does not rotate the handler.
 
 ## Next
 

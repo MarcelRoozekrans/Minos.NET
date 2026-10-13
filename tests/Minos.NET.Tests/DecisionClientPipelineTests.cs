@@ -5,7 +5,7 @@ using Minos.SystemOne.Serialization;
 
 namespace Minos.Tests;
 
-/// <summary>The standard pipeline <see cref="SystemOneClient"/> composes, and <see cref="SystemOneClientOptions.UseStandardPipeline"/>.</summary>
+/// <summary>The standard pipeline <see cref="SystemOneDecisionClient"/> composes, and <see cref="SystemOneDecisionClientOptions.UseStandardPipeline"/>.</summary>
 public sealed class DecisionClientPipelineTests : IDisposable
 {
     private readonly List<HttpClient> _httpClients = [];

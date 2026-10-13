@@ -3,15 +3,15 @@ using Minos.Transport;
 namespace Minos.SystemOne.Transport;
 
 /// <summary>
-/// <see cref="SystemOneClientOptions"/> resolved against the environment. A class rather than a record so the API key never
+/// <see cref="SystemOneDecisionClientOptions"/> resolved against the environment. A class rather than a record so the API key never
 /// appears in a generated <c>ToString</c>.
 /// </summary>
-internal sealed class SystemOneClientSettings
+internal sealed class SystemOneDecisionClientSettings
 {
-    /// <summary>The <c>/v1/systemone</c> path every preset posts to, unless <see cref="SystemOneClientOptions.Path"/> overrides it.</summary>
+    /// <summary>The <c>/v1/systemone</c> path every preset posts to, unless <see cref="SystemOneDecisionClientOptions.Path"/> overrides it.</summary>
     private const string DefaultPath = "v1/systemone";
 
-    private SystemOneClientSettings(
+    private SystemOneDecisionClientSettings(
         SystemOneProvider provider,
         string? apiKey,
         Uri baseAddress,
@@ -82,10 +82,10 @@ internal sealed class SystemOneClientSettings
     /// <param name="environment">Reads an environment variable; tests pass a fake.</param>
     /// <exception cref="ArgumentException">An option has an invalid value.</exception>
     /// <exception cref="InvalidOperationException">No API key is configured, or an environment variable is invalid.</exception>
-    public static SystemOneClientSettings Resolve(SystemOneClientOptions? options, Func<string, string?> environment)
+    public static SystemOneDecisionClientSettings Resolve(SystemOneDecisionClientOptions? options, Func<string, string?> environment)
     {
         ArgumentNullException.ThrowIfNull(environment);
-        options ??= new SystemOneClientOptions();
+        options ??= new SystemOneDecisionClientOptions();
 
         EnsureKnownProvider(options);
         ClientSettingRules.CheckTimeout(options.Timeout, nameof(options));
@@ -99,7 +99,7 @@ internal sealed class SystemOneClientSettings
         var apiKey = ResolveApiKey(options, environment);
         var baseAddress = ClientSettingRules.WithTrailingSlash(ResolveRoot(options, environment));
 
-        return new SystemOneClientSettings(
+        return new SystemOneDecisionClientSettings(
             provider,
             apiKey,
             baseAddress,
@@ -122,10 +122,10 @@ internal sealed class SystemOneClientSettings
     /// <param name="environment">Reads an environment variable; tests pass a fake.</param>
     /// <exception cref="ArgumentException">The provider, the time-out, or the base address is invalid.</exception>
     /// <exception cref="InvalidOperationException">The base address environment variable is invalid.</exception>
-    public static HttpSettings ResolveHttp(SystemOneClientOptions? options, Func<string, string?> environment)
+    public static HttpSettings ResolveHttp(SystemOneDecisionClientOptions? options, Func<string, string?> environment)
     {
         ArgumentNullException.ThrowIfNull(environment);
-        options ??= new SystemOneClientOptions();
+        options ??= new SystemOneDecisionClientOptions();
 
         EnsureKnownProvider(options);
         ClientSettingRules.CheckTimeout(options.Timeout, nameof(options));
@@ -136,7 +136,7 @@ internal sealed class SystemOneClientSettings
     public override string ToString()
         => "Provider=" + Provider.ToString() + ", BaseAddress=" + BaseAddress.AbsoluteUri + ", ApiKey=***";
 
-    private static void EnsureKnownProvider(SystemOneClientOptions options)
+    private static void EnsureKnownProvider(SystemOneDecisionClientOptions options)
     {
         if (!Enum.IsDefined(options.Provider))
         {
@@ -146,7 +146,7 @@ internal sealed class SystemOneClientSettings
 
     // Path applies to the presets whose server you name; on a hosted one it would send the key elsewhere on that host.
     // Like ApiKey, a blank Path counts as unset, and surrounding whitespace is trimmed.
-    private static string ResolvePath(SystemOneClientOptions options)
+    private static string ResolvePath(SystemOneDecisionClientOptions options)
     {
         if (ClientSettingRules.NonBlank(options.Path) is not { } untrimmed)
         {
@@ -169,7 +169,7 @@ internal sealed class SystemOneClientSettings
         return path;
     }
 
-    private static string ResolveModel(SystemOneClientOptions options)
+    private static string ResolveModel(SystemOneDecisionClientOptions options)
     {
         if (options.Model is { } explicitModel)
         {
@@ -182,16 +182,16 @@ internal sealed class SystemOneClientSettings
         }
 
         throw new ArgumentException(
-            NameOf(options.Provider) + " has no default model. Set SystemOneClientOptions.Model.", nameof(options));
+            NameOf(options.Provider) + " has no default model. Set SystemOneDecisionClientOptions.Model.", nameof(options));
     }
 
     // The preset's defaults with each override that is set; a null Capabilities counts as no overrides.
-    private static CapabilitySet ResolveCapabilities(SystemOneClientOptions options)
+    private static CapabilitySet ResolveCapabilities(SystemOneDecisionClientOptions options)
         => ClientSettingRules.ResolveCapabilities(SystemOneCapabilityDefaults.For(options.Provider), options.Capabilities, nameof(options));
 
     // The hosted presets require a key, from the option or their own variable. Custom and VllmSemanticRouter send one only
     // when the option sets it, so a vendor key from the environment never reaches a server the caller names.
-    private static string? ResolveApiKey(SystemOneClientOptions options, Func<string, string?> environment)
+    private static string? ResolveApiKey(SystemOneDecisionClientOptions options, Func<string, string?> environment)
     {
         if (ClientSettingRules.NonBlank(options.ApiKey) is { } explicitKey)
         {
@@ -209,7 +209,7 @@ internal sealed class SystemOneClientSettings
         }
 
         throw new InvalidOperationException(
-            "No API key is configured. Set SystemOneClientOptions.ApiKey or the " + keyVariable + " environment variable.");
+            "No API key is configured. Set SystemOneDecisionClientOptions.ApiKey or the " + keyVariable + " environment variable.");
     }
 
     private static string? KeyVariable(SystemOneProvider provider) => provider switch
@@ -219,7 +219,7 @@ internal sealed class SystemOneClientSettings
         _ => null,
     };
 
-    private static Uri ResolveRoot(SystemOneClientOptions options, Func<string, string?> environment)
+    private static Uri ResolveRoot(SystemOneDecisionClientOptions options, Func<string, string?> environment)
     {
         if (options.BaseAddress is { } explicitAddress)
         {

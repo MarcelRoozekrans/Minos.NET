@@ -37,7 +37,7 @@ public sealed class ProvidersTests
         Assert.Equal(OpenAIDefaults.Model, metadata.DefaultModel);
         Assert.Equal("gpt-6-luna", OpenAIDefaults.Model);
         Assert.Equal(new Uri("https://api.openai.com/v1/"), OpenAIDefaults.BaseAddress);
-        Assert.Null(client.GetService<SystemOneClient>());
+        Assert.Null(client.GetService<SystemOneDecisionClient>());
     }
 
     [Fact]
@@ -241,12 +241,12 @@ public sealed class ProvidersTests
         return (http, new OpenAIDecisionClient(http, options), handler);
     }
 
-    private static (HttpClient Http, SystemOneClient Client, ScriptedDecision.Handler Handler) SystemOne(SystemOneClientOptions options, params Reply[] script)
+    private static (HttpClient Http, SystemOneDecisionClient Client, ScriptedDecision.Handler Handler) SystemOne(SystemOneDecisionClientOptions options, params Reply[] script)
     {
         var handler = new ScriptedDecision.Handler(script);
         var http = new HttpClient(handler, disposeHandler: false);
         options.MaxRetries = 0;
-        SystemOneClient.ConfigureHttpClient(http, options);
-        return (http, new SystemOneClient(http, options), handler);
+        SystemOneDecisionClient.ConfigureHttpClient(http, options);
+        return (http, new SystemOneDecisionClient(http, options), handler);
     }
 }

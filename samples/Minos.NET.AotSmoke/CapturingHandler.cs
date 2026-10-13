@@ -22,7 +22,7 @@ internal sealed class CapturingHandler(string responseBody) : HttpMessageHandler
     {
         var handler = new CapturingHandler(responseBody);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("https://example.test/api/") };
-        using var client = new SystemOneClient(http, Program.Options());
+        using var client = new SystemOneDecisionClient(http, Program.Options());
         _ = await client.EvaluateAsync(set, SmokeAnswers.State).ConfigureAwait(false);
         return handler.Questions();
     }
@@ -36,7 +36,7 @@ internal sealed class CapturingHandler(string responseBody) : HttpMessageHandler
     {
         var handler = new CapturingHandler(responseBody);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("https://example.test/api/") };
-        using var client = new SystemOneClient(http, Program.Options());
+        using var client = new SystemOneDecisionClient(http, Program.Options());
         _ = await client.EvaluateAsync<T>(SmokeAnswers.State).ConfigureAwait(false);
         return handler.Questions();
     }

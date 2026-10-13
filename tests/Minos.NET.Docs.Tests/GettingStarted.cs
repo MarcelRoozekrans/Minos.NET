@@ -33,17 +33,17 @@ public static class GettingStartedClients
 {
     #region GettingStarted_Clients
     // TypeSafe is the default provider. With no ApiKey set, the client reads TYPESAFE_API_KEY.
-    // SystemOneClient is disposable and meant to be long-lived: create it once, share it, and dispose it at shutdown.
+    // SystemOneDecisionClient is disposable and meant to be long-lived: create it once, share it, and dispose it at shutdown.
     public static async Task<string> ViaTypeSafeAsync(string message, CancellationToken cancellationToken)
     {
-        using var client = new SystemOneClient(new SystemOneClientOptions());
+        using var client = new SystemOneDecisionClient(new SystemOneDecisionClientOptions());
         return await GettingStartedEvaluation.TriageAsync(client, message, cancellationToken);
     }
 
     // OpenRouter: name the provider. With no ApiKey set, the client reads OPENROUTER_API_KEY.
     public static async Task<string> ViaOpenRouterAsync(string message, CancellationToken cancellationToken)
     {
-        using var client = new SystemOneClient(new SystemOneClientOptions { Provider = SystemOneProvider.OpenRouter });
+        using var client = new SystemOneDecisionClient(new SystemOneDecisionClientOptions { Provider = SystemOneProvider.OpenRouter });
         return await GettingStartedEvaluation.TriageAsync(client, message, cancellationToken);
     }
     #endregion

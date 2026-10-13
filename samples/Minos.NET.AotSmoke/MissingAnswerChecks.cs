@@ -12,7 +12,7 @@ internal static class MissingAnswerChecks
     public static async Task MissingAnswerNamesTheQuestion()
     {
         using var http = Program.Http(HttpStatusCode.OK, ResponseWithoutTeam);
-        using var client = new SystemOneClient(http, Program.Options());
+        using var client = new SystemOneDecisionClient(http, Program.Options());
 
         var result = await client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State).ConfigureAwait(false);
 

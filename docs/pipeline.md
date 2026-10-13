@@ -12,9 +12,9 @@ is an `IDecisionClient` that wraps the one inside it. It can act before the call
 the call on. Telemetry, logging and retries are stages like this. Two packages add a cache stage and a rate-limiting
 stage, and you can write your own, such as an audit record.
 
-This page shows the standard pipeline that every `SystemOneClient` runs, how to build your own, how to cache decisions
-and limit the call rate, the order to put stages in, how to write a stage, how to find a stage again, and how stages fit
-with dependency injection. It ends with what changed for code written against 0.7 and 0.8.
+This page shows the standard pipeline that every `SystemOneDecisionClient` runs, how to build your own, how to cache
+decisions and limit the call rate, the order to put stages in, how to write a stage, how to find a stage again, and how
+stages fit with dependency injection. It ends with what changed for code written against 0.7 and 0.8.
 
 ## What every call goes through
 
@@ -24,8 +24,8 @@ question set's `Definition`, the `State`, an optional `Model` and the `RetryAtte
 [built question set](question-sets-at-run-time.md) calls are extension methods that build a `DecisionRequest` and make
 that one call, so they go through the pipeline too.
 
-A `SystemOneClient` builds the standard pipeline for you, so a client you create is already traced and retried, and
-logged when you give it a logger factory.
+A `SystemOneDecisionClient` builds the standard pipeline for you, so a client you create is already traced and retried,
+and logged when you give it a logger factory.
 
 <!-- snippet: Pipeline_Default -->
 ```cs
@@ -42,12 +42,12 @@ public partial record PipelineCheck
 
 public static class DefaultPipeline
 {
-    // A SystemOneClient already runs the standard pipeline: one span and one set of metrics per call, one log record
+    // A SystemOneDecisionClient already runs the standard pipeline: one span and one set of metrics per call, one log record
     // when it was given a logger factory, and up to two retries of a transient failure. There is nothing to set up.
     public static async Task<bool> IsUrgentAsync(
         HttpClient http, string apiKey, string message, CancellationToken cancellationToken)
     {
-        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = apiKey });
+        using var client = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = apiKey });
 
         // The typed call builds a DecisionRequest from PipelineCheck.Definition and the message, and sends it through
         // the pipeline.
@@ -87,8 +87,8 @@ so they do not run through the stages. They have their own span and log, and ret
 
 ## Building your own pipeline
 
-Set `SystemOneClientOptions.UseStandardPipeline` to `false`, and the client is the bare transport: one attempt per call,
-with no span, no log and no retry. Then build the pipeline you want around it. `AsBuilder()` starts a
+Set `SystemOneDecisionClientOptions.UseStandardPipeline` to `false`, and the client is the bare transport: one attempt
+per call, with no span, no log and no retry. Then build the pipeline you want around it. `AsBuilder()` starts a
 `DecisionClientBuilder` from any client, each `Use…` call adds a stage, and `Build()` returns the outermost one.
 
 <!-- snippet: Pipeline_Custom -->
@@ -97,8 +97,8 @@ with no span, no log and no retry. Then build the pipeline you want around it. `
 public static IDecisionClient Build(HttpClient http, string apiKey, ILoggerFactory loggerFactory, IAuditLog log)
 {
     // With the standard pipeline off, the client is the bare transport: one attempt per call, and no span or log.
-    var transport = new SystemOneClient(
-        http, new SystemOneClientOptions { ApiKey = apiKey, UseStandardPipeline = false });
+    var transport = new SystemOneDecisionClient(
+        http, new SystemOneDecisionClientOptions { ApiKey = apiKey, UseStandardPipeline = false });
 
     // The first Use is the outermost stage. The audit stage is the innermost, so it records every attempt.
     return transport.AsBuilder()
@@ -118,7 +118,7 @@ public static IDecisionClient Build(HttpClient http, string apiKey, ILoggerFacto
 - **`UseLogging(loggerFactory)`** adds the logging stage. Without a factory, it uses the `ILoggerFactory` of the
   services passed to `Build`. With neither, it adds nothing.
 - **`UseRetries(configure)`** adds the retry stage. Its settings start from the inner client's own, which a
-  `SystemOneClient` offers from its options, and `configure` changes them. It logs event 1003 through the
+  `SystemOneDecisionClient` offers from its options, and `configure` changes them. It logs event 1003 through the
   `ILoggerFactory` of the services passed to `Build`, and waits on their `TimeProvider`, so `Build()` without services,
   as above, retries without logging 1003.
 - **`Build(services)`** creates the stages, inner first. Pass an `IServiceProvider` when a stage needs services.
@@ -162,7 +162,7 @@ caches in process only.
 public static IServiceCollection AddCachedDecisions(IServiceCollection services, string apiKey)
 {
     services.AddMemoryCache();
-    services.AddSystemOneClient(options => options.ApiKey = apiKey)
+    services.AddSystemOneDecisionClient(options => options.ApiKey = apiKey)
         .UseCaching(configure: cache => cache.Expiration = TimeSpan.FromHours(1));
     return services;
 }
@@ -218,7 +218,7 @@ public static readonly RateLimiter SharedLimiter = new TokenBucketRateLimiter(ne
     QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
 });
 
-public static IDecisionClient Build(SystemOneClient client) => client.AsBuilder().UseRateLimiting(SharedLimiter).Build();
+public static IDecisionClient Build(SystemOneDecisionClient client) => client.AsBuilder().UseRateLimiting(SharedLimiter).Build();
 ```
 <!-- endSnippet -->
 
@@ -240,7 +240,7 @@ take no extra permits. When you build the pipeline yourself, use this order:
 // The recommended order for a pipeline you build yourself: a cache hit takes no permit, and every attempt takes one.
 public static IDecisionClient Build(HttpClient http, string apiKey, RateLimiter limiter, IServiceProvider services)
 {
-    var transport = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = apiKey, UseStandardPipeline = false });
+    var transport = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = apiKey, UseStandardPipeline = false });
     return transport.AsBuilder()
         .UseOpenTelemetry()
         .UseCaching()
@@ -338,14 +338,14 @@ throws an `InvalidOperationException` naming the type instead, for a service the
 ```cs
 public static async Task<string> DescribeAsync(IDecisionClient client, CancellationToken cancellationToken)
 {
-    // The provider, the endpoint and the default model, which the SystemOneClient at the bottom provides.
+    // The provider, the endpoint and the default model, which the SystemOneDecisionClient at the bottom provides.
     var metadata = client.GetService<DecisionClientMetadata>();
 
     // A stage, found by its type: null when the pipeline has none, as with UseStandardPipeline off.
     var retries = client.GetService<RetryingDecisionClient>();
 
-    // The raw System One calls are on the concrete SystemOneClient, not on IDecisionClient.
-    var models = await client.GetRequiredService<SystemOneClient>().ListModelsAsync(cancellationToken);
+    // The raw System One calls are on the concrete SystemOneDecisionClient, not on IDecisionClient.
+    var models = await client.GetRequiredService<SystemOneDecisionClient>().ListModelsAsync(cancellationToken);
 
     var listed = models.IsSuccess ? $"{models.Value.Models.Count} models" : models.Error.Kind.ToString();
     return $"{metadata?.ProviderName} at {metadata?.Endpoint}, retries {(retries is null ? "off" : "on")}, {listed}";
@@ -353,10 +353,10 @@ public static async Task<string> DescribeAsync(IDecisionClient client, Cancellat
 ```
 <!-- endSnippet -->
 
-A `SystemOneClient` answers with:
+A `SystemOneDecisionClient` answers with:
 
-- **itself**, for `SystemOneClient` or `IDecisionClient`. This is how code that holds an `IDecisionClient` reaches the
-  raw System One calls, which are not on the interface.
+- **itself**, for `SystemOneDecisionClient` or `IDecisionClient`. This is how code that holds an `IDecisionClient`
+  reaches the raw System One calls, which are not on the interface.
 - **a copy of its retry settings**, for `DecisionRetryOptions`. `UseRetries()` starts from these.
 - **its `DecisionClientMetadata`**: the `ProviderName`, which is `typesafe`, `openrouter`, `vllm-sr` or
   `custom` (an `OpenAIDecisionClient` reports `openai`), the `Endpoint` it sends to (the base address plus the path,
@@ -369,17 +369,18 @@ stages then report the provider and the model as `unknown`.
 
 ## With dependency injection
 
-`AddSystemOneClient` returns a `SystemOneClientServiceBuilder`. It is a `DecisionClientServiceBuilder`, which is a
-`DecisionClientBuilder` for the registered client with the registration's `Name`, or `null` for the default client.
-`SystemOneClientServiceBuilder` adds `HttpClient`, the `IHttpClientBuilder` of the client's `HttpClient`. The neutral
-`AddDecisionClient(factory)` returns the `DecisionClientServiceBuilder` and has no `HttpClient`.
+`AddSystemOneDecisionClient` returns a `SystemOneDecisionClientServiceBuilder`. It is a `DecisionClientServiceBuilder`,
+which is a `DecisionClientBuilder` for the registered client with the registration's `Name`, or `null` for the default
+client. `SystemOneDecisionClientServiceBuilder` adds `HttpClient`, the `IHttpClientBuilder` of the client's
+`HttpClient`. The neutral `AddDecisionClient(factory)` returns the `DecisionClientServiceBuilder` and has no
+`HttpClient`.
 
 <!-- snippet: Pipeline_DI -->
 ```cs
 public static void AddAuditedDecision(IServiceCollection services, IConfiguration configuration)
 {
     services.AddTransient<TraceHeaderHandler>();
-    var decision = services.AddSystemOneClient(configuration.GetSection("Minos"));
+    var decision = services.AddSystemOneDecisionClient(configuration.GetSection("Minos"));
 
     // Handlers go on the HttpClient builder, and see every attempt, retries included.
     decision.HttpClient.AddHttpMessageHandler<TraceHeaderHandler>();
@@ -390,18 +391,18 @@ public static void AddAuditedDecision(IServiceCollection services, IConfiguratio
 ```
 <!-- endSnippet -->
 
-- **Keep the result of `AddSystemOneClient`.** `Use` and the `Use…` extensions return the base
+- **Keep the result of `AddSystemOneDecisionClient`.** `Use` and the `Use…` extensions return the base
   `DecisionClientBuilder`, which has no `HttpClient`, so reach `HttpClient` from the registration's own builder, as the
   snippet does.
-- **Stages wrap the registered `SystemOneClient`,** which still runs its standard pipeline. So a stage you add sits
-  outside the span and the retries, and sees one call and its final result.
+- **Stages wrap the registered `SystemOneDecisionClient`,** which still runs its standard pipeline. So a stage you add
+  sits outside the span and the retries, and sees one call and its final result.
 - **The pipeline is built once,** when the container first resolves the client, and `Build` gets the container. So
   `UseLogging()` takes the container's `ILoggerFactory`, and `UseRetries()` its `ILoggerFactory` and `TimeProvider`.
 - **A repeat call for the same name returns the same builder,** so stages from either call land on one pipeline.
 - **With `UseStandardPipeline` off,** for example from configuration, the registered client is the bare transport. Add
   the stages you want, and `UseRetries()` starts from the registration's own retry settings, configuration included.
-- **Your own `IDecisionClient` still wins.** If you registered one first, `AddSystemOneClient` does not replace it, and
-  the builder's stages are not used.
+- **Your own `IDecisionClient` still wins.** If you registered one first, `AddSystemOneDecisionClient` does not replace
+  it, and the builder's stages are not used.
 
 [Dependency injection](dependency-injection.md) covers the rest of the registration.
 
@@ -414,17 +415,17 @@ compiler finds every one of these. Typed calls, `[Questions]` records and fakes 
 | In 0.8 | After |
 | --- | --- |
 | The System One client is in `Minos.NET` | It is in `Minos.NET.SystemOne`, which brings `Minos.NET`. Install it with `dotnet add package Minos.NET.SystemOne` |
-| `DecisionClient`, `DecisionClientOptions`, `DecisionProvider` and `DecisionDefaults`, in the `Minos` namespace | `SystemOneClient`, `SystemOneClientOptions`, `SystemOneProvider` and `SystemOneDefaults`, in `Minos.SystemOne` |
+| `DecisionClient`, `DecisionClientOptions`, `DecisionProvider` and `DecisionDefaults`, in the `Minos` namespace | `SystemOneDecisionClient`, `SystemOneDecisionClientOptions`, `SystemOneProvider` and `SystemOneDefaults`, in `Minos.SystemOne` |
 | `SystemOneRequest`, `SystemOneResponse`, `ModelList`, `ModelCard` and the question and answer classes, in `Minos` | The same names, in `Minos.SystemOne`. Add `using Minos.SystemOne;` |
-| `AddDecisionClient()`, with options, a configuration section or a name | `AddSystemOneClient()`, with the same six overloads. `AddDecisionClient` now takes only a factory |
-| `DecisionClientServiceBuilder.HttpClient` | `SystemOneClientServiceBuilder.HttpClient`. `DecisionClientServiceBuilder` is the provider-neutral base, without `HttpClient` |
+| `AddDecisionClient()`, with options, a configuration section or a name | `AddSystemOneDecisionClient()`, with the same six overloads. `AddDecisionClient` now takes only a factory |
+| `DecisionClientServiceBuilder.HttpClient` | `SystemOneDecisionClientServiceBuilder.HttpClient`. `DecisionClientServiceBuilder` is the provider-neutral base, without `HttpClient` |
 | `Model` is a `string` that defaults to `jev-latest` | `Model` is a `string?` that defaults to `null`, which takes the preset's default: `jev-latest` for TypeSafe and OpenRouter. The new presets have none, so the options need a `Model` for them |
 | The raw calls log the provider as `TypeSafe` or `OpenRouter` in events 1001, 1004 and 1005 | They log its telemetry name, `typesafe` or `openrouter`, as the typed calls do. The new presets log `vllm-sr` and `custom` |
 | `ListModelsAsync` on a provider without model listing returns `Unsupported` with "Model listing is only available on TypeSafe's API; OpenRouter has its own Models API." | The message is "Model listing is not available on {provider}.", for every provider whose `SupportsModelListing` capability is off |
 | A Choice question with more than 255 options is sent, with only the MIN005 warning at build time | On TypeSafe and OpenRouter it returns `Unsupported` with MIN203 before sending. `Capabilities.MaxChoiceOptions` can raise the limit |
 | `Minos.NET.DependencyInjection` brings `Microsoft.Extensions.Http` and `Microsoft.Extensions.Options.ConfigurationExtensions` | It no longer does. `Minos.NET.SystemOne` brings them, so code that used them without installing `Minos.NET.SystemOne` adds the package references itself |
 
-`SystemOneClientOptions` also gains `Path` and `Capabilities`, and `SystemOneProvider` gains
+`SystemOneDecisionClientOptions` also gains `Path` and `Capabilities`, and `SystemOneProvider` gains
 `VllmSemanticRouter` and `Custom`, all described on the
 [Providers](providers.md#the-presets) page. A set that breaks a provider's
 [capabilities](providers.md#capabilities) returns an `Unsupported` failure, with `Failures` filled in, before
@@ -434,15 +435,15 @@ any request is sent.
 
 0.8 makes `IDecisionClient` one neutral call, which breaks code that implements the interface or uses what
 `AddDecisionClient` returned. Code that only calls the typed overloads compiles unchanged. The names in the 0.7 column
-are the ones of that release, and the replacement column uses current names, such as `SystemOneClient` where 0.8
+are the ones of that release, and the replacement column uses current names, such as `SystemOneDecisionClient` where 0.8
 said `DecisionClient`; [Upgrading from 0.8](#upgrading-from-08) has the later renames.
 
 | In 0.7 | From 0.8 |
 | --- | --- |
-| `client.EvaluateAsync(SystemOneRequest)` and `client.ListModelsAsync()` on an `IDecisionClient` | `client.GetRequiredService<SystemOneClient>().EvaluateAsync(...)` and `.ListModelsAsync(...)`, or hold a `SystemOneClient` |
+| `client.EvaluateAsync(SystemOneRequest)` and `client.ListModelsAsync()` on an `IDecisionClient` | `client.GetRequiredService<SystemOneDecisionClient>().EvaluateAsync(...)` and `.ListModelsAsync(...)`, or hold a `SystemOneDecisionClient` |
 | `client.EvaluateAsync<T>(state)`, a default interface method or a `DecisionClient` member | The same call, now an extension method in `DecisionClientExtensions`, in the `Minos` namespace |
 | A fake implements `EvaluateAsync(SystemOneRequest)` and `ListModelsAsync` | A fake implements `EvaluateAsync(DecisionRequest)`, `GetService` and `Dispose`, and returns a `DecisionResponse` built with its public constructor |
-| `AddDecisionClient` returns `IHttpClientBuilder` | It returns a builder whose `HttpClient` property is the old builder; [0.9](#upgrading-from-08) renamed it to `AddSystemOneClient` and `SystemOneClientServiceBuilder` |
+| `AddDecisionClient` returns `IHttpClientBuilder` | It returns a builder whose `HttpClient` property is the old builder; `AddSystemOneDecisionClient` now returns `SystemOneDecisionClientServiceBuilder`; [0.9](#upgrading-from-08) split it out of `AddDecisionClient` |
 | `IDecisionClient` is not disposable | `IDecisionClient` derives from `IDisposable` |
 | `EvaluateUtf8Async<T>` writes the state into the request before it returns | It copies the bytes once when you call it, the state's length plus 24 B, and a retry sends that copy, so you may still reuse the buffer as soon as the call returns |
 

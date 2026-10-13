@@ -13,7 +13,7 @@ public sealed class ClefLiveTests
     [LiveFact(SystemOneProvider.OpenRouter)]
     public async Task ClefFlash_AnswersText()
     {
-        using var client = new SystemOneClient(new SystemOneClientOptions
+        using var client = new SystemOneDecisionClient(new SystemOneDecisionClientOptions
         {
             Provider = SystemOneProvider.OpenRouter,
             MaxRetries = 0,

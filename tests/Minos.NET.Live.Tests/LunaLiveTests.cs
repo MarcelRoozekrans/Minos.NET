@@ -16,7 +16,7 @@ public sealed class LunaLiveTests
     [LiveFact(SystemOneProvider.OpenRouter, RequiresEnvironment = "MINOS_LIVE_LUNA")]
     public async Task Luna_AnswersText()
     {
-        using var client = new SystemOneClient(new SystemOneClientOptions
+        using var client = new SystemOneDecisionClient(new SystemOneDecisionClientOptions
         {
             Provider = SystemOneProvider.OpenRouter,
             MaxRetries = 0,

@@ -7,7 +7,7 @@ using Minos.SystemOne.Serialization;
 
 namespace Minos.Tests;
 
-/// <summary>What <see cref="SystemOneClient"/> traces and measures for each operation, through the generated proxy.</summary>
+/// <summary>What <see cref="SystemOneDecisionClient"/> traces and measures for each operation, through the generated proxy.</summary>
 [Collection(TelemetryListeners.Name)]
 public sealed class DecisionClientTelemetryTests : IDisposable
 {
@@ -273,7 +273,7 @@ public sealed class DecisionClientTelemetryTests : IDisposable
         using var logs = new LogCapture();
         var http = new HttpClient(StubHandler.Json(HttpStatusCode.OK, Fixture.Text("response-noul.json")));
         _httpClients.Add(http);
-        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "test-key", MaxRetries = 0 }, logs.Factory);
+        using var client = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = "test-key", MaxRetries = 0 }, logs.Factory);
 
         await client.EvaluateAsync(Request());
 

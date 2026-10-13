@@ -49,7 +49,7 @@ internal static class DecisionErrorChecks
         {
             BaseAddress = new Uri("https://example.test/api/"),
         };
-        using var client = new SystemOne.SystemOneClient(http, Program.Options());
+        using var client = new SystemOne.SystemOneDecisionClient(http, Program.Options());
 
         var result = await client.EvaluateAsync(Program.Request()).ConfigureAwait(false);
 

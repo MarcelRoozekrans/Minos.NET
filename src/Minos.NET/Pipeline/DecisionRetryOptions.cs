@@ -43,7 +43,7 @@ public sealed class DecisionRetryOptions
         ShouldRetry = ShouldRetry,
     };
 
-    // The same rules and messages as SystemOneClientOptions' retry settings: see RetrySettings.
+    // The same rules and messages as SystemOneDecisionClientOptions' retry settings: see RetrySettings.
     internal void Validate(string paramName)
     {
         RetrySettings.CheckShouldRetry(ShouldRetry, paramName);

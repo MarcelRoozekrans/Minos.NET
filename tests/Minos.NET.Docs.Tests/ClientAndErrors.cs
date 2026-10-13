@@ -10,16 +10,16 @@ using Minos.SystemOne;
 public static class ClientConstructors
 {
     // The client creates its own HttpClient, and disposing the client disposes it.
-    public static SystemOneClient Owned(string apiKey)
-        => new(new SystemOneClientOptions { ApiKey = apiKey });
+    public static SystemOneDecisionClient Owned(string apiKey)
+        => new(new SystemOneDecisionClientOptions { ApiKey = apiKey });
 
     // You pass an HttpClient you manage, for example one from IHttpClientFactory. The client never disposes it.
-    public static SystemOneClient Borrowed(HttpClient http, string apiKey)
-        => new(http, new SystemOneClientOptions { ApiKey = apiKey });
+    public static SystemOneDecisionClient Borrowed(HttpClient http, string apiKey)
+        => new(http, new SystemOneDecisionClientOptions { ApiKey = apiKey });
 
     // Either form also takes an ILoggerFactory, and then logs each operation and each retried attempt.
-    public static SystemOneClient Logged(string apiKey, ILoggerFactory loggers)
-        => new(new SystemOneClientOptions { ApiKey = apiKey }, loggers);
+    public static SystemOneDecisionClient Logged(string apiKey, ILoggerFactory loggers)
+        => new(new SystemOneDecisionClientOptions { ApiKey = apiKey }, loggers);
 }
 #endregion
 
@@ -31,7 +31,7 @@ public static class ClientOptions
     // VllmSemanticRouter read no key from the environment and send none unless ApiKey is set.
     // BaseAddress, Model, Path and Capabilities are also left out: the provider decides them, and the model is
     // jev-latest for TypeSafe.
-    public static SystemOneClientOptions SpelledOut(string apiKey)
+    public static SystemOneDecisionClientOptions SpelledOut(string apiKey)
         => new()
         {
             ApiKey = apiKey,
@@ -48,7 +48,7 @@ public static class ClientOptions
     #region ClientAndErrors_Validate
     // Validate runs the check the constructors run, without creating a client. It throws ArgumentException for a value
     // that is out of range, and InvalidOperationException when no API key can be found.
-    public static string? Problem(SystemOneClientOptions options)
+    public static string? Problem(SystemOneDecisionClientOptions options)
     {
         try
         {
@@ -68,7 +68,7 @@ public static class ClientOptions
 
     #region ClientAndErrors_Retries
     // Four retries, waiting about 1 s, 2 s, 4 s and then 8 s, each wait at most 20 s.
-    public static SystemOneClientOptions Patient(string apiKey)
+    public static SystemOneDecisionClientOptions Patient(string apiKey)
         => new()
         {
             ApiKey = apiKey,
@@ -78,14 +78,14 @@ public static class ClientOptions
         };
 
     // No retries: a failed call is reported at once. Use this where a duplicate, billed request is worse than a failure.
-    public static SystemOneClientOptions NoRetries(string apiKey)
+    public static SystemOneDecisionClientOptions NoRetries(string apiKey)
         => new() { ApiKey = apiKey, MaxRetries = 0 };
     #endregion
 
     #region ClientAndErrors_Timeouts
     // Each attempt may take 10 s, and there is one retry. The worst case for one call is therefore two attempts of
     // 10 s each, plus one wait of at most MaxRetryDelay between them.
-    public static SystemOneClientOptions Strict(string apiKey)
+    public static SystemOneDecisionClientOptions Strict(string apiKey)
         => new() { ApiKey = apiKey, Timeout = TimeSpan.FromSeconds(10), MaxRetries = 1 };
     #endregion
 }
@@ -161,7 +161,7 @@ public static class RawRequests
     // The raw API names its own model and questions, with ids you choose. Use it when the questions are not known at
     // compile time and the question set builder does not fit. Typed evaluation is shorter wherever it can be used.
     public static async Task<string> UrgencyAsync(
-        SystemOneClient client, string message, CancellationToken cancellationToken)
+        SystemOneDecisionClient client, string message, CancellationToken cancellationToken)
     {
         var result = await client.EvaluateAsync(
             new SystemOneRequest
@@ -191,7 +191,7 @@ public static class RawRequests
 public static class ModelListing
 {
     #region ClientAndErrors_Models
-    public static async Task<string> ModelsAsync(SystemOneClient client, CancellationToken cancellationToken)
+    public static async Task<string> ModelsAsync(SystemOneDecisionClient client, CancellationToken cancellationToken)
     {
         var result = await client.ListModelsAsync(cancellationToken);
         if (result.IsFailure)
@@ -215,7 +215,7 @@ public static class ProviderOptions
     #region ClientAndErrors_Custom
     // A server you run. Custom has no default address or model, so both are set. The path is optional and defaults to
     // v1/systemone. No key is read from the environment, and none is sent unless ApiKey is set.
-    public static SystemOneClientOptions Custom()
+    public static SystemOneDecisionClientOptions Custom()
         => new()
         {
             Provider = SystemOneProvider.Custom,
@@ -231,7 +231,7 @@ public static class CapabilityOptions
     #region ClientAndErrors_Capabilities
     // A server that only answers Noul questions. Each property left unset keeps the Custom preset's default, so
     // this changes the accepted kinds and nothing else.
-    public static SystemOneClientOptions NoulOnly()
+    public static SystemOneDecisionClientOptions NoulOnly()
         => new()
         {
             Provider = SystemOneProvider.Custom,

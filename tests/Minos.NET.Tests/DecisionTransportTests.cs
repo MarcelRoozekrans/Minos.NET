@@ -136,10 +136,10 @@ public sealed class DecisionTransportTests : IDisposable
         var handler = StubHandler.Json(HttpStatusCode.ServiceUnavailable, "{}");
         var http = new HttpClient(handler);
         _httpClients.Add(http);
-        var settings = SystemOneClientSettings.Resolve(
-            new SystemOneClientOptions { ApiKey = "test-key", Model = ClientTestKit.TestModel, MaxRetries = 3, InitialBackoff = TimeSpan.FromMilliseconds(1), UseStandardPipeline = false },
+        var settings = SystemOneDecisionClientSettings.Resolve(
+            new SystemOneDecisionClientOptions { ApiKey = "test-key", Model = ClientTestKit.TestModel, MaxRetries = 3, InitialBackoff = TimeSpan.FromMilliseconds(1), UseStandardPipeline = false },
             _ => null);
-        using var client = new SystemOneClient(settings, http, ownedHandler: null, TimeProvider.System);
+        using var client = new SystemOneDecisionClient(settings, http, ownedHandler: null, TimeProvider.System);
 
         var result = await client.EvaluateAsync(new DecisionRequest(QuestionSets.UrgencyDefinition(), "s"));
 
@@ -157,7 +157,7 @@ public sealed class DecisionTransportTests : IDisposable
         Assert.Equal("openrouter", metadata!.ProviderName);
         Assert.Equal(ClientTestKit.TestModel, metadata.DefaultModel);
         Assert.NotNull(metadata.Endpoint);
-        Assert.Same(client, client.GetService<SystemOneClient>());
+        Assert.Same(client, client.GetService<SystemOneDecisionClient>());
         Assert.Same(client, client.GetService<IDecisionClient>());
         Assert.Null(client.GetService<string>());
         Assert.Null(client.GetService<DecisionClientMetadata>(serviceKey: "key"));
@@ -183,7 +183,7 @@ public sealed class DecisionTransportTests : IDisposable
             throw new InvalidOperationException("The transport sent an attempt after disposal.");
         };
         var pool = new CountingPool();
-        var settings = SystemOneClientSettings.Resolve(new SystemOneClientOptions { ApiKey = "k" }, static _ => null);
+        var settings = SystemOneDecisionClientSettings.Resolve(new SystemOneDecisionClientOptions { ApiKey = "k" }, static _ => null);
         using var transport = new DecisionTransport(
             send,
             SystemOneProtocol.Instance,

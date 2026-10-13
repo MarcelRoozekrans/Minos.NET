@@ -6,20 +6,20 @@ using static Minos.DependencyInjection.Tests.Registrations;
 
 namespace Minos.DependencyInjection.Tests;
 
-/// <summary>Keyed clients from <c>AddSystemOneClient(name, ...)</c>, each with its own options and <see cref="HttpClient"/>.</summary>
-public sealed class KeyedSystemOneClientTests
+/// <summary>Keyed clients from <c>AddSystemOneDecisionClient(name, ...)</c>, each with its own options and <see cref="HttpClient"/>.</summary>
+public sealed class KeyedSystemOneDecisionClientTests
 {
     [Fact]
     public void KeyedClient_IsOneSingleton_AndNotTheDefault()
     {
         var services = new ServiceCollection();
-        services.AddSystemOneClient(Options("http://default.local/"));
-        services.AddSystemOneClient("openrouter", Options("http://keyed.local/"));
+        services.AddSystemOneDecisionClient(Options("http://default.local/"));
+        services.AddSystemOneDecisionClient("openrouter", Options("http://keyed.local/"));
         using var provider = services.BuildServiceProvider();
 
         var keyed = provider.GetRequiredKeyedService<IDecisionClient>("openrouter");
 
-        Assert.IsType<SystemOneClient>(keyed);
+        Assert.IsType<SystemOneDecisionClient>(keyed);
         Assert.Same(keyed, provider.GetRequiredKeyedService<IDecisionClient>("openrouter"));
         Assert.NotSame(provider.GetRequiredService<IDecisionClient>(), keyed);
         Assert.Null(provider.GetKeyedService<IDecisionClient>("typesafe"));
@@ -32,15 +32,15 @@ public sealed class KeyedSystemOneClientTests
         var keyedHandler = Noul();
         var services = new ServiceCollection();
         services
-            .AddSystemOneClient(Options("http://default.local/", apiKey: "default-key"))
+            .AddSystemOneDecisionClient(Options("http://default.local/", apiKey: "default-key"))
             .HttpClient.ConfigurePrimaryHttpMessageHandler(() => defaultHandler);
         services
-            .AddSystemOneClient("openrouter", Options("http://keyed.local/api/", apiKey: "keyed-key"))
+            .AddSystemOneDecisionClient("openrouter", Options("http://keyed.local/api/", apiKey: "keyed-key"))
             .HttpClient.ConfigurePrimaryHttpMessageHandler(() => keyedHandler);
         using var provider = services.BuildServiceProvider();
 
-        _ = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request());
-        _ = await provider.GetRequiredKeyedService<IDecisionClient>("openrouter").GetService<SystemOneClient>()!.EvaluateAsync(Request());
+        _ = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneDecisionClient>()!.EvaluateAsync(Request());
+        _ = await provider.GetRequiredKeyedService<IDecisionClient>("openrouter").GetService<SystemOneDecisionClient>()!.EvaluateAsync(Request());
 
         var defaultRequest = OnlyRequest(defaultHandler);
         Assert.Equal(new Uri("http://default.local/v1/systemone"), defaultRequest.Uri);
@@ -57,7 +57,7 @@ public sealed class KeyedSystemOneClientTests
         var openRouterHandler = Noul();
         var services = new ServiceCollection();
         services
-            .AddSystemOneClient("typesafe", options =>
+            .AddSystemOneDecisionClient("typesafe", options =>
             {
                 options.ApiKey = "typesafe-key";
                 options.BaseAddress = new Uri("http://typesafe.local/");
@@ -67,7 +67,7 @@ public sealed class KeyedSystemOneClientTests
             })
             .HttpClient.ConfigurePrimaryHttpMessageHandler(() => typesafeHandler);
         services
-            .AddSystemOneClient("openrouter", options =>
+            .AddSystemOneDecisionClient("openrouter", options =>
             {
                 options.Provider = SystemOneProvider.OpenRouter;
                 options.ApiKey = "openrouter-key";
@@ -104,7 +104,7 @@ public sealed class KeyedSystemOneClientTests
         Assert.Matches(UserAgentPattern, openRouterRequest.UserAgent);
 
         // Each name's options hold their own provider, which the wire cannot show: the base addresses are overridden.
-        var monitor = provider.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>();
+        var monitor = provider.GetRequiredService<IOptionsMonitor<SystemOneDecisionClientOptions>>();
         Assert.Equal(SystemOneProvider.TypeSafe, monitor.Get("typesafe").Provider);
         Assert.Equal(SystemOneProvider.OpenRouter, monitor.Get("openrouter").Provider);
         var factory = provider.GetRequiredService<IHttpClientFactory>();
@@ -118,7 +118,7 @@ public sealed class KeyedSystemOneClientTests
     public void KeyedClient_HasAnInfiniteHandlerLifetime_AndAPooledPrimaryHandler()
     {
         var services = new ServiceCollection();
-        services.AddSystemOneClient("openrouter", Options("http://keyed.local/"));
+        services.AddSystemOneDecisionClient("openrouter", Options("http://keyed.local/"));
         using var provider = services.BuildServiceProvider();
 
         var lifetime = provider.GetRequiredService<IOptionsMonitor<HttpClientFactoryOptions>>().Get("Minos.NET:openrouter").HandlerLifetime;
@@ -134,12 +134,12 @@ public sealed class KeyedSystemOneClientTests
     {
         var handler = Noul();
         var services = new ServiceCollection();
-        services.AddSystemOneClient("openrouter", Options("http://first.local/", apiKey: "first-key")).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
-        services.AddSystemOneClient("openrouter", options => options.ApiKey = "second-key");
-        services.AddSystemOneClient("openrouter");
+        services.AddSystemOneDecisionClient("openrouter", Options("http://first.local/", apiKey: "first-key")).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
+        services.AddSystemOneDecisionClient("openrouter", options => options.ApiKey = "second-key");
+        services.AddSystemOneDecisionClient("openrouter");
         using var provider = services.BuildServiceProvider();
 
-        _ = await provider.GetRequiredKeyedService<IDecisionClient>("openrouter").GetService<SystemOneClient>()!.EvaluateAsync(Request());
+        _ = await provider.GetRequiredKeyedService<IDecisionClient>("openrouter").GetService<SystemOneDecisionClient>()!.EvaluateAsync(Request());
 
         var registrations = services.Where(descriptor => descriptor.ServiceType == typeof(IDecisionClient)).ToArray();
         Assert.True(registrations.Length == 1, $"Expected one IDecisionClient registration, found {registrations.Length}.");
@@ -154,15 +154,15 @@ public sealed class KeyedSystemOneClientTests
     {
         IServiceCollection? none = null;
         var services = new ServiceCollection();
-        Action<SystemOneClientOptions> configure = _ => { };
+        Action<SystemOneDecisionClientOptions> configure = _ => { };
 
-        Assert.Equal("services", Assert.Throws<ArgumentNullException>(() => none!.AddSystemOneClient("openrouter")).ParamName);
-        Assert.Equal("services", Assert.Throws<ArgumentNullException>(() => none!.AddSystemOneClient("openrouter", configure)).ParamName);
-        Assert.Equal("name", Assert.Throws<ArgumentNullException>(() => services.AddSystemOneClient((string)null!)).ParamName);
-        Assert.Equal("name", Assert.Throws<ArgumentNullException>(() => services.AddSystemOneClient(null!, configure)).ParamName);
-        Assert.Equal("name", Assert.Throws<ArgumentException>(() => services.AddSystemOneClient(string.Empty)).ParamName);
-        Assert.Equal("name", Assert.Throws<ArgumentException>(() => services.AddSystemOneClient(string.Empty, configure)).ParamName);
-        Assert.Equal("configure", Assert.Throws<ArgumentNullException>(() => services.AddSystemOneClient("openrouter", (Action<SystemOneClientOptions>)null!)).ParamName);
+        Assert.Equal("services", Assert.Throws<ArgumentNullException>(() => none!.AddSystemOneDecisionClient("openrouter")).ParamName);
+        Assert.Equal("services", Assert.Throws<ArgumentNullException>(() => none!.AddSystemOneDecisionClient("openrouter", configure)).ParamName);
+        Assert.Equal("name", Assert.Throws<ArgumentNullException>(() => services.AddSystemOneDecisionClient((string)null!)).ParamName);
+        Assert.Equal("name", Assert.Throws<ArgumentNullException>(() => services.AddSystemOneDecisionClient(null!, configure)).ParamName);
+        Assert.Equal("name", Assert.Throws<ArgumentException>(() => services.AddSystemOneDecisionClient(string.Empty)).ParamName);
+        Assert.Equal("name", Assert.Throws<ArgumentException>(() => services.AddSystemOneDecisionClient(string.Empty, configure)).ParamName);
+        Assert.Equal("configure", Assert.Throws<ArgumentNullException>(() => services.AddSystemOneDecisionClient("openrouter", (Action<SystemOneDecisionClientOptions>)null!)).ParamName);
         Assert.Empty(services);
     }
 }

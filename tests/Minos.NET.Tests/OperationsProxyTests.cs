@@ -219,7 +219,7 @@ public sealed class OperationsProxyTests
         Assert.IsType<Counter<long>>(capture.Instrument("gen_ai.client.inference.usage.input_tokens"));
         Assert.Equal("{token}", capture.Instrument("gen_ai.client.inference.usage.output_tokens").Unit);
 
-        var version = typeof(SystemOneClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
+        var version = typeof(SystemOneDecisionClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
         Assert.All(capture.Spans("Minos"), span => Assert.Equal(version, span.Source.Version));
         Assert.Equal(version, capture.Instrument("minos.answer.confidence").Meter.Version);
     }

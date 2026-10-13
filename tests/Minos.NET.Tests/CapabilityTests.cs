@@ -210,8 +210,8 @@ public sealed class CapabilityTests : IDisposable
     [Fact]
     public void The_smallest_valid_overrides_resolve()
     {
-        var settings = SystemOneClientSettings.Resolve(
-            new SystemOneClientOptions
+        var settings = SystemOneDecisionClientSettings.Resolve(
+            new SystemOneDecisionClientOptions
             {
                 ApiKey = "k",
                 Capabilities = new() { QuestionKinds = QuestionKinds.Score, MaxQuestions = 1, MaxChoiceOptions = 2 },
@@ -224,7 +224,7 @@ public sealed class CapabilityTests : IDisposable
     [Fact]
     public void Null_capabilities_resolve_to_the_preset_defaults()
     {
-        var settings = SystemOneClientSettings.Resolve(new SystemOneClientOptions { ApiKey = "k", Capabilities = null! }, _ => null);
+        var settings = SystemOneDecisionClientSettings.Resolve(new SystemOneDecisionClientOptions { ApiKey = "k", Capabilities = null! }, _ => null);
 
         Assert.Equal(SystemOneCapabilityDefaults.For(SystemOneProvider.TypeSafe), settings.Capabilities);
     }
@@ -472,13 +472,13 @@ public sealed class CapabilityTests : IDisposable
     private static void AssertRejected(DecisionCapabilities capabilities, string message)
     {
         var exception = Assert.Throws<ArgumentException>(
-            () => SystemOneClientSettings.Resolve(new SystemOneClientOptions { ApiKey = "k", Capabilities = capabilities }, _ => null));
+            () => SystemOneDecisionClientSettings.Resolve(new SystemOneDecisionClientOptions { ApiKey = "k", Capabilities = capabilities }, _ => null));
 
         Assert.Equal("options", exception.ParamName);
         Assert.Equal(message + " (Parameter 'options')", exception.Message);
     }
 
-    private static Action<SystemOneClientOptions> Hosted(SystemOneProvider provider) => options =>
+    private static Action<SystemOneDecisionClientOptions> Hosted(SystemOneProvider provider) => options =>
     {
         if (provider is SystemOneProvider.VllmSemanticRouter or SystemOneProvider.Custom)
         {
@@ -489,7 +489,7 @@ public sealed class CapabilityTests : IDisposable
     private static StubHandler Noul()
         => StubHandler.Json(HttpStatusCode.OK, """{"model":"m","answers":{"refund":{"type":"noul","noul":0.9}}}""");
 
-    private SystemOneClient Custom(StubHandler handler, QuestionKinds kinds, int maxRetries = 0, ILoggerFactory? loggerFactory = null)
+    private SystemOneDecisionClient Custom(StubHandler handler, QuestionKinds kinds, int maxRetries = 0, ILoggerFactory? loggerFactory = null)
         => ClientTestKit.Client(
             _httpClients,
             handler,

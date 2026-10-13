@@ -25,8 +25,8 @@ public static class ProviderSwitching
             : throw new InvalidOperationException($"Minos:Providers has no section named {active}.");
     }
 
-    public static SystemOneClientServiceBuilder AddActiveProvider(IHostApplicationBuilder builder)
-        => builder.Services.AddSystemOneClient(ActiveSection(builder.Configuration));
+    public static SystemOneDecisionClientServiceBuilder AddActiveProvider(IHostApplicationBuilder builder)
+        => builder.Services.AddSystemOneDecisionClient(ActiveSection(builder.Configuration));
     #endregion
 
     #region Providers_AddOpenAI
@@ -41,7 +41,7 @@ public static class ProviderSwitching
         }
         else
         {
-            builder.Services.AddSystemOneClient(section);
+            builder.Services.AddSystemOneDecisionClient(section);
         }
     }
     #endregion

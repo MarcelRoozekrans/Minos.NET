@@ -13,7 +13,7 @@ public sealed class MinosAdapter : IClientAdapter, IUsesBenchmarkTransport
     private static readonly string[] OptionKeys = Workload.IntentOptions.Select(o => o.Key).ToArray();
 
     private readonly HttpClient _http;
-    private readonly SystemOneClient _client;
+    private readonly SystemOneDecisionClient _client;
 
     /// <summary>Initializes a new instance of the <see cref="MinosAdapter"/> class.</summary>
     /// <param name="baseAddress">The mock's root address; requests go to <c>v1/systemone</c> under it.</param>
@@ -21,7 +21,7 @@ public sealed class MinosAdapter : IClientAdapter, IUsesBenchmarkTransport
     {
         ArgumentNullException.ThrowIfNull(baseAddress);
         _http = BenchmarkTransport.CreateHttpClient();
-        _client = new SystemOneClient(_http, new SystemOneClientOptions
+        _client = new SystemOneDecisionClient(_http, new SystemOneDecisionClientOptions
         {
             ApiKey = Workload.DummyApiKey,
             BaseAddress = ClientAdapters.WithTrailingSlash(baseAddress),
@@ -39,7 +39,7 @@ public sealed class MinosAdapter : IClientAdapter, IUsesBenchmarkTransport
     public string Library => "Minos.NET";
 
     /// <inheritdoc/>
-    public string Version => LibraryVersion.OfSourceBuild(typeof(SystemOneClient));
+    public string Version => LibraryVersion.OfSourceBuild(typeof(SystemOneDecisionClient));
 
     /// <inheritdoc/>
     public string? Note => null;

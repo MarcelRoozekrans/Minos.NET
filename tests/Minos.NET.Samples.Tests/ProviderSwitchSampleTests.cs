@@ -60,7 +60,7 @@ public sealed class ProviderSwitchSampleTests
     public async Task AFailedCall_NamesTheTicket()
     {
         using var http = new HttpClient(new Failing()) { BaseAddress = new Uri("https://canned.example/api/") };
-        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "canned-key", MaxRetries = 0 });
+        using var client = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = "canned-key", MaxRetries = 0 });
 
         var exception = await Assert.ThrowsAsync<InvalidOperationException>(
             () => ProviderSwitchSample.RunAsync(client, "TypeSafe", CancellationToken.None));
@@ -228,7 +228,7 @@ public sealed class ProviderSwitchSampleTests
     private static async Task<ProviderSwitchReport> RunCanned(CannedTickets handler, string provider = "TypeSafe")
     {
         using var http = new HttpClient(handler, disposeHandler: false) { BaseAddress = new Uri("https://canned.example/api/") };
-        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "canned-key", MaxRetries = 0 });
+        using var client = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = "canned-key", MaxRetries = 0 });
         return await ProviderSwitchSample.RunAsync(client, provider, CancellationToken.None);
     }
 
@@ -237,8 +237,8 @@ public sealed class ProviderSwitchSampleTests
     {
         var canned = new CannedTickets("canned-model");
         var services = new ServiceCollection();
-        services.AddSystemOneClient(Section(Appsettings(), provider)).HttpClient.ConfigurePrimaryHttpMessageHandler(() => canned);
-        services.AddSystemOneClient(options => options.ApiKey ??= "capture-key");
+        services.AddSystemOneDecisionClient(Section(Appsettings(), provider)).HttpClient.ConfigurePrimaryHttpMessageHandler(() => canned);
+        services.AddSystemOneDecisionClient(options => options.ApiKey ??= "capture-key");
         await using var serviceProvider = services.BuildServiceProvider();
 
         _ = await ProviderSwitchSample.RunAsync(serviceProvider.GetRequiredService<IDecisionClient>(), provider, CancellationToken.None);

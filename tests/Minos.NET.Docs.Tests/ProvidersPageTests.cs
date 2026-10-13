@@ -73,7 +73,7 @@ public sealed partial class ProvidersPageTests
             var keyVariable = hosted ? PageTables.Code(row[3]) : null;
             var modelCodes = PageTables.AllCode(row[4]);
             var model = modelCodes.Length > 0 ? modelCodes[0] : null;
-            var options = new SystemOneClientOptions
+            var options = new SystemOneDecisionClientOptions
             {
                 Provider = provider,
                 BaseAddress = hosted ? null : new Uri("http://localhost:8080/"),
@@ -103,7 +103,7 @@ public sealed partial class ProvidersPageTests
             // The base address and the path.
             options.Model = model ?? "my-model";
             using var http = new HttpClient();
-            SystemOneClient.ConfigureHttpClient(http, options);
+            SystemOneDecisionClient.ConfigureHttpClient(http, options);
             var expected = hosted
                 ? PageTables.Code(row[1])
                 : "http://localhost:8080/";
@@ -197,7 +197,7 @@ public sealed partial class ProvidersPageTests
         ProviderSwitching.AddActiveProvider(builder);
         using var host = builder.Build();
 
-        var options = host.Services.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName);
+        var options = host.Services.GetRequiredService<IOptionsMonitor<SystemOneDecisionClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName);
 
         Assert.Equal(expected, options.Provider);
         Assert.Equal(2, options.MaxRetries);
@@ -309,7 +309,7 @@ public sealed partial class ProvidersPageTests
     private static IDecisionClient Client(HttpClient http, string column)
         => string.Equals(column, "OpenAI", StringComparison.Ordinal)
             ? new OpenAIDecisionClient(http, new OpenAIDecisionClientOptions { ApiKey = "key" })
-            : new SystemOneClient(http, new SystemOneClientOptions
+            : new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions
             {
                 Provider = Enum.Parse<SystemOneProvider>(column),
                 ApiKey = "key",

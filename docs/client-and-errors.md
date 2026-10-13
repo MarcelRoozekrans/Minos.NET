@@ -2,7 +2,7 @@
 id: client-and-errors
 title: The client and its errors
 sidebar_position: 5
-description: Create and configure a SystemOneClient or an OpenAIDecisionClient, understand retries and time-outs, handle every kind of DecisionError, and use the raw request API.
+description: Create and configure a SystemOneDecisionClient or an OpenAIDecisionClient, understand retries and time-outs, handle every kind of DecisionError, and use the raw request API.
 ---
 
 # The client and its errors
@@ -20,8 +20,9 @@ arrives as a value to check, not as an exception to catch.
 
 ## Creating a client
 
-`SystemOneClient` is the class that implements `IDecisionClient`. It is thread-safe and meant to live for the whole
-program: create one, share it, and dispose it when the program stops. Creating a client per call wastes connections.
+`SystemOneDecisionClient` is the class that implements `IDecisionClient`. It is thread-safe and meant to live for the
+whole program: create one, share it, and dispose it when the program stops. Creating a client per call wastes
+connections.
 
 <!-- snippet: ClientAndErrors_Constructors -->
 ```cs
@@ -32,30 +33,30 @@ using Minos.SystemOne;
 public static class ClientConstructors
 {
     // The client creates its own HttpClient, and disposing the client disposes it.
-    public static SystemOneClient Owned(string apiKey)
-        => new(new SystemOneClientOptions { ApiKey = apiKey });
+    public static SystemOneDecisionClient Owned(string apiKey)
+        => new(new SystemOneDecisionClientOptions { ApiKey = apiKey });
 
     // You pass an HttpClient you manage, for example one from IHttpClientFactory. The client never disposes it.
-    public static SystemOneClient Borrowed(HttpClient http, string apiKey)
-        => new(http, new SystemOneClientOptions { ApiKey = apiKey });
+    public static SystemOneDecisionClient Borrowed(HttpClient http, string apiKey)
+        => new(http, new SystemOneDecisionClientOptions { ApiKey = apiKey });
 
     // Either form also takes an ILoggerFactory, and then logs each operation and each retried attempt.
-    public static SystemOneClient Logged(string apiKey, ILoggerFactory loggers)
-        => new(new SystemOneClientOptions { ApiKey = apiKey }, loggers);
+    public static SystemOneDecisionClient Logged(string apiKey, ILoggerFactory loggers)
+        => new(new SystemOneDecisionClientOptions { ApiKey = apiKey }, loggers);
 }
 ```
 <!-- endSnippet -->
 
 There are two families of constructor.
 
-- **The client owns its `HttpClient`.** `new SystemOneClient(options)`, or `new SystemOneClient()` for all defaults. The
-  client creates the `HttpClient`, applies the options to it, and disposes it in `Dispose`.
-- **You lend an `HttpClient`.** `new SystemOneClient(http, options)`. The client uses it and never disposes it, so
-  whoever created it still owns it. This is how a client over `IHttpClientFactory` works, and it is what a test does to
-  put a fake handler under the client. Two things follow. The `HttpClient`'s own `BaseAddress` wins over
-  `SystemOneClientOptions.BaseAddress` when it is set, and it must end in `/`. And its own `Timeout` applies, not
-  `SystemOneClientOptions.Timeout`, unless you set it up with `SystemOneClient.ConfigureHttpClient`, which the
-  [dependency injection](dependency-injection.md#using-minos-without-the-package) page shows.
+- **The client owns its `HttpClient`.** `new SystemOneDecisionClient(options)`, or `new SystemOneDecisionClient()` for
+  all defaults. The client creates the `HttpClient`, applies the options to it, and disposes it in `Dispose`.
+- **You lend an `HttpClient`.** `new SystemOneDecisionClient(http, options)`. The client uses it and never disposes it,
+  so whoever created it still owns it. This is how a client over `IHttpClientFactory` works, and it is what a test does
+  to put a fake handler under the client. Two things follow. The `HttpClient`'s own `BaseAddress` wins over
+  `SystemOneDecisionClientOptions.BaseAddress` when it is set, and it must end in `/`. And its own `Timeout` applies,
+  not `SystemOneDecisionClientOptions.Timeout`, unless you set it up with `SystemOneDecisionClient.ConfigureHttpClient`,
+  which the [dependency injection](dependency-injection.md#using-minos-without-the-package) page shows.
 
 Both families take a `null` options object to mean "all defaults and environment variables", and both have an overload
 that also takes an `ILoggerFactory`. With one, the client logs each operation and each retried attempt, as [Logging,
@@ -63,12 +64,12 @@ traces and metrics](observability.md#logging) describes. What it logs never cont
 answers, the API key or a header value.
 
 Two calls with bare `null` literals do not compile (CS0121), because more than one constructor accepts them.
-`new SystemOneClient(null)` matches both `(SystemOneClientOptions?)` and `(HttpClient)`.
-`new SystemOneClient(null, null)` matches both `(SystemOneClientOptions?, ILoggerFactory?)` and
-`(HttpClient, SystemOneClientOptions?)`; before the logging overloads it compiled and always threw
+`new SystemOneDecisionClient(null)` matches both `(SystemOneDecisionClientOptions?)` and `(HttpClient)`.
+`new SystemOneDecisionClient(null, null)` matches both `(SystemOneDecisionClientOptions?, ILoggerFactory?)` and
+`(HttpClient, SystemOneDecisionClientOptions?)`; before the logging overloads it compiled and always threw
 `ArgumentNullException` for the missing `HttpClient`. For all defaults and environment variables, write
-`new SystemOneClient()`. Any other call resolves once its `null` has a type, for example
-`new SystemOneClient((SystemOneClientOptions?)null)`.
+`new SystemOneDecisionClient()`. Any other call resolves once its `null` has a type, for example
+`new SystemOneDecisionClient((SystemOneDecisionClientOptions?)null)`.
 
 A client throws instead of returning a failure only for mistakes in the calling code. A missing API key, an invalid
 option or a `null` request throws when you create the client or make the call. Calling a disposed client throws
@@ -91,7 +92,7 @@ you asked for it. Everything else, including every network and service failure, 
 
 ## Options
 
-`SystemOneClientOptions` has twelve properties, and every one is optional.
+`SystemOneDecisionClientOptions` has twelve properties, and every one is optional.
 
 | Property | Default | Valid values | What it does |
 | --- | --- | --- | --- |
@@ -122,7 +123,7 @@ is here so the table above has code to match.
 // VllmSemanticRouter read no key from the environment and send none unless ApiKey is set.
 // BaseAddress, Model, Path and Capabilities are also left out: the provider decides them, and the model is
 // jev-latest for TypeSafe.
-public static SystemOneClientOptions SpelledOut(string apiKey)
+public static SystemOneDecisionClientOptions SpelledOut(string apiKey)
     => new()
     {
         ApiKey = apiKey,
@@ -164,7 +165,7 @@ start-up.
 ```cs
 // Validate runs the check the constructors run, without creating a client. It throws ArgumentException for a value
 // that is out of range, and InvalidOperationException when no API key can be found.
-public static string? Problem(SystemOneClientOptions options)
+public static string? Problem(SystemOneDecisionClientOptions options)
 {
     try
     {
@@ -219,7 +220,7 @@ extra of up to half its length, and a wait never exceeds `MaxRetryDelay`. Each r
 <!-- snippet: ClientAndErrors_Retries -->
 ```cs
 // Four retries, waiting about 1 s, 2 s, 4 s and then 8 s, each wait at most 20 s.
-public static SystemOneClientOptions Patient(string apiKey)
+public static SystemOneDecisionClientOptions Patient(string apiKey)
     => new()
     {
         ApiKey = apiKey,
@@ -229,7 +230,7 @@ public static SystemOneClientOptions Patient(string apiKey)
     };
 
 // No retries: a failed call is reported at once. Use this where a duplicate, billed request is worse than a failure.
-public static SystemOneClientOptions NoRetries(string apiKey)
+public static SystemOneDecisionClientOptions NoRetries(string apiKey)
     => new() { ApiKey = apiKey, MaxRetries = 0 };
 ```
 <!-- endSnippet -->
@@ -262,14 +263,14 @@ attempts of the handler is nine requests.
 
 `Timeout` bounds one attempt, not the whole call. A call with retries can take up to `(MaxRetries + 1) times Timeout`
 plus the waits between attempts. Its time-out applies to a client that owns its `HttpClient`, and to one you set up with
-`SystemOneClient.ConfigureHttpClient`, as `AddSystemOneClient` does. An `HttpClient` you pass without that keeps its own
-`Timeout`, which is 100 seconds unless you changed it.
+`SystemOneDecisionClient.ConfigureHttpClient`, as `AddSystemOneDecisionClient` does. An `HttpClient` you pass without
+that keeps its own `Timeout`, which is 100 seconds unless you changed it.
 
 <!-- snippet: ClientAndErrors_Timeouts -->
 ```cs
 // Each attempt may take 10 s, and there is one retry. The worst case for one call is therefore two attempts of
 // 10 s each, plus one wait of at most MaxRetryDelay between them.
-public static SystemOneClientOptions Strict(string apiKey)
+public static SystemOneDecisionClientOptions Strict(string apiKey)
     => new() { ApiKey = apiKey, Timeout = TimeSpan.FromSeconds(10), MaxRetries = 1 };
 ```
 <!-- endSnippet -->
@@ -435,19 +436,19 @@ most uses. Underneath them is the raw API, the shape of the HTTP request: a stat
 with ids you choose. You rarely need it, but it is there when you want the exact wire form, or are building your own
 layer.
 
-The raw calls, `EvaluateAsync(SystemOneRequest)` and `ListModelsAsync`, are members of `SystemOneClient`, not of
+The raw calls, `EvaluateAsync(SystemOneRequest)` and `ListModelsAsync`, are members of `SystemOneDecisionClient`, not of
 `IDecisionClient`. Code that holds an `IDecisionClient`, such as a class that takes one from dependency injection,
-reaches them with `client.GetService<SystemOneClient>()`, which finds the `SystemOneClient` under any stages wrapped
-around it and returns `null` when there is none; `client.GetRequiredService<SystemOneClient>()` throws instead. [Finding a stage or the
-transport](pipeline.md#finding-a-stage-or-the-transport) has an example. The raw calls do not run through the
-pipeline's stages: they have their own span and log, and retry with the client's settings.
+reaches them with `client.GetService<SystemOneDecisionClient>()`, which finds the `SystemOneDecisionClient` under any
+stages wrapped around it and returns `null` when there is none; `client.GetRequiredService<SystemOneDecisionClient>()`
+throws instead. [Finding a stage or the transport](pipeline.md#finding-a-stage-or-the-transport) has an example. The raw
+calls do not run through the pipeline's stages: they have their own span and log, and retry with the client's settings.
 
 <!-- snippet: ClientAndErrors_RawRequest -->
 ```cs
 // The raw API names its own model and questions, with ids you choose. Use it when the questions are not known at
 // compile time and the question set builder does not fit. Typed evaluation is shorter wherever it can be used.
 public static async Task<string> UrgencyAsync(
-    SystemOneClient client, string message, CancellationToken cancellationToken)
+    SystemOneDecisionClient client, string message, CancellationToken cancellationToken)
 {
     var result = await client.EvaluateAsync(
         new SystemOneRequest
@@ -530,7 +531,7 @@ Code in a namespace under `Minos.SystemOne` never sees the clash: it finds Minos
 
 <!-- snippet: ClientAndErrors_Models -->
 ```cs
-public static async Task<string> ModelsAsync(SystemOneClient client, CancellationToken cancellationToken)
+public static async Task<string> ModelsAsync(SystemOneDecisionClient client, CancellationToken cancellationToken)
 {
     var result = await client.ListModelsAsync(cancellationToken);
     if (result.IsFailure)

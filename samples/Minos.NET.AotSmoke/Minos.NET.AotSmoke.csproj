@@ -14,7 +14,7 @@
     <ProjectReference Include="..\..\src\Minos.NET\Minos.NET.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.SystemOne\Minos.NET.SystemOne.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.OpenAI\Minos.NET.OpenAI.csproj" />
-    <!-- AddDecisionClient and AddSystemOneClient, so registration, resolution and the factory's HttpClient run under Native AOT. -->
+    <!-- AddDecisionClient and AddSystemOneDecisionClient, so registration, resolution and the factory's HttpClient run under Native AOT. -->
     <ProjectReference Include="..\..\src\Minos.NET.DependencyInjection\Minos.NET.DependencyInjection.csproj" />
     <!-- UseCaching and UseRateLimiting, so both pipeline stages run under Native AOT. -->
     <ProjectReference Include="..\..\src\Minos.NET.Caching\Minos.NET.Caching.csproj" />
@@ -30,7 +30,7 @@
     <PackageReference Include="ZeroAlloc.TestHelpers" PrivateAssets="all" />
     <!-- A real LoggerFactory, so the logging checks run the path a consumer's app runs under Native AOT. -->
     <PackageReference Include="Microsoft.Extensions.Logging" />
-    <!-- ConfigurationBuilder and AddInMemoryCollection, so binding through AddSystemOneClient runs under Native AOT. -->
+    <!-- ConfigurationBuilder and AddInMemoryCollection, so binding through AddSystemOneDecisionClient runs under Native AOT. -->
     <PackageReference Include="Microsoft.Extensions.Configuration" />
     <!-- AddMemoryCache and MemoryCache, the in-process cache behind UseCaching under Native AOT. -->
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" />

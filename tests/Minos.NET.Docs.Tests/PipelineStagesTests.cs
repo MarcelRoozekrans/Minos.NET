@@ -19,14 +19,14 @@ public sealed class PipelineStagesTests
         var client = provider.GetRequiredService<IDecisionClient>();
 
         Assert.NotNull(client.GetService<CachingDecisionClient>());
-        Assert.NotNull(client.GetService<SystemOneClient>());
+        Assert.NotNull(client.GetService<SystemOneDecisionClient>());
     }
 
     [Fact]
     public void TheRateLimitedClient_HasTheRateLimitStage()
     {
         using var http = new HttpClient();
-        using var transport = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "docs-key" });
+        using var transport = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = "docs-key" });
         using var client = LimitedPipeline.Build(transport);
 
         Assert.NotNull(client.GetService<RateLimitingDecisionClient>());

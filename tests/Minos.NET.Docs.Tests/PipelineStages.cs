@@ -13,7 +13,7 @@ public static class CachedPipeline
     public static IServiceCollection AddCachedDecisions(IServiceCollection services, string apiKey)
     {
         services.AddMemoryCache();
-        services.AddSystemOneClient(options => options.ApiKey = apiKey)
+        services.AddSystemOneDecisionClient(options => options.ApiKey = apiKey)
             .UseCaching(configure: cache => cache.Expiration = TimeSpan.FromHours(1));
         return services;
     }
@@ -34,7 +34,7 @@ public static class LimitedPipeline
         QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
     });
 
-    public static IDecisionClient Build(SystemOneClient client) => client.AsBuilder().UseRateLimiting(SharedLimiter).Build();
+    public static IDecisionClient Build(SystemOneDecisionClient client) => client.AsBuilder().UseRateLimiting(SharedLimiter).Build();
     #endregion
 }
 
@@ -44,7 +44,7 @@ public static class OrderedPipeline
     // The recommended order for a pipeline you build yourself: a cache hit takes no permit, and every attempt takes one.
     public static IDecisionClient Build(HttpClient http, string apiKey, RateLimiter limiter, IServiceProvider services)
     {
-        var transport = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = apiKey, UseStandardPipeline = false });
+        var transport = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = apiKey, UseStandardPipeline = false });
         return transport.AsBuilder()
             .UseOpenTelemetry()
             .UseCaching()

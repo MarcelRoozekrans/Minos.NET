@@ -60,7 +60,7 @@ public partial record PaddedUrgency
 [JsonSerializable(typeof(TicketContext))]
 internal sealed partial class IndentedTicketContextJsonContext : JsonSerializerContext;
 
-/// <summary>Covers <see cref="SystemOneClient"/>'s own typed <c>EvaluateAsync</c> overloads, the raw UTF-8 path.</summary>
+/// <summary>Covers <see cref="SystemOneDecisionClient"/>'s own typed <c>EvaluateAsync</c> overloads, the raw UTF-8 path.</summary>
 public sealed class DecisionClientTypedTests : IDisposable
 {
     private const string TicketJson = """{"messages":[{"role":"user","content":"Help!"}]}""";
@@ -590,7 +590,7 @@ public sealed class DecisionClientTypedTests : IDisposable
 
     private async Task AssertSendsTheDefaultRequest<T>(
         Func<IDecisionClient, ValueTask<Result<T, DecisionError>>> viaDefaultPath,
-        Func<SystemOneClient, ValueTask<Result<T, DecisionError>>> viaDecisionClient,
+        Func<SystemOneDecisionClient, ValueTask<Result<T, DecisionError>>> viaDecisionClient,
         string? respondWith = "response-noul.json")
         where T : IQuestionSet<T>
     {
@@ -637,6 +637,6 @@ public sealed class DecisionClientTypedTests : IDisposable
         return Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
 
-    private SystemOneClient Client(StubHandler handler, CountingPool? pool = null, SystemOneProvider provider = SystemOneProvider.TypeSafe)
+    private SystemOneDecisionClient Client(StubHandler handler, CountingPool? pool = null, SystemOneProvider provider = SystemOneProvider.TypeSafe)
         => ClientTestKit.Client(_httpClients, handler, pool, provider);
 }

@@ -4,7 +4,7 @@ using Minos.SystemOne;
 namespace Minos.Tests;
 
 /// <summary>
-/// <see cref="SystemOneClient.ConfigureHttpClient(HttpClient, SystemOneClientOptions)"/>: what an <see cref="HttpClient"/> from
+/// <see cref="SystemOneDecisionClient.ConfigureHttpClient(HttpClient, SystemOneDecisionClientOptions)"/>: what an <see cref="HttpClient"/> from
 /// <c>IHttpClientFactory</c> gets, through the internal overload with a fake environment.
 /// </summary>
 public sealed class ConfigureHttpClientTests
@@ -14,7 +14,7 @@ public sealed class ConfigureHttpClientTests
     {
         using var http = new HttpClient();
 
-        Configure(http, new SystemOneClientOptions { BaseAddress = new Uri("http://proxy.local/minos") });
+        Configure(http, new SystemOneDecisionClientOptions { BaseAddress = new Uri("http://proxy.local/minos") });
 
         Assert.Equal(new Uri("http://proxy.local/minos/"), http.BaseAddress);
     }
@@ -24,7 +24,7 @@ public sealed class ConfigureHttpClientTests
     {
         using var http = new HttpClient { BaseAddress = new Uri("http://mine.local/api/") };
 
-        Configure(http, new SystemOneClientOptions { BaseAddress = new Uri("http://option.local/") });
+        Configure(http, new SystemOneDecisionClientOptions { BaseAddress = new Uri("http://option.local/") });
 
         Assert.Equal(new Uri("http://mine.local/api/"), http.BaseAddress);
     }
@@ -34,7 +34,7 @@ public sealed class ConfigureHttpClientTests
     {
         using var http = new HttpClient();
 
-        Configure(http, new SystemOneClientOptions(), ("TYPESAFE_BASE_URL", "http://env.local/minos"));
+        Configure(http, new SystemOneDecisionClientOptions(), ("TYPESAFE_BASE_URL", "http://env.local/minos"));
 
         Assert.Equal(new Uri("http://env.local/minos/"), http.BaseAddress);
     }
@@ -44,7 +44,7 @@ public sealed class ConfigureHttpClientTests
     {
         using var http = new HttpClient();
 
-        Configure(http, new SystemOneClientOptions { Provider = SystemOneProvider.OpenRouter }, ("TYPESAFE_BASE_URL", "http://env.local/"));
+        Configure(http, new SystemOneDecisionClientOptions { Provider = SystemOneProvider.OpenRouter }, ("TYPESAFE_BASE_URL", "http://env.local/"));
 
         Assert.Equal(new Uri("https://openrouter.ai/api/"), http.BaseAddress);
     }
@@ -65,7 +65,7 @@ public sealed class ConfigureHttpClientTests
     {
         using var http = new HttpClient();
 
-        Configure(http, new SystemOneClientOptions { Timeout = TimeSpan.FromSeconds(7) });
+        Configure(http, new SystemOneDecisionClientOptions { Timeout = TimeSpan.FromSeconds(7) });
 
         Assert.Equal(TimeSpan.FromSeconds(7), http.Timeout);
     }
@@ -75,7 +75,7 @@ public sealed class ConfigureHttpClientTests
     {
         using var http = new HttpClient();
 
-        Configure(http, new SystemOneClientOptions { Timeout = Timeout.InfiniteTimeSpan });
+        Configure(http, new SystemOneDecisionClientOptions { Timeout = Timeout.InfiniteTimeSpan });
 
         Assert.Equal(Timeout.InfiniteTimeSpan, http.Timeout);
     }
@@ -97,7 +97,7 @@ public sealed class ConfigureHttpClientTests
     {
         using var http = new HttpClient();
 
-        var exception = Record.Exception(() => Configure(http, new SystemOneClientOptions { ApiKey = null }));
+        var exception = Record.Exception(() => Configure(http, new SystemOneDecisionClientOptions { ApiKey = null }));
 
         Assert.Null(exception);
     }
@@ -110,7 +110,7 @@ public sealed class ConfigureHttpClientTests
         using var http = new HttpClient();
 
         var exception = Assert.Throws<ArgumentException>(
-            () => Configure(http, new SystemOneClientOptions { Timeout = TimeSpan.FromSeconds(seconds) }));
+            () => Configure(http, new SystemOneDecisionClientOptions { Timeout = TimeSpan.FromSeconds(seconds) }));
 
         Assert.StartsWith("The time-out must be positive.", exception.Message, StringComparison.Ordinal);
         Assert.Equal("options", exception.ParamName);
@@ -122,7 +122,7 @@ public sealed class ConfigureHttpClientTests
         using var http = new HttpClient();
 
         var exception = Assert.Throws<ArgumentException>(
-            () => Configure(http, new SystemOneClientOptions { BaseAddress = new Uri("v1", UriKind.Relative) }));
+            () => Configure(http, new SystemOneDecisionClientOptions { BaseAddress = new Uri("v1", UriKind.Relative) }));
 
         Assert.StartsWith("The base address must be an absolute URI.", exception.Message, StringComparison.Ordinal);
         Assert.Equal("options", exception.ParamName);
@@ -134,7 +134,7 @@ public sealed class ConfigureHttpClientTests
         using var http = new HttpClient();
 
         var exception = Assert.Throws<ArgumentException>(
-            () => Configure(http, new SystemOneClientOptions { BaseAddress = new Uri("http://host/api?key=value") }));
+            () => Configure(http, new SystemOneDecisionClientOptions { BaseAddress = new Uri("http://host/api?key=value") }));
 
         Assert.StartsWith("The base address must not contain a query or fragment.", exception.Message, StringComparison.Ordinal);
     }
@@ -145,7 +145,7 @@ public sealed class ConfigureHttpClientTests
         using var http = new HttpClient();
 
         var exception = Assert.Throws<InvalidOperationException>(
-            () => Configure(http, new SystemOneClientOptions(), ("TYPESAFE_BASE_URL", "not a url")));
+            () => Configure(http, new SystemOneDecisionClientOptions(), ("TYPESAFE_BASE_URL", "not a url")));
 
         Assert.Equal("The TYPESAFE_BASE_URL environment variable is not an absolute URI.", exception.Message);
     }
@@ -156,7 +156,7 @@ public sealed class ConfigureHttpClientTests
         using var http = new HttpClient();
 
         var exception = Assert.Throws<ArgumentException>(
-            () => Configure(http, new SystemOneClientOptions { Provider = (SystemOneProvider)42 }));
+            () => Configure(http, new SystemOneDecisionClientOptions { Provider = (SystemOneProvider)42 }));
 
         Assert.StartsWith("Unknown provider 42.", exception.Message, StringComparison.Ordinal);
     }
@@ -167,7 +167,7 @@ public sealed class ConfigureHttpClientTests
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(100) };
 
         var exception = Assert.Throws<ArgumentOutOfRangeException>(
-            () => Configure(http, new SystemOneClientOptions { Timeout = TimeSpan.FromMilliseconds((double)int.MaxValue + 1), BaseAddress = new Uri("http://option.local/") }));
+            () => Configure(http, new SystemOneDecisionClientOptions { Timeout = TimeSpan.FromMilliseconds((double)int.MaxValue + 1), BaseAddress = new Uri("http://option.local/") }));
 
         Assert.StartsWith("The time-out must not exceed", exception.Message, StringComparison.Ordinal);
         Assert.Equal("options", exception.ParamName);
@@ -181,7 +181,7 @@ public sealed class ConfigureHttpClientTests
     {
         using var http = new HttpClient();
 
-        Configure(http, new SystemOneClientOptions { Timeout = TimeSpan.FromMilliseconds(int.MaxValue) });
+        Configure(http, new SystemOneDecisionClientOptions { Timeout = TimeSpan.FromMilliseconds(int.MaxValue) });
 
         Assert.Equal(TimeSpan.FromMilliseconds(int.MaxValue), http.Timeout);
     }
@@ -189,7 +189,7 @@ public sealed class ConfigureHttpClientTests
     [Fact]
     public void TooLongTimeout_Throws_FromTheConstructor()
         => Assert.Throws<ArgumentOutOfRangeException>(
-            () => new SystemOneClient(new SystemOneClientOptions { ApiKey = "k", Timeout = TimeSpan.FromMilliseconds((double)int.MaxValue + 1) }));
+            () => new SystemOneDecisionClient(new SystemOneDecisionClientOptions { ApiKey = "k", Timeout = TimeSpan.FromMilliseconds((double)int.MaxValue + 1) }));
 
     [Fact]
     public void FailedConfiguration_LeavesTheClientUnchanged()
@@ -197,7 +197,7 @@ public sealed class ConfigureHttpClientTests
         using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(100) };
 
         _ = Assert.Throws<ArgumentException>(
-            () => Configure(http, new SystemOneClientOptions { Timeout = TimeSpan.Zero, BaseAddress = new Uri("http://option.local/") }));
+            () => Configure(http, new SystemOneDecisionClientOptions { Timeout = TimeSpan.Zero, BaseAddress = new Uri("http://option.local/") }));
 
         Assert.Null(http.BaseAddress);
         Assert.Equal(TimeSpan.FromSeconds(100), http.Timeout);
@@ -212,7 +212,7 @@ public sealed class ConfigureHttpClientTests
         using var response = await http.GetAsync(new Uri("probe", UriKind.Relative));
 
         _ = Assert.Throws<InvalidOperationException>(
-            () => SystemOneClient.ConfigureHttpClient(http, new SystemOneClientOptions { Timeout = TimeSpan.FromSeconds(7) }));
+            () => SystemOneDecisionClient.ConfigureHttpClient(http, new SystemOneDecisionClientOptions { Timeout = TimeSpan.FromSeconds(7) }));
 
         Assert.Equal(new Uri("http://mine.local/"), http.BaseAddress);
         Assert.Empty(http.DefaultRequestHeaders.UserAgent);
@@ -226,7 +226,7 @@ public sealed class ConfigureHttpClientTests
         using var http = new HttpClient(handler);
         using var response = await http.GetAsync(new Uri("http://mine.local/probe"));
 
-        _ = Assert.Throws<InvalidOperationException>(() => SystemOneClient.ConfigureHttpClient(http, null));
+        _ = Assert.Throws<InvalidOperationException>(() => SystemOneDecisionClient.ConfigureHttpClient(http, null));
 
         Assert.Null(http.BaseAddress);
         Assert.Empty(http.DefaultRequestHeaders.UserAgent);
@@ -234,22 +234,22 @@ public sealed class ConfigureHttpClientTests
 
     [Fact]
     public void NullHttpClient_Throws()
-        => Assert.Throws<ArgumentNullException>(() => SystemOneClient.ConfigureHttpClient(null!, new SystemOneClientOptions()));
+        => Assert.Throws<ArgumentNullException>(() => SystemOneDecisionClient.ConfigureHttpClient(null!, new SystemOneDecisionClientOptions()));
 
     [Fact]
     public void PublicOverload_ConfiguresTheClient()
     {
         using var http = new HttpClient();
 
-        SystemOneClient.ConfigureHttpClient(http, new SystemOneClientOptions { BaseAddress = new Uri("http://option.local/"), Timeout = TimeSpan.FromSeconds(5) });
+        SystemOneDecisionClient.ConfigureHttpClient(http, new SystemOneDecisionClientOptions { BaseAddress = new Uri("http://option.local/"), Timeout = TimeSpan.FromSeconds(5) });
 
         Assert.Equal(new Uri("http://option.local/"), http.BaseAddress);
         Assert.Equal(TimeSpan.FromSeconds(5), http.Timeout);
         Assert.Matches("^Minos\\.NET/[^ +]+$", http.DefaultRequestHeaders.UserAgent.ToString());
     }
 
-    private static void Configure(HttpClient http, SystemOneClientOptions? options, params (string Name, string Value)[] environment)
-        => SystemOneClient.ConfigureHttpClient(
+    private static void Configure(HttpClient http, SystemOneDecisionClientOptions? options, params (string Name, string Value)[] environment)
+        => SystemOneDecisionClient.ConfigureHttpClient(
             http,
             options,
             name => Array.Find(environment, variable => string.Equals(variable.Name, name, StringComparison.Ordinal)).Value);

@@ -2,7 +2,7 @@ using ZeroAlloc.Results;
 
 namespace Minos;
 
-/// <summary>Asks a decision provider a question set's questions about a state. Protocol packages implement it, such as <c>SystemOneClient</c> and <c>OpenAIDecisionClient</c>; stages derive from <see cref="DelegatingDecisionClient"/>.</summary>
+/// <summary>Asks a decision provider a question set's questions about a state. Protocol packages implement it, such as <c>SystemOneDecisionClient</c> and <c>OpenAIDecisionClient</c>; stages derive from <see cref="DelegatingDecisionClient"/>.</summary>
 /// <remarks>
 /// The typed <c>EvaluateAsync&lt;T&gt;</c> calls and the <see cref="QuestionSet"/> calls are extension methods in
 /// <see cref="DecisionClientExtensions"/>, so they work over any implementation, a test fake included. A fake implements

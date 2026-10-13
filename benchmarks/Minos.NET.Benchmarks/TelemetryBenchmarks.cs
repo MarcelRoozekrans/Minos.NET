@@ -23,11 +23,11 @@ public class TelemetryBenchmarks : IDisposable
     private HttpClient _builtSetHttp = null!;
     private HttpClient _listModelsHttp = null!;
     private HttpClient _typedYieldingHttp = null!;
-    private SystemOneClient _evaluateClient = null!;
-    private SystemOneClient _typedClient = null!;
-    private SystemOneClient _builtSetClient = null!;
-    private SystemOneClient _listModelsClient = null!;
-    private SystemOneClient _typedYieldingClient = null!;
+    private SystemOneDecisionClient _evaluateClient = null!;
+    private SystemOneDecisionClient _typedClient = null!;
+    private SystemOneDecisionClient _builtSetClient = null!;
+    private SystemOneDecisionClient _listModelsClient = null!;
+    private SystemOneDecisionClient _typedYieldingClient = null!;
     private SystemOneRequest _request = null!;
     private QuestionSet _triage = null!;
 
