@@ -88,9 +88,9 @@ clean and gets no extra source from them.
 ### Building the packages yourself
 
 To try a change to Minos.NET itself, clone the [Minos.NET repository](https://github.com/MarcelRoozekrans/Minos.NET),
-pack the packages into a folder, and register that folder as a local NuGet source. Use the folder's absolute path. On Windows, give
-`dotnet nuget add source` a native path such as `C:\src\minos\nupkgs`, because a path that mixes forward and back
-slashes is rejected as invalid.
+pack the packages into a folder, and register that folder as a local NuGet source. Use the folder's absolute path. On
+Windows, give `dotnet nuget add source` a native path such as `C:\src\minos\nupkgs`, because a path that mixes forward
+and back slashes is rejected as invalid.
 
 A local build is versioned as the last release with a `-local` suffix: the release in `.release-please-manifest.json`,
 such as `0.4.0`, gives `0.4.0-local`. The packed files' names show it. The suffix keeps a local package apart from

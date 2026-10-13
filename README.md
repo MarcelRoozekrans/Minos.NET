@@ -41,7 +41,7 @@ You declare the questions as a C# type, and a source generator writes the reques
 - Dependency-injection registration, default and keyed.
 - The MIN analyzers and their code fixes.
 - Native AOT, with allocation budgets enforced in CI.
-- A conformance suite for any decision endpoint.
+- A [conformance suite](https://marcelroozekrans.github.io/Minos.NET/conformance), run from this repository, that checks any decision endpoint.
 
 ## Install
 
