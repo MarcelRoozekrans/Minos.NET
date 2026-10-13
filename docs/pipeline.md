@@ -456,10 +456,11 @@ public sealed class AlwaysUrgent : IDecisionClient
 <!-- endSnippet -->
 
 `QuestionAnswer.Noul`, `QuestionAnswer.Choice` and `QuestionAnswer.Score` make the answers, one per question in the
-order the set declares them. A Noul answer holds its `Probability` and a Score answer its `Expected` level. The `DecisionResponse` constructor checks them against the definition and throws
-`ArgumentException` when they do not match. [Testing your code](testing-your-code.md#way-one-a-fake-idecisionclient)
-has a fuller fake. A mock works the same way: set up `EvaluateAsync(DecisionRequest, CancellationToken)`, because the
-typed calls are extension methods, and a mocking library cannot intercept those.
+order the set declares them. A Noul answer holds its `Probability` and a Score answer its `Expected` level. The
+`DecisionResponse` constructor checks them against the definition and throws `ArgumentException` when they do not match.
+[Testing your code](testing-your-code.md#way-one-a-fake-idecisionclient) has a fuller fake. A mock works the same way:
+set up `EvaluateAsync(DecisionRequest, CancellationToken)`, because the typed calls are extension methods, and a mocking
+library cannot intercept those.
 
 Two observability values change, because the pipeline sees only a `DecisionRequest`:
 

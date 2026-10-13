@@ -214,7 +214,8 @@ public sealed class PlanAdvisor
 <!-- endSnippet -->
 
 Building a set at run time is covered on its [own page](question-sets-at-run-time.md). The point here is the shape of
-the answers: they are read with `QuestionSetAnswers.Get` and a handle, and they hold the same numbers as the typed forms.
+the answers: they are read with `QuestionSetAnswers.Get` and a handle, and they hold the same numbers as the typed
+forms.
 
 ## Confidence is not probability
 
@@ -237,9 +238,9 @@ confidence threshold sized to the cost of being wrong, with `ConfidenceThreshold
 
 The answers of one call share one buffer, and each probability map is a view over it. Reading `Value`, `Probability`,
 `Expected`, `Normalized` or `Confidence`, looking up a probability, enumerating a `Probabilities` map and calling
-`QuestionSetAnswers.Get` all allocate nothing. `foreach` over a map yields each option with its probability, in the order of
-the enum's members, as `RunnerUp` above does. A member that repeats an earlier member's value is an alias and is
-skipped, and explicit values do not reorder anything. A keyed map enumerates its keys in the order they were added.
+`QuestionSetAnswers.Get` all allocate nothing. `foreach` over a map yields each option with its probability, in the
+order of the enum's members, as `RunnerUp` above does. A member that repeats an earlier member's value is an alias and
+is skipped, and explicit values do not reorder anything. A keyed map enumerates its keys in the order they were added.
 
 The [performance](performance.md) page has the measured costs of a call.
 

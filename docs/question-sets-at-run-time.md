@@ -171,8 +171,8 @@ no question.
 ## Evaluating and reading
 
 Evaluate a built set with `EvaluateAsync(questionSet, state, cancellationToken)`. The state is a `DecisionContent`, so a
-string passes as it is. The result holds a `QuestionSetAnswers`, and `answers.Get(handle)` returns the answer for that handle's
-question, as the same types a typed set uses: `Noul`, `Choice<T>`, `Score<T>`, `KeyedChoice` and `KeyedScore`.
+string passes as it is. The result holds a `QuestionSetAnswers`, and `answers.Get(handle)` returns the answer for that
+handle's question, as the same types a typed set uses: `Noul`, `Choice<T>`, `Score<T>`, `KeyedChoice` and `KeyedScore`.
 `TenantRouter.RouteAsync` above shows the whole path. [Question types](question-types.md) covers what those answers
 hold, and what is free to read.
 
@@ -308,9 +308,9 @@ A handle belongs to the builder that made it. It works with the answers to any s
 question existed when that set was built. `Build()` can be called again after more questions are added, and the handles
 from before work with both sets.
 
-`QuestionSetAnswers.Get` throws `ArgumentException` for a handle that does not belong to its set. That covers a `default`
-handle, a handle from another builder, and a handle for a question added after the set was built. It is a programming
-error, so it throws and does not return a failed `Result`.
+`QuestionSetAnswers.Get` throws `ArgumentException` for a handle that does not belong to its set. That covers a
+`default` handle, a handle from another builder, and a handle for a question added after the set was built. It is a
+programming error, so it throws and does not return a failed `Result`.
 
 ## Build once and share
 
