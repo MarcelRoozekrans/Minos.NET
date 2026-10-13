@@ -2,7 +2,7 @@
   "target": "openrouter",
   "source": "recorded",
   "model": "typesafe/jev-1.13-20260917",
-  "recorded": "2026-10-12",
+  "recorded": "2026-10-13",
   "exchanges": [
     {
       "probe": "noul",
@@ -31,7 +31,7 @@
           "output_tokens": 23,
           "cost": 0.000011886
         },
-        "id": "gen-dec-1791776858-mkPkzlPGm9O9b10Z8Fco",
+        "id": "gen-dec-1791882157-dQaFSCXa9WESY28j8PkS",
         "provider": "TypeSafe"
       }
     },
@@ -60,10 +60,10 @@
             "type": "choice",
             "choice": "billing",
             "probabilities": {
-              "billing": 0.87,
-              "technical": 0.13
+              "billing": 0.88,
+              "technical": 0.12
             },
-            "confidence": 0.74
+            "confidence": 0.76
           }
         },
         "usage": {
@@ -71,7 +71,7 @@
           "output_tokens": 31,
           "cost": 0.000013902
         },
-        "id": "gen-dec-1791776858-Qzmqsxb1rAynv8V7I4nr",
+        "id": "gen-dec-1791882157-Hp8rxxvCyKEZ52DC3Du2",
         "provider": "TypeSafe"
       }
     },
@@ -99,7 +99,7 @@
         "answers": {
           "frustration": {
             "type": "score",
-            "score": 1.04,
+            "score": 1.05,
             "legend": {
               "0": "Calm",
               "1": "Frustrated",
@@ -107,10 +107,10 @@
             },
             "probabilities": {
               "0": 0,
-              "1": 0.96,
-              "2": 0.04
+              "1": 0.95,
+              "2": 0.05
             },
-            "confidence": 0.94
+            "confidence": 0.93
           }
         },
         "usage": {
@@ -118,7 +118,7 @@
           "output_tokens": 19,
           "cost": 0.000013104
         },
-        "id": "gen-dec-1791776858-fmOwu4zPeFxlFNxFJx1l",
+        "id": "gen-dec-1791882158-9UzKDVkRhrTulQPridhS",
         "provider": "TypeSafe"
       }
     },
@@ -164,14 +164,14 @@
             "type": "choice",
             "choice": "billing",
             "probabilities": {
-              "billing": 0.85,
-              "technical": 0.15
+              "billing": 0.87,
+              "technical": 0.13
             },
-            "confidence": 0.7
+            "confidence": 0.74
           },
           "frustration": {
             "type": "score",
-            "score": 1.04,
+            "score": 1.05,
             "legend": {
               "0": "Calm",
               "1": "Frustrated",
@@ -179,10 +179,10 @@
             },
             "probabilities": {
               "0": 0,
-              "1": 0.96,
-              "2": 0.04
+              "1": 0.95,
+              "2": 0.05
             },
-            "confidence": 0.94
+            "confidence": 0.93
           }
         },
         "usage": {
@@ -190,7 +190,7 @@
           "output_tokens": 66,
           "cost": 0.000016128
         },
-        "id": "gen-dec-1791776858-Og4VYBFBsxiYQHU4zgtb",
+        "id": "gen-dec-1791882158-CEwTy2a8kMyF3HTCoCyQ",
         "provider": "TypeSafe"
       }
     },
@@ -228,14 +228,14 @@
             "type": "choice",
             "choice": "pro-plan",
             "probabilities": {
-              "pro-plan": 0.86,
-              "team-plan": 0.14
+              "pro-plan": 0.87,
+              "team-plan": 0.13
             },
-            "confidence": 0.72
+            "confidence": 0.74
           },
           "effort": {
             "type": "score",
-            "score": 1.3,
+            "score": 1.31,
             "legend": {
               "0": "Minutes",
               "1": "Hours",
@@ -243,10 +243,10 @@
             },
             "probabilities": {
               "0": 0.1,
-              "1": 0.5,
-              "2": 0.4
+              "1": 0.49,
+              "2": 0.41
             },
-            "confidence": 0.25
+            "confidence": 0.23
           }
         },
         "usage": {
@@ -254,7 +254,7 @@
           "output_tokens": 49,
           "cost": 0.000015204
         },
-        "id": "gen-dec-1791776858-2fPWF3z2Dyl8u4GtedzY",
+        "id": "gen-dec-1791882158-yKp01twxZwodx3lwCiXC",
         "provider": "TypeSafe"
       }
     },

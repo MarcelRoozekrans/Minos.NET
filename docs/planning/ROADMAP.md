@@ -373,11 +373,12 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Plan:** `docs/superpowers/plans/2026-10-12-phase-7.2-public-api-review.md`
 **Evidence:** findings `docs/plans/2026-10-12-phase-7.2-api-findings.md`: 20 breaking findings, all approved by the maintainer on 2026-10-13, none rejected or amended, and 19 non-breaking ones. `PublicAPI.Shipped.txt` describes 1.0.0 in all six packages (cb3c423). Four guard tests in `SurfaceRuleTests`. The "Upgrading to 1.0" section in `docs/pipeline.md`. #175 closed by CACHE-01; #185 and #186 filed for 1.x; #51 commented, both Roslyn issues still open. 2,953 tests pass, the AOT smoke and surface publishes are clean, and every allocation budget is unchanged. Pre-push review PASS, `docs/plans/2026-10-12-phase-7.2-pre-push-review.md`.
 
-### Phase 7.3: Live verification on the final API [status: pending]
+### Phase 7.3: Live verification on the final API [status: complete]
 **Goal:** Pass the live suites and the provider-switch sample against TypeSafe, OpenRouter and a local `/v1/systemone` server; each billed run needs the maintainer's approval.
 **Surface:** Infra
 **HelpWanted:** no
-**Plan:** _to be written_
+**Plan:** bounded phase, approved in chat on 2026-10-13: run the existing workflows on the final API and commit what they record. No spec or plan document.
+**Evidence:** on 91cc456, the 1.0 API: Live smoke run 38373439809, approved by the maintainer, passed 17 live tests with 3 skipped, Luna off and the two local tests in their own workflow; the conformance probes passed, 51 and 49 checks with the rest skipped for a stated reason; both provider-switch recordings were made. Local systemone run 38370314508 passed its 2 tests and recorded `local.json`. The new fixtures and recordings differ only in request ids, dates and probabilities that moved by a point or two. The full suite passes on them. Pre-push review PASS, `docs/plans/2026-10-13-phase-7.3-pre-push-review.md`.
 
 ### Phase 7.4: AOT, trim and benchmark re-verification [status: pending]
 **Goal:** Re-run the whole-surface AOT/trim check and the benchmarks on the final API with no allocation budget loosened, and move the yielding allocation checks to TestHelpers 1.7.0's async API (#104), re-measured over 30 or more runs.
