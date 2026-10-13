@@ -438,7 +438,7 @@ layer.
 The raw calls, `EvaluateAsync(SystemOneRequest)` and `ListModelsAsync`, are members of `SystemOneClient`, not of
 `IDecisionClient`. Code that holds an `IDecisionClient`, such as a class that takes one from dependency injection,
 reaches them with `client.GetService<SystemOneClient>()`, which finds the `SystemOneClient` under any stages wrapped
-around it and returns `null` when there is none. [Finding a stage or the
+around it and returns `null` when there is none; `client.GetRequiredService<SystemOneClient>()` throws instead. [Finding a stage or the
 transport](pipeline.md#finding-a-stage-or-the-transport) has an example. The raw calls do not run through the
 pipeline's stages: they have their own span and log, and retry with the client's settings.
 

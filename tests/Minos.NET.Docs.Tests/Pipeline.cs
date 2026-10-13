@@ -78,7 +78,7 @@ public static class CustomPipeline
         var retries = client.GetService<RetryingDecisionClient>();
 
         // The raw System One calls are on the concrete SystemOneClient, not on IDecisionClient.
-        var models = await client.GetService<SystemOneClient>()!.ListModelsAsync(cancellationToken);
+        var models = await client.GetRequiredService<SystemOneClient>().ListModelsAsync(cancellationToken);
 
         var listed = models.IsSuccess ? $"{models.Value.Models.Count} models" : models.Error.Kind.ToString();
         return $"{metadata?.ProviderName} at {metadata?.Endpoint}, retries {(retries is null ? "off" : "on")}, {listed}";

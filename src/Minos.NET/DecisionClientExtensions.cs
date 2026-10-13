@@ -25,6 +25,56 @@ public static class DecisionClientExtensions
         return client.GetService(typeof(TService), serviceKey) is TService service ? service : default;
     }
 
+    /// <summary>Returns the <typeparamref name="TService"/> this client or a client it wraps provides, or throws when there is none.</summary>
+    /// <typeparam name="TService">The type to look for.</typeparam>
+    /// <param name="client">The client.</param>
+    /// <returns>The object.</returns>
+    /// <remarks>Calls <see cref="GetRequiredService{TService}(IDecisionClient, object)"/> without a key.</remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="client"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">The client provides no <typeparamref name="TService"/>.</exception>
+    public static TService GetRequiredService<TService>(this IDecisionClient client)
+        => GetRequiredService<TService>(client, null);
+
+    /// <summary>Returns the <typeparamref name="TService"/> this client or a client it wraps provides, or throws when there is none.</summary>
+    /// <typeparam name="TService">The type to look for.</typeparam>
+    /// <param name="client">The client.</param>
+    /// <param name="serviceKey">A key; built-in clients provide nothing for a non-null key.</param>
+    /// <returns>The object.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="client"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">The client provides no <typeparamref name="TService"/>.</exception>
+    public static TService GetRequiredService<TService>(this IDecisionClient client, object? serviceKey)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        return client.GetService(typeof(TService), serviceKey) is TService service ? service : throw NoService(typeof(TService));
+    }
+
+    /// <summary>Returns the object of <paramref name="serviceType"/> this client or a client it wraps provides, or throws when there is none.</summary>
+    /// <param name="client">The client.</param>
+    /// <param name="serviceType">The type to look for.</param>
+    /// <returns>The object.</returns>
+    /// <remarks>Calls <see cref="GetRequiredService(IDecisionClient, Type, object)"/> without a key.</remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="client"/> or <paramref name="serviceType"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">The client provides no object of <paramref name="serviceType"/>.</exception>
+    public static object GetRequiredService(this IDecisionClient client, Type serviceType)
+        => GetRequiredService(client, serviceType, null);
+
+    /// <summary>Returns the object of <paramref name="serviceType"/> this client or a client it wraps provides, or throws when there is none.</summary>
+    /// <param name="client">The client.</param>
+    /// <param name="serviceType">The type to look for.</param>
+    /// <param name="serviceKey">A key; built-in clients provide nothing for a non-null key.</param>
+    /// <returns>The object.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="client"/> or <paramref name="serviceType"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">The client provides no object of <paramref name="serviceType"/>.</exception>
+    public static object GetRequiredService(this IDecisionClient client, Type serviceType, object? serviceKey)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(serviceType);
+        return client.GetService(serviceType, serviceKey) ?? throw NoService(serviceType);
+    }
+
+    private static InvalidOperationException NoService(Type serviceType)
+        => new($"No service of type {serviceType} is available from the client.");
+
     /// <summary>Asks <typeparamref name="T"/>'s questions about a text state and returns its typed answers.</summary>
     /// <typeparam name="T">A <c>[Questions]</c> question set.</typeparam>
     /// <param name="client">The client to ask.</param>

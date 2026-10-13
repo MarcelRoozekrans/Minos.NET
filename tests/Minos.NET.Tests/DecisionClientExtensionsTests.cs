@@ -101,6 +101,45 @@ public sealed class DecisionClientExtensionsTests
         Assert.Null(fake.GetService<ClientTestKit.CapturingClient>(serviceKey: "key"));
     }
 
+    [Fact]
+    public void GetRequiredService_returns_a_matching_service()
+    {
+        var fake = new ClientTestKit.CapturingClient();
+
+        Assert.Same(fake, fake.GetRequiredService<ClientTestKit.CapturingClient>());
+        var serviceType = typeof(IDecisionClient);
+
+        Assert.Same(fake, fake.GetRequiredService(serviceType));
+        Assert.Same(fake, fake.GetRequiredService(serviceType, serviceKey: null));
+    }
+
+    [Fact]
+    public void GetRequiredService_throws_naming_the_missing_type()
+    {
+        var fake = new ClientTestKit.CapturingClient();
+
+        var generic = Assert.Throws<InvalidOperationException>(() => fake.GetRequiredService<DecisionClientMetadata>());
+        var missingType = typeof(DecisionClientMetadata);
+        var byType = Assert.Throws<InvalidOperationException>(() => fake.GetRequiredService(missingType));
+        var keyed = Assert.Throws<InvalidOperationException>(() => fake.GetRequiredService<ClientTestKit.CapturingClient>(serviceKey: "key"));
+
+        Assert.Equal("No service of type Minos.DecisionClientMetadata is available from the client.", generic.Message);
+        Assert.Equal(generic.Message, byType.Message);
+        Assert.Contains("CapturingClient", keyed.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GetRequiredService_rejects_null_arguments()
+    {
+        IDecisionClient client = null!;
+        var fake = new ClientTestKit.CapturingClient();
+        var serviceType = typeof(DecisionClientMetadata);
+
+        Assert.Equal("client", Assert.Throws<ArgumentNullException>(() => client.GetRequiredService<DecisionClientMetadata>()).ParamName);
+        Assert.Equal("client", Assert.Throws<ArgumentNullException>(() => client.GetRequiredService(serviceType)).ParamName);
+        Assert.Equal("serviceType", Assert.Throws<ArgumentNullException>(() => fake.GetRequiredService(null!)).ParamName);
+    }
+
     // The UTF-8 overload copies the caller's bytes once, so the caller may reuse its buffer as soon as the call returns.
     // That copy, length + 24 B, is its whole extra cost over the text overload, which allocates nothing for its state:
     // no JsonDocument is built from the bytes.

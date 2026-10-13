@@ -70,3 +70,7 @@ Minos.DecisionCapabilities.SupportsImages.set -> void
 Minos.DecisionCapabilities.SupportsModelListing.get -> bool?
 Minos.DecisionCapabilities.SupportsModelListing.set -> void
 Minos.DecisionError.DecisionError(Minos.DecisionErrorKind kind, string! message, System.Collections.Generic.IReadOnlyList<Minos.QuestionFailure!>! failures) -> void
+static Minos.DecisionClientExtensions.GetRequiredService(this Minos.IDecisionClient! client, System.Type! serviceType) -> object!
+static Minos.DecisionClientExtensions.GetRequiredService(this Minos.IDecisionClient! client, System.Type! serviceType, object? serviceKey) -> object!
+static Minos.DecisionClientExtensions.GetRequiredService<TService>(this Minos.IDecisionClient! client) -> TService
+static Minos.DecisionClientExtensions.GetRequiredService<TService>(this Minos.IDecisionClient! client, object? serviceKey) -> TService

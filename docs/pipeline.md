@@ -325,7 +325,8 @@ public static IDecisionClient Timed(IDecisionClient client, Action<TimeSpan> rec
 ## Finding a stage or the transport
 
 `GetService` looks a type up along the pipeline, from the outside in. The typed `GetService<T>()` extension casts the
-result for you, and returns `null` when nothing in the pipeline is a `T`.
+result for you, and returns `null` when nothing in the pipeline is a `T`. `GetRequiredService<T>()` does the same and
+throws an `InvalidOperationException` naming the type instead, for a service the code cannot work without.
 
 <!-- snippet: Pipeline_GetService -->
 ```cs
@@ -338,7 +339,7 @@ public static async Task<string> DescribeAsync(IDecisionClient client, Cancellat
     var retries = client.GetService<RetryingDecisionClient>();
 
     // The raw System One calls are on the concrete SystemOneClient, not on IDecisionClient.
-    var models = await client.GetService<SystemOneClient>()!.ListModelsAsync(cancellationToken);
+    var models = await client.GetRequiredService<SystemOneClient>().ListModelsAsync(cancellationToken);
 
     var listed = models.IsSuccess ? $"{models.Value.Models.Count} models" : models.Error.Kind.ToString();
     return $"{metadata?.ProviderName} at {metadata?.Endpoint}, retries {(retries is null ? "off" : "on")}, {listed}";
@@ -431,7 +432,7 @@ are the ones of that release; [Upgrading from 0.8](#upgrading-from-08) has the l
 
 | In 0.7 | From 0.8 |
 | --- | --- |
-| `client.EvaluateAsync(SystemOneRequest)` and `client.ListModelsAsync()` on an `IDecisionClient` | `client.GetService<DecisionClient>()!.EvaluateAsync(...)` and `.ListModelsAsync(...)`, or hold a `DecisionClient` |
+| `client.EvaluateAsync(SystemOneRequest)` and `client.ListModelsAsync()` on an `IDecisionClient` | `client.GetRequiredService<SystemOneClient>().EvaluateAsync(...)` and `.ListModelsAsync(...)`, or hold a `DecisionClient` |
 | `client.EvaluateAsync<T>(state)`, a default interface method or a `DecisionClient` member | The same call, now an extension method in `DecisionClientExtensions`, in the `Minos` namespace |
 | A fake implements `EvaluateAsync(SystemOneRequest)` and `ListModelsAsync` | A fake implements `EvaluateAsync(DecisionRequest)`, `GetService` and `Dispose`, and returns a `DecisionResponse` built with its public constructor |
 | `AddDecisionClient` returns `IHttpClientBuilder` | It returns a builder whose `HttpClient` property is the old builder; [0.9](#upgrading-from-08) renamed it to `AddSystemOneClient` and `SystemOneClientServiceBuilder` |
