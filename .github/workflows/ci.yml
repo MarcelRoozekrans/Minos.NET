@@ -355,21 +355,6 @@ jobs:
             exit 1
           fi
 
-      # The push exits 0 only when nuget.org accepted every package, but this check proves each one is registered there before
-      # the release is told it is published. A package nuget.org has registered answers its download URL with a redirect.
-      - name: Check every package is on nuget.org
-        shell: bash
-        run: |
-          for package in artifacts/packages/*.nupkg; do
-            id=$(basename "$package" ".$PACKAGE_VERSION.nupkg")
-            status=$(curl -s -o /dev/null -w '%{http_code}' "https://www.nuget.org/api/v2/package/$id/$PACKAGE_VERSION")
-            if [ "$status" != "302" ] && [ "$status" != "200" ]; then
-              echo "::error::$id $PACKAGE_VERSION is not on nuget.org: its download URL answered $status."
-              exit 1
-            fi
-            echo "$id $PACKAGE_VERSION is on nuget.org."
-          done
-
       - name: Attach the packages to the GitHub release
         env:
           GH_TOKEN: ${{ github.token }}

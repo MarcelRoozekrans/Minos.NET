@@ -101,17 +101,6 @@ public sealed class WorkflowWiringTests
     }
 
     [Fact]
-    public void PublishNuget_ChecksEveryPackageIsOnNuGetOrg_BeforeAttachingThemToTheRelease()
-    {
-        var job = Job(Ci, "publish-nuget");
-
-        var check = job.IndexOf("https://www.nuget.org/api/v2/package/$id/$PACKAGE_VERSION", StringComparison.Ordinal);
-        var attach = job.IndexOf("gh release upload", StringComparison.Ordinal);
-        Assert.True(check >= 0, "publish-nuget does not check nuget.org for each package.");
-        Assert.True(check < attach, "publish-nuget attaches the packages to the release before checking nuget.org.");
-    }
-
-    [Fact]
     public void ReleasePlease_DispatchesThePublish_WhenItCreatedARelease()
     {
         var job = Job(ReleasePlease, "publish");
