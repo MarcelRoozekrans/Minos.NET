@@ -2,7 +2,7 @@
 id: pipeline
 title: The client pipeline
 sidebar_position: 8
-description: The stages every call goes through (telemetry, logging and retries), building your own pipeline, caching decisions, limiting the call rate, the stage order, writing a stage, turning the standard pipeline off, stages with dependency injection, and upgrading from 0.7 and 0.8.
+description: The stages every call goes through (telemetry, logging and retries), building your own pipeline, caching decisions, limiting the call rate, the stage order, writing a stage, turning the standard pipeline off, stages with dependency injection, and upgrading to 1.0 and from 0.7 and 0.8.
 ---
 
 # The client pipeline
@@ -413,11 +413,55 @@ public static void AddAuditedDecision(IServiceCollection services, IConfiguratio
 
 [Dependency injection](dependency-injection.md) covers the rest of the registration.
 
+## Upgrading to 1.0
+
+1.0 freezes the public API. The last 0.x release renamed and tightened it, and kept no obsolete aliases. The compiler
+finds every rename and removal in the first table. The second list is the behaviour that changed without a compile
+error, so read it before you deploy. The left column holds the names of 0.11 and earlier.
+
+| In 0.11 | In 1.0 |
+| --- | --- |
+| `SystemOneClient`, `SystemOneClientOptions`, `SystemOneClientServiceBuilder` and `AddSystemOneClient`, all six overloads | `SystemOneDecisionClient`, `SystemOneDecisionClientOptions`, `SystemOneDecisionClientServiceBuilder` and `AddSystemOneDecisionClient`. Configuration keys bind property names and do not change |
+| `[Criteria("…")]` on a question property | `[Criterion("…")]` |
+| The `Answers` class | `QuestionSetAnswers` |
+| `QuestionAnswer.Value` | `Probability` for a Noul answer and `Expected` for a Score answer. The `Noul` and `Score` factories name their parameters `probability` and `expected` |
+| `DecisionResponse.Provider` | `DecisionResponse.UpstreamProvider` |
+| `SystemOneResponse.Provider` | `SystemOneResponse.UpstreamProvider`. The wire name is unchanged |
+| `new DecisionRequest(Definition: …, State: …)` with named arguments | `new DecisionRequest(definition: …, state: …)` |
+| `DecisionContent.IsString` | Removed. Call `TryGetString(out var text)`, which also gives the text |
+| `DecisionCapabilities.Images` and `ModelListing` | `SupportsImages` and `SupportsModelListing`. The [configuration](providers.md#capabilities) keys change too: `Capabilities:Images` is `Capabilities:SupportsImages`, and `Capabilities:ModelListing` is `Capabilities:SupportsModelListing` |
+| The constructors of `Choice<T>`, `Score<T>`, `KeyedChoice` and `KeyedScore` | Internal. Test a helper through a [fake `IDecisionClient`](testing-your-code.md#way-one-a-fake-idecisionclient) that returns the answers |
+| `DecisionUsage.InputTokens` and `OutputTokens` are `int` | `int?`. A count the provider did not report is `null` |
+| `SystemOneDefaults.ApiKeyEnvironmentVariable` and `BaseAddressEnvironmentVariable` | `TypeSafeApiKeyEnvironmentVariable` and `TypeSafeBaseAddressEnvironmentVariable`. The variable names are unchanged |
+| `SystemOneRequest.Model` is a `string` | `string?`. See the raw requests below |
+| `CachingDecisionClient`, `DecisionCacheOptions`, `UseCaching`, `RateLimitingDecisionClient` and `UseRateLimiting`, in `Minos.Caching` and `Minos.RateLimiting` | The same names, in `Minos`. Remove the `using Minos.Caching;` and `using Minos.RateLimiting;` lines |
+
+What the compiler does not find:
+
+- **A binary caller of `SystemOneDecisionClient.ListModelsAsync` recompiles.** The optional token became an overload
+  pair, `ListModelsAsync()` and `ListModelsAsync(CancellationToken)`, and a source call that names the argument,
+  `cancellationToken: token`, compiles unchanged.
+- **The cache keys change, so a distributed cache starts cold.** `DecisionClientMetadata.Endpoint` is now the base address
+  plus the path the client posts to, and the key holds it. A `KeyPrefix` set per client to keep two paths apart, the
+  workaround for issue 175, is no longer needed. See [Caching decisions](#caching-decisions).
+- **A malformed raw `SystemOneRequest` throws `ArgumentException` before it is sent.** It used to come back as
+  `InvalidResponse`. See [the raw request API](client-and-errors.md#the-raw-request-api).
+- **A raw `SystemOneRequest` with no `Model` sends the client's configured model,** not `jev-latest`.
+- **`DecisionResponse.Usage` is set when any count or the cost is reported.** A count the provider left out is `null`,
+  and a raw `SystemOneResponse` whose `usage` holds only some counts now succeeds.
+- **A registered client's built-in retries wait on the container's `TimeProvider`,** for the OpenAI and the System One
+  clients alike. Register a `FakeTimeProvider` and a test no longer waits in real time.
+- **`Expiration` and `LocalCacheExpiration` above 365 days throw `ArgumentOutOfRangeException`** when they are set.
+- **A disposed caching or rate-limiting stage throws `ObjectDisposedException`** from `EvaluateAsync`.
+- **New, and on by default: `DecisionCacheOptions.UseDistributedCache`.** Turn it off when the app's `IDistributedCache`
+  serves something else, such as session state. See [Caching decisions](#caching-decisions).
+
 ## Upgrading from 0.8
 
 The System One client moved out of `Minos.NET` into its own package, `Minos.NET.SystemOne`, so that `Minos.NET` and
 `Minos.NET.DependencyInjection` know no provider. Types were renamed with it, and the registration split in two. The
 compiler finds every one of these. Typed calls, `[Questions]` records and fakes of `IDecisionClient` compile unchanged.
+The After column uses current names; [Upgrading to 1.0](#upgrading-to-10) has the renames since.
 
 | In 0.8 | After |
 | --- | --- |
@@ -443,7 +487,8 @@ any request is sent.
 0.8 makes `IDecisionClient` one neutral call, which breaks code that implements the interface or uses what
 `AddDecisionClient` returned. Code that only calls the typed overloads compiles unchanged. The names in the 0.7 column
 are the ones of that release, and the replacement column uses current names, such as `SystemOneDecisionClient` where 0.8
-said `DecisionClient`; [Upgrading from 0.8](#upgrading-from-08) has the later renames.
+said `DecisionClient`; [Upgrading from 0.8](#upgrading-from-08) and
+[Upgrading to 1.0](#upgrading-to-10) have the later renames.
 
 | In 0.7 | From 0.8 |
 | --- | --- |
