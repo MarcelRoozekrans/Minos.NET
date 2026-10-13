@@ -8,16 +8,18 @@ internal static class KeyedChoiceChecks
     public static async Task KeyedChoiceIsCompared()
     {
         var evaluated = await SmokeAnswers.ProductAsync().ConfigureAwait(false);
-        var rebuilt = evaluated;
+        var again = await SmokeAnswers.ProductAsync().ConfigureAwait(false);
+        var other = await SmokeAnswers.OtherProductAsync().ConfigureAwait(false);
         var empty = new KeyedChoice();
 
         Program.Check(
-            rebuilt.Equals(evaluated)
-                && string.Equals(rebuilt.Value, "pro-plan", StringComparison.Ordinal)
-                && Math.Abs(rebuilt.Probabilities["pro-plan"] - 0.9) < 1e-12
+            again.Equals(evaluated)
+                && string.Equals(again.Value, "pro-plan", StringComparison.Ordinal)
+                && Math.Abs(again.Probabilities["pro-plan"] - 0.9) < 1e-12
+                && !evaluated.Equals(other)
                 && !evaluated.Equals(empty)
                 && empty.Equals(default)
                 && empty.Value.Length == 0,
-            "an evaluated KeyedChoice equals its copy, and the empty one has no value, under Native AOT");
+            "an evaluated KeyedChoice equals an independent one and differs from another, and the empty one has no value, under Native AOT");
     }
 }

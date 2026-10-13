@@ -8,16 +8,18 @@ internal static class ScoreChecks
     public static async Task ScoreIsCompared()
     {
         var parsed = (await SmokeAnswers.TriageAsync().ConfigureAwait(false)).Urgency;
-        var rebuilt = parsed;
+        var again = (await SmokeAnswers.TriageAsync().ConfigureAwait(false)).Urgency;
+        var other = (await SmokeAnswers.OtherTriageAsync().ConfigureAwait(false)).Urgency;
         var empty = new Score<Urgency>();
 
         Program.Check(
-            rebuilt.Equals(parsed)
-                && rebuilt.Value == Urgency.High
-                && Math.Abs(rebuilt.Expected - 1.9) < 1e-12
+            again.Equals(parsed)
+                && again.Value == Urgency.High
+                && Math.Abs(again.Expected - 1.9) < 1e-12
+                && !parsed.Equals(other)
                 && !parsed.Equals(empty)
                 && empty.Equals(default)
                 && empty.Normalized == 0.0,
-            "a parsed Score equals its copy, and the empty one does not, under Native AOT");
+            "a parsed Score equals an independent one, and a different or the empty one does not, under Native AOT");
     }
 }

@@ -8,16 +8,18 @@ internal static class ChoiceChecks
     public static async Task ChoiceIsCompared()
     {
         var parsed = (await SmokeAnswers.TriageAsync().ConfigureAwait(false)).Team;
-        var rebuilt = parsed;
+        var again = (await SmokeAnswers.TriageAsync().ConfigureAwait(false)).Team;
+        var other = (await SmokeAnswers.OtherTriageAsync().ConfigureAwait(false)).Team;
         var empty = new Choice<Team>();
 
         Program.Check(
-            rebuilt.Equals(parsed)
-                && rebuilt.Value == Team.Account
-                && Math.Abs(rebuilt.Probabilities[Team.Account] - 0.8) < 1e-12
+            again.Equals(parsed)
+                && again.Value == Team.Account
+                && Math.Abs(again.Probabilities[Team.Account] - 0.8) < 1e-12
+                && !parsed.Equals(other)
                 && !parsed.Equals(empty)
                 && empty.Equals(default)
                 && empty.Probabilities.Count == 0,
-            "a parsed Choice equals its copy, and the empty Choice equals only itself, under Native AOT");
+            "a parsed Choice equals an independent one, differs from another and from the empty one, and the empty Choice equals only itself, under Native AOT");
     }
 }
