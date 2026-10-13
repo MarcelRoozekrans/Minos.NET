@@ -468,6 +468,7 @@ internal static class AllocationChecks
         // -23 to +61 B/call against no factory, almost all within -4 to +5; the 8 B default failed one run in 30 both
         // times, and longer windows did not shrink the excess. The tolerance is therefore 64 B/call, above the largest
         // excess seen and far below what the check guards against: the discarding logger added 196 B/call or more.
+        // ZeroAlloc.TestHelpers#76 asks the gate to interleave the two sides' windows, which should let it drop back.
         await RelativeGateAsync(
             unlogged,
             disabled,
