@@ -415,9 +415,10 @@ public static void AddAuditedDecision(IServiceCollection services, IConfiguratio
 
 ## Upgrading to 1.0
 
-1.0 freezes the public API. The last 0.x release renamed and tightened it, and kept no obsolete aliases. The compiler
-finds every rename and removal in the first table. The second list is the behaviour that changed without a compile
-error, so read it before you deploy. The left column holds the names of 0.12 and earlier.
+1.0 freezes the public API. It renames and tightens the public API, with no obsolete aliases. The compiler finds every
+rename and removal in the first table, except that most code using the `int?` token counts still compiles. The second
+list is the behaviour that changed without a compile error, so read it before you deploy. The left column holds the
+names of 0.12 and earlier.
 
 | In 0.12 | In 1.0 |
 | --- | --- |
@@ -448,6 +449,9 @@ What the compiler does not find:
 - **A raw `SystemOneRequest` with no `Model` sends the client's configured model,** not `jev-latest`.
 - **`DecisionResponse.Usage` is set when any count or the cost is reported.** A count the provider left out is `null`,
   and a raw `SystemOneResponse` whose `usage` holds only some counts now succeeds.
+- **Arithmetic, comparisons and formatting on `DecisionUsage.InputTokens` and `OutputTokens` still compile** and now see
+  `null` for a count the provider left out: a sum becomes `null`, a comparison with a budget is `false`, and an
+  interpolation prints nothing. Use `?? 0` where a number is needed. A fake can now set one count without the other.
 - **A registered client's built-in retries wait on the container's `TimeProvider`,** for the OpenAI and the System One
   clients alike. Register a `FakeTimeProvider` and a test no longer waits in real time.
 - **`Expiration` and `LocalCacheExpiration` above 365 days throw `ArgumentOutOfRangeException`** when they are set.
