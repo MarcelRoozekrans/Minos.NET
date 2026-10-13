@@ -44,6 +44,16 @@ public sealed class SurfaceRuleTests
         // Guards the tests below against passing vacuously, for example if the assemblies stopped being found.
         => Assert.True(PublicTypes().Count() > 50);
 
+    [Theory]
+    [InlineData("[Score]", "Score", true)]
+    [InlineData("[Score(Min = 1)]", "Score", true)]
+    [InlineData("[Level, Score]", "Score", true)]
+    [InlineData("[Level, Criterion(\"x\")]", "Criterion", true)]
+    [InlineData("[Score](https://x)", "Score", false)]
+    [InlineData("see [Score](link) here", "Score", false)]
+    public void An_attribute_is_named_by_its_usage_form_and_not_by_link_text(string text, string stem, bool expected)
+        => Assert.Equal(expected, MentionsAttribute(text, stem, stem + "Attribute"));
+
     [Fact]
     public void Every_public_class_is_sealed_abstract_static_or_designed_for_inheritance()
     {
@@ -125,7 +135,7 @@ public sealed class SurfaceRuleTests
             && (string.Equals(baseType.ToDisplayString(), "System.Attribute", StringComparison.Ordinal) || IsAttribute(baseType));
 
     private static bool MentionsAttribute(string text, string stem, string typeName)
-        => Regex.IsMatch(text, $@"(?:\[|,)\s*{Regex.Escape(stem)}\b(?=\s*[(,\]])", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(5))
+        => Regex.IsMatch(text, $@"(?:\[|,)\s*{Regex.Escape(stem)}\b(?=\s*[(,]|\s*\](?!\())", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(5))
             || Mentions(text, typeName);
 
     private static string ExpectedNamespace(INamedTypeSymbol type, string rootNamespace)
