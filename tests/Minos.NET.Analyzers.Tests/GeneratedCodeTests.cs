@@ -17,7 +17,7 @@ public sealed class GeneratedCodeTests
         "[Questions] public partial class C { [Noul(\"q\")] public partial Noul {|MIN102:Answer|} { get; set; } }",
         "[Questions] public partial class {|MIN101:Set|}<T> { [Noul(\"q\")] public partial Noul Answer { get; } }",
         "public enum {|MIN001:E|} { } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
-        "public enum E { [Criteria(\"x\")] A, {|MIN006:B|} } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
+        "public enum E { [Criterion(\"x\")] A, {|MIN006:B|} } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
     };
 
     [Theory]

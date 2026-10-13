@@ -9,7 +9,7 @@ namespace Minos;
 /// </summary>
 /// <remarks>
 /// A text with examples or not-for texts is sent as the criterion object <c>{"description", "examples", "not_for"}</c>,
-/// the same Minos.NET convention <c>[Criteria]</c> and <c>[Level]</c> use: an empty list and <see langword="null"/>
+/// the same Minos.NET convention <c>[Criterion]</c> and <c>[Level]</c> use: an empty list and <see langword="null"/>
 /// entries are left out, and a text with neither is sent as a plain JSON string. Immutable: each <c>With</c> method
 /// returns a new criterion.
 /// </remarks>

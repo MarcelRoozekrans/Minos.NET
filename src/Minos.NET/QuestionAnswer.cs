@@ -4,7 +4,8 @@ namespace Minos;
 
 /// <summary>One question's answer in provider-neutral form.</summary>
 /// <remarks>
-/// <see cref="Value"/> is the Noul value or the Score's expected level, and 0 for a Choice. <see cref="ChosenIndex"/> is the
+/// <see cref="Probability"/> is the Noul's probability and <see cref="Expected"/> is the Score's expected level; each is 0
+/// for any other kind. <see cref="ChosenIndex"/> is the
 /// chosen option's or level's position, and -1 for a Noul. <see cref="Probabilities"/> has one entry per option or level, in
 /// definition order, and is empty for a Noul.
 /// </remarks>
@@ -15,13 +16,14 @@ public readonly struct QuestionAnswer
     private readonly double[]? _probabilities;
     private readonly int _offset;
     private readonly int _count;
+    private readonly double _value;
 
     internal QuestionAnswer(string key, QuestionKind kind, int chosenIndex, double value, double confidence, double[]? probabilities, int offset, int count)
     {
         _key = key;
         Kind = kind;
         ChosenIndex = chosenIndex;
-        Value = value;
+        _value = value;
         Confidence = confidence;
         _probabilities = probabilities;
         _offset = offset;
@@ -40,8 +42,11 @@ public readonly struct QuestionAnswer
     /// <summary>Gets the chosen option's or level's position, or -1 for a Noul.</summary>
     public int ChosenIndex { get; }
 
-    /// <summary>Gets the Noul value or the Score's expected level; 0 for a Choice.</summary>
-    public double Value { get; }
+    /// <summary>Gets the Noul's probability, from 0 to 1; 0 for a Choice or a Score.</summary>
+    public double Probability => Kind == QuestionKind.Noul ? _value : 0;
+
+    /// <summary>Gets the Score's expected level; 0 for a Noul or a Choice.</summary>
+    public double Expected => Kind == QuestionKind.Score ? _value : 0;
 
     /// <summary>Gets the confidence of a Choice or Score; 0 for a Noul.</summary>
     public double Confidence { get; }
@@ -50,13 +55,13 @@ public readonly struct QuestionAnswer
     public ReadOnlySpan<double> Probabilities => _probabilities is null ? default : _probabilities.AsSpan(_offset, _count);
 
     /// <summary>Creates a Noul answer.</summary>
-    /// <param name="value">The answer, from 0 to 1.</param>
+    /// <param name="probability">The probability that the answer is yes, from 0 to 1.</param>
     /// <returns>The answer.</returns>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="value"/> is outside 0 to 1, or not a number.</exception>
-    public static QuestionAnswer Noul(double value)
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="probability"/> is outside 0 to 1, or not a number.</exception>
+    public static QuestionAnswer Noul(double probability)
     {
-        EnsureUnit(value, nameof(value));
-        return new(string.Empty, QuestionKind.Noul, -1, value, 0, null, 0, 0);
+        EnsureUnit(probability, nameof(probability));
+        return new(string.Empty, QuestionKind.Noul, -1, probability, 0, null, 0, 0);
     }
 
     /// <summary>Creates a Choice answer.</summary>
@@ -71,20 +76,20 @@ public readonly struct QuestionAnswer
 
     /// <summary>Creates a Score answer.</summary>
     /// <param name="level">The chosen level's position.</param>
-    /// <param name="value">The expected level.</param>
+    /// <param name="expected">The expected level.</param>
     /// <param name="confidence">The confidence, from 0 to 1.</param>
     /// <param name="probabilities">One probability per level, in definition order; copied.</param>
     /// <returns>The answer.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="probabilities"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><paramref name="level"/> is negative, <paramref name="value"/> is not finite, or a value is outside 0 to 1.</exception>
-    public static QuestionAnswer Score(int level, double value, double confidence, double[] probabilities)
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="level"/> is negative, <paramref name="expected"/> is not finite, or a value is outside 0 to 1.</exception>
+    public static QuestionAnswer Score(int level, double expected, double confidence, double[] probabilities)
     {
-        if (!double.IsFinite(value))
+        if (!double.IsFinite(expected))
         {
-            throw new ArgumentOutOfRangeException(nameof(value), value, "The expected level must be a finite number.");
+            throw new ArgumentOutOfRangeException(nameof(expected), expected, "The expected level must be a finite number.");
         }
 
-        return Ranked(QuestionKind.Score, level, value, confidence, probabilities);
+        return Ranked(QuestionKind.Score, level, expected, confidence, probabilities);
     }
 
     private static QuestionAnswer Ranked(QuestionKind kind, int index, double value, double confidence, double[] probabilities)

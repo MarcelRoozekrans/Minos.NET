@@ -7,7 +7,7 @@ using Minos.SystemOne;
 namespace Minos.AotSmoke;
 
 /// <summary>
-/// <c>AddDecisionClient</c> and <c>AddSystemOneClient</c> under Native AOT: default and keyed clients, from a factory or
+/// <c>AddDecisionClient</c> and <c>AddSystemOneDecisionClient</c> under Native AOT: default and keyed clients, from a factory or
 /// configured by delegates or bound from configuration, registered, resolved and evaluated.
 /// </summary>
 internal static class DependencyInjectionChecks
@@ -15,21 +15,21 @@ internal static class DependencyInjectionChecks
     /// <summary>Registers the default client over a canned handler. The allocation gates register theirs the same way.</summary>
     public static void RegisterDefaultClient(IServiceCollection services)
         => services
-            .AddSystemOneClient(options =>
+            .AddSystemOneDecisionClient(options =>
             {
                 options.ApiKey = "smoke-key";
                 options.BaseAddress = new Uri("https://example.test/api/");
             })
             .HttpClient.ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
 
-    [Covers("static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Minos.SystemOne.SystemOneClientOptions!>! configure) -> Minos.SystemOne.SystemOneClientServiceBuilder!")]
-    [Covers("static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, System.Action<Minos.SystemOne.SystemOneClientOptions!>! configure) -> Minos.SystemOne.SystemOneClientServiceBuilder!")]
+    [Covers("static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Minos.SystemOne.SystemOneDecisionClientOptions!>! configure) -> Minos.SystemOne.SystemOneDecisionClientServiceBuilder!")]
+    [Covers("static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, System.Action<Minos.SystemOne.SystemOneDecisionClientOptions!>! configure) -> Minos.SystemOne.SystemOneDecisionClientServiceBuilder!")]
     public static async Task DefaultAndKeyedClientsEvaluate()
     {
         var services = new ServiceCollection();
         RegisterDefaultClient(services);
         services
-            .AddSystemOneClient("openrouter", options =>
+            .AddSystemOneDecisionClient("openrouter", options =>
             {
                 options.Provider = SystemOneProvider.OpenRouter;
                 options.ApiKey = "smoke-openrouter-key";
@@ -38,14 +38,14 @@ internal static class DependencyInjectionChecks
             .HttpClient.ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
         using var provider = services.BuildServiceProvider();
 
-        var client = provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!;
-        var keyed = provider.GetRequiredKeyedService<IDecisionClient>("openrouter").GetService<SystemOneClient>()!;
+        var client = provider.GetRequiredService<IDecisionClient>().GetService<SystemOneDecisionClient>()!;
+        var keyed = provider.GetRequiredKeyedService<IDecisionClient>("openrouter").GetService<SystemOneDecisionClient>()!;
         var result = await client.EvaluateAsync(Program.Request()).ConfigureAwait(false);
         var keyedResult = await keyed.EvaluateAsync(Program.Request()).ConfigureAwait(false);
 
         Program.Check(
             ReferenceEquals(client, provider.GetRequiredService<IDecisionClient>()) && !ReferenceEquals(client, keyed),
-            "AddSystemOneClient registers one default client and a separate keyed client under Native AOT");
+            "AddSystemOneDecisionClient registers one default client and a separate keyed client under Native AOT");
         Program.Check(
             result.IsSuccess && keyedResult.IsSuccess,
             "the default and the keyed client each evaluate through the factory's HttpClient under Native AOT");
@@ -98,20 +98,20 @@ internal static class DependencyInjectionChecks
     /// <summary>Registers the default client bound from <see cref="BoundConfiguration"/>, over a canned handler.</summary>
     public static void RegisterBoundDefaultClient(IServiceCollection services)
         => services
-            .AddSystemOneClient(BoundConfiguration().GetSection("Minos"))
+            .AddSystemOneDecisionClient(BoundConfiguration().GetSection("Minos"))
             .HttpClient.ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
 
-    [Covers("static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Minos.SystemOne.SystemOneClientServiceBuilder!")]
-    [Covers("static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Minos.SystemOne.SystemOneClientServiceBuilder!")]
+    [Covers("static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Minos.SystemOne.SystemOneDecisionClientServiceBuilder!")]
+    [Covers("static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Minos.SystemOne.SystemOneDecisionClientServiceBuilder!")]
     public static async Task ClientsBoundFromConfigurationEvaluate()
     {
         var services = new ServiceCollection();
         RegisterBoundDefaultClient(services);
         services
-            .AddSystemOneClient("openrouter", BoundConfiguration().GetSection("OpenRouter"))
+            .AddSystemOneDecisionClient("openrouter", BoundConfiguration().GetSection("OpenRouter"))
             .HttpClient.ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
         using var provider = services.BuildServiceProvider();
-        var monitor = provider.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>();
+        var monitor = provider.GetRequiredService<IOptionsMonitor<SystemOneDecisionClientOptions>>();
         var defaults = monitor.Get(Options.DefaultName);
         var keyed = monitor.Get("openrouter");
 
@@ -121,48 +121,48 @@ internal static class DependencyInjectionChecks
                 && defaults.InitialBackoff == TimeSpan.FromMilliseconds(250)
                 && defaults.MaxRetryDelay == TimeSpan.FromSeconds(10)
                 && defaults.BaseAddress == new Uri("https://example.test/api/"),
-            "AddSystemOneClient binds every default client setting from configuration under Native AOT");
+            "AddSystemOneDecisionClient binds every default client setting from configuration under Native AOT");
         Program.Check(
             keyed is { Provider: SystemOneProvider.OpenRouter, ApiKey: "smoke-openrouter-key", Model: "jev-1.13.0" },
-            "AddSystemOneClient binds a keyed client's own section under Native AOT");
+            "AddSystemOneDecisionClient binds a keyed client's own section under Native AOT");
 
-        var result = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Program.Request()).ConfigureAwait(false);
-        var keyedResult = await provider.GetRequiredKeyedService<IDecisionClient>("openrouter").GetService<SystemOneClient>()!
+        var result = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneDecisionClient>()!.EvaluateAsync(Program.Request()).ConfigureAwait(false);
+        var keyedResult = await provider.GetRequiredKeyedService<IDecisionClient>("openrouter").GetService<SystemOneDecisionClient>()!
             .EvaluateAsync(Program.Request()).ConfigureAwait(false);
         Program.Check(
             result.IsSuccess && keyedResult.IsSuccess,
             "the default and the keyed client bound from configuration each evaluate under Native AOT");
     }
 
-    [Covers("static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Minos.SystemOne.SystemOneClientServiceBuilder!")]
-    [Covers("static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name) -> Minos.SystemOne.SystemOneClientServiceBuilder!")]
+    [Covers("static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Minos.SystemOne.SystemOneDecisionClientServiceBuilder!")]
+    [Covers("static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name) -> Minos.SystemOne.SystemOneDecisionClientServiceBuilder!")]
     public static async Task ClientsConfiguredFromTheEnvironmentEvaluate()
     {
         using (SmokeAssert.TypeSafeEnvironment())
         {
             var services = new ServiceCollection();
-            services.AddSystemOneClient().HttpClient.ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
-            services.AddSystemOneClient("secondary").HttpClient.ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
+            services.AddSystemOneDecisionClient().HttpClient.ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
+            services.AddSystemOneDecisionClient("secondary").HttpClient.ConfigurePrimaryHttpMessageHandler(() => new CannedHandler(HttpStatusCode.OK, Program.NoulResponse));
             using var provider = services.BuildServiceProvider();
 
-            var client = provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!;
-            var keyed = provider.GetRequiredKeyedService<IDecisionClient>("secondary").GetService<SystemOneClient>()!;
+            var client = provider.GetRequiredService<IDecisionClient>().GetService<SystemOneDecisionClient>()!;
+            var keyed = provider.GetRequiredKeyedService<IDecisionClient>("secondary").GetService<SystemOneDecisionClient>()!;
             var result = await client.EvaluateAsync(Program.Request()).ConfigureAwait(false);
             var keyedResult = await keyed.EvaluateAsync(Program.Request()).ConfigureAwait(false);
 
             Program.Check(
                 !ReferenceEquals(client, keyed) && result.IsSuccess && keyedResult.IsSuccess,
-                "AddSystemOneClient() and AddSystemOneClient(name) take the key and base address from the environment and evaluate under Native AOT");
+                "AddSystemOneDecisionClient() and AddSystemOneDecisionClient(name) take the key and base address from the environment and evaluate under Native AOT");
         }
 
         var unconfigured = new ServiceCollection();
-        unconfigured.AddSystemOneClient();
+        unconfigured.AddSystemOneDecisionClient();
         using var unconfiguredProvider = unconfigured.BuildServiceProvider();
         using (SmokeAssert.NoApiKeyEnvironment())
         {
             Program.Check(
                 SmokeAssert.Throws<OptionsValidationException>(() => unconfiguredProvider.GetRequiredService<IDecisionClient>()),
-                "AddSystemOneClient() with no key in options or the environment fails options validation under Native AOT");
+                "AddSystemOneDecisionClient() with no key in options or the environment fails options validation under Native AOT");
         }
     }
 
@@ -177,7 +177,7 @@ internal static class DependencyInjectionChecks
             })
             .Build();
         var services = new ServiceCollection();
-        services.AddSystemOneClient(configuration);
+        services.AddSystemOneDecisionClient(configuration);
         using var provider = services.BuildServiceProvider();
 
         string? failure = null;

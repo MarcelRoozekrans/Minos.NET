@@ -5,7 +5,7 @@ using ZeroAlloc.Results;
 namespace Minos;
 
 /// <summary>
-/// The retry loop shared by <see cref="RetryingDecisionClient"/> and the <c>SystemOneClient</c>'s raw calls. Delays come
+/// The retry loop shared by <see cref="RetryingDecisionClient"/> and the <c>SystemOneDecisionClient</c>'s raw calls. Delays come
 /// from ZeroAlloc.Resilience's <see cref="RetryPolicy"/>, so backoff, jitter, the cap and a response's Retry-After behave
 /// as they always have.
 /// </summary>

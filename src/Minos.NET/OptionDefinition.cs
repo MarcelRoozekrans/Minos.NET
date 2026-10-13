@@ -6,6 +6,8 @@ public sealed class OptionDefinition
     /// <summary>Creates an option.</summary>
     /// <param name="key">The option's wire key. Score levels are keyed by their position.</param>
     /// <param name="criterion">What the option means, or <see langword="null"/> for a Choice option left undescribed.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="key"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="key"/> is empty.</exception>
     public OptionDefinition(string key, Criterion? criterion)
     {
         ArgumentException.ThrowIfNullOrEmpty(key);

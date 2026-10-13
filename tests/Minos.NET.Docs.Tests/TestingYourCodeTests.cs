@@ -21,6 +21,19 @@ public sealed class TestingYourCodeTests
     }
 
     [Fact]
+    public async Task ARefusedFake_ListsTheRefusedQuestion_InFailures()
+    {
+        IDecisionClient client = FakeDecision.Refused("is_urgent");
+
+        var result = await client.EvaluateAsync<TriageQuestions>("text");
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(DecisionErrorKind.Refused, result.Error.Kind);
+        var failure = Assert.Single(result.Error.Failures);
+        Assert.Equal(("refusal", "is_urgent"), (failure.Rule, failure.QuestionKey));
+    }
+
+    [Fact]
     public async Task AChoiceAnswer_IsReadByOptionPosition_FromTheFake()
     {
         IDecisionClient client = FakeDecision.Answering(0.1, TriageDesk.ProductTeam, 0.9);
@@ -93,7 +106,7 @@ public sealed class TestingYourCodeTests
         using var http = new HttpClient(handler);
 
         Assert.Null(http.BaseAddress);
-        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "test-key", MaxRetries = 0 });
+        using var client = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = "test-key", MaxRetries = 0 });
 
         Assert.NotNull(http.BaseAddress);
         Assert.Equal(TriageRoute.Queue, await new TicketTriager(client).RouteAsync("text", CancellationToken.None));

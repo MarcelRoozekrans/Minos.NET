@@ -5,7 +5,7 @@ namespace Minos;
 /// Stages added here wrap the registered client. The container builds the pipeline once, when the client is first
 /// resolved, so stages read its services: <c>UseLogging()</c> its
 /// <see cref="Microsoft.Extensions.Logging.ILoggerFactory"/> and <c>UseRetries()</c> its <see cref="TimeProvider"/>.
-/// A protocol package's registration returns a builder derived from this one, such as <c>SystemOneClientServiceBuilder</c>.
+/// A protocol package's registration returns a builder derived from this one, such as <c>SystemOneDecisionClientServiceBuilder</c>.
 /// </remarks>
 public class DecisionClientServiceBuilder : DecisionClientBuilder
 {

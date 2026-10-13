@@ -5,8 +5,8 @@ ticket. It runs against TypeSafe, OpenRouter or a decision server on your own ma
 changes between them. It shows three things:
 
 - **One section per provider.** `appsettings.json` holds a section for each provider under `Minos:Providers`, and
-  `Minos:Active` names the one to use. The program binds the active section with `AddSystemOneClient`, and no other
-  code knows which provider answers.
+  `Minos:Active` names the one to use. The program binds the active section with `AddSystemOneDecisionClient`, and no
+  other code knows which provider answers.
 - **The same request, different answers.** The report prints each ticket's team and confidence, then the provider and
   the model that answered, so two runs can be compared line by line.
 - **One recording per provider.** TypeSafe and OpenRouter receive byte-identical requests, because both ask

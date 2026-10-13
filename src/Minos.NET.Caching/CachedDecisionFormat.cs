@@ -33,7 +33,7 @@ internal static class CachedDecisionFormat
             }
 
             WriteString(writer, "id"u8, value.Id);
-            WriteString(writer, "provider"u8, value.Provider);
+            WriteString(writer, "provider"u8, value.UpstreamProvider);
             writer.WriteStartArray("slots"u8);
             foreach (var slot in value.Slots)
             {
@@ -108,7 +108,7 @@ internal static class CachedDecisionFormat
         }
 
         return new CachedDecision(
-            fields.Slots, fields.Probabilities, fields.Model, fields.InputTokens, fields.OutputTokens, fields.Cost, fields.Id, fields.Provider);
+            fields.Slots, fields.Probabilities, fields.Model, fields.InputTokens, fields.OutputTokens, fields.Cost, fields.Id, fields.UpstreamProvider);
     }
 
     // Reads the value of the property the reader is on; false when it has the wrong shape.
@@ -146,7 +146,7 @@ internal static class CachedDecisionFormat
 
         if (reader.ValueTextEquals("provider"u8))
         {
-            return TryReadString(ref reader, out fields.Provider);
+            return TryReadString(ref reader, out fields.UpstreamProvider);
         }
 
         if (reader.ValueTextEquals("slots"u8))
@@ -283,7 +283,7 @@ internal static class CachedDecisionFormat
         public int? OutputTokens;
         public double? Cost;
         public string? Id;
-        public string? Provider;
+        public string? UpstreamProvider;
         public AnswerSlot[]? Slots;
         public double[]? Probabilities;
     }

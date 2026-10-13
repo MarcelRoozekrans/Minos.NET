@@ -9,7 +9,7 @@ using Minos.SystemOne.Serialization;
 
 namespace Minos.Tests;
 
-/// <summary>What <see cref="SystemOneClient"/> logs through an <see cref="ILoggerFactory"/>.</summary>
+/// <summary>What <see cref="SystemOneDecisionClient"/> logs through an <see cref="ILoggerFactory"/>.</summary>
 public sealed class DecisionClientLoggingTests : IDisposable
 {
     private readonly List<HttpClient> _httpClients = [];
@@ -400,13 +400,13 @@ public sealed class DecisionClientLoggingTests : IDisposable
         }
     }
 
-    private SystemOneClient Client(StubHandler handler, ILoggerFactory? loggerFactory, int maxRetries = 0, SystemOneProvider provider = SystemOneProvider.TypeSafe)
+    private SystemOneDecisionClient Client(StubHandler handler, ILoggerFactory? loggerFactory, int maxRetries = 0, SystemOneProvider provider = SystemOneProvider.TypeSafe)
     {
         var http = new HttpClient(handler);
         _httpClients.Add(http);
-        return new SystemOneClient(
+        return new SystemOneDecisionClient(
             http,
-            new SystemOneClientOptions
+            new SystemOneDecisionClientOptions
             {
                 ApiKey = "test-key",
                 Provider = provider,

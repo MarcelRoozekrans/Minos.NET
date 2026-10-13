@@ -3,8 +3,8 @@ using Minos.SystemOne;
 namespace Minos.Tests;
 
 /// <summary>
-/// Every invalid <see cref="SystemOneClientOptions"/> case: the options, the environment variables it runs against, and the
-/// exception the settings resolver throws for it. <see cref="SystemOneClientSettingsTests"/> and
+/// Every invalid <see cref="SystemOneDecisionClientOptions"/> case: the options, the environment variables it runs against, and the
+/// exception the settings resolver throws for it. <see cref="SystemOneDecisionClientSettingsTests"/> and
 /// <see cref="DecisionClientOptionsValidateTests"/> both run every case, so a case added here is covered by both.
 /// </summary>
 public static class InvalidOptionsCases
@@ -105,7 +105,7 @@ public static class InvalidOptionsCases
 /// <param name="exception">The exact exception type the resolver throws.</param>
 /// <param name="environment">The fake environment variables the case runs against.</param>
 public sealed class InvalidOptionsCase(
-    Func<SystemOneClientOptions> options, Type exception, params (string Name, string Value)[] environment)
+    Func<SystemOneDecisionClientOptions> options, Type exception, params (string Name, string Value)[] environment)
 {
     /// <summary>Gets the exact exception type the resolver throws.</summary>
     public Type Exception { get; } = exception;
@@ -114,7 +114,7 @@ public sealed class InvalidOptionsCase(
     public (string Name, string Value)[] Environment { get; } = environment;
 
     /// <summary>Creates the case's options.</summary>
-    public SystemOneClientOptions Options() => options();
+    public SystemOneDecisionClientOptions Options() => options();
 
     /// <summary>Reads a fake environment variable, or <see langword="null"/> when the case does not set it.</summary>
     public string? Lookup(string name)

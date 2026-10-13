@@ -1,25 +1,24 @@
 namespace Minos.AotSmoke;
 
-/// <summary><see cref="KeyedScore"/>'s constructors and equality, over an evaluated answer, under Native AOT.</summary>
+/// <summary><see cref="KeyedScore"/>'s default constructor and equality, over an evaluated answer, under Native AOT.</summary>
 internal static class KeyedScoreChecks
 {
     [Covers("Minos.KeyedScore.KeyedScore() -> void")]
-    [Covers("Minos.KeyedScore.KeyedScore(int level, double expected, double confidence, Minos.KeyedProbabilityMap probabilities) -> void")]
     [Covers("Minos.KeyedScore.Equals(Minos.KeyedScore other) -> bool")]
-    public static async Task KeyedScoreIsRebuiltAndCompared()
+    public static async Task KeyedScoreIsCompared()
     {
         var evaluated = await SmokeAnswers.RiskAsync().ConfigureAwait(false);
-        var rebuilt = new KeyedScore(evaluated.Level, evaluated.Expected, evaluated.Confidence, evaluated.Probabilities);
-        var lower = new KeyedScore(evaluated.Level - 1, evaluated.Expected, evaluated.Confidence, evaluated.Probabilities);
+        var again = await SmokeAnswers.RiskAsync().ConfigureAwait(false);
+        var other = await SmokeAnswers.OtherRiskAsync().ConfigureAwait(false);
         var empty = new KeyedScore();
 
         Program.Check(
-            rebuilt.Equals(evaluated)
-                && rebuilt.Level == 3
-                && Math.Abs(rebuilt.Expected - 2.4) < 1e-12
-                && !evaluated.Equals(lower)
+            again.Equals(evaluated)
+                && again.Level == 3
+                && Math.Abs(again.Expected - 2.4) < 1e-12
+                && !evaluated.Equals(other)
                 && !evaluated.Equals(empty)
                 && empty.Equals(default),
-            "a KeyedScore rebuilt from an evaluated one equals it, and a lower or empty one does not, under Native AOT");
+            "an evaluated KeyedScore equals an independent one, and a different or the empty one does not, under Native AOT");
     }
 }

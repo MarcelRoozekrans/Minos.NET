@@ -11,7 +11,7 @@ namespace Minos.AotSmoke;
 /// The decision client pipeline under Native AOT: the neutral response's answer list, the client metadata, a custom
 /// <see cref="DelegatingDecisionClient"/>, <see cref="DecisionClientBuilder"/> with its three <c>Use</c> overloads, the
 /// three standard stages built by hand and through their <c>Use…</c> extensions, and
-/// <see cref="SystemOneClientOptions.UseStandardPipeline"/>.
+/// <see cref="SystemOneDecisionClientOptions.UseStandardPipeline"/>.
 /// </summary>
 internal static class PipelineChecks
 {
@@ -42,7 +42,7 @@ internal static class PipelineChecks
                 && response.Answers[2].Probabilities.Length == 3,
             "a DecisionResponse's answers enumerate in the definition's order with their keys and kinds under Native AOT");
         Program.Check(
-            empty.Count == 0 && !emptyEnumerator.MoveNext() && blank.Value == 0 && blank.Probabilities.IsEmpty,
+            empty.Count == 0 && !emptyEnumerator.MoveNext() && blank.Probability == 0 && blank.Expected == 0 && blank.Probabilities.IsEmpty,
             "the default answer list, enumerator and answer are empty under Native AOT");
     }
 
@@ -51,14 +51,14 @@ internal static class PipelineChecks
     {
         var metadata = new DecisionClientMetadata("smoke", new Uri("https://example.test/api/"), "jev-latest");
         using var http = Program.Http(HttpStatusCode.OK, Program.NoulResponse);
-        using var client = new SystemOneClient(http, Program.Options());
+        using var client = new SystemOneDecisionClient(http, Program.Options());
         var real = client.GetService<DecisionClientMetadata>();
 
         Program.Check(
             metadata is { ProviderName: "smoke", Endpoint.Host: "example.test", DefaultModel: "jev-latest" }
                 && metadata == metadata with { }
                 && real is { ProviderName: "typesafe", Endpoint.Host: "example.test", DefaultModel: "jev-latest" },
-            "DecisionClientMetadata carries a provider, endpoint and default model, and a SystemOneClient offers its own, under Native AOT");
+            "DecisionClientMetadata carries a provider, endpoint and default model, and a SystemOneDecisionClient offers its own, under Native AOT");
     }
 
     [Covers("Minos.DelegatingDecisionClient.DelegatingDecisionClient(Minos.IDecisionClient! innerClient) -> void")]
@@ -157,7 +157,7 @@ internal static class PipelineChecks
         var handler = new SequenceHandler(Program.TriageResponse, HttpStatusCode.ServiceUnavailable, HttpStatusCode.OK);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("https://example.test/api/") };
         var options = new DecisionRetryOptions { MaxRetries = 1, InitialBackoff = TimeSpan.FromMilliseconds(10), Jitter = false };
-        var bare = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "smoke-key", UseStandardPipeline = false });
+        var bare = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = "smoke-key", UseStandardPipeline = false });
         var retrying = new RetryingDecisionClient(bare, options, logger, TimeProvider.System);
         var logging = new LoggingDecisionClient(retrying, logger);
         using var client = new OpenTelemetryDecisionClient(logging);
@@ -198,8 +198,8 @@ internal static class PipelineChecks
         using var factory = new LoggerFactory([provider], new LoggerFilterOptions { MinLevel = LogLevel.Debug });
         var handler = new SequenceHandler(Program.TriageResponse, HttpStatusCode.ServiceUnavailable, HttpStatusCode.OK);
         using var http = new HttpClient(handler) { BaseAddress = new Uri("https://example.test/api/") };
-        var bare = new SystemOneClient(
-            http, new SystemOneClientOptions { ApiKey = "smoke-key", UseStandardPipeline = false, MaxRetries = 3, InitialBackoff = TimeSpan.FromMilliseconds(10) });
+        var bare = new SystemOneDecisionClient(
+            http, new SystemOneDecisionClientOptions { ApiKey = "smoke-key", UseStandardPipeline = false, MaxRetries = 3, InitialBackoff = TimeSpan.FromMilliseconds(10) });
         var services = new ServiceCollection().AddSingleton<ILoggerFactory>(factory).BuildServiceProvider();
         var configured = 0;
 
@@ -231,11 +231,11 @@ internal static class PipelineChecks
     {
         var standardHandler = new SequenceHandler(Program.TriageResponse, HttpStatusCode.ServiceUnavailable, HttpStatusCode.OK);
         using var standardHttp = new HttpClient(standardHandler) { BaseAddress = new Uri("https://example.test/api/") };
-        using var standard = new SystemOneClient(
-            standardHttp, new SystemOneClientOptions { ApiKey = "smoke-key", InitialBackoff = TimeSpan.FromMilliseconds(10), Jitter = false });
+        using var standard = new SystemOneDecisionClient(
+            standardHttp, new SystemOneDecisionClientOptions { ApiKey = "smoke-key", InitialBackoff = TimeSpan.FromMilliseconds(10), Jitter = false });
         var bareHandler = new SequenceHandler(Program.TriageResponse, HttpStatusCode.ServiceUnavailable, HttpStatusCode.OK);
         using var bareHttp = new HttpClient(bareHandler) { BaseAddress = new Uri("https://example.test/api/") };
-        using var bare = new SystemOneClient(bareHttp, new SystemOneClientOptions { ApiKey = "smoke-key", UseStandardPipeline = false });
+        using var bare = new SystemOneDecisionClient(bareHttp, new SystemOneDecisionClientOptions { ApiKey = "smoke-key", UseStandardPipeline = false });
 
         var retried = await standard.EvaluateAsync<SmokeTriage>(SmokeAnswers.State).ConfigureAwait(false);
         var single = await bare.EvaluateAsync<SmokeTriage>(SmokeAnswers.State).ConfigureAwait(false);

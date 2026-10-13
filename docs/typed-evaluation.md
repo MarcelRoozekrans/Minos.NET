@@ -63,19 +63,19 @@ snake_case, and `Key = "..."` on the attribute sets another one. A key can be us
 ```cs
 public enum Desk
 {
-    [Criteria(
+    [Criterion(
         "Payments, invoices and refunds",
         Examples = ["I was charged twice"],
         NotFor = ["How much is the Pro plan?"])]
     Billing,
 
-    [Criteria("Bugs, outages and integrations", Examples = ["The API returns a 500"])]
+    [Criterion("Bugs, outages and integrations", Examples = ["The API returns a 500"])]
     Technical,
 
-    [Criteria("Pricing, upgrades and new accounts")]
+    [Criterion("Pricing, upgrades and new accounts")]
     Sales,
 
-    // A member with no [Criteria] is a valid option, sent with no description.
+    // A member with no [Criterion] is a valid option, sent with no description.
     Other,
 }
 
@@ -113,8 +113,8 @@ public partial record TicketReview
 
 A few things in that declaration are worth reading closely.
 
-- **Options and levels are enum members.** `[Criteria]` describes a Choice option. `[Level]` describes a Score level,
-  and the members, in declaration order, are the levels from lowest to highest. A Choice member without `[Criteria]` is
+- **Options and levels are enum members.** `[Criterion]` describes a Choice option. `[Level]` describes a Score level,
+  and the members, in declaration order, are the levels from lowest to highest. A Choice member without `[Criterion]` is
   still an option and is sent with no description, though the analyzers report it as the Info diagnostic
   [MIN006](diagnostics.md#the-rules). A Score level must have a `[Level]`, because the API does not accept a level
   without one.
@@ -162,7 +162,7 @@ object. The Jev API itself has no such fields. The generated questions for `Tick
 }
 ```
 
-A Choice's options are keyed by the member name in snake_case, or by `Key` on the member's `[Criteria]` when one is
+A Choice's options are keyed by the member name in snake_case, or by `Key` on the member's `[Criterion]` when one is
 set. A Score's levels are keyed by their index, and `[Level]` has no `Key`. The generator
 fixes the question text and criteria in the definition it writes at compile time, and the client writes this JSON from
 it: they cannot vary per call. What varies per call is the state.
@@ -276,7 +276,7 @@ throw `ArgumentException` for it, and do not return a failed `Result`. A `null` 
 come back in the `Result`. In particular, a response that is missing an answer, or that has one of the wrong type, is a
 failure with kind `DecisionErrorKind.InvalidResponse`.
 
-The model is the one in `SystemOneClientOptions.Model`, which defaults to the alias `jev-latest`.
+The model is the one in `SystemOneDecisionClientOptions.Model`, which defaults to the alias `jev-latest`.
 
 ### How a typed call reaches the client
 
@@ -287,8 +287,8 @@ generated `Create`. So a typed call runs through the client's [pipeline](pipelin
 retries, and a hand-written fake in a test answers it by implementing that one call, as
 [Testing your code](testing-your-code.md#way-one-a-fake-idecisionclient) shows.
 
-Inside a `SystemOneClient`, the protocol writes the request from the definition into pooled buffers, and caches the
-questions JSON of each set after the first call.
+Inside a `SystemOneDecisionClient`, the protocol writes the request from the definition into pooled buffers, and caches
+the questions JSON of each set after the first call.
 
 Each overload sends the same request as before the [pipeline](pipeline.md). `EvaluateUtf8Async<T>` copies your bytes
 into the request as they are, with their whitespace and escapes, and parses nothing. It copies them once when you
@@ -337,6 +337,9 @@ The generator writes `Definition` and `Create` for each `[Questions]` type. The 
 you type: the shape of the type, the keys, the enums and the backticked names. A set with an error gets no generated
 members, and the generator stubs its properties, so the build reports the analyzer's error and not a confusing
 missing-implementation one.
+
+The generated type implements `IQuestionSet<TSelf>`. Its `Create(AnswerSlots)` method and the `DecisionOptionSet<T>`
+subclasses the generator writes for your enums are generator plumbing that application code does not call.
 
 The type that carries `[Questions]` must be a non-generic, non-abstract, non-static, top-level partial class or
 record, and it needs a constructor that can be called without arguments. Its question properties must be partial,

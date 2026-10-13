@@ -22,8 +22,8 @@ internal readonly record struct CapabilitySet(
         overrides.QuestionKinds ?? Kinds,
         overrides.MaxQuestions ?? MaxQuestions,
         overrides.MaxChoiceOptions ?? MaxChoiceOptions,
-        overrides.Images ?? Images,
-        overrides.ModelListing ?? ModelListing);
+        overrides.SupportsImages ?? Images,
+        overrides.SupportsModelListing ?? ModelListing);
 
     /// <summary>Copies these values into a new, fully set <see cref="DecisionCapabilities"/>, for <c>GetService</c>.</summary>
     /// <returns>A new instance; changing it changes nothing in the client.</returns>
@@ -32,8 +32,8 @@ internal readonly record struct CapabilitySet(
         QuestionKinds = Kinds,
         MaxQuestions = MaxQuestions,
         MaxChoiceOptions = MaxChoiceOptions,
-        Images = Images,
-        ModelListing = ModelListing,
+        SupportsImages = Images,
+        SupportsModelListing = ModelListing,
     };
 
     /// <summary>

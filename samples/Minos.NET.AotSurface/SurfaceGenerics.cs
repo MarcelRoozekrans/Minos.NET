@@ -36,7 +36,7 @@ public static class SurfaceGenerics
     /// <summary>Calls every public generic method that does not evaluate.</summary>
     /// <remarks>The builder callbacks are empty, so a generic type's members are reached only through
     /// <see cref="Types"/>.</remarks>
-    public static void Methods(Answers answers, AnswerSlots slots, DecisionOptionSet<SurfaceTeam> teams, DecisionOptionSet<SurfaceUrgency> levels, SurfaceState state)
+    public static void Methods(QuestionSetAnswers answers, AnswerSlots slots, DecisionOptionSet<SurfaceTeam> teams, DecisionOptionSet<SurfaceUrgency> levels, SurfaceState state)
     {
         _ = QuestionSet.CreateBuilder()
             .Choice<SurfaceTeam>("team", "Which team?", out var team)
@@ -53,7 +53,7 @@ public static class SurfaceGenerics
 
     /// <summary>
     /// Calls every public generic evaluation method: the <see cref="DecisionClientExtensions"/> over the interface, which
-    /// a <see cref="SystemOneClient"/> reaches too, since it has no generic members of its own.
+    /// a <see cref="SystemOneDecisionClient"/> reaches too, since it has no generic members of its own.
     /// </summary>
     public static async Task EvaluateAsync(IDecisionClient client, JsonElement json, SurfaceState state)
     {
@@ -66,6 +66,8 @@ public static class SurfaceGenerics
         _ = await client.EvaluateUtf8Async<SurfaceTriage>("{}"u8.ToArray()).ConfigureAwait(false);
         _ = await client.EvaluateUtf8Async<SurfaceTriage>("{}"u8.ToArray(), CancellationToken.None).ConfigureAwait(false);
         _ = client.GetService<DecisionClientMetadata>();
+        _ = client.GetRequiredService<DecisionClientMetadata>();
+        _ = client.GetRequiredService<DecisionClientMetadata>(serviceKey: null);
         _ = await client.EvaluateAsync<SurfaceStateTriage, SurfaceState>(state, stateInfo).ConfigureAwait(false);
         _ = await client.EvaluateAsync<SurfaceStateTriage, SurfaceState>(state, stateInfo, CancellationToken.None).ConfigureAwait(false);
         _ = await client.EvaluateAsync<SurfaceTriage>("state", []).ConfigureAwait(false);

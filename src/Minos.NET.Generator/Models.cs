@@ -13,7 +13,7 @@ internal enum QuestionKind
 /// <param name="MemberName">The enum member, escaped as a C# identifier.</param>
 /// <param name="Key">The wire key: snake_case name or override for a Choice, the level index for a Score.</param>
 /// <param name="Description">
-/// The criterion or level text, raw; <see langword="null"/> for a Choice member without <c>[Criteria]</c>.
+/// The criterion or level text, raw; <see langword="null"/> for a Choice member without <c>[Criterion]</c>.
 /// </param>
 /// <param name="Examples">The non-null <c>Examples</c> texts, raw, in order.</param>
 /// <param name="NotFor">The non-null <c>NotFor</c> texts, raw, in order.</param>

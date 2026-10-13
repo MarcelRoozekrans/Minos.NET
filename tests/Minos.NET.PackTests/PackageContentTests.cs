@@ -307,7 +307,7 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
 
             public static class Logging
             {
-                public static SystemOneClient Create() => new(new SystemOneClientOptions { ApiKey = "consumer-key" }, NullLoggerFactory.Instance);
+                public static SystemOneDecisionClient Create() => new(new SystemOneDecisionClientOptions { ApiKey = "consumer-key" }, NullLoggerFactory.Instance);
             }
             """);
 

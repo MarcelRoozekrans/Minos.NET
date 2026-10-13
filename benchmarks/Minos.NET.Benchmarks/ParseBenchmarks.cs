@@ -7,10 +7,10 @@ namespace Minos.Benchmarks;
 
 public enum Team
 {
-    [Criteria("Charges, invoices, refunds")]
+    [Criterion("Charges, invoices, refunds")]
     Billing,
 
-    [Criteria("Login, profile, permissions")]
+    [Criterion("Login, profile, permissions")]
     Account,
 }
 

@@ -17,6 +17,8 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" />
     <!-- Host.CreateApplicationBuilder, for the startup validation tests. -->
     <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <!-- FakeTimeProvider, the container TimeProvider the registrations' built-in retries must wait on. -->
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />

@@ -1,18 +1,21 @@
 namespace Minos.SystemOne;
 
-/// <summary>Default values shared by the Minos client, matching TypeSafe's official SDKs.</summary>
+/// <summary>
+/// Default values for <see cref="SystemOneDecisionClient"/>: TypeSafe's and OpenRouter's addresses and environment
+/// variables, and the default model, matching TypeSafe's official SDKs.
+/// </summary>
 public static class SystemOneDefaults
 {
     /// <summary>Environment variable the client reads a TypeSafe API key from.</summary>
-    public const string ApiKeyEnvironmentVariable = "TYPESAFE_API_KEY";
+    public const string TypeSafeApiKeyEnvironmentVariable = "TYPESAFE_API_KEY";
 
     /// <summary>Environment variable the client reads an OpenRouter API key from.</summary>
     public const string OpenRouterApiKeyEnvironmentVariable = "OPENROUTER_API_KEY";
 
-    /// <summary>Environment variable that overrides the base address, as in the official SDKs.</summary>
-    public const string BaseAddressEnvironmentVariable = "TYPESAFE_BASE_URL";
+    /// <summary>Environment variable that overrides TypeSafe's base address; no other provider reads it.</summary>
+    public const string TypeSafeBaseAddressEnvironmentVariable = "TYPESAFE_BASE_URL";
 
-    /// <summary>Gets the model alias used when a request does not name one.</summary>
+    /// <summary>Gets the model alias that the TypeSafe and OpenRouter presets use when no model is set.</summary>
     /// <remarks>A property rather than a constant, so a changed default is not compiled into callers.</remarks>
     public static string Model => "jev-latest";
 

@@ -209,6 +209,17 @@ public sealed class DecisionClientTests : IDisposable
     }
 
     [Fact]
+    public async Task ListModels_CallerCancellation_Throws()
+    {
+        using var client = Borrowing(StubHandler.Json(HttpStatusCode.OK, Fixture.Text("models.json")));
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            async () => await client.ListModelsAsync(cancellation.Token));
+    }
+
+    [Fact]
     public async Task OwnedClient_SendsUserAgent_AndIsDisposedWithTheClient()
     {
         var handler = StubHandler.Json(HttpStatusCode.OK, Fixture.Text("response-noul.json"));
@@ -228,7 +239,7 @@ public sealed class DecisionClientTests : IDisposable
     {
         var handler = StubHandler.Json(HttpStatusCode.OK, Fixture.Text("response-noul.json"));
         using var http = new HttpClient(handler) { BaseAddress = new Uri("http://proxy.local/minos/") };
-        var client = new SystemOneClient(Settings(), http, ownedHandler: null, TimeProvider.System);
+        var client = new SystemOneDecisionClient(Settings(), http, ownedHandler: null, TimeProvider.System);
 
         _ = await client.EvaluateAsync(NoulRequest());
         client.Dispose();
@@ -245,7 +256,7 @@ public sealed class DecisionClientTests : IDisposable
         using var http = new HttpClient(handler) { BaseAddress = new Uri("https://openrouter.ai/api") };
 
         var exception = Assert.Throws<ArgumentException>(
-            () => new SystemOneClient(Settings(), http, ownedHandler: null, TimeProvider.System));
+            () => new SystemOneDecisionClient(Settings(), http, ownedHandler: null, TimeProvider.System));
 
         Assert.Equal("httpClient", exception.ParamName);
     }
@@ -257,7 +268,7 @@ public sealed class DecisionClientTests : IDisposable
         using var http = new HttpClient(handler) { BaseAddress = new Uri("https://openrouter.ai/api/?key=value") };
 
         var exception = Assert.Throws<ArgumentException>(
-            () => new SystemOneClient(Settings(), http, ownedHandler: null, TimeProvider.System));
+            () => new SystemOneDecisionClient(Settings(), http, ownedHandler: null, TimeProvider.System));
 
         Assert.Equal("httpClient", exception.ParamName);
     }
@@ -269,7 +280,7 @@ public sealed class DecisionClientTests : IDisposable
         using var http = new HttpClient(handler) { BaseAddress = new Uri("https://example.test/api/#frag") };
 
         var exception = Assert.Throws<ArgumentException>(
-            () => new SystemOneClient(Settings(), http, ownedHandler: null, TimeProvider.System));
+            () => new SystemOneDecisionClient(Settings(), http, ownedHandler: null, TimeProvider.System));
 
         Assert.Equal("httpClient", exception.ParamName);
     }
@@ -279,7 +290,7 @@ public sealed class DecisionClientTests : IDisposable
     {
         var handler = StubHandler.Json(HttpStatusCode.OK, Fixture.Text("response-noul.json"));
         using var http = new HttpClient(handler);
-        var client = new SystemOneClient(Settings(), http, ownedHandler: null, TimeProvider.System);
+        var client = new SystemOneDecisionClient(Settings(), http, ownedHandler: null, TimeProvider.System);
 
         _ = await client.EvaluateAsync(NoulRequest());
         client.Dispose();
@@ -309,20 +320,20 @@ public sealed class DecisionClientTests : IDisposable
     [Fact]
     public void PublicConstructors_ValidateArguments()
     {
-        Assert.Throws<ArgumentNullException>(() => new SystemOneClient((HttpClient)null!));
-        Assert.Throws<ArgumentNullException>(() => new SystemOneClient(null!, new SystemOneClientOptions { ApiKey = "k" }));
+        Assert.Throws<ArgumentNullException>(() => new SystemOneDecisionClient((HttpClient)null!));
+        Assert.Throws<ArgumentNullException>(() => new SystemOneDecisionClient(null!, new SystemOneDecisionClientOptions { ApiKey = "k" }));
 
         // A null httpClient must be reported even when the options would otherwise be invalid.
-        Assert.Throws<ArgumentNullException>(() => new SystemOneClient(null!, new SystemOneClientOptions { Provider = (SystemOneProvider)42 }));
+        Assert.Throws<ArgumentNullException>(() => new SystemOneDecisionClient(null!, new SystemOneDecisionClientOptions { Provider = (SystemOneProvider)42 }));
 
-        using var client = new SystemOneClient(new SystemOneClientOptions { ApiKey = "k", BaseAddress = new Uri("http://localhost/") });
+        using var client = new SystemOneDecisionClient(new SystemOneDecisionClientOptions { ApiKey = "k", BaseAddress = new Uri("http://localhost/") });
         Assert.NotNull(client);
     }
 
     // maxRetries defaults to 0 so each test here sees exactly one outcome per status; DecisionClientRetryTests covers retries.
-    private static SystemOneClientSettings Settings(SystemOneProvider provider = SystemOneProvider.TypeSafe, TimeSpan? timeout = null, int maxRetries = 0)
-        => SystemOneClientSettings.Resolve(
-            new SystemOneClientOptions
+    private static SystemOneDecisionClientSettings Settings(SystemOneProvider provider = SystemOneProvider.TypeSafe, TimeSpan? timeout = null, int maxRetries = 0)
+        => SystemOneDecisionClientSettings.Resolve(
+            new SystemOneDecisionClientOptions
             {
                 ApiKey = "test-key",
                 Provider = provider,
@@ -331,19 +342,19 @@ public sealed class DecisionClientTests : IDisposable
             },
             _ => null);
 
-    private SystemOneClient Borrowing(StubHandler handler, SystemOneProvider provider = SystemOneProvider.TypeSafe)
+    private SystemOneDecisionClient Borrowing(StubHandler handler, SystemOneProvider provider = SystemOneProvider.TypeSafe)
     {
         var http = new HttpClient(handler);
         _borrowedHttpClients.Add(http);
         return new(Settings(provider), http, ownedHandler: null, TimeProvider.System);
     }
 
-    private static SystemOneClient Owning(StubHandler handler, TimeSpan? timeout = null)
+    private static SystemOneDecisionClient Owning(StubHandler handler, TimeSpan? timeout = null)
         => new(Settings(timeout: timeout), httpClient: null, handler, TimeProvider.System);
 
     [Theory]
     [InlineData(typeof(IDecisionClient), 1)]
-    [InlineData(typeof(SystemOneClient), 3)]
+    [InlineData(typeof(SystemOneDecisionClient), 3)]
     [InlineData(typeof(DecisionClientExtensions), 10)]
     public void EveryCancellationTokenParameter_IsNamedCancellationToken(Type type, int count)
     {

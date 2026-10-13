@@ -23,11 +23,11 @@ public class TelemetryBenchmarks : IDisposable
     private HttpClient _builtSetHttp = null!;
     private HttpClient _listModelsHttp = null!;
     private HttpClient _typedYieldingHttp = null!;
-    private SystemOneClient _evaluateClient = null!;
-    private SystemOneClient _typedClient = null!;
-    private SystemOneClient _builtSetClient = null!;
-    private SystemOneClient _listModelsClient = null!;
-    private SystemOneClient _typedYieldingClient = null!;
+    private SystemOneDecisionClient _evaluateClient = null!;
+    private SystemOneDecisionClient _typedClient = null!;
+    private SystemOneDecisionClient _builtSetClient = null!;
+    private SystemOneDecisionClient _listModelsClient = null!;
+    private SystemOneDecisionClient _typedYieldingClient = null!;
     private SystemOneRequest _request = null!;
     private QuestionSet _triage = null!;
 
@@ -87,7 +87,7 @@ public class TelemetryBenchmarks : IDisposable
 
     /// <summary><see cref="QuestionSetBenchmarks.EvaluateBuiltSet"/>'s three-question triage set while listening.</summary>
     [Benchmark]
-    public ValueTask<Result<Answers, DecisionError>> EvaluateBuiltSetListeningAsync() => _builtSetClient.EvaluateAsync(_triage, State);
+    public ValueTask<Result<QuestionSetAnswers, DecisionError>> EvaluateBuiltSetListeningAsync() => _builtSetClient.EvaluateAsync(_triage, State);
 
     /// <summary><see cref="ClientBenchmarks.ListModelsAsync"/> while listening.</summary>
     [Benchmark]

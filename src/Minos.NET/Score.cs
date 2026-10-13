@@ -10,7 +10,7 @@ public readonly struct Score<T> : IEquatable<Score<T>>
     /// <param name="expected">The probability-weighted mean level index the API returns as <c>score</c>.</param>
     /// <param name="confidence">The model's confidence, between 0 and 1.</param>
     /// <param name="probabilities">The probability of each level.</param>
-    public Score(T value, double expected, double confidence, ProbabilityMap<T> probabilities)
+    internal Score(T value, double expected, double confidence, ProbabilityMap<T> probabilities)
     {
         Value = value;
         Expected = expected;

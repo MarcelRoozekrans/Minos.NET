@@ -3,9 +3,9 @@ using ZeroAlloc.Results;
 namespace Minos.AotSmoke;
 
 /// <summary>
-/// A hand-written <see cref="IDecisionClient"/> that is not a <see cref="SystemOneClient"/>, as a test fake is, so every
+/// A hand-written <see cref="IDecisionClient"/> that is not a <see cref="SystemOneDecisionClient"/>, as a test fake is, so every
 /// typed and built-set call on it runs through <see cref="DecisionClientExtensions"/>. Proves that path compiles and
-/// runs under Native AOT, not just over a real <see cref="SystemOneClient"/>. It answers every call with the same
+/// runs under Native AOT, not just over a real <see cref="SystemOneDecisionClient"/>. It answers every call with the same
 /// <see cref="DecisionResponse"/>, and records the request each extension builds, so a check can assert the state
 /// reached it.
 /// </summary>

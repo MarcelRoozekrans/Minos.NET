@@ -11,7 +11,7 @@ public static class OpenAIRegistration
     // without one, the OpenAI client reads OPENAI_API_KEY, and the host fails at start-up when there is none.
     public static OpenAIDecisionClientServiceBuilder AddBothProviders(IHostApplicationBuilder builder)
     {
-        builder.Services.AddSystemOneClient(options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
+        builder.Services.AddSystemOneDecisionClient(options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
         return builder.Services.AddOpenAIDecisionClient(
             "openai", options => options.ApiKey = builder.Configuration["OpenAI:ApiKey"]);
     }

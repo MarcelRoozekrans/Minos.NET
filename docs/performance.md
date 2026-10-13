@@ -9,7 +9,7 @@ description: What the client costs per call, how it compares with other clients,
 
 `benchmarks/Minos.NET.Benchmarks` measures the client's hot paths with BenchmarkDotNet: the
 protocol's reading of the answers into slots plus the generated `[Questions]` `Create` method
-(`ParseBenchmarks`), `SystemOneClient.EvaluateAsync` / `ListModelsAsync` against an in-memory
+(`ParseBenchmarks`), `SystemOneDecisionClient.EvaluateAsync` / `ListModelsAsync` against an in-memory
 `HttpMessageHandler` (`ClientBenchmarks`) and question sets built at run time (`QuestionSetBenchmarks`).
 
 Run it locally with:
@@ -56,7 +56,7 @@ benchmark, and the same rounding gives it 320 B too.
 | `QuestionSetBenchmarks.EvaluateBuiltSet` | 4.234 us | 3808 B | 3648 B today, 4736 B then (AOT smoke, a different set) |
 | `QuestionSetBenchmarks.ParseBuiltTwenty` | 3.087 us | 568 B | 256 B (unit test, a different three-question set) |
 | `QuestionSetBenchmarks.ParseGeneratedTwenty` | 2.457 us | 176 B | — |
-| `Answers.Get` | — | — | 0 B (AOT smoke) |
+| `QuestionSetAnswers.Get` | — | — | 0 B (AOT smoke) |
 
 Measured on a 12th Gen Intel Core i9-12900HK, Windows 11 (10.0.26200.9457), .NET SDK 10.0.401 with runtime 10.0.12,
 with `--job short`, so the means are indicative only.
@@ -192,7 +192,7 @@ The `ClientBenchmarks.EvaluateAsync` row ran in a separate job on a loaded machi
 
 **DI adds nothing per call.**
 - Both `DependencyInjectionBenchmarks` rows make `ClientBenchmarks.EvaluateAsync`'s call.
-- The hand-built client runs over an `HttpClient` that `SystemOneClient.ConfigureHttpClient` configured, as the
+- The hand-built client runs over an `HttpClient` that `SystemOneDecisionClient.ConfigureHttpClient` configured, as the
   factory's is. So both send the User-Agent header. That header costs 64 B per call over
   `ClientBenchmarks.EvaluateAsync`, whose borrowed client sends none.
 - Under published win-x64 AOT, the gate `EvaluateRoundTripThroughDependencyInjectionAgainstHandBuilt` holds the

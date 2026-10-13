@@ -23,7 +23,7 @@ dotnet add package Minos.NET.SystemOne
 dotnet add package Minos.NET.DependencyInjection
 ```
 
-For OpenAI's Decisions API, add `Minos.NET.OpenAI` instead of, or beside, `Minos.NET.SystemOne`:
+For OpenAI's Decisions API, add `Minos.NET.OpenAI` instead of, or beside, `Minos.NET.SystemOne`. The package is built from OpenAI's Decisions guide and is not yet tested against the live API:
 
 ```
 dotnet add package Minos.NET.OpenAI
@@ -44,10 +44,10 @@ using Minos.SystemOne;
 
 public enum Lane
 {
-    [Criteria("Payments, invoices and refunds")]
+    [Criterion("Payments, invoices and refunds")]
     Billing,
 
-    [Criteria("Bugs, outages and integrations")]
+    [Criterion("Bugs, outages and integrations")]
     Technical,
 }
 
@@ -64,10 +64,10 @@ public partial record Triage
 public static class ReadmeExample
 {
     // A one-off run. The client reads TYPESAFE_API_KEY. A long-running app creates one client and shares it, or
-    // registers it with AddSystemOneClient.
+    // registers it with AddSystemOneDecisionClient.
     public static async Task<string> RunAsync(string message, CancellationToken cancellationToken)
     {
-        using var client = new SystemOneClient();
+        using var client = new SystemOneDecisionClient();
         return await RouteAsync(client, message, cancellationToken);
     }
 
@@ -90,14 +90,14 @@ The guide lives at [marcelroozekrans.github.io/Minos.NET](https://marcelroozekra
 - [Question types](https://marcelroozekrans.github.io/Minos.NET/question-types): Noul, Choice and Score, what each answer holds, and how confidence differs from probability.
 - [Typed evaluation](https://marcelroozekrans.github.io/Minos.NET/typed-evaluation): declare questions as a C# type, give them a typed state, and pick the `EvaluateAsync` overload.
 - [Question sets at run time](https://marcelroozekrans.github.io/Minos.NET/question-sets-at-run-time): build a question set from data with the builder, evaluate it, and read answers through handles.
-- [The client and its errors](https://marcelroozekrans.github.io/Minos.NET/client-and-errors): create and configure a `SystemOneClient` or an `OpenAIDecisionClient`, retries and time-outs, every kind of `DecisionError`, and the raw request API.
+- [The client and its errors](https://marcelroozekrans.github.io/Minos.NET/client-and-errors): create and configure a `SystemOneDecisionClient` or an `OpenAIDecisionClient`, retries and time-outs, every kind of `DecisionError`, and the raw request API.
 - [Providers](https://marcelroozekrans.github.io/Minos.NET/providers): the presets, servers you run and OpenAI, the capability matrix, images, and switching providers by configuration.
 - [Dependency injection](https://marcelroozekrans.github.io/Minos.NET/dependency-injection): register `IDecisionClient` in a .NET host, key several clients, and bind options from configuration.
-- [The client pipeline](https://marcelroozekrans.github.io/Minos.NET/pipeline): the stages every call goes through, building your own pipeline, writing a stage, and upgrading from 0.7.
+- [The client pipeline](https://marcelroozekrans.github.io/Minos.NET/pipeline): the stages every call goes through, building your own pipeline, writing a stage, and upgrading to 1.0 and from 0.7.
 - [Logging, traces and metrics](https://marcelroozekrans.github.io/Minos.NET/observability): what the client logs, which spans and metrics it emits, and what it never records.
 - [Native AOT and allocations](https://marcelroozekrans.github.io/Minos.NET/native-aot): what Native AOT compatibility means, the one reflection the client uses, and the allocation budgets that guard it.
 - [Diagnostics](https://marcelroozekrans.github.io/Minos.NET/diagnostics): every MIN analyzer rule with its severity, the provider rules the client checks at run time, the two code fixes, and how to suppress a rule.
-- [Testing your code](https://marcelroozekrans.github.io/Minos.NET/testing-your-code): test code that calls Jev with a fake `IDecisionClient` or a real `SystemOneClient` over a canned HTTP reply.
+- [Testing your code](https://marcelroozekrans.github.io/Minos.NET/testing-your-code): test code that calls Jev with a fake `IDecisionClient` or a real `SystemOneDecisionClient` over a canned HTTP reply.
 - [Patterns](https://marcelroozekrans.github.io/Minos.NET/patterns): four ways to use Jev answers, each with a guide of its own.
 - [Speculative fan-out](https://marcelroozekrans.github.io/Minos.NET/patterns/fan-out): ask every question you might need in one request and read only the answers that matter.
 - [Confidence routing](https://marcelroozekrans.github.io/Minos.NET/patterns/confidence-routing): gate each action on the answer confidence, with a threshold sized to the cost of being wrong.

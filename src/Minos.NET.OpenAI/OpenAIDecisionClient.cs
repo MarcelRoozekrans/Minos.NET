@@ -144,11 +144,17 @@ public sealed class OpenAIDecisionClient : IDecisionClient
     /// </exception>
     /// <exception cref="InvalidOperationException">No API key is configured, or an environment variable is invalid.</exception>
     public OpenAIDecisionClient(HttpClient httpClient, OpenAIDecisionClientOptions? options, ILoggerFactory? loggerFactory)
+        : this(httpClient, options, loggerFactory, TimeProvider.System)
+    {
+    }
+
+    // The registration passes the container's TimeProvider, so the built-in retries and the Retry-After wait on it.
+    internal OpenAIDecisionClient(HttpClient httpClient, OpenAIDecisionClientOptions? options, ILoggerFactory? loggerFactory, TimeProvider time)
         : this(
             ResolveSettings(httpClient, options),
             httpClient,
             ownedHandler: null,
-            TimeProvider.System,
+            time,
             ArrayPool<byte>.Shared,
             loggerFactory?.CreateLogger(DecisionLog.Category))
     {
@@ -192,7 +198,7 @@ public sealed class OpenAIDecisionClient : IDecisionClient
             MaxRetryDelay = settings.MaxRetryDelay,
             Jitter = settings.Jitter,
         };
-        _metadata = new DecisionClientMetadata(OpenAIClientSettings.ProviderName, httpClient.BaseAddress!, settings.Model);
+        _metadata = new DecisionClientMetadata(OpenAIClientSettings.ProviderName, new Uri(httpClient.BaseAddress!, OpenAIClientSettings.Path), settings.Model);
 
         // A disposed client never retries. Only an owned HttpClient is disposed with the client, so only an owned one can
         // tear a request down: the mapper reports such an attempt as Disposed, which is never retried. A borrowed
@@ -284,6 +290,7 @@ public sealed class OpenAIDecisionClient : IDecisionClient
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
     /// <exception cref="ObjectDisposedException">The client has been disposed.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);

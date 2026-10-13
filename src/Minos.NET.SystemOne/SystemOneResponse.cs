@@ -1,3 +1,4 @@
+using System.Text.Json.Serialization;
 using Minos.SystemOne.Telemetry;
 
 namespace Minos.SystemOne;
@@ -14,11 +15,15 @@ public sealed class SystemOneResponse
     /// <summary>Gets the token usage for the request.</summary>
     public required DecisionUsage Usage { get; init; }
 
-    /// <summary>Gets the generation id OpenRouter assigns; <see langword="null"/> on TypeSafe's API.</summary>
+    /// <summary>Gets the generation id, when the server sends one: OpenRouter does, TypeSafe's API does not.</summary>
     public string? Id { get; init; }
 
-    /// <summary>Gets the upstream provider OpenRouter routed to; <see langword="null"/> on TypeSafe's API.</summary>
-    public string? Provider { get; init; }
+    /// <summary>
+    /// Gets the upstream provider OpenRouter routed the request to; <see langword="null"/> when the server does not report
+    /// one, as on TypeSafe's API.
+    /// </summary>
+    [JsonPropertyName("provider")]
+    public string? UpstreamProvider { get; init; }
 
     /// <summary>Gets each Choice and Score answer's confidence, for the telemetry proxy; reading it does not allocate.</summary>
     internal AnswerConfidences Confidences => new(Answers);

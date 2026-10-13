@@ -3,13 +3,14 @@ namespace Minos.Caching.Tests;
 public sealed class DecisionCacheOptionsTests
 {
     [Fact]
-    public void The_defaults_are_five_minutes_the_same_locally_and_the_minos_prefix()
+    public void The_defaults_are_five_minutes_the_same_locally_the_minos_prefix_and_the_distributed_cache_on()
     {
         var options = new DecisionCacheOptions();
 
         Assert.Equal(TimeSpan.FromMinutes(5), options.Expiration);
         Assert.Null(options.LocalCacheExpiration);
         Assert.Equal("minos:", options.KeyPrefix);
+        Assert.True(options.UseDistributedCache);
     }
 
     [Theory]
@@ -34,5 +35,27 @@ public sealed class DecisionCacheOptionsTests
         Assert.Equal(TimeSpan.FromSeconds(30), options.LocalCacheExpiration);
         options.LocalCacheExpiration = null;
         Assert.Null(options.LocalCacheExpiration);
+    }
+
+    [Fact]
+    public void Expiration_accepts_365_days_and_refuses_more()
+    {
+        var options = new DecisionCacheOptions { Expiration = TimeSpan.FromDays(365) };
+
+        Assert.Equal(TimeSpan.FromDays(365), options.Expiration);
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.Expiration = TimeSpan.FromDays(365) + TimeSpan.FromTicks(1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.Expiration = TimeSpan.MaxValue);
+        Assert.Equal(TimeSpan.FromDays(365), options.Expiration);
+    }
+
+    [Fact]
+    public void LocalCacheExpiration_accepts_365_days_and_refuses_more()
+    {
+        var options = new DecisionCacheOptions { LocalCacheExpiration = TimeSpan.FromDays(365) };
+
+        Assert.Equal(TimeSpan.FromDays(365), options.LocalCacheExpiration);
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.LocalCacheExpiration = TimeSpan.FromDays(365) + TimeSpan.FromTicks(1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.LocalCacheExpiration = TimeSpan.MaxValue);
+        Assert.Equal(TimeSpan.FromDays(365), options.LocalCacheExpiration);
     }
 }

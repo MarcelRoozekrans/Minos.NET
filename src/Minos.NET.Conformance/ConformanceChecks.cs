@@ -524,16 +524,16 @@ public static class ConformanceChecks
 
             var mismatch = question.Kind switch
             {
-                QuestionKind.Noul => SameNumber(read.Value, sent.Number(WireAnswers.NoulProperty(wire)))
+                QuestionKind.Noul => SameNumber(read.Probability, sent.Number(WireAnswers.NoulProperty(wire)))
                     ? null
-                    : Invariant($"Minos read '{question.Key}' as {read.Value}, but the response says {Shown(sent.Number(WireAnswers.NoulProperty(wire)))}"),
+                    : Invariant($"Minos read '{question.Key}' as {read.Probability}, but the response says {Shown(sent.Number(WireAnswers.NoulProperty(wire)))}"),
                 QuestionKind.Choice => read.ChosenIndex >= 0 && read.ChosenIndex < question.Options.Count
                     && string.Equals(question.Options[read.ChosenIndex].Key, sent.Text("choice"), StringComparison.Ordinal)
                         ? null
                         : "Minos read '" + question.Key + "' as '" + Chosen(question, read) + "', but the response chose '" + (sent.Text("choice") ?? "nothing") + "'",
-                _ => SameNumber(read.Value, sent.Number("score"))
+                _ => SameNumber(read.Expected, sent.Number("score"))
                     ? null
-                    : Invariant($"Minos read '{question.Key}' as {read.Value}, but the response scores {Shown(sent.Number("score"))}"),
+                    : Invariant($"Minos read '{question.Key}' as {read.Expected}, but the response scores {Shown(sent.Number("score"))}"),
             };
             if (mismatch is not null)
             {

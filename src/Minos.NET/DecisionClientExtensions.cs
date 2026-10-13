@@ -25,6 +25,56 @@ public static class DecisionClientExtensions
         return client.GetService(typeof(TService), serviceKey) is TService service ? service : default;
     }
 
+    /// <summary>Returns the <typeparamref name="TService"/> this client or a client it wraps provides, or throws when there is none.</summary>
+    /// <typeparam name="TService">The type to look for.</typeparam>
+    /// <param name="client">The client.</param>
+    /// <returns>The object.</returns>
+    /// <remarks>Calls <see cref="GetRequiredService{TService}(IDecisionClient, object)"/> without a key.</remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="client"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">The client provides no <typeparamref name="TService"/>.</exception>
+    public static TService GetRequiredService<TService>(this IDecisionClient client)
+        => GetRequiredService<TService>(client, null);
+
+    /// <summary>Returns the <typeparamref name="TService"/> this client or a client it wraps provides, or throws when there is none.</summary>
+    /// <typeparam name="TService">The type to look for.</typeparam>
+    /// <param name="client">The client.</param>
+    /// <param name="serviceKey">A key; built-in clients provide nothing for a non-null key.</param>
+    /// <returns>The object.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="client"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">The client provides no <typeparamref name="TService"/>.</exception>
+    public static TService GetRequiredService<TService>(this IDecisionClient client, object? serviceKey)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        return client.GetService(typeof(TService), serviceKey) is TService service ? service : throw NoService(typeof(TService));
+    }
+
+    /// <summary>Returns the object of <paramref name="serviceType"/> this client or a client it wraps provides, or throws when there is none.</summary>
+    /// <param name="client">The client.</param>
+    /// <param name="serviceType">The type to look for.</param>
+    /// <returns>The object.</returns>
+    /// <remarks>Calls <see cref="GetRequiredService(IDecisionClient, Type, object)"/> without a key.</remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="client"/> or <paramref name="serviceType"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">The client provides no object of <paramref name="serviceType"/>.</exception>
+    public static object GetRequiredService(this IDecisionClient client, Type serviceType)
+        => GetRequiredService(client, serviceType, null);
+
+    /// <summary>Returns the object of <paramref name="serviceType"/> this client or a client it wraps provides, or throws when there is none.</summary>
+    /// <param name="client">The client.</param>
+    /// <param name="serviceType">The type to look for.</param>
+    /// <param name="serviceKey">A key; built-in clients provide nothing for a non-null key.</param>
+    /// <returns>The object.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="client"/> or <paramref name="serviceType"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">The client provides no object of <paramref name="serviceType"/>.</exception>
+    public static object GetRequiredService(this IDecisionClient client, Type serviceType, object? serviceKey)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(serviceType);
+        return client.GetService(serviceType, serviceKey) ?? throw NoService(serviceType);
+    }
+
+    private static InvalidOperationException NoService(Type serviceType)
+        => new($"No service of type {serviceType} is available from the client.");
+
     /// <summary>Asks <typeparamref name="T"/>'s questions about a text state and returns its typed answers.</summary>
     /// <typeparam name="T">A <c>[Questions]</c> question set.</typeparam>
     /// <param name="client">The client to ask.</param>
@@ -45,6 +95,7 @@ public static class DecisionClientExtensions
     /// <returns>The typed answers, or the <see cref="DecisionError"/> that prevented them.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="client"/> or <paramref name="state"/> is <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">The client answered a different question set than <typeparamref name="T"/>'s.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public static ValueTask<Result<T, DecisionError>> EvaluateAsync<T>(this IDecisionClient client, string state, CancellationToken cancellationToken)
         where T : IQuestionSet<T>
     {
@@ -75,6 +126,7 @@ public static class DecisionClientExtensions
     /// <exception cref="ArgumentNullException"><paramref name="client"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="state"/> is not a string, object or array.</exception>
     /// <exception cref="InvalidOperationException">The client answered a different question set than <typeparamref name="T"/>'s.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public static ValueTask<Result<T, DecisionError>> EvaluateAsync<T>(this IDecisionClient client, JsonElement state, CancellationToken cancellationToken)
         where T : IQuestionSet<T>
     {
@@ -117,6 +169,7 @@ public static class DecisionClientExtensions
     /// <paramref name="utf8JsonState"/> is not exactly one well-formed JSON string, object or array.
     /// </exception>
     /// <exception cref="InvalidOperationException">The client answered a different question set than <typeparamref name="T"/>'s.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public static ValueTask<Result<T, DecisionError>> EvaluateUtf8Async<T>(
         this IDecisionClient client, ReadOnlyMemory<byte> utf8JsonState, CancellationToken cancellationToken)
         where T : IQuestionSet<T>
@@ -166,6 +219,7 @@ public static class DecisionClientExtensions
     /// </exception>
     /// <exception cref="ArgumentException"><paramref name="state"/> does not serialize to a string, object or array.</exception>
     /// <exception cref="InvalidOperationException">The client answered a different question set than <typeparamref name="T"/>'s.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public static ValueTask<Result<T, DecisionError>> EvaluateAsync<T, TState>(
         this IDecisionClient client, TState state, JsonTypeInfo<TState> stateTypeInfo, CancellationToken cancellationToken)
         where T : IQuestionSet<T, TState>
@@ -189,7 +243,7 @@ public static class DecisionClientExtensions
     /// <exception cref="ArgumentNullException"><paramref name="client"/> or <paramref name="questionSet"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="state"/> is uninitialized.</exception>
     /// <exception cref="InvalidOperationException">The client answered a different question set than <paramref name="questionSet"/>.</exception>
-    public static ValueTask<Result<Answers, DecisionError>> EvaluateAsync(this IDecisionClient client, QuestionSet questionSet, DecisionContent state)
+    public static ValueTask<Result<QuestionSetAnswers, DecisionError>> EvaluateAsync(this IDecisionClient client, QuestionSet questionSet, DecisionContent state)
         => EvaluateAsync(client, questionSet, state, CancellationToken.None);
 
     /// <summary>Asks a built question set's questions about a state and returns its answers.</summary>
@@ -201,7 +255,8 @@ public static class DecisionClientExtensions
     /// <exception cref="ArgumentNullException"><paramref name="client"/> or <paramref name="questionSet"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="state"/> is uninitialized.</exception>
     /// <exception cref="InvalidOperationException">The client answered a different question set than <paramref name="questionSet"/>.</exception>
-    public static ValueTask<Result<Answers, DecisionError>> EvaluateAsync(
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    public static ValueTask<Result<QuestionSetAnswers, DecisionError>> EvaluateAsync(
         this IDecisionClient client, QuestionSet questionSet, DecisionContent state, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(client);
@@ -232,6 +287,7 @@ public static class DecisionClientExtensions
     /// <returns>The typed answers, or the <see cref="DecisionError"/> that prevented them.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="client"/>, <paramref name="state"/> or <paramref name="images"/> is <see langword="null"/>.</exception>
     /// <exception cref="InvalidOperationException">The client answered a different question set than <typeparamref name="T"/>'s.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public static ValueTask<Result<T, DecisionError>> EvaluateAsync<T>(
         this IDecisionClient client, string state, IReadOnlyList<DecisionImage> images, CancellationToken cancellationToken)
         where T : IQuestionSet<T>
@@ -266,6 +322,7 @@ public static class DecisionClientExtensions
     /// <exception cref="ArgumentNullException"><paramref name="client"/> or <paramref name="images"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="state"/> is not a string, object or array.</exception>
     /// <exception cref="InvalidOperationException">The client answered a different question set than <typeparamref name="T"/>'s.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public static ValueTask<Result<T, DecisionError>> EvaluateAsync<T>(
         this IDecisionClient client, JsonElement state, IReadOnlyList<DecisionImage> images, CancellationToken cancellationToken)
         where T : IQuestionSet<T>
@@ -313,6 +370,7 @@ public static class DecisionClientExtensions
     /// <paramref name="utf8JsonState"/> is not exactly one well-formed JSON string, object or array.
     /// </exception>
     /// <exception cref="InvalidOperationException">The client answered a different question set than <typeparamref name="T"/>'s.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public static ValueTask<Result<T, DecisionError>> EvaluateUtf8Async<T>(
         this IDecisionClient client, ReadOnlyMemory<byte> utf8JsonState, IReadOnlyList<DecisionImage> images, CancellationToken cancellationToken)
         where T : IQuestionSet<T>
@@ -366,6 +424,7 @@ public static class DecisionClientExtensions
     /// </exception>
     /// <exception cref="ArgumentException"><paramref name="state"/> does not serialize to a string, object or array.</exception>
     /// <exception cref="InvalidOperationException">The client answered a different question set than <typeparamref name="T"/>'s.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public static ValueTask<Result<T, DecisionError>> EvaluateAsync<T, TState>(
         this IDecisionClient client, TState state, JsonTypeInfo<TState> stateTypeInfo, IReadOnlyList<DecisionImage> images, CancellationToken cancellationToken)
         where T : IQuestionSet<T, TState>
@@ -391,7 +450,7 @@ public static class DecisionClientExtensions
     /// <exception cref="ArgumentNullException"><paramref name="client"/>, <paramref name="questionSet"/> or <paramref name="images"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="state"/> is uninitialized.</exception>
     /// <exception cref="InvalidOperationException">The client answered a different question set than <paramref name="questionSet"/>.</exception>
-    public static ValueTask<Result<Answers, DecisionError>> EvaluateAsync(
+    public static ValueTask<Result<QuestionSetAnswers, DecisionError>> EvaluateAsync(
         this IDecisionClient client, QuestionSet questionSet, DecisionContent state, IReadOnlyList<DecisionImage> images)
         => EvaluateAsync(client, questionSet, state, images, CancellationToken.None);
 
@@ -405,7 +464,8 @@ public static class DecisionClientExtensions
     /// <exception cref="ArgumentNullException"><paramref name="client"/>, <paramref name="questionSet"/> or <paramref name="images"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="state"/> is uninitialized.</exception>
     /// <exception cref="InvalidOperationException">The client answered a different question set than <paramref name="questionSet"/>.</exception>
-    public static ValueTask<Result<Answers, DecisionError>> EvaluateAsync(
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    public static ValueTask<Result<QuestionSetAnswers, DecisionError>> EvaluateAsync(
         this IDecisionClient client, QuestionSet questionSet, DecisionContent state, IReadOnlyList<DecisionImage> images, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(client);
@@ -415,7 +475,7 @@ public static class DecisionClientExtensions
         return BuiltSetCall(client, questionSet, state, images, cancellationToken);
     }
 
-    private static ValueTask<Result<Answers, DecisionError>> BuiltSetCall(
+    private static ValueTask<Result<QuestionSetAnswers, DecisionError>> BuiltSetCall(
         IDecisionClient client, QuestionSet questionSet, DecisionContent state, IReadOnlyList<DecisionImage> images, CancellationToken ct)
     {
         var request = images.Count > 0
@@ -455,19 +515,19 @@ public static class DecisionClientExtensions
         return Result<T, DecisionError>.Success(T.Create(response.ToAnswerSlots()));
     }
 
-    private static async ValueTask<Result<Answers, DecisionError>> BuiltSetAsync(QuestionSet questionSet, ValueTask<Result<DecisionResponse, DecisionError>> call)
+    private static async ValueTask<Result<QuestionSetAnswers, DecisionError>> BuiltSetAsync(QuestionSet questionSet, ValueTask<Result<DecisionResponse, DecisionError>> call)
         => BuiltSet(questionSet, await call.ConfigureAwait(false));
 
-    private static Result<Answers, DecisionError> BuiltSet(QuestionSet questionSet, Result<DecisionResponse, DecisionError> result)
+    private static Result<QuestionSetAnswers, DecisionError> BuiltSet(QuestionSet questionSet, Result<DecisionResponse, DecisionError> result)
     {
         if (result.IsFailure)
         {
-            return Result<Answers, DecisionError>.Failure(result.Error);
+            return Result<QuestionSetAnswers, DecisionError>.Failure(result.Error);
         }
 
         var response = result.Value;
         EnsureDefinition(response, questionSet.Definition);
-        return Result<Answers, DecisionError>.Success(new Answers(questionSet, response.Probabilities, response.Slots));
+        return Result<QuestionSetAnswers, DecisionError>.Success(new QuestionSetAnswers(questionSet, response.Probabilities, response.Slots));
     }
 
     // A pipeline returns the response for the request's own definition instance; a fake that answers another set is a

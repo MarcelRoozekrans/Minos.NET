@@ -3,7 +3,7 @@ using Minos.SystemOne;
 
 namespace Minos.DependencyInjection.Tests;
 
-/// <summary>The provider-neutral <c>AddDecisionClient</c> factory registrations, and how they meet <c>AddSystemOneClient</c>.</summary>
+/// <summary>The provider-neutral <c>AddDecisionClient</c> factory registrations, and how they meet <c>AddSystemOneDecisionClient</c>.</summary>
 public sealed class AddDecisionClientFactoryTests
 {
     [Fact]
@@ -54,8 +54,8 @@ public sealed class AddDecisionClientFactoryTests
             ? () => services.AddDecisionClient(_ => new FakeDecisionClient())
             : () => services.AddDecisionClient(name, _ => new FakeDecisionClient());
         Action systemOne = name is null
-            ? () => services.AddSystemOneClient(o => o.ApiKey = "k")
-            : () => services.AddSystemOneClient(name, o => o.ApiKey = "k");
+            ? () => services.AddSystemOneDecisionClient(o => o.ApiKey = "k")
+            : () => services.AddSystemOneDecisionClient(name, o => o.ApiKey = "k");
         (factoryFirst ? factory : systemOne)();
         var registered = services.Count;
 
@@ -89,9 +89,9 @@ public sealed class AddDecisionClientFactoryTests
     public void SystemOne_builder_exposes_its_HttpClient_builder()
     {
         var services = new ServiceCollection();
-        var builder = services.AddSystemOneClient(o => o.ApiKey = "k");
+        var builder = services.AddSystemOneDecisionClient(o => o.ApiKey = "k");
 
-        Assert.IsType<SystemOneClientServiceBuilder>(builder);
+        Assert.IsType<SystemOneDecisionClientServiceBuilder>(builder);
         Assert.Equal("Minos.NET", builder.HttpClient.Name);
     }
 }

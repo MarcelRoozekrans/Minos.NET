@@ -133,7 +133,7 @@ public sealed class ResponseSerializationTests
         var response = Deserialize("response-openrouter.json");
 
         Assert.Equal("gen-1727400000-abc123", response.Id);
-        Assert.Equal("TypeSafe", response.Provider);
+        Assert.Equal("TypeSafe", response.UpstreamProvider);
         Assert.Equal("~typesafe/jev-latest", response.Model);
         Assert.Equal(0.000296, response.Usage.Cost);
     }
@@ -144,8 +144,22 @@ public sealed class ResponseSerializationTests
         var response = Deserialize("response-noul.json");
 
         Assert.Null(response.Id);
-        Assert.Null(response.Provider);
+        Assert.Null(response.UpstreamProvider);
         Assert.Null(response.Usage.Cost);
+    }
+
+    [Theory]
+    [InlineData("""{"input_tokens":7}""", 7, null)]
+    [InlineData("""{"output_tokens":3}""", null, 3)]
+    public void PartialUsage_Deserializes_WithTheMissingCountNull(string usage, int? input, int? output)
+    {
+        var json = """{"model":"m","answers":{"is_urgent":{"type":"noul","noul":0.5}},"usage":""" + usage + "}";
+
+        var response = JsonSerializer.Deserialize(json, DecisionJsonContext.Default.SystemOneResponse);
+
+        Assert.NotNull(response);
+        Assert.Equal(input, response.Usage.InputTokens);
+        Assert.Equal(output, response.Usage.OutputTokens);
     }
 
     private static SystemOneResponse Deserialize(string fixture)

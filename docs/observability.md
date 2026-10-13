@@ -8,15 +8,15 @@ description: What the Minos client logs, which spans and metrics it emits, what 
 # Logging, traces and metrics
 
 A client that calls a remote model needs to be observable: you want to know how long each call took, which ones failed
-and why, how many tokens you used, and how sure Jev was. `SystemOneClient` reports all of this through the three signals
-that .NET has built in:
+and why, how many tokens you used, and how sure Jev was. `SystemOneDecisionClient` reports all of this through the three
+signals that .NET has built in:
 
 - **Logs**, through `Microsoft.Extensions.Logging`, when you give the client an `ILoggerFactory`.
 - **Traces**, as `System.Diagnostics` spans, from an `ActivitySource` named `Minos`.
 - **Metrics**, as `System.Diagnostics.Metrics` instruments, from a `Meter` named `Minos`.
 
-Each signal comes from a stage of the [client pipeline](pipeline.md), which every `SystemOneClient` builds for you.
-[Which stage emits what](#which-stage-emits-what) has the details.
+Each signal comes from a stage of the [client pipeline](pipeline.md), which every `SystemOneDecisionClient` builds for
+you. [Which stage emits what](#which-stage-emits-what) has the details.
 
 All three describe the call and never its content. Your state, your questions, the answers, your API key and the
 server's error text stay out of every one of them, and the sections below say exactly where the line is drawn. All
@@ -28,7 +28,7 @@ call that completes asynchronously. [The cost of listening](#the-cost-of-listeni
 
 A call through `EvaluateAsync(DecisionRequest)`, which every typed and built-set call makes, is observed by the stages
 of the [pipeline](pipeline.md#what-every-call-goes-through). The raw System One calls do not run through the stages,
-so `SystemOneClient` instruments them itself.
+so `SystemOneDecisionClient` instruments them itself.
 
 | Signal | Emitted by | When |
 | --- | --- | --- |
@@ -36,7 +36,7 @@ so `SystemOneClient` instruments them itself.
 | Events 1001, 1002 and 1006 | `LoggingDecisionClient` | Once per call, when the client has a logger factory. |
 | Event 1003 | `RetryingDecisionClient` | For each attempt it retries, when it has a logger. |
 | Events 1007 and 1008 | `CachingDecisionClient` | When its distributed cache throws, and it has a logger. |
-| The spans `evaluate {model}` and `list_models`, their metrics, and events 1001 to 1006 of the raw calls | `SystemOneClient` | For `EvaluateAsync(SystemOneRequest)` and `ListModelsAsync`. |
+| The spans `evaluate {model}` and `list_models`, their metrics, and events 1001 to 1006 of the raw calls | `SystemOneDecisionClient` | For `EvaluateAsync(SystemOneRequest)` and `ListModelsAsync`. |
 
 With `UseStandardPipeline` set to `false`, a `DecisionRequest` call emits none of these until you add the stages
 yourself, as [Building your own pipeline](pipeline.md#building-your-own-pipeline) shows. The raw calls still emit
@@ -78,13 +78,13 @@ public static class ObservedLogging
     // A client logs through the ILoggerFactory it is given. FakeLoggerProvider keeps every record in memory, which
     // is what a test wants. An application would add its own provider instead, such as the console or Serilog.
     public static async Task<IReadOnlyList<FakeLogRecord>> EvaluateAndCollectAsync(
-        HttpClient http, SystemOneClientOptions options, CancellationToken cancellationToken)
+        HttpClient http, SystemOneDecisionClientOptions options, CancellationToken cancellationToken)
     {
         using var provider = new FakeLoggerProvider();
         using var loggers = LoggerFactory.Create(builder => builder
             .AddProvider(provider)
             .SetMinimumLevel(LogLevel.Debug));
-        using var client = new SystemOneClient(http, options, loggers);
+        using var client = new SystemOneDecisionClient(http, options, loggers);
 
         // The result is not inspected here: each outcome, a success or a failure, is one log event.
         await client.EvaluateAsync<ObservedUrgency>("Help! The server is down.", cancellationToken);
@@ -118,7 +118,7 @@ A call logs once, when it completes, and logs again for each attempt it is about
   `EvaluateAsync(SystemOneRequest)` and `list-models` for model listing.
 - **`Provider`**, in events 1001, 1004, 1005, 1007 and 1008, is the provider name of the client's
   `DecisionClientMetadata`, the same value as the span's `gen_ai.provider.name`: `typesafe`, `openrouter`, `vllm-sr` or
-  `custom` for a `SystemOneClient`, and `openai` for an `OpenAIDecisionClient`.
+  `custom` for a `SystemOneDecisionClient`, and `openai` for an `OpenAIDecisionClient`.
 - **Success** is a Debug event, 1001 for an evaluation and 1004 for a model listing. `QuestionCount` is the number of
   questions asked. `Cached` is `True` when a [cache stage](pipeline.md#caching-decisions) answered the call, and `False`
   otherwise. A hit is logged only when the logging stage sits outside the cache stage; with a client's standard
@@ -342,8 +342,8 @@ named `minos.*`.
 | `minos.operation` | start | `evaluate`, `evaluate-set` or `list-models`, as in the logs. |
 | `minos.request.question_count` | start | The number of questions. Evaluations only. |
 | `gen_ai.response.model` | success | The model that answered. Evaluations only. |
-| `gen_ai.usage.input_tokens` | success | The input tokens. Evaluations only. |
-| `gen_ai.usage.output_tokens` | success | The output tokens. Evaluations only. |
+| `gen_ai.usage.input_tokens` | success | The input tokens, when the provider reports them. Evaluations only. |
+| `gen_ai.usage.output_tokens` | success | The output tokens, when the provider reports them. Evaluations only. |
 | `gen_ai.response.id` | success | The provider's response id, such as OpenRouter's generation id, when it reports one. Evaluations only. |
 | `minos.usage.cost` | success | The cost in US dollars, when the provider reports it, as OpenRouter does. Evaluations only. |
 | `minos.cache.hit` | success | `true` when a cache stage answered the call; absent otherwise. The duration, token and confidence metrics carry it too, so a dashboard can leave cached calls out of spend. A cached call reports the usage and cost of the call that first produced the answer. Evaluations only. |
@@ -377,17 +377,17 @@ evaluation also records its tokens and one confidence point for each Choice or S
 | Metric | Kind | Unit | Attributes | Recorded |
 | --- | --- | --- | --- | --- |
 | `gen_ai.client.operation.duration` | Histogram | `s` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `server.address`, `server.port`, `gen_ai.response.model`, `error.type`, `minos.cache.hit` | every call |
-| `gen_ai.client.inference.operation.input_tokens` | Histogram | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.response.model`, `minos.cache.hit` | evaluation success |
-| `gen_ai.client.inference.operation.output_tokens` | Histogram | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.response.model`, `minos.cache.hit` | evaluation success |
-| `gen_ai.client.inference.usage.input_tokens` | Counter | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.modality`, `minos.cache.hit` | evaluation success |
-| `gen_ai.client.inference.usage.output_tokens` | Counter | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.modality`, `minos.cache.hit` | evaluation success |
+| `gen_ai.client.inference.operation.input_tokens` | Histogram | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.response.model`, `minos.cache.hit` | evaluation success, when the provider reports the count |
+| `gen_ai.client.inference.operation.output_tokens` | Histogram | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.response.model`, `minos.cache.hit` | evaluation success, when the provider reports the count |
+| `gen_ai.client.inference.usage.input_tokens` | Counter | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.modality`, `minos.cache.hit` | evaluation success, when the provider reports the count |
+| `gen_ai.client.inference.usage.output_tokens` | Counter | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.modality`, `minos.cache.hit` | evaluation success, when the provider reports the count |
 | `minos.answer.confidence` | Histogram | `1` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `minos.operation`, `minos.cache.hit` | each Choice or Score answer |
 
 - **The duration** carries `gen_ai.response.model` on success and `error.type` on failure, never both. A model listing
   has no request or response model, so its duration carries only the operation, the provider, the server and, on
   failure, the error type.
-- **The token histograms** record the tokens of each evaluation. **The counters** keep the running total, and their
-  `gen_ai.token.modality` is always `text`.
+- **The token histograms** record the tokens of each evaluation, and only a count the provider reported; a count it
+  left out records nothing. **The counters** keep the running total, and their `gen_ai.token.modality` is always `text`.
 - **`minos.cache.hit`** is `true` on the duration, token and confidence metrics of an evaluation that a
   [cache stage](pipeline.md#caching-decisions) answered, and absent otherwise. A hit is traced and measured only when
   the telemetry stage sits outside the cache stage; with a client's standard pipeline on, a hit records nothing.

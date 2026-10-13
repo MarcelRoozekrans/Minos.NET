@@ -51,7 +51,7 @@ public sealed class TestingYourCodeHttpTests
         var handler = new CannedHandler(HttpStatusCode.OK, UrgentBody);
         using var http = new HttpClient(handler);
         // A dummy key passes validation, and no retries means a failing reply is returned at once.
-        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "test-key", MaxRetries = 0 });
+        using var client = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = "test-key", MaxRetries = 0 });
 
         var route = await new TicketTriager(client).RouteAsync("Payouts have been failing for 3 days.", CancellationToken.None);
 
@@ -69,7 +69,7 @@ public sealed class TestingYourCodeHttpTests
     {
         var handler = new CannedHandler(HttpStatusCode.Unauthorized, """{"error":"Invalid API key"}""");
         using var http = new HttpClient(handler);
-        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "test-key", MaxRetries = 0 });
+        using var client = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = "test-key", MaxRetries = 0 });
 
         var result = await client.EvaluateAsync<TriageQuestions>("Any ticket.", CancellationToken.None);
 

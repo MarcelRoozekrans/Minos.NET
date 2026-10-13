@@ -33,9 +33,9 @@ public sealed class DiagnosticTests
         "public class Base { public required int Foo; } "
             + "[Questions] public partial class C : Base { [Noul(\"q\")] public partial Noul Answer { get; } }",
         "[Questions] public partial class C { [Noul(\"a\")] public partial Noul IsUrgent { get; } [Noul(\"b\", Key = \"is_urgent\")] private partial Noul Other { get; } }",
-        "public enum E { [Criteria(\"x\", Key = \"b\")] A, [Criteria(\"y\")] B } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
+        "public enum E { [Criterion(\"x\", Key = \"b\")] A, [Criterion(\"y\")] B } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
         "[Questions] public partial class C { [Noul(\"q\", Key = \"\")] public partial Noul Answer { get; } }",
-        "public enum E { [Criteria(\"x\", Key = \"\")] A, [Criteria(\"y\")] B } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
+        "public enum E { [Criterion(\"x\", Key = \"\")] A, [Criterion(\"y\")] B } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
         "[Questions(State = typeof(IFoo))] public partial class C { [Noul(\"q\")] public partial Noul Answer { get; } } public interface IFoo { }",
         "[Questions(State = typeof(System.Collections.Generic.List<>))] public partial class C { }",
         "[Questions(State = typeof(void))] public partial class C { }",
@@ -76,9 +76,9 @@ public sealed class DiagnosticTests
     public static TheoryData<string> JsonNamedArgumentSources => new()
     {
         "[Questions] public partial class C { [Noul(\"{}\", Json = true)] public partial Noul Answer { get; } }",
-        "public enum E { [Criteria(\"a\")] A } [Questions] public partial class C { [Choice(\"[]\", Json = true)] public partial Choice<E> Answer { get; } }",
+        "public enum E { [Criterion(\"a\")] A } [Questions] public partial class C { [Choice(\"[]\", Json = true)] public partial Choice<E> Answer { get; } }",
         "public enum L { [Level(\"a\")] A, [Level(\"b\")] B } [Questions] public partial class C { [Score(\"[]\", Json = true)] public partial Score<L> Answer { get; } }",
-        "public enum E { [Criteria(\"{}\", Json = true)] A } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
+        "public enum E { [Criterion(\"{}\", Json = true)] A } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
         "public enum L { [Level(\"{}\", Json = true)] A, [Level(\"b\")] B } [Questions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }",
     };
 
@@ -274,7 +274,7 @@ public sealed class DiagnosticTests
     public static TheoryData<string> AdvisorySources => new()
     {
         "[Questions] public partial class C { [Noul(\"  \")] public partial Noul Answer { get; } }",
-        "public enum E { [Criteria(\"\")] A } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
+        "public enum E { [Criterion(\"\")] A } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
         "public enum L { [Level(\"a\")] A, [Level(\" \")] B } [Questions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }",
         "public sealed class S { public int Known { get; set; } } "
             + "[Questions(State = typeof(S))] public partial class C { [Noul(\"Is `unknown` set?\")] public partial Noul Answer { get; } }",

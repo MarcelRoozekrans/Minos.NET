@@ -22,7 +22,7 @@ allocates, because a program that avoids the just-in-time compiler usually cares
   under Native AOT.
 - **The generated question sets.** The `[Questions]` generator writes the question JSON and the answer parsing as
   ordinary C# at compile time. The set uses no reflection at run time, and neither does reading an answer.
-- **Dependency injection.** `Minos.NET.DependencyInjection`, the `AddSystemOneClient` registrations in
+- **Dependency injection.** `Minos.NET.DependencyInjection`, the `AddSystemOneDecisionClient` registrations in
   `Minos.NET.SystemOne` and the `AddOpenAIDecisionClient` registrations in `Minos.NET.OpenAI`, whose provider name is
   `openai`, are Native AOT compatible too. Both bind options from configuration with the configuration binding source
   generator, so binding uses no reflection and needs nothing set up in your program.
@@ -39,7 +39,7 @@ the trimmer with `DynamicallyAccessedMembers`, so the trimmer keeps those fields
 Native AOT. You do not need to do anything for it.
 
 There is one case that does ask something of you. A method of your own that passes its own generic parameter on to
-`Choice<T>`, `Score<T>` or `Answers.Get` needs the same annotation on that parameter,
+`Choice<T>`, `Score<T>` or `QuestionSetAnswers.Get` needs the same annotation on that parameter,
 `[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)]`.
 [Question sets at run time](question-sets-at-run-time.md#build-once-and-share) says where.
 
@@ -159,7 +159,7 @@ built-set calls write the request into a pooled buffer and read the response fro
 object.
 
 - **Reading an answer allocates nothing.** `Noul`, `Choice<T>` and `Score<T>` are read as structs, and so are the
-  `Probabilities`, the confidence helpers and `Answers.Get` for a [set built at run
+  `Probabilities`, the confidence helpers and `QuestionSetAnswers.Get` for a [set built at run
   time](question-sets-at-run-time.md).
 - **Parsing a typed answer set allocates the result.** That is the result record, plus the shared buffer that holds the
   probabilities of its answers, and nothing else.

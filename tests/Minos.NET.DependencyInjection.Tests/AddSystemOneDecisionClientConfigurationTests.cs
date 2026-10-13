@@ -6,8 +6,8 @@ using static Minos.DependencyInjection.Tests.Registrations;
 
 namespace Minos.DependencyInjection.Tests;
 
-/// <summary><c>AddSystemOneClient</c> with options bound from <see cref="IConfiguration"/>.</summary>
-public sealed class AddSystemOneClientConfigurationTests
+/// <summary><c>AddSystemOneDecisionClient</c> with options bound from <see cref="IConfiguration"/>.</summary>
+public sealed class AddSystemOneDecisionClientConfigurationTests
 {
     [Fact]
     public void EveryKey_Binds()
@@ -23,10 +23,10 @@ public sealed class AddSystemOneClientConfigurationTests
             ("Minos:MaxRetryDelay", "00:00:03"),
             ("Minos:Jitter", "false"));
         var services = new ServiceCollection();
-        services.AddSystemOneClient(configuration.GetSection("Minos"));
+        services.AddSystemOneDecisionClient(configuration.GetSection("Minos"));
         using var provider = services.BuildServiceProvider();
 
-        var options = provider.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName);
+        var options = provider.GetRequiredService<IOptionsMonitor<SystemOneDecisionClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName);
 
         Assert.Equal(SystemOneProvider.OpenRouter, options.Provider);
         Assert.Equal("bound-key", options.ApiKey);
@@ -45,10 +45,10 @@ public sealed class AddSystemOneClientConfigurationTests
         var configuration = Configuration(("ApiKey", "bound-key"), ("BaseAddress", "http://bound.local/api/"), ("MaxRetries", "0"));
         var handler = Noul();
         var services = new ServiceCollection();
-        services.AddSystemOneClient(configuration).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
+        services.AddSystemOneDecisionClient(configuration).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
         using var provider = services.BuildServiceProvider();
 
-        var result = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request());
+        var result = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneDecisionClient>()!.EvaluateAsync(Request());
 
         Assert.True(result.IsSuccess);
         Assert.Equal(new Uri("http://bound.local/api/v1/systemone"), OnlyRequest(handler).Uri);
@@ -63,9 +63,9 @@ public sealed class AddSystemOneClientConfigurationTests
             ("Local:Path", "decide/v1/systemone"),
             ("Local:Model", "m"));
         var services = new ServiceCollection();
-        services.AddSystemOneClient("local", configuration.GetSection("Local"));
+        services.AddSystemOneDecisionClient("local", configuration.GetSection("Local"));
         using var provider = services.BuildServiceProvider();
-        var monitor = provider.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>();
+        var monitor = provider.GetRequiredService<IOptionsMonitor<SystemOneDecisionClientOptions>>();
 
         var local = monitor.Get("local");
 
@@ -82,18 +82,18 @@ public sealed class AddSystemOneClientConfigurationTests
             ("Local:Capabilities:QuestionKinds", "Noul, Choice"),
             ("Local:Capabilities:MaxQuestions", "8"),
             ("Local:Capabilities:MaxChoiceOptions", "16"),
-            ("Local:Capabilities:Images", "true"),
-            ("Local:Capabilities:ModelListing", "false"));
+            ("Local:Capabilities:SupportsImages", "true"),
+            ("Local:Capabilities:SupportsModelListing", "false"));
         var services = new ServiceCollection();
-        services.AddSystemOneClient("local", configuration.GetSection("Local"));
+        services.AddSystemOneDecisionClient("local", configuration.GetSection("Local"));
         using var provider = services.BuildServiceProvider();
 
-        var bound = provider.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>().Get("local").Capabilities;
+        var bound = provider.GetRequiredService<IOptionsMonitor<SystemOneDecisionClientOptions>>().Get("local").Capabilities;
         var resolved = provider.GetRequiredKeyedService<IDecisionClient>("local").GetService<DecisionCapabilities>()!;
 
         var expected = (QuestionKinds.Noul | QuestionKinds.Choice, 8, 16, true, false);
-        Assert.Equal(expected, (bound.QuestionKinds, bound.MaxQuestions, bound.MaxChoiceOptions, bound.Images, bound.ModelListing));
-        Assert.Equal(expected, (resolved.QuestionKinds, resolved.MaxQuestions, resolved.MaxChoiceOptions, resolved.Images, resolved.ModelListing));
+        Assert.Equal(expected, (bound.QuestionKinds, bound.MaxQuestions, bound.MaxChoiceOptions, bound.SupportsImages, bound.SupportsModelListing));
+        Assert.Equal(expected, (resolved.QuestionKinds, resolved.MaxQuestions, resolved.MaxChoiceOptions, resolved.SupportsImages, resolved.SupportsModelListing));
     }
 
     [Fact]
@@ -101,18 +101,18 @@ public sealed class AddSystemOneClientConfigurationTests
     {
         var configuration = Configuration(("ApiKey", "bound-key"), ("BaseAddress", "http://bound.local/"));
         var services = new ServiceCollection();
-        services.AddSystemOneClient(configuration);
+        services.AddSystemOneDecisionClient(configuration);
         using var provider = services.BuildServiceProvider();
 
-        var bound = provider.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName).Capabilities;
+        var bound = provider.GetRequiredService<IOptionsMonitor<SystemOneDecisionClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName).Capabilities;
         var resolved = provider.GetRequiredService<IDecisionClient>().GetService<DecisionCapabilities>()!;
 
         Assert.Equal(
             ((QuestionKinds?)null, (int?)null, (int?)null, (bool?)null, (bool?)null),
-            (bound.QuestionKinds, bound.MaxQuestions, bound.MaxChoiceOptions, bound.Images, bound.ModelListing));
+            (bound.QuestionKinds, bound.MaxQuestions, bound.MaxChoiceOptions, bound.SupportsImages, bound.SupportsModelListing));
         Assert.Equal(
             (QuestionKinds.All, (int?)null, 255, false, true),
-            (resolved.QuestionKinds, resolved.MaxQuestions, resolved.MaxChoiceOptions, resolved.Images, resolved.ModelListing));
+            (resolved.QuestionKinds, resolved.MaxQuestions, resolved.MaxChoiceOptions, resolved.SupportsImages, resolved.SupportsModelListing));
     }
 
     [Fact]
@@ -120,7 +120,7 @@ public sealed class AddSystemOneClientConfigurationTests
     {
         var configuration = Configuration(("ApiKey", "bound-key"), ("BaseAddress", "http://bound.local/"), ("Capabilities:MaxQuestions", "0"));
         var services = new ServiceCollection();
-        services.AddSystemOneClient("bound", configuration);
+        services.AddSystemOneDecisionClient("bound", configuration);
         using var provider = services.BuildServiceProvider();
 
         var exception = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredKeyedService<IDecisionClient>("bound"));
@@ -133,10 +133,10 @@ public sealed class AddSystemOneClientConfigurationTests
     {
         var configuration = Configuration(("ApiKey", "bound-key"), ("BaseAddress", "http://bound.local/"));
         var services = new ServiceCollection();
-        services.AddSystemOneClient(configuration);
+        services.AddSystemOneDecisionClient(configuration);
         using var provider = services.BuildServiceProvider();
 
-        var options = provider.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName);
+        var options = provider.GetRequiredService<IOptionsMonitor<SystemOneDecisionClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName);
 
         Assert.Null(options.Model);
         Assert.Equal("jev-latest", provider.GetRequiredService<IDecisionClient>().GetService<DecisionClientMetadata>()!.DefaultModel);
@@ -149,10 +149,10 @@ public sealed class AddSystemOneClientConfigurationTests
             ("Provider", "Custom"), ("BaseAddress", "http://local.test/api/"), ("Path", "decide/v1/systemone"), ("Model", "m"), ("MaxRetries", "0"));
         var handler = Noul();
         var services = new ServiceCollection();
-        services.AddSystemOneClient(configuration).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
+        services.AddSystemOneDecisionClient(configuration).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
         using var provider = services.BuildServiceProvider();
 
-        var result = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request());
+        var result = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneDecisionClient>()!.EvaluateAsync(Request());
 
         Assert.True(result.IsSuccess);
         var sent = OnlyRequest(handler);
@@ -171,10 +171,10 @@ public sealed class AddSystemOneClientConfigurationTests
             ("OpenRouter:ApiKey", "openrouter-key"),
             ("OpenRouter:MaxRetries", "5"));
         var services = new ServiceCollection();
-        services.AddSystemOneClient(configuration.GetSection("Default"));
-        services.AddSystemOneClient("openrouter", configuration.GetSection("OpenRouter"));
+        services.AddSystemOneDecisionClient(configuration.GetSection("Default"));
+        services.AddSystemOneDecisionClient("openrouter", configuration.GetSection("OpenRouter"));
         using var provider = services.BuildServiceProvider();
-        var monitor = provider.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>();
+        var monitor = provider.GetRequiredService<IOptionsMonitor<SystemOneDecisionClientOptions>>();
 
         var defaults = monitor.Get(Microsoft.Extensions.Options.Options.DefaultName);
         var keyed = monitor.Get("openrouter");
@@ -189,11 +189,11 @@ public sealed class AddSystemOneClientConfigurationTests
     {
         var configuration = Configuration(("ApiKey", "bound-key"), ("MaxRetries", "4"));
         var services = new ServiceCollection();
-        services.AddSystemOneClient(configuration);
-        services.AddSystemOneClient(options => options.MaxRetries = 0);
+        services.AddSystemOneDecisionClient(configuration);
+        services.AddSystemOneDecisionClient(options => options.MaxRetries = 0);
         using var provider = services.BuildServiceProvider();
 
-        var options = provider.GetRequiredService<IOptionsMonitor<SystemOneClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName);
+        var options = provider.GetRequiredService<IOptionsMonitor<SystemOneDecisionClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName);
 
         Assert.Equal(0, options.MaxRetries);
         Assert.Equal("bound-key", options.ApiKey);
@@ -204,7 +204,7 @@ public sealed class AddSystemOneClientConfigurationTests
     {
         var configuration = Configuration(("ApiKey", "bound-key"), ("BaseAddress", "http://bound.local/"), ("MaxRetries", "11"));
         var services = new ServiceCollection();
-        services.AddSystemOneClient("bound", configuration);
+        services.AddSystemOneDecisionClient("bound", configuration);
         using var provider = services.BuildServiceProvider();
 
         var exception = Assert.Throws<OptionsValidationException>(() => provider.GetRequiredKeyedService<IDecisionClient>("bound"));
@@ -217,7 +217,7 @@ public sealed class AddSystemOneClientConfigurationTests
     {
         var configuration = Configuration(("ApiKey", "bound-key"), ("BaseAddress", "http://bound.local/"), ("MaxRetries", "abc"));
         var services = new ServiceCollection();
-        services.AddSystemOneClient(configuration);
+        services.AddSystemOneDecisionClient(configuration);
         using var provider = services.BuildServiceProvider();
 
         var exception = Assert.Throws<InvalidOperationException>(() => provider.GetRequiredService<IDecisionClient>());
@@ -232,12 +232,12 @@ public sealed class AddSystemOneClientConfigurationTests
         var configuration = Configuration();
         IServiceCollection? none = null;
 
-        Assert.Equal("services", Assert.Throws<ArgumentNullException>(() => none!.AddSystemOneClient(configuration)).ParamName);
-        Assert.Equal("services", Assert.Throws<ArgumentNullException>(() => none!.AddSystemOneClient("bound", configuration)).ParamName);
-        Assert.Equal("configuration", Assert.Throws<ArgumentNullException>(() => services.AddSystemOneClient((IConfiguration)null!)).ParamName);
-        Assert.Equal("configuration", Assert.Throws<ArgumentNullException>(() => services.AddSystemOneClient("bound", (IConfiguration)null!)).ParamName);
-        Assert.Equal("name", Assert.Throws<ArgumentNullException>(() => services.AddSystemOneClient(null!, configuration)).ParamName);
-        Assert.Equal("name", Assert.Throws<ArgumentException>(() => services.AddSystemOneClient(string.Empty, configuration)).ParamName);
+        Assert.Equal("services", Assert.Throws<ArgumentNullException>(() => none!.AddSystemOneDecisionClient(configuration)).ParamName);
+        Assert.Equal("services", Assert.Throws<ArgumentNullException>(() => none!.AddSystemOneDecisionClient("bound", configuration)).ParamName);
+        Assert.Equal("configuration", Assert.Throws<ArgumentNullException>(() => services.AddSystemOneDecisionClient((IConfiguration)null!)).ParamName);
+        Assert.Equal("configuration", Assert.Throws<ArgumentNullException>(() => services.AddSystemOneDecisionClient("bound", (IConfiguration)null!)).ParamName);
+        Assert.Equal("name", Assert.Throws<ArgumentNullException>(() => services.AddSystemOneDecisionClient(null!, configuration)).ParamName);
+        Assert.Equal("name", Assert.Throws<ArgumentException>(() => services.AddSystemOneDecisionClient(string.Empty, configuration)).ParamName);
     }
 
     private static IConfigurationRoot Configuration(params (string Key, string Value)[] settings)

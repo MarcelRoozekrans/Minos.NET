@@ -93,23 +93,23 @@ public static class OpenRouterModels
     #region ClientAndErrors_OpenRouterImages
     // OpenRouter mixes text and image models, so images are off for the preset. Switch them on for a model that reads
     // images. Perplexity's decider read our test image correctly on 2026-10-11.
-    public static SystemOneClientOptions PerplexityWithImages()
+    public static SystemOneDecisionClientOptions PerplexityWithImages()
         => new()
         {
             Provider = SystemOneProvider.OpenRouter,
             Model = "perplexity/pplx-decider-v1.1-27b",
-            Capabilities = new DecisionCapabilities { Images = true },
+            Capabilities = new DecisionCapabilities { SupportsImages = true },
         };
     #endregion
 
     #region ClientAndErrors_OpenRouterModels
     // OpenRouter serves Clef and Luna in the System One format, so the OpenRouter preset reaches them by model id.
     // The request is System One: the OpenRouter column of the provider matrix applies, not the OpenAI one.
-    public static SystemOneClientOptions Clef()
+    public static SystemOneDecisionClientOptions Clef()
         => new() { Provider = SystemOneProvider.OpenRouter, Model = "cloudflare/clef-flash" };
 
     // Luna through OpenRouter needs an account that allows endpoints which retain data; see the notes above.
-    public static SystemOneClientOptions Luna()
+    public static SystemOneDecisionClientOptions Luna()
         => new() { Provider = SystemOneProvider.OpenRouter, Model = "openai/gpt-6-luna-decisions" };
     #endregion
 }

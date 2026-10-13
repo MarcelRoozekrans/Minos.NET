@@ -26,10 +26,20 @@ internal static class SmokeAnswers
             && result.Value.Urgency.Value == Urgency.High;
 
     /// <summary>The triage answers, read through the generated <c>SmokeTriage.Create</c> over a canned handler.</summary>
-    public static async Task<SmokeTriage> TriageAsync()
+    public static Task<SmokeTriage> TriageAsync() => TriageAsync(Program.TriageResponse);
+
+    /// <summary>The triage whose team is billing and whose urgency is low, a second non-default value to compare against.</summary>
+    public static Task<SmokeTriage> OtherTriageAsync()
+        => TriageAsync(Program.TriageResponse
+            .Replace("\"billing\":0.2,\"account\":0.8", "\"billing\":0.8,\"account\":0.2", StringComparison.Ordinal)
+            .Replace("\"score\":1.9", "\"score\":0.1", StringComparison.Ordinal)
+            .Replace("\"0\":0.0,\"1\":0.1,\"2\":0.9", "\"0\":0.9,\"1\":0.1,\"2\":0.0", StringComparison.Ordinal));
+
+    /// <summary>The triage answers read from <paramref name="responseJson"/> over a canned handler.</summary>
+    public static async Task<SmokeTriage> TriageAsync(string responseJson)
     {
-        using var http = Program.Http(HttpStatusCode.OK, Program.TriageResponse);
-        using var client = new SystemOneClient(http, Program.Options());
+        using var http = Program.Http(HttpStatusCode.OK, responseJson);
+        using var client = new SystemOneDecisionClient(http, Program.Options());
         var result = await client.EvaluateAsync<SmokeTriage>(State).ConfigureAwait(false);
         return result.IsSuccess ? result.Value : throw new InvalidOperationException("The canned triage did not parse: " + result.Error.Message);
     }
@@ -41,6 +51,14 @@ internal static class SmokeAnswers
         return (await EvaluateAsync(set, SmokeBuiltSet.ResponseJson).ConfigureAwait(false)).Get(product);
     }
 
+    /// <summary>The keyed Choice answer of <see cref="SmokeBuiltSet.Full"/> when the model picks the other option.</summary>
+    public static async Task<KeyedChoice> OtherProductAsync()
+    {
+        var set = SmokeBuiltSet.Full(out _, out _, out var product, out _);
+        var json = SmokeBuiltSet.ResponseJson.Replace("\"choice\":\"pro-plan\",\"probabilities\":{\"pro-plan\":0.9,\"team-plan\":0.1}", "\"choice\":\"team-plan\",\"probabilities\":{\"pro-plan\":0.1,\"team-plan\":0.9}", StringComparison.Ordinal);
+        return (await EvaluateAsync(set, json).ConfigureAwait(false)).Get(product);
+    }
+
     /// <summary>The keyed Score answer of <see cref="SmokeBuiltSet.KeyedRisk"/>, evaluated over a canned handler.</summary>
     public static async Task<KeyedScore> RiskAsync()
     {
@@ -48,11 +66,21 @@ internal static class SmokeAnswers
         return (await EvaluateAsync(set, SmokeBuiltSet.KeyedRiskResponseJson).ConfigureAwait(false)).Get(risk);
     }
 
+    /// <summary>The keyed Score answer of <see cref="SmokeBuiltSet.KeyedRisk"/> when the model rates the risk lower.</summary>
+    public static async Task<KeyedScore> OtherRiskAsync()
+    {
+        var set = SmokeBuiltSet.KeyedRisk(out var risk);
+        var json = SmokeBuiltSet.KeyedRiskResponseJson
+            .Replace("\"score\":2.4", "\"score\":0.4", StringComparison.Ordinal)
+            .Replace("\"0\":0.0,\"1\":0.1,\"2\":0.4,\"3\":0.5", "\"0\":0.6,\"1\":0.3,\"2\":0.1,\"3\":0.0", StringComparison.Ordinal);
+        return (await EvaluateAsync(set, json).ConfigureAwait(false)).Get(risk);
+    }
+
     /// <summary>The answers to <paramref name="set"/>, from <paramref name="responseJson"/> over a canned handler.</summary>
-    public static async Task<Answers> EvaluateAsync(QuestionSet set, string responseJson)
+    public static async Task<QuestionSetAnswers> EvaluateAsync(QuestionSet set, string responseJson)
     {
         using var http = Program.Http(HttpStatusCode.OK, responseJson);
-        using var client = new SystemOneClient(http, Program.Options());
+        using var client = new SystemOneDecisionClient(http, Program.Options());
         var result = await client.EvaluateAsync(set, State).ConfigureAwait(false);
         return result.IsSuccess ? result.Value : throw new InvalidOperationException("The canned answers did not parse: " + result.Error.Message);
     }

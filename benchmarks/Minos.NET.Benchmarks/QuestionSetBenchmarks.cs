@@ -50,10 +50,10 @@ public class QuestionSetBenchmarks
     private QuestionSet _triage = null!;
     private QuestionDefinition[] _triageQuestions = [];
     private QuestionSet _twenty = null!;
-    private AnswerFactory<Answers> _twentyFactory = null!;
+    private AnswerFactory<QuestionSetAnswers> _twentyFactory = null!;
     private byte[] _twentyAnswers = [];
     private HttpClient _http = null!;
-    private SystemOneClient _client = null!;
+    private SystemOneDecisionClient _client = null!;
 
     /// <summary>The Noul, enum Choice and enum Score of <see cref="ClientBenchmarks.TypedEvaluateAsync"/>, as a builder.</summary>
     internal static QuestionSetBuilder TriageBuilder()
@@ -82,7 +82,7 @@ public class QuestionSetBenchmarks
         }
 
         _twenty = twenty.Build().Value;
-        _twentyFactory = answers => new Answers(_twenty, answers.Probabilities, answers.HeapSlots ?? answers.Slots.ToArray());
+        _twentyFactory = answers => new QuestionSetAnswers(_twenty, answers.Probabilities, answers.HeapSlots ?? answers.Slots.ToArray());
         _twentyAnswers = Encoding.UTF8.GetBytes(answers.Append('}').ToString());
 
         (_http, _client) = ClientBenchmarks.CreateClient(ClientBenchmarks.TriageResponseJson);
@@ -112,11 +112,11 @@ public class QuestionSetBenchmarks
 
     /// <summary>The same three questions as <see cref="ClientBenchmarks.TypedEvaluateAsync"/>, evaluated as a built set.</summary>
     [Benchmark]
-    public ValueTask<Result<Answers, DecisionError>> EvaluateBuiltSet() => _client.EvaluateAsync(_triage, State);
+    public ValueTask<Result<QuestionSetAnswers, DecisionError>> EvaluateBuiltSet() => _client.EvaluateAsync(_triage, State);
 
-    /// <summary>Parses twenty answers through the protocol into the built set's <see cref="Answers"/>.</summary>
+    /// <summary>Parses twenty answers through the protocol into the built set's <see cref="QuestionSetAnswers"/>.</summary>
     [Benchmark]
-    public Answers ParseBuiltTwenty()
+    public QuestionSetAnswers ParseBuiltTwenty()
     {
         var reader = new Utf8JsonReader(_twentyAnswers);
         reader.Read();

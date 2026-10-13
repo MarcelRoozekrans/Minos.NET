@@ -2,10 +2,10 @@ namespace Minos.AotSmoke;
 
 public enum Team
 {
-    [Criteria("Charges, invoices, refunds")]
+    [Criterion("Charges, invoices, refunds")]
     Billing,
 
-    [Criteria("Login, profile, permissions")]
+    [Criterion("Login, profile, permissions")]
     Account,
 }
 
@@ -37,10 +37,10 @@ public partial record SmokeTriage
 
 public enum SmokeTeam
 {
-    [Criteria("Charges, invoices, refunds", Examples = ["I was charged twice"], NotFor = ["How much is Pro?"])]
+    [Criterion("Charges, invoices, refunds", Examples = ["I was charged twice"], NotFor = ["How much is Pro?"])]
     Billing,
 
-    [Criteria("Login, profile, permissions")]
+    [Criterion("Login, profile, permissions")]
     Account,
 }
 

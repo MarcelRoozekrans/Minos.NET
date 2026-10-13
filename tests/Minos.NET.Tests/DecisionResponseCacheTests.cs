@@ -33,7 +33,7 @@ public sealed class DecisionResponseCacheTests
         Assert.Same(response.Probabilities, cached.Probabilities);
         Assert.Equal("jev-latest", cached.Model);
         Assert.Equal(response.Usage, cached.Usage);
-        Assert.Equal(0.75, cached.Answers[0].Value);
+        Assert.Equal(0.75, cached.Answers[0].Probability);
     }
 
     [Fact]

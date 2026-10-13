@@ -129,7 +129,7 @@ internal static class OpenAIChecks
 
         Program.Check(
             ReferenceEquals(client.GetService<OpenAIDecisionClient>(), client)
-                && capabilities is { QuestionKinds: QuestionKinds.All, Images: true, ModelListing: false }
+                && capabilities is { QuestionKinds: QuestionKinds.All, SupportsImages: true, SupportsModelListing: false }
                 && metadata is { ProviderName: "openai" }
                 && client.GetService(typeof(DecisionCapabilities), "key") is null,
             "an OpenAIDecisionClient answers itself, its capabilities with images, and its metadata, and no keyed service, under Native AOT");

@@ -123,7 +123,7 @@ that repeats an earlier member's value is an alias and is skipped, so that value
 for it. This is how the generator keys them too. Without a configurator, the options are sent with no description, and
 `Describe` adds one to a member.
 
-The builder does not read attributes on the members. A `[Criteria]` or `[Level]` on the enum is ignored here. Describe
+The builder does not read attributes on the members. A `[Criterion]` or `[Level]` on the enum is ignored here. Describe
 the options with `Describe`, and give a Score's levels with `Level`. A Score's levels are the members in the order you
 add them, lowest first, and each distinct member must be given exactly once. List them in declaration order to match
 what the generator would produce for the same enum.
@@ -162,6 +162,10 @@ send on a typed set, and `Criterion.Json` sends a JSON object or array. Each `Wi
 and replaces the list set before. A `null` entry in either list is left out. `WithExamples` and `WithNotFor` throw
 `InvalidOperationException` on a JSON criterion: put examples inside the JSON instead.
 
+The configurator that each question method hands to its callback is a builder: `NoulCriteriaBuilder` for a Noul,
+`ChoiceOptionsBuilder` for a Choice, and `ScoreLevelsBuilder` for a Score. A keyed question gets
+`KeyedChoiceOptionsBuilder` or `KeyedScoreLevelsBuilder`.
+
 ### Configurators work only inside their callback
 
 A configurator is valid while its callback runs. Once the question method returns, calling a stored configurator throws
@@ -171,8 +175,8 @@ no question.
 ## Evaluating and reading
 
 Evaluate a built set with `EvaluateAsync(questionSet, state, cancellationToken)`. The state is a `DecisionContent`, so a
-string passes as it is. The result holds a `Answers`, and `answers.Get(handle)` returns the answer for that handle's
-question, as the same types a typed set uses: `Noul`, `Choice<T>`, `Score<T>`, `KeyedChoice` and `KeyedScore`.
+string passes as it is. The result holds a `QuestionSetAnswers`, and `answers.Get(handle)` returns the answer for that
+handle's question, as the same types a typed set uses: `Noul`, `Choice<T>`, `Score<T>`, `KeyedChoice` and `KeyedScore`.
 `TenantRouter.RouteAsync` above shows the whole path. [Question types](question-types.md) covers what those answers
 hold, and what is free to read.
 
@@ -180,7 +184,7 @@ A response that is missing the answer to one of the set's questions fails the ca
 Answers to keys the set does not contain are ignored.
 
 Any `IDecisionClient` can evaluate a built set, including a hand-written fake that implements only the two abstract methods.
-`SystemOneClient` has a direct path for it, as it does for typed sets.
+`SystemOneDecisionClient` has a direct path for it, as it does for typed sets.
 
 ## Checking the set
 
@@ -308,9 +312,9 @@ A handle belongs to the builder that made it. It works with the answers to any s
 question existed when that set was built. `Build()` can be called again after more questions are added, and the handles
 from before work with both sets.
 
-`Answers.Get` throws `ArgumentException` for a handle that does not belong to its set. That covers a `default`
-handle, a handle from another builder, and a handle for a question added after the set was built. It is a programming
-error, so it throws and does not return a failed `Result`.
+`QuestionSetAnswers.Get` throws `ArgumentException` for a handle that does not belong to its set. That covers a
+`default` handle, a handle from another builder, and a handle for a question added after the set was built. It is a
+programming error, so it throws and does not return a failed `Result`.
 
 ## Build once and share
 
@@ -320,8 +324,9 @@ immutable and safe to share across threads. A builder is not thread-safe.
 
 An enum question reads the enum's public fields, which is safe to trim and for [Native
 AOT](native-aot.md#the-one-use-of-reflection): the builder's generic parameters are annotated so that the trimmer keeps
-them. A method of yours that passes its own generic parameter on to `Choice<T>`, `Score<T>` or `Answers.Get` needs
-the same annotation on that parameter: `[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)]`.
+them. A method of yours that passes its own generic parameter on to `Choice<T>`, `Score<T>` or `QuestionSetAnswers.Get`
+needs the same annotation on that parameter:
+`[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)]`.
 
 ## Next
 

@@ -25,19 +25,19 @@ review anyway.
 ```cs
 public enum ReviewTopic
 {
-    [Criteria("The app crashes, freezes or closes on its own")]
+    [Criterion("The app crashes, freezes or closes on its own")]
     Crash,
 
-    [Criteria("The app is slow, drains the battery or uses too much data")]
+    [Criterion("The app is slow, drains the battery or uses too much data")]
     Performance,
 
-    [Criteria("The price, the subscription or in-app purchases")]
+    [Criterion("The price, the subscription or in-app purchases")]
     Pricing,
 
-    [Criteria("A feature the reviewer wants added")]
+    [Criterion("A feature the reviewer wants added")]
     FeatureIdea,
 
-    [Criteria("Mostly praise, with no complaint")]
+    [Criterion("Mostly praise, with no complaint")]
     Praise,
 }
 
@@ -216,7 +216,7 @@ public sealed class BuiltReviewTriage
 ## C# notes
 
 - Each answer is a struct over the response's shared buffer: reading `Value`, `Expected`, `Confidence` or
-  `Probability` allocates nothing, and neither does `Answers.Get`.
+  `Probability` allocates nothing, and neither does `QuestionSetAnswers.Get`.
 - Build a question set once and keep it, as `BuiltReviewTriage` does: the set is immutable and safe to share across
   threads.
 - The thresholds here (0.6, 1.5, 0.7) are starting points. Tune them on your own reviews.

@@ -15,7 +15,7 @@ using Minos.Generator;
 namespace Minos.CodeFixes;
 
 /// <summary>
-/// Adds a <c>[Criteria("…")]</c> (MIN006) or <c>[Level("…")]</c> (MIN104) to an enum member that is missing one,
+/// Adds a <c>[Criterion("…")]</c> (MIN006) or <c>[Level("…")]</c> (MIN104) to an enum member that is missing one,
 /// with the description derived from the member's own name by <see cref="WordSplitter"/>.
 /// </summary>
 /// <remarks>
@@ -32,7 +32,7 @@ public sealed class AddDescriptionCodeFixProvider : CodeFixProvider
 
     /// <inheritdoc />
     public override ImmutableArray<string> FixableDiagnosticIds { get; }
-        = ImmutableArray.Create(DiagnosticIds.MissingCriteria, DiagnosticIds.MissingLevel);
+        = ImmutableArray.Create(DiagnosticIds.MissingCriterion, DiagnosticIds.MissingLevel);
 
     /// <inheritdoc />
     public override FixAllProvider GetFixAllProvider() => WellKnownFixAllProviders.BatchFixer;
@@ -53,7 +53,7 @@ public sealed class AddDescriptionCodeFixProvider : CodeFixProvider
                 continue;
             }
 
-            var attributeName = diagnostic.Id == DiagnosticIds.MissingCriteria ? "Criteria" : "Level";
+            var attributeName = diagnostic.Id == DiagnosticIds.MissingCriterion ? "Criterion" : "Level";
             context.RegisterCodeFix(
                 CodeAction.Create(
                     $"Add [{attributeName}(\"{WordSplitter.ToSentence(member.Identifier.ValueText)}\")]",
@@ -75,7 +75,7 @@ public sealed class AddDescriptionCodeFixProvider : CodeFixProvider
         // The attribute is written fully qualified and left to the simplifier to shorten to what binds at the member.
         // ImportAdder is asked for a using only when nothing in scope reaches the attribute yet. On its own it mishandles
         // two cases: under an alias using such as `using M = Minos;` it still adds `using Minos;` and
-        // the name reduces to a bare [Criteria], on Roslyn 5.0.0 and 5.9.0; and with a global using in another file it
+        // the name reduces to a bare [Criterion], on Roslyn 5.0.0 and 5.9.0; and with a global using in another file it
         // leaves a stray blank line at the top, on 5.0.0 only, fixed in later Roslyn.
         // Tracked: #51
         var name = SyntaxFactory.ParseName("global::" + metadataName).WithAdditionalAnnotations(Simplifier.Annotation);

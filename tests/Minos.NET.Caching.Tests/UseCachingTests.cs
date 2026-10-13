@@ -103,6 +103,31 @@ public sealed class UseCachingTests
     }
 
     [Fact]
+    public async Task With_UseDistributedCache_off_takes_no_distributed_cache_from_the_services()
+    {
+        var distributed = new CountingDistributedCache();
+        using var services = Responses.Services(distributed);
+        var inner = new ScriptedClient();
+        using var client = inner.AsBuilder().UseCaching(configure: o => o.UseDistributedCache = false).Build(services);
+
+        await client.EvaluateAsync(Responses.Request());
+        var hit = await client.EvaluateAsync(Responses.Request());
+
+        Assert.True(hit.Value.IsCached);
+        Assert.Equal(0, distributed.ReadCount + distributed.WriteCount);
+    }
+
+    [Fact]
+    public void With_UseDistributedCache_off_a_distributed_cache_passed_in_throws_at_build()
+    {
+        using var memory = Responses.Memory();
+        var builder = new ScriptedClient().AsBuilder()
+            .UseCaching(memory, new CountingDistributedCache(), o => o.UseDistributedCache = false);
+
+        Assert.Throws<ArgumentException>(() => builder.Build());
+    }
+
+    [Fact]
     public void Throws_at_build_when_no_in_process_cache_is_registered()
     {
         using var services = new ServiceCollection().BuildServiceProvider();

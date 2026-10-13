@@ -25,7 +25,7 @@ public sealed class RetryingDecisionClient : DelegatingDecisionClient
 
     /// <summary>Initializes a new instance of the <see cref="RetryingDecisionClient"/> class.</summary>
     /// <param name="innerClient">The client to retry.</param>
-    /// <param name="options">The retry settings; <see langword="null"/> for the defaults.</param>
+    /// <param name="options">The retry settings; <see langword="null"/> for the defaults, not the inner client's own settings; <c>UseRetries</c> starts from those.</param>
     /// <param name="logger">Logs each retried attempt; <see langword="null"/> for none.</param>
     /// <param name="timeProvider">Times the waits; <see langword="null"/> for <see cref="TimeProvider.System"/>.</param>
     /// <exception cref="ArgumentNullException"><paramref name="innerClient"/> is <see langword="null"/>.</exception>

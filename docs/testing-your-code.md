@@ -2,7 +2,7 @@
 id: testing-your-code
 title: Testing your code
 sidebar_position: 12
-description: Test code that calls Jev with a fake IDecisionClient or a real SystemOneClient over a canned HTTP reply, and pin each decision.
+description: Test code that calls Jev with a fake IDecisionClient or a real SystemOneDecisionClient over a canned HTTP reply, and pin each decision.
 ---
 
 # Testing your code
@@ -81,8 +81,8 @@ a host supplies the real client. A test does not need a container: it builds the
 
 ## Way one: a fake `IDecisionClient`
 
-`IDecisionClient` is the library's interface for calling Jev, and `SystemOneClient` implements it. A **fake** is a small
-class of your own that implements it and returns a fixed reply, with no HTTP at all.
+`IDecisionClient` is the library's interface for calling Jev, and `SystemOneDecisionClient` implements it. A **fake** is
+a small class of your own that implements it and returns a fixed reply, with no HTTP at all.
 
 A fake implements three members:
 
@@ -129,6 +129,13 @@ public sealed class FakeDecision(Result<DecisionResponse, DecisionError> reply) 
     public static FakeDecision Failing(DecisionErrorKind kind)
         => new(Result<DecisionResponse, DecisionError>.Failure(new DecisionError(kind, "The fake failed on purpose.")));
 
+    // A model that refused a question: the failures name each refused question, with the rule refusal.
+    public static FakeDecision Refused(string questionKey)
+        => new(Result<DecisionResponse, DecisionError>.Failure(new DecisionError(
+            DecisionErrorKind.Refused,
+            "The fake refused on purpose.",
+            [new QuestionFailure("refusal", questionKey, "The fake refused on purpose.")])));
+
     // A busy service: the kind and message are the constructor's, the rest are init properties.
     public static FakeDecision Overloaded(TimeSpan retryAfter)
         => new(Result<DecisionResponse, DecisionError>.Failure(new DecisionError(DecisionErrorKind.Overloaded, "The fake is busy on purpose.")
@@ -154,12 +161,12 @@ public sealed class FakeDecision(Result<DecisionResponse, DecisionError> reply) 
 <!-- endSnippet -->
 
 The reply is a `DecisionResponse`, made with its public constructor from the question set's `Definition` and one
-`QuestionAnswer` per question, in the order the set declares them. `QuestionAnswer.Noul` takes the probability.
-`QuestionAnswer.Choice` takes the position of the chosen option in the enum, the confidence and one probability per
-option, and `QuestionAnswer.Score` takes the level, the value, the confidence and the probabilities.
-[Question types](question-types.md) says what each one holds. The constructor checks the answers against the
-definition, so an answer of the wrong kind, or the wrong number of probabilities, throws `ArgumentException` when the
-fake is built, not when the test reads it.
+`QuestionAnswer` per question, in the order the set declares them. `QuestionAnswer.Noul` takes the probability of yes,
+which you read back as `Probability`. `QuestionAnswer.Choice` takes the position of the chosen option in the enum, the
+confidence and one probability per option, and `QuestionAnswer.Score` takes the level, the expected level (read back as
+`Expected`), the confidence and the probabilities. [Question types](question-types.md) says what each one holds. The
+constructor checks the answers against the definition, so an answer of the wrong kind, or the wrong number of
+probabilities, throws `ArgumentException` when the fake is built, not when the test reads it.
 
 With the fake in hand, a test is a few lines: build the class, call it, assert the decision. The fake also keeps every
 request, so the test can check what the code asked.
@@ -191,12 +198,34 @@ public async Task WhenDecisionFails_ThePersonReviews()
 
     Assert.Equal(TriageRoute.Review, route);
 }
+
+[Fact]
+public async Task WhenTheModelRefuses_TheRefusalNamesTheQuestion_AndThePersonReviews()
+{
+    var client = FakeDecision.Refused("is_urgent");
+    var triager = new TicketTriager(client);
+
+    var route = await triager.RouteAsync("Any ticket.", CancellationToken.None);
+    var result = await client.EvaluateAsync<TriageQuestions>("Any ticket.");
+
+    Assert.Equal(TriageRoute.Review, route);
+    var failure = Assert.Single(result.Error.Failures);
+    Assert.Equal(("refusal", "is_urgent"), (failure.Rule, failure.QuestionKey));
+}
 ```
 <!-- endSnippet -->
 
 If you use a mocking library instead of a hand-written fake, set up `EvaluateAsync(DecisionRequest,
 CancellationToken)`. The typed calls your code makes, such as `EvaluateAsync<T>(string, CancellationToken)`, are
 extension methods, which a mock cannot intercept, and they all reach that one method.
+
+### Testing code that reads one answer
+
+A helper that takes one answer, such as a method over a `Choice<TriageDesk>` or a `Score<Urgency>`, is tested through
+the fake: build the reply as above, call the fake, and read the answer from the typed result. `Choice<T>`, `Score<T>`,
+`KeyedChoice` and `KeyedScore` have no public constructors, because each needs a probability map that only a response
+can build. A `Noul` is complete without a map, so `new Noul(0.8)` is public, and a helper that takes a `Noul` can be
+called with one directly.
 
 ## Pin each decision
 
@@ -231,14 +260,18 @@ review. `Overloaded` shows how to give an error more detail: the constructor tak
 example sets the `StatusCode` and `RetryAfter` init properties. `Detail` and `Exception` are set the same way when
 the failure has them.
 
-## Way two: a real `SystemOneClient` over a canned HTTP reply
+A refusal names the questions it is about. `Refused` shows the constructor that takes the failures as well: pass one
+`QuestionFailure` per refused question, with the rule `refusal` and the question's wire key, and read them back from
+`Failures`. An `Unsupported` capability error lists its problems the same way.
 
-A fake never runs `SystemOneClient`. It skips the protocol, which writes the request from the question set and reads
-the answers from the reply, and the [pipeline](pipeline.md) of retries, logging and telemetry. So a fake cannot tell
-you that your question set builds the request you meant, or that a reply parses into the answers you read. For that,
-run a real `SystemOneClient` and replace only the network. A `SystemOneClient` can take an `HttpClient` you made, and an
-`HttpClient` can take a **message handler**: the object that actually sends the request. A handler of your own that
-answers from memory means the full client runs, and no packet leaves the machine.
+## Way two: a real `SystemOneDecisionClient` over a canned HTTP reply
+
+A fake never runs `SystemOneDecisionClient`. It skips the protocol, which writes the request from the question set and
+reads the answers from the reply, and the [pipeline](pipeline.md) of retries, logging and telemetry. So a fake cannot
+tell you that your question set builds the request you meant, or that a reply parses into the answers you read. For
+that, run a real `SystemOneDecisionClient` and replace only the network. A `SystemOneDecisionClient` can take an
+`HttpClient` you made, and an `HttpClient` can take a **message handler**: the object that actually sends the request. A
+handler of your own that answers from memory means the full client runs, and no packet leaves the machine.
 
 <!-- snippet: TestingYourCode_Handler -->
 ```cs
@@ -311,7 +344,7 @@ public async Task ARealClient_SendsTheQuestions_AndReadsTheCannedAnswers()
     var handler = new CannedHandler(HttpStatusCode.OK, UrgentBody);
     using var http = new HttpClient(handler);
     // A dummy key passes validation, and no retries means a failing reply is returned at once.
-    using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "test-key", MaxRetries = 0 });
+    using var client = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = "test-key", MaxRetries = 0 });
 
     var route = await new TicketTriager(client).RouteAsync("Payouts have been failing for 3 days.", CancellationToken.None);
 
@@ -329,7 +362,7 @@ public async Task ARejectedKey_BecomesAFailure_AndThePersonReviews()
 {
     var handler = new CannedHandler(HttpStatusCode.Unauthorized, """{"error":"Invalid API key"}""");
     using var http = new HttpClient(handler);
-    using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "test-key", MaxRetries = 0 });
+    using var client = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = "test-key", MaxRetries = 0 });
 
     var result = await client.EvaluateAsync<TriageQuestions>("Any ticket.", CancellationToken.None);
 

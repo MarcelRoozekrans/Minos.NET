@@ -15,13 +15,13 @@ customer's mood.
 ```cs
 public enum Department
 {
-    [Criteria("Payments, invoices and refunds")]
+    [Criterion("Payments, invoices and refunds")]
     Billing,
 
-    [Criteria("Bugs, outages and integrations")]
+    [Criterion("Bugs, outages and integrations")]
     Technical,
 
-    [Criteria("Pricing, upgrades and new accounts")]
+    [Criterion("Pricing, upgrades and new accounts")]
     Sales,
 }
 
@@ -78,7 +78,7 @@ it cannot tell. Compare the probability against a threshold that suits the decis
 
 ## Choice: one option out of several
 
-A Choice picks one option from a list. The options are the members of an enum, described with `[Criteria]`. The answer
+A Choice picks one option from a list. The options are the members of an enum, described with `[Criterion]`. The answer
 holds three things.
 
 - `Value`: the option Jev picked.
@@ -214,7 +214,8 @@ public sealed class PlanAdvisor
 <!-- endSnippet -->
 
 Building a set at run time is covered on its [own page](question-sets-at-run-time.md). The point here is the shape of
-the answers: they are read with `Answers.Get` and a handle, and they hold the same numbers as the typed forms.
+the answers: they are read with `QuestionSetAnswers.Get` and a handle, and they hold the same numbers as the typed
+forms.
 
 ## Confidence is not probability
 
@@ -237,9 +238,13 @@ confidence threshold sized to the cost of being wrong, with `ConfidenceThreshold
 
 The answers of one call share one buffer, and each probability map is a view over it. Reading `Value`, `Probability`,
 `Expected`, `Normalized` or `Confidence`, looking up a probability, enumerating a `Probabilities` map and calling
-`Answers.Get` all allocate nothing. `foreach` over a map yields each option with its probability, in the order of
-the enum's members, as `RunnerUp` above does. A member that repeats an earlier member's value is an alias and is
-skipped, and explicit values do not reorder anything. A keyed map enumerates its keys in the order they were added.
+`QuestionSetAnswers.Get` all allocate nothing. `foreach` over a map yields each option with its probability, in the
+order of the enum's members, as `RunnerUp` above does. A member that repeats an earlier member's value is an alias and
+is skipped, and explicit values do not reorder anything. A keyed map enumerates its keys in the order they were added.
+
+The views are small structs. `QuestionAnswerList` is the view over a response's answers, `ProbabilityMap` and
+`KeyedProbabilityMap` are the views over one question's probabilities, and each has a struct `Enumerator` that
+`foreach` uses. `QuestionKind` is the Noul, Choice or Score kind that `QuestionAnswer.Kind` reports.
 
 The [performance](performance.md) page has the measured costs of a call.
 

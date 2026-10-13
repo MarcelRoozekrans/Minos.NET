@@ -19,14 +19,14 @@ internal static class SystemOneTargets
         var requested = model ?? SystemOneDefaults.Model;
         return new ConformanceTarget(name, ConformanceWire.SystemOne, requested, rule, http =>
         {
-            var options = new SystemOneClientOptions { Provider = provider, ApiKey = apiKey, Model = requested };
+            var options = new SystemOneDecisionClientOptions { Provider = provider, ApiKey = apiKey, Model = requested };
             if (maxRetries is { } retries)
             {
                 options.MaxRetries = retries;
             }
 
-            SystemOneClient.ConfigureHttpClient(http, options);
-            return new SystemOneClient(http, options);
+            SystemOneDecisionClient.ConfigureHttpClient(http, options);
+            return new SystemOneDecisionClient(http, options);
         });
     }
 }

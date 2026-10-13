@@ -10,15 +10,15 @@ public enum SystemOneProvider
     OpenRouter,
 
     /// <summary>
-    /// A vLLM Semantic Router you run, at <see cref="SystemOneClientOptions.BaseAddress"/>. A key is sent only when
-    /// <see cref="SystemOneClientOptions.ApiKey"/> is set. It needs <see cref="SystemOneClientOptions.Model"/>.
+    /// A vLLM Semantic Router you run, at <see cref="SystemOneDecisionClientOptions.BaseAddress"/>. A key is sent only when
+    /// <see cref="SystemOneDecisionClientOptions.ApiKey"/> is set. It needs <see cref="SystemOneDecisionClientOptions.Model"/>.
     /// </summary>
     VllmSemanticRouter,
 
     /// <summary>
-    /// Any other server that speaks the <c>/v1/systemone</c> protocol, at <see cref="SystemOneClientOptions.BaseAddress"/>
-    /// and <see cref="SystemOneClientOptions.Path"/>. A key is sent only when <see cref="SystemOneClientOptions.ApiKey"/> is
-    /// set. It needs <see cref="SystemOneClientOptions.Model"/>.
+    /// Any other server that speaks the <c>/v1/systemone</c> protocol, at <see cref="SystemOneDecisionClientOptions.BaseAddress"/>
+    /// and <see cref="SystemOneDecisionClientOptions.Path"/>. A key is sent only when <see cref="SystemOneDecisionClientOptions.ApiKey"/> is
+    /// set. It needs <see cref="SystemOneDecisionClientOptions.Model"/>.
     /// </summary>
     Custom,
 }

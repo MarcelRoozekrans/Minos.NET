@@ -71,9 +71,9 @@ public sealed class OpenAIDecisionClientTests : IDisposable
 
         Assert.NotNull(metadata);
         Assert.Equal("openai", metadata.ProviderName);
-        Assert.Equal(new Uri("https://api.openai.com/v1/"), metadata.Endpoint);
+        Assert.Equal(new Uri("https://api.openai.com/v1/decisions"), metadata.Endpoint);
         Assert.Equal(TestModel, metadata.DefaultModel);
-        Assert.Equal(new Uri("https://api.openai.com/v1/"), defaults.GetService<DecisionClientMetadata>()!.Endpoint);
+        Assert.Equal(new Uri("https://api.openai.com/v1/decisions"), defaults.GetService<DecisionClientMetadata>()!.Endpoint);
     }
 
     [Fact]
@@ -84,9 +84,9 @@ public sealed class OpenAIDecisionClientTests : IDisposable
         var capabilities = client.GetService<DecisionCapabilities>();
 
         Assert.NotNull(capabilities);
-        Assert.True(capabilities.Images);
+        Assert.True(capabilities.SupportsImages);
         Assert.Equal(QuestionKinds.All, capabilities.QuestionKinds);
-        Assert.False(capabilities.ModelListing);
+        Assert.False(capabilities.SupportsModelListing);
         Assert.NotSame(capabilities, client.GetService<DecisionCapabilities>());
     }
 
@@ -96,12 +96,12 @@ public sealed class OpenAIDecisionClientTests : IDisposable
         using var client = Client(
             _httpClients,
             new StubHandler((_, _) => Task.FromResult(Success())),
-            configure: o => o.Capabilities = new DecisionCapabilities { ModelListing = true, MaxQuestions = 4 });
+            configure: o => o.Capabilities = new DecisionCapabilities { SupportsModelListing = true, MaxQuestions = 4 });
 
         var capabilities = client.GetService<DecisionCapabilities>();
 
         Assert.NotNull(capabilities);
-        Assert.False(capabilities.ModelListing);
+        Assert.False(capabilities.SupportsModelListing);
         Assert.Equal(4, capabilities.MaxQuestions);
     }
 
@@ -193,7 +193,7 @@ public sealed class OpenAIDecisionClientTests : IDisposable
     public async Task ANoulWithWhenTrue_AndImages_WithImagesOff_IsUnsupported_Min206ThenMin204_AndSendsNothing()
     {
         var handler = new StubHandler((_, _) => Task.FromResult(Success()));
-        using var client = Client(_httpClients, handler, configure: o => o.Capabilities = new DecisionCapabilities { Images = false });
+        using var client = Client(_httpClients, handler, configure: o => o.Capabilities = new DecisionCapabilities { SupportsImages = false });
         var definition = new QuestionSetDefinition(QuestionDefinition.Noul("refund", "Is this a refund?", whenTrue: "Money back"));
         var request = new DecisionRequest(definition, DecisionContent.FromString("x"))
         {

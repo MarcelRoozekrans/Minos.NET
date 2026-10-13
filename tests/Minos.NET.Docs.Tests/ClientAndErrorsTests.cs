@@ -205,10 +205,10 @@ public sealed class ClientAndErrorsTests
             Assert.Equal("jev-latest (2026-09-15), jev-preview (2026-09-16)", await ModelListing.ModelsAsync(client, CancellationToken.None));
         }
 
-        var options = new SystemOneClientOptions { Provider = SystemOneProvider.OpenRouter, ApiKey = "docs-key" };
+        var options = new SystemOneDecisionClientOptions { Provider = SystemOneProvider.OpenRouter, ApiKey = "docs-key" };
         using var handler = new ScriptedDecision.Handler([Reply.Ok(ModelsResponse)]);
         using var openRouterHttp = new HttpClient(handler);
-        using var openRouter = new SystemOneClient(openRouterHttp, options);
+        using var openRouter = new SystemOneDecisionClient(openRouterHttp, options);
 
         var result = await openRouter.ListModelsAsync(CancellationToken.None);
 
@@ -224,7 +224,7 @@ public sealed class ClientAndErrorsTests
     public void TheOptionsOnThePage_AreTheDefaults()
     {
         var spelledOut = ClientOptions.SpelledOut("docs-key");
-        var defaults = new SystemOneClientOptions();
+        var defaults = new SystemOneDecisionClientOptions();
 
         Assert.Equal(defaults.Provider, spelledOut.Provider);
         Assert.Equal(defaults.Model, spelledOut.Model);
@@ -249,18 +249,18 @@ public sealed class ClientAndErrorsTests
         Assert.Null(ClientOptions.Problem(ClientOptions.Strict("docs-key")));
         Assert.Equal(
             "MaxRetries must be between 0 and 10. (Parameter 'options')",
-            ClientOptions.Problem(new SystemOneClientOptions { ApiKey = "docs-key", MaxRetries = 11 }));
-        Assert.Null(ClientOptions.Problem(new SystemOneClientOptions { ApiKey = "docs-key", MaxRetries = 10 }));
+            ClientOptions.Problem(new SystemOneDecisionClientOptions { ApiKey = "docs-key", MaxRetries = 11 }));
+        Assert.Null(ClientOptions.Problem(new SystemOneDecisionClientOptions { ApiKey = "docs-key", MaxRetries = 10 }));
         Assert.StartsWith(
             "MaxRetryDelay must be at least InitialBackoff",
-            ClientOptions.Problem(new SystemOneClientOptions
+            ClientOptions.Problem(new SystemOneDecisionClientOptions
             {
                 ApiKey = "docs-key",
                 InitialBackoff = TimeSpan.FromSeconds(2),
                 MaxRetryDelay = TimeSpan.FromSeconds(1),
             }),
             StringComparison.Ordinal);
-        Assert.Throws<ArgumentException>(() => new SystemOneClient(new SystemOneClientOptions { ApiKey = "docs-key", MaxRetries = 11 }));
+        Assert.Throws<ArgumentException>(() => new SystemOneDecisionClient(new SystemOneDecisionClientOptions { ApiKey = "docs-key", MaxRetries = 11 }));
     }
 
     [Fact]
@@ -268,18 +268,18 @@ public sealed class ClientAndErrorsTests
     {
         using var environment = new KeyEnvironment(typeSafe: null, openRouter: null);
 
-        var typeSafe = ClientOptions.Problem(new SystemOneClientOptions());
-        var openRouter = ClientOptions.Problem(new SystemOneClientOptions { Provider = SystemOneProvider.OpenRouter });
+        var typeSafe = ClientOptions.Problem(new SystemOneDecisionClientOptions());
+        var openRouter = ClientOptions.Problem(new SystemOneDecisionClientOptions { Provider = SystemOneProvider.OpenRouter });
 
         Assert.Contains("TYPESAFE_API_KEY", typeSafe, StringComparison.Ordinal);
         Assert.Contains("OPENROUTER_API_KEY", openRouter, StringComparison.Ordinal);
 
         KeyEnvironment.Set(typeSafe: "from-the-environment", openRouter: null);
 
-        Assert.Null(ClientOptions.Problem(new SystemOneClientOptions()));
+        Assert.Null(ClientOptions.Problem(new SystemOneDecisionClientOptions()));
         Assert.Contains(
             "OPENROUTER_API_KEY",
-            ClientOptions.Problem(new SystemOneClientOptions { Provider = SystemOneProvider.OpenRouter }),
+            ClientOptions.Problem(new SystemOneDecisionClientOptions { Provider = SystemOneProvider.OpenRouter }),
             StringComparison.Ordinal);
     }
 
@@ -482,14 +482,14 @@ public sealed class ClientAndErrorsTests
     [Fact]
     public void ABorrowedHttpClient_KeepsItsOwnTimeout_UnlessConfiguredThroughConfigureHttpClient()
     {
-        var options = new SystemOneClientOptions { ApiKey = "docs-key", Timeout = TimeSpan.FromSeconds(5) };
+        var options = new SystemOneDecisionClientOptions { ApiKey = "docs-key", Timeout = TimeSpan.FromSeconds(5) };
         using var borrowed = new HttpClient();
-        using var client = new SystemOneClient(borrowed, options);
+        using var client = new SystemOneDecisionClient(borrowed, options);
 
         Assert.Equal(TimeSpan.FromSeconds(100), borrowed.Timeout);
 
         using var configured = new HttpClient();
-        SystemOneClient.ConfigureHttpClient(configured, options);
+        SystemOneDecisionClient.ConfigureHttpClient(configured, options);
 
         Assert.Equal(TimeSpan.FromSeconds(5), configured.Timeout);
     }
@@ -506,6 +506,62 @@ public sealed class ClientAndErrorsTests
         }
     }
 
+    [Fact]
+    public async Task RouteAsync_SendsAChoiceQuestion_AndReadsTheChoiceAndItsConfidence()
+    {
+        const string body = """{"model":"jev-1.13.0","answers":{"team":{"type":"choice","choice":"billing","probabilities":{"billing":0.8,"technical":0.15,"other":0.05},"confidence":0.77}},"usage":{"input_tokens":9,"output_tokens":1}}""";
+        var (http, client, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Ok(body));
+        using (http)
+        using (client)
+        {
+            Assert.Equal("billing (77 % sure)", await RawChoiceRequests.RouteAsync(client, "My invoice is wrong.", CancellationToken.None));
+        }
+
+        var sent = JsonDocument.Parse(Assert.Single(requests).Body).RootElement.GetProperty("questions").GetProperty("team");
+        Assert.Equal("choice", sent.GetProperty("type").GetString());
+        Assert.Equal(JsonValueKind.Null, sent.GetProperty("criteria").GetProperty("other").ValueKind);
+    }
+
+    // The question types table lists every kind of question, and what its Criteria holds.
+    [Fact]
+    public void TheQuestionTypesTable_ListsEveryQuestionType()
+    {
+        var rows = PageTables.Rows("client-and-errors.md", "The question types");
+
+        var types = typeof(Question).Assembly.GetTypes()
+            .Where(type => type.IsSubclassOf(typeof(Question)))
+            .Select(type => type.Name);
+        Assert.Equal(types.Order(StringComparer.Ordinal), rows.Select(row => PageTables.Code(row[0])).Order(StringComparer.Ordinal));
+        var cells = rows.ToDictionary(row => PageTables.Code(row[0]), row => row[1], StringComparer.Ordinal);
+        Assert.Equal(["NoulCriteria", "WhenTrue", "WhenFalse"], PageTables.AllCode(cells[nameof(NoulQuestion)]).Take(3));
+    }
+
+    // The answer types table lists every kind of answer with each of its members.
+    [Fact]
+    public void TheAnswerTypesTable_ListsEveryAnswerMember()
+    {
+        var rows = PageTables.Rows("client-and-errors.md", "The answer types");
+
+        var answers = typeof(Answer).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(Answer))).ToArray();
+        Assert.Equal(
+            answers.Select(type => type.Name).Order(StringComparer.Ordinal),
+            rows.Select(row => PageTables.Code(row[0])).Order(StringComparer.Ordinal));
+        var cells = rows.ToDictionary(row => PageTables.Code(row[0]), row => row[1], StringComparer.Ordinal);
+        foreach (var type in answers)
+        {
+            var members = new List<string>();
+            foreach (var property in type.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.DeclaredOnly))
+            {
+                members.Add(property.Name);
+            }
+
+            members.Sort(StringComparer.Ordinal);
+            var listed = PageTables.AllCode(cells[type.Name]);
+            Array.Sort(listed, StringComparer.Ordinal);
+            Assert.Equal(members, listed);
+        }
+    }
+
     // The SystemOneDefaults table lists every public member of the class, with the values the class holds.
     [Fact]
     public void TheDecisionDefaultsTable_ListsEveryMemberWithItsValue()
@@ -519,9 +575,9 @@ public sealed class ClientAndErrorsTests
 
         Assert.Equal(actual, rows.Select(row => PageTables.Code(row[0])).Order(StringComparer.Ordinal));
         var values = rows.ToDictionary(row => PageTables.Code(row[0]), row => PageTables.Code(row[1]), StringComparer.Ordinal);
-        Assert.Equal(SystemOneDefaults.ApiKeyEnvironmentVariable, values[nameof(SystemOneDefaults.ApiKeyEnvironmentVariable)]);
+        Assert.Equal(SystemOneDefaults.TypeSafeApiKeyEnvironmentVariable, values[nameof(SystemOneDefaults.TypeSafeApiKeyEnvironmentVariable)]);
         Assert.Equal(SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable, values[nameof(SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable)]);
-        Assert.Equal(SystemOneDefaults.BaseAddressEnvironmentVariable, values[nameof(SystemOneDefaults.BaseAddressEnvironmentVariable)]);
+        Assert.Equal(SystemOneDefaults.TypeSafeBaseAddressEnvironmentVariable, values[nameof(SystemOneDefaults.TypeSafeBaseAddressEnvironmentVariable)]);
         Assert.Equal(SystemOneDefaults.Model, values[nameof(SystemOneDefaults.Model)]);
         Assert.Equal(SystemOneDefaults.TypeSafeBaseAddress.ToString(), values[nameof(SystemOneDefaults.TypeSafeBaseAddress)]);
         Assert.Equal(SystemOneDefaults.OpenRouterBaseAddress.ToString(), values[nameof(SystemOneDefaults.OpenRouterBaseAddress)]);
@@ -542,7 +598,7 @@ public sealed class ClientAndErrorsTests
     public async Task TheCustomPreset_SendsToTheAddressAndPath_AndNeverReadsAKeyFromTheEnvironment()
     {
         using var environment = new Variables(
-            (SystemOneDefaults.ApiKeyEnvironmentVariable, "typesafe-key"),
+            (SystemOneDefaults.TypeSafeApiKeyEnvironmentVariable, "typesafe-key"),
             (SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable, "openrouter-key"));
         var (client, handler, http) = Direct(ProviderOptions.Custom(), Reply.Ok(UrgencyResponse));
         using (http)
@@ -575,7 +631,7 @@ public sealed class ClientAndErrorsTests
     public void TheOptionsTable_ListsEveryPropertyOfTheOptions()
     {
         var rows = PageTables.Rows("client-and-errors.md", "Options");
-        var properties = typeof(SystemOneClientOptions).GetProperties().Select(property => property.Name).ToArray();
+        var properties = typeof(SystemOneDecisionClientOptions).GetProperties().Select(property => property.Name).ToArray();
 
         Assert.Equal(properties.Order(StringComparer.Ordinal), rows.Select(row => PageTables.Code(row[0])).Order(StringComparer.Ordinal));
         Assert.Equal(12, properties.Length);
@@ -632,8 +688,8 @@ public sealed class ClientAndErrorsTests
     public void TheResolvedCapabilities_AreThePresetsWithTheOverridesApplied()
     {
         using var http = new HttpClient();
-        using var client = new SystemOneClient(http, new SystemOneClientOptions { Provider = SystemOneProvider.OpenRouter, ApiKey = "key" });
-        using var noul = new SystemOneClient(http, CapabilityOptions.NoulOnly());
+        using var client = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { Provider = SystemOneProvider.OpenRouter, ApiKey = "key" });
+        using var noul = new SystemOneDecisionClient(http, CapabilityOptions.NoulOnly());
         using var openAI = new OpenAIDecisionClient(http, new OpenAIDecisionClientOptions { ApiKey = "key" });
         using var own = new AlwaysUrgent();
 
@@ -648,7 +704,7 @@ public sealed class ClientAndErrorsTests
     public async Task ModelListing_FollowsTheCapability_AndAnUnsupportedListSendsNothing()
     {
         var options = ProviderOptions.Custom();
-        options.Capabilities = new DecisionCapabilities { ModelListing = true };
+        options.Capabilities = new DecisionCapabilities { SupportsModelListing = true };
         var (client, handler, http) = Direct(options, Reply.Ok(ModelsResponse));
         using (http)
         using (handler)
@@ -675,14 +731,14 @@ public sealed class ClientAndErrorsTests
     }
 
     // A client over a handler, with no BaseAddress of its own, so that the options decide where requests go.
-    private static (SystemOneClient Client, ScriptedDecision.Handler Handler, HttpClient Http) Direct(
-        SystemOneClientOptions options, params Reply[] script)
+    private static (SystemOneDecisionClient Client, ScriptedDecision.Handler Handler, HttpClient Http) Direct(
+        SystemOneDecisionClientOptions options, params Reply[] script)
     {
         var handler = new ScriptedDecision.Handler(script);
         var http = new HttpClient(handler, disposeHandler: false);
         options.MaxRetries = 0;
-        SystemOneClient.ConfigureHttpClient(http, options);
-        return (new SystemOneClient(http, options), handler, http);
+        SystemOneDecisionClient.ConfigureHttpClient(http, options);
+        return (new SystemOneDecisionClient(http, options), handler, http);
     }
 
     // Sets environment variables for a test and puts them back afterwards.

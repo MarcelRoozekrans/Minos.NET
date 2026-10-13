@@ -36,10 +36,10 @@ public static class DecisionRegistration
 {
     #region DependencyInjection_Register
     // The key is read from configuration, such as user secrets, and never written into the code.
-    public static SystemOneClientServiceBuilder AddDecision(IHostApplicationBuilder builder)
+    public static SystemOneDecisionClientServiceBuilder AddDecision(IHostApplicationBuilder builder)
     {
         builder.Services.AddSingleton<InboxTriage>();
-        return builder.Services.AddSystemOneClient(options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
+        return builder.Services.AddSystemOneDecisionClient(options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
     }
     #endregion
 }
@@ -66,8 +66,8 @@ public static class KeyedRegistration
     #region DependencyInjection_Keyed
     public static void AddKeyedClients(IHostApplicationBuilder builder)
     {
-        builder.Services.AddSystemOneClient("typesafe", options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
-        builder.Services.AddSystemOneClient("local", options =>
+        builder.Services.AddSystemOneDecisionClient("typesafe", options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
+        builder.Services.AddSystemOneDecisionClient("local", options =>
         {
             // A server you run: Custom has no default address or model, and sends no key unless ApiKey is set.
             options.Provider = SystemOneProvider.Custom;
@@ -83,8 +83,8 @@ public static class KeyedRegistration
     // and everything else from the defaults.
     public static void AddFromEnvironment(IServiceCollection services)
     {
-        services.AddSystemOneClient();
-        services.AddSystemOneClient("backup");
+        services.AddSystemOneDecisionClient();
+        services.AddSystemOneDecisionClient("backup");
     }
     #endregion
 
@@ -92,8 +92,8 @@ public static class KeyedRegistration
     // Each client reads its own section.
     public static void AddFromConfiguration(IHostApplicationBuilder builder)
     {
-        builder.Services.AddSystemOneClient(builder.Configuration.GetSection("Minos"));
-        builder.Services.AddSystemOneClient("openrouter", builder.Configuration.GetSection("OpenRouter"));
+        builder.Services.AddSystemOneDecisionClient(builder.Configuration.GetSection("Minos"));
+        builder.Services.AddSystemOneDecisionClient("openrouter", builder.Configuration.GetSection("OpenRouter"));
     }
     #endregion
 
@@ -101,7 +101,7 @@ public static class KeyedRegistration
     // Provider, Path and Capabilities bind like any other option.
     public static void AddProvidersFromConfiguration(IHostApplicationBuilder builder)
     {
-        builder.Services.AddSystemOneClient("local", builder.Configuration.GetSection("Local"));
+        builder.Services.AddSystemOneDecisionClient("local", builder.Configuration.GetSection("Local"));
     }
     #endregion
 
@@ -135,13 +135,13 @@ public sealed class TraceHeaderHandler : DelegatingHandler
 
 public static class HandlerRegistration
 {
-    // The HttpClient property of the builder AddSystemOneClient returns is the client's HttpClient builder, so handlers
+    // The HttpClient property of the builder AddSystemOneDecisionClient returns is the client's HttpClient builder, so handlers
     // are added the usual way.
     public static IHttpClientBuilder AddTracedDecision(IServiceCollection services, string apiKey)
     {
         services.AddTransient<TraceHeaderHandler>();
         return services
-            .AddSystemOneClient(options => options.ApiKey = apiKey)
+            .AddSystemOneDecisionClient(options => options.ApiKey = apiKey)
             .HttpClient.AddHttpMessageHandler<TraceHeaderHandler>();
     }
 
@@ -150,7 +150,7 @@ public static class HandlerRegistration
     {
         services.AddTransient<TraceHeaderHandler>();
         services.ConfigureHttpClientDefaults(defaults => defaults.AddHttpMessageHandler<TraceHeaderHandler>());
-        services.AddSystemOneClient(options => options.ApiKey = apiKey);
+        services.AddSystemOneDecisionClient(options => options.ApiKey = apiKey);
     }
 
     // To keep a defaults handler off the Minos client, clear the handlers of its builder. This also clears any you
@@ -160,14 +160,14 @@ public static class HandlerRegistration
         services.AddTransient<TraceHeaderHandler>();
         services.ConfigureHttpClientDefaults(defaults => defaults.AddHttpMessageHandler<TraceHeaderHandler>());
         return services
-            .AddSystemOneClient(options => options.ApiKey = apiKey)
+            .AddSystemOneDecisionClient(options => options.ApiKey = apiKey)
             .HttpClient.ConfigureAdditionalHttpMessageHandlers((handlers, _) => handlers.Clear());
     }
 
     // When a handler of yours retries, such as a standard resilience handler, turn the client's own retries off,
     // so the two do not multiply.
     public static void AddWithOwnRetries(IServiceCollection services, string apiKey)
-        => services.AddSystemOneClient(options =>
+        => services.AddSystemOneDecisionClient(options =>
         {
             options.ApiKey = apiKey;
             options.MaxRetries = 0;
@@ -188,14 +188,14 @@ public static class NeutralRegistration
 public static class WithoutThePackage
 {
     #region DependencyInjection_WithoutPackage
-    // A named HttpClient of your own, set up the way AddSystemOneClient sets up its client.
-    public static void AddMinosHttpClient(IServiceCollection services, SystemOneClientOptions options)
+    // A named HttpClient of your own, set up the way AddSystemOneDecisionClient sets up its client.
+    public static void AddMinosHttpClient(IServiceCollection services, SystemOneDecisionClientOptions options)
         => services.AddHttpClient("minos")
             .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler { PooledConnectionLifetime = TimeSpan.FromMinutes(2) })
             .SetHandlerLifetime(Timeout.InfiniteTimeSpan)
-            .ConfigureHttpClient(http => SystemOneClient.ConfigureHttpClient(http, options));
+            .ConfigureHttpClient(http => SystemOneDecisionClient.ConfigureHttpClient(http, options));
 
-    public static SystemOneClient Create(IHttpClientFactory factory, SystemOneClientOptions options)
+    public static SystemOneDecisionClient Create(IHttpClientFactory factory, SystemOneDecisionClientOptions options)
         => new(factory.CreateClient("minos"), options);
     #endregion
 }

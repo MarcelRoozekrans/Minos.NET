@@ -66,7 +66,7 @@ public sealed class LocalSystemOneTests
     }
 
     // Custom with no key sends no Authorization header. MaxRetries is 0, so a failure surfaces instead of being retried.
-    private static SystemOneClient Client() => new(new SystemOneClientOptions
+    private static SystemOneDecisionClient Client() => new(new SystemOneDecisionClientOptions
     {
         Provider = SystemOneProvider.Custom,
         BaseAddress = new Uri(Environment.GetEnvironmentVariable(LocalSystemOneFactAttribute.UrlVariable)!),

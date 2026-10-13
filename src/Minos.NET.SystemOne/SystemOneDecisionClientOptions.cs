@@ -2,20 +2,20 @@ using Minos.SystemOne.Transport;
 
 namespace Minos.SystemOne;
 
-/// <summary>Configures a <see cref="SystemOneClient"/>. Every property is optional.</summary>
+/// <summary>Configures a <see cref="SystemOneDecisionClient"/>. Every property is optional.</summary>
 /// <remarks>
 /// A client reads these options once, when it is constructed. Changing this instance afterwards has no effect on a
 /// client already built.
 /// </remarks>
-public sealed class SystemOneClientOptions
+public sealed class SystemOneDecisionClientOptions
 {
     /// <summary>
     /// Gets or sets where requests go. Defaults to <see cref="SystemOneProvider.TypeSafe"/>. The provider sets the default
     /// base address, the request path, where the API key comes from and the default model:
     /// <list type="bullet">
     /// <item><description><see cref="SystemOneProvider.TypeSafe"/>: <c>https://api.typesafe.ai/</c>, or
-    /// <see cref="SystemOneDefaults.BaseAddressEnvironmentVariable"/>; path <c>v1/systemone</c>; a key is required; model
-    /// <c>jev-latest</c>.</description></item>
+    /// <see cref="SystemOneDefaults.TypeSafeBaseAddressEnvironmentVariable"/>; path <c>v1/systemone</c>; a key is
+    /// required; model <c>jev-latest</c>.</description></item>
     /// <item><description><see cref="SystemOneProvider.OpenRouter"/>: <c>https://openrouter.ai/api/</c>; path
     /// <c>v1/systemone</c>; a key is required; model <c>jev-latest</c>.</description></item>
     /// <item><description><see cref="SystemOneProvider.VllmSemanticRouter"/> and <see cref="SystemOneProvider.Custom"/>:
@@ -27,7 +27,7 @@ public sealed class SystemOneClientOptions
 
     /// <summary>
     /// Gets or sets the API key, sent as a Bearer token. When unset, the client reads
-    /// <see cref="SystemOneDefaults.ApiKeyEnvironmentVariable"/> for TypeSafe,
+    /// <see cref="SystemOneDefaults.TypeSafeApiKeyEnvironmentVariable"/> for TypeSafe,
     /// <see cref="SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable"/> for OpenRouter; those providers
     /// require one. <see cref="SystemOneProvider.VllmSemanticRouter"/> and <see cref="SystemOneProvider.Custom"/> never read
     /// a key from the environment, so a vendor key is never sent to a server you name; without this option they send no
@@ -37,11 +37,11 @@ public sealed class SystemOneClientOptions
 
     /// <summary>
     /// Gets or sets the API root, for a proxy, a test server or a server you run. When unset, the client reads
-    /// <see cref="SystemOneDefaults.BaseAddressEnvironmentVariable"/> for <see cref="SystemOneProvider.TypeSafe"/> only, then
-    /// uses the provider's default address. <see cref="SystemOneDefaults.BaseAddressEnvironmentVariable"/> never applies to
-    /// another provider, so an OpenRouter key is never sent to a TypeSafe proxy.
+    /// <see cref="SystemOneDefaults.TypeSafeBaseAddressEnvironmentVariable"/> for
+    /// <see cref="SystemOneProvider.TypeSafe"/> only, then uses the provider's default address.
+    /// <see cref="SystemOneDefaults.TypeSafeBaseAddressEnvironmentVariable"/> never applies to another provider, so an OpenRouter key is never sent to a TypeSafe proxy.
     /// <see cref="SystemOneProvider.VllmSemanticRouter"/> and <see cref="SystemOneProvider.Custom"/> have no default address,
-    /// so it must be set for them. An <see cref="HttpClient"/> passed to a <see cref="SystemOneClient"/> constructor with its
+    /// so it must be set for them. An <see cref="HttpClient"/> passed to a <see cref="SystemOneDecisionClient"/> constructor with its
     /// own <see cref="HttpClient.BaseAddress"/> wins over this option; that address must then be the full API root.
     /// </summary>
     public Uri? BaseAddress { get; set; }
@@ -51,7 +51,7 @@ public sealed class SystemOneClientOptions
     /// ask, as a versioned id such as <c>jev-1.13.0</c> or an alias. When unset, the preset's default: jev-latest for
     /// TypeSafe and OpenRouter. The other providers have none, so it must be set.
     /// Surrounding whitespace is trimmed; a blank value is rejected.
-    /// A <see cref="SystemOneRequest"/> names its own model, so this option does not apply to it.
+    /// A <see cref="SystemOneRequest"/> that names no model of its own is sent with this one.
     /// </summary>
     public string? Model { get; set; }
 
@@ -82,16 +82,16 @@ public sealed class SystemOneClientOptions
     /// model listing, because a self-hosted server's <c>GET v1/models</c> need not use TypeSafe's shape.</description></item>
     /// </list>
     /// <para>
-    /// The raw <see cref="SystemOneClient.EvaluateAsync(SystemOneRequest, CancellationToken)"/> call is not checked.
-    /// <see cref="DecisionCapabilities.ModelListing"/> gates <see cref="SystemOneClient.ListModelsAsync(CancellationToken)"/>.
+    /// The raw <see cref="SystemOneDecisionClient.EvaluateAsync(SystemOneRequest, CancellationToken)"/> call is not checked.
+    /// <see cref="DecisionCapabilities.SupportsModelListing"/> gates <see cref="SystemOneDecisionClient.ListModelsAsync(CancellationToken)"/>.
     /// </para>
     /// </remarks>
     public DecisionCapabilities Capabilities { get; set; } = new();
 
     /// <summary>
     /// Gets or sets how long a single attempt may take. Defaults to 60 seconds. Applies to an <see cref="HttpClient"/>
-    /// the client creates, and to one configured with <see cref="SystemOneClient.ConfigureHttpClient(HttpClient, SystemOneClientOptions)"/>,
-    /// as <c>AddSystemOneClient</c>'s are; another <see cref="HttpClient"/> you pass keeps its own time-out. With retries, a call
+    /// the client creates, and to one configured with <see cref="SystemOneDecisionClient.ConfigureHttpClient(HttpClient, SystemOneDecisionClientOptions)"/>,
+    /// as <c>AddSystemOneDecisionClient</c>'s are; another <see cref="HttpClient"/> you pass keeps its own time-out. With retries, a call
     /// can take up to <c>(MaxRetries + 1) × Timeout</c> plus the waits between attempts. Must be positive or
     /// <see cref="System.Threading.Timeout.InfiniteTimeSpan"/>, and at most <see cref="int.MaxValue"/> milliseconds,
     /// which is about 24.8 days.
@@ -136,19 +136,19 @@ public sealed class SystemOneClientOptions
     /// <see cref="DecisionClientBuilder"/>. Defaults to <see langword="true"/>.
     /// </summary>
     /// <remarks>
-    /// It applies to the raw <see cref="SystemOneClient.EvaluateAsync(SystemOneRequest, CancellationToken)"/> and
-    /// <see cref="SystemOneClient.ListModelsAsync(CancellationToken)"/> calls too: with <see langword="false"/> they send one
+    /// It applies to the raw <see cref="SystemOneDecisionClient.EvaluateAsync(SystemOneRequest, CancellationToken)"/> and
+    /// <see cref="SystemOneDecisionClient.ListModelsAsync(CancellationToken)"/> calls too: with <see langword="false"/> they send one
     /// attempt each and are not retried. They keep their own span and log either way.
     /// </remarks>
     public bool UseStandardPipeline { get; set; } = true;
 
     /// <summary>
-    /// Checks these options exactly as a <see cref="SystemOneClient"/> constructor does, including the API key and base address
+    /// Checks these options exactly as a <see cref="SystemOneDecisionClient"/> constructor does, including the API key and base address
     /// environment variables, and throws what the constructor would throw. It creates no client and changes no option.
     /// </summary>
     /// <remarks>
     /// The constructors run the same check, so options that pass here construct a client, as long as the environment
-    /// variables do not change in between. <c>AddSystemOneClient</c> runs it at host startup.
+    /// variables do not change in between. <c>AddSystemOneDecisionClient</c> runs it at host startup.
     /// </remarks>
     /// <exception cref="ArgumentException">
     /// An option has an invalid value: an unknown provider; an invalid time-out or retry setting; a blank model, or none for
@@ -161,12 +161,13 @@ public sealed class SystemOneClientOptions
     /// below 2.
     /// </exception>
     /// <exception cref="InvalidOperationException">
-    /// No API key is configured for a provider that requires one, or the <see cref="SystemOneDefaults.ApiKeyEnvironmentVariable"/>,
+    /// No API key is configured for a provider that requires one, or the
+    /// <see cref="SystemOneDefaults.TypeSafeApiKeyEnvironmentVariable"/>,
     /// <see cref="SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable"/>
-    /// or <see cref="SystemOneDefaults.BaseAddressEnvironmentVariable"/> environment variable is invalid.
+    /// or <see cref="SystemOneDefaults.TypeSafeBaseAddressEnvironmentVariable"/> environment variable is invalid.
     /// </exception>
     public void Validate() => Validate(Environment.GetEnvironmentVariable);
 
     // The constructors' own check, against a given environment; tests pass a fake.
-    internal void Validate(Func<string, string?> environment) => _ = SystemOneClientSettings.Resolve(this, environment);
+    internal void Validate(Func<string, string?> environment) => _ = SystemOneDecisionClientSettings.Resolve(this, environment);
 }

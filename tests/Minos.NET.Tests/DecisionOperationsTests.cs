@@ -17,7 +17,7 @@ public sealed class DecisionOperationsTests
 {
     private static readonly SystemOneRequest Request = JsonSerializer.Deserialize(Fixture.Text("request-noul.json"), DecisionJsonContext.Default.SystemOneRequest)!;
     private static readonly Uri Endpoint = new("https://api.test/");
-    private static readonly SystemOneClientSettings Settings = SystemOneClientSettings.Resolve(new SystemOneClientOptions { ApiKey = "k" }, static _ => null);
+    private static readonly SystemOneDecisionClientSettings Settings = SystemOneDecisionClientSettings.Resolve(new SystemOneDecisionClientOptions { ApiKey = "k" }, static _ => null);
 
     // Without retries it hands back the inner call's ValueTask itself, so it adds no allocation and no state machine.
     [Fact]

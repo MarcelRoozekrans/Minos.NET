@@ -8,10 +8,10 @@ namespace Minos.SystemOne;
 /// </summary>
 internal static partial class SystemOneLog
 {
-    /// <summary>The operation name of <c>SystemOneClient.EvaluateAsync</c> over a raw request.</summary>
+    /// <summary>The operation name of <c>SystemOneDecisionClient.EvaluateAsync</c> over a raw request.</summary>
     public const string Evaluate = "evaluate";
 
-    /// <summary>The operation name of <c>SystemOneClient.ListModelsAsync</c>.</summary>
+    /// <summary>The operation name of <c>SystemOneDecisionClient.ListModelsAsync</c>.</summary>
     public const string ListModels = "list-models";
 
     /// <summary>A model listing succeeded.</summary>

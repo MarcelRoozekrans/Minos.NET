@@ -15,7 +15,7 @@ public static class SampleHost
     /// </summary>
     /// <exception cref="ArgumentException">Replay is asked for without a recordings path.</exception>
     /// <exception cref="FileNotFoundException">Replay is asked for and the recordings file does not exist.</exception>
-    public static SystemOneClientServiceBuilder AddSampleDecisionClient(
+    public static SystemOneDecisionClientServiceBuilder AddSampleDecisionClient(
         this IServiceCollection services,
         IConfiguration clientSection,
         SampleMode mode,
@@ -36,11 +36,11 @@ public static class SampleHost
             }
         }
 
-        var builder = services.AddSystemOneClient(clientSection);
+        var builder = services.AddSystemOneDecisionClient(clientSection);
         switch (mode)
         {
             case SampleMode.Replay:
-                services.AddSystemOneClient(options => options.ApiKey ??= "replay-no-key");
+                services.AddSystemOneDecisionClient(options => options.ApiKey ??= "replay-no-key");
                 builder.HttpClient.ConfigurePrimaryHttpMessageHandler(() => new ReplayHandler(RecordingsFile.Load(recordingsPath!), sampleName, provider));
                 break;
             case SampleMode.Record:

@@ -16,7 +16,7 @@ internal static class SystemOneModelChecks
     public static async Task HandBuiltQuestionsAreSent()
     {
         using var http = Program.Http(HttpStatusCode.OK, Program.TriageResponse);
-        using var client = new SystemOneClient(http, Program.Options());
+        using var client = new SystemOneDecisionClient(http, Program.Options());
         var request = new SystemOneRequest
         {
             State = SmokeAnswers.State,
@@ -54,7 +54,7 @@ internal static class SystemOneModelChecks
     public static async Task HandBuiltModelCardEqualsTheListedOne()
     {
         using var http = Program.Http(HttpStatusCode.OK, Program.ModelsResponse);
-        using var client = new SystemOneClient(http, Program.Options());
+        using var client = new SystemOneDecisionClient(http, Program.Options());
         var expected = new ModelList
         {
             Models =

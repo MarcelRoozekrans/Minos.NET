@@ -4,8 +4,16 @@ namespace Minos;
 
 /// <summary>Composes pipeline stages around an inner <see cref="IDecisionClient"/>.</summary>
 /// <remarks>
+/// <para>
 /// The first <c>Use</c> is the outermost stage: a call passes through the stages in the order they were added, then
 /// reaches the inner client. The <c>Use…</c> extension methods add the standard stages.
+/// </para>
+/// <para>
+/// Registration packages derive from this class to add what a registration knows, such as
+/// <c>DecisionClientServiceBuilder.Name</c>. A derived builder adds members only: <see cref="Use(Func{IDecisionClient, IDecisionClient})"/>
+/// and the <c>Use…</c> extensions return the base <see cref="DecisionClientBuilder"/>, and <see cref="Build"/> composes the
+/// stages the same way.
+/// </para>
 /// </remarks>
 public class DecisionClientBuilder
 {
@@ -64,7 +72,12 @@ public class DecisionClientBuilder
     /// <summary>Creates the inner client and wraps it in the stages.</summary>
     /// <param name="services">The services stages and the inner client factory read; <see langword="null"/> for none.</param>
     /// <returns>The outermost client.</returns>
+    /// <remarks>
+    /// Each call creates new stages and calls the inner client factory again. A builder made from an existing client wraps
+    /// that same instance in every pipeline it builds, and disposing a pipeline disposes it.
+    /// </remarks>
     /// <exception cref="InvalidOperationException">A factory returned <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">A stage's settings are invalid, such as a retry setting out of range.</exception>
     public IDecisionClient Build(IServiceProvider? services = null)
     {
         services ??= EmptyServiceProvider.Instance;

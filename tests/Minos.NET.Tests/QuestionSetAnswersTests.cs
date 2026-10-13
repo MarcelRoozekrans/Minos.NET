@@ -314,7 +314,7 @@ public sealed class AnswersTests
         return items;
     }
 
-    private static Answers Parse(QuestionSet set, string response)
+    private static QuestionSetAnswers Parse(QuestionSet set, string response)
     {
         var result = Read(set, Encoding.UTF8.GetBytes(response));
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error.ToString() : null);
@@ -322,12 +322,12 @@ public sealed class AnswersTests
     }
 
     // Reads the whole body through the protocol, as the built-set extension does, and builds the answers from its slots.
-    private static Result<Answers, DecisionError> Read(QuestionSet set, byte[] response)
+    private static Result<QuestionSetAnswers, DecisionError> Read(QuestionSet set, byte[] response)
     {
         var read = SystemOneProtocol.Instance.ReadResponse(response, set.Definition);
         return read.IsSuccess
-            ? Result<Answers, DecisionError>.Success(new Answers(set, read.Value.Probabilities, read.Value.Slots))
-            : Result<Answers, DecisionError>.Failure(read.Error);
+            ? Result<QuestionSetAnswers, DecisionError>.Success(new QuestionSetAnswers(set, read.Value.Probabilities, read.Value.Slots))
+            : Result<QuestionSetAnswers, DecisionError>.Failure(read.Error);
     }
 
     private static QuestionSet Built(QuestionSetBuilder builder)

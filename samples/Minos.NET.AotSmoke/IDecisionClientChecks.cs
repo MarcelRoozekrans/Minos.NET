@@ -7,19 +7,23 @@ using Minos.SystemOne;
 namespace Minos.AotSmoke;
 
 /// <summary>
-/// <see cref="IDecisionClient"/>'s members called through the interface, on a <see cref="SystemOneClient"/> resolved as an
+/// <see cref="IDecisionClient"/>'s members called through the interface, on a <see cref="SystemOneDecisionClient"/> resolved as an
 /// <see cref="IDecisionClient"/>, and <see cref="DecisionClientExtensions"/> over <see cref="ExtensionFallbackClient"/>,
-/// a client that is not a <see cref="SystemOneClient"/>, so each typed and built-set check proves the extension path.
+/// a client that is not a <see cref="SystemOneDecisionClient"/>, so each typed and built-set check proves the extension path.
 /// </summary>
 internal static class IDecisionClientChecks
 {
     [Covers("Minos.IDecisionClient.EvaluateAsync(Minos.DecisionRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>")]
     [Covers("Minos.IDecisionClient.GetService(System.Type! serviceType, object? serviceKey = null) -> object?")]
-    [Covers("Minos.DecisionRequest.DecisionRequest(Minos.QuestionSetDefinition! Definition, Minos.DecisionContent State) -> void")]
+    [Covers("Minos.DecisionRequest.DecisionRequest(Minos.QuestionSetDefinition! definition, Minos.DecisionContent state) -> void")]
     [Covers("static Minos.DecisionClientExtensions.GetService<TService>(this Minos.IDecisionClient! client, object? serviceKey = null) -> TService?")]
-    [Covers("Minos.SystemOne.SystemOneClient.EvaluateAsync(Minos.DecisionRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>")]
-    [Covers("Minos.SystemOne.SystemOneClient.EvaluateAsync(Minos.DecisionRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>")]
-    [Covers("Minos.SystemOne.SystemOneClient.GetService(System.Type! serviceType, object? serviceKey = null) -> object?")]
+    [Covers("static Minos.DecisionClientExtensions.GetRequiredService<TService>(this Minos.IDecisionClient! client) -> TService")]
+    [Covers("static Minos.DecisionClientExtensions.GetRequiredService<TService>(this Minos.IDecisionClient! client, object? serviceKey) -> TService")]
+    [Covers("static Minos.DecisionClientExtensions.GetRequiredService(this Minos.IDecisionClient! client, System.Type! serviceType) -> object!")]
+    [Covers("static Minos.DecisionClientExtensions.GetRequiredService(this Minos.IDecisionClient! client, System.Type! serviceType, object? serviceKey) -> object!")]
+    [Covers("Minos.SystemOne.SystemOneDecisionClient.EvaluateAsync(Minos.DecisionRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>")]
+    [Covers("Minos.SystemOne.SystemOneDecisionClient.EvaluateAsync(Minos.DecisionRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>")]
+    [Covers("Minos.SystemOne.SystemOneDecisionClient.GetService(System.Type! serviceType, object? serviceKey = null) -> object?")]
     public static async Task NeutralCallAndServicesRunThroughTheInterface()
     {
         var client = ResolveOver(Program.NoulResponse, out var provider);
@@ -28,25 +32,34 @@ internal static class IDecisionClientChecks
 
         var evaluated = await client.EvaluateAsync(request, cancellation.Token).ConfigureAwait(false);
         var metadata = client.GetService(typeof(DecisionClientMetadata)) as DecisionClientMetadata;
-        var facade = client.GetService<SystemOneClient>();
+        var facade = client.GetService<SystemOneDecisionClient>();
         var keyed = client.GetService<DecisionClientMetadata>(serviceKey: "other");
+        var required = client.GetRequiredService<SystemOneDecisionClient>();
+        var facadeType = facade?.GetType() ?? typeof(SystemOneDecisionClient);
+        var requiredByType = client.GetRequiredService(facadeType);
+        var requiredByTypeAndKey = client.GetRequiredService(facadeType, serviceKey: null);
+        var requiredWithKey = client.GetRequiredService<SystemOneDecisionClient>(serviceKey: null);
+        var missing = SmokeAssert.Throws<InvalidOperationException>(() => client.GetRequiredService<DecisionClientMetadata>(serviceKey: "other"));
         await provider.DisposeAsync().ConfigureAwait(false);
 
         using var http = Program.Http(HttpStatusCode.OK, Program.NoulResponse);
-        using var direct = new SystemOneClient(http, Program.Options());
+        using var direct = new SystemOneDecisionClient(http, Program.Options());
         var plain = await direct.EvaluateAsync(request).ConfigureAwait(false);
         var cancellable = await direct.EvaluateAsync(request, cancellation.Token).ConfigureAwait(false);
-        var self = direct.GetService(typeof(SystemOneClient), serviceKey: null);
+        var self = direct.GetService(typeof(SystemOneDecisionClient), serviceKey: null);
 
         Program.Check(
-            evaluated.IsSuccess && evaluated.Value.Answers[0].Value == 0.95 && ReferenceEquals(evaluated.Value.Definition, request.Definition),
+            evaluated.IsSuccess && evaluated.Value.Answers[0].Probability == 0.95 && ReferenceEquals(evaluated.Value.Definition, request.Definition),
             "IDecisionClient.EvaluateAsync(DecisionRequest) evaluates through the interface under Native AOT");
         Program.Check(
             metadata is { ProviderName: "typesafe", Endpoint: not null } && facade is not null && keyed is null,
-            "IDecisionClient.GetService finds the metadata and the SystemOneClient, and nothing for a key, under Native AOT");
+            "IDecisionClient.GetService finds the metadata and the SystemOneDecisionClient, and nothing for a key, under Native AOT");
+        Program.Check(
+            ReferenceEquals(required, requiredByType) && ReferenceEquals(required, requiredWithKey) && ReferenceEquals(required, requiredByTypeAndKey) && missing,
+            "GetRequiredService finds the SystemOneDecisionClient and throws InvalidOperationException for a missing service under Native AOT");
         Program.Check(
             plain.IsSuccess && cancellable.IsSuccess && ReferenceEquals(self, direct),
-            "SystemOneClient's neutral EvaluateAsync pair and GetService run under Native AOT");
+            "SystemOneDecisionClient's neutral EvaluateAsync pair and GetService run under Native AOT");
     }
 
     [Covers("static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, string! state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>")]
@@ -118,8 +131,8 @@ internal static class IDecisionClientChecks
             "the EvaluateAsync<T, TState> extensions create typed answers under Native AOT");
     }
 
-    [Covers("static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! client, Minos.QuestionSet! questionSet, Minos.DecisionContent state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.Answers!, Minos.DecisionError!>>")]
-    [Covers("static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! client, Minos.QuestionSet! questionSet, Minos.DecisionContent state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.Answers!, Minos.DecisionError!>>")]
+    [Covers("static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! client, Minos.QuestionSet! questionSet, Minos.DecisionContent state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.QuestionSetAnswers!, Minos.DecisionError!>>")]
+    [Covers("static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! client, Minos.QuestionSet! questionSet, Minos.DecisionContent state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.QuestionSetAnswers!, Minos.DecisionError!>>")]
     public static async Task BuiltSetExtensionsSendTheStateAndReadAnswers()
     {
         var set = SmokeBuiltSet.Full(out var credentials, out var team, out var product, out var urgency);
@@ -162,7 +175,7 @@ internal static class IDecisionClientChecks
     {
         var services = new ServiceCollection();
         services
-            .AddSystemOneClient(options =>
+            .AddSystemOneDecisionClient(options =>
             {
                 options.ApiKey = "smoke-key";
                 options.BaseAddress = new Uri("https://example.test/api/");
@@ -177,7 +190,7 @@ internal static class IDecisionClientChecks
     internal static async Task<DecisionResponse> ResponseFor(string responseJson, QuestionSetDefinition definition)
     {
         using var http = Program.Http(HttpStatusCode.OK, responseJson);
-        using var client = new SystemOneClient(http, Program.Options());
+        using var client = new SystemOneDecisionClient(http, Program.Options());
         var result = await client.EvaluateAsync(new DecisionRequest(definition, SmokeAnswers.State)).ConfigureAwait(false);
         return result.IsSuccess ? result.Value : throw new InvalidOperationException("The canned response did not parse: " + result.Error.Message);
     }

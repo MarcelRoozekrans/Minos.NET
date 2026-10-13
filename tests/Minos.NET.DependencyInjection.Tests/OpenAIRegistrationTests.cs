@@ -3,12 +3,13 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Minos.OpenAI;
 using static Minos.DependencyInjection.Tests.Registrations;
 
 namespace Minos.DependencyInjection.Tests;
 
-/// <summary><c>AddOpenAIDecisionClient</c>: the same registration as <c>AddSystemOneClient</c>, for OpenAI's Decisions API.</summary>
+/// <summary><c>AddOpenAIDecisionClient</c>: the same registration as <c>AddSystemOneDecisionClient</c>, for OpenAI's Decisions API.</summary>
 public sealed class OpenAIRegistrationTests
 {
     private const string Answer = """{"answers":[{"type":"predicate","name":"is_urgent","probability":0.9}]}""";
@@ -57,7 +58,7 @@ public sealed class OpenAIRegistrationTests
         Assert.IsType<OpenAIDecisionClient>(keyed);
         Assert.Same(keyed, provider.GetRequiredKeyedService<IDecisionClient>("vision"));
         Assert.NotSame(provider.GetRequiredService<IDecisionClient>(), keyed);
-        Assert.Equal(new Uri("http://keyed.local/"), keyed.GetService<DecisionClientMetadata>()!.Endpoint);
+        Assert.Equal(new Uri("http://keyed.local/decisions"), keyed.GetService<DecisionClientMetadata>()!.Endpoint);
     }
 
     [Fact]
@@ -76,8 +77,8 @@ public sealed class OpenAIRegistrationTests
             ("Minos:Capabilities:QuestionKinds", "Noul, Choice"),
             ("Minos:Capabilities:MaxQuestions", "8"),
             ("Minos:Capabilities:MaxChoiceOptions", "16"),
-            ("Minos:Capabilities:Images", "false"),
-            ("Minos:Capabilities:ModelListing", "false"));
+            ("Minos:Capabilities:SupportsImages", "false"),
+            ("Minos:Capabilities:SupportsModelListing", "false"));
         var services = new ServiceCollection();
         services.AddOpenAIDecisionClient(configuration.GetSection("Minos"));
         using var provider = services.BuildServiceProvider();
@@ -96,8 +97,8 @@ public sealed class OpenAIRegistrationTests
         Assert.False(options.UseStandardPipeline);
         var bound = options.Capabilities;
         var expected = (QuestionKinds.Noul | QuestionKinds.Choice, 8, 16, false, false);
-        Assert.Equal(expected, (bound.QuestionKinds, bound.MaxQuestions, bound.MaxChoiceOptions, bound.Images, bound.ModelListing));
-        Assert.Equal(expected, (resolved.QuestionKinds, resolved.MaxQuestions, resolved.MaxChoiceOptions, resolved.Images, resolved.ModelListing));
+        Assert.Equal(expected, (bound.QuestionKinds, bound.MaxQuestions, bound.MaxChoiceOptions, bound.SupportsImages, bound.SupportsModelListing));
+        Assert.Equal(expected, (resolved.QuestionKinds, resolved.MaxQuestions, resolved.MaxChoiceOptions, resolved.SupportsImages, resolved.SupportsModelListing));
     }
 
     [Fact]
@@ -112,7 +113,7 @@ public sealed class OpenAIRegistrationTests
 
         Assert.Equal(
             (QuestionKinds.All, (int?)null, (int?)null, true, false),
-            (resolved.QuestionKinds, resolved.MaxQuestions, resolved.MaxChoiceOptions, resolved.Images, resolved.ModelListing));
+            (resolved.QuestionKinds, resolved.MaxQuestions, resolved.MaxChoiceOptions, resolved.SupportsImages, resolved.SupportsModelListing));
         Assert.Equal("gpt-6-luna", provider.GetRequiredKeyedService<IDecisionClient>("bound").GetService<DecisionClientMetadata>()!.DefaultModel);
     }
 
@@ -166,7 +167,7 @@ public sealed class OpenAIRegistrationTests
     public void TheDefaultName_HeldBySystemOne_Throws()
     {
         var services = new ServiceCollection();
-        services.AddSystemOneClient(Options("http://default.local/"));
+        services.AddSystemOneDecisionClient(Options("http://default.local/"));
 
         var exception = Assert.Throws<InvalidOperationException>(() => services.AddOpenAIDecisionClient(OpenAIOptions("http://default.local/")));
 
@@ -179,23 +180,23 @@ public sealed class OpenAIRegistrationTests
         var services = new ServiceCollection();
         services.AddOpenAIDecisionClient(OpenAIOptions("http://default.local/"));
 
-        var exception = Assert.Throws<InvalidOperationException>(() => services.AddSystemOneClient(Options("http://default.local/")));
+        var exception = Assert.Throws<InvalidOperationException>(() => services.AddSystemOneDecisionClient(Options("http://default.local/")));
 
         Assert.Equal("The default decision client is already registered with a different provider.", exception.Message);
     }
 
     [Fact]
-    public void AKeyedOpenAIClient_BesideADefaultSystemOneClient_Works()
+    public void AKeyedOpenAIClient_BesideADefaultSystemOneDecisionClient_Works()
     {
         var services = new ServiceCollection();
-        services.AddSystemOneClient(Options("http://typesafe.local/"));
+        services.AddSystemOneDecisionClient(Options("http://typesafe.local/"));
         services.AddOpenAIDecisionClient("openai", OpenAIOptions("http://openai.local/"));
         using var provider = services.BuildServiceProvider();
 
         var systemOne = provider.GetRequiredService<IDecisionClient>();
         var openAI = provider.GetRequiredKeyedService<IDecisionClient>("openai");
 
-        Assert.IsType<Minos.SystemOne.SystemOneClient>(systemOne);
+        Assert.IsType<Minos.SystemOne.SystemOneDecisionClient>(systemOne);
         Assert.IsType<OpenAIDecisionClient>(openAI);
         Assert.Equal("typesafe", systemOne.GetService<DecisionClientMetadata>()!.ProviderName);
         Assert.Equal("openai", openAI.GetService<DecisionClientMetadata>()!.ProviderName);
@@ -213,6 +214,30 @@ public sealed class OpenAIRegistrationTests
         Assert.Throws<ArgumentNullException>(() => services.AddOpenAIDecisionClient((string)null!));
         Assert.Throws<ArgumentException>(() => services.AddOpenAIDecisionClient(string.Empty));
         Assert.Empty(services);
+    }
+
+    [Fact]
+    public async Task TheClientsOwnRetries_WaitOnTheContainersTimeProvider()
+    {
+        var time = new FakeTimeProvider();
+        var arrivals = new List<DateTimeOffset>();
+        var handler = RateLimitedOnce(Answer, time, arrivals);
+        var services = new ServiceCollection();
+        services.AddSingleton<TimeProvider>(time);
+        services.AddOpenAIDecisionClient(options =>
+        {
+            options.ApiKey = "di-key";
+            options.BaseAddress = new Uri("http://default.local/");
+        }).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
+        using var provider = services.BuildServiceProvider();
+        var client = provider.GetRequiredService<IDecisionClient>();
+
+        var result = await CompleteOnFakeTime(client.EvaluateAsync(OneNoul(), "Help!").AsTask(), time);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.Equal(2, arrivals.Count);
+        Assert.True(arrivals[1] - arrivals[0] >= TimeSpan.FromSeconds(30), $"The retry reached the handler {arrivals[1] - arrivals[0]} after the first attempt.");
     }
 
     private static Action<OpenAIDecisionClientOptions> OpenAIOptions(string baseAddress, string apiKey = "di-key")
@@ -261,6 +286,6 @@ public sealed class OpenAIRegistrationEnvironmentTests
 
         var client = provider.GetRequiredService<IDecisionClient>();
 
-        Assert.Equal(new Uri("https://api.openai.com/v1/"), client.GetService<DecisionClientMetadata>()!.Endpoint);
+        Assert.Equal(new Uri("https://api.openai.com/v1/decisions"), client.GetService<DecisionClientMetadata>()!.Endpoint);
     }
 }

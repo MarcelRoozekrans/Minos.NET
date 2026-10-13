@@ -17,12 +17,12 @@ public sealed class LocalDiagnosticTests
     /// <summary>An enum rule, the enum it fires on and the set that uses it, and the text the diagnostic spans.</summary>
     public static TheoryData<string, string, string, string> EnumRules => new()
     {
-        { "MIN006", "public enum E { [Criteria(\"x\")] A, B }", "[Choice(\"q\")] public partial Choice<E> Answer { get; }", "B" },
+        { "MIN006", "public enum E { [Criterion(\"x\")] A, B }", "[Choice(\"q\")] public partial Choice<E> Answer { get; }", "B" },
         { "MIN104", "public enum E { [Level(\"a\")] A, [Level(\"b\")] B, C }", "[Score(\"q\")] public partial Score<E> Answer { get; }", "C" },
         { "MIN001", "public enum E { }", "[Choice(\"q\")] public partial Choice<E> Answer { get; }", "E" },
         { "MIN002", "public enum E { }", "[Score(\"q\")] public partial Score<E> Answer { get; }", "E" },
         { "MIN005", "public enum E { [Level(\"a\")] A }", "[Score(\"q\")] public partial Score<E> Answer { get; }", "E" },
-        { "MIN003", "public enum E { [Criteria(\" \")] A }", "[Choice(\"q\")] public partial Choice<E> Answer { get; }", "\" \"" },
+        { "MIN003", "public enum E { [Criterion(\" \")] A }", "[Choice(\"q\")] public partial Choice<E> Answer { get; }", "\" \"" },
         { "MIN003", "public enum E { [Level(\"a\")] A, [Level(\"\")] B }", "[Score(\"q\")] public partial Score<E> Answer { get; }", "\"\"" },
     };
 
@@ -61,7 +61,7 @@ public sealed class LocalDiagnosticTests
     public async Task EnumSharedByTwoSets_ReportsOncePerMember()
     {
         var (compilation, _, _) = await CompileAsync(
-            "public enum E { [Criteria(\"x\")] A, B, C }",
+            "public enum E { [Criterion(\"x\")] A, B, C }",
             "[Questions] public partial class Q { [Choice(\"q1\")] public partial Choice<E> A1 { get; } "
                 + "[Choice(\"q2\")] public partial Choice<E> A2 { get; } } "
                 + "[Questions] public partial class R { [Choice(\"q3\")] public partial Choice<E> A3 { get; } }");
@@ -79,7 +79,7 @@ public sealed class LocalDiagnosticTests
     public async Task EnumUsedAsChoiceAndScore_AppliesBothRuleSets()
     {
         var (compilation, _, _) = await CompileAsync(
-            "public enum E { [Criteria(\"x\")] A, [Level(\"b\")] B }",
+            "public enum E { [Criterion(\"x\")] A, [Level(\"b\")] B }",
             "[Questions] public partial class Q { [Choice(\"q1\")] public partial Choice<E> A1 { get; } "
                 + "[Score(\"q2\")] public partial Score<E> A2 { get; } }");
 

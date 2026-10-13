@@ -33,7 +33,7 @@ public sealed class CachedDecisionFormatTests
     {
         var stored = Stored();
         AnswerSlot[] slots = [stored.Slots[0], slot1, stored.Slots[2]];
-        return new CachedDecision(slots, stored.Probabilities, stored.Model, stored.InputTokens, stored.OutputTokens, stored.Cost, stored.Id, stored.Provider);
+        return new CachedDecision(slots, stored.Probabilities, stored.Model, stored.InputTokens, stored.OutputTokens, stored.Cost, stored.Id, stored.UpstreamProvider);
     }
 
     [Fact]
@@ -57,7 +57,7 @@ public sealed class CachedDecisionFormatTests
         Assert.True(read.IsCached);
         Assert.Equal(original.Model, read.Model);
         Assert.Equal("gen-0001", read.Id);
-        Assert.Equal("Together", read.Provider);
+        Assert.Equal("Together", read.UpstreamProvider);
         Assert.Equal(original.Usage, read.Usage);
         Assert.Equal(original.Slots, read.Slots);
         Assert.Equal(original.Probabilities, read.Probabilities);

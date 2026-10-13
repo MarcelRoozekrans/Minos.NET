@@ -2,7 +2,7 @@
 id: client-and-errors
 title: The client and its errors
 sidebar_position: 5
-description: Create and configure a SystemOneClient or an OpenAIDecisionClient, understand retries and time-outs, handle every kind of DecisionError, and use the raw request API.
+description: Create and configure a SystemOneDecisionClient or an OpenAIDecisionClient, understand retries and time-outs, handle every kind of DecisionError, and use the raw request API.
 ---
 
 # The client and its errors
@@ -20,8 +20,9 @@ arrives as a value to check, not as an exception to catch.
 
 ## Creating a client
 
-`SystemOneClient` is the class that implements `IDecisionClient`. It is thread-safe and meant to live for the whole
-program: create one, share it, and dispose it when the program stops. Creating a client per call wastes connections.
+`SystemOneDecisionClient` is the class that implements `IDecisionClient`. It is thread-safe and meant to live for the
+whole program: create one, share it, and dispose it when the program stops. Creating a client per call wastes
+connections.
 
 <!-- snippet: ClientAndErrors_Constructors -->
 ```cs
@@ -32,30 +33,30 @@ using Minos.SystemOne;
 public static class ClientConstructors
 {
     // The client creates its own HttpClient, and disposing the client disposes it.
-    public static SystemOneClient Owned(string apiKey)
-        => new(new SystemOneClientOptions { ApiKey = apiKey });
+    public static SystemOneDecisionClient Owned(string apiKey)
+        => new(new SystemOneDecisionClientOptions { ApiKey = apiKey });
 
     // You pass an HttpClient you manage, for example one from IHttpClientFactory. The client never disposes it.
-    public static SystemOneClient Borrowed(HttpClient http, string apiKey)
-        => new(http, new SystemOneClientOptions { ApiKey = apiKey });
+    public static SystemOneDecisionClient Borrowed(HttpClient http, string apiKey)
+        => new(http, new SystemOneDecisionClientOptions { ApiKey = apiKey });
 
     // Either form also takes an ILoggerFactory, and then logs each operation and each retried attempt.
-    public static SystemOneClient Logged(string apiKey, ILoggerFactory loggers)
-        => new(new SystemOneClientOptions { ApiKey = apiKey }, loggers);
+    public static SystemOneDecisionClient Logged(string apiKey, ILoggerFactory loggers)
+        => new(new SystemOneDecisionClientOptions { ApiKey = apiKey }, loggers);
 }
 ```
 <!-- endSnippet -->
 
 There are two families of constructor.
 
-- **The client owns its `HttpClient`.** `new SystemOneClient(options)`, or `new SystemOneClient()` for all defaults. The
-  client creates the `HttpClient`, applies the options to it, and disposes it in `Dispose`.
-- **You lend an `HttpClient`.** `new SystemOneClient(http, options)`. The client uses it and never disposes it, so
-  whoever created it still owns it. This is how a client over `IHttpClientFactory` works, and it is what a test does to
-  put a fake handler under the client. Two things follow. The `HttpClient`'s own `BaseAddress` wins over
-  `SystemOneClientOptions.BaseAddress` when it is set, and it must end in `/`. And its own `Timeout` applies, not
-  `SystemOneClientOptions.Timeout`, unless you set it up with `SystemOneClient.ConfigureHttpClient`, which the
-  [dependency injection](dependency-injection.md#using-minos-without-the-package) page shows.
+- **The client owns its `HttpClient`.** `new SystemOneDecisionClient(options)`, or `new SystemOneDecisionClient()` for
+  all defaults. The client creates the `HttpClient`, applies the options to it, and disposes it in `Dispose`.
+- **You lend an `HttpClient`.** `new SystemOneDecisionClient(http, options)`. The client uses it and never disposes it,
+  so whoever created it still owns it. This is how a client over `IHttpClientFactory` works, and it is what a test does
+  to put a fake handler under the client. Two things follow. The `HttpClient`'s own `BaseAddress` wins over
+  `SystemOneDecisionClientOptions.BaseAddress` when it is set, and it must end in `/`. And its own `Timeout` applies,
+  not `SystemOneDecisionClientOptions.Timeout`, unless you set it up with `SystemOneDecisionClient.ConfigureHttpClient`,
+  which the [dependency injection](dependency-injection.md#using-minos-without-the-package) page shows.
 
 Both families take a `null` options object to mean "all defaults and environment variables", and both have an overload
 that also takes an `ILoggerFactory`. With one, the client logs each operation and each retried attempt, as [Logging,
@@ -63,12 +64,12 @@ traces and metrics](observability.md#logging) describes. What it logs never cont
 answers, the API key or a header value.
 
 Two calls with bare `null` literals do not compile (CS0121), because more than one constructor accepts them.
-`new SystemOneClient(null)` matches both `(SystemOneClientOptions?)` and `(HttpClient)`.
-`new SystemOneClient(null, null)` matches both `(SystemOneClientOptions?, ILoggerFactory?)` and
-`(HttpClient, SystemOneClientOptions?)`; before the logging overloads it compiled and always threw
+`new SystemOneDecisionClient(null)` matches both `(SystemOneDecisionClientOptions?)` and `(HttpClient)`.
+`new SystemOneDecisionClient(null, null)` matches both `(SystemOneDecisionClientOptions?, ILoggerFactory?)` and
+`(HttpClient, SystemOneDecisionClientOptions?)`; before the logging overloads it compiled and always threw
 `ArgumentNullException` for the missing `HttpClient`. For all defaults and environment variables, write
-`new SystemOneClient()`. Any other call resolves once its `null` has a type, for example
-`new SystemOneClient((SystemOneClientOptions?)null)`.
+`new SystemOneDecisionClient()`. Any other call resolves once its `null` has a type, for example
+`new SystemOneDecisionClient((SystemOneDecisionClientOptions?)null)`.
 
 A client throws instead of returning a failure only for mistakes in the calling code. A missing API key, an invalid
 option or a `null` request throws when you create the client or make the call. Calling a disposed client throws
@@ -91,14 +92,14 @@ you asked for it. Everything else, including every network and service failure, 
 
 ## Options
 
-`SystemOneClientOptions` has twelve properties, and every one is optional.
+`SystemOneDecisionClientOptions` has twelve properties, and every one is optional.
 
 | Property | Default | Valid values | What it does |
 | --- | --- | --- | --- |
 | `Provider` | `SystemOneProvider.TypeSafe` | `TypeSafe`, `OpenRouter`, `VllmSemanticRouter` or `Custom` | Where requests go. The [Providers](providers.md#the-presets) page lists what each one sets. |
 | `ApiKey` | none | any text without control characters; blank counts as unset | The key sent as a bearer token. When unset, the client reads `TYPESAFE_API_KEY` for TypeSafe and `OPENROUTER_API_KEY` for OpenRouter. `VllmSemanticRouter` and `Custom` read no variable and send no key unless this is set. |
 | `BaseAddress` | the provider's address | absolute `http` or `https` URI, no query or fragment | The API root, for a proxy, a test server or a server you run. When unset, the client reads `TYPESAFE_BASE_URL` for TypeSafe only, then uses the provider's address. `VllmSemanticRouter` and `Custom` have none, so it is required for them. |
-| `Model` | the preset's default: `jev-latest` for TypeSafe and OpenRouter; required for the others | not blank | The model that typed evaluation and built question sets ask: an alias such as `jev-latest` (or TypeSafe's `jev-preview`), or a versioned id such as `jev-1.13.0`. Surrounding whitespace is trimmed. See [Listing models](#listing-models). |
+| `Model` | the preset's default: `jev-latest` for TypeSafe and OpenRouter; required for the others | not blank | The model that typed evaluation, built question sets and a raw `SystemOneRequest` with no model ask: an alias such as `jev-latest` (or TypeSafe's `jev-preview`), or a versioned id such as `jev-1.13.0`. Surrounding whitespace is trimmed. See [Listing models](#listing-models). |
 | `Path` | `v1/systemone` | relative, no leading `/`, no query, fragment or `..`; `Custom` and `VllmSemanticRouter` only | The request path under `BaseAddress`. Surrounding whitespace is trimmed, and blank counts as unset. Rejected for a hosted provider, so a key cannot be sent to another path on a host you did not choose. |
 | `Capabilities` | the preset's | see [Capabilities](providers.md#capabilities) | What the provider accepts, checked before a request is sent. Each property you leave unset keeps the preset's value. |
 | `Timeout` | 60 seconds | positive, or `Timeout.InfiniteTimeSpan`, and at most about 24.8 days | How long one attempt may take. |
@@ -122,7 +123,7 @@ is here so the table above has code to match.
 // VllmSemanticRouter read no key from the environment and send none unless ApiKey is set.
 // BaseAddress, Model, Path and Capabilities are also left out: the provider decides them, and the model is
 // jev-latest for TypeSafe.
-public static SystemOneClientOptions SpelledOut(string apiKey)
+public static SystemOneDecisionClientOptions SpelledOut(string apiKey)
     => new()
     {
         ApiKey = apiKey,
@@ -137,7 +138,8 @@ public static SystemOneClientOptions SpelledOut(string apiKey)
 ```
 <!-- endSnippet -->
 
-A `SystemOneRequest` names its own model, so `Model` applies to typed evaluation and to question sets only.
+A `SystemOneRequest` that names no model of its own is sent with this one, so `Model` applies to every call of the
+client.
 
 ### SystemOneDefaults
 
@@ -147,10 +149,10 @@ message.
 
 | Member | Value | What it is |
 | --- | --- | --- |
-| `ApiKeyEnvironmentVariable` | `TYPESAFE_API_KEY` | The variable a TypeSafe key is read from. |
+| `TypeSafeApiKeyEnvironmentVariable` | `TYPESAFE_API_KEY` | The variable a TypeSafe key is read from. |
 | `OpenRouterApiKeyEnvironmentVariable` | `OPENROUTER_API_KEY` | The variable an OpenRouter key is read from. |
-| `BaseAddressEnvironmentVariable` | `TYPESAFE_BASE_URL` | The variable that overrides the base address, for TypeSafe only. |
-| `Model` | `jev-latest` | The model alias used when a request does not name one. A property, so a changed default is not compiled into your code. |
+| `TypeSafeBaseAddressEnvironmentVariable` | `TYPESAFE_BASE_URL` | The variable that overrides TypeSafe's base address; no other provider reads it. |
+| `Model` | `jev-latest` | The model alias that the TypeSafe and OpenRouter presets use when no model is set. A property, so a changed default is not compiled into your code. |
 | `TypeSafeBaseAddress` | `https://api.typesafe.ai/` | The root address of TypeSafe's API. A property. |
 | `OpenRouterBaseAddress` | `https://openrouter.ai/api/` | The root address of OpenRouter's System One API. A property. |
 
@@ -164,7 +166,7 @@ start-up.
 ```cs
 // Validate runs the check the constructors run, without creating a client. It throws ArgumentException for a value
 // that is out of range, and InvalidOperationException when no API key can be found.
-public static string? Problem(SystemOneClientOptions options)
+public static string? Problem(SystemOneDecisionClientOptions options)
 {
     try
     {
@@ -219,7 +221,7 @@ extra of up to half its length, and a wait never exceeds `MaxRetryDelay`. Each r
 <!-- snippet: ClientAndErrors_Retries -->
 ```cs
 // Four retries, waiting about 1 s, 2 s, 4 s and then 8 s, each wait at most 20 s.
-public static SystemOneClientOptions Patient(string apiKey)
+public static SystemOneDecisionClientOptions Patient(string apiKey)
     => new()
     {
         ApiKey = apiKey,
@@ -229,7 +231,7 @@ public static SystemOneClientOptions Patient(string apiKey)
     };
 
 // No retries: a failed call is reported at once. Use this where a duplicate, billed request is worse than a failure.
-public static SystemOneClientOptions NoRetries(string apiKey)
+public static SystemOneDecisionClientOptions NoRetries(string apiKey)
     => new() { ApiKey = apiKey, MaxRetries = 0 };
 ```
 <!-- endSnippet -->
@@ -262,14 +264,14 @@ attempts of the handler is nine requests.
 
 `Timeout` bounds one attempt, not the whole call. A call with retries can take up to `(MaxRetries + 1) times Timeout`
 plus the waits between attempts. Its time-out applies to a client that owns its `HttpClient`, and to one you set up with
-`SystemOneClient.ConfigureHttpClient`, as `AddSystemOneClient` does. An `HttpClient` you pass without that keeps its own
-`Timeout`, which is 100 seconds unless you changed it.
+`SystemOneDecisionClient.ConfigureHttpClient`, as `AddSystemOneDecisionClient` does. An `HttpClient` you pass without
+that keeps its own `Timeout`, which is 100 seconds unless you changed it.
 
 <!-- snippet: ClientAndErrors_Timeouts -->
 ```cs
 // Each attempt may take 10 s, and there is one retry. The worst case for one call is therefore two attempts of
 // 10 s each, plus one wait of at most MaxRetryDelay between them.
-public static SystemOneClientOptions Strict(string apiKey)
+public static SystemOneDecisionClientOptions Strict(string apiKey)
     => new() { ApiKey = apiKey, Timeout = TimeSpan.FromSeconds(10), MaxRetries = 1 };
 ```
 <!-- endSnippet -->
@@ -435,19 +437,20 @@ most uses. Underneath them is the raw API, the shape of the HTTP request: a stat
 with ids you choose. You rarely need it, but it is there when you want the exact wire form, or are building your own
 layer.
 
-The raw calls, `EvaluateAsync(SystemOneRequest)` and `ListModelsAsync`, are members of `SystemOneClient`, not of
+The raw calls, `EvaluateAsync(SystemOneRequest)` and `ListModelsAsync`, are members of `SystemOneDecisionClient`, not of
 `IDecisionClient`. Code that holds an `IDecisionClient`, such as a class that takes one from dependency injection,
-reaches them with `client.GetService<SystemOneClient>()`, which finds the `SystemOneClient` under any stages wrapped
-around it and returns `null` when there is none. [Finding a stage or the
-transport](pipeline.md#finding-a-stage-or-the-transport) has an example. The raw calls do not run through the
-pipeline's stages: they have their own span and log, and retry with the client's settings.
+reaches them with `client.GetService<SystemOneDecisionClient>()`, which finds the `SystemOneDecisionClient` under any
+stages wrapped around it and returns `null` when there is none; `client.GetRequiredService<SystemOneDecisionClient>()`
+throws instead. [Finding a stage or the transport](pipeline.md#finding-a-stage-or-the-transport) has an example. The raw
+calls do not run through the pipeline's stages: they have their own span and log, and retry with the client's settings.
 
 <!-- snippet: ClientAndErrors_RawRequest -->
 ```cs
-// The raw API names its own model and questions, with ids you choose. Use it when the questions are not known at
-// compile time and the question set builder does not fit. Typed evaluation is shorter wherever it can be used.
+// The raw API names its own questions, with ids you choose, and may name a model. Use it when the questions are not
+// known at compile time and the question set builder does not fit. Typed evaluation is shorter wherever it can be
+// used.
 public static async Task<string> UrgencyAsync(
-    SystemOneClient client, string message, CancellationToken cancellationToken)
+    SystemOneDecisionClient client, string message, CancellationToken cancellationToken)
 {
     var result = await client.EvaluateAsync(
         new SystemOneRequest
@@ -468,23 +471,89 @@ public static async Task<string> UrgencyAsync(
     // Answers are keyed by the ids from the request, and each one is a NoulAnswer, ChoiceAnswer or ScoreAnswer.
     var response = result.Value;
     return response.Answers["is_urgent"] is NoulAnswer urgent
-        ? $"{response.Model}: {urgent.Noul * 100:0} %, {response.Usage.InputTokens} input tokens"
+        ? $"{response.Model}: {urgent.Noul * 100:0} %, {response.Usage.InputTokens?.ToString(CultureInfo.InvariantCulture) ?? "an unknown number of"} input tokens"
         : "Unexpected answer type.";
 }
 ```
 <!-- endSnippet -->
 
 A `SystemOneRequest` has a required `State`, which is a `DecisionContent` (text converts to one, as
-[typed evaluation](typed-evaluation.md#decisioncontent) describes), a `Model` that defaults to `jev-latest`, and required
-`Questions`. The response is a `SystemOneResponse`: the versioned `Model` that answered, `Answers` keyed by the ids you
-sent, and `Usage` with the input and output token counts. Only input tokens are billed. On OpenRouter the response also
-carries the generation `Id` and the upstream `Provider`, and `Usage` carries the `Cost` in US dollars.
+[typed evaluation](typed-evaluation.md#decisioncontent) describes), an optional `Model` and required `Questions`. A `Model`
+you leave `null` is the client's `Model` option, or the provider's default; a blank one throws. The response is a `SystemOneResponse`: the versioned `Model` that answered, `Answers` keyed by the ids you
+sent, and `Usage` with the input and output token counts; a count the server left out is `null`. On OpenRouter the
+response also carries the generation `Id` and the `UpstreamProvider` OpenRouter routed the request to, and `Usage` carries
+the `Cost` in US dollars.
 
 Each answer is a `NoulAnswer`, a `ChoiceAnswer` or a `ScoreAnswer`, so you pattern-match to read it. The typed forms do
 that matching for you, which is the reason to prefer them. The raw API leaves the API's rules for questions to you,
 where the generator, the [analyzers](diagnostics.md) and the
 [question set builder](question-sets-at-run-time.md) check them for you. A question the service rejects comes back as a
-`Validation` error.
+`Validation` error. A request that is malformed in your own code, which is a blank `Model`, a default `State`, null
+`Questions`, a null question or a question whose `Instructions` is the default value, throws an `ArgumentException` before
+anything is sent.
+
+### The question types
+
+A raw request takes three kinds of question. Each has `Instructions`, what the model should evaluate, and a `Criteria`
+that gives the model more to go on. They differ in what `Criteria` holds and in the answer that comes back.
+
+| Type | What `Criteria` holds | Answer |
+| --- | --- | --- |
+| `NoulQuestion` | Optional. A `NoulCriteria` with `WhenTrue` and `WhenFalse`, each a description of what a yes or a no means, or `null`. | `NoulAnswer` |
+| `ChoiceQuestion` | Required. A dictionary that maps each option to a description, or to `null` when the option needs none. | `ChoiceAnswer` |
+| `ScoreQuestion` | Required. A list of level descriptions, lowest first. | `ScoreAnswer` |
+
+This request asks a `ChoiceQuestion` and reads the `Choice` and the `Confidence` of the `ChoiceAnswer`.
+
+<!-- snippet: ClientAndErrors_RawChoice -->
+```cs
+// A ChoiceQuestion maps each option to a description, or to null when the option needs none. Its answer is a
+// ChoiceAnswer: the highest-probability option and how certain the model is of it.
+public static async Task<string> RouteAsync(
+    SystemOneDecisionClient client, string message, CancellationToken cancellationToken)
+{
+    var result = await client.EvaluateAsync(
+        new SystemOneRequest
+        {
+            State = message,
+            Questions = new Dictionary<string, Question>
+            {
+                ["team"] = new ChoiceQuestion
+                {
+                    Instructions = "Which team should handle this?",
+                    Criteria = new Dictionary<string, DecisionContent?>
+                    {
+                        ["billing"] = "Payments, invoicing, refunds",
+                        ["technical"] = "Bugs, outages, integrations",
+                        ["other"] = null,
+                    },
+                },
+            },
+        },
+        cancellationToken);
+
+    if (result.IsFailure)
+    {
+        return ClientFailures.Describe(result.Error);
+    }
+
+    return result.Value.Answers["team"] is ChoiceAnswer team
+        ? $"{team.Choice} ({team.Confidence * 100:0} % sure)"
+        : "Unexpected answer type.";
+}
+```
+<!-- endSnippet -->
+
+### The answer types
+
+An answer is a `NoulAnswer`, a `ChoiceAnswer` or a `ScoreAnswer`, under the id of its question. Where an answer
+has `Probabilities`, they sum to 1.
+
+| Type | Members |
+| --- | --- |
+| `NoulAnswer` | `Noul`: the answer on a scale from 0 (no) to 1 (yes). |
+| `ChoiceAnswer` | `Choice`: the highest-probability option. `Probabilities`: every option mapped to its probability. `Confidence`: how certain the model is, from 0 to 1. |
+| `ScoreAnswer` | `Score`: the probability-weighted level, which can land between levels. `Legend`: each level index, as a string, mapped back to its description. `Probabilities`: each level index mapped to its probability. `Confidence`: how certain the model is, from 0 to 1. |
 
 ### When your code has its own Question or Answer
 
@@ -526,11 +595,12 @@ Code in a namespace under `Minos.SystemOne` never sees the clash: it finds Minos
 ## Listing models
 
 `ListModelsAsync` returns the models and aliases your account can name in a `SystemOneRequest`: a `ModelList` of
-`ModelCard`s, each with a `Name`, a `Description` and a `ReleaseDate`.
+`ModelCard`s, each with a `Name`, a `Description` and a `ReleaseDate`. Like the other calls, it comes as a pair:
+`ListModelsAsync()` and `ListModelsAsync(CancellationToken)`.
 
 <!-- snippet: ClientAndErrors_Models -->
 ```cs
-public static async Task<string> ModelsAsync(SystemOneClient client, CancellationToken cancellationToken)
+public static async Task<string> ModelsAsync(SystemOneDecisionClient client, CancellationToken cancellationToken)
 {
     var result = await client.ListModelsAsync(cancellationToken);
     if (result.IsFailure)
@@ -549,11 +619,11 @@ public static async Task<string> ModelsAsync(SystemOneClient client, Cancellatio
 ```
 <!-- endSnippet -->
 
-Listing models follows the `ModelListing` [capability](providers.md#capabilities), which is on for `TypeSafe` only. Where it is
+Listing models follows the `SupportsModelListing` [capability](providers.md#capabilities), which is on for `TypeSafe` only. Where it is
 off, the call returns an `Unsupported` error and sends no request. Its message names the provider, such as "Model
 listing is not available on OpenRouter." OpenRouter has its own models API. A `Custom` server's `GET v1/models` need not
 answer in TypeSafe's shape, so listing is off there too; a `Custom` server that does answer in that shape can switch the
-call on with `Capabilities.ModelListing = true`.
+call on with `Capabilities.SupportsModelListing = true`.
 
 As of October 2026, TypeSafe lists only the aliases, `jev-latest` for the newest stable release and `jev-preview` for
 the newest release of any kind. A versioned id such as `jev-1.13.0` is accepted as a `Model` too, listed or not, as

@@ -11,7 +11,7 @@ internal static class ModelBuilder
     private const string NoulAttribute = "Minos.NoulAttribute";
     private const string ChoiceAttribute = "Minos.ChoiceAttribute";
     private const string ScoreAttribute = "Minos.ScoreAttribute";
-    private const string CriteriaAttribute = "Minos.CriteriaAttribute";
+    private const string CriterionAttribute = "Minos.CriterionAttribute";
     private const string LevelAttribute = "Minos.LevelAttribute";
     private const string SetsRequiredMembersAttribute = "System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute";
     private const string JsonPropertyNameAttribute = "System.Text.Json.Serialization.JsonPropertyNameAttribute";
@@ -21,7 +21,7 @@ internal static class ModelBuilder
     // either name would collide with the generated declaration.
     private static readonly string[] ReservedPropertyNames = ["Create", "Definition"];
 
-    // The Examples and NotFor texts of a Choice member without [Criteria].
+    // The Examples and NotFor texts of a Choice member without [Criterion].
     private static readonly EquatableArray<string> NoTexts = new([]);
 
     // MIN003's second message argument: the advice that fits what is empty. The text follows the subject in the message.
@@ -575,34 +575,34 @@ internal static class ModelBuilder
 
             if (kind == QuestionKind.Choice)
             {
-                var criteria = Find(field, CriteriaAttribute);
-                var what = $"The [Criteria] description of '{enumType.Name}.{field.Name}'";
-                if (criteria is null)
+                var criterion = Find(field, CriterionAttribute);
+                var what = $"The [Criterion] description of '{enumType.Name}.{field.Name}'";
+                if (criterion is null)
                 {
-                    diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.MissingCriteria, At(field), enumType.Name, field.Name));
+                    diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.MissingCriterion, At(field), enumType.Name, field.Name));
                 }
                 else
                 {
-                    CheckText(criteria, what, At(field), diagnostics, cancellationToken);
-                    CheckEntries(criteria, "Examples", what, At(field), diagnostics, cancellationToken);
-                    CheckEntries(criteria, "NotFor", what, At(field), diagnostics, cancellationToken);
+                    CheckText(criterion, what, At(field), diagnostics, cancellationToken);
+                    CheckEntries(criterion, "Examples", what, At(field), diagnostics, cancellationToken);
+                    CheckEntries(criterion, "NotFor", what, At(field), diagnostics, cancellationToken);
                 }
 
-                var optionKey = (criteria is null ? null : Named(criteria, "Key")) ?? SnakeCase.Convert(field.Name);
-                if (criteria is not null && optionKey.Length == 0)
+                var optionKey = (criterion is null ? null : Named(criterion, "Key")) ?? SnakeCase.Convert(field.Name);
+                if (criterion is not null && optionKey.Length == 0)
                 {
                     diagnostics.Add(DiagnosticInfo.Create(
                         DiagnosticIds.DuplicateKey,
-                        NamedArgumentLocation(criteria, "Key", At(field), cancellationToken),
+                        NamedArgumentLocation(criterion, "Key", At(field), cancellationToken),
                         $"The option key of '{enumType.Name}.{field.Name}' is empty."));
                 }
 
                 options.Add(new OptionModel(
                     Identifier(field.Name),
                     optionKey,
-                    criteria is null ? null : Positional(criteria),
-                    criteria is null ? NoTexts : new EquatableArray<string>(NamedStrings(criteria, "Examples")),
-                    criteria is null ? NoTexts : new EquatableArray<string>(NamedStrings(criteria, "NotFor"))));
+                    criterion is null ? null : Positional(criterion),
+                    criterion is null ? NoTexts : new EquatableArray<string>(NamedStrings(criterion, "Examples")),
+                    criterion is null ? NoTexts : new EquatableArray<string>(NamedStrings(criterion, "NotFor"))));
             }
             else if (Find(field, LevelAttribute) is { } level)
             {

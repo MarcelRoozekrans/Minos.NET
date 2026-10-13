@@ -15,10 +15,10 @@ public sealed class DecisionResponse
     /// <param name="definition">The questions the answers belong to.</param>
     /// <param name="answers">One answer per question, in definition order, made with the <see cref="QuestionAnswer"/> factories.</param>
     /// <param name="model">The model that answered, if known.</param>
-    /// <param name="usage">The token usage, if known.</param>
+    /// <param name="usage">The token usage, if known; one that reports no count and no cost is treated as <see langword="null"/>.</param>
     /// <exception cref="ArgumentNullException"><paramref name="definition"/> or <paramref name="answers"/> is <see langword="null"/>.</exception>
     /// <remarks>
-    /// Checked: one answer for every question, none of them a <see langword="default"/> value, and per answer its kind, its probability count against the question's options, and a chosen position below the option count. The factories check the ranges of the confidence and the probabilities, the range of a Noul's <see cref="QuestionAnswer.Value"/> and that a Score's <see cref="QuestionAnswer.Value"/> is finite. Not checked: a Score's <see cref="QuestionAnswer.Value"/> against its levels, and that the probabilities sum to 1 or that the chosen position is the most probable.
+    /// Checked: one answer for every question, none of them a <see langword="default"/> value, and per answer its kind, its probability count against the question's options, and a chosen position below the option count. The factories check the ranges of the confidence and the probabilities, the range of a Noul's <see cref="QuestionAnswer.Probability"/> and that a Score's <see cref="QuestionAnswer.Expected"/> is finite. Not checked: a Score's <see cref="QuestionAnswer.Expected"/> against its levels, and that the probabilities sum to 1 or that the chosen position is the most probable.
     /// </remarks>
     /// <exception cref="ArgumentException">An answer is a default value, or the answers do not match the definition's questions in number, kind, option count or chosen position.</exception>
     public DecisionResponse(QuestionSetDefinition definition, IReadOnlyList<QuestionAnswer> answers, string? model = null, DecisionUsage? usage = null)
@@ -49,7 +49,7 @@ public sealed class DecisionResponse
 
             if (question.Kind == QuestionKind.Noul)
             {
-                slots[i] = new AnswerSlot(0, answer.Value, 0, 0);
+                slots[i] = new AnswerSlot(0, answer.Probability, 0, 0);
                 continue;
             }
 
@@ -66,17 +66,18 @@ public sealed class DecisionResponse
 
             var offset = definition.Offsets[i];
             answer.Probabilities.CopyTo(probabilities.AsSpan(offset));
-            slots[i] = new AnswerSlot(answer.ChosenIndex, answer.Value, answer.Confidence, offset);
+            slots[i] = new AnswerSlot(answer.ChosenIndex, answer.Expected, answer.Confidence, offset);
         }
 
         Definition = definition;
         Slots = slots;
         Probabilities = probabilities;
         Model = model;
-        _usage = usage;
-        InputTokens = usage?.InputTokens;
-        OutputTokens = usage?.OutputTokens;
-        Cost = usage?.Cost;
+        // A usage that reports nothing is no usage, so Usage is null for it as it is after a cache round trip.
+        _usage = usage is { InputTokens: null, OutputTokens: null, Cost: null } ? null : usage;
+        InputTokens = _usage?.InputTokens;
+        OutputTokens = _usage?.OutputTokens;
+        Cost = _usage?.Cost;
     }
 
     internal DecisionResponse(
@@ -88,7 +89,7 @@ public sealed class DecisionResponse
         int? outputTokens,
         double? cost,
         string? id,
-        string? provider,
+        string? upstreamProvider,
         bool isCached = false)
     {
         Definition = definition;
@@ -99,7 +100,7 @@ public sealed class DecisionResponse
         OutputTokens = outputTokens;
         Cost = cost;
         Id = id;
-        Provider = provider;
+        UpstreamProvider = upstreamProvider;
         IsCached = isCached;
     }
 
@@ -112,25 +113,31 @@ public sealed class DecisionResponse
     /// <summary>Gets the model that answered, or <see langword="null"/> when the provider did not say.</summary>
     public string? Model { get; }
 
-    /// <summary>Gets the token usage, or <see langword="null"/> when the provider did not report both token counts.</summary>
+    /// <summary>
+    /// Gets the token usage and cost the provider reported, or <see langword="null"/> when it reported none; a count the
+    /// provider left out is <see langword="null"/>.
+    /// </summary>
     /// <remarks>
     /// A read response creates it on first access, so a call that never reads it does not allocate it. Every access
     /// returns the same instance, even when threads race on the first one.
     /// </remarks>
     public DecisionUsage? Usage => _usage ?? CreateUsage();
 
-    /// <summary>Gets the provider's response id, if any.</summary>
-    public string? Id { get; }
+    /// <summary>Gets the provider's response id, if any. A stage that rebuilds a response can set it with an object initializer.</summary>
+    public string? Id { get; init; }
 
-    /// <summary>Gets the upstream provider the response names, if any, such as OpenRouter's.</summary>
-    public string? Provider { get; }
+    /// <summary>
+    /// Gets the upstream provider an aggregator routed the call to, such as the host OpenRouter picked; <see langword="null"/>
+    /// when the provider is not an aggregator or did not say.
+    /// </summary>
+    public string? UpstreamProvider { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether this response came from a cache stage, such as <c>UseCaching</c> in
     /// <c>Minos.NET.Caching</c>, rather than from the provider. A cached response reports the model, usage and cost of the
-    /// call that first produced it.
+    /// call that first produced it. A custom cache stage sets it with an object initializer.
     /// </summary>
-    public bool IsCached { get; }
+    public bool IsCached { get; init; }
 
     internal AnswerSlot[] Slots { get; }
 
@@ -148,20 +155,20 @@ public sealed class DecisionResponse
     // The minos.cache.hit tag's value: set on a cached response, absent otherwise, so an uncached span carries no tag.
     internal object? CacheHitTag => IsCached ? BoxedTrue : null;
 
-    /// <summary>A copy that a cache stores: the same answers, model, usage, id and provider, marked as cached.</summary>
+    /// <summary>A copy that a cache stores: the same answers, model, usage, id and upstream provider, marked as cached.</summary>
     /// <returns>A new response sharing this one's arrays.</returns>
     internal DecisionResponse AsCached()
-        => new(Definition, Slots, Probabilities, Model, InputTokens, OutputTokens, Cost, Id, Provider, isCached: true);
+        => new(Definition, Slots, Probabilities, Model, InputTokens, OutputTokens, Cost, Id, UpstreamProvider, isCached: true);
 
     // Publishes one instance: a thread that loses the race returns the winner's.
     private DecisionUsage? CreateUsage()
     {
-        if (InputTokens is not { } input || OutputTokens is not { } output)
+        if (InputTokens is null && OutputTokens is null && Cost is null)
         {
             return null;
         }
 
-        var usage = new DecisionUsage { InputTokens = input, OutputTokens = output, Cost = Cost };
+        var usage = new DecisionUsage { InputTokens = InputTokens, OutputTokens = OutputTokens, Cost = Cost };
         return Interlocked.CompareExchange(ref _usage, usage, null) ?? usage;
     }
 

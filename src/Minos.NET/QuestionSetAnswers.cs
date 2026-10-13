@@ -7,7 +7,7 @@ namespace Minos;
 /// Immutable and safe to share. Reading an answer allocates nothing: every Choice and Score answer is a view over one
 /// probability buffer this instance owns.
 /// </remarks>
-public sealed class Answers
+public sealed class QuestionSetAnswers
 {
     private const string ForeignHandle = "The handle belongs to another question set.";
 
@@ -15,7 +15,7 @@ public sealed class Answers
     private readonly double[] _probabilities;
     private readonly AnswerSlot[] _slots;
 
-    internal Answers(QuestionSet set, double[] probabilities, AnswerSlot[] slots)
+    internal QuestionSetAnswers(QuestionSet set, double[] probabilities, AnswerSlot[] slots)
     {
         _set = set;
         _probabilities = probabilities;

@@ -22,11 +22,11 @@ public sealed class SystemOneResponseReaderTests
         var response = result.Value;
         Assert.Equal("minos-1.13.0", response.Model);
         Assert.Equal("r-1", response.Id);
-        Assert.Equal("Groq", response.Provider);
+        Assert.Equal("Groq", response.UpstreamProvider);
         Assert.Equal(296, response.Usage!.InputTokens);
         Assert.Equal(20, response.Usage.OutputTokens);
         Assert.Equal(0.0012, response.Usage.Cost);
-        Assert.Equal(0.95, response.Answers[0].Value);
+        Assert.Equal(0.95, response.Answers[0].Probability);
     }
 
     [Fact]
@@ -41,13 +41,14 @@ public sealed class SystemOneResponseReaderTests
     }
 
     [Fact]
-    public void One_token_count_is_kept_without_a_usage()
+    public void One_token_count_is_a_usage_with_the_other_null()
     {
         var result = SystemOneProtocol.Instance.ReadResponse(
             """{"answers":{"is_urgent":{"type":"noul","noul":0.5}},"usage":{"input_tokens":7,"output_tokens":"x"}}"""u8, Urgency);
 
         Assert.True(result.IsSuccess);
-        Assert.Null(result.Value.Usage);
+        Assert.Equal(7, result.Value.Usage!.InputTokens);
+        Assert.Null(result.Value.Usage.OutputTokens);
         Assert.Equal(7, result.Value.InputTokens);
         Assert.Null(result.Value.OutputTokens);
     }
@@ -66,7 +67,7 @@ public sealed class SystemOneResponseReaderTests
 
         Assert.Equal("first", response.Model);
         Assert.Equal("a", response.Id);
-        Assert.Equal("p1", response.Provider);
+        Assert.Equal("p1", response.UpstreamProvider);
         Assert.Equal(1, response.InputTokens);
         Assert.Equal(3, response.OutputTokens);
         Assert.Equal(0.5, response.Cost);
@@ -82,7 +83,7 @@ public sealed class SystemOneResponseReaderTests
 
         Assert.Null(response.Model);
         Assert.Null(response.Id);
-        Assert.Null(response.Provider);
+        Assert.Null(response.UpstreamProvider);
     }
 
     [Fact]
@@ -93,7 +94,8 @@ public sealed class SystemOneResponseReaderTests
 
         Assert.Null(response.InputTokens);
         Assert.Equal(2, response.OutputTokens);
-        Assert.Null(response.Usage);
+        Assert.Null(response.Usage!.InputTokens);
+        Assert.Equal(2, response.Usage.OutputTokens);
     }
 
     [Fact]
@@ -115,7 +117,7 @@ public sealed class SystemOneResponseReaderTests
         Assert.True(result.IsSuccess);
         Assert.Null(result.Value.Model);
         Assert.Null(result.Value.Id);
-        Assert.Null(result.Value.Provider);
+        Assert.Null(result.Value.UpstreamProvider);
     }
 
     [Fact]
@@ -167,7 +169,7 @@ public sealed class SystemOneResponseReaderTests
             """{"answers":{"is_urgent":{"type":"noul","noul":0.3}},"model":"jev-1.13.0","usage":{"input_tokens":1,"output_tokens":1}}"""u8, Urgency);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(0.3, result.Value.Answers[0].Value);
+        Assert.Equal(0.3, result.Value.Answers[0].Probability);
         Assert.Equal("jev-1.13.0", result.Value.Model);
     }
 
@@ -178,7 +180,7 @@ public sealed class SystemOneResponseReaderTests
             """{"meta":{"answers":{}},"answers":{"is_urgent":{"type":"noul","noul":0.3}},"extra":{"answers":null}}"""u8, Urgency);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(0.3, result.Value.Answers[0].Value);
+        Assert.Equal(0.3, result.Value.Answers[0].Probability);
     }
 
     [Theory]

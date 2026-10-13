@@ -145,7 +145,7 @@ public sealed class EnumOptionSetTests
         Assert.Equal(0, options.IndexOf(Priority.Legacy));
 
         // The generator sends the same two options in the same order. Its second key is "urgent" only because it reads
-        // High's [Criteria(Key = "urgent")], which the builder does not.
+        // High's [Criterion(Key = "urgent")], which the builder does not.
         Assert.Equal(["low", "urgent"], GeneratedKeys(SystemOneProtocol.QuestionsJson(EdgeCases.Definition), "priority"));
     }
 

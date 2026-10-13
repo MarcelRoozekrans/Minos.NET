@@ -15,13 +15,13 @@ public partial record NoulTriage
 
 public enum IntegrationDepartment
 {
-    [Criteria("Payments, invoicing, refunds", Examples = ["I was charged twice"], NotFor = ["How much is Pro?"])]
+    [Criterion("Payments, invoicing, refunds", Examples = ["I was charged twice"], NotFor = ["How much is Pro?"])]
     Billing,
 
-    [Criteria("Bugs, outages, integrations", Examples = new[] { "The API returns 500" })]
+    [Criterion("Bugs, outages, integrations", Examples = new[] { "The API returns 500" })]
     Technical,
 
-    [Criteria("Pricing, upgrades, new accounts", Examples = [], NotFor = [])]
+    [Criterion("Pricing, upgrades, new accounts", Examples = [], NotFor = [])]
     Sales,
 
     Other,

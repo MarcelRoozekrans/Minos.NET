@@ -1,7 +1,7 @@
 using System.Threading.RateLimiting;
 using ZeroAlloc.Results;
 
-namespace Minos.RateLimiting;
+namespace Minos;
 
 /// <summary>A stage that takes one permit from a <see cref="RateLimiter"/> for each call, before the call is sent.</summary>
 /// <remarks>
@@ -15,6 +15,7 @@ namespace Minos.RateLimiting;
 /// <para>
 /// Cancelling a call while it waits for its permit throws <see cref="OperationCanceledException"/>. The limiter belongs to
 /// the caller, who may share it across clients; disposing the stage disposes the inner client, never the limiter.
+/// Dispose the limiter only after the clients that use it: a call on a disposed limiter throws <see cref="ObjectDisposedException"/>.
 /// </para>
 /// </remarks>
 public sealed class RateLimitingDecisionClient : DelegatingDecisionClient
@@ -23,6 +24,7 @@ public sealed class RateLimitingDecisionClient : DelegatingDecisionClient
     internal const string RejectedMessage = "The client's rate limiter rejected the call before it was sent.";
 
     private readonly RateLimiter _limiter;
+    private volatile bool _disposed;
 
     /// <summary>Initializes a new instance of the <see cref="RateLimitingDecisionClient"/> class.</summary>
     /// <param name="innerClient">The client to limit.</param>
@@ -36,9 +38,11 @@ public sealed class RateLimitingDecisionClient : DelegatingDecisionClient
     }
 
     /// <inheritdoc />
+    /// <exception cref="ObjectDisposedException">The stage or its limiter is disposed.</exception>
     public override ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+        ObjectDisposedException.ThrowIf(_disposed, this);
         var acquiring = _limiter.AcquireAsync(1, cancellationToken);
         return acquiring.IsCompletedSuccessfully
             ? Proceed(acquiring.Result, request, cancellationToken)
@@ -92,5 +96,12 @@ public sealed class RateLimitingDecisionClient : DelegatingDecisionClient
         {
             return await call.ConfigureAwait(false);
         }
+    }
+
+    /// <inheritdoc />
+    protected override void Dispose(bool disposing)
+    {
+        _disposed = true;
+        base.Dispose(disposing);
     }
 }

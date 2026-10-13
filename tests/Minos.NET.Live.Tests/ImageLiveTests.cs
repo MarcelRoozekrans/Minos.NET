@@ -12,12 +12,12 @@ public sealed class ImageLiveTests
     [LiveFact(SystemOneProvider.OpenRouter)]
     public async Task Perplexity_ReadsARedImage()
     {
-        using var client = new SystemOneClient(new SystemOneClientOptions
+        using var client = new SystemOneDecisionClient(new SystemOneDecisionClientOptions
         {
             Provider = SystemOneProvider.OpenRouter,
             MaxRetries = 0,
             Model = "perplexity/pplx-decider-v1.1-27b",
-            Capabilities = new() { Images = true },
+            Capabilities = new() { SupportsImages = true },
         });
         var set = Live.Built(QuestionSet.CreateBuilder()
             .Noul("red", "Is the attached image red?", out var red)

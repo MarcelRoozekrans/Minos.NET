@@ -216,11 +216,11 @@ public sealed class TypedEvaluationTests
     {
         var forms = TicketReviewing.ContentForms(Ticket);
 
-        Assert.True(forms[0].IsString);
-        Assert.False(forms[1].IsString);
+        Assert.True(forms[0].TryGetString(out _));
+        Assert.False(forms[1].TryGetString(out _));
         Assert.True(forms[1].TryGetJson(out var value));
         Assert.Equal("Pro", value.GetProperty("plan").GetString());
-        Assert.False(forms[2].IsString);
+        Assert.False(forms[2].TryGetString(out _));
         Assert.True(forms[2].TryGetJson(out var parsed));
         Assert.Equal("Payouts failing", parsed.GetProperty("subject").GetString());
     }
@@ -228,7 +228,7 @@ public sealed class TypedEvaluationTests
     [Fact]
     public void DecisionContent_AJsonStringBecomesText_AndAnythingElseThrows()
     {
-        Assert.True(DecisionContent.FromUtf8Json("\"plain text\""u8).IsString);
+        Assert.True(DecisionContent.FromUtf8Json("\"plain text\""u8).TryGetString(out _));
         Assert.Equal("plain text", DecisionContent.FromUtf8Json("\"plain text\""u8).ToString());
 
         var number = (JsonTypeInfo<int>)JsonSerializerOptions.Default.GetTypeInfo(typeof(int));

@@ -23,7 +23,8 @@ public sealed class DecisionResponseTests
         Assert.Equal(3, answers.Count);
         Assert.Equal("is_urgent", answers[0].Key);
         Assert.Equal(QuestionKind.Noul, answers[0].Kind);
-        Assert.Equal(0.9, answers[0].Value);
+        Assert.Equal(0.9, answers[0].Probability);
+        Assert.Equal(0, answers[0].Expected);
         Assert.Equal(-1, answers[0].ChosenIndex);
         Assert.True(answers[0].Probabilities.IsEmpty);
         Assert.Equal("department", answers[1].Key);
@@ -32,7 +33,10 @@ public sealed class DecisionResponseTests
         Assert.Equal([0.1, 0.8, 0.1], answers[1].Probabilities.ToArray());
         Assert.Equal("severity", answers[2].Key);
         Assert.Equal(2, answers[2].ChosenIndex);
-        Assert.Equal(1.7, answers[2].Value);
+        Assert.Equal(1.7, answers[2].Expected);
+        Assert.Equal(0, answers[2].Probability);
+        Assert.Equal(0, answers[1].Probability);
+        Assert.Equal(0, answers[1].Expected);
     }
 
     [Fact]
@@ -58,8 +62,51 @@ public sealed class DecisionResponseTests
         Assert.Equal(3, response.OutputTokens);
         Assert.Null(response.Cost);
         Assert.Null(response.Id);
-        Assert.Null(response.Provider);
+        Assert.Null(response.UpstreamProvider);
         Assert.Same(Triage, response.Definition);
+    }
+
+    [Fact]
+    public void Id_upstream_provider_and_cached_flag_are_set_with_an_initializer()
+    {
+        var response = new DecisionResponse(Triage, TriageAnswers(), "minos-1")
+        {
+            Id = "gen-1",
+            UpstreamProvider = "Together",
+            IsCached = true,
+        };
+
+        Assert.Equal("gen-1", response.Id);
+        Assert.Equal("Together", response.UpstreamProvider);
+        Assert.True(response.IsCached);
+        Assert.Equal(true, response.CacheHitTag);
+    }
+
+    private static QuestionAnswer[] TriageAnswers()
+        => [QuestionAnswer.Noul(0.9), QuestionAnswer.Choice(1, 0.8, [0.1, 0.8, 0.1]), QuestionAnswer.Score(2, 1.7, 0.6, [0.1, 0.1, 0.8])];
+
+    [Fact]
+    public void A_usage_with_only_some_values_is_kept()
+    {
+        var response = new DecisionResponse(Triage, TriageAnswers(), usage: new DecisionUsage { Cost = 0.25 });
+
+        Assert.Null(response.Usage!.InputTokens);
+        Assert.Null(response.Usage.OutputTokens);
+        Assert.Equal(0.25, response.Usage.Cost);
+    }
+
+    [Fact]
+    public void A_usage_that_reports_nothing_is_no_usage()
+    {
+        var response = new DecisionResponse(Triage, TriageAnswers(), usage: new DecisionUsage());
+
+        Assert.Null(response.Usage);
+    }
+
+    [Fact]
+    public void A_response_without_usage_has_none()
+    {
+        Assert.Null(new DecisionResponse(Triage, TriageAnswers()).Usage);
     }
 
     [Fact]
@@ -137,7 +184,8 @@ public sealed class DecisionResponseTests
     [Fact]
     public void Factories_reject_out_of_range_values()
     {
-        Assert.Throws<ArgumentOutOfRangeException>("value", () => QuestionAnswer.Noul(1.5));
+        Assert.Throws<ArgumentOutOfRangeException>("probability", () => QuestionAnswer.Noul(1.5));
+        Assert.Throws<ArgumentOutOfRangeException>("expected", () => QuestionAnswer.Score(0, double.NaN, 0.5, [1.0]));
         Assert.Throws<ArgumentOutOfRangeException>("confidence", () => QuestionAnswer.Choice(0, -0.1, [1.0]));
         Assert.Throws<ArgumentNullException>("probabilities", () => QuestionAnswer.Score(0, 0, 0.5, null!));
     }

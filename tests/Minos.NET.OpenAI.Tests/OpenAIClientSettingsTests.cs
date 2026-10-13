@@ -201,12 +201,12 @@ public sealed class OpenAIClientSettingsTests
     // The client has no model listing, so an override cannot switch one on.
     [Fact]
     public void ModelListingOverride_IsIgnored()
-        => Assert.False(Resolve(Keyed(o => o.Capabilities = new DecisionCapabilities { ModelListing = true })).Capabilities.ModelListing);
+        => Assert.False(Resolve(Keyed(o => o.Capabilities = new DecisionCapabilities { SupportsModelListing = true })).Capabilities.ModelListing);
 
     [Fact]
     public void CapabilityOverrides_AreApplied()
     {
-        var capabilities = Resolve(Keyed(o => o.Capabilities = new DecisionCapabilities { Images = false, MaxQuestions = 4 })).Capabilities;
+        var capabilities = Resolve(Keyed(o => o.Capabilities = new DecisionCapabilities { SupportsImages = false, MaxQuestions = 4 })).Capabilities;
 
         Assert.Equal(new CapabilitySet(QuestionKinds.All, 4, null, Images: false, ModelListing: false), capabilities);
     }

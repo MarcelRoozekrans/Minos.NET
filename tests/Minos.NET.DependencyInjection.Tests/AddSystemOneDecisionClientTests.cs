@@ -3,24 +3,25 @@ using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Minos.SystemOne;
 using static Minos.DependencyInjection.Tests.Registrations;
 
 namespace Minos.DependencyInjection.Tests;
 
-/// <summary>The default client's <c>AddSystemOneClient</c> over a real <see cref="ServiceCollection"/>, its primary handler a stub.</summary>
-public sealed class AddSystemOneClientTests
+/// <summary>The default client's <c>AddSystemOneDecisionClient</c> over a real <see cref="ServiceCollection"/>, its primary handler a stub.</summary>
+public sealed class AddSystemOneDecisionClientTests
 {
     [Fact]
     public void DefaultClient_IsOneSingleton()
     {
         var services = new ServiceCollection();
-        services.AddSystemOneClient(Options("http://default.local/"));
+        services.AddSystemOneDecisionClient(Options("http://default.local/"));
         using var provider = services.BuildServiceProvider();
 
         var client = provider.GetRequiredService<IDecisionClient>();
 
-        Assert.IsType<SystemOneClient>(client);
+        Assert.IsType<SystemOneDecisionClient>(client);
         Assert.Same(client, provider.GetRequiredService<IDecisionClient>());
         using var scope = provider.CreateScope();
         Assert.Same(client, scope.ServiceProvider.GetRequiredService<IDecisionClient>());
@@ -30,7 +31,7 @@ public sealed class AddSystemOneClientTests
     public void FactoryHttpClient_GetsTheBaseAddressTimeoutAndUserAgent()
     {
         var services = new ServiceCollection();
-        services.AddSystemOneClient(options =>
+        services.AddSystemOneDecisionClient(options =>
         {
             options.ApiKey = "di-key";
             options.BaseAddress = new Uri("http://proxy.local/minos");
@@ -54,10 +55,10 @@ public sealed class AddSystemOneClientTests
         var handler = Noul();
         var services = new ServiceCollection();
         services.AddLogging(logging => logging.SetMinimumLevel(LogLevel.Debug).AddFakeLogging());
-        services.AddSystemOneClient(Options("http://default.local/")).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
+        services.AddSystemOneDecisionClient(Options("http://default.local/")).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
         using var provider = services.BuildServiceProvider();
 
-        var result = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request());
+        var result = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneDecisionClient>()!.EvaluateAsync(Request());
 
         Assert.True(result.IsSuccess);
         var records = provider.GetFakeLogCollector().GetSnapshot();
@@ -73,10 +74,10 @@ public sealed class AddSystemOneClientTests
         var handler = Noul();
         var services = new ServiceCollection();
         services.AddLogging(logging => logging.SetMinimumLevel(LogLevel.Debug).AddFakeLogging());
-        services.AddSystemOneClient(Options("http://default.local/")).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler).AddDefaultLogger();
+        services.AddSystemOneDecisionClient(Options("http://default.local/")).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler).AddDefaultLogger();
         using var provider = services.BuildServiceProvider();
 
-        _ = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request());
+        _ = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneDecisionClient>()!.EvaluateAsync(Request());
 
         Assert.Contains(
             provider.GetFakeLogCollector().GetSnapshot(),
@@ -88,10 +89,10 @@ public sealed class AddSystemOneClientTests
     {
         var handler = Noul();
         var services = new ServiceCollection();
-        services.AddSystemOneClient(Options("http://default.local/")).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
+        services.AddSystemOneDecisionClient(Options("http://default.local/")).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
         using var provider = services.BuildServiceProvider();
 
-        var result = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request());
+        var result = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneDecisionClient>()!.EvaluateAsync(Request());
 
         Assert.True(result.IsSuccess);
 
@@ -106,12 +107,12 @@ public sealed class AddSystemOneClientTests
         var seen = new List<Uri?>();
         var services = new ServiceCollection();
         services
-            .AddSystemOneClient(Options("http://default.local/"))
+            .AddSystemOneDecisionClient(Options("http://default.local/"))
             .HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler)
             .AddHttpMessageHandler(() => new RecordingHandler(seen));
         using var provider = services.BuildServiceProvider();
 
-        _ = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request());
+        _ = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneDecisionClient>()!.EvaluateAsync(Request());
 
         Assert.Equal([new Uri("http://default.local/v1/systemone")], seen);
     }
@@ -121,12 +122,12 @@ public sealed class AddSystemOneClientTests
     {
         var handler = Noul();
         var services = new ServiceCollection();
-        services.AddSystemOneClient(Options("http://first.local/", apiKey: "first-key")).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
-        services.AddSystemOneClient(options => options.ApiKey = "second-key");
-        services.AddSystemOneClient();
+        services.AddSystemOneDecisionClient(Options("http://first.local/", apiKey: "first-key")).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
+        services.AddSystemOneDecisionClient(options => options.ApiKey = "second-key");
+        services.AddSystemOneDecisionClient();
         using var provider = services.BuildServiceProvider();
 
-        _ = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!.EvaluateAsync(Request());
+        _ = await provider.GetRequiredService<IDecisionClient>().GetService<SystemOneDecisionClient>()!.EvaluateAsync(Request());
 
         var registrations = services.Where(descriptor => descriptor.ServiceType == typeof(IDecisionClient)).ToArray();
         Assert.True(registrations.Length == 1, $"Expected one IDecisionClient registration, found {registrations.Length}.");
@@ -144,9 +145,9 @@ public sealed class AddSystemOneClientTests
         IServiceCollection? none = null;
         var services = new ServiceCollection();
 
-        Assert.Equal("services", Assert.Throws<ArgumentNullException>(() => none!.AddSystemOneClient()).ParamName);
-        Assert.Equal("services", Assert.Throws<ArgumentNullException>(() => none!.AddSystemOneClient(_ => { })).ParamName);
-        Assert.Equal("configure", Assert.Throws<ArgumentNullException>(() => services.AddSystemOneClient((Action<SystemOneClientOptions>)null!)).ParamName);
+        Assert.Equal("services", Assert.Throws<ArgumentNullException>(() => none!.AddSystemOneDecisionClient()).ParamName);
+        Assert.Equal("services", Assert.Throws<ArgumentNullException>(() => none!.AddSystemOneDecisionClient(_ => { })).ParamName);
+        Assert.Equal("configure", Assert.Throws<ArgumentNullException>(() => services.AddSystemOneDecisionClient((Action<SystemOneDecisionClientOptions>)null!)).ParamName);
         Assert.Empty(services);
     }
 
@@ -155,9 +156,9 @@ public sealed class AddSystemOneClientTests
     {
         var handler = Noul();
         var services = new ServiceCollection();
-        services.AddSystemOneClient(Options("http://default.local/")).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
+        services.AddSystemOneDecisionClient(Options("http://default.local/")).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
         using var provider = services.BuildServiceProvider();
-        var client = provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!;
+        var client = provider.GetRequiredService<IDecisionClient>().GetService<SystemOneDecisionClient>()!;
         _ = await client.EvaluateAsync(Request());
 
         // The spec's claim: the singleton borrows its HttpClient, so disposing the client leaves the handler alone.
@@ -175,9 +176,9 @@ public sealed class AddSystemOneClientTests
     public async Task DisposingTheProvider_DisposesTheClient()
     {
         var services = new ServiceCollection();
-        services.AddSystemOneClient(Options("http://default.local/")).HttpClient.ConfigurePrimaryHttpMessageHandler(() => Noul());
+        services.AddSystemOneDecisionClient(Options("http://default.local/")).HttpClient.ConfigurePrimaryHttpMessageHandler(() => Noul());
         var provider = services.BuildServiceProvider();
-        var client = provider.GetRequiredService<IDecisionClient>().GetService<SystemOneClient>()!;
+        var client = provider.GetRequiredService<IDecisionClient>().GetService<SystemOneDecisionClient>()!;
         _ = await client.EvaluateAsync(Request());
 
         provider.Dispose();
@@ -189,7 +190,7 @@ public sealed class AddSystemOneClientTests
     public void HandlerLifetime_IsInfinite_SoTheFactoryNeverRotatesTheHandler()
     {
         var services = new ServiceCollection();
-        services.AddSystemOneClient(Options("http://default.local/"));
+        services.AddSystemOneDecisionClient(Options("http://default.local/"));
         using var provider = services.BuildServiceProvider();
 
         var factoryOptions = provider.GetRequiredService<IOptionsMonitor<HttpClientFactoryOptions>>().Get("Minos.NET");
@@ -201,7 +202,7 @@ public sealed class AddSystemOneClientTests
     public void PrimaryHandler_IsASocketsHttpHandlerThatRecyclesConnections_WithNoLoggingHandlerInFront()
     {
         var services = new ServiceCollection();
-        services.AddSystemOneClient(Options("http://default.local/"));
+        services.AddSystemOneDecisionClient(Options("http://default.local/"));
         using var provider = services.BuildServiceProvider();
 
         var chain = HandlerChain(provider.GetRequiredService<IHttpMessageHandlerFactory>().CreateHandler("Minos.NET"));
@@ -214,10 +215,10 @@ public sealed class AddSystemOneClientTests
     [Fact]
     public void AClientTheAppRegisteredFirst_DoesNotStopTheFactoryClientBeingConfigured()
     {
-        using var own = new SystemOneClient(new SystemOneClientOptions { ApiKey = "own-key" });
+        using var own = new SystemOneDecisionClient(new SystemOneDecisionClientOptions { ApiKey = "own-key" });
         var services = new ServiceCollection();
         services.AddSingleton<IDecisionClient>(own);
-        services.AddSystemOneClient(Options("http://default.local/"));
+        services.AddSystemOneDecisionClient(Options("http://default.local/"));
         using var provider = services.BuildServiceProvider();
 
         using var http = provider.GetRequiredService<IHttpClientFactory>().CreateClient("Minos.NET");
@@ -232,7 +233,7 @@ public sealed class AddSystemOneClientTests
         foreach (var timeout in new[] { TimeSpan.FromSeconds(-1), TimeSpan.Zero })
         {
             var services = new ServiceCollection();
-            services.AddSystemOneClient(options =>
+            services.AddSystemOneDecisionClient(options =>
             {
                 Options("http://default.local/")(options);
                 options.Timeout = timeout;
@@ -251,7 +252,7 @@ public sealed class AddSystemOneClientTests
         // An options base address gets its trailing slash; one the caller sets on the HttpClient through the builder does not.
         var services = new ServiceCollection();
         services
-            .AddSystemOneClient(Options("http://default.local/"))
+            .AddSystemOneDecisionClient(Options("http://default.local/"))
             .HttpClient.ConfigureHttpClient(http => http.BaseAddress = new Uri("http://proxy.local/minos"));
         using var provider = services.BuildServiceProvider();
 
@@ -269,4 +270,30 @@ public sealed class AddSystemOneClientTests
             return base.SendAsync(request, cancellationToken);
         }
     }
+
+    [Fact]
+    public async Task TheClientsOwnRetries_WaitOnTheContainersTimeProvider()
+    {
+        var time = new FakeTimeProvider();
+        var arrivals = new List<DateTimeOffset>();
+        var handler = RateLimitedOnce(Fixture.Text("response-noul.json"), time, arrivals);
+        var services = new ServiceCollection();
+        services.AddSingleton<TimeProvider>(time);
+        services.AddSystemOneDecisionClient(options =>
+        {
+            options.ApiKey = "di-key";
+            options.BaseAddress = new Uri("http://default.local/");
+        }).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
+        using var provider = services.BuildServiceProvider();
+        var client = provider.GetRequiredService<IDecisionClient>();
+
+        var result = await CompleteOnFakeTime(client.EvaluateAsync(OneNoul(), "Help!").AsTask(), time);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.Equal(2, arrivals.Count);
+        Assert.True(arrivals[1] - arrivals[0] >= TimeSpan.FromSeconds(30), $"The retry reached the handler {arrivals[1] - arrivals[0]} after the first attempt.");
+    }
+
+    private static QuestionSet OneNoul() => QuestionSet.CreateBuilder().Noul("is_urgent", "Does this convey urgency?", out _).Build().Value;
 }

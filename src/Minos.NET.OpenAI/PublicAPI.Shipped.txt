@@ -1,6 +1,4 @@
 #nullable enable
-const Minos.OpenAI.OpenAIDefaults.ApiKeyEnvironmentVariable = "OPENAI_API_KEY" -> string!
-const Minos.OpenAI.OpenAIDefaults.BaseAddressEnvironmentVariable = "OPENAI_BASE_URL" -> string!
 Microsoft.Extensions.DependencyInjection.OpenAIServiceCollectionExtensions
 Minos.OpenAI.OpenAIDecisionClient
 Minos.OpenAI.OpenAIDecisionClient.Dispose() -> void
@@ -39,12 +37,14 @@ Minos.OpenAI.OpenAIDecisionClientOptions.Validate() -> void
 Minos.OpenAI.OpenAIDecisionClientServiceBuilder
 Minos.OpenAI.OpenAIDecisionClientServiceBuilder.HttpClient.get -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!
 Minos.OpenAI.OpenAIDefaults
+const Minos.OpenAI.OpenAIDefaults.ApiKeyEnvironmentVariable = "OPENAI_API_KEY" -> string!
+const Minos.OpenAI.OpenAIDefaults.BaseAddressEnvironmentVariable = "OPENAI_BASE_URL" -> string!
 static Microsoft.Extensions.DependencyInjection.OpenAIServiceCollectionExtensions.AddOpenAIDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Minos.OpenAI.OpenAIDecisionClientServiceBuilder!
 static Microsoft.Extensions.DependencyInjection.OpenAIServiceCollectionExtensions.AddOpenAIDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Minos.OpenAI.OpenAIDecisionClientServiceBuilder!
+static Microsoft.Extensions.DependencyInjection.OpenAIServiceCollectionExtensions.AddOpenAIDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Minos.OpenAI.OpenAIDecisionClientOptions!>! configure) -> Minos.OpenAI.OpenAIDecisionClientServiceBuilder!
 static Microsoft.Extensions.DependencyInjection.OpenAIServiceCollectionExtensions.AddOpenAIDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name) -> Minos.OpenAI.OpenAIDecisionClientServiceBuilder!
 static Microsoft.Extensions.DependencyInjection.OpenAIServiceCollectionExtensions.AddOpenAIDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Minos.OpenAI.OpenAIDecisionClientServiceBuilder!
 static Microsoft.Extensions.DependencyInjection.OpenAIServiceCollectionExtensions.AddOpenAIDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, System.Action<Minos.OpenAI.OpenAIDecisionClientOptions!>! configure) -> Minos.OpenAI.OpenAIDecisionClientServiceBuilder!
-static Microsoft.Extensions.DependencyInjection.OpenAIServiceCollectionExtensions.AddOpenAIDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Minos.OpenAI.OpenAIDecisionClientOptions!>! configure) -> Minos.OpenAI.OpenAIDecisionClientServiceBuilder!
 static Minos.OpenAI.OpenAIDecisionClient.ConfigureHttpClient(System.Net.Http.HttpClient! httpClient, Minos.OpenAI.OpenAIDecisionClientOptions? options) -> void
 static Minos.OpenAI.OpenAIDefaults.BaseAddress.get -> System.Uri!
 static Minos.OpenAI.OpenAIDefaults.Model.get -> string!

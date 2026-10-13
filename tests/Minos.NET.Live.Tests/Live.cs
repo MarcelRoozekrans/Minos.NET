@@ -14,15 +14,15 @@ internal static class Live
     private static readonly string[] TeamOptions = ["billing", "technical", "sales"];
 
     /// <summary>
-    /// Creates an owned <see cref="SystemOneClient"/> whose key comes from the environment. <see
-    /// cref="SystemOneClientOptions.MaxRetries"/> is 0, so each evaluation bills at most once and a transient failure
-    /// surfaces instead of being hidden by a retry. <see cref="SystemOneClientOptions.Model"/> is set from <see
+    /// Creates an owned <see cref="SystemOneDecisionClient"/> whose key comes from the environment. <see
+    /// cref="SystemOneDecisionClientOptions.MaxRetries"/> is 0, so each evaluation bills at most once and a transient failure
+    /// surfaces instead of being hidden by a retry. <see cref="SystemOneDecisionClientOptions.Model"/> is set from <see
     /// cref="Model"/>, so a typed call honours <c>MINOS_LIVE_MODEL</c> and <c>MINOS_LIVE_OPENROUTER_MODEL</c> the same
     /// way <see cref="Request"/> does for the untyped tests.
     /// </summary>
     /// <param name="provider">The provider to call.</param>
-    public static SystemOneClient Client(SystemOneProvider provider)
-        => new(new SystemOneClientOptions { Provider = provider, MaxRetries = 0, Model = Model(provider) });
+    public static SystemOneDecisionClient Client(SystemOneProvider provider)
+        => new(new SystemOneDecisionClientOptions { Provider = provider, MaxRetries = 0, Model = Model(provider) });
 
     /// <summary>
     /// Gets the model to send: <c>MINOS_LIVE_OPENROUTER_MODEL</c> for OpenRouter, else <c>MINOS_LIVE_MODEL</c>, else

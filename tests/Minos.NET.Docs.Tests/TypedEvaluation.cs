@@ -17,19 +17,19 @@ internal sealed partial class SupportTicketJson : JsonSerializerContext;
 #region TypedEvaluation_Questions
 public enum Desk
 {
-    [Criteria(
+    [Criterion(
         "Payments, invoices and refunds",
         Examples = ["I was charged twice"],
         NotFor = ["How much is the Pro plan?"])]
     Billing,
 
-    [Criteria("Bugs, outages and integrations", Examples = ["The API returns a 500"])]
+    [Criterion("Bugs, outages and integrations", Examples = ["The API returns a 500"])]
     Technical,
 
-    [Criteria("Pricing, upgrades and new accounts")]
+    [Criterion("Pricing, upgrades and new accounts")]
     Sales,
 
-    // A member with no [Criteria] is a valid option, sent with no description.
+    // A member with no [Criterion] is a valid option, sent with no description.
     Other,
 }
 

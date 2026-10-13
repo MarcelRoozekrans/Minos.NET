@@ -81,7 +81,7 @@ public sealed class SystemOneImageRequestTests : IDisposable
             _httpClients,
             handler,
             provider: SystemOneProvider.OpenRouter,
-            configure: options => options.Capabilities = new() { Images = true });
+            configure: options => options.Capabilities = new() { SupportsImages = true });
 
         var result = await client.EvaluateAsync(new DecisionRequest(QuestionSets.UrgencyDefinition(), state) { Images = images });
 

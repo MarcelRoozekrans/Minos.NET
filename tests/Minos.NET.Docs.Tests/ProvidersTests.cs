@@ -37,7 +37,7 @@ public sealed class ProvidersTests
         Assert.Equal(OpenAIDefaults.Model, metadata.DefaultModel);
         Assert.Equal("gpt-6-luna", OpenAIDefaults.Model);
         Assert.Equal(new Uri("https://api.openai.com/v1/"), OpenAIDefaults.BaseAddress);
-        Assert.Null(client.GetService<SystemOneClient>());
+        Assert.Null(client.GetService<SystemOneDecisionClient>());
     }
 
     [Fact]
@@ -131,7 +131,7 @@ public sealed class ProvidersTests
     public async Task Images_AreSentInTheState_WhereTheProviderTakesThem()
     {
         var options = ProviderOptions.Custom();
-        options.Capabilities = new DecisionCapabilities { Images = true };
+        options.Capabilities = new DecisionCapabilities { SupportsImages = true };
         var (http, client, handler) = SystemOne(options, Reply.Ok(SystemOneNotDamaged));
         using (http)
         using (handler)
@@ -188,7 +188,7 @@ public sealed class ProvidersTests
         var clef = OpenRouterModels.Clef();
         var luna = OpenRouterModels.Luna();
 
-        Assert.True(perplexity.Capabilities.Images);
+        Assert.True(perplexity.Capabilities.SupportsImages);
         Assert.Equal("perplexity/pplx-decider-v1.1-27b", perplexity.Model);
         Assert.Equal("cloudflare/clef-flash", clef.Model);
         Assert.Equal("openai/gpt-6-luna-decisions", luna.Model);
@@ -199,7 +199,7 @@ public sealed class ProvidersTests
             Assert.Null(ClientOptions.Problem(options));
         }
 
-        Assert.Null(clef.Capabilities.Images);
+        Assert.Null(clef.Capabilities.SupportsImages);
     }
 
     [Fact]
@@ -241,12 +241,12 @@ public sealed class ProvidersTests
         return (http, new OpenAIDecisionClient(http, options), handler);
     }
 
-    private static (HttpClient Http, SystemOneClient Client, ScriptedDecision.Handler Handler) SystemOne(SystemOneClientOptions options, params Reply[] script)
+    private static (HttpClient Http, SystemOneDecisionClient Client, ScriptedDecision.Handler Handler) SystemOne(SystemOneDecisionClientOptions options, params Reply[] script)
     {
         var handler = new ScriptedDecision.Handler(script);
         var http = new HttpClient(handler, disposeHandler: false);
         options.MaxRetries = 0;
-        SystemOneClient.ConfigureHttpClient(http, options);
-        return (http, new SystemOneClient(http, options), handler);
+        SystemOneDecisionClient.ConfigureHttpClient(http, options);
+        return (http, new SystemOneDecisionClient(http, options), handler);
     }
 }

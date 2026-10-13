@@ -17,6 +17,25 @@ public sealed class DecisionTransportTests : IDisposable
     private readonly List<HttpClient> _httpClients = [];
 
     [Fact]
+    public void Metadata_endpoint_is_the_base_address_plus_the_path()
+    {
+        using var client = ClientTestKit.Client(_httpClients, StubHandler.Json(HttpStatusCode.OK, "{}"));
+        using var custom = ClientTestKit.Client(
+            _httpClients,
+            StubHandler.Json(HttpStatusCode.OK, "{}"),
+            provider: SystemOneProvider.Custom,
+            configure: options =>
+            {
+                options.BaseAddress = new Uri("http://localhost:8080/router/");
+                options.Path = "decide/v1/systemone";
+            });
+
+        var defaultEndpoint = client.GetService<DecisionClientMetadata>()!.Endpoint;
+        Assert.Equal(new Uri(SystemOneDefaults.TypeSafeBaseAddress, "v1/systemone"), defaultEndpoint);
+        Assert.Equal(new Uri("http://localhost:8080/router/decide/v1/systemone"), custom.GetService<DecisionClientMetadata>()!.Endpoint);
+    }
+
+    [Fact]
     public async Task SendAsync_keeps_the_slash_in_a_runtime_path()
     {
         var handler = StubHandler.Json(HttpStatusCode.OK, Fixture.Text("response-noul.json"));
@@ -49,7 +68,7 @@ public sealed class DecisionTransportTests : IDisposable
         var result = await client.EvaluateAsync(new DecisionRequest(QuestionSets.UrgencyDefinition(), "a ticket"));
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(0.95, result.Value.Answers[0].Value);
+        Assert.Equal(0.95, result.Value.Answers[0].Probability);
         Assert.Equal("jev-1.13.0", result.Value.Model);
         var sent = ClientTestKit.OnlyRequest(handler);
         Assert.Equal(HttpMethod.Post, sent.Method);
@@ -117,10 +136,10 @@ public sealed class DecisionTransportTests : IDisposable
         var handler = StubHandler.Json(HttpStatusCode.ServiceUnavailable, "{}");
         var http = new HttpClient(handler);
         _httpClients.Add(http);
-        var settings = SystemOneClientSettings.Resolve(
-            new SystemOneClientOptions { ApiKey = "test-key", Model = ClientTestKit.TestModel, MaxRetries = 3, InitialBackoff = TimeSpan.FromMilliseconds(1), UseStandardPipeline = false },
+        var settings = SystemOneDecisionClientSettings.Resolve(
+            new SystemOneDecisionClientOptions { ApiKey = "test-key", Model = ClientTestKit.TestModel, MaxRetries = 3, InitialBackoff = TimeSpan.FromMilliseconds(1), UseStandardPipeline = false },
             _ => null);
-        using var client = new SystemOneClient(settings, http, ownedHandler: null, TimeProvider.System);
+        using var client = new SystemOneDecisionClient(settings, http, ownedHandler: null, TimeProvider.System);
 
         var result = await client.EvaluateAsync(new DecisionRequest(QuestionSets.UrgencyDefinition(), "s"));
 
@@ -138,7 +157,7 @@ public sealed class DecisionTransportTests : IDisposable
         Assert.Equal("openrouter", metadata!.ProviderName);
         Assert.Equal(ClientTestKit.TestModel, metadata.DefaultModel);
         Assert.NotNull(metadata.Endpoint);
-        Assert.Same(client, client.GetService<SystemOneClient>());
+        Assert.Same(client, client.GetService<SystemOneDecisionClient>());
         Assert.Same(client, client.GetService<IDecisionClient>());
         Assert.Null(client.GetService<string>());
         Assert.Null(client.GetService<DecisionClientMetadata>(serviceKey: "key"));
@@ -164,7 +183,7 @@ public sealed class DecisionTransportTests : IDisposable
             throw new InvalidOperationException("The transport sent an attempt after disposal.");
         };
         var pool = new CountingPool();
-        var settings = SystemOneClientSettings.Resolve(new SystemOneClientOptions { ApiKey = "k" }, static _ => null);
+        var settings = SystemOneDecisionClientSettings.Resolve(new SystemOneDecisionClientOptions { ApiKey = "k" }, static _ => null);
         using var transport = new DecisionTransport(
             send,
             SystemOneProtocol.Instance,

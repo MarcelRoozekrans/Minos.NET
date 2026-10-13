@@ -2,13 +2,13 @@ namespace Minos.Live.Tests;
 
 public enum Team
 {
-    [Criteria("Payments, invoicing, refunds")]
+    [Criterion("Payments, invoicing, refunds")]
     Billing,
 
-    [Criteria("Bugs, outages, integrations")]
+    [Criterion("Bugs, outages, integrations")]
     Technical,
 
-    [Criteria("Pricing, upgrades, new accounts")]
+    [Criterion("Pricing, upgrades, new accounts")]
     Sales,
 }
 

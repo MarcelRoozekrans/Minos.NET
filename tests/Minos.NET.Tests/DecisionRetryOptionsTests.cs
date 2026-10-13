@@ -108,7 +108,7 @@ public sealed class DecisionRetryOptionsTests
     [Fact]
     public void A_decision_client_offers_a_fresh_copy_of_its_settings()
     {
-        using var client = new SystemOneClient(new SystemOneClientOptions { ApiKey = "minos-k", MaxRetries = 4, Jitter = false });
+        using var client = new SystemOneDecisionClient(new SystemOneDecisionClientOptions { ApiKey = "minos-k", MaxRetries = 4, Jitter = false });
 
         var first = client.GetService<DecisionRetryOptions>();
         var second = client.GetService<DecisionRetryOptions>();

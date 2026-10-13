@@ -1,9 +1,10 @@
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Minos.Caching;
 using ZeroAlloc.Results;
 
-namespace Minos.Caching;
+namespace Minos;
 
 /// <summary>
 /// A stage that answers a repeated request from an in-process <see cref="IMemoryCache"/>, then from an optional
@@ -44,6 +45,7 @@ public sealed class CachingDecisionClient : DelegatingDecisionClient
     private readonly string _keyPrefix;
     private readonly MemoryCacheEntryOptions _localOptions;
     private readonly DistributedCacheEntryOptions _distributedOptions;
+    private volatile bool _disposed;
 
     /// <summary>Initializes a new instance of the <see cref="CachingDecisionClient"/> class.</summary>
     /// <param name="innerClient">The client whose answers are cached.</param>
@@ -52,6 +54,7 @@ public sealed class CachingDecisionClient : DelegatingDecisionClient
     /// <param name="options">The expiry and key prefix; <see langword="null"/> for the defaults.</param>
     /// <param name="logger">Receives events 1007 and 1008 when the distributed cache fails; <see langword="null"/> to log nothing.</param>
     /// <exception cref="ArgumentNullException"><paramref name="innerClient"/> or <paramref name="memoryCache"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="distributedCache"/> is set and <paramref name="options"/> has <see cref="DecisionCacheOptions.UseDistributedCache"/> set to <see langword="false"/>.</exception>
     public CachingDecisionClient(
         IDecisionClient innerClient,
         IMemoryCache memoryCache,
@@ -62,6 +65,12 @@ public sealed class CachingDecisionClient : DelegatingDecisionClient
     {
         ArgumentNullException.ThrowIfNull(memoryCache);
         options ??= new DecisionCacheOptions();
+        if (!options.UseDistributedCache && distributedCache is not null)
+        {
+            throw new ArgumentException(
+                "A distributed cache was passed with DecisionCacheOptions.UseDistributedCache set to false.", nameof(distributedCache));
+        }
+
         _memory = memoryCache;
         _distributed = distributedCache;
         _logger = logger;
@@ -79,9 +88,11 @@ public sealed class CachingDecisionClient : DelegatingDecisionClient
     }
 
     /// <inheritdoc />
+    /// <exception cref="ObjectDisposedException">The stage is disposed.</exception>
     public override ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+        ObjectDisposedException.ThrowIf(_disposed, this);
         var key = DecisionCacheKey.Create(request, _provider, _endpoint, _defaultModel, _keyPrefix);
         if (_memory.TryGetValue(key, out var stored) && stored is CachedDecision entry
             && entry.ResponseFor(request.Definition) is { } hit)
@@ -154,5 +165,12 @@ public sealed class CachingDecisionClient : DelegatingDecisionClient
                 DecisionLog.CacheWriteFailed(_logger, _provider, exception);
             }
         }
+    }
+
+    /// <inheritdoc />
+    protected override void Dispose(bool disposing)
+    {
+        _disposed = true;
+        base.Dispose(disposing);
     }
 }

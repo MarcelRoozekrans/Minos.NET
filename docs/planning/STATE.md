@@ -1,6 +1,6 @@
-# Session State — 2026-10-12 (Milestone 7: Phase 7.1 complete)
+# Session State — 2026-10-13 (Milestone 7: Phase 7.2 complete)
 
-**Date:** 2026-10-12
+**Date:** 2026-10-13
 
 ## Current Position
 - **Roadmap:** re-planned on 2026-10-09 (`docs/superpowers/specs/2026-10-09-roadmap-design.md`).
@@ -114,9 +114,9 @@
 ## Recommended Next Step
 1. Milestone 7, the 1.0 release, is active (design `docs/superpowers/specs/2026-10-12-milestone-7-design.md`). Milestone 6 is complete; its audit passed on re-audit.
 2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.
-3. Phase 7.1 is complete: #176 merged on 2026-10-12, and its four changelog entries are in release PR #177 (0.12.0). Two new packages, `Minos.NET.Caching` (`UseCaching`, over `IMemoryCache` and an optional `IDistributedCache`; HybridCache was dropped as not AOT-clean, dotnet/extensions#5624) and `Minos.NET.RateLimiting` (`UseRateLimiting`). Next: Phase 7.2, the public API review. It takes #175, SystemOne's `Path` missing from `DecisionClientMetadata.Endpoint`, and the six implementation decisions listed in #176's description.
+3. Phase 7.2 is complete on branch `phase/7.2-api-review`; its PR is next. The maintainer approved all 20 breaking findings in `docs/plans/2026-10-12-phase-7.2-api-findings.md`, and `PublicAPI.Shipped.txt` now describes 1.0.0 in all six packages. The breaking changes are listed for users in `docs/pipeline.md`, "Upgrading to 1.0". #175 closes with the PR; #185 and #186 are filed for 1.x. Merging the PR makes release-please propose 0.13.0: do not merge that release PR if 1.0.0 is to be the next release, and set Release-As in Phase 7.5. Next: Phase 7.3, live verification on the final API.
 4. Before Phase 7.5 publishes, the maintainer adds a nuget.org Trusted Publishing policy for `MarcelRoozekrans/Minos.NET` and confirms the `Minos.NET*` ids are free.
-5. Release PR #177 (0.12.0) is open. Renovate #178 also raised the two new shipped floors, `Microsoft.Extensions.Caching.Abstractions` and `System.Threading.RateLimiting`, to 10.0.12, because Phase 7.1 had not added them to `renovate.json`'s floor rule; the phase-completion PR adds them, and Renovate rebases #178 without them.
+5. Release PR #177 (0.12.0) merged on 2026-10-12.
 6. Run `pre-push-review` on each feature branch before its PR, and keep the report in `docs/plans/`: the docs tests treat every file at the top of `docs/` as a site page.
 7. Allocation gates run only in the published AOT smoke executable, not in `dotnet test`: publish and run it for any change under `src/`.
 

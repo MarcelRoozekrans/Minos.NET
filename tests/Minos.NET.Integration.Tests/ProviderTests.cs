@@ -54,7 +54,7 @@ public sealed class ProviderTests : IClassFixture<WireMockFixture>
 
         Assert.True(result.IsSuccess);
         Assert.Equal("gen-1727400000-abc123", result.Value.Id);
-        Assert.Equal("TypeSafe", result.Value.Provider);
+        Assert.Equal("TypeSafe", result.Value.UpstreamProvider);
         Assert.Equal(0.000296, result.Value.Usage.Cost);
     }
 
@@ -69,7 +69,7 @@ public sealed class ProviderTests : IClassFixture<WireMockFixture>
                 .WithBody(Fixture.Text("response-noul.json")));
 
         using var http = new HttpClient { BaseAddress = new Uri(_fixture.BaseAddress, "custom/") };
-        using var client = new SystemOneClient(http, new SystemOneClientOptions { ApiKey = "integration-key", MaxRetries = 0 });
+        using var client = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = "integration-key", MaxRetries = 0 });
 
         var result = await client.EvaluateAsync(Fixtures.NoulRequest());
 
@@ -86,7 +86,7 @@ public sealed class ProviderTests : IClassFixture<WireMockFixture>
                 .WithHeader("Content-Type", "application/json")
                 .WithBody(Fixture.Text("response-noul.json")));
 
-        using var client = new SystemOneClient(new SystemOneClientOptions
+        using var client = new SystemOneDecisionClient(new SystemOneDecisionClientOptions
         {
             Provider = SystemOneProvider.VllmSemanticRouter,
             BaseAddress = _fixture.BaseAddress,
@@ -114,7 +114,7 @@ public sealed class ProviderTests : IClassFixture<WireMockFixture>
                 .WithHeader("Content-Type", "application/json")
                 .WithBody(Fixture.Text("response-noul.json")));
 
-        using var client = new SystemOneClient(new SystemOneClientOptions
+        using var client = new SystemOneDecisionClient(new SystemOneDecisionClientOptions
         {
             Provider = SystemOneProvider.Custom,
             BaseAddress = _fixture.BaseAddress,
@@ -177,8 +177,8 @@ public sealed class ProviderTests : IClassFixture<WireMockFixture>
         _ = OnlyRequest();
     }
 
-    private SystemOneClient NoulOnlyServerClient(QuestionKinds? kinds)
-        => new(new SystemOneClientOptions
+    private SystemOneDecisionClient NoulOnlyServerClient(QuestionKinds? kinds)
+        => new(new SystemOneDecisionClientOptions
         {
             Provider = SystemOneProvider.Custom,
             BaseAddress = _fixture.BaseAddress,

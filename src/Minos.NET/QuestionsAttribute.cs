@@ -2,8 +2,8 @@ namespace Minos;
 
 /// <summary>
 /// Marks a partial class or record whose <see cref="NoulAttribute"/>, <see cref="ChoiceAttribute"/> and
-/// <see cref="ScoreAttribute"/> properties the Minos.NET source generator turns into a <c>/v1/systemone</c>
-/// <c>questions</c> object and a typed answer parser. When <see cref="State"/> is set, the generated type also
+/// <see cref="ScoreAttribute"/> properties the Minos.NET source generator turns into a provider-neutral
+/// <c>QuestionSetDefinition</c> and a typed answer reader. When <see cref="State"/> is set, the generated type also
 /// implements <see cref="IQuestionSet{TSelf, TState}"/>, linking the set to the state type accepted by
 /// <c>EvaluateAsync&lt;T, TState&gt;</c>.
 /// </summary>

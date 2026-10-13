@@ -225,7 +225,19 @@ public sealed class OpenAIResponseReaderTests
 
         Assert.Equal(296, response.InputTokens);
         Assert.Null(response.OutputTokens);
-        Assert.Null(response.Usage);
+        Assert.Equal(296, response.Usage!.InputTokens);
+        Assert.Null(response.Usage.OutputTokens);
+        Assert.Null(response.Usage.Cost);
+    }
+
+    [Fact]
+    public void Usage_WithOnlyACost_IsTheUsage()
+    {
+        var response = Success(Body($$$"""{"answers":[{{{Predicate}}},{{{Choice}}},{{{Score}}}],"usage":{"cost":0.5}}"""), TestSets.AllKinds());
+
+        Assert.Null(response.Usage!.InputTokens);
+        Assert.Null(response.Usage.OutputTokens);
+        Assert.Equal(0.5, response.Usage.Cost);
     }
 
     [Fact]
@@ -272,7 +284,7 @@ public sealed class OpenAIResponseReaderTests
 
         Assert.Equal("gpt-6-luna-2026-10-01", response.Model);
         Assert.Equal("dec_123", response.Id);
-        Assert.Null(response.Provider);
+        Assert.Null(response.UpstreamProvider);
     }
 
     [Fact]
@@ -304,7 +316,7 @@ public sealed class OpenAIResponseReaderTests
     {
         var refund = response.Answers[0];
         Assert.Equal("refund", refund.Key);
-        Assert.Equal(0.92, refund.Value);
+        Assert.Equal(0.92, refund.Probability);
 
         var topic = response.Answers[1];
         Assert.Equal(0, topic.ChosenIndex);
@@ -313,7 +325,7 @@ public sealed class OpenAIResponseReaderTests
 
         var urgency = response.Answers[2];
         Assert.Equal(1, urgency.ChosenIndex);
-        Assert.Equal(1.1, urgency.Value);
+        Assert.Equal(1.1, urgency.Expected);
         Assert.Equal(0.5, urgency.Confidence);
         Assert.Equal([0.1, 0.7, 0.2], urgency.Probabilities.ToArray());
     }

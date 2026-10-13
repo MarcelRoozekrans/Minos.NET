@@ -17,7 +17,7 @@ public sealed class LiveFactAttribute : FactAttribute
         Provider = provider;
         var variable = provider == SystemOneProvider.OpenRouter
             ? SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable
-            : SystemOneDefaults.ApiKeyEnvironmentVariable;
+            : SystemOneDefaults.TypeSafeApiKeyEnvironmentVariable;
         var optedIn = string.Equals(Environment.GetEnvironmentVariable("MINOS_LIVE"), "1", StringComparison.Ordinal);
         var keySet = !string.IsNullOrWhiteSpace(Environment.GetEnvironmentVariable(variable));
 

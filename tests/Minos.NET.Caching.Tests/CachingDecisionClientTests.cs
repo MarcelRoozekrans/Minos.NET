@@ -14,6 +14,18 @@ public sealed class CachingDecisionClientTests
         => DecisionCacheKey.Create(Responses.Request(), "typesafe", "https://api.typesafe.ai/", "jev-latest", prefix);
 
     [Fact]
+    public void The_constructor_rejects_a_distributed_cache_with_UseDistributedCache_off()
+    {
+        using var memory = Responses.Memory();
+        var options = new DecisionCacheOptions { UseDistributedCache = false };
+
+        var error = Assert.Throws<ArgumentException>(
+            () => new CachingDecisionClient(new ScriptedClient(), memory, new CountingDistributedCache(), options));
+
+        Assert.Equal("distributedCache", error.ParamName);
+    }
+
+    [Fact]
     public async Task A_miss_calls_the_provider_and_returns_its_response_uncached()
     {
         using var memory = Responses.Memory();
@@ -94,6 +106,24 @@ public sealed class CachingDecisionClientTests
 
         Assert.False(result.Value.IsCached);
         Assert.Equal(1, eu.Calls);
+    }
+
+    [Fact]
+    public async Task Two_clients_on_one_host_with_different_paths_never_share_an_answer()
+    {
+        using var memory = Responses.Memory();
+        var distributed = new CountingDistributedCache();
+        // Two System One clients on one base address that post to different paths, as SystemOneDecisionClient reports them.
+        var first = new ScriptedClient(new DecisionClientMetadata("custom", new Uri("http://localhost:8080/a/v1/systemone"), "m"));
+        var second = new ScriptedClient(new DecisionClientMetadata("custom", new Uri("http://localhost:8080/b/v1/systemone"), "m"));
+        using var a = new CachingDecisionClient(first, memory, distributed);
+        using var b = new CachingDecisionClient(second, memory, distributed);
+
+        await a.EvaluateAsync(Responses.Request());
+        var result = await b.EvaluateAsync(Responses.Request());
+
+        Assert.False(result.Value.IsCached);
+        Assert.Equal(1, second.Calls);
     }
 
     [Fact]
@@ -190,16 +220,17 @@ public sealed class CachingDecisionClientTests
         Assert.Equal(1, distributed.WriteCount);
         Assert.Equal(readsBefore + 1, distributed.ReadCount);
         Assert.Equal("gen-0001", hit.Value.Id);
-        Assert.Equal("Together", hit.Value.Provider);
+        Assert.Equal("Together", hit.Value.UpstreamProvider);
         Assert.True(hit.Value.IsCached);
         Assert.Same(Responses.Triage, hit.Value.Definition);
         Assert.Equal(stored.Value.Model, hit.Value.Model);
         Assert.Equal(stored.Value.Usage, hit.Value.Usage);
         Assert.Equal(stored.Value.Id, hit.Value.Id);
-        Assert.Equal(stored.Value.Provider, hit.Value.Provider);
+        Assert.Equal(stored.Value.UpstreamProvider, hit.Value.UpstreamProvider);
         for (var i = 0; i < 3; i++)
         {
-            Assert.Equal(stored.Value.Answers[i].Value, hit.Value.Answers[i].Value);
+            Assert.Equal(stored.Value.Answers[i].Probability, hit.Value.Answers[i].Probability);
+            Assert.Equal(stored.Value.Answers[i].Expected, hit.Value.Answers[i].Expected);
             Assert.Equal(stored.Value.Answers[i].ChosenIndex, hit.Value.Answers[i].ChosenIndex);
             Assert.Equal(stored.Value.Answers[i].Confidence, hit.Value.Answers[i].Confidence);
             Assert.Equal(stored.Value.Answers[i].Probabilities.ToArray(), hit.Value.Answers[i].Probabilities.ToArray());
@@ -450,6 +481,21 @@ public sealed class CachingDecisionClientTests
         stage.Dispose();
 
         Assert.True(memory.TryGetValue(Key(), out _));
+    }
+
+    [Fact]
+    public async Task A_call_after_Dispose_throws_even_when_the_cache_holds_the_answer()
+    {
+        using var memory = Responses.Memory();
+        var inner = new ScriptedClient(TypeSafe);
+        var stage = new CachingDecisionClient(inner, memory);
+        await stage.EvaluateAsync(Responses.Request());
+        Assert.True(memory.TryGetValue(Key(), out _));
+
+        stage.Dispose();
+
+        await Assert.ThrowsAsync<ObjectDisposedException>(async () => await stage.EvaluateAsync(Responses.Request()));
+        Assert.Equal(1, inner.Calls);
     }
 
     [Fact]

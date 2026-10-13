@@ -25,28 +25,28 @@ internal sealed record Sent(Uri? Uri, string? Authorization, string? RetryCount,
 /// </summary>
 internal static class ScriptedDecision
 {
-    public static (HttpClient Http, SystemOneClient Client, IReadOnlyList<Sent> Requests) Client(SystemOneClientOptions options, params Reply[] script)
+    public static (HttpClient Http, SystemOneDecisionClient Client, IReadOnlyList<Sent> Requests) Client(SystemOneDecisionClientOptions options, params Reply[] script)
     {
         var handler = new Handler(script);
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://docs.example/api/") };
-        SystemOneClient.ConfigureHttpClient(http, options);
-        return (http, new SystemOneClient(http, options), handler.Requests);
+        SystemOneDecisionClient.ConfigureHttpClient(http, options);
+        return (http, new SystemOneDecisionClient(http, options), handler.Requests);
     }
 
     /// <summary>
     /// Only the HttpClient, configured as the client configures its own, for a test that builds the client itself, for
     /// example to pass a logger factory.
     /// </summary>
-    public static (HttpClient Http, IReadOnlyList<Sent> Requests) Http(SystemOneClientOptions options, params Reply[] script)
+    public static (HttpClient Http, IReadOnlyList<Sent> Requests) Http(SystemOneDecisionClientOptions options, params Reply[] script)
     {
         var handler = new Handler(script);
         var http = new HttpClient(handler) { BaseAddress = new Uri("https://docs.example/api/") };
-        SystemOneClient.ConfigureHttpClient(http, options);
+        SystemOneDecisionClient.ConfigureHttpClient(http, options);
         return (http, handler.Requests);
     }
 
     /// <summary>Options with a short backoff, so a retried test finishes in milliseconds.</summary>
-    public static SystemOneClientOptions Quick(int maxRetries = 2)
+    public static SystemOneDecisionClientOptions Quick(int maxRetries = 2)
         => new()
         {
             ApiKey = "docs-key",

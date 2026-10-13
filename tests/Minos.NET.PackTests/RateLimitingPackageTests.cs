@@ -126,7 +126,6 @@ public sealed class RateLimitingPackageTests : IClassFixture<RateLimitingPackFix
         File.WriteAllText(Path.Combine(consumer, "Client.cs"), """
             using System.Threading.RateLimiting;
             using Minos;
-            using Minos.RateLimiting;
 
             namespace Consumer;
 

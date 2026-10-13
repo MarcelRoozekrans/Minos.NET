@@ -6,10 +6,10 @@ using Minos.SystemOne;
 
 public enum Lane
 {
-    [Criteria("Payments, invoices and refunds")]
+    [Criterion("Payments, invoices and refunds")]
     Billing,
 
-    [Criteria("Bugs, outages and integrations")]
+    [Criterion("Bugs, outages and integrations")]
     Technical,
 }
 
@@ -26,10 +26,10 @@ public partial record Triage
 public static class ReadmeExample
 {
     // A one-off run. The client reads TYPESAFE_API_KEY. A long-running app creates one client and shares it, or
-    // registers it with AddSystemOneClient.
+    // registers it with AddSystemOneDecisionClient.
     public static async Task<string> RunAsync(string message, CancellationToken cancellationToken)
     {
-        using var client = new SystemOneClient();
+        using var client = new SystemOneDecisionClient();
         return await RouteAsync(client, message, cancellationToken);
     }
 

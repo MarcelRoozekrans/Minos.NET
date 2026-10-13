@@ -7,7 +7,7 @@ description: The presets, servers you run and OpenAI, what each provider accepts
 
 # Providers
 
-Minos reaches several providers through one interface, `IDecisionClient`. `SystemOneClient` reaches TypeSafe,
+Minos reaches several providers through one interface, `IDecisionClient`. `SystemOneDecisionClient` reaches TypeSafe,
 OpenRouter and any server that speaks the System One protocol, through a preset. `OpenAIDecisionClient` reaches
 OpenAI's Decisions API. This page lists them and what sets them apart. [The client and its errors](client-and-errors.md)
 covers what every client shares: its options, retries, time-outs and errors.
@@ -21,8 +21,8 @@ compares the presets and OpenAI side by side.
 
 ## At a glance
 
-Each column is a provider: the four `SystemOneProvider` presets, which `SystemOneClient` reaches over System One, and
-OpenAI, which `OpenAIDecisionClient` reaches over its Decisions API. The first five rows are the
+Each column is a provider: the four `SystemOneProvider` presets, which `SystemOneDecisionClient` reaches over System
+One, and OpenAI, which `OpenAIDecisionClient` reaches over its Decisions API. The first five rows are the
 [capabilities](#capabilities). Each of their cells is the default, which you can change, and "none" means no limit is
 published or set.
 
@@ -40,16 +40,16 @@ published or set.
 | JSON instructions, criteria and state | Sent as JSON | Sent as JSON | Sent as JSON | Sent as JSON | Sent as the JSON's raw text, in a string |
 | Images on the wire | In `state`, as `image_url` parts; data URLs only | In `state`, as `image_url` parts; data URLs only | In `state`, as `image_url` parts; data URLs only | In `state`, as `image_url` parts; data URLs only | In `input`, as `input_image` parts; data URLs only |
 | Refusals | None in the protocol | None in the protocol | None in the protocol | None in the protocol | `Refused`, one failure per refused question, rule `refusal` |
-| Noul confidence, usage and cost | A Noul has a probability and no confidence. `usage` has the input and output tokens | A Noul has a probability and no confidence. `usage` has the tokens and `cost` in US dollars; the response has a generation `id` and the upstream `provider` | A Noul has a probability and no confidence. `usage` as the server sends it | A Noul has a probability and no confidence. `usage` as the server sends it | A Noul has a probability and no confidence. Usage is not documented: tokens and `cost` are read when present, and `Usage` is `null` unless both token counts are |
+| Noul confidence, usage and cost | A Noul has a probability and no confidence. `usage` has the input and output tokens | A Noul has a probability and no confidence. `usage` has the tokens and `cost` in US dollars; the response has a generation `id` and the upstream `provider` | A Noul has a probability and no confidence. `usage` as the server sends it | A Noul has a probability and no confidence. `usage` as the server sends it | A Noul has a probability and no confidence. Usage is not documented: tokens and `cost` are read when present, and `Usage` is `null` only when none of the three was sent |
 | Auth | Required: `ApiKey` or `TYPESAFE_API_KEY` | Required: `ApiKey` or `OPENROUTER_API_KEY` | Optional: `ApiKey` only | Optional: `ApiKey` only | Required: `ApiKey` or `OPENAI_API_KEY` |
 | Status | Tested live | Tested live, with images and Clef | WireMock tests | WireMock tests, and a local server in CI | Public beta since 2026-10-06; WireMock tests built from the guide's examples, not tested live |
 
 A set that breaks a capability comes back as `Unsupported` before anything is sent: MIN201 for a question kind the
 provider does not take, MIN202 for more questions than `MaxQuestions`, MIN203 for more options than
-`MaxChoiceOptions`, and MIN206 for images while `Images` is off. TypeSafe's Jev reads text only, and OpenRouter mixes
+`MaxChoiceOptions`, and MIN206 for images while `SupportsImages` is off. TypeSafe's Jev reads text only, and OpenRouter mixes
 text and image models, so images are off for both until you switch them on; [Images](#images) says for which models.
 OpenRouter has its own models API, so model listing is off for it. A `Custom` or `VllmSemanticRouter` server switches
-listing on with `ModelListing = true`, and `OpenAIDecisionClient` has no `ListModelsAsync`. Choice and Score answers
+listing on with `SupportsModelListing = true`, and `OpenAIDecisionClient` has no `ListModelsAsync`. Choice and Score answers
 carry a confidence on every provider. A limit that reads "none" for `VllmSemanticRouter`, `Custom` or OpenAI means
 the provider publishes none, not that it is known to be unlimited. A limit you set in `Capabilities` applies on every
 provider. The capabilities you set change the kinds, the limits, the images and, for the System One presets, the model
@@ -79,7 +79,7 @@ model are yours to give.
 ```cs
 // A server you run. Custom has no default address or model, so both are set. The path is optional and defaults to
 // v1/systemone. No key is read from the environment, and none is sent unless ApiKey is set.
-public static SystemOneClientOptions Custom()
+public static SystemOneDecisionClientOptions Custom()
     => new()
     {
         Provider = SystemOneProvider.Custom,
@@ -102,7 +102,7 @@ public static SystemOneClientOptions Custom()
 
 > **Beta.** OpenAI's Decisions API has been in public beta since 2026-10-06. `Minos.NET.OpenAI` is built from the
 > examples in OpenAI's [Decisions guide](https://developers.openai.com/api/docs/guides/decisions), which documents no
-> formal schema, error body, limits or usage object. It has not yet run against the live API, and the format may change
+> formal schema, error body, limits or usage object. It is not yet tested against the live API, and the format may change
 > during the beta.
 
 `OpenAIDecisionClient` sends a question set to `POST /v1/decisions`, the `decisions` path under its versioned base
@@ -147,17 +147,17 @@ public static class OpenAIClients
 | `BaseAddress` | `OPENAI_BASE_URL`, then `https://api.openai.com/v1/` | The versioned API root, for a proxy or a test server. Requests go to `decisions` under it. As in OpenAI's official SDKs, the root includes `/v1`, so a proxy is set as `https://proxy.example/v1`, and `OPENAI_BASE_URL` set for another OpenAI tool works unchanged. |
 | `Model` | `gpt-6-luna` | The model a request without its own asks. `gpt-6-luna` is the only model OpenAI's guide names. |
 | `Capabilities` | OpenAI's, see [The defaults](#the-defaults) | What the API accepts, checked before a request is sent. |
-| `Timeout`, `MaxRetries`, `InitialBackoff`, `MaxRetryDelay`, `Jitter`, `UseStandardPipeline` | as on `SystemOneClientOptions` | The same meaning, defaults and valid values as in [Options](client-and-errors.md#options). |
+| `Timeout`, `MaxRetries`, `InitialBackoff`, `MaxRetryDelay`, `Jitter`, `UseStandardPipeline` | as on `SystemOneDecisionClientOptions` | The same meaning, defaults and valid values as in [Options](client-and-errors.md#options). |
 
 `OpenAIDefaults` holds the fallbacks: `ApiKeyEnvironmentVariable`, `BaseAddressEnvironmentVariable`, `Model` and
-`BaseAddress`. The client has the same constructors as `SystemOneClient`, with an `HttpClient` it owns or one you lend,
-and with or without an `ILoggerFactory`. `Validate()` and `OpenAIDecisionClient.ConfigureHttpClient` work as they do
-there. It retries the same failures, without the `X-TypeSafe-Retry-Count` header, which is TypeSafe's. It reports the
-provider as `openai` in its logs, spans and metrics. It has no raw request API and no `ListModelsAsync`.
+`BaseAddress`. The client has the same constructors as `SystemOneDecisionClient`, with an `HttpClient` it owns or one
+you lend, and with or without an `ILoggerFactory`. `Validate()` and `OpenAIDecisionClient.ConfigureHttpClient` work as
+they do there. It retries the same failures, without the `X-TypeSafe-Retry-Count` header, which is TypeSafe's. It
+reports the provider as `openai` in its logs, spans and metrics. It has no raw request API and no `ListModelsAsync`.
 
-In a host, `AddOpenAIDecisionClient` registers it, with the same six overloads as `AddSystemOneClient`. It returns an
-`OpenAIDecisionClientServiceBuilder`, whose `HttpClient` property is the builder of the client's `HttpClient`. A name
-holds one provider, so registering the same name with both throws `InvalidOperationException`.
+In a host, `AddOpenAIDecisionClient` registers it, with the same six overloads as `AddSystemOneDecisionClient`. It
+returns an `OpenAIDecisionClientServiceBuilder`, whose `HttpClient` property is the builder of the client's
+`HttpClient`. A name holds one provider, so registering the same name with both throws `InvalidOperationException`.
 
 <!-- snippet: DependencyInjection_OpenAI -->
 ```cs
@@ -165,7 +165,7 @@ holds one provider, so registering the same name with both throws `InvalidOperat
 // without one, the OpenAI client reads OPENAI_API_KEY, and the host fails at start-up when there is none.
 public static OpenAIDecisionClientServiceBuilder AddBothProviders(IHostApplicationBuilder builder)
 {
-    builder.Services.AddSystemOneClient(options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
+    builder.Services.AddSystemOneDecisionClient(options => options.ApiKey = builder.Configuration["TypeSafe:ApiKey"]);
     return builder.Services.AddOpenAIDecisionClient(
         "openai", options => options.ApiKey = builder.Configuration["OpenAI:ApiKey"]);
 }
@@ -279,11 +279,11 @@ maintainer's account allows only zero-data-retention endpoints.
 ```cs
 // OpenRouter serves Clef and Luna in the System One format, so the OpenRouter preset reaches them by model id.
 // The request is System One: the OpenRouter column of the provider matrix applies, not the OpenAI one.
-public static SystemOneClientOptions Clef()
+public static SystemOneDecisionClientOptions Clef()
     => new() { Provider = SystemOneProvider.OpenRouter, Model = "cloudflare/clef-flash" };
 
 // Luna through OpenRouter needs an account that allows endpoints which retain data; see the notes above.
-public static SystemOneClientOptions Luna()
+public static SystemOneDecisionClientOptions Luna()
     => new() { Provider = SystemOneProvider.OpenRouter, Model = "openai/gpt-6-luna-decisions" };
 ```
 <!-- endSnippet -->
@@ -299,23 +299,23 @@ would refuse comes back as a failure at once, with no request, no retry and no c
 The first five rows of the [matrix](#at-a-glance) are each provider's defaults for the five capabilities. "None"
 means no limit is published or set.
 
-`Images` says whether the provider takes [images](#images). A request with images to a provider whose `Images` is off
+`SupportsImages` says whether the provider takes [images](#images). A request with images to a provider whose `SupportsImages` is off
 returns `Unsupported` with `MIN206`, and nothing is sent.
 
-OpenAI's `ModelListing` is always off: `OpenAIDecisionClient` has no model listing, so it ignores
-`Capabilities.ModelListing`, and `GetService<DecisionCapabilities>()` reports `false` whatever you set.
+OpenAI's `SupportsModelListing` is always off: `OpenAIDecisionClient` has no model listing, so it ignores
+`Capabilities.SupportsModelListing`, and `GetService<DecisionCapabilities>()` reports `false` whatever you set.
 
 ### Overriding them
 
-`SystemOneClientOptions.Capabilities` and `OpenAIDecisionClientOptions.Capabilities` are a `DecisionCapabilities`,
-with one nullable property for each capability. A property you set wins, and one you leave `null` keeps the default.
-This server answers Noul questions only:
+`SystemOneDecisionClientOptions.Capabilities` and `OpenAIDecisionClientOptions.Capabilities` are a
+`DecisionCapabilities`, with one nullable property for each capability. A property you set wins, and one you leave
+`null` keeps the default. This server answers Noul questions only:
 
 <!-- snippet: ClientAndErrors_Capabilities -->
 ```cs
 // A server that only answers Noul questions. Each property left unset keeps the Custom preset's default, so
 // this changes the accepted kinds and nothing else.
-public static SystemOneClientOptions NoulOnly()
+public static SystemOneDecisionClientOptions NoulOnly()
     => new()
     {
         Provider = SystemOneProvider.Custom,
@@ -345,7 +345,7 @@ problem it found. Each is a `QuestionFailure` with a rule id, the key of the que
 | `MIN203` | A Choice question has more options than `MaxChoiceOptions`. | the question | `Custom accepts at most 2 options per Choice question; 'team' has 3.` |
 | `MIN204` | A Noul has `WhenTrue` or `WhenFalse`, on OpenAI. | the question | `OpenAI does not support WhenTrue or WhenFalse on a Noul; put the meaning in the instructions.` |
 | `MIN205` | A criterion has `Examples` or `NotFor`, on OpenAI. | the question | `OpenAI does not support Examples or NotFor on a criterion; describe them in its text.` |
-| `MIN206` | The request has images and `Images` is off. | none | `Custom does not support images.` |
+| `MIN206` | The request has images and `SupportsImages` is off. | none | `Custom does not support images.` |
 
 The error's `Message` is the first failure's. `MIN202` comes first, then each question's `MIN201` and `MIN203` in the
 order it is sent, then `MIN206`, then OpenAI's `MIN204` and `MIN205` in question order. The MIN2 series is for these
@@ -398,8 +398,8 @@ public static string Describe(IDecisionClient client)
     }
 
     var questions = capabilities.MaxQuestions is { } most ? $"at most {most} questions" : "no question limit";
-    var images = capabilities.Images == true ? "on" : "off";
-    var listing = capabilities.ModelListing == true ? "on" : "off";
+    var images = capabilities.SupportsImages == true ? "on" : "off";
+    var listing = capabilities.SupportsModelListing == true ? "on" : "off";
     return $"{capabilities.QuestionKinds}, {questions}, images {images}, model listing {listing}";
 }
 ```
@@ -467,8 +467,8 @@ public static async Task<string> CheckReturnAsync(
 
 ### Which providers take images
 
-OpenAI takes images by default. Every System One preset has `Images` off: TypeSafe's Jev reads text only, and a server
-of your own may not read images. A request with images to a provider whose `Images` is off returns `Unsupported` with
+OpenAI takes images by default. Every System One preset has `SupportsImages` off: TypeSafe's Jev reads text only, and a server
+of your own may not read images. A request with images to a provider whose `SupportsImages` is off returns `Unsupported` with
 `MIN206` before anything is sent, and it is not retried.
 
 OpenRouter routes to text and image models alike, so images are off for the preset as well. Switch them on for a model
@@ -478,12 +478,12 @@ that reads images:
 ```cs
 // OpenRouter mixes text and image models, so images are off for the preset. Switch them on for a model that reads
 // images. Perplexity's decider read our test image correctly on 2026-10-11.
-public static SystemOneClientOptions PerplexityWithImages()
+public static SystemOneDecisionClientOptions PerplexityWithImages()
     => new()
     {
         Provider = SystemOneProvider.OpenRouter,
         Model = "perplexity/pplx-decider-v1.1-27b",
-        Capabilities = new DecisionCapabilities { Images = true },
+        Capabilities = new DecisionCapabilities { SupportsImages = true },
     };
 ```
 <!-- endSnippet -->
@@ -491,7 +491,7 @@ public static SystemOneClientOptions PerplexityWithImages()
 As of 2026-10-11, `perplexity/pplx-decider-v1.1-27b` read our test image correctly. `cloudflare/clef` and
 `cloudflare/clef-flash` take images and answered wrongly, and `typesafe/jev-1.13` is text-only and ignores an image
 without an error. [Notes from the probes](#notes-from-the-probes) has the details. A `Custom` or `VllmSemanticRouter`
-server that reads images is switched on the same way, with `Capabilities.Images = true`.
+server that reads images is switched on the same way, with `Capabilities.SupportsImages = true`.
 
 ### On the wire
 
@@ -552,8 +552,8 @@ public static IConfigurationSection ActiveSection(IConfiguration configuration)
         : throw new InvalidOperationException($"Minos:Providers has no section named {active}.");
 }
 
-public static SystemOneClientServiceBuilder AddActiveProvider(IHostApplicationBuilder builder)
-    => builder.Services.AddSystemOneClient(ActiveSection(builder.Configuration));
+public static SystemOneDecisionClientServiceBuilder AddActiveProvider(IHostApplicationBuilder builder)
+    => builder.Services.AddSystemOneDecisionClient(ActiveSection(builder.Configuration));
 ```
 <!-- endSnippet -->
 
@@ -613,7 +613,7 @@ question kinds, and reports probabilities to four decimals.
 ## Adding OpenAI
 
 OpenAI's client is a type of its own, `OpenAIDecisionClient`, so its section is bound with `AddOpenAIDecisionClient`
-instead of `AddSystemOneClient`. Add a section for it:
+instead of `AddSystemOneDecisionClient`. Add a section for it:
 
 ```json
 {
@@ -641,7 +641,7 @@ public static void AddActiveClient(IHostApplicationBuilder builder)
     }
     else
     {
-        builder.Services.AddSystemOneClient(section);
+        builder.Services.AddSystemOneDecisionClient(section);
     }
 }
 ```

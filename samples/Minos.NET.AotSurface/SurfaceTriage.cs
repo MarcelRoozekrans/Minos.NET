@@ -2,10 +2,10 @@ namespace Minos.AotSurface;
 
 public enum SurfaceTeam
 {
-    [Criteria("Charges, invoices, refunds", Examples = ["I was charged twice"], NotFor = ["How much is Pro?"])]
+    [Criterion("Charges, invoices, refunds", Examples = ["I was charged twice"], NotFor = ["How much is Pro?"])]
     Billing,
 
-    [Criteria("Login, profile, permissions")]
+    [Criterion("Login, profile, permissions")]
     Account,
 }
 

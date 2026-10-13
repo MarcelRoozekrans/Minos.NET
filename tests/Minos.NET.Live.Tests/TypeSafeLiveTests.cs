@@ -103,7 +103,7 @@ public sealed class TypeSafeLiveTests
     [LiveFact(SystemOneProvider.TypeSafe)]
     public async Task BadKey_IsUnauthorized()
     {
-        using var client = new SystemOneClient(new SystemOneClientOptions { ApiKey = "invalid-key-for-live-test", MaxRetries = 0 });
+        using var client = new SystemOneDecisionClient(new SystemOneDecisionClientOptions { ApiKey = "invalid-key-for-live-test", MaxRetries = 0 });
 
         var result = await client.EvaluateAsync(Live.Request(SystemOneProvider.TypeSafe));
 
@@ -115,7 +115,7 @@ public sealed class TypeSafeLiveTests
     [LiveFact(SystemOneProvider.TypeSafe)]
     public async Task InvalidRequest_IsValidation()
     {
-        using var client = new SystemOneClient(new SystemOneClientOptions { MaxRetries = 0 });
+        using var client = new SystemOneDecisionClient(new SystemOneDecisionClientOptions { MaxRetries = 0 });
         var request = new SystemOneRequest
         {
             State = "Help! My payouts have been failing for 3 days and nobody answers.",

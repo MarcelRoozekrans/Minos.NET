@@ -56,7 +56,7 @@ public sealed class ObservabilityNamesTests
             await RawRequests.UrgencyAsync(client, "Help!", CancellationToken.None);
         }
 
-        var version = typeof(SystemOneClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
+        var version = typeof(SystemOneDecisionClient).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()!.InformationalVersion;
         Assert.False(string.IsNullOrEmpty(version));
         Assert.Equal(version, Assert.Single(spanSources).Version);
         Assert.Equal(version, Assert.Single(meters.Select(m => m.Version).Distinct(StringComparer.Ordinal)));

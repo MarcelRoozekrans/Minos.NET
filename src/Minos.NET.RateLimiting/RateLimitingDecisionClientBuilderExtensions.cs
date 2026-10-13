@@ -1,6 +1,6 @@
 using System.Threading.RateLimiting;
 
-namespace Minos.RateLimiting;
+namespace Minos;
 
 /// <summary>Adds <see cref="RateLimitingDecisionClient"/> to a pipeline.</summary>
 public static class RateLimitingDecisionClientBuilderExtensions

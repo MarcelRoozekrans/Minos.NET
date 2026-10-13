@@ -9,7 +9,7 @@ public readonly struct KeyedChoice : IEquatable<KeyedChoice>
     /// <param name="value">The key of the option the model picked.</param>
     /// <param name="confidence">The model's confidence, between 0 and 1.</param>
     /// <param name="probabilities">The probability of each option.</param>
-    public KeyedChoice(string value, double confidence, KeyedProbabilityMap probabilities)
+    internal KeyedChoice(string value, double confidence, KeyedProbabilityMap probabilities)
     {
         _value = value;
         Confidence = confidence;

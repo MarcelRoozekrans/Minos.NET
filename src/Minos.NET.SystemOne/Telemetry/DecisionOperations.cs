@@ -4,7 +4,7 @@ using ZeroAlloc.Results;
 namespace Minos.SystemOne.Telemetry;
 
 /// <summary>
-/// The client's two raw System One operations over the transport. It holds no telemetry code: <see cref="SystemOneClient"/>
+/// The client's two raw System One operations over the transport. It holds no telemetry code: <see cref="SystemOneDecisionClient"/>
 /// calls it through the generated <c>DecisionOperationsInstrumented</c>. The provider and endpoint are for the proxy's tags
 /// and unused here.
 /// </summary>
@@ -14,10 +14,10 @@ namespace Minos.SystemOne.Telemetry;
 /// </param>
 /// <param name="retry">The retry loop each call runs through; <see langword="null"/> sends one attempt per call.</param>
 /// <param name="disposed">Reads whether the client has been disposed.</param>
-internal sealed class DecisionOperations(IDecisionApi api, SystemOneClientSettings settings, DecisionRetry? retry, Func<bool> disposed) : IDecisionOperations
+internal sealed class DecisionOperations(IDecisionApi api, SystemOneDecisionClientSettings settings, DecisionRetry? retry, Func<bool> disposed) : IDecisionOperations
 {
     // The state holds the settings rather than the path and header they give, so it stays three references wide.
-    private static readonly Func<(IDecisionApi Api, SystemOneRequest Request, SystemOneClientSettings Settings), int, CancellationToken, ValueTask<Result<SystemOneResponse, DecisionError>>> EvaluateAttempt
+    private static readonly Func<(IDecisionApi Api, SystemOneRequest Request, SystemOneDecisionClientSettings Settings), int, CancellationToken, ValueTask<Result<SystemOneResponse, DecisionError>>> EvaluateAttempt
         = static (state, retryCount, ct) => state.Api.EvaluateAsync(
             state.Request, state.Settings.Path, state.Settings.Authorization, retryCount, ct);
 

@@ -30,11 +30,11 @@ public sealed class DecisionRequestTests
 
     [Fact]
     public void Null_definition_throws()
-        => Assert.Throws<ArgumentNullException>("Definition", () => new DecisionRequest(null!, "a ticket"));
+        => Assert.Throws<ArgumentNullException>("definition", () => new DecisionRequest(null!, "a ticket"));
 
     [Fact]
     public void Default_state_throws()
-        => Assert.Throws<ArgumentException>("State", () => new DecisionRequest(Definition, default));
+        => Assert.Throws<ArgumentException>("state", () => new DecisionRequest(Definition, default));
 
     [Fact]
     public void Negative_attempt_throws()

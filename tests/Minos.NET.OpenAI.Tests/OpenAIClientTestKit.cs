@@ -11,7 +11,7 @@ namespace Minos.OpenAI.Tests;
 
 public enum TicketTopic
 {
-    [Criteria("Payments and invoices")]
+    [Criterion("Payments and invoices")]
     Billing,
 
     Other,

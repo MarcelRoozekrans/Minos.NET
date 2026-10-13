@@ -324,7 +324,7 @@ public sealed class QuestionSetsAtRunTimeTests
     [Fact]
     public async Task EnumAttributes_AreNotReadByTheBuilder()
     {
-        // Department carries [Criteria] on its members; the builder sends no description for them.
+        // Department carries [Criterion] on its members; the builder sends no description for them.
         var set = QuestionSet.CreateBuilder().Choice("d", "Which?", out ChoiceHandle<Department> department).Build().Value;
 
         using var questions = await CannedDecision.QuestionsSentAsync(set, "{}");

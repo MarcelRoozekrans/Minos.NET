@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Net;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
-using Minos.Caching;
 using Minos.SystemOne;
 
 namespace Minos.Docs.Tests;
@@ -52,14 +51,14 @@ public sealed class ObservabilityTelemetryTests
         { "models": [ { "name": "jev-latest", "description": "The most recent stable release.", "release_date": "2026-09-15" } ] }
         """;
 
-    private static SystemOneClientOptions Options(int maxRetries = 0)
+    private static SystemOneDecisionClientOptions Options(int maxRetries = 0)
     {
         var options = ScriptedDecision.Quick(maxRetries);
         options.Model = Model;
         return options;
     }
 
-    private static async Task RunAsync(Func<SystemOneClient, Task> call, SystemOneClientOptions options, params Reply[] script)
+    private static async Task RunAsync(Func<SystemOneDecisionClient, Task> call, SystemOneDecisionClientOptions options, params Reply[] script)
     {
         var (http, client, _) = ScriptedDecision.Client(options, script);
         using (http)
@@ -70,7 +69,7 @@ public sealed class ObservabilityTelemetryTests
     }
 
     // Two identical calls through a cache stage: the second is the one call whose span and metrics carry minos.cache.hit.
-    private static async Task CachedAsync(SystemOneClientOptions options, params Reply[] script)
+    private static async Task CachedAsync(SystemOneDecisionClientOptions options, params Reply[] script)
     {
         options.UseStandardPipeline = false;
         var services = new ServiceCollection();
@@ -86,11 +85,11 @@ public sealed class ObservabilityTelemetryTests
         }
     }
 
-    private static Task Typed(SystemOneClient client) => client.EvaluateAsync<TicketAnalysis>("Help! SECRET-STATE", CancellationToken.None).AsTask();
+    private static Task Typed(SystemOneDecisionClient client) => client.EvaluateAsync<TicketAnalysis>("Help! SECRET-STATE", CancellationToken.None).AsTask();
 
-    private static Task Raw(SystemOneClient client) => RawRequests.UrgencyAsync(client, "Help! SECRET-STATE", CancellationToken.None);
+    private static Task Raw(SystemOneDecisionClient client) => RawRequests.UrgencyAsync(client, "Help! SECRET-STATE", CancellationToken.None);
 
-    private static Task Listing(SystemOneClient client) => client.ListModelsAsync(CancellationToken.None).AsTask();
+    private static Task Listing(SystemOneDecisionClient client) => client.ListModelsAsync(CancellationToken.None).AsTask();
 
     private static string[] Keys(IEnumerable<KeyValuePair<string, object?>> tags) => [.. tags.Select(tag => tag.Key)];
 
