@@ -14,6 +14,7 @@ public sealed class DecisionError
     /// <summary>Initializes a new instance of the <see cref="DecisionError"/> class.</summary>
     /// <param name="kind">What went wrong.</param>
     /// <param name="message">A short, human-readable description.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="message"/> is <see langword="null"/>.</exception>
     public DecisionError(DecisionErrorKind kind, string message)
     {
         ArgumentNullException.ThrowIfNull(message);
