@@ -113,7 +113,7 @@ public sealed class SurfaceRuleTests
         }
 
         var extensionMethods = type.IsStatic
-            ? type.GetMembers().OfType<IMethodSymbol>().Where(method => method.IsExtensionMethod).Select(method => method.Name).Distinct(StringComparer.Ordinal).ToList()
+            ? type.GetMembers().OfType<IMethodSymbol>().Where(method => method.IsExtensionMethod && method.DeclaredAccessibility == Accessibility.Public).Select(method => method.Name).Distinct(StringComparer.Ordinal).ToList()
             : [];
         return extensionMethods.Count > 0
             ? extensionMethods.Where(name => !Mentions(text, name)).ToList()
@@ -125,12 +125,12 @@ public sealed class SurfaceRuleTests
             && (string.Equals(baseType.ToDisplayString(), "System.Attribute", StringComparison.Ordinal) || IsAttribute(baseType));
 
     private static bool MentionsAttribute(string text, string stem, string typeName)
-        => Regex.IsMatch(text, $@"\[\s*{Regex.Escape(stem)}\b", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(5))
+        => Regex.IsMatch(text, $@"(?:\[|,)\s*{Regex.Escape(stem)}\b(?=\s*[(,\]])", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(5))
             || Mentions(text, typeName);
 
     private static string ExpectedNamespace(INamedTypeSymbol type, string rootNamespace)
         => type.GetMembers().OfType<IMethodSymbol>()
-            .Any(method => method.IsExtensionMethod && string.Equals(method.Parameters[0].Type.ToDisplayString(), ServiceCollection, StringComparison.Ordinal))
+            .Any(method => method.IsExtensionMethod && method.DeclaredAccessibility == Accessibility.Public && string.Equals(method.Parameters[0].Type.ToDisplayString(), ServiceCollection, StringComparison.Ordinal))
             ? ServiceCollectionNamespace
             : rootNamespace;
 
