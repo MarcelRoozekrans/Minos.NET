@@ -8,8 +8,8 @@ using Minos.Serialization;
 namespace Minos;
 
 /// <summary>
-/// A value the Jev API accepts as either plain text or structured JSON (an object or array),
-/// such as a request <c>state</c>, question <c>instructions</c>, or a criteria description.
+/// A value a provider accepts as either plain text or structured JSON (an object or array), such as a request state, a
+/// question's instructions or a criterion.
 /// </summary>
 [JsonConverter(typeof(DecisionContentConverter))]
 public readonly struct DecisionContent : IEquatable<DecisionContent>
