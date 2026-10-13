@@ -6,14 +6,16 @@
     - A .snupkg symbol package sits beside each .nupkg; nuget.org takes it with the same push.
     - Package validation checks each package for compatibility problems. Its baseline, the published 1.0.0, is set after the first release, #28.
     - On GitHub Actions the build is deterministic, so Source Link maps the PDBs to the repository's commit, not to the runner's paths.
-      Only the packable projects get it: deterministic paths turn CallerFilePath into /_/..., which breaks tests that read the source tree.
+      The packable projects get it, and so do the Roslyn components (generator, analyzers, code fixes): they are not packable themselves,
+      but their DLLs are packed into Minos.NET's analyzers folder. Test projects stay out: deterministic paths turn CallerFilePath
+      into /_/..., which breaks tests that read the source tree.
   -->
   <PropertyGroup Condition="'$(IsPackable)' != 'false'">
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <EnablePackageValidation>true</EnablePackageValidation>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(IsPackable)' != 'false' And '$(GITHUB_ACTIONS)' == 'true'">
+  <PropertyGroup Condition="('$(IsPackable)' != 'false' Or '$(IsRoslynComponent)' == 'true') And '$(GITHUB_ACTIONS)' == 'true'">
     <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
   </PropertyGroup>
 </Project>
