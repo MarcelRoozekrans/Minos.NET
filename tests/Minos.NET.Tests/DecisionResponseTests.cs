@@ -96,6 +96,14 @@ public sealed class DecisionResponseTests
     }
 
     [Fact]
+    public void A_usage_that_reports_nothing_is_no_usage()
+    {
+        var response = new DecisionResponse(Triage, TriageAnswers(), usage: new DecisionUsage());
+
+        Assert.Null(response.Usage);
+    }
+
+    [Fact]
     public void A_response_without_usage_has_none()
     {
         Assert.Null(new DecisionResponse(Triage, TriageAnswers()).Usage);

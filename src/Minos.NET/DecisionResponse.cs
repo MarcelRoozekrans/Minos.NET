@@ -15,7 +15,7 @@ public sealed class DecisionResponse
     /// <param name="definition">The questions the answers belong to.</param>
     /// <param name="answers">One answer per question, in definition order, made with the <see cref="QuestionAnswer"/> factories.</param>
     /// <param name="model">The model that answered, if known.</param>
-    /// <param name="usage">The token usage, if known.</param>
+    /// <param name="usage">The token usage, if known; one that reports no count and no cost is treated as <see langword="null"/>.</param>
     /// <exception cref="ArgumentNullException"><paramref name="definition"/> or <paramref name="answers"/> is <see langword="null"/>.</exception>
     /// <remarks>
     /// Checked: one answer for every question, none of them a <see langword="default"/> value, and per answer its kind, its probability count against the question's options, and a chosen position below the option count. The factories check the ranges of the confidence and the probabilities, the range of a Noul's <see cref="QuestionAnswer.Probability"/> and that a Score's <see cref="QuestionAnswer.Expected"/> is finite. Not checked: a Score's <see cref="QuestionAnswer.Expected"/> against its levels, and that the probabilities sum to 1 or that the chosen position is the most probable.
@@ -73,10 +73,11 @@ public sealed class DecisionResponse
         Slots = slots;
         Probabilities = probabilities;
         Model = model;
-        _usage = usage;
-        InputTokens = usage?.InputTokens;
-        OutputTokens = usage?.OutputTokens;
-        Cost = usage?.Cost;
+        // A usage that reports nothing is no usage, so Usage is null for it as it is after a cache round trip.
+        _usage = usage is { InputTokens: null, OutputTokens: null, Cost: null } ? null : usage;
+        InputTokens = _usage?.InputTokens;
+        OutputTokens = _usage?.OutputTokens;
+        Cost = _usage?.Cost;
     }
 
     internal DecisionResponse(
