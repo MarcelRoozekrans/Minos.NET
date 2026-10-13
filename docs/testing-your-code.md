@@ -129,6 +129,13 @@ public sealed class FakeDecision(Result<DecisionResponse, DecisionError> reply) 
     public static FakeDecision Failing(DecisionErrorKind kind)
         => new(Result<DecisionResponse, DecisionError>.Failure(new DecisionError(kind, "The fake failed on purpose.")));
 
+    // A model that refused a question: the failures name each refused question, with the rule refusal.
+    public static FakeDecision Refused(string questionKey)
+        => new(Result<DecisionResponse, DecisionError>.Failure(new DecisionError(
+            DecisionErrorKind.Refused,
+            "The fake refused on purpose.",
+            [new QuestionFailure("refusal", questionKey, "The fake refused on purpose.")])));
+
     // A busy service: the kind and message are the constructor's, the rest are init properties.
     public static FakeDecision Overloaded(TimeSpan retryAfter)
         => new(Result<DecisionResponse, DecisionError>.Failure(new DecisionError(DecisionErrorKind.Overloaded, "The fake is busy on purpose.")
@@ -191,6 +198,17 @@ public async Task WhenDecisionFails_ThePersonReviews()
 
     Assert.Equal(TriageRoute.Review, route);
 }
+
+[Fact]
+public async Task WhenTheModelRefuses_TheRefusalNamesTheQuestion_AndThePersonReviews()
+{
+    var client = FakeDecision.Refused("is_urgent");
+    var triager = new TicketTriager(client);
+
+    var route = await triager.RouteAsync("Any ticket.", CancellationToken.None);
+
+    Assert.Equal(TriageRoute.Review, route);
+}
 ```
 <!-- endSnippet -->
 
@@ -238,6 +256,10 @@ Add a row for each failure you care about as well. The fake's `Failing` method r
 review. `Overloaded` shows how to give an error more detail: the constructor takes the kind and the message, and the
 example sets the `StatusCode` and `RetryAfter` init properties. `Detail` and `Exception` are set the same way when
 the failure has them.
+
+A refusal names the questions it is about. `Refused` shows the constructor that takes the failures as well: pass one
+`QuestionFailure` per refused question, with the rule `refusal` and the question's wire key, and read them back from
+`Failures`. An `Unsupported` capability error lists its problems the same way.
 
 ## Way two: a real `SystemOneClient` over a canned HTTP reply
 

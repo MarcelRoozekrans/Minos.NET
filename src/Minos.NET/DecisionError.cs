@@ -23,13 +23,16 @@ public sealed class DecisionError
         Message = message;
     }
 
-    /// <summary>Initializes a new error of <paramref name="kind"/> that lists the questions it is about.</summary>
+    /// <summary>Initializes a new error of <paramref name="kind"/> that lists the questions it is about, such as a <see cref="DecisionErrorKind.Refused"/> error naming each refused question.</summary>
     /// <param name="kind">What went wrong.</param>
     /// <param name="message">A short, human-readable description.</param>
     /// <param name="failures">The questions and the rules they break.</param>
-    internal DecisionError(DecisionErrorKind kind, string message, IReadOnlyList<QuestionFailure> failures)
+    /// <exception cref="ArgumentNullException"><paramref name="message"/> or <paramref name="failures"/> is <see langword="null"/>.</exception>
+    public DecisionError(DecisionErrorKind kind, string message, IReadOnlyList<QuestionFailure> failures)
         : this(kind, message)
     {
+        ArgumentNullException.ThrowIfNull(failures);
+
         Failures = failures.Count == 0 ? [] : new System.Collections.ObjectModel.ReadOnlyCollection<QuestionFailure>([.. failures]);
     }
 

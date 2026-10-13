@@ -21,6 +21,19 @@ public sealed class TestingYourCodeTests
     }
 
     [Fact]
+    public async Task ARefusedFake_ListsTheRefusedQuestion_InFailures()
+    {
+        IDecisionClient client = FakeDecision.Refused("is_urgent");
+
+        var result = await client.EvaluateAsync<TriageQuestions>("text");
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(DecisionErrorKind.Refused, result.Error.Kind);
+        var failure = Assert.Single(result.Error.Failures);
+        Assert.Equal(("refusal", "is_urgent"), (failure.Rule, failure.QuestionKey));
+    }
+
+    [Fact]
     public async Task AChoiceAnswer_IsReadByOptionPosition_FromTheFake()
     {
         IDecisionClient client = FakeDecision.Answering(0.1, TriageDesk.ProductTeam, 0.9);

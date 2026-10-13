@@ -33,6 +33,13 @@ public sealed class FakeDecision(Result<DecisionResponse, DecisionError> reply) 
     public static FakeDecision Failing(DecisionErrorKind kind)
         => new(Result<DecisionResponse, DecisionError>.Failure(new DecisionError(kind, "The fake failed on purpose.")));
 
+    // A model that refused a question: the failures name each refused question, with the rule refusal.
+    public static FakeDecision Refused(string questionKey)
+        => new(Result<DecisionResponse, DecisionError>.Failure(new DecisionError(
+            DecisionErrorKind.Refused,
+            "The fake refused on purpose.",
+            [new QuestionFailure("refusal", questionKey, "The fake refused on purpose.")])));
+
     // A busy service: the kind and message are the constructor's, the rest are init properties.
     public static FakeDecision Overloaded(TimeSpan retryAfter)
         => new(Result<DecisionResponse, DecisionError>.Failure(new DecisionError(DecisionErrorKind.Overloaded, "The fake is busy on purpose.")

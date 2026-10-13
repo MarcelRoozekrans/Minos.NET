@@ -80,6 +80,17 @@ public sealed class TestingYourCodeFakeTests
 
         Assert.Equal(TriageRoute.Review, route);
     }
+
+    [Fact]
+    public async Task WhenTheModelRefuses_TheRefusalNamesTheQuestion_AndThePersonReviews()
+    {
+        var client = FakeDecision.Refused("is_urgent");
+        var triager = new TicketTriager(client);
+
+        var route = await triager.RouteAsync("Any ticket.", CancellationToken.None);
+
+        Assert.Equal(TriageRoute.Review, route);
+    }
     #endregion
 
     #region TestingYourCode_Pinning
