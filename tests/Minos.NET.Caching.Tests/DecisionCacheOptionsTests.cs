@@ -36,4 +36,26 @@ public sealed class DecisionCacheOptionsTests
         options.LocalCacheExpiration = null;
         Assert.Null(options.LocalCacheExpiration);
     }
+
+    [Fact]
+    public void Expiration_accepts_365_days_and_refuses_more()
+    {
+        var options = new DecisionCacheOptions { Expiration = TimeSpan.FromDays(365) };
+
+        Assert.Equal(TimeSpan.FromDays(365), options.Expiration);
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.Expiration = TimeSpan.FromDays(365) + TimeSpan.FromTicks(1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.Expiration = TimeSpan.MaxValue);
+        Assert.Equal(TimeSpan.FromDays(365), options.Expiration);
+    }
+
+    [Fact]
+    public void LocalCacheExpiration_accepts_365_days_and_refuses_more()
+    {
+        var options = new DecisionCacheOptions { LocalCacheExpiration = TimeSpan.FromDays(365) };
+
+        Assert.Equal(TimeSpan.FromDays(365), options.LocalCacheExpiration);
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.LocalCacheExpiration = TimeSpan.FromDays(365) + TimeSpan.FromTicks(1));
+        Assert.Throws<ArgumentOutOfRangeException>(() => options.LocalCacheExpiration = TimeSpan.MaxValue);
+        Assert.Equal(TimeSpan.FromDays(365), options.LocalCacheExpiration);
+    }
 }
