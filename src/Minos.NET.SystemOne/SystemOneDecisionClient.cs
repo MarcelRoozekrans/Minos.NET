@@ -567,15 +567,31 @@ public sealed class SystemOneDecisionClient : IDecisionClient
             throw new ArgumentException("The request has no questions.", nameof(request));
         }
 
-        foreach (var (id, question) in questions)
+        // A Dictionary is the usual argument; its struct enumerator avoids the boxed one of the interface.
+        if (questions is Dictionary<string, Question> dictionary)
         {
-            if (question is null)
+            foreach (var (id, question) in dictionary)
             {
-                throw new ArgumentException("Question '" + id + "' is null.", nameof(request));
+                ValidateQuestion(id, question, nameof(request));
             }
 
-            DecisionContent.EnsureInitialized(question.Instructions, nameof(request));
+            return;
         }
+
+        foreach (var (id, question) in questions)
+        {
+            ValidateQuestion(id, question, nameof(request));
+        }
+    }
+
+    private static void ValidateQuestion(string id, Question? question, string paramName)
+    {
+        if (question is null)
+        {
+            throw new ArgumentException("Question '" + id + "' is null.", paramName);
+        }
+
+        DecisionContent.EnsureInitialized(question.Instructions, paramName);
     }
 
     private static SystemOneDecisionClientSettings ResolveSettings(SystemOneDecisionClientOptions? options)

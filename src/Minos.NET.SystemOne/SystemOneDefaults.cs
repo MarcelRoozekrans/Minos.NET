@@ -12,7 +12,7 @@ public static class SystemOneDefaults
     /// <summary>Environment variable the client reads an OpenRouter API key from.</summary>
     public const string OpenRouterApiKeyEnvironmentVariable = "OPENROUTER_API_KEY";
 
-    /// <summary>Environment variable that overrides the base address, as in the official SDKs.</summary>
+    /// <summary>Environment variable that overrides TypeSafe's base address; no other provider reads it.</summary>
     public const string TypeSafeBaseAddressEnvironmentVariable = "TYPESAFE_BASE_URL";
 
     /// <summary>Gets the model alias that the TypeSafe and OpenRouter presets use when no model is set.</summary>

@@ -105,8 +105,9 @@ internal static class AllocationChecks
         // plus the response's HttpResponseMessage, its body buffering and JSON deserialization into
         // SystemOneResponse. It measured 4312 B/call before ZeroAlloc.Rest 3.2.1 and 4592 B/call when first budgeted in
         // Phase 1.8; 3.2.1's generated transport no longer allocates a header value, boxed status codes or a tag array
-        // per call. Budget: about 10% headroom over the measurement, rounded up to the next multiple of 64 B, per the
-        // Phase 1.8 rule.
+        // per call. It still measures 3928 B/call with the client's model copy of a request that names no model, which
+        // this request is, and with the request validation: neither adds a measurable byte. Budget: about 10%
+        // headroom over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
         GateValueTask(
             budgetBytes: 4352,
             action: () => client.EvaluateAsync(request),

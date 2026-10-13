@@ -138,7 +138,8 @@ public static SystemOneDecisionClientOptions SpelledOut(string apiKey)
 ```
 <!-- endSnippet -->
 
-A `SystemOneRequest` that names no model of its own is sent with this one, so `Model` applies to every call of the client.
+A `SystemOneRequest` that names no model of its own is sent with this one, so `Model` applies to every call of the
+client.
 
 ### SystemOneDefaults
 
@@ -445,8 +446,9 @@ calls do not run through the pipeline's stages: they have their own span and log
 
 <!-- snippet: ClientAndErrors_RawRequest -->
 ```cs
-// The raw API names its own questions, with ids you choose, and may name a model. Use it when the questions are not known at
-// compile time and the question set builder does not fit. Typed evaluation is shorter wherever it can be used.
+// The raw API names its own questions, with ids you choose, and may name a model. Use it when the questions are not
+// known at compile time and the question set builder does not fit. Typed evaluation is shorter wherever it can be
+// used.
 public static async Task<string> UrgencyAsync(
     SystemOneDecisionClient client, string message, CancellationToken cancellationToken)
 {
