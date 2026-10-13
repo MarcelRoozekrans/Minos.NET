@@ -304,6 +304,7 @@ public sealed class SystemOneDecisionClient : IDecisionClient
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
     /// <exception cref="ObjectDisposedException">The client has been disposed.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -353,10 +354,14 @@ public sealed class SystemOneDecisionClient : IDecisionClient
         return _pipeline.GetService(serviceType, serviceKey);
     }
 
-    /// <summary>Asks Jev the request's questions about its state.</summary>
+    /// <summary>Sends a raw System One request: asks its questions about its state.</summary>
     /// <param name="request">The state, the questions and the model.</param>
     /// <returns>The answers, or the <see cref="DecisionError"/> that prevented them.</returns>
-    /// <remarks>Calls <see cref="EvaluateAsync(SystemOneRequest, CancellationToken)"/> without cancellation.</remarks>
+    /// <remarks>
+    /// Calls <see cref="EvaluateAsync(SystemOneRequest, CancellationToken)"/> without cancellation. Sent as given:
+    /// <see cref="SystemOneDecisionClientOptions.Capabilities"/> is not checked, and the server applies the API's rules for
+    /// questions.
+    /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException">
     /// <paramref name="request"/> has a blank <see cref="SystemOneRequest.Model"/>, a default
@@ -367,10 +372,14 @@ public sealed class SystemOneDecisionClient : IDecisionClient
     public ValueTask<Result<SystemOneResponse, DecisionError>> EvaluateAsync(SystemOneRequest request)
         => EvaluateAsync(request, CancellationToken.None);
 
-    /// <summary>Asks Jev the request's questions about its state.</summary>
+    /// <summary>Sends a raw System One request: asks its questions about its state.</summary>
     /// <param name="request">The state, the questions and the model.</param>
     /// <param name="cancellationToken">Cancels the call; cancellation throws <see cref="OperationCanceledException"/>.</param>
     /// <returns>The answers, or the <see cref="DecisionError"/> that prevented them.</returns>
+    /// <remarks>
+    /// Sent as given: <see cref="SystemOneDecisionClientOptions.Capabilities"/> is not checked, and the server applies the
+    /// API's rules for questions.
+    /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException">
     /// <paramref name="request"/> has a blank <see cref="SystemOneRequest.Model"/>, a default
@@ -378,6 +387,7 @@ public sealed class SystemOneDecisionClient : IDecisionClient
     /// whose <see cref="Question.Instructions"/> is the default value.
     /// </exception>
     /// <exception cref="ObjectDisposedException">The client has been disposed.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public ValueTask<Result<SystemOneResponse, DecisionError>> EvaluateAsync(SystemOneRequest request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
@@ -421,6 +431,7 @@ public sealed class SystemOneDecisionClient : IDecisionClient
     /// without a request, where <see cref="DecisionCapabilities.SupportsModelListing"/> is off.
     /// </returns>
     /// <exception cref="ObjectDisposedException">The client has been disposed.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
     public ValueTask<Result<ModelList, DecisionError>> ListModelsAsync(CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);

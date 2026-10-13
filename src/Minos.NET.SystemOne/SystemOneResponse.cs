@@ -15,7 +15,7 @@ public sealed class SystemOneResponse
     /// <summary>Gets the token usage for the request.</summary>
     public required DecisionUsage Usage { get; init; }
 
-    /// <summary>Gets the generation id OpenRouter assigns; <see langword="null"/> on TypeSafe's API.</summary>
+    /// <summary>Gets the generation id, when the server sends one: OpenRouter does, TypeSafe's API does not.</summary>
     public string? Id { get; init; }
 
     /// <summary>

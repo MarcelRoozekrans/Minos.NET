@@ -151,7 +151,7 @@ message.
 | `TypeSafeApiKeyEnvironmentVariable` | `TYPESAFE_API_KEY` | The variable a TypeSafe key is read from. |
 | `OpenRouterApiKeyEnvironmentVariable` | `OPENROUTER_API_KEY` | The variable an OpenRouter key is read from. |
 | `TypeSafeBaseAddressEnvironmentVariable` | `TYPESAFE_BASE_URL` | The variable that overrides TypeSafe's base address; no other provider reads it. |
-| `Model` | `jev-latest` | The model alias used when a request does not name one. A property, so a changed default is not compiled into your code. |
+| `Model` | `jev-latest` | The model alias that the TypeSafe and OpenRouter presets use when no model is set. A property, so a changed default is not compiled into your code. |
 | `TypeSafeBaseAddress` | `https://api.typesafe.ai/` | The root address of TypeSafe's API. A property. |
 | `OpenRouterBaseAddress` | `https://openrouter.ai/api/` | The root address of OpenRouter's System One API. A property. |
 
