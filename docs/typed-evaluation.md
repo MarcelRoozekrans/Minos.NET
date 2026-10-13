@@ -338,10 +338,6 @@ you type: the shape of the type, the keys, the enums and the backticked names. A
 members, and the generator stubs its properties, so the build reports the analyzer's error and not a confusing
 missing-implementation one.
 
-The attributes are `QuestionsAttribute` on the set, `NoulAttribute`, `ChoiceAttribute` and `ScoreAttribute` on a
-question property, and `CriterionAttribute` and `LevelAttribute` on an enum member. You write them without the
-`Attribute` suffix, as in `[Noul]`.
-
 The generated type implements `IQuestionSet<TSelf>`. Its `Create(AnswerSlots)` method and the `DecisionOptionSet<T>`
 subclasses the generator writes for your enums are generator plumbing that application code does not call.
 

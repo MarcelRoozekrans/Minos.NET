@@ -290,10 +290,6 @@ Some things still need valid options, an API key included:
 
 ## What gets registered
 
-The `Add…` methods are extension methods on `IServiceCollection`, in the `Microsoft.Extensions.DependencyInjection`
-namespace. They live in `SystemOneServiceCollectionExtensions`, `OpenAIServiceCollectionExtensions` and
-`DecisionServiceCollectionExtensions`, classes you never name.
-
 - **One singleton per registration.** It is a `SystemOneDecisionClient`, wrapped in any stages you added to the
   registration's builder, and is built once, when the container first resolves it. The client reads its named options
   then. The default client reads the default options, and a keyed client reads the options named by its key. The client

@@ -77,8 +77,12 @@ public sealed class SurfaceRuleTests
     {
         var text = DocumentationText();
         var offenders = PublicTypes()
-            .Where(type => !Undocumented.ContainsKey(Name(type)) && !Mentions(text, type.Name))
-            .Select(Name)
+            .Where(type => !Undocumented.ContainsKey(Name(type)))
+            .Select(type => (Type: type, Missing: MissingFromDocumentation(type, text)))
+            .Where(entry => entry.Missing.Count > 0)
+            .Select(entry => entry.Missing.Count == 1 && string.Equals(entry.Missing[0], entry.Type.Name, StringComparison.Ordinal)
+                ? Name(entry.Type)
+                : $"{Name(entry.Type)} (not named: {string.Join(", ", entry.Missing)})")
             .ToList();
 
         Assert.True(offenders.Count == 0, "No published docs page or sample names these public types; document them, make them internal, or add them to Undocumented with a reason:\n" + string.Join('\n', offenders));
@@ -97,6 +101,32 @@ public sealed class SurfaceRuleTests
 
         Assert.True(offenders.Count == 0, "These extension classes are not where their users look for them:\n" + string.Join('\n', offenders));
     }
+
+    // What a type needs the docs to name: an attribute is named by its usage form, a class of extension methods by every
+    // extension method it declares, and any other type by its own name.
+    private static List<string> MissingFromDocumentation(INamedTypeSymbol type, string text)
+    {
+        if (IsAttribute(type))
+        {
+            var stem = type.Name.EndsWith("Attribute", StringComparison.Ordinal) ? type.Name[..^"Attribute".Length] : type.Name;
+            return MentionsAttribute(text, stem, type.Name) ? [] : [type.Name];
+        }
+
+        var extensionMethods = type.IsStatic
+            ? type.GetMembers().OfType<IMethodSymbol>().Where(method => method.IsExtensionMethod).Select(method => method.Name).Distinct(StringComparer.Ordinal).ToList()
+            : [];
+        return extensionMethods.Count > 0
+            ? extensionMethods.Where(name => !Mentions(text, name)).ToList()
+            : Mentions(text, type.Name) ? [] : [type.Name];
+    }
+
+    private static bool IsAttribute(INamedTypeSymbol type)
+        => type.BaseType is { } baseType
+            && (string.Equals(baseType.ToDisplayString(), "System.Attribute", StringComparison.Ordinal) || IsAttribute(baseType));
+
+    private static bool MentionsAttribute(string text, string stem, string typeName)
+        => Regex.IsMatch(text, $@"\[\s*{Regex.Escape(stem)}\b", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(5))
+            || Mentions(text, typeName);
 
     private static string ExpectedNamespace(INamedTypeSymbol type, string rootNamespace)
         => type.GetMembers().OfType<IMethodSymbol>()
