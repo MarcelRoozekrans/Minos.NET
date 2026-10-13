@@ -22,7 +22,7 @@ public sealed class SystemOneResponseReaderTests
         var response = result.Value;
         Assert.Equal("minos-1.13.0", response.Model);
         Assert.Equal("r-1", response.Id);
-        Assert.Equal("Groq", response.Provider);
+        Assert.Equal("Groq", response.UpstreamProvider);
         Assert.Equal(296, response.Usage!.InputTokens);
         Assert.Equal(20, response.Usage.OutputTokens);
         Assert.Equal(0.0012, response.Usage.Cost);
@@ -66,7 +66,7 @@ public sealed class SystemOneResponseReaderTests
 
         Assert.Equal("first", response.Model);
         Assert.Equal("a", response.Id);
-        Assert.Equal("p1", response.Provider);
+        Assert.Equal("p1", response.UpstreamProvider);
         Assert.Equal(1, response.InputTokens);
         Assert.Equal(3, response.OutputTokens);
         Assert.Equal(0.5, response.Cost);
@@ -82,7 +82,7 @@ public sealed class SystemOneResponseReaderTests
 
         Assert.Null(response.Model);
         Assert.Null(response.Id);
-        Assert.Null(response.Provider);
+        Assert.Null(response.UpstreamProvider);
     }
 
     [Fact]
@@ -115,7 +115,7 @@ public sealed class SystemOneResponseReaderTests
         Assert.True(result.IsSuccess);
         Assert.Null(result.Value.Model);
         Assert.Null(result.Value.Id);
-        Assert.Null(result.Value.Provider);
+        Assert.Null(result.Value.UpstreamProvider);
     }
 
     [Fact]

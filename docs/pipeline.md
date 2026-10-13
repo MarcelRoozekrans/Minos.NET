@@ -292,6 +292,11 @@ any transport. Where you add it decides what it sees. Added after `UseRetries`, 
 sees every attempt, and a retry has `RetryAttempt` above 0. Added before `UseRetries`, it sees one call and its final
 result.
 
+The `DecisionResponse` a stage sees carries, beside the answers, `Model`, the model that answered; `Usage`, the tokens and
+cost the provider reported, or `null` when it reported none; `Id`, the provider's response id; `UpstreamProvider`, the host
+an aggregator such as OpenRouter routed the call to; and `IsCached`, which a cache stage sets on a response it replays.
+A stage that rebuilds a response can set `Id`, `UpstreamProvider` and `IsCached` with an object initializer.
+
 An `async` override allocates a state machine when the inner call completes asynchronously, as a real network call
 does. That is usually fine. The library's own stages avoid it: each checks whether the inner call has already
 completed, with `IsCompletedSuccessfully`, and only awaits when it has not.

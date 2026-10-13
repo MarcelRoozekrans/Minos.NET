@@ -52,3 +52,5 @@ static Minos.QuestionAnswer.Score(int level, double expected, double confidence,
 *REMOVED*Minos.KeyedChoice.KeyedChoice(string! value, double confidence, Minos.KeyedProbabilityMap probabilities) -> void
 *REMOVED*Minos.KeyedScore.KeyedScore(int level, double expected, double confidence, Minos.KeyedProbabilityMap probabilities) -> void
 *REMOVED*Minos.Score<T>.Score(T value, double expected, double confidence, Minos.ProbabilityMap<T> probabilities) -> void
+*REMOVED*Minos.DecisionResponse.Provider.get -> string?
+Minos.DecisionResponse.UpstreamProvider.get -> string?

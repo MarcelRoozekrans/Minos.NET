@@ -220,13 +220,13 @@ public sealed class CachingDecisionClientTests
         Assert.Equal(1, distributed.WriteCount);
         Assert.Equal(readsBefore + 1, distributed.ReadCount);
         Assert.Equal("gen-0001", hit.Value.Id);
-        Assert.Equal("Together", hit.Value.Provider);
+        Assert.Equal("Together", hit.Value.UpstreamProvider);
         Assert.True(hit.Value.IsCached);
         Assert.Same(Responses.Triage, hit.Value.Definition);
         Assert.Equal(stored.Value.Model, hit.Value.Model);
         Assert.Equal(stored.Value.Usage, hit.Value.Usage);
         Assert.Equal(stored.Value.Id, hit.Value.Id);
-        Assert.Equal(stored.Value.Provider, hit.Value.Provider);
+        Assert.Equal(stored.Value.UpstreamProvider, hit.Value.UpstreamProvider);
         for (var i = 0; i < 3; i++)
         {
             Assert.Equal(stored.Value.Answers[i].Probability, hit.Value.Answers[i].Probability);

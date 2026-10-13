@@ -53,7 +53,7 @@ internal sealed class CachedDecision
     /// <param name="cached">A response made with <see cref="DecisionResponse.AsCached"/>.</param>
     /// <returns>The entry.</returns>
     public static CachedDecision From(DecisionResponse cached)
-        => new(cached.Slots, cached.Probabilities, cached.Model, cached.InputTokens, cached.OutputTokens, cached.Cost, cached.Id, cached.Provider)
+        => new(cached.Slots, cached.Probabilities, cached.Model, cached.InputTokens, cached.OutputTokens, cached.Cost, cached.Id, cached.UpstreamProvider)
         {
             _response = cached,
         };

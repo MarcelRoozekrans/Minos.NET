@@ -62,7 +62,7 @@ public sealed class DecisionResponseTests
         Assert.Equal(3, response.OutputTokens);
         Assert.Null(response.Cost);
         Assert.Null(response.Id);
-        Assert.Null(response.Provider);
+        Assert.Null(response.UpstreamProvider);
         Assert.Same(Triage, response.Definition);
     }
 

@@ -88,7 +88,7 @@ public sealed class DecisionResponse
         int? outputTokens,
         double? cost,
         string? id,
-        string? provider,
+        string? upstreamProvider,
         bool isCached = false)
     {
         Definition = definition;
@@ -99,7 +99,7 @@ public sealed class DecisionResponse
         OutputTokens = outputTokens;
         Cost = cost;
         Id = id;
-        Provider = provider;
+        UpstreamProvider = upstreamProvider;
         IsCached = isCached;
     }
 
@@ -122,8 +122,11 @@ public sealed class DecisionResponse
     /// <summary>Gets the provider's response id, if any.</summary>
     public string? Id { get; }
 
-    /// <summary>Gets the upstream provider the response names, if any, such as OpenRouter's.</summary>
-    public string? Provider { get; }
+    /// <summary>
+    /// Gets the upstream provider an aggregator routed the call to, such as the host OpenRouter picked; <see langword="null"/>
+    /// when the provider is not an aggregator or did not say.
+    /// </summary>
+    public string? UpstreamProvider { get; }
 
     /// <summary>
     /// Gets a value indicating whether this response came from a cache stage, such as <c>UseCaching</c> in
@@ -148,10 +151,10 @@ public sealed class DecisionResponse
     // The minos.cache.hit tag's value: set on a cached response, absent otherwise, so an uncached span carries no tag.
     internal object? CacheHitTag => IsCached ? BoxedTrue : null;
 
-    /// <summary>A copy that a cache stores: the same answers, model, usage, id and provider, marked as cached.</summary>
+    /// <summary>A copy that a cache stores: the same answers, model, usage, id and upstream provider, marked as cached.</summary>
     /// <returns>A new response sharing this one's arrays.</returns>
     internal DecisionResponse AsCached()
-        => new(Definition, Slots, Probabilities, Model, InputTokens, OutputTokens, Cost, Id, Provider, isCached: true);
+        => new(Definition, Slots, Probabilities, Model, InputTokens, OutputTokens, Cost, Id, UpstreamProvider, isCached: true);
 
     // Publishes one instance: a thread that loses the race returns the winner's.
     private DecisionUsage? CreateUsage()

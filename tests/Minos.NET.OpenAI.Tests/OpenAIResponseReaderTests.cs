@@ -272,7 +272,7 @@ public sealed class OpenAIResponseReaderTests
 
         Assert.Equal("gpt-6-luna-2026-10-01", response.Model);
         Assert.Equal("dec_123", response.Id);
-        Assert.Null(response.Provider);
+        Assert.Null(response.UpstreamProvider);
     }
 
     [Fact]

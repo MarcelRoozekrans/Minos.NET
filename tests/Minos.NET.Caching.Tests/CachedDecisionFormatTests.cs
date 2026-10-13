@@ -57,7 +57,7 @@ public sealed class CachedDecisionFormatTests
         Assert.True(read.IsCached);
         Assert.Equal(original.Model, read.Model);
         Assert.Equal("gen-0001", read.Id);
-        Assert.Equal("Together", read.Provider);
+        Assert.Equal("Together", read.UpstreamProvider);
         Assert.Equal(original.Usage, read.Usage);
         Assert.Equal(original.Slots, read.Slots);
         Assert.Equal(original.Probabilities, read.Probabilities);

@@ -104,7 +104,7 @@ internal static class OpenAIResponseReader
 
             return answers is { } read
                 ? Result<DecisionResponse, DecisionError>.Success(
-                    new DecisionResponse(definition, read.Slots, read.Probabilities, model, inputTokens, outputTokens, cost, id, provider: null))
+                    new DecisionResponse(definition, read.Slots, read.Probabilities, model, inputTokens, outputTokens, cost, id, upstreamProvider: null))
                 : ResponseReading.Invalid("The response has no answers.");
         }
         catch (RefusalException refusal)
