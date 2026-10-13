@@ -54,6 +54,16 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
     public PackageContentTests(PackFixture fixture) => _fixture = fixture;
 
     [Fact]
+    public void Pack_WritesASymbolPackageBesideThePackage()
+    {
+        var symbols = Path.ChangeExtension(_fixture.NupkgPath, ".snupkg");
+
+        Assert.True(File.Exists(symbols), $"dotnet pack wrote no symbol package '{Path.GetFileName(symbols)}'.");
+        using var archive = ZipFile.OpenRead(symbols);
+        Assert.Contains(archive.Entries, entry => entry.FullName.EndsWith(".pdb", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void ShipsTheIconAtTheRoot_MatchingTheFileOnDisk()
     {
         XNamespace ns = "http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd";
