@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.0.0...v1.0.1) (2026-10-13)
+
+
+### Bug Fixes
+
+* **ci:** fail a release run when a version is already on nuget.org ([#194](https://github.com/MarcelRoozekrans/Minos.NET/issues/194)) ([820297c](https://github.com/MarcelRoozekrans/Minos.NET/commit/820297c83d20b0d81ba72b1836a641780e7a2651))
+
 ## [1.0.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.13.1...v1.0.0) (2026-10-13)
 
 
