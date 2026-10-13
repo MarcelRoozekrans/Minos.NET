@@ -51,6 +51,7 @@ public sealed class SurfaceRuleTests
     [InlineData("[Level, Criterion(\"x\")]", "Criterion", true)]
     [InlineData("[Score](https://x)", "Score", false)]
     [InlineData("see [Score](link) here", "Score", false)]
+    [InlineData("[Score][ref]", "Score", false)]
     public void An_attribute_is_named_by_its_usage_form_and_not_by_link_text(string text, string stem, bool expected)
         => Assert.Equal(expected, MentionsAttribute(text, stem, stem + "Attribute"));
 
@@ -135,7 +136,7 @@ public sealed class SurfaceRuleTests
             && (string.Equals(baseType.ToDisplayString(), "System.Attribute", StringComparison.Ordinal) || IsAttribute(baseType));
 
     private static bool MentionsAttribute(string text, string stem, string typeName)
-        => Regex.IsMatch(text, $@"(?:\[|,)\s*{Regex.Escape(stem)}\b(?=\s*[(,]|\s*\](?!\())", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(5))
+        => Regex.IsMatch(text, $@"(?:\[|,)\s*{Regex.Escape(stem)}\b(?=\s*[(,]|\s*\](?![(\[]))", RegexOptions.CultureInvariant, TimeSpan.FromSeconds(5))
             || Mentions(text, typeName);
 
     private static string ExpectedNamespace(INamedTypeSymbol type, string rootNamespace)
