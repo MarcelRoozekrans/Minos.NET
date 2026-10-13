@@ -78,23 +78,6 @@
     <IsPackable>false</IsPackable>
   </PropertyGroup>
 
-  <!--
-    Release packaging for the six packable projects.
-    - A .snupkg symbol package sits beside each .nupkg; nuget.org takes it with the same push.
-    - On GitHub Actions the packable projects build deterministically, so Source Link maps the PDBs to the repository's commit, not to the runner's paths.
-      The test projects stay out: deterministic paths turn [CallerFilePath] into /_/..., which breaks tests that read the source tree.
-    - Package validation checks each package for compatibility problems. Its baseline, the published 1.0.0, is set after the first release, #28.
-    This block must stay below the "Disable packing for test and benchmark projects" group, because its condition reads IsPackable as set there.
-  -->
-  <PropertyGroup Condition="'$(IsPackable)' != 'false'">
-    <IncludeSymbols>true</IncludeSymbols>
-    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
-    <EnablePackageValidation>true</EnablePackageValidation>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(IsPackable)' != 'false' And '$(GITHUB_ACTIONS)' == 'true'">
-    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
-  </PropertyGroup>
-
   <!-- Global analyzers (PrivateAssets=all — do not flow to consumers) -->
   <ItemGroup Condition="'$(IsRoslynComponent)' != 'true'">
     <PackageReference Include="Meziantou.Analyzer" PrivateAssets="all" />
