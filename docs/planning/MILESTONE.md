@@ -20,7 +20,7 @@ The OpenAI adapter ships as 1.0.0 too. Its docs and package description say that
 - [x] The whole public API, including the new stages, is reviewed, and `PublicAPI.Shipped.txt` describes 1.0.0.
 - [x] Live runs pass on the final API against TypeSafe, OpenRouter and a local `/v1/systemone` server.
 - [x] Wherever the OpenAI adapter is described, it is labelled unverified against the live API: the Providers page, its README and its NuGet description. A docs test pins the label.
-- [ ] Native AOT and trim checks cover the whole public API with no warnings. Every allocation budget is unchanged or tightened. The yielding checks use TestHelpers 1.7.0's async API (#104).
+- [x] Native AOT and trim checks cover the whole public API with no warnings. Every allocation budget is unchanged or tightened. The yielding checks use TestHelpers 1.7.0's async API (#104).
 - [ ] 1.0.0 of every package is on NuGet through release-please and Trusted Publishing (#29). The guide states the version, the site links to NuGet, and api-compat guards later changes (#28).
 
 **Out of scope:**
@@ -31,7 +31,7 @@ The OpenAI adapter ships as 1.0.0 too. Its docs and package description say that
 1. Phase 7.1 — Caching and rate-limiting stages [complete]
 2. Phase 7.2 — Public API review of the whole surface [complete]
 3. Phase 7.3 — Live verification on the final API [complete]
-4. Phase 7.4 — AOT, trim and benchmark re-verification [pending]
+4. Phase 7.4 — AOT, trim and benchmark re-verification [complete]
 5. Phase 7.5 — Publish 1.0 [pending]
 
 ## Audit History
