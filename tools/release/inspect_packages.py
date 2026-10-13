@@ -36,6 +36,19 @@ def _informational_version_found(dll: bytes, version: str) -> bool:
     )
 
 
+def _symbol_problems(directory: pathlib.Path, package: str, version: str) -> list[str]:
+    path = directory / f"{package}.{version}.snupkg"
+    if not path.is_file():
+        return [f"{package}: {path.name} is missing"]
+    try:
+        with zipfile.ZipFile(path) as archive:
+            if not any(name.endswith(f"{package}.pdb") for name in archive.namelist()):
+                return [f"{package}: {path.name} has no {package}.pdb"]
+    except zipfile.BadZipFile as exc:
+        return [f"{package}: {path.name} is not a valid symbol package: {exc}"]
+    return []
+
+
 def _package_problems(directory: pathlib.Path, package: str, version: str) -> list[str]:
     errors: list[str] = []
     path = directory / f"{package}.{version}.nupkg"
@@ -49,6 +62,10 @@ def _package_problems(directory: pathlib.Path, package: str, version: str) -> li
     except KeyError:
         return [f"{package}: {path.name} has no {package}.nuspec"]
 
+    declared_id = re.search(r"<id>([^<]+)</id>", nuspec)
+    if declared_id is None or declared_id.group(1) != package:
+        errors.append(f"{package}: nuspec id is {declared_id.group(1) if declared_id else 'missing'}, expected {package}")
+
     declared = re.search(r"<version>([^<]+)</version>", nuspec)
     if declared is None or declared.group(1) != version:
         errors.append(f"{package}: nuspec version is {declared.group(1) if declared else 'missing'}, expected {version}")
@@ -58,8 +75,7 @@ def _package_problems(directory: pathlib.Path, package: str, version: str) -> li
     elif not _informational_version_found(dll, version):
         errors.append(f"{package}: {package}.dll has no informational version {version}; was it built with -p:MinosRelease=true?")
 
-    if not (directory / f"{package}.{version}.snupkg").is_file():
-        errors.append(f"{package}: {package}.{version}.snupkg is missing")
+    errors.extend(_symbol_problems(directory, package, version))
 
     accepted = {version, f"[{version}, )", f"[{version},)"}
     found: dict[str, list[str]] = {}
@@ -73,6 +89,8 @@ def _package_problems(directory: pathlib.Path, package: str, version: str) -> li
         if dependency not in found:
             errors.append(f"{package} does not depend on {dependency}, expected {version}")
     for dependency, versions in found.items():
+        if dependency not in PACKAGES[package]:
+            errors.append(f"{package} depends on {dependency}, which is not one of its expected Minos dependencies")
         for dependency_version in versions:
             if dependency_version not in accepted:
                 errors.append(f"{package} depends on {dependency} {dependency_version}, expected {version}")
