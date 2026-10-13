@@ -84,7 +84,6 @@ internal sealed class PackedProject : IDisposable
             TimeSpan.FromMinutes(5),
             [
                 "pack", projectPath, "-c", configuration, "-o", _tempDir,
-                "-nodeReuse:false", "-p:UseSharedCompilation=false",
                 $"-p:NuspecOutputPath={nuspecOutputPath}", $"-p:PackageVersion={PackageVersion}",
             ]);
 

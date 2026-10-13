@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 
@@ -66,7 +65,6 @@ public sealed class VersionSchemeTests : IDisposable
             TimeSpan.FromMinutes(2),
             [
                 "msbuild", Path.Combine(root, "src", "Minos.NET", "Minos.NET.csproj"), "-nologo",
-                "-nodeReuse:false", "-p:UseSharedCompilation=false",
                 "-t:GetAssemblyVersion", $"-p:MinosReleaseManifest={_manifest}", $"-p:MinosRelease={(release ? "true" : "false")}",
                 "-getProperty:Version", "-getProperty:PackageVersion", "-getProperty:InformationalVersion",
                 "-getProperty:AssemblyVersion", "-getProperty:FileVersion",
