@@ -33,7 +33,7 @@ public sealed class CachedDecisionFormatTests
     {
         var stored = Stored();
         AnswerSlot[] slots = [stored.Slots[0], slot1, stored.Slots[2]];
-        return new CachedDecision(slots, stored.Probabilities, stored.Model, stored.InputTokens, stored.OutputTokens, stored.Cost, stored.Id, stored.Provider);
+        return new CachedDecision(slots, stored.Probabilities, stored.Model, stored.InputTokens, stored.OutputTokens, stored.Cost, stored.Id, stored.UpstreamProvider);
     }
 
     [Fact]

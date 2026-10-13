@@ -21,7 +21,7 @@ internal sealed class CachedDecision
     private DecisionResponse? _response;
 
     public CachedDecision(
-        AnswerSlot[] slots, double[] probabilities, string? model, int? inputTokens, int? outputTokens, double? cost, string? id, string? provider)
+        AnswerSlot[] slots, double[] probabilities, string? model, int? inputTokens, int? outputTokens, double? cost, string? id, string? upstreamProvider)
     {
         Slots = slots;
         Probabilities = probabilities;
@@ -30,7 +30,7 @@ internal sealed class CachedDecision
         OutputTokens = outputTokens;
         Cost = cost;
         Id = id;
-        Provider = provider;
+        UpstreamProvider = upstreamProvider;
     }
 
     public AnswerSlot[] Slots { get; }
@@ -47,7 +47,7 @@ internal sealed class CachedDecision
 
     public string? Id { get; }
 
-    public string? Provider { get; }
+    public string? UpstreamProvider { get; }
 
     /// <summary>The entry for a response that was just stored: it keeps <paramref name="cached"/> for its definition.</summary>
     /// <param name="cached">A response made with <see cref="DecisionResponse.AsCached"/>.</param>
@@ -71,7 +71,7 @@ internal sealed class CachedDecision
         }
 
         var built = Fits(definition)
-            ? new DecisionResponse(definition, Slots, Probabilities, Model, InputTokens, OutputTokens, Cost, Id, Provider, isCached: true)
+            ? new DecisionResponse(definition, Slots, Probabilities, Model, InputTokens, OutputTokens, Cost, Id, UpstreamProvider, isCached: true)
             : null;
         if (kept is null && built is not null)
         {
