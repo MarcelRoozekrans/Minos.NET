@@ -506,6 +506,62 @@ public sealed class ClientAndErrorsTests
         }
     }
 
+    [Fact]
+    public async Task RouteAsync_SendsAChoiceQuestion_AndReadsTheChoiceAndItsConfidence()
+    {
+        const string body = """{"model":"jev-1.13.0","answers":{"team":{"type":"choice","choice":"billing","probabilities":{"billing":0.8,"technical":0.15,"other":0.05},"confidence":0.77}},"usage":{"input_tokens":9,"output_tokens":1}}""";
+        var (http, client, requests) = ScriptedDecision.Client(ScriptedDecision.Quick(0), Reply.Ok(body));
+        using (http)
+        using (client)
+        {
+            Assert.Equal("billing (77 % sure)", await RawChoiceRequests.RouteAsync(client, "My invoice is wrong.", CancellationToken.None));
+        }
+
+        var sent = JsonDocument.Parse(Assert.Single(requests).Body).RootElement.GetProperty("questions").GetProperty("team");
+        Assert.Equal("choice", sent.GetProperty("type").GetString());
+        Assert.Equal(JsonValueKind.Null, sent.GetProperty("criteria").GetProperty("other").ValueKind);
+    }
+
+    // The question types table lists every kind of question, and what its Criteria holds.
+    [Fact]
+    public void TheQuestionTypesTable_ListsEveryQuestionType()
+    {
+        var rows = PageTables.Rows("client-and-errors.md", "The question types");
+
+        var types = typeof(Question).Assembly.GetTypes()
+            .Where(type => type.IsSubclassOf(typeof(Question)))
+            .Select(type => type.Name);
+        Assert.Equal(types.Order(StringComparer.Ordinal), rows.Select(row => PageTables.Code(row[0])).Order(StringComparer.Ordinal));
+        var cells = rows.ToDictionary(row => PageTables.Code(row[0]), row => row[1], StringComparer.Ordinal);
+        Assert.Equal(["NoulCriteria", "WhenTrue", "WhenFalse"], PageTables.AllCode(cells[nameof(NoulQuestion)]).Take(3));
+    }
+
+    // The answer types table lists every kind of answer with each of its members.
+    [Fact]
+    public void TheAnswerTypesTable_ListsEveryAnswerMember()
+    {
+        var rows = PageTables.Rows("client-and-errors.md", "The answer types");
+
+        var answers = typeof(Answer).Assembly.GetTypes().Where(type => type.IsSubclassOf(typeof(Answer))).ToArray();
+        Assert.Equal(
+            answers.Select(type => type.Name).Order(StringComparer.Ordinal),
+            rows.Select(row => PageTables.Code(row[0])).Order(StringComparer.Ordinal));
+        var cells = rows.ToDictionary(row => PageTables.Code(row[0]), row => row[1], StringComparer.Ordinal);
+        foreach (var type in answers)
+        {
+            var members = new List<string>();
+            foreach (var property in type.GetProperties(System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.DeclaredOnly))
+            {
+                members.Add(property.Name);
+            }
+
+            members.Sort(StringComparer.Ordinal);
+            var listed = PageTables.AllCode(cells[type.Name]);
+            Array.Sort(listed, StringComparer.Ordinal);
+            Assert.Equal(members, listed);
+        }
+    }
+
     // The SystemOneDefaults table lists every public member of the class, with the values the class holds.
     [Fact]
     public void TheDecisionDefaultsTable_ListsEveryMemberWithItsValue()

@@ -188,6 +188,46 @@ public static class RawRequests
     #endregion
 }
 
+public static class RawChoiceRequests
+{
+    #region ClientAndErrors_RawChoice
+    // A ChoiceQuestion maps each option to a description, or to null when the option needs none. Its answer is a
+    // ChoiceAnswer: the highest-probability option and how certain the model is of it.
+    public static async Task<string> RouteAsync(
+        SystemOneDecisionClient client, string message, CancellationToken cancellationToken)
+    {
+        var result = await client.EvaluateAsync(
+            new SystemOneRequest
+            {
+                State = message,
+                Questions = new Dictionary<string, Question>
+                {
+                    ["team"] = new ChoiceQuestion
+                    {
+                        Instructions = "Which team should handle this?",
+                        Criteria = new Dictionary<string, DecisionContent?>
+                        {
+                            ["billing"] = "Payments, invoicing, refunds",
+                            ["technical"] = "Bugs, outages, integrations",
+                            ["other"] = null,
+                        },
+                    },
+                },
+            },
+            cancellationToken);
+
+        if (result.IsFailure)
+        {
+            return ClientFailures.Describe(result.Error);
+        }
+
+        return result.Value.Answers["team"] is ChoiceAnswer team
+            ? $"{team.Choice} ({team.Confidence * 100:0} % sure)"
+            : "Unexpected answer type.";
+    }
+    #endregion
+}
+
 public static class ModelListing
 {
     #region ClientAndErrors_Models

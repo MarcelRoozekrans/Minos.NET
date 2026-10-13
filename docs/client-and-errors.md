@@ -490,6 +490,69 @@ where the generator, the [analyzers](diagnostics.md) and the
 `Questions`, a null question or a question whose `Instructions` is the default value, throws an `ArgumentException` before
 anything is sent.
 
+### The question types
+
+A raw request takes three kinds of question. Each has `Instructions`, what the model should evaluate, and a `Criteria`
+that gives the model more to go on. They differ in what `Criteria` holds and in the answer that comes back.
+
+| Type | What `Criteria` holds | Answer |
+| --- | --- | --- |
+| `NoulQuestion` | Optional. A `NoulCriteria` with `WhenTrue` and `WhenFalse`, each a description of what a yes or a no means, or `null`. | `NoulAnswer` |
+| `ChoiceQuestion` | Required. A dictionary that maps each option to a description, or to `null` when the option needs none. | `ChoiceAnswer` |
+| `ScoreQuestion` | Required. A list of level descriptions, lowest first. | `ScoreAnswer` |
+
+This request asks a `ChoiceQuestion` and reads the `Choice` and the `Confidence` of the `ChoiceAnswer`.
+
+<!-- snippet: ClientAndErrors_RawChoice -->
+```cs
+// A ChoiceQuestion maps each option to a description, or to null when the option needs none. Its answer is a
+// ChoiceAnswer: the highest-probability option and how certain the model is of it.
+public static async Task<string> RouteAsync(
+    SystemOneDecisionClient client, string message, CancellationToken cancellationToken)
+{
+    var result = await client.EvaluateAsync(
+        new SystemOneRequest
+        {
+            State = message,
+            Questions = new Dictionary<string, Question>
+            {
+                ["team"] = new ChoiceQuestion
+                {
+                    Instructions = "Which team should handle this?",
+                    Criteria = new Dictionary<string, DecisionContent?>
+                    {
+                        ["billing"] = "Payments, invoicing, refunds",
+                        ["technical"] = "Bugs, outages, integrations",
+                        ["other"] = null,
+                    },
+                },
+            },
+        },
+        cancellationToken);
+
+    if (result.IsFailure)
+    {
+        return ClientFailures.Describe(result.Error);
+    }
+
+    return result.Value.Answers["team"] is ChoiceAnswer team
+        ? $"{team.Choice} ({team.Confidence * 100:0} % sure)"
+        : "Unexpected answer type.";
+}
+```
+<!-- endSnippet -->
+
+### The answer types
+
+An answer is a `NoulAnswer`, a `ChoiceAnswer` or a `ScoreAnswer`, under the id of its question. Where an answer
+has `Probabilities`, they sum to 1.
+
+| Type | Members |
+| --- | --- |
+| `NoulAnswer` | `Noul`: the answer on a scale from 0 (no) to 1 (yes). |
+| `ChoiceAnswer` | `Choice`: the highest-probability option. `Probabilities`: every option mapped to its probability. `Confidence`: how certain the model is, from 0 to 1. |
+| `ScoreAnswer` | `Score`: the probability-weighted level, which can land between levels. `Legend`: each level index, as a string, mapped back to its description. `Probabilities`: each level index mapped to its probability. `Confidence`: how certain the model is, from 0 to 1. |
+
 ### When your code has its own Question or Answer
 
 The raw API's base types are `Minos.SystemOne.Question` and `Minos.SystemOne.Answer`. If your application has a
