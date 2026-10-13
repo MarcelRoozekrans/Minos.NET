@@ -44,6 +44,11 @@ public sealed class QuestionDefinition
     /// <param name="whenTrue">What a yes answer means, or <see langword="null"/>.</param>
     /// <param name="whenFalse">What a no answer means, or <see langword="null"/>.</param>
     /// <returns>The question.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="key"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="key"/> is empty, or <paramref name="instructions"/>, <paramref name="whenTrue"/> or
+    /// <paramref name="whenFalse"/> is uninitialized.
+    /// </exception>
     public static QuestionDefinition Noul(string key, DecisionContent instructions, DecisionContent? whenTrue = null, DecisionContent? whenFalse = null)
         => new(CheckKey(key), QuestionKind.Noul, Checked(instructions), CheckedOrNull(whenTrue, nameof(whenTrue)), CheckedOrNull(whenFalse, nameof(whenFalse)), []);
 
@@ -52,8 +57,10 @@ public sealed class QuestionDefinition
     /// <param name="instructions">What the model is asked.</param>
     /// <param name="options">The options, in wire order.</param>
     /// <returns>The question.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="key"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException">
-    /// <paramref name="options"/> is empty, contains <see langword="null"/>, or repeats an option key.
+    /// <paramref name="key"/> is empty, <paramref name="instructions"/> is uninitialized, or <paramref name="options"/> is
+    /// empty, contains <see langword="null"/>, or repeats an option key.
     /// </exception>
     public static QuestionDefinition Choice(string key, DecisionContent instructions, params ReadOnlySpan<OptionDefinition> options)
     {
@@ -86,7 +93,11 @@ public sealed class QuestionDefinition
     /// <param name="instructions">What the model is asked.</param>
     /// <param name="levels">What each level means, lowest first.</param>
     /// <returns>The question.</returns>
-    /// <exception cref="ArgumentException"><paramref name="levels"/> is empty or contains <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="key"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">
+    /// <paramref name="key"/> is empty, <paramref name="instructions"/> is uninitialized, or <paramref name="levels"/> is
+    /// empty or contains <see langword="null"/>.
+    /// </exception>
     public static QuestionDefinition Score(string key, DecisionContent instructions, params ReadOnlySpan<Criterion> levels)
     {
         if (levels.IsEmpty)
