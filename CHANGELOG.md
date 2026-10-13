@@ -1,5 +1,72 @@
 # Changelog
 
+## [0.13.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.12.0...v0.13.0) (2026-10-13)
+
+
+### ⚠ BREAKING CHANGES
+
+* **core:** DecisionClientMetadata.Endpoint now includes the path, so cache keys change and a distributed cache starts cold.
+* **core:** [Criteria] is now [Criterion].
+* **core:** The built-set EvaluateAsync overloads return QuestionSetAnswers.
+* **core:** Named arguments Definition: and State: become definition: and state:.
+* **core:** Use TryGetString instead.
+* **core:** QuestionAnswer.Value is now Probability for a Noul and Expected for a Score.
+* **core:** Choice, Score, KeyedChoice and KeyedScore can no longer be constructed directly; test through a fake IDecisionClient.
+* **core:** DecisionResponse.Provider is now UpstreamProvider.
+* **core:** DecisionUsage.InputTokens and OutputTokens are int?, and Usage is set when any count or the cost is reported.
+* **core:** DecisionCapabilities.Images and ModelListing, and their configuration keys, are now SupportsImages and SupportsModelListing.
+* **systemone:** SystemOneClient, SystemOneClientOptions, SystemOneClientServiceBuilder and AddSystemOneClient are now SystemOneDecisionClient, SystemOneDecisionClientOptions, SystemOneDecisionClientServiceBuilder and AddSystemOneDecisionClient.
+* **systemone:** SystemOneDefaults.ApiKeyEnvironmentVariable and BaseAddressEnvironmentVariable are now TypeSafeApiKeyEnvironmentVariable and TypeSafeBaseAddressEnvironmentVariable.
+* **systemone:** SystemOneResponse.Provider is now UpstreamProvider; the wire name is unchanged.
+* **systemone:** Callers built against ListModelsAsync recompile.
+* **systemone:** A malformed raw SystemOneRequest throws ArgumentException before sending, and one with no Model sends the client's configured model instead of jev-latest.
+* **caching:** Remove using Minos.Caching and using Minos.RateLimiting.
+* **caching:** Expiration and LocalCacheExpiration above 365 days throw ArgumentOutOfRangeException.
+* **caching:** A call on a disposed caching or rate-limiting stage throws ObjectDisposedException.
+* **openai:** Registered OpenAI and System One clients wait on the container's TimeProvider when one is registered.
+
+### Features
+
+* **caching:** DecisionCacheOptions.UseDistributedCache turns the distributed level off ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+* **core:** add GetRequiredService to DecisionClientExtensions ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+* **core:** let a stage set Id, UpstreamProvider and IsCached on a response ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+* **core:** make the DecisionError constructor that takes failures public ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+* **core:** the client endpoint is the full address calls go to ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+
+
+### Bug Fixes
+
+* **caching:** refuse an expiration above 365 days ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+* **caching:** throw ObjectDisposedException from a disposed caching or rate-limiting stage ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+* **core:** keep partial usage on DecisionResponse ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+* **core:** treat a usage that reports nothing as no usage ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+* **openai:** wait on the container's TimeProvider in a registered client's own retries ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+* **systemone:** accept a raw usage object with one token count missing ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+* **systemone:** validate a raw request and send the client's model when it names none ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+
+
+### Code Refactoring
+
+* **caching:** move the caching and rate-limiting stages into the Minos namespace ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+* **core:** DecisionRequest constructor parameters are camelCase ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+* **core:** make the map-taking answer constructors internal ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+* **core:** name the capability flags SupportsImages and SupportsModelListing ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+* **core:** remove DecisionContent.IsString ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+* **core:** rename Answers to QuestionSetAnswers ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+* **core:** rename DecisionResponse.Provider to UpstreamProvider ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+* **core:** rename the Criteria attribute to Criterion ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+* **core:** split QuestionAnswer.Value into Probability and Expected ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+* **systemone:** name the System One client family SystemOneDecisionClient ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+* **systemone:** prefix the TypeSafe environment variable constants with TypeSafe ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+* **systemone:** rename SystemOneResponse.Provider to UpstreamProvider ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+* **systemone:** replace the optional token on ListModelsAsync with an overload pair ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+
+
+### Documentation
+
+* **openai:** label the OpenAI client as not yet tested against the live API ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+* upgrading to 1.0, the renames and behaviour changes ([91cc456](https://github.com/MarcelRoozekrans/Minos.NET/commit/91cc4569dca053d7683dc330ec3bc18e98ecb484))
+
 ## [0.12.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.11.4...v0.12.0) (2026-10-12)
 
 
