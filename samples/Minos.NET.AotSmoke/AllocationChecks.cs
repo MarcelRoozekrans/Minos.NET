@@ -5,9 +5,7 @@ using System.Threading.RateLimiting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
-using Minos.Caching;
 using Minos.OpenAI;
-using Minos.RateLimiting;
 using Minos.Shared;
 using Minos.SystemOne;
 using ZeroAlloc.Results;
@@ -210,7 +208,7 @@ internal static class AllocationChecks
             passDescription: "a DelegatingDecisionClient that adds nothing allocates nothing");
     }
 
-    /// <summary>A <see cref="Minos.Caching.CachingDecisionClient"/> answering from its in-process cache.</summary>
+    /// <summary>A <see cref="Minos.CachingDecisionClient"/> answering from its in-process cache.</summary>
     public static void CacheHit()
     {
         var services = new ServiceCollection();
@@ -230,7 +228,7 @@ internal static class AllocationChecks
             passDescription: "an in-process cache hit stays within its allocation budget");
     }
 
-    /// <summary>A <see cref="Minos.RateLimiting.RateLimitingDecisionClient"/> granting a token-bucket permit around a client that allocates nothing.</summary>
+    /// <summary>A <see cref="Minos.RateLimitingDecisionClient"/> granting a token-bucket permit around a client that allocates nothing.</summary>
     public static void GrantedPermit()
     {
         using var limiter = new TokenBucketRateLimiter(new TokenBucketRateLimiterOptions

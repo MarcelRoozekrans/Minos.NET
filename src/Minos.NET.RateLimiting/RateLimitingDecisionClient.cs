@@ -1,7 +1,7 @@
 using System.Threading.RateLimiting;
 using ZeroAlloc.Results;
 
-namespace Minos.RateLimiting;
+namespace Minos;
 
 /// <summary>A stage that takes one permit from a <see cref="RateLimiter"/> for each call, before the call is sent.</summary>
 /// <remarks>

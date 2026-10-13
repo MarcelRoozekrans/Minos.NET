@@ -2,7 +2,7 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 
-namespace Minos.Caching;
+namespace Minos;
 
 /// <summary>Adds <see cref="CachingDecisionClient"/> to a pipeline.</summary>
 public static class CachingDecisionClientBuilderExtensions

@@ -2,8 +2,6 @@ namespace Minos.Docs.Tests;
 
 using System.Threading.RateLimiting;
 using Microsoft.Extensions.DependencyInjection;
-using Minos.Caching;
-using Minos.RateLimiting;
 using Minos.SystemOne;
 
 public static class CachedPipeline

@@ -1,4 +1,4 @@
-namespace Minos.Caching;
+namespace Minos;
 
 /// <summary>Settings for the cache stage that <see cref="CachingDecisionClientBuilderExtensions.UseCaching"/> adds.</summary>
 public sealed class DecisionCacheOptions

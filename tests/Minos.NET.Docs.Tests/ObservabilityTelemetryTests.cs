@@ -4,7 +4,6 @@ using System.Globalization;
 using System.Net;
 using System.Text;
 using Microsoft.Extensions.DependencyInjection;
-using Minos.Caching;
 using Minos.SystemOne;
 
 namespace Minos.Docs.Tests;

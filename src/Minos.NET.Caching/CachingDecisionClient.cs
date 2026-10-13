@@ -1,9 +1,10 @@
 using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
+using Minos.Caching;
 using ZeroAlloc.Results;
 
-namespace Minos.Caching;
+namespace Minos;
 
 /// <summary>
 /// A stage that answers a repeated request from an in-process <see cref="IMemoryCache"/>, then from an optional

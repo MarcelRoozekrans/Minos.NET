@@ -130,7 +130,6 @@ public sealed class CachingPackageTests : IClassFixture<CachingPackFixture>
             using System;
             using Microsoft.Extensions.DependencyInjection;
             using Minos;
-            using Minos.Caching;
 
             namespace Consumer;
 

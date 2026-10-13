@@ -2,17 +2,16 @@ using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
-using Minos.Caching;
 
 namespace Minos.AotSmoke;
 
 /// <summary>The caching stage under Native AOT: a miss and a hit in the in-process cache, the identity of the stored response, a read served by the distributed level to a cold in-process cache, and the options a hand-built client keeps.</summary>
 internal static class CachingChecks
 {
-    [Covers("Minos.Caching.CachingDecisionClient.CachingDecisionClient(Minos.IDecisionClient! innerClient, Microsoft.Extensions.Caching.Memory.IMemoryCache! memoryCache, Microsoft.Extensions.Caching.Distributed.IDistributedCache? distributedCache = null, Minos.Caching.DecisionCacheOptions? options = null, Microsoft.Extensions.Logging.ILogger? logger = null) -> void")]
-    [Covers("Minos.Caching.DecisionCacheOptions.DecisionCacheOptions() -> void")]
-    [Covers("override Minos.Caching.CachingDecisionClient.EvaluateAsync(Minos.DecisionRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>")]
-    [Covers("static Minos.Caching.CachingDecisionClientBuilderExtensions.UseCaching(this Minos.DecisionClientBuilder! builder, Microsoft.Extensions.Caching.Memory.IMemoryCache? memoryCache = null, Microsoft.Extensions.Caching.Distributed.IDistributedCache? distributedCache = null, System.Action<Minos.Caching.DecisionCacheOptions!>? configure = null) -> Minos.DecisionClientBuilder!")]
+    [Covers("Minos.CachingDecisionClient.CachingDecisionClient(Minos.IDecisionClient! innerClient, Microsoft.Extensions.Caching.Memory.IMemoryCache! memoryCache, Microsoft.Extensions.Caching.Distributed.IDistributedCache? distributedCache = null, Minos.DecisionCacheOptions? options = null, Microsoft.Extensions.Logging.ILogger? logger = null) -> void")]
+    [Covers("Minos.DecisionCacheOptions.DecisionCacheOptions() -> void")]
+    [Covers("override Minos.CachingDecisionClient.EvaluateAsync(Minos.DecisionRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>")]
+    [Covers("static Minos.CachingDecisionClientBuilderExtensions.UseCaching(this Minos.DecisionClientBuilder! builder, Microsoft.Extensions.Caching.Memory.IMemoryCache? memoryCache = null, Microsoft.Extensions.Caching.Distributed.IDistributedCache? distributedCache = null, System.Action<Minos.DecisionCacheOptions!>? configure = null) -> Minos.DecisionClientBuilder!")]
     public static async Task RepeatIsAnsweredFromTheCache()
     {
         var services = new ServiceCollection();

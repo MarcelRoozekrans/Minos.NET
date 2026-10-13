@@ -1,6 +1,6 @@
 #nullable enable
-Minos.RateLimiting.RateLimitingDecisionClient
-Minos.RateLimiting.RateLimitingDecisionClient.RateLimitingDecisionClient(Minos.IDecisionClient! innerClient, System.Threading.RateLimiting.RateLimiter! limiter) -> void
-Minos.RateLimiting.RateLimitingDecisionClientBuilderExtensions
-override Minos.RateLimiting.RateLimitingDecisionClient.EvaluateAsync(Minos.DecisionRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>
-static Minos.RateLimiting.RateLimitingDecisionClientBuilderExtensions.UseRateLimiting(this Minos.DecisionClientBuilder! builder, System.Threading.RateLimiting.RateLimiter! limiter) -> Minos.DecisionClientBuilder!
+Minos.RateLimitingDecisionClient
+Minos.RateLimitingDecisionClient.RateLimitingDecisionClient(Minos.IDecisionClient! innerClient, System.Threading.RateLimiting.RateLimiter! limiter) -> void
+Minos.RateLimitingDecisionClientBuilderExtensions
+override Minos.RateLimitingDecisionClient.EvaluateAsync(Minos.DecisionRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>
+static Minos.RateLimitingDecisionClientBuilderExtensions.UseRateLimiting(this Minos.DecisionClientBuilder! builder, System.Threading.RateLimiting.RateLimiter! limiter) -> Minos.DecisionClientBuilder!

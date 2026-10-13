@@ -1,7 +1,5 @@
 using System.Threading.RateLimiting;
 using Microsoft.Extensions.DependencyInjection;
-using Minos.Caching;
-using Minos.RateLimiting;
 using Minos.SystemOne;
 
 namespace Minos.Docs.Tests;

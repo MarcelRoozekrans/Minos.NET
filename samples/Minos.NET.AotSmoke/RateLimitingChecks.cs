@@ -1,14 +1,13 @@
 using System.Threading.RateLimiting;
-using Minos.RateLimiting;
 
 namespace Minos.AotSmoke;
 
 /// <summary>The rate-limiting stage under Native AOT: a granted call, a rejected one, and the builder extension.</summary>
 internal static class RateLimitingChecks
 {
-    [Covers("Minos.RateLimiting.RateLimitingDecisionClient.RateLimitingDecisionClient(Minos.IDecisionClient! innerClient, System.Threading.RateLimiting.RateLimiter! limiter) -> void")]
-    [Covers("override Minos.RateLimiting.RateLimitingDecisionClient.EvaluateAsync(Minos.DecisionRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>")]
-    [Covers("static Minos.RateLimiting.RateLimitingDecisionClientBuilderExtensions.UseRateLimiting(this Minos.DecisionClientBuilder! builder, System.Threading.RateLimiting.RateLimiter! limiter) -> Minos.DecisionClientBuilder!")]
+    [Covers("Minos.RateLimitingDecisionClient.RateLimitingDecisionClient(Minos.IDecisionClient! innerClient, System.Threading.RateLimiting.RateLimiter! limiter) -> void")]
+    [Covers("override Minos.RateLimitingDecisionClient.EvaluateAsync(Minos.DecisionRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>")]
+    [Covers("static Minos.RateLimitingDecisionClientBuilderExtensions.UseRateLimiting(this Minos.DecisionClientBuilder! builder, System.Threading.RateLimiting.RateLimiter! limiter) -> Minos.DecisionClientBuilder!")]
     public static async Task GrantedCallsGoAndARejectedOneIsNotSent()
     {
         using var limiter = new FixedWindowRateLimiter(new FixedWindowRateLimiterOptions
