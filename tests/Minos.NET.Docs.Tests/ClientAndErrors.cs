@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.Json;
 namespace Minos.Docs.Tests;
 
@@ -181,7 +182,7 @@ public static class RawRequests
         // Answers are keyed by the ids from the request, and each one is a NoulAnswer, ChoiceAnswer or ScoreAnswer.
         var response = result.Value;
         return response.Answers["is_urgent"] is NoulAnswer urgent
-            ? $"{response.Model}: {urgent.Noul * 100:0} %, {response.Usage.InputTokens} input tokens"
+            ? $"{response.Model}: {urgent.Noul * 100:0} %, {response.Usage.InputTokens?.ToString(CultureInfo.InvariantCulture) ?? "an unknown number of"} input tokens"
             : "Unexpected answer type.";
     }
     #endregion

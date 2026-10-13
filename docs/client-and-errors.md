@@ -468,7 +468,7 @@ public static async Task<string> UrgencyAsync(
     // Answers are keyed by the ids from the request, and each one is a NoulAnswer, ChoiceAnswer or ScoreAnswer.
     var response = result.Value;
     return response.Answers["is_urgent"] is NoulAnswer urgent
-        ? $"{response.Model}: {urgent.Noul * 100:0} %, {response.Usage.InputTokens} input tokens"
+        ? $"{response.Model}: {urgent.Noul * 100:0} %, {response.Usage.InputTokens?.ToString(CultureInfo.InvariantCulture) ?? "an unknown number of"} input tokens"
         : "Unexpected answer type.";
 }
 ```
@@ -477,7 +477,7 @@ public static async Task<string> UrgencyAsync(
 A `SystemOneRequest` has a required `State`, which is a `DecisionContent` (text converts to one, as
 [typed evaluation](typed-evaluation.md#decisioncontent) describes), a `Model` that defaults to `jev-latest`, and required
 `Questions`. The response is a `SystemOneResponse`: the versioned `Model` that answered, `Answers` keyed by the ids you
-sent, and `Usage` with the input and output token counts. On OpenRouter the response also
+sent, and `Usage` with the input and output token counts; a count the server left out is `null`. On OpenRouter the response also
 carries the generation `Id` and the upstream `Provider`, and `Usage` carries the `Cost` in US dollars.
 
 Each answer is a `NoulAnswer`, a `ChoiceAnswer` or a `ScoreAnswer`, so you pattern-match to read it. The typed forms do
