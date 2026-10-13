@@ -286,6 +286,32 @@ public sealed class RateLimitingDecisionClientTests
     }
 
     [Fact]
+    public async Task A_call_after_Dispose_throws_even_when_the_limiter_has_no_permit()
+    {
+        using var limiter = Concurrency(1);
+        var inner = new Inner();
+        var stage = new RateLimitingDecisionClient(inner, limiter);
+        using var held = limiter.AttemptAcquire(1);
+        Assert.True(held.IsAcquired);
+        var rejected = await stage.EvaluateAsync(Request);
+        Assert.Equal(DecisionErrorKind.RateLimited, rejected.Error.Kind);
+
+        stage.Dispose();
+
+        await Assert.ThrowsAsync<ObjectDisposedException>(async () => await stage.EvaluateAsync(Request));
+    }
+
+    [Fact]
+    public async Task A_call_on_a_disposed_limiter_throws_ObjectDisposedException()
+    {
+        var limiter = Concurrency(1);
+        using var stage = new RateLimitingDecisionClient(new Inner(), limiter);
+        limiter.Dispose();
+
+        await Assert.ThrowsAsync<ObjectDisposedException>(async () => await stage.EvaluateAsync(Request));
+    }
+
+    [Fact]
     public void The_constructor_and_UseRateLimiting_refuse_null()
     {
         using var limiter = Concurrency(1);

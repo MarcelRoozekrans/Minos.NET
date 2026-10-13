@@ -484,6 +484,21 @@ public sealed class CachingDecisionClientTests
     }
 
     [Fact]
+    public async Task A_call_after_Dispose_throws_even_when_the_cache_holds_the_answer()
+    {
+        using var memory = Responses.Memory();
+        var inner = new ScriptedClient(TypeSafe);
+        var stage = new CachingDecisionClient(inner, memory);
+        await stage.EvaluateAsync(Responses.Request());
+        Assert.True(memory.TryGetValue(Key(), out _));
+
+        stage.Dispose();
+
+        await Assert.ThrowsAsync<ObjectDisposedException>(async () => await stage.EvaluateAsync(Responses.Request()));
+        Assert.Equal(1, inner.Calls);
+    }
+
+    [Fact]
     public async Task The_stage_refuses_null()
     {
         using var memory = Responses.Memory();

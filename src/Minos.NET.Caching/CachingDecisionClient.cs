@@ -45,6 +45,7 @@ public sealed class CachingDecisionClient : DelegatingDecisionClient
     private readonly string _keyPrefix;
     private readonly MemoryCacheEntryOptions _localOptions;
     private readonly DistributedCacheEntryOptions _distributedOptions;
+    private volatile bool _disposed;
 
     /// <summary>Initializes a new instance of the <see cref="CachingDecisionClient"/> class.</summary>
     /// <param name="innerClient">The client whose answers are cached.</param>
@@ -87,9 +88,11 @@ public sealed class CachingDecisionClient : DelegatingDecisionClient
     }
 
     /// <inheritdoc />
+    /// <exception cref="ObjectDisposedException">The stage is disposed.</exception>
     public override ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
+        ObjectDisposedException.ThrowIf(_disposed, this);
         var key = DecisionCacheKey.Create(request, _provider, _endpoint, _defaultModel, _keyPrefix);
         if (_memory.TryGetValue(key, out var stored) && stored is CachedDecision entry
             && entry.ResponseFor(request.Definition) is { } hit)
@@ -162,5 +165,12 @@ public sealed class CachingDecisionClient : DelegatingDecisionClient
                 DecisionLog.CacheWriteFailed(_logger, _provider, exception);
             }
         }
+    }
+
+    /// <inheritdoc />
+    protected override void Dispose(bool disposing)
+    {
+        _disposed = true;
+        base.Dispose(disposing);
     }
 }
