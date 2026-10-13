@@ -186,8 +186,9 @@ public static IServiceCollection AddCachedDecisions(IServiceCollection services,
   write that throws leaves the answer out of the distributed cache, logged as event 1008; the answer is still returned
   and kept in process. Cancelling the call still throws `OperationCanceledException`.
 - **`DecisionCacheOptions`** sets `Expiration`, 5 minutes by default, for both levels; `LocalCacheExpiration`, to keep
-  the in-process copy for a different time; and `KeyPrefix`, `minos:` by default, to keep apps that share a cache
-  apart. Each in-process entry has a `Size` of 1, so an `IMemoryCache` with a `SizeLimit` counts entries.
+  the in-process copy for a different time; `KeyPrefix`, `minos:` by default, to keep apps that share a cache
+  apart; and `UseDistributedCache`, on by default, which you turn off when the app's `IDistributedCache` serves
+  something else, such as session state. Each in-process entry has a `Size` of 1, so an `IMemoryCache` with a `SizeLimit` counts entries.
 
 ## Limiting the call rate
 

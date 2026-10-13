@@ -52,6 +52,7 @@ public sealed class CachingDecisionClient : DelegatingDecisionClient
     /// <param name="options">The expiry and key prefix; <see langword="null"/> for the defaults.</param>
     /// <param name="logger">Receives events 1007 and 1008 when the distributed cache fails; <see langword="null"/> to log nothing.</param>
     /// <exception cref="ArgumentNullException"><paramref name="innerClient"/> or <paramref name="memoryCache"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="distributedCache"/> is set and <paramref name="options"/> has <see cref="DecisionCacheOptions.UseDistributedCache"/> set to <see langword="false"/>.</exception>
     public CachingDecisionClient(
         IDecisionClient innerClient,
         IMemoryCache memoryCache,
@@ -62,6 +63,12 @@ public sealed class CachingDecisionClient : DelegatingDecisionClient
     {
         ArgumentNullException.ThrowIfNull(memoryCache);
         options ??= new DecisionCacheOptions();
+        if (!options.UseDistributedCache && distributedCache is not null)
+        {
+            throw new ArgumentException(
+                "A distributed cache was passed with DecisionCacheOptions.UseDistributedCache set to false.", nameof(distributedCache));
+        }
+
         _memory = memoryCache;
         _distributed = distributedCache;
         _logger = logger;

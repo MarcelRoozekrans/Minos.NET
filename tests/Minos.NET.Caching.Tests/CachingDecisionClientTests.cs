@@ -14,6 +14,18 @@ public sealed class CachingDecisionClientTests
         => DecisionCacheKey.Create(Responses.Request(), "typesafe", "https://api.typesafe.ai/", "jev-latest", prefix);
 
     [Fact]
+    public void The_constructor_rejects_a_distributed_cache_with_UseDistributedCache_off()
+    {
+        using var memory = Responses.Memory();
+        var options = new DecisionCacheOptions { UseDistributedCache = false };
+
+        var error = Assert.Throws<ArgumentException>(
+            () => new CachingDecisionClient(new ScriptedClient(), memory, new CountingDistributedCache(), options));
+
+        Assert.Equal("distributedCache", error.ParamName);
+    }
+
+    [Fact]
     public async Task A_miss_calls_the_provider_and_returns_its_response_uncached()
     {
         using var memory = Responses.Memory();

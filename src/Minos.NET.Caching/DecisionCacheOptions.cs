@@ -45,4 +45,13 @@ public sealed class DecisionCacheOptions
             field = value;
         }
     } = "minos:";
+
+    /// <summary>
+    /// Gets or sets whether the stage uses a distributed cache. Set it to <see langword="false"/> when the app's
+    /// <see cref="Microsoft.Extensions.Caching.Distributed.IDistributedCache"/> serves something else, such as session
+    /// state: the stage then caches in process only, and <see cref="CachingDecisionClientBuilderExtensions.UseCaching"/>
+    /// takes no distributed cache from the services.
+    /// </summary>
+    /// <value>Defaults to <see langword="true"/>.</value>
+    public bool UseDistributedCache { get; set; } = true;
 }

@@ -3,13 +3,14 @@ namespace Minos.Caching.Tests;
 public sealed class DecisionCacheOptionsTests
 {
     [Fact]
-    public void The_defaults_are_five_minutes_the_same_locally_and_the_minos_prefix()
+    public void The_defaults_are_five_minutes_the_same_locally_the_minos_prefix_and_the_distributed_cache_on()
     {
         var options = new DecisionCacheOptions();
 
         Assert.Equal(TimeSpan.FromMinutes(5), options.Expiration);
         Assert.Null(options.LocalCacheExpiration);
         Assert.Equal("minos:", options.KeyPrefix);
+        Assert.True(options.UseDistributedCache);
     }
 
     [Theory]
