@@ -122,7 +122,7 @@ public sealed partial class SamplesTests
         var page = PageTables.Text("samples.md");
 
         Assert.Contains("`" + SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable + "`", page, StringComparison.Ordinal);
-        Assert.Contains("`" + SystemOneDefaults.ApiKeyEnvironmentVariable + "`", page, StringComparison.Ordinal);
+        Assert.Contains("`" + SystemOneDefaults.TypeSafeApiKeyEnvironmentVariable + "`", page, StringComparison.Ordinal);
     }
 
     [Fact]

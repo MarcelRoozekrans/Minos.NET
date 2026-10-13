@@ -4,13 +4,13 @@ namespace Minos.SystemOne;
 public static class SystemOneDefaults
 {
     /// <summary>Environment variable the client reads a TypeSafe API key from.</summary>
-    public const string ApiKeyEnvironmentVariable = "TYPESAFE_API_KEY";
+    public const string TypeSafeApiKeyEnvironmentVariable = "TYPESAFE_API_KEY";
 
     /// <summary>Environment variable the client reads an OpenRouter API key from.</summary>
     public const string OpenRouterApiKeyEnvironmentVariable = "OPENROUTER_API_KEY";
 
     /// <summary>Environment variable that overrides the base address, as in the official SDKs.</summary>
-    public const string BaseAddressEnvironmentVariable = "TYPESAFE_BASE_URL";
+    public const string TypeSafeBaseAddressEnvironmentVariable = "TYPESAFE_BASE_URL";
 
     /// <summary>Gets the model alias used when a request does not name one.</summary>
     /// <remarks>A property rather than a constant, so a changed default is not compiled into callers.</remarks>

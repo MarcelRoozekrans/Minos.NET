@@ -258,8 +258,8 @@ public sealed class SystemOneDecisionClient : IDecisionClient
     /// <param name="options">The configuration; <see langword="null"/> uses defaults and environment variables.</param>
     /// <remarks>
     /// Sets <see cref="HttpClient.BaseAddress"/> from <see cref="SystemOneDecisionClientOptions.BaseAddress"/>, the
-    /// <see cref="SystemOneDefaults.BaseAddressEnvironmentVariable"/> environment variable or the provider's default, only when
-    /// <paramref name="httpClient"/> has none. Sets <see cref="HttpClient.Timeout"/> to <see cref="SystemOneDecisionClientOptions.Timeout"/>,
+    /// <see cref="SystemOneDefaults.TypeSafeBaseAddressEnvironmentVariable"/> environment variable or the provider's
+    /// default, only when <paramref name="httpClient"/> has none. Sets <see cref="HttpClient.Timeout"/> to <see cref="SystemOneDecisionClientOptions.Timeout"/>,
     /// the per-attempt time-out, and adds the <c>Minos.NET</c> User-Agent unless it is already there. It reads no
     /// API key, so it can run before one is configured.
     /// </remarks>

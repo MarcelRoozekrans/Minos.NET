@@ -214,7 +214,7 @@ internal sealed class SystemOneDecisionClientSettings
 
     private static string? KeyVariable(SystemOneProvider provider) => provider switch
     {
-        SystemOneProvider.TypeSafe => SystemOneDefaults.ApiKeyEnvironmentVariable,
+        SystemOneProvider.TypeSafe => SystemOneDefaults.TypeSafeApiKeyEnvironmentVariable,
         SystemOneProvider.OpenRouter => SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable,
         _ => null,
     };
@@ -232,7 +232,8 @@ internal sealed class SystemOneDecisionClientSettings
                 // TYPESAFE_BASE_URL applies only to SystemOneProvider.TypeSafe: no other provider's base address is taken
                 // from it, so another provider's key is never sent to a TypeSafe proxy.
                 return ClientSettingRules.BaseAddressFromEnvironment(
-                        environment(SystemOneDefaults.BaseAddressEnvironmentVariable), SystemOneDefaults.BaseAddressEnvironmentVariable)
+                        environment(SystemOneDefaults.TypeSafeBaseAddressEnvironmentVariable),
+                        SystemOneDefaults.TypeSafeBaseAddressEnvironmentVariable)
                     ?? SystemOneDefaults.TypeSafeBaseAddress;
             case SystemOneProvider.OpenRouter:
                 return SystemOneDefaults.OpenRouterBaseAddress;

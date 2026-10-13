@@ -14,8 +14,8 @@ public sealed class SystemOneDecisionClientOptions
     /// base address, the request path, where the API key comes from and the default model:
     /// <list type="bullet">
     /// <item><description><see cref="SystemOneProvider.TypeSafe"/>: <c>https://api.typesafe.ai/</c>, or
-    /// <see cref="SystemOneDefaults.BaseAddressEnvironmentVariable"/>; path <c>v1/systemone</c>; a key is required; model
-    /// <c>jev-latest</c>.</description></item>
+    /// <see cref="SystemOneDefaults.TypeSafeBaseAddressEnvironmentVariable"/>; path <c>v1/systemone</c>; a key is
+    /// required; model <c>jev-latest</c>.</description></item>
     /// <item><description><see cref="SystemOneProvider.OpenRouter"/>: <c>https://openrouter.ai/api/</c>; path
     /// <c>v1/systemone</c>; a key is required; model <c>jev-latest</c>.</description></item>
     /// <item><description><see cref="SystemOneProvider.VllmSemanticRouter"/> and <see cref="SystemOneProvider.Custom"/>:
@@ -27,7 +27,7 @@ public sealed class SystemOneDecisionClientOptions
 
     /// <summary>
     /// Gets or sets the API key, sent as a Bearer token. When unset, the client reads
-    /// <see cref="SystemOneDefaults.ApiKeyEnvironmentVariable"/> for TypeSafe,
+    /// <see cref="SystemOneDefaults.TypeSafeApiKeyEnvironmentVariable"/> for TypeSafe,
     /// <see cref="SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable"/> for OpenRouter; those providers
     /// require one. <see cref="SystemOneProvider.VllmSemanticRouter"/> and <see cref="SystemOneProvider.Custom"/> never read
     /// a key from the environment, so a vendor key is never sent to a server you name; without this option they send no
@@ -37,9 +37,9 @@ public sealed class SystemOneDecisionClientOptions
 
     /// <summary>
     /// Gets or sets the API root, for a proxy, a test server or a server you run. When unset, the client reads
-    /// <see cref="SystemOneDefaults.BaseAddressEnvironmentVariable"/> for <see cref="SystemOneProvider.TypeSafe"/> only, then
-    /// uses the provider's default address. <see cref="SystemOneDefaults.BaseAddressEnvironmentVariable"/> never applies to
-    /// another provider, so an OpenRouter key is never sent to a TypeSafe proxy.
+    /// <see cref="SystemOneDefaults.TypeSafeBaseAddressEnvironmentVariable"/> for
+    /// <see cref="SystemOneProvider.TypeSafe"/> only, then uses the provider's default address.
+    /// <see cref="SystemOneDefaults.TypeSafeBaseAddressEnvironmentVariable"/> never applies to another provider, so an OpenRouter key is never sent to a TypeSafe proxy.
     /// <see cref="SystemOneProvider.VllmSemanticRouter"/> and <see cref="SystemOneProvider.Custom"/> have no default address,
     /// so it must be set for them. An <see cref="HttpClient"/> passed to a <see cref="SystemOneDecisionClient"/> constructor with its
     /// own <see cref="HttpClient.BaseAddress"/> wins over this option; that address must then be the full API root.
@@ -161,9 +161,10 @@ public sealed class SystemOneDecisionClientOptions
     /// below 2.
     /// </exception>
     /// <exception cref="InvalidOperationException">
-    /// No API key is configured for a provider that requires one, or the <see cref="SystemOneDefaults.ApiKeyEnvironmentVariable"/>,
+    /// No API key is configured for a provider that requires one, or the
+    /// <see cref="SystemOneDefaults.TypeSafeApiKeyEnvironmentVariable"/>,
     /// <see cref="SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable"/>
-    /// or <see cref="SystemOneDefaults.BaseAddressEnvironmentVariable"/> environment variable is invalid.
+    /// or <see cref="SystemOneDefaults.TypeSafeBaseAddressEnvironmentVariable"/> environment variable is invalid.
     /// </exception>
     public void Validate() => Validate(Environment.GetEnvironmentVariable);
 

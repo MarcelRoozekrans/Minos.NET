@@ -519,9 +519,9 @@ public sealed class ClientAndErrorsTests
 
         Assert.Equal(actual, rows.Select(row => PageTables.Code(row[0])).Order(StringComparer.Ordinal));
         var values = rows.ToDictionary(row => PageTables.Code(row[0]), row => PageTables.Code(row[1]), StringComparer.Ordinal);
-        Assert.Equal(SystemOneDefaults.ApiKeyEnvironmentVariable, values[nameof(SystemOneDefaults.ApiKeyEnvironmentVariable)]);
+        Assert.Equal(SystemOneDefaults.TypeSafeApiKeyEnvironmentVariable, values[nameof(SystemOneDefaults.TypeSafeApiKeyEnvironmentVariable)]);
         Assert.Equal(SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable, values[nameof(SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable)]);
-        Assert.Equal(SystemOneDefaults.BaseAddressEnvironmentVariable, values[nameof(SystemOneDefaults.BaseAddressEnvironmentVariable)]);
+        Assert.Equal(SystemOneDefaults.TypeSafeBaseAddressEnvironmentVariable, values[nameof(SystemOneDefaults.TypeSafeBaseAddressEnvironmentVariable)]);
         Assert.Equal(SystemOneDefaults.Model, values[nameof(SystemOneDefaults.Model)]);
         Assert.Equal(SystemOneDefaults.TypeSafeBaseAddress.ToString(), values[nameof(SystemOneDefaults.TypeSafeBaseAddress)]);
         Assert.Equal(SystemOneDefaults.OpenRouterBaseAddress.ToString(), values[nameof(SystemOneDefaults.OpenRouterBaseAddress)]);
@@ -542,7 +542,7 @@ public sealed class ClientAndErrorsTests
     public async Task TheCustomPreset_SendsToTheAddressAndPath_AndNeverReadsAKeyFromTheEnvironment()
     {
         using var environment = new Variables(
-            (SystemOneDefaults.ApiKeyEnvironmentVariable, "typesafe-key"),
+            (SystemOneDefaults.TypeSafeApiKeyEnvironmentVariable, "typesafe-key"),
             (SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable, "openrouter-key"));
         var (client, handler, http) = Direct(ProviderOptions.Custom(), Reply.Ok(UrgencyResponse));
         using (http)

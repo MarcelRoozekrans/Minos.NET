@@ -113,7 +113,7 @@ public sealed partial class ProvidersPageTests
 
         Assert.Equal(SystemOneDefaults.TypeSafeBaseAddress.AbsoluteUri, PageTables.Code(rows[0][1]));
         Assert.Equal(SystemOneDefaults.OpenRouterBaseAddress.AbsoluteUri, PageTables.Code(rows[1][1]));
-        Assert.Equal(SystemOneDefaults.ApiKeyEnvironmentVariable, PageTables.Code(rows[0][3]));
+        Assert.Equal(SystemOneDefaults.TypeSafeApiKeyEnvironmentVariable, PageTables.Code(rows[0][3]));
         Assert.Equal(SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable, PageTables.Code(rows[1][3]));
     }
 

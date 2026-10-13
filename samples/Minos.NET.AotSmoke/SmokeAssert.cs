@@ -42,11 +42,11 @@ internal static class SmokeAssert
     /// </summary>
     public static EnvironmentScope TypeSafeEnvironment()
         => new(
-            (SystemOneDefaults.ApiKeyEnvironmentVariable, "smoke-key"),
-            (SystemOneDefaults.BaseAddressEnvironmentVariable, "https://example.test/api/"));
+            (SystemOneDefaults.TypeSafeApiKeyEnvironmentVariable, "smoke-key"),
+            (SystemOneDefaults.TypeSafeBaseAddressEnvironmentVariable, "https://example.test/api/"));
 
     /// <summary>Removes the TypeSafe key environment variable until disposed, then restores it.</summary>
-    public static EnvironmentScope NoApiKeyEnvironment() => new((SystemOneDefaults.ApiKeyEnvironmentVariable, null));
+    public static EnvironmentScope NoApiKeyEnvironment() => new((SystemOneDefaults.TypeSafeApiKeyEnvironmentVariable, null));
 
     /// <summary>Sets the OpenAI key and base address environment variables until disposed, then restores them.</summary>
     public static EnvironmentScope OpenAIEnvironment()
