@@ -79,8 +79,18 @@ jobs:
           gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
           gh workflow run benchmarks.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH" -f smoke-only=true
 
-  # No publish job: NuGet publishing is deliberately absent until the maintainer declares the package mature.
-  # Phase 5.5's publishing job must pass -p:MinosRelease=true to the build and to the pack alike: without it,
-  # Directory.Build.props versions every build <release>-local, so a local pack never takes the published
-  # package's version. The version is compiled into the DLLs, so a pack --no-build after a build without the
-  # switch would ship release-numbered packages whose DLLs, and User-Agent, still say -local.
+  # Starts the nuget.org publish for a release. GitHub starts no workflow from an event the built-in token creates, so
+  # the release and its tag trigger nothing by themselves; workflow_dispatch is the one event the token may still start.
+  # ci.yml's publish-nuget job refuses a 0.x version, so a 0.x release publishes nothing.
+  publish:
+    needs: release-please
+    if: ${{ needs.release-please.outputs.release_created == 'true' }}
+    runs-on: ubuntu-latest
+    permissions:
+      actions: write
+    env:
+      GH_TOKEN: ${{ github.token }}
+      TAG: ${{ needs.release-please.outputs.tag_name }}
+    steps:
+      - name: Dispatch the publish run on the release tag
+        run: gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$TAG" -f publish_to_nuget=true
