@@ -123,7 +123,7 @@ internal static class BuiltWireCases
 
     public static QuestionSet JsonAtDepthLimit()
     {
-        var deep = DecisionContent.FromUtf8Json(Encoding.UTF8.GetBytes(DeepJson.Text));
+        var deep = DecisionContent.FromUtf8Json(DeepJson.Utf8);
         return Built(QuestionSet.CreateBuilder()
             .Noul("is_deep", deep, out _)
             .Choice<DeepOption>("depth", "How deep?", out _, o => o

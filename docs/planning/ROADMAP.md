@@ -380,11 +380,12 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Plan:** bounded phase, approved in chat on 2026-10-13: run the existing workflows on the final API and commit what they record. No spec or plan document.
 **Evidence:** on 91cc456, the 1.0 API: Live smoke run 38373439809, approved by the maintainer, passed 17 live tests with 3 skipped, Luna off and the two local tests in their own workflow; the conformance probes passed, 51 and 49 checks with the rest skipped for a stated reason; both provider-switch recordings were made. Local systemone run 38370314508 passed its 2 tests and recorded `local.json`. The new fixtures and recordings differ only in request ids, dates and probabilities that moved by a point or two. The full suite passes on them. Pre-push review PASS, `docs/plans/2026-10-13-phase-7.3-pre-push-review.md`.
 
-### Phase 7.4: AOT, trim and benchmark re-verification [status: pending]
+### Phase 7.4: AOT, trim and benchmark re-verification [status: complete]
 **Goal:** Re-run the whole-surface AOT/trim check and the benchmarks on the final API with no allocation budget loosened, and move the yielding allocation checks to TestHelpers 1.7.0's async API (#104), re-measured over 30 or more runs.
 **Surface:** Infra
 **HelpWanted:** no
-**Plan:** _to be written_
+**Plan:** bounded phase, approved in chat on 2026-10-13. No spec or plan document.
+**Evidence:** the ZeroAlloc packages moved to the versions Renovate proposed in #123, with Analyzers 1.11.0's new ZA0210 fixed at eight test sites. The AOT smoke app passed all 206 checks in 30 of 30 runs; the whole-surface publish with `TrimMode=full` has no warnings. The yielding checks use `AllocationGate`'s async API, closing #104; the `NullLoggerFactory` comparison's tolerance is 64 B per call, set over 60 runs, with ZeroAlloc.TestHelpers#76 filed for the gate's noise. No budget changed. The first full benchmark run, 38377937195, is the 1.0 baseline in `docs/performance.md`. Pre-push review PASS, `docs/plans/2026-10-13-phase-7.4-pre-push-review.md`.
 
 ### Phase 7.5: Publish 1.0 [status: pending]
 **Goal:** Publish 1.0.0 the way Thalos.NET, Rag.NET and AdoNet.Async do: release-please, and NuGet Trusted Publishing from `ci.yml`'s `publish-nuget` job, rehearsed against a local feed. Reuse what still applies from the paused Phase 5.5 branch, such as the package inspection. Fix the pack-test hang (#145), then turn on api-compat (#29, #28), and add the NuGet links to the docs site's navbar and footer.

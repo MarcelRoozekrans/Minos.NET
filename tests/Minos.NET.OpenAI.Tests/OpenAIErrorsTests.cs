@@ -4,7 +4,7 @@ namespace Minos.OpenAI.Tests;
 
 public sealed class OpenAIErrorsTests
 {
-    private const string OpenAIBody = """{"error":{"message":"Bad model","type":"invalid_request_error","param":"model","code":null}}""";
+    private static ReadOnlySpan<byte> OpenAIBody => """{"error":{"message":"Bad model","type":"invalid_request_error","param":"model","code":null}}"""u8;
 
     [Theory]
     [InlineData(400, DecisionErrorKind.Validation)]
@@ -30,11 +30,11 @@ public sealed class OpenAIErrorsTests
     [Fact]
     public void OpenAIErrorBody_GivesItsMessage_AndTheWholeBodyAsDetail()
     {
-        var error = OpenAIDecisionsProtocol.Instance.MapError(400, System.Text.Encoding.UTF8.GetBytes(OpenAIBody), false, "application/json", null, null);
+        var error = OpenAIDecisionsProtocol.Instance.MapError(400, OpenAIBody, false, "application/json", null, null);
 
         Assert.Equal(DecisionErrorKind.Validation, error.Kind);
         Assert.Equal("Bad model", error.Message);
-        Assert.Equal(OpenAIBody, error.Detail!.Value.GetRawText());
+        Assert.Equal(System.Text.Encoding.UTF8.GetString(OpenAIBody), error.Detail!.Value.GetRawText());
         Assert.Equal("model", error.Detail.Value.GetProperty("error").GetProperty("param").GetString());
     }
 
@@ -44,7 +44,7 @@ public sealed class OpenAIErrorsTests
     [InlineData(null, false)]
     public void TruncatedOrNonJsonBody_GivesTheGenericMessage_AndNoDetail(string? contentType, bool truncated)
     {
-        var error = OpenAIDecisionsProtocol.Instance.MapError(400, System.Text.Encoding.UTF8.GetBytes(OpenAIBody), truncated, contentType, null, null);
+        var error = OpenAIDecisionsProtocol.Instance.MapError(400, OpenAIBody, truncated, contentType, null, null);
 
         Assert.Equal("The API returned HTTP 400.", error.Message);
         Assert.Null(error.Detail);
@@ -81,5 +81,5 @@ public sealed class OpenAIErrorsTests
     public void TheRequestId_IsKept()
         => Assert.Equal(
             "req_abc",
-            OpenAIDecisionsProtocol.Instance.MapError(401, System.Text.Encoding.UTF8.GetBytes(OpenAIBody), false, "application/json", null, "req_abc").RequestId);
+            OpenAIDecisionsProtocol.Instance.MapError(401, OpenAIBody, false, "application/json", null, "req_abc").RequestId);
 }

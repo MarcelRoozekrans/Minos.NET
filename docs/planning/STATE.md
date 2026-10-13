@@ -1,4 +1,4 @@
-# Session State — 2026-10-13 (Milestone 7: Phase 7.3 complete)
+# Session State — 2026-10-13 (Milestone 7: Phase 7.4 complete)
 
 **Date:** 2026-10-13
 
@@ -114,7 +114,7 @@
 ## Recommended Next Step
 1. Milestone 7, the 1.0 release, is active (design `docs/superpowers/specs/2026-10-12-milestone-7-design.md`). Milestone 6 is complete; its audit passed on re-audit.
 2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.
-3. Phases 7.2 and 7.3 are complete. #187 merged the 1.0 API review on 2026-10-13: `PublicAPI.Shipped.txt` describes 1.0.0, and `docs/pipeline.md`, "Upgrading to 1.0", lists every breaking change. Phase 7.3 passed the live suites, the conformance probes and the provider-switch sample on that API against TypeSafe, OpenRouter and the local server, and committed the new recordings. Release PR #188 proposes 0.13.0: leave it unmerged if 1.0.0 is to be the next release, and set Release-As in Phase 7.5. Next: Phase 7.4, AOT, trim and benchmark re-verification.
+3. Phases 7.2, 7.3 and 7.4 are complete. #187 merged the 1.0 API review: `PublicAPI.Shipped.txt` describes 1.0.0, and `docs/pipeline.md`, "Upgrading to 1.0", lists every breaking change. Phase 7.3 passed the live suites and the provider-switch sample on that API. Phase 7.4 moved the ZeroAlloc packages to their latest versions, re-verified AOT, trim and every allocation budget, moved the yielding checks to TestHelpers 1.7.0's async API (#104), and recorded the 1.0 benchmark baseline. Release PR #188 was merged, so 0.13.0 is out with the 1.0 API under a 0.x version; release-please now proposes 0.13.1 in #190. Phase 7.5 sets Release-As 1.0.0. Next: Phase 7.5, publish 1.0.
 4. Before Phase 7.5 publishes, the maintainer adds a nuget.org Trusted Publishing policy for `MarcelRoozekrans/Minos.NET` and confirms the `Minos.NET*` ids are free.
 5. Release PR #177 (0.12.0) merged on 2026-10-12.
 6. Run `pre-push-review` on each feature branch before its PR, and keep the report in `docs/plans/`: the docs tests treat every file at the top of `docs/` as a site page.

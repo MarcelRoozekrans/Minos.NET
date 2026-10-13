@@ -190,8 +190,8 @@ public sealed class EnumOptionSetTests
     public void ReadChoice_OverARuntimeSet_EqualsTheGeneratedSetsAnswer()
     {
         var generated = ResponseAnswers.Parse<DepartmentRouting>(Fixture.Text("response-choice.json")).Department;
-        var reader = new Utf8JsonReader(Encoding.UTF8.GetBytes(
-            """{"type":"choice","choice":"billing","probabilities":{"billing":0.88,"technical":0.12,"sales":0.0},"confidence":0.81}"""));
+        var reader = new Utf8JsonReader(
+            """{"type":"choice","choice":"billing","probabilities":{"billing":0.88,"technical":0.12,"sales":0.0},"confidence":0.81}"""u8);
         reader.Read();
 
         var options = EnumOptionSet<Department>.ForChoice;

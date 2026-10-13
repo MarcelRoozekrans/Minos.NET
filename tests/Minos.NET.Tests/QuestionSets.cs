@@ -132,7 +132,7 @@ public partial record EdgeCases
 // levels System.Text.Json reads by default, and the instructions one level less.
 public static class DeepJson
 {
-    public const string Text = "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\"Is it deep?\"]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]";
+    public static ReadOnlySpan<byte> Utf8 => "[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[[\"Is it deep?\"]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]]"u8;
 }
 
 public enum DeepOption

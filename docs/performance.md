@@ -23,7 +23,43 @@ or trigger the manual **Benchmarks** GitHub Actions workflow's `full` job, which
 
 ## Baseline
 
-To be recorded from the first full run.
+The 1.0 baseline is the first full run, made in Phase 7.4 on the final API and dependencies: run
+[38377937195](https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/38377937195) on 2026-10-13, BenchmarkDotNet
+0.15.8 on a GitHub-hosted Ubuntu 24.04 runner, an Intel Xeon Platinum 8573C with 4 logical cores, .NET 10.0.12. The
+times are from a shared runner, so read them as a scale, not a contract; the allocations are exact. The `Allocated`
+column comes from the JIT, so it differs from the AOT gates below.
+
+| Class | Benchmark | Mean | Allocated |
+|---|---|---:|---:|
+| `ClientBenchmarks` | `EvaluateAsync` | 3.543 μs | 3.8 KB |
+| `ClientBenchmarks` | `ListModelsAsync` | 1.924 μs | 2.7 KB |
+| `ClientBenchmarks` | `TypedEvaluateAsync` | 2.922 μs | 3.19 KB |
+| `ClientBenchmarks` | `TypedEvaluateNoulAsync` | 1.825 μs | 2.49 KB |
+| `ClientBenchmarks` | `EvaluateWithDiscardingLoggerAsync` | 3.680 μs | 3.8 KB |
+| `ClientBenchmarks` | `TypedEvaluateWithDiscardingLoggerAsync` | 3.071 μs | 3.19 KB |
+| `ClientBenchmarks` | `EvaluateYieldingAsync` | 7.996 μs | 4.7 KB |
+| `ClientBenchmarks` | `EvaluateYieldingWithNullLoggerAsync` | 7.609 μs | 4.7 KB |
+| `ClientBenchmarks` | `EvaluateYieldingWithDiscardingLoggerAsync` | 8.336 μs | 4.94 KB |
+| `ClientBenchmarks` | `TypedEvaluateYieldingAsync` | 7.750 μs | 4.3 KB |
+| `DependencyInjectionBenchmarks` | `HandBuiltEvaluateAsync` | 3.555 μs | 3.86 KB |
+| `DependencyInjectionBenchmarks` | `ResolvedEvaluateAsync` | 3.559 μs | 3.86 KB |
+| `TelemetryBenchmarks` | `EvaluateListeningAsync` | 4.544 μs | 5.13 KB |
+| `TelemetryBenchmarks` | `TypedEvaluateListeningAsync` | 4.046 μs | 4.52 KB |
+| `TelemetryBenchmarks` | `EvaluateBuiltSetListeningAsync` | 3.865 μs | 4.45 KB |
+| `TelemetryBenchmarks` | `ListModelsListeningAsync` | 2.479 μs | 3.71 KB |
+| `TelemetryBenchmarks` | `TypedEvaluateYieldingListeningAsync` | 9.887 μs | 5.87 KB |
+| `QuestionSetBenchmarks` | `Build` | 824.6 ns | 2712 B |
+| `QuestionSetBenchmarks` | `NewDefinition` | 256.7 ns | 872 B |
+| `QuestionSetBenchmarks` | `NewDefinitionAndQuestionsJson` | 1,260.3 ns | 6104 B |
+| `QuestionSetBenchmarks` | `EvaluateBuiltSet` | 2,824.1 ns | 3192 B |
+| `QuestionSetBenchmarks` | `ParseBuiltTwenty` | 2,370.2 ns | 544 B |
+| `QuestionSetBenchmarks` | `ParseGeneratedTwenty` | 2,340.2 ns | 176 B |
+| `ParseBenchmarks` | `ProtocolReadAnswers` | 916.04 ns | 176 B |
+| `ParseBenchmarks` | `ReadNoul` | 98.92 ns | - |
+| `ParseBenchmarks` | `ReadChoice` | 239.41 ns | - |
+| `ParseBenchmarks` | `ReadScore` | 403.85 ns | - |
+| `ContentBenchmarks` | `FromValue` | 271.3 ns | 256 B |
+| `ContentBenchmarks` | `FromUtf8Json` | 329.2 ns | 256 B |
 
 The phase sections below record each phase's figures as measured then. Where a figure has since changed, today's value is
 given in parentheses, and the table under [Phase 5.1](#phase-51--public-api-review) lists the AOT gates after ZeroAlloc.Rest 3.2.1.
@@ -399,6 +435,26 @@ Release 3.3.0 escaped that path with a new string on every call.
 [ZeroAlloc.Rest#425](https://github.com/ZeroAlloc-Net/ZeroAlloc.Rest/issues/425), fixed in release 3.3.1, returns a path
 that needs no escaping as it is, so the route costs nothing. Minos uses 3.3.1, and every figure in this section was
 measured on it.
+
+### Phase 7.4 — Re-verification on the 1.0 API
+
+Phase 7.4 re-ran every check on the final API, after the ZeroAlloc packages moved to TestHelpers 1.7.0, Analyzers
+1.11.0, Rest 3.3.2, Resilience 3.3.3, Results 1.4.1 and Validation 2.3.1. No budget changed.
+
+- **The AOT smoke app**, published for win-x64 on 2026-10-13, passed all 206 checks in every one of 30 runs, every
+  allocation gate included. The whole-surface publish, with `TrimMode=full` and the six packages rooted, has no warnings.
+- **The yielding checks** now measure with ZeroAlloc.TestHelpers 1.7.0's async `AllocationGate` methods, which count
+  every thread and keep the least of three windows of 500 calls, in place of the app's own median of five runs (#104).
+  The yielding `EvaluateAsync` measures 4794 to 4856 B per call with no logger factory, against 5254 B in Phase 3.2, and
+  the yielding typed call with telemetry off 4342 to 4408 B, inside its unchanged 4608 B budget, which it now checks
+  with no tolerance.
+- **The `NullLoggerFactory` comparison** needs a wider tolerance than the 8 B default. Over 60 runs it measured -23 to
+  +61 B per call against no factory, almost all within -4 to +5, and the 8 B default failed one run in 30. Its tolerance
+  is 64 B per call, far below the 196 B or more an enabled logger adds.
+  [ZeroAlloc.TestHelpers#76](https://github.com/ZeroAlloc-Net/ZeroAlloc.TestHelpers/issues/76) asks the gate to
+  interleave the two sides' windows, which should let the tolerance drop back.
+- **The benchmarks** ran in full for the first time; the [Baseline](#baseline) holds the results. The yielding call
+  allocates 4.7 KB against the 5.09 KB of Phase 3.1, and takes the same 8.0 us.
 
 ## Comparison
 
