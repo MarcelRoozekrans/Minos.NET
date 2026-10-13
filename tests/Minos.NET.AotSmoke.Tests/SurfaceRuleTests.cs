@@ -27,7 +27,7 @@ public sealed class SurfaceRuleTests
     private static readonly Dictionary<string, string> Unsealed = new(StringComparer.Ordinal)
     {
         ["Minos.DecisionClientBuilder"] = "DecisionClientServiceBuilder in Minos.NET.DependencyInjection derives from it.",
-        ["Minos.DecisionClientServiceBuilder"] = "SystemOneClientServiceBuilder and OpenAIDecisionClientServiceBuilder derive from it.",
+        ["Minos.DecisionClientServiceBuilder"] = "SystemOneDecisionClientServiceBuilder and OpenAIDecisionClientServiceBuilder derive from it.",
     };
 
     // Public types no docs page or sample names.
