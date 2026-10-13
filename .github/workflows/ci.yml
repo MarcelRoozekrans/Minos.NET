@@ -176,6 +176,87 @@ jobs:
       - name: Publish AOT with the six packages rooted
         run: dotnet publish samples/Minos.NET.AotSurface/Minos.NET.AotSurface.csproj -r linux-x64 -c Release -o ./aot-surface-out
 
+  # Packs the six release packages exactly as publish-nuget does, inspects them, and rehearses the push against a local
+  # folder feed, on every push and pull request, so the release path is exercised long before release day. A folder
+  # feed silently drops .snupkg files, so symbol packages are checked by the inspection, not by the push. WorkflowWiringTests
+  # pins the commands below; change them only together with it.
+  pack-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          dotnet-version: '10.0.x'
+
+      - name: Read the release version
+        shell: bash
+        run: |
+          version=$(jq -r '."." // empty' .release-please-manifest.json)
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::.release-please-manifest.json gives '$version', not a stable version."
+            exit 1
+          fi
+          echo "PACKAGE_VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Pack the release build
+        run: dotnet pack Minos.NET.slnx -c Release -p:MinosRelease=true -o artifacts/packages
+
+      - name: Test the inspection script
+        run: python3 -m unittest discover -s tools/release -p "test_inspect_packages.py"
+
+      - name: Inspect the packages
+        run: python3 tools/release/inspect_packages.py artifacts/packages "$PACKAGE_VERSION"
+
+      - name: Rehearse the push against a local feed
+        shell: bash
+        run: |
+          feed="$RUNNER_TEMP/local-feed"
+          mkdir -p "$feed"
+          dotnet nuget push "artifacts/packages/*.nupkg" --source "$feed" --skip-duplicate
+          for package in artifacts/packages/*.nupkg; do
+            if [ ! -f "$feed/$(basename "$package")" ]; then
+              echo "::error::$(basename "$package") was pushed and did not arrive in the local feed."
+              exit 1
+            fi
+          done
+          before=$(find "$feed" -type f | wc -l)
+          dotnet nuget push "artifacts/packages/*.nupkg" --source "$feed" --skip-duplicate
+          after=$(find "$feed" -type f | wc -l)
+          if [ "$before" -ne "$after" ]; then
+            echo "::error::A second push changed the feed from $before to $after files; a re-run must change nothing."
+            exit 1
+          fi
+
+      - name: Restore and build a consumer from the local feed
+        shell: bash
+        run: |
+          app="$RUNNER_TEMP/consumer"
+          dotnet new console -o "$app" --framework net10.0
+          for package in Minos.NET Minos.NET.SystemOne Minos.NET.OpenAI Minos.NET.DependencyInjection Minos.NET.Caching Minos.NET.RateLimiting; do
+            dotnet add "$app" package "$package" --version "$PACKAGE_VERSION" --no-restore
+          done
+          cat > "$app/nuget.config" <<EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="local" value="$RUNNER_TEMP/local-feed" />
+              <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+            </packageSources>
+            <packageSourceMapping>
+              <packageSource key="local"><package pattern="Minos.NET*" /></packageSource>
+              <packageSource key="nuget.org"><package pattern="*" /></packageSource>
+            </packageSourceMapping>
+          </configuration>
+          EOF
+          dotnet build "$app" -c Release
+
   # A release PR must have marked released analyzer rules and public API as shipped. release-please.yml dispatches this
   # workflow on the release branch, so the branch comes from github.ref_name when there is no pull request.
   release-tracking:
