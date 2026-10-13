@@ -198,6 +198,14 @@ If you use a mocking library instead of a hand-written fake, set up `EvaluateAsy
 CancellationToken)`. The typed calls your code makes, such as `EvaluateAsync<T>(string, CancellationToken)`, are
 extension methods, which a mock cannot intercept, and they all reach that one method.
 
+### Testing code that reads one answer
+
+A helper that takes one answer, such as a method over a `Choice<TriageDesk>` or a `Score<Urgency>`, is tested through
+the fake: build the reply as above, call the fake, and read the answer from the typed result. `Choice<T>`, `Score<T>`,
+`KeyedChoice` and `KeyedScore` have no public constructors, because each needs a probability map that only a response
+can build. A `Noul` is complete without a map, so `new Noul(0.8)` is public, and a helper that takes a `Noul` can be
+called with one directly.
+
 ## Pin each decision
 
 Your code turns an answer into a decision with a rule: a cut-off, a confidence gate, a fallback. Those rules are what

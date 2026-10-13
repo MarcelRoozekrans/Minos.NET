@@ -48,3 +48,7 @@ Minos.QuestionAnswer.Expected.get -> double
 Minos.QuestionAnswer.Probability.get -> double
 static Minos.QuestionAnswer.Noul(double probability) -> Minos.QuestionAnswer
 static Minos.QuestionAnswer.Score(int level, double expected, double confidence, double[]! probabilities) -> Minos.QuestionAnswer
+*REMOVED*Minos.Choice<T>.Choice(T value, double confidence, Minos.ProbabilityMap<T> probabilities) -> void
+*REMOVED*Minos.KeyedChoice.KeyedChoice(string! value, double confidence, Minos.KeyedProbabilityMap probabilities) -> void
+*REMOVED*Minos.KeyedScore.KeyedScore(int level, double expected, double confidence, Minos.KeyedProbabilityMap probabilities) -> void
+*REMOVED*Minos.Score<T>.Score(T value, double expected, double confidence, Minos.ProbabilityMap<T> probabilities) -> void

@@ -8,7 +8,7 @@ public readonly struct KeyedScore : IEquatable<KeyedScore>
     /// <param name="expected">The probability-weighted mean level index the API returns as <c>score</c>.</param>
     /// <param name="confidence">The model's confidence, between 0 and 1.</param>
     /// <param name="probabilities">The probability of each level, keyed by index.</param>
-    public KeyedScore(int level, double expected, double confidence, KeyedProbabilityMap probabilities)
+    internal KeyedScore(int level, double expected, double confidence, KeyedProbabilityMap probabilities)
     {
         Level = level;
         Expected = expected;

@@ -9,7 +9,7 @@ public readonly struct Choice<T> : IEquatable<Choice<T>>
     /// <param name="value">The option the model picked.</param>
     /// <param name="confidence">The model's confidence, between 0 and 1.</param>
     /// <param name="probabilities">The probability of each option.</param>
-    public Choice(T value, double confidence, ProbabilityMap<T> probabilities)
+    internal Choice(T value, double confidence, ProbabilityMap<T> probabilities)
     {
         Value = value;
         Confidence = confidence;

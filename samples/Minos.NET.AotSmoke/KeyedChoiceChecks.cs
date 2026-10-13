@@ -1,15 +1,14 @@
 namespace Minos.AotSmoke;
 
-/// <summary><see cref="KeyedChoice"/>'s constructors and equality, over an evaluated answer, under Native AOT.</summary>
+/// <summary><see cref="KeyedChoice"/>'s default constructor and equality, over an evaluated answer, under Native AOT.</summary>
 internal static class KeyedChoiceChecks
 {
     [Covers("Minos.KeyedChoice.KeyedChoice() -> void")]
-    [Covers("Minos.KeyedChoice.KeyedChoice(string! value, double confidence, Minos.KeyedProbabilityMap probabilities) -> void")]
     [Covers("Minos.KeyedChoice.Equals(Minos.KeyedChoice other) -> bool")]
-    public static async Task KeyedChoiceIsRebuiltAndCompared()
+    public static async Task KeyedChoiceIsCompared()
     {
         var evaluated = await SmokeAnswers.ProductAsync().ConfigureAwait(false);
-        var rebuilt = new KeyedChoice(evaluated.Value, evaluated.Confidence, evaluated.Probabilities);
+        var rebuilt = evaluated;
         var empty = new KeyedChoice();
 
         Program.Check(
@@ -19,6 +18,6 @@ internal static class KeyedChoiceChecks
                 && !evaluated.Equals(empty)
                 && empty.Equals(default)
                 && empty.Value.Length == 0,
-            "a KeyedChoice rebuilt from an evaluated one equals it, and the empty one has no value, under Native AOT");
+            "an evaluated KeyedChoice equals its copy, and the empty one has no value, under Native AOT");
     }
 }

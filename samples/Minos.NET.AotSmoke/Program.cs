@@ -85,11 +85,11 @@ internal static class Program
         DefinitionChecks.EmptyAnswerSlotsHoldNoAnswers();
         DefinitionChecks.AnswerSlotsRefuseAnIndexOutOfRange();
         await NoulChecks.EmptyNoulIsFalse().ConfigureAwait(false);
-        await ChoiceChecks.ChoiceIsRebuiltAndCompared().ConfigureAwait(false);
-        await ScoreChecks.ScoreIsRebuiltAndCompared().ConfigureAwait(false);
+        await ChoiceChecks.ChoiceIsCompared().ConfigureAwait(false);
+        await ScoreChecks.ScoreIsCompared().ConfigureAwait(false);
         await ProbabilityMapChecks.ProbabilityMapEnumeratesAndCompares().ConfigureAwait(false);
-        await KeyedChoiceChecks.KeyedChoiceIsRebuiltAndCompared().ConfigureAwait(false);
-        await KeyedScoreChecks.KeyedScoreIsRebuiltAndCompared().ConfigureAwait(false);
+        await KeyedChoiceChecks.KeyedChoiceIsCompared().ConfigureAwait(false);
+        await KeyedScoreChecks.KeyedScoreIsCompared().ConfigureAwait(false);
         await KeyedProbabilityMapChecks.KeyedProbabilityMapEnumeratesAndCompares().ConfigureAwait(false);
         ConfidenceThresholdsChecks.DefaultThresholdsEqualTheirExplicitValues();
         DecisionErrorChecks.HandBuiltErrorCarriesItsKindAndMessage();

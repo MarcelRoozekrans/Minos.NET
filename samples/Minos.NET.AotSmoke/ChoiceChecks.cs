@@ -1,15 +1,14 @@
 namespace Minos.AotSmoke;
 
-/// <summary><see cref="Choice{T}"/>'s constructors and equality, over a parsed answer, under Native AOT.</summary>
+/// <summary><see cref="Choice{T}"/>'s default constructor and equality, over a parsed answer, under Native AOT.</summary>
 internal static class ChoiceChecks
 {
     [Covers("Minos.Choice<T>.Choice() -> void")]
-    [Covers("Minos.Choice<T>.Choice(T value, double confidence, Minos.ProbabilityMap<T> probabilities) -> void")]
     [Covers("Minos.Choice<T>.Equals(Minos.Choice<T> other) -> bool")]
-    public static async Task ChoiceIsRebuiltAndCompared()
+    public static async Task ChoiceIsCompared()
     {
         var parsed = (await SmokeAnswers.TriageAsync().ConfigureAwait(false)).Team;
-        var rebuilt = new Choice<Team>(parsed.Value, parsed.Confidence, parsed.Probabilities);
+        var rebuilt = parsed;
         var empty = new Choice<Team>();
 
         Program.Check(
@@ -19,6 +18,6 @@ internal static class ChoiceChecks
                 && !parsed.Equals(empty)
                 && empty.Equals(default)
                 && empty.Probabilities.Count == 0,
-            "a Choice rebuilt from a parsed one equals it, and the empty Choice equals only itself, under Native AOT");
+            "a parsed Choice equals its copy, and the empty Choice equals only itself, under Native AOT");
     }
 }
