@@ -417,9 +417,9 @@ public static void AddAuditedDecision(IServiceCollection services, IConfiguratio
 
 1.0 freezes the public API. The last 0.x release renamed and tightened it, and kept no obsolete aliases. The compiler
 finds every rename and removal in the first table. The second list is the behaviour that changed without a compile
-error, so read it before you deploy. The left column holds the names of 0.11 and earlier.
+error, so read it before you deploy. The left column holds the names of 0.12 and earlier.
 
-| In 0.11 | In 1.0 |
+| In 0.12 | In 1.0 |
 | --- | --- |
 | `SystemOneClient`, `SystemOneClientOptions`, `SystemOneClientServiceBuilder` and `AddSystemOneClient`, all six overloads | `SystemOneDecisionClient`, `SystemOneDecisionClientOptions`, `SystemOneDecisionClientServiceBuilder` and `AddSystemOneDecisionClient`. Configuration keys bind property names and do not change |
 | `[Criteria("…")]` on a question property | `[Criterion("…")]` |
@@ -433,14 +433,13 @@ error, so read it before you deploy. The left column holds the names of 0.11 and
 | The constructors of `Choice<T>`, `Score<T>`, `KeyedChoice` and `KeyedScore` | Internal. Test a helper through a [fake `IDecisionClient`](testing-your-code.md#way-one-a-fake-idecisionclient) that returns the answers |
 | `DecisionUsage.InputTokens` and `OutputTokens` are `int` | `int?`. A count the provider did not report is `null` |
 | `SystemOneDefaults.ApiKeyEnvironmentVariable` and `BaseAddressEnvironmentVariable` | `TypeSafeApiKeyEnvironmentVariable` and `TypeSafeBaseAddressEnvironmentVariable`. The variable names are unchanged |
-| `SystemOneRequest.Model` is a `string` | `string?`. See the raw requests below |
 | `CachingDecisionClient`, `DecisionCacheOptions`, `UseCaching`, `RateLimitingDecisionClient` and `UseRateLimiting`, in `Minos.Caching` and `Minos.RateLimiting` | The same names, in `Minos`. Remove the `using Minos.Caching;` and `using Minos.RateLimiting;` lines |
 
 What the compiler does not find:
 
-- **A binary caller of `SystemOneDecisionClient.ListModelsAsync` recompiles.** The optional token became an overload
-  pair, `ListModelsAsync()` and `ListModelsAsync(CancellationToken)`, and a source call that names the argument,
-  `cancellationToken: token`, compiles unchanged.
+- **Recompile anything built against `ListModelsAsync`.** The optional token became an overload pair,
+  `ListModelsAsync()` and `ListModelsAsync(CancellationToken)`. The call `ListModelsAsync(cancellationToken: token)` still
+  compiles.
 - **The cache keys change, so a distributed cache starts cold.** `DecisionClientMetadata.Endpoint` is now the base address
   plus the path the client posts to, and the key holds it. A `KeyPrefix` set per client to keep two paths apart, the
   workaround for issue 175, is no longer needed. See [Caching decisions](#caching-decisions).
