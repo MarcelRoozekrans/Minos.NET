@@ -381,12 +381,12 @@ public sealed class SystemOneClient : IDecisionClient
 
     /// <summary>
     /// Lists the models and aliases available to the account, with <c>GET v1/models</c>, on a provider whose
-    /// <see cref="DecisionCapabilities.ModelListing"/> is on: by default TypeSafe only.
+    /// <see cref="DecisionCapabilities.SupportsModelListing"/> is on: by default TypeSafe only.
     /// </summary>
     /// <param name="cancellationToken">Cancels the call; cancellation throws <see cref="OperationCanceledException"/>.</param>
     /// <returns>
     /// The models, or the <see cref="DecisionError"/> that prevented them; <see cref="DecisionErrorKind.Unsupported"/>,
-    /// without a request, where <see cref="DecisionCapabilities.ModelListing"/> is off.
+    /// without a request, where <see cref="DecisionCapabilities.SupportsModelListing"/> is off.
     /// </returns>
     /// <exception cref="ObjectDisposedException">The client has been disposed.</exception>
     public ValueTask<Result<ModelList, DecisionError>> ListModelsAsync(CancellationToken cancellationToken = default)

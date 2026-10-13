@@ -159,13 +159,13 @@ public sealed class DependencyInjectionTests
         Assert.Equal("local-model", local.Model);
         Assert.Equal(QuestionKinds.Noul | QuestionKinds.Choice, local.Capabilities.QuestionKinds);
         Assert.Equal(16, local.Capabilities.MaxQuestions);
-        Assert.Null(local.Capabilities.ModelListing);
+        Assert.Null(local.Capabilities.SupportsModelListing);
         Assert.Null(local.Capabilities.MaxChoiceOptions);
         local.Validate();
 
         // ModelListing is left out, so it keeps the Custom preset's default: off.
         var resolved = host.Services.GetRequiredKeyedService<IDecisionClient>("local").GetService<DecisionCapabilities>()!;
-        Assert.False(resolved.ModelListing);
+        Assert.False(resolved.SupportsModelListing);
     }
 
     [Fact]

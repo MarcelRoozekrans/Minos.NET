@@ -131,7 +131,7 @@ public sealed class ProvidersTests
     public async Task Images_AreSentInTheState_WhereTheProviderTakesThem()
     {
         var options = ProviderOptions.Custom();
-        options.Capabilities = new DecisionCapabilities { Images = true };
+        options.Capabilities = new DecisionCapabilities { SupportsImages = true };
         var (http, client, handler) = SystemOne(options, Reply.Ok(SystemOneNotDamaged));
         using (http)
         using (handler)
@@ -188,7 +188,7 @@ public sealed class ProvidersTests
         var clef = OpenRouterModels.Clef();
         var luna = OpenRouterModels.Luna();
 
-        Assert.True(perplexity.Capabilities.Images);
+        Assert.True(perplexity.Capabilities.SupportsImages);
         Assert.Equal("perplexity/pplx-decider-v1.1-27b", perplexity.Model);
         Assert.Equal("cloudflare/clef-flash", clef.Model);
         Assert.Equal("openai/gpt-6-luna-decisions", luna.Model);
@@ -199,7 +199,7 @@ public sealed class ProvidersTests
             Assert.Null(ClientOptions.Problem(options));
         }
 
-        Assert.Null(clef.Capabilities.Images);
+        Assert.Null(clef.Capabilities.SupportsImages);
     }
 
     [Fact]

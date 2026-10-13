@@ -274,8 +274,8 @@ public static class CapabilityOptions
         }
 
         var questions = capabilities.MaxQuestions is { } most ? $"at most {most} questions" : "no question limit";
-        var images = capabilities.Images == true ? "on" : "off";
-        var listing = capabilities.ModelListing == true ? "on" : "off";
+        var images = capabilities.SupportsImages == true ? "on" : "off";
+        var listing = capabilities.SupportsModelListing == true ? "on" : "off";
         return $"{capabilities.QuestionKinds}, {questions}, images {images}, model listing {listing}";
     }
     #endregion

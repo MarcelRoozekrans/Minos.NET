@@ -11,7 +11,7 @@ namespace Minos;
 /// <see cref="DecisionErrorKind.Unsupported"/>, with one <see cref="QuestionFailure"/> per problem in
 /// <see cref="DecisionError.Failures"/>: MIN202 for more questions than <see cref="MaxQuestions"/>, then, in question order,
 /// MIN201 for a question kind not in <see cref="QuestionKinds"/> and MIN203 for a Choice question with more options than
-/// <see cref="MaxChoiceOptions"/>, then MIN206 for images to a provider without <see cref="Images"/>. Its message is the
+/// <see cref="MaxChoiceOptions"/>, then MIN206 for images to a provider without <see cref="SupportsImages"/>. Its message is the
 /// first failure's. A protocol package's raw call is not checked.
 /// </para>
 /// <para>
@@ -36,11 +36,11 @@ public sealed class DecisionCapabilities
     /// Gets or sets whether the provider accepts images. A request with images to a provider without them returns
     /// Unsupported with MIN206.
     /// </summary>
-    public bool? Images { get; set; }
+    public bool? SupportsImages { get; set; }
 
     /// <summary>
     /// Gets or sets whether the provider serves a model listing. Without it, a client's model listing returns
     /// <see cref="DecisionErrorKind.Unsupported"/> without sending a request.
     /// </summary>
-    public bool? ModelListing { get; set; }
+    public bool? SupportsModelListing { get; set; }
 }

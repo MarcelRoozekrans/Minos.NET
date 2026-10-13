@@ -648,7 +648,7 @@ public sealed class ClientAndErrorsTests
     public async Task ModelListing_FollowsTheCapability_AndAnUnsupportedListSendsNothing()
     {
         var options = ProviderOptions.Custom();
-        options.Capabilities = new DecisionCapabilities { ModelListing = true };
+        options.Capabilities = new DecisionCapabilities { SupportsModelListing = true };
         var (client, handler, http) = Direct(options, Reply.Ok(ModelsResponse));
         using (http)
         using (handler)

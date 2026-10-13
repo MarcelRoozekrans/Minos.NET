@@ -61,3 +61,11 @@ Minos.DecisionUsage.OutputTokens.get -> int?
 Minos.DecisionResponse.Id.init -> void
 Minos.DecisionResponse.UpstreamProvider.init -> void
 Minos.DecisionResponse.IsCached.init -> void
+*REMOVED*Minos.DecisionCapabilities.Images.get -> bool?
+*REMOVED*Minos.DecisionCapabilities.Images.set -> void
+*REMOVED*Minos.DecisionCapabilities.ModelListing.get -> bool?
+*REMOVED*Minos.DecisionCapabilities.ModelListing.set -> void
+Minos.DecisionCapabilities.SupportsImages.get -> bool?
+Minos.DecisionCapabilities.SupportsImages.set -> void
+Minos.DecisionCapabilities.SupportsModelListing.get -> bool?
+Minos.DecisionCapabilities.SupportsModelListing.set -> void

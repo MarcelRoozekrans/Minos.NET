@@ -83,7 +83,7 @@ public sealed class SystemOneClientOptions
     /// </list>
     /// <para>
     /// The raw <see cref="SystemOneClient.EvaluateAsync(SystemOneRequest, CancellationToken)"/> call is not checked.
-    /// <see cref="DecisionCapabilities.ModelListing"/> gates <see cref="SystemOneClient.ListModelsAsync(CancellationToken)"/>.
+    /// <see cref="DecisionCapabilities.SupportsModelListing"/> gates <see cref="SystemOneClient.ListModelsAsync(CancellationToken)"/>.
     /// </para>
     /// </remarks>
     public DecisionCapabilities Capabilities { get; set; } = new();

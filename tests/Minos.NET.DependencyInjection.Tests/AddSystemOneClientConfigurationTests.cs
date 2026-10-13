@@ -82,8 +82,8 @@ public sealed class AddSystemOneClientConfigurationTests
             ("Local:Capabilities:QuestionKinds", "Noul, Choice"),
             ("Local:Capabilities:MaxQuestions", "8"),
             ("Local:Capabilities:MaxChoiceOptions", "16"),
-            ("Local:Capabilities:Images", "true"),
-            ("Local:Capabilities:ModelListing", "false"));
+            ("Local:Capabilities:SupportsImages", "true"),
+            ("Local:Capabilities:SupportsModelListing", "false"));
         var services = new ServiceCollection();
         services.AddSystemOneClient("local", configuration.GetSection("Local"));
         using var provider = services.BuildServiceProvider();
@@ -92,8 +92,8 @@ public sealed class AddSystemOneClientConfigurationTests
         var resolved = provider.GetRequiredKeyedService<IDecisionClient>("local").GetService<DecisionCapabilities>()!;
 
         var expected = (QuestionKinds.Noul | QuestionKinds.Choice, 8, 16, true, false);
-        Assert.Equal(expected, (bound.QuestionKinds, bound.MaxQuestions, bound.MaxChoiceOptions, bound.Images, bound.ModelListing));
-        Assert.Equal(expected, (resolved.QuestionKinds, resolved.MaxQuestions, resolved.MaxChoiceOptions, resolved.Images, resolved.ModelListing));
+        Assert.Equal(expected, (bound.QuestionKinds, bound.MaxQuestions, bound.MaxChoiceOptions, bound.SupportsImages, bound.SupportsModelListing));
+        Assert.Equal(expected, (resolved.QuestionKinds, resolved.MaxQuestions, resolved.MaxChoiceOptions, resolved.SupportsImages, resolved.SupportsModelListing));
     }
 
     [Fact]
@@ -109,10 +109,10 @@ public sealed class AddSystemOneClientConfigurationTests
 
         Assert.Equal(
             ((QuestionKinds?)null, (int?)null, (int?)null, (bool?)null, (bool?)null),
-            (bound.QuestionKinds, bound.MaxQuestions, bound.MaxChoiceOptions, bound.Images, bound.ModelListing));
+            (bound.QuestionKinds, bound.MaxQuestions, bound.MaxChoiceOptions, bound.SupportsImages, bound.SupportsModelListing));
         Assert.Equal(
             (QuestionKinds.All, (int?)null, 255, false, true),
-            (resolved.QuestionKinds, resolved.MaxQuestions, resolved.MaxChoiceOptions, resolved.Images, resolved.ModelListing));
+            (resolved.QuestionKinds, resolved.MaxQuestions, resolved.MaxChoiceOptions, resolved.SupportsImages, resolved.SupportsModelListing));
     }
 
     [Fact]

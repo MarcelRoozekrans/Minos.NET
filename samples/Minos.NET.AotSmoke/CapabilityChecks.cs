@@ -44,7 +44,7 @@ internal static class CapabilityChecks
 
         var capabilities = client.GetService<DecisionCapabilities>();
         Program.Check(
-            capabilities is { QuestionKinds: QuestionKinds.Noul, MaxQuestions: null, MaxChoiceOptions: null, Images: false, ModelListing: false }
+            capabilities is { QuestionKinds: QuestionKinds.Noul, MaxQuestions: null, MaxChoiceOptions: null, SupportsImages: false, SupportsModelListing: false }
                 && !ReferenceEquals(capabilities, client.GetService<DecisionCapabilities>()),
             "GetService returns the resolved capabilities as a new instance under Native AOT");
     }
@@ -79,7 +79,7 @@ internal static class CapabilityChecks
                 ["Model"] = "jev-1.13.0",
                 ["Capabilities:QuestionKinds"] = "Noul, Choice",
                 ["Capabilities:MaxQuestions"] = "8",
-                ["Capabilities:ModelListing"] = "false",
+                ["Capabilities:SupportsModelListing"] = "false",
             })
             .Build();
         var services = new ServiceCollection();
@@ -89,7 +89,7 @@ internal static class CapabilityChecks
         var capabilities = provider.GetRequiredService<IDecisionClient>().GetService<DecisionCapabilities>();
 
         Program.Check(
-            capabilities is { MaxQuestions: 8, MaxChoiceOptions: null, ModelListing: false }
+            capabilities is { MaxQuestions: 8, MaxChoiceOptions: null, SupportsModelListing: false }
                 && capabilities.QuestionKinds == (QuestionKinds.Noul | QuestionKinds.Choice),
             "AddSystemOneClient binds Capabilities, the question kinds from a comma-separated list, under Native AOT");
     }

@@ -98,7 +98,7 @@ public static class OpenRouterModels
         {
             Provider = SystemOneProvider.OpenRouter,
             Model = "perplexity/pplx-decider-v1.1-27b",
-            Capabilities = new DecisionCapabilities { Images = true },
+            Capabilities = new DecisionCapabilities { SupportsImages = true },
         };
     #endregion
 

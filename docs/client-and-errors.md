@@ -549,11 +549,11 @@ public static async Task<string> ModelsAsync(SystemOneClient client, Cancellatio
 ```
 <!-- endSnippet -->
 
-Listing models follows the `ModelListing` [capability](providers.md#capabilities), which is on for `TypeSafe` only. Where it is
+Listing models follows the `SupportsModelListing` [capability](providers.md#capabilities), which is on for `TypeSafe` only. Where it is
 off, the call returns an `Unsupported` error and sends no request. Its message names the provider, such as "Model
 listing is not available on OpenRouter." OpenRouter has its own models API. A `Custom` server's `GET v1/models` need not
 answer in TypeSafe's shape, so listing is off there too; a `Custom` server that does answer in that shape can switch the
-call on with `Capabilities.ModelListing = true`.
+call on with `Capabilities.SupportsModelListing = true`.
 
 As of October 2026, TypeSafe lists only the aliases, `jev-latest` for the newest stable release and `jev-preview` for
 the newest release of any kind. A versioned id such as `jev-1.13.0` is accepted as a `Model` too, listed or not, as

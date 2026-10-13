@@ -151,8 +151,8 @@ public sealed partial class ProvidersPageTests
             Assert.Equal("every kind", rows[0][column]);
             Assert.Equal(Limit(rows[1][column]), capabilities.MaxQuestions);
             Assert.Equal(Limit(rows[2][column]), capabilities.MaxChoiceOptions);
-            Assert.Equal(Yes(rows[3][column]), capabilities.Images);
-            Assert.Equal(Yes(rows[4][column]), capabilities.ModelListing);
+            Assert.Equal(Yes(rows[3][column]), capabilities.SupportsImages);
+            Assert.Equal(Yes(rows[4][column]), capabilities.SupportsModelListing);
         }
     }
 

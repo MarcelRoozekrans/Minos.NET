@@ -87,7 +87,7 @@ excludes it, though a custom `ShouldRetry` can retry it.
 | MIN203 | A Choice question has more options than the provider's `MaxChoiceOptions`, 255 on TypeSafe and OpenRouter. |
 | MIN204 | A Noul has `WhenTrue` or `WhenFalse`, and the provider is OpenAI, whose predicate takes only instructions. |
 | MIN205 | A criterion has `Examples` or `NotFor`, and the provider is OpenAI, whose descriptions are plain strings. |
-| MIN206 | The request has images, and the provider's `Images` is off. |
+| MIN206 | The request has images, and the provider's `SupportsImages` is off. |
 
 [The Unsupported error](providers.md#the-unsupported-error) shows the messages and the order of the failures,
 and [the provider matrix](providers.md#at-a-glance) which provider each rule applies to.

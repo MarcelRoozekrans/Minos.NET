@@ -300,7 +300,7 @@ internal static class AllocationChecks
         {
             ApiKey = "smoke-key",
             Provider = SystemOneProvider.OpenRouter,
-            Capabilities = new DecisionCapabilities { Images = true },
+            Capabilities = new DecisionCapabilities { SupportsImages = true },
         });
         var state = new SmokeState("Payouts failing", SmokeAnswers.State);
         var png = new byte[64];

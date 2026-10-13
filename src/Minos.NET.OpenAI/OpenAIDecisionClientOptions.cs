@@ -39,7 +39,7 @@ public sealed class OpenAIDecisionClientOptions
     /// <see cref="DecisionCapabilities.QuestionKinds"/> as a comma-separated list such as <c>"Noul, Choice"</c>.
     /// </summary>
     /// <remarks>
-    /// <see cref="DecisionCapabilities.ModelListing"/> has no effect: the client has no model listing, so it is always
+    /// <see cref="DecisionCapabilities.SupportsModelListing"/> has no effect: the client has no model listing, so it is always
     /// <see langword="false"/>, and <c>GetService&lt;DecisionCapabilities&gt;()</c> reports it so whatever is set here.
     /// </remarks>
     public DecisionCapabilities Capabilities { get; set; } = new();

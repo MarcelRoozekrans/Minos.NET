@@ -155,7 +155,7 @@ public sealed class CapabilityTests : IDisposable
     [Fact]
     public void Set_overrides_win_and_unset_ones_keep_the_preset_default()
     {
-        var caps = SystemOneCapabilityDefaults.For(SystemOneProvider.OpenRouter).With(new DecisionCapabilities { MaxQuestions = 8, ModelListing = true });
+        var caps = SystemOneCapabilityDefaults.For(SystemOneProvider.OpenRouter).With(new DecisionCapabilities { MaxQuestions = 8, SupportsModelListing = true });
 
         Assert.Equal(new CapabilitySet(QuestionKinds.All, 8, 255, false, true), caps);
     }
@@ -168,8 +168,8 @@ public sealed class CapabilityTests : IDisposable
             QuestionKinds = QuestionKinds.Noul | QuestionKinds.Score,
             MaxQuestions = 3,
             MaxChoiceOptions = 4,
-            Images = true,
-            ModelListing = false,
+            SupportsImages = true,
+            SupportsModelListing = false,
         });
 
         Assert.Equal(new CapabilitySet(QuestionKinds.Noul | QuestionKinds.Score, 3, 4, true, false), caps);
@@ -184,7 +184,7 @@ public sealed class CapabilityTests : IDisposable
 
         Assert.Equal(
             (QuestionKinds.All, (int?)null, (int?)255, (bool?)false, (bool?)false),
-            (options.QuestionKinds, options.MaxQuestions, options.MaxChoiceOptions, options.Images, options.ModelListing));
+            (options.QuestionKinds, options.MaxQuestions, options.MaxChoiceOptions, options.SupportsImages, options.SupportsModelListing));
         Assert.NotSame(options, caps.ToOptions());
     }
 
@@ -306,7 +306,7 @@ public sealed class CapabilityTests : IDisposable
 
         Assert.Equal(
             (QuestionKinds.Noul, (int?)null, (int?)null, (bool?)false, (bool?)false),
-            (first.QuestionKinds, first.MaxQuestions, first.MaxChoiceOptions, first.Images, first.ModelListing));
+            (first.QuestionKinds, first.MaxQuestions, first.MaxChoiceOptions, first.SupportsImages, first.SupportsModelListing));
         Assert.NotSame(first, second);
         first.MaxQuestions = 1;
         Assert.Null(client.GetService<DecisionCapabilities>()!.MaxQuestions);
@@ -355,7 +355,7 @@ public sealed class CapabilityTests : IDisposable
             _httpClients,
             handler,
             provider: SystemOneProvider.OpenRouter,
-            configure: options => options.Capabilities = new() { Images = true });
+            configure: options => options.Capabilities = new() { SupportsImages = true });
 
         var result = await client.EvaluateAsync<MinimalUrgencyCheck>("a ticket", [Png]);
 
@@ -427,7 +427,7 @@ public sealed class CapabilityTests : IDisposable
             configure: options =>
             {
                 Hosted(SystemOneProvider.Custom)(options);
-                options.Capabilities.ModelListing = true;
+                options.Capabilities.SupportsModelListing = true;
             });
 
         var result = await client.ListModelsAsync();
@@ -449,7 +449,7 @@ public sealed class CapabilityTests : IDisposable
             configure: options =>
             {
                 Hosted(SystemOneProvider.VllmSemanticRouter)(options);
-                options.Capabilities.ModelListing = true;
+                options.Capabilities.SupportsModelListing = true;
             });
 
         Assert.True((await client.ListModelsAsync()).IsSuccess);

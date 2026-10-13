@@ -46,10 +46,10 @@ published or set.
 
 A set that breaks a capability comes back as `Unsupported` before anything is sent: MIN201 for a question kind the
 provider does not take, MIN202 for more questions than `MaxQuestions`, MIN203 for more options than
-`MaxChoiceOptions`, and MIN206 for images while `Images` is off. TypeSafe's Jev reads text only, and OpenRouter mixes
+`MaxChoiceOptions`, and MIN206 for images while `SupportsImages` is off. TypeSafe's Jev reads text only, and OpenRouter mixes
 text and image models, so images are off for both until you switch them on; [Images](#images) says for which models.
 OpenRouter has its own models API, so model listing is off for it. A `Custom` or `VllmSemanticRouter` server switches
-listing on with `ModelListing = true`, and `OpenAIDecisionClient` has no `ListModelsAsync`. Choice and Score answers
+listing on with `SupportsModelListing = true`, and `OpenAIDecisionClient` has no `ListModelsAsync`. Choice and Score answers
 carry a confidence on every provider. A limit that reads "none" for `VllmSemanticRouter`, `Custom` or OpenAI means
 the provider publishes none, not that it is known to be unlimited. A limit you set in `Capabilities` applies on every
 provider. The capabilities you set change the kinds, the limits, the images and, for the System One presets, the model
@@ -299,11 +299,11 @@ would refuse comes back as a failure at once, with no request, no retry and no c
 The first five rows of the [matrix](#at-a-glance) are each provider's defaults for the five capabilities. "None"
 means no limit is published or set.
 
-`Images` says whether the provider takes [images](#images). A request with images to a provider whose `Images` is off
+`SupportsImages` says whether the provider takes [images](#images). A request with images to a provider whose `SupportsImages` is off
 returns `Unsupported` with `MIN206`, and nothing is sent.
 
-OpenAI's `ModelListing` is always off: `OpenAIDecisionClient` has no model listing, so it ignores
-`Capabilities.ModelListing`, and `GetService<DecisionCapabilities>()` reports `false` whatever you set.
+OpenAI's `SupportsModelListing` is always off: `OpenAIDecisionClient` has no model listing, so it ignores
+`Capabilities.SupportsModelListing`, and `GetService<DecisionCapabilities>()` reports `false` whatever you set.
 
 ### Overriding them
 
@@ -345,7 +345,7 @@ problem it found. Each is a `QuestionFailure` with a rule id, the key of the que
 | `MIN203` | A Choice question has more options than `MaxChoiceOptions`. | the question | `Custom accepts at most 2 options per Choice question; 'team' has 3.` |
 | `MIN204` | A Noul has `WhenTrue` or `WhenFalse`, on OpenAI. | the question | `OpenAI does not support WhenTrue or WhenFalse on a Noul; put the meaning in the instructions.` |
 | `MIN205` | A criterion has `Examples` or `NotFor`, on OpenAI. | the question | `OpenAI does not support Examples or NotFor on a criterion; describe them in its text.` |
-| `MIN206` | The request has images and `Images` is off. | none | `Custom does not support images.` |
+| `MIN206` | The request has images and `SupportsImages` is off. | none | `Custom does not support images.` |
 
 The error's `Message` is the first failure's. `MIN202` comes first, then each question's `MIN201` and `MIN203` in the
 order it is sent, then `MIN206`, then OpenAI's `MIN204` and `MIN205` in question order. The MIN2 series is for these
@@ -398,8 +398,8 @@ public static string Describe(IDecisionClient client)
     }
 
     var questions = capabilities.MaxQuestions is { } most ? $"at most {most} questions" : "no question limit";
-    var images = capabilities.Images == true ? "on" : "off";
-    var listing = capabilities.ModelListing == true ? "on" : "off";
+    var images = capabilities.SupportsImages == true ? "on" : "off";
+    var listing = capabilities.SupportsModelListing == true ? "on" : "off";
     return $"{capabilities.QuestionKinds}, {questions}, images {images}, model listing {listing}";
 }
 ```
@@ -467,8 +467,8 @@ public static async Task<string> CheckReturnAsync(
 
 ### Which providers take images
 
-OpenAI takes images by default. Every System One preset has `Images` off: TypeSafe's Jev reads text only, and a server
-of your own may not read images. A request with images to a provider whose `Images` is off returns `Unsupported` with
+OpenAI takes images by default. Every System One preset has `SupportsImages` off: TypeSafe's Jev reads text only, and a server
+of your own may not read images. A request with images to a provider whose `SupportsImages` is off returns `Unsupported` with
 `MIN206` before anything is sent, and it is not retried.
 
 OpenRouter routes to text and image models alike, so images are off for the preset as well. Switch them on for a model
@@ -483,7 +483,7 @@ public static SystemOneClientOptions PerplexityWithImages()
     {
         Provider = SystemOneProvider.OpenRouter,
         Model = "perplexity/pplx-decider-v1.1-27b",
-        Capabilities = new DecisionCapabilities { Images = true },
+        Capabilities = new DecisionCapabilities { SupportsImages = true },
     };
 ```
 <!-- endSnippet -->
@@ -491,7 +491,7 @@ public static SystemOneClientOptions PerplexityWithImages()
 As of 2026-10-11, `perplexity/pplx-decider-v1.1-27b` read our test image correctly. `cloudflare/clef` and
 `cloudflare/clef-flash` take images and answered wrongly, and `typesafe/jev-1.13` is text-only and ignores an image
 without an error. [Notes from the probes](#notes-from-the-probes) has the details. A `Custom` or `VllmSemanticRouter`
-server that reads images is switched on the same way, with `Capabilities.Images = true`.
+server that reads images is switched on the same way, with `Capabilities.SupportsImages = true`.
 
 ### On the wire
 

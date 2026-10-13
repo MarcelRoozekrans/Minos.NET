@@ -76,8 +76,8 @@ public sealed class OpenAIRegistrationTests
             ("Minos:Capabilities:QuestionKinds", "Noul, Choice"),
             ("Minos:Capabilities:MaxQuestions", "8"),
             ("Minos:Capabilities:MaxChoiceOptions", "16"),
-            ("Minos:Capabilities:Images", "false"),
-            ("Minos:Capabilities:ModelListing", "false"));
+            ("Minos:Capabilities:SupportsImages", "false"),
+            ("Minos:Capabilities:SupportsModelListing", "false"));
         var services = new ServiceCollection();
         services.AddOpenAIDecisionClient(configuration.GetSection("Minos"));
         using var provider = services.BuildServiceProvider();
@@ -96,8 +96,8 @@ public sealed class OpenAIRegistrationTests
         Assert.False(options.UseStandardPipeline);
         var bound = options.Capabilities;
         var expected = (QuestionKinds.Noul | QuestionKinds.Choice, 8, 16, false, false);
-        Assert.Equal(expected, (bound.QuestionKinds, bound.MaxQuestions, bound.MaxChoiceOptions, bound.Images, bound.ModelListing));
-        Assert.Equal(expected, (resolved.QuestionKinds, resolved.MaxQuestions, resolved.MaxChoiceOptions, resolved.Images, resolved.ModelListing));
+        Assert.Equal(expected, (bound.QuestionKinds, bound.MaxQuestions, bound.MaxChoiceOptions, bound.SupportsImages, bound.SupportsModelListing));
+        Assert.Equal(expected, (resolved.QuestionKinds, resolved.MaxQuestions, resolved.MaxChoiceOptions, resolved.SupportsImages, resolved.SupportsModelListing));
     }
 
     [Fact]
@@ -112,7 +112,7 @@ public sealed class OpenAIRegistrationTests
 
         Assert.Equal(
             (QuestionKinds.All, (int?)null, (int?)null, true, false),
-            (resolved.QuestionKinds, resolved.MaxQuestions, resolved.MaxChoiceOptions, resolved.Images, resolved.ModelListing));
+            (resolved.QuestionKinds, resolved.MaxQuestions, resolved.MaxChoiceOptions, resolved.SupportsImages, resolved.SupportsModelListing));
         Assert.Equal("gpt-6-luna", provider.GetRequiredKeyedService<IDecisionClient>("bound").GetService<DecisionClientMetadata>()!.DefaultModel);
     }
 
