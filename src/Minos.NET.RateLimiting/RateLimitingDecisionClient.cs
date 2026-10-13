@@ -15,6 +15,7 @@ namespace Minos;
 /// <para>
 /// Cancelling a call while it waits for its permit throws <see cref="OperationCanceledException"/>. The limiter belongs to
 /// the caller, who may share it across clients; disposing the stage disposes the inner client, never the limiter.
+/// Dispose the limiter only after the clients that use it: a call on a disposed limiter throws <see cref="ObjectDisposedException"/>.
 /// </para>
 /// </remarks>
 public sealed class RateLimitingDecisionClient : DelegatingDecisionClient

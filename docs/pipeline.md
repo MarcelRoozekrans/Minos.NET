@@ -58,7 +58,8 @@ public static class DefaultPipeline
 ```
 <!-- endSnippet -->
 
-The standard stages run in this order, outermost first:
+The standard stages run in this order, outermost first. The last two rows are add-on stages that are not in the
+standard pipeline; you place them yourself, as [Stage order](#stage-order) describes.
 
 | Stage | Class | What it does |
 | --- | --- | --- |
@@ -66,6 +67,8 @@ The standard stages run in this order, outermost first:
 | Logging | `LoggingDecisionClient` | Logs the outcome once: event 1001, 1002 or 1006. Only when the client has a logger factory. |
 | Retries | `RetryingDecisionClient` | Retries a transient failure with a growing wait, and logs event 1003 for each retried attempt. |
 | Transport | internal | Sends one attempt over HTTP and reads the reply. |
+| Caching | `CachingDecisionClient` | Answers a repeated decision from memory or a distributed cache. Add-on package `Minos.NET.Caching`, added with `UseCaching()`. |
+| Rate limiting | `RateLimitingDecisionClient` | Takes a permit from a `RateLimiter` before each call. Add-on package `Minos.NET.RateLimiting`, added with `UseRateLimiting()`. |
 
 The order is what makes the signals line up:
 
@@ -154,7 +157,8 @@ Two things to keep in mind when you turn the standard pipeline off:
 
 `Minos.NET.Caching` adds `UseCaching()`, a stage that answers a repeated decision from two levels: an in-process
 `IMemoryCache` first, then Redis or any other `IDistributedCache` the app registers. Without a distributed cache, it
-caches in process only.
+caches in process only. The stage is `CachingDecisionClient`; create it with `new` to wrap a client without a builder, or find it
+in a pipeline with `GetService<CachingDecisionClient>()`.
 
 <!-- snippet: Pipeline_Caching -->
 ```cs
@@ -204,7 +208,8 @@ public static IServiceCollection AddCachedDecisions(IServiceCollection services,
 
 `Minos.NET.RateLimiting` adds `UseRateLimiting(limiter)`, a stage that takes one permit from a
 [`RateLimiter`](https://learn.microsoft.com/dotnet/api/system.threading.ratelimiting.ratelimiter) before each call
-is sent.
+is sent. The stage is `RateLimitingDecisionClient`; create it with `new` to wrap a client without a builder, or find it
+in a pipeline with `GetService<RateLimitingDecisionClient>()`.
 
 <!-- snippet: Pipeline_RateLimiting -->
 ```cs
@@ -224,7 +229,8 @@ public static IDecisionClient Build(SystemOneDecisionClient client) => client.As
 <!-- endSnippet -->
 
 - **You own the limiter.** Any `RateLimiter` works: a token bucket, a fixed or sliding window, or a concurrency limiter.
-  Share one across clients to limit an account, not a client. The stage never disposes it.
+  Share one across clients to limit an account, not a client. The stage never disposes it. Dispose the limiter only after
+  the clients that use it: a call on a disposed limiter throws `ObjectDisposedException`.
 - **A call waits as the limiter says.** With a queue, a call waits for its permit; cancelling it while it waits throws
   `OperationCanceledException`. A concurrency limiter counts calls in flight, because the permit is held until the call
   completes.
