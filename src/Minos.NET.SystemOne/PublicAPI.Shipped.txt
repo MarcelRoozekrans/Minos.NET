@@ -1,7 +1,4 @@
 #nullable enable
-const Minos.SystemOne.SystemOneDefaults.ApiKeyEnvironmentVariable = "TYPESAFE_API_KEY" -> string!
-const Minos.SystemOne.SystemOneDefaults.BaseAddressEnvironmentVariable = "TYPESAFE_BASE_URL" -> string!
-const Minos.SystemOne.SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable = "OPENROUTER_API_KEY" -> string!
 Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions
 Minos.SystemOne.Answer
 Minos.SystemOne.ChoiceAnswer
@@ -63,49 +60,50 @@ Minos.SystemOne.ScoreQuestion
 Minos.SystemOne.ScoreQuestion.Criteria.get -> System.Collections.Generic.IReadOnlyList<Minos.DecisionContent>!
 Minos.SystemOne.ScoreQuestion.Criteria.init -> void
 Minos.SystemOne.ScoreQuestion.ScoreQuestion() -> void
-Minos.SystemOne.SystemOneClient
-Minos.SystemOne.SystemOneClient.Dispose() -> void
-Minos.SystemOne.SystemOneClient.EvaluateAsync(Minos.DecisionRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>
-Minos.SystemOne.SystemOneClient.EvaluateAsync(Minos.DecisionRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>
-Minos.SystemOne.SystemOneClient.EvaluateAsync(Minos.SystemOne.SystemOneRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOne.SystemOneResponse!, Minos.DecisionError!>>
-Minos.SystemOne.SystemOneClient.EvaluateAsync(Minos.SystemOne.SystemOneRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOne.SystemOneResponse!, Minos.DecisionError!>>
-Minos.SystemOne.SystemOneClient.GetService(System.Type! serviceType, object? serviceKey = null) -> object?
-Minos.SystemOne.SystemOneClient.ListModelsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOne.ModelList!, Minos.DecisionError!>>
-Minos.SystemOne.SystemOneClient.SystemOneClient() -> void
-Minos.SystemOne.SystemOneClient.SystemOneClient(Minos.SystemOne.SystemOneClientOptions? options) -> void
-Minos.SystemOne.SystemOneClient.SystemOneClient(Minos.SystemOne.SystemOneClientOptions? options, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory) -> void
-Minos.SystemOne.SystemOneClient.SystemOneClient(System.Net.Http.HttpClient! httpClient) -> void
-Minos.SystemOne.SystemOneClient.SystemOneClient(System.Net.Http.HttpClient! httpClient, Minos.SystemOne.SystemOneClientOptions? options) -> void
-Minos.SystemOne.SystemOneClient.SystemOneClient(System.Net.Http.HttpClient! httpClient, Minos.SystemOne.SystemOneClientOptions? options, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory) -> void
-Minos.SystemOne.SystemOneClientOptions
-Minos.SystemOne.SystemOneClientOptions.ApiKey.get -> string?
-Minos.SystemOne.SystemOneClientOptions.ApiKey.set -> void
-Minos.SystemOne.SystemOneClientOptions.BaseAddress.get -> System.Uri?
-Minos.SystemOne.SystemOneClientOptions.BaseAddress.set -> void
-Minos.SystemOne.SystemOneClientOptions.Capabilities.get -> Minos.DecisionCapabilities!
-Minos.SystemOne.SystemOneClientOptions.Capabilities.set -> void
-Minos.SystemOne.SystemOneClientOptions.InitialBackoff.get -> System.TimeSpan
-Minos.SystemOne.SystemOneClientOptions.InitialBackoff.set -> void
-Minos.SystemOne.SystemOneClientOptions.Jitter.get -> bool
-Minos.SystemOne.SystemOneClientOptions.Jitter.set -> void
-Minos.SystemOne.SystemOneClientOptions.MaxRetries.get -> int
-Minos.SystemOne.SystemOneClientOptions.MaxRetries.set -> void
-Minos.SystemOne.SystemOneClientOptions.MaxRetryDelay.get -> System.TimeSpan
-Minos.SystemOne.SystemOneClientOptions.MaxRetryDelay.set -> void
-Minos.SystemOne.SystemOneClientOptions.Model.get -> string?
-Minos.SystemOne.SystemOneClientOptions.Model.set -> void
-Minos.SystemOne.SystemOneClientOptions.Path.get -> string?
-Minos.SystemOne.SystemOneClientOptions.Path.set -> void
-Minos.SystemOne.SystemOneClientOptions.Provider.get -> Minos.SystemOne.SystemOneProvider
-Minos.SystemOne.SystemOneClientOptions.Provider.set -> void
-Minos.SystemOne.SystemOneClientOptions.SystemOneClientOptions() -> void
-Minos.SystemOne.SystemOneClientOptions.Timeout.get -> System.TimeSpan
-Minos.SystemOne.SystemOneClientOptions.Timeout.set -> void
-Minos.SystemOne.SystemOneClientOptions.UseStandardPipeline.get -> bool
-Minos.SystemOne.SystemOneClientOptions.UseStandardPipeline.set -> void
-Minos.SystemOne.SystemOneClientOptions.Validate() -> void
-Minos.SystemOne.SystemOneClientServiceBuilder
-Minos.SystemOne.SystemOneClientServiceBuilder.HttpClient.get -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!
+Minos.SystemOne.SystemOneDecisionClient
+Minos.SystemOne.SystemOneDecisionClient.Dispose() -> void
+Minos.SystemOne.SystemOneDecisionClient.EvaluateAsync(Minos.DecisionRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>
+Minos.SystemOne.SystemOneDecisionClient.EvaluateAsync(Minos.DecisionRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>
+Minos.SystemOne.SystemOneDecisionClient.EvaluateAsync(Minos.SystemOne.SystemOneRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOne.SystemOneResponse!, Minos.DecisionError!>>
+Minos.SystemOne.SystemOneDecisionClient.EvaluateAsync(Minos.SystemOne.SystemOneRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOne.SystemOneResponse!, Minos.DecisionError!>>
+Minos.SystemOne.SystemOneDecisionClient.GetService(System.Type! serviceType, object? serviceKey = null) -> object?
+Minos.SystemOne.SystemOneDecisionClient.ListModelsAsync() -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOne.ModelList!, Minos.DecisionError!>>
+Minos.SystemOne.SystemOneDecisionClient.ListModelsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOne.ModelList!, Minos.DecisionError!>>
+Minos.SystemOne.SystemOneDecisionClient.SystemOneDecisionClient() -> void
+Minos.SystemOne.SystemOneDecisionClient.SystemOneDecisionClient(Minos.SystemOne.SystemOneDecisionClientOptions? options) -> void
+Minos.SystemOne.SystemOneDecisionClient.SystemOneDecisionClient(Minos.SystemOne.SystemOneDecisionClientOptions? options, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory) -> void
+Minos.SystemOne.SystemOneDecisionClient.SystemOneDecisionClient(System.Net.Http.HttpClient! httpClient) -> void
+Minos.SystemOne.SystemOneDecisionClient.SystemOneDecisionClient(System.Net.Http.HttpClient! httpClient, Minos.SystemOne.SystemOneDecisionClientOptions? options) -> void
+Minos.SystemOne.SystemOneDecisionClient.SystemOneDecisionClient(System.Net.Http.HttpClient! httpClient, Minos.SystemOne.SystemOneDecisionClientOptions? options, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory) -> void
+Minos.SystemOne.SystemOneDecisionClientOptions
+Minos.SystemOne.SystemOneDecisionClientOptions.ApiKey.get -> string?
+Minos.SystemOne.SystemOneDecisionClientOptions.ApiKey.set -> void
+Minos.SystemOne.SystemOneDecisionClientOptions.BaseAddress.get -> System.Uri?
+Minos.SystemOne.SystemOneDecisionClientOptions.BaseAddress.set -> void
+Minos.SystemOne.SystemOneDecisionClientOptions.Capabilities.get -> Minos.DecisionCapabilities!
+Minos.SystemOne.SystemOneDecisionClientOptions.Capabilities.set -> void
+Minos.SystemOne.SystemOneDecisionClientOptions.InitialBackoff.get -> System.TimeSpan
+Minos.SystemOne.SystemOneDecisionClientOptions.InitialBackoff.set -> void
+Minos.SystemOne.SystemOneDecisionClientOptions.Jitter.get -> bool
+Minos.SystemOne.SystemOneDecisionClientOptions.Jitter.set -> void
+Minos.SystemOne.SystemOneDecisionClientOptions.MaxRetries.get -> int
+Minos.SystemOne.SystemOneDecisionClientOptions.MaxRetries.set -> void
+Minos.SystemOne.SystemOneDecisionClientOptions.MaxRetryDelay.get -> System.TimeSpan
+Minos.SystemOne.SystemOneDecisionClientOptions.MaxRetryDelay.set -> void
+Minos.SystemOne.SystemOneDecisionClientOptions.Model.get -> string?
+Minos.SystemOne.SystemOneDecisionClientOptions.Model.set -> void
+Minos.SystemOne.SystemOneDecisionClientOptions.Path.get -> string?
+Minos.SystemOne.SystemOneDecisionClientOptions.Path.set -> void
+Minos.SystemOne.SystemOneDecisionClientOptions.Provider.get -> Minos.SystemOne.SystemOneProvider
+Minos.SystemOne.SystemOneDecisionClientOptions.Provider.set -> void
+Minos.SystemOne.SystemOneDecisionClientOptions.SystemOneDecisionClientOptions() -> void
+Minos.SystemOne.SystemOneDecisionClientOptions.Timeout.get -> System.TimeSpan
+Minos.SystemOne.SystemOneDecisionClientOptions.Timeout.set -> void
+Minos.SystemOne.SystemOneDecisionClientOptions.UseStandardPipeline.get -> bool
+Minos.SystemOne.SystemOneDecisionClientOptions.UseStandardPipeline.set -> void
+Minos.SystemOne.SystemOneDecisionClientOptions.Validate() -> void
+Minos.SystemOne.SystemOneDecisionClientServiceBuilder
+Minos.SystemOne.SystemOneDecisionClientServiceBuilder.HttpClient.get -> Microsoft.Extensions.DependencyInjection.IHttpClientBuilder!
 Minos.SystemOne.SystemOneDefaults
 Minos.SystemOne.SystemOneProvider
 Minos.SystemOne.SystemOneProvider.Custom = 3 -> Minos.SystemOne.SystemOneProvider
@@ -113,7 +111,7 @@ Minos.SystemOne.SystemOneProvider.OpenRouter = 1 -> Minos.SystemOne.SystemOnePro
 Minos.SystemOne.SystemOneProvider.TypeSafe = 0 -> Minos.SystemOne.SystemOneProvider
 Minos.SystemOne.SystemOneProvider.VllmSemanticRouter = 2 -> Minos.SystemOne.SystemOneProvider
 Minos.SystemOne.SystemOneRequest
-Minos.SystemOne.SystemOneRequest.Model.get -> string!
+Minos.SystemOne.SystemOneRequest.Model.get -> string?
 Minos.SystemOne.SystemOneRequest.Model.init -> void
 Minos.SystemOne.SystemOneRequest.Questions.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Minos.SystemOne.Question!>!
 Minos.SystemOne.SystemOneRequest.Questions.init -> void
@@ -127,28 +125,31 @@ Minos.SystemOne.SystemOneResponse.Id.get -> string?
 Minos.SystemOne.SystemOneResponse.Id.init -> void
 Minos.SystemOne.SystemOneResponse.Model.get -> string!
 Minos.SystemOne.SystemOneResponse.Model.init -> void
-Minos.SystemOne.SystemOneResponse.Provider.get -> string?
-Minos.SystemOne.SystemOneResponse.Provider.init -> void
 Minos.SystemOne.SystemOneResponse.SystemOneResponse() -> void
+Minos.SystemOne.SystemOneResponse.UpstreamProvider.get -> string?
+Minos.SystemOne.SystemOneResponse.UpstreamProvider.init -> void
 Minos.SystemOne.SystemOneResponse.Usage.get -> Minos.DecisionUsage!
 Minos.SystemOne.SystemOneResponse.Usage.init -> void
+const Minos.SystemOne.SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable = "OPENROUTER_API_KEY" -> string!
+const Minos.SystemOne.SystemOneDefaults.TypeSafeApiKeyEnvironmentVariable = "TYPESAFE_API_KEY" -> string!
+const Minos.SystemOne.SystemOneDefaults.TypeSafeBaseAddressEnvironmentVariable = "TYPESAFE_BASE_URL" -> string!
 override Minos.SystemOne.ModelCard.Equals(object? obj) -> bool
 override Minos.SystemOne.ModelCard.GetHashCode() -> int
 override Minos.SystemOne.ModelCard.ToString() -> string!
 override Minos.SystemOne.NoulCriteria.Equals(object? obj) -> bool
 override Minos.SystemOne.NoulCriteria.GetHashCode() -> int
 override Minos.SystemOne.NoulCriteria.ToString() -> string!
-static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Minos.SystemOne.SystemOneClientServiceBuilder!
-static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Minos.SystemOne.SystemOneClientServiceBuilder!
-static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name) -> Minos.SystemOne.SystemOneClientServiceBuilder!
-static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Minos.SystemOne.SystemOneClientServiceBuilder!
-static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, System.Action<Minos.SystemOne.SystemOneClientOptions!>! configure) -> Minos.SystemOne.SystemOneClientServiceBuilder!
-static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Minos.SystemOne.SystemOneClientOptions!>! configure) -> Minos.SystemOne.SystemOneClientServiceBuilder!
+static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Minos.SystemOne.SystemOneDecisionClientServiceBuilder!
+static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Minos.SystemOne.SystemOneDecisionClientServiceBuilder!
+static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Minos.SystemOne.SystemOneDecisionClientOptions!>! configure) -> Minos.SystemOne.SystemOneDecisionClientServiceBuilder!
+static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name) -> Minos.SystemOne.SystemOneDecisionClientServiceBuilder!
+static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Minos.SystemOne.SystemOneDecisionClientServiceBuilder!
+static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, System.Action<Minos.SystemOne.SystemOneDecisionClientOptions!>! configure) -> Minos.SystemOne.SystemOneDecisionClientServiceBuilder!
 static Minos.SystemOne.ModelCard.operator !=(Minos.SystemOne.ModelCard? left, Minos.SystemOne.ModelCard? right) -> bool
 static Minos.SystemOne.ModelCard.operator ==(Minos.SystemOne.ModelCard? left, Minos.SystemOne.ModelCard? right) -> bool
 static Minos.SystemOne.NoulCriteria.operator !=(Minos.SystemOne.NoulCriteria? left, Minos.SystemOne.NoulCriteria? right) -> bool
 static Minos.SystemOne.NoulCriteria.operator ==(Minos.SystemOne.NoulCriteria? left, Minos.SystemOne.NoulCriteria? right) -> bool
-static Minos.SystemOne.SystemOneClient.ConfigureHttpClient(System.Net.Http.HttpClient! httpClient, Minos.SystemOne.SystemOneClientOptions? options) -> void
+static Minos.SystemOne.SystemOneDecisionClient.ConfigureHttpClient(System.Net.Http.HttpClient! httpClient, Minos.SystemOne.SystemOneDecisionClientOptions? options) -> void
 static Minos.SystemOne.SystemOneDefaults.Model.get -> string!
 static Minos.SystemOne.SystemOneDefaults.OpenRouterBaseAddress.get -> System.Uri!
 static Minos.SystemOne.SystemOneDefaults.TypeSafeBaseAddress.get -> System.Uri!

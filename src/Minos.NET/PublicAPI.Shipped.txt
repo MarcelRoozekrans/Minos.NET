@@ -1,13 +1,4 @@
 #nullable enable
-abstract Minos.DecisionOptionSet<T>.Count.get -> int
-abstract Minos.DecisionOptionSet<T>.IndexOf(T value) -> int
-abstract Minos.DecisionOptionSet<T>.this[int index].get -> T
-Minos.Answers
-Minos.Answers.Get(Minos.KeyedChoiceHandle question) -> Minos.KeyedChoice
-Minos.Answers.Get(Minos.KeyedScoreHandle question) -> Minos.KeyedScore
-Minos.Answers.Get(Minos.NoulHandle question) -> Minos.Noul
-Minos.Answers.Get<T>(Minos.ChoiceHandle<T> question) -> Minos.Choice<T>
-Minos.Answers.Get<T>(Minos.ScoreHandle<T> question) -> Minos.Score<T>
 Minos.AnswerSlots
 Minos.AnswerSlots.AnswerSlots() -> void
 Minos.AnswerSlots.Choice<T>(int index, Minos.DecisionOptionSet<T>! options) -> Minos.Choice<T>
@@ -16,7 +7,6 @@ Minos.AnswerSlots.Noul(int index) -> Minos.Noul
 Minos.AnswerSlots.Score<T>(int index, Minos.DecisionOptionSet<T>! options) -> Minos.Score<T>
 Minos.Choice<T>
 Minos.Choice<T>.Choice() -> void
-Minos.Choice<T>.Choice(T value, double confidence, Minos.ProbabilityMap<T> probabilities) -> void
 Minos.Choice<T>.Confidence.get -> double
 Minos.Choice<T>.Equals(Minos.Choice<T> other) -> bool
 Minos.Choice<T>.Probabilities.get -> Minos.ProbabilityMap<T>
@@ -41,15 +31,6 @@ Minos.ConfidenceTier
 Minos.ConfidenceTier.High = 2 -> Minos.ConfidenceTier
 Minos.ConfidenceTier.Low = 0 -> Minos.ConfidenceTier
 Minos.ConfidenceTier.Medium = 1 -> Minos.ConfidenceTier
-Minos.CriteriaAttribute
-Minos.CriteriaAttribute.CriteriaAttribute(string! description) -> void
-Minos.CriteriaAttribute.Description.get -> string!
-Minos.CriteriaAttribute.Examples.get -> string![]?
-Minos.CriteriaAttribute.Examples.set -> void
-Minos.CriteriaAttribute.Key.get -> string?
-Minos.CriteriaAttribute.Key.set -> void
-Minos.CriteriaAttribute.NotFor.get -> string![]?
-Minos.CriteriaAttribute.NotFor.set -> void
 Minos.Criterion
 Minos.Criterion.Description.get -> string?
 Minos.Criterion.Examples.get -> System.Collections.Generic.IReadOnlyList<string!>!
@@ -57,18 +38,27 @@ Minos.Criterion.JsonContent.get -> Minos.DecisionContent?
 Minos.Criterion.NotFor.get -> System.Collections.Generic.IReadOnlyList<string!>!
 Minos.Criterion.WithExamples(params System.ReadOnlySpan<string?> examples) -> Minos.Criterion!
 Minos.Criterion.WithNotFor(params System.ReadOnlySpan<string?> notFor) -> Minos.Criterion!
+Minos.CriterionAttribute
+Minos.CriterionAttribute.CriterionAttribute(string! description) -> void
+Minos.CriterionAttribute.Description.get -> string!
+Minos.CriterionAttribute.Examples.get -> string![]?
+Minos.CriterionAttribute.Examples.set -> void
+Minos.CriterionAttribute.Key.get -> string?
+Minos.CriterionAttribute.Key.set -> void
+Minos.CriterionAttribute.NotFor.get -> string![]?
+Minos.CriterionAttribute.NotFor.set -> void
 Minos.DecisionCapabilities
 Minos.DecisionCapabilities.DecisionCapabilities() -> void
-Minos.DecisionCapabilities.Images.get -> bool?
-Minos.DecisionCapabilities.Images.set -> void
 Minos.DecisionCapabilities.MaxChoiceOptions.get -> int?
 Minos.DecisionCapabilities.MaxChoiceOptions.set -> void
 Minos.DecisionCapabilities.MaxQuestions.get -> int?
 Minos.DecisionCapabilities.MaxQuestions.set -> void
-Minos.DecisionCapabilities.ModelListing.get -> bool?
-Minos.DecisionCapabilities.ModelListing.set -> void
 Minos.DecisionCapabilities.QuestionKinds.get -> Minos.QuestionKinds?
 Minos.DecisionCapabilities.QuestionKinds.set -> void
+Minos.DecisionCapabilities.SupportsImages.get -> bool?
+Minos.DecisionCapabilities.SupportsImages.set -> void
+Minos.DecisionCapabilities.SupportsModelListing.get -> bool?
+Minos.DecisionCapabilities.SupportsModelListing.set -> void
 Minos.DecisionClientBuilder
 Minos.DecisionClientBuilder.Build(System.IServiceProvider? services = null) -> Minos.IDecisionClient!
 Minos.DecisionClientBuilder.DecisionClientBuilder(Minos.IDecisionClient! innerClient) -> void
@@ -92,11 +82,11 @@ Minos.DecisionClientMetadata.ProviderName.init -> void
 Minos.DecisionContent
 Minos.DecisionContent.DecisionContent() -> void
 Minos.DecisionContent.Equals(Minos.DecisionContent other) -> bool
-Minos.DecisionContent.IsString.get -> bool
 Minos.DecisionContent.TryGetJson(out System.Text.Json.JsonElement json) -> bool
 Minos.DecisionContent.TryGetString(out string? text) -> bool
 Minos.DecisionError
 Minos.DecisionError.DecisionError(Minos.DecisionErrorKind kind, string! message) -> void
+Minos.DecisionError.DecisionError(Minos.DecisionErrorKind kind, string! message, System.Collections.Generic.IReadOnlyList<Minos.QuestionFailure!>! failures) -> void
 Minos.DecisionError.Detail.get -> System.Text.Json.JsonElement?
 Minos.DecisionError.Detail.init -> void
 Minos.DecisionError.Exception.get -> System.Exception?
@@ -133,7 +123,7 @@ Minos.DecisionOptionSet<T>
 Minos.DecisionOptionSet<T>.DecisionOptionSet() -> void
 Minos.DecisionRequest
 Minos.DecisionRequest.<Clone>$() -> Minos.DecisionRequest!
-Minos.DecisionRequest.DecisionRequest(Minos.QuestionSetDefinition! Definition, Minos.DecisionContent State) -> void
+Minos.DecisionRequest.DecisionRequest(Minos.QuestionSetDefinition! definition, Minos.DecisionContent state) -> void
 Minos.DecisionRequest.Definition.get -> Minos.QuestionSetDefinition!
 Minos.DecisionRequest.Equals(Minos.DecisionRequest? other) -> bool
 Minos.DecisionRequest.Images.get -> System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>!
@@ -148,8 +138,12 @@ Minos.DecisionResponse.Answers.get -> Minos.QuestionAnswerList
 Minos.DecisionResponse.DecisionResponse(Minos.QuestionSetDefinition! definition, System.Collections.Generic.IReadOnlyList<Minos.QuestionAnswer>! answers, string? model = null, Minos.DecisionUsage? usage = null) -> void
 Minos.DecisionResponse.Definition.get -> Minos.QuestionSetDefinition!
 Minos.DecisionResponse.Id.get -> string?
+Minos.DecisionResponse.Id.init -> void
+Minos.DecisionResponse.IsCached.get -> bool
+Minos.DecisionResponse.IsCached.init -> void
 Minos.DecisionResponse.Model.get -> string?
-Minos.DecisionResponse.Provider.get -> string?
+Minos.DecisionResponse.UpstreamProvider.get -> string?
+Minos.DecisionResponse.UpstreamProvider.init -> void
 Minos.DecisionResponse.Usage.get -> Minos.DecisionUsage?
 Minos.DecisionRetryOptions
 Minos.DecisionRetryOptions.DecisionRetryOptions() -> void
@@ -169,9 +163,9 @@ Minos.DecisionUsage.Cost.get -> double?
 Minos.DecisionUsage.Cost.init -> void
 Minos.DecisionUsage.DecisionUsage() -> void
 Minos.DecisionUsage.Equals(Minos.DecisionUsage? other) -> bool
-Minos.DecisionUsage.InputTokens.get -> int
+Minos.DecisionUsage.InputTokens.get -> int?
 Minos.DecisionUsage.InputTokens.init -> void
-Minos.DecisionUsage.OutputTokens.get -> int
+Minos.DecisionUsage.OutputTokens.get -> int?
 Minos.DecisionUsage.OutputTokens.init -> void
 Minos.DelegatingDecisionClient
 Minos.DelegatingDecisionClient.DelegatingDecisionClient(Minos.IDecisionClient! innerClient) -> void
@@ -188,7 +182,6 @@ Minos.KeyedChoice
 Minos.KeyedChoice.Confidence.get -> double
 Minos.KeyedChoice.Equals(Minos.KeyedChoice other) -> bool
 Minos.KeyedChoice.KeyedChoice() -> void
-Minos.KeyedChoice.KeyedChoice(string! value, double confidence, Minos.KeyedProbabilityMap probabilities) -> void
 Minos.KeyedChoice.Probabilities.get -> Minos.KeyedProbabilityMap
 Minos.KeyedChoice.Value.get -> string!
 Minos.KeyedChoiceHandle
@@ -212,7 +205,6 @@ Minos.KeyedScore.Confidence.get -> double
 Minos.KeyedScore.Equals(Minos.KeyedScore other) -> bool
 Minos.KeyedScore.Expected.get -> double
 Minos.KeyedScore.KeyedScore() -> void
-Minos.KeyedScore.KeyedScore(int level, double expected, double confidence, Minos.KeyedProbabilityMap probabilities) -> void
 Minos.KeyedScore.Level.get -> int
 Minos.KeyedScore.Normalized.get -> double
 Minos.KeyedScore.Probabilities.get -> Minos.KeyedProbabilityMap
@@ -270,11 +262,12 @@ Minos.ProbabilityMap<T>.this[T option].get -> double
 Minos.QuestionAnswer
 Minos.QuestionAnswer.ChosenIndex.get -> int
 Minos.QuestionAnswer.Confidence.get -> double
+Minos.QuestionAnswer.Expected.get -> double
 Minos.QuestionAnswer.Key.get -> string!
 Minos.QuestionAnswer.Kind.get -> Minos.QuestionKind
 Minos.QuestionAnswer.Probabilities.get -> System.ReadOnlySpan<double>
+Minos.QuestionAnswer.Probability.get -> double
 Minos.QuestionAnswer.QuestionAnswer() -> void
-Minos.QuestionAnswer.Value.get -> double
 Minos.QuestionAnswerList
 Minos.QuestionAnswerList.Count.get -> int
 Minos.QuestionAnswerList.Enumerator
@@ -312,13 +305,15 @@ Minos.QuestionKinds.Choice = 2 -> Minos.QuestionKinds
 Minos.QuestionKinds.None = 0 -> Minos.QuestionKinds
 Minos.QuestionKinds.Noul = 1 -> Minos.QuestionKinds
 Minos.QuestionKinds.Score = 4 -> Minos.QuestionKinds
-Minos.QuestionsAttribute
-Minos.QuestionsAttribute.QuestionsAttribute() -> void
-Minos.QuestionsAttribute.State.get -> System.Type?
-Minos.QuestionsAttribute.State.set -> void
 Minos.QuestionSet
 Minos.QuestionSet.Definition.get -> Minos.QuestionSetDefinition!
 Minos.QuestionSet.Warnings.get -> System.Collections.Generic.IReadOnlyList<Minos.QuestionFailure!>!
+Minos.QuestionSetAnswers
+Minos.QuestionSetAnswers.Get(Minos.KeyedChoiceHandle question) -> Minos.KeyedChoice
+Minos.QuestionSetAnswers.Get(Minos.KeyedScoreHandle question) -> Minos.KeyedScore
+Minos.QuestionSetAnswers.Get(Minos.NoulHandle question) -> Minos.Noul
+Minos.QuestionSetAnswers.Get<T>(Minos.ChoiceHandle<T> question) -> Minos.Choice<T>
+Minos.QuestionSetAnswers.Get<T>(Minos.ScoreHandle<T> question) -> Minos.Score<T>
 Minos.QuestionSetBuilder
 Minos.QuestionSetBuilder.Build() -> ZeroAlloc.Results.Result<Minos.QuestionSet!, Minos.DecisionError!>
 Minos.QuestionSetBuilder.Choice(string! key, Minos.DecisionContent instructions, out Minos.KeyedChoiceHandle question, System.Action<Minos.KeyedChoiceOptionsBuilder!>! configure) -> Minos.QuestionSetBuilder!
@@ -329,8 +324,12 @@ Minos.QuestionSetBuilder.Noul(string! key, Minos.DecisionContent instructions, o
 Minos.QuestionSetBuilder.Score(string! key, Minos.DecisionContent instructions, out Minos.KeyedScoreHandle question, System.Action<Minos.KeyedScoreLevelsBuilder!>! configure) -> Minos.QuestionSetBuilder!
 Minos.QuestionSetBuilder.Score<T>(string! key, Minos.DecisionContent instructions, out Minos.ScoreHandle<T> question, System.Action<Minos.ScoreLevelsBuilder<T>!>! configure) -> Minos.QuestionSetBuilder!
 Minos.QuestionSetDefinition
-Minos.QuestionSetDefinition.Questions.get -> System.Collections.Generic.IReadOnlyList<Minos.QuestionDefinition!>!
 Minos.QuestionSetDefinition.QuestionSetDefinition(params System.ReadOnlySpan<Minos.QuestionDefinition!> questions) -> void
+Minos.QuestionSetDefinition.Questions.get -> System.Collections.Generic.IReadOnlyList<Minos.QuestionDefinition!>!
+Minos.QuestionsAttribute
+Minos.QuestionsAttribute.QuestionsAttribute() -> void
+Minos.QuestionsAttribute.State.get -> System.Type?
+Minos.QuestionsAttribute.State.set -> void
 Minos.RetryingDecisionClient
 Minos.RetryingDecisionClient.RetryingDecisionClient(Minos.IDecisionClient! innerClient, Minos.DecisionRetryOptions? options = null, Microsoft.Extensions.Logging.ILogger? logger = null, System.TimeProvider? timeProvider = null) -> void
 Minos.RetryingDecisionClientBuilderExtensions
@@ -341,7 +340,6 @@ Minos.Score<T>.Expected.get -> double
 Minos.Score<T>.Normalized.get -> double
 Minos.Score<T>.Probabilities.get -> Minos.ProbabilityMap<T>
 Minos.Score<T>.Score() -> void
-Minos.Score<T>.Score(T value, double expected, double confidence, Minos.ProbabilityMap<T> probabilities) -> void
 Minos.Score<T>.Value.get -> T
 Minos.ScoreAttribute
 Minos.ScoreAttribute.Instructions.get -> string!
@@ -352,6 +350,9 @@ Minos.ScoreHandle<T>
 Minos.ScoreHandle<T>.ScoreHandle() -> void
 Minos.ScoreLevelsBuilder<T>
 Minos.ScoreLevelsBuilder<T>.Level(T level, Minos.Criterion! criterion) -> Minos.ScoreLevelsBuilder<T>!
+abstract Minos.DecisionOptionSet<T>.Count.get -> int
+abstract Minos.DecisionOptionSet<T>.IndexOf(T value) -> int
+abstract Minos.DecisionOptionSet<T>.this[int index].get -> T
 override Minos.Choice<T>.Equals(object? obj) -> bool
 override Minos.Choice<T>.GetHashCode() -> int
 override Minos.ConfidenceThresholds.Equals(object? obj) -> bool
@@ -394,30 +395,34 @@ static Minos.Choice<T>.operator ==(Minos.Choice<T> left, Minos.Choice<T> right) 
 static Minos.ConfidenceThresholds.Default.get -> Minos.ConfidenceThresholds
 static Minos.ConfidenceThresholds.operator !=(Minos.ConfidenceThresholds left, Minos.ConfidenceThresholds right) -> bool
 static Minos.ConfidenceThresholds.operator ==(Minos.ConfidenceThresholds left, Minos.ConfidenceThresholds right) -> bool
-static Minos.Criterion.implicit operator Minos.Criterion!(string! description) -> Minos.Criterion!
 static Minos.Criterion.Json(Minos.DecisionContent json) -> Minos.Criterion!
 static Minos.Criterion.Text(string! description) -> Minos.Criterion!
+static Minos.Criterion.implicit operator Minos.Criterion!(string! description) -> Minos.Criterion!
 static Minos.DecisionClientBuilderExtensions.AsBuilder(this Minos.IDecisionClient! innerClient) -> Minos.DecisionClientBuilder!
-static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! client, Minos.QuestionSet! questionSet, Minos.DecisionContent state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.Answers!, Minos.DecisionError!>>
-static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! client, Minos.QuestionSet! questionSet, Minos.DecisionContent state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.Answers!, Minos.DecisionError!>>
-static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! client, Minos.QuestionSet! questionSet, Minos.DecisionContent state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.Answers!, Minos.DecisionError!>>
-static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! client, Minos.QuestionSet! questionSet, Minos.DecisionContent state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.Answers!, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! client, Minos.QuestionSet! questionSet, Minos.DecisionContent state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.QuestionSetAnswers!, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! client, Minos.QuestionSet! questionSet, Minos.DecisionContent state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.QuestionSetAnswers!, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! client, Minos.QuestionSet! questionSet, Minos.DecisionContent state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.QuestionSetAnswers!, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! client, Minos.QuestionSet! questionSet, Minos.DecisionContent state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.QuestionSetAnswers!, Minos.DecisionError!>>
 static Minos.DecisionClientExtensions.EvaluateAsync<T, TState>(this Minos.IDecisionClient! client, TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
 static Minos.DecisionClientExtensions.EvaluateAsync<T, TState>(this Minos.IDecisionClient! client, TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
 static Minos.DecisionClientExtensions.EvaluateAsync<T, TState>(this Minos.IDecisionClient! client, TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
 static Minos.DecisionClientExtensions.EvaluateAsync<T, TState>(this Minos.IDecisionClient! client, TState state, System.Text.Json.Serialization.Metadata.JsonTypeInfo<TState>! stateTypeInfo, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
-static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, string! state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
-static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, string! state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
-static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, string! state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
-static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, string! state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
 static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, System.Text.Json.JsonElement state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
 static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, System.Text.Json.JsonElement state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
 static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, System.Text.Json.JsonElement state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
 static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, System.Text.Json.JsonElement state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, string! state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, string! state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, string! state, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.EvaluateAsync<T>(this Minos.IDecisionClient! client, string! state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
 static Minos.DecisionClientExtensions.EvaluateUtf8Async<T>(this Minos.IDecisionClient! client, System.ReadOnlyMemory<byte> utf8JsonState) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
 static Minos.DecisionClientExtensions.EvaluateUtf8Async<T>(this Minos.IDecisionClient! client, System.ReadOnlyMemory<byte> utf8JsonState, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
 static Minos.DecisionClientExtensions.EvaluateUtf8Async<T>(this Minos.IDecisionClient! client, System.ReadOnlyMemory<byte> utf8JsonState, System.Collections.Generic.IReadOnlyList<Minos.DecisionImage>! images, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
 static Minos.DecisionClientExtensions.EvaluateUtf8Async<T>(this Minos.IDecisionClient! client, System.ReadOnlyMemory<byte> utf8JsonState, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<T, Minos.DecisionError!>>
+static Minos.DecisionClientExtensions.GetRequiredService(this Minos.IDecisionClient! client, System.Type! serviceType) -> object!
+static Minos.DecisionClientExtensions.GetRequiredService(this Minos.IDecisionClient! client, System.Type! serviceType, object? serviceKey) -> object!
+static Minos.DecisionClientExtensions.GetRequiredService<TService>(this Minos.IDecisionClient! client) -> TService
+static Minos.DecisionClientExtensions.GetRequiredService<TService>(this Minos.IDecisionClient! client, object? serviceKey) -> TService
 static Minos.DecisionClientExtensions.GetService<TService>(this Minos.IDecisionClient! client, object? serviceKey = null) -> TService?
 static Minos.DecisionClientMetadata.operator !=(Minos.DecisionClientMetadata? left, Minos.DecisionClientMetadata? right) -> bool
 static Minos.DecisionClientMetadata.operator ==(Minos.DecisionClientMetadata? left, Minos.DecisionClientMetadata? right) -> bool
@@ -450,8 +455,8 @@ static Minos.OpenTelemetryDecisionClientBuilderExtensions.UseOpenTelemetry(this 
 static Minos.ProbabilityMap<T>.operator !=(Minos.ProbabilityMap<T> left, Minos.ProbabilityMap<T> right) -> bool
 static Minos.ProbabilityMap<T>.operator ==(Minos.ProbabilityMap<T> left, Minos.ProbabilityMap<T> right) -> bool
 static Minos.QuestionAnswer.Choice(int chosenIndex, double confidence, double[]! probabilities) -> Minos.QuestionAnswer
-static Minos.QuestionAnswer.Noul(double value) -> Minos.QuestionAnswer
-static Minos.QuestionAnswer.Score(int level, double value, double confidence, double[]! probabilities) -> Minos.QuestionAnswer
+static Minos.QuestionAnswer.Noul(double probability) -> Minos.QuestionAnswer
+static Minos.QuestionAnswer.Score(int level, double expected, double confidence, double[]! probabilities) -> Minos.QuestionAnswer
 static Minos.QuestionDefinition.Choice(string! key, Minos.DecisionContent instructions, params System.ReadOnlySpan<Minos.OptionDefinition!> options) -> Minos.QuestionDefinition!
 static Minos.QuestionDefinition.Noul(string! key, Minos.DecisionContent instructions, Minos.DecisionContent? whenTrue = null, Minos.DecisionContent? whenFalse = null) -> Minos.QuestionDefinition!
 static Minos.QuestionDefinition.Score(string! key, Minos.DecisionContent instructions, params System.ReadOnlySpan<Minos.Criterion!> levels) -> Minos.QuestionDefinition!
