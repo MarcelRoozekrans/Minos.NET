@@ -103,3 +103,7 @@ static Minos.SystemOne.SystemOneDecisionClient.ConfigureHttpClient(System.Net.Ht
 *REMOVED*const Minos.SystemOne.SystemOneDefaults.BaseAddressEnvironmentVariable = "TYPESAFE_BASE_URL" -> string!
 const Minos.SystemOne.SystemOneDefaults.TypeSafeApiKeyEnvironmentVariable = "TYPESAFE_API_KEY" -> string!
 const Minos.SystemOne.SystemOneDefaults.TypeSafeBaseAddressEnvironmentVariable = "TYPESAFE_BASE_URL" -> string!
+*REMOVED*Minos.SystemOne.SystemOneResponse.Provider.get -> string?
+*REMOVED*Minos.SystemOne.SystemOneResponse.Provider.init -> void
+Minos.SystemOne.SystemOneResponse.UpstreamProvider.get -> string?
+Minos.SystemOne.SystemOneResponse.UpstreamProvider.init -> void

@@ -54,7 +54,7 @@ public sealed class ProviderTests : IClassFixture<WireMockFixture>
 
         Assert.True(result.IsSuccess);
         Assert.Equal("gen-1727400000-abc123", result.Value.Id);
-        Assert.Equal("TypeSafe", result.Value.Provider);
+        Assert.Equal("TypeSafe", result.Value.UpstreamProvider);
         Assert.Equal(0.000296, result.Value.Usage.Cost);
     }
 

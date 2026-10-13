@@ -478,8 +478,9 @@ public static async Task<string> UrgencyAsync(
 A `SystemOneRequest` has a required `State`, which is a `DecisionContent` (text converts to one, as
 [typed evaluation](typed-evaluation.md#decisioncontent) describes), a `Model` that defaults to `jev-latest`, and required
 `Questions`. The response is a `SystemOneResponse`: the versioned `Model` that answered, `Answers` keyed by the ids you
-sent, and `Usage` with the input and output token counts; a count the server left out is `null`. On OpenRouter the response also
-carries the generation `Id` and the upstream `Provider`, and `Usage` carries the `Cost` in US dollars.
+sent, and `Usage` with the input and output token counts; a count the server left out is `null`. On OpenRouter the
+response also carries the generation `Id` and the `UpstreamProvider` OpenRouter routed the request to, and `Usage` carries
+the `Cost` in US dollars.
 
 Each answer is a `NoulAnswer`, a `ChoiceAnswer` or a `ScoreAnswer`, so you pattern-match to read it. The typed forms do
 that matching for you, which is the reason to prefer them. The raw API leaves the API's rules for questions to you,
