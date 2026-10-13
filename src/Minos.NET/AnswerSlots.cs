@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Runtime.InteropServices;
 
 namespace Minos;
@@ -6,6 +7,8 @@ namespace Minos;
 /// The answers a protocol read, one slot per question of a <see cref="QuestionSetDefinition"/>, in its order.
 /// Generated <c>Create</c> methods read typed answers from it; it lives only for that call.
 /// </summary>
+/// <remarks>Infrastructure for the code the <c>[Questions]</c> source generator emits; application code does not use it.</remarks>
+[EditorBrowsable(EditorBrowsableState.Never)]
 [StructLayout(LayoutKind.Auto)]
 public readonly ref struct AnswerSlots
 {
@@ -34,6 +37,8 @@ public readonly ref struct AnswerSlots
     /// <summary>Reads the Noul answer at <paramref name="index"/>.</summary>
     /// <param name="index">The question's position.</param>
     /// <returns>The answer.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is negative or not below <see cref="Count"/>.</exception>
+    /// <exception cref="InvalidOperationException">The question at <paramref name="index"/> is not a Noul.</exception>
     public Noul Noul(int index) => new(Slot(index, QuestionKind.Noul).Value);
 
     /// <summary>Reads the Choice answer at <paramref name="index"/>, mapping options through <paramref name="options"/>.</summary>
@@ -41,6 +46,10 @@ public readonly ref struct AnswerSlots
     /// <param name="index">The question's position.</param>
     /// <param name="options">The enum's option set.</param>
     /// <returns>The answer.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is negative or not below <see cref="Count"/>.</exception>
+    /// <exception cref="InvalidOperationException">The question at <paramref name="index"/> is not a Choice.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="options"/> has a different number of options than the question.</exception>
     public Choice<T> Choice<T>(int index, DecisionOptionSet<T> options)
         where T : struct, Enum
     {
@@ -54,6 +63,10 @@ public readonly ref struct AnswerSlots
     /// <param name="index">The question's position.</param>
     /// <param name="options">The enum's level set.</param>
     /// <returns>The answer.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is negative or not below <see cref="Count"/>.</exception>
+    /// <exception cref="InvalidOperationException">The question at <paramref name="index"/> is not a Score.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="options"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="options"/> has a different number of options than the question.</exception>
     public Score<T> Score<T>(int index, DecisionOptionSet<T> options)
         where T : struct, Enum
     {

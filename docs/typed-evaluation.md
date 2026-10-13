@@ -338,6 +338,9 @@ you type: the shape of the type, the keys, the enums and the backticked names. A
 members, and the generator stubs its properties, so the build reports the analyzer's error and not a confusing
 missing-implementation one.
 
+The generated type implements `IQuestionSet<TSelf>`. Its `Create(AnswerSlots)` method and the `DecisionOptionSet<T>`
+subclasses the generator writes for your enums are generator plumbing that application code does not call.
+
 The type that carries `[Questions]` must be a non-generic, non-abstract, non-static, top-level partial class or
 record, and it needs a constructor that can be called without arguments. Its question properties must be partial,
 get-only instance properties.
