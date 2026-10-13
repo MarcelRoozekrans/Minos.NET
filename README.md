@@ -23,7 +23,7 @@ dotnet add package Minos.NET.SystemOne
 dotnet add package Minos.NET.DependencyInjection
 ```
 
-For OpenAI's Decisions API, add `Minos.NET.OpenAI` instead of, or beside, `Minos.NET.SystemOne`:
+For OpenAI's Decisions API, add `Minos.NET.OpenAI` instead of, or beside, `Minos.NET.SystemOne`. The package is built from OpenAI's Decisions guide and is not yet tested against the live API:
 
 ```
 dotnet add package Minos.NET.OpenAI

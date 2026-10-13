@@ -102,7 +102,7 @@ public static SystemOneClientOptions Custom()
 
 > **Beta.** OpenAI's Decisions API has been in public beta since 2026-10-06. `Minos.NET.OpenAI` is built from the
 > examples in OpenAI's [Decisions guide](https://developers.openai.com/api/docs/guides/decisions), which documents no
-> formal schema, error body, limits or usage object. It has not yet run against the live API, and the format may change
+> formal schema, error body, limits or usage object. It is not yet tested against the live API, and the format may change
 > during the beta.
 
 `OpenAIDecisionClient` sends a question set to `POST /v1/decisions`, the `decisions` path under its versioned base

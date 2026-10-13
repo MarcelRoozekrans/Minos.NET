@@ -3,7 +3,7 @@
     <RootNamespace>Minos.OpenAI</RootNamespace>
     <PackageId>Minos.NET.OpenAI</PackageId>
     <Title>Minos.NET.OpenAI</Title>
-    <Description>OpenAI's Decisions API, POST /v1/decisions, for Minos.NET's IDecisionClient: GPT-6 Luna with text and image state. The API is in public beta. Native AOT-compatible.</Description>
+    <Description>OpenAI's Decisions API, POST /v1/decisions, for Minos.NET's IDecisionClient: GPT-6 Luna with text and image state. The API is in public beta, and this package is built from OpenAI's Decisions guide and not yet tested against the live API. Native AOT-compatible.</Description>
     <PackageTags>$(PackageTags);openai</PackageTags>
     <IsAotCompatible>true</IsAotCompatible>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
