@@ -611,7 +611,7 @@ internal static class AllocationChecks
 
         // Measured 3440 B/call on published win-x64 AOT through the standard pipeline: the QuestionSet's pre-built request
         // body copied into a pooled buffer, HttpClient's request and response objects and body buffering, the
-        // DecisionRequest, the DecisionResponse with its AnswerSlot[] and the Answers result. It measured 3272 B/call
+        // DecisionRequest, the DecisionResponse with its AnswerSlot[] and the QuestionSetAnswers result. It measured 3272 B/call
         // before the pipeline, 3656 B/call before ZeroAlloc.Rest 3.2.1 and
         // 4288 B/call when first budgeted in Phase 2.4. Budget: about 10% headroom over the measurement, rounded up to
         // the next multiple of 64 B, per the Phase 1.8 rule.
@@ -624,7 +624,7 @@ internal static class AllocationChecks
 
     private static double sink;
 
-    /// <summary><see cref="Answers.Get(NoulHandle)"/> and its overloads, over one evaluation's answers.</summary>
+    /// <summary><see cref="QuestionSetAnswers.Get(NoulHandle)"/> and its overloads, over one evaluation's answers.</summary>
     public static void AnswersGet()
     {
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, SmokeBuiltSet.ResponseJson))
@@ -650,7 +650,7 @@ internal static class AllocationChecks
                     + teamAnswer.Confidence + productAnswer.Confidence + urgencyAnswer.Confidence + urgencyAnswer.Expected;
             },
             label: "AnswersGet",
-            passDescription: "Answers.Get allocates nothing");
+            passDescription: "QuestionSetAnswers.Get allocates nothing");
     }
 
     /// <summary>
@@ -661,7 +661,7 @@ internal static class AllocationChecks
     [Covers("Minos.ConfidenceThresholds.ConfidenceThresholds(double medium, double high) -> void")]
     [Covers("Minos.QuestionSetBuilder.Score(string! key, Minos.DecisionContent instructions, out Minos.KeyedScoreHandle question, System.Action<Minos.KeyedScoreLevelsBuilder!>! configure) -> Minos.QuestionSetBuilder!")]
     [Covers("Minos.KeyedScoreLevelsBuilder.Level(Minos.Criterion! criterion) -> Minos.KeyedScoreLevelsBuilder!")]
-    [Covers("Minos.Answers.Get(Minos.KeyedScoreHandle question) -> Minos.KeyedScore")]
+    [Covers("Minos.QuestionSetAnswers.Get(Minos.KeyedScoreHandle question) -> Minos.KeyedScore")]
     public static void PatternHelpers()
     {
         using var http = new HttpClient(new CannedHandler(HttpStatusCode.OK, SmokeBuiltSet.ResponseJson))

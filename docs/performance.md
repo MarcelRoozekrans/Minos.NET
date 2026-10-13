@@ -56,7 +56,7 @@ benchmark, and the same rounding gives it 320 B too.
 | `QuestionSetBenchmarks.EvaluateBuiltSet` | 4.234 us | 3808 B | 3648 B today, 4736 B then (AOT smoke, a different set) |
 | `QuestionSetBenchmarks.ParseBuiltTwenty` | 3.087 us | 568 B | 256 B (unit test, a different three-question set) |
 | `QuestionSetBenchmarks.ParseGeneratedTwenty` | 2.457 us | 176 B | — |
-| `Answers.Get` | — | — | 0 B (AOT smoke) |
+| `QuestionSetAnswers.Get` | — | — | 0 B (AOT smoke) |
 
 Measured on a 12th Gen Intel Core i9-12900HK, Windows 11 (10.0.26200.9457), .NET SDK 10.0.401 with runtime 10.0.12,
 with `--job short`, so the means are indicative only.

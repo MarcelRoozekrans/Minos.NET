@@ -92,7 +92,7 @@ public sealed class QuestionTypesTests
         var sum = 0.0;
 
         // Every read the page calls free: the typed Noul, Choice and Score reads, the keyed reads through
-        // Answers.Get, and enumerating a keyed probability map.
+        // QuestionSetAnswers.Get, and enumerating a keyed probability map.
         AllocationGate.AssertBudget(
             0,
             1000,

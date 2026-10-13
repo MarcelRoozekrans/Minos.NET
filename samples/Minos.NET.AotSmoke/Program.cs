@@ -369,11 +369,11 @@ internal static class Program
     [Covers("Minos.ScoreLevelsBuilder<T>.Level(T level, Minos.Criterion! criterion) -> Minos.ScoreLevelsBuilder<T>!")]
     [Covers("static Minos.Criterion.Text(string! description) -> Minos.Criterion!")]
     [Covers("Minos.Criterion.WithExamples(params System.ReadOnlySpan<string?> examples) -> Minos.Criterion!")]
-    [Covers("static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! client, Minos.QuestionSet! questionSet, Minos.DecisionContent state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.Answers!, Minos.DecisionError!>>")]
-    [Covers("Minos.Answers.Get(Minos.NoulHandle question) -> Minos.Noul")]
-    [Covers("Minos.Answers.Get(Minos.KeyedChoiceHandle question) -> Minos.KeyedChoice")]
-    [Covers("Minos.Answers.Get<T>(Minos.ChoiceHandle<T> question) -> Minos.Choice<T>")]
-    [Covers("Minos.Answers.Get<T>(Minos.ScoreHandle<T> question) -> Minos.Score<T>")]
+    [Covers("static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! client, Minos.QuestionSet! questionSet, Minos.DecisionContent state) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.QuestionSetAnswers!, Minos.DecisionError!>>")]
+    [Covers("Minos.QuestionSetAnswers.Get(Minos.NoulHandle question) -> Minos.Noul")]
+    [Covers("Minos.QuestionSetAnswers.Get(Minos.KeyedChoiceHandle question) -> Minos.KeyedChoice")]
+    [Covers("Minos.QuestionSetAnswers.Get<T>(Minos.ChoiceHandle<T> question) -> Minos.Choice<T>")]
+    [Covers("Minos.QuestionSetAnswers.Get<T>(Minos.ScoreHandle<T> question) -> Minos.Score<T>")]
     private static async Task BuiltQuestionSetEvaluates()
     {
         var set = SmokeBuiltSet.Full(out var credentials, out var team, out var product, out var urgency);

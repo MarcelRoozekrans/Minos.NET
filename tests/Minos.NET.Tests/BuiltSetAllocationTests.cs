@@ -5,7 +5,7 @@ using ZeroAlloc.TestHelpers;
 
 namespace Minos.Tests;
 
-/// <summary>The allocation budget for the protocol reading a built set's answers into its <see cref="Answers"/>.</summary>
+/// <summary>The allocation budget for the protocol reading a built set's answers into its <see cref="QuestionSetAnswers"/>.</summary>
 public sealed class BuiltSetAllocationTests
 {
     private const string AnswersJson = """{"is_urgent":{"type":"noul","noul":0.95},"department":{"type":"choice","choice":"billing","probabilities":{"billing":0.88,"technical":0.12},"confidence":0.81},"effort":{"type":"score","score":1.2,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.1,"1":0.6,"2":0.3},"confidence":0.7}}""";
@@ -23,7 +23,7 @@ public sealed class BuiltSetAllocationTests
         var answers = Encoding.UTF8.GetBytes(AnswersJson);
         var factory = Factory(set);
 
-        // Measured 216 B/call under the JIT on win-x64: the Answers object, its double[7] probability buffer and its
+        // Measured 216 B/call under the JIT on win-x64: the QuestionSetAnswers object, its double[7] probability buffer and its
         // AnswerSlot[3]. Budget: only fixed-layout objects, so the measurement rounded up to the next multiple of 64, 256 B.
         AllocationGate.AssertBudget(
             256,
@@ -55,7 +55,7 @@ public sealed class BuiltSetAllocationTests
         var bytes = Encoding.UTF8.GetBytes(json);
         var factory = Factory(set);
 
-        Answers Parse()
+        QuestionSetAnswers Parse()
         {
             var reader = new Utf8JsonReader(bytes);
             reader.Read();
@@ -68,7 +68,7 @@ public sealed class BuiltSetAllocationTests
             Assert.Equal(i % 10 / 10.0, answers.Get(handles[i]).Probability, 6);
         }
 
-        // The Answers object, its empty probability buffer and one AnswerSlot[70] (16 B header plus 70 slots of at most 32 B).
+        // The QuestionSetAnswers object, its empty probability buffer and one AnswerSlot[70] (16 B header plus 70 slots of at most 32 B).
         // A second slot array would add over 2 KB, so the bound catches it.
         Parse();
         var before = GC.GetAllocatedBytesForCurrentThread();
@@ -77,7 +77,7 @@ public sealed class BuiltSetAllocationTests
         Assert.InRange(allocated, 1, 3000);
     }
 
-    // What the built-set path builds from the slots the protocol read: the Answers over them, created once per set.
-    private static AnswerFactory<Answers> Factory(QuestionSet set)
-        => answers => new Answers(set, answers.Probabilities, answers.HeapSlots ?? answers.Slots.ToArray());
+    // What the built-set path builds from the slots the protocol read: the QuestionSetAnswers over them, created once per set.
+    private static AnswerFactory<QuestionSetAnswers> Factory(QuestionSet set)
+        => answers => new QuestionSetAnswers(set, answers.Probabilities, answers.HeapSlots ?? answers.Slots.ToArray());
 }

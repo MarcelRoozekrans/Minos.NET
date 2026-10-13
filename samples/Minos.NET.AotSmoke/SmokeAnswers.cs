@@ -49,7 +49,7 @@ internal static class SmokeAnswers
     }
 
     /// <summary>The answers to <paramref name="set"/>, from <paramref name="responseJson"/> over a canned handler.</summary>
-    public static async Task<Answers> EvaluateAsync(QuestionSet set, string responseJson)
+    public static async Task<QuestionSetAnswers> EvaluateAsync(QuestionSet set, string responseJson)
     {
         using var http = Program.Http(HttpStatusCode.OK, responseJson);
         using var client = new SystemOneClient(http, Program.Options());

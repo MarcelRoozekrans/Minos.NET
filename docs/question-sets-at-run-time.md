@@ -171,7 +171,7 @@ no question.
 ## Evaluating and reading
 
 Evaluate a built set with `EvaluateAsync(questionSet, state, cancellationToken)`. The state is a `DecisionContent`, so a
-string passes as it is. The result holds a `Answers`, and `answers.Get(handle)` returns the answer for that handle's
+string passes as it is. The result holds a `QuestionSetAnswers`, and `answers.Get(handle)` returns the answer for that handle's
 question, as the same types a typed set uses: `Noul`, `Choice<T>`, `Score<T>`, `KeyedChoice` and `KeyedScore`.
 `TenantRouter.RouteAsync` above shows the whole path. [Question types](question-types.md) covers what those answers
 hold, and what is free to read.
@@ -308,7 +308,7 @@ A handle belongs to the builder that made it. It works with the answers to any s
 question existed when that set was built. `Build()` can be called again after more questions are added, and the handles
 from before work with both sets.
 
-`Answers.Get` throws `ArgumentException` for a handle that does not belong to its set. That covers a `default`
+`QuestionSetAnswers.Get` throws `ArgumentException` for a handle that does not belong to its set. That covers a `default`
 handle, a handle from another builder, and a handle for a question added after the set was built. It is a programming
 error, so it throws and does not return a failed `Result`.
 
@@ -320,7 +320,7 @@ immutable and safe to share across threads. A builder is not thread-safe.
 
 An enum question reads the enum's public fields, which is safe to trim and for [Native
 AOT](native-aot.md#the-one-use-of-reflection): the builder's generic parameters are annotated so that the trimmer keeps
-them. A method of yours that passes its own generic parameter on to `Choice<T>`, `Score<T>` or `Answers.Get` needs
+them. A method of yours that passes its own generic parameter on to `Choice<T>`, `Score<T>` or `QuestionSetAnswers.Get` needs
 the same annotation on that parameter: `[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)]`.
 
 ## Next

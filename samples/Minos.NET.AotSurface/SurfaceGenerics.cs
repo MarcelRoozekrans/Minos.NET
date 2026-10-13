@@ -36,7 +36,7 @@ public static class SurfaceGenerics
     /// <summary>Calls every public generic method that does not evaluate.</summary>
     /// <remarks>The builder callbacks are empty, so a generic type's members are reached only through
     /// <see cref="Types"/>.</remarks>
-    public static void Methods(Answers answers, AnswerSlots slots, DecisionOptionSet<SurfaceTeam> teams, DecisionOptionSet<SurfaceUrgency> levels, SurfaceState state)
+    public static void Methods(QuestionSetAnswers answers, AnswerSlots slots, DecisionOptionSet<SurfaceTeam> teams, DecisionOptionSet<SurfaceUrgency> levels, SurfaceState state)
     {
         _ = QuestionSet.CreateBuilder()
             .Choice<SurfaceTeam>("team", "Which team?", out var team)

@@ -66,7 +66,7 @@ internal static class DecisionClientChecks
         }
     }
 
-    [Covers("static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! client, Minos.QuestionSet! questionSet, Minos.DecisionContent state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.Answers!, Minos.DecisionError!>>")]
+    [Covers("static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! client, Minos.QuestionSet! questionSet, Minos.DecisionContent state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.QuestionSetAnswers!, Minos.DecisionError!>>")]
     public static async Task BuiltSetEvaluatesWithACancellationToken()
     {
         var set = SmokeBuiltSet.Full(out var credentials, out var team, out var product, out var urgency);

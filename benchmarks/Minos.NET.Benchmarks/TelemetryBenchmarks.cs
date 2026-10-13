@@ -87,7 +87,7 @@ public class TelemetryBenchmarks : IDisposable
 
     /// <summary><see cref="QuestionSetBenchmarks.EvaluateBuiltSet"/>'s three-question triage set while listening.</summary>
     [Benchmark]
-    public ValueTask<Result<Answers, DecisionError>> EvaluateBuiltSetListeningAsync() => _builtSetClient.EvaluateAsync(_triage, State);
+    public ValueTask<Result<QuestionSetAnswers, DecisionError>> EvaluateBuiltSetListeningAsync() => _builtSetClient.EvaluateAsync(_triage, State);
 
     /// <summary><see cref="ClientBenchmarks.ListModelsAsync"/> while listening.</summary>
     [Benchmark]

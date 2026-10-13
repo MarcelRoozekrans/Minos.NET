@@ -2,7 +2,7 @@ namespace Minos;
 
 /// <summary>
 /// Identifies an enum Choice question of a set built with <see cref="QuestionSetBuilder"/>; pass it to
-/// <see cref="Answers"/> to read its answer. It works only with answers to a set built by the same builder.
+/// <see cref="QuestionSetAnswers"/> to read its answer. It works only with answers to a set built by the same builder.
 /// </summary>
 /// <typeparam name="T">The enum whose members are the options.</typeparam>
 public readonly struct ChoiceHandle<T>

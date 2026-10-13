@@ -189,7 +189,7 @@ public static class DecisionClientExtensions
     /// <exception cref="ArgumentNullException"><paramref name="client"/> or <paramref name="questionSet"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="state"/> is uninitialized.</exception>
     /// <exception cref="InvalidOperationException">The client answered a different question set than <paramref name="questionSet"/>.</exception>
-    public static ValueTask<Result<Answers, DecisionError>> EvaluateAsync(this IDecisionClient client, QuestionSet questionSet, DecisionContent state)
+    public static ValueTask<Result<QuestionSetAnswers, DecisionError>> EvaluateAsync(this IDecisionClient client, QuestionSet questionSet, DecisionContent state)
         => EvaluateAsync(client, questionSet, state, CancellationToken.None);
 
     /// <summary>Asks a built question set's questions about a state and returns its answers.</summary>
@@ -201,7 +201,7 @@ public static class DecisionClientExtensions
     /// <exception cref="ArgumentNullException"><paramref name="client"/> or <paramref name="questionSet"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="state"/> is uninitialized.</exception>
     /// <exception cref="InvalidOperationException">The client answered a different question set than <paramref name="questionSet"/>.</exception>
-    public static ValueTask<Result<Answers, DecisionError>> EvaluateAsync(
+    public static ValueTask<Result<QuestionSetAnswers, DecisionError>> EvaluateAsync(
         this IDecisionClient client, QuestionSet questionSet, DecisionContent state, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(client);
@@ -391,7 +391,7 @@ public static class DecisionClientExtensions
     /// <exception cref="ArgumentNullException"><paramref name="client"/>, <paramref name="questionSet"/> or <paramref name="images"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="state"/> is uninitialized.</exception>
     /// <exception cref="InvalidOperationException">The client answered a different question set than <paramref name="questionSet"/>.</exception>
-    public static ValueTask<Result<Answers, DecisionError>> EvaluateAsync(
+    public static ValueTask<Result<QuestionSetAnswers, DecisionError>> EvaluateAsync(
         this IDecisionClient client, QuestionSet questionSet, DecisionContent state, IReadOnlyList<DecisionImage> images)
         => EvaluateAsync(client, questionSet, state, images, CancellationToken.None);
 
@@ -405,7 +405,7 @@ public static class DecisionClientExtensions
     /// <exception cref="ArgumentNullException"><paramref name="client"/>, <paramref name="questionSet"/> or <paramref name="images"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="state"/> is uninitialized.</exception>
     /// <exception cref="InvalidOperationException">The client answered a different question set than <paramref name="questionSet"/>.</exception>
-    public static ValueTask<Result<Answers, DecisionError>> EvaluateAsync(
+    public static ValueTask<Result<QuestionSetAnswers, DecisionError>> EvaluateAsync(
         this IDecisionClient client, QuestionSet questionSet, DecisionContent state, IReadOnlyList<DecisionImage> images, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(client);
@@ -415,7 +415,7 @@ public static class DecisionClientExtensions
         return BuiltSetCall(client, questionSet, state, images, cancellationToken);
     }
 
-    private static ValueTask<Result<Answers, DecisionError>> BuiltSetCall(
+    private static ValueTask<Result<QuestionSetAnswers, DecisionError>> BuiltSetCall(
         IDecisionClient client, QuestionSet questionSet, DecisionContent state, IReadOnlyList<DecisionImage> images, CancellationToken ct)
     {
         var request = images.Count > 0
@@ -455,19 +455,19 @@ public static class DecisionClientExtensions
         return Result<T, DecisionError>.Success(T.Create(response.ToAnswerSlots()));
     }
 
-    private static async ValueTask<Result<Answers, DecisionError>> BuiltSetAsync(QuestionSet questionSet, ValueTask<Result<DecisionResponse, DecisionError>> call)
+    private static async ValueTask<Result<QuestionSetAnswers, DecisionError>> BuiltSetAsync(QuestionSet questionSet, ValueTask<Result<DecisionResponse, DecisionError>> call)
         => BuiltSet(questionSet, await call.ConfigureAwait(false));
 
-    private static Result<Answers, DecisionError> BuiltSet(QuestionSet questionSet, Result<DecisionResponse, DecisionError> result)
+    private static Result<QuestionSetAnswers, DecisionError> BuiltSet(QuestionSet questionSet, Result<DecisionResponse, DecisionError> result)
     {
         if (result.IsFailure)
         {
-            return Result<Answers, DecisionError>.Failure(result.Error);
+            return Result<QuestionSetAnswers, DecisionError>.Failure(result.Error);
         }
 
         var response = result.Value;
         EnsureDefinition(response, questionSet.Definition);
-        return Result<Answers, DecisionError>.Success(new Answers(questionSet, response.Probabilities, response.Slots));
+        return Result<QuestionSetAnswers, DecisionError>.Success(new QuestionSetAnswers(questionSet, response.Probabilities, response.Slots));
     }
 
     // A pipeline returns the response for the request's own definition instance; a fake that answers another set is a
