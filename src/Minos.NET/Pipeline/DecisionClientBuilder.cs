@@ -72,7 +72,12 @@ public class DecisionClientBuilder
     /// <summary>Creates the inner client and wraps it in the stages.</summary>
     /// <param name="services">The services stages and the inner client factory read; <see langword="null"/> for none.</param>
     /// <returns>The outermost client.</returns>
+    /// <remarks>
+    /// Each call creates new stages and calls the inner client factory again. A builder made from an existing client wraps
+    /// that same instance in every pipeline it builds, and disposing a pipeline disposes it.
+    /// </remarks>
     /// <exception cref="InvalidOperationException">A factory returned <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">A stage's settings are invalid, such as a retry setting out of range.</exception>
     public IDecisionClient Build(IServiceProvider? services = null)
     {
         services ??= EmptyServiceProvider.Instance;

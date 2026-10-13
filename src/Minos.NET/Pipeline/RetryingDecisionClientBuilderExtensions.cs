@@ -9,7 +9,11 @@ public static class RetryingDecisionClientBuilderExtensions
     /// <param name="builder">The builder.</param>
     /// <param name="configure">Changes the settings. They start from the inner client's own retry settings when it offers them, such as a <c>SystemOneClient</c>'s, and from the defaults otherwise.</param>
     /// <returns><paramref name="builder"/>.</returns>
-    /// <remarks>The stage logs through the build's <see cref="ILoggerFactory"/> and waits on its <see cref="TimeProvider"/>, when the services have them.</remarks>
+    /// <remarks>
+    /// The stage logs through the build's <see cref="ILoggerFactory"/> and waits on its <see cref="TimeProvider"/>, when the services have them.
+    /// The settings are checked when the pipeline is built, so a setting out of range throws <see cref="ArgumentException"/> from
+    /// <see cref="DecisionClientBuilder.Build"/>.
+    /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="builder"/> is <see langword="null"/>.</exception>
     public static DecisionClientBuilder UseRetries(this DecisionClientBuilder builder, Action<DecisionRetryOptions>? configure = null)
     {
