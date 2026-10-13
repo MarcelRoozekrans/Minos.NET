@@ -202,8 +202,8 @@ jobs:
         shell: bash
         run: |
           version=$(jq -r '."." // empty' .release-please-manifest.json)
-          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::.release-please-manifest.json gives '$version', not a stable version."
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::.release-please-manifest.json gives '$version', not a version."
             exit 1
           fi
           echo "PACKAGE_VERSION=$version" >> "$GITHUB_ENV"
@@ -291,6 +291,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup .NET
         uses: actions/setup-dotnet@v6

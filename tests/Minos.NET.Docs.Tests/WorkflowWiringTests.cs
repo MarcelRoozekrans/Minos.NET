@@ -50,6 +50,22 @@ public sealed class WorkflowWiringTests
     }
 
     [Fact]
+    public void PublishNuget_DoesNotPersistTheCheckoutCredentials()
+    {
+        var job = Job(Ci, "publish-nuget");
+
+        Assert.Contains("          persist-credentials: false\n", job, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PackValidate_AcceptsAPrereleaseManifestVersion()
+    {
+        var job = Job(Ci, "pack-validate");
+
+        Assert.Contains("[[ \"$version\" =~ ^[0-9]+\\.[0-9]+\\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]", job, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PublishNuget_PacksAndInspectsAsPackValidateDoes_ThenPushesThroughTrustedPublishing()
     {
         var job = Job(Ci, "publish-nuget");
