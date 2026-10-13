@@ -304,7 +304,7 @@ public sealed class OpenAIResponseReaderTests
     {
         var refund = response.Answers[0];
         Assert.Equal("refund", refund.Key);
-        Assert.Equal(0.92, refund.Value);
+        Assert.Equal(0.92, refund.Probability);
 
         var topic = response.Answers[1];
         Assert.Equal(0, topic.ChosenIndex);
@@ -313,7 +313,7 @@ public sealed class OpenAIResponseReaderTests
 
         var urgency = response.Answers[2];
         Assert.Equal(1, urgency.ChosenIndex);
-        Assert.Equal(1.1, urgency.Value);
+        Assert.Equal(1.1, urgency.Expected);
         Assert.Equal(0.5, urgency.Confidence);
         Assert.Equal([0.1, 0.7, 0.2], urgency.Probabilities.ToArray());
     }

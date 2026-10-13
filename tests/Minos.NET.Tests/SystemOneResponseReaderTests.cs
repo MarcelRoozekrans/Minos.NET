@@ -26,7 +26,7 @@ public sealed class SystemOneResponseReaderTests
         Assert.Equal(296, response.Usage!.InputTokens);
         Assert.Equal(20, response.Usage.OutputTokens);
         Assert.Equal(0.0012, response.Usage.Cost);
-        Assert.Equal(0.95, response.Answers[0].Value);
+        Assert.Equal(0.95, response.Answers[0].Probability);
     }
 
     [Fact]
@@ -167,7 +167,7 @@ public sealed class SystemOneResponseReaderTests
             """{"answers":{"is_urgent":{"type":"noul","noul":0.3}},"model":"jev-1.13.0","usage":{"input_tokens":1,"output_tokens":1}}"""u8, Urgency);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(0.3, result.Value.Answers[0].Value);
+        Assert.Equal(0.3, result.Value.Answers[0].Probability);
         Assert.Equal("jev-1.13.0", result.Value.Model);
     }
 
@@ -178,7 +178,7 @@ public sealed class SystemOneResponseReaderTests
             """{"meta":{"answers":{}},"answers":{"is_urgent":{"type":"noul","noul":0.3}},"extra":{"answers":null}}"""u8, Urgency);
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(0.3, result.Value.Answers[0].Value);
+        Assert.Equal(0.3, result.Value.Answers[0].Probability);
     }
 
     [Theory]

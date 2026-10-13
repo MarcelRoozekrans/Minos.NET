@@ -154,9 +154,9 @@ public sealed class FakeDecision(Result<DecisionResponse, DecisionError> reply) 
 <!-- endSnippet -->
 
 The reply is a `DecisionResponse`, made with its public constructor from the question set's `Definition` and one
-`QuestionAnswer` per question, in the order the set declares them. `QuestionAnswer.Noul` takes the probability.
+`QuestionAnswer` per question, in the order the set declares them. `QuestionAnswer.Noul` takes the probability of yes, which you read back as `Probability`.
 `QuestionAnswer.Choice` takes the position of the chosen option in the enum, the confidence and one probability per
-option, and `QuestionAnswer.Score` takes the level, the value, the confidence and the probabilities.
+option, and `QuestionAnswer.Score` takes the level, the expected level (read back as `Expected`), the confidence and the probabilities.
 [Question types](question-types.md) says what each one holds. The constructor checks the answers against the
 definition, so an answer of the wrong kind, or the wrong number of probabilities, throws `ArgumentException` when the
 fake is built, not when the test reads it.

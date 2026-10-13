@@ -23,7 +23,8 @@ public sealed class DecisionResponseTests
         Assert.Equal(3, answers.Count);
         Assert.Equal("is_urgent", answers[0].Key);
         Assert.Equal(QuestionKind.Noul, answers[0].Kind);
-        Assert.Equal(0.9, answers[0].Value);
+        Assert.Equal(0.9, answers[0].Probability);
+        Assert.Equal(0, answers[0].Expected);
         Assert.Equal(-1, answers[0].ChosenIndex);
         Assert.True(answers[0].Probabilities.IsEmpty);
         Assert.Equal("department", answers[1].Key);
@@ -32,7 +33,10 @@ public sealed class DecisionResponseTests
         Assert.Equal([0.1, 0.8, 0.1], answers[1].Probabilities.ToArray());
         Assert.Equal("severity", answers[2].Key);
         Assert.Equal(2, answers[2].ChosenIndex);
-        Assert.Equal(1.7, answers[2].Value);
+        Assert.Equal(1.7, answers[2].Expected);
+        Assert.Equal(0, answers[2].Probability);
+        Assert.Equal(0, answers[1].Probability);
+        Assert.Equal(0, answers[1].Expected);
     }
 
     [Fact]
@@ -137,7 +141,8 @@ public sealed class DecisionResponseTests
     [Fact]
     public void Factories_reject_out_of_range_values()
     {
-        Assert.Throws<ArgumentOutOfRangeException>("value", () => QuestionAnswer.Noul(1.5));
+        Assert.Throws<ArgumentOutOfRangeException>("probability", () => QuestionAnswer.Noul(1.5));
+        Assert.Throws<ArgumentOutOfRangeException>("expected", () => QuestionAnswer.Score(0, double.NaN, 0.5, [1.0]));
         Assert.Throws<ArgumentOutOfRangeException>("confidence", () => QuestionAnswer.Choice(0, -0.1, [1.0]));
         Assert.Throws<ArgumentNullException>("probabilities", () => QuestionAnswer.Score(0, 0, 0.5, null!));
     }

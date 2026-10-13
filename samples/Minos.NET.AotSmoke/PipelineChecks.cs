@@ -42,7 +42,7 @@ internal static class PipelineChecks
                 && response.Answers[2].Probabilities.Length == 3,
             "a DecisionResponse's answers enumerate in the definition's order with their keys and kinds under Native AOT");
         Program.Check(
-            empty.Count == 0 && !emptyEnumerator.MoveNext() && blank.Value == 0 && blank.Probabilities.IsEmpty,
+            empty.Count == 0 && !emptyEnumerator.MoveNext() && blank.Probability == 0 && blank.Expected == 0 && blank.Probabilities.IsEmpty,
             "the default answer list, enumerator and answer are empty under Native AOT");
     }
 

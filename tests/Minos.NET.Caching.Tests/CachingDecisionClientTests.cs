@@ -229,7 +229,8 @@ public sealed class CachingDecisionClientTests
         Assert.Equal(stored.Value.Provider, hit.Value.Provider);
         for (var i = 0; i < 3; i++)
         {
-            Assert.Equal(stored.Value.Answers[i].Value, hit.Value.Answers[i].Value);
+            Assert.Equal(stored.Value.Answers[i].Probability, hit.Value.Answers[i].Probability);
+            Assert.Equal(stored.Value.Answers[i].Expected, hit.Value.Answers[i].Expected);
             Assert.Equal(stored.Value.Answers[i].ChosenIndex, hit.Value.Answers[i].ChosenIndex);
             Assert.Equal(stored.Value.Answers[i].Confidence, hit.Value.Answers[i].Confidence);
             Assert.Equal(stored.Value.Answers[i].Probabilities.ToArray(), hit.Value.Answers[i].Probabilities.ToArray());

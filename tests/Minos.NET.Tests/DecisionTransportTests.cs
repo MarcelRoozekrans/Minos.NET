@@ -68,7 +68,7 @@ public sealed class DecisionTransportTests : IDisposable
         var result = await client.EvaluateAsync(new DecisionRequest(QuestionSets.UrgencyDefinition(), "a ticket"));
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(0.95, result.Value.Answers[0].Value);
+        Assert.Equal(0.95, result.Value.Answers[0].Probability);
         Assert.Equal("jev-1.13.0", result.Value.Model);
         var sent = ClientTestKit.OnlyRequest(handler);
         Assert.Equal(HttpMethod.Post, sent.Method);

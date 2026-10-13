@@ -39,7 +39,7 @@ internal static class IDecisionClientChecks
         var self = direct.GetService(typeof(SystemOneClient), serviceKey: null);
 
         Program.Check(
-            evaluated.IsSuccess && evaluated.Value.Answers[0].Value == 0.95 && ReferenceEquals(evaluated.Value.Definition, request.Definition),
+            evaluated.IsSuccess && evaluated.Value.Answers[0].Probability == 0.95 && ReferenceEquals(evaluated.Value.Definition, request.Definition),
             "IDecisionClient.EvaluateAsync(DecisionRequest) evaluates through the interface under Native AOT");
         Program.Check(
             metadata is { ProviderName: "typesafe", Endpoint: not null } && facade is not null && keyed is null,

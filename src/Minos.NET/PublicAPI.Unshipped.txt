@@ -41,3 +41,10 @@ static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! 
 *REMOVED*Minos.DecisionRequest.DecisionRequest(Minos.QuestionSetDefinition! Definition, Minos.DecisionContent State) -> void
 Minos.DecisionRequest.DecisionRequest(Minos.QuestionSetDefinition! definition, Minos.DecisionContent state) -> void
 *REMOVED*Minos.DecisionContent.IsString.get -> bool
+*REMOVED*Minos.QuestionAnswer.Value.get -> double
+*REMOVED*static Minos.QuestionAnswer.Noul(double value) -> Minos.QuestionAnswer
+*REMOVED*static Minos.QuestionAnswer.Score(int level, double value, double confidence, double[]! probabilities) -> Minos.QuestionAnswer
+Minos.QuestionAnswer.Expected.get -> double
+Minos.QuestionAnswer.Probability.get -> double
+static Minos.QuestionAnswer.Noul(double probability) -> Minos.QuestionAnswer
+static Minos.QuestionAnswer.Score(int level, double expected, double confidence, double[]! probabilities) -> Minos.QuestionAnswer

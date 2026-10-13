@@ -299,9 +299,9 @@ internal static class Program
     }
 
     [Covers("Minos.DecisionResponse.DecisionResponse(Minos.QuestionSetDefinition! definition, System.Collections.Generic.IReadOnlyList<Minos.QuestionAnswer>! answers, string? model = null, Minos.DecisionUsage? usage = null) -> void")]
-    [Covers("static Minos.QuestionAnswer.Noul(double value) -> Minos.QuestionAnswer")]
+    [Covers("static Minos.QuestionAnswer.Noul(double probability) -> Minos.QuestionAnswer")]
     [Covers("static Minos.QuestionAnswer.Choice(int chosenIndex, double confidence, double[]! probabilities) -> Minos.QuestionAnswer")]
-    [Covers("static Minos.QuestionAnswer.Score(int level, double value, double confidence, double[]! probabilities) -> Minos.QuestionAnswer")]
+    [Covers("static Minos.QuestionAnswer.Score(int level, double expected, double confidence, double[]! probabilities) -> Minos.QuestionAnswer")]
     [Covers("Minos.DecisionUsage.DecisionUsage() -> void")]
     private static async Task HandBuiltResponseFeedsTheTypedExtension()
     {

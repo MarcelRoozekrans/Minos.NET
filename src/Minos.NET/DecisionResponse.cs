@@ -18,7 +18,7 @@ public sealed class DecisionResponse
     /// <param name="usage">The token usage, if known.</param>
     /// <exception cref="ArgumentNullException"><paramref name="definition"/> or <paramref name="answers"/> is <see langword="null"/>.</exception>
     /// <remarks>
-    /// Checked: one answer for every question, none of them a <see langword="default"/> value, and per answer its kind, its probability count against the question's options, and a chosen position below the option count. The factories check the ranges of the confidence and the probabilities, the range of a Noul's <see cref="QuestionAnswer.Value"/> and that a Score's <see cref="QuestionAnswer.Value"/> is finite. Not checked: a Score's <see cref="QuestionAnswer.Value"/> against its levels, and that the probabilities sum to 1 or that the chosen position is the most probable.
+    /// Checked: one answer for every question, none of them a <see langword="default"/> value, and per answer its kind, its probability count against the question's options, and a chosen position below the option count. The factories check the ranges of the confidence and the probabilities, the range of a Noul's <see cref="QuestionAnswer.Probability"/> and that a Score's <see cref="QuestionAnswer.Expected"/> is finite. Not checked: a Score's <see cref="QuestionAnswer.Expected"/> against its levels, and that the probabilities sum to 1 or that the chosen position is the most probable.
     /// </remarks>
     /// <exception cref="ArgumentException">An answer is a default value, or the answers do not match the definition's questions in number, kind, option count or chosen position.</exception>
     public DecisionResponse(QuestionSetDefinition definition, IReadOnlyList<QuestionAnswer> answers, string? model = null, DecisionUsage? usage = null)
@@ -49,7 +49,7 @@ public sealed class DecisionResponse
 
             if (question.Kind == QuestionKind.Noul)
             {
-                slots[i] = new AnswerSlot(0, answer.Value, 0, 0);
+                slots[i] = new AnswerSlot(0, answer.Probability, 0, 0);
                 continue;
             }
 
@@ -66,7 +66,7 @@ public sealed class DecisionResponse
 
             var offset = definition.Offsets[i];
             answer.Probabilities.CopyTo(probabilities.AsSpan(offset));
-            slots[i] = new AnswerSlot(answer.ChosenIndex, answer.Value, answer.Confidence, offset);
+            slots[i] = new AnswerSlot(answer.ChosenIndex, answer.Expected, answer.Confidence, offset);
         }
 
         Definition = definition;
