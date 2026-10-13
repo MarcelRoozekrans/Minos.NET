@@ -58,3 +58,6 @@ Minos.DecisionResponse.UpstreamProvider.get -> string?
 *REMOVED*Minos.DecisionUsage.OutputTokens.get -> int
 Minos.DecisionUsage.InputTokens.get -> int?
 Minos.DecisionUsage.OutputTokens.get -> int?
+Minos.DecisionResponse.Id.init -> void
+Minos.DecisionResponse.UpstreamProvider.init -> void
+Minos.DecisionResponse.IsCached.init -> void

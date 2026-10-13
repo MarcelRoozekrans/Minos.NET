@@ -122,21 +122,21 @@ public sealed class DecisionResponse
     /// </remarks>
     public DecisionUsage? Usage => _usage ?? CreateUsage();
 
-    /// <summary>Gets the provider's response id, if any.</summary>
-    public string? Id { get; }
+    /// <summary>Gets the provider's response id, if any. A stage that rebuilds a response can set it with an object initializer.</summary>
+    public string? Id { get; init; }
 
     /// <summary>
     /// Gets the upstream provider an aggregator routed the call to, such as the host OpenRouter picked; <see langword="null"/>
     /// when the provider is not an aggregator or did not say.
     /// </summary>
-    public string? UpstreamProvider { get; }
+    public string? UpstreamProvider { get; init; }
 
     /// <summary>
     /// Gets a value indicating whether this response came from a cache stage, such as <c>UseCaching</c> in
     /// <c>Minos.NET.Caching</c>, rather than from the provider. A cached response reports the model, usage and cost of the
-    /// call that first produced it.
+    /// call that first produced it. A custom cache stage sets it with an object initializer.
     /// </summary>
-    public bool IsCached { get; }
+    public bool IsCached { get; init; }
 
     internal AnswerSlot[] Slots { get; }
 

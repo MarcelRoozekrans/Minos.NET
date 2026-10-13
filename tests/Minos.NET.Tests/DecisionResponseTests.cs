@@ -66,6 +66,22 @@ public sealed class DecisionResponseTests
         Assert.Same(Triage, response.Definition);
     }
 
+    [Fact]
+    public void Id_upstream_provider_and_cached_flag_are_set_with_an_initializer()
+    {
+        var response = new DecisionResponse(Triage, TriageAnswers(), "minos-1")
+        {
+            Id = "gen-1",
+            UpstreamProvider = "Together",
+            IsCached = true,
+        };
+
+        Assert.Equal("gen-1", response.Id);
+        Assert.Equal("Together", response.UpstreamProvider);
+        Assert.True(response.IsCached);
+        Assert.Equal(true, response.CacheHitTag);
+    }
+
     private static QuestionAnswer[] TriageAnswers()
         => [QuestionAnswer.Noul(0.9), QuestionAnswer.Choice(1, 0.8, [0.1, 0.8, 0.1]), QuestionAnswer.Score(2, 1.7, 0.6, [0.1, 0.1, 0.8])];
 
