@@ -575,34 +575,34 @@ internal static class ModelBuilder
 
             if (kind == QuestionKind.Choice)
             {
-                var criteria = Find(field, CriterionAttribute);
+                var criterion = Find(field, CriterionAttribute);
                 var what = $"The [Criterion] description of '{enumType.Name}.{field.Name}'";
-                if (criteria is null)
+                if (criterion is null)
                 {
                     diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.MissingCriterion, At(field), enumType.Name, field.Name));
                 }
                 else
                 {
-                    CheckText(criteria, what, At(field), diagnostics, cancellationToken);
-                    CheckEntries(criteria, "Examples", what, At(field), diagnostics, cancellationToken);
-                    CheckEntries(criteria, "NotFor", what, At(field), diagnostics, cancellationToken);
+                    CheckText(criterion, what, At(field), diagnostics, cancellationToken);
+                    CheckEntries(criterion, "Examples", what, At(field), diagnostics, cancellationToken);
+                    CheckEntries(criterion, "NotFor", what, At(field), diagnostics, cancellationToken);
                 }
 
-                var optionKey = (criteria is null ? null : Named(criteria, "Key")) ?? SnakeCase.Convert(field.Name);
-                if (criteria is not null && optionKey.Length == 0)
+                var optionKey = (criterion is null ? null : Named(criterion, "Key")) ?? SnakeCase.Convert(field.Name);
+                if (criterion is not null && optionKey.Length == 0)
                 {
                     diagnostics.Add(DiagnosticInfo.Create(
                         DiagnosticIds.DuplicateKey,
-                        NamedArgumentLocation(criteria, "Key", At(field), cancellationToken),
+                        NamedArgumentLocation(criterion, "Key", At(field), cancellationToken),
                         $"The option key of '{enumType.Name}.{field.Name}' is empty."));
                 }
 
                 options.Add(new OptionModel(
                     Identifier(field.Name),
                     optionKey,
-                    criteria is null ? null : Positional(criteria),
-                    criteria is null ? NoTexts : new EquatableArray<string>(NamedStrings(criteria, "Examples")),
-                    criteria is null ? NoTexts : new EquatableArray<string>(NamedStrings(criteria, "NotFor"))));
+                    criterion is null ? null : Positional(criterion),
+                    criterion is null ? NoTexts : new EquatableArray<string>(NamedStrings(criterion, "Examples")),
+                    criterion is null ? NoTexts : new EquatableArray<string>(NamedStrings(criterion, "NotFor"))));
             }
             else if (Find(field, LevelAttribute) is { } level)
             {
