@@ -36,7 +36,7 @@ public sealed class GeneratedQuestionSetTests
         var department = Assert.IsType<ChoiceQuestion>(request.Questions["department"]);
         Assert.True(department.Criteria["billing"]!.Value.TryGetJson(out var billing));
         Assert.Equal("I was charged twice", billing.GetProperty("examples")[0].GetString());
-        Assert.True(department.Criteria["sales"]!.Value.IsString);
+        Assert.True(department.Criteria["sales"]!.Value.TryGetString(out _));
     }
 
     [Fact]

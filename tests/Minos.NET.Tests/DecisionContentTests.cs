@@ -22,7 +22,7 @@ public sealed class DecisionContentTests
     {
         DecisionContent content = "Does this convey urgency?";
 
-        Assert.True(content.IsString);
+        Assert.True(content.TryGetString(out _));
         Assert.True(content.TryGetString(out var text));
         Assert.Equal("Does this convey urgency?", text);
         Assert.False(content.TryGetJson(out _));
@@ -39,7 +39,7 @@ public sealed class DecisionContentTests
     {
         var content = DecisionContent.FromJson(Json("""{"name":"John Smith"}"""));
 
-        Assert.False(content.IsString);
+        Assert.False(content.TryGetString(out _));
         Assert.True(content.TryGetJson(out var json));
         Assert.Equal(JsonValueKind.Object, json.ValueKind);
         Assert.Equal("John Smith", json.GetProperty("name").GetString());
@@ -205,7 +205,7 @@ public sealed class DecisionContentTests
     [InlineData("[1,2]", false)]
     [InlineData("\"text\"", true)]
     public void FromUtf8Json_Accepted(string json, bool isString)
-        => Assert.Equal(isString, DecisionContent.FromUtf8Json(Encoding.UTF8.GetBytes(json)).IsString);
+        => Assert.Equal(isString, DecisionContent.FromUtf8Json(Encoding.UTF8.GetBytes(json)).TryGetString(out _));
 
     [Theory]
     [InlineData("")]
@@ -286,7 +286,7 @@ public sealed class DecisionContentTests
         {
             Assert.True(state.TryGetUtf8State(out var utf8));
             Assert.Equal(json, Encoding.UTF8.GetString(utf8));
-            Assert.Equal(expected.IsString, state.IsString);
+            Assert.Equal(expected.TryGetString(out _), state.TryGetString(out _));
             Assert.Equal(expected.TryGetString(out var expectedText), state.TryGetString(out var text));
             Assert.Equal(expectedText, text);
             Assert.Equal(expected.TryGetJson(out var expectedJson), state.TryGetJson(out var stateJson));

@@ -38,9 +38,6 @@ public readonly struct DecisionContent : IEquatable<DecisionContent>
         _json = default;
     }
 
-    /// <summary>Gets a value indicating whether this content is plain text.</summary>
-    public bool IsString => _value is string || (TryGetUtf8State(out var utf8) && IsJsonString(utf8));
-
     /// <summary>Creates text content.</summary>
     /// <param name="text">The text.</param>
     /// <returns>The content.</returns>
@@ -290,12 +287,6 @@ public readonly struct DecisionContent : IEquatable<DecisionContent>
 
         var json = content._json;
         return json.ValueKind == JsonValueKind.Undefined ? string.Empty : json.GetRawText();
-    }
-
-    private static bool IsJsonString(ReadOnlySpan<byte> utf8Json)
-    {
-        var reader = new Utf8JsonReader(utf8Json);
-        return reader.Read() && reader.TokenType == JsonTokenType.String;
     }
 
     // A caller's UTF-8 state as the text or JSON FromUtf8Json would have made of it, parsed each time a public member

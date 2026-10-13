@@ -40,3 +40,4 @@ static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! 
 static Minos.DecisionClientExtensions.EvaluateAsync(this Minos.IDecisionClient! client, Minos.QuestionSet! questionSet, Minos.DecisionContent state, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.QuestionSetAnswers!, Minos.DecisionError!>>
 *REMOVED*Minos.DecisionRequest.DecisionRequest(Minos.QuestionSetDefinition! Definition, Minos.DecisionContent State) -> void
 Minos.DecisionRequest.DecisionRequest(Minos.QuestionSetDefinition! definition, Minos.DecisionContent state) -> void
+*REMOVED*Minos.DecisionContent.IsString.get -> bool
