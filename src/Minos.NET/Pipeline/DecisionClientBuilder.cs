@@ -4,8 +4,16 @@ namespace Minos;
 
 /// <summary>Composes pipeline stages around an inner <see cref="IDecisionClient"/>.</summary>
 /// <remarks>
+/// <para>
 /// The first <c>Use</c> is the outermost stage: a call passes through the stages in the order they were added, then
 /// reaches the inner client. The <c>Use…</c> extension methods add the standard stages.
+/// </para>
+/// <para>
+/// Registration packages derive from this class to add what a registration knows, such as
+/// <c>DecisionClientServiceBuilder.Name</c>. A derived builder adds members only: <see cref="Use(Func{IDecisionClient, IDecisionClient})"/>
+/// and the <c>Use…</c> extensions return the base <see cref="DecisionClientBuilder"/>, and <see cref="Build"/> composes the
+/// stages the same way.
+/// </para>
 /// </remarks>
 public class DecisionClientBuilder
 {
