@@ -320,8 +320,9 @@ immutable and safe to share across threads. A builder is not thread-safe.
 
 An enum question reads the enum's public fields, which is safe to trim and for [Native
 AOT](native-aot.md#the-one-use-of-reflection): the builder's generic parameters are annotated so that the trimmer keeps
-them. A method of yours that passes its own generic parameter on to `Choice<T>`, `Score<T>` or `QuestionSetAnswers.Get` needs
-the same annotation on that parameter: `[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)]`.
+them. A method of yours that passes its own generic parameter on to `Choice<T>`, `Score<T>` or `QuestionSetAnswers.Get`
+needs the same annotation on that parameter:
+`[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)]`.
 
 ## Next
 
