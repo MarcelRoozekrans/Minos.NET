@@ -83,6 +83,7 @@
     - A .snupkg symbol package sits beside each .nupkg; nuget.org takes it with the same push.
     - On GitHub Actions the build is deterministic, so Source Link maps the PDBs to the repository's commit, not to the runner's paths.
     - Package validation checks each package for compatibility problems. Its baseline, the published 1.0.0, is set after the first release, #28.
+    This block must stay below the "Disable packing for test and benchmark projects" group, because its condition reads IsPackable as set there.
   -->
   <PropertyGroup Condition="'$(IsPackable)' != 'false'">
     <IncludeSymbols>true</IncludeSymbols>
