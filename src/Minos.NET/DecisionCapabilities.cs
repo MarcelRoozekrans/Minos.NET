@@ -17,19 +17,22 @@ namespace Minos;
 /// <para>
 /// A client's <c>GetService</c> returns the resolved values, every property set, as a new instance on each call.
 /// </para>
+/// <para>
+/// A client checks the values when it is created and throws <see cref="ArgumentException"/> for one out of range.
+/// </para>
 /// </remarks>
 public sealed class DecisionCapabilities
 {
     /// <summary>
     /// Gets or sets the question kinds the provider accepts. When set, it must allow at least one kind and name no flag
-    /// outside <see cref="Minos.QuestionKinds.All"/>.
+    /// outside <see cref="Minos.QuestionKinds.All"/>. Left <see langword="null"/>, it takes the provider's default.
     /// </summary>
     public QuestionKinds? QuestionKinds { get; set; }
 
-    /// <summary>Gets or sets the most questions one request may ask. When set, it must be at least 1.</summary>
+    /// <summary>Gets or sets the most questions one request may ask. When set, it must be at least 1. Left <see langword="null"/>, it takes the provider's default.</summary>
     public int? MaxQuestions { get; set; }
 
-    /// <summary>Gets or sets the most options one Choice question may have. When set, it must be at least 2.</summary>
+    /// <summary>Gets or sets the most options one Choice question may have. When set, it must be at least 2. Left <see langword="null"/>, it takes the provider's default.</summary>
     public int? MaxChoiceOptions { get; set; }
 
     /// <summary>

@@ -125,13 +125,15 @@ public static IDecisionClient Build(HttpClient http, string apiKey, ILoggerFacto
 
 The retry stage takes a `DecisionRetryOptions`:
 
-| Property | Default | What it does |
-| --- | --- | --- |
-| `MaxRetries` | 2 | How many times a failed call is tried again. 0 turns retries off. |
-| `InitialBackoff` | 500 ms | The first wait. It doubles for each further retry. |
-| `MaxRetryDelay` | 30 seconds | The longest wait, for the backoff and for a server's `Retry-After` alike. |
-| `Jitter` | `true` | Adds a random extra to each backoff wait, so many clients do not retry in step. |
-| `ShouldRetry` | `IsTransient` | Which failures to retry. `DecisionRetryOptions.IsTransient` accepts the kinds [Retries](client-and-errors.md#retries) lists. |
+| Property | Default | Valid values | What it does |
+| --- | --- | --- | --- |
+| `MaxRetries` | 2 | 0 to 10 | How many times a failed call is tried again. 0 turns retries off. |
+| `InitialBackoff` | 500 ms | Positive, at most `int.MaxValue` ms | The first wait. It doubles for each further retry. |
+| `MaxRetryDelay` | 30 seconds | At least `InitialBackoff`, at most `int.MaxValue` ms | The longest wait, for the backoff and for a server's `Retry-After` alike. |
+| `Jitter` | `true` | `true` or `false` | Adds a random extra to each backoff wait, so many clients do not retry in step. |
+| `ShouldRetry` | `IsTransient` | Not `null` | Which failures to retry. `DecisionRetryOptions.IsTransient` accepts the kinds [Retries](client-and-errors.md#retries) lists. |
+
+The settings are checked when the stage is created, so a value out of range throws `ArgumentException` from `Build`, not from `UseRetries`. The stage copies them, so changing the options afterwards has no effect.
 
 A `Disposed` failure is never retried, whatever `ShouldRetry` says, and no retry starts after the stage is disposed.
 
