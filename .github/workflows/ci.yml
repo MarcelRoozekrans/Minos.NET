@@ -351,7 +351,7 @@ jobs:
             skip_duplicate="--skip-duplicate"
           fi
           if ! dotnet nuget push "artifacts/packages/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY" $skip_duplicate; then
-            echo "::error::The push to nuget.org failed. If a package already exists at this version, it was published by something other than this run; see RELEASING.md before re-running with resume=true."
+            echo "::error::nuget.org refused the push; its reason is on the error line above. A 409 can mean the version already exists or that the package ID is reserved by another owner; see RELEASING.md before re-running."
             exit 1
           fi
 
