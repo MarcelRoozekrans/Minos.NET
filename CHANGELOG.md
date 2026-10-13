@@ -1,5 +1,17 @@
 # Changelog
 
+## [0.13.1](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.13.0...v0.13.1) (2026-10-13)
+
+
+### Documentation
+
+* **benchmarks:** re-verify AOT, trim and benchmarks on the 1.0 API, Phase 7.4 ([#191](https://github.com/MarcelRoozekrans/Minos.NET/issues/191)) ([b668f72](https://github.com/MarcelRoozekrans/Minos.NET/commit/b668f7279632245d362cb9fad103e0db5dfe98ce))
+
+
+### Tests
+
+* live verification on the 1.0 API, Phase 7.3 ([#189](https://github.com/MarcelRoozekrans/Minos.NET/issues/189)) ([5a12750](https://github.com/MarcelRoozekrans/Minos.NET/commit/5a127503f16a30e0aec93a1787d8de65f2cba207))
+
 ## [0.13.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.12.0...v0.13.0) (2026-10-13)
 
 
