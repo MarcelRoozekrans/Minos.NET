@@ -90,6 +90,12 @@ so they do not run through the stages. They have their own span and log, and ret
 
 ## Building your own pipeline
 
+The stage methods are extension methods on `DecisionClientBuilder`, in classes named after the stage:
+`DecisionClientBuilderExtensions` for `AsBuilder`, `RetryingDecisionClientBuilderExtensions` for `UseRetries`,
+`LoggingDecisionClientBuilderExtensions` for `UseLogging`, `OpenTelemetryDecisionClientBuilderExtensions` for
+`UseOpenTelemetry`, `CachingDecisionClientBuilderExtensions` for `UseCaching` and
+`RateLimitingDecisionClientBuilderExtensions` for `UseRateLimiting`. You call the methods and never name the classes.
+
 Set `SystemOneDecisionClientOptions.UseStandardPipeline` to `false`, and the client is the bare transport: one attempt
 per call, with no span, no log and no retry. Then build the pipeline you want around it. `AsBuilder()` starts a
 `DecisionClientBuilder` from any client, each `Use…` call adds a stage, and `Build()` returns the outermost one.

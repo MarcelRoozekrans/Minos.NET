@@ -242,6 +242,10 @@ The answers of one call share one buffer, and each probability map is a view ove
 order of the enum's members, as `RunnerUp` above does. A member that repeats an earlier member's value is an alias and
 is skipped, and explicit values do not reorder anything. A keyed map enumerates its keys in the order they were added.
 
+The views are small structs. `QuestionAnswerList` is the view over a response's answers, `ProbabilityMap` and
+`KeyedProbabilityMap` are the views over one question's probabilities, and each has a struct `Enumerator` that
+`foreach` uses. `QuestionKind` is the Noul, Choice or Score kind that `QuestionAnswer.Kind` reports.
+
 The [performance](performance.md) page has the measured costs of a call.
 
 ## Next

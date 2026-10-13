@@ -162,6 +162,10 @@ send on a typed set, and `Criterion.Json` sends a JSON object or array. Each `Wi
 and replaces the list set before. A `null` entry in either list is left out. `WithExamples` and `WithNotFor` throw
 `InvalidOperationException` on a JSON criterion: put examples inside the JSON instead.
 
+The configurator that each question method hands to its callback is a builder: `NoulCriteriaBuilder` for a Noul,
+`ChoiceOptionsBuilder` for a Choice, and `ScoreLevelsBuilder` for a Score. A keyed question gets
+`KeyedChoiceOptionsBuilder` or `KeyedScoreLevelsBuilder`.
+
 ### Configurators work only inside their callback
 
 A configurator is valid while its callback runs. Once the question method returns, calling a stored configurator throws
