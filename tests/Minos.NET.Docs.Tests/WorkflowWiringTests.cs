@@ -22,7 +22,7 @@ public sealed class WorkflowWiringTests
     {
         var start = workflow.IndexOf("\n  " + name + ":\n", StringComparison.Ordinal);
         Assert.True(start >= 0, $"The workflow has no job '{name}'.");
-        var next = System.Text.RegularExpressions.Regex.Match(workflow[(start + 1)..], @"\n  [a-z][a-z0-9-]*:\n", System.Text.RegularExpressions.RegexOptions.None, TimeSpan.FromSeconds(1));
+        var next = System.Text.RegularExpressions.Regex.Match(workflow[(start + 1)..], @"\n  [A-Za-z][A-Za-z0-9_-]*:\n", System.Text.RegularExpressions.RegexOptions.None, TimeSpan.FromSeconds(1));
         return next.Success ? workflow.Substring(start, next.Index + 1) : workflow[start..];
     }
 }
