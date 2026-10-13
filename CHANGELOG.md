@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.0.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.13.1...v1.0.0) (2026-10-13)
+
+
+### Documentation
+
+* describe the published 1.0 in the README, the guide and the site ([42b0d9e](https://github.com/MarcelRoozekrans/Minos.NET/commit/42b0d9e8acbeaa2c033f9a3451eb164c31fbd7f7))
+
+
+### Tests
+
+* stop the pack tests hanging on MSBuild nodes that hold their pipes ([42b0d9e](https://github.com/MarcelRoozekrans/Minos.NET/commit/42b0d9e8acbeaa2c033f9a3451eb164c31fbd7f7))
+
+
+### Continuous Integration
+
+* publish releases to nuget.org through Trusted Publishing ([42b0d9e](https://github.com/MarcelRoozekrans/Minos.NET/commit/42b0d9e8acbeaa2c033f9a3451eb164c31fbd7f7))
+
 ## [0.13.1](https://github.com/MarcelRoozekrans/Minos.NET/compare/v0.13.0...v0.13.1) (2026-10-13)
 
 
