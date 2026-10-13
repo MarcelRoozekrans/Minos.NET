@@ -15,7 +15,7 @@ internal static class IDecisionClientChecks
 {
     [Covers("Minos.IDecisionClient.EvaluateAsync(Minos.DecisionRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>")]
     [Covers("Minos.IDecisionClient.GetService(System.Type! serviceType, object? serviceKey = null) -> object?")]
-    [Covers("Minos.DecisionRequest.DecisionRequest(Minos.QuestionSetDefinition! Definition, Minos.DecisionContent State) -> void")]
+    [Covers("Minos.DecisionRequest.DecisionRequest(Minos.QuestionSetDefinition! definition, Minos.DecisionContent state) -> void")]
     [Covers("static Minos.DecisionClientExtensions.GetService<TService>(this Minos.IDecisionClient! client, object? serviceKey = null) -> TService?")]
     [Covers("Minos.SystemOne.SystemOneClient.EvaluateAsync(Minos.DecisionRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>")]
     [Covers("Minos.SystemOne.SystemOneClient.EvaluateAsync(Minos.DecisionRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>")]

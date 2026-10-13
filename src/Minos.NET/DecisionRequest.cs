@@ -11,16 +11,16 @@ public sealed record DecisionRequest
     private readonly DecisionImage[] _images = [];
 
     /// <summary>Initializes a new instance of the <see cref="DecisionRequest"/> record.</summary>
-    /// <param name="Definition">The questions to ask.</param>
-    /// <param name="State">The state the questions are about.</param>
-    /// <exception cref="ArgumentNullException"><paramref name="Definition"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException"><paramref name="State"/> is the default, uninitialized value.</exception>
-    public DecisionRequest(QuestionSetDefinition Definition, DecisionContent State)
+    /// <param name="definition">The questions to ask.</param>
+    /// <param name="state">The state the questions are about.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="definition"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="state"/> is the default, uninitialized value.</exception>
+    public DecisionRequest(QuestionSetDefinition definition, DecisionContent state)
     {
-        ArgumentNullException.ThrowIfNull(Definition);
-        DecisionContent.EnsureInitialized(State, nameof(State));
-        this.Definition = Definition;
-        this.State = State;
+        ArgumentNullException.ThrowIfNull(definition);
+        DecisionContent.EnsureInitialized(state, nameof(state));
+        Definition = definition;
+        State = state;
     }
 
     /// <summary>Gets the questions to ask.</summary>
