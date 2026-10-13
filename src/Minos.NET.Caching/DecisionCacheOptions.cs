@@ -1,6 +1,6 @@
 namespace Minos;
 
-/// <summary>Settings for the cache stage that <see cref="CachingDecisionClientBuilderExtensions.UseCaching"/> adds.</summary>
+/// <summary>Settings for a <see cref="CachingDecisionClient"/>, the cache stage <see cref="CachingDecisionClientBuilderExtensions.UseCaching"/> adds.</summary>
 public sealed class DecisionCacheOptions
 {
     // An expiry is added to the current time when an entry is stored, so an unbounded one overflows there, after the provider was paid.

@@ -18,12 +18,16 @@ public static class CachingDecisionClientBuilderExtensions
     /// passed to <c>Build</c>, or to cache in process only when they have none. Ignored from the services when
     /// <see cref="DecisionCacheOptions.UseDistributedCache"/> is <see langword="false"/>; passing one then throws at <c>Build</c>.
     /// </param>
-    /// <param name="configure">Changes the expiry, the key prefix and whether a distributed cache is used.</param>
+    /// <param name="configure">
+    /// Changes the expiry, the key prefix and whether a distributed cache is used, on a new <see cref="DecisionCacheOptions"/> for each
+    /// <c>Build</c>; <see langword="null"/> keeps the defaults. It runs when the pipeline is built, so an invalid value throws from <c>Build</c>.
+    /// </param>
     /// <returns><paramref name="builder"/>.</returns>
     /// <remarks>
     /// <para>
     /// Register the in-process cache with <c>services.AddMemoryCache()</c>. The stage logs through the services'
     /// <see cref="ILoggerFactory"/>, when there is one. Add the stage outside a rate-limiting stage, so a hit takes no permit.
+    /// <c>Build</c> throws <see cref="InvalidOperationException"/> when no <see cref="IMemoryCache"/> is passed and the services have none.
     /// </para>
     /// <para>
     /// A hit is traced and logged only when the telemetry and logging stages sit outside this one, which takes the client's
