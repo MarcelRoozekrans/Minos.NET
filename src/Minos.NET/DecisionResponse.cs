@@ -112,7 +112,10 @@ public sealed class DecisionResponse
     /// <summary>Gets the model that answered, or <see langword="null"/> when the provider did not say.</summary>
     public string? Model { get; }
 
-    /// <summary>Gets the token usage, or <see langword="null"/> when the provider did not report both token counts.</summary>
+    /// <summary>
+    /// Gets the token usage and cost the provider reported, or <see langword="null"/> when it reported none; a count the
+    /// provider left out is <see langword="null"/>.
+    /// </summary>
     /// <remarks>
     /// A read response creates it on first access, so a call that never reads it does not allocate it. Every access
     /// returns the same instance, even when threads race on the first one.
@@ -159,12 +162,12 @@ public sealed class DecisionResponse
     // Publishes one instance: a thread that loses the race returns the winner's.
     private DecisionUsage? CreateUsage()
     {
-        if (InputTokens is not { } input || OutputTokens is not { } output)
+        if (InputTokens is null && OutputTokens is null && Cost is null)
         {
             return null;
         }
 
-        var usage = new DecisionUsage { InputTokens = input, OutputTokens = output, Cost = Cost };
+        var usage = new DecisionUsage { InputTokens = InputTokens, OutputTokens = OutputTokens, Cost = Cost };
         return Interlocked.CompareExchange(ref _usage, usage, null) ?? usage;
     }
 

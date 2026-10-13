@@ -41,13 +41,14 @@ public sealed class SystemOneResponseReaderTests
     }
 
     [Fact]
-    public void One_token_count_is_kept_without_a_usage()
+    public void One_token_count_is_a_usage_with_the_other_null()
     {
         var result = SystemOneProtocol.Instance.ReadResponse(
             """{"answers":{"is_urgent":{"type":"noul","noul":0.5}},"usage":{"input_tokens":7,"output_tokens":"x"}}"""u8, Urgency);
 
         Assert.True(result.IsSuccess);
-        Assert.Null(result.Value.Usage);
+        Assert.Equal(7, result.Value.Usage!.InputTokens);
+        Assert.Null(result.Value.Usage.OutputTokens);
         Assert.Equal(7, result.Value.InputTokens);
         Assert.Null(result.Value.OutputTokens);
     }
@@ -93,7 +94,8 @@ public sealed class SystemOneResponseReaderTests
 
         Assert.Null(response.InputTokens);
         Assert.Equal(2, response.OutputTokens);
-        Assert.Null(response.Usage);
+        Assert.Null(response.Usage!.InputTokens);
+        Assert.Equal(2, response.Usage.OutputTokens);
     }
 
     [Fact]

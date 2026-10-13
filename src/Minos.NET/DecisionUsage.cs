@@ -1,13 +1,13 @@
 namespace Minos;
 
-/// <summary>Token usage for one request. Only input tokens are billed.</summary>
+/// <summary>Token usage, and the cost where the provider reports one, for one request.</summary>
 public sealed record DecisionUsage
 {
-    /// <summary>Gets the number of input tokens.</summary>
-    public required int InputTokens { get; init; }
+    /// <summary>Gets the number of input tokens, or <see langword="null"/> when the provider reported none.</summary>
+    public int? InputTokens { get; init; }
 
-    /// <summary>Gets the number of output tokens.</summary>
-    public required int OutputTokens { get; init; }
+    /// <summary>Gets the number of output tokens, or <see langword="null"/> when the provider reported none.</summary>
+    public int? OutputTokens { get; init; }
 
     /// <summary>
     /// Gets the cost in US dollars that the provider reports in its response, such as OpenRouter's <c>usage.cost</c>;

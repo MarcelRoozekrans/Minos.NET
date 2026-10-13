@@ -66,6 +66,25 @@ public sealed class DecisionResponseTests
         Assert.Same(Triage, response.Definition);
     }
 
+    private static QuestionAnswer[] TriageAnswers()
+        => [QuestionAnswer.Noul(0.9), QuestionAnswer.Choice(1, 0.8, [0.1, 0.8, 0.1]), QuestionAnswer.Score(2, 1.7, 0.6, [0.1, 0.1, 0.8])];
+
+    [Fact]
+    public void A_usage_with_only_some_values_is_kept()
+    {
+        var response = new DecisionResponse(Triage, TriageAnswers(), usage: new DecisionUsage { Cost = 0.25 });
+
+        Assert.Null(response.Usage!.InputTokens);
+        Assert.Null(response.Usage.OutputTokens);
+        Assert.Equal(0.25, response.Usage.Cost);
+    }
+
+    [Fact]
+    public void A_response_without_usage_has_none()
+    {
+        Assert.Null(new DecisionResponse(Triage, TriageAnswers()).Usage);
+    }
+
     [Fact]
     public void Confidences_skip_noul_answers()
     {

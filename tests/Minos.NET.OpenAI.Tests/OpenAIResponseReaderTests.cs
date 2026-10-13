@@ -225,7 +225,19 @@ public sealed class OpenAIResponseReaderTests
 
         Assert.Equal(296, response.InputTokens);
         Assert.Null(response.OutputTokens);
-        Assert.Null(response.Usage);
+        Assert.Equal(296, response.Usage!.InputTokens);
+        Assert.Null(response.Usage.OutputTokens);
+        Assert.Null(response.Usage.Cost);
+    }
+
+    [Fact]
+    public void Usage_WithOnlyACost_IsTheUsage()
+    {
+        var response = Success(Body($$$"""{"answers":[{{{Predicate}}},{{{Choice}}},{{{Score}}}],"usage":{"cost":0.5}}"""), TestSets.AllKinds());
+
+        Assert.Null(response.Usage!.InputTokens);
+        Assert.Null(response.Usage.OutputTokens);
+        Assert.Equal(0.5, response.Usage.Cost);
     }
 
     [Fact]

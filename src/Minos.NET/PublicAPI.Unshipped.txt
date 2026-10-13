@@ -54,3 +54,7 @@ static Minos.QuestionAnswer.Score(int level, double expected, double confidence,
 *REMOVED*Minos.Score<T>.Score(T value, double expected, double confidence, Minos.ProbabilityMap<T> probabilities) -> void
 *REMOVED*Minos.DecisionResponse.Provider.get -> string?
 Minos.DecisionResponse.UpstreamProvider.get -> string?
+*REMOVED*Minos.DecisionUsage.InputTokens.get -> int
+*REMOVED*Minos.DecisionUsage.OutputTokens.get -> int
+Minos.DecisionUsage.InputTokens.get -> int?
+Minos.DecisionUsage.OutputTokens.get -> int?
