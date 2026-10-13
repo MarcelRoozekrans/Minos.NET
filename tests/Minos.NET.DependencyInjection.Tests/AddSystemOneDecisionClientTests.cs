@@ -275,7 +275,8 @@ public sealed class AddSystemOneDecisionClientTests
     public async Task TheClientsOwnRetries_WaitOnTheContainersTimeProvider()
     {
         var time = new FakeTimeProvider();
-        var handler = RateLimitedOnce(Fixture.Text("response-noul.json"));
+        var arrivals = new List<DateTimeOffset>();
+        var handler = RateLimitedOnce(Fixture.Text("response-noul.json"), time, arrivals);
         var services = new ServiceCollection();
         services.AddSingleton<TimeProvider>(time);
         services.AddSystemOneDecisionClient(options =>
@@ -290,7 +291,8 @@ public sealed class AddSystemOneDecisionClientTests
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
         Assert.Equal(2, handler.Requests.Count);
-        Assert.True(time.GetUtcNow() >= new DateTimeOffset(2000, 1, 1, 0, 0, 30, TimeSpan.Zero));
+        Assert.Equal(2, arrivals.Count);
+        Assert.True(arrivals[1] - arrivals[0] >= TimeSpan.FromSeconds(30), $"The retry reached the handler {arrivals[1] - arrivals[0]} after the first attempt.");
     }
 
     private static QuestionSet OneNoul() => QuestionSet.CreateBuilder().Noul("is_urgent", "Does this convey urgency?", out _).Build().Value;

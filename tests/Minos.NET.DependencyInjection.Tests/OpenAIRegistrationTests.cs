@@ -216,12 +216,12 @@ public sealed class OpenAIRegistrationTests
         Assert.Empty(services);
     }
 
-
     [Fact]
     public async Task TheClientsOwnRetries_WaitOnTheContainersTimeProvider()
     {
         var time = new FakeTimeProvider();
-        var handler = RateLimitedOnce(Answer);
+        var arrivals = new List<DateTimeOffset>();
+        var handler = RateLimitedOnce(Answer, time, arrivals);
         var services = new ServiceCollection();
         services.AddSingleton<TimeProvider>(time);
         services.AddOpenAIDecisionClient(options =>
@@ -236,8 +236,10 @@ public sealed class OpenAIRegistrationTests
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
         Assert.Equal(2, handler.Requests.Count);
-        Assert.True(time.GetUtcNow() >= new DateTimeOffset(2000, 1, 1, 0, 0, 30, TimeSpan.Zero));
+        Assert.Equal(2, arrivals.Count);
+        Assert.True(arrivals[1] - arrivals[0] >= TimeSpan.FromSeconds(30), $"The retry reached the handler {arrivals[1] - arrivals[0]} after the first attempt.");
     }
+
     private static Action<OpenAIDecisionClientOptions> OpenAIOptions(string baseAddress, string apiKey = "di-key")
         => options =>
         {

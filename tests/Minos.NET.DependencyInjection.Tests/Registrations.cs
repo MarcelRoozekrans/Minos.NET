@@ -1,5 +1,5 @@
-using Microsoft.Extensions.Time.Testing;
 using System.Net;
+using Microsoft.Extensions.Time.Testing;
 using Minos.SystemOne;
 
 namespace Minos.DependencyInjection.Tests;
@@ -32,16 +32,21 @@ internal static class Registrations
         },
     };
 
-    /// <summary>A handler that answers 429 with a 30 second <c>Retry-After</c> once, then <paramref name="body"/>.</summary>
-    public static StubHandler RateLimitedOnce(string body)
+    /// <summary>A handler that answers 429 with a 30 second <c>Retry-After</c> once, then <paramref name="body"/>; <paramref name="arrivals"/> gets the fake time each request reached the handler.</summary>
+    public static StubHandler RateLimitedOnce(string body, FakeTimeProvider time, List<DateTimeOffset> arrivals)
         => StubHandler.Sequence(
             () =>
             {
+                arrivals.Add(time.GetUtcNow());
                 var response = new HttpResponseMessage(HttpStatusCode.TooManyRequests);
                 response.Headers.RetryAfter = new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.FromSeconds(30));
                 return response;
             },
-            () => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json") });
+            () =>
+            {
+                arrivals.Add(time.GetUtcNow());
+                return new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json") };
+            });
 
     /// <summary>
     /// Drives <paramref name="pending"/> to completion by stepping <paramref name="time"/>. A client that waited 30 seconds on the
