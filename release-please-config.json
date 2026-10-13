@@ -4,7 +4,10 @@
   "packages": {
     ".": {
       "release-type": "simple",
-      "initial-version": "0.1.0"
+      "initial-version": "0.1.0",
+      "extra-files": [
+        { "type": "generic", "path": "docs/getting-started.md" }
+      ]
     }
   },
   "changelog-sections": [

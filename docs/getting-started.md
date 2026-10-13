@@ -42,8 +42,9 @@ later. Visual Studio 2026 version 18.0 is the first release that does. An older 
 
 ## Install
 
-The packages are not yet published to NuGet. Once they are, `dotnet add package` is how you install them, as below.
-Until then you can build them yourself, as the next section shows.
+This guide describes Minos.NET 0.13.0. <!-- x-release-please-version -->
+
+Install the packages from NuGet:
 
 ```shell
 dotnet add package Minos.NET.SystemOne
@@ -84,10 +85,10 @@ those of ZeroAlloc.Validation, ZeroAlloc.Telemetry, and Microsoft.Extensions.Log
 unless you declare `[Validate]` types, `[Instrument]` types or your own `[LoggerMessage]` methods, so your build stays
 clean and gets no extra source from them.
 
-### Before the package is published
+### Building the packages yourself
 
-Clone the [Minos.NET repository](https://github.com/MarcelRoozekrans/Minos.NET), pack the packages into a folder,
-and register that folder as a local NuGet source. Use the folder's absolute path. On Windows, give
+To try a change to Minos.NET itself, clone the [Minos.NET repository](https://github.com/MarcelRoozekrans/Minos.NET),
+pack the packages into a folder, and register that folder as a local NuGet source. Use the folder's absolute path. On Windows, give
 `dotnet nuget add source` a native path such as `C:\src\minos\nupkgs`, because a path that mixes forward and back
 slashes is rejected as invalid.
 
@@ -117,7 +118,7 @@ dotnet add package Minos.NET.DependencyInjection --version <release>-local
 
 For OpenAI, add `Minos.NET.OpenAI` with the same version.
 
-Remove the source when you switch to the published packages: `dotnet nuget remove source minos-net-local`.
+Remove the source when you go back to the published packages: `dotnet nuget remove source minos-net-local`.
 
 ## Providers and keys
 
