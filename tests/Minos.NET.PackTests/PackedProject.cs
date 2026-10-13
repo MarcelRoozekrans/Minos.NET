@@ -79,31 +79,17 @@ internal sealed class PackedProject : IDisposable
         // the project's obj/, and this test can otherwise race a concurrent solution build or pack step there.
         var nuspecOutputPath = Path.Combine(_tempDir, "nuspec-obj", projectName) + Path.DirectorySeparatorChar;
 
-        var startInfo = new ProcessStartInfo("dotnet")
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            WorkingDirectory = repoRoot,
-        };
-        startInfo.ArgumentList.Add("pack");
-        startInfo.ArgumentList.Add(projectPath);
-        startInfo.ArgumentList.Add("-c");
-        startInfo.ArgumentList.Add(configuration);
-        startInfo.ArgumentList.Add("-o");
-        startInfo.ArgumentList.Add(_tempDir);
-        startInfo.ArgumentList.Add($"-p:NuspecOutputPath={nuspecOutputPath}");
-        startInfo.ArgumentList.Add($"-p:PackageVersion={PackageVersion}");
+        var (exitCode, stdout, stderr) = DotnetProcess.Run(
+            repoRoot,
+            TimeSpan.FromMinutes(5),
+            [
+                "pack", projectPath, "-c", configuration, "-o", _tempDir,
+                $"-p:NuspecOutputPath={nuspecOutputPath}", $"-p:PackageVersion={PackageVersion}",
+            ]);
 
-        using var process = Process.Start(startInfo)
-            ?? throw new InvalidOperationException("Failed to start 'dotnet pack'.");
-        var stdout = process.StandardOutput.ReadToEnd();
-        var stderr = process.StandardError.ReadToEnd();
-        process.WaitForExit();
-
-        if (process.ExitCode != 0)
+        if (exitCode != 0)
         {
-            throw new InvalidOperationException(BuildPackFailureMessage(process.ExitCode, stdout, stderr));
+            throw new InvalidOperationException(BuildPackFailureMessage(exitCode, stdout, stderr));
         }
     }
 

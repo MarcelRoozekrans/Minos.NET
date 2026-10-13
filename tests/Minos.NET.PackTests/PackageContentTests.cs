@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.IO.Compression;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -52,6 +51,16 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
     private readonly PackFixture _fixture;
 
     public PackageContentTests(PackFixture fixture) => _fixture = fixture;
+
+    [Fact]
+    public void Pack_WritesASymbolPackageBesideThePackage()
+    {
+        var symbols = Path.ChangeExtension(_fixture.NupkgPath, ".snupkg");
+
+        Assert.True(File.Exists(symbols), $"dotnet pack wrote no symbol package '{Path.GetFileName(symbols)}'.");
+        using var archive = ZipFile.OpenRead(symbols);
+        Assert.Contains(archive.Entries, entry => entry.FullName.EndsWith(".pdb", StringComparison.Ordinal));
+    }
 
     [Fact]
     public void ShipsTheIconAtTheRoot_MatchingTheFileOnDisk()
@@ -366,26 +375,11 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
 
     internal static string RunDotnet(string workingDirectory, params string[] arguments)
     {
-        var startInfo = new ProcessStartInfo("dotnet")
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            WorkingDirectory = workingDirectory,
-        };
-        foreach (var argument in arguments)
-        {
-            startInfo.ArgumentList.Add(argument);
-        }
+        var (exitCode, stdout, stderr) = DotnetProcess.Run(workingDirectory, TimeSpan.FromMinutes(5), arguments);
 
-        using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("Failed to start 'dotnet'.");
-        var stdout = process.StandardOutput.ReadToEnd();
-        var stderr = process.StandardError.ReadToEnd();
-        process.WaitForExit();
-
-        return process.ExitCode == 0
+        return exitCode == 0
             ? stdout
             : throw new InvalidOperationException(
-                $"'dotnet {string.Join(' ', arguments)}' exited with code {process.ExitCode}.{Environment.NewLine}{stdout}{Environment.NewLine}{stderr}");
+                $"'dotnet {string.Join(' ', arguments)}' exited with code {exitCode}.{Environment.NewLine}{stdout}{Environment.NewLine}{stderr}");
     }
 }

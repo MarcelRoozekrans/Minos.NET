@@ -1,4 +1,3 @@
-using System.Diagnostics;
 using System.Globalization;
 using System.Text.Json;
 
@@ -61,30 +60,16 @@ public sealed class VersionSchemeTests : IDisposable
     {
         File.WriteAllText(_manifest, "{ \".\": \"" + version + "\" }");
         var root = FindRepoRoot();
-        var start = new ProcessStartInfo("dotnet")
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            WorkingDirectory = root,
-        };
-        string[] arguments =
-        [
-            "msbuild", Path.Combine(root, "src", "Minos.NET", "Minos.NET.csproj"), "-nologo",
-            "-t:GetAssemblyVersion", $"-p:MinosReleaseManifest={_manifest}", $"-p:MinosRelease={(release ? "true" : "false")}",
-            "-getProperty:Version", "-getProperty:PackageVersion", "-getProperty:InformationalVersion",
-            "-getProperty:AssemblyVersion", "-getProperty:FileVersion",
-        ];
-        foreach (var argument in arguments)
-        {
-            start.ArgumentList.Add(argument);
-        }
-
-        using var process = Process.Start(start) ?? throw new InvalidOperationException("Failed to start 'dotnet msbuild'.");
-        var error = process.StandardError.ReadToEndAsync();
-        var output = process.StandardOutput.ReadToEnd();
-        Assert.True(process.WaitForExit(TimeSpan.FromMinutes(2)), "dotnet msbuild finished within two minutes.");
-        Assert.True(process.ExitCode == 0, $"dotnet msbuild exited with {process.ExitCode}: {output} {error.Result}");
+        var (exitCode, output, error) = DotnetProcess.Run(
+            root,
+            TimeSpan.FromMinutes(2),
+            [
+                "msbuild", Path.Combine(root, "src", "Minos.NET", "Minos.NET.csproj"), "-nologo",
+                "-t:GetAssemblyVersion", $"-p:MinosReleaseManifest={_manifest}", $"-p:MinosRelease={(release ? "true" : "false")}",
+                "-getProperty:Version", "-getProperty:PackageVersion", "-getProperty:InformationalVersion",
+                "-getProperty:AssemblyVersion", "-getProperty:FileVersion",
+            ]);
+        Assert.True(exitCode == 0, $"dotnet msbuild exited with {exitCode}: {output} {error}");
 
         using var json = JsonDocument.Parse(output);
         return json.RootElement.GetProperty("Properties").EnumerateObject()

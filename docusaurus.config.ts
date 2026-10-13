@@ -59,6 +59,7 @@ const config: Config = {
       logo: { alt: 'Minos', src: 'img/logo.svg' },
       items: [
         { type: 'docSidebar', sidebarId: 'guideSidebar', position: 'left', label: 'Guide' },
+        { href: 'https://www.nuget.org/packages?q=Minos.NET', label: 'NuGet', position: 'right' },
         { href: repository, label: 'GitHub', position: 'right' },
       ],
     },
@@ -76,6 +77,7 @@ const config: Config = {
         {
           title: 'More',
           items: [
+            { label: 'NuGet', href: 'https://www.nuget.org/packages?q=Minos.NET' },
             { label: 'GitHub', href: repository },
           ],
         },

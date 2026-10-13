@@ -11,6 +11,10 @@ on:
         description: How many times the aot-smoke job runs the published binary, stopping at the first failure
         type: number
         default: 1
+      publish_to_nuget:
+        description: Push the release packages to nuget.org. Only takes effect on a v* tag; see RELEASING.md
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -176,6 +180,87 @@ jobs:
       - name: Publish AOT with the six packages rooted
         run: dotnet publish samples/Minos.NET.AotSurface/Minos.NET.AotSurface.csproj -r linux-x64 -c Release -o ./aot-surface-out
 
+  # Packs the six release packages exactly as publish-nuget does, inspects them, and rehearses the push against a local
+  # folder feed, on every push and pull request, so the release path is exercised long before release day. A folder
+  # feed silently drops .snupkg files, so symbol packages are checked by the inspection, not by the push. WorkflowWiringTests
+  # pins the commands below; change them only together with it.
+  pack-validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          dotnet-version: '10.0.x'
+
+      - name: Read the release version
+        shell: bash
+        run: |
+          version=$(jq -r '."." // empty' .release-please-manifest.json)
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::.release-please-manifest.json gives '$version', not a version."
+            exit 1
+          fi
+          echo "PACKAGE_VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Pack the release build
+        run: dotnet pack Minos.NET.slnx -c Release -p:MinosRelease=true -o artifacts/packages
+
+      - name: Test the inspection script
+        run: python3 -m unittest discover -s tools/release -p "test_inspect_packages.py"
+
+      - name: Inspect the packages
+        run: python3 tools/release/inspect_packages.py artifacts/packages "$PACKAGE_VERSION"
+
+      - name: Rehearse the push against a local feed
+        shell: bash
+        run: |
+          feed="$RUNNER_TEMP/local-feed"
+          mkdir -p "$feed"
+          dotnet nuget push "artifacts/packages/*.nupkg" --source "$feed" --skip-duplicate
+          for package in artifacts/packages/*.nupkg; do
+            if [ ! -f "$feed/$(basename "$package")" ]; then
+              echo "::error::$(basename "$package") was pushed and did not arrive in the local feed."
+              exit 1
+            fi
+          done
+          before=$(find "$feed" -type f | wc -l)
+          dotnet nuget push "artifacts/packages/*.nupkg" --source "$feed" --skip-duplicate
+          after=$(find "$feed" -type f | wc -l)
+          if [ "$before" -ne "$after" ]; then
+            echo "::error::A second push changed the feed from $before to $after files; a re-run must change nothing."
+            exit 1
+          fi
+
+      - name: Restore and build a consumer from the local feed
+        shell: bash
+        run: |
+          app="$RUNNER_TEMP/consumer"
+          dotnet new console -o "$app" --framework net10.0
+          for package in Minos.NET Minos.NET.SystemOne Minos.NET.OpenAI Minos.NET.DependencyInjection Minos.NET.Caching Minos.NET.RateLimiting; do
+            dotnet add "$app" package "$package" --version "$PACKAGE_VERSION" --no-restore
+          done
+          cat > "$app/nuget.config" <<EOF
+          <?xml version="1.0" encoding="utf-8"?>
+          <configuration>
+            <packageSources>
+              <clear />
+              <add key="local" value="$RUNNER_TEMP/local-feed" />
+              <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+            </packageSources>
+            <packageSourceMapping>
+              <packageSource key="local"><package pattern="Minos.NET*" /></packageSource>
+              <packageSource key="nuget.org"><package pattern="*" /></packageSource>
+            </packageSourceMapping>
+          </configuration>
+          EOF
+          dotnet build "$app" -c Release
+
   # A release PR must have marked released analyzer rules and public API as shipped. release-please.yml dispatches this
   # workflow on the release branch, so the branch comes from github.ref_name when there is no pull request.
   release-tracking:
@@ -185,3 +270,77 @@ jobs:
       - uses: actions/checkout@v7
       - name: Check nothing is left unshipped
         run: python3 tools/release/ship_release_tracking.py --check
+
+  # Publishes a release to nuget.org. release-please.yml dispatches this workflow on the release tag with
+  # publish_to_nuget=true when it creates a release; a maintainer can dispatch it the same way to finish a push that
+  # died partway, since --skip-duplicate makes a re-run safe. It runs after every other job on that exact commit, and it
+  # refuses a 0.x version, a prerelease, and a tag that is not the manifest's version. The key comes from nuget.org's
+  # Trusted Publishing; no key is stored. A .snupkg beside its .nupkg is delivered with the same push. The pack must
+  # pass -p:MinosRelease=true: without it Directory.Build.props versions every build X.Y.Z-local, and the version is
+  # compiled into the DLLs, so a pack after a build without the switch would ship release-numbered packages whose DLLs
+  # and User-Agent still say -local. RELEASING.md has the procedure; WorkflowWiringTests pins the commands.
+  publish-nuget:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish_to_nuget && startsWith(github.ref, 'refs/tags/v')
+    needs: [build, aot-smoke, aot-surface, pack-validate]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          dotnet-version: '10.0.x'
+
+      - name: Refuse anything but a stable 1.0 or later release from its own tag
+        shell: bash
+        run: |
+          version=$(jq -r '."." // empty' .release-please-manifest.json)
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Refusing to publish '$version': it is not a stable version."
+            exit 1
+          fi
+          if [[ "$version" == 0.* ]]; then
+            echo "::error::Refusing to publish $version: 0.x versions are not published to nuget.org."
+            exit 1
+          fi
+          if [ "$GITHUB_REF_NAME" != "v$version" ]; then
+            echo "::error::Refusing to publish: the tag is $GITHUB_REF_NAME but the manifest says $version."
+            exit 1
+          fi
+          echo "PACKAGE_VERSION=$version" >> "$GITHUB_ENV"
+
+      - name: Pack the release build
+        run: dotnet pack Minos.NET.slnx -c Release -p:MinosRelease=true -o artifacts/packages
+
+      - name: Inspect the packages
+        run: python3 tools/release/inspect_packages.py artifacts/packages "$PACKAGE_VERSION"
+
+      - name: Mint a short-lived nuget.org key
+        uses: NuGet/login@v1
+        id: nuget-login
+        with:
+          user: ${{ vars.NUGET_USER }}
+
+      - name: Push to nuget.org
+        shell: bash
+        env:
+          NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+        run: |
+          if [ -z "$NUGET_API_KEY" ]; then
+            echo "::error::NuGet/login minted no key. Check the NUGET_USER repository variable and the Trusted Publishing policy on nuget.org; see RELEASING.md."
+            exit 1
+          fi
+          dotnet nuget push "artifacts/packages/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY" --skip-duplicate
+
+      - name: Attach the packages to the GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" artifacts/packages/*.nupkg artifacts/packages/*.snupkg --clobber

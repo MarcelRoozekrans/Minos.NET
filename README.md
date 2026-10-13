@@ -5,6 +5,12 @@
 ![Minos](https://raw.githubusercontent.com/MarcelRoozekrans/Minos.NET/main/assets/brand/icon-192.png)
 
 [![CI](https://github.com/MarcelRoozekrans/Minos.NET/actions/workflows/ci.yml/badge.svg)](https://github.com/MarcelRoozekrans/Minos.NET/actions/workflows/ci.yml)
+[![Minos.NET](https://img.shields.io/nuget/v/Minos.NET?label=Minos.NET)](https://www.nuget.org/packages/Minos.NET)
+[![Minos.NET.SystemOne](https://img.shields.io/nuget/v/Minos.NET.SystemOne?label=Minos.NET.SystemOne)](https://www.nuget.org/packages/Minos.NET.SystemOne)
+[![Minos.NET.OpenAI](https://img.shields.io/nuget/v/Minos.NET.OpenAI?label=Minos.NET.OpenAI)](https://www.nuget.org/packages/Minos.NET.OpenAI)
+[![Minos.NET.DependencyInjection](https://img.shields.io/nuget/v/Minos.NET.DependencyInjection?label=Minos.NET.DependencyInjection)](https://www.nuget.org/packages/Minos.NET.DependencyInjection)
+[![Minos.NET.Caching](https://img.shields.io/nuget/v/Minos.NET.Caching?label=Minos.NET.Caching)](https://www.nuget.org/packages/Minos.NET.Caching)
+[![Minos.NET.RateLimiting](https://img.shields.io/nuget/v/Minos.NET.RateLimiting?label=Minos.NET.RateLimiting)](https://www.nuget.org/packages/Minos.NET.RateLimiting)
 
 Unofficial .NET client for decision models: send a `state` and typed questions (Noul, Choice, Score) and get calibrated, typed answers back.
 
@@ -14,7 +20,28 @@ You declare the questions as a C# type, and a source generator writes the reques
 
 > **Not affiliated with TypeSafe AI.** Minos is a community project. TypeSafe publishes official SDKs for Python and JavaScript; see [docs.typesafe.ai](https://docs.typesafe.ai).
 
-**Status:** early development, not yet published to NuGet. See [the roadmap](https://github.com/MarcelRoozekrans/Minos.NET/blob/main/docs/planning/ROADMAP.md).
+**Status:** version 1.0. The public API is stable and follows semantic versioning. Coming from 0.x? See [Upgrading to 1.0](https://marcelroozekrans.github.io/Minos.NET/pipeline#upgrading-to-10).
+
+## Packages
+
+| Package | What it is for |
+| --- | --- |
+| [Minos.NET](https://www.nuget.org/packages/Minos.NET) | the provider-neutral core, with typed questions, the source generator, `IDecisionClient` and its pipeline, and the analyzers |
+| [Minos.NET.SystemOne](https://www.nuget.org/packages/Minos.NET.SystemOne) | the `/v1/systemone` client for TypeSafe, OpenRouter and servers you run |
+| [Minos.NET.OpenAI](https://www.nuget.org/packages/Minos.NET.OpenAI) | the client for OpenAI's Decisions API, not yet tested against the live API |
+| [Minos.NET.DependencyInjection](https://www.nuget.org/packages/Minos.NET.DependencyInjection) | registers `IDecisionClient` in a .NET host |
+| [Minos.NET.Caching](https://www.nuget.org/packages/Minos.NET.Caching) | a caching stage |
+| [Minos.NET.RateLimiting](https://www.nuget.org/packages/Minos.NET.RateLimiting) | a rate-limiting stage |
+
+## What you get
+
+- Typed questions declared as a C# type, with a source generator.
+- One provider-neutral `IDecisionClient`, with presets for TypeSafe, OpenRouter and local servers.
+- A pipeline with retries, logging, OpenTelemetry traces and metrics, caching and rate limiting.
+- Dependency-injection registration, default and keyed.
+- The MIN analyzers and their code fixes.
+- Native AOT, with allocation budgets enforced in CI.
+- A [conformance suite](https://marcelroozekrans.github.io/Minos.NET/conformance), run from this repository, that checks any decision endpoint.
 
 ## Install
 
@@ -114,6 +141,8 @@ Runnable cookbook apps live in [`samples/`](https://github.com/MarcelRoozekrans/
 ## Building
 
 Building this repository needs the SDK version pinned in `global.json` (10.0.401 or later, via `rollForward: latestMinor`). The `[Questions]` generator compiles against Roslyn 5.0, so builds and IDEs must host Roslyn 5.0 or later — Visual Studio 2026 version 18.0 is the first release that qualifies. An older IDE shows generator errors even when `dotnet build` succeeds.
+
+Maintainers: [RELEASING.md](https://github.com/MarcelRoozekrans/Minos.NET/blob/main/RELEASING.md) describes how a release is published.
 
 ## Testing
 
