@@ -2,16 +2,16 @@ namespace Minos.Samples.IntentRouting;
 
 public enum TravelIntent
 {
-    [Criteria("Wants to see or look up an existing booking")]
+    [Criterion("Wants to see or look up an existing booking")]
     LookUpBooking,
 
-    [Criteria("Wants to change dates, names, seats or luggage on a booking")]
+    [Criterion("Wants to change dates, names, seats or luggage on a booking")]
     ChangeBooking,
 
-    [Criteria("Disputes a charge or asks for money back")]
+    [Criterion("Disputes a charge or asks for money back")]
     DisputeCharge,
 
-    [Criteria("Anything else")]
+    [Criterion("Anything else")]
     Other,
 }
 

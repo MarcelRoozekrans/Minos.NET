@@ -4,19 +4,19 @@ namespace Minos.Benchmarks.Compare.Adapters;
 public enum TravelIntent
 {
     /// <summary><c>look_up_booking</c>.</summary>
-    [Criteria("Wants to see or look up an existing booking")]
+    [Criterion("Wants to see or look up an existing booking")]
     LookUpBooking,
 
     /// <summary><c>change_booking</c>.</summary>
-    [Criteria("Wants to change dates, names, seats or luggage on a booking")]
+    [Criterion("Wants to change dates, names, seats or luggage on a booking")]
     ChangeBooking,
 
     /// <summary><c>dispute_charge</c>.</summary>
-    [Criteria("Disputes a charge or asks for money back")]
+    [Criterion("Disputes a charge or asks for money back")]
     DisputeCharge,
 
     /// <summary><c>other</c>.</summary>
-    [Criteria("Anything else")]
+    [Criterion("Anything else")]
     Other,
 }
 

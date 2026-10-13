@@ -37,9 +37,9 @@ public sealed class MovedDiagnosticTests
         "public class Base { public required int Foo; } "
             + "[Questions] public partial class {|MIN105:C|} : Base { [Noul(\"q\")] public partial Noul Answer { get; } }",
         "[Questions] public partial class {|MIN106:C|} { [Noul(\"a\")] public partial Noul IsUrgent { get; } [Noul(\"b\", Key = \"is_urgent\")] public partial Noul Other { get; } }",
-        "public enum E { [Criteria(\"x\", Key = \"b\")] A, [Criteria(\"y\")] B } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> {|MIN106:Answer|} { get; } }",
+        "public enum E { [Criterion(\"x\", Key = \"b\")] A, [Criterion(\"y\")] B } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> {|MIN106:Answer|} { get; } }",
         "[Questions] public partial class C { [Noul(\"q\", {|MIN106:Key = \"\"|})] public partial Noul Answer { get; } }",
-        "public enum E { [Criteria(\"x\", {|MIN106:Key = \"\"|})] A, [Criteria(\"y\")] B } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
+        "public enum E { [Criterion(\"x\", {|MIN106:Key = \"\"|})] A, [Criterion(\"y\")] B } [Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
         "[Questions({|MIN107:State = typeof(IFoo)|})] public partial class C { } public interface IFoo { }",
         "[Questions({|MIN107:State = typeof(System.Collections.Generic.List<>)|})] public partial class C { }",
         "[Questions({|MIN107:State = typeof(void)|})] public partial class C { }",
@@ -56,7 +56,7 @@ public sealed class MovedDiagnosticTests
     {
         "public enum L { [Level(\"a\")] A, [Level(\"b\")] B } "
             + "[Questions] public partial class C { [Noul(\"q\")] public partial Noul A { get; } [Score(\"q\")] public partial Score<L> B { get; } }",
-        "public enum E { [Criteria(\"x\")] A, [Criteria(\"y\")] B } "
+        "public enum E { [Criterion(\"x\")] A, [Criterion(\"y\")] B } "
             + "[Questions(State = typeof(S))] public partial record C { [Choice(\"q\")] public partial Choice<E> Answer { get; } } public sealed class S { }",
         "[Questions] public partial record R(int X = 0) { [Noul(\"q\")] public partial Noul Answer { get; } }",
         "[Questions] public partial class C { [Noul(\"q\")] public partial Noul Parse { get; } }",
@@ -132,7 +132,7 @@ public sealed class MovedDiagnosticTests
     public async Task EmptyText_EmptyEntry_MessageAdvisesRemovingTheEntry()
     {
         var compilation = await CompilationHelper.CompileAsync(
-            "using Minos;\npublic enum E { [Criteria(\"a\", Examples = [\" \"])] A }");
+            "using Minos;\npublic enum E { [Criterion(\"a\", Examples = [\" \"])] A }");
         var enumType = compilation.GetTypeByMetadataName("E")
             ?? throw new InvalidOperationException("Type 'E' not found in the compiled source.");
 
@@ -140,7 +140,7 @@ public sealed class MovedDiagnosticTests
             ModelBuilder.ValidateEnum(enumType, Minos.Generator.QuestionKind.Choice, CancellationToken.None), DiagnosticIds.EmptyText);
 
         Assert.Equal(
-            "An entry of Examples on the [Criteria] description of 'E.A' is empty or whitespace: write the text, or remove the entry",
+            "An entry of Examples on the [Criterion] description of 'E.A' is empty or whitespace: write the text, or remove the entry",
             Format(Diagnostics.EmptyText, info));
     }
 
@@ -188,7 +188,7 @@ public sealed class MovedDiagnosticTests
     public async Task DuplicateKey_EmptyOptionKey_MessageNamesTheMember()
     {
         var compilation = await CompilationHelper.CompileAsync(
-            "using Minos;\npublic enum E { [Criteria(\"x\", Key = \"\")] A, [Criteria(\"y\")] B }");
+            "using Minos;\npublic enum E { [Criterion(\"x\", Key = \"\")] A, [Criterion(\"y\")] B }");
         var enumType = compilation.GetTypeByMetadataName("E")
             ?? throw new InvalidOperationException("Type 'E' not found in the compiled source.");
 
@@ -202,7 +202,7 @@ public sealed class MovedDiagnosticTests
     public async Task DuplicateKey_EmptyOptionKeyOfEnumFromReferencedAssembly_ReportsOnProperty()
     {
         var reference = (await CompilationHelper.CompileAsync(
-                "using Minos; namespace External; public enum Grade { [Criteria(\"Good\", Key = \"\")] Good, [Criteria(\"Bad\")] Bad }", "External"))
+                "using Minos; namespace External; public enum Grade { [Criterion(\"Good\", Key = \"\")] Good, [Criterion(\"Bad\")] Bad }", "External"))
             .EmitToReference();
 
         await AnalyzerVerifier.VerifyAsync(

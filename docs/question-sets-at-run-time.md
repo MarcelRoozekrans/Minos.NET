@@ -123,7 +123,7 @@ that repeats an earlier member's value is an alias and is skipped, so that value
 for it. This is how the generator keys them too. Without a configurator, the options are sent with no description, and
 `Describe` adds one to a member.
 
-The builder does not read attributes on the members. A `[Criteria]` or `[Level]` on the enum is ignored here. Describe
+The builder does not read attributes on the members. A `[Criterion]` or `[Level]` on the enum is ignored here. Describe
 the options with `Describe`, and give a Score's levels with `Level`. A Score's levels are the members in the order you
 add them, lowest first, and each distinct member must be given exactly once. List them in declaration order to match
 what the generator would produce for the same enum.

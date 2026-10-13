@@ -16,13 +16,13 @@ public partial record MinimalUrgencyCheck
 
 public enum Department
 {
-    [Criteria("Payments, invoicing, refunds")]
+    [Criterion("Payments, invoicing, refunds")]
     Billing,
 
-    [Criteria("Bugs, outages, integrations")]
+    [Criterion("Bugs, outages, integrations")]
     Technical,
 
-    [Criteria("Pricing, upgrades, new accounts")]
+    [Criterion("Pricing, upgrades, new accounts")]
     Sales,
 
     Other,
@@ -37,13 +37,13 @@ public partial record DepartmentRouting
 
 public enum StructuredDepartment
 {
-    [Criteria("Payments, invoicing, refunds", Examples = ["I was charged twice"], NotFor = ["How much is Pro?"])]
+    [Criterion("Payments, invoicing, refunds", Examples = ["I was charged twice"], NotFor = ["How much is Pro?"])]
     Billing,
 
-    [Criteria("Bugs, outages, integrations", Examples = new[] { "The API returns 500" })]
+    [Criterion("Bugs, outages, integrations", Examples = new[] { "The API returns 500" })]
     Technical,
 
-    [Criteria("Pricing, upgrades, new accounts", Examples = [], NotFor = [])]
+    [Criterion("Pricing, upgrades, new accounts", Examples = [], NotFor = [])]
     Sales,
 
     Other,
@@ -102,10 +102,10 @@ public partial class TicketTriage
 
 public enum Priority
 {
-    [Criteria("Can wait")]
+    [Criterion("Can wait")]
     Low = 10,
 
-    [Criteria("Needs attention", Key = "urgent")]
+    [Criterion("Needs attention", Key = "urgent")]
     High = 20,
 
     // Deliberate alias: test data for the generator's alias handling

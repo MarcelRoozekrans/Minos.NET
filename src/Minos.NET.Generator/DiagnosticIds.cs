@@ -12,7 +12,7 @@ internal static class DiagnosticIds
     public const string EmptyText = "MIN003";
     public const string UnknownStateReference = "MIN004";
     public const string OptionCountOutsideGuidance = "MIN005";
-    public const string MissingCriteria = "MIN006";
+    public const string MissingCriterion = "MIN006";
 
     // Declarations the generator cannot produce code for: each makes the set invalid.
     public const string UnsupportedType = "MIN101";
@@ -55,5 +55,5 @@ internal static class DiagnosticIds
 
     /// <summary>Whether a diagnostic with <paramref name="id"/> is advice only: the set is still valid and generated.</summary>
     public static bool IsAdvisory(string id)
-        => id is EmptyText or UnknownStateReference or OptionCountOutsideGuidance or MissingCriteria;
+        => id is EmptyText or UnknownStateReference or OptionCountOutsideGuidance or MissingCriterion;
 }

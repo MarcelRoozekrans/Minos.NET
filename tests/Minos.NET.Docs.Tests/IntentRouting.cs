@@ -3,13 +3,13 @@ namespace Minos.Docs.Tests;
 #region IntentRoutingQuestions
 public enum HelpdeskIntent
 {
-    [Criteria("Locked out, or needs a password reset")]
+    [Criterion("Locked out, or needs a password reset")]
     PasswordReset,
 
-    [Criteria("How to install, use or configure some software")]
+    [Criterion("How to install, use or configure some software")]
     SoftwareQuestion,
 
-    [Criteria("A device or a peripheral is broken or misbehaving")]
+    [Criterion("A device or a peripheral is broken or misbehaving")]
     HardwareFault,
 }
 

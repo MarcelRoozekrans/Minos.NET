@@ -3,16 +3,16 @@ namespace Minos.Docs.Tests;
 #region ConfidenceRoutingQuestions
 public enum ShopIntent
 {
-    [Criteria("Wants to know where an order is or when it arrives")]
+    [Criterion("Wants to know where an order is or when it arrives")]
     TrackOrder,
 
-    [Criteria("Wants to cancel an order")]
+    [Criterion("Wants to cancel an order")]
     CancelOrder,
 
-    [Criteria("Wants money back for an order")]
+    [Criterion("Wants money back for an order")]
     RequestRefund,
 
-    [Criteria("Anything else")]
+    [Criterion("Anything else")]
     Other,
 }
 

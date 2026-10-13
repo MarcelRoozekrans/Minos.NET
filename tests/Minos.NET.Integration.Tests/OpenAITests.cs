@@ -7,7 +7,7 @@ namespace Minos.Integration.Tests;
 
 public enum OpenAITopic
 {
-    [Criteria("Payments and invoices")]
+    [Criterion("Payments and invoices")]
     Billing,
 
     Other,

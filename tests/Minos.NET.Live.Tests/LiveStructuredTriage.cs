@@ -2,13 +2,13 @@ namespace Minos.Live.Tests;
 
 public enum StructuredTeam
 {
-    [Criteria("Payments, invoicing, refunds", Examples = ["I was charged twice"], NotFor = ["How much is Pro?"])]
+    [Criterion("Payments, invoicing, refunds", Examples = ["I was charged twice"], NotFor = ["How much is Pro?"])]
     Billing,
 
-    [Criteria("Bugs, outages, integrations", Examples = ["The API returns 500"], NotFor = ["Is the API down for everyone?"])]
+    [Criterion("Bugs, outages, integrations", Examples = ["The API returns 500"], NotFor = ["Is the API down for everyone?"])]
     Technical,
 
-    [Criteria("Pricing, upgrades, new accounts")]
+    [Criterion("Pricing, upgrades, new accounts")]
     Sales,
 }
 

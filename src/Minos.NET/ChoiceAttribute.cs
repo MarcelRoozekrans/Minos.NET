@@ -2,7 +2,7 @@ namespace Minos;
 
 /// <summary>
 /// Declares a Choice question: pick one option. Apply to a partial <see cref="Choice{T}"/> property; the enum's members
-/// are the options, described with <see cref="CriteriaAttribute"/>.
+/// are the options, described with <see cref="CriterionAttribute"/>.
 /// </summary>
 /// <param name="instructions">The question, in plain language.</param>
 [AttributeUsage(AttributeTargets.Property, Inherited = false)]

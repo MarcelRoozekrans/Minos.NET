@@ -63,19 +63,19 @@ snake_case, and `Key = "..."` on the attribute sets another one. A key can be us
 ```cs
 public enum Desk
 {
-    [Criteria(
+    [Criterion(
         "Payments, invoices and refunds",
         Examples = ["I was charged twice"],
         NotFor = ["How much is the Pro plan?"])]
     Billing,
 
-    [Criteria("Bugs, outages and integrations", Examples = ["The API returns a 500"])]
+    [Criterion("Bugs, outages and integrations", Examples = ["The API returns a 500"])]
     Technical,
 
-    [Criteria("Pricing, upgrades and new accounts")]
+    [Criterion("Pricing, upgrades and new accounts")]
     Sales,
 
-    // A member with no [Criteria] is a valid option, sent with no description.
+    // A member with no [Criterion] is a valid option, sent with no description.
     Other,
 }
 
@@ -113,8 +113,8 @@ public partial record TicketReview
 
 A few things in that declaration are worth reading closely.
 
-- **Options and levels are enum members.** `[Criteria]` describes a Choice option. `[Level]` describes a Score level,
-  and the members, in declaration order, are the levels from lowest to highest. A Choice member without `[Criteria]` is
+- **Options and levels are enum members.** `[Criterion]` describes a Choice option. `[Level]` describes a Score level,
+  and the members, in declaration order, are the levels from lowest to highest. A Choice member without `[Criterion]` is
   still an option and is sent with no description, though the analyzers report it as the Info diagnostic
   [MIN006](diagnostics.md#the-rules). A Score level must have a `[Level]`, because the API does not accept a level
   without one.
@@ -162,7 +162,7 @@ object. The Jev API itself has no such fields. The generated questions for `Tick
 }
 ```
 
-A Choice's options are keyed by the member name in snake_case, or by `Key` on the member's `[Criteria]` when one is
+A Choice's options are keyed by the member name in snake_case, or by `Key` on the member's `[Criterion]` when one is
 set. A Score's levels are keyed by their index, and `[Level]` has no `Key`. The generator
 fixes the question text and criteria in the definition it writes at compile time, and the client writes this JSON from
 it: they cannot vary per call. What varies per call is the state.

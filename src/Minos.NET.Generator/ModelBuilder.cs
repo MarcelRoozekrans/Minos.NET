@@ -11,7 +11,7 @@ internal static class ModelBuilder
     private const string NoulAttribute = "Minos.NoulAttribute";
     private const string ChoiceAttribute = "Minos.ChoiceAttribute";
     private const string ScoreAttribute = "Minos.ScoreAttribute";
-    private const string CriteriaAttribute = "Minos.CriteriaAttribute";
+    private const string CriterionAttribute = "Minos.CriterionAttribute";
     private const string LevelAttribute = "Minos.LevelAttribute";
     private const string SetsRequiredMembersAttribute = "System.Diagnostics.CodeAnalysis.SetsRequiredMembersAttribute";
     private const string JsonPropertyNameAttribute = "System.Text.Json.Serialization.JsonPropertyNameAttribute";
@@ -21,7 +21,7 @@ internal static class ModelBuilder
     // either name would collide with the generated declaration.
     private static readonly string[] ReservedPropertyNames = ["Create", "Definition"];
 
-    // The Examples and NotFor texts of a Choice member without [Criteria].
+    // The Examples and NotFor texts of a Choice member without [Criterion].
     private static readonly EquatableArray<string> NoTexts = new([]);
 
     // MIN003's second message argument: the advice that fits what is empty. The text follows the subject in the message.
@@ -575,11 +575,11 @@ internal static class ModelBuilder
 
             if (kind == QuestionKind.Choice)
             {
-                var criteria = Find(field, CriteriaAttribute);
-                var what = $"The [Criteria] description of '{enumType.Name}.{field.Name}'";
+                var criteria = Find(field, CriterionAttribute);
+                var what = $"The [Criterion] description of '{enumType.Name}.{field.Name}'";
                 if (criteria is null)
                 {
-                    diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.MissingCriteria, At(field), enumType.Name, field.Name));
+                    diagnostics.Add(DiagnosticInfo.Create(DiagnosticIds.MissingCriterion, At(field), enumType.Name, field.Name));
                 }
                 else
                 {

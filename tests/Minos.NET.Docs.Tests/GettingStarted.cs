@@ -6,13 +6,13 @@ using Minos.SystemOne;
 
 public enum SupportTeam
 {
-    [Criteria("Payments, invoices and refunds")]
+    [Criterion("Payments, invoices and refunds")]
     Billing,
 
-    [Criteria("Bugs, outages and integrations")]
+    [Criterion("Bugs, outages and integrations")]
     Technical,
 
-    [Criteria("Pricing, upgrades and new accounts")]
+    [Criterion("Pricing, upgrades and new accounts")]
     Sales,
 }
 

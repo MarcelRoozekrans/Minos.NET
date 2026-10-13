@@ -3,7 +3,7 @@ using System.Text;
 namespace Minos.CodeFixes;
 
 /// <summary>
-/// Turns an enum member name into a sentence-case phrase for a generated <c>[Criteria]</c> or <c>[Level]</c>
+/// Turns an enum member name into a sentence-case phrase for a generated <c>[Criterion]</c> or <c>[Level]</c>
 /// description: <c>NeedsAttention</c> becomes <c>"Needs attention"</c>, <c>HTTPError</c> becomes <c>"HTTP error"</c>
 /// and <c>NEEDS_ATTENTION</c> becomes <c>"Needs attention"</c>.
 /// </summary>

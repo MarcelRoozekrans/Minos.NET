@@ -36,8 +36,8 @@ internal static class Sources
 
         public enum Department
         {
-            [Criteria("Payments, invoicing, refunds")] Billing,
-            [Criteria("Bugs, outages, integrations", Key = "tech")] Technical,
+            [Criterion("Payments, invoicing, refunds")] Billing,
+            [Criterion("Bugs, outages, integrations", Key = "tech")] Technical,
             Other,
         }
 
@@ -75,9 +75,9 @@ internal static class Sources
 
         public enum Team
         {
-            [Criteria("Charges, invoices, refunds")] Billing = 10,
-            [Criteria("Login, profile, permissions, or security")] Account = 20,
-            [Criteria("No listed team fits")] Other = 30,
+            [Criterion("Charges, invoices, refunds")] Billing = 10,
+            [Criterion("Login, profile, permissions, or security")] Account = 20,
+            [Criterion("No listed team fits")] Other = 30,
             Legacy = 10,
         }
 
@@ -109,13 +109,13 @@ internal static class Sources
 
         public enum StructuredDepartment
         {
-            [Criteria("Payments, invoicing, refunds", Examples = ["I was charged twice"], NotFor = ["How much is Pro?"])]
+            [Criterion("Payments, invoicing, refunds", Examples = ["I was charged twice"], NotFor = ["How much is Pro?"])]
             Billing,
 
-            [Criteria("Bugs, outages, integrations", Examples = new[] { "The API returns 500" })]
+            [Criterion("Bugs, outages, integrations", Examples = new[] { "The API returns 500" })]
             Technical,
 
-            [Criteria("Pricing, upgrades, new accounts", Examples = [], NotFor = [])]
+            [Criterion("Pricing, upgrades, new accounts", Examples = [], NotFor = [])]
             Sales,
 
             Other,
@@ -287,8 +287,8 @@ internal static class Sources
 
         public enum Verdict
         {
-            [Criteria("Approved")] Approved,
-            [Criteria("Denied")] @for,
+            [Criterion("Approved")] Approved,
+            [Criterion("Denied")] @for,
         }
 
         [Questions]

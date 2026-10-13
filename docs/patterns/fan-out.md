@@ -25,19 +25,19 @@ review anyway.
 ```cs
 public enum ReviewTopic
 {
-    [Criteria("The app crashes, freezes or closes on its own")]
+    [Criterion("The app crashes, freezes or closes on its own")]
     Crash,
 
-    [Criteria("The app is slow, drains the battery or uses too much data")]
+    [Criterion("The app is slow, drains the battery or uses too much data")]
     Performance,
 
-    [Criteria("The price, the subscription or in-app purchases")]
+    [Criterion("The price, the subscription or in-app purchases")]
     Pricing,
 
-    [Criteria("A feature the reviewer wants added")]
+    [Criterion("A feature the reviewer wants added")]
     FeatureIdea,
 
-    [Criteria("Mostly praise, with no complaint")]
+    [Criterion("Mostly praise, with no complaint")]
     Praise,
 }
 

@@ -3,7 +3,7 @@ namespace Minos;
 /// <summary>Describes a Choice option. A member without it is sent with no description.</summary>
 /// <param name="description">What the option means.</param>
 [AttributeUsage(AttributeTargets.Field, Inherited = false)]
-public sealed class CriteriaAttribute(string description) : Attribute
+public sealed class CriterionAttribute(string description) : Attribute
 {
     /// <summary>Gets what the option means.</summary>
     public string Description { get; } = description;

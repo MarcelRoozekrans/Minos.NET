@@ -44,10 +44,10 @@ using Minos.SystemOne;
 
 public enum Lane
 {
-    [Criteria("Payments, invoices and refunds")]
+    [Criterion("Payments, invoices and refunds")]
     Billing,
 
-    [Criteria("Bugs, outages and integrations")]
+    [Criterion("Bugs, outages and integrations")]
     Technical,
 }
 

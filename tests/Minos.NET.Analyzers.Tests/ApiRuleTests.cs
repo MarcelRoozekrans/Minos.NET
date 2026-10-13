@@ -40,7 +40,7 @@ public sealed class ApiRuleTests
     [Fact]
     public Task NonEmptyEnums_ReportNothing()
         => AnalyzerVerifier.VerifyNoDiagnosticsAsync(
-            "public enum E { [Criteria(\"x\")] A } public enum L { [Level(\"a\")] A, [Level(\"b\")] B } "
+            "public enum E { [Criterion(\"x\")] A } public enum L { [Level(\"a\")] A, [Level(\"b\")] B } "
                 + "[Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> A1 { get; } "
                 + "[Score(\"q\")] public partial Score<L> A2 { get; } }");
 
@@ -51,15 +51,15 @@ public sealed class ApiRuleTests
         "[Questions] public partial class C { [Noul({|MIN003:\"\"|})] public partial Noul Answer { get; } }",
         "[Questions] public partial class C { [Noul({|MIN003:\"   \"|})] public partial Noul Answer { get; } }",
         "[Questions] public partial class C { [Noul({|MIN003:instructions: \" \"|})] public partial Noul Answer { get; } }",
-        "public enum E { [Criteria({|MIN003:\"\"|})] A } "
+        "public enum E { [Criterion({|MIN003:\"\"|})] A } "
             + "[Questions] public partial class C { [Choice({|MIN003:\" \"|})] public partial Choice<E> Answer { get; } }",
         "public enum L { [Level(\"a\")] A, [Level({|MIN003:\"  \"|})] B } "
             + "[Questions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }",
         "public enum L { [Level(\"a\")] A, [Level({|MIN003:\"\"|})] B } [Questions] public partial class C { "
             + "[Score(\"q1\")] public partial Score<L> A1 { get; } [Score(\"q2\")] public partial Score<L> A2 { get; } }",
-        "public enum E { [Criteria(\"a\", {|MIN003:Examples = [\" \"]|})] A } "
+        "public enum E { [Criterion(\"a\", {|MIN003:Examples = [\" \"]|})] A } "
             + "[Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
-        "public enum E { [Criteria(\"a\", {|MIN003:NotFor = new string[] { null! }|})] A } "
+        "public enum E { [Criterion(\"a\", {|MIN003:NotFor = new string[] { null! }|})] A } "
             + "[Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
         "public enum L { [Level(\"a\", {|MIN003:Examples = [\"\"]|})] A, [Level(\"b\")] B } "
             + "[Questions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }",
@@ -73,10 +73,10 @@ public sealed class ApiRuleTests
     {
         "[Questions] public partial class C { [Noul(\"Is it urgent?\")] public partial Noul Answer { get; } }",
         "[Questions] public partial class C { [Noul(null)] public partial Noul Answer { get; } }",
-        "public enum E { [Criteria(null)] A, [Criteria(\"b\")] B } public enum L { [Level(null)] A, [Level(\"b\")] B } "
+        "public enum E { [Criterion(null)] A, [Criterion(\"b\")] B } public enum L { [Level(null)] A, [Level(\"b\")] B } "
             + "[Questions] public partial class C { [Choice(null)] public partial Choice<E> A1 { get; } "
             + "[Score(null)] public partial Score<L> A2 { get; } }",
-        "public enum E { [Criteria(\"a\", Examples = [\"x\"], NotFor = [])] A } "
+        "public enum E { [Criterion(\"a\", Examples = [\"x\"], NotFor = [])] A } "
             + "[Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
     };
 
@@ -159,7 +159,7 @@ public sealed class ApiRuleTests
     [Fact]
     public Task StateReference_ChoiceAndScoreInstructions_AreChecked()
         => AnalyzerVerifier.VerifyAsync(
-            State + "public enum E { [Criteria(\"x\")] A } public enum L { [Level(\"a\")] A, [Level(\"b\")] B } "
+            State + "public enum E { [Criterion(\"x\")] A } public enum L { [Level(\"a\")] A, [Level(\"b\")] B } "
                 + "[Questions(State = typeof(TicketState))] public partial class C { "
                 + "[Choice({|MIN004:\"`nope`\"|})] public partial Choice<E> A1 { get; } "
                 + "[Score({|MIN004:\"`nada`\"|})] public partial Score<L> A2 { get; } }");
@@ -211,7 +211,7 @@ public sealed class ApiRuleTests
     [InlineData(256, true)]
     public Task ChoiceOptionCount_OverTwoHundredFiftyFive_Warns(int options, bool reports)
     {
-        var members = Members(options, index => $"[Criteria(\"option {index}\")] M{index}");
+        var members = Members(options, index => $"[Criterion(\"option {index}\")] M{index}");
         var enumName = reports ? "{|MIN005:E|}" : "E";
         var source = $"public enum {enumName} {{ {members} }} "
             + "[Questions] public partial class C { [Choice(\"q\")] public partial Choice<E> Answer { get; } }";
@@ -240,23 +240,23 @@ public sealed class ApiRuleTests
             "public enum L { [Level(\"a\")] A, [Level(\"b\")] B, Alias = A } "
                 + "[Questions] public partial class C { [Score(\"q\")] public partial Score<L> Answer { get; } }");
 
-    // ---- MIN006: a Choice option without [Criteria] ----
+    // ---- MIN006: a Choice option without [Criterion] ----
 
     [Fact]
-    public Task ChoiceMemberWithoutCriteria_ReportsPerBareMember()
+    public Task ChoiceMemberWithoutCriterion_ReportsPerBareMember()
         => AnalyzerVerifier.VerifyAsync(
-            "public enum E { [Criteria(\"x\")] A, {|MIN006:B|}, {|MIN006:C|} } "
+            "public enum E { [Criterion(\"x\")] A, {|MIN006:B|}, {|MIN006:C|} } "
                 + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }");
 
     [Fact]
-    public Task ChoiceMemberWithoutCriteria_SharedEnum_ReportsOnce()
+    public Task ChoiceMemberWithoutCriterion_SharedEnum_ReportsOnce()
         => AnalyzerVerifier.VerifyAsync(
-            "public enum E { [Criteria(\"x\")] A, {|MIN006:B|} } [Questions] public partial class Q { "
+            "public enum E { [Criterion(\"x\")] A, {|MIN006:B|} } [Questions] public partial class Q { "
                 + "[Choice(\"q1\")] public partial Choice<E> A1 { get; } [Choice(\"q2\")] public partial Choice<E> A2 { get; } } "
                 + "[Questions] public partial class R { [Choice(\"q3\")] public partial Choice<E> A3 { get; } }");
 
     [Fact]
-    public async Task ChoiceMemberWithoutCriteria_FromReferencedAssembly_ReportsEachMemberOnTheProperty()
+    public async Task ChoiceMemberWithoutCriterion_FromReferencedAssembly_ReportsEachMemberOnTheProperty()
     {
         var reference = (await CompilationHelper.CompileAsync("namespace External; public enum Bare { A, B }", "External"))
             .EmitToReference();
@@ -268,9 +268,9 @@ public sealed class ApiRuleTests
     }
 
     [Fact]
-    public Task ChoiceMembersWithCriteria_ReportNothing()
+    public Task ChoiceMembersWithCriterion_ReportNothing()
         => AnalyzerVerifier.VerifyNoDiagnosticsAsync(
-            "public enum E { [Criteria(\"x\")] A, [Criteria(\"y\", Key = \"why\")] B } "
+            "public enum E { [Criterion(\"x\")] A, [Criterion(\"y\", Key = \"why\")] B } "
                 + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }");
 
     private static string Members(int count, Func<int, string> member)

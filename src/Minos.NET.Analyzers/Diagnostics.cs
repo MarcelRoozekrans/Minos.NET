@@ -51,10 +51,10 @@ internal static class Diagnostics
         DiagnosticSeverity.Warning,
         isEnabledByDefault: true);
 
-    public static readonly DiagnosticDescriptor MissingCriteria = new(
-        DiagnosticIds.MissingCriteria,
+    public static readonly DiagnosticDescriptor MissingCriterion = new(
+        DiagnosticIds.MissingCriterion,
         "Choice option has no description",
-        "Choice option '{0}.{1}' has no [Criteria]: the API sees only its name, and a description usually helps",
+        "Choice option '{0}.{1}' has no [Criterion]: the API sees only its name, and a description usually helps",
         Category,
         DiagnosticSeverity.Info,
         isEnabledByDefault: true);

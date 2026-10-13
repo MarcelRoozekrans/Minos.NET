@@ -27,7 +27,7 @@ public sealed class QuestionSetAnalyzer : DiagnosticAnalyzer
         Diagnostics.EmptyText,
         Diagnostics.UnknownStateReference,
         Diagnostics.OptionCountOutsideGuidance,
-        Diagnostics.MissingCriteria,
+        Diagnostics.MissingCriterion,
         Diagnostics.UnsupportedType,
         Diagnostics.UnsupportedProperty,
         Diagnostics.AttributeTypeMismatch,

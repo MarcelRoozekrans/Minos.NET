@@ -18,7 +18,7 @@ namespace Minos;
 /// snake_case, by the generator's own <c>SnakeCase</c>. An alias, a later field repeating an earlier field's value, is
 /// skipped, so a value is keyed by its first declared name. <see cref="Enum.GetName{TEnum}(TEnum)"/> is not used: for
 /// an aliased value in a larger enum it may return the alias. A Score's levels follow the order its builder gave them,
-/// from <see cref="Levels"/>, keyed by index. Attributes on the members, such as <c>[Criteria(Key = …)]</c> or
+/// from <see cref="Levels"/>, keyed by index. Attributes on the members, such as <c>[Criterion(Key = …)]</c> or
 /// <c>[Level]</c>, are not read.
 /// </remarks>
 internal sealed class EnumOptionSet<[DynamicallyAccessedMembers(DynamicallyAccessedMemberTypes.PublicFields)] T> : DecisionOptionSet<T>

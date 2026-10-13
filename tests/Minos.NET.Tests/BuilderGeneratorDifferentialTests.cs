@@ -6,10 +6,10 @@ namespace Minos.Tests;
 // Declared out of value order, so byte identity also checks that both sides send the options in declaration order.
 public enum DiffTeam
 {
-    [Criteria("Payments, invoicing, refunds", Examples = ["I was charged twice"], NotFor = ["How much is Pro?"])]
+    [Criterion("Payments, invoicing, refunds", Examples = ["I was charged twice"], NotFor = ["How much is Pro?"])]
     Billing = 2,
 
-    [Criteria("Login, profile, permissions")]
+    [Criterion("Login, profile, permissions")]
     AccountSecurity = 0,
 
     ServiceDesk = 1,

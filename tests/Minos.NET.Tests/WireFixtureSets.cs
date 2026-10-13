@@ -14,8 +14,8 @@ public partial record WfNoulOnly
 
 public enum WfDepartment
 {
-    [Criteria("Payments, invoicing, refunds")] Billing,
-    [Criteria("Bugs, outages, integrations", Key = "tech")] Technical,
+    [Criterion("Payments, invoicing, refunds")] Billing,
+    [Criterion("Bugs, outages, integrations", Key = "tech")] Technical,
     Other,
 }
 
@@ -42,9 +42,9 @@ public partial record WfScoreOnly
 
 public enum WfTeam
 {
-    [Criteria("Charges, invoices, refunds")] Billing = 10,
-    [Criteria("Login, profile, permissions, or security")] Account = 20,
-    [Criteria("No listed team fits")] Other = 30,
+    [Criterion("Charges, invoices, refunds")] Billing = 10,
+    [Criterion("Login, profile, permissions, or security")] Account = 20,
+    [Criterion("No listed team fits")] Other = 30,
 }
 
 public enum WfUrgency
@@ -69,13 +69,13 @@ internal sealed partial class WfMixed
 
 public enum WfStructuredDepartment
 {
-    [Criteria("Payments, invoicing, refunds", Examples = ["I was charged twice"], NotFor = ["How much is Pro?"])]
+    [Criterion("Payments, invoicing, refunds", Examples = ["I was charged twice"], NotFor = ["How much is Pro?"])]
     Billing,
 
-    [Criteria("Bugs, outages, integrations", Examples = new[] { "The API returns 500" })]
+    [Criterion("Bugs, outages, integrations", Examples = new[] { "The API returns 500" })]
     Technical,
 
-    [Criteria("Pricing, upgrades, new accounts", Examples = [], NotFor = [])]
+    [Criterion("Pricing, upgrades, new accounts", Examples = [], NotFor = [])]
     Sales,
 
     Other,
@@ -102,8 +102,8 @@ public partial record WfStructured
 
 public enum WfVerdict
 {
-    [Criteria("Approved")] Approved,
-    [Criteria("Denied")] @for,
+    [Criterion("Approved")] Approved,
+    [Criterion("Denied")] @for,
 }
 
 [Questions]
@@ -125,10 +125,10 @@ public partial record WfWithState
 // Every text, keys included, carries the lone surrogate. Every character the encoder escapes or passes through: < > & ' + / are raw, \r \t DEL U+2028 U+0085 escape, a lone surrogate becomes U+FFFD.
 public enum WfEscapedChoice
 {
-    [Criteria("c < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end", Key = "k < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end")]
+    [Criterion("c < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end", Key = "k < > & ' + / \r \t \u007F \u2028 \u0085 \uD800 end")]
     Tricky,
 
-    [Criteria("plain")]
+    [Criterion("plain")]
     Plain,
 }
 

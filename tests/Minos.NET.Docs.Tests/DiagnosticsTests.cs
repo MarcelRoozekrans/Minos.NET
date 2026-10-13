@@ -77,7 +77,7 @@ public sealed partial class DiagnosticsTests
         var ids = Source("src", "Minos.NET.Generator", "DiagnosticIds.cs");
         var rows = PageTables.Rows(Page, "The rules");
 
-        Assert.Contains("id is EmptyText or UnknownStateReference or OptionCountOutsideGuidance or MissingCriteria", ids, StringComparison.Ordinal);
+        Assert.Contains("id is EmptyText or UnknownStateReference or OptionCountOutsideGuidance or MissingCriterion", ids, StringComparison.Ordinal);
         Assert.Equal(
             ["MIN003", "MIN004", "MIN005", "MIN006"],
             rows.Where(row => row[1] is "Warning" or "Info").Select(row => row[0]));
@@ -143,13 +143,13 @@ public sealed partial class DiagnosticsTests
         var provider = Source("src", "Minos.NET.CodeFixes", "AddDescriptionCodeFixProvider.cs");
         var rows = PageTables.Rows(Page, "Code fixes");
 
-        Assert.Contains("ImmutableArray.Create(DiagnosticIds.MissingCriteria, DiagnosticIds.MissingLevel)", provider, StringComparison.Ordinal);
-        Assert.Contains("diagnostic.Id == DiagnosticIds.MissingCriteria ? \"Criteria\" : \"Level\"", provider, StringComparison.Ordinal);
+        Assert.Contains("ImmutableArray.Create(DiagnosticIds.MissingCriterion, DiagnosticIds.MissingLevel)", provider, StringComparison.Ordinal);
+        Assert.Contains("diagnostic.Id == DiagnosticIds.MissingCriterion ? \"Criterion\" : \"Level\"", provider, StringComparison.Ordinal);
         Assert.Contains("$\"Add [{attributeName}(\\\"{WordSplitter.ToSentence(member.Identifier.ValueText)}\\\")]\"", provider, StringComparison.Ordinal);
         Assert.Contains("WellKnownFixAllProviders.BatchFixer", provider, StringComparison.Ordinal);
         Assert.Equal(["MIN006", "MIN104"], rows.Select(row => row[0]));
         Assert.Equal(
-            ["Add [Criteria(\"Needs attention\")]", "Add [Level(\"Needs attention\")]"],
+            ["Add [Criterion(\"Needs attention\")]", "Add [Level(\"Needs attention\")]"],
             rows.Select(row => PageTables.Code(row[1])));
     }
 

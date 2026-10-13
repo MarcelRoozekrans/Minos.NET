@@ -9,7 +9,7 @@ using CodeFixes::Minos.CodeFixes;
 namespace Minos.Analyzers.Tests;
 
 /// <summary>
-/// <see cref="AddDescriptionCodeFixProvider"/>: adds <c>[Criteria("…")]</c> (MIN006) or <c>[Level("…")]</c>
+/// <see cref="AddDescriptionCodeFixProvider"/>: adds <c>[Criterion("…")]</c> (MIN006) or <c>[Level("…")]</c>
 /// (MIN104) to an enum member, the text derived from the member name by <see cref="WordSplitter"/>.
 /// </summary>
 /// <remarks>
@@ -26,27 +26,27 @@ namespace Minos.Analyzers.Tests;
 public sealed class CodeFixTests
 {
     [Fact]
-    public Task MissingCriteria_AddsAttributeFromMemberName()
+    public Task MissingCriterion_AddsAttributeFromMemberName()
         => VerifyAsync(
-            "public enum E { [Criteria(\"x\")] A, {|MIN006:Billing|} } "
+            "public enum E { [Criterion(\"x\")] A, {|MIN006:Billing|} } "
                 + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
-            "public enum E { [Criteria(\"x\")] A, [Criteria(\"Billing\")] Billing } "
+            "public enum E { [Criterion(\"x\")] A, [Criterion(\"Billing\")] Billing } "
                 + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }");
 
     [Fact]
-    public Task MissingCriteria_LowercasesLaterWords()
+    public Task MissingCriterion_LowercasesLaterWords()
         => VerifyAsync(
-            "public enum E { [Criteria(\"x\")] A, {|MIN006:NeedsAttention|} } "
+            "public enum E { [Criterion(\"x\")] A, {|MIN006:NeedsAttention|} } "
                 + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
-            "public enum E { [Criteria(\"x\")] A, [Criteria(\"Needs attention\")] NeedsAttention } "
+            "public enum E { [Criterion(\"x\")] A, [Criterion(\"Needs attention\")] NeedsAttention } "
                 + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }");
 
     [Fact]
-    public Task MissingCriteria_KeepsAnAcronymUppercase()
+    public Task MissingCriterion_KeepsAnAcronymUppercase()
         => VerifyAsync(
-            "public enum E { [Criteria(\"x\")] A, {|MIN006:HTTPError|} } "
+            "public enum E { [Criterion(\"x\")] A, {|MIN006:HTTPError|} } "
                 + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
-            "public enum E { [Criteria(\"x\")] A, [Criteria(\"HTTP error\")] HTTPError } "
+            "public enum E { [Criterion(\"x\")] A, [Criterion(\"HTTP error\")] HTTPError } "
                 + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }");
 
     [Fact]
@@ -85,9 +85,9 @@ public sealed class CodeFixTests
     [Fact]
     public Task FixAll_InDocument_FixesEveryMember()
         => VerifyAsync(
-            "public enum E { [Criteria(\"x\")] A, {|MIN006:B|}, {|MIN006:C|}, {|MIN006:HTTPError|} } "
+            "public enum E { [Criterion(\"x\")] A, {|MIN006:B|}, {|MIN006:C|}, {|MIN006:HTTPError|} } "
                 + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
-            "public enum E { [Criteria(\"x\")] A, [Criteria(\"B\")] B, [Criteria(\"C\")] C, [Criteria(\"HTTP error\")] HTTPError } "
+            "public enum E { [Criterion(\"x\")] A, [Criterion(\"B\")] B, [Criterion(\"C\")] C, [Criterion(\"HTTP error\")] HTTPError } "
                 + "[Questions] public partial class Q { [Choice(\"q\")] public partial Choice<E> Answer { get; } }",
             batch: true);
 
@@ -97,7 +97,7 @@ public sealed class CodeFixTests
             """
             public enum E
             {
-                [Criteria("x")] A,
+                [Criterion("x")] A,
                 // A note about B
                 [System.Obsolete] {|MIN006:B|},
             }
@@ -106,9 +106,9 @@ public sealed class CodeFixTests
             """
             public enum E
             {
-                [Criteria("x")] A,
+                [Criterion("x")] A,
                 // A note about B
-                [System.Obsolete] [Criteria("B")] B,
+                [System.Obsolete] [Criterion("B")] B,
             }
             [Questions] public partial class Q { [Choice("q")] public partial Choice<E> Answer { get; } }
             """);
@@ -118,12 +118,12 @@ public sealed class CodeFixTests
     {
         var test = new CSharpCodeFixTest<QuestionSetAnalyzer, AddDescriptionCodeFixProvider, DefaultVerifier>
         {
-            TestCode = "public enum E { [Minos.Criteria(\"x\")] A, {|MIN006:B|} } "
+            TestCode = "public enum E { [Minos.Criterion(\"x\")] A, {|MIN006:B|} } "
                 + "[Minos.Questions] public partial class Q { "
                 + "[Minos.Choice(\"q\")] public partial Minos.Choice<E> Answer { get; } }",
             // A single line has no line break of its own to follow and there is no .editorconfig, so the using ends
             // with the workspace's default new line, Environment.NewLine: "\n" on Linux, "\r\n" on Windows.
-            FixedCode = "using Minos;" + Environment.NewLine + Environment.NewLine + "public enum E { [Minos.Criteria(\"x\")] A, [Criteria(\"B\")] B } "
+            FixedCode = "using Minos;" + Environment.NewLine + Environment.NewLine + "public enum E { [Minos.Criterion(\"x\")] A, [Criterion(\"B\")] B } "
                 + "[Minos.Questions] public partial class Q { "
                 + "[Minos.Choice(\"q\")] public partial Minos.Choice<E> Answer { get; } }",
             ReferenceAssemblies = ReferenceAssemblies.Net.Net100,
@@ -139,14 +139,14 @@ public sealed class CodeFixTests
             [
                 """
                 using M = Minos;
-                public enum E { [M.Criteria("x")] A, {|MIN006:B|} }
+                public enum E { [M.Criterion("x")] A, {|MIN006:B|} }
                 [M.Questions] public partial class Q { [M.Choice("q")] public partial M.Choice<E> {|CS9248:Answer|} { get; } }
                 """,
             ],
             [
                 """
                 using M = Minos;
-                public enum E { [M.Criteria("x")] A, [M.Criteria("B")] B }
+                public enum E { [M.Criterion("x")] A, [M.Criterion("B")] B }
                 [M.Questions] public partial class Q { [M.Choice("q")] public partial M.Choice<E> {|CS9248:Answer|} { get; } }
                 """,
             ]);
@@ -160,7 +160,7 @@ public sealed class CodeFixTests
                 {
                     using Minos;
 
-                    public enum E { [Criteria("x")] A, {|MIN006:B|} }
+                    public enum E { [Criterion("x")] A, {|MIN006:B|} }
                     [Questions] public partial class Q { [Choice("q")] public partial Choice<E> {|CS9248:Answer|} { get; } }
                 }
                 """,
@@ -171,7 +171,7 @@ public sealed class CodeFixTests
                 {
                     using Minos;
 
-                    public enum E { [Criteria("x")] A, [Criteria("B")] B }
+                    public enum E { [Criterion("x")] A, [Criterion("B")] B }
                     [Questions] public partial class Q { [Choice("q")] public partial Choice<E> {|CS9248:Answer|} { get; } }
                 }
                 """,
@@ -185,7 +185,7 @@ public sealed class CodeFixTests
                 """
                 namespace N;
 
-                public enum E { [Criteria("x")] A, {|MIN006:B|} }
+                public enum E { [Criterion("x")] A, {|MIN006:B|} }
                 [Questions] public partial class Q { [Choice("q")] public partial Choice<E> {|CS9248:Answer|} { get; } }
                 """,
             ],
@@ -194,7 +194,7 @@ public sealed class CodeFixTests
                 """
                 namespace N;
 
-                public enum E { [Criteria("x")] A, [Criteria("B")] B }
+                public enum E { [Criterion("x")] A, [Criterion("B")] B }
                 [Questions] public partial class Q { [Choice("q")] public partial Choice<E> {|CS9248:Answer|} { get; } }
                 """,
             ]);
@@ -205,10 +205,10 @@ public sealed class CodeFixTests
         // Built with explicit "\n" rather than a raw string literal, whose line breaks follow this file's own.
         const string Set = "[Minos.Questions]\npublic partial class Q\n{\n"
             + "    [Minos.Choice(\"q\")] public partial Minos.Choice<E> {|CS9248:Answer|} { get; }\n}\n";
-        const string Source = "public enum E\n{\n    [Minos.Criteria(\"x\")] A,\n"
+        const string Source = "public enum E\n{\n    [Minos.Criterion(\"x\")] A,\n"
             + "    {|MIN006:B|},\n    {|MIN006:NeedsAttention|},\n}\n\n" + Set;
-        const string Fixed = "using Minos;\n\npublic enum E\n{\n    [Minos.Criteria(\"x\")] A,\n"
-            + "    [Criteria(\"B\")] B,\n    [Criteria(\"Needs attention\")] NeedsAttention,\n}\n\n" + Set;
+        const string Fixed = "using Minos;\n\npublic enum E\n{\n    [Minos.Criterion(\"x\")] A,\n"
+            + "    [Criterion(\"B\")] B,\n    [Criterion(\"Needs attention\")] NeedsAttention,\n}\n\n" + Set;
 
         return VerifyCompilesAsync([Source], [Fixed], batchFixedSources: [Fixed]);
     }
@@ -220,8 +220,8 @@ public sealed class CodeFixTests
         const string Set = "[Questions]\r\npublic partial class Q\r\n{\r\n"
             + "    [Choice(\"q\")] public partial Choice<E> {|CS9248:Answer|} { get; }\r\n}\r\n";
         return VerifyCompilesAsync(
-            ["using Minos;\r\n\r\npublic enum E\r\n{\r\n    [Criteria(\"x\")] A,\r\n    [System.Obsolete]\r\n    {|MIN006:B|},\r\n}\r\n\r\n" + Set],
-            ["using Minos;\r\n\r\npublic enum E\r\n{\r\n    [Criteria(\"x\")] A,\r\n    [System.Obsolete]\r\n    [Criteria(\"B\")]\r\n    B,\r\n}\r\n\r\n" + Set]);
+            ["using Minos;\r\n\r\npublic enum E\r\n{\r\n    [Criterion(\"x\")] A,\r\n    [System.Obsolete]\r\n    {|MIN006:B|},\r\n}\r\n\r\n" + Set],
+            ["using Minos;\r\n\r\npublic enum E\r\n{\r\n    [Criterion(\"x\")] A,\r\n    [System.Obsolete]\r\n    [Criterion(\"B\")]\r\n    B,\r\n}\r\n\r\n" + Set]);
     }
 
     [Fact]
@@ -230,10 +230,10 @@ public sealed class CodeFixTests
         // A single line has no line break of its own to follow, so only .editorconfig can ask for "\n".
         var test = new CSharpCodeFixTest<QuestionSetAnalyzer, AddDescriptionCodeFixProvider, DefaultVerifier>
         {
-            TestCode = "public enum E { [Minos.Criteria(\"x\")] A, {|MIN006:B|} } "
+            TestCode = "public enum E { [Minos.Criterion(\"x\")] A, {|MIN006:B|} } "
                 + "[Minos.Questions] public partial class Q { "
                 + "[Minos.Choice(\"q\")] public partial Minos.Choice<E> Answer { get; } }",
-            FixedCode = "using Minos;\n\npublic enum E { [Minos.Criteria(\"x\")] A, [Criteria(\"B\")] B } "
+            FixedCode = "using Minos;\n\npublic enum E { [Minos.Criterion(\"x\")] A, [Criterion(\"B\")] B } "
                 + "[Minos.Questions] public partial class Q { "
                 + "[Minos.Choice(\"q\")] public partial Minos.Choice<E> Answer { get; } }",
             ReferenceAssemblies = ReferenceAssemblies.Net.Net100,

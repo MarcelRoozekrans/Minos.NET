@@ -1,2 +1,20 @@
 #nullable enable
 Minos.DecisionResponse.IsCached.get -> bool
+*REMOVED*Minos.CriteriaAttribute
+Minos.CriterionAttribute
+*REMOVED*Minos.CriteriaAttribute.CriteriaAttribute(string! description) -> void
+Minos.CriterionAttribute.CriterionAttribute(string! description) -> void
+*REMOVED*Minos.CriteriaAttribute.Description.get -> string!
+Minos.CriterionAttribute.Description.get -> string!
+*REMOVED*Minos.CriteriaAttribute.Examples.get -> string![]?
+Minos.CriterionAttribute.Examples.get -> string![]?
+*REMOVED*Minos.CriteriaAttribute.Examples.set -> void
+Minos.CriterionAttribute.Examples.set -> void
+*REMOVED*Minos.CriteriaAttribute.Key.get -> string?
+Minos.CriterionAttribute.Key.get -> string?
+*REMOVED*Minos.CriteriaAttribute.Key.set -> void
+Minos.CriterionAttribute.Key.set -> void
+*REMOVED*Minos.CriteriaAttribute.NotFor.get -> string![]?
+Minos.CriterionAttribute.NotFor.get -> string![]?
+*REMOVED*Minos.CriteriaAttribute.NotFor.set -> void
+Minos.CriterionAttribute.NotFor.set -> void

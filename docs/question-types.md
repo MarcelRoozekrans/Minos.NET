@@ -15,13 +15,13 @@ customer's mood.
 ```cs
 public enum Department
 {
-    [Criteria("Payments, invoices and refunds")]
+    [Criterion("Payments, invoices and refunds")]
     Billing,
 
-    [Criteria("Bugs, outages and integrations")]
+    [Criterion("Bugs, outages and integrations")]
     Technical,
 
-    [Criteria("Pricing, upgrades and new accounts")]
+    [Criterion("Pricing, upgrades and new accounts")]
     Sales,
 }
 
@@ -78,7 +78,7 @@ it cannot tell. Compare the probability against a threshold that suits the decis
 
 ## Choice: one option out of several
 
-A Choice picks one option from a list. The options are the members of an enum, described with `[Criteria]`. The answer
+A Choice picks one option from a list. The options are the members of an enum, described with `[Criterion]`. The answer
 holds three things.
 
 - `Value`: the option Jev picked.
