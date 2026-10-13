@@ -220,7 +220,7 @@ public sealed class SystemOneClient : IDecisionClient
             new SystemTextJsonSerializer(DecisionJsonContext.Default),
             new DecisionRawSerializer(pool),
             new DecisionErrorMapper(time, _ownedHttpClient is null ? null : disposed, SystemOneProtocol.Instance));
-        _metadata = new DecisionClientMetadata(_providerName, _endpoint, settings.Model);
+        _metadata = new DecisionClientMetadata(_providerName, new Uri(_endpoint, settings.Path), settings.Model);
 
         // The standard chain, outermost first: one span over every attempt, one outcome log inside it, then retries. Each
         // stage reads the metadata through GetService, which the chain answers from the transport at its bottom.

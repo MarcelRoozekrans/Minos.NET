@@ -71,9 +71,9 @@ public sealed class OpenAIDecisionClientTests : IDisposable
 
         Assert.NotNull(metadata);
         Assert.Equal("openai", metadata.ProviderName);
-        Assert.Equal(new Uri("https://api.openai.com/v1/"), metadata.Endpoint);
+        Assert.Equal(new Uri("https://api.openai.com/v1/decisions"), metadata.Endpoint);
         Assert.Equal(TestModel, metadata.DefaultModel);
-        Assert.Equal(new Uri("https://api.openai.com/v1/"), defaults.GetService<DecisionClientMetadata>()!.Endpoint);
+        Assert.Equal(new Uri("https://api.openai.com/v1/decisions"), defaults.GetService<DecisionClientMetadata>()!.Endpoint);
     }
 
     [Fact]

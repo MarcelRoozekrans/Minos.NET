@@ -87,7 +87,7 @@ public sealed class PipelineTests
         {
             var description = await CustomPipeline.DescribeAsync(wrapped, CancellationToken.None);
 
-            Assert.Equal("typesafe at https://docs.example/api/, retries on, 2 models", description);
+            Assert.Equal("typesafe at https://docs.example/api/v1/systemone, retries on, 2 models", description);
         }
 
         Assert.Collection(requests, _ => { });
@@ -103,7 +103,7 @@ public sealed class PipelineTests
         using (client)
         {
             Assert.Equal(
-                "typesafe at https://docs.example/api/, retries off, 2 models",
+                "typesafe at https://docs.example/api/v1/systemone, retries off, 2 models",
                 await CustomPipeline.DescribeAsync(client, CancellationToken.None));
         }
     }

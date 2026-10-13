@@ -192,7 +192,7 @@ public sealed class OpenAIDecisionClient : IDecisionClient
             MaxRetryDelay = settings.MaxRetryDelay,
             Jitter = settings.Jitter,
         };
-        _metadata = new DecisionClientMetadata(OpenAIClientSettings.ProviderName, httpClient.BaseAddress!, settings.Model);
+        _metadata = new DecisionClientMetadata(OpenAIClientSettings.ProviderName, new Uri(httpClient.BaseAddress!, OpenAIClientSettings.Path), settings.Model);
 
         // A disposed client never retries. Only an owned HttpClient is disposed with the client, so only an owned one can
         // tear a request down: the mapper reports such an attempt as Disposed, which is never retried. A borrowed

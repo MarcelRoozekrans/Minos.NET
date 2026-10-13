@@ -17,6 +17,25 @@ public sealed class DecisionTransportTests : IDisposable
     private readonly List<HttpClient> _httpClients = [];
 
     [Fact]
+    public void Metadata_endpoint_is_the_base_address_plus_the_path()
+    {
+        using var client = ClientTestKit.Client(_httpClients, StubHandler.Json(HttpStatusCode.OK, "{}"));
+        using var custom = ClientTestKit.Client(
+            _httpClients,
+            StubHandler.Json(HttpStatusCode.OK, "{}"),
+            provider: SystemOneProvider.Custom,
+            configure: options =>
+            {
+                options.BaseAddress = new Uri("http://localhost:8080/router/");
+                options.Path = "decide/v1/systemone";
+            });
+
+        var http = client.GetService<DecisionClientMetadata>()!.Endpoint!;
+        Assert.EndsWith("/v1/systemone", http.AbsoluteUri, StringComparison.Ordinal);
+        Assert.Equal(new Uri("http://localhost:8080/router/decide/v1/systemone"), custom.GetService<DecisionClientMetadata>()!.Endpoint);
+    }
+
+    [Fact]
     public async Task SendAsync_keeps_the_slash_in_a_runtime_path()
     {
         var handler = StubHandler.Json(HttpStatusCode.OK, Fixture.Text("response-noul.json"));

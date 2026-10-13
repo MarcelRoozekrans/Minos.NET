@@ -57,7 +57,7 @@ public sealed class OpenAIRegistrationTests
         Assert.IsType<OpenAIDecisionClient>(keyed);
         Assert.Same(keyed, provider.GetRequiredKeyedService<IDecisionClient>("vision"));
         Assert.NotSame(provider.GetRequiredService<IDecisionClient>(), keyed);
-        Assert.Equal(new Uri("http://keyed.local/"), keyed.GetService<DecisionClientMetadata>()!.Endpoint);
+        Assert.Equal(new Uri("http://keyed.local/decisions"), keyed.GetService<DecisionClientMetadata>()!.Endpoint);
     }
 
     [Fact]
@@ -261,6 +261,6 @@ public sealed class OpenAIRegistrationEnvironmentTests
 
         var client = provider.GetRequiredService<IDecisionClient>();
 
-        Assert.Equal(new Uri("https://api.openai.com/v1/"), client.GetService<DecisionClientMetadata>()!.Endpoint);
+        Assert.Equal(new Uri("https://api.openai.com/v1/decisions"), client.GetService<DecisionClientMetadata>()!.Endpoint);
     }
 }

@@ -97,6 +97,24 @@ public sealed class CachingDecisionClientTests
     }
 
     [Fact]
+    public async Task Two_clients_on_one_host_with_different_paths_never_share_an_answer()
+    {
+        using var memory = Responses.Memory();
+        var distributed = new CountingDistributedCache();
+        // Two System One clients on one base address that post to different paths, as SystemOneClient reports them.
+        var first = new ScriptedClient(new DecisionClientMetadata("custom", new Uri("http://localhost:8080/a/v1/systemone"), "m"));
+        var second = new ScriptedClient(new DecisionClientMetadata("custom", new Uri("http://localhost:8080/b/v1/systemone"), "m"));
+        using var a = new CachingDecisionClient(first, memory, distributed);
+        using var b = new CachingDecisionClient(second, memory, distributed);
+
+        await a.EvaluateAsync(Responses.Request());
+        var result = await b.EvaluateAsync(Responses.Request());
+
+        Assert.False(result.Value.IsCached);
+        Assert.Equal(1, second.Calls);
+    }
+
+    [Fact]
     public async Task Two_clients_that_differ_only_in_their_default_model_never_share_an_answer()
     {
         using var memory = Responses.Memory();

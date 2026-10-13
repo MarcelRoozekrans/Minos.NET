@@ -188,10 +188,6 @@ public static IServiceCollection AddCachedDecisions(IServiceCollection services,
 - **`DecisionCacheOptions`** sets `Expiration`, 5 minutes by default, for both levels; `LocalCacheExpiration`, to keep
   the in-process copy for a different time; and `KeyPrefix`, `minos:` by default, to keep apps that share a cache
   apart. Each in-process entry has a `Size` of 1, so an `IMemoryCache` with a `SizeLimit` counts entries.
-- **Give System One clients that differ only in `Path` different key prefixes.** The key holds the client's base
-  address, not its `Path`, so two clients with the same provider and base address but different paths can share
-  entries. Until [#175](https://github.com/MarcelRoozekrans/Minos.NET/issues/175) is resolved, set a different
-  `KeyPrefix` on each.
 
 ## Limiting the call rate
 
@@ -347,7 +343,7 @@ A `SystemOneClient` answers with:
   raw System One calls, which are not on the interface.
 - **a copy of its retry settings**, for `DecisionRetryOptions`. `UseRetries()` starts from these.
 - **its `DecisionClientMetadata`**: the `ProviderName`, which is `typesafe`, `openrouter`, `vllm-sr` or
-  `custom` (an `OpenAIDecisionClient` reports `openai`), the `Endpoint` it sends to, and the `DefaultModel` from its
+  `custom` (an `OpenAIDecisionClient` reports `openai`), the `Endpoint` it sends to (the base address plus the path, such as `https://api.typesafe.ai/v1/systemone`), and the `DefaultModel` from its
   options. The telemetry and logging stages read it.
 - **a stage of its standard pipeline**, such as `RetryingDecisionClient`, when there is one.
 
