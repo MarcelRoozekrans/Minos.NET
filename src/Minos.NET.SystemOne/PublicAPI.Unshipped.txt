@@ -56,7 +56,8 @@ Minos.SystemOne.SystemOneDecisionClient.EvaluateAsync(Minos.DecisionRequest! req
 Minos.SystemOne.SystemOneDecisionClient.EvaluateAsync(Minos.SystemOne.SystemOneRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOne.SystemOneResponse!, Minos.DecisionError!>>
 Minos.SystemOne.SystemOneDecisionClient.EvaluateAsync(Minos.SystemOne.SystemOneRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOne.SystemOneResponse!, Minos.DecisionError!>>
 Minos.SystemOne.SystemOneDecisionClient.GetService(System.Type! serviceType, object? serviceKey = null) -> object?
-Minos.SystemOne.SystemOneDecisionClient.ListModelsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOne.ModelList!, Minos.DecisionError!>>
+Minos.SystemOne.SystemOneDecisionClient.ListModelsAsync() -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOne.ModelList!, Minos.DecisionError!>>
+Minos.SystemOne.SystemOneDecisionClient.ListModelsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOne.ModelList!, Minos.DecisionError!>>
 Minos.SystemOne.SystemOneDecisionClient.SystemOneDecisionClient() -> void
 Minos.SystemOne.SystemOneDecisionClient.SystemOneDecisionClient(Minos.SystemOne.SystemOneDecisionClientOptions? options) -> void
 Minos.SystemOne.SystemOneDecisionClient.SystemOneDecisionClient(Minos.SystemOne.SystemOneDecisionClientOptions? options, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory) -> void

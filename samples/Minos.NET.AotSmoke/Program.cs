@@ -26,6 +26,7 @@ internal static class Program
         await EvaluateParsesAnswers().ConfigureAwait(false);
         await ValidationErrorCarriesDetail().ConfigureAwait(false);
         await ListModelsReturnsModels().ConfigureAwait(false);
+        await ListModelsWithATokenReturnsModels().ConfigureAwait(false);
         await MalformedBodyIsInvalidResponse().ConfigureAwait(false);
         await OpenRouterModelListingIsUnsupported().ConfigureAwait(false);
         await OverloadedThenSuccessIsRetried().ConfigureAwait(false);
@@ -186,7 +187,7 @@ internal static class Program
             "a 422 maps to Validation with its JSON detail");
     }
 
-    [Covers("Minos.SystemOne.SystemOneDecisionClient.ListModelsAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOne.ModelList!, Minos.DecisionError!>>")]
+    [Covers("Minos.SystemOne.SystemOneDecisionClient.ListModelsAsync() -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOne.ModelList!, Minos.DecisionError!>>")]
     private static async Task ListModelsReturnsModels()
     {
         using var http = Http(HttpStatusCode.OK, ModelsResponse);
@@ -197,6 +198,17 @@ internal static class Program
         Check(
             result.IsSuccess && result.Value.Models.Count == 1 && string.Equals(result.Value.Models[0].Name, "jev-latest", StringComparison.Ordinal),
             "ListModelsAsync parses the models");
+    }
+
+    [Covers("Minos.SystemOne.SystemOneDecisionClient.ListModelsAsync(System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.SystemOne.ModelList!, Minos.DecisionError!>>")]
+    private static async Task ListModelsWithATokenReturnsModels()
+    {
+        using var http = Http(HttpStatusCode.OK, ModelsResponse);
+        using var client = new SystemOneDecisionClient(http, Options());
+
+        var result = await client.ListModelsAsync(CancellationToken.None).ConfigureAwait(false);
+
+        Check(result.IsSuccess && result.Value.Models.Count == 1, "ListModelsAsync with a token parses the models");
     }
 
     private static async Task MalformedBodyIsInvalidResponse()

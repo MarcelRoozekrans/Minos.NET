@@ -209,6 +209,17 @@ public sealed class DecisionClientTests : IDisposable
     }
 
     [Fact]
+    public async Task ListModels_CallerCancellation_Throws()
+    {
+        using var client = Borrowing(StubHandler.Json(HttpStatusCode.OK, Fixture.Text("models.json")));
+        using var cancellation = new CancellationTokenSource();
+        await cancellation.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            async () => await client.ListModelsAsync(cancellation.Token));
+    }
+
+    [Fact]
     public async Task OwnedClient_SendsUserAgent_AndIsDisposedWithTheClient()
     {
         var handler = StubHandler.Json(HttpStatusCode.OK, Fixture.Text("response-noul.json"));

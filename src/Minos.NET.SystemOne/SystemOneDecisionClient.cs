@@ -383,13 +383,26 @@ public sealed class SystemOneDecisionClient : IDecisionClient
     /// Lists the models and aliases available to the account, with <c>GET v1/models</c>, on a provider whose
     /// <see cref="DecisionCapabilities.SupportsModelListing"/> is on: by default TypeSafe only.
     /// </summary>
+    /// <returns>
+    /// The models, or the <see cref="DecisionError"/> that prevented them; <see cref="DecisionErrorKind.Unsupported"/>,
+    /// without a request, where <see cref="DecisionCapabilities.SupportsModelListing"/> is off.
+    /// </returns>
+    /// <remarks>Calls <see cref="ListModelsAsync(CancellationToken)"/> without cancellation.</remarks>
+    /// <exception cref="ObjectDisposedException">The client has been disposed.</exception>
+    public ValueTask<Result<ModelList, DecisionError>> ListModelsAsync()
+        => ListModelsAsync(CancellationToken.None);
+
+    /// <summary>
+    /// Lists the models and aliases available to the account, with <c>GET v1/models</c>, on a provider whose
+    /// <see cref="DecisionCapabilities.SupportsModelListing"/> is on: by default TypeSafe only.
+    /// </summary>
     /// <param name="cancellationToken">Cancels the call; cancellation throws <see cref="OperationCanceledException"/>.</param>
     /// <returns>
     /// The models, or the <see cref="DecisionError"/> that prevented them; <see cref="DecisionErrorKind.Unsupported"/>,
     /// without a request, where <see cref="DecisionCapabilities.SupportsModelListing"/> is off.
     /// </returns>
     /// <exception cref="ObjectDisposedException">The client has been disposed.</exception>
-    public ValueTask<Result<ModelList, DecisionError>> ListModelsAsync(CancellationToken cancellationToken = default)
+    public ValueTask<Result<ModelList, DecisionError>> ListModelsAsync(CancellationToken cancellationToken)
     {
         ObjectDisposedException.ThrowIf(_disposed, this);
         var started = DecisionLog.StartTiming(_logger);

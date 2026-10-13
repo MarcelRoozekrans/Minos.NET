@@ -528,7 +528,8 @@ Code in a namespace under `Minos.SystemOne` never sees the clash: it finds Minos
 ## Listing models
 
 `ListModelsAsync` returns the models and aliases your account can name in a `SystemOneRequest`: a `ModelList` of
-`ModelCard`s, each with a `Name`, a `Description` and a `ReleaseDate`.
+`ModelCard`s, each with a `Name`, a `Description` and a `ReleaseDate`. Like the other calls, it comes as a pair:
+`ListModelsAsync()` and `ListModelsAsync(CancellationToken)`.
 
 <!-- snippet: ClientAndErrors_Models -->
 ```cs
