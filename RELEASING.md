@@ -7,8 +7,10 @@ Releases are cut by release-please and published to nuget.org by `ci.yml`. Nothi
 1. Conventional commits on `main` make release-please keep a release PR open, named `chore(main): release X.Y.Z`.
 2. Merging that PR tags `vX.Y.Z` and creates the GitHub release.
 3. `release-please.yml` then dispatches `ci.yml` on the tag with `publish_to_nuget=true`.
-4. On that run, every job runs on the tagged commit. `publish-nuget` starts only after `build`, `aot-smoke`, `aot-surface` and `pack-validate` pass.
+4. On that run, the jobs `publish-nuget` needs, `build`, `aot-smoke`, `aot-surface` and `pack-validate`, run on the tagged commit. `publish-nuget` starts only after they pass.
 5. `publish-nuget` refuses a 0.x version, a prerelease, or a tag that is not the manifest's version. It then packs with `-p:MinosRelease=true`, inspects the packages, pushes the six `.nupkg` files to nuget.org, and attaches them and their `.snupkg` files to the GitHub release.
+
+While the version is 0.x, the dispatched run's `publish-nuget` job fails on purpose, with the message "0.x versions are not published". That red run is expected and nothing is pushed.
 
 Every push and pull request also runs `pack-validate`. It packs the same way, inspects the packages, and rehearses the push against a local feed.
 
