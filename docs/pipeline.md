@@ -123,6 +123,8 @@ public static IDecisionClient Build(HttpClient http, string apiKey, ILoggerFacto
   as above, retries without logging 1003.
 - **`Build(services)`** creates the stages, inner first. Pass an `IServiceProvider` when a stage needs services.
 
+Each standard stage can also be created directly, such as `new RetryingDecisionClient(inner, options, logger, timeProvider)`. A stage created this way starts from the library defaults, not from the inner client's settings, as `UseRetries()` does. `new DecisionClientBuilder(services => …)` starts a builder whose inner client is created at `Build`, from the services passed to it.
+
 The retry stage takes a `DecisionRetryOptions`:
 
 | Property | Default | Valid values | What it does |
