@@ -39,6 +39,13 @@ A release run, without `resume`, does not skip anything: if a package is already
 A re-run skips a package that already arrived, and may not re-send its symbol package. If a symbol package is missing on nuget.org
 after a publish, it is attached to the GitHub release and can be uploaded on nuget.org's web upload page.
 
+## When nuget.org refuses a push
+
+nuget.org's reason is on the `error:` line just above the job's own error. Two refusals return 409:
+
+- **The version already exists.** It was published by something other than this run. Check what is on nuget.org; a published version can be unlisted but never replaced.
+- **"The package ID is reserved."** An ID prefix reservation covers the ID, and the owner of the Trusted Publishing policy does not hold it. Reservations are not shown on nuget.org; ask account@nuget.org which owner holds the prefix, then make that owner the policy's package owner or have the reservation moved.
+
 ## The version
 
 The version is the `"."` entry of `.release-please-manifest.json`. A build without `-p:MinosRelease=true` is versioned `X.Y.Z-local`, and that version is compiled into the DLLs. So every release pack builds with the switch, and the inspection rejects a DLL that does not carry the release version.
