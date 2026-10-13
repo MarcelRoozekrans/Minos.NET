@@ -88,8 +88,11 @@ public sealed class TestingYourCodeFakeTests
         var triager = new TicketTriager(client);
 
         var route = await triager.RouteAsync("Any ticket.", CancellationToken.None);
+        var result = await client.EvaluateAsync<TriageQuestions>("Any ticket.");
 
         Assert.Equal(TriageRoute.Review, route);
+        var failure = Assert.Single(result.Error.Failures);
+        Assert.Equal(("refusal", "is_urgent"), (failure.Rule, failure.QuestionKey));
     }
     #endregion
 

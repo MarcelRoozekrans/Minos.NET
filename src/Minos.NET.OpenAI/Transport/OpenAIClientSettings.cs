@@ -57,8 +57,8 @@ internal sealed class OpenAIClientSettings
     public string Model { get; }
 
     /// <summary>
-    /// Gets OpenAI's capabilities with the options' overrides applied, except <c>ModelListing</c>, which is always
-    /// <see langword="false"/>: the client has no model listing.
+    /// Gets OpenAI's capabilities with the options' overrides applied, except <c>SupportsModelListing</c>, which is
+    /// always <see langword="false"/>: the client has no model listing.
     /// </summary>
     public CapabilitySet Capabilities { get; }
 

@@ -163,7 +163,7 @@ public sealed class DependencyInjectionTests
         Assert.Null(local.Capabilities.MaxChoiceOptions);
         local.Validate();
 
-        // ModelListing is left out, so it keeps the Custom preset's default: off.
+        // SupportsModelListing is left out, so it keeps the Custom preset's default: off.
         var resolved = host.Services.GetRequiredKeyedService<IDecisionClient>("local").GetService<DecisionCapabilities>()!;
         Assert.False(resolved.SupportsModelListing);
     }

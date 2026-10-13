@@ -123,7 +123,10 @@ public static IDecisionClient Build(HttpClient http, string apiKey, ILoggerFacto
   as above, retries without logging 1003.
 - **`Build(services)`** creates the stages, inner first. Pass an `IServiceProvider` when a stage needs services.
 
-Each standard stage can also be created directly, such as `new RetryingDecisionClient(inner, options, logger, timeProvider)`. A stage created this way starts from the library defaults, not from the inner client's settings, as `UseRetries()` does. `new DecisionClientBuilder(services => …)` starts a builder whose inner client is created at `Build`, from the services passed to it.
+Each standard stage can also be created directly, such as `new RetryingDecisionClient(inner, options, logger,
+timeProvider)`. A stage created this way starts from the library defaults, not from the inner client's settings, as
+`UseRetries()` does. `new DecisionClientBuilder(services => …)` starts a builder whose inner client is created at
+`Build`, from the services passed to it.
 
 The retry stage takes a `DecisionRetryOptions`:
 
@@ -135,7 +138,8 @@ The retry stage takes a `DecisionRetryOptions`:
 | `Jitter` | `true` | `true` or `false` | Adds a random extra to each backoff wait, so many clients do not retry in step. |
 | `ShouldRetry` | `IsTransient` | Not `null` | Which failures to retry. `DecisionRetryOptions.IsTransient` accepts the kinds [Retries](client-and-errors.md#retries) lists. |
 
-The settings are checked when the stage is created, so a value out of range throws `ArgumentException` from `Build`, not from `UseRetries`. The stage copies them, so changing the options afterwards has no effect.
+The settings are checked when the stage is created, so a value out of range throws `ArgumentException` from `Build`,
+not from `UseRetries`. The stage copies them, so changing the options afterwards has no effect.
 
 A `Disposed` failure is never retried, whatever `ShouldRetry` says, and no retry starts after the stage is disposed.
 
@@ -429,12 +433,13 @@ any request is sent.
 ## Upgrading from 0.7
 
 0.8 makes `IDecisionClient` one neutral call, which breaks code that implements the interface or uses what
-`AddDecisionClient` returned. Code that only calls the typed overloads compiles unchanged. The 0.8 names in this table
-are the ones of that release; [Upgrading from 0.8](#upgrading-from-08) has the later renames.
+`AddDecisionClient` returned. Code that only calls the typed overloads compiles unchanged. The names in the 0.7 column
+are the ones of that release, and the replacement column uses current names, such as `SystemOneClient` where 0.8
+said `DecisionClient`; [Upgrading from 0.8](#upgrading-from-08) has the later renames.
 
 | In 0.7 | From 0.8 |
 | --- | --- |
-| `client.EvaluateAsync(SystemOneRequest)` and `client.ListModelsAsync()` on an `IDecisionClient` | `client.GetRequiredService<SystemOneClient>().EvaluateAsync(...)` and `.ListModelsAsync(...)`, or hold a `DecisionClient` |
+| `client.EvaluateAsync(SystemOneRequest)` and `client.ListModelsAsync()` on an `IDecisionClient` | `client.GetRequiredService<SystemOneClient>().EvaluateAsync(...)` and `.ListModelsAsync(...)`, or hold a `SystemOneClient` |
 | `client.EvaluateAsync<T>(state)`, a default interface method or a `DecisionClient` member | The same call, now an extension method in `DecisionClientExtensions`, in the `Minos` namespace |
 | A fake implements `EvaluateAsync(SystemOneRequest)` and `ListModelsAsync` | A fake implements `EvaluateAsync(DecisionRequest)`, `GetService` and `Dispose`, and returns a `DecisionResponse` built with its public constructor |
 | `AddDecisionClient` returns `IHttpClientBuilder` | It returns a builder whose `HttpClient` property is the old builder; [0.9](#upgrading-from-08) renamed it to `AddSystemOneClient` and `SystemOneClientServiceBuilder` |

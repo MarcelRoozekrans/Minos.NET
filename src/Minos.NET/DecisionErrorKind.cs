@@ -13,38 +13,44 @@ public enum DecisionErrorKind
     /// Too many requests: HTTP 429, or a call the client's own rate limiter rejected before sending it, such as the
     /// <c>UseRateLimiting</c> stage in <c>Minos.NET.RateLimiting</c>, whose <see cref="DecisionError.StatusCode"/> is
     /// <see langword="null"/>. A retry stage, such as the one in a client's standard pipeline, retries a 429 by default
-    /// (<see cref="DecisionRetryOptions.IsTransient"/>), honouring <see cref="DecisionError.RetryAfter"/> when it is set, and
-    /// returns it only after its retries are used up. A local rejection is retried only by a retry stage added outside the rate limiter.
+    /// (<see cref="DecisionRetryOptions.IsTransient"/>), honouring <see cref="DecisionError.RetryAfter"/> when it is
+    /// set, and returns it only after its retries are used up. A local rejection is retried only by a retry stage added
+    /// outside the rate limiter.
     /// </summary>
     RateLimited = 3,
 
     /// <summary>
-    /// The service is overloaded: HTTP 529 or 503. A retry stage, such as the one in a client's standard pipeline, retries this by default (<see cref="DecisionRetryOptions.IsTransient"/>),
-    /// and returns it only after its retries are used up.
+    /// The service is overloaded: HTTP 529 or 503. A retry stage, such as the one in a client's standard pipeline,
+    /// retries this by default (<see cref="DecisionRetryOptions.IsTransient"/>), and returns it only after its retries
+    /// are used up.
     /// </summary>
     Overloaded = 4,
 
     /// <summary>
-    /// The service failed: any other HTTP 5xx status. A retry stage, such as the one in a client's standard pipeline, retries this by default (<see cref="DecisionRetryOptions.IsTransient"/>),
-    /// and returns it only after its retries are used up.
+    /// The service failed: any other HTTP 5xx status. A retry stage, such as the one in a client's standard pipeline,
+    /// retries this by default (<see cref="DecisionRetryOptions.IsTransient"/>), and returns it only after its retries
+    /// are used up.
     /// </summary>
     Server = 5,
 
     /// <summary>
-    /// Any other unsuccessful HTTP status. For a 408, a retry stage, such as the one in a client's standard pipeline, retries this by default (<see cref="DecisionRetryOptions.IsTransient"/>),
-    /// and returns it only after its retries are used up.
+    /// Any other unsuccessful HTTP status. For a 408, a retry stage, such as the one in a client's standard pipeline,
+    /// retries this by default (<see cref="DecisionRetryOptions.IsTransient"/>), and returns it only after its retries
+    /// are used up.
     /// </summary>
     Http = 6,
 
     /// <summary>
-    /// No response arrived: a DNS, connection or TLS failure. A retry stage, such as the one in a client's standard pipeline, retries this by default (<see cref="DecisionRetryOptions.IsTransient"/>),
-    /// and returns it only after its retries are used up.
+    /// No response arrived: a DNS, connection or TLS failure. A retry stage, such as the one in a client's standard
+    /// pipeline, retries this by default (<see cref="DecisionRetryOptions.IsTransient"/>), and returns it only after
+    /// its retries are used up.
     /// </summary>
     Network = 7,
 
     /// <summary>
-    /// The request exceeded the client time-out. A retry stage, such as the one in a client's standard pipeline, retries this by default (<see cref="DecisionRetryOptions.IsTransient"/>),
-    /// and returns it only after its retries are used up.
+    /// The request exceeded the client time-out. A retry stage, such as the one in a client's standard pipeline,
+    /// retries this by default (<see cref="DecisionRetryOptions.IsTransient"/>), and returns it only after its retries
+    /// are used up.
     /// </summary>
     Timeout = 8,
 
@@ -58,8 +64,8 @@ public enum DecisionErrorKind
     Unsupported = 10,
 
     /// <summary>
-    /// A question set built with <see cref="QuestionSetBuilder"/> breaks the API's rules; <see cref="DecisionError.Failures"/>
-    /// lists each one. <c>Build</c> returns it, and no request is sent.
+    /// A question set built with <see cref="QuestionSetBuilder"/> breaks the API's rules; <see
+    /// cref="DecisionError.Failures"/> lists each one. <c>Build</c> returns it, and no request is sent.
     /// </summary>
     InvalidQuestions = 11,
 
