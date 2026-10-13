@@ -150,11 +150,17 @@ public sealed class SystemOneDecisionClient : IDecisionClient
     /// </exception>
     /// <exception cref="InvalidOperationException">No API key is configured, or an environment variable is invalid.</exception>
     public SystemOneDecisionClient(HttpClient httpClient, SystemOneDecisionClientOptions? options, ILoggerFactory? loggerFactory)
+        : this(httpClient, options, loggerFactory, TimeProvider.System)
+    {
+    }
+
+    // The registration passes the container's TimeProvider, so the built-in retries and the Retry-After wait on it.
+    internal SystemOneDecisionClient(HttpClient httpClient, SystemOneDecisionClientOptions? options, ILoggerFactory? loggerFactory, TimeProvider time)
         : this(
             ResolveSettings(httpClient, options),
             httpClient,
             ownedHandler: null,
-            TimeProvider.System,
+            time,
             ArrayPool<byte>.Shared,
             loggerFactory?.CreateLogger(DecisionLog.Category))
     {

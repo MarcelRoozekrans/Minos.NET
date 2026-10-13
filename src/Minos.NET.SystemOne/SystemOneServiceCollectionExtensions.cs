@@ -15,7 +15,7 @@ namespace Microsoft.Extensions.DependencyInjection;
 /// Each registration is one <see cref="SystemOneDecisionClient"/> singleton over its own named <see cref="HttpClient"/>, which
 /// <see cref="SystemOneDecisionClient.ConfigureHttpClient(HttpClient, SystemOneDecisionClientOptions)"/> configures from the registration's named
 /// <see cref="SystemOneDecisionClientOptions"/>. The client reads those options once, when the container first builds it, and logs
-/// through the container's <see cref="ILoggerFactory"/>. Its spans and metrics come from the <c>Minos</c> source
+/// through the container's <see cref="ILoggerFactory"/>. Its own retries wait on the container's <see cref="TimeProvider"/> when one is registered. Its spans and metrics come from the <c>Minos</c> source
 /// and meter. Invalid options fail a generic host at startup, through <see cref="SystemOneDecisionClientOptions.Validate()"/> and
 /// <c>ValidateOnStart</c>. Without a host they throw when the client is first resolved. Either way a value that fails
 /// validation throws an <see cref="OptionsValidationException"/> that carries the core's message, and a configuration
@@ -199,7 +199,8 @@ public static class SystemOneServiceCollectionExtensions
         => new(
             provider.GetRequiredService<IHttpClientFactory>().CreateClient(httpClientName),
             OptionsOf(provider, optionsName),
-            provider.GetService<ILoggerFactory>());
+            provider.GetService<ILoggerFactory>(),
+            provider.GetService<TimeProvider>() ?? TimeProvider.System);
 
     private static SystemOneDecisionClientOptions OptionsOf(IServiceProvider provider, string optionsName)
         => provider.GetRequiredService<IOptionsMonitor<SystemOneDecisionClientOptions>>().Get(optionsName);

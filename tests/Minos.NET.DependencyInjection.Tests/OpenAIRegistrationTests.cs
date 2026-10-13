@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Minos.OpenAI;
 using static Minos.DependencyInjection.Tests.Registrations;
 
@@ -215,6 +216,28 @@ public sealed class OpenAIRegistrationTests
         Assert.Empty(services);
     }
 
+
+    [Fact]
+    public async Task TheClientsOwnRetries_WaitOnTheContainersTimeProvider()
+    {
+        var time = new FakeTimeProvider();
+        var handler = RateLimitedOnce(Answer);
+        var services = new ServiceCollection();
+        services.AddSingleton<TimeProvider>(time);
+        services.AddOpenAIDecisionClient(options =>
+        {
+            options.ApiKey = "di-key";
+            options.BaseAddress = new Uri("http://default.local/");
+        }).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
+        using var provider = services.BuildServiceProvider();
+        var client = provider.GetRequiredService<IDecisionClient>();
+
+        var result = await CompleteOnFakeTime(client.EvaluateAsync(OneNoul(), "Help!").AsTask(), time);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.True(time.GetUtcNow() >= new DateTimeOffset(2000, 1, 1, 0, 0, 30, TimeSpan.Zero));
+    }
     private static Action<OpenAIDecisionClientOptions> OpenAIOptions(string baseAddress, string apiKey = "di-key")
         => options =>
         {

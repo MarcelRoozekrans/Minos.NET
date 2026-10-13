@@ -144,11 +144,17 @@ public sealed class OpenAIDecisionClient : IDecisionClient
     /// </exception>
     /// <exception cref="InvalidOperationException">No API key is configured, or an environment variable is invalid.</exception>
     public OpenAIDecisionClient(HttpClient httpClient, OpenAIDecisionClientOptions? options, ILoggerFactory? loggerFactory)
+        : this(httpClient, options, loggerFactory, TimeProvider.System)
+    {
+    }
+
+    // The registration passes the container's TimeProvider, so the built-in retries and the Retry-After wait on it.
+    internal OpenAIDecisionClient(HttpClient httpClient, OpenAIDecisionClientOptions? options, ILoggerFactory? loggerFactory, TimeProvider time)
         : this(
             ResolveSettings(httpClient, options),
             httpClient,
             ownedHandler: null,
-            TimeProvider.System,
+            time,
             ArrayPool<byte>.Shared,
             loggerFactory?.CreateLogger(DecisionLog.Category))
     {

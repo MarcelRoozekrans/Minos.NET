@@ -3,6 +3,7 @@ using Microsoft.Extensions.Http;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Time.Testing;
 using Minos.SystemOne;
 using static Minos.DependencyInjection.Tests.Registrations;
 
@@ -269,4 +270,28 @@ public sealed class AddSystemOneDecisionClientTests
             return base.SendAsync(request, cancellationToken);
         }
     }
+
+    [Fact]
+    public async Task TheClientsOwnRetries_WaitOnTheContainersTimeProvider()
+    {
+        var time = new FakeTimeProvider();
+        var handler = RateLimitedOnce(Fixture.Text("response-noul.json"));
+        var services = new ServiceCollection();
+        services.AddSingleton<TimeProvider>(time);
+        services.AddSystemOneDecisionClient(options =>
+        {
+            options.ApiKey = "di-key";
+            options.BaseAddress = new Uri("http://default.local/");
+        }).HttpClient.ConfigurePrimaryHttpMessageHandler(() => handler);
+        using var provider = services.BuildServiceProvider();
+        var client = provider.GetRequiredService<IDecisionClient>();
+
+        var result = await CompleteOnFakeTime(client.EvaluateAsync(OneNoul(), "Help!").AsTask(), time);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
+        Assert.Equal(2, handler.Requests.Count);
+        Assert.True(time.GetUtcNow() >= new DateTimeOffset(2000, 1, 1, 0, 0, 30, TimeSpan.Zero));
+    }
+
+    private static QuestionSet OneNoul() => QuestionSet.CreateBuilder().Noul("is_urgent", "Does this convey urgency?", out _).Build().Value;
 }

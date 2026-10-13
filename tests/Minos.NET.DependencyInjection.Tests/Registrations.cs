@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Time.Testing;
 using System.Net;
 using Minos.SystemOne;
 
@@ -30,6 +31,43 @@ internal static class Registrations
             ["is_urgent"] = new NoulQuestion { Instructions = "Does this convey urgency?" },
         },
     };
+
+    /// <summary>A handler that answers 429 with a 30 second <c>Retry-After</c> once, then <paramref name="body"/>.</summary>
+    public static StubHandler RateLimitedOnce(string body)
+        => StubHandler.Sequence(
+            () =>
+            {
+                var response = new HttpResponseMessage(HttpStatusCode.TooManyRequests);
+                response.Headers.RetryAfter = new System.Net.Http.Headers.RetryConditionHeaderValue(TimeSpan.FromSeconds(30));
+                return response;
+            },
+            () => new HttpResponseMessage(HttpStatusCode.OK) { Content = new StringContent(body, System.Text.Encoding.UTF8, "application/json") });
+
+    /// <summary>
+    /// Drives <paramref name="pending"/> to completion by stepping <paramref name="time"/>. A client that waited 30 seconds on the
+    /// system clock would not finish inside the test's real-time limit; one that waits on <paramref name="time"/> finishes at once.
+    /// </summary>
+    public static async Task<T> CompleteOnFakeTime<T>(Task<T> pending, FakeTimeProvider time)
+    {
+        var finished = false;
+        var stepping = Task.Run(async () =>
+        {
+            while (!Volatile.Read(ref finished))
+            {
+                time.Advance(TimeSpan.FromSeconds(1));
+                await Task.Delay(5).ConfigureAwait(false);
+            }
+        });
+        try
+        {
+            return await pending.WaitAsync(TimeSpan.FromSeconds(10));
+        }
+        finally
+        {
+            Volatile.Write(ref finished, true);
+            await stepping;
+        }
+    }
 
     /// <summary>
     /// Gets the one request <paramref name="handler"/> received.

@@ -294,6 +294,7 @@ Some things still need valid options, an API key included:
   registration's builder, and is built once, when the container first resolves it. The client reads its named options
   then. The default client reads the default options, and a keyed client reads the options named by its key. The client
   logs through the container's `ILoggerFactory`, as [Logging, traces and metrics](observability.md#logging) describes.
+  Its own retries wait on the container's `TimeProvider` when one is registered.
 - **A repeat call for the same name** adds its delegate, and the delegates run in order. It returns the same builder,
   so stages from either call land on one pipeline, and it does not register a second client.
 - **Your own registration wins.** `AddSystemOneDecisionClient` registers the client with `TryAdd`, so an
@@ -405,6 +406,7 @@ metrics](observability.md#logging) lists the events and their levels.
 It works as `AddSystemOneDecisionClient` does: the same six overloads, default and keyed, options from code or
 configuration, checked at start-up, over a named `HttpClient` from `IHttpClientFactory`. It returns an
 `OpenAIDecisionClientServiceBuilder`, whose `HttpClient` property is the builder of that `HttpClient`.
+The client's own retries wait on the container's `TimeProvider` when one is registered.
 
 ```shell
 dotnet add package Minos.NET.OpenAI
