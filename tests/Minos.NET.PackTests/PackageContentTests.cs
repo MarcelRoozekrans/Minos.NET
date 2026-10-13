@@ -376,26 +376,11 @@ public sealed class PackageContentTests : IClassFixture<PackFixture>
 
     internal static string RunDotnet(string workingDirectory, params string[] arguments)
     {
-        var startInfo = new ProcessStartInfo("dotnet")
-        {
-            RedirectStandardOutput = true,
-            RedirectStandardError = true,
-            UseShellExecute = false,
-            WorkingDirectory = workingDirectory,
-        };
-        foreach (var argument in arguments)
-        {
-            startInfo.ArgumentList.Add(argument);
-        }
+        var (exitCode, stdout, stderr) = DotnetProcess.Run(workingDirectory, TimeSpan.FromMinutes(5), arguments);
 
-        using var process = Process.Start(startInfo) ?? throw new InvalidOperationException("Failed to start 'dotnet'.");
-        var stdout = process.StandardOutput.ReadToEnd();
-        var stderr = process.StandardError.ReadToEnd();
-        process.WaitForExit();
-
-        return process.ExitCode == 0
+        return exitCode == 0
             ? stdout
             : throw new InvalidOperationException(
-                $"'dotnet {string.Join(' ', arguments)}' exited with code {process.ExitCode}.{Environment.NewLine}{stdout}{Environment.NewLine}{stderr}");
+                $"'dotnet {string.Join(' ', arguments)}' exited with code {exitCode}.{Environment.NewLine}{stdout}{Environment.NewLine}{stderr}");
     }
 }
