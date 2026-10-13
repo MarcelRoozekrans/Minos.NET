@@ -15,6 +15,10 @@ on:
         description: Push the release packages to nuget.org. Only takes effect on a v* tag; see RELEASING.md
         type: boolean
         default: false
+      resume:
+        description: Finish a publish that died partway, skipping the packages already on nuget.org; see RELEASING.md
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -329,16 +333,42 @@ jobs:
         with:
           user: ${{ vars.NUGET_USER }}
 
+      # A release run pushes without --skip-duplicate, so a version that is already on nuget.org fails the run instead of
+      # being skipped while the job goes green. Only a dispatch with resume=true, which finishes a push that died partway,
+      # skips the packages that already arrived.
       - name: Push to nuget.org
         shell: bash
         env:
           NUGET_API_KEY: ${{ steps.nuget-login.outputs.NUGET_API_KEY }}
+          RESUME: ${{ inputs.resume }}
         run: |
           if [ -z "$NUGET_API_KEY" ]; then
             echo "::error::NuGet/login minted no key. Check the NUGET_USER repository variable and the Trusted Publishing policy on nuget.org; see RELEASING.md."
             exit 1
           fi
-          dotnet nuget push "artifacts/packages/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY" --skip-duplicate
+          skip_duplicate=""
+          if [ "$RESUME" = "true" ]; then
+            skip_duplicate="--skip-duplicate"
+          fi
+          if ! dotnet nuget push "artifacts/packages/*.nupkg" --source https://api.nuget.org/v3/index.json --api-key "$NUGET_API_KEY" $skip_duplicate; then
+            echo "::error::The push to nuget.org failed. If a package already exists at this version, it was published by something other than this run; see RELEASING.md before re-running with resume=true."
+            exit 1
+          fi
+
+      # The push exits 0 only when nuget.org accepted every package, but this check proves each one is registered there before
+      # the release is told it is published. A package nuget.org has registered answers its download URL with a redirect.
+      - name: Check every package is on nuget.org
+        shell: bash
+        run: |
+          for package in artifacts/packages/*.nupkg; do
+            id=$(basename "$package" ".$PACKAGE_VERSION.nupkg")
+            status=$(curl -s -o /dev/null -w '%{http_code}' "https://www.nuget.org/api/v2/package/$id/$PACKAGE_VERSION")
+            if [ "$status" != "302" ] && [ "$status" != "200" ]; then
+              echo "::error::$id $PACKAGE_VERSION is not on nuget.org: its download URL answered $status."
+              exit 1
+            fi
+            echo "$id $PACKAGE_VERSION is on nuget.org."
+          done
 
       - name: Attach the packages to the GitHub release
         env:
