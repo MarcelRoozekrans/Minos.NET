@@ -365,11 +365,13 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Plan:** `docs/superpowers/plans/2026-10-12-phase-7.1-pipeline-stages.md`
 **Evidence:** #176, merged 2026-10-12, in release PR #177 (0.12.0); pre-push review PASS, `docs/plans/2026-10-12-phase-7.1-pre-push-review.md`. The packages are `Minos.NET.Caching`, over `IMemoryCache` and an optional `IDistributedCache`, and `Minos.NET.RateLimiting`. HybridCache was dropped because it is not AOT-clean (dotnet/extensions#5624). Follow-up for 7.2: #175.
 
-### Phase 7.2: Public API review of the whole surface [status: pending]
+### Phase 7.2: Public API review of the whole surface [status: complete]
 **Goal:** Review sealing, naming, nullability and XML docs across every package, the new stages included; add the OpenAI "unverified" label with its docs test; check #51's Roslyn issues.
 **Surface:** Refactor
 **HelpWanted:** no
-**Plan:** _to be written_
+**Spec:** `docs/superpowers/specs/2026-10-12-phase-7.2-public-api-review-design.md`
+**Plan:** `docs/superpowers/plans/2026-10-12-phase-7.2-public-api-review.md`
+**Evidence:** findings `docs/plans/2026-10-12-phase-7.2-api-findings.md`: 20 breaking findings, all approved by the maintainer on 2026-10-13, none rejected or amended, and 19 non-breaking ones. `PublicAPI.Shipped.txt` describes 1.0.0 in all six packages (cb3c423). Four guard tests in `SurfaceRuleTests`. The "Upgrading to 1.0" section in `docs/pipeline.md`. #175 closed by CACHE-01; #185 and #186 filed for 1.x; #51 commented, both Roslyn issues still open. 2,953 tests pass, the AOT smoke and surface publishes are clean, and every allocation budget is unchanged. Pre-push review PASS, `docs/plans/2026-10-12-phase-7.2-pre-push-review.md`.
 
 ### Phase 7.3: Live verification on the final API [status: pending]
 **Goal:** Pass the live suites and the provider-switch sample against TypeSafe, OpenRouter and a local `/v1/systemone` server; each billed run needs the maintainer's approval.
