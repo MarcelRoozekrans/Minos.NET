@@ -342,8 +342,8 @@ named `minos.*`.
 | `minos.operation` | start | `evaluate`, `evaluate-set` or `list-models`, as in the logs. |
 | `minos.request.question_count` | start | The number of questions. Evaluations only. |
 | `gen_ai.response.model` | success | The model that answered. Evaluations only. |
-| `gen_ai.usage.input_tokens` | success | The input tokens. Evaluations only. |
-| `gen_ai.usage.output_tokens` | success | The output tokens. Evaluations only. |
+| `gen_ai.usage.input_tokens` | success | The input tokens, when the provider reports them. Evaluations only. |
+| `gen_ai.usage.output_tokens` | success | The output tokens, when the provider reports them. Evaluations only. |
 | `gen_ai.response.id` | success | The provider's response id, such as OpenRouter's generation id, when it reports one. Evaluations only. |
 | `minos.usage.cost` | success | The cost in US dollars, when the provider reports it, as OpenRouter does. Evaluations only. |
 | `minos.cache.hit` | success | `true` when a cache stage answered the call; absent otherwise. The duration, token and confidence metrics carry it too, so a dashboard can leave cached calls out of spend. A cached call reports the usage and cost of the call that first produced the answer. Evaluations only. |
@@ -377,17 +377,17 @@ evaluation also records its tokens and one confidence point for each Choice or S
 | Metric | Kind | Unit | Attributes | Recorded |
 | --- | --- | --- | --- | --- |
 | `gen_ai.client.operation.duration` | Histogram | `s` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `server.address`, `server.port`, `gen_ai.response.model`, `error.type`, `minos.cache.hit` | every call |
-| `gen_ai.client.inference.operation.input_tokens` | Histogram | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.response.model`, `minos.cache.hit` | evaluation success |
-| `gen_ai.client.inference.operation.output_tokens` | Histogram | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.response.model`, `minos.cache.hit` | evaluation success |
-| `gen_ai.client.inference.usage.input_tokens` | Counter | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.modality`, `minos.cache.hit` | evaluation success |
-| `gen_ai.client.inference.usage.output_tokens` | Counter | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.modality`, `minos.cache.hit` | evaluation success |
+| `gen_ai.client.inference.operation.input_tokens` | Histogram | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.response.model`, `minos.cache.hit` | evaluation success, when the provider reports the count |
+| `gen_ai.client.inference.operation.output_tokens` | Histogram | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.response.model`, `minos.cache.hit` | evaluation success, when the provider reports the count |
+| `gen_ai.client.inference.usage.input_tokens` | Counter | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.modality`, `minos.cache.hit` | evaluation success, when the provider reports the count |
+| `gen_ai.client.inference.usage.output_tokens` | Counter | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.modality`, `minos.cache.hit` | evaluation success, when the provider reports the count |
 | `minos.answer.confidence` | Histogram | `1` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `minos.operation`, `minos.cache.hit` | each Choice or Score answer |
 
 - **The duration** carries `gen_ai.response.model` on success and `error.type` on failure, never both. A model listing
   has no request or response model, so its duration carries only the operation, the provider, the server and, on
   failure, the error type.
-- **The token histograms** record the tokens of each evaluation. **The counters** keep the running total, and their
-  `gen_ai.token.modality` is always `text`.
+- **The token histograms** record the tokens of each evaluation, and only a count the provider reported; a count it
+  left out records nothing. **The counters** keep the running total, and their `gen_ai.token.modality` is always `text`.
 - **`minos.cache.hit`** is `true` on the duration, token and confidence metrics of an evaluation that a
   [cache stage](pipeline.md#caching-decisions) answered, and absent otherwise. A hit is traced and measured only when
   the telemetry stage sits outside the cache stage; with a client's standard pipeline on, a hit records nothing.
