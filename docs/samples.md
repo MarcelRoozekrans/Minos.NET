@@ -79,8 +79,8 @@ body. A recording never holds a header or a key.
 The provider-switch sample keeps one file per provider in `recordings/`: `typesafe.json`, `openrouter.json` and
 `local.json`. TypeSafe and OpenRouter receive byte-identical requests, so one file could not hold both. The billed Live
 smoke workflow records the first two and the Local systemone workflow records `local.json`. Each uploads the files as an
-artifact, and they reach the repository through a pull request. All three were recorded on 2026-10-12: `typesafe.json`
-from the model `jev-1.13.0`, `openrouter.json` from `typesafe/jev-1.13-20260917`, and `local.json` from
+artifact, and they reach the repository through a pull request. All three were recorded on 2026-10-13, on the 1.0 API:
+`typesafe.json` from the model `jev-1.13.0`, `openrouter.json` from `typesafe/jev-1.13-20260917`, and `local.json` from
 `Mapika/decider-2b-GGUF:Q4_K_M`.
 
 Replay works by matching: the sample sends its request as usual, and a replacing handler hashes the body and returns the

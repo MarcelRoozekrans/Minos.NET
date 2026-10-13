@@ -2,7 +2,7 @@
   "target": "typesafe",
   "source": "recorded",
   "model": "jev-1.13.0",
-  "recorded": "2026-10-12",
+  "recorded": "2026-10-13",
   "exchanges": [
     {
       "probe": "noul",
@@ -19,14 +19,14 @@
       "status": 200,
       "contentType": "application/json",
       "headers": {
-        "x-typesafe-request-id": "req_01a12e391cd476098416bec02bd0de3a"
+        "x-typesafe-request-id": "req_01a1347fdc047587959f7f6c412168ac"
       },
       "response": {
         "model": "jev-1.13.0",
         "answers": {
           "is_urgent": {
             "type": "noul",
-            "noul": 0.94
+            "noul": 0.95
           }
         },
         "usage": {
@@ -54,7 +54,7 @@
       "status": 200,
       "contentType": "application/json",
       "headers": {
-        "x-typesafe-request-id": "req_01a12e391d697675a5710978af2781ff"
+        "x-typesafe-request-id": "req_01a1347fdc927d49921a8b1756b51b96"
       },
       "response": {
         "model": "jev-1.13.0",
@@ -62,10 +62,10 @@
           "department": {
             "type": "choice",
             "choice": "billing",
-            "confidence": 0.74,
+            "confidence": 0.72,
             "probabilities": {
-              "billing": 0.87,
-              "technical": 0.13
+              "billing": 0.86,
+              "technical": 0.14
             }
           }
         },
@@ -95,15 +95,15 @@
       "status": 200,
       "contentType": "application/json",
       "headers": {
-        "x-typesafe-request-id": "req_01a12e391df97a0493bf87180e6cabd9"
+        "x-typesafe-request-id": "req_01a1347fdcfc7165a395a84e28d137e1"
       },
       "response": {
         "model": "jev-1.13.0",
         "answers": {
           "frustration": {
             "type": "score",
-            "score": 1.05,
-            "confidence": 0.93,
+            "score": 1.04,
+            "confidence": 0.94,
             "legend": {
               "0": "Calm",
               "1": "Frustrated",
@@ -111,8 +111,8 @@
             },
             "probabilities": {
               "0": 0.0,
-              "1": 0.95,
-              "2": 0.05
+              "1": 0.96,
+              "2": 0.04
             }
           }
         },
@@ -154,7 +154,7 @@
       "status": 200,
       "contentType": "application/json",
       "headers": {
-        "x-typesafe-request-id": "req_01a12e391e787933ae79ecc25bd6c562"
+        "x-typesafe-request-id": "req_01a1347fdd637883833002fd23a1f253"
       },
       "response": {
         "model": "jev-1.13.0",
@@ -166,10 +166,10 @@
           "department": {
             "type": "choice",
             "choice": "billing",
-            "confidence": 0.76,
+            "confidence": 0.72,
             "probabilities": {
-              "billing": 0.88,
-              "technical": 0.12
+              "billing": 0.86,
+              "technical": 0.14
             }
           },
           "frustration": {
@@ -222,7 +222,7 @@
       "status": 200,
       "contentType": "application/json",
       "headers": {
-        "x-typesafe-request-id": "req_01a12e391f0476ebb1d75892d20ae106"
+        "x-typesafe-request-id": "req_01a1347fddcc7a0bace26c8c6d615dfd"
       },
       "response": {
         "model": "jev-1.13.0",
@@ -230,15 +230,15 @@
           "product": {
             "type": "choice",
             "choice": "pro-plan",
-            "confidence": 0.7,
+            "confidence": 0.72,
             "probabilities": {
-              "pro-plan": 0.85,
-              "team-plan": 0.15
+              "pro-plan": 0.86,
+              "team-plan": 0.14
             }
           },
           "effort": {
             "type": "score",
-            "score": 1.33,
+            "score": 1.32,
             "confidence": 0.28,
             "legend": {
               "0": "Minutes",
@@ -268,7 +268,7 @@
       "status": 422,
       "contentType": "application/json",
       "headers": {
-        "x-typesafe-request-id": "req_01a12e391f7c76a281838e4594f8de3e"
+        "x-typesafe-request-id": "req_01a1347fde347c03803450fada8cc8ba"
       },
       "response": {
         "detail": [
@@ -304,7 +304,7 @@
       "status": 401,
       "contentType": "application/json",
       "headers": {
-        "x-typesafe-request-id": "req_01a12e391fd37f7aaa563886f48b4661"
+        "x-typesafe-request-id": "req_01a1347fde7e7456b6cc15ec668729a3"
       },
       "response": {
         "detail": {
