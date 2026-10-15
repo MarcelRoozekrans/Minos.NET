@@ -27,12 +27,12 @@
 ## Versioning & Release
 
 **Scheme:** semver (decided)
-**Released by:** release-please (configured: `release-please.yml`, no publish job)
+**Released by:** release-please (`release-please.yml`; merging a release PR tags it and dispatches `ci.yml`'s `publish-nuget`)
 **Milestone completion tags a release:** no
 **Changelog:** auto
 
 ## Deployment
 
-**Deploy target:** nuget.org (package id ZeroAlloc.Jev, publishing off until the maintainer declares it mature, #29); the org website at jev.zeroalloc.net via ZeroAlloc-Net/.website (docs)
+**Deploy target:** nuget.org, six `Minos.NET*` packages under the reserved `Minos.NET` prefix owned by MarcelRoozekrans; the docs site on GitHub Pages at marcelroozekrans.github.io/Minos.NET
 **Environments:** live-api (manual live smoke; no deployment environment)
-**Deployed by:** GitHub Actions: release-please opens release PRs and creates GitHub releases; `trigger-website.yml` dispatches doc updates to the org website; NuGet publishing is not configured (#29)
+**Deployed by:** GitHub Actions: `ci.yml`'s `publish-nuget` through NuGet Trusted Publishing, gated to a `v*` tag and refusing 0.x and prereleases (`RELEASING.md`); `docs.yml` deploys the site

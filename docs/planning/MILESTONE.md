@@ -1,7 +1,8 @@
 # Milestone 7: 1.0 release
 
-**Status:** active
+**Status:** complete
 **Started:** 2026-10-12
+**Completed:** 2026-10-15
 **Design:** `docs/superpowers/specs/2026-10-12-milestone-7-design.md`
 
 ## Goal
@@ -14,9 +15,9 @@ Ship Minos.NET 1.0.0 on NuGet with an API worth freezing.
 The OpenAI adapter ships as 1.0.0 too. Its docs and package description say that it is built from OpenAI's Decisions guide and has never been tested against the live API.
 
 ## Definition of Done
-- [ ] All planned phases are complete.
-- [ ] All tests pass: unit, generator, analyzer, DI, docs, integration, pack, samples in replay mode, and the AOT smoke and surface checks. The pack tests also run locally without hanging (#145).
-- [ ] The client has caching and rate-limiting pipeline stages (#143), and both are documented. Core gains no new package dependency: if the cache needs one, it lives in an extension package.
+- [x] All planned phases are complete.
+- [x] All tests pass: unit, generator, analyzer, DI, docs, integration, pack, samples in replay mode, and the AOT smoke and surface checks. The pack tests also run locally without hanging (#145).
+- [x] The client has caching and rate-limiting pipeline stages (#143), and both are documented. Core gains no new package dependency: if the cache needs one, it lives in an extension package.
 - [x] The whole public API, including the new stages, is reviewed, and `PublicAPI.Shipped.txt` describes 1.0.0.
 - [x] Live runs pass on the final API against TypeSafe, OpenRouter and a local `/v1/systemone` server.
 - [x] Wherever the OpenAI adapter is described, it is labelled unverified against the live API: the Providers page, its README and its NuGet description. A docs test pins the label.
@@ -37,3 +38,4 @@ The OpenAI adapter ships as 1.0.0 too. Its docs and package description say that
 ## Audit History
 | Date | Verdict | Gaps |
 |---|---|---|
+| 2026-10-15 | PASS | none; `docs/plans/2026-10-15-milestone-7-audit.md` |

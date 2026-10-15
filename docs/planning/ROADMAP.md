@@ -342,18 +342,20 @@ compress_memory: disabled
 **Pre-push review:** `docs/plans/2026-10-12-phase-6.8-pre-push-review.md`
 **Completed:** 2026-10-12, in #170
 
-## Milestone 7: 1.0 release [status: active]
+## Milestone 7: 1.0 release [status: complete]
 **Goal:** Ship Minos.NET 1.0.0 on NuGet with an API worth freezing: the caching and rate-limiting stages, one review of the whole public surface, live, AOT and allocation checks on the final API, and every package published as 1.0.0 through release-please and Trusted Publishing, with api-compat guarding later changes. The OpenAI adapter ships as 1.0.0, labelled unverified against the live API.
 **Started:** 2026-10-12
+**Completed:** 2026-10-15
 **Design:** `docs/superpowers/specs/2026-10-12-milestone-7-design.md`
+**Audit:** `docs/plans/2026-10-15-milestone-7-audit.md`, PASS
 **Definition of Done:**
-- [ ] The client has caching and rate-limiting pipeline stages (#143), documented; core gains no new package dependency
-- [ ] The whole public API, including the new stages, is reviewed, and `PublicAPI.Shipped.txt` describes 1.0.0
-- [ ] Live runs pass on the final API against TypeSafe, OpenRouter and a local `/v1/systemone` server
-- [ ] The OpenAI adapter is labelled unverified against the live API on the Providers page, its README and its NuGet description, pinned by a docs test
-- [ ] Native AOT and trim verification covers the whole public API with no warnings; every allocation budget is unchanged or tightened; the yielding checks use TestHelpers 1.7.0's async API (#104)
-- [ ] The pack tests run locally without hanging (#145)
-- [ ] 1.0.0 of every package is on NuGet through release-please and Trusted Publishing (#29), the guide states its version, the site links to NuGet, and api-compat guards later changes (#28)
+- [x] The client has caching and rate-limiting pipeline stages (#143), documented; core gains no new package dependency
+- [x] The whole public API, including the new stages, is reviewed, and `PublicAPI.Shipped.txt` describes 1.0.0
+- [x] Live runs pass on the final API against TypeSafe, OpenRouter and a local `/v1/systemone` server
+- [x] The OpenAI adapter is labelled unverified against the live API on the Providers page, its README and its NuGet description, pinned by a docs test
+- [x] Native AOT and trim verification covers the whole public API with no warnings; every allocation budget is unchanged or tightened; the yielding checks use TestHelpers 1.7.0's async API (#104)
+- [x] The pack tests run locally without hanging (#145)
+- [x] 1.0.0 of every package is on NuGet through release-please and Trusted Publishing (#29), the guide states its version, the site links to NuGet, and api-compat guards later changes (#28)
 
 Removed on 2026-10-12, because the maintainer has no OpenAI account: the live OpenAI run and the recorded OpenAI conformance fixtures, both moved here from Milestone 6. #161 stays open.
 
