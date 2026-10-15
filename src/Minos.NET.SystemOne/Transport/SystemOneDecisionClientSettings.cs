@@ -85,6 +85,9 @@ internal sealed class SystemOneDecisionClientSettings
     /// </summary>
     public ReadOnlyMemory<byte> ProviderMember { get; }
 
+    /// <summary>Gets the <c>provider</c> object alone, <see cref="ProviderMember"/> without its <c>,"provider":</c> name; empty when no preference is on.</summary>
+    public ReadOnlyMemory<byte> ProviderObject => ProviderMember.IsEmpty ? ProviderMember : ProviderMember[ProviderMemberPrefixLength..];
+
     /// <summary>Resolves options: explicit values first, then environment variables, then provider defaults.</summary>
     /// <param name="options">The caller's options, or <see langword="null"/> for all defaults.</param>
     /// <param name="environment">Reads an environment variable; tests pass a fake.</param>
@@ -145,6 +148,9 @@ internal sealed class SystemOneDecisionClientSettings
 
     public override string ToString()
         => "Provider=" + Provider.ToString() + ", BaseAddress=" + BaseAddress.AbsoluteUri + ", ApiKey=***";
+
+    // The length of ,"provider": in front of the object in each member below.
+    private const int ProviderMemberPrefixLength = 12;
 
     // OpenRouter's provider object, as fixed bytes; the members follow OpenRouter's documented names.
     private static readonly byte[] ZeroDataRetentionMember = ",\"provider\":{\"zdr\":true}"u8.ToArray();

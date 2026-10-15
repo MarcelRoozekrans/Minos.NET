@@ -1,4 +1,5 @@
 using System.Text.Json.Serialization;
+using Minos.SystemOne.Serialization;
 
 namespace Minos.SystemOne;
 
@@ -21,4 +22,15 @@ public sealed class SystemOneRequest
 
     /// <summary>Gets the questions, keyed by ids you choose; answers come back under the same ids.</summary>
     public required IReadOnlyDictionary<string, Question> Questions { get; init; }
+
+    /// <summary>
+    /// Gets the client's OpenRouter <c>provider</c> object, which only the client sets on the copy it sends, so a raw call
+    /// carries <see cref="SystemOneDecisionClientOptions.ProviderPreferences"/> too. Written last; absent when
+    /// <see langword="null"/>.
+    /// </summary>
+    [JsonInclude]
+    [JsonPropertyName("provider")]
+    [JsonPropertyOrder(1)]
+    [JsonConverter(typeof(ProviderObjectConverter))]
+    internal ProviderObject? Provider { get; init; }
 }
