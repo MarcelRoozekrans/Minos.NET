@@ -1,4 +1,7 @@
 #nullable enable
+const Minos.SystemOne.SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable = "OPENROUTER_API_KEY" -> string!
+const Minos.SystemOne.SystemOneDefaults.TypeSafeApiKeyEnvironmentVariable = "TYPESAFE_API_KEY" -> string!
+const Minos.SystemOne.SystemOneDefaults.TypeSafeBaseAddressEnvironmentVariable = "TYPESAFE_BASE_URL" -> string!
 Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions
 Minos.SystemOne.Answer
 Minos.SystemOne.ChoiceAnswer
@@ -43,6 +46,12 @@ Minos.SystemOne.NoulQuestion
 Minos.SystemOne.NoulQuestion.Criteria.get -> Minos.SystemOne.NoulCriteria?
 Minos.SystemOne.NoulQuestion.Criteria.init -> void
 Minos.SystemOne.NoulQuestion.NoulQuestion() -> void
+Minos.SystemOne.OpenRouterProviderPreferences
+Minos.SystemOne.OpenRouterProviderPreferences.DenyDataCollection.get -> bool
+Minos.SystemOne.OpenRouterProviderPreferences.DenyDataCollection.set -> void
+Minos.SystemOne.OpenRouterProviderPreferences.OpenRouterProviderPreferences() -> void
+Minos.SystemOne.OpenRouterProviderPreferences.ZeroDataRetention.get -> bool
+Minos.SystemOne.OpenRouterProviderPreferences.ZeroDataRetention.set -> void
 Minos.SystemOne.Question
 Minos.SystemOne.Question.Instructions.get -> Minos.DecisionContent
 Minos.SystemOne.Question.Instructions.init -> void
@@ -96,6 +105,8 @@ Minos.SystemOne.SystemOneDecisionClientOptions.Path.get -> string?
 Minos.SystemOne.SystemOneDecisionClientOptions.Path.set -> void
 Minos.SystemOne.SystemOneDecisionClientOptions.Provider.get -> Minos.SystemOne.SystemOneProvider
 Minos.SystemOne.SystemOneDecisionClientOptions.Provider.set -> void
+Minos.SystemOne.SystemOneDecisionClientOptions.ProviderPreferences.get -> Minos.SystemOne.OpenRouterProviderPreferences?
+Minos.SystemOne.SystemOneDecisionClientOptions.ProviderPreferences.set -> void
 Minos.SystemOne.SystemOneDecisionClientOptions.SystemOneDecisionClientOptions() -> void
 Minos.SystemOne.SystemOneDecisionClientOptions.Timeout.get -> System.TimeSpan
 Minos.SystemOne.SystemOneDecisionClientOptions.Timeout.set -> void
@@ -130,9 +141,6 @@ Minos.SystemOne.SystemOneResponse.UpstreamProvider.get -> string?
 Minos.SystemOne.SystemOneResponse.UpstreamProvider.init -> void
 Minos.SystemOne.SystemOneResponse.Usage.get -> Minos.DecisionUsage!
 Minos.SystemOne.SystemOneResponse.Usage.init -> void
-const Minos.SystemOne.SystemOneDefaults.OpenRouterApiKeyEnvironmentVariable = "OPENROUTER_API_KEY" -> string!
-const Minos.SystemOne.SystemOneDefaults.TypeSafeApiKeyEnvironmentVariable = "TYPESAFE_API_KEY" -> string!
-const Minos.SystemOne.SystemOneDefaults.TypeSafeBaseAddressEnvironmentVariable = "TYPESAFE_BASE_URL" -> string!
 override Minos.SystemOne.ModelCard.Equals(object? obj) -> bool
 override Minos.SystemOne.ModelCard.GetHashCode() -> int
 override Minos.SystemOne.ModelCard.ToString() -> string!
@@ -141,10 +149,10 @@ override Minos.SystemOne.NoulCriteria.GetHashCode() -> int
 override Minos.SystemOne.NoulCriteria.ToString() -> string!
 static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Minos.SystemOne.SystemOneDecisionClientServiceBuilder!
 static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Minos.SystemOne.SystemOneDecisionClientServiceBuilder!
-static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Minos.SystemOne.SystemOneDecisionClientOptions!>! configure) -> Minos.SystemOne.SystemOneDecisionClientServiceBuilder!
 static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name) -> Minos.SystemOne.SystemOneDecisionClientServiceBuilder!
 static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, Microsoft.Extensions.Configuration.IConfiguration! configuration) -> Minos.SystemOne.SystemOneDecisionClientServiceBuilder!
 static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, System.Action<Minos.SystemOne.SystemOneDecisionClientOptions!>! configure) -> Minos.SystemOne.SystemOneDecisionClientServiceBuilder!
+static Microsoft.Extensions.DependencyInjection.SystemOneServiceCollectionExtensions.AddSystemOneDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Minos.SystemOne.SystemOneDecisionClientOptions!>! configure) -> Minos.SystemOne.SystemOneDecisionClientServiceBuilder!
 static Minos.SystemOne.ModelCard.operator !=(Minos.SystemOne.ModelCard? left, Minos.SystemOne.ModelCard? right) -> bool
 static Minos.SystemOne.ModelCard.operator ==(Minos.SystemOne.ModelCard? left, Minos.SystemOne.ModelCard? right) -> bool
 static Minos.SystemOne.NoulCriteria.operator !=(Minos.SystemOne.NoulCriteria? left, Minos.SystemOne.NoulCriteria? right) -> bool
