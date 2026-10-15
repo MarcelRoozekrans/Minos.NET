@@ -29,6 +29,7 @@ public sealed class SystemOneRequest
     /// <see langword="null"/>.
     /// </summary>
     [JsonInclude]
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
     [JsonPropertyName("provider")]
     [JsonPropertyOrder(1)]
     [JsonConverter(typeof(ProviderObjectConverter))]

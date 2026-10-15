@@ -12,6 +12,9 @@ public sealed class ProviderPreferencesBodyTests : IDisposable
 {
     private const string UrgencyResponse = """{"model":"jev-1.13.0","answers":{"is_urgent":{"type":"noul","noul":0.9}},"usage":{"input_tokens":1,"output_tokens":1}}""";
 
+    // What a caller can reach: reflection over the public type, not the library's internal context.
+    private static readonly JsonSerializerOptions CallerOptions = new() { TypeInfoResolver = new System.Text.Json.Serialization.Metadata.DefaultJsonTypeInfoResolver() };
+
     private readonly List<HttpClient> _httpClients = [];
 
     public void Dispose()
@@ -64,9 +67,13 @@ public sealed class ProviderPreferencesBodyTests : IDisposable
 
         await client.EvaluateAsync(request);
 
-        var sent = JsonNode.Parse(OnlyRequest(handler).Body!)!;
+        var raw = OnlyRequest(handler).Body!;
+        Assert.EndsWith(""","provider":{"zdr":true}}""", raw, StringComparison.Ordinal);
+        var sent = JsonNode.Parse(raw)!.AsObject();
         Assert.IsType<JsonArray>(sent["state"]);
         Assert.True(JsonNode.DeepEquals(JsonNode.Parse("""{"zdr":true}"""), sent["provider"]));
+        sent.Remove("provider");
+        Assert.True(JsonNode.DeepEquals(ExpectedBody(request), sent), sent.ToJsonString());
     }
 
     [Theory]
@@ -102,9 +109,11 @@ public sealed class ProviderPreferencesBodyTests : IDisposable
     [Fact]
     public void SystemOneRequest_SerializedByCaller_HasNoProvider()
     {
-        var json = JsonSerializer.Serialize(RawRequest("minos-x"), DecisionJsonContext.Default.SystemOneRequest);
+        // A caller can only reach default options, not the internal context: the request must look as it did before.
+        var json = JsonSerializer.Serialize(RawRequest("minos-x"), CallerOptions);
 
-        Assert.False(JsonNode.Parse(json)!.AsObject().ContainsKey("provider"));
+        Assert.False(JsonNode.Parse(json)!.AsObject().ContainsKey("provider"), json);
+        Assert.False(JsonNode.Parse(json)!.AsObject().ContainsKey("Provider"), json);
     }
 
     [Fact]

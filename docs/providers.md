@@ -301,13 +301,13 @@ Both go in OpenRouter's `provider` object, on every call: typed, built sets and 
 
 <!-- snippet: ClientAndErrors_OpenRouterPrivacy -->
 ```cs
-// Every request asks OpenRouter for zero-data-retention endpoints that collect no data. When none can serve it, the
-// call fails instead of going to a provider that keeps the text.
+// Every request asks OpenRouter for zero-data-retention endpoints. When none can serve it, the call fails instead of
+// going to a provider that keeps the text.
 public static SystemOneDecisionClientOptions ZeroDataRetention()
     => new()
     {
         Provider = SystemOneProvider.OpenRouter,
-        ProviderPreferences = new OpenRouterProviderPreferences { ZeroDataRetention = true, DenyDataCollection = true },
+        ProviderPreferences = new OpenRouterProviderPreferences { ZeroDataRetention = true },
     };
 ```
 <!-- endSnippet -->
@@ -318,7 +318,7 @@ From configuration:
 {
   "Minos": {
     "Provider": "OpenRouter",
-    "ProviderPreferences": { "ZeroDataRetention": true, "DenyDataCollection": true }
+    "ProviderPreferences": { "ZeroDataRetention": true }
   }
 }
 ```
@@ -330,7 +330,9 @@ From configuration:
 - **When no endpoint qualifies**, OpenRouter refuses the request. You get a `DecisionError` with OpenRouter's status code
   and its body in `Detail`, as for the `zdr-violation-by-account` refusals in the notes above, and the call is not
   retried.
-- **What the live tests verified:** pending. This line is filled in by the live run after release.
+- **`DenyDataCollection` and Jev:** not yet verified. Jev is on OpenRouter's zero-data-retention list, but whether it
+  also passes the data-collection filter is not published, so the examples leave it off.
+- **What the live tests verified:** pending. This line is filled in from the live run before the release.
 
 ## Capabilities
 

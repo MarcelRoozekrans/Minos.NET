@@ -46,6 +46,17 @@ public sealed class OpenRouterPrivacyLiveTests
 
         Assert.True(result.IsSuccess);
         Live.AssertAnsweredEveryQuestion(result.Value);
+
+        // The typed path writes its body through another writer than the raw call above, so it is checked live too.
+        var typed = await client.EvaluateAsync<LiveTriage>("Help! My payouts have been failing for 3 days and nobody answers.");
+
+        if (typed.IsFailure)
+        {
+            Live.LogError(_output, typed.Error);
+        }
+
+        Assert.True(typed.IsSuccess);
+        Assert.InRange(typed.Value.IsUrgent.Probability, 0.0, 1.0);
     }
 
     // Jev is on OpenRouter's zero-data-retention list, but whether it also passes the data-collection filter is not

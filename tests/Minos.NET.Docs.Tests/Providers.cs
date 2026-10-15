@@ -114,13 +114,13 @@ public static class OpenRouterModels
     #endregion
 
     #region ClientAndErrors_OpenRouterPrivacy
-    // Every request asks OpenRouter for zero-data-retention endpoints that collect no data. When none can serve it, the
-    // call fails instead of going to a provider that keeps the text.
+    // Every request asks OpenRouter for zero-data-retention endpoints. When none can serve it, the call fails instead of
+    // going to a provider that keeps the text.
     public static SystemOneDecisionClientOptions ZeroDataRetention()
         => new()
         {
             Provider = SystemOneProvider.OpenRouter,
-            ProviderPreferences = new OpenRouterProviderPreferences { ZeroDataRetention = true, DenyDataCollection = true },
+            ProviderPreferences = new OpenRouterProviderPreferences { ZeroDataRetention = true },
         };
     #endregion
 }

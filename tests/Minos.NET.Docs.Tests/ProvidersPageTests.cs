@@ -240,7 +240,7 @@ public sealed partial class ProvidersPageTests
     }
 
     [Fact]
-    public void ThePrivacyExample_BindsBothPreferences()
+    public void ThePrivacyExample_BindsZeroDataRetention()
     {
         using var json = new MemoryStream(Encoding.UTF8.GetBytes(JsonBlock(0)));
         var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true });
@@ -253,7 +253,7 @@ public sealed partial class ProvidersPageTests
 
         Assert.Equal(SystemOneProvider.OpenRouter, options.Provider);
         Assert.True(options.ProviderPreferences!.ZeroDataRetention);
-        Assert.True(options.ProviderPreferences.DenyDataCollection);
+        Assert.False(options.ProviderPreferences.DenyDataCollection);
         Assert.NotNull(host.Services.GetRequiredService<IDecisionClient>());
     }
 
