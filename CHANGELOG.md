@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.1.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.0.1...v1.1.0) (2026-10-15)
+
+
+### Features
+
+* **systemone:** OpenRouter provider preferences, zero data retention ([b4d3db8](https://github.com/MarcelRoozekrans/Minos.NET/commit/b4d3db84d2118dfc13005b82ef24db626a143bc9))
+
+
+### Bug Fixes
+
+* **ci:** drop the nuget.org check that cannot fail ([#209](https://github.com/MarcelRoozekrans/Minos.NET/issues/209)) ([ad890e7](https://github.com/MarcelRoozekrans/Minos.NET/commit/ad890e70cfeb6ae9e0963e52dbdaa3a72d5c801c))
+* **deps:** update dependency @typesafe-ai/sdk to v0.7.0 ([#208](https://github.com/MarcelRoozekrans/Minos.NET/issues/208)) ([dfaa3f8](https://github.com/MarcelRoozekrans/Minos.NET/commit/dfaa3f82aed8c8295d3e4aa5a939716df0621967))
+
+
+### Documentation
+
+* **ci:** explain a 409 from nuget.org, and record the reserved-prefix block ([#197](https://github.com/MarcelRoozekrans/Minos.NET/issues/197)) ([e0154ac](https://github.com/MarcelRoozekrans/Minos.NET/commit/e0154ac18ecb1cdfe8f2ec6e7157b00bc8b1b320))
+
 ## [1.0.1](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.0.0...v1.0.1) (2026-10-13)
 
 
