@@ -41,6 +41,9 @@ internal sealed class CapturingHandler(string responseBody) : HttpMessageHandler
         return handler.Questions();
     }
 
+    /// <summary>The whole captured request body, as an independent document.</summary>
+    public JsonDocument Body() => JsonDocument.Parse(_requestBody);
+
     /// <summary>The <c>questions</c> object of the captured request, as an independent document.</summary>
     public JsonDocument Questions()
     {

@@ -143,6 +143,17 @@ public sealed class SystemOneDecisionClientOptions
     public bool UseStandardPipeline { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets OpenRouter's provider routing preferences, such as requiring Zero Data Retention endpoints. Every request
+    /// the client sends, typed or raw, carries them as OpenRouter's <c>provider</c> object. Defaults to
+    /// <see langword="null"/>, which sends nothing.
+    /// </summary>
+    /// <remarks>
+    /// Only <see cref="SystemOneProvider.OpenRouter"/> supports them: with another <see cref="Provider"/> and any preference on,
+    /// the client throws <see cref="ArgumentException"/> when it is built. The account-wide setting at OpenRouter still applies.
+    /// </remarks>
+    public OpenRouterProviderPreferences? ProviderPreferences { get; set; }
+
+    /// <summary>
     /// Checks these options exactly as a <see cref="SystemOneDecisionClient"/> constructor does, including the API key and base address
     /// environment variables, and throws what the constructor would throw. It creates no client and changes no option.
     /// </summary>
@@ -151,7 +162,8 @@ public sealed class SystemOneDecisionClientOptions
     /// variables do not change in between. <c>AddSystemOneDecisionClient</c> runs it at host startup.
     /// </remarks>
     /// <exception cref="ArgumentException">
-    /// An option has an invalid value: an unknown provider; an invalid time-out or retry setting; a blank model, or none for
+    /// An option has an invalid value: an unknown provider; <see cref="ProviderPreferences"/> with a preference on for a
+    /// provider other than <see cref="SystemOneProvider.OpenRouter"/>; an invalid time-out or retry setting; a blank model, or none for
     /// a provider without a default model; an API key with a control
     /// character; a base address that is not an absolute http or https URI, or has a query or fragment; no base address
     /// for <see cref="SystemOneProvider.VllmSemanticRouter"/> or <see cref="SystemOneProvider.Custom"/>; <see cref="Path"/> set for a hosted provider; or a path that is not

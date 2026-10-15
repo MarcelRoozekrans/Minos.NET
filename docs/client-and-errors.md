@@ -92,7 +92,7 @@ you asked for it. Everything else, including every network and service failure, 
 
 ## Options
 
-`SystemOneDecisionClientOptions` has twelve properties, and every one is optional.
+`SystemOneDecisionClientOptions` has thirteen properties, and every one is optional.
 
 | Property | Default | Valid values | What it does |
 | --- | --- | --- | --- |
@@ -108,6 +108,7 @@ you asked for it. Everything else, including every network and service failure, 
 | `MaxRetryDelay` | 30 seconds | at least `InitialBackoff`, and at most about 24.8 days | The longest wait between attempts, for the backoff and for a server's `Retry-After` alike. |
 | `Jitter` | `true` | `true` or `false` | Adds a random extra of up to 50 percent to each backoff wait, so many clients do not retry in step. |
 | `UseStandardPipeline` | `true` | `true` or `false` | Whether a `DecisionRequest` call runs through the standard [pipeline](pipeline.md) of telemetry, logging and retries. `false` leaves one attempt per call, for a pipeline of your own. |
+| `ProviderPreferences` | none | `OpenRouter` only | OpenRouter's provider routing preferences, `ZeroDataRetention` and `DenyDataCollection`, sent with every request. Any other provider refuses them when the client is built. See [Privacy: zero data retention](providers.md#privacy-zero-data-retention). |
 
 Each option you set beats the environment. The order is: the option, then the environment variable, then the provider's
 default. A blank API key counts as unset. `TYPESAFE_BASE_URL` applies to TypeSafe only, so an OpenRouter

@@ -182,6 +182,22 @@ public sealed class ProvidersTests
     }
 
     [Fact]
+    public void ThePrivacyOptions_AreValidForOpenRouter_AndRefusedElsewhere()
+    {
+        var options = OpenRouterModels.ZeroDataRetention();
+        options.ApiKey = "key";
+
+        Assert.Null(ClientOptions.Problem(options));
+        Assert.True(options.ProviderPreferences!.ZeroDataRetention);
+
+        // DenyDataCollection stays off in the example until the live run shows whether it refuses Jev.
+        Assert.False(options.ProviderPreferences.DenyDataCollection);
+
+        options.Provider = SystemOneProvider.TypeSafe;
+        Assert.NotNull(ClientOptions.Problem(options));
+    }
+
+    [Fact]
     public void TheOpenRouterModelOptions_AreValid_AndNameTheModels()
     {
         var perplexity = OpenRouterModels.PerplexityWithImages();

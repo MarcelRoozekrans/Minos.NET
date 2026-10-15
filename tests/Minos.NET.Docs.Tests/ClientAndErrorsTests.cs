@@ -634,8 +634,8 @@ public sealed class ClientAndErrorsTests
         var properties = typeof(SystemOneDecisionClientOptions).GetProperties().Select(property => property.Name).ToArray();
 
         Assert.Equal(properties.Order(StringComparer.Ordinal), rows.Select(row => PageTables.Code(row[0])).Order(StringComparer.Ordinal));
-        Assert.Equal(12, properties.Length);
-        Assert.Contains("has twelve properties", PageTables.Text("client-and-errors.md"), StringComparison.Ordinal);
+        Assert.Equal(13, properties.Length);
+        Assert.Contains("has thirteen properties", PageTables.Text("client-and-errors.md"), StringComparison.Ordinal);
     }
 
     [Fact]

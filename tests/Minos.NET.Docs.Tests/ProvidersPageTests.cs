@@ -183,7 +183,7 @@ public sealed partial class ProvidersPageTests
         var sample = JsonNode.Parse(File.ReadAllText(
             Path.Combine(PublishedPages.Root, "samples", "Minos.NET.Samples.ProviderSwitch", "appsettings.json")));
 
-        Assert.True(JsonNode.DeepEquals(sample, JsonNode.Parse(JsonBlock(0))), "The page's first json block is the sample's appsettings.json.");
+        Assert.True(JsonNode.DeepEquals(sample, JsonNode.Parse(JsonBlock(1))), "The page's second json block, after the privacy example, is the sample's appsettings.json.");
     }
 
     [Theory]
@@ -192,7 +192,7 @@ public sealed partial class ProvidersPageTests
     [InlineData("local", SystemOneProvider.Custom)]
     public void TheActiveProvider_IsBoundFromItsOwnSection(string active, SystemOneProvider expected)
     {
-        using var json = new MemoryStream(Encoding.UTF8.GetBytes(JsonBlock(0)));
+        using var json = new MemoryStream(Encoding.UTF8.GetBytes(JsonBlock(1)));
         var builder = Builder(json, active);
         ProviderSwitching.AddActiveProvider(builder);
         using var host = builder.Build();
@@ -212,7 +212,7 @@ public sealed partial class ProvidersPageTests
     [Fact]
     public void AnUnknownActiveProvider_FailsNamingIt()
     {
-        using var json = new MemoryStream(Encoding.UTF8.GetBytes(JsonBlock(0)));
+        using var json = new MemoryStream(Encoding.UTF8.GetBytes(JsonBlock(1)));
         var builder = Builder(json, "Elsewhere");
 
         var exception = Assert.Throws<InvalidOperationException>(() => ProviderSwitching.AddActiveProvider(builder));
@@ -240,9 +240,27 @@ public sealed partial class ProvidersPageTests
     }
 
     [Fact]
+    public void ThePrivacyExample_BindsZeroDataRetention()
+    {
+        using var json = new MemoryStream(Encoding.UTF8.GetBytes(JsonBlock(0)));
+        var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings { DisableDefaults = true });
+        builder.Configuration.AddJsonStream(json);
+        builder.Configuration.AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.Ordinal) { ["Minos:ApiKey"] = "openrouter-key" });
+        builder.Services.AddSystemOneDecisionClient(builder.Configuration.GetSection("Minos"));
+        using var host = builder.Build();
+
+        var options = host.Services.GetRequiredService<IOptionsMonitor<SystemOneDecisionClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName);
+
+        Assert.Equal(SystemOneProvider.OpenRouter, options.Provider);
+        Assert.True(options.ProviderPreferences!.ZeroDataRetention);
+        Assert.False(options.ProviderPreferences.DenyDataCollection);
+        Assert.NotNull(host.Services.GetRequiredService<IDecisionClient>());
+    }
+
+    [Fact]
     public void TheOpenAISection_IsBoundThroughAddOpenAIDecisionClient()
     {
-        using var json = new MemoryStream(Encoding.UTF8.GetBytes(JsonBlock(1)));
+        using var json = new MemoryStream(Encoding.UTF8.GetBytes(JsonBlock(2)));
         var builder = Builder(json, "OpenAI");
         ProviderSwitching.AddActiveClient(builder);
         using var host = builder.Build();
@@ -258,7 +276,7 @@ public sealed partial class ProvidersPageTests
     [Fact]
     public void AddActiveClient_StillBindsASystemOneSection()
     {
-        using var json = new MemoryStream(Encoding.UTF8.GetBytes(JsonBlock(0)));
+        using var json = new MemoryStream(Encoding.UTF8.GetBytes(JsonBlock(1)));
         var builder = Builder(json, "OpenRouter");
         ProviderSwitching.AddActiveClient(builder);
         using var host = builder.Build();

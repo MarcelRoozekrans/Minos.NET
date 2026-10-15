@@ -5,8 +5,9 @@ using Minos.Transport;
 namespace Minos.SystemOne.Protocols;
 
 /// <summary>
-/// Writes a <c>/v1/systemone</c> request body straight into a pooled <see cref="RawJson"/>: the state, the model and the
-/// protocol's cached <c>questions</c> bytes for a definition, without building a <see cref="SystemOneRequest"/>. The body
+/// Writes a <c>/v1/systemone</c> request body straight into a pooled <see cref="RawJson"/>: the state, the model, the
+/// protocol's cached <c>questions</c> bytes for a definition and the client's <c>provider</c> member, without building a
+/// <see cref="SystemOneRequest"/>. The body
 /// is JSON-equal to a <see cref="SystemOneRequest"/> with the same questions, state and model, serialized.
 /// </summary>
 internal static class SystemOneRequestWriter
@@ -17,11 +18,12 @@ internal static class SystemOneRequestWriter
     // The braces, names and quotes around one image part: {"type":"image_url","image_url":{"url":…}},.
     private const int ImageOverhead = 48;
 
-    // Rents the body and writes {"state":, then the state through writeState, then ,"model":…,"questions":…}. The body
-    // is disposed if anything throws, so the caller owns it only once it is returned.
+    // Rents the body and writes {"state":, then the state through writeState, then ,"model":…,"questions":…, then the
+    // providerMember bytes as they are, ,"provider":{…} or nothing, then }. The body is disposed if anything throws, so
+    // the caller owns it only once it is returned.
     public static RawJson Write<TArg>(
         ReadOnlySpan<byte> questionsUtf8, TArg state, int stateSizeHint, StateWriter<TArg> writeState,
-        IReadOnlyList<DecisionImage> images, string model, ArrayPool<byte> pool)
+        IReadOnlyList<DecisionImage> images, string model, ReadOnlySpan<byte> providerMember, ArrayPool<byte> pool)
         where TArg : allows ref struct
     {
         var imageBytes = 0;
@@ -30,7 +32,7 @@ internal static class SystemOneRequestWriter
             imageBytes += images[i].DataUrlLength + ImageOverhead;
         }
 
-        var body = RawJson.Create(pool, questionsUtf8.Length + model.Length + stateSizeHint + imageBytes + Overhead);
+        var body = RawJson.Create(pool, questionsUtf8.Length + model.Length + stateSizeHint + imageBytes + providerMember.Length + Overhead);
         try
         {
             using (var writer = new Utf8JsonWriter(body))
@@ -49,9 +51,13 @@ internal static class SystemOneRequestWriter
                 writer.WriteString("model"u8, model);
                 writer.WritePropertyName("questions"u8);
                 writer.WriteRawValue(questionsUtf8, skipInputValidation: true);
-                writer.WriteEndObject();
                 writer.Flush();
             }
+
+            // Utf8JsonWriter cannot append a pre-written member, so the provider bytes and the closing brace go straight
+            // into the body after the writer has flushed everything before them.
+            body.Write(providerMember);
+            body.Write("}"u8);
 
             return body;
         }

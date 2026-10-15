@@ -23,7 +23,8 @@ internal sealed class SystemOneDecisionClientSettings
         TimeSpan initialBackoff,
         TimeSpan maxRetryDelay,
         bool jitter,
-        bool useStandardPipeline)
+        bool useStandardPipeline,
+        ReadOnlyMemory<byte> providerMember)
     {
         Provider = provider;
         ApiKey = apiKey;
@@ -39,6 +40,7 @@ internal sealed class SystemOneDecisionClientSettings
         MaxRetryDelay = maxRetryDelay;
         Jitter = jitter;
         UseStandardPipeline = useStandardPipeline;
+        ProviderMember = providerMember;
     }
 
     public SystemOneProvider Provider { get; }
@@ -77,6 +79,15 @@ internal sealed class SystemOneDecisionClientSettings
 
     public bool UseStandardPipeline { get; }
 
+    /// <summary>
+    /// Gets the <c>,"provider":{…}</c> member every request body ends with, written once from
+    /// <see cref="SystemOneDecisionClientOptions.ProviderPreferences"/>; empty when no preference is on.
+    /// </summary>
+    public ReadOnlyMemory<byte> ProviderMember { get; }
+
+    /// <summary>Gets the <c>provider</c> object alone, <see cref="ProviderMember"/> without its <c>,"provider":</c> name; empty when no preference is on.</summary>
+    public ReadOnlyMemory<byte> ProviderObject => ProviderMember.IsEmpty ? ProviderMember : ProviderMember[ProviderMemberPrefixLength..];
+
     /// <summary>Resolves options: explicit values first, then environment variables, then provider defaults.</summary>
     /// <param name="options">The caller's options, or <see langword="null"/> for all defaults.</param>
     /// <param name="environment">Reads an environment variable; tests pass a fake.</param>
@@ -88,6 +99,7 @@ internal sealed class SystemOneDecisionClientSettings
         options ??= new SystemOneDecisionClientOptions();
 
         EnsureKnownProvider(options);
+        var providerMember = ResolveProviderMember(options);
         ClientSettingRules.CheckTimeout(options.Timeout, nameof(options));
 
         RetrySettings.Check(options.MaxRetries, options.InitialBackoff, options.MaxRetryDelay, nameof(options));
@@ -111,7 +123,8 @@ internal sealed class SystemOneDecisionClientSettings
             options.InitialBackoff,
             options.MaxRetryDelay,
             options.Jitter,
-            options.UseStandardPipeline);
+            options.UseStandardPipeline,
+            providerMember);
     }
 
     /// <summary>
@@ -135,6 +148,39 @@ internal sealed class SystemOneDecisionClientSettings
 
     public override string ToString()
         => "Provider=" + Provider.ToString() + ", BaseAddress=" + BaseAddress.AbsoluteUri + ", ApiKey=***";
+
+    // The length of ,"provider": in front of the object in each member below.
+    private const int ProviderMemberPrefixLength = 12;
+
+    // OpenRouter's provider object, as fixed bytes; the members follow OpenRouter's documented names.
+    private static readonly byte[] ZeroDataRetentionMember = ",\"provider\":{\"zdr\":true}"u8.ToArray();
+    private static readonly byte[] DenyDataCollectionMember = ",\"provider\":{\"data_collection\":\"deny\"}"u8.ToArray();
+    private static readonly byte[] BothMembers = ",\"provider\":{\"zdr\":true,\"data_collection\":\"deny\"}"u8.ToArray();
+
+    // A preference is a guarantee the caller relies on, so one that a provider would silently drop refuses to resolve.
+    private static ReadOnlyMemory<byte> ResolveProviderMember(SystemOneDecisionClientOptions options)
+    {
+        var preferences = options.ProviderPreferences;
+        if (preferences is null || (!preferences.ZeroDataRetention && !preferences.DenyDataCollection))
+        {
+            return ReadOnlyMemory<byte>.Empty;
+        }
+
+        if (options.Provider != SystemOneProvider.OpenRouter)
+        {
+            throw new ArgumentException(
+                "ProviderPreferences are OpenRouter's provider routing settings; Provider is " + options.Provider.ToString()
+                    + ", which does not support them.",
+                nameof(options));
+        }
+
+        return (preferences.ZeroDataRetention, preferences.DenyDataCollection) switch
+        {
+            (true, true) => BothMembers,
+            (true, false) => ZeroDataRetentionMember,
+            _ => DenyDataCollectionMember,
+        };
+    }
 
     private static void EnsureKnownProvider(SystemOneDecisionClientOptions options)
     {

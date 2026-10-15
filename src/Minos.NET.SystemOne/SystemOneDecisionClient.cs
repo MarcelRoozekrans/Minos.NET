@@ -48,6 +48,9 @@ public sealed class SystemOneDecisionClient : IDecisionClient
     private readonly DecisionClientMetadata _metadata;
     private readonly DecisionRetryOptions _retryOptions;
     private readonly IDecisionClient _pipeline;
+
+    // The provider object a raw request carries, or null without preferences: one instance per client.
+    private readonly ProviderObject? _providerObject;
     // Volatile: Dispose writes it before it disposes the owned HttpClient, and the error mapper, the transport and the raw
     // calls' retry loop read it on the threads that complete the calls in flight.
     private volatile bool _disposed;
@@ -217,17 +220,19 @@ public sealed class SystemOneDecisionClient : IDecisionClient
         };
         _providerName = settings.ProviderName;
         _model = settings.Model;
+        _providerObject = settings.ProviderObject.IsEmpty ? null : new ProviderObject(settings.ProviderObject);
         _endpoint = httpClient.BaseAddress!;
         _logger = logger;
         // A disposed client never retries. Only an owned HttpClient is disposed with the client, so only an owned one can
         // tear a request down: the mapper reports such an attempt as Disposed, which is never retried. A borrowed
         // HttpClient's attempt in flight keeps its own result, so its mapper never reads the flag.
         Func<bool> disposed = () => _disposed;
+        var protocol = SystemOneProtocol.For(settings.ProviderMember);
         var api = new DecisionApiClient(
             httpClient,
             new SystemTextJsonSerializer(DecisionJsonContext.Default),
             new DecisionRawSerializer(pool),
-            new DecisionErrorMapper(time, _ownedHttpClient is null ? null : disposed, SystemOneProtocol.Instance));
+            new DecisionErrorMapper(time, _ownedHttpClient is null ? null : disposed, protocol));
         _metadata = new DecisionClientMetadata(_providerName, new Uri(_endpoint, settings.Path), settings.Model);
 
         // The standard chain, outermost first: one span over every attempt, one outcome log inside it, then retries. Each
@@ -236,7 +241,7 @@ public sealed class SystemOneDecisionClient : IDecisionClient
         var authorization = settings.Authorization;
         RawSend send = (body, retryCount, ct) => api.SendAsync(body, path, authorization, retryCount, ct);
         IDecisionClient pipeline = new DecisionTransport(
-            send, SystemOneProtocol.Instance, settings.Capabilities, settings.Provider.ToString(), settings.Model, _metadata, pool, disposed);
+            send, protocol, settings.Capabilities, settings.Provider.ToString(), settings.Model, _metadata, pool, disposed);
         DecisionRetry? rawRetry = null;
         if (settings.UseStandardPipeline)
         {
@@ -400,10 +405,11 @@ public sealed class SystemOneDecisionClient : IDecisionClient
         ObjectDisposedException.ThrowIf(_disposed, this);
         ValidateRaw(request);
 
-        // A named model is sent as is. Without one the request is copied with the client's model, so the caller's request
-        // is never changed and the span, the log and the body all name the same model.
-        var resolved = request.Model is null
-            ? new SystemOneRequest { State = request.State, Model = _model, Questions = request.Questions }
+        // A named model is sent as is. Without one, or with provider preferences, the request is copied with the client's
+        // model and provider object, so the caller's request is never changed and the span, the log and the body all name the
+        // same model. Without preferences a named model's request is sent as it is, as before.
+        var resolved = request.Model is null || _providerObject is not null
+            ? new SystemOneRequest { State = request.State, Model = request.Model ?? _model, Questions = request.Questions, Provider = _providerObject }
             : request;
         var started = DecisionLog.StartTiming(_logger);
         return WithLogging(
