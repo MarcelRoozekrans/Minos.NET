@@ -387,13 +387,14 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Plan:** bounded phase, approved in chat on 2026-10-13. No spec or plan document.
 **Evidence:** the ZeroAlloc packages moved to the versions Renovate proposed in #123, with Analyzers 1.11.0's new ZA0210 fixed at eight test sites. The AOT smoke app passed all 206 checks in 30 of 30 runs; the whole-surface publish with `TrimMode=full` has no warnings. The yielding checks use `AllocationGate`'s async API, closing #104; the `NullLoggerFactory` comparison's tolerance is 64 B per call, set over 60 runs, with ZeroAlloc.TestHelpers#76 filed for the gate's noise. No budget changed. The first full benchmark run, 38377937195, is the 1.0 baseline in `docs/performance.md`. Pre-push review PASS, `docs/plans/2026-10-13-phase-7.4-pre-push-review.md`.
 
-### Phase 7.5: Publish 1.0 [status: in progress — blocked on the nuget.org ID prefix reservation]
+### Phase 7.5: Publish 1.0 [status: complete]
 **Goal:** Publish 1.0.0 the way Thalos.NET, Rag.NET and AdoNet.Async do: release-please, and NuGet Trusted Publishing from `ci.yml`'s `publish-nuget` job, rehearsed against a local feed. Reuse what still applies from the paused Phase 5.5 branch, such as the package inspection. Fix the pack-test hang (#145), then turn on api-compat (#29, #28), and add the NuGet links to the docs site's navbar and footer.
 **Surface:** Infra
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-10-13-phase-7.5-publish-1.0-design.md`
 **Plan:** `docs/superpowers/plans/2026-10-13-phase-7.5-publish-1.0.md`
-**Evidence so far:** the release path is built and reviewed. `pack-validate` passes on GitHub; `publish-nuget` is gated to a dispatch on a `v*` tag and refuses 0.x; `RELEASING.md` describes it. #145 and #29 close with the phase PR. Pre-push review PASS, `docs/plans/2026-10-13-phase-7.5-pre-push-review.md`. Remaining: the maintainer's nuget.org Trusted Publishing policy and `NUGET_USER` variable, merging the 1.0.0 release PR, checking the packages on nuget.org, and the api-compat baseline PR that closes #28.
+**Completed:** 2026-10-15
+**Evidence:** the release path is built and reviewed. `pack-validate` passes on GitHub; `publish-nuget` is gated to a dispatch on a `v*` tag and refuses 0.x; `RELEASING.md` describes it. #145 and #29 close with the phase PR. Pre-push review PASS, `docs/plans/2026-10-13-phase-7.5-pre-push-review.md`. Every push for 1.0.0 and 1.0.1 was refused with 409, because another owner's prefix reservation covered `Minos.NET*`. On 2026-10-15 nuget.org reserved `Minos.NET` and `Minos.NET.*` to MarcelRoozekrans, and [run 38726515640](https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/38726515640) published all six packages as 1.0.1, with symbols, and attached the twelve files to the v1.0.1 release. 1.0.0 was never published. Package validation now compares each package with 1.0.1 (#28).
 
 ## Milestone 8: Choosing a provider and a threshold [status: pending]
 **Goal:** A dotnet tool that measures accuracy, calibration, selective-prediction coverage, latency and cost per provider on a labeled dataset, and docs that use it to choose providers and thresholds.
