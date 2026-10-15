@@ -1,4 +1,4 @@
-# Session State — 2026-10-13 (Milestone 7: Phase 7.5 blocked on the nuget.org ID prefix)
+# Session State — 2026-10-15 (Milestone 7 complete: 1.0.1 on nuget.org)
 
 **Date:** 2026-10-13
 
@@ -109,13 +109,13 @@
 - **Issues:** items 1–6 are tracked in #120 (new) and #115–#119, updated on 2026-10-09 to the revised text; #29 and #28 re-pointed to Phase 7.4.
 
 ## Blockers
-- **Publishing:** blocked until Milestone 7. Do not push `phase/5.5-release` as a PR, and do not merge anything carrying `Release-As: 1.0.0`.
+- None. `phase/5.5-release` is superseded by Phase 7.5 and can be deleted.
 
 ## Recommended Next Step
 1. Milestone 7, the 1.0 release, is active (design `docs/superpowers/specs/2026-10-12-milestone-7-design.md`). Milestone 6 is complete; its audit passed on re-audit.
 2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.
-3. Phases 7.2, 7.3 and 7.4 are complete, and Phase 7.5's release path is merged (#192, #194). Releases 1.0.0 (#193) and 1.0.1 (#195) are tagged on GitHub, but **nothing is on nuget.org**: every push is refused with "409 (The package ID is reserved...)". The Trusted Publishing policy works: the key is minted, the policy is active, its scopes allow new packages and its glob is `*`. An ID prefix reservation held by another owner covers `Minos.NET*`. The maintainer emailed account@nuget.org on 2026-10-13 asking which owner holds it and to reserve `Minos.NET` for MarcelRoozekrans; the `ZeroAlloc.NET` organization is a candidate holder. Next: when nuget.org answers, either make the reservation's owner the policy's package owner or have the prefix assigned to MarcelRoozekrans, then publish with `gh workflow run ci.yml --ref v1.0.1 -f publish_to_nuget=true`, check the packages on nuget.org, and open the follow-up PR that sets `PackageValidationBaselineVersion` to the published version, closes #28 and completes Milestone 7.
-4. The six `Minos.NET*` ids have no packages on nuget.org, but a prefix reservation blocks creating them.
+3. Phases 7.1 to 7.5 are complete. On 2026-10-15 nuget.org reserved `Minos.NET` and `Minos.NET.*` to MarcelRoozekrans, which lifted the 409 "package ID is reserved" block. The Trusted Publishing policy is ci.yml, no environment, glob `*`. `gh workflow run ci.yml --ref v1.0.1 -f publish_to_nuget=true` ([run 38726515640](https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/38726515640)) published all six packages as 1.0.1, with symbols. 1.0.0 was never published. `PackageValidationBaselineVersion` is 1.0.1, which closes #28. Milestone 7 is complete; its audit passed (`docs/plans/2026-10-15-milestone-7-audit.md`). Next: Milestone 8, Choosing a provider and a threshold, starting with `new-milestone`.
+4. Release PR 1.0.2 is open. Merging it now publishes 1.0.2 through the release path. Consider narrowing the policy's package glob from `*` to `Minos.NET*` on nuget.org.
 5. Release PR #177 (0.12.0) merged on 2026-10-12.
 6. Run `pre-push-review` on each feature branch before its PR, and keep the report in `docs/plans/`: the docs tests treat every file at the top of `docs/` as a site page.
 7. Allocation gates run only in the published AOT smoke executable, not in `dotnet test`: publish and run it for any change under `src/`.
