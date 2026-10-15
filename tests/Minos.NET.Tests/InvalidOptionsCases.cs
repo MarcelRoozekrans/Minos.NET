@@ -12,6 +12,8 @@ public static class InvalidOptionsCases
     private static readonly Dictionary<string, InvalidOptionsCase> Cases = new(StringComparer.Ordinal)
     {
         ["UnknownProvider"] = new(() => new() { ApiKey = "k", Provider = (SystemOneProvider)42 }, typeof(ArgumentException)),
+        ["ProviderPreferencesOnTypeSafe"] = new(
+            () => new() { ApiKey = "k", ProviderPreferences = new() { ZeroDataRetention = true } }, typeof(ArgumentException)),
         ["ZeroTimeout"] = new(() => new() { ApiKey = "k", Timeout = TimeSpan.Zero }, typeof(ArgumentException)),
         ["NegativeTimeout"] = new(() => new() { ApiKey = "k", Timeout = TimeSpan.FromSeconds(-1) }, typeof(ArgumentException)),
         ["TimeoutBeyondIntMilliseconds"] = new(

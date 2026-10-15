@@ -1,1 +1,9 @@
 #nullable enable
+Minos.SystemOne.OpenRouterProviderPreferences
+Minos.SystemOne.OpenRouterProviderPreferences.DenyDataCollection.get -> bool
+Minos.SystemOne.OpenRouterProviderPreferences.DenyDataCollection.set -> void
+Minos.SystemOne.OpenRouterProviderPreferences.OpenRouterProviderPreferences() -> void
+Minos.SystemOne.OpenRouterProviderPreferences.ZeroDataRetention.get -> bool
+Minos.SystemOne.OpenRouterProviderPreferences.ZeroDataRetention.set -> void
+Minos.SystemOne.SystemOneDecisionClientOptions.ProviderPreferences.get -> Minos.SystemOne.OpenRouterProviderPreferences?
+Minos.SystemOne.SystemOneDecisionClientOptions.ProviderPreferences.set -> void

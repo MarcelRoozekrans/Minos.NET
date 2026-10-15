@@ -219,6 +219,64 @@ public sealed class SystemOneDecisionClientSettingsTests
         Assert.IsType(invalid.Exception, exception);
     }
 
+    [Fact]
+    public void ProviderMember_IsEmpty_WithoutPreferences()
+    {
+        var none = Resolve(new SystemOneDecisionClientOptions { ApiKey = "k", Provider = SystemOneProvider.OpenRouter });
+        var allFalse = Resolve(new SystemOneDecisionClientOptions { ApiKey = "k", Provider = SystemOneProvider.OpenRouter, ProviderPreferences = new() });
+
+        Assert.True(none.ProviderMember.IsEmpty);
+        Assert.True(allFalse.ProviderMember.IsEmpty);
+    }
+
+    [Theory]
+    [InlineData(true, false, ",\"provider\":{\"zdr\":true}")]
+    [InlineData(false, true, ",\"provider\":{\"data_collection\":\"deny\"}")]
+    [InlineData(true, true, ",\"provider\":{\"zdr\":true,\"data_collection\":\"deny\"}")]
+    public void ProviderMember_WritesEachFlag(bool zeroDataRetention, bool denyDataCollection, string expected)
+    {
+        var settings = Resolve(
+            new SystemOneDecisionClientOptions
+            {
+                Provider = SystemOneProvider.OpenRouter,
+                ProviderPreferences = new() { ZeroDataRetention = zeroDataRetention, DenyDataCollection = denyDataCollection },
+            },
+            ("OPENROUTER_API_KEY", "env-key"));
+
+        Assert.Equal(expected, System.Text.Encoding.UTF8.GetString(settings.ProviderMember.Span));
+    }
+
+    [Theory]
+    [InlineData(SystemOneProvider.TypeSafe)]
+    [InlineData(SystemOneProvider.VllmSemanticRouter)]
+    [InlineData(SystemOneProvider.Custom)]
+    public void ProviderPreferences_OnAnotherProvider_Throws(SystemOneProvider provider)
+    {
+        var options = new SystemOneDecisionClientOptions
+        {
+            ApiKey = "k",
+            Provider = provider,
+            BaseAddress = provider == SystemOneProvider.TypeSafe ? null : new Uri("http://host/"),
+            Model = "m",
+            ProviderPreferences = new() { ZeroDataRetention = true },
+        };
+
+        var exception = Assert.Throws<ArgumentException>(() => Resolve(options));
+
+        Assert.StartsWith(
+            "ProviderPreferences are OpenRouter's provider routing settings; Provider is " + provider.ToString() + ", which does not support them.",
+            exception.Message,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AllFalsePreferences_OnTypeSafe_Resolve()
+    {
+        var settings = Resolve(new SystemOneDecisionClientOptions { ApiKey = "k", ProviderPreferences = new() });
+
+        Assert.True(settings.ProviderMember.IsEmpty);
+    }
+
     private static SystemOneDecisionClientSettings Resolve(SystemOneDecisionClientOptions? options, params (string Name, string Value)[] environment)
         => SystemOneDecisionClientSettings.Resolve(
             options,
