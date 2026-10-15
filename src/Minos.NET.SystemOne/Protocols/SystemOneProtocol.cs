@@ -16,11 +16,24 @@ internal sealed class SystemOneProtocol : IDecisionProtocol
     // Found flags are one byte each, so they stay on the stack for more questions than slots do.
     private const int MaxStackFlags = 256;
 
-    public static SystemOneProtocol Instance { get; } = new();
+    // The client's ,"provider":{…} member, appended to every request body; empty for Instance.
+    private readonly ReadOnlyMemory<byte> _providerMember;
 
-    private SystemOneProtocol()
+    /// <summary>Gets the protocol for a client without provider preferences, shared by every such client.</summary>
+    public static SystemOneProtocol Instance { get; } = new(ReadOnlyMemory<byte>.Empty);
+
+    /// <summary>
+    /// Creates a protocol whose request bodies end with <paramref name="providerMember"/>. The cached <c>questions</c> bytes
+    /// live on each definition, so they are shared with <see cref="Instance"/>.
+    /// </summary>
+    internal SystemOneProtocol(ReadOnlyMemory<byte> providerMember)
     {
+        _providerMember = providerMember;
     }
+
+    /// <summary>Gets the protocol for a client's resolved <paramref name="providerMember"/>: <see cref="Instance"/> when it is empty.</summary>
+    public static SystemOneProtocol For(ReadOnlyMemory<byte> providerMember)
+        => providerMember.IsEmpty ? Instance : new SystemOneProtocol(providerMember);
 
     /// <summary>Gets the <c>questions</c> object for <paramref name="definition"/>, written once and cached on it.</summary>
     public static ReadOnlySpan<byte> QuestionsJson(QuestionSetDefinition definition)
@@ -30,7 +43,7 @@ internal sealed class SystemOneProtocol : IDecisionProtocol
         QuestionSetDefinition definition, TArg state, int stateSizeHint, StateWriter<TArg> writeState,
         IReadOnlyList<DecisionImage> images, string model, ArrayPool<byte> pool)
         where TArg : allows ref struct
-        => SystemOneRequestWriter.Write(QuestionsJson(definition), state, stateSizeHint, writeState, images, model, pool);
+        => SystemOneRequestWriter.Write(QuestionsJson(definition), state, stateSizeHint, writeState, images, model, _providerMember.Span, pool);
 
     // System One has no limits of its own beyond the capability check.
     public void CollectUnsupported(QuestionSetDefinition definition, string providerName, ref List<QuestionFailure>? failures)

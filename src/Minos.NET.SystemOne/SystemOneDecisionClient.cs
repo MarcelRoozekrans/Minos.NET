@@ -223,11 +223,12 @@ public sealed class SystemOneDecisionClient : IDecisionClient
         // tear a request down: the mapper reports such an attempt as Disposed, which is never retried. A borrowed
         // HttpClient's attempt in flight keeps its own result, so its mapper never reads the flag.
         Func<bool> disposed = () => _disposed;
+        var protocol = SystemOneProtocol.For(settings.ProviderMember);
         var api = new DecisionApiClient(
             httpClient,
             new SystemTextJsonSerializer(DecisionJsonContext.Default),
             new DecisionRawSerializer(pool),
-            new DecisionErrorMapper(time, _ownedHttpClient is null ? null : disposed, SystemOneProtocol.Instance));
+            new DecisionErrorMapper(time, _ownedHttpClient is null ? null : disposed, protocol));
         _metadata = new DecisionClientMetadata(_providerName, new Uri(_endpoint, settings.Path), settings.Model);
 
         // The standard chain, outermost first: one span over every attempt, one outcome log inside it, then retries. Each
@@ -236,7 +237,7 @@ public sealed class SystemOneDecisionClient : IDecisionClient
         var authorization = settings.Authorization;
         RawSend send = (body, retryCount, ct) => api.SendAsync(body, path, authorization, retryCount, ct);
         IDecisionClient pipeline = new DecisionTransport(
-            send, SystemOneProtocol.Instance, settings.Capabilities, settings.Provider.ToString(), settings.Model, _metadata, pool, disposed);
+            send, protocol, settings.Capabilities, settings.Provider.ToString(), settings.Model, _metadata, pool, disposed);
         DecisionRetry? rawRetry = null;
         if (settings.UseStandardPipeline)
         {
