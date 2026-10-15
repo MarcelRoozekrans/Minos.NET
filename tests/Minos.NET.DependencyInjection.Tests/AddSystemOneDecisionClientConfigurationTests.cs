@@ -40,6 +40,25 @@ public sealed class AddSystemOneDecisionClientConfigurationTests
     }
 
     [Fact]
+    public void ProviderPreferences_Bind()
+    {
+        var configuration = Configuration(
+            ("Minos:Provider", "OpenRouter"),
+            ("Minos:ApiKey", "bound-key"),
+            ("Minos:ProviderPreferences:ZeroDataRetention", "true"),
+            ("Minos:ProviderPreferences:DenyDataCollection", "true"));
+        var services = new ServiceCollection();
+        services.AddSystemOneDecisionClient(configuration.GetSection("Minos"));
+        using var provider = services.BuildServiceProvider();
+
+        var options = provider.GetRequiredService<IOptionsMonitor<SystemOneDecisionClientOptions>>().Get(Microsoft.Extensions.Options.Options.DefaultName);
+
+        Assert.NotNull(options.ProviderPreferences);
+        Assert.True(options.ProviderPreferences.ZeroDataRetention);
+        Assert.True(options.ProviderPreferences.DenyDataCollection);
+    }
+
+    [Fact]
     public async Task BoundClient_SendsToTheBoundBaseAddress()
     {
         var configuration = Configuration(("ApiKey", "bound-key"), ("BaseAddress", "http://bound.local/api/"), ("MaxRetries", "0"));

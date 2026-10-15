@@ -77,6 +77,7 @@ internal static class Program
         await PipelineChecks.StandardStagesAddedThroughTheBuilder().ConfigureAwait(false);
         await PipelineChecks.StandardPipelineCanBeTurnedOff().ConfigureAwait(false);
         DecisionClientOptionsChecks.ValidateAcceptsValidOptionsAndRejectsInvalidOnes();
+        await DecisionClientOptionsChecks.OpenRouterProviderPreferencesAreSentAndRefusedElsewhere().ConfigureAwait(false);
         DecisionContentChecks.TextContentRoundTrips();
         DecisionContentChecks.JsonContentRoundTrips();
         await CriterionChecks.NotForTextsAreSentWithTheDescription().ConfigureAwait(false);

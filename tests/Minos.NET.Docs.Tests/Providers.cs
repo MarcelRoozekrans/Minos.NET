@@ -112,4 +112,15 @@ public static class OpenRouterModels
     public static SystemOneDecisionClientOptions Luna()
         => new() { Provider = SystemOneProvider.OpenRouter, Model = "openai/gpt-6-luna-decisions" };
     #endregion
+
+    #region ClientAndErrors_OpenRouterPrivacy
+    // Every request asks OpenRouter for zero-data-retention endpoints that collect no data. When none can serve it, the
+    // call fails instead of going to a provider that keeps the text.
+    public static SystemOneDecisionClientOptions ZeroDataRetention()
+        => new()
+        {
+            Provider = SystemOneProvider.OpenRouter,
+            ProviderPreferences = new OpenRouterProviderPreferences { ZeroDataRetention = true, DenyDataCollection = true },
+        };
+    #endregion
 }

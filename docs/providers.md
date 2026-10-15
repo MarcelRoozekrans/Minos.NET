@@ -288,6 +288,50 @@ public static SystemOneDecisionClientOptions Luna()
 ```
 <!-- endSnippet -->
 
+### Privacy: zero data retention
+
+By default, which OpenRouter endpoints may serve your requests is set by your account, at
+[openrouter.ai/settings/privacy](https://openrouter.ai/settings/privacy). `ProviderPreferences` lets the client require it
+on every request instead, so a misconfigured account or key cannot send your text to a provider that keeps it.
+
+- `ZeroDataRetention` sends `"zdr": true`: only zero-data-retention endpoints may serve the request.
+- `DenyDataCollection` sends `"data_collection": "deny"`: providers that collect user data are refused.
+
+Both go in OpenRouter's `provider` object, on every call: typed, built sets and raw `SystemOneRequest` calls alike.
+
+<!-- snippet: ClientAndErrors_OpenRouterPrivacy -->
+```cs
+// Every request asks OpenRouter for zero-data-retention endpoints that collect no data. When none can serve it, the
+// call fails instead of going to a provider that keeps the text.
+public static SystemOneDecisionClientOptions ZeroDataRetention()
+    => new()
+    {
+        Provider = SystemOneProvider.OpenRouter,
+        ProviderPreferences = new OpenRouterProviderPreferences { ZeroDataRetention = true, DenyDataCollection = true },
+    };
+```
+<!-- endSnippet -->
+
+From configuration:
+
+```json
+{
+  "Minos": {
+    "Provider": "OpenRouter",
+    "ProviderPreferences": { "ZeroDataRetention": true, "DenyDataCollection": true }
+  }
+}
+```
+
+- **OpenRouter only.** With any other `Provider`, a preference that is on makes the client throw
+  `ArgumentException` when it is built, and makes options validation fail at startup. A guarantee that would silently do
+  nothing is refused.
+- **Your account setting still applies.** The stricter of the two wins.
+- **When no endpoint qualifies**, OpenRouter refuses the request. You get a `DecisionError` with OpenRouter's status code
+  and its body in `Detail`, as for the `zdr-violation-by-account` refusals in the notes above, and the call is not
+  retried.
+- **What the live tests verified:** pending. This line is filled in by the live run after release.
+
 ## Capabilities
 
 A provider can accept less than the protocol allows. A server you run, for example, may answer one kind of question
