@@ -12,10 +12,12 @@ concurrency:
   group: release-please
   cancel-in-progress: false
 
-# Runs on the built-in GITHUB_TOKEN alone; no PAT or app key is stored. GitHub starts no workflow from an event that token
-# creates, so the release PR it opens, and the tracking commit pushed to it, get no CI of their own. The last job makes up
-# for that: workflow_dispatch is the one event the token may still trigger, so it dispatches ci.yml and the benchmark
-# smoke run on the release branch, and their checks report on the branch's head commit like any PR's.
+# The release PR and the tracking commit pushed to it are written with a token from the release bot GitHub App, not
+# the built-in GITHUB_TOKEN. GitHub starts no workflow from an event GITHUB_TOKEN creates, so with it the release PR got
+# no CI of its own and a job here had to dispatch ci.yml and the benchmark smoke run onto the release branch. Pushes made
+# with the App token raise ordinary pull_request events, so ci.yml and benchmarks.yml run on the release PR like on any
+# other. The App key is a stored credential, but it never expires and acts as no person; it needs the
+# RELEASE_BOT_CLIENT_ID variable and the RELEASE_BOT_PRIVATE_KEY secret.
 jobs:
   release-please:
     runs-on: ubuntu-latest
@@ -26,9 +28,23 @@ jobs:
       pr: ${{ steps.release.outputs.pr }}
 
     steps:
+      # Pushes and PRs made with GITHUB_TOKEN trigger no workflows, so bot PRs
+      # never got their required checks. A token from the release bot GitHub App
+      # acts as the App, and its pushes trigger CI like anyone else's.
+      - name: Mint a release bot token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.RELEASE_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+          permission-issues: write
+
       - uses: googleapis/release-please-action@v5
         id: release
         with:
+          token: ${{ steps.app-token.outputs.token }}
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
@@ -41,9 +57,19 @@ jobs:
     permissions:
       contents: write
     steps:
+      # The App token, so this push triggers the release PR's checks on its final head.
+      - name: Mint a release bot token
+        id: app-token
+        uses: actions/create-github-app-token@v3
+        with:
+          client-id: ${{ vars.RELEASE_BOT_CLIENT_ID }}
+          private-key: ${{ secrets.RELEASE_BOT_PRIVATE_KEY }}
+          permission-contents: write
+
       - uses: actions/checkout@v7
         with:
           ref: ${{ fromJSON(needs.release-please.outputs.pr).headBranchName }}
+          token: ${{ steps.app-token.outputs.token }}
 
       - name: Move Unshipped entries to Shipped
         run: |
@@ -63,24 +89,8 @@ jobs:
           git commit -am "chore: mark analyzer rules and public api shipped in $version"
           git push
 
-  # Runs the required checks on the release PR, after the tracking commit has landed so they test its final head.
-  check-release-pr:
-    needs: [release-please, ship-release-tracking]
-    if: ${{ needs.release-please.outputs.prs_created == 'true' }}
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-    env:
-      GH_TOKEN: ${{ github.token }}
-      BRANCH: ${{ fromJSON(needs.release-please.outputs.pr).headBranchName }}
-    steps:
-      - name: Dispatch CI and the benchmark smoke run on the release branch
-        run: |
-          gh workflow run ci.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH"
-          gh workflow run benchmarks.yml --repo "$GITHUB_REPOSITORY" --ref "$BRANCH" -f smoke-only=true
-
-  # Starts the nuget.org publish for a release. GitHub starts no workflow from an event the built-in token creates, so
-  # the release and its tag trigger nothing by themselves; workflow_dispatch is the one event the token may still start.
+  # Starts the nuget.org publish for a release. ci.yml has no tag or release trigger, so the publish run is started here,
+  # on the tag, by dispatch.
   # ci.yml's publish-nuget job refuses a 0.x version, so a 0.x release publishes nothing.
   publish:
     needs: release-please
