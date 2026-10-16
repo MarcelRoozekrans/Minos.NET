@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.1.1](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.1.0...v1.1.1) (2026-10-16)
+
+
+### Documentation
+
+* **docs:** record what the live run proved about OpenRouter provider preferences ([#214](https://github.com/MarcelRoozekrans/Minos.NET/issues/214)) ([cba51b3](https://github.com/MarcelRoozekrans/Minos.NET/commit/cba51b3b89b48e799f4f7c67122a62e6c5c60d64))
+
+
+### Dependencies
+
+* update dependency zeroalloc.results to 1.4.4 ([#220](https://github.com/MarcelRoozekrans/Minos.NET/issues/220)) ([aa0f446](https://github.com/MarcelRoozekrans/Minos.NET/commit/aa0f4463e3d2c9d71087d372056e954892edf5c7))
+* update zeroalloc shipped dependencies to 3.3.4 ([#221](https://github.com/MarcelRoozekrans/Minos.NET/issues/221)) ([85dea6a](https://github.com/MarcelRoozekrans/Minos.NET/commit/85dea6a8b76b2aaf9b208b11fa6c81ba67bccd3b))
+
 ## [1.1.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.0.1...v1.1.0) (2026-10-15)
 
 
