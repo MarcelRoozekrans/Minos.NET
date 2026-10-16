@@ -60,6 +60,25 @@
       "groupName": "ZeroAlloc"
     },
     {
+      "description": "The ZeroAlloc packages the library ships as dependencies. An update raises the minimum version consumers must take, and one who pins a lower version gets NU1605, so it must reach the changelog: the deps commit type appears under Dependencies and makes a patch release, where chore was hidden. 1.1.0 raised five floors this way with nothing in its notes. ZeroAlloc.Telemetry is pinned by its own rule above. Test and analyzer packages stay in the ZeroAlloc group and stay chore",
+      "matchManagers": ["nuget"],
+      "matchPackageNames": [
+        "ZeroAlloc.Resilience",
+        "ZeroAlloc.Rest",
+        "ZeroAlloc.Rest.SystemTextJson",
+        "ZeroAlloc.Results",
+        "ZeroAlloc.Validation"
+      ],
+      "groupName": "ZeroAlloc shipped dependencies",
+      "semanticCommitType": "deps",
+      "semanticCommitScope": null
+    },
+    {
+      "description": "The benchmark harnesses ship nothing, so their dependency updates stay chore and out of the changelog. Renovate otherwise titles an npm dependency fix(deps), and #208, a benchmark-only bump, was listed under Bug Fixes in 1.1.0",
+      "matchFileNames": ["benchmarks/**"],
+      "semanticCommitType": "chore"
+    },
+    {
       "description": "Group Roslyn analyzer packages",
       "matchPackageNames": [
         "Meziantou.Analyzer",

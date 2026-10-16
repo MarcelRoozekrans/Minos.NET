@@ -14,6 +14,22 @@
 * **deps:** update dependency @typesafe-ai/sdk to v0.7.0 ([#208](https://github.com/MarcelRoozekrans/Minos.NET/issues/208)) ([dfaa3f8](https://github.com/MarcelRoozekrans/Minos.NET/commit/dfaa3f82aed8c8295d3e4aa5a939716df0621967))
 
 
+### Dependencies
+
+These are the lowest versions the 1.1.0 packages require. If your project references one of them at a lower version, raise it, or the restore fails with NU1605:
+
+* **Minos.NET:**
+  * ZeroAlloc.Resilience 3.3.4, from 3.3.3;
+  * ZeroAlloc.Results 1.4.2, from 1.4.1;
+  * ZeroAlloc.Validation 2.3.2, from 2.3.1.
+* **Minos.NET.SystemOne:**
+  * ZeroAlloc.Rest 3.3.3, from 3.3.2;
+  * ZeroAlloc.Rest.SystemTextJson 3.3.3, from 3.3.2;
+  * ZeroAlloc.Results 1.4.2, from 1.4.1.
+
+The `@typesafe-ai/sdk` update under Bug Fixes only touches the benchmark harness; no package changed.
+
+
 ### Documentation
 
 * **ci:** explain a 409 from nuget.org, and record the reserved-prefix block ([#197](https://github.com/MarcelRoozekrans/Minos.NET/issues/197)) ([e0154ac](https://github.com/MarcelRoozekrans/Minos.NET/commit/e0154ac18ecb1cdfe8f2ec6e7157b00bc8b1b320))
