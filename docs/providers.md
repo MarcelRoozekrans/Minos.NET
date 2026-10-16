@@ -330,9 +330,15 @@ From configuration:
 - **When no endpoint qualifies**, OpenRouter refuses the request. You get a `DecisionError` with OpenRouter's status code
   and its body in `Detail`, as for the `zdr-violation-by-account` refusals in the notes above, and the call is not
   retried.
-- **`DenyDataCollection` and Jev:** not yet verified. Jev is on OpenRouter's zero-data-retention list, but whether it
-  also passes the data-collection filter is not published, so the examples leave it off.
-- **What the live tests verified:** pending. This line is filled in from the live run before the release.
+- **What the live tests verified**, on 2026-10-16 in
+  [live run 38857122239](https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/38857122239):
+  - OpenRouter's `/v1/systemone` reads the `provider` object. The same request was answered without it, and refused
+    with HTTP 404 when its `provider` object allowed no endpoint. OpenRouter named the routing step that refused it.
+  - Jev, served as `typesafe/jev-1.14-20261014`, answered with `ZeroDataRetention`, on a raw call and a typed call.
+  - Jev answered with `DenyDataCollection` too.
+- **What they could not show:** the test account already allows only zero-data-retention endpoints. A `zdr: true`
+  request therefore succeeds whether or not OpenRouter enforces that one flag. The proof is that the endpoint reads the
+  object; `zdr` is one of its documented fields.
 
 ## Capabilities
 
