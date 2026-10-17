@@ -52,23 +52,22 @@ internal static class DatasetReader
 
     private static DatasetItem? ReadItem(JsonElement root, int line, List<DatasetProblem> problems, Dictionary<string, int> ids)
     {
-        if (!new DatasetItemValidator(line, problems, ids).Validate(root))
+        var validator = new DatasetItemValidator(line, problems, ids);
+        var valid = validator.Validate(root);
+        if (!valid && !validator.QuestionsValid)
         {
             return null;
         }
 
-        var id = root.GetProperty("id").GetString()!;
-        var state = ToContent(root.GetProperty("state"));
-        string? source = root.TryGetProperty("source", out var sourceElement) ? sourceElement.GetString() : null;
-
         var builder = QuestionSet.CreateBuilder();
         var expected = new Dictionary<string, ExpectedAnswer>(StringComparer.Ordinal);
-        var expectedElement = root.GetProperty("expected");
 
+        // The questions are valid here, so the core's rules run even when other members have problems. Only a fully
+        // valid line goes on to read the other members, which are not checked otherwise.
         foreach (var question in root.GetProperty("questions").EnumerateObject())
         {
             AddQuestion(builder, question.Name, question.Value);
-            if (expectedElement.TryGetProperty(question.Name, out var answer))
+            if (valid && root.GetProperty("expected").TryGetProperty(question.Name, out var answer))
             {
                 expected[question.Name] = ReadAnswer(question.Value.GetProperty("type").GetString()!, answer);
             }
@@ -100,6 +99,14 @@ internal static class DatasetReader
             return null;
         }
 
+        if (!valid)
+        {
+            return null;
+        }
+
+        var id = root.GetProperty("id").GetString()!;
+        var state = ToContent(root.GetProperty("state"));
+        string? source = root.TryGetProperty("source", out var sourceElement) ? sourceElement.GetString() : null;
         return new DatasetItem(id, state, built.Value.Definition, expected, source, line);
     }
 
@@ -129,6 +136,7 @@ internal static class DatasetReader
             case "choice":
                 builder.Choice(key, instructions, out _, o =>
                 {
+                    // The validator guarantees the criteria shape; the default enumerator only covers a question with no criteria.
                     foreach (var option in criteria.ValueKind == JsonValueKind.Object ? criteria.EnumerateObject() : default)
                     {
                         if (option.Value.ValueKind == JsonValueKind.Null)
@@ -145,6 +153,7 @@ internal static class DatasetReader
             case "score":
                 builder.Score(key, instructions, out _, l =>
                 {
+                    // The validator guarantees the criteria shape; the default enumerator only covers a question with no criteria.
                     foreach (var level in criteria.ValueKind == JsonValueKind.Array ? criteria.EnumerateArray() : default)
                     {
                         l.Level(ToCriterion(level));

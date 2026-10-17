@@ -25,6 +25,12 @@ internal sealed class DatasetItemValidator
         _ids = ids;
     }
 
+    /// <summary>
+    /// Gets a value saying whether the <c>questions</c> object is sound enough to build a question set from, even when
+    /// other members of the line have problems. Set by <see cref="Validate"/>.
+    /// </summary>
+    internal bool QuestionsValid { get; private set; }
+
     /// <summary>Validates the line and reports whether it had no problem.</summary>
     internal bool Validate(JsonElement root)
     {
@@ -32,6 +38,14 @@ internal sealed class DatasetItemValidator
         if (root.ValueKind != JsonValueKind.Object)
         {
             Add("The line must be a JSON object.");
+            return false;
+        }
+
+        // A JSON string can hold an escaped unpaired surrogate. The parser accepts it but reading it as text throws,
+        // so every string and member name is checked once here and the checks below can read them safely.
+        CheckText(root, string.Empty);
+        if (_problems.Count > before)
+        {
             return false;
         }
 
@@ -55,6 +69,7 @@ internal sealed class DatasetItemValidator
 
         var shapes = new Dictionary<string, QuestionShape>(StringComparer.Ordinal);
         var questionsKnown = false;
+        var beforeQuestions = _problems.Count;
         if (!members.TryGetValue("questions", out var questions))
         {
             Missing("questions");
@@ -71,6 +86,8 @@ internal sealed class DatasetItemValidator
                 shapes[key] = ValidateQuestion($"questions.{key}", question);
             }
         }
+
+        QuestionsValid = questionsKnown && _problems.Count == beforeQuestions;
 
         if (!members.TryGetValue("expected", out var expected))
         {
@@ -121,8 +138,9 @@ internal sealed class DatasetItemValidator
     {
         if (members.TryGetValue("version", out var version) && !(TryInteger(version, out var number) && number == 1))
         {
-            var shown = version.ValueKind == JsonValueKind.Number ? version.GetRawText() : "that is not 1";
-            Add($"This file uses dataset format version {shown}; this loader reads version 1.");
+            Add(version.ValueKind == JsonValueKind.Number
+                ? $"This file uses dataset format version {version.GetRawText()}; this loader reads version 1."
+                : "'version' must be the number 1.");
         }
     }
 
@@ -312,13 +330,13 @@ internal sealed class DatasetItemValidator
 
                 break;
             default:
-                if (!TryInteger(answer, out var level))
+                if (!IsIntegerNumber(answer))
                 {
                     Add($"'{path}' must be an integer level index from 0 for a score question.");
                 }
-                else if (level < 0 || (shape.Levels >= 0 && level >= shape.Levels))
+                else if (!TryInteger(answer, out var level) || level < 0 || (shape.Levels >= 0 && level >= shape.Levels))
                 {
-                    Add($"'{path}' is {level.ToString(CultureInfo.InvariantCulture)}, which is out of range for the question's levels.");
+                    Add($"'{path}' is {answer.GetRawText()}, which is out of range for the question's levels.");
                 }
 
                 break;
@@ -349,6 +367,73 @@ internal sealed class DatasetItemValidator
         value = 0;
         return element.ValueKind == JsonValueKind.Number
             && int.TryParse(element.GetRawText(), NumberStyles.AllowLeadingSign, CultureInfo.InvariantCulture, out value);
+    }
+
+    private static bool IsIntegerNumber(JsonElement element)
+    {
+        if (element.ValueKind != JsonValueKind.Number)
+        {
+            return false;
+        }
+
+        var raw = element.GetRawText().AsSpan().TrimStart('-');
+        return raw.Length > 0 && raw.IndexOfAnyExceptInRange('0', '9') < 0;
+    }
+
+    private void CheckText(JsonElement element, string path)
+    {
+        switch (element.ValueKind)
+        {
+            case JsonValueKind.String:
+                if (!IsValidText(element))
+                {
+                    Add($"'{path}' holds text that is not valid Unicode, such as an unpaired surrogate escape.");
+                }
+
+                break;
+            case JsonValueKind.Object:
+                foreach (var property in element.EnumerateObject())
+                {
+                    string name;
+                    try
+                    {
+                        name = property.Name;
+                    }
+                    catch (InvalidOperationException)
+                    {
+                        Add($"A member name in '{path}' is not valid Unicode, such as an unpaired surrogate escape.");
+                        continue;
+                    }
+
+                    CheckText(property.Value, path.Length == 0 ? name : $"{path}.{name}");
+                }
+
+                break;
+            case JsonValueKind.Array:
+                var index = 0;
+                foreach (var entry in element.EnumerateArray())
+                {
+                    CheckText(entry, $"{path}[{index.ToString(CultureInfo.InvariantCulture)}]");
+                    index++;
+                }
+
+                break;
+            default:
+                break;
+        }
+    }
+
+    private static bool IsValidText(JsonElement element)
+    {
+        try
+        {
+            _ = element.GetString();
+            return true;
+        }
+        catch (InvalidOperationException)
+        {
+            return false;
+        }
     }
 
     private static bool IsContent(JsonElement element)

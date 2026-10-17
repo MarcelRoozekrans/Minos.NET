@@ -173,7 +173,66 @@ public sealed class DatasetProblemTests
         var line = Item(questions: """{"q":{"type":"choice","instructions":"i"}}""", expected: """{"q":"x"}""");
         var problems = Problems(OnLine2(line));
         Assert.All(problems, p => Assert.Equal(2, p.Line));
-        Assert.Contains(problems, p => p.Message.StartsWith("MIN", StringComparison.Ordinal));
+        Assert.Contains(problems, p => p.Message.StartsWith("MIN001", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ShapeProblemAndCoreRuleOnTheSameLine_AreBothReported()
+    {
+        var line = Item(
+            state: "7",
+            questions: """{"q":{"type":"noul","instructions":"  "}}""");
+
+        var problems = Problems(OnLine2(line));
+
+        Assert.All(problems, p => Assert.Equal(2, p.Line));
+        Assert.Contains(problems, p => p.Message.Contains("'state'", StringComparison.Ordinal));
+        Assert.Contains(problems, p => p.Message.StartsWith("MIN003", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void VersionThatIsNotANumber()
+        => AssertSingle(Item(extra: ""","version":"one" """), "'version' must be the number 1");
+
+    [Fact]
+    public void ScoreLevelBeyondInt32_IsOutOfRange()
+        => AssertSingle(
+            Item(
+                questions: """{"q":{"type":"score","instructions":"i","criteria":["a","b"]}}""",
+                expected: """{"q":3000000000}"""),
+            "out of range");
+
+    // Built in the test body: xUnit turns an unpaired surrogate in theory data into U+FFFD.
+    [Fact]
+    public void UnpairedSurrogateEscape_InEveryStringPosition_IsAProblemNotAnException()
+    {
+        const string Bad = "\\ud800";
+        var lines = new[]
+        {
+            Item(id: $"\"{Bad}\""),
+            Item(state: $"\"{Bad}\""),
+            Item(extra: $",\"source\":\"{Bad}\""),
+            Item(questions: """{"q":{"type":"BAD","instructions":"i"}}""".Replace("BAD", Bad, StringComparison.Ordinal)),
+            Item(questions: """{"q":{"type":"noul","instructions":"BAD"}}""".Replace("BAD", Bad, StringComparison.Ordinal)),
+            Item(questions: """{"q":{"type":"noul","instructions":"i","criteria":{"true":"BAD"}}}""".Replace("BAD", Bad, StringComparison.Ordinal)),
+            Item(
+                questions: """{"q":{"type":"choice","instructions":"i","criteria":{"x":{"description":"d","examples":["BAD"]},"y":null}}}""".Replace("BAD", Bad, StringComparison.Ordinal),
+                expected: """{"q":"x"}"""),
+            Item(
+                questions: """{"q":{"type":"choice","instructions":"i","criteria":{"BAD":"d","y":null}}}""".Replace("BAD", Bad, StringComparison.Ordinal),
+                expected: """{"q":"y"}"""),
+            Item(
+                questions: """{"q":{"type":"choice","instructions":"i","criteria":{"x":"d","y":null}}}""",
+                expected: """{"q":"BAD"}""".Replace("BAD", Bad, StringComparison.Ordinal)),
+            Item(questions: """{"BAD":{"type":"noul","instructions":"i"}}""".Replace("BAD", Bad, StringComparison.Ordinal), expected: "{}"),
+        };
+
+        foreach (var line in lines)
+        {
+            var problems = Problems(OnLine2(line));
+            Assert.All(problems, p => Assert.Equal(2, p.Line));
+            Assert.Contains(problems, p => p.Message.Contains("not valid Unicode", StringComparison.Ordinal));
+        }
     }
 
     [Fact]
