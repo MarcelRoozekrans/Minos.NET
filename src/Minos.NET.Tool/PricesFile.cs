@@ -95,5 +95,5 @@ internal static class PricesFile
     }
 
     private static Result<PriceTable, string> Fail(string path, string message)
-        => Result<PriceTable, string>.Failure("The prices file '" + path + "' is invalid: " + message);
+        => Result<PriceTable, string>.Failure("The prices file '" + path + "' is invalid: " + CalibrateCommand.OneLine(message));
 }

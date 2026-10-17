@@ -66,19 +66,19 @@ internal static class CalibrateCommand
         {
             return await ExecuteAsync(request, stdout, stderr, network, ct).ConfigureAwait(false);
         }
-        catch (OperationCanceledException) when (ct.IsCancellationRequested)
+        catch (Exception ex) when (ct.IsCancellationRequested && ex is OperationCanceledException or DatasetRunException)
         {
             await stderr.WriteLineAsync("Cancelled.").ConfigureAwait(false);
             return ExitCodes.Cancelled;
         }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
-            await stderr.WriteLineAsync("The output cannot be written: " + ex.Message).ConfigureAwait(false);
+            await stderr.WriteLineAsync("The output cannot be written: " + OneLine(ex.Message)).ConfigureAwait(false);
             return ExitCodes.Failure;
         }
         catch (Exception ex)
         {
-            await stderr.WriteLineAsync("The run failed: " + ex.Message).ConfigureAwait(false);
+            await stderr.WriteLineAsync("The run failed: " + OneLine(ex.Message)).ConfigureAwait(false);
             return ExitCodes.Failure;
         }
     }
@@ -122,13 +122,13 @@ internal static class CalibrateCommand
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
-            await stderr.WriteLineAsync("The options of provider '" + name + "' are invalid: " + ex.Message).ConfigureAwait(false);
+            await stderr.WriteLineAsync("The options of provider '" + name + "' are invalid: " + OneLine(ex.Message)).ConfigureAwait(false);
             return ExitCodes.Usage;
         }
 
         using (client)
         {
-            var outDir = request.Out ?? DefaultOut(name);
+            var outDir = request.Out ?? NextDefaultOut("minos-out", name, DateTime.UtcNow);
             var runOptions = new DatasetRunOptions
             {
                 MaxParallelism = request.Parallel,
@@ -150,6 +150,9 @@ internal static class CalibrateCommand
             Directory.CreateDirectory(outDir);
             var resultsFile = Path.Combine(outDir, stopped is null ? "results.jsonl" : "results.partial.jsonl");
             results.Save(resultsFile);
+
+            // A previous run in this directory may have left the other kind of results file; it would contradict this run.
+            File.Delete(Path.Combine(outDir, stopped is null ? "results.partial.jsonl" : "results.jsonl"));
             await stdout.WriteLineAsync(resultsFile).ConfigureAwait(false);
 
             var report = CalibrationReport.Create(results, loaded.Value, priceTable);
@@ -168,7 +171,7 @@ internal static class CalibrateCommand
 
             if (stopped is not null)
             {
-                await stderr.WriteLineAsync(stopped.Message).ConfigureAwait(false);
+                await stderr.WriteLineAsync(OneLine(stopped.Message)).ConfigureAwait(false);
                 return ExitCodes.Failure;
             }
 
@@ -176,8 +179,22 @@ internal static class CalibrateCommand
         }
     }
 
-    private static string DefaultOut(string provider)
-        => Path.Combine("minos-out", provider + "-" + DateTime.UtcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture));
+    /// <summary>The default output directory, <c>&lt;root&gt;/&lt;provider&gt;-&lt;UTC time&gt;</c>, with -2, -3 and so on when it exists.</summary>
+    internal static string NextDefaultOut(string root, string provider, DateTime utcNow)
+    {
+        var baseName = Path.Combine(root, provider + "-" + utcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture));
+        var candidate = baseName;
+        for (var n = 2; Directory.Exists(candidate) || File.Exists(candidate); n++)
+        {
+            candidate = baseName + "-" + n.ToString(CultureInfo.InvariantCulture);
+        }
+
+        return candidate;
+    }
+
+    /// <summary>Makes a message one line, so a failure is one line on stderr.</summary>
+    internal static string OneLine(string message)
+        => string.Join(' ', message.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
 
     private static async Task PrintProblemsAsync(TextWriter stderr, DatasetProblems problems)
     {

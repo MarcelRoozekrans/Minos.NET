@@ -2,6 +2,7 @@ using System.Text.Json.Nodes;
 
 namespace Minos.Tool.Tests;
 
+[Collection(ProcessEnvironment.Name)]
 public sealed class CalibrateTests : IDisposable
 {
     private readonly string _dir = Directory.CreateTempSubdirectory("minos-tool-").FullName;
@@ -242,6 +243,78 @@ public sealed class CalibrateTests : IDisposable
 
         Assert.Equal(0, run.Exit);
         Assert.NotEqual("stale", File.ReadAllText(Path.Combine(Out, "report.md")));
+    }
+
+    [Fact]
+    public async Task SuccessfulRun_RemovesAStalePartialResultsFile()
+    {
+        Directory.CreateDirectory(Out);
+        File.WriteAllText(Path.Combine(Out, "results.partial.jsonl"), "stale");
+
+        var run = await Invoke(new FakeSystemOne(), Calibrate(Dataset(), Config(), Out));
+
+        Assert.Equal(0, run.Exit);
+        Assert.False(File.Exists(Path.Combine(Out, "results.partial.jsonl")));
+        Assert.True(File.Exists(Path.Combine(Out, "results.jsonl")));
+    }
+
+    [Fact]
+    public async Task PartialRun_RemovesAStaleResultsFile()
+    {
+        Directory.CreateDirectory(Out);
+        File.WriteAllText(Path.Combine(Out, "results.jsonl"), "stale");
+
+        var run = await Invoke(new FakeSystemOne { ThrowFromRequest = 2 }, Calibrate(Dataset(4), Config(), Out));
+
+        Assert.Equal(1, run.Exit);
+        Assert.False(File.Exists(Path.Combine(Out, "results.jsonl")));
+        Assert.True(File.Exists(Path.Combine(Out, "results.partial.jsonl")));
+    }
+
+    [Fact]
+    public async Task FaultWhileCancelled_Exits130()
+    {
+        using var cts = new CancellationTokenSource();
+        var fake = new FakeSystemOne
+        {
+            ThrowFromRequest = 2,
+            Gate = async () =>
+            {
+                await cts.CancelAsync();
+            },
+        };
+        var stdout = new StringWriter();
+        var stderr = new StringWriter();
+
+        var exit = await MinosCli.RunAsync(Calibrate(Dataset(4), Config(), Out), stdout, stderr, () => fake, cts.Token);
+
+        Assert.Equal(130, exit);
+    }
+
+    [Fact]
+    public async Task MultiLineFailure_IsOneLineOnStderr()
+    {
+        var fake = new FakeSystemOne { ThrowFromRequest = 2, FaultMessage = "first line\r\nsecond line\nthird" };
+        var run = await Invoke(fake, Calibrate(Dataset(4), Config(), Out));
+
+        Assert.Equal(1, run.Exit);
+        var line = Assert.Single(run.Stderr.Split('\n', StringSplitOptions.RemoveEmptyEntries));
+        Assert.Contains("first line second line third", line, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DefaultOut_IsProviderAndUtcTime_AndNeverReusesADirectory()
+    {
+        var when = new DateTime(2026, 10, 17, 13, 5, 9, DateTimeKind.Utc);
+        var first = CalibrateCommand.NextDefaultOut(_dir, "Fake", when);
+        Assert.Equal(Path.Combine(_dir, "Fake-20261017-130509"), first);
+
+        Directory.CreateDirectory(first);
+        var second = CalibrateCommand.NextDefaultOut(_dir, "Fake", when);
+        Assert.Equal(first + "-2", second);
+
+        Directory.CreateDirectory(second);
+        Assert.Equal(first + "-3", CalibrateCommand.NextDefaultOut(_dir, "Fake", when));
     }
 
     [Fact]

@@ -25,6 +25,9 @@ internal sealed class FakeSystemOne : HttpMessageHandler
     /// <summary>Throws from the Nth request on (1-based), the way a faulty client does.</summary>
     public int? ThrowFromRequest { get; init; }
 
+    /// <summary>The message of the exception thrown from <see cref="ThrowFromRequest"/>.</summary>
+    public string FaultMessage { get; init; } = "the fake broke";
+
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         var n = Interlocked.Increment(ref _count);
@@ -46,7 +49,7 @@ internal sealed class FakeSystemOne : HttpMessageHandler
 
             if (ThrowFromRequest is { } from && n >= from)
             {
-                throw new InvalidOperationException("the fake broke");
+                throw new InvalidOperationException(FaultMessage);
             }
 
             Assert.Equal(HttpMethod.Post, request.Method);

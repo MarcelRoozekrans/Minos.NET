@@ -2,7 +2,6 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <RootNamespace>Minos.Tool</RootNamespace>
-    <AssemblyName>minos</AssemblyName>
     <PackageId>Minos.NET.Tool</PackageId>
     <Title>Minos.NET.Tool</Title>
     <!-- Not packed yet: Phase 8.3 task 4 packs it as a dotnet tool. -->
