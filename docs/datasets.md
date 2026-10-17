@@ -30,14 +30,15 @@ The example is one line. It is shown on a single line because JSONL needs that.
 
 | Member | Required | Content |
 | --- | --- | --- |
-| `id` | yes | A string, unique within the file. |
+| `id` | yes | A non-empty string, unique within the file. |
 | `state` | yes | A string, or a JSON object or array for structured state. A number, boolean or `null` is a problem. |
 | `questions` | yes | An object of questions keyed by question key, at least one. |
 | `expected` | yes | The right answer for each question key, described below. Every key must name a question. A question with no expected answer is still sent, but it is not scored. |
-| `source` | no | Free text that names where the item came from. |
+| `source` | no | A string of free text that names where the item came from. |
 | `version` | no | The format version. When it is present it must be `1`. |
 
-Any other member is a problem. A typo such as `expect` is reported instead of being dropped without a word.
+Any other member is a problem. A typo such as `expect` is reported instead of being dropped without a word. A member
+that appears twice in the same object is a problem too.
 
 ### Questions
 
@@ -45,12 +46,17 @@ Each question is an object with these members:
 
 - `type` is `noul`, `choice` or `score`.
 - `instructions` is a string, or a JSON object or array for structured instructions.
-- `criteria` depends on the kind. A Noul may have `{"true": ..., "false": ...}`, with either side left out. A Choice needs
-  an object of options, where each description is `null`, a string or a criterion object. A Score needs an ordered list of
-  levels, where each level is a string or a criterion object.
+- `criteria` depends on the kind:
+  - A Noul may have `{"true": ..., "false": ...}`, with either side left out. Each side is a string, or a JSON object
+    or array, and it is read as content. It is not a criterion object.
+  - A Choice needs an object of options, where each description is `null`, a string or a criterion object.
+  - A Score needs an ordered list of levels, where each level is a string or a criterion object.
 
-A criterion object has the members `description`, `examples` and `not_for`, which are the description, the list of
-examples and the list of things the option is not for. Criteria that are JSON values are not part of version 1.
+A criterion object, for a Choice option or a Score level, has the members `description`, `examples` and `not_for`.
+`description` is required and is a string. `examples` and `not_for` are optional arrays of strings: the examples of the
+option, and the things the option is not for. A criterion object holds text only. A JSON object or array as the
+description of a Choice option or a Score level is not part of version 1, although the sides of a Noul may be JSON
+values, as above.
 
 The questions go through the same checks as a question set built at run time, so the rules of
 [Question sets at run time](question-sets-at-run-time.md) apply, with the same `MIN` ids.
@@ -72,16 +78,18 @@ A file with bad content does not throw. `DecisionDataset.Parse` and `DecisionDat
 either the dataset or the full list of problems, so you fix a file in one pass instead of one error at a time. The list
 is a `DatasetProblems`, and each `DatasetProblem` has a 1-based `Line` and a `Message`.
 
-A problem the core finds in a question starts with its `MIN` id, for example `MIN003: ...`. The core's warnings count
-as problems here too, because an item with blank instructions, or with a Score of fewer than two levels, is a broken
-item.
+A problem the core finds in a question starts with its `MIN` id, for example `MIN003: ...`. The core's warnings
+count as problems here too, all of them, because an item that breaks one is a broken item. MIN003 reports blank text,
+such as blank instructions or a blank description. MIN005 reports a Score with fewer than two levels or more than 10, and a Choice with more
+than 255 options.
 
 The loader throws only when the file does not exist or cannot be read.
 
 ## The version
 
-The `version` member is optional. A line without it is read as version 1, and a line with any other value is a problem
-that says: "This file uses dataset format version N; this loader reads version 1." A later version of the format will
+The `version` member is optional. A line without it is read as version 1. A number other than 1 is a problem
+that says: "This file uses dataset format version N; this loader reads version 1." A value that is not a number is a
+problem that says: "'version' must be the number 1." A later version of the format will
 raise the number, and a loader that does not know it refuses the file instead of guessing.
 
 The decision export planned for Milestone 9 will write this format, and will use a new version if it needs members that
