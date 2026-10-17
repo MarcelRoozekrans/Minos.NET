@@ -354,6 +354,22 @@ public sealed class ResultsFileTests
     }
 
     [Fact]
+    public void UnknownMembers_AreProblems()
+    {
+        // A typo must not read as a missing optional member: "cots" is not an unknown cost.
+        AssertProblemOnLine(HeaderLine(count: 1) + "\n" + ItemLine(body: ",\"cots\":0.1"), 2, "Unknown member 'cots'");
+        AssertProblemOnLine(HeaderLine().Replace("\"parallelism\":1", "\"parallelism\":1,\"extra\":true", StringComparison.Ordinal), 1, "Unknown member 'extra'");
+        AssertProblemOnLine(
+            HeaderLine(count: 1) + "\n" + ItemLine(tail: ",\"answers\":{\"q\":{\"kind\":\"score\",\"value\":1,\"confidence\":0.5,\"confidense\":0.5}}"),
+            2,
+            "Unknown member 'answers.q.confidense'");
+        AssertProblemOnLine(
+            HeaderLine(count: 1) + "\n" + ItemLine(tail: ",\"error\":{\"kind\":\"Http\",\"statusCode\":null,\"message\":\"x\",\"code\":1}"),
+            2,
+            "Unknown member 'error.code'");
+    }
+
+    [Fact]
     public void TimestampWithoutOffset_IsAProblem()
     {
         AssertProblemOnLine(HeaderLine().Replace("2026-10-17T09:30:15Z", "2026-10-17T09:30:15", StringComparison.Ordinal), 1, "started");

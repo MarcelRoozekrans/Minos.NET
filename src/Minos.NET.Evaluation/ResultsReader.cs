@@ -7,6 +7,16 @@ namespace Minos.Evaluation;
 // Reads the results file, version 1, reporting what is wrong as line-numbered problems.
 internal static class ResultsReader
 {
+    // The members each object may have. Any other member is a problem, so a typo such as "cots" cannot read as a
+    // missing optional member.
+    private static readonly string[] HeaderMembers = ["kind", "version", "dataset", "itemCount", "providerName", "endpoint", "defaultModel", "started", "finished", "parallelism"];
+
+    private static readonly string[] ItemMembers = ["id", "line", "latencyMs", "cached", "model", "inputTokens", "outputTokens", "cost", "responseId", "answers", "error"];
+
+    private static readonly string[] AnswerMembers = ["kind", "value", "confidence", "probability"];
+
+    private static readonly string[] ErrorMembers = ["kind", "statusCode", "message"];
+
     internal static Result<EvaluationResults, DatasetProblems> Read(ILineSource lines)
     {
         var problems = new List<DatasetProblem>();
@@ -115,7 +125,7 @@ internal static class ResultsReader
         }
 
         var before = problems.Count;
-        Fields.CheckDuplicates(root, line, problems, string.Empty);
+        Fields.CheckMembers(root, line, problems, string.Empty, HeaderMembers);
         var r = new Fields(root, line, problems);
         var kind = r.String("kind", required: true);
         if (kind is not null && !string.Equals(kind, ResultsFormat.Kind, StringComparison.Ordinal))
@@ -176,7 +186,7 @@ internal static class ResultsReader
         }
 
         var before = problems.Count;
-        Fields.CheckDuplicates(root, line, problems, string.Empty);
+        Fields.CheckMembers(root, line, problems, string.Empty, ItemMembers);
         var r = new Fields(root, line, problems);
         var id = r.String("id", required: true);
         var itemLine = r.Int("line", min: ResultsRules.MinLine);
@@ -264,7 +274,7 @@ internal static class ResultsReader
         }
 
         var before = problems.Count;
-        Fields.CheckDuplicates(element, line, problems, where + ".");
+        Fields.CheckMembers(element, line, problems, where + ".", AnswerMembers);
         var r = new Fields(element, line, problems, where + ".");
         var kind = r.String("kind", required: true);
         var confidence = r.Double("confidence", unit: true);
@@ -348,7 +358,7 @@ internal static class ResultsReader
         }
 
         var before = problems.Count;
-        Fields.CheckDuplicates(element, line, problems, "error.");
+        Fields.CheckMembers(element, line, problems, "error.", ErrorMembers);
         var r = new Fields(element, line, problems, "error.");
         var kind = r.String("kind", required: true);
         var status = r.Int("statusCode", required: false);
@@ -375,12 +385,17 @@ internal static class ResultsReader
             return null;
         }
 
-        internal static void CheckDuplicates(JsonElement element, int line, List<DatasetProblem> problems, string prefix)
+        // Each member once, and only the members the object may have.
+        internal static void CheckMembers(JsonElement element, int line, List<DatasetProblem> problems, string prefix, string[] allowed)
         {
             var names = new HashSet<string>(StringComparer.Ordinal);
             foreach (var property in element.EnumerateObject())
             {
-                if (!names.Add(property.Name))
+                if (Array.IndexOf(allowed, property.Name) < 0)
+                {
+                    problems.Add(new DatasetProblem(line, $"Unknown member '{prefix}{property.Name}'."));
+                }
+                else if (!names.Add(property.Name))
                 {
                     problems.Add(new DatasetProblem(line, $"Member '{prefix}{property.Name}' appears twice."));
                 }
