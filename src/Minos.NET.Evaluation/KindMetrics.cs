@@ -35,7 +35,9 @@ public sealed class KindMetrics
     /// <summary>
     /// Gets what a constant answer per question would score: for each question key, the count of its most common
     /// expected answer among answered questions, summed over the keys and divided by <see cref="Answered"/>. For a Noul
-    /// question that is the larger of its true and false counts. <see langword="null"/> when none is answered.
+    /// question that is the larger of its true and false counts. It is taken from the same answers it is compared with,
+    /// over the answered questions only, so it is high when a question has few answers: a question answered once always
+    /// matches it. <see langword="null"/> when none is answered.
     /// </summary>
     public double? BaseRate { get; }
 

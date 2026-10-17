@@ -92,6 +92,32 @@ public sealed class ReportOutputTests
     }
 
     [Fact]
+    public void Markdown_SaysTheBaseRateIsInSample()
+    {
+        var markdown = AllKindsReport().ToMarkdown();
+
+        Assert.Contains("per question, over the answered questions only", markdown, StringComparison.Ordinal);
+        Assert.Contains("a question answered once always matches its base rate", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Markdown_NamesNoCurrencyOfItsOwn()
+    {
+        var markdown = AllKindsReport().ToMarkdown();
+
+        Assert.Contains("in the currency of the prices and reported costs.", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("US dollars", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("OpenRouter", markdown.Split("## Cost")[1].Split("Prices used")[0], StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Markdown_SaysInvalidResponsesAreBilled()
+        => Assert.Contains(
+            "An InvalidResponse request was served and billed",
+            AllKindsReport().ToMarkdown(),
+            StringComparison.Ordinal);
+
+    [Fact]
     public void EmptyAndAllFailed_RenderWithoutNaN()
     {
         var empty = Report(Results(), Dataset());

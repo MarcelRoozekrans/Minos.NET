@@ -133,7 +133,7 @@ Median 700 ms, p95 1300 ms, over 14 requests.
 
 ## Cost
 
-Per 1,000 decisions: 0.521, in the currency of the prices and reported costs (OpenRouter reports US dollars).
+Per 1,000 decisions: 0.521, in the currency of the prices and reported costs.
 
 Cost came from the provider for 4 items, from a price for 4, and was unknown for 6. Cached responses left out: 0.
 
@@ -147,8 +147,8 @@ Every question with an expected answer is scored against it. The number a thresh
 
 Answers are sorted by confidence and split into up to ten bins of equal size, give or take one answer. In a well-calibrated model the accuracy of each bin is close to its mean confidence. ECE, the expected calibration error, is the gap between the two averaged over the bins, weighted by how many answers each holds: 0 is perfect, and larger is worse. The equal-width column does the same over ten bins of equal confidence width, which can leave bins empty or crowded.
 
-The base rate is what you would score by always giving the most common expected answer for each question. An accuracy that does not beat it says little.
+The base rate is what you would score by always giving the most common expected answer for each question. It is worked out per question, over the answered questions only, from the same answers it is compared with, so it is high when a question has few answers: a question answered once always matches its base rate. An accuracy that does not beat it says little.
 
-A failed request is an abstention. Accuracy, base rate and calibration use the answers that came back; the sweep's coverage is a share of all scored questions, so a failed request counts as not covered. Responses served from a cache are left out of latency and cost.
+A failed request is an abstention. Accuracy, base rate and calibration use the answers that came back; the sweep's coverage is a share of all scored questions, so a failed request counts as not covered. An InvalidResponse request was served and billed, so its cost is in the cost and its model in the responses served, but like every failed request it is left out of latency. Responses served from a cache are left out of latency and cost.
 
 With few answers every figure moves a lot: a bin of three answers can only show an accuracy of 0, a third, two thirds or 1. Treat results from a small sample as a first look, not a measurement.

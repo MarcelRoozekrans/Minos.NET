@@ -152,7 +152,7 @@ internal static class ReportMarkdownWriter
 
     private static void WriteCost(StringBuilder md, CostSummary cost)
     {
-        md.Append("## Cost\n\nPer 1,000 decisions: ").Append(Cost(cost.PerThousandDecisions)).Append(", in the currency of the prices and reported costs (OpenRouter reports US dollars).\n\n")
+        md.Append("## Cost\n\nPer 1,000 decisions: ").Append(Cost(cost.PerThousandDecisions)).Append(", in the currency of the prices and reported costs.\n\n")
             .Append("Cost came from the provider for ").Append(Count(cost.Reported)).Append(" items, from a price for ").Append(Count(cost.Priced))
             .Append(", and was unknown for ").Append(Count(cost.Unknown)).Append(". Cached responses left out: ").Append(Count(cost.Cached)).Append(".\n\n");
         if (cost.PricesUsed.Count == 0)
@@ -180,9 +180,9 @@ internal static class ReportMarkdownWriter
 
             Answers are sorted by confidence and split into up to ten bins of equal size, give or take one answer. In a well-calibrated model the accuracy of each bin is close to its mean confidence. ECE, the expected calibration error, is the gap between the two averaged over the bins, weighted by how many answers each holds: 0 is perfect, and larger is worse. The equal-width column does the same over ten bins of equal confidence width, which can leave bins empty or crowded.
 
-            The base rate is what you would score by always giving the most common expected answer for each question. An accuracy that does not beat it says little.
+            The base rate is what you would score by always giving the most common expected answer for each question. It is worked out per question, over the answered questions only, from the same answers it is compared with, so it is high when a question has few answers: a question answered once always matches its base rate. An accuracy that does not beat it says little.
 
-            A failed request is an abstention. Accuracy, base rate and calibration use the answers that came back; the sweep's coverage is a share of all scored questions, so a failed request counts as not covered. Responses served from a cache are left out of latency and cost.
+            A failed request is an abstention. Accuracy, base rate and calibration use the answers that came back; the sweep's coverage is a share of all scored questions, so a failed request counts as not covered. An InvalidResponse request was served and billed, so its cost is in the cost and its model in the responses served, but like every failed request it is left out of latency. Responses served from a cache are left out of latency and cost.
 
             With few answers every figure moves a lot: a bin of three answers can only show an accuracy of 0, a third, two thirds or 1. Treat results from a small sample as a first look, not a measurement.
 
