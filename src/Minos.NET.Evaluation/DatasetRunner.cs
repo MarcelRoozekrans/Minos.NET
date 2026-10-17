@@ -8,17 +8,19 @@ public static class DatasetRunner
 {
     /// <summary>
     /// Sends every item of <paramref name="dataset"/> to <paramref name="client"/> and records the outcomes. A failed item
-    /// is recorded, never thrown, and the run never stops early.
+    /// is recorded, never thrown, and the run never stops early for it. The exception is an exception thrown by the client
+    /// or by <see cref="DatasetRunOptions.Progress"/>: the first one stops the other workers from sending more requests
+    /// (requests already in flight may finish) and is rethrown as it was thrown.
     /// </summary>
     /// <param name="client">The client to evaluate with.</param>
     /// <param name="dataset">The dataset to run.</param>
     /// <param name="options">Run settings, or <see langword="null"/> for the defaults.</param>
     /// <param name="cancellationToken">A token that stops the run by throwing.</param>
     /// <returns>The results, in dataset order.</returns>
-    /// <exception cref="ArgumentNullException"><paramref name="client"/> or <paramref name="dataset"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentOutOfRangeException"><see cref="DatasetRunOptions.MaxParallelism"/> is below 1.</exception>
+    /// <exception cref="ArgumentNullException"><paramref name="client"/> or <paramref name="dataset"/> is <see langword="null"/>; thrown before the task is returned.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><see cref="DatasetRunOptions.MaxParallelism"/> is below 1; thrown before the task is returned.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
-    public static async Task<EvaluationResults> RunAsync(
+    public static Task<EvaluationResults> RunAsync(
         IDecisionClient client,
         DecisionDataset dataset,
         DatasetRunOptions? options = null,
@@ -28,27 +30,46 @@ public static class DatasetRunner
         ArgumentNullException.ThrowIfNull(dataset);
         options ??= new DatasetRunOptions();
         ArgumentOutOfRangeException.ThrowIfLessThan(options.MaxParallelism, 1, nameof(options));
-        var time = options.TimeProvider ?? TimeProvider.System;
+        return RunCoreAsync(client, dataset, options, cancellationToken);
+    }
 
+    private static async Task<EvaluationResults> RunCoreAsync(
+        IDecisionClient client,
+        DecisionDataset dataset,
+        DatasetRunOptions options,
+        CancellationToken cancellationToken)
+    {
+        var time = options.TimeProvider ?? TimeProvider.System;
         var metadata = client.GetService<DecisionClientMetadata>();
         var started = time.GetUtcNow();
         var results = new ItemResult[dataset.Count];
         var next = -1;
         var completed = 0;
 
+        // Cancelled by the caller's token, or by the first worker to fault.
+        using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        var token = stop.Token;
+
         async Task Worker()
         {
-            while (true)
+            try
             {
-                cancellationToken.ThrowIfCancellationRequested();
-                var index = Interlocked.Increment(ref next);
-                if (index >= results.Length)
+                while (!token.IsCancellationRequested)
                 {
-                    return;
-                }
+                    var index = Interlocked.Increment(ref next);
+                    if (index >= results.Length)
+                    {
+                        return;
+                    }
 
-                results[index] = await RunItemAsync(client, dataset[index], time, cancellationToken).ConfigureAwait(false);
-                options.Progress?.Report(Interlocked.Increment(ref completed));
+                    results[index] = await RunItemAsync(client, dataset[index], time, token, cancellationToken).ConfigureAwait(false);
+                    options.Progress?.Report(Interlocked.Increment(ref completed));
+                }
+            }
+            catch
+            {
+                await stop.CancelAsync().ConfigureAwait(false);
+                throw;
             }
         }
 
@@ -59,6 +80,7 @@ public static class DatasetRunner
         }
 
         await Task.WhenAll(workers).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
 
         var header = new RunHeader(
             options.DatasetName,
@@ -72,13 +94,13 @@ public static class DatasetRunner
         return new EvaluationResults(header, new ReadOnlyCollection<ItemResult>(results));
     }
 
-    private static async Task<ItemResult> RunItemAsync(IDecisionClient client, DatasetItem item, TimeProvider time, CancellationToken cancellationToken)
+    private static async Task<ItemResult> RunItemAsync(IDecisionClient client, DatasetItem item, TimeProvider time, CancellationToken token, CancellationToken cancellationToken)
     {
         var begin = time.GetTimestamp();
         Result<DecisionResponse, DecisionError> outcome;
         try
         {
-            outcome = await client.EvaluateAsync(new DecisionRequest(item.Definition, item.State), cancellationToken).ConfigureAwait(false);
+            outcome = await client.EvaluateAsync(new DecisionRequest(item.Definition, item.State), token).ConfigureAwait(false);
         }
         catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {

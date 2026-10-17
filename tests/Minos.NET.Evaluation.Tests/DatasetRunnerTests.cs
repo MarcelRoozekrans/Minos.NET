@@ -53,42 +53,68 @@ public sealed class DatasetRunnerTests
     [Fact]
     public async Task ResultsAreInDatasetOrder_WithParallelism4()
     {
-        var dataset = Many(12);
+        var dataset = Many(8);
+        var completion = new System.Collections.Concurrent.ConcurrentQueue<string>();
+        var firstDone = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var client = new FakeDecisionClient(async (r, ct) =>
         {
-            var index = int.Parse(((string)r.State.ToString()).Split(' ')[^1][1..], System.Globalization.CultureInfo.InvariantCulture);
-            await Task.Delay((12 - index) * 5, ct);
+            var id = r.State.ToString().Split(' ')[^1];
+            if (string.Equals(id, "i0", StringComparison.Ordinal))
+            {
+                // The first item finishes only after another one has, so completion order differs from dataset order.
+                await firstDone.Task.WaitAsync(TimeSpan.FromSeconds(10), ct);
+            }
+
+            completion.Enqueue(id);
+            firstDone.TrySetResult();
             return Ok(NoulResponse(r, 0.9));
         });
 
         var results = await DatasetRunner.RunAsync(client, dataset, new DatasetRunOptions { MaxParallelism = 4 });
 
+        Assert.False(dataset.Select(i => i.Id).SequenceEqual(completion, StringComparer.Ordinal));
         Assert.Equal(dataset.Select(i => i.Id), results.Items.Select(i => i.Id));
     }
 
     [Fact]
     public async Task NeverExceedsMaxParallelism()
     {
+        // Every call waits until three are in flight, so the peak must reach the bound; it can never pass it.
+        var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var arrived = 0;
         var client = new FakeDecisionClient(async (r, ct) =>
         {
-            await Task.Delay(20, ct);
+            if (Interlocked.Increment(ref arrived) >= 3)
+            {
+                gate.TrySetResult();
+            }
+
+            await gate.Task.WaitAsync(TimeSpan.FromSeconds(10), ct);
+            await Task.Yield();
             return Ok(NoulResponse(r, 0.9));
         });
 
         await DatasetRunner.RunAsync(client, Many(20), new DatasetRunOptions { MaxParallelism = 3 });
 
-        Assert.InRange(client.PeakConcurrency, 2, 3);
+        Assert.Equal(3, client.PeakConcurrency);
     }
 
     [Fact]
-    public async Task MaxParallelism0_Throws()
+    public void MaxParallelism0_Throws()
     {
         var client = Simple();
 
-        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(
-            () => DatasetRunner.RunAsync(client, Many(2), new DatasetRunOptions { MaxParallelism = 0 }));
+        Assert.Throws<ArgumentOutOfRangeException>(
+            () => { _ = DatasetRunner.RunAsync(client, Many(2), new DatasetRunOptions { MaxParallelism = 0 }); });
 
         Assert.Empty(client.Requests);
+    }
+
+    [Fact]
+    public void NullClientOrDataset_ThrowsSynchronously()
+    {
+        Assert.Throws<ArgumentNullException>(() => { _ = DatasetRunner.RunAsync(null!, Many(1)); });
+        Assert.Throws<ArgumentNullException>(() => { _ = DatasetRunner.RunAsync(Simple(), null!); });
     }
 
     [Fact]
@@ -152,7 +178,7 @@ public sealed class DatasetRunnerTests
     }
 
     [Fact]
-    public async Task ForeignCancellationIsCancelledError_CallerCancellationThrows()
+    public async Task ForeignCancellationIsCancelledError()
     {
         var foreign = new FakeDecisionClient((_, _) => throw new OperationCanceledException("not yours"));
 
@@ -161,17 +187,48 @@ public sealed class DatasetRunnerTests
         Assert.Equal("Cancelled", item.Error!.Kind);
         Assert.Null(item.Error.StatusCode);
         Assert.Null(item.Answers);
+    }
 
+    [Theory]
+    [InlineData(1)]
+    [InlineData(3)]
+    public async Task CallerCancellationThrows_AndNothingMoreIsSent(int parallelism)
+    {
         using var cts = new CancellationTokenSource();
-        var own = new FakeDecisionClient(async (_, ct) =>
+        var client = new FakeDecisionClient(async (_, _) =>
         {
             await cts.CancelAsync();
-            ct.ThrowIfCancellationRequested();
+            cts.Token.ThrowIfCancellationRequested();
             return default;
         });
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => DatasetRunner.RunAsync(own, Many(3), cancellationToken: cts.Token));
+            () => DatasetRunner.RunAsync(client, Many(10), new DatasetRunOptions { MaxParallelism = parallelism }, cts.Token)
+                .WaitAsync(TimeSpan.FromSeconds(10)));
+
+        Assert.InRange(client.Requests.Count, 1, parallelism);
+    }
+
+    [Fact]
+    public async Task AFaultingClientStopsTheRun_AndItsExceptionIsRethrown()
+    {
+        var boom = new InvalidOperationException("boom");
+        var client = new FakeDecisionClient(async (r, ct) =>
+        {
+            if (r.State.ToString().EndsWith("i2", StringComparison.Ordinal))
+            {
+                throw boom;
+            }
+
+            await Task.Delay(20, ct);
+            return Ok(NoulResponse(r, 0.9));
+        });
+
+        var thrown = await Assert.ThrowsAsync<InvalidOperationException>(
+            () => DatasetRunner.RunAsync(client, Many(10), new DatasetRunOptions { MaxParallelism = 2 }).WaitAsync(TimeSpan.FromSeconds(10)));
+
+        Assert.Same(boom, thrown);
+        Assert.InRange(client.Requests.Count, 3, 4);
     }
 
     [Fact]
