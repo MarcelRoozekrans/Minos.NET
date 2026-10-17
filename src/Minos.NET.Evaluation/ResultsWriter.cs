@@ -29,9 +29,23 @@ internal static class ResultsWriter
             throw new InvalidOperationException($"Header Parallelism must be at least {ResultsRules.MinParallelism}.");
         }
 
+        Text("Header", "DatasetName", header.DatasetName);
+        Text("Header", "ProviderName", header.ProviderName);
+        Text("Header", "Endpoint", header.Endpoint?.OriginalString);
+        Text("Header", "DefaultModel", header.DefaultModel);
+
         var ids = new HashSet<string>(StringComparer.Ordinal);
         foreach (var item in results.Items)
         {
+            Text($"Item '{item.Id}'", "Id", item.Id);
+            Text($"Item '{item.Id}'", "Model", item.Model);
+            Text($"Item '{item.Id}'", "ResponseId", item.ResponseId);
+            if (item.Error is { } error)
+            {
+                Text($"Item '{item.Id}'", "Error.Kind", error.Kind);
+                Text($"Item '{item.Id}'", "Error.Message", error.Message);
+            }
+
             if (!ids.Add(item.Id))
             {
                 throw new InvalidOperationException($"Item '{item.Id}': the id appears twice.");
@@ -61,12 +75,22 @@ internal static class ResultsWriter
             foreach (var (key, answer) in item.Answers)
             {
                 var member = $"Answers[{key}]";
+                Text($"Item '{item.Id}'", member + " key", key);
+                Text($"Item '{item.Id}'", member + ".ChoiceKey", answer.ChoiceKey);
                 Require(item.Id, member + ".Confidence", ResultsRules.IsUnit(answer.Confidence), "a number from 0 to 1");
                 Require(item.Id, member + ".Probability", answer.Probability is not { } probability || ResultsRules.IsUnit(probability), "a number from 0 to 1");
                 Require(item.Id, member + ".ChoiceKey", answer.Kind != QuestionKind.Choice || answer.ChoiceKey is not null, "set for a Choice answer");
                 Require(item.Id, member + ".Probability", answer.Kind != QuestionKind.Noul || answer.Probability is not null, "set for a Noul answer");
                 Require(item.Id, member + ".ScoreLevel", answer.Kind != QuestionKind.Score || answer.ScoreLevel >= ResultsRules.MinScoreLevel, "non-negative");
             }
+        }
+    }
+
+    private static void Text(string owner, string member, string? text)
+    {
+        if (!ResultsRules.IsValidText(text))
+        {
+            throw new InvalidOperationException($"{owner}: {member} holds an unpaired surrogate and cannot be written as UTF-8.");
         }
     }
 

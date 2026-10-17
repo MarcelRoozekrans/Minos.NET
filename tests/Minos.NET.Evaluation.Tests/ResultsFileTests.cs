@@ -316,4 +316,21 @@ public sealed class ResultsFileTests
     [Fact]
     public void EmptyDatasetName_IsAProblem()
         => AssertProblemOnLine(HeaderLine().Replace("\"dataset\":\"d\"", "\"dataset\":\"\"", StringComparison.Ordinal), 1, "dataset");
+
+    [Fact]
+    public void Save_RefusesTextWithAnUnpairedSurrogate()
+    {
+        var lone = new string((char)0xD800, 1);
+        var good = Ok();
+        AssertSaveRefuses(new EvaluationResults(Header(1) with { DatasetName = lone }, [good]), "DatasetName");
+        AssertSaveRefuses(new EvaluationResults(Header(1) with { ProviderName = lone }, [good]), "ProviderName");
+        AssertSaveRefuses(new EvaluationResults(Header(1) with { DefaultModel = lone }, [good]), "DefaultModel");
+        AssertSaveRefuses(With(good with { Id = lone }), "Id");
+        AssertSaveRefuses(With(good with { Model = lone }), "Model");
+        AssertSaveRefuses(With(good with { ResponseId = lone }), "ResponseId");
+        AssertSaveRefuses(With(Ok(new AnswerRecord(QuestionKind.Choice, false, null, lone, 0, 0.5))), "ChoiceKey");
+        AssertSaveRefuses(With(good with { Answers = new Dictionary<string, AnswerRecord> { [lone] = good.Answers!["q"] } }), "key");
+        AssertSaveRefuses(With(good with { Answers = null, Error = new ItemError("Http", null, "bad " + lone) }), "Error.Message");
+        AssertSaveRefuses(With(good with { Answers = null, Error = new ItemError(lone, null, "m") }), "Error.Kind");
+    }
 }

@@ -340,6 +340,20 @@ public sealed class DatasetRunnerTests
     {
         Assert.Throws<ArgumentNullException>(() => new DatasetRunOptions { DatasetName = null! });
         Assert.Throws<ArgumentException>(() => new DatasetRunOptions { DatasetName = string.Empty });
+        var lone = new string((char)0xD800, 1);
+        Assert.Throws<ArgumentException>(() => new DatasetRunOptions { DatasetName = "a" + lone });
+    }
+
+    [Fact]
+    public async Task ProviderTextWithALoneSurrogate_IsCleaned_AndSaves()
+    {
+        var lone = new string((char)0xD800, 1);
+        var client = new FakeDecisionClient((r, _) => ValueTask.FromResult(Fail(new DecisionError(DecisionErrorKind.RateLimited, "bad " + lone))));
+
+        var results = await DatasetRunner.RunAsync(client, Many(1));
+
+        Assert.Equal("bad \uFFFD", Assert.Single(results.Items).Error!.Message);
+        AssertSavesAndLoads(results);
     }
 
     [Fact]

@@ -105,14 +105,14 @@ public static class DatasetRunner
         }
         catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
-            return Failed(item, time.GetElapsedTime(begin), new ItemError("Cancelled", null, ex.Message));
+            return Failed(item, time.GetElapsedTime(begin), new ItemError("Cancelled", null, ResultsRules.Clean(ex.Message)!));
         }
 
         var latency = time.GetElapsedTime(begin);
         if (!outcome.IsSuccess)
         {
             var error = outcome.Error;
-            return Failed(item, latency, new ItemError(error.Kind.ToString(), error.StatusCode, error.Message));
+            return Failed(item, latency, new ItemError(error.Kind.ToString(), error.StatusCode, ResultsRules.Clean(error.Message)!));
         }
 
         var response = outcome.Value;
@@ -123,11 +123,11 @@ public static class DatasetRunner
             item.Line,
             Milliseconds(latency),
             response.IsCached,
-            response.Model,
+            ResultsRules.Clean(response.Model),
             NonNegative(usage?.InputTokens),
             NonNegative(usage?.OutputTokens),
             usage?.Cost is { } cost && double.IsFinite(cost) && cost >= 0 ? cost : null,
-            response.Id,
+            ResultsRules.Clean(response.Id),
             invalid is null ? answers : null,
             invalid is null ? null : new ItemError(nameof(DecisionErrorKind.InvalidResponse), null, invalid));
     }
