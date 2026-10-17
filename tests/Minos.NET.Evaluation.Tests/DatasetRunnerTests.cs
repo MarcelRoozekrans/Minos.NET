@@ -212,15 +212,24 @@ public sealed class DatasetRunnerTests
     [Fact]
     public async Task AFaultingClientStopsTheRun_AndItsExceptionIsRethrown()
     {
+        // i0 and i1 answer at once and i2 throws. Every later item waits on a task that only the run's cancellation ends,
+        // so no item after i2 can finish and free its worker: at most one more request, i3, is sent before the stop.
         var boom = new InvalidOperationException("boom");
+        var never = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var client = new FakeDecisionClient(async (r, ct) =>
         {
-            if (r.State.ToString().EndsWith("i2", StringComparison.Ordinal))
+            var id = r.State.ToString().Split(' ')[^1];
+            if (id is "i0" or "i1")
+            {
+                return Ok(NoulResponse(r, 0.9));
+            }
+
+            if (string.Equals(id, "i2", StringComparison.Ordinal))
             {
                 throw boom;
             }
 
-            await Task.Delay(20, ct);
+            await never.Task.WaitAsync(ct);
             return Ok(NoulResponse(r, 0.9));
         });
 
@@ -228,7 +237,9 @@ public sealed class DatasetRunnerTests
             () => DatasetRunner.RunAsync(client, Many(10), new DatasetRunOptions { MaxParallelism = 2 }).WaitAsync(TimeSpan.FromSeconds(10)));
 
         Assert.Same(boom, thrown);
+        Assert.False(never.Task.IsCompleted);
         Assert.InRange(client.Requests.Count, 3, 4);
+        Assert.DoesNotContain(client.Requests, r => r.State.ToString().EndsWith("i4", StringComparison.Ordinal));
     }
 
     [Fact]
