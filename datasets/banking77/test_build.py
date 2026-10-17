@@ -10,27 +10,23 @@ import build
 HERE = Path(__file__).resolve().parent
 
 
-def read_bytes(path):
-    return (Path(path)).read_bytes()
-
-
 class BuildTests(unittest.TestCase):
     def test_building_twice_gives_byte_identical_files(self):
         with tempfile.TemporaryDirectory() as a, tempfile.TemporaryDirectory() as b:
             build.build(HERE / "source", HERE / "urgency-labels.csv", Path(a))
             build.build(HERE / "source", HERE / "urgency-labels.csv", Path(b))
             for name in (build.MAIN_FILE, build.URGENCY_FILE):
-                self.assertEqual(read_bytes(Path(a) / name), read_bytes(Path(b) / name))
+                self.assertEqual((Path(a) / name).read_bytes(), (Path(b) / name).read_bytes())
 
     def test_the_committed_files_match_a_fresh_build(self):
         with tempfile.TemporaryDirectory() as a:
             build.build(HERE / "source", HERE / "urgency-labels.csv", Path(a))
             for name in (build.MAIN_FILE, build.URGENCY_FILE):
-                self.assertEqual(read_bytes(Path(a) / name), read_bytes(HERE / name))
+                self.assertEqual((Path(a) / name).read_bytes(), (HERE / name).read_bytes())
 
     def test_output_is_utf8_without_bom_and_uses_unix_line_endings(self):
         for name in (build.MAIN_FILE, build.URGENCY_FILE):
-            data = read_bytes(HERE / name)
+            data = (HERE / name).read_bytes()
             self.assertFalse(data.startswith(b"\xef\xbb\xbf"))
             self.assertNotIn(b"\r", data)
             self.assertTrue(data.endswith(b"\n"))
@@ -54,6 +50,15 @@ class BuildTests(unittest.TestCase):
         self.assertEqual(used, set(hashes))
         self.assertEqual(60, len(labels))
         self.assertTrue(all(r["urgency"] in ("0", "1", "2") for r in labels))
+
+    def test_source_is_the_upstream_row_number(self):
+        with open(HERE / "source" / build.SUBSET_NAME, encoding="utf-8", newline="") as f:
+            rows = list(csv.DictReader(f))
+        numbers = [int(r["row"]) for r in rows]
+        self.assertEqual(numbers, sorted(set(numbers)))
+        self.assertTrue(1 <= numbers[0] and numbers[-1] <= 3080)
+        main = [json.loads(l) for l in (HERE / build.MAIN_FILE).read_text(encoding="utf-8").splitlines()]
+        self.assertEqual([f"banking77/test#{n}" for n in numbers], [i["source"] for i in main])
 
     def test_a_missing_label_is_an_error(self):
         with tempfile.TemporaryDirectory() as a:

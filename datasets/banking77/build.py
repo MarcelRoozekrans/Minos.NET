@@ -25,6 +25,8 @@ SUBSET_NAME = "test-subset.csv"
 MAIN_FILE = "banking77-minos-v1.jsonl"
 URGENCY_FILE = "banking77-urgency-v1.jsonl"
 HEADER = ["text", "category"]
+# The vendored subset adds the upstream 1-based data row of each message, so an item can be traced to test.csv.
+SUBSET_HEADER = HEADER + ["row"]
 
 # The order is part of the format: it is the order of the options of the intent question.
 INTENTS = [
@@ -47,7 +49,7 @@ URGENCY_LEVELS = ["Routine", "Needs action soon", "Urgent: money or card securit
 URGENCY_INSTRUCTIONS = (
     "How urgent is this customer message? Routine means a question or a request for information, with nothing at risk. "
     "Needs action soon means something is not working or is pending, and the customer is blocked. "
-    "Urgent means money or card security is at risk, as with a lost or stolen card, an unknown charge or missing money."
+    "Urgent means money or card security is at risk."
 )
 
 
@@ -59,11 +61,11 @@ def read_subset(source_dir):
     with open(Path(source_dir) / SUBSET_NAME, encoding="utf-8", newline="") as f:
         reader = csv.reader(f)
         header = next(reader)
-        if header != HEADER:
-            sys.exit(f"{SUBSET_NAME}: expected the header {','.join(HEADER)}.")
-        rows = [(text, category) for text, category in reader]
+        if header != SUBSET_HEADER:
+            sys.exit(f"{SUBSET_NAME}: expected the header {','.join(SUBSET_HEADER)}.")
+        rows = [(text, category, int(row)) for text, category, row in reader]
     known = {name for name, _ in INTENTS}
-    for text, category in rows:
+    for text, category, _ in rows:
         if category not in known:
             sys.exit(f"{SUBSET_NAME}: unknown intent {category!r}.")
     return rows
@@ -101,14 +103,14 @@ def main_questions():
     return {
         "intent": intent_question(),
         "card_not_arrived": noul_question(
-            "Is the customer waiting for a card that has not arrived yet, or asking when it will arrive?",
-            "The message is about a card that is on its way or late.",
-            "The message is about something else.",
+            "Is the message about the delivery or arrival of a card?",
+            "The message asks when, whether or how a card is delivered, or says it has not arrived.",
+            "The message is about something other than the delivery or arrival of a card.",
         ),
         "about_a_payment": noul_question(
-            "Is the message about a card payment that was declined, is still pending, or carried a fee?",
-            "The message is about one specific card payment.",
-            "The message is not about a card payment.",
+            "Is the message about a card payment being declined, pending, or charged a fee?",
+            "The message is about a card payment that was declined, is pending, or carries a fee.",
+            "The message is not about a declined, pending or fee-charged card payment.",
         ),
     }
 
@@ -122,9 +124,9 @@ def item(item_id, text, questions, expected, source):
 
 
 def numbered(rows):
-    """Yields (row, nn, text, intent): row is the 1-based data row of the subset, nn the 1-based place within the intent."""
+    """Yields (row, nn, text, intent): row is the 1-based data row of the upstream test.csv, nn the 1-based place within the intent."""
     seen = {}
-    for row, (text, intent) in enumerate(rows, start=1):
+    for text, intent, row in rows:
         seen[intent] = seen.get(intent, 0) + 1
         yield row, seen[intent], text, intent
 
@@ -193,12 +195,12 @@ def download(source_dir):
     if header != HEADER:
         sys.exit(f"The download has the header {header!r}, not {HEADER!r}.")
     known = {name for name, _ in INTENTS}
-    kept = [row for row in reader if row and row[1] in known]
+    kept = [[row[0], row[1], str(number)] for number, row in enumerate(reader, start=1) if row[1] in known]
     target = Path(source_dir) / SUBSET_NAME
     target.parent.mkdir(parents=True, exist_ok=True)
     with open(target, "w", encoding="utf-8", newline="") as f:
         writer = csv.writer(f, lineterminator="\n")
-        writer.writerow(HEADER)
+        writer.writerow(SUBSET_HEADER)
         writer.writerows(kept)
     return len(kept)
 

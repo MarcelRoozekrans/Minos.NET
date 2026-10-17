@@ -63,7 +63,16 @@ public sealed class Banking77SampleTests
 
         Assert.Equal(400, dataset.Select(i => i.Id).Distinct().Count());
         Assert.All(dataset, i => Assert.StartsWith($"b77-{i.Expected["intent"].ChoiceKey}-", i.Id, StringComparison.Ordinal));
-        Assert.All(dataset, i => Assert.StartsWith("banking77/test#", i.Source, StringComparison.Ordinal));
+        Assert.Equal(400, dataset.Select(i => i.Source).Distinct().Count());
+        Assert.All(dataset, i => AssertUpstreamRow(i.Source));
+    }
+
+    private static void AssertUpstreamRow(string? source)
+    {
+        Assert.NotNull(source);
+        Assert.StartsWith("banking77/test#", source, StringComparison.Ordinal);
+        Assert.True(int.TryParse(source.AsSpan("banking77/test#".Length), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var row), source);
+        Assert.InRange(row, 1, 3080);
     }
 
     [Fact]
@@ -73,6 +82,8 @@ public sealed class Banking77SampleTests
 
         Assert.Equal(60, dataset.Count);
         Assert.Equal(60, dataset.Select(i => i.Id).Distinct().Count());
+        Assert.Equal(60, dataset.Select(i => i.Source).Distinct().Count());
+        Assert.All(dataset, i => AssertUpstreamRow(i.Source));
         Assert.All(dataset, i => Assert.Equal(["urgency"], i.Definition.Questions.Select(q => q.Key)));
         Assert.All(dataset, i => Assert.InRange(i.Expected["urgency"].ScoreLevel, 0, 2));
         Assert.Equal([0, 1, 2], dataset[0].Definition.Questions[0].Options.Select((_, n) => n));
