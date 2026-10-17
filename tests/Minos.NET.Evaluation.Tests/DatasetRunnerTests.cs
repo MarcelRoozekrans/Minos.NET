@@ -336,6 +336,13 @@ public sealed class DatasetRunnerTests
     }
 
     [Fact]
+    public void DatasetName_RefusesNullAndEmpty()
+    {
+        Assert.Throws<ArgumentNullException>(() => new DatasetRunOptions { DatasetName = null! });
+        Assert.Throws<ArgumentException>(() => new DatasetRunOptions { DatasetName = string.Empty });
+    }
+
+    [Fact]
     public async Task MissingSomeKeys_AreAbsent_ExtraKeyIgnored()
     {
         var dataset = Parse(AllKinds);

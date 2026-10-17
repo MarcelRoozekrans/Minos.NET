@@ -297,6 +297,9 @@ public sealed class ResultsFileTests
         var good = Ok();
         var noul = new AnswerRecord(QuestionKind.Noul, true, 0.8, null, 0, 0.8);
         AssertSaveRefuses(new EvaluationResults(Header(2), [good]), "ItemCount");
+        AssertSaveRefuses(new EvaluationResults(Header(1) with { DatasetName = null! }, [good]), "DatasetName");
+        AssertSaveRefuses(new EvaluationResults(Header(1) with { DatasetName = string.Empty }, [good]), "DatasetName");
+        AssertSaveRefuses(With(Ok(new AnswerRecord(QuestionKind.Choice, false, null, null, 0, 0.5))), "ChoiceKey");
         AssertSaveRefuses(new EvaluationResults(Header(1) with { Parallelism = 0 }, [good]), "Parallelism");
         AssertSaveRefuses(new EvaluationResults(Header(2), [good, good]), "twice");
         AssertSaveRefuses(With(good with { Line = 0 }), "Line");
@@ -309,4 +312,8 @@ public sealed class ResultsFileTests
         AssertSaveRefuses(With(Ok(new AnswerRecord(QuestionKind.Score, false, null, null, -1, 0.5))), "ScoreLevel");
         AssertSaveRefuses(With(good with { Answers = new Dictionary<string, AnswerRecord>() }), "Answers");
     }
+
+    [Fact]
+    public void EmptyDatasetName_IsAProblem()
+        => AssertProblemOnLine(HeaderLine().Replace("\"dataset\":\"d\"", "\"dataset\":\"\"", StringComparison.Ordinal), 1, "dataset");
 }

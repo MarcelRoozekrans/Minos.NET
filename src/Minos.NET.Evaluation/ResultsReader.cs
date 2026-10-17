@@ -130,6 +130,11 @@ internal static class ResultsReader
         }
 
         var dataset = r.String("dataset", required: true);
+        if (dataset is { Length: 0 })
+        {
+            problems.Add(new DatasetProblem(line, "Member 'dataset' must not be empty."));
+        }
+
         var itemCount = r.Int("itemCount", min: ResultsRules.MinItemCount);
         var provider = r.String("providerName");
         var endpointText = r.String("endpoint");

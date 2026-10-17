@@ -14,6 +14,11 @@ internal static class ResultsWriter
     internal static void Validate(EvaluationResults results)
     {
         var header = results.Header;
+        if (string.IsNullOrEmpty(header.DatasetName))
+        {
+            throw new InvalidOperationException("Header DatasetName must not be null or empty.");
+        }
+
         if (header.ItemCount != results.Items.Count)
         {
             throw new InvalidOperationException($"Header ItemCount is {header.ItemCount}, but there are {results.Items.Count} items.");
