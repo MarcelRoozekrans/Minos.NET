@@ -54,11 +54,19 @@ In the order of the options of the `intent` question:
 | `card_not_arrived` | Noul | Is the message about the delivery or arrival of a card? | `card_arrival`, `card_delivery_estimate` | 0.20 |
 | `about_a_payment` | Noul | Is the message about a card payment being declined, pending, or charged a fee? | `declined_card_payment`, `pending_card_payment`, `card_payment_fee_charged` | 0.30 |
 
-The expected answers of the two Nouls follow from the intent of the message, so a few messages fit the wording less well
-than their label suggests. Two examples: `card_not_working` messages about a card that was declined in a shop are false for
-`about_a_payment`, and `card_arrival-01` "How do I locate my card?" is true for `card_not_arrived`. The keys are pinned,
-and `card_not_arrived` now asks about delivery in general: it also covers delivery time and speed questions, not only a
-card that is late.
+The expected answers of the two Nouls follow from the human intent label of the message, so a few messages fit the
+wording less well than their label suggests. The four known cases:
+
+| Id | Question | Label | Why it is noisy |
+| --- | --- | --- | --- |
+| `b77-card_not_working-18` | `about_a_payment` | false | False by intent, though the message says the card was declined while eating. |
+| `b77-card_not_working-36` | `about_a_payment` | false | False by intent, though the message says the card does not accept any transaction, which describes a declined payment. |
+| `b77-card_arrival-01` | `card_not_arrived` | true | True by intent, but "How do I locate my card?" is a weak fit for a question about delivery or arrival. |
+| `b77-lost_or_stolen_card-33` | `card_not_arrived` | false | False by intent, though the message asks for a new card to be shipped. |
+
+The labels are kept as derived from the human intent label, so the true rates stay 0.20 and 0.30. Read the reports with
+this known noise. The keys are pinned, and `card_not_arrived` now asks about delivery in general: it also covers delivery
+time and speed questions, not only a card that is late.
 
 ## The urgency set
 
