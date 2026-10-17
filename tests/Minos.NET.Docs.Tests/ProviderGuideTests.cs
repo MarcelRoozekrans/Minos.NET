@@ -206,15 +206,26 @@ public sealed class ProviderGuideTests
         Assert.True(File.Exists(Path.Combine(PublishedPages.Root, "datasets", "banking77", "LICENSE")));
     }
 
-    // The local model's cost of 0 and its latency both need their note: it costs hardware, and it ran on a CPU runner.
+    // The local model's cost of 0 and every latency need their note, right under the table: the local model costs
+    // hardware, and each run's latency reflects the GitHub-hosted runner it ran from, a CPU-only one for the local model.
     [Fact]
     public void TheCostTable_IsFollowedByItsNotes()
     {
-        var text = PageTables.Text(Page);
+        var notes = NotesAfter(CostTable);
 
-        Assert.Contains("hardware", text, StringComparison.Ordinal);
-        Assert.Contains("CPU", text, StringComparison.Ordinal);
-        Assert.Contains("GitHub-hosted", text, StringComparison.Ordinal);
+        Assert.Contains("hardware", notes, StringComparison.Ordinal);
+        Assert.Contains("CPU", notes, StringComparison.Ordinal);
+        Assert.Contains("GitHub-hosted", notes, StringComparison.Ordinal);
+    }
+
+    // The prose between a table's heading and the next heading, without the table's rows.
+    private static string NotesAfter(string heading)
+    {
+        var lines = File.ReadAllLines(Path.Combine(PublishedPages.Root, "docs", Page));
+        var start = Array.FindIndex(lines, line => line.StartsWith('#') && string.Equals(line.TrimStart('#').Trim(), heading, StringComparison.Ordinal));
+        Assert.True(start >= 0, $"{Page} has a heading '{heading}'.");
+        var section = lines[(start + 1)..].TakeWhile(line => !line.StartsWith('#'));
+        return string.Join('\n', section.Where(line => !line.StartsWith('|')));
     }
 
     [Fact]

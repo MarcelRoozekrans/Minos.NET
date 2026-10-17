@@ -117,13 +117,19 @@ of these times.
 
 No run had a failed request, and every provider took every question set: every answer came back, on every set.
 
+Speed is left out of the lists below. The latencies say more about where each run happened than about the provider:
+the hosted providers were called from a GitHub-hosted runner over the internet, and the local model ran on a CPU-only
+runner. See the note under [Cost and speed](#cost-and-speed).
+
 ### TypeSafe
 
 [Its reports](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/docs/reports/typesafe). The answers came from
 `jev-1.13.0`, the model `jev-latest` pointed to on the day.
 
-- **Where it is strong:** it answered fastest in these runs, and it keeps the most answers at 0.90 on intent and on
-  urgency. On urgency it was right on 58 of 60 messages, though 60 messages are too few to rank it above the others.
+- **Where it is strong:** its confidence clears 0.90 on more of its answers. At 0.90 it keeps 368 of 400 intent
+  answers, against 310 and 300 for the others, and 46 of 60 urgency answers, against 3 and 0. The urgency counts are
+  small, and the urgency table itself is read at 0.50. On urgency it was right on 58 of 60 messages, though 60
+  messages are too few to rank it above the others.
 - **Where it falls down:** its Choice confidence crowds near 1. Most of its intent answers carry a confidence of 0.99
   or more, and some of them are wrong, so raising the threshold past 0.90 removes few wrong answers: see the intent
   sweep below. Its least confident yes-or-no answers were right less often than their confidence said.
@@ -133,9 +139,10 @@ No run had a failed request, and every provider took every question set: every a
 [Its reports](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/docs/reports/clef-flash). Every request asked
 OpenRouter for zero data retention.
 
-- **Where it is strong:** it had the highest accuracy on both Banking77 tables. Its yes-or-no accuracy is clear of
-  both others by more than the uncertainty, and its intent accuracy is clear of the local model's: see
-  [Reading the uncertainty](#reading-the-uncertainty). Its intent answers at 0.90 or above were right every time.
+- **Where it is strong:** its yes-or-no accuracy is clear of both others by more than the uncertainty, and its intent
+  accuracy is clear of the local model's: see [Reading the uncertainty](#reading-the-uncertainty). On intent its
+  accuracy is also the highest point estimate, but its interval overlaps TypeSafe's. Its intent answers at 0.90 or
+  above were right every time.
 - **Where it falls down:** its confidence is too modest. In every bin of its three reports the answers were right more
   often than the confidence said, so its ECE comes from being too modest, not too sure. A modest confidence costs
   coverage, not correctness: at 0.90 it keeps fewer intent answers than TypeSafe does, and on urgency its confidence
@@ -148,9 +155,8 @@ hardware, so no message leaves your network.
 
 - **Where it is strong:** its intent confidence was the closest to its accuracy, with the smallest ECE in the intent
   table on this sample, so a threshold on its intent answers means close to what it says. It has no per-token price.
-- **Where it falls down:** it was the slowest by far on a CPU, and its Score confidence is far too modest: it never
-  reaches 0.90 on urgency, and its ECE there is the largest on the page. Its yes-or-no confidence is modest too, so at
-  0.90 it keeps the fewest Noul answers.
+- **Where it falls down:** its Score confidence is far too modest: it never reaches 0.90 on urgency, and its ECE there
+  is the largest on the page. Its yes-or-no confidence is modest too, so at 0.90 it keeps the fewest Noul answers.
 
 ## Choosing a threshold
 
