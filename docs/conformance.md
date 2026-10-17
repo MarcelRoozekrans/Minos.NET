@@ -49,7 +49,7 @@ be off by 0.01.
 | `D4` | A reported confidence is from 0 to 1. | No answer could be read, or none carries a `confidence`. |
 | `M1` | The `mixed` answers are matched by key, so a provider or a parser that relies on their order fails. | Minos returned an error, no answer could be read, or Minos's answer count differs from the questions asked. |
 | `E1` | `invalid` gets a 400 or a 422 with a JSON body, which Minos maps to `Validation` with a message. A JSON body that leaves `DecisionError.Detail` null fails, and the failure names Minos. | No request was sent. |
-| `E2` | `bad-key` gets a 401 or a 403, which Minos maps to `Unauthorized`, with one request sent under the client's retry setting. | No request was sent. |
+| `E2` | `bad-key` gets a 401 or a 403, which Minos maps to `Unauthorized`, with one request sent under the client's retry setting. | No request was sent, or the client sent no key in `Authorization` or `x-api-key`, so there was no key to make invalid. A keyless local server answers the probe like any other request. |
 | `E3` | An error response's request-id header equals `DecisionError.RequestId`. | There is no error response, or it carries none, as OpenRouter's 400 and 401 do. |
 | `E4` | A 429 met during the run has its `retry-after-ms` or `Retry-After` in `DecisionError.RetryAfter` and its request id read. | No 429 was met. One cannot be provoked, so the suite keeps no made-up 429. |
 | `R1` | A successful response names a model, and `DecisionResponse.Model` is the same. | Minos returned an error, the body is not a JSON object, or the response names none and the target promises none. |

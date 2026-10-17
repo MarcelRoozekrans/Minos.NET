@@ -58,6 +58,20 @@ public sealed class ErrorCheckTests
             ConformanceChecks.E2(Failed(ConformanceProbe.BadKey, 401, UnauthorizedBody, Error(DecisionErrorKind.Unauthorized, 401, UnauthorizedBody))));
 
     [Fact]
+    public void E2_NoKeyWasSent_IsSkipped_WhateverTheServerAnswered()
+    {
+        var keyless = new ProbeOutcome(
+            ConformanceProbe.BadKey,
+            [ConformanceExchange.FromHttp("bad-key", null, 200, "application/json", null, Outcomes.NoulBody, keySwapped: false)],
+            Noul(0.95),
+            error: null);
+
+        Assert.Equal(
+            CheckResult.Skip("E2", "The client sent no API key in Authorization or x-api-key, so there was no key to make invalid."),
+            ConformanceChecks.E2(keyless));
+    }
+
+    [Fact]
     public void E2_AnAcceptedKey_Fails()
         => Assert.Equal(
             "HTTP 200, not 401 or 403.",

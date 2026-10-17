@@ -604,6 +604,11 @@ public static class ConformanceChecks
             return CheckResult.Skip("E2", NotSent(outcome));
         }
 
+        if (!last.KeySwapped)
+        {
+            return CheckResult.Skip("E2", "The client sent no API key in Authorization or x-api-key, so there was no key to make invalid.");
+        }
+
         if (last.Status is not (401 or 403))
         {
             return CheckResult.Failed("E2", "HTTP " + StatusText(last) + ", not 401 or 403.");
