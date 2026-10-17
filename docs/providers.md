@@ -706,6 +706,8 @@ there is no OpenAI key to record its answers with yet;
 
 ## Next
 
+- [Choosing a provider and a threshold](choosing-a-provider.md): how the providers compare on a labelled sample, and
+  how to pick a threshold.
 - [The client and its errors](client-and-errors.md): the options every client shares, retries, time-outs and errors.
 - [Dependency injection](dependency-injection.md#several-clients): register several providers side by side, each
   under a key.
