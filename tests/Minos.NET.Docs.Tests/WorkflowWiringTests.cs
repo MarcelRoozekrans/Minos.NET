@@ -147,7 +147,7 @@ public sealed class WorkflowWiringTests
         var job = Job(Calibrate, "calibrate");
         Assert.Contains("environment: live-api", job, StringComparison.Ordinal);
         Assert.Contains("runs-on: ubuntu-latest", job, StringComparison.Ordinal);
-        Assert.Contains("timeout-minutes: 60", job, StringComparison.Ordinal);
+        Assert.Contains("timeout-minutes: 150", job, StringComparison.Ordinal);
         Assert.Contains("permissions:\n      contents: read\n", job, StringComparison.Ordinal);
         Assert.Contains("          persist-credentials: false\n", job, StringComparison.Ordinal);
         Assert.Contains("TYPESAFE_API_KEY: ${{ inputs.provider == 'typesafe' && secrets.TYPESAFE_API_KEY || '' }}", job, StringComparison.Ordinal);
@@ -206,6 +206,23 @@ public sealed class WorkflowWiringTests
     }
 
     [Fact]
+    public void LocalSystemOne_CalibrateJob_TakesASetInput_ValidatesIt_AndGatesTheUploads()
+    {
+        Assert.Contains("  workflow_dispatch:\n    inputs:\n      set:\n        description: Which dataset to run\n        type: choice\n        default: both\n        options:\n          - both\n          - urgency\n          - banking77\n", LocalSystemOne, StringComparison.Ordinal);
+
+        var job = Job(LocalSystemOne, "calibrate");
+        Assert.Contains("SET: ${{ inputs.set }}", job, StringComparison.Ordinal);
+        Assert.DoesNotContain("${{ inputs.", RunScripts(LocalSystemOne), StringComparison.Ordinal);
+        Assert.Contains("both|urgency|banking77) ;;\n            *) echo \"::error::Unknown set '$SET'\"; exit 1 ;;", job, StringComparison.Ordinal);
+        Assert.Contains("if [ \"$SET\" != both ] && [ \"$SET\" != \"$set\" ]; then continue; fi", job, StringComparison.Ordinal);
+        Assert.Contains("|| status=1", job, StringComparison.Ordinal);
+        Assert.Contains("exit \"$status\"", job, StringComparison.Ordinal);
+        Assert.Contains("if: always() && (inputs.set == 'both' || inputs.set == 'urgency')", job, StringComparison.Ordinal);
+        Assert.Contains("if: always() && (inputs.set == 'both' || inputs.set == 'banking77')", job, StringComparison.Ordinal);
+        Assert.Equal(2, System.Text.RegularExpressions.Regex.Count(job, "if-no-files-found: warn", System.Text.RegularExpressions.RegexOptions.None, TimeSpan.FromSeconds(1)));
+    }
+
+    [Fact]
     public void LocalSystemOne_KeepsItsPushJob()
     {
         var job = Job(LocalSystemOne, "local-systemone");
@@ -213,6 +230,7 @@ public sealed class WorkflowWiringTests
         Assert.Contains("timeout-minutes: 30", job, StringComparison.Ordinal);
         Assert.DoesNotContain("minos calibrate", job, StringComparison.Ordinal);
         Assert.DoesNotContain(" calibrate ", job, StringComparison.Ordinal);
+        Assert.DoesNotContain("inputs.", job, StringComparison.Ordinal);
     }
 
     // The text of every run: script in a workflow, so a test can tell script text from with: and env: values.

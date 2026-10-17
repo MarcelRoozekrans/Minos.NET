@@ -16,6 +16,15 @@ on:
       - 'samples/Minos.NET.Samples.ProviderSwitch/**'
       - '.github/workflows/local-systemone.yml'
   workflow_dispatch:
+    inputs:
+      set:
+        description: Which dataset to run
+        type: choice
+        default: both
+        options:
+          - both
+          - urgency
+          - banking77
 
 permissions:
   contents: read
@@ -88,8 +97,8 @@ jobs:
         if: always()
         run: cat "$RUNNER_TEMP/serve.log" || true
 
-  # Dispatch only: calibrates the local model on both sets, one request at a time, with the released tool. No secrets,
-  # nothing is billed. Each set is uploaded as calibration-local-<set> and reaches docs/reports/local/<set>/ through a
+  # Dispatch only: calibrates the local model on the chosen set or both, one request at a time, with the released
+  # tool. No secrets, nothing is billed. Each set is uploaded as calibration-local-<set> and reaches docs/reports/local/<set>/ through a
   # pull request. A stopped run exits 1 and still uploads its partial results.
   calibrate:
     if: github.event_name == 'workflow_dispatch'
@@ -144,9 +153,16 @@ jobs:
 
       # Both sets run even when the first stops, then the step fails if either did. The upload steps below still run.
       - name: Calibrate
+        env:
+          SET: ${{ inputs.set }}
         run: |
+          case "$SET" in
+            both|urgency|banking77) ;;
+            *) echo "::error::Unknown set '$SET'"; exit 1 ;;
+          esac
           status=0
           for set in urgency banking77; do
+            if [ "$SET" != both ] && [ "$SET" != "$set" ]; then continue; fi
             case "$set" in
               urgency) dataset=datasets/banking77/banking77-urgency-v1.jsonl ;;
               banking77) dataset=datasets/banking77/banking77-minos-v1.jsonl ;;
@@ -156,7 +172,7 @@ jobs:
           exit "$status"
 
       - name: Upload the urgency run
-        if: always()
+        if: always() && (inputs.set == 'both' || inputs.set == 'urgency')
         uses: actions/upload-artifact@v7
         with:
           name: calibration-local-urgency
@@ -164,7 +180,7 @@ jobs:
           if-no-files-found: warn
 
       - name: Upload the banking77 run
-        if: always()
+        if: always() && (inputs.set == 'both' || inputs.set == 'banking77')
         uses: actions/upload-artifact@v7
         with:
           name: calibration-local-banking77

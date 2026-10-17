@@ -7,6 +7,8 @@ name: Calibrate
 # No prices are applied here: they are applied afterwards with minos report, so a price correction needs no new run.
 # Each set is uploaded as calibration-<provider>-<set>, which holds the tool's output folder, results.partial.jsonl
 # included. The artifacts reach docs/reports/<provider>/<set>/ through a pull request.
+# The timeout covers the worst case, 460 items at the retries times the request timeout each: a job that its timeout
+# cancels keeps nothing, not even results.partial.jsonl.
 # Maintainers must also restrict the live-api environment's deployment branches to main.
 on:
   workflow_dispatch:
@@ -30,7 +32,7 @@ on:
 jobs:
   calibrate:
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 150
     environment: live-api
     permissions:
       contents: read
