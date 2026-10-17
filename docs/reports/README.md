@@ -20,7 +20,7 @@ Next to the folders sit the files that every run shares:
 
 ## How a run is started
 
-Runs are started by hand. Nothing runs on a push or on a schedule.
+Runs are started by hand. No calibration runs on a push or on a schedule.
 
 - `calibrate.yml` runs the hosted providers. Its inputs are `provider` (`typesafe` or `clef`) and `set` (`both`,
   `urgency` or `banking77`). Every dispatch is billed.
@@ -34,7 +34,8 @@ Each run calls `minos calibrate --config docs/reports/minos.json --provider <Typ
 A run does not apply prices. They are applied afterwards, without calling a provider:
 
 ```text
-minos report --results <results> --dataset <dataset> --prices docs/reports/prices.json
+minos report --results <results> --dataset <dataset> \
+  --prices docs/reports/prices.json --out docs/reports/<provider>/<set>
 ```
 
 This rebuilds `report.json` and `report.md` from the downloaded results. A price correction therefore never needs a new

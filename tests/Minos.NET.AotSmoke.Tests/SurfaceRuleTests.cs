@@ -35,7 +35,7 @@ public sealed class SurfaceRuleTests
     private static readonly Dictionary<string, string> Undocumented = new(StringComparer.Ordinal);
 
     // The folders under docs/ that are not published pages.
-    private static readonly string[] UnpublishedDocs = ["design", "planning", "plans", "superpowers"];
+    private static readonly string[] UnpublishedDocs = ["design", "planning", "plans", "reports", "superpowers"];
 
     // The samples that exist to reach the whole surface, so naming a type there documents nothing.
     private static readonly string[] SurfaceHosts = ["Minos.NET.AotSmoke", "Minos.NET.AotSurface"];

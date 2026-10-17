@@ -84,6 +84,21 @@ public sealed class RunConfigTests
     public void Reports_AreNotPublished()
     {
         Assert.True(PublishedPages.IsUnpublished("reports/typesafe/banking77/report.md"));
-        Assert.Contains("'**/reports/**'", File.ReadAllText(Path.Combine(PublishedPages.Root, "docusaurus.config.ts")), StringComparison.Ordinal);
+        var config = File.ReadAllText(Path.Combine(PublishedPages.Root, "docusaurus.config.ts"));
+        var exclude = System.Text.RegularExpressions.Regex.Match(config, @"^\s*exclude:\s*\[(?<items>[^\]]*)\]", System.Text.RegularExpressions.RegexOptions.Multiline, TimeSpan.FromSeconds(5));
+        Assert.True(exclude.Success, "docusaurus.config.ts has no exclude array.");
+        Assert.Contains("'**/reports/**'", exclude.Groups["items"].Value, StringComparison.Ordinal);
+    }
+
+    // The surface rules in AotSmoke.Tests keep their own list of unpublished folders, as that project cannot see this one.
+    [Fact]
+    public void TheSurfaceRules_UnpublishedFolders_MatchThePublishedPagesList()
+    {
+        var source = File.ReadAllText(Path.Combine(PublishedPages.Root, "tests", "Minos.NET.AotSmoke.Tests", "SurfaceRuleTests.cs"));
+        var match = System.Text.RegularExpressions.Regex.Match(source, @"UnpublishedDocs\s*=\s*\[(?<items>[^\]]*)\]", System.Text.RegularExpressions.RegexOptions.None, TimeSpan.FromSeconds(5));
+        Assert.True(match.Success, "SurfaceRuleTests.cs has no UnpublishedDocs list.");
+        var folders = match.Groups["items"].Value.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries).Select(f => f.Trim('"'));
+
+        Assert.Equal(PublishedPages.Unpublished.Order(StringComparer.Ordinal), folders.Order(StringComparer.Ordinal));
     }
 }
