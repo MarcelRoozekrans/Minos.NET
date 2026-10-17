@@ -164,7 +164,7 @@ public sealed class DatasetProblemTests
             expected: """{"q":0}""");
         var problem = Assert.Single(Problems(OnLine2(line)));
         Assert.Equal(2, problem.Line);
-        Assert.StartsWith("MIN005", problem.Message, StringComparison.Ordinal);
+        Assert.StartsWith("MIN005 'questions.q': ", problem.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -240,6 +240,147 @@ public sealed class DatasetProblemTests
             Assert.All(problems, p => Assert.Equal(2, p.Line));
             Assert.Contains(problems, p => p.Message.Contains("not valid Unicode", StringComparison.Ordinal));
         }
+    }
+
+    // C1: the reader must build from the copy the validator checked, not from the last duplicate.
+    [Theory]
+    [InlineData("""{"x":{"type":"zzz"}}""")]
+    [InlineData("5")]
+    public void DuplicateTopLevelQuestions_IsAProblemNotAnException(string secondCopy)
+    {
+        var line = Item(extra: ",\"questions\":" + secondCopy);
+
+        var problems = Problems(OnLine2(line));
+
+        Assert.All(problems, p => Assert.Equal(2, p.Line));
+        Assert.Contains(problems, p => string.Equals(p.Message, "Duplicate member 'questions'.", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void DuplicateTopLevelQuestions_WithACoreFailureInTheFirstCopy_ReportsBoth()
+    {
+        var line = Item(
+            questions: """{"q":{"type":"noul","instructions":"  "}}""",
+            extra: ""","questions":{"x":{"type":"zzz"}}""");
+
+        var problems = Problems(OnLine2(line));
+
+        Assert.Contains(problems, p => string.Equals(p.Message, "Duplicate member 'questions'.", StringComparison.Ordinal));
+        Assert.Contains(problems, p => p.Message.StartsWith("MIN003 'questions.q': ", StringComparison.Ordinal));
+    }
+
+    // I1: built in the test body, because xUnit turns an unpaired surrogate in theory data into U+FFFD.
+    [Fact]
+    public void RawUnpairedSurrogate_InAValue_IsAProblemNotAnException()
+    {
+        var lone = ((char)0xD800).ToString();
+
+        AssertSingle(Item(state: "\"a" + lone + "b\""), "not valid Unicode");
+    }
+
+    [Fact]
+    public void RawUnpairedSurrogate_InAMemberName_IsAProblemNotAnException()
+    {
+        var lone = ((char)0xDC00).ToString();
+
+        AssertSingle(Item(questions: "{\"" + lone + "\":{\"type\":\"noul\",\"instructions\":\"i\"}}", expected: "{}"), "not valid Unicode");
+    }
+
+    [Fact]
+    public void RawSurrogatePair_IsReadAsText()
+    {
+        var line = Item(state: "\"" + char.ConvertFromUtf32(0x1F600) + "\"");
+
+        var result = DecisionDataset.Parse(line);
+
+        Assert.True(result.IsSuccess);
+        Assert.True(result.Value[0].State.TryGetString(out var text));
+        Assert.Equal(char.ConvertFromUtf32(0x1F600), text);
+    }
+
+    // I2: the format needs at least one question.
+    [Fact]
+    public void NoQuestions()
+        => AssertSingle(Item(questions: "{}", expected: "{}"), "'questions' must have at least one question.");
+
+    // M1: a core failure names the question it is about.
+    [Fact]
+    public void CoreRuleFailure_NamesTheQuestion()
+    {
+        var problem = Assert.Single(Problems(OnLine2(Item(questions: """{"q":{"type":"noul","instructions":"  "}}"""))));
+        Assert.StartsWith("MIN003 'questions.q': ", problem.Message, StringComparison.Ordinal);
+    }
+
+    // M5: Parse(string) skips one leading byte order mark, as Parse(Stream) does.
+    [Fact]
+    public void Parse_String_SkipsALeadingByteOrderMark()
+    {
+        var result = DecisionDataset.Parse("\uFEFF" + Valid);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal("a", Assert.Single(result.Value).Id);
+    }
+
+    [Fact]
+    public void Parse_String_ReportsASecondByteOrderMark()
+        => Assert.False(DecisionDataset.Parse("\uFEFF\uFEFF" + Valid).IsSuccess);
+
+    // M6: the JSON error gives the byte in the line, not the parser's LineNumber, which is always 0 for one line.
+    [Fact]
+    public void MalformedJson_GivesTheByteNotTheParserLineNumber()
+    {
+        var problem = Assert.Single(Problems(OnLine2("""{"id":"b", x""")));
+
+        Assert.DoesNotContain("LineNumber", problem.Message, StringComparison.Ordinal);
+        Assert.StartsWith("The line is not valid JSON at byte 11: ", problem.Message, StringComparison.Ordinal);
+    }
+
+    // M4: invalid UTF-8 is a problem on its line, not a silent U+FFFD, and the lines after it are still read.
+    [Fact]
+    public void InvalidUtf8_IsAProblemOnItsLine()
+    {
+        var bytes = new List<byte>(Encoding.UTF8.GetBytes(Valid + "\n"));
+        bytes.AddRange(Encoding.UTF8.GetBytes(Item(state: "\"ab\"")).Select(b => b == (byte)'a' ? (byte)0xFF : b));
+        bytes.AddRange(Encoding.UTF8.GetBytes("\n" + Item(id: "\"c\"", state: "7") + "\n"));
+        using var stream = new MemoryStream([.. bytes]);
+
+        var result = DecisionDataset.Parse(stream);
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal([2, 3], result.Error.Select(p => p.Line));
+        Assert.Contains("not valid UTF-8", result.Error[0].Message, StringComparison.Ordinal);
+        Assert.Contains("'state'", result.Error[1].Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Stream_SplitsLinesOnCrLfCrAndLf_LikeATextReader()
+    {
+        var text = Valid + "\r" + Valid.Replace("\"a\"", "\"c\"", StringComparison.Ordinal) + "\r\n\r\n" + Item(state: "7") + "\n";
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(text));
+
+        var problem = Assert.Single(DecisionDataset.Parse(stream).Error);
+
+        Assert.Equal(4, problem.Line);
+    }
+
+    [Fact]
+    public void LargeStream_WithCrLfAndMultiByteText_KeepsEveryLine()
+    {
+        var builder = new StringBuilder();
+        for (var i = 1; i <= 5_000; i++)
+        {
+            var state = new string('\u00e9', i % 97) + char.ConvertFromUtf32(0x1F600);
+            builder.Append(Valid.Replace("\"a\"", $"\"id{i}\"", StringComparison.Ordinal).Replace("\"s\"", $"\"{state}\"", StringComparison.Ordinal)).Append("\r\n");
+        }
+
+        using var stream = new MemoryStream(Encoding.UTF8.GetBytes(builder.ToString()));
+        var result = DecisionDataset.Parse(stream);
+
+        Assert.True(result.IsSuccess);
+        Assert.Equal(5_000, result.Value.Count);
+        Assert.Equal(5_000, result.Value[^1].Line);
+        Assert.True(result.Value[95].State.TryGetString(out var text));
+        Assert.Equal(new string('\u00e9', 96) + char.ConvertFromUtf32(0x1F600), text);
     }
 
     [Fact]

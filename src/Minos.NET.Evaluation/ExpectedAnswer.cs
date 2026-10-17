@@ -44,7 +44,12 @@ public readonly struct ExpectedAnswer : IEquatable<ExpectedAnswer>
     /// <summary>Creates the expected answer of a Score question.</summary>
     /// <param name="level">The index of the right level, from 0.</param>
     /// <returns>The expected answer.</returns>
-    public static ExpectedAnswer ForScore(int level) => new(QuestionKind.Score, false, null, level);
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="level"/> is negative.</exception>
+    public static ExpectedAnswer ForScore(int level)
+    {
+        ArgumentOutOfRangeException.ThrowIfNegative(level);
+        return new(QuestionKind.Score, false, null, level);
+    }
 
     /// <summary>Determines whether two expected answers are equal.</summary>
     /// <param name="left">The first answer.</param>

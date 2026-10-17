@@ -9,8 +9,8 @@ namespace Minos.Evaluation;
 /// </summary>
 internal sealed class DatasetItemValidator
 {
-    private static readonly string[] ItemMembers = ["id", "state", "questions", "expected", "source", "version"];
-    private static readonly string[] QuestionMembers = ["type", "instructions", "criteria"];
+    private static readonly string[] ItemMemberNames = ["id", "state", "questions", "expected", "source", "version"];
+    private static readonly string[] QuestionMemberNames = ["type", "instructions", "criteria"];
     private static readonly string[] CriterionMembers = ["description", "examples", "not_for"];
     private static readonly string[] NoulCriteriaMembers = ["true", "false"];
 
@@ -31,6 +31,18 @@ internal sealed class DatasetItemValidator
     /// </summary>
     internal bool QuestionsValid { get; private set; }
 
+    /// <summary>
+    /// Gets the line's top-level members as checked, the first copy of each. The reader builds only from these and
+    /// from <see cref="Questions"/>, never from the raw element, whose lookups return the last copy of a duplicate.
+    /// </summary>
+    internal Dictionary<string, JsonElement> ItemMembers { get; private set; } = [];
+
+    /// <summary>Gets each question's key and members as checked, in file order. Complete when <see cref="QuestionsValid"/> is set.</summary>
+    internal List<KeyValuePair<string, Dictionary<string, JsonElement>>> Questions { get; } = [];
+
+    /// <summary>Gets the expected answers as checked, by question key. Complete when <see cref="Validate"/> returns <see langword="true"/>.</summary>
+    internal Dictionary<string, JsonElement> ExpectedMembers { get; private set; } = [];
+
     /// <summary>Validates the line and reports whether it had no problem.</summary>
     internal bool Validate(JsonElement root)
     {
@@ -49,7 +61,8 @@ internal sealed class DatasetItemValidator
             return false;
         }
 
-        var members = Members(root, string.Empty, ItemMembers);
+        var members = Members(root, string.Empty, ItemMemberNames);
+        ItemMembers = members;
         CheckId(members);
         CheckVersion(members);
 
@@ -81,9 +94,15 @@ internal sealed class DatasetItemValidator
         else
         {
             questionsKnown = true;
-            foreach (var (key, question) in Members(questions, "questions", null))
+            var entries = Members(questions, "questions", null);
+            if (entries.Count == 0)
             {
-                shapes[key] = ValidateQuestion($"questions.{key}", question);
+                Add("'questions' must have at least one question.");
+            }
+
+            foreach (var (key, question) in entries)
+            {
+                shapes[key] = ValidateQuestion(key, question);
             }
         }
 
@@ -99,7 +118,8 @@ internal sealed class DatasetItemValidator
         }
         else
         {
-            foreach (var (key, answer) in Members(expected, "expected", null))
+            ExpectedMembers = Members(expected, "expected", null);
+            foreach (var (key, answer) in ExpectedMembers)
             {
                 if (!shapes.TryGetValue(key, out var shape))
                 {
@@ -144,15 +164,17 @@ internal sealed class DatasetItemValidator
         }
     }
 
-    private QuestionShape ValidateQuestion(string path, JsonElement question)
+    private QuestionShape ValidateQuestion(string key, JsonElement question)
     {
+        var path = $"questions.{key}";
         if (question.ValueKind != JsonValueKind.Object)
         {
             Add($"'{path}' must be a JSON object.");
             return default;
         }
 
-        var members = Members(question, path, QuestionMembers);
+        var members = Members(question, path, QuestionMemberNames);
+        Questions.Add(new(key, members));
         string? type = null;
         if (!members.TryGetValue("type", out var typeElement))
         {

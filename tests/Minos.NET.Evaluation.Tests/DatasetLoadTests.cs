@@ -94,6 +94,17 @@ public sealed class DatasetLoadTests
         Assert.Equal(["a"], item.Expected.Keys);
     }
 
+    [Fact]
+    public void Expected_IsReadOnly()
+    {
+        var item = Assert.Single(ParseOk(EveryKind.ReplaceLineEndings(" ")));
+
+        Assert.IsNotType<Dictionary<string, ExpectedAnswer>>(item.Expected);
+        var dictionary = Assert.IsAssignableFrom<IDictionary<string, ExpectedAnswer>>(item.Expected);
+        Assert.True(dictionary.IsReadOnly);
+        Assert.Throws<NotSupportedException>(() => dictionary["is_urgent"] = ExpectedAnswer.ForNoul(false));
+    }
+
     [Theory]
     [InlineData("request-noul.json")]
     [InlineData("request-noul-minimal.json")]

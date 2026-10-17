@@ -1,3 +1,7 @@
+using System.Buffers;
+using System.Collections.ObjectModel;
+using System.Globalization;
+using System.Text;
 using System.Text.Json;
 using ZeroAlloc.Results;
 
@@ -6,18 +10,31 @@ namespace Minos.Evaluation;
 /// <summary>Reads a JSONL dataset, one item per line, collecting problems with their line numbers.</summary>
 internal static class DatasetReader
 {
-    internal static Result<DecisionDataset, DatasetProblems> Read(TextReader reader)
+    internal static Result<DecisionDataset, DatasetProblems> Read(ILineSource lines)
     {
         var items = new List<DatasetItem>();
         var problems = new List<DatasetProblem>();
         var ids = new Dictionary<string, int>(StringComparer.Ordinal);
 
         var lineNumber = 0;
-        while (reader.ReadLine() is { } line)
+        while (lines.TryReadLine(out var line))
         {
             lineNumber++;
+            if (line is null)
+            {
+                problems.Add(new DatasetProblem(lineNumber, "The line is not valid UTF-8."));
+                continue;
+            }
+
             if (string.IsNullOrWhiteSpace(line))
             {
+                continue;
+            }
+
+            // Text handed to Parse(string) can hold a raw unpaired surrogate, which the JSON parser cannot transcode.
+            if (!IsValidUtf16(line))
+            {
+                problems.Add(new DatasetProblem(lineNumber, "The line is not valid Unicode: it holds an unpaired surrogate."));
                 continue;
             }
 
@@ -28,7 +45,7 @@ internal static class DatasetReader
             }
             catch (JsonException ex)
             {
-                problems.Add(new DatasetProblem(lineNumber, $"The line is not valid JSON: {ex.Message}"));
+                problems.Add(new DatasetProblem(lineNumber, JsonProblem(ex)));
                 continue;
             }
 
@@ -50,6 +67,38 @@ internal static class DatasetReader
         return Result<DecisionDataset, DatasetProblems>.Success(new DecisionDataset([.. items]));
     }
 
+    // The parser's message ends with "LineNumber: 0 | BytePositionInLine: N", and its line number is always 0 because
+    // the parser sees one line. The byte in the line is what helps.
+    private static string JsonProblem(JsonException ex)
+    {
+        var message = ex.Message;
+        var cut = message.IndexOf(" LineNumber:", StringComparison.Ordinal);
+        if (cut >= 0)
+        {
+            message = message[..cut];
+        }
+
+        return ex.BytePositionInLine is { } position
+            ? $"The line is not valid JSON at byte {position.ToString(CultureInfo.InvariantCulture)}: {message}"
+            : $"The line is not valid JSON: {message}";
+    }
+
+    private static bool IsValidUtf16(string text)
+    {
+        var rest = text.AsSpan();
+        while (!rest.IsEmpty)
+        {
+            if (Rune.DecodeFromUtf16(rest, out _, out var used) != OperationStatus.Done)
+            {
+                return false;
+            }
+
+            rest = rest[used..];
+        }
+
+        return true;
+    }
+
     private static DatasetItem? ReadItem(JsonElement root, int line, List<DatasetProblem> problems, Dictionary<string, int> ids)
     {
         var validator = new DatasetItemValidator(line, problems, ids);
@@ -63,13 +112,14 @@ internal static class DatasetReader
         var expected = new Dictionary<string, ExpectedAnswer>(StringComparer.Ordinal);
 
         // The questions are valid here, so the core's rules run even when other members have problems. Only a fully
-        // valid line goes on to read the other members, which are not checked otherwise.
-        foreach (var question in root.GetProperty("questions").EnumerateObject())
+        // valid line goes on to read the other members, which are not checked otherwise. Everything is read from the
+        // members the validator checked: a lookup on the raw element would find the last copy of a duplicate member.
+        foreach (var (key, question) in validator.Questions)
         {
-            AddQuestion(builder, question.Name, question.Value);
-            if (valid && root.GetProperty("expected").TryGetProperty(question.Name, out var answer))
+            AddQuestion(builder, key, question);
+            if (valid && validator.ExpectedMembers.TryGetValue(key, out var answer))
             {
-                expected[question.Name] = ReadAnswer(question.Value.GetProperty("type").GetString()!, answer);
+                expected[key] = ReadAnswer(question["type"].GetString()!, answer);
             }
         }
 
@@ -78,7 +128,7 @@ internal static class DatasetReader
         {
             foreach (var failure in built.Error.Failures)
             {
-                problems.Add(new DatasetProblem(line, $"{failure.Rule}: {failure.Message}"));
+                problems.Add(new DatasetProblem(line, CoreProblem(failure)));
             }
 
             if (built.Error.Failures.Count == 0)
@@ -93,7 +143,7 @@ internal static class DatasetReader
         {
             foreach (var warning in built.Value.Warnings)
             {
-                problems.Add(new DatasetProblem(line, $"{warning.Rule}: {warning.Message}"));
+                problems.Add(new DatasetProblem(line, CoreProblem(warning)));
             }
 
             return null;
@@ -104,17 +154,26 @@ internal static class DatasetReader
             return null;
         }
 
-        var id = root.GetProperty("id").GetString()!;
-        var state = ToContent(root.GetProperty("state"));
-        string? source = root.TryGetProperty("source", out var sourceElement) ? sourceElement.GetString() : null;
-        return new DatasetItem(id, state, built.Value.Definition, expected, source, line);
+        var members = validator.ItemMembers;
+        var id = members["id"].GetString()!;
+        var state = ToContent(members["state"]);
+        string? source = members.TryGetValue("source", out var sourceElement) ? sourceElement.GetString() : null;
+        return new DatasetItem(id, state, built.Value.Definition, new ReadOnlyDictionary<string, ExpectedAnswer>(expected), source, line);
     }
 
-    private static void AddQuestion(QuestionSetBuilder builder, string key, JsonElement question)
+    // The MIN id comes first, so a problem can be matched by its rule, then the question it is about.
+    private static string CoreProblem(QuestionFailure failure)
+        => failure.QuestionKey is { } key
+            ? $"{failure.Rule} 'questions.{key}': {failure.Message}"
+            : $"{failure.Rule}: {failure.Message}";
+
+    // Below the question's own members, a duplicate is a problem inside 'questions', so a valid question has none and
+    // the criteria can be read from the element.
+    private static void AddQuestion(QuestionSetBuilder builder, string key, Dictionary<string, JsonElement> question)
     {
-        var instructions = ToContent(question.GetProperty("instructions"));
-        question.TryGetProperty("criteria", out var criteria);
-        switch (question.GetProperty("type").GetString())
+        var instructions = ToContent(question["instructions"]);
+        question.TryGetValue("criteria", out var criteria);
+        switch (question["type"].GetString())
         {
             case "noul":
                 builder.Noul(key, instructions, out _, c =>

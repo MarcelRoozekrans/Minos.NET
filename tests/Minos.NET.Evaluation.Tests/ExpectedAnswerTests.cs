@@ -77,4 +77,12 @@ public sealed class ExpectedAnswerTests
         Assert.Equal("Choice key", ExpectedAnswer.ForChoice("key").ToString());
         Assert.Equal("Score 2", ExpectedAnswer.ForScore(2).ToString());
     }
+
+    [Fact]
+    public void ForScore_RejectsANegativeLevel()
+        => Assert.Throws<ArgumentOutOfRangeException>(() => ExpectedAnswer.ForScore(-1));
+
+    [Fact]
+    public void ForScore_AcceptsLevelZero()
+        => Assert.Equal(0, ExpectedAnswer.ForScore(0).ScoreLevel);
 }

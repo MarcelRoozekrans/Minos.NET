@@ -19,8 +19,4 @@
     <ProjectReference Include="..\Minos.NET\Minos.NET.csproj" />
     <PackageReference Include="ZeroAlloc.Results" />
   </ItemGroup>
-
-  <ItemGroup>
-    <InternalsVisibleTo Include="Minos.NET.Evaluation.Tests" />
-  </ItemGroup>
 </Project>
