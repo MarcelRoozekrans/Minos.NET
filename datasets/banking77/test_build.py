@@ -51,6 +51,15 @@ class BuildTests(unittest.TestCase):
         self.assertEqual(60, len(labels))
         self.assertTrue(all(r["urgency"] in ("0", "1", "2") for r in labels))
 
+    def test_the_spot_check_corrections_are_applied(self):
+        lines = (HERE / build.URGENCY_FILE).read_text(encoding="utf-8").splitlines()
+        items = {i["id"]: i["expected"]["urgency"] for i in map(json.loads, lines)}
+        self.assertEqual(1, items["b77-card_arrival-25"])
+        self.assertEqual(0, items["b77-activate_my_card-02"])
+        self.assertEqual(0, items["b77-change_pin-18"])
+        self.assertEqual(1, items["b77-change_pin-22"])
+        self.assertEqual(2, items["b77-lost_or_stolen_card-31"])
+
     def test_source_is_the_upstream_row_number(self):
         with open(HERE / "source" / build.SUBSET_NAME, encoding="utf-8", newline="") as f:
             rows = list(csv.DictReader(f))
