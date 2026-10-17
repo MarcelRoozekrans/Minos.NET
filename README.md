@@ -5,6 +5,7 @@
 ![Minos](https://raw.githubusercontent.com/MarcelRoozekrans/Minos.NET/main/assets/brand/icon-192.png)
 
 [![CI](https://github.com/MarcelRoozekrans/Minos.NET/actions/workflows/ci.yml/badge.svg)](https://github.com/MarcelRoozekrans/Minos.NET/actions/workflows/ci.yml)
+[![codecov](https://codecov.io/gh/MarcelRoozekrans/Minos.NET/graph/badge.svg)](https://codecov.io/gh/MarcelRoozekrans/Minos.NET)
 [![Minos.NET](https://img.shields.io/nuget/v/Minos.NET?label=Minos.NET)](https://www.nuget.org/packages/Minos.NET)
 [![Minos.NET.SystemOne](https://img.shields.io/nuget/v/Minos.NET.SystemOne?label=Minos.NET.SystemOne)](https://www.nuget.org/packages/Minos.NET.SystemOne)
 [![Minos.NET.OpenAI](https://img.shields.io/nuget/v/Minos.NET.OpenAI?label=Minos.NET.OpenAI)](https://www.nuget.org/packages/Minos.NET.OpenAI)
