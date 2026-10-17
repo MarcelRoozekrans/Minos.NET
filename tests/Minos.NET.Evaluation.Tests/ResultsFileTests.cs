@@ -484,4 +484,35 @@ public sealed class ResultsFileTests
         AssertSaveRefuses(With(Item(noAnswers: true, error: Error(message: "bad " + lone))), "Error.Message");
         AssertSaveRefuses(With(Item(noAnswers: true, error: Error(kind: lone))), "Error.Kind");
     }
+
+    [Fact]
+    public void PartialHeader_SavesAndLoads()
+    {
+        var header = new RunHeader
+        {
+            DatasetName = "d",
+            ItemCount = 1,
+            Started = Start,
+            Finished = Start.AddSeconds(1),
+            Parallelism = 1,
+            Partial = true,
+        };
+        var results = new EvaluationResults(header, [new ItemResult { Id = "a", Line = 1, LatencyMs = 1, Answers = new Dictionary<string, AnswerRecord> { ["q"] = AnswerRecord.ForNoul(0.5) } }]);
+
+        var text = Encoding.UTF8.GetString(Bytes(results));
+
+        Assert.Contains("\"partial\":true", text, StringComparison.Ordinal);
+        Assert.True(Parse(Bytes(results)).Header.Partial);
+    }
+
+    [Fact]
+    public void NonPartialHeader_HasNoPartialMember_AndLoadsAsFalse()
+    {
+        var results = new EvaluationResults(Header(0), []);
+
+        var text = Encoding.UTF8.GetString(Bytes(results));
+
+        Assert.DoesNotContain("partial", text, StringComparison.Ordinal);
+        Assert.False(Parse(Bytes(results)).Header.Partial);
+    }
 }

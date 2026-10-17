@@ -23,6 +23,7 @@ internal static class ReportJsonWriter
             w.WriteString("kind", Kind);
             w.WriteNumber("version", Version);
             WriteHeader(w, report.Header);
+            w.WriteNumber("datasetItemCount", report.DatasetItemCount);
             WriteKind(w, "noul", report.Noul);
             WriteKind(w, "choice", report.Choice);
             WriteKind(w, "score", report.Score);
@@ -74,6 +75,7 @@ internal static class ReportJsonWriter
         w.WriteString("started", h.Started.ToUniversalTime());
         w.WriteString("finished", h.Finished.ToUniversalTime());
         w.WriteNumber("parallelism", h.Parallelism);
+        w.WriteBoolean("partial", h.Partial);
         w.WriteEndObject();
     }
 

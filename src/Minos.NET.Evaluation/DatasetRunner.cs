@@ -10,7 +10,8 @@ public static class DatasetRunner
     /// Sends every item of <paramref name="dataset"/> to <paramref name="client"/> and records the outcomes. A failed item
     /// is recorded, never thrown, and the run never stops early for it. The exception is an exception thrown by the client
     /// or by <see cref="DatasetRunOptions.Progress"/>: the first one stops the other workers from sending more requests
-    /// (requests already in flight may finish) and is rethrown as it was thrown.
+    /// (requests already in flight may finish) and is thrown as the inner exception of a <see cref="DatasetRunException"/>,
+    /// which carries the items that finished.
     /// </summary>
     /// <param name="client">The client to evaluate with.</param>
     /// <param name="dataset">The dataset to run.</param>
@@ -20,6 +21,7 @@ public static class DatasetRunner
     /// <exception cref="ArgumentNullException"><paramref name="client"/> or <paramref name="dataset"/> is <see langword="null"/>; thrown before the task is returned.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><see cref="DatasetRunOptions.MaxParallelism"/> is below 1; thrown before the task is returned.</exception>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    /// <exception cref="DatasetRunException">The client or the progress callback threw; the paid results are in <see cref="DatasetRunException.PartialResults"/>.</exception>
     public static Task<EvaluationResults> RunAsync(
         IDecisionClient client,
         DecisionDataset dataset,
@@ -45,6 +47,7 @@ public static class DatasetRunner
         var results = new ItemResult[dataset.Count];
         var next = -1;
         var completed = 0;
+        Exception? fault = null;
 
         // Cancelled by the caller's token, or by the first worker to fault.
         using var stop = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -62,12 +65,24 @@ public static class DatasetRunner
                         return;
                     }
 
-                    results[index] = await RunItemAsync(client, dataset[index], time, token, cancellationToken).ConfigureAwait(false);
+                    var result = await RunItemAsync(client, dataset[index], time, token, cancellationToken).ConfigureAwait(false);
+                    if (Volatile.Read(ref fault) is not null && result.Error is { Kind: "Cancelled" })
+                    {
+                        // Cut short by the run's own stop, so never finished and never paid for.
+                        return;
+                    }
+
+                    results[index] = result;
                     options.Progress?.Report(Interlocked.Increment(ref completed));
                 }
             }
-            catch
+            catch (Exception ex)
             {
+                if (!cancellationToken.IsCancellationRequested)
+                {
+                    Interlocked.CompareExchange(ref fault, ex, null);
+                }
+
                 await stop.CancelAsync().ConfigureAwait(false);
                 throw;
             }
@@ -79,21 +94,33 @@ public static class DatasetRunner
             workers[i] = Task.Run(Worker, CancellationToken.None);
         }
 
-        await Task.WhenAll(workers).ConfigureAwait(false);
+        try
+        {
+            await Task.WhenAll(workers).ConfigureAwait(false);
+        }
+        catch (Exception) when (Volatile.Read(ref fault) is not null || cancellationToken.IsCancellationRequested)
+        {
+            // Decided below, from the first fault or the caller's token.
+        }
+
         cancellationToken.ThrowIfCancellationRequested();
 
+        var failure = Volatile.Read(ref fault);
+        var finished = failure is null ? results : results.Where(r => r is not null).ToArray();
         var header = new RunHeader
         {
             DatasetName = options.DatasetName,
-            ItemCount = results.Length,
+            ItemCount = finished.Length,
             ProviderName = ResultsRules.Clean(metadata?.ProviderName),
             Endpoint = metadata?.Endpoint,
             DefaultModel = ResultsRules.Clean(metadata?.DefaultModel),
             Started = started,
             Finished = time.GetUtcNow(),
             Parallelism = options.MaxParallelism,
+            Partial = failure is not null,
         };
-        return new EvaluationResults(header, results);
+        var run = new EvaluationResults(header, finished);
+        return failure is null ? run : throw new DatasetRunException(run, failure);
     }
 
     private static async Task<ItemResult> RunItemAsync(IDecisionClient client, DatasetItem item, TimeProvider time, CancellationToken token, CancellationToken cancellationToken)

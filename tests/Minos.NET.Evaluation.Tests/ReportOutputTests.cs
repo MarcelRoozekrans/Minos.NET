@@ -160,4 +160,37 @@ public sealed class ReportOutputTests
             CultureInfo.CurrentCulture = saved;
         }
     }
+
+    private static CalibrationReport PartialReport(int finished, int total)
+    {
+        var dataset = Dataset([.. Enumerable.Range(1, total).Select(i => NoulLine(Id(i), true))]);
+        var items = Enumerable.Range(1, finished).Select(i => Answered(i, new Dictionary<string, AnswerRecord> { ["q"] = Noul(true, 0.9) }, id: Id(i))).ToArray();
+        return Report(PartialResults(items), dataset);
+    }
+
+    [Fact]
+    public void PartialReport_ShowsPartialInMarkdownAndJson()
+    {
+        var report = PartialReport(5, 10);
+
+        Assert.Contains("Partial run: 5 of 10 items", report.ToMarkdown(), StringComparison.Ordinal);
+        using var doc = JsonDocument.Parse(report.ToJson());
+        Assert.True(doc.RootElement.GetProperty("header").GetProperty("partial").GetBoolean());
+        Assert.Equal(10, doc.RootElement.GetProperty("datasetItemCount").GetInt32());
+    }
+
+    [Fact]
+    public void PartialReport_SingularWording()
+        => Assert.Contains("Partial run: 1 of 1 item.", PartialReport(1, 1).ToMarkdown(), StringComparison.Ordinal);
+
+    [Fact]
+    public void FullReport_HasNoPartialLine_AndFalsePartialInJson()
+    {
+        var report = AllKindsReport();
+
+        Assert.DoesNotContain("Partial run", report.ToMarkdown(), StringComparison.Ordinal);
+        using var doc = JsonDocument.Parse(report.ToJson());
+        Assert.False(doc.RootElement.GetProperty("header").GetProperty("partial").GetBoolean());
+        Assert.Equal(17, doc.RootElement.GetProperty("datasetItemCount").GetInt32());
+    }
 }

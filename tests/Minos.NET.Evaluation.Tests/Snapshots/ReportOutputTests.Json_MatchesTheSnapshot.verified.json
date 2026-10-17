@@ -9,8 +9,10 @@
     "defaultModel": "jev-1.14",
     "started": "2026-10-17T09:00:00+00:00",
     "finished": "2026-10-17T09:01:00+00:00",
-    "parallelism": 1
+    "parallelism": 1,
+    "partial": false
   },
+  "datasetItemCount": 17,
   "noul": {
     "scored": 17,
     "answered": 14,

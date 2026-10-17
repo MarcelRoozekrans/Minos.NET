@@ -27,6 +27,12 @@ internal static class ReportMarkdownWriter
         }
 
         md.Append(".\n\n");
+        if (report.Partial)
+        {
+            md.Append("Partial run: ").Append(Count(header.ItemCount)).Append(" of ").Append(Count(report.DatasetItemCount))
+                .Append(report.DatasetItemCount == 1 ? " item" : " items").Append(".\n\n");
+        }
+
         md.Append("Responses served by: ").Append(Models(report.ResponseModels)).Append("\n\n");
 
         WriteErrors(md, report.Errors, header.ItemCount);

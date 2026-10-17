@@ -9,7 +9,7 @@ internal static class ResultsReader
 {
     // The members each object may have. Any other member is a problem, so a typo such as "cots" cannot read as a
     // missing optional member.
-    private static readonly string[] HeaderMembers = ["kind", "version", "dataset", "itemCount", "providerName", "endpoint", "defaultModel", "started", "finished", "parallelism"];
+    private static readonly string[] HeaderMembers = ["kind", "version", "dataset", "itemCount", "providerName", "endpoint", "defaultModel", "started", "finished", "parallelism", "partial"];
 
     private static readonly string[] ItemMembers = ["id", "line", "latencyMs", "cached", "model", "inputTokens", "outputTokens", "cost", "responseId", "answers", "error"];
 
@@ -152,6 +152,7 @@ internal static class ResultsReader
         var started = r.Time("started");
         var finished = r.Time("finished");
         var parallelism = r.Int("parallelism", min: ResultsRules.MinParallelism);
+        var partial = r.Bool("partial", required: false);
 
         Uri? endpoint = null;
         if (endpointText is not null && !Uri.TryCreate(endpointText, UriKind.RelativeOrAbsolute, out endpoint))
@@ -174,6 +175,7 @@ internal static class ResultsReader
             Started = started.Value,
             Finished = finished.Value,
             Parallelism = parallelism.Value,
+            Partial = partial ?? false,
         };
     }
 
@@ -435,9 +437,9 @@ internal static class ResultsReader
             return null;
         }
 
-        internal bool? Bool(string name)
+        internal bool? Bool(string name, bool required = true)
         {
-            if (!Find(name, true, out var value))
+            if (!Find(name, required, out var value))
             {
                 return null;
             }

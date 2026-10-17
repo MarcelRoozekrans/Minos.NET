@@ -191,3 +191,10 @@ Minos.Evaluation.RunHeader.RunHeader() -> void
 static Minos.Evaluation.AnswerRecord.ForChoice(string! key, double confidence) -> Minos.Evaluation.AnswerRecord!
 static Minos.Evaluation.AnswerRecord.ForNoul(double probability) -> Minos.Evaluation.AnswerRecord!
 static Minos.Evaluation.AnswerRecord.ForScore(int level, double confidence) -> Minos.Evaluation.AnswerRecord!
+Minos.Evaluation.DatasetRunException
+Minos.Evaluation.DatasetRunException.DatasetRunException(Minos.Evaluation.EvaluationResults! partialResults, System.Exception! innerException) -> void
+Minos.Evaluation.DatasetRunException.PartialResults.get -> Minos.Evaluation.EvaluationResults!
+Minos.Evaluation.RunHeader.Partial.get -> bool
+Minos.Evaluation.RunHeader.Partial.init -> void
+Minos.Evaluation.CalibrationReport.Partial.get -> bool
+Minos.Evaluation.CalibrationReport.DatasetItemCount.get -> int
