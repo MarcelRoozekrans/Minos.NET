@@ -27,19 +27,20 @@ public sealed class PriceTableTests
     [Fact]
     public void LongestPrefix_Wins()
     {
-        var table = new PriceTable([Price("model-a"), Price("jev-1.14"), Price("jev-1")]);
+        var table = new PriceTable([Price("model-a-1.14"), Price("model-a-1"), Price("model-a")]);
 
-        Assert.True(table.TryFind("jev-1.14-20261014", out var price));
-        Assert.Equal("jev-1.14", price.Model);
+        // model-a-1 is a near miss: a '.' follows it, not a '-'.
+        Assert.True(table.TryFind("model-a-1.14-20261014", out var price));
+        Assert.Equal("model-a-1.14", price.Model);
     }
 
     [Fact]
     public void ExactMatch_WinsOverPrefix()
     {
-        var table = new PriceTable([Price("model-a"), Price("jev-1.14-20261014")]);
+        var table = new PriceTable([Price("model-a-1.14"), Price("model-a")]);
 
-        Assert.True(table.TryFind("jev-1.14-20261014", out var price));
-        Assert.Equal("jev-1.14-20261014", price.Model);
+        Assert.True(table.TryFind("model-a-1.14", out var price));
+        Assert.Equal("model-a-1.14", price.Model);
     }
 
     [Fact]
