@@ -1,7 +1,8 @@
 # Milestone 8: Choosing a provider and a threshold
 
-**Status:** active
+**Status:** complete
 **Started:** 2026-10-17
+**Completed:** 2026-10-17
 **Design:** `docs/superpowers/specs/2026-10-17-milestone-8-design.md`
 
 ## Goal
@@ -12,10 +13,10 @@ A .NET user can measure, on their own labelled data, how accurate and how well c
 - a guide backed by committed reports for TypeSafe Jev, Clef Flash and the local model on a Banking77 sample.
 
 ## Definition of Done
-- [ ] All planned phases are complete.
-- [ ] All tests pass, including the new projects, the AOT checks and the docs tests.
-- [ ] The JSONL dataset format is documented on the docs site, with a schema test. A loader reads it and reports line-numbered errors.
-- [ ] `Minos.NET.Evaluation` computes, per question kind:
+- [x] All planned phases are complete.
+- [x] All tests pass, including the new projects, the AOT checks and the docs tests.
+- [x] The JSONL dataset format is documented on the docs site, with a schema test. A loader reads it and reports line-numbered errors.
+- [x] `Minos.NET.Evaluation` computes, per question kind:
   - accuracy;
   - ECE and a reliability table;
   - a coverage and accuracy threshold sweep;
@@ -41,3 +42,4 @@ A .NET user can measure, on their own labelled data, how accurate and how well c
 ## Audit History
 | Date | Verdict | Gaps |
 |---|---|---|
+| 2026-10-17 | PASS | None. Report: `docs/plans/2026-10-17-milestone-8-audit.md` |

@@ -398,16 +398,17 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Completed:** 2026-10-15
 **Evidence:** the release path is built and reviewed. `pack-validate` passes on GitHub; `publish-nuget` is gated to a dispatch on a `v*` tag and refuses 0.x; `RELEASING.md` describes it. #145 and #29 close with the phase PR. Pre-push review PASS, `docs/plans/2026-10-13-phase-7.5-pre-push-review.md`. Every push for 1.0.0 and 1.0.1 was refused with 409, because another owner's prefix reservation covered `Minos.NET*`. On 2026-10-15 nuget.org reserved `Minos.NET` and `Minos.NET.*` to MarcelRoozekrans, and [run 38726515640](https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/38726515640) published all six packages as 1.0.1, with symbols, and attached the twelve files to the v1.0.1 release. 1.0.0 was never published. Package validation now compares each package with 1.0.1 (#28).
 
-## Milestone 8: Choosing a provider and a threshold [status: active]
+## Milestone 8: Choosing a provider and a threshold [status: complete]
 **Goal:** A dotnet tool that measures accuracy, calibration, selective-prediction coverage, latency and cost per provider on a labeled dataset, and docs that use it to choose providers and thresholds.
 **Started:** 2026-10-17
+**Completed:** 2026-10-17
 **Design:** `docs/superpowers/specs/2026-10-17-milestone-8-design.md`
 **Definition of Done:**
-- [ ] A documented JSONL dataset format of state, questions and ground truth, with a loader
-- [ ] `Minos.NET.Evaluation`: accuracy, ECE and reliability per question kind on the number users gate on, a coverage/accuracy threshold sweep, latency and cost, as Markdown and JSON
-- [ ] `Minos.NET.Tool` (`minos calibrate`, `minos conformance`) on nuget.org
-- [ ] Committed calibration reports for TypeSafe, Clef Flash and the local model on a Banking77 sample
-- [ ] A "Choosing a provider and a threshold" guide backed by the tool
+- [x] A documented JSONL dataset format of state, questions and ground truth, with a loader
+- [x] `Minos.NET.Evaluation`: accuracy, ECE and reliability per question kind on the number users gate on, a coverage/accuracy threshold sweep, latency and cost, as Markdown and JSON
+- [x] `Minos.NET.Tool` (`minos calibrate`, `minos conformance`) on nuget.org
+- [x] Committed calibration reports for TypeSafe, Clef Flash and the local model on a Banking77 sample
+- [x] A "Choosing a provider and a threshold" guide backed by the tool
 
 ### Phase 8.1: Dataset format, loader and the Banking77 sample [status: complete]
 **Goal:** The versioned JSONL format (state, questions, expected answers by key), shared later by the decision export (#118); its loader with line-numbered errors; and the Banking77 sample (CC BY 4.0) plus a small authored Score set, with attribution and a reproducible build script (#116).
