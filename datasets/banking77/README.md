@@ -54,19 +54,50 @@ In the order of the options of the `intent` question:
 | `card_not_arrived` | Noul | Is the message about the delivery or arrival of a card? | `card_arrival`, `card_delivery_estimate` | 0.20 |
 | `about_a_payment` | Noul | Is the message about a card payment being declined, pending, or charged a fee? | `declined_card_payment`, `pending_card_payment`, `card_payment_fee_charged` | 0.30 |
 
-The expected answers of the two Nouls follow from the human intent label of the message, so a few messages fit the
-wording less well than their label suggests. The four known cases:
+Every expected answer of `banking77-minos-v1.jsonl` follows from the human intent label of the message, so some
+messages fit the wording of a question less well than their label suggests. The known cases are listed below, checked
+against the message text. The labels are kept as derived from the intent label, so the true rates stay 0.20 and 0.30.
+Read the reports with this known noise.
+
+### Known noise in `intent`
+
+The option descriptions are the ones in `build.py`. These messages match the description of an option other than
+their label:
+
+| Id | Label | Fits | Why it is noisy |
+| --- | --- | --- | --- |
+| `b77-card_arrival-04` | `card_arrival` | `card_delivery_estimate` | "Is there a way to know when my card will arrive?" asks when the card will come. |
+| `b77-card_arrival-06` | `card_arrival` | `card_delivery_estimate` | "When will I get my card?" asks when the card will come. |
+| `b77-card_arrival-12` | `card_arrival` | `card_delivery_estimate` | "How long does a card delivery take?" asks how long delivery takes. |
+| `b77-card_arrival-23` | `card_arrival` | `card_delivery_estimate` | "How long should my new card take to arrive?" asks how long delivery takes. |
+| `b77-card_arrival-33` | `card_arrival` | `card_delivery_estimate` | "How do I know when my card will arrive?" asks when the card will come. |
+| `b77-card_delivery_estimate-02` | `card_delivery_estimate` | `card_arrival` | "my card was not in the mail again" says the card has not arrived. |
+| `b77-card_delivery_estimate-33` | `card_delivery_estimate` | `card_arrival` | "I am waiting for my card to arrive." says the card has not arrived. |
+| `b77-card_not_working-18` | `card_not_working` | `declined_card_payment` | The card "was declined today when eating". |
+| `b77-card_linking-02` | `card_linking` | `activate_my_card` | Asks to reactivate a card, which fits activating it better than linking it. |
+| `b77-card_linking-16` | `card_linking` | `activate_my_card` | A misplaced card that was found and needs to be reactivated. |
+| `b77-card_linking-23` | `card_linking` | `activate_my_card` | A found card the customer wants to reactivate. |
+| `b77-card_linking-25` | `card_linking` | `activate_my_card` | Asks to reactivate a lost card that was found. |
+| `b77-card_linking-33` | `card_linking` | `activate_my_card` | Asks to reactivate a card the customer thought was lost. |
+| `b77-card_linking-37` | `card_linking` | `activate_my_card` | Asks for help to reactivate a card that was lost and found. |
+| `b77-activate_my_card-13` | `activate_my_card` | `lost_or_stolen_card` | "WHAT CAN I DO AFTER THE CARD MISSING" is about a missing card; the Banking77 label is wrong. |
+
+The two delivery descriptions overlap, and Banking77 itself does not separate "when will it come" from "it has not come"
+consistently, so a provider that picks the other delivery option for these items is not clearly wrong.
+
+### Known noise in the Nouls
 
 | Id | Question | Label | Why it is noisy |
 | --- | --- | --- | --- |
 | `b77-card_not_working-18` | `about_a_payment` | false | False by intent, though the message says the card was declined while eating. |
+| `b77-card_not_working-20` | `about_a_payment` | false | False by intent, though the card "won't go through at all", which describes declined payments. |
 | `b77-card_not_working-36` | `about_a_payment` | false | False by intent, though the message says the card does not accept any transaction, which describes a declined payment. |
+| `b77-card_not_working-38` | `about_a_payment` | false | False by intent, though "Nothing goes through on my card." describes declined payments. |
 | `b77-card_arrival-01` | `card_not_arrived` | true | True by intent, but "How do I locate my card?" is a weak fit for a question about delivery or arrival. |
 | `b77-lost_or_stolen_card-33` | `card_not_arrived` | false | False by intent, though the message asks for a new card to be shipped. |
 
-The labels are kept as derived from the human intent label, so the true rates stay 0.20 and 0.30. Read the reports with
-this known noise. The keys are pinned, and `card_not_arrived` now asks about delivery in general: it also covers delivery
-time and speed questions, not only a card that is late.
+The keys are pinned, and `card_not_arrived` now asks about delivery in general: it also covers delivery time and speed
+questions, not only a card that is late.
 
 ## The urgency set
 
@@ -81,6 +112,17 @@ pick is stable. It has one Score question, `urgency`, with these levels:
 
 **Urgency labels drafted by Claude on 2026-10-17; awaiting the maintainer's spot-check of at least 15 before
 Phase 8.4.** Until then the urgency set is a draft, and no report should treat its labels as a ground truth.
+
+A review flagged these labels as possibly inconsistent with each other. They are unchanged; the maintainer decides
+during the spot-check:
+
+| Id | Level | Message | Compare with |
+| --- | --- | --- | --- |
+| `b77-card_arrival-25` | 0 | "My card has not arrived yet, where is it?" | `b77-card_linking-06` at 1: both have a card the customer cannot use yet. |
+| `b77-card_linking-06` | 1 | "I received my new card, but I don't see it in the app anywhere.  What do I do?" | `b77-card_arrival-25` at 0. |
+| `b77-activate_my_card-02` | 1 | "I need to activate my card can you do that now?" | `b77-activate_my_card-05` at 0: both ask to activate a card. |
+| `b77-activate_my_card-05` | 0 | "How can I activate my card so I can start using it?" | `b77-activate_my_card-02` at 1. |
+| `b77-change_pin-18` | 1 | "My new pin needs to be set." | Setting a PIN reads as a request, which the rubric calls Routine. |
 
 The examples of the rubric are not in the question text, so the question does not hint at an answer. With 6 messages
 per intent picked by hash, the urgency is close to a function of the intent. Level 2 holds only lost or stolen card
