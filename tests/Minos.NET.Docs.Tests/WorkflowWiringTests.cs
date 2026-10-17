@@ -18,6 +18,17 @@ public sealed class WorkflowWiringTests
     }
 
     [Fact]
+    public void PackValidate_InstallsTheTool_FromTheLocalFeedConfig_AndChecksItsVersion()
+    {
+        var job = Job(Ci, "pack-validate");
+
+        Assert.Contains("dotnet tool install Minos.NET.Tool --tool-path \"$RUNNER_TEMP/minos-tool\" --configfile \"$RUNNER_TEMP/consumer/nuget.config\" --version \"$PACKAGE_VERSION\"", job, StringComparison.Ordinal);
+        Assert.Contains("\"$RUNNER_TEMP/minos-tool/minos\" --help", job, StringComparison.Ordinal);
+        Assert.Contains("reported=$(\"$RUNNER_TEMP/minos-tool/minos\" --version)", job, StringComparison.Ordinal);
+        Assert.Contains("\"$PACKAGE_VERSION\" | \"$PACKAGE_VERSION+\"*) ;;", job, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Build_TestsTheBanking77SampleBuild()
     {
         var job = Job(Ci, "build");

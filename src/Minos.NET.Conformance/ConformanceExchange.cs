@@ -41,6 +41,14 @@ public sealed class ConformanceExchange
     /// </summary>
     public static IReadOnlyList<string> DroppedProperties { get; } = ["user_id"];
 
+    /// <summary>
+    /// Gets whether the request carried a credential header that was replaced with an invalid key. It is <see langword="false"/>
+    /// only for a bad-key probe sent by a client with no <c>Authorization</c> or <c>x-api-key</c> header. A fixture does not
+    /// keep it: a replay is sent by the target's own client, so it is read again.
+    /// </summary>
+    [JsonIgnore]
+    public bool KeySwapped { get; init; } = true;
+
     /// <summary>Gets whether <see cref="Status"/> is 2xx. It is read from the status, so a fixture does not keep it.</summary>
     [JsonIgnore]
     public bool IsSuccess => Status is >= 200 and < 300;
@@ -52,9 +60,10 @@ public sealed class ConformanceExchange
     /// <param name="contentType">The response's <c>Content-Type</c>, or <see langword="null"/>.</param>
     /// <param name="headers">The allowlisted response headers, or <see langword="null"/>.</param>
     /// <param name="responseBody">The response body as text.</param>
+    /// <param name="keySwapped">Whether a credential header was replaced; see <see cref="KeySwapped"/>.</param>
     /// <returns>The exchange.</returns>
     public static ConformanceExchange FromHttp(
-        string probe, string? requestBody, int status, string? contentType, IReadOnlyDictionary<string, string>? headers, string responseBody)
+        string probe, string? requestBody, int status, string? contentType, IReadOnlyDictionary<string, string>? headers, string responseBody, bool keySwapped = true)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(probe);
         ArgumentNullException.ThrowIfNull(responseBody);
@@ -64,6 +73,7 @@ public sealed class ConformanceExchange
             Probe = probe,
             Request = requestBody is not null && TryParse(requestBody, out var request) ? request : null,
             Status = status,
+            KeySwapped = keySwapped,
             ContentType = contentType,
             Headers = headers is { Count: > 0 } ? headers : null,
             Response = IsJson(contentType) && TryParse(responseBody, out var json)

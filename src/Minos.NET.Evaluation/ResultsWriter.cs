@@ -59,6 +59,11 @@ internal static class ResultsWriter
         w.WriteString("started", h.Started.ToUniversalTime());
         w.WriteString("finished", h.Finished.ToUniversalTime());
         w.WriteNumber("parallelism", h.Parallelism);
+        if (h.Partial)
+        {
+            w.WriteBoolean("partial", true);
+        }
+
         w.WriteEndObject();
     }
 

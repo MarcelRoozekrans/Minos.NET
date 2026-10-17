@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <!--
-    The conformance suite: probes, checks, runner and report for any decision endpoint. Not shipped in Phase 6.6; Phase 8.3
-    packs it as a dotnet tool. It references only the core, so it judges every provider through IDecisionClient alone.
+    The conformance suite: probes, checks, runner and report for any decision endpoint. Not a package of its own: Minos.NET.Tool
+    bundles it as a dotnet tool. It references only the core, so it judges every provider through IDecisionClient alone.
   -->
   <PropertyGroup>
     <RootNamespace>Minos.Conformance</RootNamespace>

@@ -210,7 +210,7 @@ public sealed class DatasetRunnerTests
     }
 
     [Fact]
-    public async Task AFaultingClientStopsTheRun_AndItsExceptionIsRethrown()
+    public async Task AFaultingClientStopsTheRun_AndItsExceptionIsTheInnerException()
     {
         // i0 and i1 answer at once and i2 throws. Every later item waits on a task that only the run's cancellation ends,
         // so no item after i2 can finish and free its worker: at most one more request, i3, is sent before the stop.
@@ -233,10 +233,10 @@ public sealed class DatasetRunnerTests
             return Ok(NoulResponse(r, 0.9));
         });
 
-        var thrown = await Assert.ThrowsAsync<InvalidOperationException>(
+        var thrown = await Assert.ThrowsAsync<DatasetRunException>(
             () => DatasetRunner.RunAsync(client, Many(10), new DatasetRunOptions { MaxParallelism = 2 }).WaitAsync(TimeSpan.FromSeconds(10)));
 
-        Assert.Same(boom, thrown);
+        Assert.Same(boom, thrown.InnerException);
         Assert.False(never.Task.IsCompleted);
         Assert.InRange(client.Requests.Count, 3, 4);
         Assert.DoesNotContain(client.Requests, r => r.State.ToString().EndsWith("i4", StringComparison.Ordinal));
@@ -492,5 +492,108 @@ public sealed class DatasetRunnerTests
                 sink.Add(value);
             }
         }
+    }
+
+    [Fact]
+    public async Task ClientFault_ThrowsDatasetRunException_WithFinishedItemsInOrder()
+    {
+        var boom = new InvalidOperationException("boom");
+        var client = new FakeDecisionClient((r, _) =>
+            r.State.ToString().EndsWith("i5", StringComparison.Ordinal) ? throw boom : ValueTask.FromResult(Ok(NoulResponse(r, 0.9))));
+
+        var ex = await Assert.ThrowsAsync<DatasetRunException>(
+            () => DatasetRunner.RunAsync(client, Many(10), new DatasetRunOptions { MaxParallelism = 1 }).WaitAsync(TimeSpan.FromSeconds(10)));
+
+        Assert.Same(boom, ex.InnerException);
+        Assert.Equal(["i0", "i1", "i2", "i3", "i4"], ex.PartialResults.Items.Select(i => i.Id));
+        Assert.True(ex.PartialResults.Header.Partial);
+        Assert.Equal(5, ex.PartialResults.Header.ItemCount);
+        Assert.All(ex.PartialResults.Items, i => Assert.Null(i.Error));
+    }
+
+    [Fact]
+    public async Task ParallelFault_PartialResultsAreASubsetInDatasetOrder()
+    {
+        var never = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var client = new FakeDecisionClient(async (r, ct) =>
+        {
+            var id = r.State.ToString().Split(' ')[^1];
+            if (id is "i0" or "i1" or "i3")
+            {
+                return Ok(NoulResponse(r, 0.9));
+            }
+
+            if (string.Equals(id, "i4", StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException("boom");
+            }
+
+            await never.Task.WaitAsync(ct);
+            return Ok(NoulResponse(r, 0.9));
+        });
+
+        var ex = await Assert.ThrowsAsync<DatasetRunException>(
+            () => DatasetRunner.RunAsync(client, Many(10), new DatasetRunOptions { MaxParallelism = 3 }).WaitAsync(TimeSpan.FromSeconds(10)));
+
+        var ids = ex.PartialResults.Items.Select(i => int.Parse(i.Id[1..], System.Globalization.CultureInfo.InvariantCulture)).ToList();
+        Assert.Equal([.. ids.Order()], ids);
+        Assert.Equal(ids.Count, ids.Distinct().Count());
+        Assert.Contains(0, ids);
+        Assert.DoesNotContain(4, ids);
+        Assert.Equal(ids.Count, ex.PartialResults.Header.ItemCount);
+        Assert.All(ex.PartialResults.Items, i => Assert.Null(i.Error));
+    }
+
+    [Fact]
+    public async Task ProgressFault_ThrowsDatasetRunException_KeepingTheItemThatReported()
+    {
+        var boom = new InvalidOperationException("progress");
+        var progress = new ThrowingProgress(2, boom);
+
+        var ex = await Assert.ThrowsAsync<DatasetRunException>(
+            () => DatasetRunner.RunAsync(Simple(), Many(5), new DatasetRunOptions { Progress = progress }));
+
+        Assert.Same(boom, ex.InnerException);
+        Assert.Equal(["i0", "i1"], ex.PartialResults.Items.Select(i => i.Id));
+    }
+
+    private sealed class ThrowingProgress(int at, Exception ex) : IProgress<int>
+    {
+        public void Report(int value)
+        {
+            if (value == at)
+            {
+                throw ex;
+            }
+        }
+    }
+
+    [Fact]
+    public async Task Cancellation_StillThrowsOperationCanceledException()
+    {
+        using var cts = new CancellationTokenSource();
+        var client = new FakeDecisionClient(async (_, _) =>
+        {
+            await cts.CancelAsync();
+            cts.Token.ThrowIfCancellationRequested();
+            return default;
+        });
+
+        var ex = await Record.ExceptionAsync(() => DatasetRunner.RunAsync(client, Many(5), cancellationToken: cts.Token));
+
+        Assert.IsAssignableFrom<OperationCanceledException>(ex);
+        Assert.IsNotType<DatasetRunException>(ex);
+    }
+
+    [Theory]
+    [InlineData(1, "after 1 finished item:")]
+    [InlineData(3, "after 3 finished items:")]
+    public void Message_CountsFinishedItemsInTheRightNumber(int count, string expected)
+    {
+        var items = Enumerable.Range(1, count).Select(i => ReportFixture.Answered(i, new Dictionary<string, AnswerRecord> { ["q"] = AnswerRecord.ForNoul(0.9) })).ToArray();
+
+        var ex = new DatasetRunException(ReportFixture.PartialResults(items), new InvalidOperationException("boom"));
+
+        Assert.Contains(expected, ex.Message, StringComparison.Ordinal);
     }
 }

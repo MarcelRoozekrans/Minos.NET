@@ -239,11 +239,61 @@ internal static class EvaluationChecks
             "a report's bins, sweep, latency, cost, errors and models keep their values under Native AOT");
     }
 
+    [Covers("Minos.Evaluation.DatasetRunException.DatasetRunException(Minos.Evaluation.EvaluationResults! partialResults, System.Exception! innerException) -> void")]
+    public static async Task AStoppedRunKeepsItsPaidResults()
+    {
+        var dataset = Dataset();
+        DatasetRunException? stopped = null;
+        try
+        {
+            await DatasetRunner.RunAsync(new FaultingClient(), dataset).ConfigureAwait(false);
+        }
+        catch (DatasetRunException ex)
+        {
+            stopped = ex;
+        }
+
+        var partial = stopped?.PartialResults;
+        var rewrapped = partial is null ? null : new DatasetRunException(partial, new InvalidOperationException("again"));
+        CalibrationReport? report = null;
+        if (partial is not null && CalibrationReport.Create(partial, dataset) is { IsSuccess: true } created)
+        {
+            report = created.Value;
+        }
+
+        Program.Check(
+            stopped is { InnerException: InvalidOperationException }
+                && partial is { Header: { Partial: true, ItemCount: 2 } }
+                && partial.Items.Count == 2
+                && ReferenceEquals(rewrapped?.PartialResults, partial)
+                && string.Equals(partial.Items[1].Id, "b", StringComparison.Ordinal)
+                && report is { Partial: true, DatasetItemCount: 4 }
+                && report.ToMarkdown().Contains("Partial run: 2 of 4 items", StringComparison.Ordinal),
+            "a stopped run throws its paid results, and they make a partial report, under Native AOT");
+    }
+
     private sealed class CountingProgress : IProgress<int>
     {
         public int Last { get; private set; }
 
         public void Report(int value) => Last = Math.Max(Last, value);
+    }
+
+    // Answers the first two items, then throws.
+    private sealed class FaultingClient : IDecisionClient
+    {
+        private int _calls;
+
+        public ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
+            => Interlocked.Increment(ref _calls) > 2
+                ? throw new InvalidOperationException("stopped")
+                : new(Result<DecisionResponse, DecisionError>.Success(new DecisionResponse(request.Definition, [QuestionAnswer.Noul(0.9)])));
+
+        public object? GetService(Type serviceType, object? serviceKey = null) => null;
+
+        public void Dispose()
+        {
+        }
     }
 
     private sealed class AnsweringClient : IDecisionClient

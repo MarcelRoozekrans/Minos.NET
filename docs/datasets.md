@@ -2,7 +2,7 @@
 id: datasets
 title: Labelled datasets
 sidebar_position: 7
-description: The JSONL format for labelled decision items, the members of a line, how the loader reports problems, and the format version.
+description: The JSONL format for labelled decision items, the members of a line, how the loader reports problems, the format version, and the minos command line tool.
 ---
 
 # Labelled datasets
@@ -114,7 +114,15 @@ the item's own question set and state. Items run one at a time unless you set `M
 `InvalidResponse` error: an answer of the wrong kind, a chosen option or level the question does not have, a
 probability or confidence outside 0 to 1, or no answer to any of the item's questions. These do stop the run: your own
 cancellation token, which throws, and an exception thrown by the client or by the `Progress` receiver. In those cases
-no new requests are sent, requests already in flight may finish, and that exception is rethrown.
+no new requests are sent, and requests still in flight are cancelled. Your own cancellation is thrown as it was, even
+when it comes after a client fault, and then no partial results are returned. An exception from the client or the
+`Progress` receiver is thrown as the inner exception of a `DatasetRunException`, whose `PartialResults` hold the items
+that finished, in dataset order, with `Header.Partial` set and `ItemCount` counting only those. Only the first fault is
+kept. In-flight requests that end cancelled are left out of the partial results, so any cost the provider charged for
+them is not in the results or the report; a request that returns anyway is kept. The finished items were paid for, so
+save them. `CalibrationReport.Create` accepts them against the full dataset, as long as every item is one of the
+dataset's and they keep its order, and the report says `Partial run: N of M items`. A results
+file of a partial run has `"partial":true` in its header.
 
 What you get back is an `EvaluationResults`: a `RunHeader` that names the run, and one `ItemResult` for each item. An
 `ItemResult` holds the answers as `AnswerRecord` values, or an `ItemError` when the request failed, and also the latency,
@@ -222,8 +230,130 @@ unanswered. It is left out of accuracy, the calibration error, the bins and the 
 in the coverage of the threshold sweep. A full guide to reading the numbers comes with a
 later release.
 
+## Running it from the command line
+
+The `minos` tool runs the same steps without any code: it calibrates a model against a dataset, builds the report again
+from saved results, and runs the [conformance suite](conformance.md) against a provider. It needs the .NET 10 runtime.
+
+```
+dotnet tool install --global Minos.NET.Tool
+minos --help
+```
+
+### The config file
+
+The tool reads `minos.json` in the current directory, or the file given with `--config`. Each provider is a section
+under `Minos:Providers`, named as you like, with the options of `SystemOneDecisionClientOptions`: `Provider`, `Model`,
+`BaseAddress`, `Path`, `MaxRetries` and the rest of the [client's options](client-and-errors.md). `Minos:Active` names
+the section used when you do not pass `--provider`.
+
+<!-- minos.json -->
+```json
+{
+  "Minos": {
+    "Active": "TypeSafe",
+    "Providers": {
+      "TypeSafe": { "Provider": "TypeSafe" },
+      "OpenRouter": { "Provider": "OpenRouter", "Model": "cloudflare/clef-flash" },
+      "local": { "Provider": "Custom", "BaseAddress": "http://localhost:8000/", "Model": "local-model" }
+    }
+  }
+}
+```
+
+Environment variables are read after the file and win over it, so `Minos__Providers__OpenRouter__Model` replaces the
+OpenRouter section's `Model`. The `--model` option wins over both. The API keys come from the environment, as the client
+reads them: `TYPESAFE_API_KEY` and `OPENROUTER_API_KEY`. You can also write a key in the file as `ApiKey`, but then
+keep the file out of source control. A hosted provider without a key, or a `Custom` provider without a `BaseAddress` or
+a `Model`, stops the command with exit code 2 before it sends anything.
+
+### The prices file
+
+A provider that reports a cost needs no prices. For one that does not, pass a prices file with `--prices`. It holds the
+entries of a `PriceTable`: the model, the price per million input and output tokens, and the date and source of the
+price. Cost is decided in the order described under
+[Running a dataset and reading the report](#running-a-dataset-and-reading-the-report), and the date must be written as
+`yyyy-MM-dd`.
+
+<!-- prices.json -->
+```json
+{
+  "prices": [
+    { "model": "jev-1.14", "inputPerMillion": 0.042, "outputPerMillion": 0, "date": "2026-10-17", "source": "OpenRouter listing" }
+  ]
+}
+```
+
+### The commands
+
+`minos calibrate` runs a dataset through a provider and writes the results and the report. `--dataset` is required.
+`--parallel` sets how many items run together and defaults to 1; the other options are `--config`, `--provider`,
+`--model`, `--prices` and `--out`.
+
+```
+minos calibrate --dataset support.jsonl --provider OpenRouter --parallel 4 --prices prices.json
+```
+
+`minos report` builds the report again from the results of an earlier run and the dataset they came from. It calls no
+provider, so it costs nothing, and it is how you apply new prices or a corrected expected answer. It takes `--results`
+and `--dataset`, both required, and the options `--prices` and `--out`.
+
+```
+minos report --results minos-out/OpenRouter-20261017-120000/results.jsonl --dataset support.jsonl --prices prices.json
+```
+
+`minos conformance` sends the conformance probes to a live provider and checks its answers. It takes `--config`,
+`--provider`, `--model` and `--out`. Every probe is a real request, and the provider may bill it. The `bad-key` probe
+needs a key to make invalid, so it is skipped for a provider that needs no key, such as a local server.
+
+```
+minos conformance --provider local
+```
+
+`minos <command> --help` lists the options of a command.
+
+### The output
+
+Without `--out`, a command writes into `minos-out/<provider>-<UTC yyyyMMdd-HHmmss>` in the current directory, where
+`<provider>` is the provider's section name. When that directory exists, the name ends in `-2`, then `-3`, and so on.
+For `minos report` the provider is the one in the results file. The command creates the directory when it is missing,
+before the first request, so a directory that cannot be written fails the command before any call is paid for. A
+default directory also holds an empty `.minos-run` file, which marks it as taken by one run. A run that is cancelled or
+fails before it writes anything leaves that directory holding only the marker, and it can be deleted. The command prints
+the path of each file it writes.
+
+| Command | Files |
+| --- | --- |
+| `minos calibrate` | `results.jsonl`, `report.json` and `report.md`. |
+| `minos report` | `report.json` and `report.md`. |
+| `minos conformance` | `conformance.json` and `conformance.md`. |
+
+`results.jsonl` is what `EvaluationResults.Save` writes, and `report.json` and `report.md` are the `ToJson` and
+`ToMarkdown` of the report. `minos conformance` also prints how many checks passed, failed and were skipped.
+
+### Exit codes
+
+| Code | Meaning |
+| --- | --- |
+| 0 | The command did what it was asked. A skipped check counts as a pass. |
+| 1 | A run-time failure: a run that stopped, a failed conformance check, a network fault, or an output directory that cannot be written. |
+| 2 | The input, the usage or the configuration is wrong, such as a dataset with problems, a missing config file or an unknown provider. |
+| 130 | The command was cancelled. |
+
+A failure prints one line on stderr. The problems of a dataset or a results file are printed one per line, as
+`line N: message`, so you can fix them in one pass.
+
+### A run that stops
+
+When the client throws during `minos calibrate`, the tool does not lose what the finished items cost. It writes the
+finished items to `results.partial.jsonl` instead of `results.jsonl`, builds `report.json` and `report.md` from them,
+and exits with code 1. The report reads `Partial run: N of M items`. It deletes a `results.jsonl` left in the same
+directory by an earlier run, so the directory never holds two contradicting runs. A partial results file works with
+`minos report`, together with the full dataset. To finish, run the dataset again.
+
 ## Next
 
 - [Question sets at run time](question-sets-at-run-time.md): the builder and the rules every question goes through.
 - [The client and its errors](client-and-errors.md): the `IDecisionClient` that the items run through.
 - [Question types](question-types.md): what a Noul, a Choice and a Score answer holds.
+- [Conformance](conformance.md): the suite that `minos conformance` runs.

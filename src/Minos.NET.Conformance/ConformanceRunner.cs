@@ -84,8 +84,10 @@ public sealed class ConformanceRunner
             probes.Add(new ProbeReport(probe.Id, null, ConformanceChecks.Run(outcome, target)));
             if (mode == ConformanceMode.Record)
             {
-                recorded.Add(exchanges.Count > 0
+                recorded.Add(exchanges.Count > 0 && exchanges[^1].KeySwapped
                     ? exchanges[^1]
+                    : exchanges.Count > 0
+                    ? new ConformanceExchange { Probe = probe.Id, Skipped = "No request carried a key to make invalid: the client sent no Authorization or x-api-key." }
                     : new ConformanceExchange { Probe = probe.Id, Skipped = "No request was sent: " + result.Error.Kind.ToString() + ", " + result.Error.Message });
             }
         }

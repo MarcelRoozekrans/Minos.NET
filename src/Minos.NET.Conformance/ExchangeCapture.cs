@@ -53,9 +53,10 @@ public sealed class ExchangeCapture : DelegatingHandler
     {
         ArgumentNullException.ThrowIfNull(request);
         var probe = _probe ?? throw new InvalidOperationException("A request was sent outside a probe; call Begin first.");
+        var swapped = true;
         if (probe.Kind == ProbeKind.BadKey)
         {
-            SwapKey(request);
+            swapped = SwapKey(request);
         }
 
         request.Options.Set(ProbeOption, probe.Id);
@@ -65,16 +66,18 @@ public sealed class ExchangeCapture : DelegatingHandler
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         _exchanges.Add(ConformanceExchange.FromHttp(
-            probe.Id, requestBody, (int)response.StatusCode, response.Content.Headers.ContentType?.ToString(), Allowlisted(response), responseBody));
+            probe.Id, requestBody, (int)response.StatusCode, response.Content.Headers.ContentType?.ToString(), Allowlisted(response), responseBody, swapped));
         return response;
     }
 
     // Fails closed: the raw header is read, so a key that does not parse as a credential is still replaced, and a header
     // that cannot be replaced stops the probe instead of sending the real key.
-    private static void SwapKey(HttpRequestMessage request)
+    // Returns whether a credential header was there to replace; a keyless client sends the request as it is.
+    private static bool SwapKey(HttpRequestMessage request)
     {
-        Replace(request, "Authorization", static raw => KeepScheme(raw));
-        Replace(request, "x-api-key", static _ => InvalidKey);
+        var authorization = Replace(request, "Authorization", static raw => KeepScheme(raw));
+        var apiKey = Replace(request, "x-api-key", static _ => InvalidKey);
+        return authorization || apiKey;
     }
 
     // Keeps a known credential scheme, such as Bearer or Basic, and swaps everything after it. Any other value becomes the
@@ -98,11 +101,11 @@ public sealed class ExchangeCapture : DelegatingHandler
         return InvalidKey;
     }
 
-    private static void Replace(HttpRequestMessage request, string name, Func<string, string> swapped)
+    private static bool Replace(HttpRequestMessage request, string name, Func<string, string> swapped)
     {
         if (!request.Headers.TryGetValues(name, out var values))
         {
-            return;
+            return false;
         }
 
         var raw = string.Join(", ", values);
@@ -110,6 +113,8 @@ public sealed class ExchangeCapture : DelegatingHandler
         {
             throw new InvalidOperationException("The bad-key probe could not replace the " + name + " header, so it was not sent.");
         }
+
+        return true;
     }
 
     private static Dictionary<string, string>? Allowlisted(HttpResponseMessage response)

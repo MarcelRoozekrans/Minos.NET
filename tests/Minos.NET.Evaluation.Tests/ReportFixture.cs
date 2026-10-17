@@ -57,7 +57,7 @@ internal static class ReportFixture
     internal static ItemResult Failed(int item, string kind = "Server", string? id = null)
         => new() { Id = id ?? Id(item), Line = item, LatencyMs = 50, Error = new ItemError { Kind = kind, StatusCode = 500, Message = "failed" } };
 
-    internal static RunHeader Header(int itemCount)
+    internal static RunHeader Header(int itemCount, bool partial = false)
         => new()
         {
             DatasetName = "fixture",
@@ -67,9 +67,12 @@ internal static class ReportFixture
             Started = Start,
             Finished = Start.AddMinutes(1),
             Parallelism = 1,
+            Partial = partial,
         };
 
     internal static EvaluationResults Results(params ItemResult[] items) => new(Header(items.Length), items);
+
+    internal static EvaluationResults PartialResults(params ItemResult[] items) => new(Header(items.Length, partial: true), items);
 
     internal static DecisionDataset FixtureDataset()
         => Dataset([.. Enumerable.Range(1, 14).Select(i => NoulLine(Id(i), i <= 8))]);

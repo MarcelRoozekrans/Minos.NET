@@ -118,7 +118,7 @@ The smoke application has to call everything a user can call, or its own pass sa
 `tests/Minos.NET.AotSmoke.Tests` enforces that, and it runs with the rest of the test suite.
 
 An **entry point** is a public or protected method or constructor that you call. The list is read from the `PublicAPI`
-files of the six packages and `Minos.NET.Evaluation`, so a new public member is an entry point the day it is added.
+files of the seven library packages, so a new public member is an entry point the day it is added.
 These are not entry points, and the test says why for each:
 
 - type declarations, which are called through their constructors and methods;

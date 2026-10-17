@@ -26,4 +26,10 @@ public sealed class RunHeader
 
     /// <summary>Gets the most requests allowed in flight at once.</summary>
     public required int Parallelism { get; init; }
+
+    /// <summary>
+    /// Gets a value that says the run stopped early, so the results hold only the items that finished and
+    /// <see cref="ItemCount"/> counts those. It is saved as <c>"partial":true</c> and left out when <see langword="false"/>.
+    /// </summary>
+    public bool Partial { get; init; }
 }

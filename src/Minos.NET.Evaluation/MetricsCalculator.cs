@@ -27,6 +27,12 @@ internal static class MetricsCalculator
         }
 
         var count = results.Items.Count;
+        if (results.Header.Partial)
+        {
+            MatchPartial(results, dataset, problems);
+            return problems.Count == 0 ? null : new DatasetProblems([.. problems]);
+        }
+
         if (count != dataset.Count)
         {
             problems.Add(new DatasetProblem(
@@ -54,6 +60,41 @@ internal static class MetricsCalculator
         }
 
         return problems.Count == 0 ? null : new DatasetProblems([.. problems]);
+    }
+
+    // A partial run holds the items that finished: each must be an item of the dataset, and they must follow the
+    // dataset's own order, so each one sits at a later dataset position than the one before.
+    private static void MatchPartial(EvaluationResults results, DecisionDataset dataset, List<DatasetProblem> problems)
+    {
+        var positions = new Dictionary<string, int>(StringComparer.Ordinal);
+        for (var i = 0; i < dataset.Count; i++)
+        {
+            positions.TryAdd(dataset[i].Id, i);
+        }
+
+        var previous = -1;
+        for (var n = 0; n < results.Items.Count; n++)
+        {
+            var result = results.Items[n];
+            if (!positions.TryGetValue(result.Id, out var position))
+            {
+                problems.Add(new DatasetProblem(
+                    LineOf(dataset, previous + 1),
+                    string.Create(CultureInfo.InvariantCulture, $"Item {n + 1} of the results is '{result.Id}', which is not an item of the dataset.")));
+                continue;
+            }
+
+            if (position <= previous)
+            {
+                problems.Add(new DatasetProblem(
+                    dataset[position].Line,
+                    string.Create(CultureInfo.InvariantCulture, $"Item {n + 1} of the results is '{result.Id}', which is not after the one before it in the dataset's order.")));
+                continue;
+            }
+
+            previous = position;
+            CheckAnswers(n + 1, result, dataset[position], problems);
+        }
     }
 
     private static int LineOf(DecisionDataset dataset, int index)
@@ -148,17 +189,35 @@ internal static class MetricsCalculator
             Latency(results.Items),
             Cost(results.Items, prices),
             Errors(results.Items),
-            Models(results.Items));
+            Models(results.Items),
+            dataset.Count);
     }
 
     private static List<ScoredQuestion> Collect(EvaluationResults results, DecisionDataset dataset, out int unscored)
     {
         var questions = new List<ScoredQuestion>();
         unscored = 0;
+
+        // A partial run has results for some of the items only; Match has checked that they are in dataset order.
+        var next = 0;
         for (var i = 0; i < dataset.Count; i++)
         {
             var item = dataset[i];
-            var result = results.Items[i];
+            ItemResult result;
+            if (results.Header.Partial)
+            {
+                if (next >= results.Items.Count || !string.Equals(results.Items[next].Id, item.Id, StringComparison.Ordinal))
+                {
+                    continue;
+                }
+
+                result = results.Items[next++];
+            }
+            else
+            {
+                result = results.Items[i];
+            }
+
             foreach (var question in item.Definition.Questions)
             {
                 if (!item.Expected.TryGetValue(question.Key, out var expected))

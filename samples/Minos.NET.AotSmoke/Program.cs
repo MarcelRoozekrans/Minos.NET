@@ -132,6 +132,7 @@ internal static class Program
         EvaluationChecks.PricesMatchTheModelAndItsVariants();
         await EvaluationChecks.ReportsCountAndRender().ConfigureAwait(false);
         await EvaluationChecks.ReportSummariesKeepTheirValues().ConfigureAwait(false);
+        await EvaluationChecks.AStoppedRunKeepsItsPaidResults().ConfigureAwait(false);
 
         await AllocationChecks.AnswerSlotAccessors().ConfigureAwait(false);
         await AllocationChecks.GeneratedCreate().ConfigureAwait(false);

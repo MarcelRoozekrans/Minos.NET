@@ -1,0 +1,13 @@
+﻿Description:
+  Sends the conformance probes to a live provider and checks its answers. Exits 1 when a check fails; a skipped check passes. The bad-key check is skipped when no API key is configured.
+
+Usage:
+  minos conformance [options]
+
+Options:
+  --config <file>    The config file, JSON with a Minos section. Environment variables such as Minos__Providers__<name>__Model override it. [default: minos.json]
+  --provider <name>  The provider section of the config to use. Default: the section named by Minos:Active.
+  --model <id>       The model to call, in place of the section's Model. Default: the section's Model, then the provider's default model.
+  --out <dir>        The directory for conformance.json and conformance.md, created when missing. Default: minos-out/<provider>-<UTC yyyyMMdd-HHmmss>, with the provider section being checked.
+  -?, -h, --help     Show help and usage information
+

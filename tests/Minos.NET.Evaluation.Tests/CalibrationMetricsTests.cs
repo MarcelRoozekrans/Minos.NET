@@ -805,4 +805,67 @@ public sealed class CalibrationMetricsTests
         Assert.Throws<ArgumentNullException>(() => CalibrationReport.Create(null!, FixtureDataset()));
         Assert.Throws<ArgumentNullException>(() => CalibrationReport.Create(FixtureResults(), null!));
     }
+
+    private static DecisionDataset Ten() => Dataset([.. Enumerable.Range(1, 10).Select(i => NoulLine(Id(i), true))]);
+
+    private static ItemResult Right(int i) => Answered(i, Q(Noul(true, 0.9)), id: Id(i));
+
+    [Fact]
+    public void PartialResults_ReportAgainstFullDataset()
+    {
+        var results = PartialResults(Right(1), Right(2), Right(3), Right(4), Right(5));
+
+        var report = Report(results, Ten());
+
+        Assert.True(report.Partial);
+        Assert.Equal(10, report.DatasetItemCount);
+        Assert.Equal(5, report.Header.ItemCount);
+        Assert.Equal(5, report.Overall.Scored);
+        Assert.Equal(5, report.Overall.Answered);
+    }
+
+    [Fact]
+    public void PartialResults_MayBeAGappedSubsetInDatasetOrder()
+    {
+        var report = Report(PartialResults(Right(1), Right(4), Right(8)), Ten());
+
+        Assert.Equal(3, report.Overall.Scored);
+        Assert.Equal(10, report.DatasetItemCount);
+    }
+
+    [Fact]
+    public void FullResults_ReportNotPartial_WithTheDatasetCount()
+    {
+        var report = Report(FixtureResults(), FixtureDataset());
+
+        Assert.False(report.Partial);
+        Assert.Equal(14, report.DatasetItemCount);
+    }
+
+    [Fact]
+    public void PartialResults_OutOfOrderOrUnknownId_IsAProblem()
+    {
+        var dataset = Ten();
+
+        var outOfOrder = CalibrationReport.Create(PartialResults(Right(4), Right(2)), dataset);
+        Assert.False(outOfOrder.IsSuccess);
+        Assert.Equal(dataset[1].Line, Assert.Single(outOfOrder.Error).Line);
+
+        var duplicate = CalibrationReport.Create(PartialResults(Right(2), Right(2)), dataset);
+        Assert.False(duplicate.IsSuccess);
+
+        var unknown = CalibrationReport.Create(PartialResults(Right(1), Answered(2, Q(Noul(true, 0.9)), id: "zzz")), dataset);
+        Assert.False(unknown.IsSuccess);
+        Assert.Contains("zzz", unknown.Error[0].Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FullResults_StillRequireExactMatch()
+    {
+        var shortResults = CalibrationReport.Create(Results(Right(1), Right(2), Right(3), Right(4), Right(5)), Ten());
+        Assert.False(shortResults.IsSuccess);
+
+        var skipped = CalibrationReport.Create(Results([.. Enumerable.Range(1, 10).Where(i => i != 6).Select(Right)]), Ten());
+        Assert.False(skipped.IsSuccess);
+    }
 }
