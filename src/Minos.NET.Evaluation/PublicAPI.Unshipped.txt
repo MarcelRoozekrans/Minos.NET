@@ -46,3 +46,115 @@ static Minos.Evaluation.ExpectedAnswer.operator !=(Minos.Evaluation.ExpectedAnsw
 static Minos.Evaluation.ExpectedAnswer.operator ==(Minos.Evaluation.ExpectedAnswer left, Minos.Evaluation.ExpectedAnswer right) -> bool
 override Minos.Evaluation.ExpectedAnswer.Equals(object? obj) -> bool
 override Minos.Evaluation.ExpectedAnswer.ToString() -> string!
+Minos.Evaluation.AnswerRecord
+Minos.Evaluation.AnswerRecord.<Clone>$() -> Minos.Evaluation.AnswerRecord!
+Minos.Evaluation.AnswerRecord.AnswerRecord(Minos.QuestionKind Kind, bool Noul, double? Probability, string? ChoiceKey, int ScoreLevel, double Confidence) -> void
+Minos.Evaluation.AnswerRecord.ChoiceKey.get -> string?
+Minos.Evaluation.AnswerRecord.ChoiceKey.init -> void
+Minos.Evaluation.AnswerRecord.Confidence.get -> double
+Minos.Evaluation.AnswerRecord.Confidence.init -> void
+Minos.Evaluation.AnswerRecord.Deconstruct(out Minos.QuestionKind Kind, out bool Noul, out double? Probability, out string? ChoiceKey, out int ScoreLevel, out double Confidence) -> void
+Minos.Evaluation.AnswerRecord.Equals(Minos.Evaluation.AnswerRecord? other) -> bool
+Minos.Evaluation.AnswerRecord.Kind.get -> Minos.QuestionKind
+Minos.Evaluation.AnswerRecord.Kind.init -> void
+Minos.Evaluation.AnswerRecord.Noul.get -> bool
+Minos.Evaluation.AnswerRecord.Noul.init -> void
+Minos.Evaluation.AnswerRecord.Probability.get -> double?
+Minos.Evaluation.AnswerRecord.Probability.init -> void
+Minos.Evaluation.AnswerRecord.ScoreLevel.get -> int
+Minos.Evaluation.AnswerRecord.ScoreLevel.init -> void
+Minos.Evaluation.DatasetRunOptions
+Minos.Evaluation.DatasetRunOptions.DatasetName.get -> string!
+Minos.Evaluation.DatasetRunOptions.DatasetName.init -> void
+Minos.Evaluation.DatasetRunOptions.DatasetRunOptions() -> void
+Minos.Evaluation.DatasetRunOptions.MaxParallelism.get -> int
+Minos.Evaluation.DatasetRunOptions.MaxParallelism.init -> void
+Minos.Evaluation.DatasetRunOptions.Progress.get -> System.IProgress<int>?
+Minos.Evaluation.DatasetRunOptions.Progress.init -> void
+Minos.Evaluation.DatasetRunOptions.TimeProvider.get -> System.TimeProvider!
+Minos.Evaluation.DatasetRunOptions.TimeProvider.init -> void
+Minos.Evaluation.DatasetRunner
+Minos.Evaluation.EvaluationResults
+Minos.Evaluation.EvaluationResults.EvaluationResults(Minos.Evaluation.RunHeader! header, System.Collections.Generic.IReadOnlyList<Minos.Evaluation.ItemResult!>! items) -> void
+Minos.Evaluation.EvaluationResults.Header.get -> Minos.Evaluation.RunHeader!
+Minos.Evaluation.EvaluationResults.Items.get -> System.Collections.Generic.IReadOnlyList<Minos.Evaluation.ItemResult!>!
+Minos.Evaluation.ItemError
+Minos.Evaluation.ItemError.<Clone>$() -> Minos.Evaluation.ItemError!
+Minos.Evaluation.ItemError.Deconstruct(out string! Kind, out int? StatusCode, out string! Message) -> void
+Minos.Evaluation.ItemError.Equals(Minos.Evaluation.ItemError? other) -> bool
+Minos.Evaluation.ItemError.ItemError(string! Kind, int? StatusCode, string! Message) -> void
+Minos.Evaluation.ItemError.Kind.get -> string!
+Minos.Evaluation.ItemError.Kind.init -> void
+Minos.Evaluation.ItemError.Message.get -> string!
+Minos.Evaluation.ItemError.Message.init -> void
+Minos.Evaluation.ItemError.StatusCode.get -> int?
+Minos.Evaluation.ItemError.StatusCode.init -> void
+Minos.Evaluation.ItemResult
+Minos.Evaluation.ItemResult.<Clone>$() -> Minos.Evaluation.ItemResult!
+Minos.Evaluation.ItemResult.Answers.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Minos.Evaluation.AnswerRecord!>?
+Minos.Evaluation.ItemResult.Answers.init -> void
+Minos.Evaluation.ItemResult.Cached.get -> bool
+Minos.Evaluation.ItemResult.Cached.init -> void
+Minos.Evaluation.ItemResult.Cost.get -> double?
+Minos.Evaluation.ItemResult.Cost.init -> void
+Minos.Evaluation.ItemResult.Deconstruct(out string! Id, out int Line, out double LatencyMs, out bool Cached, out string? Model, out int? InputTokens, out int? OutputTokens, out double? Cost, out string? ResponseId, out System.Collections.Generic.IReadOnlyDictionary<string!, Minos.Evaluation.AnswerRecord!>? Answers, out Minos.Evaluation.ItemError? Error) -> void
+Minos.Evaluation.ItemResult.Equals(Minos.Evaluation.ItemResult? other) -> bool
+Minos.Evaluation.ItemResult.Error.get -> Minos.Evaluation.ItemError?
+Minos.Evaluation.ItemResult.Error.init -> void
+Minos.Evaluation.ItemResult.Id.get -> string!
+Minos.Evaluation.ItemResult.Id.init -> void
+Minos.Evaluation.ItemResult.InputTokens.get -> int?
+Minos.Evaluation.ItemResult.InputTokens.init -> void
+Minos.Evaluation.ItemResult.ItemResult(string! Id, int Line, double LatencyMs, bool Cached, string? Model, int? InputTokens, int? OutputTokens, double? Cost, string? ResponseId, System.Collections.Generic.IReadOnlyDictionary<string!, Minos.Evaluation.AnswerRecord!>? Answers, Minos.Evaluation.ItemError? Error) -> void
+Minos.Evaluation.ItemResult.LatencyMs.get -> double
+Minos.Evaluation.ItemResult.LatencyMs.init -> void
+Minos.Evaluation.ItemResult.Line.get -> int
+Minos.Evaluation.ItemResult.Line.init -> void
+Minos.Evaluation.ItemResult.Model.get -> string?
+Minos.Evaluation.ItemResult.Model.init -> void
+Minos.Evaluation.ItemResult.OutputTokens.get -> int?
+Minos.Evaluation.ItemResult.OutputTokens.init -> void
+Minos.Evaluation.ItemResult.ResponseId.get -> string?
+Minos.Evaluation.ItemResult.ResponseId.init -> void
+Minos.Evaluation.RunHeader
+Minos.Evaluation.RunHeader.<Clone>$() -> Minos.Evaluation.RunHeader!
+Minos.Evaluation.RunHeader.DatasetName.get -> string!
+Minos.Evaluation.RunHeader.DatasetName.init -> void
+Minos.Evaluation.RunHeader.Deconstruct(out string! DatasetName, out int ItemCount, out string? ProviderName, out System.Uri? Endpoint, out string? DefaultModel, out System.DateTimeOffset Started, out System.DateTimeOffset Finished, out int Parallelism) -> void
+Minos.Evaluation.RunHeader.DefaultModel.get -> string?
+Minos.Evaluation.RunHeader.DefaultModel.init -> void
+Minos.Evaluation.RunHeader.Endpoint.get -> System.Uri?
+Minos.Evaluation.RunHeader.Endpoint.init -> void
+Minos.Evaluation.RunHeader.Equals(Minos.Evaluation.RunHeader? other) -> bool
+Minos.Evaluation.RunHeader.Finished.get -> System.DateTimeOffset
+Minos.Evaluation.RunHeader.Finished.init -> void
+Minos.Evaluation.RunHeader.ItemCount.get -> int
+Minos.Evaluation.RunHeader.ItemCount.init -> void
+Minos.Evaluation.RunHeader.Parallelism.get -> int
+Minos.Evaluation.RunHeader.Parallelism.init -> void
+Minos.Evaluation.RunHeader.ProviderName.get -> string?
+Minos.Evaluation.RunHeader.ProviderName.init -> void
+Minos.Evaluation.RunHeader.RunHeader(string! DatasetName, int ItemCount, string? ProviderName, System.Uri? Endpoint, string? DefaultModel, System.DateTimeOffset Started, System.DateTimeOffset Finished, int Parallelism) -> void
+Minos.Evaluation.RunHeader.Started.get -> System.DateTimeOffset
+Minos.Evaluation.RunHeader.Started.init -> void
+override Minos.Evaluation.AnswerRecord.Equals(object? obj) -> bool
+override Minos.Evaluation.AnswerRecord.GetHashCode() -> int
+override Minos.Evaluation.AnswerRecord.ToString() -> string!
+override Minos.Evaluation.ItemError.Equals(object? obj) -> bool
+override Minos.Evaluation.ItemError.GetHashCode() -> int
+override Minos.Evaluation.ItemError.ToString() -> string!
+override Minos.Evaluation.ItemResult.Equals(object? obj) -> bool
+override Minos.Evaluation.ItemResult.GetHashCode() -> int
+override Minos.Evaluation.ItemResult.ToString() -> string!
+override Minos.Evaluation.RunHeader.Equals(object? obj) -> bool
+override Minos.Evaluation.RunHeader.GetHashCode() -> int
+override Minos.Evaluation.RunHeader.ToString() -> string!
+static Minos.Evaluation.AnswerRecord.operator !=(Minos.Evaluation.AnswerRecord? left, Minos.Evaluation.AnswerRecord? right) -> bool
+static Minos.Evaluation.AnswerRecord.operator ==(Minos.Evaluation.AnswerRecord? left, Minos.Evaluation.AnswerRecord? right) -> bool
+static Minos.Evaluation.DatasetRunner.RunAsync(Minos.IDecisionClient! client, Minos.Evaluation.DecisionDataset! dataset, Minos.Evaluation.DatasetRunOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Minos.Evaluation.EvaluationResults!>!
+static Minos.Evaluation.ItemError.operator !=(Minos.Evaluation.ItemError? left, Minos.Evaluation.ItemError? right) -> bool
+static Minos.Evaluation.ItemError.operator ==(Minos.Evaluation.ItemError? left, Minos.Evaluation.ItemError? right) -> bool
+static Minos.Evaluation.ItemResult.operator !=(Minos.Evaluation.ItemResult? left, Minos.Evaluation.ItemResult? right) -> bool
+static Minos.Evaluation.ItemResult.operator ==(Minos.Evaluation.ItemResult? left, Minos.Evaluation.ItemResult? right) -> bool
+static Minos.Evaluation.RunHeader.operator !=(Minos.Evaluation.RunHeader? left, Minos.Evaluation.RunHeader? right) -> bool
+static Minos.Evaluation.RunHeader.operator ==(Minos.Evaluation.RunHeader? left, Minos.Evaluation.RunHeader? right) -> bool

@@ -1,0 +1,157 @@
+using System.Collections.ObjectModel;
+using ZeroAlloc.Results;
+
+namespace Minos.Evaluation;
+
+/// <summary>Runs a dataset through a decision client, one request per item.</summary>
+public static class DatasetRunner
+{
+    /// <summary>
+    /// Sends every item of <paramref name="dataset"/> to <paramref name="client"/> and records the outcomes. A failed item
+    /// is recorded, never thrown, and the run never stops early.
+    /// </summary>
+    /// <param name="client">The client to evaluate with.</param>
+    /// <param name="dataset">The dataset to run.</param>
+    /// <param name="options">Run settings, or <see langword="null"/> for the defaults.</param>
+    /// <param name="cancellationToken">A token that stops the run by throwing.</param>
+    /// <returns>The results, in dataset order.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="client"/> or <paramref name="dataset"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><see cref="DatasetRunOptions.MaxParallelism"/> is below 1.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    public static async Task<EvaluationResults> RunAsync(
+        IDecisionClient client,
+        DecisionDataset dataset,
+        DatasetRunOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(client);
+        ArgumentNullException.ThrowIfNull(dataset);
+        options ??= new DatasetRunOptions();
+        ArgumentOutOfRangeException.ThrowIfLessThan(options.MaxParallelism, 1, nameof(options));
+        var time = options.TimeProvider ?? TimeProvider.System;
+
+        var metadata = client.GetService<DecisionClientMetadata>();
+        var started = time.GetUtcNow();
+        var results = new ItemResult[dataset.Count];
+        var next = -1;
+        var completed = 0;
+
+        async Task Worker()
+        {
+            while (true)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+                var index = Interlocked.Increment(ref next);
+                if (index >= results.Length)
+                {
+                    return;
+                }
+
+                results[index] = await RunItemAsync(client, dataset[index], time, cancellationToken).ConfigureAwait(false);
+                options.Progress?.Report(Interlocked.Increment(ref completed));
+            }
+        }
+
+        var workers = new Task[Math.Min(options.MaxParallelism, Math.Max(results.Length, 1))];
+        for (var i = 0; i < workers.Length; i++)
+        {
+            workers[i] = Task.Run(Worker, CancellationToken.None);
+        }
+
+        await Task.WhenAll(workers).ConfigureAwait(false);
+
+        var header = new RunHeader(
+            options.DatasetName,
+            results.Length,
+            metadata?.ProviderName,
+            metadata?.Endpoint,
+            metadata?.DefaultModel,
+            started,
+            time.GetUtcNow(),
+            options.MaxParallelism);
+        return new EvaluationResults(header, new ReadOnlyCollection<ItemResult>(results));
+    }
+
+    private static async Task<ItemResult> RunItemAsync(IDecisionClient client, DatasetItem item, TimeProvider time, CancellationToken cancellationToken)
+    {
+        var begin = time.GetTimestamp();
+        Result<DecisionResponse, DecisionError> outcome;
+        try
+        {
+            outcome = await client.EvaluateAsync(new DecisionRequest(item.Definition, item.State), cancellationToken).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
+        {
+            return Failed(item, time.GetElapsedTime(begin), new ItemError("Cancelled", null, ex.Message));
+        }
+
+        var latency = time.GetElapsedTime(begin);
+        if (!outcome.IsSuccess)
+        {
+            var error = outcome.Error;
+            return Failed(item, latency, new ItemError(error.Kind.ToString(), error.StatusCode, error.Message));
+        }
+
+        var response = outcome.Value;
+        var usage = response.Usage;
+        var answers = Record(item, response, out var invalid);
+        return new ItemResult(
+            item.Id,
+            item.Line,
+            latency.TotalMilliseconds,
+            response.IsCached,
+            response.Model,
+            usage?.InputTokens,
+            usage?.OutputTokens,
+            usage?.Cost,
+            response.Id,
+            invalid is null ? answers : null,
+            invalid is null ? null : new ItemError(nameof(DecisionErrorKind.InvalidResponse), null, invalid));
+    }
+
+    private static ItemResult Failed(DatasetItem item, TimeSpan latency, ItemError error)
+        => new(item.Id, item.Line, latency.TotalMilliseconds, false, null, null, null, null, null, null, error);
+
+    // Walks the item's own questions: an answer the response lacks is absent, an answer to a question the item
+    // does not ask is ignored, and a chosen option the item's definition does not have makes the response invalid.
+    private static Dictionary<string, AnswerRecord> Record(DatasetItem item, DecisionResponse response, out string? invalid)
+    {
+        invalid = null;
+        var byKey = new Dictionary<string, QuestionAnswer>(StringComparer.Ordinal);
+        foreach (var answer in response.Answers)
+        {
+            byKey[answer.Key] = answer;
+        }
+
+        var records = new Dictionary<string, AnswerRecord>(StringComparer.Ordinal);
+        foreach (var question in item.Definition.Questions)
+        {
+            if (!byKey.TryGetValue(question.Key, out var answer) || answer.Kind != question.Kind)
+            {
+                continue;
+            }
+
+            switch (question.Kind)
+            {
+                case QuestionKind.Noul:
+                    var p = answer.Probability;
+                    records[question.Key] = new AnswerRecord(QuestionKind.Noul, p >= 0.5, p, null, 0, Math.Max(p, 1 - p));
+                    break;
+                case QuestionKind.Choice:
+                    if (answer.ChosenIndex < 0 || answer.ChosenIndex >= question.Options.Count)
+                    {
+                        invalid = $"Question '{question.Key}' chose option {answer.ChosenIndex}, but it has {question.Options.Count} options.";
+                        return records;
+                    }
+
+                    records[question.Key] = new AnswerRecord(QuestionKind.Choice, false, null, question.Options[answer.ChosenIndex].Key, 0, answer.Confidence);
+                    break;
+                default:
+                    records[question.Key] = new AnswerRecord(question.Kind, false, null, null, answer.ChosenIndex, answer.Confidence);
+                    break;
+            }
+        }
+
+        return records;
+    }
+}
