@@ -1,0 +1,24 @@
+{
+  "Minos": {
+    "Active": "TypeSafe",
+    "Providers": {
+      "TypeSafe": {
+        "Provider": "TypeSafe",
+        "Model": "jev-latest",
+        "MaxRetries": 2
+      },
+      "Clef": {
+        "Provider": "OpenRouter",
+        "Model": "cloudflare/clef-flash",
+        "MaxRetries": 2,
+        "ProviderPreferences": { "ZeroDataRetention": true }
+      },
+      "Local": {
+        "Provider": "Custom",
+        "BaseAddress": "http://127.0.0.1:8000/",
+        "Model": "Mapika/decider-2b-GGUF:Q4_K_M",
+        "MaxRetries": 2
+      }
+    }
+  }
+}
