@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.2.1](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.2.0...v1.2.1) (2026-10-17)
+
+
+### Documentation
+
+* choosing a provider and a threshold, Phase 8.4 ([7bfda34](https://github.com/MarcelRoozekrans/Minos.NET/commit/7bfda3492f3ad447991ba0512cad67684d638f49))
+
+
+### Tests
+
+* count the request on every path in the state cost tests ([#236](https://github.com/MarcelRoozekrans/Minos.NET/issues/236)) ([a946a5a](https://github.com/MarcelRoozekrans/Minos.NET/commit/a946a5adbe638a350929a51c625c1887a98abc0e))
+
 ## [1.2.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.1.1...v1.2.0) (2026-10-17)
 
 
