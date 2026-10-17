@@ -1,41 +1,43 @@
-# Milestone 7: 1.0 release
+# Milestone 8: Choosing a provider and a threshold
 
-**Status:** complete
-**Started:** 2026-10-12
-**Completed:** 2026-10-15
-**Design:** `docs/superpowers/specs/2026-10-12-milestone-7-design.md`
+**Status:** active
+**Started:** 2026-10-17
+**Design:** `docs/superpowers/specs/2026-10-17-milestone-8-design.md`
 
 ## Goal
-Ship Minos.NET 1.0.0 on NuGet with an API worth freezing.
-1. Add the two pipeline stages that were left out, caching and rate limiting (#143).
-2. Review the whole public surface once.
-3. Re-run the live, AOT and allocation checks on the final API.
-4. Publish every package as 1.0.0 through release-please and NuGet Trusted Publishing, with api-compat guarding each later change.
-
-The OpenAI adapter ships as 1.0.0 too. Its docs and package description say that it is built from OpenAI's Decisions guide and has never been tested against the live API.
+A .NET user can measure, on their own labelled data, how accurate and how well calibrated each provider is, and choose a provider and a confidence threshold from evidence. The milestone ships four things:
+- a documented JSONL dataset format;
+- the `Minos.NET.Evaluation` metrics library;
+- the `minos` tool, in the `Minos.NET.Tool` package, with `calibrate` and `conformance`;
+- a guide backed by committed reports for TypeSafe Jev, Clef Flash and the local model on a Banking77 sample.
 
 ## Definition of Done
-- [x] All planned phases are complete.
-- [x] All tests pass: unit, generator, analyzer, DI, docs, integration, pack, samples in replay mode, and the AOT smoke and surface checks. The pack tests also run locally without hanging (#145).
-- [x] The client has caching and rate-limiting pipeline stages (#143), and both are documented. Core gains no new package dependency: if the cache needs one, it lives in an extension package.
-- [x] The whole public API, including the new stages, is reviewed, and `PublicAPI.Shipped.txt` describes 1.0.0.
-- [x] Live runs pass on the final API against TypeSafe, OpenRouter and a local `/v1/systemone` server.
-- [x] Wherever the OpenAI adapter is described, it is labelled unverified against the live API: the Providers page, its README and its NuGet description. A docs test pins the label.
-- [x] Native AOT and trim checks cover the whole public API with no warnings. Every allocation budget is unchanged or tightened. The yielding checks use TestHelpers 1.7.0's async API (#104).
-- [x] 1.0.0 of every package is on NuGet through release-please and Trusted Publishing (#29). The first published version is 1.0.1: 1.0.0 was tagged, but nuget.org refused it over another owner's prefix reservation. The guide states the version, the site links to NuGet, and api-compat guards later changes (#28).
+- [ ] All planned phases are complete.
+- [ ] All tests pass, including the new projects, the AOT checks and the docs tests.
+- [ ] The JSONL dataset format is documented on the docs site, with a schema test. A loader reads it and reports line-numbered errors.
+- [ ] `Minos.NET.Evaluation` computes, per question kind:
+  - accuracy;
+  - ECE and a reliability table;
+  - a coverage and accuracy threshold sweep;
+  - median and p95 latency per decision;
+  - cost per 1,000 decisions.
+
+  These are computed on the number users gate on: `Confidence` for Choice and Score, and max(p, 1 − p) for Noul. Each metric is checked against hand-computed values, and the results come out as Markdown and JSON.
+- [ ] `Minos.NET.Tool` installs with `dotnet tool install` and runs `minos calibrate` and `minos conformance` against any configured System One provider. It is published to nuget.org through the release path.
+- [ ] Calibration reports for TypeSafe, Clef Flash and the local model on the Banking77 sample are committed. Each records its date, provider and model id, dataset version, and the prices it used.
+- [ ] A "Choosing a provider and a threshold" guide is published on the docs site and backed by those reports.
 
 **Out of scope:**
-- The live OpenAI run and the recorded OpenAI fixtures moved here from Milestone 6. They were removed on 2026-10-12, because the maintainer has no OpenAI account. #161 stays open.
-- #51 was checked in Phase 7.2 on 2026-10-13. It stays open while dotnet/roslyn#85804 and #77119 are unfixed.
+- Recalibration and cost-aware decisions: #124.
+- OpenAI as a configured provider: it is unverified and there is no account.
+- Publishing `Minos.NET.Conformance` as its own package: it ships inside the tool.
 
 ## Phases
-1. Phase 7.1 — Caching and rate-limiting stages [complete]
-2. Phase 7.2 — Public API review of the whole surface [complete]
-3. Phase 7.3 — Live verification on the final API [complete]
-4. Phase 7.4 — AOT, trim and benchmark re-verification [complete]
-5. Phase 7.5 — Publish 1.0 [complete]
+1. Phase 8.1 — Dataset format, loader and the Banking77 sample [pending]
+2. Phase 8.2 — Metrics and reports in Minos.NET.Evaluation [pending]
+3. Phase 8.3 — The minos tool [pending]
+4. Phase 8.4 — Reports and the guide [pending]
 
 ## Audit History
 | Date | Verdict | Gaps |
 |---|---|---|
-| 2026-10-15 | PASS | none; `docs/plans/2026-10-15-milestone-7-audit.md` |
