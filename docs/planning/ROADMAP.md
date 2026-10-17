@@ -443,7 +443,7 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Spec:** `docs/superpowers/specs/2026-10-17-phase-8.4-reports-design.md`
 **Plan:** `docs/superpowers/plans/2026-10-17-phase-8.4-reports.md`
 **Completed:** 2026-10-17
-**Evidence:** PR 1 #234 and this PR; pre-push reviews in `docs/plans`.
+**Evidence:** PR #234 and PR #235; pre-push reviews `docs/plans/2026-10-17-phase-8.4-part-1-pre-push-review.md` and `docs/plans/2026-10-17-phase-8.4-part-2-pre-push-review.md`.
 
 ## Milestone 9: Hosted to local [status: pending]
 **Goal:** Record decisions and outcomes, export them in an open format, shadow-compare a candidate provider, and serve decisions in-process from .NET if the inference spike says go.
