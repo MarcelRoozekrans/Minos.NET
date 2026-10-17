@@ -14,49 +14,52 @@ internal static class MetricsCalculator
     // One scored question. Order is its position in item order, then the item's question order.
     private readonly record struct ScoredQuestion(QuestionKind Kind, string Key, ExpectedAnswer Expected, bool Answered, bool Correct, double Confidence, int Order);
 
+    // The results-file rules first, then the fit to the dataset. Each problem's line is the dataset line of the item it
+    // is about; a header problem has line 0, and an item past the dataset's end the line after its last item.
     internal static DatasetProblems? Match(EvaluationResults results, DecisionDataset dataset)
     {
         var problems = new List<DatasetProblem>();
-        var header = results.Header.ItemCount;
-        if (header != dataset.Count)
+        foreach (var problem in ResultsRules.Check(results))
         {
-            problems.Add(new DatasetProblem(
-                Math.Min(header, dataset.Count) + 1,
-                string.Create(CultureInfo.InvariantCulture, $"The results header has {header} items, but the dataset has {dataset.Count}.")));
+            problems.Add(new DatasetProblem(problem.Index is { } index ? LineOf(dataset, index) : 0, problem.Message));
         }
 
         var count = results.Items.Count;
         if (count != dataset.Count)
         {
             problems.Add(new DatasetProblem(
-                Math.Min(count, dataset.Count) + 1,
+                LineOf(dataset, Math.Min(count, dataset.Count)),
                 string.Create(CultureInfo.InvariantCulture, $"The results have {count} items, but the dataset has {dataset.Count}.")));
         }
 
         var shared = Math.Min(count, dataset.Count);
         for (var i = 0; i < shared; i++)
         {
-            var id = results.Items[i].Id;
-            var expected = dataset[i].Id;
-            if (!string.Equals(id, expected, StringComparison.Ordinal))
+            if (results.Items[i] is not { } result)
+            {
+                continue;
+            }
+
+            var expected = dataset[i];
+            if (!string.Equals(result.Id, expected.Id, StringComparison.Ordinal))
             {
                 problems.Add(new DatasetProblem(
-                    i + 1,
-                    string.Create(CultureInfo.InvariantCulture, $"Item {i + 1} of the results is '{id}', but the dataset's is '{expected}'.")));
+                    expected.Line,
+                    string.Create(CultureInfo.InvariantCulture, $"Item {i + 1} of the results is '{result.Id}', but the dataset's is '{expected.Id}'.")));
             }
-        }
 
-        for (var i = 0; i < shared; i++)
-        {
-            CheckAnswers(i + 1, results.Items[i], dataset[i], problems);
+            CheckAnswers(i + 1, result, expected, problems);
         }
 
         return problems.Count == 0 ? null : new DatasetProblems([.. problems]);
     }
 
+    private static int LineOf(DecisionDataset dataset, int index)
+        => index < dataset.Count ? dataset[index].Line : dataset.Count == 0 ? 1 : dataset[dataset.Count - 1].Line + 1;
+
     // Every saved answer must fit the item's own question. A missing answer is not a problem: the runner leaves out
     // the answers a provider omitted, and those questions count as scored but unanswered.
-    private static void CheckAnswers(int line, ItemResult result, DatasetItem item, List<DatasetProblem> problems)
+    private static void CheckAnswers(int position, ItemResult result, DatasetItem item, List<DatasetProblem> problems)
     {
         if (result.Error is not null || result.Answers is null)
         {
@@ -67,15 +70,20 @@ internal static class MetricsCalculator
         keys.Sort(StringComparer.Ordinal);
         foreach (var key in keys)
         {
-            var answer = result.Answers[key];
+            if (result.Answers[key] is not { } answer)
+            {
+                continue;
+            }
+
             var problem = Check(item, key, answer);
             if (problem is not null)
             {
-                problems.Add(new DatasetProblem(line, string.Create(CultureInfo.InvariantCulture, $"Item {line} '{item.Id}': {problem}")));
+                problems.Add(new DatasetProblem(item.Line, string.Create(CultureInfo.InvariantCulture, $"Item {position} '{item.Id}': {problem}")));
             }
         }
     }
 
+    // An AnswerRecord's own values are valid by construction; what is left is whether it fits the question.
     private static string? Check(DatasetItem item, string key, AnswerRecord answer)
     {
         var question = FindQuestion(item.Definition, key);
@@ -89,20 +97,11 @@ internal static class MetricsCalculator
             return $"the answer '{key}' is a {answer.Kind} answer, but the question is a {question.Kind}.";
         }
 
-        if (!ResultsRules.IsUnit(answer.Confidence))
-        {
-            return $"the answer '{key}' has a confidence that is not a number from 0 to 1.";
-        }
-
         return question.Kind switch
         {
-            QuestionKind.Noul when answer.Probability is not { } p || !ResultsRules.IsUnit(p)
-                => $"the answer '{key}' has a probability that is not a number from 0 to 1.",
-            QuestionKind.Noul when !ResultsRules.IsConsistentNoul(answer.Noul, answer.Probability!.Value, answer.Confidence)
-                => $"the answer '{key}' does not {ResultsRules.NoulConsistencyRule}.",
             QuestionKind.Choice when !HasOption(question, answer.ChoiceKey)
                 => $"the answer '{key}' chose '{answer.ChoiceKey}', which is not an option of the question.",
-            QuestionKind.Score when answer.ScoreLevel < 0 || answer.ScoreLevel >= question.Options.Count
+            QuestionKind.Score when answer.ScoreLevel >= question.Options.Count
                 => string.Create(CultureInfo.InvariantCulture, $"the answer '{key}' chose level {answer.ScoreLevel}, but the question has {question.Options.Count} levels."),
             _ => null,
         };
@@ -355,14 +354,14 @@ internal static class MetricsCalculator
             {
                 cached++;
             }
-            else if (item.Cost is { } cost && double.IsFinite(cost) && cost >= 0)
+            else if (item.Cost is { } cost)
             {
                 reported++;
                 total += cost;
             }
             else if (item.Model is { } model
-                && item.InputTokens is >= 0 and { } input
-                && item.OutputTokens is >= 0 and { } output
+                && item.InputTokens is { } input
+                && item.OutputTokens is { } output
                 && prices is not null
                 && prices.TryFind(model, out var price))
             {

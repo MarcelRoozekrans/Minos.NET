@@ -277,9 +277,9 @@ public sealed class ResultsFileTests
     {
         AssertSaveRefuses(With(Item(error: Error())), "x1");
         AssertSaveRefuses(With(Item(noAnswers: true)), "x1");
-        AssertSaveRefuses(With(Ok(latency: double.NaN)), "latencyMs");
-        AssertSaveRefuses(With(Ok(cost: double.PositiveInfinity)), "cost");
-        AssertSaveRefuses(With(Ok(cost: -1)), "cost");
+        AssertSaveRefuses(With(Ok(latency: double.NaN)), "LatencyMs");
+        AssertSaveRefuses(With(Ok(cost: double.PositiveInfinity)), "Cost");
+        AssertSaveRefuses(With(Ok(cost: -1)), "Cost");
     }
 
     [Fact]
@@ -378,8 +378,8 @@ public sealed class ResultsFileTests
         AssertSaveRefuses(new EvaluationResults(Header(1, parallelism: 0), [good]), "Parallelism");
         AssertSaveRefuses(new EvaluationResults(Header(2), [good, good]), "twice");
         AssertSaveRefuses(With(Item(line: 0)), "Line");
-        AssertSaveRefuses(With(Item(inputTokens: -1)), "inputTokens");
-        AssertSaveRefuses(With(Item(outputTokens: -1)), "outputTokens");
+        AssertSaveRefuses(With(Item(inputTokens: -1)), "InputTokens");
+        AssertSaveRefuses(With(Item(outputTokens: -1)), "OutputTokens");
         AssertSaveRefuses(With(Item(answers: new Dictionary<string, AnswerRecord>())), "Answers");
     }
 
@@ -416,6 +416,36 @@ public sealed class ResultsFileTests
         // An AnswerRecord holds a probability only for a Noul answer, so a file that gives one elsewhere cannot load as written.
         AssertProblemOnLine(HeaderLine(count: 1) + "\n" + ItemLine(tail: ",\"answers\":{\"q\":{\"kind\":\"choice\",\"value\":\"k\",\"confidence\":0.5,\"probability\":0.5}}"), 2, "probability");
         AssertProblemOnLine(HeaderLine(count: 1) + "\n" + ItemLine(tail: ",\"answers\":{\"q\":{\"kind\":\"score\",\"value\":1,\"confidence\":0.5,\"probability\":0.5}}"), 2, "probability");
+    }
+
+    [Fact]
+    public void Save_RefusesNullsThatLoadWouldRefuse()
+    {
+        AssertSaveRefuses(With(Item(id: null!)), "Id must be set");
+        AssertSaveRefuses(With(Item(noAnswers: true, error: new ItemError { Kind = null!, Message = "m" })), "Error.Kind");
+        AssertSaveRefuses(With(Item(noAnswers: true, error: new ItemError { Kind = "Http", Message = null! })), "Error.Message");
+        AssertSaveRefuses(new EvaluationResults(Header(1), [null!]), "is null");
+        AssertSaveRefuses(With(Item(answers: new Dictionary<string, AnswerRecord> { ["q"] = null! })), "Answers[q]");
+    }
+
+    [Fact]
+    public void Save_ListsEveryProblem()
+    {
+        var ex = Assert.Throws<InvalidOperationException>(() => With(Item(latency: double.NaN, cost: -1, line: 0)).Save(new MemoryStream()));
+
+        Assert.Contains("LatencyMs", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("Cost", ex.Message, StringComparison.Ordinal);
+        Assert.Contains("Line", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Save_ToAStream_WritesNothingWhenRefused()
+    {
+        using var stream = new MemoryStream();
+
+        Assert.Throws<InvalidOperationException>(() => With(Item(answers: new Dictionary<string, AnswerRecord> { ["q"] = null! })).Save(stream));
+
+        Assert.Equal(0, stream.Length);
     }
 
     [Fact]

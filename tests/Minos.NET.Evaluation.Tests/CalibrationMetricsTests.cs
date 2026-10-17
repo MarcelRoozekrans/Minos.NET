@@ -252,8 +252,14 @@ public sealed class CalibrationMetricsTests
     [Fact]
     public void ScoredQuestionWithoutAnAnswer_IsNotAnswered()
     {
-        var dataset = Dataset(NoulLine(Id(1), true), NoulLine(Id(2), true));
-        var results = Results(Answered(1, Q(Noul(true, 0.9))), Answered(2, new Dictionary<string, AnswerRecord>()));
+        const string twoQuestions = """
+            {"id":"i1","state":"s","version":1,"questions":{
+              "q":{"type":"noul","instructions":"?"},
+              "r":{"type":"noul","instructions":"?"}},
+              "expected":{"q":true,"r":true}}
+            """;
+        var dataset = Dataset(twoQuestions);
+        var results = Results(Answered(1, Q(Noul(true, 0.9))));
 
         var noul = Report(results, dataset).Noul!;
 
@@ -299,21 +305,6 @@ public sealed class CalibrationMetricsTests
 
         Assert.Equal(1, cost.Reported);
         Assert.Equal(0.0, cost.PerThousandDecisions);
-    }
-
-    [Fact]
-    public void NegativeReportedCost_IsUnknown()
-    {
-        var dataset = Dataset(NoulLine(Id(1), true), NoulLine(Id(2), true));
-        var results = Results(
-            Answered(1, Q(Noul(true, 0.9)), cost: -0.5),
-            Answered(2, Q(Noul(true, 0.9)), cost: double.NaN));
-
-        var cost = Report(results, dataset, new PriceTable([FixturePrice])).Cost;
-
-        Assert.Equal(0, cost.Reported);
-        Assert.Equal(2, cost.Unknown);
-        Assert.Null(cost.PerThousandDecisions);
     }
 
     [Fact]
@@ -615,16 +606,108 @@ public sealed class CalibrationMetricsTests
         Near(1000 * 0.042 / 1e6 * 1000, cost.PerThousandDecisions);
     }
 
-    [Fact]
-    public void NegativeReportedCost_FallsBackToPrice()
+    private static DatasetProblems CreateProblems(EvaluationResults results, DecisionDataset dataset)
     {
-        var dataset = Dataset(NoulLine(Id(1), true));
-        var results = Results(Answered(1, Q(Noul(true, 0.9)), model: "jev-1.14", inputTokens: 1000, outputTokens: 10, cost: -0.5));
+        var result = CalibrationReport.Create(results, dataset);
+        Assert.False(result.IsSuccess);
+        return result.Error;
+    }
 
-        var cost = Report(results, dataset, new PriceTable([FixturePrice])).Cost;
+    // Two Noul items, the second on line 3 of its file after a blank line, so an item problem shows the dataset line.
+    private static DecisionDataset GappedDataset() => Dataset(NoulLine(Id(1), true), string.Empty, NoulLine(Id(2), true));
 
-        Assert.Equal((0, 1, 0), (cost.Reported, cost.Priced, cost.Unknown));
-        Near(1000 * 0.042 / 1e6 * 1000, cost.PerThousandDecisions);
+    private static ItemResult Good(int item) => Answered(item, Q(Noul(true, 0.9)));
+
+    [Fact]
+    public void Create_RefusesANonFiniteOrNegativeLatency()
+    {
+        foreach (var latency in new[] { double.NaN, double.PositiveInfinity, -1 })
+        {
+            var problems = CreateProblems(Results(Good(1), Answered(2, Q(Noul(true, 0.9)), latencyMs: latency)), GappedDataset());
+
+            var problem = Assert.Single(problems);
+            Assert.Equal(3, problem.Line);
+            Assert.Contains("LatencyMs", problem.Message, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void Create_RefusesAnItemWithNeitherAnswersNorAnError()
+    {
+        var neither = new ItemResult { Id = Id(2), Line = 3, LatencyMs = 1 };
+
+        var problem = Assert.Single(CreateProblems(Results(Good(1), neither), GappedDataset()));
+
+        Assert.Equal(3, problem.Line);
+        Assert.Contains("exactly one of Answers and Error", problem.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Create_RefusesAnItemWithBothAnswersAndAnError()
+    {
+        var both = new ItemResult { Id = Id(2), Line = 3, LatencyMs = 1, Answers = Q(Noul(true, 0.9)), Error = new ItemError { Kind = "Server", Message = "m" } };
+
+        Assert.Contains("exactly one of Answers and Error", Assert.Single(CreateProblems(Results(Good(1), both), GappedDataset())).Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Create_RefusesANullItemOrAnswer_WithoutThrowing()
+    {
+        var nullItem = CreateProblems(Results(Good(1), null!), GappedDataset());
+        Assert.Contains(nullItem, p => p.Line == 3 && p.Message.Contains("is null", StringComparison.Ordinal));
+
+        var nullAnswer = CreateProblems(Results(Good(1), Answered(2, new Dictionary<string, AnswerRecord> { ["q"] = null! })), GappedDataset());
+        Assert.Contains(nullAnswer, p => p.Line == 3 && p.Message.Contains("Answers[q]", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Create_RefusesANegativeOrNonFiniteCost_AndNegativeTokens()
+    {
+        Assert.Contains("Cost", Assert.Single(CreateProblems(Results(Good(1), Answered(2, Q(Noul(true, 0.9)), cost: -0.5)), GappedDataset())).Message, StringComparison.Ordinal);
+        Assert.Contains("Cost", Assert.Single(CreateProblems(Results(Good(1), Answered(2, Q(Noul(true, 0.9)), cost: double.NaN)), GappedDataset())).Message, StringComparison.Ordinal);
+        Assert.Contains("InputTokens", Assert.Single(CreateProblems(Results(Good(1), Answered(2, Q(Noul(true, 0.9)), inputTokens: -1)), GappedDataset())).Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Create_RefusesNullErrorMembersAndId()
+    {
+        var nullKind = new ItemResult { Id = Id(2), Line = 3, LatencyMs = 1, Error = new ItemError { Kind = null!, Message = "m" } };
+        Assert.Contains("Error.Kind", Assert.Single(CreateProblems(Results(Good(1), nullKind), GappedDataset())).Message, StringComparison.Ordinal);
+
+        var nullMessage = new ItemResult { Id = Id(2), Line = 3, LatencyMs = 1, Error = new ItemError { Kind = "Server", Message = null! } };
+        Assert.Contains("Error.Message", Assert.Single(CreateProblems(Results(Good(1), nullMessage), GappedDataset())).Message, StringComparison.Ordinal);
+
+        var nullId = CreateProblems(Results(Good(1), new ItemResult { Id = null!, Line = 3, LatencyMs = 1, Answers = Q(Noul(true, 0.9)) }), GappedDataset());
+        Assert.Contains(nullId, p => p.Line == 3 && p.Message.Contains("Id must be set", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Create_RefusesAHeaderTheFileCannotHold()
+    {
+        var results = Results(Good(1), Good(2));
+        var header = new RunHeader { DatasetName = string.Empty, ItemCount = 2, Started = Start, Finished = Start, Parallelism = 0 };
+
+        var problems = CreateProblems(new EvaluationResults(header, results.Items), GappedDataset());
+
+        Assert.Contains(problems, p => p.Line == 0 && p.Message.Contains("DatasetName", StringComparison.Ordinal));
+        Assert.Contains(problems, p => p.Line == 0 && p.Message.Contains("Parallelism", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Create_AnswerProblemIsOnTheDatasetLine()
+    {
+        var problem = Assert.Single(CreateProblems(Results(Good(1), Answered(2, new Dictionary<string, AnswerRecord> { ["other"] = Noul(true, 0.9) })), GappedDataset()));
+
+        Assert.Equal(3, problem.Line);
+        Assert.Contains("'other'", problem.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Create_IdMismatchIsOnTheDatasetLine()
+    {
+        var problem = Assert.Single(CreateProblems(Results(Good(1), Answered(2, Q(Noul(true, 0.9)), id: "zz")), GappedDataset()));
+
+        Assert.Equal(3, problem.Line);
     }
 
     [Fact]

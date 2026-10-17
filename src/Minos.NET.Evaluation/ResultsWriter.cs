@@ -10,101 +10,13 @@ internal static class ResultsWriter
 {
     private static readonly JsonWriterOptions Options = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
-    // Refuses what the reader would not accept back, before anything is written or truncated. The value rules are
-    // the reader's, from ResultsRules.
+    // Refuses what the reader would not accept back, before anything is written or truncated, listing every problem.
     internal static void Validate(EvaluationResults results)
     {
-        var header = results.Header;
-        if (string.IsNullOrEmpty(header.DatasetName))
+        var problems = ResultsRules.Check(results);
+        if (problems.Count > 0)
         {
-            throw new InvalidOperationException("Header DatasetName must not be null or empty.");
-        }
-
-        if (header.ItemCount != results.Items.Count)
-        {
-            throw new InvalidOperationException($"Header ItemCount is {header.ItemCount}, but there are {results.Items.Count} items.");
-        }
-
-        if (header.Parallelism < ResultsRules.MinParallelism)
-        {
-            throw new InvalidOperationException($"Header Parallelism must be at least {ResultsRules.MinParallelism}.");
-        }
-
-        Text("Header", "DatasetName", header.DatasetName);
-        Text("Header", "ProviderName", header.ProviderName);
-        Text("Header", "Endpoint", header.Endpoint?.OriginalString);
-        Text("Header", "DefaultModel", header.DefaultModel);
-
-        var ids = new HashSet<string>(StringComparer.Ordinal);
-        foreach (var item in results.Items)
-        {
-            Text($"Item '{item.Id}'", "Id", item.Id);
-            Text($"Item '{item.Id}'", "Model", item.Model);
-            Text($"Item '{item.Id}'", "ResponseId", item.ResponseId);
-            if (item.Error is { } error)
-            {
-                Text($"Item '{item.Id}'", "Error.Kind", error.Kind);
-                Text($"Item '{item.Id}'", "Error.Message", error.Message);
-            }
-
-            if (!ids.Add(item.Id))
-            {
-                throw new InvalidOperationException($"Item '{item.Id}': the id appears twice.");
-            }
-
-            if (item.Line < ResultsRules.MinLine)
-            {
-                throw new InvalidOperationException($"Item '{item.Id}': Line must be at least {ResultsRules.MinLine}.");
-            }
-
-            Require(item.Id, "latencyMs", ResultsRules.IsNonNegative(item.LatencyMs), "a non-negative finite number");
-            Require(item.Id, "cost", item.Cost is not { } cost || ResultsRules.IsNonNegative(cost), "a non-negative finite number, or null when unknown");
-            Require(item.Id, "inputTokens", item.InputTokens is not { } input || input >= ResultsRules.MinTokens, "non-negative");
-            Require(item.Id, "outputTokens", item.OutputTokens is not { } output || output >= ResultsRules.MinTokens, "non-negative");
-
-            if ((item.Answers is null) == (item.Error is null))
-            {
-                throw new InvalidOperationException($"Item '{item.Id}': exactly one of Answers and Error must be set.");
-            }
-
-            if (item.Answers is null)
-            {
-                continue;
-            }
-
-            Require(item.Id, "Answers", item.Answers.Count > 0, "not empty");
-            foreach (var (key, answer) in item.Answers)
-            {
-                var member = $"Answers[{key}]";
-                Text($"Item '{item.Id}'", member + " key", key);
-                Text($"Item '{item.Id}'", member + ".ChoiceKey", answer.ChoiceKey);
-                Require(item.Id, member + ".Confidence", ResultsRules.IsUnit(answer.Confidence), "a number from 0 to 1");
-                Require(item.Id, member + ".Probability", answer.Probability is not { } probability || ResultsRules.IsUnit(probability), "a number from 0 to 1");
-                Require(item.Id, member + ".ChoiceKey", answer.Kind != QuestionKind.Choice || answer.ChoiceKey is not null, "set for a Choice answer");
-                Require(item.Id, member + ".Probability", answer.Kind != QuestionKind.Noul || answer.Probability is not null, "set for a Noul answer");
-                Require(
-                    item.Id,
-                    member,
-                    answer.Kind != QuestionKind.Noul || ResultsRules.IsConsistentNoul(answer.Noul, answer.Probability!.Value, answer.Confidence),
-                    ResultsRules.NoulConsistencyRule);
-                Require(item.Id, member + ".ScoreLevel", answer.Kind != QuestionKind.Score || answer.ScoreLevel >= ResultsRules.MinScoreLevel, "non-negative");
-            }
-        }
-    }
-
-    private static void Text(string owner, string member, string? text)
-    {
-        if (!ResultsRules.IsValidText(text))
-        {
-            throw new InvalidOperationException($"{owner}: {member} holds an unpaired surrogate and cannot be written as UTF-8.");
-        }
-    }
-
-    private static void Require(string id, string member, bool ok, string rule)
-    {
-        if (!ok)
-        {
-            throw new InvalidOperationException($"Item '{id}': {member} must be {rule}.");
+            throw new InvalidOperationException("The results cannot be saved: " + string.Join(" ", problems.Select(p => p.Message)));
         }
     }
 
