@@ -1,0 +1,96 @@
+name: Calibrate
+
+# Every dispatch of this workflow is a billed run started by the maintainer: it sends 400 requests for the banking77
+# set, 60 for the urgency set, or 460 for both, to the hosted provider chosen in the inputs. Dispatch only, never on a
+# push, a pull request or a schedule, and it uses the live-api environment's keys.
+# It installs the published Minos.NET.Tool and runs minos calibrate with docs/reports/minos.json, one request at a time.
+# No prices are applied here: they are applied afterwards with minos report, so a price correction needs no new run.
+# Each set is uploaded as calibration-<provider>-<set>, which holds the tool's output folder, results.partial.jsonl
+# included. The artifacts reach docs/reports/<provider>/<set>/ through a pull request.
+# Maintainers must also restrict the live-api environment's deployment branches to main.
+on:
+  workflow_dispatch:
+    inputs:
+      provider:
+        description: Which hosted provider to calibrate
+        type: choice
+        required: true
+        options:
+          - typesafe
+          - clef
+      set:
+        description: Which dataset to run
+        type: choice
+        default: both
+        options:
+          - both
+          - urgency
+          - banking77
+
+jobs:
+  calibrate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    environment: live-api
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          dotnet-version: '10.0.x'
+
+      - name: Install the released tool
+        run: dotnet tool install Minos.NET.Tool --version 1.2.0 --tool-path "$RUNNER_TEMP/minos-tool"
+
+      - name: Map the provider to its config section and report folder
+        id: map
+        env:
+          PROVIDER: ${{ inputs.provider }}
+        run: |
+          case "$PROVIDER" in
+            typesafe) echo "section=TypeSafe" >> "$GITHUB_OUTPUT"; echo "slug=typesafe" >> "$GITHUB_OUTPUT" ;;
+            clef) echo "section=Clef" >> "$GITHUB_OUTPUT"; echo "slug=clef-flash" >> "$GITHUB_OUTPUT" ;;
+            *) echo "::error::Unknown provider '$PROVIDER'"; exit 1 ;;
+          esac
+
+      # Both sets run even when the first stops, then the step fails if either did. The upload steps below still run.
+      - name: Calibrate
+        env:
+          SET: ${{ inputs.set }}
+          SECTION: ${{ steps.map.outputs.section }}
+          SLUG: ${{ steps.map.outputs.slug }}
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+          OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
+        run: |
+          status=0
+          for set in urgency banking77; do
+            if [ "$SET" != both ] && [ "$SET" != "$set" ]; then continue; fi
+            case "$set" in
+              urgency) dataset=datasets/banking77/banking77-urgency-v1.jsonl ;;
+              banking77) dataset=datasets/banking77/banking77-minos-v1.jsonl ;;
+            esac
+            "$RUNNER_TEMP/minos-tool/minos" calibrate --dataset "$dataset" --config docs/reports/minos.json --provider "$SECTION" --parallel 1 --out "$RUNNER_TEMP/out/$SLUG-$set" || status=1
+          done
+          exit "$status"
+
+      - name: Upload the urgency run
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: calibration-${{ steps.map.outputs.slug }}-urgency
+          path: ${{ runner.temp }}/out/${{ steps.map.outputs.slug }}-urgency
+          if-no-files-found: ignore
+
+      - name: Upload the banking77 run
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: calibration-${{ steps.map.outputs.slug }}-banking77
+          path: ${{ runner.temp }}/out/${{ steps.map.outputs.slug }}-banking77
+          if-no-files-found: ignore

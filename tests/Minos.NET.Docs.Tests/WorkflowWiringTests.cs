@@ -131,6 +131,82 @@ public sealed class WorkflowWiringTests
         Assert.Contains("actions: write", job, StringComparison.Ordinal);
     }
 
+    private static readonly string Calibrate = File.ReadAllText(Path.Combine(PublishedPages.Root, ".github", "workflows", "calibrate.yml")).ReplaceLineEndings("\n");
+
+    private static readonly string LocalSystemOne = File.ReadAllText(Path.Combine(PublishedPages.Root, ".github", "workflows", "local-systemone.yml")).ReplaceLineEndings("\n");
+
+    [Fact]
+    public void Calibrate_RunsOnlyOnDispatch_WithTheLiveApiKeys()
+    {
+        Assert.Contains("on:\n  workflow_dispatch:\n", Calibrate, StringComparison.Ordinal);
+        Assert.DoesNotContain("push:", Calibrate, StringComparison.Ordinal);
+        Assert.DoesNotContain("pull_request:", Calibrate, StringComparison.Ordinal);
+        Assert.DoesNotContain("schedule:", Calibrate, StringComparison.Ordinal);
+
+        var job = Job(Calibrate, "calibrate");
+        Assert.Contains("environment: live-api", job, StringComparison.Ordinal);
+        Assert.Contains("runs-on: ubuntu-latest", job, StringComparison.Ordinal);
+        Assert.Contains("timeout-minutes: 60", job, StringComparison.Ordinal);
+        Assert.Contains("permissions:\n      contents: read\n", job, StringComparison.Ordinal);
+        Assert.Contains("          persist-credentials: false\n", job, StringComparison.Ordinal);
+        Assert.Contains("TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}", job, StringComparison.Ordinal);
+        Assert.Contains("OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}", job, StringComparison.Ordinal);
+
+        Assert.Contains("      provider:\n        description: Which hosted provider to calibrate\n        type: choice\n        required: true\n        options:\n          - typesafe\n          - clef\n", Calibrate, StringComparison.Ordinal);
+        Assert.Contains("      set:\n        description: Which dataset to run\n        type: choice\n        default: both\n        options:\n          - both\n          - urgency\n          - banking77\n", Calibrate, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Calibrate_InstallsTheReleasedTool_AndRunsEachSetOneRequestAtATime()
+    {
+        var job = Job(Calibrate, "calibrate");
+
+        Assert.Contains("dotnet tool install Minos.NET.Tool --version 1.2.0 --tool-path \"$RUNNER_TEMP/minos-tool\"", job, StringComparison.Ordinal);
+        Assert.Contains("typesafe) echo \"section=TypeSafe\" >> \"$GITHUB_OUTPUT\"; echo \"slug=typesafe\" >> \"$GITHUB_OUTPUT\" ;;", job, StringComparison.Ordinal);
+        Assert.Contains("clef) echo \"section=Clef\" >> \"$GITHUB_OUTPUT\"; echo \"slug=clef-flash\" >> \"$GITHUB_OUTPUT\" ;;", job, StringComparison.Ordinal);
+        Assert.Contains("\"$RUNNER_TEMP/minos-tool/minos\" calibrate --dataset \"$dataset\" --config docs/reports/minos.json --provider \"$SECTION\" --parallel 1 --out \"$RUNNER_TEMP/out/$SLUG-$set\"", job, StringComparison.Ordinal);
+        Assert.Contains("datasets/banking77/banking77-minos-v1.jsonl", job, StringComparison.Ordinal);
+        Assert.Contains("datasets/banking77/banking77-urgency-v1.jsonl", job, StringComparison.Ordinal);
+        Assert.DoesNotContain("--prices", job, StringComparison.Ordinal);
+        Assert.Contains("|| status=1", job, StringComparison.Ordinal);
+        Assert.Contains("exit \"$status\"", job, StringComparison.Ordinal);
+
+        Assert.Contains("name: calibration-${{ steps.map.outputs.slug }}-urgency\n", job, StringComparison.Ordinal);
+        Assert.Contains("name: calibration-${{ steps.map.outputs.slug }}-banking77\n", job, StringComparison.Ordinal);
+        Assert.Contains("path: ${{ runner.temp }}/out/${{ steps.map.outputs.slug }}-urgency\n", job, StringComparison.Ordinal);
+        Assert.Contains("path: ${{ runner.temp }}/out/${{ steps.map.outputs.slug }}-banking77\n", job, StringComparison.Ordinal);
+        Assert.Equal(2, System.Text.RegularExpressions.Regex.Count(job, "if: always\\(\\)", System.Text.RegularExpressions.RegexOptions.None, TimeSpan.FromSeconds(1)));
+    }
+
+    [Fact]
+    public void LocalSystemOne_CalibratesOnlyOnDispatch_AgainstTheLocalServer()
+    {
+        var job = Job(LocalSystemOne, "calibrate");
+
+        Assert.Contains("if: github.event_name == 'workflow_dispatch'", job, StringComparison.Ordinal);
+        Assert.Contains("timeout-minutes: 120", job, StringComparison.Ordinal);
+        Assert.Contains("pip install --extra-index-url https://download.pytorch.org/whl/cpu ", job, StringComparison.Ordinal);
+        Assert.Contains(" serve Mapika/decider-2b-GGUF:Q4_K_M --port 8000 --no-browser", job, StringComparison.Ordinal);
+        Assert.Contains("dotnet tool install Minos.NET.Tool --version 1.2.0 --tool-path \"$RUNNER_TEMP/minos-tool\"", job, StringComparison.Ordinal);
+        Assert.Contains("--config docs/reports/minos.json --provider Local --parallel 1 --out \"$RUNNER_TEMP/out/local-$set\"", job, StringComparison.Ordinal);
+        Assert.Contains("datasets/banking77/banking77-minos-v1.jsonl", job, StringComparison.Ordinal);
+        Assert.Contains("datasets/banking77/banking77-urgency-v1.jsonl", job, StringComparison.Ordinal);
+        Assert.Contains("name: calibration-local-urgency\n", job, StringComparison.Ordinal);
+        Assert.Contains("name: calibration-local-banking77\n", job, StringComparison.Ordinal);
+        Assert.Contains("if: always()", job, StringComparison.Ordinal);
+        Assert.DoesNotContain("secrets.", job, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LocalSystemOne_KeepsItsPushJob()
+    {
+        var job = Job(LocalSystemOne, "local-systemone");
+
+        Assert.Contains("timeout-minutes: 30", job, StringComparison.Ordinal);
+        Assert.DoesNotContain("minos calibrate", job, StringComparison.Ordinal);
+        Assert.DoesNotContain(" calibrate ", job, StringComparison.Ordinal);
+    }
+
     // The text of one job: from its "  <name>:" line to the next job at the same indent, or the end of the file.
     internal static string Job(string workflow, string name)
     {
