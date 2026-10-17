@@ -16,6 +16,15 @@ on:
       - 'samples/Minos.NET.Samples.ProviderSwitch/**'
       - '.github/workflows/local-systemone.yml'
   workflow_dispatch:
+    inputs:
+      set:
+        description: Which dataset to run
+        type: choice
+        default: both
+        options:
+          - both
+          - urgency
+          - banking77
 
 permissions:
   contents: read
@@ -82,6 +91,100 @@ jobs:
         with:
           name: provider-switch-local
           path: samples/Minos.NET.Samples.ProviderSwitch/recordings/local.json
+          if-no-files-found: warn
+
+      - name: Server log
+        if: always()
+        run: cat "$RUNNER_TEMP/serve.log" || true
+
+  # Dispatch only: calibrates the local model on the chosen set or both, one request at a time, with the released
+  # tool. No secrets, nothing is billed. Each set is uploaded as calibration-local-<set> and reaches
+  # docs/reports/local/<set>/ through a pull request. A stopped run exits 1 and still uploads its partial results.
+  calibrate:
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          dotnet-version: '10.0.x'
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      # Building the llama-cpp-python wheel is most of the 8 minute install; pip's cache keeps the built wheel.
+      - name: Cache pip
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-py3.12-ollajev-0.4.0
+
+      - name: Cache Hugging Face models
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/huggingface
+          key: huggingface-${{ runner.os }}-Mapika-decider-2b-GGUF-Q4_K_M
+
+      - name: Install the server and pull the model
+        run: |
+          pip install --extra-index-url https://download.pytorch.org/whl/cpu ollajev==0.4.0
+          ollajev pull Mapika/decider-2b-GGUF:Q4_K_M
+
+      - name: Start the server
+        env:
+          OLLAJEV_DEVICE: cpu
+        run: |
+          nohup ollajev serve Mapika/decider-2b-GGUF:Q4_K_M --port 8000 --no-browser > "$RUNNER_TEMP/serve.log" 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:8000/v1/models && exit 0; sleep 5; done
+          echo "::error::The server did not answer GET /v1/models within 5 minutes"
+          cat "$RUNNER_TEMP/serve.log"
+          exit 1
+
+      - name: Install the released tool
+        run: dotnet tool install Minos.NET.Tool --version 1.2.0 --tool-path "$RUNNER_TEMP/minos-tool"
+
+      # Both sets run even when the first stops, then the step fails if either did. The upload steps below still run.
+      - name: Calibrate
+        env:
+          SET: ${{ inputs.set }}
+        run: |
+          case "$SET" in
+            both|urgency|banking77) ;;
+            *) echo "::error::Unknown set '$SET'"; exit 1 ;;
+          esac
+          status=0
+          for set in urgency banking77; do
+            if [ "$SET" != both ] && [ "$SET" != "$set" ]; then continue; fi
+            case "$set" in
+              urgency) dataset=datasets/banking77/banking77-urgency-v1.jsonl ;;
+              banking77) dataset=datasets/banking77/banking77-minos-v1.jsonl ;;
+            esac
+            "$RUNNER_TEMP/minos-tool/minos" calibrate --dataset "$dataset" --config docs/reports/minos.json --provider Local --parallel 1 --out "$RUNNER_TEMP/out/local-$set" || status=1
+          done
+          exit "$status"
+
+      - name: Upload the urgency run
+        if: always() && (inputs.set == 'both' || inputs.set == 'urgency')
+        uses: actions/upload-artifact@v7
+        with:
+          name: calibration-local-urgency
+          path: ${{ runner.temp }}/out/local-urgency
+          if-no-files-found: warn
+
+      - name: Upload the banking77 run
+        if: always() && (inputs.set == 'both' || inputs.set == 'banking77')
+        uses: actions/upload-artifact@v7
+        with:
+          name: calibration-local-banking77
+          path: ${{ runner.temp }}/out/local-banking77
           if-no-files-found: warn
 
       - name: Server log

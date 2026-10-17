@@ -110,19 +110,38 @@ pick is stable. It has one Score question, `urgency`, with these levels:
 | 1 | Needs action soon | Something is not working or is pending, and the customer is blocked. |
 | 2 | Urgent: money or card security at risk | A lost or stolen card, an unknown or fraudulent charge, or money that is missing. |
 
-**Urgency labels drafted by Claude on 2026-10-17; awaiting the maintainer's spot-check of at least 15 before
-Phase 8.4.** Until then the urgency set is a draft, and no report should treat its labels as a ground truth.
+The urgency labels were drafted by Claude, and the maintainer spot-checked them on 2026-10-17 in two steps. First the
+maintainer checked 15 items, the 15 ids `b77-card_arrival-25`, `b77-card_linking-06`, `b77-activate_my_card-02`,
+`b77-activate_my_card-05`, `b77-change_pin-18`, `b77-card_delivery_estimate-11`, `b77-pending_card_payment-23`,
+`b77-card_payment_fee_charged-05`, `b77-card_not_working-04`, `b77-declined_card_payment-01`,
+`b77-lost_or_stolen_card-05`, `b77-card_arrival-20`, `b77-card_linking-37`, `b77-lost_or_stolen_card-31` and
+`b77-pending_card_payment-20`. Then the rule below was applied to every item of the four intents involved,
+`card_arrival`, `card_linking`, `activate_my_card` and `change_pin`. That gave three corrections and confirmed the
+rest, including `b77-change_pin-22` at 1.
 
-A review flagged these labels as possibly inconsistent with each other. They are unchanged; the maintainer decides
-during the spot-check:
+The three corrections:
 
-| Id | Level | Message | Compare with |
-| --- | --- | --- | --- |
-| `b77-card_arrival-25` | 0 | "My card has not arrived yet, where is it?" | `b77-card_linking-06` at 1: both have a card the customer cannot use yet. |
-| `b77-card_linking-06` | 1 | "I received my new card, but I don't see it in the app anywhere.  What do I do?" | `b77-card_arrival-25` at 0. |
-| `b77-activate_my_card-02` | 1 | "I need to activate my card can you do that now?" | `b77-activate_my_card-05` at 0: both ask to activate a card. |
-| `b77-activate_my_card-05` | 0 | "How can I activate my card so I can start using it?" | `b77-activate_my_card-02` at 1. |
-| `b77-change_pin-18` | 1 | "My new pin needs to be set." | Setting a PIN reads as a request, which the rubric calls Routine. |
+- `b77-card_arrival-25` goes from 0 to 1.
+- `b77-activate_my_card-02` goes from 1 to 0.
+- `b77-change_pin-18` goes from 1 to 0.
+
+Two labels were kept on purpose:
+
+- `b77-card_linking-37` stays 1, because a found card waiting to be reactivated is held but unusable.
+- `b77-card_delivery_estimate-33` stays 0, because the customer is waiting but does not say the card is late, while
+  `b77-card_arrival-25` asks where the card is.
+
+`b77-change_pin-22` stays at 1, because the customer states a deadline, and `b77-lost_or_stolen_card-31` stays at 2.
+
+The labels follow this rule on top of the rubric:
+
+- The state of the card or payment decides the level, whether the message is a question or a statement.
+- A lost or stolen card is 2.
+- A card that is overdue, or held but unusable, is 1. So is a card or payment that is declined, not working or
+  pending.
+- A how-to or information question about something that is not blocked is 0.
+- A request to activate a card or set a PIN is 0, unless the customer states a real time constraint.
+- Waiting for a card that has not yet gone past its delivery time is 0.
 
 The examples of the rubric are not in the question text, so the question does not hint at an answer. With 6 messages
 per intent picked by hash, the urgency is close to a function of the intent. Level 2 holds only lost or stolen card

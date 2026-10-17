@@ -96,6 +96,7 @@ public sealed class WorkflowWiringTests
         Assert.Contains("dotnet nuget push \"artifacts/packages/*.nupkg\" --source https://api.nuget.org/v3/index.json --api-key \"$NUGET_API_KEY\" $skip_duplicate", job, StringComparison.Ordinal);
         Assert.Contains("gh release upload \"$GITHUB_REF_NAME\" artifacts/packages/*.nupkg artifacts/packages/*.snupkg --clobber", job, StringComparison.Ordinal);
         Assert.DoesNotContain("secrets.", job, StringComparison.Ordinal);
+        Assert.DoesNotContain("if-no-files-found: ignore", job, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -129,6 +130,126 @@ public sealed class WorkflowWiringTests
         Assert.Contains("TAG: ${{ needs.release-please.outputs.tag_name }}", job, StringComparison.Ordinal);
         Assert.Contains("gh workflow run ci.yml --repo \"$GITHUB_REPOSITORY\" --ref \"$TAG\" -f publish_to_nuget=true", job, StringComparison.Ordinal);
         Assert.Contains("actions: write", job, StringComparison.Ordinal);
+    }
+
+    private static readonly string Calibrate = File.ReadAllText(Path.Combine(PublishedPages.Root, ".github", "workflows", "calibrate.yml")).ReplaceLineEndings("\n");
+
+    private static readonly string LocalSystemOne = File.ReadAllText(Path.Combine(PublishedPages.Root, ".github", "workflows", "local-systemone.yml")).ReplaceLineEndings("\n");
+
+    [Fact]
+    public void Calibrate_RunsOnlyOnDispatch_WithTheLiveApiKeys()
+    {
+        Assert.Contains("on:\n  workflow_dispatch:\n", Calibrate, StringComparison.Ordinal);
+        Assert.DoesNotContain("push:", Calibrate, StringComparison.Ordinal);
+        Assert.DoesNotContain("pull_request:", Calibrate, StringComparison.Ordinal);
+        Assert.DoesNotContain("schedule:", Calibrate, StringComparison.Ordinal);
+
+        var job = Job(Calibrate, "calibrate");
+        Assert.Contains("environment: live-api", job, StringComparison.Ordinal);
+        Assert.Contains("runs-on: ubuntu-latest", job, StringComparison.Ordinal);
+        Assert.Contains("timeout-minutes: 150", job, StringComparison.Ordinal);
+        Assert.Contains("permissions:\n      contents: read\n", job, StringComparison.Ordinal);
+        Assert.Contains("          persist-credentials: false\n", job, StringComparison.Ordinal);
+        Assert.Contains("TYPESAFE_API_KEY: ${{ inputs.provider == 'typesafe' && secrets.TYPESAFE_API_KEY || '' }}", job, StringComparison.Ordinal);
+        Assert.Contains("OPENROUTER_API_KEY: ${{ inputs.provider == 'clef' && secrets.OPENROUTER_API_KEY || '' }}", job, StringComparison.Ordinal);
+        Assert.DoesNotContain("${{ inputs.", RunScripts(Calibrate), StringComparison.Ordinal);
+
+        Assert.Contains("      provider:\n        description: Which hosted provider to calibrate\n        type: choice\n        required: true\n        options:\n          - typesafe\n          - clef\n", Calibrate, StringComparison.Ordinal);
+        Assert.Contains("      set:\n        description: Which dataset to run\n        type: choice\n        default: both\n        options:\n          - both\n          - urgency\n          - banking77\n", Calibrate, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Calibrate_InstallsTheReleasedTool_AndRunsEachSetOneRequestAtATime()
+    {
+        var job = Job(Calibrate, "calibrate");
+
+        Assert.Contains("dotnet tool install Minos.NET.Tool --version 1.2.0 --tool-path \"$RUNNER_TEMP/minos-tool\"", job, StringComparison.Ordinal);
+        Assert.Contains("typesafe) echo \"section=TypeSafe\" >> \"$GITHUB_OUTPUT\"; echo \"slug=typesafe\" >> \"$GITHUB_OUTPUT\" ;;", job, StringComparison.Ordinal);
+        Assert.Contains("clef) echo \"section=Clef\" >> \"$GITHUB_OUTPUT\"; echo \"slug=clef-flash\" >> \"$GITHUB_OUTPUT\" ;;", job, StringComparison.Ordinal);
+        Assert.Contains("\"$RUNNER_TEMP/minos-tool/minos\" calibrate --dataset \"$dataset\" --config docs/reports/minos.json --provider \"$SECTION\" --parallel 1 --out \"$RUNNER_TEMP/out/$SLUG-$set\"", job, StringComparison.Ordinal);
+        Assert.Contains("datasets/banking77/banking77-minos-v1.jsonl", job, StringComparison.Ordinal);
+        Assert.Contains("datasets/banking77/banking77-urgency-v1.jsonl", job, StringComparison.Ordinal);
+        Assert.DoesNotContain("--prices", job, StringComparison.Ordinal);
+        Assert.Contains("both|urgency|banking77) ;;\n            *) echo \"::error::Unknown set '$SET'\"; exit 1 ;;", job, StringComparison.Ordinal);
+        Assert.Contains("if [ \"$SET\" != both ] && [ \"$SET\" != \"$set\" ]; then continue; fi", job, StringComparison.Ordinal);
+        Assert.Contains("|| status=1", job, StringComparison.Ordinal);
+        Assert.Contains("exit \"$status\"", job, StringComparison.Ordinal);
+
+        Assert.Contains("name: calibration-${{ steps.map.outputs.slug }}-urgency\n", job, StringComparison.Ordinal);
+        Assert.Contains("name: calibration-${{ steps.map.outputs.slug }}-banking77\n", job, StringComparison.Ordinal);
+        Assert.Contains("path: ${{ runner.temp }}/out/${{ steps.map.outputs.slug }}-urgency\n", job, StringComparison.Ordinal);
+        Assert.Contains("path: ${{ runner.temp }}/out/${{ steps.map.outputs.slug }}-banking77\n", job, StringComparison.Ordinal);
+        Assert.Contains("if: always() && (inputs.set == 'both' || inputs.set == 'urgency')", job, StringComparison.Ordinal);
+        Assert.Contains("if: always() && (inputs.set == 'both' || inputs.set == 'banking77')", job, StringComparison.Ordinal);
+        Assert.DoesNotContain("if-no-files-found: ignore", job, StringComparison.Ordinal);
+        Assert.Equal(2, System.Text.RegularExpressions.Regex.Count(job, "if-no-files-found: warn", System.Text.RegularExpressions.RegexOptions.None, TimeSpan.FromSeconds(1)));
+    }
+
+    [Fact]
+    public void LocalSystemOne_CalibratesOnlyOnDispatch_AgainstTheLocalServer()
+    {
+        var job = Job(LocalSystemOne, "calibrate");
+
+        Assert.Contains("if: github.event_name == 'workflow_dispatch'", job, StringComparison.Ordinal);
+        Assert.Contains("timeout-minutes: 120", job, StringComparison.Ordinal);
+        Assert.Contains("pip install --extra-index-url https://download.pytorch.org/whl/cpu ", job, StringComparison.Ordinal);
+        Assert.Contains(" serve Mapika/decider-2b-GGUF:Q4_K_M --port 8000 --no-browser", job, StringComparison.Ordinal);
+        Assert.Contains("dotnet tool install Minos.NET.Tool --version 1.2.0 --tool-path \"$RUNNER_TEMP/minos-tool\"", job, StringComparison.Ordinal);
+        Assert.Contains("--config docs/reports/minos.json --provider Local --parallel 1 --out \"$RUNNER_TEMP/out/local-$set\"", job, StringComparison.Ordinal);
+        Assert.Contains("datasets/banking77/banking77-minos-v1.jsonl", job, StringComparison.Ordinal);
+        Assert.Contains("datasets/banking77/banking77-urgency-v1.jsonl", job, StringComparison.Ordinal);
+        Assert.Contains("name: calibration-local-urgency\n", job, StringComparison.Ordinal);
+        Assert.Contains("name: calibration-local-banking77\n", job, StringComparison.Ordinal);
+        Assert.Contains("if: always()", job, StringComparison.Ordinal);
+        Assert.DoesNotContain("secrets.", job, StringComparison.Ordinal);
+        Assert.DoesNotContain("if-no-files-found: ignore", job, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LocalSystemOne_CalibrateJob_TakesASetInput_ValidatesIt_AndGatesTheUploads()
+    {
+        Assert.Contains("  workflow_dispatch:\n    inputs:\n      set:\n        description: Which dataset to run\n        type: choice\n        default: both\n        options:\n          - both\n          - urgency\n          - banking77\n", LocalSystemOne, StringComparison.Ordinal);
+
+        var job = Job(LocalSystemOne, "calibrate");
+        Assert.Contains("SET: ${{ inputs.set }}", job, StringComparison.Ordinal);
+        Assert.DoesNotContain("${{ inputs.", RunScripts(LocalSystemOne), StringComparison.Ordinal);
+        Assert.Contains("both|urgency|banking77) ;;\n            *) echo \"::error::Unknown set '$SET'\"; exit 1 ;;", job, StringComparison.Ordinal);
+        Assert.Contains("if [ \"$SET\" != both ] && [ \"$SET\" != \"$set\" ]; then continue; fi", job, StringComparison.Ordinal);
+        Assert.Contains("|| status=1", job, StringComparison.Ordinal);
+        Assert.Contains("exit \"$status\"", job, StringComparison.Ordinal);
+        Assert.Contains("if: always() && (inputs.set == 'both' || inputs.set == 'urgency')", job, StringComparison.Ordinal);
+        Assert.Contains("if: always() && (inputs.set == 'both' || inputs.set == 'banking77')", job, StringComparison.Ordinal);
+        Assert.Equal(2, System.Text.RegularExpressions.Regex.Count(job, "if-no-files-found: warn", System.Text.RegularExpressions.RegexOptions.None, TimeSpan.FromSeconds(1)));
+    }
+
+    [Fact]
+    public void LocalSystemOne_KeepsItsPushJob()
+    {
+        var job = Job(LocalSystemOne, "local-systemone");
+
+        Assert.Contains("timeout-minutes: 30", job, StringComparison.Ordinal);
+        Assert.DoesNotContain("minos calibrate", job, StringComparison.Ordinal);
+        Assert.DoesNotContain(" calibrate ", job, StringComparison.Ordinal);
+        Assert.DoesNotContain("inputs.", job, StringComparison.Ordinal);
+    }
+
+    // The text of every run: script in a workflow, so a test can tell script text from with: and env: values.
+    private static string RunScripts(string workflow)
+    {
+        var lines = workflow.Split('\n');
+        var scripts = new System.Text.StringBuilder();
+        for (var i = 0; i < lines.Length; i++)
+        {
+            var trimmed = lines[i].TrimStart();
+            if (!trimmed.StartsWith("run:", StringComparison.Ordinal)) continue;
+            var indent = lines[i].Length - trimmed.Length;
+            scripts.AppendLine(trimmed);
+            while (i + 1 < lines.Length && (lines[i + 1].Trim().Length == 0 || lines[i + 1].Length - lines[i + 1].TrimStart().Length > indent))
+            {
+                scripts.AppendLine(lines[++i]);
+            }
+        }
+        return scripts.ToString();
     }
 
     // The text of one job: from its "  <name>:" line to the next job at the same indent, or the end of the file.
