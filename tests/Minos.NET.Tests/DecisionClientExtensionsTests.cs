@@ -1,3 +1,4 @@
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using ZeroAlloc.Results;
@@ -175,10 +176,54 @@ public sealed class DecisionClientExtensionsTests
         Assert.Equal(text + clone, json);
     }
 
+    // The cost tests above compare call paths, so each must cost the same however the JIT compiles its caller. A fake
+    // that drops the request breaks that: once a caller inlines the whole call, the JIT sees that the 72 B
+    // DecisionRequest never escapes and allocates it on the stack, and how much gets inlined differs by overload, tier
+    // and PGO profile, so it depends on which tests ran first. A client keeps the request, as this fake does, so the
+    // request is counted on every path in every tier.
+    [Fact]
+    public void A_typed_call_costs_the_same_however_its_caller_is_compiled()
+    {
+        var client = new FixedClient(ClientTestKit.CapturingClient.Canned(UrgencyCheck.Definition));
+        ReadOnlyMemory<byte> utf8 = Encoding.UTF8.GetBytes("""{"messages":[{"role":"user","content":"Help!"}]}""");
+
+        var textInlined = AllocationGate.MeasureBytesPerCallValueTask(1000, () => TextInlined(client));
+        var textCalled = AllocationGate.MeasureBytesPerCallValueTask(1000, () => TextCalled(client));
+        var utf8Inlined = AllocationGate.MeasureBytesPerCallValueTask(1000, () => Utf8Inlined(client, utf8));
+        var utf8Called = AllocationGate.MeasureBytesPerCallValueTask(1000, () => Utf8Called(client, utf8));
+
+        Assert.Equal(textCalled, textInlined);
+        Assert.Equal(utf8Called, utf8Inlined);
+    }
+
+    // Fully optimised from the first call, with no tiering: the JIT inlines the overload, Typed and the sealed fake.
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    private static ValueTask<Result<UrgencyCheck, DecisionError>> TextInlined(FixedClient client)
+        => client.EvaluateAsync<UrgencyCheck>("text");
+
+    // Not optimised: the overload is called, not inlined.
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+    private static ValueTask<Result<UrgencyCheck, DecisionError>> TextCalled(FixedClient client)
+        => client.EvaluateAsync<UrgencyCheck>("text");
+
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.AggressiveOptimization)]
+    private static ValueTask<Result<UrgencyCheck, DecisionError>> Utf8Inlined(FixedClient client, ReadOnlyMemory<byte> utf8)
+        => client.EvaluateUtf8Async<UrgencyCheck>(utf8);
+
+    [MethodImpl(MethodImplOptions.NoInlining | MethodImplOptions.NoOptimization)]
+    private static ValueTask<Result<UrgencyCheck, DecisionError>> Utf8Called(FixedClient client, ReadOnlyMemory<byte> utf8)
+        => client.EvaluateUtf8Async<UrgencyCheck>(utf8);
+
+    // Keeps the last request, as a real client keeps it to write the body, so the request escapes and is always counted.
     private sealed class FixedClient(DecisionResponse response) : IDecisionClient
     {
+        public DecisionRequest? LastRequest { get; private set; }
+
         public ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
-            => new(Result<DecisionResponse, DecisionError>.Success(response));
+        {
+            LastRequest = request;
+            return new(Result<DecisionResponse, DecisionError>.Success(response));
+        }
 
         public object? GetService(Type serviceType, object? serviceKey = null) => null;
 
