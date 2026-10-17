@@ -161,7 +161,7 @@ jobs:
         with:
           name: calibration-local-urgency
           path: ${{ runner.temp }}/out/local-urgency
-          if-no-files-found: ignore
+          if-no-files-found: warn
 
       - name: Upload the banking77 run
         if: always()
@@ -169,7 +169,7 @@ jobs:
         with:
           name: calibration-local-banking77
           path: ${{ runner.temp }}/out/local-banking77
-          if-no-files-found: ignore
+          if-no-files-found: warn
 
       - name: Server log
         if: always()

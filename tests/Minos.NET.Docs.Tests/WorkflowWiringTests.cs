@@ -96,6 +96,7 @@ public sealed class WorkflowWiringTests
         Assert.Contains("dotnet nuget push \"artifacts/packages/*.nupkg\" --source https://api.nuget.org/v3/index.json --api-key \"$NUGET_API_KEY\" $skip_duplicate", job, StringComparison.Ordinal);
         Assert.Contains("gh release upload \"$GITHUB_REF_NAME\" artifacts/packages/*.nupkg artifacts/packages/*.snupkg --clobber", job, StringComparison.Ordinal);
         Assert.DoesNotContain("secrets.", job, StringComparison.Ordinal);
+        Assert.DoesNotContain("if-no-files-found: ignore", job, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -149,8 +150,9 @@ public sealed class WorkflowWiringTests
         Assert.Contains("timeout-minutes: 60", job, StringComparison.Ordinal);
         Assert.Contains("permissions:\n      contents: read\n", job, StringComparison.Ordinal);
         Assert.Contains("          persist-credentials: false\n", job, StringComparison.Ordinal);
-        Assert.Contains("TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}", job, StringComparison.Ordinal);
-        Assert.Contains("OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}", job, StringComparison.Ordinal);
+        Assert.Contains("TYPESAFE_API_KEY: ${{ inputs.provider == 'typesafe' && secrets.TYPESAFE_API_KEY || '' }}", job, StringComparison.Ordinal);
+        Assert.Contains("OPENROUTER_API_KEY: ${{ inputs.provider == 'clef' && secrets.OPENROUTER_API_KEY || '' }}", job, StringComparison.Ordinal);
+        Assert.DoesNotContain("${{ inputs.", RunScripts(Calibrate), StringComparison.Ordinal);
 
         Assert.Contains("      provider:\n        description: Which hosted provider to calibrate\n        type: choice\n        required: true\n        options:\n          - typesafe\n          - clef\n", Calibrate, StringComparison.Ordinal);
         Assert.Contains("      set:\n        description: Which dataset to run\n        type: choice\n        default: both\n        options:\n          - both\n          - urgency\n          - banking77\n", Calibrate, StringComparison.Ordinal);
@@ -168,6 +170,8 @@ public sealed class WorkflowWiringTests
         Assert.Contains("datasets/banking77/banking77-minos-v1.jsonl", job, StringComparison.Ordinal);
         Assert.Contains("datasets/banking77/banking77-urgency-v1.jsonl", job, StringComparison.Ordinal);
         Assert.DoesNotContain("--prices", job, StringComparison.Ordinal);
+        Assert.Contains("both|urgency|banking77) ;;\n            *) echo \"::error::Unknown set '$SET'\"; exit 1 ;;", job, StringComparison.Ordinal);
+        Assert.Contains("if [ \"$SET\" != both ] && [ \"$SET\" != \"$set\" ]; then continue; fi", job, StringComparison.Ordinal);
         Assert.Contains("|| status=1", job, StringComparison.Ordinal);
         Assert.Contains("exit \"$status\"", job, StringComparison.Ordinal);
 
@@ -175,7 +179,10 @@ public sealed class WorkflowWiringTests
         Assert.Contains("name: calibration-${{ steps.map.outputs.slug }}-banking77\n", job, StringComparison.Ordinal);
         Assert.Contains("path: ${{ runner.temp }}/out/${{ steps.map.outputs.slug }}-urgency\n", job, StringComparison.Ordinal);
         Assert.Contains("path: ${{ runner.temp }}/out/${{ steps.map.outputs.slug }}-banking77\n", job, StringComparison.Ordinal);
-        Assert.Equal(2, System.Text.RegularExpressions.Regex.Count(job, "if: always\\(\\)", System.Text.RegularExpressions.RegexOptions.None, TimeSpan.FromSeconds(1)));
+        Assert.Contains("if: always() && (inputs.set == 'both' || inputs.set == 'urgency')", job, StringComparison.Ordinal);
+        Assert.Contains("if: always() && (inputs.set == 'both' || inputs.set == 'banking77')", job, StringComparison.Ordinal);
+        Assert.DoesNotContain("if-no-files-found: ignore", job, StringComparison.Ordinal);
+        Assert.Equal(2, System.Text.RegularExpressions.Regex.Count(job, "if-no-files-found: warn", System.Text.RegularExpressions.RegexOptions.None, TimeSpan.FromSeconds(1)));
     }
 
     [Fact]
@@ -195,6 +202,7 @@ public sealed class WorkflowWiringTests
         Assert.Contains("name: calibration-local-banking77\n", job, StringComparison.Ordinal);
         Assert.Contains("if: always()", job, StringComparison.Ordinal);
         Assert.DoesNotContain("secrets.", job, StringComparison.Ordinal);
+        Assert.DoesNotContain("if-no-files-found: ignore", job, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -205,6 +213,25 @@ public sealed class WorkflowWiringTests
         Assert.Contains("timeout-minutes: 30", job, StringComparison.Ordinal);
         Assert.DoesNotContain("minos calibrate", job, StringComparison.Ordinal);
         Assert.DoesNotContain(" calibrate ", job, StringComparison.Ordinal);
+    }
+
+    // The text of every run: script in a workflow, so a test can tell script text from with: and env: values.
+    private static string RunScripts(string workflow)
+    {
+        var lines = workflow.Split('\n');
+        var scripts = new System.Text.StringBuilder();
+        for (var i = 0; i < lines.Length; i++)
+        {
+            var trimmed = lines[i].TrimStart();
+            if (!trimmed.StartsWith("run:", StringComparison.Ordinal)) continue;
+            var indent = lines[i].Length - trimmed.Length;
+            scripts.AppendLine(trimmed);
+            while (i + 1 < lines.Length && (lines[i + 1].Trim().Length == 0 || lines[i + 1].Length - lines[i + 1].TrimStart().Length > indent))
+            {
+                scripts.AppendLine(lines[++i]);
+            }
+        }
+        return scripts.ToString();
     }
 
     // The text of one job: from its "  <name>:" line to the next job at the same indent, or the end of the file.
