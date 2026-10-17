@@ -55,7 +55,7 @@ internal static class CalibrateCommand
 
     private static async Task<int> ExecuteAsync(Request request, TextWriter stdout, TextWriter stderr, Func<HttpMessageHandler> network, CancellationToken ct)
     {
-        var loaded = DecisionDataset.Load(request.Dataset);
+        var loaded = CommandSupport.ReadInput(() => DecisionDataset.Load(request.Dataset));
         if (!loaded.IsSuccess)
         {
             await CommandSupport.PrintProblemsAsync(stderr, loaded.Error).ConfigureAwait(false);

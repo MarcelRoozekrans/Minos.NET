@@ -87,6 +87,23 @@ internal static class CommandSupport
         }
     }
 
+    /// <summary>Reads an input file, so that a failure to read it is reported as an input problem and not as an output problem.</summary>
+    /// <typeparam name="T">What the read gives.</typeparam>
+    /// <param name="read">The read of the input file.</param>
+    /// <returns>What <paramref name="read"/> gives.</returns>
+    /// <exception cref="InputReadException">The file exists but cannot be read, or is gone.</exception>
+    public static T ReadInput<T>(Func<T> read)
+    {
+        try
+        {
+            return read();
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException || (ex is IOException && ex is not FileLoadException))
+        {
+            throw new InputReadException(OneLine(ex.Message), ex);
+        }
+    }
+
     /// <summary>Runs a command and maps what escapes it to an exit code and one line on stderr.</summary>
     /// <param name="stderr">Where the failure goes.</param>
     /// <param name="failure">What failed, as the start of the line: <c>The run failed</c>.</param>
@@ -103,6 +120,11 @@ internal static class CommandSupport
         {
             await stderr.WriteLineAsync("Cancelled.").ConfigureAwait(false);
             return ExitCodes.Cancelled;
+        }
+        catch (InputReadException ex)
+        {
+            await stderr.WriteLineAsync("The input cannot be read: " + ex.Message).ConfigureAwait(false);
+            return ExitCodes.Usage;
         }
         catch (Exception ex) when (ex is FileNotFoundException or FileLoadException)
         {

@@ -38,14 +38,14 @@ internal static class ReportCommand
 
     private static async Task<int> ExecuteAsync(string resultsPath, string datasetPath, string? pricesPath, string? outOption, TextWriter stdout, TextWriter stderr, CancellationToken ct)
     {
-        var results = EvaluationResults.Load(resultsPath);
+        var results = CommandSupport.ReadInput(() => EvaluationResults.Load(resultsPath));
         if (!results.IsSuccess)
         {
             await CommandSupport.PrintProblemsAsync(stderr, results.Error).ConfigureAwait(false);
             return ExitCodes.Usage;
         }
 
-        var dataset = DecisionDataset.Load(datasetPath);
+        var dataset = CommandSupport.ReadInput(() => DecisionDataset.Load(datasetPath));
         if (!dataset.IsSuccess)
         {
             await CommandSupport.PrintProblemsAsync(stderr, dataset.Error).ConfigureAwait(false);

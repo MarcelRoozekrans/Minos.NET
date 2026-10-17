@@ -26,4 +26,39 @@ public sealed class GuardTests
         Assert.Equal(ExitCodes.Failure, exit);
         Assert.Contains("The output cannot be written: disk full", stderr.ToString(), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public async Task AnUnreadableDataset_IsAnInputProblem_NotAnOutputProblem()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        using var harness = new Harness();
+        var dataset = harness.Dataset();
+        File.SetUnixFileMode(dataset, UnixFileMode.None);
+        try
+        {
+            // Running as root ignores the mode, so the file is readable and there is nothing to check.
+            try
+            {
+                File.ReadAllBytes(dataset);
+                return;
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
+
+            var run = await Harness.Invoke(null, "calibrate", "--dataset", dataset, "--config", harness.Config(), "--out", harness.Out);
+
+            Assert.Equal(ExitCodes.Usage, run.Exit);
+            Assert.Contains("The input cannot be read:", run.Stderr, StringComparison.Ordinal);
+            Assert.DoesNotContain("output cannot be written", run.Stderr, StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.SetUnixFileMode(dataset, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        }
+    }
 }

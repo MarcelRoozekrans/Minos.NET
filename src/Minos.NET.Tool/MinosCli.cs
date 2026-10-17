@@ -26,6 +26,7 @@ internal static class MinosCli
 
         // A plain command named minos, not a RootCommand: a RootCommand takes its name from the host process, which is
         // Minos.NET.Tool under the tool shim, so the usage line would not name the command the user typed.
+        // A plain Command also drops RootCommand's [suggest] and [diagram] directives (dotnet-suggest completion), deliberately.
         var root = new Command("minos", "Calibrates a decision model against a labelled dataset, and checks that a provider conforms.");
         root.Options.Add(new HelpOption());
         root.Options.Add(new VersionOption());
