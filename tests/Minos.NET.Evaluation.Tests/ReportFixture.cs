@@ -27,9 +27,9 @@ internal static class ReportFixture
     internal static ModelPrice Price(string model, double inputPerMillion, double outputPerMillion, DateOnly date, string source)
         => new() { Model = model, InputPerMillion = inputPerMillion, OutputPerMillion = outputPerMillion, Date = date, Source = source };
 
-    // A no answer at confidence c is the probability a model would report, 1 - c as a decimal: 1 - 0.95 in binary is
-    // 0.050000000000000044, not 0.05. For the decimals the tests use, 1 - p then gives back c exactly.
-    internal static AnswerRecord Noul(bool answer, double confidence) => AnswerRecord.ForNoul(answer ? confidence : Math.Round(1 - confidence, 12));
+    // A no answer at confidence c has p = 1 - c in binary, such as 0.050000000000000044 for 0.95, so the fixture also
+    // exercises probabilities that are not two-decimal values. For c from 0.5 to 1, 1 - p gives back c exactly.
+    internal static AnswerRecord Noul(bool answer, double confidence) => AnswerRecord.ForNoul(answer ? confidence : 1 - confidence);
 
     internal static ItemResult Answered(
         int item,

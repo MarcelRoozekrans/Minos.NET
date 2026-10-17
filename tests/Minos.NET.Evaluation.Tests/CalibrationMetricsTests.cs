@@ -724,6 +724,34 @@ public sealed class CalibrationMetricsTests
     }
 
     [Fact]
+    public void NoulSweep_CoversABinaryProbabilityWhoseConfidenceClearsTheThreshold()
+    {
+        // 1 - 0.95 is 0.050000000000000044, above 0.05, yet its confidence is exactly 0.95; 1 - 0.7 likewise.
+        var dataset = Dataset(NoulLine(Id(1), false), NoulLine(Id(2), false));
+        var results = Results(Answered(1, Q(AnswerRecord.ForNoul(1 - 0.95))), Answered(2, Q(AnswerRecord.ForNoul(1 - 0.7))));
+
+        var noul = Report(results, dataset).Noul!;
+
+        Assert.Equal(0.95, AnswerRecord.ForNoul(1 - 0.95).Confidence);
+        Sweep(noul, 95, 0.5, 1, 1);
+        Sweep(noul, 70, 1, 1, 2);
+        Sweep(noul, 71, 0.5, 1, 1);
+    }
+
+    [Fact]
+    public void NoulSweep_TheFourMirroredDecimalsStayCovered()
+    {
+        (double P, int Percent)[] cases = [(0.07, 93), (0.32, 68), (0.33, 67), (0.34, 66)];
+        foreach (var (p, percent) in cases)
+        {
+            var noul = Report(Results(Answered(1, Q(AnswerRecord.ForNoul(p)))), Dataset(NoulLine(Id(1), false))).Noul!;
+
+            Assert.True(noul.Sweep[percent].Covered == 1, $"p = {p} is not covered at {percent}.");
+            Assert.True(noul.Sweep[percent + 1].Covered == 0, $"p = {p} is covered above {percent}.");
+        }
+    }
+
+    [Fact]
     public void NoulSweep_EveryTwoDecimalProbabilityIsCoveredUpToItsOwnConfidence()
     {
         // For p of k hundredths the confidence is max(k, 100 - k) hundredths, so it is covered exactly up to that threshold.

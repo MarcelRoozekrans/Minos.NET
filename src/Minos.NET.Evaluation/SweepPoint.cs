@@ -16,9 +16,10 @@ public sealed class SweepPoint
 
     /// <summary>
     /// Gets the share of scored questions answered with a confidence of at least <see cref="Threshold"/>; a failed
-    /// request counts as not covered. A Noul answer is compared through its probability p: at the threshold
-    /// <c>i / 100.0</c> it is covered when p is at least that or at most <c>(100 - i) / 100.0</c>, so that p = 0.07 is
-    /// covered at 0.93 as p = 0.93 is. 0 when nothing is scored.
+    /// request counts as not covered. At the threshold <c>t = i / 100.0</c> an answer is covered when its confidence is
+    /// at least t; a Noul answer with probability p is also covered when <c>p &gt;= t</c> or
+    /// <c>p &lt;= (100 - i) / 100.0</c>, so that p = 0.07 is covered at 0.93 as p = 0.93 is, though 1 - 0.07 in binary is
+    /// just below 0.93. 0 when nothing is scored.
     /// </summary>
     public double Coverage { get; }
 

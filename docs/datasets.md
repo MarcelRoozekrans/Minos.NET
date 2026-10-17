@@ -199,8 +199,9 @@ public static class DatasetRun
 
 `CalibrationReport.Create` returns a result. It fails with problems when the results do not fit the dataset, for example
 when they were made from a different file, or when they are results `Save` would refuse. Each problem's line is the
-line of its item in the dataset file, and 0 for a problem with the results header. `ToJson` writes the report as JSON of kind `minos-report`, and `ToMarkdown`
-writes it as a page to read.
+line of its item in the dataset file. A problem with the results header has line 0, and a results item past the
+dataset's last item has the line after that item, or 1 when the dataset is empty. `ToJson` writes the report as JSON
+of kind `minos-report`, and `ToMarkdown` writes it as a page to read.
 
 The report holds, for each kind of question and for all of them together (a `KindMetrics`):
 
@@ -211,8 +212,8 @@ The report holds, for each kind of question and for all of them together (a `Kin
 - the expected calibration error, as the headline figure with equal-mass bins and again with equal-width bins, and the
   `ReliabilityBin` list behind it;
 - a threshold sweep (`SweepPoint`): for each confidence threshold, how many of the questions are answered at or above
-  it, and how accurate those answers are. A Noul answer is compared through its probability p, so p = 0.07 counts at
-  0.93 just as p = 0.93 does.
+  it, and how accurate those answers are. A Noul answer counts when its confidence reaches the threshold, or when its
+  probability p does in either direction, so p = 0.07 counts at 0.93 just as p = 0.93 does.
 
 It also holds the latency (`LatencySummary`), the cost per 1,000 decisions (`CostSummary`), the errors by kind
 (`ErrorSummary`), and the models that answered (`ModelCount`). A question is scored when it has an expected answer. A question without one is only counted, in the

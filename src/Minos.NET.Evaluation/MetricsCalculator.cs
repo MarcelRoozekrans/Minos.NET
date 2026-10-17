@@ -325,10 +325,12 @@ internal static class MetricsCalculator
         return points;
     }
 
-    // A Noul answer's confidence max(p, 1 - p) is compared through p itself: p >= t, or p <= 1 - t with 1 - t computed
-    // as (100 - i) / 100.0. Computing 1 - p instead would put p = 0.07 one step below 0.93, uncovered at its own threshold.
+    // An answer is covered when its confidence reaches t. A Noul answer is also covered when p >= t, or p <= 1 - t with
+    // 1 - t computed as (100 - i) / 100.0: 1 - 0.07 in binary is one step below 0.93, so the confidence alone would miss
+    // p = 0.07 at 0.93, and p alone would miss p = 1 - 0.95, which is above 0.05 though its confidence is 0.95. Each
+    // test is the confidence max(p, 1 - p) reaching t in one of its forms, so the union never covers more than it should.
     private static bool IsCovered(ScoredQuestion question, double threshold, double mirrored)
-        => question.Probability is { } p ? p >= threshold || p <= mirrored : question.Confidence >= threshold;
+        => question.Confidence >= threshold || (question.Probability is { } p && (p >= threshold || p <= mirrored));
 
     private static LatencySummary Latency(IReadOnlyList<ItemResult> items)
     {
