@@ -1,5 +1,6 @@
 """Unit tests for inspect_packages.py: fake packages built with zipfile, no dotnet needed."""
 import io
+import json
 import pathlib
 import tempfile
 import unittest
@@ -25,7 +26,8 @@ def write_package(directory: pathlib.Path, package_id: str, version: str, *,
                   extra_dependency: str | None = None, dependency_xml: str | None = None,
                   symbols: bytes | None = None, with_dll: bool = True,
                   with_symbols: bool = True, drop_dependency: str | None = None,
-                  package_type: str | None = None, bundled: dict[str, str] | None = None) -> None:
+                  package_type: str | None = None, bundled: dict[str, str] | None = None,
+                  deps_extra: str | None = None, with_deps: bool = True) -> None:
     is_tool = package_id == TOOL
     dependencies = "".join(
         f'<dependency id="{dependency}" version="{dependency_version or version}" exclude="Build,Analyzers" />'
@@ -55,6 +57,13 @@ def write_package(directory: pathlib.Path, package_id: str, version: str, *,
                 for name, bundled_version in versions.items():
                     archive.writestr(f"tools/net10.0/any/{name}.dll", b"MZ fake " + informational(bundled_version))
             archive.writestr("tools/net10.0/any/System.CommandLine.dll", b"MZ third party")
+            if with_deps:
+                runtime = {f"{name}.dll": {} for name in TOOL_ASSEMBLIES}
+                runtime["lib/net10.0/System.CommandLine.dll"] = {}
+                if deps_extra:
+                    runtime[deps_extra] = {}
+                deps = {"targets": {".NETCoreApp,Version=v10.0": {"Minos.NET.Tool/1.0.0": {"runtime": runtime}}}}
+                archive.writestr("tools/net10.0/any/Minos.NET.Tool.deps.json", json.dumps(deps))
         elif with_dll:
             archive.writestr(f"lib/net10.0/{package_id}.dll", dll)
     if with_symbols:
@@ -91,11 +100,22 @@ class InspectPackagesTests(unittest.TestCase):
     def test_a_tool_package_of_the_wrong_type_fails(self) -> None:
         self.write_all(**{TOOL: {"package_type": "Dependency"}})
         errors = inspect_packages.problems(self.directory, VERSION)
-        self.assertTrue(any(TOOL in error and "DotnetTool" in error for error in errors), errors)
+        self.assertTrue(any(TOOL in error and "package type is Dependency, expected DotnetTool" in error for error in errors), errors)
 
     def test_a_tool_package_without_a_type_fails(self) -> None:
         self.write_all(**{TOOL: {"package_type": ""}})
-        self.assertNotEqual([], inspect_packages.problems(self.directory, VERSION))
+        errors = inspect_packages.problems(self.directory, VERSION)
+        self.assertTrue(any(TOOL in error and "package type is missing, expected DotnetTool" in error for error in errors), errors)
+
+    def test_a_runtime_asset_the_deps_file_lists_but_the_package_lacks_fails(self) -> None:
+        self.write_all(**{TOOL: {"deps_extra": "lib/net10.0/ZeroAlloc.Results.dll"}})
+        errors = inspect_packages.problems(self.directory, VERSION)
+        self.assertTrue(any(TOOL in error and "lists lib/net10.0/ZeroAlloc.Results.dll, which is not in" in error for error in errors), errors)
+
+    def test_a_tool_without_a_deps_file_fails(self) -> None:
+        self.write_all(**{TOOL: {"with_deps": False}})
+        errors = inspect_packages.problems(self.directory, VERSION)
+        self.assertTrue(any(TOOL in error and "deps.json is missing" in error for error in errors), errors)
 
     def test_a_stale_bundled_dll_in_the_tool_fails(self) -> None:
         self.write_all(**{TOOL: {"bundled": {"Minos.NET.Conformance": "1.0.0-local+abc1234"}}})

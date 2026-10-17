@@ -65,6 +65,18 @@ public sealed class ToolPackageTests : IClassFixture<ToolPackFixture>
         Assert.DoesNotContain(dependencies, id => id is not null && id.StartsWith("Minos.NET", StringComparison.Ordinal));
     }
 
+    // The referenced projects' XML documentation is of no use to a tool and is not packed.
+    [Fact]
+    public void ShipsNoXmlDocumentationFiles()
+    {
+        using var archive = ZipFile.OpenRead(_fixture.NupkgPath);
+
+        Assert.DoesNotContain(
+            archive.Entries,
+            entry => entry.FullName.StartsWith("tools/", StringComparison.Ordinal) && entry.FullName.EndsWith(".xml", StringComparison.OrdinalIgnoreCase)
+                && !entry.FullName.EndsWith("DotnetToolSettings.xml", StringComparison.Ordinal));
+    }
+
     [Fact]
     public void ShipsItsOwnReadme_NotTheRootOne()
     {

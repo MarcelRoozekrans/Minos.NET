@@ -5,11 +5,12 @@
     <PackageId>Minos.NET.Tool</PackageId>
     <Title>Minos.NET.Tool</Title>
     <Description>The minos command line tool for Minos.NET: calibrates a decision model against a labelled dataset, builds the calibration report again from saved results, and checks that a provider conforms to the decision protocol.</Description>
-    <PackageTags>$(PackageTags);tool;dotnet-tool;calibration;conformance;evaluation</PackageTags>
+    <PackageTags>minos;decisions;decision-model;dotnet-tool;calibration;conformance;evaluation</PackageTags>
     <PackAsTool>true</PackAsTool>
+    <!-- Keep the referenced projects' .pdb symbols but not their XML documentation files, which a tool has no use for. -->
+    <AllowedReferenceRelatedFileExtensions>.pdb</AllowedReferenceRelatedFileExtensions>
     <ToolCommandName>minos</ToolCommandName>
-    <!-- No published version to compare with yet. Set to the first published version after it ships. -->
-    <MinosNoValidationBaseline>true</MinosNoValidationBaseline>
+    <!-- The SDK turns package validation off for a tool, so there is no baseline to set here. -->
     <!-- The configuration binding is source-generated, as in Minos.NET.SystemOne, so no reflection binder is used. -->
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
   </PropertyGroup>

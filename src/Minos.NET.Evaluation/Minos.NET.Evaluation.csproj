@@ -3,9 +3,9 @@
     <RootNamespace>Minos.Evaluation</RootNamespace>
     <PackageId>Minos.NET.Evaluation</PackageId>
     <Title>Minos.NET.Evaluation</Title>
-    <Description>Labelled decision datasets for Minos.NET: a versioned JSONL format that pairs each item's questions and state with the expected answers, and a loader that reports every problem with its line number. Native AOT-compatible.</Description>
+    <Description>Labelled decision datasets for Minos.NET: a versioned JSONL format that pairs each item's state and questions with the expected answers, a loader that reports every problem with its line number, a runner that sends the items through any IDecisionClient and keeps the results in a file, and a calibration report built from them. Native AOT-compatible.</Description>
     <PackageTags>$(PackageTags);evaluation;dataset</PackageTags>
-    <!-- No published version to compare with yet. Set to the first published version after it ships. -->
+    <!-- Not on nuget.org yet, so there is no version to compare with. After its first release, delete this property and set PackageValidationBaselineVersion to that version here. -->
     <MinosNoValidationBaseline>true</MinosNoValidationBaseline>
     <IsAotCompatible>true</IsAotCompatible>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

@@ -1,4 +1,5 @@
 using System.CommandLine;
+using System.CommandLine.Help;
 
 namespace Minos.Tool;
 
@@ -23,7 +24,11 @@ internal static class MinosCli
         ArgumentNullException.ThrowIfNull(stdout);
         ArgumentNullException.ThrowIfNull(stderr);
 
-        var root = new RootCommand("Calibrates a decision model against a labelled dataset, and checks that a provider conforms.");
+        // A plain command named minos, not a RootCommand: a RootCommand takes its name from the host process, which is
+        // Minos.NET.Tool under the tool shim, so the usage line would not name the command the user typed.
+        var root = new Command("minos", "Calibrates a decision model against a labelled dataset, and checks that a provider conforms.");
+        root.Options.Add(new HelpOption());
+        root.Options.Add(new VersionOption());
         var handler = network ?? (() => new SocketsHttpHandler());
         root.Subcommands.Add(CalibrateCommand.Create(stdout, stderr, handler));
         root.Subcommands.Add(ReportCommand.Create(stdout, stderr));

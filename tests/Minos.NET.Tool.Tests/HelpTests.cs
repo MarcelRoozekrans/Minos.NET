@@ -1,4 +1,3 @@
-using System.CommandLine;
 using ZeroAlloc.TestHelpers;
 using static Minos.Tool.Tests.Harness;
 
@@ -11,9 +10,7 @@ public sealed class HelpTests
         var run = await Invoke(null, args);
         Assert.Equal(0, run.Exit);
         Assert.Equal("", run.Stderr);
-
-        // The usage line names the host process: minos when installed, the test host here.
-        return run.Stdout.ReplaceLineEndings("\n").Replace("  " + RootCommand.ExecutableName + " ", "  minos ", StringComparison.Ordinal);
+        return run.Stdout.ReplaceLineEndings("\n");
     }
 
     [Fact]
@@ -27,6 +24,16 @@ public sealed class HelpTests
 
     [Fact]
     public async Task Help_Tool_MatchesSnapshot() => TextSnapshot.VerifyText(await HelpOf("--help"));
+
+    [Fact]
+    public async Task Version_IsPrintedOnItsOwn()
+    {
+        var run = await Invoke(null, "--version");
+
+        Assert.Equal(0, run.Exit);
+        Assert.Equal("", run.Stderr);
+        Assert.Matches(@"^\d+\.\d+\.\d+", run.Stdout);
+    }
 
     [Fact]
     public async Task Help_ForTheTool_ListsTheThreeCommands()

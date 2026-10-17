@@ -6,7 +6,9 @@
     - A .snupkg symbol package sits beside each .nupkg; nuget.org takes it with the same push.
     - Package validation checks each package for compatibility problems, and compares its public API with the first version
       on nuget.org, 1.0.1, so a breaking change fails the pack (#28). Raise the baseline only on purpose, at a major release.
-      A project that has not shipped yet sets MinosNoValidationBaseline to true and is checked for compatibility only.
+      A package that has not shipped yet has no version to compare with: it sets MinosNoValidationBaseline to true and is
+      checked for compatibility only. After its first release, replace that property in its csproj with
+      PackageValidationBaselineVersion set to that version; a project's own PackageValidationBaselineVersion is kept.
     - On GitHub Actions the build is deterministic, so Source Link maps the PDBs to the repository's commit, not to the runner's paths.
       The packable projects get it, and so do the Roslyn components (generator, analyzers, code fixes): they are not packable themselves,
       but their DLLs are packed into Minos.NET's analyzers folder. Test projects stay out: deterministic paths turn CallerFilePath
@@ -17,7 +19,7 @@
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <EnablePackageValidation>true</EnablePackageValidation>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(IsPackable)' != 'false' And '$(MinosNoValidationBaseline)' != 'true'">
+  <PropertyGroup Condition="'$(IsPackable)' != 'false' And '$(MinosNoValidationBaseline)' != 'true' And '$(PackageValidationBaselineVersion)' == ''">
     <PackageValidationBaselineVersion>1.0.1</PackageValidationBaselineVersion>
   </PropertyGroup>
   <PropertyGroup Condition="('$(IsPackable)' != 'false' Or '$(IsRoslynComponent)' == 'true') And '$(GITHUB_ACTIONS)' == 'true'">

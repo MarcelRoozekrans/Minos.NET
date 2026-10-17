@@ -10,6 +10,7 @@ Minos package at a different version. Minos.NET.Tool is a dotnet tool: it must h
 Minos dependencies, because it bundles its Minos assemblies in tools/net10.0/any, and each of those must carry the
 release version. Standard library only.
 """
+import json
 import pathlib
 import re
 import sys
@@ -57,17 +58,40 @@ def _symbol_problems(directory: pathlib.Path, package: str, version: str) -> lis
     return []
 
 
+def _runtime_asset_problems(package: str, deps: bytes | None, packaged: set[str]) -> list[str]:
+    # The tool starts from its deps.json, which lists every assembly it loads. A listed assembly that is not in the
+    # package fails only when that code path first runs, so --help alone does not show it.
+    if deps is None:
+        return [f"{package}: {TOOL_DIRECTORY}{package}.deps.json is missing"]
+    try:
+        targets = json.loads(deps)["targets"]
+    except (ValueError, KeyError) as exc:
+        return [f"{package}: {package}.deps.json cannot be read: {exc}"]
+    missing: set[str] = set()
+    for libraries in targets.values():
+        for library in libraries.values():
+            for asset in library.get("runtime", {}):
+                if f"{TOOL_DIRECTORY}{asset.rsplit('/', 1)[-1]}" not in packaged:
+                    missing.add(asset)
+    return [f"{package}: {package}.deps.json lists {asset}, which is not in {TOOL_DIRECTORY}" for asset in sorted(missing)]
+
+
 def _package_problems(directory: pathlib.Path, package: str, version: str) -> list[str]:
     errors: list[str] = []
     path = directory / f"{package}.{version}.nupkg"
     is_tool = package == TOOL
     dll_name = f"{TOOL_DIRECTORY}{package}.dll" if is_tool else f"lib/net10.0/{package}.dll"
     bundled: dict[str, bytes] = {}
+    packaged: set[str] = set()
+    deps: bytes | None = None
     try:
         with zipfile.ZipFile(path) as archive:
             nuspec = archive.read(f"{package}.nuspec").decode("utf-8")
             dll = archive.read(dll_name) if dll_name in archive.namelist() else None
             if is_tool:
+                packaged = set(archive.namelist())
+                deps_name = f"{TOOL_DIRECTORY}{package}.deps.json"
+                deps = archive.read(deps_name) if deps_name in packaged else None
                 for name in archive.namelist():
                     if name.startswith(f"{TOOL_DIRECTORY}Minos.NET") and name.endswith(".dll"):
                         bundled[name] = archive.read(name)
@@ -93,6 +117,7 @@ def _package_problems(directory: pathlib.Path, package: str, version: str) -> li
         types = re.findall(r'<packageType\b[^>]*\bname="([^"]+)"', nuspec)
         if types != ["DotnetTool"]:
             errors.append(f"{package}: package type is {', '.join(types) or 'missing'}, expected DotnetTool")
+        errors.extend(_runtime_asset_problems(package, deps, packaged))
         for name, content in sorted(bundled.items()):
             if name != dll_name and not _informational_version_found(content, version):
                 errors.append(f"{package}: bundled {name.removeprefix(TOOL_DIRECTORY)} has no informational version {version}; was it built with -p:MinosRelease=true?")

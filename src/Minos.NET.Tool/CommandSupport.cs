@@ -104,6 +104,12 @@ internal static class CommandSupport
             await stderr.WriteLineAsync("Cancelled.").ConfigureAwait(false);
             return ExitCodes.Cancelled;
         }
+        catch (Exception ex) when (ex is FileNotFoundException or FileLoadException)
+        {
+            // A missing input file, or an assembly that did not load: not a problem with writing the output.
+            await stderr.WriteLineAsync("A file or assembly the command needs is missing or cannot be loaded: " + OneLine(ex.Message)).ConfigureAwait(false);
+            return ExitCodes.Failure;
+        }
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             await stderr.WriteLineAsync("The output cannot be written: " + OneLine(ex.Message)).ConfigureAwait(false);

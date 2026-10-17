@@ -280,13 +280,21 @@ jobs:
           EOF
           dotnet build "$app" -c Release
 
-      # The tool is not a library, so the consumer above cannot restore it. Install it the way a user would, from the
-      # same local feed, and run it: a tool whose entry point or bundled assemblies are broken fails here, not on nuget.org.
+      # The tool is not a library, so the consumer above cannot restore it. Install it the way a user would, with the
+      # consumer's nuget.config, which maps Minos.NET* to the local feed only, and start it. This proves the package
+      # installs from the feed, its command is named minos, and its entry point starts and reports the release version.
+      # It does not prove every bundled assembly is present: --help loads few of them. inspect_packages.py checks
+      # that every runtime asset the tool's deps.json lists is in the package.
       - name: Install the minos tool from the local feed and run it
         shell: bash
         run: |
-          dotnet tool install Minos.NET.Tool --tool-path "$RUNNER_TEMP/minos-tool" --add-source "$RUNNER_TEMP/local-feed" --version "$PACKAGE_VERSION"
+          dotnet tool install Minos.NET.Tool --tool-path "$RUNNER_TEMP/minos-tool" --configfile "$RUNNER_TEMP/consumer/nuget.config" --version "$PACKAGE_VERSION"
           "$RUNNER_TEMP/minos-tool/minos" --help
+          reported=$("$RUNNER_TEMP/minos-tool/minos" --version)
+          case "$reported" in
+            "$PACKAGE_VERSION"*) ;;
+            *) echo "::error::minos --version printed '$reported', expected it to start with $PACKAGE_VERSION."; exit 1 ;;
+          esac
 
   # A release PR must have marked released analyzer rules and public API as shipped. release-please.yml dispatches this
   # workflow on the release branch, so the branch comes from github.ref_name when there is no pull request.
