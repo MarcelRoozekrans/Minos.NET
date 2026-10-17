@@ -78,19 +78,19 @@ A file with bad content does not throw. `DecisionDataset.Parse` and `DecisionDat
 either the dataset or the full list of problems, so you fix a file in one pass instead of one error at a time. The list
 is a `DatasetProblems`, and each `DatasetProblem` has a 1-based `Line` and a `Message`.
 
-A problem the core finds in a question starts with its `MIN` id, for example `MIN003: ...`. The core's warnings
-count as problems here too, all of them, because an item that breaks one is a broken item. MIN003 reports blank text,
-such as blank instructions or a blank description. MIN005 reports a Score with fewer than two levels or more than 10, and a Choice with more
-than 255 options.
+A problem the core finds in a question starts with its `MIN` id, for example `MIN003: ...`. The core's warnings count
+as problems here too, all of them, because an item that breaks one is a broken item. MIN003 reports blank text, such as
+blank instructions or a blank description. MIN005 reports a Score with fewer than two levels or more than 10, and a
+Choice with more than 255 options.
 
 The loader throws only when the file does not exist or cannot be read.
 
 ## The version
 
-The `version` member is optional. A line without it is read as version 1. A number other than 1 is a problem
-that says: "This file uses dataset format version N; this loader reads version 1." A value that is not a number is a
-problem that says: "'version' must be the number 1." A later version of the format will
-raise the number, and a loader that does not know it refuses the file instead of guessing.
+The `version` member is optional. A line without it is read as version 1. A whole number other than 1 is a problem
+that says: "This file uses dataset format version N; this loader reads version 1." Any other value, such as `"one"` or
+`1.0`, is a problem that says: "'version' must be the number 1." A later version of the format will raise the number,
+and a loader that does not know it refuses the file instead of guessing.
 
 The decision export planned for Milestone 9 will write this format, and will use a new version if it needs members that
 version 1 does not have.

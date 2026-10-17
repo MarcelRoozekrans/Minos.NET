@@ -194,6 +194,13 @@ public sealed class DatasetProblemTests
     public void VersionThatIsNotANumber()
         => AssertSingle(Item(extra: ""","version":"one" """), "'version' must be the number 1");
 
+    [Theory]
+    [InlineData("1.0")]
+    [InlineData("1e0")]
+    [InlineData("1.5")]
+    public void ANonIntegerVersion_MustBeTheNumber1(string version)
+        => AssertSingle(Item(extra: ",\"version\":" + version), "'version' must be the number 1");
+
     [Fact]
     public void ScoreLevelBeyondInt32_IsOutOfRange()
         => AssertSingle(

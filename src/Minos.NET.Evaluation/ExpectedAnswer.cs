@@ -1,6 +1,9 @@
 namespace Minos.Evaluation;
 
-/// <summary>The right answer to one question of a dataset item.</summary>
+/// <summary>
+/// The right answer to one question of a dataset item. The <see langword="default"/> value is a Noul answer of
+/// <see langword="false"/>.
+/// </summary>
 public readonly struct ExpectedAnswer : IEquatable<ExpectedAnswer>
 {
     private ExpectedAnswer(QuestionKind kind, bool noul, string? choiceKey, int scoreLevel)
@@ -66,7 +69,12 @@ public readonly struct ExpectedAnswer : IEquatable<ExpectedAnswer>
     public override bool Equals(object? obj) => obj is ExpectedAnswer other && Equals(other);
 
     /// <inheritdoc />
-    public override int GetHashCode() => HashCode.Combine(Kind, Noul, ChoiceKey is null ? 0 : StringComparer.Ordinal.GetHashCode(ChoiceKey), ScoreLevel);
+    public override int GetHashCode()
+        => HashCode.Combine(
+            Kind,
+            Noul,
+            ChoiceKey is null ? 0 : StringComparer.Ordinal.GetHashCode(ChoiceKey),
+            ScoreLevel);
 
     /// <summary>Gets the kind and the right answer as text, for example <c>Choice card_arrival</c>.</summary>
     /// <returns>The text.</returns>

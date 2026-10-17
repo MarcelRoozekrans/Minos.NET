@@ -138,7 +138,7 @@ internal sealed class DatasetItemValidator
     {
         if (members.TryGetValue("version", out var version) && !(TryInteger(version, out var number) && number == 1))
         {
-            Add(version.ValueKind == JsonValueKind.Number
+            Add(IsWholeNumberText(version)
                 ? $"This file uses dataset format version {version.GetRawText()}; this loader reads version 1."
                 : "'version' must be the number 1.");
         }
@@ -361,6 +361,11 @@ internal sealed class DatasetItemValidator
 
         return members;
     }
+
+    // A number written without a fraction or exponent, such as 2. Those are the versions a later loader could name.
+    private static bool IsWholeNumberText(JsonElement element)
+        => element.ValueKind == JsonValueKind.Number
+            && element.GetRawText().AsSpan().TrimStart('-').IndexOfAnyExceptInRange('0', '9') < 0;
 
     private static bool TryInteger(JsonElement element, out int value)
     {
