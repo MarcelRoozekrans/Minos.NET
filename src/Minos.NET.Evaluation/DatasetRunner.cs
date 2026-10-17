@@ -39,7 +39,7 @@ public static class DatasetRunner
         DatasetRunOptions options,
         CancellationToken cancellationToken)
     {
-        var time = options.TimeProvider ?? TimeProvider.System;
+        var time = options.TimeProvider;
         var metadata = client.GetService<DecisionClientMetadata>();
         var started = time.GetUtcNow();
         var results = new ItemResult[dataset.Count];

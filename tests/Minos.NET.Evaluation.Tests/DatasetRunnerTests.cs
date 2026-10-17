@@ -345,6 +345,10 @@ public sealed class DatasetRunnerTests
     }
 
     [Fact]
+    public void TimeProvider_RefusesNull()
+        => Assert.Equal("value", Assert.Throws<ArgumentNullException>(() => new DatasetRunOptions { TimeProvider = null! }).ParamName);
+
+    [Fact]
     public async Task ProviderTextWithALoneSurrogate_IsCleaned_AndSaves()
     {
         var lone = new string((char)0xD800, 1);

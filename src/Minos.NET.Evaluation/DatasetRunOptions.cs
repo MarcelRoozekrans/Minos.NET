@@ -28,5 +28,14 @@ public sealed class DatasetRunOptions
     public IProgress<int>? Progress { get; init; }
 
     /// <summary>Gets the clock for the run's timestamps and each request's latency. The default is <see cref="TimeProvider.System"/>.</summary>
-    public TimeProvider TimeProvider { get; init; } = TimeProvider.System;
+    /// <exception cref="ArgumentNullException">The value is <see langword="null"/>.</exception>
+    public TimeProvider TimeProvider
+    {
+        get;
+        init
+        {
+            ArgumentNullException.ThrowIfNull(value);
+            field = value;
+        }
+    } = TimeProvider.System;
 }
