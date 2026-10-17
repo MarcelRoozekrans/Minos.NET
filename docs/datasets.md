@@ -114,10 +114,11 @@ the item's own question set and state. Items run one at a time unless you set `M
 `InvalidResponse` error: an answer of the wrong kind, a chosen option or level the question does not have, a
 probability or confidence outside 0 to 1, or no answer to any of the item's questions. These do stop the run: your own
 cancellation token, which throws, and an exception thrown by the client or by the `Progress` receiver. In those cases
-no new requests are sent and requests already in flight may finish. Your own cancellation is thrown as it was. An
-exception from the client or the `Progress` receiver is thrown as the inner exception of a `DatasetRunException`, whose
+no new requests are sent, and requests already in flight are cancelled. Your own cancellation is thrown as it was, even
+when it comes after a client fault, and then no partial results are returned. An exception from the client or the `Progress` receiver is thrown as the inner exception of a `DatasetRunException`, whose
 `PartialResults` hold the items that finished, in dataset order, with `Header.Partial` set and `ItemCount` counting only
-those. They were paid for, so save them. `CalibrationReport.Create` accepts them against the full dataset, as long as
+those. Only the first fault is kept. The cancelled in-flight requests are left out of the partial results, so any cost
+the provider charged for them is in neither the results nor the report. The finished items were paid for, so save them. `CalibrationReport.Create` accepts them against the full dataset, as long as
 every item is one of the dataset's and they keep its order, and the report says `Partial run: N of M items`. A results
 file of a partial run has `"partial":true` in its header.
 

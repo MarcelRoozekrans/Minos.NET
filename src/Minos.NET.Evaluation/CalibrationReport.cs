@@ -90,9 +90,9 @@ public sealed class CalibrationReport
     /// write, such as a finite, non-negative latency and exactly one of answers and error per item; and they must fit
     /// the dataset: the same item count, the same id at each position, and every saved answer a question of its item, of
     /// the question's kind, with an option or level the question has. Results of a partial run (see
-    /// <see cref="RunHeader.Partial"/>) instead must be items of the dataset, in the dataset's order, and the report covers only those. A missing answer is not a problem: that question
-    /// counts as scored but unanswered. Each problem's line is the dataset line of the item it is about; a problem with
-    /// the results header has line 0, and one past the dataset's last item the line after it.
+    /// <see cref="RunHeader.Partial"/>) instead must be items of the dataset, in the dataset's order, and the report
+    /// covers only those. A missing answer is not a problem: that question counts as scored but unanswered. Each problem's line is the dataset line of the item it is about;
+    /// a problem with the results header has line 0, and one past the dataset's last item the line after it.
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="results"/> or <paramref name="dataset"/> is <see langword="null"/>.</exception>
     public static Result<CalibrationReport, DatasetProblems> Create(EvaluationResults results, DecisionDataset dataset, PriceTable? prices = null)

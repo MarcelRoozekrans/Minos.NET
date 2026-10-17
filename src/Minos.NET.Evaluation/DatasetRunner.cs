@@ -10,8 +10,9 @@ public static class DatasetRunner
     /// Sends every item of <paramref name="dataset"/> to <paramref name="client"/> and records the outcomes. A failed item
     /// is recorded, never thrown, and the run never stops early for it. The exception is an exception thrown by the client
     /// or by <see cref="DatasetRunOptions.Progress"/>: the first one stops the other workers from sending more requests
-    /// (requests already in flight may finish) and is thrown as the inner exception of a <see cref="DatasetRunException"/>,
-    /// which carries the items that finished.
+    /// (requests already in flight are cancelled) and is thrown as the inner exception of a <see cref="DatasetRunException"/>,
+    /// which carries the items that finished. Only the first fault is kept, and when the caller's token is cancelled
+    /// as well, the <see cref="OperationCanceledException"/> wins and no partial results are returned.
     /// </summary>
     /// <param name="client">The client to evaluate with.</param>
     /// <param name="dataset">The dataset to run.</param>
@@ -68,7 +69,9 @@ public static class DatasetRunner
                     var result = await RunItemAsync(client, dataset[index], time, token, cancellationToken).ConfigureAwait(false);
                     if (Volatile.Read(ref fault) is not null && result.Error is { Kind: "Cancelled" })
                     {
-                        // Cut short by the run's own stop, so never finished and never paid for.
+                        // Cut short by the run's own stop, so never finished. The rule is only "a fault exists and the
+                        // error is Cancelled", so it also drops a genuine provider-side cancellation that lands after
+                        // the fault; that is a failed request anyway.
                         return;
                     }
 
@@ -103,6 +106,7 @@ public static class DatasetRunner
             // Decided below, from the first fault or the caller's token.
         }
 
+        // The caller's cancellation wins over a fault, and only the first fault is kept: later ones are dropped.
         cancellationToken.ThrowIfCancellationRequested();
 
         var failure = Volatile.Read(ref fault);

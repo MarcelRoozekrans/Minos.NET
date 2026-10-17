@@ -584,4 +584,16 @@ public sealed class DatasetRunnerTests
         Assert.IsAssignableFrom<OperationCanceledException>(ex);
         Assert.IsNotType<DatasetRunException>(ex);
     }
+
+    [Theory]
+    [InlineData(1, "after 1 finished item:")]
+    [InlineData(3, "after 3 finished items:")]
+    public void Message_CountsFinishedItemsInTheRightNumber(int count, string expected)
+    {
+        var items = Enumerable.Range(1, count).Select(i => ReportFixture.Answered(i, new Dictionary<string, AnswerRecord> { ["q"] = AnswerRecord.ForNoul(0.9) })).ToArray();
+
+        var ex = new DatasetRunException(ReportFixture.PartialResults(items), new InvalidOperationException("boom"));
+
+        Assert.Contains(expected, ex.Message, StringComparison.Ordinal);
+    }
 }
