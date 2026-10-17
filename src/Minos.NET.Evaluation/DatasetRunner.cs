@@ -86,9 +86,9 @@ public static class DatasetRunner
         var header = new RunHeader(
             options.DatasetName,
             results.Length,
-            metadata?.ProviderName,
+            ResultsRules.Clean(metadata?.ProviderName),
             metadata?.Endpoint,
-            metadata?.DefaultModel,
+            ResultsRules.Clean(metadata?.DefaultModel),
             started,
             time.GetUtcNow(),
             options.MaxParallelism);

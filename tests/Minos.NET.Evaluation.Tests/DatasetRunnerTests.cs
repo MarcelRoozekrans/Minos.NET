@@ -357,6 +357,21 @@ public sealed class DatasetRunnerTests
     }
 
     [Fact]
+    public async Task MetadataWithALoneSurrogate_IsCleaned_AndSaves()
+    {
+        var lone = new string((char)0xD800, 1);
+        var client = new FakeDecisionClient(
+            (r, _) => ValueTask.FromResult(Ok(NoulResponse(r, 0.9))),
+            new DecisionClientMetadata("prov" + lone, new Uri("https://example.test/"), "model" + lone));
+
+        var results = await DatasetRunner.RunAsync(client, Many(1));
+
+        Assert.Equal("prov\uFFFD", results.Header.ProviderName);
+        Assert.Equal("model\uFFFD", results.Header.DefaultModel);
+        AssertSavesAndLoads(results);
+    }
+
+    [Fact]
     public async Task MissingSomeKeys_AreAbsent_ExtraKeyIgnored()
     {
         var dataset = Parse(AllKinds);
