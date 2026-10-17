@@ -107,9 +107,10 @@ version 1 does not have.
 
 `DatasetRunner.RunAsync` sends every item of a dataset through an `IDecisionClient`. It makes one request per item, with
 the item's own question set and state. Items run one at a time unless you set `MaxParallelism` on the
-`DatasetRunOptions`. The results always come back in the order of the dataset. A request that fails does not stop the
-run: the failure is written on that item, and the run goes on to the next one. Only your own cancellation token stops it,
-by throwing.
+`DatasetRunOptions`. The results always come back in the order of the dataset. A request that fails with a
+`DecisionError` does not stop the run: the failure is written on that item, and the run goes on to the next one. These do
+stop it: your own cancellation token, which throws, and an exception thrown by the client or by the `Progress` receiver.
+In those cases the other requests stop and that exception is rethrown.
 
 What you get back is an `EvaluationResults`: a `RunHeader` that names the run, and one `ItemResult` for each item. An
 `ItemResult` holds the answers as `AnswerRecord` values, or an `ItemError` when the request failed, and also the latency,
@@ -121,7 +122,20 @@ problems, as the dataset loader does. Because the file holds every answer, you c
 prices or after you correct an expected answer, without making another billed call.
 
 A `CalibrationReport` is made from the results and the dataset they came from. The prices are optional: a `PriceTable`
-lists a `ModelPrice` for each model, and it is used only for responses that report no cost of their own.
+lists a `ModelPrice` for each model. A `ModelPrice` takes the model, the price per million input tokens, the price per
+million output tokens, the date of the price and its source. The example uses an output price of 0, which is only an
+example value; use the prices your provider lists.
+
+The cost of an item is decided in this order:
+
+1. The cost the provider reported, when there is one. A reported cost of 0 counts as reported.
+2. Otherwise both token counts times a matching price from the table.
+3. Otherwise it is unknown. A missing token count, or a response with no model, makes the cost unknown.
+
+A price matches a model when its model is equal to the response's model id, or when the response's model id starts with
+the price's model followed by `-`. The longest such entry wins, so `jev-1.14` matches `jev-1.14-20261014`.
+
+Responses that came from a cache are left out of the latency and the cost, and are counted separately.
 
 <!-- snippet: DatasetRun_RunAndReport -->
 ```cs
@@ -178,8 +192,10 @@ The report holds, for each kind of question and for all of them together (a `Kin
   it, and how accurate those answers are.
 
 It also holds the latency (`LatencySummary`), the cost per 1,000 decisions (`CostSummary`), the errors by kind
-(`ErrorSummary`), and the models that answered (`ModelCount`). Only questions that have an expected answer and an answered
-request are scored. The rest are counted and left out of the figures. A full guide to reading the numbers comes with a
+(`ErrorSummary`), and the models that answered (`ModelCount`). A question is scored when it has an expected answer. A question without one is only counted, in the
+report's header. A failed request, or an answer the provider left out, is an abstention: the question is scored but
+unanswered. It is left out of accuracy, the calibration error, the bins and the base rate, but it counts as uncovered
+in the coverage of the threshold sweep. A full guide to reading the numbers comes with a
 later release.
 
 ## Next
