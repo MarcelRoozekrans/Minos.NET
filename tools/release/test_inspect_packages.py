@@ -8,6 +8,9 @@ import zipfile
 import inspect_packages
 
 VERSION = "1.0.0"
+TOOL = "Minos.NET.Tool"
+# The Minos assemblies the tool bundles in tools/net10.0/any.
+TOOL_ASSEMBLIES = ["Minos.NET", "Minos.NET.SystemOne", "Minos.NET.Evaluation", "Minos.NET.Conformance", "Minos.NET.Tool"]
 
 
 def informational(version: str) -> bytes:
@@ -21,7 +24,9 @@ def write_package(directory: pathlib.Path, package_id: str, version: str, *,
                   dependency_version: str | None = None, nuspec_id: str | None = None,
                   extra_dependency: str | None = None, dependency_xml: str | None = None,
                   symbols: bytes | None = None, with_dll: bool = True,
-                  with_symbols: bool = True, drop_dependency: str | None = None) -> None:
+                  with_symbols: bool = True, drop_dependency: str | None = None,
+                  package_type: str | None = None, bundled: dict[str, str] | None = None) -> None:
+    is_tool = package_id == TOOL
     dependencies = "".join(
         f'<dependency id="{dependency}" version="{dependency_version or version}" exclude="Build,Analyzers" />'
         for dependency in inspect_packages.PACKAGES[package_id]
@@ -30,15 +35,27 @@ def write_package(directory: pathlib.Path, package_id: str, version: str, *,
         dependencies += f'<dependency id="{extra_dependency}" version="{version}" />'
     if dependency_xml is not None:
         dependencies = dependency_xml
+    if is_tool:
+        kind = "DotnetTool" if package_type is None else package_type
+        package_types = f'<packageTypes><packageType name="{kind}" /></packageTypes>' if kind else ""
+    else:
+        package_types = ""
     nuspec = (f'<?xml version="1.0" encoding="utf-8"?><package><metadata><id>{nuspec_id or package_id}</id>'
-              f'<version>{nuspec_version or version}</version>'
+              f'<version>{nuspec_version or version}</version>{package_types}'
               f'<dependencies><group targetFramework="net10.0">{dependencies}</group></dependencies>'
               f'</metadata></package>')
     # FileVersion is a four-part string that must never count as the informational version.
     dll = b"MZ fake " + b"\x01\x00\x071.0.0.0\x00\x00" + informational(dll_version or (version + "+abc1234"))
     with zipfile.ZipFile(directory / f"{package_id}.{version}.nupkg", "w") as archive:
         archive.writestr(f"{package_id}.nuspec", nuspec)
-        if with_dll:
+        if is_tool:
+            if with_dll:
+                versions = {name: version + "+abc1234" for name in TOOL_ASSEMBLIES}
+                versions.update(bundled or {})
+                for name, bundled_version in versions.items():
+                    archive.writestr(f"tools/net10.0/any/{name}.dll", b"MZ fake " + informational(bundled_version))
+            archive.writestr("tools/net10.0/any/System.CommandLine.dll", b"MZ third party")
+        elif with_dll:
             archive.writestr(f"lib/net10.0/{package_id}.dll", dll)
     if with_symbols:
         if symbols is not None:
@@ -60,9 +77,47 @@ class InspectPackagesTests(unittest.TestCase):
         for package_id in inspect_packages.PACKAGES:
             write_package(self.directory, package_id, version, **overrides.get(package_id, {}))
 
-    def test_six_good_packages_pass(self) -> None:
+    def test_eight_good_packages_pass(self) -> None:
         self.write_all()
+        self.assertEqual(8, len(inspect_packages.PACKAGES))
         self.assertEqual([], inspect_packages.problems(self.directory, VERSION))
+
+    def test_evaluation_must_depend_on_the_core(self) -> None:
+        self.assertEqual(("Minos.NET",), inspect_packages.PACKAGES["Minos.NET.Evaluation"])
+        self.write_all(**{"Minos.NET.Evaluation": {"drop_dependency": "Minos.NET"}})
+        errors = inspect_packages.problems(self.directory, VERSION)
+        self.assertTrue(any("Minos.NET.Evaluation does not depend on Minos.NET" in error for error in errors), errors)
+
+    def test_a_tool_package_of_the_wrong_type_fails(self) -> None:
+        self.write_all(**{TOOL: {"package_type": "Dependency"}})
+        errors = inspect_packages.problems(self.directory, VERSION)
+        self.assertTrue(any(TOOL in error and "DotnetTool" in error for error in errors), errors)
+
+    def test_a_tool_package_without_a_type_fails(self) -> None:
+        self.write_all(**{TOOL: {"package_type": ""}})
+        self.assertNotEqual([], inspect_packages.problems(self.directory, VERSION))
+
+    def test_a_stale_bundled_dll_in_the_tool_fails(self) -> None:
+        self.write_all(**{TOOL: {"bundled": {"Minos.NET.Conformance": "1.0.0-local+abc1234"}}})
+        errors = inspect_packages.problems(self.directory, VERSION)
+        self.assertTrue(any(TOOL in error and "Minos.NET.Conformance.dll" in error and "MinosRelease" in error
+                            for error in errors), errors)
+
+    def test_a_stale_tool_assembly_fails(self) -> None:
+        self.write_all(**{TOOL: {"bundled": {"Minos.NET.Tool": "0.9.0"}}})
+        errors = inspect_packages.problems(self.directory, VERSION)
+        self.assertTrue(any(TOOL in error and "Minos.NET.Tool.dll" in error for error in errors), errors)
+
+    def test_a_tool_without_bundled_dlls_fails(self) -> None:
+        self.write_all(**{TOOL: {"with_dll": False}})
+        errors = inspect_packages.problems(self.directory, VERSION)
+        self.assertTrue(any(TOOL in error and "tools/net10.0/any/Minos.NET.Tool.dll is missing" in error
+                            for error in errors), errors)
+
+    def test_a_minos_dependency_on_the_tool_fails(self) -> None:
+        self.write_all(**{TOOL: {"extra_dependency": "Minos.NET"}})
+        errors = inspect_packages.problems(self.directory, VERSION)
+        self.assertTrue(any(TOOL in error and "depends on Minos.NET" in error for error in errors), errors)
 
     def test_a_missing_package_fails(self) -> None:
         self.write_all()
@@ -80,6 +135,11 @@ class InspectPackagesTests(unittest.TestCase):
         self.write_all(**{"Minos.NET.OpenAI": {"with_symbols": False}})
         errors = inspect_packages.problems(self.directory, VERSION)
         self.assertTrue(any("Minos.NET.OpenAI" in error and ".snupkg" in error for error in errors), errors)
+
+    def test_a_tool_without_a_symbol_package_fails(self) -> None:
+        self.write_all(**{TOOL: {"with_symbols": False}})
+        errors = inspect_packages.problems(self.directory, VERSION)
+        self.assertTrue(any(TOOL in error and ".snupkg" in error for error in errors), errors)
 
     def test_a_local_build_fails(self) -> None:
         self.write_all(**{"Minos.NET.SystemOne": {"dll_version": "1.0.0-local+abc1234"}})

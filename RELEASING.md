@@ -8,7 +8,7 @@ Releases are cut by release-please and published to nuget.org by `ci.yml`. Nothi
 2. Merging that PR tags `vX.Y.Z` and creates the GitHub release.
 3. `release-please.yml` then dispatches `ci.yml` on the tag with `publish_to_nuget=true`.
 4. On that run, the jobs `publish-nuget` needs, `build`, `aot-smoke`, `aot-surface` and `pack-validate`, run on the tagged commit. `publish-nuget` starts only after they pass.
-5. `publish-nuget` refuses a 0.x version, a prerelease, or a tag that is not the manifest's version. It then packs with `-p:MinosRelease=true`, inspects the packages, pushes the six `.nupkg` files to nuget.org, and attaches them and their `.snupkg` files to the GitHub release. nuget.org takes each `.snupkg` with the same push as its `.nupkg`.
+5. `publish-nuget` refuses a 0.x version, a prerelease, or a tag that is not the manifest's version. It then packs with `-p:MinosRelease=true`, inspects the packages, pushes the eight `.nupkg` files to nuget.org, and attaches them and their `.snupkg` files to the GitHub release. nuget.org takes each `.snupkg` with the same push as its `.nupkg`.
 
 While the version is 0.x, the dispatched run's `publish-nuget` job fails on purpose, with the message "0.x versions are not published". That red run is expected and nothing is pushed.
 
@@ -17,8 +17,8 @@ Every push and pull request also runs `pack-validate`. It packs the same way, in
 ## Before the first release: settings on nuget.org and GitHub
 
 - **Trusted Publishing:** on nuget.org, add a Trusted Publishing policy for the repository `MarcelRoozekrans/Minos.NET` and the
-  workflow file `ci.yml`. All six package ids are new on nuget.org, so the policy must be allowed to push new packages as well as
-  new versions: the owner or policy setting that allows pushing new packages and package versions. Scope it to the six ids or to
+  workflow file `ci.yml`. All eight package ids are new on nuget.org, so the policy must be allowed to push new packages as well as
+  new versions: the owner or policy setting that allows pushing new packages and package versions. Scope it to the eight ids or to
   the glob `Minos.NET*`.
 - **Reserve the id prefix:** also reserve the `Minos.NET` id prefix on nuget.org. Anyone can take an id until it is published.
 - **`NUGET_USER`:** in the GitHub repository, add a variable named `NUGET_USER` holding the nuget.org user name that owns the policy.

@@ -172,7 +172,7 @@ jobs:
     runs-on: ubuntu-latest
     # Publishes samples/Minos.NET.AotSurface with PublishAot=true and TrimMode=full. It roots the seven library
     # assemblies, Minos.NET, Minos.NET.SystemOne, Minos.NET.OpenAI, Minos.NET.DependencyInjection, Minos.NET.Caching,
-    # Minos.NET.RateLimiting and Minos.NET.Evaluation, which is not packed yet, whole through
+    # Minos.NET.RateLimiting and Minos.NET.Evaluation, whole through
     # TrimmerRootAssembly, so ILC analyses their members, not only the ones aot-smoke calls, plus the code the
     # generator emits for the host's question sets. Rooting reaches every non-generic member and every generic one ILC can share across reference
     # types; value-type generics, such as Choice<T> over an enum, are analysed through the host's instantiations of
@@ -199,7 +199,7 @@ jobs:
       - name: Publish AOT with the seven library assemblies rooted
         run: dotnet publish samples/Minos.NET.AotSurface/Minos.NET.AotSurface.csproj -r linux-x64 -c Release -o ./aot-surface-out
 
-  # Packs the six release packages exactly as publish-nuget does, inspects them, and rehearses the push against a local
+  # Packs the eight release packages exactly as publish-nuget does, inspects them, and rehearses the push against a local
   # folder feed, on every push and pull request, so the release path is exercised long before release day. A folder
   # feed silently drops .snupkg files, so symbol packages are checked by the inspection, not by the push. WorkflowWiringTests
   # pins the commands below; change them only together with it.
@@ -261,7 +261,7 @@ jobs:
         run: |
           app="$RUNNER_TEMP/consumer"
           dotnet new console -o "$app" --framework net10.0
-          for package in Minos.NET Minos.NET.SystemOne Minos.NET.OpenAI Minos.NET.DependencyInjection Minos.NET.Caching Minos.NET.RateLimiting; do
+          for package in Minos.NET Minos.NET.SystemOne Minos.NET.OpenAI Minos.NET.DependencyInjection Minos.NET.Caching Minos.NET.RateLimiting Minos.NET.Evaluation; do
             dotnet add "$app" package "$package" --version "$PACKAGE_VERSION" --no-restore
           done
           cat > "$app/nuget.config" <<EOF
@@ -279,6 +279,14 @@ jobs:
           </configuration>
           EOF
           dotnet build "$app" -c Release
+
+      # The tool is not a library, so the consumer above cannot restore it. Install it the way a user would, from the
+      # same local feed, and run it: a tool whose entry point or bundled assemblies are broken fails here, not on nuget.org.
+      - name: Install the minos tool from the local feed and run it
+        shell: bash
+        run: |
+          dotnet tool install Minos.NET.Tool --tool-path "$RUNNER_TEMP/minos-tool" --add-source "$RUNNER_TEMP/local-feed" --version "$PACKAGE_VERSION"
+          "$RUNNER_TEMP/minos-tool/minos" --help
 
   # A release PR must have marked released analyzer rules and public API as shipped. release-please.yml dispatches this
   # workflow on the release branch, so the branch comes from github.ref_name when there is no pull request.

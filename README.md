@@ -12,6 +12,8 @@
 [![Minos.NET.DependencyInjection](https://img.shields.io/nuget/v/Minos.NET.DependencyInjection?label=Minos.NET.DependencyInjection)](https://www.nuget.org/packages/Minos.NET.DependencyInjection)
 [![Minos.NET.Caching](https://img.shields.io/nuget/v/Minos.NET.Caching?label=Minos.NET.Caching)](https://www.nuget.org/packages/Minos.NET.Caching)
 [![Minos.NET.RateLimiting](https://img.shields.io/nuget/v/Minos.NET.RateLimiting?label=Minos.NET.RateLimiting)](https://www.nuget.org/packages/Minos.NET.RateLimiting)
+[![Minos.NET.Evaluation](https://img.shields.io/nuget/v/Minos.NET.Evaluation?label=Minos.NET.Evaluation)](https://www.nuget.org/packages/Minos.NET.Evaluation)
+[![Minos.NET.Tool](https://img.shields.io/nuget/v/Minos.NET.Tool?label=Minos.NET.Tool)](https://www.nuget.org/packages/Minos.NET.Tool)
 
 Unofficial .NET client for decision models: send a `state` and typed questions (Noul, Choice, Score) and get calibrated, typed answers back.
 
@@ -33,6 +35,8 @@ You declare the questions as a C# type, and a source generator writes the reques
 | [Minos.NET.DependencyInjection](https://www.nuget.org/packages/Minos.NET.DependencyInjection) | registers `IDecisionClient` in a .NET host |
 | [Minos.NET.Caching](https://www.nuget.org/packages/Minos.NET.Caching) | a caching stage |
 | [Minos.NET.RateLimiting](https://www.nuget.org/packages/Minos.NET.RateLimiting) | a rate-limiting stage |
+| [Minos.NET.Evaluation](https://www.nuget.org/packages/Minos.NET.Evaluation) | labelled datasets: the JSONL format, a loader, a runner and a calibration report |
+| [Minos.NET.Tool](https://www.nuget.org/packages/Minos.NET.Tool) | the `minos` dotnet tool: `calibrate`, `report` and `conformance` |
 
 ## What you get
 

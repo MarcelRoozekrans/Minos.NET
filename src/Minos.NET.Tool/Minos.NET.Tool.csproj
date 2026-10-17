@@ -4,8 +4,12 @@
     <RootNamespace>Minos.Tool</RootNamespace>
     <PackageId>Minos.NET.Tool</PackageId>
     <Title>Minos.NET.Tool</Title>
-    <!-- Not packed yet: Phase 8.3 task 4 packs it as a dotnet tool. -->
-    <IsPackable>false</IsPackable>
+    <Description>The minos command line tool for Minos.NET: calibrates a decision model against a labelled dataset, builds the calibration report again from saved results, and checks that a provider conforms to the decision protocol.</Description>
+    <PackageTags>$(PackageTags);tool;dotnet-tool;calibration;conformance;evaluation</PackageTags>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>minos</ToolCommandName>
+    <!-- No published version to compare with yet. Set to the first published version after it ships. -->
+    <MinosNoValidationBaseline>true</MinosNoValidationBaseline>
     <!-- The configuration binding is source-generated, as in Minos.NET.SystemOne, so no reflection binder is used. -->
     <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
   </PropertyGroup>
@@ -21,6 +25,12 @@
     <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
     <PackageReference Include="ZeroAlloc.Results" />
+  </ItemGroup>
+
+  <!-- The package's own README, in place of the root README that Directory.Build.props packs into every package. -->
+  <ItemGroup>
+    <None Remove="$(MSBuildThisFileDirectory)..\..\README.md" />
+    <None Include="README.md" Pack="true" PackagePath="" />
   </ItemGroup>
 
   <ItemGroup>
