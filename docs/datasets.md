@@ -108,18 +108,26 @@ version 1 does not have.
 `DatasetRunner.RunAsync` sends every item of a dataset through an `IDecisionClient`. It makes one request per item, with
 the item's own question set and state. Items run one at a time unless you set `MaxParallelism` on the
 `DatasetRunOptions`. The results always come back in the order of the dataset. A request that fails with a
-`DecisionError` does not stop the run: the failure is written on that item, and the run goes on to the next one. These do
-stop it: your own cancellation token, which throws, and an exception thrown by the client or by the `Progress` receiver.
-In those cases the other requests stop and that exception is rethrown.
+`DecisionError` does not stop the run: the failure is written on that item, and the run goes on to the next one. An
+`OperationCanceledException` that your own token did not cause is written on that item as an `ItemError` of kind
+`Cancelled`, and the run goes on too. A response whose answers do not fit the item turns the whole item into an
+`InvalidResponse` error: an answer of the wrong kind, a chosen option or level the question does not have, a
+probability or confidence outside 0 to 1, or no answer to any of the item's questions. These do stop the run: your own
+cancellation token, which throws, and an exception thrown by the client or by the `Progress` receiver. In those cases
+no new requests are sent, requests already in flight may finish, and that exception is rethrown.
 
 What you get back is an `EvaluationResults`: a `RunHeader` that names the run, and one `ItemResult` for each item. An
 `ItemResult` holds the answers as `AnswerRecord` values, or an `ItemError` when the request failed, and also the latency,
-the model that answered, the token counts and the cost.
+the model that answered, the token counts and the cost. To build results by hand, make each answer with
+`AnswerRecord.ForNoul`, `ForChoice` or `ForScore`; `ForNoul` takes the probability and works out the answer and its
+confidence from it.
 
 Save the results before you do anything else with them. A run costs real calls, and the results file is what it paid
 for. `EvaluationResults.Save` writes it as JSONL, and `EvaluationResults.Load` reads it back with line-numbered
-problems, as the dataset loader does. Because the file holds every answer, you can compute the report again, with new
-prices or after you correct an expected answer, without making another billed call.
+problems, as the dataset loader does, and refuses a member the format does not have. `Save` refuses results the file
+cannot hold, such as a latency that is not a finite, non-negative number, and lists every problem. Because the file
+holds every answer, you can compute the report again, with new prices or after you correct an expected answer, without
+making another billed call.
 
 A `CalibrationReport` is made from the results and the dataset they came from. The prices are optional: a `PriceTable`
 lists a `ModelPrice` for each model. A `ModelPrice` holds the model, the price per million input tokens, the price per
@@ -135,7 +143,9 @@ The cost of an item is decided in this order:
 A price matches a model when its model is equal to the response's model id, or when the response's model id starts with
 the price's model followed by `-`. The longest such entry wins, so `jev-1.14` matches `jev-1.14-20261014`.
 
-Responses that came from a cache are left out of the latency and the cost, and are counted separately.
+Responses that came from a cache are left out of the latency and the cost, and are counted separately. An
+`InvalidResponse` item was served and billed, so its cost counts in the cost and its model among the models that
+answered; like every failed request, it is left out of the latency and the answers.
 
 <!-- snippet: DatasetRun_RunAndReport -->
 ```cs
@@ -188,16 +198,21 @@ public static class DatasetRun
 <!-- endSnippet -->
 
 `CalibrationReport.Create` returns a result. It fails with problems when the results do not fit the dataset, for example
-when they were made from a different file. `ToJson` writes the report as JSON of kind `minos-report`, and `ToMarkdown`
+when they were made from a different file, or when they are results `Save` would refuse. Each problem's line is the
+line of its item in the dataset file, and 0 for a problem with the results header. `ToJson` writes the report as JSON of kind `minos-report`, and `ToMarkdown`
 writes it as a page to read.
 
 The report holds, for each kind of question and for all of them together (a `KindMetrics`):
 
-- accuracy, and the base rate, the accuracy you would get by always giving the most common expected answer;
+- accuracy, and the base rate, the accuracy you would get by always giving the most common expected answer. The base
+  rate is worked out per question, over the answered questions only, from the same answers it is compared with, so it
+  is high when a question has few answers: ten items that each ask their question under a key of its own give a base
+  rate of 1, since every question's one answer is its own majority;
 - the expected calibration error, as the headline figure with equal-mass bins and again with equal-width bins, and the
   `ReliabilityBin` list behind it;
 - a threshold sweep (`SweepPoint`): for each confidence threshold, how many of the questions are answered at or above
-  it, and how accurate those answers are.
+  it, and how accurate those answers are. A Noul answer is compared through its probability p, so p = 0.07 counts at
+  0.93 just as p = 0.93 does.
 
 It also holds the latency (`LatencySummary`), the cost per 1,000 decisions (`CostSummary`), the errors by kind
 (`ErrorSummary`), and the models that answered (`ModelCount`). A question is scored when it has an expected answer. A question without one is only counted, in the
