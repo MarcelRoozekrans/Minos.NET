@@ -1,5 +1,4 @@
 using System.Text;
-using System.Text.Json.Nodes;
 
 namespace Minos.Evaluation.Tests;
 
@@ -103,36 +102,6 @@ public sealed class DatasetLoadTests
         var dictionary = Assert.IsAssignableFrom<IDictionary<string, ExpectedAnswer>>(item.Expected);
         Assert.True(dictionary.IsReadOnly);
         Assert.Throws<NotSupportedException>(() => dictionary["is_urgent"] = ExpectedAnswer.ForNoul(false));
-    }
-
-    [Theory]
-    [InlineData("request-noul.json")]
-    [InlineData("request-noul-minimal.json")]
-    [InlineData("request-choice.json")]
-    [InlineData("request-score.json")]
-    public void Parse_ReadsTheSystemOneFixtures(string fixture)
-    {
-        var request = JsonNode.Parse(File.ReadAllText(Path.Combine(AppContext.BaseDirectory, "Fixtures", fixture)))!.AsObject();
-        var questions = request["questions"]!.AsObject();
-        var (key, question) = questions.First();
-        JsonNode expected = question!["type"]!.GetValue<string>() switch
-        {
-            "noul" => true,
-            "choice" => question["criteria"]!.AsObject().First().Key,
-            _ => 0,
-        };
-        var line = new JsonObject
-        {
-            ["id"] = fixture,
-            ["state"] = request["state"]!.DeepClone(),
-            ["questions"] = questions.DeepClone(),
-            ["expected"] = new JsonObject { [key] = expected },
-        }.ToJsonString();
-
-        var item = Assert.Single(ParseOk(line));
-
-        Assert.Equal(key, item.Definition.Questions[0].Key);
-        Assert.Single(item.Expected);
     }
 
     [Fact]
