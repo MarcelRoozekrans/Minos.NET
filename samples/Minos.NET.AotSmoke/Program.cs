@@ -120,6 +120,12 @@ internal static class Program
         await RateLimitingChecks.GrantedCallsGoAndARejectedOneIsNotSent().ConfigureAwait(false);
         await CachingChecks.RepeatIsAnsweredFromTheCache().ConfigureAwait(false);
 
+        DatasetChecks.ParsesAString();
+        DatasetChecks.ParsesAStream();
+        DatasetChecks.LoadsAFile();
+        DatasetChecks.ExpectedAnswersCompareByValue();
+        DatasetChecks.ProblemsCarryTheirLine();
+
         await AllocationChecks.AnswerSlotAccessors().ConfigureAwait(false);
         await AllocationChecks.GeneratedCreate().ConfigureAwait(false);
         AllocationChecks.EvaluateRoundTrip();

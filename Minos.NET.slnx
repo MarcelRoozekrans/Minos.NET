@@ -4,6 +4,7 @@
     <Project Path="src/Minos.NET.SystemOne/Minos.NET.SystemOne.csproj" />
     <Project Path="src/Minos.NET.OpenAI/Minos.NET.OpenAI.csproj" />
     <Project Path="src/Minos.NET.RateLimiting/Minos.NET.RateLimiting.csproj" />
+    <Project Path="src/Minos.NET.Evaluation/Minos.NET.Evaluation.csproj" />
     <Project Path="src/Minos.NET.Caching/Minos.NET.Caching.csproj" />
     <Project Path="src/Minos.NET.DependencyInjection/Minos.NET.DependencyInjection.csproj" />
     <Project Path="src/Minos.NET.Conformance/Minos.NET.Conformance.csproj" />
@@ -15,6 +16,7 @@
     <Project Path="tests/Minos.NET.Tests/Minos.NET.Tests.csproj" />
     <Project Path="tests/Minos.NET.OpenAI.Tests/Minos.NET.OpenAI.Tests.csproj" />
     <Project Path="tests/Minos.NET.RateLimiting.Tests/Minos.NET.RateLimiting.Tests.csproj" />
+    <Project Path="tests/Minos.NET.Evaluation.Tests/Minos.NET.Evaluation.Tests.csproj" />
     <Project Path="tests/Minos.NET.Caching.Tests/Minos.NET.Caching.Tests.csproj" />
     <Project Path="tests/Minos.NET.Conformance.Tests/Minos.NET.Conformance.Tests.csproj" />
     <Project Path="tests/Minos.NET.DependencyInjection.Tests/Minos.NET.DependencyInjection.Tests.csproj" />

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Minos.Evaluation</RootNamespace>
+    <PackageId>Minos.NET.Evaluation</PackageId>
+    <Title>Minos.NET.Evaluation</Title>
+    <Description>Labelled decision datasets for Minos.NET: a versioned JSONL format that pairs each item's questions and state with the expected answers, and a loader that reports every problem with its line number. Native AOT-compatible.</Description>
+    <PackageTags>$(PackageTags);evaluation;dataset</PackageTags>
+    <!-- Not packed yet: Phase 8.3 packs and publishes it. -->
+    <IsPackable>false</IsPackable>
+    <IsAotCompatible>true</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Minos.NET\Minos.NET.csproj" />
+    <PackageReference Include="ZeroAlloc.Results" />
+  </ItemGroup>
+</Project>

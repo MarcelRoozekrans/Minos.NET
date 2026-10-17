@@ -47,6 +47,9 @@ jobs:
       - name: Test
         run: dotnet test Minos.NET.slnx --no-build -c Release --logger "trx" --results-directory ./test-results
 
+      - name: Test the Banking77 sample build
+        run: python3 -m unittest discover -s datasets/banking77 -p "test_build.py"
+
       - name: Run the cookbook samples in replay mode
         # Runs each sample's real entry point (argument parsing, config, host wiring) offline from its checked-in
         # recordings. ReplayHandler is what keeps replay offline: it is the primary handler and answers every request
@@ -155,9 +158,9 @@ jobs:
 
   aot-surface:
     runs-on: ubuntu-latest
-    # Publishes samples/Minos.NET.AotSurface with PublishAot=true and TrimMode=full. It roots the six packages,
-    # Minos.NET, Minos.NET.SystemOne, Minos.NET.OpenAI, Minos.NET.DependencyInjection, Minos.NET.Caching and
-    # Minos.NET.RateLimiting, whole through
+    # Publishes samples/Minos.NET.AotSurface with PublishAot=true and TrimMode=full. It roots the seven library
+    # assemblies, Minos.NET, Minos.NET.SystemOne, Minos.NET.OpenAI, Minos.NET.DependencyInjection, Minos.NET.Caching,
+    # Minos.NET.RateLimiting and Minos.NET.Evaluation, which is not packed yet, whole through
     # TrimmerRootAssembly, so ILC analyses their members, not only the ones aot-smoke calls, plus the code the
     # generator emits for the host's question sets. Rooting reaches every non-generic member and every generic one ILC can share across reference
     # types; value-type generics, such as Choice<T> over an enum, are analysed through the host's instantiations of
@@ -181,7 +184,7 @@ jobs:
       - name: Restore
         run: dotnet restore samples/Minos.NET.AotSurface/Minos.NET.AotSurface.csproj
 
-      - name: Publish AOT with the six packages rooted
+      - name: Publish AOT with the seven library assemblies rooted
         run: dotnet publish samples/Minos.NET.AotSurface/Minos.NET.AotSurface.csproj -r linux-x64 -c Release -o ./aot-surface-out
 
   # Packs the six release packages exactly as publish-nuget does, inspects them, and rehearses the push against a local

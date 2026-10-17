@@ -1,0 +1,48 @@
+#nullable enable
+Minos.Evaluation.DatasetItem
+Minos.Evaluation.DatasetItem.Definition.get -> Minos.QuestionSetDefinition!
+Minos.Evaluation.DatasetItem.Expected.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Minos.Evaluation.ExpectedAnswer>!
+Minos.Evaluation.DatasetItem.Id.get -> string!
+Minos.Evaluation.DatasetItem.Line.get -> int
+Minos.Evaluation.DatasetItem.Source.get -> string?
+Minos.Evaluation.DatasetItem.State.get -> Minos.DecisionContent
+Minos.Evaluation.DatasetProblem
+Minos.Evaluation.DatasetProblem.<Clone>$() -> Minos.Evaluation.DatasetProblem!
+Minos.Evaluation.DatasetProblem.DatasetProblem(int Line, string! Message) -> void
+Minos.Evaluation.DatasetProblem.Deconstruct(out int Line, out string! Message) -> void
+Minos.Evaluation.DatasetProblem.Equals(Minos.Evaluation.DatasetProblem? other) -> bool
+Minos.Evaluation.DatasetProblem.Line.get -> int
+Minos.Evaluation.DatasetProblem.Line.init -> void
+Minos.Evaluation.DatasetProblem.Message.get -> string!
+Minos.Evaluation.DatasetProblem.Message.init -> void
+Minos.Evaluation.DatasetProblems
+Minos.Evaluation.DatasetProblems.Count.get -> int
+Minos.Evaluation.DatasetProblems.GetEnumerator() -> System.Collections.Generic.IEnumerator<Minos.Evaluation.DatasetProblem!>!
+Minos.Evaluation.DatasetProblems.this[int index].get -> Minos.Evaluation.DatasetProblem!
+Minos.Evaluation.DecisionDataset
+Minos.Evaluation.DecisionDataset.Count.get -> int
+Minos.Evaluation.DecisionDataset.GetEnumerator() -> System.Collections.Generic.IEnumerator<Minos.Evaluation.DatasetItem!>!
+Minos.Evaluation.DecisionDataset.this[int index].get -> Minos.Evaluation.DatasetItem!
+Minos.Evaluation.ExpectedAnswer
+Minos.Evaluation.ExpectedAnswer.ChoiceKey.get -> string?
+Minos.Evaluation.ExpectedAnswer.Equals(Minos.Evaluation.ExpectedAnswer other) -> bool
+Minos.Evaluation.ExpectedAnswer.ExpectedAnswer() -> void
+Minos.Evaluation.ExpectedAnswer.Kind.get -> Minos.QuestionKind
+Minos.Evaluation.ExpectedAnswer.Noul.get -> bool
+Minos.Evaluation.ExpectedAnswer.ScoreLevel.get -> int
+override Minos.Evaluation.DatasetProblem.Equals(object? obj) -> bool
+override Minos.Evaluation.DatasetProblem.GetHashCode() -> int
+override Minos.Evaluation.DatasetProblem.ToString() -> string!
+override Minos.Evaluation.ExpectedAnswer.GetHashCode() -> int
+static Minos.Evaluation.DatasetProblem.operator !=(Minos.Evaluation.DatasetProblem? left, Minos.Evaluation.DatasetProblem? right) -> bool
+static Minos.Evaluation.DatasetProblem.operator ==(Minos.Evaluation.DatasetProblem? left, Minos.Evaluation.DatasetProblem? right) -> bool
+static Minos.Evaluation.DecisionDataset.Load(string! path) -> ZeroAlloc.Results.Result<Minos.Evaluation.DecisionDataset!, Minos.Evaluation.DatasetProblems!>
+static Minos.Evaluation.DecisionDataset.Parse(System.IO.Stream! utf8Jsonl) -> ZeroAlloc.Results.Result<Minos.Evaluation.DecisionDataset!, Minos.Evaluation.DatasetProblems!>
+static Minos.Evaluation.DecisionDataset.Parse(string! jsonl) -> ZeroAlloc.Results.Result<Minos.Evaluation.DecisionDataset!, Minos.Evaluation.DatasetProblems!>
+static Minos.Evaluation.ExpectedAnswer.ForChoice(string! key) -> Minos.Evaluation.ExpectedAnswer
+static Minos.Evaluation.ExpectedAnswer.ForNoul(bool value) -> Minos.Evaluation.ExpectedAnswer
+static Minos.Evaluation.ExpectedAnswer.ForScore(int level) -> Minos.Evaluation.ExpectedAnswer
+static Minos.Evaluation.ExpectedAnswer.operator !=(Minos.Evaluation.ExpectedAnswer left, Minos.Evaluation.ExpectedAnswer right) -> bool
+static Minos.Evaluation.ExpectedAnswer.operator ==(Minos.Evaluation.ExpectedAnswer left, Minos.Evaluation.ExpectedAnswer right) -> bool
+override Minos.Evaluation.ExpectedAnswer.Equals(object? obj) -> bool
+override Minos.Evaluation.ExpectedAnswer.ToString() -> string!

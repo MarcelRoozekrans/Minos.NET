@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis;
 namespace Minos.AotSmoke.Tests;
 
 /// <summary>
-/// The mechanical rules the six packages' public surface keeps for 1.0, checked over the package assemblies the AOT smoke
+/// The mechanical rules the seven library assemblies' public surface keeps for 1.0, checked over the package assemblies the AOT smoke
 /// app references. Each test names every member that breaks its rule.
 /// </summary>
 public sealed class SurfaceRuleTests
@@ -21,6 +21,7 @@ public sealed class SurfaceRuleTests
         ("Minos.NET.DependencyInjection", "Minos"),
         ("Minos.NET.Caching", "Minos"),
         ("Minos.NET.RateLimiting", "Minos"),
+        ("Minos.NET.Evaluation", "Minos.Evaluation"),
     ];
 
     // Public classes designed for inheritance that are not abstract.

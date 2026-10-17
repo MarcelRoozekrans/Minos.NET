@@ -19,6 +19,8 @@
     <!-- UseCaching and UseRateLimiting, so both pipeline stages run under Native AOT. -->
     <ProjectReference Include="..\..\src\Minos.NET.Caching\Minos.NET.Caching.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.RateLimiting\Minos.NET.RateLimiting.csproj" />
+    <!-- DecisionDataset and its items, so the labelled dataset loader runs under Native AOT. -->
+    <ProjectReference Include="..\..\src\Minos.NET.Evaluation\Minos.NET.Evaluation.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.Generator\Minos.NET.Generator.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"

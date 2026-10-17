@@ -17,6 +17,14 @@ public sealed class WorkflowWiringTests
         Assert.Contains("dotnet nuget push \"artifacts/packages/*.nupkg\" --source \"$feed\" --skip-duplicate", job, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Build_TestsTheBanking77SampleBuild()
+    {
+        var job = Job(Ci, "build");
+
+        Assert.Contains("python3 -m unittest discover -s datasets/banking77 -p \"test_build.py\"", job, StringComparison.Ordinal);
+    }
+
     private static readonly string ReleasePlease = File.ReadAllText(Path.Combine(PublishedPages.Root, ".github", "workflows", "release-please.yml")).ReplaceLineEndings("\n");
 
     [Fact]

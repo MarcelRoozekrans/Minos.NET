@@ -13,6 +13,7 @@
     <ProjectReference Include="..\..\src\Minos.NET.RateLimiting\Minos.NET.RateLimiting.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.DependencyInjection\Minos.NET.DependencyInjection.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.Conformance\Minos.NET.Conformance.csproj" />
+    <ProjectReference Include="..\..\src\Minos.NET.Evaluation\Minos.NET.Evaluation.csproj" />
     <!-- The provider-switch sample, so the Providers page's side-by-side table is compared with its replayed answers. -->
     <ProjectReference Include="..\..\samples\Minos.NET.Samples.ProviderSwitch\Minos.NET.Samples.ProviderSwitch.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.Generator\Minos.NET.Generator.csproj"
