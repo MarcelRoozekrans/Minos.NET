@@ -427,11 +427,14 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Completed:** 2026-10-17
 **Evidence:** PR #229; pre-push review PASS, `docs/plans/2026-10-17-phase-8.2-pre-push-review.md`. Follow-up #228, partial results when a client exception stops a run, is decided in 8.3.
 
-### Phase 8.3: The minos tool [status: pending]
+### Phase 8.3: The minos tool [status: complete]
 **Goal:** `Minos.NET.Tool`, a dotnet tool with `calibrate` and `conformance` (bundling Minos.NET.Conformance) that reads the provider-switch configuration plus a model override, published to nuget.org through the release path (#116).
 **Surface:** Infra
 **HelpWanted:** no
-**Plan:** _to be written_
+**Spec:** `docs/superpowers/specs/2026-10-17-phase-8.3-tool-design.md`
+**Plan:** `docs/superpowers/plans/2026-10-17-phase-8.3-tool.md`
+**Completed:** 2026-10-17
+**Evidence:** PR #231, which closed #228; pre-push review PASS, `docs/plans/2026-10-17-phase-8.3-pre-push-review.md`. The tool and Minos.NET.Evaluation publish with the 1.2.0 release PR. Follow-up #230, keeping finished results when a run is cancelled, needs a decision.
 
 ### Phase 8.4: Reports and the guide [status: pending]
 **Goal:** Run `minos calibrate` on the sample against TypeSafe, Clef Flash and the local model, commit the reports, and write "Choosing a provider and a threshold" from them; each hosted run needs the maintainer's approval.
