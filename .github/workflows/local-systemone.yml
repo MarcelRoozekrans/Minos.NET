@@ -98,8 +98,8 @@ jobs:
         run: cat "$RUNNER_TEMP/serve.log" || true
 
   # Dispatch only: calibrates the local model on the chosen set or both, one request at a time, with the released
-  # tool. No secrets, nothing is billed. Each set is uploaded as calibration-local-<set> and reaches docs/reports/local/<set>/ through a
-  # pull request. A stopped run exits 1 and still uploads its partial results.
+  # tool. No secrets, nothing is billed. Each set is uploaded as calibration-local-<set> and reaches
+  # docs/reports/local/<set>/ through a pull request. A stopped run exits 1 and still uploads its partial results.
   calibrate:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
