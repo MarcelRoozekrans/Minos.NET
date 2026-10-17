@@ -5,8 +5,9 @@ namespace Minos.Evaluation;
 /// <param name="Answered">The number of scored questions whose request succeeded with an answer.</param>
 /// <param name="Accuracy">The share of answered questions answered correctly, or <see langword="null"/> when none is answered.</param>
 /// <param name="BaseRate">
-/// What a constant answer would score: the share of the most common expected answer among answered questions, per kind,
-/// or <see langword="null"/> when none is answered.
+/// What a constant answer per question would score: for each question key, the count of its most common expected
+/// answer among answered questions, summed over the keys and divided by <paramref name="Answered"/>. For a Noul question
+/// that is the larger of its true and false counts. <see langword="null"/> when none is answered.
 /// </param>
 /// <param name="ExpectedCalibrationError">
 /// The count-weighted mean of the gap between accuracy and mean confidence over equal-mass <paramref name="Bins"/>,

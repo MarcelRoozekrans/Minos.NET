@@ -67,8 +67,11 @@ public sealed class CalibrationReport
     /// <param name="dataset">The dataset the run ran, for the expected answers.</param>
     /// <param name="prices">The prices for responses whose provider reports no cost, or <see langword="null"/>.</param>
     /// <returns>
-    /// The report, or the problems when the results do not belong to the dataset: a different item count, or a
-    /// different id at some position, with the 1-based item index as the problem's line.
+    /// The report, or the problems when the results do not fit the dataset, with the 1-based item index as each problem's
+    /// line: a different item count in the header or the results; a different id at some position; or a saved answer that
+    /// does not fit its item, because its key is not a question of the item, its kind is not the question's, its option
+    /// or level is not one of the question's, or its confidence or probability is not a number from 0 to 1. An answer
+    /// that is missing is not a problem: that question counts as scored but unanswered.
     /// </returns>
     /// <exception cref="ArgumentNullException"><paramref name="results"/> or <paramref name="dataset"/> is <see langword="null"/>.</exception>
     public static Result<CalibrationReport, DatasetProblems> Create(EvaluationResults results, DecisionDataset dataset, PriceTable? prices = null)

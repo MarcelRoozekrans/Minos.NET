@@ -479,6 +479,143 @@ public sealed class CalibrationMetricsTests
         Assert.Contains(result.Error, p => p.Message.Contains("15", StringComparison.Ordinal));
     }
 
+    // The answers of item b, the second of two all-kinds items, so a problem is on line 2.
+    private static DatasetProblem AnswerProblem(Dictionary<string, AnswerRecord> answers)
+    {
+        var dataset = Dataset(AllKindsLine("a"), AllKindsLine("b"));
+        var good = new Dictionary<string, AnswerRecord> { ["n"] = Noul(true, 0.9), ["c"] = Choice("two", 0.4), ["s"] = Score(1, 0.8) };
+        var results = Results(Answered(1, good) with { Id = "a" }, Answered(2, answers) with { Id = "b" });
+
+        var result = CalibrationReport.Create(results, dataset);
+
+        Assert.False(result.IsSuccess);
+        var problem = Assert.Single(result.Error);
+        Assert.Equal(2, problem.Line);
+        Assert.Contains("'b'", problem.Message, StringComparison.Ordinal);
+        return problem;
+    }
+
+    [Fact]
+    public void AnswerKeyNotAQuestion_IsAProblem()
+    {
+        var problem = AnswerProblem(new() { ["n"] = Noul(true, 0.9), ["other"] = Noul(true, 0.9) });
+
+        Assert.Contains("'other'", problem.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void AnswerKindNotTheQuestions_IsAProblem()
+    {
+        var problem = AnswerProblem(new() { ["n"] = Choice("two", 0.9) });
+
+        Assert.Contains("Choice", problem.Message, StringComparison.Ordinal);
+        Assert.Contains("Noul", problem.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ChoiceKeyNotAnOption_IsAProblem()
+    {
+        Assert.Contains("'four'", AnswerProblem(new() { ["c"] = Choice("four", 0.9) }).Message, StringComparison.Ordinal);
+        Assert.Contains("'Two'", AnswerProblem(new() { ["c"] = Choice("Two", 0.9) }).Message, StringComparison.Ordinal);
+        AnswerProblem(new() { ["c"] = new AnswerRecord(QuestionKind.Choice, false, null, null, 0, 0.9) });
+    }
+
+    [Fact]
+    public void ScoreLevelOutOfRange_IsAProblem()
+    {
+        Assert.Contains("level 3", AnswerProblem(new() { ["s"] = Score(3, 0.9) }).Message, StringComparison.Ordinal);
+        Assert.Contains("level -1", AnswerProblem(new() { ["s"] = Score(-1, 0.9) }).Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ConfidenceOutOfRange_IsAProblem()
+    {
+        foreach (var confidence in new[] { -0.1, 1.5, double.NaN, double.PositiveInfinity })
+        {
+            Assert.Contains("confidence", AnswerProblem(new() { ["c"] = Choice("two", confidence) }).Message, StringComparison.Ordinal);
+            Assert.Contains("confidence", AnswerProblem(new() { ["s"] = Score(1, confidence) }).Message, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void NoulProbabilityOutOfRange_IsAProblem()
+    {
+        foreach (double? probability in new double?[] { null, -0.1, 1.2, double.NaN })
+        {
+            var answer = new AnswerRecord(QuestionKind.Noul, true, probability, null, 0, 0.9);
+            Assert.Contains("probability", AnswerProblem(new() { ["n"] = answer }).Message, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void BoundaryAnswers_AreNotProblems()
+    {
+        var dataset = Dataset(AllKindsLine("a"));
+        var answers = new Dictionary<string, AnswerRecord> { ["n"] = Noul(false, 1), ["c"] = Choice("three", 0), ["s"] = Score(0, 1) };
+
+        Assert.True(CalibrationReport.Create(Results(Answered(1, answers) with { Id = "a" }), dataset).IsSuccess);
+    }
+
+    [Fact]
+    public void BaseRate_IsPerQuestionKey_NotPooled()
+    {
+        const string line = """{"id":"ID","state":"x","version":1,"questions":{"c1":{"type":"choice","instructions":"?","criteria":{"one":"1","two":"2"}},"c2":{"type":"choice","instructions":"?","criteria":{"one":"1","two":"2"}}},"expected":{"c1":"E1","c2":"E2"}}""";
+        string Line(string id, string e1, string e2) => line
+            .Replace("ID", id, StringComparison.Ordinal)
+            .Replace("E1", e1, StringComparison.Ordinal)
+            .Replace("E2", e2, StringComparison.Ordinal);
+
+        // c1's majority is "one", c2's is "two": pooled over the kind, "one" and "two" tie at 4 of 8.
+        var dataset = Dataset(Line("a", "one", "two"), Line("b", "one", "two"), Line("c", "one", "two"), Line("d", "two", "one"));
+        var answers = new Dictionary<string, AnswerRecord> { ["c1"] = Choice("one", 0.9), ["c2"] = Choice("one", 0.9) };
+        var results = Results([.. "abcd".Select(c => c.ToString()).Select((id, i) => Answered(i + 1, answers) with { Id = id })]);
+
+        var report = Report(results, dataset);
+
+        Near(6 / 8.0, report.Choice!.BaseRate);
+        Near(6 / 8.0, report.Overall.BaseRate);
+    }
+
+    [Fact]
+    public void NoulBaseRate_IsPerQuestionKey()
+    {
+        const string twoNoul = """{"id":"ID","state":"x","version":1,"questions":{"p":{"type":"noul","instructions":"?"},"r":{"type":"noul","instructions":"?"}},"expected":{"p":EP,"r":ER}}""";
+        string Line(string id, bool p, bool r) => twoNoul
+            .Replace("ID", id, StringComparison.Ordinal)
+            .Replace("EP", p ? "true" : "false", StringComparison.Ordinal)
+            .Replace("ER", r ? "true" : "false", StringComparison.Ordinal);
+
+        var dataset = Dataset(Line("a", true, false), Line("b", true, false), Line("c", false, true));
+        var answers = new Dictionary<string, AnswerRecord> { ["p"] = Noul(true, 0.9), ["r"] = Noul(true, 0.9) };
+        var results = Results([.. "abc".Select(c => c.ToString()).Select((id, i) => Answered(i + 1, answers) with { Id = id })]);
+
+        Near(4 / 6.0, Report(results, dataset).Noul!.BaseRate);
+    }
+
+    [Fact]
+    public void RunnerNullCost_FallsBackToPrice()
+    {
+        var dataset = Dataset(NoulLine(Id(1), true));
+        var results = Results(Answered(1, Q(Noul(true, 0.9)), model: "jev-1.14", inputTokens: 1000, outputTokens: 10));
+
+        var cost = Report(results, dataset, new PriceTable([JevPrice])).Cost;
+
+        Assert.Equal((0, 1, 0), (cost.Reported, cost.Priced, cost.Unknown));
+        Near(1000 * 0.042 / 1e6 * 1000, cost.PerThousandDecisions);
+    }
+
+    [Fact]
+    public void NegativeReportedCost_FallsBackToPrice()
+    {
+        var dataset = Dataset(NoulLine(Id(1), true));
+        var results = Results(Answered(1, Q(Noul(true, 0.9)), model: "jev-1.14", inputTokens: 1000, outputTokens: 10, cost: -0.5));
+
+        var cost = Report(results, dataset, new PriceTable([JevPrice])).Cost;
+
+        Assert.Equal((0, 1, 0), (cost.Reported, cost.Priced, cost.Unknown));
+        Near(1000 * 0.042 / 1e6 * 1000, cost.PerThousandDecisions);
+    }
+
     [Fact]
     public void NullArguments_Throw()
     {

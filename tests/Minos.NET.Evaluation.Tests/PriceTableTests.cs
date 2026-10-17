@@ -70,6 +70,50 @@ public sealed class PriceTableTests
     }
 
     [Fact]
+    public void InvalidEntry_Throws()
+    {
+        ModelPrice[] invalid =
+        [
+            new(null!, 1, 2, Date, "s"),
+            new(string.Empty, 1, 2, Date, "s"),
+            new("m", 1, 2, Date, null!),
+            new("m", 1, 2, Date, string.Empty),
+            new("m", -1, 2, Date, "s"),
+            new("m", 1, -0.001, Date, "s"),
+            new("m", double.NaN, 2, Date, "s"),
+            new("m", 1, double.PositiveInfinity, Date, "s"),
+        ];
+
+        foreach (var price in invalid)
+        {
+            var ex = Assert.Throws<ArgumentException>(() => new PriceTable([Price("ok"), price]));
+            Assert.Equal("prices", ex.ParamName);
+        }
+    }
+
+    [Fact]
+    public void InvalidEntry_IsNamed()
+    {
+        Assert.Contains("index 1", Assert.Throws<ArgumentException>(() => new PriceTable([Price("ok"), new(string.Empty, 1, 2, Date, "s")])).Message, StringComparison.Ordinal);
+        Assert.Contains("'m'", Assert.Throws<ArgumentException>(() => new PriceTable([new("m", -1, 2, Date, "s")])).Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DuplicateModel_Throws()
+    {
+        var ex = Assert.Throws<ArgumentException>(() => new PriceTable([Price("jev-1.14"), Price("other"), Price("jev-1.14")]));
+
+        Assert.Contains("'jev-1.14'", ex.Message, StringComparison.Ordinal);
+        Assert.Equal(2, new PriceTable([Price("jev-1.14"), Price("JEV-1.14")]).Prices.Count);
+    }
+
+    [Fact]
+    public void FreePrice_IsAllowed()
+    {
+        Assert.Single(new PriceTable([new ModelPrice("m", 0, 0, Date, "s")]).Prices);
+    }
+
+    [Fact]
     public void NullArguments_Throw()
     {
         Assert.Throws<ArgumentNullException>(() => new PriceTable(null!));

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Globalization;
 
 namespace Minos.Evaluation;
@@ -11,7 +12,7 @@ internal static class MetricsCalculator
     private const double TokensPerMillion = 1_000_000;
 
     // One scored question. Order is its position in item order, then the item's question order.
-    private readonly record struct ScoredQuestion(QuestionKind Kind, ExpectedAnswer Expected, bool Answered, bool Correct, double Confidence, int Order);
+    private readonly record struct ScoredQuestion(QuestionKind Kind, string Key, ExpectedAnswer Expected, bool Answered, bool Correct, double Confidence, int Order);
 
     internal static DatasetProblems? Match(EvaluationResults results, DecisionDataset dataset)
     {
@@ -45,7 +46,90 @@ internal static class MetricsCalculator
             }
         }
 
+        for (var i = 0; i < shared; i++)
+        {
+            CheckAnswers(i + 1, results.Items[i], dataset[i], problems);
+        }
+
         return problems.Count == 0 ? null : new DatasetProblems([.. problems]);
+    }
+
+    // Every saved answer must fit the item's own question. A missing answer is not a problem: the runner leaves out
+    // the answers a provider omitted, and those questions count as scored but unanswered.
+    private static void CheckAnswers(int line, ItemResult result, DatasetItem item, List<DatasetProblem> problems)
+    {
+        if (result.Error is not null || result.Answers is null)
+        {
+            return;
+        }
+
+        var keys = result.Answers.Keys.ToList();
+        keys.Sort(StringComparer.Ordinal);
+        foreach (var key in keys)
+        {
+            var answer = result.Answers[key];
+            var problem = Check(item, key, answer);
+            if (problem is not null)
+            {
+                problems.Add(new DatasetProblem(line, string.Create(CultureInfo.InvariantCulture, $"Item {line} '{item.Id}': {problem}")));
+            }
+        }
+    }
+
+    private static string? Check(DatasetItem item, string key, AnswerRecord answer)
+    {
+        var question = FindQuestion(item.Definition, key);
+        if (question is null)
+        {
+            return $"the answer '{key}' is not a question of the item.";
+        }
+
+        if (answer.Kind != question.Kind)
+        {
+            return $"the answer '{key}' is a {answer.Kind} answer, but the question is a {question.Kind}.";
+        }
+
+        if (!ResultsRules.IsUnit(answer.Confidence))
+        {
+            return $"the answer '{key}' has a confidence that is not a number from 0 to 1.";
+        }
+
+        return question.Kind switch
+        {
+            QuestionKind.Noul when answer.Probability is not { } p || !ResultsRules.IsUnit(p)
+                => $"the answer '{key}' has a probability that is not a number from 0 to 1.",
+            QuestionKind.Choice when !HasOption(question, answer.ChoiceKey)
+                => $"the answer '{key}' chose '{answer.ChoiceKey}', which is not an option of the question.",
+            QuestionKind.Score when answer.ScoreLevel < 0 || answer.ScoreLevel >= question.Options.Count
+                => string.Create(CultureInfo.InvariantCulture, $"the answer '{key}' chose level {answer.ScoreLevel}, but the question has {question.Options.Count} levels."),
+            _ => null,
+        };
+    }
+
+    private static QuestionDefinition? FindQuestion(QuestionSetDefinition definition, string key)
+    {
+        foreach (var question in definition.Questions)
+        {
+            if (string.Equals(question.Key, key, StringComparison.Ordinal))
+            {
+                return question;
+            }
+        }
+
+        return null;
+    }
+
+    private static bool HasOption(QuestionDefinition question, string? key)
+    {
+        foreach (var option in question.Options)
+        {
+            if (string.Equals(option.Key, key, StringComparison.Ordinal))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     internal static CalibrationReport Compute(EvaluationResults results, DecisionDataset dataset, PriceTable? prices)
@@ -84,6 +168,7 @@ internal static class MetricsCalculator
                 var answered = result.Error is null && result.Answers is not null && result.Answers.TryGetValue(question.Key, out answer);
                 questions.Add(new ScoredQuestion(
                     expected.Kind,
+                    question.Key,
                     expected,
                     answered,
                     answered && IsCorrect(expected, answer!),
@@ -95,13 +180,18 @@ internal static class MetricsCalculator
         return questions;
     }
 
-    private static bool IsCorrect(ExpectedAnswer expected, AnswerRecord answer) => answer.Kind == expected.Kind && expected.Kind switch
+    // Match has checked that the answer's kind is its question's, and the dataset that the expected answer's is.
+    private static bool IsCorrect(ExpectedAnswer expected, AnswerRecord answer)
     {
-        QuestionKind.Noul => answer.Noul == expected.Noul,
-        QuestionKind.Choice => string.Equals(answer.ChoiceKey, expected.ChoiceKey, StringComparison.Ordinal),
-        QuestionKind.Score => answer.ScoreLevel == expected.ScoreLevel,
-        _ => false,
-    };
+        Debug.Assert(answer.Kind == expected.Kind, "Match refuses an answer whose kind is not its question's.");
+        return expected.Kind switch
+        {
+            QuestionKind.Noul => answer.Noul == expected.Noul,
+            QuestionKind.Choice => string.Equals(answer.ChoiceKey, expected.ChoiceKey, StringComparison.Ordinal),
+            QuestionKind.Score => answer.ScoreLevel == expected.ScoreLevel,
+            _ => throw new UnreachableException(),
+        };
+    }
 
     private static KindMetrics? ForKind(List<ScoredQuestion> questions, QuestionKind kind)
     {
@@ -133,20 +223,23 @@ internal static class MetricsCalculator
             sweep);
     }
 
-    // What answering each kind's most common expected answer would score. For Noul that is the larger of the true and
-    // false rates; for Choice and Score the share of the most common expected answer.
+    // What answering each question's most common expected answer, every time, would score: per question key, the
+    // count of its most common expected answer, summed and divided by the answered count. For a Noul question that is
+    // the larger of its true and false counts. Questions are told apart by kind and key, since options differ per question.
     private static double BaseRate(List<ScoredQuestion> answered)
     {
-        var counts = new Dictionary<ExpectedAnswer, int>();
+        var counts = new Dictionary<(QuestionKind Kind, string Key, ExpectedAnswer Expected), int>();
         foreach (var question in answered)
         {
-            counts[question.Expected] = counts.GetValueOrDefault(question.Expected) + 1;
+            var group = (question.Kind, question.Key, question.Expected);
+            counts[group] = counts.GetValueOrDefault(group) + 1;
         }
 
-        var mostCommon = new Dictionary<QuestionKind, int>();
-        foreach (var (expected, count) in counts)
+        var mostCommon = new Dictionary<(QuestionKind Kind, string Key), int>();
+        foreach (var (group, count) in counts)
         {
-            mostCommon[expected.Kind] = Math.Max(mostCommon.GetValueOrDefault(expected.Kind), count);
+            var question = (group.Kind, group.Key);
+            mostCommon[question] = Math.Max(mostCommon.GetValueOrDefault(question), count);
         }
 
         return (double)mostCommon.Values.Sum() / answered.Count;
