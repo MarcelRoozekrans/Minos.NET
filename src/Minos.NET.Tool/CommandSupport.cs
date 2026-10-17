@@ -59,6 +59,21 @@ internal static class CommandSupport
         return candidate;
     }
 
+    /// <summary>Makes a name read from a file safe as one path segment: path separators, invalid file name characters and <c>..</c> become <c>-</c>; an empty name becomes <c>provider</c>.</summary>
+    /// <param name="name">The name, or <see langword="null"/>.</param>
+    internal static string SafeFileName(string? name)
+    {
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            return "provider";
+        }
+
+        var invalid = Path.GetInvalidFileNameChars();
+        var cleaned = new string([.. name.Select(c => invalid.Contains(c) || c is '/' or '\\' ? '-' : c)])
+            .Replace("..", "-", StringComparison.Ordinal);
+        return cleaned.Trim() is { Length: > 0 } trimmed ? trimmed : "provider";
+    }
+
     /// <summary>Makes a message one line, so a failure is one line on stderr.</summary>
     internal static string OneLine(string message)
         => string.Join(' ', message.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));

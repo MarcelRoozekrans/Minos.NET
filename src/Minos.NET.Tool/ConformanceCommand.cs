@@ -14,7 +14,7 @@ internal static class ConformanceCommand
         var model = CommandSupport.ModelOption();
         var output = CommandSupport.OutOption("conformance.json and conformance.md", "section being checked");
 
-        var command = new Command("conformance", "Sends the conformance probes to a live provider and checks its answers. Exits 1 when a check fails; a skipped check passes.")
+        var command = new Command("conformance", "Sends the conformance probes to a live provider and checks its answers. Exits 1 when a check fails; a skipped check passes. The bad-key check is skipped when no API key is configured.")
         {
             config, provider, model, output,
         };

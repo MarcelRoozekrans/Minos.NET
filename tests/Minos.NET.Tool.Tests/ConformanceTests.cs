@@ -74,6 +74,18 @@ public sealed class ConformanceTests : IDisposable
     }
 
     [Fact]
+    public async Task Conformance_KeylessCustom_ExitsZero_SkipsTheBadKeyCheck()
+    {
+        var run = await Invoke(
+            new FakeSystemOne { ReportedModel = "anything" },
+            Args("\"Provider\":\"Custom\",\"BaseAddress\":\"http://fake.local/\",\"Model\":\"fake-1\""));
+
+        Assert.Equal(0, run.Exit);
+        var e2 = ReadReport().Probes.Single(p => string.Equals(p.Probe, "bad-key", StringComparison.Ordinal)).Checks.Single(c => string.Equals(c.Id, "E2", StringComparison.Ordinal));
+        Assert.Equal(CheckOutcome.Skipped, e2.Outcome);
+    }
+
+    [Fact]
     public async Task Conformance_OpenRouter_UsesItsRule()
     {
         var run = await Invoke(
@@ -87,13 +99,13 @@ public sealed class ConformanceTests : IDisposable
     [Fact]
     public async Task Conformance_ModelOption_OverridesTheConfiguredModel()
     {
-        var fake = new FakeSystemOne { ReportedModel = "jev-1.13.0" };
+        var fake = new FakeSystemOne { ReportedModel = "zed-1.0" };
 
-        var run = await Invoke(fake, Args(TypeSafe, "--model", "jev-beta"));
+        var run = await Invoke(fake, Args(TypeSafe, "--model", "zed-beta"));
 
         Assert.Equal(0, run.Exit);
-        Assert.Equal("jev-beta", ReadReport().Model);
-        Assert.All(fake.Bodies, b => Assert.Equal("jev-beta", b["model"]!.GetValue<string>()));
+        Assert.Equal("zed-beta", ReadReport().Model);
+        Assert.All(fake.Bodies, b => Assert.Equal("zed-beta", b["model"]!.GetValue<string>()));
     }
 
     [Fact]

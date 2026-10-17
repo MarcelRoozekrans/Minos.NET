@@ -72,7 +72,7 @@ internal static class ReportCommand
             return ExitCodes.Usage;
         }
 
-        var provider = results.Value.Header.ProviderName is { Length: > 0 } name ? name : "report";
+        var provider = CommandSupport.SafeFileName(results.Value.Header.ProviderName);
         var outDir = outOption ?? CommandSupport.NextDefaultOut("minos-out", provider, DateTime.UtcNow);
         ct.ThrowIfCancellationRequested();
         Directory.CreateDirectory(outDir);

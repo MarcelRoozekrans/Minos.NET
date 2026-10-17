@@ -1,5 +1,5 @@
 ﻿Description:
-  Sends the conformance probes to a live provider and checks its answers. Exits 1 when a check fails; a skipped check passes.
+  Sends the conformance probes to a live provider and checks its answers. Exits 1 when a check fails; a skipped check passes. The bad-key check is skipped when no API key is configured.
 
 Usage:
   minos conformance [options]

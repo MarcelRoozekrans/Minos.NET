@@ -115,4 +115,46 @@ public sealed class ReportTests : IDisposable
             Directory.SetCurrentDirectory(previous);
         }
     }
+
+    [Theory]
+    [InlineData("../x")]
+    [InlineData("a/b\\c")]
+    [InlineData("")]
+    [InlineData("..")]
+    public void SafeFileName_KeepsOneSegment(string name)
+    {
+        var safe = CommandSupport.SafeFileName(name);
+
+        Assert.DoesNotContain("..", safe, StringComparison.Ordinal);
+        Assert.DoesNotContain('/', safe);
+        Assert.DoesNotContain('\\', safe);
+        Assert.NotEmpty(safe);
+    }
+
+    [Fact]
+    public async Task Report_ProviderNameWithPathParts_StaysInsideMinosOut()
+    {
+        var dataset = _h.Dataset();
+        await Invoke(new FakeSystemOne(), Calibrate(dataset, _h.Out));
+        var results = Path.Combine(_h.Out, "results.jsonl");
+        var edited = File.ReadAllText(results).Replace("\"custom\"", "\"../x\"", StringComparison.Ordinal);
+        Assert.Contains("../x", edited, StringComparison.Ordinal);
+        File.WriteAllText(results, edited);
+        var previous = Directory.GetCurrentDirectory();
+        var work = Directory.CreateDirectory(Path.Combine(_h.Dir, "work")).FullName;
+        Directory.SetCurrentDirectory(work);
+        try
+        {
+            var run = await Invoke(null, "report", "--results", results, "--dataset", dataset);
+
+            Assert.Equal(0, run.Exit);
+            var made = Assert.Single(Directory.GetDirectories(Path.Combine(work, "minos-out")));
+            Assert.StartsWith("--x-", Path.GetFileName(made), StringComparison.Ordinal);
+            Assert.False(Directory.Exists(Path.Combine(work, "x")));
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(previous);
+        }
+    }
 }
