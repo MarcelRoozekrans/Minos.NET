@@ -6,6 +6,7 @@ Model: cloudflare/clef-flash
 Dataset: banking77-minos-v1
 Run: https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/39053417194
 Runner: GitHub-hosted ubuntu-latest, calling OpenRouter with zero data retention requested
+Served: cloudflare/clef-flash
 Tool: Minos.NET.Tool 1.2.0
 Prices: reported by the provider, per response; docs/reports/prices.json has no entry for this model
 

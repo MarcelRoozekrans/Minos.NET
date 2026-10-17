@@ -6,6 +6,7 @@ Model: jev-latest
 Dataset: banking77-minos-v1
 Run: https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/39053418745
 Runner: GitHub-hosted ubuntu-latest
+Served: jev-1.13.0
 Tool: Minos.NET.Tool 1.2.0
 Prices: jev-1.13.0 priced at 0.042 USD per million input tokens and 0 per million output tokens, from docs/reports/prices.json; applied after the run
 

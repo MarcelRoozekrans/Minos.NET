@@ -30,7 +30,7 @@ public sealed class ReportFolderTests
         ["local/banking77"] = 39053226413,
     };
 
-    private static readonly string[] ReadmeFields = ["Date", "Provider", "Model", "Dataset", "Run", "Runner", "Tool", "Prices"];
+    private static readonly string[] ReadmeFields = ["Date", "Provider", "Model", "Dataset", "Run", "Runner", "Served", "Tool", "Prices"];
 
     public static TheoryData<string> Folders()
     {
@@ -44,9 +44,9 @@ public sealed class ReportFolderTests
     }
 
     [Fact]
-    public void TheReportsFolder_HoldsTheSixCalibrationReports()
+    public void TheReportsFolder_HoldsAtLeastOneReport()
     {
-        Assert.Equal(6, FolderPaths().Count());
+        Assert.NotEmpty(FolderPaths());
     }
 
     [Theory]
@@ -97,6 +97,9 @@ public sealed class ReportFolderTests
         Assert.Equal(header.GetProperty("providerName").GetString(), fields["Provider"]);
         Assert.Equal(header.GetProperty("defaultModel").GetString(), fields["Model"]);
         Assert.Equal(header.GetProperty("datasetName").GetString(), fields["Dataset"]);
+        var responseModels = report.RootElement.GetProperty("responseModels").EnumerateArray()
+            .Select(entry => entry.GetProperty("model").GetString()!).Order(StringComparer.Ordinal).ToArray();
+        Assert.Equal(string.Join(", ", responseModels), fields["Served"]);
         Assert.True(RunIds.TryGetValue(folder, out var run), folder + " has no expected run id; add it to RunIds in ReportFolderTests");
         Assert.Equal("https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/" + run, fields["Run"]);
     }

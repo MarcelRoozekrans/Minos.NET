@@ -5,7 +5,8 @@ Provider: custom
 Model: Mapika/decider-2b-GGUF:Q4_K_M
 Dataset: banking77-minos-v1
 Run: https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/39053226413
-Runner: GitHub-hosted ubuntu-latest, CPU only, with the model served locally by ollajev
+Runner: GitHub-hosted ubuntu-latest, CPU only, with the model served locally by ollajev 0.4.0 from the file Q4_K_M of Mapika/decider-2b-GGUF
+Served: Mapika/decider-2b-GGUF:Q4_K_M
 Tool: Minos.NET.Tool 1.2.0
 Prices: 0 per million tokens, from docs/reports/prices.json, because the local server reports no cost; applied after the run
 

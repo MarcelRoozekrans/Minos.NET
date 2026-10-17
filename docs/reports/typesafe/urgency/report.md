@@ -62,7 +62,7 @@ Cost came from the provider for 0 items, from a price for 60, and was unknown fo
 
 Prices used, per million tokens:
 
-- jev-1.13.0: 0.042 input, 0 output, read 2026-10-17 from TypeSafe official pricing page, supplied by the maintainer
+- jev-1.13.0: 0.042 input, 0 output, read 2026-10-17 from TypeSafe official pricing page, as supplied by the maintainer on 2026-10-17
 
 ## How to read this
 

@@ -18,7 +18,7 @@ report fails the build.
 
 ## What was measured
 
-Three providers ran the same two question sets:
+Three providers ran the same two question sets, all measured on 2026-10-17:
 
 - **TypeSafe**, the hosted API, with the model `jev-latest`.
 - **Clef Flash**, `cloudflare/clef-flash`, through OpenRouter, with
@@ -102,7 +102,7 @@ Cost and latency belong to a whole request, and a Banking77 request asks all thr
 in US dollars per 1,000 decisions, where a decision is one request with all its questions.
 
 - **TypeSafe** reports tokens but no cost, so its cost comes from its price: 0.042 dollars per million input tokens
-  and 0 per million output tokens, read from TypeSafe's pricing page on 2026-10-17.
+  and 0 per million output tokens, from the TypeSafe official pricing page, as supplied by the maintainer on 2026-10-17.
 - **Clef Flash**'s cost is the cost OpenRouter reported for each request.
 - **The local model** shows 0 because it has no per-token price. It costs hardware instead: the machine that runs it,
   and that machine's time.

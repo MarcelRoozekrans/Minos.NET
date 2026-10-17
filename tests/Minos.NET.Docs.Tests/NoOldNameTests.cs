@@ -91,9 +91,9 @@ public sealed partial class NoOldNameTests
         new("tests/Minos.NET.Docs.Tests/ProvidersPageTests.cs", null, LocalServerPackage()),
 
         // A report README names the ollajev server the local calibration ran against, and a results file holds the
-        // provider's opaque response ids exactly as measured, which can contain the letters by chance.
+        // provider's opaque response ids exactly as measured, which can contain the letters by chance; only in results.jsonl.
         new("docs/reports/", null, LocalServerPackage()),
-        new("docs/reports/", null, MeasuredResponseId()),
+        new("docs/reports/", null, MeasuredResponseId(), FileName: "results.jsonl"),
     ];
 
     [Fact]
@@ -231,7 +231,7 @@ public sealed partial class NoOldNameTests
         return false;
     }
 
-    private sealed record Allowance(string Path, string? Section, Regex Span, bool Generated = false)
+    private sealed record Allowance(string Path, string? Section, Regex Span, bool Generated = false, string? FileName = null)
     {
         public bool Applies(string path, string section, bool generated)
         {
@@ -239,7 +239,8 @@ public sealed partial class NoOldNameTests
                 || (Path.EndsWith('/') ? path.StartsWith(Path, StringComparison.Ordinal) : path.Equals(Path, StringComparison.Ordinal));
             return inPath
                 && (Section is null || section.Equals(Section, StringComparison.Ordinal))
-                && (!Generated || generated);
+                && (!Generated || generated)
+                && (FileName is null || System.IO.Path.GetFileName(path).Equals(FileName, StringComparison.Ordinal));
         }
     }
 

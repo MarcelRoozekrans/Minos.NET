@@ -13,6 +13,8 @@ Each run has its own folder, `docs/reports/<provider>/<set>/`:
 - `<set>` is `banking77` (`datasets/banking77/banking77-minos-v1.jsonl`) or `urgency`
   (`datasets/banking77/banking77-urgency-v1.jsonl`).
 
+A new provider adds its slug to `Providers` and its runs to `RunIds` in `ReportFolderTests`.
+
 Next to the folders sit the files that every run shares:
 
 - `minos.json` is the run configuration. It has one section per provider: `TypeSafe`, `Clef` and `Local`. `Active` is
@@ -44,3 +46,9 @@ minos report --results <results> --dataset <dataset> \
 
 This rebuilds `report.json` and `report.md` from the downloaded results. A price correction therefore never needs a new
 run, and the folder's README says that the report was rebuilt with prices.
+
+## Refreshing the reports
+
+After a change to the report writer, `EveryReport_RebuildsFromItsResults` fails until each report is rebuilt with
+`minos report` from the current tool. The folder's README then records, on its `Tool:` line, which tool version rebuilt
+it.

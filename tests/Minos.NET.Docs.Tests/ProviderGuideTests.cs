@@ -193,6 +193,24 @@ public sealed class ProviderGuideTests
         Assert.Equal(Z * Z / (400 + (Z * Z)), high, 12);
     }
 
+    // The page says when the runs were made, and that is the day every report's run started.
+    [Fact]
+    public void TheGuide_StatesTheDayTheRunsWereMade()
+    {
+        var match = System.Text.RegularExpressions.Regex.Match(
+            PageTables.Text(Page), @"measured on (?<day>\d{4}-\d{2}-\d{2})", System.Text.RegularExpressions.RegexOptions.None, TimeSpan.FromSeconds(1));
+        Assert.True(match.Success, $"{Page} says 'measured on <yyyy-mm-dd>'.");
+
+        var folders = ReportFolders("banking77").Concat(ReportFolders("urgency")).ToList();
+        Assert.NotEmpty(folders);
+        foreach (var folder in folders)
+        {
+            using var report = Report(folder);
+            var started = report.RootElement.GetProperty("header").GetProperty("started").GetString()!;
+            Assert.Equal(match.Groups["day"].Value, started[..10]);
+        }
+    }
+
     [Fact]
     public void TheGuide_CreditsPolyAI_AndTheLicense()
     {
