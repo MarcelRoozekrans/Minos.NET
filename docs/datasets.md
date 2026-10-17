@@ -103,6 +103,85 @@ and a loader that does not know it refuses the file instead of guessing.
 The decision export planned for Milestone 9 will write this format, and will use a new version if it needs members that
 version 1 does not have.
 
+## Running a dataset and reading the report
+
+`DatasetRunner.RunAsync` sends every item of a dataset through an `IDecisionClient`. It makes one request per item, with
+the item's own question set and state. Items run one at a time unless you set `MaxParallelism` on the
+`DatasetRunOptions`. The results always come back in the order of the dataset. A request that fails does not stop the
+run: the failure is written on that item, and the run goes on to the next one. Only your own cancellation token stops it,
+by throwing.
+
+What you get back is an `EvaluationResults`: a `RunHeader` that names the run, and one `ItemResult` for each item. An
+`ItemResult` holds the answers as `AnswerRecord` values, or an `ItemError` when the request failed, and also the latency,
+the model that answered, the token counts and the cost.
+
+Save the results before you do anything else with them. A run costs real calls, and the results file is what it paid
+for. `EvaluationResults.Save` writes it as JSONL, and `EvaluationResults.Load` reads it back with line-numbered
+problems, as the dataset loader does. Because the file holds every answer, you can compute the report again, with new
+prices or after you correct an expected answer, without making another billed call.
+
+A `CalibrationReport` is made from the results and the dataset they came from. The prices are optional: a `PriceTable`
+lists a `ModelPrice` for each model, and it is used only for responses that report no cost of their own.
+
+<!-- snippet: DatasetRun_RunAndReport -->
+```cs
+using Minos;
+using Minos.Evaluation;
+
+public static class DatasetRun
+{
+    // Runs every item of a dataset file, keeps the results, and builds the report from them.
+    public static async Task<CalibrationReport> RunAndReportAsync(IDecisionClient client, string datasetPath, string resultsPath)
+    {
+        var loaded = DecisionDataset.Load(datasetPath);
+        if (loaded.IsFailure)
+        {
+            throw new InvalidOperationException("The dataset has problems: " + string.Join("; ", loaded.Error.Select(problem => problem.ToString())));
+        }
+
+        var dataset = loaded.Value;
+
+        // One request per item. The default is one at a time; MaxParallelism lets several run together.
+        var results = await DatasetRunner.RunAsync(client, dataset, new DatasetRunOptions { DatasetName = "support", MaxParallelism = 4 });
+
+        // The results file holds what the run paid for. Save it before anything else.
+        results.Save(resultsPath);
+
+        // The prices are only used for responses that report no cost of their own.
+        var prices = new PriceTable([new ModelPrice("jev-1.14", 0.042, 0, new DateOnly(2026, 10, 17), "OpenRouter listing")]);
+
+        // Later, EvaluationResults.Load(resultsPath) brings the same results back, and the report is made again from them.
+        var report = CalibrationReport.Create(results, dataset, prices);
+        if (report.IsFailure)
+        {
+            throw new InvalidOperationException("The results do not fit the dataset: " + string.Join("; ", report.Error.Select(problem => problem.ToString())));
+        }
+
+        File.WriteAllText("report.json", report.Value.ToJson());
+        File.WriteAllText("report.md", report.Value.ToMarkdown());
+        return report.Value;
+    }
+}
+```
+<!-- endSnippet -->
+
+`CalibrationReport.Create` returns a result. It fails with problems when the results do not fit the dataset, for example
+when they were made from a different file. `ToJson` writes the report as JSON of kind `minos-report`, and `ToMarkdown`
+writes it as a page to read.
+
+The report holds, for each kind of question and for all of them together (a `KindMetrics`):
+
+- accuracy, and the base rate, the accuracy you would get by always giving the most common expected answer;
+- the expected calibration error, as the headline figure with equal-mass bins and again with equal-width bins, and the
+  `ReliabilityBin` list behind it;
+- a threshold sweep (`SweepPoint`): for each confidence threshold, how many of the questions are answered at or above
+  it, and how accurate those answers are.
+
+It also holds the latency (`LatencySummary`), the cost per 1,000 decisions (`CostSummary`), the errors by kind
+(`ErrorSummary`), and the models that answered (`ModelCount`). Only questions that have an expected answer and an answered
+request are scored. The rest are counted and left out of the figures. A full guide to reading the numbers comes with a
+later release.
+
 ## Next
 
 - [Question sets at run time](question-sets-at-run-time.md): the builder and the rules every question goes through.

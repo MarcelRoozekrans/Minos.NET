@@ -126,6 +126,13 @@ internal static class Program
         DatasetChecks.ExpectedAnswersCompareByValue();
         DatasetChecks.ProblemsCarryTheirLine();
 
+        await EvaluationChecks.RunsADatasetOverAFakeClient().ConfigureAwait(false);
+        await EvaluationChecks.ResultsSaveAndLoad().ConfigureAwait(false);
+        EvaluationChecks.HandBuiltResultsRoundTrip();
+        EvaluationChecks.PricesMatchTheModelAndItsVariants();
+        await EvaluationChecks.ReportsCountAndRender().ConfigureAwait(false);
+        EvaluationChecks.SummariesAreHandBuilt();
+
         await AllocationChecks.AnswerSlotAccessors().ConfigureAwait(false);
         await AllocationChecks.GeneratedCreate().ConfigureAwait(false);
         AllocationChecks.EvaluateRoundTrip();
