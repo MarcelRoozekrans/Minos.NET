@@ -271,7 +271,9 @@ a `Model`, stops the command with exit code 2 before it sends anything.
 
 A provider that reports a cost needs no prices. For one that does not, pass a prices file with `--prices`. It holds the
 entries of a `PriceTable`: the model, the price per million input and output tokens, and the date and source of the
-price. The prices follow the rules above, and the date must be written as `yyyy-MM-dd`.
+price. Cost is decided in the order described under
+[Running a dataset and reading the report](#running-a-dataset-and-reading-the-report), and the date must be written as
+`yyyy-MM-dd`.
 
 <!-- prices.json -->
 ```json
@@ -302,8 +304,7 @@ minos report --results minos-out/OpenRouter-20261017-120000/results.jsonl --data
 
 `minos conformance` sends the conformance probes to a live provider and checks its answers. It takes `--config`,
 `--provider`, `--model` and `--out`. Every probe is a real request, and the provider may bill it. The `bad-key` probe
-needs a key to make invalid, so it is skipped when the provider's section has none, as with a local server that asks for
-no key.
+needs a key to make invalid, so it is skipped for a provider that needs no key, such as a local server.
 
 ```
 minos conformance --provider local
