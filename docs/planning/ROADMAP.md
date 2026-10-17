@@ -418,11 +418,14 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Completed:** 2026-10-17
 **Evidence:** PR #224; pre-push review PASS, `docs/plans/2026-10-17-phase-8.1-pre-push-review.md`. The urgency labels await the maintainer's spot-check before Phase 8.4.
 
-### Phase 8.2: Metrics and reports in Minos.NET.Evaluation [status: pending]
+### Phase 8.2: Metrics and reports in Minos.NET.Evaluation [status: complete]
 **Goal:** Accuracy, ECE, the reliability table, the threshold sweep, latency and cost from a run over a dataset through any IDecisionClient, one request per item, rendered as Markdown and JSON, with a dated price table for providers that report no cost (#116).
 **Surface:** Backend
 **HelpWanted:** no
-**Plan:** _to be written_
+**Spec:** `docs/superpowers/specs/2026-10-17-phase-8.2-metrics-design.md`
+**Plan:** `docs/superpowers/plans/2026-10-17-phase-8.2-metrics.md`
+**Completed:** 2026-10-17
+**Evidence:** PR #229; pre-push review PASS, `docs/plans/2026-10-17-phase-8.2-pre-push-review.md`. Follow-up #228, partial results when a client exception stops a run, is decided in 8.3.
 
 ### Phase 8.3: The minos tool [status: pending]
 **Goal:** `Minos.NET.Tool`, a dotnet tool with `calibrate` and `conformance` (bundling Minos.NET.Conformance) that reads the provider-switch configuration plus a model override, published to nuget.org through the release path (#116).
