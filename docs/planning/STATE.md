@@ -1,4 +1,4 @@
-# Session State — 2026-10-15 (Milestone 7 complete: 1.0.1 on nuget.org)
+# Session State — 2026-10-17 (Milestone 8 started: choosing a provider and a threshold)
 
 **Date:** 2026-10-13
 
@@ -112,10 +112,10 @@
 - None. `phase/5.5-release` is superseded by Phase 7.5 and can be deleted.
 
 ## Recommended Next Step
-1. Milestone 7, the 1.0 release, is active (design `docs/superpowers/specs/2026-10-12-milestone-7-design.md`). Milestone 6 is complete; its audit passed on re-audit.
+1. Milestone 8, Choosing a provider and a threshold, is active since 2026-10-17 (design `docs/superpowers/specs/2026-10-17-milestone-8-design.md`). Next: Phase 8.1, the dataset format, loader and Banking77 sample, starting with its spec. Milestone 7 is complete; 1.1.1 is the latest release on nuget.org.
 2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.
 3. Phases 7.1 to 7.5 are complete. On 2026-10-15 nuget.org reserved `Minos.NET` and `Minos.NET.*` to MarcelRoozekrans, which lifted the 409 "package ID is reserved" block. The Trusted Publishing policy is ci.yml, no environment, glob `*`. `gh workflow run ci.yml --ref v1.0.1 -f publish_to_nuget=true` ([run 38726515640](https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/38726515640)) published all six packages as 1.0.1, with symbols. 1.0.0 was never published. `PackageValidationBaselineVersion` is 1.0.1, which closes #28. Milestone 7 is complete; its audit passed (`docs/plans/2026-10-15-milestone-7-audit.md`). Next: Milestone 8, Choosing a provider and a threshold, starting with `new-milestone`.
-4. Release PR 1.0.2 is open. Merging it now publishes 1.0.2 through the release path. Consider narrowing the policy's package glob from `*` to `Minos.NET*` on nuget.org.
+4. Releases go out when the maintainer merges the release-please PR. Renovate titles updates to shipped ZeroAlloc dependencies `deps:`, so raised floors reach the changelog. Consider narrowing the Trusted Publishing package glob from `*` to `Minos.NET*` on nuget.org.
 5. Release PR #177 (0.12.0) merged on 2026-10-12.
 6. Run `pre-push-review` on each feature branch before its PR, and keep the report in `docs/plans/`: the docs tests treat every file at the top of `docs/` as a site page.
 7. Allocation gates run only in the published AOT smoke executable, not in `dotnet test`: publish and run it for any change under `src/`.

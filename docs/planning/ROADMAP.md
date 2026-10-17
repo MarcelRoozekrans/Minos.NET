@@ -398,35 +398,37 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Completed:** 2026-10-15
 **Evidence:** the release path is built and reviewed. `pack-validate` passes on GitHub; `publish-nuget` is gated to a dispatch on a `v*` tag and refuses 0.x; `RELEASING.md` describes it. #145 and #29 close with the phase PR. Pre-push review PASS, `docs/plans/2026-10-13-phase-7.5-pre-push-review.md`. Every push for 1.0.0 and 1.0.1 was refused with 409, because another owner's prefix reservation covered `Minos.NET*`. On 2026-10-15 nuget.org reserved `Minos.NET` and `Minos.NET.*` to MarcelRoozekrans, and [run 38726515640](https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/38726515640) published all six packages as 1.0.1, with symbols, and attached the twelve files to the v1.0.1 release. 1.0.0 was never published. Package validation now compares each package with 1.0.1 (#28).
 
-## Milestone 8: Choosing a provider and a threshold [status: pending]
+## Milestone 8: Choosing a provider and a threshold [status: active]
 **Goal:** A dotnet tool that measures accuracy, calibration, selective-prediction coverage, latency and cost per provider on a labeled dataset, and docs that use it to choose providers and thresholds.
-**Design:** `docs/superpowers/specs/2026-10-09-roadmap-design.md`
+**Started:** 2026-10-17
+**Design:** `docs/superpowers/specs/2026-10-17-milestone-8-design.md`
 **Definition of Done:**
-- [ ] A documented JSONL dataset format of state, questions and ground truth
-- [ ] Reports with accuracy, ECE and reliability per question kind, a coverage/accuracy threshold sweep, latency and cost
-- [ ] A calibration report for at least two providers on a public sample dataset
+- [ ] A documented JSONL dataset format of state, questions and ground truth, with a loader
+- [ ] `Minos.NET.Evaluation`: accuracy, ECE and reliability per question kind on the number users gate on, a coverage/accuracy threshold sweep, latency and cost, as Markdown and JSON
+- [ ] `Minos.NET.Tool` (`minos calibrate`, `minos conformance`) on nuget.org
+- [ ] Committed calibration reports for TypeSafe, Clef Flash and the local model on a Banking77 sample
 - [ ] A "Choosing a provider and a threshold" guide backed by the tool
 
-### Phase 8.1: Labeled dataset format and loader [status: pending]
-**Goal:** The JSONL dataset format, shared later by the decision export, and its loader (#116).
+### Phase 8.1: Dataset format, loader and the Banking77 sample [status: pending]
+**Goal:** The versioned JSONL format (state, questions, expected answers by key), shared later by the decision export (#118); its loader with line-numbered errors; and the Banking77 sample (CC BY 4.0) plus a small authored Score set, with attribution and a reproducible build script (#116).
 **Surface:** Data
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 8.2: Calibration metrics and report [status: pending]
-**Goal:** Accuracy, ECE, reliability diagrams, the threshold sweep, latency and cost, as markdown and JSON reports (#116).
+### Phase 8.2: Metrics and reports in Minos.NET.Evaluation [status: pending]
+**Goal:** Accuracy, ECE, the reliability table, the threshold sweep, latency and cost from a run over a dataset through any IDecisionClient, one request per item, rendered as Markdown and JSON, with a dated price table for providers that report no cost (#116).
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 8.3: Dotnet tool packaging [status: pending]
-**Goal:** One dotnet tool for conformance and calibration against any configured provider (#116).
+### Phase 8.3: The minos tool [status: pending]
+**Goal:** `Minos.NET.Tool`, a dotnet tool with `calibrate` and `conformance` (bundling Minos.NET.Conformance) that reads the provider-switch configuration plus a model override, published to nuget.org through the release path (#116).
 **Surface:** Infra
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 8.4: Choosing a provider and a threshold guide [status: pending]
-**Goal:** A guide backed by the tool's reports on a public sample dataset.
+### Phase 8.4: Reports and the guide [status: pending]
+**Goal:** Run `minos calibrate` on the sample against TypeSafe, Clef Flash and the local model, commit the reports, and write "Choosing a provider and a threshold" from them; each hosted run needs the maintainer's approval.
 **Surface:** Docs
 **HelpWanted:** no
 **Plan:** _to be written_
