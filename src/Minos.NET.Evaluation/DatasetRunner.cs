@@ -10,7 +10,7 @@ public static class DatasetRunner
     /// Sends every item of <paramref name="dataset"/> to <paramref name="client"/> and records the outcomes. A failed item
     /// is recorded, never thrown, and the run never stops early for it. The exception is an exception thrown by the client
     /// or by <see cref="DatasetRunOptions.Progress"/>: the first one stops the other workers from sending more requests
-    /// (requests already in flight are cancelled) and is thrown as the inner exception of a <see cref="DatasetRunException"/>,
+    /// (requests already in flight are cancelled, and those that end cancelled are left out) and is thrown as the inner exception of a <see cref="DatasetRunException"/>,
     /// which carries the items that finished. Only the first fault is kept, and when the caller's token is cancelled
     /// as well, the <see cref="OperationCanceledException"/> wins and no partial results are returned.
     /// </summary>

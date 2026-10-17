@@ -2,9 +2,9 @@ namespace Minos.Evaluation;
 
 /// <summary>
 /// Thrown by <see cref="DatasetRunner"/> when the client or the progress callback throws: the run stops, but the items
-/// that finished before it are kept here, because their requests were paid for. The requests still in flight when the
-/// run stopped are cancelled and left out, so any cost the provider charged for them is in neither the partial results
-/// nor a report built from them.
+/// that finished before it are kept here, because their requests were paid for. When the run stops, requests still in
+/// flight are cancelled. Those that end cancelled are left out of the partial results, so any cost the provider charged
+/// for them is not in the results or the report; a request that returns anyway is kept.
 /// </summary>
 // The standard parameterless and message constructors are left out on purpose: every instance must carry its paid results.
 #pragma warning disable RCS1194
