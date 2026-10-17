@@ -10,6 +10,7 @@ internal static class DatasetReader
     {
         var items = new List<DatasetItem>();
         var problems = new List<DatasetProblem>();
+        var ids = new Dictionary<string, int>(StringComparer.Ordinal);
 
         var lineNumber = 0;
         while (reader.ReadLine() is { } line)
@@ -20,11 +21,24 @@ internal static class DatasetReader
                 continue;
             }
 
-            using var document = JsonDocument.Parse(line);
-            var item = ReadItem(document.RootElement, lineNumber, problems);
-            if (item is not null)
+            JsonDocument document;
+            try
             {
-                items.Add(item);
+                document = JsonDocument.Parse(line);
+            }
+            catch (JsonException ex)
+            {
+                problems.Add(new DatasetProblem(lineNumber, $"The line is not valid JSON: {ex.Message}"));
+                continue;
+            }
+
+            using (document)
+            {
+                var item = ReadItem(document.RootElement, lineNumber, problems, ids);
+                if (item is not null)
+                {
+                    items.Add(item);
+                }
             }
         }
 
@@ -36,20 +50,25 @@ internal static class DatasetReader
         return Result<DecisionDataset, DatasetProblems>.Success(new DecisionDataset([.. items]));
     }
 
-    private static DatasetItem? ReadItem(JsonElement root, int line, List<DatasetProblem> problems)
+    private static DatasetItem? ReadItem(JsonElement root, int line, List<DatasetProblem> problems, Dictionary<string, int> ids)
     {
+        if (!new DatasetItemValidator(line, problems, ids).Validate(root))
+        {
+            return null;
+        }
+
         var id = root.GetProperty("id").GetString()!;
         var state = ToContent(root.GetProperty("state"));
         string? source = root.TryGetProperty("source", out var sourceElement) ? sourceElement.GetString() : null;
 
         var builder = QuestionSet.CreateBuilder();
         var expected = new Dictionary<string, ExpectedAnswer>(StringComparer.Ordinal);
-        root.TryGetProperty("expected", out var expectedElement);
+        var expectedElement = root.GetProperty("expected");
 
         foreach (var question in root.GetProperty("questions").EnumerateObject())
         {
             AddQuestion(builder, question.Name, question.Value);
-            if (expectedElement.ValueKind == JsonValueKind.Object && expectedElement.TryGetProperty(question.Name, out var answer))
+            if (expectedElement.TryGetProperty(question.Name, out var answer))
             {
                 expected[question.Name] = ReadAnswer(question.Value.GetProperty("type").GetString()!, answer);
             }
@@ -58,7 +77,26 @@ internal static class DatasetReader
         var built = builder.Build();
         if (!built.IsSuccess)
         {
-            problems.Add(new DatasetProblem(line, built.Error.Message));
+            foreach (var failure in built.Error.Failures)
+            {
+                problems.Add(new DatasetProblem(line, $"{failure.Rule}: {failure.Message}"));
+            }
+
+            if (built.Error.Failures.Count == 0)
+            {
+                problems.Add(new DatasetProblem(line, built.Error.Message));
+            }
+
+            return null;
+        }
+
+        if (built.Value.Warnings.Count > 0)
+        {
+            foreach (var warning in built.Value.Warnings)
+            {
+                problems.Add(new DatasetProblem(line, $"{warning.Rule}: {warning.Message}"));
+            }
+
             return null;
         }
 
@@ -91,7 +129,7 @@ internal static class DatasetReader
             case "choice":
                 builder.Choice(key, instructions, out _, o =>
                 {
-                    foreach (var option in criteria.EnumerateObject())
+                    foreach (var option in criteria.ValueKind == JsonValueKind.Object ? criteria.EnumerateObject() : default)
                     {
                         if (option.Value.ValueKind == JsonValueKind.Null)
                         {
@@ -104,15 +142,17 @@ internal static class DatasetReader
                     }
                 });
                 break;
-            default:
+            case "score":
                 builder.Score(key, instructions, out _, l =>
                 {
-                    foreach (var level in criteria.EnumerateArray())
+                    foreach (var level in criteria.ValueKind == JsonValueKind.Array ? criteria.EnumerateArray() : default)
                     {
                         l.Level(ToCriterion(level));
                     }
                 });
                 break;
+            default:
+                throw new InvalidOperationException("The validator lets only noul, choice and score through.");
         }
     }
 
@@ -120,7 +160,8 @@ internal static class DatasetReader
     {
         "noul" => ExpectedAnswer.ForNoul(answer.GetBoolean()),
         "choice" => ExpectedAnswer.ForChoice(answer.GetString()!),
-        _ => ExpectedAnswer.ForScore(answer.GetInt32()),
+        "score" => ExpectedAnswer.ForScore(answer.GetInt32()),
+        _ => throw new InvalidOperationException("The validator lets only noul, choice and score through."),
     };
 
     private static Criterion ToCriterion(JsonElement element)
