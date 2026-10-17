@@ -11,8 +11,10 @@ internal static class MetricsCalculator
     private const int SweepPoints = 100;
     private const double TokensPerMillion = 1_000_000;
 
-    // One scored question. Order is its position in item order, then the item's question order.
-    private readonly record struct ScoredQuestion(QuestionKind Kind, string Key, ExpectedAnswer Expected, bool Answered, bool Correct, double Confidence, int Order);
+    // One scored question. Order is its position in item order, then the item's question order. Probability is the
+    // saved p of an answered Noul question, and null otherwise.
+    private readonly record struct ScoredQuestion(
+        QuestionKind Kind, string Key, ExpectedAnswer Expected, bool Answered, bool Correct, double Confidence, double? Probability, int Order);
 
     // The results-file rules first, then the fit to the dataset. Each problem's line is the dataset line of the item it
     // is about; a header problem has line 0, and an item past the dataset's end the line after its last item.
@@ -174,6 +176,7 @@ internal static class MetricsCalculator
                     answered,
                     answered && IsCorrect(expected, answer!),
                     answered ? answer!.Confidence : 0,
+                    answered ? answer!.Probability : null,
                     questions.Count));
             }
         }
@@ -265,6 +268,8 @@ internal static class MetricsCalculator
         return bins;
     }
 
+    // The bin is taken from the confidence. For a Noul answer that is 1 - p when p < 0.5, and for every p of two
+    // decimals 1 - p lands in the bin of its decimal value, 0.3 giving 0.7 in bin 7, so the bins need no mirrored rule.
     private static List<ReliabilityBin> EqualWidthBins(List<ScoredQuestion> answered)
     {
         var buckets = new List<ScoredQuestion>[MaxBins];
@@ -298,11 +303,12 @@ internal static class MetricsCalculator
         for (var i = 0; i < SweepPoints; i++)
         {
             var threshold = i / 100.0;
+            var mirrored = (SweepPoints - i) / 100.0;
             var covered = 0;
             var correct = 0;
             foreach (var question in answered)
             {
-                if (question.Confidence >= threshold)
+                if (IsCovered(question, threshold, mirrored))
                 {
                     covered++;
                     correct += question.Correct ? 1 : 0;
@@ -318,6 +324,11 @@ internal static class MetricsCalculator
 
         return points;
     }
+
+    // A Noul answer's confidence max(p, 1 - p) is compared through p itself: p >= t, or p <= 1 - t with 1 - t computed
+    // as (100 - i) / 100.0. Computing 1 - p instead would put p = 0.07 one step below 0.93, uncovered at its own threshold.
+    private static bool IsCovered(ScoredQuestion question, double threshold, double mirrored)
+        => question.Probability is { } p ? p >= threshold || p <= mirrored : question.Confidence >= threshold;
 
     private static LatencySummary Latency(IReadOnlyList<ItemResult> items)
     {

@@ -711,6 +711,36 @@ public sealed class CalibrationMetricsTests
     }
 
     [Fact]
+    public void NoulSweep_TreatsPAndOneMinusPAlike()
+    {
+        // 1 - 0.07 is 0.9299999999999999 in binary, one step below 0.93; the answer must still be covered at 0.93.
+        var dataset = Dataset(NoulLine(Id(1), false), NoulLine(Id(2), true));
+        var results = Results(Answered(1, Q(AnswerRecord.ForNoul(0.07))), Answered(2, Q(AnswerRecord.ForNoul(0.93))));
+
+        var noul = Report(results, dataset).Noul!;
+
+        Sweep(noul, 93, 1, 1, 2);
+        Sweep(noul, 94, 0, null, 0);
+    }
+
+    [Fact]
+    public void NoulSweep_EveryTwoDecimalProbabilityIsCoveredUpToItsOwnConfidence()
+    {
+        // For p of k hundredths the confidence is max(k, 100 - k) hundredths, so it is covered exactly up to that threshold.
+        var lines = Enumerable.Range(0, 101).Select(k => NoulLine(Id(k + 1), true)).ToArray();
+        var results = Results([.. Enumerable.Range(0, 101).Select(k => Answered(k + 1, Q(AnswerRecord.ForNoul(k / 100.0))))]);
+
+        var noul = Report(results, Dataset(lines)).Noul!;
+
+        for (var i = 0; i < 100; i++)
+        {
+            // Every k when i is at most 50; otherwise k from 0 to 100 - i and from i to 100.
+            var expected = i <= 50 ? 101 : 2 * (101 - i);
+            Assert.True(expected == noul.Sweep[i].Covered, $"At threshold {i}: expected {expected} covered, got {noul.Sweep[i].Covered}.");
+        }
+    }
+
+    [Fact]
     public void NullArguments_Throw()
     {
         Assert.Throws<ArgumentNullException>(() => CalibrationReport.Create(null!, FixtureDataset()));
