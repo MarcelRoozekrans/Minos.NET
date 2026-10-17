@@ -306,25 +306,61 @@ public sealed class CalibrateTests : IDisposable
     public void DefaultOut_IsProviderAndUtcTime_AndNeverReusesADirectory()
     {
         var when = new DateTime(2026, 10, 17, 13, 5, 9, DateTimeKind.Utc);
-        var first = CommandSupport.NextDefaultOut(_dir, "Fake", when);
+        var first = CommandSupport.ReserveDefaultOut(_dir, "Fake", when);
         Assert.Equal(Path.Combine(_dir, "Fake-20261017-130509"), first);
+        Assert.True(File.Exists(Path.Combine(first, ".minos-run")));
 
-        Directory.CreateDirectory(first);
-        var second = CommandSupport.NextDefaultOut(_dir, "Fake", when);
+        var second = CommandSupport.ReserveDefaultOut(_dir, "Fake", when);
         Assert.Equal(first + "-2", second);
-
-        Directory.CreateDirectory(second);
-        Assert.Equal(first + "-3", CommandSupport.NextDefaultOut(_dir, "Fake", when));
+        Assert.Equal(first + "-3", CommandSupport.ReserveDefaultOut(_dir, "Fake", when));
     }
 
     [Fact]
-    public async Task OutPathThatIsAFile_ExitsOne()
+    public async Task DefaultOut_ConcurrentReservations_GetDifferentDirectories()
     {
-        var blocker = Write("blocked", "x");
-        var run = await Invoke(new FakeSystemOne(), Calibrate(Dataset(), Config(), blocker));
+        var when = new DateTime(2026, 10, 17, 13, 5, 9, DateTimeKind.Utc);
+        using var barrier = new Barrier(8);
+        var paths = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Task.Run(() =>
+        {
+            barrier.SignalAndWait();
+            return CommandSupport.ReserveDefaultOut(_dir, "Fake", when);
+        })));
+
+        Assert.Equal(8, paths.Distinct().Count());
+    }
+
+    [Fact]
+    public async Task OutPathThatIsAFile_ExitsOne_BeforeAnyRequest()
+    {
+        var fake = new FakeSystemOne();
+        var run = await Invoke(fake, Calibrate(Dataset(), Config(), Write("blocked", "x")));
 
         Assert.Equal(1, run.Exit);
         Assert.NotEqual("", run.Stderr);
+        Assert.Equal(0, fake.Requests);
+    }
+
+    [Fact]
+    public async Task ProviderSectionName_StaysInsideTheDefaultOutRoot()
+    {
+        var work = Directory.CreateTempSubdirectory("minos-cwd-").FullName;
+        var previous = Directory.GetCurrentDirectory();
+        try
+        {
+            Directory.SetCurrentDirectory(work);
+            var config = Write("minos.json", "{\"Minos\":{\"Active\":\"../x\",\"Providers\":{\"../x\":{\"Provider\":\"Custom\",\"BaseAddress\":\"http://fake.local/\",\"Model\":\"fake-1\"}}}}");
+            var run = await Invoke(new FakeSystemOne(), "calibrate", "--dataset", Dataset(1), "--config", config);
+
+            Assert.Equal(0, run.Exit);
+            var created = Assert.Single(Directory.GetDirectories(Path.Combine(work, "minos-out")));
+            Assert.StartsWith("--x-", Path.GetFileName(created), StringComparison.Ordinal);
+            Assert.False(Directory.Exists(Path.Combine(work, "x")));
+        }
+        finally
+        {
+            Directory.SetCurrentDirectory(previous);
+            Directory.Delete(work, recursive: true);
+        }
     }
 
     [Fact]

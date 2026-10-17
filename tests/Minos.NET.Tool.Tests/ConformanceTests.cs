@@ -35,6 +35,18 @@ public sealed class ConformanceTests : IDisposable
     }
 
     [Fact]
+    public async Task Conformance_OutPathThatIsAFile_ExitsOne_BeforeAnyRequest()
+    {
+        var fake = new FakeSystemOne { ReportedModel = "jev-1.13.0" };
+
+        var run = await Invoke(fake, "conformance", "--config", _h.Config(TypeSafe), "--out", _h.Write("blocked", "x"));
+
+        Assert.Equal(1, run.Exit);
+        Assert.NotEqual("", run.Stderr);
+        Assert.Equal(0, fake.Requests);
+    }
+
+    [Fact]
     public async Task Conformance_PrintsTheProviderAndModelBeforeRunning()
     {
         var run = await Invoke(new FakeSystemOne { ReportedModel = "jev-1.13.0" }, Args(TypeSafe));

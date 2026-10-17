@@ -317,7 +317,9 @@ minos conformance --provider local
 Without `--out`, a command writes into `minos-out/<provider>-<UTC yyyyMMdd-HHmmss>` in the current directory, where
 `<provider>` is the provider's section name. When that directory exists, the name ends in `-2`, then `-3`, and so on.
 For `minos report` the provider is the one in the results file. The command creates the directory when it is missing,
-and prints the path of each file it writes.
+before the first request, so a directory that cannot be written fails the command before any call is paid for. A
+default directory also holds an empty `.minos-run` file, which marks it as taken by one run. The command prints the path
+of each file it writes.
 
 | Command | Files |
 | --- | --- |

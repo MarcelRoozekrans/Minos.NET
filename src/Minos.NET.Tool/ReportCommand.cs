@@ -72,10 +72,8 @@ internal static class ReportCommand
             return ExitCodes.Usage;
         }
 
-        var provider = CommandSupport.SafeFileName(results.Value.Header.ProviderName);
-        var outDir = outOption ?? CommandSupport.NextDefaultOut("minos-out", provider, DateTime.UtcNow);
         ct.ThrowIfCancellationRequested();
-        Directory.CreateDirectory(outDir);
+        var outDir = CommandSupport.ReserveOut(outOption, results.Value.Header.ProviderName);
         var json = Path.Combine(outDir, "report.json");
         var markdown = Path.Combine(outDir, "report.md");
         await File.WriteAllTextAsync(json, report.Value.ToJson(), ct).ConfigureAwait(false);

@@ -65,7 +65,9 @@ public sealed class CancellationTests : IDisposable
             "conformance", "--config", _h.Config("\"Provider\":\"TypeSafe\",\"ApiKey\":\"k\",\"Model\":\"jev-latest\""), "--out", _h.Out);
 
         Assert.Equal(130, run.Exit);
-        Assert.False(Directory.Exists(_h.Out));
+
+        // The directory is reserved before the first request, so it exists, but no report is written into it.
+        Assert.Empty(Directory.GetFileSystemEntries(_h.Out));
     }
 
     [Fact]

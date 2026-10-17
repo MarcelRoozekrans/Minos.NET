@@ -292,7 +292,7 @@ jobs:
           "$RUNNER_TEMP/minos-tool/minos" --help
           reported=$("$RUNNER_TEMP/minos-tool/minos" --version)
           case "$reported" in
-            "$PACKAGE_VERSION"*) ;;
+            "$PACKAGE_VERSION" | "$PACKAGE_VERSION+"*) ;;
             *) echo "::error::minos --version printed '$reported', expected it to start with $PACKAGE_VERSION."; exit 1 ;;
           esac
 

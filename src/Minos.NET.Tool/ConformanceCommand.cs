@@ -37,6 +37,7 @@ internal static class ConformanceCommand
         }
 
         var (name, options) = resolved.Value;
+        var outDir = CommandSupport.ReserveOut(outOption, name);
         var target = new ConformanceTarget(
             name,
             ConformanceWire.SystemOne,
@@ -56,8 +57,6 @@ internal static class ConformanceCommand
         await stdout.WriteLineAsync("Checking provider " + name + " with model " + target.Model + ".").ConfigureAwait(false);
         var report = await new ConformanceRunner(network, TimeProvider.System).RunAsync(target, ConformanceMode.Live, null, ct).ConfigureAwait(false);
         ct.ThrowIfCancellationRequested();
-        var outDir = outOption ?? CommandSupport.NextDefaultOut("minos-out", name, DateTime.UtcNow);
-        Directory.CreateDirectory(outDir);
         var json = Path.Combine(outDir, "conformance.json");
         var markdown = Path.Combine(outDir, "conformance.md");
         await File.WriteAllTextAsync(json, report.ToJson(), ct).ConfigureAwait(false);

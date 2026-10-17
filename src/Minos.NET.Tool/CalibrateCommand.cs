@@ -98,7 +98,7 @@ internal static class CalibrateCommand
 
         using (client)
         {
-            var outDir = request.Out ?? CommandSupport.NextDefaultOut("minos-out", name, DateTime.UtcNow);
+            var outDir = CommandSupport.ReserveOut(request.Out, name);
             var runOptions = new DatasetRunOptions
             {
                 MaxParallelism = request.Parallel,
@@ -117,7 +117,6 @@ internal static class CalibrateCommand
                 results = ex.PartialResults;
             }
 
-            Directory.CreateDirectory(outDir);
             var resultsFile = Path.Combine(outDir, stopped is null ? "results.jsonl" : "results.partial.jsonl");
             results.Save(resultsFile);
 

@@ -46,17 +46,52 @@ internal static class CommandSupport
     public static Option<string?> OutOption(string files, string providerFrom)
         => new("--out") { Description = "The directory for " + files + ", created when missing. Default: minos-out/<provider>-<UTC yyyyMMdd-HHmmss>, with the provider " + providerFrom + ".", HelpName = "dir" };
 
-    /// <summary>The default output directory, <c>&lt;root&gt;/&lt;provider&gt;-&lt;UTC time&gt;</c>, with -2, -3 and so on when it exists.</summary>
-    internal static string NextDefaultOut(string root, string provider, DateTime utcNow)
+    /// <summary>The marker file a reserved default output directory holds, which is how two runs that start in the same second tell they collide.</summary>
+    internal const string RunMarker = ".minos-run";
+
+    /// <summary>Creates the output directory before the first request, so that one that cannot be written fails the command before a paid run, not after it.</summary>
+    /// <param name="explicitOut">The <c>--out</c> directory, or <see langword="null"/> for the default one.</param>
+    /// <param name="provider">The provider section name, made safe as one path segment.</param>
+    /// <returns>The directory.</returns>
+    /// <exception cref="IOException">The directory cannot be created.</exception>
+    /// <exception cref="UnauthorizedAccessException">The directory cannot be created.</exception>
+    public static string ReserveOut(string? explicitOut, string? provider)
     {
-        var baseName = Path.Combine(root, provider + "-" + utcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture));
-        var candidate = baseName;
-        for (var n = 2; Directory.Exists(candidate) || File.Exists(candidate); n++)
+        if (explicitOut is not null)
         {
-            candidate = baseName + "-" + n.ToString(CultureInfo.InvariantCulture);
+            Directory.CreateDirectory(explicitOut);
+            return explicitOut;
         }
 
-        return candidate;
+        return ReserveDefaultOut("minos-out", SafeFileName(provider), DateTime.UtcNow);
+    }
+
+    /// <summary>Reserves the default output directory, <c>&lt;root&gt;/&lt;provider&gt;-&lt;UTC time&gt;</c>, with -2, -3 and so on when it is taken. The reservation is a new marker file in the directory, which only one run can create.</summary>
+    internal static string ReserveDefaultOut(string root, string provider, DateTime utcNow)
+    {
+        var baseName = Path.Combine(root, provider + "-" + utcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture));
+        for (var n = 1; ; n++)
+        {
+            var candidate = n == 1 ? baseName : baseName + "-" + n.ToString(CultureInfo.InvariantCulture);
+            if (Directory.Exists(candidate) || File.Exists(candidate))
+            {
+                continue;
+            }
+
+            Directory.CreateDirectory(candidate);
+            try
+            {
+                using (new FileStream(Path.Combine(candidate, RunMarker), FileMode.CreateNew, FileAccess.Write))
+                {
+                }
+
+                return candidate;
+            }
+            catch (IOException) when (File.Exists(Path.Combine(candidate, RunMarker)))
+            {
+                // Another run created the marker first.
+            }
+        }
     }
 
     /// <summary>Makes a name read from a file safe as one path segment: path separators, invalid file name characters and <c>..</c> become <c>-</c>; an empty name becomes <c>provider</c>.</summary>
