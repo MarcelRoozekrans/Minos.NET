@@ -81,6 +81,11 @@ internal static class ResultsWriter
                 Require(item.Id, member + ".Probability", answer.Probability is not { } probability || ResultsRules.IsUnit(probability), "a number from 0 to 1");
                 Require(item.Id, member + ".ChoiceKey", answer.Kind != QuestionKind.Choice || answer.ChoiceKey is not null, "set for a Choice answer");
                 Require(item.Id, member + ".Probability", answer.Kind != QuestionKind.Noul || answer.Probability is not null, "set for a Noul answer");
+                Require(
+                    item.Id,
+                    member,
+                    answer.Kind != QuestionKind.Noul || ResultsRules.IsConsistentNoul(answer.Noul, answer.Probability!.Value, answer.Confidence),
+                    ResultsRules.NoulConsistencyRule);
                 Require(item.Id, member + ".ScoreLevel", answer.Kind != QuestionKind.Score || answer.ScoreLevel >= ResultsRules.MinScoreLevel, "non-negative");
             }
         }

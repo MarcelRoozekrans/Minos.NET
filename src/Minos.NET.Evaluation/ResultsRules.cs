@@ -45,6 +45,16 @@ internal static class ResultsRules
         return builder.ToString();
     }
 
+    // A Noul answer's flag and confidence are derived from its probability, as the runner writes them: the flag is
+    // p >= 0.5 and the confidence is max(p, 1 - p). A saved answer that disagrees would score accuracy from one
+    // number and calibration from another.
+    internal const double NoulConfidenceTolerance = 1e-9;
+
+    internal static bool IsConsistentNoul(bool value, double probability, double confidence)
+        => value == (probability >= 0.5) && Math.Abs(confidence - Math.Max(probability, 1 - probability)) <= NoulConfidenceTolerance;
+
+    internal const string NoulConsistencyRule = "agree with its probability: the value is probability >= 0.5 and the confidence is max(p, 1 - p)";
+
     internal static bool IsNonNegative(double value) => double.IsFinite(value) && value >= 0;
 
     // The smallest allowed values of the integer members.

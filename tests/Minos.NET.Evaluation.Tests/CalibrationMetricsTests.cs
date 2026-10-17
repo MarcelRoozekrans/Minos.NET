@@ -548,6 +548,47 @@ public sealed class CalibrationMetricsTests
     }
 
     [Fact]
+    public void NoulDisagreeingWithItsProbability_IsAProblem()
+    {
+        foreach (var answer in new[]
+        {
+            new AnswerRecord(QuestionKind.Noul, true, 0.2, null, 0, 0.1),
+            new AnswerRecord(QuestionKind.Noul, true, 0.2, null, 0, 0.8),
+            new AnswerRecord(QuestionKind.Noul, false, 0.5, null, 0, 0.5),
+            new AnswerRecord(QuestionKind.Noul, true, 0.8, null, 0, 0.7),
+        })
+        {
+            Assert.Contains("'n'", AnswerProblem(new() { ["n"] = answer }).Message, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public async Task RunnerNoulAnswers_SaveLoadAndReport()
+    {
+        double[] probabilities = [0.3, 0.5, 0.7];
+        var dataset = Dataset(NoulLine(Id(1), false), NoulLine(Id(2), true), NoulLine(Id(3), true));
+        var next = 0;
+        var client = new FakeDecisionClient((r, _) => ValueTask.FromResult(
+            ZeroAlloc.Results.Result<DecisionResponse, DecisionError>.Success(
+                new DecisionResponse(r.Definition, [QuestionAnswer.Noul(probabilities[next++])], null, null))));
+
+        var run = await DatasetRunner.RunAsync(client, dataset);
+        using var stream = new MemoryStream();
+        run.Save(stream);
+        stream.Position = 0;
+        var loaded = EvaluationResults.Parse(stream);
+        Assert.True(loaded.IsSuccess);
+
+        var noul = Report(loaded.Value, dataset).Noul!;
+
+        Assert.Equal(3, noul.Answered);
+        Near(1.0, noul.Accuracy);
+        Bin(noul.Bins[0], 1, 0.5, 1);
+        Bin(noul.Bins[1], 1, 0.7, 1);
+        Bin(noul.Bins[2], 1, 0.7, 1);
+    }
+
+    [Fact]
     public void BoundaryAnswers_AreNotProblems()
     {
         var dataset = Dataset(AllKindsLine("a"));

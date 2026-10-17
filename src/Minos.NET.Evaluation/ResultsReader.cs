@@ -266,6 +266,11 @@ internal static class ResultsReader
                 }
                 else if (value.ValueKind is JsonValueKind.True or JsonValueKind.False)
                 {
+                    if (confidence is { } c && !ResultsRules.IsConsistentNoul(value.GetBoolean(), probability.Value, c))
+                    {
+                        problems.Add(new DatasetProblem(line, $"Answer '{key}' must {ResultsRules.NoulConsistencyRule}."));
+                    }
+
                     record = new AnswerRecord(QuestionKind.Noul, value.GetBoolean(), probability, null, 0, confidence ?? 0);
                 }
                 else

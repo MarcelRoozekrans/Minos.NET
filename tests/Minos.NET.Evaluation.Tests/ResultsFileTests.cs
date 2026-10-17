@@ -313,6 +313,41 @@ public sealed class ResultsFileTests
         AssertSaveRefuses(With(good with { Answers = new Dictionary<string, AnswerRecord>() }), "Answers");
     }
 
+    [Theory]
+    [InlineData(true, 0.2, 0.8)]
+    [InlineData(true, 0.8, 0.7)]
+    [InlineData(false, 0.5, 0.5)]
+    [InlineData(false, 0.3, 0.3)]
+    public void NoulDisagreeingWithItsProbability_IsAProblem(bool value, double probability, double confidence)
+    {
+        var answer = string.Create(
+            CultureInfo.InvariantCulture,
+            $$"""{"kind":"noul","value":{{(value ? "true" : "false")}},"probability":{{probability}},"confidence":{{confidence}}}""");
+        AssertProblemOnLine(HeaderLine(count: 1) + "\n" + ItemLine(tail: ",\"answers\":{\"q\":" + answer + "}"), 2, "'q'");
+    }
+
+    [Fact]
+    public void Save_RefusesNoulDisagreeingWithItsProbability()
+    {
+        AssertSaveRefuses(With(Ok(new AnswerRecord(QuestionKind.Noul, true, 0.2, null, 0, 0.8))), "Answers[q]");
+        AssertSaveRefuses(With(Ok(new AnswerRecord(QuestionKind.Noul, true, 0.8, null, 0, 0.7))), "Answers[q]");
+        AssertSaveRefuses(With(Ok(new AnswerRecord(QuestionKind.Noul, false, 0.5, null, 0, 0.5))), "x1");
+    }
+
+    [Theory]
+    [InlineData(0.3)]
+    [InlineData(0.5)]
+    [InlineData(0.7)]
+    public void RunnerNoulAnswer_SavesAndLoads(double p)
+    {
+        var answer = new AnswerRecord(QuestionKind.Noul, p >= 0.5, p, null, 0, Math.Max(p, 1 - p));
+        var results = With(Ok(answer));
+
+        var loaded = Parse(Bytes(results));
+
+        Assert.Equal(answer, loaded.Items[0].Answers!["q"]);
+    }
+
     [Fact]
     public void EmptyDatasetName_IsAProblem()
         => AssertProblemOnLine(HeaderLine().Replace("\"dataset\":\"d\"", "\"dataset\":\"\"", StringComparison.Ordinal), 1, "dataset");

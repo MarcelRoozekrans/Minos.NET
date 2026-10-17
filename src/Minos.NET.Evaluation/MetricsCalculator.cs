@@ -98,6 +98,8 @@ internal static class MetricsCalculator
         {
             QuestionKind.Noul when answer.Probability is not { } p || !ResultsRules.IsUnit(p)
                 => $"the answer '{key}' has a probability that is not a number from 0 to 1.",
+            QuestionKind.Noul when !ResultsRules.IsConsistentNoul(answer.Noul, answer.Probability!.Value, answer.Confidence)
+                => $"the answer '{key}' does not {ResultsRules.NoulConsistencyRule}.",
             QuestionKind.Choice when !HasOption(question, answer.ChoiceKey)
                 => $"the answer '{key}' chose '{answer.ChoiceKey}', which is not an option of the question.",
             QuestionKind.Score when answer.ScoreLevel < 0 || answer.ScoreLevel >= question.Options.Count
