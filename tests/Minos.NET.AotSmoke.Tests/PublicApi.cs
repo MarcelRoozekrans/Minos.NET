@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis;
 namespace Minos.AotSmoke.Tests;
 
 /// <summary>
-/// The public entry points the six packages declare in their PublicAPI files: every public constructor and method, with
+/// The public entry points the seven library assemblies declare in their PublicAPI files: every public constructor and method, with
 /// its signature exactly as RS0016 prints it, after applying the <c>*REMOVED*</c> lines.
 /// </summary>
 /// <remarks>
@@ -49,10 +49,10 @@ internal static class PublicApi
 
     private static readonly string[] ObjectMembers = ["Equals(object? obj)", "GetHashCode()", "ToString()"];
 
-    /// <summary>Every line the six packages declare, after applying the <c>*REMOVED*</c> lines.</summary>
+    /// <summary>Every line the seven library assemblies declare, after applying the <c>*REMOVED*</c> lines.</summary>
     public static List<string> Lines { get; } = ReadLines();
 
-    /// <summary>The PublicAPI lines of the record members the compiler generated in the six packages.</summary>
+    /// <summary>The PublicAPI lines of the record members the compiler generated in the seven library assemblies.</summary>
     // Initialised before EntryPoints, which reads it.
     private static HashSet<string> GeneratedRecordMembers { get; } = FindGeneratedRecordMembers(
         PackageNames.Select(name => FindAssembly(SampleCompilation.Smoke.Compilation, name)));
