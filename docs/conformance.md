@@ -13,7 +13,9 @@ each answer twice, once as the wire sent it and once as Minos read it, and runs 
 endpoint a Minos client can reach, a server of your own included.
 
 The suite runs on every CI build, against the TypeSafe, OpenRouter and OpenAI fixtures described below. It is not
-published to NuGet yet; a later release ships it as a `dotnet` tool.
+published to NuGet on its own. The `minos` tool bundles it: `minos conformance` runs every probe live against a provider
+from your `minos.json`, and writes `conformance.json` and `conformance.md`. The `bad-key` probe is skipped when no key is
+configured. See [Running it from the command line](datasets.md#running-it-from-the-command-line).
 
 ## The probes
 

@@ -36,5 +36,6 @@
 
   <ItemGroup>
     <InternalsVisibleTo Include="Minos.NET.Tool.Tests" />
+    <InternalsVisibleTo Include="Minos.NET.Docs.Tests" />
   </ItemGroup>
 </Project>
