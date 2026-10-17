@@ -741,6 +741,37 @@ public sealed class CalibrationMetricsTests
     }
 
     [Fact]
+    public void InvalidResponse_IsBilledAndServed_ButNotTimedOrAnswered()
+    {
+        var dataset = Dataset(NoulLine(Id(1), true), NoulLine(Id(2), true), NoulLine(Id(3), true), NoulLine(Id(4), true));
+        ItemResult Invalid(int item, double? cost, int? input, int? output) => new()
+        {
+            Id = Id(item),
+            Line = item,
+            LatencyMs = 5000,
+            Model = "jev-1.14-20261014",
+            InputTokens = input,
+            OutputTokens = output,
+            Cost = cost,
+            Error = new ItemError { Kind = "InvalidResponse", Message = "The response answered none of the item's questions." },
+        };
+        var results = Results(
+            Answered(1, Q(Noul(true, 0.9)), latencyMs: 100, model: "jev-1.14-20261014", cost: 0.001),
+            Invalid(2, 0.003, null, null),
+            Invalid(3, null, 1000, 0),
+            Failed(4));
+
+        var report = Report(results, dataset, new PriceTable([FixturePrice]));
+
+        Assert.Equal((2, 1, 0, 0), (report.Cost.Reported, report.Cost.Priced, report.Cost.Unknown, report.Cost.Cached));
+        Near((0.001 + 0.003 + (1000 * 0.042 / 1e6)) / 3 * 1000, report.Cost.PerThousandDecisions);
+        Assert.Equal([("jev-1.14-20261014", 3)], report.ResponseModels.Select(m => (m.Model, m.Count)));
+        Latency(report.Latency, 1, 100, 100);
+        Assert.Equal((4, 1), (report.Noul!.Scored, report.Noul.Answered));
+        Assert.Equal(3, report.Errors.Count);
+    }
+
+    [Fact]
     public void NullArguments_Throw()
     {
         Assert.Throws<ArgumentNullException>(() => CalibrationReport.Create(null!, FixtureDataset()));

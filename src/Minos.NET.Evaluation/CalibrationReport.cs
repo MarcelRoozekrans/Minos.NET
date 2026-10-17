@@ -53,13 +53,16 @@ public sealed class CalibrationReport
     /// <summary>Gets the latency of the successful requests that were not cached.</summary>
     public LatencySummary Latency { get; }
 
-    /// <summary>Gets the cost of the successful requests.</summary>
+    /// <summary>Gets the cost of the served requests: the successful ones and the <c>InvalidResponse</c> ones.</summary>
     public CostSummary Cost { get; }
 
     /// <summary>Gets the failed requests.</summary>
     public ErrorSummary Errors { get; }
 
-    /// <summary>Gets the models of the successful responses with their counts, most common first, then by model.</summary>
+    /// <summary>
+    /// Gets the models of the served responses, successful and <c>InvalidResponse</c>, with their counts, most common
+    /// first, then by model.
+    /// </summary>
     public IReadOnlyList<ModelCount> ResponseModels { get; }
 
     /// <summary>Writes the report as JSON: <c>"kind":"minos-report","version":1</c>, every number at full precision, an unknown number as <c>null</c>.</summary>

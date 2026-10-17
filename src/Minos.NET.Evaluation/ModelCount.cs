@@ -1,6 +1,6 @@
 namespace Minos.Evaluation;
 
-/// <summary>How many successful responses one model gave.</summary>
+/// <summary>How many served responses one model gave: successful ones and <c>InvalidResponse</c> ones.</summary>
 public sealed class ModelCount
 {
     internal ModelCount(string? model, int count)

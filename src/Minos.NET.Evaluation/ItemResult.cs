@@ -33,6 +33,9 @@ public sealed class ItemResult
     /// <summary>Gets the answers by question key, or <see langword="null"/> when the request failed.</summary>
     public IReadOnlyDictionary<string, AnswerRecord>? Answers { get; init; }
 
-    /// <summary>Gets the failure, or <see langword="null"/> when the request succeeded.</summary>
+    /// <summary>
+    /// Gets the failure, or <see langword="null"/> when the request succeeded. An <c>InvalidResponse</c> error keeps the
+    /// response's model, token counts and cost, since the request was served and billed.
+    /// </summary>
     public ItemError? Error { get; init; }
 }

@@ -349,6 +349,12 @@ internal static class MetricsCalculator
         return sorted[rank - 1];
     }
 
+    // A response came back and was billed: the request succeeded, or its answers did not fit the item. An
+    // InvalidResponse item keeps the response's model, tokens and cost, and counts for cost and models; it stays out of
+    // latency and accuracy, which describe answers that could be used.
+    private static bool WasServed(ItemResult item)
+        => item.Error is not { } error || string.Equals(error.Kind, nameof(DecisionErrorKind.InvalidResponse), StringComparison.Ordinal);
+
     private static CostSummary Cost(IReadOnlyList<ItemResult> items, PriceTable? prices)
     {
         int reported = 0, priced = 0, unknown = 0, cached = 0;
@@ -356,7 +362,7 @@ internal static class MetricsCalculator
         var used = new List<ModelPrice>();
         foreach (var item in items)
         {
-            if (item.Error is not null)
+            if (!WasServed(item))
             {
                 continue;
             }
@@ -418,7 +424,7 @@ internal static class MetricsCalculator
         var unnamed = 0;
         foreach (var item in items)
         {
-            if (item.Error is not null)
+            if (!WasServed(item))
             {
                 continue;
             }

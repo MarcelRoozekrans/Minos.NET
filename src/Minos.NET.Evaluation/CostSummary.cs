@@ -1,8 +1,9 @@
 namespace Minos.Evaluation;
 
 /// <summary>
-/// The cost of the successful requests. An item's cost is the one its provider reported; otherwise both token counts
-/// times a matching price; otherwise it is unknown. Cached responses are left out and counted separately.
+/// The cost of the requests that were served: the successful ones, and those that failed as <c>InvalidResponse</c>,
+/// whose response came back and was billed. An item's cost is the one its provider reported; otherwise both token
+/// counts times a matching price; otherwise it is unknown. Cached responses are left out and counted separately.
 /// </summary>
 public sealed class CostSummary
 {
