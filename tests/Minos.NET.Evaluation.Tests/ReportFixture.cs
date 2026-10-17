@@ -69,6 +69,39 @@ internal static class ReportFixture
         return Results([.. items]);
     }
 
+    // The 14 Noul items of the fixture plus three items that carry a Noul, a Choice and a Score question, for the snapshot.
+    internal static CalibrationReport AllKindsReport()
+    {
+        const string Questions = "\"questions\":{\"n\":{\"type\":\"noul\",\"instructions\":\"?\"},"
+            + "\"c\":{\"type\":\"choice\",\"instructions\":\"?\",\"criteria\":{\"one\":\"1\",\"two\":\"2\",\"three\":\"3\"}},"
+            + "\"s\":{\"type\":\"score\",\"instructions\":\"?\",\"criteria\":[\"a\",\"b\",\"c\"]}},\"expected\":{\"n\":true,\"c\":\"two\",\"s\":2}}";
+        var lines = Enumerable.Range(1, 14).Select(i => NoulLine(Id(i), i <= 8)).ToList();
+        for (var i = 15; i <= 17; i++)
+        {
+            lines.Add("{\"id\":\"" + Id(i) + "\",\"state\":\"x\",\"version\":1," + Questions);
+        }
+
+        var results = FixtureResults();
+        var extra = new[]
+        {
+            Answered(15, new Dictionary<string, AnswerRecord>
+            {
+                ["n"] = Noul(true, 0.9),
+                ["c"] = new(QuestionKind.Choice, false, null, "two", 0, 0.4),
+                ["s"] = new(QuestionKind.Score, false, null, null, 2, 0.8),
+            }, 1200),
+            Answered(16, new Dictionary<string, AnswerRecord>
+            {
+                ["n"] = Noul(false, 0.6),
+                ["c"] = new(QuestionKind.Choice, false, null, "one", 0, 0.7),
+                ["s"] = new(QuestionKind.Score, false, null, null, 1, 0.6),
+            }, 1300),
+            Failed(17, "Timeout"),
+        };
+        var all = new EvaluationResults(results.Header with { ItemCount = 17 }, [.. results.Items, .. extra]);
+        return Report(all, Dataset([.. lines]), new PriceTable([JevPrice]));
+    }
+
     internal static CalibrationReport Report(EvaluationResults results, DecisionDataset dataset, PriceTable? prices = null)
     {
         var result = CalibrationReport.Create(results, dataset, prices);

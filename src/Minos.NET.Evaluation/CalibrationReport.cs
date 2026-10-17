@@ -62,6 +62,14 @@ public sealed class CalibrationReport
     /// <summary>Gets the models of the successful responses with their counts, most common first, then by model.</summary>
     public IReadOnlyList<ModelCount> ResponseModels { get; }
 
+    /// <summary>Writes the report as JSON: <c>"kind":"minos-report","version":1</c>, every number at full precision, an unknown number as <c>null</c>.</summary>
+    /// <returns>The JSON text.</returns>
+    public string ToJson() => ReportJsonWriter.Write(this);
+
+    /// <summary>Writes the report as Markdown, with ratios rounded to four decimals and an unknown number as <c>n/a</c>.</summary>
+    /// <returns>The Markdown text.</returns>
+    public string ToMarkdown() => ReportMarkdownWriter.Write(this);
+
     /// <summary>Computes the report of a run against the dataset it ran.</summary>
     /// <param name="results">The run's results.</param>
     /// <param name="dataset">The dataset the run ran, for the expected answers.</param>

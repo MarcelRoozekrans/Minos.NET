@@ -172,6 +172,8 @@ Minos.Evaluation.CalibrationReport.Noul.get -> Minos.Evaluation.KindMetrics?
 Minos.Evaluation.CalibrationReport.Overall.get -> Minos.Evaluation.KindMetrics!
 Minos.Evaluation.CalibrationReport.ResponseModels.get -> System.Collections.Generic.IReadOnlyList<Minos.Evaluation.ModelCount!>!
 Minos.Evaluation.CalibrationReport.Score.get -> Minos.Evaluation.KindMetrics?
+Minos.Evaluation.CalibrationReport.ToJson() -> string!
+Minos.Evaluation.CalibrationReport.ToMarkdown() -> string!
 Minos.Evaluation.CalibrationReport.UnscoredQuestions.get -> int
 Minos.Evaluation.CostSummary
 Minos.Evaluation.CostSummary.<Clone>$() -> Minos.Evaluation.CostSummary!
