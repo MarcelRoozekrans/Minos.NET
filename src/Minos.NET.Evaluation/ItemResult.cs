@@ -1,26 +1,38 @@
 namespace Minos.Evaluation;
 
 /// <summary>The outcome of one dataset item. Exactly one of <see cref="Answers"/> and <see cref="Error"/> is set.</summary>
-/// <param name="Id">The item's id.</param>
-/// <param name="Line">The item's line in the dataset file.</param>
-/// <param name="LatencyMs">How long the request took, in milliseconds.</param>
-/// <param name="Cached">Whether the response came from a cache.</param>
-/// <param name="Model">The model that answered, or <see langword="null"/>.</param>
-/// <param name="InputTokens">The input token count, or <see langword="null"/>.</param>
-/// <param name="OutputTokens">The output token count, or <see langword="null"/>.</param>
-/// <param name="Cost">The cost the provider reported, or <see langword="null"/>.</param>
-/// <param name="ResponseId">The response id, or <see langword="null"/>.</param>
-/// <param name="Answers">The answers by question key, or <see langword="null"/> when the request failed.</param>
-/// <param name="Error">The failure, or <see langword="null"/> when the request succeeded.</param>
-public sealed record ItemResult(
-    string Id,
-    int Line,
-    double LatencyMs,
-    bool Cached,
-    string? Model,
-    int? InputTokens,
-    int? OutputTokens,
-    double? Cost,
-    string? ResponseId,
-    IReadOnlyDictionary<string, AnswerRecord>? Answers,
-    ItemError? Error);
+public sealed class ItemResult
+{
+    /// <summary>Gets the item's id.</summary>
+    public required string Id { get; init; }
+
+    /// <summary>Gets the item's line in the dataset file.</summary>
+    public required int Line { get; init; }
+
+    /// <summary>Gets how long the request took, in milliseconds.</summary>
+    public required double LatencyMs { get; init; }
+
+    /// <summary>Gets whether the response came from a cache.</summary>
+    public bool Cached { get; init; }
+
+    /// <summary>Gets the model that answered, or <see langword="null"/>.</summary>
+    public string? Model { get; init; }
+
+    /// <summary>Gets the input token count, or <see langword="null"/>.</summary>
+    public int? InputTokens { get; init; }
+
+    /// <summary>Gets the output token count, or <see langword="null"/>.</summary>
+    public int? OutputTokens { get; init; }
+
+    /// <summary>Gets the cost the provider reported, or <see langword="null"/>.</summary>
+    public double? Cost { get; init; }
+
+    /// <summary>Gets the response id, or <see langword="null"/>.</summary>
+    public string? ResponseId { get; init; }
+
+    /// <summary>Gets the answers by question key, or <see langword="null"/> when the request failed.</summary>
+    public IReadOnlyDictionary<string, AnswerRecord>? Answers { get; init; }
+
+    /// <summary>Gets the failure, or <see langword="null"/> when the request succeeded.</summary>
+    public ItemError? Error { get; init; }
+}

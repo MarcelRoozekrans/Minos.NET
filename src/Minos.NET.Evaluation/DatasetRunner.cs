@@ -1,4 +1,3 @@
-using System.Collections.ObjectModel;
 using System.Globalization;
 using ZeroAlloc.Results;
 
@@ -83,16 +82,18 @@ public static class DatasetRunner
         await Task.WhenAll(workers).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
 
-        var header = new RunHeader(
-            options.DatasetName,
-            results.Length,
-            ResultsRules.Clean(metadata?.ProviderName),
-            metadata?.Endpoint,
-            ResultsRules.Clean(metadata?.DefaultModel),
-            started,
-            time.GetUtcNow(),
-            options.MaxParallelism);
-        return new EvaluationResults(header, new ReadOnlyCollection<ItemResult>(results));
+        var header = new RunHeader
+        {
+            DatasetName = options.DatasetName,
+            ItemCount = results.Length,
+            ProviderName = ResultsRules.Clean(metadata?.ProviderName),
+            Endpoint = metadata?.Endpoint,
+            DefaultModel = ResultsRules.Clean(metadata?.DefaultModel),
+            Started = started,
+            Finished = time.GetUtcNow(),
+            Parallelism = options.MaxParallelism,
+        };
+        return new EvaluationResults(header, results);
     }
 
     private static async Task<ItemResult> RunItemAsync(IDecisionClient client, DatasetItem item, TimeProvider time, CancellationToken token, CancellationToken cancellationToken)
@@ -105,31 +106,33 @@ public static class DatasetRunner
         }
         catch (OperationCanceledException ex) when (!cancellationToken.IsCancellationRequested)
         {
-            return Failed(item, time.GetElapsedTime(begin), new ItemError("Cancelled", null, ResultsRules.Clean(ex.Message)!));
+            return Failed(item, time.GetElapsedTime(begin), new ItemError { Kind = "Cancelled", Message = ResultsRules.Clean(ex.Message)! });
         }
 
         var latency = time.GetElapsedTime(begin);
         if (!outcome.IsSuccess)
         {
             var error = outcome.Error;
-            return Failed(item, latency, new ItemError(error.Kind.ToString(), error.StatusCode, ResultsRules.Clean(error.Message)!));
+            return Failed(item, latency, new ItemError { Kind = error.Kind.ToString(), StatusCode = error.StatusCode, Message = ResultsRules.Clean(error.Message)! });
         }
 
         var response = outcome.Value;
         var usage = response.Usage;
         var answers = Record(item, response, out var invalid);
-        return new ItemResult(
-            item.Id,
-            item.Line,
-            Milliseconds(latency),
-            response.IsCached,
-            ResultsRules.Clean(response.Model),
-            NonNegative(usage?.InputTokens),
-            NonNegative(usage?.OutputTokens),
-            usage?.Cost is { } cost && double.IsFinite(cost) && cost >= 0 ? cost : null,
-            ResultsRules.Clean(response.Id),
-            invalid is null ? answers : null,
-            invalid is null ? null : new ItemError(nameof(DecisionErrorKind.InvalidResponse), null, invalid));
+        return new ItemResult
+        {
+            Id = item.Id,
+            Line = item.Line,
+            LatencyMs = Milliseconds(latency),
+            Cached = response.IsCached,
+            Model = ResultsRules.Clean(response.Model),
+            InputTokens = NonNegative(usage?.InputTokens),
+            OutputTokens = NonNegative(usage?.OutputTokens),
+            Cost = usage?.Cost is { } cost && double.IsFinite(cost) && cost >= 0 ? cost : null,
+            ResponseId = ResultsRules.Clean(response.Id),
+            Answers = invalid is null ? answers : null,
+            Error = invalid is null ? null : new ItemError { Kind = nameof(DecisionErrorKind.InvalidResponse), Message = invalid },
+        };
     }
 
     // A clock that runs backwards must not give a negative latency, which the results file refuses.
@@ -139,7 +142,7 @@ public static class DatasetRunner
     private static int? NonNegative(int? count) => count is >= 0 ? count : null;
 
     private static ItemResult Failed(DatasetItem item, TimeSpan latency, ItemError error)
-        => new(item.Id, item.Line, Milliseconds(latency), false, null, null, null, null, null, null, error);
+        => new() { Id = item.Id, Line = item.Line, LatencyMs = Milliseconds(latency), Error = error };
 
     // Walks the item's own questions and builds only what the results file can hold. An answer the response lacks is
     // absent, and an answer to a question the item does not ask is ignored. The response is invalid, and the item an
@@ -178,7 +181,7 @@ public static class DatasetRunner
                         return records;
                     }
 
-                    records[question.Key] = new AnswerRecord(QuestionKind.Noul, p >= 0.5, p, null, 0, Math.Max(p, 1 - p));
+                    records[question.Key] = AnswerRecord.ForNoul(p);
                     break;
                 default:
                     if (answer.ChosenIndex < 0 || answer.ChosenIndex >= question.Options.Count)
@@ -194,8 +197,8 @@ public static class DatasetRunner
                     }
 
                     records[question.Key] = question.Kind == QuestionKind.Choice
-                        ? new AnswerRecord(QuestionKind.Choice, false, null, question.Options[answer.ChosenIndex].Key, 0, answer.Confidence)
-                        : new AnswerRecord(question.Kind, false, null, null, answer.ChosenIndex, answer.Confidence);
+                        ? AnswerRecord.ForChoice(question.Options[answer.ChosenIndex].Key, answer.Confidence)
+                        : AnswerRecord.ForScore(answer.ChosenIndex, answer.Confidence);
                     break;
             }
         }

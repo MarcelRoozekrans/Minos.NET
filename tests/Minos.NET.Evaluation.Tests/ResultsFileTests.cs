@@ -7,28 +7,78 @@ public sealed class ResultsFileTests
 {
     private static readonly DateTimeOffset Start = new(2026, 10, 17, 9, 30, 15, 123, TimeSpan.Zero);
 
-    private static RunHeader Header(int count) => new(
-        "banking77-é", count, "openai", new Uri("https://api.example.com/v1"), "gpt-x", Start, Start.AddSeconds(90.5), 4);
+    private static RunHeader Header(int count, string datasetName = "banking77-é", string? providerName = "openai", string? defaultModel = "gpt-x", int parallelism = 4)
+        => new()
+        {
+            DatasetName = datasetName,
+            ItemCount = count,
+            ProviderName = providerName,
+            Endpoint = new Uri("https://api.example.com/v1"),
+            DefaultModel = defaultModel,
+            Started = Start,
+            Finished = Start.AddSeconds(90.5),
+            Parallelism = parallelism,
+        };
 
     private static EvaluationResults Sample()
     {
         var items = new List<ItemResult>
         {
-            new("a", 1, 1234.5678, false, "gpt-x-2026", 100, 20, 0.0012, "resp-1",
-                new Dictionary<string, AnswerRecord>
+            new()
+            {
+                Id = "a",
+                Line = 1,
+                LatencyMs = 1234.5678,
+                Model = "gpt-x-2026",
+                InputTokens = 100,
+                OutputTokens = 20,
+                Cost = 0.0012,
+                ResponseId = "resp-1",
+                Answers = new Dictionary<string, AnswerRecord>
                 {
-                    ["urgent"] = new(QuestionKind.Noul, true, 0.8123456789, null, 0, 0.8123456789),
-                    ["dépt"] = new(QuestionKind.Choice, false, null, "facturé-日本", 0, 0.55),
-                    ["mood"] = new(QuestionKind.Score, false, null, null, 2, 0.9),
+                    ["urgent"] = AnswerRecord.ForNoul(0.8123456789),
+                    ["dépt"] = AnswerRecord.ForChoice("facturé-日本", 0.55),
+                    ["mood"] = AnswerRecord.ForScore(2, 0.9),
                 },
-                null),
-            new("b", 2, 10, true, null, null, null, null, null,
-                new Dictionary<string, AnswerRecord> { ["urgent"] = new(QuestionKind.Noul, false, 0.25, null, 0, 0.75) },
-                null),
-            new("c", 3, 5.5, false, null, null, null, null, null, null, new ItemError("Http", 429, "Té limit \"reached\"\nretry")),
-            new("d", 4, 7, false, "m", 1, 2, 0, "r", null, new ItemError("Cancelled", null, "stopped")),
+            },
+            new() { Id = "b", Line = 2, LatencyMs = 10, Cached = true, Answers = new Dictionary<string, AnswerRecord> { ["urgent"] = AnswerRecord.ForNoul(0.25) } },
+            new() { Id = "c", Line = 3, LatencyMs = 5.5, Error = new ItemError { Kind = "Http", StatusCode = 429, Message = "Té limit \"reached\"\nretry" } },
+            new()
+            {
+                Id = "d",
+                Line = 4,
+                LatencyMs = 7,
+                Model = "m",
+                InputTokens = 1,
+                OutputTokens = 2,
+                Cost = 0,
+                ResponseId = "r",
+                Error = new ItemError { Kind = "Cancelled", Message = "stopped" },
+            },
         };
         return new EvaluationResults(Header(items.Count), items);
+    }
+
+    internal static void AssertSameHeader(RunHeader expected, RunHeader actual)
+    {
+        Assert.Equal(expected.DatasetName, actual.DatasetName);
+        Assert.Equal(expected.ItemCount, actual.ItemCount);
+        Assert.Equal(expected.ProviderName, actual.ProviderName);
+        Assert.Equal(expected.Endpoint, actual.Endpoint);
+        Assert.Equal(expected.DefaultModel, actual.DefaultModel);
+        Assert.Equal(expected.Started, actual.Started);
+        Assert.Equal(expected.Finished, actual.Finished);
+        Assert.Equal(expected.Parallelism, actual.Parallelism);
+    }
+
+    internal static void AssertSameAnswer(AnswerRecord expected, AnswerRecord actual)
+    {
+        Assert.Equal(expected.Kind, actual.Kind);
+        Assert.Equal(expected.Noul, actual.Noul);
+        Assert.Equal(expected.Probability, actual.Probability);
+        Assert.Equal(expected.ChoiceKey, actual.ChoiceKey);
+        Assert.Equal(expected.ScoreLevel, actual.ScoreLevel);
+        Assert.Equal(expected.Confidence, actual.Confidence);
     }
 
     private static byte[] Bytes(EvaluationResults results)
@@ -47,20 +97,24 @@ public sealed class ResultsFileTests
 
     private static void AssertEqual(EvaluationResults expected, EvaluationResults actual)
     {
-        Assert.Equal(expected.Header, actual.Header);
+        AssertSameHeader(expected.Header, actual.Header);
         Assert.Equal(expected.Items.Count, actual.Items.Count);
         for (var i = 0; i < expected.Items.Count; i++)
         {
             var e = expected.Items[i];
             var a = actual.Items[i];
-            Assert.Equal(e with { Answers = null }, a with { Answers = null });
+            Assert.Equal(
+                (e.Id, e.Line, e.LatencyMs, e.Cached, e.Model, e.InputTokens, e.OutputTokens, e.Cost, e.ResponseId),
+                (a.Id, a.Line, a.LatencyMs, a.Cached, a.Model, a.InputTokens, a.OutputTokens, a.Cost, a.ResponseId));
+            Assert.Equal((e.Error?.Kind, e.Error?.StatusCode, e.Error?.Message), (a.Error?.Kind, a.Error?.StatusCode, a.Error?.Message));
+            Assert.Equal(e.Error is null, a.Error is null);
             Assert.Equal(e.Answers is null, a.Answers is null);
             if (e.Answers is not null)
             {
                 Assert.Equal(e.Answers.Count, a.Answers!.Count);
                 foreach (var (key, answer) in e.Answers)
                 {
-                    Assert.Equal(answer, a.Answers[key]);
+                    AssertSameAnswer(answer, a.Answers[key]);
                 }
             }
         }
@@ -186,23 +240,46 @@ public sealed class ResultsFileTests
 
     private static EvaluationResults With(ItemResult item) => new(Header(1), [item]);
 
+    // A good item by default; each argument replaces one member.
+    private static ItemResult Item(
+        string id = "x1",
+        int line = 1,
+        double latency = 1,
+        double? cost = null,
+        string? model = null,
+        string? responseId = null,
+        int? inputTokens = null,
+        int? outputTokens = null,
+        IReadOnlyDictionary<string, AnswerRecord>? answers = null,
+        bool noAnswers = false,
+        ItemError? error = null)
+        => new()
+        {
+            Id = id,
+            Line = line,
+            LatencyMs = latency,
+            Model = model,
+            InputTokens = inputTokens,
+            OutputTokens = outputTokens,
+            Cost = cost,
+            ResponseId = responseId,
+            Answers = noAnswers ? null : answers ?? new Dictionary<string, AnswerRecord> { ["q"] = AnswerRecord.ForNoul(0.8) },
+            Error = error,
+        };
+
     private static ItemResult Ok(AnswerRecord? answer = null, double latency = 1, double? cost = null)
-        => new("x1", 1, latency, false, null, null, null, cost, null,
-            new Dictionary<string, AnswerRecord> { ["q"] = answer ?? new AnswerRecord(QuestionKind.Noul, true, 0.8, null, 0, 0.8) }, null);
+        => Item(latency: latency, cost: cost, answers: answer is null ? null : new Dictionary<string, AnswerRecord> { ["q"] = answer });
+
+    private static ItemError Error(string kind = "Http", string message = "m") => new() { Kind = kind, Message = message };
 
     [Fact]
     public void Save_RefusesRecordsTheFileCannotHold()
     {
-        var good = Ok();
-        AssertSaveRefuses(With(good with { Error = new ItemError("Http", null, "m") }), "x1");
-        AssertSaveRefuses(With(good with { Answers = null }), "x1");
-        AssertSaveRefuses(With(Ok(new AnswerRecord(QuestionKind.Choice, false, null, null, 0, 0.5))), "ChoiceKey");
-        AssertSaveRefuses(With(Ok(new AnswerRecord(QuestionKind.Noul, true, null, null, 0, 0.5))), "Probability");
+        AssertSaveRefuses(With(Item(error: Error())), "x1");
+        AssertSaveRefuses(With(Item(noAnswers: true)), "x1");
         AssertSaveRefuses(With(Ok(latency: double.NaN)), "latencyMs");
         AssertSaveRefuses(With(Ok(cost: double.PositiveInfinity)), "cost");
         AssertSaveRefuses(With(Ok(cost: -1)), "cost");
-        AssertSaveRefuses(With(Ok(new AnswerRecord(QuestionKind.Score, false, null, null, 1, double.NaN))), "Confidence");
-        AssertSaveRefuses(With(Ok(new AnswerRecord(QuestionKind.Noul, true, double.NegativeInfinity, null, 0, 0.5))), "Probability");
     }
 
     [Fact]
@@ -295,22 +372,15 @@ public sealed class ResultsFileTests
     public void Save_RefusesWhatLoadWouldRefuse()
     {
         var good = Ok();
-        var noul = new AnswerRecord(QuestionKind.Noul, true, 0.8, null, 0, 0.8);
         AssertSaveRefuses(new EvaluationResults(Header(2), [good]), "ItemCount");
-        AssertSaveRefuses(new EvaluationResults(Header(1) with { DatasetName = null! }, [good]), "DatasetName");
-        AssertSaveRefuses(new EvaluationResults(Header(1) with { DatasetName = string.Empty }, [good]), "DatasetName");
-        AssertSaveRefuses(With(Ok(new AnswerRecord(QuestionKind.Choice, false, null, null, 0, 0.5))), "ChoiceKey");
-        AssertSaveRefuses(new EvaluationResults(Header(1) with { Parallelism = 0 }, [good]), "Parallelism");
+        AssertSaveRefuses(new EvaluationResults(Header(1, datasetName: null!), [good]), "DatasetName");
+        AssertSaveRefuses(new EvaluationResults(Header(1, datasetName: string.Empty), [good]), "DatasetName");
+        AssertSaveRefuses(new EvaluationResults(Header(1, parallelism: 0), [good]), "Parallelism");
         AssertSaveRefuses(new EvaluationResults(Header(2), [good, good]), "twice");
-        AssertSaveRefuses(With(good with { Line = 0 }), "Line");
-        AssertSaveRefuses(With(good with { InputTokens = -1 }), "inputTokens");
-        AssertSaveRefuses(With(good with { OutputTokens = -1 }), "outputTokens");
-        AssertSaveRefuses(With(Ok(noul with { Confidence = 1.5 })), "Confidence");
-        AssertSaveRefuses(With(Ok(noul with { Confidence = -0.1 })), "Confidence");
-        AssertSaveRefuses(With(Ok(noul with { Probability = 1.5 })), "Probability");
-        AssertSaveRefuses(With(Ok(new AnswerRecord(QuestionKind.Choice, false, 2, "k", 0, 0.5))), "Probability");
-        AssertSaveRefuses(With(Ok(new AnswerRecord(QuestionKind.Score, false, null, null, -1, 0.5))), "ScoreLevel");
-        AssertSaveRefuses(With(good with { Answers = new Dictionary<string, AnswerRecord>() }), "Answers");
+        AssertSaveRefuses(With(Item(line: 0)), "Line");
+        AssertSaveRefuses(With(Item(inputTokens: -1)), "inputTokens");
+        AssertSaveRefuses(With(Item(outputTokens: -1)), "outputTokens");
+        AssertSaveRefuses(With(Item(answers: new Dictionary<string, AnswerRecord>())), "Answers");
     }
 
     [Theory]
@@ -326,26 +396,26 @@ public sealed class ResultsFileTests
         AssertProblemOnLine(HeaderLine(count: 1) + "\n" + ItemLine(tail: ",\"answers\":{\"q\":" + answer + "}"), 2, "'q'");
     }
 
-    [Fact]
-    public void Save_RefusesNoulDisagreeingWithItsProbability()
-    {
-        AssertSaveRefuses(With(Ok(new AnswerRecord(QuestionKind.Noul, true, 0.2, null, 0, 0.8))), "Answers[q]");
-        AssertSaveRefuses(With(Ok(new AnswerRecord(QuestionKind.Noul, true, 0.8, null, 0, 0.7))), "Answers[q]");
-        AssertSaveRefuses(With(Ok(new AnswerRecord(QuestionKind.Noul, false, 0.5, null, 0, 0.5))), "x1");
-    }
-
     [Theory]
     [InlineData(0.3)]
     [InlineData(0.5)]
     [InlineData(0.7)]
     public void RunnerNoulAnswer_SavesAndLoads(double p)
     {
-        var answer = new AnswerRecord(QuestionKind.Noul, p >= 0.5, p, null, 0, Math.Max(p, 1 - p));
+        var answer = AnswerRecord.ForNoul(p);
         var results = With(Ok(answer));
 
         var loaded = Parse(Bytes(results));
 
-        Assert.Equal(answer, loaded.Items[0].Answers!["q"]);
+        AssertSameAnswer(answer, loaded.Items[0].Answers!["q"]);
+    }
+
+    [Fact]
+    public void ProbabilityOnAChoiceOrScoreAnswer_IsAProblem()
+    {
+        // An AnswerRecord holds a probability only for a Noul answer, so a file that gives one elsewhere cannot load as written.
+        AssertProblemOnLine(HeaderLine(count: 1) + "\n" + ItemLine(tail: ",\"answers\":{\"q\":{\"kind\":\"choice\",\"value\":\"k\",\"confidence\":0.5,\"probability\":0.5}}"), 2, "probability");
+        AssertProblemOnLine(HeaderLine(count: 1) + "\n" + ItemLine(tail: ",\"answers\":{\"q\":{\"kind\":\"score\",\"value\":1,\"confidence\":0.5,\"probability\":0.5}}"), 2, "probability");
     }
 
     [Fact]
@@ -357,15 +427,15 @@ public sealed class ResultsFileTests
     {
         var lone = new string((char)0xD800, 1);
         var good = Ok();
-        AssertSaveRefuses(new EvaluationResults(Header(1) with { DatasetName = lone }, [good]), "DatasetName");
-        AssertSaveRefuses(new EvaluationResults(Header(1) with { ProviderName = lone }, [good]), "ProviderName");
-        AssertSaveRefuses(new EvaluationResults(Header(1) with { DefaultModel = lone }, [good]), "DefaultModel");
-        AssertSaveRefuses(With(good with { Id = lone }), "Id");
-        AssertSaveRefuses(With(good with { Model = lone }), "Model");
-        AssertSaveRefuses(With(good with { ResponseId = lone }), "ResponseId");
-        AssertSaveRefuses(With(Ok(new AnswerRecord(QuestionKind.Choice, false, null, lone, 0, 0.5))), "ChoiceKey");
-        AssertSaveRefuses(With(good with { Answers = new Dictionary<string, AnswerRecord> { [lone] = good.Answers!["q"] } }), "key");
-        AssertSaveRefuses(With(good with { Answers = null, Error = new ItemError("Http", null, "bad " + lone) }), "Error.Message");
-        AssertSaveRefuses(With(good with { Answers = null, Error = new ItemError(lone, null, "m") }), "Error.Kind");
+        AssertSaveRefuses(new EvaluationResults(Header(1, datasetName: lone), [good]), "DatasetName");
+        AssertSaveRefuses(new EvaluationResults(Header(1, providerName: lone), [good]), "ProviderName");
+        AssertSaveRefuses(new EvaluationResults(Header(1, defaultModel: lone), [good]), "DefaultModel");
+        AssertSaveRefuses(With(Item(id: lone)), "Id");
+        AssertSaveRefuses(With(Item(model: lone)), "Model");
+        AssertSaveRefuses(With(Item(responseId: lone)), "ResponseId");
+        AssertSaveRefuses(With(Ok(AnswerRecord.ForChoice(lone, 0.5))), "ChoiceKey");
+        AssertSaveRefuses(With(Item(answers: new Dictionary<string, AnswerRecord> { [lone] = good.Answers!["q"] })), "key");
+        AssertSaveRefuses(With(Item(noAnswers: true, error: Error(message: "bad " + lone))), "Error.Message");
+        AssertSaveRefuses(With(Item(noAnswers: true, error: Error(kind: lone))), "Error.Kind");
     }
 }

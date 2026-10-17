@@ -131,7 +131,7 @@ internal static class Program
         EvaluationChecks.HandBuiltResultsRoundTrip();
         EvaluationChecks.PricesMatchTheModelAndItsVariants();
         await EvaluationChecks.ReportsCountAndRender().ConfigureAwait(false);
-        EvaluationChecks.SummariesAreHandBuilt();
+        await EvaluationChecks.ReportSummariesKeepTheirValues().ConfigureAwait(false);
 
         await AllocationChecks.AnswerSlotAccessors().ConfigureAwait(false);
         await AllocationChecks.GeneratedCreate().ConfigureAwait(false);

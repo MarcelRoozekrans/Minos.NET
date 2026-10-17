@@ -1,3 +1,4 @@
+using System.Collections.ObjectModel;
 using ZeroAlloc.Results;
 
 namespace Minos.Evaluation;
@@ -7,14 +8,14 @@ public sealed class EvaluationResults
 {
     /// <summary>Creates results.</summary>
     /// <param name="header">What the run was.</param>
-    /// <param name="items">The item results, in dataset order.</param>
+    /// <param name="items">The item results, in dataset order. The list is copied.</param>
     /// <exception cref="ArgumentNullException">An argument is <see langword="null"/>.</exception>
     public EvaluationResults(RunHeader header, IReadOnlyList<ItemResult> items)
     {
         ArgumentNullException.ThrowIfNull(header);
         ArgumentNullException.ThrowIfNull(items);
         Header = header;
-        Items = items;
+        Items = new ReadOnlyCollection<ItemResult>([.. items]);
     }
 
     /// <summary>Gets what the run was.</summary>

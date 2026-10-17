@@ -154,7 +154,17 @@ internal static class ResultsReader
             return null;
         }
 
-        return new RunHeader(dataset, itemCount.Value, provider, endpoint, model, started.Value, finished.Value, parallelism.Value);
+        return new RunHeader
+        {
+            DatasetName = dataset,
+            ItemCount = itemCount.Value,
+            ProviderName = provider,
+            Endpoint = endpoint,
+            DefaultModel = model,
+            Started = started.Value,
+            Finished = finished.Value,
+            Parallelism = parallelism.Value,
+        };
     }
 
     private static ItemResult? ReadItem(JsonElement root, int line, List<DatasetProblem> problems)
@@ -200,7 +210,20 @@ internal static class ResultsReader
             return null;
         }
 
-        return new ItemResult(id, itemLine.Value, latency.Value, cached.Value, model, inputTokens, outputTokens, cost, responseId, answers, error);
+        return new ItemResult
+        {
+            Id = id,
+            Line = itemLine.Value,
+            LatencyMs = latency.Value,
+            Cached = cached.Value,
+            Model = model,
+            InputTokens = inputTokens,
+            OutputTokens = outputTokens,
+            Cost = cost,
+            ResponseId = responseId,
+            Answers = answers,
+            Error = error,
+        };
     }
 
     private static Dictionary<string, AnswerRecord>? ReadAnswers(JsonElement element, int line, List<DatasetProblem> problems)
@@ -256,6 +279,11 @@ internal static class ResultsReader
             return null;
         }
 
+        if (probability is not null && kind is "choice" or "score")
+        {
+            problems.Add(new DatasetProblem(line, $"Member '{where}.probability' is only for a noul answer."));
+        }
+
         AnswerRecord? record = null;
         switch (kind)
         {
@@ -270,8 +298,10 @@ internal static class ResultsReader
                     {
                         problems.Add(new DatasetProblem(line, $"Answer '{key}' must {ResultsRules.NoulConsistencyRule}."));
                     }
-
-                    record = new AnswerRecord(QuestionKind.Noul, value.GetBoolean(), probability, null, 0, confidence ?? 0);
+                    else if (confidence is not null)
+                    {
+                        record = AnswerRecord.ForNoul(probability.Value);
+                    }
                 }
                 else
                 {
@@ -282,7 +312,7 @@ internal static class ResultsReader
             case "choice":
                 if (value.ValueKind == JsonValueKind.String)
                 {
-                    record = new AnswerRecord(QuestionKind.Choice, false, probability, value.GetString(), 0, confidence ?? 0);
+                    record = confidence is { } c ? AnswerRecord.ForChoice(value.GetString()!, c) : null;
                 }
                 else
                 {
@@ -293,7 +323,7 @@ internal static class ResultsReader
             case "score":
                 if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var level) && level >= ResultsRules.MinScoreLevel)
                 {
-                    record = new AnswerRecord(QuestionKind.Score, false, probability, null, level, confidence ?? 0);
+                    record = confidence is { } c ? AnswerRecord.ForScore(level, c) : null;
                 }
                 else
                 {
@@ -323,7 +353,7 @@ internal static class ResultsReader
         var kind = r.String("kind", required: true);
         var status = r.Int("statusCode", required: false);
         var message = r.String("message", required: true);
-        return problems.Count > before || kind is null || message is null ? null : new ItemError(kind, status, message);
+        return problems.Count > before || kind is null || message is null ? null : new ItemError { Kind = kind, StatusCode = status, Message = message };
     }
 
     // Typed reads of an object's members; a wrong or missing member is a problem on the line and reads as null.

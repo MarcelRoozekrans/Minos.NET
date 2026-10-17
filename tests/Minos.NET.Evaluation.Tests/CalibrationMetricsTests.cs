@@ -16,9 +16,12 @@ public sealed class CalibrationMetricsTests
 
     private static string AllKindsLine(string id) => "{\"id\":\"" + id + "\",\"state\":\"x\",\"version\":1," + AllKindsQuestions;
 
-    private static AnswerRecord Choice(string key, double confidence) => new(QuestionKind.Choice, false, null, key, 0, confidence);
+    private static AnswerRecord Choice(string key, double confidence) => AnswerRecord.ForChoice(key, confidence);
 
-    private static AnswerRecord Score(int level, double confidence) => new(QuestionKind.Score, false, null, null, level, confidence);
+    private static AnswerRecord Score(int level, double confidence) => AnswerRecord.ForScore(level, confidence);
+
+    private static void Latency(LatencySummary latency, int requests, double? median, double? p95)
+        => Assert.Equal((requests, median, p95), (latency.Requests, latency.MedianMs, latency.P95Ms));
 
     private static Dictionary<string, AnswerRecord> Q(AnswerRecord answer) => new() { ["q"] = answer };
 
@@ -60,8 +63,12 @@ public sealed class CalibrationMetricsTests
         Assert.Equal(expected.BaseRate, actual.BaseRate);
         Assert.Equal(expected.ExpectedCalibrationError, actual.ExpectedCalibrationError);
         Assert.Equal(expected.ExpectedCalibrationErrorEqualWidth, actual.ExpectedCalibrationErrorEqualWidth);
-        Assert.Equal(expected.Bins, actual.Bins);
-        Assert.Equal(expected.Sweep, actual.Sweep);
+        Assert.Equal(
+            expected.Bins.Select(b => (b.Count, b.MeanConfidence, b.Accuracy)),
+            actual.Bins.Select(b => (b.Count, b.MeanConfidence, b.Accuracy)));
+        Assert.Equal(
+            expected.Sweep.Select(p => (p.Threshold, p.Coverage, p.Accuracy, p.Covered)),
+            actual.Sweep.Select(p => (p.Threshold, p.Coverage, p.Accuracy, p.Covered)));
     }
 
     [Fact]
@@ -106,7 +113,7 @@ public sealed class CalibrationMetricsTests
         Assert.Null(report.Score);
         Assert.Equal(0, report.UnscoredQuestions);
 
-        Assert.Equal(new LatencySummary(12, 600, 1200), report.Latency);
+        Latency(report.Latency, 12, 600, 1200);
 
         Assert.Equal(4, report.Cost.Reported);
         Assert.Equal(4, report.Cost.Priced);
@@ -118,7 +125,7 @@ public sealed class CalibrationMetricsTests
         Assert.Equal(2, report.Errors.Count);
         Assert.Equal(new[] { new KeyValuePair<string, int>("Server", 2) }, report.Errors.ByKind);
 
-        Assert.Equal(new[] { new ModelCount(null, 8), new ModelCount("jev-1.14-20261014", 4) }, report.ResponseModels);
+        Assert.Equal([(null, 8), ("jev-1.14-20261014", 4)], report.ResponseModels.Select(m => (m.Model, m.Count)));
         Assert.Equal("fixture", report.Header.DatasetName);
     }
 
@@ -188,7 +195,7 @@ public sealed class CalibrationMetricsTests
         Assert.Empty(overall.Bins);
         Assert.Equal(100, overall.Sweep.Count);
         Assert.All(overall.Sweep, p => Assert.Equal((0.0, (double?)null, 0), (p.Coverage, p.Accuracy, p.Covered)));
-        Assert.Equal(new LatencySummary(0, null, null), report.Latency);
+        Latency(report.Latency, 0, null, null);
         Assert.Equal(((double?)null, 0, 0, 0, 0), (report.Cost.PerThousandDecisions, report.Cost.Reported, report.Cost.Priced, report.Cost.Unknown, report.Cost.Cached));
         Assert.Empty(report.Cost.PricesUsed);
         Assert.Equal(0, report.Errors.Count);
@@ -212,7 +219,7 @@ public sealed class CalibrationMetricsTests
         Assert.Null(noul.ExpectedCalibrationError);
         Assert.Empty(noul.Bins);
         Assert.All(noul.Sweep, p => Assert.Equal((0.0, (double?)null, 0), (p.Coverage, p.Accuracy, p.Covered)));
-        Assert.Equal(new LatencySummary(0, null, null), report.Latency);
+        Latency(report.Latency, 0, null, null);
         Assert.Null(report.Cost.PerThousandDecisions);
         Assert.Equal(3, report.Errors.Count);
         Assert.Equal(new[] { new KeyValuePair<string, int>("Server", 2), new KeyValuePair<string, int>("Timeout", 1) }, report.Errors.ByKind);
@@ -265,7 +272,7 @@ public sealed class CalibrationMetricsTests
 
         var report = Report(results, dataset);
 
-        Assert.Equal(new LatencySummary(1, 300, 300), report.Latency);
+        Latency(report.Latency, 1, 300, 300);
         Assert.Equal(1, report.Cost.Cached);
         Assert.Equal(1, report.Cost.Reported);
         Assert.Equal(0, report.Cost.Unknown);
@@ -279,7 +286,7 @@ public sealed class CalibrationMetricsTests
         var dataset = Dataset([.. Enumerable.Range(1, 20).Select(i => NoulLine(Id(i), true))]);
         var results = Results([.. Enumerable.Range(1, 20).Select(i => Answered(i, Q(Noul(true, 0.9)), latencyMs: 21 - i))]);
 
-        Assert.Equal(new LatencySummary(20, 10, 19), Report(results, dataset).Latency);
+        Latency(Report(results, dataset).Latency, 20, 10, 19);
     }
 
     [Fact]
@@ -352,7 +359,7 @@ public sealed class CalibrationMetricsTests
     public void PricedCost_UsesBothTokenCounts()
     {
         var dataset = Dataset(NoulLine(Id(1), true));
-        var price = new ModelPrice("m", 2, 10, new DateOnly(2026, 10, 1), "s");
+        var price = Price("m", 2, 10, new DateOnly(2026, 10, 1), "s");
         var results = Results(Answered(1, Q(Noul(true, 0.9)), model: "m-2026", inputTokens: 1000, outputTokens: 500));
 
         var cost = Report(results, dataset, new PriceTable([price])).Cost;
@@ -367,8 +374,8 @@ public sealed class CalibrationMetricsTests
     {
         var dataset = Dataset(AllKindsLine("a"), AllKindsLine("b"));
         var results = Results(
-            Answered(1, new Dictionary<string, AnswerRecord> { ["n"] = Noul(true, 0.9), ["c"] = Choice("two", 0.4), ["s"] = Score(1, 0.8) }) with { Id = "a" },
-            Answered(2, new Dictionary<string, AnswerRecord> { ["n"] = Noul(false, 0.6), ["c"] = Choice("one", 0.7), ["s"] = Score(2, 0.6) }) with { Id = "b" });
+            Answered(1, new Dictionary<string, AnswerRecord> { ["n"] = Noul(true, 0.9), ["c"] = Choice("two", 0.4), ["s"] = Score(1, 0.8) }, id: "a"),
+            Answered(2, new Dictionary<string, AnswerRecord> { ["n"] = Noul(false, 0.6), ["c"] = Choice("one", 0.7), ["s"] = Score(2, 0.6) }, id: "b"));
 
         var report = Report(results, dataset);
 
@@ -394,9 +401,9 @@ public sealed class CalibrationMetricsTests
     {
         var dataset = Dataset(AllKindsLine("a"), AllKindsLine("b"), AllKindsLine("c"));
         var results = Results(
-            Answered(1, new Dictionary<string, AnswerRecord> { ["n"] = Noul(true, 0.9), ["c"] = Choice("two", 0.4), ["s"] = Score(1, 0.8) }) with { Id = "a" },
-            Answered(2, new Dictionary<string, AnswerRecord> { ["n"] = Noul(false, 0.6), ["c"] = Choice("one", 0.7), ["s"] = Score(2, 0.6) }) with { Id = "b" },
-            Failed(3) with { Id = "c" });
+            Answered(1, new Dictionary<string, AnswerRecord> { ["n"] = Noul(true, 0.9), ["c"] = Choice("two", 0.4), ["s"] = Score(1, 0.8) }, id: "a"),
+            Answered(2, new Dictionary<string, AnswerRecord> { ["n"] = Noul(false, 0.6), ["c"] = Choice("one", 0.7), ["s"] = Score(2, 0.6) }, id: "b"),
+            Failed(3, id: "c"));
 
         var report = Report(results, dataset);
 
@@ -431,7 +438,7 @@ public sealed class CalibrationMetricsTests
             choiceLine.Replace("ID", "b", StringComparison.Ordinal).Replace("KEY", "two", StringComparison.Ordinal),
             choiceLine.Replace("ID", "c", StringComparison.Ordinal).Replace("KEY", "two", StringComparison.Ordinal));
         var answers = new Dictionary<string, AnswerRecord> { ["c"] = Choice("two", 0.5) };
-        var results = Results(Answered(1, answers) with { Id = "a" }, Answered(2, answers) with { Id = "b" }, Answered(3, answers) with { Id = "c" });
+        var results = Results(Answered(1, answers, id: "a"), Answered(2, answers, id: "b"), Answered(3, answers, id: "c"));
 
         var choice = Report(results, dataset).Choice!;
 
@@ -444,7 +451,7 @@ public sealed class CalibrationMetricsTests
     {
         var results = FixtureResults();
         var items = results.Items.ToArray();
-        items[2] = items[2] with { Id = "other" };
+        items[2] = Answered(3, items[2].Answers!, items[2].LatencyMs, id: "other");
 
         var result = CalibrationReport.Create(new EvaluationResults(results.Header, items), FixtureDataset());
 
@@ -471,7 +478,7 @@ public sealed class CalibrationMetricsTests
     public void HeaderCountMismatch_IsAProblem()
     {
         var results = FixtureResults();
-        var header = results.Header with { ItemCount = 15 };
+        var header = Header(15);
 
         var result = CalibrationReport.Create(new EvaluationResults(header, results.Items), FixtureDataset());
 
@@ -484,7 +491,7 @@ public sealed class CalibrationMetricsTests
     {
         var dataset = Dataset(AllKindsLine("a"), AllKindsLine("b"));
         var good = new Dictionary<string, AnswerRecord> { ["n"] = Noul(true, 0.9), ["c"] = Choice("two", 0.4), ["s"] = Score(1, 0.8) };
-        var results = Results(Answered(1, good) with { Id = "a" }, Answered(2, answers) with { Id = "b" });
+        var results = Results(Answered(1, good, id: "a"), Answered(2, answers, id: "b"));
 
         var result = CalibrationReport.Create(results, dataset);
 
@@ -517,49 +524,12 @@ public sealed class CalibrationMetricsTests
     {
         Assert.Contains("'four'", AnswerProblem(new() { ["c"] = Choice("four", 0.9) }).Message, StringComparison.Ordinal);
         Assert.Contains("'Two'", AnswerProblem(new() { ["c"] = Choice("Two", 0.9) }).Message, StringComparison.Ordinal);
-        AnswerProblem(new() { ["c"] = new AnswerRecord(QuestionKind.Choice, false, null, null, 0, 0.9) });
     }
 
     [Fact]
     public void ScoreLevelOutOfRange_IsAProblem()
     {
         Assert.Contains("level 3", AnswerProblem(new() { ["s"] = Score(3, 0.9) }).Message, StringComparison.Ordinal);
-        Assert.Contains("level -1", AnswerProblem(new() { ["s"] = Score(-1, 0.9) }).Message, StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void ConfidenceOutOfRange_IsAProblem()
-    {
-        foreach (var confidence in new[] { -0.1, 1.5, double.NaN, double.PositiveInfinity })
-        {
-            Assert.Contains("confidence", AnswerProblem(new() { ["c"] = Choice("two", confidence) }).Message, StringComparison.Ordinal);
-            Assert.Contains("confidence", AnswerProblem(new() { ["s"] = Score(1, confidence) }).Message, StringComparison.Ordinal);
-        }
-    }
-
-    [Fact]
-    public void NoulProbabilityOutOfRange_IsAProblem()
-    {
-        foreach (double? probability in new double?[] { null, -0.1, 1.2, double.NaN })
-        {
-            var answer = new AnswerRecord(QuestionKind.Noul, true, probability, null, 0, 0.9);
-            Assert.Contains("probability", AnswerProblem(new() { ["n"] = answer }).Message, StringComparison.Ordinal);
-        }
-    }
-
-    [Fact]
-    public void NoulDisagreeingWithItsProbability_IsAProblem()
-    {
-        foreach (var answer in new[]
-        {
-            new AnswerRecord(QuestionKind.Noul, true, 0.2, null, 0, 0.1),
-            new AnswerRecord(QuestionKind.Noul, true, 0.2, null, 0, 0.8),
-            new AnswerRecord(QuestionKind.Noul, false, 0.5, null, 0, 0.5),
-            new AnswerRecord(QuestionKind.Noul, true, 0.8, null, 0, 0.7),
-        })
-        {
-            Assert.Contains("'n'", AnswerProblem(new() { ["n"] = answer }).Message, StringComparison.Ordinal);
-        }
     }
 
     [Fact]
@@ -594,7 +564,7 @@ public sealed class CalibrationMetricsTests
         var dataset = Dataset(AllKindsLine("a"));
         var answers = new Dictionary<string, AnswerRecord> { ["n"] = Noul(false, 1), ["c"] = Choice("three", 0), ["s"] = Score(0, 1) };
 
-        Assert.True(CalibrationReport.Create(Results(Answered(1, answers) with { Id = "a" }), dataset).IsSuccess);
+        Assert.True(CalibrationReport.Create(Results(Answered(1, answers, id: "a")), dataset).IsSuccess);
     }
 
     [Fact]
@@ -609,7 +579,7 @@ public sealed class CalibrationMetricsTests
         // c1's majority is "one", c2's is "two": pooled over the kind, "one" and "two" tie at 4 of 8.
         var dataset = Dataset(Line("a", "one", "two"), Line("b", "one", "two"), Line("c", "one", "two"), Line("d", "two", "one"));
         var answers = new Dictionary<string, AnswerRecord> { ["c1"] = Choice("one", 0.9), ["c2"] = Choice("one", 0.9) };
-        var results = Results([.. "abcd".Select(c => c.ToString()).Select((id, i) => Answered(i + 1, answers) with { Id = id })]);
+        var results = Results([.. "abcd".Select(c => c.ToString()).Select((id, i) => Answered(i + 1, answers, id: id))]);
 
         var report = Report(results, dataset);
 
@@ -628,7 +598,7 @@ public sealed class CalibrationMetricsTests
 
         var dataset = Dataset(Line("a", true, false), Line("b", true, false), Line("c", false, true));
         var answers = new Dictionary<string, AnswerRecord> { ["p"] = Noul(true, 0.9), ["r"] = Noul(true, 0.9) };
-        var results = Results([.. "abc".Select(c => c.ToString()).Select((id, i) => Answered(i + 1, answers) with { Id = id })]);
+        var results = Results([.. "abc".Select(c => c.ToString()).Select((id, i) => Answered(i + 1, answers, id: id))]);
 
         Near(4 / 6.0, Report(results, dataset).Noul!.BaseRate);
     }

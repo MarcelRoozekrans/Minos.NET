@@ -48,11 +48,11 @@ internal static class ReportJsonWriter
             w.WriteEndArray();
             w.WriteEndObject();
             w.WriteStartArray("responseModels");
-            foreach (var (model, count) in report.ResponseModels)
+            foreach (var model in report.ResponseModels)
             {
                 w.WriteStartObject();
-                w.WriteString("model", model);
-                w.WriteNumber("count", count);
+                w.WriteString("model", model.Model);
+                w.WriteNumber("count", model.Count);
                 w.WriteEndObject();
             }
 

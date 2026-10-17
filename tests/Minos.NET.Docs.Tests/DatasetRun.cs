@@ -24,7 +24,15 @@ public static class DatasetRun
         results.Save(resultsPath);
 
         // The prices are only used for responses that report no cost of their own.
-        var prices = new PriceTable([new ModelPrice("jev-1.14", 0.042, 0, new DateOnly(2026, 10, 17), "OpenRouter listing")]);
+        var price = new ModelPrice
+        {
+            Model = "jev-1.14",
+            InputPerMillion = 0.042,
+            OutputPerMillion = 0,
+            Date = new DateOnly(2026, 10, 17),
+            Source = "OpenRouter listing",
+        };
+        var prices = new PriceTable([price]);
 
         // Later, EvaluationResults.Load(resultsPath) brings the same results back, and the report is made again from them.
         var report = CalibrationReport.Create(results, dataset, prices);

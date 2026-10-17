@@ -1,4 +1,5 @@
 using System.Buffers;
+using System.Diagnostics;
 using System.Text.Encodings.Web;
 using System.Text.Json;
 
@@ -222,7 +223,7 @@ internal static class ResultsWriter
                 w.WriteNumber("value", a.ScoreLevel);
                 break;
             default:
-                throw new InvalidOperationException("Unknown question kind " + a.Kind + ".");
+                throw new UnreachableException("An AnswerRecord is made by its factories, which set a defined kind.");
         }
 
         w.WriteNumber("confidence", a.Confidence);

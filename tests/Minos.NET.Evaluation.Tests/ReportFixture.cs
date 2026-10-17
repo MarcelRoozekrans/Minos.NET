@@ -7,7 +7,7 @@ internal static class ReportFixture
 
     internal static readonly bool[] Correct = [false, true, false, true, true, false, true, true, true, true, true, true];
 
-    internal static readonly ModelPrice FixturePrice = new("jev-1.14", 0.042, 0, new DateOnly(2026, 10, 17), "OpenRouter listing");
+    internal static readonly ModelPrice FixturePrice = Price("jev-1.14", 0.042, 0, new DateOnly(2026, 10, 17), "OpenRouter listing");
 
     internal static readonly DateTimeOffset Start = new(2026, 10, 17, 9, 0, 0, TimeSpan.Zero);
 
@@ -24,8 +24,11 @@ internal static class ReportFixture
         return result.Value;
     }
 
-    internal static AnswerRecord Noul(bool answer, double confidence)
-        => new(QuestionKind.Noul, answer, answer ? confidence : 1 - confidence, null, 0, confidence);
+    internal static ModelPrice Price(string model, double inputPerMillion, double outputPerMillion, DateOnly date, string source)
+        => new() { Model = model, InputPerMillion = inputPerMillion, OutputPerMillion = outputPerMillion, Date = date, Source = source };
+
+    // For a confidence c from 0.5 to 1, 1 - c is exact, and so is 1 - (1 - c), so the answer's confidence is c itself.
+    internal static AnswerRecord Noul(bool answer, double confidence) => AnswerRecord.ForNoul(answer ? confidence : 1 - confidence);
 
     internal static ItemResult Answered(
         int item,
@@ -35,14 +38,37 @@ internal static class ReportFixture
         string? model = null,
         int? inputTokens = null,
         int? outputTokens = null,
-        double? cost = null)
-        => new(Id(item), item, latencyMs, cached, model, inputTokens, outputTokens, cost, null, answers, null);
+        double? cost = null,
+        string? id = null)
+        => new()
+        {
+            Id = id ?? Id(item),
+            Line = item,
+            LatencyMs = latencyMs,
+            Cached = cached,
+            Model = model,
+            InputTokens = inputTokens,
+            OutputTokens = outputTokens,
+            Cost = cost,
+            Answers = answers,
+        };
 
-    internal static ItemResult Failed(int item, string kind = "Server")
-        => new(Id(item), item, 50, false, null, null, null, null, null, null, new ItemError(kind, 500, "failed"));
+    internal static ItemResult Failed(int item, string kind = "Server", string? id = null)
+        => new() { Id = id ?? Id(item), Line = item, LatencyMs = 50, Error = new ItemError { Kind = kind, StatusCode = 500, Message = "failed" } };
 
-    internal static EvaluationResults Results(params ItemResult[] items)
-        => new(new RunHeader("fixture", items.Length, "fake", null, "jev-1.14", Start, Start.AddMinutes(1), 1), items);
+    internal static RunHeader Header(int itemCount)
+        => new()
+        {
+            DatasetName = "fixture",
+            ItemCount = itemCount,
+            ProviderName = "fake",
+            DefaultModel = "jev-1.14",
+            Started = Start,
+            Finished = Start.AddMinutes(1),
+            Parallelism = 1,
+        };
+
+    internal static EvaluationResults Results(params ItemResult[] items) => new(Header(items.Length), items);
 
     internal static DecisionDataset FixtureDataset()
         => Dataset([.. Enumerable.Range(1, 14).Select(i => NoulLine(Id(i), i <= 8))]);
@@ -87,18 +113,18 @@ internal static class ReportFixture
             Answered(15, new Dictionary<string, AnswerRecord>
             {
                 ["n"] = Noul(true, 0.9),
-                ["c"] = new(QuestionKind.Choice, false, null, "two", 0, 0.4),
-                ["s"] = new(QuestionKind.Score, false, null, null, 2, 0.8),
+                ["c"] = AnswerRecord.ForChoice("two", 0.4),
+                ["s"] = AnswerRecord.ForScore(2, 0.8),
             }, 1200),
             Answered(16, new Dictionary<string, AnswerRecord>
             {
                 ["n"] = Noul(false, 0.6),
-                ["c"] = new(QuestionKind.Choice, false, null, "one", 0, 0.7),
-                ["s"] = new(QuestionKind.Score, false, null, null, 1, 0.6),
+                ["c"] = AnswerRecord.ForChoice("one", 0.7),
+                ["s"] = AnswerRecord.ForScore(1, 0.6),
             }, 1300),
             Failed(17, "Timeout"),
         };
-        var all = new EvaluationResults(results.Header with { ItemCount = 17 }, [.. results.Items, .. extra]);
+        var all = new EvaluationResults(Header(17), [.. results.Items, .. extra]);
         return Report(all, Dataset([.. lines]), new PriceTable([FixturePrice]));
     }
 

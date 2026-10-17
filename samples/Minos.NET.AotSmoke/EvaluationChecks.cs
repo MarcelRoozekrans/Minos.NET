@@ -6,7 +6,7 @@ namespace Minos.AotSmoke;
 
 /// <summary>
 /// The dataset runner, the results file, the price table and the calibration report under Native AOT: a run over a fake
-/// client, a save and a load, hand-built records, price lookups, and the report's JSON and Markdown.
+/// client, a save and a load, hand-built results, price lookups, and the report's summaries, JSON and Markdown.
 /// </summary>
 internal static class EvaluationChecks
 {
@@ -25,7 +25,7 @@ internal static class EvaluationChecks
         => DatasetRunner.RunAsync(new AnsweringClient(), dataset, options);
 
     private static PriceTable Prices()
-        => new([new ModelPrice("jev-1.14", 0.042, 0, new DateOnly(2026, 10, 17), "OpenRouter listing")]);
+        => new([new ModelPrice { Model = "jev-1.14", InputPerMillion = 0.042, OutputPerMillion = 0, Date = new DateOnly(2026, 10, 17), Source = "OpenRouter listing" }]);
 
     [Covers("Minos.Evaluation.DatasetRunOptions.DatasetRunOptions() -> void")]
     [Covers("static Minos.Evaluation.DatasetRunner.RunAsync(Minos.IDecisionClient! client, Minos.Evaluation.DecisionDataset! dataset, Minos.Evaluation.DatasetRunOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Minos.Evaluation.EvaluationResults!>!")]
@@ -91,17 +91,45 @@ internal static class EvaluationChecks
         }
     }
 
-    [Covers("Minos.Evaluation.AnswerRecord.AnswerRecord(Minos.QuestionKind Kind, bool Noul, double? Probability, string? ChoiceKey, int ScoreLevel, double Confidence) -> void")]
     [Covers("Minos.Evaluation.EvaluationResults.EvaluationResults(Minos.Evaluation.RunHeader! header, System.Collections.Generic.IReadOnlyList<Minos.Evaluation.ItemResult!>! items) -> void")]
-    [Covers("Minos.Evaluation.ItemError.ItemError(string! Kind, int? StatusCode, string! Message) -> void")]
-    [Covers("Minos.Evaluation.ItemResult.ItemResult(string! Id, int Line, double LatencyMs, bool Cached, string? Model, int? InputTokens, int? OutputTokens, double? Cost, string? ResponseId, System.Collections.Generic.IReadOnlyDictionary<string!, Minos.Evaluation.AnswerRecord!>? Answers, Minos.Evaluation.ItemError? Error) -> void")]
-    [Covers("Minos.Evaluation.RunHeader.RunHeader(string! DatasetName, int ItemCount, string? ProviderName, System.Uri? Endpoint, string? DefaultModel, System.DateTimeOffset Started, System.DateTimeOffset Finished, int Parallelism) -> void")]
+    [Covers("Minos.Evaluation.ItemError.ItemError() -> void")]
+    [Covers("Minos.Evaluation.ItemResult.ItemResult() -> void")]
+    [Covers("Minos.Evaluation.RunHeader.RunHeader() -> void")]
+    [Covers("static Minos.Evaluation.AnswerRecord.ForChoice(string! key, double confidence) -> Minos.Evaluation.AnswerRecord!")]
+    [Covers("static Minos.Evaluation.AnswerRecord.ForNoul(double probability) -> Minos.Evaluation.AnswerRecord!")]
+    [Covers("static Minos.Evaluation.AnswerRecord.ForScore(int level, double confidence) -> Minos.Evaluation.AnswerRecord!")]
     public static void HandBuiltResultsRoundTrip()
     {
-        var answer = new AnswerRecord(QuestionKind.Noul, true, 0.8, null, 0, 0.8);
-        var answered = new ItemResult("a", 1, 120, false, "jev-1.14", 10, 2, 0.5, "r1", new Dictionary<string, AnswerRecord>(StringComparer.Ordinal) { ["q"] = answer }, null);
-        var failed = new ItemResult("b", 2, 50, false, null, null, null, null, null, null, new ItemError("Server", 500, "failed"));
-        var header = new RunHeader("hand", 2, "fake", new Uri("https://example.test/"), "jev-1.14", Start, Start.AddMinutes(1), 1);
+        var answers = new Dictionary<string, AnswerRecord>(StringComparer.Ordinal)
+        {
+            ["q"] = AnswerRecord.ForNoul(0.2),
+            ["c"] = AnswerRecord.ForChoice("two", 0.6),
+            ["s"] = AnswerRecord.ForScore(2, 0.7),
+        };
+        var answered = new ItemResult
+        {
+            Id = "a",
+            Line = 1,
+            LatencyMs = 120,
+            Model = "jev-1.14",
+            InputTokens = 10,
+            OutputTokens = 2,
+            Cost = 0.5,
+            ResponseId = "r1",
+            Answers = answers,
+        };
+        var failed = new ItemResult { Id = "b", Line = 2, LatencyMs = 50, Error = new ItemError { Kind = "Server", StatusCode = 500, Message = "failed" } };
+        var header = new RunHeader
+        {
+            DatasetName = "hand",
+            ItemCount = 2,
+            ProviderName = "fake",
+            Endpoint = new Uri("https://example.test/"),
+            DefaultModel = "jev-1.14",
+            Started = Start,
+            Finished = Start.AddMinutes(1),
+            Parallelism = 1,
+        };
         var results = new EvaluationResults(header, [answered, failed]);
 
         using var stream = new MemoryStream();
@@ -112,18 +140,23 @@ internal static class EvaluationChecks
         Program.Check(
             parsed.IsSuccess
                 && parsed.Value.Items.Count == 2
-                && parsed.Value.Header.Equals(header)
+                && string.Equals(parsed.Value.Header.DatasetName, "hand", StringComparison.Ordinal)
+                && parsed.Value.Header.Started == Start
                 && parsed.Value.Items[0].Cost == 0.5
-                && parsed.Value.Items[0].Answers is { } answers
-                && answers["q"].Equals(answer)
+                && parsed.Value.Items[0].Answers is { } loaded
+                && !loaded["q"].Noul
+                && loaded["q"].Probability == 0.2
+                && loaded["q"].Confidence == 0.8
+                && string.Equals(loaded["c"].ChoiceKey, "two", StringComparison.Ordinal)
+                && loaded["s"].ScoreLevel == 2
                 && parsed.Value.Items[1].Error is { } error
                 && string.Equals(error.Kind, "Server", StringComparison.Ordinal)
                 && error.StatusCode == 500
                 && string.Equals(error.Message, "failed", StringComparison.Ordinal),
-            "hand-built results, with an answer and an error, round trip through the results file under Native AOT");
+            "hand-built results, with answers of each kind and an error, round trip through the results file under Native AOT");
     }
 
-    [Covers("Minos.Evaluation.ModelPrice.ModelPrice(string! Model, double InputPerMillion, double OutputPerMillion, System.DateOnly Date, string! Source) -> void")]
+    [Covers("Minos.Evaluation.ModelPrice.ModelPrice() -> void")]
     [Covers("Minos.Evaluation.PriceTable.PriceTable(System.Collections.Generic.IEnumerable<Minos.Evaluation.ModelPrice!>! prices) -> void")]
     [Covers("Minos.Evaluation.PriceTable.TryFind(string! model, out Minos.Evaluation.ModelPrice? price) -> bool")]
     public static void PricesMatchTheModelAndItsVariants()
@@ -177,35 +210,33 @@ internal static class EvaluationChecks
             "a report counts a run, and writes JSON of kind minos-report and Markdown, under Native AOT");
     }
 
-    [Covers("Minos.Evaluation.CostSummary.CostSummary(double? PerThousandDecisions, int Reported, int Priced, int Unknown, int Cached, System.Collections.Generic.IReadOnlyList<Minos.Evaluation.ModelPrice!>! PricesUsed) -> void")]
-    [Covers("Minos.Evaluation.ErrorSummary.ErrorSummary(int Count, System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, int>>! ByKind) -> void")]
-    [Covers("Minos.Evaluation.KindMetrics.KindMetrics(int Scored, int Answered, double? Accuracy, double? BaseRate, double? ExpectedCalibrationError, double? ExpectedCalibrationErrorEqualWidth, System.Collections.Generic.IReadOnlyList<Minos.Evaluation.ReliabilityBin!>! Bins, System.Collections.Generic.IReadOnlyList<Minos.Evaluation.SweepPoint!>! Sweep) -> void")]
-    [Covers("Minos.Evaluation.LatencySummary.LatencySummary(int Requests, double? MedianMs, double? P95Ms) -> void")]
-    [Covers("Minos.Evaluation.ModelCount.ModelCount(string? Model, int Count) -> void")]
-    [Covers("Minos.Evaluation.ReliabilityBin.ReliabilityBin(int Count, double MeanConfidence, double Accuracy) -> void")]
-    [Covers("Minos.Evaluation.SweepPoint.SweepPoint(double Threshold, double Coverage, double? Accuracy, int Covered) -> void")]
-    public static void SummariesAreHandBuilt()
+    public static async Task ReportSummariesKeepTheirValues()
     {
-        var bin = new ReliabilityBin(2, 0.8, 0.5);
-        var sweep = new SweepPoint(0.5, 1, 0.5, 2);
-        var kind = new KindMetrics(2, 2, 0.5, 0.5, 0.3, 0.3, [bin], [sweep]);
-        var latency = new LatencySummary(2, 100, 200);
-        var cost = new CostSummary(0.042, 0, 2, 0, 0, Prices().Prices);
-        var errors = new ErrorSummary(1, [new KeyValuePair<string, int>("Server", 1)]);
-        var models = new ModelCount("jev-1.14", 2);
+        var dataset = Dataset();
+        var results = await RunAsync(dataset).ConfigureAwait(false);
+        var failed = new ItemResult { Id = "d", Line = 4, LatencyMs = 1, Error = new ItemError { Kind = "Server", Message = "failed" } };
+        var withError = new EvaluationResults(results.Header, [.. results.Items.Take(3), failed]);
+
+        var created = CalibrationReport.Create(withError, dataset, Prices());
+        var report = created.IsSuccess ? created.Value : null;
 
         Program.Check(
-            bin.Count == 2
-                && sweep.Covered == 2
-                && kind.Bins.Count == 1
-                && kind.Sweep[0].Equals(sweep)
-                && latency.P95Ms == 200
-                && cost.Priced == 2
-                && cost.PricesUsed.Count == 1
-                && errors.ByKind[0].Value == 1
-                && string.Equals(models.Model, "jev-1.14", StringComparison.Ordinal)
-                && models.Count == 2,
-            "the report's summaries are built by hand and keep their values under Native AOT");
+            report is not null
+                && report.Noul is { } noul
+                && noul.Bins.Count == 3
+                && noul.Bins[0].Count == 1
+                && Math.Abs(noul.Bins[0].MeanConfidence - 0.9) < 1e-9
+                && noul.Sweep.Count == 100
+                && noul.Sweep[90].Covered == 3
+                && noul.Sweep[90].Threshold == 0.9
+                && report.Latency.MedianMs is not null
+                && report.Cost.PricesUsed.Count == 1
+                && report.Cost.Unknown == 0
+                && report.Errors.Count == 1
+                && report.Errors.ByKind[0].Value == 1
+                && report.ResponseModels[0].Count == 3
+                && string.Equals(report.ResponseModels[0].Model, "jev-1.14-fast", StringComparison.Ordinal),
+            "a report's bins, sweep, latency, cost, errors and models keep their values under Native AOT");
     }
 
     private sealed class CountingProgress : IProgress<int>

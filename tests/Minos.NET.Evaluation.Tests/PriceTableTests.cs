@@ -4,7 +4,7 @@ public sealed class PriceTableTests
 {
     private static readonly DateOnly Date = new(2026, 10, 17);
 
-    private static ModelPrice Price(string model) => new(model, 1, 2, Date, "test");
+    private static ModelPrice Price(string model) => ReportFixture.Price(model, 1, 2, Date, "test");
 
     [Fact]
     public void ExactMatch()
@@ -75,14 +75,14 @@ public sealed class PriceTableTests
     {
         ModelPrice[] invalid =
         [
-            new(null!, 1, 2, Date, "s"),
-            new(string.Empty, 1, 2, Date, "s"),
-            new("m", 1, 2, Date, null!),
-            new("m", 1, 2, Date, string.Empty),
-            new("m", -1, 2, Date, "s"),
-            new("m", 1, -0.001, Date, "s"),
-            new("m", double.NaN, 2, Date, "s"),
-            new("m", 1, double.PositiveInfinity, Date, "s"),
+            ReportFixture.Price(null!, 1, 2, Date, "s"),
+            ReportFixture.Price(string.Empty, 1, 2, Date, "s"),
+            ReportFixture.Price("m", 1, 2, Date, null!),
+            ReportFixture.Price("m", 1, 2, Date, string.Empty),
+            ReportFixture.Price("m", -1, 2, Date, "s"),
+            ReportFixture.Price("m", 1, -0.001, Date, "s"),
+            ReportFixture.Price("m", double.NaN, 2, Date, "s"),
+            ReportFixture.Price("m", 1, double.PositiveInfinity, Date, "s"),
         ];
 
         foreach (var price in invalid)
@@ -95,8 +95,8 @@ public sealed class PriceTableTests
     [Fact]
     public void InvalidEntry_IsNamed()
     {
-        Assert.Contains("index 1", Assert.Throws<ArgumentException>(() => new PriceTable([Price("ok"), new(string.Empty, 1, 2, Date, "s")])).Message, StringComparison.Ordinal);
-        Assert.Contains("'m'", Assert.Throws<ArgumentException>(() => new PriceTable([new("m", -1, 2, Date, "s")])).Message, StringComparison.Ordinal);
+        Assert.Contains("index 1", Assert.Throws<ArgumentException>(() => new PriceTable([Price("ok"), ReportFixture.Price(string.Empty, 1, 2, Date, "s")])).Message, StringComparison.Ordinal);
+        Assert.Contains("'m'", Assert.Throws<ArgumentException>(() => new PriceTable([ReportFixture.Price("m", -1, 2, Date, "s")])).Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -111,7 +111,7 @@ public sealed class PriceTableTests
     [Fact]
     public void FreePrice_IsAllowed()
     {
-        Assert.Single(new PriceTable([new ModelPrice("m", 0, 0, Date, "s")]).Prices);
+        Assert.Single(new PriceTable([ReportFixture.Price("m", 0, 0, Date, "s")]).Prices);
     }
 
     [Fact]

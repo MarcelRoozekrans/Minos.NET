@@ -1,6 +1,17 @@
 namespace Minos.Evaluation;
 
 /// <summary>How many successful responses one model gave.</summary>
-/// <param name="Model">The response model, or <see langword="null"/> for responses that named none.</param>
-/// <param name="Count">The number of responses.</param>
-public sealed record ModelCount(string? Model, int Count);
+public sealed class ModelCount
+{
+    internal ModelCount(string? model, int count)
+    {
+        Model = model;
+        Count = count;
+    }
+
+    /// <summary>Gets the response model, or <see langword="null"/> for responses that named none.</summary>
+    public string? Model { get; }
+
+    /// <summary>Gets the number of responses.</summary>
+    public int Count { get; }
+}
