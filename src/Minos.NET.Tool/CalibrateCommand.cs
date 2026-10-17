@@ -10,21 +10,11 @@ internal static class CalibrateCommand
 {
     public static Command Create(TextWriter stdout, TextWriter stderr, Func<HttpMessageHandler> network)
     {
-        var dataset = new Option<string>("--dataset") { Description = "The labelled dataset, a JSONL file.", Required = true };
-        dataset.Validators.Add(result =>
-        {
-            var path = result.GetValueOrDefault<string>();
-            if (!string.IsNullOrEmpty(path) && !File.Exists(path))
-            {
-                result.AddError(Directory.Exists(path)
-                    ? "The dataset '" + path + "' is a directory, not a file."
-                    : "The dataset '" + path + "' does not exist.");
-            }
-        });
-        var config = new Option<string>("--config") { Description = "The config file.", DefaultValueFactory = _ => ToolConfiguration.DefaultFile };
-        var provider = new Option<string?>("--provider") { Description = "The provider section; Minos:Active when omitted." };
-        var model = new Option<string?>("--model") { Description = "The model, overriding the provider section's." };
-        var parallel = new Option<int>("--parallel") { Description = "How many items run at once.", DefaultValueFactory = _ => 1 };
+        var dataset = CommandSupport.DatasetOption();
+        var config = CommandSupport.ConfigOption();
+        var provider = CommandSupport.ProviderOption();
+        var model = CommandSupport.ModelOption();
+        var parallel = new Option<int>("--parallel") { Description = "How many items run at once.", HelpName = "n", DefaultValueFactory = _ => 1 };
         parallel.Validators.Add(result =>
         {
             // Text that is not a number is the parser's own conversion error; only a number below 1 is ours.
@@ -35,10 +25,10 @@ internal static class CalibrateCommand
                 result.AddError("--parallel must be 1 or more.");
             }
         });
-        var prices = new Option<string?>("--prices") { Description = "A prices file, for cost when the provider reports none." };
-        var output = new Option<string?>("--out") { Description = "The output directory; minos-out/<provider>-<UTC time> when omitted." };
+        var prices = CommandSupport.PricesOption();
+        var output = CommandSupport.OutOption("results.jsonl, report.json and report.md", "section being run");
 
-        var command = new Command("calibrate", "Runs a dataset against a provider and writes the results and the report.")
+        var command = new Command("calibrate", "Runs a labelled dataset against a provider, then writes the results and a calibration report.")
         {
             dataset, config, provider, model, parallel, prices, output,
         };
@@ -60,35 +50,15 @@ internal static class CalibrateCommand
 
     private sealed record Request(string Dataset, string Config, string? Provider, string? Model, int Parallel, string? Prices, string? Out);
 
-    private static async Task<int> RunAsync(Request request, TextWriter stdout, TextWriter stderr, Func<HttpMessageHandler> network, CancellationToken ct)
-    {
-        try
-        {
-            return await ExecuteAsync(request, stdout, stderr, network, ct).ConfigureAwait(false);
-        }
-        catch (Exception ex) when (ct.IsCancellationRequested && ex is OperationCanceledException or DatasetRunException)
-        {
-            await stderr.WriteLineAsync("Cancelled.").ConfigureAwait(false);
-            return ExitCodes.Cancelled;
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            await stderr.WriteLineAsync("The output cannot be written: " + OneLine(ex.Message)).ConfigureAwait(false);
-            return ExitCodes.Failure;
-        }
-        catch (Exception ex)
-        {
-            await stderr.WriteLineAsync("The run failed: " + OneLine(ex.Message)).ConfigureAwait(false);
-            return ExitCodes.Failure;
-        }
-    }
+    private static Task<int> RunAsync(Request request, TextWriter stdout, TextWriter stderr, Func<HttpMessageHandler> network, CancellationToken ct)
+        => CommandSupport.GuardAsync(stderr, "The run failed", () => ExecuteAsync(request, stdout, stderr, network, ct), ct);
 
     private static async Task<int> ExecuteAsync(Request request, TextWriter stdout, TextWriter stderr, Func<HttpMessageHandler> network, CancellationToken ct)
     {
         var loaded = DecisionDataset.Load(request.Dataset);
         if (!loaded.IsSuccess)
         {
-            await PrintProblemsAsync(stderr, loaded.Error).ConfigureAwait(false);
+            await CommandSupport.PrintProblemsAsync(stderr, loaded.Error).ConfigureAwait(false);
             return ExitCodes.Usage;
         }
 
@@ -122,13 +92,13 @@ internal static class CalibrateCommand
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
         {
-            await stderr.WriteLineAsync("The options of provider '" + name + "' are invalid: " + OneLine(ex.Message)).ConfigureAwait(false);
+            await stderr.WriteLineAsync("The options of provider '" + name + "' are invalid: " + CommandSupport.OneLine(ex.Message)).ConfigureAwait(false);
             return ExitCodes.Usage;
         }
 
         using (client)
         {
-            var outDir = request.Out ?? NextDefaultOut("minos-out", name, DateTime.UtcNow);
+            var outDir = request.Out ?? CommandSupport.NextDefaultOut("minos-out", name, DateTime.UtcNow);
             var runOptions = new DatasetRunOptions
             {
                 MaxParallelism = request.Parallel,
@@ -158,7 +128,7 @@ internal static class CalibrateCommand
             var report = CalibrationReport.Create(results, loaded.Value, priceTable);
             if (!report.IsSuccess)
             {
-                await PrintProblemsAsync(stderr, report.Error).ConfigureAwait(false);
+                await CommandSupport.PrintProblemsAsync(stderr, report.Error).ConfigureAwait(false);
                 return ExitCodes.Failure;
             }
 
@@ -171,36 +141,11 @@ internal static class CalibrateCommand
 
             if (stopped is not null)
             {
-                await stderr.WriteLineAsync(OneLine(stopped.Message)).ConfigureAwait(false);
+                await stderr.WriteLineAsync(CommandSupport.OneLine(stopped.Message)).ConfigureAwait(false);
                 return ExitCodes.Failure;
             }
 
             return ExitCodes.Success;
-        }
-    }
-
-    /// <summary>The default output directory, <c>&lt;root&gt;/&lt;provider&gt;-&lt;UTC time&gt;</c>, with -2, -3 and so on when it exists.</summary>
-    internal static string NextDefaultOut(string root, string provider, DateTime utcNow)
-    {
-        var baseName = Path.Combine(root, provider + "-" + utcNow.ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture));
-        var candidate = baseName;
-        for (var n = 2; Directory.Exists(candidate) || File.Exists(candidate); n++)
-        {
-            candidate = baseName + "-" + n.ToString(CultureInfo.InvariantCulture);
-        }
-
-        return candidate;
-    }
-
-    /// <summary>Makes a message one line, so a failure is one line on stderr.</summary>
-    internal static string OneLine(string message)
-        => string.Join(' ', message.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));
-
-    private static async Task PrintProblemsAsync(TextWriter stderr, DatasetProblems problems)
-    {
-        foreach (var problem in problems)
-        {
-            await stderr.WriteLineAsync("line " + problem.Line.ToString(CultureInfo.InvariantCulture) + ": " + problem.Message).ConfigureAwait(false);
         }
     }
 }

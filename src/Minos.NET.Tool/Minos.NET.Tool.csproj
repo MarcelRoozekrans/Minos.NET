@@ -14,6 +14,7 @@
     <ProjectReference Include="..\Minos.NET\Minos.NET.csproj" />
     <ProjectReference Include="..\Minos.NET.SystemOne\Minos.NET.SystemOne.csproj" />
     <ProjectReference Include="..\Minos.NET.Evaluation\Minos.NET.Evaluation.csproj" />
+    <ProjectReference Include="..\Minos.NET.Conformance\Minos.NET.Conformance.csproj" />
     <PackageReference Include="System.CommandLine" />
     <PackageReference Include="Microsoft.Extensions.Configuration" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" />

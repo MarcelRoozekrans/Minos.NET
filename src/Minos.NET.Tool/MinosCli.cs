@@ -23,8 +23,11 @@ internal static class MinosCli
         ArgumentNullException.ThrowIfNull(stdout);
         ArgumentNullException.ThrowIfNull(stderr);
 
-        var root = new RootCommand("Calibrates a decision model against a labelled dataset.");
-        root.Subcommands.Add(CalibrateCommand.Create(stdout, stderr, network ?? (() => new SocketsHttpHandler())));
+        var root = new RootCommand("Calibrates a decision model against a labelled dataset, and checks that a provider conforms.");
+        var handler = network ?? (() => new SocketsHttpHandler());
+        root.Subcommands.Add(CalibrateCommand.Create(stdout, stderr, handler));
+        root.Subcommands.Add(ReportCommand.Create(stdout, stderr));
+        root.Subcommands.Add(ConformanceCommand.Create(stdout, stderr, handler));
 
         var parse = root.Parse(args.Length == 0 ? ["--help"] : args);
         if (parse.Errors.Count > 0)

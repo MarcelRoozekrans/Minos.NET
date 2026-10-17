@@ -1,0 +1,13 @@
+﻿Description:
+  Builds the calibration report again from saved results and their dataset, without calling a provider.
+
+Usage:
+  minos report [options]
+
+Options:
+  --results <file> (REQUIRED)  The results file a calibrate run saved, results.jsonl or results.partial.jsonl.
+  --dataset <file> (REQUIRED)  The dataset the results were run on: a JSONL file.
+  --prices <file>              A prices file, JSON, that prices the tokens of a provider that reports no cost. Default: none, so only reported costs count.
+  --out <dir>                  The directory for report.json and report.md, created when missing. Default: minos-out/<provider>-<UTC yyyyMMdd-HHmmss>, with the provider named in the results header.
+  -?, -h, --help               Show help and usage information
+

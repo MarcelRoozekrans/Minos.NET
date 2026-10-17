@@ -35,7 +35,7 @@ internal static class ToolConfiguration
         }
         catch (Exception ex) when (ex is InvalidDataException or IOException or UnauthorizedAccessException or FormatException)
         {
-            return Fail("The config file '" + configPath + "' cannot be read: " + CalibrateCommand.OneLine(ex.Message));
+            return Fail("The config file '" + configPath + "' cannot be read: " + CommandSupport.OneLine(ex.Message));
         }
 
         var names = configuration.GetSection(ProvidersKey).GetChildren().Select(s => s.Key).ToArray();
@@ -65,7 +65,7 @@ internal static class ToolConfiguration
         }
         catch (Exception ex) when (ex is ArgumentException or InvalidOperationException or FormatException)
         {
-            return Fail("The options of provider '" + name + "' are invalid: " + CalibrateCommand.OneLine(ex.Message));
+            return Fail("The options of provider '" + name + "' are invalid: " + CommandSupport.OneLine(ex.Message));
         }
     }
 

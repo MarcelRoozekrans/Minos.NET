@@ -306,15 +306,15 @@ public sealed class CalibrateTests : IDisposable
     public void DefaultOut_IsProviderAndUtcTime_AndNeverReusesADirectory()
     {
         var when = new DateTime(2026, 10, 17, 13, 5, 9, DateTimeKind.Utc);
-        var first = CalibrateCommand.NextDefaultOut(_dir, "Fake", when);
+        var first = CommandSupport.NextDefaultOut(_dir, "Fake", when);
         Assert.Equal(Path.Combine(_dir, "Fake-20261017-130509"), first);
 
         Directory.CreateDirectory(first);
-        var second = CalibrateCommand.NextDefaultOut(_dir, "Fake", when);
+        var second = CommandSupport.NextDefaultOut(_dir, "Fake", when);
         Assert.Equal(first + "-2", second);
 
         Directory.CreateDirectory(second);
-        Assert.Equal(first + "-3", CalibrateCommand.NextDefaultOut(_dir, "Fake", when));
+        Assert.Equal(first + "-3", CommandSupport.NextDefaultOut(_dir, "Fake", when));
     }
 
     [Fact]
