@@ -19,6 +19,17 @@ public sealed class ReportFolderTests
         ["urgency"] = "banking77-urgency-v1.jsonl",
     };
 
+    // The workflow run each folder's figures came from. A new folder needs an entry here.
+    private static readonly Dictionary<string, long> RunIds = new()
+    {
+        ["clef-flash/urgency"] = 39053318208,
+        ["clef-flash/banking77"] = 39053417194,
+        ["typesafe/urgency"] = 39053418745,
+        ["typesafe/banking77"] = 39053418745,
+        ["local/urgency"] = 39053226413,
+        ["local/banking77"] = 39053226413,
+    };
+
     private static readonly string[] ReadmeFields = ["Date", "Provider", "Model", "Dataset", "Run", "Runner", "Tool", "Prices"];
 
     public static TheoryData<string> Folders()
@@ -52,6 +63,10 @@ public sealed class ReportFolderTests
         var results = File.Exists(Path.Combine(path, "results.jsonl"));
         var partial = File.Exists(Path.Combine(path, "results.partial.jsonl"));
         Assert.True(results ^ partial, folder + " needs exactly one of results.jsonl and results.partial.jsonl");
+
+        var expected = new[] { "README.md", "report.json", "report.md", results ? "results.jsonl" : "results.partial.jsonl" };
+        var actual = Directory.GetFileSystemEntries(path).Select(Path.GetFileName).OrderBy(name => name, StringComparer.Ordinal);
+        Assert.Equal(expected.OrderBy(name => name, StringComparer.Ordinal), actual);
     }
 
     [Theory]
@@ -82,7 +97,8 @@ public sealed class ReportFolderTests
         Assert.Equal(header.GetProperty("providerName").GetString(), fields["Provider"]);
         Assert.Equal(header.GetProperty("defaultModel").GetString(), fields["Model"]);
         Assert.Equal(header.GetProperty("datasetName").GetString(), fields["Dataset"]);
-        Assert.StartsWith("https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/", fields["Run"], StringComparison.Ordinal);
+        Assert.True(RunIds.TryGetValue(folder, out var run), folder + " has no expected run id; add it to RunIds in ReportFolderTests");
+        Assert.Equal("https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/" + run, fields["Run"]);
     }
 
     [Theory]

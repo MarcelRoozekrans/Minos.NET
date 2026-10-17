@@ -89,6 +89,11 @@ public sealed partial class NoOldNameTests
         // The Providers page and its test give the commands that run the same ollajev server.
         new("docs/providers.md", null, LocalServerPackage()),
         new("tests/Minos.NET.Docs.Tests/ProvidersPageTests.cs", null, LocalServerPackage()),
+
+        // A report README names the ollajev server the local calibration ran against, and a results file holds the
+        // provider's opaque response ids exactly as measured, which can contain the letters by chance.
+        new("docs/reports/", null, LocalServerPackage()),
+        new("docs/reports/", null, MeasuredResponseId()),
     ];
 
     [Fact]
@@ -301,6 +306,10 @@ public sealed partial class NoOldNameTests
 
     [GeneratedRegex(@"being renamed from ZeroAlloc\.Jev\b", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex LogoBriefRename();
+
+    // A response id a provider generated, as stored in a results file; it is random text, not a name.
+    [GeneratedRegex(@"""responseId"":""[^""]*""", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex MeasuredResponseId();
 
     // The third-party ollajev package and command, and the OLLAJEV_DEVICE variable it reads; not inside a longer word.
     [GeneratedRegex(@"(?<![\w.])(?:ollajev|OLLAJEV_DEVICE)(?!\w)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
