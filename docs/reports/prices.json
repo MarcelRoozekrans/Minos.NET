@@ -1,0 +1,6 @@
+{
+  "prices": [
+    { "model": "jev-1.13.0", "inputPerMillion": 0.042, "outputPerMillion": 0, "date": "2026-10-17", "source": "TypeSafe official pricing page, supplied by the maintainer" },
+    { "model": "Mapika/decider-2b-GGUF:Q4_K_M", "inputPerMillion": 0, "outputPerMillion": 0, "date": "2026-10-17", "source": "runs on your own hardware; no per-token price" }
+  ]
+}
