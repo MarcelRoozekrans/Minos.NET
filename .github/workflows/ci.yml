@@ -47,6 +47,9 @@ jobs:
       - name: Test
         run: dotnet test Minos.NET.slnx --no-build -c Release --logger "trx" --results-directory ./test-results
 
+      - name: Test the Banking77 sample build
+        run: python3 -m unittest discover -s datasets/banking77 -p "test_build.py"
+
       - name: Run the cookbook samples in replay mode
         # Runs each sample's real entry point (argument parsing, config, host wiring) offline from its checked-in
         # recordings. ReplayHandler is what keeps replay offline: it is the primary handler and answers every request

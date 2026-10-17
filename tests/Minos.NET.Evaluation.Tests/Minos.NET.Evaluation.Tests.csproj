@@ -20,6 +20,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The Banking77 sample: its shape is pinned by Banking77SampleTests. -->
+    <Content Include="..\..\datasets\banking77\banking77-*-v1.jsonl" Link="Banking77\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="Xunit" />
   </ItemGroup>
 </Project>

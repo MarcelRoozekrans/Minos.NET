@@ -1,0 +1,18 @@
+Banking77 sample for Minos.NET.Evaluation
+
+Messages and intent names (source/test-subset.csv and the "state" text of the JSONL files)
+------------------------------------------------------------------------------------------
+The Banking77 messages and their intent names are by PolyAI Limited and are licensed under the Creative Commons
+Attribution 4.0 International license (CC BY 4.0): https://creativecommons.org/licenses/by/4.0/legalcode
+
+Source: https://github.com/PolyAI-LDN/task-specific-datasets, file banking_data/test.csv, commit
+57ec275d8078af65b7731c2a98be812d844a6d6b.
+Reference: Casanueva et al., "Efficient Intent Detection with Dual Sentence Encoders", 2020.
+
+Changes made: only the rows of 10 intents were kept, and they were converted to the Minos.NET dataset format with
+questions added. The messages themselves are unchanged. The licensor does not endorse this use.
+
+Authored parts
+--------------
+The urgency labels (urgency-labels.csv), the question texts, the descriptions and build.py are dedicated to the public
+domain under CC0 1.0 Universal: https://creativecommons.org/publicdomain/zero/1.0/legalcode
