@@ -1,7 +1,7 @@
 namespace Minos.Evaluation;
 
 /// <summary>The right answer to one question of a dataset item.</summary>
-public readonly record struct ExpectedAnswer
+public readonly struct ExpectedAnswer : IEquatable<ExpectedAnswer>
 {
     private ExpectedAnswer(QuestionKind kind, bool noul, string? choiceKey, int scoreLevel)
     {
@@ -42,4 +42,39 @@ public readonly record struct ExpectedAnswer
     /// <param name="level">The index of the right level, from 0.</param>
     /// <returns>The expected answer.</returns>
     public static ExpectedAnswer ForScore(int level) => new(QuestionKind.Score, false, null, level);
+
+    /// <summary>Determines whether two expected answers are equal.</summary>
+    /// <param name="left">The first answer.</param>
+    /// <param name="right">The second answer.</param>
+    /// <returns><see langword="true"/> when they are equal.</returns>
+    public static bool operator ==(ExpectedAnswer left, ExpectedAnswer right) => left.Equals(right);
+
+    /// <summary>Determines whether two expected answers differ.</summary>
+    /// <param name="left">The first answer.</param>
+    /// <param name="right">The second answer.</param>
+    /// <returns><see langword="true"/> when they differ.</returns>
+    public static bool operator !=(ExpectedAnswer left, ExpectedAnswer right) => !left.Equals(right);
+
+    /// <inheritdoc />
+    public bool Equals(ExpectedAnswer other)
+        => Kind == other.Kind
+            && Noul == other.Noul
+            && string.Equals(ChoiceKey, other.ChoiceKey, StringComparison.Ordinal)
+            && ScoreLevel == other.ScoreLevel;
+
+    /// <inheritdoc />
+    public override bool Equals(object? obj) => obj is ExpectedAnswer other && Equals(other);
+
+    /// <inheritdoc />
+    public override int GetHashCode() => HashCode.Combine(Kind, Noul, ChoiceKey is null ? 0 : StringComparer.Ordinal.GetHashCode(ChoiceKey), ScoreLevel);
+
+    /// <summary>Gets the kind and the right answer as text, for example <c>Choice card_arrival</c>.</summary>
+    /// <returns>The text.</returns>
+    public override string ToString() => Kind switch
+    {
+        QuestionKind.Noul => "Noul " + (Noul ? "true" : "false"),
+        QuestionKind.Choice => "Choice " + ChoiceKey,
+        QuestionKind.Score => "Score " + ScoreLevel.ToString(System.Globalization.CultureInfo.InvariantCulture),
+        _ => Kind.ToString(),
+    };
 }

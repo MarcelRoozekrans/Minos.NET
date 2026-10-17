@@ -18,7 +18,7 @@ public sealed class SurfaceGenericsTests
     // DynamicallyAccessedMemberTypes.All, which is ~None.
     private const int AllMembers = -1;
 
-    private static readonly string[] Packages = ["Minos.NET", "Minos.NET.SystemOne", "Minos.NET.OpenAI", "Minos.NET.DependencyInjection", "Minos.NET.Caching", "Minos.NET.RateLimiting"];
+    private static readonly string[] Packages = ["Minos.NET", "Minos.NET.SystemOne", "Minos.NET.OpenAI", "Minos.NET.DependencyInjection", "Minos.NET.Caching", "Minos.NET.RateLimiting", "Minos.NET.Evaluation"];
 
     [Fact]
     public void The_rebuilt_surface_compilation_has_no_warnings_or_errors_like_the_real_build()

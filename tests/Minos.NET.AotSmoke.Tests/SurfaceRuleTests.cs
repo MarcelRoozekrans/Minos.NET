@@ -21,6 +21,7 @@ public sealed class SurfaceRuleTests
         ("Minos.NET.DependencyInjection", "Minos"),
         ("Minos.NET.Caching", "Minos"),
         ("Minos.NET.RateLimiting", "Minos"),
+        ("Minos.NET.Evaluation", "Minos.Evaluation"),
     ];
 
     // Public classes designed for inheritance that are not abstract.

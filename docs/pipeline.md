@@ -1,7 +1,7 @@
 ---
 id: pipeline
 title: The client pipeline
-sidebar_position: 8
+sidebar_position: 9
 description: The stages every call goes through (telemetry, logging and retries), building your own pipeline, caching decisions, limiting the call rate, the stage order, writing a stage, turning the standard pipeline off, stages with dependency injection, and upgrading to 1.0 and from 0.7 and 0.8.
 ---
 

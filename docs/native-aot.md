@@ -1,7 +1,7 @@
 ---
 id: native-aot
 title: Native AOT and allocations
-sidebar_position: 10
+sidebar_position: 11
 description: What it means that the Minos client is Native AOT compatible, the one reflection it uses, how CI checks every public member, and the allocation budgets that guard it.
 ---
 
@@ -96,12 +96,13 @@ The checks run the real client over a canned HTTP handler. They cover:
 A publish only analyses what the program reaches, so the smoke application cannot vouch for a member that no check
 calls. The `aot-surface` job closes that gap. It publishes `samples/Minos.NET.AotSurface` with `PublishAot` and full
 trimming, and roots `Minos.NET`, `Minos.NET.SystemOne`, `Minos.NET.OpenAI`, `Minos.NET.DependencyInjection`,
-`Minos.NET.Caching` and `Minos.NET.RateLimiting` whole through `TrimmerRootAssembly`.
+`Minos.NET.Caching`, `Minos.NET.RateLimiting` and `Minos.NET.Evaluation`, the labelled dataset loader, whole through
+`TrimmerRootAssembly`.
 
-Rooting analyses every non-generic member of the six packages, called or not, and every generic member the compiler
+Rooting analyses every non-generic member of these assemblies, called or not, and every generic member the compiler
 can share across reference types. A value-type generic has no such shared form, so rooting alone skips it. That covers
 `Choice<T>`, `Score<T>` and the other generics over an enum, whose type parameter is `where T : struct, Enum`. The host
-therefore instantiates every public generic type and generic method of the six packages over its own types, and the
+therefore instantiates every public generic type and generic method of these assemblies over its own types, and the
 compiler analyses them through those instantiations. A test in `tests/Minos.NET.AotSmoke.Tests` fails when a public
 generic is not instantiated in the host. The host is rooted as well. Its `[Questions]` sets, one with a Noul, a
 Choice and a Score and one with a typed state, mean the code the generator writes is analysed in full too.
@@ -117,7 +118,7 @@ The smoke application has to call everything a user can call, or its own pass sa
 `tests/Minos.NET.AotSmoke.Tests` enforces that, and it runs with the rest of the test suite.
 
 An **entry point** is a public or protected method or constructor that you call. The list is read from the `PublicAPI`
-files of the six packages, so a new public member is an entry point the day it is added. These are not entry points,
+files of the six packages and `Minos.NET.Evaluation`, so a new public member is an entry point the day it is added. These are not entry points,
 and the test says why for each:
 
 - type declarations, which are called through their constructors and methods;

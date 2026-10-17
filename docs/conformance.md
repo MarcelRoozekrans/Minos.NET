@@ -1,7 +1,7 @@
 ---
 id: conformance
 title: Conformance
-sidebar_position: 16
+sidebar_position: 17
 description: The suite that checks any decision endpoint's request and response shapes, probabilities, errors, request ids and models, how to run it against your own endpoint, and where its fixtures come from.
 ---
 

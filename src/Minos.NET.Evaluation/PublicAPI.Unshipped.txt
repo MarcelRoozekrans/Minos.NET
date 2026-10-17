@@ -44,5 +44,5 @@ static Minos.Evaluation.ExpectedAnswer.ForNoul(bool value) -> Minos.Evaluation.E
 static Minos.Evaluation.ExpectedAnswer.ForScore(int level) -> Minos.Evaluation.ExpectedAnswer
 static Minos.Evaluation.ExpectedAnswer.operator !=(Minos.Evaluation.ExpectedAnswer left, Minos.Evaluation.ExpectedAnswer right) -> bool
 static Minos.Evaluation.ExpectedAnswer.operator ==(Minos.Evaluation.ExpectedAnswer left, Minos.Evaluation.ExpectedAnswer right) -> bool
-~override Minos.Evaluation.ExpectedAnswer.Equals(object obj) -> bool
-~override Minos.Evaluation.ExpectedAnswer.ToString() -> string
+override Minos.Evaluation.ExpectedAnswer.Equals(object? obj) -> bool
+override Minos.Evaluation.ExpectedAnswer.ToString() -> string!

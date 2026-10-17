@@ -119,6 +119,7 @@ The guide lives at [marcelroozekrans.github.io/Minos.NET](https://marcelroozekra
 - [Question sets at run time](https://marcelroozekrans.github.io/Minos.NET/question-sets-at-run-time): build a question set from data with the builder, evaluate it, and read answers through handles.
 - [The client and its errors](https://marcelroozekrans.github.io/Minos.NET/client-and-errors): create and configure a `SystemOneDecisionClient` or an `OpenAIDecisionClient`, retries and time-outs, every kind of `DecisionError`, and the raw request API.
 - [Providers](https://marcelroozekrans.github.io/Minos.NET/providers): the presets, servers you run and OpenAI, the capability matrix, images, and switching providers by configuration.
+- [Labelled datasets](https://marcelroozekrans.github.io/Minos.NET/datasets): the JSONL format for items with expected answers, the members of a line, how the loader reports problems, and the format version.
 - [Dependency injection](https://marcelroozekrans.github.io/Minos.NET/dependency-injection): register `IDecisionClient` in a .NET host, key several clients, and bind options from configuration.
 - [The client pipeline](https://marcelroozekrans.github.io/Minos.NET/pipeline): the stages every call goes through, building your own pipeline, writing a stage, and upgrading to 1.0 and from 0.7.
 - [Logging, traces and metrics](https://marcelroozekrans.github.io/Minos.NET/observability): what the client logs, which spans and metrics it emits, and what it never records.

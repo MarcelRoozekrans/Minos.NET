@@ -40,11 +40,12 @@ internal static class PublicApi
         ],
         ["src/Minos.NET.Caching/PublicAPI.Shipped.txt", "src/Minos.NET.Caching/PublicAPI.Unshipped.txt"],
         ["src/Minos.NET.RateLimiting/PublicAPI.Shipped.txt", "src/Minos.NET.RateLimiting/PublicAPI.Unshipped.txt"],
+        ["src/Minos.NET.Evaluation/PublicAPI.Shipped.txt", "src/Minos.NET.Evaluation/PublicAPI.Unshipped.txt"],
     ];
 
     private const string CompilerGeneratedAttribute = "System.Runtime.CompilerServices.CompilerGeneratedAttribute";
 
-    private static readonly string[] PackageNames = ["Minos.NET", "Minos.NET.SystemOne", "Minos.NET.OpenAI", "Minos.NET.DependencyInjection", "Minos.NET.Caching", "Minos.NET.RateLimiting"];
+    private static readonly string[] PackageNames = ["Minos.NET", "Minos.NET.SystemOne", "Minos.NET.OpenAI", "Minos.NET.DependencyInjection", "Minos.NET.Caching", "Minos.NET.RateLimiting", "Minos.NET.Evaluation"];
 
     private static readonly string[] ObjectMembers = ["Equals(object? obj)", "GetHashCode()", "ToString()"];
 
