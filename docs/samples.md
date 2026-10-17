@@ -1,7 +1,7 @@
 ---
 id: samples
 title: Samples
-sidebar_position: 15
+sidebar_position: 16
 description: Four runnable cookbook samples that replay recorded answers offline, one of them against three providers, and how to run, record and trust them.
 ---
 

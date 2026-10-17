@@ -23,9 +23,9 @@ A .NET user can measure, on their own labelled data, how accurate and how well c
   - cost per 1,000 decisions.
 
   These are computed on the number users gate on: `Confidence` for Choice and Score, and max(p, 1 − p) for Noul. Each metric is checked against hand-computed values, and the results come out as Markdown and JSON.
-- [ ] `Minos.NET.Tool` installs with `dotnet tool install` and runs `minos calibrate` and `minos conformance` against any configured System One provider. It is published to nuget.org through the release path.
-- [ ] Calibration reports for TypeSafe, Clef Flash and the local model on the Banking77 sample are committed. Each records its date, provider and model id, dataset version, and the prices it used.
-- [ ] A "Choosing a provider and a threshold" guide is published on the docs site and backed by those reports.
+- [x] `Minos.NET.Tool` installs with `dotnet tool install` and runs `minos calibrate` and `minos conformance` against any configured System One provider. It is published to nuget.org through the release path. Done: on nuget.org since 1.2.0, published on 2026-10-17.
+- [x] Calibration reports for TypeSafe, Clef Flash and the local model on the Banking77 sample are committed. Each records its date, provider and model id, dataset version, and the prices it used. Done: six reports in `docs/reports/`, one per provider and set, checked by ReportFolderTests.
+- [x] A "Choosing a provider and a threshold" guide is published on the docs site and backed by those reports. Done: `docs/choosing-a-provider.md`, its tables checked against the reports by ProviderGuideTests.
 
 **Out of scope:**
 - Recalibration and cost-aware decisions: #124.
@@ -36,7 +36,7 @@ A .NET user can measure, on their own labelled data, how accurate and how well c
 1. Phase 8.1 — Dataset format, loader and the Banking77 sample [complete]
 2. Phase 8.2 — Metrics and reports in Minos.NET.Evaluation [complete]
 3. Phase 8.3 — The minos tool [complete]
-4. Phase 8.4 — Reports and the guide [pending]
+4. Phase 8.4 — Reports and the guide [complete]
 
 ## Audit History
 | Date | Verdict | Gaps |

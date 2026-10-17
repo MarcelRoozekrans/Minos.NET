@@ -12,7 +12,12 @@ internal static partial class PageTables
     /// The body rows of the first table after the heading whose text is <paramref name="heading"/>, each as its trimmed
     /// cells. The header and separator rows are skipped.
     /// </summary>
-    public static string[][] Rows(string page, string heading)
+    public static string[][] Rows(string page, string heading) => [.. Table(page, heading).Skip(2)];
+
+    /// <summary>The header row of the first table after the heading whose text is <paramref name="heading"/>, as its trimmed cells.</summary>
+    public static string[] Header(string page, string heading) => Table(page, heading)[0];
+
+    private static List<string[]> Table(string page, string heading)
     {
         var lines = File.ReadAllLines(Path.Combine(PublishedPages.Root, "docs", page));
         var start = Array.FindIndex(lines, line => line.StartsWith('#') && string.Equals(line.TrimStart('#').Trim(), heading, StringComparison.Ordinal));
@@ -32,7 +37,7 @@ internal static partial class PageTables
         }
 
         Assert.True(rows.Count > 2, $"The table under '{heading}' in {page} has rows.");
-        return [.. rows.Skip(2)];
+        return rows;
     }
 
     /// <summary>The first inline code span in a cell, without its backticks.</summary>

@@ -1,7 +1,7 @@
 ---
 id: datasets
 title: Labelled datasets
-sidebar_position: 7
+sidebar_position: 8
 description: The JSONL format for labelled decision items, the members of a line, how the loader reports problems, the format version, and the minos command line tool.
 ---
 
@@ -227,8 +227,8 @@ It also holds the latency (`LatencySummary`), the cost per 1,000 decisions (`Cos
 (`ErrorSummary`), and the models that answered (`ModelCount`). A question is scored when it has an expected answer. A question without one is only counted, in the
 report's header. A failed request, or an answer the provider left out, is an abstention: the question is scored but
 unanswered. It is left out of accuracy, the calibration error, the bins and the base rate, but it counts as uncovered
-in the coverage of the threshold sweep. A full guide to reading the numbers comes with a
-later release.
+in the coverage of the threshold sweep. [Choosing a provider and a threshold](choosing-a-provider.md) reads these
+numbers in real reports.
 
 ## Running it from the command line
 
@@ -353,6 +353,7 @@ directory by an earlier run, so the directory never holds two contradicting runs
 
 ## Next
 
+- [Choosing a provider and a threshold](choosing-a-provider.md): the reports of three providers, read side by side.
 - [Question sets at run time](question-sets-at-run-time.md): the builder and the rules every question goes through.
 - [The client and its errors](client-and-errors.md): the `IDecisionClient` that the items run through.
 - [Question types](question-types.md): what a Noul, a Choice and a Score answer holds.
