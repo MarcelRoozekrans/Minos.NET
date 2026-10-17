@@ -162,3 +162,165 @@ Minos.Evaluation.EvaluationResults.Save(string! path) -> void
 Minos.Evaluation.EvaluationResults.Save(System.IO.Stream! utf8Jsonl) -> void
 static Minos.Evaluation.EvaluationResults.Load(string! path) -> ZeroAlloc.Results.Result<Minos.Evaluation.EvaluationResults!, Minos.Evaluation.DatasetProblems!>
 static Minos.Evaluation.EvaluationResults.Parse(System.IO.Stream! utf8Jsonl) -> ZeroAlloc.Results.Result<Minos.Evaluation.EvaluationResults!, Minos.Evaluation.DatasetProblems!>
+Minos.Evaluation.CalibrationReport
+Minos.Evaluation.CalibrationReport.Choice.get -> Minos.Evaluation.KindMetrics?
+Minos.Evaluation.CalibrationReport.Cost.get -> Minos.Evaluation.CostSummary!
+Minos.Evaluation.CalibrationReport.Errors.get -> Minos.Evaluation.ErrorSummary!
+Minos.Evaluation.CalibrationReport.Header.get -> Minos.Evaluation.RunHeader!
+Minos.Evaluation.CalibrationReport.Latency.get -> Minos.Evaluation.LatencySummary!
+Minos.Evaluation.CalibrationReport.Noul.get -> Minos.Evaluation.KindMetrics?
+Minos.Evaluation.CalibrationReport.Overall.get -> Minos.Evaluation.KindMetrics!
+Minos.Evaluation.CalibrationReport.ResponseModels.get -> System.Collections.Generic.IReadOnlyList<Minos.Evaluation.ModelCount!>!
+Minos.Evaluation.CalibrationReport.Score.get -> Minos.Evaluation.KindMetrics?
+Minos.Evaluation.CalibrationReport.UnscoredQuestions.get -> int
+Minos.Evaluation.CostSummary
+Minos.Evaluation.CostSummary.<Clone>$() -> Minos.Evaluation.CostSummary!
+Minos.Evaluation.CostSummary.Cached.get -> int
+Minos.Evaluation.CostSummary.Cached.init -> void
+Minos.Evaluation.CostSummary.CostSummary(double? PerThousandDecisions, int Reported, int Priced, int Unknown, int Cached, System.Collections.Generic.IReadOnlyList<Minos.Evaluation.ModelPrice!>! PricesUsed) -> void
+Minos.Evaluation.CostSummary.Deconstruct(out double? PerThousandDecisions, out int Reported, out int Priced, out int Unknown, out int Cached, out System.Collections.Generic.IReadOnlyList<Minos.Evaluation.ModelPrice!>! PricesUsed) -> void
+Minos.Evaluation.CostSummary.Equals(Minos.Evaluation.CostSummary? other) -> bool
+Minos.Evaluation.CostSummary.PerThousandDecisions.get -> double?
+Minos.Evaluation.CostSummary.PerThousandDecisions.init -> void
+Minos.Evaluation.CostSummary.Priced.get -> int
+Minos.Evaluation.CostSummary.Priced.init -> void
+Minos.Evaluation.CostSummary.PricesUsed.get -> System.Collections.Generic.IReadOnlyList<Minos.Evaluation.ModelPrice!>!
+Minos.Evaluation.CostSummary.PricesUsed.init -> void
+Minos.Evaluation.CostSummary.Reported.get -> int
+Minos.Evaluation.CostSummary.Reported.init -> void
+Minos.Evaluation.CostSummary.Unknown.get -> int
+Minos.Evaluation.CostSummary.Unknown.init -> void
+Minos.Evaluation.ErrorSummary
+Minos.Evaluation.ErrorSummary.<Clone>$() -> Minos.Evaluation.ErrorSummary!
+Minos.Evaluation.ErrorSummary.ByKind.get -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, int>>!
+Minos.Evaluation.ErrorSummary.ByKind.init -> void
+Minos.Evaluation.ErrorSummary.Count.get -> int
+Minos.Evaluation.ErrorSummary.Count.init -> void
+Minos.Evaluation.ErrorSummary.Deconstruct(out int Count, out System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, int>>! ByKind) -> void
+Minos.Evaluation.ErrorSummary.Equals(Minos.Evaluation.ErrorSummary? other) -> bool
+Minos.Evaluation.ErrorSummary.ErrorSummary(int Count, System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, int>>! ByKind) -> void
+Minos.Evaluation.KindMetrics
+Minos.Evaluation.KindMetrics.<Clone>$() -> Minos.Evaluation.KindMetrics!
+Minos.Evaluation.KindMetrics.Accuracy.get -> double?
+Minos.Evaluation.KindMetrics.Accuracy.init -> void
+Minos.Evaluation.KindMetrics.Answered.get -> int
+Minos.Evaluation.KindMetrics.Answered.init -> void
+Minos.Evaluation.KindMetrics.BaseRate.get -> double?
+Minos.Evaluation.KindMetrics.BaseRate.init -> void
+Minos.Evaluation.KindMetrics.Bins.get -> System.Collections.Generic.IReadOnlyList<Minos.Evaluation.ReliabilityBin!>!
+Minos.Evaluation.KindMetrics.Bins.init -> void
+Minos.Evaluation.KindMetrics.Deconstruct(out int Scored, out int Answered, out double? Accuracy, out double? BaseRate, out double? ExpectedCalibrationError, out double? ExpectedCalibrationErrorEqualWidth, out System.Collections.Generic.IReadOnlyList<Minos.Evaluation.ReliabilityBin!>! Bins, out System.Collections.Generic.IReadOnlyList<Minos.Evaluation.SweepPoint!>! Sweep) -> void
+Minos.Evaluation.KindMetrics.Equals(Minos.Evaluation.KindMetrics? other) -> bool
+Minos.Evaluation.KindMetrics.ExpectedCalibrationError.get -> double?
+Minos.Evaluation.KindMetrics.ExpectedCalibrationError.init -> void
+Minos.Evaluation.KindMetrics.ExpectedCalibrationErrorEqualWidth.get -> double?
+Minos.Evaluation.KindMetrics.ExpectedCalibrationErrorEqualWidth.init -> void
+Minos.Evaluation.KindMetrics.KindMetrics(int Scored, int Answered, double? Accuracy, double? BaseRate, double? ExpectedCalibrationError, double? ExpectedCalibrationErrorEqualWidth, System.Collections.Generic.IReadOnlyList<Minos.Evaluation.ReliabilityBin!>! Bins, System.Collections.Generic.IReadOnlyList<Minos.Evaluation.SweepPoint!>! Sweep) -> void
+Minos.Evaluation.KindMetrics.Scored.get -> int
+Minos.Evaluation.KindMetrics.Scored.init -> void
+Minos.Evaluation.KindMetrics.Sweep.get -> System.Collections.Generic.IReadOnlyList<Minos.Evaluation.SweepPoint!>!
+Minos.Evaluation.KindMetrics.Sweep.init -> void
+Minos.Evaluation.LatencySummary
+Minos.Evaluation.LatencySummary.<Clone>$() -> Minos.Evaluation.LatencySummary!
+Minos.Evaluation.LatencySummary.Deconstruct(out int Requests, out double? MedianMs, out double? P95Ms) -> void
+Minos.Evaluation.LatencySummary.Equals(Minos.Evaluation.LatencySummary? other) -> bool
+Minos.Evaluation.LatencySummary.LatencySummary(int Requests, double? MedianMs, double? P95Ms) -> void
+Minos.Evaluation.LatencySummary.MedianMs.get -> double?
+Minos.Evaluation.LatencySummary.MedianMs.init -> void
+Minos.Evaluation.LatencySummary.P95Ms.get -> double?
+Minos.Evaluation.LatencySummary.P95Ms.init -> void
+Minos.Evaluation.LatencySummary.Requests.get -> int
+Minos.Evaluation.LatencySummary.Requests.init -> void
+Minos.Evaluation.ModelCount
+Minos.Evaluation.ModelCount.<Clone>$() -> Minos.Evaluation.ModelCount!
+Minos.Evaluation.ModelCount.Count.get -> int
+Minos.Evaluation.ModelCount.Count.init -> void
+Minos.Evaluation.ModelCount.Deconstruct(out string? Model, out int Count) -> void
+Minos.Evaluation.ModelCount.Equals(Minos.Evaluation.ModelCount? other) -> bool
+Minos.Evaluation.ModelCount.Model.get -> string?
+Minos.Evaluation.ModelCount.Model.init -> void
+Minos.Evaluation.ModelCount.ModelCount(string? Model, int Count) -> void
+Minos.Evaluation.ModelPrice
+Minos.Evaluation.ModelPrice.<Clone>$() -> Minos.Evaluation.ModelPrice!
+Minos.Evaluation.ModelPrice.Date.get -> System.DateOnly
+Minos.Evaluation.ModelPrice.Date.init -> void
+Minos.Evaluation.ModelPrice.Deconstruct(out string! Model, out double InputPerMillion, out double OutputPerMillion, out System.DateOnly Date, out string! Source) -> void
+Minos.Evaluation.ModelPrice.Equals(Minos.Evaluation.ModelPrice? other) -> bool
+Minos.Evaluation.ModelPrice.InputPerMillion.get -> double
+Minos.Evaluation.ModelPrice.InputPerMillion.init -> void
+Minos.Evaluation.ModelPrice.Model.get -> string!
+Minos.Evaluation.ModelPrice.Model.init -> void
+Minos.Evaluation.ModelPrice.ModelPrice(string! Model, double InputPerMillion, double OutputPerMillion, System.DateOnly Date, string! Source) -> void
+Minos.Evaluation.ModelPrice.OutputPerMillion.get -> double
+Minos.Evaluation.ModelPrice.OutputPerMillion.init -> void
+Minos.Evaluation.ModelPrice.Source.get -> string!
+Minos.Evaluation.ModelPrice.Source.init -> void
+Minos.Evaluation.PriceTable
+Minos.Evaluation.PriceTable.PriceTable(System.Collections.Generic.IEnumerable<Minos.Evaluation.ModelPrice!>! prices) -> void
+Minos.Evaluation.PriceTable.Prices.get -> System.Collections.Generic.IReadOnlyList<Minos.Evaluation.ModelPrice!>!
+Minos.Evaluation.PriceTable.TryFind(string! model, out Minos.Evaluation.ModelPrice? price) -> bool
+Minos.Evaluation.ReliabilityBin
+Minos.Evaluation.ReliabilityBin.<Clone>$() -> Minos.Evaluation.ReliabilityBin!
+Minos.Evaluation.ReliabilityBin.Accuracy.get -> double
+Minos.Evaluation.ReliabilityBin.Accuracy.init -> void
+Minos.Evaluation.ReliabilityBin.Count.get -> int
+Minos.Evaluation.ReliabilityBin.Count.init -> void
+Minos.Evaluation.ReliabilityBin.Deconstruct(out int Count, out double MeanConfidence, out double Accuracy) -> void
+Minos.Evaluation.ReliabilityBin.Equals(Minos.Evaluation.ReliabilityBin? other) -> bool
+Minos.Evaluation.ReliabilityBin.MeanConfidence.get -> double
+Minos.Evaluation.ReliabilityBin.MeanConfidence.init -> void
+Minos.Evaluation.ReliabilityBin.ReliabilityBin(int Count, double MeanConfidence, double Accuracy) -> void
+Minos.Evaluation.SweepPoint
+Minos.Evaluation.SweepPoint.<Clone>$() -> Minos.Evaluation.SweepPoint!
+Minos.Evaluation.SweepPoint.Accuracy.get -> double?
+Minos.Evaluation.SweepPoint.Accuracy.init -> void
+Minos.Evaluation.SweepPoint.Coverage.get -> double
+Minos.Evaluation.SweepPoint.Coverage.init -> void
+Minos.Evaluation.SweepPoint.Covered.get -> int
+Minos.Evaluation.SweepPoint.Covered.init -> void
+Minos.Evaluation.SweepPoint.Deconstruct(out double Threshold, out double Coverage, out double? Accuracy, out int Covered) -> void
+Minos.Evaluation.SweepPoint.Equals(Minos.Evaluation.SweepPoint? other) -> bool
+Minos.Evaluation.SweepPoint.SweepPoint(double Threshold, double Coverage, double? Accuracy, int Covered) -> void
+Minos.Evaluation.SweepPoint.Threshold.get -> double
+Minos.Evaluation.SweepPoint.Threshold.init -> void
+override Minos.Evaluation.CostSummary.Equals(object? obj) -> bool
+override Minos.Evaluation.CostSummary.GetHashCode() -> int
+override Minos.Evaluation.CostSummary.ToString() -> string!
+override Minos.Evaluation.ErrorSummary.Equals(object? obj) -> bool
+override Minos.Evaluation.ErrorSummary.GetHashCode() -> int
+override Minos.Evaluation.ErrorSummary.ToString() -> string!
+override Minos.Evaluation.KindMetrics.Equals(object? obj) -> bool
+override Minos.Evaluation.KindMetrics.GetHashCode() -> int
+override Minos.Evaluation.KindMetrics.ToString() -> string!
+override Minos.Evaluation.LatencySummary.Equals(object? obj) -> bool
+override Minos.Evaluation.LatencySummary.GetHashCode() -> int
+override Minos.Evaluation.LatencySummary.ToString() -> string!
+override Minos.Evaluation.ModelCount.Equals(object? obj) -> bool
+override Minos.Evaluation.ModelCount.GetHashCode() -> int
+override Minos.Evaluation.ModelCount.ToString() -> string!
+override Minos.Evaluation.ModelPrice.Equals(object? obj) -> bool
+override Minos.Evaluation.ModelPrice.GetHashCode() -> int
+override Minos.Evaluation.ModelPrice.ToString() -> string!
+override Minos.Evaluation.ReliabilityBin.Equals(object? obj) -> bool
+override Minos.Evaluation.ReliabilityBin.GetHashCode() -> int
+override Minos.Evaluation.ReliabilityBin.ToString() -> string!
+override Minos.Evaluation.SweepPoint.Equals(object? obj) -> bool
+override Minos.Evaluation.SweepPoint.GetHashCode() -> int
+override Minos.Evaluation.SweepPoint.ToString() -> string!
+static Minos.Evaluation.CalibrationReport.Create(Minos.Evaluation.EvaluationResults! results, Minos.Evaluation.DecisionDataset! dataset, Minos.Evaluation.PriceTable? prices = null) -> ZeroAlloc.Results.Result<Minos.Evaluation.CalibrationReport!, Minos.Evaluation.DatasetProblems!>
+static Minos.Evaluation.CostSummary.operator !=(Minos.Evaluation.CostSummary? left, Minos.Evaluation.CostSummary? right) -> bool
+static Minos.Evaluation.CostSummary.operator ==(Minos.Evaluation.CostSummary? left, Minos.Evaluation.CostSummary? right) -> bool
+static Minos.Evaluation.ErrorSummary.operator !=(Minos.Evaluation.ErrorSummary? left, Minos.Evaluation.ErrorSummary? right) -> bool
+static Minos.Evaluation.ErrorSummary.operator ==(Minos.Evaluation.ErrorSummary? left, Minos.Evaluation.ErrorSummary? right) -> bool
+static Minos.Evaluation.KindMetrics.operator !=(Minos.Evaluation.KindMetrics? left, Minos.Evaluation.KindMetrics? right) -> bool
+static Minos.Evaluation.KindMetrics.operator ==(Minos.Evaluation.KindMetrics? left, Minos.Evaluation.KindMetrics? right) -> bool
+static Minos.Evaluation.LatencySummary.operator !=(Minos.Evaluation.LatencySummary? left, Minos.Evaluation.LatencySummary? right) -> bool
+static Minos.Evaluation.LatencySummary.operator ==(Minos.Evaluation.LatencySummary? left, Minos.Evaluation.LatencySummary? right) -> bool
+static Minos.Evaluation.ModelCount.operator !=(Minos.Evaluation.ModelCount? left, Minos.Evaluation.ModelCount? right) -> bool
+static Minos.Evaluation.ModelCount.operator ==(Minos.Evaluation.ModelCount? left, Minos.Evaluation.ModelCount? right) -> bool
+static Minos.Evaluation.ModelPrice.operator !=(Minos.Evaluation.ModelPrice? left, Minos.Evaluation.ModelPrice? right) -> bool
+static Minos.Evaluation.ModelPrice.operator ==(Minos.Evaluation.ModelPrice? left, Minos.Evaluation.ModelPrice? right) -> bool
+static Minos.Evaluation.ReliabilityBin.operator !=(Minos.Evaluation.ReliabilityBin? left, Minos.Evaluation.ReliabilityBin? right) -> bool
+static Minos.Evaluation.ReliabilityBin.operator ==(Minos.Evaluation.ReliabilityBin? left, Minos.Evaluation.ReliabilityBin? right) -> bool
+static Minos.Evaluation.SweepPoint.operator !=(Minos.Evaluation.SweepPoint? left, Minos.Evaluation.SweepPoint? right) -> bool
+static Minos.Evaluation.SweepPoint.operator ==(Minos.Evaluation.SweepPoint? left, Minos.Evaluation.SweepPoint? right) -> bool
