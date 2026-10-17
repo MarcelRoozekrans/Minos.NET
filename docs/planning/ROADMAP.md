@@ -416,7 +416,7 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Spec:** `docs/superpowers/specs/2026-10-17-phase-8.1-dataset-design.md`
 **Plan:** `docs/superpowers/plans/2026-10-17-phase-8.1-dataset.md`
 **Completed:** 2026-10-17
-**Evidence:** PR #224; pre-push review PASS, `docs/plans/2026-10-17-phase-8.1-pre-push-review.md`. The urgency labels await the maintainer's spot-check before Phase 8.4.
+**Evidence:** PR #224; pre-push review PASS, `docs/plans/2026-10-17-phase-8.1-pre-push-review.md`. The maintainer spot-checked the urgency labels on 2026-10-17, with three corrections, in Phase 8.4.
 
 ### Phase 8.2: Metrics and reports in Minos.NET.Evaluation [status: complete]
 **Goal:** Accuracy, ECE, the reliability table, the threshold sweep, latency and cost from a run over a dataset through any IDecisionClient, one request per item, rendered as Markdown and JSON, with a dated price table for providers that report no cost (#116).
