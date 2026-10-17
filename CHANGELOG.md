@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.1.1...v1.2.0) (2026-10-17)
+
+
+### Features
+
+* the minos tool, with Minos.NET.Evaluation on NuGet, Phase 8.3 ([4d9883f](https://github.com/MarcelRoozekrans/Minos.NET/commit/4d9883f35cceda56dad943a8ca9e6879d1e8bdb0))
+
 ## [1.1.1](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.1.0...v1.1.1) (2026-10-16)
 
 
