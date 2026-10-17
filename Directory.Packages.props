@@ -75,6 +75,11 @@
     <PackageVersion Include="System.Threading.RateLimiting" Version="10.0.0" />
     <!-- Runtime question set validation: its generators validate Minos.NET's own specs; NuGet still flows them to consumers, where they stay inert, NuGet/Home#6720 -->
     <PackageVersion Include="ZeroAlloc.Validation" Version="2.3.3" />
+    <!-- The minos tool's command line. Only Minos.NET.Tool references it. -->
+    <PackageVersion Include="System.CommandLine" Version="2.0.13" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.13" />
+    <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.13" />
     <!-- Benchmarks -->
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
     <!--

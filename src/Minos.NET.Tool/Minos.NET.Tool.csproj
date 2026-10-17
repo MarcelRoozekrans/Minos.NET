@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>Minos.Tool</RootNamespace>
+    <AssemblyName>minos</AssemblyName>
+    <PackageId>Minos.NET.Tool</PackageId>
+    <Title>Minos.NET.Tool</Title>
+    <!-- Not packed yet: Phase 8.3 task 4 packs it as a dotnet tool. -->
+    <IsPackable>false</IsPackable>
+    <!-- The configuration binding is source-generated, as in Minos.NET.SystemOne, so no reflection binder is used. -->
+    <EnableConfigurationBindingGenerator>true</EnableConfigurationBindingGenerator>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Minos.NET\Minos.NET.csproj" />
+    <ProjectReference Include="..\Minos.NET.SystemOne\Minos.NET.SystemOne.csproj" />
+    <ProjectReference Include="..\Minos.NET.Evaluation\Minos.NET.Evaluation.csproj" />
+    <PackageReference Include="System.CommandLine" />
+    <PackageReference Include="Microsoft.Extensions.Configuration" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+    <PackageReference Include="ZeroAlloc.Results" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Minos.NET.Tool.Tests" />
+  </ItemGroup>
+</Project>
