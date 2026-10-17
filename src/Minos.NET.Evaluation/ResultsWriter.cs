@@ -9,8 +9,74 @@ internal static class ResultsWriter
 {
     private static readonly JsonWriterOptions Options = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
+    // Refuses records the reader would not accept back, before anything is written or truncated.
+    internal static void Validate(EvaluationResults results)
+    {
+        foreach (var item in results.Items)
+        {
+            Finite(item.Id, "latencyMs", item.LatencyMs);
+            if (item.LatencyMs < 0)
+            {
+                throw new InvalidOperationException($"Item '{item.Id}': latencyMs must not be negative.");
+            }
+
+            if (item.Cost is { } cost)
+            {
+                Finite(item.Id, "cost", cost);
+                if (cost < 0)
+                {
+                    throw new InvalidOperationException($"Item '{item.Id}': cost must not be negative; use null for an unknown cost.");
+                }
+            }
+
+            if ((item.Answers is null) == (item.Error is null))
+            {
+                throw new InvalidOperationException($"Item '{item.Id}': exactly one of Answers and Error must be set.");
+            }
+
+            if (item.Answers is null)
+            {
+                continue;
+            }
+
+            if (item.Answers.Count == 0)
+            {
+                throw new InvalidOperationException($"Item '{item.Id}': Answers must not be empty.");
+            }
+
+            foreach (var (key, answer) in item.Answers)
+            {
+                var member = $"Answers[{key}]";
+                Finite(item.Id, member + ".Confidence", answer.Confidence);
+                if (answer.Probability is { } probability)
+                {
+                    Finite(item.Id, member + ".Probability", probability);
+                }
+
+                if (answer.Kind == QuestionKind.Choice && answer.ChoiceKey is null)
+                {
+                    throw new InvalidOperationException($"Item '{item.Id}': {member}.ChoiceKey must not be null for a Choice answer.");
+                }
+
+                if (answer.Kind == QuestionKind.Noul && answer.Probability is null)
+                {
+                    throw new InvalidOperationException($"Item '{item.Id}': {member}.Probability must be set for a Noul answer.");
+                }
+            }
+        }
+    }
+
+    private static void Finite(string id, string member, double value)
+    {
+        if (!double.IsFinite(value))
+        {
+            throw new InvalidOperationException($"Item '{id}': {member} must be a finite number.");
+        }
+    }
+
     internal static void Write(EvaluationResults results, Stream stream)
     {
+        Validate(results);
         var buffer = new ArrayBufferWriter<byte>();
         WriteLine(buffer, stream, w => WriteHeader(w, results.Header));
         foreach (var item in results.Items)

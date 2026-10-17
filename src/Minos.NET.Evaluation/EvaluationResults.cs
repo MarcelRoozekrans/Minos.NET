@@ -26,16 +26,35 @@ public sealed class EvaluationResults
     /// <summary>Saves the results to a file as versioned UTF-8 JSONL, replacing the file when it exists.</summary>
     /// <param name="path">The file to write.</param>
     /// <exception cref="ArgumentNullException"><paramref name="path"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">A result is one the file cannot hold, such as a non-finite number; nothing is written.</exception>
     public void Save(string path)
     {
         ArgumentNullException.ThrowIfNull(path);
-        using var stream = new FileStream(path, FileMode.Create, FileAccess.Write, FileShare.None);
-        Save(stream);
+        ResultsWriter.Validate(this);
+
+        // Written beside the target and moved over it, so a failure never leaves a partial file.
+        var directory = Path.GetDirectoryName(Path.GetFullPath(path))!;
+        var temp = Path.Combine(directory, Path.GetFileName(path) + "." + Guid.NewGuid().ToString("N") + ".tmp");
+        try
+        {
+            using (var stream = new FileStream(temp, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                Save(stream);
+            }
+
+            File.Move(temp, path, overwrite: true);
+        }
+        catch
+        {
+            File.Delete(temp);
+            throw;
+        }
     }
 
     /// <summary>Saves the results to a stream as versioned UTF-8 JSONL, with LF line endings and no byte order mark. The stream stays open.</summary>
     /// <param name="utf8Jsonl">The stream to write.</param>
     /// <exception cref="ArgumentNullException"><paramref name="utf8Jsonl"/> is <see langword="null"/>.</exception>
+    /// <exception cref="InvalidOperationException">A result is one the file cannot hold, such as a non-finite number; nothing is written.</exception>
     public void Save(Stream utf8Jsonl)
     {
         ArgumentNullException.ThrowIfNull(utf8Jsonl);

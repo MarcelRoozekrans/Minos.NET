@@ -232,6 +232,23 @@ public sealed class DatasetRunnerTests
     }
 
     [Fact]
+    public async Task NegativeReportedCost_IsUnknown_AndTheResultsSaveAndLoad()
+    {
+        var client = new FakeDecisionClient((r, _) => ValueTask.FromResult(Ok(
+            NoulResponse(r, 0.9, "m-1", new DecisionUsage { InputTokens = 1, OutputTokens = 1, Cost = -1 }))));
+
+        var results = await DatasetRunner.RunAsync(client, Many(1));
+
+        Assert.Null(Assert.Single(results.Items).Cost);
+        using var stream = new MemoryStream();
+        results.Save(stream);
+        stream.Position = 0;
+        var loaded = EvaluationResults.Parse(stream);
+        Assert.True(loaded.IsSuccess);
+        Assert.Null(loaded.Value.Items[0].Cost);
+    }
+
+    [Fact]
     public async Task CachedResponseIsFlagged_TokensModelCostIdCopied()
     {
         var client = new FakeDecisionClient((r, _) => ValueTask.FromResult(Ok(

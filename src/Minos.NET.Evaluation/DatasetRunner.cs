@@ -125,7 +125,7 @@ public static class DatasetRunner
             response.Model,
             usage?.InputTokens,
             usage?.OutputTokens,
-            usage?.Cost,
+            usage?.Cost is >= 0 ? usage.Cost : null, // a negative reported cost is unknown
             response.Id,
             invalid is null ? answers : null,
             invalid is null ? null : new ItemError(nameof(DecisionErrorKind.InvalidResponse), null, invalid));
