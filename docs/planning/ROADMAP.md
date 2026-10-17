@@ -409,11 +409,14 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 - [ ] Committed calibration reports for TypeSafe, Clef Flash and the local model on a Banking77 sample
 - [ ] A "Choosing a provider and a threshold" guide backed by the tool
 
-### Phase 8.1: Dataset format, loader and the Banking77 sample [status: pending]
+### Phase 8.1: Dataset format, loader and the Banking77 sample [status: complete]
 **Goal:** The versioned JSONL format (state, questions, expected answers by key), shared later by the decision export (#118); its loader with line-numbered errors; and the Banking77 sample (CC BY 4.0) plus a small authored Score set, with attribution and a reproducible build script (#116).
 **Surface:** Data
 **HelpWanted:** no
-**Plan:** _to be written_
+**Spec:** `docs/superpowers/specs/2026-10-17-phase-8.1-dataset-design.md`
+**Plan:** `docs/superpowers/plans/2026-10-17-phase-8.1-dataset.md`
+**Completed:** 2026-10-17
+**Evidence:** PR #224; pre-push review PASS, `docs/plans/2026-10-17-phase-8.1-pre-push-review.md`. The urgency labels await the maintainer's spot-check before Phase 8.4.
 
 ### Phase 8.2: Metrics and reports in Minos.NET.Evaluation [status: pending]
 **Goal:** Accuracy, ECE, the reliability table, the threshold sweep, latency and cost from a run over a dataset through any IDecisionClient, one request per item, rendered as Markdown and JSON, with a dated price table for providers that report no cost (#116).

@@ -33,7 +33,7 @@ A .NET user can measure, on their own labelled data, how accurate and how well c
 - Publishing `Minos.NET.Conformance` as its own package: it ships inside the tool.
 
 ## Phases
-1. Phase 8.1 — Dataset format, loader and the Banking77 sample [pending]
+1. Phase 8.1 — Dataset format, loader and the Banking77 sample [complete]
 2. Phase 8.2 — Metrics and reports in Minos.NET.Evaluation [pending]
 3. Phase 8.3 — The minos tool [pending]
 4. Phase 8.4 — Reports and the guide [pending]
