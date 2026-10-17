@@ -290,4 +290,23 @@ public sealed class ResultsFileTests
         Assert.Contains(problems, p => p.Line == 2);
         Assert.Contains(problems, p => p.Line == 1 && p.Message.Contains("header says 3", StringComparison.Ordinal));
     }
+
+    [Fact]
+    public void Save_RefusesWhatLoadWouldRefuse()
+    {
+        var good = Ok();
+        var noul = new AnswerRecord(QuestionKind.Noul, true, 0.8, null, 0, 0.8);
+        AssertSaveRefuses(new EvaluationResults(Header(2), [good]), "ItemCount");
+        AssertSaveRefuses(new EvaluationResults(Header(1) with { Parallelism = 0 }, [good]), "Parallelism");
+        AssertSaveRefuses(new EvaluationResults(Header(2), [good, good]), "twice");
+        AssertSaveRefuses(With(good with { Line = 0 }), "Line");
+        AssertSaveRefuses(With(good with { InputTokens = -1 }), "inputTokens");
+        AssertSaveRefuses(With(good with { OutputTokens = -1 }), "outputTokens");
+        AssertSaveRefuses(With(Ok(noul with { Confidence = 1.5 })), "Confidence");
+        AssertSaveRefuses(With(Ok(noul with { Confidence = -0.1 })), "Confidence");
+        AssertSaveRefuses(With(Ok(noul with { Probability = 1.5 })), "Probability");
+        AssertSaveRefuses(With(Ok(new AnswerRecord(QuestionKind.Choice, false, 2, "k", 0, 0.5))), "Probability");
+        AssertSaveRefuses(With(Ok(new AnswerRecord(QuestionKind.Score, false, null, null, -1, 0.5))), "ScoreLevel");
+        AssertSaveRefuses(With(good with { Answers = new Dictionary<string, AnswerRecord>() }), "Answers");
+    }
 }

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Globalization;
 using ZeroAlloc.Results;
 
 namespace Minos.Evaluation;
@@ -120,22 +121,30 @@ public static class DatasetRunner
         return new ItemResult(
             item.Id,
             item.Line,
-            latency.TotalMilliseconds,
+            Milliseconds(latency),
             response.IsCached,
             response.Model,
-            usage?.InputTokens,
-            usage?.OutputTokens,
-            usage?.Cost is >= 0 ? usage.Cost : null, // a negative reported cost is unknown
+            NonNegative(usage?.InputTokens),
+            NonNegative(usage?.OutputTokens),
+            usage?.Cost is { } cost && double.IsFinite(cost) && cost >= 0 ? cost : null,
             response.Id,
             invalid is null ? answers : null,
             invalid is null ? null : new ItemError(nameof(DecisionErrorKind.InvalidResponse), null, invalid));
     }
 
-    private static ItemResult Failed(DatasetItem item, TimeSpan latency, ItemError error)
-        => new(item.Id, item.Line, latency.TotalMilliseconds, false, null, null, null, null, null, null, error);
+    // A clock that runs backwards must not give a negative latency, which the results file refuses.
+    private static double Milliseconds(TimeSpan latency) => Math.Max(0, latency.TotalMilliseconds);
 
-    // Walks the item's own questions: an answer the response lacks is absent, an answer to a question the item
-    // does not ask is ignored, and a chosen option the item's definition does not have makes the response invalid.
+    // A negative or missing count, and a negative, infinite or missing cost, is unknown.
+    private static int? NonNegative(int? count) => count is >= 0 ? count : null;
+
+    private static ItemResult Failed(DatasetItem item, TimeSpan latency, ItemError error)
+        => new(item.Id, item.Line, Milliseconds(latency), false, null, null, null, null, null, null, error);
+
+    // Walks the item's own questions and builds only what the results file can hold. An answer the response lacks is
+    // absent, and an answer to a question the item does not ask is ignored. The response is invalid, and the item an
+    // InvalidResponse error, when an answer has another kind than its question, a chosen index the question does not
+    // have, a probability or confidence outside 0 to 1, or when none of the item's questions was answered.
     private static Dictionary<string, AnswerRecord> Record(DatasetItem item, DecisionResponse response, out string? invalid)
     {
         invalid = null;
@@ -148,30 +157,52 @@ public static class DatasetRunner
         var records = new Dictionary<string, AnswerRecord>(StringComparer.Ordinal);
         foreach (var question in item.Definition.Questions)
         {
-            if (!byKey.TryGetValue(question.Key, out var answer) || answer.Kind != question.Kind)
+            if (!byKey.TryGetValue(question.Key, out var answer))
             {
                 continue;
+            }
+
+            if (answer.Kind != question.Kind)
+            {
+                invalid = $"The response answered '{question.Key}' as {answer.Kind}; the question is {question.Kind}.";
+                return records;
             }
 
             switch (question.Kind)
             {
                 case QuestionKind.Noul:
                     var p = answer.Probability;
-                    records[question.Key] = new AnswerRecord(QuestionKind.Noul, p >= 0.5, p, null, 0, Math.Max(p, 1 - p));
-                    break;
-                case QuestionKind.Choice:
-                    if (answer.ChosenIndex < 0 || answer.ChosenIndex >= question.Options.Count)
+                    if (!ResultsRules.IsUnit(p))
                     {
-                        invalid = $"Question '{question.Key}' chose option {answer.ChosenIndex}, but it has {question.Options.Count} options.";
+                        invalid = $"Question '{question.Key}' has probability {p.ToString(CultureInfo.InvariantCulture)}, outside 0 to 1.";
                         return records;
                     }
 
-                    records[question.Key] = new AnswerRecord(QuestionKind.Choice, false, null, question.Options[answer.ChosenIndex].Key, 0, answer.Confidence);
+                    records[question.Key] = new AnswerRecord(QuestionKind.Noul, p >= 0.5, p, null, 0, Math.Max(p, 1 - p));
                     break;
                 default:
-                    records[question.Key] = new AnswerRecord(question.Kind, false, null, null, answer.ChosenIndex, answer.Confidence);
+                    if (answer.ChosenIndex < 0 || answer.ChosenIndex >= question.Options.Count)
+                    {
+                        invalid = $"Question '{question.Key}' chose option {answer.ChosenIndex.ToString(CultureInfo.InvariantCulture)}, but it has {question.Options.Count.ToString(CultureInfo.InvariantCulture)} options.";
+                        return records;
+                    }
+
+                    if (!ResultsRules.IsUnit(answer.Confidence))
+                    {
+                        invalid = $"Question '{question.Key}' has confidence {answer.Confidence.ToString(CultureInfo.InvariantCulture)}, outside 0 to 1.";
+                        return records;
+                    }
+
+                    records[question.Key] = question.Kind == QuestionKind.Choice
+                        ? new AnswerRecord(QuestionKind.Choice, false, null, question.Options[answer.ChosenIndex].Key, 0, answer.Confidence)
+                        : new AnswerRecord(question.Kind, false, null, null, answer.ChosenIndex, answer.Confidence);
                     break;
             }
+        }
+
+        if (records.Count == 0)
+        {
+            invalid = "The response answered none of the item's questions.";
         }
 
         return records;

@@ -9,25 +9,38 @@ internal static class ResultsWriter
 {
     private static readonly JsonWriterOptions Options = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
-    // Refuses records the reader would not accept back, before anything is written or truncated.
+    // Refuses what the reader would not accept back, before anything is written or truncated. The value rules are
+    // the reader's, from ResultsRules.
     internal static void Validate(EvaluationResults results)
     {
+        var header = results.Header;
+        if (header.ItemCount != results.Items.Count)
+        {
+            throw new InvalidOperationException($"Header ItemCount is {header.ItemCount}, but there are {results.Items.Count} items.");
+        }
+
+        if (header.Parallelism < ResultsRules.MinParallelism)
+        {
+            throw new InvalidOperationException($"Header Parallelism must be at least {ResultsRules.MinParallelism}.");
+        }
+
+        var ids = new HashSet<string>(StringComparer.Ordinal);
         foreach (var item in results.Items)
         {
-            Finite(item.Id, "latencyMs", item.LatencyMs);
-            if (item.LatencyMs < 0)
+            if (!ids.Add(item.Id))
             {
-                throw new InvalidOperationException($"Item '{item.Id}': latencyMs must not be negative.");
+                throw new InvalidOperationException($"Item '{item.Id}': the id appears twice.");
             }
 
-            if (item.Cost is { } cost)
+            if (item.Line < ResultsRules.MinLine)
             {
-                Finite(item.Id, "cost", cost);
-                if (cost < 0)
-                {
-                    throw new InvalidOperationException($"Item '{item.Id}': cost must not be negative; use null for an unknown cost.");
-                }
+                throw new InvalidOperationException($"Item '{item.Id}': Line must be at least {ResultsRules.MinLine}.");
             }
+
+            Require(item.Id, "latencyMs", ResultsRules.IsNonNegative(item.LatencyMs), "a non-negative finite number");
+            Require(item.Id, "cost", item.Cost is not { } cost || ResultsRules.IsNonNegative(cost), "a non-negative finite number, or null when unknown");
+            Require(item.Id, "inputTokens", item.InputTokens is not { } input || input >= ResultsRules.MinTokens, "non-negative");
+            Require(item.Id, "outputTokens", item.OutputTokens is not { } output || output >= ResultsRules.MinTokens, "non-negative");
 
             if ((item.Answers is null) == (item.Error is null))
             {
@@ -39,38 +52,24 @@ internal static class ResultsWriter
                 continue;
             }
 
-            if (item.Answers.Count == 0)
-            {
-                throw new InvalidOperationException($"Item '{item.Id}': Answers must not be empty.");
-            }
-
+            Require(item.Id, "Answers", item.Answers.Count > 0, "not empty");
             foreach (var (key, answer) in item.Answers)
             {
                 var member = $"Answers[{key}]";
-                Finite(item.Id, member + ".Confidence", answer.Confidence);
-                if (answer.Probability is { } probability)
-                {
-                    Finite(item.Id, member + ".Probability", probability);
-                }
-
-                if (answer.Kind == QuestionKind.Choice && answer.ChoiceKey is null)
-                {
-                    throw new InvalidOperationException($"Item '{item.Id}': {member}.ChoiceKey must not be null for a Choice answer.");
-                }
-
-                if (answer.Kind == QuestionKind.Noul && answer.Probability is null)
-                {
-                    throw new InvalidOperationException($"Item '{item.Id}': {member}.Probability must be set for a Noul answer.");
-                }
+                Require(item.Id, member + ".Confidence", ResultsRules.IsUnit(answer.Confidence), "a number from 0 to 1");
+                Require(item.Id, member + ".Probability", answer.Probability is not { } probability || ResultsRules.IsUnit(probability), "a number from 0 to 1");
+                Require(item.Id, member + ".ChoiceKey", answer.Kind != QuestionKind.Choice || answer.ChoiceKey is not null, "set for a Choice answer");
+                Require(item.Id, member + ".Probability", answer.Kind != QuestionKind.Noul || answer.Probability is not null, "set for a Noul answer");
+                Require(item.Id, member + ".ScoreLevel", answer.Kind != QuestionKind.Score || answer.ScoreLevel >= ResultsRules.MinScoreLevel, "non-negative");
             }
         }
     }
 
-    private static void Finite(string id, string member, double value)
+    private static void Require(string id, string member, bool ok, string rule)
     {
-        if (!double.IsFinite(value))
+        if (!ok)
         {
-            throw new InvalidOperationException($"Item '{id}': {member} must be a finite number.");
+            throw new InvalidOperationException($"Item '{id}': {member} must be {rule}.");
         }
     }
 

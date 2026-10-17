@@ -130,13 +130,13 @@ internal static class ResultsReader
         }
 
         var dataset = r.String("dataset", required: true);
-        var itemCount = r.Int("itemCount", nonNegative: true);
+        var itemCount = r.Int("itemCount", min: ResultsRules.MinItemCount);
         var provider = r.String("providerName");
         var endpointText = r.String("endpoint");
         var model = r.String("defaultModel");
         var started = r.Time("started");
         var finished = r.Time("finished");
-        var parallelism = r.Int("parallelism", nonNegative: true);
+        var parallelism = r.Int("parallelism", min: ResultsRules.MinParallelism);
 
         Uri? endpoint = null;
         if (endpointText is not null && !Uri.TryCreate(endpointText, UriKind.RelativeOrAbsolute, out endpoint))
@@ -164,12 +164,12 @@ internal static class ResultsReader
         Fields.CheckDuplicates(root, line, problems, string.Empty);
         var r = new Fields(root, line, problems);
         var id = r.String("id", required: true);
-        var itemLine = r.Int("line", nonNegative: true);
+        var itemLine = r.Int("line", min: ResultsRules.MinLine);
         var latency = r.Double("latencyMs", nonNegative: true);
         var cached = r.Bool("cached");
         var model = r.String("model");
-        var inputTokens = r.Int("inputTokens", required: false, nonNegative: true);
-        var outputTokens = r.Int("outputTokens", required: false, nonNegative: true);
+        var inputTokens = r.Int("inputTokens", required: false, min: ResultsRules.MinTokens);
+        var outputTokens = r.Int("outputTokens", required: false, min: ResultsRules.MinTokens);
         var cost = r.Double("cost", required: false, nonNegative: true);
         var responseId = r.String("responseId");
 
@@ -281,7 +281,7 @@ internal static class ResultsReader
 
                 break;
             case "score":
-                if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var level) && level >= 0)
+                if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var level) && level >= ResultsRules.MinScoreLevel)
                 {
                     record = new AnswerRecord(QuestionKind.Score, false, probability, null, level, confidence ?? 0);
                 }
@@ -347,19 +347,19 @@ internal static class ResultsReader
             }
         }
 
-        internal int? Int(string name, bool required = true, bool nonNegative = false)
+        internal int? Int(string name, bool required = true, int min = int.MinValue)
         {
             if (!Find(name, required, out var value))
             {
                 return null;
             }
 
-            if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var number) && (!nonNegative || number >= 0))
+            if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var number) && number >= min)
             {
                 return number;
             }
 
-            Bad(name, nonNegative ? "a non-negative integer" : "an integer");
+            Bad(name, min == int.MinValue ? "an integer" : $"an integer of at least {min.ToString(CultureInfo.InvariantCulture)}");
             return null;
         }
 
@@ -371,7 +371,7 @@ internal static class ResultsReader
             }
 
             if (value.ValueKind == JsonValueKind.Number && value.TryGetDouble(out var number) && double.IsFinite(number)
-                && (!unit || number is >= 0 and <= 1) && (!nonNegative || number >= 0))
+                && (!unit || ResultsRules.IsUnit(number)) && (!nonNegative || ResultsRules.IsNonNegative(number)))
             {
                 return number;
             }

@@ -316,21 +316,97 @@ public sealed class DatasetRunnerTests
         Assert.Equal("dataset", results.Header.DatasetName);
     }
 
-    [Fact]
-    public async Task MissingAnswerKey_IsAbsent_ExtraKeyIgnored()
+    private sealed class BackwardsTime : TimeProvider
     {
-        var dataset = Parse(NoulLine("a"));
-        // The response answers a different set: no "q", and an extra "other".
+        private long _ticks = 1_000_000;
+
+        public override long TimestampFrequency => 1_000;
+
+        public override long GetTimestamp() => _ticks -= 500;
+    }
+
+    private static void AssertSavesAndLoads(EvaluationResults results)
+    {
+        using var stream = new MemoryStream();
+        results.Save(stream);
+        stream.Position = 0;
+        var loaded = EvaluationResults.Parse(stream);
+        Assert.True(loaded.IsSuccess, loaded.IsSuccess ? null : string.Join("; ", loaded.Error.Select(p => $"{p.Line}: {p.Message}")));
+        Assert.Equal(results.Items.Count, loaded.Value.Items.Count);
+    }
+
+    [Fact]
+    public async Task MissingSomeKeys_AreAbsent_ExtraKeyIgnored()
+    {
+        var dataset = Parse(AllKinds);
+        var partial = new QuestionSetDefinition(QuestionDefinition.Noul("n", "?"), QuestionDefinition.Noul("other", "?"));
+        var client = new FakeDecisionClient((_, _) => ValueTask.FromResult(
+            Ok(new DecisionResponse(partial, [QuestionAnswer.Noul(0.9), QuestionAnswer.Noul(0.1)]))));
+
+        var results = await DatasetRunner.RunAsync(client, dataset);
+
+        var item = Assert.Single(results.Items);
+        Assert.Equal(["n"], item.Answers!.Keys);
+        Assert.Null(item.Error);
+        AssertSavesAndLoads(results);
+    }
+
+    [Fact]
+    public async Task ResponseForAnotherDefinition_IsInvalidResponse_AndSaves()
+    {
         var foreign = new QuestionSetDefinition(QuestionDefinition.Noul("other", "?"));
         var client = new FakeDecisionClient((_, _) => ValueTask.FromResult(
             Ok(new DecisionResponse(foreign, [QuestionAnswer.Noul(0.9)]))));
 
-        var item = Assert.Single((await DatasetRunner.RunAsync(client, dataset)).Items);
+        var results = await DatasetRunner.RunAsync(client, Parse(NoulLine("a")));
 
-        Assert.NotNull(item.Answers);
-        Assert.DoesNotContain("q", item.Answers.Keys);
-        Assert.DoesNotContain("other", item.Answers.Keys);
-        Assert.Null(item.Error);
+        var item = Assert.Single(results.Items);
+        Assert.Null(item.Answers);
+        Assert.Equal("InvalidResponse", item.Error!.Kind);
+        Assert.Contains("none of the item's questions", item.Error.Message, StringComparison.Ordinal);
+        AssertSavesAndLoads(results);
+    }
+
+    [Fact]
+    public async Task KindMismatchOnOneQuestion_IsInvalidResponse()
+    {
+        var wrong = new QuestionSetDefinition(
+            QuestionDefinition.Score("n", "?", "a", "b"),
+            QuestionDefinition.Choice("c", "?", new OptionDefinition("one", null), new OptionDefinition("two", null), new OptionDefinition("three", null)));
+        var client = new FakeDecisionClient((_, _) => ValueTask.FromResult(Ok(new DecisionResponse(
+            wrong, [QuestionAnswer.Score(1, 1, 0.5, [0.5, 0.5]), QuestionAnswer.Choice(1, 0.8, [0.1, 0.8, 0.1])]))));
+
+        var results = await DatasetRunner.RunAsync(client, Parse(AllKinds));
+
+        var item = Assert.Single(results.Items);
+        Assert.Null(item.Answers);
+        Assert.Equal("InvalidResponse", item.Error!.Kind);
+        Assert.Equal("The response answered 'n' as Score; the question is Noul.", item.Error.Message);
+        AssertSavesAndLoads(results);
+    }
+
+    [Fact]
+    public async Task NegativeTokens_AreUnknown_AndInfiniteCostIsUnknown()
+    {
+        var client = new FakeDecisionClient((r, _) => ValueTask.FromResult(Ok(
+            NoulResponse(r, 0.9, "m", new DecisionUsage { InputTokens = -1, OutputTokens = -5, Cost = double.PositiveInfinity }))));
+
+        var results = await DatasetRunner.RunAsync(client, Many(1));
+
+        var item = Assert.Single(results.Items);
+        Assert.Null(item.InputTokens);
+        Assert.Null(item.OutputTokens);
+        Assert.Null(item.Cost);
+        AssertSavesAndLoads(results);
+    }
+
+    [Fact]
+    public async Task BackwardsClock_GivesZeroLatency()
+    {
+        var results = await DatasetRunner.RunAsync(Simple(), Many(1), new DatasetRunOptions { TimeProvider = new BackwardsTime() });
+
+        Assert.Equal(0, Assert.Single(results.Items).LatencyMs);
+        AssertSavesAndLoads(results);
     }
 
     [Fact]
