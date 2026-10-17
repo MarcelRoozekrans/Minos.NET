@@ -133,9 +133,9 @@ Median 700 ms, p95 1300 ms, over 14 requests.
 
 ## Cost
 
-Per 1,000 decisions: 0.5210.
+Per 1,000 decisions: 0.521, in the currency of the prices and reported costs (OpenRouter reports US dollars).
 
-Cost came from the provider for 4 items, from a price for 4, and was unknown for 6. Cached responses, which are left out: 0.
+Cost came from the provider for 4 items, from a price for 4, and was unknown for 6. Cached responses left out: 0.
 
 Prices used, per million tokens:
 
@@ -143,9 +143,9 @@ Prices used, per million tokens:
 
 ## How to read this
 
-Every answer is scored against the expected answer in the dataset. The number a threshold gates on is the confidence of the answer: for a Noul question it is the larger of p and 1 - p, so it is never below 0.5; for a Choice or Score question it is the confidence the model reports, which can be lower. Use the sweep of each kind, not the one over all kinds, to choose a threshold.
+Every question with an expected answer is scored against it. The number a threshold gates on is the confidence of the answer: for a Noul question it is the larger of p, the model's probability that the answer is yes, and 1 - p, so it is never below 0.5; for a Choice or Score question it is the confidence the model reports, which can be lower. Use the sweep of each kind, not the one over all kinds, to choose a threshold.
 
-Answers are sorted by confidence and cut into up to ten bins that each hold the same number of answers. In a well-calibrated model the accuracy of each bin is close to its mean confidence. ECE, the expected calibration error, is the gap between the two averaged over the bins, weighted by how many answers each holds: 0 is perfect, and larger is worse. The equal-width column does the same over ten bins of equal confidence width, which can leave bins empty or crowded.
+Answers are sorted by confidence and split into up to ten bins of equal size, give or take one answer. In a well-calibrated model the accuracy of each bin is close to its mean confidence. ECE, the expected calibration error, is the gap between the two averaged over the bins, weighted by how many answers each holds: 0 is perfect, and larger is worse. The equal-width column does the same over ten bins of equal confidence width, which can leave bins empty or crowded.
 
 The base rate is what you would score by always giving the most common expected answer for each question. An accuracy that does not beat it says little.
 

@@ -27,7 +27,7 @@ public sealed class PriceTableTests
     [Fact]
     public void LongestPrefix_Wins()
     {
-        var table = new PriceTable([Price("jev"), Price("jev-1.14"), Price("jev-1")]);
+        var table = new PriceTable([Price("model-a"), Price("jev-1.14"), Price("jev-1")]);
 
         Assert.True(table.TryFind("jev-1.14-20261014", out var price));
         Assert.Equal("jev-1.14", price.Model);
@@ -36,7 +36,7 @@ public sealed class PriceTableTests
     [Fact]
     public void ExactMatch_WinsOverPrefix()
     {
-        var table = new PriceTable([Price("jev"), Price("jev-1.14-20261014")]);
+        var table = new PriceTable([Price("model-a"), Price("jev-1.14-20261014")]);
 
         Assert.True(table.TryFind("jev-1.14-20261014", out var price));
         Assert.Equal("jev-1.14-20261014", price.Model);
@@ -56,7 +56,7 @@ public sealed class PriceTableTests
     {
         var table = new PriceTable([Price("jev-1.14")]);
 
-        Assert.False(table.TryFind("JEV-1.14", out _));
+        Assert.False(table.TryFind("MODEL-A-1.14", out _));
         Assert.False(table.TryFind("gpt-x", out _));
         Assert.False(new PriceTable([]).TryFind("jev-1.14", out _));
     }
@@ -104,7 +104,7 @@ public sealed class PriceTableTests
         var ex = Assert.Throws<ArgumentException>(() => new PriceTable([Price("jev-1.14"), Price("other"), Price("jev-1.14")]));
 
         Assert.Contains("'jev-1.14'", ex.Message, StringComparison.Ordinal);
-        Assert.Equal(2, new PriceTable([Price("jev-1.14"), Price("JEV-1.14")]).Prices.Count);
+        Assert.Equal(2, new PriceTable([Price("jev-1.14"), Price("MODEL-A-1.14")]).Prices.Count);
     }
 
     [Fact]

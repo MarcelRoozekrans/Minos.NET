@@ -152,9 +152,9 @@ internal static class ReportMarkdownWriter
 
     private static void WriteCost(StringBuilder md, CostSummary cost)
     {
-        md.Append("## Cost\n\nPer 1,000 decisions: ").Append(Ratio(cost.PerThousandDecisions)).Append(".\n\n")
+        md.Append("## Cost\n\nPer 1,000 decisions: ").Append(Cost(cost.PerThousandDecisions)).Append(", in the currency of the prices and reported costs (OpenRouter reports US dollars).\n\n")
             .Append("Cost came from the provider for ").Append(Count(cost.Reported)).Append(" items, from a price for ").Append(Count(cost.Priced))
-            .Append(", and was unknown for ").Append(Count(cost.Unknown)).Append(". Cached responses, which are left out: ").Append(Count(cost.Cached)).Append(".\n\n");
+            .Append(", and was unknown for ").Append(Count(cost.Unknown)).Append(". Cached responses left out: ").Append(Count(cost.Cached)).Append(".\n\n");
         if (cost.PricesUsed.Count == 0)
         {
             md.Append("Prices used: none.\n\n");
@@ -176,9 +176,9 @@ internal static class ReportMarkdownWriter
             """
             ## How to read this
 
-            Every answer is scored against the expected answer in the dataset. The number a threshold gates on is the confidence of the answer: for a Noul question it is the larger of p and 1 - p, so it is never below 0.5; for a Choice or Score question it is the confidence the model reports, which can be lower. Use the sweep of each kind, not the one over all kinds, to choose a threshold.
+            Every question with an expected answer is scored against it. The number a threshold gates on is the confidence of the answer: for a Noul question it is the larger of p, the model's probability that the answer is yes, and 1 - p, so it is never below 0.5; for a Choice or Score question it is the confidence the model reports, which can be lower. Use the sweep of each kind, not the one over all kinds, to choose a threshold.
 
-            Answers are sorted by confidence and cut into up to ten bins that each hold the same number of answers. In a well-calibrated model the accuracy of each bin is close to its mean confidence. ECE, the expected calibration error, is the gap between the two averaged over the bins, weighted by how many answers each holds: 0 is perfect, and larger is worse. The equal-width column does the same over ten bins of equal confidence width, which can leave bins empty or crowded.
+            Answers are sorted by confidence and split into up to ten bins of equal size, give or take one answer. In a well-calibrated model the accuracy of each bin is close to its mean confidence. ECE, the expected calibration error, is the gap between the two averaged over the bins, weighted by how many answers each holds: 0 is perfect, and larger is worse. The equal-width column does the same over ten bins of equal confidence width, which can leave bins empty or crowded.
 
             The base rate is what you would score by always giving the most common expected answer for each question. An accuracy that does not beat it says little.
 
@@ -189,6 +189,8 @@ internal static class ReportMarkdownWriter
             """.ReplaceLineEndings("\n"));
 
     private static string Ratio(double? value) => value is { } v ? v.ToString("F4", CultureInfo.InvariantCulture) : "n/a";
+
+    private static string Cost(double? value) => value is { } v ? v.ToString("G6", CultureInfo.InvariantCulture) : "n/a";
 
     private static string Millis(double? value) => value is { } v ? v.ToString("0.#", CultureInfo.InvariantCulture) + " ms" : "n/a";
 

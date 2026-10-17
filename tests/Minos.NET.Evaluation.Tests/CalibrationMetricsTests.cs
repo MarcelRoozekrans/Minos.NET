@@ -67,7 +67,7 @@ public sealed class CalibrationMetricsTests
     [Fact]
     public void Fixture_MatchesHandComputedValues()
     {
-        var report = Report(FixtureResults(), FixtureDataset(), new PriceTable([JevPrice]));
+        var report = Report(FixtureResults(), FixtureDataset(), new PriceTable([FixturePrice]));
 
         var noul = report.Noul!;
         Assert.Equal(14, noul.Scored);
@@ -113,7 +113,7 @@ public sealed class CalibrationMetricsTests
         Assert.Equal(4, report.Cost.Unknown);
         Assert.Equal(0, report.Cost.Cached);
         Near(0.521, report.Cost.PerThousandDecisions);
-        Assert.Equal(new[] { JevPrice }, report.Cost.PricesUsed);
+        Assert.Equal(new[] { FixturePrice }, report.Cost.PricesUsed);
 
         Assert.Equal(2, report.Errors.Count);
         Assert.Equal(new[] { new KeyValuePair<string, int>("Server", 2) }, report.Errors.ByKind);
@@ -302,7 +302,7 @@ public sealed class CalibrationMetricsTests
             Answered(1, Q(Noul(true, 0.9)), cost: -0.5),
             Answered(2, Q(Noul(true, 0.9)), cost: double.NaN));
 
-        var cost = Report(results, dataset, new PriceTable([JevPrice])).Cost;
+        var cost = Report(results, dataset, new PriceTable([FixturePrice])).Cost;
 
         Assert.Equal(0, cost.Reported);
         Assert.Equal(2, cost.Unknown);
@@ -317,7 +317,7 @@ public sealed class CalibrationMetricsTests
             Answered(1, Q(Noul(true, 0.9)), model: "jev-1.14", inputTokens: 1000),
             Answered(2, Q(Noul(true, 0.9)), model: "jev-1.14", outputTokens: 1000));
 
-        var cost = Report(results, dataset, new PriceTable([JevPrice])).Cost;
+        var cost = Report(results, dataset, new PriceTable([FixturePrice])).Cost;
 
         Assert.Equal(0, cost.Priced);
         Assert.Equal(2, cost.Unknown);
@@ -330,7 +330,7 @@ public sealed class CalibrationMetricsTests
         var dataset = Dataset(NoulLine(Id(1), true));
         var results = Results(Answered(1, Q(Noul(true, 0.9)), inputTokens: 1000, outputTokens: 10));
 
-        var cost = Report(results, dataset, new PriceTable([JevPrice])).Cost;
+        var cost = Report(results, dataset, new PriceTable([FixturePrice])).Cost;
 
         Assert.Equal(0, cost.Priced);
         Assert.Equal(1, cost.Unknown);
@@ -639,7 +639,7 @@ public sealed class CalibrationMetricsTests
         var dataset = Dataset(NoulLine(Id(1), true));
         var results = Results(Answered(1, Q(Noul(true, 0.9)), model: "jev-1.14", inputTokens: 1000, outputTokens: 10));
 
-        var cost = Report(results, dataset, new PriceTable([JevPrice])).Cost;
+        var cost = Report(results, dataset, new PriceTable([FixturePrice])).Cost;
 
         Assert.Equal((0, 1, 0), (cost.Reported, cost.Priced, cost.Unknown));
         Near(1000 * 0.042 / 1e6 * 1000, cost.PerThousandDecisions);
@@ -651,7 +651,7 @@ public sealed class CalibrationMetricsTests
         var dataset = Dataset(NoulLine(Id(1), true));
         var results = Results(Answered(1, Q(Noul(true, 0.9)), model: "jev-1.14", inputTokens: 1000, outputTokens: 10, cost: -0.5));
 
-        var cost = Report(results, dataset, new PriceTable([JevPrice])).Cost;
+        var cost = Report(results, dataset, new PriceTable([FixturePrice])).Cost;
 
         Assert.Equal((0, 1, 0), (cost.Reported, cost.Priced, cost.Unknown));
         Near(1000 * 0.042 / 1e6 * 1000, cost.PerThousandDecisions);

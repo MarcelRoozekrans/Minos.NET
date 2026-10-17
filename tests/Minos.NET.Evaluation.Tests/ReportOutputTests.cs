@@ -28,6 +28,25 @@ public sealed class ReportOutputTests
     }
 
     [Fact]
+    public void Json_MatchesTheSnapshot() => TextSnapshot.VerifyText(AllKindsReport().ToJson(), "json");
+
+    [Fact]
+    public void Json_UsesLineFeedsOnly() => Assert.DoesNotContain('\r', AllKindsReport().ToJson());
+
+    [Fact]
+    public void Json_KindsWithoutScoredQuestionsAreNull_AndEverySweepHas100Points()
+    {
+        using var noulless = JsonDocument.Parse(Report(Results(), Dataset()).ToJson());
+        Assert.Equal(JsonValueKind.Null, noulless.RootElement.GetProperty("noul").ValueKind);
+
+        using var all = JsonDocument.Parse(AllKindsReport().ToJson());
+        foreach (var kind in new[] { "noul", "choice", "score", "overall" })
+        {
+            Assert.Equal(100, all.RootElement.GetProperty(kind).GetProperty("sweep").GetArrayLength());
+        }
+    }
+
+    [Fact]
     public void Markdown_MatchesTheSnapshot() => TextSnapshot.VerifyText(AllKindsReport().ToMarkdown(), "md");
 
     [Fact]

@@ -7,7 +7,7 @@ internal static class ReportFixture
 
     internal static readonly bool[] Correct = [false, true, false, true, true, false, true, true, true, true, true, true];
 
-    internal static readonly ModelPrice JevPrice = new("jev-1.14", 0.042, 0, new DateOnly(2026, 10, 17), "OpenRouter listing");
+    internal static readonly ModelPrice FixturePrice = new("jev-1.14", 0.042, 0, new DateOnly(2026, 10, 17), "OpenRouter listing");
 
     internal static readonly DateTimeOffset Start = new(2026, 10, 17, 9, 0, 0, TimeSpan.Zero);
 
@@ -99,7 +99,7 @@ internal static class ReportFixture
             Failed(17, "Timeout"),
         };
         var all = new EvaluationResults(results.Header with { ItemCount = 17 }, [.. results.Items, .. extra]);
-        return Report(all, Dataset([.. lines]), new PriceTable([JevPrice]));
+        return Report(all, Dataset([.. lines]), new PriceTable([FixturePrice]));
     }
 
     internal static CalibrationReport Report(EvaluationResults results, DecisionDataset dataset, PriceTable? prices = null)

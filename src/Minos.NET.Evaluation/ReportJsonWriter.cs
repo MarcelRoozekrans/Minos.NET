@@ -12,7 +12,7 @@ internal static class ReportJsonWriter
 
     internal const int Version = 1;
 
-    private static readonly JsonWriterOptions Options = new() { Indented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+    private static readonly JsonWriterOptions Options = new() { Indented = true, NewLine = "\n", Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
     internal static string Write(CalibrationReport report)
     {
