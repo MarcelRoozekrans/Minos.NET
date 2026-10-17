@@ -16,7 +16,8 @@ back `DatasetItem` values that carry everything a call needs: the state, the que
 
 ## The format
 
-A dataset is UTF-8 JSONL: one item per line, and blank lines are ignored. Every line is complete in itself. It holds the
+A dataset is UTF-8 JSONL: one item per line, and blank lines are ignored. A line ends at `\n`, `\r\n` or `\r`, and a
+byte order mark at the start of the file is skipped. Every line is complete in itself. It holds the
 state, the questions and the expected answers, so the questions repeat on each line, and you can cut, shuffle or
 concatenate a file without losing anything.
 
@@ -70,7 +71,8 @@ The expected value follows the kind of question:
 - A Score takes the index of a level as an integer, counted from 0. The index must be inside the list of levels.
 
 In code an expected answer is an `ExpectedAnswer`, made with `ExpectedAnswer.ForNoul`, `ExpectedAnswer.ForChoice` or
-`ExpectedAnswer.ForScore`. It compares by value.
+`ExpectedAnswer.ForScore`. It compares by value. `ForScore` refuses a negative level. An item's `Expected` is
+read-only.
 
 ## Problems are values
 
@@ -78,10 +80,16 @@ A file with bad content does not throw. `DecisionDataset.Parse` and `DecisionDat
 either the dataset or the full list of problems, so you fix a file in one pass instead of one error at a time. The list
 is a `DatasetProblems`, and each `DatasetProblem` has a 1-based `Line` and a `Message`.
 
-A problem the core finds in a question starts with its `MIN` id, for example `MIN003: ...`. The core's warnings count
-as problems here too, all of them, because an item that breaks one is a broken item. MIN003 reports blank text, such as
+A problem the core finds in a question starts with its `MIN` id, then the path of the question, for example
+`MIN003 'questions.urgent': ...`. The core's warnings count as problems here too, all of them, because an item that breaks one is a broken item. MIN003 reports blank text, such as
 blank instructions or a blank description. MIN005 reports a Score with fewer than two levels or more than 10, and a
 Choice with more than 255 options.
+
+A line that cannot be read as text is a problem on that line, and the lines after it are still read. Bytes that are
+not valid UTF-8 are reported as "The line is not valid UTF-8." instead of being replaced. A string given to
+`DecisionDataset.Parse` that holds an unpaired surrogate is reported as not valid Unicode. A line that is not valid
+JSON names the byte in the line where the parser stopped, counted from 0, for example
+`The line is not valid JSON at byte 11: ...`.
 
 The loader throws only when the file does not exist or cannot be read.
 
