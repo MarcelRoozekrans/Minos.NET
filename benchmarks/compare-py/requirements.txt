@@ -1,7 +1,7 @@
 annotated-types==0.8.0
 anyio==4.15.1
 h11==0.16.0
-httpcore2==2.13.1
+httpcore2==2.16.0
 httpx2==2.13.1
 idna==3.20
 pydantic==2.14.0
