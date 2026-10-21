@@ -65,7 +65,7 @@ public sealed class DependencyInjectionPackageTests : IClassFixture<DependencyIn
         // The core package is packed at the same version. The Microsoft floor is the one core's ZeroAlloc.Resilience
         // already requires, so the direct reference is no downgrade.
         Assert.Equal(_fixture.PackageVersion, Version(dependencies, "Minos.NET"));
-        Assert.Equal("10.0.12", Version(dependencies, "Microsoft.Extensions.DependencyInjection.Abstractions"));
+        Assert.Equal("10.0.13", Version(dependencies, "Microsoft.Extensions.DependencyInjection.Abstractions"));
     }
 
     // The shared metadata, with the DI package's own tags after the shared ones.
