@@ -49,6 +49,12 @@
       "dependencyDashboardApproval": true
     },
     {
+      "description": "httpx2 pins httpcore2 to its own version, so the two move only together. Renovate opened them as separate PRs in #242 and #244, and each failed to install against the other's old pin. One group makes them one PR. benchmarks/compare-py/requirements.txt is a full pip freeze.",
+      "matchFileNames": ["benchmarks/compare-py/requirements.txt"],
+      "matchPackageNames": ["httpx2", "httpcore2"],
+      "groupName": "httpx2 and httpcore2"
+    },
+    {
       "description": "ollajev 0.4.0, the local server local-systemone.yml installs, declares Requires-Python >=3.12,<3.13, so pip finds no version on a newer Python. Renovate moved the workflow to 3.15 in #154 and the job stopped installing. Raise this cap together with the ollajev pin once a release supports the newer Python.",
       "matchFileNames": [".github/workflows/local-systemone.yml"],
       "matchDepNames": ["python"],
