@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Minos.Recording</RootNamespace>
+    <PackageId>Minos.NET.Recording</PackageId>
+    <Title>Minos.NET.Recording</Title>
+    <Description>A decision recorder for Minos.NET: every decision is written, with its question set, state, answers and usage, to a JSONL file or your own sink, and the file is read back with its outcomes and erasures applied. Native AOT-compatible.</Description>
+    <PackageTags>$(PackageTags);recording;audit;jsonl</PackageTags>
+    <IsAotCompatible>true</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <MinosNoValidationBaseline>true</MinosNoValidationBaseline>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Minos.NET\Minos.NET.csproj" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" />
+    <PackageReference Include="ZeroAlloc.Results" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Minos.NET.Recording.Tests" />
+  </ItemGroup>
+</Project>

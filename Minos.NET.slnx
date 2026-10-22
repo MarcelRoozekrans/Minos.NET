@@ -6,6 +6,7 @@
     <Project Path="src/Minos.NET.RateLimiting/Minos.NET.RateLimiting.csproj" />
     <Project Path="src/Minos.NET.Evaluation/Minos.NET.Evaluation.csproj" />
     <Project Path="src/Minos.NET.Caching/Minos.NET.Caching.csproj" />
+    <Project Path="src/Minos.NET.Recording/Minos.NET.Recording.csproj" />
     <Project Path="src/Minos.NET.DependencyInjection/Minos.NET.DependencyInjection.csproj" />
     <Project Path="src/Minos.NET.Conformance/Minos.NET.Conformance.csproj" />
     <Project Path="src/Minos.NET.Tool/Minos.NET.Tool.csproj" />
@@ -20,6 +21,7 @@
     <Project Path="tests/Minos.NET.Evaluation.Tests/Minos.NET.Evaluation.Tests.csproj" />
     <Project Path="tests/Minos.NET.Tool.Tests/Minos.NET.Tool.Tests.csproj" />
     <Project Path="tests/Minos.NET.Caching.Tests/Minos.NET.Caching.Tests.csproj" />
+    <Project Path="tests/Minos.NET.Recording.Tests/Minos.NET.Recording.Tests.csproj" />
     <Project Path="tests/Minos.NET.Conformance.Tests/Minos.NET.Conformance.Tests.csproj" />
     <Project Path="tests/Minos.NET.DependencyInjection.Tests/Minos.NET.DependencyInjection.Tests.csproj" />
     <Project Path="tests/Minos.NET.Generator.Tests/Minos.NET.Generator.Tests.csproj" />
