@@ -435,7 +435,7 @@ public sealed class RecordFileTests : IDisposable
     }
 
     [Fact]
-    public async Task AnUnknownKind_AndAnUnknownOutcomeType_AreReported_ButKeptByACompaction()
+    public async Task AnUnknownKind_AndAnUnknownOutcomeType_AreReported_AndALeaveTheFileUntouchedByACompaction()
     {
         var unknownKind = """{"kind":"annotation","version":1,"decisionId":"d-1","text":"x"}""";
         var unknownOutcome = """{"kind":"outcome","version":1,"decisionId":"d-1","type":"rating","source":"ui","at":"2026-10-22T10:00:00+02:00","stars":4}""";
@@ -450,22 +450,39 @@ public sealed class RecordFileTests : IDisposable
         Assert.Equal([2, 3, 4], problems.Select(p => p.Line));
         Assert.All(problems, p => Assert.DoesNotContain("annotation", p.Message, StringComparison.Ordinal));
 
-        await DecisionRecordFile.CompactAsync(path, CancellationToken.None);
+        var compacted = await DecisionRecordFile.CompactAsync(path, CancellationToken.None);
 
-        var lines = (await File.ReadAllTextAsync(path, CancellationToken.None)).Split('\n', StringSplitOptions.RemoveEmptyEntries);
-        Assert.Equal([RecordText(), unknownOutcome, unknownKind, orphanOutcome], lines);
+        Assert.Equal(original, await File.ReadAllBytesAsync(path, CancellationToken.None));
+        Assert.Contains(compacted, p => p.Line == 2 && p.Message.Contains("not compacted", StringComparison.Ordinal));
+        Assert.Empty(Directory.GetFiles(_directory, "*.tmp"));
     }
 
     [Fact]
-    public async Task AnUnknownOutcomeType_OfAnErasedDecision_IsNotKept()
+    public async Task AnUnknownKindLine_ThatAnErasureShouldRemove_LeavesTheFileUntouched()
     {
-        var unknownOutcome = """{"kind":"outcome","version":1,"decisionId":"d-1","type":"rating","source":"ui","at":"2026-10-22T10:00:00+02:00"}""";
+        var shadow = """{"kind":"shadow","version":1,"decisionId":"d-2","erasureKey":"customer-7","state":"PRIVATE"}""";
         var path = PathOf();
-        await File.WriteAllBytesAsync(path, Text(RecordText(), unknownOutcome, Json(Erase(null, "d-1"))), CancellationToken.None);
+        var original = Text(RecordText(), shadow, Json(Erase("customer-7", null)));
+        await File.WriteAllBytesAsync(path, original, CancellationToken.None);
 
-        await DecisionRecordFile.CompactAsync(path, CancellationToken.None);
+        var compacted = await DecisionRecordFile.CompactAsync(path, CancellationToken.None);
 
-        Assert.Equal(string.Empty, await File.ReadAllTextAsync(path, CancellationToken.None));
+        Assert.Equal(original, await File.ReadAllBytesAsync(path, CancellationToken.None));
+        Assert.Contains(compacted, p => p.Line == 2);
+    }
+
+    [Fact]
+    public async Task AnOrphanOutcomeOfUnknownType_ThatAnErasureShouldRemove_LeavesTheFileUntouched()
+    {
+        var orphan = """{"kind":"outcome","version":1,"decisionId":"d-x","type":"rating","source":"ui","at":"2026-10-22T10:00:00+02:00","note":"PRIVATE"}""";
+        var path = PathOf();
+        var original = Text(RecordText(), orphan, Json(Erase(null, "d-x")));
+        await File.WriteAllBytesAsync(path, original, CancellationToken.None);
+
+        var compacted = await DecisionRecordFile.CompactAsync(path, CancellationToken.None);
+
+        Assert.Equal(original, await File.ReadAllBytesAsync(path, CancellationToken.None));
+        Assert.Contains(compacted, p => p.Line == 2);
     }
 
     [Fact]
@@ -544,17 +561,26 @@ public sealed class RecordFileTests : IDisposable
     }
 
     [Fact]
-    public async Task Compact_LeavesNoTemporaryFile_WhenItFails()
+    public async Task Compact_RemovesItsTemporaryFile_WhenItFailsAfterCreatingIt()
     {
         var path = PathOf();
-        await File.WriteAllBytesAsync(path, Text(RecordText()), CancellationToken.None);
-        using var cancelled = new CancellationTokenSource();
-        await cancelled.CancelAsync();
+        var original = Text(RecordText());
+        await File.WriteAllBytesAsync(path, original, CancellationToken.None);
+        var existed = false;
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await DecisionRecordFile.CompactAsync(path, cancelled.Token));
+        var failure = await Assert.ThrowsAsync<IOException>(async () => await DecisionRecordFile.CompactAsync(
+            path,
+            temporary =>
+            {
+                existed = File.Exists(temporary);
+                throw new IOException("disk full");
+            },
+            CancellationToken.None));
 
+        Assert.True(existed, "the temporary file exists when the hook runs");
+        Assert.Equal("disk full", failure.Message);
         Assert.Empty(Directory.GetFiles(_directory, "*.tmp"));
-        Assert.Equal(Text(RecordText()), await File.ReadAllBytesAsync(path, CancellationToken.None));
+        Assert.Equal(original, await File.ReadAllBytesAsync(path, CancellationToken.None));
     }
 
     [Fact]

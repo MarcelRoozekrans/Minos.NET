@@ -4,8 +4,8 @@ using Microsoft.Win32.SafeHandles;
 
 namespace Minos.Recording.RecordFormat;
 
-/// <summary>Where a line sits in the file: its first byte, its length without the line ending, and whether this reader models it.</summary>
-internal readonly record struct LineSpan(long Offset, int Length, bool Known);
+/// <summary>Where a line sits in the file: its first byte, its length without the line ending, whether this reader models it, and its 1-based line number.</summary>
+internal readonly record struct LineSpan(long Offset, int Length, bool Known, int Line);
 
 /// <summary>
 /// Reads a record file in two passes. The scan pass folds the lines into the decisions the file describes and keeps only
@@ -207,7 +207,7 @@ internal static class RecordFileReader
                 return;
             }
 
-            var span = new LineSpan(offset, line.Length, Known: true);
+            var span = new LineSpan(offset, line.Length, Known: true, _lineNumber);
             switch (kind)
             {
                 case "record":

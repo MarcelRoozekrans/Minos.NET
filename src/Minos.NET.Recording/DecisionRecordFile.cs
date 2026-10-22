@@ -52,18 +52,26 @@ public static class DecisionRecordFile
 
     /// <summary>
     /// Rewrites a file with only what a read keeps: the surviving records, each followed by its outcomes, copied as the
-    /// bytes they are in the file. Erasure lines, erased records, replaced attempts, ignored outcomes and lines that cannot
-    /// be read are gone. A line this reader cannot model but that is not damaged is kept: a line of a kind or an outcome of
-    /// a type it does not know, and every member of a record it does not know. When a line is in a format version this reader
-    /// does not know, the file is left as it is. The new file replaces the old one in a single move, after it was flushed to
-    /// disk, and keeps the old file's permissions on Unix. Do not compact a file that a recorder is still writing to: lines
-    /// appended while it runs can be lost.
+    /// bytes they are in the file, so every member of a record is kept, including the ones this reader does not know.
+    /// Erasure lines, erased records, replaced attempts, ignored outcomes and lines that cannot be read are gone.
+    /// A file this reader cannot fully read is left as it is, byte for byte, and a problem says why: it holds a line in a
+    /// format version this reader does not know, a line of a kind it does not know, or an outcome of a type it does not
+    /// know that no record explains. Such a line could hold data that an erasure is meant to remove, and dropping the
+    /// erasure would keep that data, so nothing is rewritten. The new file replaces the old one in a single step, after it
+    /// was flushed to disk, and keeps the old file's permissions: the mode on Unix, the access list and attributes on
+    /// Windows. Do not compact a file that a recorder is still writing to: lines appended while it runs can be lost.
     /// </summary>
     /// <param name="path">The path of the file.</param>
     /// <param name="cancellationToken">Cancels the compaction before the file is replaced.</param>
     /// <returns>The problems that were found in the file; a line that is damaged is not in the compacted file.</returns>
     /// <exception cref="FileNotFoundException">The file does not exist.</exception>
-    public static async ValueTask<DecisionRecordFileProblems> CompactAsync(string path, CancellationToken cancellationToken)
+    public static ValueTask<DecisionRecordFileProblems> CompactAsync(string path, CancellationToken cancellationToken)
+        => CompactAsync(path, null, cancellationToken);
+
+    // The hook runs once the temporary file exists, before anything is copied: it is how a test makes a compaction fail
+    // at the point where the temporary file has to be cleaned up.
+    internal static async ValueTask<DecisionRecordFileProblems> CompactAsync(
+        string path, Func<string, ValueTask>? afterTemporaryCreated, CancellationToken cancellationToken)
     {
         ArgumentException.ThrowIfNullOrEmpty(path);
         var temporary = $"{path}.{Guid.NewGuid():N}.compact.tmp";
@@ -74,17 +82,35 @@ public static class DecisionRecordFile
             using (var handle = RecordFileReader.Open(path))
             {
                 var scan = await RecordFileReader.ScanAsync(handle, cancellationToken).ConfigureAwait(false);
-                problems = new DecisionRecordFileProblems([.. scan.Problems]);
-                if (!scan.SkippedUnknownVersion)
+                var found = new List<DecisionRecordFileProblem>(scan.Problems);
+                var unmodelled = FirstUnmodelledLine(scan);
+                if (unmodelled > 0 && !scan.SkippedUnknownVersion)
                 {
-                    await CopyAsync(handle, scan, path, temporary, cancellationToken).ConfigureAwait(false);
+                    found.Add(new DecisionRecordFileProblem(
+                        unmodelled,
+                        "The line is not one this reader models, so the file was not compacted: an erasure may be meant to remove what it holds."));
+                    found.Sort(static (a, b) => a.Line.CompareTo(b.Line));
+                }
+
+                problems = new DecisionRecordFileProblems([.. found]);
+                if (!scan.SkippedUnknownVersion && unmodelled == 0)
+                {
+                    await CopyAsync(handle, scan, path, temporary, afterTemporaryCreated, cancellationToken).ConfigureAwait(false);
                     replace = true;
                 }
             }
 
             if (replace)
             {
-                File.Move(temporary, path, overwrite: true);
+                if (OperatingSystem.IsWindows())
+                {
+                    // Keeps the access list and the attributes of the file it replaces.
+                    File.Replace(temporary, path, destinationBackupFileName: null);
+                }
+                else
+                {
+                    File.Move(temporary, path, overwrite: true);
+                }
             }
         }
         catch
@@ -96,8 +122,32 @@ public static class DecisionRecordFile
         return problems;
     }
 
+    // The line number of the first line this reader does not model and a rewrite would keep or lose, or 0 when there is none.
+    private static int FirstUnmodelledLine(RecordFileReader.Scan scan)
+    {
+        var first = int.MaxValue;
+        foreach (var loose in scan.Loose)
+        {
+            first = Math.Min(first, loose.Line);
+        }
+
+        foreach (var decision in scan.Decisions)
+        {
+            foreach (var outcome in decision.Outcomes)
+            {
+                if (!outcome.Known)
+                {
+                    first = Math.Min(first, outcome.Line);
+                }
+            }
+        }
+
+        return first == int.MaxValue ? 0 : first;
+    }
+
     private static async Task CopyAsync(
-        SafeFileHandle source, RecordFileReader.Scan scan, string path, string temporary, CancellationToken cancellationToken)
+        SafeFileHandle source, RecordFileReader.Scan scan, string path, string temporary,
+        Func<string, ValueTask>? afterTemporaryCreated, CancellationToken cancellationToken)
     {
         var options = new FileStreamOptions
         {
@@ -124,6 +174,11 @@ public static class DecisionRecordFile
                 File.SetUnixFileMode(temporary, unixMode);
             }
 
+            if (afterTemporaryCreated is not null)
+            {
+                await afterTemporaryCreated(temporary).ConfigureAwait(false);
+            }
+
             var buffer = new ArrayBufferWriter<byte>();
             foreach (var decision in scan.Decisions)
             {
@@ -134,11 +189,6 @@ public static class DecisionRecordFile
                 }
 
                 await DrainAsync(stream, buffer, 1 << 16, cancellationToken).ConfigureAwait(false);
-            }
-
-            foreach (var loose in scan.Loose)
-            {
-                await AppendAsync(source, loose, buffer, cancellationToken).ConfigureAwait(false);
             }
 
             await DrainAsync(stream, buffer, 0, cancellationToken).ConfigureAwait(false);
