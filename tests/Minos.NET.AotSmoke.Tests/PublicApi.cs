@@ -3,7 +3,7 @@ using Microsoft.CodeAnalysis;
 namespace Minos.AotSmoke.Tests;
 
 /// <summary>
-/// The public entry points the seven library assemblies declare in their PublicAPI files: every public constructor and method, with
+/// The public entry points the eight library assemblies declare in their PublicAPI files: every public constructor and method, with
 /// its signature exactly as RS0016 prints it, after applying the <c>*REMOVED*</c> lines.
 /// </summary>
 /// <remarks>
@@ -28,6 +28,7 @@ internal static class PublicApi
 {
     private const string Arrow = " -> ";
     private const string RemovedPrefix = "*REMOVED*";
+    private const string Oblivious = "~";
 
     internal static readonly string[][] Packages =
     [
@@ -41,18 +42,20 @@ internal static class PublicApi
         ["src/Minos.NET.Caching/PublicAPI.Shipped.txt", "src/Minos.NET.Caching/PublicAPI.Unshipped.txt"],
         ["src/Minos.NET.RateLimiting/PublicAPI.Shipped.txt", "src/Minos.NET.RateLimiting/PublicAPI.Unshipped.txt"],
         ["src/Minos.NET.Evaluation/PublicAPI.Shipped.txt", "src/Minos.NET.Evaluation/PublicAPI.Unshipped.txt"],
+        ["src/Minos.NET.Recording/PublicAPI.Shipped.txt", "src/Minos.NET.Recording/PublicAPI.Unshipped.txt"],
     ];
 
     private const string CompilerGeneratedAttribute = "System.Runtime.CompilerServices.CompilerGeneratedAttribute";
 
-    private static readonly string[] PackageNames = ["Minos.NET", "Minos.NET.SystemOne", "Minos.NET.OpenAI", "Minos.NET.DependencyInjection", "Minos.NET.Caching", "Minos.NET.RateLimiting", "Minos.NET.Evaluation"];
+    private static readonly string[] PackageNames = ["Minos.NET", "Minos.NET.SystemOne", "Minos.NET.OpenAI", "Minos.NET.DependencyInjection", "Minos.NET.Caching", "Minos.NET.RateLimiting", "Minos.NET.Evaluation", "Minos.NET.Recording"];
 
-    private static readonly string[] ObjectMembers = ["Equals(object? obj)", "GetHashCode()", "ToString()"];
+    // Equals(object obj), without the annotation, is how the analyzer writes the override a record struct is given.
+    private static readonly string[] ObjectMembers = ["Equals(object? obj)", "Equals(object obj)", "GetHashCode()", "ToString()"];
 
-    /// <summary>Every line the seven library assemblies declare, after applying the <c>*REMOVED*</c> lines.</summary>
+    /// <summary>Every line the eight library assemblies declare, after applying the <c>*REMOVED*</c> lines.</summary>
     public static List<string> Lines { get; } = ReadLines();
 
-    /// <summary>The PublicAPI lines of the record members the compiler generated in the seven library assemblies.</summary>
+    /// <summary>The PublicAPI lines of the record members the compiler generated in the eight library assemblies.</summary>
     // Initialised before EntryPoints, which reads it.
     private static HashSet<string> GeneratedRecordMembers { get; } = FindGeneratedRecordMembers(
         PackageNames.Select(name => FindAssembly(SampleCompilation.Smoke.Compilation, name)));
@@ -67,6 +70,13 @@ internal static class PublicApi
     /// compiler generated, or <see langword="null"/> when it is one.</summary>
     internal static string? ExclusionReason(string line, IReadOnlySet<string> generatedRecordMembers)
     {
+        // A leading ~ marks a member the analyzer saw without nullable annotations, such as the object overrides the
+        // compiler gives a record struct. It is the same member, so the same rules apply to the rest of the line.
+        if (line.StartsWith(Oblivious, StringComparison.Ordinal))
+        {
+            return ExclusionReason(line[Oblivious.Length..], generatedRecordMembers);
+        }
+
         var arrow = line.IndexOf(Arrow, StringComparison.Ordinal);
         if (arrow < 0)
         {
@@ -114,12 +124,14 @@ internal static class PublicApi
     }
 
     /// <summary>The PublicAPI lines, as <see cref="ApiSignature"/> prints them, of the public and protected methods of
-    /// a record in <paramref name="assemblies"/> that carry <c>[CompilerGenerated]</c>, which the compiler puts on every
-    /// record member it synthesizes.</summary>
+    /// a record or a struct in <paramref name="assemblies"/> that carry <c>[CompilerGenerated]</c>, which the compiler
+    /// puts on every record member it synthesizes.</summary>
+    /// <remarks>A record struct read from metadata carries no mark of being a record, so every struct is searched. A
+    /// member its author wrote never carries the attribute, in a record struct or any other struct.</remarks>
     internal static HashSet<string> FindGeneratedRecordMembers(IEnumerable<IAssemblySymbol> assemblies)
         => assemblies
             .SelectMany(assembly => PublicTypes(assembly.GlobalNamespace))
-            .Where(type => type.IsRecord)
+            .Where(type => type.IsRecord || type.TypeKind == TypeKind.Struct)
             .SelectMany(type => type.GetMembers().OfType<IMethodSymbol>())
             .Where(method => method.DeclaredAccessibility is Accessibility.Public or Accessibility.Protected or Accessibility.ProtectedOrInternal
                 && method.GetAttributes().Any(attribute => string.Equals(attribute.AttributeClass?.ToDisplayString(), CompilerGeneratedAttribute, StringComparison.Ordinal)))

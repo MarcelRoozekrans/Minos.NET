@@ -1,7 +1,7 @@
 namespace Minos.AotSurface;
 
 /// <summary>
-/// The host for the whole-surface trim and AOT check. The csproj roots the seven library assemblies and this assembly, so publishing
+/// The host for the whole-surface trim and AOT check. The csproj roots the eight library assemblies and this assembly, so publishing
 /// it is the check; the program itself only touches the generated set so the entry point is not empty.
 /// </summary>
 internal static class Program

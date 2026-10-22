@@ -390,7 +390,8 @@ is ZeroAlloc.Telemetry 1.11.0, the library that generates the instrumentation, w
 
 ## Metrics
 
-The meter named `Minos` has six instruments. To collect them with OpenTelemetry, pass the name to `AddMeter`, as
+The meter named `Minos` has six instruments from the client, and six more when you use the
+[decision recorder](#the-recorders-metrics). To collect them with OpenTelemetry, pass the name to `AddMeter`, as
 [the traces section](#subscribing-with-opentelemetry) shows. Every evaluation records its duration, and a successful
 evaluation also records its tokens and one confidence point for each Choice or Score answer.
 
@@ -422,11 +423,29 @@ at each step. The confidence boundaries are `0.1` to `0.9` in steps of `0.1`, th
 The same values on a span and on a metric are the same strings, so you can filter a trace and a chart by the same
 `gen_ai.request.model` or `error.type`.
 
+### The recorder's metrics
+
+The [decision recorder](recording.md), in `Minos.NET.Recording`, adds these to the meter named `Minos`, at the same
+version. Every tag is a fixed value.
+
+| Metric | Kind | Unit | Attributes | Recorded |
+| --- | --- | --- | --- | --- |
+| `minos.recording.records` | Counter | `{record}` | `result`: `written`, `dropped_full`, `dropped_redaction`, `redaction_failed`, `sink_failed`, `dropped_disposed` or `dropped_flush_timeout` | once for every record, in exactly one result |
+| `minos.recording.outcomes` | Counter | `{outcome}` | `result`: `written` or `failed` | each outcome the sink was given |
+| `minos.recording.erasures` | Counter | `{erasure}` | `result`: `written` or `failed` | each erasure the sink was given |
+| `minos.recording.log_failures` | Observable counter | `{event}` | none | the recorder's log events lost because the logger threw |
+| `minos.recording.record_failures` | Observable counter | `{decision}` | none | the decisions the recording stage could not record |
+| `minos.recording.queue_length` | Observable gauge | `{item}` | none | the items waiting in every recorder's queue |
+
 ## What is never emitted
 
 Minos puts none of these in a span attribute, a metric attribute or a span description: the state, the instructions, the
 criteria, the answers or their probabilities, the API key, a header value, `DecisionError.Message`, `DecisionError.Detail` or an
 exception message. The one thing a thrown exception adds to a span is the full name of its type, as described above.
+
+Recording never writes the state, a decision id or an erasure key to a log, a trace or a metric, nor the message of a
+provider's error. The recorder's log events carry counts and exception type names only, and its metric tags are the
+fixed values above.
 
 ## The cost of listening
 
@@ -453,6 +472,8 @@ The GenAI conventions are still in development, and the token metric names follo
 
 ## Next
 
+- [Recording decisions](recording.md): a record of every decision, its outcomes and its erasure, and what the recorder
+  emits.
 - [Native AOT](native-aot.md): what the library needs to run as a native executable, and the allocation budgets that
   guard it.
 - [Diagnostics](diagnostics.md): the compile-time rules for question sets.

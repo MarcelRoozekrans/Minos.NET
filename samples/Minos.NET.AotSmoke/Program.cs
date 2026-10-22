@@ -134,6 +134,10 @@ internal static class Program
         await EvaluationChecks.ReportSummariesKeepTheirValues().ConfigureAwait(false);
         await EvaluationChecks.AStoppedRunKeepsItsPaidResults().ConfigureAwait(false);
 
+        await RecordingChecks.RecordsADecisionToAFileAndReadsItBack().ConfigureAwait(false);
+        await RecordingChecks.TheStageRecorderAndSinksWorkThroughTheirInterfaces().ConfigureAwait(false);
+        await RecordingChecks.ValuesProblemsAndExceptions().ConfigureAwait(false);
+
         await AllocationChecks.AnswerSlotAccessors().ConfigureAwait(false);
         await AllocationChecks.GeneratedCreate().ConfigureAwait(false);
         AllocationChecks.EvaluateRoundTrip();

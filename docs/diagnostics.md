@@ -1,7 +1,7 @@
 ---
 id: diagnostics
 title: Diagnostics
-sidebar_position: 13
+sidebar_position: 14
 description: Every MIN analyzer rule with its severity, the provider rules the client checks at run time, the two code fixes, and how to suppress a rule that does not apply.
 ---
 

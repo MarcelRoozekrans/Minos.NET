@@ -3,7 +3,7 @@
 Usage: python3 tools/release/inspect_packages.py <directory> <version>
 
 A NuGet version can be unlisted but never deleted, so ci.yml runs this in pack-validate on every push and again in
-publish-nuget just before the push. It fails when the directory does not hold exactly the eight packages at the release
+publish-nuget just before the push. It fails when the directory does not hold exactly the nine packages at the release
 version, each with its .snupkg symbol package; when a package's DLL was built without -p:MinosRelease=true, which
 Directory.Build.props versions <release>-local and which is compiled into the DLL; or when a package depends on another
 Minos package at a different version. Minos.NET.Tool is a dotnet tool: it must have the DotnetTool package type and no
@@ -25,6 +25,7 @@ PACKAGES: dict[str, tuple[str, ...]] = {
     "Minos.NET.Caching": ("Minos.NET",),
     "Minos.NET.RateLimiting": ("Minos.NET",),
     "Minos.NET.Evaluation": ("Minos.NET",),
+    "Minos.NET.Recording": ("Minos.NET",),
     # A dotnet tool bundles everything it uses, so it has no Minos dependencies.
     "Minos.NET.Tool": (),
 }
@@ -150,7 +151,7 @@ def problems(directory: pathlib.Path, version: str) -> list[str]:
     if found != expected:
         missing = sorted(set(expected) - set(found))
         extra = sorted(set(found) - set(expected))
-        return [f"expected exactly the eight release packages in {directory}; missing {missing}, unexpected {extra}"]
+        return [f"expected exactly the nine release packages in {directory}; missing {missing}, unexpected {extra}"]
 
     errors: list[str] = []
     for package in PACKAGES:

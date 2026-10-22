@@ -10,7 +10,7 @@ public sealed class VersionLineTests
     private const string Marker = "x-release-please-version";
 
     private static readonly string[] Packages =
-        ["Minos.NET", "Minos.NET.SystemOne", "Minos.NET.OpenAI", "Minos.NET.DependencyInjection", "Minos.NET.Caching", "Minos.NET.RateLimiting", "Minos.NET.Evaluation", "Minos.NET.Tool"];
+        ["Minos.NET", "Minos.NET.SystemOne", "Minos.NET.OpenAI", "Minos.NET.DependencyInjection", "Minos.NET.Caching", "Minos.NET.RateLimiting", "Minos.NET.Evaluation", "Minos.NET.Recording", "Minos.NET.Tool"];
 
     [Fact]
     public void GettingStarted_NamesTheReleaseInTheManifest()

@@ -67,6 +67,8 @@ The `json` form is an addition to version 1: a file without it stays valid.
 The questions go through the same checks as a question set built at run time, so the rules of
 [Question sets at run time](question-sets-at-run-time.md) apply, with the same `MIN` ids.
 
+A [recorded decision](recording.md#the-jsonl-format) keeps its question set in its `questions` member in this same shape.
+
 ### Expected answers
 
 The expected value follows the kind of question:
