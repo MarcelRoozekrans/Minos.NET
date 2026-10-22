@@ -1,10 +1,12 @@
 using System.Diagnostics.Metrics;
+using System.Reflection;
 
 namespace Minos.Recording;
 
 /// <summary>
-/// The recorder's metrics, on a meter named <c>Minos</c> as the core's are: counters of records, outcomes and erasures by
-/// <c>result</c>, where every record handed to the recorder ends in exactly one result; the tag-less observable counters
+/// The recorder's metrics, on a meter named <c>Minos</c> at the package's version, as the core's are: counters of
+/// records, outcomes and erasures by <c>result</c>, where every record handed to the recorder ends in exactly one result;
+/// the tag-less observable counters
 /// <c>minos.recording.log_failures</c>, of log events a logger threw on, and <c>minos.recording.record_failures</c>, of
 /// decisions the recording stage failed to record; and the gauge <c>minos.recording.queue_length</c>, summed over every
 /// recorder in the process. The tags are fixed values: never a key, an id or the state.
@@ -29,7 +31,10 @@ internal static class RecordingTelemetry
 
     private const string ResultTag = "result";
 
-    private static readonly Meter Meter = new(MeterName);
+    // The core's meter carries its package's informational version, and every Minos package shares one version, so a
+    // listener sees the meter named Minos at one version. Reading an assembly attribute is safe under trimming and AOT.
+    private static readonly Meter Meter = new(
+        MeterName, typeof(RecordingTelemetry).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion);
 
     private static readonly Counter<long> Records = Meter.CreateCounter<long>(
         "minos.recording.records", "{record}", "Records by result: written, dropped_full, dropped_redaction, redaction_failed, sink_failed, dropped_disposed or dropped_flush_timeout.");
