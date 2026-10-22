@@ -71,12 +71,13 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
 
     /// <summary>Queues a record without waiting.</summary>
     /// <param name="record">The record.</param>
-    /// <returns><see langword="true"/> when it was queued; <see langword="false"/> when the queue was full, which is counted, or the recorder is disposed.</returns>
+    /// <returns><see langword="true"/> when it was queued; <see langword="false"/> when the queue was full or the recorder is disposed. Either drop is counted.</returns>
     internal bool TryEnqueue(DecisionRecord record)
     {
         ArgumentNullException.ThrowIfNull(record);
         if (Volatile.Read(ref _disposed) != 0)
         {
+            RecordingTelemetry.Record(RecordingTelemetry.DroppedDisposed);
             return false;
         }
 
@@ -88,6 +89,7 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
 
         if (Volatile.Read(ref _disposed) != 0)
         {
+            RecordingTelemetry.Record(RecordingTelemetry.DroppedDisposed);
             return false;
         }
 
@@ -157,8 +159,9 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
             // Only once the writer is done: after a timeout, a sink's call may still hold the token.
             _stop.Dispose();
         }
-        catch (TimeoutException)
+        catch (Exception)
         {
+            // A timeout, or a writer that failed in a way it should not: either way, what is left is lost and counted.
             GiveUp();
         }
         finally
@@ -195,6 +198,7 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
             {
                 case WorkKind.Record:
                     records++;
+                    RecordingTelemetry.Record(RecordingTelemetry.DroppedFlushTimeout);
                     break;
                 case WorkKind.Outcome:
                     outcomes++;
@@ -207,10 +211,14 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
                     break;
             }
 
-            item.Completion?.TrySetException(RecordingException.Lost());
+            if (item.Completion is { } completion)
+            {
+                Fail(completion, RecordingException.Lost());
+            }
         }
 
-        DecisionLog.FlushTimedOut(_logger, _flushTimeout.TotalMilliseconds, records, outcomes, erasures, flushes);
+        Log(static (logger, counts) => DecisionLog.FlushTimedOut(logger, counts.TimeoutMs, counts.Records, counts.Outcomes, counts.Erasures, counts.Flushes),
+            (TimeoutMs: _flushTimeout.TotalMilliseconds, Records: records, Outcomes: outcomes, Erasures: erasures, Flushes: flushes));
     }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
@@ -295,7 +303,7 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
                 catch (Exception ex) when (!IsStop(ex, cancellationToken))
                 {
                     RecordingTelemetry.Record(RecordingTelemetry.SinkFailed);
-                    DecisionLog.SinkCallFailed(_logger, "write", ex.GetType().Name);
+                    LogSinkCallFailed("write", ex);
                 }
 
                 break;
@@ -308,7 +316,7 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
                 catch (Exception ex) when (!IsStop(ex, cancellationToken))
                 {
                     RecordingTelemetry.Outcome(RecordingTelemetry.Failed);
-                    DecisionLog.SinkCallFailed(_logger, "add-outcome", ex.GetType().Name);
+                    LogSinkCallFailed("add-outcome", ex);
                 }
 
                 break;
@@ -325,14 +333,14 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
                         await _sink.EraseDecisionAsync(item.DecisionId!, cancellationToken).ConfigureAwait(false);
                     }
 
-                    RecordingTelemetry.Erasure(RecordingTelemetry.Written);
                     item.Completion!.TrySetResult();
+                    RecordingTelemetry.Erasure(RecordingTelemetry.Written);
                 }
                 catch (Exception ex) when (!IsStop(ex, cancellationToken))
                 {
                     RecordingTelemetry.Erasure(RecordingTelemetry.Failed);
-                    DecisionLog.SinkCallFailed(_logger, byKey ? "erase" : "erase-decision", ex.GetType().Name);
-                    item.Completion!.TrySetException(new RecordingException(ex));
+                    Fail(item.Completion!, new RecordingException(ex));
+                    LogSinkCallFailed(byKey ? "erase" : "erase-decision", ex);
                 }
 
                 break;
@@ -351,7 +359,35 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
         var dropped = Interlocked.Exchange(ref _dropped, 0);
         if (dropped > 0)
         {
-            DecisionLog.RecordsDropped(_logger, dropped);
+            Log(static (logger, count) => DecisionLog.RecordsDropped(logger, count), dropped);
+        }
+    }
+
+    private void LogSinkCallFailed(string operation, Exception exception)
+        => Log(static (logger, call) => DecisionLog.SinkCallFailed(logger, call.Operation, call.ExceptionType), (Operation: operation, ExceptionType: exception.GetType().Name));
+
+    // Logging is best effort: a logger that throws must not stop the writer or fail a dispose, which would leave
+    // erasures waiting and nothing counted.
+    private void Log<TState>(Action<ILogger, TState> log, TState state)
+    {
+        try
+        {
+            log(_logger, state);
+        }
+#pragma warning disable RCS1075 // Swallowing is the point: the log event is lost, and the metrics still count what it reports.
+        catch (Exception)
+        {
+        }
+#pragma warning restore RCS1075
+    }
+
+    // Faults a caller's task, and marks it observed: a caller that stopped waiting must not have the sink's exception,
+    // which can quote a key or an id, reported to an UnobservedTaskException handler.
+    private static void Fail(TaskCompletionSource completion, RecordingException exception)
+    {
+        if (completion.TrySetException(exception))
+        {
+            _ = completion.Task.Exception;
         }
     }
 

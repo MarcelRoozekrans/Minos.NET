@@ -4,7 +4,7 @@ namespace Minos.Recording;
 
 /// <summary>
 /// The recorder's metrics, on a meter named <c>Minos</c> as the core's are: counters of records, outcomes and erasures by
-/// <c>result</c>, and the gauge <c>minos.recording.queue_length</c>, summed over every recorder in the process. The tags
+/// <c>result</c>, where every record handed to the recorder ends in exactly one result, and the gauge <c>minos.recording.queue_length</c>, summed over every recorder in the process. The tags
 /// are fixed values: never a key, an id or the state.
 /// </summary>
 internal static class RecordingTelemetry
@@ -16,6 +16,8 @@ internal static class RecordingTelemetry
     internal const string DroppedRedaction = "dropped_redaction";
     internal const string RedactionFailed = "redaction_failed";
     internal const string SinkFailed = "sink_failed";
+    internal const string DroppedDisposed = "dropped_disposed";
+    internal const string DroppedFlushTimeout = "dropped_flush_timeout";
     internal const string Failed = "failed";
 
     private const string ResultTag = "result";
@@ -23,7 +25,7 @@ internal static class RecordingTelemetry
     private static readonly Meter Meter = new(MeterName);
 
     private static readonly Counter<long> Records = Meter.CreateCounter<long>(
-        "minos.recording.records", "{record}", "Records by result: written, dropped_full, dropped_redaction, redaction_failed or sink_failed.");
+        "minos.recording.records", "{record}", "Records by result: written, dropped_full, dropped_redaction, redaction_failed, sink_failed, dropped_disposed or dropped_flush_timeout.");
 
     private static readonly Counter<long> Outcomes = Meter.CreateCounter<long>(
         "minos.recording.outcomes", "{outcome}", "Outcomes by result: written or failed.");

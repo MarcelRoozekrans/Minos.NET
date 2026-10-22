@@ -1,6 +1,8 @@
-using System.Diagnostics;
+using System.Globalization;
+using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
+using Microsoft.Extensions.Time.Testing;
 using static Minos.Recording.Tests.TestRecords;
 
 namespace Minos.Recording.Tests;
@@ -10,11 +12,12 @@ public sealed class DecisionRecorderTests
 {
     private static readonly TimeSpan Bound = TimeSpan.FromSeconds(10);
 
-    private static (DecisionRecorder Recorder, FakeLogCollector Logs, ILoggerFactory Factory) Create(IDecisionRecordSink sink, RecordingOptions? options = null)
+    private static (DecisionRecorder Recorder, FakeLogCollector Logs, ILoggerFactory Factory) Create(
+        IDecisionRecordSink sink, RecordingOptions? options = null, TimeProvider? time = null)
     {
         var logs = new FakeLogCollector();
         var factory = LoggerFactory.Create(builder => builder.SetMinimumLevel(LogLevel.Debug).AddProvider(new FakeLoggerProvider(logs)));
-        return (new DecisionRecorder(sink, options, factory), logs, factory);
+        return (new DecisionRecorder(sink, options, factory, time), logs, factory);
     }
 
     private static string? Field(FakeLogRecord record, string key)
@@ -273,8 +276,9 @@ public sealed class DecisionRecorderTests
     public async Task Dispose_ReturnsOnTime_WithASlowSink_AndCountsLostErasures()
     {
         using var metrics = new MetricCapture();
+        var time = new FakeTimeProvider();
         var sink = new BlockingSink(honoursCancellation: false);
-        var (recorder, logs, factory) = Create(sink, new RecordingOptions { FlushTimeout = TimeSpan.FromMilliseconds(100) });
+        var (recorder, logs, factory) = Create(sink, new RecordingOptions { FlushTimeout = TimeSpan.FromMilliseconds(100) }, time);
         try
         {
             using (factory)
@@ -287,11 +291,13 @@ public sealed class DecisionRecorderTests
                 var byId = recorder.EraseDecisionAsync("ID-SENTINEL").AsTask();
                 var flush = recorder.FlushAsync().AsTask();
 
-                var watch = Stopwatch.StartNew();
-                await recorder.DisposeAsync().AsTask().WaitAsync(Bound);
-                watch.Stop();
+                // The dispose waits on the recorder's clock: it is still waiting until the timeout passes there.
+                var dispose = recorder.DisposeAsync().AsTask();
+                time.Advance(TimeSpan.FromMilliseconds(99));
+                Assert.False(dispose.IsCompleted);
+                time.Advance(TimeSpan.FromMilliseconds(1));
+                await dispose.WaitAsync(Bound);
 
-                Assert.True(watch.Elapsed < TimeSpan.FromSeconds(1), $"DisposeAsync took {watch.Elapsed}.");
                 foreach (var lost in new[] { byKey, byId, flush })
                 {
                     var exception = await Assert.ThrowsAsync<RecordingException>(() => lost.WaitAsync(Bound));
@@ -301,24 +307,50 @@ public sealed class DecisionRecorderTests
                 Assert.Equal(0, metrics.QueueLength());
             }
 
-            var timedOut = Assert.Single(logs.GetSnapshot(), record => record.Id.Id == 1012);
-            Assert.Equal(LogLevel.Error, timedOut.Level);
-            Assert.Equal("100", Field(timedOut, "TimeoutMs"));
-            Assert.Equal("2", Field(timedOut, "Records"));
-            Assert.Equal("1", Field(timedOut, "Outcomes"));
-            Assert.Equal("2", Field(timedOut, "Erasures"));
-            Assert.Equal("1", Field(timedOut, "Flushes"));
-            Assert.DoesNotContain("SENTINEL", timedOut.Message, StringComparison.Ordinal);
+            AssertTimedOut(logs, records: 2, outcomes: 1, erasures: 2, flushes: 1);
+            Assert.Equal(2, metrics.Sum("minos.recording.records", "dropped_flush_timeout"));
+            Assert.Equal(0, metrics.Sum("minos.recording.records", "written"));
         }
         finally
         {
+            // The abandoned write finishes here; wait for it, so it cannot count into the next test.
             sink.Release();
+            await WaitForAsync(() => sink.Spy.Calls.Contains("write:d-1"));
         }
     }
 
     [Fact]
-    public async Task Calls_AfterDispose_Throw_AndTryEnqueueReturnsFalse()
+    public async Task Dispose_CancelsASinkThatHonoursIt_AndCountsWhatWasLost()
     {
+        using var metrics = new MetricCapture();
+        var time = new FakeTimeProvider();
+        var sink = new BlockingSink(honoursCancellation: true);
+        var (recorder, logs, factory) = Create(sink, new RecordingOptions { FlushTimeout = TimeSpan.FromSeconds(1) }, time);
+        using (factory)
+        {
+            var erase = recorder.EraseAsync("KEY-SENTINEL").AsTask();
+            await sink.WaitEnteredAsync();
+            recorder.TryEnqueue(Record("d-1"));
+
+            var dispose = recorder.DisposeAsync().AsTask();
+            time.Advance(TimeSpan.FromSeconds(1));
+            await dispose.WaitAsync(Bound);
+
+            var exception = await Assert.ThrowsAsync<RecordingException>(() => erase.WaitAsync(Bound));
+            Assert.Equal(RecordingException.LostMessage, exception.Message);
+            Assert.Empty(sink.Spy.Calls);
+        }
+
+        AssertTimedOut(logs, records: 1, outcomes: 0, erasures: 1, flushes: 0);
+        Assert.Equal(1, metrics.Sum("minos.recording.records", "dropped_flush_timeout"));
+        Assert.Equal(0, metrics.Sum("minos.recording.erasures", "failed"));
+        Assert.DoesNotContain(logs.GetSnapshot(), record => record.Id.Id == 1010);
+    }
+
+    [Fact]
+    public async Task Calls_AfterDispose_Throw_AndTryEnqueueCountsTheRecord()
+    {
+        using var metrics = new MetricCapture();
         var (recorder, _, factory) = Create(new RecordingSpySink());
         using (factory)
         {
@@ -331,6 +363,159 @@ public sealed class DecisionRecorderTests
             await Assert.ThrowsAsync<ObjectDisposedException>(() => recorder.EraseDecisionAsync("d-1").AsTask());
             await Assert.ThrowsAsync<ObjectDisposedException>(() => recorder.FlushAsync().AsTask());
         }
+
+        Assert.Equal(1, metrics.Sum("minos.recording.records", "dropped_disposed"));
+        Assert.Equal(0, metrics.Sum("minos.recording.records", "dropped_full"));
+    }
+
+    [Fact]
+    public async Task AThrowingLogger_NeitherStopsTheWriter_NorFailsTheDispose()
+    {
+        var sink = new ThrowingSink(call => call.StartsWith("erase:", StringComparison.Ordinal));
+        using var factory = LoggerFactory.Create(builder => builder.SetMinimumLevel(LogLevel.Debug).AddProvider(new ThrowingLoggerProvider()));
+        var recorder = new DecisionRecorder(sink, new RecordingOptions { Capacity = 1 }, factory);
+
+        // A failing sink call logs 1010, which throws: the erasure still fails as it should, and the writer goes on.
+        await Assert.ThrowsAsync<RecordingException>(() => recorder.EraseAsync("customer-7").AsTask().WaitAsync(Bound));
+        await recorder.EraseDecisionAsync("d-1").AsTask().WaitAsync(Bound);
+
+        // A drop logs 1009 from the writer, which throws too.
+        var blocking = new BlockingSink();
+        var second = new DecisionRecorder(blocking, new RecordingOptions { Capacity = 1, FlushTimeout = TimeSpan.FromMilliseconds(50) }, factory);
+        try
+        {
+            second.TryEnqueue(Record("d-1"));
+            await blocking.WaitEnteredAsync();
+            second.TryEnqueue(Record("d-2"));
+            Assert.False(second.TryEnqueue(Record("d-3")));
+            blocking.Release();
+            await second.FlushAsync().AsTask().WaitAsync(Bound);
+            await second.EraseAsync("customer-7").AsTask().WaitAsync(Bound);
+            Assert.Equal(["write:d-1", "write:d-2", "erase:customer-7"], blocking.Spy.Calls);
+        }
+        finally
+        {
+            blocking.Release();
+            await second.DisposeAsync().AsTask().WaitAsync(Bound);
+        }
+
+        Assert.Equal(["erase-decision:d-1"], sink.Spy.Calls);
+        await recorder.DisposeAsync().AsTask().WaitAsync(Bound);
+    }
+
+    [Fact]
+    public async Task AThrowingLogger_DoesNotFailADisposeThatTimesOut()
+    {
+        var sink = new BlockingSink();
+        using var factory = LoggerFactory.Create(builder => builder.AddProvider(new ThrowingLoggerProvider()));
+        var time = new FakeTimeProvider();
+        var recorder = new DecisionRecorder(sink, new RecordingOptions { FlushTimeout = TimeSpan.FromSeconds(1) }, factory, time);
+        recorder.TryEnqueue(Record("d-1"));
+        await sink.WaitEnteredAsync();
+        var erase = recorder.EraseAsync("customer-7").AsTask();
+
+        var dispose = recorder.DisposeAsync().AsTask();
+        time.Advance(TimeSpan.FromSeconds(1));
+        await dispose.WaitAsync(Bound);
+
+        await Assert.ThrowsAsync<RecordingException>(() => erase.WaitAsync(Bound));
+    }
+
+    [Fact]
+    public async Task AnErasureFailure_TheCallerStoppedWaitingFor_IsNotLeftUnobserved()
+    {
+        var unobserved = new List<AggregateException>();
+        void OnUnobserved(object? sender, UnobservedTaskExceptionEventArgs e)
+        {
+            lock (unobserved)
+            {
+                unobserved.Add(e.Exception);
+            }
+        }
+
+        TaskScheduler.UnobservedTaskException += OnUnobserved;
+        try
+        {
+            await AbandonAFailingErasureAsync();
+            for (var i = 0; i < 3; i++)
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+            }
+
+            lock (unobserved)
+            {
+                Assert.DoesNotContain(unobserved, e => e.InnerExceptions.Any(inner => inner is RecordingException));
+            }
+        }
+        finally
+        {
+            TaskScheduler.UnobservedTaskException -= OnUnobserved;
+        }
+    }
+
+    // Kept apart, so nothing on the test's stack holds the erasure's task when the collector runs.
+    [MethodImpl(MethodImplOptions.NoInlining)]
+    private static async Task AbandonAFailingErasureAsync()
+    {
+        var sink = new GatedThrowingSink();
+        var (recorder, _, factory) = Create(sink);
+        using (factory)
+        await using (recorder)
+        {
+            using (var cancel = new CancellationTokenSource())
+            {
+                var erase = recorder.EraseAsync("customer-7", cancel.Token).AsTask();
+                await sink.Entered.Task.WaitAsync(Bound);
+                await cancel.CancelAsync();
+                await Assert.ThrowsAnyAsync<OperationCanceledException>(() => erase.WaitAsync(Bound));
+            }
+
+            sink.Gate.SetResult();
+            await recorder.FlushAsync().AsTask().WaitAsync(Bound);
+        }
+    }
+
+    private static void AssertTimedOut(FakeLogCollector logs, int records, int outcomes, int erasures, int flushes)
+    {
+        var timedOut = Assert.Single(logs.GetSnapshot(), record => record.Id.Id == 1012);
+        Assert.Equal(LogLevel.Error, timedOut.Level);
+        Assert.Equal(records.ToString(CultureInfo.InvariantCulture), Field(timedOut, "Records"));
+        Assert.Equal(outcomes.ToString(CultureInfo.InvariantCulture), Field(timedOut, "Outcomes"));
+        Assert.Equal(erasures.ToString(CultureInfo.InvariantCulture), Field(timedOut, "Erasures"));
+        Assert.Equal(flushes.ToString(CultureInfo.InvariantCulture), Field(timedOut, "Flushes"));
+        Assert.DoesNotContain("SENTINEL", timedOut.Message, StringComparison.Ordinal);
+    }
+
+    private static async Task WaitForAsync(Func<bool> condition)
+    {
+        var deadline = DateTime.UtcNow + Bound;
+        while (!condition())
+        {
+            Assert.True(DateTime.UtcNow < deadline, "The condition did not hold in time.");
+            await Task.Yield();
+        }
+    }
+
+    // An erasure that waits at a gate, then throws.
+    private sealed class GatedThrowingSink : IDecisionRecordSink
+    {
+        public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource Gate { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public ValueTask WriteAsync(DecisionRecord record, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+
+        public ValueTask AddOutcomeAsync(string decisionId, DecisionOutcome outcome, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+
+        public async ValueTask EraseAsync(string erasureKey, CancellationToken cancellationToken)
+        {
+            Entered.TrySetResult();
+            await Gate.Task;
+            throw new IOException("The disk is gone.");
+        }
+
+        public ValueTask EraseDecisionAsync(string decisionId, CancellationToken cancellationToken) => ValueTask.CompletedTask;
     }
 
     [Fact]
@@ -371,7 +556,7 @@ public sealed class DecisionRecorderTests
     [Fact]
     public async Task TheRecorder_KeepsItsTimeProvider_AndChecksItsArguments()
     {
-        var time = new Microsoft.Extensions.Time.Testing.FakeTimeProvider();
+        var time = new FakeTimeProvider();
         await using var recorder = new DecisionRecorder(new RecordingSpySink(), timeProvider: time);
         Assert.Same(time, recorder.Time);
         await using var system = new DecisionRecorder(new RecordingSpySink());

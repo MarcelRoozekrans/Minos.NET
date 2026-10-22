@@ -58,7 +58,7 @@ public sealed class InMemoryDecisionRecordSink : IDecisionRecordSink
     /// <inheritdoc/>
     public ValueTask AddOutcomeAsync(string decisionId, DecisionOutcome outcome, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(decisionId);
+        ArgumentException.ThrowIfNullOrEmpty(decisionId);
         ArgumentNullException.ThrowIfNull(outcome);
         lock (_gate)
         {
@@ -74,7 +74,7 @@ public sealed class InMemoryDecisionRecordSink : IDecisionRecordSink
     /// <inheritdoc/>
     public ValueTask EraseAsync(string erasureKey, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(erasureKey);
+        ArgumentException.ThrowIfNullOrEmpty(erasureKey);
         lock (_gate)
         {
             _order.RemoveAll(entry =>
@@ -95,7 +95,7 @@ public sealed class InMemoryDecisionRecordSink : IDecisionRecordSink
     /// <inheritdoc/>
     public ValueTask EraseDecisionAsync(string decisionId, CancellationToken cancellationToken)
     {
-        ArgumentNullException.ThrowIfNull(decisionId);
+        ArgumentException.ThrowIfNullOrEmpty(decisionId);
         lock (_gate)
         {
             if (_byId.Remove(decisionId, out var entry))

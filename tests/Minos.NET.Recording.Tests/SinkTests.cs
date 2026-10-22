@@ -107,6 +107,66 @@ public sealed class SinkTests : IDisposable
     }
 
     [Fact]
+    public async Task AnErasure_Applies_AfterReopeningAFileWhoseLastLineWasCut()
+    {
+        var path = Path.Combine(_directory, "decisions.jsonl");
+        await using (var sink = new JsonlDecisionRecordSink(path))
+        {
+            await sink.WriteAsync(Record("d-1", erasureKey: "victim"), CancellationToken.None);
+        }
+
+        // A crash left part of a line.
+        await File.AppendAllTextAsync(path, """{"kind":"record","version":1,"decisionId":"d-""");
+        await using (var sink = new JsonlDecisionRecordSink(path))
+        {
+            await sink.EraseAsync("victim", CancellationToken.None);
+            await sink.WriteAsync(Record("d-2", erasureKey: null), CancellationToken.None);
+        }
+
+        var problems = new List<DecisionRecordFileProblem>();
+        var read = new List<RecordedDecision>();
+        await foreach (var decision in DecisionRecordFile.ReadAsync(path, problems, CancellationToken.None))
+        {
+            read.Add(decision);
+        }
+
+        Assert.Equal(["d-2"], read.Select(d => d.Record.DecisionId));
+        Assert.Equal(2, Assert.Single(problems).Line);
+    }
+
+    [Fact]
+    public async Task AWriteThatFailed_IsFollowedByALineOfItsOwn()
+    {
+        var path = Path.Combine(_directory, "decisions.jsonl");
+        await using (var sink = new JsonlDecisionRecordSink(path))
+        {
+            await sink.WriteAsync(Record("d-1"), CancellationToken.None);
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => sink.WriteAsync(Record("d-x"), new CancellationToken(canceled: true)).AsTask());
+            await sink.WriteAsync(Record("d-2"), CancellationToken.None);
+        }
+
+        // The failed write may have left part of its line; the next one starts on a line of its own.
+        Assert.Equal(Line(Record("d-1")) + "\n\n" + Line(Record("d-2")) + "\n", await File.ReadAllTextAsync(path));
+        var read = new List<RecordedDecision>();
+        await foreach (var decision in DecisionRecordFile.ReadAsync(path, CancellationToken.None))
+        {
+            read.Add(decision);
+        }
+
+        Assert.Equal(["d-1", "d-2"], read.Select(d => d.Record.DecisionId));
+    }
+
+    [Fact]
+    public async Task TheInMemorySink_ChecksItsArguments()
+    {
+        var sink = new InMemoryDecisionRecordSink();
+        await Assert.ThrowsAsync<ArgumentException>(() => sink.AddOutcomeAsync("", Signal(), CancellationToken.None).AsTask());
+        await Assert.ThrowsAsync<ArgumentException>(() => sink.EraseAsync("", CancellationToken.None).AsTask());
+        await Assert.ThrowsAsync<ArgumentException>(() => sink.EraseDecisionAsync("", CancellationToken.None).AsTask());
+        await Assert.ThrowsAsync<ArgumentNullException>(() => sink.EraseAsync(null!, CancellationToken.None).AsTask());
+    }
+
+    [Fact]
     public async Task TheJsonlSink_MakesAFileOnlyItsOwnerCanRead()
     {
         if (OperatingSystem.IsWindows())

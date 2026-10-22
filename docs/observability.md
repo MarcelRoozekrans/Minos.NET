@@ -145,7 +145,12 @@ A call logs once, when it completes, and logs again for each attempt it is about
 - **The decision recorder**, in `Minos.NET.Recording`, never fails a decision either, and logs counts and exception type
   names only: never the state, a decision id or an erasure key. 1009 counts the records it dropped because its queue
   was full, 1010 names the sink call that threw and the exception's type, 1011 says that a redactor threw and no record
-  was kept, and 1012, an Error, counts by kind the items its dispose gave up on when the flush timed out.
+  was kept, and 1012, an Error, counts by kind the items its dispose gave up on when the flush timed out. A logger that
+  throws loses the event but never stops the recorder. On the `Minos` meter, the counter `minos.recording.records`
+  puts every record in exactly one `result`: `written`, `dropped_full`, `dropped_redaction`, `redaction_failed`,
+  `sink_failed`, `dropped_disposed` for a record handed over after dispose, or `dropped_flush_timeout` for one lost
+  when the flush timed out. `minos.recording.outcomes` and `minos.recording.erasures` count `written` and `failed`, and
+  the gauge `minos.recording.queue_length` reads the items waiting in every recorder's queue.
 - **`UnexpectedException`** is an Error, 1006. It means a mistake in the calling code or a bug, because a failure of the
   call itself is a returned `DecisionError`. The exception continues up to you unchanged. A cancellation that you requested
   is not logged, and neither are the argument checks and the disposed-client check that throw before the call starts.

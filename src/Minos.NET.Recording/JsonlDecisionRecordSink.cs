@@ -9,7 +9,8 @@ namespace Minos.Recording;
 /// <see cref="DecisionRecordFile"/> reads. An erasure appends a line that removes the records before it when the file is
 /// read; <see cref="DecisionRecordFile.CompactAsync(string, CancellationToken)"/> rewrites the file without them. Each
 /// line goes to the operating system in one write before the call returns, but is not forced to disk. The file is
-/// opened for appending when the sink is created, and other processes may read it meanwhile. On Unix, a file the sink
+/// opened for appending when the sink is created, and other processes may read it meanwhile. When the file's last line
+/// was cut, by a crash or a failed write, the next line starts on a line of its own, so it is still read. On Unix, a file the sink
 /// creates can be read and written by its owner only, because records hold state. Dispose the sink after the recorder
 /// that writes to it: the recorder does not.
 /// </summary>
@@ -43,6 +44,17 @@ public sealed class JsonlDecisionRecordSink : IDecisionRecordSink, IAsyncDisposa
         }
 
         _stream = new FileStream(path, options);
+        try
+        {
+            // A crash can have cut the file's last line. The first line written now must not be glued onto it, or an
+            // erasure would be lost with the fragment.
+            _broken = !EndsAtALineEnd(path, _stream.Length);
+        }
+        catch
+        {
+            _stream.Dispose();
+            throw;
+        }
     }
 
     /// <inheritdoc/>
@@ -89,6 +101,18 @@ public sealed class JsonlDecisionRecordSink : IDecisionRecordSink, IAsyncDisposa
 
         _disposed = true;
         return _stream.DisposeAsync();
+    }
+
+    private static bool EndsAtALineEnd(string path, long length)
+    {
+        if (length == 0)
+        {
+            return true;
+        }
+
+        using var handle = File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
+        Span<byte> last = stackalloc byte[1];
+        return RandomAccess.Read(handle, last, length - 1) == 1 && last[0] == (byte)'\n';
     }
 
     private async ValueTask AppendAsync(Action<Utf8JsonWriter> write, CancellationToken cancellationToken)
