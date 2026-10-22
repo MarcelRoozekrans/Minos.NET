@@ -239,6 +239,11 @@ internal static class DatasetReader
             return Criterion.Text(element.GetString()!);
         }
 
+        if (element.TryGetProperty("json", out var json))
+        {
+            return Criterion.Json(DecisionContent.FromJson(json));
+        }
+
         var criterion = Criterion.Text(element.GetProperty("description").GetString()!);
         if (element.TryGetProperty("examples", out var examples))
         {

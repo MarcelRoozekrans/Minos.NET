@@ -23,6 +23,28 @@ public sealed class DatasetLoadTests
     }
 
     [Fact]
+    public void Parse_ReadsAJsonCriterion_AsCriterionJson()
+    {
+        const string line = """
+            {"id":"j","state":"s","questions":{
+              "department":{"type":"choice","instructions":"Which team?","criteria":{"billing":{"json":{"description":"Payments","weight":2}},"other":null}},
+              "mood":{"type":"score","instructions":"How upset?","criteria":["calm",{"json":["angry","very"]}]}},
+              "expected":{"department":"billing","mood":1}}
+            """;
+
+        var item = Assert.Single(ParseOk(line.ReplaceLineEndings(" ")));
+
+        var billing = item.Definition.Questions[0].Options[0].Criterion!;
+        Assert.Null(billing.Description);
+        Assert.True(billing.JsonContent!.Value.TryGetJson(out var billingJson));
+        Assert.Equal("""{"description":"Payments","weight":2}""", billingJson.GetRawText());
+        var level = item.Definition.Questions[1].Options[1].Criterion!;
+        Assert.True(level.JsonContent!.Value.TryGetJson(out var levelJson));
+        Assert.Equal("""["angry","very"]""", levelJson.GetRawText());
+        Assert.Equal("calm", item.Definition.Questions[1].Options[0].Criterion!.Description);
+    }
+
+    [Fact]
     public void Parse_ReadsEachKind()
     {
         var item = Assert.Single(ParseOk(EveryKind.ReplaceLineEndings(" ")));

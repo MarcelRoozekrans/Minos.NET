@@ -72,6 +72,25 @@ public sealed class DatasetProblemTests
                 expected: """{"q":"x"}"""),
             "'questions.q.criteria.x.example'");
 
+    [Fact]
+    public void AJsonCriterion_CannotBeCombinedWithOtherMembers()
+        => AssertSingle(
+            Item(
+                questions: """{"q":{"type":"choice","instructions":"i","criteria":{"x":{"json":{"a":1},"description":"d"},"y":null}}}""",
+                expected: """{"q":"x"}"""),
+            "'questions.q.criteria.x.json' stands alone");
+
+    [Theory]
+    [InlineData("\"text\"")]
+    [InlineData("7")]
+    [InlineData("null")]
+    public void AJsonCriterion_MustBeAnObjectOrArray(string json)
+        => AssertSingle(
+            Item(
+                questions: """{"q":{"type":"score","instructions":"i","criteria":[{"json":JSON}]}}""".Replace("JSON", json, StringComparison.Ordinal),
+                expected: """{"q":0}"""),
+            "'questions.q.criteria[0].json' must be a JSON object or array");
+
     [Theory]
     [InlineData("7")]
     [InlineData("true")]
