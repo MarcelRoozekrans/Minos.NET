@@ -149,8 +149,10 @@ A call logs once, when it completes, and logs again for each attempt it is about
   throws loses the event but never stops the recorder. On the `Minos` meter, the counter `minos.recording.records`
   puts every record in exactly one `result`: `written`, `dropped_full`, `dropped_redaction`, `redaction_failed`,
   `sink_failed`, `dropped_disposed` for a record handed over after dispose, or `dropped_flush_timeout` for one lost
-  when the flush timed out. `minos.recording.outcomes` and `minos.recording.erasures` count `written` and `failed`, and
-  the gauge `minos.recording.queue_length` reads the items waiting in every recorder's queue.
+  when the flush timed out. A write that finishes after the flush timed out is not counted again. `minos.recording.outcomes`
+  and `minos.recording.erasures` count `written` and `failed`, `minos.recording.log_failures`, with no tags, counts the
+  log events lost because the logger threw, and the gauge `minos.recording.queue_length` reads the items waiting in
+  every recorder's queue.
 - **`UnexpectedException`** is an Error, 1006. It means a mistake in the calling code or a bug, because a failure of the
   call itself is a returned `DecisionError`. The exception continues up to you unchanged. A cancellation that you requested
   is not logged, and neither are the argument checks and the disposed-client check that throw before the call starts.

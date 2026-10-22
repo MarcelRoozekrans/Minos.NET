@@ -1,3 +1,4 @@
+using System.Diagnostics.Metrics;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using Microsoft.Extensions.Logging;
@@ -310,12 +311,19 @@ public sealed class DecisionRecorderTests
             AssertTimedOut(logs, records: 2, outcomes: 1, erasures: 2, flushes: 1);
             Assert.Equal(2, metrics.Sum("minos.recording.records", "dropped_flush_timeout"));
             Assert.Equal(0, metrics.Sum("minos.recording.records", "written"));
+
+            // The abandoned write finishes late. Its record was already counted as lost, so it is not counted again.
+            sink.Release();
+            await WaitForAsync(() => sink.Spy.Calls.Contains("write:d-1"));
+            await recorder.Writer.WaitAsync(Bound);
+            Assert.Equal(0, metrics.Sum("minos.recording.records", "written"));
+            Assert.Equal(2, metrics.Sum("minos.recording.records", "dropped_flush_timeout"));
         }
         finally
         {
-            // The abandoned write finishes here; wait for it, so it cannot count into the next test.
+            // Wait for the abandoned write, so it cannot count into the next test.
             sink.Release();
-            await WaitForAsync(() => sink.Spy.Calls.Contains("write:d-1"));
+            await recorder.Writer.WaitAsync(Bound);
         }
     }
 
@@ -401,6 +409,61 @@ public sealed class DecisionRecorderTests
 
         Assert.Equal(["erase-decision:d-1"], sink.Spy.Calls);
         await recorder.DisposeAsync().AsTask().WaitAsync(Bound);
+    }
+
+    [Fact]
+    public async Task AThrowingLogger_IsCounted()
+    {
+        using var metrics = new MetricCapture();
+        var sink = new ThrowingSink(call => call.StartsWith("write:", StringComparison.Ordinal));
+        using var factory = LoggerFactory.Create(builder => builder.AddProvider(new ThrowingLoggerProvider()));
+        await using (var recorder = new DecisionRecorder(sink, loggerFactory: factory))
+        {
+            recorder.TryEnqueue(Record("d-1"));
+            recorder.TryEnqueue(Record("d-2"));
+            await recorder.FlushAsync().AsTask().WaitAsync(Bound);
+        }
+
+        Assert.Equal(2, metrics.Sum("minos.recording.log_failures"));
+        Assert.Equal(2, metrics.Sum("minos.recording.records", "sink_failed"));
+    }
+
+    [Fact]
+    public async Task AThrowingMeterListener_DoesNotStopTheWriter()
+    {
+        var sink = new ThrowingSink(call => call.StartsWith("erase:", StringComparison.Ordinal));
+        using var listener = new MeterListener();
+        listener.InstrumentPublished = (instrument, l) =>
+        {
+            if (instrument.Name.StartsWith("minos.recording.", StringComparison.Ordinal))
+            {
+                l.EnableMeasurementEvents(instrument);
+            }
+        };
+        listener.SetMeasurementEventCallback<long>((_, _, tags, _) =>
+        {
+            foreach (var tag in tags)
+            {
+                if (tag.Value is "failed" or "sink_failed")
+                {
+                    throw new InvalidOperationException("The listener is broken.");
+                }
+            }
+        });
+        listener.Start();
+        var (recorder, _, factory) = Create(sink);
+        using (factory)
+        await using (recorder)
+        {
+            // Counting the failure throws: the caller is still told, at once, and the writer goes on.
+            await Assert.ThrowsAsync<RecordingException>(() => recorder.EraseAsync("customer-7").AsTask().WaitAsync(Bound));
+            await Assert.ThrowsAsync<RecordingException>(() => recorder.EraseAsync("customer-8").AsTask().WaitAsync(Bound));
+            await recorder.EraseDecisionAsync("d-1").AsTask().WaitAsync(Bound);
+            Assert.True(recorder.TryEnqueue(Record("d-2")));
+            await recorder.FlushAsync().AsTask().WaitAsync(Bound);
+        }
+
+        Assert.Equal(["erase-decision:d-1", "write:d-2"], sink.Spy.Calls);
     }
 
     [Fact]

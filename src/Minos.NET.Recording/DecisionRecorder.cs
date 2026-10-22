@@ -66,6 +66,9 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
         }
     }
 
+    /// <summary>Gets the writer, for tests that wait for an abandoned sink call to finish.</summary>
+    internal Task Writer => _writer;
+
     /// <summary>Gets the clock the recording stage times its records with.</summary>
     internal TimeProvider Time { get; }
 
@@ -166,8 +169,14 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
         }
         finally
         {
-            ReportDrops();
-            done.SetResult();
+            try
+            {
+                ReportDrops();
+            }
+            finally
+            {
+                done.SetResult();
+            }
         }
     }
 
@@ -179,7 +188,10 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
         lock (_readGate)
         {
             _stopped = true;
-            if (_inFlight is { } inFlight)
+
+            // The item in flight is lost only when the writer has not settled it: a sink call that finished just in
+            // time was counted by the writer, and one that finishes later is not counted at all.
+            if (_inFlight is { } inFlight && inFlight.TrySettle())
             {
                 lost.Add(inFlight);
             }
@@ -187,7 +199,19 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
             while (_channel.Reader.TryRead(out var item))
             {
                 RecordingTelemetry.Queued(-1);
-                lost.Add(item);
+                if (item.TrySettle())
+                {
+                    lost.Add(item);
+                }
+            }
+        }
+
+        // The callers are told first, so a listener that throws while the loss is counted leaves no one waiting.
+        foreach (var item in lost)
+        {
+            if (item.Completion is { } completion)
+            {
+                Fail(completion, RecordingException.Lost());
             }
         }
 
@@ -198,7 +222,6 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
             {
                 case WorkKind.Record:
                     records++;
-                    RecordingTelemetry.Record(RecordingTelemetry.DroppedFlushTimeout);
                     break;
                 case WorkKind.Outcome:
                     outcomes++;
@@ -210,15 +233,14 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
                     flushes++;
                     break;
             }
-
-            if (item.Completion is { } completion)
-            {
-                Fail(completion, RecordingException.Lost());
-            }
         }
 
         Log(static (logger, counts) => DecisionLog.FlushTimedOut(logger, counts.TimeoutMs, counts.Records, counts.Outcomes, counts.Erasures, counts.Flushes),
             (TimeoutMs: _flushTimeout.TotalMilliseconds, Records: records, Outcomes: outcomes, Erasures: erasures, Flushes: flushes));
+        for (var i = 0; i < records; i++)
+        {
+            RecordingTelemetry.Record(RecordingTelemetry.DroppedFlushTimeout);
+        }
     }
 
     private void ThrowIfDisposed() => ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
@@ -253,8 +275,21 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
             {
                 while (TryTake(out var item))
                 {
-                    ReportDrops();
-                    await ProcessAsync(item, cancellationToken).ConfigureAwait(false);
+                    try
+                    {
+                        ReportDrops();
+                        await ProcessAsync(item, cancellationToken).ConfigureAwait(false);
+                    }
+                    catch (Exception ex) when (!IsStop(ex, cancellationToken))
+                    {
+                        // Only counting or logging can throw here, through a broken listener or logger: the caller is
+                        // told, and the writer goes on with the next item.
+                        if (item.Completion is { } completion)
+                        {
+                            Fail(completion, new RecordingException(ex));
+                        }
+                    }
+
                     lock (_readGate)
                     {
                         _inFlight = null;
@@ -290,6 +325,8 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
         return true;
     }
 
+    // After the sink call, an item is counted and its caller told only when the writer settles it first: when the
+    // dispose gave up on it meanwhile, the dispose counted it, and the late result is dropped.
     private async ValueTask ProcessAsync(WorkItem item, CancellationToken cancellationToken)
     {
         switch (item.Kind)
@@ -298,28 +335,46 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
                 try
                 {
                     await _sink.WriteAsync(item.Record!, cancellationToken).ConfigureAwait(false);
-                    RecordingTelemetry.Record(RecordingTelemetry.Written);
                 }
                 catch (Exception ex) when (!IsStop(ex, cancellationToken))
                 {
-                    RecordingTelemetry.Record(RecordingTelemetry.SinkFailed);
-                    LogSinkCallFailed("write", ex);
+                    if (item.TrySettle())
+                    {
+                        RecordingTelemetry.Record(RecordingTelemetry.SinkFailed);
+                        LogSinkCallFailed("write", ex);
+                    }
+
+                    return;
                 }
 
-                break;
+                if (item.TrySettle())
+                {
+                    RecordingTelemetry.Record(RecordingTelemetry.Written);
+                }
+
+                return;
             case WorkKind.Outcome:
                 try
                 {
                     await _sink.AddOutcomeAsync(item.DecisionId!, item.Outcome!, cancellationToken).ConfigureAwait(false);
-                    RecordingTelemetry.Outcome(RecordingTelemetry.Written);
                 }
                 catch (Exception ex) when (!IsStop(ex, cancellationToken))
                 {
-                    RecordingTelemetry.Outcome(RecordingTelemetry.Failed);
-                    LogSinkCallFailed("add-outcome", ex);
+                    if (item.TrySettle())
+                    {
+                        RecordingTelemetry.Outcome(RecordingTelemetry.Failed);
+                        LogSinkCallFailed("add-outcome", ex);
+                    }
+
+                    return;
                 }
 
-                break;
+                if (item.TrySettle())
+                {
+                    RecordingTelemetry.Outcome(RecordingTelemetry.Written);
+                }
+
+                return;
             case WorkKind.Erasure:
                 var byKey = item.ErasureKey is not null;
                 try
@@ -332,21 +387,33 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
                     {
                         await _sink.EraseDecisionAsync(item.DecisionId!, cancellationToken).ConfigureAwait(false);
                     }
-
-                    item.Completion!.TrySetResult();
-                    RecordingTelemetry.Erasure(RecordingTelemetry.Written);
                 }
                 catch (Exception ex) when (!IsStop(ex, cancellationToken))
                 {
-                    RecordingTelemetry.Erasure(RecordingTelemetry.Failed);
-                    Fail(item.Completion!, new RecordingException(ex));
-                    LogSinkCallFailed(byKey ? "erase" : "erase-decision", ex);
+                    if (item.TrySettle())
+                    {
+                        Fail(item.Completion!, new RecordingException(ex));
+                        RecordingTelemetry.Erasure(RecordingTelemetry.Failed);
+                        LogSinkCallFailed(byKey ? "erase" : "erase-decision", ex);
+                    }
+
+                    return;
                 }
 
-                break;
+                if (item.TrySettle())
+                {
+                    item.Completion!.TrySetResult();
+                    RecordingTelemetry.Erasure(RecordingTelemetry.Written);
+                }
+
+                return;
             default:
-                item.Completion!.TrySetResult();
-                break;
+                if (item.TrySettle())
+                {
+                    item.Completion!.TrySetResult();
+                }
+
+                return;
         }
     }
 
@@ -374,11 +441,11 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
         {
             log(_logger, state);
         }
-#pragma warning disable RCS1075 // Swallowing is the point: the log event is lost, and the metrics still count what it reports.
         catch (Exception)
         {
+            // The event is lost; the metrics still count what it reports, and this counts the loss.
+            RecordingTelemetry.LogFailed();
         }
-#pragma warning restore RCS1075
     }
 
     // Faults a caller's task, and marks it observed: a caller that stopped waiting must not have the sink's exception,
@@ -423,6 +490,11 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
 
         // Set for an erasure and a flush, whose callers wait for the sink.
         public TaskCompletionSource? Completion { get; }
+
+        private int _settled;
+
+        // Claims the item's outcome, once: the writer after the sink call, or the dispose that gives up on it.
+        public bool TrySettle() => Interlocked.Exchange(ref _settled, 1) == 0;
 
         public static WorkItem ForRecord(DecisionRecord record) => new(WorkKind.Record, record, null, null, null, completes: false);
 

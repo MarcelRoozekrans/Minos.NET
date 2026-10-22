@@ -48,6 +48,15 @@ internal sealed class MetricCapture : IDisposable
         }
     }
 
+    /// <summary>The sum of a counter's measurements, whatever their tags.</summary>
+    public long Sum(string instrument)
+    {
+        lock (_measurements)
+        {
+            return _measurements.Where(m => string.Equals(m.Instrument, instrument, StringComparison.Ordinal)).Sum(m => m.Value);
+        }
+    }
+
     /// <summary>The queue length gauge, read now.</summary>
     public long QueueLength()
     {
