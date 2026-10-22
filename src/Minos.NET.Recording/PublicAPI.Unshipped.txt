@@ -101,7 +101,9 @@ Minos.Recording.RecordedDecision
 Minos.Recording.RecordedDecision.Outcomes.get -> System.Collections.Generic.IReadOnlyList<Minos.Recording.DecisionOutcome!>!
 Minos.Recording.RecordedDecision.Record.get -> Minos.Recording.DecisionRecord!
 Minos.Recording.RecordingException
-Minos.Recording.RecordingException.RecordingException(System.Exception! innerException) -> void
+Minos.Recording.RecordingException.RecordingException() -> void
+Minos.Recording.RecordingException.RecordingException(string! message) -> void
+Minos.Recording.RecordingException.RecordingException(string! message, System.Exception? innerException) -> void
 Minos.Recording.RecordingOptions
 Minos.Recording.RecordingOptions.Capacity.get -> int
 Minos.Recording.RecordingOptions.Capacity.set -> void

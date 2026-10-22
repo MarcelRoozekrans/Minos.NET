@@ -286,7 +286,7 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
                         // told, and the writer goes on with the next item.
                         if (item.Completion is { } completion)
                         {
-                            Fail(completion, new RecordingException(ex));
+                            Fail(completion, RecordingException.SinkFailed(ex));
                         }
                     }
 
@@ -392,7 +392,7 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
                 {
                     if (item.TrySettle())
                     {
-                        Fail(item.Completion!, new RecordingException(ex));
+                        Fail(item.Completion!, RecordingException.SinkFailed(ex));
                         RecordingTelemetry.Erasure(RecordingTelemetry.Failed);
                         LogSinkCallFailed(byKey ? "erase" : "erase-decision", ex);
                     }
