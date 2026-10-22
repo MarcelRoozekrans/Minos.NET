@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.2.2](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.2.1...v1.2.2) (2026-10-22)
+
+
+### Dependencies
+
+* update zeroalloc shipped dependencies ([#248](https://github.com/MarcelRoozekrans/Minos.NET/issues/248)) ([b5cab65](https://github.com/MarcelRoozekrans/Minos.NET/commit/b5cab657b2c11ce8e8c651b28d0217388cbba0d0))
+
 ## [1.2.1](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.2.0...v1.2.1) (2026-10-18)
 
 
