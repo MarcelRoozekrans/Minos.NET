@@ -272,11 +272,27 @@ internal static class EvaluationChecks
             "a stopped run throws its paid results, and they make a partial report, under Native AOT");
     }
 
+    // The runner reports from its parallel workers, so the highest count is kept with a compare-and-swap.
     private sealed class CountingProgress : IProgress<int>
     {
-        public int Last { get; private set; }
+        private int _last;
 
-        public void Report(int value) => Last = Math.Max(Last, value);
+        public int Last => Volatile.Read(ref _last);
+
+        public void Report(int value)
+        {
+            var current = Volatile.Read(ref _last);
+            while (value > current)
+            {
+                var seen = Interlocked.CompareExchange(ref _last, value, current);
+                if (seen == current)
+                {
+                    return;
+                }
+
+                current = seen;
+            }
+        }
     }
 
     // Answers the first two items, then throws.
