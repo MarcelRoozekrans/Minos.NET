@@ -20,28 +20,46 @@ internal sealed class PackedProject : IDisposable
     /// project can restore its <c>Minos.NET</c> dependencies from there.
     /// </param>
     public PackedProject(string projectName, params string[] alongside)
+        : this(new DirectoryInfo(Path.GetTempPath()), projectName, alongside)
+    {
+    }
+
+    /// <param name="tempRoot">The directory the unique temp directory is created in.</param>
+    /// <param name="projectName">The project's directory and file name under <c>src</c>, such as <c>Minos.NET</c>.</param>
+    /// <param name="alongside">Other projects under <c>src</c> to pack into the same directory at the same version.</param>
+    internal PackedProject(DirectoryInfo tempRoot, string projectName, params string[] alongside)
     {
         var repoRoot = FindRepoRoot();
         var configuration = typeof(PackedProject).Assembly
             .GetCustomAttribute<AssemblyConfigurationAttribute>()?.Configuration
             ?? "Release";
 
-        _tempDir = Path.Combine(Path.GetTempPath(), "minos-pack-tests-" + Guid.NewGuid().ToString("N"));
+        _tempDir = Path.Combine(tempRoot.FullName, "minos-pack-tests-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(_tempDir);
 
-        foreach (var project in alongside.Prepend(projectName))
+        // A constructor that throws is never disposed, so a failed pack deletes the directory here, or every failing run
+        // would leave its packages in the temp folder.
+        try
         {
-            Pack(repoRoot, configuration, project);
-        }
+            foreach (var project in alongside.Prepend(projectName))
+            {
+                Pack(repoRoot, configuration, project);
+            }
 
-        var nupkg = Path.Combine(_tempDir, $"{projectName}.{PackageVersion}.nupkg");
-        if (!File.Exists(nupkg))
+            var nupkg = Path.Combine(_tempDir, $"{projectName}.{PackageVersion}.nupkg");
+            if (!File.Exists(nupkg))
+            {
+                throw new InvalidOperationException($"'dotnet pack' exited 0 but produced no '{Path.GetFileName(nupkg)}' in '{_tempDir}'.");
+            }
+
+            NupkgPath = nupkg;
+            NuspecPath = ExtractNuspec(nupkg, _tempDir);
+        }
+        catch
         {
-            throw new InvalidOperationException($"'dotnet pack' exited 0 but produced no '{Path.GetFileName(nupkg)}' in '{_tempDir}'.");
+            Dispose();
+            throw;
         }
-
-        NupkgPath = nupkg;
-        NuspecPath = ExtractNuspec(nupkg, _tempDir);
     }
 
     public string NupkgPath { get; }
