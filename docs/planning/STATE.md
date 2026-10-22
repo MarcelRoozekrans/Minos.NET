@@ -1,6 +1,6 @@
-# Session State — 2026-10-17 (Milestone 8 complete; Milestone 9 next)
+# Session State — 2026-10-21 (Milestone 9 started: local and private decisions)
 
-**Date:** 2026-10-17
+**Date:** 2026-10-21
 
 ## Current Position
 - **Roadmap:** re-planned on 2026-10-09 (`docs/superpowers/specs/2026-10-09-roadmap-design.md`).
@@ -112,7 +112,7 @@
 - None. `phase/5.5-release` is superseded by Phase 7.5 and can be deleted.
 
 ## Recommended Next Step
-1. Milestone 8, Choosing a provider and a threshold, is complete on 2026-10-17: the audit passed (`docs/plans/2026-10-17-milestone-8-audit.md`). Its phases are 8.1 (#224), 8.2 (#229), 8.3 (#231) and 8.4 (#234 and #235). 1.2.0 is on nuget.org with `Minos.NET.Tool` and `Minos.NET.Evaluation`; release PR #237 (1.2.1) is open for the maintainer. Open by decision: #230 (keep paid results on cancel or timeout) and ZeroAlloc.TestHelpers#94. Next: Milestone 9, Hosted to local, starting with `new-milestone`.
+1. Milestone 9, Local and private decisions, is active since 2026-10-21 (design `docs/superpowers/specs/2026-10-21-milestone-9-design.md`). It revises the roadmap's "Hosted to local": the in-process ONNX spike and provider (#117) are parked, and a local decision server through the `Custom` or `VllmSemanticRouter` preset is the local path. Daedalus.NET is the first workload; its requirements are binding (off by default, decorate not replace, no state in logs or traces, redaction before persisting, erasure, shadow off the decision path, AOT clean). Next: Phase 9.1, the decision recorder, starting with its spec. Milestone 8 is complete (audit `docs/plans/2026-10-17-milestone-8-audit.md`); 1.2.1 is the latest release.
 2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.
 3. Phases 7.1 to 7.5 are complete. On 2026-10-15 nuget.org reserved `Minos.NET` and `Minos.NET.*` to MarcelRoozekrans, which lifted the 409 "package ID is reserved" block. The Trusted Publishing policy is ci.yml, no environment, glob `*`. `gh workflow run ci.yml --ref v1.0.1 -f publish_to_nuget=true` ([run 38726515640](https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/38726515640)) published all six packages as 1.0.1, with symbols. 1.0.0 was never published. `PackageValidationBaselineVersion` is 1.0.1, which closes #28. Milestone 7 is complete; its audit passed (`docs/plans/2026-10-15-milestone-7-audit.md`). Next: Milestone 8, Choosing a provider and a threshold, starting with `new-milestone`.
 4. Releases go out when the maintainer merges the release-please PR. Renovate titles updates to shipped ZeroAlloc dependencies `deps:`, so raised floors reach the changelog. Consider narrowing the Trusted Publishing package glob from `*` to `Minos.NET*` on nuget.org.

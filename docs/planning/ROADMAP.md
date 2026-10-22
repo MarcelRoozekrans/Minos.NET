@@ -446,47 +446,44 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Completed:** 2026-10-17
 **Evidence:** PR #234 and PR #235; pre-push reviews `docs/plans/2026-10-17-phase-8.4-part-1-pre-push-review.md` and `docs/plans/2026-10-17-phase-8.4-part-2-pre-push-review.md`.
 
-## Milestone 9: Hosted to local [status: pending]
-**Goal:** Record decisions and outcomes, export them in an open format, shadow-compare a candidate provider, and serve decisions in-process from .NET if the inference spike says go.
-**Design:** `docs/superpowers/specs/2026-10-09-roadmap-design.md`
+## Milestone 9: Local and private decisions [status: active]
+**Goal:** Run decisions on a local decision server, offline and private, and show from recorded traffic that the local model decides well enough before switching: record, export, shadow, report, switch by configuration.
+**Started:** 2026-10-21
+**Design:** `docs/superpowers/specs/2026-10-21-milestone-9-design.md` (revises the roadmap design's "Hosted to local"; the in-process ONNX spike and provider, #117, are parked)
 **Definition of Done:**
-- [ ] An opt-in decision recorder with outcome labels and redaction hooks, and a JSONL export with a documented schema
-- [ ] A shadow-mode report between two providers: agreement, calibration and threshold sweep
-- [ ] A go/no-go write-up for in-process inference with numbers and licence notes; on a go, a local provider that answers Noul, Choice and Score in-process
-- [ ] A "Moving decisions to a cheaper or local model" guide
+- [ ] `Minos.NET.Recording`: an opt-in decorator with a pluggable sink, redaction before persisting, outcomes by decision id, erasure by the app's key, AOT clean
+- [ ] Export of recorded decisions to the Milestone 8 dataset format, loadable by `minos calibrate`
+- [ ] Shadow mode off the decision path, with a daily cap, and an agreement and calibration report
+- [ ] A committed shadow report of a hosted provider against the local model on recorded traffic
+- [ ] A "Running decisions locally and privately" guide
+- [ ] `Minos.NET.Recording` on nuget.org
 
-### Phase 9.1: Decision recorder and outcome labels [status: pending]
-**Goal:** An opt-in recorder decorating `IDecisionClient`, storing state, questions, answers, provider, model version and request id, with an API to attach outcomes later (#118).
+### Phase 9.1: The decision recorder [status: pending]
+**Goal:** An opt-in `IDecisionClient` decorator in `Minos.NET.Recording`, with a pluggable sink, a redaction hook, decision ids, confirmed and signal outcomes, and erasure, AOT clean, with file and in-memory sinks (#118).
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 9.2: JSONL export and redaction hooks [status: pending]
-**Goal:** Export in the state/questions record shape open models train on, matching Milestone 8's dataset format, with PII redaction hooks (#118).
+### Phase 9.2: Export to the dataset format [status: pending]
+**Goal:** In `Minos.NET.Evaluation` and `minos`, turn recorded decisions and their confirmed outcomes into Milestone 8 dataset JSONL, document the record file and outcome schema, and prove the export runs through `minos calibrate` (#118).
 **Surface:** Data
 **HelpWanted:** no
 **Plan:** _to be written_
 
 ### Phase 9.3: Shadow mode and its report [status: pending]
-**Goal:** Run a candidate provider alongside the primary without acting on it, reporting agreement, calibration and a threshold sweep with Milestone 8's report code (#118).
+**Goal:** A background candidate decorator in `Minos.NET.Recording`, off the decision's path, with a daily cap, writing candidate answers to the record. Plus the agreement and calibration report from recorded pairs, in `Minos.NET.Evaluation` and `minos`, with Milestone 8's code (#118).
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 9.4: Spike: in-process decision-model inference [status: pending]
-**Goal:** ONNX Runtime from .NET with a decision head and calibration in C#, on a small permissive model, measured for latency, allocations, AOT size and CPU vs GPU; go/no-go write-up. Has no API dependency and may run earlier (#117).
-**Surface:** Backend
+### Phase 9.4: A shadow report on recorded traffic [status: pending]
+**Goal:** A sample replays the 400-item Banking77 set through the recorder and shadow mode, with TypeSafe as the primary and the local model as the candidate. The report is committed, and the hosted run needs the maintainer's approval.
+**Surface:** Data
 **HelpWanted:** no
 **Plan:** _to be written_
 
-### Phase 9.5: Local provider package [status: pending]
-**Goal:** On a go from 9.4, an in-process provider so existing typed question sets run unchanged, measurable by the Milestone 8 tool (#117).
-**Surface:** Backend
-**HelpWanted:** no
-**Plan:** _to be written_
-
-### Phase 9.6: Moving decisions to a cheaper or local model guide [status: pending]
-**Goal:** The record, export, shadow and switch path as one guide (#118).
+### Phase 9.5: "Running decisions locally and privately" guide [status: pending]
+**Goal:** The record, export, shadow, report and switch path as one guide, with the local server setup, backed by Phase 9.4's report (#118).
 **Surface:** Docs
 **HelpWanted:** no
 **Plan:** _to be written_
