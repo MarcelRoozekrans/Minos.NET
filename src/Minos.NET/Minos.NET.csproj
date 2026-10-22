@@ -53,7 +53,7 @@
     <InternalsVisibleTo Include="Minos.NET.Caching" />
     <!-- Its tests build entries and keys from the same internals. -->
     <InternalsVisibleTo Include="Minos.NET.Caching.Tests" />
-    <!-- The recorder logs through DecisionLog's events 1009 to 1012, and its tests read them. -->
+    <!-- The recorder logs through DecisionLog's events 1009 to 1013, and its tests read them. -->
     <InternalsVisibleTo Include="Minos.NET.Recording" />
     <InternalsVisibleTo Include="Minos.NET.Recording.Tests" />
   </ItemGroup>

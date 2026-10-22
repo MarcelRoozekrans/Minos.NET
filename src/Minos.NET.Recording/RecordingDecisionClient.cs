@@ -5,8 +5,9 @@ namespace Minos.Recording;
 
 /// <summary>
 /// A stage that hands a record of each decision to a <see cref="DecisionRecorder"/>: the question set, the state after
-/// <see cref="RecordingOptions.Redact"/>, the model and endpoint, the answers and usage, or the kind of error. It returns
-/// the inner client's result unchanged and never waits for the recorder.
+/// <see cref="RecordingOptions.Redact"/>, the model and endpoint, the answers and usage, or the kind of error. The
+/// redactor runs before the call returns to the caller, so no state is queued before it ran. The stage returns the
+/// inner client's result unchanged and never waits for the recorder.
 /// </summary>
 /// <remarks>
 /// <para>

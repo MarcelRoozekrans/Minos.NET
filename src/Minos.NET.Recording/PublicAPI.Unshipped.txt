@@ -78,25 +78,6 @@ Minos.Recording.JsonlDecisionRecordSink.EraseAsync(string! erasureKey, System.Th
 Minos.Recording.JsonlDecisionRecordSink.EraseDecisionAsync(string! decisionId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 Minos.Recording.JsonlDecisionRecordSink.JsonlDecisionRecordSink(string! path) -> void
 Minos.Recording.JsonlDecisionRecordSink.WriteAsync(Minos.Recording.DecisionRecord! record, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
-Minos.Recording.RecordedAnswer
-Minos.Recording.RecordedAnswer.ChosenIndex.get -> int
-Minos.Recording.RecordedAnswer.ChosenIndex.init -> void
-Minos.Recording.RecordedAnswer.Confidence.get -> double
-Minos.Recording.RecordedAnswer.Confidence.init -> void
-Minos.Recording.RecordedAnswer.Deconstruct(out string! Key, out Minos.QuestionKind Kind, out int ChosenIndex, out double Probability, out double Expected, out double Confidence, out System.Collections.Generic.IReadOnlyList<double>! Probabilities) -> void
-Minos.Recording.RecordedAnswer.Equals(Minos.Recording.RecordedAnswer other) -> bool
-Minos.Recording.RecordedAnswer.Expected.get -> double
-Minos.Recording.RecordedAnswer.Expected.init -> void
-Minos.Recording.RecordedAnswer.Key.get -> string!
-Minos.Recording.RecordedAnswer.Key.init -> void
-Minos.Recording.RecordedAnswer.Kind.get -> Minos.QuestionKind
-Minos.Recording.RecordedAnswer.Kind.init -> void
-Minos.Recording.RecordedAnswer.Probabilities.get -> System.Collections.Generic.IReadOnlyList<double>!
-Minos.Recording.RecordedAnswer.Probabilities.init -> void
-Minos.Recording.RecordedAnswer.Probability.get -> double
-Minos.Recording.RecordedAnswer.Probability.init -> void
-Minos.Recording.RecordedAnswer.RecordedAnswer() -> void
-Minos.Recording.RecordedAnswer.RecordedAnswer(string! Key, Minos.QuestionKind Kind, int ChosenIndex, double Probability, double Expected, double Confidence, System.Collections.Generic.IReadOnlyList<double>! Probabilities) -> void
 Minos.Recording.RecordedDecision
 Minos.Recording.RecordedDecision.Outcomes.get -> System.Collections.Generic.IReadOnlyList<Minos.Recording.DecisionOutcome!>!
 Minos.Recording.RecordedDecision.Record.get -> Minos.Recording.DecisionRecord!
@@ -118,7 +99,6 @@ override Minos.Recording.ConfirmedAnswer.Equals(object? obj) -> bool
 override Minos.Recording.ConfirmedAnswer.GetHashCode() -> int
 override Minos.Recording.ConfirmedAnswer.ToString() -> string!
 override Minos.Recording.DecisionRecordFileProblem.GetHashCode() -> int
-override Minos.Recording.RecordedAnswer.GetHashCode() -> int
 static Minos.Recording.ConfirmedAnswer.ForChoice(string! optionKey) -> Minos.Recording.ConfirmedAnswer
 static Minos.Recording.ConfirmedAnswer.ForNoul(bool value) -> Minos.Recording.ConfirmedAnswer
 static Minos.Recording.ConfirmedAnswer.ForScore(int level) -> Minos.Recording.ConfirmedAnswer
@@ -131,12 +111,8 @@ static Minos.Recording.DecisionRecordFile.ReadAsync(string! path, System.Collect
 static Minos.Recording.DecisionRecordFile.ReadAsync(string! path, System.Threading.CancellationToken cancellationToken) -> System.Collections.Generic.IAsyncEnumerable<Minos.Recording.RecordedDecision!>!
 static Minos.Recording.DecisionRecordFileProblem.operator !=(Minos.Recording.DecisionRecordFileProblem left, Minos.Recording.DecisionRecordFileProblem right) -> bool
 static Minos.Recording.DecisionRecordFileProblem.operator ==(Minos.Recording.DecisionRecordFileProblem left, Minos.Recording.DecisionRecordFileProblem right) -> bool
-static Minos.Recording.RecordedAnswer.operator !=(Minos.Recording.RecordedAnswer left, Minos.Recording.RecordedAnswer right) -> bool
-static Minos.Recording.RecordedAnswer.operator ==(Minos.Recording.RecordedAnswer left, Minos.Recording.RecordedAnswer right) -> bool
 ~override Minos.Recording.DecisionRecordFileProblem.Equals(object obj) -> bool
 ~override Minos.Recording.DecisionRecordFileProblem.ToString() -> string
-~override Minos.Recording.RecordedAnswer.Equals(object obj) -> bool
-~override Minos.Recording.RecordedAnswer.ToString() -> string
 Minos.Recording.DecisionRecording
 static Minos.Recording.DecisionRecording.Begin(string? decisionId = null, string? erasureKey = null) -> Minos.Recording.DecisionRecordingScope!
 Minos.Recording.DecisionRecordingScope
@@ -153,3 +129,20 @@ Minos.Recording.RecordingOptions.Redact.set -> void
 Minos.Recording.RedactionResult
 static Minos.Recording.RedactionResult.Drop.get -> Minos.Recording.RedactionResult!
 static Minos.Recording.RedactionResult.Keep(Minos.DecisionContent state) -> Minos.Recording.RedactionResult!
+static Minos.Recording.DecisionRecordFile.WriteErasureLine(System.Buffers.IBufferWriter<byte>! destination, string? erasureKey, string? decisionId) -> void
+static Minos.Recording.DecisionRecordFile.WriteOutcomeLine(System.Buffers.IBufferWriter<byte>! destination, string! decisionId, Minos.Recording.DecisionOutcome! outcome) -> void
+static Minos.Recording.DecisionRecordFile.WriteRecordLine(System.Buffers.IBufferWriter<byte>! destination, Minos.Recording.DecisionRecord! record) -> void
+Minos.Recording.RecordedAnswer
+Minos.Recording.RecordedAnswer.ChosenIndex.get -> int
+Minos.Recording.RecordedAnswer.Confidence.get -> double
+Minos.Recording.RecordedAnswer.Equals(Minos.Recording.RecordedAnswer other) -> bool
+Minos.Recording.RecordedAnswer.Expected.get -> double
+Minos.Recording.RecordedAnswer.Key.get -> string!
+Minos.Recording.RecordedAnswer.Kind.get -> Minos.QuestionKind
+Minos.Recording.RecordedAnswer.Probabilities.get -> System.Collections.Generic.IReadOnlyList<double>!
+Minos.Recording.RecordedAnswer.Probability.get -> double
+Minos.Recording.RecordedAnswer.RecordedAnswer() -> void
+override Minos.Recording.RecordedAnswer.Equals(object? obj) -> bool
+override Minos.Recording.RecordedAnswer.GetHashCode() -> int
+static Minos.Recording.RecordedAnswer.operator !=(Minos.Recording.RecordedAnswer left, Minos.Recording.RecordedAnswer right) -> bool
+static Minos.Recording.RecordedAnswer.operator ==(Minos.Recording.RecordedAnswer left, Minos.Recording.RecordedAnswer right) -> bool

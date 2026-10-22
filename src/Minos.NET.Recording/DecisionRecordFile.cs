@@ -51,20 +51,88 @@ public static class DecisionRecordFile
     }
 
     /// <summary>
+    /// Writes a record as one line of the file format, the bytes <see cref="JsonlDecisionRecordSink"/> writes for it,
+    /// without the line feed that ends it in a file. A sink of your own can store these bytes and export a file later:
+    /// end each line with <c>\n</c>, in the order the sink received them, and <see cref="ReadAsync(string, CancellationToken)"/>
+    /// reads it.
+    /// </summary>
+    /// <param name="destination">Receives the line's UTF-8 bytes.</param>
+    /// <param name="record">The record.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="destination"/> or <paramref name="record"/> is <see langword="null"/>.</exception>
+    public static void WriteRecordLine(IBufferWriter<byte> destination, DecisionRecord record)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        ArgumentNullException.ThrowIfNull(record);
+        RecordLine.WriteTo(destination, w => RecordLine.Write(w, record));
+    }
+
+    /// <summary>
+    /// Writes an outcome of a decision as one line of the file format, the bytes <see cref="JsonlDecisionRecordSink"/>
+    /// writes for it, without the line feed that ends it in a file.
+    /// </summary>
+    /// <param name="destination">Receives the line's UTF-8 bytes.</param>
+    /// <param name="decisionId">The id of the decision the outcome belongs to.</param>
+    /// <param name="outcome">The outcome.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="destination"/>, <paramref name="decisionId"/> or <paramref name="outcome"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="decisionId"/> is empty.</exception>
+    public static void WriteOutcomeLine(IBufferWriter<byte> destination, string decisionId, DecisionOutcome outcome)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        ArgumentException.ThrowIfNullOrEmpty(decisionId);
+        ArgumentNullException.ThrowIfNull(outcome);
+        RecordLine.WriteTo(destination, w => RecordLine.WriteOutcome(w, decisionId, outcome));
+    }
+
+    /// <summary>
+    /// Writes an erasure as one line of the file format, the bytes <see cref="JsonlDecisionRecordSink"/> writes for it,
+    /// without the line feed that ends it in a file. Give exactly one of <paramref name="erasureKey"/> and
+    /// <paramref name="decisionId"/>.
+    /// </summary>
+    /// <param name="destination">Receives the line's UTF-8 bytes.</param>
+    /// <param name="erasureKey">The key of the records to erase, or <see langword="null"/> to erase by id.</param>
+    /// <param name="decisionId">The id of the decision to erase, or <see langword="null"/> to erase by key.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="destination"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">Both or neither of <paramref name="erasureKey"/> and <paramref name="decisionId"/> are given, or the one given is empty.</exception>
+    public static void WriteErasureLine(IBufferWriter<byte> destination, string? erasureKey, string? decisionId)
+    {
+        ArgumentNullException.ThrowIfNull(destination);
+        if ((erasureKey is null) == (decisionId is null))
+        {
+            throw new ArgumentException("An erasure line has exactly one of an erasure key and a decision id.", nameof(erasureKey));
+        }
+
+        if (erasureKey is not null)
+        {
+            ArgumentException.ThrowIfNullOrEmpty(erasureKey);
+        }
+        else
+        {
+            ArgumentException.ThrowIfNullOrEmpty(decisionId);
+        }
+
+        RecordLine.WriteTo(destination, w => RecordLine.WriteErasure(w, erasureKey, decisionId));
+    }
+
+    /// <summary>
     /// Rewrites a file with only what a read keeps: the surviving records, each followed by its outcomes, copied as the
     /// bytes they are in the file, so every member of a record is kept, including the ones this reader does not know.
     /// Erasure lines, erased records, replaced attempts, ignored outcomes and lines that cannot be read are gone.
     /// A file this reader cannot fully read is left as it is, byte for byte, and a problem says why: it holds a line in a
-    /// format version this reader does not know, a line of a kind it does not know, or an outcome of a type it does not
-    /// know that no record explains. Such a line could hold data that an erasure is meant to remove, and dropping the
+    /// format version this reader does not know, a line of a kind it does not know, a record with an error kind or an
+    /// answer kind it does not know, or an outcome of a type it does not know that no record explains. Such a line could hold data that an erasure is meant to remove, and dropping the
     /// erasure would keep that data, so nothing is rewritten. The new file replaces the old one in a single step, after it
     /// was flushed to disk, and keeps the old file's permissions: the mode on Unix, the access list and attributes on
-    /// Windows. Do not compact a file that a recorder is still writing to: lines appended while it runs can be lost.
+    /// Windows. The compaction needs the file to itself: while any sink or read has the file open, it throws
+    /// <see cref="IOException"/> and leaves the file as it is. Dispose the recorder and the sink, compact, then open them
+    /// again.
     /// </summary>
     /// <param name="path">The path of the file.</param>
     /// <param name="cancellationToken">Cancels the compaction before the file is replaced.</param>
     /// <returns>The problems that were found in the file; a line that is damaged is not in the compacted file.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="path"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="path"/> is empty.</exception>
     /// <exception cref="FileNotFoundException">The file does not exist.</exception>
+    /// <exception cref="IOException">A sink or a read has the file open, or the file could not be read or replaced.</exception>
     public static ValueTask<DecisionRecordFileProblems> CompactAsync(string path, CancellationToken cancellationToken)
         => CompactAsync(path, null, cancellationToken);
 
@@ -79,7 +147,7 @@ public static class DecisionRecordFile
         DecisionRecordFileProblems problems;
         try
         {
-            using (var handle = RecordFileReader.Open(path))
+            using (var handle = RecordFileReader.OpenExclusive(path))
             {
                 var scan = await RecordFileReader.ScanAsync(handle, cancellationToken).ConfigureAwait(false);
                 var found = new List<DecisionRecordFileProblem>(scan.Problems);
@@ -97,20 +165,22 @@ public static class DecisionRecordFile
                 {
                     await CopyAsync(handle, scan, path, temporary, afterTemporaryCreated, cancellationToken).ConfigureAwait(false);
                     replace = true;
+                    if (!OperatingSystem.IsWindows())
+                    {
+                        // Still holding the lock: a sink that opens the file meanwhile fails instead of appending to the
+                        // file that is about to be replaced.
+                        File.Move(temporary, path, overwrite: true);
+                        replace = false;
+                    }
                 }
             }
 
             if (replace)
             {
-                if (OperatingSystem.IsWindows())
-                {
-                    // Keeps the access list and the attributes of the file it replaces.
-                    File.Replace(temporary, path, destinationBackupFileName: null);
-                }
-                else
-                {
-                    File.Move(temporary, path, overwrite: true);
-                }
+                // Keeps the access list and the attributes of the file it replaces. The handle is closed first, because
+                // Windows does not replace a file that is open. A sink that opens the file in between does not share
+                // deletion, so the replace fails with an IOException and the temporary file is removed.
+                File.Replace(temporary, path, destinationBackupFileName: null);
             }
         }
         catch

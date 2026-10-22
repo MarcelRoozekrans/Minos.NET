@@ -159,16 +159,21 @@ internal static class RecordLine
         w.WriteEndObject();
     }
 
+    /// <summary>Writes one line, without its line feed, to <paramref name="destination"/>.</summary>
+    /// <param name="destination">Receives the line's bytes.</param>
+    /// <param name="write">Writes the line's JSON.</param>
+    internal static void WriteTo(IBufferWriter<byte> destination, Action<Utf8JsonWriter> write)
+    {
+        using var writer = new Utf8JsonWriter(destination, WriterOptions);
+        write(writer);
+    }
+
     /// <summary>Appends one line, with its line feed, to <paramref name="buffer"/>.</summary>
     /// <param name="buffer">The buffer; its written bytes are the line.</param>
     /// <param name="write">Writes the line's JSON.</param>
-    internal static void AppendLine(ArrayBufferWriter<byte> buffer, Action<Utf8JsonWriter> write)
+    internal static void AppendLine(IBufferWriter<byte> buffer, Action<Utf8JsonWriter> write)
     {
-        using (var writer = new Utf8JsonWriter(buffer, WriterOptions))
-        {
-            write(writer);
-        }
-
+        WriteTo(buffer, write);
         buffer.GetSpan(1)[0] = (byte)'\n';
         buffer.Advance(1);
     }

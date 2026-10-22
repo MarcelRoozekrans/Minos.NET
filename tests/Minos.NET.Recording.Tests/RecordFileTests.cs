@@ -337,6 +337,54 @@ public sealed class RecordFileTests : IDisposable
     }
 
     [Fact]
+    public async Task Compact_Throws_WhileASinkHasTheFileOpen_AndSucceedsOnceItIsClosed()
+    {
+        var path = PathOf();
+        var bytes = Lines(Rec(Record("d-1", erasureKey: "customer-7")), Erase("customer-7", null), Rec(Record("d-2", erasureKey: "customer-8")));
+        await File.WriteAllBytesAsync(path, bytes, CancellationToken.None);
+
+        var sink = new JsonlDecisionRecordSink(path);
+        await using (sink)
+        {
+            await Assert.ThrowsAsync<IOException>(async () => await DecisionRecordFile.CompactAsync(path, CancellationToken.None));
+
+            Assert.Equal(bytes, await File.ReadAllBytesAsync(path, CancellationToken.None));
+            Assert.Empty(Directory.GetFiles(_directory, "*.tmp"));
+
+            // The sink still writes to the file a reader sees.
+            await sink.WriteAsync(Record("d-3", erasureKey: "customer-9"), CancellationToken.None);
+        }
+
+        var problems = await DecisionRecordFile.CompactAsync(path, CancellationToken.None);
+
+        Assert.Empty(problems);
+        Assert.Equal(["d-2", "d-3"], (await DecisionsAsync(path)).Select(d => d.Record.DecisionId));
+        var text = await File.ReadAllTextAsync(path, CancellationToken.None);
+        Assert.DoesNotContain("\"kind\":\"erasure\"", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ASinkOrARead_CannotOpenTheFile_WhileItIsCompacted()
+    {
+        var path = PathOf();
+        await File.WriteAllBytesAsync(path, Lines(Rec(Record("d-1")), Erase("customer-7", null), Rec(Record("d-2", erasureKey: "customer-8"))), CancellationToken.None);
+        Exception? sinkFailure = null, readFailure = null;
+
+        await DecisionRecordFile.CompactAsync(
+            path,
+            async _ =>
+            {
+                sinkFailure = Xunit.Record.Exception(() => new JsonlDecisionRecordSink(path));
+                readFailure = await Xunit.Record.ExceptionAsync(() => DecisionsAsync(path));
+            },
+            CancellationToken.None);
+
+        Assert.IsAssignableFrom<IOException>(sinkFailure);
+        Assert.IsAssignableFrom<IOException>(readFailure);
+        Assert.Equal(["d-2"], (await DecisionsAsync(path)).Select(d => d.Record.DecisionId));
+    }
+
+    [Fact]
     public async Task Compact_LeavesAFileWithAnUnknownVersion_AsItIs()
     {
         var path = PathOf();
@@ -455,6 +503,49 @@ public sealed class RecordFileTests : IDisposable
         Assert.Equal(original, await File.ReadAllBytesAsync(path, CancellationToken.None));
         Assert.Contains(compacted, p => p.Line == 2 && p.Message.Contains("not compacted", StringComparison.Ordinal));
         Assert.Empty(Directory.GetFiles(_directory, "*.tmp"));
+    }
+
+    [Theory]
+    [InlineData("errorKind")]
+    [InlineData("answerKind")]
+    public async Task ARecordWithAnErrorKindOrAnAnswerKindThisReaderDoesNotKnow_IsReported_AndLeavesTheFileUntouched(string what)
+    {
+        var record = RecordText("d-2");
+        var unknown = string.Equals(what, "errorKind", StringComparison.Ordinal)
+            ? record[..^1] + ""","errorKind":"Overheated"}"""
+            : record.Replace("\"kind\":\"noul\"", "\"kind\":\"ranking\"", StringComparison.Ordinal);
+        Assert.NotEqual(record, unknown);
+        var path = PathOf();
+        var original = Text(RecordText("d-1"), unknown, Json(Erase("nobody", null)));
+        await File.WriteAllBytesAsync(path, original, CancellationToken.None);
+
+        var (decisions, problems) = await ReadAsync(original);
+
+        Assert.Equal(["d-1"], decisions.Select(d => d.Record.DecisionId));
+        var problem = Assert.Single(problems);
+        Assert.Equal(2, problem.Line);
+        Assert.Contains("does not know", problem.Message, StringComparison.Ordinal);
+
+        var compacted = await DecisionRecordFile.CompactAsync(path, CancellationToken.None);
+
+        Assert.Equal(original, await File.ReadAllBytesAsync(path, CancellationToken.None));
+        Assert.Contains(compacted, p => p.Line == 2 && p.Message.Contains("not compacted", StringComparison.Ordinal));
+        Assert.Empty(Directory.GetFiles(_directory, "*.tmp"));
+    }
+
+    [Fact]
+    public async Task ARecordWithAnAnswerThatIsDamaged_IsStillDropped_ByACompaction()
+    {
+        var record = RecordText("d-2");
+        var damaged = record.Replace("\"kind\":\"choice\",\"chosenIndex\":0", "\"kind\":\"choice\"", StringComparison.Ordinal);
+        Assert.NotEqual(record, damaged);
+        var path = PathOf();
+        await File.WriteAllBytesAsync(path, Text(RecordText("d-1"), damaged), CancellationToken.None);
+
+        var problems = await DecisionRecordFile.CompactAsync(path, CancellationToken.None);
+
+        Assert.Equal(2, Assert.Single(problems).Line);
+        Assert.Equal(RecordText("d-1") + "\n", await File.ReadAllTextAsync(path, CancellationToken.None));
     }
 
     [Fact]

@@ -34,8 +34,9 @@ internal static class RecordFileReader
     {
         internal required List<Entry> Decisions { get; init; }
 
-        // Lines of this version that this reader does not model: a kind it does not know, or an outcome of a type it does not
-        // know that belongs to no record. A compaction keeps them as they are.
+        // Lines of this version that this reader does not model: a kind it does not know, a record with an error kind or an
+        // answer kind it does not know, or an outcome of a type it does not know that belongs to no record. A compaction
+        // refuses a file that has any.
         internal required List<LineSpan> Loose { get; init; }
 
         internal required List<DecisionRecordFileProblem> Problems { get; init; }
@@ -46,6 +47,12 @@ internal static class RecordFileReader
 
     internal static SafeFileHandle Open(string path)
         => File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, FileOptions.Asynchronous | FileOptions.SequentialScan);
+
+    // For a compaction: no one else may have the file open. A sink that appended while the file was rewritten would
+    // write to the replaced file, and its lines would be lost. On Unix this takes an exclusive advisory lock, which a
+    // sink's open handle holds shared, so the open fails with an IOException while a sink has the file.
+    internal static SafeFileHandle OpenExclusive(string path)
+        => File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.None, FileOptions.Asynchronous | FileOptions.SequentialScan);
 
     internal static async ValueTask<byte[]> ReadSpanAsync(SafeFileHandle handle, LineSpan span, CancellationToken cancellationToken)
     {
@@ -67,7 +74,7 @@ internal static class RecordFileReader
 
     // The scan parsed these lines once already, so a failure here means the file changed between the two passes.
     internal static DecisionRecord ParseRecord(byte[] line)
-        => ParseLine(line) is { } dto && RecordLineConverter.TryToRecord(dto, out var record, out _)
+        => ParseLine(line) is { } dto && RecordLineConverter.TryToRecord(dto, out var record, out _, out _)
             ? record
             : throw new IOException("The file changed while it was read.");
 
@@ -299,9 +306,15 @@ internal static class RecordFileReader
 
         private void AddRecord(LineDto dto, LineSpan span)
         {
-            if (!RecordLineConverter.TryToRecord(dto, out var record, out var message))
+            if (!RecordLineConverter.TryToRecord(dto, out var record, out var message, out var unmodelled))
             {
                 Problem(message);
+                if (unmodelled)
+                {
+                    // Made by a later addition to version 1, perhaps: reported, and a compaction leaves the file as it is.
+                    _loose.Add(span with { Known = false });
+                }
+
                 return;
             }
 

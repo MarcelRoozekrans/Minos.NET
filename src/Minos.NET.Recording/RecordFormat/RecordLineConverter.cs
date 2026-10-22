@@ -7,10 +7,13 @@ namespace Minos.Recording.RecordFormat;
 // fixed message: it never quotes the line, which may hold state, or a decision id.
 internal static class RecordLineConverter
 {
-    internal static bool TryToRecord(LineDto dto, [NotNullWhen(true)] out DecisionRecord? record, out string message)
+    // A line that fails because it holds an error kind or an answer kind this reader does not know is unmodelled, not
+    // damaged: a later addition to version 1 may have made it, so a compaction must not drop it.
+    internal static bool TryToRecord(LineDto dto, [NotNullWhen(true)] out DecisionRecord? record, out string message, out bool unmodelled)
     {
         record = null;
         message = string.Empty;
+        unmodelled = false;
         if (string.IsNullOrEmpty(dto.DecisionId) || string.IsNullOrEmpty(dto.Provider) || dto.Started is not { } started)
         {
             message = "The record line needs a 'decisionId', a 'provider' and a 'started'.";
@@ -28,7 +31,8 @@ internal static class RecordLineConverter
         {
             if (!Enum.TryParse<DecisionErrorKind>(errorName, ignoreCase: false, out var parsed) || !Enum.IsDefined(parsed))
             {
-                message = "The record line's 'errorKind' is not a known error kind.";
+                message = "The record line's 'errorKind' is an error kind this reader does not know.";
+                unmodelled = true;
                 return false;
             }
 
@@ -51,6 +55,13 @@ internal static class RecordLineConverter
         var answers = new List<RecordedAnswer>(dto.Answers?.Count ?? 0);
         foreach (var answer in dto.Answers ?? [])
         {
+            if (answer.Kind is not (null or "noul" or "choice" or "score"))
+            {
+                message = "The record line has an answer of a kind this reader does not know.";
+                unmodelled = true;
+                return false;
+            }
+
             if (!TryToAnswer(answer, out var recorded))
             {
                 message = "The record line has an answer that is not valid.";

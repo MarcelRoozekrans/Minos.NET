@@ -184,10 +184,9 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
         }
     }
 
-    // Cancels the sink's call and takes what is left, so the writer takes nothing more.
+    // Takes what is left, so the writer takes nothing more, then cancels the sink's call.
     private void GiveUp()
     {
-        _stop.Cancel();
         var lost = new List<WorkItem>();
         lock (_readGate)
         {
@@ -217,6 +216,16 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
             {
                 Fail(completion, RecordingException.Lost());
             }
+        }
+
+        // Only now: the cancellation runs the sink's callbacks, and one that throws must not leave the loss unsettled.
+        try
+        {
+            _stop.Cancel();
+        }
+        catch (AggregateException ex)
+        {
+            LogSinkCallFailed("cancel", ex.InnerExceptions[0]);
         }
 
         int records = 0, outcomes = 0, erasures = 0, flushes = 0;

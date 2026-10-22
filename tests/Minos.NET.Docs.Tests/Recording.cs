@@ -113,7 +113,8 @@ public static class TicketOutcomes
 #region Recording_Erasure
 public static class CustomerErasure
 {
-    // Returns whether the sink confirmed the erasure. When it did not, keep the request and try again later.
+    // Returns whether the sink confirmed the erasure. When it did not, because the sink failed or the recorder is
+    // disposed, as it is while the app shuts down, keep the request and try again later.
     public static async Task<bool> ForgetAsync(IDecisionRecorder recorder, string customerId, CancellationToken cancellationToken)
     {
         try
@@ -121,7 +122,7 @@ public static class CustomerErasure
             await recorder.EraseAsync(customerId, cancellationToken);
             return true;
         }
-        catch (RecordingException)
+        catch (Exception ex) when (ex is RecordingException or ObjectDisposedException)
         {
             return false;
         }
@@ -166,7 +167,8 @@ public static class RecordFileReading
         return decisions;
     }
 
-    // Rewrites the file without erased records. Run it when no recorder writes to the file.
+    // Rewrites the file without erased records. Run it once the recorder and the sink on the file are disposed: while
+    // a sink has the file open, it throws IOException and leaves the file as it is.
     public static async Task<int> CompactAsync(string path, CancellationToken cancellationToken)
     {
         var problems = await DecisionRecordFile.CompactAsync(path, cancellationToken);
@@ -189,6 +191,61 @@ public static class RecordingInTests
         await recorder.FlushAsync(cancellationToken);
 
         return sink.Records.Single();
+    }
+}
+#endregion
+
+#region Recording_CustomSink
+// A sink over a store of your own, here a list that stands in for a table. Each row holds the line the file format
+// has for it, so the store can be exported as a file that DecisionRecordFile reads.
+public sealed class LineStoreSink : IDecisionRecordSink
+{
+    private readonly List<(string DecisionId, string? ErasureKey, byte[] Line)> _rows = [];
+
+    public ValueTask WriteAsync(DecisionRecord record, CancellationToken cancellationToken)
+        => StoreAsync(record.DecisionId, record.ErasureKey, buffer => DecisionRecordFile.WriteRecordLine(buffer, record));
+
+    public ValueTask AddOutcomeAsync(string decisionId, DecisionOutcome outcome, CancellationToken cancellationToken)
+        => StoreAsync(decisionId, null, buffer => DecisionRecordFile.WriteOutcomeLine(buffer, decisionId, outcome));
+
+    // An erasure deletes for real: every row of each decision recorded with the key so far.
+    public ValueTask EraseAsync(string erasureKey, CancellationToken cancellationToken)
+    {
+        var erased = _rows
+            .Where(row => string.Equals(row.ErasureKey, erasureKey, StringComparison.Ordinal))
+            .Select(row => row.DecisionId)
+            .ToHashSet(StringComparer.Ordinal);
+        _rows.RemoveAll(row => erased.Contains(row.DecisionId));
+        return ValueTask.CompletedTask;
+    }
+
+    public ValueTask EraseDecisionAsync(string decisionId, CancellationToken cancellationToken)
+    {
+        _rows.RemoveAll(row => string.Equals(row.DecisionId, decisionId, StringComparison.Ordinal));
+        return ValueTask.CompletedTask;
+    }
+
+    // Writes the rows in the order they arrived, each line ended with a line feed. Export once no recorder writes to it.
+    public async Task ExportAsync(string path, CancellationToken cancellationToken)
+    {
+        var file = File.Create(path);
+        await using (file)
+        {
+            foreach (var row in _rows)
+            {
+                await file.WriteAsync(row.Line, cancellationToken);
+                await file.WriteAsync("\n"u8.ToArray(), cancellationToken);
+            }
+        }
+    }
+
+    private ValueTask StoreAsync(string decisionId, string? erasureKey, Action<System.Buffers.ArrayBufferWriter<byte>> write)
+    {
+        // The writers write one line, without its line feed.
+        var buffer = new System.Buffers.ArrayBufferWriter<byte>();
+        write(buffer);
+        _rows.Add((decisionId, erasureKey, buffer.WrittenSpan.ToArray()));
+        return ValueTask.CompletedTask;
     }
 }
 #endregion

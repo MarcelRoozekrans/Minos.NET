@@ -137,6 +137,7 @@ internal static class Program
         await RecordingChecks.RecordsADecisionToAFileAndReadsItBack().ConfigureAwait(false);
         await RecordingChecks.TheStageRecorderAndSinksWorkThroughTheirInterfaces().ConfigureAwait(false);
         await RecordingChecks.ValuesProblemsAndExceptions().ConfigureAwait(false);
+        await RecordingChecks.TheLineWritersMakeAFileTheReaderReads().ConfigureAwait(false);
 
         await AllocationChecks.AnswerSlotAccessors().ConfigureAwait(false);
         await AllocationChecks.GeneratedCreate().ConfigureAwait(false);

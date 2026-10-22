@@ -356,6 +356,71 @@ public sealed class DecisionRecorderTests
     }
 
     [Fact]
+    public async Task Dispose_SettlesWhatWasLost_WhenTheSinksCancellationCallbackThrows()
+    {
+        using var metrics = new MetricCapture();
+        var time = new FakeTimeProvider();
+        var sink = new ThrowingCancellationSink();
+        var (recorder, logs, factory) = Create(sink, new RecordingOptions { FlushTimeout = TimeSpan.FromSeconds(1) }, time);
+        try
+        {
+            using (factory)
+            {
+                var first = recorder.EraseAsync("a").AsTask();
+                await sink.Entered.Task.WaitAsync(Bound);
+                var second = recorder.EraseAsync("b").AsTask();
+                recorder.TryEnqueue(Record("d-1"));
+
+                var dispose = recorder.DisposeAsync().AsTask();
+                time.Advance(TimeSpan.FromSeconds(1));
+                await dispose.WaitAsync(Bound);
+
+                await Assert.ThrowsAsync<RecordingException>(() => first.WaitAsync(Bound));
+                await Assert.ThrowsAsync<RecordingException>(() => second.WaitAsync(Bound));
+                Assert.Equal(0, metrics.QueueLength());
+            }
+
+            AssertTimedOut(logs, records: 1, outcomes: 0, erasures: 2, flushes: 0);
+            Assert.Equal(1, metrics.Sum("minos.recording.records", "dropped_flush_timeout"));
+
+            // The failed cancellation is a sink call that failed, logged with its exception's type name only.
+            var failed = Assert.Single(logs.GetSnapshot(), record => record.Id.Id == 1010);
+            Assert.Equal("cancel", Field(failed, "Operation"));
+            Assert.Equal(nameof(InvalidOperationException), Field(failed, "ExceptionType"));
+            Assert.DoesNotContain("SENTINEL", failed.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            sink.Gate.TrySetResult();
+            await recorder.Writer.WaitAsync(Bound);
+        }
+    }
+
+    // An erasure whose token registration throws when it is cancelled, as a driver's cancel can, and that ignores the
+    // cancellation until its gate opens.
+    private sealed class ThrowingCancellationSink : IDecisionRecordSink
+    {
+        public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource Gate { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public ValueTask WriteAsync(DecisionRecord record, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+
+        public ValueTask AddOutcomeAsync(string decisionId, DecisionOutcome outcome, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+
+        public async ValueTask EraseAsync(string erasureKey, CancellationToken cancellationToken)
+        {
+            using (cancellationToken.Register(static () => throw new InvalidOperationException("SENTINEL driver cancel failed")))
+            {
+                Entered.TrySetResult();
+                await Gate.Task;
+            }
+        }
+
+        public ValueTask EraseDecisionAsync(string decisionId, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+    }
+
+    [Fact]
     public async Task Calls_AfterDispose_Throw_AndTryEnqueueCountsTheRecord()
     {
         using var metrics = new MetricCapture();

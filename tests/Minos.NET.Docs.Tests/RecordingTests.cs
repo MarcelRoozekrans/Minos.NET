@@ -75,6 +75,38 @@ public sealed class RecordingTests : IDisposable
     }
 
     [Fact]
+    public async Task AnErasureOnADisposedRecorder_IsReportedAsNotConfirmed()
+    {
+        var recorder = new DecisionRecorder(new InMemoryDecisionRecordSink());
+        await recorder.DisposeAsync();
+
+        Assert.False(await CustomerErasure.ForgetAsync(recorder, "customer-7", CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task TheLineStoreSink_DeletesOnErasure_AndExportsAFileTheReaderReads()
+    {
+        var sink = new LineStoreSink();
+        await using (var recorder = new DecisionRecorder(sink))
+        {
+            using var client = new TriageClient().AsBuilder().UseRecording(recorder).Build();
+            var (_, kept) = await TicketDecisions.RouteAsync(client, "customer-7", "The app crashes when I pay.", CancellationToken.None);
+            _ = await TicketDecisions.RouteAsync(client, "customer-8", "Refund my invoice.", CancellationToken.None);
+            await TicketOutcomes.ComplainedAsync(recorder, kept!, CancellationToken.None);
+            Assert.True(await CustomerErasure.ForgetAsync(recorder, "customer-8", CancellationToken.None));
+        }
+
+        await sink.ExportAsync(RecordFile, CancellationToken.None);
+
+        // The erased customer's record is gone from the store itself, not only from what a read keeps.
+        Assert.DoesNotContain("customer-8", await File.ReadAllTextAsync(RecordFile), StringComparison.Ordinal);
+        Assert.DoesNotContain("\"kind\":\"erasure\"", await File.ReadAllTextAsync(RecordFile), StringComparison.Ordinal);
+        var decision = Assert.Single(await RecordFileReading.ReadAsync(RecordFile, CancellationToken.None));
+        Assert.Equal("customer-7", decision.Record.ErasureKey);
+        Assert.IsType<SignalOutcome>(Assert.Single(decision.Outcomes));
+    }
+
+    [Fact]
     public async Task TheRedactor_MasksAddressesInText_AndKeepsNoStructuredState()
     {
         var sink = new InMemoryDecisionRecordSink();

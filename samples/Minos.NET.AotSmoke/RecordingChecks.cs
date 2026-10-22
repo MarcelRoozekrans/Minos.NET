@@ -1,3 +1,4 @@
+using System.Buffers;
 using Minos.Recording;
 
 namespace Minos.AotSmoke;
@@ -168,7 +169,6 @@ internal static class RecordingChecks
     [Covers("static Minos.Recording.ConfirmedAnswer.ForScore(int level) -> Minos.Recording.ConfirmedAnswer")]
     [Covers("Minos.Recording.RecordedAnswer.RecordedAnswer() -> void")]
     [Covers("Minos.Recording.RecordedAnswer.Equals(Minos.Recording.RecordedAnswer other) -> bool")]
-    [Covers("Minos.Recording.RecordedAnswer.RecordedAnswer(string! Key, Minos.QuestionKind Kind, int ChosenIndex, double Probability, double Expected, double Confidence, System.Collections.Generic.IReadOnlyList<double>! Probabilities) -> void")]
     [Covers("Minos.Recording.DecisionRecordFileProblem.DecisionRecordFileProblem() -> void")]
     [Covers("Minos.Recording.DecisionRecordFileProblem.DecisionRecordFileProblem(int Line, string! Message) -> void")]
     [Covers("Minos.Recording.DecisionRecordFileProblems.GetEnumerator() -> System.Collections.Generic.IEnumerator<Minos.Recording.DecisionRecordFileProblem>!")]
@@ -179,7 +179,9 @@ internal static class RecordingChecks
     {
         var noul = ConfirmedAnswer.ForNoul(true);
         var score = ConfirmedAnswer.ForScore(2);
-        var answer = new RecordedAnswer("team", QuestionKind.Choice, 1, 0, 0, 0.7, [0.3, 0.7]);
+        // Only the library makes a recorded answer: take one from a record.
+        var recorded = await RecordOneAsync().ConfigureAwait(false);
+        var answer = recorded.Answers[1];
         var blankAnswer = new RecordedAnswer();
         var problem = new DecisionRecordFileProblem(3, "a message");
         var blankProblem = new DecisionRecordFileProblem();
@@ -189,9 +191,10 @@ internal static class RecordingChecks
                 && !noul.Equals(score)
                 && score.ScoreLevel == 2
                 && new ConfirmedAnswer().Equals(default)
-                && answer.Equals(new RecordedAnswer("team", QuestionKind.Choice, 1, 0, 0, 0.7, [0.3, 0.7]))
+                && answer.Equals(recorded.Answers[1])
+                && answer.Kind == QuestionKind.Choice && answer.Probabilities.Count > 0
                 && !answer.Equals(blankAnswer)
-                && blankAnswer.Key is null
+                && blankAnswer.Key is null && blankAnswer.Probabilities.Count == 0
                 && problem.Line == 3 && blankProblem.Line == 0,
             "confirmed answers, recorded answers and file problems are values under Native AOT");
 
@@ -234,6 +237,45 @@ internal static class RecordingChecks
         }
 
         Program.Check(nested, "a recording scope cannot nest under Native AOT");
+    }
+
+    [Covers("static Minos.Recording.DecisionRecordFile.WriteRecordLine(System.Buffers.IBufferWriter<byte>! destination, Minos.Recording.DecisionRecord! record) -> void")]
+    [Covers("static Minos.Recording.DecisionRecordFile.WriteOutcomeLine(System.Buffers.IBufferWriter<byte>! destination, string! decisionId, Minos.Recording.DecisionOutcome! outcome) -> void")]
+    [Covers("static Minos.Recording.DecisionRecordFile.WriteErasureLine(System.Buffers.IBufferWriter<byte>! destination, string? erasureKey, string? decisionId) -> void")]
+    public static async Task TheLineWritersMakeAFileTheReaderReads()
+    {
+        // A sink of its own stores the lines and exports them, each ended with a line feed.
+        var record = await RecordOneAsync().ConfigureAwait(false);
+        var buffer = new ArrayBufferWriter<byte>();
+        DecisionRecordFile.WriteRecordLine(buffer, record);
+        buffer.Write("\n"u8);
+        DecisionRecordFile.WriteOutcomeLine(buffer, record.DecisionId, DecisionOutcome.Signal("mailer", At, "opened"));
+        buffer.Write("\n"u8);
+        DecisionRecordFile.WriteRecordLine(buffer, record);
+        buffer.Write("\n"u8);
+        DecisionRecordFile.WriteErasureLine(buffer, "nobody", null);
+        buffer.Write("\n"u8);
+        var path = Path.Combine(Path.GetTempPath(), "minos-aot-smoke-" + Guid.NewGuid().ToString("N") + ".jsonl");
+        List<RecordedDecision> kept;
+        List<RecordedDecision> erased;
+        try
+        {
+            await File.WriteAllBytesAsync(path, buffer.WrittenMemory.ToArray()).ConfigureAwait(false);
+            kept = await ReadAllAsync(DecisionRecordFile.ReadAsync(path, CancellationToken.None)).ConfigureAwait(false);
+            buffer.ResetWrittenCount();
+            DecisionRecordFile.WriteErasureLine(buffer, null, record.DecisionId);
+            buffer.Write("\n"u8);
+            await File.AppendAllTextAsync(path, System.Text.Encoding.UTF8.GetString(buffer.WrittenSpan)).ConfigureAwait(false);
+            erased = await ReadAllAsync(DecisionRecordFile.ReadAsync(path, CancellationToken.None)).ConfigureAwait(false);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+
+        Program.Check(
+            kept is [{ Outcomes.Count: 1 }] && string.Equals(kept[0].Record.DecisionId, record.DecisionId, StringComparison.Ordinal) && erased.Count == 0,
+            "the public line writers make a file the reader reads, and their erasure line erases, under Native AOT");
     }
 
     // Adds an outcome and erases through the IDecisionRecorder interface; returns the outcomes the record had and the

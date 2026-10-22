@@ -84,8 +84,9 @@ public static class RecordedApp
 - **Outermost means one record per decision.** A cache hit is recorded, with `IsCached` set, and a call the retry stage
   retried is one record with its final result. A `SystemOneDecisionClient` with its standard pipeline already retries
   inside, so any stage you add to it is outside its retries.
-- **Inside a retry stage,** if you put it there anyway, each attempt is recorded under the same decision id with its
-  attempt number, the request's `RetryAttempt`. A reader of the file keeps the record with the highest attempt.
+- **With a scope, inside a retry stage,** if you put it there anyway, each attempt is recorded under the scope's
+  decision id with its attempt number, the request's `RetryAttempt`, and a reader of the file keeps the record with the
+  highest attempt. Without a scope, each attempt is a record with an id of its own.
 - **Every pipeline built with one recorder shares it,** its queue and its one writer, so a sink is never called by two
   writers at once.
 - **You own the recorder and the sink.** Disposing a pipeline never disposes the recorder, and the recorder never
@@ -218,7 +219,8 @@ Both erase the outcomes too.
 ```cs
 public static class CustomerErasure
 {
-    // Returns whether the sink confirmed the erasure. When it did not, keep the request and try again later.
+    // Returns whether the sink confirmed the erasure. When it did not, because the sink failed or the recorder is
+    // disposed, as it is while the app shuts down, keep the request and try again later.
     public static async Task<bool> ForgetAsync(IDecisionRecorder recorder, string customerId, CancellationToken cancellationToken)
     {
         try
@@ -226,7 +228,7 @@ public static class CustomerErasure
             await recorder.EraseAsync(customerId, cancellationToken);
             return true;
         }
-        catch (RecordingException)
+        catch (Exception ex) when (ex is RecordingException or ObjectDisposedException)
         {
             return false;
         }
@@ -238,17 +240,23 @@ public static class CustomerErasure
 - **An erasure completes after the sink has run it,** so a call that returns is a confirmed erasure. It erases what was
   queued before it, since it goes through the same queue as the records.
 - **It can fail.** When the sink throws, or the recorder is disposed before the sink ran it, the call throws
-  `RecordingException`. Its message holds no key or id, and the sink's exception is its inner exception. Keep the
-  request and run it again.
+  `RecordingException`. Its message holds no key or id, and the sink's exception is its inner exception. Called on a
+  recorder that is already disposed, it throws `ObjectDisposedException`. Either way, keep the request and run it
+  again.
 - **It is never dropped.** When the queue is full, the erasure waits for space, up to your cancellation token.
-- **An erasure in a file is a line,** appended like any other. A reader applies it to the lines before it, so a record
-  written after it with the same key is a new decision and is kept. `DecisionRecordFile.CompactAsync` rewrites the file
-  without the erased records; see [the file format](#the-jsonl-format).
+- **The JSONL sink's erasure is a tombstone.** It appends an erasure line, forced to disk before the call returns. A
+  reader applies it to the lines before it, so a record written after it with the same key is a new decision and is
+  kept. The erased state stays in the file until `DecisionRecordFile.CompactAsync` rewrites the file without it, and the
+  compaction needs every sink on the file closed: dispose the recorder and the sink, compact, then open them again. See
+  [the file format](#the-jsonl-format).
+- **The JSONL and in-memory sinks are for development and tests.** A production sink, over your own store, deletes
+  for real; see [writing your own sink](#writing-your-own-sink).
 
 ## Redaction
 
-`RecordingOptions.Redact` decides what is kept of a decision's state. It runs after the call, on the caller's thread,
-before the record is queued, and only changes what is recorded: the provider already saw the state as you sent it.
+`RecordingOptions.Redact` decides what is kept of a decision's state. It runs after the call and before the call
+returns to the caller, so the state is redacted before the record is queued. It only changes what is recorded: the
+provider already saw the state as you sent it.
 
 <!-- snippet: Recording_Redaction -->
 ```cs
@@ -282,11 +290,13 @@ A sink is where the recorder hands its records, outcomes and erasures. Two ship 
 `IDecisionRecordSink` works:
 
 - **`JsonlDecisionRecordSink`** appends one line per record, outcome and erasure to a file, in [the format](#the-jsonl-format)
-  below. Each line reaches the operating system in one write before the call returns, but is not forced to disk. Other
-  processes can read the file while it is written. If the file's last line was cut, by a crash or a failed write, the
-  next line starts on a line of its own. On Unix, a file the sink creates has the mode `0600`, readable and writable by
-  its owner only, because records hold your state.
-- **`InMemoryDecisionRecordSink`** keeps records and their outcomes in memory, readable from `Records`, for tests:
+  below. Each line reaches the operating system in one write before the call returns; a record or an outcome line is
+  not forced to disk, and an erasure line is. Other processes can read the file while it is written. If the file's last
+  line was cut, by a crash or a failed write, the next line starts on a line of its own. On Unix, a file the sink
+  creates has the mode `0600`, readable and writable by its owner only, because records hold your state. An erasure
+  leaves the erased state in the file until it is compacted, so the sink is for development and tests.
+- **`InMemoryDecisionRecordSink`** keeps records and their outcomes in memory, readable from `Records`, for development
+  and tests:
 
 <!-- snippet: Recording_InMemory -->
 ```cs
@@ -308,6 +318,8 @@ public static class RecordingInTests
 ```
 <!-- endSnippet -->
 
+### Writing your own sink
+
 A sink of your own implements `WriteAsync`, `AddOutcomeAsync`, `EraseAsync` and `EraseDecisionAsync`, and keeps this
 contract:
 
@@ -317,8 +329,73 @@ contract:
   it or ignore it.
 - **A call that throws** is logged as event 1010 with the exception's type name only, counted, and skipped. The writer
   goes on to the next item. A failed erasure also fails the caller's `EraseAsync`.
-- **The cancellation token** is cancelled when the recorder's dispose runs out of time.
+- **The cancellation token** is cancelled only when the recorder's dispose runs out of time, never while the app runs.
+  Put a timeout on your own calls, such as a command timeout on a database call. A call that hangs stalls the queue:
+  new records are dropped as `dropped_full` once it is full, and erasures and flushes wait.
+- **An erasure deletes for real.** The call returning is the caller's confirmation, so delete the records and their
+  outcomes before it returns.
 - **The app disposes the sink,** after the recorder.
+
+To store a record in the file format, so the store can be exported as a file the reader reads, write its line with
+`DecisionRecordFile.WriteRecordLine`, an outcome's with `WriteOutcomeLine` and an erasure's with `WriteErasureLine`.
+Each writes one line, without the line feed that ends it in a file, as the bytes `JsonlDecisionRecordSink` writes:
+
+<!-- snippet: Recording_CustomSink -->
+```cs
+// A sink over a store of your own, here a list that stands in for a table. Each row holds the line the file format
+// has for it, so the store can be exported as a file that DecisionRecordFile reads.
+public sealed class LineStoreSink : IDecisionRecordSink
+{
+    private readonly List<(string DecisionId, string? ErasureKey, byte[] Line)> _rows = [];
+
+    public ValueTask WriteAsync(DecisionRecord record, CancellationToken cancellationToken)
+        => StoreAsync(record.DecisionId, record.ErasureKey, buffer => DecisionRecordFile.WriteRecordLine(buffer, record));
+
+    public ValueTask AddOutcomeAsync(string decisionId, DecisionOutcome outcome, CancellationToken cancellationToken)
+        => StoreAsync(decisionId, null, buffer => DecisionRecordFile.WriteOutcomeLine(buffer, decisionId, outcome));
+
+    // An erasure deletes for real: every row of each decision recorded with the key so far.
+    public ValueTask EraseAsync(string erasureKey, CancellationToken cancellationToken)
+    {
+        var erased = _rows
+            .Where(row => string.Equals(row.ErasureKey, erasureKey, StringComparison.Ordinal))
+            .Select(row => row.DecisionId)
+            .ToHashSet(StringComparer.Ordinal);
+        _rows.RemoveAll(row => erased.Contains(row.DecisionId));
+        return ValueTask.CompletedTask;
+    }
+
+    public ValueTask EraseDecisionAsync(string decisionId, CancellationToken cancellationToken)
+    {
+        _rows.RemoveAll(row => string.Equals(row.DecisionId, decisionId, StringComparison.Ordinal));
+        return ValueTask.CompletedTask;
+    }
+
+    // Writes the rows in the order they arrived, each line ended with a line feed. Export once no recorder writes to it.
+    public async Task ExportAsync(string path, CancellationToken cancellationToken)
+    {
+        var file = File.Create(path);
+        await using (file)
+        {
+            foreach (var row in _rows)
+            {
+                await file.WriteAsync(row.Line, cancellationToken);
+                await file.WriteAsync("\n"u8.ToArray(), cancellationToken);
+            }
+        }
+    }
+
+    private ValueTask StoreAsync(string decisionId, string? erasureKey, Action<System.Buffers.ArrayBufferWriter<byte>> write)
+    {
+        // The writers write one line, without its line feed.
+        var buffer = new System.Buffers.ArrayBufferWriter<byte>();
+        write(buffer);
+        _rows.Add((decisionId, erasureKey, buffer.WrittenSpan.ToArray()));
+        return ValueTask.CompletedTask;
+    }
+}
+```
+<!-- endSnippet -->
 
 ## The JSONL format
 
@@ -339,8 +416,9 @@ without breaking it.
   the inner client's `provider`, `endpoint` and `defaultModel`; the `requestedModel`, the `servedModel`, the
   `responseId` and the `upstreamProvider` when there are any; `usage`, with its tokens and `cost`; whether the answer
   was `cached`; the question set, in the same shape as a [dataset line's `questions`](datasets.md#questions); the
-  `state` after redaction, as text or JSON; and `imageCount` with `imageHashes`. On success it has `answers`: the
-  kind, the chosen index, the probability, the expected value, the confidence and the probabilities of each. On an error
+  `state` after redaction, as text or JSON; and `imageCount` with `imageHashes`. On success it has `answers`, each
+  with its `key`, its `kind` and its `confidence`: a Noul answer has its `probability`, a Choice answer its
+  `chosenIndex` and `probabilities`, and a Score answer its `chosenIndex`, `expected` and `probabilities`. On an error
   it has `errorKind` and nothing of the error's message, since a provider's message can quote the request. A refusal is
   the error kind `Refused`, with the refused question keys in `refusedKeys`.
 - **An outcome** has a `type`, `confirmed` or `signal`, its `source` and the time `at`. A confirmed outcome's answers are
@@ -373,7 +451,8 @@ public static class RecordFileReading
         return decisions;
     }
 
-    // Rewrites the file without erased records. Run it when no recorder writes to the file.
+    // Rewrites the file without erased records. Run it once the recorder and the sink on the file are disposed: while
+    // a sink has the file open, it throws IOException and leaves the file as it is.
     public static async Task<int> CompactAsync(string path, CancellationToken cancellationToken)
     {
         var problems = await DecisionRecordFile.CompactAsync(path, cancellationToken);
@@ -389,13 +468,15 @@ public static class RecordFileReading
 - **An outcome with no record before it** is ignored and reported.
 - **A bad line is a problem, not an exception.** The overload that takes a collection fills it with
   `DecisionRecordFileProblem` values, each with its line number and a message that never holds an id or any state, and
-  the lines around it are still read.
+  the lines around it are still read. A file that does not exist throws `FileNotFoundException`, from `ReadAsync` when
+  the first decision is requested and from `CompactAsync` when it is called.
 - **`CompactAsync`** rewrites the file with only what a read keeps, and returns its problems as
   `DecisionRecordFileProblems`. It copies each surviving line as it was, so members this reader does not know are kept.
   The new file replaces the old one in one step, after it was flushed to disk, and keeps the old file's permissions.
   **A file it cannot fully read is left untouched,** byte for byte, with a problem that says why: a line of a format
-  version or a kind it does not know could hold data that an erasure is meant to remove. Do not compact a file a
-  recorder is still writing to.
+  version or a kind it does not know, or a record with an error kind or an answer kind it does not know, could hold
+  data that an erasure is meant to remove. **It needs the file to itself:** while a sink or a read has the file open, it
+  throws `IOException` and leaves the file as it is. Dispose the recorder and the sink, compact, then open them again.
 
 ## The queue and what a crash loses
 
@@ -409,6 +490,8 @@ writer hands it to the sink later. That keeps the sink off the decision's path, 
 - **Dispose drains the queue for at most `FlushTimeout`.** Then it cancels the sink's call and gives up on the rest,
   logged as event 1012 with each kind counted. A record lost then is counted as `dropped_flush_timeout`, and one handed
   over after dispose as `dropped_disposed`.
+- **After dispose,** `AddOutcomeAsync`, `EraseAsync`, `EraseDecisionAsync` and `FlushAsync` throw
+  `ObjectDisposedException`.
 
 ## What is never recorded in logs or telemetry
 
@@ -419,7 +502,7 @@ in the category `Minos.DecisionClient`:
 | Id | Event | Level | When |
 | --- | --- | --- | --- |
 | 1009 | `RecordsDropped` | Warning | The queue was full, and records were dropped. |
-| 1010 | `SinkCallFailed` | Warning | A sink call threw; the item was skipped. |
+| 1010 | `SinkCallFailed` | Warning | A sink call threw, and the item was skipped; or, as the operation `cancel`, the sink's cancellation callback threw when dispose ran out of time. |
 | 1011 | `RedactionFailed` | Warning | The redactor threw or returned `null`; no record was kept. |
 | 1012 | `FlushTimedOut` | Error | Dispose ran out of time; the records, outcomes, erasures and flushes it lost are counted. |
 | 1013 | `RecordingFailed` | Warning | The stage could not make a record after the call, for example because a metric listener threw; the decision is unaffected. |

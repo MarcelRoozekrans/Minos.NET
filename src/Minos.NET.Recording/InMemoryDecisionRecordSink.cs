@@ -1,7 +1,7 @@
 namespace Minos.Recording;
 
 /// <summary>
-/// A sink that keeps records and outcomes in memory, for tests and for apps that read them in process. It applies
+/// A sink that keeps records and outcomes in memory, for development and tests. It applies
 /// outcomes and erasures as <see cref="DecisionRecordFile.ReadAsync(string, CancellationToken)"/> does for a file: an
 /// erasure removes what was kept before it, a record of the same decision replaces the earlier one when its attempt is
 /// higher or equal, and an outcome with no record is ignored. It is safe to read <see cref="Records"/> while a recorder
