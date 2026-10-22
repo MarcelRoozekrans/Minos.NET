@@ -458,11 +458,12 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 - [ ] A "Running decisions locally and privately" guide
 - [ ] `Minos.NET.Recording` on nuget.org
 
-### Phase 9.1: The decision recorder [status: pending]
+### Phase 9.1: The decision recorder [status: active]
 **Goal:** An opt-in `IDecisionClient` decorator in `Minos.NET.Recording`, with a pluggable sink, a redaction hook, decision ids, confirmed and signal outcomes, and erasure, AOT clean, with file and in-memory sinks (#118).
 **Surface:** Backend
 **HelpWanted:** no
-**Plan:** _to be written_
+**Spec:** `docs/superpowers/specs/2026-10-22-phase-9.1-recorder-design.md`
+**Plan:** `docs/superpowers/plans/2026-10-22-phase-9.1-recorder.md`
 
 ### Phase 9.2: Export to the dataset format [status: pending]
 **Goal:** In `Minos.NET.Evaluation` and `minos`, turn recorded decisions and their confirmed outcomes into Milestone 8 dataset JSONL, document the record file and outcome schema, and prove the export runs through `minos calibrate` (#118).
