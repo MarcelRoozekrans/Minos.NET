@@ -40,8 +40,8 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
 
     /// <summary>Creates the recorder and starts its writer.</summary>
     /// <param name="sink">Where the records go. The recorder does not dispose it.</param>
-    /// <param name="options">The queue's capacity and the flush timeout, or <see langword="null"/> for the defaults. They are read now.</param>
-    /// <param name="loggerFactory">Logs dropped records, failed sink calls and a flush that timed out, or <see langword="null"/> for none.</param>
+    /// <param name="options">The queue's capacity, the flush timeout and the redactor, or <see langword="null"/> for the defaults. They are read now.</param>
+    /// <param name="loggerFactory">Logs dropped records, failed sink calls, failed redactions and a flush that timed out, or <see langword="null"/> for none.</param>
     /// <param name="timeProvider">The clock for the records' times and the flush timeout, or <see langword="null"/> for <see cref="TimeProvider.System"/>.</param>
     /// <exception cref="ArgumentNullException"><paramref name="sink"/> is <see langword="null"/>.</exception>
     public DecisionRecorder(IDecisionRecordSink sink, RecordingOptions? options = null, ILoggerFactory? loggerFactory = null, TimeProvider? timeProvider = null)
@@ -50,6 +50,7 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
         options ??= new RecordingOptions();
         _sink = sink;
         _flushTimeout = options.FlushTimeout;
+        Redact = options.Redact;
         _logger = loggerFactory?.CreateLogger(DecisionLog.Category) ?? NullLogger.Instance;
         Time = timeProvider ?? TimeProvider.System;
         _channel = Channel.CreateBounded<WorkItem>(new BoundedChannelOptions(options.Capacity)
@@ -71,6 +72,9 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
 
     /// <summary>Gets the clock the recording stage times its records with.</summary>
     internal TimeProvider Time { get; }
+
+    /// <summary>Gets the redactor the recording stage runs on each state, or <see langword="null"/>.</summary>
+    internal Func<DecisionContent, RedactionResult>? Redact { get; }
 
     /// <summary>Queues a record without waiting.</summary>
     /// <param name="record">The record.</param>
@@ -429,6 +433,11 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
             Log(static (logger, count) => DecisionLog.RecordsDropped(logger, count), dropped);
         }
     }
+
+    /// <summary>Logs event 1011 for a redactor that failed, with the exception's type name only.</summary>
+    /// <param name="exceptionType">The type name of the redactor's exception.</param>
+    internal void LogRedactionFailed(string exceptionType)
+        => Log(static (logger, type) => DecisionLog.RedactionFailed(logger, type), exceptionType);
 
     private void LogSinkCallFailed(string operation, Exception exception)
         => Log(static (logger, call) => DecisionLog.SinkCallFailed(logger, call.Operation, call.ExceptionType), (Operation: operation, ExceptionType: exception.GetType().Name));

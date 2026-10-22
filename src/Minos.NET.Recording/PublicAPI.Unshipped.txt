@@ -137,3 +137,19 @@ static Minos.Recording.RecordedAnswer.operator ==(Minos.Recording.RecordedAnswer
 ~override Minos.Recording.DecisionRecordFileProblem.ToString() -> string
 ~override Minos.Recording.RecordedAnswer.Equals(object obj) -> bool
 ~override Minos.Recording.RecordedAnswer.ToString() -> string
+Minos.Recording.DecisionRecording
+static Minos.Recording.DecisionRecording.Begin(string? decisionId = null, string? erasureKey = null) -> Minos.Recording.DecisionRecordingScope!
+Minos.Recording.DecisionRecordingScope
+Minos.Recording.DecisionRecordingScope.DecisionId.get -> string?
+Minos.Recording.DecisionRecordingScope.Dispose() -> void
+Minos.Recording.RecordingDecisionClient
+Minos.Recording.RecordingDecisionClient.RecordingDecisionClient(Minos.IDecisionClient! innerClient, Minos.Recording.DecisionRecorder! recorder) -> void
+override Minos.Recording.RecordingDecisionClient.EvaluateAsync(Minos.DecisionRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>
+override Minos.Recording.RecordingDecisionClient.GetService(System.Type! serviceType, object? serviceKey = null) -> object?
+Minos.RecordingDecisionClientBuilderExtensions
+static Minos.RecordingDecisionClientBuilderExtensions.UseRecording(this Minos.DecisionClientBuilder! builder, Minos.Recording.DecisionRecorder? recorder = null) -> Minos.DecisionClientBuilder!
+Minos.Recording.RecordingOptions.Redact.get -> System.Func<Minos.DecisionContent, Minos.Recording.RedactionResult!>?
+Minos.Recording.RecordingOptions.Redact.set -> void
+Minos.Recording.RedactionResult
+static Minos.Recording.RedactionResult.Drop.get -> Minos.Recording.RedactionResult!
+static Minos.Recording.RedactionResult.Keep(Minos.DecisionContent state) -> Minos.Recording.RedactionResult!
