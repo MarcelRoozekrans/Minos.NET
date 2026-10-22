@@ -21,6 +21,10 @@ public sealed class DecisionLogTests
         DecisionLog.UnexpectedException(logger, SystemOneLog.ListModels, new InvalidOperationException("bug"));
         DecisionLog.CacheReadFailed(logger, "TypeSafe", new InvalidOperationException("down"));
         DecisionLog.CacheWriteFailed(logger, "TypeSafe", new InvalidOperationException("down"));
+        DecisionLog.RecordsDropped(logger, 3);
+        DecisionLog.SinkCallFailed(logger, "write", nameof(IOException));
+        DecisionLog.RedactionFailed(logger, nameof(InvalidOperationException));
+        DecisionLog.FlushTimedOut(logger, 100, 1, 2, 3, 4);
 
         (int, string, LogLevel)[] expected =
         [
@@ -32,6 +36,10 @@ public sealed class DecisionLogTests
             (1006, "UnexpectedException", LogLevel.Error),
             (1007, "CacheReadFailed", LogLevel.Warning),
             (1008, "CacheWriteFailed", LogLevel.Warning),
+            (1009, "RecordsDropped", LogLevel.Warning),
+            (1010, "SinkCallFailed", LogLevel.Warning),
+            (1011, "RedactionFailed", LogLevel.Warning),
+            (1012, "FlushTimedOut", LogLevel.Error),
         ];
         var actual = logger.Collector.GetSnapshot().Select(record => (record.Id.Id, record.Id.Name ?? string.Empty, record.Level)).ToArray();
         Assert.Equal(expected, actual);

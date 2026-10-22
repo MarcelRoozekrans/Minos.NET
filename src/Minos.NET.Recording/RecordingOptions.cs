@@ -1,0 +1,41 @@
+namespace Minos.Recording;
+
+/// <summary>Settings for a <see cref="DecisionRecorder"/>, read once, when it is created.</summary>
+public sealed class RecordingOptions
+{
+    // The longest wait a timer takes.
+    private static readonly TimeSpan MaxFlushTimeout = TimeSpan.FromMilliseconds(int.MaxValue);
+
+    /// <summary>
+    /// Gets or sets how many items the queue holds: records, outcomes, erasures and flushes. When it is full, a record is
+    /// dropped and counted, and the other items wait for space.
+    /// </summary>
+    /// <value>Defaults to 1024. At least 1.</value>
+    /// <exception cref="ArgumentOutOfRangeException">The value is less than 1.</exception>
+    public int Capacity
+    {
+        get;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThan(value, 1);
+            field = value;
+        }
+    } = 1024;
+
+    /// <summary>
+    /// Gets or sets how long <see cref="DecisionRecorder.DisposeAsync"/> waits for the queue to drain, measured on the
+    /// recorder's <see cref="TimeProvider"/>. After it, the sink's call is cancelled, and what was not done is lost and logged.
+    /// </summary>
+    /// <value>Defaults to 5 seconds. More than zero, and at most <see cref="int.MaxValue"/> milliseconds.</value>
+    /// <exception cref="ArgumentOutOfRangeException">The value is zero, negative or too large.</exception>
+    public TimeSpan FlushTimeout
+    {
+        get;
+        set
+        {
+            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(value, TimeSpan.Zero);
+            ArgumentOutOfRangeException.ThrowIfGreaterThan(value, MaxFlushTimeout);
+            field = value;
+        }
+    } = TimeSpan.FromSeconds(5);
+}

@@ -47,6 +47,37 @@ Minos.Recording.DecisionRecordFileProblems
 Minos.Recording.DecisionRecordFileProblems.Count.get -> int
 Minos.Recording.DecisionRecordFileProblems.GetEnumerator() -> System.Collections.Generic.IEnumerator<Minos.Recording.DecisionRecordFileProblem>!
 Minos.Recording.DecisionRecordFileProblems.this[int index].get -> Minos.Recording.DecisionRecordFileProblem
+Minos.Recording.DecisionRecorder
+Minos.Recording.DecisionRecorder.AddOutcomeAsync(string! decisionId, Minos.Recording.DecisionOutcome! outcome, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Minos.Recording.DecisionRecorder.DecisionRecorder(Minos.Recording.IDecisionRecordSink! sink, Minos.Recording.RecordingOptions? options = null, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory = null, System.TimeProvider? timeProvider = null) -> void
+Minos.Recording.DecisionRecorder.DisposeAsync() -> System.Threading.Tasks.ValueTask
+Minos.Recording.DecisionRecorder.EraseAsync(string! erasureKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Minos.Recording.DecisionRecorder.EraseDecisionAsync(string! decisionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Minos.Recording.DecisionRecorder.FlushAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Minos.Recording.IDecisionRecordSink
+Minos.Recording.IDecisionRecordSink.AddOutcomeAsync(string! decisionId, Minos.Recording.DecisionOutcome! outcome, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+Minos.Recording.IDecisionRecordSink.EraseAsync(string! erasureKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+Minos.Recording.IDecisionRecordSink.EraseDecisionAsync(string! decisionId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+Minos.Recording.IDecisionRecordSink.WriteAsync(Minos.Recording.DecisionRecord! record, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+Minos.Recording.IDecisionRecorder
+Minos.Recording.IDecisionRecorder.AddOutcomeAsync(string! decisionId, Minos.Recording.DecisionOutcome! outcome, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Minos.Recording.IDecisionRecorder.EraseAsync(string! erasureKey, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Minos.Recording.IDecisionRecorder.EraseDecisionAsync(string! decisionId, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Minos.Recording.IDecisionRecorder.FlushAsync(System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
+Minos.Recording.InMemoryDecisionRecordSink
+Minos.Recording.InMemoryDecisionRecordSink.AddOutcomeAsync(string! decisionId, Minos.Recording.DecisionOutcome! outcome, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+Minos.Recording.InMemoryDecisionRecordSink.EraseAsync(string! erasureKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+Minos.Recording.InMemoryDecisionRecordSink.EraseDecisionAsync(string! decisionId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+Minos.Recording.InMemoryDecisionRecordSink.InMemoryDecisionRecordSink() -> void
+Minos.Recording.InMemoryDecisionRecordSink.Records.get -> System.Collections.Generic.IReadOnlyList<Minos.Recording.RecordedDecision!>!
+Minos.Recording.InMemoryDecisionRecordSink.WriteAsync(Minos.Recording.DecisionRecord! record, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+Minos.Recording.JsonlDecisionRecordSink
+Minos.Recording.JsonlDecisionRecordSink.AddOutcomeAsync(string! decisionId, Minos.Recording.DecisionOutcome! outcome, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+Minos.Recording.JsonlDecisionRecordSink.DisposeAsync() -> System.Threading.Tasks.ValueTask
+Minos.Recording.JsonlDecisionRecordSink.EraseAsync(string! erasureKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+Minos.Recording.JsonlDecisionRecordSink.EraseDecisionAsync(string! decisionId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
+Minos.Recording.JsonlDecisionRecordSink.JsonlDecisionRecordSink(string! path) -> void
+Minos.Recording.JsonlDecisionRecordSink.WriteAsync(Minos.Recording.DecisionRecord! record, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 Minos.Recording.RecordedAnswer
 Minos.Recording.RecordedAnswer.ChosenIndex.get -> int
 Minos.Recording.RecordedAnswer.ChosenIndex.init -> void
@@ -69,6 +100,14 @@ Minos.Recording.RecordedAnswer.RecordedAnswer(string! Key, Minos.QuestionKind Ki
 Minos.Recording.RecordedDecision
 Minos.Recording.RecordedDecision.Outcomes.get -> System.Collections.Generic.IReadOnlyList<Minos.Recording.DecisionOutcome!>!
 Minos.Recording.RecordedDecision.Record.get -> Minos.Recording.DecisionRecord!
+Minos.Recording.RecordingException
+Minos.Recording.RecordingException.RecordingException(System.Exception! innerException) -> void
+Minos.Recording.RecordingOptions
+Minos.Recording.RecordingOptions.Capacity.get -> int
+Minos.Recording.RecordingOptions.Capacity.set -> void
+Minos.Recording.RecordingOptions.FlushTimeout.get -> System.TimeSpan
+Minos.Recording.RecordingOptions.FlushTimeout.set -> void
+Minos.Recording.RecordingOptions.RecordingOptions() -> void
 Minos.Recording.SignalOutcome
 Minos.Recording.SignalOutcome.Name.get -> string!
 Minos.Recording.SignalOutcome.Note.get -> string?

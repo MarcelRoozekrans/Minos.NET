@@ -81,6 +81,47 @@ internal static partial class DecisionLog
         Message = "Minos cache write via {Provider} failed; the answer is returned uncached.")]
     public static partial void CacheWriteFailed(ILogger logger, string provider, Exception exception);
 
+    /// <summary>
+    /// A decision recorder dropped records because its queue was full. The count is of the drops since the last such event;
+    /// the recorder logs it from its writer, so a caller is never slowed by it.
+    /// </summary>
+    [LoggerMessage(
+        EventId = 1009,
+        EventName = nameof(RecordsDropped),
+        Level = LogLevel.Warning,
+        Message = "Minos recorder dropped {Count} records: its queue was full.")]
+    public static partial void RecordsDropped(ILogger logger, long count);
+
+    /// <summary>
+    /// A decision recorder's sink threw; the item was counted and skipped. Only the exception's type name is logged:
+    /// its message could quote the state, a decision id or an erasure key.
+    /// </summary>
+    [LoggerMessage(
+        EventId = 1010,
+        EventName = nameof(SinkCallFailed),
+        Level = LogLevel.Warning,
+        Message = "Minos recorder sink call {Operation} failed with {ExceptionType}; the item was skipped.")]
+    public static partial void SinkCallFailed(ILogger logger, string operation, string exceptionType);
+
+    /// <summary>A recording stage's redactor threw; no record was kept, and the decision is unaffected. Only the exception's type name is logged.</summary>
+    [LoggerMessage(
+        EventId = 1011,
+        EventName = nameof(RedactionFailed),
+        Level = LogLevel.Warning,
+        Message = "Minos recording redaction failed with {ExceptionType}; no record was kept.")]
+    public static partial void RedactionFailed(ILogger logger, string exceptionType);
+
+    /// <summary>
+    /// A decision recorder's dispose did not drain its queue within its flush timeout. The items the sink never
+    /// completed are counted by kind; a lost erasure or flush made its caller's task fail.
+    /// </summary>
+    [LoggerMessage(
+        EventId = 1012,
+        EventName = nameof(FlushTimedOut),
+        Level = LogLevel.Error,
+        Message = "Minos recorder flush timed out after {TimeoutMs} ms; lost {Records} records, {Outcomes} outcomes, {Erasures} erasures and {Flushes} flushes.")]
+    public static partial void FlushTimedOut(ILogger logger, double timeoutMs, int records, int outcomes, int erasures, int flushes);
+
     /// <summary>The message to log for <paramref name="error"/>: its own, except where it can carry request or response text.</summary>
     /// <param name="error">The error.</param>
     /// <returns><see cref="DecisionError.Message"/>, or a fixed text for <see cref="DecisionErrorKind.InvalidResponse"/> (<see cref="UnreadableResponse"/>) and <see cref="DecisionErrorKind.Network"/> (<see cref="RequestNotSent"/>).</returns>
