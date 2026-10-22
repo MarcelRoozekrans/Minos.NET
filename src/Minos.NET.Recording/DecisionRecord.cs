@@ -66,7 +66,7 @@ public sealed class DecisionRecord
     /// <summary>Gets when the call started.</summary>
     public DateTimeOffset Started { get; }
 
-    /// <summary>Gets how long the call took. A file keeps it in whole microseconds.</summary>
+    /// <summary>Gets how long the call took. A file keeps it as milliseconds with a fraction, which is exact to the tick.</summary>
     public TimeSpan Latency { get; }
 
     /// <summary>Gets the name of the provider client that served the call.</summary>

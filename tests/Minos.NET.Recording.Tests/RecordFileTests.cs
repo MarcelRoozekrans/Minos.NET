@@ -41,7 +41,8 @@ public sealed class RecordFileTests : IDisposable
         DecisionContent? state = null,
         IReadOnlyList<RecordedAnswer>? answers = null,
         DecisionErrorKind? errorKind = null,
-        IReadOnlyList<string>? refusedKeys = null)
+        IReadOnlyList<string>? refusedKeys = null,
+        QuestionSetDefinition? definition = null)
         => new(
             id,
             erasureKey,
@@ -57,7 +58,7 @@ public sealed class RecordFileTests : IDisposable
             "upstream-a",
             new DecisionUsage { InputTokens = 120, OutputTokens = 14, Cost = 0.000375 },
             isCached: false,
-            Definition(),
+            definition ?? Definition(),
             state ?? DecisionContent.FromString("My card was meant to arrive last week and nothing has come."),
             imageCount: 1,
             ["9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08"],
@@ -325,7 +326,7 @@ public sealed class RecordFileTests : IDisposable
         Assert.DoesNotContain("d-1", text, StringComparison.Ordinal);
         Assert.DoesNotContain("ghost", text, StringComparison.Ordinal);
         Assert.Equal(3, text.Split('\n', StringSplitOptions.RemoveEmptyEntries).Length);
-        Assert.False(File.Exists(path + ".compact.tmp"));
+        Assert.Empty(Directory.GetFiles(_directory, "*.tmp"));
 
         var after = await DecisionsAsync(path);
         var (b, a) = (Assert.Single(before), Assert.Single(after));
@@ -374,6 +375,270 @@ public sealed class RecordFileTests : IDisposable
 
         Assert.True(result.IsSuccess, string.Join("; ", result.IsSuccess ? [] : result.Error.Select(p => p.Message)));
         Assert.Equal(3, result.Value[0].Definition.Questions.Count);
+    }
+
+    [Fact]
+    public void AJsonCriterion_LoadsInTheDatasetLoader_AsCriterionJson()
+    {
+        var jsonCriterion = Criterion.Json(DecisionContent.FromJson(JsonDocument.Parse("""{"description":"lvl b","weight":2}""").RootElement));
+        var definition = new QuestionSetDefinition(
+            QuestionDefinition.Choice("topic", "Which?", new OptionDefinition("a", jsonCriterion), new OptionDefinition("b", null)),
+            QuestionDefinition.Score("mood", "How?", "calm", Criterion.Json(DecisionContent.FromJson(JsonDocument.Parse("""["angry","very"]""").RootElement))));
+        var line = Json(Rec(Record(definition: definition, answers: [])));
+        using var document = JsonDocument.Parse(line);
+        var questions = document.RootElement.GetProperty("questions").GetRawText();
+        var dataset = $$$"""{"id":"d-1","state":"s","questions":{{{questions}}},"expected":{"topic":"a","mood":1}}""";
+
+        var result = DecisionDataset.Parse(dataset);
+
+        Assert.True(result.IsSuccess, string.Join("; ", result.IsSuccess ? [] : result.Error.Select(p => p.Message)));
+        var loaded = result.Value[0].Definition.Questions;
+        Assert.Null(loaded[0].Options[0].Criterion!.Description);
+        Assert.True(loaded[0].Options[0].Criterion!.JsonContent!.Value.TryGetJson(out var json));
+        Assert.Equal("""{"description":"lvl b","weight":2}""", json.GetRawText());
+        Assert.Null(loaded[1].Options[1].Criterion!.Description);
+    }
+
+    [Fact]
+    public async Task AJsonCriterion_ReadsBackAsJson_EvenWhenItLooksLikeATextCriterion()
+    {
+        var jsonCriterion = Criterion.Json(DecisionContent.FromJson(JsonDocument.Parse("""{"description":"lvl b","weight":2}""").RootElement));
+        var definition = new QuestionSetDefinition(QuestionDefinition.Score("mood", "How?", "calm", jsonCriterion));
+
+        var (decisions, problems) = await ReadAsync(Lines(Rec(Record(definition: definition, answers: []))));
+
+        Assert.Empty(problems);
+        var level = Assert.Single(decisions).Record.Definition.Questions[0].Options[1].Criterion!;
+        Assert.Null(level.Description);
+        Assert.True(level.JsonContent!.Value.TryGetJson(out var json));
+        Assert.Equal("""{"description":"lvl b","weight":2}""", json.GetRawText());
+    }
+
+    private static byte[] Text(params string[] lines) => Encoding.UTF8.GetBytes(string.Concat(lines.Select(l => l + "\n")));
+
+    private static string RecordText(string id = "d-1") => Json(Rec(Record(id)));
+
+    [Fact]
+    public async Task Compact_KeepsTheMembersOfARecordItDoesNotModel_ByteForByte()
+    {
+        var record = RecordText();
+        var extended = record[..^1] + ""","shadowAnswers":[{"key":"urgent","probability":0.5}]}""";
+        var outcome = Json(Out("d-1", Signal()));
+        var outcomeExtended = outcome[..^1] + ""","future":{"a":[1,2]}}""";
+        var path = PathOf();
+        await File.WriteAllBytesAsync(path, Text(extended, outcomeExtended, Json(Erase("nobody", null))), CancellationToken.None);
+
+        var problems = await DecisionRecordFile.CompactAsync(path, CancellationToken.None);
+
+        Assert.Empty(problems);
+        Assert.Equal(extended + "\n" + outcomeExtended + "\n", await File.ReadAllTextAsync(path, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task AnUnknownKind_AndAnUnknownOutcomeType_AreReported_ButKeptByACompaction()
+    {
+        var unknownKind = """{"kind":"annotation","version":1,"decisionId":"d-1","text":"x"}""";
+        var unknownOutcome = """{"kind":"outcome","version":1,"decisionId":"d-1","type":"rating","source":"ui","at":"2026-10-22T10:00:00+02:00","stars":4}""";
+        var orphanOutcome = """{"kind":"outcome","version":1,"decisionId":"ghost","type":"rating","source":"ui","at":"2026-10-22T10:00:00+02:00"}""";
+        var path = PathOf();
+        var original = Text(RecordText(), unknownKind, unknownOutcome, orphanOutcome);
+        await File.WriteAllBytesAsync(path, original, CancellationToken.None);
+
+        var (decisions, problems) = await ReadAsync(original);
+
+        Assert.Empty(Assert.Single(decisions).Outcomes);
+        Assert.Equal([2, 3, 4], problems.Select(p => p.Line));
+        Assert.All(problems, p => Assert.DoesNotContain("annotation", p.Message, StringComparison.Ordinal));
+
+        await DecisionRecordFile.CompactAsync(path, CancellationToken.None);
+
+        var lines = (await File.ReadAllTextAsync(path, CancellationToken.None)).Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal([RecordText(), unknownOutcome, unknownKind, orphanOutcome], lines);
+    }
+
+    [Fact]
+    public async Task AnUnknownOutcomeType_OfAnErasedDecision_IsNotKept()
+    {
+        var unknownOutcome = """{"kind":"outcome","version":1,"decisionId":"d-1","type":"rating","source":"ui","at":"2026-10-22T10:00:00+02:00"}""";
+        var path = PathOf();
+        await File.WriteAllBytesAsync(path, Text(RecordText(), unknownOutcome, Json(Erase(null, "d-1"))), CancellationToken.None);
+
+        await DecisionRecordFile.CompactAsync(path, CancellationToken.None);
+
+        Assert.Equal(string.Empty, await File.ReadAllTextAsync(path, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task AVersion2Line_WithAChangedTypedMember_IsAnUnknownVersion_AndTheFileIsNotRewritten()
+    {
+        var future = """{"kind":"record","version":2,"decisionId":"d-9","attempt":"high","started":{"at":1},"questions":[]}""";
+        var path = PathOf();
+        var original = Text(RecordText(), future, Json(Erase("nobody", null)));
+        await File.WriteAllBytesAsync(path, original, CancellationToken.None);
+
+        var (decisions, problems) = await ReadAsync(original);
+        var compacted = await DecisionRecordFile.CompactAsync(path, CancellationToken.None);
+
+        Assert.Equal("d-1", Assert.Single(decisions).Record.DecisionId);
+        var problem = Assert.Single(problems);
+        Assert.Equal(2, problem.Line);
+        Assert.Contains("version 2", problem.Message, StringComparison.Ordinal);
+        Assert.Single(compacted);
+        Assert.Equal(original, await File.ReadAllBytesAsync(path, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task AVersionThatIsNotAnInteger_IsAnUnknownVersion()
+    {
+        var path = PathOf();
+        var original = Text(RecordText(), """{"kind":"record","version":"two"}""", """{"kind":"record","version":1.5}""");
+        await File.WriteAllBytesAsync(path, original, CancellationToken.None);
+
+        var problems = await DecisionRecordFile.CompactAsync(path, CancellationToken.None);
+
+        Assert.Equal([2, 3], problems.Select(p => p.Line));
+        Assert.Equal(original, await File.ReadAllBytesAsync(path, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task ALoneSurrogateEscape_InAnOutcomeKey_IsAProblem_NotAThrow()
+    {
+        var key = "\\ud800";
+        var outcome = """{"kind":"outcome","version":1,"decisionId":"d-1","source":"ui","at":"2026-10-22T10:00:00+02:00","type":"confirmed","confirmed":{"KEY":true}}"""
+            .Replace("KEY", key, StringComparison.Ordinal);
+
+        var (decisions, problems) = await ReadAsync(Text(RecordText(), outcome));
+
+        Assert.Empty(Assert.Single(decisions).Outcomes);
+        var problem = Assert.Single(problems);
+        Assert.Equal(2, problem.Line);
+    }
+
+    [Fact]
+    public async Task ALoneSurrogateEscape_InAChoiceValue_IsAProblem_NotAThrow()
+    {
+        var outcome = """{"kind":"outcome","version":1,"decisionId":"d-1","source":"ui","at":"2026-10-22T10:00:00+02:00","type":"confirmed","confirmed":{"topic":"\ud800"}}""";
+
+        var (decisions, problems) = await ReadAsync(Text(RecordText(), outcome));
+
+        Assert.Empty(Assert.Single(decisions).Outcomes);
+        Assert.Equal(2, Assert.Single(problems).Line);
+    }
+
+    [Fact]
+    public async Task Compact_KeepsTheModeOfTheFile_OnUnix()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var path = PathOf();
+        await File.WriteAllBytesAsync(path, Text(RecordText()), CancellationToken.None);
+        File.SetUnixFileMode(path, UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead);
+
+        await DecisionRecordFile.CompactAsync(path, CancellationToken.None);
+
+        Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite | UnixFileMode.GroupRead, File.GetUnixFileMode(path));
+        Assert.Empty(Directory.GetFiles(_directory, "*.tmp"));
+    }
+
+    [Fact]
+    public async Task Compact_LeavesNoTemporaryFile_WhenItFails()
+    {
+        var path = PathOf();
+        await File.WriteAllBytesAsync(path, Text(RecordText()), CancellationToken.None);
+        using var cancelled = new CancellationTokenSource();
+        await cancelled.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(async () => await DecisionRecordFile.CompactAsync(path, cancelled.Token));
+
+        Assert.Empty(Directory.GetFiles(_directory, "*.tmp"));
+        Assert.Equal(Text(RecordText()), await File.ReadAllBytesAsync(path, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task ABomOnTheFirstLine_AndCrlfLineEndings_AreRead_AndCompactedToLf()
+    {
+        var text = string.Join("\r\n", (string[])[RecordText("d-1"), Json(Out("d-1", Signal())), RecordText("d-2"), string.Empty]);
+        byte[] bytes = [0xEF, 0xBB, 0xBF, .. Encoding.UTF8.GetBytes(text)];
+
+        var (decisions, problems) = await ReadAsync(bytes);
+
+        Assert.Empty(problems);
+        Assert.Equal(["d-1", "d-2"], decisions.Select(d => d.Record.DecisionId));
+        Assert.Single(decisions[0].Outcomes);
+
+        var path = PathOf();
+        await DecisionRecordFile.CompactAsync(path, CancellationToken.None);
+        Assert.Equal(
+            string.Join("\n", (string[])[RecordText("d-1"), Json(Out("d-1", Signal())), RecordText("d-2"), string.Empty]),
+            await File.ReadAllTextAsync(path, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task ASyntaxProblem_DoesNotQuoteTheLine()
+    {
+        var broken = """{"kind":"record","version":1,"state":"SECRET-STATE-TEXT" oops,"decisionId":"secret-id-1"}""";
+
+        var (decisions, problems) = await ReadAsync(Text(RecordText(), broken));
+
+        Assert.Single(decisions);
+        var problem = Assert.Single(problems);
+        Assert.Equal(2, problem.Line);
+        Assert.DoesNotContain("SECRET", problem.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("secret", problem.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain("oops", problem.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AnErasure_AppliesOnlyToEarlierLines()
+    {
+        var (decisions, problems) = await ReadAsync(Lines(
+            Rec(Record("d-1", erasureKey: "customer-7")),
+            Erase("customer-7", null),
+            Rec(Record("d-2", erasureKey: "customer-7")),
+            Rec(Record("d-1", erasureKey: "customer-7"))));
+
+        Assert.Empty(problems);
+        Assert.Equal(["d-2", "d-1"], decisions.Select(d => d.Record.DecisionId));
+    }
+
+    [Fact]
+    public async Task AnEqualAttempt_ReplacesTheEarlierRecord_AndAHigherOneKeepsTheOutcomes()
+    {
+        var (decisions, problems) = await ReadAsync(Lines(
+            Rec(Record("d-1", attempt: 1, answers: [])),
+            Out("d-1", Signal()),
+            Rec(Record("d-1", attempt: 1)),
+            Out("d-1", Confirmed()),
+            Rec(Record("d-1", attempt: 2, answers: []))));
+
+        Assert.Empty(problems);
+        var decision = Assert.Single(decisions);
+        Assert.Equal(2, decision.Record.Attempt);
+        Assert.Equal(2, decision.Outcomes.Count);
+    }
+
+    [Fact]
+    public void ReadAsync_ChecksThePathBeforeTheFirstMoveNext()
+    {
+        Assert.Throws<ArgumentException>(() => DecisionRecordFile.ReadAsync(string.Empty, CancellationToken.None));
+        Assert.Throws<ArgumentNullException>(() => DecisionRecordFile.ReadAsync(null!, CancellationToken.None));
+        Assert.Throws<ArgumentException>(() => DecisionRecordFile.ReadAsync(string.Empty, new List<DecisionRecordFileProblem>(), CancellationToken.None));
+        Assert.Throws<ArgumentNullException>(() => DecisionRecordFile.ReadAsync("x", null!, CancellationToken.None));
+    }
+
+    [Fact]
+    public void RecordedAnswers_CompareTheirProbabilitiesByValue()
+    {
+        var a = new RecordedAnswer("topic", QuestionKind.Choice, 0, 0, 0, 0.75, [0.75, 0.25]);
+        var b = new RecordedAnswer("topic", QuestionKind.Choice, 0, 0, 0, 0.75, [0.75, 0.25]);
+        var c = new RecordedAnswer("topic", QuestionKind.Choice, 0, 0, 0, 0.75, [0.5, 0.5]);
+
+        Assert.Equal(a, b);
+        Assert.Equal(a.GetHashCode(), b.GetHashCode());
+        Assert.NotEqual(a, c);
     }
 
     [Fact]

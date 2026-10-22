@@ -1,45 +1,103 @@
 using System.Buffers;
 using System.Text.Json;
+using Microsoft.Win32.SafeHandles;
 
 namespace Minos.Recording.RecordFormat;
 
+/// <summary>Where a line sits in the file: its first byte, its length without the line ending, and whether this reader models it.</summary>
+internal readonly record struct LineSpan(long Offset, int Length, bool Known);
+
 /// <summary>
-/// Reads a record file line by line and folds it into the decisions it describes: outcomes are attached to their
-/// record in file order, an erasure removes records, and a higher attempt replaces a lower one.
+/// Reads a record file in two passes. The scan pass folds the lines into the decisions the file describes and keeps only
+/// where each surviving line sits: outcomes are attached to their record in file order, an erasure removes the records
+/// before it, and a higher attempt replaces a lower one. The second pass reads the bytes of the lines that survived, so
+/// compaction can copy them as they are and a read can parse one decision at a time.
 /// </summary>
 internal static class RecordFileReader
 {
-    internal sealed class Result
+    internal sealed class Entry(string decisionId, string? erasureKey, int attempt, LineSpan record)
     {
-        internal required List<RecordedDecision> Decisions { get; init; }
+        internal string DecisionId { get; } = decisionId;
 
-        internal required List<DecisionRecordFileProblem> Problems { get; init; }
+        internal string? ErasureKey { get; set; } = erasureKey;
 
-        // True when a line was skipped only because this reader does not know its version: rewriting the file would lose it.
-        internal bool SkippedNewerVersion { get; init; }
-    }
+        internal int Attempt { get; set; } = attempt;
 
-    private sealed class Entry(DecisionRecord record)
-    {
-        internal DecisionRecord Record { get; set; } = record;
+        internal LineSpan Record { get; set; } = record;
 
-        internal List<DecisionOutcome> Outcomes { get; } = [];
+        internal List<LineSpan> Outcomes { get; } = [];
 
         internal bool Removed { get; set; }
     }
 
-    internal static async ValueTask<Result> ReadAsync(string path, CancellationToken cancellationToken)
+    internal sealed class Scan
     {
-        var state = new Fold();
-        var stream = new FileStream(
-            path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, bufferSize: 1, FileOptions.Asynchronous | FileOptions.SequentialScan);
-        await using var _ = stream.ConfigureAwait(false);
+        internal required List<Entry> Decisions { get; init; }
 
+        // Lines of this version that this reader does not model: a kind it does not know, or an outcome of a type it does not
+        // know that belongs to no record. A compaction keeps them as they are.
+        internal required List<LineSpan> Loose { get; init; }
+
+        internal required List<DecisionRecordFileProblem> Problems { get; init; }
+
+        // True when a line was skipped only because this reader does not know its version: rewriting the file would lose it.
+        internal bool SkippedUnknownVersion { get; init; }
+    }
+
+    internal static SafeFileHandle Open(string path)
+        => File.OpenHandle(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete, FileOptions.Asynchronous | FileOptions.SequentialScan);
+
+    internal static async ValueTask<byte[]> ReadSpanAsync(SafeFileHandle handle, LineSpan span, CancellationToken cancellationToken)
+    {
+        var bytes = new byte[span.Length];
+        var filled = 0;
+        while (filled < bytes.Length)
+        {
+            var read = await RandomAccess.ReadAsync(handle, bytes.AsMemory(filled), span.Offset + filled, cancellationToken).ConfigureAwait(false);
+            if (read == 0)
+            {
+                throw new IOException("The file changed while it was read.");
+            }
+
+            filled += read;
+        }
+
+        return bytes;
+    }
+
+    // The scan parsed these lines once already, so a failure here means the file changed between the two passes.
+    internal static DecisionRecord ParseRecord(byte[] line)
+        => ParseLine(line) is { } dto && RecordLineConverter.TryToRecord(dto, out var record, out _)
+            ? record
+            : throw new IOException("The file changed while it was read.");
+
+    internal static DecisionOutcome ParseOutcome(byte[] line)
+        => ParseLine(line) is { } dto && RecordLineConverter.TryToOutcome(dto, out var outcome, out _)
+            ? outcome
+            : throw new IOException("The file changed while it was read.");
+
+    private static LineDto? ParseLine(byte[] line)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize(line, RecordJsonContext.Default.LineDto);
+        }
+        catch (Exception ex) when (ex is JsonException or InvalidOperationException)
+        {
+            return null;
+        }
+    }
+
+    internal static async ValueTask<Scan> ScanAsync(SafeFileHandle handle, CancellationToken cancellationToken)
+    {
+        var fold = new Fold();
         var chunk = new byte[81920];
         var line = new ArrayBufferWriter<byte>();
+        long position = 0;
+        long lineStart = 0;
         while (true)
         {
-            var read = await stream.ReadAsync(chunk, cancellationToken).ConfigureAwait(false);
+            var read = await RandomAccess.ReadAsync(handle, chunk, position, cancellationToken).ConfigureAwait(false);
             if (read == 0)
             {
                 break;
@@ -48,45 +106,52 @@ internal static class RecordFileReader
             var start = 0;
             while (start < read)
             {
-                var length = Array.IndexOf(chunk, (byte)'\n', start, read - start);
-                if (length < 0)
+                var end = Array.IndexOf(chunk, (byte)'\n', start, read - start);
+                if (end < 0)
                 {
                     line.Write(chunk.AsSpan(start, read - start));
                     break;
                 }
 
-                length -= start;
-                line.Write(chunk.AsSpan(start, length));
-                state.Add(line.WrittenSpan);
+                line.Write(chunk.AsSpan(start, end - start));
+                fold.Add(line.WrittenSpan, lineStart);
                 line.Clear();
-                start += length + 1;
+                start = end + 1;
+                lineStart = position + start;
             }
+
+            position += read;
         }
 
         if (line.WrittenCount > 0)
         {
-            state.Add(line.WrittenSpan);
+            fold.Add(line.WrittenSpan, lineStart);
         }
 
-        return state.Finish();
+        return fold.Finish();
     }
 
     private sealed class Fold
     {
+        // A version that is not a whole number that fits an int; no real version is this.
+        private const int UnreadableVersion = int.MinValue;
+
         private readonly Dictionary<string, Entry> _byId = new(StringComparer.Ordinal);
         private readonly Dictionary<string, List<Entry>> _byKey = new(StringComparer.Ordinal);
         private readonly HashSet<string> _erasedIds = new(StringComparer.Ordinal);
         private readonly List<Entry> _order = [];
+        private readonly List<LineSpan> _loose = [];
         private readonly List<DecisionRecordFileProblem> _problems = [];
         private int _lineNumber;
-        private bool _skippedNewerVersion;
+        private bool _skippedUnknownVersion;
 
-        internal void Add(ReadOnlySpan<byte> line)
+        internal void Add(ReadOnlySpan<byte> line, long offset)
         {
             _lineNumber++;
             if (_lineNumber == 1 && line.StartsWith("﻿"u8))
             {
                 line = line[3..];
+                offset += 3;
             }
 
             if (!line.IsEmpty && line[^1] == (byte)'\r')
@@ -99,6 +164,27 @@ internal static class RecordFileReader
                 return;
             }
 
+            if (!TryPeek(line, out var kind, out var version))
+            {
+                return;
+            }
+
+            if (version is null)
+            {
+                Problem("The line has no 'version'.");
+                return;
+            }
+
+            if (version != RecordLine.Version)
+            {
+                // Whatever else the line holds, it is not in a format this reader knows, so a rewrite would lose it.
+                _skippedUnknownVersion = true;
+                Problem(version == UnreadableVersion
+                    ? "This file uses a record format version this reader does not know."
+                    : $"This file uses record format version {RecordLine.Number(version.Value)}; this reader reads version {RecordLine.Number(RecordLine.Version)}.");
+                return;
+            }
+
             LineDto? dto;
             try
             {
@@ -106,10 +192,12 @@ internal static class RecordFileReader
             }
             catch (JsonException ex)
             {
-                // The parser's message can quote the text that failed, which may be state: say only where.
-                Problem(ex.BytePositionInLine is { } position
-                    ? $"The line is not a valid record line: it stops making sense at byte {RecordLine.Number((int)Math.Min(position, int.MaxValue))}."
-                    : "The line is not a valid record line.");
+                Problem(Syntax(ex));
+                return;
+            }
+            catch (InvalidOperationException)
+            {
+                Problem("The line is not a valid record line.");
                 return;
             }
 
@@ -119,51 +207,97 @@ internal static class RecordFileReader
                 return;
             }
 
-            if (dto.Version is not { } version)
-            {
-                Problem("The line has no 'version'.");
-                return;
-            }
-
-            if (version != RecordLine.Version)
-            {
-                _skippedNewerVersion = true;
-                Problem($"This file uses record format version {RecordLine.Number(version)}; this reader reads version {RecordLine.Number(RecordLine.Version)}.");
-                return;
-            }
-
-            switch (dto.Kind)
+            var span = new LineSpan(offset, line.Length, Known: true);
+            switch (kind)
             {
                 case "record":
-                    AddRecord(dto);
+                    AddRecord(dto, span);
                     break;
                 case "outcome":
-                    AddOutcome(dto);
+                    AddOutcome(dto, span);
                     break;
                 case "erasure":
                     AddErasure(dto);
                     break;
+                case null:
+                    Problem("The line has no 'kind'.");
+                    break;
                 default:
+                    // A kind a later addition to version 1 may have made: reported, and kept as it is by a compaction.
                     Problem("The line's 'kind' must be record, outcome or erasure.");
+                    _loose.Add(span with { Known = false });
                     break;
             }
         }
 
-        internal Result Finish()
+        internal Scan Finish()
         {
-            var decisions = new List<RecordedDecision>(_order.Count);
+            var decisions = new List<Entry>(_order.Count);
             foreach (var entry in _order)
             {
                 if (!entry.Removed)
                 {
-                    decisions.Add(new RecordedDecision(entry.Record, DecisionRecord.Freeze(entry.Outcomes)));
+                    decisions.Add(entry);
                 }
             }
 
-            return new Result { Decisions = decisions, Problems = _problems, SkippedNewerVersion = _skippedNewerVersion };
+            return new Scan { Decisions = decisions, Loose = _loose, Problems = _problems, SkippedUnknownVersion = _skippedUnknownVersion };
         }
 
-        private void AddRecord(LineDto dto)
+        // Reads just 'kind' and 'version', so that a line of another version is recognised whatever else it holds.
+        // Returns false, with the problem added, when the line is not a JSON object or its syntax is broken.
+        private bool TryPeek(ReadOnlySpan<byte> line, out string? kind, out int? version)
+        {
+            kind = null;
+            version = null;
+            try
+            {
+                var reader = new Utf8JsonReader(line);
+                if (!reader.Read() || reader.TokenType != JsonTokenType.StartObject)
+                {
+                    Problem("The line is not a JSON object.");
+                    return false;
+                }
+
+                while (reader.Read() && reader.TokenType == JsonTokenType.PropertyName)
+                {
+                    var isKind = reader.ValueTextEquals("kind"u8);
+                    var isVersion = reader.ValueTextEquals("version"u8);
+                    reader.Read();
+                    if (isKind && reader.TokenType == JsonTokenType.String)
+                    {
+                        kind = reader.GetString();
+                    }
+                    else if (isVersion)
+                    {
+                        version = reader.TokenType == JsonTokenType.Number && reader.TryGetInt32(out var number) ? number : UnreadableVersion;
+                    }
+
+                    reader.Skip();
+                }
+
+                return true;
+            }
+            catch (JsonException ex)
+            {
+                Problem(Syntax(ex));
+                return false;
+            }
+            catch (InvalidOperationException)
+            {
+                // An escape that is not valid text, such as a lone surrogate, in 'kind'.
+                Problem("The line is not a valid record line.");
+                return false;
+            }
+        }
+
+        // The parser's message can quote the text that failed, which may be state: say only where.
+        private static string Syntax(JsonException ex)
+            => ex.BytePositionInLine is { } position
+                ? $"The line is not a valid record line: it stops making sense at byte {RecordLine.Number((int)Math.Min(position, int.MaxValue))}."
+                : "The line is not a valid record line.";
+
+        private void AddRecord(LineDto dto, LineSpan span)
         {
             if (!RecordLineConverter.TryToRecord(dto, out var record, out var message))
             {
@@ -173,24 +307,27 @@ internal static class RecordFileReader
 
             if (_byId.TryGetValue(record.DecisionId, out var existing))
             {
-                // A higher attempt replaces a lower one. A lower one that turns up later, or an equal one, changes nothing.
-                if (record.Attempt >= existing.Record.Attempt)
+                // A higher attempt replaces a lower one, and an equal one replaces it too: the last write wins.
+                // A lower one that turns up later changes nothing.
+                if (record.Attempt >= existing.Attempt)
                 {
                     Unindex(existing);
-                    existing.Record = record;
+                    existing.Attempt = record.Attempt;
+                    existing.ErasureKey = record.ErasureKey;
+                    existing.Record = span;
                     Index(existing);
                 }
 
                 return;
             }
 
-            var entry = new Entry(record);
+            var entry = new Entry(record.DecisionId, record.ErasureKey, record.Attempt, span);
             _byId[record.DecisionId] = entry;
             _order.Add(entry);
             Index(entry);
         }
 
-        private void AddOutcome(LineDto dto)
+        private void AddOutcome(LineDto dto, LineSpan span)
         {
             if (string.IsNullOrEmpty(dto.DecisionId))
             {
@@ -198,7 +335,23 @@ internal static class RecordFileReader
                 return;
             }
 
-            if (!RecordLineConverter.TryToOutcome(dto, out var outcome, out var message))
+            if (dto.Type is not null and not ("confirmed" or "signal"))
+            {
+                // A type a later addition to version 1 may have made: reported, and kept with its decision by a compaction.
+                Problem("The outcome line's 'type' must be confirmed or signal.");
+                if (_byId.TryGetValue(dto.DecisionId, out var owner))
+                {
+                    owner.Outcomes.Add(span with { Known = false });
+                }
+                else if (!_erasedIds.Contains(dto.DecisionId))
+                {
+                    _loose.Add(span with { Known = false });
+                }
+
+                return;
+            }
+
+            if (!RecordLineConverter.TryToOutcome(dto, out _, out var message))
             {
                 Problem(message);
                 return;
@@ -206,7 +359,7 @@ internal static class RecordFileReader
 
             if (_byId.TryGetValue(dto.DecisionId, out var entry))
             {
-                entry.Outcomes.Add(outcome);
+                entry.Outcomes.Add(span);
             }
             else if (!_erasedIds.Contains(dto.DecisionId))
             {
@@ -250,13 +403,13 @@ internal static class RecordFileReader
 
             entry.Removed = true;
             Unindex(entry);
-            _byId.Remove(entry.Record.DecisionId);
-            _erasedIds.Add(entry.Record.DecisionId);
+            _byId.Remove(entry.DecisionId);
+            _erasedIds.Add(entry.DecisionId);
         }
 
         private void Index(Entry entry)
         {
-            if (entry.Record.ErasureKey is not { } key)
+            if (entry.ErasureKey is not { } key)
             {
                 return;
             }
@@ -271,7 +424,7 @@ internal static class RecordFileReader
 
         private void Unindex(Entry entry)
         {
-            if (entry.Record.ErasureKey is { } key && _byKey.TryGetValue(key, out var list))
+            if (entry.ErasureKey is { } key && _byKey.TryGetValue(key, out var list))
             {
                 list.Remove(entry);
             }

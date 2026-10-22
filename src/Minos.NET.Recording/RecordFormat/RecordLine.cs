@@ -20,7 +20,7 @@ internal static class RecordLine
 
     /// <summary>Writes a record as one line, without the line feed.</summary>
     /// <param name="w">The writer.</param>
-    /// <param name="record">The record. State text with an unpaired surrogate makes the writer throw.</param>
+    /// <param name="record">The record. Text with an unpaired surrogate is written with U+FFFD in its place, so the write is lossy for such text. A decision id is replaced the same way on a record, an outcome and an erasure, so the ids still match when the file is read.</param>
     internal static void Write(Utf8JsonWriter w, DecisionRecord record)
     {
         w.WriteStartObject();

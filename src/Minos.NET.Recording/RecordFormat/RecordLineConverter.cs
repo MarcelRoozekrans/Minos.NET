@@ -88,6 +88,21 @@ internal static class RecordLineConverter
 
     internal static bool TryToOutcome(LineDto dto, [NotNullWhen(true)] out DecisionOutcome? outcome, out string message)
     {
+        try
+        {
+            return TryToOutcomeCore(dto, out outcome, out message);
+        }
+        catch (InvalidOperationException)
+        {
+            // A key or a value written as an escape that is not text, such as a lone surrogate, cannot be read as a string.
+            outcome = null;
+            message = "The outcome line is not valid.";
+            return false;
+        }
+    }
+
+    private static bool TryToOutcomeCore(LineDto dto, out DecisionOutcome? outcome, out string message)
+    {
         outcome = null;
         message = "The outcome line is not valid.";
         if (string.IsNullOrEmpty(dto.Source) || dto.At is not { } at)

@@ -202,12 +202,15 @@ internal static class QuestionSetFormat
     }
 
     // A text criterion with no examples is its description; with examples it is { description, examples, not_for }.
-    // A JSON criterion, which the dataset format does not have in version 1, is written as its JSON.
+    // A JSON criterion is { "json": the JSON }, the form the dataset format has for it.
     private static void WriteCriterion(Utf8JsonWriter w, Criterion criterion)
     {
         if (criterion.Description is not { } description)
         {
+            w.WriteStartObject();
+            w.WritePropertyName("json");
             WriteContent(w, criterion.JsonContent!.Value);
+            w.WriteEndObject();
             return;
         }
 
@@ -247,30 +250,38 @@ internal static class QuestionSetFormat
             return Criterion.Text(element.GetString()!);
         }
 
-        if (element.ValueKind is not (JsonValueKind.Object or JsonValueKind.Array))
+        if (element.ValueKind != JsonValueKind.Object)
         {
-            throw new FormatException("A criterion must be a string, object or array.");
+            throw new FormatException("A criterion must be a string or an object.");
         }
 
-        if (element.ValueKind == JsonValueKind.Object
-            && element.TryGetProperty("description", out var description)
-            && description.ValueKind == JsonValueKind.String)
+        if (element.TryGetProperty("json", out var json))
         {
-            var criterion = Criterion.Text(description.GetString()!);
-            if (element.TryGetProperty("examples", out var examples))
+            if (json.ValueKind is not (JsonValueKind.Object or JsonValueKind.Array) || element.EnumerateObject().Count() != 1)
             {
-                criterion = criterion.WithExamples(ReadTexts(examples));
+                throw new FormatException("A 'json' criterion holds a JSON object or array and nothing else.");
             }
 
-            if (element.TryGetProperty("not_for", out var notFor))
-            {
-                criterion = criterion.WithNotFor(ReadTexts(notFor));
-            }
-
-            return criterion;
+            return Criterion.Json(DecisionContent.FromJson(json));
         }
 
-        return Criterion.Json(DecisionContent.FromJson(element));
+        if (!element.TryGetProperty("description", out var description) || description.ValueKind != JsonValueKind.String)
+        {
+            throw new FormatException("A criterion object needs a 'description' or a 'json'.");
+        }
+
+        var criterion = Criterion.Text(description.GetString()!);
+        if (element.TryGetProperty("examples", out var examples))
+        {
+            criterion = criterion.WithExamples(ReadTexts(examples));
+        }
+
+        if (element.TryGetProperty("not_for", out var notFor))
+        {
+            criterion = criterion.WithNotFor(ReadTexts(notFor));
+        }
+
+        return criterion;
     }
 
     private static string[] ReadTexts(JsonElement array)
