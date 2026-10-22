@@ -47,9 +47,15 @@ public sealed class UseRecordingTests
         using (factory)
         await using (recorder)
         {
-            var builder = new ScriptedClient(during: async _ => await Task.Yield()).AsBuilder().UseRecording(recorder);
-            using var first = builder.Build();
-            using var second = builder.Build();
+            var collection = new ServiceCollection();
+            collection.AddSingleton(recorder);
+            using var services = collection.BuildServiceProvider();
+
+            // Two builders over two inner clients: one takes the recorder from the services, the other is given it.
+            var firstInner = new ScriptedClient(during: async _ => await Task.Yield());
+            var secondInner = new ScriptedClient(Metadata, during: async _ => await Task.Yield());
+            using var first = firstInner.AsBuilder().UseRecording().Build(services);
+            using var second = secondInner.AsBuilder().UseRecording(recorder).Build();
 
             await Task.WhenAll(Enumerable.Range(0, PerPipeline * 2).Select(i => Task.Run(async () =>
             {
@@ -57,10 +63,17 @@ public sealed class UseRecordingTests
                 Assert.True((await client.EvaluateAsync(Request())).IsSuccess);
             })));
             await recorder.FlushAsync().AsTask().WaitAsync(Bound);
+
+            Assert.Equal(PerPipeline, firstInner.Calls);
+            Assert.Equal(PerPipeline, secondInner.Calls);
         }
 
-        Assert.Equal(PerPipeline * 2, sink.Calls.Count);
+        // One writer: the sink saw every record of both pipelines, one call at a time.
         Assert.False(sink.Overlapped);
+        Assert.Equal(PerPipeline * 2, sink.Calls.Count);
+        var providers = sink.Inner.Records.Select(decision => decision.Record.Provider).ToList();
+        Assert.Equal(PerPipeline, providers.Count(provider => string.Equals(provider, "unknown", StringComparison.Ordinal)));
+        Assert.Equal(PerPipeline, providers.Count(provider => string.Equals(provider, "openai", StringComparison.Ordinal)));
     }
 
     [Fact]

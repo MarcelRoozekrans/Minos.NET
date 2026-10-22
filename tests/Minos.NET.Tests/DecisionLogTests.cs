@@ -25,6 +25,7 @@ public sealed class DecisionLogTests
         DecisionLog.SinkCallFailed(logger, "write", nameof(IOException));
         DecisionLog.RedactionFailed(logger, nameof(InvalidOperationException));
         DecisionLog.FlushTimedOut(logger, 100, 1, 2, 3, 4);
+        DecisionLog.RecordingFailed(logger, nameof(InvalidCastException));
 
         (int, string, LogLevel)[] expected =
         [
@@ -40,6 +41,7 @@ public sealed class DecisionLogTests
             (1010, "SinkCallFailed", LogLevel.Warning),
             (1011, "RedactionFailed", LogLevel.Warning),
             (1012, "FlushTimedOut", LogLevel.Error),
+            (1013, "RecordingFailed", LogLevel.Warning),
         ];
         var actual = logger.Collector.GetSnapshot().Select(record => (record.Id.Id, record.Id.Name ?? string.Empty, record.Level)).ToArray();
         Assert.Equal(expected, actual);

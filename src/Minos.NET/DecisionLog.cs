@@ -122,6 +122,17 @@ internal static partial class DecisionLog
         Message = "Minos recorder flush timed out after {TimeoutMs} ms; lost {Records} records, {Outcomes} outcomes, {Erasures} erasures and {Flushes} flushes.")]
     public static partial void FlushTimedOut(ILogger logger, double timeoutMs, int records, int outcomes, int erasures, int flushes);
 
+    /// <summary>
+    /// A recording stage failed to record a decision after the call was made, for example because a metric listener threw;
+    /// no record was kept, and the call's result is returned unchanged. Only the exception's type name is logged.
+    /// </summary>
+    [LoggerMessage(
+        EventId = 1013,
+        EventName = nameof(RecordingFailed),
+        Level = LogLevel.Warning,
+        Message = "Minos recording failed with {ExceptionType}; no record was kept, and the decision is unaffected.")]
+    public static partial void RecordingFailed(ILogger logger, string exceptionType);
+
     /// <summary>The message to log for <paramref name="error"/>: its own, except where it can carry request or response text.</summary>
     /// <param name="error">The error.</param>
     /// <returns><see cref="DecisionError.Message"/>, or a fixed text for <see cref="DecisionErrorKind.InvalidResponse"/> (<see cref="UnreadableResponse"/>) and <see cref="DecisionErrorKind.Network"/> (<see cref="RequestNotSent"/>).</returns>

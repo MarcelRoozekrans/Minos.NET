@@ -58,17 +58,20 @@ internal sealed class MetricCapture : IDisposable
     }
 
     /// <summary>The queue length gauge, read now.</summary>
-    public long QueueLength()
+    public long QueueLength() => Observe("minos.recording.queue_length");
+
+    /// <summary>An observable instrument's value, read now: for an observable counter, its total since the process started.</summary>
+    public long Observe(string instrument)
     {
         lock (_measurements)
         {
-            _measurements.RemoveAll(m => string.Equals(m.Instrument, "minos.recording.queue_length", StringComparison.Ordinal));
+            _measurements.RemoveAll(m => string.Equals(m.Instrument, instrument, StringComparison.Ordinal));
         }
 
         _listener.RecordObservableInstruments();
         lock (_measurements)
         {
-            return _measurements.Single(m => string.Equals(m.Instrument, "minos.recording.queue_length", StringComparison.Ordinal)).Value;
+            return _measurements.Single(m => string.Equals(m.Instrument, instrument, StringComparison.Ordinal)).Value;
         }
     }
 

@@ -20,8 +20,11 @@ namespace Minos.Recording;
 /// <para>
 /// A record that cannot be queued, because the queue is full or the recorder is disposed, is dropped and counted. A
 /// redactor that throws keeps no record and is logged as event 1011 with the exception's type name only. Images are
-/// recorded as their count and the SHA-256 of each, never their bytes. Disposing the stage disposes the inner client,
-/// never the recorder.
+/// recorded as their count and the SHA-256 of each, never their bytes. Once the inner client has returned, nothing the
+/// recording does fails the call: a failure to record, such as a metric listener that throws, loses the record, is counted
+/// in <c>minos.recording.record_failures</c> and is logged as event 1013 with the exception's type name only. An exception
+/// from the inner client, the caller's cancellation among them, reaches the caller unchanged and leaves the scope free for
+/// another attempt. Disposing the stage disposes the inner client, never the recorder.
 /// </para>
 /// </remarks>
 public sealed class RecordingDecisionClient : DelegatingDecisionClient
@@ -46,7 +49,7 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
         _time = recorder.Time;
         var metadata = innerClient.GetService<DecisionClientMetadata>();
         _provider = metadata?.ProviderName ?? UnknownProvider;
-        _endpoint = metadata?.Endpoint?.AbsoluteUri;
+        _endpoint = metadata?.Endpoint is { IsAbsoluteUri: true } endpoint ? endpoint.AbsoluteUri : metadata?.Endpoint?.OriginalString;
         _defaultModel = metadata?.DefaultModel;
     }
 
@@ -58,18 +61,29 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
     public override ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var (decisionId, erasureKey) = Identify(request);
+        var identity = Identify(request);
         var started = _time.GetUtcNow();
         var timestamp = _time.GetTimestamp();
-        var pending = InnerClient.EvaluateAsync(request, cancellationToken);
+        ValueTask<Result<DecisionResponse, DecisionError>> pending;
+        try
+        {
+            pending = InnerClient.EvaluateAsync(request, cancellationToken);
+        }
+        catch (Exception)
+        {
+            // No decision was made: the scope can be used again. The exception is the caller's, unchanged.
+            identity.Release();
+            throw;
+        }
+
         if (pending.IsCompletedSuccessfully)
         {
             var result = pending.Result;
-            Record(request, result, decisionId, erasureKey, started, timestamp);
+            Record(request, result, identity, started, timestamp);
             return new(result);
         }
 
-        return AwaitAsync(pending, request, decisionId, erasureKey, started, timestamp);
+        return AwaitAsync(pending, request, identity, started, timestamp);
     }
 
     /// <inheritdoc />
@@ -82,45 +96,69 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
     }
 
     // The scope's id and key, enforcing one fresh decision per scope before the inner call.
-    private static (string DecisionId, string? ErasureKey) Identify(DecisionRequest request)
+    private static Identity Identify(DecisionRequest request)
     {
         if (DecisionRecording.Current is not { } scope)
         {
-            return (Guid.CreateVersion7().ToString(), null);
+            return new(Guid.CreateVersion7().ToString(), null, null, Generated: false);
         }
 
-        if (request.RetryAttempt == 0)
+        if (request.RetryAttempt != 0)
         {
-            if (!scope.TryClaimFresh())
-            {
-                throw new InvalidOperationException(
-                    "A decision was already made in this recording scope: a scope holds one decision. Begin a new scope for each decision.");
-            }
-        }
-        else
-        {
+            // A retry of the scope's decision: it is recorded under the same id, and never releases the scope.
             scope.MarkDecided();
+            return new(scope.EnsureDecisionId(out _), scope.ErasureKey, null, Generated: false);
         }
 
-        return (scope.EnsureDecisionId(), scope.ErasureKey);
+        if (!scope.TryClaimFresh())
+        {
+            throw new InvalidOperationException(
+                "A decision was already made in this recording scope: a scope holds one decision. Begin a new scope for each decision.");
+        }
+
+        var decisionId = scope.EnsureDecisionId(out var generated);
+        return new(decisionId, scope.ErasureKey, scope, generated);
     }
 
     private async ValueTask<Result<DecisionResponse, DecisionError>> AwaitAsync(
         ValueTask<Result<DecisionResponse, DecisionError>> pending,
         DecisionRequest request,
-        string decisionId,
-        string? erasureKey,
+        Identity identity,
         DateTimeOffset started,
         long timestamp)
     {
-        var result = await pending.ConfigureAwait(false);
-        Record(request, result, decisionId, erasureKey, started, timestamp);
+        Result<DecisionResponse, DecisionError> result;
+        try
+        {
+            result = await pending.ConfigureAwait(false);
+        }
+        catch (Exception)
+        {
+            identity.Release();
+            throw;
+        }
+
+        Record(request, result, identity, started, timestamp);
         return result;
     }
 
-    // Builds the record and queues it without waiting. Nothing here fails the call: a redactor's failure is caught, and
-    // a full queue drops the record.
-    private void Record(
+    // Once the inner client has decided, recording can never fail the call: whatever throws here, such as a metric
+    // listener, is counted and logged by its type name, and the record is lost.
+    private void Record(DecisionRequest request, Result<DecisionResponse, DecisionError> result, Identity identity, DateTimeOffset started, long timestamp)
+    {
+        try
+        {
+            RecordCore(request, result, identity.DecisionId, identity.ErasureKey, started, timestamp);
+        }
+        catch (Exception exception)
+        {
+            RecordingTelemetry.RecordFailed();
+            _recorder.LogRecordingFailed(exception.GetType().Name);
+        }
+    }
+
+    // Builds the record and queues it without waiting. A redactor's failure is caught, and a full queue drops the record.
+    private void RecordCore(
         DecisionRequest request, Result<DecisionResponse, DecisionError> result, string decisionId, string? erasureKey, DateTimeOffset started, long timestamp)
     {
         var latency = _time.GetElapsedTime(timestamp);
@@ -221,5 +259,12 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
 
         state = redaction.State;
         return true;
+    }
+
+    // The record's id and key, and the fresh claim this call made on its scope, if any.
+    private readonly record struct Identity(string DecisionId, string? ErasureKey, DecisionRecording.ScopeState? ClaimedScope, bool Generated)
+    {
+        // Gives back a fresh claim when the inner call threw, with the id when this call generated it.
+        public void Release() => ClaimedScope?.Release(Generated ? DecisionId : null);
     }
 }

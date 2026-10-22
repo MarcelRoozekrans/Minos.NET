@@ -117,6 +117,7 @@ public sealed class RedactionTests
     public async Task AThrowingLogger_DoesNotFailTheDecision_AndIsCounted()
     {
         using var metrics = new MetricCapture();
+        var logFailuresBefore = metrics.Observe("minos.recording.log_failures");
         using var factory = LoggerFactory.Create(builder => builder.AddProvider(new ThrowingLoggerProvider()));
         await using var recorder = new DecisionRecorder(
             new RecordingSpySink(), new RecordingOptions { Redact = _ => throw new FormatException() }, factory);
@@ -125,7 +126,7 @@ public sealed class RedactionTests
         var result = await client.EvaluateAsync(Request());
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(1, metrics.Sum("minos.recording.log_failures"));
+        Assert.Equal(1, metrics.Observe("minos.recording.log_failures") - logFailuresBefore);
     }
 
     [Fact]

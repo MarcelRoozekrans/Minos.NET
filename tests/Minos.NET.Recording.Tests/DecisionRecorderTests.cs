@@ -415,6 +415,7 @@ public sealed class DecisionRecorderTests
     public async Task AThrowingLogger_IsCounted()
     {
         using var metrics = new MetricCapture();
+        var logFailuresBefore = metrics.Observe("minos.recording.log_failures");
         var sink = new ThrowingSink(call => call.StartsWith("write:", StringComparison.Ordinal));
         using var factory = LoggerFactory.Create(builder => builder.AddProvider(new ThrowingLoggerProvider()));
         await using (var recorder = new DecisionRecorder(sink, loggerFactory: factory))
@@ -424,7 +425,7 @@ public sealed class DecisionRecorderTests
             await recorder.FlushAsync().AsTask().WaitAsync(Bound);
         }
 
-        Assert.Equal(2, metrics.Sum("minos.recording.log_failures"));
+        Assert.Equal(2, metrics.Observe("minos.recording.log_failures") - logFailuresBefore);
         Assert.Equal(2, metrics.Sum("minos.recording.records", "sink_failed"));
     }
 

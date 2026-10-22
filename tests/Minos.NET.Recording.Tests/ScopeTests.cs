@@ -5,7 +5,7 @@ namespace Minos.Recording.Tests;
 [Collection(RecordingListeners.Name)]
 public sealed class ScopeTests
 {
-    private static async Task<IReadOnlyList<DecisionRecord>> RecordAsync(ScriptedClient inner, Func<IDecisionClient, Task> calls)
+    private static async Task<IReadOnlyList<DecisionRecord>> RecordAsync(IDecisionClient inner, Func<IDecisionClient, Task> calls)
     {
         var sink = new RecordingSpySink();
         var (recorder, _, factory) = Recorder(sink);
@@ -90,6 +90,64 @@ public sealed class ScopeTests
         Assert.DoesNotContain("order-42", thrown!.Message, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData(false, false)]
+    [InlineData(false, true)]
+    [InlineData(true, false)]
+    [InlineData(true, true)]
+    public async Task AnInnerCallThatThrows_ReleasesTheScope_ForARetry(bool suppliedId, bool synchronousThrow)
+    {
+        var first = true;
+        IDecisionClient Inner() => synchronousThrow
+            ? new FlakyClient()
+            : new ScriptedClient(during: _ =>
+            {
+                if (first)
+                {
+                    first = false;
+                    throw new OperationCanceledException();
+                }
+
+                return ValueTask.CompletedTask;
+            });
+
+        string? afterFailure = "not read", afterSuccess = null;
+        var records = await RecordAsync(Inner(), async client =>
+        {
+            using var scope = DecisionRecording.Begin(suppliedId ? "order-42" : null);
+            await Assert.ThrowsAsync<OperationCanceledException>(() => client.EvaluateAsync(Request()).AsTask());
+            afterFailure = scope.DecisionId;
+            Assert.True((await client.EvaluateAsync(Request())).IsSuccess);
+            afterSuccess = scope.DecisionId;
+        });
+
+        // The failed call left no generated id behind, and the retry is the scope's one record.
+        Assert.Equal(suppliedId ? "order-42" : null, afterFailure);
+        var record = Assert.Single(records);
+        Assert.Equal(afterSuccess, record.DecisionId);
+        Assert.Equal(0, record.Attempt);
+    }
+
+    [Fact]
+    public async Task ARetryThatThrows_KeepsTheScopesDecision()
+    {
+        var calls = 0;
+        var inner = new ScriptedClient(during: _ => ++calls == 2 ? throw new OperationCanceledException() : ValueTask.CompletedTask);
+        var records = await RecordAsync(inner, async client =>
+        {
+            using var scope = DecisionRecording.Begin("order-42");
+            Assert.True((await client.EvaluateAsync(Request())).IsSuccess);
+            await Assert.ThrowsAsync<OperationCanceledException>(() => client.EvaluateAsync(Request() with { RetryAttempt = 1 }).AsTask());
+
+            // The fresh decision was made by the first call: a retry that failed does not release it.
+            await Assert.ThrowsAsync<InvalidOperationException>(() => client.EvaluateAsync(Request()).AsTask());
+            Assert.Equal("order-42", scope.DecisionId);
+        });
+
+        Assert.Single(records);
+        Assert.Equal(2, inner.Calls);
+    }
+
     [Fact]
     public void NestedBegin_Throws()
     {
@@ -144,5 +202,28 @@ public sealed class ScopeTests
         Assert.Equal(Count, records.Count);
         Assert.All(records, record => Assert.Equal(record.DecisionId.Replace("id-", "state-", StringComparison.Ordinal), record.State.ToString()));
         Assert.Equal(Count, records.Select(record => record.DecisionId).Distinct(StringComparer.Ordinal).Count());
+    }
+
+    /// <summary>An inner client whose first call throws from EvaluateAsync itself, before returning a task.</summary>
+    private sealed class FlakyClient : IDecisionClient
+    {
+        private bool _thrown;
+
+        public ValueTask<ZeroAlloc.Results.Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
+        {
+            if (!_thrown)
+            {
+                _thrown = true;
+                throw new OperationCanceledException();
+            }
+
+            return new(Success());
+        }
+
+        public object? GetService(Type serviceType, object? serviceKey = null) => null;
+
+        public void Dispose()
+        {
+        }
     }
 }

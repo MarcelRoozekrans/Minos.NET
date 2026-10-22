@@ -41,7 +41,7 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
     /// <summary>Creates the recorder and starts its writer.</summary>
     /// <param name="sink">Where the records go. The recorder does not dispose it.</param>
     /// <param name="options">The queue's capacity, the flush timeout and the redactor, or <see langword="null"/> for the defaults. They are read now.</param>
-    /// <param name="loggerFactory">Logs dropped records, failed sink calls, failed redactions and a flush that timed out, or <see langword="null"/> for none.</param>
+    /// <param name="loggerFactory">Logs dropped records, failed sink calls, failed redactions and recordings, and a flush that timed out, or <see langword="null"/> for none.</param>
     /// <param name="timeProvider">The clock for the records' times and the flush timeout, or <see langword="null"/> for <see cref="TimeProvider.System"/>.</param>
     /// <exception cref="ArgumentNullException"><paramref name="sink"/> is <see langword="null"/>.</exception>
     public DecisionRecorder(IDecisionRecordSink sink, RecordingOptions? options = null, ILoggerFactory? loggerFactory = null, TimeProvider? timeProvider = null)
@@ -438,6 +438,11 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
     /// <param name="exceptionType">The type name of the redactor's exception.</param>
     internal void LogRedactionFailed(string exceptionType)
         => Log(static (logger, type) => DecisionLog.RedactionFailed(logger, type), exceptionType);
+
+    /// <summary>Logs event 1013 for a decision the recording stage failed to record, with the exception's type name only.</summary>
+    /// <param name="exceptionType">The type name of the exception.</param>
+    internal void LogRecordingFailed(string exceptionType)
+        => Log(static (logger, type) => DecisionLog.RecordingFailed(logger, type), exceptionType);
 
     private void LogSinkCallFailed(string operation, Exception exception)
         => Log(static (logger, call) => DecisionLog.SinkCallFailed(logger, call.Operation, call.ExceptionType), (Operation: operation, ExceptionType: exception.GetType().Name));

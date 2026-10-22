@@ -112,6 +112,17 @@ public sealed class RecordingDecisionClientTests
     }
 
     [Fact]
+    public async Task ARelativeEndpoint_IsRecordedAsItsText()
+    {
+        var metadata = new DecisionClientMetadata("proxy", new Uri("v1/", UriKind.Relative), null);
+
+        var record = await RecordOneAsync(new ScriptedClient(metadata), Request());
+
+        Assert.Equal("proxy", record.Provider);
+        Assert.Equal("v1/", record.Endpoint);
+    }
+
+    [Fact]
     public async Task AnError_KeepsItsKind_AndNoMessage()
     {
         var inner = new ScriptedClient(Metadata).Then(Error("The upstream said MESSAGE-SENTINEL."));

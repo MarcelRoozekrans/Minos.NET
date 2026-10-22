@@ -36,7 +36,7 @@ so `SystemOneDecisionClient` instruments them itself.
 | Events 1001, 1002 and 1006 | `LoggingDecisionClient` | Once per call, when the client has a logger factory. |
 | Event 1003 | `RetryingDecisionClient` | For each attempt it retries, when it has a logger. |
 | Events 1007 and 1008 | `CachingDecisionClient` | When its distributed cache throws, and it has a logger. |
-| Events 1009, 1010 and 1012 | `DecisionRecorder`, in `Minos.NET.Recording` | When its queue drops records, its sink throws, or its dispose times out, and it has a logger factory. |
+| Events 1009 to 1013 | `DecisionRecorder` and `RecordingDecisionClient`, in `Minos.NET.Recording` | When the queue drops records, the sink throws, a redactor throws, a record cannot be made, or the dispose times out, and the recorder has a logger factory. |
 | The spans `evaluate {model}` and `list_models`, their metrics, and events 1001 to 1006 of the raw calls | `SystemOneDecisionClient` | For `EvaluateAsync(SystemOneRequest)` and `ListModelsAsync`. |
 
 With `UseStandardPipeline` set to `false`, a `DecisionRequest` call emits none of these until you add the stages
@@ -115,6 +115,7 @@ such as a JSON console or Serilog, receives each `{Placeholder}` below as a fiel
 | 1010 | `SinkCallFailed` | Warning | `Minos recorder sink call {Operation} failed with {ExceptionType}; the item was skipped.` |
 | 1011 | `RedactionFailed` | Warning | `Minos recording redaction failed with {ExceptionType}; no record was kept.` |
 | 1012 | `FlushTimedOut` | Error | `Minos recorder flush timed out after {TimeoutMs} ms; lost {Records} records, {Outcomes} outcomes, {Erasures} erasures and {Flushes} flushes.` |
+| 1013 | `RecordingFailed` | Warning | `Minos recording failed with {ExceptionType}; no record was kept, and the decision is unaffected.` |
 
 A call logs once, when it completes, and logs again for each attempt it is about to retry.
 
@@ -145,14 +146,17 @@ A call logs once, when it completes, and logs again for each attempt it is about
 - **The decision recorder**, in `Minos.NET.Recording`, never fails a decision either, and logs counts and exception type
   names only: never the state, a decision id or an erasure key. 1009 counts the records it dropped because its queue
   was full, 1010 names the sink call that threw and the exception's type, 1011 says that a redactor threw and no record
-  was kept, and 1012, an Error, counts by kind the items its dispose gave up on when the flush timed out. A logger that
-  throws loses the event but never stops the recorder. On the `Minos` meter, the counter `minos.recording.records`
+  was kept, 1012, an Error, counts by kind the items its dispose gave up on when the flush timed out, and 1013 says
+  that the recording stage could not make a record after the call, for example because a metric listener threw; the
+  call's result is still returned. A logger that throws loses the event but never stops the recorder. On the `Minos` meter, the counter `minos.recording.records`
   puts every record in exactly one `result`: `written`, `dropped_full`, `dropped_redaction`, `redaction_failed`,
   `sink_failed`, `dropped_disposed` for a record handed over after dispose, or `dropped_flush_timeout` for one lost
   when the flush timed out. A write that finishes after the flush timed out is not counted again. `minos.recording.outcomes`
-  and `minos.recording.erasures` count `written` and `failed`, `minos.recording.log_failures`, with no tags, counts the
-  log events lost because the logger threw, and the gauge `minos.recording.queue_length` reads the items waiting in
-  every recorder's queue.
+  and `minos.recording.erasures` count `written` and `failed`. Two observable counters with no tags count failures of
+  the recording itself: `minos.recording.log_failures`, the log events lost because the logger threw, and
+  `minos.recording.record_failures`, the decisions the stage could not record. They read totals kept in the process, so
+  counting a failure never calls a listener and cannot fail too. The gauge `minos.recording.queue_length` reads the items
+  waiting in every recorder's queue.
 - **`UnexpectedException`** is an Error, 1006. It means a mistake in the calling code or a bug, because a failure of the
   call itself is a returned `DecisionError`. The exception continues up to you unchanged. A cancellation that you requested
   is not logged, and neither are the argument checks and the disposed-client check that throw before the call starts.
