@@ -5,7 +5,7 @@ namespace Minos.Recording.RecordFormat;
 
 // What the reader deserializes one line into. Every line kind shares the type: the reader checks "kind" and then the
 // members that kind needs. The question set, the state and the confirmed answers stay JsonElements, because their shape
-// is not fixed. Unknown members are skipped, so a later minor addition to version 1 does not break this reader.
+// is not fixed. Unknown members are skipped.
 internal sealed class LineDto
 {
     public string? Kind { get; set; }
@@ -17,8 +17,6 @@ internal sealed class LineDto
     public string? ErasureKey { get; set; }
 
     // Record members.
-    public int Attempt { get; set; }
-
     public DateTimeOffset? Started { get; set; }
 
     public double LatencyMs { get; set; }

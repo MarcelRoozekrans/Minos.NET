@@ -24,8 +24,7 @@ public static class DecisionRecording
     /// <summary>
     /// Begins a scope for one decision. A scope holds one decision: a second request in it with
     /// <see cref="DecisionRequest.RetryAttempt"/> 0 throws <see cref="InvalidOperationException"/> before the inner call. A
-    /// retry, with a higher attempt, is recorded under the same id. A call whose inner client throws makes no decision,
-    /// so the scope can be used again.
+    /// call whose inner client throws makes no decision, so the scope can be used again.
     /// </summary>
     /// <remarks>
     /// Call <see cref="Begin"/> in the method that awaits the decision call, or in one that calls that method. A scope
@@ -76,9 +75,6 @@ public static class DecisionRecording
         /// <summary>Claims the scope's one fresh decision.</summary>
         /// <returns><see langword="false"/> when a decision was already made in the scope.</returns>
         public bool TryClaimFresh() => Interlocked.Exchange(ref _hasDecision, 1) == 0;
-
-        /// <summary>Notes that a decision was made in the scope, for a retry that arrives first.</summary>
-        public void MarkDecided() => Volatile.Write(ref _hasDecision, 1);
 
         /// <summary>Gets the scope's id, generating a UUIDv7 the first time when none was given.</summary>
         /// <param name="generated">Set when this call generated the id.</param>

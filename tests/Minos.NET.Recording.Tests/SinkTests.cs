@@ -8,7 +8,7 @@ public sealed class SinkTests : IDisposable
 
     public void Dispose() => Directory.Delete(_directory, recursive: true);
 
-    // The same calls, for every sink: records, a retried one, outcomes, and both kinds of erasure, one of which comes
+    // The same calls, for every sink: records, one written again, outcomes, and both kinds of erasure, one of which comes
     // before a record it must not touch.
     private static async Task PlayAsync(IDecisionRecordSink sink)
     {
@@ -16,7 +16,7 @@ public sealed class SinkTests : IDisposable
         await sink.WriteAsync(Record("d-1", erasureKey: "customer-7"), ct);
         await sink.WriteAsync(Record("d-2", erasureKey: "customer-8"), ct);
         await sink.AddOutcomeAsync("d-2", Signal("clicked"), ct);
-        await sink.WriteAsync(Record("d-2", erasureKey: "customer-8", attempt: 1, state: "Retried."), ct);
+        await sink.WriteAsync(Record("d-2", erasureKey: "customer-8", state: "Written again."), ct);
         await sink.AddOutcomeAsync("d-2", Confirmed(), ct);
         await sink.WriteAsync(Record("d-3", erasureKey: null), ct);
         await sink.AddOutcomeAsync("d-3", Signal("complained"), ct);
@@ -26,7 +26,6 @@ public sealed class SinkTests : IDisposable
         await sink.WriteAsync(Record("d-5", erasureKey: "customer-7"), ct);
         await sink.WriteAsync(Record("d-6", erasureKey: null), ct);
         await sink.EraseDecisionAsync("d-6", ct);
-        await sink.WriteAsync(Record("d-2", erasureKey: "customer-8", attempt: 0, state: "A stale attempt."), ct);
         await sink.AddOutcomeAsync("d-9", Signal("orphan"), ct);
     }
 
@@ -39,8 +38,7 @@ public sealed class SinkTests : IDisposable
         var records = sink.Records;
 
         Assert.Equal(["d-2", "d-3", "d-5"], records.Select(r => r.Record.DecisionId));
-        Assert.Equal(1, records[0].Record.Attempt);
-        Assert.Equal(DecisionContent.FromString("Retried."), records[0].Record.State);
+        Assert.Equal(DecisionContent.FromString("Written again."), records[0].Record.State);
         Assert.Equal(["clicked", null], records[0].Outcomes.Select(o => (o as SignalOutcome)?.Name));
         Assert.IsType<ConfirmedOutcome>(records[0].Outcomes[1]);
         Assert.Equal(["complained"], records[1].Outcomes.Select(o => ((SignalOutcome)o).Name));
@@ -104,56 +102,6 @@ public sealed class SinkTests : IDisposable
         Assert.Equal(Line(Record("d-1")), lines[0]);
         Assert.Equal(Line(Record("d-2")), lines[1]);
         Assert.Equal("""{"kind":"erasure","version":1,"erasureKey":"someone"}""", lines[2]);
-    }
-
-    [Fact]
-    public async Task AnErasure_Applies_AfterReopeningAFileWhoseLastLineWasCut()
-    {
-        var path = Path.Combine(_directory, "decisions.jsonl");
-        await using (var sink = new JsonlDecisionRecordSink(path))
-        {
-            await sink.WriteAsync(Record("d-1", erasureKey: "victim"), CancellationToken.None);
-        }
-
-        // A crash left part of a line.
-        await File.AppendAllTextAsync(path, """{"kind":"record","version":1,"decisionId":"d-""");
-        await using (var sink = new JsonlDecisionRecordSink(path))
-        {
-            await sink.EraseAsync("victim", CancellationToken.None);
-            await sink.WriteAsync(Record("d-2", erasureKey: null), CancellationToken.None);
-        }
-
-        var problems = new List<DecisionRecordFileProblem>();
-        var read = new List<RecordedDecision>();
-        await foreach (var decision in DecisionRecordFile.ReadAsync(path, problems, CancellationToken.None))
-        {
-            read.Add(decision);
-        }
-
-        Assert.Equal(["d-2"], read.Select(d => d.Record.DecisionId));
-        Assert.Equal(2, Assert.Single(problems).Line);
-    }
-
-    [Fact]
-    public async Task AWriteThatFailed_IsFollowedByALineOfItsOwn()
-    {
-        var path = Path.Combine(_directory, "decisions.jsonl");
-        await using (var sink = new JsonlDecisionRecordSink(path))
-        {
-            await sink.WriteAsync(Record("d-1"), CancellationToken.None);
-            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => sink.WriteAsync(Record("d-x"), new CancellationToken(canceled: true)).AsTask());
-            await sink.WriteAsync(Record("d-2"), CancellationToken.None);
-        }
-
-        // The failed write may have left part of its line; the next one starts on a line of its own.
-        Assert.Equal(Line(Record("d-1")) + "\n\n" + Line(Record("d-2")) + "\n", await File.ReadAllTextAsync(path));
-        var read = new List<RecordedDecision>();
-        await foreach (var decision in DecisionRecordFile.ReadAsync(path, CancellationToken.None))
-        {
-            read.Add(decision);
-        }
-
-        Assert.Equal(["d-1", "d-2"], read.Select(d => d.Record.DecisionId));
     }
 
     [Fact]

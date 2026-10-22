@@ -316,7 +316,7 @@ public sealed class ObservabilityTelemetryTests
         var rows = PageTables.Rows(Page, "The recorder's metrics");
         var recorders = listener.Instruments.Keys.Where(IsRecorders).ToList();
 
-        Assert.Equal(6, recorders.Count);
+        Assert.Equal(4, recorders.Count);
         Assert.Equal(recorders.Order(StringComparer.Ordinal), rows.Select(row => PageTables.Code(row[0])).Order(StringComparer.Ordinal));
         Assert.Equal(
             rows.Select(row => $"{row[1]} {PageTables.Code(row[2])}"),

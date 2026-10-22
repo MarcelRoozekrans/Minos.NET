@@ -125,27 +125,6 @@ public sealed class ScopeTests
         Assert.Equal(suppliedId ? "order-42" : null, afterFailure);
         var record = Assert.Single(records);
         Assert.Equal(afterSuccess, record.DecisionId);
-        Assert.Equal(0, record.Attempt);
-    }
-
-    [Fact]
-    public async Task ARetryThatThrows_KeepsTheScopesDecision()
-    {
-        var calls = 0;
-        var inner = new ScriptedClient(during: _ => ++calls == 2 ? throw new OperationCanceledException() : ValueTask.CompletedTask);
-        var records = await RecordAsync(inner, async client =>
-        {
-            using var scope = DecisionRecording.Begin("order-42");
-            Assert.True((await client.EvaluateAsync(Request())).IsSuccess);
-            await Assert.ThrowsAsync<OperationCanceledException>(() => client.EvaluateAsync(Request() with { RetryAttempt = 1 }).AsTask());
-
-            // The fresh decision was made by the first call: a retry that failed does not release it.
-            await Assert.ThrowsAsync<InvalidOperationException>(() => client.EvaluateAsync(Request()).AsTask());
-            Assert.Equal("order-42", scope.DecisionId);
-        });
-
-        Assert.Single(records);
-        Assert.Equal(2, inner.Calls);
     }
 
     [Fact]

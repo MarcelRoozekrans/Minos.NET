@@ -147,16 +147,13 @@ A call logs once, when it completes, and logs again for each attempt it is about
   names only: never the state, a decision id or an erasure key. 1009 counts the records it dropped because its queue
   was full, 1010 names the sink call that threw and the exception's type, 1011 says that a redactor threw and no record
   was kept, 1012, an Error, counts by kind the items its dispose gave up on when the flush timed out, and 1013 says
-  that the recording stage could not make a record after the call, for example because a metric listener threw; the
-  call's result is still returned. A logger that throws loses the event but never stops the recorder. On the `Minos` meter, the counter `minos.recording.records`
-  puts every record in exactly one `result`: `written`, `dropped_full`, `dropped_redaction`, `redaction_failed`,
-  `sink_failed`, `dropped_disposed` for a record handed over after dispose, or `dropped_flush_timeout` for one lost
-  when the flush timed out. A write that finishes after the flush timed out is not counted again. `minos.recording.outcomes`
-  and `minos.recording.erasures` count `written` and `failed`. Two observable counters with no tags count failures of
-  the recording itself: `minos.recording.log_failures`, the log events lost because the logger threw, and
-  `minos.recording.record_failures`, the decisions the stage could not record. They read totals kept in the process, so
-  counting a failure never calls a listener and cannot fail too. The gauge `minos.recording.queue_length` reads the items
-  waiting in every recorder's queue.
+  that the recording stage could not make a record after the call; the call's result is still returned. A logger that
+  throws loses the event but never stops the recorder. On the `Minos` meter, `minos.recording.records` puts every record
+  in exactly one `result`: `written`; `dropped`, when the queue was full, the recorder was disposed, the flush timed out
+  or the redactor returned `Drop`; or `failed`, when the sink or the redactor threw or the stage could not make the
+  record. A write that finishes after the flush timed out is not counted again. `minos.recording.outcomes` and
+  `minos.recording.erasures` count `written` and `failed`, and `minos.recording.log_failures` counts the log events lost
+  because the logger threw.
 - **`UnexpectedException`** is an Error, 1006. It means a mistake in the calling code or a bug, because a failure of the
   call itself is a returned `DecisionError`. The exception continues up to you unchanged. A cancellation that you requested
   is not logged, and neither are the argument checks and the disposed-client check that throw before the call starts.
@@ -430,12 +427,13 @@ version. Every tag is a fixed value.
 
 | Metric | Kind | Unit | Attributes | Recorded |
 | --- | --- | --- | --- | --- |
-| `minos.recording.records` | Counter | `{record}` | `result`: `written`, `dropped_full`, `dropped_redaction`, `redaction_failed`, `sink_failed`, `dropped_disposed` or `dropped_flush_timeout` | once for every record, in exactly one result |
-| `minos.recording.outcomes` | Counter | `{outcome}` | `result`: `written` or `failed` | each outcome the sink was given |
-| `minos.recording.erasures` | Counter | `{erasure}` | `result`: `written` or `failed` | each erasure the sink was given |
+| `minos.recording.records` | Observable counter | `{record}` | `result`: `written`, `dropped` or `failed` | once for every record, in exactly one result |
+| `minos.recording.outcomes` | Observable counter | `{outcome}` | `result`: `written` or `failed` | each outcome the sink was given |
+| `minos.recording.erasures` | Observable counter | `{erasure}` | `result`: `written` or `failed` | each erasure the sink was given |
 | `minos.recording.log_failures` | Observable counter | `{event}` | none | the recorder's log events lost because the logger threw |
-| `minos.recording.record_failures` | Observable counter | `{decision}` | none | the decisions the recording stage could not record |
-| `minos.recording.queue_length` | Observable gauge | `{item}` | none | the items waiting in every recorder's queue |
+
+They are observable counters over totals kept in the process: counting never calls a listener, and a listener reads
+the totals when it collects.
 
 ## What is never emitted
 

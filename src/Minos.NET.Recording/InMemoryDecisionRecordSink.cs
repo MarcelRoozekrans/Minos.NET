@@ -3,8 +3,8 @@ namespace Minos.Recording;
 /// <summary>
 /// A sink that keeps records and outcomes in memory, for development and tests. It applies
 /// outcomes and erasures as <see cref="DecisionRecordFile.ReadAsync(string, CancellationToken)"/> does for a file: an
-/// erasure removes what was kept before it, a record of the same decision replaces the earlier one when its attempt is
-/// higher or equal, and an outcome with no record is ignored. It is safe to read <see cref="Records"/> while a recorder
+/// erasure removes what was kept before it, a record of the same decision replaces the earlier one and keeps its
+/// outcomes, and an outcome with no record is ignored. It is safe to read <see cref="Records"/> while a recorder
 /// writes to it.
 /// </summary>
 public sealed class InMemoryDecisionRecordSink : IDecisionRecordSink
@@ -39,10 +39,7 @@ public sealed class InMemoryDecisionRecordSink : IDecisionRecordSink
         {
             if (_byId.TryGetValue(record.DecisionId, out var existing))
             {
-                if (record.Attempt >= existing.Record.Attempt)
-                {
-                    existing.Record = record;
-                }
+                existing.Record = record;
             }
             else
             {

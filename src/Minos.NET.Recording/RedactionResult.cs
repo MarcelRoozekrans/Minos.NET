@@ -12,7 +12,7 @@ public sealed class RedactionResult
         IsDrop = isDrop;
     }
 
-    /// <summary>Gets the result that keeps no record of the decision. It is counted as <c>dropped_redaction</c>.</summary>
+    /// <summary>Gets the result that keeps no record of the decision. It is counted as a <c>dropped</c> record.</summary>
     public static RedactionResult Drop { get; } = new(default, isDrop: true);
 
     /// <summary>Gets the state to record; uninitialized for <see cref="Drop"/>.</summary>

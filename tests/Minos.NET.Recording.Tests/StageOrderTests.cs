@@ -11,7 +11,7 @@ public sealed class StageOrderTests : IDisposable
     public void Dispose() => Directory.Delete(_directory, recursive: true);
 
     [Fact]
-    public async Task InsideRetries_ARetriedDecision_KeepsOneId_WithAttempts()
+    public async Task InsideRetries_OnlyTheFirstAttempt_IsRecorded()
     {
         var path = Path.Combine(_directory, "decisions.jsonl");
         var inner = new ScriptedClient().ThenFail(DecisionErrorKind.Server);
@@ -21,7 +21,8 @@ public sealed class StageOrderTests : IDisposable
             using (factory)
             await using (recorder)
             {
-                // Not the recommended order: the recording stage sits inside the retry stage, so it sees each attempt.
+                // Not the recommended order: the recording stage sits inside the retry stage, so it sees each attempt,
+                // and records the first one only.
                 using var client = inner.AsBuilder()
                     .UseRetries(o =>
                     {
@@ -46,12 +47,11 @@ public sealed class StageOrderTests : IDisposable
         }
 
         Assert.Equal(2, inner.Calls);
-        Assert.Equal(2, File.ReadAllLines(path).Length);
+        Assert.Single(File.ReadAllLines(path));
         var decision = Assert.Single(await DecisionRecordFile.ReadAsync(path, CancellationToken.None).ToListAsync());
         Assert.Equal("order-42", decision.Record.DecisionId);
         Assert.Equal("customer-7", decision.Record.ErasureKey);
-        Assert.Equal(1, decision.Record.Attempt);
-        Assert.Null(decision.Record.ErrorKind);
+        Assert.Equal(DecisionErrorKind.Server, decision.Record.ErrorKind);
     }
 
     [Fact]

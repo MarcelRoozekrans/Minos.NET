@@ -74,7 +74,6 @@ public sealed class RecordingDecisionClientTests
 
         Assert.Equal(7, Guid.Parse(record.DecisionId).Version);
         Assert.Null(record.ErasureKey);
-        Assert.Equal(0, record.Attempt);
         Assert.Equal(TestRecords.T0, record.Started);
         Assert.Equal(TimeSpan.FromMilliseconds(250), record.Latency);
         Assert.Equal("openai", record.Provider);
@@ -98,6 +97,32 @@ public sealed class RecordingDecisionClientTests
             record.Answers);
         Assert.Null(record.ErrorKind);
         Assert.Empty(record.RefusedKeys);
+    }
+
+    [Fact]
+    public async Task ARetryAttempt_IsPassedThrough_AndNotRecorded()
+    {
+        var inner = new ScriptedClient();
+        var sink = new RecordingSpySink();
+        var (recorder, _, factory) = Recorder(sink);
+        using (factory)
+        await using (recorder)
+        {
+            using var client = inner.AsBuilder().UseRecording(recorder).Build();
+            Assert.True((await client.EvaluateAsync(Request() with { RetryAttempt = 1 })).IsSuccess);
+            using (DecisionRecording.Begin("order-42"))
+            {
+                Assert.True((await client.EvaluateAsync(Request() with { RetryAttempt = 2 })).IsSuccess);
+
+                // A retry claims nothing: the scope's one fresh decision is still to be made.
+                Assert.True((await client.EvaluateAsync(Request())).IsSuccess);
+            }
+
+            await recorder.FlushAsync().AsTask().WaitAsync(Bound);
+        }
+
+        Assert.Equal(3, inner.Calls);
+        Assert.Equal(["write:order-42"], sink.Calls);
     }
 
     [Fact]
@@ -208,7 +233,7 @@ public sealed class RecordingDecisionClientTests
 
             Assert.True(result.IsSuccess);
             Assert.Single(sink.Thrown);
-            Assert.Equal(1, metrics.Sum("minos.recording.records", "sink_failed"));
+            Assert.Equal(1, metrics.Sum("minos.recording.records", "failed"));
         }
     }
 }

@@ -166,14 +166,6 @@ public static class RecordFileReading
 
         return decisions;
     }
-
-    // Rewrites the file without erased records. Run it once the recorder and the sink on the file are disposed: while
-    // a sink has the file open, it throws IOException and leaves the file as it is.
-    public static async Task<int> CompactAsync(string path, CancellationToken cancellationToken)
-    {
-        var problems = await DecisionRecordFile.CompactAsync(path, cancellationToken);
-        return problems.Count;
-    }
 }
 #endregion
 

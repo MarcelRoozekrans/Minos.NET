@@ -5,7 +5,7 @@ namespace Minos.AotSmoke;
 
 /// <summary>
 /// The decision recorder under Native AOT: a decision recorded through the JSONL sink, its outcomes, an erasure, a flush
-/// and the file read back and compacted; the stage, the recorder and the sinks called through their interfaces; and the
+/// and the file read back; the stage, the recorder and the sinks called through their interfaces; and the
 /// recorder's values and exceptions.
 /// </summary>
 internal static class RecordingChecks
@@ -34,7 +34,6 @@ internal static class RecordingChecks
     [Covers("Minos.Recording.JsonlDecisionRecordSink.EraseAsync(string! erasureKey, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask")]
     [Covers("Minos.Recording.JsonlDecisionRecordSink.EraseDecisionAsync(string! decisionId, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask")]
     [Covers("Minos.Recording.JsonlDecisionRecordSink.DisposeAsync() -> System.Threading.Tasks.ValueTask")]
-    [Covers("static Minos.Recording.DecisionRecordFile.CompactAsync(string! path, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Minos.Recording.DecisionRecordFileProblems!>")]
     public static async Task RecordsADecisionToAFileAndReadsItBack()
     {
         var path = Path.Combine(Path.GetTempPath(), "minos-aot-smoke-" + Guid.NewGuid().ToString("N") + ".jsonl");
@@ -88,11 +87,10 @@ internal static class RecordingChecks
             await sink.DisposeAsync().ConfigureAwait(false);
 
             var afterErasure = await ReadAllAsync(DecisionRecordFile.ReadAsync(path, CancellationToken.None)).ConfigureAwait(false);
-            var compacted = await DecisionRecordFile.CompactAsync(path, CancellationToken.None).ConfigureAwait(false);
 
             Program.Check(
-                afterErasure.Count == 0 && compacted.Count == 0 && new FileInfo(path).Length == 0,
-                "an erasure by key removes the customer's records, and compaction leaves an empty file, under Native AOT");
+                afterErasure.Count == 0,
+                "an erasure by key removes the customer's records, under Native AOT");
         }
         finally
         {
@@ -171,7 +169,6 @@ internal static class RecordingChecks
     [Covers("Minos.Recording.RecordedAnswer.Equals(Minos.Recording.RecordedAnswer other) -> bool")]
     [Covers("Minos.Recording.DecisionRecordFileProblem.DecisionRecordFileProblem() -> void")]
     [Covers("Minos.Recording.DecisionRecordFileProblem.DecisionRecordFileProblem(int Line, string! Message) -> void")]
-    [Covers("Minos.Recording.DecisionRecordFileProblems.GetEnumerator() -> System.Collections.Generic.IEnumerator<Minos.Recording.DecisionRecordFileProblem>!")]
     [Covers("Minos.Recording.RecordingException.RecordingException() -> void")]
     [Covers("Minos.Recording.RecordingException.RecordingException(string! message) -> void")]
     [Covers("Minos.Recording.RecordingException.RecordingException(string! message, System.Exception? innerException) -> void")]
@@ -199,23 +196,23 @@ internal static class RecordingChecks
             "confirmed answers, recorded answers and file problems are values under Native AOT");
 
         var path = Path.Combine(Path.GetTempPath(), "minos-aot-smoke-" + Guid.NewGuid().ToString("N") + ".jsonl");
-        await File.WriteAllTextAsync(path, "{\"kind\":\"record\"\nnot json\n").ConfigureAwait(false);
-        var lines = new List<int>();
+        await File.WriteAllTextAsync(path, "{\"kind\":\"record\"\nnot json\n{\"kind\":\"record\",\"version\":2}\n").ConfigureAwait(false);
+        var found = new List<DecisionRecordFileProblem>();
+        List<RecordedDecision> none;
         try
         {
-            foreach (var found in await DecisionRecordFile.CompactAsync(path, CancellationToken.None).ConfigureAwait(false))
-            {
-                lines.Add(found.Line);
-            }
+            none = await ReadAllAsync(DecisionRecordFile.ReadAsync(path, found, CancellationToken.None)).ConfigureAwait(false);
         }
         finally
         {
             File.Delete(path);
         }
 
+        var lines = found.ConvertAll(problem => problem.Line);
+
         var inner = new IOException("disk full");
         Program.Check(
-            lines is [1, 2]
+            none.Count == 0 && lines is [1, 2, 3]
                 && new RecordingException().Message.Length > 0
                 && string.Equals(new RecordingException("failed").Message, "failed", StringComparison.Ordinal)
                 && ReferenceEquals(new RecordingException("failed", inner).InnerException, inner),

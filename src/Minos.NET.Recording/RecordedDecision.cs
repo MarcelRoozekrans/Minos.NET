@@ -9,7 +9,7 @@ public sealed class RecordedDecision
         Outcomes = outcomes;
     }
 
-    /// <summary>Gets the record. When a decision was retried, it is the record of the highest attempt.</summary>
+    /// <summary>Gets the record.</summary>
     public DecisionRecord Record { get; }
 
     /// <summary>Gets the outcomes of the decision, in the order the file holds them.</summary>

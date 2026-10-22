@@ -14,16 +14,16 @@ namespace Minos.Recording;
 /// The record takes its decision id and erasure key from the <see cref="DecisionRecording"/> scope of the call, or gets a
 /// generated UUIDv7 id and no key when there is none. A scope holds one decision: a second request in it with
 /// <see cref="DecisionRequest.RetryAttempt"/> 0 throws <see cref="InvalidOperationException"/> before the inner call, the one
-/// way the stage fails a call. A request with a higher attempt, from a retry stage outside this one, is recorded under the
-/// scope's id with its attempt, and a reader keeps the highest attempt; without a scope, each attempt gets its own id. Add
-/// this stage outermost, so a decision is one record and a cache hit is recorded as cached.
+/// way the stage fails a call. Add this stage outermost, so a decision is one record and a cache hit is recorded as
+/// cached. A request with a <see cref="DecisionRequest.RetryAttempt"/> above 0, which reaches the stage only when a retry
+/// stage sits outside it, is passed to the inner client and not recorded.
 /// </para>
 /// <para>
 /// A record that cannot be queued, because the queue is full or the recorder is disposed, is dropped and counted. A
 /// redactor that throws keeps no record and is logged as event 1011 with the exception's type name only. Images are
 /// recorded as their count and the SHA-256 of each, never their bytes. Once the inner client has returned, nothing the
-/// recording does fails the call: a failure to record, such as a metric listener that throws, loses the record, is counted
-/// in <c>minos.recording.record_failures</c> and is logged as event 1013 with the exception's type name only. An exception
+/// recording does fails the call: a failure to record loses the record, is counted as a <c>failed</c> record and is logged
+/// as event 1013 with the exception's type name only. An exception
 /// from the inner client, the caller's cancellation among them, reaches the caller unchanged and leaves the scope free for
 /// another attempt. Disposing the stage disposes the inner client, never the recorder.
 /// </para>
@@ -62,7 +62,13 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
     public override ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var identity = Identify(request);
+        if (request.RetryAttempt > 0)
+        {
+            // A retry from a stage outside this one: the decision is recorded by its first attempt only.
+            return InnerClient.EvaluateAsync(request, cancellationToken);
+        }
+
+        var identity = Identify();
         var started = _time.GetUtcNow();
         var timestamp = _time.GetTimestamp();
         ValueTask<Result<DecisionResponse, DecisionError>> pending;
@@ -97,18 +103,11 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
     }
 
     // The scope's id and key, enforcing one fresh decision per scope before the inner call.
-    private static Identity Identify(DecisionRequest request)
+    private static Identity Identify()
     {
         if (DecisionRecording.Current is not { } scope)
         {
             return new(Guid.CreateVersion7().ToString(), null, null, Generated: false);
-        }
-
-        if (request.RetryAttempt != 0)
-        {
-            // A retry of the scope's decision: it is recorded under the same id, and never releases the scope.
-            scope.MarkDecided();
-            return new(scope.EnsureDecisionId(out _), scope.ErasureKey, null, Generated: false);
         }
 
         if (!scope.TryClaimFresh())
@@ -143,8 +142,8 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
         return result;
     }
 
-    // Once the inner client has decided, recording can never fail the call: whatever throws here, such as a metric
-    // listener, is counted and logged by its type name, and the record is lost.
+    // Once the inner client has decided, recording can never fail the call: whatever throws here is counted and logged
+    // by its type name, and the record is lost.
     private void Record(DecisionRequest request, Result<DecisionResponse, DecisionError> result, Identity identity, DateTimeOffset started, long timestamp)
     {
         try
@@ -153,7 +152,7 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
         }
         catch (Exception exception)
         {
-            RecordingTelemetry.RecordFailed();
+            RecordingTelemetry.Records.Add(RecordingTelemetry.Failed);
             _recorder.LogRecordingFailed(exception.GetType().Name);
         }
     }
@@ -208,7 +207,6 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
         var record = new DecisionRecord(
             decisionId,
             erasureKey,
-            request.RetryAttempt,
             started,
             latency,
             _provider,
@@ -247,14 +245,14 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
         }
         catch (Exception exception)
         {
-            RecordingTelemetry.Record(RecordingTelemetry.RedactionFailed);
+            RecordingTelemetry.Records.Add(RecordingTelemetry.Failed);
             _recorder.LogRedactionFailed(exception.GetType().Name);
             return false;
         }
 
         if (redaction.IsDrop)
         {
-            RecordingTelemetry.Record(RecordingTelemetry.DroppedRedaction);
+            RecordingTelemetry.Records.Add(RecordingTelemetry.Dropped);
             return false;
         }
 

@@ -84,9 +84,8 @@ public static class RecordedApp
 - **Outermost means one record per decision.** A cache hit is recorded, with `IsCached` set, and a call the retry stage
   retried is one record with its final result. A `SystemOneDecisionClient` with its standard pipeline already retries
   inside, so any stage you add to it is outside its retries.
-- **With a scope, inside a retry stage,** if you put it there anyway, each attempt is recorded under the scope's
-  decision id with its attempt number, the request's `RetryAttempt`, and a reader of the file keeps the record with the
-  highest attempt. Without a scope, each attempt is a record with an id of its own.
+- **Inside a retry stage,** if you put it there anyway, only the first attempt is recorded. A request with a
+  `RetryAttempt` above 0 goes to the inner client unrecorded.
 - **Every pipeline built with one recorder shares it,** its queue and its one writer, so a sink is never called by two
   writers at once.
 - **You own the recorder and the sink.** Disposing a pipeline never disposes the recorder, and the recorder never
@@ -161,9 +160,8 @@ public static class TicketDecisions
 - **The erasure key** is optional, and is usually the id of the person the decision was about. A record without one is
   still erased by its decision id.
 - **One fresh decision per scope.** A second call in the same scope throws `InvalidOperationException` before the inner
-  client is called, so two records can never share an id by mistake. A retry, with `RetryAttempt` above 0, is not a
-  second decision. A call whose inner client throws makes no decision: it releases the scope, and the scope can be used
-  again.
+  client is called, so two records can never share an id by mistake. A call whose inner client throws makes no
+  decision: it releases the scope, and the scope can be used again.
 - **Begin the scope in the method that awaits the call,** or in one that calls that method. A scope flows into the calls
   made inside it, as an `AsyncLocal` does, but a scope begun inside an async helper does not flow back out to the
   helper's caller, so the caller's call would be recorded with an id of its own.
@@ -244,11 +242,9 @@ public static class CustomerErasure
   recorder that is already disposed, it throws `ObjectDisposedException`. Either way, keep the request and run it
   again.
 - **It is never dropped.** When the queue is full, the erasure waits for space, up to your cancellation token.
-- **The JSONL sink's erasure is a tombstone.** It appends an erasure line, forced to disk before the call returns. A
-  reader applies it to the lines before it, so a record written after it with the same key is a new decision and is
-  kept. The erased state stays in the file until `DecisionRecordFile.CompactAsync` rewrites the file without it, and the
-  compaction needs every sink on the file closed: dispose the recorder and the sink, compact, then open them again. See
-  [the file format](#the-jsonl-format).
+- **The JSONL sink's erasure is a tombstone.** It appends an erasure line. A reader applies it to the lines before it,
+  so a record written after it with the same key is a new decision and is kept. The erased state stays in the file; to
+  purge it in development, delete the file. See [the file format](#the-jsonl-format).
 - **The JSONL and in-memory sinks are for development and tests.** A production sink, over your own store, deletes
   for real; see [writing your own sink](#writing-your-own-sink).
 
@@ -277,10 +273,10 @@ public static partial class StateRedaction
 <!-- endSnippet -->
 
 - **`RedactionResult.Keep(state)`** keeps a record with that state, as it was or rewritten.
-- **`RedactionResult.Drop`** keeps no record of the decision, counted as `dropped_redaction`.
+- **`RedactionResult.Drop`** keeps no record of the decision, counted as a `dropped` record.
 - **With no redactor,** the state is kept as it was given, text or JSON.
 - **A redactor that throws,** or returns `null`, keeps no record. The decision is unaffected, and the failure is logged
-  as event 1011 with the exception's type name only, and counted as `redaction_failed`.
+  as event 1011 with the exception's type name only, and counted as a `failed` record.
 
 Images are never kept: a record holds how many there were and each one's SHA-256.
 
@@ -290,11 +286,11 @@ A sink is where the recorder hands its records, outcomes and erasures. Two ship 
 `IDecisionRecordSink` works:
 
 - **`JsonlDecisionRecordSink`** appends one line per record, outcome and erasure to a file, in [the format](#the-jsonl-format)
-  below. Each line reaches the operating system in one write before the call returns; a record or an outcome line is
-  not forced to disk, and an erasure line is. Other processes can read the file while it is written. If the file's last
-  line was cut, by a crash or a failed write, the next line starts on a line of its own. On Unix, a file the sink
+  below. Each line reaches the operating system in one write, flushed before the call returns, and is not forced to
+  disk. Other processes can read the file while it is written. A crash can leave the last line cut: a reader reports
+  it as a problem and skips it, and with it the first line written after it, which joins it. On Unix, a file the sink
   creates has the mode `0600`, readable and writable by its owner only, because records hold your state. An erasure
-  leaves the erased state in the file until it is compacted, so the sink is for development and tests.
+  leaves the erased state in the file, so the sink is for development and tests.
 - **`InMemoryDecisionRecordSink`** keeps records and their outcomes in memory, readable from `Records`, for development
   and tests:
 
@@ -331,7 +327,7 @@ contract:
   goes on to the next item. A failed erasure also fails the caller's `EraseAsync`.
 - **The cancellation token** is cancelled only when the recorder's dispose runs out of time, never while the app runs.
   Put a timeout on your own calls, such as a command timeout on a database call. A call that hangs stalls the queue:
-  new records are dropped as `dropped_full` once it is full, and erasures and flushes wait.
+  new records are dropped once it is full, and erasures and flushes wait.
 - **An erasure deletes for real.** The call returning is the caller's confirmation, so delete the records and their
   outcomes before it returns.
 - **The app disposes the sink,** after the recorder.
@@ -400,19 +396,18 @@ public sealed class LineStoreSink : IDecisionRecordSink
 ## The JSONL format
 
 The file is UTF-8 JSONL, one JSON object per line. Every line has a `kind`, which is `record`, `outcome` or `erasure`,
-and a `version`, which is `1`. A version 1 reader skips members it does not know, so members can be added to version 1
-without breaking it.
+and a `version`, which is `1`. The reader skips members it does not know.
 
 <!-- decision record file -->
 ```json
-{"kind":"record","version":1,"decisionId":"0199f1d2-7c4e-7a10-9b3e-2f6d8c1a4e55","erasureKey":"customer-7","attempt":0,"started":"2026-10-22T09:30:00+00:00","latencyMs":212.5,"provider":"typesafe","endpoint":"https://api.example.com/","defaultModel":"jev-latest","servedModel":"jev-1.14","usage":{"inputTokens":120,"outputTokens":2},"cached":false,"questions":{"is_urgent":{"type":"noul","instructions":"Does this convey urgency?"},"queue":{"type":"choice","instructions":"Which queue should handle this?","criteria":{"billing":"Payments, invoices and refunds","technical":"Bugs, outages and integrations"}}},"state":"The app crashes when I pay.","imageCount":0,"answers":[{"key":"is_urgent","kind":"noul","probability":0.9,"confidence":0.8},{"key":"queue","kind":"choice","chosenIndex":1,"confidence":0.8,"probabilities":[0.2,0.8]}]}
+{"kind":"record","version":1,"decisionId":"0199f1d2-7c4e-7a10-9b3e-2f6d8c1a4e55","erasureKey":"customer-7","started":"2026-10-22T09:30:00+00:00","latencyMs":212.5,"provider":"typesafe","endpoint":"https://api.example.com/","defaultModel":"jev-latest","servedModel":"jev-1.14","usage":{"inputTokens":120,"outputTokens":2},"cached":false,"questions":{"is_urgent":{"type":"noul","instructions":"Does this convey urgency?"},"queue":{"type":"choice","instructions":"Which queue should handle this?","criteria":{"billing":"Payments, invoices and refunds","technical":"Bugs, outages and integrations"}}},"state":"The app crashes when I pay.","imageCount":0,"answers":[{"key":"is_urgent","kind":"noul","probability":0.9,"confidence":0.8},{"key":"queue","kind":"choice","chosenIndex":1,"confidence":0.8,"probabilities":[0.2,0.8]}]}
 {"kind":"outcome","version":1,"decisionId":"0199f1d2-7c4e-7a10-9b3e-2f6d8c1a4e55","type":"confirmed","source":"reviewer-ui","at":"2026-10-22T09:35:00+00:00","confirmed":{"queue":"technical","is_urgent":true}}
 {"kind":"outcome","version":1,"decisionId":"0199f1d2-7c4e-7a10-9b3e-2f6d8c1a4e55","type":"signal","source":"mailer","at":"2026-10-22T10:30:00+00:00","name":"complained","value":1,"note":"Wrote back within the hour."}
-{"kind":"record","version":1,"decisionId":"0199f1d2-8d5f-7b21-8c4f-3a7e9d2b5f66","attempt":0,"started":"2026-10-22T09:31:00+00:00","latencyMs":48.25,"provider":"typesafe","endpoint":"https://api.example.com/","defaultModel":"jev-latest","cached":false,"questions":{"is_urgent":{"type":"noul","instructions":"Does this convey urgency?"}},"state":{"subject":"Refund","body":"Where is my refund?"},"imageCount":0,"errorKind":"RateLimited"}
+{"kind":"record","version":1,"decisionId":"0199f1d2-8d5f-7b21-8c4f-3a7e9d2b5f66","started":"2026-10-22T09:31:00+00:00","latencyMs":48.25,"provider":"typesafe","endpoint":"https://api.example.com/","defaultModel":"jev-latest","cached":false,"questions":{"is_urgent":{"type":"noul","instructions":"Does this convey urgency?"}},"state":{"subject":"Refund","body":"Where is my refund?"},"imageCount":0,"errorKind":"RateLimited"}
 {"kind":"erasure","version":1,"decisionId":"0199f1d2-8d5f-7b21-8c4f-3a7e9d2b5f66"}
 ```
 
-- **A record** holds the decision id and the erasure key, if any; `attempt`; when the call started and how long it took;
+- **A record** holds the decision id and the erasure key, if any; when the call started and how long it took;
   the inner client's `provider`, `endpoint` and `defaultModel`; the `requestedModel`, the `servedModel`, the
   `responseId` and the `upstreamProvider` when there are any; `usage`, with its tokens and `cost`; whether the answer
   was `cached`; the question set, in the same shape as a [dataset line's `questions`](datasets.md#questions); the
@@ -450,33 +445,19 @@ public static class RecordFileReading
 
         return decisions;
     }
-
-    // Rewrites the file without erased records. Run it once the recorder and the sink on the file are disposed: while
-    // a sink has the file open, it throws IOException and leaves the file as it is.
-    public static async Task<int> CompactAsync(string path, CancellationToken cancellationToken)
-    {
-        var problems = await DecisionRecordFile.CompactAsync(path, cancellationToken);
-        return problems.Count;
-    }
 }
 ```
 <!-- endSnippet -->
 
 - **An erasure applies to the lines before it.** A record that comes after it is a new decision and is kept.
-- **Of the records of one decision id, the highest attempt wins,** and the last one of equal attempts. The outcomes of
-  every attempt are kept.
+- **A later record of a decision id replaces the earlier one,** and keeps its outcomes.
 - **An outcome with no record before it** is ignored and reported.
 - **A bad line is a problem, not an exception.** The overload that takes a collection fills it with
   `DecisionRecordFileProblem` values, each with its line number and a message that never holds an id or any state, and
-  the lines around it are still read. A file that does not exist throws `FileNotFoundException`, from `ReadAsync` when
-  the first decision is requested and from `CompactAsync` when it is called.
-- **`CompactAsync`** rewrites the file with only what a read keeps, and returns its problems as
-  `DecisionRecordFileProblems`. It copies each surviving line as it was, so members this reader does not know are kept.
-  The new file replaces the old one in one step, after it was flushed to disk, and keeps the old file's permissions.
-  **A file it cannot fully read is left untouched,** byte for byte, with a problem that says why: a line of a format
-  version or a kind it does not know, or a record with an error kind or an answer kind it does not know, could hold
-  data that an erasure is meant to remove. **It needs the file to itself:** while a sink or a read has the file open, it
-  throws `IOException` and leaves the file as it is. Dispose the recorder and the sink, compact, then open them again.
+  the lines around it are still read. A line that is not version 1, or has a kind, an outcome type, an error kind or an
+  answer kind the reader does not know, is a problem too. A cut last line is reported, not thrown. A file that does not
+  exist throws `FileNotFoundException` when the first decision is requested.
+- **The whole file is read before the first decision is returned.**
 
 ## The queue and what a crash loses
 
@@ -484,12 +465,12 @@ The decision returns as soon as the inner client has answered. The stage queues 
 writer hands it to the sink later. That keeps the sink off the decision's path, at a price:
 
 - **A full queue drops records, never outcomes or erasures.** A record that finds the queue full is dropped, counted as
-  `dropped_full` and logged as event 1009 with the number dropped. Outcomes, erasures and flushes wait for space instead.
+  a `dropped` record and logged as event 1009 with the number dropped. Outcomes, erasures and flushes wait for space instead.
 - **A crash loses what is still queued.** A record, an outcome or an erasure is only as safe as the sink once the sink
   has it. An erasure is confirmed when `EraseAsync` returns; re-run one you could not confirm.
 - **Dispose drains the queue for at most `FlushTimeout`.** Then it cancels the sink's call and gives up on the rest,
-  logged as event 1012 with each kind counted. A record lost then is counted as `dropped_flush_timeout`, and one handed
-  over after dispose as `dropped_disposed`.
+  logged as event 1012 with each kind counted. A record lost then, or one handed over after dispose, is counted as a
+  `dropped` record.
 - **After dispose,** `AddOutcomeAsync`, `EraseAsync`, `EraseDecisionAsync` and `FlushAsync` throw
   `ObjectDisposedException`.
 
@@ -505,21 +486,19 @@ in the category `Minos.DecisionClient`:
 | 1010 | `SinkCallFailed` | Warning | A sink call threw, and the item was skipped; or, as the operation `cancel`, the sink's cancellation callback threw when dispose ran out of time. |
 | 1011 | `RedactionFailed` | Warning | The redactor threw or returned `null`; no record was kept. |
 | 1012 | `FlushTimedOut` | Error | Dispose ran out of time; the records, outcomes, erasures and flushes it lost are counted. |
-| 1013 | `RecordingFailed` | Warning | The stage could not make a record after the call, for example because a metric listener threw; the decision is unaffected. |
+| 1013 | `RecordingFailed` | Warning | The stage could not make a record after the call; the decision is unaffected. |
 
 Its instruments are on the meter named `Minos`, the same as the client's, and each tag is a fixed value:
 
 | Instrument | Kind | Tags |
 | --- | --- | --- |
-| `minos.recording.records` | Counter | `result`: `written`, `dropped_full`, `dropped_redaction`, `redaction_failed`, `sink_failed`, `dropped_disposed` or `dropped_flush_timeout`. Every record ends in exactly one. |
-| `minos.recording.outcomes` | Counter | `result`: `written` or `failed`. |
-| `minos.recording.erasures` | Counter | `result`: `written` or `failed`. |
+| `minos.recording.records` | Observable counter | `result`: `written`; `dropped`, for a full queue, a disposed recorder, a flush timeout or a redactor's `Drop`; or `failed`, for a sink or a redactor that threw, or a record the stage could not make. Every record ends in exactly one. |
+| `minos.recording.outcomes` | Observable counter | `result`: `written` or `failed`. |
+| `minos.recording.erasures` | Observable counter | `result`: `written` or `failed`. |
 | `minos.recording.log_failures` | Observable counter | none: the recorder's log events lost because the logger threw. |
-| `minos.recording.record_failures` | Observable counter | none: the decisions the stage could not record. |
-| `minos.recording.queue_length` | Observable gauge | none: the items waiting in every recorder's queue. |
 
-The two failure counters read totals kept in the process, so counting a failure never calls a listener and cannot fail
-in turn. A logger that throws loses its event but never stops the recorder.
+The counters read totals kept in the process, so counting never calls a listener. A logger that throws loses its
+event but never stops the recorder.
 [Logging, traces and metrics](observability.md) covers the rest of what Minos emits.
 
 ## Next

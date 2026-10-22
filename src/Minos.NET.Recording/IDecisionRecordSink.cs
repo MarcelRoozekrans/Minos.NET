@@ -9,7 +9,7 @@ namespace Minos.Recording;
 /// <remarks>
 /// The cancellation token is cancelled only when the recorder's dispose runs out of time, never while the app runs. Put
 /// a timeout on your own calls, such as a database command timeout: a call that hangs stalls the queue, so new records
-/// are dropped as <c>dropped_full</c> once it is full, and erasures and flushes wait.
+/// are dropped once it is full, and erasures and flushes wait.
 /// </remarks>
 public interface IDecisionRecordSink
 {

@@ -13,7 +13,6 @@ Minos.Recording.DecisionOutcome.At.get -> System.DateTimeOffset
 Minos.Recording.DecisionOutcome.Source.get -> string!
 Minos.Recording.DecisionRecord
 Minos.Recording.DecisionRecord.Answers.get -> System.Collections.Generic.IReadOnlyList<Minos.Recording.RecordedAnswer>!
-Minos.Recording.DecisionRecord.Attempt.get -> int
 Minos.Recording.DecisionRecord.DecisionId.get -> string!
 Minos.Recording.DecisionRecord.DefaultModel.get -> string?
 Minos.Recording.DecisionRecord.Definition.get -> Minos.QuestionSetDefinition!
@@ -43,10 +42,6 @@ Minos.Recording.DecisionRecordFileProblem.Line.get -> int
 Minos.Recording.DecisionRecordFileProblem.Line.init -> void
 Minos.Recording.DecisionRecordFileProblem.Message.get -> string!
 Minos.Recording.DecisionRecordFileProblem.Message.init -> void
-Minos.Recording.DecisionRecordFileProblems
-Minos.Recording.DecisionRecordFileProblems.Count.get -> int
-Minos.Recording.DecisionRecordFileProblems.GetEnumerator() -> System.Collections.Generic.IEnumerator<Minos.Recording.DecisionRecordFileProblem>!
-Minos.Recording.DecisionRecordFileProblems.this[int index].get -> Minos.Recording.DecisionRecordFileProblem
 Minos.Recording.DecisionRecorder
 Minos.Recording.DecisionRecorder.AddOutcomeAsync(string! decisionId, Minos.Recording.DecisionOutcome! outcome, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask
 Minos.Recording.DecisionRecorder.DecisionRecorder(Minos.Recording.IDecisionRecordSink! sink, Minos.Recording.RecordingOptions? options = null, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory = null, System.TimeProvider? timeProvider = null) -> void
@@ -106,7 +101,6 @@ static Minos.Recording.ConfirmedAnswer.operator !=(Minos.Recording.ConfirmedAnsw
 static Minos.Recording.ConfirmedAnswer.operator ==(Minos.Recording.ConfirmedAnswer left, Minos.Recording.ConfirmedAnswer right) -> bool
 static Minos.Recording.DecisionOutcome.Confirmed(string! source, System.DateTimeOffset at, System.Collections.Generic.IReadOnlyDictionary<string!, Minos.Recording.ConfirmedAnswer>! answers) -> Minos.Recording.DecisionOutcome!
 static Minos.Recording.DecisionOutcome.Signal(string! source, System.DateTimeOffset at, string! name, double? value = null, string? note = null) -> Minos.Recording.DecisionOutcome!
-static Minos.Recording.DecisionRecordFile.CompactAsync(string! path, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<Minos.Recording.DecisionRecordFileProblems!>
 static Minos.Recording.DecisionRecordFile.ReadAsync(string! path, System.Collections.Generic.ICollection<Minos.Recording.DecisionRecordFileProblem>! problems, System.Threading.CancellationToken cancellationToken) -> System.Collections.Generic.IAsyncEnumerable<Minos.Recording.RecordedDecision!>!
 static Minos.Recording.DecisionRecordFile.ReadAsync(string! path, System.Threading.CancellationToken cancellationToken) -> System.Collections.Generic.IAsyncEnumerable<Minos.Recording.RecordedDecision!>!
 static Minos.Recording.DecisionRecordFileProblem.operator !=(Minos.Recording.DecisionRecordFileProblem left, Minos.Recording.DecisionRecordFileProblem right) -> bool

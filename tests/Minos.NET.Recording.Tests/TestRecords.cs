@@ -15,11 +15,11 @@ internal static class TestRecords
             new OptionDefinition("card_arrival", "The card has not arrived yet."),
             new OptionDefinition("card_not_working", "The card arrived but does not work.")));
 
-    internal static DecisionRecord Record(string id = "d-1", string? erasureKey = "customer-7", int attempt = 0, string state = "My card has not arrived.")
+    internal static DecisionRecord Record(
+        string id = "d-1", string? erasureKey = "customer-7", string state = "My card has not arrived.", DecisionUsage? usage = null)
         => new(
             id,
             erasureKey,
-            attempt,
             T0,
             TimeSpan.FromMilliseconds(250),
             "openai",
@@ -29,7 +29,7 @@ internal static class TestRecords
             "model-served",
             "resp-1",
             null,
-            new DecisionUsage { InputTokens = 120, OutputTokens = 14 },
+            usage ?? new DecisionUsage { InputTokens = 120, OutputTokens = 14 },
             isCached: false,
             Definition(),
             DecisionContent.FromString(state),
@@ -62,7 +62,7 @@ internal static class TestRecords
     private static string Json(Action<Utf8JsonWriter> write)
     {
         var buffer = new System.Buffers.ArrayBufferWriter<byte>();
-        RecordLine.AppendLine(buffer, write);
-        return Encoding.UTF8.GetString(buffer.WrittenSpan).TrimEnd('\n');
+        RecordLine.WriteTo(buffer, write);
+        return Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
 }

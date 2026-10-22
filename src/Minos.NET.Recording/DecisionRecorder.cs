@@ -82,26 +82,18 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
     internal bool TryEnqueue(DecisionRecord record)
     {
         ArgumentNullException.ThrowIfNull(record);
-        if (Volatile.Read(ref _disposed) != 0)
+        if (Volatile.Read(ref _disposed) == 0 && _channel.Writer.TryWrite(WorkItem.ForRecord(record)))
         {
-            RecordingTelemetry.Record(RecordingTelemetry.DroppedDisposed);
-            return false;
-        }
-
-        if (_channel.Writer.TryWrite(WorkItem.ForRecord(record)))
-        {
-            RecordingTelemetry.Queued(1);
             return true;
         }
 
-        if (Volatile.Read(ref _disposed) != 0)
+        RecordingTelemetry.Records.Add(RecordingTelemetry.Dropped);
+        if (Volatile.Read(ref _disposed) == 0)
         {
-            RecordingTelemetry.Record(RecordingTelemetry.DroppedDisposed);
-            return false;
+            // The queue was full: logged as event 1009 by the writer. A drop after dispose is only counted.
+            Interlocked.Increment(ref _dropped);
         }
 
-        RecordingTelemetry.Record(RecordingTelemetry.DroppedFull);
-        Interlocked.Increment(ref _dropped);
         return false;
     }
 
@@ -201,7 +193,6 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
 
             while (_channel.Reader.TryRead(out var item))
             {
-                RecordingTelemetry.Queued(-1);
                 if (item.TrySettle())
                 {
                     lost.Add(item);
@@ -209,7 +200,7 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
             }
         }
 
-        // The callers are told first, so a listener that throws while the loss is counted leaves no one waiting.
+        // The callers are told first, so a logger that throws while the loss is logged leaves no one waiting.
         foreach (var item in lost)
         {
             if (item.Completion is { } completion)
@@ -252,7 +243,7 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
             (TimeoutMs: _flushTimeout.TotalMilliseconds, Records: records, Outcomes: outcomes, Erasures: erasures, Flushes: flushes));
         for (var i = 0; i < records; i++)
         {
-            RecordingTelemetry.Record(RecordingTelemetry.DroppedFlushTimeout);
+            RecordingTelemetry.Records.Add(RecordingTelemetry.Dropped);
         }
     }
 
@@ -269,8 +260,6 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
             // The recorder was disposed while the call waited for queue space.
             throw new ObjectDisposedException("The decision recorder is disposed.", ex);
         }
-
-        RecordingTelemetry.Queued(1);
     }
 
     private async ValueTask EnqueueAndWaitAsync(WorkItem item, CancellationToken cancellationToken)
@@ -295,8 +284,8 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
                     }
                     catch (Exception ex) when (!IsStop(ex, cancellationToken))
                     {
-                        // Only counting or logging can throw here, through a broken listener or logger: the caller is
-                        // told, and the writer goes on with the next item.
+                        // Nothing here is expected to throw, since logging is guarded and counting cannot throw; if
+                        // anything does, the caller is told, and the writer goes on with the next item.
                         if (item.Completion is { } completion)
                         {
                             Fail(completion, RecordingException.SinkFailed(ex));
@@ -334,7 +323,6 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
             _inFlight = item;
         }
 
-        RecordingTelemetry.Queued(-1);
         return true;
     }
 
@@ -353,7 +341,7 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
                 {
                     if (item.TrySettle())
                     {
-                        RecordingTelemetry.Record(RecordingTelemetry.SinkFailed);
+                        RecordingTelemetry.Records.Add(RecordingTelemetry.Failed);
                         LogSinkCallFailed("write", ex);
                     }
 
@@ -362,7 +350,7 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
 
                 if (item.TrySettle())
                 {
-                    RecordingTelemetry.Record(RecordingTelemetry.Written);
+                    RecordingTelemetry.Records.Add(RecordingTelemetry.Written);
                 }
 
                 return;
@@ -375,7 +363,7 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
                 {
                     if (item.TrySettle())
                     {
-                        RecordingTelemetry.Outcome(RecordingTelemetry.Failed);
+                        RecordingTelemetry.Outcomes.Add(RecordingTelemetry.Failed);
                         LogSinkCallFailed("add-outcome", ex);
                     }
 
@@ -384,7 +372,7 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
 
                 if (item.TrySettle())
                 {
-                    RecordingTelemetry.Outcome(RecordingTelemetry.Written);
+                    RecordingTelemetry.Outcomes.Add(RecordingTelemetry.Written);
                 }
 
                 return;
@@ -406,7 +394,7 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
                     if (item.TrySettle())
                     {
                         Fail(item.Completion!, RecordingException.SinkFailed(ex));
-                        RecordingTelemetry.Erasure(RecordingTelemetry.Failed);
+                        RecordingTelemetry.Erasures.Add(RecordingTelemetry.Failed);
                         LogSinkCallFailed(byKey ? "erase" : "erase-decision", ex);
                     }
 
@@ -416,7 +404,7 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
                 if (item.TrySettle())
                 {
                     item.Completion!.TrySetResult();
-                    RecordingTelemetry.Erasure(RecordingTelemetry.Written);
+                    RecordingTelemetry.Erasures.Add(RecordingTelemetry.Written);
                 }
 
                 return;

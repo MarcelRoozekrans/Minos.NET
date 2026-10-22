@@ -115,29 +115,20 @@ public sealed class LineWriterTests : IDisposable
     }
 
     [Fact]
-    public async Task TheJsonlSink_ForcesAnErasureLineToDisk_AndNotTheOthers()
+    public void AWriteThatThrows_LeavesTheDestinationAsItWas()
     {
-        var flushes = new List<long>();
-        await using var sink = new JsonlDecisionRecordSink(PathOf("flush.jsonl"));
-        sink.FlushToDisk = stream =>
-        {
-            flushes.Add(stream.Length);
-            stream.Flush(flushToDisk: true);
-        };
-        var ct = CancellationToken.None;
+        // One buffer shared by several lines, as a sink of its own may keep: a line that cannot be written leaves no part
+        // of itself behind, and the next line follows the last one that was written.
+        var destination = new ArrayBufferWriter<byte>();
+        DecisionRecordFile.WriteRecordLine(destination, Record("d-1"));
+        destination.Write("\n"u8);
+        var before = destination.WrittenSpan.ToArray();
 
-        await sink.WriteAsync(Record("d-1"), ct);
-        await sink.AddOutcomeAsync("d-1", Signal(), ct);
-        Assert.Empty(flushes);
+        Assert.ThrowsAny<ArgumentException>(() => DecisionRecordFile.WriteRecordLine(destination, Record("d-2", usage: new DecisionUsage { Cost = double.NaN })));
 
-        await sink.EraseAsync("customer-7", ct);
-        await sink.EraseDecisionAsync("d-1", ct);
-
-        // Each erasure is on disk before its call returns: forced once its line was written.
-        var length = new FileInfo(PathOf("flush.jsonl")).Length;
-        Assert.Equal(2, flushes.Count);
-        Assert.Equal(length, flushes[1]);
-        Assert.True(flushes[0] < flushes[1]);
+        Assert.Equal(before, destination.WrittenSpan.ToArray());
+        DecisionRecordFile.WriteRecordLine(destination, Record("d-3"));
+        Assert.Equal(Line(Record("d-1")) + "\n" + Line(Record("d-3")), System.Text.Encoding.UTF8.GetString(destination.WrittenSpan));
     }
 
     [Fact]

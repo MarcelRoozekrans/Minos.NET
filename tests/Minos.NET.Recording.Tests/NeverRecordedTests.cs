@@ -32,6 +32,7 @@ public sealed class NeverRecordedTests
         "full queue",
         "erasure failure",
         "flush timeout",
+        "recording failure",
     };
 
     [Theory]
@@ -41,6 +42,10 @@ public sealed class NeverRecordedTests
         using var capture = new Capture();
         var logs = new FakeLogCollector();
         await RunAsync(scenario, logs, capture);
+
+        // The recorder's counters are observable: their tags reach a listener when it collects.
+        capture.CollectCounters();
+        Assert.Contains("minos.recording.records", capture.Texts);
 
         foreach (var record in logs.GetSnapshot())
         {
@@ -194,6 +199,27 @@ public sealed class NeverRecordedTests
                 break;
             }
 
+            case "recording failure":
+            {
+                // Making the record fails after the call, with an exception whose message quotes every sentinel.
+                var sink = new RecordingSpySink();
+                var clock = new ClockThatBreaksAfterTheCall($"The clock broke on {StateSentinel}, {IdSentinel} and {KeySentinel}.");
+                await using (var recorder = new DecisionRecorder(sink, null, factory, clock))
+                {
+                    using var client = Pipeline(new ScriptedClient(Metadata), recorder);
+                    using (DecisionRecording.Begin(IdSentinel, KeySentinel))
+                    {
+                        Assert.True((await client.EvaluateAsync(SentinelRequest())).IsSuccess);
+                    }
+
+                    await recorder.FlushAsync().AsTask().WaitAsync(Bound);
+                }
+
+                Assert.Empty(sink.Calls);
+                Assert.Contains(logs.GetSnapshot(), record => record.Id.Id == 1013);
+                break;
+            }
+
             default:
             {
                 // A flush timeout: a record, an outcome and both erasures are lost.
@@ -295,6 +321,8 @@ public sealed class NeverRecordedTests
                 }
             }
         }
+
+        public void CollectCounters() => _meters.RecordObservableInstruments();
 
         public void Add(Exception exception)
         {

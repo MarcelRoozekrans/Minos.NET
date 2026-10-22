@@ -68,15 +68,8 @@ public sealed class RecordingPageTests
     [InlineData("`minos.recording.outcomes`")]
     [InlineData("`minos.recording.erasures`")]
     [InlineData("`minos.recording.log_failures`")]
-    [InlineData("`minos.recording.record_failures`")]
-    [InlineData("`minos.recording.queue_length`")]
     [InlineData("`written`")]
-    [InlineData("`dropped_full`")]
-    [InlineData("`dropped_redaction`")]
-    [InlineData("`redaction_failed`")]
-    [InlineData("`sink_failed`")]
-    [InlineData("`dropped_disposed`")]
-    [InlineData("`dropped_flush_timeout`")]
+    [InlineData("`dropped`")]
     [InlineData("`failed`")]
     public void ThePage_NamesEveryEventCounterAndResult(string name)
         => Assert.Contains(name, PageTables.Text(Page), StringComparison.Ordinal);

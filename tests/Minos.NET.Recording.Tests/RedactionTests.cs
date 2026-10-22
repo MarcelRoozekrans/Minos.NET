@@ -46,7 +46,7 @@ public sealed class RedactionTests
         }
 
         Assert.Empty(sink.Calls);
-        Assert.Equal(1, metrics.Sum("minos.recording.records", "dropped_redaction"));
+        Assert.Equal(1, metrics.Sum("minos.recording.records", "dropped"));
         Assert.Equal(1, metrics.Sum("minos.recording.records"));
 
         // A drop is the app's choice, not a failure: nothing is logged.
@@ -78,7 +78,7 @@ public sealed class RedactionTests
         }
 
         Assert.Empty(sink.Calls);
-        Assert.Equal(1, metrics.Sum("minos.recording.records", "redaction_failed"));
+        Assert.Equal(1, metrics.Sum("minos.recording.records", "failed"));
         Assert.Equal(1, metrics.Sum("minos.recording.records"));
         var failed = Assert.Single(logs.GetSnapshot());
         Assert.Equal(1011, failed.Id.Id);
@@ -117,7 +117,6 @@ public sealed class RedactionTests
     public async Task AThrowingLogger_DoesNotFailTheDecision_AndIsCounted()
     {
         using var metrics = new MetricCapture();
-        var logFailuresBefore = metrics.Observe("minos.recording.log_failures");
         using var factory = LoggerFactory.Create(builder => builder.AddProvider(new ThrowingLoggerProvider()));
         await using var recorder = new DecisionRecorder(
             new RecordingSpySink(), new RecordingOptions { Redact = _ => throw new FormatException() }, factory);
@@ -126,7 +125,7 @@ public sealed class RedactionTests
         var result = await client.EvaluateAsync(Request());
 
         Assert.True(result.IsSuccess);
-        Assert.Equal(1, metrics.Observe("minos.recording.log_failures") - logFailuresBefore);
+        Assert.Equal(1, metrics.Sum("minos.recording.log_failures"));
     }
 
     [Fact]

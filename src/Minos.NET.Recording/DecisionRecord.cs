@@ -11,7 +11,6 @@ public sealed class DecisionRecord
     internal DecisionRecord(
         string decisionId,
         string? erasureKey,
-        int attempt,
         DateTimeOffset started,
         TimeSpan latency,
         string provider,
@@ -33,7 +32,6 @@ public sealed class DecisionRecord
     {
         DecisionId = decisionId;
         ErasureKey = erasureKey;
-        Attempt = attempt;
         Started = started;
         Latency = latency;
         Provider = provider;
@@ -59,9 +57,6 @@ public sealed class DecisionRecord
 
     /// <summary>Gets the key an erasure uses to remove every record of one subject, or <see langword="null"/>.</summary>
     public string? ErasureKey { get; }
-
-    /// <summary>Gets the retry attempt this record is of, from 0. When a decision was retried, the highest attempt is kept.</summary>
-    public int Attempt { get; }
 
     /// <summary>Gets when the call started.</summary>
     public DateTimeOffset Started { get; }

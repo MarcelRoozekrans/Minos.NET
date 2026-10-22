@@ -18,6 +18,9 @@ internal static class RecordLine
     /// <summary>Gets the options a line's writer needs: compact, and with the text kept readable instead of escaped.</summary>
     internal static readonly JsonWriterOptions WriterOptions = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
+    [ThreadStatic]
+    private static ArrayBufferWriter<byte>? t_scratch;
+
     /// <summary>Writes a record as one line, without the line feed.</summary>
     /// <param name="w">The writer.</param>
     /// <param name="record">The record. Text with an unpaired surrogate is written with U+FFFD in its place, so the write is lossy for such text. A decision id is replaced the same way on a record, an outcome and an erasure, so the ids still match when the file is read.</param>
@@ -28,7 +31,6 @@ internal static class RecordLine
         w.WriteNumber("version", Version);
         w.WriteString("decisionId", record.DecisionId);
         WriteOptional(w, "erasureKey", record.ErasureKey);
-        w.WriteNumber("attempt", record.Attempt);
         w.WriteString("started", record.Started);
         w.WriteNumber("latencyMs", record.Latency.Ticks / TicksPerMillisecond);
         w.WriteString("provider", record.Provider);
@@ -159,23 +161,31 @@ internal static class RecordLine
         w.WriteEndObject();
     }
 
-    /// <summary>Writes one line, without its line feed, to <paramref name="destination"/>.</summary>
+    /// <summary>
+    /// Writes one line, without its line feed, to <paramref name="destination"/>. The line is written to a scratch buffer
+    /// first and copied over only once it is whole, so a write that throws leaves <paramref name="destination"/> as it was.
+    /// </summary>
     /// <param name="destination">Receives the line's bytes.</param>
     /// <param name="write">Writes the line's JSON.</param>
     internal static void WriteTo(IBufferWriter<byte> destination, Action<Utf8JsonWriter> write)
     {
-        using var writer = new Utf8JsonWriter(destination, WriterOptions);
-        write(writer);
-    }
+        // One scratch buffer per thread, taken while in use. It is cleared after each line, since a line holds state.
+        var scratch = t_scratch ?? new ArrayBufferWriter<byte>();
+        t_scratch = null;
+        try
+        {
+            using (var writer = new Utf8JsonWriter(scratch, WriterOptions))
+            {
+                write(writer);
+            }
 
-    /// <summary>Appends one line, with its line feed, to <paramref name="buffer"/>.</summary>
-    /// <param name="buffer">The buffer; its written bytes are the line.</param>
-    /// <param name="write">Writes the line's JSON.</param>
-    internal static void AppendLine(IBufferWriter<byte> buffer, Action<Utf8JsonWriter> write)
-    {
-        WriteTo(buffer, write);
-        buffer.GetSpan(1)[0] = (byte)'\n';
-        buffer.Advance(1);
+            destination.Write(scratch.WrittenSpan);
+        }
+        finally
+        {
+            scratch.Clear();
+            t_scratch = scratch;
+        }
     }
 
     private static void WriteAnswer(Utf8JsonWriter w, RecordedAnswer answer)

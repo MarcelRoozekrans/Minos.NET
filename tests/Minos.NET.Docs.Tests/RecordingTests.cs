@@ -48,7 +48,7 @@ public sealed class RecordingTests : IDisposable
     }
 
     [Fact]
-    public async Task AnErasure_RemovesTheCustomersRecords_AndCompactionLeavesAnEmptyFile()
+    public async Task AnErasure_RemovesTheCustomersRecords()
     {
         bool erased = false;
         using var services = CacheServices();
@@ -62,8 +62,6 @@ public sealed class RecordingTests : IDisposable
         Assert.True(erased);
         Assert.Equal(2, File.ReadAllLines(RecordFile).Length);
         Assert.Empty(await RecordFileReading.ReadAsync(RecordFile, CancellationToken.None));
-        Assert.Equal(0, await RecordFileReading.CompactAsync(RecordFile, CancellationToken.None));
-        Assert.Empty(File.ReadAllLines(RecordFile));
     }
 
     [Fact]
