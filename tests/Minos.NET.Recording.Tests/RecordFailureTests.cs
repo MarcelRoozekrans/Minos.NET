@@ -22,11 +22,14 @@ public sealed class RecordFailureTests
         using (factory)
         await using (recorder)
         {
-            var inner = asynchronous ? new ScriptedClient(during: async _ => await Task.Yield()) : new ScriptedClient();
+            // An asynchronous inner call waits at a gate, so the call is still pending until the test opens it.
+            var gate = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            var inner = asynchronous ? new ScriptedClient(during: async _ => await gate.Task) : new ScriptedClient();
             using var client = inner.AsBuilder().UseRecording(recorder).Build();
 
             var pending = client.EvaluateAsync(Request());
             Assert.Equal(!asynchronous, pending.IsCompleted);
+            gate.SetResult();
             Assert.True((await pending).IsSuccess);
             await recorder.FlushAsync().AsTask().WaitAsync(Bound);
         }

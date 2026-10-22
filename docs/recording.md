@@ -85,7 +85,8 @@ public static class RecordedApp
   retried is one record with its final result. A `SystemOneDecisionClient` with its standard pipeline already retries
   inside, so any stage you add to it is outside its retries.
 - **Inside a retry stage,** if you put it there anyway, only the first attempt is recorded. A request with a
-  `RetryAttempt` above 0 goes to the inner client unrecorded.
+  `RetryAttempt` above 0 goes to the inner client unrecorded, so the record holds the first attempt's result, often an
+  error that a retry then recovered from. That is why the stage goes outermost.
 - **Every pipeline built with one recorder shares it,** its queue and its one writer, so a sink is never called by two
   writers at once.
 - **You own the recorder and the sink.** Disposing a pipeline never disposes the recorder, and the recorder never

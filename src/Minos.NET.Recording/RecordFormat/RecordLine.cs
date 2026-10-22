@@ -18,8 +18,6 @@ internal static class RecordLine
     /// <summary>Gets the options a line's writer needs: compact, and with the text kept readable instead of escaped.</summary>
     internal static readonly JsonWriterOptions WriterOptions = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
 
-    [ThreadStatic]
-    private static ArrayBufferWriter<byte>? t_scratch;
 
     /// <summary>Writes a record as one line, without the line feed.</summary>
     /// <param name="w">The writer.</param>
@@ -169,23 +167,13 @@ internal static class RecordLine
     /// <param name="write">Writes the line's JSON.</param>
     internal static void WriteTo(IBufferWriter<byte> destination, Action<Utf8JsonWriter> write)
     {
-        // One scratch buffer per thread, taken while in use. It is cleared after each line, since a line holds state.
-        var scratch = t_scratch ?? new ArrayBufferWriter<byte>();
-        t_scratch = null;
-        try
+        var scratch = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(scratch, WriterOptions))
         {
-            using (var writer = new Utf8JsonWriter(scratch, WriterOptions))
-            {
-                write(writer);
-            }
+            write(writer);
+        }
 
-            destination.Write(scratch.WrittenSpan);
-        }
-        finally
-        {
-            scratch.Clear();
-            t_scratch = scratch;
-        }
+        destination.Write(scratch.WrittenSpan);
     }
 
     private static void WriteAnswer(Utf8JsonWriter w, RecordedAnswer answer)
