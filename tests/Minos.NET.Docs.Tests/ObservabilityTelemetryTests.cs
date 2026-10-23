@@ -294,8 +294,10 @@ public sealed class ObservabilityTelemetryTests
 
         var rows = PageTables.Rows(Page, "Metrics");
 
-        Assert.Equal(6, listener.Instruments.Count);
-        Assert.Equal(listener.Instruments.Keys.Order(StringComparer.Ordinal), rows.Select(row => PageTables.Code(row[0])).Order(StringComparer.Ordinal));
+        // The recorder's instruments share the meter once its package is loaded; the next test checks their table.
+        var client = listener.Instruments.Keys.Where(name => !IsRecorders(name)).ToList();
+        Assert.Equal(6, client.Count);
+        Assert.Equal(client.Order(StringComparer.Ordinal), rows.Select(row => PageTables.Code(row[0])).Order(StringComparer.Ordinal));
         Assert.Equal(
             rows.Select(row => $"{row[1]} {PageTables.Code(row[2])}"),
             rows.Select(row => $"{KindOf(listener.Instruments[PageTables.Code(row[0])])} {listener.Instruments[PageTables.Code(row[0])].Unit}"));
@@ -304,13 +306,48 @@ public sealed class ObservabilityTelemetryTests
             rows.Select(row => string.Join(',', new SortedSet<string>(PageTables.AllCode(row[3]), StringComparer.Ordinal))));
     }
 
+    // The recorder's metric table: the meter has exactly these minos.recording instruments, with these kinds and units.
+    [Fact]
+    public async Task TheRecordersMetricTableOnThePage_IsTheInstrumentsTheRecorderPublishes()
+    {
+        using var listener = new DecisionTelemetryListener();
+        _ = await RecordingInTests.RecordOneAsync(new RecordedClient(), CancellationToken.None);
+
+        var rows = PageTables.Rows(Page, "The recorder's metrics");
+        var recorders = listener.Instruments.Keys.Where(IsRecorders).ToList();
+
+        Assert.Equal(4, recorders.Count);
+        Assert.Equal(recorders.Order(StringComparer.Ordinal), rows.Select(row => PageTables.Code(row[0])).Order(StringComparer.Ordinal));
+        Assert.Equal(
+            rows.Select(row => $"{row[1]} {PageTables.Code(row[2])}"),
+            rows.Select(row => $"{KindOf(listener.Instruments[PageTables.Code(row[0])])} {listener.Instruments[PageTables.Code(row[0])].Unit}"));
+    }
+
+    private static bool IsRecorders(string instrument) => instrument.StartsWith("minos.recording.", StringComparison.Ordinal);
+
     private static string KindOf(Instrument instrument)
         => instrument switch
         {
             Histogram<double> or Histogram<long> => "Histogram",
             Counter<long> or Counter<double> => "Counter",
+            ObservableCounter<long> => "Observable counter",
+            ObservableGauge<long> => "Observable gauge",
             _ => instrument.GetType().Name,
         };
+
+    // Answers every SupportTriage request, for the recorder's table.
+    private sealed class RecordedClient : IDecisionClient
+    {
+        public ValueTask<ZeroAlloc.Results.Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
+            => new(ZeroAlloc.Results.Result<DecisionResponse, DecisionError>.Success(new DecisionResponse(
+                request.Definition, [QuestionAnswer.Noul(0.9), QuestionAnswer.Choice(1, 0.8, [0.2, 0.8])])));
+
+        public object? GetService(Type serviceType, object? serviceKey = null) => null;
+
+        public void Dispose()
+        {
+        }
+    }
 
     [Fact]
     public async Task TheBucketAdviceOnThePage_IsTheInstrumentsAdvice()

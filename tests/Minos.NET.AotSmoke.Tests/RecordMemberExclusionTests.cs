@@ -21,6 +21,17 @@ public sealed class RecordMemberExclusionTests
 
             public override int GetHashCode() => Value;
         }
+
+        public readonly record struct SynthesizedStruct(int Value);
+
+        public readonly record struct HandWrittenStruct(int Value)
+        {
+            public void Deconstruct(out int value) => value = Value;
+
+            public bool Equals(HandWrittenStruct other) => Value == other.Value;
+
+            public override int GetHashCode() => Value;
+        }
         """;
 
     private static readonly IAssemblySymbol Records = Compile();
@@ -32,19 +43,39 @@ public sealed class RecordMemberExclusionTests
     [InlineData("Synthesized", "Deconstruct")]
     [InlineData("Synthesized", "PrintMembers")]
     [InlineData("Synthesized", "Equals")]
+    [InlineData("SynthesizedStruct", "Deconstruct")]
+    [InlineData("SynthesizedStruct", "Equals")]
     public void A_member_the_compiler_generates_for_a_record_is_excluded(string type, string member)
         => Assert.All(Lines(type, member), line => Assert.NotNull(PublicApi.ExclusionReason(line, Generated)));
 
     [Theory]
     [InlineData("HandWritten", "Deconstruct")]
     [InlineData("HandWritten", "Equals")]
+    [InlineData("HandWrittenStruct", "Deconstruct")]
+    [InlineData("HandWrittenStruct", "Equals")]
     public void A_record_member_its_author_wrote_is_an_entry_point(string type, string member)
     {
-        // Equals(object?) is the runtime's contract and is excluded on any type; Equals(T? other) is the author's.
-        var lines = Lines(type, member).Where(line => !line.Contains("Equals(object? obj)", StringComparison.Ordinal)).ToList();
+        // Equals(object?) is the runtime's contract and is excluded on any type; Equals(T? other) is the author's. A
+        // record struct's Equals(object) has no nullable annotations.
+        var lines = Lines(type, member)
+            .Where(line => !line.Contains("Equals(object? obj)", StringComparison.Ordinal) && !line.Contains("Equals(object obj)", StringComparison.Ordinal))
+            .ToList();
 
         Assert.NotEmpty(lines);
         Assert.All(lines, line => Assert.Null(PublicApi.ExclusionReason(line, Generated)));
+    }
+
+    // A PublicAPI line that starts with ~ declares a member without nullable annotations, as the analyzer writes the object
+    // overrides a record struct is given. It is the same member, and the same rules apply to it.
+    [Theory]
+    [InlineData("~override Records.SynthesizedStruct.Equals(object obj) -> bool")]
+    [InlineData("~override Records.SynthesizedStruct.ToString() -> string")]
+    [InlineData("~static Records.SynthesizedStruct.Parse(string text) -> Records.SynthesizedStruct")]
+    public void A_line_without_nullable_annotations_follows_the_same_rules(string line)
+    {
+        var annotated = line[1..].Replace("(object obj)", "(object? obj)", StringComparison.Ordinal);
+
+        Assert.Equal(PublicApi.ExclusionReason(annotated, Generated), PublicApi.ExclusionReason(line, Generated));
     }
 
     private static List<string> Lines(string type, string member)

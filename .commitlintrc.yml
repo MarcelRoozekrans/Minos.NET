@@ -28,6 +28,7 @@ rules:
       - openai
       - ratelimiting
       - caching
+      - recording
       - conformance
       - tests
       - benchmarks

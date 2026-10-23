@@ -260,9 +260,9 @@ public sealed partial class ObservabilityLoggingTests
     }
 
     [Fact]
-    public void TheEventTable_ReadsEightEvents()
+    public void TheEventTable_ReadsThirteenEvents()
     {
-        Assert.Equal([1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008], Events().Select(e => e.Id));
+        Assert.Equal([1001, 1002, 1003, 1004, 1005, 1006, 1007, 1008, 1009, 1010, 1011, 1012, 1013], Events().Select(e => e.Id));
     }
 
     // The two fixed messages on the page are the constants DecisionLog logs instead of the error's own message.

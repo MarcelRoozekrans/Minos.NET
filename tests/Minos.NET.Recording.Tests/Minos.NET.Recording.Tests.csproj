@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Minos.Recording.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Minos.NET\Minos.NET.csproj" />
+    <ProjectReference Include="..\..\src\Minos.NET.Recording\Minos.NET.Recording.csproj" />
+    <!-- For the one test that loads a record's questions member in the dataset loader. -->
+    <ProjectReference Include="..\..\src\Minos.NET.Evaluation\Minos.NET.Evaluation.csproj" />
+    <!-- For the stage-order test: the recording stage outside the caching stage. -->
+    <ProjectReference Include="..\..\src\Minos.NET.Caching\Minos.NET.Caching.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <!-- FakeLogger, and a real LoggerFactory, for the recorder's events. -->
+    <PackageReference Include="Microsoft.Extensions.Diagnostics.Testing" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+    <!-- AddMemoryCache, for the stage-order test. -->
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
+    <!-- FakeTimeProvider, for the recorder's clock. -->
+    <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" />
+    <PackageReference Include="ZeroAlloc.TestHelpers">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>contentfiles;build</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>

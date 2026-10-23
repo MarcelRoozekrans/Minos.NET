@@ -36,6 +36,7 @@ so `SystemOneDecisionClient` instruments them itself.
 | Events 1001, 1002 and 1006 | `LoggingDecisionClient` | Once per call, when the client has a logger factory. |
 | Event 1003 | `RetryingDecisionClient` | For each attempt it retries, when it has a logger. |
 | Events 1007 and 1008 | `CachingDecisionClient` | When its distributed cache throws, and it has a logger. |
+| Events 1009 to 1013 | `DecisionRecorder` and `RecordingDecisionClient`, in `Minos.NET.Recording` | When the queue drops records, the sink throws, a redactor throws, a record cannot be made, or the dispose times out, and the recorder has a logger factory. |
 | The spans `evaluate {model}` and `list_models`, their metrics, and events 1001 to 1006 of the raw calls | `SystemOneDecisionClient` | For `EvaluateAsync(SystemOneRequest)` and `ListModelsAsync`. |
 
 With `UseStandardPipeline` set to `false`, a `DecisionRequest` call emits none of these until you add the stages
@@ -110,6 +111,11 @@ such as a JSON console or Serilog, receives each `{Placeholder}` below as a fiel
 | 1006 | `UnexpectedException` | Error | `Minos {Operation} threw an unexpected exception.` The exception is attached to the record. |
 | 1007 | `CacheReadFailed` | Warning | `Minos cache read via {Provider} failed; the call goes to the provider.` The exception is attached to the record. |
 | 1008 | `CacheWriteFailed` | Warning | `Minos cache write via {Provider} failed; the answer is returned uncached.` The exception is attached to the record. |
+| 1009 | `RecordsDropped` | Warning | `Minos recorder dropped {Count} records: its queue was full.` |
+| 1010 | `SinkCallFailed` | Warning | `Minos recorder sink call {Operation} failed with {ExceptionType}; the item was skipped.` |
+| 1011 | `RedactionFailed` | Warning | `Minos recording redaction failed with {ExceptionType}; no record was kept.` |
+| 1012 | `FlushTimedOut` | Error | `Minos recorder flush timed out after {TimeoutMs} ms; lost {Records} records, {Outcomes} outcomes, {Erasures} erasures and {Flushes} flushes.` |
+| 1013 | `RecordingFailed` | Warning | `Minos recording failed with {ExceptionType}; no record was kept, and the decision is unaffected.` |
 
 A call logs once, when it completes, and logs again for each attempt it is about to retry.
 
@@ -137,6 +143,17 @@ A call logs once, when it completes, and logs again for each attempt it is about
 - **A failing distributed cache** is a Warning from the [cache stage](pipeline.md#caching-decisions), and never fails
   the call: 1007 when a read throws, which the stage treats as a miss, and 1008 when a write throws, which leaves the
   answer out of the distributed cache but still returns it.
+- **The decision recorder**, in `Minos.NET.Recording`, never fails a decision either, and logs counts and exception type
+  names only: never the state, a decision id or an erasure key. 1009 counts the records it dropped because its queue
+  was full, 1010 names the sink call that threw and the exception's type, 1011 says that a redactor threw and no record
+  was kept, 1012, an Error, counts by kind the items its dispose gave up on when the flush timed out, and 1013 says
+  that the recording stage could not make a record after the call; the call's result is still returned. A logger that
+  throws loses the event but never stops the recorder. On the `Minos` meter, `minos.recording.records` puts every record
+  in exactly one `result`: `written`; `dropped`, when the queue was full, the recorder was disposed, the flush timed out
+  or the redactor returned `Drop`; or `failed`, when the sink or the redactor threw or the stage could not make the
+  record. A write that finishes after the flush timed out is not counted again. `minos.recording.outcomes` and
+  `minos.recording.erasures` count `written` and `failed`, and `minos.recording.log_failures` counts the log events lost
+  because the logger threw.
 - **`UnexpectedException`** is an Error, 1006. It means a mistake in the calling code or a bug, because a failure of the
   call itself is a returned `DecisionError`. The exception continues up to you unchanged. A cancellation that you requested
   is not logged, and neither are the argument checks and the disposed-client check that throw before the call starts.
@@ -370,7 +387,8 @@ is ZeroAlloc.Telemetry 1.11.0, the library that generates the instrumentation, w
 
 ## Metrics
 
-The meter named `Minos` has six instruments. To collect them with OpenTelemetry, pass the name to `AddMeter`, as
+The meter named `Minos` has six instruments from the client, and six more when you use the
+[decision recorder](#the-recorders-metrics). To collect them with OpenTelemetry, pass the name to `AddMeter`, as
 [the traces section](#subscribing-with-opentelemetry) shows. Every evaluation records its duration, and a successful
 evaluation also records its tokens and one confidence point for each Choice or Score answer.
 
@@ -402,11 +420,30 @@ at each step. The confidence boundaries are `0.1` to `0.9` in steps of `0.1`, th
 The same values on a span and on a metric are the same strings, so you can filter a trace and a chart by the same
 `gen_ai.request.model` or `error.type`.
 
+### The recorder's metrics
+
+The [decision recorder](recording.md), in `Minos.NET.Recording`, adds these to the meter named `Minos`, at the same
+version. Every tag is a fixed value.
+
+| Metric | Kind | Unit | Attributes | Recorded |
+| --- | --- | --- | --- | --- |
+| `minos.recording.records` | Observable counter | `{record}` | `result`: `written`, `dropped` or `failed` | once for every record, in exactly one result |
+| `minos.recording.outcomes` | Observable counter | `{outcome}` | `result`: `written` or `failed` | each outcome the sink was given |
+| `minos.recording.erasures` | Observable counter | `{erasure}` | `result`: `written` or `failed` | each erasure the sink was given |
+| `minos.recording.log_failures` | Observable counter | `{event}` | none | the recorder's log events lost because the logger threw |
+
+They are observable counters over totals kept in the process: counting never calls a listener, and a listener reads
+the totals when it collects.
+
 ## What is never emitted
 
 Minos puts none of these in a span attribute, a metric attribute or a span description: the state, the instructions, the
 criteria, the answers or their probabilities, the API key, a header value, `DecisionError.Message`, `DecisionError.Detail` or an
 exception message. The one thing a thrown exception adds to a span is the full name of its type, as described above.
+
+Recording never writes the state, a decision id or an erasure key to a log, a trace or a metric, nor the message of a
+provider's error. The recorder's log events carry counts and exception type names only, and its metric tags are the
+fixed values above.
 
 ## The cost of listening
 
@@ -433,6 +470,8 @@ The GenAI conventions are still in development, and the token metric names follo
 
 ## Next
 
+- [Recording decisions](recording.md): a record of every decision, its outcomes and its erasure, and what the recorder
+  emits.
 - [Native AOT](native-aot.md): what the library needs to run as a native executable, and the allocation budgets that
   guard it.
 - [Diagnostics](diagnostics.md): the compile-time rules for question sets.

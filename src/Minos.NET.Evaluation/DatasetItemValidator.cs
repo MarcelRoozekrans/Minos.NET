@@ -11,7 +11,7 @@ internal sealed class DatasetItemValidator
 {
     private static readonly string[] ItemMemberNames = ["id", "state", "questions", "expected", "source", "version"];
     private static readonly string[] QuestionMemberNames = ["type", "instructions", "criteria"];
-    private static readonly string[] CriterionMembers = ["description", "examples", "not_for"];
+    private static readonly string[] CriterionMembers = ["description", "examples", "not_for", "json"];
     private static readonly string[] NoulCriteriaMembers = ["true", "false"];
 
     private readonly int _line;
@@ -288,11 +288,27 @@ internal sealed class DatasetItemValidator
 
         if (criterion.ValueKind != JsonValueKind.Object)
         {
-            Add($"'{path}' must be a string or an object with 'description'.");
+            Add($"'{path}' must be a string or an object with 'description' or 'json'.");
             return;
         }
 
         var members = Members(criterion, path, CriterionMembers);
+        if (members.TryGetValue("json", out var json))
+        {
+            // A JSON criterion is the whole criterion: it is sent as the JSON, so it holds no description or lists beside it.
+            if (members.Count > 1)
+            {
+                Add($"'{path}.json' stands alone: a criterion cannot combine it with other members.");
+            }
+
+            if (json.ValueKind is not (JsonValueKind.Object or JsonValueKind.Array))
+            {
+                Add($"'{path}.json' must be a JSON object or array.");
+            }
+
+            return;
+        }
+
         if (!members.TryGetValue("description", out var description))
         {
             Missing($"{path}.description");

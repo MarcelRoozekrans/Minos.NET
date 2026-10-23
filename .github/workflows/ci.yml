@@ -170,9 +170,9 @@ jobs:
 
   aot-surface:
     runs-on: ubuntu-latest
-    # Publishes samples/Minos.NET.AotSurface with PublishAot=true and TrimMode=full. It roots the seven library
+    # Publishes samples/Minos.NET.AotSurface with PublishAot=true and TrimMode=full. It roots the eight library
     # assemblies, Minos.NET, Minos.NET.SystemOne, Minos.NET.OpenAI, Minos.NET.DependencyInjection, Minos.NET.Caching,
-    # Minos.NET.RateLimiting and Minos.NET.Evaluation, whole through
+    # Minos.NET.RateLimiting, Minos.NET.Evaluation and Minos.NET.Recording, whole through
     # TrimmerRootAssembly, so ILC analyses their members, not only the ones aot-smoke calls, plus the code the
     # generator emits for the host's question sets. Rooting reaches every non-generic member and every generic one ILC can share across reference
     # types; value-type generics, such as Choice<T> over an enum, are analysed through the host's instantiations of
@@ -196,10 +196,10 @@ jobs:
       - name: Restore
         run: dotnet restore samples/Minos.NET.AotSurface/Minos.NET.AotSurface.csproj
 
-      - name: Publish AOT with the seven library assemblies rooted
+      - name: Publish AOT with the eight library assemblies rooted
         run: dotnet publish samples/Minos.NET.AotSurface/Minos.NET.AotSurface.csproj -r linux-x64 -c Release -o ./aot-surface-out
 
-  # Packs the eight release packages exactly as publish-nuget does, inspects them, and rehearses the push against a local
+  # Packs the nine release packages exactly as publish-nuget does, inspects them, and rehearses the push against a local
   # folder feed, on every push and pull request, so the release path is exercised long before release day. A folder
   # feed silently drops .snupkg files, so symbol packages are checked by the inspection, not by the push. WorkflowWiringTests
   # pins the commands below; change them only together with it.
@@ -261,7 +261,7 @@ jobs:
         run: |
           app="$RUNNER_TEMP/consumer"
           dotnet new console -o "$app" --framework net10.0
-          for package in Minos.NET Minos.NET.SystemOne Minos.NET.OpenAI Minos.NET.DependencyInjection Minos.NET.Caching Minos.NET.RateLimiting Minos.NET.Evaluation; do
+          for package in Minos.NET Minos.NET.SystemOne Minos.NET.OpenAI Minos.NET.DependencyInjection Minos.NET.Caching Minos.NET.RateLimiting Minos.NET.Evaluation Minos.NET.Recording; do
             dotnet add "$app" package "$package" --version "$PACKAGE_VERSION" --no-restore
           done
           cat > "$app/nuget.config" <<EOF

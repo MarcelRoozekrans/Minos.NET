@@ -53,14 +53,21 @@ Each question is an object with these members:
   - A Choice needs an object of options, where each description is `null`, a string or a criterion object.
   - A Score needs an ordered list of levels, where each level is a string or a criterion object.
 
-A criterion object, for a Choice option or a Score level, has the members `description`, `examples` and `not_for`.
-`description` is required and is a string. `examples` and `not_for` are optional arrays of strings: the examples of the
-option, and the things the option is not for. A criterion object holds text only. A JSON object or array as the
-description of a Choice option or a Score level is not part of version 1, although the sides of a Noul may be JSON
-values, as above.
+A criterion object, for a Choice option or a Score level, has either the members `description`, `examples` and
+`not_for`, or the one member `json`.
+
+- `description` is required and is a string. `examples` and `not_for` are optional arrays of strings: the examples of
+  the option, and the things the option is not for. This form holds text only.
+- `json` is a JSON object or array, which is sent as the criterion as it is, like `Criterion.Json`. It is the whole
+  criterion: it cannot be combined with `description`, `examples` or `not_for`, so put anything else inside the JSON.
+  For example `{"json": {"description": "Payments", "weight": 2}}` is a criterion that is that JSON.
+
+The `json` form is an addition to version 1: a file without it stays valid.
 
 The questions go through the same checks as a question set built at run time, so the rules of
 [Question sets at run time](question-sets-at-run-time.md) apply, with the same `MIN` ids.
+
+A [recorded decision](recording.md#the-jsonl-format) keeps its question set in its `questions` member in this same shape.
 
 ### Expected answers
 

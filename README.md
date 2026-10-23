@@ -13,6 +13,7 @@
 [![Minos.NET.Caching](https://img.shields.io/nuget/v/Minos.NET.Caching?label=Minos.NET.Caching)](https://www.nuget.org/packages/Minos.NET.Caching)
 [![Minos.NET.RateLimiting](https://img.shields.io/nuget/v/Minos.NET.RateLimiting?label=Minos.NET.RateLimiting)](https://www.nuget.org/packages/Minos.NET.RateLimiting)
 [![Minos.NET.Evaluation](https://img.shields.io/nuget/v/Minos.NET.Evaluation?label=Minos.NET.Evaluation)](https://www.nuget.org/packages/Minos.NET.Evaluation)
+[![Minos.NET.Recording](https://img.shields.io/nuget/v/Minos.NET.Recording?label=Minos.NET.Recording)](https://www.nuget.org/packages/Minos.NET.Recording)
 [![Minos.NET.Tool](https://img.shields.io/nuget/v/Minos.NET.Tool?label=Minos.NET.Tool)](https://www.nuget.org/packages/Minos.NET.Tool)
 
 Unofficial .NET client for decision models: send a `state` and typed questions (Noul, Choice, Score) and get calibrated, typed answers back.
@@ -36,6 +37,7 @@ You declare the questions as a C# type, and a source generator writes the reques
 | [Minos.NET.Caching](https://www.nuget.org/packages/Minos.NET.Caching) | a caching stage |
 | [Minos.NET.RateLimiting](https://www.nuget.org/packages/Minos.NET.RateLimiting) | a rate-limiting stage |
 | [Minos.NET.Evaluation](https://www.nuget.org/packages/Minos.NET.Evaluation) | labelled datasets: the JSONL format, a loader, a runner and a calibration report |
+| [Minos.NET.Recording](https://www.nuget.org/packages/Minos.NET.Recording) | a recording stage: a record of every decision, with outcomes, erasure and redaction, in a JSONL file or a sink of your own |
 | [Minos.NET.Tool](https://www.nuget.org/packages/Minos.NET.Tool) | the `minos` dotnet tool: `calibrate`, `report` and `conformance` |
 
 ## What you get
@@ -43,6 +45,7 @@ You declare the questions as a C# type, and a source generator writes the reques
 - Typed questions declared as a C# type, with a source generator.
 - One provider-neutral `IDecisionClient`, with presets for TypeSafe, OpenRouter and local servers.
 - A pipeline with retries, logging, OpenTelemetry traces and metrics, caching and rate limiting.
+- A record of every decision, with outcomes attached later and erasure by a key you choose, for building datasets from your own traffic.
 - Dependency-injection registration, default and keyed.
 - The MIN analyzers and their code fixes.
 - Native AOT, with allocation budgets enforced in CI.
@@ -129,6 +132,7 @@ The guide lives at [marcelroozekrans.github.io/Minos.NET](https://marcelroozekra
 - [Dependency injection](https://marcelroozekrans.github.io/Minos.NET/dependency-injection): register `IDecisionClient` in a .NET host, key several clients, and bind options from configuration.
 - [The client pipeline](https://marcelroozekrans.github.io/Minos.NET/pipeline): the stages every call goes through, building your own pipeline, writing a stage, and upgrading to 1.0 and from 0.7.
 - [Logging, traces and metrics](https://marcelroozekrans.github.io/Minos.NET/observability): what the client logs, which spans and metrics it emits, and what it never records.
+- [Recording decisions](https://marcelroozekrans.github.io/Minos.NET/recording): keep a record of every decision, attach outcomes, erase by a key you choose, redact the state, and read the JSONL file back.
 - [Native AOT and allocations](https://marcelroozekrans.github.io/Minos.NET/native-aot): what Native AOT compatibility means, the one reflection the client uses, and the allocation budgets that guard it.
 - [Diagnostics](https://marcelroozekrans.github.io/Minos.NET/diagnostics): every MIN analyzer rule with its severity, the provider rules the client checks at run time, the two code fixes, and how to suppress a rule.
 - [Testing your code](https://marcelroozekrans.github.io/Minos.NET/testing-your-code): test code that calls Jev with a fake `IDecisionClient` or a real `SystemOneDecisionClient` over a canned HTTP reply.

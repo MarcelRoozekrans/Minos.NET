@@ -4,7 +4,7 @@ using System.Text.Json;
 namespace Minos.AotSurface;
 
 /// <summary>
-/// Instantiates every public generic type and generic method of the seven library assemblies over concrete types. Rooting an assembly
+/// Instantiates every public generic type and generic method of the eight library assemblies over concrete types. Rooting an assembly
 /// makes ILC analyse a generic member only through an instantiation it can share across reference types, and a
 /// value-type generic, such as <see cref="Choice{T}"/> with its <c>where T : struct, Enum</c>, has none, so rooting the
 /// packages alone skips it. The csproj roots this assembly, so ILC analyses these methods and, through them, every

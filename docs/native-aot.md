@@ -1,7 +1,7 @@
 ---
 id: native-aot
 title: Native AOT and allocations
-sidebar_position: 12
+sidebar_position: 13
 description: What it means that the Minos client is Native AOT compatible, the one reflection it uses, how CI checks every public member, and the allocation budgets that guard it.
 ---
 
@@ -27,9 +27,10 @@ allocates, because a program that avoids the just-in-time compiler usually cares
   `openai`, are Native AOT compatible too. Both bind options from configuration with the configuration binding source
   generator, so binding uses no reflection and needs nothing set up in your program.
   [Dependency injection](dependency-injection.md#options-from-configuration) covers the options.
-- **The pipeline stages.** `UseCaching` in `Minos.NET.Caching` and `UseRateLimiting` in `Minos.NET.RateLimiting` run
-  under Native AOT. The cache stage stores answers in the distributed cache as compact JSON, written and read with
-  `Utf8JsonWriter` and `Utf8JsonReader`, so it uses no reflection.
+- **The pipeline stages.** `UseCaching` in `Minos.NET.Caching`, `UseRateLimiting` in `Minos.NET.RateLimiting` and
+  `UseRecording` in `Minos.NET.Recording` run under Native AOT. The cache stage stores answers in the distributed cache
+  as compact JSON, written and read with `Utf8JsonWriter` and `Utf8JsonReader`, so it uses no reflection. The decision
+  recorder writes its JSONL file the same way and reads it through a source-generated `JsonSerializerContext`.
 
 ## The one use of reflection
 
@@ -96,8 +97,8 @@ The checks run the real client over a canned HTTP handler. They cover:
 A publish only analyses what the program reaches, so the smoke application cannot vouch for a member that no check
 calls. The `aot-surface` job closes that gap. It publishes `samples/Minos.NET.AotSurface` with `PublishAot` and full
 trimming, and roots `Minos.NET`, `Minos.NET.SystemOne`, `Minos.NET.OpenAI`, `Minos.NET.DependencyInjection`,
-`Minos.NET.Caching`, `Minos.NET.RateLimiting` and `Minos.NET.Evaluation`, the labelled dataset loader, whole through
-`TrimmerRootAssembly`.
+`Minos.NET.Caching`, `Minos.NET.RateLimiting`, `Minos.NET.Evaluation`, the labelled dataset loader, and
+`Minos.NET.Recording`, the decision recorder, whole through `TrimmerRootAssembly`.
 
 Rooting analyses every non-generic member of these assemblies, called or not, and every generic member the compiler
 can share across reference types. A value-type generic has no such shared form, so rooting alone skips it. That covers
@@ -118,16 +119,19 @@ The smoke application has to call everything a user can call, or its own pass sa
 `tests/Minos.NET.AotSmoke.Tests` enforces that, and it runs with the rest of the test suite.
 
 An **entry point** is a public or protected method or constructor that you call. The list is read from the `PublicAPI`
-files of the seven library packages, so a new public member is an entry point the day it is added.
+files of the eight library packages, so a new public member is an entry point the day it is added.
 These are not entry points, and the test says why for each:
 
 - type declarations, which are called through their constructors and methods;
 - property and indexer accessors, fields, constants and enum members, which are covered through their types;
 - operators, including implicit conversions, which are syntax over methods that count;
 - the `Equals(object)`, `GetHashCode()` and `ToString()` overrides;
-- the members the compiler writes for a record, such as `<Clone>$`, `Deconstruct`, `PrintMembers` and `Equals(T)`.
-  The test recognises them by the `[CompilerGenerated]` attribute the compiler puts on them, not by name, so a record
-  member written by hand, and the `Equals(T)` of a struct, do count.
+- the members the compiler writes for a record or a record struct, such as `<Clone>$`, `Deconstruct`, `PrintMembers`
+  and `Equals(T)`. The test recognises them by the `[CompilerGenerated]` attribute the compiler puts on them, not by
+  name, so a record member written by hand, and the `Equals(T)` of a struct, do count.
+
+A `PublicAPI` line that starts with `~` is a member the analyzer wrote without nullable annotations, as it writes the
+`Equals(object)` and `ToString()` a record struct is given. The same rules apply to it.
 
 Every other entry point has to be declared. A smoke check carries one `[Covers]` attribute per entry point it calls,
 spelled as its line in the `PublicAPI` file. The test fails in four cases:

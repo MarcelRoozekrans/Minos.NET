@@ -58,7 +58,7 @@ public static class DefaultPipeline
 ```
 <!-- endSnippet -->
 
-The standard stages run in this order, outermost first. The last two rows are add-on stages that are not in the
+The standard stages run in this order, outermost first. The last three rows are add-on stages that are not in the
 standard pipeline; you place them yourself, as [Stage order](#stage-order) describes.
 
 | Stage | Class | What it does |
@@ -69,6 +69,7 @@ standard pipeline; you place them yourself, as [Stage order](#stage-order) descr
 | Transport | internal | Sends one attempt over HTTP and reads the reply. |
 | Caching | `CachingDecisionClient` | Answers a repeated decision from memory or a distributed cache. Add-on package `Minos.NET.Caching`, added with `UseCaching()`. |
 | Rate limiting | `RateLimitingDecisionClient` | Takes a permit from a `RateLimiter` before each call. Add-on package `Minos.NET.RateLimiting`, added with `UseRateLimiting()`. |
+| Recording | `RecordingDecisionClient` | Hands a record of each decision to a recorder, without waiting for it. Add-on package `Minos.NET.Recording`, added with `UseRecording()`; see [Recording decisions](recording.md). |
 
 The order is what makes the signals line up:
 
@@ -263,6 +264,9 @@ public static IDecisionClient Build(HttpClient http, string apiKey, RateLimiter 
 3. retries, outside the limiter, so a local rejection is retried after its `RetryAfter`;
 4. rate limiting, so every attempt takes a permit;
 5. the transport.
+
+When you [record decisions](recording.md#registering-it-outermost), `UseRecording` goes before all of these, so that a
+decision is one record, a cache hit included.
 
 ## Writing a stage
 
