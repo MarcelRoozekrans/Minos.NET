@@ -11,8 +11,7 @@ name: Calibrate
 # cancel stops the job, the runner signals only the step's shell, so the Calibrate step runs minos in the background and
 # its trap passes the stop on to minos as SIGTERM, waits for it, and starts no further set. A minos calibrate that
 # receives SIGTERM saves results.partial.jsonl and its report, then exits 130, and the upload steps, which run with
-# if: always(), keep them. That saving needs the tool release that closes #230: the pinned 1.2.0 exits without saving,
-# so until the pin is raised a job that its timeout cancels keeps nothing, not even results.partial.jsonl.
+# if: always(), keep them. Saving on a stop arrived in tool 1.4.0, which closed #230.
 # Maintainers must also restrict the live-api environment's deployment branches to main.
 on:
   workflow_dispatch:
@@ -52,7 +51,7 @@ jobs:
           dotnet-version: '10.0.x'
 
       - name: Install the released tool
-        run: dotnet tool install Minos.NET.Tool --version 1.2.0 --tool-path "$RUNNER_TEMP/minos-tool"
+        run: dotnet tool install Minos.NET.Tool --version 1.4.0 --tool-path "$RUNNER_TEMP/minos-tool"
 
       - name: Map the provider to its config section and report folder
         id: map

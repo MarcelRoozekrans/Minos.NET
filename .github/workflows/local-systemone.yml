@@ -100,8 +100,8 @@ jobs:
   # Dispatch only: calibrates the local model on the chosen set or both, one request at a time, with the released
   # tool. No secrets, nothing is billed. Each set is uploaded as calibration-local-<set> and reaches
   # docs/reports/local/<set>/ through a pull request. A stopped run exits 1 and still uploads its partial results. A
-  # timeout or a cancel signals only the step's shell, whose trap passes it on to minos as SIGTERM; saving on that needs
-  # the tool release that closes #230, not the pinned 1.2.0.
+  # timeout or a cancel signals only the step's shell, whose trap passes it on to minos as SIGTERM, and minos 1.4.0
+  # saves its partial results before it exits.
   calibrate:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -151,7 +151,7 @@ jobs:
           exit 1
 
       - name: Install the released tool
-        run: dotnet tool install Minos.NET.Tool --version 1.2.0 --tool-path "$RUNNER_TEMP/minos-tool"
+        run: dotnet tool install Minos.NET.Tool --version 1.4.0 --tool-path "$RUNNER_TEMP/minos-tool"
 
       # Both sets run even when the first stops, then the step fails if either did. The upload steps below still run.
       - name: Calibrate
