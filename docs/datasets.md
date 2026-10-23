@@ -367,9 +367,9 @@ earlier run, so the directory never holds two contradicting runs. A partial resu
 together with the full dataset. To finish, run the dataset again.
 
 The run is cancelled by Ctrl+C. On Windows Ctrl+Break cancels it too; on Unix, `Ctrl+\` and SIGTERM do. Windows maps
-SIGTERM to a system shutdown, which only a service sees, so there only Ctrl+C and Ctrl+Break save the run. The tool
-then prints `Saving the finished items; press Ctrl+C again to quit without saving.` and writes the files, which takes a
-moment. A second Ctrl+C, or any second signal, ends the tool at once, without saving. A run cancelled before any item
+SIGTERM to a system shutdown, which only a service sees, so there only Ctrl+C and Ctrl+Break save the run. Every
+command then prints `Stopping; press Ctrl+C again to quit at once.`, and `minos calibrate` writes the files, which
+takes a moment. A second Ctrl+C, or any second signal, ends the tool at once, without saving. A run cancelled before any item
 finished writes nothing and leaves the files of an earlier run in place.
 
 In CI, the signal has to reach the tool. A GitHub Actions job that hits its timeout or is cancelled signals only the

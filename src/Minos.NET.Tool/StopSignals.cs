@@ -10,7 +10,7 @@ namespace Minos.Tool;
 internal sealed class StopSignals : IDisposable
 {
     /// <summary>The line the first signal prints.</summary>
-    internal const string SavingMessage = "Saving the finished items; press Ctrl+C again to quit without saving.";
+    internal const string SavingMessage = "Stopping; press Ctrl+C again to quit at once.";
 
     private readonly TextWriter _stderr;
     private readonly CancellationTokenSource _cts = new();

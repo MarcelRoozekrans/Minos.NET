@@ -6,7 +6,7 @@ namespace Minos.Tool.Tests;
 
 public sealed class StopSignalsTests
 {
-    private const string SavingLine = "Saving the finished items; press Ctrl+C again to quit without saving.";
+    private const string SavingLine = "Stopping; press Ctrl+C again to quit at once.";
 
     [Fact]
     public void CtrlC_CtrlBreakOrCtrlBackslash_AndTermination_AreTheSignalsThatStopTheTool()
