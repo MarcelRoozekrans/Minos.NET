@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.2.2...v1.3.0) (2026-10-23)
+
+
+### Features
+
+* **recording:** Minos.NET.Recording records decisions, outcomes and erasures, Phase 9.1 ([a8c0eb5](https://github.com/MarcelRoozekrans/Minos.NET/commit/a8c0eb5a36b1946df7a5e2ec4a8d433b2bfa7f88))
+
 ## [1.2.2](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.2.1...v1.2.2) (2026-10-22)
 
 
