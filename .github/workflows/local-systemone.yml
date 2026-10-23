@@ -99,7 +99,9 @@ jobs:
 
   # Dispatch only: calibrates the local model on the chosen set or both, one request at a time, with the released
   # tool. No secrets, nothing is billed. Each set is uploaded as calibration-local-<set> and reaches
-  # docs/reports/local/<set>/ through a pull request. A stopped run exits 1 and still uploads its partial results.
+  # docs/reports/local/<set>/ through a pull request. A stopped run exits 1 and still uploads its partial results. A
+  # timeout or a cancel signals only the step's shell, whose trap passes it on to minos as SIGTERM; saving on that needs
+  # the tool release that closes #230, not the pinned 1.2.0.
   calibrate:
     if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -161,13 +163,19 @@ jobs:
             *) echo "::error::Unknown set '$SET'"; exit 1 ;;
           esac
           status=0
+          pid=
+          # The runner signals only this shell (SIGINT, then SIGTERM after 7.5 s, a kill after 10 s). Pass it on as SIGTERM,
+          # since a background job ignores SIGINT, let minos save results.partial.jsonl, and start no further set.
+          trap 'trap "" INT TERM; if [ -n "$pid" ]; then kill -TERM "$pid" 2>/dev/null; wait "$pid"; fi; exit 130' INT TERM
           for set in urgency banking77; do
             if [ "$SET" != both ] && [ "$SET" != "$set" ]; then continue; fi
             case "$set" in
               urgency) dataset=datasets/banking77/banking77-urgency-v1.jsonl ;;
               banking77) dataset=datasets/banking77/banking77-minos-v1.jsonl ;;
             esac
-            "$RUNNER_TEMP/minos-tool/minos" calibrate --dataset "$dataset" --config docs/reports/minos.json --provider Local --parallel 1 --out "$RUNNER_TEMP/out/local-$set" || status=1
+            "$RUNNER_TEMP/minos-tool/minos" calibrate --dataset "$dataset" --config docs/reports/minos.json --provider Local --parallel 1 --out "$RUNNER_TEMP/out/local-$set" & pid=$!
+            wait "$pid" || status=1
+            pid=
           done
           exit "$status"
 

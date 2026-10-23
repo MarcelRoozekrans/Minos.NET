@@ -46,6 +46,8 @@ internal static class MinosCli
             return ExitCodes.Usage;
         }
 
+        // System.CommandLine's own Ctrl+C and SIGTERM handling is off: it would end the process once its timeout ran out,
+        // cutting short the save of a cancelled run. The host turns those signals into the token instead, see StopSignals.
         var configuration = new InvocationConfiguration
         {
             Output = stdout,

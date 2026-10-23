@@ -105,16 +105,28 @@ internal static class CalibrateCommand
                 DatasetName = Path.GetFileNameWithoutExtension(request.Dataset) is { Length: > 0 } stem ? stem : "dataset",
             };
 
+            // A run that stopped or was cancelled keeps the items it paid for, and they are saved as a partial run.
             EvaluationResults results;
-            DatasetRunException? stopped = null;
+            Exception? stopped = null;
             try
             {
                 results = await DatasetRunner.RunAsync(client, loaded.Value, runOptions, ct).ConfigureAwait(false);
             }
-            catch (DatasetRunException ex) when (!ct.IsCancellationRequested)
+            catch (DatasetRunException ex)
             {
                 stopped = ex;
                 results = ex.PartialResults;
+            }
+            catch (DatasetRunCanceledException ex)
+            {
+                // Nothing finished, so nothing was paid for: write nothing, and leave a previous run's files as they are.
+                if (ex.PartialResults is not { Items.Count: > 0 } partial)
+                {
+                    return await CommandSupport.CancelledAsync(stderr).ConfigureAwait(false);
+                }
+
+                stopped = ex;
+                results = partial;
             }
 
             var resultsFile = Path.Combine(outDir, stopped is null ? "results.jsonl" : "results.partial.jsonl");
@@ -124,19 +136,26 @@ internal static class CalibrateCommand
             File.Delete(Path.Combine(outDir, stopped is null ? "results.partial.jsonl" : "results.jsonl"));
             await stdout.WriteLineAsync(resultsFile).ConfigureAwait(false);
 
+            var cancelled = stopped is DatasetRunCanceledException;
             var report = CalibrationReport.Create(results, loaded.Value, priceTable);
             if (!report.IsSuccess)
             {
                 await CommandSupport.PrintProblemsAsync(stderr, report.Error).ConfigureAwait(false);
-                return ExitCodes.Failure;
+                return cancelled ? await CommandSupport.CancelledAsync(stderr).ConfigureAwait(false) : ExitCodes.Failure;
             }
 
+            // Local files, written even when the token has cancelled the run: they are what the run paid for.
             var json = Path.Combine(outDir, "report.json");
             var markdown = Path.Combine(outDir, "report.md");
-            await File.WriteAllTextAsync(json, report.Value.ToJson(), ct).ConfigureAwait(false);
-            await File.WriteAllTextAsync(markdown, report.Value.ToMarkdown(), ct).ConfigureAwait(false);
+            await File.WriteAllTextAsync(json, report.Value.ToJson(), CancellationToken.None).ConfigureAwait(false);
+            await File.WriteAllTextAsync(markdown, report.Value.ToMarkdown(), CancellationToken.None).ConfigureAwait(false);
             await stdout.WriteLineAsync(json).ConfigureAwait(false);
             await stdout.WriteLineAsync(markdown).ConfigureAwait(false);
+
+            if (cancelled)
+            {
+                return await CommandSupport.CancelledAsync(stderr).ConfigureAwait(false);
+            }
 
             if (stopped is not null)
             {

@@ -569,7 +569,7 @@ public sealed class DatasetRunnerTests
     }
 
     [Fact]
-    public async Task Cancellation_StillThrowsOperationCanceledException()
+    public async Task Cancellation_IsAnOperationCanceledException_ForTheCallersToken_NotADatasetRunException()
     {
         using var cts = new CancellationTokenSource();
         var client = new FakeDecisionClient(async (_, _) =>
@@ -578,11 +578,249 @@ public sealed class DatasetRunnerTests
             cts.Token.ThrowIfCancellationRequested();
             return default;
         });
+        OperationCanceledException? caught = null;
 
-        var ex = await Record.ExceptionAsync(() => DatasetRunner.RunAsync(client, Many(5), cancellationToken: cts.Token));
+        try
+        {
+            await DatasetRunner.RunAsync(client, Many(5), cancellationToken: cts.Token);
+        }
+        catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token)
+        {
+            caught = ex;
+        }
 
-        Assert.IsAssignableFrom<OperationCanceledException>(ex);
-        Assert.IsNotType<DatasetRunException>(ex);
+        Assert.IsType<DatasetRunCanceledException>(caught);
+    }
+
+    [Fact]
+    public async Task CallerCancellation_MidRun_KeepsTheFinishedItemsInOrder()
+    {
+        using var cts = new CancellationTokenSource();
+        var client = new FakeDecisionClient(async (r, ct) =>
+        {
+            if (r.State.ToString().EndsWith("i3", StringComparison.Ordinal))
+            {
+                await cts.CancelAsync();
+                ct.ThrowIfCancellationRequested();
+            }
+
+            return Ok(NoulResponse(r, 0.9));
+        });
+
+        var ex = await Assert.ThrowsAsync<DatasetRunCanceledException>(
+            () => DatasetRunner.RunAsync(client, Many(10), new DatasetRunOptions { MaxParallelism = 1, DatasetName = "set" }, cts.Token)
+                .WaitAsync(TimeSpan.FromSeconds(10)));
+
+        Assert.Equal(cts.Token, ex.CancellationToken);
+        Assert.Null(ex.InnerException);
+        Assert.Equal(["i0", "i1", "i2"], ex.PartialResults!.Items.Select(i => i.Id));
+        Assert.True(ex.PartialResults!.Header.Partial);
+        Assert.Equal(3, ex.PartialResults!.Header.ItemCount);
+        Assert.Equal("set", ex.PartialResults!.Header.DatasetName);
+        Assert.All(ex.PartialResults!.Items, i => Assert.Null(i.Error));
+        Assert.Equal(4, client.Requests.Count);
+        Assert.Contains("after 3 finished items", ex.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task CallerCancellation_InParallel_LeavesOutTheItemsItCut()
+    {
+        // i0, i1 and i3 answer at once, i4 cancels the caller's token, and every other item waits until the stop cancels it.
+        using var cts = new CancellationTokenSource();
+        var never = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var client = new FakeDecisionClient(async (r, ct) =>
+        {
+            var id = r.State.ToString().Split(' ')[^1];
+            if (id is "i0" or "i1" or "i3")
+            {
+                return Ok(NoulResponse(r, 0.9));
+            }
+
+            if (string.Equals(id, "i4", StringComparison.Ordinal))
+            {
+                await cts.CancelAsync();
+                ct.ThrowIfCancellationRequested();
+            }
+
+            await never.Task.WaitAsync(ct);
+            return Ok(NoulResponse(r, 0.9));
+        });
+
+        var ex = await Assert.ThrowsAsync<DatasetRunCanceledException>(
+            () => DatasetRunner.RunAsync(client, Many(10), new DatasetRunOptions { MaxParallelism = 3 }, cts.Token).WaitAsync(TimeSpan.FromSeconds(10)));
+
+        var ids = ex.PartialResults!.Items.Select(i => int.Parse(i.Id[1..], System.Globalization.CultureInfo.InvariantCulture)).ToList();
+        Assert.Equal([.. ids.Order()], ids);
+        Assert.Equal(ids.Count, ids.Distinct().Count());
+        Assert.Contains(0, ids);
+        Assert.DoesNotContain(4, ids);
+        Assert.Equal(ids.Count, ex.PartialResults!.Header.ItemCount);
+        Assert.True(ex.PartialResults!.Header.Partial);
+        Assert.All(ex.PartialResults!.Items, i => Assert.Null(i.Error));
+        Assert.False(never.Task.IsCompleted);
+    }
+
+    [Fact]
+    public async Task CallerCancellation_BeforeTheStart_SendsNothing_AndKeepsNoItems()
+    {
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+        var client = Simple();
+
+        var ex = await Assert.ThrowsAsync<DatasetRunCanceledException>(
+            () => DatasetRunner.RunAsync(client, Many(3), cancellationToken: cts.Token).WaitAsync(TimeSpan.FromSeconds(10)));
+
+        Assert.Empty(client.Requests);
+        Assert.Equal(cts.Token, ex.CancellationToken);
+        Assert.Empty(ex.PartialResults!.Items);
+        Assert.Equal(0, ex.PartialResults!.Header.ItemCount);
+        Assert.True(ex.PartialResults!.Header.Partial);
+    }
+
+    [Fact]
+    public async Task ClientFault_WithALiveToken_IsStillADatasetRunException()
+    {
+        using var cts = new CancellationTokenSource();
+        var client = new FakeDecisionClient((r, _) =>
+            r.State.ToString().EndsWith("i2", StringComparison.Ordinal) ? throw new InvalidOperationException("boom") : ValueTask.FromResult(Ok(NoulResponse(r, 0.9))));
+
+        var ex = await Record.ExceptionAsync(
+            () => DatasetRunner.RunAsync(client, Many(5), cancellationToken: cts.Token).WaitAsync(TimeSpan.FromSeconds(10)));
+
+        var stopped = Assert.IsType<DatasetRunException>(ex);
+        Assert.Equal(["i0", "i1"], stopped.PartialResults.Items.Select(i => i.Id));
+    }
+
+    [Fact]
+    public async Task CallerCancellation_DuringAFault_WinsAndKeepsTheFaultAsTheInnerException()
+    {
+        // i2 throws once i3 is in flight. The fault's stop cancels i3, which then cancels the caller's token before it
+        // returns, so the caller cancels while the fault is being handled.
+        using var cts = new CancellationTokenSource();
+        var boom = new InvalidOperationException("boom");
+        var i3Started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var never = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var client = new FakeDecisionClient(async (r, ct) =>
+        {
+            var id = r.State.ToString().Split(' ')[^1];
+            switch (id)
+            {
+                case "i0" or "i1":
+                    return Ok(NoulResponse(r, 0.9));
+                case "i2":
+                    await i3Started.Task.WaitAsync(TimeSpan.FromSeconds(10), CancellationToken.None);
+                    throw boom;
+                default:
+                    i3Started.TrySetResult();
+                    try
+                    {
+                        await never.Task.WaitAsync(ct);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        await cts.CancelAsync();
+                        throw;
+                    }
+
+                    return Ok(NoulResponse(r, 0.9));
+            }
+        });
+
+        var ex = await Assert.ThrowsAsync<DatasetRunCanceledException>(
+            () => DatasetRunner.RunAsync(client, Many(10), new DatasetRunOptions { MaxParallelism = 2 }, cts.Token).WaitAsync(TimeSpan.FromSeconds(10)));
+
+        Assert.Same(boom, ex.InnerException);
+        Assert.Equal(cts.Token, ex.CancellationToken);
+        Assert.Equal(["i0", "i1"], ex.PartialResults!.Items.Select(i => i.Id));
+        Assert.Equal(2, ex.PartialResults!.Header.ItemCount);
+        Assert.True(ex.PartialResults!.Header.Partial);
+    }
+
+    [Fact]
+    public async Task CancelledPartialResults_SaveAndLoad_AndMakeAPartialReport()
+    {
+        using var cts = new CancellationTokenSource();
+        var client = new FakeDecisionClient(async (r, ct) =>
+        {
+            if (r.State.ToString().EndsWith("i2", StringComparison.Ordinal))
+            {
+                await cts.CancelAsync();
+                ct.ThrowIfCancellationRequested();
+            }
+
+            return Ok(NoulResponse(r, 0.9));
+        });
+        var dataset = Many(4);
+
+        var ex = await Assert.ThrowsAsync<DatasetRunCanceledException>(
+            () => DatasetRunner.RunAsync(client, dataset, cancellationToken: cts.Token).WaitAsync(TimeSpan.FromSeconds(10)));
+        using var stream = new MemoryStream();
+        ex.PartialResults!.Save(stream);
+        stream.Position = 0;
+        var loaded = EvaluationResults.Parse(stream);
+        var report = CalibrationReport.Create(ex.PartialResults, dataset);
+
+        Assert.True(loaded.IsSuccess);
+        Assert.True(loaded.Value.Header.Partial);
+        Assert.True(report.IsSuccess);
+        Assert.Contains("Partial run: 2 of 4 items", report.Value.ToMarkdown(), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(0, "after 0 finished items.")]
+    [InlineData(1, "after 1 finished item.")]
+    [InlineData(3, "after 3 finished items.")]
+    public void CanceledMessage_CountsFinishedItemsInTheRightNumber(int count, string expected)
+    {
+        var items = Enumerable.Range(1, count).Select(i => ReportFixture.Answered(i, new Dictionary<string, AnswerRecord> { ["q"] = AnswerRecord.ForNoul(0.9) })).ToArray();
+        using var cts = new CancellationTokenSource();
+        var inner = new InvalidOperationException("boom");
+
+        var ex = new DatasetRunCanceledException(ReportFixture.PartialResults(items), inner, cts.Token);
+
+        Assert.EndsWith(expected, ex.Message, StringComparison.Ordinal);
+        Assert.Same(inner, ex.InnerException);
+        Assert.Equal(cts.Token, ex.CancellationToken);
+        Assert.Equal(count, ex.PartialResults!.Items.Count);
+    }
+
+    [Fact]
+    public void CanceledException_NeedsItsPartialResults()
+        => Assert.Throws<ArgumentNullException>(() => new DatasetRunCanceledException((EvaluationResults)null!, null, CancellationToken.None));
+
+    [Fact]
+    public void CanceledException_StandardConstructors_CarryNoPartialResults()
+    {
+        var inner = new InvalidOperationException("boom");
+
+        DatasetRunCanceledException[] made = [new(), new("stopped"), new("stopped", inner)];
+
+        Assert.All(made, ex =>
+        {
+            Assert.Null(ex.PartialResults);
+            Assert.Equal(CancellationToken.None, ex.CancellationToken);
+        });
+        Assert.Equal("The dataset run was cancelled.", made[0].Message);
+        Assert.Equal("stopped", made[1].Message);
+        Assert.Same(inner, made[2].InnerException);
+    }
+
+    [Fact]
+    public void CanceledException_TokenConstructors_KeepTheToken_AndCarryNoPartialResults()
+    {
+        using var cts = new CancellationTokenSource();
+        var inner = new InvalidOperationException("boom");
+
+        DatasetRunCanceledException[] made = [new(cts.Token), new("stopped", cts.Token), new("stopped", inner, cts.Token)];
+
+        Assert.All(made, ex =>
+        {
+            Assert.Equal(cts.Token, ex.CancellationToken);
+            Assert.Null(ex.PartialResults);
+        });
+        Assert.Equal("The dataset run was cancelled.", made[0].Message);
+        Assert.Equal("stopped", made[1].Message);
+        Assert.Same(inner, made[2].InnerException);
     }
 
     [Theory]

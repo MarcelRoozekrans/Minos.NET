@@ -139,11 +139,19 @@ internal static class CommandSupport
         }
     }
 
+    /// <summary>Reports a cancelled command: one line on stderr, and exit code 130.</summary>
+    /// <param name="stderr">Where the line goes.</param>
+    public static async Task<int> CancelledAsync(TextWriter stderr)
+    {
+        await stderr.WriteLineAsync("Cancelled.").ConfigureAwait(false);
+        return ExitCodes.Cancelled;
+    }
+
     /// <summary>Runs a command and maps what escapes it to an exit code and one line on stderr.</summary>
     /// <param name="stderr">Where the failure goes.</param>
     /// <param name="failure">What failed, as the start of the line: <c>The run failed</c>.</param>
     /// <param name="execute">The command.</param>
-    /// <param name="ct">The cancellation token; a command it cancels exits 130, whatever it threw.</param>
+    /// <param name="ct">The cancellation token; a command it cancels exits 130 when it throws an <see cref="OperationCanceledException"/>.</param>
     public static async Task<int> GuardAsync(TextWriter stderr, string failure, Func<Task<int>> execute, CancellationToken ct)
     {
         try
@@ -151,10 +159,9 @@ internal static class CommandSupport
             ct.ThrowIfCancellationRequested();
             return await execute().ConfigureAwait(false);
         }
-        catch (Exception ex) when (ct.IsCancellationRequested && ex is OperationCanceledException or DatasetRunException)
+        catch (OperationCanceledException) when (ct.IsCancellationRequested)
         {
-            await stderr.WriteLineAsync("Cancelled.").ConfigureAwait(false);
-            return ExitCodes.Cancelled;
+            return await CancelledAsync(stderr).ConfigureAwait(false);
         }
         catch (InputReadException ex)
         {

@@ -60,6 +60,6 @@ A provider that reports no cost can be priced with `--prices`. Each entry names 
 | 0 | The command did what it was asked. |
 | 1 | A run-time failure: a stopped run, a failed check, a network fault or an output directory that cannot be written. |
 | 2 | The input, the usage or the configuration is wrong. |
-| 130 | The command was cancelled. |
+| 130 | The command was cancelled: by Ctrl+C or Ctrl+Break, or on Unix by `Ctrl+\` or SIGTERM. A cancelled `minos calibrate` still saves the items that finished as `results.partial.jsonl`, with its report; a second Ctrl+C quits without saving. |
 
 Documentation: [Labelled datasets](https://marcelroozekrans.github.io/Minos.NET/datasets) and [the conformance suite](https://marcelroozekrans.github.io/Minos.NET/conformance). Source and issues: [github.com/MarcelRoozekrans/Minos.NET](https://github.com/MarcelRoozekrans/Minos.NET). Licensed under the MIT license.

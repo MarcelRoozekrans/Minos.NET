@@ -120,16 +120,23 @@ the item's own question set and state. Items run one at a time unless you set `M
 `Cancelled`, and the run goes on too. A response whose answers do not fit the item turns the whole item into an
 `InvalidResponse` error: an answer of the wrong kind, a chosen option or level the question does not have, a
 probability or confidence outside 0 to 1, or no answer to any of the item's questions. These do stop the run: your own
-cancellation token, which throws, and an exception thrown by the client or by the `Progress` receiver. In those cases
-no new requests are sent, and requests still in flight are cancelled. Your own cancellation is thrown as it was, even
-when it comes after a client fault, and then no partial results are returned. An exception from the client or the
-`Progress` receiver is thrown as the inner exception of a `DatasetRunException`, whose `PartialResults` hold the items
-that finished, in dataset order, with `Header.Partial` set and `ItemCount` counting only those. Only the first fault is
-kept. In-flight requests that end cancelled are left out of the partial results, so any cost the provider charged for
-them is not in the results or the report; a request that returns anyway is kept. The finished items were paid for, so
-save them. `CalibrationReport.Create` accepts them against the full dataset, as long as every item is one of the
-dataset's and they keep its order, and the report says `Partial run: N of M items`. A results
-file of a partial run has `"partial":true` in its header.
+cancellation token, and an exception thrown by the client or by the `Progress` receiver. In those cases no new requests
+are sent, and requests still in flight are cancelled. Either way the exception carries the items that finished, as
+`PartialResults`, in dataset order, with `Header.Partial` set and `ItemCount` counting only those:
+
+- Your own cancellation throws a `DatasetRunCanceledException`. It is an `OperationCanceledException` whose
+  `CancellationToken` is your token, so `catch (OperationCanceledException e) when (e.CancellationToken == token)`
+  still catches it. A token that is already cancelled sends nothing, and the exception holds no items.
+- An exception from the client or the `Progress` receiver is thrown as the inner exception of a `DatasetRunException`.
+  Only the first fault is kept.
+
+Your cancellation wins over a fault: when your token is cancelled while a fault is stopping the run, you get the
+`DatasetRunCanceledException`. A fault that came before your cancellation is its `InnerException`; one that comes after
+it is dropped. In-flight requests that end cancelled are left out of the partial results, so any cost the provider
+charged for them is not in the results or the report; a request that returns anyway is kept. The finished items were
+paid for, so save them. `CalibrationReport.Create` accepts them against the full dataset, as long as every item is one
+of the dataset's and they keep its order, and the report says `Partial run: N of M items`. A results file of a partial
+run has `"partial":true` in its header.
 
 What you get back is an `EvaluationResults`: a `RunHeader` that names the run, and one `ItemResult` for each item. An
 `ItemResult` holds the answers as `AnswerRecord` values, or an `ItemError` when the request failed, and also the latency,
@@ -345,18 +352,38 @@ the path of each file it writes.
 | 0 | The command did what it was asked. A skipped check counts as a pass. |
 | 1 | A run-time failure: a run that stopped, a failed conformance check, a network fault, or an output directory that cannot be written. |
 | 2 | The input, the usage or the configuration is wrong, such as a dataset with problems, a missing config file or an unknown provider. |
-| 130 | The command was cancelled. |
+| 130 | The command was cancelled: by Ctrl+C or Ctrl+Break, or on Unix by `Ctrl+\` or SIGTERM. A cancelled `minos calibrate` still saves the items that finished. |
 
 A failure prints one line on stderr. The problems of a dataset or a results file are printed one per line, as
 `line N: message`, so you can fix them in one pass.
 
 ### A run that stops
 
-When the client throws during `minos calibrate`, the tool does not lose what the finished items cost. It writes the
-finished items to `results.partial.jsonl` instead of `results.jsonl`, builds `report.json` and `report.md` from them,
-and exits with code 1. The report reads `Partial run: N of M items`. It deletes a `results.jsonl` left in the same
-directory by an earlier run, so the directory never holds two contradicting runs. A partial results file works with
-`minos report`, together with the full dataset. To finish, run the dataset again.
+When the client throws during `minos calibrate`, or the run is cancelled, the tool does not lose what the finished items
+cost. It writes the finished items to `results.partial.jsonl` instead of `results.jsonl`, builds `report.json` and
+`report.md` from them, and prints their paths. A run the client stopped exits with code 1; a cancelled run exits with
+code 130. The report reads `Partial run: N of M items`. It deletes a `results.jsonl` left in the same directory by an
+earlier run, so the directory never holds two contradicting runs. A partial results file works with `minos report`,
+together with the full dataset. To finish, run the dataset again.
+
+The run is cancelled by Ctrl+C. On Windows Ctrl+Break cancels it too; on Unix, `Ctrl+\` and SIGTERM do. Windows maps
+SIGTERM to a system shutdown, which only a service sees, so there only Ctrl+C and Ctrl+Break save the run. Every
+command then prints `Stopping; press Ctrl+C again to quit at once.`, and `minos calibrate` writes the files, which
+takes a moment. A second Ctrl+C, or any second signal, ends the tool at once, without saving. A run cancelled before
+any item finished writes nothing and leaves the files of an earlier run in place.
+
+In CI, the signal has to reach the tool. A GitHub Actions job that hits its timeout or is cancelled signals only the
+step's shell on Linux and macOS: SIGINT, then SIGTERM 7.5 seconds later, then a kill. The repository's calibration
+workflows run `minos calibrate` in the background and pass the stop on with a `trap`:
+
+```bash
+trap 'trap "" INT TERM; if [ -n "$pid" ]; then kill -TERM "$pid" 2>/dev/null; wait "$pid"; fi; exit 130' INT TERM
+minos calibrate --dataset data.jsonl --out out & pid=$!
+wait "$pid"
+```
+
+SIGTERM is forwarded, not SIGINT, because a background job ignores SIGINT. On a Windows runner, Ctrl+C and Ctrl+Break
+reach every process in the console, so the tool gets them directly.
 
 ## Next
 

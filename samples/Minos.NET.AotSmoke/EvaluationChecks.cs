@@ -272,6 +272,65 @@ internal static class EvaluationChecks
             "a stopped run throws its paid results, and they make a partial report, under Native AOT");
     }
 
+    [Covers("Minos.Evaluation.DatasetRunCanceledException.DatasetRunCanceledException() -> void")]
+    [Covers("Minos.Evaluation.DatasetRunCanceledException.DatasetRunCanceledException(Minos.Evaluation.EvaluationResults! partialResults, System.Exception? innerException, System.Threading.CancellationToken cancellationToken) -> void")]
+    [Covers("Minos.Evaluation.DatasetRunCanceledException.DatasetRunCanceledException(string! message) -> void")]
+    [Covers("Minos.Evaluation.DatasetRunCanceledException.DatasetRunCanceledException(string! message, System.Exception? innerException) -> void")]
+    [Covers("Minos.Evaluation.DatasetRunCanceledException.DatasetRunCanceledException(System.Threading.CancellationToken token) -> void")]
+    [Covers("Minos.Evaluation.DatasetRunCanceledException.DatasetRunCanceledException(string! message, System.Threading.CancellationToken token) -> void")]
+    [Covers("Minos.Evaluation.DatasetRunCanceledException.DatasetRunCanceledException(string! message, System.Exception? innerException, System.Threading.CancellationToken token) -> void")]
+    public static async Task ACancelledRunKeepsItsPaidResults()
+    {
+        var dataset = Dataset();
+        using var cts = new CancellationTokenSource();
+        OperationCanceledException? caught = null;
+        try
+        {
+            await DatasetRunner.RunAsync(new CancellingClient(cts), dataset, cancellationToken: cts.Token).ConfigureAwait(false);
+        }
+        catch (OperationCanceledException ex) when (ex.CancellationToken == cts.Token)
+        {
+            caught = ex;
+        }
+
+        var cancelled = caught as DatasetRunCanceledException;
+        var partial = cancelled?.PartialResults;
+        var rewrapped = partial is null ? null : new DatasetRunCanceledException(partial, null, cts.Token);
+        var inner = new InvalidOperationException("inner");
+        DatasetRunCanceledException[] standard =
+        [
+            new(),
+            new("cancelled"),
+            new("cancelled", inner),
+            new(cts.Token),
+            new("cancelled", cts.Token),
+            new("cancelled", inner, cts.Token),
+        ];
+        CalibrationReport? report = null;
+        if (partial is not null && CalibrationReport.Create(partial, dataset) is { IsSuccess: true } created)
+        {
+            report = created.Value;
+        }
+
+        Program.Check(
+            cancelled is { InnerException: null }
+                && partial is { Header: { Partial: true, ItemCount: 2 } }
+                && partial.Items.Count == 2
+                && string.Equals(partial.Items[1].Id, "b", StringComparison.Ordinal)
+                && ReferenceEquals(rewrapped?.PartialResults, partial)
+                && rewrapped?.CancellationToken == cts.Token
+                && Array.TrueForAll(standard, ex => ex.PartialResults is null)
+                && standard[0].Message.Length > 0
+                && string.Equals(standard[1].Message, "cancelled", StringComparison.Ordinal)
+                && ReferenceEquals(standard[2].InnerException, inner)
+                && standard[3].CancellationToken == cts.Token
+                && standard[4].CancellationToken == cts.Token
+                && ReferenceEquals(standard[5].InnerException, inner)
+                && report is { Partial: true, DatasetItemCount: 4 }
+                && report.ToMarkdown().Contains("Partial run: 2 of 4 items", StringComparison.Ordinal),
+            "a cancelled run throws its paid results as an OperationCanceledException for the caller's token, under Native AOT");
+    }
+
     // The runner reports from its parallel workers, so the highest count is kept with a compare-and-swap.
     private sealed class CountingProgress : IProgress<int>
     {
@@ -304,6 +363,29 @@ internal static class EvaluationChecks
             => Interlocked.Increment(ref _calls) > 2
                 ? throw new InvalidOperationException("stopped")
                 : new(Result<DecisionResponse, DecisionError>.Success(new DecisionResponse(request.Definition, [QuestionAnswer.Noul(0.9)])));
+
+        public object? GetService(Type serviceType, object? serviceKey = null) => null;
+
+        public void Dispose()
+        {
+        }
+    }
+
+    // Answers the first two items, then cancels the caller's token and throws for it.
+    private sealed class CancellingClient(CancellationTokenSource caller) : IDecisionClient
+    {
+        private int _calls;
+
+        public ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
+        {
+            if (Interlocked.Increment(ref _calls) > 2)
+            {
+                caller.Cancel();
+                cancellationToken.ThrowIfCancellationRequested();
+            }
+
+            return new(Result<DecisionResponse, DecisionError>.Success(new DecisionResponse(request.Definition, [QuestionAnswer.Noul(0.9)])));
+        }
 
         public object? GetService(Type serviceType, object? serviceKey = null) => null;
 
