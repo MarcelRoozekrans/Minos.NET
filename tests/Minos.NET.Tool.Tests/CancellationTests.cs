@@ -72,8 +72,11 @@ public sealed class CancellationTests : IDisposable
     }
 
     [Fact]
-    public async Task Cancelled_OnTheFirstRequest_SavesAnEmptyPartialRun_AndExitsOneThirty()
+    public async Task Cancelled_BeforeAnyItemFinished_WritesNothing_AndKeepsThePreviousRun()
     {
+        Directory.CreateDirectory(_h.Out);
+        var previous = Path.Combine(_h.Out, "results.jsonl");
+        File.WriteAllText(previous, "the previous run");
         using var cts = new CancellationTokenSource();
         var fake = new FakeSystemOne
         {
@@ -89,10 +92,10 @@ public sealed class CancellationTests : IDisposable
 
         Assert.Equal(130, run.Exit);
         Assert.Equal("Cancelled.", run.Stderr.Trim());
-        var loaded = Minos.Evaluation.EvaluationResults.Load(Path.Combine(_h.Out, "results.partial.jsonl"));
-        Assert.True(loaded.IsSuccess);
-        Assert.Empty(loaded.Value.Items);
-        Assert.True(File.Exists(Path.Combine(_h.Out, "report.md")));
+        Assert.Empty(run.Stdout);
+        Assert.Equal(1, fake.Requests);
+        Assert.Equal("the previous run", File.ReadAllText(previous));
+        Assert.Equal([previous], Directory.GetFileSystemEntries(_h.Out));
     }
 
     [Fact]

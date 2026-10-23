@@ -319,7 +319,7 @@ internal static class EvaluationChecks
                 && string.Equals(partial.Items[1].Id, "b", StringComparison.Ordinal)
                 && ReferenceEquals(rewrapped?.PartialResults, partial)
                 && rewrapped?.CancellationToken == cts.Token
-                && Array.TrueForAll(standard, ex => ex.PartialResults.Items.Count == 0 && ex.PartialResults.Header.Partial)
+                && Array.TrueForAll(standard, ex => ex.PartialResults is null)
                 && standard[0].Message.Length > 0
                 && string.Equals(standard[1].Message, "cancelled", StringComparison.Ordinal)
                 && ReferenceEquals(standard[2].InnerException, inner)

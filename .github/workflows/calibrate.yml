@@ -7,10 +7,12 @@ name: Calibrate
 # No prices are applied here: they are applied afterwards with minos report, so a price correction needs no new run.
 # Each set is uploaded as calibration-<provider>-<set>, which holds the tool's output folder, results.partial.jsonl
 # included. The artifacts reach docs/reports/<provider>/<set>/ through a pull request.
-# The timeout covers the worst case, 460 items at the retries times the request timeout each. The pinned tool, 1.2.0,
-# exits without saving when it is cancelled, so a job that its timeout cancels keeps nothing, not even
-# results.partial.jsonl. From the release that closes #230, a minos calibrate that receives SIGINT or SIGTERM saves
-# results.partial.jsonl and its report before it exits 130, and the upload steps, which run with if: always(), keep them.
+# The timeout covers the worst case, 460 items at the retries times the request timeout each. When the timeout or a
+# cancel stops the job, the runner signals only the step's shell, so the Calibrate step runs minos in the background and
+# its trap passes the stop on to minos as SIGTERM, waits for it, and starts no further set. A minos calibrate that
+# receives SIGTERM saves results.partial.jsonl and its report, then exits 130, and the upload steps, which run with
+# if: always(), keep them. That saving needs the tool release that closes #230: the pinned 1.2.0 exits without saving,
+# so until the pin is raised a job that its timeout cancels keeps nothing, not even results.partial.jsonl.
 # Maintainers must also restrict the live-api environment's deployment branches to main.
 on:
   workflow_dispatch:
@@ -77,13 +79,19 @@ jobs:
             *) echo "::error::Unknown set '$SET'"; exit 1 ;;
           esac
           status=0
+          pid=
+          # The runner signals only this shell (SIGINT, then SIGTERM after 7.5 s, a kill after 10 s). Pass it on as SIGTERM,
+          # since a background job ignores SIGINT, let minos save results.partial.jsonl, and start no further set.
+          trap 'if [ -n "$pid" ]; then kill -TERM "$pid" 2>/dev/null; wait "$pid"; fi; exit 130' INT TERM
           for set in urgency banking77; do
             if [ "$SET" != both ] && [ "$SET" != "$set" ]; then continue; fi
             case "$set" in
               urgency) dataset=datasets/banking77/banking77-urgency-v1.jsonl ;;
               banking77) dataset=datasets/banking77/banking77-minos-v1.jsonl ;;
             esac
-            "$RUNNER_TEMP/minos-tool/minos" calibrate --dataset "$dataset" --config docs/reports/minos.json --provider "$SECTION" --parallel 1 --out "$RUNNER_TEMP/out/$SLUG-$set" || status=1
+            "$RUNNER_TEMP/minos-tool/minos" calibrate --dataset "$dataset" --config docs/reports/minos.json --provider "$SECTION" --parallel 1 --out "$RUNNER_TEMP/out/$SLUG-$set" & pid=$!
+            wait "$pid" || status=1
+            pid=
           done
           exit "$status"
 

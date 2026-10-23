@@ -119,8 +119,14 @@ internal static class CalibrateCommand
             }
             catch (DatasetRunCanceledException ex)
             {
+                // Nothing finished, so nothing was paid for: write nothing, and leave a previous run's files as they are.
+                if (ex.PartialResults is not { Items.Count: > 0 } partial)
+                {
+                    return await CommandSupport.CancelledAsync(stderr).ConfigureAwait(false);
+                }
+
                 stopped = ex;
-                results = ex.PartialResults;
+                results = partial;
             }
 
             var resultsFile = Path.Combine(outDir, stopped is null ? "results.jsonl" : "results.partial.jsonl");

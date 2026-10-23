@@ -12,20 +12,20 @@ public sealed class DatasetRunCanceledException : OperationCanceledException
 {
     private const string DefaultMessage = "The dataset run was cancelled.";
 
-    /// <summary>Creates the exception with a default message and no finished items.</summary>
+    /// <summary>Creates the exception with a default message.</summary>
     public DatasetRunCanceledException()
         : this(DefaultMessage)
     {
     }
 
-    /// <summary>Creates the exception with a message and no finished items.</summary>
+    /// <summary>Creates the exception with a message.</summary>
     /// <param name="message">The message.</param>
     public DatasetRunCanceledException(string message)
         : this(message, null)
     {
     }
 
-    /// <summary>Creates the exception with a message, the exception that caused it and no finished items.</summary>
+    /// <summary>Creates the exception with a message and the exception that caused it.</summary>
     /// <param name="message">The message.</param>
     /// <param name="innerException">The exception that caused it, or <see langword="null"/>.</param>
     public DatasetRunCanceledException(string message, Exception? innerException)
@@ -33,14 +33,14 @@ public sealed class DatasetRunCanceledException : OperationCanceledException
     {
     }
 
-    /// <summary>Creates the exception with a default message, a cancellation token and no finished items.</summary>
+    /// <summary>Creates the exception with a default message and a cancellation token.</summary>
     /// <param name="token">The token that cancelled the run.</param>
     public DatasetRunCanceledException(CancellationToken token)
         : this(DefaultMessage, token)
     {
     }
 
-    /// <summary>Creates the exception with a message, a cancellation token and no finished items.</summary>
+    /// <summary>Creates the exception with a message and a cancellation token.</summary>
     /// <param name="message">The message.</param>
     /// <param name="token">The token that cancelled the run.</param>
     public DatasetRunCanceledException(string message, CancellationToken token)
@@ -48,14 +48,13 @@ public sealed class DatasetRunCanceledException : OperationCanceledException
     {
     }
 
-    /// <summary>Creates the exception with a message, the exception that caused it, a cancellation token and no finished items.</summary>
+    /// <summary>Creates the exception with a message, the exception that caused it and a cancellation token.</summary>
     /// <param name="message">The message.</param>
     /// <param name="innerException">The exception that caused it, or <see langword="null"/>.</param>
     /// <param name="token">The token that cancelled the run.</param>
     public DatasetRunCanceledException(string message, Exception? innerException, CancellationToken token)
         : base(message, innerException, token)
     {
-        PartialResults = NoItems();
     }
 
     /// <summary>Creates the exception for a run that the caller's token cancelled.</summary>
@@ -72,10 +71,11 @@ public sealed class DatasetRunCanceledException : OperationCanceledException
     /// <summary>
     /// Gets the items that finished before the run was cancelled, in dataset order. Their header has
     /// <see cref="RunHeader.Partial"/> set, and its <see cref="RunHeader.ItemCount"/> is the number of finished items.
-    /// They can be saved, and a report can be built from them against the full dataset. An exception made with one of the
-    /// standard constructors holds no items, under a header named <c>dataset</c>.
+    /// They can be saved, and a report can be built from them against the full dataset. It is never
+    /// <see langword="null"/> when <see cref="DatasetRunner"/> throws the exception; it is <see langword="null"/> only
+    /// when other code makes the exception with one of the constructors that take no results.
     /// </summary>
-    public EvaluationResults PartialResults { get; }
+    public EvaluationResults? PartialResults { get; }
 
     private static string Describe(EvaluationResults partialResults)
     {
@@ -85,17 +85,4 @@ public sealed class DatasetRunCanceledException : OperationCanceledException
             System.Globalization.CultureInfo.InvariantCulture,
             $"The run was cancelled after {count} finished {(count == 1 ? "item" : "items")}.");
     }
-
-    private static EvaluationResults NoItems()
-        => new(
-            new RunHeader
-            {
-                DatasetName = "dataset",
-                ItemCount = 0,
-                Started = DateTimeOffset.UnixEpoch,
-                Finished = DateTimeOffset.UnixEpoch,
-                Parallelism = 1,
-                Partial = true,
-            },
-            []);
 }

@@ -613,11 +613,11 @@ public sealed class DatasetRunnerTests
 
         Assert.Equal(cts.Token, ex.CancellationToken);
         Assert.Null(ex.InnerException);
-        Assert.Equal(["i0", "i1", "i2"], ex.PartialResults.Items.Select(i => i.Id));
-        Assert.True(ex.PartialResults.Header.Partial);
-        Assert.Equal(3, ex.PartialResults.Header.ItemCount);
-        Assert.Equal("set", ex.PartialResults.Header.DatasetName);
-        Assert.All(ex.PartialResults.Items, i => Assert.Null(i.Error));
+        Assert.Equal(["i0", "i1", "i2"], ex.PartialResults!.Items.Select(i => i.Id));
+        Assert.True(ex.PartialResults!.Header.Partial);
+        Assert.Equal(3, ex.PartialResults!.Header.ItemCount);
+        Assert.Equal("set", ex.PartialResults!.Header.DatasetName);
+        Assert.All(ex.PartialResults!.Items, i => Assert.Null(i.Error));
         Assert.Equal(4, client.Requests.Count);
         Assert.Contains("after 3 finished items", ex.Message, StringComparison.Ordinal);
     }
@@ -649,14 +649,14 @@ public sealed class DatasetRunnerTests
         var ex = await Assert.ThrowsAsync<DatasetRunCanceledException>(
             () => DatasetRunner.RunAsync(client, Many(10), new DatasetRunOptions { MaxParallelism = 3 }, cts.Token).WaitAsync(TimeSpan.FromSeconds(10)));
 
-        var ids = ex.PartialResults.Items.Select(i => int.Parse(i.Id[1..], System.Globalization.CultureInfo.InvariantCulture)).ToList();
+        var ids = ex.PartialResults!.Items.Select(i => int.Parse(i.Id[1..], System.Globalization.CultureInfo.InvariantCulture)).ToList();
         Assert.Equal([.. ids.Order()], ids);
         Assert.Equal(ids.Count, ids.Distinct().Count());
         Assert.Contains(0, ids);
         Assert.DoesNotContain(4, ids);
-        Assert.Equal(ids.Count, ex.PartialResults.Header.ItemCount);
-        Assert.True(ex.PartialResults.Header.Partial);
-        Assert.All(ex.PartialResults.Items, i => Assert.Null(i.Error));
+        Assert.Equal(ids.Count, ex.PartialResults!.Header.ItemCount);
+        Assert.True(ex.PartialResults!.Header.Partial);
+        Assert.All(ex.PartialResults!.Items, i => Assert.Null(i.Error));
         Assert.False(never.Task.IsCompleted);
     }
 
@@ -672,9 +672,9 @@ public sealed class DatasetRunnerTests
 
         Assert.Empty(client.Requests);
         Assert.Equal(cts.Token, ex.CancellationToken);
-        Assert.Empty(ex.PartialResults.Items);
-        Assert.Equal(0, ex.PartialResults.Header.ItemCount);
-        Assert.True(ex.PartialResults.Header.Partial);
+        Assert.Empty(ex.PartialResults!.Items);
+        Assert.Equal(0, ex.PartialResults!.Header.ItemCount);
+        Assert.True(ex.PartialResults!.Header.Partial);
     }
 
     [Fact]
@@ -731,9 +731,9 @@ public sealed class DatasetRunnerTests
 
         Assert.Same(boom, ex.InnerException);
         Assert.Equal(cts.Token, ex.CancellationToken);
-        Assert.Equal(["i0", "i1"], ex.PartialResults.Items.Select(i => i.Id));
-        Assert.Equal(2, ex.PartialResults.Header.ItemCount);
-        Assert.True(ex.PartialResults.Header.Partial);
+        Assert.Equal(["i0", "i1"], ex.PartialResults!.Items.Select(i => i.Id));
+        Assert.Equal(2, ex.PartialResults!.Header.ItemCount);
+        Assert.True(ex.PartialResults!.Header.Partial);
     }
 
     [Fact]
@@ -755,7 +755,7 @@ public sealed class DatasetRunnerTests
         var ex = await Assert.ThrowsAsync<DatasetRunCanceledException>(
             () => DatasetRunner.RunAsync(client, dataset, cancellationToken: cts.Token).WaitAsync(TimeSpan.FromSeconds(10)));
         using var stream = new MemoryStream();
-        ex.PartialResults.Save(stream);
+        ex.PartialResults!.Save(stream);
         stream.Position = 0;
         var loaded = EvaluationResults.Parse(stream);
         var report = CalibrationReport.Create(ex.PartialResults, dataset);
@@ -781,7 +781,7 @@ public sealed class DatasetRunnerTests
         Assert.EndsWith(expected, ex.Message, StringComparison.Ordinal);
         Assert.Same(inner, ex.InnerException);
         Assert.Equal(cts.Token, ex.CancellationToken);
-        Assert.Equal(count, ex.PartialResults.Items.Count);
+        Assert.Equal(count, ex.PartialResults!.Items.Count);
     }
 
     [Fact]
@@ -789,7 +789,7 @@ public sealed class DatasetRunnerTests
         => Assert.Throws<ArgumentNullException>(() => new DatasetRunCanceledException((EvaluationResults)null!, null, CancellationToken.None));
 
     [Fact]
-    public void CanceledException_StandardConstructors_CarryAnEmptyPartialRun()
+    public void CanceledException_StandardConstructors_CarryNoPartialResults()
     {
         var inner = new InvalidOperationException("boom");
 
@@ -797,9 +797,7 @@ public sealed class DatasetRunnerTests
 
         Assert.All(made, ex =>
         {
-            Assert.Empty(ex.PartialResults.Items);
-            Assert.Equal(0, ex.PartialResults.Header.ItemCount);
-            Assert.True(ex.PartialResults.Header.Partial);
+            Assert.Null(ex.PartialResults);
             Assert.Equal(CancellationToken.None, ex.CancellationToken);
         });
         Assert.Equal("The dataset run was cancelled.", made[0].Message);
@@ -808,7 +806,7 @@ public sealed class DatasetRunnerTests
     }
 
     [Fact]
-    public void CanceledException_TokenConstructors_KeepTheToken_AndCarryAnEmptyPartialRun()
+    public void CanceledException_TokenConstructors_KeepTheToken_AndCarryNoPartialResults()
     {
         using var cts = new CancellationTokenSource();
         var inner = new InvalidOperationException("boom");
@@ -818,8 +816,7 @@ public sealed class DatasetRunnerTests
         Assert.All(made, ex =>
         {
             Assert.Equal(cts.Token, ex.CancellationToken);
-            Assert.Empty(ex.PartialResults.Items);
-            Assert.True(ex.PartialResults.Header.Partial);
+            Assert.Null(ex.PartialResults);
         });
         Assert.Equal("The dataset run was cancelled.", made[0].Message);
         Assert.Equal("stopped", made[1].Message);

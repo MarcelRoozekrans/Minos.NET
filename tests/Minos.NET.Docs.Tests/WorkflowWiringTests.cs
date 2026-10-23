@@ -136,6 +136,15 @@ public sealed class WorkflowWiringTests
 
     private static readonly string LocalSystemOne = File.ReadAllText(Path.Combine(PublishedPages.Root, ".github", "workflows", "local-systemone.yml")).ReplaceLineEndings("\n");
 
+    // The runner signals only the step's shell, so the shell passes the stop on to minos as SIGTERM and waits for it to
+    // save results.partial.jsonl. A background job ignores SIGINT, so SIGINT would not reach it.
+    private static void AssertForwardsTheStopToMinos(string job)
+    {
+        Assert.Contains("status=0\n          pid=\n", job, StringComparison.Ordinal);
+        Assert.Contains("trap 'if [ -n \"$pid\" ]; then kill -TERM \"$pid\" 2>/dev/null; wait \"$pid\"; fi; exit 130' INT TERM\n", job, StringComparison.Ordinal);
+        Assert.Contains(" & pid=$!\n            wait \"$pid\" || status=1\n            pid=\n          done\n", job, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Calibrate_RunsOnlyOnDispatch_WithTheLiveApiKeys()
     {
@@ -166,7 +175,8 @@ public sealed class WorkflowWiringTests
         Assert.Contains("dotnet tool install Minos.NET.Tool --version 1.2.0 --tool-path \"$RUNNER_TEMP/minos-tool\"", job, StringComparison.Ordinal);
         Assert.Contains("typesafe) echo \"section=TypeSafe\" >> \"$GITHUB_OUTPUT\"; echo \"slug=typesafe\" >> \"$GITHUB_OUTPUT\" ;;", job, StringComparison.Ordinal);
         Assert.Contains("clef) echo \"section=Clef\" >> \"$GITHUB_OUTPUT\"; echo \"slug=clef-flash\" >> \"$GITHUB_OUTPUT\" ;;", job, StringComparison.Ordinal);
-        Assert.Contains("\"$RUNNER_TEMP/minos-tool/minos\" calibrate --dataset \"$dataset\" --config docs/reports/minos.json --provider \"$SECTION\" --parallel 1 --out \"$RUNNER_TEMP/out/$SLUG-$set\"", job, StringComparison.Ordinal);
+        Assert.Contains("\"$RUNNER_TEMP/minos-tool/minos\" calibrate --dataset \"$dataset\" --config docs/reports/minos.json --provider \"$SECTION\" --parallel 1 --out \"$RUNNER_TEMP/out/$SLUG-$set\" & pid=$!\n", job, StringComparison.Ordinal);
+        AssertForwardsTheStopToMinos(job);
         Assert.Contains("datasets/banking77/banking77-minos-v1.jsonl", job, StringComparison.Ordinal);
         Assert.Contains("datasets/banking77/banking77-urgency-v1.jsonl", job, StringComparison.Ordinal);
         Assert.DoesNotContain("--prices", job, StringComparison.Ordinal);
@@ -195,7 +205,8 @@ public sealed class WorkflowWiringTests
         Assert.Contains("pip install --extra-index-url https://download.pytorch.org/whl/cpu ", job, StringComparison.Ordinal);
         Assert.Contains(" serve Mapika/decider-2b-GGUF:Q4_K_M --port 8000 --no-browser", job, StringComparison.Ordinal);
         Assert.Contains("dotnet tool install Minos.NET.Tool --version 1.2.0 --tool-path \"$RUNNER_TEMP/minos-tool\"", job, StringComparison.Ordinal);
-        Assert.Contains("--config docs/reports/minos.json --provider Local --parallel 1 --out \"$RUNNER_TEMP/out/local-$set\"", job, StringComparison.Ordinal);
+        Assert.Contains("--config docs/reports/minos.json --provider Local --parallel 1 --out \"$RUNNER_TEMP/out/local-$set\" & pid=$!\n", job, StringComparison.Ordinal);
+        AssertForwardsTheStopToMinos(job);
         Assert.Contains("datasets/banking77/banking77-minos-v1.jsonl", job, StringComparison.Ordinal);
         Assert.Contains("datasets/banking77/banking77-urgency-v1.jsonl", job, StringComparison.Ordinal);
         Assert.Contains("name: calibration-local-urgency\n", job, StringComparison.Ordinal);

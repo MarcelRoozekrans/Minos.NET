@@ -14,8 +14,8 @@ public static class DatasetRunner
     /// end cancelled are left out. A cancelled run throws a <see cref="DatasetRunCanceledException"/>, and the first client
     /// or progress exception is thrown as the inner exception of a <see cref="DatasetRunException"/>; both carry the items
     /// that finished. Only the first fault is kept. When the caller's token is cancelled while a fault is stopping the
-    /// run, the cancellation wins: the <see cref="DatasetRunCanceledException"/> is thrown, with the fault as its inner
-    /// exception.
+    /// run, the cancellation wins: the <see cref="DatasetRunCanceledException"/> is thrown. A fault that came before the
+    /// cancellation is its inner exception; one that comes after it is dropped.
     /// </summary>
     /// <param name="client">The client to evaluate with.</param>
     /// <param name="dataset">The dataset to run.</param>
