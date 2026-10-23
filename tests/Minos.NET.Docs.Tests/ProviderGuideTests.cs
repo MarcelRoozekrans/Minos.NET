@@ -129,8 +129,15 @@ public sealed class ProviderGuideTests
         {
             var header = PageTables.Header(Page, heading);
             Assert.Equal("Provider", header[0]);
-            var thresholds = header[1..].Select(h => double.Parse(h, NumberStyles.Float, CultureInfo.InvariantCulture)).ToArray();
-            Assert.Equal(header[1..], thresholds.Select(Threshold));
+            var thresholds = new double[header.Length - 1];
+            var written = new string[thresholds.Length];
+            for (var i = 0; i < thresholds.Length; i++)
+            {
+                thresholds[i] = double.Parse(header[i + 1], NumberStyles.Float, CultureInfo.InvariantCulture);
+                written[i] = Threshold(thresholds[i]);
+            }
+
+            Assert.Equal(header[1..], written);
             foreach (var row in PageTables.Rows(Page, heading))
             {
                 var folder = Folder(row[0]);

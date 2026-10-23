@@ -110,10 +110,16 @@ public sealed partial class ReadmeLinkTests
             .Select(l => Split(l.Target).Path)
             .ToList();
 
+        var counts = new Dictionary<string, int>(StringComparer.Ordinal);
+        foreach (var target in linked)
+        {
+            counts[target] = counts.GetValueOrDefault(target) + 1;
+        }
+
         var problems = new List<string>();
         foreach (var (route, page) in routes)
         {
-            var times = linked.Count(l => string.Equals(l, route, StringComparison.Ordinal));
+            var times = counts.GetValueOrDefault(route);
             if (times != 1)
             {
                 problems.Add($"{page} ({route}) is linked {times} times in the Documentation list; the README links each page once.");
