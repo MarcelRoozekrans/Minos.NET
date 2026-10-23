@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.4.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.3.0...v1.4.0) (2026-10-23)
+
+
+### Features
+
+* a cancelled dataset run keeps its paid results ([03cf231](https://github.com/MarcelRoozekrans/Minos.NET/commit/03cf231a1614e27de9de6122ff74919a99f6f64e))
+
+
+### Bug Fixes
+
+* **caching:** a client that reports a relative endpoint can be cached ([#258](https://github.com/MarcelRoozekrans/Minos.NET/issues/258)) ([5f40ebe](https://github.com/MarcelRoozekrans/Minos.NET/commit/5f40ebe362459d0f2f5acb587ca8d47366dc8668)), closes [#254](https://github.com/MarcelRoozekrans/Minos.NET/issues/254)
+
+
+### Tests
+
+* **docs:** no LINQ inside a loop in two docs tests ([#264](https://github.com/MarcelRoozekrans/Minos.NET/issues/264)) ([176cd2c](https://github.com/MarcelRoozekrans/Minos.NET/commit/176cd2c08b1f047ca64a623f307406acbc2a11b7))
+
 ## [1.3.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.2.2...v1.3.0) (2026-10-23)
 
 
