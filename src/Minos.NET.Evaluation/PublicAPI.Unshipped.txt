@@ -1,1 +1,10 @@
 #nullable enable
+Minos.Evaluation.DatasetRunCanceledException
+Minos.Evaluation.DatasetRunCanceledException.DatasetRunCanceledException() -> void
+Minos.Evaluation.DatasetRunCanceledException.DatasetRunCanceledException(Minos.Evaluation.EvaluationResults! partialResults, System.Exception? innerException, System.Threading.CancellationToken cancellationToken) -> void
+Minos.Evaluation.DatasetRunCanceledException.DatasetRunCanceledException(string! message) -> void
+Minos.Evaluation.DatasetRunCanceledException.DatasetRunCanceledException(string! message, System.Exception? innerException) -> void
+Minos.Evaluation.DatasetRunCanceledException.PartialResults.get -> Minos.Evaluation.EvaluationResults!
+Minos.Evaluation.DatasetRunCanceledException.DatasetRunCanceledException(System.Threading.CancellationToken token) -> void
+Minos.Evaluation.DatasetRunCanceledException.DatasetRunCanceledException(string! message, System.Threading.CancellationToken token) -> void
+Minos.Evaluation.DatasetRunCanceledException.DatasetRunCanceledException(string! message, System.Exception? innerException, System.Threading.CancellationToken token) -> void

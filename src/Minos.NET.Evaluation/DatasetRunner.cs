@@ -8,20 +8,23 @@ public static class DatasetRunner
 {
     /// <summary>
     /// Sends every item of <paramref name="dataset"/> to <paramref name="client"/> and records the outcomes. A failed item
-    /// is recorded, never thrown, and the run never stops early for it. The exception is an exception thrown by the client
-    /// or by <see cref="DatasetRunOptions.Progress"/>: the first one stops the other workers from sending more requests
-    /// (requests already in flight are cancelled, and those that end cancelled are left out) and is thrown as the inner exception of a <see cref="DatasetRunException"/>,
-    /// which carries the items that finished. Only the first fault is kept, and when the caller's token is cancelled
-    /// as well, the <see cref="OperationCanceledException"/> wins and no partial results are returned.
+    /// is recorded, never thrown, and the run never stops early for it. The run stops for two things: the caller's
+    /// <paramref name="cancellationToken"/>, and an exception thrown by the client or by <see cref="DatasetRunOptions.Progress"/>.
+    /// Either one stops the workers from sending more requests; requests already in flight are cancelled, and those that
+    /// end cancelled are left out. A cancelled run throws a <see cref="DatasetRunCanceledException"/>, and the first client
+    /// or progress exception is thrown as the inner exception of a <see cref="DatasetRunException"/>; both carry the items
+    /// that finished. Only the first fault is kept. When the caller's token is cancelled while a fault is stopping the
+    /// run, the cancellation wins: the <see cref="DatasetRunCanceledException"/> is thrown, with the fault as its inner
+    /// exception.
     /// </summary>
     /// <param name="client">The client to evaluate with.</param>
     /// <param name="dataset">The dataset to run.</param>
     /// <param name="options">Run settings, or <see langword="null"/> for the defaults.</param>
-    /// <param name="cancellationToken">A token that stops the run by throwing.</param>
+    /// <param name="cancellationToken">A token that stops the run by throwing a <see cref="DatasetRunCanceledException"/>.</param>
     /// <returns>The results, in dataset order.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="client"/> or <paramref name="dataset"/> is <see langword="null"/>; thrown before the task is returned.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><see cref="DatasetRunOptions.MaxParallelism"/> is below 1; thrown before the task is returned.</exception>
-    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    /// <exception cref="DatasetRunCanceledException"><paramref name="cancellationToken"/> was cancelled; it is an <see cref="OperationCanceledException"/> for that token, and the paid results are in <see cref="DatasetRunCanceledException.PartialResults"/>.</exception>
     /// <exception cref="DatasetRunException">The client or the progress callback threw; the paid results are in <see cref="DatasetRunException.PartialResults"/>.</exception>
     public static Task<EvaluationResults> RunAsync(
         IDecisionClient client,
@@ -106,11 +109,12 @@ public static class DatasetRunner
             // Decided below, from the first fault or the caller's token.
         }
 
-        // The caller's cancellation wins over a fault, and only the first fault is kept: later ones are dropped.
-        cancellationToken.ThrowIfCancellationRequested();
-
+        // The caller's cancellation wins over a fault, which is then its inner exception. Only the first fault is kept:
+        // later ones are dropped.
+        var cancelled = cancellationToken.IsCancellationRequested;
         var failure = Volatile.Read(ref fault);
-        var finished = failure is null ? results : results.Where(r => r is not null).ToArray();
+        var stopped = cancelled || failure is not null;
+        var finished = stopped ? results.Where(r => r is not null).ToArray() : results;
         var header = new RunHeader
         {
             DatasetName = options.DatasetName,
@@ -121,9 +125,14 @@ public static class DatasetRunner
             Started = started,
             Finished = time.GetUtcNow(),
             Parallelism = options.MaxParallelism,
-            Partial = failure is not null,
+            Partial = stopped,
         };
         var run = new EvaluationResults(header, finished);
+        if (cancelled)
+        {
+            throw new DatasetRunCanceledException(run, failure, cancellationToken);
+        }
+
         return failure is null ? run : throw new DatasetRunException(run, failure);
     }
 
