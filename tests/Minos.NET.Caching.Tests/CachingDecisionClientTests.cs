@@ -127,6 +127,26 @@ public sealed class CachingDecisionClientTests
     }
 
     [Fact]
+    public async Task A_client_that_reports_a_relative_endpoint_is_cached_and_keyed_by_it()
+    {
+        using var memory = Responses.Memory();
+        // DecisionClientMetadata takes any Uri, so a client may report only its path.
+        var first = new ScriptedClient(new DecisionClientMetadata("custom", new Uri("a/v1/systemone", UriKind.Relative), "m"));
+        var second = new ScriptedClient(new DecisionClientMetadata("custom", new Uri("b/v1/systemone", UriKind.Relative), "m"));
+        using var a = new CachingDecisionClient(first, memory);
+        using var b = new CachingDecisionClient(second, memory);
+
+        await a.EvaluateAsync(Responses.Request());
+        var hit = await a.EvaluateAsync(Responses.Request());
+        var other = await b.EvaluateAsync(Responses.Request());
+
+        Assert.True(hit.Value.IsCached);
+        Assert.False(other.Value.IsCached);
+        Assert.Equal(1, first.Calls);
+        Assert.Equal(1, second.Calls);
+    }
+
+    [Fact]
     public async Task Two_clients_that_differ_only_in_their_default_model_never_share_an_answer()
     {
         using var memory = Responses.Memory();

@@ -76,7 +76,10 @@ public sealed class CachingDecisionClient : DelegatingDecisionClient
         _logger = logger;
         var metadata = innerClient.GetService<DecisionClientMetadata>();
         _provider = metadata?.ProviderName ?? UnknownProvider;
-        _endpoint = metadata?.Endpoint?.AbsoluteUri;
+        // The metadata takes any Uri: a relative one, such as a client that reports only its path, is keyed by its text.
+        _endpoint = metadata?.Endpoint is { } endpoint
+            ? endpoint.IsAbsoluteUri ? endpoint.AbsoluteUri : endpoint.OriginalString
+            : null;
         _defaultModel = metadata?.DefaultModel;
         _keyPrefix = options.KeyPrefix;
         _localOptions = new MemoryCacheEntryOptions
