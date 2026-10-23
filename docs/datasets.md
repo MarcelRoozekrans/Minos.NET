@@ -369,15 +369,15 @@ together with the full dataset. To finish, run the dataset again.
 The run is cancelled by Ctrl+C. On Windows Ctrl+Break cancels it too; on Unix, `Ctrl+\` and SIGTERM do. Windows maps
 SIGTERM to a system shutdown, which only a service sees, so there only Ctrl+C and Ctrl+Break save the run. Every
 command then prints `Stopping; press Ctrl+C again to quit at once.`, and `minos calibrate` writes the files, which
-takes a moment. A second Ctrl+C, or any second signal, ends the tool at once, without saving. A run cancelled before any item
-finished writes nothing and leaves the files of an earlier run in place.
+takes a moment. A second Ctrl+C, or any second signal, ends the tool at once, without saving. A run cancelled before
+any item finished writes nothing and leaves the files of an earlier run in place.
 
 In CI, the signal has to reach the tool. A GitHub Actions job that hits its timeout or is cancelled signals only the
 step's shell on Linux and macOS: SIGINT, then SIGTERM 7.5 seconds later, then a kill. The repository's calibration
 workflows run `minos calibrate` in the background and pass the stop on with a `trap`:
 
 ```bash
-trap 'if [ -n "$pid" ]; then kill -TERM "$pid" 2>/dev/null; wait "$pid"; fi; exit 130' INT TERM
+trap 'trap "" INT TERM; if [ -n "$pid" ]; then kill -TERM "$pid" 2>/dev/null; wait "$pid"; fi; exit 130' INT TERM
 minos calibrate --dataset data.jsonl --out out & pid=$!
 wait "$pid"
 ```

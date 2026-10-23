@@ -29,6 +29,20 @@ public sealed class StopSignalsTests
         Assert.Equal(SavingLine + Environment.NewLine, stderr.ToString());
     }
 
+    // A closed stderr makes the write throw; the token must still be cancelled, so the command saves and ends.
+    [Fact]
+    public void TheFirstSignal_StillCancels_WhenStderrCannotBeWritten()
+    {
+        using var stderr = new ClosedWriter();
+        using var signals = new StopSignals(stderr);
+        var context = new PosixSignalContext(PosixSignal.SIGTERM);
+
+        signals.Handle(context);
+
+        Assert.True(signals.Token.IsCancellationRequested);
+        Assert.True(context.Cancel);
+    }
+
     [Theory]
     [InlineData(PosixSignal.SIGINT, PosixSignal.SIGINT)]
     [InlineData(PosixSignal.SIGTERM, PosixSignal.SIGINT)]
@@ -83,5 +97,14 @@ public sealed class StopSignalsTests
         await cancelled.Task.WaitAsync(TimeSpan.FromSeconds(10));
         Assert.True(signals.Token.IsCancellationRequested);
         Assert.Contains(SavingLine, stderr.ToString(), StringComparison.Ordinal);
+    }
+
+    private sealed class ClosedWriter : TextWriter
+    {
+        public override System.Text.Encoding Encoding => System.Text.Encoding.UTF8;
+
+        public override void Write(char value) => throw new IOException("Bad file descriptor");
+
+        public override void WriteLine(string? value) => throw new IOException("Bad file descriptor");
     }
 }

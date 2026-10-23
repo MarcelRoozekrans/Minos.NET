@@ -43,14 +43,13 @@ internal sealed class StopSignals : IDisposable
     /// <param name="context">The signal.</param>
     internal void Handle(PosixSignalContext context)
     {
+        // A later signal leaves context.Cancel as it is, false by default, so the process ends the default way.
         if (Volatile.Read(ref _disposed) != 0 || Interlocked.Exchange(ref _signalled, 1) != 0)
         {
-            context.Cancel = false;
             return;
         }
 
         context.Cancel = true;
-        _stderr.WriteLine(SavingMessage);
         try
         {
             _cts.Cancel();
@@ -58,6 +57,16 @@ internal sealed class StopSignals : IDisposable
         catch (ObjectDisposedException)
         {
             // The command has already finished.
+        }
+
+        // Cancel first, so a stderr that cannot be written, such as a closed one, never stops the command from saving.
+        try
+        {
+            _stderr.WriteLine(SavingMessage);
+        }
+        catch (IOException)
+        {
+            // The line is only a hint; the token is already cancelled.
         }
     }
 

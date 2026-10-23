@@ -166,7 +166,7 @@ jobs:
           pid=
           # The runner signals only this shell (SIGINT, then SIGTERM after 7.5 s, a kill after 10 s). Pass it on as SIGTERM,
           # since a background job ignores SIGINT, let minos save results.partial.jsonl, and start no further set.
-          trap 'if [ -n "$pid" ]; then kill -TERM "$pid" 2>/dev/null; wait "$pid"; fi; exit 130' INT TERM
+          trap 'trap "" INT TERM; if [ -n "$pid" ]; then kill -TERM "$pid" 2>/dev/null; wait "$pid"; fi; exit 130' INT TERM
           for set in urgency banking77; do
             if [ "$SET" != both ] && [ "$SET" != "$set" ]; then continue; fi
             case "$set" in

@@ -141,7 +141,7 @@ public sealed class WorkflowWiringTests
     private static void AssertForwardsTheStopToMinos(string job)
     {
         Assert.Contains("status=0\n          pid=\n", job, StringComparison.Ordinal);
-        Assert.Contains("trap 'if [ -n \"$pid\" ]; then kill -TERM \"$pid\" 2>/dev/null; wait \"$pid\"; fi; exit 130' INT TERM\n", job, StringComparison.Ordinal);
+        Assert.Contains("trap 'trap \"\" INT TERM; if [ -n \"$pid\" ]; then kill -TERM \"$pid\" 2>/dev/null; wait \"$pid\"; fi; exit 130' INT TERM\n", job, StringComparison.Ordinal);
         Assert.Contains(" & pid=$!\n            wait \"$pid\" || status=1\n            pid=\n          done\n", job, StringComparison.Ordinal);
     }
 
