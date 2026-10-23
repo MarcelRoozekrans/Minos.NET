@@ -37,7 +37,7 @@ Daedalus.NET is the first workload, and its requirements are binding: see the de
 - Database sinks: apps write their own, such as Daedalus's Postgres sink.
 
 ## Phases
-1. Phase 9.1 — The decision recorder [active]
+1. Phase 9.1 — The decision recorder [complete]
 2. Phase 9.2 — Export to the dataset format [pending]
 3. Phase 9.3 — Shadow mode and its report [pending]
 4. Phase 9.4 — A shadow report on recorded traffic [pending]

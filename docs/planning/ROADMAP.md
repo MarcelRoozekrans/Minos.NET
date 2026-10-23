@@ -458,12 +458,14 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 - [ ] A "Running decisions locally and privately" guide
 - [ ] `Minos.NET.Recording` on nuget.org
 
-### Phase 9.1: The decision recorder [status: active]
+### Phase 9.1: The decision recorder [status: complete]
 **Goal:** An opt-in `IDecisionClient` decorator in `Minos.NET.Recording`, with a pluggable sink, a redaction hook, decision ids, confirmed and signal outcomes, and erasure, AOT clean, with file and in-memory sinks (#118).
 **Surface:** Backend
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-10-22-phase-9.1-recorder-design.md`
 **Plan:** `docs/superpowers/plans/2026-10-22-phase-9.1-recorder.md`
+**Completed:** 2026-10-23
+**Evidence:** PR #255, released in 1.3.0 (`Minos.NET.Recording` on nuget.org); pre-push review PASS, `docs/plans/2026-10-22-phase-9.1-pre-push-review.md`. Trimmed before release at the maintainer's request. Filed: #254, fixed in #258.
 
 ### Phase 9.2: Export to the dataset format [status: pending]
 **Goal:** In `Minos.NET.Evaluation` and `minos`, turn recorded decisions and their confirmed outcomes into Milestone 8 dataset JSONL, document the record file and outcome schema, and prove the export runs through `minos calibrate` (#118).
@@ -521,3 +523,8 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Surface:** Docs
 **HelpWanted:** no
 **Plan:** _to be written_
+
+## Later: not scheduled
+Work with an issue but no milestone yet. Each needs a milestone design before it is planned.
+- **A robust decision-policy layer** (#124): paraphrase ensembling, recalibration and cost-aware thresholds. It builds on Milestone 8's calibration reports and Milestone 9's recorded outcomes.
+- **Precedent-based decisions with a human review loop** (#125). It depends on #124, Milestone 9's recorder and Milestone 10's escalation, and it first needs a decision on which repository it belongs in.
