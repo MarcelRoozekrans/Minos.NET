@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.1](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.4.0...v1.4.1) (2026-10-25)
+
+
+### Dependencies
+
+* update zeroalloc shipped dependencies to 3.4.0 ([#267](https://github.com/MarcelRoozekrans/Minos.NET/issues/267)) ([9d94344](https://github.com/MarcelRoozekrans/Minos.NET/commit/9d94344086aa5be0e46f2e0614da28d1167ae110))
+
 ## [1.4.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.3.0...v1.4.0) (2026-10-23)
 
 
