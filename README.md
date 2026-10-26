@@ -159,6 +159,26 @@ Maintainers: [RELEASING.md](https://github.com/MarcelRoozekrans/Minos.NET/blob/m
 
 `dotnet test` runs the unit tests, the generator tests, the analyzer and code-fix tests, the WireMock integration tests, and the pack tests, which pack the library and check the package's contents. A solution-wide `dotnet test` never makes a billed call: the live smoke tests in `tests/Minos.NET.Live.Tests` call the real APIs and only run when `MINOS_LIVE=1` is set *and* the provider's key (`TYPESAFE_API_KEY` or `OPENROUTER_API_KEY`) is set; otherwise every one of them reports skipped. To run them locally, opt in explicitly with the key set: `MINOS_LIVE=1 dotnet test tests/Minos.NET.Live.Tests`. Each run makes a few small billed evaluations. Override the model with `MINOS_LIVE_MODEL`, or `MINOS_LIVE_OPENROUTER_MODEL` for OpenRouter. The Luna test through OpenRouter also needs `MINOS_LIVE_LUNA=1`, because Luna is unavailable to accounts that allow only zero-data-retention endpoints. There is no live OpenAI test yet. Maintainers can also run them in CI with the manual **Live smoke** workflow, which reads the keys from the `live-api` environment; restrict that environment's deployment branches to `main`.
 
+## Family
+
+Minos.NET is part of a small family of .NET projects for AI work:
+
+- [AI.Sentinel](https://marcelroozekrans.github.io/AI.Sentinel/): Security monitoring middleware for `IChatClient`: prompt injection, hallucination and PII detection with an audit trail.
+- [Rag.NET](https://marcelroozekrans.github.io/Rag.NET/): A modular retrieval-augmented generation pipeline on Microsoft.Extensions.AI.
+- [Roslyn CodeLens MCP](https://github.com/MarcelRoozekrans/roslyn-codelens-mcp): Semantic .NET code intelligence for AI agents over MCP.
+- [MemoryLens MCP](https://github.com/MarcelRoozekrans/memorylens-mcp): On-demand .NET memory profiling with AI-actionable fixes over MCP.
+
+## Built on ZeroAlloc
+
+Minos.NET uses these [ZeroAlloc](https://zeroalloc.net) libraries, which are source generators and analyzers with no reflection at runtime:
+
+- [ZeroAlloc.Analyzers](https://analyzers.zeroalloc.net)
+- [ZeroAlloc.Resilience](https://resilience.zeroalloc.net)
+- [ZeroAlloc.Rest](https://rest.zeroalloc.net)
+- [ZeroAlloc.Results](https://results.zeroalloc.net)
+- [ZeroAlloc.Telemetry](https://telemetry.zeroalloc.net)
+- [ZeroAlloc.Validation](https://validation.zeroalloc.net)
+
 ## About the name
 
 In Greek mythology, **Minos** was king of Crete and, after his death, one of the three judges of the underworld. Every soul
