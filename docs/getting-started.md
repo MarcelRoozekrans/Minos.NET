@@ -42,7 +42,7 @@ later. Visual Studio 2026 version 18.0 is the first release that does. An older 
 
 ## Install
 
-This guide describes Minos.NET 1.4.1. <!-- x-release-please-version -->
+This guide describes Minos.NET 1.4.2. <!-- x-release-please-version -->
 
 Install the packages from NuGet:
 

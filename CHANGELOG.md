@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.4.2](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.4.1...v1.4.2) (2026-10-26)
+
+
+### Documentation
+
+* add family and Built on ZeroAlloc sections ([#271](https://github.com/MarcelRoozekrans/Minos.NET/issues/271)) ([8ed7899](https://github.com/MarcelRoozekrans/Minos.NET/commit/8ed78999a1afe93933d6895591df822dd44c5fd3))
+
 ## [1.4.1](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.4.0...v1.4.1) (2026-10-25)
 
 
