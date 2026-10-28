@@ -3,7 +3,8 @@ namespace Minos.Extensions.AI;
 /// <summary>Turns label logprobs or stated probabilities into a distribution over the labels A, B, C and on.</summary>
 internal static class LabelDistribution
 {
-    private const int MaxLabels = 26;
+    /// <summary>The most labels there are: one per letter, A to Z.</summary>
+    internal const int MaxLabels = 26;
 
     /// <summary>The label for an option index: 0 is "A", 25 is "Z".</summary>
     internal static string Label(int index)
@@ -15,7 +16,7 @@ internal static class LabelDistribution
 
     /// <summary>
     /// Sums the probability of every token whose trimmed text is a label. Labels with no token share what is left
-    /// of 1 equally. Returns null when no token is a label.
+    /// of 1 equally. Returns null when no token is a label, or when a logprob is NaN or so large the sum is not finite.
     /// </summary>
     internal static double[]? FromLogprobs(int labelCount, IEnumerable<(string Token, double Logprob)> top)
     {
@@ -49,6 +50,11 @@ internal static class LabelDistribution
             {
                 missing++;
             }
+        }
+
+        if (!double.IsFinite(sum))
+        {
+            return null;
         }
 
         if (missing > 0)

@@ -44,6 +44,16 @@ public sealed class LabelDistributionTests
         AssertDistribution([0.5, 0.3, 0.1, 0.1], LabelDistribution.FromLogprobs(4, [T("A", 0.5), T("B", 0.3)]));
 
     [Fact]
+    public void Logprobs_FoundMassOfOneOrMore_LeavesMissingLabelsAtZero() =>
+        AssertDistribution([1.0, 0.0, 0.0], LabelDistribution.FromLogprobs(3, [T("A", 0.7), T(" A", 0.4)]));
+
+    [Theory]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    public void Logprobs_NotFiniteSum_IsNull(double logprob) =>
+        Assert.Null(LabelDistribution.FromLogprobs(2, [("A", logprob), T("B", 0.5)]));
+
+    [Fact]
     public void Logprobs_NoLabel_IsNull() =>
         Assert.Null(LabelDistribution.FromLogprobs(2, [T("yes", 0.7), T("no", 0.3)]));
 
