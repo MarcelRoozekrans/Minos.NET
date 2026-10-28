@@ -190,9 +190,9 @@ A question set is the same on both protocols. OpenAI's request and answer have t
 | State with images | `"input":[{"role":"user","content":[{"type":"input_text","text":…},{"type":"input_image","image_url":"data:…"},…]}]` | none |
 
 JSON instructions and JSON criteria are sent as their raw JSON text, because OpenAI's fields are strings. An answer is
-matched to its question by `name`. A missing answer, a second answer for the same question, or an answer whose `type`
-does not fit the question is `InvalidResponse`. An answer for a name the set does not have is skipped. `model` and `id`
-are read when present.
+matched to its question by `name`. A missing answer, a second answer for the same question, an answer whose `type`
+does not fit the question, a probability or confidence outside 0 to 1, or a `score` outside the question's levels is
+`InvalidResponse`. An answer for a name the set does not have is skipped. `model` and `id` are read when present.
 
 OpenAI's error body is assumed to be its standard `{"error":{"message":"…","type":"…","param":"…","code":"…"}}`,
 because the guide documents none for this endpoint. Its `message` becomes `DecisionError.Message`, and the whole body is

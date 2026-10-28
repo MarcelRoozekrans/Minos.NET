@@ -96,7 +96,7 @@ internal static class OpenAIAnswers
         {
             if (reader.ValueTextEquals("probability"u8))
             {
-                probability = AnswerReading.ReadNumber(ref reader);
+                probability = AnswerReading.ReadProbability(ref reader);
             }
             else
             {
@@ -128,7 +128,7 @@ internal static class OpenAIAnswers
             }
             else if (reader.ValueTextEquals("confidence"u8))
             {
-                confidence = AnswerReading.ReadNumber(ref reader);
+                confidence = AnswerReading.ReadProbability(ref reader);
             }
             else
             {
@@ -155,7 +155,7 @@ internal static class OpenAIAnswers
         {
             if (reader.ValueTextEquals("score"u8))
             {
-                expected = AnswerReading.ReadNumber(ref reader);
+                expected = AnswerReading.ReadExpectedLevel(ref reader, levels);
             }
             else if (reader.ValueTextEquals("probabilities"u8))
             {
@@ -164,7 +164,7 @@ internal static class OpenAIAnswers
             }
             else if (reader.ValueTextEquals("confidence"u8))
             {
-                confidence = AnswerReading.ReadNumber(ref reader);
+                confidence = AnswerReading.ReadProbability(ref reader);
             }
             else
             {
@@ -213,7 +213,7 @@ internal static class OpenAIAnswers
                 }
                 else if (reader.ValueTextEquals("probability"u8))
                 {
-                    probability = AnswerReading.ReadNumber(ref reader);
+                    probability = AnswerReading.ReadProbability(ref reader);
                 }
                 else
                 {
@@ -246,7 +246,7 @@ internal static class OpenAIAnswers
                 }
                 else if (reader.ValueTextEquals("probability"u8))
                 {
-                    probability = AnswerReading.ReadNumber(ref reader);
+                    probability = AnswerReading.ReadProbability(ref reader);
                 }
                 else
                 {

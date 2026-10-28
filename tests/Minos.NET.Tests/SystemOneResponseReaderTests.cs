@@ -199,6 +199,17 @@ public sealed class SystemOneResponseReaderTests
         Assert.IsAssignableFrom<System.Text.Json.JsonException>(result.Error.Exception);
     }
 
+    [Fact]
+    public void A_probability_outside_zero_to_one_is_an_invalid_response()
+    {
+        var result = SystemOneProtocol.Instance.ReadResponse("""{"answers":{"is_urgent":{"type":"noul","noul":1.2}}}"""u8, Urgency);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);
+        Assert.Equal(200, result.Error.StatusCode);
+        Assert.EndsWith("Expected a probability from 0 to 1 but found 1.2.", result.Error.Message, StringComparison.Ordinal);
+    }
+
     // Moved from EvaluatedTests with Evaluated: the envelope reader keeps its lenient usage reads.
     [Fact]
     public void Token_counts_outside_the_int32_range_are_absent()
