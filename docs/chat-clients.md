@@ -174,10 +174,14 @@ The [cache stage](pipeline.md#caching-decisions) keys each answer by the client'
 `Logprobs` client never gets an answer an `Auto` client cached, which may be verbalized, even over the same chat client
 and cache.
 
+A bridge client now always has a scope, so the entries it wrote under 1.5.0 are missed once after the upgrade, and its
+cache starts cold. Clients without a scope, such as the built-in HTTP clients, keep their keys.
+
 The key also holds the chat client's provider name, endpoint and model. A chat client without them gives the bridge
-nothing to tell it apart by, so the bridge adds the chat client's type to the key. Two chat clients of the same type,
-both without metadata, still share answers. Give such a chat client metadata, or set
-`ChatDecisionClientOptions.Model`, when the two ask different models.
+nothing to tell it apart by, so the bridge adds the chat client's type to the key. That is the type of the chat client
+you pass in, the outermost one: in a `ChatClientBuilder` pipeline, the last middleware, not the client it wraps. Two
+bridge clients behind the same middleware, both without metadata, still share answers. Give such a chat client
+metadata, or set `ChatDecisionClientOptions.Model`, when the two ask different models.
 
 ## Confidence
 
