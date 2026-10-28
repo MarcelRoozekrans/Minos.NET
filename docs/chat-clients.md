@@ -69,20 +69,27 @@ public static class ChatDecisions
 ```
 <!-- endSnippet -->
 
-`ChatDecisionClientOptions` has three properties, all optional:
+`ChatDecisionClientOptions` has four properties, all optional:
 
 - **`ProbabilityMode`** says how the probabilities are made. It defaults to `Auto`; see [below](#probability-modes).
   A value outside the enum throws `ArgumentException`.
 - **`Model`** is the model for requests that name none. Without it, the chat client's own default model is used.
   Surrounding whitespace is trimmed, and a blank value throws `ArgumentException`.
 - **`Capabilities`** limits what the bridge accepts; see [Capabilities](#capabilities).
+- **`MaxParallelCalls`** is the most chat calls one request has in flight at once. Without it, there is no limit. A
+  value below 1 throws `ArgumentException`; see [How a question is asked](#how-a-question-is-asked).
 
 The client reads the options once, when it is created.
 
 ## How a question is asked
 
-Each question is one chat call, two when `Auto` falls back, and the calls of a request run at once. The answers come
-back in the question set's order, whatever order the calls finish in.
+Each question is one chat call, two when `Auto` falls back. The calls of a request run at once, unless
+`MaxParallelCalls` is set. The answers come back in the question set's order, whatever order the calls finish in.
+
+A question set of many questions sends many calls at once, and a provider with a low rate limit may answer some of them
+with HTTP 429. Set `MaxParallelCalls` to cap the calls in flight. The other questions wait for a free call, and are not
+asked at all when a question fails first. The limit is per request: two requests that run together may each have that
+many calls in flight. A question that `Auto` asks again keeps its place, so it never has two calls in flight.
 
 The call has a system message, which tells the model it is a classifier, and one user message. That message holds the
 question, its options or levels labelled `A`, `B`, `C` and on, each with its criterion, its examples and what it is not
