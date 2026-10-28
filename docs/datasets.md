@@ -1,7 +1,7 @@
 ---
 id: datasets
 title: Labelled datasets
-sidebar_position: 8
+sidebar_position: 9
 description: The JSONL format for labelled decision items, the members of a line, how the loader reports problems, the format version, and the minos command line tool.
 ---
 

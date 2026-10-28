@@ -43,6 +43,8 @@
       Microsoft.Extensions.Logging's 10.0.12, so nothing they bring is an NU1605 downgrade.
     -->
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.14" />
+    <!-- Sample only: the chat-client sample's ServiceCollection, without a host. It follows Hosting's 10.0.14. -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.14" />
     <!-- The docs tests only: compiles the observability page's OpenTelemetry wiring. The library takes no OpenTelemetry
       dependency. -->
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.20.1" />

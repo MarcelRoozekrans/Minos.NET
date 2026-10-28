@@ -10,7 +10,8 @@ namespace Minos.Samples.ChatClient;
 /// </summary>
 public sealed class FakeChatClient : IChatClient
 {
-    // Per ticket: the probabilities of the refund question (yes, no) and of the team question (billing, technical, account).
+    // Per ticket, in the order of Tickets.All: the probabilities of the refund question (yes, no) and of the team question
+    // (billing, technical, account). A ticket added to Tickets.All needs a script here; the constructor checks it.
     private static readonly (double[] Refund, double[] Team)[] Scripts =
     [
         ([0.93, 0.07], [0.86, 0.09, 0.05]),
@@ -19,6 +20,17 @@ public sealed class FakeChatClient : IChatClient
     ];
 
     private const string RefundQuestion = "Does the customer ask for money back?";
+
+    /// <summary>Initializes a new instance of the <see cref="FakeChatClient"/> class.</summary>
+    /// <exception cref="InvalidOperationException">Tickets.All and the scripts differ in number.</exception>
+    public FakeChatClient()
+    {
+        if (Scripts.Length != Tickets.All.Count)
+        {
+            throw new InvalidOperationException(FormattableString.Invariant(
+                $"The fake chat client has {Scripts.Length} scripts for {Tickets.All.Count} tickets; give each ticket in Tickets.All a script."));
+        }
+    }
 
     /// <inheritdoc />
     public Task<ChatResponse> GetResponseAsync(

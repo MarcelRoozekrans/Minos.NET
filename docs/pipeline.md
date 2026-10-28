@@ -1,7 +1,7 @@
 ---
 id: pipeline
 title: The client pipeline
-sidebar_position: 10
+sidebar_position: 11
 description: The stages every call goes through (telemetry, logging and retries), building your own pipeline, caching decisions, limiting the call rate, the stage order, writing a stage, turning the standard pipeline off, stages with dependency injection, and upgrading to 1.0 and from 0.7 and 0.8.
 ---
 
@@ -190,6 +190,10 @@ public static IServiceCollection AddCachedDecisions(IServiceCollection services,
   telemetry and logging run inside the cache stage, so a hit makes no span, no metric and no log event.
 - **An in-process hit reads nothing.** It returns the stored response and completes at once. A hit in the distributed
   cache is read from compact JSON, with no reflection, and kept in process for the next call.
+- **A hit keeps each answer's probability source.** An answer from a [chat client](chat-clients.md) carries
+  `Logprobs` or `Verbalized`, and the distributed entry stores it. An entry with such an answer is written in a newer
+  entry version, which an older Minos treats as unreadable, and so as a miss, rather than return the answer without its
+  source. An entry whose answers all come from the model is written as before.
 - **Concurrent misses are not merged.** Two identical calls that both miss each ask the provider.
 - **A miss waits for the distributed write.** The answer is written to the distributed cache before the call returns,
   and the write is not cancelled with the call, so a slow distributed cache delays every miss.

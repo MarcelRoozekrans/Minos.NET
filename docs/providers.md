@@ -9,48 +9,51 @@ description: The presets, servers you run and OpenAI, what each provider accepts
 
 Minos reaches several providers through one interface, `IDecisionClient`. `SystemOneDecisionClient` reaches TypeSafe,
 OpenRouter and any server that speaks the System One protocol, through a preset. `OpenAIDecisionClient` reaches
-OpenAI's Decisions API. This page lists them and what sets them apart. [The client and its errors](client-and-errors.md)
+OpenAI's Decisions API. `ChatDecisionClient` asks a chat model through any Microsoft.Extensions.AI `IChatClient`.
+This page lists them and what sets them apart. [The client and its errors](client-and-errors.md)
 covers what every client shares: its options, retries, time-outs and errors.
 
 `Provider` picks a preset. A preset sets the base address, the request path, where the key comes from, the default
 model and the [capabilities](#capabilities). Every preset speaks the same `/v1/systemone` protocol.
 
 OpenAI's Decisions API speaks a protocol of its own, `/v1/decisions`. Its client, `OpenAIDecisionClient`, is in a
-separate package, `Minos.NET.OpenAI`, and [OpenAI](#openai) below describes it. [At a glance](#at-a-glance)
-compares the presets and OpenAI side by side.
+separate package, `Minos.NET.OpenAI`, and [OpenAI](#openai) below describes it. A chat model is not a decision
+model, and [Chat clients](#chat-clients) below introduces the bridge to it. [At a glance](#at-a-glance) compares the
+presets, OpenAI and the chat client side by side.
 
 ## At a glance
 
 Each column is a provider: the four `SystemOneProvider` presets, which `SystemOneDecisionClient` reaches over System
-One, and OpenAI, which `OpenAIDecisionClient` reaches over its Decisions API. The first five rows are the
-[capabilities](#capabilities). Each of their cells is the default, which you can change, and "none" means no limit is
-published or set.
+One, OpenAI, which `OpenAIDecisionClient` reaches over its Decisions API, and a chat model, which `ChatDecisionClient`
+asks through an `IChatClient`. The first five rows are the [capabilities](#capabilities). Each of their cells is the
+default, which you can change, and "none" means no limit is published or set.
 
-| What | `TypeSafe` | `OpenRouter` | `VllmSemanticRouter` | `Custom` | `OpenAI` |
-| --- | --- | --- | --- | --- | --- |
-| Question kinds | every kind | every kind | every kind | every kind | every kind |
-| Most questions | none | none | none | none | none |
-| Most Choice options | 255 | 255 | none | none | none |
-| Images | no | no | no | no | yes |
-| Model listing | yes | no | no | no | no |
-| Wire format | System One: `POST v1/systemone`, a `questions` object keyed by id, an `answers` object | System One, as TypeSafe | System One, at `v1/systemone` or your `Path` | System One, at `v1/systemone` or your `Path` | Decisions: `POST v1/decisions`, a `questions` array and an `answers` array, matched by `name` |
-| Question wire names | `noul`, `choice`, `score` | `noul`, `choice`, `score` | `noul`, `choice`, `score` | `noul`, `choice`, `score` | `predicate` for a Noul, `choice`, `score` |
-| Noul `WhenTrue` and `WhenFalse` | Sent | Sent | Sent | Sent | MIN204, not sent |
-| Criterion `Examples` and `NotFor` | Sent, in a criterion object | Sent, in a criterion object | Sent, in a criterion object | Sent, in a criterion object | MIN205, not sent |
-| JSON instructions, criteria and state | Sent as JSON | Sent as JSON | Sent as JSON | Sent as JSON | Sent as the JSON's raw text, in a string |
-| Images on the wire | In `state`, as `image_url` parts; data URLs only | In `state`, as `image_url` parts; data URLs only | In `state`, as `image_url` parts; data URLs only | In `state`, as `image_url` parts; data URLs only | In `input`, as `input_image` parts; data URLs only |
-| Refusals | None in the protocol | None in the protocol | None in the protocol | None in the protocol | `Refused`, one failure per refused question, rule `refusal` |
-| Noul confidence, usage and cost | A Noul has a probability and no confidence. `usage` has the input and output tokens | A Noul has a probability and no confidence. `usage` has the tokens and `cost` in US dollars; the response has a generation `id` and the upstream `provider` | A Noul has a probability and no confidence. `usage` as the server sends it | A Noul has a probability and no confidence. `usage` as the server sends it | A Noul has a probability and no confidence. Usage is not documented: tokens and `cost` are read when present, and `Usage` is `null` only when none of the three was sent |
-| Auth | Required: `ApiKey` or `TYPESAFE_API_KEY` | Required: `ApiKey` or `OPENROUTER_API_KEY` | Optional: `ApiKey` only | Optional: `ApiKey` only | Required: `ApiKey` or `OPENAI_API_KEY` |
-| Status | Tested live | Tested live, with images and Clef | WireMock tests | WireMock tests, and a local server in CI | Public beta since 2026-10-06; WireMock tests built from the guide's examples, not tested live |
+| What | `TypeSafe` | `OpenRouter` | `VllmSemanticRouter` | `Custom` | `OpenAI` | Chat client |
+| --- | --- | --- | --- | --- | --- | --- |
+| Question kinds | every kind | every kind | every kind | every kind | every kind | every kind |
+| Most questions | none | none | none | none | none | none |
+| Most Choice options | 255 | 255 | none | none | none | 26 |
+| Images | no | no | no | no | yes | no |
+| Model listing | yes | no | no | no | no | no |
+| Wire format | System One: `POST v1/systemone`, a `questions` object keyed by id, an `answers` object | System One, as TypeSafe | System One, at `v1/systemone` or your `Path` | System One, at `v1/systemone` or your `Path` | Decisions: `POST v1/decisions`, a `questions` array and an `answers` array, matched by `name` | Chat calls through the `IChatClient`: one call per question, answered with one label, read from its logprobs or from a stated JSON object |
+| Question wire names | `noul`, `choice`, `score` | `noul`, `choice`, `score` | `noul`, `choice`, `score` | `noul`, `choice`, `score` | `predicate` for a Noul, `choice`, `score` | None: options and levels are labelled `A` to `Z`, and a Noul is `A` for yes and `B` for no |
+| Noul `WhenTrue` and `WhenFalse` | Sent | Sent | Sent | Sent | MIN204, not sent | Sent, in the prompt |
+| Criterion `Examples` and `NotFor` | Sent, in a criterion object | Sent, in a criterion object | Sent, in a criterion object | Sent, in a criterion object | MIN205, not sent | Sent, in the prompt |
+| JSON instructions, criteria and state | Sent as JSON | Sent as JSON | Sent as JSON | Sent as JSON | Sent as the JSON's raw text, in a string | Sent as the JSON's raw text, in the prompt |
+| Images on the wire | In `state`, as `image_url` parts; data URLs only | In `state`, as `image_url` parts; data URLs only | In `state`, as `image_url` parts; data URLs only | In `state`, as `image_url` parts; data URLs only | In `input`, as `input_image` parts; data URLs only | In the user message, as data parts |
+| Refusals | None in the protocol | None in the protocol | None in the protocol | None in the protocol | `Refused`, one failure per refused question, rule `refusal` | None: a reply with no usable answer is `InvalidResponse` |
+| Noul confidence, usage and cost | A Noul has a probability and no confidence. `usage` has the input and output tokens | A Noul has a probability and no confidence. `usage` has the tokens and `cost` in US dollars; the response has a generation `id` and the upstream `provider` | A Noul has a probability and no confidence. `usage` as the server sends it | A Noul has a probability and no confidence. `usage` as the server sends it | A Noul has a probability and no confidence. Usage is not documented: tokens and `cost` are read when present, and `Usage` is `null` only when none of the three was sent | A Noul has a probability and no confidence. A Choice's or Score's confidence is the picked option's probability, not a calibrated one. Usage sums the tokens of every call; there is no cost |
+| Auth | Required: `ApiKey` or `TYPESAFE_API_KEY` | Required: `ApiKey` or `OPENROUTER_API_KEY` | Optional: `ApiKey` only | Optional: `ApiKey` only | Required: `ApiKey` or `OPENAI_API_KEY` | The chat client's own |
+| Status | Tested live | Tested live, with images and Clef | WireMock tests | WireMock tests, and a local server in CI | Public beta since 2026-10-06; WireMock tests built from the guide's examples, not tested live | Unit tests, and a conformance fixture built from them; not yet tested live |
 
 A set that breaks a capability comes back as `Unsupported` before anything is sent: MIN201 for a question kind the
 provider does not take, MIN202 for more questions than `MaxQuestions`, MIN203 for more options than
 `MaxChoiceOptions`, and MIN206 for images while `SupportsImages` is off. TypeSafe's Jev reads text only, and OpenRouter mixes
 text and image models, so images are off for both until you switch them on; [Images](#images) says for which models.
 OpenRouter has its own models API, so model listing is off for it. A `Custom` or `VllmSemanticRouter` server switches
-listing on with `SupportsModelListing = true`, and `OpenAIDecisionClient` has no `ListModelsAsync`. Choice and Score answers
-carry a confidence on every provider. A limit that reads "none" for `VllmSemanticRouter`, `Custom` or OpenAI means
+listing on with `SupportsModelListing = true`, and `OpenAIDecisionClient` has no `ListModelsAsync`. The chat client labels
+options `A` to `Z`, so it takes at most 26, and has no model listing either. Choice and Score answers carry a confidence
+on every provider; the chat client's is the picked option's probability, not a calibrated one. A limit that reads "none" for `VllmSemanticRouter`, `Custom` or OpenAI means
 the provider publishes none, not that it is known to be unlimited. A limit you set in `Capabilities` applies on every
 provider. The capabilities you set change the kinds, the limits, the images and, for the System One presets, the model
 listing the client checks. While model listing is off, a model-listing call returns the `Unsupported` kind.
@@ -241,6 +244,14 @@ public static IReadOnlyList<string> RefusedQuestions(DecisionError error)
 <!-- endSnippet -->
 
 `Refused` is not retried: the same request gets the same refusal.
+
+## Chat clients
+
+`ChatDecisionClient`, in the `Minos.NET.Extensions.AI` package, asks a chat model instead of a decision model, through
+any Microsoft.Extensions.AI `IChatClient`: OpenAI, OpenRouter, Azure, Ollama or another. Each question is one chat
+call, and the probabilities come from the model's logprobs where it returns them, or from an estimate the model states
+as JSON. Every answer says which, in its `ProbabilitySource`. [Chat clients](chat-clients.md) describes the bridge, its
+probability modes, what its confidence means, and its errors.
 
 ## Provider differences
 
@@ -706,6 +717,7 @@ there is no OpenAI key to record its answers with yet;
 
 ## Next
 
+- [Chat clients](chat-clients.md): ask any Microsoft.Extensions.AI chat client, and what its probabilities mean.
 - [Choosing a provider and a threshold](choosing-a-provider.md): how the providers compare on a labelled sample, and
   how to pick a threshold.
 - [The client and its errors](client-and-errors.md): the options every client shares, retries, time-outs and errors.

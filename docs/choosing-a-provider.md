@@ -1,7 +1,7 @@
 ---
 id: choosing-a-provider
 title: Choosing a provider and a threshold
-sidebar_position: 7
+sidebar_position: 8
 description: How accurate TypeSafe, Clef Flash and a local model were on a Banking77 sample, how far their confidence can be trusted, what they cost and how fast they answered, and how to pick a confidence threshold.
 ---
 
@@ -293,6 +293,20 @@ public static class SupportGates
 
 [Confidence routing](patterns/confidence-routing.md) shows the tiers in a fuller example.
 
+## Chat models
+
+A chat model asked through [`Minos.NET.Extensions.AI`](chat-clients.md) was not measured here. Its numbers mean
+something different. A decision model returns a confidence trained to say how far to trust the answer, and the tables
+above check how well it does. The chat bridge's confidence is the probability of the option it picked, read from the
+model's logprobs or stated by the model itself, and nothing calibrates it. A verbalized probability, the model's own
+estimate in its reply, is often too sure.
+
+So a threshold from the tables above does not carry over to a chat model. Each answer's `ProbabilitySource` says
+whether it came from logprobs or was verbalized. Measure the chat model on your own data before you gate anything on
+its confidence. `minos calibrate` reaches the decision providers only, so run the dataset from code with
+`DatasetRunner`, which takes any `IDecisionClient`, as
+[Running a dataset and reading the report](datasets.md#running-a-dataset-and-reading-the-report) shows.
+
 ## Measuring on your own data
 
 The Banking77 sample tells you how the providers behave on short banking messages. Your own messages are the better
@@ -338,5 +352,6 @@ change behind the same name, as `jev-latest` does. Measure again when you change
 
 - [Labelled datasets](datasets.md): the dataset format, the report, and the `minos` command line.
 - [Providers](providers.md): how to configure each provider measured here.
+- [Chat clients](chat-clients.md): what a chat model's probabilities and confidence mean.
 - [Confidence routing](patterns/confidence-routing.md): gate each action on the confidence of its answer.
 - [Question types](question-types.md#confidence-is-not-probability): why confidence and probability differ.

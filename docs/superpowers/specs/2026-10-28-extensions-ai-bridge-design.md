@@ -81,6 +81,8 @@ By the maintainer, 2026-10-28:
    - S3, D1 to D4, M1, R1 to R3 and E2 run on what Minos read. S1 and S2 read a System One or Decisions answer body,
      which a chat completion does not have, so on this wire they skip with that reason. E1 is settled under My calls.
      `conformance.md` documents all of this.
+   - *Amended during implementation:* E3 and E4 read every exchange of a probe, not only the last, so an error or a
+     429 among the parallel calls is not missed. R1 and R3 read every exchange as well.
    - The first fixture is marked source `tests`, built from the bridge's unit-test responses, so the release does not
      wait on a live key.
    - After the merge, the live-smoke workflow is dispatched on `main` to record the OpenRouter fixture. The recording
@@ -106,6 +108,9 @@ By the maintainer, 2026-10-28:
      builder, so `.UseRecording()` and the other stages chain as they do after `AddSystemOneDecisionClient`. A named
      overload resolves a keyed `IChatClient` and registers a keyed decision client, matching `AddDecisionClient(name,
      factory)`.
+   - *Amended during implementation:* `AddChatDecisionClient` has four explicit overloads: `()`, `(configure)`,
+     `(name)` and `(name, configure)`. Optional parameters on several public overloads break RS0026, and the
+     explicit form matches `AddSystemOneDecisionClient`.
 
 My calls (Claude's), open to correction:
 
@@ -140,6 +145,10 @@ My calls (Claude's), open to correction:
 - **The verbalized path** uses `GetResponseAsync` with a JSON schema response format.
   - The schema is built per question: an object with one number per label, from 0 to 1.
   - It is parsed with `JsonDocument`, which needs no reflection and is AOT-safe.
+  - *Amended during implementation:* the schema has no `minimum` or `maximum`: each label is `type: number`, every
+    label is required, and `additionalProperties` is false. Some strict structured-output providers reject numeric
+    range keywords, and the reader already rejects a negative or non-finite value and normalizes the rest, so a
+    stated value above 1 is absorbed by the normalization.
   - Values that are not finite or are negative are a malformed response. A sum of zero is too. Otherwise the values
     are normalized to sum to 1.
 - **The prompt.**
@@ -163,6 +172,9 @@ My calls (Claude's), open to correction:
     provider name, endpoint and default model.
   - `GetService` also forwards to the inner `IChatClient`, as `DelegatingChatClient` does.
   - `DecisionResponse.Model` is the `ModelId` the chat response reports.
+  - *Amended during implementation:* with one call per question there are several responses, so `DecisionResponse.Model`
+    is the first non-null `ModelId` in question order, falling back to the request's `Model`, then
+    `ChatDecisionClientOptions.Model`, when no response names one.
 - **Ownership.** The bridge does not dispose the `IChatClient` it wraps. The caller or the container owns it, and it
   is often shared with other code.
 - **Retries.** The bridge itself does not retry. The pipeline's `UseRetries` stage does, as with the other clients.
@@ -171,8 +183,13 @@ My calls (Claude's), open to correction:
     the base address `https://openrouter.ai/api/v1`, then wraps it with `AsIChatClient().AsDecisionClient()`.
   - The `invalid` probe is a request with no questions. The bridge answers it with `Validation` before anything is
     sent, so on this wire E1 checks that `Validation` result and its message, not an HTTP status.
+  - *Amended during implementation:* on this wire the `invalid` probe records no exchange, and a fixture needs none
+    for it; E1 checks that nothing was sent.
   - The default model for the recorded fixture is a non-reasoning model on OpenRouter that returns logprobs, such as
     `openai/gpt-4.1-mini`. The fixture names the model and the date.
+  - *Amended during implementation:* the chat target's model rule accepts the requested id exactly, or that id followed
+    by `-` and a digit, such as a dated suffix. A provider prefix such as `openai/` is compared only when both the
+    requested and the reported model carry one.
 - **Release wiring.** CI's package lists go from eight to nine library packages: the `aot-surface` list, the
   `pack-validate` inspection list and the publish step's id list, and `RELEASING.md` updates its count.
   - Trusted Publishing's `*` glob already covers the new id, and the `Minos.NET` prefix is reserved, so no new

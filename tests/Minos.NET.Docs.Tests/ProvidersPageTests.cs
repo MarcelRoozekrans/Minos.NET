@@ -6,6 +6,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Options;
+using Minos.Extensions.AI;
 using Minos.OpenAI;
 using Minos.Samples;
 using Minos.Samples.ProviderSwitch;
@@ -13,7 +14,7 @@ using Minos.SystemOne;
 
 namespace Minos.Docs.Tests;
 
-// Keeps the Providers page in step with the code. The matrix's columns are the presets and OpenAI, its capability rows
+// Keeps the Providers page in step with the code. The matrix's columns are the presets, OpenAI and the chat client, its capability rows
 // are what each client resolves, and its MIN ids are the provider rules. It reads no other cell's wording, so a
 // difference row can be reworded without breaking it.
 // Serialized with the other test classes that set or read the key environment variables.
@@ -23,6 +24,8 @@ public sealed partial class ProvidersPageTests
     private const string Page = "providers.md";
 
     private const string Matrix = "## At a glance";
+
+    private const string ChatColumn = "Chat client";
 
     private static readonly string[] CapabilityRows = ["Question kinds", "Most questions", "Most Choice options", "Images", "Model listing"];
 
@@ -118,11 +121,11 @@ public sealed partial class ProvidersPageTests
     }
 
     [Fact]
-    public void TheMatrixColumns_AreThePresets_ThenOpenAI()
+    public void TheMatrixColumns_AreThePresets_ThenOpenAI_ThenTheChatClient()
     {
         var (header, _) = Table(Matrix);
 
-        Assert.Equal([.. Enum.GetNames<SystemOneProvider>(), "OpenAI"], header.Skip(1).Select(Unquote));
+        Assert.Equal([.. Enum.GetNames<SystemOneProvider>(), "OpenAI", ChatColumn], header.Skip(1).Select(Unquote));
     }
 
     [Fact]
@@ -324,16 +327,18 @@ public sealed partial class ProvidersPageTests
         return string.Join('\n', lines[(start + 1)..end]);
     }
 
-    private static IDecisionClient Client(HttpClient http, string column)
-        => string.Equals(column, "OpenAI", StringComparison.Ordinal)
-            ? new OpenAIDecisionClient(http, new OpenAIDecisionClientOptions { ApiKey = "key" })
-            : new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions
-            {
-                Provider = Enum.Parse<SystemOneProvider>(column),
-                ApiKey = "key",
-                BaseAddress = new Uri("http://localhost:8080/"),
-                Model = "my-model",
-            });
+    private static IDecisionClient Client(HttpClient http, string column) => column switch
+    {
+        "OpenAI" => new OpenAIDecisionClient(http, new OpenAIDecisionClientOptions { ApiKey = "key" }),
+        ChatColumn => new SilentChatClient().AsDecisionClient(),
+        _ => new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions
+        {
+            Provider = Enum.Parse<SystemOneProvider>(column),
+            ApiKey = "key",
+            BaseAddress = new Uri("http://localhost:8080/"),
+            Model = "my-model",
+        }),
+    };
 
     // The lines under a heading, up to the next heading of the same or a higher level outside a code block.
     private static List<string> SectionLines(string heading)

@@ -13,7 +13,7 @@ public sealed class ChatClientSampleTests
         using var error = new StringWriter(CultureInfo.InvariantCulture);
 
         // The key is given empty, so a developer's own OPENROUTER_API_KEY never makes the test go online.
-        var code = await ChatClientApp.RunAsync([], AppContext.BaseDirectory, apiKey: string.Empty, output, error, CancellationToken.None);
+        var code = await ChatClientApp.RunAsync([], apiKey: string.Empty, output, error, CancellationToken.None);
 
         Assert.Equal(0, code);
         Assert.Empty(error.ToString());

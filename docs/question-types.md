@@ -231,6 +231,11 @@ decide what to do with the answer: act on it, check it first, or hand it to a pe
 
 A Noul has no separate confidence. Its probability is the whole answer, so read it against a threshold of your own.
 
+Every answer also says where its probabilities came from, in its `ProbabilitySource`. A decision model reports them
+itself, as `Model`. A [chat client](chat-clients.md) reads them from the model's logprobs, as `Logprobs`, or asks the
+model to state them, as `Verbalized`. Its confidence is the picked option's probability, not a calibrated confidence
+like TypeSafe's, so a threshold tuned on a decision model does not carry over.
+
 The [confidence routing](patterns/confidence-routing.md) pattern turns this into a rule: gate each action on a
 confidence threshold sized to the cost of being wrong, with `ConfidenceThresholds`.
 

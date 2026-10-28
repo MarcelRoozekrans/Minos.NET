@@ -34,17 +34,7 @@ public sealed class SurfaceRuleTests
     };
 
     // Public types no docs page or sample names.
-    private static readonly Dictionary<string, string> Undocumented = new(StringComparer.Ordinal)
-    {
-        // The Extensions.AI bridge lands over several commits on one branch; its docs page, docs/chat-clients.md, is the
-        // last of them and names these types. That commit removes these entries.
-        ["Minos.ProbabilitySource"] = "Named by docs/chat-clients.md, which the bridge's docs commit adds.",
-        ["Minos.Extensions.AI.ChatClientDecisionExtensions"] = "Named by docs/chat-clients.md, which the bridge's docs commit adds.",
-        ["Minos.Extensions.AI.ChatDecisionClient"] = "Named by docs/chat-clients.md, which the bridge's docs commit adds.",
-        ["Minos.Extensions.AI.ChatDecisionClientOptions"] = "Named by docs/chat-clients.md, which the bridge's docs commit adds.",
-        ["Minos.Extensions.AI.ProbabilityMode"] = "Named by docs/chat-clients.md, which the bridge's docs commit adds.",
-        ["Microsoft.Extensions.DependencyInjection.ChatDecisionClientServiceCollectionExtensions"] = "Named by docs/chat-clients.md, which the bridge's docs commit adds.",
-    };
+    private static readonly Dictionary<string, string> Undocumented = new(StringComparer.Ordinal);
 
     // The folders under docs/ that are not published pages.
     private static readonly string[] UnpublishedDocs = ["design", "planning", "plans", "reports", "superpowers"];

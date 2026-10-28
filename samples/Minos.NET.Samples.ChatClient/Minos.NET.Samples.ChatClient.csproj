@@ -21,6 +21,7 @@
   <ItemGroup>
     <!-- AsIChatClient, for the online mode. -->
     <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
-    <PackageReference Include="Microsoft.Extensions.Hosting" />
+    <!-- ServiceCollection and BuildServiceProvider, for the container the sample registers the bridge in. -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
   </ItemGroup>
 </Project>

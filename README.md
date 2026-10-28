@@ -15,10 +15,11 @@
 [![Minos.NET.Evaluation](https://img.shields.io/nuget/v/Minos.NET.Evaluation?label=Minos.NET.Evaluation)](https://www.nuget.org/packages/Minos.NET.Evaluation)
 [![Minos.NET.Recording](https://img.shields.io/nuget/v/Minos.NET.Recording?label=Minos.NET.Recording)](https://www.nuget.org/packages/Minos.NET.Recording)
 [![Minos.NET.Tool](https://img.shields.io/nuget/v/Minos.NET.Tool?label=Minos.NET.Tool)](https://www.nuget.org/packages/Minos.NET.Tool)
+[![Minos.NET.Extensions.AI](https://img.shields.io/nuget/v/Minos.NET.Extensions.AI?label=Minos.NET.Extensions.AI)](https://www.nuget.org/packages/Minos.NET.Extensions.AI)
 
 Unofficial .NET client for decision models: send a `state` and typed questions (Noul, Choice, Score) and get calibrated, typed answers back.
 
-Minos speaks the `/v1/systemone` protocol of TypeSafe's Jev: to TypeSafe directly, through OpenRouter, or to a server you run, such as a vLLM Semantic Router. The core is provider-neutral, and `Minos.NET.SystemOne` is the client for this protocol. `Minos.NET.OpenAI` is the client for OpenAI's Decisions API, `/v1/decisions`, which is in public beta; its provider name in logs and telemetry is `openai`.
+Minos speaks the `/v1/systemone` protocol of TypeSafe's Jev: to TypeSafe directly, through OpenRouter, or to a server you run, such as a vLLM Semantic Router. The core is provider-neutral, and `Minos.NET.SystemOne` is the client for this protocol. `Minos.NET.OpenAI` is the client for OpenAI's Decisions API, `/v1/decisions`, which is in public beta; its provider name in logs and telemetry is `openai`. `Minos.NET.Extensions.AI` asks any Microsoft.Extensions.AI `IChatClient` instead, and each answer says whether its probabilities came from the model's logprobs or from its own stated estimate.
 
 You declare the questions as a C# type, and a source generator writes the request and the answer parsing at compile time, so generated question sets need no reflection and the client runs under Native AOT.
 
@@ -39,6 +40,7 @@ You declare the questions as a C# type, and a source generator writes the reques
 | [Minos.NET.Evaluation](https://www.nuget.org/packages/Minos.NET.Evaluation) | labelled datasets: the JSONL format, a loader, a runner and a calibration report |
 | [Minos.NET.Recording](https://www.nuget.org/packages/Minos.NET.Recording) | a recording stage: a record of every decision, with outcomes, erasure and redaction, in a JSONL file or a sink of your own |
 | [Minos.NET.Tool](https://www.nuget.org/packages/Minos.NET.Tool) | the `minos` dotnet tool: `calibrate`, `report` and `conformance` |
+| [Minos.NET.Extensions.AI](https://www.nuget.org/packages/Minos.NET.Extensions.AI) | an `IDecisionClient` over any Microsoft.Extensions.AI `IChatClient`, such as OpenAI, OpenRouter, Azure or Ollama |
 
 ## What you get
 
@@ -127,6 +129,7 @@ The guide lives at [marcelroozekrans.github.io/Minos.NET](https://marcelroozekra
 - [Question sets at run time](https://marcelroozekrans.github.io/Minos.NET/question-sets-at-run-time): build a question set from data with the builder, evaluate it, and read answers through handles.
 - [The client and its errors](https://marcelroozekrans.github.io/Minos.NET/client-and-errors): create and configure a `SystemOneDecisionClient` or an `OpenAIDecisionClient`, retries and time-outs, every kind of `DecisionError`, and the raw request API.
 - [Providers](https://marcelroozekrans.github.io/Minos.NET/providers): the presets, servers you run and OpenAI, the capability matrix, images, and switching providers by configuration.
+- [Chat clients](https://marcelroozekrans.github.io/Minos.NET/chat-clients): ask Minos questions over any Microsoft.Extensions.AI `IChatClient`, with probabilities from logprobs or a verbalized estimate, and what its confidence means.
 - [Choosing a provider and a threshold](https://marcelroozekrans.github.io/Minos.NET/choosing-a-provider): how accurate, well calibrated, costly and fast TypeSafe, Clef Flash and a local model were on a Banking77 sample, and how to pick a confidence threshold.
 - [Labelled datasets](https://marcelroozekrans.github.io/Minos.NET/datasets): the JSONL format for items with expected answers, the members of a line, how the loader reports problems, and the format version.
 - [Dependency injection](https://marcelroozekrans.github.io/Minos.NET/dependency-injection): register `IDecisionClient` in a .NET host, key several clients, and bind options from configuration.
@@ -141,13 +144,13 @@ The guide lives at [marcelroozekrans.github.io/Minos.NET](https://marcelroozekra
 - [Confidence routing](https://marcelroozekrans.github.io/Minos.NET/patterns/confidence-routing): gate each action on the answer confidence, with a threshold sized to the cost of being wrong.
 - [Composite scoring](https://marcelroozekrans.github.io/Minos.NET/patterns/composite-scoring): break a judgement into small Scores and combine them with weights you own.
 - [Intent routing](https://marcelroozekrans.github.io/Minos.NET/patterns/intent-routing): make a cheap first decision that sends each request to code, a model or a person.
-- [Samples](https://marcelroozekrans.github.io/Minos.NET/samples): four runnable cookbook samples that replay recorded Jev answers offline, one of them against three providers chosen by configuration.
+- [Samples](https://marcelroozekrans.github.io/Minos.NET/samples): five runnable cookbook samples that run offline, four of them replaying recorded Jev answers, one against three providers chosen by configuration, and one over a chat client.
 - [Performance](https://marcelroozekrans.github.io/Minos.NET/performance): what the benchmarks measure, how to run them, and what the client costs per call.
 - [Conformance](https://marcelroozekrans.github.io/Minos.NET/conformance): the suite that checks any decision endpoint's shapes, probabilities, errors and models, and how to run it against your own.
 
 ## Samples
 
-Runnable cookbook apps live in [`samples/`](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples); all four replay recorded answers, so they run offline, and one of them runs against three providers by configuration.
+Runnable cookbook apps live in [`samples/`](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples). All five run offline: four replay recorded answers, one of them against three providers by configuration, and the chat-client sample uses a scripted chat client when no key is set.
 
 ## Building
 

@@ -24,13 +24,12 @@ public static class ChatClientApp
     /// Runs the sample with the key in <c>OPENROUTER_API_KEY</c>: online through OpenRouter when it is set, offline with a
     /// fake chat client when it is not. Returns 0, or 2 for a bad argument.
     /// </summary>
-    public static Task<int> RunAsync(
-        IReadOnlyList<string> args, string baseDirectory, TextWriter output, TextWriter error, CancellationToken cancellationToken)
-        => RunAsync(args, baseDirectory, Environment.GetEnvironmentVariable(ApiKeyVariable), output, error, cancellationToken);
+    public static Task<int> RunAsync(IReadOnlyList<string> args, TextWriter output, TextWriter error, CancellationToken cancellationToken)
+        => RunAsync(args, Environment.GetEnvironmentVariable(ApiKeyVariable), output, error, cancellationToken);
 
     /// <summary>Runs the sample with the given key; a null or empty key runs it offline.</summary>
     public static async Task<int> RunAsync(
-        IReadOnlyList<string> args, string baseDirectory, string? apiKey, TextWriter output, TextWriter error, CancellationToken cancellationToken)
+        IReadOnlyList<string> args, string? apiKey, TextWriter output, TextWriter error, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(args);
         ArgumentNullException.ThrowIfNull(output);
