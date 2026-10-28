@@ -130,6 +130,7 @@ internal static class Program
         await EvaluationChecks.RunsADatasetOverAFakeClient().ConfigureAwait(false);
         await EvaluationChecks.ResultsSaveAndLoad().ConfigureAwait(false);
         EvaluationChecks.HandBuiltResultsRoundTrip();
+        await EvaluationChecks.AnswersKeepTheirProbabilitySource().ConfigureAwait(false);
         EvaluationChecks.PricesMatchTheModelAndItsVariants();
         await EvaluationChecks.ReportsCountAndRender().ConfigureAwait(false);
         await EvaluationChecks.ReportSummariesKeepTheirValues().ConfigureAwait(false);

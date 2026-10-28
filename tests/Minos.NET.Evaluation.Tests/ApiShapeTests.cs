@@ -96,6 +96,45 @@ public sealed class ApiShapeTests
     }
 
     [Fact]
+    public void Factories_WithoutASource_GiveModel()
+    {
+        Assert.Equal(ProbabilitySource.Model, AnswerRecord.ForNoul(0.9).ProbabilitySource);
+        Assert.Equal(ProbabilitySource.Model, AnswerRecord.ForChoice("two", 0.4).ProbabilitySource);
+        Assert.Equal(ProbabilitySource.Model, AnswerRecord.ForScore(2, 0.8).ProbabilitySource);
+    }
+
+    [Theory]
+    [InlineData(ProbabilitySource.Model)]
+    [InlineData(ProbabilitySource.Logprobs)]
+    [InlineData(ProbabilitySource.Verbalized)]
+    public void Factories_KeepTheSource(ProbabilitySource source)
+    {
+        var noul = AnswerRecord.ForNoul(0.3, source);
+        var choice = AnswerRecord.ForChoice("two", 0.4, source);
+        var score = AnswerRecord.ForScore(2, 0.8, source);
+
+        Assert.Equal(source, noul.ProbabilitySource);
+        Assert.Equal(0.3, noul.Probability);
+        Assert.Equal(0.7, noul.Confidence, 12);
+        Assert.Equal(source, choice.ProbabilitySource);
+        Assert.Equal("two", choice.ChoiceKey);
+        Assert.Equal(0.4, choice.Confidence);
+        Assert.Equal(source, score.ProbabilitySource);
+        Assert.Equal(2, score.ScoreLevel);
+        Assert.Equal(0.8, score.Confidence);
+    }
+
+    [Fact]
+    public void Factories_RefuseAnUndefinedSource()
+    {
+        var undefined = (ProbabilitySource)3;
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => AnswerRecord.ForNoul(0.5, undefined));
+        Assert.Throws<ArgumentOutOfRangeException>(() => AnswerRecord.ForChoice("k", 0.5, undefined));
+        Assert.Throws<ArgumentOutOfRangeException>(() => AnswerRecord.ForScore(1, 0.5, undefined));
+    }
+
+    [Fact]
     public void EvaluationResults_CopiesTheItems()
     {
         var items = new List<ItemResult> { ReportFixture.Answered(1, new Dictionary<string, AnswerRecord> { ["q"] = AnswerRecord.ForNoul(0.9) }) };

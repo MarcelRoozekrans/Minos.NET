@@ -178,7 +178,7 @@ internal static class MetricsCalculator
 
     internal static CalibrationReport Compute(EvaluationResults results, DecisionDataset dataset, PriceTable? prices)
     {
-        var questions = Collect(results, dataset, out var unscored);
+        var questions = Collect(results, dataset, out var unscored, out var verbalized);
         return new CalibrationReport(
             results.Header,
             ForKind(questions, QuestionKind.Noul),
@@ -190,13 +190,16 @@ internal static class MetricsCalculator
             Cost(results.Items, prices),
             Errors(results.Items),
             Models(results.Items),
-            dataset.Count);
+            dataset.Count,
+            verbalized);
     }
 
-    private static List<ScoredQuestion> Collect(EvaluationResults results, DecisionDataset dataset, out int unscored)
+    // Also counts the scored answers with verbalized probabilities. They are scored like any other answer.
+    private static List<ScoredQuestion> Collect(EvaluationResults results, DecisionDataset dataset, out int unscored, out int verbalized)
     {
         var questions = new List<ScoredQuestion>();
         unscored = 0;
+        verbalized = 0;
 
         // A partial run has results for some of the items only; Match has checked that they are in dataset order.
         var next = 0;
@@ -228,6 +231,11 @@ internal static class MetricsCalculator
 
                 AnswerRecord? answer = null;
                 var answered = result.Error is null && result.Answers is not null && result.Answers.TryGetValue(question.Key, out answer);
+                if (answered && answer!.ProbabilitySource == ProbabilitySource.Verbalized)
+                {
+                    verbalized++;
+                }
+
                 questions.Add(new ScoredQuestion(
                     expected.Kind,
                     question.Key,

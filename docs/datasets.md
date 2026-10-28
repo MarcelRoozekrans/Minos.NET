@@ -118,11 +118,12 @@ the item's own question set and state. Items run one at a time unless you set `M
 `DecisionError` does not stop the run: the failure is written on that item, and the run goes on to the next one. An
 `OperationCanceledException` that your own token did not cause is written on that item as an `ItemError` of kind
 `Cancelled`, and the run goes on too. A response whose answers do not fit the item turns the whole item into an
-`InvalidResponse` error: an answer of the wrong kind, a chosen option or level the question does not have, a
-probability or confidence outside 0 to 1, or no answer to any of the item's questions. These do stop the run: your own
-cancellation token, and an exception thrown by the client or by the `Progress` receiver. In those cases no new requests
-are sent, and requests still in flight are cancelled. Either way the exception carries the items that finished, as
-`PartialResults`, in dataset order, with `Header.Partial` set and `ItemCount` counting only those:
+`InvalidResponse` error: an answer of the wrong kind, a chosen option or level the question does not have, a probability
+or confidence outside 0 to 1, a `ProbabilitySource` that is not one of its named values, or no answer to any of the
+item's questions. These do stop the run: your own cancellation token, and an exception thrown by the client or by the
+`Progress` receiver. In those cases no new requests are sent, and requests still in flight are cancelled. Either way the
+exception carries the items that finished, as `PartialResults`, in dataset order, with `Header.Partial` set and
+`ItemCount` counting only those:
 
 - Your own cancellation throws a `DatasetRunCanceledException`. It is an `OperationCanceledException` whose
   `CancellationToken` is your token, so `catch (OperationCanceledException e) when (e.CancellationToken == token)`
@@ -140,14 +141,20 @@ run has `"partial":true` in its header.
 
 What you get back is an `EvaluationResults`: a `RunHeader` that names the run, and one `ItemResult` for each item. An
 `ItemResult` holds the answers as `AnswerRecord` values, or an `ItemError` when the request failed, and also the latency,
-the model that answered, the token counts and the cost. To build results by hand, make each answer with
-`AnswerRecord.ForNoul`, `ForChoice` or `ForScore`; `ForNoul` takes the probability and works out the answer and its
-confidence from it.
+the model that answered, the token counts and the cost. Each `AnswerRecord` keeps the `ProbabilitySource` of the answer
+it came from: `Model`, `Logprobs` or `Verbalized`, as [chat clients](chat-clients.md) describe. To build results by hand,
+make each answer with `AnswerRecord.ForNoul`, `ForChoice` or `ForScore`; `ForNoul` takes the probability and works out
+the answer and its confidence from it. Each factory has an overload that also takes the `ProbabilitySource`; without
+it, the source is `Model`.
 
 Save the results before you do anything else with them. A run costs real calls, and the results file is what it paid
 for. `EvaluationResults.Save` writes it as JSONL, and `EvaluationResults.Load` reads it back with line-numbered
 problems, as the dataset loader does, and refuses a member the format does not have. `Save` refuses results the file
-cannot hold, such as a latency that is not a finite, non-negative number, and lists every problem. Because the file
+cannot hold, such as a latency that is not a finite, non-negative number, and lists every problem. An answer whose
+source is not `Model` has a `"probabilitySource"` member, `"logprobs"` or `"verbalized"`. A `Model` answer has none, so
+a file with only `Model` answers is the same as one an older version wrote, and an answer without the member reads as
+`Model`. Any other value is a problem. The file stays version 1: an older reader refuses the member as unknown, so it
+cannot lose a source without saying so. Because the file
 holds every answer, you can compute the report again, with new prices or after you correct an expected answer, without
 making another billed call.
 
@@ -238,11 +245,14 @@ The report holds, for each kind of question and for all of them together (a `Kin
   probability p does in either direction, so p = 0.07 counts at 0.93 just as p = 0.93 does.
 
 It also holds the latency (`LatencySummary`), the cost per 1,000 decisions (`CostSummary`), the errors by kind
-(`ErrorSummary`), and the models that answered (`ModelCount`). A question is scored when it has an expected answer. A question without one is only counted, in the
-report's header. A failed request, or an answer the provider left out, is an abstention: the question is scored but
-unanswered. It is left out of accuracy, the calibration error, the bins and the base rate, but it counts as uncovered
-in the coverage of the threshold sweep. [Choosing a provider and a threshold](choosing-a-provider.md) reads these
-numbers in real reports.
+(`ErrorSummary`), and the models that answered (`ModelCount`). `VerbalizedAnswers` counts the scored answers whose
+probabilities are `Verbalized`: the model stated them in its text, so they are not a measured distribution. They are
+scored like any other answer, so the calibration figures include them. When there are some, the Markdown report says how
+many, and the JSON has a `verbalizedAnswers` member; when there are none, neither changes. A question is scored when it
+has an expected answer. A question without one is only counted, in the report's header. A failed request, or an answer
+the provider left out, is an abstention: the question is scored but unanswered. It is left out of accuracy, the
+calibration error, the bins and the base rate, but it counts as uncovered in the coverage of the threshold sweep.
+[Choosing a provider and a threshold](choosing-a-provider.md) reads these numbers in real reports.
 
 ## Running it from the command line
 

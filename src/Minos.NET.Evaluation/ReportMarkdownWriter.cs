@@ -33,6 +33,13 @@ internal static class ReportMarkdownWriter
                 .Append(report.DatasetItemCount == 1 ? " item" : " items").Append(".\n\n");
         }
 
+        if (report.VerbalizedAnswers > 0)
+        {
+            md.Append("Verbalized probabilities: ").Append(Count(report.VerbalizedAnswers))
+                .Append(report.VerbalizedAnswers == 1 ? " answer has" : " answers have")
+                .Append(" probabilities the model stated in its text, not a measured distribution. The calibration metrics include them.\n\n");
+        }
+
         md.Append("Responses served by: ").Append(Models(report.ResponseModels)).Append("\n\n");
 
         WriteErrors(md, report.Errors, header.ItemCount);

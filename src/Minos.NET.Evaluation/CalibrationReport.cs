@@ -19,7 +19,8 @@ public sealed class CalibrationReport
         CostSummary cost,
         ErrorSummary errors,
         IReadOnlyList<ModelCount> responseModels,
-        int datasetItemCount)
+        int datasetItemCount,
+        int verbalizedAnswers)
     {
         Header = header;
         Noul = noul;
@@ -32,6 +33,7 @@ public sealed class CalibrationReport
         Errors = errors;
         ResponseModels = responseModels;
         DatasetItemCount = datasetItemCount;
+        VerbalizedAnswers = verbalizedAnswers;
     }
 
     /// <summary>Gets what the run was.</summary>
@@ -51,6 +53,12 @@ public sealed class CalibrationReport
 
     /// <summary>Gets the number of questions that were asked but have no expected answer, so are not scored.</summary>
     public int UnscoredQuestions { get; }
+
+    /// <summary>
+    /// Gets the number of scored answers whose probabilities are <see cref="ProbabilitySource.Verbalized"/>: the model
+    /// stated them in its text, so they are not a measured distribution. The calibration metrics include these answers.
+    /// </summary>
+    public int VerbalizedAnswers { get; }
 
     /// <summary>Gets the latency of the successful requests that were not cached.</summary>
     public LatencySummary Latency { get; }

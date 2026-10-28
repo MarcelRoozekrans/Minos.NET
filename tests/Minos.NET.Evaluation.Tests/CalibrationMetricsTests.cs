@@ -250,6 +250,49 @@ public sealed class CalibrationMetricsTests
     }
 
     [Fact]
+    public void VerbalizedAnswers_CountsTheScoredAnswersWithVerbalizedProbabilities()
+    {
+        const string twoQuestions = """
+            {"id":"i1","state":"s","version":1,"questions":{
+              "q":{"type":"noul","instructions":"?"},
+              "extra":{"type":"noul","instructions":"?"}},
+              "expected":{"q":true}}
+            """;
+        var dataset = Dataset(twoQuestions, AllKindsLine(Id(2)), NoulLine(Id(3), true), NoulLine(Id(4), true));
+        EvaluationResults Run(ProbabilitySource verbalized, ProbabilitySource logprobs) => Results(
+            Answered(1, new Dictionary<string, AnswerRecord>
+            {
+                ["q"] = AnswerRecord.ForNoul(0.9, verbalized),
+                ["extra"] = AnswerRecord.ForNoul(0.7, verbalized),
+            }),
+            Answered(2, new Dictionary<string, AnswerRecord>
+            {
+                ["n"] = AnswerRecord.ForNoul(0.2, verbalized),
+                ["c"] = AnswerRecord.ForChoice("two", 0.6, logprobs),
+                ["s"] = AnswerRecord.ForScore(2, 0.7, verbalized),
+            }),
+            Answered(3, Q(Noul(true, 0.8))),
+            Failed(4));
+
+        var report = Report(Run(ProbabilitySource.Verbalized, ProbabilitySource.Logprobs), dataset);
+        var model = Report(Run(ProbabilitySource.Model, ProbabilitySource.Model), dataset);
+
+        // The unscored "extra" answer and the Logprobs and Model answers are not counted.
+        Assert.Equal(3, report.VerbalizedAnswers);
+        Assert.Equal(0, model.VerbalizedAnswers);
+        Assert.Equal(5, report.Overall.Answered);
+
+        // The same answers with Model sources give the same metrics: the source is only counted, never weighed.
+        AssertSameMetrics(model.Overall, report.Overall);
+        AssertSameMetrics(model.Noul!, report.Noul!);
+        AssertSameMetrics(model.Choice!, report.Choice!);
+        AssertSameMetrics(model.Score!, report.Score!);
+    }
+
+    [Fact]
+    public void VerbalizedAnswers_IsZeroWithoutVerbalizedAnswers() => Assert.Equal(0, AllKindsReport().VerbalizedAnswers);
+
+    [Fact]
     public void ScoredQuestionWithoutAnAnswer_IsNotAnswered()
     {
         const string twoQuestions = """

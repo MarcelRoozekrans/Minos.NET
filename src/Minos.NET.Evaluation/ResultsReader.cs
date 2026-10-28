@@ -13,7 +13,7 @@ internal static class ResultsReader
 
     private static readonly string[] ItemMembers = ["id", "line", "latencyMs", "cached", "model", "inputTokens", "outputTokens", "cost", "responseId", "answers", "error"];
 
-    private static readonly string[] AnswerMembers = ["kind", "value", "confidence", "probability"];
+    private static readonly string[] AnswerMembers = ["kind", "value", "confidence", "probability", "probabilitySource"];
 
     private static readonly string[] ErrorMembers = ["kind", "statusCode", "message"];
 
@@ -281,6 +281,7 @@ internal static class ResultsReader
         var kind = r.String("kind", required: true);
         var confidence = r.Double("confidence", unit: true);
         double? probability = r.Double("probability", required: false, unit: true);
+        var source = ReadSource(r.String("probabilitySource"), where, line, problems);
         if (kind is null || !element.TryGetProperty("value", out var value))
         {
             if (kind is not null)
@@ -312,7 +313,7 @@ internal static class ResultsReader
                     }
                     else if (confidence is not null)
                     {
-                        record = AnswerRecord.ForNoul(probability.Value);
+                        record = AnswerRecord.ForNoul(probability.Value, source);
                     }
                 }
                 else
@@ -324,7 +325,7 @@ internal static class ResultsReader
             case "choice":
                 if (value.ValueKind == JsonValueKind.String)
                 {
-                    record = confidence is { } c ? AnswerRecord.ForChoice(value.GetString()!, c) : null;
+                    record = confidence is { } c ? AnswerRecord.ForChoice(value.GetString()!, c, source) : null;
                 }
                 else
                 {
@@ -335,7 +336,7 @@ internal static class ResultsReader
             case "score":
                 if (value.ValueKind == JsonValueKind.Number && value.TryGetInt32(out var level) && level >= ResultsRules.MinScoreLevel)
                 {
-                    record = confidence is { } c ? AnswerRecord.ForScore(level, c) : null;
+                    record = confidence is { } c ? AnswerRecord.ForScore(level, c, source) : null;
                 }
                 else
                 {
@@ -349,6 +350,23 @@ internal static class ResultsReader
         }
 
         return problems.Count > before ? null : record;
+    }
+
+    // A missing source is Model, which the writer leaves out; Model is never written, so "model" is not a source here.
+    private static ProbabilitySource ReadSource(string? name, string where, int line, List<DatasetProblem> problems)
+    {
+        switch (name)
+        {
+            case null:
+                return ProbabilitySource.Model;
+            case ResultsFormat.Logprobs:
+                return ProbabilitySource.Logprobs;
+            case ResultsFormat.Verbalized:
+                return ProbabilitySource.Verbalized;
+            default:
+                problems.Add(new DatasetProblem(line, $"Member '{where}.probabilitySource' must be {ResultsFormat.Logprobs} or {ResultsFormat.Verbalized}."));
+                return ProbabilitySource.Model;
+        }
     }
 
     private static ItemError? ReadError(JsonElement element, int line, List<DatasetProblem> problems)

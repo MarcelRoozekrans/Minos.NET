@@ -193,4 +193,41 @@ public sealed class ReportOutputTests
         Assert.False(doc.RootElement.GetProperty("header").GetProperty("partial").GetBoolean());
         Assert.Equal(17, doc.RootElement.GetProperty("datasetItemCount").GetInt32());
     }
+
+    private static CalibrationReport VerbalizedReport(int verbalized)
+    {
+        var dataset = Dataset([.. Enumerable.Range(1, 3).Select(i => NoulLine(Id(i), true))]);
+        var items = Enumerable.Range(1, 3)
+            .Select(i => Answered(i, new Dictionary<string, AnswerRecord> { ["q"] = AnswerRecord.ForNoul(0.9, i <= verbalized ? ProbabilitySource.Verbalized : ProbabilitySource.Model) }))
+            .ToArray();
+        return Report(Results(items), dataset);
+    }
+
+    [Fact]
+    public void VerbalizedAnswers_AreNamedInMarkdownAndJson()
+    {
+        var report = VerbalizedReport(2);
+
+        var markdown = report.ToMarkdown();
+        Assert.Contains(
+            "Verbalized probabilities: 2 answers have probabilities the model stated in its text, not a measured distribution. The calibration metrics include them.\n\n",
+            markdown,
+            StringComparison.Ordinal);
+        Assert.True(markdown.IndexOf("Verbalized probabilities", StringComparison.Ordinal) < markdown.IndexOf("Responses served by", StringComparison.Ordinal));
+        using var doc = JsonDocument.Parse(report.ToJson());
+        Assert.Equal(2, doc.RootElement.GetProperty("verbalizedAnswers").GetInt32());
+    }
+
+    [Fact]
+    public void VerbalizedAnswers_SingularWording()
+        => Assert.Contains("Verbalized probabilities: 1 answer has probabilities", VerbalizedReport(1).ToMarkdown(), StringComparison.Ordinal);
+
+    [Fact]
+    public void NoVerbalizedAnswers_LeavesTheReportUnchanged()
+    {
+        var report = VerbalizedReport(0);
+
+        Assert.DoesNotContain("erbalized", report.ToMarkdown(), StringComparison.Ordinal);
+        Assert.DoesNotContain("erbalized", report.ToJson(), StringComparison.Ordinal);
+    }
 }
