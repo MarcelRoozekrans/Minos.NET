@@ -1,3 +1,1 @@
 #nullable enable
-Minos.Extensions.AI.ChatDecisionClientOptions.MaxParallelCalls.get -> int?
-Minos.Extensions.AI.ChatDecisionClientOptions.MaxParallelCalls.set -> void

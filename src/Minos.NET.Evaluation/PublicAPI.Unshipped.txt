@@ -1,6 +1,1 @@
 #nullable enable
-Minos.Evaluation.AnswerRecord.ProbabilitySource.get -> Minos.ProbabilitySource
-static Minos.Evaluation.AnswerRecord.ForChoice(string! key, double confidence, Minos.ProbabilitySource probabilitySource) -> Minos.Evaluation.AnswerRecord!
-static Minos.Evaluation.AnswerRecord.ForNoul(double probability, Minos.ProbabilitySource probabilitySource) -> Minos.Evaluation.AnswerRecord!
-static Minos.Evaluation.AnswerRecord.ForScore(int level, double confidence, Minos.ProbabilitySource probabilitySource) -> Minos.Evaluation.AnswerRecord!
-Minos.Evaluation.CalibrationReport.VerbalizedAnswers.get -> int

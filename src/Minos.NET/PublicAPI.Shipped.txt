@@ -74,6 +74,8 @@ Minos.DecisionClientBuilderExtensions
 Minos.DecisionClientExtensions
 Minos.DecisionClientMetadata
 Minos.DecisionClientMetadata.<Clone>$() -> Minos.DecisionClientMetadata!
+Minos.DecisionClientMetadata.CacheScope.get -> string?
+Minos.DecisionClientMetadata.CacheScope.init -> void
 Minos.DecisionClientMetadata.DecisionClientMetadata(string! ProviderName, System.Uri? Endpoint, string? DefaultModel) -> void
 Minos.DecisionClientMetadata.Deconstruct(out string! ProviderName, out System.Uri? Endpoint, out string? DefaultModel) -> void
 Minos.DecisionClientMetadata.DefaultModel.get -> string?
