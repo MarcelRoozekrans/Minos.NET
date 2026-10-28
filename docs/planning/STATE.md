@@ -1,4 +1,4 @@
-# Session State — 2026-10-28 (Milestone 9: #260 next, then Phase 9.2)
+# Session State — 2026-10-28 (Milestone 9: 1.6.0 released, Phase 9.2 next)
 
 **Date:** 2026-10-28
 
@@ -114,8 +114,13 @@
 ## Recommended Next Step
 1. Milestone 9, Local and private decisions, is active since 2026-10-21 (design `docs/superpowers/specs/2026-10-21-milestone-9-design.md`). It revises the roadmap's "Hosted to local": the in-process ONNX spike and provider (#117) are parked, and a local decision server through the `Custom` or `VllmSemanticRouter` preset is the local path. Daedalus.NET is the first workload; its requirements are binding (off by default, decorate not replace, no state in logs or traces, redaction before persisting, erasure, shadow off the decision path, AOT clean). Phase 9.1, the decision recorder, is complete: `Minos.NET.Recording` shipped in 1.3.0 (#255). Milestone 8 is complete (audit `docs/plans/2026-10-17-milestone-8-audit.md`).
    - **Done since:** #230 shipped in 1.4.0. A cancelled dataset run keeps its paid results through `DatasetRunCanceledException`, and `minos calibrate` saves on Ctrl+C or SIGTERM; the calibration workflows run tool 1.4.0 (#265). #254, caching with a relative endpoint, shipped in 1.4.0 too.
-   - **Outside the milestone:** #276 added `Minos.NET.Extensions.AI`, an `IDecisionClient` over `IChatClient`, and `ProbabilitySource` on every answer. It releases as 1.5.0 through #278. Its review left #279, #280 and #281 open; #279 and #280 need the maintainer's decision.
-   - **Next:** #260, range-checking probabilities and confidences read off the wire, as its own PR. Then Phase 9.2, export to the dataset format, through `start-next-phase`.
+   - **Outside the milestone:** #276 added `Minos.NET.Extensions.AI`, an `IDecisionClient` over `IChatClient`, and `ProbabilitySource` on every answer. It shipped in 1.5.0 (#278).
+   - **1.6.0 (#286), on nuget.org for all ten packages on 2026-10-28:**
+     - #285 closes #260: a probability or confidence outside 0 to 1 read off the wire is an `InvalidResponse`.
+     - #284 closes #281: `MaxParallelCalls` limits the chat bridge's parallel calls per question set.
+     - #287 closes #280: `CacheScope` lets a decision client scope its cache entries, so the chat bridge's `ProbabilityMode` no longer collides in the cache key.
+     - #288 closes #279: evaluation results keep each answer's `ProbabilitySource`.
+   - **Next:** Phase 9.2, export to the dataset format, through `start-next-phase`. Its spec must say how #288's probability source fits the export.
 2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.
 3. Phases 7.1 to 7.5 are complete. On 2026-10-15 nuget.org reserved `Minos.NET` and `Minos.NET.*` to MarcelRoozekrans, which lifted the 409 "package ID is reserved" block. The Trusted Publishing policy is ci.yml, no environment, glob `*`. `gh workflow run ci.yml --ref v1.0.1 -f publish_to_nuget=true` ([run 38726515640](https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/38726515640)) published all six packages as 1.0.1, with symbols. 1.0.0 was never published. `PackageValidationBaselineVersion` is 1.0.1, which closes #28. Milestone 7 is complete; its audit passed (`docs/plans/2026-10-15-milestone-7-audit.md`). Next: Milestone 8, Choosing a provider and a threshold, starting with `new-milestone`.
 4. Releases go out when the maintainer merges the release-please PR. Renovate titles updates to shipped ZeroAlloc dependencies `deps:`, so raised floors reach the changelog. Consider narrowing the Trusted Publishing package glob from `*` to `Minos.NET*` on nuget.org.
