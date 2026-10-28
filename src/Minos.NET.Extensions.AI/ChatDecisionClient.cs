@@ -41,6 +41,7 @@ public sealed class ChatDecisionClient : IDecisionClient
     private readonly DecisionClientMetadata _metadata;
     private readonly string? _model;
     private readonly ProbabilityMode _probabilityMode;
+    private readonly int? _maxParallelCalls;
     // Volatile: Dispose writes it, and the threads that start calls read it.
     private volatile bool _disposed;
 
@@ -60,6 +61,11 @@ public sealed class ChatDecisionClient : IDecisionClient
             throw new ArgumentException("Capabilities.MaxChoiceOptions must be at most 26: options are labelled A to Z.", nameof(options));
         }
 
+        if (options.MaxParallelCalls is < 1)
+        {
+            throw new ArgumentException("MaxParallelCalls must be at least 1, or null for no limit.", nameof(options));
+        }
+
         // The bridge has no model listing, so ModelListing stays false whatever the options say, and GetService reports
         // the truth.
         _capabilities = ClientSettingRules.ResolveCapabilities(Defaults, options.Capabilities, nameof(options)) with { ModelListing = false };
@@ -70,6 +76,7 @@ public sealed class ChatDecisionClient : IDecisionClient
         _chatClient = chatClient;
         _model = model;
         _probabilityMode = options.ProbabilityMode;
+        _maxParallelCalls = options.MaxParallelCalls;
     }
 
     /// <summary>Asks the request's questions about its state.</summary>
@@ -92,8 +99,9 @@ public sealed class ChatDecisionClient : IDecisionClient
     /// levels, returns <see cref="DecisionErrorKind.Unsupported"/>. Neither calls the chat client.
     /// </para>
     /// <para>
-    /// Each question is asked in its own chat call, and the calls run at once. The answers come back in definition order
-    /// whatever order the calls finish in. <see cref="ChatDecisionClientOptions.ProbabilityMode"/> sets how each
+    /// Each question is asked in its own chat call, and the calls run at once, at most
+    /// <see cref="ChatDecisionClientOptions.MaxParallelCalls"/> of them when it is set. The answers come back in definition
+    /// order whatever order the calls finish in. <see cref="ChatDecisionClientOptions.ProbabilityMode"/> sets how each
     /// question's probabilities are made:
     /// </para>
     /// <list type="bullet">
@@ -120,9 +128,9 @@ public sealed class ChatDecisionClient : IDecisionClient
     /// one, it is the request's <see cref="DecisionRequest.Model"/>, then <see cref="ChatDecisionClientOptions.Model"/>.
     /// </para>
     /// <para>
-    /// The first failed question fails the request and cancels the other calls. An exception from the chat client is
-    /// returned as an error when Minos knows it: an OpenAI SDK <c>ClientResultException</c> by its HTTP status, with
-    /// <see cref="DecisionError.RetryAfter"/> and <see cref="DecisionError.RequestId"/> from its headers; an
+    /// The first failed question fails the request and cancels the other calls, and questions still waiting for a free
+    /// call are not asked. An exception from the chat client is returned as an error when Minos knows it: an OpenAI SDK
+    /// <c>ClientResultException</c> by its HTTP status, with <see cref="DecisionError.RetryAfter"/> and <see cref="DecisionError.RequestId"/> from its headers; an
     /// <see cref="HttpRequestException"/> as <see cref="DecisionErrorKind.Network"/>; and a <see cref="TimeoutException"/>
     /// as <see cref="DecisionErrorKind.Timeout"/>. Any other exception propagates, so a bug does not pass as a provider
     /// failure. The error's message is the bridge's own; the provider's exception is in <see cref="DecisionError.Exception"/>,
@@ -249,9 +257,10 @@ public sealed class ChatDecisionClient : IDecisionClient
 
     /// <summary>
     /// Asks every question at once, one call each, and puts each answer at its question's index, whatever order the calls
-    /// finish in. The first failure, returned or mapped from an exception, fails the request and cancels the other
-    /// calls. An exception the mapper does not know propagates unchanged, and cancels the other calls too, unless a
-    /// failure is already recorded: that failure cancelled the call, so it decides. The caller's cancellation throws,
+    /// finish in. With a MaxParallelCalls below the question count, each question first waits for one of that many slots.
+    /// The first failure, returned or mapped from an exception, fails the request and cancels the other calls. An
+    /// exception the mapper does not know propagates unchanged, and cancels the other calls too, unless a failure is
+    /// already recorded: that failure cancelled the call, so it decides. The caller's cancellation throws,
     /// even when the chat client reports it as a failure the mapper knows.
     /// </summary>
     private async ValueTask<Result<DecisionResponse, DecisionError>> AnswerAllAsync(DecisionRequest request, CancellationToken cancellationToken)
@@ -260,6 +269,7 @@ public sealed class ChatDecisionClient : IDecisionClient
         var calls = new QuestionCall[questions.Length];
         DecisionError? failure = null;
         using var rest = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+        using var slots = _maxParallelCalls is { } most && most < questions.Length ? new SemaphoreSlim(most, most) : null;
 
         var running = new Task[questions.Length];
         for (var i = 0; i < questions.Length; i++)
@@ -289,7 +299,38 @@ public sealed class ChatDecisionClient : IDecisionClient
         return Result<DecisionResponse, DecisionError>.Success(
             new DecisionResponse(request.Definition, answers, servedModel ?? request.Model ?? _model, usage));
 
+        // Waits for a slot when there is a limit, and holds it until the question is answered, an Auto fallback call
+        // included. The slot is released only after a failure is recorded and the other calls cancelled, so a question
+        // still waiting sees the cancellation instead of calling the chat client.
         async Task AnswerOneAsync(int index)
+        {
+            if (slots is null)
+            {
+                await AskAsync(index).ConfigureAwait(false);
+                return;
+            }
+
+            try
+            {
+                await slots.WaitAsync(rest.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+            {
+                // Another call failed first and cancelled the wait; that failure decides.
+                return;
+            }
+
+            try
+            {
+                await AskAsync(index).ConfigureAwait(false);
+            }
+            finally
+            {
+                slots.Release();
+            }
+        }
+
+        async Task AskAsync(int index)
         {
             Result<QuestionCall, DecisionError> result;
             try

@@ -10,6 +10,8 @@ Minos.Extensions.AI.ChatDecisionClientOptions
 Minos.Extensions.AI.ChatDecisionClientOptions.Capabilities.get -> Minos.DecisionCapabilities?
 Minos.Extensions.AI.ChatDecisionClientOptions.Capabilities.set -> void
 Minos.Extensions.AI.ChatDecisionClientOptions.ChatDecisionClientOptions() -> void
+Minos.Extensions.AI.ChatDecisionClientOptions.MaxParallelCalls.get -> int?
+Minos.Extensions.AI.ChatDecisionClientOptions.MaxParallelCalls.set -> void
 Minos.Extensions.AI.ChatDecisionClientOptions.Model.get -> string?
 Minos.Extensions.AI.ChatDecisionClientOptions.Model.set -> void
 Minos.Extensions.AI.ChatDecisionClientOptions.ProbabilityMode.get -> Minos.Extensions.AI.ProbabilityMode
