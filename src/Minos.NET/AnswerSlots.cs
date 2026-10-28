@@ -39,7 +39,11 @@ public readonly ref struct AnswerSlots
     /// <returns>The answer.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is negative or not below <see cref="Count"/>.</exception>
     /// <exception cref="InvalidOperationException">The question at <paramref name="index"/> is not a Noul.</exception>
-    public Noul Noul(int index) => new(Slot(index, QuestionKind.Noul).Value);
+    public Noul Noul(int index)
+    {
+        var slot = Slot(index, QuestionKind.Noul);
+        return new Noul(slot.Value, slot.Source);
+    }
 
     /// <summary>Reads the Choice answer at <paramref name="index"/>, mapping options through <paramref name="options"/>.</summary>
     /// <typeparam name="T">The enum whose members are the options.</typeparam>
@@ -55,7 +59,7 @@ public readonly ref struct AnswerSlots
     {
         var slot = Slot(index, QuestionKind.Choice);
         CheckOptions(index, options);
-        return new Choice<T>(options[slot.ValueIndex], slot.Confidence, new ProbabilityMap<T>(_probabilities, slot.Offset, options));
+        return new Choice<T>(options[slot.ValueIndex], slot.Confidence, new ProbabilityMap<T>(_probabilities, slot.Offset, options), slot.Source);
     }
 
     /// <summary>Reads the Score answer at <paramref name="index"/>, mapping levels through <paramref name="options"/>.</summary>
@@ -72,7 +76,7 @@ public readonly ref struct AnswerSlots
     {
         var slot = Slot(index, QuestionKind.Score);
         CheckOptions(index, options);
-        return new Score<T>(options[slot.ValueIndex], slot.Value, slot.Confidence, new ProbabilityMap<T>(_probabilities, slot.Offset, options));
+        return new Score<T>(options[slot.ValueIndex], slot.Value, slot.Confidence, new ProbabilityMap<T>(_probabilities, slot.Offset, options), slot.Source);
     }
 
     private AnswerSlot Slot(int index, QuestionKind kind)

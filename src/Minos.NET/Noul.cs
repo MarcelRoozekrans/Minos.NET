@@ -1,14 +1,29 @@
+using System.Runtime.InteropServices;
+
 namespace Minos;
 
 /// <summary>A typed Noul answer: the probability that the answer to a yes/no question is yes.</summary>
+[StructLayout(LayoutKind.Auto)]
 public readonly struct Noul : IEquatable<Noul>
 {
     /// <summary>Initializes a new instance of the <see cref="Noul"/> struct.</summary>
     /// <param name="probability">The probability, between 0 and 1, that the answer is yes.</param>
     public Noul(double probability) => Probability = probability;
 
+    /// <summary>Initializes a new instance of the <see cref="Noul"/> struct.</summary>
+    /// <param name="probability">The probability, between 0 and 1, that the answer is yes.</param>
+    /// <param name="probabilitySource">How the probability was made.</param>
+    public Noul(double probability, ProbabilitySource probabilitySource)
+    {
+        Probability = probability;
+        ProbabilitySource = probabilitySource;
+    }
+
     /// <summary>Gets the probability, between 0 and 1, that the answer is yes.</summary>
     public double Probability { get; }
+
+    /// <summary>Gets how the probabilities were made.</summary>
+    public ProbabilitySource ProbabilitySource { get; }
 
     /// <summary>Gets a value indicating whether the answer is yes: <see cref="Probability"/> is at least 0.5.</summary>
     public bool Value => Probability >= 0.5;
@@ -26,11 +41,11 @@ public readonly struct Noul : IEquatable<Noul>
     public static bool operator !=(Noul left, Noul right) => !left.Equals(right);
 
     /// <inheritdoc />
-    public bool Equals(Noul other) => Probability.Equals(other.Probability);
+    public bool Equals(Noul other) => Probability.Equals(other.Probability) && ProbabilitySource == other.ProbabilitySource;
 
     /// <inheritdoc />
     public override bool Equals(object? obj) => obj is Noul other && Equals(other);
 
     /// <inheritdoc />
-    public override int GetHashCode() => Probability.GetHashCode();
+    public override int GetHashCode() => HashCode.Combine(Probability, ProbabilitySource);
 }

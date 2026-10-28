@@ -14,6 +14,7 @@ internal static class Fixtures
         "typesafe" => SystemOneTargets.TypeSafe(ReplayKey, maxRetries: 0),
         "openrouter" => SystemOneTargets.OpenRouter(ReplayKey, maxRetries: 0),
         "openai" => OpenAITargets.OpenAI(ReplayKey, maxRetries: 0),
+        ChatTargets.OpenRouterName => ChatTargets.OpenRouter(ChatTargets.DefaultModel, maxRetries: 0, ReplayKey),
         _ => throw new ArgumentOutOfRangeException(nameof(target), target, "No such target."),
     };
 

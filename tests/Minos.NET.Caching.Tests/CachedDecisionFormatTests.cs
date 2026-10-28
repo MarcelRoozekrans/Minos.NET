@@ -69,8 +69,117 @@ public sealed class CachedDecisionFormatTests
         Assert.NotNull(Read(StoredWith("model", "\"jev-1.13.0\"")).ResponseFor(Responses.Triage));
     }
 
+    // Slots the way a response with marked answers holds them: a Logprobs choice and a Verbalized score.
+    private static CachedDecision Marked()
+    {
+        var stored = Stored();
+        AnswerSlot[] slots =
+        [
+            stored.Slots[0],
+            stored.Slots[1] with { Source = ProbabilitySource.Logprobs },
+            stored.Slots[2] with { Source = ProbabilitySource.Verbalized },
+        ];
+        return new CachedDecision(slots, stored.Probabilities, stored.Model, stored.InputTokens, stored.OutputTokens, stored.Cost, stored.Id, stored.UpstreamProvider);
+    }
+
+    private static DecisionResponse MarkedResponse()
+    {
+        var marked = Marked();
+        return new DecisionResponse(
+            Responses.Triage, marked.Slots, marked.Probabilities, marked.Model, marked.InputTokens, marked.OutputTokens, marked.Cost, marked.Id, marked.UpstreamProvider);
+    }
+
+    private static byte[] MarkedWith(string property, string? value)
+    {
+        var json = JsonNode.Parse(Write(Marked()))!.AsObject();
+        if (value is null)
+        {
+            json.Remove(property);
+        }
+        else
+        {
+            json[property] = JsonNode.Parse(value);
+        }
+
+        return Encoding.UTF8.GetBytes(json.ToJsonString());
+    }
+
+    [Fact]
+    public void ModelOnly_IsWrittenAsBefore()
+    {
+        var text = Encoding.UTF8.GetString(Write(Stored()));
+        using var document = JsonDocument.Parse(text);
+
+        Assert.Equal(1, document.RootElement.GetProperty("v").GetInt32());
+        Assert.DoesNotContain("sources", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ModelOnly_IsWrittenByteForByte_AsVersion1()
+    {
+        // The entry a model-only response wrote before probability sources existed, so older readers still read it.
+        const string v1 =
+            """{"v":1,"model":"jev-1.13.0","input_tokens":296,"output_tokens":20,"cost":0.0012,"id":"gen-0001","provider":"Together","slots":[[0,0.9,0,0],[1,0,0.7,0],[2,1.9,0.8,3]],"probabilities":[0.2,0.7,0.1,0,0.1,0.9]}""";
+
+        Assert.Equal(Encoding.UTF8.GetBytes(v1), Write(Stored()));
+    }
+
+    [Fact]
+    public void MarkedAnswers_RoundTrip_AsVersion2()
+    {
+        var bytes = Write(CachedDecision.From(MarkedResponse().AsCached()));
+        using var document = JsonDocument.Parse(bytes);
+
+        Assert.Equal(2, document.RootElement.GetProperty("v").GetInt32());
+        Assert.Equal("[0,1,2]", document.RootElement.GetProperty("sources").GetRawText());
+
+        var read = Read(bytes).ResponseFor(Responses.Triage);
+
+        Assert.NotNull(read);
+        Assert.True(read.IsCached);
+        Assert.Equal(
+            [ProbabilitySource.Model, ProbabilitySource.Logprobs, ProbabilitySource.Verbalized],
+            read.Slots.Select(slot => slot.Source));
+    }
+
+    [Fact]
+    public void Version1_WithoutSources_ReadsAsModel()
+    {
+        const string v1 = """{"v":1,"model":"jev-1.13.0","slots":[[0,1,0.9,0],[1,1,0.7,0],[2,1.9,0.8,0]],"probabilities":[0.2,0.7,0.1,0,0.1,0.9]}""";
+
+        var entry = Read(Encoding.UTF8.GetBytes(v1));
+
+        Assert.NotSame(CachedDecision.Unreadable, entry);
+        Assert.All(entry.Slots, slot => Assert.Equal(ProbabilitySource.Model, slot.Source));
+    }
+
     [Theory]
-    [InlineData("v", "2")]
+    [InlineData("[0,1]")]
+    [InlineData("[0,1,2,0]")]
+    [InlineData("[0,1,3]")]
+    [InlineData("[0,1,-1]")]
+    [InlineData("[0,1,1.5]")]
+    [InlineData("[0,\"x\",2]")]
+    [InlineData("\"x\"")]
+    public void Malformed_Sources_IsUnreadable(string sources)
+    {
+        Assert.Same(CachedDecision.Unreadable, Read(MarkedWith("sources", sources)));
+    }
+
+    [Fact]
+    public void Sources_OnAVersion1Entry_IsUnreadable()
+    {
+        Assert.Same(CachedDecision.Unreadable, Read(MarkedWith("v", "1")));
+    }
+
+    [Fact]
+    public void Version2_WithoutSources_IsUnreadable()
+    {
+        Assert.Same(CachedDecision.Unreadable, Read(MarkedWith("sources", null)));
+    }
+
+    [Theory]
+    [InlineData("v", "3")]
     [InlineData("v", null)]
     [InlineData("v", "null")]
     [InlineData("model", "5")]

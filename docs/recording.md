@@ -1,7 +1,7 @@
 ---
 id: recording
 title: Recording decisions
-sidebar_position: 12
+sidebar_position: 13
 description: Keep a record of every decision with Minos.NET.Recording, attach outcomes later, erase by a key you choose, redact the state, and read the JSONL file back.
 ---
 
@@ -397,7 +397,8 @@ public sealed class LineStoreSink : IDecisionRecordSink
 ## The JSONL format
 
 The file is UTF-8 JSONL, one JSON object per line. Every line has a `kind`, which is `record`, `outcome` or `erasure`,
-and a `version`, which is `1`. The reader skips members it does not know.
+and a `version`, which is `1`, or `2` for a record with a [probability source](#probability-sources). The reader skips
+members it does not know.
 
 <!-- decision record file -->
 ```json
@@ -416,7 +417,8 @@ and a `version`, which is `1`. The reader skips members it does not know.
   with its `key`, its `kind` and its `confidence`: a Noul answer has its `probability`, a Choice answer its
   `chosenIndex` and `probabilities`, and a Score answer its `chosenIndex`, `expected` and `probabilities`. On an error
   it has `errorKind` and nothing of the error's message, since a provider's message can quote the request. A refusal is
-  the error kind `Refused`, with the refused question keys in `refusedKeys`.
+  the error kind `Refused`, with the refused question keys in `refusedKeys`. An answer whose probabilities did not come
+  from the model itself also has a `probabilitySource`.
 - **An outcome** has a `type`, `confirmed` or `signal`, its `source` and the time `at`. A confirmed outcome's answers are
   in `confirmed`: an option key for a Choice, a level for a Score, and true or false for a Noul.
 - **An erasure** has an `erasureKey` or a `decisionId`.
@@ -455,10 +457,25 @@ public static class RecordFileReading
 - **An outcome with no record before it** is ignored and reported.
 - **A bad line is a problem, not an exception.** The overload that takes a collection fills it with
   `DecisionRecordFileProblem` values, each with its line number and a message that never holds an id or any state, and
-  the lines around it are still read. A line that is not version 1, or has a kind, an outcome type, an error kind or an
-  answer kind the reader does not know, is a problem too. A cut last line is reported, not thrown. A file that does not
-  exist throws `FileNotFoundException` when the first decision is requested.
+  the lines around it are still read. A line that is not version 1 or 2, or has a kind, an outcome type, an error kind
+  or an answer kind the reader does not know, is a problem too. A cut last line is reported, not thrown. A file that
+  does not exist throws `FileNotFoundException` when the first decision is requested.
 - **The whole file is read before the first decision is returned.**
+
+### Probability sources
+
+A [chat client](chat-clients.md) answers with probabilities read from logprobs or stated by the model, not reported by
+a decision model. A record keeps that mark on each answer, so a verbalized answer never passes for a measured one in a
+dataset built from your traffic.
+
+- **An answer from a chat client** has `"probabilitySource":"logprobs"` or `"probabilitySource":"verbalized"`. An answer
+  whose probabilities the model reported itself, from every other provider, has no such member.
+- **A record with such an answer is version 2.** A record whose answers all come from the model stays version 1, so
+  the lines of a decision-model app do not change. Outcome and erasure lines are always version 1.
+- **The reader reads both versions.** An answer without the member reads as `ProbabilitySource.Model`, and
+  `RecordedAnswer.ProbabilitySource` gives each answer's source.
+- **An older reader rejects a version 2 line** as a problem, rather than reading it and dropping the mark. Read files
+  written by a chat client with this version or a later one.
 
 ## The queue and what a crash loses
 

@@ -10,6 +10,7 @@
     <ProjectReference Include="..\..\samples\Minos.NET.Samples.IntentRouting\Minos.NET.Samples.IntentRouting.csproj" />
     <ProjectReference Include="..\..\samples\Minos.NET.Samples.Reranking\Minos.NET.Samples.Reranking.csproj" />
     <ProjectReference Include="..\..\samples\Minos.NET.Samples.ProviderSwitch\Minos.NET.Samples.ProviderSwitch.csproj" />
+    <ProjectReference Include="..\..\samples\Minos.NET.Samples.ChatClient\Minos.NET.Samples.ChatClient.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.Generator\Minos.NET.Generator.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />

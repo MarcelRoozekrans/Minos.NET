@@ -8,12 +8,14 @@ public readonly struct KeyedScore : IEquatable<KeyedScore>
     /// <param name="expected">The probability-weighted mean level index the API returns as <c>score</c>.</param>
     /// <param name="confidence">The model's confidence, between 0 and 1.</param>
     /// <param name="probabilities">The probability of each level, keyed by index.</param>
-    internal KeyedScore(int level, double expected, double confidence, KeyedProbabilityMap probabilities)
+    /// <param name="probabilitySource">How the probabilities were made.</param>
+    internal KeyedScore(int level, double expected, double confidence, KeyedProbabilityMap probabilities, ProbabilitySource probabilitySource)
     {
         Level = level;
         Expected = expected;
         Confidence = confidence;
         Probabilities = probabilities;
+        ProbabilitySource = probabilitySource;
     }
 
     /// <summary>Gets the most probable level's index. On a tie, the lower level.</summary>
@@ -27,6 +29,9 @@ public readonly struct KeyedScore : IEquatable<KeyedScore>
 
     /// <summary>Gets the probability of each level, by index.</summary>
     public KeyedProbabilityMap Probabilities { get; }
+
+    /// <summary>Gets how the probabilities were made.</summary>
+    public ProbabilitySource ProbabilitySource { get; }
 
     /// <summary>
     /// Gets <see cref="Expected"/> on a 0 to 1 scale: the expected level divided by the top level's index, so Scores with
@@ -59,11 +64,12 @@ public readonly struct KeyedScore : IEquatable<KeyedScore>
         => Level == other.Level
         && Expected.Equals(other.Expected)
         && Confidence.Equals(other.Confidence)
-        && Probabilities.Equals(other.Probabilities);
+        && Probabilities.Equals(other.Probabilities)
+        && ProbabilitySource == other.ProbabilitySource;
 
     /// <inheritdoc />
     public override bool Equals(object? obj) => obj is KeyedScore other && Equals(other);
 
     /// <inheritdoc />
-    public override int GetHashCode() => HashCode.Combine(Level, Expected, Confidence, Probabilities);
+    public override int GetHashCode() => HashCode.Combine(Level, Expected, Confidence, Probabilities, ProbabilitySource);
 }

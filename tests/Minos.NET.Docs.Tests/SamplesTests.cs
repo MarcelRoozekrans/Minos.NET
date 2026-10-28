@@ -2,6 +2,7 @@ using System.Globalization;
 using System.Text;
 using System.Text.Json;
 using System.Text.RegularExpressions;
+using Minos.Samples.ChatClient;
 using Minos.SystemOne;
 
 namespace Minos.Docs.Tests;
@@ -23,11 +24,22 @@ public sealed partial class SamplesTests
         .Where(folder => File.Exists(Path.Combine(Samples, folder, "recordings.json")))
         .ToArray();
 
+    /// <summary>The samples with one file per provider in recordings/.</summary>
+    private static string[] ProviderRecordingFolders { get; } = SampleFolders
+        .Where(folder => Directory.Exists(Path.Combine(Samples, folder, "recordings")))
+        .ToArray();
+
+    /// <summary>The samples with recordings of either kind, which take the three modes.</summary>
+    private static string[] RecordedFolders { get; } = [.. SingleRecordingFolders.Concat(ProviderRecordingFolders).Order(StringComparer.Ordinal)];
+
+    /// <summary>The chat-client sample, which has no recordings: it runs offline over a scripted chat client.</summary>
+    private const string ChatClientFolder = "Minos.NET.Samples.ChatClient";
+
     [Fact]
     public void TheProviderRecordings_AreFromTheModelsAndDatesThePageNames()
     {
         var page = PageTables.Text("samples.md");
-        var files = SampleFolders.Except(SingleRecordingFolders, StringComparer.Ordinal)
+        var files = ProviderRecordingFolders
             .SelectMany(folder => Directory.GetFiles(Path.Combine(Samples, folder, "recordings"), "*.json"))
             .ToArray();
 
@@ -43,24 +55,33 @@ public sealed partial class SamplesTests
     [Fact]
     public void TheTable_ListsEverySampleFolder_AndNothingElse()
     {
-        var rows = PageTables.Rows("samples.md", "The four samples");
+        var rows = PageTables.Rows("samples.md", "The five samples");
 
         var listed = rows.Select(row => Folder(row[0])).Order(StringComparer.Ordinal).ToArray();
 
         Assert.Equal(SampleFolders, listed);
-        Assert.Equal(4, SampleFolders.Length);
+        Assert.Equal(5, SampleFolders.Length);
         Assert.Equal(3, SingleRecordingFolders.Length);
+        Assert.Equal(SampleFolders.Except([ChatClientFolder], StringComparer.Ordinal), RecordedFolders);
     }
 
     [Fact]
     public void EachRow_HasTheRealCommandAndTheRecordedRequestCount()
     {
-        foreach (var row in PageTables.Rows("samples.md", "The four samples"))
+        foreach (var row in PageTables.Rows("samples.md", "The five samples"))
         {
             var folder = Folder(row[0]);
 
             Assert.Equal($"dotnet run --project samples/{folder}", PageTables.Code(row[2]));
             Assert.True(File.Exists(Path.Combine(Samples, folder, "README.md")), folder + " has a README.");
+            if (string.Equals(folder, ChatClientFolder, StringComparison.Ordinal))
+            {
+                // One call per question per ticket, and only with a key; Auto adds a call for a reply without logprobs.
+                var calls = Tickets.All.Count * TicketTriage.Definition.Questions.Count;
+                Assert.Equal(calls.ToString(CultureInfo.InvariantCulture) + ", and one more per question without logprobs, only with a key", row[3]);
+                continue;
+            }
+
             var single = Path.Combine(Samples, folder, "recordings.json");
             if (File.Exists(single))
             {
@@ -82,11 +103,11 @@ public sealed partial class SamplesTests
     }
 
     [Fact]
-    public void EverySampleProgram_AcceptsTheThreeModes_AndExitsWithTwoOtherwise()
+    public void EveryRecordedSampleProgram_AcceptsTheThreeModes_AndExitsWithTwoOtherwise()
     {
         var page = PageTables.Text("samples.md");
 
-        foreach (var folder in SampleFolders)
+        foreach (var folder in RecordedFolders)
         {
             var code = new StringBuilder();
             foreach (var file in Directory.GetFiles(Path.Combine(Samples, folder), "*.cs"))
@@ -100,6 +121,17 @@ public sealed partial class SamplesTests
         Assert.All(
             ["`--replay`", "`--live`", "`--record`", "`--provider <name>`", "exits with code 2"],
             mode => Assert.Contains(mode, page, StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void TheChatClientSample_HasNoRecordings_AndThePageSaysHowItRuns()
+    {
+        var page = PageTables.Text("samples.md");
+
+        Assert.DoesNotContain(ChatClientFolder, RecordedFolders);
+        Assert.Contains("The chat-client sample has no recordings and no modes.", page, StringComparison.Ordinal);
+        Assert.Contains("`" + ChatClientApp.ApiKeyVariable + "`", page, StringComparison.Ordinal);
+        Assert.Contains("`" + ChatClientApp.DefaultModel + "`", page, StringComparison.Ordinal);
     }
 
     [Fact]

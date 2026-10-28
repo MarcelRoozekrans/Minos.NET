@@ -197,7 +197,7 @@ public sealed class EnumOptionSetTests
         var options = EnumOptionSet<Department>.ForChoice;
         var buffer = new double[4];
         var (index, confidence) = SystemOneAnswers.ReadChoice(ref reader, Utf8Keys.Encode(Keys(options)), buffer, 0);
-        var runtime = new Choice<Department>(options[index], confidence, new ProbabilityMap<Department>(buffer, 0, options));
+        var runtime = new Choice<Department>(options[index], confidence, new ProbabilityMap<Department>(buffer, 0, options), ProbabilitySource.Model);
 
         Assert.Equal(generated, runtime);
     }

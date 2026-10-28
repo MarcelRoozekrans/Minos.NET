@@ -1,0 +1,26 @@
+#nullable enable
+Minos.Extensions.AI.ChatClientDecisionExtensions
+Minos.Extensions.AI.ChatDecisionClient
+Minos.Extensions.AI.ChatDecisionClient.ChatDecisionClient(Microsoft.Extensions.AI.IChatClient! chatClient, Minos.Extensions.AI.ChatDecisionClientOptions? options = null) -> void
+Minos.Extensions.AI.ChatDecisionClient.Dispose() -> void
+Minos.Extensions.AI.ChatDecisionClient.EvaluateAsync(Minos.DecisionRequest! request) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>
+Minos.Extensions.AI.ChatDecisionClient.EvaluateAsync(Minos.DecisionRequest! request, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>
+Minos.Extensions.AI.ChatDecisionClient.GetService(System.Type! serviceType, object? serviceKey = null) -> object?
+Minos.Extensions.AI.ChatDecisionClientOptions
+Minos.Extensions.AI.ChatDecisionClientOptions.Capabilities.get -> Minos.DecisionCapabilities?
+Minos.Extensions.AI.ChatDecisionClientOptions.Capabilities.set -> void
+Minos.Extensions.AI.ChatDecisionClientOptions.ChatDecisionClientOptions() -> void
+Minos.Extensions.AI.ChatDecisionClientOptions.Model.get -> string?
+Minos.Extensions.AI.ChatDecisionClientOptions.Model.set -> void
+Minos.Extensions.AI.ChatDecisionClientOptions.ProbabilityMode.get -> Minos.Extensions.AI.ProbabilityMode
+Minos.Extensions.AI.ChatDecisionClientOptions.ProbabilityMode.set -> void
+Minos.Extensions.AI.ProbabilityMode
+Minos.Extensions.AI.ProbabilityMode.Auto = 0 -> Minos.Extensions.AI.ProbabilityMode
+Minos.Extensions.AI.ProbabilityMode.Logprobs = 1 -> Minos.Extensions.AI.ProbabilityMode
+Minos.Extensions.AI.ProbabilityMode.Verbalized = 2 -> Minos.Extensions.AI.ProbabilityMode
+static Minos.Extensions.AI.ChatClientDecisionExtensions.AsDecisionClient(this Microsoft.Extensions.AI.IChatClient! chatClient, Minos.Extensions.AI.ChatDecisionClientOptions? options = null) -> Minos.Extensions.AI.ChatDecisionClient!
+Microsoft.Extensions.DependencyInjection.ChatDecisionClientServiceCollectionExtensions
+static Microsoft.Extensions.DependencyInjection.ChatDecisionClientServiceCollectionExtensions.AddChatDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Minos.DecisionClientServiceBuilder!
+static Microsoft.Extensions.DependencyInjection.ChatDecisionClientServiceCollectionExtensions.AddChatDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Minos.Extensions.AI.ChatDecisionClientOptions!>! configure) -> Minos.DecisionClientServiceBuilder!
+static Microsoft.Extensions.DependencyInjection.ChatDecisionClientServiceCollectionExtensions.AddChatDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name) -> Minos.DecisionClientServiceBuilder!
+static Microsoft.Extensions.DependencyInjection.ChatDecisionClientServiceCollectionExtensions.AddChatDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, System.Action<Minos.Extensions.AI.ChatDecisionClientOptions!>! configure) -> Minos.DecisionClientServiceBuilder!

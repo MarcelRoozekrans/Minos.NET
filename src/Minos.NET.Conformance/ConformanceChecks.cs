@@ -7,13 +7,15 @@ namespace Minos.Conformance;
 /// The checks: pure functions over one probe's exchanges and what Minos returned, except E4, which reads the whole run.
 /// Each returns pass, fail or skipped; a check that cannot run is skipped, never passed.
 /// </summary>
-public static class ConformanceChecks
+public static partial class ConformanceChecks
 {
     /// <summary>How far a sum or an expected level may be from its target: 0.01.</summary>
     public const double Tolerance = 0.01;
 
     // Floating-point slack, so a sum that is 0.01 off on paper, such as 0.5 + 0.49, is still within the tolerance.
     private const double Rounding = 1e-9;
+
+    private const string MinosError = "Minos returned an error; S3 reports it.";
 
     // The longest wait the core reads from a header; it clamps larger values to it.
     private static readonly TimeSpan MaxDelay = TimeSpan.FromMilliseconds(int.MaxValue);
@@ -28,12 +30,12 @@ public static class ConformanceChecks
         new("D3", IsAnswer, static (outcome, target) => D3(outcome, target.Wire)),
         new("D4", IsAnswer, static (outcome, target) => D4(outcome, target.Wire)),
         new("M1", static probe => string.Equals(probe.Id, ConformanceProbe.Mixed.Id, StringComparison.Ordinal), static (outcome, target) => M1(outcome, target.Wire)),
-        new("E1", static probe => probe.Kind == ProbeKind.Invalid, static (outcome, _) => E1(outcome)),
+        new("E1", static probe => probe.Kind == ProbeKind.Invalid, static (outcome, target) => E1(outcome, target.Wire)),
         new("E2", static probe => probe.Kind == ProbeKind.BadKey, static (outcome, _) => E2(outcome)),
-        new("E3", static probe => probe.Kind != ProbeKind.Answer, static (outcome, _) => E3(outcome)),
+        new("E3", static probe => probe.Kind != ProbeKind.Answer, static (outcome, target) => E3(outcome, target.Wire)),
         new("R1", IsAnswer, R1),
         new("R2", IsAnswer, R2),
-        new("R3", IsAnswer, static (outcome, _) => R3(outcome)),
+        new("R3", IsAnswer, static (outcome, target) => R3(outcome, target.Wire)),
     ];
 
     /// <summary>Gets every check id, in the order the report lists them; E4 reads the whole run.</summary>
@@ -103,6 +105,11 @@ public static class ConformanceChecks
     public static CheckResult S1(ProbeOutcome outcome, ConformanceWire wire)
     {
         ArgumentNullException.ThrowIfNull(outcome);
+        if (wire == ConformanceWire.ChatCompletions)
+        {
+            return CheckResult.Skip("S1", WireAnswers.NoAnswerBody);
+        }
+
         if (outcome.Last is { IsSuccess: false } last)
         {
             return CheckResult.Failed("S1", "HTTP " + StatusText(last) + ": the response is an error, not answers.");
@@ -148,6 +155,11 @@ public static class ConformanceChecks
     public static CheckResult S2(ProbeOutcome outcome, ConformanceWire wire)
     {
         ArgumentNullException.ThrowIfNull(outcome);
+        if (wire == ConformanceWire.ChatCompletions)
+        {
+            return CheckResult.Skip("S2", WireAnswers.NoAnswerBody);
+        }
+
         if (!WireAnswers.TryRead(outcome, wire, out var answers, out var problem))
         {
             return CheckResult.Skip("S2", problem);
@@ -234,6 +246,11 @@ public static class ConformanceChecks
     public static CheckResult D1(ProbeOutcome outcome, ConformanceWire wire)
     {
         ArgumentNullException.ThrowIfNull(outcome);
+        if (wire == ConformanceWire.ChatCompletions)
+        {
+            return ChatD1(outcome);
+        }
+
         if (!WireAnswers.TryRead(outcome, wire, out var answers, out var problem))
         {
             return CheckResult.Skip("D1", problem);
@@ -306,6 +323,11 @@ public static class ConformanceChecks
         if (!Asks(outcome.Probe, QuestionKind.Choice) && !Asks(outcome.Probe, QuestionKind.Score))
         {
             return CheckResult.Skip("D2", "The probe asks no Choice or Score question.");
+        }
+
+        if (wire == ConformanceWire.ChatCompletions)
+        {
+            return ChatD2(outcome);
         }
 
         if (!WireAnswers.TryRead(outcome, wire, out var answers, out var problem))
@@ -388,6 +410,11 @@ public static class ConformanceChecks
             return CheckResult.Skip("D3", "The probe asks no Score question.");
         }
 
+        if (wire == ConformanceWire.ChatCompletions)
+        {
+            return ChatD3(outcome);
+        }
+
         if (!WireAnswers.TryRead(outcome, wire, out var answers, out var problem))
         {
             return CheckResult.Skip("D3", problem);
@@ -453,6 +480,11 @@ public static class ConformanceChecks
     public static CheckResult D4(ProbeOutcome outcome, ConformanceWire wire)
     {
         ArgumentNullException.ThrowIfNull(outcome);
+        if (wire == ConformanceWire.ChatCompletions)
+        {
+            return ChatD4(outcome);
+        }
+
         if (!WireAnswers.TryRead(outcome, wire, out var answers, out var problem))
         {
             return CheckResult.Skip("D4", problem);
@@ -497,7 +529,12 @@ public static class ConformanceChecks
         ArgumentNullException.ThrowIfNull(outcome);
         if (outcome.Response is not { } response)
         {
-            return CheckResult.Skip("M1", "Minos returned an error; S3 reports it.");
+            return CheckResult.Skip("M1", MinosError);
+        }
+
+        if (wire == ConformanceWire.ChatCompletions)
+        {
+            return ChatM1(outcome.Probe, response);
         }
 
         if (!WireAnswers.TryRead(outcome, wire, out var answers, out var problem))
@@ -555,9 +592,29 @@ public static class ConformanceChecks
     /// <summary>E1: a request the provider must reject returns 400 or 422 with a JSON body that Minos maps to <see cref="DecisionErrorKind.Validation"/>, with a message.</summary>
     /// <param name="outcome">What the probe did.</param>
     /// <returns>The result.</returns>
-    public static CheckResult E1(ProbeOutcome outcome)
+    public static CheckResult E1(ProbeOutcome outcome) => E1(outcome, ConformanceWire.SystemOne);
+
+    /// <summary>
+    /// E1: a request the provider must reject returns 400 or 422 with a JSON body that Minos maps to
+    /// <see cref="DecisionErrorKind.Validation"/>, with a message. On <see cref="ConformanceWire.ChatCompletions"/> Minos
+    /// returns <see cref="DecisionErrorKind.Validation"/>, with a message, before anything is sent.
+    /// </summary>
+    /// <param name="outcome">What the probe did.</param>
+    /// <param name="wire">The target's wire format.</param>
+    /// <returns>The result.</returns>
+    public static CheckResult E1(ProbeOutcome outcome, ConformanceWire wire)
     {
         ArgumentNullException.ThrowIfNull(outcome);
+        if (wire == ConformanceWire.ChatCompletions)
+        {
+            return ChatE1(outcome);
+        }
+
+        return WireE1(outcome);
+    }
+
+    private static CheckResult WireE1(ProbeOutcome outcome)
+    {
         if (outcome.Last is not { } last)
         {
             return CheckResult.Skip("E1", NotSent(outcome));
@@ -627,10 +684,20 @@ public static class ConformanceChecks
     /// <summary>E3: an error response's request-id header, when present, equals <see cref="DecisionError.RequestId"/>; skipped when it carries none.</summary>
     /// <param name="outcome">What the probe did.</param>
     /// <returns>The result.</returns>
-    public static CheckResult E3(ProbeOutcome outcome)
+    public static CheckResult E3(ProbeOutcome outcome) => E3(outcome, ConformanceWire.SystemOne);
+
+    /// <summary>
+    /// E3: an error response's request-id header, when present, equals <see cref="DecisionError.RequestId"/>; skipped when
+    /// it carries none. On <see cref="ConformanceWire.ChatCompletions"/> the error response is the exchange that carried
+    /// the failing status, which need not be the last to arrive.
+    /// </summary>
+    /// <param name="outcome">What the probe did.</param>
+    /// <param name="wire">The target's wire format.</param>
+    /// <returns>The result.</returns>
+    public static CheckResult E3(ProbeOutcome outcome, ConformanceWire wire)
     {
         ArgumentNullException.ThrowIfNull(outcome);
-        if (outcome.Last is not { IsSuccess: false } last)
+        if (ErrorExchangeOf(outcome, wire) is not { } last)
         {
             return CheckResult.Skip("E3", "No error response.");
         }
@@ -658,14 +725,24 @@ public static class ConformanceChecks
     /// </summary>
     /// <param name="outcomes">Every probe's outcome.</param>
     /// <returns>The result.</returns>
-    public static CheckResult E4(IReadOnlyList<ProbeOutcome> outcomes)
+    public static CheckResult E4(IReadOnlyList<ProbeOutcome> outcomes) => E4(outcomes, ConformanceWire.SystemOne);
+
+    /// <summary>
+    /// E4: a 429 met during the run has its <c>Retry-After</c>, or <c>retry-after-ms</c>, reflected in
+    /// <see cref="DecisionError.RetryAfter"/> and its request id read. On <see cref="ConformanceWire.ChatCompletions"/> every
+    /// exchange of a probe is read, so a 429 that is not the last response to arrive is met too.
+    /// </summary>
+    /// <param name="outcomes">Every probe's outcome.</param>
+    /// <param name="wire">The target's wire format.</param>
+    /// <returns>The result.</returns>
+    public static CheckResult E4(IReadOnlyList<ProbeOutcome> outcomes, ConformanceWire wire)
     {
         ArgumentNullException.ThrowIfNull(outcomes);
         var met = 0;
         var problems = new List<string>();
         foreach (var outcome in outcomes)
         {
-            if (outcome.Last is not { Status: 429 } last)
+            if (RateLimitedOf(outcome, wire) is not { } last)
             {
                 continue;
             }
@@ -714,7 +791,12 @@ public static class ConformanceChecks
         ArgumentNullException.ThrowIfNull(target);
         if (outcome.Response is not { } response)
         {
-            return CheckResult.Skip("R1", "Minos returned an error; S3 reports it.");
+            return CheckResult.Skip("R1", MinosError);
+        }
+
+        if (target.Wire == ConformanceWire.ChatCompletions)
+        {
+            return ChatR1(outcome, response, target);
         }
 
         if (!WireAnswers.TryBody(outcome, out var body, out var problem))
@@ -749,7 +831,7 @@ public static class ConformanceChecks
 
         if (outcome.Response is null)
         {
-            return CheckResult.Skip("R2", "Minos returned an error; S3 reports it.");
+            return CheckResult.Skip("R2", MinosError);
         }
 
         if (!WireAnswers.TryBody(outcome, out var body, out var problem))
@@ -770,12 +852,26 @@ public static class ConformanceChecks
     /// <summary>R3: usage, when present, has non-negative whole token counts.</summary>
     /// <param name="outcome">What the probe did.</param>
     /// <returns>The result.</returns>
-    public static CheckResult R3(ProbeOutcome outcome)
+    public static CheckResult R3(ProbeOutcome outcome) => R3(outcome, ConformanceWire.SystemOne);
+
+    /// <summary>
+    /// R3: usage, when present, has non-negative whole token counts. On <see cref="ConformanceWire.ChatCompletions"/> it
+    /// reads <c>usage.prompt_tokens</c> and <c>usage.completion_tokens</c> of every exchange.
+    /// </summary>
+    /// <param name="outcome">What the probe did.</param>
+    /// <param name="wire">The target's wire format.</param>
+    /// <returns>The result.</returns>
+    public static CheckResult R3(ProbeOutcome outcome, ConformanceWire wire)
     {
         ArgumentNullException.ThrowIfNull(outcome);
         if (outcome.Response is null)
         {
-            return CheckResult.Skip("R3", "Minos returned an error; S3 reports it.");
+            return CheckResult.Skip("R3", MinosError);
+        }
+
+        if (wire == ConformanceWire.ChatCompletions)
+        {
+            return ChatR3(outcome);
         }
 
         if (!WireAnswers.TryBody(outcome, out var body, out var problem))
@@ -854,6 +950,18 @@ public static class ConformanceChecks
         => body.TryGetProperty("model", out var model) && model.ValueKind == JsonValueKind.String && model.GetString() is { Length: > 0 } text
             ? text
             : null;
+
+    // The error response E3 reads: the last exchange, or on the chat-completions wire the one with the failing status.
+    private static ConformanceExchange? ErrorExchangeOf(ProbeOutcome outcome, ConformanceWire wire)
+        => wire == ConformanceWire.ChatCompletions
+            ? ChatErrorExchange(outcome)
+            : outcome.Last is { IsSuccess: false } last ? last : null;
+
+    // The 429 E4 reads: the last exchange, or on the chat-completions wire the first 429 to arrive.
+    private static ConformanceExchange? RateLimitedOf(ProbeOutcome outcome, ConformanceWire wire)
+        => wire == ConformanceWire.ChatCompletions
+            ? ChatRateLimited(outcome)
+            : outcome.Last is { Status: 429 } last ? last : null;
 
     private static (string Name, string Value)? RequestIdOf(ConformanceExchange exchange)
     {

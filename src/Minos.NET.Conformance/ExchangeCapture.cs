@@ -34,25 +34,37 @@ public sealed class ExchangeCapture : DelegatingHandler
     public void Begin(ConformanceProbe probe)
     {
         ArgumentNullException.ThrowIfNull(probe);
-        _probe = probe;
-        _exchanges.Clear();
+        lock (_exchanges)
+        {
+            _probe = probe;
+            _exchanges.Clear();
+        }
     }
 
-    /// <summary>Stops recording and returns the probe's exchanges, in the order they were sent.</summary>
+    /// <summary>Stops recording and returns the probe's exchanges, in the order their responses arrived.</summary>
     /// <returns>The exchanges.</returns>
     public IReadOnlyList<ConformanceExchange> End()
     {
-        var exchanges = _exchanges.ToArray();
-        _exchanges.Clear();
-        _probe = null;
-        return exchanges;
+        lock (_exchanges)
+        {
+            var exchanges = _exchanges.ToArray();
+            _exchanges.Clear();
+            _probe = null;
+            return exchanges;
+        }
     }
 
     /// <inheritdoc />
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var probe = _probe ?? throw new InvalidOperationException("A request was sent outside a probe; call Begin first.");
+        ConformanceProbe? current;
+        lock (_exchanges)
+        {
+            current = _probe;
+        }
+
+        var probe = current ?? throw new InvalidOperationException("A request was sent outside a probe; call Begin first.");
         var swapped = true;
         if (probe.Kind == ProbeKind.BadKey)
         {
@@ -65,8 +77,15 @@ public sealed class ExchangeCapture : DelegatingHandler
         var requestBody = request.Content is null ? null : await request.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
         var response = await base.SendAsync(request, cancellationToken).ConfigureAwait(false);
         var responseBody = await response.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-        _exchanges.Add(ConformanceExchange.FromHttp(
-            probe.Id, requestBody, (int)response.StatusCode, response.Content.Headers.ContentType?.ToString(), Allowlisted(response), responseBody, swapped));
+        var exchange = ConformanceExchange.FromHttp(
+            probe.Id, requestBody, (int)response.StatusCode, response.Content.Headers.ContentType?.ToString(), Allowlisted(response), responseBody, swapped);
+
+        // A chat-completions client sends a probe's questions in parallel.
+        lock (_exchanges)
+        {
+            _exchanges.Add(exchange);
+        }
+
         return response;
     }
 

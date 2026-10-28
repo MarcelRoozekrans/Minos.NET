@@ -17,7 +17,8 @@ public readonly struct RecordedAnswer : IEquatable<RecordedAnswer>
         double probability,
         double expected,
         double confidence,
-        IReadOnlyList<double> probabilities)
+        IReadOnlyList<double> probabilities,
+        ProbabilitySource probabilitySource = ProbabilitySource.Model)
     {
         Key = key;
         Kind = kind;
@@ -26,6 +27,7 @@ public readonly struct RecordedAnswer : IEquatable<RecordedAnswer>
         Expected = expected;
         Confidence = confidence;
         _probabilities = probabilities;
+        ProbabilitySource = probabilitySource;
     }
 
     /// <summary>Gets the key of the question that was answered.</summary>
@@ -49,6 +51,9 @@ public readonly struct RecordedAnswer : IEquatable<RecordedAnswer>
     /// <summary>Gets the probability of each option or level; empty for a Noul answer.</summary>
     public IReadOnlyList<double> Probabilities => _probabilities ?? [];
 
+    /// <summary>Gets where the probabilities came from: the model's own, its logprobs, or a verbalized estimate.</summary>
+    public ProbabilitySource ProbabilitySource { get; }
+
     /// <summary>Determines whether two answers are equal.</summary>
     /// <param name="left">The first answer.</param>
     /// <param name="right">The second answer.</param>
@@ -71,6 +76,7 @@ public readonly struct RecordedAnswer : IEquatable<RecordedAnswer>
             && Probability.Equals(other.Probability)
             && Expected.Equals(other.Expected)
             && Confidence.Equals(other.Confidence)
+            && ProbabilitySource == other.ProbabilitySource
             && Probabilities.SequenceEqual(other.Probabilities);
 
     /// <inheritdoc />
@@ -87,6 +93,7 @@ public readonly struct RecordedAnswer : IEquatable<RecordedAnswer>
         hash.Add(Probability);
         hash.Add(Expected);
         hash.Add(Confidence);
+        hash.Add(ProbabilitySource);
         foreach (var probability in Probabilities)
         {
             hash.Add(probability);
@@ -96,5 +103,5 @@ public readonly struct RecordedAnswer : IEquatable<RecordedAnswer>
     }
 
     internal static RecordedAnswer From(QuestionAnswer answer)
-        => new(answer.Key, answer.Kind, answer.ChosenIndex, answer.Probability, answer.Expected, answer.Confidence, answer.Probabilities.ToArray());
+        => new(answer.Key, answer.Kind, answer.ChosenIndex, answer.Probability, answer.Expected, answer.Confidence, answer.Probabilities.ToArray(), answer.ProbabilitySource);
 }

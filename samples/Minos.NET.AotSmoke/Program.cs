@@ -35,6 +35,7 @@ internal static class Program
         await TypedEvaluateAsyncParsesAnswers().ConfigureAwait(false);
         await TypedEvaluateAsyncWithTStateParsesAnswers().ConfigureAwait(false);
         await HandBuiltResponseFeedsTheTypedExtension().ConfigureAwait(false);
+        await HandBuiltResponseCarriesEachAnswersProbabilitySource().ConfigureAwait(false);
         SystemOneResponseModelConstructs();
         await BuiltQuestionSetEvaluates().ConfigureAwait(false);
         await BuiltEnumChoiceReadsTheFieldsInDeclarationOrder().ConfigureAwait(false);
@@ -139,6 +140,11 @@ internal static class Program
         await RecordingChecks.TheStageRecorderAndSinksWorkThroughTheirInterfaces().ConfigureAwait(false);
         await RecordingChecks.ValuesProblemsAndExceptions().ConfigureAwait(false);
         await RecordingChecks.TheLineWritersMakeAFileTheReaderReads().ConfigureAwait(false);
+
+        ExtensionsAIChecks.BridgeOverTheOpenAIChatClientAnswersItsServices();
+        await ExtensionsAIChecks.RequestsTheBridgeCannotTakeAreNotSent().ConfigureAwait(false);
+        ExtensionsAIChecks.RegistrationsResolveTheDecisionClientsOverTheContainerChatClients();
+        await ExtensionsAIChecks.BothPathsReadARealChatCompletion().ConfigureAwait(false);
 
         await AllocationChecks.AnswerSlotAccessors().ConfigureAwait(false);
         await AllocationChecks.GeneratedCreate().ConfigureAwait(false);
@@ -353,6 +359,35 @@ internal static class Program
         Check(
             SmokeAnswers.IsTriage(result) && result.Value.Team.Confidence == 0.7 && result.Value.Urgency.Value == Urgency.High,
             "a hand-built DecisionResponse creates typed answers through the typed extension under Native AOT");
+    }
+
+    [Covers("static Minos.QuestionAnswer.Noul(double probability, Minos.ProbabilitySource probabilitySource) -> Minos.QuestionAnswer")]
+    [Covers("static Minos.QuestionAnswer.Choice(int chosenIndex, double confidence, double[]! probabilities, Minos.ProbabilitySource probabilitySource) -> Minos.QuestionAnswer")]
+    [Covers("static Minos.QuestionAnswer.Score(int level, double expected, double confidence, double[]! probabilities, Minos.ProbabilitySource probabilitySource) -> Minos.QuestionAnswer")]
+    [Covers("Minos.Noul.Noul(double probability, Minos.ProbabilitySource probabilitySource) -> void")]
+    private static async Task HandBuiltResponseCarriesEachAnswersProbabilitySource()
+    {
+        // A bridge-style response, with each answer marked by how its probabilities were made, read back through the
+        // typed extension under Native AOT. The response reports its weakest source.
+        var response = new DecisionResponse(
+            SmokeTriage.Definition,
+            [
+                QuestionAnswer.Noul(0.1, ProbabilitySource.Logprobs),
+                QuestionAnswer.Choice(1, 0.7, [0.2, 0.8], ProbabilitySource.Verbalized),
+                QuestionAnswer.Score(2, 1.9, 0.8, [0.0, 0.1, 0.9], ProbabilitySource.Logprobs),
+            ]);
+        using var client = new ExtensionFallbackClient(response);
+
+        var result = await client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State).ConfigureAwait(false);
+
+        Check(
+            response.ProbabilitySource == ProbabilitySource.Verbalized
+                && result.IsSuccess
+                && result.Value.RequestsCredentials == new Noul(0.1, ProbabilitySource.Logprobs)
+                && result.Value.RequestsCredentials != new Noul(0.1)
+                && result.Value.Team.ProbabilitySource == ProbabilitySource.Verbalized
+                && result.Value.Urgency.ProbabilitySource == ProbabilitySource.Logprobs,
+            "each answer's probability source travels from a hand-built DecisionResponse to the typed answers under Native AOT");
     }
 
     [Covers("Minos.SystemOne.SystemOneResponse.SystemOneResponse() -> void")]

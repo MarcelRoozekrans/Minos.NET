@@ -23,6 +23,8 @@
     <ProjectReference Include="..\..\src\Minos.NET.Evaluation\Minos.NET.Evaluation.csproj" />
     <!-- The decision recorder, its JSONL sink and the record file reader, so recording runs under Native AOT. -->
     <ProjectReference Include="..\..\src\Minos.NET.Recording\Minos.NET.Recording.csproj" />
+    <!-- The chat-client bridge, over an OpenAI SDK ChatClient through AsIChatClient, so the bridge and its dependencies run under Native AOT. -->
+    <ProjectReference Include="..\..\src\Minos.NET.Extensions.AI\Minos.NET.Extensions.AI.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.Generator\Minos.NET.Generator.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false"
@@ -38,6 +40,8 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" />
     <!-- AddMemoryCache and MemoryCache, the in-process cache behind UseCaching under Native AOT. -->
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
+    <!-- AsIChatClient over the OpenAI SDK's ChatClient, the chat client the bridge checks wrap. -->
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
   </ItemGroup>
 
   <!-- Writes the compiler inputs the entry-point coverage test rebuilds this compilation from. -->

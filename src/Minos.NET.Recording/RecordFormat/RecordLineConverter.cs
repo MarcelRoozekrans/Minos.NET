@@ -184,17 +184,33 @@ internal static class RecordLineConverter
             return false;
         }
 
+        ProbabilitySource source;
+        switch (dto.ProbabilitySource)
+        {
+            case null:
+                source = ProbabilitySource.Model;
+                break;
+            case "logprobs":
+                source = ProbabilitySource.Logprobs;
+                break;
+            case "verbalized":
+                source = ProbabilitySource.Verbalized;
+                break;
+            default:
+                return false;
+        }
+
         var probabilities = DecisionRecord.Freeze(dto.Probabilities);
         switch (dto.Kind)
         {
             case "noul":
-                answer = new RecordedAnswer(dto.Key, QuestionKind.Noul, -1, dto.Probability, 0, dto.Confidence, probabilities);
+                answer = new RecordedAnswer(dto.Key, QuestionKind.Noul, -1, dto.Probability, 0, dto.Confidence, probabilities, source);
                 return true;
             case "choice" when dto.ChosenIndex is { } index:
-                answer = new RecordedAnswer(dto.Key, QuestionKind.Choice, index, 0, 0, dto.Confidence, probabilities);
+                answer = new RecordedAnswer(dto.Key, QuestionKind.Choice, index, 0, 0, dto.Confidence, probabilities, source);
                 return true;
             case "score" when dto.ChosenIndex is { } level:
-                answer = new RecordedAnswer(dto.Key, QuestionKind.Score, level, 0, dto.Expected, dto.Confidence, probabilities);
+                answer = new RecordedAnswer(dto.Key, QuestionKind.Score, level, 0, dto.Expected, dto.Confidence, probabilities, source);
                 return true;
             default:
                 return false;

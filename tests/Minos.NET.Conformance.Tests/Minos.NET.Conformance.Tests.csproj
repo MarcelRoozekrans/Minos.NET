@@ -4,21 +4,24 @@
   </PropertyGroup>
 
   <!--
-    The checks, runner and report, and the replay suite over the fixtures, offline. The protocol packages are referenced
-    only to build the targets, through their public API; neither grants this project its internals, so the shared Rest
-    source is never visible twice.
+    The checks, runner and report, and the replay suite over the fixtures, offline. The protocol packages and the chat
+    bridge are referenced only to build the targets, through their public API; none grants this project its internals,
+    so the shared Rest source is never visible twice.
   -->
   <ItemGroup>
     <ProjectReference Include="..\..\src\Minos.NET\Minos.NET.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.Conformance\Minos.NET.Conformance.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.SystemOne\Minos.NET.SystemOne.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.OpenAI\Minos.NET.OpenAI.csproj" />
+    <ProjectReference Include="..\..\src\Minos.NET.Extensions.AI\Minos.NET.Extensions.AI.csproj" />
   </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
+    <!-- AsIChatClient, which puts the OpenAI SDK's ChatClient under the chat-openrouter target. -->
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
     <PackageReference Include="ZeroAlloc.TestHelpers">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>contentfiles;build</IncludeAssets>

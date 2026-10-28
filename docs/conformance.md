@@ -1,7 +1,7 @@
 ---
 id: conformance
 title: Conformance
-sidebar_position: 19
+sidebar_position: 20
 description: The suite that checks any decision endpoint's request and response shapes, probabilities, errors, request ids and models, how to run it against your own endpoint, and where its fixtures come from.
 ---
 
@@ -12,10 +12,10 @@ Minos reaches several providers, and each one should answer the same request the
 each answer twice, once as the wire sent it and once as Minos read it, and runs its checks on both. It works against any
 endpoint a Minos client can reach, a server of your own included.
 
-The suite runs on every CI build, against the TypeSafe, OpenRouter and OpenAI fixtures described below. It is not
-published to NuGet on its own. The `minos` tool bundles it: `minos conformance` runs every probe live against a provider
-from your `minos.json`, and writes `conformance.json` and `conformance.md`. The `bad-key` probe is skipped when no key is
-configured. See [Running it from the command line](datasets.md#running-it-from-the-command-line).
+The suite runs on every CI build, against the TypeSafe, OpenRouter, OpenAI and chat-client fixtures described below. It
+is not published to NuGet on its own. The `minos` tool bundles it: `minos conformance` runs every probe live against a
+provider from your `minos.json`, and writes `conformance.json` and `conformance.md`. The `bad-key` probe is skipped when
+no key is configured. See [Running it from the command line](datasets.md#running-it-from-the-command-line).
 
 ## The probes
 
@@ -122,6 +122,29 @@ for that.
 The report comes as JSON, from `ToJson`, and as markdown, from `ToMarkdown`. It names the target, the model and its rule,
 the mode, the fixture's source and date, and has one row per check.
 
+## The chat-completions wire
+
+A target names its wire: `ConformanceWire.SystemOne`, `ConformanceWire.Decisions`, or `ConformanceWire.ChatCompletions`
+for a chat model asked through [`Minos.NET.Extensions.AI`](chat-clients.md). On the chat wire a few things differ.
+
+- **A probe has one exchange per question.** The bridge asks each question in its own chat call, so a recording keeps
+  several exchanges for a probe. The calls run at once, so replay answers each request with the exchange of its probe
+  whose recorded request body is the same, not by the order the requests arrive in.
+- **The target asks for logprobs only.** It runs the bridge with `ProbabilityMode.Logprobs`, so a probe never adds a
+  verbalized call. A model that returns no logprobs fails with `Unsupported`.
+- **`S1` and `S2` skip.** A chat completion carries no answer body to read, so the answers are checked as Minos read
+  them: `S3`, `D1` to `D4` and `M1` run on Minos's result.
+- **`invalid` sends nothing.** A request with no questions gets `Validation` from the bridge before any call, so `E1`
+  checks that nothing was sent and that Minos returned `Validation` with a message. A recording keeps no exchange for
+  it, and a fixture needs none.
+- **The checks that read the wire read every exchange.** `R1` checks every response that names a model, `R3` the
+  `usage.prompt_tokens` and `usage.completion_tokens` of each, and `E3` and `E4` every exchange of a probe, so an error
+  or a 429 that is not the last response to arrive is met too.
+
+The `chat-openrouter` target asks `openai/gpt-4.1-mini` through OpenRouter, with the OpenAI SDK's chat client. Its
+model rule accepts the requested id, or that id followed by a dash and a digit, such as a dated suffix. A provider
+prefix such as `openai/` is compared only when both models carry one, so `gpt-4.1-mini-2025-04-14` fits too.
+
 ## The fixtures
 
 Each fixture says where its exchanges came from:
@@ -137,9 +160,10 @@ exchange for it exists yet. In CI the suite must fail no check on any fixture, a
 checks its test expects, so a check that starts to skip fails the build.
 
 The Live smoke workflow records TypeSafe's and OpenRouter's fixtures on `main` and uploads them as an artifact; they
-reach the repository through a pull request. Both were first recorded on 2026-10-12. A recording keeps only the
-allowlisted response headers, and drops from each body the account identifiers a provider echoes back, such as the
-`user_id` in OpenRouter's error bodies.
+reach the repository through a pull request. Both were first recorded on 2026-10-12. The `chat-openrouter` fixture is
+labelled `tests`: it is built from the bridge's scripted responses, and the Live smoke workflow records it live too. A
+recording keeps only the allowlisted response headers, and drops from each body the account identifiers a provider
+echoes back, such as the `user_id` in OpenRouter's error bodies.
 
 ### Why OpenAI's success fixtures come from the guide
 

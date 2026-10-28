@@ -7,6 +7,7 @@
     <Project Path="src/Minos.NET.Evaluation/Minos.NET.Evaluation.csproj" />
     <Project Path="src/Minos.NET.Caching/Minos.NET.Caching.csproj" />
     <Project Path="src/Minos.NET.Recording/Minos.NET.Recording.csproj" />
+    <Project Path="src/Minos.NET.Extensions.AI/Minos.NET.Extensions.AI.csproj" />
     <Project Path="src/Minos.NET.DependencyInjection/Minos.NET.DependencyInjection.csproj" />
     <Project Path="src/Minos.NET.Conformance/Minos.NET.Conformance.csproj" />
     <Project Path="src/Minos.NET.Tool/Minos.NET.Tool.csproj" />
@@ -22,6 +23,7 @@
     <Project Path="tests/Minos.NET.Tool.Tests/Minos.NET.Tool.Tests.csproj" />
     <Project Path="tests/Minos.NET.Caching.Tests/Minos.NET.Caching.Tests.csproj" />
     <Project Path="tests/Minos.NET.Recording.Tests/Minos.NET.Recording.Tests.csproj" />
+    <Project Path="tests/Minos.NET.Extensions.AI.Tests/Minos.NET.Extensions.AI.Tests.csproj" />
     <Project Path="tests/Minos.NET.Conformance.Tests/Minos.NET.Conformance.Tests.csproj" />
     <Project Path="tests/Minos.NET.DependencyInjection.Tests/Minos.NET.DependencyInjection.Tests.csproj" />
     <Project Path="tests/Minos.NET.Generator.Tests/Minos.NET.Generator.Tests.csproj" />
@@ -42,6 +44,7 @@
     <Project Path="samples/Minos.NET.Samples.IntentRouting/Minos.NET.Samples.IntentRouting.csproj" />
     <Project Path="samples/Minos.NET.Samples.Reranking/Minos.NET.Samples.Reranking.csproj" />
     <Project Path="samples/Minos.NET.Samples.ProviderSwitch/Minos.NET.Samples.ProviderSwitch.csproj" />
+    <Project Path="samples/Minos.NET.Samples.ChatClient/Minos.NET.Samples.ChatClient.csproj" />
   </Folder>
   <Folder Name="/benchmarks/">
     <Project Path="benchmarks/Minos.NET.Benchmarks/Minos.NET.Benchmarks.csproj" />

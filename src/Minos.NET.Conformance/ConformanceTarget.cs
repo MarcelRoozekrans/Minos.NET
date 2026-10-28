@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace Minos.Conformance;
 
-/// <summary>The wire format a target speaks: it decides the answer type names S2 expects and how the answers are read.</summary>
+/// <summary>The wire format a target speaks: it decides the answer type names S2 expects, how the answers are read, and how many exchanges a probe has.</summary>
 [JsonConverter(typeof(JsonStringEnumConverter<ConformanceWire>))]
 public enum ConformanceWire
 {
@@ -11,6 +11,12 @@ public enum ConformanceWire
 
     /// <summary>OpenAI's Decisions API, <c>POST v1/decisions</c>: an <c>answers</c> array matched by <c>name</c>; a Noul's type is <c>predicate</c>.</summary>
     Decisions,
+
+    /// <summary>
+    /// A chat-completions endpoint behind <c>Minos.NET.Extensions.AI</c>: one call per question, so a probe has one exchange
+    /// per question. A completion carries no answer body, so the answers are checked as Minos read them.
+    /// </summary>
+    ChatCompletions,
 }
 
 /// <summary>How the suite runs: against the real endpoint, recording what it answers, or from a recording.</summary>
@@ -20,10 +26,14 @@ public enum ConformanceMode
     /// <summary>Real calls; nothing is saved.</summary>
     Live,
 
-    /// <summary>Real calls, each probe's exchange saved, errors included, into a fixture file.</summary>
+    /// <summary>
+    /// Real calls, each probe's exchange saved, errors included, into a fixture file. On
+    /// <see cref="ConformanceWire.ChatCompletions"/> a probe saves one exchange per question, and an invalid probe that
+    /// sends nothing saves none.
+    /// </summary>
     Record,
 
-    /// <summary>No calls: each probe is answered from a fixture file by its id.</summary>
+    /// <summary>No calls: each probe is answered from a fixture file by its id, and on <see cref="ConformanceWire.ChatCompletions"/> also by its request body.</summary>
     Replay,
 }
 

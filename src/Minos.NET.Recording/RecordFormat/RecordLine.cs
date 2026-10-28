@@ -6,12 +6,17 @@ using System.Text.Json;
 namespace Minos.Recording.RecordFormat;
 
 /// <summary>
-/// Writes the lines of a record file, version 1: one JSON object per line with a <c>kind</c> of <c>record</c>,
-/// <c>outcome</c> or <c>erasure</c> and a <c>version</c> of 1. The caller ends each line with <c>\n</c>.
+/// Writes the lines of a record file: one JSON object per line with a <c>kind</c> of <c>record</c>,
+/// <c>outcome</c> or <c>erasure</c> and a <c>version</c> of 1. A record line with an answer whose probabilities do not
+/// come from the model has a <c>version</c> of 2 and a <c>probabilitySource</c> on that answer. The caller ends each
+/// line with <c>\n</c>.
 /// </summary>
 internal static class RecordLine
 {
     internal const int Version = 1;
+
+    /// <summary>The version of a record line that has an answer with a probability source.</summary>
+    internal const int VersionWithSource = 2;
 
     private const double TicksPerMillisecond = TimeSpan.TicksPerMillisecond;
 
@@ -26,7 +31,7 @@ internal static class RecordLine
     {
         w.WriteStartObject();
         w.WriteString("kind", "record");
-        w.WriteNumber("version", Version);
+        w.WriteNumber("version", HasMarkedAnswer(record.Answers) ? VersionWithSource : Version);
         w.WriteString("decisionId", record.DecisionId);
         WriteOptional(w, "erasureKey", record.ErasureKey);
         w.WriteString("started", record.Started);
@@ -176,6 +181,20 @@ internal static class RecordLine
         destination.Write(scratch.WrittenSpan);
     }
 
+    // True when an answer's probabilities are not the model's own, so the line needs the version with sources.
+    private static bool HasMarkedAnswer(IReadOnlyList<RecordedAnswer> answers)
+    {
+        for (var i = 0; i < answers.Count; i++)
+        {
+            if (answers[i].ProbabilitySource != ProbabilitySource.Model)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static void WriteAnswer(Utf8JsonWriter w, RecordedAnswer answer)
     {
         w.WriteStartObject();
@@ -198,6 +217,16 @@ internal static class RecordLine
         }
 
         w.WriteNumber("confidence", answer.Confidence);
+        switch (answer.ProbabilitySource)
+        {
+            case ProbabilitySource.Logprobs:
+                w.WriteString("probabilitySource", "logprobs");
+                break;
+            case ProbabilitySource.Verbalized:
+                w.WriteString("probabilitySource", "verbalized");
+                break;
+        }
+
         if (answer.Kind != QuestionKind.Noul)
         {
             w.WriteStartArray("probabilities");

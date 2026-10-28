@@ -31,11 +31,16 @@ public sealed partial class RecordingsSafetyTests
         }
     }
 
+    // The chat-client sample answers from a fake chat client, so it has nothing to record; its own test covers it.
+    private const string OfflineSample = "Minos.NET.Samples.ChatClient";
+
     // A sample with several providers keeps one file per provider in recordings/ instead; the test below checks those.
     [Fact]
     public void EverySingleProviderSample_HasRecordings()
     {
-        var samples = SampleFolders().Where(dir => !IsProviderSample(dir)).ToArray();
+        var samples = SampleFolders()
+            .Where(dir => !IsProviderSample(dir) && !string.Equals(Path.GetFileName(dir), OfflineSample, StringComparison.Ordinal))
+            .ToArray();
 
         Assert.NotEmpty(samples);
         Assert.All(samples, dir => Assert.True(File.Exists(Path.Combine(dir, "recordings.json")), dir + " has no recordings.json"));

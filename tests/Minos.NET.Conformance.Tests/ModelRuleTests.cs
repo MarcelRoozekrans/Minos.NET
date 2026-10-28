@@ -22,6 +22,19 @@ public sealed class ModelRuleTests
     public void OpenRoutersRule(string requested, string reported, bool fits)
         => Assert.Equal(fits, ModelRule.OpenRouter.Matches(requested, reported));
 
+    [Theory]
+    [InlineData("openai/gpt-4.1-mini", "openai/gpt-4.1-mini", true)]
+    [InlineData("openai/gpt-4.1-mini", "openai/gpt-4.1-mini-2025-04-14", true)]
+    [InlineData("openai/gpt-4.1-mini", "gpt-4.1-mini-2025-04-14", true)]
+    [InlineData("openai/gpt-4.1-mini", "gpt-4.1-mini", true)]
+    [InlineData("gpt-4.1-mini", "openai/gpt-4.1-mini", true)]
+    [InlineData("openai/gpt-4.1-mini", "anthropic/gpt-4.1-mini", false)]
+    [InlineData("gpt-4.1", "gpt-4.1-mini", false)]
+    [InlineData("openai/gpt-4.1", "openai/gpt-4.1-mini", false)]
+    [InlineData("openai/gpt-4.1-mini", "openai/gpt-4.1", false)]
+    public void TheChatTargetsRule(string requested, string reported, bool fits)
+        => Assert.Equal(fits, ChatTargets.ModelRule.Matches(requested, reported));
+
     [Fact]
     public void ARuleStatesItself_ForTheReport()
     {

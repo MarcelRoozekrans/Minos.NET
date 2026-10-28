@@ -25,9 +25,22 @@ public sealed class ReplaySuiteTests
             "keyed:R1", "keyed:R2", "keyed:R3",
             "invalid:E1", "invalid:E3", "bad-key:E3", "run:E4",
         ],
+
+        // A chat completion carries no answer body, so S1 and S2 skip on every answer probe, and the kinds skip as
+        // TypeSafe's do. The invalid probe sends nothing, so it has no error response and E3 skips; OpenRouter's 401
+        // carries no request-id header, so the bad-key E3 skips too; no 429 was met.
+        ["chat-openrouter"] =
+        [
+            "noul:S1", "noul:S2", "noul:D2", "noul:D3", "noul:D4",
+            "choice:S1", "choice:S2", "choice:D3",
+            "score:S1", "score:S2",
+            "mixed:S1", "mixed:S2",
+            "keyed:S1", "keyed:S2",
+            "invalid:E3", "bad-key:E3", "run:E4",
+        ],
     };
 
-    public static TheoryData<string> Targets => new() { "typesafe", "openrouter", "openai" };
+    public static TheoryData<string> Targets => new() { "typesafe", "openrouter", "openai", "chat-openrouter" };
 
     [Theory]
     [MemberData(nameof(Targets))]

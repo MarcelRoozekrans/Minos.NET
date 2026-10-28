@@ -1,7 +1,7 @@
 ---
 id: dependency-injection
 title: Dependency injection
-sidebar_position: 9
+sidebar_position: 10
 description: Register IDecisionClient in a .NET host with AddSystemOneDecisionClient, key several clients, bind options from configuration, and check them at start-up.
 ---
 

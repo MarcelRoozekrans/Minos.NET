@@ -49,7 +49,7 @@ public sealed class DecisionResponse
 
             if (question.Kind == QuestionKind.Noul)
             {
-                slots[i] = new AnswerSlot(0, answer.Probability, 0, 0);
+                slots[i] = new AnswerSlot(0, answer.Probability, 0, 0, answer.ProbabilitySource);
                 continue;
             }
 
@@ -66,7 +66,7 @@ public sealed class DecisionResponse
 
             var offset = definition.Offsets[i];
             answer.Probabilities.CopyTo(probabilities.AsSpan(offset));
-            slots[i] = new AnswerSlot(answer.ChosenIndex, answer.Expected, answer.Confidence, offset);
+            slots[i] = new AnswerSlot(answer.ChosenIndex, answer.Expected, answer.Confidence, offset, answer.ProbabilitySource);
         }
 
         Definition = definition;
@@ -109,6 +109,24 @@ public sealed class DecisionResponse
 
     /// <summary>Gets the answers, one per question in definition order.</summary>
     public QuestionAnswerList Answers => new(this);
+
+    /// <summary>Gets how the probabilities were made: the weakest source among the answers, or <see cref="Minos.ProbabilitySource.Model"/> when there are none.</summary>
+    public ProbabilitySource ProbabilitySource
+    {
+        get
+        {
+            var weakest = ProbabilitySource.Model;
+            foreach (var slot in Slots)
+            {
+                if (slot.Source > weakest)
+                {
+                    weakest = slot.Source;
+                }
+            }
+
+            return weakest;
+        }
+    }
 
     /// <summary>Gets the model that answered, or <see langword="null"/> when the provider did not say.</summary>
     public string? Model { get; }
@@ -179,7 +197,7 @@ public sealed class DecisionResponse
         var question = Definition.QuestionArray[index];
         var slot = Slots[index];
         return question.Kind == QuestionKind.Noul
-            ? new QuestionAnswer(question.Key, QuestionKind.Noul, -1, slot.Value, 0, null, 0, 0)
-            : new QuestionAnswer(question.Key, question.Kind, slot.ValueIndex, question.Kind == QuestionKind.Choice ? 0 : slot.Value, slot.Confidence, Probabilities, slot.Offset, question.OptionArray.Length);
+            ? new QuestionAnswer(question.Key, QuestionKind.Noul, -1, slot.Value, 0, null, 0, 0, slot.Source)
+            : new QuestionAnswer(question.Key, question.Kind, slot.ValueIndex, question.Kind == QuestionKind.Choice ? 0 : slot.Value, slot.Confidence, Probabilities, slot.Offset, question.OptionArray.Length, slot.Source);
     }
 }

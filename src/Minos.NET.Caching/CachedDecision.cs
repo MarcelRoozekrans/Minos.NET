@@ -12,8 +12,14 @@ namespace Minos.Caching;
 /// </remarks>
 internal sealed class CachedDecision
 {
-    /// <summary>The layout version <see cref="CachedDecisionFormat"/> writes and reads.</summary>
-    public const int Version = 1;
+    /// <summary>
+    /// The layout version of an entry with a per-answer probability source, which <see cref="CachedDecisionFormat"/>
+    /// writes and reads.
+    /// </summary>
+    public const int CurrentVersion = 2;
+
+    /// <summary>The layout version of an entry whose answers all come from the model: no sources are stored.</summary>
+    public const int ModelOnlyVersion = 1;
 
     /// <summary>The entry for a stored value the format could not read: an unknown version, or corrupt bytes.</summary>
     public static readonly CachedDecision Unreadable = new([], [], null, null, null, null, null, null);

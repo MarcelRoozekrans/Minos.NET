@@ -1,1 +1,16 @@
 #nullable enable
+Minos.Noul.Noul(double probability, Minos.ProbabilitySource probabilitySource) -> void
+Minos.Noul.ProbabilitySource.get -> Minos.ProbabilitySource
+Minos.Choice<T>.ProbabilitySource.get -> Minos.ProbabilitySource
+Minos.Score<T>.ProbabilitySource.get -> Minos.ProbabilitySource
+Minos.KeyedChoice.ProbabilitySource.get -> Minos.ProbabilitySource
+Minos.KeyedScore.ProbabilitySource.get -> Minos.ProbabilitySource
+Minos.ProbabilitySource
+Minos.ProbabilitySource.Logprobs = 1 -> Minos.ProbabilitySource
+Minos.ProbabilitySource.Model = 0 -> Minos.ProbabilitySource
+Minos.ProbabilitySource.Verbalized = 2 -> Minos.ProbabilitySource
+Minos.DecisionResponse.ProbabilitySource.get -> Minos.ProbabilitySource
+Minos.QuestionAnswer.ProbabilitySource.get -> Minos.ProbabilitySource
+static Minos.QuestionAnswer.Noul(double probability, Minos.ProbabilitySource probabilitySource) -> Minos.QuestionAnswer
+static Minos.QuestionAnswer.Choice(int chosenIndex, double confidence, double[]! probabilities, Minos.ProbabilitySource probabilitySource) -> Minos.QuestionAnswer
+static Minos.QuestionAnswer.Score(int level, double expected, double confidence, double[]! probabilities, Minos.ProbabilitySource probabilitySource) -> Minos.QuestionAnswer

@@ -43,6 +43,8 @@
       Microsoft.Extensions.Logging's 10.0.12, so nothing they bring is an NU1605 downgrade.
     -->
     <PackageVersion Include="Microsoft.Extensions.Hosting" Version="10.0.14" />
+    <!-- Sample only: the chat-client sample's ServiceCollection, without a host. It follows Hosting's 10.0.14. -->
+    <PackageVersion Include="Microsoft.Extensions.DependencyInjection" Version="10.0.14" />
     <!-- The docs tests only: compiles the observability page's OpenTelemetry wiring. The library takes no OpenTelemetry
       dependency. -->
     <PackageVersion Include="OpenTelemetry.Extensions.Hosting" Version="1.20.1" />
@@ -80,6 +82,16 @@
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.14" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.EnvironmentVariables" Version="10.0.14" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.14" />
+    <!--
+      The Extensions.AI bridge: IChatClient, and the OpenAI SDK whose ChatCompletion carries the logprobs it reads.
+      Microsoft.Extensions.AI.OpenAI's AsIChatClient is for the tests, the AOT smoke app and the sample only; the
+      package itself never references it.
+    -->
+    <PackageVersion Include="Microsoft.Extensions.AI.Abstractions" Version="10.11.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI.OpenAI" Version="10.11.0" />
+    <!-- Test only: AddChatClient and AddKeyedChatClient, which register the IChatClient the bridge's registration resolves. -->
+    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.11.0" />
+    <PackageVersion Include="OpenAI" Version="2.14.0" />
     <!-- Benchmarks -->
     <PackageVersion Include="BenchmarkDotNet" Version="0.15.8" />
     <!--

@@ -87,7 +87,7 @@ public sealed class TypedAnswerTests
     {
         var map = new ProbabilityMap<Color>([0.1, 0.7, 0.2], 0, ColorOptions.Instance);
 
-        var choice = new Choice<Color>(Color.Green, 0.81, map);
+        var choice = new Choice<Color>(Color.Green, 0.81, map, ProbabilitySource.Model);
 
         Assert.Equal(Color.Green, choice.Value);
         Assert.Equal(0.81, choice.Confidence);
@@ -99,7 +99,7 @@ public sealed class TypedAnswerTests
     {
         var map = new ProbabilityMap<Urgency>([0.0, 0.95, 0.05], 0, UrgencyLevels.Instance);
 
-        var score = new Score<Urgency>(Urgency.Medium, 1.05, 0.92, map);
+        var score = new Score<Urgency>(Urgency.Medium, 1.05, 0.92, map, ProbabilitySource.Model);
 
         Assert.Equal(Urgency.Medium, score.Value);
         Assert.Equal(1.05, score.Expected);
@@ -220,8 +220,8 @@ public sealed class TypedAnswerTests
     public void Choice_Equals_AllocatesNothing()
     {
         var map = new ProbabilityMap<Color>([0.1, 0.7, 0.2], 0, ColorOptions.Instance);
-        var first = new Choice<Color>(Color.Green, 0.81, map);
-        var second = new Choice<Color>(Color.Green, 0.81, map);
+        var first = new Choice<Color>(Color.Green, 0.81, map, ProbabilitySource.Model);
+        var second = new Choice<Color>(Color.Green, 0.81, map, ProbabilitySource.Model);
 
         // Warm up the JIT before measuring.
         _ = first.Equals(second);
@@ -240,8 +240,8 @@ public sealed class TypedAnswerTests
     public void Score_Equals_AllocatesNothing()
     {
         var map = new ProbabilityMap<Urgency>([0.0, 0.95, 0.05], 0, UrgencyLevels.Instance);
-        var first = new Score<Urgency>(Urgency.Medium, 1.05, 0.92, map);
-        var second = new Score<Urgency>(Urgency.Medium, 1.05, 0.92, map);
+        var first = new Score<Urgency>(Urgency.Medium, 1.05, 0.92, map, ProbabilitySource.Model);
+        var second = new Score<Urgency>(Urgency.Medium, 1.05, 0.92, map, ProbabilitySource.Model);
 
         // Warm up the JIT before measuring.
         _ = first.Equals(second);

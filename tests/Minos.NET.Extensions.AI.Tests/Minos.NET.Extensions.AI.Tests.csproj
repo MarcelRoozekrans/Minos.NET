@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <RootNamespace>Minos.Extensions.AI.Tests</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Minos.NET\Minos.NET.csproj" />
+    <ProjectReference Include="..\..\src\Minos.NET.Extensions.AI\Minos.NET.Extensions.AI.csproj" />
+    <!-- UseRecording, to check that each answer's probability source reaches the record. -->
+    <ProjectReference Include="..\..\src\Minos.NET.Recording\Minos.NET.Recording.csproj" />
+    <!-- The generator, for the typed [Questions] record the question set tests ask. -->
+    <ProjectReference Include="..\..\src\Minos.NET.Generator\Minos.NET.Generator.csproj"
+                      OutputItemType="Analyzer"
+                      ReferenceOutputAssembly="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+    <!-- AsIChatClient and OpenAIChatModelFactory, for chat responses shaped as the OpenAI SDK returns them. -->
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
+    <!-- AddChatClient and AddKeyedChatClient, and with the logging package the container that resolves them. -->
+    <PackageReference Include="Microsoft.Extensions.AI" />
+    <PackageReference Include="Microsoft.Extensions.Logging" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+</Project>

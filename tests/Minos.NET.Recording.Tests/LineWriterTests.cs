@@ -158,4 +158,15 @@ public sealed class LineWriterTests : IDisposable
         Assert.Empty(default(RecordedAnswer).Probabilities);
         Assert.Equal(default, new RecordedAnswer());
     }
+
+    [Fact]
+    public void ARecordedAnswer_DiffersByItsSource()
+    {
+        var model = new RecordedAnswer("topic", QuestionKind.Choice, 0, 0, 0, 0.75, [0.75, 0.25]);
+        var verbalized = new RecordedAnswer("topic", QuestionKind.Choice, 0, 0, 0, 0.75, [0.75, 0.25], ProbabilitySource.Verbalized);
+
+        Assert.Equal(ProbabilitySource.Model, model.ProbabilitySource);
+        Assert.Equal(ProbabilitySource.Verbalized, verbalized.ProbabilitySource);
+        Assert.True(model != verbalized);
+    }
 }
