@@ -1,0 +1,150 @@
+using Microsoft.Extensions.AI;
+using Minos.Transport;
+using ZeroAlloc.Results;
+
+namespace Minos.Extensions.AI;
+
+/// <summary>
+/// Answers a request's Noul, Choice and Score questions by asking a Microsoft.Extensions.AI <see cref="IChatClient"/>,
+/// such as one for OpenAI, OpenRouter, Azure or Ollama.
+/// </summary>
+/// <remarks>
+/// <para>
+/// Thread-safe. The bridge does not own the chat client: <see cref="Dispose"/> leaves it usable, so it can be shared
+/// with other code or the container.
+/// </para>
+/// <para>
+/// A request is checked before anything is sent. One with no questions returns <see cref="DecisionErrorKind.Validation"/>,
+/// and one that <see cref="ChatDecisionClientOptions.Capabilities"/> does not accept returns
+/// <see cref="DecisionErrorKind.Unsupported"/>. The bridge does not retry; the pipeline's retry stage does.
+/// </para>
+/// </remarks>
+public sealed class ChatDecisionClient : IDecisionClient
+{
+    // The name capability failures give the bridge, as in "The chat client bridge does not support images.".
+    private const string ProviderLabel = "The chat client bridge";
+
+    // The telemetry stages' own name for a provider they cannot name, used when the chat client has no metadata.
+    private const string UnknownProvider = "unknown";
+
+    // Options and levels are labelled A to Z.
+    private const int MaxLabels = 26;
+
+    private static readonly CapabilitySet Defaults = new(QuestionKinds.All, null, MaxLabels, Images: false, ModelListing: false);
+
+    private readonly IChatClient _chatClient;
+    private readonly CapabilitySet _capabilities;
+    private readonly DecisionClientMetadata _metadata;
+    // Volatile: Dispose writes it, and the threads that start calls read it.
+    private volatile bool _disposed;
+
+    /// <summary>Initializes a new instance of the <see cref="ChatDecisionClient"/> class over <paramref name="chatClient"/>.</summary>
+    /// <param name="chatClient">The chat client to ask. It is not disposed with this client.</param>
+    /// <param name="options">The configuration; <see langword="null"/> uses the defaults.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="chatClient"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException">An option has an invalid value.</exception>
+    public ChatDecisionClient(IChatClient chatClient, ChatDecisionClientOptions? options = null)
+    {
+        ArgumentNullException.ThrowIfNull(chatClient);
+        options ??= new ChatDecisionClientOptions();
+
+        var model = options.Model is { } explicitModel ? ClientSettingRules.CheckModel(explicitModel, nameof(options)) : null;
+        if (options.Capabilities?.MaxChoiceOptions is > MaxLabels)
+        {
+            throw new ArgumentException("Capabilities.MaxChoiceOptions must be at most 26: options are labelled A to Z.", nameof(options));
+        }
+
+        // The bridge has no model listing, so ModelListing stays false whatever the options say, and GetService reports
+        // the truth.
+        _capabilities = ClientSettingRules.ResolveCapabilities(Defaults, options.Capabilities, nameof(options)) with { ModelListing = false };
+
+        var chatMetadata = chatClient.GetService<ChatClientMetadata>();
+        _metadata = new DecisionClientMetadata(
+            chatMetadata?.ProviderName ?? UnknownProvider, chatMetadata?.ProviderUri, model ?? chatMetadata?.DefaultModelId);
+        _chatClient = chatClient;
+    }
+
+    /// <summary>Asks the request's questions about its state.</summary>
+    /// <param name="request">The questions, the state, any images and, optionally, the model.</param>
+    /// <returns>The answers, or the <see cref="DecisionError"/> that prevented them.</returns>
+    /// <remarks>Calls <see cref="EvaluateAsync(DecisionRequest, CancellationToken)"/> without cancellation.</remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ObjectDisposedException">The client has been disposed.</exception>
+    public ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request)
+        => EvaluateAsync(request, CancellationToken.None);
+
+    /// <summary>Asks the request's questions about its state.</summary>
+    /// <param name="request">The questions, the state, any images and, optionally, the model.</param>
+    /// <param name="cancellationToken">Cancels the call; cancellation throws <see cref="OperationCanceledException"/>.</param>
+    /// <returns>The answers, or the <see cref="DecisionError"/> that prevented them.</returns>
+    /// <remarks>
+    /// A request with no questions returns <see cref="DecisionErrorKind.Validation"/>, and one that
+    /// <see cref="ChatDecisionClientOptions.Capabilities"/> does not accept returns <see cref="DecisionErrorKind.Unsupported"/>,
+    /// both without calling the chat client.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ObjectDisposedException">The client has been disposed.</exception>
+    /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled.</exception>
+    public ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(request);
+        ObjectDisposedException.ThrowIf(_disposed, this);
+        cancellationToken.ThrowIfCancellationRequested();
+
+        if (request.Definition.QuestionArray.Length == 0)
+        {
+            return Failure(new DecisionError(DecisionErrorKind.Validation, "The request has no questions."));
+        }
+
+        if (_capabilities.Collect(request.Definition, request.Images.Count, ProviderLabel) is { } failures)
+        {
+            return Failure(CapabilitySet.Unsupported(failures));
+        }
+
+        return Failure(new DecisionError(DecisionErrorKind.Unsupported, ProviderLabel + " cannot ask questions yet."));
+    }
+
+    // Explicit, so the public pair above follows the (x)/(x, CancellationToken) convention: implementing the interface's
+    // optional parameter implicitly would either drop its default or give this class an overload with an optional one.
+    ValueTask<Result<DecisionResponse, DecisionError>> IDecisionClient.EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken)
+        => EvaluateAsync(request, cancellationToken);
+
+    /// <inheritdoc />
+    /// <remarks>
+    /// Returns this client for a type it is, a new <see cref="DecisionCapabilities"/> with its resolved capabilities,
+    /// every property set, and its <see cref="DecisionClientMetadata"/>: the chat client's provider name, endpoint and
+    /// default model, with <see cref="ChatDecisionClientOptions.Model"/> in place of the model when set, and
+    /// <c>unknown</c> as the provider name when the chat client gives none. Anything else is asked of the chat client.
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="serviceType"/> is <see langword="null"/>.</exception>
+    public object? GetService(Type serviceType, object? serviceKey = null)
+    {
+        ArgumentNullException.ThrowIfNull(serviceType);
+        if (serviceKey is null)
+        {
+            if (serviceType.IsInstanceOfType(this))
+            {
+                return this;
+            }
+
+            if (serviceType == typeof(DecisionCapabilities))
+            {
+                return _capabilities.ToOptions();
+            }
+
+            if (serviceType == typeof(DecisionClientMetadata))
+            {
+                return _metadata;
+            }
+        }
+
+        return _chatClient.GetService(serviceType, serviceKey);
+    }
+
+    /// <summary>Marks the client disposed. The chat client is not disposed: the caller or the container owns it.</summary>
+    /// <remarks>A call started after <see cref="Dispose"/> throws <see cref="ObjectDisposedException"/>. Calling it more than once does nothing.</remarks>
+    public void Dispose() => _disposed = true;
+
+    private static ValueTask<Result<DecisionResponse, DecisionError>> Failure(DecisionError error)
+        => new(Result<DecisionResponse, DecisionError>.Failure(error));
+}

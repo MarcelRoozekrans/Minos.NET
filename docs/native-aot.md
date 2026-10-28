@@ -97,8 +97,9 @@ The checks run the real client over a canned HTTP handler. They cover:
 A publish only analyses what the program reaches, so the smoke application cannot vouch for a member that no check
 calls. The `aot-surface` job closes that gap. It publishes `samples/Minos.NET.AotSurface` with `PublishAot` and full
 trimming, and roots `Minos.NET`, `Minos.NET.SystemOne`, `Minos.NET.OpenAI`, `Minos.NET.DependencyInjection`,
-`Minos.NET.Caching`, `Minos.NET.RateLimiting`, `Minos.NET.Evaluation`, the labelled dataset loader, and
-`Minos.NET.Recording`, the decision recorder, whole through `TrimmerRootAssembly`.
+`Minos.NET.Caching`, `Minos.NET.RateLimiting`, `Minos.NET.Evaluation`, the labelled dataset loader,
+`Minos.NET.Recording`, the decision recorder, and `Minos.NET.Extensions.AI`, the chat-client bridge, whole through
+`TrimmerRootAssembly`.
 
 Rooting analyses every non-generic member of these assemblies, called or not, and every generic member the compiler
 can share across reference types. A value-type generic has no such shared form, so rooting alone skips it. That covers

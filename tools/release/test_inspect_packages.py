@@ -86,9 +86,9 @@ class InspectPackagesTests(unittest.TestCase):
         for package_id in inspect_packages.PACKAGES:
             write_package(self.directory, package_id, version, **overrides.get(package_id, {}))
 
-    def test_nine_good_packages_pass(self) -> None:
+    def test_ten_good_packages_pass(self) -> None:
         self.write_all()
-        self.assertEqual(9, len(inspect_packages.PACKAGES))
+        self.assertEqual(10, len(inspect_packages.PACKAGES))
         self.assertEqual([], inspect_packages.problems(self.directory, VERSION))
 
     def test_evaluation_must_depend_on_the_core(self) -> None:
@@ -102,6 +102,13 @@ class InspectPackagesTests(unittest.TestCase):
         self.write_all(**{"Minos.NET.Recording": {"drop_dependency": "Minos.NET"}})
         errors = inspect_packages.problems(self.directory, VERSION)
         self.assertTrue(any("Minos.NET.Recording does not depend on Minos.NET" in error for error in errors), errors)
+
+    def test_extensions_ai_must_depend_on_the_core_and_dependency_injection(self) -> None:
+        self.assertEqual(("Minos.NET", "Minos.NET.DependencyInjection"), inspect_packages.PACKAGES["Minos.NET.Extensions.AI"])
+        self.write_all(**{"Minos.NET.Extensions.AI": {"drop_dependency": "Minos.NET.DependencyInjection"}})
+        errors = inspect_packages.problems(self.directory, VERSION)
+        self.assertTrue(
+            any("Minos.NET.Extensions.AI does not depend on Minos.NET.DependencyInjection" in error for error in errors), errors)
 
     def test_a_tool_package_of_the_wrong_type_fails(self) -> None:
         self.write_all(**{TOOL: {"package_type": "Dependency"}})

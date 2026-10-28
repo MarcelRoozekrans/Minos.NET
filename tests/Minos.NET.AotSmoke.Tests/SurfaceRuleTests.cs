@@ -4,7 +4,7 @@ using Microsoft.CodeAnalysis;
 namespace Minos.AotSmoke.Tests;
 
 /// <summary>
-/// The mechanical rules the eight library assemblies' public surface keeps for 1.0, checked over the package assemblies the AOT smoke
+/// The mechanical rules the nine library assemblies' public surface keeps for 1.0, checked over the package assemblies the AOT smoke
 /// app references. Each test names every member that breaks its rule.
 /// </summary>
 public sealed class SurfaceRuleTests
@@ -23,6 +23,7 @@ public sealed class SurfaceRuleTests
         ("Minos.NET.RateLimiting", "Minos"),
         ("Minos.NET.Evaluation", "Minos.Evaluation"),
         ("Minos.NET.Recording", "Minos"),
+        ("Minos.NET.Extensions.AI", "Minos.Extensions.AI"),
     ];
 
     // Public classes designed for inheritance that are not abstract.
@@ -33,7 +34,16 @@ public sealed class SurfaceRuleTests
     };
 
     // Public types no docs page or sample names.
-    private static readonly Dictionary<string, string> Undocumented = new(StringComparer.Ordinal);
+    private static readonly Dictionary<string, string> Undocumented = new(StringComparer.Ordinal)
+    {
+        // The Extensions.AI bridge lands over several commits on one branch; its docs page, docs/chat-clients.md, is the
+        // last of them and names these types. That commit removes these entries.
+        ["Minos.ProbabilitySource"] = "Named by docs/chat-clients.md, which the bridge's docs commit adds.",
+        ["Minos.Extensions.AI.ChatClientDecisionExtensions"] = "Named by docs/chat-clients.md, which the bridge's docs commit adds.",
+        ["Minos.Extensions.AI.ChatDecisionClient"] = "Named by docs/chat-clients.md, which the bridge's docs commit adds.",
+        ["Minos.Extensions.AI.ChatDecisionClientOptions"] = "Named by docs/chat-clients.md, which the bridge's docs commit adds.",
+        ["Minos.Extensions.AI.ProbabilityMode"] = "Named by docs/chat-clients.md, which the bridge's docs commit adds.",
+    };
 
     // The folders under docs/ that are not published pages.
     private static readonly string[] UnpublishedDocs = ["design", "planning", "plans", "reports", "superpowers"];

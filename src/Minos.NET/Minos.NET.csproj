@@ -56,6 +56,9 @@
     <!-- The recorder logs through DecisionLog's events 1009 to 1013, and its tests read them. -->
     <InternalsVisibleTo Include="Minos.NET.Recording" />
     <InternalsVisibleTo Include="Minos.NET.Recording.Tests" />
+    <!-- The chat-client bridge checks capabilities and maps errors with the transport's internals, and its tests read them. -->
+    <InternalsVisibleTo Include="Minos.NET.Extensions.AI" />
+    <InternalsVisibleTo Include="Minos.NET.Extensions.AI.Tests" />
   </ItemGroup>
 
   <ItemGroup>
