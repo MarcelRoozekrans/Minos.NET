@@ -24,6 +24,8 @@ results.Save("results.jsonl");
 var report = CalibrationReport.Create(results, loaded.Value, new PriceTable([]));
 ```
 
+The package depends on [`Minos.NET.Recording`](https://www.nuget.org/packages/Minos.NET.Recording), for the export of recorded decisions.
+
 To run a dataset from the command line, without writing code, use the [`Minos.NET.Tool`](https://www.nuget.org/packages/Minos.NET.Tool) dotnet tool.
 
 Documentation: [Labelled datasets](https://marcelroozekrans.github.io/Minos.NET/datasets). Source and issues: [github.com/MarcelRoozekrans/Minos.NET](https://github.com/MarcelRoozekrans/Minos.NET). Licensed under the MIT license.
