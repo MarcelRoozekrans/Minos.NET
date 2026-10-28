@@ -7,6 +7,7 @@
     <ProjectReference Include="..\..\src\Minos.NET\Minos.NET.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.SystemOne\Minos.NET.SystemOne.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.Conformance\Minos.NET.Conformance.csproj" />
+    <ProjectReference Include="..\..\src\Minos.NET.Extensions.AI\Minos.NET.Extensions.AI.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.Generator\Minos.NET.Generator.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />
@@ -16,6 +17,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- AsIChatClient, which puts the OpenAI SDK's ChatClient under the chat-openrouter target. -->
+    <PackageReference Include="Microsoft.Extensions.AI.OpenAI" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
     <PackageReference Include="System.IO.Hashing" />
     <PackageReference Include="xunit" />
@@ -29,5 +32,7 @@
   <ItemGroup>
     <!-- The TypeSafe and OpenRouter targets the replay suite uses, so a recording and its replay ask the same thing. -->
     <Compile Include="..\Minos.NET.Conformance.Tests\SystemOneTargets.cs" Link="SystemOneTargets.cs" />
+    <!-- The chat-openrouter target, so its recording and its replay ask the same thing too. -->
+    <Compile Include="..\Minos.NET.Conformance.Tests\ChatTargets.cs" Link="ChatTargets.cs" />
   </ItemGroup>
 </Project>

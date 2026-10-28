@@ -1,0 +1,668 @@
+{
+  "target": "chat-openrouter",
+  "source": "tests",
+  "model": "openai/gpt-4.1-mini",
+  "note": "Built from the bridge's scripted responses; the live recording follows from live-smoke.",
+  "exchanges": [
+    {
+      "probe": "noul",
+      "request": {
+        "temperature": 0,
+        "top_logprobs": 20,
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a classifier. You answer one question about the state the user gives you. Answer with one label: the capital letter of the option that fits best, and nothing else."
+          },
+          {
+            "role": "user",
+            "content": "Question: Does this convey urgency?\n\nOptions:\nA. Yes\nB. No\n\nState:\nHelp! My payouts have been failing for 3 days.\n\nAnswer with one label, A or B."
+          }
+        ],
+        "max_completion_tokens": 1,
+        "logprobs": true,
+        "model": "openai/gpt-4.1-mini"
+      },
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "headers": {
+        "x-request-id": "req_ded1e9991ddbd907752edcd7"
+      },
+      "response": {
+        "id": "gen-ded1e9991ddbd907752edcd7",
+        "provider": "OpenAI",
+        "model": "openai/gpt-4.1-mini",
+        "object": "chat.completion",
+        "created": 1793145600,
+        "choices": [
+          {
+            "index": 0,
+            "logprobs": {
+              "content": [
+                {
+                  "token": "A",
+                  "logprob": -0.08338160893905101,
+                  "bytes": [
+                    65
+                  ],
+                  "top_logprobs": [
+                    {
+                      "token": "A",
+                      "logprob": -0.08338160893905101,
+                      "bytes": [
+                        65
+                      ]
+                    },
+                    {
+                      "token": "B",
+                      "logprob": -2.5257286443082556,
+                      "bytes": [
+                        66
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refusal": null
+            },
+            "finish_reason": "length",
+            "message": {
+              "role": "assistant",
+              "content": "A",
+              "refusal": null
+            }
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 36,
+          "completion_tokens": 1,
+          "total_tokens": 37
+        }
+      }
+    },
+    {
+      "probe": "choice",
+      "request": {
+        "temperature": 0,
+        "top_logprobs": 20,
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a classifier. You answer one question about the state the user gives you. Answer with one label: the capital letter of the option that fits best, and nothing else."
+          },
+          {
+            "role": "user",
+            "content": "Question: Which team should handle this?\n\nOptions:\nA. billing: Payments, invoicing, refunds\nB. technical: Bugs, outages, integrations\n\nState:\nHelp! My payouts have been failing for 3 days.\n\nAnswer with one label, A or B."
+          }
+        ],
+        "max_completion_tokens": 1,
+        "logprobs": true,
+        "model": "openai/gpt-4.1-mini"
+      },
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "headers": {
+        "x-request-id": "req_3adbb776fa736738325a1d8b"
+      },
+      "response": {
+        "id": "gen-3adbb776fa736738325a1d8b",
+        "provider": "OpenAI",
+        "model": "openai/gpt-4.1-mini",
+        "object": "chat.completion",
+        "created": 1793145600,
+        "choices": [
+          {
+            "index": 0,
+            "logprobs": {
+              "content": [
+                {
+                  "token": "A",
+                  "logprob": -0.31471074483970024,
+                  "bytes": [
+                    65
+                  ],
+                  "top_logprobs": [
+                    {
+                      "token": "A",
+                      "logprob": -0.31471074483970024,
+                      "bytes": [
+                        65
+                      ]
+                    },
+                    {
+                      "token": "B",
+                      "logprob": -1.3093333199837622,
+                      "bytes": [
+                        66
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refusal": null
+            },
+            "finish_reason": "length",
+            "message": {
+              "role": "assistant",
+              "content": "A",
+              "refusal": null
+            }
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 55,
+          "completion_tokens": 1,
+          "total_tokens": 56
+        }
+      }
+    },
+    {
+      "probe": "score",
+      "request": {
+        "temperature": 0,
+        "top_logprobs": 20,
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a classifier. You answer one question about the state the user gives you. Answer with one label: the capital letter of the option that fits best, and nothing else."
+          },
+          {
+            "role": "user",
+            "content": "Question: How frustrated is the customer?\n\nOptions:\nA. Level 0: Calm\nB. Level 1: Frustrated\nC. Level 2: Very angry\n\nState:\nHelp! My payouts have been failing for 3 days.\n\nAnswer with one label, A to C."
+          }
+        ],
+        "max_completion_tokens": 1,
+        "logprobs": true,
+        "model": "openai/gpt-4.1-mini"
+      },
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "headers": {
+        "x-request-id": "req_a4e4c90ec2a2276ef93ce9b1"
+      },
+      "response": {
+        "id": "gen-a4e4c90ec2a2276ef93ce9b1",
+        "provider": "OpenAI",
+        "model": "openai/gpt-4.1-mini",
+        "object": "chat.completion",
+        "created": 1793145600,
+        "choices": [
+          {
+            "index": 0,
+            "logprobs": {
+              "content": [
+                {
+                  "token": "B",
+                  "logprob": -0.35667494393873245,
+                  "bytes": [
+                    66
+                  ],
+                  "top_logprobs": [
+                    {
+                      "token": "B",
+                      "logprob": -0.35667494393873245,
+                      "bytes": [
+                        66
+                      ]
+                    },
+                    {
+                      "token": "C",
+                      "logprob": -1.7147984280919266,
+                      "bytes": [
+                        67
+                      ]
+                    },
+                    {
+                      "token": "A",
+                      "logprob": -2.120263536200091,
+                      "bytes": [
+                        65
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refusal": null
+            },
+            "finish_reason": "length",
+            "message": {
+              "role": "assistant",
+              "content": "B",
+              "refusal": null
+            }
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 50,
+          "completion_tokens": 1,
+          "total_tokens": 51
+        }
+      }
+    },
+    {
+      "probe": "mixed",
+      "request": {
+        "temperature": 0,
+        "top_logprobs": 20,
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a classifier. You answer one question about the state the user gives you. Answer with one label: the capital letter of the option that fits best, and nothing else."
+          },
+          {
+            "role": "user",
+            "content": "Question: Does this convey urgency?\n\nOptions:\nA. Yes\nB. No\n\nState:\nHelp! My payouts have been failing for 3 days.\n\nAnswer with one label, A or B."
+          }
+        ],
+        "max_completion_tokens": 1,
+        "logprobs": true,
+        "model": "openai/gpt-4.1-mini"
+      },
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "headers": {
+        "x-request-id": "req_1c39c2fe2029dbd52018a1c9"
+      },
+      "response": {
+        "id": "gen-1c39c2fe2029dbd52018a1c9",
+        "provider": "OpenAI",
+        "model": "openai/gpt-4.1-mini",
+        "object": "chat.completion",
+        "created": 1793145600,
+        "choices": [
+          {
+            "index": 0,
+            "logprobs": {
+              "content": [
+                {
+                  "token": "A",
+                  "logprob": -0.08338160893905101,
+                  "bytes": [
+                    65
+                  ],
+                  "top_logprobs": [
+                    {
+                      "token": "A",
+                      "logprob": -0.08338160893905101,
+                      "bytes": [
+                        65
+                      ]
+                    },
+                    {
+                      "token": "B",
+                      "logprob": -2.5257286443082556,
+                      "bytes": [
+                        66
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refusal": null
+            },
+            "finish_reason": "length",
+            "message": {
+              "role": "assistant",
+              "content": "A",
+              "refusal": null
+            }
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 36,
+          "completion_tokens": 1,
+          "total_tokens": 37
+        }
+      }
+    },
+    {
+      "probe": "mixed",
+      "request": {
+        "temperature": 0,
+        "top_logprobs": 20,
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a classifier. You answer one question about the state the user gives you. Answer with one label: the capital letter of the option that fits best, and nothing else."
+          },
+          {
+            "role": "user",
+            "content": "Question: How frustrated is the customer?\n\nOptions:\nA. Level 0: Calm\nB. Level 1: Frustrated\nC. Level 2: Very angry\n\nState:\nHelp! My payouts have been failing for 3 days.\n\nAnswer with one label, A to C."
+          }
+        ],
+        "max_completion_tokens": 1,
+        "logprobs": true,
+        "model": "openai/gpt-4.1-mini"
+      },
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "headers": {
+        "x-request-id": "req_a6f9845358928a8d9a9a5aff"
+      },
+      "response": {
+        "id": "gen-a6f9845358928a8d9a9a5aff",
+        "provider": "OpenAI",
+        "model": "openai/gpt-4.1-mini",
+        "object": "chat.completion",
+        "created": 1793145600,
+        "choices": [
+          {
+            "index": 0,
+            "logprobs": {
+              "content": [
+                {
+                  "token": "B",
+                  "logprob": -0.35667494393873245,
+                  "bytes": [
+                    66
+                  ],
+                  "top_logprobs": [
+                    {
+                      "token": "B",
+                      "logprob": -0.35667494393873245,
+                      "bytes": [
+                        66
+                      ]
+                    },
+                    {
+                      "token": "C",
+                      "logprob": -1.7147984280919266,
+                      "bytes": [
+                        67
+                      ]
+                    },
+                    {
+                      "token": "A",
+                      "logprob": -2.120263536200091,
+                      "bytes": [
+                        65
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refusal": null
+            },
+            "finish_reason": "length",
+            "message": {
+              "role": "assistant",
+              "content": "B",
+              "refusal": null
+            }
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 50,
+          "completion_tokens": 1,
+          "total_tokens": 51
+        }
+      }
+    },
+    {
+      "probe": "mixed",
+      "request": {
+        "temperature": 0,
+        "top_logprobs": 20,
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a classifier. You answer one question about the state the user gives you. Answer with one label: the capital letter of the option that fits best, and nothing else."
+          },
+          {
+            "role": "user",
+            "content": "Question: Which team should handle this?\n\nOptions:\nA. billing: Payments, invoicing, refunds\nB. technical: Bugs, outages, integrations\n\nState:\nHelp! My payouts have been failing for 3 days.\n\nAnswer with one label, A or B."
+          }
+        ],
+        "max_completion_tokens": 1,
+        "logprobs": true,
+        "model": "openai/gpt-4.1-mini"
+      },
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "headers": {
+        "x-request-id": "req_cc8f5a3a658d9aa7e72d23f6"
+      },
+      "response": {
+        "id": "gen-cc8f5a3a658d9aa7e72d23f6",
+        "provider": "OpenAI",
+        "model": "openai/gpt-4.1-mini",
+        "object": "chat.completion",
+        "created": 1793145600,
+        "choices": [
+          {
+            "index": 0,
+            "logprobs": {
+              "content": [
+                {
+                  "token": "A",
+                  "logprob": -0.31471074483970024,
+                  "bytes": [
+                    65
+                  ],
+                  "top_logprobs": [
+                    {
+                      "token": "A",
+                      "logprob": -0.31471074483970024,
+                      "bytes": [
+                        65
+                      ]
+                    },
+                    {
+                      "token": "B",
+                      "logprob": -1.3093333199837622,
+                      "bytes": [
+                        66
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refusal": null
+            },
+            "finish_reason": "length",
+            "message": {
+              "role": "assistant",
+              "content": "A",
+              "refusal": null
+            }
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 55,
+          "completion_tokens": 1,
+          "total_tokens": 56
+        }
+      }
+    },
+    {
+      "probe": "keyed",
+      "request": {
+        "temperature": 0,
+        "top_logprobs": 20,
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a classifier. You answer one question about the state the user gives you. Answer with one label: the capital letter of the option that fits best, and nothing else."
+          },
+          {
+            "role": "user",
+            "content": "Question: How much effort will this take?\n\nOptions:\nA. Level 0: Minutes\nB. Level 1: Hours\nC. Level 2: Days\n\nState:\nHelp! My payouts have been failing for 3 days.\n\nAnswer with one label, A to C."
+          }
+        ],
+        "max_completion_tokens": 1,
+        "logprobs": true,
+        "model": "openai/gpt-4.1-mini"
+      },
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "headers": {
+        "x-request-id": "req_bab84fa0459a84bbc0cdb26d"
+      },
+      "response": {
+        "id": "gen-bab84fa0459a84bbc0cdb26d",
+        "provider": "OpenAI",
+        "model": "openai/gpt-4.1-mini",
+        "object": "chat.completion",
+        "created": 1793145600,
+        "choices": [
+          {
+            "index": 0,
+            "logprobs": {
+              "content": [
+                {
+                  "token": "B",
+                  "logprob": -0.5108256237659907,
+                  "bytes": [
+                    66
+                  ],
+                  "top_logprobs": [
+                    {
+                      "token": "B",
+                      "logprob": -0.5108256237659907,
+                      "bytes": [
+                        66
+                      ]
+                    },
+                    {
+                      "token": "A",
+                      "logprob": -1.6094379124341003,
+                      "bytes": [
+                        65
+                      ]
+                    },
+                    {
+                      "token": "C",
+                      "logprob": -1.6094379124341003,
+                      "bytes": [
+                        67
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refusal": null
+            },
+            "finish_reason": "length",
+            "message": {
+              "role": "assistant",
+              "content": "B",
+              "refusal": null
+            }
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 48,
+          "completion_tokens": 1,
+          "total_tokens": 49
+        }
+      }
+    },
+    {
+      "probe": "keyed",
+      "request": {
+        "temperature": 0,
+        "top_logprobs": 20,
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a classifier. You answer one question about the state the user gives you. Answer with one label: the capital letter of the option that fits best, and nothing else."
+          },
+          {
+            "role": "user",
+            "content": "Question: Which product is this about?\n\nOptions:\nA. pro-plan: The Pro subscription\nB. team-plan: The Team subscription\n\nState:\nHelp! My payouts have been failing for 3 days.\n\nAnswer with one label, A or B."
+          }
+        ],
+        "max_completion_tokens": 1,
+        "logprobs": true,
+        "model": "openai/gpt-4.1-mini"
+      },
+      "status": 200,
+      "contentType": "application/json; charset=utf-8",
+      "headers": {
+        "x-request-id": "req_a1ce05e646b359849799300d"
+      },
+      "response": {
+        "id": "gen-a1ce05e646b359849799300d",
+        "provider": "OpenAI",
+        "model": "openai/gpt-4.1-mini",
+        "object": "chat.completion",
+        "created": 1793145600,
+        "choices": [
+          {
+            "index": 0,
+            "logprobs": {
+              "content": [
+                {
+                  "token": "A",
+                  "logprob": -0.5978370007556204,
+                  "bytes": [
+                    65
+                  ],
+                  "top_logprobs": [
+                    {
+                      "token": "A",
+                      "logprob": -0.5978370007556204,
+                      "bytes": [
+                        65
+                      ]
+                    },
+                    {
+                      "token": "B",
+                      "logprob": -0.7985076962177716,
+                      "bytes": [
+                        66
+                      ]
+                    }
+                  ]
+                }
+              ],
+              "refusal": null
+            },
+            "finish_reason": "length",
+            "message": {
+              "role": "assistant",
+              "content": "A",
+              "refusal": null
+            }
+          }
+        ],
+        "usage": {
+          "prompt_tokens": 51,
+          "completion_tokens": 1,
+          "total_tokens": 52
+        }
+      }
+    },
+    {
+      "probe": "bad-key",
+      "request": {
+        "temperature": 0,
+        "top_logprobs": 20,
+        "messages": [
+          {
+            "role": "system",
+            "content": "You are a classifier. You answer one question about the state the user gives you. Answer with one label: the capital letter of the option that fits best, and nothing else."
+          },
+          {
+            "role": "user",
+            "content": "Question: Does this convey urgency?\n\nOptions:\nA. Yes\nB. No\n\nState:\nHelp! My payouts have been failing for 3 days.\n\nAnswer with one label, A or B."
+          }
+        ],
+        "max_completion_tokens": 1,
+        "logprobs": true,
+        "model": "openai/gpt-4.1-mini"
+      },
+      "status": 401,
+      "contentType": "application/json; charset=utf-8",
+      "headers": {
+        "x-request-id": "req_80c74a345526efb501e9b025"
+      },
+      "response": {
+        "error": {
+          "message": "User not found.",
+          "code": 401
+        }
+      }
+    }
+  ]
+}

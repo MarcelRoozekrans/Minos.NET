@@ -31,8 +31,46 @@ public sealed partial class FixtureFileTests
     [Fact]
     public void EveryTarget_HasAFixture()
         => Assert.Equal(
-            ["openai.json", "openrouter.json", "typesafe.json"],
+            ["chat-openrouter.json", "openai.json", "openrouter.json", "typesafe.json"],
             Directory.EnumerateFiles(Fixtures.SourceDirectory, "*.json").Select(Path.GetFileName).Order(StringComparer.Ordinal));
+
+    // The chat fixture is what a recording against the scripted network gives, so a prompt change shows here. Set
+    // MINOS_WRITE_CHAT_FIXTURE=1 to write it to the repository instead, then review and commit it.
+    [Fact]
+    public async Task ChatFixture_IsWhatTheScriptedNetworkRecords()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "minos-chat-fixture-" + Guid.NewGuid().ToString("N") + ".json");
+        try
+        {
+            await new ConformanceRunner(static () => new ScriptedChatNetwork(), TimeProvider.System)
+                .RunAsync(Fixtures.Replay(ChatTargets.OpenRouterName), ConformanceMode.Record, path);
+            var recorded = ConformanceFixture.Load(path);
+
+            // The questions of a probe are sent in parallel, so they are kept in a stable order; replay matches by body.
+            var json = new ConformanceFixture
+            {
+                Target = recorded.Target,
+                Source = ConformanceFixture.TestsSource,
+                Model = recorded.Model,
+                Note = "Built from the bridge's scripted responses; the live recording follows from live-smoke.",
+                Exchanges = [.. recorded.Exchanges.GroupBy(exchange => exchange.Probe, StringComparer.Ordinal)
+                    .SelectMany(probe => probe.OrderBy(exchange => exchange.Request?.GetRawText(), StringComparer.Ordinal))],
+            }.ToJson();
+
+            var committed = Path.Combine(Fixtures.SourceDirectory, ChatTargets.OpenRouterName + ".json");
+            if (string.Equals(Environment.GetEnvironmentVariable("MINOS_WRITE_CHAT_FIXTURE"), "1", StringComparison.Ordinal))
+            {
+                await File.WriteAllTextAsync(committed, json);
+            }
+
+            Assert.True(File.Exists(committed), "The chat fixture is missing; run this test with MINOS_WRITE_CHAT_FIXTURE=1 to write it.");
+            Assert.Equal(await File.ReadAllTextAsync(committed), json);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
 
     [Theory]
     [MemberData(nameof(Files))]
