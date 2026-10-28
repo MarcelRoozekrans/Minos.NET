@@ -82,8 +82,8 @@ The client reads the options once, when it is created.
 
 ## How a question is asked
 
-Each question is one chat call, two when `Auto` falls back, and the calls of a request run at once. The answers come
-back in the question set's order, whatever order the calls finish in.
+Each question is one chat call, two when `Auto` falls back. The calls of a request run at once, unless
+`MaxParallelCalls` is set. The answers come back in the question set's order, whatever order the calls finish in.
 
 A question set of many questions sends many calls at once, and a provider with a low rate limit may answer some of them
 with HTTP 429. Set `MaxParallelCalls` to cap the calls in flight. The other questions wait for a free call, and are not

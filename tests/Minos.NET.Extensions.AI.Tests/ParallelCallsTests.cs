@@ -9,7 +9,8 @@ public sealed class ParallelCallsTests
 
     private static readonly DecisionContent State = DecisionContent.FromString("I was charged twice.");
 
-    // Five Noul questions, told apart by their instructions; question i answers yes with probability Yes(i).
+    // Five Noul questions, told apart by their instructions. Question i answers yes with the probability Yes(i),
+    // defined below the tests.
     private static readonly QuestionDefinition[] Questions =
         [.. Enumerable.Range(0, 5).Select(i => QuestionDefinition.Noul("q" + i, "Question number " + i + "?"))];
 

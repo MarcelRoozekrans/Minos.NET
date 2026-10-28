@@ -130,12 +130,13 @@ public sealed class ChatDecisionClient : IDecisionClient
     /// <para>
     /// The first failed question fails the request and cancels the other calls, and questions still waiting for a free
     /// call are not asked. An exception from the chat client is returned as an error when Minos knows it: an OpenAI SDK
-    /// <c>ClientResultException</c> by its HTTP status, with <see cref="DecisionError.RetryAfter"/> and <see cref="DecisionError.RequestId"/> from its headers; an
-    /// <see cref="HttpRequestException"/> as <see cref="DecisionErrorKind.Network"/>; and a <see cref="TimeoutException"/>
-    /// as <see cref="DecisionErrorKind.Timeout"/>. Any other exception propagates, so a bug does not pass as a provider
-    /// failure. The error's message is the bridge's own; the provider's exception is in <see cref="DecisionError.Exception"/>,
-    /// and a JSON error body in <see cref="DecisionError.Detail"/>. Once the caller has cancelled, the call throws
-    /// <see cref="OperationCanceledException"/> instead of returning an error.
+    /// <c>ClientResultException</c> by its HTTP status, with <see cref="DecisionError.RetryAfter"/> and
+    /// <see cref="DecisionError.RequestId"/> from its headers; an <see cref="HttpRequestException"/> as
+    /// <see cref="DecisionErrorKind.Network"/>; and a <see cref="TimeoutException"/> as
+    /// <see cref="DecisionErrorKind.Timeout"/>. Any other exception propagates, so a bug does not pass as a provider
+    /// failure. The error's message is the bridge's own; the provider's exception is in
+    /// <see cref="DecisionError.Exception"/>, and a JSON error body in <see cref="DecisionError.Detail"/>. Once the
+    /// caller has cancelled, the call throws <see cref="OperationCanceledException"/> instead of returning an error.
     /// </para>
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
