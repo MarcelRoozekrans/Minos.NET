@@ -570,6 +570,18 @@ public sealed class ResultsFileTests
         Assert.Equal(ProbabilitySource.Model, loaded.Value.Items[0].Answers!["q"].ProbabilitySource);
     }
 
+    [Fact]
+    public void NullSource_LoadsAsModel()
+    {
+        var answer = "{\"kind\":\"score\",\"value\":1,\"confidence\":0.5,\"probabilitySource\":null}";
+        var text = HeaderLine(count: 1) + "\n" + ItemLine(tail: ",\"answers\":{\"q\":" + answer + "}") + "\n";
+
+        var loaded = EvaluationResults.Parse(new MemoryStream(Encoding.UTF8.GetBytes(text)));
+
+        Assert.True(loaded.IsSuccess);
+        Assert.Equal(ProbabilitySource.Model, loaded.Value.Items[0].Answers!["q"].ProbabilitySource);
+    }
+
     [Theory]
     [InlineData("\"model\"")]
     [InlineData("\"Verbalized\"")]

@@ -118,12 +118,12 @@ the item's own question set and state. Items run one at a time unless you set `M
 `DecisionError` does not stop the run: the failure is written on that item, and the run goes on to the next one. An
 `OperationCanceledException` that your own token did not cause is written on that item as an `ItemError` of kind
 `Cancelled`, and the run goes on too. A response whose answers do not fit the item turns the whole item into an
-`InvalidResponse` error: an answer of the wrong kind, a chosen option or level the question does not have, a
-probability or confidence outside 0 to 1, a `ProbabilitySource` that is not one of its named values, or no answer to any
-of the item's questions. These do stop the run: your own
-cancellation token, and an exception thrown by the client or by the `Progress` receiver. In those cases no new requests
-are sent, and requests still in flight are cancelled. Either way the exception carries the items that finished, as
-`PartialResults`, in dataset order, with `Header.Partial` set and `ItemCount` counting only those:
+`InvalidResponse` error: an answer of the wrong kind, a chosen option or level the question does not have, a probability
+or confidence outside 0 to 1, a `ProbabilitySource` that is not one of its named values, or no answer to any of the
+item's questions. These do stop the run: your own cancellation token, and an exception thrown by the client or by the
+`Progress` receiver. In those cases no new requests are sent, and requests still in flight are cancelled. Either way the
+exception carries the items that finished, as `PartialResults`, in dataset order, with `Header.Partial` set and
+`ItemCount` counting only those:
 
 - Your own cancellation throws a `DatasetRunCanceledException`. It is an `OperationCanceledException` whose
   `CancellationToken` is your token, so `catch (OperationCanceledException e) when (e.CancellationToken == token)`
@@ -248,11 +248,11 @@ It also holds the latency (`LatencySummary`), the cost per 1,000 decisions (`Cos
 (`ErrorSummary`), and the models that answered (`ModelCount`). `VerbalizedAnswers` counts the scored answers whose
 probabilities are `Verbalized`: the model stated them in its text, so they are not a measured distribution. They are
 scored like any other answer, so the calibration figures include them. When there are some, the Markdown report says how
-many, and the JSON has a `verbalizedAnswers` member; when there are none, neither changes. A question is scored when it has an expected answer. A question without one is only counted, in the
-report's header. A failed request, or an answer the provider left out, is an abstention: the question is scored but
-unanswered. It is left out of accuracy, the calibration error, the bins and the base rate, but it counts as uncovered
-in the coverage of the threshold sweep. [Choosing a provider and a threshold](choosing-a-provider.md) reads these
-numbers in real reports.
+many, and the JSON has a `verbalizedAnswers` member; when there are none, neither changes. A question is scored when it
+has an expected answer. A question without one is only counted, in the report's header. A failed request, or an answer
+the provider left out, is an abstention: the question is scored but unanswered. It is left out of accuracy, the
+calibration error, the bins and the base rate, but it counts as uncovered in the coverage of the threshold sweep.
+[Choosing a provider and a threshold](choosing-a-provider.md) reads these numbers in real reports.
 
 ## Running it from the command line
 
