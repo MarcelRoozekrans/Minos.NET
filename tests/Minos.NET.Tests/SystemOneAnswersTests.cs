@@ -173,6 +173,57 @@ public sealed class SystemOneAnswersTests
             AnswerReading.NextProperty(ref reader);
         });
 
+    [Theory]
+    [InlineData("""{"type":"noul","noul":1.2}""")]
+    [InlineData("""{"type":"noul","noul":-0.01}""")]
+    [InlineData("""{"type":"noul","noul":1e400}""")]
+    public void ReadNoul_ProbabilityOutsideZeroToOne_Throws(string json)
+    {
+        var exception = Assert.ThrowsAny<JsonException>(() =>
+        {
+            var reader = At(json);
+            SystemOneAnswers.ReadNoul(ref reader);
+        });
+
+        Assert.DoesNotContain("found Number", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("""{"type":"choice","choice":"green","probabilities":{"red":-0.1,"green":0.9,"blue":0.2},"confidence":0.81}""")]
+    [InlineData("""{"type":"choice","choice":"green","probabilities":{"red":0.1,"green":1.5,"blue":0.2},"confidence":0.81}""")]
+    [InlineData("""{"type":"choice","choice":"green","probabilities":{"red":0.1,"green":0.7,"blue":0.2},"confidence":1.01}""")]
+    [InlineData("""{"type":"choice","choice":"green","probabilities":{"red":0.1,"green":0.7,"blue":0.2},"confidence":-1}""")]
+    public void ReadChoice_ProbabilityOrConfidenceOutsideZeroToOne_Throws(string json)
+        => Assert.ThrowsAny<JsonException>(() =>
+        {
+            var reader = At(json);
+            SystemOneAnswers.ReadChoice(ref reader, ColorKeys, new double[3], 0);
+        });
+
+    [Theory]
+    [InlineData("""{"type":"score","score":1.0,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.1,"1":1.8,"2":0.1},"confidence":0.5}""")]
+    [InlineData("""{"type":"score","score":1.0,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.1,"1":0.8,"2":0.1},"confidence":2}""")]
+    [InlineData("""{"type":"score","score":2.5,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.1,"1":0.8,"2":0.1},"confidence":0.5}""")]
+    [InlineData("""{"type":"score","score":-0.5,"legend":{"0":"Low","1":"Medium","2":"High"},"probabilities":{"0":0.1,"1":0.8,"2":0.1},"confidence":0.5}""")]
+    public void ReadScore_ValueOutsideItsRange_Throws(string json)
+        => Assert.ThrowsAny<JsonException>(() =>
+        {
+            var reader = At(json);
+            SystemOneAnswers.ReadScore(ref reader, UrgencyKeys, new double[3], 0);
+        });
+
+    [Theory]
+    [InlineData("""{"type":"noul","noul":0}""")]
+    [InlineData("""{"type":"noul","noul":1}""")]
+    public void ReadNoul_TheBoundsZeroAndOne_AreRead(string json)
+    {
+        var reader = At(json);
+
+        var noul = SystemOneAnswers.ReadNoul(ref reader);
+
+        Assert.InRange(noul, 0.0, 1.0);
+    }
+
     [Fact]
     public void MissingAnswer_NamesTheKey()
         => Assert.Contains("'team'", AnswerReading.MissingAnswer("team").Message, StringComparison.Ordinal);

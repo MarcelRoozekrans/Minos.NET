@@ -23,7 +23,7 @@ internal static class SystemOneAnswers
             }
             else if (reader.ValueTextEquals("noul"u8))
             {
-                probability = AnswerReading.ReadNumber(ref reader);
+                probability = AnswerReading.ReadProbability(ref reader);
             }
             else
             {
@@ -63,7 +63,7 @@ internal static class SystemOneAnswers
             }
             else if (reader.ValueTextEquals("confidence"u8))
             {
-                confidence = AnswerReading.ReadNumber(ref reader);
+                confidence = AnswerReading.ReadProbability(ref reader);
             }
             else
             {
@@ -100,7 +100,7 @@ internal static class SystemOneAnswers
             }
             else if (reader.ValueTextEquals("score"u8))
             {
-                expected = AnswerReading.ReadNumber(ref reader);
+                expected = AnswerReading.ReadExpectedLevel(ref reader, optionKeys.Length);
             }
             else if (reader.ValueTextEquals("legend"u8))
             {
@@ -117,7 +117,7 @@ internal static class SystemOneAnswers
             }
             else if (reader.ValueTextEquals("confidence"u8))
             {
-                confidence = AnswerReading.ReadNumber(ref reader);
+                confidence = AnswerReading.ReadProbability(ref reader);
             }
             else
             {
@@ -175,7 +175,7 @@ internal static class SystemOneAnswers
         while (AnswerReading.NextProperty(ref reader))
         {
             var index = ReadOptionIndex(ref reader, optionKeys, JsonTokenType.PropertyName);
-            buffer[offset + index] = AnswerReading.ReadNumber(ref reader);
+            buffer[offset + index] = AnswerReading.ReadProbability(ref reader);
         }
     }
 }
