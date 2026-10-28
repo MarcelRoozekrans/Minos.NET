@@ -27,7 +27,8 @@ public sealed class VerbalizedPathTests
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
         var options = Assert.Single(chat.Calls).Options;
         Assert.NotNull(options);
-        Assert.Equal(0f, options.Temperature);
+        // No temperature: reasoning models reject any but their own.
+        Assert.Null(options.Temperature);
         Assert.Equal("options-model", options.ModelId);
         Assert.Null(options.RawRepresentationFactory);
         var format = Assert.IsType<ChatResponseFormatJson>(options.ResponseFormat);
@@ -231,6 +232,74 @@ public sealed class VerbalizedPathTests
         Assert.True(result.IsFailure);
         Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);
         Assert.Equal(2, chat.Calls.Count);
+    }
+
+    [Theory]
+    [InlineData(400)]
+    [InlineData(422)]
+    public async Task Auto_FallsBackToVerbalized_WhenTheModelRejectsTheLogprobRequest(int status)
+    {
+        // A reasoning model rejects logprobs and temperature with a 400.
+        var chat = new ScriptedChatClient((_, options) => options?.ResponseFormat is ChatResponseFormatJson
+            ? ChatCompletions.WithoutLogprobs("""{"A":0.7,"B":0.2,"C":0.1}""")
+            : throw FakePipelineResponse.Exception(status));
+        using var client = chat.AsDecisionClient();
+
+        var result = await client.EvaluateAsync(new DecisionRequest(new QuestionSetDefinition(Team), State));
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
+        Assert.Equal(2, chat.Calls.Count);
+        Assert.NotNull(chat.Calls[0].Options!.RawRepresentationFactory);
+        Assert.IsType<ChatResponseFormatJson>(chat.Calls[1].Options!.ResponseFormat);
+        Assert.Equal(ProbabilitySource.Verbalized, SingleAnswer(result.Value).ProbabilitySource);
+    }
+
+    [Fact]
+    public async Task Auto_ReturnsTheVerbalizedCallsError_WhenBothCallsAreRejected()
+    {
+        var verbalizedRejection = FakePipelineResponse.Exception(422);
+        var chat = new ScriptedChatClient((_, options) => throw (options?.ResponseFormat is ChatResponseFormatJson
+            ? verbalizedRejection
+            : FakePipelineResponse.Exception(400)));
+        using var client = chat.AsDecisionClient();
+
+        var result = await client.EvaluateAsync(new DecisionRequest(new QuestionSetDefinition(Team), State));
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(DecisionErrorKind.Validation, result.Error.Kind);
+        Assert.Equal(422, result.Error.StatusCode);
+        Assert.Same(verbalizedRejection, result.Error.Exception);
+        Assert.Equal(2, chat.Calls.Count);
+    }
+
+    [Fact]
+    public async Task Logprobs_ReturnsTheRejection_WithoutAVerbalizedCall()
+    {
+        var chat = new ScriptedChatClient((_, _) => throw FakePipelineResponse.Exception(400));
+        using var client = chat.AsDecisionClient(new ChatDecisionClientOptions { ProbabilityMode = ProbabilityMode.Logprobs });
+
+        var result = await client.EvaluateAsync(new DecisionRequest(new QuestionSetDefinition(Team), State));
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(DecisionErrorKind.Validation, result.Error.Kind);
+        Assert.Single(chat.Calls);
+    }
+
+    [Theory]
+    [InlineData(401, DecisionErrorKind.Unauthorized)]
+    [InlineData(429, DecisionErrorKind.RateLimited)]
+    [InlineData(500, DecisionErrorKind.Server)]
+    [InlineData(503, DecisionErrorKind.Overloaded)]
+    public async Task Auto_DoesNotFallBack_WhenTheLogprobCallFailsOtherwise(int status, DecisionErrorKind kind)
+    {
+        var chat = new ScriptedChatClient((_, _) => throw FakePipelineResponse.Exception(status));
+        using var client = chat.AsDecisionClient();
+
+        var result = await client.EvaluateAsync(new DecisionRequest(new QuestionSetDefinition(Team), State));
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(kind, result.Error.Kind);
+        Assert.Single(chat.Calls);
     }
 
     private static QuestionAnswer SingleAnswer(DecisionResponse response)

@@ -80,8 +80,8 @@ The client reads the options once, when it is created.
 
 ## How a question is asked
 
-Each question is one chat call, and the calls of a request run at once. The answers come back in the question set's
-order, whatever order the calls finish in.
+Each question is one chat call, two when `Auto` falls back, and the calls of a request run at once. The answers come
+back in the question set's order, whatever order the calls finish in.
 
 The call has a system message, which tells the model it is a classifier, and one user message. That message holds the
 question, its options or levels labelled `A`, `B`, `C` and on, each with its criterion, its examples and what it is not
@@ -89,14 +89,14 @@ for, then the state, then any images. A Noul's options are `A` for yes and `B` f
 `WhenFalse` when it has them. JSON instructions, criteria and state are sent as their raw text.
 
 `DecisionResponse.Usage` sums the tokens of every call. `DecisionResponse.Model` is the first model the chat responses
-name, in question order, or the requested model when none names one.
+name, in question order. When none names one, it is the request's `Model`, then `ChatDecisionClientOptions.Model`.
 
 ## Probability modes
 
 | Mode | What it does |
 | --- | --- |
-| `Auto` | The default. Asks for logprobs first. When a reply has none, or no option label among them, that question is asked once more, verbalized. |
-| `Logprobs` | Asks for logprobs only. A reply without them fails with `Unsupported`; it is never asked again. |
+| `Auto` | The default. Asks for logprobs first. When a reply has none, or no option label among them, or the provider rejects the logprob request with HTTP 400 or 422, that question is asked once more, verbalized. |
+| `Logprobs` | Asks for logprobs only. A reply without them fails with `Unsupported`, and a rejected request with its own error; it is never asked again. |
 | `Verbalized` | Asks the model to state each option's probability. It never asks for logprobs. |
 
 `Auto` decides for each question and each call. It keeps nothing between calls, so one odd reply does not move every
@@ -119,8 +119,9 @@ no logprobs, so it takes the verbalized path.
 ### Verbalized
 
 The verbalized call asks for a JSON object with one number for each label, and passes a JSON schema as the response
-format. The bridge normalizes the numbers so they sum to 1. A reply that is not that JSON, leaves out a label, or
-states a negative value, a value that is not a finite number, or only zeros, is an `InvalidResponse`.
+format. It sends no temperature, so the model uses its own. The bridge normalizes the numbers so they sum to 1. A reply
+that is not that JSON, leaves out a label, or states a negative value, a value that is not a finite number, or only
+zeros, is an `InvalidResponse`.
 
 A verbalized probability is the model's own estimate, written as text. It is not measured from the model's output
 distribution, and it is often too sure. Treat it as a weaker signal than logprobs.
@@ -128,8 +129,14 @@ distribution, and it is often too sure. Treat it as a weaker signal than logprob
 ### Reasoning models
 
 A reasoning model thinks before it answers, so its first output token is not the answer, and it returns no logprobs.
-In `Auto` every question then costs a wasted logprob call before the verbalized one. Set `ProbabilityMode` to
-`Verbalized` for such a model, and for any chat client that gives no logprobs.
+Some, such as OpenAI's, reject the logprob request outright with HTTP 400, because they take neither logprobs nor a
+temperature other than their own. In `Auto`, a logprob request rejected with HTTP 400 or 422 is asked once more,
+verbalized, and that call decides: its answer, or its error when it fails too. Other failures, such as 401, 429 or a
+5xx, are returned as they are. In `Logprobs` mode the rejection is returned as a `Validation` error.
+
+Either way, `Auto` costs every question a wasted logprob call before the verbalized one. Set `ProbabilityMode` to
+`Verbalized` for such a model, and for any chat client that gives no logprobs. The verbalized call sends no
+temperature, so a reasoning model accepts it.
 
 ## Where the probabilities came from
 
@@ -173,8 +180,8 @@ estimate. Do not reuse a threshold tuned on a decision model. Measure the chat m
 
 ## Registration
 
-`AddChatDecisionClient` registers a `ChatDecisionClient` over the `IChatClient` in the container. Register the chat
-client first, for example with `AddChatClient`. The registration returns the pipeline builder, so stages chain on it
+`AddChatDecisionClient` registers a `ChatDecisionClient` over the `IChatClient` in the container. Register a chat
+client too, for example with `AddChatClient`. The registration returns the pipeline builder, so stages chain on it
 as they do after `AddSystemOneDecisionClient`.
 
 <!-- snippet: ChatClients_Register -->
@@ -189,7 +196,7 @@ public static class ChatDecisionServices
 {
     public static IServiceCollection AddChatDecisions(this IServiceCollection services, IChatClient chat, string recordPath)
     {
-        // The chat client first: AddChatDecisionClient resolves IChatClient from the container.
+        // A chat client too: the decision client resolves IChatClient from the container when it is first resolved.
         services.AddChatClient(chat);
 
         // The recorder, as on the recording page. Its records keep each answer's probability source.
@@ -197,7 +204,7 @@ public static class ChatDecisionServices
         services.AddSingleton(provider => new DecisionRecorder(provider.GetRequiredService<JsonlDecisionRecordSink>()));
         services.AddSingleton<IDecisionRecorder>(provider => provider.GetRequiredService<DecisionRecorder>());
 
-        // A reasoning model returns no logprobs, so Verbalized skips the logprob call that Auto would waste on it.
+        // A reasoning model gives no logprobs, or rejects the request for them, so Verbalized skips the call Auto spends on it.
         services.AddChatDecisionClient(options => options.ProbabilityMode = ProbabilityMode.Verbalized)
             .UseRecording();
         return services;
@@ -251,17 +258,19 @@ client gives none. Any other service is asked of the chat client.
 
 ## Errors
 
-A failure comes back as a `DecisionError`, as on every provider; [The client and its errors](client-and-errors.md#errors)
-describes them.
+A failure comes back as a `DecisionError`, as on every provider.
+[The client and its errors](client-and-errors.md#errors) describes them.
 
-- **`Validation`:** the request has no questions. Nothing is sent.
+- **`Validation`:** the request has no questions, and nothing is sent. It is also a provider's HTTP 400 or 422; in
+  `Auto` that comes from the verbalized call, since a rejected logprob request is asked again.
 - **`Unsupported`:** the set breaks a [capability](#capabilities), and nothing is sent. In `Logprobs` mode it is also a
   reply without logprobs.
 - **`InvalidResponse`:** no option label among the top logprobs in `Logprobs` mode, or a verbalized reply that is not
   usable.
 - **An exception from the chat client** is returned as an error when Minos knows it. The OpenAI SDK's
   `ClientResultException` maps by its HTTP status, as the HTTP clients map it, with `RetryAfter` and `RequestId` read
-  from its headers. An `HttpRequestException` is `Network`, and a `TimeoutException` is `Timeout`. Any other exception
+  from its headers. A `ClientResultException` without a response is `Network`, or `Timeout` when its inner exception
+  is a time-out. An `HttpRequestException` is `Network`, and a `TimeoutException` is `Timeout`. Any other exception
   propagates, so a bug does not pass as a provider failure.
 
 The error's message is the bridge's own, and never quotes the state or the model's reply. The provider's exception is

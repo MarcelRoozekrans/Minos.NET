@@ -457,9 +457,9 @@ public static class RecordFileReading
 - **An outcome with no record before it** is ignored and reported.
 - **A bad line is a problem, not an exception.** The overload that takes a collection fills it with
   `DecisionRecordFileProblem` values, each with its line number and a message that never holds an id or any state, and
-  the lines around it are still read. A line that is not version 1 or 2, or has a kind, an outcome type, an error kind or an
-  answer kind the reader does not know, is a problem too. A cut last line is reported, not thrown. A file that does not
-  exist throws `FileNotFoundException` when the first decision is requested.
+  the lines around it are still read. A line that is not version 1 or 2, or has a kind, an outcome type, an error kind
+  or an answer kind the reader does not know, is a problem too. A cut last line is reported, not thrown. A file that
+  does not exist throws `FileNotFoundException` when the first decision is requested.
 - **The whole file is read before the first decision is returned.**
 
 ### Probability sources

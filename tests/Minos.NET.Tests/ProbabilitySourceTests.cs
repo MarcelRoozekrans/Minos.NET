@@ -102,6 +102,39 @@ public sealed class ProbabilitySourceTests
         Assert.NotEqual(first.Team.GetHashCode(), second.Team.GetHashCode());
     }
 
+    [Fact]
+    public void KeyedAnswers_Equality_IncludesTheSource()
+    {
+        var built = QuestionSet.CreateBuilder()
+            .Choice("product", "Which product?", out var product, o => o.Option("a", "A").Option("b", "B").Option("c", "C"))
+            .Score("effort", "How much effort?", out var effort, l => l.Level("Minutes").Level("Hours").Level("Days"))
+            .Build();
+        Assert.True(built.IsSuccess);
+        var set = built.Value;
+
+        var logprobs = KeyedAnswers(set, ProbabilitySource.Logprobs);
+        var sameLogprobs = KeyedAnswers(set, ProbabilitySource.Logprobs);
+        var verbalized = KeyedAnswers(set, ProbabilitySource.Verbalized);
+
+        Assert.Equal(logprobs.Get(product), sameLogprobs.Get(product));
+        Assert.Equal(logprobs.Get(product).GetHashCode(), sameLogprobs.Get(product).GetHashCode());
+        Assert.NotEqual(logprobs.Get(product), verbalized.Get(product));
+        Assert.NotEqual(logprobs.Get(product).GetHashCode(), verbalized.Get(product).GetHashCode());
+
+        Assert.Equal(logprobs.Get(effort), sameLogprobs.Get(effort));
+        Assert.Equal(logprobs.Get(effort).GetHashCode(), sameLogprobs.Get(effort).GetHashCode());
+        Assert.NotEqual(logprobs.Get(effort), verbalized.Get(effort));
+        Assert.NotEqual(logprobs.Get(effort).GetHashCode(), verbalized.Get(effort).GetHashCode());
+    }
+
+    private static QuestionSetAnswers KeyedAnswers(QuestionSet set, ProbabilitySource source)
+    {
+        var response = new DecisionResponse(
+            set.Definition,
+            [QuestionAnswer.Choice(1, 0.5, Three, source), QuestionAnswer.Score(1, 1.1, 0.5, Three, source)]);
+        return new QuestionSetAnswers(set, response.Probabilities, response.Slots);
+    }
+
     private static DecisionResponse MixedResponse(ProbabilitySource noul, ProbabilitySource choice, ProbabilitySource score)
         => new(
             WfMixed.Definition,

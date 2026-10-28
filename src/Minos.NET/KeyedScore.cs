@@ -9,7 +9,7 @@ public readonly struct KeyedScore : IEquatable<KeyedScore>
     /// <param name="confidence">The model's confidence, between 0 and 1.</param>
     /// <param name="probabilities">The probability of each level, keyed by index.</param>
     /// <param name="probabilitySource">How the probabilities were made.</param>
-    internal KeyedScore(int level, double expected, double confidence, KeyedProbabilityMap probabilities, ProbabilitySource probabilitySource = ProbabilitySource.Model)
+    internal KeyedScore(int level, double expected, double confidence, KeyedProbabilityMap probabilities, ProbabilitySource probabilitySource)
     {
         Level = level;
         Expected = expected;

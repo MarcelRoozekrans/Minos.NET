@@ -96,6 +96,9 @@ By the maintainer, 2026-10-28:
    - It reads `ChatCompletion.ContentTokenLogProbabilities` from `ChatResponse.RawRepresentation`.
    - That covers OpenAI, and OpenRouter through the OpenAI client. Any other raw representation takes the verbalized
      path.
+   - *Amended during implementation:* the package references `OpenAI` and `Microsoft.Extensions.AI.Abstractions`, not
+     `Microsoft.Extensions.AI.OpenAI`. The bridge only needs `IChatClient` and the SDK's `ChatCompletion` types; the
+     app that calls `AsIChatClient()` brings `Microsoft.Extensions.AI.OpenAI` itself.
 5. **One chat call per question, run in parallel.** The answer is the first output token, so its logprobs sit at
    position 0 and no token positions inside JSON need finding. Usage is summed across the calls.
 6. **Confidence is the picked option's probability**, on both paths, for Choice and Score. A Noul keeps no confidence,
@@ -124,6 +127,10 @@ My calls (Claude's), open to correction:
   - The cost is an extra call per question on a model without logprobs. The docs say to set `Verbalized` for such a
     model.
   - `Logprobs` returns `Unsupported` instead of falling back. `Verbalized` never asks for logprobs.
+  - *Amended during implementation:* in `Auto`, a logprob call that fails with a mapped `Validation` error, HTTP 400
+    or 422, is re-asked verbalized once. Reasoning models reject logprobs and temperature this way. When the
+    verbalized call fails too, its error is returned. 401, 429, 5xx and transport failures never fall back.
+    `Logprobs` returns the rejection unchanged. Usage counts every call made.
 - **Native AOT.** Zero IL2 and IL3 warnings in `aot-smoke` publish, the new package's dependencies included. The first
   plan task is a spike that publishes a minimal AOT app over `AsIChatClient().AsDecisionClient()`.
   - The verbalized schema is built by hand as a `JsonElement`, not with `AIJsonUtilities`.
@@ -143,6 +150,8 @@ My calls (Claude's), open to correction:
   - When no label at all appears in the top 20, that is a malformed answer. In `Auto` the question is re-asked
     verbalized; in `Logprobs` it returns an error.
 - **The verbalized path** uses `GetResponseAsync` with a JSON schema response format.
+  - *Amended during implementation:* it sends no temperature. Only the logprob call pins `Temperature = 0`; OpenAI
+    reasoning models reject a temperature other than 1, and they are the models this path is for.
   - The schema is built per question: an object with one number per label, from 0 to 1.
   - It is parsed with `JsonDocument`, which needs no reflection and is AOT-safe.
   - *Amended during implementation:* the schema has no `minimum` or `maximum`: each label is `type: number`, every

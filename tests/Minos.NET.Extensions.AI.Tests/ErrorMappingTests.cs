@@ -273,6 +273,37 @@ public sealed class ErrorMappingTests
     }
 
     [Fact]
+    public async Task AnUnmappedException_FromACallASiblingFailureCancelled_LeavesTheFirstFailure()
+    {
+        // Some chat clients report a cancellation as an exception of their own; the sibling's failure still decides.
+        var hanging = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var chat = new ScriptedChatClient(async (messages, _, cancellationToken) =>
+        {
+            if (messages[1].Text.StartsWith("Question: Which team", StringComparison.Ordinal))
+            {
+                hanging.SetResult();
+                try
+                {
+                    await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+                }
+                catch (OperationCanceledException exception)
+                {
+                    throw new InvalidOperationException("The call was aborted.", exception);
+                }
+            }
+
+            await hanging.Task.WaitAsync(Bound, cancellationToken);
+            throw FakePipelineResponse.Exception(429);
+        });
+        using var client = chat.AsDecisionClient();
+
+        var result = await client.EvaluateAsync(new DecisionRequest(new QuestionSetDefinition(Refund, Team), State)).AsTask().WaitAsync(Bound);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(DecisionErrorKind.RateLimited, result.Error.Kind);
+    }
+
+    [Fact]
     public async Task CallerCancellation_Throws()
     {
         using var cancellation = new CancellationTokenSource();

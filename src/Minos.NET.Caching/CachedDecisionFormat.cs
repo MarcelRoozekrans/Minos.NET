@@ -6,7 +6,8 @@ namespace Minos.Caching;
 /// <summary>
 /// The distributed-cache form of a <see cref="CachedDecision"/>: compact JSON with a version field. A slot is
 /// <c>[valueIndex, value, confidence, offset]</c>. An entry with an answer whose probabilities are not the model's own
-/// is version 2 and adds <c>"sources"</c>, one <see cref="ProbabilitySource"/> number per slot. No reflection, so it is trim- and AOT-safe.
+/// is version 2 and adds <c>"sources"</c>, one <see cref="ProbabilitySource"/> number per slot. No reflection, so it is
+/// trim- and AOT-safe.
 /// </summary>
 /// <remarks>
 /// Reading never throws. An unknown version or bytes it cannot read give <see cref="CachedDecision.Unreadable"/>, which the
@@ -248,6 +249,7 @@ internal static class CachedDecisionFormat
             case CachedDecision.ModelOnlyVersion:
                 return sources is null;
             case CachedDecision.CurrentVersion when sources is not null && sources.Length == slots.Length:
+                // The slots were just read for this entry and nothing else holds them, so setting them in place is safe.
                 for (var i = 0; i < slots.Length; i++)
                 {
                     slots[i] = slots[i] with { Source = sources[i] };

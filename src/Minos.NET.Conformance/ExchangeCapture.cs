@@ -58,7 +58,13 @@ public sealed class ExchangeCapture : DelegatingHandler
     protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(request);
-        var probe = _probe ?? throw new InvalidOperationException("A request was sent outside a probe; call Begin first.");
+        ConformanceProbe? current;
+        lock (_exchanges)
+        {
+            current = _probe;
+        }
+
+        var probe = current ?? throw new InvalidOperationException("A request was sent outside a probe; call Begin first.");
         var swapped = true;
         if (probe.Kind == ProbeKind.BadKey)
         {

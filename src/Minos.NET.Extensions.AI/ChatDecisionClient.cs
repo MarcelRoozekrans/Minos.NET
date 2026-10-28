@@ -105,18 +105,19 @@ public sealed class ChatDecisionClient : IDecisionClient
     /// <item><description>
     /// <see cref="ProbabilityMode.Verbalized"/> asks the model to state each option's probability as JSON. A reply that
     /// is not that JSON, misses an option, or states a negative value or all zeros returns
-    /// <see cref="DecisionErrorKind.InvalidResponse"/>.
+    /// <see cref="DecisionErrorKind.InvalidResponse"/>. This call sends no temperature, which reasoning models reject.
     /// </description></item>
     /// <item><description>
     /// <see cref="ProbabilityMode.Auto"/> tries logprobs first. When that response has none, or no usable option label,
-    /// the question is asked once more, verbalized, and that reply decides.
+    /// or the provider rejects the logprob request as invalid (HTTP 400 or 422, as reasoning models do), the question is
+    /// asked once more, verbalized, and that call decides, its error included.
     /// </description></item>
     /// </list>
     /// <para>
     /// Each answer's <see cref="QuestionAnswer.ProbabilitySource"/> says which path made it.
     /// <see cref="DecisionResponse.Usage"/> sums the tokens of every call, the logprob call before a fallback included,
-    /// and <see cref="DecisionResponse.Model"/> is the first model the responses name, in question order, or the requested
-    /// model when none names one.
+    /// and <see cref="DecisionResponse.Model"/> is the first model the responses name, in question order. When none names
+    /// one, it is the request's <see cref="DecisionRequest.Model"/>, then <see cref="ChatDecisionClientOptions.Model"/>.
     /// </para>
     /// <para>
     /// The first failed question fails the request and cancels the other calls. An exception from the chat client is
@@ -249,8 +250,9 @@ public sealed class ChatDecisionClient : IDecisionClient
     /// <summary>
     /// Asks every question at once, one call each, and puts each answer at its question's index, whatever order the calls
     /// finish in. The first failure, returned or mapped from an exception, fails the request and cancels the other
-    /// calls. An exception the mapper does not know propagates unchanged, and cancels the other calls too. The caller's
-    /// cancellation throws, even when the chat client reports it as a failure the mapper knows.
+    /// calls. An exception the mapper does not know propagates unchanged, and cancels the other calls too, unless a
+    /// failure is already recorded: that failure cancelled the call, so it decides. The caller's cancellation throws,
+    /// even when the chat client reports it as a failure the mapper knows.
     /// </summary>
     private async ValueTask<Result<DecisionResponse, DecisionError>> AnswerAllAsync(DecisionRequest request, CancellationToken cancellationToken)
     {
@@ -314,6 +316,12 @@ public sealed class ChatDecisionClient : IDecisionClient
 
                 result = Result<QuestionCall, DecisionError>.Failure(error);
             }
+            catch (Exception) when (Volatile.Read(ref failure) is not null && !cancellationToken.IsCancellationRequested)
+            {
+                // A sibling's failure is recorded and cancelled this call, which the chat client reported as an exception
+                // of its own; the first failure decides.
+                return;
+            }
             catch
             {
                 await rest.CancelAsync().ConfigureAwait(false);
@@ -334,19 +342,18 @@ public sealed class ChatDecisionClient : IDecisionClient
 
     /// <summary>
     /// Answers one question by the configured <see cref="ProbabilityMode"/>. In <see cref="ProbabilityMode.Auto"/>, a
-    /// logprob response with no logprobs, or with no usable label among them, is asked again verbalized, once. The
-    /// answer carries the first response's model and the usage of every call made for it. Exceptions from the chat client
-    /// propagate.
+    /// logprob response with no logprobs, or with no usable label among them, is asked again verbalized, once, and so is
+    /// a logprob request the provider rejects as invalid. The answer carries the first response's model and the usage of
+    /// every call made for it. Other exceptions from the chat client propagate.
     /// </summary>
     private async ValueTask<Result<QuestionCall, DecisionError>> AnswerAsync(
         QuestionDefinition question, DecisionRequest request, CancellationToken cancellationToken)
     {
         var model = request.Model ?? _model;
         ChatResponse? first = null;
-        if (_probabilityMode != ProbabilityMode.Verbalized)
+        if (_probabilityMode != ProbabilityMode.Verbalized
+            && await AskForLogprobsAsync(question, request, model, cancellationToken).ConfigureAwait(false) is { } response)
         {
-            var response = await _chatClient.GetResponseAsync(
-                QuestionPrompt.Build(question, request, verbalized: false), LogprobOptions(model), cancellationToken).ConfigureAwait(false);
             var read = ReadLogprobs(question, response, model);
 
             // Its only failures are no logprobs and no usable label among them.
@@ -358,11 +365,32 @@ public sealed class ChatDecisionClient : IDecisionClient
             first = response;
         }
 
+        // No temperature: reasoning models reject any but their own, and this is the path they take.
         var labelCount = LabelCount(question);
-        var verbalizedOptions = new ChatOptions { ModelId = model, Temperature = 0, ResponseFormat = VerbalizedReader.Format(labelCount) };
+        var verbalizedOptions = new ChatOptions { ModelId = model, ResponseFormat = VerbalizedReader.Format(labelCount) };
         var verbalized = await _chatClient.GetResponseAsync(
             QuestionPrompt.Build(question, request, verbalized: true), verbalizedOptions, cancellationToken).ConfigureAwait(false);
         return Called(ReadVerbalized(question, labelCount, verbalized, model), verbalized, first);
+    }
+
+    /// <summary>
+    /// Sends the logprob call. In <see cref="ProbabilityMode.Auto"/>, a request the provider rejects as invalid, HTTP 400
+    /// or 422 as reasoning models answer logprobs and temperature, returns <see langword="null"/>, so the question is
+    /// asked verbalized instead. Any other exception propagates.
+    /// </summary>
+    private async Task<ChatResponse?> AskForLogprobsAsync(
+        QuestionDefinition question, DecisionRequest request, string? model, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return await _chatClient.GetResponseAsync(
+                QuestionPrompt.Build(question, request, verbalized: false), LogprobOptions(model), cancellationToken).ConfigureAwait(false);
+        }
+        catch (Exception exception) when (_probabilityMode == ProbabilityMode.Auto
+            && ChatErrorMapper.Map(exception) is { Kind: DecisionErrorKind.Validation })
+        {
+            return null;
+        }
     }
 
     // One token at temperature 0, with the top logprobs. A new SDK options object per call: the OpenAI chat client

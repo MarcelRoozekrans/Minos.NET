@@ -47,16 +47,17 @@ default, which you can change, and "none" means no limit is published or set.
 | Status | Tested live | Tested live, with images and Clef | WireMock tests | WireMock tests, and a local server in CI | Public beta since 2026-10-06; WireMock tests built from the guide's examples, not tested live | Unit tests, and a conformance fixture built from them; not yet tested live |
 
 A set that breaks a capability comes back as `Unsupported` before anything is sent: MIN201 for a question kind the
-provider does not take, MIN202 for more questions than `MaxQuestions`, MIN203 for more options than
-`MaxChoiceOptions`, and MIN206 for images while `SupportsImages` is off. TypeSafe's Jev reads text only, and OpenRouter mixes
-text and image models, so images are off for both until you switch them on; [Images](#images) says for which models.
-OpenRouter has its own models API, so model listing is off for it. A `Custom` or `VllmSemanticRouter` server switches
-listing on with `SupportsModelListing = true`, and `OpenAIDecisionClient` has no `ListModelsAsync`. The chat client labels
-options `A` to `Z`, so it takes at most 26, and has no model listing either. Choice and Score answers carry a confidence
-on every provider; the chat client's is the picked option's probability, not a calibrated one. A limit that reads "none" for `VllmSemanticRouter`, `Custom` or OpenAI means
-the provider publishes none, not that it is known to be unlimited. A limit you set in `Capabilities` applies on every
-provider. The capabilities you set change the kinds, the limits, the images and, for the System One presets, the model
-listing the client checks. While model listing is off, a model-listing call returns the `Unsupported` kind.
+provider does not take, MIN202 for more questions than `MaxQuestions`, MIN203 for more options than `MaxChoiceOptions`,
+and MIN206 for images while `SupportsImages` is off. TypeSafe's Jev reads text only, and OpenRouter mixes text and image
+models, so images are off for both until you switch them on; [Images](#images) says for which models. OpenRouter has its
+own models API, so model listing is off for it. A `Custom` or `VllmSemanticRouter` server switches listing on with
+`SupportsModelListing = true`, and `OpenAIDecisionClient` has no `ListModelsAsync`. The chat client labels options `A`
+to `Z`, so it takes at most 26, and has no model listing either. Choice and Score answers carry a confidence on every
+provider; the chat client's is the picked option's probability, not a calibrated one. A limit that reads "none" for
+`VllmSemanticRouter`, `Custom` or OpenAI means the provider publishes none, not that it is known to be unlimited. A
+limit you set in `Capabilities` applies on every provider. The capabilities you set change the kinds, the limits, the
+images and, for the System One presets, the model listing the client checks. While model listing is off, a model-listing
+call returns the `Unsupported` kind.
 
 ## The presets
 

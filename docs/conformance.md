@@ -12,10 +12,10 @@ Minos reaches several providers, and each one should answer the same request the
 each answer twice, once as the wire sent it and once as Minos read it, and runs its checks on both. It works against any
 endpoint a Minos client can reach, a server of your own included.
 
-The suite runs on every CI build, against the TypeSafe, OpenRouter, OpenAI and chat-client fixtures described below. It is not
-published to NuGet on its own. The `minos` tool bundles it: `minos conformance` runs every probe live against a provider
-from your `minos.json`, and writes `conformance.json` and `conformance.md`. The `bad-key` probe is skipped when no key is
-configured. See [Running it from the command line](datasets.md#running-it-from-the-command-line).
+The suite runs on every CI build, against the TypeSafe, OpenRouter, OpenAI and chat-client fixtures described below. It
+is not published to NuGet on its own. The `minos` tool bundles it: `minos conformance` runs every probe live against a
+provider from your `minos.json`, and writes `conformance.json` and `conformance.md`. The `bad-key` probe is skipped when
+no key is configured. See [Running it from the command line](datasets.md#running-it-from-the-command-line).
 
 ## The probes
 
@@ -161,9 +161,9 @@ checks its test expects, so a check that starts to skip fails the build.
 
 The Live smoke workflow records TypeSafe's and OpenRouter's fixtures on `main` and uploads them as an artifact; they
 reach the repository through a pull request. Both were first recorded on 2026-10-12. The `chat-openrouter` fixture is
-labelled `tests`: it is built from the bridge's scripted responses, and the Live smoke workflow records it live too. A recording keeps only the
-allowlisted response headers, and drops from each body the account identifiers a provider echoes back, such as the
-`user_id` in OpenRouter's error bodies.
+labelled `tests`: it is built from the bridge's scripted responses, and the Live smoke workflow records it live too. A
+recording keeps only the allowlisted response headers, and drops from each body the account identifiers a provider
+echoes back, such as the `user_id` in OpenRouter's error bodies.
 
 ### Why OpenAI's success fixtures come from the guide
 

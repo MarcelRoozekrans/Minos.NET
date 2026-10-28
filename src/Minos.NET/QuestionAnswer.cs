@@ -18,7 +18,7 @@ public readonly struct QuestionAnswer
     private readonly int _count;
     private readonly double _value;
 
-    internal QuestionAnswer(string key, QuestionKind kind, int chosenIndex, double value, double confidence, double[]? probabilities, int offset, int count, ProbabilitySource probabilitySource = ProbabilitySource.Model)
+    internal QuestionAnswer(string key, QuestionKind kind, int chosenIndex, double value, double confidence, double[]? probabilities, int offset, int count, ProbabilitySource probabilitySource)
     {
         _key = key;
         Kind = kind;

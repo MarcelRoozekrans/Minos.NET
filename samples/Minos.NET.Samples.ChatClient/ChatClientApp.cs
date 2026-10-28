@@ -22,7 +22,7 @@ public static class ChatClientApp
 
     /// <summary>
     /// Runs the sample with the key in <c>OPENROUTER_API_KEY</c>: online through OpenRouter when it is set, offline with a
-    /// fake chat client when it is not. Returns 0, or 2 for a bad argument.
+    /// fake chat client when it is not. Returns 0, 1 when a decision fails, or 2 for a bad argument.
     /// </summary>
     public static Task<int> RunAsync(IReadOnlyList<string> args, TextWriter output, TextWriter error, CancellationToken cancellationToken)
         => RunAsync(args, Environment.GetEnvironmentVariable(ApiKeyVariable), output, error, cancellationToken);

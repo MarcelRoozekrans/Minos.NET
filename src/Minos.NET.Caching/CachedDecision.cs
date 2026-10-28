@@ -12,7 +12,10 @@ namespace Minos.Caching;
 /// </remarks>
 internal sealed class CachedDecision
 {
-    /// <summary>The layout version of an entry with a per-answer probability source, which <see cref="CachedDecisionFormat"/> writes and reads.</summary>
+    /// <summary>
+    /// The layout version of an entry with a per-answer probability source, which <see cref="CachedDecisionFormat"/>
+    /// writes and reads.
+    /// </summary>
     public const int CurrentVersion = 2;
 
     /// <summary>The layout version of an entry whose answers all come from the model: no sources are stored.</summary>

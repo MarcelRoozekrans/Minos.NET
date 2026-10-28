@@ -1,4 +1,5 @@
 using System.ClientModel;
+using System.ClientModel.Primitives;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.DependencyInjection;
 using Minos.Extensions.AI;
@@ -10,7 +11,8 @@ namespace Minos.AotSmoke;
 /// <summary>
 /// The chat-client bridge under Native AOT: an OpenAI SDK <see cref="ChatClient"/> wrapped with <c>AsIChatClient()</c> and
 /// then <c>AsDecisionClient()</c>, its services, the checks it makes before anything is sent, and its disposal, which
-/// leaves the chat client alone. Nothing is sent: the key and the endpoint are dummies.
+/// leaves the chat client alone. The key and the endpoint are dummies: a request either stops before it is sent, or goes
+/// to an in-process handler with a canned chat completion.
 /// </summary>
 internal static class ExtensionsAIChecks
 {
@@ -98,6 +100,55 @@ internal static class ExtensionsAIChecks
                 && namedConfiguredClient.GetService(typeof(DecisionClientMetadata)) is DecisionClientMetadata { DefaultModel: "configured-model" },
             "AddChatDecisionClient registers a default and a keyed decision client over the container's chat clients, with their own options, under Native AOT");
     }
+
+    // A chat completion whose first token is "A", with "A" and "B" among its top logprobs.
+    private const string LogprobCompletion =
+        """{"id":"chatcmpl-smoke","object":"chat.completion","created":0,"model":"smoke-model","choices":[{"index":0,"message":{"role":"assistant","content":"A"},"logprobs":{"content":[{"token":"A","logprob":-0.1,"bytes":null,"top_logprobs":[{"token":"A","logprob":-0.1,"bytes":null},{"token":"B","logprob":-2.4,"bytes":null}]}],"refusal":null},"finish_reason":"length"}],"usage":{"prompt_tokens":10,"completion_tokens":1,"total_tokens":11}}""";
+
+    // A chat completion whose text is the verbalized JSON for three options.
+    private const string VerbalizedCompletion =
+        """{"id":"chatcmpl-smoke","object":"chat.completion","created":0,"model":"smoke-model","choices":[{"index":0,"message":{"role":"assistant","content":"{\"A\":0.7,\"B\":0.2,\"C\":0.1}"},"logprobs":null,"finish_reason":"stop"}],"usage":{"prompt_tokens":12,"completion_tokens":9,"total_tokens":21}}""";
+
+    public static async Task BothPathsReadARealChatCompletion()
+    {
+        var refund = new QuestionSetDefinition(QuestionDefinition.Noul("refund", "Does the customer ask for a refund?"));
+        var team = new QuestionSetDefinition(QuestionDefinition.Choice(
+            "team", "Which team handles it?", new OptionDefinition("billing", null), new OptionDefinition("shipping", null), new OptionDefinition("sales", null)));
+
+        var logprobHandler = new CapturingHandler(LogprobCompletion);
+        using var logprobChat = OpenAIChatClient(logprobHandler).AsIChatClient();
+        using var logprobClient = logprobChat.AsDecisionClient(new ChatDecisionClientOptions { ProbabilityMode = ProbabilityMode.Logprobs });
+        var logprobs = await logprobClient.EvaluateAsync(new DecisionRequest(refund, SmokeAnswers.State)).ConfigureAwait(false);
+        using var logprobRequest = logprobHandler.Body();
+
+        var verbalizedHandler = new CapturingHandler(VerbalizedCompletion);
+        using var verbalizedChat = OpenAIChatClient(verbalizedHandler).AsIChatClient();
+        using var verbalizedClient = verbalizedChat.AsDecisionClient(new ChatDecisionClientOptions { ProbabilityMode = ProbabilityMode.Verbalized });
+        var verbalized = await verbalizedClient.EvaluateAsync(new DecisionRequest(team, SmokeAnswers.State)).ConfigureAwait(false);
+        using var verbalizedRequest = verbalizedHandler.Body();
+
+        // P(A) is the softmax of -0.1 against -2.4.
+        var expectedYes = 1 / (1 + Math.Exp(-2.3));
+        Program.Check(
+            logprobs.IsSuccess
+                && logprobs.Value.Answers[0] is { ProbabilitySource: ProbabilitySource.Logprobs } yes
+                && Math.Abs(yes.Probability - expectedYes) < 1e-6
+                && logprobRequest.RootElement.GetProperty("logprobs").GetBoolean()
+                && logprobRequest.RootElement.GetProperty("top_logprobs").GetInt32() == 20
+                && verbalized.IsSuccess
+                && verbalized.Value.Answers[0] is { ProbabilitySource: ProbabilitySource.Verbalized, ChosenIndex: 0 } picked
+                && Math.Abs(picked.Confidence - 0.7) < 1e-9
+                && string.Equals(verbalizedRequest.RootElement.GetProperty("response_format").GetProperty("type").GetString(), "json_schema", StringComparison.Ordinal)
+                && !verbalizedRequest.RootElement.TryGetProperty("temperature", out _),
+            "an OpenAI ChatClient over an in-process transport answers through AsIChatClient().AsDecisionClient(): the logprob request and its top logprobs, and the verbalized JSON schema and its reply, under Native AOT");
+    }
+
+    private static ChatClient OpenAIChatClient(HttpMessageHandler handler)
+        => new("smoke-model", new ApiKeyCredential("smoke-key"), new OpenAIClientOptions
+        {
+            Endpoint = Endpoint,
+            Transport = new HttpClientPipelineTransport(new HttpClient(handler)),
+        });
 
     private static ChatClient OpenAIChatClient()
         => new("smoke-model", new ApiKeyCredential("smoke-key"), new OpenAIClientOptions { Endpoint = Endpoint });

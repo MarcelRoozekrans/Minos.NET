@@ -11,7 +11,7 @@ public readonly struct Score<T> : IEquatable<Score<T>>
     /// <param name="confidence">The model's confidence, between 0 and 1.</param>
     /// <param name="probabilities">The probability of each level.</param>
     /// <param name="probabilitySource">How the probabilities were made.</param>
-    internal Score(T value, double expected, double confidence, ProbabilityMap<T> probabilities, ProbabilitySource probabilitySource = ProbabilitySource.Model)
+    internal Score(T value, double expected, double confidence, ProbabilityMap<T> probabilities, ProbabilitySource probabilitySource)
     {
         Value = value;
         Expected = expected;

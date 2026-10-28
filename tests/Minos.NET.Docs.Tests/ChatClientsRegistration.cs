@@ -11,7 +11,7 @@ public static class ChatDecisionServices
 {
     public static IServiceCollection AddChatDecisions(this IServiceCollection services, IChatClient chat, string recordPath)
     {
-        // The chat client first: AddChatDecisionClient resolves IChatClient from the container.
+        // A chat client too: the decision client resolves IChatClient from the container when it is first resolved.
         services.AddChatClient(chat);
 
         // The recorder, as on the recording page. Its records keep each answer's probability source.
@@ -19,7 +19,7 @@ public static class ChatDecisionServices
         services.AddSingleton(provider => new DecisionRecorder(provider.GetRequiredService<JsonlDecisionRecordSink>()));
         services.AddSingleton<IDecisionRecorder>(provider => provider.GetRequiredService<DecisionRecorder>());
 
-        // A reasoning model returns no logprobs, so Verbalized skips the logprob call that Auto would waste on it.
+        // A reasoning model gives no logprobs, or rejects the request for them, so Verbalized skips the call Auto spends on it.
         services.AddChatDecisionClient(options => options.ProbabilityMode = ProbabilityMode.Verbalized)
             .UseRecording();
         return services;

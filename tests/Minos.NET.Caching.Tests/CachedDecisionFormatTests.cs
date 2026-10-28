@@ -115,6 +115,16 @@ public sealed class CachedDecisionFormatTests
     }
 
     [Fact]
+    public void ModelOnly_IsWrittenByteForByte_AsVersion1()
+    {
+        // The entry a model-only response wrote before probability sources existed, so older readers still read it.
+        const string v1 =
+            """{"v":1,"model":"jev-1.13.0","input_tokens":296,"output_tokens":20,"cost":0.0012,"id":"gen-0001","provider":"Together","slots":[[0,0.9,0,0],[1,0,0.7,0],[2,1.9,0.8,3]],"probabilities":[0.2,0.7,0.1,0,0.1,0.9]}""";
+
+        Assert.Equal(Encoding.UTF8.GetBytes(v1), Write(Stored()));
+    }
+
+    [Fact]
     public void MarkedAnswers_RoundTrip_AsVersion2()
     {
         var bytes = Write(CachedDecision.From(MarkedResponse().AsCached()));
@@ -148,6 +158,7 @@ public sealed class CachedDecisionFormatTests
     [InlineData("[0,1,2,0]")]
     [InlineData("[0,1,3]")]
     [InlineData("[0,1,-1]")]
+    [InlineData("[0,1,1.5]")]
     [InlineData("[0,\"x\",2]")]
     [InlineData("\"x\"")]
     public void Malformed_Sources_IsUnreadable(string sources)

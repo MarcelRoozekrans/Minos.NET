@@ -318,10 +318,13 @@ public sealed class RecordFileTests : IDisposable
         Assert.All(Assert.Single(decisions).Record.Answers, a => Assert.Equal(ProbabilitySource.Model, a.ProbabilitySource));
     }
 
-    [Fact]
-    public async Task UnknownSource_IsRejected()
+    [Theory]
+    [InlineData("guessed")]
+    [InlineData("model")]
+    public async Task UnknownSource_IsRejected(string source)
     {
-        var line = Json(Rec(Record(answers: VerbalizedAnswers()))).Replace("\"verbalized\"", "\"guessed\"", StringComparison.Ordinal);
+        // "model" too: a model-made answer has no source in the file, so a written one is not a known value.
+        var line = Json(Rec(Record(answers: VerbalizedAnswers()))).Replace("\"verbalized\"", "\"" + source + "\"", StringComparison.Ordinal);
 
         var (decisions, problems) = await ReadAsync(Encoding.UTF8.GetBytes(line + "\n"));
 

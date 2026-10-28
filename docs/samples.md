@@ -42,8 +42,8 @@ cd Minos.NET
 dotnet run --project samples/Minos.NET.Samples.Guardrails
 ```
 
-A recorded sample runs in one of three modes, chosen by one argument after `--`. No argument means replay. More than one mode,
-or an argument that is not one, prints the usage and exits with code 2.
+A recorded sample runs in one of three modes, chosen by one argument after `--`. No argument means replay. More than one
+mode, or an argument that is not one, prints the usage and exits with code 2.
 
 - **Replay** is the default, and `--replay` asks for it by name. It needs no network and no key. It answers every
   request from the sample's recordings, which are checked in.
@@ -77,10 +77,10 @@ reads no recordings and runs from anywhere.
 
 ## The recordings
 
-A recording is a file of real answers. The chat-client sample has none. The three single-provider samples hold real OpenRouter answers from the model
-`typesafe/jev-1.13-20260917`, all recorded on 2026-10-02. Each file holds the provider, the model, the date, and the
-response bodies, each filed under a hash of the request that earned it. The hash is the SHA-256 of the exact request
-body. A recording never holds a header or a key.
+A recording is a file of real answers. The chat-client sample has none. The three single-provider samples hold real
+OpenRouter answers from the model `typesafe/jev-1.13-20260917`, all recorded on 2026-10-02. Each file holds the
+provider, the model, the date, and the response bodies, each filed under a hash of the request that earned it. The hash
+is the SHA-256 of the exact request body. A recording never holds a header or a key.
 
 The provider-switch sample keeps one file per provider in `recordings/`: `typesafe.json`, `openrouter.json` and
 `local.json`. TypeSafe and OpenRouter receive byte-identical requests, so one file could not hold both. The billed Live
@@ -112,12 +112,12 @@ A sample that is not run goes stale, so the CI workflow checks them in three way
   with a checked-in snapshot, and check that every recording holds no key and no header, that every sample but the
   chat-client one has recordings, and that the provider-switch sample has one file per provider. The chat-client
   sample's test runs it offline and compares its whole output with a snapshot.
-- **Each recorded sample runs, for real, in replay.** After the tests, a CI step runs every folder under `samples/` that holds a
-  `recordings.json`, through the sample's real entry point: argument parsing, configuration and host setup included. It
-  also runs the provider-switch sample once for each file in its `recordings/` folder, with `--provider` set to the
-  file's name. A run passes only when the sample exits with code 0 and prints something. A new sample is picked up by
-  adding its recordings. The step runs with empty `OPENROUTER_API_KEY` and `TYPESAFE_API_KEY`, so a sample that goes
-  live by mistake fails at start-up and does not call the API.
+- **Each recorded sample runs, for real, in replay.** After the tests, a CI step runs every folder under `samples/` that
+  holds a `recordings.json`, through the sample's real entry point: argument parsing, configuration and host setup
+  included. It also runs the provider-switch sample once for each file in its `recordings/` folder, with `--provider`
+  set to the file's name. A run passes only when the sample exits with code 0 and prints something. A new sample is
+  picked up by adding its recordings. The step runs with empty `OPENROUTER_API_KEY` and `TYPESAFE_API_KEY`, so a sample
+  that goes live by mistake fails at start-up and does not call the API.
 
 So when a change to the library moves a request, CI fails with the message that names the sample and the command to
 record it again, so a stale sample is caught by CI and not by a reader.

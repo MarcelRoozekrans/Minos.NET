@@ -53,8 +53,8 @@ public sealed class NormalizedScoreTests
     }
 
     private static KeyedScore Keyed(int levels, double expected)
-        => new(0, expected, 0.9, new KeyedProbabilityMap(new double[levels], 0, KeyedOptionSet.Levels(levels)));
+        => new(0, expected, 0.9, new KeyedProbabilityMap(new double[levels], 0, KeyedOptionSet.Levels(levels)), ProbabilitySource.Model);
 
     private static Score<Urgency> Typed(double expected)
-        => new(Urgency.Medium, expected, 0.9, new ProbabilityMap<Urgency>([0.0, 1.0, 0.0], 0, UrgencyLevels.Instance));
+        => new(Urgency.Medium, expected, 0.9, new ProbabilityMap<Urgency>([0.0, 1.0, 0.0], 0, UrgencyLevels.Instance), ProbabilitySource.Model);
 }

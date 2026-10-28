@@ -31,7 +31,7 @@ internal static class RecordLine
     {
         w.WriteStartObject();
         w.WriteString("kind", "record");
-        w.WriteNumber("version", record.Answers.Any(a => a.ProbabilitySource != ProbabilitySource.Model) ? VersionWithSource : Version);
+        w.WriteNumber("version", HasMarkedAnswer(record.Answers) ? VersionWithSource : Version);
         w.WriteString("decisionId", record.DecisionId);
         WriteOptional(w, "erasureKey", record.ErasureKey);
         w.WriteString("started", record.Started);
@@ -179,6 +179,20 @@ internal static class RecordLine
         }
 
         destination.Write(scratch.WrittenSpan);
+    }
+
+    // True when an answer's probabilities are not the model's own, so the line needs the version with sources.
+    private static bool HasMarkedAnswer(IReadOnlyList<RecordedAnswer> answers)
+    {
+        for (var i = 0; i < answers.Count; i++)
+        {
+            if (answers[i].ProbabilitySource != ProbabilitySource.Model)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void WriteAnswer(Utf8JsonWriter w, RecordedAnswer answer)

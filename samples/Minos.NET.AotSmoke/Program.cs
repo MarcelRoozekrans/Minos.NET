@@ -144,6 +144,7 @@ internal static class Program
         ExtensionsAIChecks.BridgeOverTheOpenAIChatClientAnswersItsServices();
         await ExtensionsAIChecks.RequestsTheBridgeCannotTakeAreNotSent().ConfigureAwait(false);
         ExtensionsAIChecks.RegistrationsResolveTheDecisionClientsOverTheContainerChatClients();
+        await ExtensionsAIChecks.BothPathsReadARealChatCompletion().ConfigureAwait(false);
 
         await AllocationChecks.AnswerSlotAccessors().ConfigureAwait(false);
         await AllocationChecks.GeneratedCreate().ConfigureAwait(false);
