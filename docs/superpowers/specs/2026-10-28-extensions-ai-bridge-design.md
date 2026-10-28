@@ -63,9 +63,16 @@ By the maintainer, 2026-10-28:
      `Model`.
    - Every existing client reports `Model`, and so do the existing factory methods and constructors by default. New
      overloads take the source.
-   - `CachedCopy` and the distributed cache format in `Minos.NET.Caching` carry it. A cache entry written before this
-     version reads as `Model`.
-   - `Minos.NET.Recording` writes it per answer into the decision record, and a record without it reads as `Model`.
+   - `AsCached` and the distributed cache format in `Minos.NET.Caching` carry it, as a top-level `sources` array.
+     - An entry whose answers are all `Model` is written exactly as today, as version 1.
+     - An entry with any other source is written as version 2. Older Minos versions treat version 2 as unreadable, so
+       they miss rather than drop the mark. The new reader accepts both versions, and an entry without `sources` reads
+       as `Model`.
+   - `Minos.NET.Recording` writes it per answer as `probabilitySource` (`logprobs` or `verbalized`), only when it is not
+     `Model`.
+     - A line that carries one is written as version 2. Older readers reject it rather than drop the mark.
+     - Lines with only `Model` answers stay version 1, so the pinned line format does not change.
+     - The reader accepts both versions, and an answer without the field reads as `Model`.
    - It is a public API addition in the core, released as a minor version.
 3. **Conformance gets a new wire, `ConformanceWire.ChatCompletions`** (scope settled 2026-10-28):
    - Fixtures can hold several exchanges per probe, one per question. Replay matches each request to its exchange by
@@ -132,7 +139,7 @@ My calls (Claude's), open to correction:
     verbalized; in `Logprobs` it returns an error.
 - **The verbalized path** uses `GetResponseAsync` with a JSON schema response format.
   - The schema is built per question: an object with one number per label, from 0 to 1.
-  - It is parsed with a source-generated `JsonSerializerContext`.
+  - It is parsed with `JsonDocument`, which needs no reflection and is AOT-safe.
   - Values that are not finite or are negative are a malformed response. A sum of zero is too. Otherwise the values
     are normalized to sum to 1.
 - **The prompt.**
@@ -148,13 +155,16 @@ My calls (Claude's), open to correction:
     `Validation`, 401 and 403 `Unauthorized`, 429 `RateLimited` with `Retry-After` read, and 5xx `Server`;
   - `HttpRequestException` is `Network`;
   - a timeout is `Timeout`;
-  - anything else is `Unknown` with the exception kept as the inner error, never the request state;
+  - any other exception propagates unchanged, because Minos has no catch-all error kind and a bug should not pass as a
+    provider failure;
   - one failed question fails the whole call, and the other calls are cancelled.
 - **Metadata.**
   - `GetService(typeof(DecisionClientMetadata))` returns the inner client's `ChatClientMetadata` mapped across:
     provider name, endpoint and default model.
   - `GetService` also forwards to the inner `IChatClient`, as `DelegatingChatClient` does.
   - `DecisionResponse.Model` is the `ModelId` the chat response reports.
+- **Ownership.** The bridge does not dispose the `IChatClient` it wraps. The caller or the container owns it, and it
+  is often shared with other code.
 - **Retries.** The bridge itself does not retry. The pipeline's `UseRetries` stage does, as with the other clients.
 - **Conformance target's factory.**
   - It builds the OpenAI SDK `ChatClient` over the runner's `HttpClient`, through `HttpClientPipelineTransport`, with
