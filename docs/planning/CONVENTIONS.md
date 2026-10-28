@@ -33,6 +33,6 @@
 
 ## Deployment
 
-**Deploy target:** nuget.org, nine `Minos.NET*` packages under the reserved `Minos.NET` prefix owned by MarcelRoozekrans; the docs site on GitHub Pages at marcelroozekrans.github.io/Minos.NET
+**Deploy target:** nuget.org, ten `Minos.NET*` packages under the reserved `Minos.NET` prefix owned by MarcelRoozekrans; the docs site on GitHub Pages at marcelroozekrans.github.io/Minos.NET
 **Environments:** live-api (manual live smoke; no deployment environment)
 **Deployed by:** GitHub Actions: `ci.yml`'s `publish-nuget` through NuGet Trusted Publishing, gated to a `v*` tag and refusing 0.x and prereleases (`RELEASING.md`); `docs.yml` deploys the site
