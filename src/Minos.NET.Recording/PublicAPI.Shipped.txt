@@ -85,6 +85,7 @@ Minos.Recording.RecordedAnswer.Key.get -> string!
 Minos.Recording.RecordedAnswer.Kind.get -> Minos.QuestionKind
 Minos.Recording.RecordedAnswer.Probabilities.get -> System.Collections.Generic.IReadOnlyList<double>!
 Minos.Recording.RecordedAnswer.Probability.get -> double
+Minos.Recording.RecordedAnswer.ProbabilitySource.get -> Minos.ProbabilitySource
 Minos.Recording.RecordedAnswer.RecordedAnswer() -> void
 Minos.Recording.RecordedDecision
 Minos.Recording.RecordedDecision.Outcomes.get -> System.Collections.Generic.IReadOnlyList<Minos.Recording.DecisionOutcome!>!
