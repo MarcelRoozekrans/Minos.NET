@@ -1,5 +1,24 @@
 # Changelog
 
+## [1.6.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.5.0...v1.6.0) (2026-10-28)
+
+
+### Features
+
+* evaluation results keep each answer's probability source ([#288](https://github.com/MarcelRoozekrans/Minos.NET/issues/288)) ([286ccc7](https://github.com/MarcelRoozekrans/Minos.NET/commit/286ccc7c1732f60e1cbfc419eb556930a6a75629))
+* let a decision client scope its cache entries with CacheScope ([#287](https://github.com/MarcelRoozekrans/Minos.NET/issues/287)) ([10d1295](https://github.com/MarcelRoozekrans/Minos.NET/commit/10d129586109f15b81bd649a73c50a82b5aa2e97))
+* limit the chat bridge's parallel calls with MaxParallelCalls ([#284](https://github.com/MarcelRoozekrans/Minos.NET/issues/284)) ([c7f91ab](https://github.com/MarcelRoozekrans/Minos.NET/commit/c7f91abb94f6c13884efeef4f1cc97379cc8ab6e))
+
+
+### Bug Fixes
+
+* a probability or confidence outside 0 to 1 is an InvalidResponse ([#285](https://github.com/MarcelRoozekrans/Minos.NET/issues/285)) ([33f0293](https://github.com/MarcelRoozekrans/Minos.NET/commit/33f02935a2da98f7633217791363e4615385b40b)), closes [#260](https://github.com/MarcelRoozekrans/Minos.NET/issues/260)
+
+
+### Dependencies
+
+* update zeroalloc shipped dependencies to 3.6.0 ([#282](https://github.com/MarcelRoozekrans/Minos.NET/issues/282)) ([e65da4b](https://github.com/MarcelRoozekrans/Minos.NET/commit/e65da4b4ba313568f52034e16fb83173b0bca0bb))
+
 ## [1.5.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.4.2...v1.5.0) (2026-10-28)
 
 
