@@ -124,7 +124,9 @@ public sealed class ChatDecisionClient : IDecisionClient
     /// <see cref="DecisionError.RetryAfter"/> and <see cref="DecisionError.RequestId"/> from its headers; an
     /// <see cref="HttpRequestException"/> as <see cref="DecisionErrorKind.Network"/>; and a <see cref="TimeoutException"/>
     /// as <see cref="DecisionErrorKind.Timeout"/>. Any other exception propagates, so a bug does not pass as a provider
-    /// failure. The error's message is the bridge's own; the provider's exception is in <see cref="DecisionError.Exception"/>.
+    /// failure. The error's message is the bridge's own; the provider's exception is in <see cref="DecisionError.Exception"/>,
+    /// and a JSON error body in <see cref="DecisionError.Detail"/>. Once the caller has cancelled, the call throws
+    /// <see cref="OperationCanceledException"/> instead of returning an error.
     /// </para>
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
@@ -247,8 +249,8 @@ public sealed class ChatDecisionClient : IDecisionClient
     /// <summary>
     /// Asks every question at once, one call each, and puts each answer at its question's index, whatever order the calls
     /// finish in. The first failure, returned or mapped from an exception, fails the request and cancels the other
-    /// calls. An exception the mapper does not know propagates, and cancels the other calls too. The caller's
-    /// cancellation throws, even when the chat client reports it as a failure.
+    /// calls. An exception the mapper does not know propagates unchanged, and cancels the other calls too. The caller's
+    /// cancellation throws, even when the chat client reports it as a failure the mapper knows.
     /// </summary>
     private async ValueTask<Result<DecisionResponse, DecisionError>> AnswerAllAsync(DecisionRequest request, CancellationToken cancellationToken)
     {
@@ -297,13 +299,19 @@ public sealed class ChatDecisionClient : IDecisionClient
                 // Another call failed first and cancelled this one; that failure decides.
                 return;
             }
-            catch (Exception exception) when (cancellationToken.IsCancellationRequested && exception is not OperationCanceledException)
+            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
             {
-                // The chat client reported the caller's cancellation as a failure of its own; the caller asked for it.
-                throw new OperationCanceledException("The call was cancelled.", exception, cancellationToken);
+                // The caller asked for it, so it is never mapped, not even a time-out's cancellation that came first.
+                throw;
             }
             catch (Exception exception) when (ChatErrorMapper.Map(exception) is { } error)
             {
+                if (cancellationToken.IsCancellationRequested)
+                {
+                    // The chat client reported the caller's cancellation as a failure of its own; the caller asked for it.
+                    throw new OperationCanceledException("The call was cancelled.", exception, cancellationToken);
+                }
+
                 result = Result<QuestionCall, DecisionError>.Failure(error);
             }
             catch

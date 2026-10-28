@@ -30,18 +30,18 @@ public sealed class QuestionSetTests
             if (asked == Urgency)
             {
                 urgencyDone.SetResult();
-                return ChatCompletions.WithTopLogprobs(("C", Ln(0.7)), ("B", Ln(0.2)), ("A", Ln(0.1)));
+                return Named(ChatCompletions.WithTopLogprobs(("C", Ln(0.7)), ("B", Ln(0.2)), ("A", Ln(0.1))), "model-urgency");
             }
 
             if (asked == Team)
             {
                 await urgencyDone.Task.WaitAsync(Bound, cancellationToken);
                 teamDone.SetResult();
-                return ChatCompletions.WithTopLogprobs(("B", Ln(0.6)), ("A", Ln(0.3)), ("C", Ln(0.1)));
+                return Named(ChatCompletions.WithTopLogprobs(("B", Ln(0.6)), ("A", Ln(0.3)), ("C", Ln(0.1))), "model-team");
             }
 
             await teamDone.Task.WaitAsync(Bound, cancellationToken);
-            return ChatCompletions.WithTopLogprobs(("A", Ln(0.9)), ("B", Ln(0.1)));
+            return Named(ChatCompletions.WithTopLogprobs(("A", Ln(0.9)), ("B", Ln(0.1))), "model-refund");
         });
         using var client = chat.AsDecisionClient(new ChatDecisionClientOptions { ProbabilityMode = ProbabilityMode.Logprobs });
 
@@ -56,6 +56,9 @@ public sealed class QuestionSetTests
         Assert.Equal(0.9, answers[0].Probability, 6);
         Assert.Equal(1, answers[1].ChosenIndex);
         Assert.Equal(2, answers[2].ChosenIndex);
+
+        // The refund call finished last, but it is the first question, so its model is the response's.
+        Assert.Equal("model-refund", result.Value.Model);
     }
 
     [Fact]
@@ -179,6 +182,12 @@ public sealed class QuestionSetTests
         return text.StartsWith("Question: " + Refund.Instructions.ToString(), StringComparison.Ordinal) ? Refund
             : text.StartsWith("Question: " + Team.Instructions.ToString(), StringComparison.Ordinal) ? Team
             : Urgency;
+    }
+
+    private static ChatResponse Named(ChatResponse response, string model)
+    {
+        response.ModelId = model;
+        return response;
     }
 
     private static float Ln(double p) => (float)Math.Log(p);

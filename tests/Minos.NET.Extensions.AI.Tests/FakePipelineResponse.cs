@@ -4,7 +4,7 @@ using System.Diagnostics.CodeAnalysis;
 
 namespace Minos.Extensions.AI.Tests;
 
-/// <summary>An error response with a status and headers and no body, as the OpenAI SDK puts in a <see cref="ClientResultException"/>.</summary>
+/// <summary>An error response with a status, headers and, optionally, a body, as the OpenAI SDK puts in a <see cref="ClientResultException"/>.</summary>
 internal sealed class FakePipelineResponse(int status, params (string Name, string Value)[] headers) : PipelineResponse
 {
     private readonly ResponseHeaders _headers = new(headers);
@@ -19,7 +19,10 @@ internal sealed class FakePipelineResponse(int status, params (string Name, stri
 
     public override Stream? ContentStream { get; set; }
 
-    public override BinaryData Content => BinaryData.Empty;
+    /// <summary>Gets the error body; empty unless set.</summary>
+    public BinaryData Body { get; init; } = BinaryData.Empty;
+
+    public override BinaryData Content => Body;
 
     protected override PipelineResponseHeaders HeadersCore => _headers;
 

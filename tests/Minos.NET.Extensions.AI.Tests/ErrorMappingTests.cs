@@ -21,6 +21,7 @@ public sealed class ErrorMappingTests
     [InlineData(422, DecisionErrorKind.Validation)]
     [InlineData(429, DecisionErrorKind.RateLimited)]
     [InlineData(503, DecisionErrorKind.Overloaded)]
+    [InlineData(529, DecisionErrorKind.Overloaded)]
     [InlineData(500, DecisionErrorKind.Server)]
     [InlineData(404, DecisionErrorKind.Http)]
     public async Task AStatus_MapsToItsKind(int status, DecisionErrorKind kind)
@@ -80,6 +81,36 @@ public sealed class ErrorMappingTests
         Assert.DoesNotContain("SECRET", error.Message, StringComparison.Ordinal);
         Assert.Contains("400", error.Message, StringComparison.Ordinal);
         Assert.Same(thrown, error.Exception);
+    }
+
+    [Fact]
+    public async Task AJsonBody_IsTheDetail_AndStaysOutOfTheMessage()
+    {
+        var body = """{"error":{"message":"SECRET body text","code":"invalid"}}""";
+        var response = new FakePipelineResponse(422, ("Content-Type", "application/json; charset=utf-8")) { Body = BinaryData.FromString(body) };
+
+        var error = await FailWith(new ClientResultException("The provider failed.", response));
+
+        Assert.Equal(DecisionErrorKind.Validation, error.Kind);
+        Assert.NotNull(error.Detail);
+        Assert.Equal(body, error.Detail.Value.GetRawText());
+        Assert.DoesNotContain("SECRET", error.Message, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("text/plain", "SECRET gateway text")]
+    [InlineData("application/json", "SECRET not json")]
+    [InlineData(null, """{"error":"no content type"}""")]
+    public async Task ABodyThatIsNotJson_GivesNoDetail(string? contentType, string body)
+    {
+        (string, string)[] headers = contentType is null ? [] : [("Content-Type", contentType)];
+        var response = new FakePipelineResponse(502, headers) { Body = BinaryData.FromString(body) };
+
+        var error = await FailWith(new ClientResultException("The provider failed.", response));
+
+        Assert.Equal(DecisionErrorKind.Server, error.Kind);
+        Assert.Null(error.Detail);
+        Assert.DoesNotContain("SECRET", error.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -144,11 +175,14 @@ public sealed class ErrorMappingTests
     [Fact]
     public async Task AFailure_CancelsTheOtherCalls()
     {
+        // The failing call waits until the other one hangs, so the failure always has a call in flight to cancel.
+        var hanging = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var hangingCancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var chat = new ScriptedChatClient(async (messages, _, cancellationToken) =>
         {
             if (messages[1].Text.StartsWith("Question: Which team", StringComparison.Ordinal))
             {
+                hanging.SetResult();
                 try
                 {
                     await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
@@ -160,7 +194,7 @@ public sealed class ErrorMappingTests
                 }
             }
 
-            await Task.Yield();
+            await hanging.Task.WaitAsync(Bound, cancellationToken);
             throw FakePipelineResponse.Exception(429);
         });
         using var client = chat.AsDecisionClient();
@@ -175,11 +209,14 @@ public sealed class ErrorMappingTests
     [Fact]
     public async Task AnInvalidAnswer_CancelsTheOtherCalls()
     {
+        // The failing call waits until the other one hangs, so the failure always has a call in flight to cancel.
+        var hanging = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var hangingCancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var chat = new ScriptedChatClient(async (messages, _, cancellationToken) =>
         {
             if (messages[1].Text.StartsWith("Question: Which team", StringComparison.Ordinal))
             {
+                hanging.SetResult();
                 try
                 {
                     await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
@@ -191,7 +228,7 @@ public sealed class ErrorMappingTests
                 }
             }
 
-            await Task.Yield();
+            await hanging.Task.WaitAsync(Bound, cancellationToken);
             return ChatCompletions.WithoutLogprobs();
         });
         using var client = chat.AsDecisionClient(new ChatDecisionClientOptions { ProbabilityMode = ProbabilityMode.Logprobs });
@@ -206,11 +243,14 @@ public sealed class ErrorMappingTests
     [Fact]
     public async Task ABug_InOneCall_PropagatesAndCancelsTheOthers()
     {
+        // The failing call waits until the other one hangs, so the failure always has a call in flight to cancel.
+        var hanging = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var hangingCancelled = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var chat = new ScriptedChatClient(async (messages, _, cancellationToken) =>
         {
             if (messages[1].Text.StartsWith("Question: Which team", StringComparison.Ordinal))
             {
+                hanging.SetResult();
                 try
                 {
                     await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
@@ -222,7 +262,7 @@ public sealed class ErrorMappingTests
                 }
             }
 
-            await Task.Yield();
+            await hanging.Task.WaitAsync(Bound, cancellationToken);
             throw new InvalidOperationException("A bug.");
         });
         using var client = chat.AsDecisionClient();
@@ -279,6 +319,66 @@ public sealed class ErrorMappingTests
         await cancellation.CancelAsync();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => call.WaitAsync(Bound));
+    }
+
+    [Fact]
+    public async Task CallerCancellation_Throws_EvenWhenTheChatClientReportsItAsATimeout()
+    {
+        // HttpClient's own time-out looks like this; once the caller has cancelled, the cancellation wins.
+        using var cancellation = new CancellationTokenSource();
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var chat = new ScriptedChatClient(async (_, _, cancellationToken) =>
+        {
+            started.TrySetResult();
+            try
+            {
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                throw new TaskCanceledException("The request timed out.", new TimeoutException());
+            }
+
+            throw new InvalidOperationException("Unreachable.");
+        });
+        using var client = chat.AsDecisionClient();
+
+        var call = client.EvaluateAsync(new DecisionRequest(new QuestionSetDefinition(Refund), State), cancellation.Token).AsTask();
+        await started.Task.WaitAsync(Bound);
+        await cancellation.CancelAsync();
+
+        var thrown = await Assert.ThrowsAnyAsync<OperationCanceledException>(() => call.WaitAsync(Bound));
+        Assert.IsType<TimeoutException>(thrown.InnerException);
+    }
+
+    [Fact]
+    public async Task AnUnmappedException_AfterCallerCancellation_PropagatesUnchanged()
+    {
+        using var cancellation = new CancellationTokenSource();
+        var started = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        var bug = new InvalidOperationException("A bug.");
+        var chat = new ScriptedChatClient(async (_, _, cancellationToken) =>
+        {
+            started.TrySetResult();
+            try
+            {
+                await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken);
+            }
+            catch (OperationCanceledException)
+            {
+                throw bug;
+            }
+
+            throw new InvalidOperationException("Unreachable.");
+        });
+        using var client = chat.AsDecisionClient();
+
+        var call = client.EvaluateAsync(new DecisionRequest(new QuestionSetDefinition(Refund), State), cancellation.Token).AsTask();
+        await started.Task.WaitAsync(Bound);
+        await cancellation.CancelAsync();
+
+        var thrown = await Assert.ThrowsAsync<InvalidOperationException>(() => call.WaitAsync(Bound));
+        Assert.Same(bug, thrown);
     }
 
     private static async Task<DecisionError> FailWith(Exception exception)

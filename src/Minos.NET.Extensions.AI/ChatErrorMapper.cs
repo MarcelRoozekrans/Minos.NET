@@ -1,5 +1,6 @@
 using System.ClientModel;
 using System.ClientModel.Primitives;
+using System.Text.Json;
 using Minos.Transport;
 
 namespace Minos.Extensions.AI;
@@ -7,7 +8,7 @@ namespace Minos.Extensions.AI;
 /// <summary>Maps an exception from the chat client to a <see cref="DecisionError"/>, as the HTTP providers map their failures.</summary>
 /// <remarks>
 /// Each message is the bridge's own and never quotes the exception's: a provider's error text can echo the request, so it
-/// stays in <see cref="DecisionError.Exception"/>.
+/// stays in <see cref="DecisionError.Exception"/>, and a JSON error body in <see cref="DecisionError.Detail"/>.
 /// </remarks>
 internal static class ChatErrorMapper
 {
@@ -41,8 +42,39 @@ internal static class ChatErrorMapper
             StatusCode = status,
             RetryAfter = RetryAfter(response.Headers),
             RequestId = RequestId(response.Headers),
+            Detail = Detail(response),
             Exception = exception,
         };
+    }
+
+    // A whole JSON body, as the HTTP providers keep it. The SDK buffers an error response before it throws; one that is
+    // not buffered cannot be read here, and its Content throws InvalidOperationException, so it gives no detail.
+    private static JsonElement? Detail(PipelineResponse response)
+    {
+        BinaryData content;
+        try
+        {
+            content = response.Content;
+        }
+        catch (InvalidOperationException)
+        {
+            return null;
+        }
+
+        response.Headers.TryGetValue("Content-Type", out var contentType);
+        return ErrorBodies.Detail(content.ToMemory().Span, bodyTruncated: false, MediaType(contentType));
+    }
+
+    // The media type without parameters such as charset, as ErrorBodies.Detail compares it.
+    private static string? MediaType(string? contentType)
+    {
+        if (contentType is null)
+        {
+            return null;
+        }
+
+        var end = contentType.IndexOf(';', StringComparison.Ordinal);
+        return (end < 0 ? contentType : contentType[..end]).Trim();
     }
 
     private static DecisionError Network(Exception exception)
