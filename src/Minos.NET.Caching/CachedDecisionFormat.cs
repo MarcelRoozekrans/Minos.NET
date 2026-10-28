@@ -5,7 +5,8 @@ namespace Minos.Caching;
 
 /// <summary>
 /// The distributed-cache form of a <see cref="CachedDecision"/>: compact JSON with a version field. A slot is
-/// <c>[valueIndex, value, confidence, offset]</c>. No reflection, so it is trim- and AOT-safe.
+/// <c>[valueIndex, value, confidence, offset]</c>. An entry with an answer whose probabilities are not the model's own
+/// is version 2 and adds <c>"sources"</c>, one <see cref="ProbabilitySource"/> number per slot. No reflection, so it is trim- and AOT-safe.
 /// </summary>
 /// <remarks>
 /// Reading never throws. An unknown version or bytes it cannot read give <see cref="CachedDecision.Unreadable"/>, which the
@@ -23,7 +24,8 @@ internal static class CachedDecisionFormat
         using (var writer = new Utf8JsonWriter(buffer))
         {
             writer.WriteStartObject();
-            writer.WriteNumber("v"u8, CachedDecision.Version);
+            var marked = HasMarkedSlot(value.Slots);
+            writer.WriteNumber("v"u8, marked ? CachedDecision.CurrentVersion : CachedDecision.ModelOnlyVersion);
             WriteString(writer, "model"u8, value.Model);
             WriteNumber(writer, "input_tokens"u8, value.InputTokens);
             WriteNumber(writer, "output_tokens"u8, value.OutputTokens);
@@ -46,6 +48,17 @@ internal static class CachedDecisionFormat
             }
 
             writer.WriteEndArray();
+            if (marked)
+            {
+                writer.WriteStartArray("sources"u8);
+                foreach (var slot in value.Slots)
+                {
+                    writer.WriteNumberValue((int)slot.Source);
+                }
+
+                writer.WriteEndArray();
+            }
+
             writer.WriteStartArray("probabilities"u8);
             foreach (var probability in value.Probabilities)
             {
@@ -100,9 +113,9 @@ internal static class CachedDecisionFormat
         }
 
         if (reader.TokenType != JsonTokenType.EndObject
-            || fields.Version != CachedDecision.Version
             || fields.Slots is null
-            || fields.Probabilities is null)
+            || fields.Probabilities is null
+            || !TryApplySources(fields.Version, fields.Sources, fields.Slots))
         {
             return null;
         }
@@ -155,6 +168,12 @@ internal static class CachedDecisionFormat
             return fields.Slots is not null;
         }
 
+        if (reader.ValueTextEquals("sources"u8))
+        {
+            fields.Sources = ReadSources(ref reader);
+            return fields.Sources is not null;
+        }
+
         if (reader.ValueTextEquals("probabilities"u8))
         {
             fields.Probabilities = ReadNumbers(ref reader);
@@ -196,6 +215,61 @@ internal static class CachedDecisionFormat
         }
 
         return reader.TokenType == JsonTokenType.EndArray ? [.. slots] : null;
+    }
+
+    // [source, ...], each a ProbabilitySource number; null when the shape is wrong or a value is not a known source.
+    private static ProbabilitySource[]? ReadSources(ref Utf8JsonReader reader)
+    {
+        if (!reader.Read() || reader.TokenType != JsonTokenType.StartArray)
+        {
+            return null;
+        }
+
+        var sources = new List<ProbabilitySource>();
+        while (reader.Read() && reader.TokenType == JsonTokenType.Number)
+        {
+            if (!reader.TryGetInt32(out var number) || number is < (int)ProbabilitySource.Model or > (int)ProbabilitySource.Verbalized)
+            {
+                return null;
+            }
+
+            sources.Add((ProbabilitySource)number);
+        }
+
+        return reader.TokenType == JsonTokenType.EndArray ? [.. sources] : null;
+    }
+
+    // Checks the version against the sources and sets each slot's source. A version 1 entry has no sources, a version 2
+    // entry has one per slot, and any other version is unknown.
+    private static bool TryApplySources(int? version, ProbabilitySource[]? sources, AnswerSlot[] slots)
+    {
+        switch (version)
+        {
+            case CachedDecision.ModelOnlyVersion:
+                return sources is null;
+            case CachedDecision.CurrentVersion when sources is not null && sources.Length == slots.Length:
+                for (var i = 0; i < slots.Length; i++)
+                {
+                    slots[i] = slots[i] with { Source = sources[i] };
+                }
+
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static bool HasMarkedSlot(AnswerSlot[] slots)
+    {
+        foreach (var slot in slots)
+        {
+            if (slot.Source != ProbabilitySource.Model)
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     // [number, ...]; null when the shape is wrong.
@@ -285,6 +359,7 @@ internal static class CachedDecisionFormat
         public string? Id;
         public string? UpstreamProvider;
         public AnswerSlot[]? Slots;
+        public ProbabilitySource[]? Sources;
         public double[]? Probabilities;
     }
 }
