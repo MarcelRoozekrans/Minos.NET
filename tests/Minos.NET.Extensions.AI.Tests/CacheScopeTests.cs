@@ -17,8 +17,6 @@ public sealed class CacheScopeTests
     [InlineData(ProbabilityMode.Auto, "auto")]
     [InlineData(ProbabilityMode.Logprobs, "logprobs")]
     [InlineData(ProbabilityMode.Verbalized, "verbalized")]
-    // A value outside the enum is not Auto: it never makes Auto's fallback on a rejected logprob request.
-    [InlineData((ProbabilityMode)7, "7")]
     public void The_scope_is_the_probability_mode(ProbabilityMode mode, string scope)
     {
         using var client = Unanswered(OpenRouter).AsDecisionClient(new ChatDecisionClientOptions { ProbabilityMode = mode });

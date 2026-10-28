@@ -72,6 +72,7 @@ public static class ChatDecisions
 `ChatDecisionClientOptions` has three properties, all optional:
 
 - **`ProbabilityMode`** says how the probabilities are made. It defaults to `Auto`; see [below](#probability-modes).
+  A value outside the enum throws `ArgumentException`.
 - **`Model`** is the model for requests that name none. Without it, the chat client's own default model is used.
   Surrounding whitespace is trimmed, and a blank value throws `ArgumentException`.
 - **`Capabilities`** limits what the bridge accepts; see [Capabilities](#capabilities).

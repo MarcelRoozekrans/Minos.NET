@@ -55,6 +55,11 @@ public sealed class ChatDecisionClient : IDecisionClient
         options ??= new ChatDecisionClientOptions();
 
         var model = options.Model is { } explicitModel ? ClientSettingRules.CheckModel(explicitModel, nameof(options)) : null;
+        if (options.ProbabilityMode is < ProbabilityMode.Auto or > ProbabilityMode.Verbalized)
+        {
+            throw new ArgumentException("ProbabilityMode must be Auto, Logprobs or Verbalized.", nameof(options));
+        }
+
         if (options.Capabilities?.MaxChoiceOptions is > LabelDistribution.MaxLabels)
         {
             throw new ArgumentException("Capabilities.MaxChoiceOptions must be at most 26: options are labelled A to Z.", nameof(options));
@@ -207,13 +212,12 @@ public sealed class ChatDecisionClient : IDecisionClient
     /// </summary>
     private static string CacheScope(ProbabilityMode mode, IChatClient chatClient, ChatClientMetadata? chatMetadata, string? model)
     {
-        // A value outside the enum is keyed by its number, so it never shares an entry with a named mode.
+        // The constructor rejects a value outside the enum, so Auto is the only mode left.
         var scope = mode switch
         {
-            ProbabilityMode.Auto => "auto",
             ProbabilityMode.Logprobs => "logprobs",
             ProbabilityMode.Verbalized => "verbalized",
-            _ => ((int)mode).ToString(CultureInfo.InvariantCulture),
+            _ => "auto",
         };
 
         if (model is null && chatMetadata?.ProviderName is null && chatMetadata?.ProviderUri is null && chatMetadata?.DefaultModelId is null)

@@ -171,6 +171,29 @@ public sealed class ChatDecisionClientTests
         Assert.Equal("options", exception.ParamName);
     }
 
+    [Theory]
+    [InlineData(0)]
+    [InlineData(1)]
+    [InlineData(2)]
+    public void Options_WithADefinedProbabilityMode_AreAccepted(int mode)
+    {
+        using var client = Unanswered().AsDecisionClient(new ChatDecisionClientOptions { ProbabilityMode = (ProbabilityMode)mode });
+
+        Assert.NotNull(client);
+    }
+
+    [Theory]
+    [InlineData(7)]
+    [InlineData(-1)]
+    public void Options_WithAnUndefinedProbabilityMode_AreRejected(int mode)
+    {
+        var exception = Assert.Throws<ArgumentException>(
+            () => Unanswered().AsDecisionClient(new ChatDecisionClientOptions { ProbabilityMode = (ProbabilityMode)mode }));
+
+        Assert.Equal("options", exception.ParamName);
+        Assert.Contains("ProbabilityMode", exception.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void Options_WithABlankModel_AreRejected()
     {
