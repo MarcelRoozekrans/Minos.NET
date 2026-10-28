@@ -70,6 +70,14 @@ public sealed class QuestionPromptTests
     }
 
     [Fact]
+    public void Verbalized_NamesTheJsonFormat_InTheUserMessage()
+    {
+        var text = UserText(QuestionPrompt.Build(Team, Request(Team), verbalized: true));
+
+        Assert.EndsWith("Give the probability of each label, A or B, as a JSON object keyed by label.", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Images_GoInAsDataParts()
     {
         var image = DecisionImage.FromBytes(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, "image/png");

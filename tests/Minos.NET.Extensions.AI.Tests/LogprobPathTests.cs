@@ -156,17 +156,27 @@ public sealed class LogprobPathTests
         Assert.Equal(DecisionErrorKind.Unsupported, result.Error.Kind);
     }
 
-    [Fact]
-    public async Task NoLabelInTheTopTokens_IsInvalidResponse()
+    [Theory]
+    [MemberData(nameof(UnusableTopLogprobs))]
+    public async Task NoUsableLabelInTheTopTokens_IsInvalidResponse((string Token, float Logprob)[] top)
     {
-        using var client = Logprobs(ChatCompletions.WithTopLogprobs(("Yes", Ln(0.9)), ("No", Ln(0.1))));
+        using var client = Logprobs(ChatCompletions.WithTopLogprobs(top));
 
         var result = await client.EvaluateAsync(new DecisionRequest(new QuestionSetDefinition(Refund), State));
 
         Assert.True(result.IsFailure);
         Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);
         Assert.Contains("refund", result.Error.Message, StringComparison.Ordinal);
+        Assert.Contains("no usable option label among its top logprobs", result.Error.Message, StringComparison.Ordinal);
     }
+
+    public static TheoryData<(string Token, float Logprob)[]> UnusableTopLogprobs() => new()
+    {
+        // No token is a label.
+        new[] { ("Yes", Ln(0.9)), ("No", Ln(0.1)) },
+        // A label is there, but its logprob is not a number, so the sum is not finite.
+        new[] { ("A", float.NaN), ("B", Ln(0.1)) },
+    };
 
     [Fact]
     public async Task ScoreWithMoreLevelsThanLabels_IsUnsupportedMIN203_AndSendsNothing()

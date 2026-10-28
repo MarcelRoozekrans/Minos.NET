@@ -4,7 +4,8 @@ namespace Minos.Extensions.AI;
 public enum ProbabilityMode
 {
     /// <summary>
-    /// Asks for logprobs first. When a response carries none, that question is asked again for a verbalized estimate.
+    /// Asks for logprobs first. When a response carries none, or no usable option label among them, that question is
+    /// asked again for a verbalized estimate, once.
     /// Nothing is remembered between calls. Each answer's <see cref="ProbabilitySource"/> says which path made it.
     /// </summary>
     Auto = 0,

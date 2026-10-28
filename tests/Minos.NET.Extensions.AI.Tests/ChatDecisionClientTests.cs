@@ -55,6 +55,79 @@ public sealed class ChatDecisionClientTests
     }
 
     [Fact]
+    public async Task Images_ReachTheChatClientAsDataParts_WhenSupported()
+    {
+        var chat = new ScriptedChatClient((_, _) => ChatCompletions.WithTopLogprobs(("A", -0.1f), ("B", -2.3f)));
+        using var client = chat.AsDecisionClient(new ChatDecisionClientOptions
+        {
+            ProbabilityMode = ProbabilityMode.Logprobs,
+            Capabilities = new DecisionCapabilities { SupportsImages = true },
+        });
+        var image = DecisionImage.FromBytes(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, "image/png");
+        var request = new DecisionRequest(new QuestionSetDefinition(QuestionDefinition.Noul("refund", "Does the customer ask for a refund?")), State)
+        {
+            Images = [image],
+        };
+
+        var result = await client.EvaluateAsync(request);
+
+        Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
+        var user = Assert.Single(Assert.Single(chat.Calls).Messages, message => message.Role == ChatRole.User);
+        var data = Assert.Single(user.Contents.OfType<DataContent>());
+        Assert.Equal("image/png", data.MediaType);
+        Assert.Equal(image.Data.ToArray(), data.Data.ToArray());
+    }
+
+    [Fact]
+    public async Task CapabilityFailures_KeepTheCoresOrder_WithAScoreOfTooManyLevels()
+    {
+        var chat = Unanswered();
+        using var client = chat.AsDecisionClient(new ChatDecisionClientOptions
+        {
+            Capabilities = new DecisionCapabilities { MaxQuestions = 2, QuestionKinds = QuestionKinds.Noul | QuestionKinds.Score, MaxChoiceOptions = 2 },
+        });
+        var levels = Enumerable.Range(0, 27).Select(i => Criterion.Text("Level " + i)).ToArray();
+        var definition = new QuestionSetDefinition(
+            QuestionDefinition.Score("severity", "How severe is it?", levels),
+            QuestionDefinition.Choice(
+                "team", "Which team handles it?", new OptionDefinition("billing", null), new OptionDefinition("shipping", null), new OptionDefinition("sales", null)),
+            QuestionDefinition.Noul("refund", "Does the customer ask for a refund?"));
+        var request = new DecisionRequest(definition, State)
+        {
+            Images = [DecisionImage.FromBytes(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, "image/png")],
+        };
+
+        var result = await client.EvaluateAsync(request);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(DecisionErrorKind.Unsupported, result.Error.Kind);
+        Assert.Equal(
+            new (string, string?)[] { ("MIN202", null), ("MIN203", "severity"), ("MIN201", "team"), ("MIN203", "team"), ("MIN206", null) },
+            result.Error.Failures.Select(failure => (failure.Rule, failure.QuestionKey)));
+        Assert.Equal(result.Error.Failures[0].Message, result.Error.Message);
+        Assert.Empty(chat.Calls);
+    }
+
+    [Fact]
+    public async Task AScoreOfTooManyLevels_ComesBeforeTheImageFailure()
+    {
+        var chat = Unanswered();
+        using var client = chat.AsDecisionClient();
+        var levels = Enumerable.Range(0, 27).Select(i => Criterion.Text("Level " + i)).ToArray();
+        var request = new DecisionRequest(new QuestionSetDefinition(QuestionDefinition.Score("severity", "How severe is it?", levels)), State)
+        {
+            Images = [DecisionImage.FromBytes(new byte[] { 0x89, 0x50, 0x4E, 0x47 }, "image/png")],
+        };
+
+        var result = await client.EvaluateAsync(request);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(["MIN203", "MIN206"], result.Error.Failures.Select(failure => failure.Rule));
+        Assert.Contains("severity", result.Error.Message, StringComparison.Ordinal);
+        Assert.Empty(chat.Calls);
+    }
+
+    [Fact]
     public void GetService_ReturnsCapabilities()
     {
         using var client = Unanswered().AsDecisionClient();

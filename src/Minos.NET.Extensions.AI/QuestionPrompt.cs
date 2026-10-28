@@ -14,7 +14,7 @@ internal static class QuestionPrompt
 
     private const string VerbalizedSystem =
         "You are a classifier. You answer one question about the state the user gives you. "
-        + "Give the probability of each label: a number from 0 to 1 for every option, in the JSON format you are asked for.";
+        + "Give the probability of each label: a number from 0 to 1 for every option, as a JSON object keyed by label.";
 
     /// <summary>
     /// The system message, then one user message: the question, its labelled options or levels with their criteria, the
@@ -44,7 +44,8 @@ internal static class QuestionPrompt
         }
 
         text.Append("\nState:\n").Append(request.State.ToString()).Append("\n\n");
-        text.Append(verbalized ? "Give the probability of each label, " : "Answer with one label, ").Append(Range(labelCount)).Append('.');
+        text.Append(verbalized ? "Give the probability of each label, " : "Answer with one label, ").Append(Range(labelCount))
+            .Append(verbalized ? ", as a JSON object keyed by label." : ".");
 
         var user = new ChatMessage(ChatRole.User, [new TextContent(text.ToString())]);
         foreach (var image in request.Images)

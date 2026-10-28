@@ -92,9 +92,27 @@ public sealed class ChatDecisionClient : IDecisionClient
     /// levels, returns <see cref="DecisionErrorKind.Unsupported"/>. Neither calls the chat client.
     /// </para>
     /// <para>
-    /// Each question is asked in its own chat call, and its answer is read from the logprobs of the first output token.
-    /// A response without logprobs returns <see cref="DecisionErrorKind.Unsupported"/>, and one with no option label
-    /// among the top logprobs returns <see cref="DecisionErrorKind.InvalidResponse"/>.
+    /// Each question is asked in its own chat call. <see cref="ChatDecisionClientOptions.ProbabilityMode"/> sets how its
+    /// probabilities are made:
+    /// </para>
+    /// <list type="bullet">
+    /// <item><description>
+    /// <see cref="ProbabilityMode.Logprobs"/> reads them from the logprobs of the first output token. A response without
+    /// logprobs returns <see cref="DecisionErrorKind.Unsupported"/>, and one with no usable option label among the top
+    /// logprobs returns <see cref="DecisionErrorKind.InvalidResponse"/>.
+    /// </description></item>
+    /// <item><description>
+    /// <see cref="ProbabilityMode.Verbalized"/> asks the model to state each option's probability as JSON. A reply that
+    /// is not that JSON, misses an option, or states a negative value or all zeros returns
+    /// <see cref="DecisionErrorKind.InvalidResponse"/>.
+    /// </description></item>
+    /// <item><description>
+    /// <see cref="ProbabilityMode.Auto"/> tries logprobs first. When that response has none, or no usable option label,
+    /// the question is asked once more, verbalized, and that reply decides.
+    /// </description></item>
+    /// </list>
+    /// <para>
+    /// Each answer's <see cref="QuestionAnswer.ProbabilitySource"/> says which path made it.
     /// </para>
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
@@ -111,24 +129,9 @@ public sealed class ChatDecisionClient : IDecisionClient
             return Failure(new DecisionError(DecisionErrorKind.Validation, "The request has no questions."));
         }
 
-        var failures = _capabilities.Collect(request.Definition, request.Images.Count, ProviderLabel);
-        foreach (var question in request.Definition.QuestionArray)
-        {
-            // The capabilities cap Choice options only; a Score's levels take labels too.
-            if (question.Kind == QuestionKind.Score && question.OptionArray.Length > LabelDistribution.MaxLabels)
-            {
-                (failures ??= []).Add(new QuestionFailure(DiagnosticIds.TooManyChoiceOptions, question.Key, TooManyLevels(question)));
-            }
-        }
-
-        if (failures is not null)
+        if (CheckCapabilities(request) is { } failures)
         {
             return Failure(CapabilitySet.Unsupported(failures));
-        }
-
-        if (_probabilityMode == ProbabilityMode.Verbalized)
-        {
-            return Failure(new DecisionError(DecisionErrorKind.Unsupported, ProviderLabel + " cannot ask for verbalized probabilities yet."));
         }
 
         return AnswerAllAsync(request, cancellationToken);
@@ -178,9 +181,56 @@ public sealed class ChatDecisionClient : IDecisionClient
     private static ValueTask<Result<DecisionResponse, DecisionError>> Failure(DecisionError error)
         => new(Result<DecisionResponse, DecisionError>.Failure(error));
 
+    private static bool HasTooManyLevels(QuestionDefinition question)
+        => question.Kind == QuestionKind.Score && question.OptionArray.Length > LabelDistribution.MaxLabels;
+
     private static string TooManyLevels(QuestionDefinition question)
         => ProviderLabel + " accepts at most " + LabelDistribution.MaxLabels.ToString(CultureInfo.InvariantCulture)
             + " levels per Score question; '" + question.Key + "' has " + question.OptionArray.Length.ToString(CultureInfo.InvariantCulture) + ".";
+
+    /// <summary>
+    /// The capability failures, as <see cref="CapabilitySet.Collect"/> orders them: MIN202 first, then each question's in
+    /// order, then MIN206. A Score with more levels than labels adds its MIN203 among its question's failures, since the
+    /// capabilities cap Choice options only. Returns null when the request is supported.
+    /// </summary>
+    private List<QuestionFailure>? CheckCapabilities(DecisionRequest request)
+    {
+        var questions = request.Definition.QuestionArray;
+        var collected = _capabilities.Collect(request.Definition, request.Images.Count, ProviderLabel);
+        if (!Array.Exists(questions, HasTooManyLevels))
+        {
+            return collected;
+        }
+
+        collected ??= [];
+        var failures = new List<QuestionFailure>(collected.Count + 1);
+        var next = 0;
+        if (next < collected.Count && string.Equals(collected[next].Rule, DiagnosticIds.TooManyQuestions, StringComparison.Ordinal))
+        {
+            failures.Add(collected[next++]);
+        }
+
+        // Collect lists each question's failures together and in question order, so one pass merges them.
+        foreach (var question in questions)
+        {
+            while (next < collected.Count && string.Equals(collected[next].QuestionKey, question.Key, StringComparison.Ordinal))
+            {
+                failures.Add(collected[next++]);
+            }
+
+            if (HasTooManyLevels(question))
+            {
+                failures.Add(new QuestionFailure(DiagnosticIds.TooManyChoiceOptions, question.Key, TooManyLevels(question)));
+            }
+        }
+
+        for (; next < collected.Count; next++)
+        {
+            failures.Add(collected[next]);
+        }
+
+        return failures;
+    }
 
     // One call per question, in order. The first failure fails the request.
     private async ValueTask<Result<DecisionResponse, DecisionError>> AnswerAllAsync(DecisionRequest request, CancellationToken cancellationToken)
@@ -204,10 +254,30 @@ public sealed class ChatDecisionClient : IDecisionClient
     }
 
     /// <summary>
-    /// Asks one question in its own chat call and reads the answer from the first output token's logprobs. Returns the
-    /// chat response too, for its model and usage. Exceptions from the chat client propagate.
+    /// Answers one question by the configured <see cref="ProbabilityMode"/>. In <see cref="ProbabilityMode.Auto"/>, a
+    /// logprob response with no logprobs, or with no usable label among them, is asked again verbalized, once. Returns
+    /// the chat response that gave the answer too, for its model and usage. Exceptions from the chat client propagate.
     /// </summary>
     private async ValueTask<Result<(QuestionAnswer Answer, ChatResponse Response), DecisionError>> AnswerAsync(
+        QuestionDefinition question, DecisionRequest request, CancellationToken cancellationToken)
+    {
+        if (_probabilityMode == ProbabilityMode.Verbalized)
+        {
+            return await AskVerbalizedAsync(question, request, cancellationToken).ConfigureAwait(false);
+        }
+
+        var result = await AskLogprobsAsync(question, request, cancellationToken).ConfigureAwait(false);
+        // Its only failures are no logprobs and no usable label among them; the chat client's exceptions propagate.
+        if (result.IsFailure && _probabilityMode == ProbabilityMode.Auto)
+        {
+            return await AskVerbalizedAsync(question, request, cancellationToken).ConfigureAwait(false);
+        }
+
+        return result;
+    }
+
+    /// <summary>Asks one question for a single label and reads the answer from the first output token's logprobs.</summary>
+    private async ValueTask<Result<(QuestionAnswer Answer, ChatResponse Response), DecisionError>> AskLogprobsAsync(
         QuestionDefinition question, DecisionRequest request, CancellationToken cancellationToken)
     {
         var model = request.Model ?? _model;
@@ -228,43 +298,76 @@ public sealed class ChatDecisionClient : IDecisionClient
         var response = await _chatClient.GetResponseAsync(messages, chatOptions, cancellationToken).ConfigureAwait(false);
 
         // The messages below name the model and the question key, never the state or the model's output.
-        var modelName = response.ModelId ?? model ?? _metadata.DefaultModel ?? "the chat client's default model";
         if (LogprobReader.TopAtFirstToken(response) is not { } top)
         {
             return AnswerFailure(new DecisionError(
                 DecisionErrorKind.Unsupported,
-                "The model '" + modelName + "' returned no logprobs. Set ProbabilityMode to Verbalized for a model without them."));
+                "The model '" + ModelName(response, model) + "' returned no logprobs. Set ProbabilityMode to Verbalized for a model without them."));
         }
 
-        var labelCount = question.Kind == QuestionKind.Noul ? 2 : question.OptionArray.Length;
-        if (LabelDistribution.FromLogprobs(labelCount, top) is not { } p)
+        if (LabelDistribution.FromLogprobs(LabelCount(question), top) is not { } p)
         {
             return AnswerFailure(new DecisionError(
                 DecisionErrorKind.InvalidResponse,
-                "The model '" + modelName + "' gave no option label among its top logprobs for question '" + question.Key + "'."));
+                "The model '" + ModelName(response, model) + "' gave no usable option label among its top logprobs for question '" + question.Key + "'."));
         }
 
-        var answer = question.Kind switch
+        return Answered(question, p, ProbabilitySource.Logprobs, response);
+    }
+
+    /// <summary>Asks one question for each label's probability, as JSON that follows a schema, and reads the answer from it.</summary>
+    private async ValueTask<Result<(QuestionAnswer Answer, ChatResponse Response), DecisionError>> AskVerbalizedAsync(
+        QuestionDefinition question, DecisionRequest request, CancellationToken cancellationToken)
+    {
+        var model = request.Model ?? _model;
+        var labelCount = LabelCount(question);
+        var chatOptions = new ChatOptions
         {
-            QuestionKind.Noul => QuestionAnswer.Noul(p[0], ProbabilitySource.Logprobs),
-            QuestionKind.Choice => Choice(p),
-            _ => Score(p),
+            ModelId = model,
+            Temperature = 0,
+            ResponseFormat = VerbalizedReader.Format(labelCount),
         };
+
+        var messages = QuestionPrompt.Build(question, request, verbalized: true);
+        var response = await _chatClient.GetResponseAsync(messages, chatOptions, cancellationToken).ConfigureAwait(false);
+
+        if (VerbalizedReader.Read(response.Text, labelCount) is not { } stated || LabelDistribution.FromStated(labelCount, stated) is not { } p)
+        {
+            // Names the model and the question key, never the state or the model's output.
+            return AnswerFailure(new DecisionError(
+                DecisionErrorKind.InvalidResponse,
+                "The model '" + ModelName(response, model) + "' gave no usable probability for each option of question '" + question.Key + "'."));
+        }
+
+        return Answered(question, p, ProbabilitySource.Verbalized, response);
+    }
+
+    private string ModelName(ChatResponse response, string? model)
+        => response.ModelId ?? model ?? _metadata.DefaultModel ?? "the chat client's default model";
+
+    private static int LabelCount(QuestionDefinition question)
+        => question.Kind == QuestionKind.Noul ? 2 : question.OptionArray.Length;
+
+    private static Result<(QuestionAnswer Answer, ChatResponse Response), DecisionError> AnswerFailure(DecisionError error)
+        => Result<(QuestionAnswer Answer, ChatResponse Response), DecisionError>.Failure(error);
+
+    // p is the distribution over the question's labels; for a Noul, A is yes.
+    private static Result<(QuestionAnswer Answer, ChatResponse Response), DecisionError> Answered(
+        QuestionDefinition question, double[] p, ProbabilitySource source, ChatResponse response)
+    {
+        QuestionAnswer answer;
+        if (question.Kind == QuestionKind.Noul)
+        {
+            answer = QuestionAnswer.Noul(p[0], source);
+        }
+        else
+        {
+            var (picked, confidence) = LabelDistribution.Pick(p);
+            answer = question.Kind == QuestionKind.Choice
+                ? QuestionAnswer.Choice(picked, confidence, p, source)
+                : QuestionAnswer.Score(picked, LabelDistribution.Expected(p), confidence, p, source);
+        }
+
         return Result<(QuestionAnswer Answer, ChatResponse Response), DecisionError>.Success((answer, response));
-
-        static Result<(QuestionAnswer Answer, ChatResponse Response), DecisionError> AnswerFailure(DecisionError error)
-            => Result<(QuestionAnswer Answer, ChatResponse Response), DecisionError>.Failure(error);
-
-        static QuestionAnswer Choice(double[] p)
-        {
-            var (picked, confidence) = LabelDistribution.Pick(p);
-            return QuestionAnswer.Choice(picked, confidence, p, ProbabilitySource.Logprobs);
-        }
-
-        static QuestionAnswer Score(double[] p)
-        {
-            var (picked, confidence) = LabelDistribution.Pick(p);
-            return QuestionAnswer.Score(picked, LabelDistribution.Expected(p), confidence, p, ProbabilitySource.Logprobs);
-        }
     }
 }
