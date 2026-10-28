@@ -120,6 +120,27 @@ public sealed class OpenAIResponseReaderTests
     }
 
     [Theory]
+    [InlineData("""{"type":"predicate","name":"refund","probability":1.2}""", "", "")]
+    [InlineData("""{"type":"predicate","name":"refund","probability":-0.01}""", "", "")]
+    [InlineData(Predicate, "\"probability\":0.8", "\"probability\":1.8")]
+    [InlineData(Predicate, "\"confidence\":0.6", "\"confidence\":-0.6")]
+    [InlineData(Predicate, "\"probability\":0.7", "\"probability\":7")]
+    [InlineData(Predicate, "\"confidence\":0.5", "\"confidence\":1.5")]
+    [InlineData(Predicate, "\"score\":1.1", "\"score\":2.1")]
+    [InlineData(Predicate, "\"score\":1.1", "\"score\":-1")]
+    public void AValueOutsideItsRange_IsInvalidResponse(string predicate, string find, string replace)
+    {
+        var choice = find.Length == 0 ? Choice : Choice.Replace(find, replace, StringComparison.Ordinal);
+        var score = find.Length == 0 ? Score : Score.Replace(find, replace, StringComparison.Ordinal);
+        Assert.True(find.Length == 0 || !string.Equals(choice, Choice, StringComparison.Ordinal) || !string.Equals(score, Score, StringComparison.Ordinal));
+
+        var error = Failure(Body($$"""{"answers":[{{predicate}},{{choice}},{{score}}]}"""), TestSets.AllKinds());
+
+        Assert.Equal(DecisionErrorKind.InvalidResponse, error.Kind);
+        Assert.Equal(200, error.StatusCode);
+    }
+
+    [Theory]
     [InlineData("""{"answers":{}}""")]
     [InlineData("""{"answers":null}""")]
     [InlineData("""{"model":"gpt-6-luna"}""")]
