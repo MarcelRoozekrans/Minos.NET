@@ -129,7 +129,7 @@ public sealed class DependencyInjectionTests
         using var provider = services.BuildServiceProvider();
         var exception = Assert.Throws<InvalidOperationException>(() => provider.GetRequiredService<IDecisionClient>());
 
-        Assert.Contains("IChatClient", exception.ToString(), StringComparison.Ordinal);
+        Assert.Contains("IChatClient", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -142,7 +142,24 @@ public sealed class DependencyInjectionTests
         using var provider = services.BuildServiceProvider();
         var exception = Assert.Throws<InvalidOperationException>(() => provider.GetRequiredKeyedService<IDecisionClient>("triage"));
 
-        Assert.Contains("IChatClient", exception.ToString(), StringComparison.Ordinal);
+        Assert.Contains("IChatClient", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Disposing_the_decision_client_leaves_the_container_chat_client_alone()
+    {
+        var chat = Answering("A");
+        var services = new ServiceCollection();
+        services.AddChatClient(chat);
+        services.AddChatDecisionClient();
+
+        await using var provider = services.BuildServiceProvider();
+        var client = provider.GetRequiredService<IDecisionClient>();
+        client.Dispose();
+
+        Assert.False(chat.IsDisposed);
+        var response = await provider.GetRequiredService<IChatClient>().GetResponseAsync("ping");
+        Assert.Equal("A", response.Text);
     }
 
     private static ScriptedChatClient Answering(string reply) => new((_, _) => ChatCompletions.WithoutLogprobs(reply));
