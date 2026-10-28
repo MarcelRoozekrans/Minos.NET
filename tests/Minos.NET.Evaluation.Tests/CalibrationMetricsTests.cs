@@ -250,6 +250,41 @@ public sealed class CalibrationMetricsTests
     }
 
     [Fact]
+    public void VerbalizedAnswers_CountsTheScoredAnswersWithVerbalizedProbabilities()
+    {
+        const string twoQuestions = """
+            {"id":"i1","state":"s","version":1,"questions":{
+              "q":{"type":"noul","instructions":"?"},
+              "extra":{"type":"noul","instructions":"?"}},
+              "expected":{"q":true}}
+            """;
+        var dataset = Dataset(twoQuestions, AllKindsLine(Id(2)), NoulLine(Id(3), true), NoulLine(Id(4), true));
+        var results = Results(
+            Answered(1, new Dictionary<string, AnswerRecord>
+            {
+                ["q"] = AnswerRecord.ForNoul(0.9, ProbabilitySource.Verbalized),
+                ["extra"] = AnswerRecord.ForNoul(0.7, ProbabilitySource.Verbalized),
+            }),
+            Answered(2, new Dictionary<string, AnswerRecord>
+            {
+                ["n"] = AnswerRecord.ForNoul(0.2, ProbabilitySource.Verbalized),
+                ["c"] = AnswerRecord.ForChoice("two", 0.6, ProbabilitySource.Logprobs),
+                ["s"] = AnswerRecord.ForScore(2, 0.7, ProbabilitySource.Verbalized),
+            }),
+            Answered(3, Q(Noul(true, 0.8))),
+            Failed(4));
+
+        var report = Report(results, dataset);
+
+        // The unscored "extra" answer and the Logprobs and Model answers are not counted; the metrics are unchanged.
+        Assert.Equal(3, report.VerbalizedAnswers);
+        Assert.Equal(5, report.Overall.Answered);
+    }
+
+    [Fact]
+    public void VerbalizedAnswers_IsZeroWithoutVerbalizedAnswers() => Assert.Equal(0, AllKindsReport().VerbalizedAnswers);
+
+    [Fact]
     public void ScoredQuestionWithoutAnAnswer_IsNotAnswered()
     {
         const string twoQuestions = """

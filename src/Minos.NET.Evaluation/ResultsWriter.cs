@@ -5,7 +5,10 @@ using System.Text.Json;
 
 namespace Minos.Evaluation;
 
-// Writes the results file, version 1: a header line, then one line per item. LF line endings, no BOM.
+// Writes the results file, version 1: a header line, then one line per item. LF line endings, no BOM. An answer whose
+// probabilities are not the model's own has a "probabilitySource" member; a Model answer has none, so a file with only
+// Model answers is the same as before sources were kept. The version stays 1: a reader that does not know the member
+// refuses it as unknown, so it cannot drop a source without saying so.
 internal static class ResultsWriter
 {
     private static readonly JsonWriterOptions Options = new() { Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
@@ -149,6 +152,11 @@ internal static class ResultsWriter
             w.WriteNumber("probability", p);
         }
 
+        if (ResultsFormat.SourceName(a.ProbabilitySource) is { } source)
+        {
+            w.WriteString("probabilitySource", source);
+        }
+
         w.WriteEndObject();
     }
 }
@@ -157,4 +165,16 @@ internal static class ResultsFormat
 {
     internal const string Kind = "minos-run";
     internal const int Version = 1;
+
+    internal const string Logprobs = "logprobs";
+
+    internal const string Verbalized = "verbalized";
+
+    // The name a source is written as; null for Model, which is written as no member at all.
+    internal static string? SourceName(ProbabilitySource source) => source switch
+    {
+        ProbabilitySource.Logprobs => Logprobs,
+        ProbabilitySource.Verbalized => Verbalized,
+        _ => null,
+    };
 }

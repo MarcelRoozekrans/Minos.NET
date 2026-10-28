@@ -127,6 +127,8 @@ internal static class ResultsRules
 
     internal static bool IsUnit(double value) => double.IsFinite(value) && value is >= 0 and <= 1;
 
+    internal static bool IsDefined(ProbabilitySource source) => source is ProbabilitySource.Model or ProbabilitySource.Logprobs or ProbabilitySource.Verbalized;
+
     // Null is fine here: whether a member may be null is its own rule. Text with an unpaired surrogate cannot be written as UTF-8.
     internal static bool IsValidText(string? text)
     {

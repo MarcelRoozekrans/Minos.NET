@@ -29,6 +29,12 @@ internal static class ReportJsonWriter
             WriteKind(w, "score", report.Score);
             WriteKind(w, "overall", report.Overall);
             w.WriteNumber("unscoredQuestions", report.UnscoredQuestions);
+            if (report.VerbalizedAnswers > 0)
+            {
+                // Only when there are some, so a report without them is the same as before sources were kept.
+                w.WriteNumber("verbalizedAnswers", report.VerbalizedAnswers);
+            }
+
             w.WriteStartObject("latency");
             w.WriteNumber("requests", report.Latency.Requests);
             WriteNumber(w, "medianMs", report.Latency.MedianMs);

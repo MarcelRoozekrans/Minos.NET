@@ -156,6 +156,40 @@ internal static class EvaluationChecks
             "hand-built results, with answers of each kind and an error, round trip through the results file under Native AOT");
     }
 
+    [Covers("static Minos.Evaluation.AnswerRecord.ForChoice(string! key, double confidence, Minos.ProbabilitySource probabilitySource) -> Minos.Evaluation.AnswerRecord!")]
+    [Covers("static Minos.Evaluation.AnswerRecord.ForNoul(double probability, Minos.ProbabilitySource probabilitySource) -> Minos.Evaluation.AnswerRecord!")]
+    [Covers("static Minos.Evaluation.AnswerRecord.ForScore(int level, double confidence, Minos.ProbabilitySource probabilitySource) -> Minos.Evaluation.AnswerRecord!")]
+    public static async Task AnswersKeepTheirProbabilitySource()
+    {
+        var dataset = Dataset();
+        var run = await DatasetRunner.RunAsync(new VerbalizingClient(), dataset).ConfigureAwait(false);
+        var created = CalibrationReport.Create(run, dataset);
+        var answers = new Dictionary<string, AnswerRecord>(StringComparer.Ordinal)
+        {
+            ["q"] = AnswerRecord.ForNoul(0.2, ProbabilitySource.Verbalized),
+            ["c"] = AnswerRecord.ForChoice("two", 0.6, ProbabilitySource.Logprobs),
+            ["s"] = AnswerRecord.ForScore(2, 0.7, ProbabilitySource.Model),
+        };
+        var header = new RunHeader { DatasetName = "hand", ItemCount = 1, Started = Start, Finished = Start, Parallelism = 1 };
+        using var stream = new MemoryStream();
+        new EvaluationResults(header, [new ItemResult { Id = "a", Line = 1, LatencyMs = 1, Answers = answers }]).Save(stream);
+        stream.Position = 0;
+        var parsed = EvaluationResults.Parse(stream);
+
+        Program.Check(
+            run.Items[0].Answers is { } recorded
+                && recorded["q"].ProbabilitySource == ProbabilitySource.Verbalized
+                && created.IsSuccess
+                && created.Value.VerbalizedAnswers == 4
+                && created.Value.ToMarkdown().Contains("Verbalized probabilities: 4 answers", StringComparison.Ordinal)
+                && parsed.IsSuccess
+                && parsed.Value.Items[0].Answers is { } loaded
+                && loaded["q"].ProbabilitySource == ProbabilitySource.Verbalized
+                && loaded["c"].ProbabilitySource == ProbabilitySource.Logprobs
+                && loaded["s"].ProbabilitySource == ProbabilitySource.Model,
+            "each answer keeps its probability source through a run, the results file and the report under Native AOT");
+    }
+
     [Covers("Minos.Evaluation.ModelPrice.ModelPrice() -> void")]
     [Covers("Minos.Evaluation.PriceTable.PriceTable(System.Collections.Generic.IEnumerable<Minos.Evaluation.ModelPrice!>! prices) -> void")]
     [Covers("Minos.Evaluation.PriceTable.TryFind(string! model, out Minos.Evaluation.ModelPrice? price) -> bool")]
@@ -386,6 +420,20 @@ internal static class EvaluationChecks
 
             return new(Result<DecisionResponse, DecisionError>.Success(new DecisionResponse(request.Definition, [QuestionAnswer.Noul(0.9)])));
         }
+
+        public object? GetService(Type serviceType, object? serviceKey = null) => null;
+
+        public void Dispose()
+        {
+        }
+    }
+
+    private sealed class VerbalizingClient : IDecisionClient
+    {
+        public ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
+            => new(Result<DecisionResponse, DecisionError>.Success(new DecisionResponse(
+                request.Definition,
+                [QuestionAnswer.Noul(0.9, ProbabilitySource.Verbalized)])));
 
         public object? GetService(Type serviceType, object? serviceKey = null) => null;
 

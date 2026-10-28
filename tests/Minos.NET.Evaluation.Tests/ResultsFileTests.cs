@@ -79,6 +79,7 @@ public sealed class ResultsFileTests
         Assert.Equal(expected.ChoiceKey, actual.ChoiceKey);
         Assert.Equal(expected.ScoreLevel, actual.ScoreLevel);
         Assert.Equal(expected.Confidence, actual.Confidence);
+        Assert.Equal(expected.ProbabilitySource, actual.ProbabilitySource);
     }
 
     private static byte[] Bytes(EvaluationResults results)
@@ -514,5 +515,70 @@ public sealed class ResultsFileTests
 
         Assert.DoesNotContain("partial", text, StringComparison.Ordinal);
         Assert.False(Parse(Bytes(results)).Header.Partial);
+    }
+
+    // The bytes 1.5.0 writes for Sample(), whose answers are all Model: a file without a marked answer must not change.
+    private const string ModelOnlySample =
+        """{"kind":"minos-run","version":1,"dataset":"banking77-é","itemCount":4,"providerName":"openai","endpoint":"https://api.example.com/v1","defaultModel":"gpt-x","started":"2026-10-17T09:30:15.123+00:00","finished":"2026-10-17T09:31:45.623+00:00","parallelism":4}""" + "\n"
+        + """{"id":"a","line":1,"latencyMs":1234.5678,"cached":false,"model":"gpt-x-2026","inputTokens":100,"outputTokens":20,"cost":0.0012,"responseId":"resp-1","answers":{"urgent":{"kind":"noul","value":true,"confidence":0.8123456789,"probability":0.8123456789},"dépt":{"kind":"choice","value":"facturé-日本","confidence":0.55},"mood":{"kind":"score","value":2,"confidence":0.9}}}""" + "\n"
+        + """{"id":"b","line":2,"latencyMs":10,"cached":true,"model":null,"inputTokens":null,"outputTokens":null,"cost":null,"responseId":null,"answers":{"urgent":{"kind":"noul","value":false,"confidence":0.75,"probability":0.25}}}""" + "\n"
+        + """{"id":"c","line":3,"latencyMs":5.5,"cached":false,"model":null,"inputTokens":null,"outputTokens":null,"cost":null,"responseId":null,"error":{"kind":"Http","statusCode":429,"message":"Té limit \"reached\"\nretry"}}""" + "\n"
+        + """{"id":"d","line":4,"latencyMs":7,"cached":false,"model":"m","inputTokens":1,"outputTokens":2,"cost":0,"responseId":"r","error":{"kind":"Cancelled","statusCode":null,"message":"stopped"}}""" + "\n";
+
+    private static EvaluationResults Marked()
+    {
+        var answers = new Dictionary<string, AnswerRecord>
+        {
+            ["urgent"] = AnswerRecord.ForNoul(0.8, ProbabilitySource.Verbalized),
+            ["dept"] = AnswerRecord.ForChoice("billing", 0.55, ProbabilitySource.Logprobs),
+            ["mood"] = AnswerRecord.ForScore(2, 0.9, ProbabilitySource.Verbalized),
+            ["plain"] = AnswerRecord.ForNoul(0.3),
+        };
+        return new EvaluationResults(Header(1), [new ItemResult { Id = "a", Line = 1, LatencyMs = 1, Answers = answers }]);
+    }
+
+    [Fact]
+    public void ModelOnlyResults_AreByteIdenticalToVersion1()
+        => Assert.Equal(ModelOnlySample, Encoding.UTF8.GetString(Bytes(Sample())));
+
+    [Fact]
+    public void MarkedAnswers_SaveTheirSourceAndLoadBack()
+    {
+        var results = Marked();
+
+        var bytes = Bytes(results);
+        var text = Encoding.UTF8.GetString(bytes);
+
+        Assert.StartsWith("""{"kind":"minos-run","version":1,""", text, StringComparison.Ordinal);
+        Assert.Contains("""{"kind":"noul","value":true,"confidence":0.8,"probability":0.8,"probabilitySource":"verbalized"}""", text, StringComparison.Ordinal);
+        Assert.Contains("""{"kind":"choice","value":"billing","confidence":0.55,"probabilitySource":"logprobs"}""", text, StringComparison.Ordinal);
+        Assert.Contains("""{"kind":"score","value":2,"confidence":0.9,"probabilitySource":"verbalized"}""", text, StringComparison.Ordinal);
+        Assert.Contains("""{"kind":"noul","value":false,"confidence":0.7,"probability":0.3}""", text, StringComparison.Ordinal);
+        var loaded = Parse(bytes);
+        AssertEqual(results, loaded);
+        Assert.Equal(ProbabilitySource.Model, loaded.Items[0].Answers!["plain"].ProbabilitySource);
+    }
+
+    [Fact]
+    public void AnswerWithoutASource_LoadsAsModel()
+    {
+        var text = HeaderLine(count: 1) + "\n" + ItemLine() + "\n";
+
+        var loaded = EvaluationResults.Parse(new MemoryStream(Encoding.UTF8.GetBytes(text)));
+
+        Assert.True(loaded.IsSuccess);
+        Assert.Equal(ProbabilitySource.Model, loaded.Value.Items[0].Answers!["q"].ProbabilitySource);
+    }
+
+    [Theory]
+    [InlineData("\"model\"")]
+    [InlineData("\"Verbalized\"")]
+    [InlineData("\"guessed\"")]
+    [InlineData("2")]
+    [InlineData("true")]
+    public void UnknownSource_IsAProblem(string source)
+    {
+        var answer = "{\"kind\":\"score\",\"value\":1,\"confidence\":0.5,\"probabilitySource\":" + source + "}";
+        AssertProblemOnLine(HeaderLine(count: 1) + "\n" + ItemLine(tail: ",\"answers\":{\"q\":" + answer + "}"), 2, "Member 'answers.q.probabilitySource' must be");
     }
 }

@@ -154,6 +154,46 @@ public sealed class DatasetRunnerTests
     }
 
     [Fact]
+    public async Task RecordsEachAnswersProbabilitySource()
+    {
+        var dataset = Parse(AllKinds);
+        var client = new FakeDecisionClient((r, _) => ValueTask.FromResult(Ok(new DecisionResponse(
+            r.Definition,
+            [
+                QuestionAnswer.Noul(0.3, ProbabilitySource.Verbalized),
+                QuestionAnswer.Choice(1, 0.8, [0.1, 0.8, 0.1], ProbabilitySource.Logprobs),
+                QuestionAnswer.Score(2, 1.7, 0.6, [0.1, 0.3, 0.6], ProbabilitySource.Verbalized),
+            ]))));
+
+        var item = Assert.Single((await DatasetRunner.RunAsync(client, dataset)).Items);
+
+        Assert.Equal(ProbabilitySource.Verbalized, item.Answers!["n"].ProbabilitySource);
+        Assert.Equal(0.3, item.Answers["n"].Probability);
+        Assert.Equal(ProbabilitySource.Logprobs, item.Answers["c"].ProbabilitySource);
+        Assert.Equal(ProbabilitySource.Verbalized, item.Answers["s"].ProbabilitySource);
+    }
+
+    [Fact]
+    public async Task ModelAnswers_RecordModel()
+    {
+        var item = Assert.Single((await DatasetRunner.RunAsync(Simple(0.9), Many(1))).Items);
+
+        Assert.Equal(ProbabilitySource.Model, item.Answers!["q"].ProbabilitySource);
+    }
+
+    [Fact]
+    public async Task AnUndefinedSource_IsAnInvalidResponse()
+    {
+        var client = new FakeDecisionClient((r, _) => ValueTask.FromResult(Ok(new DecisionResponse(r.Definition, [QuestionAnswer.Noul(0.9, (ProbabilitySource)7)]))));
+
+        var item = Assert.Single((await DatasetRunner.RunAsync(client, Many(1))).Items);
+
+        Assert.Null(item.Answers);
+        Assert.Equal(nameof(DecisionErrorKind.InvalidResponse), item.Error!.Kind);
+        Assert.Contains("source", item.Error.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task NoulAtHalfIsTrue()
     {
         var item = Assert.Single((await DatasetRunner.RunAsync(Simple(0.5), Many(1))).Items);

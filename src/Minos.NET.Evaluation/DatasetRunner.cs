@@ -187,7 +187,8 @@ public static class DatasetRunner
     // Walks the item's own questions and builds only what the results file can hold. An answer the response lacks is
     // absent, and an answer to a question the item does not ask is ignored. The response is invalid, and the item an
     // InvalidResponse error, when an answer has another kind than its question, a chosen index the question does not
-    // have, a probability or confidence outside 0 to 1, or when none of the item's questions was answered.
+    // have, a probability or confidence outside 0 to 1, a probability source that is not defined, or when none of the
+    // item's questions was answered. Each answer keeps its probability source.
     private static Dictionary<string, AnswerRecord> Record(DatasetItem item, DecisionResponse response, out string? invalid)
     {
         invalid = null;
@@ -211,6 +212,12 @@ public static class DatasetRunner
                 return records;
             }
 
+            if (!ResultsRules.IsDefined(answer.ProbabilitySource))
+            {
+                invalid = $"Question '{question.Key}' has probability source {((int)answer.ProbabilitySource).ToString(CultureInfo.InvariantCulture)}, which is not Model, Logprobs or Verbalized.";
+                return records;
+            }
+
             switch (question.Kind)
             {
                 case QuestionKind.Noul:
@@ -221,7 +228,7 @@ public static class DatasetRunner
                         return records;
                     }
 
-                    records[question.Key] = AnswerRecord.ForNoul(p);
+                    records[question.Key] = AnswerRecord.ForNoul(p, answer.ProbabilitySource);
                     break;
                 default:
                     if (answer.ChosenIndex < 0 || answer.ChosenIndex >= question.Options.Count)
@@ -237,8 +244,8 @@ public static class DatasetRunner
                     }
 
                     records[question.Key] = question.Kind == QuestionKind.Choice
-                        ? AnswerRecord.ForChoice(question.Options[answer.ChosenIndex].Key, answer.Confidence)
-                        : AnswerRecord.ForScore(answer.ChosenIndex, answer.Confidence);
+                        ? AnswerRecord.ForChoice(question.Options[answer.ChosenIndex].Key, answer.Confidence, answer.ProbabilitySource)
+                        : AnswerRecord.ForScore(answer.ChosenIndex, answer.Confidence, answer.ProbabilitySource);
                     break;
             }
         }
