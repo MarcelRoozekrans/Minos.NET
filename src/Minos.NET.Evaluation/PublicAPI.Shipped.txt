@@ -5,6 +5,7 @@ Minos.Evaluation.AnswerRecord.Confidence.get -> double
 Minos.Evaluation.AnswerRecord.Kind.get -> Minos.QuestionKind
 Minos.Evaluation.AnswerRecord.Noul.get -> bool
 Minos.Evaluation.AnswerRecord.Probability.get -> double?
+Minos.Evaluation.AnswerRecord.ProbabilitySource.get -> Minos.ProbabilitySource
 Minos.Evaluation.AnswerRecord.ScoreLevel.get -> int
 Minos.Evaluation.CalibrationReport
 Minos.Evaluation.CalibrationReport.Choice.get -> Minos.Evaluation.KindMetrics?
@@ -21,6 +22,7 @@ Minos.Evaluation.CalibrationReport.Score.get -> Minos.Evaluation.KindMetrics?
 Minos.Evaluation.CalibrationReport.ToJson() -> string!
 Minos.Evaluation.CalibrationReport.ToMarkdown() -> string!
 Minos.Evaluation.CalibrationReport.UnscoredQuestions.get -> int
+Minos.Evaluation.CalibrationReport.VerbalizedAnswers.get -> int
 Minos.Evaluation.CostSummary
 Minos.Evaluation.CostSummary.Cached.get -> int
 Minos.Evaluation.CostSummary.PerThousandDecisions.get -> double?
@@ -191,8 +193,11 @@ override Minos.Evaluation.ExpectedAnswer.Equals(object? obj) -> bool
 override Minos.Evaluation.ExpectedAnswer.GetHashCode() -> int
 override Minos.Evaluation.ExpectedAnswer.ToString() -> string!
 static Minos.Evaluation.AnswerRecord.ForChoice(string! key, double confidence) -> Minos.Evaluation.AnswerRecord!
+static Minos.Evaluation.AnswerRecord.ForChoice(string! key, double confidence, Minos.ProbabilitySource probabilitySource) -> Minos.Evaluation.AnswerRecord!
 static Minos.Evaluation.AnswerRecord.ForNoul(double probability) -> Minos.Evaluation.AnswerRecord!
+static Minos.Evaluation.AnswerRecord.ForNoul(double probability, Minos.ProbabilitySource probabilitySource) -> Minos.Evaluation.AnswerRecord!
 static Minos.Evaluation.AnswerRecord.ForScore(int level, double confidence) -> Minos.Evaluation.AnswerRecord!
+static Minos.Evaluation.AnswerRecord.ForScore(int level, double confidence, Minos.ProbabilitySource probabilitySource) -> Minos.Evaluation.AnswerRecord!
 static Minos.Evaluation.CalibrationReport.Create(Minos.Evaluation.EvaluationResults! results, Minos.Evaluation.DecisionDataset! dataset, Minos.Evaluation.PriceTable? prices = null) -> ZeroAlloc.Results.Result<Minos.Evaluation.CalibrationReport!, Minos.Evaluation.DatasetProblems!>
 static Minos.Evaluation.DatasetProblem.operator !=(Minos.Evaluation.DatasetProblem? left, Minos.Evaluation.DatasetProblem? right) -> bool
 static Minos.Evaluation.DatasetProblem.operator ==(Minos.Evaluation.DatasetProblem? left, Minos.Evaluation.DatasetProblem? right) -> bool
