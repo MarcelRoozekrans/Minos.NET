@@ -24,13 +24,16 @@ internal static class ChatTargets
     private static readonly Uri OpenRouterEndpoint = new("https://openrouter.ai/api/v1");
 
     /// <summary>
-    /// The reported model starts with the requested one, each without an optional provider prefix such as
-    /// <c>openai/</c>: <c>openai/gpt-4.1-mini</c> is answered by itself, by <c>gpt-4.1-mini</c> or by a dated
-    /// <c>openai/gpt-4.1-mini-2025-04-14</c>.
+    /// The reported model is the requested one, or that id with a dated or versioned suffix: a dash and a digit. OpenRouter
+    /// reports the provider-prefixed id, such as <c>openai/gpt-4.1-mini</c> or <c>openai/gpt-4.1-mini-2025-04-14</c>.
+    /// A reported model without a provider prefix is compared with the requested id without its prefix, so
+    /// <c>gpt-4.1-mini-2025-04-14</c> fits too. One with another provider's prefix does not fit.
     /// </summary>
     public static ModelRule ModelRule { get; } = new(
-        "The reported model starts with the requested one, each without an optional provider prefix such as openai/, such as gpt-4.1-mini or openai/gpt-4.1-mini-2025-04-14 for openai/gpt-4.1-mini.",
-        static (requested, reported) => WithoutProvider(reported).StartsWith(WithoutProvider(requested), StringComparison.Ordinal));
+        "The reported model is the requested one, or that id followed by a dash and a dated or versioned suffix, such as openai/gpt-4.1-mini-2025-04-14 for openai/gpt-4.1-mini; a reported model without a provider prefix is compared without the requested one's.",
+        static (requested, reported) => Fits(requested, reported)
+            || (!reported.Contains('/', StringComparison.Ordinal) && Fits(WithoutProvider(requested), reported))
+            || (!requested.Contains('/', StringComparison.Ordinal) && Fits(requested, WithoutProvider(reported))));
 
     /// <summary>Builds the OpenRouter chat target.</summary>
     /// <param name="model">The model every probe asks for.</param>
@@ -50,6 +53,14 @@ internal static class ChatTargets
             });
             return chat.AsIChatClient().AsDecisionClient(new() { ProbabilityMode = ProbabilityMode.Logprobs, Model = model });
         });
+
+    // The same id, or the id, a dash and a digit: gpt-4.1-mini-2025-04-14 fits gpt-4.1-mini, but gpt-4.1-mini does not fit gpt-4.1.
+    private static bool Fits(string requested, string reported)
+        => string.Equals(requested, reported, StringComparison.Ordinal)
+            || (reported.Length > requested.Length + 1
+                && reported.StartsWith(requested, StringComparison.Ordinal)
+                && reported[requested.Length] == '-'
+                && char.IsAsciiDigit(reported[requested.Length + 1]));
 
     // The text after the first slash, or the whole model when it has none.
     private static string WithoutProvider(string model)

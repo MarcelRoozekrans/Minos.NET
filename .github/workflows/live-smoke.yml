@@ -2,7 +2,8 @@ name: Live smoke
 
 # Calls the real TypeSafe and OpenRouter APIs, which bills a few small evaluations per run. The run also covers image
 # state and Clef through OpenRouter; the Luna test runs only when the MINOS_LIVE_LUNA variable is 1. It records the
-# conformance fixtures for both, seven probes each, and uploads them as the conformance-fixtures artifact; they reach the
+# conformance fixtures for both, seven probes each, and for the chat bridge over OpenRouter's chat completions, whose
+# model the MINOS_LIVE_CHAT_MODEL variable picks. It uploads them as the conformance-fixtures artifact; they reach the
 # repository through a pull request, never from this workflow.
 # It also records the provider-switch sample against TypeSafe and OpenRouter, eight requests each, and uploads the two
 # files as the provider-switch-recordings artifact; they too reach the repository through a pull request.
@@ -35,6 +36,7 @@ jobs:
           OPENROUTER_API_KEY: ${{ secrets.OPENROUTER_API_KEY }}
           MINOS_LIVE_MODEL: ${{ vars.MINOS_LIVE_MODEL }}
           MINOS_LIVE_OPENROUTER_MODEL: ${{ vars.MINOS_LIVE_OPENROUTER_MODEL }}
+          MINOS_LIVE_CHAT_MODEL: ${{ vars.MINOS_LIVE_CHAT_MODEL }}
           MINOS_LIVE_LUNA: ${{ vars.MINOS_LIVE_LUNA }}
           MINOS_CONFORMANCE_OUT: ${{ github.workspace }}/conformance-out
         run: dotnet test tests/Minos.NET.Live.Tests -c Release --logger "console;verbosity=detailed"

@@ -10,7 +10,7 @@ namespace Minos.Conformance.Tests;
 /// <summary>
 /// Stands in for OpenRouter's chat completions: each request gets a chat.completion whose one token is the label the
 /// script picks for its question, with that token's top logprobs. A request with the bad-key probe's key gets a 401 as
-/// OpenRouter sends it. The answers depend only on the request, so a recording through it is the same every time.
+/// OpenRouter sends it, with no request id. The answers depend only on the request, so a recording through it is the same every time.
 /// </summary>
 internal sealed class ScriptedChatNetwork : HttpMessageHandler
 {
@@ -35,16 +35,16 @@ internal sealed class ScriptedChatNetwork : HttpMessageHandler
     {
         ArgumentNullException.ThrowIfNull(request);
         var text = request.Content is null ? "" : await request.Content.ReadAsStringAsync(cancellationToken).ConfigureAwait(false);
-        var id = Id(text);
-
         if (request.Headers.Authorization is not { Scheme: "Bearer", Parameter: { } key } || string.Equals(key, ExchangeCapture.InvalidKey, StringComparison.Ordinal))
         {
-            return Respond(request, HttpStatusCode.Unauthorized, id, new JsonObject
+            // OpenRouter's 401 carries no request id.
+            return Respond(request, HttpStatusCode.Unauthorized, requestId: null, new JsonObject
             {
                 ["error"] = new JsonObject { ["message"] = "User not found.", ["code"] = 401 },
             });
         }
 
+        var id = Id(text);
         using var body = JsonDocument.Parse(text);
         var prompt = UserText(body.RootElement);
         var question = Question(prompt);
@@ -64,7 +64,7 @@ internal sealed class ScriptedChatNetwork : HttpMessageHandler
         first["top_logprobs"] = top;
         var promptTokens = prompt.Length / 4;
 
-        return Respond(request, HttpStatusCode.OK, id, new JsonObject
+        return Respond(request, HttpStatusCode.OK, requestId: id, new JsonObject
         {
             ["id"] = "gen-" + id,
             ["provider"] = "OpenAI",
@@ -101,14 +101,18 @@ internal sealed class ScriptedChatNetwork : HttpMessageHandler
         ["bytes"] = new JsonArray([.. Encoding.UTF8.GetBytes(token).Select(b => JsonValue.Create(b))]),
     };
 
-    private static HttpResponseMessage Respond(HttpRequestMessage request, HttpStatusCode status, string id, JsonObject body)
+    private static HttpResponseMessage Respond(HttpRequestMessage request, HttpStatusCode status, string? requestId, JsonObject body)
     {
         var response = new HttpResponseMessage(status)
         {
             Content = new StringContent(body.ToJsonString(), Encoding.UTF8, "application/json"),
             RequestMessage = request,
         };
-        response.Headers.Add("x-request-id", "req_" + id);
+        if (requestId is not null)
+        {
+            response.Headers.Add("x-request-id", "req_" + requestId);
+        }
+
         return response;
     }
 

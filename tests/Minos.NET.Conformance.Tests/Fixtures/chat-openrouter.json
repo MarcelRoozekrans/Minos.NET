@@ -654,9 +654,6 @@
       },
       "status": 401,
       "contentType": "application/json; charset=utf-8",
-      "headers": {
-        "x-request-id": "req_80c74a345526efb501e9b025"
-      },
       "response": {
         "error": {
           "message": "User not found.",

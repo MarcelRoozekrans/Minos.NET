@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Text.Json.Nodes;
 using System.Text.RegularExpressions;
 
 namespace Minos.Conformance.Tests;
@@ -61,10 +62,14 @@ public sealed partial class FixtureFileTests
             if (string.Equals(Environment.GetEnvironmentVariable("MINOS_WRITE_CHAT_FIXTURE"), "1", StringComparison.Ordinal))
             {
                 await File.WriteAllTextAsync(committed, json);
+                return;
             }
 
+            // Compared as parsed JSON, so a change in the order the SDK writes a request's properties does not count.
             Assert.True(File.Exists(committed), "The chat fixture is missing; run this test with MINOS_WRITE_CHAT_FIXTURE=1 to write it.");
-            Assert.Equal(await File.ReadAllTextAsync(committed), json);
+            Assert.True(
+                JsonNode.DeepEquals(JsonNode.Parse(await File.ReadAllTextAsync(committed)), JsonNode.Parse(json)),
+                "The chat fixture is not what the scripted network records; run this test with MINOS_WRITE_CHAT_FIXTURE=1 to rewrite it, then review the diff.");
         }
         finally
         {
