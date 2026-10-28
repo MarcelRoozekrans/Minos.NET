@@ -1,0 +1,18 @@
+﻿Asking a fake chat client, offline
+
+I was charged twice for my March invoice and I want my money back.
+  wants a refund  0.93  from Logprobs
+  team            Billing 0.86  from Logprobs
+
+The export button shows an error every time I click it.
+  wants a refund  0.02  from Verbalized
+  team            Technical 0.90  from Verbalized
+
+I cannot sign in since I changed phones, and the reset email never arrives.
+  wants a refund  0.03  from Verbalized
+  team            Account 0.70  from Verbalized
+
+Recorded decisions
+  wants_refund Logprobs, team Logprobs
+  wants_refund Verbalized, team Verbalized
+  wants_refund Verbalized, team Verbalized

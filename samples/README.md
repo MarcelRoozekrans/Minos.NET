@@ -1,9 +1,10 @@
 # Samples
 
-Four cookbook samples show Minos doing real work in a small console app. Each one has its own README with the details.
+Five cookbook samples show Minos doing real work in a small console app. Each one has its own README with the details.
 
 | Sample | What it shows |
 | --- | --- |
+| [Chat client](Minos.NET.Samples.ChatClient) | Asks any Microsoft.Extensions.AI chat client Noul and Choice questions about support tickets, and shows whether each probability came from the model's logprobs or from its own estimate. Runs offline with a fake chat client, or through OpenRouter when `OPENROUTER_API_KEY` is set. |
 | [Guardrails](Minos.NET.Samples.Guardrails) | Screens chat messages before they reach a language model, with one request per message and two policies over the same answers. Inspired by TypeSafe's [Guardrails for LLMs](https://docs.typesafe.ai/cookbooks/llm_guardrails) cookbook. |
 | [Intent routing](Minos.NET.Samples.IntentRouting) | Decides per request whether code, an assistant model or a person handles it, using Jev as the cheap first step. Inspired by TypeSafe's [intent routing](https://docs.typesafe.ai/patterns/intent-routing) pattern and its [Function calling](https://docs.typesafe.ai/cookbooks/function_calling) cookbook. |
 | [Provider switch](Minos.NET.Samples.ProviderSwitch) | Routes support tickets with one Choice question through TypeSafe, OpenRouter or a local server, chosen by configuration only. |
@@ -24,6 +25,8 @@ A sample runs in one of three modes, chosen by the argument after `--`:
 - **Replay** is the default and needs no network and no key. It answers every request from the checked-in recordings.
 - `--live` calls the API and prints the report. It needs `OPENROUTER_API_KEY` and makes billed requests.
 - `--record` does the same as `--live` and then rewrites the sample's recordings from the responses. It needs `OPENROUTER_API_KEY` as well.
+
+The chat-client sample has no recordings and no replay: offline it uses a fake chat client, and with `OPENROUTER_API_KEY` set it makes real requests. Run it with `dotnet run --project samples/Minos.NET.Samples.ChatClient`.
 
 The provider-switch sample also takes `--provider typesafe`, `openrouter` or `local`, and needs the key of the provider it calls: `TYPESAFE_API_KEY`, `OPENROUTER_API_KEY`, or none for a local server.
 
