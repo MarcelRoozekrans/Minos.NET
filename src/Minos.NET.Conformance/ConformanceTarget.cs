@@ -26,10 +26,14 @@ public enum ConformanceMode
     /// <summary>Real calls; nothing is saved.</summary>
     Live,
 
-    /// <summary>Real calls, each probe's exchange saved, errors included, into a fixture file.</summary>
+    /// <summary>
+    /// Real calls, each probe's exchange saved, errors included, into a fixture file. On
+    /// <see cref="ConformanceWire.ChatCompletions"/> a probe saves one exchange per question, and an invalid probe that
+    /// sends nothing saves none.
+    /// </summary>
     Record,
 
-    /// <summary>No calls: each probe is answered from a fixture file by its id.</summary>
+    /// <summary>No calls: each probe is answered from a fixture file by its id, and on <see cref="ConformanceWire.ChatCompletions"/> also by its request body.</summary>
     Replay,
 }
 

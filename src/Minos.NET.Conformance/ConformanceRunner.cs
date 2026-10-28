@@ -118,7 +118,7 @@ public sealed class ConformanceRunner
             FixtureSource = fixture?.Source,
             FixtureRecorded = fixture?.Recorded,
             Probes = probes,
-            RunChecks = [ConformanceChecks.E4(outcomes)],
+            RunChecks = [ConformanceChecks.E4(outcomes, target.Wire)],
         };
     }
 
@@ -166,7 +166,11 @@ public sealed class ConformanceRunner
         {
             if (probe.Kind != ProbeKind.Invalid)
             {
-                recorded.Add(new ConformanceExchange { Probe = probe.Id, Skipped = "No request was sent: " + error?.Kind.ToString() + ", " + error?.Message });
+                recorded.Add(new ConformanceExchange
+                {
+                    Probe = probe.Id,
+                    Skipped = error is null ? "No request was sent, and Minos returned no error." : "No request was sent: " + error.Kind.ToString() + ", " + error.Message,
+                });
             }
 
             return;

@@ -7,13 +7,15 @@ namespace Minos.Conformance;
 /// The checks: pure functions over one probe's exchanges and what Minos returned, except E4, which reads the whole run.
 /// Each returns pass, fail or skipped; a check that cannot run is skipped, never passed.
 /// </summary>
-public static class ConformanceChecks
+public static partial class ConformanceChecks
 {
     /// <summary>How far a sum or an expected level may be from its target: 0.01.</summary>
     public const double Tolerance = 0.01;
 
     // Floating-point slack, so a sum that is 0.01 off on paper, such as 0.5 + 0.49, is still within the tolerance.
     private const double Rounding = 1e-9;
+
+    private const string MinosError = "Minos returned an error; S3 reports it.";
 
     // The longest wait the core reads from a header; it clamps larger values to it.
     private static readonly TimeSpan MaxDelay = TimeSpan.FromMilliseconds(int.MaxValue);
@@ -30,7 +32,7 @@ public static class ConformanceChecks
         new("M1", static probe => string.Equals(probe.Id, ConformanceProbe.Mixed.Id, StringComparison.Ordinal), static (outcome, target) => M1(outcome, target.Wire)),
         new("E1", static probe => probe.Kind == ProbeKind.Invalid, static (outcome, target) => E1(outcome, target.Wire)),
         new("E2", static probe => probe.Kind == ProbeKind.BadKey, static (outcome, _) => E2(outcome)),
-        new("E3", static probe => probe.Kind != ProbeKind.Answer, static (outcome, _) => E3(outcome)),
+        new("E3", static probe => probe.Kind != ProbeKind.Answer, static (outcome, target) => E3(outcome, target.Wire)),
         new("R1", IsAnswer, R1),
         new("R2", IsAnswer, R2),
         new("R3", IsAnswer, static (outcome, target) => R3(outcome, target.Wire)),
@@ -527,7 +529,7 @@ public static class ConformanceChecks
         ArgumentNullException.ThrowIfNull(outcome);
         if (outcome.Response is not { } response)
         {
-            return CheckResult.Skip("M1", "Minos returned an error; S3 reports it.");
+            return CheckResult.Skip("M1", MinosError);
         }
 
         if (wire == ConformanceWire.ChatCompletions)
@@ -682,10 +684,20 @@ public static class ConformanceChecks
     /// <summary>E3: an error response's request-id header, when present, equals <see cref="DecisionError.RequestId"/>; skipped when it carries none.</summary>
     /// <param name="outcome">What the probe did.</param>
     /// <returns>The result.</returns>
-    public static CheckResult E3(ProbeOutcome outcome)
+    public static CheckResult E3(ProbeOutcome outcome) => E3(outcome, ConformanceWire.SystemOne);
+
+    /// <summary>
+    /// E3: an error response's request-id header, when present, equals <see cref="DecisionError.RequestId"/>; skipped when
+    /// it carries none. On <see cref="ConformanceWire.ChatCompletions"/> the error response is the exchange that carried
+    /// the failing status, which need not be the last to arrive.
+    /// </summary>
+    /// <param name="outcome">What the probe did.</param>
+    /// <param name="wire">The target's wire format.</param>
+    /// <returns>The result.</returns>
+    public static CheckResult E3(ProbeOutcome outcome, ConformanceWire wire)
     {
         ArgumentNullException.ThrowIfNull(outcome);
-        if (outcome.Last is not { IsSuccess: false } last)
+        if (ErrorExchangeOf(outcome, wire) is not { } last)
         {
             return CheckResult.Skip("E3", "No error response.");
         }
@@ -713,14 +725,24 @@ public static class ConformanceChecks
     /// </summary>
     /// <param name="outcomes">Every probe's outcome.</param>
     /// <returns>The result.</returns>
-    public static CheckResult E4(IReadOnlyList<ProbeOutcome> outcomes)
+    public static CheckResult E4(IReadOnlyList<ProbeOutcome> outcomes) => E4(outcomes, ConformanceWire.SystemOne);
+
+    /// <summary>
+    /// E4: a 429 met during the run has its <c>Retry-After</c>, or <c>retry-after-ms</c>, reflected in
+    /// <see cref="DecisionError.RetryAfter"/> and its request id read. On <see cref="ConformanceWire.ChatCompletions"/> every
+    /// exchange of a probe is read, so a 429 that is not the last response to arrive is met too.
+    /// </summary>
+    /// <param name="outcomes">Every probe's outcome.</param>
+    /// <param name="wire">The target's wire format.</param>
+    /// <returns>The result.</returns>
+    public static CheckResult E4(IReadOnlyList<ProbeOutcome> outcomes, ConformanceWire wire)
     {
         ArgumentNullException.ThrowIfNull(outcomes);
         var met = 0;
         var problems = new List<string>();
         foreach (var outcome in outcomes)
         {
-            if (outcome.Last is not { Status: 429 } last)
+            if (RateLimitedOf(outcome, wire) is not { } last)
             {
                 continue;
             }
@@ -769,7 +791,7 @@ public static class ConformanceChecks
         ArgumentNullException.ThrowIfNull(target);
         if (outcome.Response is not { } response)
         {
-            return CheckResult.Skip("R1", "Minos returned an error; S3 reports it.");
+            return CheckResult.Skip("R1", MinosError);
         }
 
         if (target.Wire == ConformanceWire.ChatCompletions)
@@ -809,7 +831,7 @@ public static class ConformanceChecks
 
         if (outcome.Response is null)
         {
-            return CheckResult.Skip("R2", "Minos returned an error; S3 reports it.");
+            return CheckResult.Skip("R2", MinosError);
         }
 
         if (!WireAnswers.TryBody(outcome, out var body, out var problem))
@@ -844,7 +866,7 @@ public static class ConformanceChecks
         ArgumentNullException.ThrowIfNull(outcome);
         if (outcome.Response is null)
         {
-            return CheckResult.Skip("R3", "Minos returned an error; S3 reports it.");
+            return CheckResult.Skip("R3", MinosError);
         }
 
         if (wire == ConformanceWire.ChatCompletions)
@@ -896,356 +918,6 @@ public static class ConformanceChecks
             : CheckResult.Passed("R3", string.Join(", ", counts) + ".");
     }
 
-    // The chat-completions wire sends no answer body, so D1 to D4 and M1 read what Minos read, and R1 and R3 read the root
-    // of every exchange's body, one per question.
-    private const string MinosError = "Minos returned an error; S3 reports it.";
-
-    private static CheckResult ChatD1(ProbeOutcome outcome)
-    {
-        if (outcome.Response is not { } response)
-        {
-            return CheckResult.Skip("D1", MinosError);
-        }
-
-        var count = 0;
-        var examined = 0;
-        var problems = new List<string>();
-        foreach (var (question, answer) in ReadAnswers(outcome.Probe, response))
-        {
-            examined++;
-            if (question.Kind == QuestionKind.Noul)
-            {
-                count++;
-                if (!IsUnit(answer.Probability))
-                {
-                    problems.Add(Invariant($"'{question.Key}' is {answer.Probability}"));
-                }
-
-                continue;
-            }
-
-            var probabilities = answer.Probabilities;
-            for (var i = 0; i < probabilities.Length; i++)
-            {
-                count++;
-                if (!IsUnit(probabilities[i]))
-                {
-                    problems.Add(Invariant($"'{question.Key}' gives '{OptionKey(question, i)}' {probabilities[i]}"));
-                }
-            }
-        }
-
-        if (examined == 0)
-        {
-            return CheckResult.Skip("D1", "No answer to check; S3 reports it.");
-        }
-
-        return problems.Count == 0
-            ? CheckResult.Passed("D1", Invariant($"All {count} probabilities are finite and in [0, 1]."))
-            : CheckResult.Failed("D1", Sentence(problems));
-    }
-
-    private static CheckResult ChatD2(ProbeOutcome outcome)
-    {
-        if (outcome.Response is not { } response)
-        {
-            return CheckResult.Skip("D2", MinosError);
-        }
-
-        var examined = 0;
-        var problems = new List<string>();
-        foreach (var (question, answer) in ReadAnswers(outcome.Probe, response))
-        {
-            if (question.Kind == QuestionKind.Noul)
-            {
-                continue;
-            }
-
-            examined++;
-            var probabilities = answer.Probabilities;
-            if (probabilities.Length != question.Options.Count)
-            {
-                problems.Add(Invariant($"'{question.Key}' has {probabilities.Length} probabilities for {question.Options.Count} options"));
-            }
-
-            var sum = 0.0;
-            foreach (var probability in probabilities)
-            {
-                sum += probability;
-            }
-
-            if (!Within(sum, 1))
-            {
-                problems.Add(Invariant($"'{question.Key}' sums to {sum:0.####}"));
-            }
-        }
-
-        if (examined == 0)
-        {
-            return CheckResult.Skip("D2", "No answer to check; S3 reports it.");
-        }
-
-        return problems.Count == 0
-            ? CheckResult.Passed("D2", "Each Choice and Score sums to 1 within 0.01 over exactly the options sent.")
-            : CheckResult.Failed("D2", Sentence(problems));
-    }
-
-    // A Score's level is its position, as the core reads it.
-    private static CheckResult ChatD3(ProbeOutcome outcome)
-    {
-        if (outcome.Response is not { } response)
-        {
-            return CheckResult.Skip("D3", MinosError);
-        }
-
-        var examined = 0;
-        var problems = new List<string>();
-        foreach (var (question, answer) in ReadAnswers(outcome.Probe, response))
-        {
-            if (question.Kind != QuestionKind.Score)
-            {
-                continue;
-            }
-
-            examined++;
-            var probabilities = answer.Probabilities;
-            var expected = 0.0;
-            for (var level = 0; level < probabilities.Length; level++)
-            {
-                expected += level * probabilities[level];
-            }
-
-            if (!Within(answer.Expected, expected))
-            {
-                problems.Add(Invariant($"'{question.Key}' expects {answer.Expected}, but its probabilities give {expected:0.####}"));
-            }
-        }
-
-        if (examined == 0)
-        {
-            return CheckResult.Skip("D3", "No answer to check; S3 reports it.");
-        }
-
-        return problems.Count == 0
-            ? CheckResult.Passed("D3", "Each Score's expected level equals the sum of level times probability within 0.01.")
-            : CheckResult.Failed("D3", Sentence(problems));
-    }
-
-    // Minos gives a Choice and a Score a confidence, and a Noul none.
-    private static CheckResult ChatD4(ProbeOutcome outcome)
-    {
-        if (outcome.Response is not { } response)
-        {
-            return CheckResult.Skip("D4", MinosError);
-        }
-
-        var count = 0;
-        var problems = new List<string>();
-        foreach (var (question, answer) in ReadAnswers(outcome.Probe, response))
-        {
-            if (question.Kind == QuestionKind.Noul)
-            {
-                continue;
-            }
-
-            count++;
-            if (!IsUnit(answer.Confidence))
-            {
-                problems.Add(Invariant($"'{question.Key}' has confidence {answer.Confidence}"));
-            }
-        }
-
-        if (count == 0)
-        {
-            return CheckResult.Skip("D4", "No answer reports a confidence.");
-        }
-
-        return problems.Count == 0
-            ? CheckResult.Passed("D4", Invariant($"All {count} confidences are in [0, 1]."))
-            : CheckResult.Failed("D4", Sentence(problems));
-    }
-
-    private static CheckResult ChatM1(ConformanceProbe probe, DecisionResponse response)
-    {
-        var questions = probe.Definition.Questions;
-        if (response.Answers.Count != questions.Count)
-        {
-            return CheckResult.Skip("M1", "Minos's answers do not match the questions; S3 reports it.");
-        }
-
-        var problems = new List<string>();
-        var order = new List<string>();
-        for (var i = 0; i < questions.Count; i++)
-        {
-            var key = response.Answers[i].Key;
-            order.Add(key);
-            if (!string.Equals(key, questions[i].Key, StringComparison.Ordinal))
-            {
-                problems.Add(Invariant($"Minos put '{key}' where '{questions[i].Key}' was asked"));
-            }
-        }
-
-        return problems.Count == 0
-            ? CheckResult.Passed("M1", Invariant($"Minos matched the {questions.Count} answers by key: {string.Join(", ", order)}."))
-            : CheckResult.Failed("M1", Sentence(problems));
-    }
-
-    private static CheckResult ChatE1(ProbeOutcome outcome)
-    {
-        var sent = outcome.Exchanges.Count;
-        if (sent > 0)
-        {
-            return CheckResult.Failed("E1", Invariant($"{sent} {(sent == 1 ? "request was" : "requests were")} sent; a request with no questions is rejected before anything is sent."));
-        }
-
-        if (outcome.Error is not { } error)
-        {
-            return CheckResult.Failed("E1", "Minos returned no error.");
-        }
-
-        if (error.Kind != DecisionErrorKind.Validation)
-        {
-            return CheckResult.Failed("E1", "Minos returned " + error.Kind.ToString() + ", not Validation.");
-        }
-
-        return string.IsNullOrWhiteSpace(error.Message)
-            ? CheckResult.Failed("E1", "The error has no message.")
-            : CheckResult.Passed("E1", "No request sent; Minos returned Validation: " + error.Message);
-    }
-
-    private static CheckResult ChatR1(ProbeOutcome outcome, DecisionResponse response, ConformanceTarget target)
-    {
-        if (outcome.Exchanges.Count == 0)
-        {
-            return CheckResult.Skip("R1", NotSent(outcome));
-        }
-
-        string? named = null;
-        foreach (var exchange in outcome.Exchanges)
-        {
-            if (!exchange.TryGetJson(out var body) || body.ValueKind != JsonValueKind.Object)
-            {
-                return CheckResult.Skip("R1", "A response body is not a JSON object.");
-            }
-
-            if (ModelOf(body) is not { } model)
-            {
-                if (target.ModelRule is not null)
-                {
-                    return CheckResult.Failed("R1", "A response names no model.");
-                }
-
-                continue;
-            }
-
-            if (!string.Equals(response.Model, model, StringComparison.Ordinal))
-            {
-                return CheckResult.Failed("R1", "A response names " + model + ", but DecisionResponse.Model is " + (response.Model ?? "null") + ".");
-            }
-
-            named = model;
-        }
-
-        return named is null
-            ? CheckResult.Skip("R1", "No response names a model, and the target promises none.")
-            : CheckResult.Passed("R1", Invariant($"The {outcome.Exchanges.Count} responses name {named}, and DecisionResponse.Model is the same."));
-    }
-
-    private static CheckResult ChatR3(ProbeOutcome outcome)
-    {
-        if (outcome.Exchanges.Count == 0)
-        {
-            return CheckResult.Skip("R3", NotSent(outcome));
-        }
-
-        string[] names = ["prompt_tokens", "completion_tokens"];
-        var totals = new long?[names.Length];
-        var reported = 0;
-        var problems = new List<string>();
-        foreach (var exchange in outcome.Exchanges)
-        {
-            if (!exchange.TryGetJson(out var body) || body.ValueKind != JsonValueKind.Object)
-            {
-                return CheckResult.Skip("R3", "A response body is not a JSON object.");
-            }
-
-            if (!body.TryGetProperty("usage", out var usage) || usage.ValueKind == JsonValueKind.Null)
-            {
-                continue;
-            }
-
-            if (usage.ValueKind != JsonValueKind.Object)
-            {
-                return CheckResult.Failed("R3", "A usage is not a JSON object.");
-            }
-
-            reported++;
-            for (var i = 0; i < names.Length; i++)
-            {
-                if (!usage.TryGetProperty(names[i], out var value))
-                {
-                    continue;
-                }
-
-                if (value.ValueKind == JsonValueKind.Number && value.TryGetInt64(out var tokens) && tokens >= 0)
-                {
-                    totals[i] = (totals[i] ?? 0) + tokens;
-                }
-                else
-                {
-                    problems.Add(names[i] + " is " + value.GetRawText());
-                }
-            }
-        }
-
-        if (problems.Count > 0)
-        {
-            return CheckResult.Failed("R3", "Usage: " + string.Join("; ", problems) + ".");
-        }
-
-        if (reported == 0)
-        {
-            return CheckResult.Skip("R3", "No response reports usage.");
-        }
-
-        var counts = new List<string>();
-        for (var i = 0; i < names.Length; i++)
-        {
-            if (totals[i] is { } total)
-            {
-                counts.Add(Invariant($"{names[i]} {total}"));
-            }
-        }
-
-        return counts.Count == 0
-            ? CheckResult.Skip("R3", "The usage reports no token counts.")
-            : CheckResult.Passed("R3", Invariant($"{string.Join(", ", counts)} over {reported} responses."));
-    }
-
-    // Pairs each question with Minos's answer for its key, in question order; a question without one is left out, and S3 reports it.
-    private static List<(QuestionDefinition Question, QuestionAnswer Answer)> ReadAnswers(ConformanceProbe probe, DecisionResponse response)
-    {
-        var pairs = new List<(QuestionDefinition, QuestionAnswer)>();
-        foreach (var question in probe.Definition.Questions)
-        {
-            foreach (var answer in response.Answers)
-            {
-                if (string.Equals(answer.Key, question.Key, StringComparison.Ordinal))
-                {
-                    pairs.Add((question, answer));
-                    break;
-                }
-            }
-        }
-
-        return pairs;
-    }
-
-    private static string OptionKey(QuestionDefinition question, int index)
-        => index < question.Options.Count ? question.Options[index].Key : index.ToString(CultureInfo.InvariantCulture);
-
-    private static bool IsUnit(double value) => double.IsFinite(value) && value is >= 0 and <= 1;
-
     private static bool IsAnswer(ConformanceProbe probe) => probe.Kind == ProbeKind.Answer;
 
     private static bool Asks(ConformanceProbe probe, QuestionKind kind)
@@ -1278,6 +950,18 @@ public static class ConformanceChecks
         => body.TryGetProperty("model", out var model) && model.ValueKind == JsonValueKind.String && model.GetString() is { Length: > 0 } text
             ? text
             : null;
+
+    // The error response E3 reads: the last exchange, or on the chat-completions wire the one with the failing status.
+    private static ConformanceExchange? ErrorExchangeOf(ProbeOutcome outcome, ConformanceWire wire)
+        => wire == ConformanceWire.ChatCompletions
+            ? ChatErrorExchange(outcome)
+            : outcome.Last is { IsSuccess: false } last ? last : null;
+
+    // The 429 E4 reads: the last exchange, or on the chat-completions wire the first 429 to arrive.
+    private static ConformanceExchange? RateLimitedOf(ProbeOutcome outcome, ConformanceWire wire)
+        => wire == ConformanceWire.ChatCompletions
+            ? ChatRateLimited(outcome)
+            : outcome.Last is { Status: 429 } last ? last : null;
 
     private static (string Name, string Value)? RequestIdOf(ConformanceExchange exchange)
     {

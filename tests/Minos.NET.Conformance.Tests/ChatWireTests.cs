@@ -233,6 +233,63 @@ public sealed class ChatWireTests : IDisposable
     }
 
     [Fact]
+    public void R1_WithoutAModelRule_CountsOnlyTheResponsesThatNameAModel()
+    {
+        var outcome = new ProbeOutcome(
+            ConformanceProbe.Mixed,
+            [
+                ChatExchange(ConformanceProbe.Mixed, 200, Completion("jev-1.13.0", "[0.9]")),
+                ChatExchange(ConformanceProbe.Mixed, 200, """{"choices":[]}"""),
+                ChatExchange(ConformanceProbe.Mixed, 200, Completion("jev-1.13.0", "[0.9]")),
+            ],
+            Mixed(0.95, 0, 1.05),
+            null);
+
+        var result = ConformanceChecks.R1(outcome, ChatTarget);
+
+        Assert.Equal(CheckResult.Passed("R1", "The 2 responses that name a model name jev-1.13.0, and DecisionResponse.Model is the same."), result);
+    }
+
+    [Fact]
+    public void E3_ReadsTheExchangeWithTheFailingStatus_NotTheLastToArrive()
+    {
+        var outcome = new ProbeOutcome(
+            ConformanceProbe.BadKey,
+            [Outcomes.Exchange(ConformanceProbe.BadKey, 500, "{}", ("x-request-id", "req_500")), Outcomes.Exchange(ConformanceProbe.BadKey, 429, "{}", ("x-request-id", "req_429")), Outcomes.Exchange(ConformanceProbe.BadKey, 200, "{}")],
+            null,
+            new DecisionError(DecisionErrorKind.RateLimited, "Slow down.") { StatusCode = 429, RequestId = "req_429" });
+
+        Assert.Equal(CheckResult.Passed("E3", "x-request-id req_429 is DecisionError.RequestId."), ConformanceChecks.E3(outcome, ConformanceWire.ChatCompletions));
+        Assert.Equal(CheckResult.Skip("E3", "No error response."), ConformanceChecks.E3(outcome, ConformanceWire.SystemOne));
+    }
+
+    [Theory]
+    [InlineData(2, CheckOutcome.Pass)]
+    [InlineData(5, CheckOutcome.Fail)]
+    public void E4_MeetsA429ThatIsNotTheLastToArrive(int retryAfterSeconds, CheckOutcome expected)
+    {
+        var outcome = new ProbeOutcome(
+            ConformanceProbe.Mixed,
+            [Outcomes.Exchange(ConformanceProbe.Mixed, 429, "{}", ("retry-after", "2"), ("x-request-id", "req_429")), Outcomes.Exchange(ConformanceProbe.Mixed, 200, Completion("gpt-test", "[0.9]"))],
+            null,
+            new DecisionError(DecisionErrorKind.RateLimited, "Slow down.") { StatusCode = 429, RetryAfter = TimeSpan.FromSeconds(retryAfterSeconds), RequestId = "req_429" });
+
+        Assert.Equal(expected, ConformanceChecks.E4([outcome], ConformanceWire.ChatCompletions).Outcome);
+        Assert.Equal(CheckResult.Skip("E4", "No 429 was met during the run."), ConformanceChecks.E4([outcome], ConformanceWire.SystemOne));
+    }
+
+    [Fact]
+    public async Task Record_AProbeThatSentNothingWithoutAnError_SaysSo()
+    {
+        var path = Path.Combine(_directory, "silent.json");
+        var target = new ConformanceTarget("silent", ConformanceWire.ChatCompletions, "gpt-test", modelRule: null, static _ => new SilentClient());
+
+        await Runner().RunAsync(target, ConformanceMode.Record, path);
+
+        Assert.Equal("No request was sent, and Minos returned no error.", Assert.Single(ConformanceFixture.Load(path).FindAll("noul")).Skipped);
+    }
+
+    [Fact]
     public async Task OtherWires_StillRejectRepeatedProbeIds()
     {
         var fixture = ConformanceFixture.Load(Fixtures.Path("typesafe"));
@@ -297,6 +354,38 @@ public sealed class ChatWireTests : IDisposable
 
         private static HttpResponseMessage Json(HttpStatusCode status, string body)
             => new(status) { Content = new StringContent(body, Encoding.UTF8, "application/json") };
+    }
+
+    /// <summary>Answers every question with certainty and sends nothing, so a probe has no exchange and no error.</summary>
+    private sealed class SilentClient : IDecisionClient
+    {
+        public ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
+        {
+            var answers = new List<QuestionAnswer>();
+            foreach (var question in request.Definition.Questions)
+            {
+                var p = new double[question.Options.Count];
+                if (p.Length > 0)
+                {
+                    p[0] = 1;
+                }
+
+                answers.Add(question.Kind switch
+                {
+                    QuestionKind.Noul => QuestionAnswer.Noul(1),
+                    QuestionKind.Choice => QuestionAnswer.Choice(0, 1, p),
+                    _ => QuestionAnswer.Score(0, 0, 1, p),
+                });
+            }
+
+            return new(Result<DecisionResponse, DecisionError>.Success(new DecisionResponse(request.Definition, answers, "gpt-test")));
+        }
+
+        public object? GetService(Type serviceType, object? serviceKey = null) => null;
+
+        public void Dispose()
+        {
+        }
     }
 
     /// <summary>A stand-in for the chat bridge: one POST per question, all in parallel, read into a <see cref="DecisionResponse"/>.</summary>

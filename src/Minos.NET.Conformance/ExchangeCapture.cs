@@ -34,8 +34,11 @@ public sealed class ExchangeCapture : DelegatingHandler
     public void Begin(ConformanceProbe probe)
     {
         ArgumentNullException.ThrowIfNull(probe);
-        _probe = probe;
-        _exchanges.Clear();
+        lock (_exchanges)
+        {
+            _probe = probe;
+            _exchanges.Clear();
+        }
     }
 
     /// <summary>Stops recording and returns the probe's exchanges, in the order their responses arrived.</summary>
