@@ -1,1 +1,3 @@
 #nullable enable
+Minos.DecisionClientMetadata.CacheScope.get -> string?
+Minos.DecisionClientMetadata.CacheScope.init -> void

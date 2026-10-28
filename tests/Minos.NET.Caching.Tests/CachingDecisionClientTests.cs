@@ -165,6 +165,47 @@ public sealed class CachingDecisionClientTests
     }
 
     [Fact]
+    public async Task Two_clients_that_differ_only_in_their_cache_scope_never_share_an_answer()
+    {
+        using var memory = Responses.Memory();
+        var distributed = new CountingDistributedCache();
+        var auto = new ScriptedClient(TypeSafe with { CacheScope = "auto" });
+        var logprobs = new ScriptedClient(TypeSafe with { CacheScope = "logprobs" });
+        var unscoped = new ScriptedClient(TypeSafe);
+        using var first = new CachingDecisionClient(auto, memory, distributed);
+        using var second = new CachingDecisionClient(logprobs, memory, distributed);
+        using var third = new CachingDecisionClient(unscoped, memory, distributed);
+
+        await first.EvaluateAsync(Responses.Request());
+        var scoped = await second.EvaluateAsync(Responses.Request());
+        var plain = await third.EvaluateAsync(Responses.Request());
+
+        Assert.False(scoped.Value.IsCached);
+        Assert.False(plain.Value.IsCached);
+        Assert.Equal(1, logprobs.Calls);
+        Assert.Equal(1, unscoped.Calls);
+    }
+
+    [Fact]
+    public async Task Two_clients_with_the_same_cache_scope_share_an_answer()
+    {
+        using var memory = Responses.Memory();
+        var distributed = new CountingDistributedCache();
+        var one = new ScriptedClient(TypeSafe with { CacheScope = "auto" });
+        var other = new ScriptedClient(TypeSafe with { CacheScope = "auto" });
+        using var first = new CachingDecisionClient(one, memory, distributed);
+        using var second = new CachingDecisionClient(other, memory, distributed);
+
+        await first.EvaluateAsync(Responses.Request());
+        var result = await second.EvaluateAsync(Responses.Request());
+
+        Assert.True(result.Value.IsCached);
+        Assert.Equal(0, other.Calls);
+        Assert.NotNull(distributed.Get(DecisionCacheKey.Create(
+            Responses.Request(), "typesafe", "https://api.typesafe.ai/", "jev-latest", "auto", "minos:")));
+    }
+
+    [Fact]
     public async Task A_request_naming_the_model_another_client_defaults_to_shares_its_answer()
     {
         using var memory = Responses.Memory();

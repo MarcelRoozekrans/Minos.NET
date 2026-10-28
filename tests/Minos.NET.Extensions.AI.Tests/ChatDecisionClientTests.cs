@@ -192,8 +192,8 @@ public sealed class ChatDecisionClientTests
         using var client = chat.AsDecisionClient();
         using var overridden = chat.AsDecisionClient(new ChatDecisionClientOptions { Model = "m2" });
 
-        Assert.Equal(new DecisionClientMetadata("openrouter", endpoint, "m1"), client.GetService<DecisionClientMetadata>());
-        Assert.Equal(new DecisionClientMetadata("openrouter", endpoint, "m2"), overridden.GetService<DecisionClientMetadata>());
+        Assert.Equal(new DecisionClientMetadata("openrouter", endpoint, "m1") { CacheScope = "auto" }, client.GetService<DecisionClientMetadata>());
+        Assert.Equal(new DecisionClientMetadata("openrouter", endpoint, "m2") { CacheScope = "auto" }, overridden.GetService<DecisionClientMetadata>());
     }
 
     [Fact]
@@ -201,7 +201,7 @@ public sealed class ChatDecisionClientTests
     {
         using var client = Unanswered().AsDecisionClient();
 
-        Assert.Equal(new DecisionClientMetadata("unknown", null, null), client.GetService<DecisionClientMetadata>());
+        Assert.Equal(new DecisionClientMetadata("unknown", null, null) { CacheScope = "auto/" + typeof(ScriptedChatClient).FullName }, client.GetService<DecisionClientMetadata>());
     }
 
     [Fact]

@@ -180,6 +180,10 @@ public static IServiceCollection AddCachedDecisions(IServiceCollection services,
 - **A repeat is the same definition, state, images and model, to the same provider and endpoint.** The model is the
   request's `Model`, or the client's default model when the request names none. Two clients for different providers or
   models never share an answer, even in one Redis instance. The retry attempt is not part of the key.
+- **A cache scope keeps two clients apart.** When the client's `DecisionClientMetadata.CacheScope` is set, it is part of
+  the key too, so clients with the same provider, endpoint and model but different scopes never share an answer. A
+  [chat client](chat-clients.md#caching) sets it to its probability mode. The built-in HTTP clients leave it `null`, and
+  a client without a scope keeps the keys it had before scopes existed.
 - **Only successes are stored,** in process and then in the distributed cache. An error or a refusal passes through,
   and the next call asks the provider again.
 - **A hit is marked.** `DecisionResponse.IsCached` is `true`. The response keeps the model, usage and cost of the call
@@ -375,8 +379,8 @@ A `SystemOneDecisionClient` answers with:
 - **a copy of its retry settings**, for `DecisionRetryOptions`. `UseRetries()` starts from these.
 - **its `DecisionClientMetadata`**: the `ProviderName`, which is `typesafe`, `openrouter`, `vllm-sr` or
   `custom` (an `OpenAIDecisionClient` reports `openai`), the `Endpoint` it sends to (the base address plus the path,
-  such as `https://api.typesafe.ai/v1/systemone`), and the `DefaultModel` from its options. The telemetry and logging
-  stages read it.
+  such as `https://api.typesafe.ai/v1/systemone`), and the `DefaultModel` from its options. Its `CacheScope` is
+  `null`. The telemetry, logging and caching stages read it.
 - **a stage of its standard pipeline**, such as `RetryingDecisionClient`, when there is one.
 
 A [fake `IDecisionClient`](testing-your-code.md#way-one-a-fake-idecisionclient) can return `null` for everything. The

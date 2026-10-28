@@ -8,11 +8,13 @@ namespace Minos;
 
 /// <summary>
 /// The cache key of a request, for <c>Minos.NET.Caching</c>: a SHA-256 digest over the definition, the state, the images,
-/// the model the call runs on, and the client's provider and endpoint. The retry attempt is left out, so a retried call finds the entry
-/// its first attempt stored.
+/// the model the call runs on, the client's provider and endpoint, and its <see cref="DecisionClientMetadata.CacheScope"/> when it
+/// has one. The retry attempt is left out, so a retried call finds the entry its first attempt stored.
 /// </summary>
 /// <remarks>
 /// Every variable-length field is written with its length first, so two different requests never write the same bytes.
+/// The scope is written last, and only when it is set, so a client without one keeps the keys it had before scopes
+/// existed; a scoped key has bytes after the images that an unscoped one never has, so the two never meet.
 /// The definition's part is a digest of its own, computed once per definition instance and kept in its protocol-data
 /// slot. Each image is hashed on its own, so the buffer never holds image bytes.
 /// </remarks>
@@ -41,6 +43,19 @@ internal static class DecisionCacheKey
     /// </param>
     /// <param name="prefix">The text the key starts with.</param>
     public static string Create(DecisionRequest request, string provider, string? endpoint, string? defaultModel, string prefix)
+        => Create(request, provider, endpoint, defaultModel, scope: null, prefix);
+
+    /// <summary>Creates the key of <paramref name="request"/> for a client with the given metadata and cache scope.</summary>
+    /// <param name="request">The request.</param>
+    /// <param name="provider">The client's provider name.</param>
+    /// <param name="endpoint">The client's endpoint, if it has one.</param>
+    /// <param name="defaultModel">The client's default model, keyed when the request names none.</param>
+    /// <param name="scope">
+    /// The client's <see cref="DecisionClientMetadata.CacheScope"/>; <see langword="null"/> gives the same key as the
+    /// overload without it.
+    /// </param>
+    /// <param name="prefix">The text the key starts with.</param>
+    public static string Create(DecisionRequest request, string provider, string? endpoint, string? defaultModel, string? scope, string prefix)
     {
         var definition = request.Definition.GetOrAddProtocolData(DefinitionSlot, static d => DefinitionDigest(d));
         Span<byte> digest = stackalloc byte[DigestLength];
@@ -61,6 +76,11 @@ internal static class DecisionCacheKey
                 writer.Text(images[i].MediaType);
                 SHA256.HashData(images[i].Data.Span, imageDigest);
                 writer.Bytes(imageDigest);
+            }
+
+            if (scope is not null)
+            {
+                writer.Text(scope);
             }
 
             writer.Hash(digest);
