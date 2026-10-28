@@ -164,6 +164,7 @@ public sealed class RecordFileTests : IDisposable
             Assert.Equal(e.Expected, a.Expected);
             Assert.Equal(e.Confidence, a.Confidence);
             Assert.Equal(e.Probabilities, a.Probabilities);
+            Assert.Equal(e.ProbabilitySource, a.ProbabilitySource);
         }
 
         // The definition has no equality of its own: the same set writes the same JSON.
@@ -268,10 +269,70 @@ public sealed class RecordFileTests : IDisposable
         Assert.Equal(3, problem.Line);
     }
 
+    private static IReadOnlyList<RecordedAnswer> VerbalizedAnswers() =>
+    [
+        new RecordedAnswer("topic", QuestionKind.Choice, 0, 0, 0, 0.75, [0.75, 0.25], ProbabilitySource.Verbalized),
+    ];
+
+    [Fact]
+    public void MarkedAnswer_IsWrittenWithItsSource_AsVersion2()
+    {
+        var line = Json(Rec(Record(answers: VerbalizedAnswers())));
+
+        using var document = JsonDocument.Parse(line);
+        Assert.Equal(2, document.RootElement.GetProperty("version").GetInt32());
+        var answer = document.RootElement.GetProperty("answers")[0];
+        Assert.Equal("verbalized", answer.GetProperty("probabilitySource").GetString());
+    }
+
+    [Fact]
+    public void ALineWithoutMarkedAnswers_StaysVersion1_AndWritesNoSource()
+    {
+        var line = Json(Rec(Record()));
+
+        Assert.Contains("\"version\":1", line, StringComparison.Ordinal);
+        Assert.DoesNotContain("probabilitySource", line, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task MarkedLine_RoundTrips()
+    {
+        var written = Record(answers: [.. Answers(), .. VerbalizedAnswers(), new RecordedAnswer("mood", QuestionKind.Score, 1, 0, 1.25, 0.625, [0.25, 0.5, 0.25], ProbabilitySource.Logprobs)]);
+
+        var (decisions, problems) = await ReadAsync(Lines(Rec(written)));
+
+        Assert.Empty(problems);
+        var answers = Assert.Single(decisions).Record.Answers;
+        Assert.Equal(ProbabilitySource.Model, answers[0].ProbabilitySource);
+        Assert.Equal(ProbabilitySource.Verbalized, answers[3].ProbabilitySource);
+        Assert.Equal(ProbabilitySource.Logprobs, answers[4].ProbabilitySource);
+        AssertSame(written, decisions[0].Record);
+    }
+
+    [Fact]
+    public async Task Version1Line_ReadsAsModel()
+    {
+        var (decisions, problems) = await ReadAsync(Lines(Rec(Record())));
+
+        Assert.Empty(problems);
+        Assert.All(Assert.Single(decisions).Record.Answers, a => Assert.Equal(ProbabilitySource.Model, a.ProbabilitySource));
+    }
+
+    [Fact]
+    public async Task UnknownSource_IsRejected()
+    {
+        var line = Json(Rec(Record(answers: VerbalizedAnswers()))).Replace("\"verbalized\"", "\"guessed\"", StringComparison.Ordinal);
+
+        var (decisions, problems) = await ReadAsync(Encoding.UTF8.GetBytes(line + "\n"));
+
+        Assert.Empty(decisions);
+        Assert.Equal(1, Assert.Single(problems).Line);
+    }
+
     [Fact]
     public async Task AWrongVersion_IsAProblem()
     {
-        var future = """{"kind":"record","version":2,"decisionId":"d-9"}""" + "\n";
+        var future = """{"kind":"record","version":3,"decisionId":"d-9"}""" + "\n";
         byte[] bytes = [.. Lines(Rec(Record("d-1"))), .. Encoding.UTF8.GetBytes(future)];
 
         var (decisions, problems) = await ReadAsync(bytes);
@@ -279,7 +340,7 @@ public sealed class RecordFileTests : IDisposable
         Assert.Single(decisions);
         var problem = Assert.Single(problems);
         Assert.Equal(2, problem.Line);
-        Assert.Contains("version 2", problem.Message, StringComparison.Ordinal);
+        Assert.Contains("version 3", problem.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("d-9", problem.Message, StringComparison.Ordinal);
     }
 
@@ -368,7 +429,7 @@ public sealed class RecordFileTests : IDisposable
     }
 
     [Theory]
-    [InlineData("""{"kind":"record","version":2,"decisionId":"d-9"}""")]
+    [InlineData("""{"kind":"record","version":3,"decisionId":"d-9"}""")]
     [InlineData("""{"kind":"record","version":0,"decisionId":"d-9"}""")]
     [InlineData("""{"kind":"annotation","version":1,"decisionId":"d-9","text":"x"}""")]
     [InlineData("""{"kind":"outcome","version":1,"decisionId":"d-1","type":"rating","source":"ui","at":"2026-10-22T10:00:00+02:00","stars":4}""")]

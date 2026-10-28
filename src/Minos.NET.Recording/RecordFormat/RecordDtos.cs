@@ -92,6 +92,8 @@ internal sealed class AnswerDto
 
     public double Confidence { get; set; }
 
+    public string? ProbabilitySource { get; set; }
+
     public List<double>? Probabilities { get; set; }
 }
 
