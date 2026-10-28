@@ -32,4 +32,15 @@ public sealed class ChatDecisionClientOptions
     /// </para>
     /// </remarks>
     public DecisionCapabilities? Capabilities { get; set; }
+
+    /// <summary>
+    /// Gets or sets the most chat calls one request may have in flight at once. When unset, every question of a request
+    /// is asked at once. Values below 1 are rejected.
+    /// </summary>
+    /// <remarks>
+    /// The limit is per request, not per client: two requests running together may each have this many calls in flight.
+    /// A question that <see cref="ProbabilityMode.Auto"/> asks again keeps its place for both calls, so it never has two
+    /// calls in flight.
+    /// </remarks>
+    public int? MaxParallelCalls { get; set; }
 }
