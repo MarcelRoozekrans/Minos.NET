@@ -9,11 +9,13 @@ public readonly struct Choice<T> : IEquatable<Choice<T>>
     /// <param name="value">The option the model picked.</param>
     /// <param name="confidence">The model's confidence, between 0 and 1.</param>
     /// <param name="probabilities">The probability of each option.</param>
-    internal Choice(T value, double confidence, ProbabilityMap<T> probabilities)
+    /// <param name="probabilitySource">How the probabilities were made.</param>
+    internal Choice(T value, double confidence, ProbabilityMap<T> probabilities, ProbabilitySource probabilitySource = ProbabilitySource.Model)
     {
         Value = value;
         Confidence = confidence;
         Probabilities = probabilities;
+        ProbabilitySource = probabilitySource;
     }
 
     /// <summary>Gets the option the model picked.</summary>
@@ -24,6 +26,9 @@ public readonly struct Choice<T> : IEquatable<Choice<T>>
 
     /// <summary>Gets the probability of each option.</summary>
     public ProbabilityMap<T> Probabilities { get; }
+
+    /// <summary>Gets how the probabilities were made.</summary>
+    public ProbabilitySource ProbabilitySource { get; }
 
     /// <summary>Compares two choices for equality.</summary>
     /// <param name="left">The first value.</param>
@@ -41,11 +46,12 @@ public readonly struct Choice<T> : IEquatable<Choice<T>>
     public bool Equals(Choice<T> other)
         => EqualityComparer<T>.Default.Equals(Value, other.Value)
         && Confidence.Equals(other.Confidence)
-        && Probabilities.Equals(other.Probabilities);
+        && Probabilities.Equals(other.Probabilities)
+        && ProbabilitySource == other.ProbabilitySource;
 
     /// <inheritdoc />
     public override bool Equals(object? obj) => obj is Choice<T> other && Equals(other);
 
     /// <inheritdoc />
-    public override int GetHashCode() => HashCode.Combine(Value, Confidence, Probabilities);
+    public override int GetHashCode() => HashCode.Combine(Value, Confidence, Probabilities, ProbabilitySource);
 }

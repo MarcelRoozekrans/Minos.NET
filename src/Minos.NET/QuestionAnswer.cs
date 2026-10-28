@@ -18,7 +18,7 @@ public readonly struct QuestionAnswer
     private readonly int _count;
     private readonly double _value;
 
-    internal QuestionAnswer(string key, QuestionKind kind, int chosenIndex, double value, double confidence, double[]? probabilities, int offset, int count)
+    internal QuestionAnswer(string key, QuestionKind kind, int chosenIndex, double value, double confidence, double[]? probabilities, int offset, int count, ProbabilitySource probabilitySource = ProbabilitySource.Model)
     {
         _key = key;
         Kind = kind;
@@ -28,6 +28,7 @@ public readonly struct QuestionAnswer
         _probabilities = probabilities;
         _offset = offset;
         _count = count;
+        ProbabilitySource = probabilitySource;
     }
 
     /// <summary>Gets the question's key; empty for an answer made by a factory and not yet part of a response.</summary>
@@ -51,6 +52,9 @@ public readonly struct QuestionAnswer
     /// <summary>Gets the confidence of a Choice or Score; 0 for a Noul.</summary>
     public double Confidence { get; }
 
+    /// <summary>Gets how the answer's probabilities were made.</summary>
+    public ProbabilitySource ProbabilitySource { get; }
+
     /// <summary>Gets one probability per option or level; empty for a Noul.</summary>
     public ReadOnlySpan<double> Probabilities => _probabilities is null ? default : _probabilities.AsSpan(_offset, _count);
 
@@ -58,10 +62,17 @@ public readonly struct QuestionAnswer
     /// <param name="probability">The probability that the answer is yes, from 0 to 1.</param>
     /// <returns>The answer.</returns>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="probability"/> is outside 0 to 1, or not a number.</exception>
-    public static QuestionAnswer Noul(double probability)
+    public static QuestionAnswer Noul(double probability) => Noul(probability, ProbabilitySource.Model);
+
+    /// <summary>Creates a Noul answer.</summary>
+    /// <param name="probability">The probability that the answer is yes, from 0 to 1.</param>
+    /// <param name="probabilitySource">How the probability was made.</param>
+    /// <returns>The answer.</returns>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="probability"/> is outside 0 to 1, or not a number.</exception>
+    public static QuestionAnswer Noul(double probability, ProbabilitySource probabilitySource)
     {
         EnsureUnit(probability, nameof(probability));
-        return new(string.Empty, QuestionKind.Noul, -1, probability, 0, null, 0, 0);
+        return new(string.Empty, QuestionKind.Noul, -1, probability, 0, null, 0, 0, probabilitySource);
     }
 
     /// <summary>Creates a Choice answer.</summary>
@@ -72,7 +83,18 @@ public readonly struct QuestionAnswer
     /// <exception cref="ArgumentNullException"><paramref name="probabilities"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="chosenIndex"/> is negative, or a value is outside 0 to 1.</exception>
     public static QuestionAnswer Choice(int chosenIndex, double confidence, double[] probabilities)
-        => Ranked(QuestionKind.Choice, chosenIndex, 0, confidence, probabilities);
+        => Choice(chosenIndex, confidence, probabilities, ProbabilitySource.Model);
+
+    /// <summary>Creates a Choice answer.</summary>
+    /// <param name="chosenIndex">The chosen option's position.</param>
+    /// <param name="confidence">The confidence, from 0 to 1.</param>
+    /// <param name="probabilities">One probability per option, in definition order; copied.</param>
+    /// <param name="probabilitySource">How the probabilities were made.</param>
+    /// <returns>The answer.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="probabilities"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="chosenIndex"/> is negative, or a value is outside 0 to 1.</exception>
+    public static QuestionAnswer Choice(int chosenIndex, double confidence, double[] probabilities, ProbabilitySource probabilitySource)
+        => Ranked(QuestionKind.Choice, chosenIndex, 0, confidence, probabilities, probabilitySource);
 
     /// <summary>Creates a Score answer.</summary>
     /// <param name="level">The chosen level's position.</param>
@@ -83,16 +105,28 @@ public readonly struct QuestionAnswer
     /// <exception cref="ArgumentNullException"><paramref name="probabilities"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="level"/> is negative, <paramref name="expected"/> is not finite, or a value is outside 0 to 1.</exception>
     public static QuestionAnswer Score(int level, double expected, double confidence, double[] probabilities)
+        => Score(level, expected, confidence, probabilities, ProbabilitySource.Model);
+
+    /// <summary>Creates a Score answer.</summary>
+    /// <param name="level">The chosen level's position.</param>
+    /// <param name="expected">The expected level.</param>
+    /// <param name="confidence">The confidence, from 0 to 1.</param>
+    /// <param name="probabilities">One probability per level, in definition order; copied.</param>
+    /// <param name="probabilitySource">How the probabilities were made.</param>
+    /// <returns>The answer.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="probabilities"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentOutOfRangeException"><paramref name="level"/> is negative, <paramref name="expected"/> is not finite, or a value is outside 0 to 1.</exception>
+    public static QuestionAnswer Score(int level, double expected, double confidence, double[] probabilities, ProbabilitySource probabilitySource)
     {
         if (!double.IsFinite(expected))
         {
             throw new ArgumentOutOfRangeException(nameof(expected), expected, "The expected level must be a finite number.");
         }
 
-        return Ranked(QuestionKind.Score, level, expected, confidence, probabilities);
+        return Ranked(QuestionKind.Score, level, expected, confidence, probabilities, probabilitySource);
     }
 
-    private static QuestionAnswer Ranked(QuestionKind kind, int index, double value, double confidence, double[] probabilities)
+    private static QuestionAnswer Ranked(QuestionKind kind, int index, double value, double confidence, double[] probabilities, ProbabilitySource probabilitySource)
     {
         ArgumentOutOfRangeException.ThrowIfNegative(index, kind == QuestionKind.Score ? "level" : "chosenIndex");
         EnsureUnit(confidence, nameof(confidence));
@@ -102,7 +136,7 @@ public readonly struct QuestionAnswer
             EnsureUnit(probability, nameof(probabilities));
         }
 
-        return new(string.Empty, kind, index, value, confidence, [.. probabilities], 0, probabilities.Length);
+        return new(string.Empty, kind, index, value, confidence, [.. probabilities], 0, probabilities.Length, probabilitySource);
     }
 
     private static void EnsureUnit(double value, string paramName)

@@ -26,7 +26,11 @@ public sealed class QuestionSetAnswers
     /// <param name="question">The handle from <see cref="QuestionSetBuilder.Noul(string, DecisionContent, out NoulHandle)"/>.</param>
     /// <returns>The answer.</returns>
     /// <exception cref="ArgumentException"><paramref name="question"/> is <c>default</c>, comes from another builder, or names a question added after this set was built.</exception>
-    public Noul Get(NoulHandle question) => new(Slot(question.Owner, question.Index, nameof(question)).Value);
+    public Noul Get(NoulHandle question)
+    {
+        var slot = Slot(question.Owner, question.Index, nameof(question));
+        return new Noul(slot.Value, slot.Source);
+    }
 
     /// <summary>Gets an enum Choice answer.</summary>
     /// <typeparam name="T">The enum whose members are the options.</typeparam>
@@ -38,7 +42,7 @@ public sealed class QuestionSetAnswers
     {
         var slot = Slot(question.Owner, question.Index, nameof(question));
         var options = (EnumOptionSet<T>)_set.OptionSets[question.Index]!;
-        return new Choice<T>(options[slot.ValueIndex], slot.Confidence, new ProbabilityMap<T>(_probabilities, slot.Offset, options));
+        return new Choice<T>(options[slot.ValueIndex], slot.Confidence, new ProbabilityMap<T>(_probabilities, slot.Offset, options), slot.Source);
     }
 
     /// <summary>Gets an enum Score answer.</summary>
@@ -51,7 +55,7 @@ public sealed class QuestionSetAnswers
     {
         var slot = Slot(question.Owner, question.Index, nameof(question));
         var options = (EnumOptionSet<T>)_set.OptionSets[question.Index]!;
-        return new Score<T>(options[slot.ValueIndex], slot.Value, slot.Confidence, new ProbabilityMap<T>(_probabilities, slot.Offset, options));
+        return new Score<T>(options[slot.ValueIndex], slot.Value, slot.Confidence, new ProbabilityMap<T>(_probabilities, slot.Offset, options), slot.Source);
     }
 
     /// <summary>Gets a keyed Choice answer.</summary>
@@ -62,7 +66,7 @@ public sealed class QuestionSetAnswers
     {
         var slot = Slot(question.Owner, question.Index, nameof(question));
         var options = (KeyedOptionSet)_set.OptionSets[question.Index]!;
-        return new KeyedChoice(options[slot.ValueIndex], slot.Confidence, new KeyedProbabilityMap(_probabilities, slot.Offset, options));
+        return new KeyedChoice(options[slot.ValueIndex], slot.Confidence, new KeyedProbabilityMap(_probabilities, slot.Offset, options), slot.Source);
     }
 
     /// <summary>Gets a keyed Score answer.</summary>
@@ -73,7 +77,7 @@ public sealed class QuestionSetAnswers
     {
         var slot = Slot(question.Owner, question.Index, nameof(question));
         var options = (KeyedOptionSet)_set.OptionSets[question.Index]!;
-        return new KeyedScore(slot.ValueIndex, slot.Value, slot.Confidence, new KeyedProbabilityMap(_probabilities, slot.Offset, options));
+        return new KeyedScore(slot.ValueIndex, slot.Value, slot.Confidence, new KeyedProbabilityMap(_probabilities, slot.Offset, options), slot.Source);
     }
 
     // A handle belongs to this set when its builder built it and its question existed at that build.

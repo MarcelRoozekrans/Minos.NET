@@ -9,11 +9,13 @@ public readonly struct KeyedChoice : IEquatable<KeyedChoice>
     /// <param name="value">The key of the option the model picked.</param>
     /// <param name="confidence">The model's confidence, between 0 and 1.</param>
     /// <param name="probabilities">The probability of each option.</param>
-    internal KeyedChoice(string value, double confidence, KeyedProbabilityMap probabilities)
+    /// <param name="probabilitySource">How the probabilities were made.</param>
+    internal KeyedChoice(string value, double confidence, KeyedProbabilityMap probabilities, ProbabilitySource probabilitySource = ProbabilitySource.Model)
     {
         _value = value;
         Confidence = confidence;
         Probabilities = probabilities;
+        ProbabilitySource = probabilitySource;
     }
 
     /// <summary>Gets the key of the option the model picked; empty for a default instance.</summary>
@@ -24,6 +26,9 @@ public readonly struct KeyedChoice : IEquatable<KeyedChoice>
 
     /// <summary>Gets the probability of each option.</summary>
     public KeyedProbabilityMap Probabilities { get; }
+
+    /// <summary>Gets how the probabilities were made.</summary>
+    public ProbabilitySource ProbabilitySource { get; }
 
     /// <summary>Compares two choices for equality.</summary>
     /// <param name="left">The first value.</param>
@@ -41,11 +46,12 @@ public readonly struct KeyedChoice : IEquatable<KeyedChoice>
     public bool Equals(KeyedChoice other)
         => string.Equals(Value, other.Value, StringComparison.Ordinal)
         && Confidence.Equals(other.Confidence)
-        && Probabilities.Equals(other.Probabilities);
+        && Probabilities.Equals(other.Probabilities)
+        && ProbabilitySource == other.ProbabilitySource;
 
     /// <inheritdoc />
     public override bool Equals(object? obj) => obj is KeyedChoice other && Equals(other);
 
     /// <inheritdoc />
-    public override int GetHashCode() => HashCode.Combine(StringComparer.Ordinal.GetHashCode(Value), Confidence, Probabilities);
+    public override int GetHashCode() => HashCode.Combine(StringComparer.Ordinal.GetHashCode(Value), Confidence, Probabilities, ProbabilitySource);
 }

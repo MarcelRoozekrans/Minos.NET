@@ -7,5 +7,6 @@ namespace Minos;
 /// <param name="Value">A Noul's probability, or a Score's expected level; 0 for a Choice.</param>
 /// <param name="Confidence">A Choice's or Score's confidence; 0 for a Noul.</param>
 /// <param name="Offset">The start of the answer's slice of the shared probability buffer.</param>
+/// <param name="Source">How the answer's probabilities were made.</param>
 [StructLayout(LayoutKind.Auto)]
-internal readonly record struct AnswerSlot(int ValueIndex, double Value, double Confidence, int Offset);
+internal readonly record struct AnswerSlot(int ValueIndex, double Value, double Confidence, int Offset, ProbabilitySource Source = ProbabilitySource.Model);

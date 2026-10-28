@@ -10,12 +10,14 @@ public readonly struct Score<T> : IEquatable<Score<T>>
     /// <param name="expected">The probability-weighted mean level index the API returns as <c>score</c>.</param>
     /// <param name="confidence">The model's confidence, between 0 and 1.</param>
     /// <param name="probabilities">The probability of each level.</param>
-    internal Score(T value, double expected, double confidence, ProbabilityMap<T> probabilities)
+    /// <param name="probabilitySource">How the probabilities were made.</param>
+    internal Score(T value, double expected, double confidence, ProbabilityMap<T> probabilities, ProbabilitySource probabilitySource = ProbabilitySource.Model)
     {
         Value = value;
         Expected = expected;
         Confidence = confidence;
         Probabilities = probabilities;
+        ProbabilitySource = probabilitySource;
     }
 
     /// <summary>Gets the most probable level. On a tie, the lower level.</summary>
@@ -29,6 +31,9 @@ public readonly struct Score<T> : IEquatable<Score<T>>
 
     /// <summary>Gets the probability of each level.</summary>
     public ProbabilityMap<T> Probabilities { get; }
+
+    /// <summary>Gets how the probabilities were made.</summary>
+    public ProbabilitySource ProbabilitySource { get; }
 
     /// <summary>
     /// Gets <see cref="Expected"/> on a 0 to 1 scale: the expected level divided by the top level's index, so Scores with
@@ -61,11 +66,12 @@ public readonly struct Score<T> : IEquatable<Score<T>>
         => EqualityComparer<T>.Default.Equals(Value, other.Value)
         && Expected.Equals(other.Expected)
         && Confidence.Equals(other.Confidence)
-        && Probabilities.Equals(other.Probabilities);
+        && Probabilities.Equals(other.Probabilities)
+        && ProbabilitySource == other.ProbabilitySource;
 
     /// <inheritdoc />
     public override bool Equals(object? obj) => obj is Score<T> other && Equals(other);
 
     /// <inheritdoc />
-    public override int GetHashCode() => HashCode.Combine(Value, Expected, Confidence, Probabilities);
+    public override int GetHashCode() => HashCode.Combine(Value, Expected, Confidence, Probabilities, ProbabilitySource);
 }
