@@ -1,5 +1,6 @@
 using System.ClientModel;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.DependencyInjection;
 using Minos.Extensions.AI;
 using OpenAI;
 using OpenAI.Chat;
@@ -58,6 +59,44 @@ internal static class ExtensionsAIChecks
                 && await SmokeAssert.ThrowsAsync<ObjectDisposedException>(() => client.EvaluateAsync(new DecisionRequest(SmokeTriage.Definition, SmokeAnswers.State)).AsTask()).ConfigureAwait(false)
                 && chatClient.GetService(typeof(ChatClientMetadata)) is ChatClientMetadata,
             "the bridge answers an empty set with Validation and images with Unsupported without sending, then disposes twice, refuses calls and leaves the chat client usable, under Native AOT");
+    }
+
+    [Covers("static Microsoft.Extensions.DependencyInjection.ChatDecisionClientServiceCollectionExtensions.AddChatDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services) -> Minos.DecisionClientServiceBuilder!")]
+    [Covers("static Microsoft.Extensions.DependencyInjection.ChatDecisionClientServiceCollectionExtensions.AddChatDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Action<Minos.Extensions.AI.ChatDecisionClientOptions!>! configure) -> Minos.DecisionClientServiceBuilder!")]
+    [Covers("static Microsoft.Extensions.DependencyInjection.ChatDecisionClientServiceCollectionExtensions.AddChatDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name) -> Minos.DecisionClientServiceBuilder!")]
+    [Covers("static Microsoft.Extensions.DependencyInjection.ChatDecisionClientServiceCollectionExtensions.AddChatDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, System.Action<Minos.Extensions.AI.ChatDecisionClientOptions!>! configure) -> Minos.DecisionClientServiceBuilder!")]
+    public static void RegistrationsResolveTheDecisionClientsOverTheContainerChatClients()
+    {
+        using var defaultChat = OpenAIChatClient().AsIChatClient();
+        using var namedChat = OpenAIChatClient().AsIChatClient();
+        using var configuredChat = OpenAIChatClient().AsIChatClient();
+        using var namedConfiguredChat = OpenAIChatClient().AsIChatClient();
+
+        var plain = new ServiceCollection();
+        plain.AddSingleton(defaultChat);
+        plain.AddKeyedSingleton("named", namedChat);
+        plain.AddChatDecisionClient();
+        plain.AddChatDecisionClient("named");
+        using var plainProvider = plain.BuildServiceProvider();
+
+        var configured = new ServiceCollection();
+        configured.AddSingleton(configuredChat);
+        configured.AddKeyedSingleton("named", namedConfiguredChat);
+        configured.AddChatDecisionClient(options => options.ProbabilityMode = ProbabilityMode.Verbalized);
+        configured.AddChatDecisionClient("named", options => options.Model = "configured-model");
+        using var configuredProvider = configured.BuildServiceProvider();
+
+        var defaultClient = plainProvider.GetRequiredService<IDecisionClient>();
+        var namedClient = plainProvider.GetRequiredKeyedService<IDecisionClient>("named");
+        var configuredClient = configuredProvider.GetRequiredService<IDecisionClient>();
+        var namedConfiguredClient = configuredProvider.GetRequiredKeyedService<IDecisionClient>("named");
+
+        Program.Check(
+            defaultClient.GetService<ChatDecisionClient>() is not null
+                && namedClient.GetService<ChatDecisionClient>() is not null
+                && configuredClient.GetService<ChatDecisionClient>() is not null
+                && namedConfiguredClient.GetService(typeof(DecisionClientMetadata)) is DecisionClientMetadata { DefaultModel: "configured-model" },
+            "AddChatDecisionClient registers a default and a keyed decision client over the container's chat clients, with their own options, under Native AOT");
     }
 
     private static ChatClient OpenAIChatClient()

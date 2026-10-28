@@ -42,6 +42,7 @@ public sealed class SurfaceRuleTests
         ["Minos.Extensions.AI.ChatClientDecisionExtensions"] = "Named by docs/chat-clients.md, which the bridge's docs commit adds.",
         ["Minos.Extensions.AI.ChatDecisionClient"] = "Named by docs/chat-clients.md, which the bridge's docs commit adds.",
         ["Minos.Extensions.AI.ChatDecisionClientOptions"] = "Named by docs/chat-clients.md, which the bridge's docs commit adds.",
+        ["Microsoft.Extensions.DependencyInjection.ChatDecisionClientServiceCollectionExtensions"] = "Named by docs/chat-clients.md, which the bridge's docs commit adds.",
         ["Minos.Extensions.AI.ProbabilityMode"] = "Named by docs/chat-clients.md, which the bridge's docs commit adds.",
     };
 
