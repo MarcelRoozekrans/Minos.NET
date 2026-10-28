@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.5.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.4.2...v1.5.0) (2026-10-28)
+
+
+### Features
+
+* add Minos.NET.Extensions.AI, an IDecisionClient over IChatClient ([#276](https://github.com/MarcelRoozekrans/Minos.NET/issues/276)) ([7c802b7](https://github.com/MarcelRoozekrans/Minos.NET/commit/7c802b79b8fc8c69ca047592f6a4d0a692e77748))
+
+
+### Dependencies
+
+* update zeroalloc shipped dependencies to 3.5.0 ([#277](https://github.com/MarcelRoozekrans/Minos.NET/issues/277)) ([c09bbd9](https://github.com/MarcelRoozekrans/Minos.NET/commit/c09bbd933b779e821e87908456a7d37ac9733cdb))
+
 ## [1.4.2](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.4.1...v1.4.2) (2026-10-26)
 
 
