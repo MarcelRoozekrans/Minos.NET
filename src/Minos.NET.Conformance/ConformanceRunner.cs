@@ -49,13 +49,13 @@ public sealed class ConformanceRunner
             throw new InvalidDataException("The fixture is for " + fixture.Target + ", not " + target.Name + ".");
         }
 
-        using var capture = new ExchangeCapture(fixture is null ? _network() : new FixtureHandler(fixture));
+        using var capture = new ExchangeCapture(fixture is null ? _network() : new FixtureHandler(fixture, target.Wire));
         using var http = new HttpClient(capture, disposeHandler: false);
         using var client = target.CreateClient(http);
         var capabilities = client.GetService<DecisionCapabilities>();
         if (fixture is not null)
         {
-            CheckCovers(fixture, capabilities);
+            CheckCovers(fixture, capabilities, target.Wire);
         }
 
         var probes = new List<ProbeReport>();
@@ -82,7 +82,11 @@ public sealed class ConformanceRunner
             var outcome = new ProbeOutcome(probe, exchanges, result.IsSuccess ? result.Value : null, result.IsFailure ? result.Error : null);
             outcomes.Add(outcome);
             probes.Add(new ProbeReport(probe.Id, null, ConformanceChecks.Run(outcome, target)));
-            if (mode == ConformanceMode.Record)
+            if (mode == ConformanceMode.Record && target.Wire == ConformanceWire.ChatCompletions)
+            {
+                RecordChat(recorded, probe, exchanges, result.IsFailure ? result.Error : null);
+            }
+            else if (mode == ConformanceMode.Record)
             {
                 recorded.Add(exchanges.Count > 0 && exchanges[^1].KeySwapped
                     ? exchanges[^1]
@@ -154,9 +158,36 @@ public sealed class ConformanceRunner
         return null;
     }
 
-    // Replay answers by probe id, never by body: an id the suite does not know, a repeated one, or a missing one fails the
-    // run instead of being skipped.
-    private static void CheckCovers(ConformanceFixture fixture, DecisionCapabilities? capabilities)
+    // A chat-completions probe sends one request per question, so every exchange is kept. The invalid probe is answered
+    // with Validation before anything is sent, so it keeps none, and a replay checks that again.
+    private static void RecordChat(List<ConformanceExchange> recorded, ConformanceProbe probe, IReadOnlyList<ConformanceExchange> exchanges, DecisionError? error)
+    {
+        if (exchanges.Count == 0)
+        {
+            if (probe.Kind != ProbeKind.Invalid)
+            {
+                recorded.Add(new ConformanceExchange { Probe = probe.Id, Skipped = "No request was sent: " + error?.Kind.ToString() + ", " + error?.Message });
+            }
+
+            return;
+        }
+
+        foreach (var exchange in exchanges)
+        {
+            if (!exchange.KeySwapped)
+            {
+                recorded.Add(new ConformanceExchange { Probe = probe.Id, Skipped = "No request carried a key to make invalid: the client sent no Authorization or x-api-key." });
+                return;
+            }
+        }
+
+        recorded.AddRange(exchanges);
+    }
+
+    // Replay answers by probe id, and on the chat-completions wire also by body: an id the suite does not know, a repeated
+    // one on another wire, or a missing one fails the run instead of being skipped. A chat-completions invalid probe sends
+    // nothing, so it needs no exchange.
+    private static void CheckCovers(ConformanceFixture fixture, DecisionCapabilities? capabilities, ConformanceWire wire)
     {
         var known = new HashSet<string>(StringComparer.Ordinal);
         foreach (var probe in ConformanceProbe.All)
@@ -173,7 +204,7 @@ public sealed class ConformanceRunner
             {
                 unknown.Add(exchange.Probe);
             }
-            else if (!seen.Add(exchange.Probe))
+            else if (!seen.Add(exchange.Probe) && wire != ConformanceWire.ChatCompletions)
             {
                 repeated.Add(exchange.Probe);
             }
@@ -183,6 +214,7 @@ public sealed class ConformanceRunner
         foreach (var probe in ConformanceProbe.All)
         {
             if (NotApplicable(probe, capabilities) is null
+                && !(wire == ConformanceWire.ChatCompletions && probe.Kind == ProbeKind.Invalid)
                 && (fixture.Find(probe.Id) is not { } exchange || (exchange.Skipped is null && exchange.Status is null)))
             {
                 missing.Add(probe.Id);

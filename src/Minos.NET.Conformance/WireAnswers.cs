@@ -103,6 +103,9 @@ internal sealed record WireAnswer(string Key, string? Type, JsonElement Body)
 /// <summary>Reads a response body's answers in either wire format, without Minos, so the checks can compare the two.</summary>
 internal static class WireAnswers
 {
+    /// <summary>Why the checks that read an answer body skip on <see cref="ConformanceWire.ChatCompletions"/>.</summary>
+    public const string NoAnswerBody = "A chat completion carries no answer body; the answers are checked as Minos read them.";
+
     /// <summary>The <c>type</c> a question kind has on a wire: Noul is <c>noul</c> on System One and <c>predicate</c> on Decisions.</summary>
     public static string TypeOf(QuestionKind kind, ConformanceWire wire) => kind switch
     {
@@ -134,10 +137,16 @@ internal static class WireAnswers
         return true;
     }
 
-    /// <summary>Reads the answers of the last exchange's body, in the order they were sent.</summary>
+    /// <summary>Reads the answers of the last exchange's body, in the order they were sent; a chat completion has none to read.</summary>
     public static bool TryRead(ProbeOutcome outcome, ConformanceWire wire, out List<WireAnswer> answers, out string problem)
     {
         answers = [];
+        if (wire == ConformanceWire.ChatCompletions)
+        {
+            problem = NoAnswerBody;
+            return false;
+        }
+
         if (!TryBody(outcome, out var body, out problem))
         {
             return false;

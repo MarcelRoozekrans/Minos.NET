@@ -6,8 +6,9 @@ using System.Text.Json.Serialization;
 namespace Minos.Conformance;
 
 /// <summary>
-/// A target's recorded exchanges, one per probe, and where they came from. It never holds a key or any header outside
-/// the allowlist, so it can be committed.
+/// A target's recorded exchanges, one per probe, and where they came from. On <see cref="ConformanceWire.ChatCompletions"/>
+/// a probe holds one exchange per question instead. It never holds a key or any header outside the allowlist, so it can
+/// be committed.
 /// </summary>
 public sealed class ConformanceFixture
 {
@@ -35,7 +36,7 @@ public sealed class ConformanceFixture
     /// <summary>Gets how the fixture was made, for a reader.</summary>
     public string? Note { get; init; }
 
-    /// <summary>Gets one exchange per probe.</summary>
+    /// <summary>Gets one exchange per probe, or on <see cref="ConformanceWire.ChatCompletions"/> one per question.</summary>
     public required IReadOnlyList<ConformanceExchange> Exchanges { get; init; }
 
     /// <summary>Reads a fixture file.</summary>
@@ -59,7 +60,7 @@ public sealed class ConformanceFixture
     /// <param name="path">The file.</param>
     public void Save(string path) => File.WriteAllText(path, ToJson());
 
-    /// <summary>Gets the exchange for a probe, or <see langword="null"/>.</summary>
+    /// <summary>Gets the probe's first exchange, or <see langword="null"/>.</summary>
     /// <param name="probe">The probe's id.</param>
     /// <returns>The exchange.</returns>
     public ConformanceExchange? Find(string probe)
@@ -73,6 +74,23 @@ public sealed class ConformanceFixture
         }
 
         return null;
+    }
+
+    /// <summary>Gets every exchange of a probe, in fixture order; empty when it has none.</summary>
+    /// <param name="probe">The probe's id.</param>
+    /// <returns>The exchanges.</returns>
+    public IReadOnlyList<ConformanceExchange> FindAll(string probe)
+    {
+        var found = new List<ConformanceExchange>();
+        foreach (var exchange in Exchanges)
+        {
+            if (string.Equals(exchange.Probe, probe, StringComparison.Ordinal))
+            {
+                found.Add(exchange);
+            }
+        }
+
+        return found;
     }
 
     /// <summary>
