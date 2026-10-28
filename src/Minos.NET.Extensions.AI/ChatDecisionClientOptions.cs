@@ -7,7 +7,10 @@ namespace Minos.Extensions.AI;
 /// </remarks>
 public sealed class ChatDecisionClientOptions
 {
-    /// <summary>Gets or sets how each answer's probabilities are made. Defaults to <see cref="ProbabilityMode.Auto"/>.</summary>
+    /// <summary>
+    /// Gets or sets how each answer's probabilities are made. Defaults to <see cref="ProbabilityMode.Auto"/>. A value
+    /// outside the enum throws <see cref="ArgumentException"/> when the client is created.
+    /// </summary>
     public ProbabilityMode ProbabilityMode { get; set; } = ProbabilityMode.Auto;
 
     /// <summary>

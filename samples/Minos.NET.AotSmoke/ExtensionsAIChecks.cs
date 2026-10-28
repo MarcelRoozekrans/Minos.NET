@@ -30,7 +30,7 @@ internal static class ExtensionsAIChecks
 
         Program.Check(
             capabilities is { QuestionKinds: QuestionKinds.All, MaxQuestions: null, MaxChoiceOptions: 26, SupportsImages: false, SupportsModelListing: false }
-                && metadata is { DefaultModel: "smoke-model" }
+                && metadata is { DefaultModel: "smoke-model", CacheScope: "auto" }
                 && ReferenceEquals(client.GetService(typeof(ChatDecisionClient)), client)
                 && client.GetService(typeof(ChatClientMetadata)) is ChatClientMetadata,
             "an OpenAI ChatClient wrapped with AsIChatClient().AsDecisionClient() answers its capabilities, its metadata and the chat client's services, under Native AOT");

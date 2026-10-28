@@ -72,6 +72,7 @@ public static class ChatDecisions
 `ChatDecisionClientOptions` has four properties, all optional:
 
 - **`ProbabilityMode`** says how the probabilities are made. It defaults to `Auto`; see [below](#probability-modes).
+  A value outside the enum throws `ArgumentException`.
 - **`Model`** is the model for requests that name none. Without it, the chat client's own default model is used.
   Surrounding whitespace is trimmed, and a blank value throws `ArgumentException`.
 - **`Capabilities`** limits what the bridge accepts; see [Capabilities](#capabilities).
@@ -174,6 +175,21 @@ public static class TicketRouting
 The source stays with the answer. A cached answer keeps it, and a [recorded decision](recording.md#the-jsonl-format)
 writes it for each answer.
 
+## Caching
+
+The [cache stage](pipeline.md#caching-decisions) keys each answer by the client's probability mode as well. A
+`Logprobs` client never gets an answer an `Auto` client cached, which may be verbalized, even over the same chat client
+and cache.
+
+A bridge client now always has a scope, so the entries it wrote under 1.5.0 are missed once after the upgrade, and its
+cache starts cold. Clients without a scope, such as the built-in HTTP clients, keep their keys.
+
+The key also holds the chat client's provider name, endpoint and model. A chat client without them gives the bridge
+nothing to tell it apart by, so the bridge adds the chat client's type to the key. That is the type of the chat client
+you pass in, the outermost one: in a `ChatClientBuilder` pipeline, the last middleware, not the client it wraps. Two
+bridge clients behind the same middleware, both without metadata, still share answers. Give such a chat client
+metadata, or set `ChatDecisionClientOptions.Model`, when the two ask different models.
+
 ## Confidence
 
 For a Choice or a Score, the bridge's confidence is the probability of the picked option. A tie picks the option that
@@ -261,7 +277,9 @@ The bridge checks a question set against its capabilities before it sends anythi
 
 `GetService<DecisionClientMetadata>()` gives the chat client's provider name, endpoint and default model, with
 `ChatDecisionClientOptions.Model` in place of the model when it is set. The provider name is `unknown` when the chat
-client gives none. Any other service is asked of the chat client.
+client gives none. Its `CacheScope` is the probability mode in lowercase: `auto`, `logprobs` or `verbalized`. When the
+chat client has no provider name, endpoint or model and no `Model` is set, a `/` and the chat client's full type name
+follow, as [Caching](#caching) explains. Any other service is asked of the chat client.
 
 ## Errors
 

@@ -14,6 +14,9 @@ public sealed class DecisionCacheKeyTests
     private static string Key(DecisionRequest request, string provider = Provider, string? endpoint = Endpoint, string? defaultModel = null)
         => DecisionCacheKey.Create(request, provider, endpoint, defaultModel, Prefix);
 
+    private static string Scoped(string? scope, DecisionRequest? request = null, string provider = Provider, string? endpoint = Endpoint, string? defaultModel = null)
+        => DecisionCacheKey.Create(request ?? Request(), provider, endpoint, defaultModel, scope, Prefix);
+
     private static DecisionRequest Request(string state = "I was charged twice.") => new(Triage, state);
 
     [Fact]
@@ -39,6 +42,16 @@ public sealed class DecisionCacheKeyTests
 
         Assert.StartsWith(prefix, key, StringComparison.Ordinal);
         Assert.Equal(Key(Request())[Prefix.Length..], key[length..]);
+    }
+
+    [Fact]
+    public void Is_unchanged_from_the_layout_before_cache_scopes()
+    {
+        // Captured from the code before CacheScope, so entries already in a cache stay valid.
+        const string before = "minos:akVelwkXSwwcKs14cv0FhT28PoCREJUI3_pOOAfS-H8";
+
+        Assert.Equal(before, Key(Request(), defaultModel: "jev-latest"));
+        Assert.Equal(before, DecisionCacheKey.Create(Request(), Provider, Endpoint, "jev-latest", scope: null, Prefix));
     }
 
     [Fact]
@@ -111,6 +124,34 @@ public sealed class DecisionCacheKeyTests
         Assert.NotEqual(key, Key(Request(), provider: "openrouter"));
         Assert.NotEqual(key, Key(Request(), endpoint: "https://openrouter.ai/api/"));
         Assert.NotEqual(key, Key(Request(), endpoint: null));
+    }
+
+    [Fact]
+    public void Changes_with_the_scope()
+    {
+        var none = Scoped(null);
+        var auto = Scoped("auto");
+
+        Assert.Equal(Key(Request()), none);
+        Assert.NotEqual(none, auto);
+        Assert.NotEqual(auto, Scoped("logprobs"));
+        Assert.NotEqual(none, Scoped(string.Empty));
+        Assert.Equal(auto, Scoped("auto"));
+    }
+
+    [Fact]
+    public void Keeps_the_scope_apart_from_the_other_fields()
+    {
+        // Each pair would write the same text if the fields were joined with a separator instead of length-prefixed.
+        Assert.NotEqual(
+            Scoped("b|c", defaultModel: "a"),
+            Scoped("c", defaultModel: "a|b"));
+        Assert.NotEqual(
+            Scoped("x", provider: "p", endpoint: null),
+            Scoped(null, provider: "p", endpoint: "x"));
+        Assert.NotEqual(
+            Scoped("auto/Some.Client", endpoint: null),
+            Scoped("auto", endpoint: "/Some.Client"));
     }
 
     [Fact]

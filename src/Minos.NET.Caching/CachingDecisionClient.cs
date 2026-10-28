@@ -14,8 +14,9 @@ namespace Minos;
 /// <para>
 /// The key is a SHA-256 digest over the definition, the state, the images, and the provider, endpoint and model of the
 /// inner client's <see cref="DecisionClientMetadata"/>, so clients for different providers or models never share an
-/// answer. The model is the request's own, or the client's default model when the request names none. The retry attempt
-/// is not part of it. Both levels use the same key.
+/// answer. The model is the request's own, or the client's default model when the request names none. When the metadata
+/// has a <see cref="DecisionClientMetadata.CacheScope"/>, it is part of the key too, so clients with different scopes
+/// never share an answer either. The retry attempt is not part of it. Both levels use the same key.
 /// </para>
 /// <para>
 /// A hit returns the stored response, with <see cref="DecisionResponse.IsCached"/> set and the model, usage and cost of the
@@ -42,6 +43,7 @@ public sealed class CachingDecisionClient : DelegatingDecisionClient
     private readonly string _provider;
     private readonly string? _endpoint;
     private readonly string? _defaultModel;
+    private readonly string? _scope;
     private readonly string _keyPrefix;
     private readonly MemoryCacheEntryOptions _localOptions;
     private readonly DistributedCacheEntryOptions _distributedOptions;
@@ -81,6 +83,7 @@ public sealed class CachingDecisionClient : DelegatingDecisionClient
             ? endpoint.IsAbsoluteUri ? endpoint.AbsoluteUri : endpoint.OriginalString
             : null;
         _defaultModel = metadata?.DefaultModel;
+        _scope = metadata?.CacheScope;
         _keyPrefix = options.KeyPrefix;
         _localOptions = new MemoryCacheEntryOptions
         {
@@ -96,7 +99,7 @@ public sealed class CachingDecisionClient : DelegatingDecisionClient
     {
         ArgumentNullException.ThrowIfNull(request);
         ObjectDisposedException.ThrowIf(_disposed, this);
-        var key = DecisionCacheKey.Create(request, _provider, _endpoint, _defaultModel, _keyPrefix);
+        var key = DecisionCacheKey.Create(request, _provider, _endpoint, _defaultModel, _scope, _keyPrefix);
         if (_memory.TryGetValue(key, out var stored) && stored is CachedDecision entry
             && entry.ResponseFor(request.Definition) is { } hit)
         {

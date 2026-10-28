@@ -8,6 +8,8 @@
     <ProjectReference Include="..\..\src\Minos.NET.Extensions.AI\Minos.NET.Extensions.AI.csproj" />
     <!-- UseRecording, to check that each answer's probability source reaches the record. -->
     <ProjectReference Include="..\..\src\Minos.NET.Recording\Minos.NET.Recording.csproj" />
+    <!-- CachingDecisionClient, to check that clients with different probability modes never share a cache entry. -->
+    <ProjectReference Include="..\..\src\Minos.NET.Caching\Minos.NET.Caching.csproj" />
     <!-- The generator, for the typed [Questions] record the question set tests ask. -->
     <ProjectReference Include="..\..\src\Minos.NET.Generator\Minos.NET.Generator.csproj"
                       OutputItemType="Analyzer"
@@ -23,6 +25,8 @@
     <!-- AddChatClient and AddKeyedChatClient, and with the logging package the container that resolves them. -->
     <PackageReference Include="Microsoft.Extensions.AI" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
+    <!-- MemoryCache and MemoryDistributedCache, the two levels the cache scope tests share between clients. -->
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
   </ItemGroup>
 
   <ItemGroup>

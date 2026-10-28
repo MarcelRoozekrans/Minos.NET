@@ -56,6 +56,11 @@ public sealed class ChatDecisionClient : IDecisionClient
         options ??= new ChatDecisionClientOptions();
 
         var model = options.Model is { } explicitModel ? ClientSettingRules.CheckModel(explicitModel, nameof(options)) : null;
+        if (options.ProbabilityMode is < ProbabilityMode.Auto or > ProbabilityMode.Verbalized)
+        {
+            throw new ArgumentException("ProbabilityMode must be Auto, Logprobs or Verbalized.", nameof(options));
+        }
+
         if (options.Capabilities?.MaxChoiceOptions is > LabelDistribution.MaxLabels)
         {
             throw new ArgumentException("Capabilities.MaxChoiceOptions must be at most 26: options are labelled A to Z.", nameof(options));
@@ -72,7 +77,10 @@ public sealed class ChatDecisionClient : IDecisionClient
 
         var chatMetadata = chatClient.GetService<ChatClientMetadata>();
         _metadata = new DecisionClientMetadata(
-            chatMetadata?.ProviderName ?? UnknownProvider, chatMetadata?.ProviderUri, model ?? chatMetadata?.DefaultModelId);
+            chatMetadata?.ProviderName ?? UnknownProvider, chatMetadata?.ProviderUri, model ?? chatMetadata?.DefaultModelId)
+        {
+            CacheScope = CacheScope(options.ProbabilityMode, chatClient, chatMetadata, model),
+        };
         _chatClient = chatClient;
         _model = model;
         _probabilityMode = options.ProbabilityMode;
@@ -171,7 +179,11 @@ public sealed class ChatDecisionClient : IDecisionClient
     /// Returns this client for a type it is, a new <see cref="DecisionCapabilities"/> with its resolved capabilities,
     /// every property set, and its <see cref="DecisionClientMetadata"/>: the chat client's provider name, endpoint and
     /// default model, with <see cref="ChatDecisionClientOptions.Model"/> in place of the model when set, and
-    /// <c>unknown</c> as the provider name when the chat client gives none. Anything else is asked of the chat client.
+    /// <c>unknown</c> as the provider name when the chat client gives none. Its <see cref="DecisionClientMetadata.CacheScope"/>
+    /// is the <see cref="ChatDecisionClientOptions.ProbabilityMode"/> in lowercase: <c>auto</c>, <c>logprobs</c> or
+    /// <c>verbalized</c>. When the chat client names no provider, endpoint or model and no
+    /// <see cref="ChatDecisionClientOptions.Model"/> is set, a <c>/</c> and the chat client's full type name follow. Anything
+    /// else is asked of the chat client.
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="serviceType"/> is <see langword="null"/>.</exception>
     public object? GetService(Type serviceType, object? serviceKey = null)
@@ -201,6 +213,30 @@ public sealed class ChatDecisionClient : IDecisionClient
     /// <summary>Marks the client disposed. The chat client is not disposed: the caller or the container owns it.</summary>
     /// <remarks>A call started after <see cref="Dispose"/> throws <see cref="ObjectDisposedException"/>. Calling it more than once does nothing.</remarks>
     public void Dispose() => _disposed = true;
+
+    /// <summary>
+    /// The probability mode, so clients that make their probabilities differently never share a cache entry. When the
+    /// chat client names no provider, endpoint or model and the options set no model, its type is added, so two different
+    /// chat clients without metadata do not share one either.
+    /// </summary>
+    private static string CacheScope(ProbabilityMode mode, IChatClient chatClient, ChatClientMetadata? chatMetadata, string? model)
+    {
+        // The constructor rejects a value outside the enum, so Auto is the only mode left.
+        var scope = mode switch
+        {
+            ProbabilityMode.Logprobs => "logprobs",
+            ProbabilityMode.Verbalized => "verbalized",
+            _ => "auto",
+        };
+
+        if (model is null && chatMetadata?.ProviderName is null && chatMetadata?.ProviderUri is null && chatMetadata?.DefaultModelId is null)
+        {
+            var type = chatClient.GetType();
+            scope += "/" + (type.FullName ?? type.Name);
+        }
+
+        return scope;
+    }
 
     private static ValueTask<Result<DecisionResponse, DecisionError>> Failure(DecisionError error)
         => new(Result<DecisionResponse, DecisionError>.Failure(error));

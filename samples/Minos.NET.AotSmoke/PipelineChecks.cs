@@ -50,15 +50,18 @@ internal static class PipelineChecks
     public static void MetadataDescribesTheClient()
     {
         var metadata = new DecisionClientMetadata("smoke", new Uri("https://example.test/api/"), "jev-latest");
+        var scoped = metadata with { CacheScope = "smoke-scope" };
         using var http = Program.Http(HttpStatusCode.OK, Program.NoulResponse);
         using var client = new SystemOneDecisionClient(http, Program.Options());
         var real = client.GetService<DecisionClientMetadata>();
 
         Program.Check(
-            metadata is { ProviderName: "smoke", Endpoint.Host: "example.test", DefaultModel: "jev-latest" }
+            metadata is { ProviderName: "smoke", Endpoint.Host: "example.test", DefaultModel: "jev-latest", CacheScope: null }
                 && metadata == metadata with { }
-                && real is { ProviderName: "typesafe", Endpoint.Host: "example.test", DefaultModel: "jev-latest" },
-            "DecisionClientMetadata carries a provider, endpoint and default model, and a SystemOneDecisionClient offers its own, under Native AOT");
+                && scoped is { CacheScope: "smoke-scope" }
+                && scoped != metadata
+                && real is { ProviderName: "typesafe", Endpoint.Host: "example.test", DefaultModel: "jev-latest", CacheScope: null },
+            "DecisionClientMetadata carries a provider, endpoint, default model and cache scope, and a SystemOneDecisionClient offers its own, under Native AOT");
     }
 
     [Covers("Minos.DelegatingDecisionClient.DelegatingDecisionClient(Minos.IDecisionClient! innerClient) -> void")]
