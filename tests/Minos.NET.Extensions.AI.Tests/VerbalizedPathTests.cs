@@ -5,7 +5,7 @@ namespace Minos.Extensions.AI.Tests;
 public sealed class VerbalizedPathTests
 {
     private const string TeamSchema =
-        """{"type":"object","properties":{"A":{"type":"number","minimum":0,"maximum":1},"B":{"type":"number","minimum":0,"maximum":1},"C":{"type":"number","minimum":0,"maximum":1}},"required":["A","B","C"],"additionalProperties":false}""";
+        """{"type":"object","properties":{"A":{"type":"number"},"B":{"type":"number"},"C":{"type":"number"}},"required":["A","B","C"],"additionalProperties":false}""";
 
     private static readonly DecisionContent State = DecisionContent.FromString("I was charged twice.");
 
@@ -96,6 +96,7 @@ public sealed class VerbalizedPathTests
     [InlineData("""{"A":-0.1,"B":0.6,"C":0.5}""")]
     [InlineData("""{"A":0,"B":0,"C":0}""")]
     [InlineData("""{"A":"0.7","B":0.2,"C":0.1}""")]
+    [InlineData("""{"A":1e400,"B":0.2,"C":0.1}""")]
     [InlineData("""[0.7,0.2,0.1]""")]
     [InlineData("")]
     public async Task AMalformedReply_IsInvalidResponse(string reply)
@@ -151,6 +152,7 @@ public sealed class VerbalizedPathTests
         Assert.Equal(2, chat.Calls.Count);
         Assert.NotNull(chat.Calls[0].Options!.RawRepresentationFactory);
         Assert.IsType<ChatResponseFormatJson>(chat.Calls[1].Options!.ResponseFormat);
+        Assert.Null(chat.Calls[1].Options!.RawRepresentationFactory);
         Assert.Equal(ProbabilitySource.Verbalized, SingleAnswer(result.Value).ProbabilitySource);
     }
 
@@ -166,6 +168,8 @@ public sealed class VerbalizedPathTests
 
         Assert.True(result.IsSuccess, result.IsFailure ? result.Error.Message : null);
         Assert.Equal(2, chat.Calls.Count);
+        Assert.IsType<ChatResponseFormatJson>(chat.Calls[1].Options!.ResponseFormat);
+        Assert.Null(chat.Calls[1].Options!.RawRepresentationFactory);
         Assert.Equal(ProbabilitySource.Verbalized, SingleAnswer(result.Value).ProbabilitySource);
     }
 
@@ -197,6 +201,23 @@ public sealed class VerbalizedPathTests
         Assert.Equal(4, chat.Calls.Count);
         Assert.NotNull(chat.Calls[2].Options!.RawRepresentationFactory);
         Assert.IsType<ChatResponseFormatJson>(chat.Calls[3].Options!.ResponseFormat);
+        Assert.Null(chat.Calls[3].Options!.RawRepresentationFactory);
+    }
+
+    [Fact]
+    public async Task TheResponseFormat_IsBuiltOncePerLabelCount()
+    {
+        var chat = Answering("""{"A":0.7,"B":0.2,"C":0.1}""");
+        using var client = Verbalized(chat);
+        var request = new DecisionRequest(new QuestionSetDefinition(Team), State);
+
+        await client.EvaluateAsync(request);
+        await client.EvaluateAsync(request);
+
+        Assert.Same(chat.Calls[0].Options!.ResponseFormat, chat.Calls[1].Options!.ResponseFormat);
+        Assert.Same(VerbalizedReader.Format(3), VerbalizedReader.Format(3));
+        Assert.NotSame(VerbalizedReader.Format(2), VerbalizedReader.Format(3));
+        Assert.Same(VerbalizedReader.Format(26), VerbalizedReader.Format(26));
     }
 
     [Fact]

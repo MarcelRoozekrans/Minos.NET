@@ -10,11 +10,29 @@ internal static class VerbalizedReader
     /// <summary>The name the response format gives its schema.</summary>
     internal const string SchemaName = "minos_answer";
 
+    // One format per label count, built on first use. Index 0 is never used.
+    private static readonly ChatResponseFormat?[] Formats = new ChatResponseFormat?[LabelDistribution.MaxLabels + 1];
+
     /// <summary>
-    /// A JSON schema response format: an object with one number from 0 to 1 per label, every label required, and no
-    /// other property. The schema is written by hand, so it needs no reflection.
+    /// A JSON schema response format: an object with one number per label, every label required, and no other property.
+    /// It has no minimum or maximum, since some strict structured-output providers reject numeric range keywords;
+    /// <see cref="LabelDistribution.FromStated"/> rejects a negative value and normalizes the rest. Each label count's
+    /// format is built once and shared, which is safe because a format cannot be changed.
     /// </summary>
     internal static ChatResponseFormat Format(int labelCount)
+    {
+        if (Volatile.Read(ref Formats[labelCount]) is { } cached)
+        {
+            return cached;
+        }
+
+        // Two threads may both build it; the first one stored wins, so every caller gets the same instance.
+        var built = Build(labelCount);
+        return Interlocked.CompareExchange(ref Formats[labelCount], built, null) ?? built;
+    }
+
+    // The schema is written by hand, so it needs no reflection.
+    private static ChatResponseFormatJson Build(int labelCount)
     {
         var buffer = new ArrayBufferWriter<byte>();
         using (var writer = new Utf8JsonWriter(buffer))
@@ -26,8 +44,6 @@ internal static class VerbalizedReader
             {
                 writer.WriteStartObject(LabelDistribution.Label(i));
                 writer.WriteString("type", "number");
-                writer.WriteNumber("minimum", 0);
-                writer.WriteNumber("maximum", 1);
                 writer.WriteEndObject();
             }
 

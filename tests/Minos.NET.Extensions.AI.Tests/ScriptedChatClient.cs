@@ -9,12 +9,18 @@ namespace Minos.Extensions.AI.Tests;
 /// </summary>
 internal sealed class ScriptedChatClient : IChatClient
 {
-    private readonly Func<IEnumerable<ChatMessage>, ChatOptions?, ChatResponse> _respond;
+    private readonly Func<IReadOnlyList<ChatMessage>, ChatOptions?, CancellationToken, Task<ChatResponse>> _respond;
     private readonly ChatClientMetadata? _metadata;
     private readonly Lock _gate = new();
     private readonly List<(IReadOnlyList<ChatMessage> Messages, ChatOptions? Options)> _calls = [];
 
-    public ScriptedChatClient(Func<IEnumerable<ChatMessage>, ChatOptions?, ChatResponse> respond, ChatClientMetadata? metadata = null)
+    public ScriptedChatClient(Func<IReadOnlyList<ChatMessage>, ChatOptions?, ChatResponse> respond, ChatClientMetadata? metadata = null)
+        : this((messages, options, _) => Task.FromResult(respond(messages, options)), metadata)
+    {
+    }
+
+    /// <summary>A client whose answers can wait, throw, or watch the call's cancellation token.</summary>
+    public ScriptedChatClient(Func<IReadOnlyList<ChatMessage>, ChatOptions?, CancellationToken, Task<ChatResponse>> respond, ChatClientMetadata? metadata = null)
     {
         _respond = respond;
         _metadata = metadata;
@@ -43,7 +49,7 @@ internal sealed class ScriptedChatClient : IChatClient
             _calls.Add((list, options));
         }
 
-        return Task.FromResult(_respond(list, options));
+        return _respond(list, options, cancellationToken);
     }
 
     public async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(

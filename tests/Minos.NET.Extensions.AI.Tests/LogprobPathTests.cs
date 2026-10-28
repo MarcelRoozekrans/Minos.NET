@@ -118,7 +118,7 @@ public sealed class LogprobPathTests
     [Fact]
     public async Task EachQuestion_IsAskedInItsOwnCall()
     {
-        var chat = new ScriptedChatClient((messages, _) => messages.Last().Text.Contains("Which team", StringComparison.Ordinal)
+        var chat = new ScriptedChatClient((messages, _) => messages[^1].Text.Contains("Which team", StringComparison.Ordinal)
             ? ChatCompletions.WithTopLogprobs(("C", Ln(0.7)), ("A", Ln(0.3)))
             : ChatCompletions.WithTopLogprobs(("B", Ln(0.6)), ("A", Ln(0.4))));
         using var client = chat.AsDecisionClient(new ChatDecisionClientOptions { ProbabilityMode = ProbabilityMode.Logprobs });

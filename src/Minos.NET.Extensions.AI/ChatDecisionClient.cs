@@ -92,8 +92,9 @@ public sealed class ChatDecisionClient : IDecisionClient
     /// levels, returns <see cref="DecisionErrorKind.Unsupported"/>. Neither calls the chat client.
     /// </para>
     /// <para>
-    /// Each question is asked in its own chat call. <see cref="ChatDecisionClientOptions.ProbabilityMode"/> sets how its
-    /// probabilities are made:
+    /// Each question is asked in its own chat call, and the calls run at once. The answers come back in definition order
+    /// whatever order the calls finish in. <see cref="ChatDecisionClientOptions.ProbabilityMode"/> sets how each
+    /// question's probabilities are made:
     /// </para>
     /// <list type="bullet">
     /// <item><description>
@@ -113,6 +114,17 @@ public sealed class ChatDecisionClient : IDecisionClient
     /// </list>
     /// <para>
     /// Each answer's <see cref="QuestionAnswer.ProbabilitySource"/> says which path made it.
+    /// <see cref="DecisionResponse.Usage"/> sums the tokens of every call, the logprob call before a fallback included,
+    /// and <see cref="DecisionResponse.Model"/> is the first model the responses name, in question order, or the requested
+    /// model when none names one.
+    /// </para>
+    /// <para>
+    /// The first failed question fails the request and cancels the other calls. An exception from the chat client is
+    /// returned as an error when Minos knows it: an OpenAI SDK <c>ClientResultException</c> by its HTTP status, with
+    /// <see cref="DecisionError.RetryAfter"/> and <see cref="DecisionError.RequestId"/> from its headers; an
+    /// <see cref="HttpRequestException"/> as <see cref="DecisionErrorKind.Network"/>; and a <see cref="TimeoutException"/>
+    /// as <see cref="DecisionErrorKind.Timeout"/>. Any other exception propagates, so a bug does not pass as a provider
+    /// failure. The error's message is the bridge's own; the provider's exception is in <see cref="DecisionError.Exception"/>.
     /// </para>
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="request"/> is <see langword="null"/>.</exception>
@@ -232,114 +244,166 @@ public sealed class ChatDecisionClient : IDecisionClient
         return failures;
     }
 
-    // One call per question, in order. The first failure fails the request.
+    /// <summary>
+    /// Asks every question at once, one call each, and puts each answer at its question's index, whatever order the calls
+    /// finish in. The first failure, returned or mapped from an exception, fails the request and cancels the other
+    /// calls. An exception the mapper does not know propagates, and cancels the other calls too. The caller's
+    /// cancellation throws, even when the chat client reports it as a failure.
+    /// </summary>
     private async ValueTask<Result<DecisionResponse, DecisionError>> AnswerAllAsync(DecisionRequest request, CancellationToken cancellationToken)
     {
         var questions = request.Definition.QuestionArray;
-        var answers = new QuestionAnswer[questions.Length];
-        string? servedModel = null;
+        var calls = new QuestionCall[questions.Length];
+        DecisionError? failure = null;
+        using var rest = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+
+        var running = new Task[questions.Length];
         for (var i = 0; i < questions.Length; i++)
         {
-            var result = await AnswerAsync(questions[i], request, cancellationToken).ConfigureAwait(false);
-            if (result.IsFailure)
-            {
-                return Result<DecisionResponse, DecisionError>.Failure(result.Error);
-            }
-
-            answers[i] = result.Value.Answer;
-            servedModel ??= result.Value.Response.ModelId;
+            running[i] = AnswerOneAsync(i);
         }
 
-        return Result<DecisionResponse, DecisionError>.Success(new DecisionResponse(request.Definition, answers, servedModel));
+        await Task.WhenAll(running).ConfigureAwait(false);
+        if (failure is not null)
+        {
+            return Result<DecisionResponse, DecisionError>.Failure(failure);
+        }
+
+        string? servedModel = null;
+        long? inputTokens = null;
+        long? outputTokens = null;
+        var answers = new QuestionAnswer[questions.Length];
+        for (var i = 0; i < calls.Length; i++)
+        {
+            answers[i] = calls[i].Answer;
+            servedModel ??= calls[i].Model;
+            inputTokens = Sum(inputTokens, calls[i].InputTokens);
+            outputTokens = Sum(outputTokens, calls[i].OutputTokens);
+        }
+
+        var usage = new DecisionUsage { InputTokens = Clamp(inputTokens), OutputTokens = Clamp(outputTokens) };
+        return Result<DecisionResponse, DecisionError>.Success(
+            new DecisionResponse(request.Definition, answers, servedModel ?? request.Model ?? _model, usage));
+
+        async Task AnswerOneAsync(int index)
+        {
+            Result<QuestionCall, DecisionError> result;
+            try
+            {
+                result = await AnswerAsync(questions[index], request, rest.Token).ConfigureAwait(false);
+            }
+            catch (OperationCanceledException) when (rest.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+            {
+                // Another call failed first and cancelled this one; that failure decides.
+                return;
+            }
+            catch (Exception exception) when (cancellationToken.IsCancellationRequested && exception is not OperationCanceledException)
+            {
+                // The chat client reported the caller's cancellation as a failure of its own; the caller asked for it.
+                throw new OperationCanceledException("The call was cancelled.", exception, cancellationToken);
+            }
+            catch (Exception exception) when (ChatErrorMapper.Map(exception) is { } error)
+            {
+                result = Result<QuestionCall, DecisionError>.Failure(error);
+            }
+            catch
+            {
+                await rest.CancelAsync().ConfigureAwait(false);
+                throw;
+            }
+
+            if (result.IsFailure)
+            {
+                // Only the first failure is kept.
+                Interlocked.CompareExchange(ref failure, result.Error, null);
+                await rest.CancelAsync().ConfigureAwait(false);
+                return;
+            }
+
+            calls[index] = result.Value;
+        }
     }
 
     /// <summary>
     /// Answers one question by the configured <see cref="ProbabilityMode"/>. In <see cref="ProbabilityMode.Auto"/>, a
-    /// logprob response with no logprobs, or with no usable label among them, is asked again verbalized, once. Returns
-    /// the chat response that gave the answer too, for its model and usage. Exceptions from the chat client propagate.
+    /// logprob response with no logprobs, or with no usable label among them, is asked again verbalized, once. The
+    /// answer carries the first response's model and the usage of every call made for it. Exceptions from the chat client
+    /// propagate.
     /// </summary>
-    private async ValueTask<Result<(QuestionAnswer Answer, ChatResponse Response), DecisionError>> AnswerAsync(
-        QuestionDefinition question, DecisionRequest request, CancellationToken cancellationToken)
-    {
-        if (_probabilityMode == ProbabilityMode.Verbalized)
-        {
-            return await AskVerbalizedAsync(question, request, cancellationToken).ConfigureAwait(false);
-        }
-
-        var result = await AskLogprobsAsync(question, request, cancellationToken).ConfigureAwait(false);
-        // Its only failures are no logprobs and no usable label among them; the chat client's exceptions propagate.
-        if (result.IsFailure && _probabilityMode == ProbabilityMode.Auto)
-        {
-            return await AskVerbalizedAsync(question, request, cancellationToken).ConfigureAwait(false);
-        }
-
-        return result;
-    }
-
-    /// <summary>Asks one question for a single label and reads the answer from the first output token's logprobs.</summary>
-    private async ValueTask<Result<(QuestionAnswer Answer, ChatResponse Response), DecisionError>> AskLogprobsAsync(
+    private async ValueTask<Result<QuestionCall, DecisionError>> AnswerAsync(
         QuestionDefinition question, DecisionRequest request, CancellationToken cancellationToken)
     {
         var model = request.Model ?? _model;
-        var chatOptions = new ChatOptions
+        ChatResponse? first = null;
+        if (_probabilityMode != ProbabilityMode.Verbalized)
         {
-            ModelId = model,
-            MaxOutputTokens = 1,
-            Temperature = 0,
-            // A new SDK options object per call: the OpenAI chat client fills in the rest of it.
-            RawRepresentationFactory = static _ => new ChatCompletionOptions
+            var response = await _chatClient.GetResponseAsync(
+                QuestionPrompt.Build(question, request, verbalized: false), LogprobOptions(model), cancellationToken).ConfigureAwait(false);
+            var read = ReadLogprobs(question, response, model);
+
+            // Its only failures are no logprobs and no usable label among them.
+            if (read.IsSuccess || _probabilityMode == ProbabilityMode.Logprobs)
             {
-                IncludeLogProbabilities = true,
-                TopLogProbabilityCount = TopLogprobCount,
-            },
-        };
+                return Called(read, response, previous: null);
+            }
 
-        var messages = QuestionPrompt.Build(question, request, verbalized: false);
-        var response = await _chatClient.GetResponseAsync(messages, chatOptions, cancellationToken).ConfigureAwait(false);
+            first = response;
+        }
 
+        var labelCount = LabelCount(question);
+        var verbalizedOptions = new ChatOptions { ModelId = model, Temperature = 0, ResponseFormat = VerbalizedReader.Format(labelCount) };
+        var verbalized = await _chatClient.GetResponseAsync(
+            QuestionPrompt.Build(question, request, verbalized: true), verbalizedOptions, cancellationToken).ConfigureAwait(false);
+        return Called(ReadVerbalized(question, labelCount, verbalized, model), verbalized, first);
+    }
+
+    // One token at temperature 0, with the top logprobs. A new SDK options object per call: the OpenAI chat client
+    // fills in the rest of it.
+    private static ChatOptions LogprobOptions(string? model) => new()
+    {
+        ModelId = model,
+        MaxOutputTokens = 1,
+        Temperature = 0,
+        RawRepresentationFactory = static _ => new ChatCompletionOptions
+        {
+            IncludeLogProbabilities = true,
+            TopLogProbabilityCount = TopLogprobCount,
+        },
+    };
+
+    /// <summary>Reads the answer from the first output token's logprobs.</summary>
+    private Result<QuestionAnswer, DecisionError> ReadLogprobs(QuestionDefinition question, ChatResponse response, string? model)
+    {
         // The messages below name the model and the question key, never the state or the model's output.
         if (LogprobReader.TopAtFirstToken(response) is not { } top)
         {
-            return AnswerFailure(new DecisionError(
+            return Result<QuestionAnswer, DecisionError>.Failure(new DecisionError(
                 DecisionErrorKind.Unsupported,
                 "The model '" + ModelName(response, model) + "' returned no logprobs. Set ProbabilityMode to Verbalized for a model without them."));
         }
 
         if (LabelDistribution.FromLogprobs(LabelCount(question), top) is not { } p)
         {
-            return AnswerFailure(new DecisionError(
+            return Result<QuestionAnswer, DecisionError>.Failure(new DecisionError(
                 DecisionErrorKind.InvalidResponse,
                 "The model '" + ModelName(response, model) + "' gave no usable option label among its top logprobs for question '" + question.Key + "'."));
         }
 
-        return Answered(question, p, ProbabilitySource.Logprobs, response);
+        return Answer(question, p, ProbabilitySource.Logprobs);
     }
 
-    /// <summary>Asks one question for each label's probability, as JSON that follows a schema, and reads the answer from it.</summary>
-    private async ValueTask<Result<(QuestionAnswer Answer, ChatResponse Response), DecisionError>> AskVerbalizedAsync(
-        QuestionDefinition question, DecisionRequest request, CancellationToken cancellationToken)
+    /// <summary>Reads the answer from each label's stated probability, given as JSON that follows the schema.</summary>
+    private Result<QuestionAnswer, DecisionError> ReadVerbalized(QuestionDefinition question, int labelCount, ChatResponse response, string? model)
     {
-        var model = request.Model ?? _model;
-        var labelCount = LabelCount(question);
-        var chatOptions = new ChatOptions
-        {
-            ModelId = model,
-            Temperature = 0,
-            ResponseFormat = VerbalizedReader.Format(labelCount),
-        };
-
-        var messages = QuestionPrompt.Build(question, request, verbalized: true);
-        var response = await _chatClient.GetResponseAsync(messages, chatOptions, cancellationToken).ConfigureAwait(false);
-
         if (VerbalizedReader.Read(response.Text, labelCount) is not { } stated || LabelDistribution.FromStated(labelCount, stated) is not { } p)
         {
             // Names the model and the question key, never the state or the model's output.
-            return AnswerFailure(new DecisionError(
+            return Result<QuestionAnswer, DecisionError>.Failure(new DecisionError(
                 DecisionErrorKind.InvalidResponse,
                 "The model '" + ModelName(response, model) + "' gave no usable probability for each option of question '" + question.Key + "'."));
         }
 
-        return Answered(question, p, ProbabilitySource.Verbalized, response);
+        return Answer(question, p, ProbabilitySource.Verbalized);
     }
 
     private string ModelName(ChatResponse response, string? model)
@@ -348,26 +412,40 @@ public sealed class ChatDecisionClient : IDecisionClient
     private static int LabelCount(QuestionDefinition question)
         => question.Kind == QuestionKind.Noul ? 2 : question.OptionArray.Length;
 
-    private static Result<(QuestionAnswer Answer, ChatResponse Response), DecisionError> AnswerFailure(DecisionError error)
-        => Result<(QuestionAnswer Answer, ChatResponse Response), DecisionError>.Failure(error);
+    // A count is summed over the calls that report it, and stays null when none does.
+    private static long? Sum(long? total, long? count) => count is { } value ? (total ?? 0) + value : total;
+
+    private static int? Clamp(long? count) => count is { } value ? (int)Math.Clamp(value, 0, int.MaxValue) : null;
+
+    // The answer from response, with the model and usage of previous, the logprob call an Auto fallback made first.
+    private static Result<QuestionCall, DecisionError> Called(Result<QuestionAnswer, DecisionError> read, ChatResponse response, ChatResponse? previous)
+    {
+        if (read.IsFailure)
+        {
+            return Result<QuestionCall, DecisionError>.Failure(read.Error);
+        }
+
+        return Result<QuestionCall, DecisionError>.Success(new QuestionCall(
+            read.Value,
+            previous?.ModelId ?? response.ModelId,
+            Sum(previous?.Usage?.InputTokenCount, response.Usage?.InputTokenCount),
+            Sum(previous?.Usage?.OutputTokenCount, response.Usage?.OutputTokenCount)));
+    }
 
     // p is the distribution over the question's labels; for a Noul, A is yes.
-    private static Result<(QuestionAnswer Answer, ChatResponse Response), DecisionError> Answered(
-        QuestionDefinition question, double[] p, ProbabilitySource source, ChatResponse response)
+    private static Result<QuestionAnswer, DecisionError> Answer(QuestionDefinition question, double[] p, ProbabilitySource source)
     {
-        QuestionAnswer answer;
         if (question.Kind == QuestionKind.Noul)
         {
-            answer = QuestionAnswer.Noul(p[0], source);
-        }
-        else
-        {
-            var (picked, confidence) = LabelDistribution.Pick(p);
-            answer = question.Kind == QuestionKind.Choice
-                ? QuestionAnswer.Choice(picked, confidence, p, source)
-                : QuestionAnswer.Score(picked, LabelDistribution.Expected(p), confidence, p, source);
+            return Result<QuestionAnswer, DecisionError>.Success(QuestionAnswer.Noul(p[0], source));
         }
 
-        return Result<(QuestionAnswer Answer, ChatResponse Response), DecisionError>.Success((answer, response));
+        var (picked, confidence) = LabelDistribution.Pick(p);
+        return Result<QuestionAnswer, DecisionError>.Success(question.Kind == QuestionKind.Choice
+            ? QuestionAnswer.Choice(picked, confidence, p, source)
+            : QuestionAnswer.Score(picked, LabelDistribution.Expected(p), confidence, p, source));
     }
+
+    /// <summary>One question's answer, the model the first of its responses names, and the tokens all its calls used.</summary>
+    private readonly record struct QuestionCall(QuestionAnswer Answer, string? Model, long? InputTokens, long? OutputTokens);
 }
