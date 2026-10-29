@@ -76,7 +76,7 @@
     <!-- The rate-limiting package's RateLimiter. Its floor is the first .NET 10 release, as for the other Microsoft packages. -->
     <PackageVersion Include="System.Threading.RateLimiting" Version="10.0.0" />
     <!-- Runtime question set validation: its generators validate Minos.NET's own specs; NuGet still flows them to consumers, where they stay inert, NuGet/Home#6720 -->
-    <PackageVersion Include="ZeroAlloc.Validation" Version="2.3.4" />
+    <PackageVersion Include="ZeroAlloc.Validation" Version="2.3.5" />
     <!-- The minos tool's command line. Only Minos.NET.Tool references it. -->
     <PackageVersion Include="System.CommandLine" Version="2.0.14" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.14" />
