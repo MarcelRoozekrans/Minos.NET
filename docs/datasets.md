@@ -124,6 +124,8 @@ an `IAsyncEnumerable<RecordedDecision>`, so you choose the decisions with LINQ b
 set, and the export has no filter options of its own. It writes the dataset to a stream, and the signals to a second
 stream, or to none when you pass `null`, in which case it only counts them.
 
+The dataset a program writes this way is a copy of recorded state, so keep it as private as the record file, and export again after an erasure, because an erasure does not reach an export made before it.
+
 <!-- snippet: Datasets_Export -->
 ```cs
 using Minos.Evaluation;
@@ -264,7 +266,7 @@ in the record file, such as the cut last line a crash leaves, does not stop the 
 | --- | --- |
 | 0 | At least one item was written. |
 | 1 | The output cannot be written, or the export failed after it started writing. |
-| 2 | No item was written, for any reason: the record file is missing or cannot be read, every line is a problem, or no decision can become an item. The command leaves no dataset or signals file, and deletes those of an earlier export into the same directory. The directory stays, and so does the `.minos-run` marker of a default directory. |
+| 2 | No item was written, for any reason: the record file is missing or cannot be read, every line is a problem, or no decision can become an item. A missing or unreadable record file fails before any output is touched, so an earlier export stays. When the record file was read but gave no item, because every line is a problem or no decision can become an item, the command leaves no dataset or signals file and deletes those of an earlier export into the same directory. The directory stays, and so does the `.minos-run` marker of a default directory. |
 | 130 | The export was cancelled. |
 
 An export is cheap to repeat, unlike a billed calibrate run. So when it fails or is cancelled after it starts writing,
