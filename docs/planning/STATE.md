@@ -1,4 +1,4 @@
-# Session State — 2026-10-28 (Milestone 9: 1.6.0 released, Phase 9.2 next)
+# Session State — 2026-10-28 (Milestone 9: Phase 9.2 built, pre-push review done, PR next)
 
 **Date:** 2026-10-28
 
@@ -120,7 +120,13 @@
      - #284 closes #281: `MaxParallelCalls` limits the chat bridge's parallel calls per question set.
      - #287 closes #280: `CacheScope` lets a decision client scope its cache entries, so the chat bridge's `ProbabilityMode` no longer collides in the cache key.
      - #288 closes #279: evaluation results keep each answer's `ProbabilitySource`.
-   - **Next:** Phase 9.2, export to the dataset format, through `start-next-phase`. Its spec must say how #288's probability source fits the export.
+   - **Phase 9.2 (export to the dataset format) is active,** on branch `phase/9.2-export-resume`. It has no PR yet.
+     - **Spec:** `docs/superpowers/specs/2026-10-28-phase-9.2-export-design.md`, approved 2026-10-28.
+     - **Plan:** `docs/superpowers/plans/2026-10-28-phase-9.2-export.md`, seven tasks, approved, with subagent-driven execution.
+     - **Tasks 1 to 7 are complete** on branch `phase/9.2-export-resume`: package wiring and validation baselines, `DecisionDatasetExport` with its signals file, `minos export`, the documentation, and the whole-branch verification. The whole-branch review and its fix wave are done. Evaluation references Recording. Recording and Extensions.AI are compared with 1.3.0 and 1.5.0.
+     - **Pre-push review:** PASS, `docs/plans/2026-10-28-phase-9.2-pre-push-review.md`.
+     - **Next:** push the branch and open one PR with BEGIN_COMMIT_OVERRIDE. Check its CI before any admin merge, then run `complete-phase`.
+   - **Waiting on the maintainer:** a peer message to the Daedalus session "daedalus: phase 3.3 Task 16 onward" saying the recorder shipped in 1.3.0. It needs approval in the app; the `daedalus-b9` session no longer exists. The #119 comment is posted.
 2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.
 3. Phases 7.1 to 7.5 are complete. On 2026-10-15 nuget.org reserved `Minos.NET` and `Minos.NET.*` to MarcelRoozekrans, which lifted the 409 "package ID is reserved" block. The Trusted Publishing policy is ci.yml, no environment, glob `*`. `gh workflow run ci.yml --ref v1.0.1 -f publish_to_nuget=true` ([run 38726515640](https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/38726515640)) published all six packages as 1.0.1, with symbols. 1.0.0 was never published. `PackageValidationBaselineVersion` is 1.0.1, which closes #28. Milestone 7 is complete; its audit passed (`docs/plans/2026-10-15-milestone-7-audit.md`). Next: Milestone 8, Choosing a provider and a threshold, starting with `new-milestone`.
 4. Releases go out when the maintainer merges the release-please PR. Renovate titles updates to shipped ZeroAlloc dependencies `deps:`, so raised floors reach the changelog. Consider narrowing the Trusted Publishing package glob from `*` to `Minos.NET*` on nuget.org.

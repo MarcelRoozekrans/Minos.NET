@@ -107,8 +107,173 @@ that says: "This file uses dataset format version N; this loader reads version 1
 `1.0`, is a problem that says: "'version' must be the number 1." A later version of the format will raise the number,
 and a loader that does not know it refuses the file instead of guessing.
 
-The decision export planned for Milestone 9 will write this format, and will use a new version if it needs members that
-version 1 does not have.
+[Exporting recorded decisions](#exporting-recorded-decisions) writes this format, and uses a new version if it ever needs
+members that version 1 does not have.
+
+## Exporting recorded decisions
+
+An app that [records its decisions](recording.md) can turn that traffic into a dataset. A decision that someone later
+confirmed becomes an item: its state and questions, with the confirmed answers as the expected answers. The dataset is
+then run like any other, through `DatasetRunner` or `minos calibrate`, against any provider, a local model included.
+
+The input is a record file, the JSONL that `JsonlDecisionRecordSink` writes. An app with a sink of its own, such as a
+database table, writes the same file from its rows with the public `DecisionRecordFile.WriteRecordLine`,
+`WriteOutcomeLine` and `WriteErasureLine`; the [custom sink example](recording.md#writing-your-own-sink) shows it.
+Read the file with `DecisionRecordFile.ReadAsync` and hand the decisions to `DecisionDatasetExport.WriteAsync`. It takes
+an `IAsyncEnumerable<RecordedDecision>`, so you choose the decisions with LINQ before the export, by date or by question
+set, and the export has no filter options of its own. It writes the dataset to a stream, and the signals to a second
+stream, or to none when you pass `null`, in which case it only counts them.
+
+The dataset a program writes this way is a copy of recorded state, so keep it as private as the record file, and
+export again after an erasure, because an erasure does not reach an export made before it.
+
+<!-- snippet: Datasets_Export -->
+```cs
+using Minos.Evaluation;
+using Minos.Recording;
+
+public static class DatasetExport
+{
+    // Turns the decisions of a record file that started on or after a date into a dataset and a signals file.
+    public static async Task<DatasetExportSummary> ExportAsync(
+        string recordsPath, DateTimeOffset since, string datasetPath, string signalsPath, CancellationToken cancellationToken)
+    {
+        // The export takes the decisions it is given, so you choose them first, here with a filter on the start time.
+        var decisions = DecisionRecordFile.ReadAsync(recordsPath, cancellationToken)
+            .Where(decision => decision.Record.Started >= since);
+
+        await using var dataset = new FileStream(datasetPath, FileMode.Create, FileAccess.Write);
+        await using var signals = new FileStream(signalsPath, FileMode.Create, FileAccess.Write);
+        var summary = await DecisionDatasetExport.WriteAsync(decisions, dataset, signals, cancellationToken);
+
+        // One line for each count that is not zero.
+        Console.WriteLine(summary);
+        return summary;
+    }
+}
+```
+<!-- endSnippet -->
+
+### What becomes an item
+
+The export writes one line for each decision that has at least one valid confirmed answer, in the order the reader
+returns the decisions. A line has these members. It has no `version`, so it reads as version 1.
+
+| Member | Content |
+| --- | --- |
+| `id` | The decision id. The export writes each id once, so the ids are unique even when the decisions come from several files. |
+| `state` | The recorded state, as it was written after redaction. |
+| `questions` | The recorded question set, in the shape of a dataset line. |
+| `expected` | The confirmed answers, merged as described below. |
+| `source` | The distinct sources of the outcomes that supplied an expected answer, in file order, joined with `, `. |
+
+A failed, a refused and a cached decision with a confirmed outcome is still an item, because its state and questions are
+in the record. Two decisions on the same text become two items.
+
+A decision is skipped, and counted by reason, when:
+
+- it has no confirmed outcome;
+- none of its confirmed answers is valid, after the checks below;
+- it sent images. A record keeps only the hashes of the images, so the item cannot be rebuilt;
+- its item would not load. The export checks each item with the loader's own rules before it writes it, so what it
+  writes always loads with `DecisionDataset` and runs with `minos calibrate`. One way to reach this is a question set
+  built at run time that only broke a core warning, since the loader counts warnings as problems. Another is a
+  decision id that an earlier item already has. The reader keeps one decision for each id within a file, but decisions
+  read from two files, one after the other, can repeat an id, and the first one wins.
+
+A confirmed answer that does not fit its question is dropped, and counted, when:
+
+- its key names no question of the record;
+- its kind differs from the question's kind;
+- it names a Choice option that the question does not have;
+- it gives a Score level outside the question's levels.
+
+### Several confirmed outcomes
+
+A decision can have several confirmed outcomes: a correction, or confirmations from two sources that each cover some of
+the questions. Each answer is checked first, and a dropped answer never takes part in the merge. Then each question key
+takes its answer from the confirmed outcome with the latest `At`. When two have the same `At`, the one later in the file
+wins. Partial confirmations combine, and a correction replaces what it corrects.
+
+A key is counted as overridden when the winning answer differs from an earlier valid answer to the same key. It is
+counted once for each item. A later outcome that repeats the same answer is not an override.
+
+### The summary
+
+`DecisionDatasetExport.WriteAsync` returns a `DatasetExportSummary`. It counts the decisions read, the items written,
+the signals written and the signals skipped with their decision, the decisions skipped for each of the reasons above,
+the confirmed keys dropped and the confirmed keys overridden. Its `ToString` prints one line for each count that is not
+zero. It holds counts only. It never holds a decision id, an erasure key or any state, so it is safe to print in a log.
+
+The export throws what the streams or the token throw, `OperationCanceledException` included, and the streams may hold
+part of the output by then. The library deletes nothing, since it only has streams. `DecisionRecordFile.ReadAsync` reads
+the whole file before it returns the first decision, so the export holds the file's decisions in memory.
+
+### The signals file
+
+A signal outcome is a fact about a decision, such as a customer who complained, and not an answer to a question. A
+signal therefore never goes into the dataset. The dataset format rejects members it does not know, so the signals of the
+exported items go to a second file, `dataset.signals.jsonl`, when you give the export a stream for it. It is UTF-8
+JSONL, with one line for each signal of an exported item, in the item's order and then in file order. The signals of a
+skipped decision are not written. They are counted as skipped.
+
+```json
+{"id":"0199f1d2-7c4e-7a10-9b3e-2f6d8c1a4e55","source":"mailer","at":"2026-10-22T10:30:00+00:00","name":"complained","value":1,"note":"Wrote back within the hour.","version":1}
+```
+
+| Member | Content |
+| --- | --- |
+| `id` | The dataset item id, which is the decision id. |
+| `source` | The outcome's source. |
+| `at` | The outcome's time, as an ISO 8601 date and time with its offset. |
+| `name` | The signal's name. |
+| `value` | The number, or left out when the signal has none. |
+| `note` | The note, or left out when the signal has none. |
+| `version` | `1`. |
+
+Signals are weak labels. They show that something happened after a decision, not that the decision was right or wrong,
+and they never become expected answers. Minos has no reader for this file yet.
+
+### What the dataset leaves out
+
+A dataset holds the right answers, not the answers the model gave. The recorded answers and their probability source, in
+a version 2 record, are not exported, and a version 2 record exports the same as a version 1 record. Both come back in
+the results when you run the dataset, and the format stays version 1.
+
+### From the command line
+
+`minos export` runs the same export on a file, without code. It makes no provider calls, so it needs no config or
+prices.
+
+```
+minos export --records decisions.jsonl --out export
+```
+
+`--records` is required and names the record file. `--out` names the directory for the output; without it the command
+uses `minos-out/export-<UTC yyyyMMdd-HHmmss>`, as [the other commands](#the-output) do. The command writes
+`dataset.jsonl` and `dataset.signals.jsonl` there and prints their paths. The signals file is written even when it holds
+no line, so a script can rely on it. A re-export into the same directory overwrites the earlier files, and one that
+writes no item deletes them.
+
+The dataset and the signals file are a copy of recorded state, so keep them as private as the record file. On Linux and
+macOS the command creates them readable and writable by their owner only, as `JsonlDecisionRecordSink` creates the
+record file. An erasure in the record file does not reach an export made before it: after an erasure, delete the earlier
+exports and export again.
+
+The command prints the problems of the record file as `line N: message`, then the summary, on standard error. A problem
+in the record file, such as the cut last line a crash leaves, does not stop the export.
+
+| Code | Meaning |
+| --- | --- |
+| 0 | At least one item was written. |
+| 1 | The output cannot be written, or the export failed after it started writing. |
+| 2 | No item was written, for any reason: the record file is missing or cannot be read, every line is a problem, or no decision can become an item. A missing or unreadable record file fails before any output is touched, so an earlier export stays. When the record file was read but gave no item, because every line is a problem or no decision can become an item, the command leaves no dataset or signals file and deletes those of an earlier export into the same directory. The directory stays, and so does the `.minos-run` marker of a default directory. |
+| 130 | The export was cancelled. |
+
+An export is cheap to repeat, unlike a billed calibrate run. So when it fails or is cancelled after it starts writing,
+the tool deletes both output files and leaves no half-written dataset behind.
+
+Run the exported dataset with `minos calibrate --dataset export/dataset.jsonl`.
 
 ## Running a dataset and reading the report
 
@@ -257,7 +422,7 @@ calibration error, the bins and the base rate, but it counts as uncovered in the
 ## Running it from the command line
 
 The `minos` tool runs the same steps without any code: it calibrates a model against a dataset, builds the report again
-from saved results, and runs the [conformance suite](conformance.md) against a provider. It needs the .NET 10 runtime.
+from saved results, runs the [conformance suite](conformance.md) against a provider, and [exports recorded decisions](#from-the-command-line) to a dataset. It needs the .NET 10 runtime.
 
 ```
 dotnet tool install --global Minos.NET.Tool
@@ -351,6 +516,7 @@ the path of each file it writes.
 | `minos calibrate` | `results.jsonl`, `report.json` and `report.md`. |
 | `minos report` | `report.json` and `report.md`. |
 | `minos conformance` | `conformance.json` and `conformance.md`. |
+| `minos export` | `dataset.jsonl` and `dataset.signals.jsonl`. |
 
 `results.jsonl` is what `EvaluationResults.Save` writes, and `report.json` and `report.md` are the `ToJson` and
 `ToMarkdown` of the report. `minos conformance` also prints how many checks passed, failed and were skipped.

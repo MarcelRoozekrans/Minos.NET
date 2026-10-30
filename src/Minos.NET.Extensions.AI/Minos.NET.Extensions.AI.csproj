@@ -7,8 +7,8 @@
     <PackageTags>$(PackageTags);extensions-ai;ichatclient;llm</PackageTags>
     <IsAotCompatible>true</IsAotCompatible>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
-    <!-- Not on nuget.org yet, so there is no version to compare with. After its first release, delete this property and set PackageValidationBaselineVersion to that version here. -->
-    <MinosNoValidationBaseline>true</MinosNoValidationBaseline>
+    <!-- First published at 1.5.0, so its public API is compared with that version. -->
+    <PackageValidationBaselineVersion>1.5.0</PackageValidationBaselineVersion>
   </PropertyGroup>
 
   <ItemGroup>

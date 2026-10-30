@@ -54,7 +54,7 @@ public sealed class EvaluationPackageTests : IClassFixture<EvaluationPackFixture
     }
 
     [Fact]
-    public void DependsOnMinosNet_AtThePackedVersion()
+    public void DependsOnMinosNetAndRecording_AtThePackedVersion()
     {
         var group = XDocument.Load(_fixture.NuspecPath).Root!
             .Element(Nuspec + "metadata")!
@@ -64,10 +64,12 @@ public sealed class EvaluationPackageTests : IClassFixture<EvaluationPackFixture
         var dependencies = group.Elements(Nuspec + "dependency").ToArray();
 
         Assert.Equal(
-            ["Minos.NET", "ZeroAlloc.Results"],
+            ["Minos.NET", "Minos.NET.Recording", "ZeroAlloc.Results"],
             dependencies.Select(dependency => (string)dependency.Attribute("id")!).Order(StringComparer.Ordinal).ToArray());
-        Assert.Equal(
-            _fixture.PackageVersion,
-            (string?)dependencies.Single(dependency => string.Equals((string?)dependency.Attribute("id"), "Minos.NET", StringComparison.Ordinal)).Attribute("version"));
+        Assert.Equal(_fixture.PackageVersion, VersionOf(dependencies, "Minos.NET"));
+        Assert.Equal(_fixture.PackageVersion, VersionOf(dependencies, "Minos.NET.Recording"));
     }
+
+    private static string? VersionOf(XElement[] dependencies, string id) =>
+        (string?)dependencies.Single(dependency => string.Equals((string?)dependency.Attribute("id"), id, StringComparison.Ordinal)).Attribute("version");
 }

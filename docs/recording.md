@@ -521,6 +521,7 @@ event but never stops the recorder.
 
 ## Next
 
+- [Exporting recorded decisions](datasets.md#exporting-recorded-decisions): turn records with confirmed outcomes into a dataset, with `DecisionDatasetExport` or `minos export`.
 - [Labelled datasets](datasets.md): the format the records' question sets share, and how a dataset is run.
 - [Logging, traces and metrics](observability.md): the client's own logs, spans and metrics.
 - [The client pipeline](pipeline.md): the other stages, and the order they go in.

@@ -24,7 +24,7 @@ PACKAGES: dict[str, tuple[str, ...]] = {
     "Minos.NET.OpenAI": ("Minos.NET", "Minos.NET.DependencyInjection"),
     "Minos.NET.Caching": ("Minos.NET",),
     "Minos.NET.RateLimiting": ("Minos.NET",),
-    "Minos.NET.Evaluation": ("Minos.NET",),
+    "Minos.NET.Evaluation": ("Minos.NET", "Minos.NET.Recording"),
     "Minos.NET.Recording": ("Minos.NET",),
     "Minos.NET.Extensions.AI": ("Minos.NET", "Minos.NET.DependencyInjection"),
     # A dotnet tool bundles everything it uses, so it has no Minos dependencies.

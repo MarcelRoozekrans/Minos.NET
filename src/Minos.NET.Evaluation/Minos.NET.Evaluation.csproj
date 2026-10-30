@@ -23,6 +23,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\Minos.NET\Minos.NET.csproj" />
+    <!-- The export from recorded decisions reads Recording's files and shares its question-set writer. -->
+    <ProjectReference Include="..\Minos.NET.Recording\Minos.NET.Recording.csproj" />
     <PackageReference Include="ZeroAlloc.Results" />
   </ItemGroup>
 </Project>

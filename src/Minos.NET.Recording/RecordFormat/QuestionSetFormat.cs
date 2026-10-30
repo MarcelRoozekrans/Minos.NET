@@ -4,7 +4,9 @@ namespace Minos.Recording.RecordFormat;
 
 // The "questions" member of a record line: the dataset line's shape, as docs/datasets.md describes it. A question is
 // { "type": "noul" | "choice" | "score", "instructions": text-or-JSON, "criteria": ... }. It is written and read here,
-// and not through Minos.NET.Evaluation, which the package does not reference.
+// and Minos.NET.Evaluation's export uses this writer, through InternalsVisibleTo, so records and datasets share one shape.
+// The signatures of Write and WriteContent are therefore a contract across packages: Minos.NET.Evaluation calls them, so a
+// change to them must ship with a matching Evaluation release.
 internal static class QuestionSetFormat
 {
     internal static void Write(Utf8JsonWriter w, QuestionSetDefinition definition)
