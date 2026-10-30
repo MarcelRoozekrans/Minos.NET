@@ -1,7 +1,7 @@
 using System.Text;
 using System.Text.Json;
-using Minos.Recording;
 using Minos.Evaluation;
+using Minos.Recording;
 using ZeroAlloc.Results;
 
 namespace Minos.AotSmoke;
@@ -476,7 +476,8 @@ internal static class EvaluationChecks
             var summary = await DecisionDatasetExport.WriteAsync(
                 DecisionRecordFile.ReadAsync(path, CancellationToken.None), dataset, signals, CancellationToken.None).ConfigureAwait(false);
 
-            var parsed = DecisionDataset.Parse(Encoding.UTF8.GetString(dataset.ToArray()));
+            var text = Encoding.UTF8.GetString(dataset.ToArray());
+            var parsed = DecisionDataset.Parse(text);
             Program.Check(
                 summary.DecisionsRead == 2
                     && summary.ItemsWritten == 1
@@ -492,7 +493,13 @@ internal static class EvaluationChecks
                     && parsed.IsSuccess
                     && parsed.Value.Count == 1
                     && string.Equals(parsed.Value[0].Id, "export-1", StringComparison.Ordinal)
-                    && signals.Length > 0,
+                    && parsed.Value[0].Expected.TryGetValue("team", out var team)
+                    && team == ExpectedAnswer.ForChoice("account")
+                    && !text.Contains("export-2", StringComparison.Ordinal)
+                    && string.Equals(
+                        Encoding.UTF8.GetString(signals.ToArray()),
+                        "{\"id\":\"export-1\",\"source\":\"mailer\",\"at\":\"2026-10-22T09:30:00+00:00\",\"name\":\"complained\",\"value\":1,\"version\":1}\n",
+                        StringComparison.Ordinal),
                 "recorded decisions export to a dataset and a signals file, under Native AOT");
         }
         finally

@@ -19,15 +19,6 @@ public sealed class RecordedExportTests
     private static FakeDecisionClient Answering()
         => new((r, _) => ValueTask.FromResult(Result<DecisionResponse, DecisionError>.Success(new DecisionResponse(r.Definition, [QuestionAnswer.Noul(0.9)], "jev-latest"))));
 
-    private static async IAsyncEnumerable<RecordedDecision> ToAsync(List<RecordedDecision> decisions)
-    {
-        foreach (var decision in decisions)
-        {
-            await Task.Yield();
-            yield return decision;
-        }
-    }
-
     [Fact]
     public async Task RecordedDecisions_ExportLoadAndRun()
     {
@@ -64,7 +55,7 @@ public sealed class RecordedExportTests
 
             using var dataset = new MemoryStream();
             using var signals = new MemoryStream();
-            var summary = await DecisionDatasetExport.WriteAsync(ToAsync(decisions), dataset, signals, CancellationToken.None);
+            var summary = await DecisionDatasetExport.WriteAsync(RecordLines.Yield(decisions), dataset, signals, CancellationToken.None);
 
             Assert.Equal(1, summary.ItemsWritten);
             Assert.Equal(1, summary.SkippedWithoutConfirmedOutcome);
@@ -72,12 +63,17 @@ public sealed class RecordedExportTests
 
             var signalLines = Encoding.UTF8.GetString(signals.ToArray()).Split('\n', StringSplitOptions.RemoveEmptyEntries);
             var signalLine = Assert.Single(signalLines);
-            Assert.Contains("\"d1\"", signalLine, StringComparison.Ordinal);
+            Assert.Equal("""{"id":"d1","source":"mailer","at":"2026-10-22T09:35:00+00:00","name":"complained","value":1,"version":1}""", signalLine);
 
-            var parsed = DecisionDataset.Parse(Encoding.UTF8.GetString(dataset.ToArray()));
+            var text = Encoding.UTF8.GetString(dataset.ToArray());
+            Assert.DoesNotContain("\"d2\"", text, StringComparison.Ordinal);
+            Assert.DoesNotContain("\"d3\"", text, StringComparison.Ordinal);
+            var parsed = DecisionDataset.Parse(text);
             Assert.True(parsed.IsSuccess);
             var item = Assert.Single(parsed.Value);
             Assert.Equal("d1", item.Id);
+            Assert.Equal(ExpectedAnswer.ForNoul(true), Assert.Single(item.Expected).Value);
+            Assert.Equal("urgent", Assert.Single(item.Expected).Key);
 
             var fake = Answering();
             var results = await DatasetRunner.RunAsync(fake, parsed.Value);
