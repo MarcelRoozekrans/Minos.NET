@@ -39,7 +39,7 @@ public sealed class DatasetExportSummary
     /// <summary>Gets the number of dataset items written, one per exported decision.</summary>
     public int ItemsWritten { get; }
 
-    /// <summary>Gets the number of signal outcomes written to the signals stream.</summary>
+    /// <summary>Gets the number of signal outcomes of exported items, written to the signals stream when there is one.</summary>
     public int SignalsWritten { get; }
 
     /// <summary>Gets the number of signal outcomes left out because their decision was skipped.</summary>

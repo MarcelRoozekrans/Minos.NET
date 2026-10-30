@@ -240,6 +240,56 @@ public sealed class DatasetExportTests
     }
 
     [Fact]
+    public async Task SignalsOfExportedItems_AreWrittenInOrder()
+    {
+        var (summary, _, signals) = await ExportAsync(
+            Record("d1"),
+            Signal("d1", At("10:30"), "mailer", "complained", 1, "Wrote back within the hour."),
+            Confirmed("d1", At("09:35"), "reviewer-ui", """{"urgent":true}"""),
+            Signal("d1", At("11:00"), "mailer", "reopened"),
+            Record("d2"),
+            Confirmed("d2", At("09:35"), "reviewer-ui", """{"urgent":false}"""),
+            Signal("d2", At("12:00"), "mailer", "praised"));
+
+        var lines = signals.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        Assert.Equal(3, lines.Length);
+        Assert.Equal("""{"id":"d1","source":"mailer","at":"2026-10-22T10:30:00+00:00","name":"complained","value":1,"note":"Wrote back within the hour.","version":1}""", lines[0]);
+        Assert.Equal("""{"id":"d1","source":"mailer","at":"2026-10-22T11:00:00+00:00","name":"reopened","version":1}""", lines[1]);
+        Assert.Equal("""{"id":"d2","source":"mailer","at":"2026-10-22T12:00:00+00:00","name":"praised","version":1}""", lines[2]);
+        Assert.Equal(3, summary.SignalsWritten);
+        Assert.Equal(0, summary.SignalsSkipped);
+        Assert.EndsWith("\n", signals, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task SignalsOfSkippedDecisions_AreCountedNotWritten()
+    {
+        var (summary, _, signals) = await ExportAsync(
+            Record("d1"),
+            Signal("d1", At("10:30"), "mailer", "complained", 1),
+            Signal("d1", At("11:00"), "mailer", "reopened"));
+
+        Assert.Empty(signals);
+        Assert.Equal(0, summary.SignalsWritten);
+        Assert.Equal(2, summary.SignalsSkipped);
+    }
+
+    [Fact]
+    public async Task NullSignalsStream_CountsWithoutWriting()
+    {
+        var decisions = await ReadAsync(
+            Record("d1"),
+            Confirmed("d1", At("09:35"), "reviewer-ui", """{"urgent":true}"""),
+            Signal("d1", At("10:30"), "mailer", "complained"));
+        using var dataset = new MemoryStream();
+
+        var summary = await DecisionDatasetExport.WriteAsync(Yield(decisions), dataset, null, CancellationToken.None);
+
+        Assert.Equal(1, summary.SignalsWritten);
+        Assert.Equal(1, summary.ItemsWritten);
+    }
+
+    [Fact]
     public async Task Arguments_AreChecked()
     {
         using var dataset = new MemoryStream();

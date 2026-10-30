@@ -33,7 +33,10 @@ public static class DecisionDatasetExport
     /// </summary>
     /// <param name="decisions">The decisions, as <see cref="DecisionRecordFile.ReadAsync(string, CancellationToken)"/> returns them.</param>
     /// <param name="dataset">Receives the dataset, UTF-8 JSONL with each line ended by <c>\n</c>.</param>
-    /// <param name="signals">Receives the signal outcomes of the exported items, or <see langword="null"/> to only count them.</param>
+    /// <param name="signals">Receives the signal outcomes of the exported items, one UTF-8 JSONL line each ended by <c>\n</c>
+    /// with <c>id</c>, <c>source</c>, <c>at</c>, <c>name</c>, <c>value</c> and <c>note</c> when set, and <c>version</c> 1, in
+    /// file order after their item. <see langword="null"/> only counts them. The signals of a skipped decision are
+    /// counted in <see cref="DatasetExportSummary.SignalsSkipped"/>, never written.</param>
     /// <param name="cancellationToken">Cancels the export between decisions.</param>
     /// <returns>The counts of what was read, written and skipped.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="decisions"/> or <paramref name="dataset"/> is <see langword="null"/>.</exception>
@@ -43,11 +46,11 @@ public static class DecisionDatasetExport
     {
         ArgumentNullException.ThrowIfNull(decisions);
         ArgumentNullException.ThrowIfNull(dataset);
-        return WriteCoreAsync(decisions, dataset, cancellationToken);
+        return WriteCoreAsync(decisions, dataset, signals, cancellationToken);
     }
 
     private static async Task<DatasetExportSummary> WriteCoreAsync(
-        IAsyncEnumerable<RecordedDecision> decisions, Stream dataset, CancellationToken cancellationToken)
+        IAsyncEnumerable<RecordedDecision> decisions, Stream dataset, Stream? signals, CancellationToken cancellationToken)
     {
         var counts = new Counts();
         var line = new ArrayBufferWriter<byte>();
@@ -58,6 +61,7 @@ public static class DecisionDatasetExport
             line.ResetWrittenCount();
             if (!TryWriteItem(line, decision, counts))
             {
+                counts.SignalsSkipped += CountSignals(decision);
                 continue;
             }
 
@@ -65,25 +69,81 @@ public static class DecisionDatasetExport
             if (!DecisionDataset.Parse(new MemoryStream(line.WrittenSpan.ToArray(), writable: false)).IsSuccess)
             {
                 counts.SkippedInvalidItem++;
+                counts.SignalsSkipped += CountSignals(decision);
                 continue;
             }
 
             await dataset.WriteAsync(line.WrittenMemory, cancellationToken).ConfigureAwait(false);
             await dataset.WriteAsync(LineFeed, cancellationToken).ConfigureAwait(false);
             counts.ItemsWritten++;
+
+            foreach (var outcome in decision.Outcomes)
+            {
+                if (outcome is not SignalOutcome signal)
+                {
+                    continue;
+                }
+
+                if (signals is not null)
+                {
+                    line.ResetWrittenCount();
+                    WriteSignal(line, decision.Record.DecisionId, signal);
+                    await signals.WriteAsync(line.WrittenMemory, cancellationToken).ConfigureAwait(false);
+                    await signals.WriteAsync(LineFeed, cancellationToken).ConfigureAwait(false);
+                }
+
+                counts.SignalsWritten++;
+            }
         }
 
         return new DatasetExportSummary(
             counts.DecisionsRead,
             counts.ItemsWritten,
-            signalsWritten: 0,
-            signalsSkipped: 0,
+            counts.SignalsWritten,
+            counts.SignalsSkipped,
             counts.SkippedWithoutConfirmedOutcome,
             counts.SkippedWithImages,
             counts.SkippedWithoutValidKey,
             counts.SkippedInvalidItem,
             counts.KeysDropped,
             counts.KeysOverridden);
+    }
+
+    private static int CountSignals(RecordedDecision decision)
+    {
+        var count = 0;
+        foreach (var outcome in decision.Outcomes)
+        {
+            if (outcome is SignalOutcome)
+            {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private static void WriteSignal(ArrayBufferWriter<byte> line, string decisionId, SignalOutcome signal)
+    {
+        using var w = new Utf8JsonWriter(line, WriterOptions);
+        w.WriteStartObject();
+        w.WriteString("id", decisionId);
+        w.WriteString("source", signal.Source);
+        w.WriteString("at", signal.At);
+        w.WriteString("name", signal.Name);
+        if (signal.Value is { } value)
+        {
+            w.WriteNumber("value", value);
+        }
+
+        if (signal.Note is not null)
+        {
+            w.WriteString("note", signal.Note);
+        }
+
+        w.WriteNumber("version", 1);
+        w.WriteEndObject();
+        w.Flush();
     }
 
     // Checks and merges the decision's confirmed answers and writes its line. Returns false, with the reason counted,
@@ -251,6 +311,10 @@ public static class DecisionDatasetExport
         public int DecisionsRead { get; set; }
 
         public int ItemsWritten { get; set; }
+
+        public int SignalsWritten { get; set; }
+
+        public int SignalsSkipped { get; set; }
 
         public int SkippedWithoutConfirmedOutcome { get; set; }
 
