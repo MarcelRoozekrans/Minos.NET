@@ -118,9 +118,9 @@ then run like any other, through `DatasetRunner` or `minos calibrate`, against a
 
 The input is a record file, the JSONL that `JsonlDecisionRecordSink` writes. An app with a sink of its own, such as a
 database table, writes the same file from its rows with the public `DecisionRecordFile.WriteRecordLine`,
-`WriteOutcomeLine` and `WriteErasureLine`; the [custom sink example](recording.md) shows it. Read the file with
-`DecisionRecordFile.ReadAsync` and hand the decisions to `DecisionDatasetExport.WriteAsync`. It takes an
-`IAsyncEnumerable<RecordedDecision>`, so you choose the decisions with LINQ before the export, by date or by question
+`WriteOutcomeLine` and `WriteErasureLine`; the [custom sink example](recording.md#writing-your-own-sink) shows it.
+Read the file with `DecisionRecordFile.ReadAsync` and hand the decisions to `DecisionDatasetExport.WriteAsync`. It takes
+an `IAsyncEnumerable<RecordedDecision>`, so you choose the decisions with LINQ before the export, by date or by question
 set, and the export has no filter options of its own. It writes the dataset to a stream, and the signals to a second
 stream, or to none when you pass `null`, in which case it only counts them.
 
@@ -158,7 +158,7 @@ returns the decisions. A line has these members. It has no `version`, so it read
 
 | Member | Content |
 | --- | --- |
-| `id` | The decision id. The reader keeps one decision for each id, so the ids are unique. |
+| `id` | The decision id. The export writes each id once, so the ids are unique even when the decisions come from several files. |
 | `state` | The recorded state, as it was written after redaction. |
 | `questions` | The recorded question set, in the shape of a dataset line. |
 | `expected` | The confirmed answers, merged as described below. |
@@ -174,7 +174,9 @@ A decision is skipped, and counted by reason, when:
 - it sent images. A record keeps only the hashes of the images, so the item cannot be rebuilt;
 - its item would not load. The export checks each item with the loader's own rules before it writes it, so what it
   writes always loads with `DecisionDataset` and runs with `minos calibrate`. One way to reach this is a question set
-  built at run time that only broke a core warning, since the loader counts warnings as problems.
+  built at run time that only broke a core warning, since the loader counts warnings as problems. Another is a
+  decision id that an earlier item already has. The reader keeps one decision for each id within a file, but decisions
+  read from two files, one after the other, can repeat an id, and the first one wins.
 
 A confirmed answer that does not fit its question is dropped, and counted, when:
 
@@ -206,8 +208,8 @@ the whole file before it returns the first decision, so the export holds the fil
 
 ### The signals file
 
-A signal outcome is a fact about a decision, such as a customer who complained, and not an answer to a question. A signal
-therefore never goes into the dataset. The dataset format rejects members it does not know, so the signals of the
+A signal outcome is a fact about a decision, such as a customer who complained, and not an answer to a question. A
+signal therefore never goes into the dataset. The dataset format rejects members it does not know, so the signals of the
 exported items go to a second file, `dataset.signals.jsonl`, when you give the export a stream for it. It is UTF-8
 JSONL, with one line for each signal of an exported item, in the item's order and then in file order. The signals of a
 skipped decision are not written. They are counted as skipped.
@@ -237,16 +239,23 @@ the results when you run the dataset, and the format stays version 1.
 
 ### From the command line
 
-`minos export` runs the same export on a file, without code. It makes no provider calls, so it needs no config or prices.
+`minos export` runs the same export on a file, without code. It makes no provider calls, so it needs no config or
+prices.
 
 ```
 minos export --records decisions.jsonl --out export
 ```
 
 `--records` is required and names the record file. `--out` names the directory for the output; without it the command
-uses `minos-out/export-<UTC yyyyMMdd-HHmmss>`, as [the other commands](#the-output) do. The command writes `dataset.jsonl`
-and `dataset.signals.jsonl` there and prints their paths. The signals file is written even when it holds no line, so a
-script can rely on it. A re-export into the same directory overwrites the earlier files.
+uses `minos-out/export-<UTC yyyyMMdd-HHmmss>`, as [the other commands](#the-output) do. The command writes
+`dataset.jsonl` and `dataset.signals.jsonl` there and prints their paths. The signals file is written even when it holds
+no line, so a script can rely on it. A re-export into the same directory overwrites the earlier files, and one that
+writes no item deletes them.
+
+The dataset and the signals file are a copy of recorded state, so keep them as private as the record file. On Linux and
+macOS the command creates them readable and writable by their owner only, as `JsonlDecisionRecordSink` creates the
+record file. An erasure in the record file does not reach an export made before it: after an erasure, delete the earlier
+exports and export again.
 
 The command prints the problems of the record file as `line N: message`, then the summary, on standard error. A problem
 in the record file, such as the cut last line a crash leaves, does not stop the export.
@@ -255,7 +264,7 @@ in the record file, such as the cut last line a crash leaves, does not stop the 
 | --- | --- |
 | 0 | At least one item was written. |
 | 1 | The output cannot be written, or the export failed after it started writing. |
-| 2 | No item was written, for any reason: the record file is missing, every line is a problem, or no decision can become an item. The command leaves no output files. |
+| 2 | No item was written, for any reason: the record file is missing or cannot be read, every line is a problem, or no decision can become an item. The command leaves no dataset or signals file, and deletes those of an earlier export into the same directory. The directory stays, and so does the `.minos-run` marker of a default directory. |
 | 130 | The export was cancelled. |
 
 An export is cheap to repeat, unlike a billed calibrate run. So when it fails or is cancelled after it starts writing,
