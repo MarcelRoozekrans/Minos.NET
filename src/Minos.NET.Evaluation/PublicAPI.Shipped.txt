@@ -30,6 +30,17 @@ Minos.Evaluation.CostSummary.Priced.get -> int
 Minos.Evaluation.CostSummary.PricesUsed.get -> System.Collections.Generic.IReadOnlyList<Minos.Evaluation.ModelPrice!>!
 Minos.Evaluation.CostSummary.Reported.get -> int
 Minos.Evaluation.CostSummary.Unknown.get -> int
+Minos.Evaluation.DatasetExportSummary
+Minos.Evaluation.DatasetExportSummary.DecisionsRead.get -> int
+Minos.Evaluation.DatasetExportSummary.ItemsWritten.get -> int
+Minos.Evaluation.DatasetExportSummary.KeysDropped.get -> int
+Minos.Evaluation.DatasetExportSummary.KeysOverridden.get -> int
+Minos.Evaluation.DatasetExportSummary.SignalsSkipped.get -> int
+Minos.Evaluation.DatasetExportSummary.SignalsWritten.get -> int
+Minos.Evaluation.DatasetExportSummary.SkippedInvalidItem.get -> int
+Minos.Evaluation.DatasetExportSummary.SkippedWithImages.get -> int
+Minos.Evaluation.DatasetExportSummary.SkippedWithoutConfirmedOutcome.get -> int
+Minos.Evaluation.DatasetExportSummary.SkippedWithoutValidKey.get -> int
 Minos.Evaluation.DatasetItem
 Minos.Evaluation.DatasetItem.Definition.get -> Minos.QuestionSetDefinition!
 Minos.Evaluation.DatasetItem.Expected.get -> System.Collections.Generic.IReadOnlyDictionary<string!, Minos.Evaluation.ExpectedAnswer>!
@@ -77,6 +88,7 @@ Minos.Evaluation.DecisionDataset
 Minos.Evaluation.DecisionDataset.Count.get -> int
 Minos.Evaluation.DecisionDataset.GetEnumerator() -> System.Collections.Generic.IEnumerator<Minos.Evaluation.DatasetItem!>!
 Minos.Evaluation.DecisionDataset.this[int index].get -> Minos.Evaluation.DatasetItem!
+Minos.Evaluation.DecisionDatasetExport
 Minos.Evaluation.ErrorSummary
 Minos.Evaluation.ErrorSummary.ByKind.get -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, int>>!
 Minos.Evaluation.ErrorSummary.Count.get -> int
@@ -186,6 +198,7 @@ Minos.Evaluation.SweepPoint.Accuracy.get -> double?
 Minos.Evaluation.SweepPoint.Coverage.get -> double
 Minos.Evaluation.SweepPoint.Covered.get -> int
 Minos.Evaluation.SweepPoint.Threshold.get -> double
+override Minos.Evaluation.DatasetExportSummary.ToString() -> string!
 override Minos.Evaluation.DatasetProblem.Equals(object? obj) -> bool
 override Minos.Evaluation.DatasetProblem.GetHashCode() -> int
 override Minos.Evaluation.DatasetProblem.ToString() -> string!
@@ -205,6 +218,7 @@ static Minos.Evaluation.DatasetRunner.RunAsync(Minos.IDecisionClient! client, Mi
 static Minos.Evaluation.DecisionDataset.Load(string! path) -> ZeroAlloc.Results.Result<Minos.Evaluation.DecisionDataset!, Minos.Evaluation.DatasetProblems!>
 static Minos.Evaluation.DecisionDataset.Parse(string! jsonl) -> ZeroAlloc.Results.Result<Minos.Evaluation.DecisionDataset!, Minos.Evaluation.DatasetProblems!>
 static Minos.Evaluation.DecisionDataset.Parse(System.IO.Stream! utf8Jsonl) -> ZeroAlloc.Results.Result<Minos.Evaluation.DecisionDataset!, Minos.Evaluation.DatasetProblems!>
+static Minos.Evaluation.DecisionDatasetExport.WriteAsync(System.Collections.Generic.IAsyncEnumerable<Minos.Recording.RecordedDecision!>! decisions, System.IO.Stream! dataset, System.IO.Stream? signals, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Minos.Evaluation.DatasetExportSummary!>!
 static Minos.Evaluation.EvaluationResults.Load(string! path) -> ZeroAlloc.Results.Result<Minos.Evaluation.EvaluationResults!, Minos.Evaluation.DatasetProblems!>
 static Minos.Evaluation.EvaluationResults.Parse(System.IO.Stream! utf8Jsonl) -> ZeroAlloc.Results.Result<Minos.Evaluation.EvaluationResults!, Minos.Evaluation.DatasetProblems!>
 static Minos.Evaluation.ExpectedAnswer.ForChoice(string! key) -> Minos.Evaluation.ExpectedAnswer
