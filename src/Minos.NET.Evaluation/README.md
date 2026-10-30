@@ -24,7 +24,7 @@ results.Save("results.jsonl");
 var report = CalibrationReport.Create(results, loaded.Value, new PriceTable([]));
 ```
 
-The package depends on [`Minos.NET.Recording`](https://www.nuget.org/packages/Minos.NET.Recording), for the export of recorded decisions.
+The package depends on [`Minos.NET.Recording`](https://www.nuget.org/packages/Minos.NET.Recording), for the export of recorded decisions. `DecisionDatasetExport.WriteAsync` turns recorded decisions with confirmed outcomes into a dataset in this format, and writes their signal outcomes to a companion file. From the command line it is `minos export --records decisions.jsonl`, and a `DatasetExportSummary` counts what was written and skipped.
 
 To run a dataset from the command line, without writing code, use the [`Minos.NET.Tool`](https://www.nuget.org/packages/Minos.NET.Tool) dotnet tool.
 
