@@ -19,7 +19,8 @@ internal static class RecordLines
         """[{"key":"urgent","kind":"noul","probability":0.9,"confidence":0.8},{"key":"queue","kind":"choice","chosenIndex":1,"confidence":0.8,"probabilities":[0.2,0.8]},{"key":"mood","kind":"score","chosenIndex":0,"expected":0.4,"confidence":0.7,"probabilities":[0.7,0.2,0.1]}]""";
 
     public static string Record(
-        string id, string questions = Questions, string state = "\"The app crashes when I pay.\"", int images = 0, string? errorKind = null, bool cached = false)
+        string id, string questions = Questions, string state = "\"The app crashes when I pay.\"", int images = 0, string? errorKind = null, bool cached = false,
+        string[]? refusedKeys = null)
     {
         var line = new StringBuilder();
         line.Append("""{"kind":"record","version":1,"decisionId":""").Append(Quote(id))
@@ -42,6 +43,10 @@ internal static class RecordLines
         if (errorKind is not null)
         {
             line.Append(""","errorKind":""").Append(Quote(errorKind));
+            if (refusedKeys is not null)
+            {
+                line.Append(""","refusedKeys":[""").Append(string.Join(',', refusedKeys.Select(Quote))).Append(']');
+            }
         }
         else if (string.Equals(questions, Questions, StringComparison.Ordinal))
         {
@@ -73,20 +78,41 @@ internal static class RecordLines
 
     public static string Erasure(string id) => $$"""{"kind":"erasure","version":1,"decisionId":{{Quote(id)}}}""";
 
-    public static async Task<(DatasetExportSummary Summary, string Dataset, string Signals)> ExportAsync(params string[] lines)
+    public static async Task<List<RecordedDecision>> ReadAsync(params string[] lines)
     {
         var path = Path.Combine(Path.GetTempPath(), "minos-export-" + Guid.NewGuid().ToString("N") + ".jsonl");
         try
         {
             await File.WriteAllTextAsync(path, string.Join('\n', lines) + "\n", new UTF8Encoding(false));
-            using var dataset = new MemoryStream();
-            using var signals = new MemoryStream();
-            var summary = await DecisionDatasetExport.WriteAsync(DecisionRecordFile.ReadAsync(path, CancellationToken.None), dataset, signals, CancellationToken.None);
-            return (summary, Encoding.UTF8.GetString(dataset.ToArray()), Encoding.UTF8.GetString(signals.ToArray()));
+            var decisions = new List<RecordedDecision>();
+            await foreach (var decision in DecisionRecordFile.ReadAsync(path, CancellationToken.None))
+            {
+                decisions.Add(decision);
+            }
+
+            return decisions;
         }
         finally
         {
             File.Delete(path);
+        }
+    }
+
+    public static async Task<(DatasetExportSummary Summary, string Dataset, string Signals)> ExportAsync(params string[] lines)
+    {
+        var decisions = await ReadAsync(lines);
+        using var dataset = new MemoryStream();
+        using var signals = new MemoryStream();
+        var summary = await DecisionDatasetExport.WriteAsync(ToAsync(decisions), dataset, signals, CancellationToken.None);
+        return (summary, Encoding.UTF8.GetString(dataset.ToArray()), Encoding.UTF8.GetString(signals.ToArray()));
+    }
+
+    private static async IAsyncEnumerable<RecordedDecision> ToAsync(List<RecordedDecision> decisions)
+    {
+        foreach (var decision in decisions)
+        {
+            await Task.Yield();
+            yield return decision;
         }
     }
 

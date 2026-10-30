@@ -134,7 +134,7 @@ public sealed class DatasetExportTests
     [Fact]
     public async Task FailedRefusedAndCachedDecisions_AreExported()
     {
-        var refused = Record("d2", errorKind: "Refused").Replace("\"errorKind\":\"Refused\"", "\"errorKind\":\"Refused\",\"refusedKeys\":[\"queue\"]", StringComparison.Ordinal);
+        var refused = Record("d2", errorKind: "Refused", refusedKeys: ["queue"]);
         var (summary, dataset, _) = await ExportAsync(
             Record("d1", errorKind: "RateLimited"),
             Confirmed("d1", At("09:35"), "reviewer-ui", """{"queue":"billing"}"""),
@@ -251,26 +251,6 @@ public sealed class DatasetExportTests
         await cancelled.CancelAsync();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => DecisionDatasetExport.WriteAsync(Yield(decisions), dataset, null, cancelled.Token));
         Assert.Equal(0, dataset.Length);
-    }
-
-    private static async Task<List<RecordedDecision>> ReadAsync(params string[] lines)
-    {
-        var path = Path.Combine(Path.GetTempPath(), "minos-export-" + Guid.NewGuid().ToString("N") + ".jsonl");
-        try
-        {
-            await File.WriteAllTextAsync(path, string.Join('\n', lines) + "\n");
-            var decisions = new List<RecordedDecision>();
-            await foreach (var decision in DecisionRecordFile.ReadAsync(path, CancellationToken.None))
-            {
-                decisions.Add(decision);
-            }
-
-            return decisions;
-        }
-        finally
-        {
-            File.Delete(path);
-        }
     }
 
     // Yields the decisions without looking at the token, so the export's own cancellation check is what throws.
