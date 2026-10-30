@@ -1,4 +1,4 @@
-# Session State — 2026-10-28 (Milestone 9: Phase 9.2 executing, Task 1 of 7 done)
+# Session State — 2026-10-28 (Milestone 9: Phase 9.2 built, pre-push review done, PR next)
 
 **Date:** 2026-10-28
 
@@ -123,10 +123,9 @@
    - **Phase 9.2 (export to the dataset format) is active,** on branch `phase/9.2-export` in the worktree `.claude/worktrees/bridge-cse_01RwoAReyTaqjys9d1Q8HcF9`. It is pushed and has no PR yet.
      - **Spec:** `docs/superpowers/specs/2026-10-28-phase-9.2-export-design.md`, approved 2026-10-28.
      - **Plan:** `docs/superpowers/plans/2026-10-28-phase-9.2-export.md`, seven tasks, approved, with subagent-driven execution.
-     - **Task 1** (package wiring and validation baselines) is complete in `ccfae73d`, with a clean review. Evaluation references Recording. Recording and Extensions.AI are compared with 1.3.0 and 1.5.0.
-     - **The SDD ledger** is `.superpowers/sdd/2026-10-28-phase-9.2-export/progress.md` in that worktree, git-ignored. It holds the pre-flight scan, one ruling (Task 1's header shortened to fit commitlint's 100-character limit) and one deferred minor. Task 2's brief is already extracted beside it.
-     - **Next:** resume `subagent-driven-development` at Task 2. That task runs on Opus, as the plan marks it. Implementers and reviewers use Sonnet or above, never Haiku.
-     - **Then:** after Task 7, the whole-branch review on Opus, then one PR with BEGIN_COMMIT_OVERRIDE. Check its CI before any admin merge, then run `complete-phase`.
+     - **Tasks 1 to 7 are complete** on branch `phase/9.2-export-resume`: package wiring and validation baselines, `DecisionDatasetExport` with its signals file, `minos export`, the documentation, and the whole-branch verification. The whole-branch review and its fix wave are done. Evaluation references Recording. Recording and Extensions.AI are compared with 1.3.0 and 1.5.0.
+     - **Pre-push review:** PASS, `docs/plans/2026-10-28-phase-9.2-pre-push-review.md`.
+     - **Next:** push the branch and open one PR with BEGIN_COMMIT_OVERRIDE. Check its CI before any admin merge, then run `complete-phase`.
    - **Waiting on the maintainer:** a peer message to the Daedalus session "daedalus: phase 3.3 Task 16 onward" saying the recorder shipped in 1.3.0. It needs approval in the app; the `daedalus-b9` session no longer exists. The #119 comment is posted.
 2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.
 3. Phases 7.1 to 7.5 are complete. On 2026-10-15 nuget.org reserved `Minos.NET` and `Minos.NET.*` to MarcelRoozekrans, which lifted the 409 "package ID is reserved" block. The Trusted Publishing policy is ci.yml, no environment, glob `*`. `gh workflow run ci.yml --ref v1.0.1 -f publish_to_nuget=true` ([run 38726515640](https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/38726515640)) published all six packages as 1.0.1, with symbols. 1.0.0 was never published. `PackageValidationBaselineVersion` is 1.0.1, which closes #28. Milestone 7 is complete; its audit passed (`docs/plans/2026-10-15-milestone-7-audit.md`). Next: Milestone 8, Choosing a provider and a threshold, starting with `new-milestone`.
