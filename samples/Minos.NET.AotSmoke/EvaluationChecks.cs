@@ -1,4 +1,6 @@
+using System.Text;
 using System.Text.Json;
+using Minos.Recording;
 using Minos.Evaluation;
 using ZeroAlloc.Results;
 
@@ -439,6 +441,63 @@ internal static class EvaluationChecks
 
         public void Dispose()
         {
+        }
+    }
+
+    [Covers("static Minos.Evaluation.DecisionDatasetExport.WriteAsync(System.Collections.Generic.IAsyncEnumerable<Minos.Recording.RecordedDecision!>! decisions, System.IO.Stream! dataset, System.IO.Stream? signals, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Minos.Evaluation.DatasetExportSummary!>!")]
+    public static async Task ExportsRecordedDecisions()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "minos-aot-smoke-export-" + Guid.NewGuid().ToString("N") + ".jsonl");
+        var request = new DecisionRequest(SmokeTriage.Definition, SmokeAnswers.State);
+        try
+        {
+            var options = new RecordingOptions { Capacity = 16, FlushTimeout = TimeSpan.FromSeconds(10), Redact = static state => RedactionResult.Keep(state) };
+            var recorder = new DecisionRecorder(new JsonlDecisionRecordSink(path), options);
+            using (var client = new FixedResponseClient(PipelineChecks.TriageResponse()).AsBuilder().UseRecording(recorder).Build())
+            {
+                foreach (var id in new[] { "export-1", "export-2" })
+                {
+                    using var scope = DecisionRecording.Begin(decisionId: id);
+                    _ = await client.EvaluateAsync(request).ConfigureAwait(false);
+                }
+
+                var at = new DateTimeOffset(2026, 10, 22, 9, 30, 0, TimeSpan.Zero);
+                await recorder.AddOutcomeAsync(
+                    "export-1",
+                    DecisionOutcome.Confirmed("reviewer", at, new Dictionary<string, ConfirmedAnswer>(StringComparer.Ordinal) { ["team"] = ConfirmedAnswer.ForChoice("account") })).ConfigureAwait(false);
+                await recorder.AddOutcomeAsync("export-1", DecisionOutcome.Signal("mailer", at, "complained", 1)).ConfigureAwait(false);
+                await recorder.FlushAsync().ConfigureAwait(false);
+            }
+
+            await recorder.DisposeAsync().ConfigureAwait(false);
+
+            using var dataset = new MemoryStream();
+            using var signals = new MemoryStream();
+            var summary = await DecisionDatasetExport.WriteAsync(
+                DecisionRecordFile.ReadAsync(path, CancellationToken.None), dataset, signals, CancellationToken.None).ConfigureAwait(false);
+
+            var parsed = DecisionDataset.Parse(Encoding.UTF8.GetString(dataset.ToArray()));
+            Program.Check(
+                summary.DecisionsRead == 2
+                    && summary.ItemsWritten == 1
+                    && summary.SignalsWritten == 1
+                    && summary.SignalsSkipped == 0
+                    && summary.SkippedWithoutConfirmedOutcome == 1
+                    && summary.SkippedWithImages == 0
+                    && summary.SkippedWithoutValidKey == 0
+                    && summary.SkippedInvalidItem == 0
+                    && summary.KeysDropped == 0
+                    && summary.KeysOverridden == 0
+                    && string.Equals(summary.ToString(), "decisions read: 2\nitems written: 1\nsignals written: 1\nskipped without a confirmed outcome: 1", StringComparison.Ordinal)
+                    && parsed.IsSuccess
+                    && parsed.Value.Count == 1
+                    && string.Equals(parsed.Value[0].Id, "export-1", StringComparison.Ordinal)
+                    && signals.Length > 0,
+                "recorded decisions export to a dataset and a signals file, under Native AOT");
+        }
+        finally
+        {
+            File.Delete(path);
         }
     }
 
