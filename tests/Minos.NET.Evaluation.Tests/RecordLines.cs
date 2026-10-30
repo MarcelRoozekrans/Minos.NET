@@ -1,4 +1,5 @@
 using System.Globalization;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Encodings.Web;
 using System.Text.Json;
@@ -103,12 +104,15 @@ internal static class RecordLines
         var decisions = await ReadAsync(lines);
         using var dataset = new MemoryStream();
         using var signals = new MemoryStream();
-        var summary = await DecisionDatasetExport.WriteAsync(ToAsync(decisions), dataset, signals, CancellationToken.None);
+        var summary = await DecisionDatasetExport.WriteAsync(Yield(decisions), dataset, signals, CancellationToken.None);
         return (summary, Encoding.UTF8.GetString(dataset.ToArray()), Encoding.UTF8.GetString(signals.ToArray()));
     }
 
-    private static async IAsyncEnumerable<RecordedDecision> ToAsync(List<RecordedDecision> decisions)
+    // Yields the decisions without looking at the token, so the export's own cancellation check is what throws.
+    public static async IAsyncEnumerable<RecordedDecision> Yield(
+        IEnumerable<RecordedDecision> decisions, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
+        _ = cancellationToken;
         foreach (var decision in decisions)
         {
             await Task.Yield();

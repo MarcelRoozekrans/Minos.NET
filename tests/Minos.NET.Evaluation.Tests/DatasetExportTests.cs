@@ -1,4 +1,4 @@
-using System.Runtime.CompilerServices;
+using System.Text;
 using System.Text.Json;
 using Minos.Recording;
 using static Minos.Evaluation.Tests.RecordLines;
@@ -54,9 +54,11 @@ public sealed class DatasetExportTests
     {
         var (summary, dataset, _) = await ExportAsync(
             Record("d1", images: 1),
-            Confirmed("d1", At("09:35"), "reviewer-ui", """{"queue":"technical"}"""));
+            Confirmed("d1", At("09:35"), "reviewer-ui", """{"queue":"technical"}"""),
+            Signal("d1", At("10:30"), "mailer", "complained"));
 
         Assert.Equal(1, summary.SkippedWithImages);
+        Assert.Equal(1, summary.SignalsSkipped);
         Assert.Equal(0, summary.ItemsWritten);
         Assert.Empty(dataset);
     }
@@ -66,10 +68,12 @@ public sealed class DatasetExportTests
     {
         var (summary, dataset, _) = await ExportAsync(
             Record("d1"),
-            Confirmed("d1", At("09:35"), "reviewer-ui", """{"nope":true,"urgent":"technical","queue":"sales","mood":3}"""));
+            Confirmed("d1", At("09:35"), "reviewer-ui", """{"nope":true,"urgent":"technical","queue":"sales","mood":3}"""),
+            Signal("d1", At("10:30"), "mailer", "complained"));
 
         Assert.Equal(4, summary.KeysDropped);
         Assert.Equal(1, summary.SkippedWithoutValidKey);
+        Assert.Equal(1, summary.SignalsSkipped);
         Assert.Equal(0, summary.ItemsWritten);
         Assert.Empty(dataset);
     }
@@ -184,10 +188,12 @@ public sealed class DatasetExportTests
 
         var (summary, dataset, _) = await ExportAsync(
             Record("d1", questions: questions),
-            Confirmed("d1", At("09:35"), "reviewer-ui", """{"urgent":true}"""));
+            Confirmed("d1", At("09:35"), "reviewer-ui", """{"urgent":true}"""),
+            Signal("d1", At("10:30"), "mailer", "complained"));
 
         Assert.Equal(1, summary.DecisionsRead);
         Assert.Equal(1, summary.SkippedInvalidItem);
+        Assert.Equal(1, summary.SignalsSkipped);
         Assert.Equal(0, summary.ItemsWritten);
         Assert.Empty(dataset);
     }
@@ -264,11 +270,15 @@ public sealed class DatasetExportTests
     [Fact]
     public async Task SignalsOfSkippedDecisions_AreCountedNotWritten()
     {
-        var (summary, _, signals) = await ExportAsync(
+        var (summary, dataset, signals) = await ExportAsync(
             Record("d1"),
             Signal("d1", At("10:30"), "mailer", "complained", 1),
-            Signal("d1", At("11:00"), "mailer", "reopened"));
+            Signal("d1", At("11:00"), "mailer", "reopened"),
+            Record("d2"),
+            Confirmed("d2", At("09:35"), "reviewer-ui", """{"urgent":true}"""));
 
+        Assert.Equal("d2", Assert.Single(Load(dataset)).Id);
+        Assert.Equal(1, summary.ItemsWritten);
         Assert.Empty(signals);
         Assert.Equal(0, summary.SignalsWritten);
         Assert.Equal(2, summary.SignalsSkipped);
@@ -286,7 +296,49 @@ public sealed class DatasetExportTests
         var summary = await DecisionDatasetExport.WriteAsync(Yield(decisions), dataset, null, CancellationToken.None);
 
         Assert.Equal(1, summary.SignalsWritten);
+        Assert.Equal(0, summary.SignalsSkipped);
         Assert.Equal(1, summary.ItemsWritten);
+        Assert.Equal("d1", Assert.Single(Load(Encoding.UTF8.GetString(dataset.ToArray()))).Id);
+    }
+
+    [Fact]
+    public async Task ARepeatedDecisionId_IsSkippedSoTheExportStillLoads()
+    {
+        // Two record files read one after the other can hold the same decision id; the reader only removes repeats
+        // within one file.
+        var decisions = await ReadAsync(
+            Record("d1"),
+            Confirmed("d1", At("09:35"), "reviewer-ui", """{"urgent":true}"""),
+            Signal("d1", At("10:30"), "mailer", "complained"));
+        using var dataset = new MemoryStream();
+        using var signals = new MemoryStream();
+
+        var summary = await DecisionDatasetExport.WriteAsync(Yield(decisions.Concat(decisions)), dataset, signals, CancellationToken.None);
+
+        Assert.Equal("d1", Assert.Single(Load(Encoding.UTF8.GetString(dataset.ToArray()))).Id);
+        Assert.Equal(2, summary.DecisionsRead);
+        Assert.Equal(1, summary.ItemsWritten);
+        Assert.Equal(1, summary.SkippedInvalidItem);
+        Assert.Equal(1, summary.SignalsWritten);
+        Assert.Equal(1, summary.SignalsSkipped);
+        Assert.Single(Encoding.UTF8.GetString(signals.ToArray()).Split('\n', StringSplitOptions.RemoveEmptyEntries));
+    }
+
+    [Fact]
+    public async Task ARawNonBmpCharacterInTheState_RoundTrips()
+    {
+        // A paired surrogate written raw, not escaped, in the record line. Built here and not as theory data, which
+        // would mangle a surrogate.
+        var text = char.ConvertFromUtf32(0x1F600) + " ü";
+        Assert.Equal(2, char.ConvertFromUtf32(0x1F600).Length);
+
+        var (_, dataset, _) = await ExportAsync(
+            Record("d1", state: "\"" + text + "\""),
+            Confirmed("d1", At("09:35"), "reviewer-ui", """{"urgent":true}"""));
+
+        var item = Assert.Single(Load(dataset));
+        Assert.True(item.State.TryGetString(out var state));
+        Assert.Equal(text, state);
     }
 
     [Fact]
@@ -301,17 +353,6 @@ public sealed class DatasetExportTests
         await cancelled.CancelAsync();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => DecisionDatasetExport.WriteAsync(Yield(decisions), dataset, null, cancelled.Token));
         Assert.Equal(0, dataset.Length);
-    }
-
-    // Yields the decisions without looking at the token, so the export's own cancellation check is what throws.
-    private static async IAsyncEnumerable<RecordedDecision> Yield(List<RecordedDecision> decisions, [EnumeratorCancellation] CancellationToken cancellationToken = default)
-    {
-        _ = cancellationToken;
-        foreach (var decision in decisions)
-        {
-            await Task.Yield();
-            yield return decision;
-        }
     }
 
     private static async IAsyncEnumerable<RecordedDecision> Empty()

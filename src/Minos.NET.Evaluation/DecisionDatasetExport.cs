@@ -26,7 +26,8 @@ public static class DecisionDatasetExport
     /// outcome later in the file wins. A decision with no valid answer left is skipped.</item>
     /// <item>The item's <c>source</c> lists the distinct sources of the outcomes that supplied a winning answer, in file
     /// order, joined with <c>", "</c>.</item>
-    /// <item>An item the dataset loader would reject is skipped, never written.</item>
+    /// <item>An item the dataset loader would reject is skipped, never written. So is a decision whose id an earlier item
+    /// already has, which decisions read from more than one file can hold.</item>
     /// </list>
     /// The decisions' state is written as recorded. A failure in a stream or a cancellation is thrown, and the output may
     /// hold part of the export by then.
@@ -54,6 +55,7 @@ public static class DecisionDatasetExport
     {
         var counts = new Counts();
         var line = new ArrayBufferWriter<byte>();
+        var written = new HashSet<string>(StringComparer.Ordinal);
         await foreach (var decision in decisions.WithCancellation(cancellationToken).ConfigureAwait(false))
         {
             cancellationToken.ThrowIfCancellationRequested();
@@ -65,8 +67,10 @@ public static class DecisionDatasetExport
                 continue;
             }
 
-            // The loader's own rules decide; an item it rejects is counted and left out.
-            if (!DecisionDataset.Parse(new MemoryStream(line.WrittenSpan.ToArray(), writable: false)).IsSuccess)
+            // The loader's own rules decide; an item it rejects is counted and left out. Each line is checked on its own, so
+            // the loader's rule that ids are unique is applied here, across the lines already written.
+            if (!DecisionDataset.Parse(new MemoryStream(line.WrittenSpan.ToArray(), writable: false)).IsSuccess
+                || !written.Add(decision.Record.DecisionId))
             {
                 counts.SkippedInvalidItem++;
                 counts.SignalsSkipped += CountSignals(decision);

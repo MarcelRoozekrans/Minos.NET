@@ -54,7 +54,7 @@ public sealed class DatasetExportSummary
     /// <summary>Gets the number of decisions skipped because none of their confirmed answers fit a question.</summary>
     public int SkippedWithoutValidKey { get; }
 
-    /// <summary>Gets the number of decisions skipped because their item would not load as a dataset line.</summary>
+    /// <summary>Gets the number of decisions skipped because their item would not load as a dataset line, or because an earlier item has their id.</summary>
     public int SkippedInvalidItem { get; }
 
     /// <summary>
