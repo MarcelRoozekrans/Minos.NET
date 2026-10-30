@@ -120,7 +120,7 @@
      - #284 closes #281: `MaxParallelCalls` limits the chat bridge's parallel calls per question set.
      - #287 closes #280: `CacheScope` lets a decision client scope its cache entries, so the chat bridge's `ProbabilityMode` no longer collides in the cache key.
      - #288 closes #279: evaluation results keep each answer's `ProbabilitySource`.
-   - **Phase 9.2 (export to the dataset format) is active,** on branch `phase/9.2-export` in the worktree `.claude/worktrees/bridge-cse_01RwoAReyTaqjys9d1Q8HcF9`. It is pushed and has no PR yet.
+   - **Phase 9.2 (export to the dataset format) is active,** on branch `phase/9.2-export-resume`. It has no PR yet.
      - **Spec:** `docs/superpowers/specs/2026-10-28-phase-9.2-export-design.md`, approved 2026-10-28.
      - **Plan:** `docs/superpowers/plans/2026-10-28-phase-9.2-export.md`, seven tasks, approved, with subagent-driven execution.
      - **Tasks 1 to 7 are complete** on branch `phase/9.2-export-resume`: package wiring and validation baselines, `DecisionDatasetExport` with its signals file, `minos export`, the documentation, and the whole-branch verification. The whole-branch review and its fix wave are done. Evaluation references Recording. Recording and Extensions.AI are compared with 1.3.0 and 1.5.0.
