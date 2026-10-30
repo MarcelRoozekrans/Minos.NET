@@ -124,7 +124,8 @@ an `IAsyncEnumerable<RecordedDecision>`, so you choose the decisions with LINQ b
 set, and the export has no filter options of its own. It writes the dataset to a stream, and the signals to a second
 stream, or to none when you pass `null`, in which case it only counts them.
 
-The dataset a program writes this way is a copy of recorded state, so keep it as private as the record file, and export again after an erasure, because an erasure does not reach an export made before it.
+The dataset a program writes this way is a copy of recorded state, so keep it as private as the record file, and
+export again after an erasure, because an erasure does not reach an export made before it.
 
 <!-- snippet: Datasets_Export -->
 ```cs
