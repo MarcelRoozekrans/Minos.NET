@@ -1,1 +1,15 @@
 #nullable enable
+Minos.Evaluation.DatasetExportSummary
+Minos.Evaluation.DatasetExportSummary.DecisionsRead.get -> int
+Minos.Evaluation.DatasetExportSummary.ItemsWritten.get -> int
+Minos.Evaluation.DatasetExportSummary.KeysDropped.get -> int
+Minos.Evaluation.DatasetExportSummary.KeysOverridden.get -> int
+Minos.Evaluation.DatasetExportSummary.SignalsSkipped.get -> int
+Minos.Evaluation.DatasetExportSummary.SignalsWritten.get -> int
+Minos.Evaluation.DatasetExportSummary.SkippedInvalidItem.get -> int
+Minos.Evaluation.DatasetExportSummary.SkippedWithImages.get -> int
+Minos.Evaluation.DatasetExportSummary.SkippedWithoutConfirmedOutcome.get -> int
+Minos.Evaluation.DatasetExportSummary.SkippedWithoutValidKey.get -> int
+Minos.Evaluation.DecisionDatasetExport
+override Minos.Evaluation.DatasetExportSummary.ToString() -> string!
+static Minos.Evaluation.DecisionDatasetExport.WriteAsync(System.Collections.Generic.IAsyncEnumerable<Minos.Recording.RecordedDecision!>! decisions, System.IO.Stream! dataset, System.IO.Stream? signals, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Minos.Evaluation.DatasetExportSummary!>!
