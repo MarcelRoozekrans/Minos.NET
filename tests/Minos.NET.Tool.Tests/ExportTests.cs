@@ -121,8 +121,9 @@ public sealed class ExportTests : IDisposable
     [Fact]
     public async Task Export_OverwritesAnEarlierExport()
     {
-        var first = Records(Record("a"), Confirmed("a"), Record("b"), Confirmed("b"));
-        await Invoke(null, "export", "--records", first, "--out", _h.Out);
+        var first = Records(Record("a"), Confirmed("a"), Signal("a"), Record("b"), Confirmed("b"));
+        Assert.Equal(0, (await Invoke(null, "export", "--records", first, "--out", _h.Out)).Exit);
+        Assert.NotEmpty(File.ReadAllText(SignalsFile));
         var second = _h.Write("second.jsonl", Record("c") + "\n" + Confirmed("c") + "\n");
 
         var run = await Invoke(null, "export", "--records", second, "--out", _h.Out);
@@ -131,17 +132,116 @@ public sealed class ExportTests : IDisposable
         var lines = File.ReadAllLines(DatasetFile);
         Assert.Single(lines);
         Assert.Contains("\"c\"", lines[0], StringComparison.Ordinal);
+        Assert.Empty(File.ReadAllText(SignalsFile));
     }
 
     [Fact]
     public async Task Export_OutputHoldsNoIdOrState()
     {
-        var records = Records(Record("SENTINEL-ID", "\"SENTINEL-STATE\""), Confirmed("SENTINEL-ID"), Signal("SENTINEL-ID"));
+        // An outcome with no record before it, and a cut last line, are reported as problems.
+        var records = _h.Write(
+            "sentinel.jsonl",
+            string.Join('\n', (string[])[Record("SENTINEL-ID", "\"SENTINEL-STATE\""), Confirmed("SENTINEL-ID"), Signal("SENTINEL-ID"), Confirmed("SENTINEL-ORPHAN")])
+                + "\n{\"kind\":\"record\",\"version\":1,\"decisionId\":\"SENTINEL-CUT\",\"state\":\"SENTINEL");
 
         var run = await Invoke(null, "export", "--records", records, "--out", _h.Out);
 
         Assert.Equal(0, run.Exit);
+        Assert.Contains("line 4", run.Stderr, StringComparison.Ordinal);
+        Assert.Contains("line 5", run.Stderr, StringComparison.Ordinal);
         Assert.DoesNotContain("SENTINEL", run.Stdout, StringComparison.Ordinal);
         Assert.DoesNotContain("SENTINEL", run.Stderr, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Export_EveryLineAProblem_ExitsTwo()
+    {
+        var records = Records("not json", "{\"kind\":\"unknown\",\"version\":1}");
+
+        var run = await Invoke(null, "export", "--records", records, "--out", _h.Out);
+
+        Assert.Equal(2, run.Exit);
+        Assert.Contains("line 1", run.Stderr, StringComparison.Ordinal);
+        Assert.Contains("line 2", run.Stderr, StringComparison.Ordinal);
+        Assert.False(File.Exists(DatasetFile));
+    }
+
+    [Fact]
+    public async Task Export_FailsAfterTheDatasetIsCreated_ExitsOne_AndDeletesIt()
+    {
+        var records = Records(Record("a"), Confirmed("a"));
+
+        // The signals path is a directory, so the dataset file is created and opening the signals file then throws.
+        Directory.CreateDirectory(SignalsFile);
+        var run = await Invoke(null, "export", "--records", records, "--out", _h.Out);
+
+        Assert.Equal(1, run.Exit);
+        Assert.False(File.Exists(DatasetFile));
+        Assert.Contains("The output cannot be written", run.Stderr, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DeletingTheOutput_IsBestEffort()
+    {
+        // A cleanup that fails must not replace the exception that started it, such as a cancellation.
+        var dataset = _h.Write("dataset.jsonl", "x");
+        var signals = Directory.CreateDirectory(Path.Combine(_h.Dir, "signals-dir")).FullName;
+
+        ExportCommand.DeleteBoth(dataset, signals);
+
+        Assert.False(File.Exists(dataset));
+        Assert.True(Directory.Exists(signals));
+    }
+
+    [Fact]
+    public async Task Export_MakesFilesOnlyTheirOwnerCanRead()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var records = Records(Record("a"), Confirmed("a"));
+
+        var run = await Invoke(null, "export", "--records", records, "--out", _h.Out);
+
+        Assert.Equal(0, run.Exit);
+        Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(DatasetFile));
+        Assert.Equal(UnixFileMode.UserRead | UnixFileMode.UserWrite, File.GetUnixFileMode(SignalsFile));
+    }
+
+    [Fact]
+    public async Task Export_UnreadableRecords_IsAnInputProblem_NotAnOutputProblem()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        var records = Records(Record("a"), Confirmed("a"));
+        File.SetUnixFileMode(records, UnixFileMode.None);
+        try
+        {
+            // Running as root ignores the mode, so the file is readable and there is nothing to check.
+            try
+            {
+                File.ReadAllBytes(records);
+                return;
+            }
+            catch (UnauthorizedAccessException)
+            {
+            }
+
+            var run = await Invoke(null, "export", "--records", records, "--out", _h.Out);
+
+            Assert.Equal(ExitCodes.Usage, run.Exit);
+            Assert.Contains("The input cannot be read:", run.Stderr, StringComparison.Ordinal);
+            Assert.DoesNotContain("output cannot be written", run.Stderr, StringComparison.Ordinal);
+            Assert.False(Directory.Exists(_h.Out));
+        }
+        finally
+        {
+            File.SetUnixFileMode(records, UnixFileMode.UserRead | UnixFileMode.UserWrite);
+        }
     }
 }

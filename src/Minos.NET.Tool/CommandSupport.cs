@@ -139,6 +139,23 @@ internal static class CommandSupport
         }
     }
 
+    /// <summary>Reads an input file asynchronously, so that a failure to read it is reported as an input problem and not as an output problem.</summary>
+    /// <typeparam name="T">What the read gives.</typeparam>
+    /// <param name="read">The read of the input file.</param>
+    /// <returns>What <paramref name="read"/> gives.</returns>
+    /// <exception cref="InputReadException">The file exists but cannot be read, or is gone.</exception>
+    public static async Task<T> ReadInputAsync<T>(Func<Task<T>> read)
+    {
+        try
+        {
+            return await read().ConfigureAwait(false);
+        }
+        catch (Exception ex) when (ex is UnauthorizedAccessException || (ex is IOException && ex is not FileLoadException))
+        {
+            throw new InputReadException(OneLine(ex.Message), ex);
+        }
+    }
+
     /// <summary>Reports a cancelled command: one line on stderr, and exit code 130.</summary>
     /// <param name="stderr">Where the line goes.</param>
     public static async Task<int> CancelledAsync(TextWriter stderr)

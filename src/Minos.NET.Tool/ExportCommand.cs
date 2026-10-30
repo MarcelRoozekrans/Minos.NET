@@ -36,20 +36,11 @@ internal static class ExportCommand
 
     private static async Task<int> ExecuteAsync(string recordsPath, string? outOption, TextWriter stdout, TextWriter stderr, CancellationToken ct)
     {
+        // The whole file is read before the output is opened, so a file that cannot be read is an input problem, and its
+        // problems print before the summary. The reader holds every decision in memory anyway.
         var problems = new List<DecisionRecordFileProblem>();
-        var decisions = new List<RecordedDecision>();
-        try
-        {
-            await foreach (var decision in DecisionRecordFile.ReadAsync(recordsPath, problems, ct).ConfigureAwait(false))
-            {
-                decisions.Add(decision);
-            }
-        }
-        catch (FileNotFoundException ex)
-        {
-            await stderr.WriteLineAsync("The records '" + recordsPath + "' cannot be read: " + CommandSupport.OneLine(ex.Message)).ConfigureAwait(false);
-            return ExitCodes.Usage;
-        }
+        var decisions = await CommandSupport.ReadInputAsync(
+            () => DecisionRecordFile.ReadAsync(recordsPath, problems, ct).ToListAsync(ct).AsTask()).ConfigureAwait(false);
 
         foreach (var problem in problems)
         {
@@ -63,13 +54,13 @@ internal static class ExportCommand
         DatasetExportSummary summary;
         try
         {
-            var dataset = new FileStream(datasetPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true);
+            var dataset = new FileStream(datasetPath, PrivateOutput());
             await using (dataset.ConfigureAwait(false))
             {
-                var signals = new FileStream(signalsPath, FileMode.Create, FileAccess.Write, FileShare.None, 4096, useAsync: true);
+                var signals = new FileStream(signalsPath, PrivateOutput());
                 await using (signals.ConfigureAwait(false))
                 {
-                    summary = await DecisionDatasetExport.WriteAsync(ToAsync(decisions), dataset, signals, ct).ConfigureAwait(false);
+                    summary = await DecisionDatasetExport.WriteAsync(decisions.ToAsyncEnumerable(), dataset, signals, ct).ConfigureAwait(false);
                 }
             }
         }
@@ -93,18 +84,40 @@ internal static class ExportCommand
         return ExitCodes.Success;
     }
 
-    private static void DeleteBoth(string datasetPath, string signalsPath)
+    // The output is a copy of recorded state, so it is made private like the record file JsonlDecisionRecordSink makes.
+    private static FileStreamOptions PrivateOutput()
     {
-        File.Delete(datasetPath);
-        File.Delete(signalsPath);
+        var options = new FileStreamOptions
+        {
+            Mode = FileMode.Create,
+            Access = FileAccess.Write,
+            Share = FileShare.None,
+            Options = FileOptions.Asynchronous,
+        };
+        if (!OperatingSystem.IsWindows())
+        {
+            options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+        }
+
+        return options;
     }
 
-    private static async IAsyncEnumerable<RecordedDecision> ToAsync(List<RecordedDecision> decisions)
+    /// <summary>Deletes both output files, as far as it can: a cleanup that fails must not replace the failure or the cancellation that started it.</summary>
+    internal static void DeleteBoth(string datasetPath, string signalsPath)
     {
-        foreach (var decision in decisions)
+        TryDelete(datasetPath);
+        TryDelete(signalsPath);
+    }
+
+    private static void TryDelete(string path)
+    {
+        try
         {
-            await Task.CompletedTask.ConfigureAwait(false);
-            yield return decision;
+            File.Delete(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Best effort: the file stays, and the command reports what started the cleanup.
         }
     }
 }
