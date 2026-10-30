@@ -467,12 +467,14 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Completed:** 2026-10-23
 **Evidence:** PR #255, released in 1.3.0 (`Minos.NET.Recording` on nuget.org); pre-push review PASS, `docs/plans/2026-10-22-phase-9.1-pre-push-review.md`. Trimmed before release at the maintainer's request. Filed: #254, fixed in #258.
 
-### Phase 9.2: Export to the dataset format [status: active]
+### Phase 9.2: Export to the dataset format [status: complete]
 **Goal:** In `Minos.NET.Evaluation` and `minos`, turn recorded decisions and their confirmed outcomes into Milestone 8 dataset JSONL, document the record file and outcome schema, and prove the export runs through `minos calibrate` (#118).
 **Surface:** Data
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-10-28-phase-9.2-export-design.md`
 **Plan:** `docs/superpowers/plans/2026-10-28-phase-9.2-export.md`
+**Completed:** 2026-10-30
+**Evidence:** PR #297 (squash `16b54aa8`); pre-push review PASS, `docs/plans/2026-10-28-phase-9.2-pre-push-review.md`.
 
 ### Phase 9.3: Shadow mode and its report [status: pending]
 **Goal:** A background candidate decorator in `Minos.NET.Recording`, off the decision's path, with a daily cap, writing candidate answers to the record. Plus the agreement and calibration report from recorded pairs, in `Minos.NET.Evaluation` and `minos`, with Milestone 8's code (#118).
