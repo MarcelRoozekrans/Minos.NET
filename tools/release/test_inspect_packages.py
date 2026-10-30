@@ -11,7 +11,7 @@ import inspect_packages
 VERSION = "1.0.0"
 TOOL = "Minos.NET.Tool"
 # The Minos assemblies the tool bundles in tools/net10.0/any.
-TOOL_ASSEMBLIES = ["Minos.NET", "Minos.NET.SystemOne", "Minos.NET.Evaluation", "Minos.NET.Conformance", "Minos.NET.Tool"]
+TOOL_ASSEMBLIES = ["Minos.NET", "Minos.NET.SystemOne", "Minos.NET.Evaluation", "Minos.NET.Recording", "Minos.NET.Conformance", "Minos.NET.Tool"]
 
 
 def informational(version: str) -> bytes:
@@ -91,11 +91,16 @@ class InspectPackagesTests(unittest.TestCase):
         self.assertEqual(10, len(inspect_packages.PACKAGES))
         self.assertEqual([], inspect_packages.problems(self.directory, VERSION))
 
-    def test_evaluation_must_depend_on_the_core(self) -> None:
-        self.assertEqual(("Minos.NET",), inspect_packages.PACKAGES["Minos.NET.Evaluation"])
+    def test_evaluation_must_depend_on_the_core_and_recording(self) -> None:
+        self.assertEqual(("Minos.NET", "Minos.NET.Recording"), inspect_packages.PACKAGES["Minos.NET.Evaluation"])
         self.write_all(**{"Minos.NET.Evaluation": {"drop_dependency": "Minos.NET"}})
         errors = inspect_packages.problems(self.directory, VERSION)
         self.assertTrue(any("Minos.NET.Evaluation does not depend on Minos.NET" in error for error in errors), errors)
+
+    def test_evaluation_without_its_recording_dependency_fails(self) -> None:
+        self.write_all(**{"Minos.NET.Evaluation": {"drop_dependency": "Minos.NET.Recording"}})
+        errors = inspect_packages.problems(self.directory, VERSION)
+        self.assertTrue(any("Minos.NET.Evaluation does not depend on Minos.NET.Recording" in error for error in errors), errors)
 
     def test_recording_must_depend_on_the_core(self) -> None:
         self.assertEqual(("Minos.NET",), inspect_packages.PACKAGES["Minos.NET.Recording"])
