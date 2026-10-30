@@ -1,5 +1,5 @@
 ﻿Description:
-  Calibrates a decision model against a labelled dataset, and checks that a provider conforms.
+  Calibrates a decision model against a labelled dataset, checks that a provider conforms, and exports recorded decisions as a labelled dataset.
 
 Usage:
   minos [command] [options]
@@ -11,5 +11,6 @@ Options:
 Commands:
   calibrate    Runs a labelled dataset against a provider, then writes the results and a calibration report.
   report       Builds the calibration report again from saved results and their dataset, without calling a provider.
+  export       Turns recorded decisions with confirmed outcomes into a labelled dataset and a signals file.
   conformance  Sends the conformance probes to a live provider and checks its answers. Exits 1 when a check fails; a skipped check passes. The bad-key check is skipped when no API key is configured.
 
