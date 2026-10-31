@@ -6,14 +6,14 @@ using static Minos.Recording.Tests.Stage;
 namespace Minos.Recording.Tests;
 
 /// <summary>
-/// The recorder's four instruments are observable counters over totals, so counting never calls a listener on a
+/// The recorder's five instruments are observable counters over totals, so counting never calls a listener on a
 /// decision's path, and every record, outcome and erasure is counted under one <c>result</c>.
 /// </summary>
 [Collection(RecordingListeners.Name)]
 public sealed class RecordingCounterTests
 {
     [Fact]
-    public void TheRecorder_PublishesFourObservableCounters()
+    public void TheRecorder_PublishesFiveObservableCounters()
     {
         RuntimeHelpers.RunClassConstructor(typeof(RecordingTelemetry).TypeHandle);
         var instruments = new List<Instrument>();
@@ -33,7 +33,7 @@ public sealed class RecordingCounterTests
         listener.Start();
 
         Assert.Equal(
-            ["minos.recording.erasures", "minos.recording.log_failures", "minos.recording.outcomes", "minos.recording.records"],
+            ["minos.recording.erasures", "minos.recording.log_failures", "minos.recording.outcomes", "minos.recording.records", "minos.recording.shadows"],
             instruments.Select(instrument => instrument.Name).Order(StringComparer.Ordinal));
         Assert.All(instruments, instrument => Assert.IsType<ObservableCounter<long>>(instrument));
     }

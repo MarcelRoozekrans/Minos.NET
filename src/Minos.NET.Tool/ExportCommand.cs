@@ -54,10 +54,10 @@ internal static class ExportCommand
         DatasetExportSummary summary;
         try
         {
-            var dataset = new FileStream(datasetPath, PrivateOutput());
+            var dataset = new FileStream(datasetPath, CommandSupport.PrivateOutput());
             await using (dataset.ConfigureAwait(false))
             {
-                var signals = new FileStream(signalsPath, PrivateOutput());
+                var signals = new FileStream(signalsPath, CommandSupport.PrivateOutput());
                 await using (signals.ConfigureAwait(false))
                 {
                     summary = await DecisionDatasetExport.WriteAsync(decisions.ToAsyncEnumerable(), dataset, signals, ct).ConfigureAwait(false);
@@ -67,14 +67,14 @@ internal static class ExportCommand
         catch
         {
             // A failed or cancelled export leaves no half-written dataset behind.
-            DeleteBoth(datasetPath, signalsPath);
+            CommandSupport.DeleteBoth(datasetPath, signalsPath);
             throw;
         }
 
         await stderr.WriteLineAsync(summary.ToString()).ConfigureAwait(false);
         if (summary.ItemsWritten == 0)
         {
-            DeleteBoth(datasetPath, signalsPath);
+            CommandSupport.DeleteBoth(datasetPath, signalsPath);
             await stderr.WriteLineAsync("Nothing to export: no decision has a confirmed outcome that makes a dataset item.").ConfigureAwait(false);
             return ExitCodes.Usage;
         }
@@ -82,42 +82,5 @@ internal static class ExportCommand
         await stdout.WriteLineAsync(datasetPath).ConfigureAwait(false);
         await stdout.WriteLineAsync(signalsPath).ConfigureAwait(false);
         return ExitCodes.Success;
-    }
-
-    // The output is a copy of recorded state, so it is made private like the record file JsonlDecisionRecordSink makes.
-    private static FileStreamOptions PrivateOutput()
-    {
-        var options = new FileStreamOptions
-        {
-            Mode = FileMode.Create,
-            Access = FileAccess.Write,
-            Share = FileShare.None,
-            Options = FileOptions.Asynchronous,
-        };
-        if (!OperatingSystem.IsWindows())
-        {
-            options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
-        }
-
-        return options;
-    }
-
-    /// <summary>Deletes both output files, as far as it can: a cleanup that fails must not replace the failure or the cancellation that started it.</summary>
-    internal static void DeleteBoth(string datasetPath, string signalsPath)
-    {
-        TryDelete(datasetPath);
-        TryDelete(signalsPath);
-    }
-
-    private static void TryDelete(string path)
-    {
-        try
-        {
-            File.Delete(path);
-        }
-        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
-        {
-            // Best effort: the file stays, and the command reports what started the cleanup.
-        }
     }
 }

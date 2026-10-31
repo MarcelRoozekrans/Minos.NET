@@ -55,19 +55,23 @@ internal static class ReportMarkdownWriter
     }
 
     private static List<(string Name, KindMetrics Metrics)> Kinds(CalibrationReport report)
+        => Kinds(report.Noul, report.Choice, report.Score, report.Overall);
+
+    // The kinds present, then all kinds together unless only one kind is present.
+    internal static List<(string Name, KindMetrics Metrics)> Kinds(KindMetrics? noul, KindMetrics? choice, KindMetrics? score, KindMetrics overall)
     {
         var kinds = new List<(string, KindMetrics)>();
-        if (report.Noul is { } noul)
+        if (noul is not null)
         {
             kinds.Add(("Noul", noul));
         }
 
-        if (report.Choice is { } choice)
+        if (choice is not null)
         {
             kinds.Add(("Choice", choice));
         }
 
-        if (report.Score is { } score)
+        if (score is not null)
         {
             kinds.Add(("Score", score));
         }
@@ -75,13 +79,13 @@ internal static class ReportMarkdownWriter
         // With one kind present, "all kinds" would repeat it.
         if (kinds.Count != 1)
         {
-            kinds.Add((kinds.Count > 1 ? "All kinds" : "Overall", report.Overall));
+            kinds.Add((kinds.Count > 1 ? "All kinds" : "Overall", overall));
         }
 
         return kinds;
     }
 
-    private static string Models(IReadOnlyList<ModelCount> models)
+    internal static string Models(IReadOnlyList<ModelCount> models)
         => models.Count == 0
             ? "none"
             : string.Join(", ", models.Select(m => Line(m.Model ?? "no model named") + " (" + Count(m.Count) + ")"));
@@ -89,20 +93,32 @@ internal static class ReportMarkdownWriter
     private static void WriteErrors(StringBuilder md, ErrorSummary errors, int items)
     {
         md.Append("## Errors\n\n");
+        WriteErrorsText(md, errors, items);
+        md.Append("\n\n");
+    }
+
+    internal static void WriteErrorsText(StringBuilder md, ErrorSummary errors, int items)
+    {
         if (errors.Count == 0)
         {
-            md.Append("No request failed.\n\n");
+            md.Append("No request failed.");
             return;
         }
 
         md.Append(Count(errors.Count)).Append(" of ").Append(Count(items)).Append(items == 1 ? " request" : " requests").Append(" failed: ")
             .Append(string.Join(", ", errors.ByKind.Select(e => Line(e.Key) + " " + Count(e.Value))))
-            .Append(". A failed request is an abstention.\n\n");
+            .Append(". A failed request is an abstention.");
     }
 
     private static void WriteSummary(StringBuilder md, List<(string Name, KindMetrics Metrics)> kinds)
     {
-        md.Append("## Summary\n\n| Kind | Scored | Answered | Accuracy | Base rate | ECE | ECE, equal width |\n| --- | ---: | ---: | ---: | ---: | ---: | ---: |\n");
+        md.Append("## Summary\n\n");
+        WriteSummaryTable(md, kinds);
+    }
+
+    internal static void WriteSummaryTable(StringBuilder md, List<(string Name, KindMetrics Metrics)> kinds)
+    {
+        md.Append("| Kind | Scored | Answered | Accuracy | Base rate | ECE | ECE, equal width |\n| --- | ---: | ---: | ---: | ---: | ---: | ---: |\n");
         foreach (var (name, m) in kinds)
         {
             md.Append("| ").Append(name).Append(" | ").Append(Count(m.Scored)).Append(" | ").Append(Count(m.Answered))
@@ -116,9 +132,15 @@ internal static class ReportMarkdownWriter
     private static void WriteReliability(StringBuilder md, List<(string Name, KindMetrics Metrics)> kinds)
     {
         md.Append("## Reliability\n\n");
+        WriteReliabilityTables(md, kinds, "### ");
+    }
+
+    // One table per kind, each under a heading of the given level, such as "### ".
+    internal static void WriteReliabilityTables(StringBuilder md, List<(string Name, KindMetrics Metrics)> kinds, string heading)
+    {
         foreach (var (name, m) in kinds)
         {
-            md.Append("### ").Append(name).Append("\n\n");
+            md.Append(heading).Append(name).Append("\n\n");
             if (m.Bins.Count == 0)
             {
                 md.Append("No answers.\n\n");
@@ -160,12 +182,22 @@ internal static class ReportMarkdownWriter
     }
 
     private static void WriteLatency(StringBuilder md, LatencySummary latency)
-        => md.Append("## Latency\n\nMedian ").Append(Millis(latency.MedianMs)).Append(", p95 ").Append(Millis(latency.P95Ms))
-            .Append(", over ").Append(Count(latency.Requests)).Append(latency.Requests == 1 ? " request" : " requests").Append(".\n\n");
+        => WriteLatencyText(md.Append("## Latency\n\n"), latency).Append("\n\n");
+
+    internal static StringBuilder WriteLatencyText(StringBuilder md, LatencySummary latency)
+        => md.Append("Median ").Append(Millis(latency.MedianMs)).Append(", p95 ").Append(Millis(latency.P95Ms))
+            .Append(", over ").Append(Count(latency.Requests)).Append(latency.Requests == 1 ? " request" : " requests").Append('.');
 
     private static void WriteCost(StringBuilder md, CostSummary cost)
     {
-        md.Append("## Cost\n\nPer 1,000 decisions: ").Append(Cost(cost.PerThousandDecisions)).Append(", in the currency of the prices and reported costs.\n\n")
+        md.Append("## Cost\n\n");
+        WriteCostText(md, cost);
+    }
+
+    // The cost's paragraphs, each ended by a blank line.
+    internal static void WriteCostText(StringBuilder md, CostSummary cost)
+    {
+        md.Append("Per 1,000 decisions: ").Append(Cost(cost.PerThousandDecisions)).Append(", in the currency of the prices and reported costs.\n\n")
             .Append("Cost came from the provider for ").Append(Count(cost.Reported)).Append(" items, from a price for ").Append(Count(cost.Priced))
             .Append(", and was unknown for ").Append(Count(cost.Unknown)).Append(". Cached responses left out: ").Append(Count(cost.Cached)).Append(".\n\n");
         if (cost.PricesUsed.Count == 0)
@@ -201,16 +233,16 @@ internal static class ReportMarkdownWriter
 
             """.ReplaceLineEndings("\n"));
 
-    private static string Ratio(double? value) => value is { } v ? v.ToString("F4", CultureInfo.InvariantCulture) : "n/a";
+    internal static string Ratio(double? value) => value is { } v ? v.ToString("F4", CultureInfo.InvariantCulture) : "n/a";
 
-    private static string Cost(double? value) => value is { } v ? v.ToString("G6", CultureInfo.InvariantCulture) : "n/a";
+    internal static string Cost(double? value) => value is { } v ? v.ToString("G6", CultureInfo.InvariantCulture) : "n/a";
 
-    private static string Millis(double? value) => value is { } v ? v.ToString("0.#", CultureInfo.InvariantCulture) + " ms" : "n/a";
+    internal static string Millis(double? value) => value is { } v ? v.ToString("0.#", CultureInfo.InvariantCulture) + " ms" : "n/a";
 
     private static string Number(double value) => value.ToString("R", CultureInfo.InvariantCulture);
 
-    private static string Count(int value) => value.ToString(CultureInfo.InvariantCulture);
+    internal static string Count(int value) => value.ToString(CultureInfo.InvariantCulture);
 
     // Keeps a value on one line, so it cannot break the structure of the report.
-    private static string Line(string value) => value.ReplaceLineEndings(" ");
+    internal static string Line(string value) => value.ReplaceLineEndings(" ");
 }

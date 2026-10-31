@@ -203,6 +203,8 @@ regression cannot reach a release unnoticed.
 | `PassThroughStage` | A `DelegatingDecisionClient` that overrides nothing, over an inner call that completes synchronously. | 0 |
 | `CacheHit` | A `CachingDecisionClient` answering from its in-process cache; the 120 B measured is the key string a hit builds per call. | 192 |
 | `GrantedPermit` | A `RateLimitingDecisionClient` granting a token-bucket permit, over an inner call that allocates nothing. | 0 |
+| `RecordingStage` | A `RecordingDecisionClient` recording each decision without a shadow, over an inner call that allocates nothing. The 912 B measured on linux-x64 is the record, with its frozen answers, id and state, and the queue write; the writer thread is not counted. | 1024 |
+| `ShadowedRecordingStage` | The same stage in shadow mode, counting the calling thread only: the 912 B of `RecordingStage` plus 352 B for the reservation and the work item that start the candidate, 1264 B measured on linux-x64. The candidate's own call runs on a pool thread and is not counted. | 1408 |
 | `Utf8StateEvaluateRoundTrip` | A typed `EvaluateUtf8Async<T>` call, which copies the caller's bytes once and sends them as written. | 3712 |
 | `TypedStateEvaluateRoundTrip` | A typed `EvaluateAsync<T, TState>` call, which serializes its state once into an array. | 3136 |
 | `SystemOneImageRoundTrip` | A typed `EvaluateAsync<T, TState>` call with one 64 B image, sent as a data URL beside the state. | 3200 |

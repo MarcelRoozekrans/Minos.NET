@@ -33,4 +33,12 @@ await foreach (var decision in DecisionRecordFile.ReadAsync("decisions.jsonl", C
 }
 ```
 
+Shadow mode runs a candidate provider beside the primary in the background, without changing the primary's result, and keeps its answers in the decision's record. `UseRecording(new ShadowOptions(candidate, dailyCap: 500), recorder)` turns it on; `ShadowReport` in `Minos.NET.Evaluation` and `minos shadow-report` then compare the two:
+
+```csharp
+// The candidate must not record its own decisions. Share one ShadowOptions per candidate, so its cap is shared.
+var shadow = new ShadowOptions(localClient, dailyCap: 500);
+using var shadowed = client.AsBuilder().UseRecording(shadow, recorder).Build();
+```
+
 Documentation: [Recording decisions](https://marcelroozekrans.github.io/Minos.NET/recording). Source and issues: [github.com/MarcelRoozekrans/Minos.NET](https://github.com/MarcelRoozekrans/Minos.NET). Licensed under the MIT license.

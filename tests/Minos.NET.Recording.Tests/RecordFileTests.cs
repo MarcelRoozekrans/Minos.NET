@@ -399,6 +399,153 @@ public sealed class RecordFileTests : IDisposable
         Assert.Equal("""{"description":"lvl b","weight":2}""", json.GetRawText());
     }
 
+    private static ShadowResult Shadow(
+        IReadOnlyList<RecordedAnswer>? answers = null, DecisionErrorKind? errorKind = null, DecisionUsage? usage = null)
+        => new(
+            "anthropic",
+            "https://candidate.example.test/v1/",
+            "candidate-default",
+            "candidate-requested",
+            "candidate-served-2026-10",
+            "resp-shadow-1",
+            "upstream-b",
+            TimeSpan.FromTicks(65_122_500),
+            usage,
+            answers ?? [],
+            errorKind,
+            []);
+
+    [Fact]
+    public async Task ShadowedRecord_RoundTrips()
+    {
+        var shadow = Shadow(
+            [
+                new RecordedAnswer("urgent", QuestionKind.Noul, -1, 0.5, 0, 0.5, []),
+                new RecordedAnswer("topic", QuestionKind.Choice, 1, 0, 0, 0.5, [0.25, 0.5, 0.25]),
+            ],
+            usage: new DecisionUsage { InputTokens = 90, OutputTokens = 11, Cost = 0.0005 });
+        var record = Record().WithShadow(shadow);
+        Assert.Contains("\"latencyMs\":6512.25", Json(Rec(record)), StringComparison.Ordinal);
+
+        var (decisions, problems) = await ReadAsync(Lines(Rec(record)));
+
+        Assert.Empty(problems);
+        var read = Assert.Single(decisions).Record.Shadow!;
+        Assert.Equal(shadow.Provider, read.Provider);
+        Assert.Equal(shadow.Endpoint, read.Endpoint);
+        Assert.Equal(shadow.DefaultModel, read.DefaultModel);
+        Assert.Equal(shadow.RequestedModel, read.RequestedModel);
+        Assert.Equal(shadow.ServedModel, read.ServedModel);
+        Assert.Equal(shadow.ResponseId, read.ResponseId);
+        Assert.Equal(shadow.UpstreamProvider, read.UpstreamProvider);
+        Assert.Equal(shadow.Latency, read.Latency);
+        Assert.Equal(shadow.Usage!.InputTokens, read.Usage!.InputTokens);
+        Assert.Equal(shadow.Usage.OutputTokens, read.Usage.OutputTokens);
+        Assert.Equal(shadow.Usage.Cost, read.Usage.Cost);
+        Assert.Equal(shadow.Answers, read.Answers);
+        Assert.Equal(shadow.ErrorKind, read.ErrorKind);
+        Assert.Equal(shadow.RefusedKeys, read.RefusedKeys);
+    }
+
+    [Fact]
+    public async Task ShadowedRecord_WithErrorKind_RoundTrips()
+    {
+        var shadow = Shadow(errorKind: DecisionErrorKind.Timeout);
+
+        var (decisions, problems) = await ReadAsync(Lines(Rec(Record().WithShadow(shadow))));
+
+        Assert.Empty(problems);
+        var read = Assert.Single(decisions).Record.Shadow!;
+        Assert.Equal(DecisionErrorKind.Timeout, read.ErrorKind);
+        Assert.Empty(read.Answers);
+        Assert.Empty(read.RefusedKeys);
+        Assert.Null(read.Usage);
+        Assert.Equal(shadow.Latency, read.Latency);
+    }
+
+    [Fact]
+    public void CandidateVerbalizedAnswer_MakesTheLineVersion2()
+    {
+        var shadow = Shadow([new RecordedAnswer("urgent", QuestionKind.Noul, -1, 0.5, 0, 0.5, [], ProbabilitySource.Verbalized)]);
+
+        var line = Json(Rec(Record().WithShadow(shadow)));
+
+        Assert.Contains("\"version\":2", line, StringComparison.Ordinal);
+        Assert.Contains("\"version\":1", Json(Rec(Record().WithShadow(Shadow()))), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void UnshadowedRecord_LineIsUnchanged()
+        => Assert.DoesNotContain("\"shadow\"", Json(Rec(Record())), StringComparison.Ordinal);
+
+    [Fact]
+    public void ShadowLine_IsPinned()
+    {
+        var shadow = new ShadowResult(
+            "anthropic", "https://c.test/", "c-default", "c-req", "c-served", "r-1", "up-b", TimeSpan.FromTicks(65_122_500),
+            new DecisionUsage { InputTokens = 9, OutputTokens = 2, Cost = 0.5 },
+            [new RecordedAnswer("urgent", QuestionKind.Noul, -1, 0.5, 0, 0.5, [])],
+            DecisionErrorKind.Timeout, ["topic"]);
+
+        var line = Json(Rec(Record(answers: [], refusedKeys: ["mood"]).WithShadow(shadow)));
+
+        Assert.EndsWith(
+            ""","refusedKeys":["mood"],"shadow":{"provider":"anthropic","endpoint":"https://c.test/","defaultModel":"c-default","requestedModel":"c-req","servedModel":"c-served","responseId":"r-1","upstreamProvider":"up-b","latencyMs":6512.25,"usage":{"inputTokens":9,"outputTokens":2,"cost":0.5},"answers":[{"key":"urgent","kind":"noul","probability":0.5,"confidence":0.5}],"errorKind":"Timeout","refusedKeys":["topic"]}}""",
+            line,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ShadowLine_OmitsNullMembers()
+    {
+        var shadow = new ShadowResult("anthropic", null, null, null, null, null, null, TimeSpan.FromMilliseconds(40), null, [], null, []);
+
+        var line = Json(Rec(Record(refusedKeys: ["mood"]).WithShadow(shadow)));
+
+        Assert.EndsWith("""],"shadow":{"provider":"anthropic","latencyMs":40}}""", line, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ShadowAnswerSource_RoundTrips()
+    {
+        var shadow = Shadow([new RecordedAnswer("urgent", QuestionKind.Noul, -1, 0.5, 0, 0.5, [], ProbabilitySource.Verbalized)]);
+
+        var (decisions, problems) = await ReadAsync(Lines(Rec(Record().WithShadow(shadow))));
+
+        Assert.Empty(problems);
+        var answer = Assert.Single(Assert.Single(decisions).Record.Shadow!.Answers);
+        Assert.Equal(ProbabilitySource.Verbalized, answer.ProbabilitySource);
+    }
+
+    [Fact]
+    public async Task ShadowWithoutProvider_IsAProblem()
+    {
+        var line = Json(Rec(Record("d-2").WithShadow(Shadow())))
+            .Replace("\"shadow\":{\"provider\":\"anthropic\",", "\"shadow\":{", StringComparison.Ordinal);
+        Assert.DoesNotContain("\"provider\":\"anthropic\"", line, StringComparison.Ordinal);
+
+        var (decisions, problems) = await ReadAsync(Text(RecordText("d-1"), line));
+
+        Assert.Equal(["d-1"], decisions.Select(d => d.Record.DecisionId));
+        var problem = Assert.Single(problems);
+        Assert.Equal(2, problem.Line);
+    }
+
+    [Fact]
+    public async Task ShadowWithUnknownErrorKind_IsAProblem()
+    {
+        var line = Json(Rec(Record("d-2").WithShadow(Shadow(errorKind: DecisionErrorKind.Timeout))))
+            .Replace("\"errorKind\":\"Timeout\"", "\"errorKind\":\"Nope\"", StringComparison.Ordinal);
+        Assert.Contains("Nope", line, StringComparison.Ordinal);
+
+        var (decisions, problems) = await ReadAsync(Text(RecordText("d-1"), line));
+
+        Assert.Equal(["d-1"], decisions.Select(d => d.Record.DecisionId));
+        var problem = Assert.Single(problems);
+        Assert.Equal(2, problem.Line);
+        Assert.Contains("does not know", problem.Message, StringComparison.Ordinal);
+    }
+
     private static byte[] Text(params string[] lines) => Encoding.UTF8.GetBytes(string.Concat(lines.Select(l => l + "\n")));
 
     private static string RecordText(string id = "d-1") => Json(Rec(Record(id)));

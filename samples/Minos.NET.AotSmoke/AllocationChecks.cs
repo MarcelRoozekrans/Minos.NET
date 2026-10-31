@@ -258,6 +258,79 @@ internal static class AllocationChecks
             passDescription: "a granted token-bucket permit stays within its allocation budget");
     }
 
+    /// <summary>A <see cref="Minos.Recording.RecordingDecisionClient"/> recording each decision, without a shadow, around a client that allocates nothing.</summary>
+    public static void RecordingStage()
+    {
+        using var recorder = new RecordingFixture();
+        using var inner = new FixedResponseClient(PipelineChecks.TriageResponse());
+        using var client = inner.AsBuilder().UseRecording(recorder.Recorder).Build();
+        var request = new DecisionRequest(SmokeTriage.Definition, SmokeAnswers.State);
+
+        // Measured 912 B/call on published linux-x64 AOT, the same in every run: the record the call hands the recorder, with
+        // its frozen answers, id and state, and the queue write. Budget: about 10% headroom over the measurement, rounded up
+        // to the next multiple of 64 B, per the Phase 1.8 rule. The recorder's writer thread allocates too, but the gate
+        // counts the calling thread only. Measured on linux-x64, which is what CI's aot-smoke job runs.
+        GateValueTask(
+            budgetBytes: 1024,
+            action: () => client.EvaluateAsync(request),
+            label: "RecordingStage",
+            passDescription: "a recorded decision stays within its allocation budget");
+    }
+
+    /// <summary>
+    /// The same recording stage with a shadow candidate that answers each decision in the background. The gate counts the
+    /// calling thread only, so it measures the primary path from <c>EvaluateAsync</c> until it returns, not the candidate.
+    /// </summary>
+    public static void ShadowedRecordingStage()
+    {
+        using var recorder = new RecordingFixture();
+        using var candidate = new FixedResponseClient(PipelineChecks.TriageResponse());
+        var shadow = new Minos.Recording.ShadowOptions(candidate, dailyCap: int.MaxValue) { MaxConcurrent = 1_000_000 };
+        using var inner = new FixedResponseClient(PipelineChecks.TriageResponse());
+        using var client = inner.AsBuilder().UseRecording(shadow, recorder.Recorder).Build();
+        var request = new DecisionRequest(SmokeTriage.Definition, SmokeAnswers.State);
+        var calls = 0;
+
+        // Measured 1264 B/call on published linux-x64 AOT, the same in every run: the 912 B of RecordingStage plus 352 B for
+        // the shadow, which are the reservation and the work item and delegate that start the candidate in the background.
+        // Budget: about 10% headroom over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
+        // The candidate's own call runs on a pool thread, which the gate does not count. Measured on linux-x64, which is what
+        // CI's aot-smoke job runs.
+        GateValueTask(
+            budgetBytes: 1408,
+            action: () =>
+            {
+                calls++;
+                return client.EvaluateAsync(request);
+            },
+            label: "ShadowedRecordingStage",
+            passDescription: "a shadowed decision's primary path stays within its allocation budget");
+
+        // The gate would pass just as well if shadowing stopped after the first decision, so wait, a bounded number of times,
+        // for the candidate to have answered every call the gate made, warm-up included.
+        for (var attempt = 0; attempt < 400 && candidate.Calls < calls; attempt++)
+        {
+            Thread.Sleep(50);
+        }
+
+        Program.Check(
+            candidate.Calls == calls,
+            $"the shadow candidate answered every call the gate made, so the gate measured shadowed decisions: {candidate.Calls} of {calls} within 20 s");
+    }
+
+    // A recorder over an in-memory sink whose queue holds every call a gate makes, so no call is dropped and each takes the
+    // same path.
+    private sealed class RecordingFixture : IDisposable
+    {
+        public RecordingFixture() => Recorder = new Minos.Recording.DecisionRecorder(
+            new Minos.Recording.InMemoryDecisionRecordSink(),
+            new Minos.Recording.RecordingOptions { Capacity = 1_000_000 });
+
+        public Minos.Recording.DecisionRecorder Recorder { get; }
+
+        public void Dispose() => Recorder.DisposeAsync().AsTask().GetAwaiter().GetResult();
+    }
+
     /// <summary><see cref="DecisionClientExtensions.EvaluateUtf8Async{T}(IDecisionClient, ReadOnlyMemory{byte})"/> over a canned handler.</summary>
     public static void Utf8StateEvaluateRoundTrip()
     {

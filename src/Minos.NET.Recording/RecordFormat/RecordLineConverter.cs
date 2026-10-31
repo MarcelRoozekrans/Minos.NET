@@ -23,16 +23,16 @@ internal static class RecordLineConverter
             return false;
         }
 
-        DecisionErrorKind? errorKind = null;
-        if (dto.ErrorKind is { } errorName)
+        if (!TryToErrorKind(dto.ErrorKind, out var errorKind))
         {
-            if (!Enum.TryParse<DecisionErrorKind>(errorName, ignoreCase: false, out var parsed) || !Enum.IsDefined(parsed))
-            {
-                message = "The record line's 'errorKind' is an error kind this reader does not know.";
-                return false;
-            }
+            message = "The record line's 'errorKind' is an error kind this reader does not know.";
+            return false;
+        }
 
-            errorKind = parsed;
+        ShadowResult? shadow = null;
+        if (dto.Shadow is { } shadowDto && !TryToShadow(shadowDto, out shadow, out message))
+        {
+            return false;
         }
 
         QuestionSetDefinition definition;
@@ -48,8 +48,97 @@ internal static class RecordLineConverter
             return false;
         }
 
-        var answers = new List<RecordedAnswer>(dto.Answers?.Count ?? 0);
-        foreach (var answer in dto.Answers ?? [])
+        if (!TryToAnswers(dto.Answers, out var answers, out message))
+        {
+            return false;
+        }
+
+        record = new DecisionRecord(
+            dto.DecisionId,
+            dto.ErasureKey,
+            started,
+            TimeSpan.FromTicks((long)Math.Round(dto.LatencyMs * TimeSpan.TicksPerMillisecond)),
+            dto.Provider,
+            dto.Endpoint,
+            dto.DefaultModel,
+            dto.RequestedModel,
+            dto.ServedModel,
+            dto.ResponseId,
+            dto.UpstreamProvider,
+            ToUsage(dto.Usage),
+            dto.Cached,
+            definition,
+            state,
+            dto.ImageCount,
+            DecisionRecord.Freeze(dto.ImageHashes),
+            answers,
+            errorKind,
+            DecisionRecord.Freeze(dto.RefusedKeys),
+            shadow);
+        return true;
+    }
+
+    private static bool TryToShadow(ShadowDto dto, [NotNullWhen(true)] out ShadowResult? shadow, out string message)
+    {
+        shadow = null;
+        message = string.Empty;
+        if (string.IsNullOrEmpty(dto.Provider))
+        {
+            message = "The record line's 'shadow' needs a 'provider'.";
+            return false;
+        }
+
+        if (!TryToErrorKind(dto.ErrorKind, out var errorKind))
+        {
+            message = "The record line's 'shadow' has an 'errorKind' this reader does not know.";
+            return false;
+        }
+
+        if (!TryToAnswers(dto.Answers, out var answers, out message))
+        {
+            return false;
+        }
+
+        shadow = new ShadowResult(
+            dto.Provider,
+            dto.Endpoint,
+            dto.DefaultModel,
+            dto.RequestedModel,
+            dto.ServedModel,
+            dto.ResponseId,
+            dto.UpstreamProvider,
+            TimeSpan.FromTicks((long)Math.Round(dto.LatencyMs * TimeSpan.TicksPerMillisecond)),
+            ToUsage(dto.Usage),
+            answers,
+            errorKind,
+            DecisionRecord.Freeze(dto.RefusedKeys));
+        return true;
+    }
+
+    // An absent error kind is fine and gives null; a name that is not a defined kind fails.
+    private static bool TryToErrorKind(string? name, out DecisionErrorKind? errorKind)
+    {
+        errorKind = null;
+        if (name is null)
+        {
+            return true;
+        }
+
+        if (!Enum.TryParse<DecisionErrorKind>(name, ignoreCase: false, out var parsed) || !Enum.IsDefined(parsed))
+        {
+            return false;
+        }
+
+        errorKind = parsed;
+        return true;
+    }
+
+    private static bool TryToAnswers(List<AnswerDto>? dtos, out IReadOnlyList<RecordedAnswer> answers, out string message)
+    {
+        answers = [];
+        message = string.Empty;
+        var list = new List<RecordedAnswer>(dtos?.Count ?? 0);
+        foreach (var answer in dtos ?? [])
         {
             if (answer.Kind is not (null or "noul" or "choice" or "score"))
             {
@@ -63,33 +152,15 @@ internal static class RecordLineConverter
                 return false;
             }
 
-            answers.Add(recorded);
+            list.Add(recorded);
         }
 
-        var usage = dto.Usage is { } u ? new DecisionUsage { InputTokens = u.InputTokens, OutputTokens = u.OutputTokens, Cost = u.Cost } : null;
-        record = new DecisionRecord(
-            dto.DecisionId,
-            dto.ErasureKey,
-            started,
-            TimeSpan.FromTicks((long)Math.Round(dto.LatencyMs * TimeSpan.TicksPerMillisecond)),
-            dto.Provider,
-            dto.Endpoint,
-            dto.DefaultModel,
-            dto.RequestedModel,
-            dto.ServedModel,
-            dto.ResponseId,
-            dto.UpstreamProvider,
-            usage,
-            dto.Cached,
-            definition,
-            state,
-            dto.ImageCount,
-            DecisionRecord.Freeze(dto.ImageHashes),
-            DecisionRecord.Freeze(answers),
-            errorKind,
-            DecisionRecord.Freeze(dto.RefusedKeys));
+        answers = DecisionRecord.Freeze(list);
         return true;
     }
+
+    private static DecisionUsage? ToUsage(UsageDto? u)
+        => u is null ? null : new DecisionUsage { InputTokens = u.InputTokens, OutputTokens = u.OutputTokens, Cost = u.Cost };
 
     internal static bool TryToOutcome(LineDto dto, [NotNullWhen(true)] out DecisionOutcome? outcome, out string message)
     {

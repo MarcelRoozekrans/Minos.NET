@@ -107,15 +107,14 @@ public sealed class ExportTests : IDisposable
     [Fact]
     public async Task Export_Cancelled_Exits130_AndLeavesNoFiles()
     {
-        var records = Records(Record("a"), Confirmed("a"));
-        using var cts = new CancellationTokenSource();
-        await cts.CancelAsync();
+        // The cancellation comes after the records are read and before the output is reserved, so nothing is created.
+        // The delete-on-failure path after that is the same catch the write-failure test covers.
+        var records = _h.Write("cut.jsonl", Record("a") + "\n" + Confirmed("a") + "\n{\"kind\":\"outcome\",\"version\":1,\"deci");
 
-        var run = await Invoke(null, cts.Token, "export", "--records", records, "--out", _h.Out);
+        var run = await InvokeCancellingOnFirstProblem("export", "--records", records, "--out", _h.Out);
 
         Assert.Equal(130, run.Exit);
-        Assert.False(File.Exists(DatasetFile));
-        Assert.False(File.Exists(SignalsFile));
+        Assert.False(Directory.Exists(_h.Out));
     }
 
     [Fact]
@@ -187,7 +186,7 @@ public sealed class ExportTests : IDisposable
         var dataset = _h.Write("dataset.jsonl", "x");
         var signals = Directory.CreateDirectory(Path.Combine(_h.Dir, "signals-dir")).FullName;
 
-        ExportCommand.DeleteBoth(dataset, signals);
+        CommandSupport.DeleteBoth(dataset, signals);
 
         Assert.False(File.Exists(dataset));
         Assert.True(Directory.Exists(signals));

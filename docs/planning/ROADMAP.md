@@ -476,11 +476,12 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Completed:** 2026-10-30
 **Evidence:** PR #297 (squash `16b54aa8`); pre-push review PASS, `docs/plans/2026-10-28-phase-9.2-pre-push-review.md`.
 
-### Phase 9.3: Shadow mode and its report [status: pending]
+### Phase 9.3: Shadow mode and its report [status: active]
 **Goal:** A background candidate decorator in `Minos.NET.Recording`, off the decision's path, with a daily cap, writing candidate answers to the record. Plus the agreement and calibration report from recorded pairs, in `Minos.NET.Evaluation` and `minos`, with Milestone 8's code (#118).
 **Surface:** Backend
 **HelpWanted:** no
-**Plan:** _to be written_
+**Spec:** `docs/superpowers/specs/2026-10-31-phase-9.3-shadow-design.md`
+**Plan:** `docs/superpowers/plans/2026-10-31-phase-9.3-shadow.md`
 
 ### Phase 9.4: A shadow report on recorded traffic [status: pending]
 **Goal:** A sample replays the 400-item Banking77 set through the recorder and shadow mode, with TypeSafe as the primary and the local model as the candidate. The report is committed, and the hosted run needs the maintainer's approval.

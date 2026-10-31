@@ -34,4 +34,43 @@ public sealed class RecordingMeterTests
         Assert.False(string.IsNullOrEmpty(version));
         Assert.Equal(version, meter.Version);
     }
+
+    [Fact]
+    public void ShadowsCounter_IsPublishedWithItsResults()
+    {
+        RuntimeHelpers.RunClassConstructor(typeof(RecordingTelemetry).TypeHandle);
+        Instrument? shadows = null;
+        var results = new List<string?>();
+        using var listener = new MeterListener
+        {
+            InstrumentPublished = (instrument, listener) =>
+            {
+                if (string.Equals(instrument.Meter.Name, "Minos", StringComparison.Ordinal)
+                    && string.Equals(instrument.Name, "minos.recording.shadows", StringComparison.Ordinal))
+                {
+                    shadows = instrument;
+                    listener.EnableMeasurementEvents(instrument);
+                }
+            },
+        };
+        listener.SetMeasurementEventCallback<long>((_, _, tags, _) =>
+        {
+            foreach (var tag in tags)
+            {
+                if (string.Equals(tag.Key, "result", StringComparison.Ordinal))
+                {
+                    results.Add(tag.Value as string);
+                }
+            }
+        });
+        listener.Start();
+
+        listener.RecordObservableInstruments();
+
+        Assert.NotNull(shadows);
+        Assert.IsType<ObservableCounter<long>>(shadows);
+        Assert.Equal("{shadow}", shadows.Unit);
+        Assert.Equal("Shadow writes by result: written, failed, dropped, skipped_cap or skipped_busy.", shadows.Description);
+        Assert.Equal(["written", "failed", "dropped", "skipped_cap", "skipped_busy"], results);
+    }
 }

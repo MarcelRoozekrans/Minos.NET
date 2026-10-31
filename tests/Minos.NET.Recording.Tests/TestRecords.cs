@@ -42,6 +42,21 @@ internal static class TestRecords
             errorKind: null,
             []);
 
+    /// <summary>A candidate's answers, for a record's <see cref="DecisionRecord.Shadow"/> part.</summary>
+    internal static ShadowResult Shadow() => new(
+        "anthropic",
+        null,
+        "candidate-default",
+        null,
+        "candidate-served",
+        "resp-shadow",
+        null,
+        TimeSpan.FromMilliseconds(40),
+        new DecisionUsage { InputTokens = 130, OutputTokens = 12 },
+        [new RecordedAnswer("urgent", QuestionKind.Noul, -1, 0.75, 0, 0.5, [])],
+        errorKind: null,
+        []);
+
     internal static DecisionOutcome Signal(string name = "clicked") => DecisionOutcome.Signal("mailer", T0.AddHours(1), name, 1);
 
     internal static DecisionOutcome Confirmed() => DecisionOutcome.Confirmed(

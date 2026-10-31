@@ -430,6 +430,7 @@ version. Every tag is a fixed value.
 | `minos.recording.records` | Observable counter | `{record}` | `result`: `written`, `dropped` or `failed` | once for every record, in exactly one result |
 | `minos.recording.outcomes` | Observable counter | `{outcome}` | `result`: `written` or `failed` | each outcome the sink was given |
 | `minos.recording.erasures` | Observable counter | `{erasure}` | `result`: `written` or `failed` | each erasure the sink was given |
+| `minos.recording.shadows` | Observable counter | `{shadow}` | `result`: `written`, `failed`, `dropped`, `skipped_cap` or `skipped_busy` | each shadow candidate: its second write of the record, or the reason it never started |
 | `minos.recording.log_failures` | Observable counter | `{event}` | none | the recorder's log events lost because the logger threw |
 
 They are observable counters over totals kept in the process: counting never calls a listener, and a listener reads

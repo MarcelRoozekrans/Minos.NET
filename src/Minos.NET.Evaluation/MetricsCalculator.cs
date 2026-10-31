@@ -13,8 +13,11 @@ internal static class MetricsCalculator
 
     // One scored question. Order is its position in item order, then the item's question order. Probability is the
     // saved p of an answered Noul question, and null otherwise.
-    private readonly record struct ScoredQuestion(
+    internal readonly record struct ScoredQuestion(
         QuestionKind Kind, string Key, ExpectedAnswer Expected, bool Answered, bool Correct, double Confidence, double? Probability, int Order);
+
+    // The metrics of each question kind, null for a kind with no scored question, and of all kinds together.
+    internal readonly record struct KindSet(KindMetrics? Noul, KindMetrics? Choice, KindMetrics? Score, KindMetrics Overall);
 
     // The results-file rules first, then the fit to the dataset. Each problem's line is the dataset line of the item it
     // is about; a header problem has line 0, and an item past the dataset's end the line after its last item.
@@ -179,12 +182,13 @@ internal static class MetricsCalculator
     internal static CalibrationReport Compute(EvaluationResults results, DecisionDataset dataset, PriceTable? prices)
     {
         var questions = Collect(results, dataset, out var unscored, out var verbalized);
+        var kinds = ForKinds(questions);
         return new CalibrationReport(
             results.Header,
-            ForKind(questions, QuestionKind.Noul),
-            ForKind(questions, QuestionKind.Choice),
-            ForKind(questions, QuestionKind.Score),
-            Metrics(questions),
+            kinds.Noul,
+            kinds.Choice,
+            kinds.Score,
+            kinds.Overall,
             unscored,
             Latency(results.Items),
             Cost(results.Items, prices),
@@ -236,20 +240,22 @@ internal static class MetricsCalculator
                     verbalized++;
                 }
 
-                questions.Add(new ScoredQuestion(
-                    expected.Kind,
-                    question.Key,
-                    expected,
-                    answered,
-                    answered && IsCorrect(expected, answer!),
-                    answered ? answer!.Confidence : 0,
-                    answered ? answer!.Probability : null,
-                    questions.Count));
+                questions.Add(Scored(question.Key, expected, answered ? answer : null, questions.Count));
             }
         }
 
         return questions;
     }
+
+    // One scored question, answered unless answer is null. The answer's kind must be the expected answer's.
+    internal static ScoredQuestion Scored(string key, ExpectedAnswer expected, AnswerRecord? answer, int order)
+        => answer is null
+            ? new ScoredQuestion(expected.Kind, key, expected, false, false, 0, null, order)
+            : new ScoredQuestion(expected.Kind, key, expected, true, IsCorrect(expected, answer), answer.Confidence, answer.Probability, order);
+
+    // The metrics of the scored questions, which must be in their order, per kind and over all kinds.
+    internal static KindSet ForKinds(List<ScoredQuestion> questions)
+        => new(ForKind(questions, QuestionKind.Noul), ForKind(questions, QuestionKind.Choice), ForKind(questions, QuestionKind.Score), Metrics(questions));
 
     // Match has checked that the answer's kind is its question's, and the dataset that the expected answer's is.
     private static bool IsCorrect(ExpectedAnswer expected, AnswerRecord answer)
@@ -399,7 +405,7 @@ internal static class MetricsCalculator
     private static bool IsCovered(ScoredQuestion question, double threshold, double mirrored)
         => question.Confidence >= threshold || (question.Probability is { } p && (p >= threshold || p <= mirrored));
 
-    private static LatencySummary Latency(IReadOnlyList<ItemResult> items)
+    internal static LatencySummary Latency(IReadOnlyList<ItemResult> items)
     {
         var latencies = items.Where(r => r.Error is null && !r.Cached).Select(r => r.LatencyMs).ToArray();
         if (latencies.Length == 0)
@@ -424,7 +430,7 @@ internal static class MetricsCalculator
     private static bool WasServed(ItemResult item)
         => item.Error is not { } error || string.Equals(error.Kind, nameof(DecisionErrorKind.InvalidResponse), StringComparison.Ordinal);
 
-    private static CostSummary Cost(IReadOnlyList<ItemResult> items, PriceTable? prices)
+    internal static CostSummary Cost(IReadOnlyList<ItemResult> items, PriceTable? prices)
     {
         int reported = 0, priced = 0, unknown = 0, cached = 0;
         var total = 0.0;
@@ -469,7 +475,7 @@ internal static class MetricsCalculator
         return new CostSummary(known == 0 ? null : total / known * 1000, reported, priced, unknown, cached, used);
     }
 
-    private static ErrorSummary Errors(IReadOnlyList<ItemResult> items)
+    internal static ErrorSummary Errors(IReadOnlyList<ItemResult> items)
     {
         var byKind = new Dictionary<string, int>(StringComparer.Ordinal);
         var count = 0;
@@ -487,7 +493,7 @@ internal static class MetricsCalculator
         return new ErrorSummary(count, sorted);
     }
 
-    private static List<ModelCount> Models(IReadOnlyList<ItemResult> items)
+    internal static List<ModelCount> Models(IReadOnlyList<ItemResult> items)
     {
         var byModel = new Dictionary<string, int>(StringComparer.Ordinal);
         var unnamed = 0;

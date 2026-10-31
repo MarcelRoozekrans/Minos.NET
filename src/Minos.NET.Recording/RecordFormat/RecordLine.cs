@@ -7,9 +7,8 @@ namespace Minos.Recording.RecordFormat;
 
 /// <summary>
 /// Writes the lines of a record file: one JSON object per line with a <c>kind</c> of <c>record</c>,
-/// <c>outcome</c> or <c>erasure</c> and a <c>version</c> of 1. A record line with an answer whose probabilities do not
-/// come from the model has a <c>version</c> of 2 and a <c>probabilitySource</c> on that answer. The caller ends each
-/// line with <c>\n</c>.
+/// <c>outcome</c> or <c>erasure</c> and a <c>version</c> of 1. A record line with an answer, its own or its shadow's,
+/// whose probabilities do not come from the model has a <c>version</c> of 2. The caller ends each line with <c>\n</c>.
 /// </summary>
 internal static class RecordLine
 {
@@ -31,7 +30,8 @@ internal static class RecordLine
     {
         w.WriteStartObject();
         w.WriteString("kind", "record");
-        w.WriteNumber("version", HasMarkedAnswer(record.Answers) ? VersionWithSource : Version);
+        var marked = HasMarkedAnswer(record.Answers) || (record.Shadow is { } shadow && HasMarkedAnswer(shadow.Answers));
+        w.WriteNumber("version", marked ? VersionWithSource : Version);
         w.WriteString("decisionId", record.DecisionId);
         WriteOptional(w, "erasureKey", record.ErasureKey);
         w.WriteString("started", record.Started);
@@ -43,27 +43,7 @@ internal static class RecordLine
         WriteOptional(w, "servedModel", record.ServedModel);
         WriteOptional(w, "responseId", record.ResponseId);
         WriteOptional(w, "upstreamProvider", record.UpstreamProvider);
-        if (record.Usage is { } usage)
-        {
-            w.WriteStartObject("usage");
-            if (usage.InputTokens is { } input)
-            {
-                w.WriteNumber("inputTokens", input);
-            }
-
-            if (usage.OutputTokens is { } output)
-            {
-                w.WriteNumber("outputTokens", output);
-            }
-
-            if (usage.Cost is { } cost)
-            {
-                w.WriteNumber("cost", cost);
-            }
-
-            w.WriteEndObject();
-        }
-
+        WriteUsage(w, record.Usage);
         w.WriteBoolean("cached", record.IsCached);
         w.WritePropertyName("questions");
         QuestionSetFormat.Write(w, record.Definition);
@@ -71,23 +51,27 @@ internal static class RecordLine
         QuestionSetFormat.WriteContent(w, record.State);
         w.WriteNumber("imageCount", record.ImageCount);
         WriteStrings(w, "imageHashes", record.ImageHashes);
-        if (record.Answers.Count > 0)
-        {
-            w.WriteStartArray("answers");
-            foreach (var answer in record.Answers)
-            {
-                WriteAnswer(w, answer);
-            }
-
-            w.WriteEndArray();
-        }
-
-        if (record.ErrorKind is { } errorKind)
-        {
-            w.WriteString("errorKind", errorKind.ToString());
-        }
-
+        WriteAnswers(w, record.Answers);
+        WriteErrorKind(w, record.ErrorKind);
         WriteStrings(w, "refusedKeys", record.RefusedKeys);
+        if (record.Shadow is { } candidate)
+        {
+            w.WriteStartObject("shadow");
+            w.WriteString("provider", candidate.Provider);
+            WriteOptional(w, "endpoint", candidate.Endpoint);
+            WriteOptional(w, "defaultModel", candidate.DefaultModel);
+            WriteOptional(w, "requestedModel", candidate.RequestedModel);
+            WriteOptional(w, "servedModel", candidate.ServedModel);
+            WriteOptional(w, "responseId", candidate.ResponseId);
+            WriteOptional(w, "upstreamProvider", candidate.UpstreamProvider);
+            w.WriteNumber("latencyMs", candidate.Latency.Ticks / TicksPerMillisecond);
+            WriteUsage(w, candidate.Usage);
+            WriteAnswers(w, candidate.Answers);
+            WriteErrorKind(w, candidate.ErrorKind);
+            WriteStrings(w, "refusedKeys", candidate.RefusedKeys);
+            w.WriteEndObject();
+        }
+
         w.WriteEndObject();
     }
 
@@ -193,6 +177,56 @@ internal static class RecordLine
         }
 
         return false;
+    }
+
+    private static void WriteUsage(Utf8JsonWriter w, DecisionUsage? usage)
+    {
+        if (usage is null)
+        {
+            return;
+        }
+
+        w.WriteStartObject("usage");
+        if (usage.InputTokens is { } input)
+        {
+            w.WriteNumber("inputTokens", input);
+        }
+
+        if (usage.OutputTokens is { } output)
+        {
+            w.WriteNumber("outputTokens", output);
+        }
+
+        if (usage.Cost is { } cost)
+        {
+            w.WriteNumber("cost", cost);
+        }
+
+        w.WriteEndObject();
+    }
+
+    private static void WriteAnswers(Utf8JsonWriter w, IReadOnlyList<RecordedAnswer> answers)
+    {
+        if (answers.Count == 0)
+        {
+            return;
+        }
+
+        w.WriteStartArray("answers");
+        foreach (var answer in answers)
+        {
+            WriteAnswer(w, answer);
+        }
+
+        w.WriteEndArray();
+    }
+
+    private static void WriteErrorKind(Utf8JsonWriter w, DecisionErrorKind? errorKind)
+    {
+        if (errorKind is { } kind)
+        {
+            w.WriteString("errorKind", kind.ToString());
+        }
     }
 
     private static void WriteAnswer(Utf8JsonWriter w, RecordedAnswer answer)

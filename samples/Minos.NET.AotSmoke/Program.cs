@@ -137,11 +137,13 @@ internal static class Program
         await EvaluationChecks.AStoppedRunKeepsItsPaidResults().ConfigureAwait(false);
         await EvaluationChecks.ACancelledRunKeepsItsPaidResults().ConfigureAwait(false);
         await EvaluationChecks.ExportsRecordedDecisions().ConfigureAwait(false);
+        await EvaluationChecks.ReportsOnShadowedDecisions().ConfigureAwait(false);
 
         await RecordingChecks.RecordsADecisionToAFileAndReadsItBack().ConfigureAwait(false);
         await RecordingChecks.TheStageRecorderAndSinksWorkThroughTheirInterfaces().ConfigureAwait(false);
         await RecordingChecks.ValuesProblemsAndExceptions().ConfigureAwait(false);
         await RecordingChecks.TheLineWritersMakeAFileTheReaderReads().ConfigureAwait(false);
+        await RecordingChecks.ShadowsADecisionAndReadsItBack().ConfigureAwait(false);
 
         ExtensionsAIChecks.BridgeOverTheOpenAIChatClientAnswersItsServices();
         await ExtensionsAIChecks.RequestsTheBridgeCannotTakeAreNotSent().ConfigureAwait(false);
@@ -157,6 +159,8 @@ internal static class Program
         AllocationChecks.PassThroughStage();
         AllocationChecks.CacheHit();
         AllocationChecks.GrantedPermit();
+        AllocationChecks.RecordingStage();
+        AllocationChecks.ShadowedRecordingStage();
         AllocationChecks.Utf8StateEvaluateRoundTrip();
         AllocationChecks.TypedStateEvaluateRoundTrip();
         AllocationChecks.SystemOneImageRoundTrip();
