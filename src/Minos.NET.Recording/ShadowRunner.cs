@@ -18,17 +18,13 @@ internal sealed class ShadowRunner
 
     private readonly DecisionRecorder _recorder;
     private readonly IDecisionClient _candidate;
-    private readonly int _dailyCap;
+    private readonly ShadowBudget _budget;
     private readonly TimeSpan _timeout;
     private readonly int _maxConcurrent;
     private readonly string? _model;
     private readonly string _provider;
     private readonly string? _endpoint;
     private readonly string? _defaultModel;
-    private readonly Lock _capGate = new();
-    private DateTime _capDay;
-    private int _capUsed;
-    private int _running;
 
     /// <summary>Initializes a new instance of the <see cref="ShadowRunner"/> class, reading the options once.</summary>
     /// <param name="options">The shadow mode settings.</param>
@@ -37,7 +33,7 @@ internal sealed class ShadowRunner
     {
         _recorder = recorder;
         _candidate = options.Candidate;
-        _dailyCap = options.DailyCap;
+        _budget = options.Budget;
         _timeout = options.Timeout;
         _maxConcurrent = options.MaxConcurrent;
         _model = options.Model;
@@ -59,16 +55,15 @@ internal sealed class ShadowRunner
         shadow = default;
 
         // The one call here that can throw, a broken clock, comes before anything is reserved.
-        if (!TryReserveCap(out var day))
+        if (!_budget.TryTakeCap(_recorder.Time, out var day))
         {
             RecordingTelemetry.Shadows.Add(RecordingTelemetry.SkippedCap);
             return false;
         }
 
-        if (Interlocked.Increment(ref _running) > _maxConcurrent)
+        if (!_budget.TryTakeRunning(_maxConcurrent))
         {
-            Interlocked.Decrement(ref _running);
-            GiveCapBack(day);
+            _budget.GiveCapBack(day);
             RecordingTelemetry.Shadows.Add(RecordingTelemetry.SkippedBusy);
             return false;
         }
@@ -76,8 +71,8 @@ internal sealed class ShadowRunner
         if (!_recorder.TryBeginShadow(record.DecisionId, record.ErasureKey, out var stopping))
         {
             // The recorder is disposed, or a shadow of that decision runs: the record's own queuing counts the first.
-            Interlocked.Decrement(ref _running);
-            GiveCapBack(day);
+            _budget.ReleaseRunning();
+            _budget.GiveCapBack(day);
             return false;
         }
 
@@ -90,8 +85,8 @@ internal sealed class ShadowRunner
     public void Cancel(in Reservation shadow)
     {
         _recorder.CancelShadow(shadow.Record.DecisionId);
-        Interlocked.Decrement(ref _running);
-        GiveCapBack(shadow.Day);
+        _budget.ReleaseRunning();
+        _budget.GiveCapBack(shadow.Day);
     }
 
     /// <summary>Starts the candidate in the background, without the caller's execution context, and returns.</summary>
@@ -121,7 +116,7 @@ internal sealed class ShadowRunner
         catch (Exception exception)
         {
             // The candidate never started, but its cap slot was spent and its record is queued.
-            Interlocked.Decrement(ref _running);
+            _budget.ReleaseRunning();
             _recorder.AbandonShadow(reserved.Record.DecisionId);
             _recorder.LogRecordingFailed(exception.GetType().Name);
         }
@@ -135,7 +130,7 @@ internal sealed class ShadowRunner
         try
         {
             var result = await EvaluateAsync(request, shadow.Stopping).ConfigureAwait(false);
-            Interlocked.Decrement(ref _running);
+            _budget.ReleaseRunning();
             running = false;
             if (result is null)
             {
@@ -151,7 +146,7 @@ internal sealed class ShadowRunner
             // Not the candidate's own exception, which EvaluateAsync records: the shadow is lost, never the call.
             if (running)
             {
-                Interlocked.Decrement(ref _running);
+                _budget.ReleaseRunning();
             }
 
             _recorder.AbandonShadow(shadow.Record.DecisionId);
@@ -167,16 +162,21 @@ internal sealed class ShadowRunner
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, stopping);
         var timestamp = time.GetTimestamp();
         Result<DecisionResponse, DecisionError> outcome;
+        Task<Result<DecisionResponse, DecisionError>>? call = null;
         try
         {
-            outcome = await _candidate.EvaluateAsync(request, linked.Token).ConfigureAwait(false);
+            // Bounded by the token even when the candidate ignores it, so its slot and its shadow are freed at the timeout.
+            call = _candidate.EvaluateAsync(request, linked.Token).AsTask();
+            outcome = await call.WaitAsync(linked.Token).ConfigureAwait(false);
         }
         catch (OperationCanceledException) when (stopping.IsCancellationRequested)
         {
+            Orphan(call);
             return null;
         }
         catch (OperationCanceledException) when (timeout.IsCancellationRequested)
         {
+            Orphan(call);
             return Failure(request, time.GetElapsedTime(timestamp), DecisionErrorKind.Timeout, null);
         }
         catch (HttpRequestException)
@@ -207,42 +207,22 @@ internal sealed class ShadowRunner
             response.Usage, answers, errorKind: null, []);
     }
 
+    // A candidate's call that outlived its wait: its exception, which can quote the request, is observed and dropped, so it
+    // never reaches an UnobservedTaskException handler.
+    private static void Orphan(Task? call)
+    {
+        if (call is { IsCompleted: false })
+        {
+            _ = call.ContinueWith(
+                static task => _ = task.Exception,
+                CancellationToken.None,
+                TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+                TaskScheduler.Default);
+        }
+    }
+
     private ShadowResult Failure(DecisionRequest request, TimeSpan latency, DecisionErrorKind kind, IReadOnlyList<string>? refusedKeys)
         => new(_provider, _endpoint, _defaultModel, request.Model, null, null, null, latency, null, [], kind, refusedKeys ?? []);
-
-    // Checks the cap and takes a slot in one step; the count starts again when the UTC day changes.
-    private bool TryReserveCap(out DateTime day)
-    {
-        day = _recorder.Time.GetUtcNow().UtcDateTime.Date;
-        lock (_capGate)
-        {
-            if (day != _capDay)
-            {
-                _capDay = day;
-                _capUsed = 0;
-            }
-
-            if (_capUsed >= _dailyCap)
-            {
-                return false;
-            }
-
-            _capUsed++;
-            return true;
-        }
-    }
-
-    // Gives back a slot of a candidate that never started, unless its day is over.
-    private void GiveCapBack(DateTime day)
-    {
-        lock (_capGate)
-        {
-            if (day == _capDay && _capUsed > 0)
-            {
-                _capUsed--;
-            }
-        }
-    }
 
     /// <summary>A shadow begun for a record: the record, the day its cap slot counts on, and the recorder's disposal signal.</summary>
     internal readonly record struct Reservation(DecisionRecord Record, DateTime Day, CancellationToken Stopping);

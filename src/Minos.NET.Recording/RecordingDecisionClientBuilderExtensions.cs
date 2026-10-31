@@ -54,7 +54,9 @@ public static class RecordingDecisionClientBuilderExtensions
     /// <remarks>
     /// <para>
     /// Add the stage outermost, as the overload without a candidate: a cache hit is then seen as one and not shadowed, and
-    /// a retried call is shadowed once. Each pipeline built keeps its own daily cap and count of running candidates.
+    /// a retried call is shadowed once. The pipelines built with one <see cref="ShadowOptions"/> share its daily cap and its
+    /// running candidates: share one <see cref="ShadowOptions"/> among the pipelines that shadow the same candidate, so they
+    /// share its cap.
     /// </para>
     /// <para>
     /// <c>Build</c> throws <see cref="InvalidOperationException"/> when no recorder is passed and the services have none.

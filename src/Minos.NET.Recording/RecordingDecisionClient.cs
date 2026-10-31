@@ -28,15 +28,16 @@ namespace Minos.Recording;
 /// another attempt. Disposing the stage disposes the inner client, never the recorder.
 /// </para>
 /// <para>
-/// With <see cref="ShadowOptions"/>, the stage runs a candidate client beside the inner one for each decision it recorded
-/// on its first attempt whose inner call succeeded and was not a cache hit, within the daily cap and
-/// <see cref="ShadowOptions.MaxConcurrent"/>, and counts each skip. The candidate starts in the background once the record
-/// is queued, without the caller's execution context, so the scope and the <see cref="System.Diagnostics.Activity"/> of
-/// the call stay out of it; it gets the unredacted state and <see cref="ShadowOptions.Model"/>, never the caller's
-/// cancellation token. It is cancelled after <see cref="ShadowOptions.Timeout"/> or when the recorder is disposed. Its
-/// answers, or its kind of error, reach the sink as a second write of the decision's record with
-/// <see cref="DecisionRecord.Shadow"/> set. The stage never waits for the candidate, never changes the inner client's
-/// result, and never disposes the candidate. Its error message is never logged or recorded.
+/// With <see cref="ShadowOptions"/>, the stage runs a candidate client beside the inner one for each decision it
+/// recorded on its first attempt whose inner call succeeded and was not a cache hit, within the daily cap and
+/// <see cref="ShadowOptions.MaxConcurrent"/>, and counts each skip for the cap or for the running candidates. The
+/// candidate starts in the background once the record is queued, without the caller's execution context, so the scope
+/// and the <see cref="System.Diagnostics.Activity"/> of the call stay out of it; it gets the unredacted state and
+/// <see cref="ShadowOptions.Model"/>, never the caller's cancellation token. It is cancelled after
+/// <see cref="ShadowOptions.Timeout"/> or when the recorder is disposed. Its answers, or its kind of error, reach the
+/// sink as a second write of the decision's record with <see cref="DecisionRecord.Shadow"/> set. The stage never waits
+/// for the candidate, never changes the inner client's result, and never disposes the candidate. Its error message is
+/// never logged or recorded.
 /// </para>
 /// </remarks>
 public sealed class RecordingDecisionClient : DelegatingDecisionClient

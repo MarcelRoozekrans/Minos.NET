@@ -8,9 +8,10 @@ namespace Minos.Recording.Tests;
 /// A shadow candidate scripted with a <see cref="TaskCompletionSource{TResult}"/>: each call notes the request, the
 /// token, and the <see cref="Activity.Current"/> and <see cref="DecisionRecording.Current"/> it ran with, then waits
 /// until <see cref="Release"/> or <see cref="Throw"/>, or answers at once when it was made with <c>held: false</c>. A
-/// cancelled token ends the wait with <see cref="OperationCanceledException"/>.
+/// cancelled token ends the wait with <see cref="OperationCanceledException"/>, unless it was made with
+/// <c>ignoresCancellation: true</c>.
 /// </summary>
-internal sealed class ShadowCandidate(bool held = true, DecisionClientMetadata? metadata = null) : IDecisionClient
+internal sealed class ShadowCandidate(bool held = true, bool ignoresCancellation = false, DecisionClientMetadata? metadata = null) : IDecisionClient
 {
     internal static readonly DecisionClientMetadata CandidateMetadata = new("anthropic", new Uri("https://candidate.example.test/"), "candidate-default");
 
@@ -18,12 +19,16 @@ internal sealed class ShadowCandidate(bool held = true, DecisionClientMetadata? 
     private readonly TaskCompletionSource _started = new(TaskCreationOptions.RunContinuationsAsynchronously);
     private readonly ConcurrentQueue<Call> _calls = new();
     private readonly DecisionClientMetadata _metadata = metadata ?? CandidateMetadata;
+    private int _finished;
 
     /// <summary>Gets the calls the candidate saw, in order.</summary>
     public IReadOnlyList<Call> Calls => [.. _calls];
 
-    /// <summary>Gets whether <see cref="Release"/> or <see cref="Throw"/> was called.</summary>
-    public bool IsReleased => _gate.Task.IsCompleted;
+    /// <summary>Gets how many calls started and have not returned or thrown yet.</summary>
+    public int Pending => _calls.Count - Volatile.Read(ref _finished);
+
+    /// <summary>Gets how many calls returned or threw.</summary>
+    public int Finished => Volatile.Read(ref _finished);
 
     /// <summary>A success with the candidate's own model, id and usage.</summary>
     public static DecisionResponse Answer() => new(
@@ -62,13 +67,22 @@ internal sealed class ShadowCandidate(bool held = true, DecisionClientMetadata? 
     {
         _calls.Enqueue(new Call(request, Activity.Current, DecisionRecording.Current, cancellationToken));
         _started.TrySetResult();
-        if (!held)
+        try
         {
-            return Result<DecisionResponse, DecisionError>.Success(Answer());
-        }
+            if (!held)
+            {
+                return Result<DecisionResponse, DecisionError>.Success(Answer());
+            }
 
-        var answer = await _gate.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
-        return answer();
+            var answer = ignoresCancellation
+                ? await _gate.Task.ConfigureAwait(false)
+                : await _gate.Task.WaitAsync(cancellationToken).ConfigureAwait(false);
+            return answer();
+        }
+        finally
+        {
+            Interlocked.Increment(ref _finished);
+        }
     }
 
     public object? GetService(Type serviceType, object? serviceKey = null)

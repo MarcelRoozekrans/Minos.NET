@@ -15,7 +15,7 @@ public sealed class ShadowModeTests
     private static IDecisionClient Pipeline(IDecisionClient primary, DecisionRecorder recorder, ShadowOptions shadow)
         => primary.AsBuilder().UseRecording(shadow, recorder).Build();
 
-    // Calls the pipeline and checks the primary's own result came back at once, while the candidate is still held.
+    // Calls the pipeline and checks the primary's own result came back at once, while a candidate's call is still pending.
     private static async Task<Result<DecisionResponse, DecisionError>> EvaluateAtOnceAsync(
         IDecisionClient client, DecisionRequest request, ShadowCandidate candidate, DecisionResponse primaryAnswer, CancellationToken cancellationToken = default)
     {
@@ -24,7 +24,9 @@ public sealed class ShadowModeTests
         var result = await pending;
         Assert.True(result.IsSuccess);
         Assert.Same(primaryAnswer, result.Value);
-        Assert.False(candidate.IsReleased);
+        await candidate.WaitStartedAsync();
+        Assert.Equal(1, candidate.Pending);
+        Assert.Equal(0, candidate.Finished);
         return result;
     }
 
@@ -409,7 +411,13 @@ public sealed class ShadowModeTests
             await client.EvaluateAsync(Request());
             await candidate.WaitStartedAsync();
             Assert.Single(candidate.Calls);
+
+            // The shadow settles before the recorder goes: written, or dropped by the queue of one.
+            await WaitUntilAsync(() => metrics.Sum("minos.recording.shadows", "written") + metrics.Sum("minos.recording.shadows", "dropped") == 1);
+            await recorder.FlushAsync().AsTask().WaitAsync(Bound);
         }
+
+        Assert.Equal(1, metrics.Sum("minos.recording.shadows"));
     }
 
     [Fact]
@@ -570,6 +578,94 @@ public sealed class ShadowModeTests
         Assert.Null(decision.Record.Shadow);
         Assert.Equal(0, metrics.Sum("minos.recording.shadows", "written"));
         Assert.Equal(0, metrics.Sum("minos.recording.shadows", "failed"));
+    }
+
+    [Fact]
+    public async Task TwoPipelines_WithOneShadowOptions_ShareItsCap()
+    {
+        using var metrics = new MetricCapture();
+        var sink = new InMemoryDecisionRecordSink();
+        var (recorder, _, factory) = Recorder(sink);
+        using (factory)
+        await using (recorder)
+        {
+            var candidate = new ShadowCandidate(held: false);
+            var shadow = new ShadowOptions(candidate, 1);
+            using var first = Pipeline(new ScriptedClient(Metadata), recorder, shadow);
+            using var second = Pipeline(new ScriptedClient(Metadata), recorder, shadow);
+
+            await first.EvaluateAsync(Request());
+            await WaitShadowedAsync(recorder, sink);
+            await second.EvaluateAsync(Request());
+            await first.EvaluateAsync(Request());
+
+            Assert.Single(candidate.Calls);
+            Assert.Equal(2, metrics.Sum("minos.recording.shadows", "skipped_cap"));
+            Assert.Equal(1, metrics.Sum("minos.recording.shadows", "written"));
+        }
+    }
+
+    [Fact]
+    public async Task CandidateIgnoringItsToken_TimesOut_AndFreesItsSlot()
+    {
+        using var metrics = new MetricCapture();
+        var unobserved = new List<Exception>();
+        void OnUnobserved(object? sender, UnobservedTaskExceptionEventArgs args)
+        {
+            lock (unobserved)
+            {
+                unobserved.AddRange(args.Exception.Flatten().InnerExceptions);
+            }
+        }
+
+        var time = new FakeTimeProvider(TestRecords.T0);
+        var sink = new InMemoryDecisionRecordSink();
+        var (recorder, _, factory) = Recorder(sink, time: time);
+        TaskScheduler.UnobservedTaskException += OnUnobserved;
+        try
+        {
+            using (factory)
+            await using (recorder)
+            {
+                var candidate = new ShadowCandidate(ignoresCancellation: true);
+                var options = new ShadowOptions(candidate, 10) { Timeout = TimeSpan.FromSeconds(3), MaxConcurrent = 1 };
+                using var client = Pipeline(new ScriptedClient(Metadata), recorder, options);
+
+                await client.EvaluateAsync(Request());
+                await candidate.WaitStartedAsync();
+                time.Advance(TimeSpan.FromSeconds(3) + TimeSpan.FromMilliseconds(1));
+
+                // The shadow is written at the timeout, while the candidate's call still runs.
+                var shadow = (await WaitShadowedAsync(recorder, sink)).Shadow!;
+                Assert.Equal(DecisionErrorKind.Timeout, shadow.ErrorKind);
+                Assert.Equal(1, candidate.Pending);
+
+                // Its running slot is free: the next decision's candidate starts.
+                await client.EvaluateAsync(Request());
+                await candidate.WaitStartedAsync(2);
+                Assert.Equal(0, metrics.Sum("minos.recording.shadows", "skipped_busy"));
+
+                // The orphaned call fails later; its exception is observed and never reported.
+                candidate.Throw(new InvalidOperationException("ORPHAN-SENTINEL"));
+                await WaitShadowedAsync(recorder, sink, count: 2);
+                await WaitUntilAsync(() => candidate.Finished == 2);
+            }
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+        }
+        finally
+        {
+            TaskScheduler.UnobservedTaskException -= OnUnobserved;
+        }
+
+        lock (unobserved)
+        {
+            Assert.DoesNotContain(unobserved, exception => exception.Message.Contains("ORPHAN-SENTINEL", StringComparison.Ordinal));
+        }
+
+        Assert.Equal(2, metrics.Sum("minos.recording.shadows", "written"));
     }
 
     [Fact]

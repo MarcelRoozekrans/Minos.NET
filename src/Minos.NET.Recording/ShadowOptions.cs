@@ -14,7 +14,9 @@ public sealed class ShadowOptions
     /// <param name="candidate">The client to shadow the primary with. It must not record its own decisions.</param>
     /// <param name="dailyCap">
     /// How many candidate calls may start on one UTC day, measured on the recorder's <see cref="TimeProvider"/>. A call
-    /// that errs or times out still counts. <see cref="int.MaxValue"/> sets no cap.
+    /// that errs or times out still counts. <see cref="int.MaxValue"/> sets no cap. Every stage built with these options
+    /// shares the cap: share one <see cref="ShadowOptions"/> among the pipelines that shadow the same candidate, so they
+    /// share its cap.
     /// </param>
     /// <exception cref="ArgumentNullException"><paramref name="candidate"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentOutOfRangeException"><paramref name="dailyCap"/> is less than 1.</exception>
@@ -32,12 +34,16 @@ public sealed class ShadowOptions
 
         Candidate = candidate;
         DailyCap = dailyCap;
+        Budget = new ShadowBudget(dailyCap);
     }
 
     /// <summary>Gets the client that shadows the primary.</summary>
     public IDecisionClient Candidate { get; }
 
-    /// <summary>Gets how many candidate calls may start on one UTC day.</summary>
+    /// <summary>
+    /// Gets how many candidate calls may start on one UTC day, among every stage built with these options: share one
+    /// <see cref="ShadowOptions"/> among the pipelines that shadow the same candidate, so they share its cap.
+    /// </summary>
     public int DailyCap { get; }
 
     /// <summary>
@@ -61,8 +67,8 @@ public sealed class ShadowOptions
     } = TimeSpan.FromSeconds(30);
 
     /// <summary>
-    /// Gets or sets how many candidate calls may run at once. A decision made while that many run is not shadowed, and
-    /// counted as <c>skipped_busy</c>.
+    /// Gets or sets how many candidate calls may run at once, among every stage built with these options. A decision made
+    /// while that many run is not shadowed, and counted as <c>skipped_busy</c>. A stage reads it when it is created.
     /// </summary>
     /// <value>Defaults to 4. At least 1.</value>
     /// <exception cref="ArgumentOutOfRangeException">The value is less than 1.</exception>
@@ -82,4 +88,7 @@ public sealed class ShadowOptions
     /// </summary>
     /// <value>Defaults to <see langword="null"/>, which is the candidate's default model.</value>
     public string? Model { get; set; }
+
+    /// <summary>Gets the cap and the running candidates every stage built with these options shares.</summary>
+    internal ShadowBudget Budget { get; }
 }
