@@ -1,6 +1,6 @@
-# Session State — 2026-10-30 (Milestone 9: Phase 9.2 complete, Phase 9.3 next)
+# Session State — 2026-10-31 (Milestone 9: Phase 9.3 planned, execution next)
 
-**Date:** 2026-10-30
+**Date:** 2026-10-31
 
 ## Current Position
 - **Roadmap:** re-planned on 2026-10-09 (`docs/superpowers/specs/2026-10-09-roadmap-design.md`).
@@ -124,7 +124,15 @@
      - **What shipped:** `DecisionDatasetExport` and `DatasetExportSummary` in `Minos.NET.Evaluation`, which now depends on `Minos.NET.Recording`; a signals companion file; `minos export`, which writes owner-only files on Unix; the "Exporting recorded decisions" section in `docs/datasets.md`.
      - **Found in review and fixed in the PR:** a repeated decision id across composed input is skipped so an export always loads; an unreadable records file is an input error, exit 2; the docs say an export is a copy of recorded state that a later erasure does not reach.
      - **Found by CI:** `tools/release/inspect_packages.py` lists each package's expected Minos dependencies; a new package dependency must be added there too.
-     - **Next:** Phase 9.3, shadow mode and its report, through `start-next-phase`: no spec yet, so it starts with brainstorming.
+   - **Phase 9.3 (shadow mode and its report) is active, planned on 2026-10-31** on branch `phase/9.3-shadow`. The maintainer skipped the brainstorm questions, so the spec's decisions are my calls, and a builder check settled nine more.
+     - **Spec:** `docs/superpowers/specs/2026-10-31-phase-9.3-shadow-design.md`.
+     - **Plan:** `docs/superpowers/plans/2026-10-31-phase-9.3-shadow.md`, eight tasks; Tasks 2, 3 and 5 are marked opus.
+     - **Key calls:**
+       - The candidate's answers arrive as a second `WriteAsync` of the same record, so `IDecisionRecordSink` does not change. A custom sink must upsert by decision id when shadow mode is on.
+       - The recorder drops a late shadow write after an erasure.
+       - `ShadowOptions(candidate, dailyCap)` takes a required cap.
+       - The report reads the record file, and `minos shadow-report` builds it.
+     - **Execution method chosen by the maintainer:** subagent-driven (`superpowers:subagent-driven-development`). Next: start it at Task 1. No task has started.
    - **Waiting on the maintainer:** a peer message to the Daedalus session "daedalus: phase 3.3 Task 16 onward" saying the recorder shipped in 1.3.0. It needs approval in the app; the `daedalus-b9` session no longer exists. The #119 comment is posted.
 2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.
 3. Phases 7.1 to 7.5 are complete. On 2026-10-15 nuget.org reserved `Minos.NET` and `Minos.NET.*` to MarcelRoozekrans, which lifted the 409 "package ID is reserved" block. The Trusted Publishing policy is ci.yml, no environment, glob `*`. `gh workflow run ci.yml --ref v1.0.1 -f publish_to_nuget=true` ([run 38726515640](https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/38726515640)) published all six packages as 1.0.1, with symbols. 1.0.0 was never published. `PackageValidationBaselineVersion` is 1.0.1, which closes #28. Milestone 7 is complete; its audit passed (`docs/plans/2026-10-15-milestone-7-audit.md`). Next: Milestone 8, Choosing a provider and a threshold, starting with `new-milestone`.
