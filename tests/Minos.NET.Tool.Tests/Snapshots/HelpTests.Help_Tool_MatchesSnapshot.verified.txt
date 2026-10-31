@@ -9,8 +9,9 @@ Options:
   --version       Show version information
 
 Commands:
-  calibrate    Runs a labelled dataset against a provider, then writes the results and a calibration report.
-  report       Builds the calibration report again from saved results and their dataset, without calling a provider.
-  export       Turns recorded decisions with confirmed outcomes into a labelled dataset and a signals file.
-  conformance  Sends the conformance probes to a live provider and checks its answers. Exits 1 when a check fails; a skipped check passes. The bad-key check is skipped when no API key is configured.
+  calibrate      Runs a labelled dataset against a provider, then writes the results and a calibration report.
+  report         Builds the calibration report again from saved results and their dataset, without calling a provider.
+  export         Turns recorded decisions with confirmed outcomes into a labelled dataset and a signals file.
+  shadow-report  Compares the primary and the candidate of shadowed decisions: agreement, confusion tables and calibration against confirmed outcomes.
+  conformance    Sends the conformance probes to a live provider and checks its answers. Exits 1 when a check fails; a skipped check passes. The bad-key check is skipped when no API key is configured.
 

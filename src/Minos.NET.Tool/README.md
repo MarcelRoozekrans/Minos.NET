@@ -16,6 +16,7 @@ The tool needs the .NET 10 runtime.
 | `minos calibrate` | Runs a labelled dataset against a provider, then writes the results and a calibration report. |
 | `minos report` | Builds the report again from saved results and their dataset, without calling a provider. |
 | `minos export` | Turns recorded decisions with confirmed outcomes into a labelled dataset and a signals file. |
+| `minos shadow-report` | Compares the primary and the candidate of shadowed decisions: agreement, confusion tables and calibration against confirmed outcomes. |
 | `minos conformance` | Sends the conformance probes to a live provider and checks its answers. |
 
 Run `minos <command> --help` for the options of each. Without `--out`, a command writes into `minos-out/<provider>-<UTC time>` in the current directory.
@@ -24,6 +25,7 @@ Run `minos <command> --help` for the options of each. Without `--out`, a command
 minos calibrate --dataset support.jsonl --provider typesafe --prices prices.json
 minos report --dataset support.jsonl --results minos-out/typesafe-20261017-120000/results.jsonl
 minos export --records decisions.jsonl
+minos shadow-report --records decisions.jsonl --prices prices.json
 minos conformance --provider typesafe
 ```
 

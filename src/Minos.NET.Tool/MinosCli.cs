@@ -34,6 +34,7 @@ internal static class MinosCli
         root.Subcommands.Add(CalibrateCommand.Create(stdout, stderr, handler));
         root.Subcommands.Add(ReportCommand.Create(stdout, stderr));
         root.Subcommands.Add(ExportCommand.Create(stdout, stderr));
+        root.Subcommands.Add(ShadowReportCommand.Create(stdout, stderr));
         root.Subcommands.Add(ConformanceCommand.Create(stdout, stderr, handler));
 
         var parse = root.Parse(args.Length == 0 ? ["--help"] : args);

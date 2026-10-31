@@ -157,4 +157,23 @@ public sealed class CancellationTests : IDisposable
         Assert.Equal(0, fake.Requests);
         Assert.False(Directory.Exists(_h.Out));
     }
+
+    [Fact]
+    public async Task ShadowReport_Cancelled_Exits130_DeletesPartials()
+    {
+        const string record = "{\"kind\":\"record\",\"version\":1,\"decisionId\":\"a\",\"started\":\"2026-10-22T09:30:00+00:00\",\"latencyMs\":212.5,\"provider\":\"typesafe\","
+            + "\"endpoint\":\"https://api.example.com/\",\"defaultModel\":\"jev-latest\",\"cached\":false,"
+            + "\"questions\":{\"urgent\":{\"type\":\"noul\",\"instructions\":\"?\"}},\"state\":\"s\",\"imageCount\":0,"
+            + "\"answers\":[{\"key\":\"urgent\",\"kind\":\"noul\",\"probability\":0.9,\"confidence\":0.8}],"
+            + "\"shadow\":{\"provider\":\"candidate\",\"servedModel\":\"c\",\"latencyMs\":40,\"answers\":[{\"key\":\"urgent\",\"kind\":\"noul\",\"probability\":0.7,\"confidence\":0.7}]}}";
+        var records = _h.Write("decisions.jsonl", record + "\n");
+        using var cts = new CancellationTokenSource();
+        await cts.CancelAsync();
+
+        var run = await Invoke(null, cts.Token, "shadow-report", "--records", records, "--out", _h.Out);
+
+        Assert.Equal(130, run.Exit);
+        Assert.False(File.Exists(Path.Combine(_h.Out, "shadow-report.json")));
+        Assert.False(File.Exists(Path.Combine(_h.Out, "shadow-report.md")));
+    }
 }
