@@ -1,5 +1,20 @@
 # Changelog
 
+## [1.8.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.7.1...v1.8.0) (2026-10-31)
+
+
+### Features
+
+* add minos shadow-report ([75abc31](https://github.com/MarcelRoozekrans/Minos.NET/commit/75abc31c0822cab5c7654ab8ae026626d5b6b9a9))
+* build a shadow report of agreement and calibration from recorded decisions ([75abc31](https://github.com/MarcelRoozekrans/Minos.NET/commit/75abc31c0822cab5c7654ab8ae026626d5b6b9a9))
+* **recording:** record the candidate's answers in a shadow part of the decision record ([75abc31](https://github.com/MarcelRoozekrans/Minos.NET/commit/75abc31c0822cab5c7654ab8ae026626d5b6b9a9))
+* **recording:** run a candidate provider beside the primary in the background with shadow mode ([75abc31](https://github.com/MarcelRoozekrans/Minos.NET/commit/75abc31c0822cab5c7654ab8ae026626d5b6b9a9))
+
+
+### Documentation
+
+* **recording:** document shadow mode, the shadow write and the shadow report ([75abc31](https://github.com/MarcelRoozekrans/Minos.NET/commit/75abc31c0822cab5c7654ab8ae026626d5b6b9a9))
+
 ## [1.7.1](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.7.0...v1.7.1) (2026-10-31)
 
 
