@@ -287,6 +287,128 @@ public sealed class ShadowWriteTests
     }
 
     [Fact]
+    public async Task CancelShadow_Unregisters_WithoutCounting()
+    {
+        using var metrics = new MetricCapture();
+        var sink = new InMemoryDecisionRecordSink();
+        var (recorder, _, factory) = Create(sink);
+        using (factory)
+        await using (recorder)
+        {
+            Assert.True(recorder.TryBeginShadow("d-1", "k", out _));
+
+            recorder.CancelShadow("d-1");
+
+            Assert.Equal(0, metrics.Sum("minos.recording.shadows"));
+            Assert.True(recorder.TryBeginShadow("d-1", "k", out _));
+            recorder.CancelShadow("d-1");
+        }
+
+        Assert.Equal(0, metrics.Sum("minos.recording.shadows"));
+    }
+
+    [Fact]
+    public async Task ShadowWriteQueuedBeforeDispose_IsDrainedAndWritten()
+    {
+        using var metrics = new MetricCapture();
+        var sink = new BlockingSink();
+        var (recorder, _, factory) = Create(sink);
+        using (factory)
+        {
+            var record = Record("d-1");
+            Assert.True(recorder.TryEnqueue(record));
+            await sink.WaitEnteredAsync();
+            Assert.True(recorder.TryBeginShadow("d-1", record.ErasureKey, out _));
+            recorder.EndShadow(record.WithShadow(Shadow()));
+
+            var disposing = recorder.DisposeAsync().AsTask();
+            sink.Release();
+            await disposing.WaitAsync(Bound);
+        }
+
+        Assert.Equal(["write:d-1", "write:d-1"], sink.Spy.Calls);
+        Assert.NotNull(Assert.Single(sink.Spy.Inner.Records).Record.Shadow);
+        Assert.Equal(1, metrics.Sum("minos.recording.shadows", "written"));
+        Assert.Equal(0, metrics.Sum("minos.recording.shadows", "dropped"));
+    }
+
+    [Fact]
+    public async Task EraseQueuedAfterEndShadow_ErasesTheShadowedRecord()
+    {
+        using var metrics = new MetricCapture();
+        var sink = new InMemoryDecisionRecordSink();
+        var (recorder, _, factory) = Create(sink);
+        using (factory)
+        await using (recorder)
+        {
+            var record = Record("d-1", erasureKey: "k");
+            Assert.True(recorder.TryEnqueue(record));
+            Assert.True(recorder.TryBeginShadow("d-1", "k", out _));
+            recorder.EndShadow(record.WithShadow(Shadow()));
+
+            await recorder.EraseAsync("k").AsTask().WaitAsync(Bound);
+            await recorder.FlushAsync().AsTask().WaitAsync(Bound);
+        }
+
+        Assert.Empty(sink.Records);
+        Assert.Equal(1, metrics.Sum("minos.recording.shadows", "written"));
+        Assert.Equal(0, metrics.Sum("minos.recording.shadows", "dropped"));
+    }
+
+    [Fact]
+    public async Task Dispose_LogsEveryThrowingCancellationCallback_ByTypeOnly()
+    {
+        var sink = new InMemoryDecisionRecordSink();
+        var (recorder, logs, factory) = Create(sink);
+        using (factory)
+        {
+            Assert.True(recorder.TryBeginShadow("d-1", null, out var stopping));
+            using var first = stopping.Register(static () => throw new InvalidOperationException("SENTINEL d-1"));
+            using var second = stopping.Register(static () => throw new FormatException("SENTINEL d-1"));
+
+            await recorder.DisposeAsync().AsTask().WaitAsync(Bound);
+        }
+
+        var failed = logs.GetSnapshot().Where(record => record.Id.Id == 1010).ToArray();
+        Assert.Equal(2, failed.Length);
+        Assert.All(failed, record =>
+        {
+            Assert.Equal("shadow-cancel", Field(record, "Operation"));
+            Assert.Null(record.Exception);
+            Assert.DoesNotContain("SENTINEL", record.Message, StringComparison.Ordinal);
+        });
+        Assert.Equal(
+            [nameof(FormatException), nameof(InvalidOperationException)],
+            failed.Select(record => Field(record, "ExceptionType")).Order(StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public async Task Dispose_DoesNotWaitPastTheFlushTimeout_ForASlowCancellationCallback()
+    {
+        using var metrics = new MetricCapture();
+        var sink = new InMemoryDecisionRecordSink();
+        var (recorder, logs, factory) = Create(sink, new RecordingOptions { FlushTimeout = TimeSpan.FromMilliseconds(200) });
+        using var release = new ManualResetEventSlim();
+        using (factory)
+        {
+            Assert.True(recorder.TryBeginShadow("d-1", null, out var stopping));
+            using var slow = stopping.Register(() => release.Wait(Bound));
+
+            var disposing = recorder.DisposeAsync().AsTask();
+
+            // The token is cancelled at once, even while its callback still runs.
+            Assert.True(stopping.IsCancellationRequested);
+            await disposing.WaitAsync(TimeSpan.FromSeconds(5));
+            Assert.False(release.IsSet);
+            release.Set();
+        }
+
+        // The queue drained, so nothing of it was lost.
+        Assert.DoesNotContain(logs.GetSnapshot(), record => record.Id.Id == 1012);
+        Assert.Equal(0, metrics.Sum("minos.recording.records", "dropped"));
+    }
+
+    [Fact]
     public async Task BeginShadowTwiceForOneId_ReturnsFalse()
     {
         var sink = new InMemoryDecisionRecordSink();

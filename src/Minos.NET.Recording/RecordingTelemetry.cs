@@ -31,7 +31,7 @@ internal static class RecordingTelemetry
 
     /// <summary>
     /// Shadow writes by result: <c>written</c> or <c>failed</c> by the sink; <c>dropped</c> for a full queue, an erased
-    /// decision or a disposed recorder; <c>skipped_cap</c> or <c>skipped_busy</c> for a candidate that never started.
+    /// decision, a disposed recorder or a flush timeout; <c>skipped_cap</c> or <c>skipped_busy</c> for a candidate that never started.
     /// </summary>
     internal static readonly Totals Shadows = new(Written, Failed, Dropped, SkippedCap, SkippedBusy);
 

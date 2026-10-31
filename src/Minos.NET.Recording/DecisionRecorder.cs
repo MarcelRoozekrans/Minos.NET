@@ -17,8 +17,9 @@ namespace Minos.Recording;
 /// fails makes its caller's task fail with <see cref="RecordingException"/>.</item>
 /// <item>In shadow mode, a decision's record is written a second time, with its <see cref="DecisionRecord.Shadow"/> part,
 /// when its candidate finishes; the sink replaces the first record and keeps its outcomes. That write is queued without
-/// waiting, never counted as a record, and dropped when the queue is full, the recorder is disposed, or an erasure of that
-/// decision, by key or by id, was handled while its candidate ran.</item>
+/// waiting, never counted as a record, and dropped when the queue is full, the recorder is disposed, a flush times out, or
+/// an erasure of that decision, by key or by id, was handled while its candidate ran. That rule is conservative: an
+/// erasure queued just before the record, but handled once the shadow began, drops the shadow and keeps the record.</item>
 /// <item><see cref="DisposeAsync"/> first cancels the running candidates, whose writes are dropped, then drains the queue
 /// for up to <see cref="RecordingOptions.FlushTimeout"/>, then cancels the sink's call and gives up on the rest, which it
 /// logs by count. A sink that ignores the cancellation may still be running its call when <see cref="DisposeAsync"/>
@@ -149,7 +150,10 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
         AbandonShadow(shadowed.DecisionId);
     }
 
-    /// <summary>Unregisters a running shadow without a write, for a candidate cancelled by the dispose, and counts it as dropped.</summary>
+    /// <summary>
+    /// Unregisters a running shadow without a write and counts it as dropped: for a candidate the dispose cancelled, whose
+    /// write is lost. <see cref="CancelShadow"/> unregisters one that never ran, without counting.
+    /// </summary>
     /// <param name="decisionId">The decision's id.</param>
     internal void AbandonShadow(string decisionId)
     {
@@ -160,6 +164,20 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
         }
 
         RecordingTelemetry.Shadows.Add(RecordingTelemetry.Dropped);
+    }
+
+    /// <summary>
+    /// Unregisters a shadow without a write and without counting it: for one begun before its decision's record was
+    /// queued, whose record was then not queued, so its candidate never starts.
+    /// </summary>
+    /// <param name="decisionId">The decision's id.</param>
+    internal void CancelShadow(string decisionId)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(decisionId);
+        lock (_shadowGate)
+        {
+            _shadows.Remove(decisionId);
+        }
     }
 
     /// <inheritdoc/>
@@ -220,13 +238,19 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
             Volatile.Write(ref _disposed, 1);
         }
 
-        StopShadows();
+        // The candidates' callbacks run off this thread, and the flush timeout bounds them with the drain.
+        var stoppingShadows = StopShadowsAsync();
         _channel.Writer.TryComplete();
         try
         {
-            await _writer.WaitAsync(_flushTimeout, Time).ConfigureAwait(false);
+            await Task.WhenAll(_writer, stoppingShadows).WaitAsync(_flushTimeout, Time).ConfigureAwait(false);
 
             // Only once the writer is done: after a timeout, a sink's call may still hold the token.
+            _stop.Dispose();
+        }
+        catch (Exception) when (_writer.IsCompletedSuccessfully)
+        {
+            // The queue drained, and only the candidates' callbacks ran out of time: nothing of the queue was lost.
             _stop.Dispose();
         }
         catch (Exception)
@@ -242,23 +266,41 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
             }
             finally
             {
-                // The cancellation ran its callbacks already, and the candidates keep only its token.
-                _shadowStop.Dispose();
+                // Only once the callbacks ran: the candidates keep only the token, which stays cancelled.
+                if (stoppingShadows.IsCompleted)
+                {
+                    _shadowStop.Dispose();
+                }
+                else
+                {
+                    _ = stoppingShadows.ContinueWith(
+                        static (_, source) => ((CancellationTokenSource)source!).Dispose(),
+                        _shadowStop,
+                        CancellationToken.None,
+                        TaskContinuationOptions.ExecuteSynchronously,
+                        TaskScheduler.Default);
+                }
+
                 done.SetResult();
             }
         }
     }
 
-    // Cancels the running candidates. Their callbacks run here, and one that throws must not fail the dispose.
-    private void StopShadows()
+    // Cancels the running candidates: the token is cancelled at once, and their callbacks run on the thread pool. One
+    // that throws is logged by its type name and never fails the dispose.
+    private async Task StopShadowsAsync()
     {
+        var cancelling = _shadowStop.CancelAsync();
         try
         {
-            _shadowStop.Cancel();
+            await cancelling.ConfigureAwait(false);
         }
-        catch (AggregateException ex)
+        catch (Exception)
         {
-            LogSinkCallFailed("cancel", ex.InnerExceptions[0]);
+            foreach (var exception in cancelling.Exception!.Flatten().InnerExceptions)
+            {
+                LogSinkCallFailed("shadow-cancel", exception);
+            }
         }
     }
 
@@ -509,7 +551,9 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
                 var byKey = item.ErasureKey is not null;
 
                 // Before the sink's call, in queue order: a shadow write queued after this erasure finds its decision
-                // marked, even when the sink's call fails.
+                // marked, even when the sink's call fails. It is conservative: an erasure queued before the decision's
+                // record but handled after its shadow began drops the shadow while the record, queued later, survives.
+                // That is intended, since only the candidate's answers are lost, never an erased decision restored.
                 MarkShadowsErased(item.ErasureKey, item.DecisionId);
                 try
                 {

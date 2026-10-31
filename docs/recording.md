@@ -501,7 +501,7 @@ in the category `Minos.DecisionClient`:
 | Id | Event | Level | When |
 | --- | --- | --- | --- |
 | 1009 | `RecordsDropped` | Warning | The queue was full, and records were dropped. |
-| 1010 | `SinkCallFailed` | Warning | A sink call threw, and the item was skipped; or, as the operation `cancel`, the sink's cancellation callback threw when dispose ran out of time. |
+| 1010 | `SinkCallFailed` | Warning | A sink call threw, and the item was skipped; or, as the operation `cancel`, the sink's cancellation callback threw when dispose ran out of time; or, as `shadow-cancel`, a shadow candidate's cancellation callback threw when dispose started. |
 | 1011 | `RedactionFailed` | Warning | The redactor threw or returned `null`; no record was kept. |
 | 1012 | `FlushTimedOut` | Error | Dispose ran out of time; the records, outcomes, erasures and flushes it lost are counted. |
 | 1013 | `RecordingFailed` | Warning | The stage could not make a record after the call; the decision is unaffected. |
@@ -513,7 +513,7 @@ Its instruments are on the meter named `Minos`, the same as the client's, and ea
 | `minos.recording.records` | Observable counter | `result`: `written`; `dropped`, for a full queue, a disposed recorder, a flush timeout or a redactor's `Drop`; or `failed`, for a sink or a redactor that threw, or a record the stage could not make. Every record ends in exactly one. |
 | `minos.recording.outcomes` | Observable counter | `result`: `written` or `failed`. |
 | `minos.recording.erasures` | Observable counter | `result`: `written` or `failed`. |
-| `minos.recording.shadows` | Observable counter | `result`: `written` or `failed` by the sink, for the second write of a shadowed record; `dropped`, for a full queue, an erased decision or a disposed recorder; or `skipped_cap` or `skipped_busy`, for a candidate that never started. It never adds to `minos.recording.records`. |
+| `minos.recording.shadows` | Observable counter | `result`: `written` or `failed` by the sink, for the second write of a shadowed record; `dropped`, for a full queue, an erased decision, a disposed recorder or a flush timeout; or `skipped_cap` or `skipped_busy`, for a candidate that never started. It never adds to `minos.recording.records`. |
 | `minos.recording.log_failures` | Observable counter | none: the recorder's log events lost because the logger threw. |
 
 The counters read totals kept in the process, so counting never calls a listener. A logger that throws loses its
