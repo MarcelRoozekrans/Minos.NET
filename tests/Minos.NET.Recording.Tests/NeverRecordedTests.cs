@@ -4,6 +4,7 @@ using System.Globalization;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Testing;
 using Microsoft.Extensions.Time.Testing;
+using ZeroAlloc.Results;
 using static Minos.Recording.Tests.Stage;
 
 namespace Minos.Recording.Tests;
@@ -33,6 +34,7 @@ public sealed class NeverRecordedTests
         "erasure failure",
         "flush timeout",
         "recording failure",
+        "shadow",
     };
 
     [Theory]
@@ -220,6 +222,47 @@ public sealed class NeverRecordedTests
                 break;
             }
 
+            case "shadow":
+            {
+                // Two shadowed decisions: one candidate throws and the other returns an error, both quoting every sentinel.
+                var quoted = $"The candidate quoted {StateSentinel}, {IdSentinel} and {KeySentinel}.";
+                var sink = new RecordingSpySink();
+                await using (var recorder = new DecisionRecorder(sink, null, factory))
+                {
+                    var throwing = new ShadowCandidate();
+                    var failing = new ShadowCandidate();
+                    using var first = ShadowPipeline(throwing, recorder);
+                    using var second = ShadowPipeline(failing, recorder);
+                    using (DecisionRecording.Begin($"{IdSentinel}-1", KeySentinel))
+                    {
+                        Assert.True((await first.EvaluateAsync(SentinelRequest())).IsSuccess);
+                    }
+
+                    using (DecisionRecording.Begin($"{IdSentinel}-2", KeySentinel))
+                    {
+                        Assert.True((await second.EvaluateAsync(SentinelRequest())).IsSuccess);
+                    }
+
+                    await throwing.WaitStartedAsync();
+                    await failing.WaitStartedAsync();
+                    throwing.Throw(new InvalidOperationException(quoted));
+                    failing.Release(Result<DecisionResponse, DecisionError>.Failure(new DecisionError(DecisionErrorKind.Server, quoted)));
+                    var deadline = Stopwatch.StartNew();
+                    while (sink.Calls.Count < 4)
+                    {
+                        Assert.True(deadline.Elapsed < Bound, "The decisions were not shadowed in time.");
+                        await Task.Delay(5);
+                        await recorder.FlushAsync().AsTask().WaitAsync(Bound);
+                    }
+                }
+
+                Assert.Equal(4, sink.Calls.Count);
+                Assert.All(sink.Inner.Records, decision => Assert.Equal(DecisionErrorKind.Server, decision.Record.Shadow!.ErrorKind));
+                capture.CollectCounters();
+                Assert.Contains("minos.recording.shadows", capture.Texts);
+                break;
+            }
+
             default:
             {
                 // A flush timeout: a record, an outcome and both erasures are lost.
@@ -256,6 +299,13 @@ public sealed class NeverRecordedTests
     // The core's telemetry stage sits inside, so its spans and metrics are captured too.
     private static IDecisionClient Pipeline(ScriptedClient inner, DecisionRecorder recorder)
         => inner.AsBuilder().UseRecording(recorder).UseOpenTelemetry().Build();
+
+    // A shadow candidate with the core's telemetry stage, so its spans and metrics are captured too.
+    private static IDecisionClient ShadowPipeline(ShadowCandidate candidate, DecisionRecorder recorder)
+        => new ScriptedClient(Metadata).AsBuilder()
+            .UseRecording(new ShadowOptions(candidate.AsBuilder().UseOpenTelemetry().Build(), 10), recorder)
+            .UseOpenTelemetry()
+            .Build();
 
     /// <summary>A sink that fails every call with a message that quotes nothing.</summary>
     private sealed class FailingSink : IDecisionRecordSink

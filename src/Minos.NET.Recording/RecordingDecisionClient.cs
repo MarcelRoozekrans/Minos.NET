@@ -27,6 +27,17 @@ namespace Minos.Recording;
 /// from the inner client, the caller's cancellation among them, reaches the caller unchanged and leaves the scope free for
 /// another attempt. Disposing the stage disposes the inner client, never the recorder.
 /// </para>
+/// <para>
+/// With <see cref="ShadowOptions"/>, the stage runs a candidate client beside the inner one for each decision it recorded
+/// on its first attempt whose inner call succeeded and was not a cache hit, within the daily cap and
+/// <see cref="ShadowOptions.MaxConcurrent"/>, and counts each skip. The candidate starts in the background once the record
+/// is queued, without the caller's execution context, so the scope and the <see cref="System.Diagnostics.Activity"/> of
+/// the call stay out of it; it gets the unredacted state and <see cref="ShadowOptions.Model"/>, never the caller's
+/// cancellation token. It is cancelled after <see cref="ShadowOptions.Timeout"/> or when the recorder is disposed. Its
+/// answers, or its kind of error, reach the sink as a second write of the decision's record with
+/// <see cref="DecisionRecord.Shadow"/> set. The stage never waits for the candidate, never changes the inner client's
+/// result, and never disposes the candidate. Its error message is never logged or recorded.
+/// </para>
 /// </remarks>
 public sealed class RecordingDecisionClient : DelegatingDecisionClient
 {
@@ -37,12 +48,26 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
     private readonly string _provider;
     private readonly string? _endpoint;
     private readonly string? _defaultModel;
+    private readonly ShadowRunner? _shadow;
 
     /// <summary>Initializes a new instance of the <see cref="RecordingDecisionClient"/> class.</summary>
     /// <param name="innerClient">The client whose decisions are recorded.</param>
     /// <param name="recorder">The recorder the records go to. The stage does not dispose it.</param>
     /// <exception cref="ArgumentNullException"><paramref name="innerClient"/> or <paramref name="recorder"/> is <see langword="null"/>.</exception>
     public RecordingDecisionClient(IDecisionClient innerClient, DecisionRecorder recorder)
+        : this(innerClient, recorder, null)
+    {
+    }
+
+    /// <summary>Initializes a new instance of the <see cref="RecordingDecisionClient"/> class, in shadow mode when <paramref name="shadow"/> is set.</summary>
+    /// <param name="innerClient">The client whose decisions are recorded.</param>
+    /// <param name="recorder">The recorder the records go to. The stage does not dispose it.</param>
+    /// <param name="shadow">
+    /// The candidate to shadow the inner client with, and its limits, read once here; <see langword="null"/> for no shadow
+    /// mode. The stage does not dispose the candidate.
+    /// </param>
+    /// <exception cref="ArgumentNullException"><paramref name="innerClient"/> or <paramref name="recorder"/> is <see langword="null"/>.</exception>
+    public RecordingDecisionClient(IDecisionClient innerClient, DecisionRecorder recorder, ShadowOptions? shadow)
         : base(innerClient)
     {
         ArgumentNullException.ThrowIfNull(recorder);
@@ -50,8 +75,9 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
         _time = recorder.Time;
         var metadata = innerClient.GetService<DecisionClientMetadata>();
         _provider = metadata?.ProviderName ?? UnknownProvider;
-        _endpoint = metadata?.Endpoint is { IsAbsoluteUri: true } endpoint ? endpoint.AbsoluteUri : metadata?.Endpoint?.OriginalString;
+        _endpoint = EndpointText(metadata);
         _defaultModel = metadata?.DefaultModel;
+        _shadow = shadow is null ? null : new ShadowRunner(shadow, recorder);
     }
 
     /// <inheritdoc />
@@ -157,7 +183,37 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
         }
     }
 
+    /// <summary>A client's endpoint as a record keeps it: the absolute URI, or the text it was made from.</summary>
+    /// <param name="metadata">The client's metadata, or <see langword="null"/>.</param>
+    /// <returns>The endpoint's text, or <see langword="null"/>.</returns>
+    internal static string? EndpointText(DecisionClientMetadata? metadata)
+        => metadata?.Endpoint is { IsAbsoluteUri: true } endpoint ? endpoint.AbsoluteUri : metadata?.Endpoint?.OriginalString;
+
+    /// <summary>The keys of the questions a refusal names, each once, in order; <see langword="null"/> for any other error.</summary>
+    /// <param name="error">The error.</param>
+    /// <returns>The refused keys, or <see langword="null"/>.</returns>
+    internal static List<string>? RefusedKeys(DecisionError error)
+    {
+        if (error.Kind != DecisionErrorKind.Refused)
+        {
+            return null;
+        }
+
+        var refusedKeys = new List<string>();
+        foreach (var failure in error.Failures)
+        {
+            if (failure.QuestionKey is { } key && !refusedKeys.Contains(key, StringComparer.Ordinal))
+            {
+                refusedKeys.Add(key);
+            }
+        }
+
+        return refusedKeys;
+    }
+
     // Builds the record and queues it without waiting. A redactor's failure is caught, and a full queue drops the record.
+    // In shadow mode, a decision to shadow has its shadow begun before its record is queued, so an erasure handled in
+    // between is noticed, and its candidate starts only once the record was queued.
     private void RecordCore(
         DecisionRequest request, Result<DecisionResponse, DecisionError> result, string decisionId, string? erasureKey, DateTimeOffset started, long timestamp)
     {
@@ -191,17 +247,7 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
         {
             var error = result.Error;
             errorKind = error.Kind;
-            if (error.Kind == DecisionErrorKind.Refused)
-            {
-                refusedKeys = [];
-                foreach (var failure in error.Failures)
-                {
-                    if (failure.QuestionKey is { } key && !refusedKeys.Contains(key, StringComparer.Ordinal))
-                    {
-                        refusedKeys.Add(key);
-                    }
-                }
-            }
+            refusedKeys = RefusedKeys(error);
         }
 
         var record = new DecisionRecord(
@@ -225,7 +271,17 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
             DecisionRecord.Freeze(answers),
             errorKind,
             DecisionRecord.Freeze(refusedKeys));
-        _recorder.TryEnqueue(record);
+
+        // A failed call gives nothing to agree with, and a cache hit repeats a decision already shadowed.
+        ShadowRunner.Reservation shadow = default;
+        var runner = _shadow is not null && response is { IsCached: false } && _shadow.TryBegin(record, out shadow) ? _shadow : null;
+        if (!_recorder.TryEnqueue(record))
+        {
+            runner?.Cancel(shadow);
+            return;
+        }
+
+        runner?.Start(request, shadow);
     }
 
     // Runs the redactor. A redactor that throws or returns null keeps no record; its exception's message is never logged,

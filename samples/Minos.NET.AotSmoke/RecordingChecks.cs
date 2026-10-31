@@ -15,7 +15,7 @@ internal static class RecordingChecks
     [Covers("Minos.Recording.JsonlDecisionRecordSink.JsonlDecisionRecordSink(string! path) -> void")]
     [Covers("Minos.Recording.RecordingOptions.RecordingOptions() -> void")]
     [Covers("Minos.Recording.DecisionRecorder.DecisionRecorder(Minos.Recording.IDecisionRecordSink! sink, Minos.Recording.RecordingOptions? options = null, Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory = null, System.TimeProvider? timeProvider = null) -> void")]
-    [Covers("static Minos.RecordingDecisionClientBuilderExtensions.UseRecording(this Minos.DecisionClientBuilder! builder, Minos.Recording.DecisionRecorder? recorder = null) -> Minos.DecisionClientBuilder!")]
+    [Covers("static Minos.RecordingDecisionClientBuilderExtensions.UseRecording(this Minos.DecisionClientBuilder! builder, Minos.Recording.DecisionRecorder? recorder) -> Minos.DecisionClientBuilder!")]
     [Covers("static Minos.Recording.DecisionRecording.Begin(string? decisionId = null, string? erasureKey = null) -> Minos.Recording.DecisionRecordingScope!")]
     [Covers("Minos.Recording.DecisionRecordingScope.Dispose() -> void")]
     [Covers("static Minos.Recording.RedactionResult.Keep(Minos.DecisionContent state) -> Minos.Recording.RedactionResult!")]

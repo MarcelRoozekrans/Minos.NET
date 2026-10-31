@@ -1,4 +1,7 @@
 #nullable enable
+*REMOVED*static Minos.RecordingDecisionClientBuilderExtensions.UseRecording(this Minos.DecisionClientBuilder! builder, Minos.Recording.DecisionRecorder? recorder = null) -> Minos.DecisionClientBuilder!
+static Minos.RecordingDecisionClientBuilderExtensions.UseRecording(this Minos.DecisionClientBuilder! builder) -> Minos.DecisionClientBuilder!
+static Minos.RecordingDecisionClientBuilderExtensions.UseRecording(this Minos.DecisionClientBuilder! builder, Minos.Recording.DecisionRecorder? recorder) -> Minos.DecisionClientBuilder!
 Minos.Recording.DecisionRecord.Shadow.get -> Minos.Recording.ShadowResult?
 Minos.Recording.ShadowResult
 Minos.Recording.ShadowResult.Answers.get -> System.Collections.Generic.IReadOnlyList<Minos.Recording.RecordedAnswer>!
@@ -13,3 +16,15 @@ Minos.Recording.ShadowResult.ResponseId.get -> string?
 Minos.Recording.ShadowResult.ServedModel.get -> string?
 Minos.Recording.ShadowResult.UpstreamProvider.get -> string?
 Minos.Recording.ShadowResult.Usage.get -> Minos.DecisionUsage?
+Minos.Recording.RecordingDecisionClient.RecordingDecisionClient(Minos.IDecisionClient! innerClient, Minos.Recording.DecisionRecorder! recorder, Minos.Recording.ShadowOptions? shadow) -> void
+Minos.Recording.ShadowOptions
+Minos.Recording.ShadowOptions.Candidate.get -> Minos.IDecisionClient!
+Minos.Recording.ShadowOptions.DailyCap.get -> int
+Minos.Recording.ShadowOptions.MaxConcurrent.get -> int
+Minos.Recording.ShadowOptions.MaxConcurrent.set -> void
+Minos.Recording.ShadowOptions.Model.get -> string?
+Minos.Recording.ShadowOptions.Model.set -> void
+Minos.Recording.ShadowOptions.ShadowOptions(Minos.IDecisionClient! candidate, int dailyCap) -> void
+Minos.Recording.ShadowOptions.Timeout.get -> System.TimeSpan
+Minos.Recording.ShadowOptions.Timeout.set -> void
+static Minos.RecordingDecisionClientBuilderExtensions.UseRecording(this Minos.DecisionClientBuilder! builder, Minos.Recording.ShadowOptions! shadow, Minos.Recording.DecisionRecorder? recorder = null) -> Minos.DecisionClientBuilder!

@@ -29,6 +29,40 @@ public sealed class UseRecordingTests
     }
 
     [Fact]
+    public async Task UseRecording_WithShadow_ResolvesTheRecorderFromServices()
+    {
+        var sink = new RecordingSpySink();
+        var (recorder, _, factory) = Recorder(sink);
+        using (factory)
+        await using (recorder)
+        {
+            var collection = new ServiceCollection();
+            collection.AddSingleton(recorder);
+            using var services = collection.BuildServiceProvider();
+            var candidate = new ShadowCandidate(held: false);
+            using var client = new ScriptedClient(Metadata).AsBuilder().UseRecording(new ShadowOptions(candidate, 10)).Build(services);
+
+            Assert.True((await client.EvaluateAsync(Request())).IsSuccess);
+            await candidate.WaitStartedAsync();
+            Assert.Same(recorder, client.GetService<IDecisionRecorder>());
+
+            // The second write follows the candidate's answer.
+            var deadline = System.Diagnostics.Stopwatch.StartNew();
+            await recorder.FlushAsync().AsTask().WaitAsync(Bound);
+            while (sink.Inner.Records[0].Record.Shadow is null)
+            {
+                Assert.True(deadline.Elapsed < Bound, "The decision was not shadowed in time.");
+                await Task.Delay(5);
+                await recorder.FlushAsync().AsTask().WaitAsync(Bound);
+            }
+        }
+
+        Assert.Equal("anthropic", Assert.Single(sink.Inner.Records).Record.Shadow!.Provider);
+        Assert.Throws<InvalidOperationException>(
+            () => new ScriptedClient().AsBuilder().UseRecording(new ShadowOptions(new ShadowCandidate(), 1)).Build());
+    }
+
+    [Fact]
     public void Build_Throws_WithoutARecorder()
     {
         var builder = new ScriptedClient().AsBuilder().UseRecording();
