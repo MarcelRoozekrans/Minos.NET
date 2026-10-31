@@ -1,5 +1,5 @@
 ﻿Description:
-  Calibrates a decision model against a labelled dataset, checks that a provider conforms, and exports recorded decisions as a labelled dataset.
+  Calibrates a decision model against a labelled dataset, checks that a provider conforms, exports recorded decisions as a labelled dataset, and compares a candidate with the primary on shadowed decisions.
 
 Usage:
   minos [command] [options]

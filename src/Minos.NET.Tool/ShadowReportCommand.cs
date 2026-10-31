@@ -1,5 +1,6 @@
 using System.CommandLine;
 using System.Globalization;
+using System.Text;
 using Minos.Evaluation;
 using Minos.Recording;
 
@@ -68,19 +69,18 @@ internal static class ShadowReportCommand
             return ExitCodes.Usage;
         }
 
-        ct.ThrowIfCancellationRequested();
         var outDir = CommandSupport.ReserveOut(outOption, "shadow-report");
         var jsonPath = Path.Combine(outDir, "shadow-report.json");
         var markdownPath = Path.Combine(outDir, "shadow-report.md");
         try
         {
-            await File.WriteAllTextAsync(jsonPath, report.ToJson(), ct).ConfigureAwait(false);
-            await File.WriteAllTextAsync(markdownPath, report.ToMarkdown(), ct).ConfigureAwait(false);
+            await WriteAsync(jsonPath, report.ToJson(), ct).ConfigureAwait(false);
+            await WriteAsync(markdownPath, report.ToMarkdown(), ct).ConfigureAwait(false);
         }
         catch
         {
             // A failed or cancelled report leaves no half-written file behind.
-            ExportCommand.DeleteBoth(jsonPath, markdownPath);
+            CommandSupport.DeleteBoth(jsonPath, markdownPath);
             throw;
         }
 
@@ -92,5 +92,15 @@ internal static class ShadowReportCommand
         await stdout.WriteLineAsync(jsonPath).ConfigureAwait(false);
         await stdout.WriteLineAsync(markdownPath).ConfigureAwait(false);
         return ExitCodes.Success;
+    }
+
+    // The files are made private, as export's are: they are built from recorded state, and the served-model names may be sensitive.
+    private static async Task WriteAsync(string path, string text, CancellationToken ct)
+    {
+        var stream = new FileStream(path, CommandSupport.PrivateOutput());
+        await using (stream.ConfigureAwait(false))
+        {
+            await stream.WriteAsync(new UTF8Encoding(false).GetBytes(text), ct).ConfigureAwait(false);
+        }
     }
 }

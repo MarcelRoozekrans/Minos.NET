@@ -35,5 +35,24 @@ internal sealed class Harness : IDisposable
         return new Run(exit, stdout.ToString(), stderr.ToString());
     }
 
+    /// <summary>Runs a command that is cancelled when it first writes to stderr, which a command does after it has read its input and before it writes its output.</summary>
+    public static async Task<Run> InvokeCancellingOnFirstProblem(params string[] args)
+    {
+        using var cts = new CancellationTokenSource();
+        var stdout = new StringWriter();
+        var stderr = new CancelOnWrite(cts);
+        var exit = await MinosCli.RunAsync(args, stdout, stderr, null, cts.Token);
+        return new Run(exit, stdout.ToString(), stderr.ToString());
+    }
+
+    private sealed class CancelOnWrite(CancellationTokenSource cts) : StringWriter
+    {
+        public override Task WriteLineAsync(string? value)
+        {
+            cts.Cancel();
+            return base.WriteLineAsync(value);
+        }
+    }
+
     public static Task<Run> Invoke(FakeSystemOne? fake, params string[] args) => Invoke(fake, CancellationToken.None, args);
 }

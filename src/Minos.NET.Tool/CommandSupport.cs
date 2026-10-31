@@ -109,6 +109,45 @@ internal static class CommandSupport
         return cleaned.Trim() is { Length: > 0 } trimmed ? trimmed : "provider";
     }
 
+    /// <summary>The options for an output file that holds a copy of recorded state, so it is made private like the record file JsonlDecisionRecordSink makes.</summary>
+    internal static FileStreamOptions PrivateOutput()
+    {
+        var options = new FileStreamOptions
+        {
+            Mode = FileMode.Create,
+            Access = FileAccess.Write,
+            Share = FileShare.None,
+            Options = FileOptions.Asynchronous,
+        };
+        if (!OperatingSystem.IsWindows())
+        {
+            options.UnixCreateMode = UnixFileMode.UserRead | UnixFileMode.UserWrite;
+        }
+
+        return options;
+    }
+
+    /// <summary>Deletes both output files, as far as it can: a cleanup that fails must not replace the failure or the cancellation that started it.</summary>
+    /// <param name="first">The first file.</param>
+    /// <param name="second">The second file.</param>
+    internal static void DeleteBoth(string first, string second)
+    {
+        TryDelete(first);
+        TryDelete(second);
+    }
+
+    private static void TryDelete(string path)
+    {
+        try
+        {
+            File.Delete(path);
+        }
+        catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
+        {
+            // Best effort: the file stays, and the command reports what started the cleanup.
+        }
+    }
+
     /// <summary>Makes a message one line, so a failure is one line on stderr.</summary>
     internal static string OneLine(string message)
         => string.Join(' ', message.Split(['\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries));

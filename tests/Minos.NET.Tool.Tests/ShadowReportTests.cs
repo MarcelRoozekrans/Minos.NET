@@ -68,6 +68,19 @@ public sealed class ShadowReportTests : IDisposable
     }
 
     [Fact]
+    public async Task ShadowReport_EveryLineAProblem_ExitsTwo_WritesNothing()
+    {
+        var records = Records("not json", "{\"kind\":\"unknown\",\"version\":1}");
+
+        var run = await Invoke(null, "shadow-report", "--records", records, "--out", _h.Out);
+
+        Assert.Equal(2, run.Exit);
+        Assert.Contains("line 1", run.Stderr, StringComparison.Ordinal);
+        Assert.Contains("line 2", run.Stderr, StringComparison.Ordinal);
+        Assert.False(Directory.Exists(_h.Out));
+    }
+
+    [Fact]
     public async Task ShadowReport_MissingFile_ExitsTwo()
     {
         var run = await Invoke(null, "shadow-report", "--records", Path.Combine(_h.Dir, "nope.jsonl"), "--out", _h.Out);
