@@ -21,11 +21,16 @@ internal static class RecordLines
 
     public static string Record(
         string id, string questions = Questions, string state = "\"The app crashes when I pay.\"", int images = 0, string? errorKind = null, bool cached = false,
-        string[]? refusedKeys = null)
+        string[]? refusedKeys = null, string? answers = null, string? shadow = null, string? erasureKey = null)
     {
         var line = new StringBuilder();
-        line.Append("""{"kind":"record","version":1,"decisionId":""").Append(Quote(id))
-            .Append(""","started":"2026-10-22T09:30:00+00:00","latencyMs":212.5,"provider":"typesafe","endpoint":"https://api.example.com/","defaultModel":"jev-latest","cached":""")
+        line.Append("""{"kind":"record","version":1,"decisionId":""").Append(Quote(id));
+        if (erasureKey is not null)
+        {
+            line.Append(""","erasureKey":""").Append(Quote(erasureKey));
+        }
+
+        line.Append(""","started":"2026-10-22T09:30:00+00:00","latencyMs":212.5,"provider":"typesafe","endpoint":"https://api.example.com/","defaultModel":"jev-latest","cached":""")
             .Append(cached ? "true" : "false")
             .Append(""","questions":""").Append(questions)
             .Append(""","state":""").Append(state)
@@ -49,9 +54,19 @@ internal static class RecordLines
                 line.Append(""","refusedKeys":[""").Append(string.Join(',', refusedKeys.Select(Quote))).Append(']');
             }
         }
+        else if (answers is not null)
+        {
+            line.Append(""","answers":""").Append(answers);
+        }
         else if (string.Equals(questions, Questions, StringComparison.Ordinal))
         {
             line.Append(""","answers":""").Append(DefaultAnswers);
+        }
+
+        // The candidate's part, as the shadow writer puts it after the record's own members.
+        if (shadow is not null)
+        {
+            line.Append(""","shadow":""").Append(shadow);
         }
 
         return line.Append('}').ToString();

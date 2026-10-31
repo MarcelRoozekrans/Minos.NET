@@ -9,7 +9,8 @@ public sealed class ApiShapeTests
     private static readonly Type[] InputTypes = [typeof(RunHeader), typeof(ItemResult), typeof(AnswerRecord), typeof(ItemError), typeof(ModelPrice)];
 
     private static readonly Type[] OutputTypes =
-        [typeof(KindMetrics), typeof(ReliabilityBin), typeof(SweepPoint), typeof(LatencySummary), typeof(CostSummary), typeof(ErrorSummary), typeof(ModelCount)];
+        [typeof(KindMetrics), typeof(ReliabilityBin), typeof(SweepPoint), typeof(LatencySummary), typeof(CostSummary), typeof(ErrorSummary), typeof(ModelCount),
+            typeof(ShadowReport), typeof(ShadowSide), typeof(ShadowQuestion)];
 
     [Fact]
     public void NoResultOrReportTypeIsARecord()

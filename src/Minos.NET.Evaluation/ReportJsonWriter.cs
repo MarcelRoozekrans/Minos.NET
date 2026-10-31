@@ -17,7 +17,7 @@ internal static class ReportJsonWriter
     internal static string Write(CalibrationReport report)
     {
         var buffer = new ArrayBufferWriter<byte>();
-        using (var w = new Utf8JsonWriter(buffer, Options))
+        using (var w = Writer(buffer))
         {
             w.WriteStartObject();
             w.WriteString("kind", Kind);
@@ -35,40 +35,18 @@ internal static class ReportJsonWriter
                 w.WriteNumber("verbalizedAnswers", report.VerbalizedAnswers);
             }
 
-            w.WriteStartObject("latency");
-            w.WriteNumber("requests", report.Latency.Requests);
-            WriteNumber(w, "medianMs", report.Latency.MedianMs);
-            WriteNumber(w, "p95Ms", report.Latency.P95Ms);
-            w.WriteEndObject();
+            WriteLatency(w, report.Latency);
             WriteCost(w, report.Cost);
-            w.WriteStartObject("errors");
-            w.WriteNumber("count", report.Errors.Count);
-            w.WriteStartArray("byKind");
-            foreach (var (kind, count) in report.Errors.ByKind)
-            {
-                w.WriteStartObject();
-                w.WriteString("kind", kind);
-                w.WriteNumber("count", count);
-                w.WriteEndObject();
-            }
-
-            w.WriteEndArray();
-            w.WriteEndObject();
-            w.WriteStartArray("responseModels");
-            foreach (var model in report.ResponseModels)
-            {
-                w.WriteStartObject();
-                w.WriteString("model", model.Model);
-                w.WriteNumber("count", model.Count);
-                w.WriteEndObject();
-            }
-
-            w.WriteEndArray();
+            WriteErrors(w, report.Errors);
+            WriteModels(w, report.ResponseModels);
             w.WriteEndObject();
         }
 
         return Encoding.UTF8.GetString(buffer.WrittenSpan);
     }
+
+    // The writer the reports share: indented with line feeds, and no escaping of text that JSON allows as it is.
+    internal static Utf8JsonWriter Writer(ArrayBufferWriter<byte> buffer) => new(buffer, Options);
 
     private static void WriteHeader(Utf8JsonWriter w, RunHeader h)
     {
@@ -85,7 +63,7 @@ internal static class ReportJsonWriter
         w.WriteEndObject();
     }
 
-    private static void WriteKind(Utf8JsonWriter w, string name, KindMetrics? m)
+    internal static void WriteKind(Utf8JsonWriter w, string name, KindMetrics? m)
     {
         if (m is null)
         {
@@ -126,7 +104,53 @@ internal static class ReportJsonWriter
         w.WriteEndObject();
     }
 
-    private static void WriteCost(Utf8JsonWriter w, CostSummary c)
+    internal static void WriteLatency(Utf8JsonWriter w, LatencySummary latency)
+    {
+        w.WriteStartObject("latency");
+        w.WriteNumber("requests", latency.Requests);
+        WriteNumber(w, "medianMs", latency.MedianMs);
+        WriteNumber(w, "p95Ms", latency.P95Ms);
+        w.WriteEndObject();
+    }
+
+    internal static void WriteErrors(Utf8JsonWriter w, ErrorSummary errors)
+    {
+        w.WriteStartObject("errors");
+        w.WriteNumber("count", errors.Count);
+        WriteCounts(w, "byKind", "kind", errors.ByKind);
+        w.WriteEndObject();
+    }
+
+    // A list of named counts, as objects of the name and its count.
+    internal static void WriteCounts(Utf8JsonWriter w, string name, string nameMember, IReadOnlyList<KeyValuePair<string, int>> counts)
+    {
+        w.WriteStartArray(name);
+        foreach (var (key, count) in counts)
+        {
+            w.WriteStartObject();
+            w.WriteString(nameMember, key);
+            w.WriteNumber("count", count);
+            w.WriteEndObject();
+        }
+
+        w.WriteEndArray();
+    }
+
+    internal static void WriteModels(Utf8JsonWriter w, IReadOnlyList<ModelCount> models)
+    {
+        w.WriteStartArray("responseModels");
+        foreach (var model in models)
+        {
+            w.WriteStartObject();
+            w.WriteString("model", model.Model);
+            w.WriteNumber("count", model.Count);
+            w.WriteEndObject();
+        }
+
+        w.WriteEndArray();
+    }
+
+    internal static void WriteCost(Utf8JsonWriter w, CostSummary c)
     {
         w.WriteStartObject("cost");
         WriteNumber(w, "perThousandDecisions", c.PerThousandDecisions);
@@ -150,7 +174,7 @@ internal static class ReportJsonWriter
         w.WriteEndObject();
     }
 
-    private static void WriteNumber(Utf8JsonWriter w, string name, double? value)
+    internal static void WriteNumber(Utf8JsonWriter w, string name, double? value)
     {
         if (value is { } v)
         {

@@ -137,6 +137,7 @@ internal static class Program
         await EvaluationChecks.AStoppedRunKeepsItsPaidResults().ConfigureAwait(false);
         await EvaluationChecks.ACancelledRunKeepsItsPaidResults().ConfigureAwait(false);
         await EvaluationChecks.ExportsRecordedDecisions().ConfigureAwait(false);
+        await EvaluationChecks.ReportsOnShadowedDecisions().ConfigureAwait(false);
 
         await RecordingChecks.RecordsADecisionToAFileAndReadsItBack().ConfigureAwait(false);
         await RecordingChecks.TheStageRecorderAndSinksWorkThroughTheirInterfaces().ConfigureAwait(false);

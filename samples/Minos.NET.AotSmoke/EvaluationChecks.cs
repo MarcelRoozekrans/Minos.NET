@@ -508,6 +508,100 @@ internal static class EvaluationChecks
         }
     }
 
+    [Covers("Minos.Evaluation.ConfusionCell.ConfusionCell() -> void")]
+    [Covers("Minos.Evaluation.ConfusionCell.ConfusionCell(string! Primary, string! Candidate, int Count) -> void")]
+    [Covers("Minos.Evaluation.ShadowReport.ToJson() -> string!")]
+    [Covers("Minos.Evaluation.ShadowReport.ToMarkdown() -> string!")]
+    [Covers("static Minos.Evaluation.ShadowReport.Create(System.Collections.Generic.IEnumerable<Minos.Recording.RecordedDecision!>! decisions, Minos.Evaluation.PriceTable? prices = null) -> Minos.Evaluation.ShadowReport!")]
+    [Covers("static Minos.Evaluation.ShadowReport.CreateAsync(System.Collections.Generic.IAsyncEnumerable<Minos.Recording.RecordedDecision!>! decisions, Minos.Evaluation.PriceTable? prices = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Minos.Evaluation.ShadowReport!>!")]
+    public static async Task ReportsOnShadowedDecisions()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "minos-aot-smoke-shadow-report-" + Guid.NewGuid().ToString("N") + ".jsonl");
+        var request = new DecisionRequest(SmokeTriage.Definition, SmokeAnswers.State);
+        try
+        {
+            // As the recording check does: two decisions shadowed by a candidate that answers as the primary, one with a
+            // confirmed outcome and a signal.
+            var sink = new JsonlDecisionRecordSink(path);
+            var recorder = new DecisionRecorder(
+                sink,
+                new RecordingOptions { Capacity = 16, FlushTimeout = TimeSpan.FromSeconds(10), Redact = static state => RedactionResult.Keep(state) });
+            using var candidate = new FixedResponseClient(PipelineChecks.TriageResponse());
+            var shadow = new ShadowOptions(candidate, dailyCap: 10) { Timeout = TimeSpan.FromSeconds(10) };
+            using (var client = new FixedResponseClient(PipelineChecks.TriageResponse()).AsBuilder().UseRecording(shadow, recorder).Build())
+            {
+                foreach (var id in new[] { "shadow-report-1", "shadow-report-2" })
+                {
+                    using var scope = DecisionRecording.Begin(decisionId: id);
+                    _ = await client.EvaluateAsync(request).ConfigureAwait(false);
+                }
+            }
+
+            var at = new DateTimeOffset(2026, 10, 31, 9, 30, 0, TimeSpan.Zero);
+            await recorder.AddOutcomeAsync(
+                "shadow-report-1",
+                DecisionOutcome.Confirmed("reviewer", at, new Dictionary<string, ConfirmedAnswer>(StringComparer.Ordinal) { ["requests_credentials"] = ConfirmedAnswer.ForNoul(true) })).ConfigureAwait(false);
+            await recorder.AddOutcomeAsync("shadow-report-1", DecisionOutcome.Signal("mailer", at, "opened")).ConfigureAwait(false);
+
+            // The candidate writes its part after the primary returns: wait for both a bounded number of times.
+            var read = new List<RecordedDecision>();
+            for (var attempt = 0; attempt < 400; attempt++)
+            {
+                await recorder.FlushAsync().ConfigureAwait(false);
+                read.Clear();
+                await foreach (var decision in DecisionRecordFile.ReadAsync(path, CancellationToken.None).ConfigureAwait(false))
+                {
+                    read.Add(decision);
+                }
+
+                if (read.Count == 2 && read.TrueForAll(static d => d.Record.Shadow is not null && (d.Outcomes.Count > 0) == string.Equals(d.Record.DecisionId, "shadow-report-1", StringComparison.Ordinal)))
+                {
+                    break;
+                }
+
+                await Task.Delay(50).ConfigureAwait(false);
+            }
+
+            await recorder.DisposeAsync().ConfigureAwait(false);
+            await sink.DisposeAsync().ConfigureAwait(false);
+
+            var report = ShadowReport.Create(read);
+            var streamed = await ShadowReport.CreateAsync(DecisionRecordFile.ReadAsync(path, CancellationToken.None), new PriceTable([])).ConfigureAwait(false);
+            var team = report.Questions.Count == 3 ? report.Questions[1] : null;
+            var label = team?.Labels.Count > 0 ? team.Labels[PipelineChecks.TriageResponse().Answers[1].ChosenIndex] : null;
+            using var json = JsonDocument.Parse(report.ToJson());
+            var markdown = report.ToMarkdown();
+
+            Program.Check(
+                report.DecisionsRead == 2
+                    && report.DecisionsShadowed == 2
+                    && team is { Key: "team", Kind: QuestionKind.Choice, Compared: 2, PrimaryOnly: 0, CandidateOnly: 0, Agreement: 1.0, MeanLevelDifference: null, IsSmall: true }
+                    && label is not null
+                    && team.Confusion.Count == 1 && team.Confusion[0].Equals(new ConfusionCell(label, label, 2))
+                    && !new ConfusionCell().Equals(team.Confusion[0])
+                    && team.SignalsWhenAgreed is [{ Key: "opened", Value: 1 }] && team.SignalsWhenDisagreed.Count == 0
+                    && report.Questions[2].MeanLevelDifference == 0
+                    && report.Primary.CalibratedKeys == 1 && report.Candidate.CalibratedKeys == 1
+                    && report.Primary.CalibratedDecisions == 1 && report.Candidate.CalibratedDecisions == 1
+                    && report.Primary.Noul is { Scored: 1 } && report.Candidate.Noul is { Scored: 1 }
+                    && report.Primary.Choice is null && report.Candidate.Score is null && report.Candidate.Overall.Scored == 1
+                    && report.Candidate.Errors.Count == 0 && report.Candidate.Refusals == 0 && report.Primary.VerbalizedAnswers == 0
+                    && report.Candidate.Latency.Requests == 2 && report.Candidate.Cost.Unknown == 2
+                    && report.Candidate.Models is [{ Count: 2 }]
+                    && streamed.DecisionsShadowed == 2
+                    && string.Equals(streamed.ToJson(), report.ToJson(), StringComparison.Ordinal)
+                    && string.Equals(json.RootElement.GetProperty("kind").GetString(), "minos-shadow-report", StringComparison.Ordinal)
+                    && markdown.StartsWith("# Shadow report", StringComparison.Ordinal)
+                    && !markdown.Contains("shadow-report-1", StringComparison.Ordinal)
+                    && !report.ToJson().Contains(SmokeAnswers.State, StringComparison.Ordinal),
+                "a shadow report compares the primary and the candidate of recorded decisions, and writes JSON and Markdown, under Native AOT");
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     private sealed class AnsweringClient : IDecisionClient
     {
         public ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)

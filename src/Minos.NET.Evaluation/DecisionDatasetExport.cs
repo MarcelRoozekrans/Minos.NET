@@ -155,16 +155,8 @@ public static class DecisionDatasetExport
     private static bool TryWriteItem(ArrayBufferWriter<byte> line, RecordedDecision decision, Counts counts)
     {
         var record = decision.Record;
-        var confirmed = new List<ConfirmedOutcome>();
-        foreach (var outcome in decision.Outcomes)
-        {
-            if (outcome is ConfirmedOutcome c)
-            {
-                confirmed.Add(c);
-            }
-        }
-
-        if (confirmed.Count == 0)
+        var merged = ConfirmedAnswers.Merge(decision);
+        if (merged.Outcomes.Count == 0)
         {
             counts.SkippedWithoutConfirmedOutcome++;
             return false;
@@ -176,47 +168,15 @@ public static class DecisionDatasetExport
             return false;
         }
 
-        // Per key, the winning answer and the index of its outcome. An answer that does not fit is dropped first, so it
-        // never takes part in the merge. Outcomes come in file order, so ">=" lets a later one win an equal time.
-        var winners = new Dictionary<string, (ConfirmedAnswer Answer, DateTimeOffset At, int Outcome)>(StringComparer.Ordinal);
-        var valid = new Dictionary<string, List<ConfirmedAnswer>>(StringComparer.Ordinal);
-        for (var i = 0; i < confirmed.Count; i++)
-        {
-            foreach (var (key, answer) in confirmed[i].Answers)
-            {
-                if (!Fits(record.Definition, key, answer))
-                {
-                    counts.KeysDropped++;
-                    continue;
-                }
-
-                if (!valid.TryGetValue(key, out var answers))
-                {
-                    valid[key] = answers = [];
-                }
-
-                answers.Add(answer);
-                if (!winners.TryGetValue(key, out var winner) || confirmed[i].At >= winner.At)
-                {
-                    winners[key] = (answer, confirmed[i].At, i);
-                }
-            }
-        }
-
+        counts.KeysDropped += merged.Dropped;
+        var winners = merged.Winners;
         if (winners.Count == 0)
         {
             counts.SkippedWithoutValidKey++;
             return false;
         }
 
-        foreach (var (key, winner) in winners)
-        {
-            if (valid[key].Exists(a => a != winner.Answer))
-            {
-                counts.KeysOverridden++;
-            }
-        }
-
+        counts.KeysOverridden += merged.Overridden;
         using var w = new Utf8JsonWriter(line, WriterOptions);
         w.WriteStartObject();
         w.WriteString("id", record.DecisionId);
@@ -234,48 +194,10 @@ public static class DecisionDatasetExport
         }
 
         w.WriteEndObject();
-        w.WriteString("source", Sources(confirmed, winners.Values.Select(v => v.Outcome)));
+        w.WriteString("source", Sources(merged.Outcomes, winners.Values.Select(v => v.Outcome)));
         w.WriteEndObject();
         w.Flush();
         return true;
-    }
-
-    private static bool Fits(QuestionSetDefinition definition, string key, ConfirmedAnswer answer)
-    {
-        foreach (var question in definition.Questions)
-        {
-            if (!string.Equals(question.Key, key, StringComparison.Ordinal))
-            {
-                continue;
-            }
-
-            if (question.Kind != answer.Kind)
-            {
-                return false;
-            }
-
-            return answer.Kind switch
-            {
-                QuestionKind.Choice => HasOption(question, answer.ChoiceKey!),
-                QuestionKind.Score => answer.ScoreLevel < question.Options.Count,
-                _ => true,
-            };
-        }
-
-        return false;
-    }
-
-    private static bool HasOption(QuestionDefinition question, string optionKey)
-    {
-        foreach (var option in question.Options)
-        {
-            if (string.Equals(option.Key, optionKey, StringComparison.Ordinal))
-            {
-                return true;
-            }
-        }
-
-        return false;
     }
 
     private static void WriteExpected(Utf8JsonWriter w, string key, ConfirmedAnswer answer)
