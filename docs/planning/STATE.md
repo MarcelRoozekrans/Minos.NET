@@ -1,4 +1,4 @@
-# Session State — 2026-10-31 (Milestone 9: Phase 9.3 planned, execution next)
+# Session State — 2026-10-31 (Milestone 9: Phase 9.3 built and reviewed, PR next)
 
 **Date:** 2026-10-31
 
@@ -132,7 +132,17 @@
        - The recorder drops a late shadow write after an erasure.
        - `ShadowOptions(candidate, dailyCap)` takes a required cap.
        - The report reads the record file, and `minos shadow-report` builds it.
-     - **Execution method chosen by the maintainer:** subagent-driven (`superpowers:subagent-driven-development`). Next: start it at Task 1. No task has started.
+     - **Built** subagent-driven on 2026-10-31: all eight plan tasks are done and reviewed. Build, all 18 test projects, pack validation (Recording against 1.3.0), and the AOT smoke and surface runs are green. Pre-push review PASS: `docs/plans/2026-10-31-phase-9.3-pre-push-review.md`.
+     - **Changes on top of the plan, found in review:**
+       - The stage registers the shadow before it queues the primary's record, with an uncounted `CancelShadow`, so a missed erasure cannot resurrect a decision.
+       - The cap and the running count live on the `ShadowOptions` instance.
+       - A candidate that ignores its token is released at `Timeout`.
+       - `ShadowReport` gained `CalibrationPrimaryOnlyKeys` and `CalibrationCandidateOnlyKeys`.
+       - Signals are split by agreement per question.
+       - The shipped `UseRecording(builder, recorder = null)` became `UseRecording(builder)` plus `UseRecording(builder, recorder)`, as RS0026 requires. It is source and binary compatible, and ApiCompat is clean.
+     - **Next:**
+       - Open the PR with BEGIN_COMMIT_OVERRIDE listing only the user-facing lines: the two `feat(recording)` lines, the two Evaluation and tool `feat:` lines, and the docs line, not the branch-internal `fix:` commits.
+       - After the merge, `complete-phase` 9.3, then Phase 9.4 (the Banking77 shadow report, which needs the maintainer's approval for the hosted run).
    - **Waiting on the maintainer:** a peer message to the Daedalus session "daedalus: phase 3.3 Task 16 onward" saying the recorder shipped in 1.3.0. It needs approval in the app; the `daedalus-b9` session no longer exists. The #119 comment is posted.
 2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.
 3. Phases 7.1 to 7.5 are complete. On 2026-10-15 nuget.org reserved `Minos.NET` and `Minos.NET.*` to MarcelRoozekrans, which lifted the 409 "package ID is reserved" block. The Trusted Publishing policy is ci.yml, no environment, glob `*`. `gh workflow run ci.yml --ref v1.0.1 -f publish_to_nuget=true` ([run 38726515640](https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/38726515640)) published all six packages as 1.0.1, with symbols. 1.0.0 was never published. `PackageValidationBaselineVersion` is 1.0.1, which closes #28. Milestone 7 is complete; its audit passed (`docs/plans/2026-10-15-milestone-7-audit.md`). Next: Milestone 8, Choosing a provider and a threshold, starting with `new-milestone`.
