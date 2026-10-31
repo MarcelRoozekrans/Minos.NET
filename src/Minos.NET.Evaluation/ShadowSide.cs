@@ -54,9 +54,9 @@ public sealed class ShadowSide
     public CostSummary Cost { get; }
 
     /// <summary>
-    /// Gets the number of this side's answers, over all shadowed decisions, whose probabilities are
-    /// <see cref="ProbabilitySource.Verbalized"/>: the model stated them in its text, so they are not a measured
-    /// distribution. Agreement and calibration include these answers.
+    /// Gets the number of this side's calibrated answers whose probabilities are <see cref="ProbabilitySource.Verbalized"/>:
+    /// the model stated them in its text, so they are not a measured distribution. The calibration metrics include these
+    /// answers, as <see cref="CalibrationReport.VerbalizedAnswers"/> counts them.
     /// </summary>
     public int VerbalizedAnswers { get; }
 

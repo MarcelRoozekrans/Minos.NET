@@ -36,6 +36,8 @@ Minos.Evaluation.ShadowQuestion.PrimaryOnly.get -> int
 Minos.Evaluation.ShadowQuestion.SignalsWhenAgreed.get -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, int>>!
 Minos.Evaluation.ShadowQuestion.SignalsWhenDisagreed.get -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, int>>!
 Minos.Evaluation.ShadowReport
+Minos.Evaluation.ShadowReport.CalibrationCandidateOnlyKeys.get -> int
+Minos.Evaluation.ShadowReport.CalibrationPrimaryOnlyKeys.get -> int
 Minos.Evaluation.ShadowReport.Candidate.get -> Minos.Evaluation.ShadowSide!
 Minos.Evaluation.ShadowReport.DecisionsRead.get -> int
 Minos.Evaluation.ShadowReport.DecisionsShadowed.get -> int

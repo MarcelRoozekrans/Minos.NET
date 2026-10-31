@@ -11,10 +11,19 @@ namespace Minos.Evaluation;
 /// </summary>
 public sealed class ShadowReport
 {
-    private ShadowReport(int decisionsRead, int decisionsShadowed, ShadowSide primary, ShadowSide candidate, IReadOnlyList<ShadowQuestion> questions)
+    private ShadowReport(
+        int decisionsRead,
+        int decisionsShadowed,
+        int calibrationPrimaryOnlyKeys,
+        int calibrationCandidateOnlyKeys,
+        ShadowSide primary,
+        ShadowSide candidate,
+        IReadOnlyList<ShadowQuestion> questions)
     {
         DecisionsRead = decisionsRead;
         DecisionsShadowed = decisionsShadowed;
+        CalibrationPrimaryOnlyKeys = calibrationPrimaryOnlyKeys;
+        CalibrationCandidateOnlyKeys = calibrationCandidateOnlyKeys;
         Primary = primary;
         Candidate = candidate;
         Questions = questions;
@@ -25,6 +34,18 @@ public sealed class ShadowReport
 
     /// <summary>Gets the number of decisions whose record has the candidate's part. Only these are compared.</summary>
     public int DecisionsShadowed { get; }
+
+    /// <summary>
+    /// Gets the number of questions of shadowed decisions with a merged confirmed answer that only the primary answered,
+    /// so they are not calibrated on either side.
+    /// </summary>
+    public int CalibrationPrimaryOnlyKeys { get; }
+
+    /// <summary>
+    /// Gets the number of questions of shadowed decisions with a merged confirmed answer that only the candidate answered,
+    /// so they are not calibrated on either side.
+    /// </summary>
+    public int CalibrationCandidateOnlyKeys { get; }
 
     /// <summary>Gets the primary's side, over the shadowed decisions.</summary>
     public ShadowSide Primary { get; }
@@ -59,8 +80,8 @@ public sealed class ShadowReport
     /// <item>The confirmed outcomes merge per key as <see cref="DecisionDatasetExport"/> merges them: an answer that does not
     /// fit is dropped, then the latest <see cref="DecisionOutcome.At"/> wins. A question counts toward calibration, on both
     /// sides at once, when both sides answered it and a merged confirmed answer is left for it. Decisions with images count.</item>
-    /// <item>The decision's signal outcomes are counted under each compared question: as agreed when the two sides agreed
-    /// on every question they both answered, and as disagreed otherwise.</item>
+    /// <item>The decision's signal outcomes are counted under each compared question: as agreed when the two sides gave
+    /// that question the same answer, and as disagreed otherwise.</item>
     /// </list>
     /// A decision without the candidate's part is counted in <see cref="DecisionsRead"/> and is otherwise left out.
     /// </summary>
@@ -147,9 +168,6 @@ public sealed class ShadowReport
         return usable;
     }
 
-    private static int Verbalized(Dictionary<string, (AnswerRecord Answer, int Index)> answers)
-        => answers.Values.Count(a => a.Answer.ProbabilitySource == ProbabilitySource.Verbalized);
-
     private static ExpectedAnswer Expected(ConfirmedAnswer answer) => answer.Kind switch
     {
         QuestionKind.Noul => ExpectedAnswer.ForNoul(answer.Noul),
@@ -184,6 +202,8 @@ public sealed class ShadowReport
         private int _read;
         private int _shadowed;
         private int _calibratedDecisions;
+        private int _calibrationPrimaryOnly;
+        private int _calibrationCandidateOnly;
 
         public void Add(RecordedDecision decision)
         {
@@ -201,47 +221,50 @@ public sealed class ShadowReport
             _candidate.Refusals += shadow.RefusedKeys.Count;
             var primary = Usable(record.Definition, record.Answers);
             var candidate = Usable(record.Definition, shadow.Answers);
-            _primary.Verbalized += Verbalized(primary);
-            _candidate.Verbalized += Verbalized(candidate);
 
             var confirmed = ConfirmedAnswers.Merge(decision).Winners;
-            var compared = new List<Group>();
-            var allAgreed = true;
             var calibrated = false;
             foreach (var question in record.Definition.Questions)
             {
                 var group = GroupOf(question);
                 var byPrimary = primary.TryGetValue(question.Key, out var p);
                 var byCandidate = candidate.TryGetValue(question.Key, out var c);
+                var isConfirmed = confirmed.TryGetValue(question.Key, out var winner);
                 if (!byPrimary || !byCandidate)
                 {
                     group.PrimaryOnly += byPrimary ? 1 : 0;
                     group.CandidateOnly += byCandidate ? 1 : 0;
+
+                    // A confirmed answer that only one side can be measured on: counted, so the report says what it left out.
+                    _calibrationPrimaryOnly += isConfirmed && byPrimary ? 1 : 0;
+                    _calibrationCandidateOnly += isConfirmed && byCandidate ? 1 : 0;
                     continue;
                 }
 
-                allAgreed &= group.Compare(p.Answer, p.Index, c.Answer, c.Index);
-                compared.Add(group);
-                if (confirmed.TryGetValue(question.Key, out var winner))
+                group.AddSignals(decision.Outcomes, group.Compare(p.Answer, p.Index, c.Answer, c.Index));
+                if (isConfirmed)
                 {
                     // The same item, at the same position, on both sides.
                     var expected = Expected(winner.Answer);
                     var order = _primary.Scored.Count;
                     _primary.Scored.Add(MetricsCalculator.Scored(question.Key, expected, p.Answer, order));
                     _candidate.Scored.Add(MetricsCalculator.Scored(question.Key, expected, c.Answer, order));
+                    _primary.Verbalized += p.Answer.ProbabilitySource == ProbabilitySource.Verbalized ? 1 : 0;
+                    _candidate.Verbalized += c.Answer.ProbabilitySource == ProbabilitySource.Verbalized ? 1 : 0;
                     calibrated = true;
                 }
             }
 
             _calibratedDecisions += calibrated ? 1 : 0;
-            foreach (var group in compared)
-            {
-                group.AddSignals(decision.Outcomes, allAgreed);
-            }
         }
 
         public ShadowReport Build(PriceTable? prices)
-            => new(_read, _shadowed, _primary.Build(prices, _calibratedDecisions), _candidate.Build(prices, _calibratedDecisions), [.. _groups.Select(g => g.Build())]);
+            => new(
+                _read,
+                _shadowed,
+                _calibrationPrimaryOnly,
+                _calibrationCandidateOnly,
+                _primary.Build(prices, _calibratedDecisions), _candidate.Build(prices, _calibratedDecisions), [.. _groups.Select(g => g.Build())]);
 
         // A group is its key, kind and labels; the labels are compared only among groups of the same key and kind.
         private Group GroupOf(QuestionDefinition question)

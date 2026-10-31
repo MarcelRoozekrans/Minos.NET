@@ -76,14 +76,14 @@ public sealed class ShadowQuestion
     public bool IsSmall => Compared < 30;
 
     /// <summary>
-    /// Gets the signal outcomes, counted per signal name, of the compared decisions in which the two sides agreed on every
-    /// question both answered; sorted by name, ordinally. Signals never become expected answers.
+    /// Gets the signal outcomes, counted per signal name, of the compared decisions in which the two sides gave this
+    /// question the same answer; sorted by name, ordinally. Signals never become expected answers.
     /// </summary>
     public IReadOnlyList<KeyValuePair<string, int>> SignalsWhenAgreed { get; }
 
     /// <summary>
-    /// Gets the signal outcomes, counted per signal name, of the other compared decisions: those in which the two sides
-    /// disagreed on at least one question; sorted by name, ordinally.
+    /// Gets the signal outcomes, counted per signal name, of the compared decisions in which the two sides gave this
+    /// question different answers; sorted by name, ordinally.
     /// </summary>
     public IReadOnlyList<KeyValuePair<string, int>> SignalsWhenDisagreed { get; }
 }

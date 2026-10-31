@@ -23,6 +23,8 @@ internal static class ShadowReportJsonWriter
             w.WriteNumber("version", Version);
             w.WriteNumber("decisionsRead", report.DecisionsRead);
             w.WriteNumber("decisionsShadowed", report.DecisionsShadowed);
+            w.WriteNumber("calibrationPrimaryOnlyKeys", report.CalibrationPrimaryOnlyKeys);
+            w.WriteNumber("calibrationCandidateOnlyKeys", report.CalibrationCandidateOnlyKeys);
             WriteSide(w, "primary", report.Primary);
             WriteSide(w, "candidate", report.Candidate);
             w.WriteStartArray("questions");

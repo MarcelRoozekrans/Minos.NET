@@ -583,6 +583,7 @@ internal static class EvaluationChecks
                     && report.Questions[2].MeanLevelDifference == 0
                     && report.Primary.CalibratedKeys == 1 && report.Candidate.CalibratedKeys == 1
                     && report.Primary.CalibratedDecisions == 1 && report.Candidate.CalibratedDecisions == 1
+                    && report.CalibrationPrimaryOnlyKeys == 0 && report.CalibrationCandidateOnlyKeys == 0
                     && report.Primary.Noul is { Scored: 1 } && report.Candidate.Noul is { Scored: 1 }
                     && report.Primary.Choice is null && report.Candidate.Score is null && report.Candidate.Overall.Scored == 1
                     && report.Candidate.Errors.Count == 0 && report.Candidate.Refusals == 0 && report.Primary.VerbalizedAnswers == 0

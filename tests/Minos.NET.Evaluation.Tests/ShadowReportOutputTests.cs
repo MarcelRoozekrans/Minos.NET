@@ -49,6 +49,17 @@ public sealed class ShadowReportOutputTests
     }
 
     [Fact]
+    public async Task Fixture_CountsTheConfirmedKeyOnlyThePrimaryAnswered()
+    {
+        // d4's confirmed urgent: the candidate timed out, so only the primary answered it.
+        var report = await FixtureAsync();
+
+        Assert.Equal(1, report.CalibrationPrimaryOnlyKeys);
+        Assert.Equal(0, report.CalibrationCandidateOnlyKeys);
+        Assert.Equal(2, report.Candidate.VerbalizedAnswers);
+    }
+
+    [Fact]
     public async Task Json_MatchesTheSnapshot() => TextSnapshot.VerifyText((await FixtureAsync()).ToJson(), "json");
 
     [Fact]
@@ -77,7 +88,8 @@ public sealed class ShadowReportOutputTests
 
         var questions = "{\"intent\":{\"type\":\"choice\",\"instructions\":\"Which intent?\",\"criteria\":{" + options + "}}}";
 
-        // 25 distinct disagreements, the first five twice, and 40 agreements spread over 40 options.
+        // 25 distinct disagreements, the first five twice, one more o00 disagreement twice to tie with o00 to o30 on the
+        // primary and the count, and 40 agreements spread over 40 options.
         var lines = new List<string>();
         var n = 0;
         for (var i = 0; i < 25; i++)
@@ -86,6 +98,11 @@ public sealed class ShadowReportOutputTests
             {
                 lines.Add(Shadowed("d" + n++, Answers(Choice("intent", i)), Answers(Choice("intent", i + 30)), questions));
             }
+        }
+
+        for (var copy = 0; copy < 2; copy++)
+        {
+            lines.Add(Shadowed("d" + n++, Answers(Choice("intent", 0)), Answers(Choice("intent", 31)), questions));
         }
 
         for (var i = 0; i < 40; i++)
@@ -100,17 +117,19 @@ public sealed class ShadowReportOutputTests
         var rows = markdown.Split('\n').Where(line => line.StartsWith("| " + "o", StringComparison.Ordinal)).ToList();
         Assert.Equal(20, rows.Count);
         Assert.Equal("| o00 | o30 | 2 |", rows[0]);
-        Assert.Equal("| o04 | o34 | 2 |", rows[4]);
-        Assert.Equal("| o05 | o35 | 1 |", rows[5]);
-        Assert.Equal("| o19 | o49 | 1 |", rows[19]);
+        Assert.Equal("| o00 | o31 | 2 |", rows[1]);
+        Assert.Equal("| o01 | o31 | 2 |", rows[2]);
+        Assert.Equal("| o04 | o34 | 2 |", rows[5]);
+        Assert.Equal("| o05 | o35 | 1 |", rows[6]);
+        Assert.Equal("| o18 | o48 | 1 |", rows[19]);
         Assert.False(report.Questions[0].IsSmall);
         Assert.DoesNotContain("(small: n < 30)", markdown, StringComparison.Ordinal);
 
         using var doc = JsonDocument.Parse(report.ToJson());
         var cells = doc.RootElement.GetProperty("questions")[0].GetProperty("confusion");
-        Assert.Equal(65, cells.GetArrayLength());
+        Assert.Equal(66, cells.GetArrayLength());
         Assert.All(cells.EnumerateArray(), cell => Assert.True(cell.GetProperty("count").GetInt32() > 0));
-        Assert.Equal(65, report.Questions[0].Confusion.Count);
+        Assert.Equal(66, report.Questions[0].Confusion.Count);
     }
 
     private static string Label(int i) => "o" + i.ToString("00", CultureInfo.InvariantCulture);

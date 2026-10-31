@@ -41,8 +41,8 @@ internal static class ShadowReportMarkdownWriter
         if (side.VerbalizedAnswers > 0)
         {
             md.Append("Verbalized probabilities: ").Append(Count(side.VerbalizedAnswers))
-                .Append(side.VerbalizedAnswers == 1 ? " answer has" : " answers have")
-                .Append(" probabilities the model stated in its text, not a measured distribution. Agreement and calibration include them.\n\n");
+                .Append(side.VerbalizedAnswers == 1 ? " calibrated answer has" : " calibrated answers have")
+                .Append(" probabilities the model stated in its text, not a measured distribution. The calibration metrics include them.\n\n");
         }
 
         WriteLatencyText(md.Append("Latency: "), side.Latency).Append("\n\n");
@@ -169,7 +169,7 @@ internal static class ShadowReportMarkdownWriter
 
     private static void WriteSignals(StringBuilder md, IReadOnlyList<ShadowQuestion> questions)
     {
-        md.Append("## Signals\n\nThe signal outcomes of the compared decisions, per question: agreed when the two sides gave the same answer to every question they both answered, disagreed otherwise. Signals are never expected answers.\n\n");
+        md.Append("## Signals\n\nThe signal outcomes of the compared decisions, per question: agreed when the two sides gave that question the same answer, disagreed when their answers differed. Signals are never expected answers.\n\n");
         var rows = new StringBuilder();
         var names = new SortedSet<string>(StringComparer.Ordinal);
         foreach (var q in questions)
@@ -220,7 +220,10 @@ internal static class ShadowReportMarkdownWriter
         var decisions = report.Primary.CalibratedDecisions;
         md.Append("## Calibration\n\nBoth sides are measured on the same ").Append(Count(keys)).Append(keys == 1 ? " question" : " questions")
             .Append(" of ").Append(Count(decisions)).Append(decisions == 1 ? " decision" : " decisions")
-            .Append(": those both sides answered and a confirmed outcome answered with an answer that fits the question.\n\n");
+            .Append(": those both sides answered and a confirmed outcome answered with an answer that fits the question. ")
+            .Append(Count(report.CalibrationPrimaryOnlyKeys)).Append(report.CalibrationPrimaryOnlyKeys == 1 ? " confirmed key was" : " confirmed keys were")
+            .Append(" answered by the primary only and ").Append(Count(report.CalibrationCandidateOnlyKeys))
+            .Append(" by the candidate only; they are not calibrated.\n\n");
         WriteSideCalibration(md, "Primary", report.Primary);
         WriteSideCalibration(md, "Candidate", report.Candidate);
     }

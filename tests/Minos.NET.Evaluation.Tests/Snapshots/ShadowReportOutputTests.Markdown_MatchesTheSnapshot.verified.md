@@ -26,7 +26,7 @@ Errors: 1 of 4 requests failed: Timeout 1. A failed request is an abstention.
 
 Refused questions: 0.
 
-Verbalized probabilities: 3 answers have probabilities the model stated in its text, not a measured distribution. Agreement and calibration include them.
+Verbalized probabilities: 2 calibrated answers have probabilities the model stated in its text, not a measured distribution. The calibration metrics include them.
 
 Latency: Median 700 ms, p95 900 ms, over 3 requests.
 
@@ -70,7 +70,7 @@ The primary's answers are the rows, the candidate's the columns.
 
 ## Signals
 
-The signal outcomes of the compared decisions, per question: agreed when the two sides gave the same answer to every question they both answered, disagreed otherwise. Signals are never expected answers.
+The signal outcomes of the compared decisions, per question: agreed when the two sides gave that question the same answer, disagreed when their answers differed. Signals are never expected answers.
 
 | Question | Signal | Agreed | Disagreed |
 | --- | --- | ---: | ---: |
@@ -83,7 +83,7 @@ The signal outcomes of the compared decisions, per question: agreed when the two
 
 ## Calibration
 
-Both sides are measured on the same 5 questions of 2 decisions: those both sides answered and a confirmed outcome answered with an answer that fits the question.
+Both sides are measured on the same 5 questions of 2 decisions: those both sides answered and a confirmed outcome answered with an answer that fits the question. 1 confirmed key was answered by the primary only and 0 by the candidate only; they are not calibrated.
 
 ### Primary
 

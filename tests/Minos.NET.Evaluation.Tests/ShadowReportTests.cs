@@ -132,6 +132,51 @@ public sealed class ShadowReportTests
             Assert.Null(side.Score);
             Assert.Equal(1, side.Overall.Scored);
         }
+
+        // d2's confirmed queue was answered by the primary only, and d3 is not shadowed.
+        Assert.Equal(1, report.CalibrationPrimaryOnlyKeys);
+        Assert.Equal(0, report.CalibrationCandidateOnlyKeys);
+    }
+
+    [Fact]
+    public async Task Calibration_CountsConfirmedKeysOnlyTheCandidateAnswered()
+    {
+        var report = await ReportAsync(
+            Shadowed("d1", Answers(Noul("urgent", 0.9)), All()),
+            Confirmed("d1", "2026-10-22T09:35:00+00:00", "reviewer-ui", """{"urgent":true,"queue":"billing","mood":0}"""));
+
+        Assert.Equal(0, report.CalibrationPrimaryOnlyKeys);
+        Assert.Equal(2, report.CalibrationCandidateOnlyKeys);
+        Assert.Equal(1, report.Primary.CalibratedKeys);
+    }
+
+    [Fact]
+    public async Task AnswersThatDoNotFit_CountAsNotGiven()
+    {
+        // An index past the options, and a Noul answer to a Choice question.
+        var report = await ReportAsync(
+            Shadowed("d1", Answers(Choice("queue", 5)), Answers(Choice("queue", 1)), QueueOnly),
+            Shadowed("d2", Answers(Choice("queue", 0)), Answers(Noul("queue", 0.9)), QueueOnly));
+
+        var queue = Assert.Single(report.Questions);
+        Assert.Equal(0, queue.Compared);
+        Assert.Equal(1, queue.PrimaryOnly);
+        Assert.Equal(1, queue.CandidateOnly);
+        Assert.Null(queue.Agreement);
+        Assert.Empty(queue.Confusion);
+    }
+
+    [Fact]
+    public async Task VerbalizedAnswers_CountOnlyCalibratedAnswers()
+    {
+        var verbalized = Answers(Noul("urgent", 0.9, "verbalized"), Choice("queue", 1, source: "verbalized"), Score("mood", 0, source: "verbalized"));
+        var report = await ReportAsync(
+            Shadowed("d1", All(), verbalized),
+            Confirmed("d1", "2026-10-22T09:35:00+00:00", "reviewer-ui", """{"urgent":true}"""),
+            Shadowed("d2", All(), verbalized));
+
+        Assert.Equal(1, report.Candidate.VerbalizedAnswers);
+        Assert.Equal(0, report.Primary.VerbalizedAnswers);
     }
 
     [Fact]
@@ -195,8 +240,8 @@ public sealed class ShadowReportTests
     [Fact]
     public async Task Signals_SplitByAgreement()
     {
-        // d1 agrees on every key; d2 agrees on urgent but not on queue, so all its signals count as disagreed, under
-        // urgent too; d3 is not shadowed, so its signal is in neither.
+        // d1 agrees on every key; d2 agrees on urgent but not on queue, so its signals count as agreed under urgent and
+        // as disagreed under queue; d3 is not shadowed, so its signal is in neither.
         var report = await ReportAsync(
             Shadowed("d1", All(), All()),
             Signal("d1", "2026-10-22T09:35:00+00:00", "mailer", "opened"),
@@ -206,13 +251,13 @@ public sealed class ShadowReportTests
             Record("d3"),
             Signal("d3", "2026-10-22T09:35:00+00:00", "mailer", "complained"));
 
-        KeyValuePair<string, int>[] agreed = [new("opened", 1)];
-        KeyValuePair<string, int>[] disagreed = [new("complained", 1), new("opened", 1)];
-        foreach (var key in new[] { "urgent", "queue" })
-        {
-            Assert.Equal(agreed, Question(report, key).SignalsWhenAgreed);
-            Assert.Equal(disagreed, Question(report, key).SignalsWhenDisagreed);
-        }
+        KeyValuePair<string, int>[] urgentAgreed = [new("complained", 1), new("opened", 2)];
+        KeyValuePair<string, int>[] queueAgreed = [new("opened", 1)];
+        KeyValuePair<string, int>[] queueDisagreed = [new("complained", 1), new("opened", 1)];
+        Assert.Equal(urgentAgreed, Question(report, "urgent").SignalsWhenAgreed);
+        Assert.Empty(Question(report, "urgent").SignalsWhenDisagreed);
+        Assert.Equal(queueAgreed, Question(report, "queue").SignalsWhenAgreed);
+        Assert.Equal(queueDisagreed, Question(report, "queue").SignalsWhenDisagreed);
     }
 
     [Fact]
@@ -237,6 +282,16 @@ public sealed class ShadowReportTests
         var viaAsync = await ShadowReport.CreateAsync(Yield(decisions));
 
         Assert.Equal(ShadowReport.Create(decisions).ToJson(), viaAsync.ToJson());
+    }
+
+    [Fact]
+    public async Task CreateAsync_ThrowsWhenCanceled()
+    {
+        var decisions = await ReadAsync(Shadowed("d1", All(), All()));
+        using var canceled = new CancellationTokenSource();
+        await canceled.CancelAsync();
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => ShadowReport.CreateAsync(Yield(decisions), cancellationToken: canceled.Token));
     }
 
     [Fact]
