@@ -154,6 +154,10 @@ public static class DatasetExport
 ```
 <!-- endSnippet -->
 
+To compare a second provider on the same traffic before you export anything, run it in
+[shadow mode](recording.md#shadow-mode) and read [the shadow report](recording.md#the-shadow-report), or
+`minos shadow-report`. It reads the same record file and needs no confirmed outcome for its agreement figures.
+
 ### What becomes an item
 
 The export writes one line for each decision that has at least one valid confirmed answer, in the order the reader

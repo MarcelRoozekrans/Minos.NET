@@ -23,7 +23,7 @@ public sealed class RecordingPageTests
             Assert.Equal(1, document.RootElement.GetProperty("version").GetInt32());
         });
         Assert.Equal(
-            ["record", "outcome", "outcome", "record", "erasure"],
+            ["record", "outcome", "outcome", "record", "record", "erasure"],
             lines.Select(line => JsonDocument.Parse(line).RootElement.GetProperty("kind").GetString()));
     }
 
@@ -44,13 +44,25 @@ public sealed class RecordingPageTests
 
             Assert.Empty(problems);
 
-            // The second record is erased by its decision id; the first keeps its two outcomes.
-            var kept = Assert.Single(decisions);
+            // The last record is erased by its decision id; the first keeps its two outcomes, and the second is shadowed.
+            Assert.Equal(2, decisions.Count);
+            var kept = decisions[0];
             Assert.Equal("0199f1d2-7c4e-7a10-9b3e-2f6d8c1a4e55", kept.Record.DecisionId);
             Assert.Equal("customer-7", kept.Record.ErasureKey);
             Assert.Equal(2, kept.Record.Answers.Count);
+            Assert.Null(kept.Record.Shadow);
             Assert.IsType<ConfirmedOutcome>(kept.Outcomes[0]);
             Assert.IsType<SignalOutcome>(kept.Outcomes[1]);
+
+            var shadowed = decisions[1];
+            Assert.Equal("0199f1d2-9e60-7c32-a05a-4b8f1e3c6a77", shadowed.Record.DecisionId);
+            Assert.Empty(shadowed.Outcomes);
+            var candidate = shadowed.Record.Shadow;
+            Assert.NotNull(candidate);
+            Assert.Equal("local", candidate.Provider);
+            Assert.Equal("local-model-2", candidate.ServedModel);
+            Assert.Null(candidate.ErrorKind);
+            Assert.Equal(0.7, Assert.Single(candidate.Answers).Probability);
         }
         finally
         {
@@ -67,7 +79,10 @@ public sealed class RecordingPageTests
     [InlineData("`minos.recording.records`")]
     [InlineData("`minos.recording.outcomes`")]
     [InlineData("`minos.recording.erasures`")]
+    [InlineData("`minos.recording.shadows`")]
     [InlineData("`minos.recording.log_failures`")]
+    [InlineData("`skipped_cap`")]
+    [InlineData("`skipped_busy`")]
     [InlineData("`written`")]
     [InlineData("`dropped`")]
     [InlineData("`failed`")]

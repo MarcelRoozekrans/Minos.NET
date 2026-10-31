@@ -5,6 +5,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Minos;
+using Minos.Evaluation;
 using Minos.Recording;
 
 public enum SupportLane
@@ -238,6 +239,53 @@ public sealed class LineStoreSink : IDecisionRecordSink
         write(buffer);
         _rows.Add((decisionId, erasureKey, buffer.WrittenSpan.ToArray()));
         return ValueTask.CompletedTask;
+    }
+}
+#endregion
+
+#region Recording_Shadow
+public static class ShadowedApp
+{
+    public static async Task RunAsync(IDecisionClient primary, IDecisionClient local, string path, CancellationToken cancellationToken)
+    {
+        await using var sink = new JsonlDecisionRecordSink(path);
+        await using var recorder = new DecisionRecorder(sink);
+
+        // One ShadowOptions for the candidate: every pipeline built with it shares the cap of 500 calls a day and the
+        // limit of 2 candidate calls at a time. The candidate must not record its own decisions.
+        var shadow = new ShadowOptions(local, dailyCap: 500) { Timeout = TimeSpan.FromSeconds(20), MaxConcurrent = 2 };
+
+        using var client = primary.AsBuilder()
+            .UseRecording(shadow, recorder)
+            .Build();
+
+        // The result is the primary's. The candidate answers in the background and is never waited for.
+        var result = await client.EvaluateAsync<SupportTriage>("The invoice is wrong.", cancellationToken);
+        Console.WriteLine(result.IsSuccess);
+
+        // A flush writes what is queued; it does not wait for a candidate that is still running, and dispose cancels
+        // the candidates that are. A short program gives them time to finish before it disposes the recorder.
+        await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
+    }
+}
+#endregion
+
+#region Recording_ShadowReport
+public static class ShadowReporting
+{
+    public static async Task<ShadowReport> ReportAsync(string path, CancellationToken cancellationToken)
+    {
+        // The report reads the record file, not an export: agreement needs no outcome.
+        var report = await ShadowReport.CreateAsync(DecisionRecordFile.ReadAsync(path, cancellationToken), cancellationToken: cancellationToken);
+
+        Console.WriteLine($"{report.DecisionsShadowed} of {report.DecisionsRead} decisions were shadowed.");
+        foreach (var question in report.Questions)
+        {
+            Console.WriteLine($"{question.Key}: {question.Agreement:P1} agreement over {question.Compared} comparisons{(question.IsSmall ? " (small)" : "")}");
+        }
+
+        await File.WriteAllTextAsync("shadow-report.md", report.ToMarkdown(), cancellationToken);
+        return report;
     }
 }
 #endregion

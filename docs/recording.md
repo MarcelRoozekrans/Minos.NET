@@ -29,6 +29,7 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Minos;
+using Minos.Evaluation;
 using Minos.Recording;
 
 public enum SupportLane
@@ -322,6 +323,9 @@ contract:
 
 - **One caller.** The recorder calls the sink from its one writer, one call at a time and in queue order, so a sink
   written by one recorder needs no locking of its own. Do not call it yourself while a recorder writes to it.
+- **A second write replaces the record.** In shadow mode, `WriteAsync` is called a second time for a decision id, when the
+  candidate has answered. Store it as an upsert: replace the record and keep the outcomes already attached. A sink that
+  rejects the second write logs event 1010 and loses only the candidate's answers, never the primary's record.
 - **Never throw for an orphan.** After a restart, an outcome or an erasure can arrive for a record that was lost. Store
   it or ignore it.
 - **A call that throws** is logged as event 1010 with the exception's type name only, counted, and skipped. The writer
@@ -394,10 +398,130 @@ public sealed class LineStoreSink : IDecisionRecordSink
 ```
 <!-- endSnippet -->
 
+## Shadow mode
+
+Shadow mode runs a second provider, the candidate, on the decisions you already make, so you can see how it would have
+answered before you switch to it. A local decision server beside a hosted one is the usual case. The candidate answers in
+the background, outside the caller's budget. Its answers are kept in the decision's record, and
+[the shadow report](#the-shadow-report) compares them with the primary's.
+
+Shadow mode is off unless you pass `ShadowOptions` to `UseRecording`. It builds on recording: a decision is shadowed
+only when its record is kept.
+
+<!-- snippet: Recording_Shadow -->
+```cs
+public static class ShadowedApp
+{
+    public static async Task RunAsync(IDecisionClient primary, IDecisionClient local, string path, CancellationToken cancellationToken)
+    {
+        await using var sink = new JsonlDecisionRecordSink(path);
+        await using var recorder = new DecisionRecorder(sink);
+
+        // One ShadowOptions for the candidate: every pipeline built with it shares the cap of 500 calls a day and the
+        // limit of 2 candidate calls at a time. The candidate must not record its own decisions.
+        var shadow = new ShadowOptions(local, dailyCap: 500) { Timeout = TimeSpan.FromSeconds(20), MaxConcurrent = 2 };
+
+        using var client = primary.AsBuilder()
+            .UseRecording(shadow, recorder)
+            .Build();
+
+        // The result is the primary's. The candidate answers in the background and is never waited for.
+        var result = await client.EvaluateAsync<SupportTriage>("The invoice is wrong.", cancellationToken);
+        Console.WriteLine(result.IsSuccess);
+
+        // A flush writes what is queued; it does not wait for a candidate that is still running, and dispose cancels
+        // the candidates that are. A short program gives them time to finish before it disposes the recorder.
+        await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
+    }
+}
+```
+<!-- endSnippet -->
+
+`new ShadowOptions(candidate, dailyCap)` takes the candidate client and the daily cap, which has no default, because
+only you know whether the candidate is paid. `int.MaxValue` is the explicit "no cap". The constructor throws
+`ArgumentException` for a candidate that has a recording stage of its own, since its records would duplicate every
+decision in the sink. The stage never disposes the candidate, which is yours, like the recorder.
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `DailyCap` | required | How many candidate calls may start on one UTC day, by the recorder's `TimeProvider`. A call that errs or times out still counts. |
+| `Timeout` | 30 seconds | How long a candidate call may take. A call that takes longer is cancelled and recorded as the error kind `Timeout`. |
+| `MaxConcurrent` | 4 | How many candidate calls may run at once. |
+| `Model` | `null` | The model to ask the candidate for. `null` is the candidate's default model. It is never the primary's model, which names a model of another provider. |
+
+Two registrations exist, so a call such as `UseRecording(builder, recorder)` compiles as before: `UseRecording(shadow)`
+and `UseRecording(shadow, recorder)` add the stage with shadow mode, and `UseRecording()` and `UseRecording(recorder)`
+add it without.
+
+### When the candidate runs
+
+The candidate runs for a decision the stage recorded, whose primary answered and was not a cache hit. A failed primary
+gives nothing to agree with, and a cache hit repeats a decision already shadowed. A decision whose record the redactor
+dropped, or that was dropped because the queue was full, is not shadowed: with no record there is nowhere to put the
+answers. A decision that is skipped is not an error and does not change the primary's result, and each skip for the cap or
+for `MaxConcurrent` is counted as `skipped_cap` or `skipped_busy`.
+
+- **The cap counts started calls.** The cap and the `MaxConcurrent` limit are checked in that order, and a decision
+  skipped as busy gives its cap slot back. The count is kept in memory for each process and starts again at zero on the
+  next UTC day. It does not survive a restart.
+- **Share one `ShadowOptions` for each candidate.** The cap and `MaxConcurrent` are shared by every stage built with the
+  same `ShadowOptions` instance. Two instances for one candidate give it two caps.
+- **A candidate that ignores its cancellation token** is stopped waiting for at `Timeout`, recorded as `Timeout`, and its
+  slot is freed. It may keep running, beyond `MaxConcurrent`, until it returns.
+
+The primary's result never changes and never waits for the candidate. The stage pays for two counter checks and one work
+item, and the candidate's failure, slowness and cap are invisible to the caller. The caller's cancellation token does not
+reach the candidate.
+
+### What the candidate is sent
+
+The candidate gets the same question set, state and images as the primary, **unredacted**: it is a decision, not a record,
+and the redactor protects what you keep. Send the state only to a candidate you would send it to anyway.
+
+The call starts with the execution context's flow suppressed, so the caller's `DecisionRecording` scope and its
+`Activity` do not reach it. A candidate with a telemetry stage starts root spans, never children of the caller's trace.
+Its token is cancelled at `Timeout` or when the recorder is disposed, never with the caller's.
+
+### The second write
+
+The recorder writes the primary's record as soon as the primary returns. When the candidate finishes, it writes the same
+record again with its `Shadow` part, a `ShadowResult`, filled in: the candidate's provider, models, latency and usage, and its answers, or
+the kind of error it failed with. The sink contract gains one rule, in
+[Writing your own sink](#writing-your-own-sink): a second write of a decision id replaces the record and keeps its
+outcomes.
+
+- **The file grows.** A shadowed decision has two full record lines in a JSONL file, state included. That is one more
+  reason the JSONL sink is for development and tests.
+- **A candidate that fails is recorded.** One that returns an error or throws has an error kind and no answers. A
+  call stopped at `Timeout` is `Timeout`, an `HttpRequestException` is `Network`, and any other exception is `Server`. A
+  call cancelled by the recorder's dispose is not recorded. The candidate's error message is never recorded or logged, since it can quote the request.
+- **The second write is counted apart.** `minos.recording.shadows` counts it, and it does not add to
+  `minos.recording.records`, which still counts decisions.
+
+### Erasure and shadow mode
+
+A late candidate never brings back an erased decision. The stage registers the shadow with the recorder before it queues
+the primary's record, and the recorder's writer remembers each decision whose candidate is still running, with its erasure
+key.
+
+- **An erasure handled before the candidate's write** drops that write, by key or by decision id, and the write is counted
+  as `dropped`.
+- **An erasure queued before the record but handled after the registration** drops the shadow while the record survives.
+  That is intended: the erasure was asked for first, so the decision gets no candidate answers.
+- **An erasure handled after the candidate's write** erases the whole record, as it does any other.
+
+### Dispose
+
+`DisposeAsync` cancels the running candidates at once, and their writes are dropped and counted. It then drains the queue
+as usual, so dispose takes no longer than `FlushTimeout`. A cancellation callback that throws is logged as event 1010 with
+the operation `shadow-cancel`. A short program has to give its candidates time to finish before it disposes the recorder,
+as the example above does; a flush writes what is queued but does not wait for a candidate.
+
 ## The JSONL format
 
 The file is UTF-8 JSONL, one JSON object per line. Every line has a `kind`, which is `record`, `outcome` or `erasure`,
-and a `version`, which is `1`, or `2` for a record with a [probability source](#probability-sources). The reader skips
+and a `version`, which is `1`, or `2` for a record with a [probability source](#probability-sources), the candidate's
+answers included. The reader skips
 members it does not know.
 
 <!-- decision record file -->
@@ -405,6 +529,7 @@ members it does not know.
 {"kind":"record","version":1,"decisionId":"0199f1d2-7c4e-7a10-9b3e-2f6d8c1a4e55","erasureKey":"customer-7","started":"2026-10-22T09:30:00+00:00","latencyMs":212.5,"provider":"typesafe","endpoint":"https://api.example.com/","defaultModel":"jev-latest","servedModel":"jev-1.14","usage":{"inputTokens":120,"outputTokens":2},"cached":false,"questions":{"is_urgent":{"type":"noul","instructions":"Does this convey urgency?"},"queue":{"type":"choice","instructions":"Which queue should handle this?","criteria":{"billing":"Payments, invoices and refunds","technical":"Bugs, outages and integrations"}}},"state":"The app crashes when I pay.","imageCount":0,"answers":[{"key":"is_urgent","kind":"noul","probability":0.9,"confidence":0.8},{"key":"queue","kind":"choice","chosenIndex":1,"confidence":0.8,"probabilities":[0.2,0.8]}]}
 {"kind":"outcome","version":1,"decisionId":"0199f1d2-7c4e-7a10-9b3e-2f6d8c1a4e55","type":"confirmed","source":"reviewer-ui","at":"2026-10-22T09:35:00+00:00","confirmed":{"queue":"technical","is_urgent":true}}
 {"kind":"outcome","version":1,"decisionId":"0199f1d2-7c4e-7a10-9b3e-2f6d8c1a4e55","type":"signal","source":"mailer","at":"2026-10-22T10:30:00+00:00","name":"complained","value":1,"note":"Wrote back within the hour."}
+{"kind":"record","version":1,"decisionId":"0199f1d2-9e60-7c32-a05a-4b8f1e3c6a77","started":"2026-10-22T09:32:00+00:00","latencyMs":190.5,"provider":"typesafe","endpoint":"https://api.example.com/","defaultModel":"jev-latest","servedModel":"jev-1.14","cached":false,"questions":{"is_urgent":{"type":"noul","instructions":"Does this convey urgency?"}},"state":"Where is my invoice?","imageCount":0,"answers":[{"key":"is_urgent","kind":"noul","probability":0.3,"confidence":0.4}],"shadow":{"provider":"local","endpoint":"http://localhost:8080/","defaultModel":"local-model","servedModel":"local-model-2","latencyMs":6480.25,"usage":{"inputTokens":118,"outputTokens":2},"answers":[{"key":"is_urgent","kind":"noul","probability":0.7,"confidence":0.6}]}}
 {"kind":"record","version":1,"decisionId":"0199f1d2-8d5f-7b21-8c4f-3a7e9d2b5f66","started":"2026-10-22T09:31:00+00:00","latencyMs":48.25,"provider":"typesafe","endpoint":"https://api.example.com/","defaultModel":"jev-latest","cached":false,"questions":{"is_urgent":{"type":"noul","instructions":"Does this convey urgency?"}},"state":{"subject":"Refund","body":"Where is my refund?"},"imageCount":0,"errorKind":"RateLimited"}
 {"kind":"erasure","version":1,"decisionId":"0199f1d2-8d5f-7b21-8c4f-3a7e9d2b5f66"}
 ```
@@ -419,13 +544,19 @@ members it does not know.
   it has `errorKind` and nothing of the error's message, since a provider's message can quote the request. A refusal is
   the error kind `Refused`, with the refused question keys in `refusedKeys`. An answer whose probabilities did not come
   from the model itself also has a `probabilitySource`.
+- **A shadowed record** also has a `shadow` member, in the shape of the record's own members, when the candidate has
+  answered: its `provider`, `endpoint`, `defaultModel`, `requestedModel`, `servedModel`, `responseId` and
+  `upstreamProvider`, its `latencyMs` and `usage`, and its `answers`, or its `errorKind` and `refusedKeys`. A decision
+  that was not shadowed has no such member. A record in shadow mode is in the file twice, with and without it; the reader
+  keeps the later line.
 - **An outcome** has a `type`, `confirmed` or `signal`, its `source` and the time `at`. A confirmed outcome's answers are
   in `confirmed`: an option key for a Choice, a level for a Score, and true or false for a Noul.
 - **An erasure** has an `erasureKey` or a `decisionId`.
 
 `DecisionRecordFile.ReadAsync(path, cancellationToken)` reads a file and returns each surviving decision as a
 `RecordedDecision`: its `DecisionRecord`, with `RecordedAnswer` values for the answers, and its outcomes in file order.
-The example above reads as one decision with two outcomes, since the second record is erased by its id.
+The example above reads as two decisions: the first has two outcomes, and the second is shadowed. The third record is
+erased by its id.
 
 <!-- snippet: Recording_ReadFile -->
 ```cs
@@ -453,7 +584,8 @@ public static class RecordFileReading
 <!-- endSnippet -->
 
 - **An erasure applies to the lines before it.** A record that comes after it is a new decision and is kept.
-- **A later record of a decision id replaces the earlier one,** and keeps its outcomes.
+- **A later record of a decision id replaces the earlier one,** and keeps its outcomes. A shadowed decision relies on
+  this: its second line carries the `shadow` member.
 - **An outcome with no record before it** is ignored and reported.
 - **A bad line is a problem, not an exception.** The overload that takes a collection fills it with
   `DecisionRecordFileProblem` values, each with its line number and a message that never holds an id or any state, and
@@ -470,12 +602,91 @@ dataset built from your traffic.
 
 - **An answer from a chat client** has `"probabilitySource":"logprobs"` or `"probabilitySource":"verbalized"`. An answer
   whose probabilities the model reported itself, from every other provider, has no such member.
-- **A record with such an answer is version 2.** A record whose answers all come from the model stays version 1, so
+- **A record with such an answer is version 2,** whether the answer is the primary's or the candidate's, since a chat
+  client is a likely candidate. A record whose answers all come from the model stays version 1, so
   the lines of a decision-model app do not change. Outcome and erasure lines are always version 1.
 - **The reader reads both versions.** An answer without the member reads as `ProbabilitySource.Model`, and
   `RecordedAnswer.ProbabilitySource` gives each answer's source.
+- **An older reader skips the `shadow` member** and reads the primary's record, which is right for a tool that knows
+  nothing of shadow mode, `minos export` among them.
 - **An older reader rejects a version 2 line** as a problem, rather than reading it and dropping the mark. Read files
   written by a chat client with this version or a later one.
+
+## The shadow report
+
+`ShadowReport` compares the primary and the candidate over the shadowed decisions in a record file. It reads the record
+file, not an [exported dataset](datasets.md#exporting-recorded-decisions): agreement needs no outcome, and an export keeps
+only decisions with a confirmed outcome.
+
+<!-- snippet: Recording_ShadowReport -->
+```cs
+public static class ShadowReporting
+{
+    public static async Task<ShadowReport> ReportAsync(string path, CancellationToken cancellationToken)
+    {
+        // The report reads the record file, not an export: agreement needs no outcome.
+        var report = await ShadowReport.CreateAsync(DecisionRecordFile.ReadAsync(path, cancellationToken), cancellationToken: cancellationToken);
+
+        Console.WriteLine($"{report.DecisionsShadowed} of {report.DecisionsRead} decisions were shadowed.");
+        foreach (var question in report.Questions)
+        {
+            Console.WriteLine($"{question.Key}: {question.Agreement:P1} agreement over {question.Compared} comparisons{(question.IsSmall ? " (small)" : "")}");
+        }
+
+        await File.WriteAllTextAsync("shadow-report.md", report.ToMarkdown(), cancellationToken);
+        return report;
+    }
+}
+```
+<!-- endSnippet -->
+
+A `ShadowReport` holds a `ShadowSide` for the primary and one for the candidate, and a `ShadowQuestion` for each question
+group. `ShadowReport.CreateAsync` takes the decisions `DecisionRecordFile.ReadAsync` returns, and an optional `PriceTable`, priced
+as in `minos calibrate`. `Create` does the same over decisions already read. `ToJson()` and `ToMarkdown()` write it, like
+`CalibrationReport`. A decision without a shadow is counted in `DecisionsRead` and left out of the rest.
+
+It holds, for each side, errors by kind, refusals, latency, cost, and the count of verbalized answers, as `CalibrationReport`
+does, and for each question:
+
+- **Agreement,** the share of the same answer where both sides answered the key. A Noul answer is yes when its
+  probability is at least 0.5; a Choice answer compares by option and a Score answer by level. For Score, it also gives
+  the mean level difference.
+- **A confusion table** for Choice and Score, with the primary in the rows and the candidate in the columns, as a list of
+  `ConfusionCell` values. Two question definitions with the same key and kind but different options are separate groups.
+- **Signal outcomes,** counted per signal name and per question, by whether the two sides agreed on that question. They
+  never become expected answers.
+- **Keys answered by one side only,** counted apart.
+
+Calibration compares the two sides on the same items, so the figures can be set side by side. A key counts only when the
+decision was shadowed, both sides answered that key, and a confirmed outcome answered it with an answer that fits the
+question, under the rule `minos export` applies. `CalibrationPrimaryOnlyKeys` and `CalibrationCandidateOnlyKeys` count the
+keys the report left out. `VerbalizedAnswers` counts the calibrated answers from a chat client. Decisions with images are
+included, since the report reruns nothing.
+
+The report never holds a decision id, an erasure key or any state.
+
+- **A small group is marked.** The Markdown marks a group with fewer than 30 comparisons as small, and its figures as a
+  first look rather than a measurement.
+- **A large table is shortened.** The Markdown prints a confusion table of up to 12 labels in full. A larger one, such as
+  the 77 intents of the Banking77 set, is printed as its 20 most frequent disagreements, primary answer to candidate
+  answer, with the count. The JSON is sparse: each table is the list of its non-zero cells.
+
+### From the command line
+
+```shell
+minos shadow-report --records decisions.jsonl [--out <dir>] [--prices <file>]
+```
+
+The command writes `shadow-report.json` and `shadow-report.md` into the `--out` directory. Without `--out` it makes
+`minos-out/shadow-report-<UTC yyyyMMdd-HHmmss>`. The files are private, readable and writable by their owner only on Unix,
+since they are built from recorded state.
+
+| Code | Meaning |
+| --- | --- |
+| 0 | The report was written. |
+| 1 | A failure after writing started. The partial files are deleted. |
+| 2 | No shadowed decision could be read: a missing file, a file whose lines are all problems, or no shadowed record. |
+| 130 | The command was cancelled. The partial files are deleted. |
 
 ## The queue and what a crash loses
 
