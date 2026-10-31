@@ -581,6 +581,29 @@ public sealed class ShadowModeTests
     }
 
     [Fact]
+    public async Task ShadowReservedBeforeDispose_NeverCallsTheCandidate_AndIsDropped()
+    {
+        using var metrics = new MetricCapture();
+        var sink = new InMemoryDecisionRecordSink();
+        var (recorder, _, factory) = Recorder(sink);
+        using (factory)
+        {
+            var candidate = new ShadowCandidate(held: false, ignoresCancellation: true);
+            var runner = new ShadowRunner(new ShadowOptions(candidate, 10), recorder);
+
+            Assert.True(runner.TryBegin(TestRecords.Record(), out var shadow));
+            await recorder.DisposeAsync().AsTask().WaitAsync(Bound);
+            Assert.True(shadow.Stopping.IsCancellationRequested);
+
+            runner.Start(Request(), shadow);
+
+            await WaitUntilAsync(() => metrics.Sum("minos.recording.shadows", "dropped") == 1);
+            Assert.Empty(candidate.Calls);
+            Assert.Equal(0, metrics.Sum("minos.recording.shadows", "written"));
+        }
+    }
+
+    [Fact]
     public async Task TwoPipelines_WithOneShadowOptions_ShareItsCap()
     {
         using var metrics = new MetricCapture();

@@ -449,7 +449,7 @@ decision in the sink. The stage never disposes the candidate, which is yours, li
 | `MaxConcurrent` | 4 | How many candidate calls may run at once. |
 | `Model` | `null` | The model to ask the candidate for. `null` is the candidate's default model. It is never the primary's model, which names a model of another provider. |
 
-Two registrations exist, so a call such as `UseRecording(builder, recorder)` compiles as before: `UseRecording(shadow)`
+Four overloads exist, so existing calls such as `UseRecording(recorder)` compile as before: `UseRecording(shadow)`
 and `UseRecording(shadow, recorder)` add the stage with shadow mode, and `UseRecording()` and `UseRecording(recorder)`
 add it without.
 

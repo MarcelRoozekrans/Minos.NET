@@ -166,6 +166,12 @@ internal sealed class ShadowRunner
     // The candidate's part, or null when the recorder's disposal cancelled it. Its error message is never kept.
     private async Task<ShadowResult?> EvaluateAsync(DecisionRequest request, CancellationToken stopping)
     {
+        // A shadow reserved just before the disposal: a candidate that ignores its token must not make a call whose result is dropped.
+        if (stopping.IsCancellationRequested)
+        {
+            return null;
+        }
+
         var time = _recorder.Time;
         using var timeout = new CancellationTokenSource(_timeout, time);
         using var linked = CancellationTokenSource.CreateLinkedTokenSource(timeout.Token, stopping);
