@@ -1,4 +1,5 @@
 using System.Buffers;
+using Microsoft.Extensions.DependencyInjection;
 using Minos.Recording;
 
 namespace Minos.AotSmoke;
@@ -161,6 +162,88 @@ internal static class RecordingChecks
             "both sinks take records, outcomes, an orphan outcome and erasures through the sink interface, and the in-memory sink through its own type, under Native AOT");
     }
 
+    [Covers("static Minos.RecordingDecisionClientBuilderExtensions.UseRecording(this Minos.DecisionClientBuilder! builder) -> Minos.DecisionClientBuilder!")]
+    [Covers("static Minos.RecordingDecisionClientBuilderExtensions.UseRecording(this Minos.DecisionClientBuilder! builder, Minos.Recording.ShadowOptions! shadow, Minos.Recording.DecisionRecorder? recorder = null) -> Minos.DecisionClientBuilder!")]
+    [Covers("Minos.Recording.RecordingDecisionClient.RecordingDecisionClient(Minos.IDecisionClient! innerClient, Minos.Recording.DecisionRecorder! recorder, Minos.Recording.ShadowOptions? shadow) -> void")]
+    [Covers("Minos.Recording.ShadowOptions.ShadowOptions(Minos.IDecisionClient! candidate, int dailyCap) -> void")]
+    public static async Task ShadowsADecisionAndReadsItBack()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "minos-aot-smoke-" + Guid.NewGuid().ToString("N") + ".jsonl");
+        var request = new DecisionRequest(SmokeTriage.Definition, SmokeAnswers.State);
+        try
+        {
+            var sink = new JsonlDecisionRecordSink(path);
+            var recorder = new DecisionRecorder(
+                sink,
+                new RecordingOptions { Capacity = 16, FlushTimeout = TimeSpan.FromSeconds(10), Redact = static state => RedactionResult.Keep(state) });
+            var candidate = new FixedResponseClient(PipelineChecks.TriageResponse());
+            var shadow = new ShadowOptions(candidate, dailyCap: 10) { Timeout = TimeSpan.FromSeconds(10), MaxConcurrent = 2, Model = "candidate-model" };
+
+            // The shadow comes from the builder for the first decision, from the constructor for the second, and the third
+            // decision has none, through a recorder the services hold.
+            using var viaBuilder = new FixedResponseClient(PipelineChecks.TriageResponse()).AsBuilder().UseRecording(shadow, recorder).Build();
+            using var viaConstructor = new RecordingDecisionClient(new FixedResponseClient(PipelineChecks.TriageResponse()), recorder, shadow);
+            var services = new ServiceCollection();
+            services.AddSingleton(recorder);
+            using var provider = services.BuildServiceProvider();
+            using var unshadowed = new FixedResponseClient(PipelineChecks.TriageResponse()).AsBuilder().UseRecording().Build(provider);
+
+            var ids = new[] { "shadow-1", "shadow-2", "plain-3" };
+            var clients = new IDecisionClient[] { viaBuilder, viaConstructor, unshadowed };
+            var results = new bool[ids.Length];
+            for (var i = 0; i < ids.Length; i++)
+            {
+                using var scope = DecisionRecording.Begin(decisionId: ids[i]);
+                results[i] = (await clients[i].EvaluateAsync(request).ConfigureAwait(false)).IsSuccess;
+            }
+
+            // The candidate writes its part after the primary returns: wait for it a bounded number of times.
+            var problems = new List<DecisionRecordFileProblem>();
+            var read = new List<RecordedDecision>();
+            for (var attempt = 0; attempt < 100; attempt++)
+            {
+                await recorder.FlushAsync().ConfigureAwait(false);
+                problems.Clear();
+                read = await ReadAllAsync(DecisionRecordFile.ReadAsync(path, problems, CancellationToken.None)).ConfigureAwait(false);
+                if (read.Count == ids.Length && ShadowedCount(read) == 2)
+                {
+                    break;
+                }
+
+                await Task.Delay(50).ConfigureAwait(false);
+            }
+
+            await recorder.DisposeAsync().ConfigureAwait(false);
+            await sink.DisposeAsync().ConfigureAwait(false);
+
+            var shadowed = read.Find(static decision => string.Equals(decision.Record.DecisionId, "shadow-1", StringComparison.Ordinal))?.Record.Shadow;
+            var constructed = read.Find(static decision => string.Equals(decision.Record.DecisionId, "shadow-2", StringComparison.Ordinal))?.Record.Shadow;
+            var plain = read.Find(static decision => string.Equals(decision.Record.DecisionId, "plain-3", StringComparison.Ordinal))?.Record;
+
+            Program.Check(
+                results.All(static success => success)
+                    && problems.Count == 0
+                    && shadowed is not null && constructed is not null && plain is { Shadow: null }
+                    && shadowed.Answers.Count == 3 && constructed.Answers.Count == 3
+                    && shadowed.Answers[1].Kind == QuestionKind.Choice && shadowed.Answers[1].Probabilities.Count > 0
+                    && shadowed.ErrorKind is null && shadowed.RefusedKeys.Count == 0
+                    && shadowed.Provider.Length > 0 && shadowed.Latency >= TimeSpan.Zero
+                    && string.Equals(shadowed.RequestedModel, "candidate-model", StringComparison.Ordinal)
+                    && string.Equals(shadowed.ServedModel, PipelineChecks.TriageResponse().Model, StringComparison.Ordinal)
+                    && shadowed.Usage is null
+                    && shadowed.Endpoint is null && shadowed.DefaultModel is null && shadowed.ResponseId is null && shadowed.UpstreamProvider is null
+                    && ReferenceEquals(shadow.Candidate, candidate) && shadow.DailyCap == 10
+                    && shadow.Timeout == TimeSpan.FromSeconds(10) && shadow.MaxConcurrent == 2
+                    && string.Equals(shadow.Model, "candidate-model", StringComparison.Ordinal)
+                    && candidate.Calls == 2,
+                "a decision is shadowed by a candidate in the background, and the file holds the candidate's answers beside the primary's, under Native AOT");
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
     [Covers("Minos.Recording.ConfirmedAnswer.ConfirmedAnswer() -> void")]
     [Covers("Minos.Recording.ConfirmedAnswer.Equals(Minos.Recording.ConfirmedAnswer other) -> bool")]
     [Covers("static Minos.Recording.ConfirmedAnswer.ForNoul(bool value) -> Minos.Recording.ConfirmedAnswer")]
@@ -312,6 +395,20 @@ internal static class RecordingChecks
 
         await recorder.DisposeAsync().ConfigureAwait(false);
         return memory.Records[0].Record;
+    }
+
+    private static int ShadowedCount(List<RecordedDecision> decisions)
+    {
+        var count = 0;
+        foreach (var decision in decisions)
+        {
+            if (decision.Record.Shadow is not null)
+            {
+                count++;
+            }
+        }
+
+        return count;
     }
 
     private static async Task<List<RecordedDecision>> ReadAllAsync(IAsyncEnumerable<RecordedDecision> decisions)
