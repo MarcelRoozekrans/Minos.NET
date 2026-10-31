@@ -166,15 +166,13 @@ public sealed class CancellationTests : IDisposable
             + "\"questions\":{\"urgent\":{\"type\":\"noul\",\"instructions\":\"?\"}},\"state\":\"s\",\"imageCount\":0,"
             + "\"answers\":[{\"key\":\"urgent\",\"kind\":\"noul\",\"probability\":0.9,\"confidence\":0.8}],"
             + "\"shadow\":{\"provider\":\"candidate\",\"servedModel\":\"c\",\"latencyMs\":40,\"answers\":[{\"key\":\"urgent\",\"kind\":\"noul\",\"probability\":0.7,\"confidence\":0.7}]}}";
-        // The cut last line is a problem, which the command prints after it has read the records: the cancellation comes
-        // when writing is about to start, so the files are created and then deleted.
+        // The cancellation comes after the records are read and before the output is reserved, so nothing is created.
+        // The delete-on-failure path after that is the same catch the write-failure test covers.
         var records = _h.Write("decisions.jsonl", record + "\n{\"kind\":\"outcome\",\"version\":1,\"deci");
 
         var run = await InvokeCancellingOnFirstProblem("shadow-report", "--records", records, "--out", _h.Out);
 
         Assert.Equal(130, run.Exit);
-        Assert.True(Directory.Exists(_h.Out));
-        Assert.False(File.Exists(Path.Combine(_h.Out, "shadow-report.json")));
-        Assert.False(File.Exists(Path.Combine(_h.Out, "shadow-report.md")));
+        Assert.False(Directory.Exists(_h.Out));
     }
 }

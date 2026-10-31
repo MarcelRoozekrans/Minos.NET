@@ -47,6 +47,7 @@ internal static class ExportCommand
             await stderr.WriteLineAsync("line " + problem.Line.ToString(System.Globalization.CultureInfo.InvariantCulture) + ": " + problem.Message).ConfigureAwait(false);
         }
 
+        ct.ThrowIfCancellationRequested();
         var outDir = CommandSupport.ReserveOut(outOption, "export");
         var datasetPath = Path.Combine(outDir, "dataset.jsonl");
         var signalsPath = Path.Combine(outDir, "dataset.signals.jsonl");

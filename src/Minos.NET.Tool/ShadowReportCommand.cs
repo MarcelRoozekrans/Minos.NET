@@ -69,6 +69,7 @@ internal static class ShadowReportCommand
             return ExitCodes.Usage;
         }
 
+        ct.ThrowIfCancellationRequested();
         var outDir = CommandSupport.ReserveOut(outOption, "shadow-report");
         var jsonPath = Path.Combine(outDir, "shadow-report.json");
         var markdownPath = Path.Combine(outDir, "shadow-report.md");

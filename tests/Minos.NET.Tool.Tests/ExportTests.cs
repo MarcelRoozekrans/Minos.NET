@@ -107,16 +107,14 @@ public sealed class ExportTests : IDisposable
     [Fact]
     public async Task Export_Cancelled_Exits130_AndLeavesNoFiles()
     {
-        // The cut last line is a problem, which export prints after it has read the records: the cancellation comes when
-        // writing is about to start, so the files are created and then deleted.
+        // The cancellation comes after the records are read and before the output is reserved, so nothing is created.
+        // The delete-on-failure path after that is the same catch the write-failure test covers.
         var records = _h.Write("cut.jsonl", Record("a") + "\n" + Confirmed("a") + "\n{\"kind\":\"outcome\",\"version\":1,\"deci");
 
         var run = await InvokeCancellingOnFirstProblem("export", "--records", records, "--out", _h.Out);
 
         Assert.Equal(130, run.Exit);
-        Assert.True(Directory.Exists(_h.Out));
-        Assert.False(File.Exists(DatasetFile));
-        Assert.False(File.Exists(SignalsFile));
+        Assert.False(Directory.Exists(_h.Out));
     }
 
     [Fact]
