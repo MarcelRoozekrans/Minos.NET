@@ -513,6 +513,7 @@ Its instruments are on the meter named `Minos`, the same as the client's, and ea
 | `minos.recording.records` | Observable counter | `result`: `written`; `dropped`, for a full queue, a disposed recorder, a flush timeout or a redactor's `Drop`; or `failed`, for a sink or a redactor that threw, or a record the stage could not make. Every record ends in exactly one. |
 | `minos.recording.outcomes` | Observable counter | `result`: `written` or `failed`. |
 | `minos.recording.erasures` | Observable counter | `result`: `written` or `failed`. |
+| `minos.recording.shadows` | Observable counter | `result`: `written` or `failed` by the sink, for the second write of a shadowed record; `dropped`, for a full queue, an erased decision or a disposed recorder; or `skipped_cap` or `skipped_busy`, for a candidate that never started. It never adds to `minos.recording.records`. |
 | `minos.recording.log_failures` | Observable counter | none: the recorder's log events lost because the logger threw. |
 
 The counters read totals kept in the process, so counting never calls a listener. A logger that throws loses its

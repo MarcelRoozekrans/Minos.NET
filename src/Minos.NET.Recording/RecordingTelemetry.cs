@@ -4,9 +4,9 @@ using System.Reflection;
 namespace Minos.Recording;
 
 /// <summary>
-/// The recorder's metrics, on a meter named <c>Minos</c> at the package's version, as the core's are: four observable
-/// counters over totals kept with <see cref="Interlocked"/>. Records, outcomes and erasures are counted by
-/// <c>result</c>, and <c>minos.recording.log_failures</c>, with no tags, counts log events a logger threw on. Counting
+/// The recorder's metrics, on a meter named <c>Minos</c> at the package's version, as the core's are: five observable
+/// counters over totals kept with <see cref="Interlocked"/>. Records, outcomes, erasures and shadow writes are counted
+/// by <c>result</c>, and <c>minos.recording.log_failures</c>, with no tags, counts log events a logger threw on. Counting
 /// never calls a listener: the callbacks run when a listener collects, never on a decision's path. The tags are fixed
 /// values, never a key, an id or the state.
 /// </summary>
@@ -17,6 +17,8 @@ internal static class RecordingTelemetry
     internal const string Written = "written";
     internal const string Dropped = "dropped";
     internal const string Failed = "failed";
+    internal const string SkippedCap = "skipped_cap";
+    internal const string SkippedBusy = "skipped_busy";
 
     /// <summary>Records by result: <c>written</c>, <c>dropped</c> or <c>failed</c>.</summary>
     internal static readonly Totals Records = new(Written, Dropped, Failed);
@@ -26,6 +28,12 @@ internal static class RecordingTelemetry
 
     /// <summary>Erasures by result: <c>written</c> or <c>failed</c>.</summary>
     internal static readonly Totals Erasures = new(Written, Failed);
+
+    /// <summary>
+    /// Shadow writes by result: <c>written</c> or <c>failed</c> by the sink; <c>dropped</c> for a full queue, an erased
+    /// decision or a disposed recorder; <c>skipped_cap</c> or <c>skipped_busy</c> for a candidate that never started.
+    /// </summary>
+    internal static readonly Totals Shadows = new(Written, Failed, Dropped, SkippedCap, SkippedBusy);
 
     private static long s_logFailures;
 
@@ -43,6 +51,9 @@ internal static class RecordingTelemetry
 
     private static readonly ObservableCounter<long> ErasuresCounter = Meter.CreateObservableCounter(
         "minos.recording.erasures", Erasures.Observe, "{erasure}", "Erasures by result: written or failed.");
+
+    private static readonly ObservableCounter<long> ShadowsCounter = Meter.CreateObservableCounter(
+        "minos.recording.shadows", Shadows.Observe, "{shadow}", "Shadow writes by result: written, failed, dropped, skipped_cap or skipped_busy.");
 
     private static readonly ObservableCounter<long> LogFailuresCounter = Meter.CreateObservableCounter(
         "minos.recording.log_failures", static () => Volatile.Read(ref s_logFailures), "{event}", "Recorder log events lost because the logger threw.");

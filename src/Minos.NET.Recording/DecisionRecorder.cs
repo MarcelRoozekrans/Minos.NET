@@ -15,9 +15,14 @@ namespace Minos.Recording;
 /// <item>Outcomes, erasures and flushes wait for queue space instead, up to the caller's cancellation.</item>
 /// <item>A sink call that throws is logged with the exception's type name only, counted and skipped; an erasure that
 /// fails makes its caller's task fail with <see cref="RecordingException"/>.</item>
-/// <item><see cref="DisposeAsync"/> drains the queue for up to <see cref="RecordingOptions.FlushTimeout"/>, then cancels
-/// the sink's call and gives up on the rest, which it logs by count. A sink that ignores the cancellation may still be
-/// running its call when <see cref="DisposeAsync"/> returns.</item>
+/// <item>In shadow mode, a decision's record is written a second time, with its <see cref="DecisionRecord.Shadow"/> part,
+/// when its candidate finishes; the sink replaces the first record and keeps its outcomes. That write is queued without
+/// waiting, never counted as a record, and dropped when the queue is full, the recorder is disposed, or an erasure of that
+/// decision, by key or by id, was handled while its candidate ran.</item>
+/// <item><see cref="DisposeAsync"/> first cancels the running candidates, whose writes are dropped, then drains the queue
+/// for up to <see cref="RecordingOptions.FlushTimeout"/>, then cancels the sink's call and gives up on the rest, which it
+/// logs by count. A sink that ignores the cancellation may still be running its call when <see cref="DisposeAsync"/>
+/// returns.</item>
 /// </list>
 /// </remarks>
 public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
@@ -27,6 +32,15 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
     private readonly TimeSpan _flushTimeout;
     private readonly Channel<WorkItem> _channel;
     private readonly CancellationTokenSource _stop = new();
+
+    // The running shadows by decision id, so that an erasure handled while a candidate runs drops its write. The
+    // registry's lock also orders a shadow's start before the dispose, so every shadow that starts sees the cancellation.
+    private readonly Lock _shadowGate = new();
+    private readonly Dictionary<string, ShadowEntry> _shadows = new(StringComparer.Ordinal);
+    private readonly CancellationTokenSource _shadowStop = new();
+
+    // Read once, so a shadow that starts while the dispose runs never touches the source after it is disposed.
+    private readonly CancellationToken _shadowStopping;
 
     // Guards the reads from the queue, the item in flight and _stopped, so that a dispose that gives up and the writer
     // never both take an item.
@@ -53,6 +67,7 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
         Redact = options.Redact;
         _logger = loggerFactory?.CreateLogger(DecisionLog.Category) ?? NullLogger.Instance;
         Time = timeProvider ?? TimeProvider.System;
+        _shadowStopping = _shadowStop.Token;
         _channel = Channel.CreateBounded<WorkItem>(new BoundedChannelOptions(options.Capacity)
         {
             SingleReader = true,
@@ -97,6 +112,56 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
         return false;
     }
 
+    /// <summary>Registers a running shadow for a decision, so that an erasure of it is noticed before its write.</summary>
+    /// <param name="decisionId">The decision's id.</param>
+    /// <param name="erasureKey">The decision's erasure key, or <see langword="null"/>.</param>
+    /// <param name="stopping">Cancelled when the recorder's dispose starts; <see langword="default"/> when this returns <see langword="false"/>.</param>
+    /// <returns><see langword="true"/> when it was registered; <see langword="false"/> when the recorder is disposed or a shadow for that id is running.</returns>
+    internal bool TryBeginShadow(string decisionId, string? erasureKey, out CancellationToken stopping)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(decisionId);
+        lock (_shadowGate)
+        {
+            if (Volatile.Read(ref _disposed) == 0 && _shadows.TryAdd(decisionId, new ShadowEntry(erasureKey)))
+            {
+                stopping = _shadowStopping;
+                return true;
+            }
+        }
+
+        stopping = default;
+        return false;
+    }
+
+    /// <summary>
+    /// Queues the second write of a decision, with its shadow part, without waiting. When the queue is full or the
+    /// recorder is disposed, the write is dropped, counted and its shadow unregistered.
+    /// </summary>
+    /// <param name="shadowed">The decision's record with its <see cref="DecisionRecord.Shadow"/> part.</param>
+    internal void EndShadow(DecisionRecord shadowed)
+    {
+        ArgumentNullException.ThrowIfNull(shadowed);
+        if (Volatile.Read(ref _disposed) == 0 && _channel.Writer.TryWrite(WorkItem.ForShadow(shadowed)))
+        {
+            return;
+        }
+
+        AbandonShadow(shadowed.DecisionId);
+    }
+
+    /// <summary>Unregisters a running shadow without a write, for a candidate cancelled by the dispose, and counts it as dropped.</summary>
+    /// <param name="decisionId">The decision's id.</param>
+    internal void AbandonShadow(string decisionId)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(decisionId);
+        lock (_shadowGate)
+        {
+            _shadows.Remove(decisionId);
+        }
+
+        RecordingTelemetry.Shadows.Add(RecordingTelemetry.Dropped);
+    }
+
     /// <inheritdoc/>
     public ValueTask AddOutcomeAsync(string decisionId, DecisionOutcome outcome, CancellationToken cancellationToken = default)
     {
@@ -130,9 +195,10 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
     }
 
     /// <summary>
-    /// Stops taking items and drains the queue for up to <see cref="RecordingOptions.FlushTimeout"/>. After that, the
-    /// sink's call is cancelled, and the items not done are logged by kind in event 1012; their erasures and flushes fail
-    /// with <see cref="RecordingException"/>. The sink is not disposed. A second call waits for the first.
+    /// Cancels the running shadow candidates, whose writes are then dropped, stops taking items and drains the queue for
+    /// up to <see cref="RecordingOptions.FlushTimeout"/>. After that, the sink's call is cancelled, and the items not done
+    /// are logged by kind in event 1012; their erasures and flushes fail with <see cref="RecordingException"/>. The sink
+    /// is not disposed. A second call waits for the first.
     /// </summary>
     /// <returns>A task that completes when the queue drained or the timeout passed.</returns>
     public ValueTask DisposeAsync()
@@ -149,7 +215,12 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
 
     private async ValueTask DisposeCoreAsync(TaskCompletionSource done)
     {
-        Volatile.Write(ref _disposed, 1);
+        lock (_shadowGate)
+        {
+            Volatile.Write(ref _disposed, 1);
+        }
+
+        StopShadows();
         _channel.Writer.TryComplete();
         try
         {
@@ -171,8 +242,23 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
             }
             finally
             {
+                // The cancellation ran its callbacks already, and the candidates keep only its token.
+                _shadowStop.Dispose();
                 done.SetResult();
             }
+        }
+    }
+
+    // Cancels the running candidates. Their callbacks run here, and one that throws must not fail the dispose.
+    private void StopShadows()
+    {
+        try
+        {
+            _shadowStop.Cancel();
+        }
+        catch (AggregateException ex)
+        {
+            LogSinkCallFailed("cancel", ex.InnerExceptions[0]);
         }
     }
 
@@ -226,6 +312,10 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
             {
                 case WorkKind.Record:
                     records++;
+                    break;
+                case WorkKind.Shadow:
+                    // Its decision's record is counted on its own; a lost second write is a dropped shadow.
+                    RecordingTelemetry.Shadows.Add(RecordingTelemetry.Dropped);
                     break;
                 case WorkKind.Outcome:
                     outcomes++;
@@ -354,6 +444,45 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
                 }
 
                 return;
+            case WorkKind.Shadow:
+                bool live;
+                lock (_shadowGate)
+                {
+                    live = _shadows.Remove(item.Record!.DecisionId, out var entry) && !entry.Erased;
+                }
+
+                if (!live)
+                {
+                    // Erased while its candidate ran, or written already: writing it now would undo the erasure.
+                    if (item.TrySettle())
+                    {
+                        RecordingTelemetry.Shadows.Add(RecordingTelemetry.Dropped);
+                    }
+
+                    return;
+                }
+
+                try
+                {
+                    await _sink.WriteAsync(item.Record, cancellationToken).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (!IsStop(ex, cancellationToken))
+                {
+                    if (item.TrySettle())
+                    {
+                        RecordingTelemetry.Shadows.Add(RecordingTelemetry.Failed);
+                        LogSinkCallFailed("write", ex);
+                    }
+
+                    return;
+                }
+
+                if (item.TrySettle())
+                {
+                    RecordingTelemetry.Shadows.Add(RecordingTelemetry.Written);
+                }
+
+                return;
             case WorkKind.Outcome:
                 try
                 {
@@ -378,6 +507,10 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
                 return;
             case WorkKind.Erasure:
                 var byKey = item.ErasureKey is not null;
+
+                // Before the sink's call, in queue order: a shadow write queued after this erasure finds its decision
+                // marked, even when the sink's call fails.
+                MarkShadowsErased(item.ErasureKey, item.DecisionId);
                 try
                 {
                     if (byKey)
@@ -415,6 +548,21 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
                 }
 
                 return;
+        }
+    }
+
+    private void MarkShadowsErased(string? erasureKey, string? decisionId)
+    {
+        lock (_shadowGate)
+        {
+            foreach (var (id, entry) in _shadows)
+            {
+                if ((erasureKey is not null && string.Equals(entry.ErasureKey, erasureKey, StringComparison.Ordinal))
+                    || (decisionId is not null && string.Equals(id, decisionId, StringComparison.Ordinal)))
+                {
+                    entry.Erased = true;
+                }
+            }
         }
     }
 
@@ -472,6 +620,7 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
     private enum WorkKind
     {
         Record,
+        Shadow,
         Outcome,
         Erasure,
         Flush,
@@ -509,10 +658,20 @@ public sealed class DecisionRecorder : IDecisionRecorder, IAsyncDisposable
 
         public static WorkItem ForRecord(DecisionRecord record) => new(WorkKind.Record, record, null, null, null, completes: false);
 
+        public static WorkItem ForShadow(DecisionRecord shadowed) => new(WorkKind.Shadow, shadowed, null, null, null, completes: false);
+
         public static WorkItem ForOutcome(string decisionId, DecisionOutcome outcome) => new(WorkKind.Outcome, null, decisionId, outcome, null, completes: false);
 
         public static WorkItem ForErasure(string? erasureKey, string? decisionId) => new(WorkKind.Erasure, null, decisionId, null, erasureKey, completes: true);
 
         public static WorkItem ForFlush() => new(WorkKind.Flush, null, null, null, null, completes: true);
+    }
+
+    // A running shadow: its decision's erasure key, and whether an erasure of the decision was handled while it ran.
+    private sealed class ShadowEntry(string? erasureKey)
+    {
+        public string? ErasureKey { get; } = erasureKey;
+
+        public bool Erased { get; set; }
     }
 }
