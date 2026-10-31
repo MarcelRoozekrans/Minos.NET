@@ -10,18 +10,6 @@ Minos.Evaluation.ConfusionCell.Deconstruct(out string! Primary, out string! Cand
 Minos.Evaluation.ConfusionCell.Equals(Minos.Evaluation.ConfusionCell other) -> bool
 Minos.Evaluation.ConfusionCell.Primary.get -> string!
 Minos.Evaluation.ConfusionCell.Primary.init -> void
-Minos.Evaluation.DatasetExportSummary
-Minos.Evaluation.DatasetExportSummary.DecisionsRead.get -> int
-Minos.Evaluation.DatasetExportSummary.ItemsWritten.get -> int
-Minos.Evaluation.DatasetExportSummary.KeysDropped.get -> int
-Minos.Evaluation.DatasetExportSummary.KeysOverridden.get -> int
-Minos.Evaluation.DatasetExportSummary.SignalsSkipped.get -> int
-Minos.Evaluation.DatasetExportSummary.SignalsWritten.get -> int
-Minos.Evaluation.DatasetExportSummary.SkippedInvalidItem.get -> int
-Minos.Evaluation.DatasetExportSummary.SkippedWithImages.get -> int
-Minos.Evaluation.DatasetExportSummary.SkippedWithoutConfirmedOutcome.get -> int
-Minos.Evaluation.DatasetExportSummary.SkippedWithoutValidKey.get -> int
-Minos.Evaluation.DecisionDatasetExport
 Minos.Evaluation.ShadowQuestion
 Minos.Evaluation.ShadowQuestion.Agreement.get -> double?
 Minos.Evaluation.ShadowQuestion.CandidateOnly.get -> int
@@ -59,10 +47,8 @@ Minos.Evaluation.ShadowSide.Refusals.get -> int
 Minos.Evaluation.ShadowSide.Score.get -> Minos.Evaluation.KindMetrics?
 Minos.Evaluation.ShadowSide.VerbalizedAnswers.get -> int
 override Minos.Evaluation.ConfusionCell.GetHashCode() -> int
-override Minos.Evaluation.DatasetExportSummary.ToString() -> string!
 static Minos.Evaluation.ConfusionCell.operator !=(Minos.Evaluation.ConfusionCell left, Minos.Evaluation.ConfusionCell right) -> bool
 static Minos.Evaluation.ConfusionCell.operator ==(Minos.Evaluation.ConfusionCell left, Minos.Evaluation.ConfusionCell right) -> bool
-static Minos.Evaluation.DecisionDatasetExport.WriteAsync(System.Collections.Generic.IAsyncEnumerable<Minos.Recording.RecordedDecision!>! decisions, System.IO.Stream! dataset, System.IO.Stream? signals, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.Task<Minos.Evaluation.DatasetExportSummary!>!
 static Minos.Evaluation.ShadowReport.Create(System.Collections.Generic.IEnumerable<Minos.Recording.RecordedDecision!>! decisions, Minos.Evaluation.PriceTable? prices = null) -> Minos.Evaluation.ShadowReport!
 static Minos.Evaluation.ShadowReport.CreateAsync(System.Collections.Generic.IAsyncEnumerable<Minos.Recording.RecordedDecision!>! decisions, Minos.Evaluation.PriceTable? prices = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Minos.Evaluation.ShadowReport!>!
 ~override Minos.Evaluation.ConfusionCell.Equals(object obj) -> bool

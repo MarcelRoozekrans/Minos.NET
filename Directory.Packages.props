@@ -11,13 +11,13 @@
     <PackageVersion Include="xunit" Version="2.9.3" />
     <PackageVersion Include="xunit.runner.visualstudio" Version="4.0.1" />
     <PackageVersion Include="coverlet.collector" Version="10.1.0" />
-    <PackageVersion Include="ZeroAlloc.TestHelpers" Version="1.8.2" />
+    <PackageVersion Include="ZeroAlloc.TestHelpers" Version="1.9.0" />
     <PackageVersion Include="WireMock.Net" Version="2.21.0" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.Analyzer.Testing" Version="1.1.4" />
     <PackageVersion Include="Microsoft.CodeAnalysis.CSharp.CodeFix.Testing" Version="1.1.4" />
     <!-- Analyzers -->
     <PackageVersion Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" Version="5.6.0" />
-    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.317" />
+    <PackageVersion Include="Meziantou.Analyzer" Version="3.0.318" />
     <PackageVersion Include="Roslynator.Analyzers" Version="5.0.1" />
     <PackageVersion Include="ZeroAlloc.Analyzers" Version="1.12.0" />
     <!-- Source generator and analyzers: compile against the first .NET 10 SDK's compiler so every .NET 10 consumer can load them -->
@@ -26,8 +26,8 @@
     <PackageVersion Include="Microsoft.CodeAnalysis.Analyzers" Version="5.9.0" />
     <!-- HTTP client -->
     <PackageVersion Include="ZeroAlloc.Resilience" Version="3.4.0" />
-    <PackageVersion Include="ZeroAlloc.Rest" Version="3.6.1" />
-    <PackageVersion Include="ZeroAlloc.Rest.SystemTextJson" Version="3.6.1" />
+    <PackageVersion Include="ZeroAlloc.Rest" Version="3.6.3" />
+    <PackageVersion Include="ZeroAlloc.Rest.SystemTextJson" Version="3.6.3" />
     <PackageVersion Include="ZeroAlloc.Results" Version="1.4.5" />
     <!-- Telemetry: the attributes at run time, and the proxy generator bundled at analyzers/dotnet/cs. 1.11.0 is the floor: it sets error.type on the exception path and can leave the exception message out of the span status, #184. -->
     <PackageVersion Include="ZeroAlloc.Telemetry" Version="1.11.0" />
@@ -76,7 +76,7 @@
     <!-- The rate-limiting package's RateLimiter. Its floor is the first .NET 10 release, as for the other Microsoft packages. -->
     <PackageVersion Include="System.Threading.RateLimiting" Version="10.0.0" />
     <!-- Runtime question set validation: its generators validate Minos.NET's own specs; NuGet still flows them to consumers, where they stay inert, NuGet/Home#6720 -->
-    <PackageVersion Include="ZeroAlloc.Validation" Version="2.3.5" />
+    <PackageVersion Include="ZeroAlloc.Validation" Version="2.5.0" />
     <!-- The minos tool's command line. Only Minos.NET.Tool references it. -->
     <PackageVersion Include="System.CommandLine" Version="2.0.14" />
     <PackageVersion Include="Microsoft.Extensions.Configuration.Json" Version="10.0.14" />

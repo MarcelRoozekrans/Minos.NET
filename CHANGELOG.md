@@ -1,5 +1,33 @@
 # Changelog
 
+## [1.7.1](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.7.0...v1.7.1) (2026-10-31)
+
+
+### Dependencies
+
+* update zeroalloc shipped dependencies ([#302](https://github.com/MarcelRoozekrans/Minos.NET/issues/302)) ([b30ef9d](https://github.com/MarcelRoozekrans/Minos.NET/commit/b30ef9dc1eac160186611a44fbc8d17c255a51ab))
+
+## [1.7.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.6.0...v1.7.0) (2026-10-30)
+
+
+### Features
+
+* add minos export for recorded decisions ([16b54aa](https://github.com/MarcelRoozekrans/Minos.NET/commit/16b54aa8cea9cfb01afed47d20e607050a78056b))
+* export recorded decisions with confirmed outcomes as a labelled dataset ([16b54aa](https://github.com/MarcelRoozekrans/Minos.NET/commit/16b54aa8cea9cfb01afed47d20e607050a78056b))
+* write the signal outcomes of exported decisions to a companion file ([16b54aa](https://github.com/MarcelRoozekrans/Minos.NET/commit/16b54aa8cea9cfb01afed47d20e607050a78056b))
+
+
+### Documentation
+
+* document exporting recorded decisions to a dataset ([16b54aa](https://github.com/MarcelRoozekrans/Minos.NET/commit/16b54aa8cea9cfb01afed47d20e607050a78056b))
+
+
+### Dependencies
+
+* update dependency zeroalloc.validation to 2.3.5 ([#293](https://github.com/MarcelRoozekrans/Minos.NET/issues/293)) ([3150421](https://github.com/MarcelRoozekrans/Minos.NET/commit/3150421a82e42144a38c1ee11ed029f8fa22321d))
+* update zeroalloc shipped dependencies ([#298](https://github.com/MarcelRoozekrans/Minos.NET/issues/298)) ([aae1366](https://github.com/MarcelRoozekrans/Minos.NET/commit/aae1366b6491ab894031a79033b30e06c40f1f67))
+* update zeroalloc shipped dependencies to 3.6.1 ([#290](https://github.com/MarcelRoozekrans/Minos.NET/issues/290)) ([cd61ea1](https://github.com/MarcelRoozekrans/Minos.NET/commit/cd61ea1e3ed76cbdd457bbe9aadb7867b2cd27f7))
+
 ## [1.6.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.5.0...v1.6.0) (2026-10-28)
 
 
