@@ -53,6 +53,8 @@ internal sealed class LineDto
 
     public List<string>? RefusedKeys { get; set; }
 
+    public ShadowDto? Shadow { get; set; }
+
     // Outcome members.
     public string? Type { get; set; }
 
@@ -67,6 +69,34 @@ internal sealed class LineDto
     public double? Value { get; set; }
 
     public string? Note { get; set; }
+}
+
+// The shadow candidate's part of a record line: the members of the record that describe a call.
+internal sealed class ShadowDto
+{
+    public string? Provider { get; set; }
+
+    public string? Endpoint { get; set; }
+
+    public string? DefaultModel { get; set; }
+
+    public string? RequestedModel { get; set; }
+
+    public string? ServedModel { get; set; }
+
+    public string? ResponseId { get; set; }
+
+    public string? UpstreamProvider { get; set; }
+
+    public double LatencyMs { get; set; }
+
+    public UsageDto? Usage { get; set; }
+
+    public List<AnswerDto>? Answers { get; set; }
+
+    public string? ErrorKind { get; set; }
+
+    public List<string>? RefusedKeys { get; set; }
 }
 
 internal sealed class UsageDto

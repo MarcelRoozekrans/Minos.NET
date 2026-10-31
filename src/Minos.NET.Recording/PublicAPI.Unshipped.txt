@@ -1,1 +1,15 @@
 #nullable enable
+Minos.Recording.DecisionRecord.Shadow.get -> Minos.Recording.ShadowResult?
+Minos.Recording.ShadowResult
+Minos.Recording.ShadowResult.Answers.get -> System.Collections.Generic.IReadOnlyList<Minos.Recording.RecordedAnswer>!
+Minos.Recording.ShadowResult.DefaultModel.get -> string?
+Minos.Recording.ShadowResult.Endpoint.get -> string?
+Minos.Recording.ShadowResult.ErrorKind.get -> Minos.DecisionErrorKind?
+Minos.Recording.ShadowResult.Latency.get -> System.TimeSpan
+Minos.Recording.ShadowResult.Provider.get -> string!
+Minos.Recording.ShadowResult.RefusedKeys.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Minos.Recording.ShadowResult.RequestedModel.get -> string?
+Minos.Recording.ShadowResult.ResponseId.get -> string?
+Minos.Recording.ShadowResult.ServedModel.get -> string?
+Minos.Recording.ShadowResult.UpstreamProvider.get -> string?
+Minos.Recording.ShadowResult.Usage.get -> Minos.DecisionUsage?

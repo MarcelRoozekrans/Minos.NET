@@ -29,6 +29,42 @@ public sealed class SinkTests : IDisposable
         await sink.AddOutcomeAsync("d-9", Signal("orphan"), ct);
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task SecondWrite_KeepsOutcomesAddedBetween(bool toFile)
+    {
+        var ct = CancellationToken.None;
+        var path = Path.Combine(_directory, "shadow.jsonl");
+        var memory = new InMemoryDecisionRecordSink();
+        await using var file = new JsonlDecisionRecordSink(path);
+        IDecisionRecordSink sink = toFile ? file : memory;
+        var record = Record("d-1");
+        var shadow = new ShadowResult("anthropic", null, null, null, "candidate-served", null, null, TimeSpan.FromMilliseconds(40), null, [], DecisionErrorKind.Timeout, []);
+
+        await sink.WriteAsync(record, ct);
+        await sink.AddOutcomeAsync("d-1", Signal("clicked"), ct);
+        await sink.WriteAsync(record.WithShadow(shadow), ct);
+
+        List<RecordedDecision> decisions = [];
+        if (toFile)
+        {
+            await file.DisposeAsync();
+            await foreach (var decision in DecisionRecordFile.ReadAsync(path, ct))
+            {
+                decisions.Add(decision);
+            }
+        }
+        else
+        {
+            decisions.AddRange(memory.Records);
+        }
+
+        var only = Assert.Single(decisions);
+        Assert.Equal(DecisionErrorKind.Timeout, only.Record.Shadow!.ErrorKind);
+        Assert.Equal("clicked", ((SignalOutcome)Assert.Single(only.Outcomes)).Name);
+    }
+
     [Fact]
     public async Task TheInMemorySink_AppliesOutcomesAndErasures()
     {

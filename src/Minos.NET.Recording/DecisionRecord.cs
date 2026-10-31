@@ -28,7 +28,8 @@ public sealed class DecisionRecord
         IReadOnlyList<string> imageHashes,
         IReadOnlyList<RecordedAnswer> answers,
         DecisionErrorKind? errorKind,
-        IReadOnlyList<string> refusedKeys)
+        IReadOnlyList<string> refusedKeys,
+        ShadowResult? shadow = null)
     {
         DecisionId = decisionId;
         ErasureKey = erasureKey;
@@ -50,6 +51,7 @@ public sealed class DecisionRecord
         Answers = answers;
         ErrorKind = errorKind;
         RefusedKeys = refusedKeys;
+        Shadow = shadow;
     }
 
     /// <summary>Gets the id that ties the record to its outcomes and erasures.</summary>
@@ -111,6 +113,20 @@ public sealed class DecisionRecord
 
     /// <summary>Gets the keys of the questions the model refused; empty when none was refused.</summary>
     public IReadOnlyList<string> RefusedKeys { get; }
+
+    /// <summary>Gets what the shadow candidate answered for the same decision, or <see langword="null"/> when the decision was not shadowed.</summary>
+    public ShadowResult? Shadow { get; }
+
+    /// <summary>Returns a copy of the record that carries <paramref name="shadow"/> and is otherwise the same.</summary>
+    /// <param name="shadow">The candidate's result.</param>
+    internal DecisionRecord WithShadow(ShadowResult shadow)
+    {
+        ArgumentNullException.ThrowIfNull(shadow);
+        return new DecisionRecord(
+            DecisionId, ErasureKey, Started, Latency, Provider, Endpoint, DefaultModel, RequestedModel, ServedModel,
+            ResponseId, UpstreamProvider, Usage, IsCached, Definition, State, ImageCount, ImageHashes, Answers, ErrorKind,
+            RefusedKeys, shadow);
+    }
 
     internal static IReadOnlyList<T> Freeze<T>(IEnumerable<T>? items)
     {
