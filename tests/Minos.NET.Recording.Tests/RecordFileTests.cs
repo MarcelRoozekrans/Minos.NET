@@ -475,8 +475,61 @@ public sealed class RecordFileTests : IDisposable
     }
 
     [Fact]
-    public void UnshadowedRecord_LineHasNoShadowMember()
+    public void UnshadowedRecord_LineIsUnchanged()
         => Assert.DoesNotContain("\"shadow\"", Json(Rec(Record())), StringComparison.Ordinal);
+
+    [Fact]
+    public void ShadowLine_IsPinned()
+    {
+        var shadow = new ShadowResult(
+            "anthropic", "https://c.test/", "c-default", "c-req", "c-served", "r-1", "up-b", TimeSpan.FromTicks(65_122_500),
+            new DecisionUsage { InputTokens = 9, OutputTokens = 2, Cost = 0.5 },
+            [new RecordedAnswer("urgent", QuestionKind.Noul, -1, 0.5, 0, 0.5, [])],
+            DecisionErrorKind.Timeout, ["topic"]);
+
+        var line = Json(Rec(Record(answers: [], refusedKeys: ["mood"]).WithShadow(shadow)));
+
+        Assert.EndsWith(
+            ""","refusedKeys":["mood"],"shadow":{"provider":"anthropic","endpoint":"https://c.test/","defaultModel":"c-default","requestedModel":"c-req","servedModel":"c-served","responseId":"r-1","upstreamProvider":"up-b","latencyMs":6512.25,"usage":{"inputTokens":9,"outputTokens":2,"cost":0.5},"answers":[{"key":"urgent","kind":"noul","probability":0.5,"confidence":0.5}],"errorKind":"Timeout","refusedKeys":["topic"]}}""",
+            line,
+            StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ShadowLine_OmitsNullMembers()
+    {
+        var shadow = new ShadowResult("anthropic", null, null, null, null, null, null, TimeSpan.FromMilliseconds(40), null, [], null, []);
+
+        var line = Json(Rec(Record(refusedKeys: ["mood"]).WithShadow(shadow)));
+
+        Assert.EndsWith("""],"shadow":{"provider":"anthropic","latencyMs":40}}""", line, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task ShadowAnswerSource_RoundTrips()
+    {
+        var shadow = Shadow([new RecordedAnswer("urgent", QuestionKind.Noul, -1, 0.5, 0, 0.5, [], ProbabilitySource.Verbalized)]);
+
+        var (decisions, problems) = await ReadAsync(Lines(Rec(Record().WithShadow(shadow))));
+
+        Assert.Empty(problems);
+        var answer = Assert.Single(Assert.Single(decisions).Record.Shadow!.Answers);
+        Assert.Equal(ProbabilitySource.Verbalized, answer.ProbabilitySource);
+    }
+
+    [Fact]
+    public async Task ShadowWithoutProvider_IsAProblem()
+    {
+        var line = Json(Rec(Record("d-2").WithShadow(Shadow())))
+            .Replace("\"shadow\":{\"provider\":\"anthropic\",", "\"shadow\":{", StringComparison.Ordinal);
+        Assert.DoesNotContain("\"provider\":\"anthropic\"", line, StringComparison.Ordinal);
+
+        var (decisions, problems) = await ReadAsync(Text(RecordText("d-1"), line));
+
+        Assert.Equal(["d-1"], decisions.Select(d => d.Record.DecisionId));
+        var problem = Assert.Single(problems);
+        Assert.Equal(2, problem.Line);
+    }
 
     [Fact]
     public async Task ShadowWithUnknownErrorKind_IsAProblem()
