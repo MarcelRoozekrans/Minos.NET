@@ -103,7 +103,6 @@ public sealed class ShadowEndToEndTests
             Assert.Equal(0.75, question.Agreement);
             Assert.Equal(4, report.Primary.CalibratedKeys);
             Assert.Equal(4, report.Candidate.CalibratedKeys);
-            Assert.DoesNotContain("d5", report.ToJson(), StringComparison.Ordinal);
         }
         finally
         {

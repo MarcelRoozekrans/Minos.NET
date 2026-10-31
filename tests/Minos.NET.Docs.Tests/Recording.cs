@@ -5,7 +5,6 @@ using System.Text.RegularExpressions;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Minos;
-using Minos.Evaluation;
 using Minos.Recording;
 
 public enum SupportLane
@@ -246,7 +245,7 @@ public sealed class LineStoreSink : IDecisionRecordSink
 #region Recording_Shadow
 public static class ShadowedApp
 {
-    public static async Task RunAsync(IDecisionClient primary, IDecisionClient local, string path, CancellationToken cancellationToken)
+    public static async Task RunAsync(Func<IDecisionClient> createPrimary, IDecisionClient local, string path, CancellationToken cancellationToken)
     {
         await using var sink = new JsonlDecisionRecordSink(path);
         await using var recorder = new DecisionRecorder(sink);
@@ -255,7 +254,8 @@ public static class ShadowedApp
         // limit of 2 candidate calls at a time. The candidate must not record its own decisions.
         var shadow = new ShadowOptions(local, dailyCap: 500) { Timeout = TimeSpan.FromSeconds(20), MaxConcurrent = 2 };
 
-        using var client = primary.AsBuilder()
+        // The pipeline owns the primary it is built over and disposes it with the pipeline. The candidate stays yours.
+        using var client = createPrimary().AsBuilder()
             .UseRecording(shadow, recorder)
             .Build();
 
@@ -264,8 +264,8 @@ public static class ShadowedApp
         Console.WriteLine(result.IsSuccess);
 
         // A flush writes what is queued; it does not wait for a candidate that is still running, and dispose cancels
-        // the candidates that are. A short program gives them time to finish before it disposes the recorder.
-        await Task.Delay(TimeSpan.FromSeconds(30), cancellationToken);
+        // the candidates that are. A short program waits for as long as the candidate may take, which is its Timeout.
+        await Task.Delay(shadow.Timeout, cancellationToken);
     }
 }
 #endregion
@@ -273,10 +273,10 @@ public static class ShadowedApp
 #region Recording_ShadowReport
 public static class ShadowReporting
 {
-    public static async Task<ShadowReport> ReportAsync(string path, CancellationToken cancellationToken)
+    public static async Task<Minos.Evaluation.ShadowReport> ReportAsync(string path, CancellationToken cancellationToken)
     {
         // The report reads the record file, not an export: agreement needs no outcome.
-        var report = await ShadowReport.CreateAsync(DecisionRecordFile.ReadAsync(path, cancellationToken), cancellationToken: cancellationToken);
+        var report = await Minos.Evaluation.ShadowReport.CreateAsync(DecisionRecordFile.ReadAsync(path, cancellationToken), cancellationToken: cancellationToken);
 
         Console.WriteLine($"{report.DecisionsShadowed} of {report.DecisionsRead} decisions were shadowed.");
         foreach (var question in report.Questions)
