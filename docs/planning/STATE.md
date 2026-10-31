@@ -1,4 +1,4 @@
-# Session State — 2026-10-31 (Milestone 9: Phase 9.3 built and reviewed, PR next)
+# Session State — 2026-10-31 (Milestone 9: Phase 9.3 in PR #304, awaiting merge)
 
 **Date:** 2026-10-31
 
@@ -141,7 +141,7 @@
        - Signals are split by agreement per question.
        - The shipped `UseRecording(builder, recorder = null)` became `UseRecording(builder)` plus `UseRecording(builder, recorder)`, as RS0026 requires. It is source and binary compatible, and ApiCompat is clean.
      - **Next:**
-       - Open the PR with BEGIN_COMMIT_OVERRIDE listing only the user-facing lines: the two `feat(recording)` lines, the two Evaluation and tool `feat:` lines, and the docs line, not the branch-internal `fix:` commits.
+       - PR #304 is open, with BEGIN_COMMIT_OVERRIDE listing the five user-facing lines. `main` after 1.7.1 is merged in, every CI check is green, and it waits on the maintainer's review and merge. After the merge, check that the release-please PR lists the five lines.
        - After the merge, `complete-phase` 9.3, then Phase 9.4 (the Banking77 shadow report, which needs the maintainer's approval for the hosted run).
    - **Waiting on the maintainer:** a peer message to the Daedalus session "daedalus: phase 3.3 Task 16 onward" saying the recorder shipped in 1.3.0. It needs approval in the app; the `daedalus-b9` session no longer exists. The #119 comment is posted.
 2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.
