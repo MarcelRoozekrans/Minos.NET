@@ -23,6 +23,17 @@ Minos.Evaluation.CalibrationReport.ToJson() -> string!
 Minos.Evaluation.CalibrationReport.ToMarkdown() -> string!
 Minos.Evaluation.CalibrationReport.UnscoredQuestions.get -> int
 Minos.Evaluation.CalibrationReport.VerbalizedAnswers.get -> int
+Minos.Evaluation.ConfusionCell
+Minos.Evaluation.ConfusionCell.Candidate.get -> string!
+Minos.Evaluation.ConfusionCell.Candidate.init -> void
+Minos.Evaluation.ConfusionCell.ConfusionCell() -> void
+Minos.Evaluation.ConfusionCell.ConfusionCell(string! Primary, string! Candidate, int Count) -> void
+Minos.Evaluation.ConfusionCell.Count.get -> int
+Minos.Evaluation.ConfusionCell.Count.init -> void
+Minos.Evaluation.ConfusionCell.Deconstruct(out string! Primary, out string! Candidate, out int Count) -> void
+Minos.Evaluation.ConfusionCell.Equals(Minos.Evaluation.ConfusionCell other) -> bool
+Minos.Evaluation.ConfusionCell.Primary.get -> string!
+Minos.Evaluation.ConfusionCell.Primary.init -> void
 Minos.Evaluation.CostSummary
 Minos.Evaluation.CostSummary.Cached.get -> int
 Minos.Evaluation.CostSummary.PerThousandDecisions.get -> double?
@@ -193,11 +204,48 @@ Minos.Evaluation.RunHeader.ProviderName.init -> void
 Minos.Evaluation.RunHeader.RunHeader() -> void
 Minos.Evaluation.RunHeader.Started.get -> System.DateTimeOffset
 Minos.Evaluation.RunHeader.Started.init -> void
+Minos.Evaluation.ShadowQuestion
+Minos.Evaluation.ShadowQuestion.Agreement.get -> double?
+Minos.Evaluation.ShadowQuestion.CandidateOnly.get -> int
+Minos.Evaluation.ShadowQuestion.Compared.get -> int
+Minos.Evaluation.ShadowQuestion.Confusion.get -> System.Collections.Generic.IReadOnlyList<Minos.Evaluation.ConfusionCell>!
+Minos.Evaluation.ShadowQuestion.IsSmall.get -> bool
+Minos.Evaluation.ShadowQuestion.Key.get -> string!
+Minos.Evaluation.ShadowQuestion.Kind.get -> Minos.QuestionKind
+Minos.Evaluation.ShadowQuestion.Labels.get -> System.Collections.Generic.IReadOnlyList<string!>!
+Minos.Evaluation.ShadowQuestion.MeanLevelDifference.get -> double?
+Minos.Evaluation.ShadowQuestion.PrimaryOnly.get -> int
+Minos.Evaluation.ShadowQuestion.SignalsWhenAgreed.get -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, int>>!
+Minos.Evaluation.ShadowQuestion.SignalsWhenDisagreed.get -> System.Collections.Generic.IReadOnlyList<System.Collections.Generic.KeyValuePair<string!, int>>!
+Minos.Evaluation.ShadowReport
+Minos.Evaluation.ShadowReport.CalibrationCandidateOnlyKeys.get -> int
+Minos.Evaluation.ShadowReport.CalibrationPrimaryOnlyKeys.get -> int
+Minos.Evaluation.ShadowReport.Candidate.get -> Minos.Evaluation.ShadowSide!
+Minos.Evaluation.ShadowReport.DecisionsRead.get -> int
+Minos.Evaluation.ShadowReport.DecisionsShadowed.get -> int
+Minos.Evaluation.ShadowReport.Primary.get -> Minos.Evaluation.ShadowSide!
+Minos.Evaluation.ShadowReport.Questions.get -> System.Collections.Generic.IReadOnlyList<Minos.Evaluation.ShadowQuestion!>!
+Minos.Evaluation.ShadowReport.ToJson() -> string!
+Minos.Evaluation.ShadowReport.ToMarkdown() -> string!
+Minos.Evaluation.ShadowSide
+Minos.Evaluation.ShadowSide.CalibratedDecisions.get -> int
+Minos.Evaluation.ShadowSide.CalibratedKeys.get -> int
+Minos.Evaluation.ShadowSide.Choice.get -> Minos.Evaluation.KindMetrics?
+Minos.Evaluation.ShadowSide.Cost.get -> Minos.Evaluation.CostSummary!
+Minos.Evaluation.ShadowSide.Errors.get -> Minos.Evaluation.ErrorSummary!
+Minos.Evaluation.ShadowSide.Latency.get -> Minos.Evaluation.LatencySummary!
+Minos.Evaluation.ShadowSide.Models.get -> System.Collections.Generic.IReadOnlyList<Minos.Evaluation.ModelCount!>!
+Minos.Evaluation.ShadowSide.Noul.get -> Minos.Evaluation.KindMetrics?
+Minos.Evaluation.ShadowSide.Overall.get -> Minos.Evaluation.KindMetrics!
+Minos.Evaluation.ShadowSide.Refusals.get -> int
+Minos.Evaluation.ShadowSide.Score.get -> Minos.Evaluation.KindMetrics?
+Minos.Evaluation.ShadowSide.VerbalizedAnswers.get -> int
 Minos.Evaluation.SweepPoint
 Minos.Evaluation.SweepPoint.Accuracy.get -> double?
 Minos.Evaluation.SweepPoint.Coverage.get -> double
 Minos.Evaluation.SweepPoint.Covered.get -> int
 Minos.Evaluation.SweepPoint.Threshold.get -> double
+override Minos.Evaluation.ConfusionCell.GetHashCode() -> int
 override Minos.Evaluation.DatasetExportSummary.ToString() -> string!
 override Minos.Evaluation.DatasetProblem.Equals(object? obj) -> bool
 override Minos.Evaluation.DatasetProblem.GetHashCode() -> int
@@ -212,6 +260,8 @@ static Minos.Evaluation.AnswerRecord.ForNoul(double probability, Minos.Probabili
 static Minos.Evaluation.AnswerRecord.ForScore(int level, double confidence) -> Minos.Evaluation.AnswerRecord!
 static Minos.Evaluation.AnswerRecord.ForScore(int level, double confidence, Minos.ProbabilitySource probabilitySource) -> Minos.Evaluation.AnswerRecord!
 static Minos.Evaluation.CalibrationReport.Create(Minos.Evaluation.EvaluationResults! results, Minos.Evaluation.DecisionDataset! dataset, Minos.Evaluation.PriceTable? prices = null) -> ZeroAlloc.Results.Result<Minos.Evaluation.CalibrationReport!, Minos.Evaluation.DatasetProblems!>
+static Minos.Evaluation.ConfusionCell.operator !=(Minos.Evaluation.ConfusionCell left, Minos.Evaluation.ConfusionCell right) -> bool
+static Minos.Evaluation.ConfusionCell.operator ==(Minos.Evaluation.ConfusionCell left, Minos.Evaluation.ConfusionCell right) -> bool
 static Minos.Evaluation.DatasetProblem.operator !=(Minos.Evaluation.DatasetProblem? left, Minos.Evaluation.DatasetProblem? right) -> bool
 static Minos.Evaluation.DatasetProblem.operator ==(Minos.Evaluation.DatasetProblem? left, Minos.Evaluation.DatasetProblem? right) -> bool
 static Minos.Evaluation.DatasetRunner.RunAsync(Minos.IDecisionClient! client, Minos.Evaluation.DecisionDataset! dataset, Minos.Evaluation.DatasetRunOptions? options = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Minos.Evaluation.EvaluationResults!>!
@@ -226,3 +276,7 @@ static Minos.Evaluation.ExpectedAnswer.ForNoul(bool value) -> Minos.Evaluation.E
 static Minos.Evaluation.ExpectedAnswer.ForScore(int level) -> Minos.Evaluation.ExpectedAnswer
 static Minos.Evaluation.ExpectedAnswer.operator !=(Minos.Evaluation.ExpectedAnswer left, Minos.Evaluation.ExpectedAnswer right) -> bool
 static Minos.Evaluation.ExpectedAnswer.operator ==(Minos.Evaluation.ExpectedAnswer left, Minos.Evaluation.ExpectedAnswer right) -> bool
+static Minos.Evaluation.ShadowReport.Create(System.Collections.Generic.IEnumerable<Minos.Recording.RecordedDecision!>! decisions, Minos.Evaluation.PriceTable? prices = null) -> Minos.Evaluation.ShadowReport!
+static Minos.Evaluation.ShadowReport.CreateAsync(System.Collections.Generic.IAsyncEnumerable<Minos.Recording.RecordedDecision!>! decisions, Minos.Evaluation.PriceTable? prices = null, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.Task<Minos.Evaluation.ShadowReport!>!
+~override Minos.Evaluation.ConfusionCell.Equals(object obj) -> bool
+~override Minos.Evaluation.ConfusionCell.ToString() -> string
