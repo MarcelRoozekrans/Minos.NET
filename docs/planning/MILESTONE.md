@@ -39,7 +39,7 @@ Daedalus.NET is the first workload, and its requirements are binding: see the de
 ## Phases
 1. Phase 9.1 — The decision recorder [complete]
 2. Phase 9.2 — Export to the dataset format [complete]
-3. Phase 9.3 — Shadow mode and its report [pending]
+3. Phase 9.3 — Shadow mode and its report [active]
 4. Phase 9.4 — A shadow report on recorded traffic [pending]
 5. Phase 9.5 — "Running decisions locally and privately" guide [pending]
 
