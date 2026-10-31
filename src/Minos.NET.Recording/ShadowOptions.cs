@@ -70,6 +70,10 @@ public sealed class ShadowOptions
     /// Gets or sets how many candidate calls may run at once, among every stage built with these options. A decision made
     /// while that many run is not shadowed, and counted as <c>skipped_busy</c>. A stage reads it when it is created.
     /// </summary>
+    /// <remarks>
+    /// A call counts until it returns or reaches <see cref="Timeout"/>, or the recorder is disposed. The stage then stops
+    /// waiting for it, but a candidate that ignores its cancellation token can keep running beyond the limit.
+    /// </remarks>
     /// <value>Defaults to 4. At least 1.</value>
     /// <exception cref="ArgumentOutOfRangeException">The value is less than 1.</exception>
     public int MaxConcurrent

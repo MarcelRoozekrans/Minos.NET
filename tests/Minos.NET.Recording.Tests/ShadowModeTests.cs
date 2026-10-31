@@ -669,6 +669,55 @@ public sealed class ShadowModeTests
     }
 
     [Fact]
+    public async Task CandidateFaultingOnItsCancellation_IsNeverReportedUnobserved()
+    {
+        var unobserved = new List<Exception>();
+        void OnUnobserved(object? sender, UnobservedTaskExceptionEventArgs args)
+        {
+            lock (unobserved)
+            {
+                unobserved.AddRange(args.Exception.Flatten().InnerExceptions);
+            }
+        }
+
+        var time = new FakeTimeProvider(TestRecords.T0);
+        var sink = new InMemoryDecisionRecordSink();
+        var (recorder, _, factory) = Recorder(sink, time: time);
+        var candidate = new FaultingOnCancellation();
+        TaskScheduler.UnobservedTaskException += OnUnobserved;
+        try
+        {
+            using (factory)
+            await using (recorder)
+            {
+                using var client = Pipeline(new ScriptedClient(Metadata), recorder, new ShadowOptions(candidate, 10) { Timeout = TimeSpan.FromSeconds(3) });
+
+                await client.EvaluateAsync(Request());
+                await candidate.Started.Task.WaitAsync(Bound);
+                time.Advance(TimeSpan.FromSeconds(3) + TimeSpan.FromMilliseconds(1));
+
+                // The wait ends at the timeout, and the call faults from the same cancellation.
+                var shadow = (await WaitShadowedAsync(recorder, sink)).Shadow!;
+                Assert.Equal(DecisionErrorKind.Timeout, shadow.ErrorKind);
+                Assert.True(candidate.Faulted);
+            }
+
+            GC.Collect();
+            GC.WaitForPendingFinalizers();
+            GC.Collect();
+        }
+        finally
+        {
+            TaskScheduler.UnobservedTaskException -= OnUnobserved;
+        }
+
+        lock (unobserved)
+        {
+            Assert.DoesNotContain(unobserved, exception => exception.Message.Contains("FAULT-SENTINEL", StringComparison.Ordinal));
+        }
+    }
+
+    [Fact]
     public async Task ShadowOptions_RejectsBadArguments()
     {
         var candidate = new ShadowCandidate();
@@ -701,6 +750,36 @@ public sealed class ShadowModeTests
             Assert.Throws<ArgumentNullException>(() => RecordingDecisionClientBuilderExtensions.UseRecording(null!, options));
             Assert.Throws<ArgumentNullException>(() => new ScriptedClient().AsBuilder().UseRecording((ShadowOptions)null!, recorder));
             Assert.Throws<ArgumentNullException>(() => new RecordingDecisionClient(new ScriptedClient(), null!, options));
+        }
+    }
+
+    /// <summary>A candidate whose call faults from its token's cancellation callback, after the stage's wait was cancelled.</summary>
+    private sealed class FaultingOnCancellation : IDecisionClient
+    {
+        private int _faulted;
+
+        public TaskCompletionSource Started { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        // Only a flag: a reference to the call's task would keep it from the finalizer that reports it unobserved.
+        public bool Faulted => Volatile.Read(ref _faulted) == 1;
+
+        public ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
+        {
+            // Continuations run inline, so the call is faulted inside the cancellation callback itself.
+            var call = new TaskCompletionSource<Result<DecisionResponse, DecisionError>>();
+            cancellationToken.Register(() =>
+            {
+                call.TrySetException(new InvalidOperationException("FAULT-SENTINEL"));
+                Volatile.Write(ref _faulted, 1);
+            });
+            Started.TrySetResult();
+            return new(call.Task);
+        }
+
+        public object? GetService(Type serviceType, object? serviceKey = null) => null;
+
+        public void Dispose()
+        {
         }
     }
 }

@@ -95,6 +95,7 @@ internal sealed class ShadowRunner
     public void Start(DecisionRequest request, in Reservation shadow)
     {
         var reserved = shadow;
+        var scheduled = false;
         try
         {
             var candidateRequest = new DecisionRequest(request.Definition, request.State) { Model = _model, Images = request.Images };
@@ -104,20 +105,28 @@ internal sealed class ShadowRunner
             if (ExecutionContext.IsFlowSuppressed())
             {
                 _ = Task.Run(() => RunAsync(candidateRequest, reserved));
+                scheduled = true;
             }
             else
             {
                 using (ExecutionContext.SuppressFlow())
                 {
                     _ = Task.Run(() => RunAsync(candidateRequest, reserved));
+                    scheduled = true;
                 }
             }
         }
         catch (Exception exception)
         {
-            // The candidate never started, but its cap slot was spent and its record is queued.
-            _budget.ReleaseRunning();
-            _recorder.AbandonShadow(reserved.Record.DecisionId);
+            // Once RunAsync is scheduled, it owns the running slot and the shadow, and ends both: a throw after that, such
+            // as from undoing the flow suppression, is only logged.
+            if (!scheduled)
+            {
+                // The candidate never started, but its cap slot was spent and its record is queued.
+                _budget.ReleaseRunning();
+                _recorder.AbandonShadow(reserved.Record.DecisionId);
+            }
+
             _recorder.LogRecordingFailed(exception.GetType().Name);
         }
     }
@@ -208,10 +217,11 @@ internal sealed class ShadowRunner
     }
 
     // A candidate's call that outlived its wait: its exception, which can quote the request, is observed and dropped, so it
-    // never reaches an UnobservedTaskException handler.
+    // never reaches an UnobservedTaskException handler. Attached whatever the call's state: one that faulted after the wait
+    // was cancelled, but before this runs, is observed too.
     private static void Orphan(Task? call)
     {
-        if (call is { IsCompleted: false })
+        if (call is not null)
         {
             _ = call.ContinueWith(
                 static task => _ = task.Exception,
