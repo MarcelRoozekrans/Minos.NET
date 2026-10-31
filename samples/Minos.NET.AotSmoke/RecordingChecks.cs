@@ -176,7 +176,7 @@ internal static class RecordingChecks
             var recorder = new DecisionRecorder(
                 sink,
                 new RecordingOptions { Capacity = 16, FlushTimeout = TimeSpan.FromSeconds(10), Redact = static state => RedactionResult.Keep(state) });
-            var candidate = new FixedResponseClient(PipelineChecks.TriageResponse());
+            using var candidate = new FixedResponseClient(PipelineChecks.TriageResponse());
             var shadow = new ShadowOptions(candidate, dailyCap: 10) { Timeout = TimeSpan.FromSeconds(10), MaxConcurrent = 2, Model = "candidate-model" };
 
             // The shadow comes from the builder for the first decision, from the constructor for the second, and the third
@@ -200,7 +200,7 @@ internal static class RecordingChecks
             // The candidate writes its part after the primary returns: wait for it a bounded number of times.
             var problems = new List<DecisionRecordFileProblem>();
             var read = new List<RecordedDecision>();
-            for (var attempt = 0; attempt < 100; attempt++)
+            for (var attempt = 0; attempt < 400; attempt++)
             {
                 await recorder.FlushAsync().ConfigureAwait(false);
                 problems.Clear();
@@ -236,7 +236,7 @@ internal static class RecordingChecks
                     && shadow.Timeout == TimeSpan.FromSeconds(10) && shadow.MaxConcurrent == 2
                     && string.Equals(shadow.Model, "candidate-model", StringComparison.Ordinal)
                     && candidate.Calls == 2,
-                "a decision is shadowed by a candidate in the background, and the file holds the candidate's answers beside the primary's, under Native AOT");
+                "a decision is shadowed by a candidate in the background, and the file holds the candidate's answers beside the primary's within 20 s, under Native AOT");
         }
         finally
         {

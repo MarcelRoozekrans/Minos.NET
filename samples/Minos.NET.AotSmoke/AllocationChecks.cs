@@ -262,13 +262,14 @@ internal static class AllocationChecks
     public static void RecordingStage()
     {
         using var recorder = new RecordingFixture();
-        using var client = new FixedResponseClient(PipelineChecks.TriageResponse()).AsBuilder().UseRecording(recorder.Recorder).Build();
+        using var inner = new FixedResponseClient(PipelineChecks.TriageResponse());
+        using var client = inner.AsBuilder().UseRecording(recorder.Recorder).Build();
         var request = new DecisionRequest(SmokeTriage.Definition, SmokeAnswers.State);
 
         // Measured 912 B/call on published linux-x64 AOT, the same in every run: the record the call hands the recorder, with
         // its frozen answers, id and state, and the queue write. Budget: about 10% headroom over the measurement, rounded up
         // to the next multiple of 64 B, per the Phase 1.8 rule. The recorder's writer thread allocates too, but the gate
-        // counts the calling thread only.
+        // counts the calling thread only. Measured on linux-x64, which is what CI's aot-smoke job runs.
         GateValueTask(
             budgetBytes: 1024,
             action: () => client.EvaluateAsync(request),
@@ -283,29 +284,38 @@ internal static class AllocationChecks
     public static void ShadowedRecordingStage()
     {
         using var recorder = new RecordingFixture();
-        var candidate = new FixedResponseClient(PipelineChecks.TriageResponse());
+        using var candidate = new FixedResponseClient(PipelineChecks.TriageResponse());
         var shadow = new Minos.Recording.ShadowOptions(candidate, dailyCap: int.MaxValue) { MaxConcurrent = 1_000_000 };
-        using var client = new FixedResponseClient(PipelineChecks.TriageResponse()).AsBuilder().UseRecording(shadow, recorder.Recorder).Build();
+        using var inner = new FixedResponseClient(PipelineChecks.TriageResponse());
+        using var client = inner.AsBuilder().UseRecording(shadow, recorder.Recorder).Build();
         var request = new DecisionRequest(SmokeTriage.Definition, SmokeAnswers.State);
+        var calls = 0;
 
         // Measured 1264 B/call on published linux-x64 AOT, the same in every run: the 912 B of RecordingStage plus 352 B for
         // the shadow, which are the reservation and the work item and delegate that start the candidate in the background.
         // Budget: about 10% headroom over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
-        // The candidate's own call runs on a pool thread, which the gate does not count.
+        // The candidate's own call runs on a pool thread, which the gate does not count. Measured on linux-x64, which is what
+        // CI's aot-smoke job runs.
         GateValueTask(
             budgetBytes: 1408,
-            action: () => client.EvaluateAsync(request),
+            action: () =>
+            {
+                calls++;
+                return client.EvaluateAsync(request);
+            },
             label: "ShadowedRecordingStage",
             passDescription: "a shadowed decision's primary path stays within its allocation budget");
 
-        // The gate would pass just as well if every decision were skipped, so wait, a bounded number of times, for the
-        // candidate to have been called.
-        for (var attempt = 0; attempt < 100 && candidate.Calls == 0; attempt++)
+        // The gate would pass just as well if shadowing stopped after the first decision, so wait, a bounded number of times,
+        // for the candidate to have answered every call the gate made, warm-up included.
+        for (var attempt = 0; attempt < 400 && candidate.Calls < calls; attempt++)
         {
             Thread.Sleep(50);
         }
 
-        Program.Check(candidate.Calls > 0, "the shadow candidate was called, so the gate measured a shadowed decision");
+        Program.Check(
+            candidate.Calls == calls,
+            $"the shadow candidate answered every call the gate made, so the gate measured shadowed decisions: {candidate.Calls} of {calls} within 20 s");
     }
 
     // A recorder over an in-memory sink whose queue holds every call a gate makes, so no call is dropped and each takes the

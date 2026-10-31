@@ -8,18 +8,20 @@ namespace Minos.AotSmoke;
 /// </summary>
 internal sealed class FixedResponseClient(DecisionResponse response) : IDecisionClient
 {
+    private int _calls;
+
     public DecisionResponse Response => response;
 
     public DecisionRequest? LastRequest { get; private set; }
 
-    public int Calls { get; private set; }
+    public int Calls => Volatile.Read(ref _calls);
 
     public bool Disposed { get; private set; }
 
     public ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
     {
         LastRequest = request;
-        Calls++;
+        Interlocked.Increment(ref _calls);
         return new(Result<DecisionResponse, DecisionError>.Success(response));
     }
 
