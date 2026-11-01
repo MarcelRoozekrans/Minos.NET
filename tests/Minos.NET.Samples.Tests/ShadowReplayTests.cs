@@ -43,17 +43,25 @@ public sealed class ShadowReplayTests : IDisposable
 
     private static DecisionDataset Dataset() => Dataset(Jsonl);
 
+    // Read while the sink may be appending: a line it has not finished is reported as a problem rather than thrown, and
+    // any problem, like a read that fails, means "not yet", so the caller polls again.
     private async Task<bool> HasShadowAsync(string decisionId)
     {
-        foreach (var decision in await ReadAsync())
+        var problems = new List<DecisionRecordFileProblem>();
+        var found = false;
+        try
         {
-            if (string.Equals(decision.Record.DecisionId, decisionId, StringComparison.Ordinal) && decision.Record.Shadow is not null)
+            await foreach (var decision in DecisionRecordFile.ReadAsync(_path, problems, CancellationToken.None))
             {
-                return true;
+                found |= string.Equals(decision.Record.DecisionId, decisionId, StringComparison.Ordinal) && decision.Record.Shadow is not null;
             }
         }
+        catch (IOException)
+        {
+            return false;
+        }
 
-        return false;
+        return found && problems.Count == 0;
     }
 
     private async Task<List<RecordedDecision>> ReadAsync()
