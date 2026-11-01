@@ -278,7 +278,7 @@ jobs:
           # The runner signals only this shell (SIGINT, then SIGTERM after 7.5 s, a kill after 10 s). Pass it on as SIGTERM,
           # since a background job ignores SIGINT, and let the sample keep the records it has written.
           trap 'trap "" INT TERM; if [ -n "$pid" ]; then kill -TERM "$pid" 2>/dev/null; wait "$pid"; fi; exit 130' INT TERM
-          dotnet run --project samples/Minos.NET.Samples.ShadowReplay -c Release -- --dataset datasets/banking77/banking77-minos-v1.jsonl --config docs/reports/minos.json --primary TypeSafe --candidate Local --records "$RUNNER_TEMP/out/records.jsonl" & pid=$!
+          dotnet run --project samples/Minos.NET.Samples.ShadowReplay -c Release --no-build -- --dataset datasets/banking77/banking77-minos-v1.jsonl --config docs/reports/minos.json --primary TypeSafe --candidate Local --records "$RUNNER_TEMP/out/records.jsonl" & pid=$!
           wait "$pid"
 
       - name: Shadow report

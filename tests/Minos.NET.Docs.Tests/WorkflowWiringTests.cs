@@ -254,7 +254,7 @@ public sealed class WorkflowWiringTests
         Assert.Contains("dotnet tool install Minos.NET.Tool --version 1.8.0 --tool-path \"$RUNNER_TEMP/minos-tool\"", job, StringComparison.Ordinal);
         Assert.Contains("dotnet build samples/Minos.NET.Samples.ShadowReplay -c Release\n", job, StringComparison.Ordinal);
         Assert.Contains("mkdir -p \"$RUNNER_TEMP/out\"\n", job, StringComparison.Ordinal);
-        Assert.Contains("dotnet run --project samples/Minos.NET.Samples.ShadowReplay -c Release -- --dataset datasets/banking77/banking77-minos-v1.jsonl --config docs/reports/minos.json --primary TypeSafe --candidate Local --records \"$RUNNER_TEMP/out/records.jsonl\" & pid=$!\n", job, StringComparison.Ordinal);
+        Assert.Contains("dotnet run --project samples/Minos.NET.Samples.ShadowReplay -c Release --no-build -- --dataset datasets/banking77/banking77-minos-v1.jsonl --config docs/reports/minos.json --primary TypeSafe --candidate Local --records \"$RUNNER_TEMP/out/records.jsonl\" & pid=$!\n", job, StringComparison.Ordinal);
         // One background run, not a loop: the trap signals the app itself and the step waits for it to save its records.
         Assert.Contains("          pid=\n", job, StringComparison.Ordinal);
         Assert.Contains("trap 'trap \"\" INT TERM; if [ -n \"$pid\" ]; then kill -TERM \"$pid\" 2>/dev/null; wait \"$pid\"; fi; exit 130' INT TERM\n", job, StringComparison.Ordinal);
