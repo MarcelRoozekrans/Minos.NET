@@ -1,14 +1,18 @@
 using System.Text.Json;
 using Minos.Evaluation;
+using Minos.Recording;
 using Minos.Tool;
 
 namespace Minos.Docs.Tests;
 
 // Keeps every committed calibration report folder, docs/reports/<provider>/<set>/, honest: it has its files, it is a
 // known provider and set, its README says what its report says, and its report.json is exactly what the library builds
-// again from the folder's results, the dataset and the prices, so no report was edited by hand.
+// again from the folder's results, the dataset and the prices, so no report was edited by hand. The shadow report
+// folders, docs/reports/shadow/<set>/, are checked the same way against their records.
 public sealed class ReportFolderTests
 {
+    private const string Shadow = "shadow";
+
     private static readonly string ReportsRoot = Path.Combine(PublishedPages.Root, "docs", "reports");
 
     private static readonly string[] Providers = ["typesafe", "clef-flash", "local"];
@@ -30,12 +34,33 @@ public sealed class ReportFolderTests
         ["local/banking77"] = 39053226413,
     };
 
+    // The workflow run each shadow folder's records came from. A new shadow folder needs an entry here.
+    private static readonly Dictionary<string, long> ShadowRunIds = new()
+    {
+        ["shadow/banking77"] = 41292378108,
+    };
+
     private static readonly string[] ReadmeFields = ["Date", "Provider", "Model", "Dataset", "Run", "Runner", "Served", "Tool", "Prices"];
+
+    private static readonly string[] ShadowReadmeFields = ["Date", "Primary", "Candidate", "Dataset", "Run", "Runner", "Served", "Tool", "Prices"];
+
+    private static readonly string[] ShadowFiles = ["README.md", "records.jsonl", "shadow-report.json", "shadow-report.md"];
 
     public static TheoryData<string> Folders()
     {
         var data = new TheoryData<string>();
         foreach (var folder in FolderPaths())
+        {
+            data.Add(Path.GetRelativePath(ReportsRoot, folder).Replace('\\', '/'));
+        }
+
+        return data;
+    }
+
+    public static TheoryData<string> ShadowFolders()
+    {
+        var data = new TheoryData<string>();
+        foreach (var folder in ShadowFolderPaths())
         {
             data.Add(Path.GetRelativePath(ReportsRoot, folder).Replace('\\', '/'));
         }
@@ -126,13 +151,104 @@ public sealed class ReportFolderTests
         Assert.Equal(File.ReadAllText(Path.Combine(path, "report.md")), rebuilt.Value.ToMarkdown());
     }
 
+    [Fact]
+    public void TheReportsFolder_HoldsAtLeastOneShadowReport()
+    {
+        Assert.NotEmpty(ShadowFolderPaths());
+    }
+
+    [Theory]
+    [MemberData(nameof(ShadowFolders))]
+    public void ShadowReportFolder_HasItsFiles(string folder)
+    {
+        var actual = Directory.GetFileSystemEntries(Path.Combine(ReportsRoot, folder)).Select(Path.GetFileName).OrderBy(name => name, StringComparer.Ordinal);
+
+        Assert.Equal(ShadowFiles.OrderBy(name => name, StringComparer.Ordinal), actual);
+    }
+
+    [Theory]
+    [MemberData(nameof(ShadowFolders))]
+    public void ShadowReportFolder_IsAKnownSet(string folder)
+    {
+        var parts = folder.Split('/');
+
+        Assert.Equal(2, parts.Length);
+        Assert.Equal(Shadow, parts[0]);
+        Assert.Contains(parts[1], DatasetFiles.Keys);
+    }
+
+    [Theory]
+    [MemberData(nameof(ShadowFolders))]
+    public void ShadowReportReadme_MatchesItsReport(string folder)
+    {
+        var path = Path.Combine(ReportsRoot, folder);
+        var fields = ReadmeValues(File.ReadAllLines(Path.Combine(path, "README.md")));
+        using var report = JsonDocument.Parse(File.ReadAllText(Path.Combine(path, "shadow-report.json")));
+
+        foreach (var field in ShadowReadmeFields)
+        {
+            Assert.True(fields.TryGetValue(field, out var value) && value.Length > 0, folder + " README has no " + field + ": line");
+        }
+
+        // The records name no dataset, so the README names the file the replay read, without its extension.
+        Assert.Equal(Path.GetFileNameWithoutExtension(DatasetFiles[folder.Split('/')[1]]), fields["Dataset"]);
+
+        // Primary and Candidate are "<provider>, <model>"; Served lists each side's served models.
+        var primary = ServedModels(report.RootElement, "primary");
+        var candidate = ServedModels(report.RootElement, "candidate");
+        Assert.NotEmpty(primary);
+        Assert.NotEmpty(candidate);
+        Assert.Equal(string.Join(", ", primary), AfterProvider(fields["Primary"]));
+        Assert.Equal(string.Join(", ", candidate), AfterProvider(fields["Candidate"]));
+        Assert.Equal("primary " + string.Join(", ", primary) + "; candidate " + string.Join(", ", candidate), fields["Served"]);
+
+        Assert.True(ShadowRunIds.TryGetValue(folder, out var run), folder + " has no expected run id; add it to ShadowRunIds in ReportFolderTests");
+        Assert.Equal("https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/" + run, fields["Run"]);
+    }
+
+    [Theory]
+    [MemberData(nameof(ShadowFolders))]
+    public async Task ShadowReport_RebuildsFromItsRecords(string folder)
+    {
+        var path = Path.Combine(ReportsRoot, folder);
+        var prices = PricesFile.Load(Path.Combine(ReportsRoot, "prices.json"));
+        Assert.True(prices.IsSuccess, prices.IsFailure ? prices.Error : string.Empty);
+        var problems = new List<DecisionRecordFileProblem>();
+
+        var rebuilt = await ShadowReport.CreateAsync(
+            DecisionRecordFile.ReadAsync(Path.Combine(path, "records.jsonl"), problems, CancellationToken.None),
+            prices.Value,
+            CancellationToken.None);
+
+        Assert.Empty(problems);
+        Assert.Equal(File.ReadAllText(Path.Combine(path, "shadow-report.json")), rebuilt.ToJson());
+        Assert.Equal(File.ReadAllText(Path.Combine(path, "shadow-report.md")), rebuilt.ToMarkdown());
+    }
+
+    private static string AfterProvider(string value)
+        => value[(value.IndexOf(", ", StringComparison.Ordinal) + 2)..];
+
+    private static string[] ServedModels(JsonElement report, string side)
+        => [.. report.GetProperty(side).GetProperty("responseModels").EnumerateArray()
+            .Select(entry => entry.GetProperty("model").GetString()!).Order(StringComparer.Ordinal)];
+
     private static string Describe(DatasetProblems problems)
         => string.Join("; ", problems.Select(problem => problem.ToString()));
 
+    // The calibration folders: every <provider>/<set> but the shadow folders, which ShadowFolderPaths covers.
     private static IEnumerable<string> FolderPaths()
         => Directory.Exists(ReportsRoot)
-            ? Directory.GetDirectories(ReportsRoot).SelectMany(Directory.GetDirectories).OrderBy(folder => folder, StringComparer.Ordinal)
+            ? Directory.GetDirectories(ReportsRoot)
+                .Where(provider => !string.Equals(Path.GetFileName(provider), Shadow, StringComparison.Ordinal))
+                .SelectMany(Directory.GetDirectories)
+                .OrderBy(folder => folder, StringComparer.Ordinal)
             : [];
+
+    private static IEnumerable<string> ShadowFolderPaths()
+    {
+        var root = Path.Combine(ReportsRoot, Shadow);
+        return Directory.Exists(root) ? Directory.GetDirectories(root).OrderBy(folder => folder, StringComparer.Ordinal) : [];
+    }
 
     // README lines of the form "Name: value", with an optional leading bold or list marker removed.
     private static Dictionary<string, string> ReadmeValues(string[] lines)
