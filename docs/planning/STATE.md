@@ -1,4 +1,4 @@
-# Session State — 2026-11-01 (Milestone 9: Phase 9.4 part 1 built, PR next)
+# Session State — 2026-11-01 (Milestone 9: Phase 9.4 part 1 merged, shadow run dispatched)
 
 **Date:** 2026-11-01
 
@@ -158,7 +158,14 @@
        - The replay runs with `--no-build` after a separate build step.
        - `docs/samples.md` and the root README count six samples, and five of them run offline.
        - In this sandbox, three ProviderSwitchSampleTests fail on the inotify instance limit of 128. This is environmental, and CI is the check.
-     - **Next:** merge PR 1 when green. Then ask the maintainer to approve the billed run, about 400 TypeSafe calls and roughly 50 minutes, before dispatching (Task 6). Then Task 7, PR 2.
+     - **PR 1 merged** on 2026-11-01: #307, squash `d893febf`, with BEGIN_COMMIT_OVERRIDE. Pre-push review PASS: `docs/plans/2026-11-01-phase-9.4-pre-push-review.md`. CI found one more defect: the samples page's front matter held an unquoted `: `, which is invalid YAML. It is fixed, and `FrontMatterTests.UnquotedValues_AreValidYamlScalars` now guards every page.
+     - **Task 6:** the maintainer approved the billed run on 2026-11-01, and it was dispatched: [run 41292378108](https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/41292378108) on `d893febf`.
+     - **Next, Task 7 on branch `phase/9.4-shadow-report`, from main:**
+       1. Wait for run 41292378108 to end.
+       2. `gh run download 41292378108 -n shadow-typesafe-local-banking77 -D <empty temp dir>`.
+       3. Read the summary line, `items=… decided=… shadowed=… waits_run_out=…`, from `gh run view 41292378108 --log`. Expected: `decided=400 shadowed=400 waits_run_out=0`. Anything else goes into the README with its cause, and a cause in the library stops the phase for a fix PR first.
+       4. Follow plan Task 7 from there: the folder `docs/reports/shadow/banking77/`, the `ReportFolderTests` additions, then STATE, the pre-push review and PR 2.
+       5. After PR 2 merges, run `complete-phase` for 9.4.
    - **Waiting on the maintainer:** a peer message to the Daedalus session "daedalus: phase 3.3 Task 16 onward" saying the recorder shipped in 1.3.0. It needs approval in the app; the `daedalus-b9` session no longer exists. The #119 comment is posted.
 2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.
 3. Phases 7.1 to 7.5 are complete. On 2026-10-15 nuget.org reserved `Minos.NET` and `Minos.NET.*` to MarcelRoozekrans, which lifted the 409 "package ID is reserved" block. The Trusted Publishing policy is ci.yml, no environment, glob `*`. `gh workflow run ci.yml --ref v1.0.1 -f publish_to_nuget=true` ([run 38726515640](https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/38726515640)) published all six packages as 1.0.1, with symbols. 1.0.0 was never published. `PackageValidationBaselineVersion` is 1.0.1, which closes #28. Milestone 7 is complete; its audit passed (`docs/plans/2026-10-15-milestone-7-audit.md`). Next: Milestone 8, Choosing a provider and a threshold, starting with `new-milestone`.
