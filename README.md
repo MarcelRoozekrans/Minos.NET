@@ -144,13 +144,13 @@ The guide lives at [marcelroozekrans.github.io/Minos.NET](https://marcelroozekra
 - [Confidence routing](https://marcelroozekrans.github.io/Minos.NET/patterns/confidence-routing): gate each action on the answer confidence, with a threshold sized to the cost of being wrong.
 - [Composite scoring](https://marcelroozekrans.github.io/Minos.NET/patterns/composite-scoring): break a judgement into small Scores and combine them with weights you own.
 - [Intent routing](https://marcelroozekrans.github.io/Minos.NET/patterns/intent-routing): make a cheap first decision that sends each request to code, a model or a person.
-- [Samples](https://marcelroozekrans.github.io/Minos.NET/samples): five runnable cookbook samples that run offline, four of them replaying recorded Jev answers, one against three providers chosen by configuration, and one over a chat client.
+- [Samples](https://marcelroozekrans.github.io/Minos.NET/samples): six runnable cookbook samples: five run offline, four of them replaying recorded Jev answers, one against three providers chosen by configuration, and one over a chat client, and the sixth replays a dataset through shadow mode.
 - [Performance](https://marcelroozekrans.github.io/Minos.NET/performance): what the benchmarks measure, how to run them, and what the client costs per call.
 - [Conformance](https://marcelroozekrans.github.io/Minos.NET/conformance): the suite that checks any decision endpoint's shapes, probabilities, errors and models, and how to run it against your own.
 
 ## Samples
 
-Runnable cookbook apps live in [`samples/`](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples). All five run offline: four replay recorded answers, one of them against three providers by configuration, and the chat-client sample uses a scripted chat client when no key is set.
+Runnable cookbook apps live in [`samples/`](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples). Five run offline: four replay recorded answers, one of them against three providers by configuration, and the chat-client sample uses a scripted chat client when no key is set. The shadow-replay sample calls a hosted primary and a local candidate, and is billed.
 
 ## Building
 

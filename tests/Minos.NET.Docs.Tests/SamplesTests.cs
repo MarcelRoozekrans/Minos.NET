@@ -35,6 +35,9 @@ public sealed partial class SamplesTests
     /// <summary>The chat-client sample, which has no recordings: it runs offline over a scripted chat client.</summary>
     private const string ChatClientFolder = "Minos.NET.Samples.ChatClient";
 
+    /// <summary>The shadow-replay sample, which has no recordings and no modes: it calls a hosted primary and a local candidate.</summary>
+    private const string ShadowReplayFolder = "Minos.NET.Samples.ShadowReplay";
+
     [Fact]
     public void TheProviderRecordings_AreFromTheModelsAndDatesThePageNames()
     {
@@ -55,20 +58,20 @@ public sealed partial class SamplesTests
     [Fact]
     public void TheTable_ListsEverySampleFolder_AndNothingElse()
     {
-        var rows = PageTables.Rows("samples.md", "The five samples");
+        var rows = PageTables.Rows("samples.md", "The six samples");
 
         var listed = rows.Select(row => Folder(row[0])).Order(StringComparer.Ordinal).ToArray();
 
         Assert.Equal(SampleFolders, listed);
-        Assert.Equal(5, SampleFolders.Length);
+        Assert.Equal(6, SampleFolders.Length);
         Assert.Equal(3, SingleRecordingFolders.Length);
-        Assert.Equal(SampleFolders.Except([ChatClientFolder], StringComparer.Ordinal), RecordedFolders);
+        Assert.Equal(SampleFolders.Except([ChatClientFolder, ShadowReplayFolder], StringComparer.Ordinal), RecordedFolders);
     }
 
     [Fact]
     public void EachRow_HasTheRealCommandAndTheRecordedRequestCount()
     {
-        foreach (var row in PageTables.Rows("samples.md", "The five samples"))
+        foreach (var row in PageTables.Rows("samples.md", "The six samples"))
         {
             var folder = Folder(row[0]);
 
@@ -79,6 +82,12 @@ public sealed partial class SamplesTests
                 // One call per question per ticket, and only with a key; Auto adds a call for a reply without logprobs.
                 var calls = Tickets.All.Count * TicketTriage.Definition.Questions.Count;
                 Assert.Equal(calls.ToString(CultureInfo.InvariantCulture) + ", and one more per question without logprobs, only with a key", row[3]);
+                continue;
+            }
+
+            if (string.Equals(folder, ShadowReplayFolder, StringComparison.Ordinal))
+            {
+                Assert.Equal("1 billed per dataset item", row[3]);
                 continue;
             }
 
