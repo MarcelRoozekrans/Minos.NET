@@ -20,7 +20,7 @@ Next to the folders sit the files that every run shares:
 - `minos.json` is the run configuration. It has one section per provider: `TypeSafe`, `Clef` and `Local`. `Active` is
   `TypeSafe`. The file holds no API key; the keys come from the environment. The `Clef` section asks OpenRouter for
   zero data retention, so a request goes only to an endpoint that does not retain it.
-- `prices.json` holds the prices applied to a report afterwards: the TypeSafe model `jev-1.13.0`, and the local model at
+- `prices.json` holds the prices applied to a report afterwards: the TypeSafe models `jev-1.13.0` and `jev-1.14.0`, and the local model at
   0 because it runs on your own hardware. Clef reports its own cost, so it has no entry.
 
 ## How a run is started
@@ -60,11 +60,13 @@ replays traffic through [shadow mode](../recording.md#shadow-mode): the primary 
 candidate decides the same item in the background. The report then compares the two. It is evidence only: it states what
 was measured and gives no verdict on whether to switch.
 
-The first set is `banking77`. Its folder is `docs/reports/shadow/banking77/`, and it is committed after an approved run.
+The first set is `banking77`. Its folder is [`docs/reports/shadow/banking77/`](shadow/banking77/README.md), from the
+approved run of 2026-11-01.
 Each set has its own folder, `docs/reports/shadow/<set>/`, with four files:
 
 - `README.md` says what the run was, in `Field: value` lines as in the calibration folders: Date, Primary, Candidate, Dataset,
-  Run, Runner, Served, Tool and Prices.
+  Run, Runner, Served, Tool and Prices. A new shadow folder adds its run to `ShadowRunIds` in `ReportFolderTests`, which
+  also rebuilds each shadow report from its records and the prices.
 - `records.jsonl` holds the records of the replay: two record lines and one outcome line for each decided item. A primary
   call that failed writes one line.
 - `shadow-report.json` is the report in machine-readable form.
