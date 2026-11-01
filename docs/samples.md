@@ -2,7 +2,7 @@
 id: samples
 title: Samples
 sidebar_position: 18
-description: Six runnable cookbook samples: five run offline, four replaying recorded answers, one of them against three providers, and one over a chat client, and the sixth replays a dataset through shadow mode. How to run, record and trust them.
+description: Six runnable cookbook samples, five that run offline and one that replays a dataset through shadow mode, and how to run, record and trust them.
 ---
 
 # Samples
