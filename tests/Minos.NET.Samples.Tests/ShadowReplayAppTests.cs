@@ -81,4 +81,20 @@ public sealed class ShadowReplayAppTests : IDisposable
         Assert.Equal(2, code);
         Assert.Contains("Other", _err.ToString(), StringComparison.Ordinal);
     }
+
+    [Fact]
+    public async Task ADatasetPastTheDailyCap_ExitsWithTwo_AndLeavesAnEarlierRecordsFile()
+    {
+        var lines = Enumerable.Range(1, ShadowReplayLoop.DailyCap + 1)
+            .Select(i => $$$$"""{"id":"item-{{{{i}}}}","state":"s","questions":{"q":{"type":"noul","instructions":"Is it?","criteria":{"true":"Yes.","false":"No."}}},"expected":{"q":true},"version":1}""");
+        var dataset = Write("d.jsonl", string.Join('\n', lines));
+        var config = Write("minos.json", """{"Minos":{"Providers":{"Local":{"Provider":"Custom","BaseAddress":"http://127.0.0.1:1/","Model":"m"}}}}""");
+        var records = Write("records.jsonl", "earlier");
+
+        var code = await RunAsync(Full(dataset, config, records));
+
+        Assert.Equal(2, code);
+        Assert.Contains("daily cap of 400", _err.ToString(), StringComparison.Ordinal);
+        Assert.True(File.Exists(records));
+    }
 }

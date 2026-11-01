@@ -48,6 +48,14 @@ internal static class ShadowReplayApp
             return 2;
         }
 
+        if (dataset.Count > ShadowReplayLoop.DailyCap)
+        {
+            stderr.WriteLine(string.Create(
+                CultureInfo.InvariantCulture,
+                $"The dataset has {dataset.Count} items, more than the daily cap of {ShadowReplayLoop.DailyCap} shadowed decisions. Items past the cap would not be shadowed."));
+            return 2;
+        }
+
         SystemOneDecisionClientOptions primaryOptions;
         SystemOneDecisionClientOptions candidateOptions;
         try

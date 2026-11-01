@@ -161,7 +161,7 @@ public sealed class ShadowReplayTests : IDisposable
         }
 
         var dataset = Dataset();
-        var summary = await ShadowReplayLoop.RunAsync(new FakePrimary(), candidate, dataset, _path, _log, HoldUntilShadowWrittenAsync, CancellationToken.None);
+        var summary = await ShadowReplayLoop.RunAsync(new FakePrimary(), candidate, dataset, _path, _log, ShadowReplayLoop.CandidateTimeout, ShadowReplayLoop.WaitMargin, HoldUntilShadowWrittenAsync, CancellationToken.None);
 
         Assert.Equal(dataset.Select(item => item.Id), heldUntilWritten);
         Assert.Equal(new ReplaySummary(3, 3, 0, 3, 0), summary);
@@ -214,6 +214,39 @@ public sealed class ShadowReplayTests : IDisposable
         Assert.Equal(new ReplaySummary(3, 2, 1, 2, 0), summary);
         Assert.Contains($"{dataset[1].Id}: primary failed (Network)", _log.ToString(), StringComparison.Ordinal);
         Assert.DoesNotContain(dataset[1].State.ToString(), _log.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Replay_EndsTheWaitWhenTheCandidateTimesOut()
+    {
+        // The candidate hangs, ignoring its token, so only the shadow timeout can end each call.
+        using var candidate = new FakeCandidate { HangFrom = 1 };
+        var clock = Stopwatch.StartNew();
+
+        var summary = await ShadowReplayLoop.RunAsync(
+            new FakePrimary(), candidate, Dataset(), _path, _log, TimeSpan.FromMilliseconds(200), TimeSpan.FromSeconds(5), beforeShadowWait: null, CancellationToken.None);
+
+        Assert.True(clock.Elapsed < Bound, $"The run took {clock.Elapsed}.");
+        Assert.Equal(new ReplaySummary(3, 3, 0, 3, 0), summary);
+        Assert.All(await ReadAsync(), decision => Assert.Equal(DecisionErrorKind.Timeout, decision.Record.Shadow!.ErrorKind));
+    }
+
+    [Fact]
+    public async Task Replay_CountsAWaitThatRunsOut()
+    {
+        var dataset = Dataset();
+        using var candidate = new FakeCandidate { Delay = TimeSpan.FromSeconds(2) };
+        var clock = Stopwatch.StartNew();
+
+        // A margin below zero makes the wait (100 ms) shorter than the candidate's delay, so the shadow write is not in time.
+        var summary = await ShadowReplayLoop.RunAsync(
+            new FakePrimary(), candidate, dataset, _path, _log, TimeSpan.FromSeconds(5), TimeSpan.FromMilliseconds(-4900), beforeShadowWait: null, CancellationToken.None);
+
+        Assert.True(clock.Elapsed < Bound, $"The run took {clock.Elapsed}.");
+        Assert.Equal(3, summary.Decided);
+        Assert.True(summary.WaitsRunOut > 0);
+        Assert.Equal(3, summary.Shadowed + summary.WaitsRunOut);
+        Assert.Contains($"{dataset[0].Id}: no shadow write within 0.1 s", _log.ToString(), StringComparison.Ordinal);
     }
 
     [Fact]
