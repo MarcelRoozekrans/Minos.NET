@@ -63,8 +63,10 @@ was measured and gives no verdict on whether to switch.
 The first set is `banking77`. Its folder is `docs/reports/shadow/banking77/`, and it is committed after an approved run.
 Each set has its own folder, `docs/reports/shadow/<set>/`, with four files:
 
-- `README.md` says what the run was: the set, the primary, the candidate, the date and the tool version.
-- `records.jsonl` holds the recorded decisions of the replay, one line for each item.
+- `README.md` says what the run was, in `Field: value` lines as in the calibration folders: Date, Primary, Candidate, Dataset,
+  Run, Runner, Served, Tool and Prices.
+- `records.jsonl` holds the records of the replay: two record lines and one outcome line for each decided item. A primary
+  call that failed writes one line.
 - `shadow-report.json` is the report in machine-readable form.
 - `shadow-report.md` is the same report to read in the repository.
 

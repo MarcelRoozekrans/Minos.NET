@@ -7,6 +7,9 @@ answers are written to a JSONL records file. The records are what `minos shadow-
 The traffic is replayed Banking77 customer messages, not live traffic. Each item's outcome comes from its dataset labels,
 and the outcome's source is `banking77-label`. The decision id of each record is the dataset item's `Id`.
 
+The sample uses project references, so it runs the code of its own commit. That code matches the Minos.NET.Recording and
+Minos.NET.Evaluation packages from version 1.8.0 on.
+
 ## What it does
 
 For each item, in dataset order, the sample:
@@ -15,7 +18,9 @@ For each item, in dataset order, the sample:
 2. adds the item's labels as the confirmed outcome;
 3. waits for the candidate's shadow write, for at most the candidate's 60 second timeout plus a margin of 5 seconds.
 
-The candidate runs one call at a time with a daily cap of 400, so with the wait no decision is skipped as busy. A line is
+The candidate runs one call at a time with a daily cap of 400, so with the wait no decision is skipped as busy. For that
+reason the sample takes at most 400 items: a larger dataset exits with code 2 before anything is sent, because an item past
+the cap would not be shadowed and would still wait the full 65 seconds. A line is
 logged for each item the primary failed and for every 25 items, never the message text.
 
 ## Run it
@@ -58,7 +63,7 @@ items=<n> decided=<n> primary_failed=<n> shadowed=<n> waits_run_out=<n>
 | --- | --- |
 | 0 | The primary decided at least one item. |
 | 1 | It decided none. |
-| 2 | An option is missing, or the dataset or the config cannot be used. |
+| 2 | An option is missing, or the dataset, the config or the records file cannot be used, or the dataset has more than 400 items. |
 | 130 | Ctrl+C or SIGTERM. The records written so far are kept. |
 
 Read the records with the shadow report, described in [docs/reports/README.md](../../docs/reports/README.md). The report

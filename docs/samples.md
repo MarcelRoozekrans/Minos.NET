@@ -61,6 +61,8 @@ The chat-client sample has no recordings and no modes. Without `OPENROUTER_API_K
 chat client in place of the model; with the key it asks `openai/gpt-4.1-mini` through OpenRouter, or the model given
 after `-- --model`. A test compares its offline output with a snapshot.
 
+The shadow-replay sample has no recordings and no modes either. It takes five required options (`--dataset`, `--config`, `--primary`, `--candidate` and `--records`), its primary is a billed hosted client, and its candidate is a local server. See its [README](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples/Minos.NET.Samples.ShadowReplay/README.md).
+
 The provider-switch sample also takes `--provider <name>`, before or after the mode: `typesafe`, `openrouter` or
 `local`. It overrides `Minos:Active` in the sample's `appsettings.json`. An unknown name exits with code 2 and lists the
 configured providers. In the live modes it needs the key of the provider it calls: `TYPESAFE_API_KEY` for TypeSafe,
@@ -111,7 +113,7 @@ A sample that is not run goes stale, so the CI workflow checks them in three way
   warnings treated as errors.
 - **Their tests run.** The sample tests check each policy and route with made-up answers, compare each sample's report
   with a checked-in snapshot, and check that every recording holds no key and no header, that every sample but the
-  chat-client one has recordings, and that the provider-switch sample has one file per provider. The chat-client
+  chat-client and shadow-replay ones has recordings, and that the provider-switch sample has one file per provider. The chat-client
   sample's test runs it offline and compares its whole output with a snapshot.
 - **Each recorded sample runs, for real, in replay.** After the tests, a CI step runs every folder under `samples/` that
   holds a `recordings.json`, through the sample's real entry point: argument parsing, configuration and host setup
