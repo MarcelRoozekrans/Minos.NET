@@ -1,16 +1,32 @@
+using System.Text.Json;
 using Minos.Samples.ShadowReplay;
 
 namespace Minos.Samples.Tests;
 
 /// <summary>The replay reads its two clients from the Minos:Providers sections of a config file, with the environment on top.</summary>
+[Collection("Environment")]
 public sealed class ReplayConfigurationTests : IDisposable
 {
     private const string KeyVariable = "TYPESAFE_API_KEY";
     private const string ModelVariable = "Minos__Providers__Local__Model";
 
     private readonly string _path = Path.Combine(Path.GetTempPath(), $"replay-config-{Guid.NewGuid():N}.json");
+    private readonly string? _keyBefore = Environment.GetEnvironmentVariable(KeyVariable);
+    private readonly string? _modelBefore = Environment.GetEnvironmentVariable(ModelVariable);
 
-    public void Dispose() => File.Delete(_path);
+    // The environment layers over the file, so an ambient variable would change what these tests read.
+    public ReplayConfigurationTests()
+    {
+        Environment.SetEnvironmentVariable(KeyVariable, null);
+        Environment.SetEnvironmentVariable(ModelVariable, null);
+    }
+
+    public void Dispose()
+    {
+        File.Delete(_path);
+        Environment.SetEnvironmentVariable(KeyVariable, _keyBefore);
+        Environment.SetEnvironmentVariable(ModelVariable, _modelBefore);
+    }
 
     [Fact]
     public void Resolve_ReadsTheNamedSection()
@@ -27,19 +43,11 @@ public sealed class ReplayConfigurationTests : IDisposable
     public void Resolve_LetsTheEnvironmentOverrideTheFile()
     {
         File.WriteAllText(_path, """{"Minos":{"Providers":{"Local":{"Provider":"Custom","BaseAddress":"http://127.0.0.1:8000/","Model":"from-file"}}}}""");
-        var before = Environment.GetEnvironmentVariable(ModelVariable);
-        try
-        {
-            Environment.SetEnvironmentVariable(ModelVariable, "from-environment");
+        Environment.SetEnvironmentVariable(ModelVariable, "from-environment");
 
-            var options = ReplayConfiguration.Resolve(_path, "Local");
+        var options = ReplayConfiguration.Resolve(_path, "Local");
 
-            Assert.Equal("from-environment", options.Model);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable(ModelVariable, before);
-        }
+        Assert.Equal("from-environment", options.Model);
     }
 
     [Fact]
@@ -58,21 +66,15 @@ public sealed class ReplayConfigurationTests : IDisposable
     {
         var config = Path.Combine(Repository.Root, "docs", "reports", "minos.json");
 
-        var before = Environment.GetEnvironmentVariable(KeyVariable);
-        try
-        {
-            // The TypeSafe section holds no key; validating it needs one, and nothing is sent.
-            Environment.SetEnvironmentVariable(KeyVariable, "test-key");
+        // The TypeSafe section holds no key; validating it needs one, and nothing is sent.
+        Environment.SetEnvironmentVariable(KeyVariable, "test-key");
 
-            var typeSafe = ReplayConfiguration.Resolve(config, "TypeSafe");
-            var local = ReplayConfiguration.Resolve(config, "Local");
+        var typeSafe = ReplayConfiguration.Resolve(config, "TypeSafe");
+        var local = ReplayConfiguration.Resolve(config, "Local");
 
-            Assert.Equal("jev-latest", typeSafe.Model);
-            Assert.Equal("Mapika/decider-2b-GGUF:Q4_K_M", local.Model);
-        }
-        finally
-        {
-            Environment.SetEnvironmentVariable(KeyVariable, before);
-        }
+        using var file = JsonDocument.Parse(File.ReadAllText(config));
+        var providers = file.RootElement.GetProperty("Minos").GetProperty("Providers");
+        Assert.Equal(providers.GetProperty("TypeSafe").GetProperty("Model").GetString(), typeSafe.Model);
+        Assert.Equal(providers.GetProperty("Local").GetProperty("Model").GetString(), local.Model);
     }
 }

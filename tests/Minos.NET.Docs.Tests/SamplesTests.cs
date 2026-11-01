@@ -75,7 +75,18 @@ public sealed partial class SamplesTests
         {
             var folder = Folder(row[0]);
 
-            Assert.Equal($"dotnet run --project samples/{folder}", PageTables.Code(row[2]));
+            if (string.Equals(folder, ShadowReplayFolder, StringComparison.Ordinal))
+            {
+                // It has five required options, so the cell shows the whole command.
+                var command = PageTables.Code(row[2]);
+                Assert.StartsWith($"dotnet run --project samples/{folder} -- ", command, StringComparison.Ordinal);
+                Assert.All(["--dataset ", "--config ", "--primary ", "--candidate ", "--records "], option => Assert.Contains(option, command, StringComparison.Ordinal));
+            }
+            else
+            {
+                Assert.Equal($"dotnet run --project samples/{folder}", PageTables.Code(row[2]));
+            }
+
             Assert.True(File.Exists(Path.Combine(Samples, folder, "README.md")), folder + " has a README.");
             if (string.Equals(folder, ChatClientFolder, StringComparison.Ordinal))
             {

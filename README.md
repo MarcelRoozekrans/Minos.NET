@@ -144,7 +144,7 @@ The guide lives at [marcelroozekrans.github.io/Minos.NET](https://marcelroozekra
 - [Confidence routing](https://marcelroozekrans.github.io/Minos.NET/patterns/confidence-routing): gate each action on the answer confidence, with a threshold sized to the cost of being wrong.
 - [Composite scoring](https://marcelroozekrans.github.io/Minos.NET/patterns/composite-scoring): break a judgement into small Scores and combine them with weights you own.
 - [Intent routing](https://marcelroozekrans.github.io/Minos.NET/patterns/intent-routing): make a cheap first decision that sends each request to code, a model or a person.
-- [Samples](https://marcelroozekrans.github.io/Minos.NET/samples): six runnable cookbook samples: five run offline, four of them replaying recorded Jev answers, one against three providers chosen by configuration, and one over a chat client, and the sixth replays a dataset through shadow mode.
+- [Samples](https://marcelroozekrans.github.io/Minos.NET/samples): six runnable cookbook samples. Five run offline: four replay recorded Jev answers, one of them against three providers chosen by configuration, and one runs over a chat client. The sixth replays a dataset through shadow mode and is billed.
 - [Performance](https://marcelroozekrans.github.io/Minos.NET/performance): what the benchmarks measure, how to run them, and what the client costs per call.
 - [Conformance](https://marcelroozekrans.github.io/Minos.NET/conformance): the suite that checks any decision endpoint's shapes, probabilities, errors and models, and how to run it against your own.
 
