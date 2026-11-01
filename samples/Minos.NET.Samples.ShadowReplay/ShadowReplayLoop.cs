@@ -66,7 +66,7 @@ public static class ShadowReplayLoop
         string recordsPath,
         TextWriter log,
         CancellationToken cancellationToken)
-        => RunAsync(primary, candidate, dataset, recordsPath, log, CandidateTimeout, WaitMargin, beforeShadowWait: null, cancellationToken);
+        => RunAsync(primary, candidate, dataset, recordsPath, log, CandidateTimeout, CandidateTimeout + WaitMargin, beforeShadowWait: null, cancellationToken);
 
     /// <summary>As the public overload, with the timeouts as parameters and a step that runs after an item's outcome is added and before its shadow wait begins.</summary>
     /// <param name="primary">The client whose decisions are recorded. The replay owns it and disposes it.</param>
@@ -75,7 +75,7 @@ public static class ShadowReplayLoop
     /// <param name="recordsPath">The JSONL file the records are appended to.</param>
     /// <param name="log">Where the progress lines go.</param>
     /// <param name="candidateTimeout">The longest a candidate call may take. The public overload passes <see cref="CandidateTimeout"/>.</param>
-    /// <param name="waitMargin">How much longer than <paramref name="candidateTimeout"/> an item waits. The public overload passes <see cref="WaitMargin"/>.</param>
+    /// <param name="shadowWait">How long an item waits for its shadow write. The public overload passes <see cref="CandidateTimeout"/> plus <see cref="WaitMargin"/>.</param>
     /// <param name="beforeShadowWait">
     /// Gets the item's id; <see langword="null"/> for none. Tests use it to hold the loop until the shadow write has landed,
     /// so the write that comes before the wait is no longer left to timing.
@@ -89,7 +89,7 @@ public static class ShadowReplayLoop
         string recordsPath,
         TextWriter log,
         TimeSpan candidateTimeout,
-        TimeSpan waitMargin,
+        TimeSpan shadowWait,
         Func<string, CancellationToken, Task>? beforeShadowWait,
         CancellationToken cancellationToken)
     {
@@ -143,14 +143,14 @@ public static class ShadowReplayLoop
 
                     try
                     {
-                        await signal.WaitAsync(candidateTimeout + waitMargin, cancellationToken).ConfigureAwait(false);
+                        await signal.WaitAsync(shadowWait, cancellationToken).ConfigureAwait(false);
                         shadowed++;
                     }
                     catch (TimeoutException)
                     {
                         waitsRunOut++;
                         sink.Forget(item.Id);
-                        await log.WriteLineAsync($"{item.Id}: no shadow write within {(candidateTimeout + waitMargin).TotalSeconds.ToString(CultureInfo.InvariantCulture)} s").ConfigureAwait(false);
+                        await log.WriteLineAsync($"{item.Id}: no shadow write within {shadowWait.TotalSeconds.ToString(CultureInfo.InvariantCulture)} s").ConfigureAwait(false);
                     }
                 }
 

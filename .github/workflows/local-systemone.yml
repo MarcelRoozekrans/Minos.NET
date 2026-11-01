@@ -2,9 +2,9 @@ name: Local systemone
 
 # Serves a small decision model on the runner with ollajev, CPU only, and runs LocalSystemOneTests against it through
 # the Custom preset with no key. It then records the provider-switch sample against it and uploads local.json as the
-# provider-switch-local artifact, which reaches the repository through a pull request. The push job and the calibrate job use no secrets: the server is local
-# and nothing is billed. The dispatch-only shadow job uses the live-api environment and is billed on the TypeSafe primary.
-# Not a required check.
+# provider-switch-local artifact, which reaches the repository through a pull request. The push job and the calibrate job use
+# no secrets: the server is local and nothing is billed. The dispatch-only shadow job uses the live-api environment and is
+# billed on the TypeSafe primary. Not a required check.
 # The commands, the model and its Apache-2.0 licence are from docs/plans/2026-10-11-phase-6.4-local-server-spike.md.
 # The model is a GGUF file run by llama.cpp, so no code from its repository executes; never pass --trust.
 on:
@@ -266,8 +266,8 @@ jobs:
       - name: Install the released tool
         run: dotnet tool install Minos.NET.Tool --version 1.8.0 --tool-path "$RUNNER_TEMP/minos-tool"
 
-      # Built apart from the run, so --no-build leaves dotnet run to only host the app: the trap below signals dotnet run,
-      # which forwards the SIGTERM to the app.
+      # Built apart from the run, so --no-build leaves dotnet run to only host the app: the trap below signals
+      # dotnet run, which forwards the SIGTERM to the app.
       - name: Build the shadow replay
         run: dotnet build samples/Minos.NET.Samples.ShadowReplay -c Release
 
