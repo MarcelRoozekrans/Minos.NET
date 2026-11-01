@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.8.1](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.8.0...v1.8.1) (2026-11-01)
+
+
+### Documentation
+
+* Banking77 shadow report, TypeSafe against the local model, Phase 9.4 part 2 ([#309](https://github.com/MarcelRoozekrans/Minos.NET/issues/309)) ([fd8b754](https://github.com/MarcelRoozekrans/Minos.NET/commit/fd8b75469eb550cb98b3a0d078a7b5e8b9d424a4))
+* describe the shadow report folder and how its run is started ([d893feb](https://github.com/MarcelRoozekrans/Minos.NET/commit/d893febf8c2877730c215c1656075343ac0ab2d9))
+
 ## [1.8.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.7.1...v1.8.0) (2026-10-31)
 
 
