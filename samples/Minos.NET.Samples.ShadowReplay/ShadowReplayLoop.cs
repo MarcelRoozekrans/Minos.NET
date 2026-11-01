@@ -56,12 +56,34 @@ public static class ShadowReplayLoop
     /// <param name="cancellationToken">Stops the replay; the records written so far are kept.</param>
     /// <returns>The counts of the replay.</returns>
     /// <exception cref="OperationCanceledException"><paramref name="cancellationToken"/> was cancelled, after the records were flushed.</exception>
-    public static async Task<ReplaySummary> RunAsync(
+    public static Task<ReplaySummary> RunAsync(
         IDecisionClient primary,
         IDecisionClient candidate,
         DecisionDataset dataset,
         string recordsPath,
         TextWriter log,
+        CancellationToken cancellationToken)
+        => RunAsync(primary, candidate, dataset, recordsPath, log, beforeShadowWait: null, cancellationToken);
+
+    /// <summary>As the public overload, with a step that runs after an item's outcome is added and before its shadow wait begins.</summary>
+    /// <param name="primary">The client whose decisions are recorded. The replay owns it and disposes it.</param>
+    /// <param name="candidate">The client that shadows the primary. The caller owns it.</param>
+    /// <param name="dataset">The items to replay.</param>
+    /// <param name="recordsPath">The JSONL file the records are appended to.</param>
+    /// <param name="log">Where the progress lines go.</param>
+    /// <param name="beforeShadowWait">
+    /// Gets the item's id; <see langword="null"/> for none. Tests use it to hold the loop until the shadow write has landed,
+    /// so the write that comes before the wait is no longer left to timing.
+    /// </param>
+    /// <param name="cancellationToken">Stops the replay; the records written so far are kept.</param>
+    /// <returns>The counts of the replay.</returns>
+    internal static async Task<ReplaySummary> RunAsync(
+        IDecisionClient primary,
+        IDecisionClient candidate,
+        DecisionDataset dataset,
+        string recordsPath,
+        TextWriter log,
+        Func<string, CancellationToken, Task>? beforeShadowWait,
         CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(primary);
@@ -107,6 +129,11 @@ public static class ShadowReplayLoop
                     decided++;
                     var outcome = DecisionOutcome.Confirmed(OutcomeSource, TimeProvider.System.GetUtcNow(), ConfirmedAnswers(item));
                     await recorder.AddOutcomeAsync(item.Id, outcome, cancellationToken).ConfigureAwait(false);
+                    if (beforeShadowWait is not null)
+                    {
+                        await beforeShadowWait(item.Id, cancellationToken).ConfigureAwait(false);
+                    }
+
                     try
                     {
                         await signal.WaitAsync(CandidateTimeout + WaitMargin, cancellationToken).ConfigureAwait(false);

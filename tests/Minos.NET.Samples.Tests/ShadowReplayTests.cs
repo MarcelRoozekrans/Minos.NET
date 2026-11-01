@@ -43,6 +43,19 @@ public sealed class ShadowReplayTests : IDisposable
 
     private static DecisionDataset Dataset() => Dataset(Jsonl);
 
+    private async Task<bool> HasShadowAsync(string decisionId)
+    {
+        foreach (var decision in await ReadAsync())
+        {
+            if (string.Equals(decision.Record.DecisionId, decisionId, StringComparison.Ordinal) && decision.Record.Shadow is not null)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private async Task<List<RecordedDecision>> ReadAsync()
     {
         var decisions = new List<RecordedDecision>();
@@ -76,8 +89,11 @@ public sealed class ShadowReplayTests : IDisposable
         var dataset = Dataset();
         using var candidate = new FakeCandidate();
 
-        var summary = await ShadowReplayLoop.RunAsync(new FakePrimary(), candidate, dataset, _path, _log, CancellationToken.None);
+        var primary = new FakePrimary();
 
+        var summary = await ShadowReplayLoop.RunAsync(primary, candidate, dataset, _path, _log, CancellationToken.None);
+
+        Assert.True(primary.Disposed);
         Assert.Equal(new ReplaySummary(3, 3, 0, 3, 0), summary);
         var decisions = await ReadAsync();
         Assert.Equal(dataset.Select(item => item.Id), decisions.Select(decision => decision.Record.DecisionId));
@@ -100,7 +116,7 @@ public sealed class ShadowReplayTests : IDisposable
     public async Task Replay_WaitsForEachShadowBeforeTheNextItem()
     {
         var events = new ConcurrentQueue<string>();
-        var primary = new FakePrimary { OnCall = (n, _) => events.Enqueue($"primary-start-{n}") };
+        var primary = new FakePrimary { OnCall = n => events.Enqueue($"primary-start-{n}") };
         using var candidate = new FakeCandidate { Delay = TimeSpan.FromMilliseconds(300), OnEnd = n => events.Enqueue($"candidate-end-{n}") };
 
         var summary = await ShadowReplayLoop.RunAsync(primary, candidate, Dataset(), _path, _log, CancellationToken.None);
@@ -120,13 +136,48 @@ public sealed class ShadowReplayTests : IDisposable
     public async Task Replay_DoesNotMissAShadowThatFinishesBeforeTheWait()
     {
         using var candidate = new FakeCandidate();
+        var heldUntilWritten = new List<string>();
 
-        var summary = await ShadowReplayLoop.RunAsync(new FakePrimary(), candidate, Dataset(), _path, _log, CancellationToken.None);
+        // Each item is held after its outcome until its shadow write is in the file, so every write lands before the
+        // wait begins: a loop that registered its signal any later than before the decision would wait in vain.
+        async Task HoldUntilShadowWrittenAsync(string decisionId, CancellationToken cancellationToken)
+        {
+            var clock = Stopwatch.StartNew();
+            while (!await HasShadowAsync(decisionId))
+            {
+                Assert.True(clock.Elapsed < Bound, $"The shadow of {decisionId} was not written.");
+                await Task.Delay(10, cancellationToken);
+            }
 
-        Assert.True(candidate.AnsweredSynchronously);
-        Assert.Equal(3, summary.Shadowed);
-        Assert.Equal(0, summary.WaitsRunOut);
-        Assert.All(await ReadAsync(), decision => Assert.NotNull(decision.Record.Shadow));
+            heldUntilWritten.Add(decisionId);
+        }
+
+        var dataset = Dataset();
+        var summary = await ShadowReplayLoop.RunAsync(new FakePrimary(), candidate, dataset, _path, _log, HoldUntilShadowWrittenAsync, CancellationToken.None);
+
+        Assert.Equal(dataset.Select(item => item.Id), heldUntilWritten);
+        Assert.Equal(new ReplaySummary(3, 3, 0, 3, 0), summary);
+    }
+
+    [Fact]
+    public async Task Replay_LogsTheCountsEvery25Items()
+    {
+        const string StateMarker = "private-state-text";
+        var lines = new List<string>();
+        for (var i = 1; i <= 26; i++)
+        {
+            lines.Add($$"""{"id":"item-{{i}}","state":"{{StateMarker}} {{i}}",{{Questions}},"expected":{"intent":"change_pin","card_not_arrived":false,"about_a_payment":false},"version":1}""");
+        }
+
+        var dataset = Dataset(string.Join<string>("\n", lines));
+        using var candidate = new FakeCandidate();
+
+        var summary = await ShadowReplayLoop.RunAsync(new FakePrimary(dataset) { FailCall = 3 }, candidate, dataset, _path, _log, CancellationToken.None);
+
+        Assert.Equal(new ReplaySummary(26, 25, 1, 25, 0), summary);
+        var log = _log.ToString().Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        Assert.Equal(["item-3: primary failed (Network)", "25/26: decided 24, primary failed 1, shadowed 24, waits run out 0"], log);
+        Assert.DoesNotContain(StateMarker, _log.ToString(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -176,12 +227,14 @@ public sealed class ShadowReplayTests : IDisposable
                 }
             },
         };
+        var primary = new FakePrimary();
         var clock = Stopwatch.StartNew();
 
         await Assert.ThrowsAnyAsync<OperationCanceledException>(
-            () => ShadowReplayLoop.RunAsync(new FakePrimary(), candidate, dataset, _path, _log, cancel.Token));
+            () => ShadowReplayLoop.RunAsync(primary, candidate, dataset, _path, _log, cancel.Token));
 
         Assert.True(clock.Elapsed < Bound, $"The run took {clock.Elapsed}.");
+        Assert.True(primary.Disposed);
         var first = (await ReadAsync()).Single(decision => string.Equals(decision.Record.DecisionId, dataset[0].Id, StringComparison.Ordinal));
         Assert.NotNull(first.Record.Shadow);
         Assert.IsType<ConfirmedOutcome>(Assert.Single(first.Outcomes));
@@ -232,19 +285,21 @@ public sealed class ShadowReplayTests : IDisposable
     }
 
     /// <summary>The primary: answers every question with the item's expected answer, found by its state.</summary>
-    private sealed class FakePrimary : IDecisionClient
+    private sealed class FakePrimary(DecisionDataset? dataset = null) : IDecisionClient
     {
-        private readonly Dictionary<string, DatasetItem> _items = Dataset().ToDictionary(item => item.State.ToString(), StringComparer.Ordinal);
+        private readonly Dictionary<string, DatasetItem> _items = (dataset ?? Dataset()).ToDictionary(item => item.State.ToString(), StringComparer.Ordinal);
         private int _calls;
 
-        public Action<int, CancellationToken>? OnCall { get; init; }
+        public Action<int>? OnCall { get; init; }
+
+        public bool Disposed { get; private set; }
 
         public int? FailCall { get; init; }
 
         public ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
         {
             var n = Interlocked.Increment(ref _calls);
-            OnCall?.Invoke(n, cancellationToken);
+            OnCall?.Invoke(n);
             cancellationToken.ThrowIfCancellationRequested();
             if (n == FailCall)
             {
@@ -260,9 +315,7 @@ public sealed class ShadowReplayTests : IDisposable
 
         public object? GetService(Type serviceType, object? serviceKey = null) => null;
 
-        public void Dispose()
-        {
-        }
+        public void Dispose() => Disposed = true;
     }
 
     /// <summary>The candidate: answers at once, after a delay, with an error, or hangs from a call on, ignoring its token.</summary>
@@ -270,7 +323,6 @@ public sealed class ShadowReplayTests : IDisposable
     {
         private readonly TaskCompletionSource _hang = new(TaskCreationOptions.RunContinuationsAsynchronously);
         private int _calls;
-        private int _asynchronous;
 
         public TimeSpan Delay { get; init; }
 
@@ -282,15 +334,12 @@ public sealed class ShadowReplayTests : IDisposable
 
         public Action<int>? OnEnd { get; init; }
 
-        public bool AnsweredSynchronously => _calls > 0 && Volatile.Read(ref _asynchronous) == 0;
-
         public ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
         {
             var n = Interlocked.Increment(ref _calls);
             OnStart?.Invoke(n);
             if (n >= HangFrom || Delay > TimeSpan.Zero)
             {
-                Interlocked.Exchange(ref _asynchronous, 1);
                 return LaterAsync(request, n, cancellationToken);
             }
 
