@@ -96,6 +96,33 @@ public sealed class FrontMatterTests
             $"{page}: sidebar_position '{front["sidebar_position"]}' is not an integer.");
     }
 
+    // The site reads front matter as YAML, where an unquoted value ends at ": " or starts a comment at " #", so either
+    // in a plain value breaks the build even though the line-based reader here accepts it.
+    [Theory]
+    [MemberData(nameof(Pages))]
+    public void UnquotedValues_AreValidYamlScalars(string page)
+    {
+        var lines = File.ReadAllLines(Path.Combine(PublishedPages.Root, page));
+        for (var i = 1; i < lines.Length && !string.Equals(lines[i], "---", StringComparison.Ordinal); i++)
+        {
+            var colon = lines[i].IndexOf(':', StringComparison.Ordinal);
+            if (colon < 0)
+            {
+                continue;
+            }
+
+            var value = lines[i][(colon + 1)..].Trim();
+            if (value.Length == 0 || value[0] is '"' or '\'')
+            {
+                continue;
+            }
+
+            Assert.False(
+                value.Contains(": ", StringComparison.Ordinal) || value.EndsWith(':') || value.Contains(" #", StringComparison.Ordinal),
+                $"{page}, front matter line {i + 1}: quote the value, it holds ': ' or ' #', which YAML does not allow unquoted.");
+        }
+    }
+
     [Theory]
     [MemberData(nameof(Pages))]
     public void Title_IsTheFirstHeading(string page)

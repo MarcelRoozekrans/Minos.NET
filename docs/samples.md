@@ -2,16 +2,16 @@
 id: samples
 title: Samples
 sidebar_position: 18
-description: Five runnable cookbook samples that run offline, four replaying recorded answers, one of them against three providers, and one over a chat client, and how to run, record and trust them.
+description: Six runnable cookbook samples, five that run offline and one that replays a dataset through shadow mode, and how to run, record and trust them.
 ---
 
 # Samples
 
-The repository holds five small console apps that show Minos doing real work. They are cookbook samples: each one is a
+The repository holds six small console apps that show Minos doing real work. They are cookbook samples: each one is a
 whole program you can run, read and change, with its own README. They are our own work. Three are inspired by a
 TypeSafe cookbook or pattern, which their READMEs credit, and the code, the data and the policies are written here.
 
-## The five samples
+## The six samples
 
 | Sample | What it shows | Run it | Live requests |
 | --- | --- | --- | --- |
@@ -20,6 +20,7 @@ TypeSafe cookbook or pattern, which their READMEs credit, and the code, the data
 | [Intent routing](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples/Minos.NET.Samples.IntentRouting) | Decides for each of 12 travel requests whether code, an assistant model or a person handles it, with Jev as the cheap first step. | `dotnet run --project samples/Minos.NET.Samples.IntentRouting` | 12 |
 | [Provider switch](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples/Minos.NET.Samples.ProviderSwitch) | Routes 8 support tickets to a team with one Choice question, through TypeSafe, OpenRouter or a local server, chosen by configuration only. | `dotnet run --project samples/Minos.NET.Samples.ProviderSwitch` | 8 per provider |
 | [Re-ranking](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples/Minos.NET.Samples.Reranking) | Re-orders a keyword shortlist of help articles by how well each answers the question, in one fan-out request per question. | `dotnet run --project samples/Minos.NET.Samples.Reranking` | 5 |
+| [Shadow replay](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples/Minos.NET.Samples.ShadowReplay) | Replays a labelled Banking77 dataset through the recorder's shadow mode: a hosted primary decides each item, a local candidate shadows it, and both sets of answers go to a records file. It has no recordings and no offline mode. | `dotnet run --project samples/Minos.NET.Samples.ShadowReplay -- --dataset datasets/banking77/banking77-minos-v1.jsonl --config docs/reports/minos.json --primary TypeSafe --candidate Local --records shadow-records.jsonl` | 1 billed per dataset item |
 
 The samples pair with the guide: Guardrails reads several answers from one request, as
 [fan-out](patterns/fan-out.md) does. Intent routing is the [intent routing](patterns/intent-routing.md) pattern with a
@@ -59,6 +60,8 @@ dotnet run --project samples/Minos.NET.Samples.Guardrails -- --live
 The chat-client sample has no recordings and no modes. Without `OPENROUTER_API_KEY` it runs offline, with a scripted
 chat client in place of the model; with the key it asks `openai/gpt-4.1-mini` through OpenRouter, or the model given
 after `-- --model`. A test compares its offline output with a snapshot.
+
+The shadow-replay sample has no recordings and no modes either. It takes five required options (`--dataset`, `--config`, `--primary`, `--candidate` and `--records`), its primary is a billed hosted client, and its candidate is a local server. See its [README](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples/Minos.NET.Samples.ShadowReplay/README.md).
 
 The provider-switch sample also takes `--provider <name>`, before or after the mode: `typesafe`, `openrouter` or
 `local`. It overrides `Minos:Active` in the sample's `appsettings.json`. An unknown name exits with code 2 and lists the
@@ -110,7 +113,7 @@ A sample that is not run goes stale, so the CI workflow checks them in three way
   warnings treated as errors.
 - **Their tests run.** The sample tests check each policy and route with made-up answers, compare each sample's report
   with a checked-in snapshot, and check that every recording holds no key and no header, that every sample but the
-  chat-client one has recordings, and that the provider-switch sample has one file per provider. The chat-client
+  chat-client and shadow-replay ones has recordings, and that the provider-switch sample has one file per provider. The chat-client
   sample's test runs it offline and compares its whole output with a snapshot.
 - **Each recorded sample runs, for real, in replay.** After the tests, a CI step runs every folder under `samples/` that
   holds a `recordings.json`, through the sample's real entry point: argument parsing, configuration and host setup

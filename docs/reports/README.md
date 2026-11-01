@@ -52,3 +52,41 @@ run, and the folder's README says that the report was rebuilt with prices.
 After a change to the report writer, `EveryReport_RebuildsFromItsResults` fails until each report is rebuilt with
 `minos report` from the current tool. The folder's README then records, on its `Tool:` line, which tool version rebuilt
 it.
+
+## The shadow report
+
+A shadow report is a different kind of run from a calibration. It does not score a provider against labels in one go. It
+replays traffic through [shadow mode](../recording.md#shadow-mode): the primary decides each item, and the
+candidate decides the same item in the background. The report then compares the two. It is evidence only: it states what
+was measured and gives no verdict on whether to switch.
+
+The first set is `banking77`. Its folder is `docs/reports/shadow/banking77/`, and it is committed after an approved run.
+Each set has its own folder, `docs/reports/shadow/<set>/`, with four files:
+
+- `README.md` says what the run was, in `Field: value` lines as in the calibration folders: Date, Primary, Candidate, Dataset,
+  Run, Runner, Served, Tool and Prices.
+- `records.jsonl` holds the records of the replay: two record lines and one outcome line for each decided item. A primary
+  call that failed writes one line.
+- `shadow-report.json` is the report in machine-readable form.
+- `shadow-report.md` is the same report to read in the repository.
+
+### How the run is started
+
+The run is started by hand, like every other run here:
+
+```text
+gh workflow run local-systemone.yml --ref main -f job=shadow
+```
+
+The `shadow` job is dispatch only. It is billed, because the primary is TypeSafe and the replay makes about 400 TypeSafe
+calls, so it is started only after the maintainer approves the run. It uses the `live-api` environment, which deploys
+only from `main`, so the `--ref` must be `main`.
+
+The job replays `datasets/banking77/banking77-minos-v1.jsonl` one item at a time through
+[`samples/Minos.NET.Samples.ShadowReplay`](../../samples/Minos.NET.Samples.ShadowReplay/README.md). TypeSafe is the primary
+and the local `decider-2b` server is the candidate. The confirmed outcome of each item comes from the dataset label, with
+the source `banking77-label`. The job then runs `minos shadow-report` from Minos.NET.Tool 1.8.0 with
+`docs/reports/prices.json`, and uploads the artifact `shadow-typesafe-local-banking77`, which holds `records.jsonl`,
+`shadow-report.json` and `shadow-report.md`.
+
+The traffic is replayed, not live. The items are the dataset's, sent in a loop, and no production request is shadowed.

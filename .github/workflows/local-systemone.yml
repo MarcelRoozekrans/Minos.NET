@@ -2,8 +2,9 @@ name: Local systemone
 
 # Serves a small decision model on the runner with ollajev, CPU only, and runs LocalSystemOneTests against it through
 # the Custom preset with no key. It then records the provider-switch sample against it and uploads local.json as the
-# provider-switch-local artifact, which reaches the repository through a pull request. No secrets: the server is local
-# and nothing is billed. Not a required check.
+# provider-switch-local artifact, which reaches the repository through a pull request. The push job and the calibrate job use
+# no secrets: the server is local and nothing is billed. The dispatch-only shadow job uses the live-api environment and is
+# billed on the TypeSafe primary. Not a required check.
 # The commands, the model and its Apache-2.0 licence are from docs/plans/2026-10-11-phase-6.4-local-server-spike.md.
 # The model is a GGUF file run by llama.cpp, so no code from its repository executes; never pass --trust.
 on:
@@ -25,6 +26,13 @@ on:
           - both
           - urgency
           - banking77
+      job:
+        description: Which dispatch job to run
+        type: choice
+        default: calibrate
+        options:
+          - calibrate
+          - shadow
 
 permissions:
   contents: read
@@ -103,7 +111,7 @@ jobs:
   # timeout or a cancel signals only the step's shell, whose trap passes it on to minos as SIGTERM, and minos 1.4.0
   # saves its partial results before it exits.
   calibrate:
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && inputs.job != 'shadow'
     runs-on: ubuntu-latest
     timeout-minutes: 120
     steps:
@@ -193,6 +201,99 @@ jobs:
         with:
           name: calibration-local-banking77
           path: ${{ runner.temp }}/out/local-banking77
+          if-no-files-found: warn
+
+      - name: Server log
+        if: always()
+        run: cat "$RUNNER_TEMP/serve.log" || true
+
+  # Dispatch only: replays the Banking77 set through the hosted TypeSafe model and the local model with the shadow
+  # sample, one request at a time, then summarises the records with the released tool. The hosted run is billed and
+  # needs the live-api environment. The records, shadow-report.json and shadow-report.md are uploaded as
+  # shadow-typesafe-local-banking77. A timeout or a cancel signals only the step's shell, whose trap passes it on to the
+  # sample as SIGTERM, and the sample keeps the records written so far and exits 130.
+  shadow:
+    if: github.event_name == 'workflow_dispatch' && inputs.job == 'shadow'
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    environment: live-api
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v6
+        with:
+          global-json-file: global.json
+          dotnet-version: '10.0.x'
+
+      - name: Setup Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.12'
+
+      # Building the llama-cpp-python wheel is most of the 8 minute install; pip's cache keeps the built wheel.
+      - name: Cache pip
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/pip
+          key: pip-${{ runner.os }}-py3.12-ollajev-0.4.0
+
+      - name: Cache Hugging Face models
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/huggingface
+          key: huggingface-${{ runner.os }}-Mapika-decider-2b-GGUF-Q4_K_M
+
+      - name: Install the server and pull the model
+        run: |
+          pip install --extra-index-url https://download.pytorch.org/whl/cpu ollajev==0.4.0
+          ollajev pull Mapika/decider-2b-GGUF:Q4_K_M
+
+      - name: Start the server
+        env:
+          OLLAJEV_DEVICE: cpu
+        run: |
+          nohup ollajev serve Mapika/decider-2b-GGUF:Q4_K_M --port 8000 --no-browser > "$RUNNER_TEMP/serve.log" 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:8000/v1/models && exit 0; sleep 5; done
+          echo "::error::The server did not answer GET /v1/models within 5 minutes"
+          cat "$RUNNER_TEMP/serve.log"
+          exit 1
+
+      - name: Install the released tool
+        run: dotnet tool install Minos.NET.Tool --version 1.8.0 --tool-path "$RUNNER_TEMP/minos-tool"
+
+      # Built apart from the run, so --no-build leaves dotnet run to only host the app: the trap below signals
+      # dotnet run, which forwards the SIGTERM to the app.
+      - name: Build the shadow replay
+        run: dotnet build samples/Minos.NET.Samples.ShadowReplay -c Release
+
+      - name: Replay
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/out"
+          pid=
+          # The runner signals only this shell (SIGINT, then SIGTERM after 7.5 s, a kill after 10 s). Pass it on as SIGTERM,
+          # since a background job ignores SIGINT, and let the sample keep the records it has written.
+          trap 'trap "" INT TERM; if [ -n "$pid" ]; then kill -TERM "$pid" 2>/dev/null; wait "$pid"; fi; exit 130' INT TERM
+          dotnet run --project samples/Minos.NET.Samples.ShadowReplay -c Release --no-build -- --dataset datasets/banking77/banking77-minos-v1.jsonl --config docs/reports/minos.json --primary TypeSafe --candidate Local --records "$RUNNER_TEMP/out/records.jsonl" & pid=$!
+          wait "$pid"
+
+      - name: Shadow report
+        if: always()
+        run: |
+          "$RUNNER_TEMP/minos-tool/minos" shadow-report --records "$RUNNER_TEMP/out/records.jsonl" --prices docs/reports/prices.json --out "$RUNNER_TEMP/out"
+
+      - name: Upload the shadow run
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: shadow-typesafe-local-banking77
+          path: ${{ runner.temp }}/out
           if-no-files-found: warn
 
       - name: Server log

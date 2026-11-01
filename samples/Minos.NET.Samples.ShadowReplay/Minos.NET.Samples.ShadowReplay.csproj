@@ -1,0 +1,25 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- Cookbook sample: replays a dataset through the recorder's shadow mode and reports how a candidate model compares. -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <IsPackable>false</IsPackable>
+    <RootNamespace>Minos.Samples.ShadowReplay</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\Minos.NET.Recording\Minos.NET.Recording.csproj" />
+    <ProjectReference Include="..\..\src\Minos.NET.Evaluation\Minos.NET.Evaluation.csproj" />
+    <ProjectReference Include="..\..\src\Minos.NET.SystemOne\Minos.NET.SystemOne.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- The replay loop's hook that holds an item until its shadow write has landed, for the tests. -->
+    <InternalsVisibleTo Include="Minos.NET.Samples.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.EnvironmentVariables" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Binder" />
+  </ItemGroup>
+</Project>

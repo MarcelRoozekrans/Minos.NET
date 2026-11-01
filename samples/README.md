@@ -1,6 +1,6 @@
 # Samples
 
-Five cookbook samples show Minos doing real work in a small console app. Each one has its own README with the details.
+Six cookbook samples show Minos doing real work in a small console app. Each one has its own README with the details.
 
 | Sample | What it shows |
 | --- | --- |
@@ -9,6 +9,7 @@ Five cookbook samples show Minos doing real work in a small console app. Each on
 | [Intent routing](Minos.NET.Samples.IntentRouting) | Decides per request whether code, an assistant model or a person handles it, using Jev as the cheap first step. Inspired by TypeSafe's [intent routing](https://docs.typesafe.ai/patterns/intent-routing) pattern and its [Function calling](https://docs.typesafe.ai/cookbooks/function_calling) cookbook. |
 | [Provider switch](Minos.NET.Samples.ProviderSwitch) | Routes support tickets with one Choice question through TypeSafe, OpenRouter or a local server, chosen by configuration only. |
 | [Re-ranking](Minos.NET.Samples.Reranking) | Re-orders a keyword shortlist of help articles by how well each answers the question, in one fan-out request. Inspired by TypeSafe's [Re-ranking](https://docs.typesafe.ai/cookbooks/rerank_typesafe) cookbook. |
+| [Shadow replay](Minos.NET.Samples.ShadowReplay) | Replays a labelled Banking77 dataset through the recorder's shadow mode: a hosted primary decides each item, a local candidate shadows it, and both sets of answers go to a records file. Billed on the primary, so it needs `TYPESAFE_API_KEY`. |
 
 Every sample is our own work. Three are inspired by TypeSafe's material, linked in the table above, but the code, the data and the policies are written here.
 
@@ -20,13 +21,15 @@ dotnet run --project samples/Minos.NET.Samples.Guardrails
 
 Replay and record read and write the recordings in your clone of the repository: each sample's `recordings.json` in its source folder, or for the provider-switch sample one file per provider in its `recordings/` folder. Run those two modes from a clone, not from a copied build output. `--live` reads no recordings and runs from anywhere.
 
-A sample runs in one of three modes, chosen by the argument after `--`:
+Every sample except the chat-client and shadow-replay samples runs in one of three modes, chosen by the argument after `--`:
 
 - **Replay** is the default and needs no network and no key. It answers every request from the checked-in recordings.
 - `--live` calls the API and prints the report. It needs `OPENROUTER_API_KEY` and makes billed requests.
 - `--record` does the same as `--live` and then rewrites the sample's recordings from the responses. It needs `OPENROUTER_API_KEY` as well.
 
 The chat-client sample has no recordings and no replay: offline it uses a fake chat client, and with `OPENROUTER_API_KEY` set it makes real requests. Run it with `dotnet run --project samples/Minos.NET.Samples.ChatClient`.
+
+The shadow-replay sample has no recordings and no modes either. It takes five required options (`--dataset`, `--config`, `--primary`, `--candidate` and `--records`), its primary is a billed hosted client, and its candidate is a local server. See its [README](Minos.NET.Samples.ShadowReplay/README.md).
 
 The provider-switch sample also takes `--provider typesafe`, `openrouter` or `local`, and needs the key of the provider it calls: `TYPESAFE_API_KEY`, `OPENROUTER_API_KEY`, or none for a local server.
 

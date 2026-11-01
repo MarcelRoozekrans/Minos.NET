@@ -1,6 +1,6 @@
-# Session State — 2026-10-31 (Milestone 9: Phase 9.3 complete, Phase 9.4 next)
+# Session State — 2026-11-01 (Milestone 9: Phase 9.4 part 1 built, PR next)
 
-**Date:** 2026-10-31
+**Date:** 2026-11-01
 
 ## Current Position
 - **Roadmap:** re-planned on 2026-10-09 (`docs/superpowers/specs/2026-10-09-roadmap-design.md`).
@@ -140,7 +140,25 @@
        - `ShadowReport` gained `CalibrationPrimaryOnlyKeys` and `CalibrationCandidateOnlyKeys`.
        - Signals are split by agreement per question.
        - The shipped `UseRecording(builder, recorder = null)` became `UseRecording(builder)` plus `UseRecording(builder, recorder)`, as RS0026 requires. It is source and binary compatible, and ApiCompat is clean.
-     - **Next:** Phase 9.4 (the Banking77 shadow report), starting with a brainstorm. The hosted TypeSafe run needs the maintainer's approval before it starts.
+   - **Phase 9.4 (a shadow report on recorded traffic) is active**, designed and planned on 2026-11-01 on branch `phase/9.4-shadow-traffic` (pushed; no PR yet). PR #306 closed 9.3 on `main`.
+     - **Spec:** `docs/superpowers/specs/2026-10-31-phase-9.4-shadow-traffic-design.md`. A builder check found nothing open.
+     - **Plan:** `docs/superpowers/plans/2026-11-01-phase-9.4-shadow-traffic.md`. PR 1 has five build tasks, and Task 2, the replay loop, is marked opus. Then Task 6, the approved run, and Task 7, PR 2 with the report folder.
+     - **Maintainer's choices:**
+       - The report is evidence only, with no switch verdict.
+       - The replay waits for each decision's shadow write through a signalling sink decorator.
+       - Execution is subagent-driven.
+     - **Key calls:**
+       - The new sample is `Minos.NET.Samples.ShadowReplay`. The item id is the decision id, and the confirmed outcome's source is `banking77-label`.
+       - `ShadowOptions(local, dailyCap: 400)` with `MaxConcurrent = 1` and a 60 s `Timeout`.
+       - `local-systemone.yml` gets a `job` input, `calibrate` by default or `shadow`, and a `shadow` job on `live-api` that runs tool 1.8.0's `shadow-report`.
+       - The folder is `docs/reports/shadow/banking77/`, with `records.jsonl` committed for a rebuild test.
+     - **PR 1, Tasks 1 to 5, built** subagent-driven on 2026-11-01, each task reviewed. The changes on top of the plan:
+       - The loop class is `ShadowReplayLoop`, because a type named like its namespace trips MA0049. The command line lives in `ShadowReplayApp.RunAsync`, so its exit-2 paths are tested.
+       - The sample deletes an existing `--records` file first, because `JsonlDecisionRecordSink` appends.
+       - The replay runs with `--no-build` after a separate build step.
+       - `docs/samples.md` and the root README count six samples, and five of them run offline.
+       - In this sandbox, three ProviderSwitchSampleTests fail on the inotify instance limit of 128. This is environmental, and CI is the check.
+     - **Next:** merge PR 1 when green. Then ask the maintainer to approve the billed run, about 400 TypeSafe calls and roughly 50 minutes, before dispatching (Task 6). Then Task 7, PR 2.
    - **Waiting on the maintainer:** a peer message to the Daedalus session "daedalus: phase 3.3 Task 16 onward" saying the recorder shipped in 1.3.0. It needs approval in the app; the `daedalus-b9` session no longer exists. The #119 comment is posted.
 2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.
 3. Phases 7.1 to 7.5 are complete. On 2026-10-15 nuget.org reserved `Minos.NET` and `Minos.NET.*` to MarcelRoozekrans, which lifted the 409 "package ID is reserved" block. The Trusted Publishing policy is ci.yml, no environment, glob `*`. `gh workflow run ci.yml --ref v1.0.1 -f publish_to_nuget=true` ([run 38726515640](https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/38726515640)) published all six packages as 1.0.1, with symbols. 1.0.0 was never published. `PackageValidationBaselineVersion` is 1.0.1, which closes #28. Milestone 7 is complete; its audit passed (`docs/plans/2026-10-15-milestone-7-audit.md`). Next: Milestone 8, Choosing a provider and a threshold, starting with `new-milestone`.

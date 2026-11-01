@@ -200,7 +200,7 @@ public sealed class WorkflowWiringTests
     {
         var job = Job(LocalSystemOne, "calibrate");
 
-        Assert.Contains("if: github.event_name == 'workflow_dispatch'", job, StringComparison.Ordinal);
+        Assert.Contains("if: github.event_name == 'workflow_dispatch' && inputs.job != 'shadow'", job, StringComparison.Ordinal);
         Assert.Contains("timeout-minutes: 120", job, StringComparison.Ordinal);
         Assert.Contains("pip install --extra-index-url https://download.pytorch.org/whl/cpu ", job, StringComparison.Ordinal);
         Assert.Contains(" serve Mapika/decider-2b-GGUF:Q4_K_M --port 8000 --no-browser", job, StringComparison.Ordinal);
@@ -231,6 +231,41 @@ public sealed class WorkflowWiringTests
         Assert.Contains("if: always() && (inputs.set == 'both' || inputs.set == 'urgency')", job, StringComparison.Ordinal);
         Assert.Contains("if: always() && (inputs.set == 'both' || inputs.set == 'banking77')", job, StringComparison.Ordinal);
         Assert.Equal(2, System.Text.RegularExpressions.Regex.Count(job, "if-no-files-found: warn", System.Text.RegularExpressions.RegexOptions.None, TimeSpan.FromSeconds(1)));
+    }
+
+    [Fact]
+    public void LocalSystemOne_TakesAJobInput_AfterTheSetInput()
+    {
+        Assert.Contains("        options:\n          - both\n          - urgency\n          - banking77\n      job:\n        description: Which dispatch job to run\n        type: choice\n        default: calibrate\n        options:\n          - calibrate\n          - shadow\n", LocalSystemOne, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void LocalSystemOne_ShadowJob_RunsOnlyOnDispatch_WithTheLiveKey()
+    {
+        var job = Job(LocalSystemOne, "shadow");
+
+        Assert.Contains("if: github.event_name == 'workflow_dispatch' && inputs.job == 'shadow'", job, StringComparison.Ordinal);
+        Assert.Contains("environment: live-api", job, StringComparison.Ordinal);
+        Assert.Contains("timeout-minutes: 120", job, StringComparison.Ordinal);
+        Assert.Contains("permissions:\n      contents: read\n", job, StringComparison.Ordinal);
+        Assert.Contains("          persist-credentials: false\n", job, StringComparison.Ordinal);
+        Assert.Contains("TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}", job, StringComparison.Ordinal);
+        Assert.Contains(" serve Mapika/decider-2b-GGUF:Q4_K_M --port 8000 --no-browser", job, StringComparison.Ordinal);
+        Assert.Contains("dotnet tool install Minos.NET.Tool --version 1.8.0 --tool-path \"$RUNNER_TEMP/minos-tool\"", job, StringComparison.Ordinal);
+        Assert.Contains("dotnet build samples/Minos.NET.Samples.ShadowReplay -c Release\n", job, StringComparison.Ordinal);
+        Assert.Contains("mkdir -p \"$RUNNER_TEMP/out\"\n", job, StringComparison.Ordinal);
+        Assert.Contains("dotnet run --project samples/Minos.NET.Samples.ShadowReplay -c Release --no-build -- --dataset datasets/banking77/banking77-minos-v1.jsonl --config docs/reports/minos.json --primary TypeSafe --candidate Local --records \"$RUNNER_TEMP/out/records.jsonl\" & pid=$!\n", job, StringComparison.Ordinal);
+        // One background run, not a loop: the trap signals dotnet run, which forwards the SIGTERM to the app, and the step waits for it to save its records.
+        Assert.Contains("          pid=\n", job, StringComparison.Ordinal);
+        Assert.Contains("trap 'trap \"\" INT TERM; if [ -n \"$pid\" ]; then kill -TERM \"$pid\" 2>/dev/null; wait \"$pid\"; fi; exit 130' INT TERM\n", job, StringComparison.Ordinal);
+        Assert.Contains(" & pid=$!\n          wait \"$pid\"\n", job, StringComparison.Ordinal);
+        Assert.Contains("\"$RUNNER_TEMP/minos-tool/minos\" shadow-report --records \"$RUNNER_TEMP/out/records.jsonl\" --prices docs/reports/prices.json --out \"$RUNNER_TEMP/out\"", job, StringComparison.Ordinal);
+        Assert.Contains("name: shadow-typesafe-local-banking77\n", job, StringComparison.Ordinal);
+        Assert.Contains("path: ${{ runner.temp }}/out\n", job, StringComparison.Ordinal);
+        Assert.Equal(3, System.Text.RegularExpressions.Regex.Count(job, "if: always\\(\\)", System.Text.RegularExpressions.RegexOptions.None, TimeSpan.FromSeconds(1)));
+        Assert.Contains("if-no-files-found: warn", job, StringComparison.Ordinal);
+        Assert.DoesNotContain("if-no-files-found: ignore", job, StringComparison.Ordinal);
+        Assert.DoesNotContain("${{ inputs.", RunScripts(LocalSystemOne), StringComparison.Ordinal);
     }
 
     [Fact]
