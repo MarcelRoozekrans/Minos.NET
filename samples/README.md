@@ -1,6 +1,6 @@
 # Samples
 
-Five cookbook samples show Minos doing real work in a small console app. Each one has its own README with the details.
+Six cookbook samples show Minos doing real work in a small console app. Each one has its own README with the details.
 
 | Sample | What it shows |
 | --- | --- |
@@ -9,6 +9,7 @@ Five cookbook samples show Minos doing real work in a small console app. Each on
 | [Intent routing](Minos.NET.Samples.IntentRouting) | Decides per request whether code, an assistant model or a person handles it, using Jev as the cheap first step. Inspired by TypeSafe's [intent routing](https://docs.typesafe.ai/patterns/intent-routing) pattern and its [Function calling](https://docs.typesafe.ai/cookbooks/function_calling) cookbook. |
 | [Provider switch](Minos.NET.Samples.ProviderSwitch) | Routes support tickets with one Choice question through TypeSafe, OpenRouter or a local server, chosen by configuration only. |
 | [Re-ranking](Minos.NET.Samples.Reranking) | Re-orders a keyword shortlist of help articles by how well each answers the question, in one fan-out request. Inspired by TypeSafe's [Re-ranking](https://docs.typesafe.ai/cookbooks/rerank_typesafe) cookbook. |
+| [Shadow replay](Minos.NET.Samples.ShadowReplay) | Replays a labelled Banking77 dataset through the recorder's shadow mode: a hosted primary decides each item, a local candidate shadows it, and both sets of answers go to a records file. Billed on the primary, so it needs `TYPESAFE_API_KEY`. |
 
 Every sample is our own work. Three are inspired by TypeSafe's material, linked in the table above, but the code, the data and the policies are written here.
 
