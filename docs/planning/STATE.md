@@ -152,7 +152,13 @@
        - `ShadowOptions(local, dailyCap: 400)` with `MaxConcurrent = 1` and a 60 s `Timeout`.
        - `local-systemone.yml` gets a `job` input, `calibrate` by default or `shadow`, and a `shadow` job on `live-api` that runs tool 1.8.0's `shadow-report`.
        - The folder is `docs/reports/shadow/banking77/`, with `records.jsonl` committed for a rebuild test.
-     - **Next:** execute PR 1, Tasks 1 to 5, with subagent-driven-development. After PR 1 merges, ask the maintainer to approve the billed run, about 400 TypeSafe calls and roughly 50 minutes, before dispatching.
+     - **PR 1, Tasks 1 to 5, built** subagent-driven on 2026-11-01, each task reviewed. The changes on top of the plan:
+       - The loop class is `ShadowReplayLoop`, because a type named like its namespace trips MA0049. The command line lives in `ShadowReplayApp.RunAsync`, so its exit-2 paths are tested.
+       - The sample deletes an existing `--records` file first, because `JsonlDecisionRecordSink` appends.
+       - The replay runs with `--no-build` after a separate build step.
+       - `docs/samples.md` and the root README count six samples, and five of them run offline.
+       - In this sandbox, three ProviderSwitchSampleTests fail on the inotify instance limit of 128. This is environmental, and CI is the check.
+     - **Next:** merge PR 1 when green. Then ask the maintainer to approve the billed run, about 400 TypeSafe calls and roughly 50 minutes, before dispatching (Task 6). Then Task 7, PR 2.
    - **Waiting on the maintainer:** a peer message to the Daedalus session "daedalus: phase 3.3 Task 16 onward" saying the recorder shipped in 1.3.0. It needs approval in the app; the `daedalus-b9` session no longer exists. The #119 comment is posted.
 2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.
 3. Phases 7.1 to 7.5 are complete. On 2026-10-15 nuget.org reserved `Minos.NET` and `Minos.NET.*` to MarcelRoozekrans, which lifted the 409 "package ID is reserved" block. The Trusted Publishing policy is ci.yml, no environment, glob `*`. `gh workflow run ci.yml --ref v1.0.1 -f publish_to_nuget=true` ([run 38726515640](https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/38726515640)) published all six packages as 1.0.1, with symbols. 1.0.0 was never published. `PackageValidationBaselineVersion` is 1.0.1, which closes #28. Milestone 7 is complete; its audit passed (`docs/plans/2026-10-15-milestone-7-audit.md`). Next: Milestone 8, Choosing a provider and a threshold, starting with `new-milestone`.

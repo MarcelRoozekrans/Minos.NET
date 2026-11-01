@@ -56,7 +56,7 @@ it.
 ## The shadow report
 
 A shadow report is a different kind of run from a calibration. It does not score a provider against labels in one go. It
-replays recorded traffic through [shadow mode](../recording.md#shadow-mode): the primary decides each item, and the
+replays traffic through [shadow mode](../recording.md#shadow-mode): the primary decides each item, and the
 candidate decides the same item in the background. The report then compares the two. It is evidence only: it states what
 was measured and gives no verdict on whether to switch.
 
@@ -77,8 +77,8 @@ gh workflow run local-systemone.yml --ref main -f job=shadow
 ```
 
 The `shadow` job is dispatch only. It is billed, because the primary is TypeSafe and the replay makes about 400 TypeSafe
-calls. It waits for the maintainer's approval, and it uses the `live-api` environment, which deploys only from `main`, so
-the `--ref` must be `main`.
+calls, so it is started only after the maintainer approves the run. It uses the `live-api` environment, which deploys
+only from `main`, so the `--ref` must be `main`.
 
 The job replays `datasets/banking77/banking77-minos-v1.jsonl` one item at a time through
 [`samples/Minos.NET.Samples.ShadowReplay`](../../samples/Minos.NET.Samples.ShadowReplay/README.md). TypeSafe is the primary
