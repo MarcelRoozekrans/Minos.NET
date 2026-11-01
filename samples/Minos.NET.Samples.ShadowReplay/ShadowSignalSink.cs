@@ -11,7 +11,10 @@ public sealed class ShadowSignalSink(IDecisionRecordSink inner) : IDecisionRecor
 {
     private readonly ConcurrentDictionary<string, TaskCompletionSource> _waiting = new(StringComparer.Ordinal);
 
-    /// <summary>Registers interest in a decision's shadow write.</summary>
+    /// <summary>
+    /// Registers interest in a decision's shadow write. Call it before the decision is made: the registration is removed
+    /// once the shadow write is signalled, so a call after that returns a new task that never completes.
+    /// </summary>
     /// <param name="decisionId">The decision id.</param>
     /// <returns>A task that completes once the record with a shadow part is written to the inner sink. The same task for the same id.</returns>
     public Task Expect(string decisionId)

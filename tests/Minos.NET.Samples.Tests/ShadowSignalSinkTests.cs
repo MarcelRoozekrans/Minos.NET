@@ -45,12 +45,11 @@ public sealed class ShadowSignalSinkTests
     }
 
     [Fact]
-    public async Task Expect_ReturnsTheSameTaskForOneId()
+    public void Expect_ReturnsTheSameTaskForOneId()
     {
         var sink = new ShadowSignalSink(new InMemoryDecisionRecordSink());
 
         Assert.Same(sink.Expect("d-1"), sink.Expect("d-1"));
-        await Task.CompletedTask;
     }
 
     [Fact]
@@ -65,16 +64,19 @@ public sealed class ShadowSignalSinkTests
     }
 
     [Fact]
-    public async Task Expect_SignalsAfterTheInnerWrite()
+    public async Task Expect_SignalsOnlyAfterTheInnerWriteReturns()
     {
-        var inner = new InMemoryDecisionRecordSink();
+        var inner = new GatedSink();
         var sink = new ShadowSignalSink(inner);
         var signal = sink.Expect("d-1");
 
-        await sink.WriteAsync(await RecordAsync("d-1", withShadow: true), CancellationToken.None);
-        await signal.WaitAsync(Bound);
+        var write = sink.WriteAsync(await RecordAsync("d-1", withShadow: true), CancellationToken.None).AsTask();
+        await inner.Entered.Task.WaitAsync(Bound);
+        Assert.False(signal.IsCompleted);
 
-        Assert.NotNull(Assert.Single(inner.Records).Record.Shadow);
+        inner.Release.SetResult();
+        await write.WaitAsync(Bound);
+        await signal.WaitAsync(Bound);
     }
 
     [Fact]
@@ -93,7 +95,23 @@ public sealed class ShadowSignalSinkTests
     }
 
     [Fact]
-    public async Task Forget_DropsTheRegistration()
+    public async Task EraseCalls_AreForwarded()
+    {
+        var inner = new InMemoryDecisionRecordSink();
+        var sink = new ShadowSignalSink(inner);
+        await sink.WriteAsync(await RecordAsync("d-1", withShadow: false), CancellationToken.None);
+        await sink.WriteAsync(await RecordAsync("d-2", withShadow: false), CancellationToken.None);
+
+        await sink.EraseDecisionAsync("d-1", CancellationToken.None);
+        Assert.Equal("d-2", Assert.Single(inner.Records).Record.DecisionId);
+
+        var spy = new EraseSpy();
+        await new ShadowSignalSink(spy).EraseAsync("subject-1", CancellationToken.None);
+        Assert.Equal("subject-1", spy.ErasedKey);
+    }
+
+    [Fact]
+    public void Forget_DropsTheRegistration()
     {
         var sink = new ShadowSignalSink(new InMemoryDecisionRecordSink());
         var first = sink.Expect("d-1");
@@ -101,6 +119,41 @@ public sealed class ShadowSignalSinkTests
         sink.Forget("d-1");
 
         Assert.NotSame(first, sink.Expect("d-1"));
-        await Task.CompletedTask;
+    }
+
+    private sealed class GatedSink : IDecisionRecordSink
+    {
+        public TaskCompletionSource Entered { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public TaskCompletionSource Release { get; } = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public async ValueTask WriteAsync(DecisionRecord record, CancellationToken cancellationToken)
+        {
+            Entered.SetResult();
+            await Release.Task;
+        }
+
+        public ValueTask AddOutcomeAsync(string decisionId, DecisionOutcome outcome, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+
+        public ValueTask EraseAsync(string erasureKey, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+
+        public ValueTask EraseDecisionAsync(string decisionId, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+    }
+
+    private sealed class EraseSpy : IDecisionRecordSink
+    {
+        public string? ErasedKey { get; private set; }
+
+        public ValueTask WriteAsync(DecisionRecord record, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+
+        public ValueTask AddOutcomeAsync(string decisionId, DecisionOutcome outcome, CancellationToken cancellationToken) => ValueTask.CompletedTask;
+
+        public ValueTask EraseAsync(string erasureKey, CancellationToken cancellationToken)
+        {
+            ErasedKey = erasureKey;
+            return ValueTask.CompletedTask;
+        }
+
+        public ValueTask EraseDecisionAsync(string decisionId, CancellationToken cancellationToken) => ValueTask.CompletedTask;
     }
 }
