@@ -485,12 +485,13 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Completed:** 2026-10-31
 **Evidence:** PR #304 (squash `75abc31c`), released in 1.8.0 (#305) with all five changelog lines; pre-push review PASS, `docs/plans/2026-10-31-phase-9.3-pre-push-review.md`.
 
-### Phase 9.4: A shadow report on recorded traffic [status: active]
+### Phase 9.4: A shadow report on recorded traffic [status: complete]
 **Goal:** A sample replays the 400-item Banking77 set through the recorder and shadow mode, with TypeSafe as the primary and the local model as the candidate. The report is committed, and the hosted run needs the maintainer's approval.
 **Surface:** Data
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-10-31-phase-9.4-shadow-traffic-design.md`
 **Plan:** `docs/superpowers/plans/2026-11-01-phase-9.4-shadow-traffic.md`
+**Completed:** 2026-11-01
 
 ### Phase 9.5: "Running decisions locally and privately" guide [status: pending]
 **Goal:** The record, export, shadow, report and switch path as one guide, with the local server setup, backed by Phase 9.4's report (#118).
