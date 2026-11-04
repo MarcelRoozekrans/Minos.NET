@@ -1,1 +1,2 @@
 #nullable enable
+static Minos.RecordingDecisionClientBuilderExtensions.UseShadowRecording(this Minos.DecisionClientBuilder! builder, System.Func<System.IServiceProvider!, Minos.Recording.ShadowOptions!>! shadow) -> Minos.DecisionClientBuilder!

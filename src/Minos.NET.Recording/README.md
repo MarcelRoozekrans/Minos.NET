@@ -41,4 +41,6 @@ var shadow = new ShadowOptions(localClient, dailyCap: 500);
 using var shadowed = client.AsBuilder().UseRecording(shadow, recorder).Build();
 ```
 
+For a candidate that is a client registered in the container, `UseShadowRecording(provider => provider.GetRequiredService<ShadowOptions>())` creates the options from the container, and takes the recorder from it too. Register the `ShadowOptions` as a singleton, so its cap is shared.
+
 Documentation: [Recording decisions](https://marcelroozekrans.github.io/Minos.NET/recording). Source and issues: [github.com/MarcelRoozekrans/Minos.NET](https://github.com/MarcelRoozekrans/Minos.NET). Licensed under the MIT license.

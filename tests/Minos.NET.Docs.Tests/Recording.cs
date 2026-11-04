@@ -2,6 +2,7 @@ namespace Minos.Docs.Tests;
 
 #region Recording_Questions
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Minos;
@@ -266,6 +267,25 @@ public static class ShadowedApp
         // A flush writes what is queued; it does not wait for a candidate that is still running, and dispose cancels
         // the candidates that are. A short program waits for as long as the candidate may take, which is its Timeout.
         await Task.Delay(shadow.Timeout, cancellationToken);
+    }
+}
+#endregion
+
+#region Recording_ShadowFromServices
+public static class ShadowedServices
+{
+    public static IServiceCollection AddShadowedDecisions(this IServiceCollection services, string apiKey, IConfiguration local)
+    {
+        // The candidate is a keyed client of its own, without a recording stage.
+        services.AddSystemOneDecisionClient("Local", local);
+
+        // One ShadowOptions in the container: every pipeline built with it shares its cap.
+        services.AddSingleton(provider => new ShadowOptions(provider.GetRequiredKeyedService<IDecisionClient>("Local"), dailyCap: 500));
+
+        // The container calls the factory when it builds the primary, and gives the stage its DecisionRecorder.
+        services.AddSystemOneDecisionClient(options => options.ApiKey = apiKey)
+            .UseShadowRecording(provider => provider.GetRequiredService<ShadowOptions>());
+        return services;
     }
 }
 #endregion
