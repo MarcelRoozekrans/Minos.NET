@@ -673,7 +673,9 @@ Never pass `--trust`, which lets a model run code of its own. The server is read
 The `Local` section above points the `Custom` preset at it: `Provider` is `Custom`, `BaseAddress` is
 `http://localhost:8000/` and `Model` is `Mapika/decider-2b-GGUF:Q4_K_M`. No key is sent. The server answers all three
 question kinds, and reports probabilities to four decimals.
-To shadow it against your current provider before switching, see [Running decisions locally and privately](running-locally.md#step-2-shadow-the-local-server).
+
+To shadow it against your current provider before switching, see
+[Running decisions locally and privately](running-locally.md#step-2-shadow-the-local-server).
 
 ## Adding OpenAI
 
