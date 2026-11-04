@@ -136,6 +136,7 @@ The guide lives at [marcelroozekrans.github.io/Minos.NET](https://marcelroozekra
 - [The client pipeline](https://marcelroozekrans.github.io/Minos.NET/pipeline): the stages every call goes through, building your own pipeline, writing a stage, and upgrading to 1.0 and from 0.7.
 - [Logging, traces and metrics](https://marcelroozekrans.github.io/Minos.NET/observability): what the client logs, which spans and metrics it emits, and what it never records.
 - [Recording decisions](https://marcelroozekrans.github.io/Minos.NET/recording): keep a record of every decision, attach outcomes, erase by a key you choose, redact the state, and read the JSONL file back.
+- [Running decisions locally and privately](https://marcelroozekrans.github.io/Minos.NET/running-locally): record, shadow a local server, read the report, decide and switch by configuration, with what stays private at each step.
 - [Native AOT and allocations](https://marcelroozekrans.github.io/Minos.NET/native-aot): what Native AOT compatibility means, the one reflection the client uses, and the allocation budgets that guard it.
 - [Diagnostics](https://marcelroozekrans.github.io/Minos.NET/diagnostics): every MIN analyzer rule with its severity, the provider rules the client checks at run time, the two code fixes, and how to suppress a rule.
 - [Testing your code](https://marcelroozekrans.github.io/Minos.NET/testing-your-code): test code that calls Jev with a fake `IDecisionClient` or a real `SystemOneDecisionClient` over a canned HTTP reply.

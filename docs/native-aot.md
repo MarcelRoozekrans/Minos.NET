@@ -1,7 +1,7 @@
 ---
 id: native-aot
 title: Native AOT and allocations
-sidebar_position: 14
+sidebar_position: 15
 description: What it means that the Minos client is Native AOT compatible, the one reflection it uses, how CI checks every public member, and the allocation budgets that guard it.
 ---
 
