@@ -44,7 +44,7 @@ public sealed class RunningLocallyTests : IDisposable
     {
         PaymentReview? review = null;
         var shadowed = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        var (typeSafe, local) = await RunAsync(RunningLocallyConfig.Before, shadowed, async services =>
+        var (typeSafe, local) = await RunAsync(RunningLocallyConfig.Before, Reply.Ok(TypeSafeResponse), shadowed, async services =>
         {
             (review, _) = await PaymentReviews.ReviewAsync(services.GetRequiredService<IDecisionClient>(), "customer-7", ChargedTwice, CancellationToken.None);
 
@@ -80,7 +80,7 @@ public sealed class RunningLocallyTests : IDisposable
     public async Task AfterTheSwitch_TheLocalServerDecides_AndNothingIsShadowed()
     {
         PaymentReview? review = null;
-        var (typeSafe, local) = await RunAsync(RunningLocallyConfig.After, shadowed: null, async services =>
+        var (typeSafe, local) = await RunAsync(RunningLocallyConfig.After, Reply.Ok(LocalResponse), shadowed: null, async services =>
             (review, _) = await PaymentReviews.ReviewAsync(services.GetRequiredService<IDecisionClient>(), "customer-7", ChargedTwice, CancellationToken.None));
 
         // The active client now answers from the local server, through the registration TypeSafe had.
@@ -99,7 +99,7 @@ public sealed class RunningLocallyTests : IDisposable
     [Fact]
     public async Task AShadowNamingTheActiveSection_FailsNamingIt()
     {
-        var builder = NewBuilder(RunningLocallyConfig.After, new() { ["Minos:Shadow"] = "Local" });
+        var builder = NewBuilder(RunningLocallyConfig.After, new(StringComparer.Ordinal) { ["Minos:Shadow"] = "Local" });
         await using var sink = new JsonlDecisionRecordSink(RecordFile);
 
         var error = Assert.Throws<InvalidOperationException>(() => builder.AddRecordedDecisions(sink));
@@ -110,7 +110,7 @@ public sealed class RunningLocallyTests : IDisposable
     [Fact]
     public async Task AShadowNamingNoSection_FailsNamingIt()
     {
-        var builder = NewBuilder(RunningLocallyConfig.Before, new() { ["Minos:Shadow"] = "Elsewhere" });
+        var builder = NewBuilder(RunningLocallyConfig.Before, new(StringComparer.Ordinal) { ["Minos:Shadow"] = "Elsewhere" });
         await using var sink = new JsonlDecisionRecordSink(RecordFile);
 
         var error = Assert.Throws<InvalidOperationException>(() => builder.AddRecordedDecisions(sink));
@@ -125,11 +125,11 @@ public sealed class RunningLocallyTests : IDisposable
         string? decisionId = null;
         var (typeSafe, local) = await RunAsync(
             RunningLocallyConfig.Before,
+            Reply.Error(500, """{"error":{"message":"upstream failed"}}"""),
             shadowed: null,
             async services => (review, decisionId) = await PaymentReviews.ReviewAsync(
                 services.GetRequiredService<IDecisionClient>(), "customer-7", ChargedTwice, CancellationToken.None),
-            primary: Reply.Error(500, """{"error":{"message":"upstream failed"}}"""),
-            overrides: new() { ["Minos:Providers:TypeSafe:MaxRetries"] = "0" });
+            overrides: new(StringComparer.Ordinal) { ["Minos:Providers:TypeSafe:MaxRetries"] = "0" });
 
         // The caller gets the primary's failure as a result, not an exception, and the local answer never stands in for
         // it: a failed decision gives nothing to compare, so it is recorded and not shadowed.
@@ -148,7 +148,7 @@ public sealed class RunningLocallyTests : IDisposable
     public async Task TheRecord_KeepsTheTextWithAddressesMasked()
     {
         const string text = "Charged twice, write to ann@example.com";
-        var (typeSafe, _) = await RunAsync(RunningLocallyConfig.After, shadowed: null, async services =>
+        var (typeSafe, _) = await RunAsync(RunningLocallyConfig.After, Reply.Ok(LocalResponse), shadowed: null, async services =>
             await PaymentReviews.ReviewAsync(services.GetRequiredService<IDecisionClient>(), "customer-7", text, CancellationToken.None));
 
         // The provider is sent the text unchanged; only the kept record is masked.
@@ -167,7 +167,7 @@ public sealed class RunningLocallyTests : IDisposable
     public async Task AConfirmedOutcome_LandsOnItsDecision(PaymentTopic topic, string key)
     {
         string? decisionId = null;
-        await RunAsync(RunningLocallyConfig.After, shadowed: null, async services =>
+        await RunAsync(RunningLocallyConfig.After, Reply.Ok(LocalResponse), shadowed: null, async services =>
         {
             (_, decisionId) = await PaymentReviews.ReviewAsync(services.GetRequiredService<IDecisionClient>(), "customer-7", ChargedTwice, CancellationToken.None);
             await PaymentOutcomes.ConfirmAsync(services.GetRequiredService<IDecisionRecorder>(), decisionId!, true, topic, CancellationToken.None);
@@ -192,12 +192,12 @@ public sealed class RunningLocallyTests : IDisposable
     // Local one is the shadow candidate.
     private async Task<(ScriptedDecision.Handler Active, ScriptedDecision.Handler Candidate)> RunAsync(
         string configuration,
+        Reply activeReply,
         TaskCompletionSource? shadowed,
         Func<IServiceProvider, Task> work,
-        Reply? primary = null,
         Dictionary<string, string?>? overrides = null)
     {
-        var active = new ScriptedDecision.Handler([primary ?? Reply.Ok(string.Equals(configuration, RunningLocallyConfig.After, StringComparison.Ordinal) ? LocalResponse : TypeSafeResponse)]);
+        var active = new ScriptedDecision.Handler([activeReply]);
         var candidate = new ScriptedDecision.Handler([Reply.Ok(LocalResponse)]);
         var builder = NewBuilder(configuration, overrides);
         var sink = new SignallingSink(new JsonlDecisionRecordSink(RecordFile), shadowed);

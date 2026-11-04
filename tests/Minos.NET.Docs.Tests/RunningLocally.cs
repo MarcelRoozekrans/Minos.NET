@@ -43,6 +43,7 @@ public static partial class LocalReadiness
         var active = ProviderSection(configuration, "Minos:Active");
 
         // One recorder over the app's sink. Text is kept with e-mail addresses masked; the providers still get it whole.
+        // A decision on structured state is not recorded at all, since Drop keeps no record of it.
         builder.Services.AddSingleton(provider => new DecisionRecorder(
             sink,
             new RecordingOptions
@@ -72,13 +73,16 @@ public static partial class LocalReadiness
         // The candidate is a client of its own, keyed by its section's name, with no recording stage. On a CPU it takes
         // seconds per decision, so one call at a time, and a time-out well above that. The cap bounds the load.
         builder.Services.AddSystemOneDecisionClient(shadow.Key, shadow);
-        builder.Services.AddSingleton(provider => new ShadowOptions(provider.GetRequiredKeyedService<IDecisionClient>(shadow.Key), dailyCap: 2000)
+        // One ShadowOptions per candidate, keyed like it, so every pipeline that shadows it shares one daily cap.
+        builder.Services.AddKeyedSingleton(shadow.Key, (provider, _) => new ShadowOptions(provider.GetRequiredKeyedService<IDecisionClient>(shadow.Key), dailyCap: 2000)
         {
             MaxConcurrent = 1,
             Timeout = TimeSpan.FromSeconds(30),
         });
-        client.Use((inner, services) => new RecordingDecisionClient(
-            inner, services.GetRequiredService<DecisionRecorder>(), services.GetRequiredService<ShadowOptions>()));
+
+        // The candidate exists only once the container builds it, so the container creates the stage: it calls the
+        // factory when it builds the active client, and gives the stage its DecisionRecorder.
+        client.UseShadowRecording(provider => provider.GetRequiredKeyedService<ShadowOptions>(shadow.Key));
         return builder;
     }
 
