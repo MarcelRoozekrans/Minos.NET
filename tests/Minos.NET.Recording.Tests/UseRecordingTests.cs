@@ -63,6 +63,126 @@ public sealed class UseRecordingTests
     }
 
     [Fact]
+    public async Task UseShadowRecording_ShadowsWithAKeyedClientFromTheBuildServices()
+    {
+        var sink = new RecordingSpySink();
+        var (recorder, _, factory) = Recorder(sink);
+        using (factory)
+        await using (recorder)
+        {
+            var candidate = new ShadowCandidate(held: false);
+            var collection = new ServiceCollection();
+            collection.AddSingleton(recorder);
+            collection.AddKeyedSingleton<IDecisionClient>("Local", candidate);
+            using var services = collection.BuildServiceProvider();
+            IServiceProvider? seen = null;
+            using var client = new ScriptedClient(Metadata).AsBuilder()
+                .UseShadowRecording(provider =>
+                {
+                    seen = provider;
+                    return new ShadowOptions(provider.GetRequiredKeyedService<IDecisionClient>("Local"), 10);
+                })
+                .Build(services);
+
+            Assert.Same(services, seen);
+            Assert.Same(recorder, client.GetService<IDecisionRecorder>());
+            Assert.True((await client.EvaluateAsync(Request())).IsSuccess);
+            await candidate.WaitStartedAsync();
+
+            var deadline = System.Diagnostics.Stopwatch.StartNew();
+            await recorder.FlushAsync().AsTask().WaitAsync(Bound);
+            while (sink.Inner.Records[0].Record.Shadow is null)
+            {
+                Assert.True(deadline.Elapsed < Bound, "The decision was not shadowed in time.");
+                await Task.Delay(5);
+                await recorder.FlushAsync().AsTask().WaitAsync(Bound);
+            }
+        }
+
+        Assert.Equal("anthropic", Assert.Single(sink.Inner.Records).Record.Shadow!.Provider);
+    }
+
+    [Fact]
+    public async Task UseShadowRecording_CallsTheFactoryOnEachBuild()
+    {
+        var (recorder, _, factory) = Recorder(new RecordingSpySink());
+        using (factory)
+        await using (recorder)
+        {
+            var collection = new ServiceCollection();
+            collection.AddSingleton(recorder);
+            using var services = collection.BuildServiceProvider();
+            var calls = 0;
+            var builder = new ScriptedClient().AsBuilder().UseShadowRecording(_ =>
+            {
+                calls++;
+                return new ShadowOptions(new ShadowCandidate(), 1);
+            });
+
+            Assert.Equal(0, calls);
+            using (builder.Build(services))
+            using (builder.Build(services))
+            {
+                Assert.Equal(2, calls);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task UseShadowRecording_BuildThrows_WhenTheFactoryReturnsNull()
+    {
+        var (recorder, _, factory) = Recorder(new RecordingSpySink());
+        using (factory)
+        await using (recorder)
+        {
+            var collection = new ServiceCollection();
+            collection.AddSingleton(recorder);
+            using var services = collection.BuildServiceProvider();
+            var builder = new ScriptedClient().AsBuilder().UseShadowRecording(_ => null!);
+
+            var thrown = Assert.Throws<InvalidOperationException>(() => builder.Build(services));
+            Assert.Contains("ShadowOptions", thrown.Message, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void UseShadowRecording_BuildThrows_WithoutARecorder()
+    {
+        var builder = new ScriptedClient().AsBuilder().UseShadowRecording(_ => new ShadowOptions(new ShadowCandidate(), 1));
+
+        var thrown = Assert.Throws<InvalidOperationException>(() => builder.Build());
+        Assert.Contains("DecisionRecorder", thrown.Message, StringComparison.Ordinal);
+        Assert.Throws<InvalidOperationException>(() => builder.Build(new ServiceCollection().BuildServiceProvider()));
+    }
+
+    // Compiling is the check: these call shapes bind to the shipped UseRecording overloads, and adding an overload that
+    // makes one ambiguous breaks the build here. Each pipeline then records through the container's recorder.
+    [Fact]
+    public async Task TheShippedCallShapes_StillBind()
+    {
+        var (recorder, _, factory) = Recorder(new RecordingSpySink());
+        using (factory)
+        await using (recorder)
+        {
+            var collection = new ServiceCollection();
+            collection.AddSingleton(recorder);
+            using var services = collection.BuildServiceProvider();
+            var shadow = new ShadowOptions(new ShadowCandidate(), 1);
+
+            using var nullRecorder = new ScriptedClient().AsBuilder().UseRecording(null).Build(services);
+            using var none = new ScriptedClient().AsBuilder().UseRecording().Build(services);
+            using var namedNull = new ScriptedClient().AsBuilder().UseRecording(recorder: null).Build(services);
+            using var withRecorder = new ScriptedClient().AsBuilder().UseRecording(recorder).Build();
+            using var withShadow = new ScriptedClient().AsBuilder().UseRecording(shadow).Build(services);
+            using var withBoth = new ScriptedClient().AsBuilder().UseRecording(shadow, recorder).Build();
+
+            Assert.All(
+                new[] { nullRecorder, none, namedNull, withRecorder, withShadow, withBoth },
+                client => Assert.Same(recorder, client.GetService<IDecisionRecorder>()));
+        }
+    }
+
+    [Fact]
     public void Build_Throws_WithoutARecorder()
     {
         var builder = new ScriptedClient().AsBuilder().UseRecording();
@@ -154,6 +274,8 @@ public sealed class UseRecordingTests
     public void TheArguments_AreChecked()
     {
         Assert.Throws<ArgumentNullException>(() => RecordingDecisionClientBuilderExtensions.UseRecording(null!));
+        Assert.Throws<ArgumentNullException>(() => RecordingDecisionClientBuilderExtensions.UseShadowRecording(null!, _ => new ShadowOptions(new ShadowCandidate(), 1)));
+        Assert.Throws<ArgumentNullException>(() => new ScriptedClient().AsBuilder().UseShadowRecording(null!));
         Assert.Throws<ArgumentNullException>(() => new RecordingDecisionClient(new ScriptedClient(), null!));
     }
 }

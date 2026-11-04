@@ -164,6 +164,7 @@ internal static class RecordingChecks
 
     [Covers("static Minos.RecordingDecisionClientBuilderExtensions.UseRecording(this Minos.DecisionClientBuilder! builder) -> Minos.DecisionClientBuilder!")]
     [Covers("static Minos.RecordingDecisionClientBuilderExtensions.UseRecording(this Minos.DecisionClientBuilder! builder, Minos.Recording.ShadowOptions! shadow, Minos.Recording.DecisionRecorder? recorder = null) -> Minos.DecisionClientBuilder!")]
+    [Covers("static Minos.RecordingDecisionClientBuilderExtensions.UseShadowRecording(this Minos.DecisionClientBuilder! builder, System.Func<System.IServiceProvider!, Minos.Recording.ShadowOptions!>! shadow) -> Minos.DecisionClientBuilder!")]
     [Covers("Minos.Recording.RecordingDecisionClient.RecordingDecisionClient(Minos.IDecisionClient! innerClient, Minos.Recording.DecisionRecorder! recorder, Minos.Recording.ShadowOptions? shadow) -> void")]
     [Covers("Minos.Recording.ShadowOptions.ShadowOptions(Minos.IDecisionClient! candidate, int dailyCap) -> void")]
     public static async Task ShadowsADecisionAndReadsItBack()
@@ -180,16 +181,21 @@ internal static class RecordingChecks
             var shadow = new ShadowOptions(candidate, dailyCap: 10) { Timeout = TimeSpan.FromSeconds(10), MaxConcurrent = 2, Model = "candidate-model" };
 
             // The shadow comes from the builder for the first decision, from the constructor for the second, and the third
-            // decision has none, through a recorder the services hold.
+            // decision has none, through a recorder the services hold. The fourth takes its recorder and a keyed candidate
+            // from the services, through a factory.
             using var viaBuilder = new FixedResponseClient(PipelineChecks.TriageResponse()).AsBuilder().UseRecording(shadow, recorder).Build();
             using var viaConstructor = new RecordingDecisionClient(new FixedResponseClient(PipelineChecks.TriageResponse()), recorder, shadow);
             var services = new ServiceCollection();
             services.AddSingleton(recorder);
+            services.AddKeyedSingleton<IDecisionClient>("Local", candidate);
             using var provider = services.BuildServiceProvider();
             using var unshadowed = new FixedResponseClient(PipelineChecks.TriageResponse()).AsBuilder().UseRecording().Build(provider);
+            using var viaFactory = new FixedResponseClient(PipelineChecks.TriageResponse()).AsBuilder()
+                .UseShadowRecording(static services => new ShadowOptions(services.GetRequiredKeyedService<IDecisionClient>("Local"), dailyCap: 10))
+                .Build(provider);
 
-            var ids = new[] { "shadow-1", "shadow-2", "plain-3" };
-            var clients = new IDecisionClient[] { viaBuilder, viaConstructor, unshadowed };
+            var ids = new[] { "shadow-1", "shadow-2", "plain-3", "factory-4" };
+            var clients = new IDecisionClient[] { viaBuilder, viaConstructor, unshadowed, viaFactory };
             var results = new bool[ids.Length];
             for (var i = 0; i < ids.Length; i++)
             {
@@ -205,7 +211,7 @@ internal static class RecordingChecks
                 await recorder.FlushAsync().ConfigureAwait(false);
                 problems.Clear();
                 read = await ReadAllAsync(DecisionRecordFile.ReadAsync(path, problems, CancellationToken.None)).ConfigureAwait(false);
-                if (read.Count == ids.Length && ShadowedCount(read) == 2)
+                if (read.Count == ids.Length && ShadowedCount(read) == 3)
                 {
                     break;
                 }
@@ -218,12 +224,14 @@ internal static class RecordingChecks
 
             var shadowed = read.Find(static decision => string.Equals(decision.Record.DecisionId, "shadow-1", StringComparison.Ordinal))?.Record.Shadow;
             var constructed = read.Find(static decision => string.Equals(decision.Record.DecisionId, "shadow-2", StringComparison.Ordinal))?.Record.Shadow;
+            var fromFactory = read.Find(static decision => string.Equals(decision.Record.DecisionId, "factory-4", StringComparison.Ordinal))?.Record.Shadow;
             var plain = read.Find(static decision => string.Equals(decision.Record.DecisionId, "plain-3", StringComparison.Ordinal))?.Record;
 
             Program.Check(
                 results.All(static success => success)
                     && problems.Count == 0
                     && shadowed is not null && constructed is not null && plain is { Shadow: null }
+                    && fromFactory is { ErrorKind: null, Answers.Count: 3, RequestedModel: null }
                     && shadowed.Answers.Count == 3 && constructed.Answers.Count == 3
                     && shadowed.Answers[1].Kind == QuestionKind.Choice && shadowed.Answers[1].Probabilities.Count > 0
                     && shadowed.ErrorKind is null && shadowed.RefusedKeys.Count == 0
@@ -235,7 +243,7 @@ internal static class RecordingChecks
                     && ReferenceEquals(shadow.Candidate, candidate) && shadow.DailyCap == 10
                     && shadow.Timeout == TimeSpan.FromSeconds(10) && shadow.MaxConcurrent == 2
                     && string.Equals(shadow.Model, "candidate-model", StringComparison.Ordinal)
-                    && candidate.Calls == 2,
+                    && candidate.Calls == 3,
                 "a decision is shadowed by a candidate in the background, and the file holds the candidate's answers beside the primary's within 20 s, under Native AOT");
         }
         finally

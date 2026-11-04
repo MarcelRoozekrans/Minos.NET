@@ -56,7 +56,8 @@ public static class RecordingDecisionClientBuilderExtensions
     /// Add the stage outermost, as the overload without a candidate: a cache hit is then seen as one and not shadowed, and
     /// a retried call is shadowed once. The pipelines built with one <see cref="ShadowOptions"/> share its daily cap and its
     /// running candidates: share one <see cref="ShadowOptions"/> among the pipelines that shadow the same candidate, so they
-    /// share its cap.
+    /// share its cap. For a candidate that exists only in the services passed to <c>Build</c>, such as a client registered
+    /// in a container, use <see cref="UseShadowRecording(DecisionClientBuilder, Func{IServiceProvider, ShadowOptions})"/>.
     /// </para>
     /// <para>
     /// <c>Build</c> throws <see cref="InvalidOperationException"/> when no recorder is passed and the services have none.
@@ -70,9 +71,52 @@ public static class RecordingDecisionClientBuilderExtensions
         return builder.Use((inner, services) => new RecordingDecisionClient(inner, Resolve(recorder, services), shadow));
     }
 
-    private static DecisionRecorder Resolve(DecisionRecorder? recorder, IServiceProvider services)
+    /// <summary>
+    /// Adds a stage as <see cref="UseRecording(DecisionClientBuilder, ShadowOptions, DecisionRecorder?)"/>, with the
+    /// candidate and its limits created from the services passed to <c>Build</c>, such as a decision client registered in
+    /// the container, and the <see cref="DecisionRecorder"/> of those services.
+    /// </summary>
+    /// <param name="builder">The builder.</param>
+    /// <param name="shadow">
+    /// Creates the candidate and its limits from the services passed to <c>Build</c>. The stage does not dispose the candidate.
+    /// </param>
+    /// <returns><paramref name="builder"/>.</returns>
+    /// <remarks>
+    /// <para>
+    /// Add the stage outermost, as <see cref="UseRecording(DecisionClientBuilder, ShadowOptions, DecisionRecorder?)"/>.
+    /// <paramref name="shadow"/> is called on every <c>Build</c>, when the stage is built. A client registered with
+    /// <c>Minos.NET.DependencyInjection</c> is a singleton, so its pipeline is built once for each container that resolves it.
+    /// </para>
+    /// <para>
+    /// The pipelines built with one <see cref="ShadowOptions"/> share its daily cap and its running candidates. A factory
+    /// that returns a new <see cref="ShadowOptions"/> on each call gives each pipeline its own cap: return one shared
+    /// instance, such as a singleton registered in the container, so the pipelines that shadow the same candidate share its cap.
+    /// </para>
+    /// <para>
+    /// <c>Build</c> throws <see cref="InvalidOperationException"/> when the services have no recorder, and when
+    /// <paramref name="shadow"/> returns <see langword="null"/>.
+    /// </para>
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="builder"/> or <paramref name="shadow"/> is <see langword="null"/>.</exception>
+    public static DecisionClientBuilder UseShadowRecording(this DecisionClientBuilder builder, Func<IServiceProvider, ShadowOptions> shadow)
+    {
+        ArgumentNullException.ThrowIfNull(builder);
+        ArgumentNullException.ThrowIfNull(shadow);
+        return builder.Use((inner, services) => new RecordingDecisionClient(
+            inner,
+            Resolve(recorder: null, services, NoRecorderInServices),
+            shadow(services) ?? throw new InvalidOperationException(
+                "The UseShadowRecording factory returned null: return the ShadowOptions to shadow with.")));
+    }
+
+    private const string NoRecorder
+        = "UseRecording found no DecisionRecorder: register one in the services passed to Build, or pass one to UseRecording.";
+
+    private const string NoRecorderInServices
+        = "UseShadowRecording found no DecisionRecorder: register one in the services passed to Build.";
+
+    private static DecisionRecorder Resolve(DecisionRecorder? recorder, IServiceProvider services, string missing = NoRecorder)
         => recorder
             ?? services.GetService(typeof(DecisionRecorder)) as DecisionRecorder
-            ?? throw new InvalidOperationException(
-                "UseRecording found no DecisionRecorder: register one in the services passed to Build, or pass one to UseRecording.");
+            ?? throw new InvalidOperationException(missing);
 }

@@ -12,8 +12,10 @@ namespace Minos.Recording.Tests;
 [Collection(RecordingListeners.Name)]
 public sealed class ShadowModeTests
 {
-    private static IDecisionClient Pipeline(IDecisionClient primary, DecisionRecorder recorder, ShadowOptions shadow)
-        => primary.AsBuilder().UseRecording(shadow, recorder).Build();
+    private static IDecisionClient Pipeline(IDecisionClient primary, DecisionRecorder recorder, ShadowOptions shadow, bool fromFactory = false)
+        => fromFactory
+            ? primary.AsBuilder().UseShadowRecording(_ => shadow).Build(new RecorderServices(recorder))
+            : primary.AsBuilder().UseRecording(shadow, recorder).Build();
 
     // Calls the pipeline and checks the primary's own result came back at once, while a candidate's call is still pending.
     private static async Task<Result<DecisionResponse, DecisionError>> EvaluateAtOnceAsync(
@@ -265,8 +267,11 @@ public sealed class ShadowModeTests
         }
     }
 
-    [Fact]
-    public async Task Shadowed_RecordHoldsCandidateAnswers()
+    // UseShadowRecording, which takes a ShadowOptions factory, writes the same record as UseRecording with the options.
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task Shadowed_RecordHoldsCandidateAnswers(bool fromFactory)
     {
         using var metrics = new MetricCapture();
         var time = new FakeTimeProvider(TestRecords.T0);
@@ -277,7 +282,7 @@ public sealed class ShadowModeTests
         {
             var candidate = new ShadowCandidate();
             var answer = Answer();
-            using var client = Pipeline(Primary(answer), recorder, new ShadowOptions(candidate, 10) { Model = "candidate-requested" });
+            using var client = Pipeline(Primary(answer), recorder, new ShadowOptions(candidate, 10) { Model = "candidate-requested" }, fromFactory);
 
             using (DecisionRecording.Begin("d-shadow", "customer-7"))
             {
@@ -804,5 +809,11 @@ public sealed class ShadowModeTests
         public void Dispose()
         {
         }
+    }
+
+    // Services that hold only the recorder, for UseShadowRecording, which takes the recorder from the Build services.
+    private sealed class RecorderServices(DecisionRecorder recorder) : IServiceProvider
+    {
+        public object? GetService(Type serviceType) => serviceType == typeof(DecisionRecorder) ? recorder : null;
     }
 }

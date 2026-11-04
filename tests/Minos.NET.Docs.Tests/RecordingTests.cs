@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using Minos.Recording;
@@ -132,6 +133,61 @@ public sealed class RecordingTests : IDisposable
 
         Assert.Same(provider.GetRequiredService<DecisionRecorder>(), client.GetService<IDecisionRecorder>());
         Assert.Same(provider.GetRequiredService<DecisionRecorder>(), provider.GetRequiredService<IDecisionRecorder>());
+    }
+
+    [Fact]
+    public async Task TheShadowFromServices_SendsEachDecisionToTheKeyedClient_AndRecordsItsAnswers()
+    {
+        const string Urgent = """
+            {
+              "model": "jev-1.14.0",
+              "answers": { "is_urgent": { "type": "noul", "noul": 0.93 } },
+              "usage": { "input_tokens": 41, "output_tokens": 3 }
+            }
+            """;
+        const string Calm = """
+            {
+              "model": "local-model",
+              "answers": { "is_urgent": { "type": "noul", "noul": 0.12 } }
+            }
+            """;
+        var local = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.Ordinal)
+        {
+            ["Provider"] = "Custom",
+            ["BaseAddress"] = "http://localhost:8080/",
+            ["Model"] = "local-model",
+        }).Build();
+        using var primaryHttp = new ScriptedDecision.Handler([Reply.Ok(Urgent)]);
+        using var localHttp = new ScriptedDecision.Handler([Reply.Ok(Calm)]);
+        var sink = new InMemoryDecisionRecordSink();
+        var services = new ServiceCollection();
+        services.AddSingleton(_ => new DecisionRecorder(sink));
+        services.AddShadowedDecisions("docs-key", local);
+        services.AddHttpClient("Minos.NET").ConfigurePrimaryHttpMessageHandler(() => primaryHttp);
+        services.AddHttpClient("Minos.NET:Local").ConfigurePrimaryHttpMessageHandler(() => localHttp);
+        await using var provider = services.BuildServiceProvider();
+
+        var client = provider.GetRequiredService<IDecisionClient>();
+        var result = await client.EvaluateAsync<InboxCheck>("Help!", CancellationToken.None);
+
+        // The primary's answer comes back; the keyed client's answer reaches the record in the background.
+        Assert.True(result.Value.IsUrgent.Value);
+        var recorder = provider.GetRequiredService<DecisionRecorder>();
+        var deadline = System.Diagnostics.Stopwatch.StartNew();
+        await recorder.FlushAsync();
+        while (sink.Records.Count == 0 || sink.Records[0].Record.Shadow is null)
+        {
+            Assert.True(deadline.Elapsed < TimeSpan.FromSeconds(10), "The decision was not shadowed in time.");
+            await Task.Delay(5);
+            await recorder.FlushAsync();
+        }
+
+        var shadow = Assert.Single(sink.Records).Record.Shadow!;
+        Assert.Equal("local-model", shadow.ServedModel);
+        Assert.Equal(0.12, Assert.Single(shadow.Answers).Probability);
+        Assert.Equal(new Uri("http://localhost:8080/v1/systemone"), Assert.Single(localHttp.Requests).Uri);
+        Assert.Single(primaryHttp.Requests);
+        Assert.Same(provider.GetRequiredKeyedService<IDecisionClient>("Local"), provider.GetRequiredService<ShadowOptions>().Candidate);
     }
 
     [Fact]

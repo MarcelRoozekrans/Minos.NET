@@ -26,6 +26,7 @@ The examples on this page ask these questions:
 <!-- snippet: Recording_Questions -->
 ```cs
 using System.Text.RegularExpressions;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Minos;
@@ -452,6 +453,33 @@ decision in the sink. The stage never disposes the candidate, which is yours, li
 Four overloads exist, so existing calls such as `UseRecording(recorder)` compile as before: `UseRecording(shadow)`
 and `UseRecording(shadow, recorder)` add the stage with shadow mode, and `UseRecording()` and `UseRecording(recorder)`
 add it without.
+
+A candidate that is itself a client registered in the container exists only once the container is built. Add the stage
+with `UseShadowRecording(provider => ...)` instead: it calls the factory with the container when it builds the pipeline,
+and takes the recorder from the container too, registered as in [With dependency injection](#with-dependency-injection).
+A registered client is a singleton, so the factory runs once for each container. A factory that returns a new
+`ShadowOptions` on each call gives each pipeline its own cap, so return one registered instance:
+
+<!-- snippet: Recording_ShadowFromServices -->
+```cs
+public static class ShadowedServices
+{
+    public static IServiceCollection AddShadowedDecisions(this IServiceCollection services, string apiKey, IConfiguration local)
+    {
+        // The candidate is a keyed client of its own, without a recording stage.
+        services.AddSystemOneDecisionClient("Local", local);
+
+        // One ShadowOptions in the container: every pipeline built with it shares its cap.
+        services.AddSingleton(provider => new ShadowOptions(provider.GetRequiredKeyedService<IDecisionClient>("Local"), dailyCap: 500));
+
+        // The container calls the factory when it builds the primary, and gives the stage its DecisionRecorder.
+        services.AddSystemOneDecisionClient(options => options.ApiKey = apiKey)
+            .UseShadowRecording(provider => provider.GetRequiredService<ShadowOptions>());
+        return services;
+    }
+}
+```
+<!-- endSnippet -->
 
 ### When the candidate runs
 
