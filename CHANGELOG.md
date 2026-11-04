@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.9.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.8.1...v1.9.0) (2026-11-04)
+
+
+### Features
+
+* **recording:** add UseShadowRecording for a candidate from the Build services ([#313](https://github.com/MarcelRoozekrans/Minos.NET/issues/313)) ([381217c](https://github.com/MarcelRoozekrans/Minos.NET/commit/381217c880e06bcf10800c35f59bda90409c6d80))
+
+
+### Documentation
+
+* add the Running decisions locally and privately guide ([4b157d9](https://github.com/MarcelRoozekrans/Minos.NET/commit/4b157d920a7e2313e098da020f2195b3a234d4a6))
+
+
+### Tests
+
+* **tests:** test the running-locally guide's example app and its report figures ([4b157d9](https://github.com/MarcelRoozekrans/Minos.NET/commit/4b157d920a7e2313e098da020f2195b3a234d4a6))
+
 ## [1.8.1](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.8.0...v1.8.1) (2026-11-01)
 
 
