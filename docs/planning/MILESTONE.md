@@ -1,50 +1,43 @@
-# Milestone 9: Local and private decisions
+# Milestone 10: Escalation
 
-**Status:** complete
-**Started:** 2026-10-21
-**Completed:** 2026-11-04
-**Design:** `docs/superpowers/specs/2026-10-21-milestone-9-design.md`
+**Status:** active
+**Started:** 2026-11-04
+**Design:** `docs/superpowers/specs/2026-11-04-milestone-10-design.md`
 
 ## Goal
-A .NET team can run its decisions on a local decision server, offline and with private data never leaving the machine, and can show from its own traffic that the local model decides well enough before it switches. The path:
-- record real decisions, with the outcomes that become known later;
-- export them as a Milestone 8 dataset;
-- shadow the local model beside the hosted provider without affecting the app;
-- read the agreement and calibration report;
-- switch provider in configuration, through the `Custom` or `VllmSemanticRouter` preset that Minos already has.
+A .NET app decides on a local decision server first and hands only the questions the local model is unsure of to a stronger decider, within the time it has. When a provider fails, the next one in a fallback chain answers. Each answer says which path produced it. Both are `IDecisionClient` pipeline stages in the core, `UseEscalation` and `UseFallback`, that compose with DI and keyed clients. A ticket-triage sample shows the split between local and escalated answers, and a guide teaches confidence routing as a framework feature (#119).
 
 Daedalus.NET is the first workload, and its requirements are binding: see the design.
 
 ## Definition of Done
-- [x] All planned phases are complete.
-- [x] All tests pass, including the new projects, the AOT checks and the docs tests. The new packages build with zero IL2 and IL3 warnings and are in the AOT smoke and surface checks.
-- [x] `Minos.NET.Recording` records decisions through a decorator that is off unless registered. Tests cover each of these:
-  - The redaction hook runs before the sink sees a record.
-  - The state never appears in a log, a trace or an exception message.
-  - Outcomes, both confirmed and signal, attach by decision id, whether the app supplied the id or Minos generated it.
-  - Records can be erased by the app's key.
-  - A failing sink never fails the decision.
-- [x] Recorded decisions export to the Milestone 8 dataset format through `Minos.NET.Evaluation` and `minos`, with confirmed outcomes as expected answers, and the export loads in `DatasetRunner` and `minos calibrate`. The record file format and the outcome schema are documented.
-- [x] Shadow mode runs a candidate provider in the background. Tests cover each of these:
-  - The primary's result and latency are unchanged when the candidate is slow, failing or over its daily cap.
-  - The shadow report gives per-key agreement, a confusion table for Score and Choice, and the calibration of both the primary and the candidate against confirmed outcomes, as Markdown and JSON.
-- [x] A committed shadow report compares a hosted provider with the local model on recorded traffic. Each hosted run needs the maintainer's approval.
-- [x] A guide, "Running decisions locally and privately", is published on the docs site. It covers recording, export, shadow mode, the report and switching by configuration, using a local decision server.
-- [x] `Minos.NET.Recording` is published to nuget.org through the release path.
+- [ ] All planned phases are complete.
+- [ ] All tests pass, including the AOT smoke and surface checks and the docs tests, with zero IL2 and IL3 warnings.
+- [ ] `UseEscalation` re-asks only the questions below their per-key threshold, against a keyed target client, and merges the answers. Tests cover each of these:
+  - Score, Choice and Noul thresholds, including a Noul near 0 or 1 that does not escalate.
+  - A confident answer is never re-asked.
+  - When the time left is below the target's expected latency, escalation is skipped, the local answer is returned, and the reason is recorded.
+  - A failing target leaves the local answer in place, with the reason recorded.
+  - An escalated answer replaces the local one even when it is less confident, and the path records both confidences.
+  - The path that answered each question is on the response, on the span, in the counters, and in the recorder's record.
+  - No state appears in a log, a trace or an exception message.
+- [ ] `UseFallback` moves through a chain of keyed clients on failure, composes with `UseRetries` and DI, skips a step that does not fit the time left, and records which client answered. The documented composition order with `UseEscalation` is pinned by a test.
+- [ ] A ticket-triage sample runs local first with escalation on low confidence, and a committed report shows the split by path, with latency and cost. Each hosted run needs the maintainer's approval.
+- [ ] A guide on the docs site teaches confidence routing as a framework feature: thresholds sized to the cost of being wrong, the time check, the fallback chain, composition order, privacy of targets, and chat-model escalation.
+- [ ] A dotnet/extensions proposal draft for the decision abstraction is in the repository, with no private details, and the maintainer has approved it.
+- [ ] The new API ships in a minor release through release-please, and ApiCompat is clean against the previous release.
 
 **Out of scope:**
-- The in-process ONNX inference spike and provider: #117, parked until an app cannot run a separate server.
-- Automatic fallback from hosted to local: Milestone 10, Escalation.
-- Database sinks: apps write their own, such as Daedalus's Postgres sink.
+- Posting the dotnet/extensions discussion: the maintainer posts the approved draft, or tells me to.
+- Daedalus adopting escalation: Daedalus's own work.
+- A measured running median of target latency: expected latency is configured only.
+- A live OpenAI step: #161 still has no OpenAI account.
 
 ## Phases
-1. Phase 9.1 — The decision recorder [complete]
-2. Phase 9.2 — Export to the dataset format [complete]
-3. Phase 9.3 — Shadow mode and its report [complete]
-4. Phase 9.4 — A shadow report on recorded traffic [complete]
-5. Phase 9.5 — "Running decisions locally and privately" guide [complete]
+1. Phase 10.1 — Escalation middleware [pending]
+2. Phase 10.2 — Provider fallback chain [pending]
+3. Phase 10.3 — Ticket-triage sample [pending]
+4. Phase 10.4 — Confidence routing as a framework feature [pending]
 
 ## Audit History
 | Date | Verdict | Gaps |
 |---|---|---|
-| 2026-11-04 | PASS | None (`docs/plans/2026-11-04-milestone-9-audit.md`) |

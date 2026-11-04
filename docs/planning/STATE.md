@@ -1,4 +1,4 @@
-# Session State — 2026-11-04 (Milestone 9 complete; new-milestone for Milestone 10 next)
+# Session State — 2026-11-04 (Milestone 10 started; Phase 10.1 brainstorm next)
 
 **Date:** 2026-11-04
 
@@ -112,7 +112,7 @@
 - None. `phase/5.5-release` is superseded by Phase 7.5 and can be deleted.
 
 ## Recommended Next Step
-1. Milestone 9, Local and private decisions, is active since 2026-10-21 (design `docs/superpowers/specs/2026-10-21-milestone-9-design.md`). It revises the roadmap's "Hosted to local": the in-process ONNX spike and provider (#117) are parked, and a local decision server through the `Custom` or `VllmSemanticRouter` preset is the local path. Daedalus.NET is the first workload; its requirements are binding (off by default, decorate not replace, no state in logs or traces, redaction before persisting, erasure, shadow off the decision path, AOT clean). Phase 9.1, the decision recorder, is complete: `Minos.NET.Recording` shipped in 1.3.0 (#255). Milestone 8 is complete (audit `docs/plans/2026-10-17-milestone-8-audit.md`).
+1. Milestone 9, Local and private decisions, ran from 2026-10-21 to 2026-11-04 (design `docs/superpowers/specs/2026-10-21-milestone-9-design.md`). It revises the roadmap's "Hosted to local": the in-process ONNX spike and provider (#117) are parked, and a local decision server through the `Custom` or `VllmSemanticRouter` preset is the local path. Daedalus.NET is the first workload; its requirements are binding (off by default, decorate not replace, no state in logs or traces, redaction before persisting, erasure, shadow off the decision path, AOT clean). Phase 9.1, the decision recorder, is complete: `Minos.NET.Recording` shipped in 1.3.0 (#255). Milestone 8 is complete (audit `docs/plans/2026-10-17-milestone-8-audit.md`).
    - **Done since:** #230 shipped in 1.4.0. A cancelled dataset run keeps its paid results through `DatasetRunCanceledException`, and `minos calibrate` saves on Ctrl+C or SIGTERM; the calibration workflows run tool 1.4.0 (#265). #254, caching with a relative endpoint, shipped in 1.4.0 too.
    - **Outside the milestone:** #276 added `Minos.NET.Extensions.AI`, an `IDecisionClient` over `IChatClient`, and `ProbabilitySource` on every answer. It shipped in 1.5.0 (#278).
    - **1.6.0 (#286), on nuget.org for all ten packages on 2026-10-28:**
@@ -180,9 +180,14 @@
      - **#316** (complete phase 9.5) merged as `1b6928ec`.
      - **Release PR #315 (1.9.0)** merged as `f974539e` after its `release-tracking` check went green; the `ship-release-tracking` job had failed on a GitHub 500 and was re-run. v1.9.0 is tagged, and publish run 41831623981 pushed all ten packages with symbols to nuget.org on 2026-11-04; nuget.org lists `Minos.NET.Recording` 1.9.0.
    - **Milestone 9 audit: PASS** on 2026-11-04 at `f974539e`, with no gaps: `docs/plans/2026-11-04-milestone-9-audit.md`. All 18 local test projects pass (4,123 tests), and CI on `main` is green.
+   - **Milestone 9 is complete** on 2026-11-04: #317 (audit PASS and completion) merged as `ad1402da`. No tag, because release-please owns releases.
+   - **Milestone 10, Escalation (#119), started** on 2026-11-04 (design `docs/superpowers/specs/2026-11-04-milestone-10-design.md`, approved by the maintainer; planning PR from branch `milestone/10-escalation`).
+     - **Maintainer's choices:** Daedalus.NET is the binding first workload; local first, then the zero-data-retention hosted decider; escalate only when the time left fits the target's expected latency; thresholds per question key in the stage options; two core stages, `UseEscalation` and `UseFallback`, in `Minos.NET/Pipeline`; the escalated answer wins even when less confident; the dotnet/extensions proposal is a draft the maintainer posts; Daedalus's adoption is outside the DoD.
+     - **My calls, in the design:** a Noul is unsure when max(p, 1-p) is below its threshold; only unsure questions are re-asked, as a subset `QuestionSetDefinition`, and merged by key; the path per question is an additive init property on `DecisionResponse`; the deadline is an absolute `TimeProvider` timestamp, not in equality or the cache key; expected latency is configured per target, with no measured median; escalation composes outside fallback; re-asks carry `RetryAttempt` 0; the triage sample extends the provider-switch sample; costs come from `prices.json`; OpenAI is not shown live (#161).
+     - **Constraint to remember:** the local model's median is about 4 s on a CPU runner, and Daedalus's whole decision budget is 5 s, so on that hardware escalation is mostly skipped for time.
    - **Next:**
-     1. Milestone 9 is complete on 2026-11-04, confirmed by the maintainer; no tag, because release-please owns releases.
-     2. Run `new-milestone` for Milestone 10, Escalation (#119).
+     1. Merge the Milestone 10 planning PR (maintainer).
+     2. `start-next-phase`: Phase 10.1, Escalation middleware, is pending with no spec, so it starts with a phase brainstorm. Open it with the API spike on the per-question path, because 10.2, 10.3, the recorder and the proposal draft build on it.
      3. The `.website` bot submodule PR with the Minos docs has not appeared yet; open .website#127 (30 Oct) covers only orm, rest and telemetry. When one includes Minos, ask the maintainer before approving and merging it.
    - **Waiting on the maintainer:** a peer message to the Daedalus session "daedalus: phase 3.3 Task 16 onward" saying the recorder shipped in 1.3.0. It needs approval in the app; the `daedalus-b9` session no longer exists. The #119 comment is posted.
 2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.

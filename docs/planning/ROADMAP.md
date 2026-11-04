@@ -502,35 +502,37 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Plan:** `docs/superpowers/plans/2026-11-04-phase-9.5-guide.md`
 **Completed:** 2026-11-04
 
-## Milestone 10: Escalation [status: pending]
-**Goal:** Fast decisions first, escalating on low confidence to another provider or an `IChatClient`, with a provider fallback chain, as `IDecisionClient` middleware.
-**Design:** `docs/superpowers/specs/2026-10-09-roadmap-design.md`
+## Milestone 10: Escalation [status: active]
+**Goal:** Fast decisions first: a local decision server answers, and only the questions it is unsure of go to a stronger decider within the time left, with a provider fallback chain on failure, as two core `IDecisionClient` stages, `UseEscalation` and `UseFallback`.
+**Started:** 2026-11-04
+**Design:** `docs/superpowers/specs/2026-11-04-milestone-10-design.md` (details the roadmap design's Milestone 10; Daedalus.NET is the first workload and its requirements are binding)
 **Definition of Done:**
-- [ ] Escalation middleware with per-question thresholds that records which path answered
-- [ ] A provider fallback chain composing with DI and keyed clients
-- [ ] A ticket-triage sample with local-first decisions, escalation on low confidence and metrics showing the split
-- [ ] A guide turning confidence routing into a framework feature, and a proposal discussion opened on dotnet/extensions
+- [ ] `UseEscalation` re-asks only the questions below their per-key threshold against a keyed target, merges the answers, skips escalation when the time left does not fit, and records the path per question on the response, span, counters and record
+- [ ] `UseFallback` moves through a chain of keyed clients on failure, composing with DI, `UseRetries` and `UseEscalation` in a documented, tested order
+- [ ] A ticket-triage sample with local-first decisions, escalation on low confidence and a committed report of the split by path, latency and cost
+- [ ] A guide turning confidence routing into a framework feature, and an approved dotnet/extensions proposal draft for the maintainer to post
+- [ ] The new API ships in a minor release, ApiCompat clean
 
 ### Phase 10.1: Escalation middleware [status: pending]
-**Goal:** Per-question thresholds sized to the cost of being wrong; fall back to another decision provider or an `IChatClient` with structured output; record the path (#119).
+**Goal:** `UseEscalation` in the core: per-key thresholds, a partial re-ask merged by key, the time check, the path per question on the response, telemetry and the record (#119).
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
 
 ### Phase 10.2: Provider fallback chain [status: pending]
-**Goal:** For example local, then Clef, then OpenAI, composing with DI and keyed clients (#119).
+**Goal:** `UseFallback` in the core: a chain of keyed clients on failure, such as local, then Clef, then a hosted decider, sharing 10.1's time check and path, composing with DI, retries and escalation (#119).
 **Surface:** Backend
 **HelpWanted:** no
 **Plan:** _to be written_
 
 ### Phase 10.3: Ticket-triage sample [status: pending]
-**Goal:** Local-first decisions with escalation on low confidence and metrics showing the split (#119).
+**Goal:** Local-first ticket triage with escalation on low confidence, and a committed report of the split by path, latency and cost, from an approved hosted run (#119).
 **Surface:** Mixed
 **HelpWanted:** no
 **Plan:** _to be written_
 
 ### Phase 10.4: Confidence routing as a framework feature [status: pending]
-**Goal:** Turn the confidence-routing pattern guide into a framework feature, and open a discussion on dotnet/extensions proposing the abstraction (#119).
+**Goal:** The confidence-routing guide on the docs site, and a dotnet/extensions proposal draft for the maintainer to post (#119).
 **Surface:** Docs
 **HelpWanted:** no
 **Plan:** _to be written_
