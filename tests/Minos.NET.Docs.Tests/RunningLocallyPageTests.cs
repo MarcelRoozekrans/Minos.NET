@@ -32,7 +32,7 @@ public sealed partial class RunningLocallyPageTests
         { "questions[key=intent].agreement", "F4", "0.9600" },
         { "questions[key=card_not_arrived].agreement", "F4", "0.9300" },
         { "questions[key=about_a_payment].agreement", "F4", "0.9450" },
-        { "primary.overall.scored", "integer", "same 1200 questions" },
+        { "primary.overall.scored", "integer", "1200 questions" },
         { "decisionsShadowed", "integer", "400 Banking77 decisions" },
     };
 
@@ -53,9 +53,9 @@ public sealed partial class RunningLocallyPageTests
             ? value.GetValue<int>().ToString(CultureInfo.InvariantCulture)
             : value.GetValue<double>().ToString(format, CultureInfo.InvariantCulture);
 
-        // A count is anchored on its words on the page, so the bare number cannot match elsewhere.
+        // A count is anchored on the words after it on the page, so the bare number cannot match elsewhere.
         var integer = string.Equals(format, "integer", StringComparison.Ordinal);
-        Assert.True(integer ? expected.Contains(text, StringComparison.Ordinal) : string.Equals(expected, text, StringComparison.Ordinal), $"The figure for {path} is {text}.");
+        Assert.True(integer ? expected.StartsWith(text + " ", StringComparison.Ordinal) : string.Equals(expected, text, StringComparison.Ordinal), $"The figure for {path} is {text}.");
         Assert.True(PageText().Contains(expected, StringComparison.Ordinal), $"The page shows {expected}, with {text} from the report's {path}.");
         var markdown = File.ReadAllText(Path.Combine(PublishedPages.Root, ReportFolder, "shadow-report.md"));
         Assert.True(markdown.Contains(text, StringComparison.Ordinal), $"shadow-report.md shows {text}, the report's {path}.");

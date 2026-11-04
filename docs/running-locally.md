@@ -11,8 +11,9 @@ A local decision server lets an app decide offline, and keeps its state on the m
 from a hosted provider to a local server, and shows how to learn from the app's own traffic whether the local model
 decides well enough before you switch.
 
-The reason to go local is offline use and privacy, not cost. In the Banking77 run described in
-[step 5](#step-5-decide), the hosted provider cost 0.0293118 per 1,000 decisions, in the currency of the prices, the report's own figure.
+The reason to go local is offline use and privacy, not cost. In the Banking77 run described in [step
+5](#step-5-decide), the hosted provider cost 0.0293118 per 1,000 decisions, in the currency of the prices, the report's
+own figure.
 
 The path has six steps:
 
@@ -93,8 +94,8 @@ public partial record PaymentReview
 <!-- endSnippet -->
 
 The configuration holds a hosted section and a `Local` section that uses the `Custom` preset. `Minos:Active` names the
-hosted one, as in [Switching providers](providers.md#switching-providers). `Minos:Shadow` is a setting this app reads, not one the library reads: it names the section of the
-candidate that answers the same decisions in the background.
+hosted one, as in [Switching providers](providers.md#switching-providers). `Minos:Shadow` is a setting this app reads,
+not one the library reads: it names the section of the candidate that answers the same decisions in the background.
 
 ```json
 {
@@ -120,7 +121,7 @@ records what the caller gets. `RecordingOptions.Redact` runs before a record is 
 addresses masked, and drops a decision on structured state altogether, since `RedactionResult.Drop` keeps no record
 of it. The providers still receive the state whole.
 
-With no `Minos:Shadow` set, the app's registration only records. The setting is the app's own, read by this snippet.
+With no `Minos:Shadow` set, the app's registration only records.
 
 <!-- snippet: RunningLocally_Register -->
 ```cs
@@ -228,14 +229,14 @@ candidate in `ShadowOptions`. The settings come from the measured run. On a CPU 
 ms and a p95 of 4509.7 ms per decision, so `MaxConcurrent` is 1, one call at a time, and `Timeout` is 30 seconds, well
 above the p95.
 
-The daily cap is required. For a free local candidate it bounds the load on the machine, not a bill. The candidate is a keyed client, which exists
-only once the container builds, so `UseShadowRecording` takes a factory that reads the options from the container.
-`ShadowOptions` is a keyed singleton, so every
-pipeline that shadows this candidate shares one cap.
+The daily cap is required. For a free local candidate it bounds the load on the machine, not a bill. The candidate is a
+keyed client, which exists only once the container builds, so `UseShadowRecording` takes a factory that reads the
+options from the container. `ShadowOptions` is a keyed singleton, so every pipeline that shadows this candidate shares
+one cap.
 
-The candidate runs in the background and never changes or delays the primary's result. A decision whose record is dropped, by redaction or a full queue, is never shadowed, since there is no record to hold the answers. Its answers are written into the
-decision's record. [Shadow mode](recording.md#shadow-mode) covers when the candidate runs, what it is sent and how
-the second write works.
+The candidate runs in the background and never changes or delays the primary's result. Its answers are written into the
+decision's record, so a decision whose record is dropped, by redaction or a full queue, is never shadowed. [Shadow
+mode](recording.md#shadow-mode) covers when the candidate runs, what it is sent and how the second write works.
 
 Naming the active section as the shadow, or a section that does not exist, throws an `InvalidOperationException` when
 the registration runs.
@@ -323,8 +324,8 @@ Reading each row:
   [Choosing a threshold](choosing-a-provider.md#choosing-a-threshold).
 - **Fast enough?** The candidate answered in a median of 4043.8 ms against 50.5 ms. That fits a background job, not a
   request a person waits on.
-- **Cost and privacy.** The hosted provider cost 0.0293118 per 1,000 decisions, in the currency of the prices. The local model has no per-token price,
-  and the state stays on the machine.
+- **Cost and privacy.** The hosted provider cost 0.0293118 per 1,000 decisions, in the currency of the prices. The
+  local model has no per-token price, and with it as primary the state stays on the machine.
 
 **The reading for Banking77.** Overall the local model is about as accurate as TypeSafe on this set, a little better on
 the yes-or-no questions and a little worse on the intent choice. It is good enough where its latency fits, once the
