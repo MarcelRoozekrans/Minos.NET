@@ -165,5 +165,6 @@ static Minos.Recording.RedactionResult.Keep(Minos.DecisionContent state) -> Mino
 static Minos.RecordingDecisionClientBuilderExtensions.UseRecording(this Minos.DecisionClientBuilder! builder) -> Minos.DecisionClientBuilder!
 static Minos.RecordingDecisionClientBuilderExtensions.UseRecording(this Minos.DecisionClientBuilder! builder, Minos.Recording.DecisionRecorder? recorder) -> Minos.DecisionClientBuilder!
 static Minos.RecordingDecisionClientBuilderExtensions.UseRecording(this Minos.DecisionClientBuilder! builder, Minos.Recording.ShadowOptions! shadow, Minos.Recording.DecisionRecorder? recorder = null) -> Minos.DecisionClientBuilder!
+static Minos.RecordingDecisionClientBuilderExtensions.UseShadowRecording(this Minos.DecisionClientBuilder! builder, System.Func<System.IServiceProvider!, Minos.Recording.ShadowOptions!>! shadow) -> Minos.DecisionClientBuilder!
 ~override Minos.Recording.DecisionRecordFileProblem.Equals(object obj) -> bool
 ~override Minos.Recording.DecisionRecordFileProblem.ToString() -> string
