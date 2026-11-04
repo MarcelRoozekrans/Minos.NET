@@ -338,10 +338,9 @@ mode on your own traffic before you switch.
 
 ## Step 6: switch
 
-Set `Minos:Active` to `Local` and remove `Minos:Shadow`, in the file. With environment variables, set `Minos__Active`
-to `Local` and `Minos__Shadow` to an empty value, which the app treats as unset. Removing the shadow matters: with
-`Local` as both, the app throws at startup, because the shadow names the active section. No code changes. The second
-configuration block is the same app after the switch:
+Set `Minos:Active` to `Local` and remove `Minos:Shadow` in the file. Removing the shadow matters: with `Local` as both,
+the app throws at startup, because the shadow names the active section. No code changes. The second configuration block
+is the same app after the switch:
 
 ```json
 {
