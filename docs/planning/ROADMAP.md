@@ -493,12 +493,13 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Plan:** `docs/superpowers/plans/2026-11-01-phase-9.4-shadow-traffic.md`
 **Completed:** 2026-11-01
 
-### Phase 9.5: "Running decisions locally and privately" guide [status: active]
+### Phase 9.5: "Running decisions locally and privately" guide [status: complete]
 **Goal:** The record, export, shadow, report and switch path as one guide, with the local server setup, backed by Phase 9.4's report (#118).
 **Surface:** Docs
 **HelpWanted:** no
 **Spec:** `docs/superpowers/specs/2026-11-03-phase-9.5-guide-design.md`
 **Plan:** `docs/superpowers/plans/2026-11-04-phase-9.5-guide.md`
+**Completed:** 2026-11-04
 
 ## Milestone 10: Escalation [status: pending]
 **Goal:** Fast decisions first, escalating on low confidence to another provider or an `IChatClient`, with a provider fallback chain, as `IDecisionClient` middleware.
