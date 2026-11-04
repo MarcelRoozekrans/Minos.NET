@@ -674,6 +674,9 @@ The `Local` section above points the `Custom` preset at it: `Provider` is `Custo
 `http://localhost:8000/` and `Model` is `Mapika/decider-2b-GGUF:Q4_K_M`. No key is sent. The server answers all three
 question kinds, and reports probabilities to four decimals.
 
+To shadow it against your current provider before switching, see
+[Running decisions locally and privately](running-locally.md#step-2-shadow-the-local-server).
+
 ## Adding OpenAI
 
 OpenAI's client is a type of its own, `OpenAIDecisionClient`, so its section is bound with `AddOpenAIDecisionClient`

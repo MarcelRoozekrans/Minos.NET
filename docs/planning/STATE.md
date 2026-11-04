@@ -1,6 +1,6 @@
-# Session State — 2026-11-01 (Milestone 9: Phase 9.4 complete, Phase 9.5 next)
+# Session State — 2026-11-04 (Milestone 9: Phase 9.5 built, PRs #313 and #314 waiting on the maintainer)
 
-**Date:** 2026-11-01
+**Date:** 2026-11-04
 
 ## Current Position
 - **Roadmap:** re-planned on 2026-10-09 (`docs/superpowers/specs/2026-10-09-roadmap-design.md`).
@@ -140,7 +140,7 @@
        - `ShadowReport` gained `CalibrationPrimaryOnlyKeys` and `CalibrationCandidateOnlyKeys`.
        - Signals are split by agreement per question.
        - The shipped `UseRecording(builder, recorder = null)` became `UseRecording(builder)` plus `UseRecording(builder, recorder)`, as RS0026 requires. It is source and binary compatible, and ApiCompat is clean.
-   - **Phase 9.4 (a shadow report on recorded traffic) is active**, designed and planned on 2026-11-01 on branch `phase/9.4-shadow-traffic` (pushed; no PR yet). PR #306 closed 9.3 on `main`.
+   - **Phase 9.4 (a shadow report on recorded traffic) is complete**; it was designed and planned on 2026-11-01 on branch `phase/9.4-shadow-traffic` (pushed; no PR yet). PR #306 closed 9.3 on `main`.
      - **Spec:** `docs/superpowers/specs/2026-10-31-phase-9.4-shadow-traffic-design.md`. A builder check found nothing open.
      - **Plan:** `docs/superpowers/plans/2026-11-01-phase-9.4-shadow-traffic.md`. PR 1 has five build tasks, and Task 2, the replay loop, is marked opus. Then Task 6, the approved run, and Task 7, PR 2 with the report folder.
      - **Maintainer's choices:**
@@ -163,7 +163,24 @@
      - **Task 7 built** on branch `phase/9.4-shadow-report`: the folder `docs/reports/shadow/banking77/` with its README, `records.jsonl` at 2.0 MB, and the rebuilt report. `ReportFolderTests` gained `ShadowFolders`, `ShadowRunIds` and four shadow checks, including a byte-for-byte rebuild from the records; the calibration theories skip `shadow/`.
      - **Figures, for reference only:** agreement 0.96 on `intent`, 0.93 on `card_not_arrived`, 0.945 on `about_a_payment`; median latency 50.5 ms for TypeSafe and 4043.8 ms for the local model on a CPU runner.
      - **PR 2 merged** on 2026-11-01: #309, squash `fd8b7546`. Pre-push review PASS: `docs/plans/2026-11-01-phase-9.4-report-pre-push-review.md`. **Phase 9.4 is complete** on 2026-11-01.
-   - **Next: Phase 9.5**, the record, export, shadow, report and switch path as one guide, backed by the 9.4 report (#118). It has no spec or plan yet, so `start-next-phase` routes to brainstorming.
+   - **Phase 9.5 (the "Running decisions locally and privately" guide) is active.** It was designed on 2026-11-03, planned on 2026-11-04, and built on 2026-11-04. Every plan task is checked off.
+     - **Spec:** `docs/superpowers/specs/2026-11-03-phase-9.5-guide-design.md`, including "Decided by the maintainer during the build".
+     - **Plan:** `docs/superpowers/plans/2026-11-04-phase-9.5-guide.md`.
+     - **Maintainer's choices:**
+       - The guide teaches the switch call: a checklist worked through on the Banking77 numbers. The report stays evidence only.
+       - One small app from start to finish, with snippets in `Minos.NET.Docs.Tests`.
+       - Approach A: `docs/running-locally.md` at sidebar position 14, after Recording.
+       - The page names no project for the zero-data-retention case.
+       - Execution is subagent-driven.
+     - **Decided during the build (2026-11-04):**
+       - `UseRecording(shadow, recorder)` needs the candidate when the pipeline is described, but a keyed DI candidate exists only once the container builds. The library therefore gains `UseShadowRecording(Func<IServiceProvider, ShadowOptions>)`, with the recorder taken from the Build services.
+       - It is a new name, not an overload: a delegate overload makes the shipped `UseRecording(null)` ambiguous. An optional recorder parameter hits RS0026/RS0027.
+     - **PR #313** (`feat/recording-shadow-factory`, from main a33010e9) is `feat(recording): add UseShadowRecording...`. It was reviewed twice. Release build 0 warnings; Recording.Tests 187, Docs.Tests 617, AotSmoke.Tests 65; the linux-x64 AOT smoke run gives 241 PASS.
+     - **PR #314** (`phase/9.5-local-guide`, base `feat/recording-shadow-factory`) is the guide, with BEGIN_COMMIT_OVERRIDE. Pre-push review PASS: `docs/plans/2026-11-04-phase-9.5-pre-push-review.md`. The force-push to `phase/9.5-guide` was not allowed, so the rebased work is on the new branch. The old `phase/9.5-guide` holds only the spec and plan commits and can be deleted.
+     - **Next, after the maintainer merges #313:**
+       1. Confirm #314's base moved to `main`; rebase it onto main if GitHub shows the feat commit.
+       2. Check the release-please PR: it must list the `UseShadowRecording` feat and the version. The page says "Minos.NET.Recording 1.9.0 or later"; fix that if the version differs.
+       3. When #314 merges, run `complete-phase` for 9.5, then approve and merge the `.website` bot submodule PR, after asking the maintainer.
    - **Waiting on the maintainer:** a peer message to the Daedalus session "daedalus: phase 3.3 Task 16 onward" saying the recorder shipped in 1.3.0. It needs approval in the app; the `daedalus-b9` session no longer exists. The #119 comment is posted.
 2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.
 3. Phases 7.1 to 7.5 are complete. On 2026-10-15 nuget.org reserved `Minos.NET` and `Minos.NET.*` to MarcelRoozekrans, which lifted the 409 "package ID is reserved" block. The Trusted Publishing policy is ci.yml, no environment, glob `*`. `gh workflow run ci.yml --ref v1.0.1 -f publish_to_nuget=true` ([run 38726515640](https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/38726515640)) published all six packages as 1.0.1, with symbols. 1.0.0 was never published. `PackageValidationBaselineVersion` is 1.0.1, which closes #28. Milestone 7 is complete; its audit passed (`docs/plans/2026-10-15-milestone-7-audit.md`). Next: Milestone 8, Choosing a provider and a threshold, starting with `new-milestone`.

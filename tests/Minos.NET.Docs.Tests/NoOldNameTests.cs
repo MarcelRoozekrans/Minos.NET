@@ -86,9 +86,11 @@ public sealed partial class NoOldNameTests
         new("renovate.json", null, LocalServerPackage()),
         new("tests/Minos.NET.Live.Tests/LocalSystemOneTests.cs", null, LocalServerPackage()),
 
-        // The Providers page and its test give the commands that run the same ollajev server.
+        // The Providers page, the running-locally guide and their tests give the commands that run the same ollajev server.
         new("docs/providers.md", null, LocalServerPackage()),
         new("tests/Minos.NET.Docs.Tests/ProvidersPageTests.cs", null, LocalServerPackage()),
+        new("docs/running-locally.md", null, LocalServerPackage()),
+        new("tests/Minos.NET.Docs.Tests/RunningLocallyPageTests.cs", null, LocalServerPackage()),
 
         // A report README names the ollajev server the local calibration ran against, and a results file holds the
         // provider's opaque response ids exactly as measured, which can contain the letters by chance; only in results.jsonl.
