@@ -446,9 +446,10 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Completed:** 2026-10-17
 **Evidence:** PR #234 and PR #235; pre-push reviews `docs/plans/2026-10-17-phase-8.4-part-1-pre-push-review.md` and `docs/plans/2026-10-17-phase-8.4-part-2-pre-push-review.md`.
 
-## Milestone 9: Local and private decisions [status: active]
+## Milestone 9: Local and private decisions [status: complete]
 **Goal:** Run decisions on a local decision server, offline and private, and show from recorded traffic that the local model decides well enough before switching: record, export, shadow, report, switch by configuration.
 **Started:** 2026-10-21
+**Completed:** 2026-11-04
 **Design:** `docs/superpowers/specs/2026-10-21-milestone-9-design.md` (revises the roadmap design's "Hosted to local"; the in-process ONNX spike and provider, #117, are parked)
 **Definition of Done:**
 - [ ] `Minos.NET.Recording`: an opt-in decorator with a pluggable sink, redaction before persisting, outcomes by decision id, erasure by the app's key, AOT clean

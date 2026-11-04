@@ -1,4 +1,4 @@
-# Session State — 2026-11-04 (Milestone 9: all five phases complete; audit-milestone next)
+# Session State — 2026-11-04 (Milestone 9 complete; new-milestone for Milestone 10 next)
 
 **Date:** 2026-11-04
 
@@ -177,11 +177,13 @@
        - It is a new name, not an overload: a delegate overload makes the shipped `UseRecording(null)` ambiguous. An optional recorder parameter hits RS0026/RS0027.
      - **PR #313 merged** on 2026-11-04: `feat/recording-shadow-factory`, squash `381217c8`, `feat(recording): add UseShadowRecording...`. It was reviewed twice. Release build 0 warnings; Recording.Tests 187, Docs.Tests 617, AotSmoke.Tests 65; the linux-x64 AOT smoke run gives 241 PASS.
      - **PR #314 merged** on 2026-11-04: `phase/9.5-local-guide`, squash `4b157d92`, with BEGIN_COMMIT_OVERRIDE. Pre-push review PASS: `docs/plans/2026-11-04-phase-9.5-pre-push-review.md`. The old `phase/9.5-guide` holds only the spec and plan commits and can be deleted.
-     - **Release PR #315** is 1.9.0, matching the guide's "Minos.NET.Recording 1.9.0 or later". It lists the `UseShadowRecording` feat, the guide and its tests. Its first `ship-release-tracking` push failed on a GitHub 500, so `release-tracking` failed; the job was re-run on 2026-11-04.
-     - **Next:**
-       1. Confirm #315's `release-tracking` check is green, then the maintainer merges it.
-       2. Approve and merge the `.website` bot submodule PR, after asking the maintainer.
-       3. Milestone 9 has no pending phases: run `audit-milestone` for it.
+     - **#316** (complete phase 9.5) merged as `1b6928ec`.
+     - **Release PR #315 (1.9.0)** merged as `f974539e` after its `release-tracking` check went green; the `ship-release-tracking` job had failed on a GitHub 500 and was re-run. v1.9.0 is tagged, and publish run 41831623981 pushed all ten packages with symbols to nuget.org on 2026-11-04; nuget.org lists `Minos.NET.Recording` 1.9.0.
+   - **Milestone 9 audit: PASS** on 2026-11-04 at `f974539e`, with no gaps: `docs/plans/2026-11-04-milestone-9-audit.md`. All 18 local test projects pass (4,123 tests), and CI on `main` is green.
+   - **Next:**
+     1. Milestone 9 is complete on 2026-11-04, confirmed by the maintainer; no tag, because release-please owns releases.
+     2. Run `new-milestone` for Milestone 10, Escalation (#119).
+     3. The `.website` bot submodule PR with the Minos docs has not appeared yet; open .website#127 (30 Oct) covers only orm, rest and telemetry. When one includes Minos, ask the maintainer before approving and merging it.
    - **Waiting on the maintainer:** a peer message to the Daedalus session "daedalus: phase 3.3 Task 16 onward" saying the recorder shipped in 1.3.0. It needs approval in the app; the `daedalus-b9` session no longer exists. The #119 comment is posted.
 2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.
 3. Phases 7.1 to 7.5 are complete. On 2026-10-15 nuget.org reserved `Minos.NET` and `Minos.NET.*` to MarcelRoozekrans, which lifted the 409 "package ID is reserved" block. The Trusted Publishing policy is ci.yml, no environment, glob `*`. `gh workflow run ci.yml --ref v1.0.1 -f publish_to_nuget=true` ([run 38726515640](https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/38726515640)) published all six packages as 1.0.1, with symbols. 1.0.0 was never published. `PackageValidationBaselineVersion` is 1.0.1, which closes #28. Milestone 7 is complete; its audit passed (`docs/plans/2026-10-15-milestone-7-audit.md`). Next: Milestone 8, Choosing a provider and a threshold, starting with `new-milestone`.
