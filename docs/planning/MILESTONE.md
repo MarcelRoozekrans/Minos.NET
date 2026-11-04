@@ -1,7 +1,8 @@
 # Milestone 9: Local and private decisions
 
-**Status:** active
+**Status:** complete
 **Started:** 2026-10-21
+**Completed:** 2026-11-04
 **Design:** `docs/superpowers/specs/2026-10-21-milestone-9-design.md`
 
 ## Goal

@@ -1,4 +1,4 @@
-# Session State — 2026-11-04 (Milestone 9: audit PASS; complete-milestone next)
+# Session State — 2026-11-04 (Milestone 9 complete; new-milestone for Milestone 10 next)
 
 **Date:** 2026-11-04
 
@@ -181,8 +181,8 @@
      - **Release PR #315 (1.9.0)** merged as `f974539e` after its `release-tracking` check went green; the `ship-release-tracking` job had failed on a GitHub 500 and was re-run. v1.9.0 is tagged, and publish run 41831623981 pushed all ten packages with symbols to nuget.org on 2026-11-04; nuget.org lists `Minos.NET.Recording` 1.9.0.
    - **Milestone 9 audit: PASS** on 2026-11-04 at `f974539e`, with no gaps: `docs/plans/2026-11-04-milestone-9-audit.md`. All 18 local test projects pass (4,123 tests), and CI on `main` is green.
    - **Next:**
-     1. The maintainer confirms, then run `complete-milestone` for Milestone 9 (no tag: release-please owns releases).
-     2. Then `new-milestone` for Milestone 10, Escalation (#119).
+     1. Milestone 9 is complete on 2026-11-04, confirmed by the maintainer; no tag, because release-please owns releases.
+     2. Run `new-milestone` for Milestone 10, Escalation (#119).
      3. The `.website` bot submodule PR with the Minos docs has not appeared yet; open .website#127 (30 Oct) covers only orm, rest and telemetry. When one includes Minos, ask the maintainer before approving and merging it.
    - **Waiting on the maintainer:** a peer message to the Daedalus session "daedalus: phase 3.3 Task 16 onward" saying the recorder shipped in 1.3.0. It needs approval in the app; the `daedalus-b9` session no longer exists. The #119 comment is posted.
 2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.
