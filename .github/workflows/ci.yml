@@ -50,6 +50,13 @@ jobs:
       - name: Test
         run: dotnet test Minos.NET.slnx --no-build -c Release --logger "trx" --settings coverage.runsettings --results-directory ./test-results
 
+      # Merges the Cobertura reports and fails below 80 percent line coverage, or when codecov.yml would let a drop in
+      # coverage pass quietly.
+      - name: Coverage gate
+        uses: MarcelRoozekrans/ci-baseline/actions/coverage-gate@v1
+        with:
+          reports: test-results/**/coverage.cobertura.xml
+
       - name: Upload coverage to Codecov
         if: '!cancelled()'
         uses: codecov/codecov-action@v7
@@ -390,3 +397,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh release upload "$GITHUB_REF_NAME" artifacts/packages/*.nupkg artifacts/packages/*.snupkg --clobber
+
+      # A CycloneDX SBOM of the solution, attached to the same release. The release exists by now: release-please
+      # created it before dispatching this workflow, and this run is on the release tag, so github.ref_name is that tag.
+      - name: Attach the SBOM to the GitHub release
+        uses: MarcelRoozekrans/ci-baseline/actions/sbom@v1
+        with:
+          solution: Minos.NET.slnx
+          tag: ${{ github.ref_name }}

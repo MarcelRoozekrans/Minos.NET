@@ -14,8 +14,10 @@
       tracking files can never silently drift out of sync with the codebase.
     -->
     <WarningsAsErrors>$(WarningsAsErrors);RS0016;RS0017</WarningsAsErrors>
-    <!-- Only audit direct dependencies; transitive vulnerability warnings are owned by upstream packages -->
-    <NuGetAuditMode>direct</NuGetAuditMode>
+    <!-- NuGetAudit as ci-baseline's nuget-audit job runs it, so a local restore shows the same advisories as CI, transitive ones included -->
+    <NuGetAudit>true</NuGetAudit>
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <NuGetAuditLevel>moderate</NuGetAuditLevel>
     <!--
       The version comes from release-please's manifest, which the release commit bumps, so it names the last release.
       Only a semantic version under the manifest's "." key is taken; anything else leaves MinosReleaseVersion empty, and

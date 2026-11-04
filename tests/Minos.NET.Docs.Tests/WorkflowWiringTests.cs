@@ -99,6 +99,26 @@ public sealed class WorkflowWiringTests
         Assert.DoesNotContain("if-no-files-found: ignore", job, StringComparison.Ordinal);
     }
 
+    // The SBOM goes to the release the run is on: publish-nuget runs on the release tag, so github.ref_name is that tag.
+    [Fact]
+    public void PublishNuget_AttachesTheSbom_ToTheReleaseTag()
+    {
+        var job = Job(Ci, "publish-nuget");
+
+        Assert.Contains("uses: MarcelRoozekrans/ci-baseline/actions/sbom@v1\n        with:\n          solution: Minos.NET.slnx\n          tag: ${{ github.ref_name }}\n", job, StringComparison.Ordinal);
+    }
+
+    // The baseline's coverage gate runs in the build job, after the tests that write the Cobertura reports.
+    [Fact]
+    public void Build_GatesCoverage_OnTheTestResults()
+    {
+        var job = Job(Ci, "build");
+
+        var test = job.IndexOf("--settings coverage.runsettings --results-directory ./test-results", StringComparison.Ordinal);
+        var gate = job.IndexOf("uses: MarcelRoozekrans/ci-baseline/actions/coverage-gate@v1\n        with:\n          reports: test-results/**/coverage.cobertura.xml\n", StringComparison.Ordinal);
+        Assert.True(test >= 0 && gate > test, "The coverage gate must follow the test step and read its reports.");
+    }
+
     [Fact]
     public void Ci_TakesAResumeInput_ThatDefaultsToFalse()
     {
