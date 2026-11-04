@@ -12,8 +12,8 @@ from a hosted provider to a local server, and shows how to learn from the app's 
 decides well enough before you switch.
 
 The reason to go local is offline use and privacy, not cost. In the Banking77 run described in [step
-5](#step-5-decide), the hosted provider cost 0.0293118 per 1,000 decisions, in the currency of the prices, the report's
-own figure.
+5](#step-5-decide), the report puts the hosted provider's cost at 0.0293118 per 1,000 decisions. The unit is the
+currency of the prices.
 
 The path has six steps:
 
@@ -40,9 +40,9 @@ dotnet add package Minos.NET.Recording
 dotnet tool install --global Minos.NET.Tool
 ```
 
-The guide needs a Minos.NET.Recording version that has `UseShadowRecording`, a method that registers the shadow stage
-once the container has built the candidate. [Shadow mode](recording.md#shadow-mode) describes it. The commands need
-Minos.NET.Tool 1.8.0 or later.
+The guide needs Minos.NET.Recording 1.9.0 or later, which has `UseShadowRecording`, a method that registers the shadow
+stage once the container has built the candidate. [Shadow mode](recording.md#shadow-mode) describes it. The commands
+need Minos.NET.Tool 1.8.0 or later.
 
 The local server in this guide is `ollajev` serving the decision model `Mapika/decider-2b-GGUF:Q4_K_M` on port 8000:
 
@@ -288,8 +288,9 @@ minos export --records decisions.jsonl --out export
 
 `minos shadow-report` writes `shadow-report.json` and `shadow-report.md` into the `--out` directory. It compares the
 candidate's answers with the primary's on the decisions that were shadowed, and `--prices` supplies the per-token
-prices for the cost lines. The report already holds each side's reliability bins and threshold sweep, which is enough
-to re-tune a threshold for the local model. See [From the command line](recording.md#from-the-command-line).
+prices for the cost lines. Both files hold each side's reliability bins, and `shadow-report.json` also holds its
+threshold sweep, which is enough to re-tune a threshold for the local model. See [From the command
+line](recording.md#from-the-command-line).
 
 `minos export` turns the records that have confirmed outcomes into a labelled dataset. Use it to run `minos calibrate`
 again later, on the local model alone or on a new candidate, against the same confirmed outcomes. See
@@ -337,8 +338,10 @@ mode on your own traffic before you switch.
 
 ## Step 6: switch
 
-Set `Minos:Active` to `Local`, in the file or with the environment variable `Minos__Active`. No code changes. The
-second configuration block is the same app after the switch, with no `Minos:Shadow`:
+Set `Minos:Active` to `Local` and remove `Minos:Shadow`, in the file. With environment variables, set `Minos__Active`
+to `Local` and `Minos__Shadow` to an empty value, which the app treats as unset. Removing the shadow matters: with
+`Local` as both, the app throws at startup, because the shadow names the active section. No code changes. The second
+configuration block is the same app after the switch:
 
 ```json
 {
@@ -356,7 +359,7 @@ second configuration block is the same app after the switch, with no `Minos:Shad
 }
 ```
 
-Remove the shadow candidate, or keep recording with no shadow, so outcomes keep arriving for later checks. Do not
+Keep recording with no shadow, so outcomes keep arriving for later checks. Do not
 shadow the hosted provider behind the local one: that sends the state off the machine again.
 
 ## What stays private, step by step
@@ -365,7 +368,7 @@ shadow the hosted provider behind the local one: that sends the state off the ma
 | --- | --- | --- |
 | Record | The active provider | Redaction runs before a record is kept and changes only what is recorded. The provider still gets the state whole. |
 | Shadow | The active provider, and the candidate | The candidate is sent the state unredacted, as the primary is. A local candidate keeps it on the machine. |
-| Outcomes | Nobody new | An outcome is stored with the record, under the same erasure key. |
+| Outcomes | Nobody new | An outcome is attached to the record by its decision id, and erased with it. |
 | Export and report | Nobody | Neither command calls a provider. Their files are copies of recorded state. |
 | Switch | The local server only | No state leaves the machine, as long as no hosted candidate is shadowed behind it. |
 
@@ -386,8 +389,8 @@ meet the rule.
 
 For that app, make the local server the primary from the start. Record with confirmed outcomes, then run `minos export`
 and `minos calibrate` to measure the local model against those outcomes. Or run a shadow on traffic that is allowed to
-go to a hosted provider. [Privacy: zero data retention](providers.md#privacy-zero-data-retention) covers the hosted
-setting.
+go to a hosted provider. [Privacy: zero data retention](providers.md#privacy-zero-data-retention) shows one such
+setting, OpenRouter's.
 
 ## Next
 
