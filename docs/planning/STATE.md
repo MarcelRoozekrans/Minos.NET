@@ -1,6 +1,6 @@
-# Session State — 2026-11-01 (Milestone 9: Phase 9.4 complete, Phase 9.5 next)
+# Session State — 2026-11-04 (Milestone 9: Phase 9.5 designed and planned, execution next)
 
-**Date:** 2026-11-01
+**Date:** 2026-11-04
 
 ## Current Position
 - **Roadmap:** re-planned on 2026-10-09 (`docs/superpowers/specs/2026-10-09-roadmap-design.md`).
@@ -140,7 +140,7 @@
        - `ShadowReport` gained `CalibrationPrimaryOnlyKeys` and `CalibrationCandidateOnlyKeys`.
        - Signals are split by agreement per question.
        - The shipped `UseRecording(builder, recorder = null)` became `UseRecording(builder)` plus `UseRecording(builder, recorder)`, as RS0026 requires. It is source and binary compatible, and ApiCompat is clean.
-   - **Phase 9.4 (a shadow report on recorded traffic) is active**, designed and planned on 2026-11-01 on branch `phase/9.4-shadow-traffic` (pushed; no PR yet). PR #306 closed 9.3 on `main`.
+   - **Phase 9.4 (a shadow report on recorded traffic) is complete**; it was designed and planned on 2026-11-01 on branch `phase/9.4-shadow-traffic` (pushed; no PR yet). PR #306 closed 9.3 on `main`.
      - **Spec:** `docs/superpowers/specs/2026-10-31-phase-9.4-shadow-traffic-design.md`. A builder check found nothing open.
      - **Plan:** `docs/superpowers/plans/2026-11-01-phase-9.4-shadow-traffic.md`. PR 1 has five build tasks, and Task 2, the replay loop, is marked opus. Then Task 6, the approved run, and Task 7, PR 2 with the report folder.
      - **Maintainer's choices:**
@@ -163,7 +163,17 @@
      - **Task 7 built** on branch `phase/9.4-shadow-report`: the folder `docs/reports/shadow/banking77/` with its README, `records.jsonl` at 2.0 MB, and the rebuilt report. `ReportFolderTests` gained `ShadowFolders`, `ShadowRunIds` and four shadow checks, including a byte-for-byte rebuild from the records; the calibration theories skip `shadow/`.
      - **Figures, for reference only:** agreement 0.96 on `intent`, 0.93 on `card_not_arrived`, 0.945 on `about_a_payment`; median latency 50.5 ms for TypeSafe and 4043.8 ms for the local model on a CPU runner.
      - **PR 2 merged** on 2026-11-01: #309, squash `fd8b7546`. Pre-push review PASS: `docs/plans/2026-11-01-phase-9.4-report-pre-push-review.md`. **Phase 9.4 is complete** on 2026-11-01.
-   - **Next: Phase 9.5**, the record, export, shadow, report and switch path as one guide, backed by the 9.4 report (#118). It has no spec or plan yet, so `start-next-phase` routes to brainstorming.
+   - **Phase 9.5 (the "Running decisions locally and privately" guide) is active**, designed on 2026-11-03 and planned on 2026-11-04 on branch `phase/9.5-guide` (pushed; no PR yet; no code written yet).
+     - **Spec:** `docs/superpowers/specs/2026-11-03-phase-9.5-guide-design.md`. The builder check's points are settled in its "Calls made after the builder check".
+     - **Plan:** `docs/superpowers/plans/2026-11-04-phase-9.5-guide.md`, four tasks; Task 1, the example app wiring a shadow candidate from configuration, is marked opus.
+     - **Maintainer's choices:**
+       - The guide teaches the switch call: a checklist worked through on the Banking77 numbers. The report stays evidence only.
+       - One small app from start to finish, with new snippets in `Minos.NET.Docs.Tests`.
+       - Approach A: `docs/running-locally.md` at sidebar position 14, after Recording.
+       - The page names no project for the zero-data-retention case.
+       - Execution is subagent-driven.
+     - **Key calls:** `Minos:Active` and `Minos:Shadow` name sections under `Minos:Providers`, so the switch is configuration only. The `patterns` category moves from 17 to 18. Every report figure on the page is checked against `shadow-report.json` in `RunningLocallyPageTests`, formatted as `ShadowReportMarkdownWriter` does.
+     - **Next:** run the plan with `superpowers:subagent-driven-development`, starting at Task 1. The maintainer approved the plan and the method, so list-phase-assumptions is done.
    - **Waiting on the maintainer:** a peer message to the Daedalus session "daedalus: phase 3.3 Task 16 onward" saying the recorder shipped in 1.3.0. It needs approval in the app; the `daedalus-b9` session no longer exists. The #119 comment is posted.
 2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.
 3. Phases 7.1 to 7.5 are complete. On 2026-10-15 nuget.org reserved `Minos.NET` and `Minos.NET.*` to MarcelRoozekrans, which lifted the 409 "package ID is reserved" block. The Trusted Publishing policy is ci.yml, no environment, glob `*`. `gh workflow run ci.yml --ref v1.0.1 -f publish_to_nuget=true` ([run 38726515640](https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/38726515640)) published all six packages as 1.0.1, with symbols. 1.0.0 was never published. `PackageValidationBaselineVersion` is 1.0.1, which closes #28. Milestone 7 is complete; its audit passed (`docs/plans/2026-10-15-milestone-7-audit.md`). Next: Milestone 8, Choosing a provider and a threshold, starting with `new-milestone`.
