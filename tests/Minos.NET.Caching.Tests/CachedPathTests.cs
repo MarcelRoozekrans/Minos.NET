@@ -178,4 +178,65 @@ public sealed class CachedPathTests
         Assert.Equal(ProbabilitySource.Logprobs, read.Slots[1].Source);
         AssertPath(MergedPath(), read.Path);
     }
+
+    private static byte[] WithPath(string pathJson)
+    {
+        var json = JsonNode.Parse(CachedDecisionFormat.Write(CachedDecision.From(Merged().AsCached())))!.AsObject();
+        json["path"] = JsonNode.Parse(pathJson);
+        return Encoding.UTF8.GetBytes(json.ToJsonString());
+    }
+
+    private static byte[] WithRawPath(string pathJson)
+    {
+        var text = Encoding.UTF8.GetString(CachedDecisionFormat.Write(CachedDecision.From(Merged().AsCached())));
+        var start = text.IndexOf("\"path\":", StringComparison.Ordinal);
+        return Encoding.UTF8.GetBytes(string.Concat(text.AsSpan(0, start), "\"path\":", pathJson, "}"));
+    }
+
+    [Theory]
+    [InlineData("""{"routes":[],"calls":[["a",null,null,null,null]]}""")]
+    [InlineData("""{"routes":[],"calls":[["a",null,null,null,null,"yes"]]}""")]
+    [InlineData("""{"routes":[],"calls":[[null,null,null,null,null,false]]}""")]
+    [InlineData("""{"routes":[],"calls":[["a",null,-1,null,null,false]]}""")]
+    [InlineData("""{"routes":[],"calls":[["a",null,null,-2,null,false]]}""")]
+    [InlineData("""{"routes":[],"calls":[["a",null,null,null,-0.5,false]]}""")]
+    [InlineData("""{"routes":[["a",-1,0.5,null]],"calls":[["a",null,null,null,null,false]]}""")]
+    [InlineData("""{"routes":[["a",4,0.5,null]],"calls":[["a",null,null,null,null,false]]}""")]
+    [InlineData("null")]
+    public void A_malformed_stored_path_is_unreadable_and_never_throws(string pathJson)
+    {
+        var read = CachedDecisionFormat.Read(WithPath(pathJson));
+
+        Assert.Same(CachedDecision.Unreadable, read);
+        Assert.Null(read.ResponseFor(Responses.Triage));
+    }
+
+    [Fact]
+    public void A_certainty_beyond_double_range_is_unreadable()
+    {
+        var read = CachedDecisionFormat.Read(WithRawPath("""{"routes":[["a",0,1e999,null]],"calls":[["a",null,null,null,null,false]]}"""));
+
+        Assert.Same(CachedDecision.Unreadable, read);
+    }
+
+    [Fact]
+    public void A_version_3_entry_with_the_wrong_number_of_sources_is_unreadable()
+    {
+        var json = JsonNode.Parse(CachedDecisionFormat.Write(CachedDecision.From(Merged().AsCached())))!.AsObject();
+        json["sources"] = JsonNode.Parse("[0]");
+
+        Assert.Same(CachedDecision.Unreadable, CachedDecisionFormat.Read(Encoding.UTF8.GetBytes(json.ToJsonString())));
+    }
+
+    [Fact]
+    public void An_unknown_property_inside_the_path_is_skipped()
+    {
+        var json = JsonNode.Parse(CachedDecisionFormat.Write(CachedDecision.From(Merged().AsCached())))!.AsObject();
+        json["path"]!["later"] = JsonNode.Parse("""{"x":[1,2]}""");
+
+        var read = CachedDecisionFormat.Read(Encoding.UTF8.GetBytes(json.ToJsonString())).ResponseFor(Responses.Triage);
+
+        Assert.NotNull(read);
+        AssertPath(MergedPath(), read.Path);
+    }
 }

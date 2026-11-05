@@ -125,30 +125,6 @@ internal static class CachedDecisionFormat
         writer.WriteEndObject();
     }
 
-    private static void WriteNumberOrNull(Utf8JsonWriter writer, int? value)
-    {
-        if (value is { } number)
-        {
-            writer.WriteNumberValue(number);
-        }
-        else
-        {
-            writer.WriteNullValue();
-        }
-    }
-
-    private static void WriteNumberOrNull(Utf8JsonWriter writer, double? value)
-    {
-        if (value is { } number)
-        {
-            writer.WriteNumberValue(number);
-        }
-        else
-        {
-            writer.WriteNullValue();
-        }
-    }
-
     /// <summary>The entry <paramref name="source"/> holds; never throws.</summary>
     /// <param name="source">Bytes read from the distributed cache.</param>
     /// <returns>The entry, or <see cref="CachedDecision.Unreadable"/> for an unknown version or bytes that are no entry.</returns>
@@ -358,10 +334,10 @@ internal static class CachedDecisionFormat
         {
             if (!TryReadRequiredString(ref reader, out var answeredBy)
                 || !TryReadInt(ref reader, out var reason)
-                || reason is < (int)RouteReason.Confident or > (int)RouteReason.TargetFailed
+                || !Enum.IsDefined((RouteReason)reason)
                 || !TryReadDouble(ref reader, out var primary)
                 || !IsCertainty(primary)
-                || !TryReadOptionalDouble(ref reader, out var target, allowNull: true)
+                || !TryReadNullableDouble(ref reader, out var target)
                 || (target is { } t && !IsCertainty(t))
                 || !reader.Read()
                 || reader.TokenType != JsonTokenType.EndArray)
@@ -388,9 +364,12 @@ internal static class CachedDecisionFormat
         {
             if (!TryReadRequiredString(ref reader, out var client)
                 || !TryReadString(ref reader, out var model)
-                || !TryReadOptionalInt(ref reader, out var input, allowNull: true)
-                || !TryReadOptionalInt(ref reader, out var output, allowNull: true)
-                || !TryReadOptionalDouble(ref reader, out var cost, allowNull: true)
+                || !TryReadNullableInt(ref reader, out var input)
+                || input < 0
+                || !TryReadNullableInt(ref reader, out var output)
+                || output < 0
+                || !TryReadNullableDouble(ref reader, out var cost)
+                || !(cost is null or >= 0)
                 || !reader.Read()
                 || reader.TokenType is not (JsonTokenType.True or JsonTokenType.False))
             {
@@ -502,29 +481,53 @@ internal static class CachedDecisionFormat
         return reader.Read() && reader.TokenType == JsonTokenType.Number && reader.TryGetInt32(out value);
     }
 
-    private static bool TryReadOptionalInt(ref Utf8JsonReader reader, out int? value, bool allowNull = false)
+    private static bool TryReadOptionalInt(ref Utf8JsonReader reader, out int? value)
+    {
+        var read = TryReadInt(ref reader, out var number);
+        value = read ? number : null;
+        return read;
+    }
+
+    // A number or null; false for any other token.
+    private static bool TryReadNullableInt(ref Utf8JsonReader reader, out int? value)
     {
         value = null;
-        if (allowNull && reader.Read() && reader.TokenType == JsonTokenType.Null)
+        if (!reader.Read())
         {
-            return true;
+            return false;
         }
 
-        if (allowNull)
+        switch (reader.TokenType)
         {
-            // The token is read already; a number is the only other shape.
-            if (reader.TokenType != JsonTokenType.Number || !reader.TryGetInt32(out var read))
-            {
+            case JsonTokenType.Null:
+                return true;
+            case JsonTokenType.Number when reader.TryGetInt32(out var number):
+                value = number;
+                return true;
+            default:
                 return false;
-            }
+        }
+    }
 
-            value = read;
-            return true;
+    // A number or null; false for any other token.
+    private static bool TryReadNullableDouble(ref Utf8JsonReader reader, out double? value)
+    {
+        value = null;
+        if (!reader.Read())
+        {
+            return false;
         }
 
-        var ok = TryReadInt(ref reader, out var number);
-        value = ok ? number : null;
-        return ok;
+        switch (reader.TokenType)
+        {
+            case JsonTokenType.Null:
+                return true;
+            case JsonTokenType.Number when reader.TryGetDouble(out var number):
+                value = number;
+                return true;
+            default:
+                return false;
+        }
     }
 
     private static bool TryReadDouble(ref Utf8JsonReader reader, out double value)
@@ -533,29 +536,11 @@ internal static class CachedDecisionFormat
         return reader.Read() && reader.TokenType == JsonTokenType.Number && reader.TryGetDouble(out value);
     }
 
-    private static bool TryReadOptionalDouble(ref Utf8JsonReader reader, out double? value, bool allowNull = false)
+    private static bool TryReadOptionalDouble(ref Utf8JsonReader reader, out double? value)
     {
-        value = null;
-        if (allowNull && reader.Read() && reader.TokenType == JsonTokenType.Null)
-        {
-            return true;
-        }
-
-        if (allowNull)
-        {
-            // The token is read already; a number is the only other shape.
-            if (reader.TokenType != JsonTokenType.Number || !reader.TryGetDouble(out var read))
-            {
-                return false;
-            }
-
-            value = read;
-            return true;
-        }
-
-        var ok = TryReadDouble(ref reader, out var number);
-        value = ok ? number : null;
-        return ok;
+        var read = TryReadDouble(ref reader, out var number);
+        value = read ? number : null;
+        return read;
     }
 
     // A string that is present; null is not a value here.
@@ -596,6 +581,30 @@ internal static class CachedDecisionFormat
         if (value is { } number)
         {
             writer.WriteNumber(name, number);
+        }
+    }
+
+    private static void WriteNumberOrNull(Utf8JsonWriter writer, int? value)
+    {
+        if (value is { } number)
+        {
+            writer.WriteNumberValue(number);
+        }
+        else
+        {
+            writer.WriteNullValue();
+        }
+    }
+
+    private static void WriteNumberOrNull(Utf8JsonWriter writer, double? value)
+    {
+        if (value is { } number)
+        {
+            writer.WriteNumberValue(number);
+        }
+        else
+        {
+            writer.WriteNullValue();
         }
     }
 
