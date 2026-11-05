@@ -32,11 +32,12 @@ so `SystemOneDecisionClient` instruments them itself.
 
 | Signal | Emitted by | When |
 | --- | --- | --- |
-| The span `evaluate {model}` and the six metrics | `OpenTelemetryDecisionClient` | Once per call, over every attempt. |
+| The span `evaluate {model}` and the seven metrics | `OpenTelemetryDecisionClient` | Once per call, over every attempt. |
 | Events 1001, 1002 and 1006 | `LoggingDecisionClient` | Once per call, when the client has a logger factory. |
 | Event 1003 | `RetryingDecisionClient` | For each attempt it retries, when it has a logger. |
 | Events 1007 and 1008 | `CachingDecisionClient` | When its distributed cache throws, and it has a logger. |
 | Events 1009 to 1013 | `DecisionRecorder` and `RecordingDecisionClient`, in `Minos.NET.Recording` | When the queue drops records, the sink throws, a redactor throws, a record cannot be made, or the dispose times out, and the recorder has a logger factory. |
+| Events 1014 to 1016 | `EscalatingDecisionClient` | When it re-asks the unsure questions on its target, skips the target for lack of time, or the target fails, and it has a logger. |
 | The spans `evaluate {model}` and `list_models`, their metrics, and events 1001 to 1006 of the raw calls | `SystemOneDecisionClient` | For `EvaluateAsync(SystemOneRequest)` and `ListModelsAsync`. |
 
 With `UseStandardPipeline` set to `false`, a `DecisionRequest` call emits none of these until you add the stages
@@ -116,6 +117,9 @@ such as a JSON console or Serilog, receives each `{Placeholder}` below as a fiel
 | 1011 | `RedactionFailed` | Warning | `Minos recording redaction failed with {ExceptionType}; no record was kept.` |
 | 1012 | `FlushTimedOut` | Error | `Minos recorder flush timed out after {TimeoutMs} ms; lost {Records} records, {Outcomes} outcomes, {Erasures} erasures and {Flushes} flushes.` |
 | 1013 | `RecordingFailed` | Warning | `Minos recording failed with {ExceptionType}; no record was kept, and the decision is unaffected.` |
+| 1014 | `Escalated` | Information | `Minos escalated {QuestionCount} questions to {Target}.` |
+| 1015 | `EscalationSkippedForTime` | Information | `Minos did not escalate {QuestionCount} questions to {Target}: too little time was left.` |
+| 1016 | `EscalationTargetFailed` | Warning | `Minos escalation target {Target} failed with {ErrorKind}; the primary's answers stand.` |
 
 A call logs once, when it completes, and logs again for each attempt it is about to retry.
 
@@ -154,6 +158,14 @@ A call logs once, when it completes, and logs again for each attempt it is about
   record. A write that finishes after the flush timed out is not counted again. `minos.recording.outcomes` and
   `minos.recording.erasures` count `written` and `failed`, and `minos.recording.log_failures` counts the log events lost
   because the logger threw.
+- **An escalation stage** logs once per call that had an unsure question, and never when every question was sure.
+  1014, an Information event, says the target answered: `QuestionCount` is the number of questions re-asked and `Target`
+  is the target's name from the [path](pipeline.md#escalating-unsure-questions). 1015, also Information, says the target
+  was not called because less time was left than its `ExpectedLatency`; the first answers stand. 1016, a Warning, says
+  the target failed, ran past the deadline or answered another question set; `ErrorKind` is the name of the
+  `DecisionErrorKind`, `DeadlineExceeded` for a deadline that passed, or `DefinitionMismatch`. A target that throws logs
+  nothing here: the exception continues up to you. The events carry counts and client names only, never a question, its
+  state or a key.
 - **`UnexpectedException`** is an Error, 1006. It means a mistake in the calling code or a bug, because a failure of the
   call itself is a returned `DecisionError`. The exception continues up to you unchanged. A cancellation that you requested
   is not logged, and neither are the argument checks and the disposed-client check that throw before the call starts.
@@ -363,6 +375,8 @@ named `minos.*`.
 | `gen_ai.usage.output_tokens` | success | The output tokens, when the provider reports them. Evaluations only. |
 | `gen_ai.response.id` | success | The provider's response id, such as OpenRouter's generation id, when it reports one. Evaluations only. |
 | `minos.usage.cost` | success | The cost in US dollars, when the provider reports it, as OpenRouter does. Evaluations only. |
+| `minos.escalation.escalated` | success | The number of questions an [escalation stage](pipeline.md#escalating-unsure-questions) re-asked on its target and the target answered. Absent when no question was escalated. Evaluations only. |
+| `minos.escalation.skipped` | success | Why an escalation stage kept the first answers for its unsure questions: `no_time_left` or `target_failed`. Absent otherwise. Evaluations only. |
 | `minos.cache.hit` | success | `true` when a cache stage answered the call; absent otherwise. The duration, token and confidence metrics carry it too, so a dashboard can leave cached calls out of spend. A cached call reports the usage and cost of the call that first produced the answer. Evaluations only. |
 | `error.type` | failure | The name of the `DecisionErrorKind`, such as `RateLimited`, or the full type name of a thrown exception. |
 | `minos.request_id` | failure | The provider's [request id](client-and-errors.md#request-ids), when the error response named one. Evaluations only. |
@@ -387,7 +401,7 @@ is ZeroAlloc.Telemetry 1.11.0, the library that generates the instrumentation, w
 
 ## Metrics
 
-The meter named `Minos` has six instruments from the client, and six more when you use the
+The meter named `Minos` has seven instruments from the client, and five more when you use the
 [decision recorder](#the-recorders-metrics). To collect them with OpenTelemetry, pass the name to `AddMeter`, as
 [the traces section](#subscribing-with-opentelemetry) shows. Every evaluation records its duration, and a successful
 evaluation also records its tokens and one confidence point for each Choice or Score answer.
@@ -400,6 +414,7 @@ evaluation also records its tokens and one confidence point for each Choice or S
 | `gen_ai.client.inference.usage.input_tokens` | Counter | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.modality`, `minos.cache.hit` | evaluation success, when the provider reports the count |
 | `gen_ai.client.inference.usage.output_tokens` | Counter | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.modality`, `minos.cache.hit` | evaluation success, when the provider reports the count |
 | `minos.answer.confidence` | Histogram | `1` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `minos.operation`, `minos.cache.hit` | each Choice or Score answer |
+| `minos.escalations` | Counter | `{escalation}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `minos.escalation.target`, `minos.escalation.reason` | each call whose first answer had an unsure question |
 
 - **The duration** carries `gen_ai.response.model` on success and `error.type` on failure, never both. A model listing
   has no request or response model, so its duration carries only the operation, the provider, the server and, on
@@ -409,6 +424,11 @@ evaluation also records its tokens and one confidence point for each Choice or S
 - **`minos.cache.hit`** is `true` on the duration, token and confidence metrics of an evaluation that a
   [cache stage](pipeline.md#caching-decisions) answered, and absent otherwise. A hit is traced and measured only when
   the telemetry stage sits outside the cache stage; with a client's standard pipeline on, a hit records nothing.
+- **`minos.escalations`** adds 1 for each call that went through an
+  [escalation stage](pipeline.md#escalating-unsure-questions) and had at least one unsure question. `minos.escalation.target`
+  is the target's name and `minos.escalation.reason` is `escalated`, `no_time_left` or `target_failed`, for the call as
+  a whole. A call whose questions were all sure records nothing, so the counter's total is the number of calls that
+  needed the second client.
 - **Confidence** is the `Confidence` of each Choice and Score answer, a number from 0 to 1.
   [Noul answers](question-types.md) have no confidence and record no point, so a set of Noul questions records none.
   A set with one Choice and one Score records two points for each call.

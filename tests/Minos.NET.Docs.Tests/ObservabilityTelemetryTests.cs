@@ -85,6 +85,36 @@ public sealed class ObservabilityTelemetryTests
         }
     }
 
+    // Two calls through an escalation stage whose first answer is unsure of the department: the target answers the first,
+    // and fails the second, so the span and the counter carry both the escalated and the skipped values.
+    private static async Task EscalatedAsync(SystemOneDecisionClientOptions options)
+    {
+        options.UseStandardPipeline = false;
+        const string Department = """
+            { "model": "jev-1.13.0", "answers": { "department": { "type": "choice", "choice": "technical", "probabilities": { "billing": 0.05, "technical": 0.9, "sales": 0.05 }, "confidence": 0.9 } }, "usage": { "input_tokens": 20, "output_tokens": 3 } }
+            """;
+        foreach (var targetReply in new[] { Reply.Ok(Department), Reply.Error(422) })
+        {
+            var (primaryHttp, primary, _) = ScriptedDecision.Client(options, Reply.Ok(TicketResponse));
+            var (targetHttp, target, _) = ScriptedDecision.Client(options, targetReply);
+            using (primaryHttp)
+            using (primary)
+            using (targetHttp)
+            using (target)
+            using (var escalating = primary.AsBuilder()
+                .UseOpenTelemetry()
+                .UseEscalation(target, escalation =>
+                {
+                    escalation.TargetName = "hosted";
+                    escalation.DefaultThreshold = 0.65;
+                })
+                .Build())
+            {
+                await escalating.EvaluateAsync<TicketAnalysis>("Help! SECRET-STATE", CancellationToken.None);
+            }
+        }
+    }
+
     private static Task Typed(SystemOneDecisionClient client) => client.EvaluateAsync<TicketAnalysis>("Help! SECRET-STATE", CancellationToken.None).AsTask();
 
     private static Task Raw(SystemOneDecisionClient client) => RawRequests.UrgencyAsync(client, "Help! SECRET-STATE", CancellationToken.None);
@@ -263,6 +293,7 @@ public sealed class ObservabilityTelemetryTests
         await RunAsync(Typed, Options(), Reply.Error(422, string.Empty, ("x-typesafe-request-id", "req_docs")));
         await RunAsync(Listing, Options(), Reply.Ok(ModelsResponse));
         await CachedAsync(Options(), Reply.Ok(TicketResponse));
+        await EscalatedAsync(Options());
 
         var onSpans = new SortedSet<string>(listener.Spans.SelectMany(span => Keys(span.TagObjects)), StringComparer.Ordinal);
         var atStart = new SortedSet<string>(listener.StartTags.SelectMany(Keys), StringComparer.Ordinal);
@@ -291,12 +322,13 @@ public sealed class ObservabilityTelemetryTests
         await RunAsync(Typed, Options(), Reply.Error(422));
         await RunAsync(Listing, Options(), Reply.Ok(ModelsResponse));
         await CachedAsync(Options(), Reply.Ok(TicketResponse));
+        await EscalatedAsync(Options());
 
         var rows = PageTables.Rows(Page, "Metrics");
 
         // The recorder's instruments share the meter once its package is loaded; the next test checks their table.
         var client = listener.Instruments.Keys.Where(name => !IsRecorders(name)).ToList();
-        Assert.Equal(6, client.Count);
+        Assert.Equal(7, client.Count);
         Assert.Equal(client.Order(StringComparer.Ordinal), rows.Select(row => PageTables.Code(row[0])).Order(StringComparer.Ordinal));
         Assert.Equal(
             rows.Select(row => $"{row[1]} {PageTables.Code(row[2])}"),
