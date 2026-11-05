@@ -9,9 +9,9 @@ namespace Minos.Caching;
 /// is version 2 and adds <c>"sources"</c>, one <see cref="ProbabilitySource"/> number per slot. An entry with an escalation path
 /// is version 3 and adds <c>"path"</c>, with <c>"routes"</c> as <c>[answeredBy, reason, primaryCertainty, targetCertainty]</c>
 /// per question, in definition order and without keys, and <c>"calls"</c> as
-/// <c>[client, model, inputTokens, outputTokens, cost, isCached]</c>, plus the call's <see cref="CallOutcome"/> number and
-/// its <see cref="DecisionErrorKind"/> number when it has one, but only for a call that did not answer; a version 3 entry still has <c>"sources"</c> when an
-/// answer has a marked one. No reflection, so it is
+/// <c>[client, model, inputTokens, outputTokens, cost, isCached]</c>. A call that did not answer adds its
+/// <see cref="CallOutcome"/> number, and its <see cref="DecisionErrorKind"/> number when it has one; an answered call adds
+/// neither. A version 3 entry still has <c>"sources"</c> when an answer has a marked one. No reflection, so it is
 /// trim- and AOT-safe.
 /// </summary>
 /// <remarks>
@@ -403,7 +403,7 @@ internal static class CachedDecisionFormat
     }
 
     // The optional tail of a call, read after isCached up to the closing bracket: nothing for an answered call, else the
-    // outcome and optionally the error kind. A value this version does not define makes the entry a miss.
+    // outcome and optionally the error kind. Answered is never written, so an explicit 0 is rejected. A value this version does not define makes the entry a miss.
     private static bool TryReadOutcome(ref Utf8JsonReader reader, out CallOutcome outcome, out DecisionErrorKind? errorKind)
     {
         outcome = CallOutcome.Answered;
@@ -418,7 +418,8 @@ internal static class CachedDecisionFormat
             return true;
         }
 
-        if (reader.TokenType != JsonTokenType.Number || !reader.TryGetInt32(out var outcomeNumber) || !Enum.IsDefined((CallOutcome)outcomeNumber))
+        if (reader.TokenType != JsonTokenType.Number || !reader.TryGetInt32(out var outcomeNumber) || outcomeNumber == (int)CallOutcome.Answered
+            || !Enum.IsDefined((CallOutcome)outcomeNumber))
         {
             return false;
         }

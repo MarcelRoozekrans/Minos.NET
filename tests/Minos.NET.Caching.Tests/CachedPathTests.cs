@@ -93,6 +93,8 @@ public sealed class CachedPathTests
     [Theory]
     [InlineData("""["a",null,null,null,null,false,3]""")]
     [InlineData("""["a",null,null,null,null,false,-1]""")]
+    [InlineData("""["a",null,null,null,null,false,0]""")]
+    [InlineData("""["a",null,null,null,null,false,0,3]""")]
     [InlineData("""["a",null,null,null,null,false,1,99]""")]
     [InlineData("""["a",null,null,null,null,false,1,-1]""")]
     [InlineData("""["a",null,null,null,null,false,"1"]""")]
