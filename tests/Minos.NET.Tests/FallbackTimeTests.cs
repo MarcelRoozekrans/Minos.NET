@@ -612,7 +612,7 @@ public sealed class FallbackTimeTests
     }
 
     /// <summary>A client that waits until its token is cancelled, then throws, or returns a time-out failure of its own.</summary>
-    private sealed class WaitingClient(bool failOnCancel = false, Action? onStart = null, Action? onCancel = null) : IDecisionClient
+    internal sealed class WaitingClient(bool failOnCancel = false, Action? onStart = null, Action? onCancel = null) : IDecisionClient
     {
         private readonly TaskCompletionSource _started = new(TaskCreationOptions.RunContinuationsAsynchronously);
 

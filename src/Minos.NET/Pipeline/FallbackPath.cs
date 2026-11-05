@@ -1,3 +1,5 @@
+using Minos.Telemetry;
+
 namespace Minos;
 
 /// <summary>The fallback stage's path for a response a step after the inner client gave.</summary>
@@ -7,6 +9,7 @@ internal static class FallbackPath
     /// <paramref name="answer"/> with the path of the chain that led to it, keeping the answering step's own model, id,
     /// upstream provider and cache flag. The usage is summed over the path's calls: the answering step's, plus any a
     /// failed call reported, such as a step that answered another question set. The answer's arrays are shared, not copied.
+    /// The path holds the fallback's span-tag values, owned by the new response.
     /// </summary>
     /// <remarks>
     /// Without a path of its own, the answer gets one route per question, answered by <paramref name="answeredBy"/> and
@@ -18,7 +21,8 @@ internal static class FallbackPath
     /// <param name="answeredBy">The answering step's name.</param>
     /// <param name="priorCalls">The calls before the answering step's: failed and skipped steps, in order. Not kept.</param>
     /// <param name="answerCall">The answering step's call.</param>
-    internal static DecisionResponse Build(DecisionResponse answer, string answeredBy, List<DecisionCall> priorCalls, DecisionCall answerCall)
+    /// <param name="steps">The number of steps after step 0 tried or skipped, the answering one included, for the span tag.</param>
+    internal static DecisionResponse Build(DecisionResponse answer, string answeredBy, List<DecisionCall> priorCalls, DecisionCall answerCall, int steps)
     {
         QuestionRoute[] routes;
         DecisionCall[] calls;
@@ -52,7 +56,10 @@ internal static class FallbackPath
             cost = Sum(cost, call.Usage?.Cost);
         }
 
-        return new DecisionResponse(
+        // The response is the outermost routing stage's so far, so it owns the holder, which carries the escalation part
+        // of a taken-over path's holder when the step's response owns it; a cached copy's is not carried.
+        var routing = RoutingTelemetry.Fallback(steps, answeredBy, answer.Routing);
+        var response = new DecisionResponse(
             answer.Definition,
             answer.Slots,
             answer.Probabilities,
@@ -64,8 +71,10 @@ internal static class FallbackPath
             answer.UpstreamProvider,
             answer.IsCached)
         {
-            Path = DecisionPath.FromOwnedArrays(routes, calls),
+            Path = DecisionPath.FromOwnedArrays(routes, calls, routing),
         };
+        routing.Owner = response;
+        return response;
     }
 
     private static int? Sum(int? total, int? value) => value is null ? total : (total ?? 0) + value;

@@ -38,6 +38,7 @@ so `SystemOneDecisionClient` instruments them itself.
 | Events 1007 and 1008 | `CachingDecisionClient` | When its distributed cache throws, and it has a logger. |
 | Events 1009 to 1013 | `DecisionRecorder` and `RecordingDecisionClient`, in `Minos.NET.Recording` | When the queue drops records, the sink throws, a redactor throws, a record cannot be made, or the dispose times out, and the recorder has a logger factory. |
 | Events 1014 to 1016 | `EscalatingDecisionClient` | When it re-asks the unsure questions on its target, skips the target for lack of time, or the target fails, and it has a logger. |
+| Events 1017 to 1020, and the metric `minos.fallbacks` | `FallbackDecisionClient` | When a step fails, is skipped for lack of time, or answers after the first step failed, or the chain finds no answer. The events need a logger; the metric is counted once per call that went past the first step. |
 | The spans `evaluate {model}` and `list_models`, their metrics, and events 1001 to 1006 of the raw calls | `SystemOneDecisionClient` | For `EvaluateAsync(SystemOneRequest)` and `ListModelsAsync`. |
 
 With `UseStandardPipeline` set to `false`, a `DecisionRequest` call emits none of these until you add the stages
@@ -120,6 +121,10 @@ such as a JSON console or Serilog, receives each `{Placeholder}` below as a fiel
 | 1014 | `Escalated` | Information | `Minos escalated {QuestionCount} questions to {Target}.` |
 | 1015 | `EscalationSkippedForTime` | Information | `Minos did not escalate {QuestionCount} questions to {Target}: too little time was left.` |
 | 1016 | `EscalationTargetFailed` | Warning | `Minos escalation target {Target} failed with {ErrorKind}; the primary's answers stand.` |
+| 1017 | `FallbackStepFailed` | Warning | `Minos fallback step {Step} failed with {ErrorKind}.` |
+| 1018 | `FallbackStepSkippedForTime` | Information | `Minos skipped fallback step {Step}: too little time was left.` |
+| 1019 | `FallbackExhausted` | Warning | `Minos fallback found no answer after {StepsTried} more steps; the last error was {ErrorKind}.` |
+| 1020 | `FellBack` | Information | `Minos fell back to {Step} after {StepsTried} more steps.` |
 
 A call logs once, when it completes, and logs again for each attempt it is about to retry.
 
@@ -166,6 +171,15 @@ A call logs once, when it completes, and logs again for each attempt it is about
   `DecisionErrorKind`, `DeadlineExceeded` for a deadline that passed, or `DefinitionMismatch`. A target that throws logs
   nothing here: the exception continues up to you. The events carry counts and client names only, never a question, its
   state or a key.
+- **A fallback stage** logs only for a call whose first step failed with an error the chain moves on from; a call the
+  first step answers logs nothing. 1017, a Warning, says a step failed and the chain moved on, the first step included;
+  `Step` is the step's name and `ErrorKind` is the name of the `DecisionErrorKind`, `DeadlineExceeded` for a step the
+  stage cut at its time limit, or `DefinitionMismatch`, as for an escalation target. 1018, an Information event, says a
+  step was not called because less time was left than its `ExpectedLatency`. 1020, also Information, says which step
+  answered; `StepsTried` counts the steps after the first that were tried or skipped, the answering one included. 1019,
+  a Warning, says no step answered: every step failed or was skipped, or a step failed with an error the chain does not
+  move on from. `StepsTried` counts as for 1020, and `ErrorKind` is that of the error returned. A step that throws logs
+  nothing here. The events carry step names, counts and error kinds only, never a question, its state or a key.
 - **`UnexpectedException`** is an Error, 1006. It means a mistake in the calling code or a bug, because a failure of the
   call itself is a returned `DecisionError`. The exception continues up to you unchanged. A cancellation that you requested
   is not logged, and neither are the argument checks and the disposed-client check that throw before the call starts.
@@ -377,6 +391,8 @@ named `minos.*`.
 | `minos.usage.cost` | success | The cost in US dollars, when the provider reports it, as OpenRouter does. Evaluations only. |
 | `minos.escalation.escalated` | success | The number of questions an [escalation stage](pipeline.md#escalating-unsure-questions) re-asked on its target and the target answered. Absent when no question was escalated. Evaluations only. |
 | `minos.escalation.skipped` | success | Why an escalation stage kept the first answers for its unsure questions: `no_time_left` or `target_failed`. Absent otherwise. Evaluations only. |
+| `minos.fallback.steps` | success | The number of steps after the first that a fallback stage tried or skipped, the answering one included. Absent when the first step answered. Evaluations only. |
+| `minos.fallback.answered_by` | success | The name of the fallback step that answered. Absent when the first step answered. Evaluations only. |
 | `minos.cache.hit` | success | `true` when a cache stage answered the call; absent otherwise. The duration, token and confidence metrics carry it too, so a dashboard can leave cached calls out of spend. A cached call reports the usage and cost of the call that first produced the answer. Evaluations only. |
 | `error.type` | failure | The name of the `DecisionErrorKind`, such as `RateLimited`, or the full type name of a thrown exception. |
 | `minos.request_id` | failure | The provider's [request id](client-and-errors.md#request-ids), when the error response named one. Evaluations only. |
@@ -401,7 +417,7 @@ is ZeroAlloc.Telemetry 1.11.0, the library that generates the instrumentation, w
 
 ## Metrics
 
-The meter named `Minos` has seven instruments from the client, and five more when you use the
+The meter named `Minos` has eight instruments from the client, and five more when you use the
 [decision recorder](#the-recorders-metrics). To collect them with OpenTelemetry, pass the name to `AddMeter`, as
 [the traces section](#subscribing-with-opentelemetry) shows. Every evaluation records its duration, and a successful
 evaluation also records its tokens and one confidence point for each Choice or Score answer.
@@ -415,6 +431,7 @@ evaluation also records its tokens and one confidence point for each Choice or S
 | `gen_ai.client.inference.usage.output_tokens` | Counter | `{token}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `gen_ai.token.modality`, `minos.cache.hit` | evaluation success, when the provider reports the count |
 | `minos.answer.confidence` | Histogram | `1` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `minos.operation`, `minos.cache.hit` | each Choice or Score answer |
 | `minos.escalations` | Counter | `{escalation}` | `gen_ai.operation.name`, `gen_ai.provider.name`, `gen_ai.request.model`, `minos.escalation.target`, `minos.escalation.reason` | each call whose first answer had an unsure question |
+| `minos.fallbacks` | Counter | `{fallback}` | `minos.fallback.outcome`, `minos.fallback.client` | each call whose first fallback step failed and the chain moved on |
 
 - **The duration** carries `gen_ai.response.model` on success and `error.type` on failure, never both. A model listing
   has no request or response model, so its duration carries only the operation, the provider, the server and, on
@@ -433,6 +450,14 @@ evaluation also records its tokens and one confidence point for each Choice or S
   its own span and the escalation records none. On an escalated call the token and cost values are the sum over every
   call in `DecisionResponse.Path.Calls`, under the primary's model; price per call from `Path.Calls` or the recorder's
   `calls`.
+- **`minos.fallbacks`** adds 1 for each call whose first step in a fallback stage failed with an error the chain moves
+  on from. `minos.fallback.outcome` is `answered` when a later step answered, with `minos.fallback.client` set to that
+  step's name, or `exhausted` when none did, with no client. The fallback stage counts it itself, so it needs no
+  telemetry stage, and a call the first step answers records nothing. The span tags `minos.fallback.steps` and
+  `minos.fallback.answered_by` appear when `UseOpenTelemetry` sits outside the fallback stage and a later step answered;
+  an exhausted chain's span has `error.type` instead. With escalation outside fallback, the escalated call's span
+  carries both stages' tags once. A response a cache stage returns carries none of the routing tags or counts, even
+  when it first came from a fallback.
 - **Confidence** is the `Confidence` of each Choice and Score answer, a number from 0 to 1.
   [Noul answers](question-types.md) have no confidence and record no point, so a set of Noul questions records none.
   A set with one Choice and one Score records two points for each call.

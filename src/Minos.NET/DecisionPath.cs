@@ -42,16 +42,17 @@ public sealed class DecisionPath
 
     // Takes ownership of arrays a routing stage built for this path alone, without copying or checking them. A factory
     // over a private constructor, so a caller elsewhere with arrays in hand never picks it instead of the copying one.
-    // The escalation stage passes its telemetry when a question was unsure; every other path has none.
-    internal static DecisionPath FromOwnedArrays(QuestionRoute[] routes, DecisionCall[] calls, EscalationTelemetry? escalation = null)
-        => new(routes, calls, escalation);
+    // A routing stage passes its telemetry when it has a part to report or carries one from a taken-over path; every
+    // other path has none.
+    internal static DecisionPath FromOwnedArrays(QuestionRoute[] routes, DecisionCall[] calls, RoutingTelemetry? routing = null)
+        => new(routes, calls, routing);
 
-    private DecisionPath(QuestionRoute[] routes, DecisionCall[] calls, EscalationTelemetry? escalation)
+    private DecisionPath(QuestionRoute[] routes, DecisionCall[] calls, RoutingTelemetry? routing)
     {
         Debug.Assert(calls.Length != 0, "A path has at least one call.");
         Routes = routes.Length == 0 ? [] : new ReadOnlyCollection<QuestionRoute>(routes);
         Calls = new ReadOnlyCollection<DecisionCall>(calls);
-        Escalation = escalation;
+        Routing = routing;
     }
 
     /// <summary>Gets one route per question, in definition order.</summary>
@@ -60,8 +61,8 @@ public sealed class DecisionPath
     /// <summary>Gets each client the stage asked or skipped, in order; the first is the primary client's.</summary>
     public IReadOnlyList<DecisionCall> Calls { get; }
 
-    // The escalation stage's telemetry, or null; DecisionResponse reads it only for the response the stage built.
-    internal EscalationTelemetry? Escalation { get; }
+    // The routing stages' telemetry, or null; DecisionResponse reads it only for the response its owner, the stage, built.
+    internal RoutingTelemetry? Routing { get; }
 
     /// <summary>The certainty a threshold is compared with: the larger of <c>p</c> and <c>1 - p</c> for a Noul, otherwise the confidence.</summary>
     /// <param name="kind">The question's kind.</param>

@@ -31,6 +31,15 @@ internal static partial class DecisionLog
     /// </summary>
     public const string RequestNotSent = "The request could not be sent.";
 
+    /// <summary>
+    /// The <c>ErrorKind</c> a routing stage logs for a call it cut at the deadline or at a step's time limit, whatever
+    /// failure the client made of the cancellation.
+    /// </summary>
+    public const string DeadlineExceeded = "DeadlineExceeded";
+
+    /// <summary>The <c>ErrorKind</c> a routing stage logs for a client that answered a different question set than it was asked.</summary>
+    public const string DefinitionMismatch = "DefinitionMismatch";
+
     /// <summary>An evaluation succeeded; <c>Cached</c> is whether a cache stage answered it.</summary>
     [LoggerMessage(
         EventId = 1001,
@@ -216,4 +225,46 @@ internal static partial class DecisionLog
         Level = LogLevel.Warning,
         Message = "Minos escalation target {Target} failed with {ErrorKind}; the primary's answers stand.")]
     public static partial void EscalationTargetFailed(ILogger logger, string target, string errorKind);
+
+    /// <summary>
+    /// A fallback stage's step failed with an error the chain moves on from; a cut step logs <see cref="DeadlineExceeded"/>
+    /// and one that answered another question set <see cref="DefinitionMismatch"/>. Only the step's name and the error kind
+    /// are logged.
+    /// </summary>
+    [LoggerMessage(
+        EventId = 1017,
+        EventName = nameof(FallbackStepFailed),
+        Level = LogLevel.Warning,
+        Message = "Minos fallback step {Step} failed with {ErrorKind}.")]
+    public static partial void FallbackStepFailed(ILogger logger, string step, string errorKind);
+
+    /// <summary>A fallback stage did not call a step because too little time was left before the deadline. Only the step's name is logged.</summary>
+    [LoggerMessage(
+        EventId = 1018,
+        EventName = nameof(FallbackStepSkippedForTime),
+        Level = LogLevel.Information,
+        Message = "Minos skipped fallback step {Step}: too little time was left.")]
+    public static partial void FallbackStepSkippedForTime(ILogger logger, string step);
+
+    /// <summary>
+    /// A fallback stage went past its first step and no step answered; the error of the last step called is returned.
+    /// Only the number of steps after the first that were tried or skipped and the returned error's kind are logged.
+    /// </summary>
+    [LoggerMessage(
+        EventId = 1019,
+        EventName = nameof(FallbackExhausted),
+        Level = LogLevel.Warning,
+        Message = "Minos fallback found no answer after {StepsTried} more steps; the last error was {ErrorKind}.")]
+    public static partial void FallbackExhausted(ILogger logger, int stepsTried, string errorKind);
+
+    /// <summary>
+    /// A fallback stage's step after the first answered. Only the step's name and the number of steps after the first that
+    /// were tried or skipped, the answering one included, are logged.
+    /// </summary>
+    [LoggerMessage(
+        EventId = 1020,
+        EventName = nameof(FellBack),
+        Level = LogLevel.Information,
+        Message = "Minos fell back to {Step} after {StepsTried} more steps.")]
+    public static partial void FellBack(ILogger logger, string step, int stepsTried);
 }

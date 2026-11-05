@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Minos.Telemetry;
 using ZeroAlloc.Results;
 
 namespace Minos;
@@ -47,6 +48,13 @@ namespace Minos;
 /// already passed, and that call is then left to the caller's token. The caller's own cancellation stops the chain and throws an
 /// <see cref="OperationCanceledException"/> whose <see cref="OperationCanceledException.CancellationToken"/> is the
 /// caller's token.
+/// </para>
+/// <para>
+/// A call that went past step 0 is counted once on the <c>minos.fallbacks</c> counter of the <c>Minos</c> meter, as
+/// <c>answered</c> with the answering step's name or as <c>exhausted</c>, and, with a logger, logs each step that failed
+/// and moved on, each step skipped for time, and the answering step or the exhausted chain. A response a later step
+/// answered carries the <c>minos.fallback.steps</c> and <c>minos.fallback.answered_by</c> values for a telemetry stage
+/// outside this one. None of these carry the state, a question or a key: only step names, counts and error kinds.
 /// </para>
 /// </remarks>
 public sealed class FallbackDecisionClient : DelegatingDecisionClient
@@ -119,6 +127,8 @@ public sealed class FallbackDecisionClient : DelegatingDecisionClient
         var calls = new List<DecisionCall>(steps.Count + 1) { FailedCall(_options.PrimaryName, first.Result.Error.Kind) };
         var stepRequest = new DecisionRequest(request.Definition, request.State) { Images = request.Images, Deadline = deadline };
         var last = first.Result;
+        var lastLogged = LoggedKind(first.Result.Error, first.CutAt is not null);
+        LogStepFailed(_options.PrimaryName, lastLogged);
 
         // When a call was cut, the time left is measured from the scheduled cut instant, not from the clock read after it:
         // the cut reserved exactly that room for a later step, and a real timer fires at or after its due time.
@@ -137,6 +147,11 @@ public sealed class FallbackDecisionClient : DelegatingDecisionClient
                 if (due - (cutAt ?? now) < step.ExpectedLatency || due <= now)
                 {
                     calls.Add(new DecisionCall(step.Name, null, null, IsCached: false) { Outcome = CallOutcome.NotCalledNoTimeLeft });
+                    if (Logger is { } timeLogger)
+                    {
+                        DecisionLog.FallbackStepSkippedForTime(timeLogger, step.Name);
+                    }
+
                     continue;
                 }
 
@@ -150,35 +165,47 @@ public sealed class FallbackDecisionClient : DelegatingDecisionClient
             }
 
             DecisionError error;
+            string logged;
             if (result.IsSuccess)
             {
                 var answer = result.Value;
                 if (ReferenceEquals(answer.Definition, request.Definition))
                 {
+                    if (Logger is { } logger)
+                    {
+                        DecisionLog.FellBack(logger, step.Name, i + 1);
+                    }
+
+                    FallbackTelemetry.Answered(step.Name);
                     var call = new DecisionCall(step.Name, answer.Model, answer.Usage, answer.IsCached);
-                    return Result<DecisionResponse, DecisionError>.Success(FallbackPath.Build(answer, step.Name, calls, call));
+                    return Result<DecisionResponse, DecisionError>.Success(FallbackPath.Build(answer, step.Name, calls, call, i + 1));
                 }
 
                 // Answers for another set cannot be routed by position. The call is a failure, but it keeps the step's
                 // model, usage and cache flag: it was made, and a response the chain still builds sums its path's calls.
                 error = MismatchError;
+                logged = DecisionLog.DefinitionMismatch;
                 result = Result<DecisionResponse, DecisionError>.Failure(error);
                 calls.Add(new DecisionCall(step.Name, answer.Model, answer.Usage, answer.IsCached) { Outcome = CallOutcome.Failed, ErrorKind = error.Kind });
             }
             else
             {
                 error = result.Error;
+                logged = LoggedKind(error, cutAt is not null);
                 calls.Add(FailedCall(step.Name, error.Kind));
             }
 
             last = result;
+            lastLogged = logged;
             if (!shouldFallBack(error))
             {
-                return result;
+                return Exhausted(result, i + 1, logged);
             }
+
+            LogStepFailed(step.Name, logged);
         }
 
-        return last;
+        return Exhausted(last, steps.Count, lastLogged);
     }
 
     /// <inheritdoc />
@@ -187,6 +214,31 @@ public sealed class FallbackDecisionClient : DelegatingDecisionClient
     {
         ArgumentNullException.ThrowIfNull(serviceType);
         return serviceKey is null && serviceType == typeof(FallbackOptions) ? _options.Clone() : base.GetService(serviceType, serviceKey);
+    }
+
+    // The error kind the events log: DeadlineExceeded for a call the stage cut, whatever failure the client made of the
+    // cancellation, as escalation logs a cut target; the error's own kind otherwise.
+    private static string LoggedKind(DecisionError error, bool cut)
+        => cut ? DecisionLog.DeadlineExceeded : DecisionTelemetry.ErrorTypeOf(error.Kind);
+
+    private void LogStepFailed(string step, string errorKind)
+    {
+        if (Logger is { } logger)
+        {
+            DecisionLog.FallbackStepFailed(logger, step, errorKind);
+        }
+    }
+
+    // The chain went past step 0 and got no answer: every step failed or was skipped, or a step's failure stopped it.
+    private Result<DecisionResponse, DecisionError> Exhausted(Result<DecisionResponse, DecisionError> result, int steps, string errorKind)
+    {
+        if (Logger is { } logger)
+        {
+            DecisionLog.FallbackExhausted(logger, steps, errorKind);
+        }
+
+        FallbackTelemetry.Exhausted();
+        return result;
     }
 
     private static DecisionCall FailedCall(string name, DecisionErrorKind kind)

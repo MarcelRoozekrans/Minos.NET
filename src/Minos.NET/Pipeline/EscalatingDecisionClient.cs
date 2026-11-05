@@ -68,10 +68,6 @@ public sealed class EscalatingDecisionClient : DelegatingDecisionClient
     private readonly EscalationOptions _options;
     private readonly Dictionary<string, double> _thresholds;
 
-    // The error kind logged for a target that ran past the deadline, and for one that answered another question set.
-    private const string DeadlineErrorKind = "DeadlineExceeded";
-    private const string MismatchErrorKind = "DefinitionMismatch";
-
     /// <summary>Initializes a new instance of the <see cref="EscalatingDecisionClient"/> class.</summary>
     /// <param name="innerClient">The primary client, asked first.</param>
     /// <param name="target">The client the unsure questions are re-asked on. The stage does not dispose it.</param>
@@ -146,7 +142,7 @@ public sealed class EscalatingDecisionClient : DelegatingDecisionClient
             // says the same: DeadlineExceeded for the cut, the error's own kind otherwise.
             var (kind, logged) = second is { TimedOut: false, Result: { } failed }
                 ? (failed.Error.Kind, DecisionTelemetry.ErrorTypeOf(failed.Error.Kind))
-                : (DecisionErrorKind.Timeout, DeadlineErrorKind);
+                : (DecisionErrorKind.Timeout, DecisionLog.DeadlineExceeded);
             LogTargetFailed(logged);
             var failedCall = new DecisionCall(targetName, null, null, IsCached: false) { Outcome = CallOutcome.Failed, ErrorKind = kind };
             return KeepAfterFailure(primary, routes, Calls(primary, failedCall));
@@ -158,7 +154,7 @@ public sealed class EscalatingDecisionClient : DelegatingDecisionClient
         // and usage: it was made, and the response's usage sums the path's calls.
         if (!ReferenceEquals(target.Definition, subset))
         {
-            LogTargetFailed(MismatchErrorKind);
+            LogTargetFailed(DecisionLog.DefinitionMismatch);
             var mismatchCall = new DecisionCall(targetName, target.Model, target.Usage, target.IsCached)
             {
                 Outcome = CallOutcome.Failed,
