@@ -1,4 +1,4 @@
-# Session State — 2026-11-05 (Phase 10.1 designed and planned; subagent-driven execution next)
+# Session State — 2026-11-05 (Phase 10.1 implemented; PR #323 waits for the maintainer)
 
 **Date:** 2026-11-05
 
@@ -186,20 +186,24 @@
      - **My calls, in the design:** a Noul is unsure when max(p, 1-p) is below its threshold; only unsure questions are re-asked, as a subset `QuestionSetDefinition`, and merged by key; the path per question is an additive init property on `DecisionResponse`; the deadline is an absolute `TimeProvider` timestamp, not in equality or the cache key; expected latency is configured per target, with no measured median; escalation composes outside fallback; re-asks carry `RetryAttempt` 0; the triage sample extends the provider-switch sample; costs come from `prices.json`; OpenAI is not shown live (#161).
      - **Constraint to remember:** the local model's median is about 4 s on a CPU runner, and Daedalus's whole decision budget is 5 s, so on that hardware escalation is mostly skipped for time.
    - **Milestone 10 planning PR #318 merged** as `94ca5e7a` on 2026-11-04.
-   - **Phase 10.1 (Escalation middleware) is designed and planned**, and is now active. Branch `phase-10.1-escalation-brainstorm` is pushed, with no PR yet. The spec and plan reach `main` with the implementation PR, as in 9.3.
-     - **Spec:** `docs/superpowers/specs/2026-11-04-phase-10.1-escalation-design.md`, approved by the maintainer on 2026-11-05.
-     - **Plan:** `docs/superpowers/plans/2026-11-05-phase-10.1-escalation.md`, eight tasks; Tasks 1, 3 and 4 are marked opus. The maintainer chose subagent-driven execution.
-     - **Maintainer's choices in the brainstorm:**
-       - `EscalationOptions.PrimaryName` names the primary, default `"primary"`.
-       - `DecisionResponse.As<T>()` lets typed callers read the path, `Usage` and `Model`.
-       - `Path.Calls` carries each call's client, model and usage, and `response.Usage` is their total.
-       - The path lives on `DecisionResponse.Path`.
-       - The cache stores the path.
-     - **My calls:** in the spec's "Settled after the builder check" and the plan's "Decisions made in this plan". The by-key `UseEscalation` overload lives in `Minos.NET.DependencyInjection`, because the core has no DI dependency.
-     - **API spike:** local branch `spike/10.1-path`, throwaway and not pushed. Its `EscalatingDecisionClientSpike.cs` shows the slot-level merge, and the plan copies the relevant parts. A new session does not have it; the plan is enough.
+   - **Phase 10.1 (Escalation middleware) is implemented; PR #323 is open** and waits for the maintainer's merge. Its title is `feat(core): escalate unsure questions to a stronger client with UseEscalation`, and its body carries a BEGIN_COMMIT_OVERRIDE with nested commits.
+     - **Branch:** `phase/10.1-escalation`, rebased on `main` at `ae5b80ec`, 39 commits. A force push to `phase-10.1-escalation-brainstorm` was denied, so the work moved to the new branch. The old remote branch holds only the spec and plan commits, and they are also on the new branch. Delete it after the merge, with the maintainer's approval.
+     - **Spec and plan:** `docs/superpowers/specs/2026-11-04-phase-10.1-escalation-design.md` and `docs/superpowers/plans/2026-11-05-phase-10.1-escalation.md`. All eight tasks ran subagent-driven, each with a task review.
+     - **Pre-push review PASS:** `docs/plans/2026-11-05-phase-10.1-pre-push-review.md`. The whole-branch review found 8 warnings and they were fixed in one wave. The Release build has 0 warnings, all 18 test projects pass, and the linux-x64 AOT smoke passes 255 checks.
+     - **Names that changed from the spec's API block:**
+       - `DecisionCall.ClientName`, not `Client`.
+       - `RecordedAnswer.Reason`, the spec's name; the plan said `Route`.
+       - The DI class is `KeyedEscalationDecisionClientBuilderExtensions`.
+     - **Calls for Phase 10.2 to make:**
+       - The escalation stage replaces a `Path` that its inner client already set, so `UseFallback` must decide how paths compose.
+       - `ShadowRunner` does not copy `Deadline` to the shadow call.
+       - Escalation telemetry lives in an internal `EscalationTelemetry` on `DecisionPath`. It is reported only on the response the stage built, through `Owner`.
+       - A merged response's token and cost metrics sum all calls under the primary's model.
+     - **Filed:** #322, the flaky Benchmarks `MockHostTests` port test.
    - **Next:**
-     1. Run `superpowers:subagent-driven-development` on the Phase 10.1 plan, on branch `phase-10.1-escalation-brainstorm`, starting with Task 1 (path types, `Path`, `As<T>()`, API name review). Then pre-push-review, a PR with BEGIN_COMMIT_OVERRIDE, and complete-phase.
-     2. The `.website` bot submodule PR with the Minos docs has not appeared yet; open .website#127 (30 Oct) covers only orm, rest and telemetry. When one includes Minos, ask the maintainer before approving and merging it. Don't merge without the maintainer.
+     1. When the maintainer has merged #323, check that the release-please PR lists the override's lines. Then run `complete-phase` for 10.1. The SDD run does not tick plan checkboxes; the ledger is gone, and this STATE entry, the PR and the review report are the record. In the same PR, align the spec's line 53: `IsCached` holds when every call was cached.
+     2. Then Phase 10.2, the fallback chain, through `start-next-phase`.
+     3. The `.website` bot submodule PR with the Minos docs has not appeared yet; .website#127 covers only orm, rest and telemetry. When one includes Minos, ask the maintainer before approving and merging it.
    - **Waiting on the maintainer:** a peer message to the Daedalus session "daedalus: phase 3.3 Task 16 onward" saying the recorder shipped in 1.3.0. It needs approval in the app; the `daedalus-b9` session no longer exists. The #119 comment is posted.
 2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.
 3. Phases 7.1 to 7.5 are complete. On 2026-10-15 nuget.org reserved `Minos.NET` and `Minos.NET.*` to MarcelRoozekrans, which lifted the 409 "package ID is reserved" block. The Trusted Publishing policy is ci.yml, no environment, glob `*`. `gh workflow run ci.yml --ref v1.0.1 -f publish_to_nuget=true` ([run 38726515640](https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/38726515640)) published all six packages as 1.0.1, with symbols. 1.0.0 was never published. `PackageValidationBaselineVersion` is 1.0.1, which closes #28. Milestone 7 is complete; its audit passed (`docs/plans/2026-10-15-milestone-7-audit.md`). Next: Milestone 8, Choosing a provider and a threshold, starting with `new-milestone`.
