@@ -13,7 +13,7 @@ public sealed class DecisionPath
 {
     /// <summary>Initializes a new instance of the <see cref="DecisionPath"/> class from copies of the lists.</summary>
     /// <param name="routes">One route per question, in definition order.</param>
-    /// <param name="calls">Each call made, in the order made; the first is the primary client's.</param>
+    /// <param name="calls">Each client the stage asked or skipped, in order; the first is the primary client's.</param>
     /// <exception cref="ArgumentNullException"><paramref name="routes"/> or <paramref name="calls"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="calls"/> is empty, or a route is a <see langword="default"/> value.</exception>
     public DecisionPath(IReadOnlyList<QuestionRoute> routes, IReadOnlyList<DecisionCall> calls)
@@ -57,7 +57,7 @@ public sealed class DecisionPath
     /// <summary>Gets one route per question, in definition order.</summary>
     public IReadOnlyList<QuestionRoute> Routes { get; }
 
-    /// <summary>Gets each call made, in the order made; the first is the primary client's.</summary>
+    /// <summary>Gets each client the stage asked or skipped, in order; the first is the primary client's.</summary>
     public IReadOnlyList<DecisionCall> Calls { get; }
 
     // The escalation stage's telemetry, or null; DecisionResponse reads it only for the response the stage built.

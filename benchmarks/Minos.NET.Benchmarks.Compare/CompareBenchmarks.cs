@@ -61,27 +61,27 @@ public class CompareBenchmarks
     /// <summary>One Minos.NET call.</summary>
     /// <returns>What the call read.</returns>
     [Benchmark]
-    public ValueTask<CallOutcome> Minos() => _adapter.CallAsync(CancellationToken.None);
+    public ValueTask<MeasuredAnswer> Minos() => _adapter.CallAsync(CancellationToken.None);
 
     /// <summary>One raw baseline call.</summary>
     /// <returns>What the call read.</returns>
     [Benchmark(Baseline = true)]
-    public ValueTask<CallOutcome> RawHttpClient() => _adapter.CallAsync(CancellationToken.None);
+    public ValueTask<MeasuredAnswer> RawHttpClient() => _adapter.CallAsync(CancellationToken.None);
 
     /// <summary>One JevSharp call.</summary>
     /// <returns>What the call read.</returns>
     [Benchmark]
-    public ValueTask<CallOutcome> JevSharp() => _adapter.CallAsync(CancellationToken.None);
+    public ValueTask<MeasuredAnswer> JevSharp() => _adapter.CallAsync(CancellationToken.None);
 
     /// <summary>One TypeSafe.AI.Sdk call.</summary>
     /// <returns>What the call read.</returns>
     [Benchmark]
-    public ValueTask<CallOutcome> TypeSafeSdk() => _adapter.CallAsync(CancellationToken.None);
+    public ValueTask<MeasuredAnswer> TypeSafeSdk() => _adapter.CallAsync(CancellationToken.None);
 
     /// <summary>One Jev.Net call.</summary>
     /// <returns>What the call read.</returns>
     [Benchmark]
-    public ValueTask<CallOutcome> JevNet() => _adapter.CallAsync(CancellationToken.None);
+    public ValueTask<MeasuredAnswer> JevNet() => _adapter.CallAsync(CancellationToken.None);
 
     private async Task StartAsync(string client)
     {

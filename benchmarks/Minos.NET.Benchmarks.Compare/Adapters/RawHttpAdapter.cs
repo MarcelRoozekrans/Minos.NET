@@ -55,11 +55,11 @@ public sealed class RawHttpAdapter : IClientAdapter, IUsesBenchmarkTransport
     public string? Note => null;
 
     /// <inheritdoc/>
-    public async ValueTask<CallOutcome> CallAsync(CancellationToken cancellationToken)
+    public async ValueTask<MeasuredAnswer> CallAsync(CancellationToken cancellationToken)
     {
         var response = await PostAsync(cancellationToken).ConfigureAwait(false);
         var answers = response.Answers;
-        return new CallOutcome(
+        return new MeasuredAnswer(
             string.Equals(answers.Intent.Choice, Workload.LookUpBooking, StringComparison.Ordinal),
             answers.TravelsWithin24Hours.Noul);
     }

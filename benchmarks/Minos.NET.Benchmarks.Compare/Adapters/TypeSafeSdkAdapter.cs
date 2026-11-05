@@ -57,12 +57,12 @@ public sealed class TypeSafeSdkAdapter : IClientAdapter, IUsesBenchmarkTransport
     public string? Note => null;
 
     /// <inheritdoc/>
-    public async ValueTask<CallOutcome> CallAsync(CancellationToken cancellationToken)
+    public async ValueTask<MeasuredAnswer> CallAsync(CancellationToken cancellationToken)
     {
         var result = await _client.SystemOneAsync(Workload.State, _questions, Workload.Model, options: null, cancellationToken).ConfigureAwait(false);
         var intent = result.GetChoice(Workload.IntentKey);
         var travelsSoon = result.GetNoul(Workload.TravelsSoonKey);
-        return new CallOutcome(string.Equals(intent.Choice, Workload.LookUpBooking, StringComparison.Ordinal), travelsSoon.Noul);
+        return new MeasuredAnswer(string.Equals(intent.Choice, Workload.LookUpBooking, StringComparison.Ordinal), travelsSoon.Noul);
     }
 
     /// <inheritdoc/>

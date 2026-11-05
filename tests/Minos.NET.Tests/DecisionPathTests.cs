@@ -94,6 +94,36 @@ public sealed class DecisionPathTests
     }
 
     [Fact]
+    public void A_call_defaults_to_Answered_with_no_error_kind()
+    {
+        Assert.Equal(CallOutcome.Answered, PrimaryCall.Outcome);
+        Assert.Null(PrimaryCall.ErrorKind);
+        Assert.Equal(CallOutcome.Answered, default(CallOutcome));
+
+        var failed = PrimaryCall with { Outcome = CallOutcome.Failed, ErrorKind = DecisionErrorKind.Timeout };
+        Assert.Equal(CallOutcome.Failed, failed.Outcome);
+        Assert.Equal(DecisionErrorKind.Timeout, failed.ErrorKind);
+    }
+
+    [Fact]
+    public void Calls_with_different_outcomes_are_not_equal()
+    {
+        var answered = new DecisionCall("clef", null, null, IsCached: false);
+        var failed = answered with { Outcome = CallOutcome.Failed };
+        var skipped = answered with { Outcome = CallOutcome.NotCalledNoTimeLeft };
+        var failedServer = failed with { ErrorKind = DecisionErrorKind.Server };
+        var failedTimeout = failed with { ErrorKind = DecisionErrorKind.Timeout };
+
+        Assert.NotEqual(answered, failed);
+        Assert.NotEqual(answered, skipped);
+        Assert.NotEqual(failed, skipped);
+        Assert.NotEqual(failed, failedServer);
+        Assert.NotEqual(failedServer, failedTimeout);
+        Assert.Equal(failedServer, new DecisionCall("clef", null, null, IsCached: false) { Outcome = CallOutcome.Failed, ErrorKind = DecisionErrorKind.Server });
+        Assert.Equal(failedServer.GetHashCode(), (failed with { ErrorKind = DecisionErrorKind.Server }).GetHashCode());
+    }
+
+    [Fact]
     public void Path_rejects_no_calls()
     {
         Assert.Throws<ArgumentNullException>(() => new DecisionPath(null!, [PrimaryCall]));

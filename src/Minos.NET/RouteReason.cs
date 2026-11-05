@@ -14,4 +14,7 @@ public enum RouteReason
 
     /// <summary>The primary client's answer was below its threshold, but the target failed or ran out of time, so the primary's answer stands.</summary>
     TargetFailed = 3,
+
+    /// <summary>An earlier client in a fallback chain failed or was skipped, so this client answered.</summary>
+    FellBack = 4,
 }
