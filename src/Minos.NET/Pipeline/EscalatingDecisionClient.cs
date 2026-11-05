@@ -31,7 +31,8 @@ namespace Minos;
 /// call is not bounded by it: the caller's token governs that call. When the primary has answered, and less than
 /// <see cref="EscalationOptions.ExpectedLatency"/> is left before the deadline, the target is not called and the unsure
 /// questions are routed <see cref="RouteReason.NoTimeLeft"/>. A target call still running at the deadline is cancelled and
-/// counts as a target failure; the caller's own cancellation throws <see cref="OperationCanceledException"/>.
+/// counts as a target failure; the caller's own cancellation throws an <see cref="OperationCanceledException"/> whose
+/// <see cref="OperationCanceledException.CancellationToken"/> is the caller's token.
 /// </para>
 /// <para>
 /// The merged response has the primary's <see cref="DecisionResponse.Definition"/>, <see cref="DecisionResponse.Model"/>,

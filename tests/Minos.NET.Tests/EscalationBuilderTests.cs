@@ -102,9 +102,16 @@ public sealed class EscalationBuilderTests
     public void Invalid_options_throw_ArgumentException_at_Build()
     {
         var builder = new DecisionClientBuilder(Fake.Answering(UnsurePrimary))
-            .UseEscalation(Fake.Answering(TargetAnswers), o => o.DefaultThreshold = 2);
+            .UseEscalation(Fake.Answering(TargetAnswers), o =>
+            {
+                o.TargetName = "hosted";
+                o.DefaultThreshold = 2;
+            });
 
-        Assert.ThrowsAny<ArgumentException>(() => builder.Build());
+        var exception = Assert.ThrowsAny<ArgumentException>(() => builder.Build());
+
+        Assert.Equal("options", exception.ParamName);
+        Assert.Contains("DefaultThreshold", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]

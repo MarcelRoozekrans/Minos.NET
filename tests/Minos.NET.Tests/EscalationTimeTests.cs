@@ -284,8 +284,9 @@ public sealed class EscalationTimeTests
         });
         using var client = new EscalatingDecisionClient(Primary(time, []), target, Options(), timeProvider: time);
 
-        await Assert.ThrowsAnyAsync<OperationCanceledException>(
+        var caught = await Assert.ThrowsAnyAsync<OperationCanceledException>(
             () => client.EvaluateAsync(new DecisionRequest(Triage, State) { Deadline = Start.AddSeconds(5) }, cts.Token).AsTask().WaitAsync(TimeSpan.FromSeconds(10)));
+        Assert.Equal(cts.Token, caught.CancellationToken);
     }
 
     [Fact]
