@@ -155,11 +155,12 @@ public sealed class FallbackTimeTests
     }
 
     [Theory]
-    [InlineData(2, true)]
-    [InlineData(4, false)]
-    public async Task Budget_counts_from_stage_entry(int primarySeconds, bool clefCalled)
+    [InlineData(2, 2, true)]
+    [InlineData(1, 6, false)]
+    public async Task Budget_counts_from_stage_entry(int primarySeconds, int clefSeconds, bool clefCalled)
     {
         // The clock already reads 1 minute past Start when the call enters the stage, so the deadline is entry + 5 s.
+        // Clef at 6 s does not fit the budget, so step 0 runs to the deadline and fails after 1 s, leaving 4 s.
         var time = new FakeTimeProvider(Start);
         time.Advance(TimeSpan.FromMinutes(1));
         var entry = time.GetUtcNow();
@@ -167,7 +168,7 @@ public sealed class FallbackTimeTests
         var clef = StubDecisionClient.Answering(StepAnswers);
         using var client = new FallbackDecisionClient(
             primary,
-            Options(TimeSpan.FromSeconds(5), Step("clef", clef, 2)),
+            Options(TimeSpan.FromSeconds(5), Step("clef", clef, clefSeconds)),
             timeProvider: time);
 
         var result = await client.EvaluateAsync(new DecisionRequest(Triage, State));
@@ -324,6 +325,7 @@ public sealed class FallbackTimeTests
     [Fact]
     public async Task A_deadline_already_past_still_calls_step_zero_with_a_live_token()
     {
+        // Step 0 gets the caller's own token, not a cut one: the deadline has passed, so no timer is armed.
         var time = new FakeTimeProvider(Start);
         CancellationToken seenToken = default;
         var primary = new StubDecisionClient((_, token) =>
@@ -332,14 +334,99 @@ public sealed class FallbackTimeTests
             return new(Result<DecisionResponse, DecisionError>.Failure(new DecisionError(DecisionErrorKind.Server, "failed")));
         });
         var clef = StubDecisionClient.Answering(StepAnswers);
+        using var cts = new CancellationTokenSource();
         using var client = new FallbackDecisionClient(primary, Options(null, Step("clef", clef, 0)), timeProvider: time);
 
-        var result = await client.EvaluateAsync(new DecisionRequest(Triage, State) { Deadline = Start.AddSeconds(-1) });
+        var result = await client.EvaluateAsync(new DecisionRequest(Triage, State) { Deadline = Start.AddSeconds(-1) }, cts.Token);
 
         Assert.Equal(1, primary.Calls);
+        Assert.Equal(cts.Token, seenToken);
         Assert.False(seenToken.IsCancellationRequested);
         Assert.False(result.IsSuccess);
         Assert.Equal(0, clef.Calls);
+    }
+
+    [Fact]
+    public async Task A_step_expecting_no_time_is_skipped_when_the_deadline_is_reached()
+    {
+        // ExpectedLatency 0 and exactly 0 left: the step is skipped, not run past the deadline on the caller's token.
+        var time = new FakeTimeProvider(Start);
+        var clef = StubDecisionClient.Answering(StepAnswers);
+        using var client = new FallbackDecisionClient(
+            FailingAfter(time, TimeSpan.FromSeconds(5)),
+            Options(TimeSpan.FromSeconds(5), Step("clef", clef, 0)),
+            timeProvider: time);
+
+        var result = await client.EvaluateAsync(new DecisionRequest(Triage, State));
+
+        Assert.False(result.IsSuccess);
+        Assert.Equal(0, clef.Calls);
+    }
+
+    [Fact]
+    public async Task A_hung_step_zero_cut_late_still_leaves_the_next_step_its_room()
+    {
+        // A real timer fires at or after its due time, and seeing the cancellation takes a little more: the clock reads
+        // 4.701 s when the chain moves on, yet clef's 300 ms are measured from the cut at 4.7 s.
+        var time = new FakeTimeProvider(Start);
+        var primary = new WaitingClient(onCancel: () => time.Advance(TimeSpan.FromMilliseconds(1)));
+        var clef = StubDecisionClient.Answering(StepAnswers, "clef-model");
+        using var client = new FallbackDecisionClient(
+            primary,
+            Options(TimeSpan.FromSeconds(5), Step("clef", clef, 0.3)),
+            timeProvider: time);
+
+        var call = client.EvaluateAsync(new DecisionRequest(Triage, State)).AsTask();
+        await primary.Started.WaitAsync(TimeSpan.FromSeconds(10));
+        time.Advance(TimeSpan.FromMilliseconds(4700));
+        var response = (await call.WaitAsync(TimeSpan.FromSeconds(10))).Value;
+
+        Assert.Equal("clef-model", response.Model);
+        Assert.Equal(
+            [Failed("primary", DecisionErrorKind.Timeout), new DecisionCall("clef", "clef-model", null, IsCached: false)],
+            response.Path!.Calls);
+    }
+
+    [Fact]
+    public async Task A_later_step_cut_late_still_leaves_the_step_after_it_its_room()
+    {
+        var time = new FakeTimeProvider(Start);
+        var clef = new WaitingClient(onCancel: () => time.Advance(TimeSpan.FromMilliseconds(1)));
+        var hosted = StubDecisionClient.Answering(StepAnswers, "hosted-model");
+        using var client = new FallbackDecisionClient(
+            StubDecisionClient.Failing(DecisionErrorKind.Server),
+            Options(TimeSpan.FromSeconds(5), Step("clef", clef, 0.3), Step("hosted", hosted, 1)),
+            timeProvider: time);
+
+        var call = client.EvaluateAsync(new DecisionRequest(Triage, State)).AsTask();
+        await clef.Started.WaitAsync(TimeSpan.FromSeconds(10));
+        time.Advance(TimeSpan.FromSeconds(4));
+        var response = (await call.WaitAsync(TimeSpan.FromSeconds(10))).Value;
+
+        Assert.Equal("hosted-model", response.Model);
+        Assert.Equal(
+            [Failed("primary", DecisionErrorKind.Server), Failed("clef", DecisionErrorKind.Timeout), new DecisionCall("hosted", "hosted-model", null, IsCached: false)],
+            response.Path!.Calls);
+    }
+
+    [Fact]
+    public async Task A_late_cut_leaves_the_room_to_every_step_skipped_after_it()
+    {
+        // [clef 2 s, hosted 300 ms], cut late: clef is skipped, and hosted's room is still measured from the cut.
+        var time = new FakeTimeProvider(Start);
+        var primary = new WaitingClient(onCancel: () => time.Advance(TimeSpan.FromMilliseconds(1)));
+        var hosted = StubDecisionClient.Answering(StepAnswers, "hosted-model");
+        using var client = new FallbackDecisionClient(
+            primary,
+            Options(TimeSpan.FromSeconds(5), Step("clef", StubDecisionClient.Answering(StepAnswers), 2), Step("hosted", hosted, 0.3)),
+            timeProvider: time);
+
+        var call = client.EvaluateAsync(new DecisionRequest(Triage, State)).AsTask();
+        await primary.Started.WaitAsync(TimeSpan.FromSeconds(10));
+        time.Advance(TimeSpan.FromMilliseconds(4700));
+        var response = (await call.WaitAsync(TimeSpan.FromSeconds(10))).Value;
+
+        Assert.Equal("hosted-model", response.Model);
     }
 
     [Fact]
@@ -525,7 +612,7 @@ public sealed class FallbackTimeTests
     }
 
     /// <summary>A client that waits until its token is cancelled, then throws, or returns a time-out failure of its own.</summary>
-    private sealed class WaitingClient(bool failOnCancel = false, Action? onStart = null) : IDecisionClient
+    private sealed class WaitingClient(bool failOnCancel = false, Action? onStart = null, Action? onCancel = null) : IDecisionClient
     {
         private readonly TaskCompletionSource _started = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -542,9 +629,16 @@ public sealed class FallbackTimeTests
             {
                 await Task.Delay(Timeout.Infinite, cancellationToken);
             }
-            catch (OperationCanceledException) when (failOnCancel)
+            catch (OperationCanceledException)
             {
-                return Result<DecisionResponse, DecisionError>.Failure(new DecisionError(DecisionErrorKind.Timeout, "timed out"));
+                // Seeing the cancellation takes time on a real clock.
+                onCancel?.Invoke();
+                if (failOnCancel)
+                {
+                    return Result<DecisionResponse, DecisionError>.Failure(new DecisionError(DecisionErrorKind.Timeout, "timed out"));
+                }
+
+                throw;
             }
 
             throw new InvalidOperationException("The wait ended without cancellation.");

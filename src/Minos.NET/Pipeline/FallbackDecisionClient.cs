@@ -13,7 +13,8 @@ namespace Minos;
 /// The inner client is step 0, named <see cref="FallbackOptions.PrimaryName"/>, and gets the caller's request, with the
 /// stage's deadline set as its <see cref="DecisionRequest.Deadline"/>. When it
 /// answers, its response is returned untouched, with no path added. When it fails with an error
-/// <see cref="FallbackOptions.ShouldFallBack"/> rejects, that error is returned as is.
+/// <see cref="FallbackOptions.ShouldFallBack"/> rejects, that error is returned as is. Without a deadline, such a call
+/// allocates nothing in the stage; with one, the stage arms a timer to cut step 0's call, described below.
 /// </para>
 /// <para>
 /// Each later step gets a new request for the same question set, with the request's state, images and deadline,
@@ -35,12 +36,14 @@ namespace Minos;
 /// <see cref="FallbackOptions.Budget"/>, read from the stage's <see cref="System.TimeProvider"/>, or none. The stage sets it
 /// as the <see cref="DecisionRequest.Deadline"/> of every request it sends. Without a deadline, the caller's token alone
 /// governs each call. With one, a listed step is skipped, as a <see cref="CallOutcome.NotCalledNoTimeLeft"/> call, when
-/// less than its <see cref="FallbackStep.ExpectedLatency"/> is left; and each step's call, step 0's included, is cut at
-/// the deadline minus the smallest <see cref="FallbackStep.ExpectedLatency"/> of the steps after it, so that one of them
-/// still fits. When no step is left after it, or that moment has already passed when the step starts, the call is cut at
-/// the deadline. A cut call fails with a <see cref="DecisionErrorKind.Timeout"/> error of the stage's own, which goes
-/// through <see cref="FallbackOptions.ShouldFallBack"/> like any other failure. A deadline already past when a step is
-/// called leaves that call to the caller's token. The caller's own cancellation stops the chain and throws an
+/// less than its <see cref="FallbackStep.ExpectedLatency"/> is left, or the deadline has passed; and each step's call,
+/// step 0's included, is cut at the deadline minus the smallest <see cref="FallbackStep.ExpectedLatency"/> of the steps
+/// after it, so that one of them still fits. When no step is left after it, or that moment has already passed when the
+/// step starts, the call is cut at the deadline. After a cut, the time left for the next step is measured from the
+/// moment the cut was due, so the room it reserved is not lost to the time the cut takes. A cut call fails with a
+/// <see cref="DecisionErrorKind.Timeout"/> error of the stage's own, which goes through
+/// <see cref="FallbackOptions.ShouldFallBack"/> like any other failure. Step 0 is called even when the deadline has
+/// already passed, and that call is then left to the caller's token. The caller's own cancellation stops the chain and throws an
 /// <see cref="OperationCanceledException"/> whose <see cref="OperationCanceledException.CancellationToken"/> is the
 /// caller's token.
 /// </para>
@@ -53,9 +56,6 @@ public sealed class FallbackDecisionClient : DelegatingDecisionClient
 
     // The error for a step cut at its time limit: a fixed message, with no step name, no status code and no state.
     private static readonly DecisionError CutError = new(DecisionErrorKind.Timeout, "A fallback step ran past its time limit.");
-
-    // The longest delay a CancellationTokenSource timer takes: uint.MaxValue - 1 milliseconds, about 49.7 days.
-    private static readonly TimeSpan MaxTimerDelay = TimeSpan.FromMilliseconds(uint.MaxValue - 1);
 
     private readonly FallbackOptions _options;
     private readonly TimeSpan?[] _laterLatency;
@@ -90,38 +90,64 @@ public sealed class FallbackDecisionClient : DelegatingDecisionClient
         ArgumentNullException.ThrowIfNull(request);
 
         // The effective deadline, resolved once at entry and stamped on every request the stage sends, so a deadline-aware
-        // stage below uses the same clock. The clock is read only when the budget is needed.
-        var deadline = request.Deadline ?? (_options.Budget is { } budget ? TimeProvider.GetUtcNow() + budget : null);
+        // stage below uses the same clock. The clock is read only when there is a deadline.
+        var entry = request.Deadline is not null || _options.Budget is not null ? TimeProvider.GetUtcNow() : default;
+        var deadline = request.Deadline ?? (_options.Budget is { } budget ? entry + budget : null);
         var firstRequest = deadline == request.Deadline ? request : request with { Deadline = deadline };
+
         // Without a deadline the inner client is called directly, so a call step 0 answers adds no state machine of its own.
-        var first = deadline is { } entryDue
-            ? await CallAsync(InnerClient, firstRequest, entryDue, _laterLatency[0], cancellationToken).ConfigureAwait(false)
-            : await InnerClient.EvaluateAsync(firstRequest, cancellationToken).ConfigureAwait(false);
-        var shouldFallBack = _options.ShouldFallBack;
-        if (first.IsSuccess || !shouldFallBack(first.Error))
+        // With one, a deadline already past leaves step 0 to the caller's token: it is never handed a cancelled token.
+        StepOutcome first;
+        if (deadline is { } entryDue && entryDue > entry)
         {
-            return first;
+            first = await CallAsync(InnerClient, firstRequest, entryDue, entry, _laterLatency[0], cancellationToken).ConfigureAwait(false);
+        }
+        else
+        {
+            first = new(await InnerClient.EvaluateAsync(firstRequest, cancellationToken).ConfigureAwait(false), null);
+        }
+
+        var shouldFallBack = _options.ShouldFallBack;
+        if (first.Result.IsSuccess || !shouldFallBack(first.Result.Error))
+        {
+            return first.Result;
         }
 
         // Past step 0 only: a call step 0 answers allocates nothing here.
         var steps = _options.StepList;
-        var calls = new List<DecisionCall>(steps.Count + 1) { FailedCall(_options.PrimaryName, first.Error.Kind) };
+        var calls = new List<DecisionCall>(steps.Count + 1) { FailedCall(_options.PrimaryName, first.Result.Error.Kind) };
         var stepRequest = new DecisionRequest(request.Definition, request.State) { Images = request.Images, Deadline = deadline };
-        var last = first;
+        var last = first.Result;
+
+        // When a call was cut, the time left is measured from the scheduled cut instant, not from the clock read after it:
+        // the cut reserved exactly that room for a later step, and a real timer fires at or after its due time.
+        var cutAt = first.CutAt;
         for (var i = 0; i < steps.Count; i++)
         {
             // The caller's cancellation stops the chain, even when the step before turned it into a failure result.
             cancellationToken.ThrowIfCancellationRequested();
             var step = steps[i];
-            if (deadline is { } due && due - TimeProvider.GetUtcNow() < step.ExpectedLatency)
+            Result<DecisionResponse, DecisionError> result;
+            if (deadline is { } due)
             {
-                calls.Add(new DecisionCall(step.Name, null, null, IsCached: false) { Outcome = CallOutcome.NotCalledNoTimeLeft });
-                continue;
+                // One clock read serves the check and the step's timer. A deadline the clock has already reached leaves
+                // no time, whatever the cut reserved.
+                var now = TimeProvider.GetUtcNow();
+                if (due - (cutAt ?? now) < step.ExpectedLatency || due <= now)
+                {
+                    calls.Add(new DecisionCall(step.Name, null, null, IsCached: false) { Outcome = CallOutcome.NotCalledNoTimeLeft });
+                    continue;
+                }
+
+                var outcome = await CallAsync(step.Client, stepRequest, due, now, _laterLatency[i + 1], cancellationToken).ConfigureAwait(false);
+                result = outcome.Result;
+                cutAt = outcome.CutAt;
+            }
+            else
+            {
+                result = await step.Client.EvaluateAsync(stepRequest, cancellationToken).ConfigureAwait(false);
             }
 
-            var result = deadline is { } stepDue
-                ? await CallAsync(step.Client, stepRequest, stepDue, _laterLatency[i + 1], cancellationToken).ConfigureAwait(false)
-                : await step.Client.EvaluateAsync(stepRequest, cancellationToken).ConfigureAwait(false);
             DecisionError error;
             if (result.IsSuccess)
             {
@@ -180,48 +206,24 @@ public sealed class FallbackDecisionClient : DelegatingDecisionClient
     }
 
     // Calls a step with a token linked to the caller's and cancelled at the step's cut: deadline - laterLatency, the latest
-    // moment a later step could still start, or the deadline itself when no later step is left or that moment has passed.
-    // A call cut there fails with CutError, whether it throws or returns a failure of its own. The caller's own
-    // cancellation, and any other exception, propagate.
-    private async ValueTask<Result<DecisionResponse, DecisionError>> CallAsync(
-        IDecisionClient client, DecisionRequest stepRequest, DateTimeOffset deadline, TimeSpan? laterLatency, CancellationToken cancellationToken)
+    // moment a later step could still start, or the deadline itself when no later step is left or that moment is not after
+    // now. The deadline is after now. A call cut there fails with CutError, whether it throws or returns a failure of its
+    // own, and the outcome carries the cut instant; an answer stands. The caller's own cancellation, and any other
+    // exception, propagate.
+    private async ValueTask<StepOutcome> CallAsync(
+        IDecisionClient client, DecisionRequest stepRequest, DateTimeOffset deadline, DateTimeOffset now, TimeSpan? laterLatency, CancellationToken cancellationToken)
     {
-        var delay = deadline - TimeProvider.GetUtcNow();
-        if (laterLatency is { } room && delay - room > TimeSpan.Zero)
+        var cut = laterLatency is { } room && deadline - room > now ? deadline - room : deadline;
+        var outcome = await TimeLimitedCall.EvaluateAsync(client, stepRequest, cut - now, TimeProvider, cancellationToken).ConfigureAwait(false);
+        if (!outcome.TimedOut)
         {
-            delay -= room;
+            // Without the timer firing, the call ended with a result of its own.
+            return new(outcome.Result.GetValueOrDefault(), null);
         }
 
-        // A deadline already past, or one further off than a timer can run: the caller's token alone governs the call, so
-        // step 0 is never handed a token that is already cancelled.
-        if (delay <= TimeSpan.Zero || delay > MaxTimerDelay)
-        {
-            return await client.EvaluateAsync(stepRequest, cancellationToken).ConfigureAwait(false);
-        }
-
-        using var atCut = new CancellationTokenSource(delay, TimeProvider);
-        using var linked = cancellationToken.CanBeCanceled
-            ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, atCut.Token)
-            : null;
-        Result<DecisionResponse, DecisionError> result;
-        try
-        {
-            result = await client.EvaluateAsync(stepRequest, linked?.Token ?? atCut.Token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (atCut.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
-        {
-            // Which token fired decides, not the exception: the cut's is a step failure, the caller's propagates.
-            return Result<DecisionResponse, DecisionError>.Failure(CutError);
-        }
-        catch (OperationCanceledException exception) when (cancellationToken.IsCancellationRequested && exception.CancellationToken != cancellationToken)
-        {
-            // The caller's cancellation, seen through the linked token: name the caller's token, as a call without a deadline does.
-            throw new OperationCanceledException(exception.Message, exception, cancellationToken);
-        }
-
-        // A step that turned the cut into a failure of its own fails with the stage's error; an answer stands.
-        return !result.IsSuccess && atCut.IsCancellationRequested && !cancellationToken.IsCancellationRequested
-            ? Result<DecisionResponse, DecisionError>.Failure(CutError)
-            : result;
+        return outcome.Result is { IsSuccess: true } answer ? new(answer, null) : new(Result<DecisionResponse, DecisionError>.Failure(CutError), cut);
     }
+
+    // A step's result, and the instant its call was cut at, when it was.
+    private readonly record struct StepOutcome(Result<DecisionResponse, DecisionError> Result, DateTimeOffset? CutAt);
 }
