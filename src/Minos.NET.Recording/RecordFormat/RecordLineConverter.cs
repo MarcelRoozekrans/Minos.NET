@@ -62,6 +62,13 @@ internal static class RecordLineConverter
             return false;
         }
 
+        // Version 4 is written only for a path with a call that did not answer, so any other version 4 line has two encodings.
+        if (version == RecordLine.VersionWithCallOutcomes && (calls is null || calls.All(c => c.Outcome == CallOutcome.Answered)))
+        {
+            message = "The record line is version 4 without a call that did not answer.";
+            return false;
+        }
+
         if (!TryToAnswers(dto.Answers, hasPath, out var answers, out message))
         {
             return false;
@@ -151,6 +158,7 @@ internal static class RecordLineConverter
             return dto.ErrorKind is null;
         }
 
+        // A Failed call may have no error kind: a stage can fail a call without classifying the error, so this is accepted.
         if (version < RecordLine.VersionWithCallOutcomes
             || number is not ((int)CallOutcome.Failed or (int)CallOutcome.NotCalledNoTimeLeft)
             || !TryToErrorKind(dto.ErrorKind, out errorKind)

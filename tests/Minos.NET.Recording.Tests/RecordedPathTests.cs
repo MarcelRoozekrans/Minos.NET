@@ -472,6 +472,32 @@ public sealed class RecordedPathTests : IDisposable
     }
 
     [Fact]
+    public async Task A_failed_call_without_an_error_kind_round_trips()
+    {
+        var record = WithFailedCall(Record());
+        DecisionCall[] calls = [new("local", null, null, false) { Outcome = CallOutcome.Failed }, record.Calls![2]];
+        var written = new DecisionRecord(
+            record.DecisionId, record.ErasureKey, record.Started, record.Latency, record.Provider, record.Endpoint, record.DefaultModel,
+            record.RequestedModel, record.ServedModel, record.ResponseId, record.UpstreamProvider, record.Usage, record.IsCached,
+            record.Definition, record.State, record.ImageCount, record.ImageHashes, record.Answers, record.ErrorKind, record.RefusedKeys,
+            calls: calls);
+
+        var bytes = Bytes(written);
+        var (decisions, problems) = await ReadAsync(bytes);
+
+        Assert.Empty(problems);
+        Assert.Equal(calls, Assert.Single(decisions).Record.Calls);
+        Assert.Equal(Text(bytes), Text(Bytes(decisions[0].Record)));
+    }
+
+    [Fact]
+    public async Task A_version_4_line_without_an_unanswered_call_is_a_problem()
+    {
+        await AssertOneProblemAsync(Text(Bytes(WithPath(Record("d-bad")))).Replace("\"version\":3", "\"version\":4", StringComparison.Ordinal));
+        await AssertOneProblemAsync(Text(Bytes(Record("d-bad"))).Replace("\"version\":1", "\"version\":4", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public async Task The_shadow_request_has_no_deadline()
     {
         var sink = new RecordingSpySink();
