@@ -84,6 +84,33 @@ public sealed class FallbackRegistrationTests
         Assert.Equal("backup", Assert.Single(options.Steps).Name);
     }
 
+    [Fact]
+    public void A_cycle_between_keyed_clients_throws_naming_a_key()
+    {
+        var services = new ServiceCollection();
+        services.AddDecisionClient("a", _ => new TestClient(fail: true)).UseFallback(new KeyedFallbackStep("b", TimeSpan.Zero));
+        services.AddDecisionClient("b", _ => new TestClient(fail: true)).UseFallback(new KeyedFallbackStep("a", TimeSpan.Zero));
+        using var provider = services.BuildServiceProvider();
+
+        var ex = Assert.Throws<InvalidOperationException>(() => provider.GetRequiredKeyedService<IDecisionClient>("a"));
+
+        Assert.Contains("cycle", ex.Message, StringComparison.Ordinal);
+        Assert.Matches("'[ab]'", ex.Message);
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    public void An_empty_or_null_key_throws_naming_its_index(string? key)
+    {
+        var builder = new ServiceCollection().AddDecisionClient(_ => new TestClient(fail: true));
+
+        var ex = Assert.ThrowsAny<ArgumentException>(
+            () => builder.UseFallback(new KeyedFallbackStep("ok", TimeSpan.Zero), new KeyedFallbackStep(key!, TimeSpan.Zero)));
+
+        Assert.Contains("index 1", ex.Message, StringComparison.Ordinal);
+    }
+
     private sealed class TestClient(bool fail) : IDecisionClient
     {
         private int _calls;

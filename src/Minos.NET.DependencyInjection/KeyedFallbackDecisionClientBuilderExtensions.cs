@@ -59,9 +59,12 @@ public static class KeyedFallbackDecisionClientBuilderExtensions
     private static DecisionClientBuilder UseFallbackCore(DecisionClientBuilder builder, Action<FallbackOptions>? configure, KeyedFallbackStep[] steps)
     {
         var copy = (KeyedFallbackStep[])steps.Clone();
-        foreach (var step in copy)
+        for (var i = 0; i < copy.Length; i++)
         {
-            ArgumentException.ThrowIfNullOrEmpty(step.Key, nameof(steps));
+            if (string.IsNullOrEmpty(copy[i].Key))
+            {
+                throw new ArgumentException($"The key of the fallback step at index {i} must not be null or empty.", nameof(steps));
+            }
         }
 
         return builder.UseFallback(services =>
