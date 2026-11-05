@@ -53,9 +53,6 @@ public sealed class EscalatingDecisionClient : DelegatingDecisionClient
     private const string DeadlineErrorKind = "DeadlineExceeded";
     private const string MismatchErrorKind = "DefinitionMismatch";
 
-    // The longest delay a CancellationTokenSource timer takes: uint.MaxValue - 1 milliseconds, about 49.7 days.
-    private static readonly TimeSpan MaxTimerDelay = TimeSpan.FromMilliseconds(uint.MaxValue - 1);
-
     /// <summary>Initializes a new instance of the <see cref="EscalatingDecisionClient"/> class.</summary>
     /// <param name="innerClient">The primary client, asked first.</param>
     /// <param name="target">The client the unsure questions are re-asked on. The stage does not dispose it.</param>
@@ -194,30 +191,14 @@ public sealed class EscalatingDecisionClient : DelegatingDecisionClient
     private async ValueTask<Result<DecisionResponse, DecisionError>?> EvaluateTargetAsync(
         DecisionRequest subsetRequest, TimeSpan? timeLeft, CancellationToken cancellationToken)
     {
-        // No deadline, or one further off than a timer can run: the caller's token alone governs the call.
-        if (timeLeft is not { } delay || delay > MaxTimerDelay)
+        // No deadline: the caller's token alone governs the call.
+        if (timeLeft is not { } delay)
         {
             return await _target.EvaluateAsync(subsetRequest, cancellationToken).ConfigureAwait(false);
         }
 
-        using var atDeadline = new CancellationTokenSource(delay, TimeProvider);
-        using var linked = cancellationToken.CanBeCanceled
-            ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, atDeadline.Token)
-            : null;
-        try
-        {
-            return await _target.EvaluateAsync(subsetRequest, linked?.Token ?? atDeadline.Token).ConfigureAwait(false);
-        }
-        catch (OperationCanceledException) when (atDeadline.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
-        {
-            // Which token fired decides, not the exception: the deadline's is a target failure, the caller's propagates.
-            return null;
-        }
-        catch (OperationCanceledException exception) when (cancellationToken.IsCancellationRequested && exception.CancellationToken != cancellationToken)
-        {
-            // The caller's cancellation, seen through the linked token: name the caller's token, as a call without a deadline does.
-            throw new OperationCanceledException(exception.Message, exception, cancellationToken);
-        }
+        var outcome = await TimeLimitedCall.EvaluateAsync(_target, subsetRequest, delay, TimeProvider, cancellationToken).ConfigureAwait(false);
+        return outcome.Result;
     }
 
     private static void MarkNoTimeLeft(QuestionRoute[] routes)
