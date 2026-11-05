@@ -13,6 +13,99 @@ public sealed class CachedPathTests
     private static ReadOnlySpan<byte> Entry190 =>
         """{"v":1,"model":"jev-1.13.0","input_tokens":296,"output_tokens":20,"cost":0.0012,"id":"gen-0001","provider":"Together","slots":[[0,0.9,0,0],[1,0,0.7,0],[2,1.9,0.8,3]],"probabilities":[0.2,0.7,0.1,0,0.1,0.9]}"""u8;
 
+    // The bytes today's writer gave for a response with a path, before calls kept an outcome: version 3, calls of six items.
+    private static ReadOnlySpan<byte> PathEntryBeforeOutcomes =>
+        """{"v":3,"model":"jev-1.13.0","input_tokens":296,"output_tokens":20,"cost":0.0012,"id":"gen-0001","provider":"Together","slots":[[0,0.9,0,0],[1,0,0.7,0],[2,1.9,0.8,3]],"probabilities":[0.2,0.7,0.1,0,0.1,0.9],"path":{"routes":[["primary",0,0.9,null],["big",1,0.4,0.8],["primary",3,0.55,0.3]],"calls":[["primary","small-1",10,2,0.001,false],["big",null,null,null,null,true]]}}"""u8;
+
+    private static DecisionPath FallbackPath() => new(
+        [
+            new QuestionRoute("is_urgent", "backup", RouteReason.FellBack, 0, null),
+            new QuestionRoute("department", "backup", RouteReason.FellBack, 0, null),
+            new QuestionRoute("severity", "backup", RouteReason.FellBack, 0, null),
+        ],
+        [
+            new DecisionCall("primary", "small-1", null, false) { Outcome = CallOutcome.Failed, ErrorKind = DecisionErrorKind.Timeout },
+            new DecisionCall("second", null, null, false) { Outcome = CallOutcome.Failed },
+            new DecisionCall("third", null, null, false) { Outcome = CallOutcome.NotCalledNoTimeLeft },
+            new DecisionCall("backup", "m", new DecisionUsage { InputTokens = 5 }, false),
+        ]);
+
+    private static DecisionResponse Fallback()
+    {
+        var plain = Responses.Answer();
+        return new DecisionResponse(
+            Responses.Triage, plain.Slots, plain.Probabilities, plain.Model, plain.InputTokens, plain.OutputTokens, plain.Cost, plain.Id, plain.UpstreamProvider)
+        {
+            Path = FallbackPath(),
+        };
+    }
+
+    [Fact]
+    public async Task A_fallback_response_round_trips_with_outcomes_and_FellBack_routes()
+    {
+        var read = CachedDecisionFormat.Read(CachedDecisionFormat.Write(CachedDecision.From(Fallback().AsCached()))).ResponseFor(Responses.Triage);
+        Assert.NotNull(read);
+        AssertPath(FallbackPath(), read.Path);
+
+        var distributed = new CountingDistributedCache();
+        var inner = new ScriptedClient(TypeSafe).Then(Result<DecisionResponse, DecisionError>.Success(Fallback()));
+        using var firstMemory = Responses.Memory();
+        using var first = new CachingDecisionClient(inner, firstMemory, distributed);
+        await first.EvaluateAsync(Responses.Request());
+        var memoryHit = await first.EvaluateAsync(Responses.Request());
+        using var secondMemory = Responses.Memory();
+        using var second = new CachingDecisionClient(new ScriptedClient(TypeSafe), secondMemory, distributed);
+        var distributedHit = await second.EvaluateAsync(Responses.Request());
+
+        Assert.True(memoryHit.Value.IsCached);
+        AssertPath(FallbackPath(), memoryHit.Value.Path);
+        Assert.True(distributedHit.Value.IsCached);
+        AssertPath(FallbackPath(), distributedHit.Value.Path);
+    }
+
+    [Fact]
+    public void An_Answered_call_writes_no_outcome_so_the_entry_keeps_its_old_shape()
+    {
+        var bytes = CachedDecisionFormat.Write(CachedDecision.From(Merged().AsCached()));
+
+        using var document = JsonDocument.Parse(bytes);
+        foreach (var call in document.RootElement.GetProperty("path").GetProperty("calls").EnumerateArray())
+        {
+            Assert.Equal(6, call.GetArrayLength());
+        }
+    }
+
+    [Fact]
+    public void An_entry_written_before_this_phase_reads_calls_as_Answered()
+    {
+        var read = CachedDecisionFormat.Read(PathEntryBeforeOutcomes).ResponseFor(Responses.Triage);
+
+        Assert.NotNull(read);
+        Assert.Equal(2, read.Path!.Calls.Count);
+        Assert.All(read.Path.Calls, call =>
+        {
+            Assert.Equal(CallOutcome.Answered, call.Outcome);
+            Assert.Null(call.ErrorKind);
+        });
+        Assert.True(read.Path.Calls[1].IsCached);
+    }
+
+    [Theory]
+    [InlineData("""["a",null,null,null,null,false,3]""")]
+    [InlineData("""["a",null,null,null,null,false,-1]""")]
+    [InlineData("""["a",null,null,null,null,false,1,99]""")]
+    [InlineData("""["a",null,null,null,null,false,1,-1]""")]
+    [InlineData("""["a",null,null,null,null,false,"1"]""")]
+    [InlineData("""["a",null,null,null,null,false,1,"x"]""")]
+    [InlineData("""["a",null,null,null,null,false,1,1,1]""")]
+    public void An_unknown_outcome_is_a_miss(string call)
+    {
+        var read = CachedDecisionFormat.Read(WithRawPath($$"""{"routes":[],"calls":[{{call}}]}"""));
+
+        Assert.Same(CachedDecision.Unreadable, read);
+        Assert.Null(read.ResponseFor(Responses.Triage));
+    }
+
     private static DecisionPath MergedPath() => new(
         [
             new QuestionRoute("is_urgent", "primary", RouteReason.Confident, 0.9, null),
@@ -215,7 +308,7 @@ public sealed class CachedPathTests
     [InlineData("""{"routes":[],"calls":[["a",null,null,-2,null,false]]}""")]
     [InlineData("""{"routes":[],"calls":[["a",null,null,null,-0.5,false]]}""")]
     [InlineData("""{"routes":[["a",-1,0.5,null]],"calls":[["a",null,null,null,null,false]]}""")]
-    [InlineData("""{"routes":[["a",4,0.5,null]],"calls":[["a",null,null,null,null,false]]}""")]
+    [InlineData("""{"routes":[["a",5,0.5,null]],"calls":[["a",null,null,null,null,false]]}""")]
     [InlineData("null")]
     public void A_malformed_stored_path_is_unreadable_and_never_throws(string pathJson)
     {
