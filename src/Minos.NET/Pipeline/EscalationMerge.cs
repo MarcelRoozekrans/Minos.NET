@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Diagnostics;
 using Minos.Telemetry;
 
 namespace Minos;
@@ -110,7 +111,6 @@ internal static class EscalationMerge
     internal static DecisionResponse KeepPrimary(DecisionResponse primary, QuestionRoute[] routes, DecisionCall[] calls, string? targetName = null, string? skipped = null)
         => Build(primary, primary.Slots, primary.Probabilities, routes, calls, primary.IsCached, targetName, escalated: 0, skipped);
 
-
     // The primary's model, id and upstream provider; the usage summed per field over the calls, each field null only
     // when no call reported it.
     private static DecisionResponse Build(DecisionResponse primary, AnswerSlot[] slots, double[] probabilities, QuestionRoute[] routes, DecisionCall[] calls, bool isCached, string? targetName, int escalated, string? skipped)
@@ -125,15 +125,20 @@ internal static class EscalationMerge
             cost = Sum(cost, call.Usage?.Cost);
         }
 
-        return new DecisionResponse(primary.Definition, slots, probabilities, primary.Model, inputTokens, outputTokens, cost, primary.Id, primary.UpstreamProvider, isCached)
+        // The telemetry holder exists only when a question was unsure, which is when the caller names the target.
+        Debug.Assert(targetName is not null || (escalated == 0 && skipped is null), "Only a call with an unsure question escalates or skips.");
+        var escalation = targetName is null ? null : new EscalationTelemetry(targetName, escalated, skipped);
+        var response = new DecisionResponse(primary.Definition, slots, probabilities, primary.Model, inputTokens, outputTokens, cost, primary.Id, primary.UpstreamProvider, isCached)
         {
-            Path = DecisionPath.FromOwnedArrays(routes, calls),
-            EscalatedTag = escalated > 0 ? escalated : null,
-            SkippedTag = skipped,
-            EscalationEvents = targetName is null ? null : 1,
-            EscalationTargetTag = targetName,
-            EscalationReasonTag = targetName is null ? null : skipped ?? DecisionTelemetry.ReasonEscalated,
+            Path = DecisionPath.FromOwnedArrays(routes, calls, escalation),
         };
+
+        if (escalation is not null)
+        {
+            escalation.Owner = response;
+        }
+
+        return response;
     }
 
     private static QuestionSetDefinition Build(QuestionSetDefinition definition, int[] unsure)

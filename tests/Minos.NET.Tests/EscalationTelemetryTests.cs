@@ -79,6 +79,36 @@ public sealed class EscalationTelemetryTests
     }
 
     [Fact]
+    public async Task A_copy_that_shares_an_escalated_path_reports_no_escalation_telemetry()
+    {
+        var escalating = Stage(new Fake(request => Fake.Respond(request.Definition, Unsure)), Fake.Answering(TargetAnswers));
+        var escalated = (await escalating.EvaluateAsync(new DecisionRequest(QuestionSets.TriageDefinition(), State))).Value;
+
+        // A custom stage that rebuilds the response and keeps the path, as a custom cache stage can.
+        var copy = new DecisionResponse(escalated.Definition, [.. escalated.Answers], escalated.Model, escalated.Usage) { Path = escalated.Path };
+
+        Assert.Equal(1, escalated.EscalationEvents);
+        Assert.Same(escalated.Path, copy.Path);
+        Assert.Null(copy.EscalatedTag);
+        Assert.Null(copy.SkippedTag);
+        Assert.Null(copy.EscalationEvents);
+        Assert.Null(copy.EscalationTargetTag);
+        Assert.Null(copy.EscalationReasonTag);
+    }
+
+    [Fact]
+    public async Task Without_an_unsure_question_the_path_holds_no_escalation_telemetry()
+    {
+        var escalating = Stage(new Fake(request => Fake.Respond(request.Definition, Confident)), Fake.Answering(TargetAnswers));
+
+        var response = (await escalating.EvaluateAsync(new DecisionRequest(QuestionSets.TriageDefinition(), State))).Value;
+
+        Assert.NotNull(response.Path);
+        Assert.Null(response.Path.Escalation);
+        Assert.Null(response.EscalationEvents);
+    }
+
+    [Fact]
     public async Task A_target_failure_tags_the_span_skipped_and_the_counter_target_failed()
     {
         using var capture = new TelemetryCapture();

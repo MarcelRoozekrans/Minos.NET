@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.Diagnostics;
+using Minos.Telemetry;
 
 namespace Minos;
 
@@ -41,13 +42,16 @@ public sealed class DecisionPath
 
     // Takes ownership of arrays a routing stage built for this path alone, without copying or checking them. A factory
     // over a private constructor, so a caller elsewhere with arrays in hand never picks it instead of the copying one.
-    internal static DecisionPath FromOwnedArrays(QuestionRoute[] routes, DecisionCall[] calls) => new(routes, calls);
+    // The escalation stage passes its telemetry when a question was unsure; every other path has none.
+    internal static DecisionPath FromOwnedArrays(QuestionRoute[] routes, DecisionCall[] calls, EscalationTelemetry? escalation = null)
+        => new(routes, calls, escalation);
 
-    private DecisionPath(QuestionRoute[] routes, DecisionCall[] calls)
+    private DecisionPath(QuestionRoute[] routes, DecisionCall[] calls, EscalationTelemetry? escalation)
     {
         Debug.Assert(calls.Length != 0, "A path has at least one call.");
         Routes = routes.Length == 0 ? [] : new ReadOnlyCollection<QuestionRoute>(routes);
         Calls = new ReadOnlyCollection<DecisionCall>(calls);
+        Escalation = escalation;
     }
 
     /// <summary>Gets one route per question, in definition order.</summary>
@@ -55,6 +59,9 @@ public sealed class DecisionPath
 
     /// <summary>Gets each call made, in the order made; the first is the primary client's.</summary>
     public IReadOnlyList<DecisionCall> Calls { get; }
+
+    // The escalation stage's telemetry, or null; DecisionResponse reads it only for the response the stage built.
+    internal EscalationTelemetry? Escalation { get; }
 
     /// <summary>The certainty a threshold is compared with: the larger of <c>p</c> and <c>1 - p</c> for a Noul, otherwise the confidence.</summary>
     /// <param name="kind">The question's kind.</param>
