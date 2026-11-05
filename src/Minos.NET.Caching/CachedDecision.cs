@@ -16,7 +16,7 @@ internal sealed class CachedDecision
     /// The layout version of an entry with a per-answer probability source, which <see cref="CachedDecisionFormat"/>
     /// writes and reads.
     /// </summary>
-    public const int CurrentVersion = 2;
+    public const int SourcesVersion = 2;
 
     /// <summary>
     /// The layout version of an entry that stores an escalation path. Written only for a response that has a path; it

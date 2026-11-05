@@ -133,6 +133,20 @@ public sealed class CachedPathTests
         Assert.Same(CachedDecision.Unreadable, read);
     }
 
+    // The record reader rejects an empty client name too, so the two readers agree.
+    [Theory]
+    [InlineData("routes")]
+    [InlineData("calls")]
+    public void An_empty_client_name_makes_the_entry_unreadable(string list)
+    {
+        var json = JsonNode.Parse(CachedDecisionFormat.Write(CachedDecision.From(Merged().AsCached())))!.AsObject();
+        json["path"]![list]![0]![0] = string.Empty;
+
+        var read = CachedDecisionFormat.Read(Encoding.UTF8.GetBytes(json.ToJsonString()));
+
+        Assert.Same(CachedDecision.Unreadable, read);
+    }
+
     [Fact]
     public void A_path_in_an_entry_below_version_3_is_unreadable()
     {

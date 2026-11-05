@@ -32,7 +32,7 @@ internal static class CachedDecisionFormat
             var marked = HasMarkedSlot(value.Slots);
             var version = value.Path is not null
                 ? CachedDecision.PathVersion
-                : marked ? CachedDecision.CurrentVersion : CachedDecision.ModelOnlyVersion;
+                : marked ? CachedDecision.SourcesVersion : CachedDecision.ModelOnlyVersion;
             writer.WriteNumber("v"u8, version);
             WriteString(writer, "model"u8, value.Model);
             WriteNumber(writer, "input_tokens"u8, value.InputTokens);
@@ -423,7 +423,7 @@ internal static class CachedDecisionFormat
         {
             case CachedDecision.ModelOnlyVersion:
                 return sources is null;
-            case CachedDecision.CurrentVersion when sources is not null && sources.Length == slots.Length:
+            case CachedDecision.SourcesVersion when sources is not null && sources.Length == slots.Length:
             case CachedDecision.PathVersion when sources is not null && sources.Length == slots.Length:
                 // The slots were just read for this entry and nothing else holds them, so setting them in place is safe.
                 for (var i = 0; i < slots.Length; i++)
@@ -543,7 +543,7 @@ internal static class CachedDecisionFormat
         return read;
     }
 
-    // A string that is present; null is not a value here.
+    // A string that is present and not empty, as the record reader requires of a client name; null is not a value here.
     private static bool TryReadRequiredString(ref Utf8JsonReader reader, out string value)
     {
         value = string.Empty;
@@ -553,7 +553,7 @@ internal static class CachedDecisionFormat
         }
 
         value = reader.GetString()!;
-        return true;
+        return value.Length > 0;
     }
 
     private static bool TryReadString(ref Utf8JsonReader reader, out string? value)
