@@ -241,8 +241,8 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
             response = result.Value;
             var count = response.Answers.Count;
             answers = count == 0 ? [] : new RecordedAnswer[count];
-            // A path that does not match the answers one to one by key, as a hand-built one can, is not recorded at all.
-            var path = MatchingPath(response);
+            // The response's Path init already holds one route per answer, by key.
+            var path = response.Path;
             for (var i = 0; i < answers.Length; i++)
             {
                 answers[i] = path is null ? RecordedAnswer.From(response.Answers[i]) : RecordedAnswer.From(response.Answers[i], path.Routes[i]);
@@ -291,24 +291,6 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
         }
 
         runner?.Start(request, shadow);
-    }
-
-    private static DecisionPath? MatchingPath(DecisionResponse response)
-    {
-        if (response.Path is not { } path || path.Routes.Count != response.Answers.Count)
-        {
-            return null;
-        }
-
-        for (var i = 0; i < path.Routes.Count; i++)
-        {
-            if (!string.Equals(path.Routes[i].Key, response.Answers[i].Key, StringComparison.Ordinal))
-            {
-                return null;
-            }
-        }
-
-        return path;
     }
 
     // Runs the redactor. A redactor that throws or returns null keeps no record; its exception's message is never logged,
