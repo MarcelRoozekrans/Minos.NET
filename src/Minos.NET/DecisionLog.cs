@@ -227,7 +227,8 @@ internal static partial class DecisionLog
     public static partial void EscalationTargetFailed(ILogger logger, string target, string errorKind);
 
     /// <summary>
-    /// A fallback stage's step failed with an error the chain moves on from; a cut step logs <see cref="DeadlineExceeded"/>
+    /// A fallback stage's step failed with an error the chain moves on from, and a later step is left to move on to; the
+    /// last step's failure logs only <see cref="FallbackExhausted"/>. A cut step logs <see cref="DeadlineExceeded"/>
     /// and one that answered another question set <see cref="DefinitionMismatch"/>. Only the step's name and the error kind
     /// are logged.
     /// </summary>

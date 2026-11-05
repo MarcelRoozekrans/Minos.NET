@@ -29,8 +29,9 @@ public sealed class FallbackOptions
     public TimeSpan? Budget { get; set; }
 
     /// <summary>
-    /// Gets or sets whether a failed call moves on to the next step; a failure it rejects is returned as is. Must not be
-    /// <see langword="null"/>. Defaults to <see cref="IsProviderFailure"/>.
+    /// Gets or sets whether a failed call moves on to the next step; a failure it rejects is returned as is. A
+    /// <see cref="DecisionErrorKind.Disposed"/> failure never moves on, whatever this returns, and is not passed to it. Must
+    /// not be <see langword="null"/>. Defaults to <see cref="IsProviderFailure"/>.
     /// </summary>
     public Func<DecisionError, bool> ShouldFallBack { get; set; } = IsProviderFailure;
 

@@ -12,26 +12,29 @@ namespace Minos;
 /// <remarks>
 /// <para>
 /// The inner client is step 0, named <see cref="FallbackOptions.PrimaryName"/>, and gets the caller's request, with the
-/// stage's deadline set as its <see cref="DecisionRequest.Deadline"/>. When it
-/// answers, its response is returned untouched, with no path added. When it fails with an error
-/// <see cref="FallbackOptions.ShouldFallBack"/> rejects, that error is returned as is. Without a deadline, such a call
-/// allocates nothing in the stage; with one, the stage arms a timer to cut step 0's call, described below.
+/// stage's deadline set as its <see cref="DecisionRequest.Deadline"/>. When it answers, its response is returned
+/// untouched, with no path added. When it fails with an error <see cref="FallbackOptions.ShouldFallBack"/> rejects, that
+/// error is returned as is. Without a deadline, a call step 0 answers synchronously allocates nothing in the stage; one it
+/// completes asynchronously boxes the stage's own state machine, as any awaiting stage does. With a deadline, the stage
+/// arms a timer to cut step 0's call, described below.
 /// </para>
 /// <para>
 /// Each later step gets a new request for the same question set, with the request's state, images and deadline,
 /// <see cref="DecisionRequest.RetryAttempt"/> 0 and no <see cref="DecisionRequest.Model"/>, so the step uses its own
 /// model. The first step that answers ends the chain: the response is that step's, with its model, id, upstream provider
-/// and cache flag, its <see cref="DecisionResponse.Usage"/> summed over the path's calls, and a path whose routes are <see cref="RouteReason.FellBack"/> to that step and whose calls list
-/// each step tried, ending with the answering one. A step whose response already has a path, from a routing stage in its
-/// own pipeline, keeps its routes, and its calls follow the failed ones. A step that answers a different question set
-/// than it was asked is a failed call of kind <see cref="DecisionErrorKind.InvalidResponse"/> that keeps the usage it
-/// reported, so that usage counts toward the response's.
+/// and cache flag, its <see cref="DecisionResponse.Usage"/> summed over the path's calls, and a path whose routes are
+/// <see cref="RouteReason.FellBack"/> to that step and whose calls list each step tried, ending with the answering one.
+/// A step whose response already has a path, from a routing stage in its own pipeline, keeps its routes, and its calls
+/// follow the failed ones. A step that answers a different question set than it was asked is a failed call of kind
+/// <see cref="DecisionErrorKind.InvalidResponse"/> that keeps the usage it reported, so that usage counts toward the
+/// response's.
 /// </para>
 /// <para>
-/// A step's failure that <see cref="FallbackOptions.ShouldFallBack"/> rejects is returned as is. When every step has
-/// failed or been skipped, the error of the last step called is returned; step 0 is always called. An exception a step
-/// throws propagates, and the remaining steps are not asked. Disposing the stage disposes the inner client, not the
-/// steps' clients.
+/// A step's failure that <see cref="FallbackOptions.ShouldFallBack"/> rejects is returned as is, and so is a
+/// <see cref="DecisionErrorKind.Disposed"/> failure of any step, step 0 included, whatever
+/// <see cref="FallbackOptions.ShouldFallBack"/> returns. When every step has failed or been skipped, the error of the last
+/// step called is returned; step 0 is always called. An exception a step throws propagates, and the remaining steps are
+/// not asked. Disposing the stage disposes the inner client, not the steps' clients.
 /// </para>
 /// <para>
 /// The deadline is the request's <see cref="DecisionRequest.Deadline"/>, or the stage's entry plus
@@ -52,7 +55,8 @@ namespace Minos;
 /// <para>
 /// A call that went past step 0 is counted once on the <c>minos.fallbacks</c> counter of the <c>Minos</c> meter, as
 /// <c>answered</c> with the answering step's name or as <c>exhausted</c>, and, with a logger, logs each step that failed
-/// and moved on, each step skipped for time, and the answering step or the exhausted chain. A response a later step
+/// while a later step was left to move on to, each step skipped for time, and the answering step or the exhausted chain.
+/// A chain the caller's cancellation stops is neither counted nor logged as exhausted. A response a later step
 /// answered carries the <c>minos.fallback.steps</c> and <c>minos.fallback.answered_by</c> values for a telemetry stage
 /// outside this one. None of these carry the state, a question or a key: only step names, counts and error kinds.
 /// </para>
@@ -104,8 +108,10 @@ public sealed class FallbackDecisionClient : DelegatingDecisionClient
         var deadline = request.Deadline ?? (_options.Budget is { } budget ? entry + budget : null);
         var firstRequest = deadline == request.Deadline ? request : request with { Deadline = deadline };
 
-        // Without a deadline the inner client is called directly, so a call step 0 answers adds no state machine of its own.
-        // With one, a deadline already past leaves step 0 to the caller's token: it is never handed a cancelled token.
+        // Without a deadline the inner client is called directly, with no timer: a call step 0 answers synchronously
+        // allocates nothing here, which is what the allocation gate measures. One step 0 completes asynchronously boxes
+        // this method's state machine. With a deadline, one already past leaves step 0 to the caller's token: it is never
+        // handed a cancelled token.
         StepOutcome first;
         if (deadline is { } entryDue && entryDue > entry)
         {
@@ -116,8 +122,7 @@ public sealed class FallbackDecisionClient : DelegatingDecisionClient
             first = new(await InnerClient.EvaluateAsync(firstRequest, cancellationToken).ConfigureAwait(false), null);
         }
 
-        var shouldFallBack = _options.ShouldFallBack;
-        if (first.Result.IsSuccess || !shouldFallBack(first.Result.Error))
+        if (first.Result.IsSuccess || !MovesOn(first.Result.Error))
         {
             return first.Result;
         }
@@ -197,15 +202,19 @@ public sealed class FallbackDecisionClient : DelegatingDecisionClient
 
             last = result;
             lastLogged = logged;
-            if (!shouldFallBack(error))
+            if (!MovesOn(error))
             {
-                return Exhausted(result, i + 1, logged);
+                return Exhausted(result, i + 1, logged, cancellationToken);
             }
 
-            LogStepFailed(step.Name, logged, cancellationToken);
+            // The last step's failure ends the chain, so only 1019 says so.
+            if (i + 1 < steps.Count)
+            {
+                LogStepFailed(step.Name, logged, cancellationToken);
+            }
         }
 
-        return Exhausted(last, steps.Count, lastLogged);
+        return Exhausted(last, steps.Count, lastLogged, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -231,9 +240,17 @@ public sealed class FallbackDecisionClient : DelegatingDecisionClient
         }
     }
 
-    // The chain went past step 0 and got no answer: every step failed or was skipped, or a step's failure stopped it.
-    private Result<DecisionResponse, DecisionError> Exhausted(Result<DecisionResponse, DecisionError> result, int steps, string errorKind)
+    // Whether a failure moves the chain on. A Disposed failure never does, whatever ShouldFallBack says: the app is
+    // shutting down, as the retry stage treats it.
+    private bool MovesOn(DecisionError error)
+        => error.Kind != DecisionErrorKind.Disposed && _options.ShouldFallBack(error);
+
+    // The chain went past step 0 and got no answer: every step failed or was skipped, or a step's failure stopped it. A
+    // failure a step made of the caller's cancellation is not an exhausted chain: the caller's cancellation throws.
+    private Result<DecisionResponse, DecisionError> Exhausted(
+        Result<DecisionResponse, DecisionError> result, int steps, string errorKind, CancellationToken cancellationToken)
     {
+        cancellationToken.ThrowIfCancellationRequested();
         if (Logger is { } logger)
         {
             DecisionLog.FallbackExhausted(logger, steps, errorKind);

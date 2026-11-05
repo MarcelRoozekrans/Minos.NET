@@ -168,6 +168,41 @@ public sealed class FallbackTests
     }
 
     [Fact]
+    public async Task A_Disposed_failure_stops_the_chain_whatever_ShouldFallBack_returns()
+    {
+        // The app is shutting down: like the retry stage, the chain never moves on from Disposed, and the predicate is not asked.
+        var seen = new List<DecisionErrorKind>();
+        bool Everything(DecisionError error)
+        {
+            seen.Add(error.Kind);
+            return true;
+        }
+
+        var disposed = new DecisionError(DecisionErrorKind.Disposed, "disposed");
+        var clef = StubDecisionClient.Answering(StepAnswers);
+        var firstOptions = Options(new FallbackStep("clef", clef));
+        firstOptions.ShouldFallBack = Everything;
+        using (var atStepZero = new FallbackDecisionClient(StubDecisionClient.Failing(disposed), firstOptions))
+        {
+            var result = await atStepZero.EvaluateAsync(new DecisionRequest(Triage, State));
+            Assert.Same(disposed, result.Error);
+        }
+
+        var hosted = StubDecisionClient.Answering(StepAnswers);
+        var laterOptions = Options(new FallbackStep("clef", StubDecisionClient.Failing(disposed)), new FallbackStep("hosted", hosted));
+        laterOptions.ShouldFallBack = Everything;
+        using (var atALaterStep = new FallbackDecisionClient(StubDecisionClient.Failing(DecisionErrorKind.Server), laterOptions))
+        {
+            var result = await atALaterStep.EvaluateAsync(new DecisionRequest(Triage, State));
+            Assert.Same(disposed, result.Error);
+        }
+
+        Assert.Equal(0, clef.Calls);
+        Assert.Equal(0, hosted.Calls);
+        Assert.Equal([DecisionErrorKind.Server], seen);
+    }
+
+    [Fact]
     public async Task An_exhausted_chain_returns_the_last_called_steps_error()
     {
         var last = new DecisionError(DecisionErrorKind.RateLimited, "slow down");

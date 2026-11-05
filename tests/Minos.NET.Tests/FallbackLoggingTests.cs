@@ -88,12 +88,31 @@ public sealed class FallbackLoggingTests
 
         await client.EvaluateAsync(new DecisionRequest(Triage, State));
 
-        Assert.Equal([1017, 1017, 1019], logs.EventIds);
+        // The last step's failure logs no 1017: no step is left to move on to, so 1019 alone says how it failed.
+        Assert.Equal([1017, 1019], logs.EventIds);
+        Assert.Equal("primary", Value(logs.Only(1017), "Step"));
         var exhausted = logs.Only(1019);
         Assert.Equal(LogLevel.Warning, exhausted.Level);
         Assert.Equal(nameof(DecisionLog.FallbackExhausted), exhausted.Id.Name);
         Assert.Equal("1", Value(exhausted, "StepsTried"));
         Assert.Equal("Overloaded", Value(exhausted, "ErrorKind"));
+    }
+
+    [Fact]
+    public async Task An_exhausted_chain_of_three_logs_1017_for_each_step_but_the_last()
+    {
+        using var logs = new LogCapture();
+        using var client = Stage(
+            logs,
+            Failing(),
+            steps: [new FallbackStep("clef", Failing(DecisionErrorKind.RateLimited)), new FallbackStep("hosted", Failing(DecisionErrorKind.Overloaded))]);
+
+        await client.EvaluateAsync(new DecisionRequest(Triage, State));
+
+        Assert.Equal([1017, 1017, 1019], logs.EventIds);
+        Assert.Equal(["primary", "clef"], logs.Records.Where(record => record.Id.Id == 1017).Select(record => Value(record, "Step")));
+        Assert.Equal("2", Value(logs.Only(1019), "StepsTried"));
+        Assert.Equal("Overloaded", Value(logs.Only(1019), "ErrorKind"));
     }
 
     [Fact]
@@ -194,8 +213,8 @@ public sealed class FallbackLoggingTests
         time.Advance(TimeSpan.FromSeconds(5));
         await call.WaitAsync(TimeSpan.FromSeconds(10));
 
-        Assert.Equal([1017, 1017, 1019], logs.EventIds);
-        Assert.Equal("DeadlineExceeded", Value(logs.Records[1], "ErrorKind"));
+        Assert.Equal([1017, 1019], logs.EventIds);
+        Assert.Equal("Server", Value(logs.Only(1017), "ErrorKind"));
         Assert.Equal("DeadlineExceeded", Value(logs.Only(1019), "ErrorKind"));
     }
 
@@ -208,8 +227,8 @@ public sealed class FallbackLoggingTests
 
         await client.EvaluateAsync(new DecisionRequest(Triage, State));
 
-        Assert.Equal([1017, 1017, 1019], logs.EventIds);
-        Assert.Equal("DefinitionMismatch", Value(logs.Records[1], "ErrorKind"));
+        Assert.Equal([1017, 1019], logs.EventIds);
+        Assert.Equal("Server", Value(logs.Only(1017), "ErrorKind"));
         Assert.Equal("DefinitionMismatch", Value(logs.Only(1019), "ErrorKind"));
     }
 

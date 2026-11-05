@@ -139,6 +139,39 @@ public sealed class FallbackTelemetryTests
         Assert.Equal("exhausted", capture.OnlyPoint(Counter).Tag("minos.fallback.outcome"));
     }
 
+    [Theory]
+    [InlineData(DecisionErrorKind.Server, false)]
+    [InlineData(DecisionErrorKind.Refused, true)]
+    public async Task A_step_that_turns_the_callers_cancellation_into_a_failure_throws_and_is_not_exhausted(DecisionErrorKind kind, bool laterStep)
+    {
+        // The last step's failure, or one that stops the chain, would end it as exhausted; the caller's cancellation wins.
+        using var capture = new TelemetryCapture();
+        using var logs = new LogCapture();
+        using var cts = new CancellationTokenSource();
+        var clef = new StubDecisionClient((_, _) =>
+        {
+            cts.Cancel();
+            return new(Result<DecisionResponse, DecisionError>.Failure(new DecisionError(kind, "cancelled")));
+        });
+        var hosted = StubDecisionClient.Answering(Sure);
+        var options = new FallbackOptions { Steps = { new FallbackStep("clef", clef) } };
+        if (laterStep)
+        {
+            options.Steps.Add(new FallbackStep("hosted", hosted));
+        }
+
+        using var stage = new FallbackDecisionClient(Failing(), options, logs.Factory.CreateLogger("test"));
+
+        var thrown = await Assert.ThrowsAnyAsync<OperationCanceledException>(
+            () => stage.EvaluateAsync(new DecisionRequest(Triage, State), cts.Token).AsTask());
+
+        Assert.Equal(cts.Token, thrown.CancellationToken);
+        Assert.Equal(1, clef.Calls);
+        Assert.Equal(0, hosted.Calls);
+        Assert.Equal([1017], logs.EventIds);
+        Assert.Empty(capture.Points(Counter));
+    }
+
     [Fact]
     public async Task Every_later_step_skipped_for_time_counts_exhausted()
     {
@@ -328,7 +361,7 @@ public sealed class FallbackTelemetryTests
         int[] expected = scenario switch
         {
             0 => [1017, 1020],
-            1 => [1017, 1018, 1017, 1019],
+            1 => [1017, 1018, 1019],
             _ => [1017, 1017, 1018, 1019],
         };
         Assert.Equal(expected, logs.EventIds);
