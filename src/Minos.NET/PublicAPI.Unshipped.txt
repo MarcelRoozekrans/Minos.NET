@@ -61,3 +61,6 @@ static Minos.DecisionCall.operator !=(Minos.DecisionCall? left, Minos.DecisionCa
 static Minos.DecisionCall.operator ==(Minos.DecisionCall? left, Minos.DecisionCall? right) -> bool
 static Minos.QuestionRoute.operator !=(Minos.QuestionRoute left, Minos.QuestionRoute right) -> bool
 static Minos.QuestionRoute.operator ==(Minos.QuestionRoute left, Minos.QuestionRoute right) -> bool
+Minos.EscalatingDecisionClientBuilderExtensions
+static Minos.EscalatingDecisionClientBuilderExtensions.UseEscalation(this Minos.DecisionClientBuilder! builder, Minos.IDecisionClient! target, System.Action<Minos.EscalationOptions!>! configure) -> Minos.DecisionClientBuilder!
+static Minos.EscalatingDecisionClientBuilderExtensions.UseEscalation(this Minos.DecisionClientBuilder! builder, System.Func<System.IServiceProvider!, Minos.IDecisionClient!>! target, System.Action<Minos.EscalationOptions!>! configure) -> Minos.DecisionClientBuilder!
