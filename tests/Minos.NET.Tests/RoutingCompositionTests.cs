@@ -61,7 +61,7 @@ public sealed class RoutingCompositionTests
         Assert.Equal(["department", "severity"], Assert.Single(hosted.Requests).Definition.Questions.Select(q => q.Key));
         Assert.Equal(
             [
-                new DecisionCall("primary", null, null, IsCached: false) { Outcome = CallOutcome.Failed, ErrorKind = DecisionErrorKind.Server },
+                new DecisionCall("primary", null, null, IsCached: false) { Status = CallStatus.Failed, ErrorKind = DecisionErrorKind.Server },
                 new DecisionCall("clef", "clef-model", ClefUsage, IsCached: false),
                 new DecisionCall("hosted", "hosted-model", HostedUsage, IsCached: false),
             ],
@@ -93,7 +93,7 @@ public sealed class RoutingCompositionTests
         Assert.Equal(0, hosted.Calls);
         Assert.Equal(
             [
-                new DecisionCall("primary", null, null, IsCached: false) { Outcome = CallOutcome.Failed, ErrorKind = DecisionErrorKind.Network },
+                new DecisionCall("primary", null, null, IsCached: false) { Status = CallStatus.Failed, ErrorKind = DecisionErrorKind.Network },
                 new DecisionCall("clef", "clef-model", ClefUsage, IsCached: false),
             ],
             response.Path!.Calls);
@@ -144,9 +144,9 @@ public sealed class RoutingCompositionTests
         Assert.Equal(0, hosted.Calls);
         Assert.Equal(
             [
-                new DecisionCall("primary", null, null, IsCached: false) { Outcome = CallOutcome.Failed, ErrorKind = DecisionErrorKind.Server },
+                new DecisionCall("primary", null, null, IsCached: false) { Status = CallStatus.Failed, ErrorKind = DecisionErrorKind.Server },
                 new DecisionCall("clef", "clef-model", ClefUsage, IsCached: false),
-                new DecisionCall("hosted", null, null, IsCached: false) { Outcome = CallOutcome.NotCalledNoTimeLeft },
+                new DecisionCall("hosted", null, null, IsCached: false) { Status = CallStatus.NotCalledNoTimeLeft },
             ],
             response.Path!.Calls);
         Assert.Equal(
@@ -290,7 +290,7 @@ public sealed class RoutingCompositionTests
             Assert.Equal(1, clef.Calls);
             Assert.Equal(
                 [
-                    new DecisionCall("primary", null, null, IsCached: false) { Outcome = CallOutcome.Failed, ErrorKind = DecisionErrorKind.Server },
+                    new DecisionCall("primary", null, null, IsCached: false) { Status = CallStatus.Failed, ErrorKind = DecisionErrorKind.Server },
                     new DecisionCall("clef", "clef-model", null, IsCached: false),
                 ],
                 response.Path!.Calls);

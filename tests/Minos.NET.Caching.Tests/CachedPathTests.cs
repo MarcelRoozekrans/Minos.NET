@@ -13,8 +13,8 @@ public sealed class CachedPathTests
     private static ReadOnlySpan<byte> Entry190 =>
         """{"v":1,"model":"jev-1.13.0","input_tokens":296,"output_tokens":20,"cost":0.0012,"id":"gen-0001","provider":"Together","slots":[[0,0.9,0,0],[1,0,0.7,0],[2,1.9,0.8,3]],"probabilities":[0.2,0.7,0.1,0,0.1,0.9]}"""u8;
 
-    // The bytes today's writer gave for a response with a path, before calls kept an outcome: version 3, calls of six items.
-    private static ReadOnlySpan<byte> PathEntryBeforeOutcomes =>
+    // The bytes today's writer gave for a response with a path, before calls kept a status: version 3, calls of six items.
+    private static ReadOnlySpan<byte> PathEntryBeforeStatuses =>
         """{"v":3,"model":"jev-1.13.0","input_tokens":296,"output_tokens":20,"cost":0.0012,"id":"gen-0001","provider":"Together","slots":[[0,0.9,0,0],[1,0,0.7,0],[2,1.9,0.8,3]],"probabilities":[0.2,0.7,0.1,0,0.1,0.9],"path":{"routes":[["primary",0,0.9,null],["big",1,0.4,0.8],["primary",3,0.55,0.3]],"calls":[["primary","small-1",10,2,0.001,false],["big",null,null,null,null,true]]}}"""u8;
 
     private static DecisionPath FallbackPath() => new(
@@ -24,9 +24,9 @@ public sealed class CachedPathTests
             new QuestionRoute("severity", "backup", RouteReason.FellBack, 0, null),
         ],
         [
-            new DecisionCall("primary", "small-1", null, false) { Outcome = CallOutcome.Failed, ErrorKind = DecisionErrorKind.Timeout },
-            new DecisionCall("second", null, null, false) { Outcome = CallOutcome.Failed },
-            new DecisionCall("third", null, null, false) { Outcome = CallOutcome.NotCalledNoTimeLeft },
+            new DecisionCall("primary", "small-1", null, false) { Status = CallStatus.Failed, ErrorKind = DecisionErrorKind.Timeout },
+            new DecisionCall("second", null, null, false) { Status = CallStatus.Failed },
+            new DecisionCall("third", null, null, false) { Status = CallStatus.NotCalledNoTimeLeft },
             new DecisionCall("backup", "m", new DecisionUsage { InputTokens = 5 }, false),
         ]);
 
@@ -41,7 +41,7 @@ public sealed class CachedPathTests
     }
 
     [Fact]
-    public async Task A_fallback_response_round_trips_with_outcomes_and_FellBack_routes()
+    public async Task A_fallback_response_round_trips_with_statuses_and_FellBack_routes()
     {
         var read = CachedDecisionFormat.Read(CachedDecisionFormat.Write(CachedDecision.From(Fallback().AsCached()))).ResponseFor(Responses.Triage);
         Assert.NotNull(read);
@@ -64,7 +64,7 @@ public sealed class CachedPathTests
     }
 
     [Fact]
-    public void An_Answered_call_writes_no_outcome_so_the_entry_keeps_its_old_shape()
+    public void An_Answered_call_writes_no_status_so_the_entry_keeps_its_old_shape()
     {
         var bytes = CachedDecisionFormat.Write(CachedDecision.From(Merged().AsCached()));
 
@@ -78,13 +78,13 @@ public sealed class CachedPathTests
     [Fact]
     public void An_entry_written_before_this_phase_reads_calls_as_Answered()
     {
-        var read = CachedDecisionFormat.Read(PathEntryBeforeOutcomes).ResponseFor(Responses.Triage);
+        var read = CachedDecisionFormat.Read(PathEntryBeforeStatuses).ResponseFor(Responses.Triage);
 
         Assert.NotNull(read);
         Assert.Equal(2, read.Path!.Calls.Count);
         Assert.All(read.Path.Calls, call =>
         {
-            Assert.Equal(CallOutcome.Answered, call.Outcome);
+            Assert.Equal(CallStatus.Answered, call.Status);
             Assert.Null(call.ErrorKind);
         });
         Assert.True(read.Path.Calls[1].IsCached);
@@ -100,7 +100,7 @@ public sealed class CachedPathTests
     [InlineData("""["a",null,null,null,null,false,"1"]""")]
     [InlineData("""["a",null,null,null,null,false,1,"x"]""")]
     [InlineData("""["a",null,null,null,null,false,1,1,1]""")]
-    public void An_unknown_outcome_is_a_miss(string call)
+    public void An_unknown_status_is_a_miss(string call)
     {
         var read = CachedDecisionFormat.Read(WithRawPath($$"""{"routes":[],"calls":[{{call}}]}"""));
 

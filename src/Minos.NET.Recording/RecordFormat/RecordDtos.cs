@@ -121,7 +121,7 @@ internal sealed class CallDto
     public bool? Cached { get; set; }
 
     // Only a version 4 call has these, and only when it did not answer.
-    public int? Outcome { get; set; }
+    public int? Status { get; set; }
 
     public string? ErrorKind { get; set; }
 }

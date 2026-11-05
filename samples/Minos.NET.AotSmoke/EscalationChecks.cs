@@ -66,7 +66,7 @@ internal static class EscalationChecks
         var path = result.IsSuccess ? result.Value.Path : null;
         Program.Check(
             path is { Routes: [{ Reason: RouteReason.Confident }, { Reason: RouteReason.NoTimeLeft, AnsweredBy: "primary" }, { Reason: RouteReason.Confident }] }
-                && path.Calls is [{ ClientName: "primary", Outcome: CallOutcome.Answered }, { ClientName: "hosted", Outcome: CallOutcome.NotCalledNoTimeLeft }]
+                && path.Calls is [{ ClientName: "primary", Status: CallStatus.Answered }, { ClientName: "hosted", Status: CallStatus.NotCalledNoTimeLeft }]
                 && target.Calls == 0,
             "an unsure question with no time left keeps the primary answer, routes NoTimeLeft, calls no target and records the skipped call, under Native AOT");
     }

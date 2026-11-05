@@ -28,9 +28,9 @@ namespace Minos;
 /// </para>
 /// <para>
 /// The path's calls are the primary's, then the target's when there were unsure questions: a
-/// <see cref="CallOutcome.Failed"/> call with its <see cref="DecisionCall.ErrorKind"/> for a target that failed,
+/// <see cref="CallStatus.Failed"/> call with its <see cref="DecisionCall.ErrorKind"/> for a target that failed,
 /// <see cref="DecisionErrorKind.InvalidResponse"/> for one that answered another question set, and
-/// <see cref="DecisionErrorKind.Timeout"/> for one cancelled at the deadline; a <see cref="CallOutcome.NotCalledNoTimeLeft"/>
+/// <see cref="DecisionErrorKind.Timeout"/> for one cancelled at the deadline; a <see cref="CallStatus.NotCalledNoTimeLeft"/>
 /// call for a target skipped for time.
 /// </para>
 /// <para>
@@ -128,7 +128,7 @@ public sealed class EscalatingDecisionClient : DelegatingDecisionClient
                 DecisionLog.EscalationSkippedForTime(timeLogger, unsureCount, targetName);
             }
 
-            var skippedCall = new DecisionCall(targetName, null, null, IsCached: false) { Outcome = CallOutcome.NotCalledNoTimeLeft };
+            var skippedCall = new DecisionCall(targetName, null, null, IsCached: false) { Status = CallStatus.NotCalledNoTimeLeft };
             return EscalationMerge.KeepPrimary(primary, routes, Calls(primary, skippedCall), targetName, DecisionTelemetry.SkippedNoTimeLeft);
         }
 
@@ -144,7 +144,7 @@ public sealed class EscalatingDecisionClient : DelegatingDecisionClient
                 ? (failed.Error.Kind, DecisionTelemetry.ErrorTypeOf(failed.Error.Kind))
                 : (DecisionErrorKind.Timeout, DecisionLog.DeadlineExceeded);
             LogTargetFailed(logged);
-            var failedCall = new DecisionCall(targetName, null, null, IsCached: false) { Outcome = CallOutcome.Failed, ErrorKind = kind };
+            var failedCall = new DecisionCall(targetName, null, null, IsCached: false) { Status = CallStatus.Failed, ErrorKind = kind };
             return KeepAfterFailure(primary, routes, Calls(primary, failedCall));
         }
 
@@ -157,7 +157,7 @@ public sealed class EscalatingDecisionClient : DelegatingDecisionClient
             LogTargetFailed(DecisionLog.DefinitionMismatch);
             var mismatchCall = new DecisionCall(targetName, target.Model, target.Usage, target.IsCached)
             {
-                Outcome = CallOutcome.Failed,
+                Status = CallStatus.Failed,
                 ErrorKind = DecisionErrorKind.InvalidResponse,
             };
             return KeepAfterFailure(primary, routes, Calls(primary, mismatchCall));

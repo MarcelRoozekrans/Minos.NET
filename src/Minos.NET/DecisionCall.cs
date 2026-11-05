@@ -20,12 +20,12 @@ public sealed record DecisionCall(string ClientName, string? Model, DecisionUsag
 
     /// <summary>
     /// Gets what became of the call: answered, failed, or not made for lack of time. Defaults to
-    /// <see cref="CallOutcome.Answered"/>.
+    /// <see cref="CallStatus.Answered"/>.
     /// </summary>
-    public CallOutcome Outcome { get; init; }
+    public CallStatus Status { get; init; }
 
     /// <summary>
-    /// Gets how the call failed when <see cref="Outcome"/> is <see cref="CallOutcome.Failed"/>, such as
+    /// Gets how the call failed when <see cref="Status"/> is <see cref="CallStatus.Failed"/>, such as
     /// <see cref="DecisionErrorKind.Timeout"/> for a call the stage cut at its time limit; otherwise <see langword="null"/>.
     /// </summary>
     public DecisionErrorKind? ErrorKind { get; init; }

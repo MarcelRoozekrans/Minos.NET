@@ -42,10 +42,10 @@ public sealed class FallbackTimeTests
         });
 
     private static DecisionCall Failed(string name, DecisionErrorKind kind)
-        => new(name, null, null, IsCached: false) { Outcome = CallOutcome.Failed, ErrorKind = kind };
+        => new(name, null, null, IsCached: false) { Status = CallStatus.Failed, ErrorKind = kind };
 
     private static DecisionCall Skipped(string name)
-        => new(name, null, null, IsCached: false) { Outcome = CallOutcome.NotCalledNoTimeLeft };
+        => new(name, null, null, IsCached: false) { Status = CallStatus.NotCalledNoTimeLeft };
 
     [Fact]
     public async Task No_time_check_without_a_deadline_or_budget()

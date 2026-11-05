@@ -37,7 +37,7 @@ namespace Minos;
 /// The deadline is the request's <see cref="DecisionRequest.Deadline"/>, or the stage's entry plus
 /// <see cref="FallbackOptions.Budget"/>, read from the stage's <see cref="System.TimeProvider"/>, or none. The stage sets it
 /// as the <see cref="DecisionRequest.Deadline"/> of every request it sends. Without a deadline, the caller's token alone
-/// governs each call. With one, a listed step is skipped, as a <see cref="CallOutcome.NotCalledNoTimeLeft"/> call, when
+/// governs each call. With one, a listed step is skipped, as a <see cref="CallStatus.NotCalledNoTimeLeft"/> call, when
 /// less than its <see cref="FallbackStep.ExpectedLatency"/> is left, or the deadline has passed; and each step's call,
 /// step 0's included, is cut at the deadline minus the smallest <see cref="FallbackStep.ExpectedLatency"/> of the steps
 /// after it, so that one of them still fits. When no step is left after it, or that moment has already passed when the
@@ -146,7 +146,7 @@ public sealed class FallbackDecisionClient : DelegatingDecisionClient
                 var now = TimeProvider.GetUtcNow();
                 if (due - (cutAt ?? now) < step.ExpectedLatency || due <= now)
                 {
-                    calls.Add(new DecisionCall(step.Name, null, null, IsCached: false) { Outcome = CallOutcome.NotCalledNoTimeLeft });
+                    calls.Add(new DecisionCall(step.Name, null, null, IsCached: false) { Status = CallStatus.NotCalledNoTimeLeft });
                     if (Logger is { } timeLogger)
                     {
                         DecisionLog.FallbackStepSkippedForTime(timeLogger, step.Name);
@@ -186,7 +186,7 @@ public sealed class FallbackDecisionClient : DelegatingDecisionClient
                 error = MismatchError;
                 logged = DecisionLog.DefinitionMismatch;
                 result = Result<DecisionResponse, DecisionError>.Failure(error);
-                calls.Add(new DecisionCall(step.Name, answer.Model, answer.Usage, answer.IsCached) { Outcome = CallOutcome.Failed, ErrorKind = error.Kind });
+                calls.Add(new DecisionCall(step.Name, answer.Model, answer.Usage, answer.IsCached) { Status = CallStatus.Failed, ErrorKind = error.Kind });
             }
             else
             {
@@ -244,7 +244,7 @@ public sealed class FallbackDecisionClient : DelegatingDecisionClient
     }
 
     private static DecisionCall FailedCall(string name, DecisionErrorKind kind)
-        => new(name, null, null, IsCached: false) { Outcome = CallOutcome.Failed, ErrorKind = kind };
+        => new(name, null, null, IsCached: false) { Status = CallStatus.Failed, ErrorKind = kind };
 
     // The smallest ExpectedLatency of the listed steps from each index on, and null past the last: entry i is what step i's
     // cut leaves room for, with step 0 the inner client, so entry 0 covers every listed step.

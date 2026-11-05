@@ -10,7 +10,7 @@ namespace Minos.Caching;
 /// is version 3 and adds <c>"path"</c>, with <c>"routes"</c> as <c>[answeredBy, reason, primaryCertainty, targetCertainty]</c>
 /// per question, in definition order and without keys, and <c>"calls"</c> as
 /// <c>[client, model, inputTokens, outputTokens, cost, isCached]</c>. A call that did not answer adds its
-/// <see cref="CallOutcome"/> number, and its <see cref="DecisionErrorKind"/> number when it has one; an answered call adds
+/// <see cref="CallStatus"/> number, and its <see cref="DecisionErrorKind"/> number when it has one; an answered call adds
 /// neither. A version 3 entry still has <c>"sources"</c> when an answer has a marked one. No reflection, so it is
 /// trim- and AOT-safe.
 /// </summary>
@@ -119,11 +119,11 @@ internal static class CachedDecisionFormat
             WriteNumberOrNull(writer, call.Usage?.OutputTokens);
             WriteNumberOrNull(writer, call.Usage?.Cost);
             writer.WriteBooleanValue(call.IsCached);
-            if (call.Outcome != CallOutcome.Answered)
+            if (call.Status != CallStatus.Answered)
             {
-                // Only a call that did not answer stores its outcome, and its error kind when it has one, so an entry
+                // Only a call that did not answer stores its status, and its error kind when it has one, so an entry
                 // of answered calls keeps the shape earlier versions wrote and read.
-                writer.WriteNumberValue((int)call.Outcome);
+                writer.WriteNumberValue((int)call.Status);
                 if (call.ErrorKind is { } kind)
                 {
                     writer.WriteNumberValue((int)kind);
@@ -363,7 +363,7 @@ internal static class CachedDecisionFormat
         return reader.TokenType == JsonTokenType.EndArray ? [.. routes] : null;
     }
 
-    // [[client, model|null, input|null, output|null, cost|null, isCached, outcome?, errorKind?], ...]; null when the shape is wrong.
+    // [[client, model|null, input|null, output|null, cost|null, isCached, status?, errorKind?], ...]; null when the shape is wrong.
     private static DecisionCall[]? ReadCalls(ref Utf8JsonReader reader)
     {
         if (!reader.Read() || reader.TokenType != JsonTokenType.StartArray)
@@ -389,24 +389,24 @@ internal static class CachedDecisionFormat
             }
 
             var isCached = reader.GetBoolean();
-            if (!TryReadOutcome(ref reader, out var outcome, out var errorKind))
+            if (!TryReadStatus(ref reader, out var status, out var errorKind))
             {
                 return null;
             }
 
             // A call that reported no usage has none, as a response whose usage reports nothing has none.
             var usage = input is null && output is null && cost is null ? null : new DecisionUsage { InputTokens = input, OutputTokens = output, Cost = cost };
-            calls.Add(new DecisionCall(client, model, usage, isCached) { Outcome = outcome, ErrorKind = errorKind });
+            calls.Add(new DecisionCall(client, model, usage, isCached) { Status = status, ErrorKind = errorKind });
         }
 
         return reader.TokenType == JsonTokenType.EndArray ? [.. calls] : null;
     }
 
     // The optional tail of a call, read after isCached up to the closing bracket: nothing for an answered call, else the
-    // outcome and optionally the error kind. Answered is never written, so an explicit 0 is rejected. A value this version does not define makes the entry a miss.
-    private static bool TryReadOutcome(ref Utf8JsonReader reader, out CallOutcome outcome, out DecisionErrorKind? errorKind)
+    // status and optionally the error kind. Answered is never written, so an explicit 0 is rejected. A value this version does not define makes the entry a miss.
+    private static bool TryReadStatus(ref Utf8JsonReader reader, out CallStatus status, out DecisionErrorKind? errorKind)
     {
-        outcome = CallOutcome.Answered;
+        status = CallStatus.Answered;
         errorKind = null;
         if (!reader.Read())
         {
@@ -418,13 +418,13 @@ internal static class CachedDecisionFormat
             return true;
         }
 
-        if (reader.TokenType != JsonTokenType.Number || !reader.TryGetInt32(out var outcomeNumber) || outcomeNumber == (int)CallOutcome.Answered
-            || !Enum.IsDefined((CallOutcome)outcomeNumber))
+        if (reader.TokenType != JsonTokenType.Number || !reader.TryGetInt32(out var statusNumber) || statusNumber == (int)CallStatus.Answered
+            || !Enum.IsDefined((CallStatus)statusNumber))
         {
             return false;
         }
 
-        outcome = (CallOutcome)outcomeNumber;
+        status = (CallStatus)statusNumber;
         if (!reader.Read())
         {
             return false;

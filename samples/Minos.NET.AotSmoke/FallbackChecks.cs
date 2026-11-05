@@ -82,9 +82,9 @@ internal static class FallbackChecks
             path is
             {
                 Calls: [
-                    { ClientName: "local", Outcome: CallOutcome.Failed, ErrorKind: DecisionErrorKind.Overloaded },
-                    { ClientName: "slow", Outcome: CallOutcome.NotCalledNoTimeLeft },
-                    { ClientName: "hosted", Outcome: CallOutcome.Answered, Model: "hosted-model" },
+                    { ClientName: "local", Status: CallStatus.Failed, ErrorKind: DecisionErrorKind.Overloaded },
+                    { ClientName: "slow", Status: CallStatus.NotCalledNoTimeLeft },
+                    { ClientName: "hosted", Status: CallStatus.Answered, Model: "hosted-model" },
                 ],
             }
                 && path.Routes.All(route => route is { Reason: RouteReason.FellBack, AnsweredBy: "hosted" })
@@ -145,7 +145,7 @@ internal static class FallbackChecks
             new KeyedFallbackStep().Key is null
                 && string.Equals(step.Key, "hosted", StringComparison.Ordinal)
                 && step.ExpectedLatency == TimeSpan.FromMilliseconds(300)
-                && plain.IsSuccess && plain.Value.Path is { Calls: [{ ClientName: "primary", Outcome: CallOutcome.Failed }, { ClientName: "hosted", Outcome: CallOutcome.Answered }] }
+                && plain.IsSuccess && plain.Value.Path is { Calls: [{ ClientName: "primary", Status: CallStatus.Failed }, { ClientName: "hosted", Status: CallStatus.Answered }] }
                 && withName.IsSuccess && withName.Value.Path is { Calls: [{ ClientName: "local" }, { ClientName: "hosted" }] },
             "a fallback step resolved by key answers after the first client fails, with the name the options give the first client, under Native AOT");
     }
@@ -174,9 +174,9 @@ internal static class FallbackChecks
             {
                 Routes: [{ Reason: RouteReason.Confident }, { Reason: RouteReason.Escalated, AnsweredBy: "strong" }, { Reason: RouteReason.Confident }],
                 Calls: [
-                    { ClientName: "local", Outcome: CallOutcome.Failed },
-                    { ClientName: "hosted", Outcome: CallOutcome.Answered },
-                    { ClientName: "strong", Outcome: CallOutcome.Answered },
+                    { ClientName: "local", Status: CallStatus.Failed },
+                    { ClientName: "hosted", Status: CallStatus.Answered },
+                    { ClientName: "strong", Status: CallStatus.Answered },
                 ],
             }
                 && target.Calls == 1,
@@ -187,7 +187,7 @@ internal static class FallbackChecks
         => response.Path is
         {
             Routes: [{ Reason: RouteReason.FellBack, AnsweredBy: "hosted" }, { Reason: RouteReason.FellBack, AnsweredBy: "hosted" }, { Reason: RouteReason.FellBack, AnsweredBy: "hosted" }],
-            Calls: [{ ClientName: "local", Outcome: CallOutcome.Failed, ErrorKind: DecisionErrorKind.Overloaded }, { ClientName: "hosted", Outcome: CallOutcome.Answered, Model: "hosted-model" }],
+            Calls: [{ ClientName: "local", Status: CallStatus.Failed, ErrorKind: DecisionErrorKind.Overloaded }, { ClientName: "hosted", Status: CallStatus.Answered, Model: "hosted-model" }],
         };
 
     private static Result<DecisionResponse, DecisionError> Failure(DecisionErrorKind kind)

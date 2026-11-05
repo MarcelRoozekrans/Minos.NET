@@ -1,7 +1,7 @@
 namespace Minos;
 
 /// <summary>What became of one call a routing stage made or skipped, in a <see cref="DecisionCall"/>.</summary>
-public enum CallOutcome
+public enum CallStatus
 {
     /// <summary>The client was called and answered.</summary>
     Answered = 0,

@@ -173,7 +173,7 @@ public sealed class EscalationTests
         Assert.Equal([0.55, 0.4, 0.05], response.Answers[1].Probabilities.ToArray());
         Assert.Equal(RouteReason.Confident, response.Path.Routes[0].Reason);
         Assert.Equal(["primary", "hosted"], response.Path.Calls.Select(c => c.ClientName));
-        Assert.Equal(new DecisionCall("hosted", null, null, IsCached: false) { Outcome = CallOutcome.Failed, ErrorKind = DecisionErrorKind.Server }, response.Path.Calls[1]);
+        Assert.Equal(new DecisionCall("hosted", null, null, IsCached: false) { Status = CallStatus.Failed, ErrorKind = DecisionErrorKind.Server }, response.Path.Calls[1]);
     }
 
     [Fact]
@@ -189,10 +189,10 @@ public sealed class EscalationTests
         Assert.Equal(
             [
                 new DecisionCall("primary", null, null, IsCached: false),
-                new DecisionCall("hosted", null, null, IsCached: false) { Outcome = CallOutcome.Failed, ErrorKind = DecisionErrorKind.Overloaded },
+                new DecisionCall("hosted", null, null, IsCached: false) { Status = CallStatus.Failed, ErrorKind = DecisionErrorKind.Overloaded },
             ],
             response.Path!.Calls);
-        Assert.Equal(CallOutcome.Answered, response.Path.Calls[0].Outcome);
+        Assert.Equal(CallStatus.Answered, response.Path.Calls[0].Status);
         Assert.Null(response.Path.Calls[0].ErrorKind);
     }
 
@@ -210,7 +210,7 @@ public sealed class EscalationTests
 
         var target = response.Path!.Calls[1];
         Assert.Equal(
-            new DecisionCall("hosted", "hosted-model", usage, IsCached: false) { Outcome = CallOutcome.Failed, ErrorKind = DecisionErrorKind.InvalidResponse },
+            new DecisionCall("hosted", "hosted-model", usage, IsCached: false) { Status = CallStatus.Failed, ErrorKind = DecisionErrorKind.InvalidResponse },
             target);
         Assert.Equal(new DecisionUsage { InputTokens = 12, OutputTokens = 1, Cost = 0.01 }, response.Usage);
     }
@@ -231,7 +231,7 @@ public sealed class EscalationTests
         Assert.Equal("primary", response.Path.Routes[1].AnsweredBy);
         Assert.Equal(0, response.Answers[1].ChosenIndex);
         Assert.Equal(
-            [new DecisionCall("primary", null, null, IsCached: false), new DecisionCall("hosted", "hosted-model", new DecisionUsage { InputTokens = 5, Cost = 0.01 }, IsCached: false) { Outcome = CallOutcome.Failed, ErrorKind = DecisionErrorKind.InvalidResponse }],
+            [new DecisionCall("primary", null, null, IsCached: false), new DecisionCall("hosted", "hosted-model", new DecisionUsage { InputTokens = 5, Cost = 0.01 }, IsCached: false) { Status = CallStatus.Failed, ErrorKind = DecisionErrorKind.InvalidResponse }],
             response.Path.Calls);
         Assert.Equal(new DecisionUsage { InputTokens = 5, Cost = 0.01 }, response.Usage);
     }

@@ -63,7 +63,7 @@ internal static class RecordLineConverter
         }
 
         // Version 4 is written only for a path with a call that did not answer, so any other version 4 line has two encodings.
-        if (version == RecordLine.VersionWithCallOutcomes && (calls is null || calls.All(c => c.Outcome == CallOutcome.Answered)))
+        if (version == RecordLine.VersionWithCallStatus && (calls is null || calls.All(c => c.Status == CallStatus.Answered)))
         {
             message = "The record line is version 4 without a call that did not answer.";
             return false;
@@ -135,39 +135,39 @@ internal static class RecordLineConverter
                 return false;
             }
 
-            if (!TryToCallOutcome(dto, version, out var outcome, out var callErrorKind))
+            if (!TryToCallStatus(dto, version, out var status, out var callErrorKind))
             {
                 return false;
             }
 
-            list.Add(new DecisionCall(dto.Client, dto.Model, ToUsage(dto.Usage), cached) { Outcome = outcome, ErrorKind = callErrorKind });
+            list.Add(new DecisionCall(dto.Client, dto.Model, ToUsage(dto.Usage), cached) { Status = status, ErrorKind = callErrorKind });
         }
 
         calls = DecisionRecord.Freeze(list);
         return true;
     }
 
-    // A call without an outcome answered. Only a version 4 call has one, only Failed or NotCalledNoTimeLeft, because the writer
+    // A call without a status answered. Only a version 4 call has one, only Failed or NotCalledNoTimeLeft, because the writer
     // never writes Answered; an error kind goes with Failed alone. Anything else is not a call this reader knows.
-    private static bool TryToCallOutcome(CallDto dto, int version, out CallOutcome outcome, out DecisionErrorKind? errorKind)
+    private static bool TryToCallStatus(CallDto dto, int version, out CallStatus status, out DecisionErrorKind? errorKind)
     {
-        outcome = CallOutcome.Answered;
+        status = CallStatus.Answered;
         errorKind = null;
-        if (dto.Outcome is not { } number)
+        if (dto.Status is not { } number)
         {
             return dto.ErrorKind is null;
         }
 
         // A Failed call may have no error kind: a stage can fail a call without classifying the error, so this is accepted.
-        if (version < RecordLine.VersionWithCallOutcomes
-            || number is not ((int)CallOutcome.Failed or (int)CallOutcome.NotCalledNoTimeLeft)
+        if (version < RecordLine.VersionWithCallStatus
+            || number is not ((int)CallStatus.Failed or (int)CallStatus.NotCalledNoTimeLeft)
             || !TryToErrorKind(dto.ErrorKind, out errorKind)
-            || (errorKind is not null && number != (int)CallOutcome.Failed))
+            || (errorKind is not null && number != (int)CallStatus.Failed))
         {
             return false;
         }
 
-        outcome = (CallOutcome)number;
+        status = (CallStatus)number;
         return true;
     }
 

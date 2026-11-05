@@ -216,7 +216,7 @@ public sealed class EscalationTimeTests
         Assert.Equal(
             [RouteReason.Confident, RouteReason.NoTimeLeft, RouteReason.Confident],
             response.Path!.Routes.Select(r => r.Reason));
-        Assert.Equal([CallOutcome.Answered, CallOutcome.NotCalledNoTimeLeft], response.Path.Calls.Select(c => c.Outcome));
+        Assert.Equal([CallStatus.Answered, CallStatus.NotCalledNoTimeLeft], response.Path.Calls.Select(c => c.Status));
     }
 
     [Fact]
@@ -238,7 +238,7 @@ public sealed class EscalationTimeTests
         Assert.Equal(
             [
                 new DecisionCall("primary", null, null, IsCached: false),
-                new DecisionCall("hosted", null, null, IsCached: false) { Outcome = CallOutcome.Failed, ErrorKind = DecisionErrorKind.Timeout },
+                new DecisionCall("hosted", null, null, IsCached: false) { Status = CallStatus.Failed, ErrorKind = DecisionErrorKind.Timeout },
             ],
             response.Path.Calls);
     }
@@ -260,7 +260,7 @@ public sealed class EscalationTimeTests
         Assert.Equal(
             [
                 new DecisionCall("primary", null, null, IsCached: false),
-                new DecisionCall("hosted", null, null, IsCached: false) { Outcome = CallOutcome.NotCalledNoTimeLeft },
+                new DecisionCall("hosted", null, null, IsCached: false) { Status = CallStatus.NotCalledNoTimeLeft },
             ],
             response.Path!.Calls);
     }
@@ -281,7 +281,7 @@ public sealed class EscalationTimeTests
         var response = (await call.WaitAsync(TimeSpan.FromSeconds(10))).Value;
 
         Assert.Equal(
-            new DecisionCall("hosted", null, null, IsCached: false) { Outcome = CallOutcome.Failed, ErrorKind = DecisionErrorKind.Timeout },
+            new DecisionCall("hosted", null, null, IsCached: false) { Status = CallStatus.Failed, ErrorKind = DecisionErrorKind.Timeout },
             response.Path!.Calls[1]);
         Assert.Equal(RouteReason.TargetFailed, response.Path.Routes[1].Reason);
     }

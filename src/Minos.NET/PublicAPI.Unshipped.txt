@@ -4,18 +4,18 @@ Minos.DecisionCall.<Clone>$() -> Minos.DecisionCall!
 Minos.DecisionCall.ClientName.get -> string!
 Minos.DecisionCall.ClientName.init -> void
 Minos.DecisionCall.Deconstruct(out string! ClientName, out string? Model, out Minos.DecisionUsage? Usage, out bool IsCached) -> void
-Minos.DecisionCall.ErrorKind.get -> Minos.DecisionErrorKind?
-Minos.DecisionCall.ErrorKind.init -> void
 Minos.DecisionCall.DecisionCall(string! ClientName, string? Model, Minos.DecisionUsage? Usage, bool IsCached) -> void
 Minos.DecisionCall.Equals(Minos.DecisionCall? other) -> bool
+Minos.DecisionCall.ErrorKind.get -> Minos.DecisionErrorKind?
+Minos.DecisionCall.ErrorKind.init -> void
 Minos.DecisionCall.IsCached.get -> bool
 Minos.DecisionCall.IsCached.init -> void
 Minos.DecisionCall.Model.get -> string?
 Minos.DecisionCall.Model.init -> void
+Minos.DecisionCall.Status.get -> Minos.CallStatus
+Minos.DecisionCall.Status.init -> void
 Minos.DecisionCall.Usage.get -> Minos.DecisionUsage?
 Minos.DecisionCall.Usage.init -> void
-Minos.DecisionCall.Outcome.get -> Minos.CallOutcome
-Minos.DecisionCall.Outcome.init -> void
 Minos.DecisionPath
 Minos.DecisionPath.Calls.get -> System.Collections.Generic.IReadOnlyList<Minos.DecisionCall!>!
 Minos.DecisionPath.DecisionPath(System.Collections.Generic.IReadOnlyList<Minos.QuestionRoute>! routes, System.Collections.Generic.IReadOnlyList<Minos.DecisionCall!>! calls) -> void
@@ -69,10 +69,10 @@ static Minos.QuestionRoute.operator ==(Minos.QuestionRoute left, Minos.QuestionR
 Minos.EscalatingDecisionClientBuilderExtensions
 static Minos.EscalatingDecisionClientBuilderExtensions.UseEscalation(this Minos.DecisionClientBuilder! builder, Minos.IDecisionClient! target, System.Action<Minos.EscalationOptions!>! configure) -> Minos.DecisionClientBuilder!
 static Minos.EscalatingDecisionClientBuilderExtensions.UseEscalation(this Minos.DecisionClientBuilder! builder, System.Func<System.IServiceProvider!, Minos.IDecisionClient!>! target, System.Action<Minos.EscalationOptions!>! configure) -> Minos.DecisionClientBuilder!
-Minos.CallOutcome
-Minos.CallOutcome.Answered = 0 -> Minos.CallOutcome
-Minos.CallOutcome.Failed = 1 -> Minos.CallOutcome
-Minos.CallOutcome.NotCalledNoTimeLeft = 2 -> Minos.CallOutcome
+Minos.CallStatus
+Minos.CallStatus.Answered = 0 -> Minos.CallStatus
+Minos.CallStatus.Failed = 1 -> Minos.CallStatus
+Minos.CallStatus.NotCalledNoTimeLeft = 2 -> Minos.CallStatus
 Minos.FallbackOptions
 Minos.FallbackOptions.Budget.get -> System.TimeSpan?
 Minos.FallbackOptions.Budget.set -> void

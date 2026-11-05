@@ -37,7 +37,7 @@ public sealed class FallbackTests
     }
 
     private static DecisionCall Failed(string name, DecisionErrorKind kind)
-        => new(name, null, null, IsCached: false) { Outcome = CallOutcome.Failed, ErrorKind = kind };
+        => new(name, null, null, IsCached: false) { Status = CallStatus.Failed, ErrorKind = kind };
 
     private static async Task<Result<DecisionResponse, DecisionError>> EvaluateAsync(IDecisionClient primary, params FallbackStep[] steps)
     {
@@ -243,7 +243,7 @@ public sealed class FallbackTests
         Assert.Equal(
             [
                 Failed("primary", DecisionErrorKind.Server),
-                new DecisionCall("clef", "clef-model", new DecisionUsage { InputTokens = 100, Cost = 0.01 }, IsCached: false) { Outcome = CallOutcome.Failed, ErrorKind = DecisionErrorKind.InvalidResponse },
+                new DecisionCall("clef", "clef-model", new DecisionUsage { InputTokens = 100, Cost = 0.01 }, IsCached: false) { Status = CallStatus.Failed, ErrorKind = DecisionErrorKind.InvalidResponse },
                 new DecisionCall("hosted", "hosted-model", new DecisionUsage { InputTokens = 50, OutputTokens = 4 }, IsCached: false),
             ],
             result.Value.Path!.Calls);
