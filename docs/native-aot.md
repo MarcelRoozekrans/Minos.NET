@@ -197,16 +197,16 @@ regression cannot reach a release unnoticed.
 | `AnswerSlotAccessors` | Reading a `Noul`, a `Choice<T>` and a `Score<T>` from the answer slots of a typed set. | 0 |
 | `GeneratedCreate` | The generated `Create` of a typed set building its result from the answer slots, which replaces the old `GeneratedParse` gate of 192. The protocol's probability buffer is counted by the typed round trips and by a test in the unit suite, which holds the whole read to 192. | 128 |
 | `EvaluateRoundTrip` | A raw `EvaluateAsync` call. | 4352 |
-| `TypedEvaluateRoundTrip` | A typed `EvaluateAsync<T>` call. 3368 B measured on linux-x64, since a response also carries the escalation path. | 3712 |
+| `TypedEvaluateRoundTrip` | A typed `EvaluateAsync<T>` call, 3328 B measured on linux-x64. The budget is the 3328 B it had before plus the 32 B that the request's `Deadline` and the response's `Path` reference add. | 3392 |
 | `NeutralEvaluateRoundTrip` | A neutral `EvaluateAsync(DecisionRequest)` call on the standard pipeline. | 3392 |
 | `BareTransportRoundTrip` | A neutral call with `UseStandardPipeline` off, the transport alone. | 3392 |
 | `PassThroughStage` | A `DelegatingDecisionClient` that overrides nothing, over an inner call that completes synchronously. | 0 |
 | `CacheHit` | A `CachingDecisionClient` answering from its in-process cache; the 120 B measured is the key string a hit builds per call. | 192 |
 | `GrantedPermit` | A `RateLimitingDecisionClient` granting a token-bucket permit, over an inner call that allocates nothing. | 0 |
-| `EscalatingStage` | An `EscalatingDecisionClient` over a first answer that is sure of every question, with no `Deadline` and no `Budget`, so the stage reads no clock and calls no target. The 488 B measured on linux-x64 is the path it puts on the response: a copy of the response, three routes, the first call and the wrappers over both lists. | 576 |
-| `EscalatingStageWithABudget` | The same with a `Budget` set. Stamping the budget's deadline copies the request, which is 96 B more, 584 B measured on linux-x64. | 704 |
-| `RecordingStage` | A `RecordingDecisionClient` recording each decision without a shadow, over an inner call that allocates nothing. The 1240 B measured on linux-x64 is the record, with its frozen answers, id and state, and the queue write; the writer thread is not counted. Record version 3 gave each answer four path fields, which were 912 B before. | 1408 |
-| `ShadowedRecordingStage` | The same stage in shadow mode, counting the calling thread only: the 1240 B of `RecordingStage` plus 376 B for the reservation and the work item that start the candidate, 1616 B measured on linux-x64. The candidate's own call runs on a pool thread and is not counted. | 1792 |
+| `EscalatingStage` | An `EscalatingDecisionClient` over a first answer that is sure of every question, with no `Deadline` and no `Budget`, so the stage reads no clock and calls no target. The 456 B measured on linux-x64 is the path it puts on the response: a copy of the response, three routes, the first call and the wrappers over both lists. | 512 |
+| `EscalatingStageWithABudget` | The same with a `Budget` set. Stamping the budget's deadline copies the request, which is 96 B more, 552 B measured on linux-x64. | 640 |
+| `RecordingStage` | A `RecordingDecisionClient` recording each decision without a shadow, over an inner call that allocates nothing. The 728 B measured on linux-x64 is the record, with its answers, id and state, and the queue write; the writer thread is not counted. It measured 912 B before record version 3 gave each answer a route, since the stage now builds the answers in their final array instead of copying a list. | 1024 |
+| `ShadowedRecordingStage` | The same stage in shadow mode, counting the calling thread only: the 728 B of `RecordingStage` plus 376 B for the candidate's request, the reservation and the work item that start the candidate, 1104 B measured on linux-x64. The candidate's own call runs on a pool thread and is not counted. | 1408 |
 | `Utf8StateEvaluateRoundTrip` | A typed `EvaluateUtf8Async<T>` call, which copies the caller's bytes once and sends them as written. | 3712 |
 | `TypedStateEvaluateRoundTrip` | A typed `EvaluateAsync<T, TState>` call, which serializes its state once into an array. | 3136 |
 | `SystemOneImageRoundTrip` | A typed `EvaluateAsync<T, TState>` call with one 64 B image, sent as a data URL beside the state. | 3200 |
@@ -217,9 +217,9 @@ regression cannot reach a release unnoticed.
 | `ContentFromValue` | `DecisionContent.FromValue`. | 320 |
 | `ContentFromUtf8Json` | `DecisionContent.FromUtf8Json`. | 320 |
 | `EvaluateRoundTripWithNullLoggerFactory` | A raw call with a logger factory that logs nothing. | 4352 |
-| `TypedEvaluateRoundTripWithEveryLevelFiltered` | A typed call with every log level filtered out. | 3712 |
+| `TypedEvaluateRoundTripWithEveryLevelFiltered` | A typed call with every log level filtered out. | 3392 |
 | `EvaluateRoundTripWithDiscardingLogger` | A raw call with every log level on. | 4352 |
-| `TypedEvaluateRoundTripWithDiscardingLogger` | A typed call with every log level on. | 3712 |
+| `TypedEvaluateRoundTripWithDiscardingLogger` | A typed call with every log level on. | 3392 |
 | `EvaluateRoundTripThroughDependencyInjection` | A raw call through a client resolved from the container, and no more than a hand-built client's own measurement. | 4416 |
 | `EvaluateRoundTripWhileListening` | A raw call with a span and metric listener attached. | 5888 |
 | `TypedEvaluateRoundTripWhileListening` | A typed call with the listeners attached. | 5056 |

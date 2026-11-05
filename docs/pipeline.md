@@ -58,8 +58,8 @@ public static class DefaultPipeline
 ```
 <!-- endSnippet -->
 
-The standard stages run in this order, outermost first. The last three rows are add-on stages that are not in the
-standard pipeline; you place them yourself, as [Stage order](#stage-order) describes.
+The standard stages run in this order, outermost first. The last four rows are stages that are not in the standard
+pipeline; you place them yourself, as [Stage order](#stage-order) describes.
 
 | Stage | Class | What it does |
 | --- | --- | --- |
@@ -272,7 +272,8 @@ public static IDecisionClient Build(
 ```
 <!-- endSnippet -->
 
-1. recording, so one decision is one record, a cache hit included;
+1. recording, so one decision is one record, a cache hit included, as
+   [Recording decisions](recording.md#registering-it-outermost) describes;
 2. telemetry, so the span covers the whole call and carries the escalation tags;
 3. escalation, so a second client is asked only for the questions the first was unsure of, and each client caches its own
    answers;
@@ -280,9 +281,6 @@ public static IDecisionClient Build(
 5. retries, outside the limiter, so a local rejection is retried after its `RetryAfter`;
 6. rate limiting, so every attempt takes a permit;
 7. the transport.
-
-When you [record decisions](recording.md#registering-it-outermost), `UseRecording` goes before all of these, so that a
-decision is one record, a cache hit included.
 
 ## Escalating unsure questions
 
@@ -347,14 +345,14 @@ The options are an `EscalationOptions`, which `UseEscalation` copies and checks 
   answers. An exception the target throws, and the caller's own cancellation, are not caught.
 - **The path says who answered.** `DecisionResponse.Path` is a `DecisionPath` with one `QuestionRoute` per question, in the
   set's order: `Key`, `AnsweredBy`, `Reason` (a `RouteReason`: `Confident`, `Escalated`, `NoTimeLeft` or `TargetFailed`)
-  and both certainties. `Calls` lists each `DecisionCall` made, with its client name, model and usage. The response's `Usage` is the sum over the calls. A response
-  from a pipeline without the stage has no path.
+  and both certainties. `Calls` lists each `DecisionCall` made, with its client name, model and usage. The response's
+  `Usage` is the sum over the calls. A response from a pipeline without the stage has no path.
 - **`As<T>()` reads the answers as your type.** Call it on the response of a `DecisionRequest`, since the typed
   `EvaluateAsync<T>` extensions return the answers without the path.
 
 The first client is named `PrimaryName`, `"primary"` unless you set it, and the target `TargetName`; the by-key overload
-sets it to the key. [Logging, traces and metrics](observability.md#which-stage-emits-what) lists the span tags, the counter and the
-log events, and [Recording decisions](recording.md) describes how the recorder keeps the path.
+sets it to the key. [Logging, traces and metrics](observability.md#which-stage-emits-what) lists the span tags, the
+counter and the log events, and [Recording decisions](recording.md) describes how the recorder keeps the path.
 
 ## Writing a stage
 
