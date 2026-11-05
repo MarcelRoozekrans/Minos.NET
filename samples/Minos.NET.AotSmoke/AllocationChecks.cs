@@ -136,8 +136,11 @@ internal static class AllocationChecks
         // DecisionResponse with its AnswerSlot[] and probabilities, and the SmokeTriage. It measured 2984 B/call before the
         // pipeline, 3368 B/call before ZeroAlloc.Rest 3.2.1 and 3784 B/call when first budgeted in Phase 1.8. Budget: about
         // 10% headroom over the 2984 B measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
+        // Phase 10.1 made DecisionResponse carry the escalation path and its telemetry tags, which grew each response and
+        // so this call from 3296 B to 3368 B on published linux-x64 AOT, the same in every run; the budget is that
+        // measurement plus 10%, rounded up to the next multiple of 64 B.
         GateValueTask(
-            budgetBytes: 3328,
+            budgetBytes: 3712,
             action: () => client.EvaluateAsync<SmokeTriage>(SmokeAnswers.State),
             label: "TypedEvaluateRoundTrip",
             passDescription: "EvaluateAsync<T> stays within its allocation budget");
@@ -258,6 +261,54 @@ internal static class AllocationChecks
             passDescription: "a granted token-bucket permit stays within its allocation budget");
     }
 
+    /// <summary>
+    /// An <see cref="Minos.EscalatingDecisionClient"/> over a primary whose every answer is confident, with no <c>Deadline</c>
+    /// and no <c>Budget</c>, so the stage reads no clock and calls no target. The path is the only thing it adds.
+    /// </summary>
+    public static void EscalatingStage()
+    {
+        var primary = new FixedResponseClient(PipelineChecks.TriageResponse());
+        var target = new FixedResponseClient(PipelineChecks.TriageResponse());
+        using var client = primary.AsBuilder().UseEscalation(target, o => o.TargetName = "hosted").Build();
+        var request = new DecisionRequest(SmokeTriage.Definition, SmokeAnswers.State);
+
+        // The same pipeline without the stage is the primary alone, which allocates 0 B/call. Measured 488 B/call on
+        // published linux-x64 AOT, the same in every run: the path the stage puts on the response, a copy of the response
+        // that carries it, its three routes, the primary's call and the wrappers over both lists. Nothing else: the
+        // thresholds are read from the options, no subset is built and no target is called. Budget: about 10% headroom
+        // over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
+        GateValueTask(
+            budgetBytes: 576,
+            action: () => client.EvaluateAsync(request),
+            label: "EscalatingStage",
+            passDescription: "an escalating stage over a confident primary stays within its allocation budget, the path being all it adds");
+    }
+
+    /// <summary>
+    /// <see cref="EscalatingStage"/> with a <c>Budget</c> set, a different path: stamping the budget's deadline copies the
+    /// request for the primary, and the call reads the clock.
+    /// </summary>
+    public static void EscalatingStageWithABudget()
+    {
+        var primary = new FixedResponseClient(PipelineChecks.TriageResponse());
+        var target = new FixedResponseClient(PipelineChecks.TriageResponse());
+        using var client = primary.AsBuilder().UseEscalation(target, o =>
+        {
+            o.TargetName = "hosted";
+            o.Budget = TimeSpan.FromMinutes(1);
+        }).Build();
+        var request = new DecisionRequest(SmokeTriage.Definition, SmokeAnswers.State);
+
+        // Measured 584 B/call on published linux-x64 AOT: EscalatingStage's 488 B plus the copy of the request that
+        // carries the stamped deadline. Budget: about 10% headroom over the measurement, rounded up to the next multiple of
+        // 64 B, per the Phase 1.8 rule.
+        GateValueTask(
+            budgetBytes: 704,
+            action: () => client.EvaluateAsync(request),
+            label: "EscalatingStageWithABudget",
+            passDescription: "an escalating stage with a Budget stays within its allocation budget, the request copy and the path being all it adds");
+    }
+
     /// <summary>A <see cref="Minos.Recording.RecordingDecisionClient"/> recording each decision, without a shadow, around a client that allocates nothing.</summary>
     public static void RecordingStage()
     {
@@ -266,12 +317,13 @@ internal static class AllocationChecks
         using var client = inner.AsBuilder().UseRecording(recorder.Recorder).Build();
         var request = new DecisionRequest(SmokeTriage.Definition, SmokeAnswers.State);
 
-        // Measured 912 B/call on published linux-x64 AOT, the same in every run: the record the call hands the recorder, with
-        // its frozen answers, id and state, and the queue write. Budget: about 10% headroom over the measurement, rounded up
+        // Measured 1240 B/call on published linux-x64 AOT, the same in every run: the record the call hands the recorder, with
+        // its frozen answers, id and state, and the queue write. It measured 912 B/call before record version 3, whose
+        // answers each carry four nullable path fields that stay empty when the response has no path. Budget: about 10% headroom over the measurement, rounded up
         // to the next multiple of 64 B, per the Phase 1.8 rule. The recorder's writer thread allocates too, but the gate
         // counts the calling thread only. Measured on linux-x64, which is what CI's aot-smoke job runs.
         GateValueTask(
-            budgetBytes: 1024,
+            budgetBytes: 1408,
             action: () => client.EvaluateAsync(request),
             label: "RecordingStage",
             passDescription: "a recorded decision stays within its allocation budget");
@@ -291,13 +343,13 @@ internal static class AllocationChecks
         var request = new DecisionRequest(SmokeTriage.Definition, SmokeAnswers.State);
         var calls = 0;
 
-        // Measured 1264 B/call on published linux-x64 AOT, the same in every run: the 912 B of RecordingStage plus 352 B for
+        // Measured 1616 B/call on published linux-x64 AOT, the same in every run: the 1240 B of RecordingStage plus 376 B for
         // the shadow, which are the reservation and the work item and delegate that start the candidate in the background.
         // Budget: about 10% headroom over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
         // The candidate's own call runs on a pool thread, which the gate does not count. Measured on linux-x64, which is what
         // CI's aot-smoke job runs.
         GateValueTask(
-            budgetBytes: 1408,
+            budgetBytes: 1792,
             action: () =>
             {
                 calls++;
@@ -457,10 +509,10 @@ internal static class AllocationChecks
         using var provider = new CapturingLoggerProvider();
         using var factory = new LoggerFactory([provider], new LoggerFilterOptions { MinLevel = LogLevel.None });
 
-        // Budget: TypedEvaluateRoundTrip's own, 3328 B, unchanged, for the same reason as the NullLoggerFactory gate.
+        // Budget: TypedEvaluateRoundTrip's own, 3712 B, unchanged, for the same reason as the NullLoggerFactory gate.
         TypedEvaluateRoundTripThrough(
             factory,
-            budgetBytes: 3328,
+            budgetBytes: 3712,
             "TypedEvaluateRoundTripWithEveryLevelFiltered",
             "EvaluateAsync<T> with every level filtered out stays within TypedEvaluateRoundTrip's budget");
         Program.Check(provider.Records.Length == 0, "a logger with every level filtered out receives no record");
@@ -503,7 +555,7 @@ internal static class AllocationChecks
         // over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
         TypedEvaluateRoundTripThrough(
             DiscardingLoggerFactory.Instance,
-            budgetBytes: 3328,
+            budgetBytes: 3712,
             "TypedEvaluateRoundTripWithDiscardingLogger",
             "EvaluateAsync<T> with every log level enabled stays within its budget");
         Program.Check(
