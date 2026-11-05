@@ -66,7 +66,7 @@ internal static class EscalationChecks
             "an unsure question with no time left keeps the primary answer, routes NoTimeLeft and calls no target, under Native AOT");
     }
 
-    [Covers("static Minos.EscalationDecisionClientBuilderExtensions.UseEscalation(this Minos.DecisionClientBuilder! builder, string! targetKey, System.Action<Minos.EscalationOptions!>? configure = null) -> Minos.DecisionClientBuilder!")]
+    [Covers("static Minos.KeyedEscalationDecisionClientBuilderExtensions.UseEscalation(this Minos.DecisionClientBuilder! builder, string! targetKey, System.Action<Minos.EscalationOptions!>? configure = null) -> Minos.DecisionClientBuilder!")]
     public static async Task AFailingTargetKeepsThePrimaryAnswer()
     {
         var failing = new AnswerClient(_ => Result<DecisionResponse, DecisionError>.Failure(new DecisionError(DecisionErrorKind.Overloaded, "The target is busy.")));

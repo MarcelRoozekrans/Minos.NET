@@ -4,7 +4,7 @@ using Minos.DependencyInjection;
 namespace Minos;
 
 /// <summary>Adds an <see cref="EscalatingDecisionClient"/> whose target is a keyed client registered in the container.</summary>
-public static class EscalationDecisionClientBuilderExtensions
+public static class KeyedEscalationDecisionClientBuilderExtensions
 {
     /// <summary>
     /// Adds a stage that re-asks the questions the inner client is unsure of on the <see cref="IDecisionClient"/> keyed
