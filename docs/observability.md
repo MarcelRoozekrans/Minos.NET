@@ -172,14 +172,16 @@ A call logs once, when it completes, and logs again for each attempt it is about
   nothing here: the exception continues up to you. The events carry counts and client names only, never a question, its
   state or a key.
 - **A fallback stage** logs only for a call whose first step failed with an error the chain moves on from; a call the
-  first step answers logs nothing. 1017, a Warning, says a step failed and the chain moved on, the first step included;
-  `Step` is the step's name and `ErrorKind` is the name of the `DecisionErrorKind`, `DeadlineExceeded` for a step the
-  stage cut at its time limit, or `DefinitionMismatch`, as for an escalation target. 1018, an Information event, says a
-  step was not called because less time was left than its `ExpectedLatency`. 1020, also Information, says which step
-  answered; `StepsTried` counts the steps after the first that were tried or skipped, the answering one included. 1019,
-  a Warning, says no step answered: every step failed or was skipped, or a step failed with an error the chain does not
-  move on from. `StepsTried` counts as for 1020, and `ErrorKind` is that of the error returned. A step that throws logs
-  nothing here. The events carry step names, counts and error kinds only, never a question, its state or a key.
+  first step answers logs nothing. 1017, a Warning, says a step failed and the chain moved on to a later step, the first
+  step included; the last step's failure logs no 1017, since 1019 says how it failed. `Step` is the step's name and
+  `ErrorKind` is the name of the `DecisionErrorKind`, `DeadlineExceeded` for a step the stage cut at its time limit, or
+  `DefinitionMismatch`, as for an escalation target. 1018, an Information event, says a step was not called because
+  less time was left than its `ExpectedLatency`. 1020, also Information, says which step answered; `StepsTried` counts
+  the steps after the first that were tried or skipped, the answering one included. 1019, a Warning, says no step
+  answered: every step failed or was skipped, or a step failed with an error the chain does not move on from.
+  `StepsTried` counts as for 1020, and `ErrorKind` is that of the error returned. A step that throws logs nothing here,
+  and neither does a chain your cancellation stops: the call throws, with no 1019 and no count. The events carry step
+  names, counts and error kinds only, never a question, its state or a key.
 - **`UnexpectedException`** is an Error, 1006. It means a mistake in the calling code or a bug, because a failure of the
   call itself is a returned `DecisionError`. The exception continues up to you unchanged. A cancellation that you requested
   is not logged, and neither are the argument checks and the disposed-client check that throw before the call starts.
@@ -458,8 +460,7 @@ evaluation also records its tokens and one confidence point for each Choice or S
   `minos.fallback.answered_by` appear when `UseOpenTelemetry` sits outside the fallback stage and a later step answered;
   an exhausted chain's span has `error.type` instead. With escalation outside fallback, the escalated call's span
   carries both stages' tags once. A response a cache stage returns carries none of the routing tags or counts, even
-  when it first came from a fallback. A keyed step whose own pipeline has `UseOpenTelemetry` reports its routing and
-  tokens again on the outer stage, so put the telemetry stage on the outermost pipeline only.
+  when it first came from a fallback.
 - **Confidence** is the `Confidence` of each Choice and Score answer, a number from 0 to 1.
   [Noul answers](question-types.md) have no confidence and record no point, so a set of Noul questions records none.
   A set with one Choice and one Score records two points for each call.

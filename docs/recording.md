@@ -667,10 +667,9 @@ and each call the stage made. The record keeps it.
   all answered stays version 3.
 - **The reader reads versions 1 to 4.** A path is all or nothing: a line whose `calls` are empty, whose answer misses a
   member, or that has path members below version 3, or is version 4 without a call that did not answer, is reported as a problem and skipped.
-- **A reader older than the fallback stage rejects a version 4 line** as a problem, and a `FellBack` reason as
-  malformed, rather than reading a failed call as answered.
-- **A reader older than this release rejects a version 3 or 4 line** as a problem, as one before 1.5.0 rejected version 2.
-  Read files written with the escalation stage with this version or a later one.
+- **A reader of 1.9.0 or earlier rejects a version 3 or 4 line** as a problem, as one before 1.5.0 rejected version 2,
+  so it never reads a failed call as answered or meets a `FellBack` reason. Read files written with the escalation or
+  fallback stage with a release after 1.9.0.
 
 ## The shadow report
 

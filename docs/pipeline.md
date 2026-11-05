@@ -280,11 +280,11 @@ public static IDecisionClient Build(
 
 1. recording, so one decision is one record, a cache hit included, as
    [Recording decisions](recording.md#registering-it-outermost) describes;
-2. telemetry, so the span covers the whole call and carries the escalation tags;
+2. telemetry, so the span covers the whole call and carries the escalation and fallback tags;
 3. escalation, so a second client is asked only for the questions the first was unsure of; the first client's answers
    are cached below the stage, so give the target its own `UseCaching` to cache its answers too;
-4. fallback, so the next client is asked only when the first fails, with the same caching below it; give a step its own
-   `UseCaching` to cache its answers too;
+4. fallback, so the next client is asked only when the first fails; step 0's answers are cached below the stage, so
+   give a step its own `UseCaching` to cache its answers;
 5. caching, so a hit takes no permit;
 6. retries, outside the limiter, so a local rejection is retried after its `RetryAfter`;
 7. rate limiting, so every attempt takes a permit;
@@ -357,7 +357,8 @@ The options bind from configuration: `UseEscalation("hosted", o => config.GetSec
   answers. An exception the target throws, and the caller's own cancellation, are not caught.
 - **The path says who answered.** `DecisionResponse.Path` is a `DecisionPath` with one `QuestionRoute` per question, in the
   set's order: `Key`, `AnsweredBy`, `Reason` (a `RouteReason`: `Confident`, `Escalated`, `NoTimeLeft` or `TargetFailed`)
-  and both certainties. `Calls` lists each `DecisionCall` made, with its client name, model and usage. The response's
+  and both certainties. `Calls` lists each `DecisionCall` made, with its client name, model and usage, and its
+  `Status`, a `CallStatus`: `Answered`, `Failed` with its `ErrorKind`, or `NotCalledNoTimeLeft`. The response's
   `Usage` is the sum over the calls. A response from a pipeline without the stage has no path.
 - **The span tags and the counter appear only when `UseOpenTelemetry` sits outside the escalation stage,** as in
   [Stage order](#stage-order). With a client's standard pipeline on, each client has its own span and the escalation
@@ -373,8 +374,11 @@ counter and the log events, and [Recording decisions](recording.md) describes ho
 
 `UseFallback` adds a stage that asks the next client when the first one fails, in the order you list them. The stage is
 `FallbackDecisionClient`, its settings are a `FallbackOptions`, and each step is a `FallbackStep`: a name, a client and
-an `ExpectedLatency`. With the extension in `Minos.NET.DependencyInjection`, a `KeyedFallbackStep` names a client that
-`AddDecisionClient("clef", ...)` registered under that key; with the core package, pass the clients in `FallbackOptions.Steps`.
+an `ExpectedLatency`.
+
+With the core package, pass the clients in `FallbackOptions.Steps`. With the extension in
+`Minos.NET.DependencyInjection`, a `KeyedFallbackStep` names a client that `AddDecisionClient("clef", ...)` registered
+under that key.
 
 <!-- snippet: Pipeline_Fallback -->
 ```cs
@@ -409,8 +413,10 @@ public static async Task<(ShopIntent Intent, string AnsweredBy)> ReadAsync(IDeci
 - **Provider failures move on.** By default a call moves on to the next step when it fails with a provider error, as
   `FallbackOptions.IsProviderFailure` defines it, such as `Overloaded`, `RateLimited`, `Server`, `Network` or `Timeout`.
   A refusal does not, and neither does a validation error, since the next provider would reject the request too; set
-  `ShouldFallBack` to decide otherwise.
-- **Every step receives the full state,** the same question set, state and images as the first client, and uses its own model.
+  `ShouldFallBack` to decide otherwise. A `Disposed` failure always stops the chain, whatever `ShouldFallBack` returns,
+  as it stops `UseRetries`: the app is shutting down.
+- **Every step receives the full state,** the same question set, state and images as the first client, and uses its own
+  model. So every step must meet the same data rules as the first client: list only providers that may see that state.
 - **Time bounds the chain.** A request's `Deadline`, or `Budget` from the moment the call starts, is the latest the answer
   can arrive. A step with less time left than its `ExpectedLatency` is skipped, and the stage cuts a call that hangs
   early enough that the next step still fits.
@@ -419,8 +425,10 @@ public static async Task<(ShopIntent Intent, string AnsweredBy)> ReadAsync(IDeci
   which reads `Confident`.
 - **`Usage` sums every call on the path,** including a step that answered the wrong question set.
 - **A cached copy keeps its path calls** as the original run recorded them; `DecisionResponse.IsCached` marks the hit.
-- **Token metrics for a chain are recorded under the final response's model,** not each call's. Tagging each call with
-  its own model is tracked in [issue 327](https://github.com/MarcelRoozekrans/Minos.NET/issues/327).
+- **Token metrics for a chain are recorded under the final response's model,** not each call's, when `UseOpenTelemetry`
+  sits outside the fallback stage. A client's standard pipeline records each client's tokens under its own model.
+  Tagging each call with its own model on the outer stage is tracked in
+  [issue 327](https://github.com/MarcelRoozekrans/Minos.NET/issues/327).
 
 ## Writing a stage
 
