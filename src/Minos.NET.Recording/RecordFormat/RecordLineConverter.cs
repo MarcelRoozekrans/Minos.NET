@@ -67,29 +67,39 @@ internal static class RecordLineConverter
             return false;
         }
 
-        record = new DecisionRecord(
-            dto.DecisionId,
-            dto.ErasureKey,
-            started,
-            TimeSpan.FromTicks((long)Math.Round(dto.LatencyMs * TimeSpan.TicksPerMillisecond)),
-            dto.Provider,
-            dto.Endpoint,
-            dto.DefaultModel,
-            dto.RequestedModel,
-            dto.ServedModel,
-            dto.ResponseId,
-            dto.UpstreamProvider,
-            ToUsage(dto.Usage),
-            dto.Cached,
-            definition,
-            state,
-            dto.ImageCount,
-            DecisionRecord.Freeze(dto.ImageHashes),
-            answers,
-            errorKind,
-            DecisionRecord.Freeze(dto.RefusedKeys),
-            shadow,
-            calls);
+        // The checks above keep the constructor from throwing; if they ever drift apart, the line is a problem, not an exception.
+        try
+        {
+            record = new DecisionRecord(
+                dto.DecisionId,
+                dto.ErasureKey,
+                started,
+                TimeSpan.FromTicks((long)Math.Round(dto.LatencyMs * TimeSpan.TicksPerMillisecond)),
+                dto.Provider,
+                dto.Endpoint,
+                dto.DefaultModel,
+                dto.RequestedModel,
+                dto.ServedModel,
+                dto.ResponseId,
+                dto.UpstreamProvider,
+                ToUsage(dto.Usage),
+                dto.Cached,
+                definition,
+                state,
+                dto.ImageCount,
+                DecisionRecord.Freeze(dto.ImageHashes),
+                answers,
+                errorKind,
+                DecisionRecord.Freeze(dto.RefusedKeys),
+                shadow,
+                calls);
+        }
+        catch (ArgumentException)
+        {
+            message = "The record line is not valid.";
+            return false;
+        }
+
         return true;
     }
 
