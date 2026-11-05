@@ -514,8 +514,8 @@ internal static class AllocationChecks
         using var provider = new CapturingLoggerProvider();
         using var factory = new LoggerFactory([provider], new LoggerFilterOptions { MinLevel = LogLevel.None });
 
-        // Measured 3328 B/call on published linux-x64 AOT, the same as TypedEvaluateRoundTrip. Budget: TypedEvaluateRoundTrip's
-        // own, 3392 B, unchanged, for the same reason as the NullLoggerFactory gate.
+        // Measured 3328 B/call on published linux-x64 AOT, the same as TypedEvaluateRoundTrip. Budget:
+        // TypedEvaluateRoundTrip's own, 3392 B, unchanged, for the same reason as the NullLoggerFactory gate.
         TypedEvaluateRoundTripThrough(
             factory,
             budgetBytes: 3392,

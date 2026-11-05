@@ -287,9 +287,9 @@ public static IDecisionClient Build(
 `UseEscalation` adds a stage that asks a second client, the target, again for the questions the first client was unsure
 of, and only those. A question is unsure when its certainty is below its threshold: 0.6 unless you set another. The
 certainty of a Choice or a Score is its `Confidence`; a Noul's is how far it lies from one half, so 0.05 is as sure as
-0.95. The stage is `EscalatingDecisionClient`. With the extension in `Minos.NET.DependencyInjection`, `UseEscalation("hosted")`
-takes the client that `AddDecisionClient("hosted", ...)` registered under that key; with the core package, pass the
-target client or a factory for it.
+0.95. The stage is `EscalatingDecisionClient`. With the extension in `Minos.NET.DependencyInjection`,
+`UseEscalation("hosted")` takes the client that `AddDecisionClient("hosted", ...)` registered under that key; with the
+core package, pass the target client or a factory for it.
 
 <!-- snippet: Pipeline_Escalation -->
 ```cs
