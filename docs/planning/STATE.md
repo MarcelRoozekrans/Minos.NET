@@ -1,4 +1,4 @@
-# Session State — 2026-11-05 (Phase 10.2 complete; Phase 10.3 next)
+# Session State — 2026-11-05 (Phase 10.3 designed and approved; plan next)
 
 **Date:** 2026-11-05
 
@@ -218,7 +218,10 @@
      - **Release PR #325 (1.10.0)** was still open at the end of the run, so the ApiCompat baseline did not move.
    - **Next:**
      1. Done 2026-11-05: pre-push review PASS (`docs/plans/2026-11-05-phase-10.2-pre-push-review.md`), PR #328 merged, and `complete-phase` for 10.2, noting Task 7 moved to #327.
-     2. Then Phase 10.3, the ticket-triage sample, through `start-next-phase`.
+     2. **Phase 10.3 (Ticket-triage sample) is designed and approved** on 2026-11-05: `docs/superpowers/specs/2026-11-05-phase-10.3-ticket-triage-design.md`, on branch `phase/10.3-triage-brainstorm`, which builds on `chore/complete-phase-10.2` (PR #329, open). Rebase on `main` after #329 merges.
+        - **Maintainer's choices:** the report covers accuracy and the confidence signal, so Banking77 (400 labelled items, one Choice and two Noul questions each), not hand-written tickets; fixed thresholds from the local calibration sweep, `intent` 0.85 and both Nouls 0.80; Daedalus's 5 s budget; TypeSafe as the target; a new `Minos.NET.Samples.TicketTriage` that builds its own report (no new CLI command).
+        - **Builder check done;** its seven points are settled as my calls in the spec. Notable: the `calibrate` job's condition becomes `inputs.job == 'calibrate'`; the sample reads `prices.json` into `PriceTable` itself; no billed price probe.
+        - **Next:** `start-next-phase` routes to `superpowers:writing-plans` (Surface `Mixed`: no pre-plan hook), then `list-phase-assumptions` and execution. Two PRs: the sample, job, tests and docs first; then, after the maintainer approves the billed run from `main` (about 180 TypeSafe calls), the report folder.
      3. The `.website` bot submodule PR with the Minos docs has not appeared yet; .website#127 covers only orm, rest and telemetry. When one includes Minos, ask the maintainer before approving and merging it.
      4. Done 2026-11-05: the maintainer approved deleting the remote branches `phase-10.1-escalation-brainstorm` and `phase-10.2-fallback-brainstorm`, and both are gone.
    - **Waiting on the maintainer:** a peer message to the Daedalus session "daedalus: phase 3.3 Task 16 onward" saying the recorder shipped in 1.3.0. It needs approval in the app; the `daedalus-b9` session no longer exists. The #119 comment is posted.

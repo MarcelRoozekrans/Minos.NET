@@ -530,10 +530,11 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Completed:** 2026-11-05
 **Deferred:** Task 7 (spec call 11, token metrics per call) moved to #327, blocked on ZeroAlloc-Net/ZeroAlloc.Telemetry#241; its Steps 2-6 stay unticked on purpose.
 
-### Phase 10.3: Ticket-triage sample [status: pending]
+### Phase 10.3: Ticket-triage sample [status: active]
 **Goal:** Local-first ticket triage with escalation on low confidence, and a committed report of the split by path, latency and cost, from an approved hosted run (#119).
 **Surface:** Mixed
 **HelpWanted:** no
+**Design:** `docs/superpowers/specs/2026-11-05-phase-10.3-ticket-triage-design.md`
 **Plan:** _to be written_
 
 ### Phase 10.4: Confidence routing as a framework feature [status: pending]
