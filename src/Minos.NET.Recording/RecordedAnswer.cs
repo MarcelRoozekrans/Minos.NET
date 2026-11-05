@@ -18,7 +18,11 @@ public readonly struct RecordedAnswer : IEquatable<RecordedAnswer>
         double expected,
         double confidence,
         IReadOnlyList<double> probabilities,
-        ProbabilitySource probabilitySource = ProbabilitySource.Model)
+        ProbabilitySource probabilitySource = ProbabilitySource.Model,
+        string? answeredBy = null,
+        RouteReason? route = null,
+        double? primaryCertainty = null,
+        double? targetCertainty = null)
     {
         Key = key;
         Kind = kind;
@@ -28,6 +32,10 @@ public readonly struct RecordedAnswer : IEquatable<RecordedAnswer>
         Confidence = confidence;
         _probabilities = probabilities;
         ProbabilitySource = probabilitySource;
+        AnsweredBy = answeredBy;
+        Route = route;
+        PrimaryCertainty = primaryCertainty;
+        TargetCertainty = targetCertainty;
     }
 
     /// <summary>Gets the key of the question that was answered.</summary>
@@ -54,6 +62,18 @@ public readonly struct RecordedAnswer : IEquatable<RecordedAnswer>
     /// <summary>Gets where the probabilities came from: the model's own, its logprobs, or a verbalized estimate.</summary>
     public ProbabilitySource ProbabilitySource { get; }
 
+    /// <summary>Gets the name of the client that answered the question, or <see langword="null"/> when the response had no <see cref="DecisionResponse.Path"/>.</summary>
+    public string? AnsweredBy { get; }
+
+    /// <summary>Gets why that client answered, or <see langword="null"/> when the response had no path.</summary>
+    public RouteReason? Route { get; }
+
+    /// <summary>Gets the primary client's certainty in its own answer, from 0 to 1, or <see langword="null"/> when the response had no path.</summary>
+    public double? PrimaryCertainty { get; }
+
+    /// <summary>Gets the target client's certainty in its answer, or <see langword="null"/> when the target did not answer or the response had no path.</summary>
+    public double? TargetCertainty { get; }
+
     /// <summary>Determines whether two answers are equal.</summary>
     /// <param name="left">The first answer.</param>
     /// <param name="right">The second answer.</param>
@@ -77,6 +97,10 @@ public readonly struct RecordedAnswer : IEquatable<RecordedAnswer>
             && Expected.Equals(other.Expected)
             && Confidence.Equals(other.Confidence)
             && ProbabilitySource == other.ProbabilitySource
+            && string.Equals(AnsweredBy, other.AnsweredBy, StringComparison.Ordinal)
+            && Route == other.Route
+            && Nullable.Equals(PrimaryCertainty, other.PrimaryCertainty)
+            && Nullable.Equals(TargetCertainty, other.TargetCertainty)
             && Probabilities.SequenceEqual(other.Probabilities);
 
     /// <inheritdoc />
@@ -94,6 +118,10 @@ public readonly struct RecordedAnswer : IEquatable<RecordedAnswer>
         hash.Add(Expected);
         hash.Add(Confidence);
         hash.Add(ProbabilitySource);
+        hash.Add(AnsweredBy, StringComparer.Ordinal);
+        hash.Add(Route);
+        hash.Add(PrimaryCertainty);
+        hash.Add(TargetCertainty);
         foreach (var probability in Probabilities)
         {
             hash.Add(probability);
@@ -104,4 +132,9 @@ public readonly struct RecordedAnswer : IEquatable<RecordedAnswer>
 
     internal static RecordedAnswer From(QuestionAnswer answer)
         => new(answer.Key, answer.Kind, answer.ChosenIndex, answer.Probability, answer.Expected, answer.Confidence, answer.Probabilities.ToArray(), answer.ProbabilitySource);
+
+    internal static RecordedAnswer From(QuestionAnswer answer, QuestionRoute route)
+        => new(
+            answer.Key, answer.Kind, answer.ChosenIndex, answer.Probability, answer.Expected, answer.Confidence, answer.Probabilities.ToArray(),
+            answer.ProbabilitySource, route.AnsweredBy, route.Reason, route.PrimaryCertainty, route.TargetCertainty);
 }

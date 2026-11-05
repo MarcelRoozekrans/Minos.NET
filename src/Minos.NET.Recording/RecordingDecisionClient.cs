@@ -239,9 +239,11 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
         {
             response = result.Value;
             answers = new List<RecordedAnswer>(response.Answers.Count);
-            foreach (var answer in response.Answers)
+            var path = response.Path;
+            for (var i = 0; i < response.Answers.Count; i++)
             {
-                answers.Add(RecordedAnswer.From(answer));
+                // A response's routes match its answers one to one, in definition order.
+                answers.Add(path is null ? RecordedAnswer.From(response.Answers[i]) : RecordedAnswer.From(response.Answers[i], path.Routes[i]));
             }
         }
         else
@@ -271,7 +273,8 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
             DecisionRecord.Freeze(imageHashes),
             DecisionRecord.Freeze(answers),
             errorKind,
-            DecisionRecord.Freeze(refusedKeys));
+            DecisionRecord.Freeze(refusedKeys),
+            calls: response?.Path is { } responsePath ? DecisionRecord.Freeze(responsePath.Calls) : null);
 
         // A failed call gives nothing to agree with, and a cache hit repeats a decision already shadowed.
         ShadowRunner.Reservation shadow = default;

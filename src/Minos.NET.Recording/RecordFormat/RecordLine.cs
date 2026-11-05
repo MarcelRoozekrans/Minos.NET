@@ -8,7 +8,8 @@ namespace Minos.Recording.RecordFormat;
 /// <summary>
 /// Writes the lines of a record file: one JSON object per line with a <c>kind</c> of <c>record</c>,
 /// <c>outcome</c> or <c>erasure</c> and a <c>version</c> of 1. A record line with an answer, its own or its shadow's,
-/// whose probabilities do not come from the model has a <c>version</c> of 2. The caller ends each line with <c>\n</c>.
+/// whose probabilities do not come from the model has a <c>version</c> of 2. A record line whose response had an
+/// escalation path has a <c>version</c> of 3, marked answers or not, since 3 holds everything 2 does. The caller ends each line with <c>\n</c>.
 /// </summary>
 internal static class RecordLine
 {
@@ -16,6 +17,9 @@ internal static class RecordLine
 
     /// <summary>The version of a record line that has an answer with a probability source.</summary>
     internal const int VersionWithSource = 2;
+
+    /// <summary>The version of a record line that has an escalation path: <c>calls</c>, and on each answer who answered and why.</summary>
+    internal const int VersionWithPath = 3;
 
     private const double TicksPerMillisecond = TimeSpan.TicksPerMillisecond;
 
@@ -31,7 +35,8 @@ internal static class RecordLine
         w.WriteStartObject();
         w.WriteString("kind", "record");
         var marked = HasMarkedAnswer(record.Answers) || (record.Shadow is { } shadow && HasMarkedAnswer(shadow.Answers));
-        w.WriteNumber("version", marked ? VersionWithSource : Version);
+        var version = record.Calls is not null ? VersionWithPath : marked ? VersionWithSource : Version;
+        w.WriteNumber("version", version);
         w.WriteString("decisionId", record.DecisionId);
         WriteOptional(w, "erasureKey", record.ErasureKey);
         w.WriteString("started", record.Started);
@@ -54,6 +59,7 @@ internal static class RecordLine
         WriteAnswers(w, record.Answers);
         WriteErrorKind(w, record.ErrorKind);
         WriteStrings(w, "refusedKeys", record.RefusedKeys);
+        WriteCalls(w, record.Calls);
         if (record.Shadow is { } candidate)
         {
             w.WriteStartObject("shadow");
@@ -221,6 +227,27 @@ internal static class RecordLine
         w.WriteEndArray();
     }
 
+    private static void WriteCalls(Utf8JsonWriter w, IReadOnlyList<DecisionCall>? calls)
+    {
+        if (calls is null)
+        {
+            return;
+        }
+
+        w.WriteStartArray("calls");
+        foreach (var call in calls)
+        {
+            w.WriteStartObject();
+            w.WriteString("client", call.ClientName);
+            WriteOptional(w, "model", call.Model);
+            WriteUsage(w, call.Usage);
+            w.WriteBoolean("cached", call.IsCached);
+            w.WriteEndObject();
+        }
+
+        w.WriteEndArray();
+    }
+
     private static void WriteErrorKind(Utf8JsonWriter w, DecisionErrorKind? errorKind)
     {
         if (errorKind is { } kind)
@@ -251,6 +278,17 @@ internal static class RecordLine
         }
 
         w.WriteNumber("confidence", answer.Confidence);
+        if (answer.AnsweredBy is { } answeredBy && answer.Route is { } route && answer.PrimaryCertainty is { } primary)
+        {
+            w.WriteString("answeredBy", answeredBy);
+            w.WriteString("route", route.ToString());
+            w.WriteNumber("primaryCertainty", primary);
+            if (answer.TargetCertainty is { } target)
+            {
+                w.WriteNumber("targetCertainty", target);
+            }
+        }
+
         switch (answer.ProbabilitySource)
         {
             case ProbabilitySource.Logprobs:

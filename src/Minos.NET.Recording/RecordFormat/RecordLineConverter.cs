@@ -7,7 +7,7 @@ namespace Minos.Recording.RecordFormat;
 // fixed message: it never quotes the line, which may hold state, or a decision id.
 internal static class RecordLineConverter
 {
-    internal static bool TryToRecord(LineDto dto, [NotNullWhen(true)] out DecisionRecord? record, out string message)
+    internal static bool TryToRecord(LineDto dto, int version, [NotNullWhen(true)] out DecisionRecord? record, out string message)
     {
         record = null;
         message = string.Empty;
@@ -48,7 +48,21 @@ internal static class RecordLineConverter
             return false;
         }
 
-        if (!TryToAnswers(dto.Answers, out var answers, out message))
+        // A path is all or nothing: calls, and on each answer who answered and why. Only a version 3 line has one.
+        var hasPath = dto.Calls is not null;
+        if (hasPath && (version != RecordLine.VersionWithPath || errorKind is not null))
+        {
+            message = "The record line has a path it cannot have.";
+            return false;
+        }
+
+        if (!TryToCalls(dto.Calls, out var calls))
+        {
+            message = "The record line has a path that is not valid.";
+            return false;
+        }
+
+        if (!TryToAnswers(dto.Answers, hasPath, out var answers, out message))
         {
             return false;
         }
@@ -74,7 +88,40 @@ internal static class RecordLineConverter
             answers,
             errorKind,
             DecisionRecord.Freeze(dto.RefusedKeys),
-            shadow);
+            shadow,
+            calls);
+        return true;
+    }
+
+    // Absent calls are no path and fine; present calls must be a non-empty list of whole calls.
+    private static bool TryToCalls(List<CallDto>? dtos, out IReadOnlyList<DecisionCall>? calls)
+    {
+        calls = null;
+        if (dtos is null)
+        {
+            return true;
+        }
+
+        if (dtos.Count == 0)
+        {
+            return false;
+        }
+
+        var list = new List<DecisionCall>(dtos.Count);
+        foreach (var dto in dtos)
+        {
+            if (dto is null
+                || string.IsNullOrEmpty(dto.Client)
+                || dto.Cached is not { } cached
+                || dto.Usage is { InputTokens: < 0 } or { OutputTokens: < 0 } or { Cost: < 0 })
+            {
+                return false;
+            }
+
+            list.Add(new DecisionCall(dto.Client, dto.Model, ToUsage(dto.Usage), cached));
+        }
+
+        calls = DecisionRecord.Freeze(list);
         return true;
     }
 
@@ -94,7 +141,7 @@ internal static class RecordLineConverter
             return false;
         }
 
-        if (!TryToAnswers(dto.Answers, out var answers, out message))
+        if (!TryToAnswers(dto.Answers, withPath: false, out var answers, out message))
         {
             return false;
         }
@@ -133,7 +180,7 @@ internal static class RecordLineConverter
         return true;
     }
 
-    private static bool TryToAnswers(List<AnswerDto>? dtos, out IReadOnlyList<RecordedAnswer> answers, out string message)
+    private static bool TryToAnswers(List<AnswerDto>? dtos, bool withPath, out IReadOnlyList<RecordedAnswer> answers, out string message)
     {
         answers = [];
         message = string.Empty;
@@ -146,7 +193,7 @@ internal static class RecordLineConverter
                 return false;
             }
 
-            if (!TryToAnswer(answer, out var recorded))
+            if (!TryToAnswer(answer, withPath, out var recorded))
             {
                 message = "The record line has an answer that is not valid.";
                 return false;
@@ -247,9 +294,14 @@ internal static class RecordLineConverter
         }
     }
 
-    private static bool TryToAnswer(AnswerDto dto, out RecordedAnswer answer)
+    private static bool TryToAnswer(AnswerDto dto, bool withPath, out RecordedAnswer answer)
     {
         answer = default;
+        if (!TryToRoute(dto, withPath, out var route))
+        {
+            return false;
+        }
+
         if (string.IsNullOrEmpty(dto.Key))
         {
             return false;
@@ -275,16 +327,42 @@ internal static class RecordLineConverter
         switch (dto.Kind)
         {
             case "noul":
-                answer = new RecordedAnswer(dto.Key, QuestionKind.Noul, -1, dto.Probability, 0, dto.Confidence, probabilities, source);
+                answer = new RecordedAnswer(dto.Key, QuestionKind.Noul, -1, dto.Probability, 0, dto.Confidence, probabilities, source, dto.AnsweredBy, route, dto.PrimaryCertainty, dto.TargetCertainty);
                 return true;
             case "choice" when dto.ChosenIndex is { } index:
-                answer = new RecordedAnswer(dto.Key, QuestionKind.Choice, index, 0, 0, dto.Confidence, probabilities, source);
+                answer = new RecordedAnswer(dto.Key, QuestionKind.Choice, index, 0, 0, dto.Confidence, probabilities, source, dto.AnsweredBy, route, dto.PrimaryCertainty, dto.TargetCertainty);
                 return true;
             case "score" when dto.ChosenIndex is { } level:
-                answer = new RecordedAnswer(dto.Key, QuestionKind.Score, level, 0, dto.Expected, dto.Confidence, probabilities, source);
+                answer = new RecordedAnswer(dto.Key, QuestionKind.Score, level, 0, dto.Expected, dto.Confidence, probabilities, source, dto.AnsweredBy, route, dto.PrimaryCertainty, dto.TargetCertainty);
                 return true;
             default:
                 return false;
         }
     }
+
+    // On a path, an answer needs who answered, why and the primary's certainty; off a path it has none of the four.
+    private static bool TryToRoute(AnswerDto dto, bool withPath, out RouteReason? route)
+    {
+        route = null;
+        if (!withPath)
+        {
+            return dto.AnsweredBy is null && dto.Route is null && dto.PrimaryCertainty is null && dto.TargetCertainty is null;
+        }
+
+        if (string.IsNullOrEmpty(dto.AnsweredBy)
+            || dto.Route is null
+            || !Enum.TryParse<RouteReason>(dto.Route, ignoreCase: false, out var reason)
+            || !Enum.IsDefined(reason)
+            || dto.PrimaryCertainty is not { } primary
+            || !IsCertainty(primary)
+            || dto.TargetCertainty is { } target && !IsCertainty(target))
+        {
+            return false;
+        }
+
+        route = reason;
+        return true;
+    }
+
+    private static bool IsCertainty(double value) => value is >= 0 and <= 1;
 }

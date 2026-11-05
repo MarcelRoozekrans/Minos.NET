@@ -29,7 +29,8 @@ public sealed class DecisionRecord
         IReadOnlyList<RecordedAnswer> answers,
         DecisionErrorKind? errorKind,
         IReadOnlyList<string> refusedKeys,
-        ShadowResult? shadow = null)
+        ShadowResult? shadow = null,
+        IReadOnlyList<DecisionCall>? calls = null)
     {
         DecisionId = decisionId;
         ErasureKey = erasureKey;
@@ -52,6 +53,7 @@ public sealed class DecisionRecord
         ErrorKind = errorKind;
         RefusedKeys = refusedKeys;
         Shadow = shadow;
+        Calls = calls;
     }
 
     /// <summary>Gets the id that ties the record to its outcomes and erasures.</summary>
@@ -117,6 +119,12 @@ public sealed class DecisionRecord
     /// <summary>Gets what the shadow candidate answered for the same decision, or <see langword="null"/> when the decision was not shadowed.</summary>
     public ShadowResult? Shadow { get; }
 
+    /// <summary>
+    /// Gets each call the response's <see cref="DecisionResponse.Path"/> made, the primary client's first, or
+    /// <see langword="null"/> when the response had no path. When set, each answer names the client that answered it.
+    /// </summary>
+    public IReadOnlyList<DecisionCall>? Calls { get; }
+
     /// <summary>Returns a copy of the record that carries <paramref name="shadow"/> and is otherwise the same.</summary>
     /// <param name="shadow">The candidate's result.</param>
     internal DecisionRecord WithShadow(ShadowResult shadow)
@@ -125,7 +133,7 @@ public sealed class DecisionRecord
         return new DecisionRecord(
             DecisionId, ErasureKey, Started, Latency, Provider, Endpoint, DefaultModel, RequestedModel, ServedModel,
             ResponseId, UpstreamProvider, Usage, IsCached, Definition, State, ImageCount, ImageHashes, Answers, ErrorKind,
-            RefusedKeys, shadow);
+            RefusedKeys, shadow, Calls);
     }
 
     internal static IReadOnlyList<T> Freeze<T>(IEnumerable<T>? items)
