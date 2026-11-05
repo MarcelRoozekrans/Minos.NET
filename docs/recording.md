@@ -551,8 +551,8 @@ as the example above does; a flush writes what is queued but does not wait for a
 ## The JSONL format
 
 The file is UTF-8 JSONL, one JSON object per line. Every line has a `kind`, which is `record`, `outcome` or `erasure`,
-and a `version`, which is `1`, or `2` for a record with a [probability source](#probability-sources), the candidate's
-answers included. The reader skips
+and a `version`, which is `1`, `2` for a record with a [probability source](#probability-sources), the candidate's
+answers included, or `3` for a record with an [escalation path](#the-escalation-path). The reader skips
 members it does not know.
 
 <!-- decision record file -->
@@ -646,6 +646,25 @@ dataset built from your traffic.
   lines of a chat-client candidate are unreadable to it.
 - **An older reader rejects a version 2 line** as a problem, rather than reading it and dropping the mark. Read files
   written by a chat client with this version or a later one.
+
+### The escalation path
+
+A response that went through the escalation stage carries a path: for each question the client that answered it and why,
+and each call the stage made. The record keeps it.
+
+- **Each answer** has `"answeredBy"` (the client's name), `"reason"` (`Confident`, `Escalated`, `NoTimeLeft` or
+  `TargetFailed`) and `"primaryCertainty"`, and `"targetCertainty"` when the target answered. They read as
+  `RecordedAnswer.AnsweredBy`, `Reason`, `PrimaryCertainty` and `TargetCertainty`, which are `null` without a path.
+- **The record** has `"calls"`, one object per call with `client`, `model`, `usage` and `cached`, the primary's first.
+  They read as `DecisionRecord.Calls`, which is `null` without a path.
+- **A record with a path is version 3,** whether or not an answer has a probability source, since version 3 keeps the
+  `probabilitySource` member too. A record without a path stays version 1 or 2 as before, so the lines of an app that
+  does not escalate do not change. The candidate's answers in a shadow write carry no path; the second write keeps the
+  primary's.
+- **The reader reads versions 1 to 3.** A path is all or nothing: a line whose `calls` are empty, whose answer misses a
+  member, or that has path members below version 3 is reported as a problem and skipped.
+- **A reader older than this release rejects a version 3 line** as a problem, as one before 1.5.0 rejected version 2.
+  Read files written with the escalation stage with this version or a later one.
 
 ## The shadow report
 

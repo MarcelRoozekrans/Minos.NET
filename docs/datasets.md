@@ -241,7 +241,8 @@ and they never become expected answers. Minos has no reader for this file yet.
 ### What the dataset leaves out
 
 A dataset holds the right answers, not the answers the model gave. The recorded answers and their probability source, in
-a version 2 record, are not exported, and a version 2 record exports the same as a version 1 record. Both come back in
+a version 2 record, are not exported, and a version 2 record exports the same as a version 1 record. The same holds for
+a version 3 record, which also keeps the escalation path: who answered each question is not exported. Both come back in
 the results when you run the dataset, and the format stays version 1.
 
 ### From the command line
