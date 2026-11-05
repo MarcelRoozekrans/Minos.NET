@@ -325,12 +325,10 @@ internal static class AllocationChecks
 
         // Measured 728 B/call on published linux-x64 AOT, the same in every run: the record the call hands the recorder,
         // with its answers, id and state, and the queue write. The recorder's writer thread allocates too, but the gate
-        // counts the calling thread only. Budget: the 1024 B it had before Phase 10.1, unchanged. That phase gave each
-        // answer one route reference and the record a Calls reference, 32 B for this call, and took out more: the answers
-        // are built into their final array instead of a list that was then copied, and a call without images shares the
-        // empty array. Measured on linux-x64, which is what CI's aot-smoke job runs.
+        // counts the calling thread only. Budget: about 10% headroom over the measurement, rounded up to the next multiple
+        // of 64 B, per the Phase 1.8 rule. Measured on linux-x64, which is what CI's aot-smoke job runs.
         GateValueTask(
-            budgetBytes: 1024,
+            budgetBytes: 832,
             action: () => client.EvaluateAsync(request),
             label: "RecordingStage",
             passDescription: "a recorded decision stays within its allocation budget");
@@ -353,11 +351,10 @@ internal static class AllocationChecks
         // Measured 1104 B/call on published linux-x64 AOT, the same in every run: the 728 B of RecordingStage plus 376 B for
         // the shadow, which are the candidate's request, the reservation and the work item and delegate that start the
         // candidate in the background. The candidate's own call runs on a pool thread, which the gate does not count.
-        // Budget: the 1408 B it had before Phase 10.1, unchanged. That phase added 24 B here, the Deadline on the
-        // candidate's request, and saved more on the record, as RecordingStage says. Measured on linux-x64, which is what
-        // CI's aot-smoke job runs.
+        // Budget: about 10% headroom over the measurement, rounded up to the next multiple of 64 B, per the Phase 1.8 rule.
+        // Measured on linux-x64, which is what CI's aot-smoke job runs.
         GateValueTask(
-            budgetBytes: 1408,
+            budgetBytes: 1216,
             action: () =>
             {
                 calls++;
