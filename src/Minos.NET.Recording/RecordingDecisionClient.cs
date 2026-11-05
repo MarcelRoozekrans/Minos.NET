@@ -225,7 +225,7 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
         }
 
         var images = request.Images;
-        var imageHashes = new string[images.Count];
+        var imageHashes = images.Count == 0 ? [] : new string[images.Count];
         for (var i = 0; i < imageHashes.Length; i++)
         {
             imageHashes[i] = Convert.ToHexStringLower(SHA256.HashData(images[i].Data.Span));
@@ -233,18 +233,23 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
 
         DecisionResponse? response = null;
         DecisionErrorKind? errorKind = null;
-        List<RecordedAnswer>? answers = null;
+        RecordedAnswer[]? answers = null;
+        IReadOnlyList<DecisionCall>? calls = null;
         List<string>? refusedKeys = null;
         if (result.IsSuccess)
         {
             response = result.Value;
-            answers = new List<RecordedAnswer>(response.Answers.Count);
+            var count = response.Answers.Count;
+            answers = count == 0 ? [] : new RecordedAnswer[count];
             // A path that does not match the answers one to one by key, as a hand-built one can, is not recorded at all.
             var path = MatchingPath(response);
-            for (var i = 0; i < response.Answers.Count; i++)
+            for (var i = 0; i < answers.Length; i++)
             {
-                answers.Add(path is null ? RecordedAnswer.From(response.Answers[i]) : RecordedAnswer.From(response.Answers[i], path.Routes[i]));
+                answers[i] = path is null ? RecordedAnswer.From(response.Answers[i]) : RecordedAnswer.From(response.Answers[i], path.Routes[i]);
             }
+
+            // A path is immutable, so the record shares its read-only list of calls instead of copying it.
+            calls = path?.Calls;
         }
         else
         {
@@ -253,7 +258,6 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
             refusedKeys = RefusedKeys(error);
         }
 
-        var calls = response is not null && MatchingPath(response) is { } matched ? DecisionRecord.Freeze(matched.Calls) : null;
         var record = new DecisionRecord(
             decisionId,
             erasureKey,
@@ -271,8 +275,8 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
             request.Definition,
             state,
             images.Count,
-            DecisionRecord.Freeze(imageHashes),
-            DecisionRecord.Freeze(answers),
+            DecisionRecord.FreezeOwned(imageHashes),
+            DecisionRecord.FreezeOwned(answers),
             errorKind,
             DecisionRecord.Freeze(refusedKeys),
             calls: calls);

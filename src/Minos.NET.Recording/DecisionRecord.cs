@@ -152,4 +152,8 @@ public sealed class DecisionRecord
         var array = items is null ? [] : items.ToArray();
         return array.Length == 0 ? [] : new ReadOnlyCollection<T>(array);
     }
+
+    // Wraps an array the caller built for this record alone and never changes again, without copying it.
+    internal static IReadOnlyList<T> FreezeOwned<T>(T[]? array)
+        => array is null || array.Length == 0 ? [] : new ReadOnlyCollection<T>(array);
 }

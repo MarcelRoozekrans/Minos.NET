@@ -1,3 +1,5 @@
+using System.Diagnostics;
+
 namespace Minos.Recording;
 
 /// <summary>
@@ -9,6 +11,10 @@ namespace Minos.Recording;
 public readonly struct RecordedAnswer : IEquatable<RecordedAnswer>
 {
     private readonly IReadOnlyList<double>? _probabilities;
+
+    // The route of an answer from a response with a path, or null; one reference, so an answer without a path is no
+    // larger than it was before record version 3 added the route.
+    private readonly Route? _route;
 
     internal RecordedAnswer(
         string key,
@@ -32,10 +38,11 @@ public readonly struct RecordedAnswer : IEquatable<RecordedAnswer>
         Confidence = confidence;
         _probabilities = probabilities;
         ProbabilitySource = probabilitySource;
-        AnsweredBy = answeredBy;
-        Reason = reason;
-        PrimaryCertainty = primaryCertainty;
-        TargetCertainty = targetCertainty;
+        // A route is whole or absent: the record reader and From(answer, route) never pass part of one.
+        Debug.Assert(
+            answeredBy is null ? reason is null && primaryCertainty is null && targetCertainty is null : reason is not null && primaryCertainty is not null,
+            "A route is whole or absent.");
+        _route = answeredBy is null ? null : new Route(answeredBy, reason.GetValueOrDefault(), primaryCertainty.GetValueOrDefault(), targetCertainty);
     }
 
     /// <summary>Gets the key of the question that was answered.</summary>
@@ -63,16 +70,16 @@ public readonly struct RecordedAnswer : IEquatable<RecordedAnswer>
     public ProbabilitySource ProbabilitySource { get; }
 
     /// <summary>Gets the name of the client that answered the question, or <see langword="null"/> when the response had no <see cref="DecisionResponse.Path"/>.</summary>
-    public string? AnsweredBy { get; }
+    public string? AnsweredBy => _route?.AnsweredBy;
 
     /// <summary>Gets why that client answered, or <see langword="null"/> when the response had no path.</summary>
-    public RouteReason? Reason { get; }
+    public RouteReason? Reason => _route?.Reason;
 
     /// <summary>Gets the primary client's certainty in its own answer, from 0 to 1, or <see langword="null"/> when the response had no path.</summary>
-    public double? PrimaryCertainty { get; }
+    public double? PrimaryCertainty => _route?.PrimaryCertainty;
 
     /// <summary>Gets the target client's certainty in its answer, or <see langword="null"/> when the target did not answer or the response had no path.</summary>
-    public double? TargetCertainty { get; }
+    public double? TargetCertainty => _route?.TargetCertainty;
 
     /// <summary>Determines whether two answers are equal.</summary>
     /// <param name="left">The first answer.</param>
@@ -97,10 +104,7 @@ public readonly struct RecordedAnswer : IEquatable<RecordedAnswer>
             && Expected.Equals(other.Expected)
             && Confidence.Equals(other.Confidence)
             && ProbabilitySource == other.ProbabilitySource
-            && string.Equals(AnsweredBy, other.AnsweredBy, StringComparison.Ordinal)
-            && Reason == other.Reason
-            && Nullable.Equals(PrimaryCertainty, other.PrimaryCertainty)
-            && Nullable.Equals(TargetCertainty, other.TargetCertainty)
+            && Route.Equals(_route, other._route)
             && Probabilities.SequenceEqual(other.Probabilities);
 
     /// <inheritdoc />
@@ -118,6 +122,7 @@ public readonly struct RecordedAnswer : IEquatable<RecordedAnswer>
         hash.Add(Expected);
         hash.Add(Confidence);
         hash.Add(ProbabilitySource);
+        // The four route values, each null without a route, so an answer without a path hashes as it did before.
         hash.Add(AnsweredBy, StringComparer.Ordinal);
         hash.Add(Reason);
         hash.Add(PrimaryCertainty);
@@ -137,4 +142,26 @@ public readonly struct RecordedAnswer : IEquatable<RecordedAnswer>
         => new(
             answer.Key, answer.Kind, answer.ChosenIndex, answer.Probability, answer.Expected, answer.Confidence, answer.Probabilities.ToArray(),
             answer.ProbabilitySource, route.AnsweredBy, route.Reason, route.PrimaryCertainty, route.TargetCertainty);
+
+    // The four route members of one answer, immutable and shared by every copy of the answer.
+    private sealed class Route(string answeredBy, RouteReason reason, double primaryCertainty, double? targetCertainty)
+    {
+        public string AnsweredBy { get; } = answeredBy;
+
+        public RouteReason Reason { get; } = reason;
+
+        public double PrimaryCertainty { get; } = primaryCertainty;
+
+        public double? TargetCertainty { get; } = targetCertainty;
+
+        // Two absent routes are equal, as the four null members they stand for were.
+        public static bool Equals(Route? left, Route? right)
+            => ReferenceEquals(left, right)
+                || (left is not null
+                    && right is not null
+                    && string.Equals(left.AnsweredBy, right.AnsweredBy, StringComparison.Ordinal)
+                    && left.Reason == right.Reason
+                    && left.PrimaryCertainty.Equals(right.PrimaryCertainty)
+                    && Nullable.Equals(left.TargetCertainty, right.TargetCertainty));
+    }
 }
