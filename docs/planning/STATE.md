@@ -1,4 +1,4 @@
-# Session State — 2026-11-05 (Phase 10.1 complete; Phase 10.2 next)
+# Session State — 2026-11-05 (Phase 10.2 designed and planned; execution next)
 
 **Date:** 2026-11-05
 
@@ -200,9 +200,24 @@
        - Escalation telemetry lives in an internal `EscalationTelemetry` on `DecisionPath`. It is reported only on the response the stage built, through `Owner`.
        - A merged response's token and cost metrics sum all calls under the primary's model.
      - **Filed:** #322, the flaky Benchmarks `MockHostTests` port test.
+     - **The four calls are settled** in the 10.2 spec: calls 9, 12, 10 and 11.
+   - **Phase 10.2 (Provider fallback chain) is active**, as of 2026-11-05. It was designed and planned on branch `phase-10.2-fallback-brainstorm`, cut from `origin/chore/complete-phase-10.1` because #326 was still open. Nothing is built yet.
+     - **Spec:** `docs/superpowers/specs/2026-11-05-phase-10.2-fallback-design.md`, approved by the maintainer. The builder check raised five questions, and all five are settled as my calls.
+     - **Plan:** `docs/superpowers/plans/2026-11-05-phase-10.2-fallback.md`, ten tasks. Tasks 1, 2, 3, 5 and 7 are marked opus.
+     - **Maintainer's choices:**
+       - one flat path when `UseEscalation` wraps `UseFallback`;
+       - an exhausted chain returns the last called step's error;
+       - `Refused` is returned as is unless `ShouldFallBack` opts in;
+       - one stage holds the whole chain;
+       - execution is subagent-driven;
+       - the phase assumptions are confirmed: branch `phase/10.2-fallback`, tasks in order, stop points as below.
+     - **Stop and ask the maintainer if:**
+       - Task 7 finds ZeroAlloc.Telemetry cannot tag one measurement per call with that call's model; file the upstream issue first;
+       - release PR #325 (1.10.0) merges mid-phase and moves the ApiCompat baseline;
+       - any step would need a hosted run.
    - **Next:**
-     1. Done 2026-11-05: `complete-phase` for 10.1, in a small PR that also aligns the spec's line 53 (`IsCached` holds when every call was cached) and ticks the plan's checkboxes.
-     2. Then Phase 10.2, the fallback chain, through `start-next-phase`.
+     1. Done 2026-11-05: `complete-phase` for 10.1, in PR #326, open and waiting for the maintainer.
+     2. Run the Phase 10.2 plan subagent-driven from Task 1, on branch `phase/10.2-fallback` cut from `origin/phase-10.2-fallback-brainstorm`. Once #326 has merged, rebase on `main`. After Task 10, run pre-push-review into `docs/plans/`, then open the PR with BEGIN_COMMIT_OVERRIDE. The maintainer merges it.
      3. The `.website` bot submodule PR with the Minos docs has not appeared yet; .website#127 covers only orm, rest and telemetry. When one includes Minos, ask the maintainer before approving and merging it.
    - **Waiting on the maintainer:** a peer message to the Daedalus session "daedalus: phase 3.3 Task 16 onward" saying the recorder shipped in 1.3.0. It needs approval in the app; the `daedalus-b9` session no longer exists. The #119 comment is posted.
 2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.
