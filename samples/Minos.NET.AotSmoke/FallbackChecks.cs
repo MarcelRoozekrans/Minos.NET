@@ -94,16 +94,19 @@ internal static class FallbackChecks
 
     public static async Task AnExhaustedChainReturnsTheLastError()
     {
+        var local = new AnswerClient(Overloaded);
+        var backup = new AnswerClient(Overloaded);
+        var hosted = new AnswerClient(_ => Failure(DecisionErrorKind.Timeout));
         var options = new FallbackOptions { PrimaryName = "local" };
-        options.Steps.Add(new FallbackStep("backup", new AnswerClient(Overloaded)));
-        options.Steps.Add(new FallbackStep("hosted", new AnswerClient(_ => Failure(DecisionErrorKind.Timeout))));
-        using var client = new FallbackDecisionClient(new AnswerClient(Overloaded), options);
+        options.Steps.Add(new FallbackStep("backup", backup));
+        options.Steps.Add(new FallbackStep("hosted", hosted));
+        using var client = new FallbackDecisionClient(local, options);
 
         var result = await client.EvaluateAsync(new DecisionRequest(SmokeTriage.Definition, SmokeAnswers.State)).ConfigureAwait(false);
 
         Program.Check(
-            result.IsFailure && result.Error.Kind == DecisionErrorKind.Timeout,
-            "a chain whose every step fails returns the error of the last step, under Native AOT");
+            result.IsFailure && result.Error.Kind == DecisionErrorKind.Timeout && local.Calls == 1 && backup.Calls == 1 && hosted.Calls == 1,
+            "a chain whose every step fails calls each step once and returns the error of the last step, under Native AOT");
     }
 
     public static async Task ARefusalDoesNotMoveOn()
