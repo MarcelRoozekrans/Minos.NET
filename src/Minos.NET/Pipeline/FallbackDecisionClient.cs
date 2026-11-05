@@ -19,11 +19,12 @@ namespace Minos;
 /// <para>
 /// Each later step gets a new request for the same question set, with the request's state, images and deadline,
 /// <see cref="DecisionRequest.RetryAttempt"/> 0 and no <see cref="DecisionRequest.Model"/>, so the step uses its own
-/// model. The first step that answers ends the chain: the response is that step's, with its model, id, upstream provider,
-/// usage and cache flag, and a path whose routes are <see cref="RouteReason.FellBack"/> to that step and whose calls list
+/// model. The first step that answers ends the chain: the response is that step's, with its model, id, upstream provider
+/// and cache flag, its <see cref="DecisionResponse.Usage"/> summed over the path's calls, and a path whose routes are <see cref="RouteReason.FellBack"/> to that step and whose calls list
 /// each step tried, ending with the answering one. A step whose response already has a path, from a routing stage in its
 /// own pipeline, keeps its routes, and its calls follow the failed ones. A step that answers a different question set
-/// than it was asked is a failed call of kind <see cref="DecisionErrorKind.InvalidResponse"/>.
+/// than it was asked is a failed call of kind <see cref="DecisionErrorKind.InvalidResponse"/> that keeps the usage it
+/// reported, so that usage counts toward the response's.
 /// </para>
 /// <para>
 /// A step's failure that <see cref="FallbackOptions.ShouldFallBack"/> rejects is returned as is. When every step has
@@ -158,11 +159,11 @@ public sealed class FallbackDecisionClient : DelegatingDecisionClient
                     return Result<DecisionResponse, DecisionError>.Success(FallbackPath.Build(answer, step.Name, calls, call));
                 }
 
-                // Answers for another set cannot be routed by position. The call keeps the step's model but no usage and
-                // no cache flag: the response's usage is the answering step's own, and it equals the sum of the path's calls.
+                // Answers for another set cannot be routed by position. The call is a failure, but it keeps the step's
+                // model, usage and cache flag: it was made, and a response the chain still builds sums its path's calls.
                 error = MismatchError;
                 result = Result<DecisionResponse, DecisionError>.Failure(error);
-                calls.Add(new DecisionCall(step.Name, answer.Model, null, IsCached: false) { Outcome = CallOutcome.Failed, ErrorKind = error.Kind });
+                calls.Add(new DecisionCall(step.Name, answer.Model, answer.Usage, answer.IsCached) { Outcome = CallOutcome.Failed, ErrorKind = error.Kind });
             }
             else
             {

@@ -224,7 +224,7 @@ public sealed class FallbackTests
     {
         var other = QuestionSets.TriageDefinition();
         var seen = new List<DecisionError>();
-        var hosted = StubDecisionClient.Answering(StepAnswers, "hosted-model");
+        var hosted = StubDecisionClient.Answering(StepAnswers, "hosted-model", new DecisionUsage { InputTokens = 50, OutputTokens = 4 });
         var options = Options(
             new FallbackStep("clef", StubDecisionClient.Responding(_ => StubDecisionClient.Respond(other, StepAnswers, "clef-model", new DecisionUsage { InputTokens = 100, Cost = 0.01 }))),
             new FallbackStep("hosted", hosted));
@@ -239,15 +239,16 @@ public sealed class FallbackTests
 
         Assert.True(result.IsSuccess);
         Assert.Same(Triage, result.Value.Definition);
-        // The mismatch call keeps its model but no usage, so the response's usage, the answering step's, sums the calls'.
+        // The mismatch call keeps its model and usage, and the response's usage sums every call's.
         Assert.Equal(
             [
                 Failed("primary", DecisionErrorKind.Server),
-                new DecisionCall("clef", "clef-model", null, IsCached: false) { Outcome = CallOutcome.Failed, ErrorKind = DecisionErrorKind.InvalidResponse },
-                new DecisionCall("hosted", "hosted-model", null, IsCached: false),
+                new DecisionCall("clef", "clef-model", new DecisionUsage { InputTokens = 100, Cost = 0.01 }, IsCached: false) { Outcome = CallOutcome.Failed, ErrorKind = DecisionErrorKind.InvalidResponse },
+                new DecisionCall("hosted", "hosted-model", new DecisionUsage { InputTokens = 50, OutputTokens = 4 }, IsCached: false),
             ],
             result.Value.Path!.Calls);
-        Assert.Null(result.Value.Usage);
+        Assert.Equal(new DecisionUsage { InputTokens = 150, OutputTokens = 4, Cost = 0.01 }, result.Value.Usage);
+        Assert.Equal("hosted-model", result.Value.Model);
         Assert.Equal(DecisionErrorKind.InvalidResponse, seen[1].Kind);
         Assert.Equal("A fallback step answered a different question set than it was asked.", seen[1].Message);
     }

@@ -5,7 +5,8 @@ internal static class FallbackPath
 {
     /// <summary>
     /// <paramref name="answer"/> with the path of the chain that led to it, keeping the answering step's own model, id,
-    /// upstream provider, usage and cache flag. The answer's arrays are shared, not copied.
+    /// upstream provider and cache flag. The usage is summed over the path's calls: the answering step's, plus any a
+    /// failed call reported, such as a step that answered another question set. The answer's arrays are shared, not copied.
     /// </summary>
     /// <remarks>
     /// Without a path of its own, the answer gets one route per question, answered by <paramref name="answeredBy"/> and
@@ -39,14 +40,26 @@ internal static class FallbackPath
             calls[^1] = answerCall;
         }
 
+        // The answer's usage already sums its own path's calls; the prior calls' usage is added per field, each field null
+        // only when no call reported it.
+        var inputTokens = answer.InputTokens;
+        var outputTokens = answer.OutputTokens;
+        var cost = answer.Cost;
+        foreach (var call in priorCalls)
+        {
+            inputTokens = Sum(inputTokens, call.Usage?.InputTokens);
+            outputTokens = Sum(outputTokens, call.Usage?.OutputTokens);
+            cost = Sum(cost, call.Usage?.Cost);
+        }
+
         return new DecisionResponse(
             answer.Definition,
             answer.Slots,
             answer.Probabilities,
             answer.Model,
-            answer.InputTokens,
-            answer.OutputTokens,
-            answer.Cost,
+            inputTokens,
+            outputTokens,
+            cost,
             answer.Id,
             answer.UpstreamProvider,
             answer.IsCached)
@@ -54,6 +67,10 @@ internal static class FallbackPath
             Path = DecisionPath.FromOwnedArrays(routes, calls),
         };
     }
+
+    private static int? Sum(int? total, int? value) => value is null ? total : (total ?? 0) + value;
+
+    private static double? Sum(double? total, double? value) => value is null ? total : (total ?? 0) + value;
 
     private static QuestionRoute[] FellBack(DecisionResponse answer, string answeredBy)
     {
