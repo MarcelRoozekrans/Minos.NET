@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Time.Testing;
+
 namespace Minos.Tests;
 
 /// <summary>Escalation and fallback in one pipeline: the documented order, and the order the other way round.</summary>
@@ -119,6 +121,111 @@ public sealed class RoutingCompositionTests
             ],
             response.Path.Routes);
         Assert.Equal(ClefUsage, response.Usage);
+    }
+
+    [Fact]
+    public async Task Escalation_over_fallback_with_the_target_skipped_for_time_keeps_the_inner_answerer()
+    {
+        // 1 s to the deadline, and the target is expected to take 2 s, so it is not called.
+        var start = new DateTimeOffset(2026, 11, 5, 12, 0, 0, TimeSpan.Zero);
+        var time = new FakeTimeProvider(start);
+        var clef = StubDecisionClient.Answering(UnsureAnswers, "clef-model", ClefUsage);
+        var hosted = StubDecisionClient.Answering(HostedAnswers);
+        var fallback = new FallbackOptions();
+        fallback.Steps.Add(new FallbackStep("clef", clef));
+        using var client = new EscalatingDecisionClient(
+            new FallbackDecisionClient(StubDecisionClient.Failing(DecisionErrorKind.Server), fallback, timeProvider: time),
+            hosted,
+            new EscalationOptions { TargetName = "hosted", ExpectedLatency = TimeSpan.FromSeconds(2) },
+            timeProvider: time);
+
+        var response = (await client.EvaluateAsync(new DecisionRequest(QuestionSets.TriageDefinition(), State) { Deadline = start.AddSeconds(1) })).Value;
+
+        Assert.Equal(0, hosted.Calls);
+        Assert.Equal(
+            [
+                new DecisionCall("primary", null, null, IsCached: false) { Outcome = CallOutcome.Failed, ErrorKind = DecisionErrorKind.Server },
+                new DecisionCall("clef", "clef-model", ClefUsage, IsCached: false),
+                new DecisionCall("hosted", null, null, IsCached: false) { Outcome = CallOutcome.NotCalledNoTimeLeft },
+            ],
+            response.Path!.Calls);
+        Assert.Equal(
+            [
+                new QuestionRoute("is_urgent", "clef", RouteReason.Confident, 0.95, null),
+                new QuestionRoute("department", "clef", RouteReason.NoTimeLeft, 0.5, null),
+                new QuestionRoute("severity", "clef", RouteReason.NoTimeLeft, 0.4, null),
+            ],
+            response.Path.Routes);
+        Assert.Equal(ClefUsage, response.Usage);
+    }
+
+    [Fact]
+    public async Task Escalation_over_fallback_escalating_every_question_keeps_the_inner_calls()
+    {
+        var clef = StubDecisionClient.Answering(UnsureAnswers, "clef-model", ClefUsage);
+        var hosted = StubDecisionClient.Answering(HostedAnswers, "hosted-model", HostedUsage);
+        using var client = new DecisionClientBuilder(StubDecisionClient.Failing(DecisionErrorKind.Server))
+            .UseEscalation(hosted, o =>
+            {
+                o.TargetName = "hosted";
+                o.DefaultThreshold = 0.99;
+            })
+            .UseFallback(o => o.Steps.Add(new FallbackStep("clef", clef)))
+            .Build();
+
+        var response = (await client.EvaluateAsync(new DecisionRequest(QuestionSets.TriageDefinition(), State))).Value;
+
+        Assert.Equal(["is_urgent", "department", "severity"], Assert.Single(hosted.Requests).Definition.Questions.Select(q => q.Key));
+        Assert.Equal(["primary", "clef", "hosted"], response.Path!.Calls.Select(c => c.ClientName));
+        Assert.Equal(
+            [
+                new QuestionRoute("is_urgent", "hosted", RouteReason.Escalated, 0.95, 0.9),
+                new QuestionRoute("department", "hosted", RouteReason.Escalated, 0.5, 0.85),
+                new QuestionRoute("severity", "hosted", RouteReason.Escalated, 0.4, 0.8),
+            ],
+            response.Path.Routes);
+        Assert.Equal(new DecisionUsage { InputTokens = 30, OutputTokens = 5, Cost = 0.011 }, response.Usage);
+        Assert.Equal("clef-model", response.Model);
+        Assert.False(response.IsCached);
+    }
+
+    [Fact]
+    public async Task Escalation_over_a_step_with_its_own_escalation_keeps_that_steps_escalated_route()
+    {
+        // The clef step's own pipeline escalates department to clef-hosted, which answers it confidently. The outer stage
+        // finds every answer confident, so it leaves that route as the step's escalation told it.
+        var clefLocal = StubDecisionClient.Answering(UnsureAnswers, "clef-model", ClefUsage);
+        var clefHosted = StubDecisionClient.Answering(SureAnswers, "clef-hosted-model", HostedUsage);
+        using var clefStep = new DecisionClientBuilder(clefLocal)
+            .UseEscalation(clefHosted, o =>
+            {
+                o.PrimaryName = "clef";
+                o.TargetName = "clef-hosted";
+                o.Thresholds["severity"] = 0.3;
+            })
+            .Build();
+        var hosted = StubDecisionClient.Answering(HostedAnswers);
+        using var client = new DecisionClientBuilder(StubDecisionClient.Failing(DecisionErrorKind.Server))
+            .UseEscalation(hosted, o =>
+            {
+                o.TargetName = "hosted";
+                o.Thresholds["severity"] = 0.3;
+            })
+            .UseFallback(o => o.Steps.Add(new FallbackStep("clef", clefStep)))
+            .Build();
+
+        var response = (await client.EvaluateAsync(new DecisionRequest(QuestionSets.TriageDefinition(), State))).Value;
+
+        Assert.Equal(0, hosted.Calls);
+        Assert.Equal(["primary", "clef", "clef-hosted"], response.Path!.Calls.Select(c => c.ClientName));
+        Assert.Equal(
+            [
+                new QuestionRoute("is_urgent", "clef", RouteReason.Confident, 0.95, null),
+                new QuestionRoute("department", "clef-hosted", RouteReason.Escalated, 0.5, 0.9),
+                new QuestionRoute("severity", "clef", RouteReason.Confident, 0.4, null),
+            ],
+            response.Path.Routes);
+        Assert.Equal(new DecisionUsage { InputTokens = 30, OutputTokens = 5, Cost = 0.011 }, response.Usage);
     }
 
     [Fact]

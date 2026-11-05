@@ -39,6 +39,9 @@ namespace Minos;
 /// inner path's calls stand in place of the primary's call, and each question's route names the client the inner route
 /// names, with this stage's reason. A question a fallback step answered confidently reads that step's name and
 /// <see cref="RouteReason.Confident"/>; an escalated one reads the target's name and <see cref="RouteReason.Escalated"/>.
+/// A question this stage finds confident keeps its inner route when that route says more than
+/// <see cref="RouteReason.FellBack"/>, so an answer a step's own escalation stage escalated still reads that stage's
+/// target and <see cref="RouteReason.Escalated"/>.
 /// Without an inner path, the primary is named <see cref="EscalationOptions.PrimaryName"/>.
 /// </para>
 /// <para>
@@ -139,10 +142,12 @@ public sealed class EscalatingDecisionClient : DelegatingDecisionClient
         var second = await EvaluateTargetAsync(subsetRequest, timeLeft, cancellationToken).ConfigureAwait(false);
         if (second.Result is not { IsSuccess: true } success)
         {
-            LogTargetFailed(second.Result is { } failed ? DecisionTelemetry.ErrorTypeOf(failed.Error.Kind) : DeadlineErrorKind);
-
-            // A call the deadline cut is a time-out, whatever failure the target made of the cancellation.
-            var kind = second.Result is { } result && !second.TimedOut ? result.Error.Kind : DecisionErrorKind.Timeout;
+            // A call the deadline cut is a time-out, whatever failure the target made of the cancellation, and the log
+            // says the same: DeadlineExceeded for the cut, the error's own kind otherwise.
+            var (kind, logged) = second is { TimedOut: false, Result: { } failed }
+                ? (failed.Error.Kind, DecisionTelemetry.ErrorTypeOf(failed.Error.Kind))
+                : (DecisionErrorKind.Timeout, DeadlineErrorKind);
+            LogTargetFailed(logged);
             var failedCall = new DecisionCall(targetName, null, null, IsCached: false) { Outcome = CallOutcome.Failed, ErrorKind = kind };
             return KeepAfterFailure(primary, routes, Calls(primary, failedCall));
         }

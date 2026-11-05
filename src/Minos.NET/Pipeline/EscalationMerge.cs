@@ -125,6 +125,14 @@ internal static class EscalationMerge
             cost = Sum(cost, call.Usage?.Cost);
         }
 
+        // A taken-over inner path keeps its story for the questions this stage left alone: a confident question's inner
+        // route stands unless it only says the question fell back, so an answer the inner stage escalated still reads
+        // Escalated to its target.
+        if (primary.Path is { } inner)
+        {
+            KeepInnerRoutes(routes, inner.Routes);
+        }
+
         // The telemetry holder exists only when a question was unsure, which is when the caller names the target. When the
         // primary's path is taken over, primary.Path is the inner path whose telemetry holder belongs to this response too.
         Debug.Assert(targetName is not null || (escalated == 0 && skipped is null), "Only a call with an unsure question escalates or skips.");
@@ -140,6 +148,19 @@ internal static class EscalationMerge
         }
 
         return response;
+    }
+
+    private static void KeepInnerRoutes(QuestionRoute[] routes, IReadOnlyList<QuestionRoute> innerRoutes)
+    {
+        Debug.Assert(innerRoutes.Count == routes.Length, "An inner path has one route per question.");
+        for (var i = 0; i < routes.Length; i++)
+        {
+            var innerRoute = innerRoutes[i];
+            if (routes[i].Reason == RouteReason.Confident && innerRoute.Reason != RouteReason.FellBack)
+            {
+                routes[i] = innerRoute;
+            }
+        }
     }
 
     private static QuestionSetDefinition Build(QuestionSetDefinition definition, int[] unsure)
