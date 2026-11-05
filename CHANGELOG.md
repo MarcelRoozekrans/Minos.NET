@@ -1,5 +1,35 @@
 # Changelog
 
+## [1.10.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.9.0...v1.10.0) (2026-11-05)
+
+
+### Features
+
+* **caching:** keep call statuses and FellBack routes in cached decisions ([9bcc8ad](https://github.com/MarcelRoozekrans/Minos.NET/commit/9bcc8add82b02d3c6e3018b1847ba358399e6101))
+* **caching:** keep the escalation path in cached decisions ([acc5f39](https://github.com/MarcelRoozekrans/Minos.NET/commit/acc5f397fe91dbd9a75c356d61a61c673c15fe71))
+* **core:** add CallStatus and DecisionCall.Status and ErrorKind, so a path shows how each call ended ([9bcc8ad](https://github.com/MarcelRoozekrans/Minos.NET/commit/9bcc8add82b02d3c6e3018b1847ba358399e6101))
+* **core:** add DecisionRequest.Deadline for routing stages ([acc5f39](https://github.com/MarcelRoozekrans/Minos.NET/commit/acc5f397fe91dbd9a75c356d61a61c673c15fe71))
+* **core:** add DecisionResponse.Path and As&lt;T&gt; so callers can see which client answered each question ([acc5f39](https://github.com/MarcelRoozekrans/Minos.NET/commit/acc5f397fe91dbd9a75c356d61a61c673c15fe71))
+* **core:** escalate unsure questions to a stronger client with UseEscalation ([acc5f39](https://github.com/MarcelRoozekrans/Minos.NET/commit/acc5f397fe91dbd9a75c356d61a61c673c15fe71))
+* **core:** escalation keeps an inner fallback path as one flat path and marks failed and skipped target calls ([9bcc8ad](https://github.com/MarcelRoozekrans/Minos.NET/commit/9bcc8add82b02d3c6e3018b1847ba358399e6101))
+* **core:** fall back to the next provider with UseFallback ([9bcc8ad](https://github.com/MarcelRoozekrans/Minos.NET/commit/9bcc8add82b02d3c6e3018b1847ba358399e6101))
+* **core:** fallback span tags, the minos.fallbacks counter and log events 1017 to 1020 ([9bcc8ad](https://github.com/MarcelRoozekrans/Minos.NET/commit/9bcc8add82b02d3c6e3018b1847ba358399e6101))
+* **di:** resolve an escalation target by its client key ([acc5f39](https://github.com/MarcelRoozekrans/Minos.NET/commit/acc5f397fe91dbd9a75c356d61a61c673c15fe71))
+* **di:** resolve fallback steps by their client keys ([9bcc8ad](https://github.com/MarcelRoozekrans/Minos.NET/commit/9bcc8add82b02d3c6e3018b1847ba358399e6101))
+* **recording:** record call statuses and fallback routes in record version 4 ([9bcc8ad](https://github.com/MarcelRoozekrans/Minos.NET/commit/9bcc8add82b02d3c6e3018b1847ba358399e6101))
+* **recording:** record the escalation path per answer in record version 3 ([acc5f39](https://github.com/MarcelRoozekrans/Minos.NET/commit/acc5f397fe91dbd9a75c356d61a61c673c15fe71))
+
+
+### Performance Improvements
+
+* **recording:** build recorded answers in one array, saving 184 B per recorded decision ([acc5f39](https://github.com/MarcelRoozekrans/Minos.NET/commit/acc5f397fe91dbd9a75c356d61a61c673c15fe71))
+
+
+### Documentation
+
+* document escalation on the pipeline, observability, recording and AOT pages ([acc5f39](https://github.com/MarcelRoozekrans/Minos.NET/commit/acc5f397fe91dbd9a75c356d61a61c673c15fe71))
+* document UseFallback on the pipeline, observability and recording pages ([9bcc8ad](https://github.com/MarcelRoozekrans/Minos.NET/commit/9bcc8add82b02d3c6e3018b1847ba358399e6101))
+
 ## [1.9.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.8.1...v1.9.0) (2026-11-04)
 
 

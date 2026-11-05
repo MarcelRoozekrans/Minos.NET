@@ -2,5 +2,24 @@
 Microsoft.Extensions.DependencyInjection.DecisionServiceCollectionExtensions
 Minos.DecisionClientServiceBuilder
 Minos.DecisionClientServiceBuilder.Name.get -> string?
-static Microsoft.Extensions.DependencyInjection.DecisionServiceCollectionExtensions.AddDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Func<System.IServiceProvider!, Minos.IDecisionClient!>! factory) -> Minos.DecisionClientServiceBuilder!
+Minos.KeyedEscalationDecisionClientBuilderExtensions
+Minos.KeyedFallbackDecisionClientBuilderExtensions
+Minos.KeyedFallbackStep
+Minos.KeyedFallbackStep.Deconstruct(out string! Key, out System.TimeSpan ExpectedLatency) -> void
+Minos.KeyedFallbackStep.Equals(Minos.KeyedFallbackStep other) -> bool
+Minos.KeyedFallbackStep.ExpectedLatency.get -> System.TimeSpan
+Minos.KeyedFallbackStep.ExpectedLatency.init -> void
+Minos.KeyedFallbackStep.Key.get -> string!
+Minos.KeyedFallbackStep.Key.init -> void
+Minos.KeyedFallbackStep.KeyedFallbackStep() -> void
+Minos.KeyedFallbackStep.KeyedFallbackStep(string! Key, System.TimeSpan ExpectedLatency) -> void
+override Minos.KeyedFallbackStep.GetHashCode() -> int
 static Microsoft.Extensions.DependencyInjection.DecisionServiceCollectionExtensions.AddDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, string! name, System.Func<System.IServiceProvider!, Minos.IDecisionClient!>! factory) -> Minos.DecisionClientServiceBuilder!
+static Microsoft.Extensions.DependencyInjection.DecisionServiceCollectionExtensions.AddDecisionClient(this Microsoft.Extensions.DependencyInjection.IServiceCollection! services, System.Func<System.IServiceProvider!, Minos.IDecisionClient!>! factory) -> Minos.DecisionClientServiceBuilder!
+static Minos.KeyedEscalationDecisionClientBuilderExtensions.UseEscalation(this Minos.DecisionClientBuilder! builder, string! targetKey, System.Action<Minos.EscalationOptions!>? configure = null) -> Minos.DecisionClientBuilder!
+static Minos.KeyedFallbackDecisionClientBuilderExtensions.UseFallback(this Minos.DecisionClientBuilder! builder, params Minos.KeyedFallbackStep[]! steps) -> Minos.DecisionClientBuilder!
+static Minos.KeyedFallbackDecisionClientBuilderExtensions.UseFallback(this Minos.DecisionClientBuilder! builder, System.Action<Minos.FallbackOptions!>! configure, params Minos.KeyedFallbackStep[]! steps) -> Minos.DecisionClientBuilder!
+static Minos.KeyedFallbackStep.operator !=(Minos.KeyedFallbackStep left, Minos.KeyedFallbackStep right) -> bool
+static Minos.KeyedFallbackStep.operator ==(Minos.KeyedFallbackStep left, Minos.KeyedFallbackStep right) -> bool
+~override Minos.KeyedFallbackStep.Equals(object obj) -> bool
+~override Minos.KeyedFallbackStep.ToString() -> string

@@ -12,6 +12,7 @@ Minos.Recording.DecisionOutcome.At.get -> System.DateTimeOffset
 Minos.Recording.DecisionOutcome.Source.get -> string!
 Minos.Recording.DecisionRecord
 Minos.Recording.DecisionRecord.Answers.get -> System.Collections.Generic.IReadOnlyList<Minos.Recording.RecordedAnswer>!
+Minos.Recording.DecisionRecord.Calls.get -> System.Collections.Generic.IReadOnlyList<Minos.DecisionCall!>?
 Minos.Recording.DecisionRecord.DecisionId.get -> string!
 Minos.Recording.DecisionRecord.DefaultModel.get -> string?
 Minos.Recording.DecisionRecord.Definition.get -> Minos.QuestionSetDefinition!
@@ -78,16 +79,20 @@ Minos.Recording.JsonlDecisionRecordSink.EraseDecisionAsync(string! decisionId, S
 Minos.Recording.JsonlDecisionRecordSink.JsonlDecisionRecordSink(string! path) -> void
 Minos.Recording.JsonlDecisionRecordSink.WriteAsync(Minos.Recording.DecisionRecord! record, System.Threading.CancellationToken cancellationToken) -> System.Threading.Tasks.ValueTask
 Minos.Recording.RecordedAnswer
+Minos.Recording.RecordedAnswer.AnsweredBy.get -> string?
 Minos.Recording.RecordedAnswer.ChosenIndex.get -> int
 Minos.Recording.RecordedAnswer.Confidence.get -> double
 Minos.Recording.RecordedAnswer.Equals(Minos.Recording.RecordedAnswer other) -> bool
 Minos.Recording.RecordedAnswer.Expected.get -> double
 Minos.Recording.RecordedAnswer.Key.get -> string!
 Minos.Recording.RecordedAnswer.Kind.get -> Minos.QuestionKind
+Minos.Recording.RecordedAnswer.PrimaryCertainty.get -> double?
 Minos.Recording.RecordedAnswer.Probabilities.get -> System.Collections.Generic.IReadOnlyList<double>!
 Minos.Recording.RecordedAnswer.Probability.get -> double
 Minos.Recording.RecordedAnswer.ProbabilitySource.get -> Minos.ProbabilitySource
+Minos.Recording.RecordedAnswer.Reason.get -> Minos.RouteReason?
 Minos.Recording.RecordedAnswer.RecordedAnswer() -> void
+Minos.Recording.RecordedAnswer.TargetCertainty.get -> double?
 Minos.Recording.RecordedDecision
 Minos.Recording.RecordedDecision.Outcomes.get -> System.Collections.Generic.IReadOnlyList<Minos.Recording.DecisionOutcome!>!
 Minos.Recording.RecordedDecision.Record.get -> Minos.Recording.DecisionRecord!
