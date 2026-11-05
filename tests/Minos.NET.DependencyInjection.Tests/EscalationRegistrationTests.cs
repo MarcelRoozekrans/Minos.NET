@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using ZeroAlloc.Results;
 
@@ -65,6 +66,38 @@ public sealed class EscalationRegistrationTests
         Assert.Equal("hosted", client.GetService<EscalationOptions>()!.TargetName);
         Assert.Equal(["local", "hosted"], response.Path!.Calls.Select(c => c.ClientName));
         Assert.Equal("hosted", response.Path.Routes[1].AnsweredBy);
+    }
+
+    // The spec's configuration shape: Thresholds binds as a section of key/value pairs, the time settings as TimeSpan strings.
+    [Fact]
+    public void Options_bind_from_configuration()
+    {
+        var config = new ConfigurationBuilder()
+            .AddInMemoryCollection(new Dictionary<string, string?>(StringComparer.Ordinal)
+            {
+                ["Escalation:PrimaryName"] = "local",
+                ["Escalation:DefaultThreshold"] = "0.7",
+                ["Escalation:Thresholds:department"] = "0.9",
+                ["Escalation:ExpectedLatency"] = "00:00:00.300",
+                ["Escalation:Budget"] = "00:00:02",
+            })
+            .Build();
+        var services = new ServiceCollection();
+        services.AddDecisionClient("hosted", _ => new AnsweringClient(TargetAnswers));
+        services.AddDecisionClient(_ => new AnsweringClient(UnsurePrimary))
+            .UseEscalation("hosted", o => config.GetSection("Escalation").Bind(o));
+        using var provider = services.BuildServiceProvider();
+
+        var options = provider.GetRequiredService<IDecisionClient>().GetService<EscalationOptions>()!;
+
+        Assert.Equal("local", options.PrimaryName);
+        Assert.Equal("hosted", options.TargetName);
+        Assert.Equal(0.7, options.DefaultThreshold);
+        var threshold = Assert.Single(options.Thresholds);
+        Assert.Equal("department", threshold.Key);
+        Assert.Equal(0.9, threshold.Value);
+        Assert.Equal(TimeSpan.FromMilliseconds(300), options.ExpectedLatency);
+        Assert.Equal(TimeSpan.FromSeconds(2), options.Budget);
     }
 
     [Fact]

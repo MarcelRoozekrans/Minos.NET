@@ -125,6 +125,8 @@ internal static class Program
         await EscalationChecks.NoTimeLeftSkipsTheTarget().ConfigureAwait(false);
         await EscalationChecks.AFailingTargetKeepsThePrimaryAnswer().ConfigureAwait(false);
         EscalationChecks.PathValuesAreKeptAndCompared();
+        await EscalationChecks.AnEscalatedRecordLineRoundTrips().ConfigureAwait(false);
+        await EscalationChecks.AnEscalatedCacheEntryRoundTrips().ConfigureAwait(false);
 
         DatasetChecks.ParsesAString();
         DatasetChecks.ParsesAStream();

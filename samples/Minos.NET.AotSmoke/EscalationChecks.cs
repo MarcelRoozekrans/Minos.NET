@@ -1,11 +1,16 @@
+using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
+using Minos.Recording;
 using ZeroAlloc.Results;
 
 namespace Minos.AotSmoke;
 
 /// <summary>
 /// The escalation stage under Native AOT: an unsure question re-asked of the target, a skip for lack of time, a target
-/// that fails, and the path each of them leaves on the response.
+/// that fails, and the path each of them leaves on the response; and the path written to and read back from a record
+/// line and a distributed cache entry, the formats' newest versions.
 /// </summary>
 internal static class EscalationChecks
 {
@@ -123,6 +128,81 @@ internal static class EscalationChecks
             SmokeAssert.Throws<ArgumentException>(() => _ = new DecisionPath([], []))
                 && SmokeAssert.Throws<ArgumentException>(() => _ = new DecisionPath([default], [call])),
             "a path without calls, or with a default route, is refused under Native AOT");
+    }
+
+    public static async Task AnEscalatedRecordLineRoundTrips()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "minos-aot-smoke-escalated-" + Guid.NewGuid().ToString("N") + ".jsonl");
+        try
+        {
+            var recorder = new DecisionRecorder(new JsonlDecisionRecordSink(path));
+            using (var client = new AnswerClient(UnsurePrimary).AsBuilder()
+                .UseRecording(recorder)
+                .UseEscalation(new AnswerClient(Target), o =>
+                {
+                    o.TargetName = "hosted";
+                    o.PrimaryName = "local";
+                })
+                .Build())
+            {
+                _ = await client.EvaluateAsync(new DecisionRequest(SmokeTriage.Definition, SmokeAnswers.State)).ConfigureAwait(false);
+            }
+
+            await recorder.DisposeAsync().ConfigureAwait(false);
+
+            var problems = new List<DecisionRecordFileProblem>();
+            var read = new List<RecordedDecision>();
+            await foreach (var decision in DecisionRecordFile.ReadAsync(path, problems, CancellationToken.None).ConfigureAwait(false))
+            {
+                read.Add(decision);
+            }
+
+            var record = read.Count == 1 ? read[0].Record : null;
+            Program.Check(
+                problems.Count == 0
+                    && record is
+                    {
+                        Calls: [{ ClientName: "local", Model: "jev-1.13.0", IsCached: false }, { ClientName: "hosted", Model: "hosted-model", IsCached: false }],
+                        Answers: [{ Reason: RouteReason.Confident, AnsweredBy: "local" }, { Reason: RouteReason.Escalated, AnsweredBy: "hosted", PrimaryCertainty: 0.3, TargetCertainty: 0.9 }, { Reason: RouteReason.Confident }],
+                    },
+                "an escalated decision is written as a record line with its calls and routes and read back, under Native AOT");
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    public static async Task AnEscalatedCacheEntryRoundTrips()
+    {
+        var request = new DecisionRequest(SmokeTriage.Definition, SmokeAnswers.State);
+        var distributed = new MemoryDistributedCache(Options.Create(new MemoryDistributedCacheOptions()));
+        using var memory = new MemoryCache(new MemoryCacheOptions());
+        using var writer = new AnswerClient(UnsurePrimary).AsBuilder()
+            .UseCaching(memory, distributed)
+            .UseEscalation(new AnswerClient(Target), o => o.TargetName = "hosted")
+            .Build();
+        var miss = await writer.EvaluateAsync(request).ConfigureAwait(false);
+
+        // A cold in-process cache over the same distributed one: the path can only come from the stored entry.
+        using var coldMemory = new MemoryCache(new MemoryCacheOptions());
+        var primary = new AnswerClient(UnsurePrimary);
+        using var reader = primary.AsBuilder()
+            .UseCaching(coldMemory, distributed)
+            .UseEscalation(new AnswerClient(Target), o => o.TargetName = "hosted")
+            .Build();
+        var hit = await reader.EvaluateAsync(request).ConfigureAwait(false);
+
+        Program.Check(
+            miss.IsSuccess && !miss.Value.IsCached
+                && hit.IsSuccess && hit.Value.IsCached && primary.Calls == 0
+                && hit.Value.Path is
+                {
+                    Routes: [{ Reason: RouteReason.Confident }, { Reason: RouteReason.Escalated, AnsweredBy: "hosted", PrimaryCertainty: 0.3, TargetCertainty: 0.9 }, { Reason: RouteReason.Confident }],
+                    Calls: [{ ClientName: "primary", Model: "jev-1.13.0", IsCached: false }, { ClientName: "hosted", Model: "hosted-model", IsCached: false }],
+                }
+                && hit.Value.Answers[1].ChosenIndex == 0,
+            "an escalated response is stored in the distributed cache with its path and read back by a cold cache, under Native AOT");
     }
 
     // Team below the default threshold of 0.6, the other two questions above it.
