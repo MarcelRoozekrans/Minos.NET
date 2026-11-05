@@ -25,7 +25,8 @@ public static class EscalationDecisionClientBuilderExtensions
     /// </para>
     /// <para>
     /// <c>Build</c> throws <see cref="InvalidOperationException"/> when the services have no client keyed
-    /// <paramref name="targetKey"/>, and when the stages inside this one already hold an escalation stage; it throws
+    /// <paramref name="targetKey"/>, when the target escalates back to this client through other clients, and when the
+    /// stages inside this one already hold an escalation stage; it throws
     /// <see cref="ArgumentException"/> for a setting out of range, as
     /// <see cref="EscalatingDecisionClientBuilderExtensions.UseEscalation(DecisionClientBuilder, Func{IServiceProvider, IDecisionClient}, Action{EscalationOptions})"/> does.
     /// </para>
@@ -54,8 +55,29 @@ public static class EscalationDecisionClientBuilderExtensions
             });
     }
 
+    // The keys whose targets this thread is resolving. A keyed client is a factory registration, whose cycles the container
+    // does not detect, and it builds its pipeline synchronously on the resolving thread, so a key met again is a cycle.
+    [ThreadStatic]
+    private static HashSet<string>? t_resolving;
+
     private static IDecisionClient Resolve(IServiceProvider services, string targetKey)
-        => (services is IKeyedServiceProvider keyed ? keyed.GetKeyedService(typeof(IDecisionClient), targetKey) as IDecisionClient : null)
-            ?? throw new InvalidOperationException(
-                $"UseEscalation found no decision client keyed '{targetKey}': register one with AddDecisionClient(\"{targetKey}\", …) in the services passed to Build.");
+    {
+        var resolving = t_resolving ??= new HashSet<string>(StringComparer.Ordinal);
+        if (!resolving.Add(targetKey))
+        {
+            throw new InvalidOperationException(
+                $"UseEscalation found a cycle: the decision client '{targetKey}' escalates back to itself through other clients.");
+        }
+
+        try
+        {
+            return (services is IKeyedServiceProvider keyed ? keyed.GetKeyedService(typeof(IDecisionClient), targetKey) as IDecisionClient : null)
+                ?? throw new InvalidOperationException(
+                    $"UseEscalation found no decision client keyed '{targetKey}': register one with AddDecisionClient(\"{targetKey}\", …) in the services passed to Build.");
+        }
+        finally
+        {
+            resolving.Remove(targetKey);
+        }
+    }
 }

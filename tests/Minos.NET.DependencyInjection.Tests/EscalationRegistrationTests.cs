@@ -98,7 +98,42 @@ public sealed class EscalationRegistrationTests
         services.AddDecisionClient(_ => new AnsweringClient(UnsurePrimary)).UseEscalation("hosted").UseEscalation("clef");
         using var provider = services.BuildServiceProvider();
 
-        Assert.Throws<InvalidOperationException>(() => provider.GetRequiredService<IDecisionClient>());
+        var exception = Assert.Throws<InvalidOperationException>(() => provider.GetRequiredService<IDecisionClient>());
+
+        Assert.Contains("a pipeline holds one escalation stage", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_cycle_between_keyed_clients_throws_naming_the_key()
+    {
+        // Each Build calls its client factory first, so the counter stops a broken guard with an exception long before the
+        // stack overflows: the test then fails cleanly instead of taking down the test host.
+        var builds = 0;
+        IDecisionClient Bounded(IReadOnlyDictionary<string, QuestionAnswer> answers)
+            => Interlocked.Increment(ref builds) <= 20
+                ? new AnsweringClient(answers)
+                : throw new InvalidOperationException("Recursion not stopped by the cycle guard.");
+        var services = new ServiceCollection();
+        services.AddDecisionClient("a", _ => Bounded(UnsurePrimary)).UseEscalation("b");
+        services.AddDecisionClient("b", _ => Bounded(UnsurePrimary)).UseEscalation("a");
+        using var provider = services.BuildServiceProvider();
+
+        var exception = Assert.Throws<InvalidOperationException>(() => provider.GetRequiredKeyedService<IDecisionClient>("a"));
+
+        Assert.Contains("found a cycle: the decision client 'b' escalates back to itself", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void A_target_shared_by_two_clients_is_not_a_cycle()
+    {
+        var services = new ServiceCollection();
+        services.AddDecisionClient("hosted", _ => new AnsweringClient(TargetAnswers));
+        services.AddDecisionClient("a", _ => new AnsweringClient(UnsurePrimary)).UseEscalation("hosted");
+        services.AddDecisionClient(_ => new AnsweringClient(UnsurePrimary)).UseEscalation("a");
+        using var provider = services.BuildServiceProvider();
+
+        Assert.NotNull(provider.GetRequiredService<IDecisionClient>());
+        Assert.NotNull(provider.GetRequiredKeyedService<IDecisionClient>("hosted"));
     }
 
     [Fact]
