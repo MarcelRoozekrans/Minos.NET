@@ -535,7 +535,7 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Surface:** Mixed
 **HelpWanted:** no
 **Design:** `docs/superpowers/specs/2026-11-05-phase-10.3-ticket-triage-design.md`
-**Plan:** _to be written_
+**Plan:** `docs/superpowers/plans/2026-11-05-phase-10.3-ticket-triage.md`
 
 ### Phase 10.4: Confidence routing as a framework feature [status: pending]
 **Goal:** The confidence-routing guide on the docs site, and a dotnet/extensions proposal draft for the maintainer to post (#119).
