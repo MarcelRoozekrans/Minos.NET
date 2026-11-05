@@ -84,16 +84,17 @@ public sealed class FallbackDecisionClient : DelegatingDecisionClient
             if (result.IsSuccess)
             {
                 var answer = result.Value;
-                var call = new DecisionCall(step.Name, answer.Model, answer.Usage, answer.IsCached);
                 if (ReferenceEquals(answer.Definition, request.Definition))
                 {
+                    var call = new DecisionCall(step.Name, answer.Model, answer.Usage, answer.IsCached);
                     return Result<DecisionResponse, DecisionError>.Success(FallbackPath.Build(answer, step.Name, calls, call));
                 }
 
-                // Answers for another set cannot be routed by position; the call is recorded with what it reported.
+                // Answers for another set cannot be routed by position. The call keeps the step's model but no usage and
+                // no cache flag: the response's usage is the answering step's own, and it equals the sum of the path's calls.
                 error = MismatchError;
                 result = Result<DecisionResponse, DecisionError>.Failure(error);
-                calls.Add(call with { Outcome = CallOutcome.Failed, ErrorKind = error.Kind });
+                calls.Add(new DecisionCall(step.Name, answer.Model, null, IsCached: false) { Outcome = CallOutcome.Failed, ErrorKind = error.Kind });
             }
             else
             {
