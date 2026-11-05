@@ -39,7 +39,8 @@ namespace Minos;
 /// The merged response has the primary's <see cref="DecisionResponse.Definition"/>, <see cref="DecisionResponse.Model"/>,
 /// <see cref="DecisionResponse.Id"/> and <see cref="DecisionResponse.UpstreamProvider"/>, and its
 /// <see cref="DecisionResponse.Usage"/> sums each call's. It is <see cref="DecisionResponse.IsCached"/> only when every
-/// answer it holds came from a cached response. Disposing the stage disposes the inner client, not the target.
+/// call it made was answered from a cache, the primary's included when every question was escalated. Disposing the stage
+/// disposes the inner client, not the target.
 /// </para>
 /// </remarks>
 public sealed class EscalatingDecisionClient : DelegatingDecisionClient

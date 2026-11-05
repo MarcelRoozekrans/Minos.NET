@@ -175,6 +175,21 @@ public sealed class EscalationMergeTests
         Assert.Equal([primaryCached, targetCached], merged.Path!.Calls.Select(c => c.IsCached));
     }
 
+    [Fact]
+    public async Task IsCached_counts_the_primarys_call_even_when_every_question_was_escalated()
+    {
+        // The merge holds only the target's answers, but the primary's uncached call still makes it uncached.
+        var primary = new Fake(request => new DecisionResponse(request.Definition, [.. request.Definition.Questions.Select(q => PrimaryAnswers(0b11111)[q.Key])]) { IsCached = false });
+        var target = new Fake(request => new DecisionResponse(request.Definition, [.. request.Definition.Questions.Select(q => TargetAnswers[q.Key])]) { IsCached = true });
+        using var client = new EscalatingDecisionClient(primary, target, Options());
+
+        var merged = (await client.EvaluateAsync(new DecisionRequest(Mixed(), State))).Value;
+
+        Assert.All(merged.Path!.Routes, route => Assert.Equal(RouteReason.Escalated, route.Reason));
+        Assert.False(merged.IsCached);
+        Assert.Equal([false, true], merged.Path.Calls.Select(c => c.IsCached));
+    }
+
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
