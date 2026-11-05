@@ -61,11 +61,11 @@ public sealed class JevNetAdapter : IClientAdapter, IUsesBenchmarkTransport
     public string? Note => null;
 
     /// <inheritdoc/>
-    public async ValueTask<MeasuredAnswer> CallAsync(CancellationToken cancellationToken)
+    public async ValueTask<CallOutcome> CallAsync(CancellationToken cancellationToken)
     {
         var result = await _client.SystemOneAsync(Workload.State, _questions, options: null, cancellationToken).ConfigureAwait(false);
         var intent = result.Choices[Workload.IntentKey];
-        return new MeasuredAnswer(string.Equals(intent.Choice, Workload.LookUpBooking, StringComparison.Ordinal), result.Nouls[Workload.TravelsSoonKey].Noul);
+        return new CallOutcome(string.Equals(intent.Choice, Workload.LookUpBooking, StringComparison.Ordinal), result.Nouls[Workload.TravelsSoonKey].Noul);
     }
 
     /// <inheritdoc/>

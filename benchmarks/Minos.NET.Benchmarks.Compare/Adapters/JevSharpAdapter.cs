@@ -67,12 +67,12 @@ public sealed class JevSharpAdapter : IClientAdapter, IUsesBenchmarkTransport
     public string? Note => "JevSharp reaches a custom endpoint with static headers only, so it sends no auth header.";
 
     /// <inheritdoc/>
-    public async ValueTask<MeasuredAnswer> CallAsync(CancellationToken cancellationToken)
+    public async ValueTask<CallOutcome> CallAsync(CancellationToken cancellationToken)
     {
         var response = await _client.EvaluateAsync(_request, cancellationToken).ConfigureAwait(false);
         var intent = response.GetAnswer<JevSharpChoiceAnswer>(Workload.IntentKey);
         var travelsSoon = response.GetAnswer<JevSharpNoulAnswer>(Workload.TravelsSoonKey);
-        return new MeasuredAnswer(string.Equals(intent.Choice, Workload.LookUpBooking, StringComparison.Ordinal), travelsSoon.Probability);
+        return new CallOutcome(string.Equals(intent.Choice, Workload.LookUpBooking, StringComparison.Ordinal), travelsSoon.Probability);
     }
 
     /// <inheritdoc/>

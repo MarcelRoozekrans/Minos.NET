@@ -166,7 +166,7 @@ public static class LatencyRunner
         return sorted[Math.Max(rank, 1) - 1];
     }
 
-    private static void Check(IClientAdapter adapter, MeasuredAnswer outcome)
+    private static void Check(IClientAdapter adapter, CallOutcome outcome)
     {
         if (!outcome.IsExpected)
         {

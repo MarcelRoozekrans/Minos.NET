@@ -286,10 +286,10 @@ public sealed class HarnessTests : IAsyncLifetime
 
         public string? Note => null;
 
-        public ValueTask<MeasuredAnswer> CallAsync(CancellationToken cancellationToken)
+        public ValueTask<CallOutcome> CallAsync(CancellationToken cancellationToken)
         {
             calls.Add(client);
-            return ValueTask.FromResult(new MeasuredAnswer(LooksUpBooking: true, Workload.TravelsSoonNoul));
+            return ValueTask.FromResult(new CallOutcome(LooksUpBooking: true, Workload.TravelsSoonNoul));
         }
 
         public Task<WorkloadAnswers> AskAsync(CancellationToken cancellationToken) => throw new NotSupportedException();

@@ -21,7 +21,7 @@ public interface IClientAdapter : IDisposable
     /// <summary>Makes one call and reads what a caller acts on. This is the measured call.</summary>
     /// <param name="cancellationToken">Cancels the call.</param>
     /// <returns>The chosen option and the Noul probability.</returns>
-    ValueTask<MeasuredAnswer> CallAsync(CancellationToken cancellationToken);
+    ValueTask<CallOutcome> CallAsync(CancellationToken cancellationToken);
 
     /// <summary>Makes one call and reads every answer, for checking the client parsed the recorded response.</summary>
     /// <param name="cancellationToken">Cancels the call.</param>

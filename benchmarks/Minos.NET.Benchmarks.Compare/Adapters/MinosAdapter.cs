@@ -45,10 +45,10 @@ public sealed class MinosAdapter : IClientAdapter, IUsesBenchmarkTransport
     public string? Note => null;
 
     /// <inheritdoc/>
-    public async ValueTask<MeasuredAnswer> CallAsync(CancellationToken cancellationToken)
+    public async ValueTask<CallOutcome> CallAsync(CancellationToken cancellationToken)
     {
         var answers = await EvaluateAsync(cancellationToken).ConfigureAwait(false);
-        return new MeasuredAnswer(answers.Intent.Value == TravelIntent.LookUpBooking, answers.TravelsWithin24Hours.Probability);
+        return new CallOutcome(answers.Intent.Value == TravelIntent.LookUpBooking, answers.TravelsWithin24Hours.Probability);
     }
 
     /// <inheritdoc/>
