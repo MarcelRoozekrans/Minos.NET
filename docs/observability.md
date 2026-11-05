@@ -449,7 +449,8 @@ evaluation also records its tokens and one confidence point for each Choice or S
   escalation stage, as in [Stage order](pipeline.md#stage-order); with a client's standard pipeline on, each client has
   its own span and the escalation records none. On an escalated call the token and cost values are the sum over every
   call in `DecisionResponse.Path.Calls`, under the primary's model; price per call from `Path.Calls` or the recorder's
-  `calls`.
+  `calls`. A target or fallback step whose own pipeline has `UseOpenTelemetry` reports its routing and tokens again on
+  the outer stage, so put the telemetry stage on the outermost pipeline only.
 - **`minos.fallbacks`** adds 1 for each call whose first step in a fallback stage failed with an error the chain moves
   on from. `minos.fallback.outcome` is `answered` when a later step answered, with `minos.fallback.client` set to that
   step's name, or `exhausted` when none did, with no client. The fallback stage counts it itself, so it needs no
@@ -457,7 +458,8 @@ evaluation also records its tokens and one confidence point for each Choice or S
   `minos.fallback.answered_by` appear when `UseOpenTelemetry` sits outside the fallback stage and a later step answered;
   an exhausted chain's span has `error.type` instead. With escalation outside fallback, the escalated call's span
   carries both stages' tags once. A response a cache stage returns carries none of the routing tags or counts, even
-  when it first came from a fallback.
+  when it first came from a fallback. A keyed step whose own pipeline has `UseOpenTelemetry` reports its routing and
+  tokens again on the outer stage, so put the telemetry stage on the outermost pipeline only.
 - **Confidence** is the `Confidence` of each Choice and Score answer, a number from 0 to 1.
   [Noul answers](question-types.md) have no confidence and record no point, so a set of Noul questions records none.
   A set with one Choice and one Score records two points for each call.

@@ -214,6 +214,26 @@ public sealed class FallbackLoggingTests
     }
 
     [Fact]
+    public async Task A_failure_after_the_callers_cancellation_logs_no_step_failure()
+    {
+        // Step 0 turns the caller's cancellation into a failure the chain would accept; the stage throws instead of moving on.
+        using var logs = new LogCapture();
+        using var cts = new CancellationTokenSource();
+        var primary = new StubDecisionClient((_, _) =>
+        {
+            cts.Cancel();
+            return new(Result<DecisionResponse, DecisionError>.Failure(new DecisionError(DecisionErrorKind.Timeout, "cancelled")));
+        });
+        var clef = StubDecisionClient.Answering(Answers);
+        using var client = Stage(logs, primary, steps: new FallbackStep("clef", clef));
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => client.EvaluateAsync(new DecisionRequest(Triage, State), cts.Token).AsTask());
+
+        Assert.Equal(0, clef.Calls);
+        Assert.Empty(logs.Records);
+    }
+
+    [Fact]
     public async Task Without_a_logger_the_chain_still_runs()
     {
         using var client = new FallbackDecisionClient(Failing(), new FallbackOptions { Steps = { new FallbackStep("clef", StubDecisionClient.Answering(Answers)) } });

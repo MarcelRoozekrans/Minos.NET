@@ -325,7 +325,13 @@ public sealed class FallbackTelemetryTests
         time.Advance(TimeSpan.FromSeconds(scenario == 1 ? 4.8 : 4.7));
         await call.WaitAsync(TimeSpan.FromSeconds(10));
 
-        Assert.Contains(1017, logs.EventIds);
+        int[] expected = scenario switch
+        {
+            0 => [1017, 1020],
+            1 => [1017, 1018, 1017, 1019],
+            _ => [1017, 1017, 1018, 1019],
+        };
+        Assert.Equal(expected, logs.EventIds);
         Assert.Equal("DeadlineExceeded", logs.Records.First(record => record.Id.Id == 1017).StructuredState!.Single(pair => string.Equals(pair.Key, "ErrorKind", StringComparison.Ordinal)).Value);
         foreach (var record in logs.Records)
         {

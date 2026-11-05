@@ -128,7 +128,7 @@ public sealed class FallbackDecisionClient : DelegatingDecisionClient
         var stepRequest = new DecisionRequest(request.Definition, request.State) { Images = request.Images, Deadline = deadline };
         var last = first.Result;
         var lastLogged = LoggedKind(first.Result.Error, first.CutAt is not null);
-        LogStepFailed(_options.PrimaryName, lastLogged);
+        LogStepFailed(_options.PrimaryName, lastLogged, cancellationToken);
 
         // When a call was cut, the time left is measured from the scheduled cut instant, not from the clock read after it:
         // the cut reserved exactly that room for a later step, and a real timer fires at or after its due time.
@@ -202,7 +202,7 @@ public sealed class FallbackDecisionClient : DelegatingDecisionClient
                 return Exhausted(result, i + 1, logged);
             }
 
-            LogStepFailed(step.Name, logged);
+            LogStepFailed(step.Name, logged, cancellationToken);
         }
 
         return Exhausted(last, steps.Count, lastLogged);
@@ -221,9 +221,11 @@ public sealed class FallbackDecisionClient : DelegatingDecisionClient
     private static string LoggedKind(DecisionError error, bool cut)
         => cut ? DecisionLog.DeadlineExceeded : DecisionTelemetry.ErrorTypeOf(error.Kind);
 
-    private void LogStepFailed(string step, string errorKind)
+    // A failure after the caller's cancellation does not move the chain on: the next step's check throws. It logs nothing,
+    // so no event says the chain moved on when it did not.
+    private void LogStepFailed(string step, string errorKind, CancellationToken cancellationToken)
     {
-        if (Logger is { } logger)
+        if (Logger is { } logger && !cancellationToken.IsCancellationRequested)
         {
             DecisionLog.FallbackStepFailed(logger, step, errorKind);
         }
