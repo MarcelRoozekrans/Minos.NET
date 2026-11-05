@@ -1,4 +1,4 @@
-# Session State — 2026-11-05 (Phase 10.2 designed and planned; execution next)
+# Session State — 2026-11-05 (Phase 10.2 built; pre-push review and PR next)
 
 **Date:** 2026-11-05
 
@@ -201,24 +201,25 @@
        - A merged response's token and cost metrics sum all calls under the primary's model.
      - **Filed:** #322, the flaky Benchmarks `MockHostTests` port test.
      - **The four calls are settled** in the 10.2 spec: calls 9, 12, 10 and 11.
-   - **Phase 10.2 (Provider fallback chain) is active**, as of 2026-11-05. It was designed and planned on branch `phase-10.2-fallback-brainstorm`, cut from `origin/chore/complete-phase-10.1` because #326 was still open. Nothing is built yet.
-     - **Spec:** `docs/superpowers/specs/2026-11-05-phase-10.2-fallback-design.md`, approved by the maintainer. The builder check raised five questions, and all five are settled as my calls.
-     - **Plan:** `docs/superpowers/plans/2026-11-05-phase-10.2-fallback.md`, ten tasks. Tasks 1, 2, 3, 5 and 7 are marked opus.
-     - **Maintainer's choices:**
-       - one flat path when `UseEscalation` wraps `UseFallback`;
-       - an exhausted chain returns the last called step's error;
-       - `Refused` is returned as is unless `ShouldFallBack` opts in;
-       - one stage holds the whole chain;
-       - execution is subagent-driven;
-       - the phase assumptions are confirmed: branch `phase/10.2-fallback`, tasks in order, stop points as below.
-     - **Stop and ask the maintainer if:**
-       - Task 7 finds ZeroAlloc.Telemetry cannot tag one measurement per call with that call's model; file the upstream issue first;
-       - release PR #325 (1.10.0) merges mid-phase and moves the ApiCompat baseline;
-       - any step would need a hosted run.
+   - **Phase 10.2 (Provider fallback chain) is built**, as of 2026-11-05, on branch `phase/10.2-fallback`, rebased on `main` at `22bff6ab` after #326 merged. It ran subagent-driven, with a task review per task, a whole-branch review and one fix wave.
+     - **Spec and plan:** `docs/superpowers/specs/2026-11-05-phase-10.2-fallback-design.md` and `docs/superpowers/plans/2026-11-05-phase-10.2-fallback.md`. Tasks 1 to 6 and 8 to 10 are done and ticked.
+     - **Task 7 (spec call 11, token metrics per call) is deferred** by the maintainer to #327. It is blocked on ZeroAlloc-Net/ZeroAlloc.Telemetry#241, which I filed: the generator cannot tag one measurement per element. Its Steps 2 to 6 stay unticked on purpose, so `complete-phase` must accept that Task 7 moved to #327.
+     - **Maintainer's choices during the run:** call 11 moved to a follow-up; the public enum is `CallStatus` with `DecisionCall.Status` and the record member `status`, not `CallOutcome`, which clashed with the ground-truth "outcome" vocabulary; `Disposed` always stops the chain, whatever `ShouldFallBack` says.
+     - **My rulings, all in the PR body:**
+       - stage order is recording, telemetry, escalation, fallback, caching, retries, rate limiting;
+       - after a cut, the next step's time check measures from the scheduled cut instant;
+       - a step that answered the wrong question set keeps its usage, and `Usage` sums every call on the path, in both stages;
+       - an outer escalation keeps a confident question's inner route unless it is `FellBack`;
+       - a cached copy keeps its path calls as recorded, and `IsCached` marks the hit;
+       - the record format is version 4 only when a call did not answer;
+       - the AOT smoke was published for linux-x64 only.
+     - **Verification:** Release build 0 warnings; all 18 runnable test projects pass; the linux-x64 AOT smoke gives 266 PASS with 0 IL2 and IL3 warnings, and the fallback allocation gate is at 0; the pack is clean.
+     - **Release PR #325 (1.10.0)** was still open at the end of the run, so the ApiCompat baseline did not move.
    - **Next:**
-     1. Done 2026-11-05: `complete-phase` for 10.1, in PR #326, open and waiting for the maintainer.
-     2. Run the Phase 10.2 plan subagent-driven from Task 1, on branch `phase/10.2-fallback` cut from `origin/phase-10.2-fallback-brainstorm`. Once #326 has merged, rebase on `main`. After Task 10, run pre-push-review into `docs/plans/`, then open the PR with BEGIN_COMMIT_OVERRIDE. The maintainer merges it.
+     1. Pre-push review into `docs/plans/`, then the PR from `phase/10.2-fallback` with BEGIN_COMMIT_OVERRIDE. The maintainer merges it.
+     2. After the merge: `complete-phase` for 10.2, noting Task 7 moved to #327. Then Phase 10.3.
      3. The `.website` bot submodule PR with the Minos docs has not appeared yet; .website#127 covers only orm, rest and telemetry. When one includes Minos, ask the maintainer before approving and merging it.
+     4. Ask the maintainer before deleting the remote branches `phase-10.1-escalation-brainstorm` and, after the 10.2 PR merges, `phase-10.2-fallback-brainstorm`.
    - **Waiting on the maintainer:** a peer message to the Daedalus session "daedalus: phase 3.3 Task 16 onward" saying the recorder shipped in 1.3.0. It needs approval in the app; the `daedalus-b9` session no longer exists. The #119 comment is posted.
 2. Decided 2026-10-12: OpenAI is not verified in Milestone 7, because the maintainer has no OpenAI account. `Minos.NET.OpenAI` ships as 1.0.0, labelled unverified against the live API. #161 stays open.
 3. Phases 7.1 to 7.5 are complete. On 2026-10-15 nuget.org reserved `Minos.NET` and `Minos.NET.*` to MarcelRoozekrans, which lifted the 409 "package ID is reserved" block. The Trusted Publishing policy is ci.yml, no environment, glob `*`. `gh workflow run ci.yml --ref v1.0.1 -f publish_to_nuget=true` ([run 38726515640](https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/38726515640)) published all six packages as 1.0.1, with symbols. 1.0.0 was never published. `PackageValidationBaselineVersion` is 1.0.1, which closes #28. Milestone 7 is complete; its audit passed (`docs/plans/2026-10-15-milestone-7-audit.md`). Next: Milestone 8, Choosing a provider and a threshold, starting with `new-milestone`.
