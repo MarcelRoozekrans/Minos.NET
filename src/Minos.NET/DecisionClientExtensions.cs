@@ -510,9 +510,7 @@ public static class DecisionClientExtensions
             return Result<T, DecisionError>.Failure(result.Error);
         }
 
-        var response = result.Value;
-        EnsureDefinition(response, T.Definition);
-        return Result<T, DecisionError>.Success(T.Create(response.ToAnswerSlots()));
+        return Result<T, DecisionError>.Success(result.Value.As<T>());
     }
 
     private static async ValueTask<Result<QuestionSetAnswers, DecisionError>> BuiltSetAsync(QuestionSet questionSet, ValueTask<Result<DecisionResponse, DecisionError>> call)
@@ -526,17 +524,7 @@ public static class DecisionClientExtensions
         }
 
         var response = result.Value;
-        EnsureDefinition(response, questionSet.Definition);
+        DecisionResponse.EnsureDefinition(response, questionSet.Definition);
         return Result<QuestionSetAnswers, DecisionError>.Success(new QuestionSetAnswers(questionSet, response.Probabilities, response.Slots));
-    }
-
-    // A pipeline returns the response for the request's own definition instance; a fake that answers another set is a
-    // bug in the fake. QuestionSetDefinition has reference identity, so this is a reference check.
-    private static void EnsureDefinition(DecisionResponse response, QuestionSetDefinition expected)
-    {
-        if (!ReferenceEquals(response.Definition, expected))
-        {
-            throw new InvalidOperationException("The client returned answers for a different question set than the one it was asked.");
-        }
     }
 }

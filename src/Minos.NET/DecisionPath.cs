@@ -1,0 +1,44 @@
+using System.Collections.ObjectModel;
+
+namespace Minos;
+
+/// <summary>
+/// How a routing stage, such as escalation, answered a request: per question the client that answered and why, and
+/// each call it made. <see cref="DecisionResponse.Path"/> holds it.
+/// </summary>
+/// <remarks>Immutable and safe to share across threads.</remarks>
+public sealed class DecisionPath
+{
+    /// <summary>Initializes a new instance of the <see cref="DecisionPath"/> class from copies of the lists.</summary>
+    /// <param name="routes">One route per question, in definition order.</param>
+    /// <param name="calls">Each call made, in the order made; the first is the primary client's.</param>
+    /// <exception cref="ArgumentNullException"><paramref name="routes"/> or <paramref name="calls"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="calls"/> is empty.</exception>
+    public DecisionPath(IReadOnlyList<QuestionRoute> routes, IReadOnlyList<DecisionCall> calls)
+    {
+        ArgumentNullException.ThrowIfNull(routes);
+        ArgumentNullException.ThrowIfNull(calls);
+        if (calls.Count == 0)
+        {
+            throw new ArgumentException("A path has at least one call: the primary client's.", nameof(calls));
+        }
+
+        QuestionRoute[] routeArray = [.. routes];
+        DecisionCall[] callArray = [.. calls];
+        Routes = routeArray.Length == 0 ? [] : new ReadOnlyCollection<QuestionRoute>(routeArray);
+        Calls = new ReadOnlyCollection<DecisionCall>(callArray);
+    }
+
+    /// <summary>Gets one route per question, in definition order.</summary>
+    public IReadOnlyList<QuestionRoute> Routes { get; }
+
+    /// <summary>Gets each call made, in the order made; the first is the primary client's.</summary>
+    public IReadOnlyList<DecisionCall> Calls { get; }
+
+    /// <summary>The certainty a threshold is compared with: the larger of <c>p</c> and <c>1 - p</c> for a Noul, otherwise the confidence.</summary>
+    /// <param name="kind">The question's kind.</param>
+    /// <param name="slot">The question's answer.</param>
+    /// <returns>A value between 0.5 and 1 for a Noul, and the confidence for a Choice or Score.</returns>
+    internal static double Certainty(QuestionKind kind, in AnswerSlot slot)
+        => kind == QuestionKind.Noul ? Math.Max(slot.Value, 1 - slot.Value) : slot.Confidence;
+}
