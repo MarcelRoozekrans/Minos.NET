@@ -1,4 +1,4 @@
-# Session State — 2026-11-05 (Phase 10.2 built; pre-push review and PR next)
+# Session State — 2026-11-05 (Phase 10.2 built; PR #328 waiting for the maintainer)
 
 **Date:** 2026-11-05
 
@@ -216,7 +216,7 @@
      - **Verification:** Release build 0 warnings; all 18 runnable test projects pass; the linux-x64 AOT smoke gives 266 PASS with 0 IL2 and IL3 warnings, and the fallback allocation gate is at 0; the pack is clean.
      - **Release PR #325 (1.10.0)** was still open at the end of the run, so the ApiCompat baseline did not move.
    - **Next:**
-     1. Pre-push review into `docs/plans/`, then the PR from `phase/10.2-fallback` with BEGIN_COMMIT_OVERRIDE. The maintainer merges it.
+     1. Done 2026-11-05: pre-push review PASS (`docs/plans/2026-11-05-phase-10.2-pre-push-review.md`) and PR #328 from `phase/10.2-fallback`, with BEGIN_COMMIT_OVERRIDE. Waiting for the maintainer to merge it; then check the release-please PR lists its lines.
      2. After the merge: `complete-phase` for 10.2, noting Task 7 moved to #327. Then Phase 10.3.
      3. The `.website` bot submodule PR with the Minos docs has not appeared yet; .website#127 covers only orm, rest and telemetry. When one includes Minos, ask the maintainer before approving and merging it.
      4. Ask the maintainer before deleting the remote branches `phase-10.1-escalation-brainstorm` and, after the 10.2 PR merges, `phase-10.2-fallback-brainstorm`.
