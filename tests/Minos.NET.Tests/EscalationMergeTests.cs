@@ -318,8 +318,10 @@ public sealed class EscalationMergeTests
 
         using var client = new EscalatingDecisionClient(NoulPrimary(Gate), NoulTarget(), Options());
 
+        // A call that never reaches the gate keeps it shut for all the others, so the round fails on a timeout instead of hanging.
         var results = await Task.WhenAll(Enumerable.Range(1, Calls).Select(mask => Task.Run(async () =>
-            (mask, (await client.EvaluateAsync(new DecisionRequest(definition, mask.ToString(CultureInfo.InvariantCulture)))).Value))));
+                (mask, (await client.EvaluateAsync(new DecisionRequest(definition, mask.ToString(CultureInfo.InvariantCulture)))).Value))))
+            .WaitAsync(TimeSpan.FromSeconds(30));
 
         foreach (var (mask, response) in results)
         {
