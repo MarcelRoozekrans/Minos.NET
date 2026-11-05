@@ -62,6 +62,22 @@ public sealed class DecisionPathTests
     }
 
     [Fact]
+    public void Call_rejects_a_null_client_name()
+    {
+        Assert.Throws<ArgumentNullException>(() => new DecisionCall(null!, "jev-latest", null, IsCached: false));
+        Assert.Throws<ArgumentNullException>(() => PrimaryCall with { ClientName = null! });
+    }
+
+    [Fact]
+    public void Path_rejects_a_default_route()
+    {
+        var exception = Assert.Throws<ArgumentException>(() => new DecisionPath([Route(), default], [PrimaryCall]));
+
+        Assert.Equal("routes", exception.ParamName);
+        Assert.DoesNotContain("is_urgent", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Path_copies_its_lists()
     {
         var routes = new List<QuestionRoute> { Route() };
@@ -91,12 +107,10 @@ public sealed class DecisionPathTests
         var tooFew = new DecisionPath([], [PrimaryCall]);
         var tooMany = new DecisionPath([Route(), Route("department")], [PrimaryCall]);
         var wrongKey = new DecisionPath([Route("department")], [PrimaryCall]);
-        var defaultRoute = new DecisionPath([default], [PrimaryCall]);
 
         Assert.Throws<ArgumentException>(() => new DecisionResponse(QuestionSets.UrgencyDefinition(), [QuestionAnswer.Noul(0.75)]) { Path = tooFew });
         Assert.Throws<ArgumentException>(() => new DecisionResponse(QuestionSets.UrgencyDefinition(), [QuestionAnswer.Noul(0.75)]) { Path = tooMany });
         Assert.Throws<ArgumentException>(() => new DecisionResponse(QuestionSets.UrgencyDefinition(), [QuestionAnswer.Noul(0.75)]) { Path = wrongKey });
-        Assert.Throws<ArgumentException>(() => new DecisionResponse(QuestionSets.UrgencyDefinition(), [QuestionAnswer.Noul(0.75)]) { Path = defaultRoute });
 
         var path = new DecisionPath([Route()], [PrimaryCall]);
         var response = new DecisionResponse(QuestionSets.UrgencyDefinition(), [QuestionAnswer.Noul(0.75)]) { Path = path };

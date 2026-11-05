@@ -13,7 +13,7 @@ public sealed class DecisionPath
     /// <param name="routes">One route per question, in definition order.</param>
     /// <param name="calls">Each call made, in the order made; the first is the primary client's.</param>
     /// <exception cref="ArgumentNullException"><paramref name="routes"/> or <paramref name="calls"/> is <see langword="null"/>.</exception>
-    /// <exception cref="ArgumentException"><paramref name="calls"/> is empty.</exception>
+    /// <exception cref="ArgumentException"><paramref name="calls"/> is empty, or a route is a <see langword="default"/> value.</exception>
     public DecisionPath(IReadOnlyList<QuestionRoute> routes, IReadOnlyList<DecisionCall> calls)
     {
         ArgumentNullException.ThrowIfNull(routes);
@@ -24,6 +24,15 @@ public sealed class DecisionPath
         }
 
         QuestionRoute[] routeArray = [.. routes];
+        for (var i = 0; i < routeArray.Length; i++)
+        {
+            // A default route has no key or client name; the message names the position only, never a question key.
+            if (routeArray[i].Key is null)
+            {
+                throw new ArgumentException($"Route {i} is a default value; make routes with the QuestionRoute constructor.", nameof(routes));
+            }
+        }
+
         DecisionCall[] callArray = [.. calls];
         Routes = routeArray.Length == 0 ? [] : new ReadOnlyCollection<QuestionRoute>(routeArray);
         Calls = new ReadOnlyCollection<DecisionCall>(callArray);
