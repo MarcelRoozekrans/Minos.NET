@@ -1,3 +1,20 @@
 #nullable enable
 Minos.KeyedEscalationDecisionClientBuilderExtensions
 static Minos.KeyedEscalationDecisionClientBuilderExtensions.UseEscalation(this Minos.DecisionClientBuilder! builder, string! targetKey, System.Action<Minos.EscalationOptions!>? configure = null) -> Minos.DecisionClientBuilder!
+Minos.KeyedFallbackDecisionClientBuilderExtensions
+static Minos.KeyedFallbackDecisionClientBuilderExtensions.UseFallback(this Minos.DecisionClientBuilder! builder, params Minos.KeyedFallbackStep[]! steps) -> Minos.DecisionClientBuilder!
+static Minos.KeyedFallbackDecisionClientBuilderExtensions.UseFallback(this Minos.DecisionClientBuilder! builder, System.Action<Minos.FallbackOptions!>! configure, params Minos.KeyedFallbackStep[]! steps) -> Minos.DecisionClientBuilder!
+Minos.KeyedFallbackStep
+Minos.KeyedFallbackStep.ExpectedLatency.get -> System.TimeSpan
+Minos.KeyedFallbackStep.ExpectedLatency.init -> void
+Minos.KeyedFallbackStep.Key.get -> string!
+Minos.KeyedFallbackStep.Key.init -> void
+Minos.KeyedFallbackStep.KeyedFallbackStep() -> void
+Minos.KeyedFallbackStep.KeyedFallbackStep(string! Key, System.TimeSpan ExpectedLatency) -> void
+Minos.KeyedFallbackStep.Deconstruct(out string! Key, out System.TimeSpan ExpectedLatency) -> void
+Minos.KeyedFallbackStep.Equals(Minos.KeyedFallbackStep other) -> bool
+~override Minos.KeyedFallbackStep.Equals(object obj) -> bool
+override Minos.KeyedFallbackStep.GetHashCode() -> int
+~override Minos.KeyedFallbackStep.ToString() -> string
+static Minos.KeyedFallbackStep.operator !=(Minos.KeyedFallbackStep left, Minos.KeyedFallbackStep right) -> bool
+static Minos.KeyedFallbackStep.operator ==(Minos.KeyedFallbackStep left, Minos.KeyedFallbackStep right) -> bool
