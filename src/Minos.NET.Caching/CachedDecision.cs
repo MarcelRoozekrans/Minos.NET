@@ -18,16 +18,23 @@ internal sealed class CachedDecision
     /// </summary>
     public const int CurrentVersion = 2;
 
+    /// <summary>
+    /// The layout version of an entry that stores an escalation path. Written only for a response that has a path; it
+    /// stores sources when an answer has a marked one, and may omit them.
+    /// </summary>
+    public const int PathVersion = 3;
+
     /// <summary>The layout version of an entry whose answers all come from the model: no sources are stored.</summary>
     public const int ModelOnlyVersion = 1;
 
     /// <summary>The entry for a stored value the format could not read: an unknown version, or corrupt bytes.</summary>
-    public static readonly CachedDecision Unreadable = new([], [], null, null, null, null, null, null);
+    public static readonly CachedDecision Unreadable = new([], [], null, null, null, null, null, null, null);
 
     private DecisionResponse? _response;
 
     public CachedDecision(
-        AnswerSlot[] slots, double[] probabilities, string? model, int? inputTokens, int? outputTokens, double? cost, string? id, string? upstreamProvider)
+        AnswerSlot[] slots, double[] probabilities, string? model, int? inputTokens, int? outputTokens, double? cost, string? id, string? upstreamProvider,
+        CachedPath? path = null)
     {
         Slots = slots;
         Probabilities = probabilities;
@@ -37,6 +44,7 @@ internal sealed class CachedDecision
         Cost = cost;
         Id = id;
         UpstreamProvider = upstreamProvider;
+        Path = path;
     }
 
     public AnswerSlot[] Slots { get; }
@@ -55,11 +63,14 @@ internal sealed class CachedDecision
 
     public string? UpstreamProvider { get; }
 
+    /// <summary>Gets the stored escalation path, or <see langword="null"/> for a response that had none.</summary>
+    public CachedPath? Path { get; }
+
     /// <summary>The entry for a response that was just stored: it keeps <paramref name="cached"/> for its definition.</summary>
     /// <param name="cached">A response made with <see cref="DecisionResponse.AsCached"/>.</param>
     /// <returns>The entry.</returns>
     public static CachedDecision From(DecisionResponse cached)
-        => new(cached.Slots, cached.Probabilities, cached.Model, cached.InputTokens, cached.OutputTokens, cached.Cost, cached.Id, cached.UpstreamProvider)
+        => new(cached.Slots, cached.Probabilities, cached.Model, cached.InputTokens, cached.OutputTokens, cached.Cost, cached.Id, cached.UpstreamProvider, CachedPath.From(cached.Path))
         {
             _response = cached,
         };
@@ -77,7 +88,7 @@ internal sealed class CachedDecision
         }
 
         var built = Fits(definition)
-            ? new DecisionResponse(definition, Slots, Probabilities, Model, InputTokens, OutputTokens, Cost, Id, UpstreamProvider, isCached: true)
+            ? new DecisionResponse(definition, Slots, Probabilities, Model, InputTokens, OutputTokens, Cost, Id, UpstreamProvider, isCached: true) { Path = Path?.ToPath(definition) }
             : null;
         if (kept is null && built is not null)
         {
@@ -93,7 +104,8 @@ internal sealed class CachedDecision
     private bool Fits(QuestionSetDefinition definition)
     {
         var questions = definition.QuestionArray;
-        if (ReferenceEquals(this, Unreadable) || Slots.Length != questions.Length || Probabilities.Length != definition.ProbabilityCount)
+        if (ReferenceEquals(this, Unreadable) || Slots.Length != questions.Length || Probabilities.Length != definition.ProbabilityCount
+            || (Path is not null && Path.Routes.Length != questions.Length))
         {
             return false;
         }

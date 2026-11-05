@@ -179,7 +179,7 @@ public sealed class CachedDecisionFormatTests
     }
 
     [Theory]
-    [InlineData("v", "3")]
+    [InlineData("v", "4")]
     [InlineData("v", null)]
     [InlineData("v", "null")]
     [InlineData("model", "5")]
