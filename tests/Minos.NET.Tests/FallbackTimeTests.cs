@@ -427,6 +427,9 @@ public sealed class FallbackTimeTests
         var response = (await call.WaitAsync(TimeSpan.FromSeconds(10))).Value;
 
         Assert.Equal("hosted-model", response.Model);
+        Assert.Equal(
+            [Failed("primary", DecisionErrorKind.Timeout), Skipped("clef"), new DecisionCall("hosted", "hosted-model", null, IsCached: false)],
+            response.Path!.Calls);
     }
 
     [Fact]
