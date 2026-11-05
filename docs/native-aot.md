@@ -197,7 +197,7 @@ regression cannot reach a release unnoticed.
 | `AnswerSlotAccessors` | Reading a `Noul`, a `Choice<T>` and a `Score<T>` from the answer slots of a typed set. | 0 |
 | `GeneratedCreate` | The generated `Create` of a typed set building its result from the answer slots, which replaces the old `GeneratedParse` gate of 192. The protocol's probability buffer is counted by the typed round trips and by a test in the unit suite, which holds the whole read to 192. | 128 |
 | `EvaluateRoundTrip` | A raw `EvaluateAsync` call. | 4352 |
-| `TypedEvaluateRoundTrip` | A typed `EvaluateAsync<T>` call, 3328 B measured on linux-x64. The budget is the 3328 B it had before plus the 32 B that the request's `Deadline` and the response's `Path` reference add. | 3392 |
+| `TypedEvaluateRoundTrip` | A typed `EvaluateAsync<T>` call, 3328 B measured on linux-x64. The budget is the 3328 B it had before plus the 32 B that the request's `Deadline` and the response's `Path` reference add, rounded up to the next multiple of 64 B. | 3392 |
 | `NeutralEvaluateRoundTrip` | A neutral `EvaluateAsync(DecisionRequest)` call on the standard pipeline. | 3392 |
 | `BareTransportRoundTrip` | A neutral call with `UseStandardPipeline` off, the transport alone. | 3392 |
 | `PassThroughStage` | A `DelegatingDecisionClient` that overrides nothing, over an inner call that completes synchronously. | 0 |

@@ -428,7 +428,11 @@ evaluation also records its tokens and one confidence point for each Choice or S
   [escalation stage](pipeline.md#escalating-unsure-questions) and had at least one unsure question. `minos.escalation.target`
   is the target's name and `minos.escalation.reason` is `escalated`, `no_time_left` or `target_failed`, for the call as
   a whole. A call whose questions were all sure records nothing, so the counter's total is the number of calls that
-  needed the second client.
+  needed the second client. The span tags and the counter appear only when `UseOpenTelemetry` sits outside the
+  escalation stage, as in [Stage order](pipeline.md#stage-order); with a client's standard pipeline on, each client has
+  its own span and the escalation records none. On an escalated call the token and cost values are the sum over every
+  call in `DecisionResponse.Path.Calls`, under the primary's model; price per call from `Path.Calls` or the recorder's
+  `calls`.
 - **Confidence** is the `Confidence` of each Choice and Score answer, a number from 0 to 1.
   [Noul answers](question-types.md) have no confidence and record no point, so a set of Noul questions records none.
   A set with one Choice and one Score records two points for each call.

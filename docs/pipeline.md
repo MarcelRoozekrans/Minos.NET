@@ -199,6 +199,9 @@ public static IServiceCollection AddCachedDecisions(IServiceCollection services,
   `Logprobs` or `Verbalized`, and the distributed entry stores it. An entry with such an answer is written in a newer
   entry version, which an older Minos treats as unreadable, and so as a miss, rather than return the answer without its
   source. An entry whose answers all come from the model is written as before.
+- **A hit keeps the escalation path.** A response with a [path](#escalating-unsure-questions) is stored with its routes
+  and calls, in an entry version an older Minos treats as a miss. A hit reports `IsCached` true, and each call in
+  `Path.Calls` keeps the `IsCached` it had when stored.
 - **Concurrent misses are not merged.** Two identical calls that both miss each ask the provider.
 - **A miss waits for the distributed write.** The answer is written to the distributed cache before the call returns,
   and the write is not cancelled with the call, so a slow distributed cache delays every miss.
@@ -255,7 +258,8 @@ take no extra permits. When you build the pipeline yourself, use this order:
 <!-- snippet: Pipeline_StageOrder -->
 ```cs
 // The recommended order for a pipeline you build yourself: one record and one span per call, escalation above the
-// cache so each tier caches its own answers, a cache hit takes no permit, and every attempt takes one.
+// cache so the first client's answers are cached below the stage (give the target its own UseCaching to cache its
+// answers too), a cache hit takes no permit, and every attempt takes one.
 public static IDecisionClient Build(
     HttpClient http, string apiKey, DecisionRecorder recorder, IDecisionClient hosted, RateLimiter limiter, IServiceProvider services)
 {
@@ -275,8 +279,8 @@ public static IDecisionClient Build(
 1. recording, so one decision is one record, a cache hit included, as
    [Recording decisions](recording.md#registering-it-outermost) describes;
 2. telemetry, so the span covers the whole call and carries the escalation tags;
-3. escalation, so a second client is asked only for the questions the first was unsure of, and each client caches its own
-   answers;
+3. escalation, so a second client is asked only for the questions the first was unsure of; the first client's answers
+   are cached below the stage, so give the target its own `UseCaching` to cache its answers too;
 4. caching, so a hit takes no permit;
 5. retries, outside the limiter, so a local rejection is retried after its `RetryAfter`;
 6. rate limiting, so every attempt takes a permit;
@@ -286,7 +290,7 @@ public static IDecisionClient Build(
 
 `UseEscalation` adds a stage that asks a second client, the target, again for the questions the first client was unsure
 of, and only those. A question is unsure when its certainty is below its threshold: 0.6 unless you set another. The
-certainty of a Choice or a Score is its `Confidence`; a Noul's is how far it lies from one half, so 0.05 is as sure as
+certainty of a Choice or a Score is its `Confidence`; a Noul's is the larger of `p` and `1 − p`, so 0.05 is as sure as
 0.95. The stage is `EscalatingDecisionClient`. With the extension in `Minos.NET.DependencyInjection`,
 `UseEscalation("hosted")` takes the client that `AddDecisionClient("hosted", ...)` registered under that key; with the
 core package, pass the target client or a factory for it.
@@ -335,6 +339,10 @@ The options are an `EscalationOptions`, which `UseEscalation` copies and checks 
 | `ExpectedLatency` | zero | How long the target usually takes. With less time than this left, it is not called. |
 | `Budget` | none | The time a call gets when its request has no `Deadline`. |
 
+The options bind from configuration: `UseEscalation("hosted", o => config.GetSection("Escalation").Bind(o))` reads
+`Escalation:DefaultThreshold`, an `Escalation:Thresholds` section of question keys and values, such as
+`Escalation:Thresholds:department`, and the time settings as `TimeSpan` strings, such as `Escalation:Budget=00:00:02`.
+
 - **A confident answer is never re-asked.** When every question is sure, the target is not called and the stage adds only
   the path to the response.
 - **Time bounds the second call.** A request's `Deadline`, or `Budget` from the moment the call starts, is the latest the
@@ -347,6 +355,9 @@ The options are an `EscalationOptions`, which `UseEscalation` copies and checks 
   set's order: `Key`, `AnsweredBy`, `Reason` (a `RouteReason`: `Confident`, `Escalated`, `NoTimeLeft` or `TargetFailed`)
   and both certainties. `Calls` lists each `DecisionCall` made, with its client name, model and usage. The response's
   `Usage` is the sum over the calls. A response from a pipeline without the stage has no path.
+- **The span tags and the counter appear only when `UseOpenTelemetry` sits outside the escalation stage,** as in
+  [Stage order](#stage-order). With a client's standard pipeline on, each client has its own span and the escalation
+  records none.
 - **`As<T>()` reads the answers as your type.** Call it on the response of a `DecisionRequest`, since the typed
   `EvaluateAsync<T>` extensions return the answers without the path.
 

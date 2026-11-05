@@ -41,7 +41,8 @@ public static class OrderedPipeline
 {
     #region Pipeline_StageOrder
     // The recommended order for a pipeline you build yourself: one record and one span per call, escalation above the
-    // cache so each tier caches its own answers, a cache hit takes no permit, and every attempt takes one.
+    // cache so the first client's answers are cached below the stage (give the target its own UseCaching to cache its
+    // answers too), a cache hit takes no permit, and every attempt takes one.
     public static IDecisionClient Build(
         HttpClient http, string apiKey, DecisionRecorder recorder, IDecisionClient hosted, RateLimiter limiter, IServiceProvider services)
     {
