@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using Microsoft.Extensions.Time.Testing;
 using ZeroAlloc.Results;
 
 namespace Minos.Tests;
@@ -202,7 +203,8 @@ public sealed class FallbackTests
         var hosted = StubDecisionClient.Answering(StepAnswers);
         using var client = new FallbackDecisionClient(
             StubDecisionClient.Failing(DecisionErrorKind.Server),
-            Options(new FallbackStep("clef", clef), new FallbackStep("hosted", hosted)));
+            Options(new FallbackStep("clef", clef), new FallbackStep("hosted", hosted)),
+            timeProvider: new FakeTimeProvider(deadline.AddSeconds(-5)));
 
         await client.EvaluateAsync(request);
 

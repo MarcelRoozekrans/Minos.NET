@@ -93,3 +93,6 @@ Minos.FallbackDecisionClient
 Minos.FallbackDecisionClient.FallbackDecisionClient(Minos.IDecisionClient! innerClient, Minos.FallbackOptions! options, Microsoft.Extensions.Logging.ILogger? logger = null, System.TimeProvider? timeProvider = null) -> void
 override Minos.FallbackDecisionClient.EvaluateAsync(Minos.DecisionRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>
 override Minos.FallbackDecisionClient.GetService(System.Type! serviceType, object? serviceKey = null) -> object?
+Minos.FallbackDecisionClientBuilderExtensions
+static Minos.FallbackDecisionClientBuilderExtensions.UseFallback(this Minos.DecisionClientBuilder! builder, System.Action<Minos.FallbackOptions!>! configure) -> Minos.DecisionClientBuilder!
+static Minos.FallbackDecisionClientBuilderExtensions.UseFallback(this Minos.DecisionClientBuilder! builder, System.Func<System.IServiceProvider!, Minos.FallbackOptions!>! configure) -> Minos.DecisionClientBuilder!
