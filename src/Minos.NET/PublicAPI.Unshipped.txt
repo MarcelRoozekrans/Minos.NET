@@ -16,6 +16,8 @@ Minos.DecisionPath
 Minos.DecisionPath.Calls.get -> System.Collections.Generic.IReadOnlyList<Minos.DecisionCall!>!
 Minos.DecisionPath.DecisionPath(System.Collections.Generic.IReadOnlyList<Minos.QuestionRoute>! routes, System.Collections.Generic.IReadOnlyList<Minos.DecisionCall!>! calls) -> void
 Minos.DecisionPath.Routes.get -> System.Collections.Generic.IReadOnlyList<Minos.QuestionRoute>!
+Minos.DecisionRequest.Deadline.get -> System.DateTimeOffset?
+Minos.DecisionRequest.Deadline.init -> void
 Minos.DecisionResponse.As<T>() -> T
 Minos.DecisionResponse.Path.get -> Minos.DecisionPath?
 Minos.DecisionResponse.Path.init -> void
