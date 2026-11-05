@@ -15,8 +15,9 @@ public static class FallbackDecisionClientBuilderExtensions
     /// <remarks>
     /// <para>
     /// The stage logs through the build's <see cref="ILoggerFactory"/> and reads the deadline's time from its
-    /// <see cref="TimeProvider"/>, when the services have them. Add it before <c>UseRetries</c> and <c>UseCaching</c>, so
-    /// it sits outside them and the inner client's transient failures are retried before the chain moves on to the next step.
+    /// <see cref="TimeProvider"/>, when the services have them. Add it after <c>UseEscalation</c>, so escalation takes
+    /// over the fallback path, and before <c>UseRetries</c> and <c>UseCaching</c>, so it sits outside them and the inner
+    /// client's transient failures are retried before the chain moves on to the next step.
     /// </para>
     /// <para>
     /// The settings are checked when the pipeline is built, so a setting out of range throws <see cref="ArgumentException"/>

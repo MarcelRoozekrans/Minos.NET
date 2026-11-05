@@ -20,8 +20,9 @@ public static class EscalatingDecisionClientBuilderExtensions
     /// <remarks>
     /// <para>
     /// The stage logs through the build's <see cref="ILoggerFactory"/> and reads the deadline's time from its
-    /// <see cref="TimeProvider"/>, when the services have them. Add it before <c>UseRetries</c> and <c>UseCaching</c>, so
-    /// it sits outside them and the primary's calls are retried and cached on their own.
+    /// <see cref="TimeProvider"/>, when the services have them. Add it first of the routing stages, before
+    /// <c>UseFallback</c>, and both before <c>UseRetries</c> and <c>UseCaching</c>, so it sits outside them: the primary's
+    /// calls are retried and cached on their own, and a fallback path inside is taken over into one path.
     /// </para>
     /// <para>
     /// The settings are checked when the pipeline is built, so a setting out of range throws <see cref="ArgumentException"/>

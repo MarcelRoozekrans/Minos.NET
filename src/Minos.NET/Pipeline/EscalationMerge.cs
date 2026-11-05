@@ -78,7 +78,7 @@ internal static class EscalationMerge
     /// <param name="unsure">The positions in the primary's definition of the target's questions, in order.</param>
     /// <param name="routes">The routes; the escalated questions' routes are replaced.</param>
     /// <param name="targetName">The target's name in the path.</param>
-    /// <param name="calls">The calls made: the primary's, then the target's.</param>
+    /// <param name="calls">The calls made: the primary's, or the inner path's in its place, then the target's.</param>
     internal static DecisionResponse Merge(DecisionResponse primary, DecisionResponse target, int[] unsure, QuestionRoute[] routes, string targetName, DecisionCall[] calls)
     {
         var definition = primary.Definition;
@@ -105,7 +105,7 @@ internal static class EscalationMerge
     /// <summary>The primary's answers, unchanged and sharing its arrays, with a path; for when the target answered nothing.</summary>
     /// <param name="primary">The primary client's response.</param>
     /// <param name="routes">The routes.</param>
-    /// <param name="calls">The calls made.</param>
+    /// <param name="calls">The calls made: the primary's, or the inner path's in its place, then the target's when it was called or skipped.</param>
     /// <param name="targetName">The target's name for the telemetry, or <see langword="null"/> when no question was unsure.</param>
     /// <param name="skipped">Why the unsure questions were not escalated: <see cref="DecisionTelemetry.SkippedNoTimeLeft"/> or <see cref="DecisionTelemetry.SkippedTargetFailed"/>.</param>
     internal static DecisionResponse KeepPrimary(DecisionResponse primary, QuestionRoute[] routes, DecisionCall[] calls, string? targetName = null, string? skipped = null)
@@ -125,7 +125,8 @@ internal static class EscalationMerge
             cost = Sum(cost, call.Usage?.Cost);
         }
 
-        // The telemetry holder exists only when a question was unsure, which is when the caller names the target.
+        // The telemetry holder exists only when a question was unsure, which is when the caller names the target. When the
+        // primary's path is taken over, primary.Path is the inner path whose telemetry holder belongs to this response too.
         Debug.Assert(targetName is not null || (escalated == 0 && skipped is null), "Only a call with an unsure question escalates or skips.");
         var escalation = targetName is null ? null : new EscalationTelemetry(targetName, escalated, skipped);
         var response = new DecisionResponse(primary.Definition, slots, probabilities, primary.Model, inputTokens, outputTokens, cost, primary.Id, primary.UpstreamProvider, isCached)
