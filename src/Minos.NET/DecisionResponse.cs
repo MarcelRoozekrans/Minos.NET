@@ -197,10 +197,34 @@ public sealed class DecisionResponse
     // The minos.cache.hit tag's value: set on a cached response, absent otherwise, so an uncached span carries no tag.
     internal object? CacheHitTag => IsCached ? BoxedTrue : null;
 
-    /// <summary>A copy that a cache stores: the same answers, model, usage, id, upstream provider and path, marked as cached.</summary>
+    // The escalation stage's telemetry, set only on a response that stage built. A null tag is absent from the span and the
+    // counter. The values are counts, the target's client name and fixed reason names, never question content.
+    // minos.escalation.escalated: the number of questions the target answered.
+    internal object? EscalatedTag { get; init; }
+
+    // minos.escalation.skipped: "no_time_left" or "target_failed".
+    internal string? SkippedTag { get; init; }
+
+    // minos.escalations: 1 for a call whose primary answer had an unsure question.
+    internal int? EscalationEvents { get; init; }
+
+    // minos.escalation.target and minos.escalation.reason: the counter's tags.
+    internal string? EscalationTargetTag { get; init; }
+
+    internal string? EscalationReasonTag { get; init; }
+
+    /// <summary>A copy that a cache stores: the same answers, model, usage, id, upstream provider, path and escalation telemetry, marked as cached.</summary>
     /// <returns>A new response sharing this one's arrays and path.</returns>
     internal DecisionResponse AsCached()
-        => new(Definition, Slots, Probabilities, Model, InputTokens, OutputTokens, Cost, Id, UpstreamProvider, isCached: true) { Path = Path };
+        => new(Definition, Slots, Probabilities, Model, InputTokens, OutputTokens, Cost, Id, UpstreamProvider, isCached: true)
+        {
+            Path = Path,
+            EscalatedTag = EscalatedTag,
+            SkippedTag = SkippedTag,
+            EscalationEvents = EscalationEvents,
+            EscalationTargetTag = EscalationTargetTag,
+            EscalationReasonTag = EscalationReasonTag,
+        };
 
     /// <summary>Creates the typed answers from this response, as the typed <c>EvaluateAsync&lt;T&gt;</c> calls do.</summary>
     /// <typeparam name="T">The <c>[Questions]</c> type whose <see cref="IQuestionSet{TSelf}.Definition"/> this response answers.</typeparam>

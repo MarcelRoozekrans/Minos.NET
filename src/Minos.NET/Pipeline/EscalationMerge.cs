@@ -97,16 +97,26 @@ internal static class EscalationMerge
         }
 
         // Every answer the primary did not give came from the target, so the response is cached only when both were.
-        return Build(primary, slots, probabilities, routes, calls, primary.IsCached && target.IsCached);
+        return Build(primary, slots, probabilities, routes, calls, primary.IsCached && target.IsCached, targetName, escalated: unsure.Length, skipped: null);
     }
 
     /// <summary>The primary's answers, unchanged and sharing its arrays, with a path; for when the target answered nothing.</summary>
-    internal static DecisionResponse KeepPrimary(DecisionResponse primary, QuestionRoute[] routes, DecisionCall[] calls)
-        => Build(primary, primary.Slots, primary.Probabilities, routes, calls, primary.IsCached);
+    /// <param name="primary">The primary client's response.</param>
+    /// <param name="routes">The routes.</param>
+    /// <param name="calls">The calls made.</param>
+    /// <param name="targetName">The target's name for the telemetry, or <see langword="null"/> when no question was unsure.</param>
+    /// <param name="skipped">Why the unsure questions were not escalated: <see cref="SkippedNoTimeLeft"/> or <see cref="SkippedTargetFailed"/>.</param>
+    internal static DecisionResponse KeepPrimary(DecisionResponse primary, QuestionRoute[] routes, DecisionCall[] calls, string? targetName = null, string? skipped = null)
+        => Build(primary, primary.Slots, primary.Probabilities, routes, calls, primary.IsCached, targetName, escalated: 0, skipped);
+
+    // The values of the minos.escalation.skipped and minos.escalation.reason tags.
+    internal const string SkippedNoTimeLeft = "no_time_left";
+    internal const string SkippedTargetFailed = "target_failed";
+    internal const string ReasonEscalated = "escalated";
 
     // The primary's model, id and upstream provider; the usage summed per field over the calls, each field null only
     // when no call reported it.
-    private static DecisionResponse Build(DecisionResponse primary, AnswerSlot[] slots, double[] probabilities, QuestionRoute[] routes, DecisionCall[] calls, bool isCached)
+    private static DecisionResponse Build(DecisionResponse primary, AnswerSlot[] slots, double[] probabilities, QuestionRoute[] routes, DecisionCall[] calls, bool isCached, string? targetName, int escalated, string? skipped)
     {
         int? inputTokens = null;
         int? outputTokens = null;
@@ -121,6 +131,11 @@ internal static class EscalationMerge
         return new DecisionResponse(primary.Definition, slots, probabilities, primary.Model, inputTokens, outputTokens, cost, primary.Id, primary.UpstreamProvider, isCached)
         {
             Path = DecisionPath.FromOwnedArrays(routes, calls),
+            EscalatedTag = escalated > 0 ? escalated : null,
+            SkippedTag = skipped,
+            EscalationEvents = targetName is null ? null : 1,
+            EscalationTargetTag = targetName,
+            EscalationReasonTag = targetName is null ? null : skipped ?? ReasonEscalated,
         };
     }
 

@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Logging;
+using Minos.Telemetry;
 using ZeroAlloc.Results;
 
 namespace Minos;
@@ -48,6 +49,10 @@ public sealed class EscalatingDecisionClient : DelegatingDecisionClient
     private readonly Dictionary<string, double> _thresholds;
 
     // The longest delay a CancellationTokenSource timer takes: uint.MaxValue - 1 milliseconds, about 49.7 days.
+    // The error kind logged for a target that ran past the deadline, and for one that answered another question set.
+    private const string DeadlineErrorKind = "DeadlineExceeded";
+    private const string MismatchErrorKind = "DefinitionMismatch";
+
     private static readonly TimeSpan MaxTimerDelay = TimeSpan.FromMilliseconds(uint.MaxValue - 1);
 
     /// <summary>Initializes a new instance of the <see cref="EscalatingDecisionClient"/> class.</summary>
@@ -102,29 +107,55 @@ public sealed class EscalatingDecisionClient : DelegatingDecisionClient
 
         // The time check. The primary call is not bounded: one that overruns finds no time left here.
         var timeLeft = deadline is { } due ? due - TimeProvider.GetUtcNow() : (TimeSpan?)null;
+        var targetName = _options.TargetName!;
         if (timeLeft < _options.ExpectedLatency)
         {
             MarkNoTimeLeft(routes);
-            return EscalationMerge.KeepPrimary(primary, routes, [primaryCall]);
+            if (Logger is { } timeLogger)
+            {
+                DecisionLog.EscalationSkippedForTime(timeLogger, unsureCount, targetName);
+            }
+
+            return EscalationMerge.KeepPrimary(primary, routes, [primaryCall], targetName, EscalationMerge.SkippedNoTimeLeft);
         }
 
         var unsure = Unsure(routes, unsureCount);
         var subset = EscalationMerge.Subset(primary.Definition, unsure);
         var subsetRequest = new DecisionRequest(subset, request.State) { Images = request.Images, Deadline = deadline };
-        var targetName = _options.TargetName!;
         var second = await EvaluateTargetAsync(subsetRequest, timeLeft, cancellationToken).ConfigureAwait(false);
         if (second is not { IsSuccess: true } success)
         {
-            return EscalationMerge.KeepPrimary(primary, routes, [primaryCall, new DecisionCall(targetName, null, null, IsCached: false)]);
+            LogTargetFailed(second is { } failed ? DecisionTelemetry.ErrorTypeOf(failed.Error.Kind) : DeadlineErrorKind);
+            return KeepAfterFailure(primary, routes, [primaryCall, new DecisionCall(targetName, null, null, IsCached: false)]);
         }
 
         var target = success.Value;
         var targetCall = new DecisionCall(targetName, target.Model, target.Usage, target.IsCached);
 
         // Answers for another set cannot be placed by position; the call still counts toward the usage.
-        return ReferenceEquals(target.Definition, subset)
-            ? EscalationMerge.Merge(primary, target, unsure, routes, targetName, [primaryCall, targetCall])
-            : EscalationMerge.KeepPrimary(primary, routes, [primaryCall, targetCall]);
+        if (!ReferenceEquals(target.Definition, subset))
+        {
+            LogTargetFailed(MismatchErrorKind);
+            return KeepAfterFailure(primary, routes, [primaryCall, targetCall]);
+        }
+
+        if (Logger is { } logger)
+        {
+            DecisionLog.Escalated(logger, unsureCount, targetName);
+        }
+
+        return EscalationMerge.Merge(primary, target, unsure, routes, targetName, [primaryCall, targetCall]);
+
+        void LogTargetFailed(string errorKind)
+        {
+            if (Logger is { } failureLogger)
+            {
+                DecisionLog.EscalationTargetFailed(failureLogger, targetName, errorKind);
+            }
+        }
+
+        DecisionResponse KeepAfterFailure(DecisionResponse kept, QuestionRoute[] keptRoutes, DecisionCall[] calls)
+            => EscalationMerge.KeepPrimary(kept, keptRoutes, calls, targetName, EscalationMerge.SkippedTargetFailed);
     }
 
     /// <inheritdoc />

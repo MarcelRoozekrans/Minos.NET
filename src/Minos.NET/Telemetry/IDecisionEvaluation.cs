@@ -28,6 +28,8 @@ internal interface IDecisionEvaluation
     [TraceTagFromResult(ResponseId, "Value.Id", When = "IsSuccess")]
     [TraceTagFromResult(Cost, "Value.Cost", When = "IsSuccess")]
     [TraceTagFromResult(CacheHit, "Value.CacheHitTag", When = "IsSuccess")]
+    [TraceTagFromResult(EscalationEscalated, "Value.EscalatedTag", When = "IsSuccess")]
+    [TraceTagFromResult(EscalationSkipped, "Value.SkippedTag", When = "IsSuccess")]
     [TraceTagFromResult(ErrorType, "Error.ErrorType", When = "IsFailure")]
     [TraceTagFromResult(RequestId, "Error.RequestId", When = "IsFailure")]
     [Histogram(OperationDuration, Unit = Seconds, Buckets = new[] { 0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56, 5.12, 10.24, 20.48, 40.96, 81.92 })]
@@ -36,6 +38,7 @@ internal interface IDecisionEvaluation
     [CountFromResult(InputTokenCounter, "Value.InputTokens", When = "IsSuccess", Unit = Tokens)]
     [CountFromResult(OutputTokenCounter, "Value.OutputTokens", When = "IsSuccess", Unit = Tokens)]
     [HistogramFromResult(AnswerConfidence, "Value.Confidences", When = "IsSuccess", Each = true, Unit = Ratio, Buckets = new[] { 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 0.95, 0.99 })]
+    [CountFromResult(EscalationCounter, "Value.EscalationEvents", When = "IsSuccess", Unit = Escalations)]
     [MetricTagConstant(OperationName, EvaluateOperation)]
     [MetricTagConstant(TokenModality, Text, Metric = InputTokenCounter)]
     [MetricTagConstant(TokenModality, Text, Metric = OutputTokenCounter)]
@@ -50,6 +53,8 @@ internal interface IDecisionEvaluation
     [MetricTagFromResult(CacheHit, "Value.CacheHitTag", When = "IsSuccess", Metric = InputTokenCounter)]
     [MetricTagFromResult(CacheHit, "Value.CacheHitTag", When = "IsSuccess", Metric = OutputTokenCounter)]
     [MetricTagFromResult(CacheHit, "Value.CacheHitTag", When = "IsSuccess", Metric = AnswerConfidence)]
+    [MetricTagFromResult(EscalationTarget, "Value.EscalationTargetTag", When = "IsSuccess", Metric = EscalationCounter)]
+    [MetricTagFromResult(EscalationReason, "Value.EscalationReasonTag", When = "IsSuccess", Metric = EscalationCounter)]
     ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(
         [TraceTag(QuestionCount, "Definition.Questions.Count")]
         DecisionRequest request,

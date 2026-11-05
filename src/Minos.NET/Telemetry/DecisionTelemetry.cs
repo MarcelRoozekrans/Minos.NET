@@ -58,6 +58,21 @@ internal static class DecisionTelemetry
     /// <summary>The span and metric tag set to <see langword="true"/> on a call a cache stage answered; absent otherwise.</summary>
     public const string CacheHit = "minos.cache.hit";
 
+    /// <summary>The span tag with the number of questions the escalation target answered; absent without escalation.</summary>
+    public const string EscalationEscalated = "minos.escalation.escalated";
+
+    /// <summary>The span tag with the reason escalation was skipped, <c>no_time_left</c> or <c>target_failed</c>; absent otherwise.</summary>
+    public const string EscalationSkipped = "minos.escalation.skipped";
+
+    /// <summary>The escalation counter's tag with the target client's name.</summary>
+    public const string EscalationTarget = "minos.escalation.target";
+
+    /// <summary>The escalation counter's tag with the set-level reason: <c>escalated</c>, <c>no_time_left</c> or <c>target_failed</c>.</summary>
+    public const string EscalationReason = "minos.escalation.reason";
+
+    /// <summary>The counter of calls whose primary answer had at least one unsure question.</summary>
+    public const string EscalationCounter = "minos.escalations";
+
     /// <summary>The custom GenAI operation value for an evaluation.</summary>
     public const string EvaluateOperation = "evaluate";
 
@@ -93,6 +108,9 @@ internal static class DecisionTelemetry
 
     /// <summary>Tokens.</summary>
     public const string Tokens = "{token}";
+
+    /// <summary>Escalated calls.</summary>
+    public const string Escalations = "{escalation}";
 
     /// <summary>A dimensionless ratio.</summary>
     public const string Ratio = "1";

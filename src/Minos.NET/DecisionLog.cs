@@ -183,4 +183,37 @@ internal static partial class DecisionLog
 
         return false;
     }
+
+    /// <summary>
+    /// An escalation stage re-asked its unsure questions on the target, and the target answered them. Only the client names
+    /// and the number of questions are logged.
+    /// </summary>
+    [LoggerMessage(
+        EventId = 1014,
+        EventName = nameof(Escalated),
+        Level = LogLevel.Information,
+        Message = "Minos escalated {QuestionCount} questions to {Target}.")]
+    public static partial void Escalated(ILogger logger, int questionCount, string target);
+
+    /// <summary>
+    /// An escalation stage did not call the target because too little time was left before the deadline; the primary's
+    /// answers stand. Only the target's name and the number of unsure questions are logged.
+    /// </summary>
+    [LoggerMessage(
+        EventId = 1015,
+        EventName = nameof(EscalationSkippedForTime),
+        Level = LogLevel.Information,
+        Message = "Minos did not escalate {QuestionCount} questions to {Target}: too little time was left.")]
+    public static partial void EscalationSkippedForTime(ILogger logger, int questionCount, string target);
+
+    /// <summary>
+    /// An escalation stage's target failed, ran past the deadline or answered another question set; the primary's answers
+    /// stand. Only the target's name and the error kind are logged.
+    /// </summary>
+    [LoggerMessage(
+        EventId = 1016,
+        EventName = nameof(EscalationTargetFailed),
+        Level = LogLevel.Warning,
+        Message = "Minos escalation target {Target} failed with {ErrorKind}; the primary's answers stand.")]
+    public static partial void EscalationTargetFailed(ILogger logger, string target, string errorKind);
 }
