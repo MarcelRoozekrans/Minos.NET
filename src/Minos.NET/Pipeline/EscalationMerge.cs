@@ -78,7 +78,7 @@ internal static class EscalationMerge
     /// <param name="unsure">The positions in the primary's definition of the target's questions, in order.</param>
     /// <param name="routes">The routes; the escalated questions' routes are replaced.</param>
     /// <param name="targetName">The target's name in the path.</param>
-    /// <param name="calls">The calls made: the primary's, then the target's.</param>
+    /// <param name="calls">The calls made: the primary's, or the inner path's in its place, then the target's.</param>
     internal static DecisionResponse Merge(DecisionResponse primary, DecisionResponse target, int[] unsure, QuestionRoute[] routes, string targetName, DecisionCall[] calls)
     {
         var definition = primary.Definition;
@@ -105,7 +105,7 @@ internal static class EscalationMerge
     /// <summary>The primary's answers, unchanged and sharing its arrays, with a path; for when the target answered nothing.</summary>
     /// <param name="primary">The primary client's response.</param>
     /// <param name="routes">The routes.</param>
-    /// <param name="calls">The calls made.</param>
+    /// <param name="calls">The calls made: the primary's, or the inner path's in its place, then the target's when it was called or skipped.</param>
     /// <param name="targetName">The target's name for the telemetry, or <see langword="null"/> when no question was unsure.</param>
     /// <param name="skipped">Why the unsure questions were not escalated: <see cref="DecisionTelemetry.SkippedNoTimeLeft"/> or <see cref="DecisionTelemetry.SkippedTargetFailed"/>.</param>
     internal static DecisionResponse KeepPrimary(DecisionResponse primary, QuestionRoute[] routes, DecisionCall[] calls, string? targetName = null, string? skipped = null)
@@ -125,20 +125,46 @@ internal static class EscalationMerge
             cost = Sum(cost, call.Usage?.Cost);
         }
 
-        // The telemetry holder exists only when a question was unsure, which is when the caller names the target.
+        // A taken-over inner path keeps its story for the questions this stage left alone: a confident question's inner
+        // route stands unless it only says the question fell back, so an answer the inner stage escalated still reads
+        // Escalated to its target.
+        if (primary.Path is { } inner)
+        {
+            KeepInnerRoutes(routes, inner.Routes);
+        }
+
+        // The escalation part exists only when a question was unsure, which is when the caller names the target. A taken-over
+        // inner path's holder moves into this response's, when the inner response owns it: this response is now the
+        // outermost routing stage's, and a cached copy's holder is not carried.
         Debug.Assert(targetName is not null || (escalated == 0 && skipped is null), "Only a call with an unsure question escalates or skips.");
-        var escalation = targetName is null ? null : new EscalationTelemetry(targetName, escalated, skipped);
+        var innerRouting = primary.Routing;
+        var routing = targetName is null
+            ? RoutingTelemetry.Carried(innerRouting)
+            : RoutingTelemetry.Escalation(targetName, escalated, skipped, innerRouting);
         var response = new DecisionResponse(primary.Definition, slots, probabilities, primary.Model, inputTokens, outputTokens, cost, primary.Id, primary.UpstreamProvider, isCached)
         {
-            Path = DecisionPath.FromOwnedArrays(routes, calls, escalation),
+            Path = DecisionPath.FromOwnedArrays(routes, calls, routing),
         };
 
-        if (escalation is not null)
+        if (routing is not null)
         {
-            escalation.Owner = response;
+            routing.Owner = response;
         }
 
         return response;
+    }
+
+    private static void KeepInnerRoutes(QuestionRoute[] routes, IReadOnlyList<QuestionRoute> innerRoutes)
+    {
+        Debug.Assert(innerRoutes.Count == routes.Length, "An inner path has one route per question.");
+        for (var i = 0; i < routes.Length; i++)
+        {
+            var innerRoute = innerRoutes[i];
+            if (routes[i].Reason == RouteReason.Confident && innerRoute.Reason != RouteReason.FellBack)
+            {
+                routes[i] = innerRoute;
+            }
+        }
     }
 
     private static QuestionSetDefinition Build(QuestionSetDefinition definition, int[] unsure)

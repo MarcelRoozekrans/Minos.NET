@@ -82,6 +82,27 @@ internal static class DecisionTelemetry
     /// <summary>The counter of calls whose primary answer had at least one unsure question.</summary>
     public const string EscalationCounter = "minos.escalations";
 
+    /// <summary>The span tag with the number of fallback steps after the first that were tried or skipped, the answering one included; absent unless a later step answered.</summary>
+    public const string FallbackSteps = "minos.fallback.steps";
+
+    /// <summary>The span tag with the name of the fallback step that answered; absent unless a step after the first answered.</summary>
+    public const string FallbackAnsweredBy = "minos.fallback.answered_by";
+
+    /// <summary>The fallback counter's tag with the answering step's name; absent for an exhausted chain.</summary>
+    public const string FallbackClient = "minos.fallback.client";
+
+    /// <summary>The fallback counter's tag with the chain's outcome: <c>answered</c> or <c>exhausted</c>.</summary>
+    public const string FallbackOutcome = "minos.fallback.outcome";
+
+    /// <summary>The <see cref="FallbackOutcome"/> value when a step after the first answered.</summary>
+    public const string FallbackAnswered = "answered";
+
+    /// <summary>The <see cref="FallbackOutcome"/> value when the chain went past the first step and got no answer.</summary>
+    public const string FallbackExhausted = "exhausted";
+
+    /// <summary>The counter of requests that went past the first step of a fallback chain, emitted by the fallback stage.</summary>
+    public const string FallbackCounter = "minos.fallbacks";
+
     /// <summary>The custom GenAI operation value for an evaluation.</summary>
     public const string EvaluateOperation = "evaluate";
 
@@ -120,6 +141,9 @@ internal static class DecisionTelemetry
 
     /// <summary>Escalated calls.</summary>
     public const string Escalations = "{escalation}";
+
+    /// <summary>Requests that fell back.</summary>
+    public const string Fallbacks = "{fallback}";
 
     /// <summary>A dimensionless ratio.</summary>
     public const string Ratio = "1";

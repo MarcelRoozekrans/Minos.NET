@@ -50,6 +50,10 @@ public sealed class ShadowOptions
     /// Gets or sets how long a candidate call may take, measured on the recorder's <see cref="TimeProvider"/>. A call that
     /// takes longer is cancelled and recorded with <see cref="DecisionErrorKind.Timeout"/>.
     /// </summary>
+    /// <remarks>
+    /// This is the only limit on the candidate. The primary request's <see cref="DecisionRequest.Deadline"/> is not copied to
+    /// the candidate's request, because the caller's deadline bounds the decision path and not this background call.
+    /// </remarks>
     /// <value>
     /// Defaults to 30 seconds. More than zero, and at most <see cref="int.MaxValue"/> milliseconds, so never
     /// <see cref="System.Threading.Timeout.InfiniteTimeSpan"/>.

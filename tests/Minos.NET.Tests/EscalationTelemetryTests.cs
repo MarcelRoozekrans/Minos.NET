@@ -104,7 +104,7 @@ public sealed class EscalationTelemetryTests
         var response = (await escalating.EvaluateAsync(new DecisionRequest(QuestionSets.TriageDefinition(), State))).Value;
 
         Assert.NotNull(response.Path);
-        Assert.Null(response.Path.Escalation);
+        Assert.Null(response.Path.Routing);
         Assert.Null(response.EscalationEvents);
     }
 

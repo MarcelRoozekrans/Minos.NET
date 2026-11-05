@@ -50,15 +50,22 @@ internal static class RecordLineConverter
 
         // A path is all or nothing: calls, and on each answer who answered and why. Only a version 3 line has one.
         var hasPath = dto.Calls is not null;
-        if (hasPath && (version != RecordLine.VersionWithPath || errorKind is not null))
+        if (hasPath && (version < RecordLine.VersionWithPath || errorKind is not null))
         {
             message = "The record line has a path it cannot have.";
             return false;
         }
 
-        if (!TryToCalls(dto.Calls, out var calls))
+        if (!TryToCalls(dto.Calls, version, out var calls))
         {
             message = "The record line has a path that is not valid.";
+            return false;
+        }
+
+        // Version 4 is written only for a path with a call that did not answer, so any other version 4 line has two encodings.
+        if (version == RecordLine.VersionWithCallStatus && (calls is null || calls.All(c => c.Status == CallStatus.Answered)))
+        {
+            message = "The record line is version 4 without a call that did not answer.";
             return false;
         }
 
@@ -104,7 +111,7 @@ internal static class RecordLineConverter
     }
 
     // Absent calls are no path and fine; present calls must be a non-empty list of whole calls.
-    private static bool TryToCalls(List<CallDto>? dtos, out IReadOnlyList<DecisionCall>? calls)
+    private static bool TryToCalls(List<CallDto>? dtos, int version, out IReadOnlyList<DecisionCall>? calls)
     {
         calls = null;
         if (dtos is null)
@@ -128,10 +135,39 @@ internal static class RecordLineConverter
                 return false;
             }
 
-            list.Add(new DecisionCall(dto.Client, dto.Model, ToUsage(dto.Usage), cached));
+            if (!TryToCallStatus(dto, version, out var status, out var callErrorKind))
+            {
+                return false;
+            }
+
+            list.Add(new DecisionCall(dto.Client, dto.Model, ToUsage(dto.Usage), cached) { Status = status, ErrorKind = callErrorKind });
         }
 
         calls = DecisionRecord.Freeze(list);
+        return true;
+    }
+
+    // A call without a status answered. Only a version 4 call has one, only Failed or NotCalledNoTimeLeft, because the writer
+    // never writes Answered; an error kind goes with Failed alone. Anything else is not a call this reader knows.
+    private static bool TryToCallStatus(CallDto dto, int version, out CallStatus status, out DecisionErrorKind? errorKind)
+    {
+        status = CallStatus.Answered;
+        errorKind = null;
+        if (dto.Status is not { } number)
+        {
+            return dto.ErrorKind is null;
+        }
+
+        // A Failed call may have no error kind: a stage can fail a call without classifying the error, so this is accepted.
+        if (version < RecordLine.VersionWithCallStatus
+            || number is not ((int)CallStatus.Failed or (int)CallStatus.NotCalledNoTimeLeft)
+            || !TryToErrorKind(dto.ErrorKind, out errorKind)
+            || (errorKind is not null && number != (int)CallStatus.Failed))
+        {
+            return false;
+        }
+
+        status = (CallStatus)number;
         return true;
     }
 

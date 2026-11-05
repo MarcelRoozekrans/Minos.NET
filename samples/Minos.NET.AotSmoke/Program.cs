@@ -128,6 +128,14 @@ internal static class Program
         await EscalationChecks.AnEscalatedRecordLineRoundTrips().ConfigureAwait(false);
         await EscalationChecks.AnEscalatedCacheEntryRoundTrips().ConfigureAwait(false);
 
+        await FallbackChecks.AFailingFirstClientFallsBackToTheNextStep().ConfigureAwait(false);
+        await FallbackChecks.OptionsBuiltFromTheServicesFallBack().ConfigureAwait(false);
+        await FallbackChecks.AStepThatDoesNotFitTheTimeLeftIsSkipped().ConfigureAwait(false);
+        await FallbackChecks.AnExhaustedChainReturnsTheLastError().ConfigureAwait(false);
+        await FallbackChecks.ARefusalDoesNotMoveOn().ConfigureAwait(false);
+        await FallbackChecks.StepsAreResolvedByKey().ConfigureAwait(false);
+        await FallbackChecks.EscalationOverAFallbackFlattensThePath().ConfigureAwait(false);
+
         DatasetChecks.ParsesAString();
         DatasetChecks.ParsesAStream();
         DatasetChecks.LoadsAFile();
@@ -168,6 +176,7 @@ internal static class Program
         AllocationChecks.GrantedPermit();
         AllocationChecks.EscalatingStage();
         AllocationChecks.EscalatingStageWithABudget();
+        AllocationChecks.FallbackStageAnsweredByTheFirstClient();
         AllocationChecks.RecordingStage();
         AllocationChecks.ShadowedRecordingStage();
         AllocationChecks.Utf8StateEvaluateRoundTrip();

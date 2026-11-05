@@ -119,6 +119,11 @@ internal sealed class CallDto
     public UsageDto? Usage { get; set; }
 
     public bool? Cached { get; set; }
+
+    // Only a version 4 call has these, and only when it did not answer.
+    public int? Status { get; set; }
+
+    public string? ErrorKind { get; set; }
 }
 
 internal sealed class AnswerDto

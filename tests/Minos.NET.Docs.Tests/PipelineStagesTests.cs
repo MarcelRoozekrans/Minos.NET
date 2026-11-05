@@ -43,10 +43,12 @@ public sealed class PipelineStagesTests
         using var limiter = new ConcurrencyLimiter(new ConcurrencyLimiterOptions { PermitLimit = 1, QueueLimit = 0 });
         await using var recorder = new DecisionRecorder(new InMemoryDecisionRecordSink());
         using var hosted = new Answering(Answer(0.9, 1));
-        using var client = OrderedPipeline.Build(http, "docs-key", recorder, hosted, limiter, provider);
+        using var backup = new Answering(Answer(0.9, 1));
+        using var client = OrderedPipeline.Build(http, "docs-key", recorder, hosted, backup, limiter, provider);
 
         Assert.NotNull(client.GetService<RecordingDecisionClient>());
         Assert.NotNull(client.GetService<EscalatingDecisionClient>());
+        Assert.NotNull(client.GetService<FallbackDecisionClient>());
         Assert.NotNull(client.GetService<CachingDecisionClient>());
         Assert.NotNull(client.GetService<RateLimitingDecisionClient>());
     }
@@ -82,7 +84,8 @@ public sealed class PipelineStagesTests
         var sink = new InMemoryDecisionRecordSink();
         await using var recorder = new DecisionRecorder(sink);
         using var hosted = new Answering(Answer(0.9, 2));
-        using var client = OrderedPipeline.Build(http, "docs-key", recorder, hosted, limiter, provider);
+        using var backup = new Answering(Answer(0.9, 1));
+        using var client = OrderedPipeline.Build(http, "docs-key", recorder, hosted, backup, limiter, provider);
 
         ActivityTraceId traceId;
         var request = new DecisionRequest(ChatMessage.Definition, DecisionContent.FromString("I want my money back."));
@@ -151,12 +154,53 @@ public sealed class PipelineStagesTests
         Assert.Equal("hosted", answeredBy);
     }
 
+    [Fact]
+    public async Task TheFallbackRegistration_PutsTheFallbackStageInTheRegisteredClient()
+    {
+        var services = new ServiceCollection();
+        FallbackPipeline.AddFallbackDecisions(services, "local-key", "clef-key", "hosted-key");
+
+        await using var provider = services.BuildServiceProvider();
+        var client = provider.GetRequiredService<IDecisionClient>();
+        var options = client.GetService<FallbackOptions>();
+
+        Assert.NotNull(client.GetService<FallbackDecisionClient>());
+        Assert.Equal(["clef", "hosted"], options!.Steps.Select(step => step.Name));
+        Assert.Equal(TimeSpan.FromMilliseconds(300), options.Steps[0].ExpectedLatency);
+        Assert.Equal(TimeSpan.FromSeconds(2), options.Steps[1].ExpectedLatency);
+    }
+
+    [Fact]
+    public async Task AFailingFirstClient_IsAnsweredByTheNextStepAndThePathSaysSo()
+    {
+        var options = new FallbackOptions { PrimaryName = "local" };
+        options.Steps.Add(new FallbackStep("hosted", new Answering(Answer(0.9, 2))));
+        using var client = new FallbackDecisionClient(new Failing(), options);
+
+        var (intent, answeredBy) = await FallbackPipeline.ReadAsync(client, "Where is my parcel?", CancellationToken.None);
+
+        Assert.Equal(ShopIntent.RequestRefund, intent);
+        Assert.Equal("hosted", answeredBy);
+    }
+
     private const string UnsureRefund = """
         {"model":"jev-1.13.0","answers":{"intent":{"type":"choice","choice":"track_order","probabilities":{"track_order":0.4,"cancel_order":0.2,"request_refund":0.2,"other":0.2},"confidence":0.4}},"usage":{"input_tokens":90,"output_tokens":12}}
         """;
 
     private static QuestionAnswer Answer(double confidence, int index)
         => QuestionAnswer.Choice(index, confidence, [0.25, 0.25, 0.25, 0.25]);
+
+    private sealed class Failing : IDecisionClient
+    {
+        public ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
+            => new(Result<DecisionResponse, DecisionError>.Failure(new DecisionError(DecisionErrorKind.Overloaded, "The provider is busy.")));
+
+        public object? GetService(Type serviceType, object? serviceKey = null) => serviceKey is null && serviceType.IsInstanceOfType(this) ? this : null;
+
+        public void Dispose()
+        {
+        }
+    }
 
     private sealed class Answering(QuestionAnswer answer) : IDecisionClient
     {

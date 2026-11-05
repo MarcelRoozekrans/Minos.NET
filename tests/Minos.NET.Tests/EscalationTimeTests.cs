@@ -86,7 +86,7 @@ public sealed class EscalationTimeTests
                 new QuestionRoute("severity", "primary", RouteReason.Confident, 0.9, null),
             ],
             response.Path!.Routes);
-        Assert.Equal("primary", Assert.Single(response.Path.Calls).ClientName);
+        Assert.Equal(["primary", "hosted"], response.Path.Calls.Select(c => c.ClientName));
         Assert.Equal(0, response.Answers[1].ChosenIndex);
         Assert.Equal(0, EscalationMerge.CachedSubsetCount(triage));
     }
@@ -216,7 +216,7 @@ public sealed class EscalationTimeTests
         Assert.Equal(
             [RouteReason.Confident, RouteReason.NoTimeLeft, RouteReason.Confident],
             response.Path!.Routes.Select(r => r.Reason));
-        Assert.Single(response.Path.Calls);
+        Assert.Equal([CallStatus.Answered, CallStatus.NotCalledNoTimeLeft], response.Path.Calls.Select(c => c.Status));
     }
 
     [Fact]
@@ -236,8 +236,54 @@ public sealed class EscalationTimeTests
         Assert.Equal(new QuestionRoute("department", "primary", RouteReason.TargetFailed, 0.55, null), response.Path!.Routes[1]);
         Assert.Equal(0, response.Answers[1].ChosenIndex);
         Assert.Equal(
-            [new DecisionCall("primary", null, null, IsCached: false), new DecisionCall("hosted", null, null, IsCached: false)],
+            [
+                new DecisionCall("primary", null, null, IsCached: false),
+                new DecisionCall("hosted", null, null, IsCached: false) { Status = CallStatus.Failed, ErrorKind = DecisionErrorKind.Timeout },
+            ],
             response.Path.Calls);
+    }
+
+    [Fact]
+    public async Task A_target_skipped_for_time_is_a_NotCalledNoTimeLeft_call()
+    {
+        var time = new FakeTimeProvider(Start);
+        var targetCalls = 0;
+        using var client = new EscalatingDecisionClient(
+            Primary(time, [], TimeSpan.FromSeconds(4)),
+            new Fake(_ => null, _ => targetCalls++),
+            Options(o => o.ExpectedLatency = TimeSpan.FromSeconds(2)),
+            timeProvider: time);
+
+        var response = (await client.EvaluateAsync(new DecisionRequest(Triage, State) { Deadline = Start.AddSeconds(5) })).Value;
+
+        Assert.Equal(0, targetCalls);
+        Assert.Equal(
+            [
+                new DecisionCall("primary", null, null, IsCached: false),
+                new DecisionCall("hosted", null, null, IsCached: false) { Status = CallStatus.NotCalledNoTimeLeft },
+            ],
+            response.Path!.Calls);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_target_cut_at_the_deadline_is_a_Failed_Timeout_call(bool failOnCancel)
+    {
+        // Whether the cut target throws or turns the cancellation into a failure of another kind, the stage cut it.
+        var time = new FakeTimeProvider(Start);
+        var target = new WaitingClient(failOnCancel, failKind: DecisionErrorKind.Network);
+        using var client = new EscalatingDecisionClient(Primary(time, []), target, Options(), timeProvider: time);
+
+        var call = client.EvaluateAsync(new DecisionRequest(Triage, State) { Deadline = Start.AddSeconds(5) }).AsTask();
+        await target.Started.WaitAsync(TimeSpan.FromSeconds(10));
+        time.Advance(TimeSpan.FromSeconds(5));
+        var response = (await call.WaitAsync(TimeSpan.FromSeconds(10))).Value;
+
+        Assert.Equal(
+            new DecisionCall("hosted", null, null, IsCached: false) { Status = CallStatus.Failed, ErrorKind = DecisionErrorKind.Timeout },
+            response.Path!.Calls[1]);
+        Assert.Equal(RouteReason.TargetFailed, response.Path.Routes[1].Reason);
     }
 
     [Fact]
@@ -328,8 +374,8 @@ public sealed class EscalationTimeTests
         Assert.Equal(0, target.Disposals);
     }
 
-    /// <summary>A target that waits until its token is cancelled, then throws, or returns a time-out failure.</summary>
-    private sealed class WaitingClient(bool failOnCancel = false, Action? onStart = null) : IDecisionClient
+    /// <summary>A target that waits until its token is cancelled, then throws, or returns a failure of <c>failKind</c>.</summary>
+    private sealed class WaitingClient(bool failOnCancel = false, Action? onStart = null, DecisionErrorKind failKind = DecisionErrorKind.Timeout) : IDecisionClient
     {
         private readonly TaskCompletionSource _started = new(TaskCreationOptions.RunContinuationsAsynchronously);
 
@@ -348,7 +394,7 @@ public sealed class EscalationTimeTests
             }
             catch (OperationCanceledException) when (failOnCancel)
             {
-                return Result<DecisionResponse, DecisionError>.Failure(new DecisionError(DecisionErrorKind.Timeout, "timed out"));
+                return Result<DecisionResponse, DecisionError>.Failure(new DecisionError(failKind, "timed out"));
             }
 
             throw new InvalidOperationException("The wait ended without cancellation.");

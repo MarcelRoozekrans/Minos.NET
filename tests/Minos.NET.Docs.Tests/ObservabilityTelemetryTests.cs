@@ -115,6 +115,29 @@ public sealed class ObservabilityTelemetryTests
         }
     }
 
+    // Two calls through a fallback stage whose first step fails: a later step answers the first, and fails the second, so
+    // the span carries the fallback tags and the counter both outcomes.
+    private static async Task FellBackAsync(SystemOneDecisionClientOptions options)
+    {
+        options.UseStandardPipeline = false;
+        foreach (var stepReply in new[] { Reply.Ok(TicketResponse), Reply.Error(503) })
+        {
+            var (primaryHttp, primary, _) = ScriptedDecision.Client(options, Reply.Error(503));
+            var (stepHttp, step, _) = ScriptedDecision.Client(options, stepReply);
+            using (primaryHttp)
+            using (primary)
+            using (stepHttp)
+            using (step)
+            using (var fallback = primary.AsBuilder()
+                .UseOpenTelemetry()
+                .UseFallback(fallback => fallback.Steps.Add(new FallbackStep("clef", step)))
+                .Build())
+            {
+                await fallback.EvaluateAsync<TicketAnalysis>("Help! SECRET-STATE", CancellationToken.None);
+            }
+        }
+    }
+
     private static Task Typed(SystemOneDecisionClient client) => client.EvaluateAsync<TicketAnalysis>("Help! SECRET-STATE", CancellationToken.None).AsTask();
 
     private static Task Raw(SystemOneDecisionClient client) => RawRequests.UrgencyAsync(client, "Help! SECRET-STATE", CancellationToken.None);
@@ -294,6 +317,7 @@ public sealed class ObservabilityTelemetryTests
         await RunAsync(Listing, Options(), Reply.Ok(ModelsResponse));
         await CachedAsync(Options(), Reply.Ok(TicketResponse));
         await EscalatedAsync(Options());
+        await FellBackAsync(Options());
 
         var onSpans = new SortedSet<string>(listener.Spans.SelectMany(span => Keys(span.TagObjects)), StringComparer.Ordinal);
         var atStart = new SortedSet<string>(listener.StartTags.SelectMany(Keys), StringComparer.Ordinal);
@@ -323,12 +347,13 @@ public sealed class ObservabilityTelemetryTests
         await RunAsync(Listing, Options(), Reply.Ok(ModelsResponse));
         await CachedAsync(Options(), Reply.Ok(TicketResponse));
         await EscalatedAsync(Options());
+        await FellBackAsync(Options());
 
         var rows = PageTables.Rows(Page, "Metrics");
 
         // The recorder's instruments share the meter once its package is loaded; the next test checks their table.
         var client = listener.Instruments.Keys.Where(name => !IsRecorders(name)).ToList();
-        Assert.Equal(7, client.Count);
+        Assert.Equal(8, client.Count);
         Assert.Equal(client.Order(StringComparer.Ordinal), rows.Select(row => PageTables.Code(row[0])).Order(StringComparer.Ordinal));
         Assert.Equal(
             rows.Select(row => $"{row[1]} {PageTables.Code(row[2])}"),

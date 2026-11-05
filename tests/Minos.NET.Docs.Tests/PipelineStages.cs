@@ -40,17 +40,18 @@ public static class LimitedPipeline
 public static class OrderedPipeline
 {
     #region Pipeline_StageOrder
-    // The recommended order for a pipeline you build yourself: one record and one span per call, escalation above the
-    // cache so the first client's answers are cached below the stage (give the target its own UseCaching to cache its
-    // answers too), a cache hit takes no permit, and every attempt takes one.
+    // The recommended order for a pipeline you build yourself: one record and one span per call, escalation and fallback
+    // above the cache so the first client's answers are cached below them (give the target and the backup their own
+    // UseCaching to cache their answers too), a cache hit takes no permit, and every attempt takes one.
     public static IDecisionClient Build(
-        HttpClient http, string apiKey, DecisionRecorder recorder, IDecisionClient hosted, RateLimiter limiter, IServiceProvider services)
+        HttpClient http, string apiKey, DecisionRecorder recorder, IDecisionClient hosted, IDecisionClient backup, RateLimiter limiter, IServiceProvider services)
     {
         var transport = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = apiKey, UseStandardPipeline = false });
         return transport.AsBuilder()
             .UseRecording(recorder)
             .UseOpenTelemetry()
             .UseEscalation(hosted, options => options.TargetName = "hosted")
+            .UseFallback(options => options.Steps.Add(new FallbackStep("backup", backup)))
             .UseCaching()
             .UseRetries()
             .UseRateLimiting(limiter)

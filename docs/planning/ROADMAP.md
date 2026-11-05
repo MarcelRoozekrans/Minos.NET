@@ -521,11 +521,12 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Plan:** `docs/superpowers/plans/2026-11-05-phase-10.1-escalation.md`
 **Completed:** 2026-11-05
 
-### Phase 10.2: Provider fallback chain [status: pending]
+### Phase 10.2: Provider fallback chain [status: active]
 **Goal:** `UseFallback` in the core: a chain of keyed clients on failure, such as local, then Clef, then a hosted decider, sharing 10.1's time check and path, composing with DI, retries and escalation (#119).
 **Surface:** Backend
 **HelpWanted:** no
-**Plan:** _to be written_
+**Design:** `docs/superpowers/specs/2026-11-05-phase-10.2-fallback-design.md`
+**Plan:** `docs/superpowers/plans/2026-11-05-phase-10.2-fallback.md`
 
 ### Phase 10.3: Ticket-triage sample [status: pending]
 **Goal:** Local-first ticket triage with escalation on low confidence, and a committed report of the split by path, latency and cost, from an approved hosted run (#119).

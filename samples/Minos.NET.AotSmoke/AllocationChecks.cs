@@ -315,6 +315,29 @@ internal static class AllocationChecks
             passDescription: "an escalating stage with a Budget stays within its allocation budget, the request copy and the path being all it adds");
     }
 
+    /// <summary>
+    /// A <see cref="Minos.FallbackDecisionClient"/> over a first client that answers, with no <c>Deadline</c> and no <c>Budget</c>:
+    /// step 0 answering. The stage reads no clock, builds no path and returns the response untouched.
+    /// </summary>
+    public static void FallbackStageAnsweredByTheFirstClient()
+    {
+        var primary = new FixedResponseClient(PipelineChecks.TriageResponse());
+        var backup = new FixedResponseClient(PipelineChecks.TriageResponse());
+        using var client = primary.AsBuilder().UseFallback(o => o.Steps.Add(new FallbackStep("hosted", backup))).Build();
+        var request = new DecisionRequest(SmokeTriage.Definition, SmokeAnswers.State);
+
+        // The same pipeline without the stage is the primary alone, which allocates 0 B/call, and the stage adds nothing to it.
+        GateValueTask(
+            budgetBytes: 0,
+            action: () => client.EvaluateAsync(request),
+            label: "FallbackStageAnsweredByTheFirstClient",
+            passDescription: "a fallback stage whose first client answers stays within its allocation budget, which is nothing");
+
+        // The gate would pass just as well if the stage had moved on for nothing, so check that it did not.
+        var response = client.EvaluateAsync(request).AsTask().GetAwaiter().GetResult().Value;
+        Program.Check(backup.Calls == 0 && response.Path is null, "a fallback stage whose first client answers asks no other step and adds no path");
+    }
+
     /// <summary>A <see cref="Minos.Recording.RecordingDecisionClient"/> recording each decision, without a shadow, around a client that allocates nothing.</summary>
     public static void RecordingStage()
     {

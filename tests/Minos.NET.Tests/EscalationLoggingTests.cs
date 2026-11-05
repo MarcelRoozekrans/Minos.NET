@@ -89,6 +89,27 @@ public sealed class EscalationLoggingTests
         Assert.Equal("DefinitionMismatch", Value(logs.Only(1016), "ErrorKind"));
     }
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task A_target_cut_at_the_deadline_logs_DeadlineExceeded_as_its_call_records_Timeout(bool failOnCancel)
+    {
+        // A cut target that turns the cancellation into a Network failure is still logged as cut, matching its call.
+        using var logs = new LogCapture();
+        var start = new DateTimeOffset(2026, 11, 5, 12, 0, 0, TimeSpan.Zero);
+        var time = new FakeTimeProvider(start);
+        var target = new CutClient(failOnCancel);
+        using var client = Stage(logs, target, time);
+
+        var call = client.EvaluateAsync(new DecisionRequest(QuestionSets.TriageDefinition(), State) { Deadline = start.AddSeconds(5) }).AsTask();
+        await target.Started.WaitAsync(TimeSpan.FromSeconds(10));
+        time.Advance(TimeSpan.FromSeconds(5));
+        var response = (await call.WaitAsync(TimeSpan.FromSeconds(10))).Value;
+
+        Assert.Equal("DeadlineExceeded", Value(logs.Only(1016), "ErrorKind"));
+        Assert.Equal(DecisionErrorKind.Timeout, response.Path!.Calls[1].ErrorKind);
+    }
+
     [Fact]
     public async Task All_confident_logs_nothing()
     {
@@ -107,5 +128,34 @@ public sealed class EscalationLoggingTests
         await client.EvaluateAsync(new DecisionRequest(QuestionSets.TriageDefinition(), State));
 
         Assert.Empty(logs.Records);
+    }
+
+    /// <summary>A target that waits until its token is cancelled, then throws, or returns a Network failure.</summary>
+    private sealed class CutClient(bool failOnCancel) : IDecisionClient
+    {
+        private readonly TaskCompletionSource _started = new(TaskCreationOptions.RunContinuationsAsynchronously);
+
+        public Task Started => _started.Task;
+
+        public async ValueTask<ZeroAlloc.Results.Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
+        {
+            _started.SetResult();
+            try
+            {
+                await Task.Delay(Timeout.Infinite, cancellationToken);
+            }
+            catch (OperationCanceledException) when (failOnCancel)
+            {
+                return ZeroAlloc.Results.Result<DecisionResponse, DecisionError>.Failure(new DecisionError(DecisionErrorKind.Network, "connection reset"));
+            }
+
+            throw new InvalidOperationException("The wait ended without cancellation.");
+        }
+
+        public object? GetService(Type serviceType, object? serviceKey = null) => null;
+
+        public void Dispose()
+        {
+        }
     }
 }

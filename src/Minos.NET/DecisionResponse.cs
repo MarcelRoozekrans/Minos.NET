@@ -197,29 +197,36 @@ public sealed class DecisionResponse
     // The minos.cache.hit tag's value: set on a cached response, absent otherwise, so an uncached span carries no tag.
     internal object? CacheHitTag => IsCached ? BoxedTrue : null;
 
-    // The escalation stage's telemetry, read by the telemetry stage. A null tag is absent from the span and the counter.
-    // The values live in one holder on the path, which the stage allocates only when a question was unsure, so a response
-    // carries no field for them. They are computed getters, as CacheHitTag is.
+    // The routing stages' telemetry, read by the telemetry stage. A null tag is absent from the span and the counter.
+    // The values live in one holder on the path, which a routing stage allocates only when it has something to report,
+    // so a response carries no field for them. They are computed getters, as CacheHitTag is.
     // minos.escalation.escalated: the number of questions the target answered.
-    internal object? EscalatedTag => Escalation?.EscalatedTag;
+    internal object? EscalatedTag => Routing?.EscalatedTag;
 
     // minos.escalation.skipped: "no_time_left" or "target_failed".
-    internal string? SkippedTag => Escalation?.SkippedTag;
+    internal string? SkippedTag => Routing?.SkippedTag;
 
     // minos.escalations: 1 for a call whose primary answer had an unsure question.
-    internal int? EscalationEvents => Escalation is null ? null : 1;
+    internal int? EscalationEvents => Routing?.TargetTag is null ? null : 1;
 
     // minos.escalation.target and minos.escalation.reason: the counter's tags.
-    internal string? EscalationTargetTag => Escalation?.TargetTag;
+    internal string? EscalationTargetTag => Routing?.TargetTag;
 
-    internal string? EscalationReasonTag => Escalation?.ReasonTag;
+    internal string? EscalationReasonTag => Routing?.ReasonTag;
+
+    // minos.fallback.steps: the number of steps after step 0 tried or skipped, the answering one included.
+    internal object? FallbackStepsTag => Routing?.FallbackStepsTag;
+
+    // minos.fallback.answered_by: the answering step's name.
+    internal string? FallbackAnsweredByTag => Routing?.FallbackAnsweredByTag;
 
     // The holder is reported for the response the stage built alone: a copy that shares the path, such as AsCached's or a
-    // custom stage's, is not an escalation and reports none.
-    private EscalationTelemetry? Escalation
-        => _path?.Escalation is { } escalation && ReferenceEquals(escalation.Owner, this) ? escalation : null;
+    // custom stage's, did not route and reports none. A stage that takes over this response's path carries this holder
+    // only, never one a copy merely shares.
+    internal RoutingTelemetry? Routing
+        => _path?.Routing is { } routing && ReferenceEquals(routing.Owner, this) ? routing : null;
 
-    /// <summary>A copy that a cache stores: the same answers, model, usage, id, upstream provider and path, marked as cached. A cache hit is not an escalation, so the copy reports no escalation telemetry: that is reported for the response the stage built alone.</summary>
+    /// <summary>A copy that a cache stores: the same answers, model, usage, id, upstream provider and path, marked as cached. A cache hit is not an escalation or a fallback, so the copy reports no routing telemetry: that is reported for the response the stage built alone.</summary>
     /// <returns>A new response sharing this one's arrays and path.</returns>
     internal DecisionResponse AsCached()
         => new(Definition, Slots, Probabilities, Model, InputTokens, OutputTokens, Cost, Id, UpstreamProvider, isCached: true) { Path = Path };

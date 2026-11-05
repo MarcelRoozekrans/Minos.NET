@@ -657,14 +657,20 @@ and each call the stage made. The record keeps it.
   `RecordedAnswer.AnsweredBy`, `Reason`, `PrimaryCertainty` and `TargetCertainty`, which are `null` without a path.
 - **The record** has `"calls"`, one object per call with `client`, `model`, `usage` and `cached`, the primary's first.
   They read as `DecisionRecord.Calls`, which is `null` without a path.
-- **A record with a path is version 3,** whether or not an answer has a probability source, since version 3 keeps the
-  `probabilitySource` member too. A record without a path stays version 1 or 2 as before, so the lines of an app that
+- **A record with a path is version 3 when every call answered, and version 4 when a call failed or was skipped.**
+  Either keeps the `probabilitySource` member too, whether or not an answer has one. A record without a path stays version 1 or 2 as before, so the lines of an app that
   does not escalate do not change. The candidate's answers in a shadow write carry no path; the second write keeps the
   primary's.
-- **The reader reads versions 1 to 3.** A path is all or nothing: a line whose `calls` are empty, whose answer misses a
-  member, or that has path members below version 3 is reported as a problem and skipped.
-- **A reader older than this release rejects a version 3 line** as a problem, as one before 1.5.0 rejected version 2.
-  Read files written with the escalation stage with this version or a later one.
+- **A call that did not answer makes the record version 4.** Such a call has `"status"` (1 for `Failed`, 2 for
+  `NotCalledNoTimeLeft`) and, for a failed call, `"errorKind"`. A call that answered has neither, and reads as
+  `CallStatus.Answered`. `"reason"` can also be `FellBack`, for an answer a fallback step gave. A record whose calls
+  all answered stays version 3.
+- **The reader reads versions 1 to 4.** A path is all or nothing: a line whose `calls` are empty, whose answer misses a
+  member, that has path members below version 3, or that is version 4 without a call that did not answer, is reported
+  as a problem and skipped.
+- **An older reader rejects a version it does not know** as a problem, as one before 1.5.0 rejected version 2, so it
+  never reads a failed call as answered or meets a `FellBack` reason. Read a file with a release at least as new as the
+  one that wrote it.
 
 ## The shadow report
 

@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using Microsoft.Extensions.Logging;
 using Minos.Telemetry;
 using ZeroAlloc.Results;
@@ -26,6 +27,24 @@ namespace Minos;
 /// deadline described below.
 /// </para>
 /// <para>
+/// The path's calls are the primary's, then the target's when there were unsure questions: a
+/// <see cref="CallStatus.Failed"/> call with its <see cref="DecisionCall.ErrorKind"/> for a target that failed,
+/// <see cref="DecisionErrorKind.InvalidResponse"/> for one that answered another question set, and
+/// <see cref="DecisionErrorKind.Timeout"/> for one cancelled at the deadline; a <see cref="CallStatus.NotCalledNoTimeLeft"/>
+/// call for a target skipped for time.
+/// </para>
+/// <para>
+/// When the primary's response has a <see cref="DecisionResponse.Path"/> of its own, as from a
+/// <see cref="FallbackDecisionClient"/> inside this stage, the stage takes it over, so the response tells one story: the
+/// inner path's calls stand in place of the primary's call, and each question's route names the client the inner route
+/// names, with this stage's reason. A question a fallback step answered confidently reads that step's name and
+/// <see cref="RouteReason.Confident"/>; an escalated one reads the target's name and <see cref="RouteReason.Escalated"/>.
+/// A question this stage finds confident keeps its inner route when that route says more than
+/// <see cref="RouteReason.FellBack"/>, so an answer a step's own escalation stage escalated still reads that stage's
+/// target and <see cref="RouteReason.Escalated"/>.
+/// Without an inner path, the primary is named <see cref="EscalationOptions.PrimaryName"/>.
+/// </para>
+/// <para>
 /// The deadline is the request's <see cref="DecisionRequest.Deadline"/>, or the stage's entry plus
 /// <see cref="EscalationOptions.Budget"/>, read from the stage's <see cref="System.TimeProvider"/>, or none. The stage sets it
 /// as the <see cref="DecisionRequest.Deadline"/> of the requests it sends to the inner client and the target. The primary
@@ -48,13 +67,6 @@ public sealed class EscalatingDecisionClient : DelegatingDecisionClient
     private readonly IDecisionClient _target;
     private readonly EscalationOptions _options;
     private readonly Dictionary<string, double> _thresholds;
-
-    // The error kind logged for a target that ran past the deadline, and for one that answered another question set.
-    private const string DeadlineErrorKind = "DeadlineExceeded";
-    private const string MismatchErrorKind = "DefinitionMismatch";
-
-    // The longest delay a CancellationTokenSource timer takes: uint.MaxValue - 1 milliseconds, about 49.7 days.
-    private static readonly TimeSpan MaxTimerDelay = TimeSpan.FromMilliseconds(uint.MaxValue - 1);
 
     /// <summary>Initializes a new instance of the <see cref="EscalatingDecisionClient"/> class.</summary>
     /// <param name="innerClient">The primary client, asked first.</param>
@@ -100,10 +112,9 @@ public sealed class EscalatingDecisionClient : DelegatingDecisionClient
 
         var primary = first.Value;
         var routes = Classify(primary, out var unsureCount);
-        var primaryCall = new DecisionCall(_options.PrimaryName, primary.Model, primary.Usage, primary.IsCached);
         if (unsureCount == 0)
         {
-            return EscalationMerge.KeepPrimary(primary, routes, [primaryCall]);
+            return EscalationMerge.KeepPrimary(primary, routes, Calls(primary, targetCall: null));
         }
 
         // The time check. The primary call is not bounded: one that overruns finds no time left here.
@@ -117,27 +128,39 @@ public sealed class EscalatingDecisionClient : DelegatingDecisionClient
                 DecisionLog.EscalationSkippedForTime(timeLogger, unsureCount, targetName);
             }
 
-            return EscalationMerge.KeepPrimary(primary, routes, [primaryCall], targetName, DecisionTelemetry.SkippedNoTimeLeft);
+            var skippedCall = new DecisionCall(targetName, null, null, IsCached: false) { Status = CallStatus.NotCalledNoTimeLeft };
+            return EscalationMerge.KeepPrimary(primary, routes, Calls(primary, skippedCall), targetName, DecisionTelemetry.SkippedNoTimeLeft);
         }
 
         var unsure = Unsure(routes, unsureCount);
         var subset = EscalationMerge.Subset(primary.Definition, unsure);
         var subsetRequest = new DecisionRequest(subset, request.State) { Images = request.Images, Deadline = deadline };
         var second = await EvaluateTargetAsync(subsetRequest, timeLeft, cancellationToken).ConfigureAwait(false);
-        if (second is not { IsSuccess: true } success)
+        if (second.Result is not { IsSuccess: true } success)
         {
-            LogTargetFailed(second is { } failed ? DecisionTelemetry.ErrorTypeOf(failed.Error.Kind) : DeadlineErrorKind);
-            return KeepAfterFailure(primary, routes, [primaryCall, new DecisionCall(targetName, null, null, IsCached: false)]);
+            // A call the deadline cut is a time-out, whatever failure the target made of the cancellation, and the log
+            // says the same: DeadlineExceeded for the cut, the error's own kind otherwise.
+            var (kind, logged) = second is { TimedOut: false, Result: { } failed }
+                ? (failed.Error.Kind, DecisionTelemetry.ErrorTypeOf(failed.Error.Kind))
+                : (DecisionErrorKind.Timeout, DecisionLog.DeadlineExceeded);
+            LogTargetFailed(logged);
+            var failedCall = new DecisionCall(targetName, null, null, IsCached: false) { Status = CallStatus.Failed, ErrorKind = kind };
+            return KeepAfterFailure(primary, routes, Calls(primary, failedCall));
         }
 
         var target = success.Value;
-        var targetCall = new DecisionCall(targetName, target.Model, target.Usage, target.IsCached);
 
-        // Answers for another set cannot be placed by position; the call still counts toward the usage.
+        // Answers for another set cannot be placed by position. The call is a failure, but it keeps the target's model
+        // and usage: it was made, and the response's usage sums the path's calls.
         if (!ReferenceEquals(target.Definition, subset))
         {
-            LogTargetFailed(MismatchErrorKind);
-            return KeepAfterFailure(primary, routes, [primaryCall, targetCall]);
+            LogTargetFailed(DecisionLog.DefinitionMismatch);
+            var mismatchCall = new DecisionCall(targetName, target.Model, target.Usage, target.IsCached)
+            {
+                Status = CallStatus.Failed,
+                ErrorKind = DecisionErrorKind.InvalidResponse,
+            };
+            return KeepAfterFailure(primary, routes, Calls(primary, mismatchCall));
         }
 
         if (Logger is { } logger)
@@ -145,7 +168,8 @@ public sealed class EscalatingDecisionClient : DelegatingDecisionClient
             DecisionLog.Escalated(logger, unsureCount, targetName);
         }
 
-        return EscalationMerge.Merge(primary, target, unsure, routes, targetName, [primaryCall, targetCall]);
+        var targetCall = new DecisionCall(targetName, target.Model, target.Usage, target.IsCached);
+        return EscalationMerge.Merge(primary, target, unsure, routes, targetName, Calls(primary, targetCall));
 
         void LogTargetFailed(string errorKind)
         {
@@ -167,13 +191,16 @@ public sealed class EscalatingDecisionClient : DelegatingDecisionClient
         return serviceKey is null && serviceType == typeof(EscalationOptions) ? _options.Clone() : base.GetService(serviceType, serviceKey);
     }
 
-    // One route per question, answered by the primary. An unsure question's route starts as TargetFailed, the reason it
-    // keeps unless the target answers it.
+    // One route per question, answered by the primary, or by the client the inner path names for it when the primary's
+    // response has a path. An unsure question's route starts as TargetFailed, the reason it keeps unless the target
+    // answers it.
     private QuestionRoute[] Classify(DecisionResponse primary, out int unsureCount)
     {
         var questions = primary.Definition.QuestionArray;
         var slots = primary.Slots;
         var routes = questions.Length == 0 ? [] : new QuestionRoute[questions.Length];
+        var innerRoutes = primary.Path?.Routes;
+        Debug.Assert(innerRoutes is null || innerRoutes.Count == questions.Length, "An inner path has one route per question.");
         var primaryName = _options.PrimaryName;
         unsureCount = 0;
         for (var i = 0; i < questions.Length; i++)
@@ -183,41 +210,53 @@ public sealed class EscalatingDecisionClient : DelegatingDecisionClient
             var threshold = _thresholds.Count != 0 && _thresholds.TryGetValue(question.Key, out var own) ? own : _options.DefaultThreshold;
             var isUnsure = certainty < threshold;
             unsureCount += isUnsure ? 1 : 0;
-            routes[i] = new QuestionRoute(question.Key, primaryName, isUnsure ? RouteReason.TargetFailed : RouteReason.Confident, certainty, null);
+            var answeredBy = innerRoutes is null ? primaryName : innerRoutes[i].AnsweredBy;
+            routes[i] = new QuestionRoute(question.Key, answeredBy, isUnsure ? RouteReason.TargetFailed : RouteReason.Confident, certainty, null);
         }
 
         return routes;
     }
 
-    // Calls the target with a token linked to the caller's and cancelled at the deadline. Returns null when the deadline
-    // cancelled the call. The caller's own cancellation, and any other exception, propagate.
-    private async ValueTask<Result<DecisionResponse, DecisionError>?> EvaluateTargetAsync(
-        DecisionRequest subsetRequest, TimeSpan? timeLeft, CancellationToken cancellationToken)
+    // The path's calls: the primary's own call, or the inner path's calls in their place when the primary's response has
+    // a path, then the target's call when the target was called or skipped.
+    private DecisionCall[] Calls(DecisionResponse primary, DecisionCall? targetCall)
     {
-        // No deadline, or one further off than a timer can run: the caller's token alone governs the call.
-        if (timeLeft is not { } delay || delay > MaxTimerDelay)
+        var innerCalls = primary.Path?.Calls;
+        var leading = innerCalls?.Count ?? 1;
+        var calls = new DecisionCall[leading + (targetCall is null ? 0 : 1)];
+        if (innerCalls is null)
         {
-            return await _target.EvaluateAsync(subsetRequest, cancellationToken).ConfigureAwait(false);
+            calls[0] = new DecisionCall(_options.PrimaryName, primary.Model, primary.Usage, primary.IsCached);
+        }
+        else
+        {
+            for (var i = 0; i < leading; i++)
+            {
+                calls[i] = innerCalls[i];
+            }
         }
 
-        using var atDeadline = new CancellationTokenSource(delay, TimeProvider);
-        using var linked = cancellationToken.CanBeCanceled
-            ? CancellationTokenSource.CreateLinkedTokenSource(cancellationToken, atDeadline.Token)
-            : null;
-        try
+        if (targetCall is not null)
         {
-            return await _target.EvaluateAsync(subsetRequest, linked?.Token ?? atDeadline.Token).ConfigureAwait(false);
+            calls[^1] = targetCall;
         }
-        catch (OperationCanceledException) when (atDeadline.IsCancellationRequested && !cancellationToken.IsCancellationRequested)
+
+        return calls;
+    }
+
+    // Calls the target with a token linked to the caller's and cancelled at the deadline. The outcome has no result when
+    // the deadline's cancellation ended the call with an exception. The caller's own cancellation, and any other
+    // exception, propagate.
+    private async ValueTask<TimeLimitedOutcome> EvaluateTargetAsync(
+        DecisionRequest subsetRequest, TimeSpan? timeLeft, CancellationToken cancellationToken)
+    {
+        // No deadline: the caller's token alone governs the call.
+        if (timeLeft is not { } delay)
         {
-            // Which token fired decides, not the exception: the deadline's is a target failure, the caller's propagates.
-            return null;
+            return new(await _target.EvaluateAsync(subsetRequest, cancellationToken).ConfigureAwait(false), TimedOut: false);
         }
-        catch (OperationCanceledException exception) when (cancellationToken.IsCancellationRequested && exception.CancellationToken != cancellationToken)
-        {
-            // The caller's cancellation, seen through the linked token: name the caller's token, as a call without a deadline does.
-            throw new OperationCanceledException(exception.Message, exception, cancellationToken);
-        }
+
+        return await TimeLimitedCall.EvaluateAsync(_target, subsetRequest, delay, TimeProvider, cancellationToken).ConfigureAwait(false);
     }
 
     private static void MarkNoTimeLeft(QuestionRoute[] routes)
