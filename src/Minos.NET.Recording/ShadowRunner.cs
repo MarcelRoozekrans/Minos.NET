@@ -98,6 +98,8 @@ internal sealed class ShadowRunner
         var scheduled = false;
         try
         {
+            // The primary's Deadline is not copied: the caller's deadline bounds the decision path, not this background call,
+            // which ShadowOptions.Timeout bounds instead.
             var candidateRequest = new DecisionRequest(request.Definition, request.State) { Model = _model, Images = request.Images };
 
             // Without the flow, the caller's recording scope and Activity stay out of the candidate's call. A caller that

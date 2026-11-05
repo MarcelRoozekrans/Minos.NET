@@ -114,9 +114,9 @@ internal static class RecordFileReader
                 return;
             }
 
-            if (version is not (RecordLine.Version or RecordLine.VersionWithSource or RecordLine.VersionWithPath))
+            if (version is not (RecordLine.Version or RecordLine.VersionWithSource or RecordLine.VersionWithPath or RecordLine.VersionWithCallOutcomes))
             {
-                Problem($"The line has record format version {RecordLine.Number(version)}; this reader reads versions {RecordLine.Number(RecordLine.Version)} to {RecordLine.Number(RecordLine.VersionWithPath)}.");
+                Problem($"The line has record format version {RecordLine.Number(version)}; this reader reads versions {RecordLine.Number(RecordLine.Version)} to {RecordLine.Number(RecordLine.VersionWithCallOutcomes)}.");
                 return;
             }
 

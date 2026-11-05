@@ -661,8 +661,14 @@ and each call the stage made. The record keeps it.
   `probabilitySource` member too. A record without a path stays version 1 or 2 as before, so the lines of an app that
   does not escalate do not change. The candidate's answers in a shadow write carry no path; the second write keeps the
   primary's.
-- **The reader reads versions 1 to 3.** A path is all or nothing: a line whose `calls` are empty, whose answer misses a
+- **A call that did not answer is version 4.** Such a call has `"outcome"` (1 for `Failed`, 2 for
+  `NotCalledNoTimeLeft`) and, for a failed call, `"errorKind"`. A call that answered has neither, and reads as
+  `CallOutcome.Answered`. `"reason"` can also be `FellBack`, for an answer a fallback step gave. A record whose calls
+  all answered stays version 3.
+- **The reader reads versions 1 to 4.** A path is all or nothing: a line whose `calls` are empty, whose answer misses a
   member, or that has path members below version 3 is reported as a problem and skipped.
+- **A reader older than the fallback stage rejects a version 4 line** as a problem, and a `FellBack` reason as
+  malformed, rather than reading a failed call as answered.
 - **A reader older than this release rejects a version 3 line** as a problem, as one before 1.5.0 rejected version 2.
   Read files written with the escalation stage with this version or a later one.
 

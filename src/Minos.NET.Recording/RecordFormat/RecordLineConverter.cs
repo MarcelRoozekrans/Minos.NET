@@ -50,13 +50,13 @@ internal static class RecordLineConverter
 
         // A path is all or nothing: calls, and on each answer who answered and why. Only a version 3 line has one.
         var hasPath = dto.Calls is not null;
-        if (hasPath && (version != RecordLine.VersionWithPath || errorKind is not null))
+        if (hasPath && (version < RecordLine.VersionWithPath || errorKind is not null))
         {
             message = "The record line has a path it cannot have.";
             return false;
         }
 
-        if (!TryToCalls(dto.Calls, out var calls))
+        if (!TryToCalls(dto.Calls, version, out var calls))
         {
             message = "The record line has a path that is not valid.";
             return false;
@@ -104,7 +104,7 @@ internal static class RecordLineConverter
     }
 
     // Absent calls are no path and fine; present calls must be a non-empty list of whole calls.
-    private static bool TryToCalls(List<CallDto>? dtos, out IReadOnlyList<DecisionCall>? calls)
+    private static bool TryToCalls(List<CallDto>? dtos, int version, out IReadOnlyList<DecisionCall>? calls)
     {
         calls = null;
         if (dtos is null)
@@ -128,10 +128,38 @@ internal static class RecordLineConverter
                 return false;
             }
 
-            list.Add(new DecisionCall(dto.Client, dto.Model, ToUsage(dto.Usage), cached));
+            if (!TryToCallOutcome(dto, version, out var outcome, out var callErrorKind))
+            {
+                return false;
+            }
+
+            list.Add(new DecisionCall(dto.Client, dto.Model, ToUsage(dto.Usage), cached) { Outcome = outcome, ErrorKind = callErrorKind });
         }
 
         calls = DecisionRecord.Freeze(list);
+        return true;
+    }
+
+    // A call without an outcome answered. Only a version 4 call has one, only Failed or NotCalledNoTimeLeft, because the writer
+    // never writes Answered; an error kind goes with Failed alone. Anything else is not a call this reader knows.
+    private static bool TryToCallOutcome(CallDto dto, int version, out CallOutcome outcome, out DecisionErrorKind? errorKind)
+    {
+        outcome = CallOutcome.Answered;
+        errorKind = null;
+        if (dto.Outcome is not { } number)
+        {
+            return dto.ErrorKind is null;
+        }
+
+        if (version < RecordLine.VersionWithCallOutcomes
+            || number is not ((int)CallOutcome.Failed or (int)CallOutcome.NotCalledNoTimeLeft)
+            || !TryToErrorKind(dto.ErrorKind, out errorKind)
+            || (errorKind is not null && number != (int)CallOutcome.Failed))
+        {
+            return false;
+        }
+
+        outcome = (CallOutcome)number;
         return true;
     }
 

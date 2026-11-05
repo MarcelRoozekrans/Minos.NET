@@ -19,7 +19,7 @@ public static class DecisionRecordFile
     /// is a new decision and survives.</item>
     /// <item>A later record of the same decision id replaces the earlier one, and keeps its outcomes.</item>
     /// <item>An outcome with no record before it is ignored and reported.</item>
-    /// <item>A line that is not version 1 to 3, or whose kind, outcome type, error kind or answer kind this reader does not
+    /// <item>A line that is not version 1 to 4, or whose kind, outcome type, error kind or answer kind this reader does not
     /// know, is reported and skipped.</item>
     /// </list>
     /// Problems are dropped here: use the overload with a collection to get them. The whole file is read before the first

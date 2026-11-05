@@ -340,14 +340,155 @@ public sealed class RecordedPathTests : IDisposable
     }
 
     [Fact]
-    public async Task A_version_4_line_is_still_rejected()
+    public async Task A_version_5_line_is_still_rejected()
     {
-        var line = Text(Bytes(WithPath(Record()))).Replace("\"version\":3", "\"version\":4", StringComparison.Ordinal);
+        var line = Text(Bytes(WithPath(Record()))).Replace("\"version\":3", "\"version\":5", StringComparison.Ordinal);
 
         var (decisions, problems) = await ReadAsync(Encoding.UTF8.GetBytes(line + "\n"));
 
         Assert.Empty(decisions);
-        Assert.Contains("1 to 3", Assert.Single(problems).Message, StringComparison.Ordinal);
+        Assert.Contains("1 to 4", Assert.Single(problems).Message, StringComparison.Ordinal);
+    }
+
+    private sealed class Failing : IDecisionClient
+    {
+        public ValueTask<Result<DecisionResponse, DecisionError>> EvaluateAsync(DecisionRequest request, CancellationToken cancellationToken = default)
+            => new(Result<DecisionResponse, DecisionError>.Failure(new DecisionError(DecisionErrorKind.Server, "The server failed.")));
+
+        public object? GetService(Type serviceType, object? serviceKey = null) => null;
+
+        public void Dispose()
+        {
+        }
+    }
+
+    // The record of a fallback whose primary failed with a timeout and whose second step answered.
+    private static DecisionRecord WithFailedCall(DecisionRecord record)
+    {
+        var answers = new[]
+        {
+            new RecordedAnswer("urgent", QuestionKind.Noul, -1, 0.25, 0, 0.75, [], ProbabilitySource.Model, "clef", RouteReason.FellBack, 0.75, null),
+            new RecordedAnswer("topic", QuestionKind.Choice, 0, 0, 0, 0.75, [0.75, 0.25], ProbabilitySource.Model, "clef", RouteReason.FellBack, 0.5, null),
+        };
+        DecisionCall[] calls =
+        [
+            new("local", null, null, false) { Outcome = CallOutcome.Failed, ErrorKind = DecisionErrorKind.Timeout },
+            new("skipped", null, null, false) { Outcome = CallOutcome.NotCalledNoTimeLeft },
+            new("clef", "clef-1", new DecisionUsage { InputTokens = 7 }, false),
+        ];
+        return new DecisionRecord(
+            record.DecisionId, record.ErasureKey, record.Started, record.Latency, record.Provider, record.Endpoint, record.DefaultModel,
+            record.RequestedModel, record.ServedModel, record.ResponseId, record.UpstreamProvider, record.Usage, record.IsCached,
+            record.Definition, record.State, record.ImageCount, record.ImageHashes, answers, record.ErrorKind, record.RefusedKeys,
+            calls: calls);
+    }
+
+    [Fact]
+    public async Task A_recorded_fallback_keeps_outcomes_and_FellBack_routes()
+    {
+        var sink = new InMemoryDecisionRecordSink();
+        var (recorder, _, factory) = Recorder(sink);
+        using (factory)
+        await using (recorder)
+        {
+            var services = new ServiceCollection().AddSingleton(recorder).BuildServiceProvider();
+            using var client = new Failing().AsBuilder()
+                .UseRecording()
+                .UseFallback(o => o.Steps.Add(new FallbackStep("clef", new Target())))
+                .Build(services);
+
+            Assert.True((await client.EvaluateAsync(Request())).IsSuccess);
+            await recorder.FlushAsync().AsTask().WaitAsync(Bound);
+        }
+
+        var record = Assert.Single(sink.Records).Record;
+        Assert.NotNull(record.Calls);
+        Assert.Equal(["primary", "clef"], record.Calls.Select(c => c.ClientName));
+        Assert.Equal(CallOutcome.Failed, record.Calls[0].Outcome);
+        Assert.Equal(DecisionErrorKind.Server, record.Calls[0].ErrorKind);
+        Assert.Equal(CallOutcome.Answered, record.Calls[1].Outcome);
+        Assert.All(record.Answers, a => Assert.Equal(RouteReason.FellBack, a.Reason));
+
+        var bytes = Bytes(record);
+        var (decisions, problems) = await ReadAsync(bytes);
+        Assert.Empty(problems);
+        var read = Assert.Single(decisions).Record;
+        Assert.Equal(record.Calls, read.Calls);
+        Assert.Equal(record.Answers, read.Answers);
+        Assert.Equal(Text(bytes), Text(Bytes(read)));
+    }
+
+    [Fact]
+    public async Task Call_outcomes_round_trip_in_version_4_and_Answered_writes_no_field()
+    {
+        var bytes = Bytes(WithFailedCall(Record()));
+        var line = Text(bytes);
+
+        var (decisions, problems) = await ReadAsync(bytes);
+
+        Assert.Contains("\"version\":4", line, StringComparison.Ordinal);
+        Assert.Contains("{\"client\":\"local\",\"outcome\":1,\"errorKind\":\"Timeout\",\"cached\":false}", line, StringComparison.Ordinal);
+        Assert.Contains("{\"client\":\"skipped\",\"outcome\":2,\"cached\":false}", line, StringComparison.Ordinal);
+        Assert.Contains("{\"client\":\"clef\",\"model\":\"clef-1\",\"usage\":{\"inputTokens\":7},\"cached\":false}", line, StringComparison.Ordinal);
+        Assert.Empty(problems);
+        var read = Assert.Single(decisions).Record;
+        Assert.Equal(WithFailedCall(Record()).Calls, read.Calls);
+        Assert.Equal(line, Text(Bytes(read)));
+    }
+
+    [Fact]
+    public async Task Versions_1_to_3_still_read()
+    {
+        var v3 = Text(Bytes(WithPath(Record("d-3"))));
+        var (decisions, problems) = await ReadAsync(Encoding.UTF8.GetBytes(v3 + "\n"));
+
+        Assert.Empty(problems);
+        Assert.All(Assert.Single(decisions).Record.Calls!, c => Assert.Equal(CallOutcome.Answered, c.Outcome));
+    }
+
+    [Fact]
+    public void A_record_without_failed_calls_writes_as_before()
+    {
+        // Captured from the writer before call outcomes were added.
+        const string Before = """{"kind":"record","version":3,"decisionId":"d-1","erasureKey":"customer-7","started":"2026-10-22T09:30:00+02:00","latencyMs":250,"provider":"openai","endpoint":"https://api.example.test/v1/","defaultModel":"model-default","servedModel":"model-served","responseId":"resp-1","usage":{"inputTokens":120,"outputTokens":14},"cached":false,"questions":{"urgent":{"type":"noul","instructions":"Does the customer need action today?"},"topic":{"type":"choice","instructions":"Which topic is this message about?","criteria":{"card_arrival":"The card has not arrived yet.","card_not_working":"The card arrived but does not work."}}},"state":"My card has not arrived.","imageCount":0,"answers":[{"key":"urgent","kind":"noul","probability":0.25,"confidence":0.75,"answeredBy":"local","reason":"Confident","primaryCertainty":0.75},{"key":"topic","kind":"choice","chosenIndex":0,"confidence":0.75,"answeredBy":"hosted","reason":"Escalated","primaryCertainty":0.5,"targetCertainty":0.75,"probabilities":[0.75,0.25]}],"calls":[{"client":"local","model":"local-2b","usage":{"inputTokens":7,"outputTokens":2},"cached":false},{"client":"hosted","model":"hosted-large","usage":{"inputTokens":40,"outputTokens":3,"cost":0.002},"cached":false}]}""";
+
+        Assert.Equal(Before, Text(Bytes(WithPath(Record()))));
+    }
+
+    [Theory]
+    [InlineData("\"outcome\":1,\"errorKind\":\"Timeout\"", "\"outcome\":0,\"errorKind\":\"Timeout\"")]
+    [InlineData("\"outcome\":1,\"errorKind\":\"Timeout\"", "\"outcome\":9")]
+    [InlineData("\"outcome\":1,\"errorKind\":\"Timeout\"", "\"outcome\":1,\"errorKind\":\"Bogus\"")]
+    [InlineData("\"outcome\":2", "\"outcome\":2,\"errorKind\":\"Timeout\"")]
+    [InlineData("\"outcome\":1,\"errorKind\":\"Timeout\"", "\"outcome\":\"Failed\"")]
+    [InlineData("\"version\":4", "\"version\":3")]
+    public async Task A_malformed_call_outcome_is_one_problem(string find, string replace)
+    {
+        var good = Text(Bytes(WithFailedCall(Record("d-bad"))));
+        var bad = good.Replace(find, replace, StringComparison.Ordinal);
+        Assert.NotEqual(good, bad);
+
+        await AssertOneProblemAsync(bad);
+    }
+
+    [Fact]
+    public async Task The_shadow_request_has_no_deadline()
+    {
+        var sink = new RecordingSpySink();
+        var (recorder, _, factory) = Recorder(sink);
+        var candidate = new ShadowCandidate(held: false);
+        using (factory)
+        await using (recorder)
+        {
+            var services = new ServiceCollection().AddSingleton(recorder).BuildServiceProvider();
+            using var client = new Primary().AsBuilder().UseRecording(new ShadowOptions(candidate, 10)).Build(services);
+
+            var request = Request() with { Deadline = DateTimeOffset.UtcNow.AddSeconds(30) };
+            Assert.True((await client.EvaluateAsync(request)).IsSuccess);
+            await candidate.WaitStartedAsync();
+        }
+
+        Assert.Null(Assert.Single(candidate.Calls).Request.Deadline);
     }
 
     [Fact]

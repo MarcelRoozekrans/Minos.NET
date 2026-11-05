@@ -9,7 +9,7 @@ namespace Minos.Recording.RecordFormat;
 /// Writes the lines of a record file: one JSON object per line with a <c>kind</c> of <c>record</c>,
 /// <c>outcome</c> or <c>erasure</c> and a <c>version</c> of 1. A record line with an answer, its own or its shadow's,
 /// whose probabilities do not come from the model has a <c>version</c> of 2. A record line whose response had an
-/// escalation path has a <c>version</c> of 3, marked answers or not, since 3 holds everything 2 does. The caller ends each line with <c>\n</c>.
+/// escalation path has a <c>version</c> of 3, marked answers or not, since 3 holds everything 2 does. A record line with a call that failed or was skipped has a <c>version</c> of 4. The caller ends each line with <c>\n</c>.
 /// </summary>
 internal static class RecordLine
 {
@@ -20,6 +20,9 @@ internal static class RecordLine
 
     /// <summary>The version of a record line that has an escalation path: <c>calls</c>, and on each answer who answered and why.</summary>
     internal const int VersionWithPath = 3;
+
+    /// <summary>The version of a record line that has a call which did not answer: a <c>calls</c> entry with an <c>outcome</c>.</summary>
+    internal const int VersionWithCallOutcomes = 4;
 
     private const double TicksPerMillisecond = TimeSpan.TicksPerMillisecond;
 
@@ -35,7 +38,7 @@ internal static class RecordLine
         w.WriteStartObject();
         w.WriteString("kind", "record");
         var marked = HasMarkedAnswer(record.Answers) || (record.Shadow is { } shadow && HasMarkedAnswer(shadow.Answers));
-        var version = record.Calls is not null ? VersionWithPath : marked ? VersionWithSource : Version;
+        var version = record.Calls is not null ? (HasUnansweredCall(record.Calls) ? VersionWithCallOutcomes : VersionWithPath) : marked ? VersionWithSource : Version;
         w.WriteNumber("version", version);
         w.WriteString("decisionId", record.DecisionId);
         WriteOptional(w, "erasureKey", record.ErasureKey);
@@ -185,6 +188,20 @@ internal static class RecordLine
         return false;
     }
 
+    // True when a call failed or was skipped, so the line needs the version with call outcomes.
+    private static bool HasUnansweredCall(IReadOnlyList<DecisionCall> calls)
+    {
+        for (var i = 0; i < calls.Count; i++)
+        {
+            if (calls[i].Outcome != CallOutcome.Answered)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static void WriteUsage(Utf8JsonWriter w, DecisionUsage? usage)
     {
         if (usage is null)
@@ -241,6 +258,13 @@ internal static class RecordLine
             w.WriteString("client", call.ClientName);
             WriteOptional(w, "model", call.Model);
             WriteUsage(w, call.Usage);
+            // Answered has one encoding: no member. An older reader would read a call with an outcome as answered, hence the version.
+            if (call.Outcome != CallOutcome.Answered)
+            {
+                w.WriteNumber("outcome", (int)call.Outcome);
+                WriteErrorKind(w, call.ErrorKind);
+            }
+
             w.WriteBoolean("cached", call.IsCached);
             w.WriteEndObject();
         }
