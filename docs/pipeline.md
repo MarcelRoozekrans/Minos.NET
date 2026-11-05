@@ -58,8 +58,8 @@ public static class DefaultPipeline
 ```
 <!-- endSnippet -->
 
-The standard stages run in this order, outermost first. The last three rows are add-on stages that are not in the
-standard pipeline; you place them yourself, as [Stage order](#stage-order) describes.
+The standard stages run in this order, outermost first. The last four rows are stages that are not in the standard
+pipeline; you place them yourself, as [Stage order](#stage-order) describes.
 
 | Stage | Class | What it does |
 | --- | --- | --- |
@@ -69,6 +69,7 @@ standard pipeline; you place them yourself, as [Stage order](#stage-order) descr
 | Transport | internal | Sends one attempt over HTTP and reads the reply. |
 | Caching | `CachingDecisionClient` | Answers a repeated decision from memory or a distributed cache. Add-on package `Minos.NET.Caching`, added with `UseCaching()`. |
 | Rate limiting | `RateLimitingDecisionClient` | Takes a permit from a `RateLimiter` before each call. Add-on package `Minos.NET.RateLimiting`, added with `UseRateLimiting()`. |
+| Escalation | `EscalatingDecisionClient` | Asks a stronger client again, for only the questions the first one was unsure of. Added with `UseEscalation()`; see [Escalating unsure questions](#escalating-unsure-questions). |
 | Recording | `RecordingDecisionClient` | Hands a record of each decision to a recorder, without waiting for it. Add-on package `Minos.NET.Recording`, added with `UseRecording()`; see [Recording decisions](recording.md). |
 
 The order is what makes the signals line up:
@@ -198,6 +199,9 @@ public static IServiceCollection AddCachedDecisions(IServiceCollection services,
   `Logprobs` or `Verbalized`, and the distributed entry stores it. An entry with such an answer is written in a newer
   entry version, which an older Minos treats as unreadable, and so as a miss, rather than return the answer without its
   source. An entry whose answers all come from the model is written as before.
+- **A hit keeps the escalation path.** A response with a [path](#escalating-unsure-questions) is stored with its routes
+  and calls, in an entry version an older Minos treats as a miss. A hit reports `IsCached` true, and each call in
+  `Path.Calls` keeps the `IsCached` it had when stored.
 - **Concurrent misses are not merged.** Two identical calls that both miss each ask the provider.
 - **A miss waits for the distributed write.** The answer is written to the distributed cache before the call returns,
   and the write is not cancelled with the call, so a slow distributed cache delays every miss.
@@ -253,12 +257,17 @@ take no extra permits. When you build the pipeline yourself, use this order:
 
 <!-- snippet: Pipeline_StageOrder -->
 ```cs
-// The recommended order for a pipeline you build yourself: a cache hit takes no permit, and every attempt takes one.
-public static IDecisionClient Build(HttpClient http, string apiKey, RateLimiter limiter, IServiceProvider services)
+// The recommended order for a pipeline you build yourself: one record and one span per call, escalation above the
+// cache so the first client's answers are cached below the stage (give the target its own UseCaching to cache its
+// answers too), a cache hit takes no permit, and every attempt takes one.
+public static IDecisionClient Build(
+    HttpClient http, string apiKey, DecisionRecorder recorder, IDecisionClient hosted, RateLimiter limiter, IServiceProvider services)
 {
     var transport = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = apiKey, UseStandardPipeline = false });
     return transport.AsBuilder()
+        .UseRecording(recorder)
         .UseOpenTelemetry()
+        .UseEscalation(hosted, options => options.TargetName = "hosted")
         .UseCaching()
         .UseRetries()
         .UseRateLimiting(limiter)
@@ -267,14 +276,94 @@ public static IDecisionClient Build(HttpClient http, string apiKey, RateLimiter 
 ```
 <!-- endSnippet -->
 
-1. telemetry, so the span covers the whole call;
-2. caching, so a hit takes no permit;
-3. retries, outside the limiter, so a local rejection is retried after its `RetryAfter`;
-4. rate limiting, so every attempt takes a permit;
-5. the transport.
+1. recording, so one decision is one record, a cache hit included, as
+   [Recording decisions](recording.md#registering-it-outermost) describes;
+2. telemetry, so the span covers the whole call and carries the escalation tags;
+3. escalation, so a second client is asked only for the questions the first was unsure of; the first client's answers
+   are cached below the stage, so give the target its own `UseCaching` to cache its answers too;
+4. caching, so a hit takes no permit;
+5. retries, outside the limiter, so a local rejection is retried after its `RetryAfter`;
+6. rate limiting, so every attempt takes a permit;
+7. the transport.
 
-When you [record decisions](recording.md#registering-it-outermost), `UseRecording` goes before all of these, so that a
-decision is one record, a cache hit included.
+## Escalating unsure questions
+
+`UseEscalation` adds a stage that asks a second client, the target, again for the questions the first client was unsure
+of, and only those. A question is unsure when its certainty is below its threshold: 0.6 unless you set another. The
+certainty of a Choice or a Score is its `Confidence`; a Noul's is the larger of `p` and `1 − p`, so 0.05 is as sure as
+0.95. The stage is `EscalatingDecisionClient`. With the extension in `Minos.NET.DependencyInjection`,
+`UseEscalation("hosted")` takes the client that `AddDecisionClient("hosted", ...)` registered under that key; with the
+core package, pass the target client or a factory for it.
+
+<!-- snippet: Pipeline_Escalation -->
+```cs
+// The default client answers first. A question it is less than 0.7 sure of is asked again of "hosted", and only
+// that question: the questions it was sure of are kept. Without time for the hosted call, the first answer stands.
+public static IServiceCollection AddEscalatingDecisions(IServiceCollection services, string localKey, string hostedKey)
+{
+    services.AddSystemOneDecisionClient("hosted", options => options.ApiKey = hostedKey);
+    services.AddSystemOneDecisionClient(options => options.ApiKey = localKey)
+        .UseEscalation("hosted", options =>
+        {
+            options.PrimaryName = "local";
+            options.DefaultThreshold = 0.7;
+            options.ExpectedLatency = TimeSpan.FromMilliseconds(300);
+            options.Budget = TimeSpan.FromSeconds(2);
+        });
+    return services;
+}
+
+// Path says who answered each question and why. As<T> reads the merged answers as the question set's type.
+public static async Task<(ShopIntent Intent, string AnsweredBy)> ReadAsync(IDecisionClient client, string message, CancellationToken cancellationToken)
+{
+    var result = await client.EvaluateAsync(new DecisionRequest(ChatMessage.Definition, DecisionContent.FromString(message)), cancellationToken);
+    if (result.IsFailure)
+    {
+        return (ShopIntent.Other, "none");
+    }
+
+    var response = result.Value;
+    return (response.As<ChatMessage>().Intent.Value, response.Path!.Routes[0].AnsweredBy);
+}
+```
+<!-- endSnippet -->
+
+The options are an `EscalationOptions`, which `UseEscalation` copies and checks when it builds the pipeline:
+
+| Option | Default | What it sets |
+| --- | --- | --- |
+| `TargetName` | none | The target's name in the path. Required, except in the by-key overload, which sets it to the key. |
+| `PrimaryName` | `"primary"` | The first client's name in the path. It must differ from `TargetName`. |
+| `DefaultThreshold` | 0.6 | The certainty below which a question is unsure. |
+| `Thresholds` | empty | A threshold per question key, over the default. A key the question set does not have is ignored. |
+| `ExpectedLatency` | zero | How long the target usually takes. With less time than this left, it is not called. |
+| `Budget` | none | The time a call gets when its request has no `Deadline`. |
+
+The options bind from configuration: `UseEscalation("hosted", o => config.GetSection("Escalation").Bind(o))` reads
+`Escalation:DefaultThreshold`, an `Escalation:Thresholds` section of question keys and values, such as
+`Escalation:Thresholds:department`, and the time settings as `TimeSpan` strings, such as `Escalation:Budget=00:00:02`.
+
+- **A confident answer is never re-asked.** When every question is sure, the target is not called and the stage adds only
+  the path to the response.
+- **Time bounds the second call.** A request's `Deadline`, or `Budget` from the moment the call starts, is the latest the
+  answer can arrive. With less time left than `ExpectedLatency`, the target is not called and the unsure questions keep
+  the first answer, routed `NoTimeLeft`. A target still running at the deadline is cancelled, and counts as failed.
+- **A failed target leaves the first answers.** A failure the target returns, a deadline that passes, or an answer for
+  another question set routes the unsure questions `TargetFailed`. The call still succeeds with the first client's
+  answers. An exception the target throws, and the caller's own cancellation, are not caught.
+- **The path says who answered.** `DecisionResponse.Path` is a `DecisionPath` with one `QuestionRoute` per question, in the
+  set's order: `Key`, `AnsweredBy`, `Reason` (a `RouteReason`: `Confident`, `Escalated`, `NoTimeLeft` or `TargetFailed`)
+  and both certainties. `Calls` lists each `DecisionCall` made, with its client name, model and usage. The response's
+  `Usage` is the sum over the calls. A response from a pipeline without the stage has no path.
+- **The span tags and the counter appear only when `UseOpenTelemetry` sits outside the escalation stage,** as in
+  [Stage order](#stage-order). With a client's standard pipeline on, each client has its own span and the escalation
+  records none.
+- **`As<T>()` reads the answers as your type.** Call it on the response of a `DecisionRequest`, since the typed
+  `EvaluateAsync<T>` extensions return the answers without the path.
+
+The first client is named `PrimaryName`, `"primary"` unless you set it, and the target `TargetName`; the by-key overload
+sets it to the key. [Logging, traces and metrics](observability.md#which-stage-emits-what) lists the span tags, the
+counter and the log events, and [Recording decisions](recording.md) describes how the recorder keeps the path.
 
 ## Writing a stage
 

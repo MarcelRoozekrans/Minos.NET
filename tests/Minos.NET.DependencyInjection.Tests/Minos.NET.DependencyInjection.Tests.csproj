@@ -7,6 +7,8 @@
     <ProjectReference Include="..\..\src\Minos.NET.DependencyInjection\Minos.NET.DependencyInjection.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.SystemOne\Minos.NET.SystemOne.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.OpenAI\Minos.NET.OpenAI.csproj" />
+    <!-- UseCaching, for the escalation composition test. -->
+    <ProjectReference Include="..\..\src\Minos.NET.Caching\Minos.NET.Caching.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -15,6 +17,8 @@
     <PackageReference Include="Microsoft.Extensions.Logging" />
     <!-- ConfigurationBuilder and AddInMemoryCollection, for the binding tests. -->
     <PackageReference Include="Microsoft.Extensions.Configuration" />
+    <!-- AddMemoryCache, the IMemoryCache UseCaching reads in the escalation composition test. -->
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" />
     <!-- Host.CreateApplicationBuilder, for the startup validation tests. -->
     <PackageReference Include="Microsoft.Extensions.Hosting" />
     <!-- FakeTimeProvider, the container TimeProvider the registrations' built-in retries must wait on. -->

@@ -55,6 +55,8 @@ internal sealed class LineDto
 
     public ShadowDto? Shadow { get; set; }
 
+    public List<CallDto>? Calls { get; set; }
+
     // Outcome members.
     public string? Type { get; set; }
 
@@ -108,6 +110,17 @@ internal sealed class UsageDto
     public double? Cost { get; set; }
 }
 
+internal sealed class CallDto
+{
+    public string? Client { get; set; }
+
+    public string? Model { get; set; }
+
+    public UsageDto? Usage { get; set; }
+
+    public bool? Cached { get; set; }
+}
+
 internal sealed class AnswerDto
 {
     public string? Key { get; set; }
@@ -123,6 +136,14 @@ internal sealed class AnswerDto
     public double Confidence { get; set; }
 
     public string? ProbabilitySource { get; set; }
+
+    public string? AnsweredBy { get; set; }
+
+    public string? Reason { get; set; }
+
+    public double? PrimaryCertainty { get; set; }
+
+    public double? TargetCertainty { get; set; }
 
     public List<double>? Probabilities { get; set; }
 }

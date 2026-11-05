@@ -225,7 +225,7 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
         }
 
         var images = request.Images;
-        var imageHashes = new string[images.Count];
+        var imageHashes = images.Count == 0 ? [] : new string[images.Count];
         for (var i = 0; i < imageHashes.Length; i++)
         {
             imageHashes[i] = Convert.ToHexStringLower(SHA256.HashData(images[i].Data.Span));
@@ -233,16 +233,23 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
 
         DecisionResponse? response = null;
         DecisionErrorKind? errorKind = null;
-        List<RecordedAnswer>? answers = null;
+        RecordedAnswer[]? answers = null;
+        IReadOnlyList<DecisionCall>? calls = null;
         List<string>? refusedKeys = null;
         if (result.IsSuccess)
         {
             response = result.Value;
-            answers = new List<RecordedAnswer>(response.Answers.Count);
-            foreach (var answer in response.Answers)
+            var count = response.Answers.Count;
+            answers = count == 0 ? [] : new RecordedAnswer[count];
+            // The response's Path init already holds one route per answer, by key.
+            var path = response.Path;
+            for (var i = 0; i < answers.Length; i++)
             {
-                answers.Add(RecordedAnswer.From(answer));
+                answers[i] = path is null ? RecordedAnswer.From(response.Answers[i]) : RecordedAnswer.From(response.Answers[i], path.Routes[i]);
             }
+
+            // A path is immutable, so the record shares its read-only list of calls instead of copying it.
+            calls = path?.Calls;
         }
         else
         {
@@ -268,10 +275,11 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
             request.Definition,
             state,
             images.Count,
-            DecisionRecord.Freeze(imageHashes),
-            DecisionRecord.Freeze(answers),
+            DecisionRecord.FreezeOwned(imageHashes),
+            DecisionRecord.FreezeOwned(answers),
             errorKind,
-            DecisionRecord.Freeze(refusedKeys));
+            DecisionRecord.Freeze(refusedKeys),
+            calls: calls);
 
         // A failed call gives nothing to agree with, and a cache hit repeats a decision already shadowed.
         ShadowRunner.Reservation shadow = default;

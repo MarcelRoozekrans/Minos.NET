@@ -114,16 +114,16 @@ internal static class RecordFileReader
                 return;
             }
 
-            if (version is not (RecordLine.Version or RecordLine.VersionWithSource))
+            if (version is not (RecordLine.Version or RecordLine.VersionWithSource or RecordLine.VersionWithPath))
             {
-                Problem($"The line has record format version {RecordLine.Number(version)}; this reader reads versions {RecordLine.Number(RecordLine.Version)} and {RecordLine.Number(RecordLine.VersionWithSource)}.");
+                Problem($"The line has record format version {RecordLine.Number(version)}; this reader reads versions {RecordLine.Number(RecordLine.Version)} to {RecordLine.Number(RecordLine.VersionWithPath)}.");
                 return;
             }
 
             switch (dto.Kind)
             {
                 case "record":
-                    AddRecord(dto);
+                    AddRecord(dto, version);
                     break;
                 case "outcome":
                     AddOutcome(dto);
@@ -154,9 +154,9 @@ internal static class RecordFileReader
             return decisions;
         }
 
-        private void AddRecord(LineDto dto)
+        private void AddRecord(LineDto dto, int version)
         {
-            if (!RecordLineConverter.TryToRecord(dto, out var record, out var message))
+            if (!RecordLineConverter.TryToRecord(dto, version, out var record, out var message))
             {
                 Problem(message);
                 return;

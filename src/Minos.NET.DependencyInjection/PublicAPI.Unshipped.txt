@@ -1,1 +1,3 @@
 #nullable enable
+Minos.KeyedEscalationDecisionClientBuilderExtensions
+static Minos.KeyedEscalationDecisionClientBuilderExtensions.UseEscalation(this Minos.DecisionClientBuilder! builder, string! targetKey, System.Action<Minos.EscalationOptions!>? configure = null) -> Minos.DecisionClientBuilder!

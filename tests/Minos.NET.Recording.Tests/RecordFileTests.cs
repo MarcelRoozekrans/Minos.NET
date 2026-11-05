@@ -335,7 +335,7 @@ public sealed class RecordFileTests : IDisposable
     [Fact]
     public async Task AWrongVersion_IsAProblem()
     {
-        var future = """{"kind":"record","version":3,"decisionId":"d-9"}""" + "\n";
+        var future = """{"kind":"record","version":4,"decisionId":"d-9"}""" + "\n";
         byte[] bytes = [.. Lines(Rec(Record("d-1"))), .. Encoding.UTF8.GetBytes(future)];
 
         var (decisions, problems) = await ReadAsync(bytes);
@@ -343,7 +343,7 @@ public sealed class RecordFileTests : IDisposable
         Assert.Single(decisions);
         var problem = Assert.Single(problems);
         Assert.Equal(2, problem.Line);
-        Assert.Contains("version 3", problem.Message, StringComparison.Ordinal);
+        Assert.Contains("version 4", problem.Message, StringComparison.Ordinal);
         Assert.DoesNotContain("d-9", problem.Message, StringComparison.Ordinal);
     }
 

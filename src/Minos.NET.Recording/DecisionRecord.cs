@@ -29,8 +29,20 @@ public sealed class DecisionRecord
         IReadOnlyList<RecordedAnswer> answers,
         DecisionErrorKind? errorKind,
         IReadOnlyList<string> refusedKeys,
-        ShadowResult? shadow = null)
+        ShadowResult? shadow = null,
+        IReadOnlyList<DecisionCall>? calls = null)
     {
+        // A path is all or nothing: with calls, every answer names who answered and why; without, none does.
+        foreach (var answer in answers)
+        {
+            var complete = answer.AnsweredBy is not null && answer.Reason is not null && answer.PrimaryCertainty is not null;
+            var empty = answer.AnsweredBy is null && answer.Reason is null && answer.PrimaryCertainty is null && answer.TargetCertainty is null;
+            if (calls is null ? !empty : !complete)
+            {
+                throw new ArgumentException("A record has a path on every answer or on none: calls and the answers' routes go together.", nameof(answers));
+            }
+        }
+
         DecisionId = decisionId;
         ErasureKey = erasureKey;
         Started = started;
@@ -52,6 +64,7 @@ public sealed class DecisionRecord
         ErrorKind = errorKind;
         RefusedKeys = refusedKeys;
         Shadow = shadow;
+        Calls = calls;
     }
 
     /// <summary>Gets the id that ties the record to its outcomes and erasures.</summary>
@@ -117,6 +130,12 @@ public sealed class DecisionRecord
     /// <summary>Gets what the shadow candidate answered for the same decision, or <see langword="null"/> when the decision was not shadowed.</summary>
     public ShadowResult? Shadow { get; }
 
+    /// <summary>
+    /// Gets each call the response's <see cref="DecisionResponse.Path"/> made, the primary client's first, or
+    /// <see langword="null"/> when the response had no path. When set, each answer names the client that answered it.
+    /// </summary>
+    public IReadOnlyList<DecisionCall>? Calls { get; }
+
     /// <summary>Returns a copy of the record that carries <paramref name="shadow"/> and is otherwise the same.</summary>
     /// <param name="shadow">The candidate's result.</param>
     internal DecisionRecord WithShadow(ShadowResult shadow)
@@ -125,7 +144,7 @@ public sealed class DecisionRecord
         return new DecisionRecord(
             DecisionId, ErasureKey, Started, Latency, Provider, Endpoint, DefaultModel, RequestedModel, ServedModel,
             ResponseId, UpstreamProvider, Usage, IsCached, Definition, State, ImageCount, ImageHashes, Answers, ErrorKind,
-            RefusedKeys, shadow);
+            RefusedKeys, shadow, Calls);
     }
 
     internal static IReadOnlyList<T> Freeze<T>(IEnumerable<T>? items)
@@ -133,4 +152,8 @@ public sealed class DecisionRecord
         var array = items is null ? [] : items.ToArray();
         return array.Length == 0 ? [] : new ReadOnlyCollection<T>(array);
     }
+
+    // Wraps an array the caller built for this record alone and never changes again, without copying it.
+    internal static IReadOnlyList<T> FreezeOwned<T>(T[]? array)
+        => array is null || array.Length == 0 ? [] : new ReadOnlyCollection<T>(array);
 }

@@ -2,6 +2,7 @@ namespace Minos.Docs.Tests;
 
 using System.Threading.RateLimiting;
 using Microsoft.Extensions.DependencyInjection;
+using Minos.Recording;
 using Minos.SystemOne;
 
 public static class CachedPipeline
@@ -39,16 +40,55 @@ public static class LimitedPipeline
 public static class OrderedPipeline
 {
     #region Pipeline_StageOrder
-    // The recommended order for a pipeline you build yourself: a cache hit takes no permit, and every attempt takes one.
-    public static IDecisionClient Build(HttpClient http, string apiKey, RateLimiter limiter, IServiceProvider services)
+    // The recommended order for a pipeline you build yourself: one record and one span per call, escalation above the
+    // cache so the first client's answers are cached below the stage (give the target its own UseCaching to cache its
+    // answers too), a cache hit takes no permit, and every attempt takes one.
+    public static IDecisionClient Build(
+        HttpClient http, string apiKey, DecisionRecorder recorder, IDecisionClient hosted, RateLimiter limiter, IServiceProvider services)
     {
         var transport = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = apiKey, UseStandardPipeline = false });
         return transport.AsBuilder()
+            .UseRecording(recorder)
             .UseOpenTelemetry()
+            .UseEscalation(hosted, options => options.TargetName = "hosted")
             .UseCaching()
             .UseRetries()
             .UseRateLimiting(limiter)
             .Build(services);
+    }
+    #endregion
+}
+
+public static class EscalatingPipeline
+{
+    #region Pipeline_Escalation
+    // The default client answers first. A question it is less than 0.7 sure of is asked again of "hosted", and only
+    // that question: the questions it was sure of are kept. Without time for the hosted call, the first answer stands.
+    public static IServiceCollection AddEscalatingDecisions(IServiceCollection services, string localKey, string hostedKey)
+    {
+        services.AddSystemOneDecisionClient("hosted", options => options.ApiKey = hostedKey);
+        services.AddSystemOneDecisionClient(options => options.ApiKey = localKey)
+            .UseEscalation("hosted", options =>
+            {
+                options.PrimaryName = "local";
+                options.DefaultThreshold = 0.7;
+                options.ExpectedLatency = TimeSpan.FromMilliseconds(300);
+                options.Budget = TimeSpan.FromSeconds(2);
+            });
+        return services;
+    }
+
+    // Path says who answered each question and why. As<T> reads the merged answers as the question set's type.
+    public static async Task<(ShopIntent Intent, string AnsweredBy)> ReadAsync(IDecisionClient client, string message, CancellationToken cancellationToken)
+    {
+        var result = await client.EvaluateAsync(new DecisionRequest(ChatMessage.Definition, DecisionContent.FromString(message)), cancellationToken);
+        if (result.IsFailure)
+        {
+            return (ShopIntent.Other, "none");
+        }
+
+        var response = result.Value;
+        return (response.As<ChatMessage>().Intent.Value, response.Path!.Routes[0].AnsweredBy);
     }
     #endregion
 }

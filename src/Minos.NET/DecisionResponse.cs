@@ -11,6 +11,8 @@ public sealed class DecisionResponse
     // One boxed true for every cached response, so the telemetry tag allocates nothing per hit.
     private static readonly object BoxedTrue = true;
 
+    private readonly DecisionPath? _path;
+
     /// <summary>Initializes a new instance of the <see cref="DecisionResponse"/> class from answers, such as for a test fake.</summary>
     /// <param name="definition">The questions the answers belong to.</param>
     /// <param name="answers">One answer per question, in definition order, made with the <see cref="QuestionAnswer"/> factories.</param>
@@ -157,6 +159,28 @@ public sealed class DecisionResponse
     /// </summary>
     public bool IsCached { get; init; }
 
+    /// <summary>
+    /// Gets how a routing stage, such as escalation, answered the request: per question the client that answered and
+    /// why, and each call it made. <see langword="null"/> when no routing stage ran. A custom routing stage sets it with
+    /// an object initializer.
+    /// </summary>
+    /// <exception cref="ArgumentException">
+    /// On set: the path does not have one route per question, or a route's key is not its question's key, in definition order.
+    /// </exception>
+    public DecisionPath? Path
+    {
+        get => _path;
+        init
+        {
+            if (value is not null)
+            {
+                EnsureRoutesMatch(value);
+            }
+
+            _path = value;
+        }
+    }
+
     internal AnswerSlot[] Slots { get; }
 
     internal double[] Probabilities { get; }
@@ -173,10 +197,79 @@ public sealed class DecisionResponse
     // The minos.cache.hit tag's value: set on a cached response, absent otherwise, so an uncached span carries no tag.
     internal object? CacheHitTag => IsCached ? BoxedTrue : null;
 
-    /// <summary>A copy that a cache stores: the same answers, model, usage, id and upstream provider, marked as cached.</summary>
-    /// <returns>A new response sharing this one's arrays.</returns>
+    // The escalation stage's telemetry, read by the telemetry stage. A null tag is absent from the span and the counter.
+    // The values live in one holder on the path, which the stage allocates only when a question was unsure, so a response
+    // carries no field for them. They are computed getters, as CacheHitTag is.
+    // minos.escalation.escalated: the number of questions the target answered.
+    internal object? EscalatedTag => Escalation?.EscalatedTag;
+
+    // minos.escalation.skipped: "no_time_left" or "target_failed".
+    internal string? SkippedTag => Escalation?.SkippedTag;
+
+    // minos.escalations: 1 for a call whose primary answer had an unsure question.
+    internal int? EscalationEvents => Escalation is null ? null : 1;
+
+    // minos.escalation.target and minos.escalation.reason: the counter's tags.
+    internal string? EscalationTargetTag => Escalation?.TargetTag;
+
+    internal string? EscalationReasonTag => Escalation?.ReasonTag;
+
+    // The holder is reported for the response the stage built alone: a copy that shares the path, such as AsCached's or a
+    // custom stage's, is not an escalation and reports none.
+    private EscalationTelemetry? Escalation
+        => _path?.Escalation is { } escalation && ReferenceEquals(escalation.Owner, this) ? escalation : null;
+
+    /// <summary>A copy that a cache stores: the same answers, model, usage, id, upstream provider and path, marked as cached. A cache hit is not an escalation, so the copy reports no escalation telemetry: that is reported for the response the stage built alone.</summary>
+    /// <returns>A new response sharing this one's arrays and path.</returns>
     internal DecisionResponse AsCached()
-        => new(Definition, Slots, Probabilities, Model, InputTokens, OutputTokens, Cost, Id, UpstreamProvider, isCached: true);
+        => new(Definition, Slots, Probabilities, Model, InputTokens, OutputTokens, Cost, Id, UpstreamProvider, isCached: true) { Path = Path };
+
+    /// <summary>Creates the typed answers from this response, as the typed <c>EvaluateAsync&lt;T&gt;</c> calls do.</summary>
+    /// <typeparam name="T">The <c>[Questions]</c> type whose <see cref="IQuestionSet{TSelf}.Definition"/> this response answers.</typeparam>
+    /// <returns>The typed answers.</returns>
+    /// <remarks>
+    /// Lets a typed caller read the envelope as well as the answers: send <c>new DecisionRequest(T.Definition, state)</c>
+    /// to <see cref="IDecisionClient.EvaluateAsync"/>, then read <see cref="Path"/>, <see cref="Usage"/> or
+    /// <see cref="Model"/> from the response and call this for the answers.
+    /// </remarks>
+    /// <exception cref="InvalidOperationException">
+    /// <see cref="Definition"/> is not the same instance as <typeparamref name="T"/>'s definition; definitions compare by reference.
+    /// </exception>
+    public T As<T>()
+        where T : IQuestionSet<T>
+    {
+        EnsureDefinition(this, T.Definition);
+        return T.Create(ToAnswerSlots());
+    }
+
+    // A pipeline returns the response for the request's own definition instance; a fake that answers another set is a
+    // bug in the fake. QuestionSetDefinition has reference identity, so this is a reference check.
+    internal static void EnsureDefinition(DecisionResponse response, QuestionSetDefinition expected)
+    {
+        if (!ReferenceEquals(response.Definition, expected))
+        {
+            throw new InvalidOperationException("The client returned answers for a different question set than the one it was asked.");
+        }
+    }
+
+    // The message names positions only: question keys are state that an exception message does not carry.
+    private void EnsureRoutesMatch(DecisionPath value)
+    {
+        var questions = Definition.QuestionArray;
+        var routes = value.Routes;
+        if (routes.Count != questions.Length)
+        {
+            throw new ArgumentException($"The definition has {questions.Length} questions, not {routes.Count} routes.", nameof(value));
+        }
+
+        for (var i = 0; i < questions.Length; i++)
+        {
+            if (!string.Equals(routes[i].Key, questions[i].Key, StringComparison.Ordinal))
+            {
+                throw new ArgumentException($"Route {i} is for a different question than question {i}.", nameof(value));
+            }
+        }
+    }
 
     // Publishes one instance: a thread that loses the race returns the winner's.
     private DecisionUsage? CreateUsage()

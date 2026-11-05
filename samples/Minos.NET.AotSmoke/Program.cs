@@ -121,6 +121,13 @@ internal static class Program
         await RateLimitingChecks.GrantedCallsGoAndARejectedOneIsNotSent().ConfigureAwait(false);
         await CachingChecks.RepeatIsAnsweredFromTheCache().ConfigureAwait(false);
 
+        await EscalationChecks.AnUnsureQuestionIsAskedOfTheTarget().ConfigureAwait(false);
+        await EscalationChecks.NoTimeLeftSkipsTheTarget().ConfigureAwait(false);
+        await EscalationChecks.AFailingTargetKeepsThePrimaryAnswer().ConfigureAwait(false);
+        EscalationChecks.PathValuesAreKeptAndCompared();
+        await EscalationChecks.AnEscalatedRecordLineRoundTrips().ConfigureAwait(false);
+        await EscalationChecks.AnEscalatedCacheEntryRoundTrips().ConfigureAwait(false);
+
         DatasetChecks.ParsesAString();
         DatasetChecks.ParsesAStream();
         DatasetChecks.LoadsAFile();
@@ -159,6 +166,8 @@ internal static class Program
         AllocationChecks.PassThroughStage();
         AllocationChecks.CacheHit();
         AllocationChecks.GrantedPermit();
+        AllocationChecks.EscalatingStage();
+        AllocationChecks.EscalatingStageWithABudget();
         AllocationChecks.RecordingStage();
         AllocationChecks.ShadowedRecordingStage();
         AllocationChecks.Utf8StateEvaluateRoundTrip();

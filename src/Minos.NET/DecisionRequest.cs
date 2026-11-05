@@ -72,6 +72,13 @@ public sealed record DecisionRequest
         }
     }
 
+    /// <summary>Gets the time by which a routing stage must have its answer, or <see langword="null"/> for no deadline.</summary>
+    /// <remarks>
+    /// The deadline is an absolute time. It is not part of equality, the hash code or the cache key, so two requests that
+    /// differ only in their deadline are the same question.
+    /// </remarks>
+    public DateTimeOffset? Deadline { get; init; }
+
     /// <inheritdoc />
     public bool Equals(DecisionRequest? other)
         => other is not null

@@ -9,9 +9,10 @@ namespace Minos;
 /// <remarks>Immutable and safe to share across threads.</remarks>
 public sealed class QuestionSetDefinition
 {
-    // One cache slot per user: slot 0 is SystemOne's questions object, slot 1 OpenAI's questions array and slot 2 the
-    // definition's digest for the cache key, DecisionCacheKey.
-    private readonly object?[] _protocolData = new object?[3];
+    // One cache slot per user: slot 0 is SystemOne's questions object, slot 1 OpenAI's questions array, slot 2 the
+    // definition's digest for the cache key, DecisionCacheKey, and slot 3 the escalation stage's subset definitions,
+    // EscalationMerge.
+    private readonly object?[] _protocolData = new object?[4];
 
     /// <summary>Creates a definition from <paramref name="questions"/>, in wire order.</summary>
     /// <param name="questions">The questions.</param>

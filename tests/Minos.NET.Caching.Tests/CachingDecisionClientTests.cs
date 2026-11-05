@@ -10,6 +10,17 @@ public sealed class CachingDecisionClientTests
 {
     private static readonly DecisionClientMetadata TypeSafe = new("typesafe", new Uri("https://api.typesafe.ai/"), "jev-latest");
 
+    [Fact]
+    public void Deadline_does_not_change_the_cache_key()
+    {
+        var plain = Responses.Request();
+        var timed = plain with { Deadline = new DateTimeOffset(2026, 11, 5, 10, 0, 0, TimeSpan.Zero) };
+
+        Assert.Equal(
+            DecisionCacheKey.Create(plain, "typesafe", "https://api.typesafe.ai/", "jev-latest", "minos:"),
+            DecisionCacheKey.Create(timed, "typesafe", "https://api.typesafe.ai/", "jev-latest", "minos:"));
+    }
+
     private static string Key(string prefix = "minos:")
         => DecisionCacheKey.Create(Responses.Request(), "typesafe", "https://api.typesafe.ai/", "jev-latest", prefix);
 
