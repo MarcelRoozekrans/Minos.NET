@@ -21,6 +21,21 @@ Minos.DecisionRequest.Deadline.init -> void
 Minos.DecisionResponse.As<T>() -> T
 Minos.DecisionResponse.Path.get -> Minos.DecisionPath?
 Minos.DecisionResponse.Path.init -> void
+Minos.EscalatingDecisionClient
+Minos.EscalatingDecisionClient.EscalatingDecisionClient(Minos.IDecisionClient! innerClient, Minos.IDecisionClient! target, Minos.EscalationOptions! options, Microsoft.Extensions.Logging.ILogger? logger = null, System.TimeProvider? timeProvider = null) -> void
+Minos.EscalationOptions
+Minos.EscalationOptions.Budget.get -> System.TimeSpan?
+Minos.EscalationOptions.Budget.set -> void
+Minos.EscalationOptions.DefaultThreshold.get -> double
+Minos.EscalationOptions.DefaultThreshold.set -> void
+Minos.EscalationOptions.EscalationOptions() -> void
+Minos.EscalationOptions.ExpectedLatency.get -> System.TimeSpan
+Minos.EscalationOptions.ExpectedLatency.set -> void
+Minos.EscalationOptions.PrimaryName.get -> string!
+Minos.EscalationOptions.PrimaryName.set -> void
+Minos.EscalationOptions.TargetName.get -> string?
+Minos.EscalationOptions.TargetName.set -> void
+Minos.EscalationOptions.Thresholds.get -> System.Collections.Generic.IDictionary<string!, double>!
 Minos.QuestionRoute
 Minos.QuestionRoute.AnsweredBy.get -> string!
 Minos.QuestionRoute.Equals(Minos.QuestionRoute other) -> bool
@@ -38,6 +53,8 @@ Minos.RouteReason.TargetFailed = 3 -> Minos.RouteReason
 override Minos.DecisionCall.Equals(object? obj) -> bool
 override Minos.DecisionCall.GetHashCode() -> int
 override Minos.DecisionCall.ToString() -> string!
+override Minos.EscalatingDecisionClient.EvaluateAsync(Minos.DecisionRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>
+override Minos.EscalatingDecisionClient.GetService(System.Type! serviceType, object? serviceKey = null) -> object?
 override Minos.QuestionRoute.Equals(object? obj) -> bool
 override Minos.QuestionRoute.GetHashCode() -> int
 static Minos.DecisionCall.operator !=(Minos.DecisionCall? left, Minos.DecisionCall? right) -> bool
