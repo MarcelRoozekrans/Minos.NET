@@ -89,3 +89,7 @@ Minos.FallbackStep.ExpectedLatency.init -> void
 Minos.FallbackStep.FallbackStep(string! name, Minos.IDecisionClient! client) -> void
 Minos.FallbackStep.Name.get -> string!
 static Minos.FallbackOptions.IsProviderFailure(Minos.DecisionError! error) -> bool
+Minos.FallbackDecisionClient
+Minos.FallbackDecisionClient.FallbackDecisionClient(Minos.IDecisionClient! innerClient, Minos.FallbackOptions! options, Microsoft.Extensions.Logging.ILogger? logger = null, System.TimeProvider? timeProvider = null) -> void
+override Minos.FallbackDecisionClient.EvaluateAsync(Minos.DecisionRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>
+override Minos.FallbackDecisionClient.GetService(System.Type! serviceType, object? serviceKey = null) -> object?

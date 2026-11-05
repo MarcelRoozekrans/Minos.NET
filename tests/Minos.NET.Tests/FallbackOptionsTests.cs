@@ -4,7 +4,7 @@ public sealed class FallbackOptionsTests
 {
     private const string ParamName = "configure";
 
-    private static EscalationTests.Fake Client() => new EscalationTests.Fake(_ => null);
+    private static StubDecisionClient Client() => StubDecisionClient.Failing(DecisionErrorKind.Server);
 
     private static FallbackOptions Options(params string[] stepNames)
     {
