@@ -139,7 +139,7 @@ internal sealed class AnswerDto
 
     public string? AnsweredBy { get; set; }
 
-    public string? Route { get; set; }
+    public string? Reason { get; set; }
 
     public double? PrimaryCertainty { get; set; }
 

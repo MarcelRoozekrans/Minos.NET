@@ -2,5 +2,5 @@
 Minos.Recording.DecisionRecord.Calls.get -> System.Collections.Generic.IReadOnlyList<Minos.DecisionCall!>?
 Minos.Recording.RecordedAnswer.AnsweredBy.get -> string?
 Minos.Recording.RecordedAnswer.PrimaryCertainty.get -> double?
-Minos.Recording.RecordedAnswer.Route.get -> Minos.RouteReason?
+Minos.Recording.RecordedAnswer.Reason.get -> Minos.RouteReason?
 Minos.Recording.RecordedAnswer.TargetCertainty.get -> double?

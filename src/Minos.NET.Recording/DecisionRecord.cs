@@ -32,6 +32,17 @@ public sealed class DecisionRecord
         ShadowResult? shadow = null,
         IReadOnlyList<DecisionCall>? calls = null)
     {
+        // A path is all or nothing: with calls, every answer names who answered and why; without, none does.
+        foreach (var answer in answers)
+        {
+            var complete = answer.AnsweredBy is not null && answer.Reason is not null && answer.PrimaryCertainty is not null;
+            var empty = answer.AnsweredBy is null && answer.Reason is null && answer.PrimaryCertainty is null && answer.TargetCertainty is null;
+            if (calls is null ? !empty : !complete)
+            {
+                throw new ArgumentException("A record has a path on every answer or on none: calls and the answers' routes go together.", nameof(answers));
+            }
+        }
+
         DecisionId = decisionId;
         ErasureKey = erasureKey;
         Started = started;

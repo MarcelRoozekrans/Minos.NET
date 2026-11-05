@@ -137,11 +137,11 @@ public sealed class RecordedPathTests : IDisposable
         Assert.Equal("hosted-large", record.Calls[1].Model);
         var urgent = record.Answers[0];
         Assert.Equal("primary", urgent.AnsweredBy);
-        Assert.Equal(RouteReason.Confident, urgent.Route);
+        Assert.Equal(RouteReason.Confident, urgent.Reason);
         Assert.Null(urgent.TargetCertainty);
         var topic = record.Answers[1];
         Assert.Equal("hosted", topic.AnsweredBy);
-        Assert.Equal(RouteReason.Escalated, topic.Route);
+        Assert.Equal(RouteReason.Escalated, topic.Reason);
         Assert.Equal(0.5, topic.PrimaryCertainty);
         Assert.Equal(0.875, topic.TargetCertainty);
     }
@@ -168,7 +168,7 @@ public sealed class RecordedPathTests : IDisposable
         var line = Text(Bytes(WithPath(Record())));
 
         Assert.Contains(
-            ""","answers":[{"key":"urgent","kind":"noul","probability":0.25,"confidence":0.75,"answeredBy":"local","route":"Confident","primaryCertainty":0.75},{"key":"topic","kind":"choice","chosenIndex":0,"confidence":0.75,"answeredBy":"hosted","route":"Escalated","primaryCertainty":0.5,"targetCertainty":0.75,"probabilities":[0.75,0.25]}],"calls":[{"client":"local","model":"local-2b","usage":{"inputTokens":7,"outputTokens":2},"cached":false},{"client":"hosted","model":"hosted-large","usage":{"inputTokens":40,"outputTokens":3,"cost":0.002},"cached":false}]""",
+            ""","answers":[{"key":"urgent","kind":"noul","probability":0.25,"confidence":0.75,"answeredBy":"local","reason":"Confident","primaryCertainty":0.75},{"key":"topic","kind":"choice","chosenIndex":0,"confidence":0.75,"answeredBy":"hosted","reason":"Escalated","primaryCertainty":0.5,"targetCertainty":0.75,"probabilities":[0.75,0.25]}],"calls":[{"client":"local","model":"local-2b","usage":{"inputTokens":7,"outputTokens":2},"cached":false},{"client":"hosted","model":"hosted-large","usage":{"inputTokens":40,"outputTokens":3,"cost":0.002},"cached":false}]""",
             line,
             StringComparison.Ordinal);
     }
@@ -259,8 +259,8 @@ public sealed class RecordedPathTests : IDisposable
     }
 
     [Theory]
-    [InlineData("\"route\":\"Escalated\"", "\"route\":\"Bogus\"")]
-    [InlineData("\"route\":\"Escalated\"", "\"route\":\"7\"")]
+    [InlineData("\"reason\":\"Escalated\"", "\"reason\":\"Bogus\"")]
+    [InlineData("\"reason\":\"Escalated\"", "\"reason\":\"7\"")]
     [InlineData("\"primaryCertainty\":0.5", "\"primaryCertainty\":1.5")]
     [InlineData("\"targetCertainty\":0.75", "\"targetCertainty\":-0.25")]
     [InlineData("\"answeredBy\":\"hosted\",", "")]
@@ -277,6 +277,66 @@ public sealed class RecordedPathTests : IDisposable
 
         Assert.Equal("d-good", Assert.Single(decisions).Record.DecisionId);
         Assert.Equal(1, Assert.Single(problems).Line);
+    }
+
+    private async Task AssertOneProblemAsync(string badLine)
+    {
+        var good = Text(Bytes(Record("d-good")));
+
+        var (decisions, problems) = await ReadAsync(Encoding.UTF8.GetBytes(badLine + "\n" + good + "\n"));
+
+        Assert.Equal("d-good", Assert.Single(decisions).Record.DecisionId);
+        Assert.Equal(1, Assert.Single(problems).Line);
+    }
+
+    [Fact]
+    public async Task A_version_3_line_with_route_members_but_no_calls_is_a_problem()
+    {
+        var line = Text(Bytes(WithPath(Record("d-bad"))));
+        var calls = line.IndexOf(",\"calls\":", StringComparison.Ordinal);
+
+        await AssertOneProblemAsync(line[..calls] + "}");
+    }
+
+    [Fact]
+    public async Task Empty_calls_are_a_problem()
+    {
+        var line = Text(Bytes(WithPath(Record("d-bad"))));
+        var calls = line.IndexOf(",\"calls\":", StringComparison.Ordinal);
+
+        await AssertOneProblemAsync(line[..calls] + ",\"calls\":[]}");
+    }
+
+    [Theory]
+    [InlineData("\"inputTokens\":7", "\"inputTokens\":-7")]
+    [InlineData("\"outputTokens\":2", "\"outputTokens\":-2")]
+    [InlineData("\"cost\":0.002", "\"cost\":-0.002")]
+    public async Task A_call_with_negative_usage_is_a_problem(string find, string replace)
+        => await AssertOneProblemAsync(Text(Bytes(WithPath(Record("d-bad")))).Replace(find, replace, StringComparison.Ordinal));
+
+    [Fact]
+    public async Task A_shadow_answer_with_route_members_is_a_problem()
+    {
+        var line = Text(Bytes(Record("d-bad").WithShadow(Shadow())))
+            .Replace("\"version\":1", "\"version\":3", StringComparison.Ordinal)
+            .Replace("\"confidence\":0.5}]", "\"confidence\":0.5,\"answeredBy\":\"x\",\"reason\":\"Confident\",\"primaryCertainty\":0.5}]", StringComparison.Ordinal);
+        Assert.Contains("answeredBy", line, StringComparison.Ordinal);
+
+        await AssertOneProblemAsync(line);
+    }
+
+    [Fact]
+    public void A_record_cannot_carry_calls_with_an_answer_that_has_no_route()
+    {
+        var withPath = WithPath(Record());
+        var partial = new[] { withPath.Answers[0], Record().Answers[1] };
+
+        Assert.Throws<ArgumentException>(() => new DecisionRecord(
+            "d", null, T0, TimeSpan.Zero, "p", null, null, null, null, null, null, null, false, withPath.Definition, withPath.State, 0, [],
+            partial, null, [], calls: withPath.Calls));
+        Assert.Throws<ArgumentException>(() => new DecisionRecord(
+            "d", null, T0, TimeSpan.Zero, "p", null, null, null, null, null, null, null, false, withPath.Definition, withPath.State, 0, [],
+            withPath.Answers, null, [], calls: null));
     }
 
     [Fact]

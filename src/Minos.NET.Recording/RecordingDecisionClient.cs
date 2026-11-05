@@ -239,10 +239,10 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
         {
             response = result.Value;
             answers = new List<RecordedAnswer>(response.Answers.Count);
-            var path = response.Path;
+            // A path that does not match the answers one to one by key, as a hand-built one can, is not recorded at all.
+            var path = MatchingPath(response);
             for (var i = 0; i < response.Answers.Count; i++)
             {
-                // A response's routes match its answers one to one, in definition order.
                 answers.Add(path is null ? RecordedAnswer.From(response.Answers[i]) : RecordedAnswer.From(response.Answers[i], path.Routes[i]));
             }
         }
@@ -253,6 +253,7 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
             refusedKeys = RefusedKeys(error);
         }
 
+        var calls = response is not null && MatchingPath(response) is { } matched ? DecisionRecord.Freeze(matched.Calls) : null;
         var record = new DecisionRecord(
             decisionId,
             erasureKey,
@@ -274,7 +275,7 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
             DecisionRecord.Freeze(answers),
             errorKind,
             DecisionRecord.Freeze(refusedKeys),
-            calls: response?.Path is { } responsePath ? DecisionRecord.Freeze(responsePath.Calls) : null);
+            calls: calls);
 
         // A failed call gives nothing to agree with, and a cache hit repeats a decision already shadowed.
         ShadowRunner.Reservation shadow = default;
@@ -286,6 +287,24 @@ public sealed class RecordingDecisionClient : DelegatingDecisionClient
         }
 
         runner?.Start(request, shadow);
+    }
+
+    private static DecisionPath? MatchingPath(DecisionResponse response)
+    {
+        if (response.Path is not { } path || path.Routes.Count != response.Answers.Count)
+        {
+            return null;
+        }
+
+        for (var i = 0; i < path.Routes.Count; i++)
+        {
+            if (!string.Equals(path.Routes[i].Key, response.Answers[i].Key, StringComparison.Ordinal))
+            {
+                return null;
+            }
+        }
+
+        return path;
     }
 
     // Runs the redactor. A redactor that throws or returns null keeps no record; its exception's message is never logged,

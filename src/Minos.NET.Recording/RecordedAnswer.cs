@@ -20,7 +20,7 @@ public readonly struct RecordedAnswer : IEquatable<RecordedAnswer>
         IReadOnlyList<double> probabilities,
         ProbabilitySource probabilitySource = ProbabilitySource.Model,
         string? answeredBy = null,
-        RouteReason? route = null,
+        RouteReason? reason = null,
         double? primaryCertainty = null,
         double? targetCertainty = null)
     {
@@ -33,7 +33,7 @@ public readonly struct RecordedAnswer : IEquatable<RecordedAnswer>
         _probabilities = probabilities;
         ProbabilitySource = probabilitySource;
         AnsweredBy = answeredBy;
-        Route = route;
+        Reason = reason;
         PrimaryCertainty = primaryCertainty;
         TargetCertainty = targetCertainty;
     }
@@ -66,7 +66,7 @@ public readonly struct RecordedAnswer : IEquatable<RecordedAnswer>
     public string? AnsweredBy { get; }
 
     /// <summary>Gets why that client answered, or <see langword="null"/> when the response had no path.</summary>
-    public RouteReason? Route { get; }
+    public RouteReason? Reason { get; }
 
     /// <summary>Gets the primary client's certainty in its own answer, from 0 to 1, or <see langword="null"/> when the response had no path.</summary>
     public double? PrimaryCertainty { get; }
@@ -98,7 +98,7 @@ public readonly struct RecordedAnswer : IEquatable<RecordedAnswer>
             && Confidence.Equals(other.Confidence)
             && ProbabilitySource == other.ProbabilitySource
             && string.Equals(AnsweredBy, other.AnsweredBy, StringComparison.Ordinal)
-            && Route == other.Route
+            && Reason == other.Reason
             && Nullable.Equals(PrimaryCertainty, other.PrimaryCertainty)
             && Nullable.Equals(TargetCertainty, other.TargetCertainty)
             && Probabilities.SequenceEqual(other.Probabilities);
@@ -119,7 +119,7 @@ public readonly struct RecordedAnswer : IEquatable<RecordedAnswer>
         hash.Add(Confidence);
         hash.Add(ProbabilitySource);
         hash.Add(AnsweredBy, StringComparer.Ordinal);
-        hash.Add(Route);
+        hash.Add(Reason);
         hash.Add(PrimaryCertainty);
         hash.Add(TargetCertainty);
         foreach (var probability in Probabilities)

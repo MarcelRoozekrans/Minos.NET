@@ -346,12 +346,12 @@ internal static class RecordLineConverter
         route = null;
         if (!withPath)
         {
-            return dto.AnsweredBy is null && dto.Route is null && dto.PrimaryCertainty is null && dto.TargetCertainty is null;
+            return dto.AnsweredBy is null && dto.Reason is null && dto.PrimaryCertainty is null && dto.TargetCertainty is null;
         }
 
         if (string.IsNullOrEmpty(dto.AnsweredBy)
-            || dto.Route is null
-            || !Enum.TryParse<RouteReason>(dto.Route, ignoreCase: false, out var reason)
+            || dto.Reason is null
+            || !Enum.TryParse<RouteReason>(dto.Reason, ignoreCase: false, out var reason)
             || !Enum.IsDefined(reason)
             || dto.PrimaryCertainty is not { } primary
             || !IsCertainty(primary)

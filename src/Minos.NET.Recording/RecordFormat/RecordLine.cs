@@ -278,10 +278,11 @@ internal static class RecordLine
         }
 
         w.WriteNumber("confidence", answer.Confidence);
-        if (answer.AnsweredBy is { } answeredBy && answer.Route is { } route && answer.PrimaryCertainty is { } primary)
+        // A record with calls has a complete route on every primary answer, which the record's constructor enforces.
+        if (answer.AnsweredBy is { } answeredBy && answer.Reason is { } reason && answer.PrimaryCertainty is { } primary)
         {
             w.WriteString("answeredBy", answeredBy);
-            w.WriteString("route", route.ToString());
+            w.WriteString("reason", reason.ToString());
             w.WriteNumber("primaryCertainty", primary);
             if (answer.TargetCertainty is { } target)
             {
