@@ -70,6 +70,7 @@ pipeline; you place them yourself, as [Stage order](#stage-order) describes.
 | Caching | `CachingDecisionClient` | Answers a repeated decision from memory or a distributed cache. Add-on package `Minos.NET.Caching`, added with `UseCaching()`. |
 | Rate limiting | `RateLimitingDecisionClient` | Takes a permit from a `RateLimiter` before each call. Add-on package `Minos.NET.RateLimiting`, added with `UseRateLimiting()`. |
 | Escalation | `EscalatingDecisionClient` | Asks a stronger client again, for only the questions the first one was unsure of. Added with `UseEscalation()`; see [Escalating unsure questions](#escalating-unsure-questions). |
+| Fallback | `FallbackDecisionClient` | Asks the next client when the first one fails. Added with `UseFallback()`; see [Falling back to another provider](#falling-back-to-another-provider). |
 | Recording | `RecordingDecisionClient` | Hands a record of each decision to a recorder, without waiting for it. Add-on package `Minos.NET.Recording`, added with `UseRecording()`; see [Recording decisions](recording.md). |
 
 The order is what makes the signals line up:
@@ -257,17 +258,18 @@ take no extra permits. When you build the pipeline yourself, use this order:
 
 <!-- snippet: Pipeline_StageOrder -->
 ```cs
-// The recommended order for a pipeline you build yourself: one record and one span per call, escalation above the
-// cache so the first client's answers are cached below the stage (give the target its own UseCaching to cache its
-// answers too), a cache hit takes no permit, and every attempt takes one.
+// The recommended order for a pipeline you build yourself: one record and one span per call, escalation and fallback
+// above the cache so the first client's answers are cached below them (give the target and the backup their own
+// UseCaching to cache their answers too), a cache hit takes no permit, and every attempt takes one.
 public static IDecisionClient Build(
-    HttpClient http, string apiKey, DecisionRecorder recorder, IDecisionClient hosted, RateLimiter limiter, IServiceProvider services)
+    HttpClient http, string apiKey, DecisionRecorder recorder, IDecisionClient hosted, IDecisionClient backup, RateLimiter limiter, IServiceProvider services)
 {
     var transport = new SystemOneDecisionClient(http, new SystemOneDecisionClientOptions { ApiKey = apiKey, UseStandardPipeline = false });
     return transport.AsBuilder()
         .UseRecording(recorder)
         .UseOpenTelemetry()
         .UseEscalation(hosted, options => options.TargetName = "hosted")
+        .UseFallback(options => options.Steps.Add(new FallbackStep("backup", backup)))
         .UseCaching()
         .UseRetries()
         .UseRateLimiting(limiter)
@@ -281,10 +283,12 @@ public static IDecisionClient Build(
 2. telemetry, so the span covers the whole call and carries the escalation tags;
 3. escalation, so a second client is asked only for the questions the first was unsure of; the first client's answers
    are cached below the stage, so give the target its own `UseCaching` to cache its answers too;
-4. caching, so a hit takes no permit;
-5. retries, outside the limiter, so a local rejection is retried after its `RetryAfter`;
-6. rate limiting, so every attempt takes a permit;
-7. the transport.
+4. fallback, so the next client is asked only when the first fails, with the same caching below it; give a step its own
+   `UseCaching` to cache its answers too;
+5. caching, so a hit takes no permit;
+6. retries, outside the limiter, so a local rejection is retried after its `RetryAfter`;
+7. rate limiting, so every attempt takes a permit;
+8. the transport.
 
 ## Escalating unsure questions
 
@@ -364,6 +368,59 @@ The options bind from configuration: `UseEscalation("hosted", o => config.GetSec
 The first client is named `PrimaryName`, `"primary"` unless you set it, and the target `TargetName`; the by-key overload
 sets it to the key. [Logging, traces and metrics](observability.md#which-stage-emits-what) lists the span tags, the
 counter and the log events, and [Recording decisions](recording.md) describes how the recorder keeps the path.
+
+## Falling back to another provider
+
+`UseFallback` adds a stage that asks the next client when the first one fails, in the order you list them. The stage is
+`FallbackDecisionClient`, its settings are a `FallbackOptions`, and each step is a `FallbackStep`: a name, a client and
+an `ExpectedLatency`. With the extension in `Minos.NET.DependencyInjection`, a `KeyedFallbackStep` names a client that
+`AddDecisionClient("clef", ...)` registered under that key; with the core package, pass the clients in `FallbackOptions.Steps`.
+
+<!-- snippet: Pipeline_Fallback -->
+```cs
+// The default client answers first. When it fails with a provider error, "clef" is asked, then "hosted". A step is
+// skipped when less than its expected latency is left before the deadline.
+public static IServiceCollection AddFallbackDecisions(IServiceCollection services, string localKey, string clefKey, string hostedKey)
+{
+    services.AddSystemOneDecisionClient("clef", options => options.ApiKey = clefKey);
+    services.AddSystemOneDecisionClient("hosted", options => options.ApiKey = hostedKey);
+    services.AddSystemOneDecisionClient(options => options.ApiKey = localKey)
+        .UseFallback(
+            new KeyedFallbackStep("clef", TimeSpan.FromMilliseconds(300)),
+            new KeyedFallbackStep("hosted", TimeSpan.FromSeconds(2)));
+    return services;
+}
+
+// Path says which clients were tried and which one answered each question.
+public static async Task<(ShopIntent Intent, string AnsweredBy)> ReadAsync(IDecisionClient client, string message, CancellationToken cancellationToken)
+{
+    var result = await client.EvaluateAsync(new DecisionRequest(ChatMessage.Definition, DecisionContent.FromString(message)), cancellationToken);
+    if (result.IsFailure)
+    {
+        return (ShopIntent.Other, "none");
+    }
+
+    var response = result.Value;
+    return (response.As<ChatMessage>().Intent.Value, response.Path?.Routes[0].AnsweredBy ?? "primary");
+}
+```
+<!-- endSnippet -->
+
+- **Provider failures move on.** By default a call moves on to the next step when it fails with a provider error, as
+  `FallbackOptions.IsProviderFailure` defines it, such as `Overloaded`, `RateLimited`, `Server`, `Network` or `Timeout`.
+  A refusal does not, and neither does a validation error, since the next provider would reject the request too; set
+  `ShouldFallBack` to decide otherwise.
+- **Every step receives the full state,** the same question set, state and images as the first client, and uses its own model.
+- **Time bounds the chain.** A request's `Deadline`, or `Budget` from the moment the call starts, is the latest the answer
+  can arrive. A step with less time left than its `ExpectedLatency` is skipped, and the stage cuts a call that hangs
+  early enough that the next step still fits.
+- **Escalation over fallback gives one flat path.** When `UseEscalation` wraps `UseFallback`, `Path.Calls` lists every
+  client tried, in order. A question the outer stage finds confident keeps the inner route, except a `FellBack` route,
+  which reads `Confident`.
+- **`Usage` sums every call on the path,** including a step that answered the wrong question set.
+- **A cached copy keeps its path calls** as the original run recorded them; `DecisionResponse.IsCached` marks the hit.
+- **Token metrics for a chain are recorded under the final response's model,** not each call's. Tagging each call with
+  its own model is tracked in [issue 327](https://github.com/MarcelRoozekrans/Minos.NET/issues/327).
 
 ## Writing a stage
 
