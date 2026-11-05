@@ -1,4 +1,4 @@
-# Session State — 2026-11-05 (Phase 10.2 built; PR #328 waiting for the maintainer)
+# Session State — 2026-11-05 (Phase 10.2 complete; Phase 10.3 next)
 
 **Date:** 2026-11-05
 
@@ -201,7 +201,8 @@
        - A merged response's token and cost metrics sum all calls under the primary's model.
      - **Filed:** #322, the flaky Benchmarks `MockHostTests` port test.
      - **The four calls are settled** in the 10.2 spec: calls 9, 12, 10 and 11.
-   - **Phase 10.2 (Provider fallback chain) is built**, as of 2026-11-05, on branch `phase/10.2-fallback`, rebased on `main` at `22bff6ab` after #326 merged. It ran subagent-driven, with a task review per task, a whole-branch review and one fix wave.
+   - **Phase 10.2 (Provider fallback chain) is complete** on 2026-11-05: PR #328 merged as squash `9bcc8add`, with BEGIN_COMMIT_OVERRIDE. Release PR #325 (1.10.0) lists all eight override lines.
+     - **Built** on branch `phase/10.2-fallback`, rebased on `main` at `22bff6ab` after #326 merged. It ran subagent-driven, with a task review per task, a whole-branch review and one fix wave.
      - **Spec and plan:** `docs/superpowers/specs/2026-11-05-phase-10.2-fallback-design.md` and `docs/superpowers/plans/2026-11-05-phase-10.2-fallback.md`. Tasks 1 to 6 and 8 to 10 are done and ticked.
      - **Task 7 (spec call 11, token metrics per call) is deferred** by the maintainer to #327. It is blocked on ZeroAlloc-Net/ZeroAlloc.Telemetry#241, which I filed: the generator cannot tag one measurement per element. Its Steps 2 to 6 stay unticked on purpose, so `complete-phase` must accept that Task 7 moved to #327.
      - **Maintainer's choices during the run:** call 11 moved to a follow-up; the public enum is `CallStatus` with `DecisionCall.Status` and the record member `status`, not `CallOutcome`, which clashed with the ground-truth "outcome" vocabulary; `Disposed` always stops the chain, whatever `ShouldFallBack` says.
@@ -216,8 +217,8 @@
      - **Verification:** Release build 0 warnings; all 18 runnable test projects pass; the linux-x64 AOT smoke gives 266 PASS with 0 IL2 and IL3 warnings, and the fallback allocation gate is at 0; the pack is clean.
      - **Release PR #325 (1.10.0)** was still open at the end of the run, so the ApiCompat baseline did not move.
    - **Next:**
-     1. Done 2026-11-05: pre-push review PASS (`docs/plans/2026-11-05-phase-10.2-pre-push-review.md`) and PR #328 from `phase/10.2-fallback`, with BEGIN_COMMIT_OVERRIDE. Waiting for the maintainer to merge it; then check the release-please PR lists its lines.
-     2. After the merge: `complete-phase` for 10.2, noting Task 7 moved to #327. Then Phase 10.3.
+     1. Done 2026-11-05: pre-push review PASS (`docs/plans/2026-11-05-phase-10.2-pre-push-review.md`), PR #328 merged, and `complete-phase` for 10.2, noting Task 7 moved to #327.
+     2. Then Phase 10.3, the ticket-triage sample, through `start-next-phase`.
      3. The `.website` bot submodule PR with the Minos docs has not appeared yet; .website#127 covers only orm, rest and telemetry. When one includes Minos, ask the maintainer before approving and merging it.
      4. Ask the maintainer before deleting the remote branches `phase-10.1-escalation-brainstorm` and, after the 10.2 PR merges, `phase-10.2-fallback-brainstorm`.
    - **Waiting on the maintainer:** a peer message to the Daedalus session "daedalus: phase 3.3 Task 16 onward" saying the recorder shipped in 1.3.0. It needs approval in the app; the `daedalus-b9` session no longer exists. The #119 comment is posted.
