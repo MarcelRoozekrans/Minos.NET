@@ -48,11 +48,11 @@ public sealed class EscalatingDecisionClient : DelegatingDecisionClient
     private readonly EscalationOptions _options;
     private readonly Dictionary<string, double> _thresholds;
 
-    // The longest delay a CancellationTokenSource timer takes: uint.MaxValue - 1 milliseconds, about 49.7 days.
     // The error kind logged for a target that ran past the deadline, and for one that answered another question set.
     private const string DeadlineErrorKind = "DeadlineExceeded";
     private const string MismatchErrorKind = "DefinitionMismatch";
 
+    // The longest delay a CancellationTokenSource timer takes: uint.MaxValue - 1 milliseconds, about 49.7 days.
     private static readonly TimeSpan MaxTimerDelay = TimeSpan.FromMilliseconds(uint.MaxValue - 1);
 
     /// <summary>Initializes a new instance of the <see cref="EscalatingDecisionClient"/> class.</summary>
@@ -116,7 +116,7 @@ public sealed class EscalatingDecisionClient : DelegatingDecisionClient
                 DecisionLog.EscalationSkippedForTime(timeLogger, unsureCount, targetName);
             }
 
-            return EscalationMerge.KeepPrimary(primary, routes, [primaryCall], targetName, EscalationMerge.SkippedNoTimeLeft);
+            return EscalationMerge.KeepPrimary(primary, routes, [primaryCall], targetName, DecisionTelemetry.SkippedNoTimeLeft);
         }
 
         var unsure = Unsure(routes, unsureCount);
@@ -155,7 +155,7 @@ public sealed class EscalatingDecisionClient : DelegatingDecisionClient
         }
 
         DecisionResponse KeepAfterFailure(DecisionResponse kept, QuestionRoute[] keptRoutes, DecisionCall[] calls)
-            => EscalationMerge.KeepPrimary(kept, keptRoutes, calls, targetName, EscalationMerge.SkippedTargetFailed);
+            => EscalationMerge.KeepPrimary(kept, keptRoutes, calls, targetName, DecisionTelemetry.SkippedTargetFailed);
     }
 
     /// <inheritdoc />

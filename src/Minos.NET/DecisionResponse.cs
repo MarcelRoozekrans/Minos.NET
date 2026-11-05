@@ -213,18 +213,10 @@ public sealed class DecisionResponse
 
     internal string? EscalationReasonTag { get; init; }
 
-    /// <summary>A copy that a cache stores: the same answers, model, usage, id, upstream provider, path and escalation telemetry, marked as cached.</summary>
+    /// <summary>A copy that a cache stores: the same answers, model, usage, id, upstream provider and path, marked as cached. A cache hit is not an escalation, so the copy carries no escalation telemetry.</summary>
     /// <returns>A new response sharing this one's arrays and path.</returns>
     internal DecisionResponse AsCached()
-        => new(Definition, Slots, Probabilities, Model, InputTokens, OutputTokens, Cost, Id, UpstreamProvider, isCached: true)
-        {
-            Path = Path,
-            EscalatedTag = EscalatedTag,
-            SkippedTag = SkippedTag,
-            EscalationEvents = EscalationEvents,
-            EscalationTargetTag = EscalationTargetTag,
-            EscalationReasonTag = EscalationReasonTag,
-        };
+        => new(Definition, Slots, Probabilities, Model, InputTokens, OutputTokens, Cost, Id, UpstreamProvider, isCached: true) { Path = Path };
 
     /// <summary>Creates the typed answers from this response, as the typed <c>EvaluateAsync&lt;T&gt;</c> calls do.</summary>
     /// <typeparam name="T">The <c>[Questions]</c> type whose <see cref="IQuestionSet{TSelf}.Definition"/> this response answers.</typeparam>

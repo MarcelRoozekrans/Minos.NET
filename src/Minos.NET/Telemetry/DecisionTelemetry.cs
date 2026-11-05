@@ -70,6 +70,15 @@ internal static class DecisionTelemetry
     /// <summary>The escalation counter's tag with the set-level reason: <c>escalated</c>, <c>no_time_left</c> or <c>target_failed</c>.</summary>
     public const string EscalationReason = "minos.escalation.reason";
 
+    /// <summary>The <see cref="EscalationSkipped"/> and <see cref="EscalationReason"/> value when too little time was left before the deadline.</summary>
+    public const string SkippedNoTimeLeft = "no_time_left";
+
+    /// <summary>The <see cref="EscalationSkipped"/> and <see cref="EscalationReason"/> value when the target failed.</summary>
+    public const string SkippedTargetFailed = "target_failed";
+
+    /// <summary>The <see cref="EscalationReason"/> value when the target answered the unsure questions.</summary>
+    public const string ReasonEscalated = "escalated";
+
     /// <summary>The counter of calls whose primary answer had at least one unsure question.</summary>
     public const string EscalationCounter = "minos.escalations";
 

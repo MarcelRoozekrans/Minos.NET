@@ -57,17 +57,25 @@ public sealed class EscalationTelemetryTests
     }
 
     [Fact]
-    public async Task A_cached_copy_of_an_escalated_response_keeps_its_tags()
+    public async Task A_cached_copy_of_an_escalated_response_carries_no_escalation_telemetry()
     {
         using var capture = new TelemetryCapture();
         var escalating = Stage(new Fake(request => Fake.Respond(request.Definition, Unsure)), Fake.Answering(TargetAnswers));
-        var response = (await escalating.EvaluateAsync(new DecisionRequest(QuestionSets.TriageDefinition(), State))).Value.AsCached();
+        var escalated = (await escalating.EvaluateAsync(new DecisionRequest(QuestionSets.TriageDefinition(), State))).Value;
+        var response = escalated.AsCached();
         using var stage = new OpenTelemetryDecisionClient(new Fake(_ => response));
 
         await stage.EvaluateAsync(new DecisionRequest(QuestionSets.TriageDefinition(), State));
 
-        Assert.Equal(1, capture.Span().GetTagItem("minos.escalation.escalated"));
-        Assert.Equal("escalated", capture.OnlyPoint("minos.escalations").Tag("minos.escalation.reason"));
+        Assert.NotNull(escalated.EscalatedTag);
+        Assert.Same(escalated.Path, response.Path);
+        Assert.Null(response.EscalatedTag);
+        Assert.Null(response.SkippedTag);
+        Assert.Null(response.EscalationEvents);
+        Assert.Null(response.EscalationTargetTag);
+        Assert.Null(response.EscalationReasonTag);
+        Assert.Null(capture.Span().GetTagItem("minos.escalation.escalated"));
+        Assert.Empty(capture.Points("minos.escalations"));
     }
 
     [Fact]
