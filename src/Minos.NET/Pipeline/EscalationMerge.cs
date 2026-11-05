@@ -33,23 +33,38 @@ internal static class EscalationMerge
         }
 
         var cache = Cache(definition);
-        if (cache.TryGetValue(mask, out var cached))
+        if (cache.Subsets.TryGetValue(mask, out var cached))
         {
             return cached;
         }
 
         var subset = Build(definition, unsure);
+        if (cache.IsFull)
+        {
+            return subset;
+        }
 
         // The count check and the add happen together, so racing calls never push the cache past its cap. Only a miss
-        // takes the lock; a hit above reads without one.
+        // on a cache that is not yet full takes the lock; a hit above reads without one.
         lock (cache)
         {
-            return cache.Count < MaxCachedSubsets ? cache.GetOrAdd(mask, subset) : subset;
+            if (cache.Count >= MaxCachedSubsets)
+            {
+                return subset;
+            }
+
+            var stored = cache.Subsets.GetOrAdd(mask, subset);
+            if (ReferenceEquals(stored, subset) && ++cache.Count == MaxCachedSubsets)
+            {
+                cache.IsFull = true;
+            }
+
+            return stored;
         }
     }
 
     /// <summary>The number of subsets cached for <paramref name="definition"/>, for tests.</summary>
-    internal static int CachedSubsetCount(QuestionSetDefinition definition) => Cache(definition).Count;
+    internal static int CachedSubsetCount(QuestionSetDefinition definition) => Cache(definition).Subsets.Count;
 
     /// <summary>
     /// The primary's response with the target's answers for the unsure questions in their places: each escalated slot is
@@ -105,7 +120,7 @@ internal static class EscalationMerge
 
         return new DecisionResponse(primary.Definition, slots, probabilities, primary.Model, inputTokens, outputTokens, cost, primary.Id, primary.UpstreamProvider, isCached)
         {
-            Path = new DecisionPath(routes, calls),
+            Path = DecisionPath.FromOwnedArrays(routes, calls),
         };
     }
 
@@ -120,10 +135,27 @@ internal static class EscalationMerge
         return new QuestionSetDefinition(questions);
     }
 
-    private static ConcurrentDictionary<ulong, QuestionSetDefinition> Cache(QuestionSetDefinition definition)
-        => definition.GetOrAddProtocolData(SubsetSlot, static _ => new ConcurrentDictionary<ulong, QuestionSetDefinition>());
+    private static SubsetCache Cache(QuestionSetDefinition definition)
+        => definition.GetOrAddProtocolData(SubsetSlot, static _ => new SubsetCache());
 
     private static int? Sum(int? total, int? value) => value is null ? total : (total ?? 0) + value;
 
     private static double? Sum(double? total, double? value) => value is null ? total : (total ?? 0) + value;
+
+    // The subsets by unsure-index bitmask. Count is written only under the lock, and mirrors Subsets.Count without taking
+    // the dictionary's bucket locks. IsFull lets a miss on a full cache skip the lock.
+    private sealed class SubsetCache
+    {
+        private volatile bool _isFull;
+
+        public ConcurrentDictionary<ulong, QuestionSetDefinition> Subsets { get; } = new();
+
+        public int Count { get; set; }
+
+        public bool IsFull
+        {
+            get => _isFull;
+            set => _isFull = value;
+        }
+    }
 }

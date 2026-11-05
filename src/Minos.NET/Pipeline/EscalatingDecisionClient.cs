@@ -53,7 +53,7 @@ public sealed class EscalatingDecisionClient : DelegatingDecisionClient
         copy.Validate(nameof(options));
         _target = target;
         _options = copy;
-        _thresholds = (Dictionary<string, double>)copy.Thresholds;
+        _thresholds = copy.ThresholdMap;
         Logger = logger;
         TimeProvider = timeProvider ?? TimeProvider.System;
     }

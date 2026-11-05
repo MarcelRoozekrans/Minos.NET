@@ -247,13 +247,16 @@ public sealed class EscalationMergeTests
     private static QuestionSetDefinition Nouls(int count)
         => new([.. Enumerable.Range(0, count).Select(i => QuestionDefinition.Noul($"q{i}", DecisionContent.FromString("Is it?")))]);
 
-    private static Fake NoulPrimary()
-        => new(request =>
+    private static Fake NoulPrimary(Func<Task>? gate = null)
+        => new(
+            request =>
         {
             var mask = ulong.Parse(request.State.ToString(), CultureInfo.InvariantCulture);
             var questions = request.Definition.Questions;
             return new DecisionResponse(request.Definition, [.. questions.Select((_, i) => QuestionAnswer.Noul(i < 64 && (mask & (1UL << i)) != 0 ? 0.5 : 0.99))]);
-        });
+        },
+            yield: gate is not null,
+            gate: gate);
 
     // The target answers each question with 0.01 times its index plus 0.001.
     private static Fake NoulTarget(Action<DecisionRequest>? seen = null)
@@ -278,6 +281,53 @@ public sealed class EscalationMergeTests
                 var escalated = (mask & (1 << i)) != 0;
                 Assert.Equal(escalated ? (i * 0.01) + 0.001 : 0.99, response.Answers[i].Probability);
                 Assert.Equal(escalated ? RouteReason.Escalated : RouteReason.Confident, response.Path!.Routes[i].Reason);
+            }
+        }
+
+        Assert.Equal(64, EscalationMerge.CachedSubsetCount(definition));
+    }
+
+    [Fact]
+    public async Task Concurrent_misses_never_push_the_subset_cache_past_64()
+    {
+        // A race past the cap needs several calls between the count check and the add, so the test runs many rounds,
+        // each on a fresh definition, to make one likely when the bound is broken.
+        for (var round = 0; round < 30; round++)
+        {
+            await ConcurrentMissRoundAsync();
+        }
+    }
+
+    // 200 calls, each with its own unsure mask, are held at a gate inside the primary until all have arrived, then
+    // released together, so they miss the subset cache at the same time.
+    private static async Task ConcurrentMissRoundAsync()
+    {
+        const int Calls = 200;
+        var definition = Nouls(8);
+        var arrived = 0;
+        var release = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        Task Gate()
+        {
+            if (Interlocked.Increment(ref arrived) == Calls)
+            {
+                release.SetResult();
+            }
+
+            return release.Task;
+        }
+
+        using var client = new EscalatingDecisionClient(NoulPrimary(Gate), NoulTarget(), Options());
+
+        var results = await Task.WhenAll(Enumerable.Range(1, Calls).Select(mask => Task.Run(async () =>
+            (mask, (await client.EvaluateAsync(new DecisionRequest(definition, mask.ToString(CultureInfo.InvariantCulture)))).Value))));
+
+        foreach (var (mask, response) in results)
+        {
+            for (var i = 0; i < 8; i++)
+            {
+                var escalated = (mask & (1 << i)) != 0;
+                Assert.Equal(escalated ? (i * 0.01) + 0.001 : 0.99, response.Answers[i].Probability);
+                Assert.Equal(escalated ? "hosted" : "primary", response.Path!.Routes[i].AnsweredBy);
             }
         }
 

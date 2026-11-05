@@ -30,7 +30,10 @@ public sealed class EscalationOptions
     /// Gets the thresholds per question key, from 0 to 1, each overriding <see cref="DefaultThreshold"/> for its question.
     /// Keys compare ordinally; a key that is not in a request's question set is ignored, so one instance can serve several sets.
     /// </summary>
-    public IDictionary<string, double> Thresholds { get; } = new Dictionary<string, double>(StringComparer.Ordinal);
+    public IDictionary<string, double> Thresholds => ThresholdMap;
+
+    // The concrete dictionary behind Thresholds, for the stage's lookups without interface dispatch.
+    internal Dictionary<string, double> ThresholdMap { get; } = new(StringComparer.Ordinal);
 
     /// <summary>
     /// Gets or sets how long the target is expected to take. When less time than this is left before the deadline, the
@@ -54,9 +57,9 @@ public sealed class EscalationOptions
             ExpectedLatency = ExpectedLatency,
             Budget = Budget,
         };
-        foreach (var (key, threshold) in Thresholds)
+        foreach (var (key, threshold) in ThresholdMap)
         {
-            clone.Thresholds[key] = threshold;
+            clone.ThresholdMap[key] = threshold;
         }
 
         return clone;

@@ -182,7 +182,8 @@ public sealed class EscalationTests
         // The target answers a definition with the same questions, but not the subset instance it was asked.
         using var client = new EscalatingDecisionClient(
             Fake.Answering(Primary("department", QuestionAnswer.Choice(0, 0.55, [0.55, 0.4, 0.05]))),
-            new Fake(request => Fake.Respond(new QuestionSetDefinition([.. request.Definition.Questions]), TargetAnswers)),
+            new Fake(request => Fake.Respond(
+                new QuestionSetDefinition([.. request.Definition.Questions]), TargetAnswers, "hosted-model", new DecisionUsage { InputTokens = 5, Cost = 0.01 })),
             Options());
 
         var response = (await client.EvaluateAsync(new DecisionRequest(Triage, State))).Value;
@@ -190,6 +191,10 @@ public sealed class EscalationTests
         Assert.Equal(RouteReason.TargetFailed, response.Path!.Routes[1].Reason);
         Assert.Equal("primary", response.Path.Routes[1].AnsweredBy);
         Assert.Equal(0, response.Answers[1].ChosenIndex);
+        Assert.Equal(
+            [new DecisionCall("primary", null, null, IsCached: false), new DecisionCall("hosted", "hosted-model", new DecisionUsage { InputTokens = 5, Cost = 0.01 }, IsCached: false)],
+            response.Path.Calls);
+        Assert.Equal(new DecisionUsage { InputTokens = 5, Cost = 0.01 }, response.Usage);
     }
 
     [Fact]
@@ -372,7 +377,9 @@ public sealed class EscalationTests
     }
 
     /// <summary>A client that answers each request from a function, or fails when the function returns <see langword="null"/>; copied from the spike.</summary>
-    internal sealed class Fake(Func<DecisionRequest, DecisionResponse?> answer, Action<DecisionRequest>? seen = null, DecisionError? failure = null, bool yield = false) : IDecisionClient
+    internal sealed class Fake(
+        Func<DecisionRequest, DecisionResponse?> answer, Action<DecisionRequest>? seen = null, DecisionError? failure = null, bool yield = false, Func<Task>? gate = null)
+        : IDecisionClient
     {
         public static Fake Answering(IReadOnlyDictionary<string, QuestionAnswer> answers, Action<DecisionRequest>? seen = null)
             => new(request => Respond(request.Definition, answers), seen);
@@ -387,6 +394,11 @@ public sealed class EscalationTests
             if (yield)
             {
                 await Task.Yield();
+            }
+
+            if (gate is not null)
+            {
+                await gate();
             }
 
             if (failure is not null)

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 
 namespace Minos;
 
@@ -36,6 +37,17 @@ public sealed class DecisionPath
         DecisionCall[] callArray = [.. calls];
         Routes = routeArray.Length == 0 ? [] : new ReadOnlyCollection<QuestionRoute>(routeArray);
         Calls = new ReadOnlyCollection<DecisionCall>(callArray);
+    }
+
+    // Takes ownership of arrays a routing stage built for this path alone, without copying or checking them. A factory
+    // over a private constructor, so a caller elsewhere with arrays in hand never picks it instead of the copying one.
+    internal static DecisionPath FromOwnedArrays(QuestionRoute[] routes, DecisionCall[] calls) => new(routes, calls);
+
+    private DecisionPath(QuestionRoute[] routes, DecisionCall[] calls)
+    {
+        Debug.Assert(calls.Length != 0, "A path has at least one call.");
+        Routes = routes.Length == 0 ? [] : new ReadOnlyCollection<QuestionRoute>(routes);
+        Calls = new ReadOnlyCollection<DecisionCall>(calls);
     }
 
     /// <summary>Gets one route per question, in definition order.</summary>
