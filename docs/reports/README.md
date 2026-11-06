@@ -92,3 +92,39 @@ the source `banking77-label`. The job then runs `minos shadow-report` from Minos
 `shadow-report.json` and `shadow-report.md`.
 
 The traffic is replayed, not live. The items are the dataset's, sent in a loop, and no production request is shadowed.
+
+## The triage report
+
+A triage report measures the [ticket-triage sample](../../samples/Minos.NET.Samples.TicketTriage/README.md), where a local
+model decides each ticket and a hosted model is asked only when the local one is unsure. It is evidence only: it states
+what was measured and gives no verdict. The report is built from the records of the run, so it can be rebuilt without a
+provider call.
+
+The first set is `banking77`. Each set has its own folder, `docs/reports/triage/<set>/`, with the files the run
+produced: `records.jsonl`, `triage-report.json` and `triage-report.md`, and a `README.md` that says what the run was.
+
+### How the run is started
+
+The run is started by hand, like every other run here:
+
+```text
+gh workflow run local-systemone.yml --ref main -f job=triage
+```
+
+The `triage` job is dispatch only. It is billed, because TypeSafe answers every ticket the local model is unsure about,
+so it is started only after the maintainer approves each run. It uses the `live-api` environment, which deploys only from
+`main`, so the `--ref` must be `main`.
+
+The job runs the sample over `datasets/banking77/banking77-minos-v1.jsonl` one item at a time with the thresholds in
+`docs/reports/minos.json`. A `Triage report` step then builds the report from the records with `docs/reports/prices.json`,
+and the job uploads the artifact `triage-local-typesafe-banking77`, which holds `records.jsonl`, `triage-report.json` and
+`triage-report.md`. The report step runs even when the run stops early, so a partial run still gets a report.
+
+The job has no price guard. The model that TypeSafe served is known only after a call, so the price check is a manual
+step before the run: confirm that `docs/reports/prices.json` has a price for the model that `jev-latest` resolves to. If a
+run served a model with no price, add the price to `docs/reports/prices.json` and rebuild the report from the committed
+records:
+
+```text
+dotnet run --project samples/Minos.NET.Samples.TicketTriage -c Release -- --report --records docs/reports/triage/banking77/records.jsonl --dataset datasets/banking77/banking77-minos-v1.jsonl --prices docs/reports/prices.json --out docs/reports/triage/banking77
+```
