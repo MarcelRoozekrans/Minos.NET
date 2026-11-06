@@ -107,7 +107,7 @@ public static class TriageReportBuilder
             new PerKind<EscalatedTable>(tally.Choice.Table(), tally.Noul.Table(), tally.All.Table()),
             new PerKind<SignalSection>(tally.Choice.Signal(), tally.Noul.Signal(), tally.All.Signal()),
             new LatencySection(Summarize(withTarget), Summarize(withoutTarget), Summarize(localTimes), Summarize(targetTimes)),
-            cost.Section(decided));
+            cost.Section());
     }
 
     private static TimeSummary Summarize(List<double> values)
@@ -188,10 +188,10 @@ public static class TriageReportBuilder
             }
         }
 
-        public CostSection Section(int decided)
+        public CostSection Section()
         {
             _used.Sort(static (a, b) => string.CompareOrdinal(a.Model, b.Model));
-            var perThousand = _reported + _priced == 0 ? (double?)null : _total / decided * 1000;
+            var perThousand = _reported + _priced == 0 ? (double?)null : _total / (_reported + _priced) * 1000;
             return new CostSection(perThousand, _reported, _priced, _unknown, _used);
         }
     }

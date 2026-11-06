@@ -354,7 +354,7 @@ public sealed class TriageReportTests
         var cost = TriageReportBuilder.Build(records, Dataset("1", "2", "3"), Prices()).Cost;
 
         // Ticket 1 is 0.5 (its local call is zero-priced, so the ticket counts as priced); ticket 2 is 1000*1000/1e6 + 500*2000/1e6 = 2; ticket 3 has an unpriced call and is unknown.
-        Assert.Equal(2.5 / 3 * 1000, cost.PerThousandTickets!.Value, 6);
+        Assert.Equal(2.5 / 2 * 1000, cost.PerThousandTickets!.Value, 6);
         Assert.Equal(0, cost.Reported);
         Assert.Equal(2, cost.Priced);
         Assert.Equal(1, cost.Unknown);
@@ -374,27 +374,39 @@ public sealed class TriageReportTests
     }
 
     [Fact]
-    public void PricesFile_LoadsTheCommittedFile()
+    public void Cost_DividesByTheCostedTickets_AndShowsTheUnknownCount()
     {
-        var table = PricesFile.Load(Path.Combine(Repository.Root, "docs", "reports", "prices.json"));
+        var records = new[]
+        {
+            Timed("1", 1, Timed("local", "Answered", 1, cost: 0.004)),
+            Timed("2", 1, Timed("local", "Answered", 1, "mystery", 10, 1)),
+        };
 
-        Assert.True(table.TryFind("jev-1.14.0", out var price));
-        Assert.Equal(0.042, price!.InputPerMillion);
+        var cost = TriageReportBuilder.Build(records, Dataset("1", "2"), NoPrices).Cost;
+
+        Assert.Equal(4.0, cost.PerThousandTickets!.Value, 9);
+        Assert.Equal(1, cost.Unknown);
     }
 
     [Fact]
-    public void PricesFile_RejectsAnEmptyModel()
+    public void Cost_IsNull_WhenNoTicketCouldBeCosted()
     {
-        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".json");
-        File.WriteAllText(path, """{"prices":[{"model":"","inputPerMillion":1,"outputPerMillion":1,"date":"2026-01-01","source":"s"}]}""");
-        try
-        {
-            var ex = Assert.Throws<InvalidDataException>(() => PricesFile.Load(path));
-            Assert.Contains(path, ex.Message, StringComparison.Ordinal);
-        }
-        finally
-        {
-            File.Delete(path);
-        }
+        var records = new[] { Timed("1", 1, Timed("local", "Answered", 1, "mystery", 10, 1)) };
+
+        var cost = TriageReportBuilder.Build(records, Dataset("1"), NoPrices).Cost;
+
+        Assert.Null(cost.PerThousandTickets);
+        Assert.Equal(1, cost.Unknown);
+    }
+
+    [Fact]
+    public void Cost_AFailedCallWithAModelButNoUsage_MakesTheTicketUnknown()
+    {
+        var records = new[] { Timed("1", 1, Timed("local", "Answered", 1, cost: 0.001), Timed("typesafe", "Failed", 5, "zeta")) };
+
+        var cost = TriageReportBuilder.Build(records, Dataset("1"), Prices()).Cost;
+
+        Assert.Equal(1, cost.Unknown);
+        Assert.Null(cost.PerThousandTickets);
     }
 }

@@ -74,7 +74,7 @@ public sealed record TimeSummary(int Count, double? Median, double? P95);
 public sealed record LatencySection(TimeSummary WithTarget, TimeSummary WithoutTarget, TimeSummary Local, TimeSummary Target);
 
 /// <summary>What the decided tickets cost. A ticket with any call of unknown cost is counted as unknown.</summary>
-/// <param name="PerThousandTickets">The known total divided by the decided tickets, times 1000; <see langword="null"/> when no ticket has a known cost.</param>
+/// <param name="PerThousandTickets">The known total divided by the tickets that could be costed, times 1000; <see langword="null"/> when no ticket has a known cost.</param>
 /// <param name="Reported">The tickets whose calls all reported a cost.</param>
 /// <param name="Priced">The tickets with a call costed from tokens and a price, and none unknown.</param>
 /// <param name="Unknown">The tickets with a call that has neither a cost nor a price.</param>
