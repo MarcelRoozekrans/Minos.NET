@@ -308,6 +308,10 @@ public sealed class WorkflowWiringTests
         Assert.Contains("permissions:\n      contents: read\n", job, StringComparison.Ordinal);
         Assert.Contains("          persist-credentials: false\n", job, StringComparison.Ordinal);
         Assert.Contains("TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}", job, StringComparison.Ordinal);
+        // The key reaches only the Triage step: the env name and the secret, both inside that step's env block, and no other step has an env carrying it.
+        Assert.Equal(2, System.Text.RegularExpressions.Regex.Count(job, "TYPESAFE_API_KEY", System.Text.RegularExpressions.RegexOptions.None, TimeSpan.FromSeconds(1)));
+        Assert.Contains("      - name: Triage\n        env:\n          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}\n        run: |\n", job, StringComparison.Ordinal);
+        Assert.DoesNotContain("secrets.", job.Replace("${{ secrets.TYPESAFE_API_KEY }}", string.Empty, StringComparison.Ordinal), StringComparison.Ordinal);
         Assert.Contains(" serve Mapika/decider-2b-GGUF:Q4_K_M --port 8000 --no-browser", job, StringComparison.Ordinal);
         Assert.DoesNotContain("dotnet tool install", job, StringComparison.Ordinal);
         Assert.DoesNotContain("minos-tool", job, StringComparison.Ordinal);
