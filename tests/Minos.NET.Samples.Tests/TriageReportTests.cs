@@ -200,11 +200,23 @@ public sealed class TriageReportTests
         var run = TriageReportBuilder.Build(records, Dataset("1", "2", "3", "4", "5", "6"), NoPrices).Run;
 
         Assert.Equal(6, run.ItemsRead);
+        Assert.Equal(6, run.DatasetItems);
         Assert.Equal(3, run.Decided);
         Assert.Equal(2, run.FailuresByError["Timeout"]);
         Assert.Equal(1, run.FailuresByError["Unauthorized"]);
         Assert.Equal(2, run.ServedModels["m-b"]);
         Assert.Equal(1, run.ServedModels["m-a"]);
+    }
+
+    [Fact]
+    public void Build_WithAPartialRun_KeepsTheDatasetSizeApartFromTheItemsRead()
+    {
+        var records = new[] { new TriageRecord("1", 3, "Timeout", [], []), new TriageRecord("2", 3, "Timeout", [], []) };
+
+        var run = TriageReportBuilder.Build(records, Dataset("1", "2", "3", "4", "5"), NoPrices).Run;
+
+        Assert.Equal(2, run.ItemsRead);
+        Assert.Equal(5, run.DatasetItems);
     }
 
     [Fact]

@@ -23,11 +23,13 @@ public sealed record Hits(int Correct, int Total)
 /// <param name="Decided">The items that were answered.</param>
 /// <param name="FailuresByError">The failed items per error kind name.</param>
 /// <param name="ServedModels">The calls per served model name.</param>
+/// <param name="DatasetItems">The items in the dataset, so a partial run can be told from a complete one.</param>
 public sealed record RunSection(
     int ItemsRead,
     int Decided,
     IReadOnlyDictionary<string, int> FailuresByError,
-    IReadOnlyDictionary<string, int> ServedModels);
+    IReadOnlyDictionary<string, int> ServedModels,
+    int DatasetItems);
 
 /// <summary>The questions per route reason, and the tickets whose path had a target call.</summary>
 /// <param name="Confident">The questions the local answer met its threshold for.</param>

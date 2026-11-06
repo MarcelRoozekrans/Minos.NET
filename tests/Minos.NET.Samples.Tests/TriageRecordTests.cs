@@ -119,6 +119,24 @@ public sealed class TriageRecordTests : IDisposable
         Assert.DoesNotContain("t-1", ex.Message, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("\"id\":\"t-1\"", "\"id\":null")]
+    [InlineData("\"key\":\"is_urgent\"", "\"key\":null")]
+    [InlineData("\"key\":\"card_arrival\"", "\"key\":null")]
+    [InlineData("\"answeredBy\":\"primary\"", "\"answeredBy\":null")]
+    [InlineData("\"client\":\"local\"", "\"client\":null")]
+    public void Read_RejectsANullString_WhereOneIsRequired(string present, string replaced)
+    {
+        var good = TriageRecordWriter.Line(Full());
+        var bad = good.Replace(present, replaced, StringComparison.Ordinal);
+        Assert.NotEqual(good, bad);
+        File.WriteAllText(_path, good + "\n" + bad + "\n");
+
+        var ex = Assert.Throws<InvalidDataException>(() => TriageRecordReader.Read(_path));
+
+        Assert.Equal("Malformed record at line 2.", ex.Message);
+    }
+
     private IReadOnlyList<TriageRecord> ReadLines(string line)
     {
         File.WriteAllText(_path, line + "\n");

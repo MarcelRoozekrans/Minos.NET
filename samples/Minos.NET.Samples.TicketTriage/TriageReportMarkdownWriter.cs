@@ -34,7 +34,7 @@ internal static class TriageReportMarkdownWriter
     private static void WriteRun(StringBuilder md, RunSection run)
     {
         md.Append("## Run\n\n")
-            .Append("Items read: ").Append(N(run.ItemsRead)).Append(". Decided: ").Append(Share(run.Decided, run.ItemsRead)).Append(".\n\n")
+            .Append("Items read: ").Append(N(run.ItemsRead)).Append(" of the dataset's ").Append(N(run.DatasetItems)).Append(". Decided: ").Append(Share(run.Decided, run.ItemsRead)).Append(".\n\n")
             .Append("Failed items: ").Append(Pairs(run.FailuresByError)).Append("\n\n")
             .Append("Calls by served model: ").Append(Pairs(run.ServedModels)).Append("\n\n");
     }

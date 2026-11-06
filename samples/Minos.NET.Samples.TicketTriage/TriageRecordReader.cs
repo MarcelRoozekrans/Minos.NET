@@ -9,8 +9,8 @@ namespace Minos.Samples.TicketTriage;
 /// </summary>
 internal static class TriageRecordReader
 {
-    private static readonly string[] Reasons = ["Confident", "Escalated", "NoTimeLeft", "TargetFailed"];
-    private static readonly string[] Statuses = ["Answered", "Failed", "NotCalledNoTimeLeft"];
+    private static readonly string[] Reasons = [nameof(RouteReason.Confident), nameof(RouteReason.Escalated), nameof(RouteReason.NoTimeLeft), nameof(RouteReason.TargetFailed)];
+    private static readonly string[] Statuses = [nameof(CallStatus.Answered), nameof(CallStatus.Failed), nameof(CallStatus.NotCalledNoTimeLeft)];
 
     public static IReadOnlyList<TriageRecord> Read(string path)
     {
@@ -49,9 +49,9 @@ internal static class TriageRecordReader
         foreach (var q in root.GetProperty("questions").EnumerateArray())
         {
             questions.Add(new TriageQuestion(
-                q.GetProperty("key").GetString()!,
+                Required(q, "key"),
                 ParseAnswer(q.GetProperty("local")),
-                q.GetProperty("answeredBy").GetString()!,
+                Required(q, "answeredBy"),
                 OneOf(q.GetProperty("reason").GetString(), Reasons),
                 q.GetProperty("primaryCertainty").GetDouble(),
                 Double(q, "targetCertainty"),
@@ -62,7 +62,7 @@ internal static class TriageRecordReader
         foreach (var c in root.GetProperty("calls").EnumerateArray())
         {
             calls.Add(new TriageCall(
-                c.GetProperty("client").GetString()!,
+                Required(c, "client"),
                 String(c, "model"),
                 Int(c, "inputTokens"),
                 Int(c, "outputTokens"),
@@ -72,7 +72,7 @@ internal static class TriageRecordReader
         }
 
         return new TriageRecord(
-            root.GetProperty("id").GetString()!,
+            Required(root, "id"),
             root.GetProperty("totalMs").GetDouble(),
             String(root, "error"),
             questions,
@@ -85,13 +85,16 @@ internal static class TriageRecordReader
         return kind switch
         {
             "noul" => new TriageAnswer(kind, e.GetProperty("p").GetDouble(), null, null),
-            "choice" => new TriageAnswer(kind, null, e.GetProperty("key").GetString()!, e.GetProperty("confidence").GetDouble()),
+            "choice" => new TriageAnswer(kind, null, Required(e, "key"), e.GetProperty("confidence").GetDouble()),
             _ => throw new InvalidDataException(),
         };
     }
 
     private static string OneOf(string? value, string[] allowed) =>
         value is not null && Array.IndexOf(allowed, value) >= 0 ? value : throw new InvalidDataException();
+
+    private static string Required(JsonElement e, string name) =>
+        e.GetProperty(name).GetString() ?? throw new InvalidDataException();
 
     private static string? String(JsonElement e, string name) =>
         e.TryGetProperty(name, out var v) ? v.GetString() : null;

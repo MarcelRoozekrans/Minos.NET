@@ -60,7 +60,7 @@ public static class TriageReportBuilder
                 }
 
                 var isTarget = string.Equals(call.Client, TriagePipeline.TargetName, StringComparison.Ordinal);
-                if (!string.Equals(call.Status, "NotCalledNoTimeLeft", StringComparison.Ordinal))
+                if (!string.Equals(call.Status, nameof(CallStatus.NotCalledNoTimeLeft), StringComparison.Ordinal))
                 {
                     targetCalled |= isTarget;
                     if (call.LatencyMs is { } ms)
@@ -84,7 +84,7 @@ public static class TriageReportBuilder
                 }
 
                 tally.Add(question, expected);
-                if (question.Reason is "Escalated" or "TargetFailed")
+                if (question.Reason is nameof(RouteReason.Escalated) or nameof(RouteReason.TargetFailed))
                 {
                     ticketKinds.Add(expected.Kind);
                 }
@@ -96,7 +96,7 @@ public static class TriageReportBuilder
             }
         }
 
-        var run = new RunSection(records.Count, decided, failures, models);
+        var run = new RunSection(records.Count, decided, failures, models, items.Count);
         return new TriageReport(
             run,
             new PerKind<SplitCounts>(
@@ -142,8 +142,8 @@ public static class TriageReportBuilder
             foreach (var call in calls)
             {
                 // A call that was skipped, or that failed before any usage came back, billed nothing.
-                if (string.Equals(call.Status, "NotCalledNoTimeLeft", StringComparison.Ordinal)
-                    || (!string.Equals(call.Status, "Answered", StringComparison.Ordinal)
+                if (string.Equals(call.Status, nameof(CallStatus.NotCalledNoTimeLeft), StringComparison.Ordinal)
+                    || (!string.Equals(call.Status, nameof(CallStatus.Answered), StringComparison.Ordinal)
                         && call.Cost is null && call.Model is null && call.InputTokens is null && call.OutputTokens is null))
                 {
                     continue;
@@ -208,7 +208,7 @@ public static class TriageReportBuilder
         {
             var localRight = Judge.IsRight(question.Local, expected);
             // Only the target replaces the local answer; on any other reason the local answer stands, whatever Final holds.
-            var finalRight = string.Equals(question.Reason, "Escalated", StringComparison.Ordinal)
+            var finalRight = string.Equals(question.Reason, nameof(RouteReason.Escalated), StringComparison.Ordinal)
                 ? Judge.IsRight(question.Final, expected)
                 : localRight;
             All.Add(question.Reason, localRight, finalRight);
@@ -249,7 +249,7 @@ public static class TriageReportBuilder
             _localRight += localRight ? 1 : 0;
             _finalRight += finalRight ? 1 : 0;
 
-            var below = !string.Equals(reason, "Confident", StringComparison.Ordinal);
+            var below = !string.Equals(reason, nameof(RouteReason.Confident), StringComparison.Ordinal);
             if (below)
             {
                 _below++;
@@ -270,10 +270,10 @@ public static class TriageReportBuilder
 
             switch (reason)
             {
-                case "Confident":
+                case nameof(RouteReason.Confident):
                     _confident++;
                     break;
-                case "Escalated":
+                case nameof(RouteReason.Escalated):
                     _escalated++;
                     _targetRight += finalRight ? 1 : 0;
                     if (localRight && finalRight)
@@ -294,10 +294,10 @@ public static class TriageReportBuilder
                     }
 
                     break;
-                case "NoTimeLeft":
+                case nameof(RouteReason.NoTimeLeft):
                     _noTimeLeft++;
                     break;
-                case "TargetFailed":
+                case nameof(RouteReason.TargetFailed):
                     _targetFailed++;
                     break;
             }

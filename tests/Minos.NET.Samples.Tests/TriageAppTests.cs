@@ -109,7 +109,31 @@ public sealed class TriageAppTests : IDisposable
 
         Assert.Equal(0, code);
         var markdown = File.ReadAllText(Path.Combine(outDir, "triage-report.md"));
-        Assert.Contains("Items read: 4. Decided: 4", markdown, StringComparison.Ordinal);
+        var lines = markdown.Split('\n');
+
+        // The fake local client is unsure about the intent, so each of the 4 tickets escalates that one question and keeps
+        // the 2 Noul questions on the local answer. These lines depend on the reason and the client names crossing the
+        // real pipeline, the record file and the builder.
+        string[] expected =
+        [
+            "Items read: 4 of the dataset's 4. Decided: 4 of 4 (1.0000) (small: n < 30).",
+            "Calls by served model: m 8.",
+            "- Escalated, answered by the target: 4 of 4 (1.0000) (small: n < 30)",
+            "- Confident, kept on the local answer: 8 of 8 (1.0000) (small: n < 30)",
+            "- Escalated, answered by the target: 4 of 12 (0.3333) (small: n < 30)",
+            "- Confident, kept on the local answer: 8 of 12 (0.6667) (small: n < 30)",
+            "- No time left, kept on the local answer: 0 of 12 (0.0000) (small: n < 30)",
+            "- Target failed, kept on the local answer: 0 of 12 (0.0000) (small: n < 30)",
+            "- Tickets with a target call: 4 of 4 (1.0000) (small: n < 30)",
+            "- Target, on the escalated questions: 4 of 4 (1.0000) (small: n < 30)",
+            "- Both right: 4 of 4 (1.0000) (small: n < 30)",
+            "Cost came from the provider for 0 tickets, from a price for 0, and was unknown for 4. A ticket with an unknown cost is left out of the total.",
+        ];
+        foreach (var line in expected)
+        {
+            Assert.Contains(line, lines);
+        }
+
         Assert.True(File.Exists(Path.Combine(outDir, "triage-report.json")));
     }
 
@@ -193,7 +217,7 @@ public sealed class TriageAppTests : IDisposable
         args.Insert(position, "--report");
 
         Assert.Equal(0, await RunAsync([.. args]));
-        Assert.Contains("Items read: 2.", File.ReadAllText(Path.Combine(_dir, "out", "triage-report.md")), StringComparison.Ordinal);
+        Assert.Contains("Items read: 2 of the dataset's 2.", File.ReadAllText(Path.Combine(_dir, "out", "triage-report.md")), StringComparison.Ordinal);
     }
 
     [Fact]

@@ -2,7 +2,7 @@
 
 ## Run
 
-Items read: 60. Decided: 52 of 60 (0.8667).
+Items read: 60 of the dataset's 80. Decided: 52 of 60 (0.8667).
 
 Failed items: InvalidResponse 3, Timeout 5.
 

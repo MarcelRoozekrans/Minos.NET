@@ -48,6 +48,7 @@ internal static class TriageReportJsonWriter
         w.WriteNumber("decided", run.Decided);
         Counts(w, "failuresByError", run.FailuresByError);
         Counts(w, "servedModels", run.ServedModels);
+        w.WriteNumber("datasetItems", run.DatasetItems);
         w.WriteEndObject();
     }
 

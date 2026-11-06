@@ -10,7 +10,8 @@
     "servedModels": {
       "jev-1.14.0": 17,
       "local-model": 52
-    }
+    },
+    "datasetItems": 80
   },
   "split": {
     "choice": {

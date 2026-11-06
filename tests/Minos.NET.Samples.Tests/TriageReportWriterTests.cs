@@ -24,7 +24,8 @@ public sealed partial class TriageReportWriterTests
                 60,
                 52,
                 new Dictionary<string, int> { ["Timeout"] = 5, ["InvalidResponse"] = 3 },
-                new Dictionary<string, int> { ["jev-1.14.0"] = 17, ["local-model"] = 52 }),
+                new Dictionary<string, int> { ["jev-1.14.0"] = 17, ["local-model"] = 52 },
+                80),
             new PerKind<SplitCounts>(new(30, 6, 2, 2, 8), new(8, 2, 1, 1, 3), new(38, 8, 3, 3, 10)),
             new PerKind<AccuracySection>(
                 new(new(28, 40), new(31, 40), new(5, 6)),
@@ -110,7 +111,7 @@ public sealed partial class TriageReportWriterTests
     public void Markdown_ShowsUnknownRatesAndCostAsNotAvailable()
     {
         var empty = new TriageReport(
-            new RunSection(0, 0, new Dictionary<string, int>(), new Dictionary<string, int>()),
+            new RunSection(0, 0, new Dictionary<string, int>(), new Dictionary<string, int>(), 0),
             new PerKind<SplitCounts>(new(0, 0, 0, 0, 0), new(0, 0, 0, 0, 0), new(0, 0, 0, 0, 0)),
             new PerKind<AccuracySection>(Zero(), Zero(), Zero()),
             new PerKind<EscalatedTable>(new(0, 0, 0, 0), new(0, 0, 0, 0), new(0, 0, 0, 0)),
