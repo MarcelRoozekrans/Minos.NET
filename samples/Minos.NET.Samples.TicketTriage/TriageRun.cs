@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Text;
 using Minos.Evaluation;
 
@@ -69,6 +68,8 @@ public static class TriageRun
             TriageRecord record;
             if (result.IsFailure)
             {
+                // A failure the caller's own cancellation caused is a stop, not a failed item.
+                cancellationToken.ThrowIfCancellationRequested();
                 failed++;
                 record = new TriageRecord(item.Id, totalMs, result.Error.Kind.ToString(), [], []);
                 await log.WriteLineAsync($"{item.Id}: failed ({result.Error.Kind})").ConfigureAwait(false);
@@ -95,7 +96,7 @@ public static class TriageRun
             }
 
             await records.WriteLineAsync(TriageRecordWriter.Line(record)).ConfigureAwait(false);
-            await records.FlushAsync(cancellationToken).ConfigureAwait(false);
+            await records.FlushAsync(CancellationToken.None).ConfigureAwait(false);
 
             if (items % ProgressEvery == 0)
             {
@@ -111,28 +112,28 @@ public static class TriageRun
     private static TriageRecord ToRecord(DatasetItem item, DecisionResponse response, double totalMs, CallSlot localSlot, CallSlot targetSlot)
     {
         var definition = response.Definition;
-        var path = response.Path;
+        // The escalation stage always attaches a path; without one the pipeline is not the one this sample builds.
+        var path = response.Path ?? throw new InvalidOperationException("The pipeline returned a response without a path.");
         var questions = new List<TriageQuestion>(definition.Questions.Count);
         for (var i = 0; i < definition.Questions.Count; i++)
         {
             var question = definition.Questions[i];
             var final = Answer(question, response.Answers[i]);
 
-            // The stage always attaches a path; a response without one reads as the local client's confident answer.
-            var route = path is null ? (QuestionRoute?)null : path.Routes[i];
+            var route = path.Routes[i];
             var local = localSlot.Response is { } captured ? Answer(question, captured.Answers[i]) : final;
             questions.Add(new TriageQuestion(
                 question.Key,
                 local,
-                route?.AnsweredBy ?? TriagePipeline.PrimaryName,
-                (route?.Reason ?? RouteReason.Confident).ToString(),
-                route?.PrimaryCertainty ?? Certainty(local),
-                route?.TargetCertainty,
+                route.AnsweredBy,
+                route.Reason.ToString(),
+                route.PrimaryCertainty,
+                route.TargetCertainty,
                 final));
         }
 
         var calls = new List<TriageCall>();
-        foreach (var call in path?.Calls ?? [new DecisionCall(TriagePipeline.PrimaryName, response.Model, response.Usage, response.IsCached)])
+        foreach (var call in path.Calls)
         {
             double? latency = call.ClientName switch
             {
@@ -160,7 +161,4 @@ public static class TriageRun
             QuestionKind.Choice => new TriageAnswer("choice", null, question.Options[answer.ChosenIndex].Key, answer.Confidence),
             _ => throw new NotSupportedException("The triage sample asks Noul and Choice questions only."),
         };
-
-    private static double Certainty(TriageAnswer answer)
-        => answer.Probability is { } p ? Math.Max(p, 1 - p) : answer.Confidence ?? 0;
 }

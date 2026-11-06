@@ -20,12 +20,12 @@ public static class TriagePipeline
     /// <c>docs/reports/local/banking77/report.md</c>: the lowest threshold at which the answers the local model keeps
     /// were right about 99 percent of the time.
     /// </summary>
-    public static IReadOnlyDictionary<string, double> Thresholds { get; } = new Dictionary<string, double>(StringComparer.Ordinal)
+    public static IReadOnlyDictionary<string, double> Thresholds { get; } = new System.Collections.ObjectModel.ReadOnlyDictionary<string, double>(new Dictionary<string, double>(StringComparer.Ordinal)
     {
         ["intent"] = 0.85,
         ["card_not_arrived"] = 0.80,
         ["about_a_payment"] = 0.80,
-    };
+    });
 
     internal static IDecisionClient Build(IDecisionClient local, IDecisionClient target, CallSlot localSlot, CallSlot targetSlot, TimeProvider? time = null)
         => new LocalCaptureClient(local, localSlot, time).AsBuilder()

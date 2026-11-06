@@ -281,6 +281,22 @@ public sealed class TriageRunTests : IDisposable
     }
 
     [Fact]
+    public async Task Run_Throws_AndWritesNoFailedLine_WhenTheLocalCallFailsBecauseOfCancellation()
+    {
+        using var cts = new CancellationTokenSource();
+        var local = new Scripted(_ =>
+        {
+            cts.Cancel();
+            return Result<DecisionResponse, DecisionError>.Failure(new DecisionError(DecisionErrorKind.Timeout, "cancelled"));
+        });
+
+        await Assert.ThrowsAnyAsync<OperationCanceledException>(() => Run(local, Target(), Dataset("one"), this, ct: cts.Token));
+
+        Assert.False(File.Exists(_path) && new FileInfo(_path).Length > 0);
+        Assert.DoesNotContain("failed", _log.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Run_SummarisesCountsByReason()
     {
         // Item 1 is sure, item 2 is escalated and answered, item 3 meets a failing target.
