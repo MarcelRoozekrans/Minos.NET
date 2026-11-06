@@ -2,7 +2,11 @@ using ZeroAlloc.Results;
 
 namespace Minos.Samples.TicketTriage;
 
-/// <summary>What the stages around the escalation stage saw for one item: the local answers and how long the call took.</summary>
+/// <summary>What one stage saw for one item: the local answers and how long its call took.</summary>
+/// <remarks>
+/// One slot per stage per item. The pipeline uses a local slot for <see cref="LocalCaptureClient"/> and a separate target
+/// slot for <see cref="TimingDecisionClient"/>, so their <see cref="LatencyMs"/> values never collide. Both are reset per item.
+/// </remarks>
 internal sealed class CallSlot
 {
     public DecisionResponse? Response { get; set; }

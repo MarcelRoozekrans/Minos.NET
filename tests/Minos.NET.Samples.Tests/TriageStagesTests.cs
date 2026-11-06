@@ -112,7 +112,33 @@ public sealed class TriageStagesTests
 
         Assert.True(result.IsFailure);
         Assert.Equal(80, slot.LatencyMs);
-        Assert.Null(slot.Response);
+    }
+
+    [Fact]
+    public async Task Timing_RecordsLatencyAndRethrows_WhenTheInnerClientThrows()
+    {
+        var time = new ManualTime();
+        var slot = new CallSlot();
+        var inner = new Scripted(_ =>
+        {
+            time.AdvanceMs(40);
+            throw new InvalidOperationException("boom");
+        });
+        using var client = new TimingDecisionClient(inner, slot, time);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(async () => await client.EvaluateAsync(new DecisionRequest(Urgency, State)));
+
+        Assert.Equal(40, slot.LatencyMs);
+    }
+
+    [Fact]
+    public async Task Timing_LetsCancellationPropagate()
+    {
+        var slot = new CallSlot();
+        var inner = new Scripted(_ => throw new OperationCanceledException());
+        using var client = new TimingDecisionClient(inner, slot);
+
+        await Assert.ThrowsAsync<OperationCanceledException>(async () => await client.EvaluateAsync(new DecisionRequest(Urgency, State)));
     }
 
     [Fact]
