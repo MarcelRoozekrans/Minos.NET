@@ -260,6 +260,13 @@ public sealed class WorkflowWiringTests
     }
 
     [Fact]
+    public void LocalSystemOne_TakesATriageBudgetInput_AfterTheJobInput()
+    {
+        Assert.Contains("          - triage\n      triage_budget_seconds:\n        description: Seconds one ticket has for the local call and the escalation, for the triage job only\n        type: string\n        default: '5'\n", LocalSystemOne, StringComparison.Ordinal);
+        Assert.DoesNotContain("triage_budget_seconds", RunScripts(LocalSystemOne), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void LocalSystemOne_ShadowJob_RunsOnlyOnDispatch_WithTheLiveKey()
     {
         var job = Job(LocalSystemOne, "shadow");
@@ -310,14 +317,15 @@ public sealed class WorkflowWiringTests
         Assert.Contains("TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}", job, StringComparison.Ordinal);
         // The key reaches only the Triage step: the env name and the secret, both inside that step's env block, and no other step has an env carrying it.
         Assert.Equal(2, System.Text.RegularExpressions.Regex.Count(job, "TYPESAFE_API_KEY", System.Text.RegularExpressions.RegexOptions.None, TimeSpan.FromSeconds(1)));
-        Assert.Contains("      - name: Triage\n        env:\n          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}\n        run: |\n", job, StringComparison.Ordinal);
+        Assert.Contains("      - name: Triage\n        env:\n          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}\n          TRIAGE_BUDGET_SECONDS: ${{ inputs.triage_budget_seconds }}\n        run: |\n", job, StringComparison.Ordinal);
+        Assert.Equal(1, System.Text.RegularExpressions.Regex.Count(job, "TRIAGE_BUDGET_SECONDS: ", System.Text.RegularExpressions.RegexOptions.None, TimeSpan.FromSeconds(1)));
         Assert.DoesNotContain("secrets.", job.Replace("${{ secrets.TYPESAFE_API_KEY }}", string.Empty, StringComparison.Ordinal), StringComparison.Ordinal);
         Assert.Contains(" serve Mapika/decider-2b-GGUF:Q4_K_M --port 8000 --no-browser", job, StringComparison.Ordinal);
         Assert.DoesNotContain("dotnet tool install", job, StringComparison.Ordinal);
         Assert.DoesNotContain("minos-tool", job, StringComparison.Ordinal);
         Assert.Contains("dotnet build samples/Minos.NET.Samples.TicketTriage -c Release\n", job, StringComparison.Ordinal);
         Assert.Contains("mkdir -p \"$RUNNER_TEMP/out\"\n", job, StringComparison.Ordinal);
-        Assert.Contains("dotnet run --project samples/Minos.NET.Samples.TicketTriage -c Release --no-build -- --dataset datasets/banking77/banking77-minos-v1.jsonl --config docs/reports/minos.json --records \"$RUNNER_TEMP/out/records.jsonl\" & pid=$!\n", job, StringComparison.Ordinal);
+        Assert.Contains("dotnet run --project samples/Minos.NET.Samples.TicketTriage -c Release --no-build -- --dataset datasets/banking77/banking77-minos-v1.jsonl --config docs/reports/minos.json --records \"$RUNNER_TEMP/out/records.jsonl\" --budget-seconds \"$TRIAGE_BUDGET_SECONDS\" & pid=$!\n", job, StringComparison.Ordinal);
         Assert.Contains("          pid=\n", job, StringComparison.Ordinal);
         Assert.Contains("trap 'trap \"\" INT TERM; if [ -n \"$pid\" ]; then kill -TERM \"$pid\" 2>/dev/null; wait \"$pid\"; fi; exit 130' INT TERM\n", job, StringComparison.Ordinal);
         Assert.Contains(" & pid=$!\n          wait \"$pid\"\n", job, StringComparison.Ordinal);
