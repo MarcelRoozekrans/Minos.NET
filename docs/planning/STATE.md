@@ -1,4 +1,4 @@
-# Session State — 2026-11-05 (Phase 10.3 designed and approved; plan next)
+# Session State — 2026-11-06 (Phase 10.3 planned and assumptions confirmed; execute next)
 
 **Date:** 2026-11-05
 
@@ -221,7 +221,9 @@
      2. **Phase 10.3 (Ticket-triage sample) is designed and approved** on 2026-11-05: `docs/superpowers/specs/2026-11-05-phase-10.3-ticket-triage-design.md`, on branch `phase/10.3-triage-brainstorm`, which builds on `chore/complete-phase-10.2` (PR #329, open). Rebase on `main` after #329 merges.
         - **Maintainer's choices:** the report covers accuracy and the confidence signal, so Banking77 (400 labelled items, one Choice and two Noul questions each), not hand-written tickets; fixed thresholds from the local calibration sweep, `intent` 0.85 and both Nouls 0.80; Daedalus's 5 s budget; TypeSafe as the target; a new `Minos.NET.Samples.TicketTriage` that builds its own report (no new CLI command).
         - **Builder check done;** its seven points are settled as my calls in the spec. Notable: the `calibrate` job's condition becomes `inputs.job == 'calibrate'`; the sample reads `prices.json` into `PriceTable` itself; no billed price probe.
-        - **Next:** `start-next-phase` routes to `superpowers:writing-plans` (Surface `Mixed`: no pre-plan hook), then `list-phase-assumptions` and execution. Two PRs: the sample, job, tests and docs first; then, after the maintainer approves the billed run from `main` (about 180 TypeSafe calls), the report folder.
+        - **Done 2026-11-06:** the plan is written, `docs/superpowers/plans/2026-11-05-phase-10.3-ticket-triage.md` (12 tasks: Tasks 1 to 10 are PR 1, Tasks 11 and 12 are PR 2), and `list-phase-assumptions` is confirmed. The maintainer chose subagent-driven development in a fresh session. The plan's "Decisions made in this plan" section adds six calls on top of the spec. Open point: Task 3 Step 1 finds out whether `UseEscalation` returns a path when no question is unsure.
+        - **Branch:** `phase/10.3-triage-brainstorm` on origin holds the spec, the plan and this state; PR #329 is still open, so rebase on `main` only after it merges. A locked worktree still has that branch checked out, so work on a local branch cut from `origin/phase/10.3-triage-brainstorm` and push back to that name.
+        - **Next:** run `superpowers:subagent-driven-development` on Tasks 1 to 10, then `pre-push-review` and PR 1 (never merge it). Part 2 (Tasks 11 and 12) waits for PR 1 to merge and the maintainer's `AskUserQuestion` approval of the billed run. Original routing note: Two PRs: the sample, job, tests and docs first; then, after the maintainer approves the billed run from `main` (about 180 TypeSafe calls), the report folder.
      3. The `.website` bot submodule PR with the Minos docs has not appeared yet; .website#127 covers only orm, rest and telemetry. When one includes Minos, ask the maintainer before approving and merging it.
      4. Done 2026-11-05: the maintainer approved deleting the remote branches `phase-10.1-escalation-brainstorm` and `phase-10.2-fallback-brainstorm`, and both are gone.
    - **Waiting on the maintainer:** a peer message to the Daedalus session "daedalus: phase 3.3 Task 16 onward" saying the recorder shipped in 1.3.0. It needs approval in the app; the `daedalus-b9` session no longer exists. The #119 comment is posted.
