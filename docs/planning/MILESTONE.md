@@ -35,7 +35,7 @@ Daedalus.NET is the first workload, and its requirements are binding: see the de
 ## Phases
 1. Phase 10.1 — Escalation middleware [complete]
 2. Phase 10.2 — Provider fallback chain [complete]
-3. Phase 10.3 — Ticket-triage sample [active]
+3. Phase 10.3 — Ticket-triage sample [complete]
 4. Phase 10.4 — Confidence routing as a framework feature [pending]
 
 ## Audit History
