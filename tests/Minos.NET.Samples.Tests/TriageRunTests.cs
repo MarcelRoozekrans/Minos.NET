@@ -183,6 +183,25 @@ public sealed class TriageRunTests : IDisposable
     }
 
     [Fact]
+    public void Budget_DefaultsToFiveSeconds()
+        => Assert.Equal(TimeSpan.FromSeconds(5), TriagePipeline.Budget);
+
+    [Theory]
+    [InlineData(1, "NoTimeLeft")]
+    [InlineData(30, "Escalated")]
+    public async Task Run_UsesTheBudgetItIsGiven(int seconds, string reason)
+    {
+        var time = new ManualTime();
+        var target = Target();
+
+        await TriageRun.RunAsync(Local(confidence: 0.6, time: time, takesMs: 2000), target, Dataset("m"), _path, _log, time, CancellationToken.None, TimeSpan.FromSeconds(seconds));
+
+        var record = Assert.Single(TriageRecordReader.Read(_path));
+        var intent = record.Questions.Single(q => string.Equals(q.Key, "intent", StringComparison.Ordinal));
+        Assert.Equal(reason, intent.Reason);
+    }
+
+    [Fact]
     public async Task Run_RecordsTargetFailed_AndKeepsTheLocalAnswerAsFinal()
     {
         var summary = await Run(Local(confidence: 0.6), FailingTarget(), Dataset("m"), this);

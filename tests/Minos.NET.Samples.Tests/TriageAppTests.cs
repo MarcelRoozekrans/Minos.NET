@@ -182,6 +182,88 @@ public sealed class TriageAppTests : IDisposable
         Assert.Equal(130, await RunAsync(RunArgs(Dataset(1)), ct: cancelled.Token));
     }
 
+    // A clock the fake local client moves by hand: it takes 2 s and is unsure about the intent.
+    private sealed class ManualTime : TimeProvider
+    {
+        private long _ticks;
+
+        public override long TimestampFrequency => 1000;
+
+        public override long GetTimestamp() => _ticks;
+
+        public override DateTimeOffset GetUtcNow() => DateTimeOffset.UnixEpoch.AddMilliseconds(_ticks);
+
+        public void AdvanceMs(long ms) => _ticks += ms;
+    }
+
+    [Theory]
+    [InlineData("1", 0, 3)]
+    [InlineData("30", 3, 0)]
+    public async Task BudgetSeconds_ReachesThePipeline(string seconds, int escalated, int noTimeLeft)
+    {
+        var clock = new ManualTime();
+        Func<string, SystemOneDecisionClientOptions, IDecisionClient> factory = (section, _) => string.Equals(section, "Local", StringComparison.Ordinal)
+            ? new Fake(r =>
+            {
+                clock.AdvanceMs(2000);
+                return Ok(r, 0, 0.5);
+            })
+            : new Fake(r => Ok(r, 0, 0.99));
+
+        var code = await TriageApp.RunAsync([.. RunArgs(Dataset(3)), "--budget-seconds", seconds], _out, _err, factory, clock, CancellationToken.None);
+
+        Assert.Equal(0, code);
+        Assert.Contains(
+            $"items=3 decided=3 failed=0 escalated_questions={escalated} no_time_left={noTimeLeft} target_failed=0",
+            _out.ToString(),
+            StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("300")]
+    [InlineData("1")]
+    public async Task BudgetSeconds_AcceptsTheEdgesOfTheRange(string seconds)
+        => Assert.Equal(0, await RunAsync([.. RunArgs(Dataset(1)), "--budget-seconds", seconds]));
+
+    [Theory]
+    [InlineData("0")]
+    [InlineData("-5")]
+    [InlineData("301")]
+    [InlineData("abc")]
+    [InlineData("1.5")]
+    [InlineData("")]
+    [InlineData("99999999999999999999")]
+    public async Task BudgetSeconds_WithABadValue_ExitsTwo_AndNamesTheOption(string value)
+    {
+        Assert.Equal(2, await RunAsync([.. RunArgs(Dataset(1)), "--budget-seconds", value]));
+        Assert.Contains("--budget-seconds", _err.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task BudgetSeconds_WithNoValue_ExitsTwo_AndNamesTheOption()
+    {
+        Assert.Equal(2, await RunAsync([.. RunArgs(Dataset(1)), "--budget-seconds"]));
+        Assert.Contains("--budget-seconds", _err.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task BudgetSeconds_Repeated_ExitsTwo_AndNamesTheOption()
+    {
+        Assert.Equal(2, await RunAsync([.. RunArgs(Dataset(1)), "--budget-seconds", "5", "--budget-seconds", "6"]));
+        Assert.Contains("--budget-seconds", _err.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task BudgetSeconds_IsRejectedInReportMode()
+    {
+        var records = Path.Combine(_dir, "records.jsonl");
+        var dataset = Dataset(1);
+        Assert.Equal(0, await RunAsync(RunArgs(dataset, records: records)));
+
+        Assert.Equal(2, await RunAsync(["--report", .. ReportArgs(records, dataset), "--budget-seconds", "5"]));
+        Assert.Contains("--budget-seconds", _err.ToString(), StringComparison.Ordinal);
+    }
+
     private string[] ReportArgs(string records, string dataset)
         => ["--records", records, "--dataset", dataset, "--prices", Write("prices.json", Prices), "--out", Path.Combine(_dir, "out")];
 

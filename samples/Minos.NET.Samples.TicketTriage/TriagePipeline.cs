@@ -12,7 +12,7 @@ public static class TriagePipeline
     /// <summary>The time an escalation call is expected to take; with less time left than this the target is not called.</summary>
     public static readonly TimeSpan ExpectedLatency = TimeSpan.FromMilliseconds(300);
 
-    /// <summary>The time one item has for the local call and the escalation together.</summary>
+    /// <summary>The time one item has for the local call and the escalation together, unless a run sets another.</summary>
     public static readonly TimeSpan Budget = TimeSpan.FromSeconds(5);
 
     /// <summary>
@@ -27,14 +27,14 @@ public static class TriagePipeline
         ["about_a_payment"] = 0.80,
     });
 
-    internal static IDecisionClient Build(IDecisionClient local, IDecisionClient target, CallSlot localSlot, CallSlot targetSlot, TimeProvider? time = null)
+    internal static IDecisionClient Build(IDecisionClient local, IDecisionClient target, CallSlot localSlot, CallSlot targetSlot, TimeProvider? time = null, TimeSpan? budget = null)
         => new LocalCaptureClient(local, localSlot, time).AsBuilder()
             .UseEscalation(new TimingDecisionClient(target, targetSlot, time), o =>
             {
                 o.PrimaryName = PrimaryName;
                 o.TargetName = TargetName;
                 o.ExpectedLatency = ExpectedLatency;
-                o.Budget = Budget;
+                o.Budget = budget ?? Budget;
                 foreach (var (key, threshold) in Thresholds)
                 {
                     o.Thresholds[key] = threshold;
