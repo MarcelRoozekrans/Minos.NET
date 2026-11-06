@@ -1,0 +1,169 @@
+﻿{
+  "version": 1,
+  "run": {
+    "itemsRead": 60,
+    "decided": 52,
+    "failuresByError": {
+      "InvalidResponse": 3,
+      "Timeout": 5
+    },
+    "servedModels": {
+      "jev-1.14.0": 17,
+      "local-model": 52
+    },
+    "datasetItems": 80
+  },
+  "split": {
+    "choice": {
+      "confident": 30,
+      "escalated": 6,
+      "noTimeLeft": 2,
+      "targetFailed": 2,
+      "ticketsWithTargetCall": 8
+    },
+    "noul": {
+      "confident": 8,
+      "escalated": 2,
+      "noTimeLeft": 1,
+      "targetFailed": 1,
+      "ticketsWithTargetCall": 3
+    },
+    "all": {
+      "confident": 38,
+      "escalated": 8,
+      "noTimeLeft": 3,
+      "targetFailed": 3,
+      "ticketsWithTargetCall": 10
+    }
+  },
+  "accuracy": {
+    "choice": {
+      "localAlone": {
+        "correct": 28,
+        "total": 40,
+        "rate": 0.7
+      },
+      "final": {
+        "correct": 31,
+        "total": 40,
+        "rate": 0.775
+      },
+      "target": {
+        "correct": 5,
+        "total": 6,
+        "rate": 0.8333
+      }
+    },
+    "noul": {
+      "localAlone": {
+        "correct": 9,
+        "total": 12,
+        "rate": 0.75
+      },
+      "final": {
+        "correct": 10,
+        "total": 12,
+        "rate": 0.8333
+      },
+      "target": {
+        "correct": 2,
+        "total": 2,
+        "rate": 1
+      }
+    },
+    "all": {
+      "localAlone": {
+        "correct": 37,
+        "total": 52,
+        "rate": 0.7115
+      },
+      "final": {
+        "correct": 41,
+        "total": 52,
+        "rate": 0.7885
+      },
+      "target": {
+        "correct": 7,
+        "total": 8,
+        "rate": 0.875
+      }
+    }
+  },
+  "escalated": {
+    "choice": {
+      "fixed": 3,
+      "broken": 1,
+      "bothRight": 2,
+      "bothWrong": 0
+    },
+    "noul": {
+      "fixed": 1,
+      "broken": 0,
+      "bothRight": 1,
+      "bothWrong": 0
+    },
+    "all": {
+      "fixed": 4,
+      "broken": 1,
+      "bothRight": 3,
+      "bothWrong": 0
+    }
+  },
+  "signal": {
+    "choice": {
+      "wrongCaught": 7,
+      "wrongMissed": 3,
+      "belowThreshold": 10,
+      "belowThresholdLocalRight": 2
+    },
+    "noul": {
+      "wrongCaught": 2,
+      "wrongMissed": 1,
+      "belowThreshold": 4,
+      "belowThresholdLocalRight": 1
+    },
+    "all": {
+      "wrongCaught": 9,
+      "wrongMissed": 4,
+      "belowThreshold": 14,
+      "belowThresholdLocalRight": 3
+    }
+  },
+  "latency": {
+    "withTarget": {
+      "count": 10,
+      "medianMs": 612.5,
+      "p95Ms": 1204
+    },
+    "withoutTarget": {
+      "count": 42,
+      "medianMs": 88,
+      "p95Ms": 240
+    },
+    "local": {
+      "count": 52,
+      "medianMs": 80,
+      "p95Ms": 210
+    },
+    "target": {
+      "count": 8,
+      "medianMs": 520,
+      "p95Ms": 1100
+    }
+  },
+  "cost": {
+    "perThousandTickets": 0.123456,
+    "reported": 10,
+    "priced": 0,
+    "unknown": 0,
+    "pricesUsed": [
+      {
+        "model": "jev-1.14.0",
+        "inputPerMillion": 0.042,
+        "outputPerMillion": 0.084,
+        "date": "2026-11-01",
+        "source": "the provider\u0027s price list"
+      }
+    ]
+  }
+}

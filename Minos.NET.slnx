@@ -46,6 +46,7 @@
     <Project Path="samples/Minos.NET.Samples.ProviderSwitch/Minos.NET.Samples.ProviderSwitch.csproj" />
     <Project Path="samples/Minos.NET.Samples.ChatClient/Minos.NET.Samples.ChatClient.csproj" />
     <Project Path="samples/Minos.NET.Samples.ShadowReplay/Minos.NET.Samples.ShadowReplay.csproj" />
+    <Project Path="samples/Minos.NET.Samples.TicketTriage/Minos.NET.Samples.TicketTriage.csproj" />
   </Folder>
   <Folder Name="/benchmarks/">
     <Project Path="benchmarks/Minos.NET.Benchmarks/Minos.NET.Benchmarks.csproj" />
