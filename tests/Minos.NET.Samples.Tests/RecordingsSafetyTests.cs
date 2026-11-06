@@ -33,7 +33,7 @@ public sealed partial class RecordingsSafetyTests
 
     // The chat-client sample answers from a fake chat client, so it has nothing to record; its own test covers it.
     // The shadow-replay sample writes its own record file (a JSONL one) when run against live clients, not a recordings.json.
-    private static readonly string[] SamplesWithoutRecordings = ["Minos.NET.Samples.ChatClient", "Minos.NET.Samples.ShadowReplay"];
+    private static readonly string[] SamplesWithoutRecordings = ["Minos.NET.Samples.ChatClient", "Minos.NET.Samples.ShadowReplay", "Minos.NET.Samples.TicketTriage"];
 
     // A sample with several providers keeps one file per provider in recordings/ instead; the test below checks those.
     [Fact]
