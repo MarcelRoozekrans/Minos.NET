@@ -201,6 +201,13 @@ internal static class TriageApp
                 return null;
             }
 
+            // A value that looks like an option means the real value is missing; every value here is a path.
+            if (!IsUsablePath(args[i + 1]))
+            {
+                stderr.WriteLine("The option '" + args[i] + "' needs a path as its value.");
+                return null;
+            }
+
             i += 2;
         }
 
@@ -212,5 +219,23 @@ internal static class TriageApp
         }
 
         return values;
+    }
+
+    private static bool IsUsablePath(string value)
+    {
+        if (string.IsNullOrWhiteSpace(value) || value.StartsWith("--", StringComparison.Ordinal))
+        {
+            return false;
+        }
+
+        try
+        {
+            _ = Path.GetFullPath(value);
+            return true;
+        }
+        catch (Exception ex) when (ex is ArgumentException or NotSupportedException or PathTooLongException)
+        {
+            return false;
+        }
     }
 }

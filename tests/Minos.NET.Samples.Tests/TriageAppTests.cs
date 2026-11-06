@@ -114,26 +114,111 @@ public sealed class TriageAppTests : IDisposable
     }
 
     [Fact]
-    public async Task ExitCodes_AreAsDocumented()
+    public async Task MissingOption_ExitsTwo()
+        => Assert.Equal(2, await RunAsync(["--dataset", Dataset(1), "--config", Write("minos.json", Config)]));
+
+    [Fact]
+    public async Task UnknownOption_ExitsTwo()
+        => Assert.Equal(2, await RunAsync(["--bogus", "x"]));
+
+    [Fact]
+    public async Task RepeatedOption_ExitsTwo()
     {
         var dataset = Dataset(1);
-        var config = Write("minos.json", Config);
+        Assert.Equal(2, await RunAsync([.. RunArgs(dataset), "--dataset", dataset]));
+    }
 
-        Assert.Equal(2, await RunAsync(["--dataset", dataset, "--config", config]));
-        Assert.Equal(2, await RunAsync(["--bogus", "x"]));
-        Assert.Equal(2, await RunAsync([.. RunArgs(dataset, config), "--dataset", dataset]));
-        Assert.Equal(2, await RunAsync(RunArgs(Write("bad.jsonl", "not json"), config)));
+    [Fact]
+    public async Task BadDatasetLine_ExitsTwo()
+        => Assert.Equal(2, await RunAsync(RunArgs(Write("bad.jsonl", "not json"))));
 
+    [Fact]
+    public async Task UnknownSection_ExitsTwo()
+    {
         var noSection = Write("other.json", """{"Minos":{"Providers":{"Local":{"Provider":"Custom","BaseAddress":"http://127.0.0.1:1/","Model":"m"}}}}""");
-        Assert.Equal(2, await RunAsync(RunArgs(dataset, noSection)));
+
+        Assert.Equal(2, await RunAsync(RunArgs(Dataset(1), noSection)));
         Assert.Contains("TypeSafe", _err.ToString(), StringComparison.Ordinal);
+    }
 
-        Assert.Equal(2, await RunAsync(RunArgs(Dataset(TriageApp.MaxItems + 1, "big.jsonl"), config)));
-        Assert.Equal(1, await RunAsync(RunArgs(dataset, config), Failing()));
+    [Fact]
+    public async Task OversizeDataset_ExitsTwo()
+        => Assert.Equal(2, await RunAsync(RunArgs(Dataset(TriageApp.MaxItems + 1, "big.jsonl"))));
 
+    [Fact]
+    public async Task NoneDecided_ExitsOne()
+        => Assert.Equal(1, await RunAsync(RunArgs(Dataset(1)), Failing()));
+
+    [Fact]
+    public async Task Cancelled_ExitsOneThirty()
+    {
         using var cancelled = new CancellationTokenSource();
         await cancelled.CancelAsync();
-        Assert.Equal(130, await RunAsync(RunArgs(dataset, config), ct: cancelled.Token));
+
+        Assert.Equal(130, await RunAsync(RunArgs(Dataset(1)), ct: cancelled.Token));
+    }
+
+    private string[] ReportArgs(string records, string dataset)
+        => ["--records", records, "--dataset", dataset, "--prices", Write("prices.json", Prices), "--out", Path.Combine(_dir, "out")];
+
+    [Fact]
+    public async Task ReportMode_RejectsConfig()
+    {
+        var records = Path.Combine(_dir, "records.jsonl");
+        var dataset = Dataset(1);
+        Assert.Equal(0, await RunAsync(RunArgs(dataset, records: records)));
+
+        Assert.Equal(2, await RunAsync(["--report", .. ReportArgs(records, dataset), "--config", Write("minos.json", Config)]));
+    }
+
+    [Fact]
+    public async Task RunMode_RejectsOutAndPrices()
+    {
+        var dataset = Dataset(1);
+
+        Assert.Equal(2, await RunAsync([.. RunArgs(dataset), "--out", Path.Combine(_dir, "out")]));
+        Assert.Equal(2, await RunAsync([.. RunArgs(dataset), "--prices", Write("prices.json", Prices)]));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(4)]
+    [InlineData(8)]
+    public async Task ReportFlag_DoesNotConsumeItsNeighbour_WhateverItsPosition(int position)
+    {
+        var records = Path.Combine(_dir, "records.jsonl");
+        var dataset = Dataset(2);
+        Assert.Equal(0, await RunAsync(RunArgs(dataset, records: records)));
+        var args = ReportArgs(records, dataset).ToList();
+        args.Insert(position, "--report");
+
+        Assert.Equal(0, await RunAsync([.. args]));
+        Assert.Contains("Items read: 2.", File.ReadAllText(Path.Combine(_dir, "out", "triage-report.md")), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task EmptyOut_ExitsTwo_AndNamesTheOption()
+    {
+        var records = Path.Combine(_dir, "records.jsonl");
+        var dataset = Dataset(1);
+        Assert.Equal(0, await RunAsync(RunArgs(dataset, records: records)));
+
+        Assert.Equal(2, await RunAsync(["--report", "--records", records, "--dataset", dataset, "--prices", Write("prices.json", Prices), "--out", ""]));
+        Assert.Contains("--out", _err.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task EmptyRecords_ExitsTwo_AndNamesTheOption()
+    {
+        Assert.Equal(2, await RunAsync(RunArgs(Dataset(1), records: "")));
+        Assert.Contains("--records", _err.ToString(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task AValueThatLooksLikeAnOption_ExitsTwo()
+    {
+        Assert.Equal(2, await RunAsync(["--dataset", "--config", Write("minos.json", Config), "--records", Path.Combine(_dir, "r.jsonl")]));
+        Assert.Contains("--dataset", _err.ToString(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -147,6 +232,7 @@ public sealed class TriageAppTests : IDisposable
 
         Assert.Equal(2, code);
         Assert.Contains("t-2", _err.ToString(), StringComparison.Ordinal);
+        Assert.DoesNotContain(SecretText, _out.ToString() + _err, StringComparison.Ordinal);
     }
 
     [Fact]
