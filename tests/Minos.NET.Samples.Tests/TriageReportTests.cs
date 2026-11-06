@@ -252,4 +252,149 @@ public sealed class TriageReportTests
         Assert.False(Judge.IsRight(answer, ExpectedAnswer.ForChoice("b")));
         Assert.False(Judge.IsRight(answer, ExpectedAnswer.ForNoul(true)));
     }
+
+    private static TriageRecord Timed(string id, double totalMs, params TriageCall[] calls)
+        => new(id, totalMs, null, [Q("intent", true, "Confident", true)], calls);
+
+    private static TriageCall Timed(string client, string status, double? ms, string? model = null, int? input = null, int? output = null, double? cost = null)
+        => new(client, model, input, output, cost, status, ms);
+
+    [Fact]
+    public void Latency_UsesNearestRank_ForMedianAndP95()
+    {
+        var records = Enumerable.Range(1, 20).Select(i => Timed(i.ToString(System.Globalization.CultureInfo.InvariantCulture), i * 10, Timed("local", "Answered", 1))).ToArray();
+
+        var latency = TriageReportBuilder.Build(records, Dataset(records.Select(r => r.Id).ToArray()), NoPrices).Latency;
+
+        Assert.Equal(20, latency.WithoutTarget.Count);
+        Assert.Equal(100, latency.WithoutTarget.Median);
+        Assert.Equal(190, latency.WithoutTarget.P95);
+    }
+
+    [Fact]
+    public void Latency_SplitsTicketsWithAndWithoutATargetCall()
+    {
+        var records = new[]
+        {
+            Timed("1", 400, Timed("local", "Answered", 100), Timed("typesafe", "Answered", 300)),
+            Timed("2", 450, Timed("local", "Answered", 100), Timed("typesafe", "Failed", 350)),
+            Timed("3", 50, Timed("local", "Answered", 50)),
+            Timed("4", 60, Timed("local", "Answered", 60), Timed("typesafe", "NotCalledNoTimeLeft", null)),
+        };
+
+        var latency = TriageReportBuilder.Build(records, Dataset("1", "2", "3", "4"), NoPrices).Latency;
+
+        Assert.Equal(new TimeSummary(2, 400, 450), latency.WithTarget);
+        Assert.Equal(new TimeSummary(2, 50, 60), latency.WithoutTarget);
+    }
+
+    [Fact]
+    public void Latency_LocalAndTargetCalls_LeaveOutSkippedAndFailedTickets()
+    {
+        var records = new[]
+        {
+            Timed("1", 400, Timed("local", "Answered", 100), Timed("typesafe", "Answered", 300)),
+            Timed("2", 60, Timed("local", "Answered", 60), Timed("typesafe", "NotCalledNoTimeLeft", null)),
+            new TriageRecord("3", 9999, "Timeout", [], []),
+        };
+
+        var latency = TriageReportBuilder.Build(records, Dataset("1", "2", "3"), NoPrices).Latency;
+
+        Assert.Equal(new TimeSummary(2, 60, 100), latency.Local);
+        Assert.Equal(new TimeSummary(1, 300, 300), latency.Target);
+        Assert.Equal(1, latency.WithTarget.Count);
+        Assert.Equal(1, latency.WithoutTarget.Count);
+    }
+
+    [Fact]
+    public void Latency_AnAllFailedRun_HasNoValuesAndStillBuilds()
+    {
+        var records = new[] { new TriageRecord("1", 5, "Timeout", [], []) };
+
+        var latency = TriageReportBuilder.Build(records, Dataset("1"), NoPrices).Latency;
+
+        Assert.Equal(new TimeSummary(0, null, null), latency.Local);
+        Assert.Null(TriageReportBuilder.Build(records, Dataset("1"), NoPrices).Cost.PerThousandTickets);
+    }
+
+    private static PriceTable Prices() => new([
+        new ModelPrice { Model = "zeta", InputPerMillion = 1000, OutputPerMillion = 2000, Date = new DateOnly(2026, 1, 1), Source = "s" },
+        new ModelPrice { Model = "local-m", InputPerMillion = 0, OutputPerMillion = 0, Date = new DateOnly(2026, 1, 1), Source = "s" },
+        new ModelPrice { Model = "alpha", InputPerMillion = 1, OutputPerMillion = 1, Date = new DateOnly(2026, 1, 1), Source = "s" },
+    ]);
+
+    [Fact]
+    public void Cost_SumsATicketsCalls_AndDividesByDecidedTickets()
+    {
+        var records = new[]
+        {
+            Timed("1", 1, Timed("local", "Answered", 1, cost: 0.001), Timed("typesafe", "Answered", 1, cost: 0.002)),
+            Timed("2", 1, Timed("local", "Answered", 1, cost: 0.003)),
+            new TriageRecord("3", 1, "Timeout", [], []),
+        };
+
+        var cost = TriageReportBuilder.Build(records, Dataset("1", "2", "3"), NoPrices).Cost;
+
+        Assert.Equal(3.0, cost.PerThousandTickets!.Value, 9);
+        Assert.Equal(2, cost.Reported);
+        Assert.Equal(0, cost.Priced);
+        Assert.Equal(0, cost.Unknown);
+    }
+
+    [Fact]
+    public void Cost_PrefersReportedCost_ThenPrice_ThenUnknown()
+    {
+        var records = new[]
+        {
+            Timed("1", 1, Timed("local", "Answered", 1, "local-m", 100, 10), Timed("typesafe", "Answered", 1, "zeta", 1000, 500, cost: 0.5)),
+            Timed("2", 1, Timed("local", "Answered", 1, "local-m", 100, 10), Timed("typesafe", "Answered", 1, "zeta", 1000, 500)),
+            Timed("3", 1, Timed("local", "Answered", 1, "local-m", 100, 10), Timed("typesafe", "Answered", 1, "mystery", 1000, 500)),
+        };
+
+        var cost = TriageReportBuilder.Build(records, Dataset("1", "2", "3"), Prices()).Cost;
+
+        // Ticket 1 is 0.5 (its local call is zero-priced, so the ticket counts as priced); ticket 2 is 1000*1000/1e6 + 500*2000/1e6 = 2; ticket 3 has an unpriced call and is unknown.
+        Assert.Equal(2.5 / 3 * 1000, cost.PerThousandTickets!.Value, 6);
+        Assert.Equal(0, cost.Reported);
+        Assert.Equal(2, cost.Priced);
+        Assert.Equal(1, cost.Unknown);
+    }
+
+    [Fact]
+    public void Cost_PricesUsed_ListsOnlyUsedModels_SortedOrdinal()
+    {
+        var records = new[]
+        {
+            Timed("1", 1, Timed("local", "Answered", 1, "zeta", 10, 1), Timed("typesafe", "Answered", 1, "alpha-2", 10, 1)),
+        };
+
+        var cost = TriageReportBuilder.Build(records, Dataset("1"), Prices()).Cost;
+
+        Assert.Equal(["alpha", "zeta"], cost.PricesUsed.Select(p => p.Model).ToArray());
+    }
+
+    [Fact]
+    public void PricesFile_LoadsTheCommittedFile()
+    {
+        var table = PricesFile.Load(Path.Combine(Repository.Root, "docs", "reports", "prices.json"));
+
+        Assert.True(table.TryFind("jev-1.14.0", out var price));
+        Assert.Equal(0.042, price!.InputPerMillion);
+    }
+
+    [Fact]
+    public void PricesFile_RejectsAnEmptyModel()
+    {
+        var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".json");
+        File.WriteAllText(path, """{"prices":[{"model":"","inputPerMillion":1,"outputPerMillion":1,"date":"2026-01-01","source":"s"}]}""");
+        try
+        {
+            var ex = Assert.Throws<InvalidDataException>(() => PricesFile.Load(path));
+            Assert.Contains(path, ex.Message, StringComparison.Ordinal);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
 }

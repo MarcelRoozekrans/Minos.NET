@@ -1,3 +1,5 @@
+using Minos.Evaluation;
+
 namespace Minos.Samples.TicketTriage;
 
 /// <summary>A value for the Choice questions, the Noul questions and all questions together.</summary>
@@ -58,6 +60,27 @@ public sealed record EscalatedTable(int Fixed, int Broken, int BothRight, int Bo
 /// <param name="BelowThresholdLocalRight">Of those, the local answers that were right.</param>
 public sealed record SignalSection(int WrongCaught, int WrongMissed, int BelowThreshold, int BelowThresholdLocalRight);
 
+/// <summary>A count of timings with their median and 95th percentile, nearest-rank, in milliseconds.</summary>
+/// <param name="Count">The timings.</param>
+/// <param name="Median">The median; <see langword="null"/> when there are none.</param>
+/// <param name="P95">The 95th percentile; <see langword="null"/> when there are none.</param>
+public sealed record TimeSummary(int Count, double? Median, double? P95);
+
+/// <summary>Per-ticket time with and without a target call, and the time of the local and the target call.</summary>
+/// <param name="WithTarget">The tickets whose path had a target call that was not skipped.</param>
+/// <param name="WithoutTarget">The other decided tickets.</param>
+/// <param name="Local">The local calls that reported a time.</param>
+/// <param name="Target">The target calls that were made and reported a time.</param>
+public sealed record LatencySection(TimeSummary WithTarget, TimeSummary WithoutTarget, TimeSummary Local, TimeSummary Target);
+
+/// <summary>What the decided tickets cost. A ticket with any call of unknown cost is counted as unknown.</summary>
+/// <param name="PerThousandTickets">The known total divided by the decided tickets, times 1000; <see langword="null"/> when no ticket has a known cost.</param>
+/// <param name="Reported">The tickets whose calls all reported a cost.</param>
+/// <param name="Priced">The tickets with a call costed from tokens and a price, and none unknown.</param>
+/// <param name="Unknown">The tickets with a call that has neither a cost nor a price.</param>
+/// <param name="PricesUsed">The prices applied, sorted by model ordinal.</param>
+public sealed record CostSection(double? PerThousandTickets, int Reported, int Priced, int Unknown, IReadOnlyList<ModelPrice> PricesUsed);
+
 /// <summary>The sections of the triage report. It holds no message text.</summary>
 public sealed class TriageReport
 {
@@ -66,13 +89,17 @@ public sealed class TriageReport
         PerKind<SplitCounts> split,
         PerKind<AccuracySection> accuracy,
         PerKind<EscalatedTable> escalated,
-        PerKind<SignalSection> signal)
+        PerKind<SignalSection> signal,
+        LatencySection latency,
+        CostSection cost)
     {
         Run = run;
         Split = split;
         Accuracy = accuracy;
         Escalated = escalated;
         Signal = signal;
+        Latency = latency;
+        Cost = cost;
     }
 
     /// <summary>Gets the items read, decided, failed and the served models.</summary>
@@ -89,4 +116,10 @@ public sealed class TriageReport
 
     /// <summary>Gets the signal check per kind.</summary>
     public PerKind<SignalSection> Signal { get; }
+
+    /// <summary>Gets the per-ticket and per-call time.</summary>
+    public LatencySection Latency { get; }
+
+    /// <summary>Gets the cost per 1000 tickets.</summary>
+    public CostSection Cost { get; }
 }

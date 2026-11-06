@@ -31,6 +31,11 @@ public static class TriageReportBuilder
         var tickets = new Dictionary<QuestionKind, int>();
         var allTickets = 0;
         var tally = new Tally();
+        var withTarget = new List<double>();
+        var withoutTarget = new List<double>();
+        var localTimes = new List<double>();
+        var targetTimes = new List<double>();
+        var cost = new CostTally();
 
         foreach (var record in records)
         {
@@ -54,12 +59,19 @@ public static class TriageReportBuilder
                     models[model] = models.GetValueOrDefault(model) + 1;
                 }
 
-                if (string.Equals(call.Client, TriagePipeline.TargetName, StringComparison.Ordinal)
-                    && !string.Equals(call.Status, "NotCalledNoTimeLeft", StringComparison.Ordinal))
+                var isTarget = string.Equals(call.Client, TriagePipeline.TargetName, StringComparison.Ordinal);
+                if (!string.Equals(call.Status, "NotCalledNoTimeLeft", StringComparison.Ordinal))
                 {
-                    targetCalled = true;
+                    targetCalled |= isTarget;
+                    if (call.LatencyMs is { } ms)
+                    {
+                        (isTarget ? targetTimes : localTimes).Add(ms);
+                    }
                 }
             }
+
+            (targetCalled ? withTarget : withoutTarget).Add(record.TotalMs);
+            cost.Add(record.Calls, prices);
 
             allTickets += targetCalled ? 1 : 0;
 
@@ -93,7 +105,95 @@ public static class TriageReportBuilder
                 tally.All.Split(allTickets)),
             new PerKind<AccuracySection>(tally.Choice.Accuracy(), tally.Noul.Accuracy(), tally.All.Accuracy()),
             new PerKind<EscalatedTable>(tally.Choice.Table(), tally.Noul.Table(), tally.All.Table()),
-            new PerKind<SignalSection>(tally.Choice.Signal(), tally.Noul.Signal(), tally.All.Signal()));
+            new PerKind<SignalSection>(tally.Choice.Signal(), tally.Noul.Signal(), tally.All.Signal()),
+            new LatencySection(Summarize(withTarget), Summarize(withoutTarget), Summarize(localTimes), Summarize(targetTimes)),
+            cost.Section(decided));
+    }
+
+    private static TimeSummary Summarize(List<double> values)
+    {
+        if (values.Count == 0)
+        {
+            return new TimeSummary(0, null, null);
+        }
+
+        values.Sort();
+        return new TimeSummary(values.Count, NearestRank(values, 50), NearestRank(values, 95));
+    }
+
+    // The rank is ceil(q * n), computed in integers so that a q such as 0.95 cannot round the rank up.
+    private static double NearestRank(List<double> sorted, int percent)
+        => sorted[Math.Max(1, ((percent * sorted.Count) + 99) / 100) - 1];
+
+    private sealed class CostTally
+    {
+        private const double TokensPerMillion = 1_000_000.0;
+        private readonly List<ModelPrice> _used = [];
+        private double _total;
+        private int _reported;
+        private int _priced;
+        private int _unknown;
+
+        public void Add(IReadOnlyList<TriageCall> calls, PriceTable prices)
+        {
+            var sum = 0.0;
+            var anyPriced = false;
+            var anyUnknown = false;
+            foreach (var call in calls)
+            {
+                // A call that was skipped, or that failed before any usage came back, billed nothing.
+                if (string.Equals(call.Status, "NotCalledNoTimeLeft", StringComparison.Ordinal)
+                    || (!string.Equals(call.Status, "Answered", StringComparison.Ordinal)
+                        && call.Cost is null && call.Model is null && call.InputTokens is null && call.OutputTokens is null))
+                {
+                    continue;
+                }
+
+                if (call.Cost is { } reported)
+                {
+                    sum += reported;
+                }
+                else if (call.Model is { } model
+                    && call.InputTokens is { } input
+                    && call.OutputTokens is { } output
+                    && prices.TryFind(model, out var price))
+                {
+                    anyPriced = true;
+                    sum += ((input * price.InputPerMillion) + (output * price.OutputPerMillion)) / TokensPerMillion;
+                    if (!_used.Contains(price))
+                    {
+                        _used.Add(price);
+                    }
+                }
+                else
+                {
+                    anyUnknown = true;
+                }
+            }
+
+            if (anyUnknown)
+            {
+                _unknown++;
+                return;
+            }
+
+            _total += sum;
+            if (anyPriced)
+            {
+                _priced++;
+            }
+            else
+            {
+                _reported++;
+            }
+        }
+
+        public CostSection Section(int decided)
+        {
+            _used.Sort(static (a, b) => string.CompareOrdinal(a.Model, b.Model));
+            var perThousand = _reported + _priced == 0 ? (double?)null : _total / decided * 1000;
+            return new CostSection(perThousand, _reported, _priced, _unknown, _used);
+        }
     }
 
     private sealed class Tally
