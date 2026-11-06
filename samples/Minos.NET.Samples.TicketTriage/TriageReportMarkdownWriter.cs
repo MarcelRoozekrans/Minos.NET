@@ -52,7 +52,7 @@ internal static class TriageReportMarkdownWriter
                 .Append("- No time left, kept on the local answer: ").Append(Share(s.NoTimeLeft, total)).Append('\n')
                 .Append("- Target failed, kept on the local answer: ").Append(Share(s.TargetFailed, total)).Append('\n');
             md.Append("- Tickets with a target call: ").Append(
-                string.Equals(name, "All", StringComparison.Ordinal) ? Share(s.TicketsWithTargetCall, report.Run.Decided) : N(s.TicketsWithTargetCall)).Append("\n\n");
+                string.Equals(name, "All", StringComparison.Ordinal) ? Share(s.TicketsWithTargetCall, report.Run.Decided) : N(s.TicketsWithTargetCall) + Small(s.TicketsWithTargetCall)).Append("\n\n");
         }
     }
 

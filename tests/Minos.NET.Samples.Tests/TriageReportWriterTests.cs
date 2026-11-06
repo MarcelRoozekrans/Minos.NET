@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Text.RegularExpressions;
 using Minos.Evaluation;
 using Minos.Samples.TicketTriage;
@@ -44,15 +45,11 @@ public sealed partial class TriageReportWriterTests
     {
         var md = TriageReportMarkdownWriter.Write(Fixed());
 
-        var last = -1;
-        foreach (var heading in Headings)
+        Assert.StartsWith("# Triage report\n", md, StringComparison.Ordinal);
+        var last = 0;
+        foreach (var heading in Headings.Skip(1))
         {
             var at = md.IndexOf("\n" + heading + "\n", StringComparison.Ordinal);
-            if (at < 0 && heading.StartsWith("# ", StringComparison.Ordinal) && !heading.StartsWith("##", StringComparison.Ordinal))
-            {
-                at = md.StartsWith(heading + "\n", StringComparison.Ordinal) ? 0 : -1;
-            }
-
             Assert.True(at > last, heading);
             last = at;
         }
@@ -74,6 +71,29 @@ public sealed partial class TriageReportWriterTests
     [Fact]
     public void Markdown_HasNoVerdictWords()
         => Assert.DoesNotMatch(VerdictWords(), TriageReportMarkdownWriter.Write(Fixed()));
+
+    [Fact]
+    public void Writers_AreCultureIndependent()
+    {
+        var invariantMd = TriageReportMarkdownWriter.Write(Fixed());
+        var invariantJson = TriageReportJsonWriter.Write(Fixed());
+        var culture = CultureInfo.CurrentCulture;
+        var ui = CultureInfo.CurrentUICulture;
+        try
+        {
+            var dutch = new CultureInfo("nl-NL");
+            CultureInfo.CurrentCulture = dutch;
+            CultureInfo.CurrentUICulture = dutch;
+
+            Assert.Equal(invariantMd, TriageReportMarkdownWriter.Write(Fixed()));
+            Assert.Equal(invariantJson, TriageReportJsonWriter.Write(Fixed()));
+        }
+        finally
+        {
+            CultureInfo.CurrentCulture = culture;
+            CultureInfo.CurrentUICulture = ui;
+        }
+    }
 
     [Fact]
     public void Json_IsStable_ForTheSameReport()

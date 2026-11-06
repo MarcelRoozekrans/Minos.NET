@@ -133,6 +133,7 @@ internal static class TriageReportJsonWriter
     private static void WriteCost(Utf8JsonWriter w, CostSection c)
     {
         w.WriteStartObject("cost");
+        // The G6 round trip rounds the money to 6 significant digits, as the Markdown shows it.
         if (c.PerThousandTickets is { } cost)
         {
             w.WriteNumber("perThousandTickets", double.Parse(cost.ToString("G6", System.Globalization.CultureInfo.InvariantCulture), System.Globalization.CultureInfo.InvariantCulture));

@@ -19,7 +19,7 @@ The questions by the route reason, and the tickets whose path had a target call 
 - Escalated, answered by the target: 6 of 40 (0.1500)
 - No time left, kept on the local answer: 2 of 40 (0.0500)
 - Target failed, kept on the local answer: 2 of 40 (0.0500)
-- Tickets with a target call: 8
+- Tickets with a target call: 8 (small: n < 30)
 
 ### Noul
 
@@ -28,7 +28,7 @@ The questions by the route reason, and the tickets whose path had a target call 
 - Escalated, answered by the target: 2 of 12 (0.1667) (small: n < 30)
 - No time left, kept on the local answer: 1 of 12 (0.0833) (small: n < 30)
 - Target failed, kept on the local answer: 1 of 12 (0.0833) (small: n < 30)
-- Tickets with a target call: 3
+- Tickets with a target call: 3 (small: n < 30)
 
 ### All
 
