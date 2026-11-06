@@ -2,7 +2,7 @@
 id: samples
 title: Samples
 sidebar_position: 19
-description: Seven runnable cookbook samples, five that run offline, one that replays a dataset through shadow mode and one that measures escalation, and how to run, record and trust them.
+description: Seven runnable cookbook samples, five that run offline, one that replays a dataset through shadow mode and one that measures escalation on labelled tickets, and how to run, record and trust them.
 ---
 
 # Samples
@@ -116,7 +116,7 @@ A sample that is not run goes stale, so the CI workflow checks them in three way
   warnings treated as errors.
 - **Their tests run.** The sample tests check each policy and route with made-up answers, compare each sample's report
   with a checked-in snapshot, and check that every recording holds no key and no header, that every sample but the
-  chat-client and shadow-replay ones has recordings, and that the provider-switch sample has one file per provider. The chat-client
+  chat-client, shadow-replay and ticket-triage ones has recordings, and that the provider-switch sample has one file per provider. The chat-client
   sample's test runs it offline and compares its whole output with a snapshot.
 - **Each recorded sample runs, for real, in replay.** After the tests, a CI step runs every folder under `samples/` that
   holds a `recordings.json`, through the sample's real entry point: argument parsing, configuration and host setup

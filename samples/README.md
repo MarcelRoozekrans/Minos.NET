@@ -22,7 +22,7 @@ dotnet run --project samples/Minos.NET.Samples.Guardrails
 
 Replay and record read and write the recordings in your clone of the repository: each sample's `recordings.json` in its source folder, or for the provider-switch sample one file per provider in its `recordings/` folder. Run those two modes from a clone, not from a copied build output. `--live` reads no recordings and runs from anywhere.
 
-Every sample except the chat-client and shadow-replay samples runs in one of three modes, chosen by the argument after `--`:
+Every sample except the chat-client, shadow-replay and ticket-triage samples runs in one of three modes, chosen by the argument after `--`:
 
 - **Replay** is the default and needs no network and no key. It answers every request from the checked-in recordings.
 - `--live` calls the API and prints the report. It needs `OPENROUTER_API_KEY` and makes billed requests.

@@ -151,7 +151,7 @@ The guide lives at [marcelroozekrans.github.io/Minos.NET](https://marcelroozekra
 
 ## Samples
 
-Runnable cookbook apps live in [`samples/`](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples). Five run offline: four replay recorded answers, one of them against three providers by configuration, and the chat-client sample uses a scripted chat client when no key is set. The shadow-replay sample calls a hosted primary and a local candidate, and is billed.
+Runnable cookbook apps live in [`samples/`](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/samples). Five run offline: four replay recorded answers, one of them against three providers by configuration, and the chat-client sample uses a scripted chat client when no key is set. The shadow-replay sample calls a hosted primary and a local candidate, and is billed. The ticket-triage sample runs a local model with escalation to a hosted one, is billed once per ticket with an unsure question and has no recordings.
 
 ## Building
 
