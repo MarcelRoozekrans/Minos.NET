@@ -131,6 +131,23 @@ public sealed class TriageReportTests
     }
 
     [Fact]
+    public void SkippedOrFailedTarget_WithADifferingFinal_IsNotCreditedToTheTarget()
+    {
+        var records = new[]
+        {
+            Rec("1", [Q("intent", false, "NoTimeLeft", true), Q("urgent", true, "TargetFailed", false)], Local(), Target("Failed")),
+        };
+
+        var report = TriageReportBuilder.Build(records, Dataset("1"), NoPrices);
+
+        Assert.Equal(new Hits(0, 1), report.Accuracy.Choice.Final);
+        Assert.Equal(new Hits(1, 1), report.Accuracy.Noul.Final);
+        Assert.Equal(new Hits(1, 2), report.Accuracy.All.Final);
+        Assert.Equal(new Hits(0, 0), report.Accuracy.All.Target);
+        Assert.Equal(new EscalatedTable(0, 0, 0, 0), report.Escalated.All);
+    }
+
+    [Fact]
     public void Signal_CountsCaughtAndMissedWrongAnswers_ByReason()
     {
         var records = new[]

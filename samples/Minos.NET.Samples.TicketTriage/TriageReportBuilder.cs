@@ -18,6 +18,7 @@ public static class TriageReportBuilder
         ArgumentNullException.ThrowIfNull(dataset);
         ArgumentNullException.ThrowIfNull(prices);
 
+        // The dataset reader rejects duplicate item ids, so each id appears once.
         var items = new Dictionary<string, DatasetItem>(StringComparer.Ordinal);
         foreach (var item in dataset)
         {
@@ -106,7 +107,10 @@ public static class TriageReportBuilder
         public void Add(TriageQuestion question, ExpectedAnswer expected)
         {
             var localRight = Judge.IsRight(question.Local, expected);
-            var finalRight = Judge.IsRight(question.Final, expected);
+            // Only the target replaces the local answer; on any other reason the local answer stands, whatever Final holds.
+            var finalRight = string.Equals(question.Reason, "Escalated", StringComparison.Ordinal)
+                ? Judge.IsRight(question.Final, expected)
+                : localRight;
             All.Add(question.Reason, localRight, finalRight);
             switch (expected.Kind)
             {
