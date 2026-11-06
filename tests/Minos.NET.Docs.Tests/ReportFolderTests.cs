@@ -1,6 +1,7 @@
 using System.Text.Json;
 using Minos.Evaluation;
 using Minos.Recording;
+using Minos.Samples.TicketTriage;
 using Minos.Tool;
 
 namespace Minos.Docs.Tests;
@@ -8,10 +9,12 @@ namespace Minos.Docs.Tests;
 // Keeps every committed calibration report folder, docs/reports/<provider>/<set>/, honest: it has its files, it is a
 // known provider and set, its README says what its report says, and its report.json is exactly what the library builds
 // again from the folder's results, the dataset and the prices, so no report was edited by hand. The shadow report
-// folders, docs/reports/shadow/<set>/, are checked the same way against their records.
+// folders, docs/reports/shadow/<set>/, and the triage folders, docs/reports/triage/<set>/, are checked the same way
+// against their records.
 public sealed class ReportFolderTests
 {
     private const string Shadow = "shadow";
+    private const string Triage = "triage";
 
     private static readonly string ReportsRoot = Path.Combine(PublishedPages.Root, "docs", "reports");
 
@@ -40,11 +43,33 @@ public sealed class ReportFolderTests
         ["shadow/banking77"] = 41292378108,
     };
 
+    // The workflow run each triage folder's records came from. A new triage folder needs an entry here.
+    private static readonly Dictionary<string, long> TriageRunIds = new()
+    {
+        ["triage/banking77"] = 42239475037,
+    };
+
     private static readonly string[] ReadmeFields = ["Date", "Provider", "Model", "Dataset", "Run", "Runner", "Served", "Tool", "Prices"];
 
     private static readonly string[] ShadowReadmeFields = ["Date", "Primary", "Candidate", "Dataset", "Run", "Runner", "Served", "Tool", "Prices"];
 
     private static readonly string[] ShadowFiles = ["README.md", "records.jsonl", "shadow-report.json", "shadow-report.md"];
+
+    private static readonly string[] TriageReadmeFields =
+        ["Date", "Primary", "Target", "Thresholds", "Budget", "Expected latency", "Dataset", "Run", "Runner", "Served", "Tool", "Prices"];
+
+    private static readonly string[] TriageFiles = ["README.md", "records.jsonl", "triage-report.json", "triage-report.md"];
+
+    public static TheoryData<string> TriageFolders()
+    {
+        var data = new TheoryData<string>();
+        foreach (var folder in TriageFolderPaths())
+        {
+            data.Add(Path.GetRelativePath(ReportsRoot, folder).Replace('\\', '/'));
+        }
+
+        return data;
+    }
 
     public static TheoryData<string> Folders()
     {
@@ -225,6 +250,66 @@ public sealed class ReportFolderTests
         Assert.Equal(File.ReadAllText(Path.Combine(path, "shadow-report.md")), rebuilt.ToMarkdown());
     }
 
+    [Fact]
+    public void TheReportsFolder_HoldsAtLeastOneTriageReport()
+    {
+        Assert.NotEmpty(TriageFolderPaths());
+    }
+
+    [Theory]
+    [MemberData(nameof(TriageFolders))]
+    public void TriageReportFolder_HasItsFiles(string folder)
+    {
+        var actual = Directory.GetFileSystemEntries(Path.Combine(ReportsRoot, folder)).Select(Path.GetFileName).OrderBy(name => name, StringComparer.Ordinal);
+
+        Assert.Equal(TriageFiles.OrderBy(name => name, StringComparer.Ordinal), actual);
+    }
+
+    [Theory]
+    [MemberData(nameof(TriageFolders))]
+    public void TriageReportReadme_HasItsFields(string folder)
+    {
+        var fields = ReadmeValues(File.ReadAllLines(Path.Combine(ReportsRoot, folder, "README.md")));
+        var parts = folder.Split('/');
+
+        Assert.Equal(2, parts.Length);
+        Assert.Equal(Triage, parts[0]);
+        Assert.Contains(parts[1], DatasetFiles.Keys);
+
+        foreach (var field in TriageReadmeFields)
+        {
+            Assert.True(fields.TryGetValue(field, out var value) && value.Length > 0, folder + " README has no " + field + ": line");
+        }
+
+        Assert.Equal(Path.GetFileNameWithoutExtension(DatasetFiles[parts[1]]), fields["Dataset"]);
+        Assert.True(TriageRunIds.TryGetValue(folder, out var run), folder + " has no expected run id; add it to TriageRunIds in ReportFolderTests");
+        Assert.Equal("https://github.com/MarcelRoozekrans/Minos.NET/actions/runs/" + run, fields["Run"]);
+    }
+
+    [Theory]
+    [MemberData(nameof(TriageFolders))]
+    public void TriageReport_RebuildsFromItsRecords(string folder)
+    {
+        var path = Path.Combine(ReportsRoot, folder);
+        var datasetFile = Path.Combine(PublishedPages.Root, "datasets", "banking77", DatasetFiles[folder.Split('/')[1]]);
+        var output = Path.Combine(Path.GetTempPath(), "minos-triage-rebuild-" + Guid.NewGuid().ToString("N"));
+
+        try
+        {
+            TriageReportFiles.Write(Path.Combine(path, "records.jsonl"), datasetFile, Path.Combine(ReportsRoot, "prices.json"), output);
+
+            Assert.Equal(File.ReadAllText(Path.Combine(path, TriageReportFiles.JsonName)), File.ReadAllText(Path.Combine(output, TriageReportFiles.JsonName)));
+            Assert.Equal(File.ReadAllText(Path.Combine(path, TriageReportFiles.MarkdownName)), File.ReadAllText(Path.Combine(output, TriageReportFiles.MarkdownName)));
+        }
+        finally
+        {
+            if (Directory.Exists(output))
+            {
+                Directory.Delete(output, recursive: true);
+            }
+        }
+    }
+
     private static string AfterProvider(string value)
         => value[(value.IndexOf(", ", StringComparison.Ordinal) + 2)..];
 
@@ -239,7 +324,8 @@ public sealed class ReportFolderTests
     private static IEnumerable<string> FolderPaths()
         => Directory.Exists(ReportsRoot)
             ? Directory.GetDirectories(ReportsRoot)
-                .Where(provider => !string.Equals(Path.GetFileName(provider), Shadow, StringComparison.Ordinal))
+                .Where(provider => !string.Equals(Path.GetFileName(provider), Shadow, StringComparison.Ordinal)
+                    && !string.Equals(Path.GetFileName(provider), Triage, StringComparison.Ordinal))
                 .SelectMany(Directory.GetDirectories)
                 .OrderBy(folder => folder, StringComparer.Ordinal)
             : [];
@@ -247,6 +333,12 @@ public sealed class ReportFolderTests
     private static IEnumerable<string> ShadowFolderPaths()
     {
         var root = Path.Combine(ReportsRoot, Shadow);
+        return Directory.Exists(root) ? Directory.GetDirectories(root).OrderBy(folder => folder, StringComparer.Ordinal) : [];
+    }
+
+    private static IEnumerable<string> TriageFolderPaths()
+    {
+        var root = Path.Combine(ReportsRoot, Triage);
         return Directory.Exists(root) ? Directory.GetDirectories(root).OrderBy(folder => folder, StringComparer.Ordinal) : [];
     }
 
