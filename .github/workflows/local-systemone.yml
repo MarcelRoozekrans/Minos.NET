@@ -34,6 +34,10 @@ on:
           - calibrate
           - shadow
           - triage
+      triage_budget_seconds:
+        description: Seconds one ticket has for the local call and the escalation, for the triage job only
+        type: string
+        default: '5'
 
 permissions:
   contents: read
@@ -307,6 +311,8 @@ jobs:
   # triage-report.md are uploaded as triage-local-typesafe-banking77. There is no price guard: the served model is known
   # only after a call, so the price check is a manual step before the run. A timeout or a cancel signals only the step's
   # shell, whose trap passes it on to the sample as SIGTERM, and the sample keeps the records written so far and exits 130.
+  # The triage_budget_seconds input is the time one ticket has for the local call and the escalation. It reaches the sample
+  # through the step's env, never through the script text.
   triage:
     if: github.event_name == 'workflow_dispatch' && inputs.job == 'triage'
     runs-on: ubuntu-latest
@@ -366,13 +372,14 @@ jobs:
       - name: Triage
         env:
           TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+          TRIAGE_BUDGET_SECONDS: ${{ inputs.triage_budget_seconds }}
         run: |
           mkdir -p "$RUNNER_TEMP/out"
           pid=
           # The runner signals only this shell (SIGINT, then SIGTERM after 7.5 s, a kill after 10 s). Pass it on as SIGTERM,
           # since a background job ignores SIGINT, and let the sample keep the records it has written.
           trap 'trap "" INT TERM; if [ -n "$pid" ]; then kill -TERM "$pid" 2>/dev/null; wait "$pid"; fi; exit 130' INT TERM
-          dotnet run --project samples/Minos.NET.Samples.TicketTriage -c Release --no-build -- --dataset datasets/banking77/banking77-minos-v1.jsonl --config docs/reports/minos.json --records "$RUNNER_TEMP/out/records.jsonl" & pid=$!
+          dotnet run --project samples/Minos.NET.Samples.TicketTriage -c Release --no-build -- --dataset datasets/banking77/banking77-minos-v1.jsonl --config docs/reports/minos.json --records "$RUNNER_TEMP/out/records.jsonl" --budget-seconds "$TRIAGE_BUDGET_SECONDS" & pid=$!
           wait "$pid"
 
       - name: Triage report

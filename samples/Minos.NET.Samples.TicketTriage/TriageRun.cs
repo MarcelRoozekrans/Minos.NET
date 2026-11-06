@@ -30,7 +30,7 @@ public static class TriageRun
         CancellationToken cancellationToken)
         => RunAsync(local, target, dataset, recordsPath, log, TimeProvider.System, cancellationToken);
 
-    /// <summary>As the public overload, with the clock as a parameter so a test can move it by hand.</summary>
+    /// <summary>As the public overload, with the clock as a parameter so a test can move it by hand, and the time one item has.</summary>
     internal static async Task<TriageSummary> RunAsync(
         IDecisionClient local,
         IDecisionClient target,
@@ -38,7 +38,8 @@ public static class TriageRun
         string recordsPath,
         TextWriter log,
         TimeProvider time,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        TimeSpan? budget = null)
     {
         ArgumentNullException.ThrowIfNull(local);
         ArgumentNullException.ThrowIfNull(target);
@@ -49,7 +50,7 @@ public static class TriageRun
 
         var localSlot = new CallSlot();
         var targetSlot = new CallSlot();
-        using var client = TriagePipeline.Build(local, target, localSlot, targetSlot, time);
+        using var client = TriagePipeline.Build(local, target, localSlot, targetSlot, time, budget);
         var records = new StreamWriter(recordsPath, append: true, new UTF8Encoding(false)) { NewLine = "\n" };
         await using var recordsScope = records.ConfigureAwait(false);
 

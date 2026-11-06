@@ -12,11 +12,19 @@ internal static class TriageApp
     /// <summary>The most items one run decides, the cap of the hosted target's daily budget.</summary>
     internal const int MaxItems = 400;
 
+    /// <summary>The fewest whole seconds <c>--budget-seconds</c> takes.</summary>
+    internal const int MinBudgetSeconds = 1;
+
+    /// <summary>The most whole seconds <c>--budget-seconds</c> takes.</summary>
+    internal const int MaxBudgetSeconds = 300;
+
     private const string ReportFlag = "--report";
+    private const string BudgetOption = "--budget-seconds";
     private const string LocalSection = "Local";
     private const string TypeSafeSection = "TypeSafe";
 
-    private static readonly string[] RunOptions = ["--dataset", "--config", "--records"];
+    private static readonly string[] RunOptions = ["--dataset", "--config", "--records", BudgetOption];
+    private static readonly string[] OptionalRunOptions = [BudgetOption];
     private static readonly string[] ReportOptions = ["--records", "--dataset", "--prices", "--out"];
 
     /// <summary>Runs the sample against the configured providers.</summary>
@@ -26,7 +34,7 @@ internal static class TriageApp
     /// <param name="cancellationToken">Stops the run; the records written so far are kept.</param>
     /// <returns>0 when an item was decided or a report written, 1 when no item was decided, 2 for a problem with the command line, the dataset, the configuration, the records or the prices, 130 when stopped.</returns>
     internal static Task<int> RunAsync(string[] args, TextWriter stdout, TextWriter stderr, CancellationToken cancellationToken)
-        => RunAsync(args, stdout, stderr, null, cancellationToken);
+        => RunAsync(args, stdout, stderr, null, TimeProvider.System, cancellationToken);
 
     /// <summary>As the overload above, with a factory that builds the client of a config section, so a test can inject fakes.</summary>
     /// <param name="args">The command line.</param>
@@ -35,24 +43,41 @@ internal static class TriageApp
     /// <param name="factory">Builds the client for a section name and its resolved options; null builds the real client.</param>
     /// <param name="cancellationToken">Stops the run.</param>
     /// <returns>The exit code.</returns>
-    internal static async Task<int> RunAsync(
+    internal static Task<int> RunAsync(
         string[] args,
         TextWriter stdout,
         TextWriter stderr,
         Func<string, SystemOneDecisionClientOptions, IDecisionClient>? factory,
         CancellationToken cancellationToken)
+        => RunAsync(args, stdout, stderr, factory, TimeProvider.System, cancellationToken);
+
+    /// <summary>As the overload above, with the clock as well, so a test can move it by hand.</summary>
+    /// <param name="args">The command line.</param>
+    /// <param name="stdout">Where the progress and the summary go.</param>
+    /// <param name="stderr">Where the problems go.</param>
+    /// <param name="factory">Builds the client for a section name and its resolved options; null builds the real client.</param>
+    /// <param name="time">The clock the escalation deadline is read from.</param>
+    /// <param name="cancellationToken">Stops the run.</param>
+    /// <returns>The exit code.</returns>
+    internal static async Task<int> RunAsync(
+        string[] args,
+        TextWriter stdout,
+        TextWriter stderr,
+        Func<string, SystemOneDecisionClientOptions, IDecisionClient>? factory,
+        TimeProvider time,
+        CancellationToken cancellationToken)
     {
-        var parsed = ParseOptions(args, stderr, out var report);
+        var parsed = ParseOptions(args, stderr, out var report, out var budget);
         if (parsed is null)
         {
-            stderr.WriteLine("Usage: --dataset <jsonl> --config <minos.json> --records <file>");
+            stderr.WriteLine("Usage: --dataset <jsonl> --config <minos.json> --records <file> [--budget-seconds <1-300>]");
             stderr.WriteLine("   or: --report --records <file> --dataset <jsonl> --prices <prices.json> --out <directory>");
             return 2;
         }
 
         return report
             ? WriteReport(parsed, stdout, stderr)
-            : await RunTriageAsync(parsed, stdout, stderr, factory, cancellationToken).ConfigureAwait(false);
+            : await RunTriageAsync(parsed, budget, stdout, stderr, factory, time, cancellationToken).ConfigureAwait(false);
     }
 
     private static int WriteReport(Dictionary<string, string> options, TextWriter stdout, TextWriter stderr)
@@ -73,9 +98,11 @@ internal static class TriageApp
 
     private static async Task<int> RunTriageAsync(
         Dictionary<string, string> options,
+        TimeSpan budget,
         TextWriter stdout,
         TextWriter stderr,
         Func<string, SystemOneDecisionClientOptions, IDecisionClient>? factory,
+        TimeProvider time,
         CancellationToken cancellationToken)
     {
         DecisionDataset dataset;
@@ -144,7 +171,7 @@ internal static class TriageApp
             var local = build(LocalSection, localOptions);
             try
             {
-                var summary = await TriageRun.RunAsync(local, target, dataset, records, stdout, cancellationToken).ConfigureAwait(false);
+                var summary = await TriageRun.RunAsync(local, target, dataset, records, stdout, time, cancellationToken, budget).ConfigureAwait(false);
                 stdout.WriteLine(string.Create(
                     CultureInfo.InvariantCulture,
                     $"items={summary.Items} decided={summary.Decided} failed={summary.Failed} escalated_questions={summary.EscalatedQuestions} no_time_left={summary.NoTimeLeft} target_failed={summary.TargetFailed}"));
@@ -173,10 +200,11 @@ internal static class TriageApp
         return new SystemOneDecisionClient(http, options);
     }
 
-    // Run mode needs its three options; report mode, chosen by the --report flag, needs its four. Null when one is missing,
-    // repeated, unknown or has no value.
-    private static Dictionary<string, string>? ParseOptions(string[] args, TextWriter stderr, out bool report)
+    // Run mode needs its three options and takes an optional budget; report mode, chosen by the --report flag, needs its four.
+    // Null when one is missing, repeated, unknown or has no value, or the budget is not a whole number of seconds in range.
+    private static Dictionary<string, string>? ParseOptions(string[] args, TextWriter stderr, out bool report, out TimeSpan budget)
     {
+        budget = TriagePipeline.Budget;
         report = args.Contains(ReportFlag, StringComparer.Ordinal);
         var allowed = report ? ReportOptions : RunOptions;
         var values = new Dictionary<string, string>(StringComparer.Ordinal);
@@ -201,7 +229,23 @@ internal static class TriageApp
                 return null;
             }
 
-            // A value that looks like an option means the real value is missing; every value here is a path.
+            if (string.Equals(args[i], BudgetOption, StringComparison.Ordinal))
+            {
+                if (!int.TryParse(args[i + 1], NumberStyles.None, CultureInfo.InvariantCulture, out var seconds)
+                    || seconds < MinBudgetSeconds || seconds > MaxBudgetSeconds)
+                {
+                    stderr.WriteLine(string.Create(
+                        CultureInfo.InvariantCulture,
+                        $"The option '{BudgetOption}' needs a whole number of seconds from {MinBudgetSeconds} to {MaxBudgetSeconds}."));
+                    return null;
+                }
+
+                budget = TimeSpan.FromSeconds(seconds);
+                i += 2;
+                continue;
+            }
+
+            // A value that looks like an option means the real value is missing; every other value here is a path.
             if (!IsUsablePath(args[i + 1]))
             {
                 stderr.WriteLine("The option '" + args[i] + "' needs a path as its value.");
@@ -211,7 +255,7 @@ internal static class TriageApp
             i += 2;
         }
 
-        var missing = allowed.Where(name => !values.ContainsKey(name)).ToArray();
+        var missing = allowed.Where(name => !values.ContainsKey(name) && !OptionalRunOptions.Contains(name, StringComparer.Ordinal)).ToArray();
         if (missing.Length > 0)
         {
             stderr.WriteLine("Missing: " + string.Join(", ", missing) + ".");

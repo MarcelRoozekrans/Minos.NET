@@ -111,6 +111,17 @@ The run is started by hand, like every other run here:
 gh workflow run local-systemone.yml --ref main -f job=triage
 ```
 
+The time one ticket has for the local call and the escalation is 5 seconds by default. A CPU runner can need more than
+that for one local call, and when it does, every unsure question is kept on the local answer for lack of time and the
+target is not called. The `triage_budget_seconds` input sets the budget, as a whole number of seconds from 1 to 300, for
+the `triage` job only:
+
+```text
+gh workflow run local-systemone.yml --ref main -f job=triage -f triage_budget_seconds=15
+```
+
+The run does not print the budget, so the `README.md` in the set's folder records the value that was used.
+
 The `triage` job is dispatch only. It is billed, because TypeSafe answers every ticket the local model is unsure about,
 so it is started only after the maintainer approves each run. It uses the `live-api` environment, which deploys only from
 `main`, so the `--ref` must be `main`.
