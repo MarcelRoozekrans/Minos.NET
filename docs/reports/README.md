@@ -100,7 +100,8 @@ model decides each ticket and a hosted model is asked only when the local one is
 what was measured and gives no verdict. The report is built from the records of the run, so it can be rebuilt without a
 provider call.
 
-The first set is `banking77`. Each set has its own folder, `docs/reports/triage/<set>/`, with the files the run
+The first set is `banking77`. Its folder is [`docs/reports/triage/banking77/`](triage/banking77/README.md), from the
+approved run of 2026-11-06. Each set has its own folder, `docs/reports/triage/<set>/`, with the files the run
 produced: `records.jsonl`, `triage-report.json` and `triage-report.md`, and a `README.md` that says what the run was.
 
 ### How the run is started

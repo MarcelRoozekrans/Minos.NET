@@ -1,0 +1,173 @@
+{
+  "version": 1,
+  "run": {
+    "itemsRead": 400,
+    "decided": 400,
+    "failuresByError": {},
+    "servedModels": {
+      "Mapika/decider-2b-GGUF:Q4_K_M": 400,
+      "jev-1.14.0": 104
+    },
+    "datasetItems": 400
+  },
+  "split": {
+    "choice": {
+      "confident": 299,
+      "escalated": 101,
+      "noTimeLeft": 0,
+      "targetFailed": 0,
+      "ticketsWithTargetCall": 101
+    },
+    "noul": {
+      "confident": 795,
+      "escalated": 5,
+      "noTimeLeft": 0,
+      "targetFailed": 0,
+      "ticketsWithTargetCall": 5
+    },
+    "all": {
+      "confident": 1094,
+      "escalated": 106,
+      "noTimeLeft": 0,
+      "targetFailed": 0,
+      "ticketsWithTargetCall": 104
+    }
+  },
+  "accuracy": {
+    "choice": {
+      "localAlone": {
+        "correct": 363,
+        "total": 400,
+        "rate": 0.9075
+      },
+      "final": {
+        "correct": 369,
+        "total": 400,
+        "rate": 0.9225
+      },
+      "target": {
+        "correct": 76,
+        "total": 101,
+        "rate": 0.7525
+      }
+    },
+    "noul": {
+      "localAlone": {
+        "correct": 749,
+        "total": 800,
+        "rate": 0.9362
+      },
+      "final": {
+        "correct": 748,
+        "total": 800,
+        "rate": 0.935
+      },
+      "target": {
+        "correct": 3,
+        "total": 5,
+        "rate": 0.6
+      }
+    },
+    "all": {
+      "localAlone": {
+        "correct": 1112,
+        "total": 1200,
+        "rate": 0.9267
+      },
+      "final": {
+        "correct": 1117,
+        "total": 1200,
+        "rate": 0.9308
+      },
+      "target": {
+        "correct": 79,
+        "total": 106,
+        "rate": 0.7453
+      }
+    }
+  },
+  "escalated": {
+    "choice": {
+      "fixed": 9,
+      "broken": 3,
+      "bothRight": 67,
+      "bothWrong": 22
+    },
+    "noul": {
+      "fixed": 1,
+      "broken": 2,
+      "bothRight": 2,
+      "bothWrong": 0
+    },
+    "all": {
+      "fixed": 10,
+      "broken": 5,
+      "bothRight": 69,
+      "bothWrong": 22
+    }
+  },
+  "signal": {
+    "choice": {
+      "wrongCaught": 31,
+      "wrongMissed": 6,
+      "belowThreshold": 101,
+      "belowThresholdLocalRight": 70
+    },
+    "noul": {
+      "wrongCaught": 1,
+      "wrongMissed": 50,
+      "belowThreshold": 5,
+      "belowThresholdLocalRight": 4
+    },
+    "all": {
+      "wrongCaught": 32,
+      "wrongMissed": 56,
+      "belowThreshold": 106,
+      "belowThresholdLocalRight": 74
+    }
+  },
+  "latency": {
+    "withTarget": {
+      "count": 104,
+      "medianMs": 5413,
+      "p95Ms": 5966.3
+    },
+    "withoutTarget": {
+      "count": 296,
+      "medianMs": 5282.7,
+      "p95Ms": 5894.8
+    },
+    "local": {
+      "count": 400,
+      "medianMs": 5282.9,
+      "p95Ms": 5867.5
+    },
+    "target": {
+      "count": 104,
+      "medianMs": 102.3,
+      "p95Ms": 180.2
+    }
+  },
+  "cost": {
+    "perThousandTickets": 0.00597733,
+    "reported": 0,
+    "priced": 400,
+    "unknown": 0,
+    "pricesUsed": [
+      {
+        "model": "Mapika/decider-2b-GGUF:Q4_K_M",
+        "inputPerMillion": 0,
+        "outputPerMillion": 0,
+        "date": "2026-10-17",
+        "source": "runs on your own hardware; no per-token price"
+      },
+      {
+        "model": "jev-1.14.0",
+        "inputPerMillion": 0.042,
+        "outputPerMillion": 0,
+        "date": "2026-11-01",
+        "source": "TypeSafe official pricing page, as supplied by the maintainer on 2026-11-01"
+      }
+    ]
+  }
+}
