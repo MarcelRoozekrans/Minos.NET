@@ -22,6 +22,8 @@
     <ProjectReference Include="..\..\samples\Minos.NET.Samples.ProviderSwitch\Minos.NET.Samples.ProviderSwitch.csproj" />
     <!-- The chat-client sample, so the Samples page's row for it is compared with its tickets and questions. -->
     <ProjectReference Include="..\..\samples\Minos.NET.Samples.ChatClient\Minos.NET.Samples.ChatClient.csproj" />
+    <!-- The ticket-triage sample, so the committed triage report can be rebuilt from its records and prices. -->
+    <ProjectReference Include="..\..\samples\Minos.NET.Samples.TicketTriage\Minos.NET.Samples.TicketTriage.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.Generator\Minos.NET.Generator.csproj"
                       OutputItemType="Analyzer"
                       ReferenceOutputAssembly="false" />

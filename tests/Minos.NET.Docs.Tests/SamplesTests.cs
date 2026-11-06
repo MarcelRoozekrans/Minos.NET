@@ -38,6 +38,9 @@ public sealed partial class SamplesTests
     /// <summary>The shadow-replay sample, which has no recordings and no modes: it calls a hosted primary and a local candidate.</summary>
     private const string ShadowReplayFolder = "Minos.NET.Samples.ShadowReplay";
 
+    /// <summary>The ticket-triage sample, which has no recordings and no offline mode: it calls a local server and a hosted target.</summary>
+    private const string TicketTriageFolder = "Minos.NET.Samples.TicketTriage";
+
     [Fact]
     public void TheProviderRecordings_AreFromTheModelsAndDatesThePageNames()
     {
@@ -58,20 +61,20 @@ public sealed partial class SamplesTests
     [Fact]
     public void TheTable_ListsEverySampleFolder_AndNothingElse()
     {
-        var rows = PageTables.Rows("samples.md", "The six samples");
+        var rows = PageTables.Rows("samples.md", "The seven samples");
 
         var listed = rows.Select(row => Folder(row[0])).Order(StringComparer.Ordinal).ToArray();
 
         Assert.Equal(SampleFolders, listed);
-        Assert.Equal(6, SampleFolders.Length);
+        Assert.Equal(7, SampleFolders.Length);
         Assert.Equal(3, SingleRecordingFolders.Length);
-        Assert.Equal(SampleFolders.Except([ChatClientFolder, ShadowReplayFolder], StringComparer.Ordinal), RecordedFolders);
+        Assert.Equal(SampleFolders.Except([ChatClientFolder, ShadowReplayFolder, TicketTriageFolder], StringComparer.Ordinal), RecordedFolders);
     }
 
     [Fact]
     public void EachRow_HasTheRealCommandAndTheRecordedRequestCount()
     {
-        foreach (var row in PageTables.Rows("samples.md", "The six samples"))
+        foreach (var row in PageTables.Rows("samples.md", "The seven samples"))
         {
             var folder = Folder(row[0]);
 
@@ -81,6 +84,13 @@ public sealed partial class SamplesTests
                 var command = PageTables.Code(row[2]);
                 Assert.StartsWith($"dotnet run --project samples/{folder} -- ", command, StringComparison.Ordinal);
                 Assert.All(["--dataset ", "--config ", "--primary ", "--candidate ", "--records "], option => Assert.Contains(option, command, StringComparison.Ordinal));
+            }
+            else if (string.Equals(folder, TicketTriageFolder, StringComparison.Ordinal))
+            {
+                // It has three required options in run mode, so the cell shows the whole command.
+                var command = PageTables.Code(row[2]);
+                Assert.StartsWith($"dotnet run --project samples/{folder} -- ", command, StringComparison.Ordinal);
+                Assert.All(["--dataset ", "--config ", "--records "], option => Assert.Contains(option, command, StringComparison.Ordinal));
             }
             else
             {
@@ -99,6 +109,12 @@ public sealed partial class SamplesTests
             if (string.Equals(folder, ShadowReplayFolder, StringComparison.Ordinal))
             {
                 Assert.Equal("1 billed per dataset item", row[3]);
+                continue;
+            }
+
+            if (string.Equals(folder, TicketTriageFolder, StringComparison.Ordinal))
+            {
+                Assert.Equal("1 billed per ticket with an unsure question", row[3]);
                 continue;
             }
 
