@@ -115,8 +115,10 @@ The `triage` job is dispatch only. It is billed, because TypeSafe answers every 
 so it is started only after the maintainer approves each run. It uses the `live-api` environment, which deploys only from
 `main`, so the `--ref` must be `main`.
 
-The job runs the sample over `datasets/banking77/banking77-minos-v1.jsonl` one item at a time with the thresholds in
-`docs/reports/minos.json`. A `Triage report` step then builds the report from the records with `docs/reports/prices.json`,
+The job runs the sample over `datasets/banking77/banking77-minos-v1.jsonl` one item at a time. The thresholds are fixed
+in the sample, not read from `docs/reports/minos.json`; the
+[settings table](../../samples/Minos.NET.Samples.TicketTriage/README.md#what-it-does) of the sample lists them. A
+`Triage report` step then builds the report from the records with `docs/reports/prices.json`,
 and the job uploads the artifact `triage-local-typesafe-banking77`, which holds `records.jsonl`, `triage-report.json` and
 `triage-report.md`. The report step runs even when the run stops early, so a partial run still gets a report.
 
