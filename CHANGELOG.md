@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.11.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.10.0...v1.11.0) (2026-11-06)
+
+
+### Features
+
+* **samples:** add a --budget-seconds option to the triage sample ([240353f](https://github.com/MarcelRoozekrans/Minos.NET/commit/240353f676fca970c634750b43740ebd2cabc3e8))
+
+
+### Documentation
+
+* **samples:** document the triage budget option ([240353f](https://github.com/MarcelRoozekrans/Minos.NET/commit/240353f676fca970c634750b43740ebd2cabc3e8))
+
 ## [1.10.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.9.0...v1.10.0) (2026-11-05)
 
 
