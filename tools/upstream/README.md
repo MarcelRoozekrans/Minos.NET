@@ -52,3 +52,17 @@ build out of deterministic CI mode. Neither was needed locally.
 The pinned commit may be a PR head, which can disappear upstream if the branch
 is force-pushed or deleted; the fetch then fails. Prefer a merged or tagged
 commit as soon as one exists.
+
+## Finding a released package
+
+```bash
+tools/upstream/find-decisions-package.sh
+```
+
+Looks on nuget.org for a `Microsoft.Extensions.AI.Abstractions` version newer
+than 10.11.0, preview included, whose assemblies export the public type
+`Microsoft.Extensions.AI.IDecisionClient`. It prints the first such version and
+exits 0, prints nothing and exits 1 when there is none, and exits 2 on a network
+or tool error. The type check is `HasType.cs`, a file-based app that uses
+`MetadataLoadContext`. `test-find-decisions-package.sh` tests the check against
+local assemblies and needs the pinned build first.
