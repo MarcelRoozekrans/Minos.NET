@@ -26,8 +26,8 @@ A .NET app can use Minos and the Microsoft.Extensions.AI decision abstraction to
 ## Phases
 1. Phase 11.1 — Mapping and gap analysis [pending]
 2. Phase 11.2 — Adapters [pending]
-3. Phase 11.3 — Publish when upstream ships [deferred]
-   **Deferred:** no upstream package with the decision types on 2026-11-07; publishing waits on #352.
+3. Phase 11.3 — Publish when upstream ships [pending]
+   **Deferred:** no upstream package with the decision types existed on 2026-11-07 (newest Microsoft.Extensions.AI.Abstractions 10.11.0, no `IDecisionClient`); publishing waits on #352. Recheck with `bash tools/upstream/find-decisions-package.sh`.
 
 ## Audit History
 | Date | Verdict | Gaps |

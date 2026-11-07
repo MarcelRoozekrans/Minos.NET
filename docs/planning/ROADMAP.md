@@ -570,7 +570,7 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Design:** `docs/superpowers/specs/2026-11-07-phase-11.2-adapters-design.md`
 **Plan:** `docs/superpowers/plans/2026-11-07-phase-11.2-adapters.md`
 
-### Phase 11.3: Publish when upstream ships [status: deferred]
+### Phase 11.3: Publish when upstream ships [status: pending]
 **Goal:** Pack and release the package as a beta against the first upstream package that contains the decision types, or record the wait as an issue and close the phase as deferred.
 **Surface:** Infra
 **HelpWanted:** no
