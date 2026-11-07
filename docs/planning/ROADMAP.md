@@ -560,16 +560,22 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Goal:** A tested mapping between the Minos and upstream decision types, a docs page, and a short gap list for the upstream discussion.
 **Surface:** Docs
 **HelpWanted:** no
+**Design:** `docs/superpowers/specs/2026-11-07-phase-11.1-mapping-design.md`
+**Plan:** `docs/superpowers/plans/2026-11-07-phase-11.1-mapping.md`
 
 ### Phase 11.2: Adapters [status: pending]
 **Goal:** The two adapters in a new unpacked package, with conformance, round-trip and pipeline tests, built against a pinned local build of the upstream PR head.
 **Surface:** Backend
 **HelpWanted:** no
+**Design:** `docs/superpowers/specs/2026-11-07-phase-11.2-adapters-design.md`
+**Plan:** `docs/superpowers/plans/2026-11-07-phase-11.2-adapters.md`
 
 ### Phase 11.3: Publish when upstream ships [status: pending]
 **Goal:** Pack and release the package as a beta against the first upstream package that contains the decision types, or record the wait as an issue and close the phase as deferred.
 **Surface:** Infra
 **HelpWanted:** no
+**Design:** `docs/superpowers/specs/2026-11-07-phase-11.3-publish-design.md`
+**Plan:** `docs/superpowers/plans/2026-11-07-phase-11.3-publish.md`
 
 ## Later: not scheduled
 Work with an issue but no milestone yet. Each needs a milestone design before it is planned.
