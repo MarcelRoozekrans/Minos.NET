@@ -10,10 +10,10 @@
 
 ## Summary
 
-[#7764](https://github.com/dotnet/extensions/issues/7764) asks whether Microsoft.Extensions.AI should have a decision
-primitive. A comment on that issue on 2026-09-30 says "it makes sense for MEAI to expose an experimental API to support
+[#7764](https://github.com/dotnet/extensions/issues/7764) proposes a decision primitive for Microsoft.Extensions.AI. A
+comment on that issue on 2026-09-30 says "it makes sense for MEAI to expose an experimental API to support
 these capabilities", and [#7795](https://github.com/dotnet/extensions/pull/7795) proposes one. This comment adds data
-from a separate implementation, and asks one follow-up question.
+from a separate implementation, and asks one follow-up question, with five details of it at the end.
 
 [Minos.NET](https://github.com/MarcelRoozekrans/Minos.NET) is an open-source .NET library that has its own
 `IDecisionClient`. It also has a pipeline stage that routes on the answer: a cheap decider answers first, and only the
@@ -46,7 +46,11 @@ and it works on a whole chat response.
 A decision response is different. It answers several questions at once, and each answer has its own probability. A
 cheap decider can be sure of two questions and unsure of the third. Escalating the whole request repeats the two it got
 right. Escalating only the third needs a re-ask of one question, a merge of the answers by question, and a record of
-which decider answered which question. We have not found that in #7764, #7795 or #7712.
+which decider answered which question. [#7796](https://github.com/dotnet/extensions/pull/7796) composes decisions with
+`RoutingChatClient`, so a decision picks which chat client gets a chat request. Escalation is the other way round: it
+re-asks the unsure questions of a decision request. #7795 says of itself: "No implicit threshold, normalization,
+clamping, retry, fallback, joint distribution, or one-physical-network-call promise is introduced." We have not found
+per-question escalation in #7764, #7795, #7796 or #7712.
 
 ## Prior art
 
@@ -57,7 +61,7 @@ These are the claims we could check on the vendors' public pages on 2026-11-07. 
   and score answers return a probability distribution and a separate `confidence` field." The guide says to "Use
   labeled examples from your application to set thresholds for routing, filtering, or review."
 - **TypeSafe** describes Jev as a model that "evaluates typed questions against a state and returns structured results
-  directly", with three question types: Noul, Choice and Score. Its confidence page says that "`confidence` is a
+  directly", with question types including Noul, Choice and Score. Its confidence page says that "`confidence` is a
   statistic computed from the probability distribution the answer already gives you", and that "Confidence measures
   how concentrated the answer's probabilities are". It calls its formula "one reasonable way to summarize a
   distribution, not the only one."
@@ -71,9 +75,10 @@ set from a report rather than guessed.
 
 ## Usage
 
-The app registers a local decider as the default client and a hosted one under a key. Escalation sends a question to
-the hosted decider when the local answer is below its threshold. The thresholds are per question key, with a default
-for the rest. The values below are the ones the measured run used.
+The app registers a local decider as the default client and a hosted one under a key. `AddSystemOneDecisionClient` is
+Minos's client for the wire protocol that both deciders speak. Escalation sends a question to the hosted decider when
+the local answer is below its threshold. The thresholds are per question key, with a default for the rest.
+The values below are the ones the measured run used.
 
 ```cs
 // A question the local model is less than 0.6 sure of is asked again of "hosted", unless it has a threshold of its
@@ -124,8 +129,8 @@ What the stage does, as built:
   answer and are marked `NoTimeLeft`. The deadline does not cut the first decider's own call; it bounds only the
   escalation.
 - A target that fails leaves the first answers in place, marked `TargetFailed`. The call still succeeds.
-- `DecisionResponse.Path` lists, for each question, who answered and why, and each call that was made. A response from
-  a pipeline without the stage has no path.
+- `DecisionResponse.Path` lists, for each question, who answered and why, and each call that was made. `Path` is null
+  from a pipeline without either stage, and when the first fallback step answered, so read it as nullable.
 - `ProbabilitySource` on the response is the weakest source across all its answers.
 
 A separate `UseFallback` stage handles failure: when a client fails with a provider error, the next one in a chain is
@@ -157,8 +162,8 @@ with a budget of 15 seconds per ticket:
 Two more results from the same report. First, the threshold flagged most wrong Choice answers and almost no wrong
 yes/no answers: it caught 31 of the 37 wrong Choice answers and 1 of the 51 wrong yes/no answers. A confident wrong
 answer is never escalated. Second, time decides whether escalation runs at all. An earlier run with the sample's
-default budget of 5 seconds made no target call: the local call took a median of 5.5 s, so all 106 questions below their threshold ended as no time left,
-and nothing was billed.
+default budget of 5 seconds made no target call: the local call took a median of 5.5 s, so all 106 questions below their
+threshold ended as no time left, and nothing was billed.
 
 **The shadow run** ([report](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/docs/reports/shadow/banking77)) sent
 the same 400 tickets to the hosted decider and, in the background, to the local model:
@@ -166,7 +171,7 @@ the same 400 tickets to the hosted decider and, in the background, to the local 
 | Measure | Hosted | Local |
 | --- | --- | --- |
 | Median latency per request | 50.5 ms | 4043.8 ms |
-| Expected calibration error, over the 1,200 questions | 0.0262 | 0.0510 |
+| Expected calibration error, 10 equal-count bins, over the 1,200 questions | 0.0262 | 0.0510 |
 
 On the Choice question the two agreed on 0.9600 of the 400 tickets.
 
@@ -174,6 +179,8 @@ On the Choice question the two agreed on 0.9600 of the 400 tickets.
 
 Minos's shipped signatures, simplified to C#. `Result<TValue, TError>` is from the ZeroAlloc.Results package. The two
 stages are optional: nothing escalates or falls back unless the app adds the stage.
+
+<details><summary>API sketch</summary>
 
 ```cs
 // The abstraction.
@@ -307,6 +314,8 @@ public sealed record DecisionCall(string ClientName, string? Model, DecisionUsag
 public enum CallStatus { Answered = 0, Failed = 1, NotCalledNoTimeLeft = 2 }
 ```
 
+</details>
+
 ## Open questions for the maintainers
 
 1. **Package placement.** If escalation belongs in Microsoft.Extensions.AI, is it a stage in `Microsoft.Extensions.AI`
@@ -340,6 +349,7 @@ Microsoft.Extensions.AI and dotnet/extensions:
 - https://learn.microsoft.com/dotnet/api/microsoft.extensions.ai.failoverchatclient: selects another after a failure.
 - https://github.com/dotnet/extensions/issues/7764: the decision abstraction proposal.
 - https://github.com/dotnet/extensions/pull/7795: the experimental decision abstractions.
+- https://github.com/dotnet/extensions/pull/7796: decisions with `AIFunction` and `RoutingChatClient`.
 - https://github.com/dotnet/extensions/issues/7712: the `CascadingChatClient` proposal.
 
 Vendors:

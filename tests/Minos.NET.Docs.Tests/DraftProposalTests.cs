@@ -26,8 +26,6 @@ public sealed partial class DraftProposalTests
         { "latency.local.medianMs", "{0:F1}", "| {0} ms / " },
         { "latency.target.medianMs", "{0:F1}", " ms / {0} ms |" },
         { "cost.perThousandTickets", "{0}", "| {0} |" },
-        { "signal.choice.wrongCaught", "{0}", "it caught {0} of the 37 wrong Choice answers" },
-        { "signal.noul.wrongCaught", "{0}", "and {0} of the 51 wrong yes/no answers" },
         { "run.decided", "{0}", "set of {0} tickets" },
     };
 
@@ -35,7 +33,7 @@ public sealed partial class DraftProposalTests
     {
         { "primary.latency.medianMs", "{0:F1}", "| Median latency per request | {0} ms | " },
         { "candidate.latency.medianMs", "{0:F1}", " ms | {0} ms |" },
-        { "primary.overall.ece", "{0:F4}", "over the 1,200 questions | {0} | " },
+        { "primary.overall.ece", "{0:F4}", "10 equal-count bins, over the 1,200 questions | {0} | " },
         { "candidate.overall.ece", "{0:F4}", "| {0} |" },
         { "questions[key=intent].agreement", "{0:F4}", "agreed on {0} of the 400 tickets" },
     };
@@ -49,6 +47,17 @@ public sealed partial class DraftProposalTests
     [MemberData(nameof(ShadowFigures))]
     public void ShadowFigures_AreTheReports(string path, string format, string phrase) =>
         AssertQuoted(EscalationReport.Resolve(Shadow, path), format, phrase);
+
+    [Theory]
+    [InlineData("choice", "it caught {0} of the {1} wrong Choice answers")]
+    [InlineData("noul", "and {0} of the {1} wrong yes/no answers")]
+    public void TheCaughtCounts_AreTheReports(string kind, string phrase)
+    {
+        var caught = EscalationReport.Resolve(EscalationReport.Triage, $"signal.{kind}.wrongCaught").GetValue<int>();
+        var missed = EscalationReport.Resolve(EscalationReport.Triage, $"signal.{kind}.wrongMissed").GetValue<int>();
+        var expected = string.Format(CultureInfo.InvariantCulture, phrase, caught, caught + missed);
+        Assert.Contains(expected, DraftText.ReplaceLineEndings(" "), StringComparison.Ordinal);
+    }
 
     [Theory]
     [InlineData("median of 5.5 s")]
