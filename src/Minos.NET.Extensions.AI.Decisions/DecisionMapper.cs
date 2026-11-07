@@ -1,7 +1,7 @@
-using System.Buffers;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.AI;
 using Minos.Generator;
 using ZeroAlloc.Results;
@@ -99,14 +99,8 @@ internal static class DecisionMapper
             throw new ArgumentException("The state is uninitialized.", nameof(state));
         }
 
-        var buffer = new ArrayBufferWriter<byte>(text.Length + 2);
-        using (var writer = new Utf8JsonWriter(buffer))
-        {
-            writer.WriteStringValue(text);
-        }
-
-        using var document = JsonDocument.Parse(buffer.WrittenMemory);
-        return document.RootElement.Clone();
+        // The writer behind it replaces a lone surrogate with U+FFFD, as every Minos writer of text does.
+        return JsonSerializer.SerializeToElement(text, DecisionJsonContext.Default.String);
     }
 
     /// <summary>Converts an upstream request to a Minos request, with a new question set on each call.</summary>
@@ -317,3 +311,7 @@ internal static class DecisionMapper
 /// <param name="Options">The options, with the model id.</param>
 [Experimental("MEAI001")]
 internal readonly record struct UpstreamCall(UpstreamRequest Request, DecisionOptions Options);
+
+/// <summary>The source-generated JSON contract for the text the mapper writes, so it stays AOT and trim safe.</summary>
+[JsonSerializable(typeof(string))]
+internal sealed partial class DecisionJsonContext : JsonSerializerContext;

@@ -408,14 +408,19 @@ A typed call, or a call with a [question set built at run time](question-sets-at
 is sent. A set that breaks a capability returns a `DecisionError` of kind `Unsupported`, and `Failures` lists every
 problem it found. Each is a `QuestionFailure` with a rule id, the key of the question and a message:
 
-| Rule | Failure | `QuestionKey` | Message, for `Custom` or `OpenAI` |
+| Rule | Failure | `QuestionKey` | Message, for `Custom`, `OpenAI` or an upstream client named `Upstream` |
 | --- | --- | --- | --- |
 | `MIN201` | The set has a question of a kind the provider does not accept. | the question | `Custom does not support Choice questions.` |
 | `MIN202` | The set has more questions than `MaxQuestions`. | none | `Custom accepts at most 1 question per request; the set has 2.` |
 | `MIN203` | A Choice question has more options than `MaxChoiceOptions`. | the question | `Custom accepts at most 2 options per Choice question; 'team' has 3.` |
 | `MIN204` | A Noul has `WhenTrue` or `WhenFalse`, on OpenAI. | the question | `OpenAI does not support WhenTrue or WhenFalse on a Noul; put the meaning in the instructions.` |
-| `MIN205` | A criterion has `Examples` or `NotFor`, on OpenAI. | the question | `OpenAI does not support Examples or NotFor on a criterion; describe them in its text.` |
+| `MIN205` | A criterion has `Examples` or `NotFor`, on OpenAI or an upstream decision client. | the question | `OpenAI does not support Examples or NotFor on a criterion; describe them in its text.` |
 | `MIN206` | The request has images and `SupportsImages` is off. | none | `Custom does not support images.` |
+| `MIN207` | The set has no questions, on an upstream decision client. | none | `Upstream needs at least one question; the set has none.` |
+| `MIN208` | A question key or a Choice option key is white space only, on an upstream decision client. | the question | `Upstream does not accept a question or option key that is white space only.` |
+| `MIN209` | A Noul's `WhenTrue` or `WhenFalse`, or a text criterion, is empty or white space only, on an upstream decision client. | the question | `Upstream does not accept a description that is empty or white space only.` |
+| `MIN210` | A Noul's instructions are blank text and it lacks `WhenTrue` or `WhenFalse`, on an upstream decision client. | the question | `Upstream needs a Noul's instructions, or both WhenTrue and WhenFalse, to be more than white space.` |
+| `MIN211` | A Score question has one level, on an upstream decision client. | the question | `Upstream needs at least two levels on a Score question.` |
 
 The error's `Message` is the first failure's. `MIN202` comes first, then each question's `MIN201` and `MIN203` in the
 order it is sent, then `MIN206`, then OpenAI's `MIN204` and `MIN205` in question order. The adapter over an upstream

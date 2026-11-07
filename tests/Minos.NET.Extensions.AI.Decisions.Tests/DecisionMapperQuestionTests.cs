@@ -320,6 +320,46 @@ public sealed class DecisionMapperQuestionTests
         Assert.Null(call.Options.ModelId);
     }
 
+    [Fact]
+    public void TextStateWithALoneSurrogate_IsSentWithTheReplacementCharacter()
+    {
+        // Built here, not in theory data: xUnit turns a lone surrogate in theory data into U+FFFD before the test runs.
+        var text = "a" + '\uD800' + "b";
+
+        var state = DecisionMapper.ToUpstreamState(text);
+
+        Assert.Equal("a\uFFFDb", state.GetString());
+    }
+
+    [Fact]
+    public void TheUnsupportedErrorTable_OnTheProvidersPage_HasTheMappersMessages()
+    {
+        var rows = File.ReadLines(Path.Combine(RepositoryRoot(), "docs", "providers.md"))
+            .Where(line => line.StartsWith("| `MIN2", StringComparison.Ordinal))
+            .Select(line => line.Split(" | "))
+            .Where(cells => cells.Length == 4)
+            .ToDictionary(cells => cells[0].Trim('|', ' ', '`'), cells => cells[3].TrimEnd('|', ' ').Trim('`'));
+        QuestionSetDefinition[] sets =
+        [
+            new(),
+            new(QuestionDefinition.Noul(" ", "Is it spam?")),
+            new(QuestionDefinition.Noul("spam", "Is it spam?", whenTrue: " ")),
+            new(QuestionDefinition.Noul("spam", " ")),
+            new(QuestionDefinition.Score("level", "How bad?", "Only")),
+        ];
+
+        foreach (var set in sets)
+        {
+            var failure = SingleFailure(DecisionMapper.ToUpstreamQuestions(set, Provider));
+            Assert.Equal(rows[failure.Rule], failure.Message);
+        }
+
+        var detail = SingleFailure(DecisionMapper.ToUpstreamQuestions(
+            new QuestionSetDefinition(QuestionDefinition.Choice("team", "Which team?", new OptionDefinition("a", Criterion.Text("A").WithNotFor("B")))),
+            Provider));
+        Assert.Equal(rows["MIN205"].Replace("OpenAI", Provider, StringComparison.Ordinal), detail.Message);
+    }
+
     // ---- Upstream to Minos ----
 
     [Fact]
@@ -439,6 +479,18 @@ public sealed class DecisionMapperQuestionTests
 
     private static QuestionFailure SingleFailure<T>(ZeroAlloc.Results.Result<T, DecisionError> result)
         => Assert.Single(Failures(result));
+
+    private static string RepositoryRoot()
+    {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Minos.NET.slnx")))
+        {
+            directory = directory.Parent;
+        }
+
+        Assert.NotNull(directory);
+        return directory.FullName;
+    }
 
     private static (string Rule, string? QuestionKey) Pair(QuestionFailure failure) => (failure.Rule, failure.QuestionKey);
 
