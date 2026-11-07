@@ -44,6 +44,8 @@
     <!-- AddOpenTelemetry, AddSource and AddMeter, for the observability page's wiring snippet. -->
     <PackageReference Include="OpenTelemetry.Extensions.Hosting" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <!-- Reads the pinned upstream Microsoft.Extensions.AI.Abstractions build without loading it, for the decision mapping page check. -->
+    <PackageReference Include="System.Reflection.MetadataLoadContext" />
     <PackageReference Include="xunit" />
     <PackageReference Include="xunit.runner.visualstudio" />
     <PackageReference Include="ZeroAlloc.TestHelpers">
