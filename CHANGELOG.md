@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.11.3](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.11.2...v1.11.3) (2026-11-07)
+
+
+### Documentation
+
+* **plan:** groom milestone 11, phases 11.1 to 11.3 ([#345](https://github.com/MarcelRoozekrans/Minos.NET/issues/345)) ([506e345](https://github.com/MarcelRoozekrans/Minos.NET/commit/506e345d0a8f85d13cf607bc79b7ba93b69ebaa8))
+
 ## [1.11.2](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.11.1...v1.11.2) (2026-11-07)
 
 
