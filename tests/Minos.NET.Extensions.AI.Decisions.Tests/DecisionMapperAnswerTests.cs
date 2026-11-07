@@ -28,10 +28,21 @@ public sealed class DecisionMapperAnswerTests
     // ---- Minos to upstream: Over Minos ----
 
     [Fact]
+    public void AnAnswerForAnotherQuestion_ThrowsAProtocolException_ThatNamesNoKey()
+    {
+        // The right kind and option count, but the key of another question: Over Minos pairs by position, so the key is checked.
+        var error = Assert.Throws<DecisionProtocolException>(
+            () => DecisionMapper.ToUpstreamAnswer(Keyed(QuestionAnswer.Noul(0.9), "other"), UpstreamQuestions[0]));
+
+        Assert.Equal("The answers do not match the questions they belong to.", error.Message);
+        Assert.Throws<DecisionProtocolException>(() => DecisionMapper.ToUpstreamAnswer(QuestionAnswer.Noul(0.9), UpstreamQuestions[0]));
+    }
+
+    [Fact]
     public void ANoulAnswer_BecomesABinaryAnswer_WithItsProbabilityAndSource()
     {
         var answer = Assert.IsType<BinaryDecisionAnswer>(
-            DecisionMapper.ToUpstreamAnswer(QuestionAnswer.Noul(0.83, ProbabilitySource.Logprobs), UpstreamQuestions[0]));
+            DecisionMapper.ToUpstreamAnswer(Keyed(QuestionAnswer.Noul(0.83, ProbabilitySource.Logprobs), UpstreamQuestions[0].Id), UpstreamQuestions[0]));
 
         Assert.Equal(("urgent", DecisionKind.Binary, 0.83), (answer.QuestionId, answer.Kind, answer.TrueProbability));
         Assert.Equal(DecisionPrecision.TwoDecimalPlaces, answer.Precision);
@@ -49,7 +60,7 @@ public sealed class DecisionMapperAnswerTests
         // The chosen option is not the most probable one; the adapter keeps it as it is.
         var minos = QuestionAnswer.Choice(1, 0.4, [0.5, 0.3, 0.2], ProbabilitySource.Verbalized);
 
-        var answer = Assert.IsType<ChoiceDecisionAnswer>(DecisionMapper.ToUpstreamAnswer(minos, UpstreamQuestions[1]));
+        var answer = Assert.IsType<ChoiceDecisionAnswer>(DecisionMapper.ToUpstreamAnswer(Keyed(minos, UpstreamQuestions[1].Id), UpstreamQuestions[1]));
 
         Assert.Equal(("team", DecisionKind.Choice, "tech"), (answer.QuestionId, answer.Kind, answer.SelectedCandidateId));
         Assert.Equal([("billing", 0.5), ("tech", 0.3), ("sales", 0.2)], answer.Probabilities.Select(p => (p.Id, p.Value)));
@@ -66,7 +77,7 @@ public sealed class DecisionMapperAnswerTests
     {
         var minos = QuestionAnswer.Score(1, 1.4, 0.55, [0.1, 0.55, 0.2, 0.15]);
 
-        var answer = Assert.IsType<ScoreDecisionAnswer>(DecisionMapper.ToUpstreamAnswer(minos, UpstreamQuestions[2]));
+        var answer = Assert.IsType<ScoreDecisionAnswer>(DecisionMapper.ToUpstreamAnswer(Keyed(minos, UpstreamQuestions[2].Id), UpstreamQuestions[2]));
 
         Assert.Equal(("priority", DecisionKind.Score, 1.4), (answer.QuestionId, answer.Kind, answer.Score));
         Assert.Equal([("never", 0.1), ("later", 0.55), ("week", 0.2), ("today", 0.15)], answer.Probabilities.Select(p => (p.Id, p.Value)));
@@ -88,7 +99,7 @@ public sealed class DecisionMapperAnswerTests
         var question = new ScoreDecisionQuestion("severity", null, [new("0", "None"), new("1", "Low"), new("2", "High"), new("3", "Severe")]);
 
         var answer = Assert.IsType<ScoreDecisionAnswer>(
-            DecisionMapper.ToUpstreamAnswer(QuestionAnswer.Score(3, 2.97, 0.98, probabilities), question));
+            DecisionMapper.ToUpstreamAnswer(Keyed(QuestionAnswer.Score(3, 2.97, 0.98, probabilities), question.Id), question));
 
         Assert.Equal(2.97, answer.Score);
         Assert.Equal(DecisionPrecision.TwoDecimalPlaces, answer.Precision);
@@ -103,7 +114,7 @@ public sealed class DecisionMapperAnswerTests
     {
         // Sums to 0.99: within 3 x 0.005 + 0.000001 of 1, and not repaired.
         var answer = Assert.IsType<ChoiceDecisionAnswer>(
-            DecisionMapper.ToUpstreamAnswer(QuestionAnswer.Choice(0, 0.33, [0.33, 0.33, 0.33]), UpstreamQuestions[1]));
+            DecisionMapper.ToUpstreamAnswer(Keyed(QuestionAnswer.Choice(0, 0.33, [0.33, 0.33, 0.33]), UpstreamQuestions[1].Id), UpstreamQuestions[1]));
 
         Assert.Equal([0.33, 0.33, 0.33], answer.Probabilities.Select(p => p.Value));
     }
@@ -113,11 +124,11 @@ public sealed class DecisionMapperAnswerTests
     {
         // Sums to 0.9, further from 1 than 3 x 0.005 + 0.000001.
         var choice = QuestionAnswer.Choice(0, 0.5, [0.5, 0.3, 0.1]);
-        var choiceError = Assert.Throws<DecisionProtocolException>(() => DecisionMapper.ToUpstreamAnswer(choice, UpstreamQuestions[1]));
+        var choiceError = Assert.Throws<DecisionProtocolException>(() => DecisionMapper.ToUpstreamAnswer(Keyed(choice, UpstreamQuestions[1].Id), UpstreamQuestions[1]));
         Assert.Equal("A probability distribution must sum to 1 within the bound allowed by its declared rounding.", choiceError.Message);
 
         var score = QuestionAnswer.Score(0, 0.5, 0.6, [0.6, 0.6, 0, 0]);
-        Assert.Throws<DecisionProtocolException>(() => DecisionMapper.ToUpstreamAnswer(score, UpstreamQuestions[2]));
+        Assert.Throws<DecisionProtocolException>(() => DecisionMapper.ToUpstreamAnswer(Keyed(score, UpstreamQuestions[2].Id), UpstreamQuestions[2]));
     }
 
     [Fact]
@@ -126,7 +137,7 @@ public sealed class DecisionMapperAnswerTests
         // The distribution puts everything on level 0, so no rounding allows an expected level of 2.
         var score = QuestionAnswer.Score(0, 2, 1, [1, 0, 0, 0]);
 
-        var error = Assert.Throws<DecisionProtocolException>(() => DecisionMapper.ToUpstreamAnswer(score, UpstreamQuestions[2]));
+        var error = Assert.Throws<DecisionProtocolException>(() => DecisionMapper.ToUpstreamAnswer(Keyed(score, UpstreamQuestions[2].Id), UpstreamQuestions[2]));
         Assert.Equal("The score does not agree with its probability distribution.", error.Message);
     }
 
@@ -137,7 +148,7 @@ public sealed class DecisionMapperAnswerTests
     {
         var score = QuestionAnswer.Score(0, expected, 0.25, [0.25, 0.25, 0.25, 0.25]);
 
-        var error = Assert.Throws<DecisionProtocolException>(() => DecisionMapper.ToUpstreamAnswer(score, UpstreamQuestions[2]));
+        var error = Assert.Throws<DecisionProtocolException>(() => DecisionMapper.ToUpstreamAnswer(Keyed(score, UpstreamQuestions[2].Id), UpstreamQuestions[2]));
         Assert.Equal("A score must be finite and within the ordinal level range.", error.Message);
     }
 
@@ -145,11 +156,11 @@ public sealed class DecisionMapperAnswerTests
     public void AnAnswerOfAnotherKind_ThanItsQuestion_ThrowsAProtocolException()
     {
         var error = Assert.Throws<DecisionProtocolException>(
-            () => DecisionMapper.ToUpstreamAnswer(QuestionAnswer.Noul(0.9), UpstreamQuestions[1]));
+            () => DecisionMapper.ToUpstreamAnswer(Keyed(QuestionAnswer.Noul(0.9), UpstreamQuestions[1].Id), UpstreamQuestions[1]));
         Assert.DoesNotContain("0.9", error.Message, StringComparison.Ordinal);
 
         Assert.Throws<DecisionProtocolException>(
-            () => DecisionMapper.ToUpstreamAnswer(QuestionAnswer.Choice(0, 1, [1, 0]), UpstreamQuestions[1]));
+            () => DecisionMapper.ToUpstreamAnswer(Keyed(QuestionAnswer.Choice(0, 1, [1, 0]), UpstreamQuestions[1].Id), UpstreamQuestions[1]));
     }
 
     [Fact]
@@ -171,6 +182,22 @@ public sealed class DecisionMapperAnswerTests
         _ = new Microsoft.Extensions.AI.DecisionResponse(
             new Microsoft.Extensions.AI.DecisionRequest(JsonSerializer.SerializeToElement("s", DecisionJsonContext.Default.String), UpstreamQuestions),
             answers);
+    }
+
+    // A factory answer has no key; a response gives it the key of its question. This builds a one-question response
+    // whose question has the answer's kind and option count and the given key, so the answer carries that key.
+    private static QuestionAnswer Keyed(QuestionAnswer answer, string key)
+    {
+        var count = answer.Probabilities.Length;
+        var question = answer.Kind switch
+        {
+            QuestionKind.Noul => QuestionDefinition.Noul(key, "Question?"),
+            QuestionKind.Choice => QuestionDefinition.Choice(
+                key, "Question?", [.. Enumerable.Range(0, count).Select(i => new OptionDefinition("o" + i.ToString(System.Globalization.CultureInfo.InvariantCulture), "Option"))]),
+            _ => QuestionDefinition.Score(key, "Question?", [.. Enumerable.Range(0, count).Select(_ => (Criterion)"Level")]),
+        };
+
+        return new MinosResponse(new QuestionSetDefinition(question), [answer]).Answers[0];
     }
 
     // ---- Upstream to Minos: Over upstream ----
@@ -260,7 +287,7 @@ public sealed class DecisionMapperAnswerTests
         // Level 2 and confidence 0.61 differ from the assumptions, level 1 and 0.35, so only the keys can produce them.
         var minos = QuestionAnswer.Score(2, 1.65, 0.61, [0.1, 0.35, 0.35, 0.2], ProbabilitySource.Logprobs);
         var questions = Success(DecisionMapper.ToUpstreamQuestions(Definition, Provider));
-        var sent = DecisionMapper.ToUpstreamAnswer(minos, questions[2]);
+        var sent = DecisionMapper.ToUpstreamAnswer(Keyed(minos, questions[2].Id), questions[2]);
 
         var typeInfo = AIJsonUtilities.DefaultOptions.GetTypeInfo(typeof(DecisionAnswer));
         var json = JsonSerializer.Serialize(sent, typeInfo);
@@ -377,7 +404,7 @@ public sealed class DecisionMapperAnswerTests
         var upstream = new DecisionAnswer[minos.Length];
         for (var i = 0; i < minos.Length; i++)
         {
-            upstream[i] = DecisionMapper.ToUpstreamAnswer(minos[i], questions[i]);
+            upstream[i] = DecisionMapper.ToUpstreamAnswer(Keyed(minos[i], questions[i].Id), questions[i]);
         }
 
         var back = Success(DecisionMapper.ToMinosAnswers(upstream, Definition));

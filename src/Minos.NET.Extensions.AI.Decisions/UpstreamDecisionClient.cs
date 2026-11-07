@@ -76,7 +76,7 @@ public sealed class UpstreamDecisionClient : MinosClient
     /// <exception cref="ArgumentNullException"><paramref name="innerClient"/> is <see langword="null"/>.</exception>
     /// <remarks>
     /// The upstream <see cref="UpstreamMetadata"/> is read once, here. Its provider name, or
-    /// <see cref="DefaultProviderName"/> when it has none, names the provider in the Minos metadata and in each failure
+    /// <c>upstream</c> when it has none, names the provider in the Minos metadata and in each failure
     /// message; its supported kinds, or every kind when it lists none, are the kinds this client sends.
     /// </remarks>
     public UpstreamDecisionClient(UpstreamClient innerClient)

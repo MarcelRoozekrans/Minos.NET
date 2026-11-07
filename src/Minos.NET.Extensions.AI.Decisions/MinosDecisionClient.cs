@@ -22,8 +22,10 @@ namespace Minos.Extensions.AI.Decisions;
 /// A request is converted as the page says: a new <see cref="QuestionSetDefinition"/> from the upstream questions on each
 /// call, a JSON string state as text and an object or array as JSON, and <see cref="DecisionOptions.ModelId"/> as the
 /// model, with retry attempt 0, no images and no deadline. The options' other properties are ignored. A number,
-/// <c>true</c>, <c>false</c> or <c>null</c> state, which Minos cannot hold, throws a <see cref="DecisionClientException"/>
-/// that is not transient, before the Minos client is called.
+/// <c>true</c>, <c>false</c> or <c>null</c> state, which Minos cannot hold, faults the returned task with a
+/// <see cref="DecisionClientException"/> that is not transient, before the Minos client is called. Only a
+/// <see langword="null"/> request throws synchronously, an <see cref="ArgumentNullException"/>; every other failure faults
+/// the returned task.
 /// </para>
 /// <para>
 /// Every answer declares <see cref="DecisionPrecision.TwoDecimalPlaces"/> and carries the <c>minos.</c> answer keys. The
@@ -63,7 +65,7 @@ namespace Minos.Extensions.AI.Decisions;
 /// </para>
 /// <para>
 /// The client owns the Minos client and disposes it, as a Minos <see cref="DelegatingDecisionClient"/> does its inner
-/// client. A call after <see cref="Dispose"/> throws <see cref="ObjectDisposedException"/>.
+/// client. A call after <see cref="Dispose"/> faults the returned task with <see cref="ObjectDisposedException"/>.
 /// </para>
 /// <para>
 /// A Minos client reports failures as a <see cref="DecisionError"/>. One that throws anything other than
@@ -108,11 +110,7 @@ public sealed class MinosDecisionClient : UpstreamClient
     public Task<UpstreamResponse> GetResponseAsync(UpstreamRequest request, DecisionOptions? options = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
-
-        // Throws the non-transient DecisionClientException for a state Minos cannot hold, before anything is sent.
-        var minosRequest = DecisionMapper.ToMinos(request, options);
-        return SendAsync(request, minosRequest, cancellationToken);
+        return SendAsync(request, options, cancellationToken);
     }
 
     /// <inheritdoc />
@@ -296,8 +294,13 @@ public sealed class MinosDecisionClient : UpstreamClient
         };
     }
 
-    private async Task<UpstreamResponse> SendAsync(UpstreamRequest request, DecisionRequest minosRequest, CancellationToken cancellationToken)
+    // Async from the first line, so a disposed client and a state Minos cannot hold fault the returned task.
+    private async Task<UpstreamResponse> SendAsync(UpstreamRequest request, DecisionOptions? options, CancellationToken cancellationToken)
     {
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
+
+        // The non-transient DecisionClientException for a state Minos cannot hold, before anything is sent.
+        var minosRequest = DecisionMapper.ToMinos(request, options);
         var result = await _innerClient.EvaluateAsync(minosRequest, cancellationToken).ConfigureAwait(false);
         if (result.IsFailure)
         {

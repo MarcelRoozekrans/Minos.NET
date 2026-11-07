@@ -85,7 +85,8 @@ internal static partial class DecisionMapper
     /// <param name="question">The upstream question it answers.</param>
     /// <returns>The upstream answer.</returns>
     /// <exception cref="DecisionProtocolException">
-    /// The answer's kind, probability count or chosen position does not fit the question; or the upstream constructor
+    /// The answer's key is not the question's id, ordinally; the answer's kind, probability count or chosen position does
+    /// not fit the question; or the upstream constructor
     /// refused the answer, for any of its reasons: a distribution that does not sum to 1 within 0.005 per value plus
     /// 0.000001; a distribution with no normalized values consistent with that rounding; a Score whose expected level is
     /// outside the level range, from 0 to the level count minus 1; or a Score whose expected level does not agree with its
@@ -95,6 +96,12 @@ internal static partial class DecisionMapper
     internal static DecisionAnswer ToUpstreamAnswer(QuestionAnswer answer, DecisionQuestion question)
     {
         ArgumentNullException.ThrowIfNull(question);
+
+        // Over Minos pairs answers with questions by position, so a Minos client that reorders them is caught here.
+        if (!string.Equals(answer.Key, question.Id, StringComparison.Ordinal))
+        {
+            throw new DecisionProtocolException(MismatchMessage);
+        }
 
         switch (question)
         {

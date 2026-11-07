@@ -94,13 +94,14 @@ public sealed class MinosDecisionClientTests
     [InlineData("true")]
     [InlineData("false")]
     [InlineData("null")]
-    public async Task ANumberBooleanOrNullState_ThrowsANonTransientClientException_WithoutCallingMinos(string state)
+    public async Task ANumberBooleanOrNullState_FaultsTheTaskWithANonTransientClientException_WithoutCallingMinos(string state)
     {
         using var minos = new FakeMinosClient();
         using var client = new MinosDecisionClient(minos);
 
-        var exception = await Assert.ThrowsAsync<DecisionClientException>(
-            () => client.GetResponseAsync(new UpstreamRequest(Json(state), Questions)));
+        // The call returns a task rather than throwing; the task carries the exception.
+        var task = client.GetResponseAsync(new UpstreamRequest(Json(state), Questions));
+        var exception = await Assert.ThrowsAsync<DecisionClientException>(() => task);
 
         Assert.False(exception.IsTransient);
         Assert.DoesNotContain(state, exception.Message, StringComparison.Ordinal);
@@ -124,11 +125,12 @@ public sealed class MinosDecisionClientTests
     }
 
     [Fact]
-    public async Task ANullRequest_Throws()
+    public void ANullRequest_ThrowsSynchronously()
     {
         using var client = new MinosDecisionClient(new FakeMinosClient());
 
-        await Assert.ThrowsAsync<ArgumentNullException>(() => client.GetResponseAsync(null!));
+        // Thrown by the call itself, before a task exists, as the Minos clients do for a null argument.
+        Assert.Throws<ArgumentNullException>(() => { _ = client.GetResponseAsync(null!); });
     }
 
     // ---- Answers and the response ----
@@ -491,6 +493,29 @@ public sealed class MinosDecisionClientTests
         Assert.Equal(DecisionErrorKind.InvalidResponse, Assert.IsType<MinosDecisionException>(exception.InnerException).Error?.Kind);
     }
 
+    [Fact]
+    public async Task AnswersInAnotherOrderThanTheQuestions_ThrowAProtocolException_WithAnInvalidResponseErrorInside()
+    {
+        DecisionQuestion[] questions = [new BinaryDecisionQuestion("first", "First?"), new BinaryDecisionQuestion("second", "Second?")];
+
+        // Same kinds and count, so only the keys tell that the Minos client answered the questions in swapped order.
+        using var minos = new FakeMinosClient
+        {
+            Respond = (_, _) => new MinosResponse(
+                new QuestionSetDefinition(QuestionDefinition.Noul("second", "Second?"), QuestionDefinition.Noul("first", "First?")),
+                [QuestionAnswer.Noul(0.9), QuestionAnswer.Noul(0.1)]),
+        };
+        using var client = new MinosDecisionClient(minos);
+
+        var exception = await Assert.ThrowsAsync<DecisionProtocolException>(
+            () => client.GetResponseAsync(new UpstreamRequest(Text("ticket text"), questions)));
+
+        var inner = Assert.IsType<MinosDecisionException>(exception.InnerException);
+        Assert.Equal(DecisionErrorKind.InvalidResponse, inner.Error?.Kind);
+        Assert.Equal("The answers do not match the questions they belong to.", exception.Message);
+        Assert.DoesNotContain("first", exception.Message, StringComparison.Ordinal);
+    }
+
     // ---- Metadata, services and disposal ----
 
     [Fact]
@@ -558,7 +583,10 @@ public sealed class MinosDecisionClientTests
         client.Dispose();
 
         Assert.Equal(1, minos.DisposeCount);
-        await Assert.ThrowsAsync<ObjectDisposedException>(() => client.GetResponseAsync(Request()));
+
+        // The call returns a task rather than throwing; the task carries the exception.
+        var task = client.GetResponseAsync(Request());
+        await Assert.ThrowsAsync<ObjectDisposedException>(() => task);
         Assert.Empty(minos.Requests);
     }
 
