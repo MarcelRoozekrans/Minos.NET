@@ -69,11 +69,12 @@ took a median of 5.5 s and p95 6.1 s on the CPU-only runner, so it used up the b
 time. All 106 questions below their threshold ended as `NoTimeLeft`. There was no target call, and nothing was billed.
 
 The second run used a budget of 15 seconds and an expected latency of 300 ms. The local call took a median of 5282.9 ms,
-and the hosted call a median of 102.3 ms. The same 106 questions were escalated, in 104 target calls. That is 106
+and the hosted call a median of 102.3 ms. Again 106 questions were escalated, in 104 target calls. That is 106
 questions over 104 tickets, since a ticket with two unsure questions needs one call.
 
-The first run is quoted from [the triage report](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/docs/reports/triage/banking77),
-which does not commit its records. The second run's figures are in the same report.
+The first run is quoted from the README of
+[the triage report](https://github.com/MarcelRoozekrans/Minos.NET/tree/main/docs/reports/triage/banking77), which does
+not commit its records. The second run's figures are in the same report.
 
 ## Choose a budget
 

@@ -146,13 +146,43 @@ public sealed partial class EscalationPageTests
         var budget = ReadmeLine("Budget:");
         var expected = ReadmeLine("Expected latency:");
         var page = EscalationReport.PageText("time-budget");
+        var snippet = File.ReadAllText(Path.Combine(PublishedPages.Root, "tests", "Minos.NET.Docs.Tests", "EscalationBudget.cs"));
 
         Assert.StartsWith("15 seconds", budget, StringComparison.Ordinal);
         Assert.Equal("300 ms", expected);
-        Assert.Contains("15 seconds", page, StringComparison.Ordinal);
-        Assert.Contains("300 ms", page, StringComparison.Ordinal);
-        Assert.Contains("Budget = TimeSpan.FromSeconds(15)", File.ReadAllText(Path.Combine(PublishedPages.Root, "tests", "Minos.NET.Docs.Tests", "EscalationBudget.cs")), StringComparison.Ordinal);
-        Assert.Contains("ExpectedLatency = TimeSpan.FromMilliseconds(300)", File.ReadAllText(Path.Combine(PublishedPages.Root, "tests", "Minos.NET.Docs.Tests", "EscalationBudget.cs")), StringComparison.Ordinal);
+        Assert.Contains("a budget of 15 seconds and an expected latency of 300 ms", page, StringComparison.Ordinal);
+        Assert.Contains("Budget = TimeSpan.FromSeconds(15)", snippet, StringComparison.Ordinal);
+        Assert.Contains("ExpectedLatency = TimeSpan.FromMilliseconds(300)", snippet, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(DecisionErrorKind.Network)]
+    [InlineData(DecisionErrorKind.Validation)]
+    public void TheDefaultShouldFallBack_IsProviderFailure(DecisionErrorKind kind)
+    {
+        var error = new DecisionError(kind, "failed");
+
+        Assert.Equal(FallbackOptions.IsProviderFailure(error), new FallbackOptions().ShouldFallBack(error));
+        Assert.Equal(kind == DecisionErrorKind.Network, FallbackOptions.IsProviderFailure(error));
+    }
+
+    [Fact]
+    public void TheCallStatuses_AreTheNamesOnThePage()
+    {
+        var page = EscalationReport.PageText("fallback");
+
+        foreach (var name in Enum.GetNames<CallStatus>())
+        {
+            Assert.Contains($"`{name}`", page, StringComparison.Ordinal);
+        }
+
+        Assert.Contains($"`{nameof(RouteReason.FellBack)}`", page, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheFallbackPage_LinksThePipelineSection()
+    {
+        Assert.Contains("(../pipeline.md#falling-back-to-another-provider)", EscalationReport.PageText("fallback"), StringComparison.Ordinal);
     }
 
     [Fact]
