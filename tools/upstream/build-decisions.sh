@@ -39,8 +39,9 @@ fi
 
 [ -f "$src/$project" ] || fail "project not found at pinned commit: $project"
 
-# Build the single project directly. The repo's global.json pins an SDK patch;
-# rollForward lets a newer installed patch satisfy it.
+# Build the single project directly. The SDK is chosen from the global.json above the
+# current directory, so run from the repo root: that is this repo's pin, 10.0.403 with
+# rollForward latestMinor, not upstream's 10.0.401 pin (dotnet --version differs in the two).
 dotnet build "$src/$project" -c Release -nologo -v quiet \
   -p:TreatWarningsAsErrors=false -p:ContinuousIntegrationBuild=false \
   || fail "dotnet build failed"

@@ -13,8 +13,10 @@ on:
     paths:
       - 'docs/extensions-ai-decisions/**'
       - 'tools/upstream/**'
-      - 'tests/Minos.NET.Docs.Tests/ExtensionsAiDecisionsMappingTests.cs'
-      - 'tests/Minos.NET.Docs.Tests/UpstreamAbstractionsFactAttribute.cs'
+      - 'tests/Minos.NET.Docs.Tests/**'
+      - 'global.json'
+      - 'Directory.Build.props'
+      - 'Directory.Packages.props'
       - '.github/workflows/upstream-decisions.yml'
 
 permissions:
@@ -22,7 +24,7 @@ permissions:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   upstream-decisions:
@@ -33,21 +35,30 @@ jobs:
         with:
           persist-credentials: false
 
-      # The upstream global.json pins an SDK patch; the SDK installed here satisfies it by roll-forward.
+      # The build runs from the repo root, so the SDK comes from this repo's global.json (10.0.403, latestMinor),
+      # not from upstream's 10.0.401 pin.
       - name: Setup .NET
         uses: actions/setup-dotnet@v6
         with:
           global-json-file: global.json
           dotnet-version: '10.0.x'
 
-      - name: Cache the upstream build
-        uses: actions/cache@v6
+      - name: Restore the upstream build
+        id: cache
+        uses: actions/cache/restore@v6
         with:
           path: artifacts/upstream
           key: upstream-decisions-${{ runner.os }}-${{ hashFiles('tools/upstream/decisions-pin.json', 'tools/upstream/build-decisions.sh') }}
 
       - name: Build the pinned upstream abstractions
         run: bash tools/upstream/build-decisions.sh
+
+      - name: Save the upstream build
+        if: always() && steps.cache.outputs.cache-hit != 'true' && hashFiles('artifacts/upstream/abstractions.path') != ''
+        uses: actions/cache/save@v6
+        with:
+          path: artifacts/upstream
+          key: upstream-decisions-${{ runner.os }}-${{ hashFiles('tools/upstream/decisions-pin.json', 'tools/upstream/build-decisions.sh') }}
 
       - name: Decision mapping tests
         run: |

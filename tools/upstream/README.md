@@ -31,8 +31,10 @@ ignores, and the DLL is never packed or shipped with a Minos.NET package.
 
 ### SDK and properties
 
-Upstream `global.json` pins SDK 10.0.401. CI must install an SDK that satisfies
-it: 10.0.401 or a later patch, via the default roll-forward. The script passes
+Upstream `global.json` pins SDK 10.0.401, but the build uses this repository's
+`global.json` (10.0.403, `rollForward` `latestMinor`), because the SDK is chosen
+from the current directory and the script is run from the repo root. CI installs
+the SDK from the repo's `global.json`. The script passes
 `-p:TreatWarningsAsErrors=false` so upstream analyzer warnings from a newer SDK
 cannot fail the build, and `-p:ContinuousIntegrationBuild=false` to keep the
 build out of deterministic CI mode. Neither was needed locally.
