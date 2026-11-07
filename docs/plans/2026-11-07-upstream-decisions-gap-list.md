@@ -124,8 +124,9 @@ These are not topics for the comment, but they cost a pipeline stage some code:
 
 ## What overlaps Layer 2
 
-#7796 is not in the pinned commit, so what follows compares Minos with the routing types that are there and with #7796
-as its description reads.
+[#7796](https://github.com/dotnet/extensions/pull/7796) is not in the pinned commit, so what follows compares Minos
+with the routing types that are there and with #7796 as its description reads: "Use a typed decision selector with
+existing `RoutingChatClient.Create` to choose among configured `IChatClient` instances".
 
 - **Fallback overlaps failover.** Minos's `UseFallback` asks the next decider when a call fails. Upstream's
   `FailoverChatClient` does the same for chat: it selects another client after an invocation fails
