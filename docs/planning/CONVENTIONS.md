@@ -10,6 +10,8 @@
 **Package manager:** NuGet (dotnet CLI)
 **Framework:** ZeroAlloc.* (Rest, Resilience, Results, Telemetry, Validation, Inject)
 **Datastore:** n/a
+**Build:** `dotnet build Minos.NET.slnx -c Release`
+**Test:** `dotnet test Minos.NET.slnx -c Release --no-build`
 
 ## Commits
 

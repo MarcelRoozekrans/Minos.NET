@@ -1,0 +1,478 @@
+using System.Globalization;
+using System.Text.Json.Nodes;
+using System.Text.RegularExpressions;
+
+namespace Minos.Docs.Tests;
+
+// Keeps the Escalation category in its place in the sidebar. Later recipe pages add their own tests here.
+public sealed partial class EscalationPageTests
+{
+    [Fact]
+    public void TheCategory_SitsBeforePatterns()
+    {
+        Assert.Equal(18, CategoryPosition("escalation"));
+        Assert.Equal(19, CategoryPosition("patterns"));
+    }
+
+    [Fact]
+    public void TheIndex_IsPositionOne()
+    {
+        var front = PublishedPages.FrontMatter("docs/escalation/index.md");
+
+        Assert.Equal("escalation", front["id"]);
+        Assert.Equal("1", front["sidebar_position"]);
+    }
+
+    // Each figure is anchored on the words after it, so a bare number cannot match elsewhere on the page. The "wrong"
+    // format is the questions the local model got wrong: its total less its correct answers.
+    public static TheoryData<string, string, string> ThresholdFigures() => new()
+    {
+        { "signal.choice.wrongCaught", "integer", "31 of the 37 wrong Choice answers" },
+        { "signal.choice.wrongMissed", "integer", "6 slipped through" },
+        { "signal.noul.wrongCaught", "integer", "1 of the 51 wrong Noul answers" },
+        { "signal.noul.wrongMissed", "integer", "50 slipped through" },
+        { "split.noul.escalated", "integer", "5 of the 800 Noul questions" },
+        { "accuracy.choice.localAlone.correct", "wrong", "37 of the 400 Choice questions" },
+        { "accuracy.noul.localAlone.correct", "wrong", "51 of the 800 Noul questions" },
+    };
+
+    [Fact]
+    public void TheDefaultThreshold_IsPointSix()
+    {
+        Assert.Equal(0.6, new EscalationOptions().DefaultThreshold);
+        Assert.Contains("`DefaultThreshold` is 0.6", EscalationReport.PageWords("thresholds"), StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [MemberData(nameof(ThresholdFigures))]
+    public void ThresholdFigures_AreTheReports(string path, string format, string expected)
+    {
+        var report = EscalationReport.Triage;
+        var value = EscalationReport.Resolve(report, path).GetValue<int>();
+        if (string.Equals(format, "wrong", StringComparison.Ordinal))
+        {
+            var total = EscalationReport.Resolve(report, path.Replace(".correct", ".total", StringComparison.Ordinal)).GetValue<int>();
+            value = total - value;
+        }
+
+        var text = value.ToString(CultureInfo.InvariantCulture);
+        Assert.True(expected.StartsWith(text + " ", StringComparison.Ordinal), $"The report's {path} gives {text}.");
+        Assert.Contains(expected, EscalationReport.PageWords("thresholds"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheCalibrationRow_IsTheReports()
+    {
+        var row = EscalationReport.Calibration["choice"]!["sweep"]!.AsArray().Single(r => Math.Abs(r!["threshold"]!.GetValue<double>() - 0.85) < 1e-9)!;
+        var coverage = row["coverage"]!.GetValue<double>().ToString("F4", CultureInfo.InvariantCulture);
+        var accuracy = row["accuracy"]!.GetValue<double>().ToString("F4", CultureInfo.InvariantCulture);
+        var covered = row["covered"]!.GetValue<int>().ToString(CultureInfo.InvariantCulture);
+        var line = $"| 0.85 | {coverage} | {accuracy} | {covered} |";
+
+        Assert.Equal("| 0.85 | 0.8200 | 0.9787 | 328 |", line);
+        Assert.Contains(line, EscalationReport.PageText("thresholds"), StringComparison.Ordinal);
+        Assert.Contains(line, File.ReadAllText(Path.Combine(PublishedPages.Root, "docs", "reports", "local", "banking77", "report.md")), StringComparison.Ordinal);
+        Assert.Contains("328 of the 400 Choice questions", EscalationReport.PageWords("thresholds"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheSweepEstimate_AndTheTriageCount_AreTheReports()
+    {
+        var sweep = EscalationReport.Calibration["choice"]!["sweep"]!.AsArray().Single(r => Math.Abs(r!["threshold"]!.GetValue<double>() - 0.85) < 1e-9)!;
+        var below = 400 - sweep["covered"]!.GetValue<int>();
+        var escalated = EscalationReport.Resolve(EscalationReport.Triage, "split.choice.escalated").GetValue<int>();
+        var page = EscalationReport.PageWords("thresholds");
+
+        Assert.Equal(72, below);
+        Assert.Equal(101, escalated);
+        Assert.Contains("The other 72 questions", page, StringComparison.Ordinal);
+        Assert.Contains("escalated 101 of the 400 Choice questions at 0.85, not 72", page, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheNoulSweepEstimate_AndTheNoulCount_AreTheReports()
+    {
+        var sweep = EscalationReport.Calibration["noul"]!["sweep"]!.AsArray().Single(r => Math.Abs(r!["threshold"]!.GetValue<double>() - 0.80) < 1e-9)!;
+        var covered = sweep["covered"]!.GetValue<int>();
+        var escalated = EscalationReport.Resolve(EscalationReport.Triage, "split.noul.escalated").GetValue<int>();
+
+        Assert.Equal(658, covered);
+        Assert.Equal(142, 800 - covered);
+        Assert.Equal(5, escalated);
+        Assert.Contains("a threshold of 0.80 keeps 658 of the 800 Noul questions, so it predicts 142 escalations. The run escalated 5.", EscalationReport.PageWords("thresholds"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheThresholdsInTheSnippet_AreTheReportsConfig()
+    {
+        var line = EscalationReport.TriageReadme.Split('\n').Single(l => l.StartsWith("Thresholds:", StringComparison.Ordinal));
+        var fromReport = ReportThreshold().Matches(line).ToDictionary(m => m.Groups["key"].Value, m => double.Parse(m.Groups["value"].Value, CultureInfo.InvariantCulture), StringComparer.Ordinal);
+        var source = File.ReadAllText(Path.Combine(PublishedPages.Root, "tests", "Minos.NET.Docs.Tests", "EscalationThresholds.cs"));
+        var fromSnippet = SnippetThreshold().Matches(source).ToDictionary(m => m.Groups["key"].Value, m => double.Parse(m.Groups["value"].Value, CultureInfo.InvariantCulture), StringComparer.Ordinal);
+
+        Assert.Equal(3, fromReport.Count);
+        Assert.Equal(fromReport.OrderBy(p => p.Key, StringComparer.Ordinal), fromSnippet.OrderBy(p => p.Key, StringComparer.Ordinal));
+    }
+
+    [Fact]
+    public void TheThresholdsPage_LinksTheTwoReferences()
+    {
+        var page = EscalationReport.PageText("thresholds");
+
+        Assert.Contains("(../patterns/confidence-routing.md#the-gates)", page, StringComparison.Ordinal);
+        Assert.Contains("(../pipeline.md#escalating-unsure-questions)", page, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void BudgetFigures_AreTheReports()
+    {
+        var report = EscalationReport.Triage;
+        var page = EscalationReport.PageWords("time-budget");
+
+        Assert.Equal("5282.9", EscalationReport.Resolve(report, "latency.local.medianMs").GetValue<double>().ToString("F1", CultureInfo.InvariantCulture));
+        Assert.Equal("102.3", EscalationReport.Resolve(report, "latency.target.medianMs").GetValue<double>().ToString("F1", CultureInfo.InvariantCulture));
+        Assert.Equal(106, EscalationReport.Resolve(report, "split.all.escalated").GetValue<int>());
+        Assert.Equal(104, EscalationReport.Resolve(report, "split.all.ticketsWithTargetCall").GetValue<int>());
+        Assert.Contains("a median of 5282.9 ms", page, StringComparison.Ordinal);
+        Assert.Contains("a median of 102.3 ms", page, StringComparison.Ordinal);
+        Assert.Contains("Again 106 questions were escalated, in 104 target calls", page, StringComparison.Ordinal);
+        Assert.Contains("104 target calls", page, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("median of 5.5 s")]
+    [InlineData("p95 6.1 s")]
+    [InlineData("106 questions below their threshold")]
+    [InlineData("no target call")]
+    public void TheFirstRun_IsQuotedFromTheReadme(string phrase)
+    {
+        Assert.Contains(phrase, EscalationReport.PageWords("time-budget"), StringComparison.Ordinal);
+
+        // The README wraps its lines, so a phrase may break across two of them.
+        var readme = string.Join(' ', EscalationReport.TriageReadme.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        Assert.Contains(phrase, readme, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheDefaultBudget_IsTheSamples_AndTheStageHasNone()
+    {
+        Assert.Null(new EscalationOptions().Budget);
+        foreach (var name in new[] { "index", "time-budget" })
+        {
+            var page = EscalationReport.PageWords(name);
+            Assert.Contains("the sample's default budget of 5 seconds", page, StringComparison.Ordinal);
+            Assert.DoesNotContain("the default budget of 5 seconds", page, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void TheFallbackInsideEscalation_CutsTheLocalCall_AsThePagesSay()
+    {
+        var budget = EscalationReport.PageWords("time-budget");
+        var composing = EscalationReport.PageWords("composing-and-privacy");
+        var draft = string.Join(' ', File.ReadAllText(Path.Combine(PublishedPages.Root, "docs/plans/2026-11-06-dotnet-extensions-decision-proposal-draft.md")).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+        Assert.Contains("unless a fallback stage inside escalation cuts it", budget, StringComparison.Ordinal);
+        Assert.Contains("a `Budget` also cuts the local call", composing, StringComparison.Ordinal);
+        Assert.Contains("unless a fallback stage inside escalation cuts it", draft, StringComparison.Ordinal);
+        Assert.Contains("Escalation needs a local call that leaves at least `ExpectedLatency` of the budget", budget, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheReportsBudgetAndExpectedLatency_AreOnThePage()
+    {
+        var budget = ReadmeLine("Budget:");
+        var expected = ReadmeLine("Expected latency:");
+        var page = EscalationReport.PageWords("time-budget");
+        var snippet = File.ReadAllText(Path.Combine(PublishedPages.Root, "tests", "Minos.NET.Docs.Tests", "EscalationBudget.cs"));
+
+        Assert.StartsWith("15 seconds", budget, StringComparison.Ordinal);
+        Assert.Equal("300 ms", expected);
+        Assert.Contains("a budget of 15 seconds and an expected latency of 300 ms", page, StringComparison.Ordinal);
+        Assert.Contains("Budget = TimeSpan.FromSeconds(15)", snippet, StringComparison.Ordinal);
+        Assert.Contains("ExpectedLatency = TimeSpan.FromMilliseconds(300)", snippet, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData(DecisionErrorKind.Network)]
+    [InlineData(DecisionErrorKind.Validation)]
+    public void TheDefaultShouldFallBack_IsProviderFailure(DecisionErrorKind kind)
+    {
+        var error = new DecisionError(kind, "failed");
+
+        Assert.Equal(FallbackOptions.IsProviderFailure(error), new FallbackOptions().ShouldFallBack(error));
+        Assert.Equal(kind == DecisionErrorKind.Network, FallbackOptions.IsProviderFailure(error));
+    }
+
+    [Fact]
+    public void TheCallStatuses_AreTheNamesOnThePage()
+    {
+        var page = EscalationReport.PageText("fallback");
+
+        foreach (var name in Enum.GetNames<CallStatus>())
+        {
+            Assert.Contains($"`{name}`", page, StringComparison.Ordinal);
+        }
+
+        Assert.Contains($"`{nameof(RouteReason.FellBack)}`", page, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheFallbackPage_LinksThePipelineSection()
+    {
+        Assert.Contains("(../pipeline.md#falling-back-to-another-provider)", EscalationReport.PageText("fallback"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheBudgetPage_LinksThePipelineAndRecording()
+    {
+        var page = EscalationReport.PageText("time-budget");
+
+        Assert.Contains("(../pipeline.md#escalating-unsure-questions)", page, StringComparison.Ordinal);
+        Assert.Contains("(../recording.md)", page, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheSnippet_PutsEscalationOutsideFallback()
+    {
+        var source = File.ReadAllText(Path.Combine(PublishedPages.Root, "tests", "Minos.NET.Docs.Tests", "EscalationCompose.cs"));
+
+        // The first Use is the outermost stage.
+        Assert.True(source.IndexOf(".UseRecording(", StringComparison.Ordinal) < source.IndexOf(".UseEscalation(", StringComparison.Ordinal));
+        Assert.True(source.IndexOf(".UseEscalation(", StringComparison.Ordinal) < source.IndexOf(".UseFallback(", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ThePageOrder_IsThePipelinePagesOrder()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(PublishedPages.Root, "docs", "pipeline.md"));
+        var section = pipeline[pipeline.IndexOf("### Stage order", StringComparison.Ordinal)..];
+        var fromPipeline = StageWords(section);
+
+        var page = EscalationReport.PageText("composing-and-privacy");
+        var list = page[page.IndexOf("1. recording", StringComparison.Ordinal)..];
+        var fromPage = StageWords(list);
+
+        Assert.Equal(["recording", "telemetry", "escalation", "fallback", "caching", "retries", "rate limiting"], fromPipeline);
+        Assert.Equal(fromPipeline, fromPage);
+        Assert.Contains("(../pipeline.md#building-your-own-pipeline)", page, StringComparison.Ordinal);
+        Assert.Contains("(../running-locally.md#what-stays-private-step-by-step)", page, StringComparison.Ordinal);
+        Assert.Contains("(../recording.md#the-escalation-path)", page, StringComparison.Ordinal);
+        Assert.Contains("(../recording.md#erasure)", page, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheFallbackPage_SaysWhenTheLastEntryAnswers()
+    {
+        var page = EscalationReport.PageText("fallback");
+
+        var text = string.Join(' ', page.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+        Assert.Contains("when the answering step has no routing stage of its own", text, StringComparison.Ordinal);
+        Assert.Contains("keeps its routes: a question it escalated still reads `Escalated`, and its calls follow the failed ones", text, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("Model")]
+    [InlineData("Logprobs")]
+    [InlineData("Verbalized")]
+    public void ThePage_NamesEachProbabilitySource(string source)
+    {
+        Assert.True(Enum.IsDefined(typeof(ProbabilitySource), source));
+        Assert.Contains($"`{source}`", EscalationReport.PageText("chat-model-target"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheTargetSnippet_ReadsTheAnswersSource()
+    {
+        var source = File.ReadAllText(Path.Combine(PublishedPages.Root, "tests", "Minos.NET.Docs.Tests", "EscalationChatTarget.cs"));
+
+        Assert.Contains("new ChatDecisionClient(chat)", source, StringComparison.Ordinal);
+        Assert.Contains("result.Value.ProbabilitySource", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheChatTargetPage_LinksTheChatClientsGuide()
+    {
+        var page = EscalationReport.PageText("chat-model-target");
+
+        Assert.Contains("(../chat-clients.md#probability-modes)", page, StringComparison.Ordinal);
+        Assert.Contains("(../chat-clients.md#where-the-probabilities-came-from)", page, StringComparison.Ordinal);
+        Assert.Contains("(../chat-clients.md#reasoning-models)", page, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("thresholds.md")]
+    [InlineData("time-budget.md")]
+    [InlineData("fallback.md")]
+    [InlineData("composing-and-privacy.md")]
+    [InlineData("chat-model-target.md")]
+    public void TheIndex_LinksEveryRecipe(string file)
+    {
+        Assert.Contains($"({file})", EscalationReport.PageText("index"), StringComparison.Ordinal);
+    }
+
+    // Each figure is anchored on the words around it. The count unit is on the page each time: tickets or questions.
+    public static TheoryData<string, string, string> IndexFigures() => new()
+    {
+        { "accuracy.all.localAlone.rate", "rate", "| Local answer alone | 0.9267 |" },
+        { "accuracy.all.final.rate", "rate", "| Final answer | 0.9308 |" },
+        { "accuracy.all.target.rate", "rate", "| Target, on the 106 escalated questions | 0.7453 |" },
+        { "escalated.all.fixed", "integer", "10 were fixed" },
+        { "escalated.all.broken", "integer", "5 were broken" },
+        { "split.all.confident", "integer", "1,094 of the 1,200 questions" },
+        { "cost.perThousandTickets", "cost", "| Cost per 1,000 tickets | 0.00597733 |" },
+    };
+
+    [Theory]
+    [MemberData(nameof(IndexFigures))]
+    public void IndexFigures_AreTheReports(string path, string format, string expected)
+    {
+        var value = EscalationReport.Resolve(EscalationReport.Triage, path);
+        var text = format switch
+        {
+            "rate" => value.GetValue<double>().ToString("F4", CultureInfo.InvariantCulture),
+            "cost" => value.GetValue<double>().ToString("F8", CultureInfo.InvariantCulture),
+            _ => value.GetValue<int>().ToString(CultureInfo.InvariantCulture),
+        };
+
+        Assert.Contains(text, expected.Replace(",", string.Empty, StringComparison.Ordinal), StringComparison.Ordinal);
+        Assert.Contains(expected, EscalationReport.PageText("index"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheIndexCounts_AreTheReports()
+    {
+        var report = EscalationReport.Triage;
+        var page = EscalationReport.PageText("index");
+        var text = string.Join(' ', page.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+        Assert.Equal(400, EscalationReport.Resolve(report, "accuracy.choice.localAlone.total").GetValue<int>());
+        Assert.Equal(1200, EscalationReport.Resolve(report, "accuracy.all.localAlone.total").GetValue<int>());
+        Assert.Equal(106, EscalationReport.Resolve(report, "split.all.escalated").GetValue<int>());
+        Assert.Equal(79, EscalationReport.Resolve(report, "accuracy.all.target.correct").GetValue<int>());
+        Assert.Equal(69, EscalationReport.Resolve(report, "escalated.all.bothRight").GetValue<int>());
+        Assert.Equal(22, EscalationReport.Resolve(report, "escalated.all.bothWrong").GetValue<int>());
+        Assert.Equal(104, EscalationReport.Resolve(report, "split.all.ticketsWithTargetCall").GetValue<int>());
+        Assert.Equal(91, EscalationReport.Resolve(report, "split.all.escalated").GetValue<int>() - EscalationReport.Resolve(report, "escalated.all.fixed").GetValue<int>() - EscalationReport.Resolve(report, "escalated.all.broken").GetValue<int>());
+        Assert.Contains("| Tickets | 400 |", page, StringComparison.Ordinal);
+        Assert.Contains("| Questions | 1,200 |", page, StringComparison.Ordinal);
+        Assert.Contains("| Questions escalated | 106 |", page, StringComparison.Ordinal);
+        Assert.Contains("right on 79 of the 106 escalated questions", text, StringComparison.Ordinal);
+        Assert.Contains("The other 91 kept the same result: 69 right both times and 22 wrong both times", text, StringComparison.Ordinal);
+        Assert.Contains("in 104 target calls", text, StringComparison.Ordinal);
+        Assert.Contains("(104 of the 400 tickets here)", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheIndexSignalFigures_AreTheReports()
+    {
+        var report = EscalationReport.Triage;
+        var text = string.Join(' ', EscalationReport.PageText("index").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+        int Wrong(string kind) => EscalationReport.Resolve(report, $"accuracy.{kind}.localAlone.total").GetValue<int>() - EscalationReport.Resolve(report, $"accuracy.{kind}.localAlone.correct").GetValue<int>();
+        Assert.Equal(51, Wrong("noul"));
+        Assert.Equal(1, EscalationReport.Resolve(report, "signal.noul.wrongCaught").GetValue<int>());
+        Assert.Equal(800, EscalationReport.Resolve(report, "accuracy.noul.localAlone.total").GetValue<int>());
+        Assert.Equal(37, Wrong("choice"));
+        Assert.Equal(31, EscalationReport.Resolve(report, "signal.choice.wrongCaught").GetValue<int>());
+        Assert.Equal(400, EscalationReport.Resolve(report, "accuracy.choice.localAlone.total").GetValue<int>());
+        Assert.Contains("wrong on 51 of the 800 Noul questions, and the threshold caught 1 of them", text, StringComparison.Ordinal);
+        Assert.Contains("For the 400 Choice questions it caught 31 of the 37 wrong answers", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheIndexFirstRun_IsQuotedFromTheReadme()
+    {
+        var readme = string.Join(' ', EscalationReport.TriageReadme.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        var text = string.Join(' ', EscalationReport.PageText("index").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+        Assert.Contains("median of 5.5 s", readme, StringComparison.Ordinal);
+        Assert.Contains("median of 5.5 s", text, StringComparison.Ordinal);
+        Assert.Contains("All 106 questions below their threshold ended as `NoTimeLeft`", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheIndex_StatesTheCostUnitAsTheReportDoes()
+    {
+        var report = File.ReadAllText(Path.Combine(PublishedPages.Root, "docs", "reports", "triage", "banking77", "triage-report.md"));
+        var text = string.Join(' ', EscalationReport.PageText("index").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+        Assert.Contains("in the currency of the prices and reported costs", report, StringComparison.Ordinal);
+        Assert.Contains("in the currency of the prices and reported costs", text, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("patterns/confidence-routing.md", "(../escalation/index.md)")]
+    [InlineData("patterns/index.md", "(../escalation/index.md)")]
+    [InlineData("pipeline.md", "(escalation/index.md)")]
+    [InlineData("pipeline.md", "(escalation/fallback.md)")]
+    [InlineData("samples.md", "(escalation/index.md)")]
+    public void TheExistingPages_LinkToTheGuide(string page, string link)
+    {
+        var text = File.ReadAllText(Path.Combine(PublishedPages.Root, "docs", page));
+
+        Assert.Contains(link, text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ThePipelinePage_LinksTheGuideInBothSections()
+    {
+        var text = File.ReadAllText(Path.Combine(PublishedPages.Root, "docs", "pipeline.md"));
+        var escalating = text[text.IndexOf("## Escalating unsure questions", StringComparison.Ordinal)..text.IndexOf("## Falling back to another provider", StringComparison.Ordinal)];
+        var falling = text[text.IndexOf("## Falling back to another provider", StringComparison.Ordinal)..text.IndexOf("## Writing a stage", StringComparison.Ordinal)];
+
+        Assert.Contains("(escalation/", escalating, StringComparison.Ordinal);
+        Assert.Contains("(escalation/fallback.md)", falling, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ThePatternsIndex_StillSaysFourPatterns()
+    {
+        var text = File.ReadAllText(Path.Combine(PublishedPages.Root, "docs", "patterns", "index.md"));
+
+        Assert.Contains("Four ways to use Jev's answers", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheChatTargetPage_SaysTheEscalatedAnswerWinsWhenLessSure()
+    {
+        var text = string.Join(' ', EscalationReport.PageText("chat-model-target").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+        Assert.Contains("For a question it escalated, the target's answer takes the primary's place, with the target's probabilities and the target's `ProbabilitySource`. It wins when it is less confident than the primary was", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheChatTargetPage_SaysWhenAutoAsksAgainVerbalized()
+    {
+        var text = string.Join(' ', EscalationReport.PageText("chat-model-target").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+        Assert.Contains("asks again, verbalized, for a question whose reply has no logprobs or no option label among them, or whose logprob request the provider rejects with HTTP 400 or 422", text, StringComparison.Ordinal);
+    }
+
+    // The names of the numbered stages in a list, in the order they appear: the text between "N. " and the first comma.
+    private static List<string> StageWords(string text) =>
+        text.Split('\n')
+            .Select(line => ListItem().Match(line))
+            .Where(match => match.Success)
+            .Select(match => match.Groups["name"].Value)
+            .Take(7)
+            .ToList();
+
+    [GeneratedRegex(@"^\d\. (?<name>[a-z ]+?)(?:,| \(|;|$)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex ListItem();
+
+    private static string ReadmeLine(string prefix) =>
+        EscalationReport.TriageReadme.Split('\n').Single(l => l.StartsWith(prefix, StringComparison.Ordinal))[prefix.Length..].Trim().Split(',')[0];
+
+    private static int CategoryPosition(string folder) =>
+        JsonNode.Parse(File.ReadAllText(Path.Combine(PublishedPages.Root, "docs", folder, "_category_.json")))!["position"]!.GetValue<int>();
+
+    // "intent (Choice) 0.85, card_not_arrived 0.80, about_a_payment 0.80": the key, then its value.
+    [GeneratedRegex(@"(?<key>\w+)(?: \(\w+\))? (?<value>\d\.\d+)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex ReportThreshold();
+
+    // options.Thresholds["intent"] = 0.85;
+    [GeneratedRegex(@"Thresholds\[""(?<key>\w+)""\] = (?<value>\d\.\d+);", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex SnippetThreshold();
+}

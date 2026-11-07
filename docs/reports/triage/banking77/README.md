@@ -29,4 +29,5 @@ threshold ended as no time left and nothing was billed. Its records are not comm
 seconds for that reason.
 
 The latency of a call includes its retries. The budget leaves out the time the host spends preparing a ticket, so it
-bounds the local call and the escalation only.
+covers the local call and the escalation only. The deadline does not cut the local call by itself; it decides whether
+the hosted call starts, and cancels that call at the deadline.

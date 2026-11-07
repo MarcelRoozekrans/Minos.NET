@@ -370,6 +370,9 @@ The first client is named `PrimaryName`, `"primary"` unless you set it, and the 
 sets it to the key. [Logging, traces and metrics](observability.md#which-stage-emits-what) lists the span tags, the
 counter and the log events, and [Recording decisions](recording.md) describes how the recorder keeps the path.
 
+The [Escalation guide](escalation/index.md) shows how to size the thresholds and the time budget, and what a measured
+run looked like.
+
 ## Falling back to another provider
 
 `UseFallback` adds a stage that asks the next client when the first one fails, in the order you list them. The stage is
@@ -429,6 +432,9 @@ public static async Task<(ShopIntent Intent, string AnsweredBy)> ReadAsync(IDeci
   sits outside the fallback stage. A client's standard pipeline records each client's tokens under its own model.
   Tagging each call with its own model on the outer stage is tracked in
   [issue 327](https://github.com/MarcelRoozekrans/Minos.NET/issues/327).
+
+[Falling back to another provider](escalation/fallback.md) shows how a chain behaves around escalation, and how to read
+the path.
 
 ## Writing a stage
 

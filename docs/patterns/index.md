@@ -18,6 +18,9 @@ Four ways to use Jev's answers, each with a page of its own.
 The four combine. Fan-out supplies the answers, and routing and scoring read them: one request can carry the intent,
 the effort and the atomic scores, and your code then applies the gates and the weights.
 
+For routing between deciders instead of between actions, see the [Escalation](../escalation/index.md) guide: a cheap
+decider first, a stronger one for the questions it is unsure of.
+
 The C# on every page is compiled and tested in `tests/Minos.NET.Docs.Tests`.
 
 ## Next

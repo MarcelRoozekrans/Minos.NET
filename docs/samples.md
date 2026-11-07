@@ -1,7 +1,7 @@
 ---
 id: samples
 title: Samples
-sidebar_position: 19
+sidebar_position: 20
 description: Seven runnable cookbook samples, five that run offline, one that replays a dataset through shadow mode and one that measures escalation on labelled tickets, and how to run, record and trust them.
 ---
 
@@ -28,6 +28,7 @@ The samples pair with the guide: Guardrails reads several answers from one reque
 confidence gate. Provider switch is [switching providers](providers.md#switching-providers) as a whole program.
 Re-ranking builds its questions at run time, as [question sets at run time](question-sets-at-run-time.md) describes.
 Chat client is [chat clients](chat-clients.md) as a whole program.
+Ticket triage is the run behind the figures in the [Escalation](escalation/index.md) guide.
 The guide's pages are short and self-contained, and the samples are whole programs: configuration, a host, a report.
 
 Each link goes to the sample's folder on GitHub, where its README explains its design, its numbers and what to

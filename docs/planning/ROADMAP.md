@@ -542,7 +542,7 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Goal:** The confidence-routing guide on the docs site, and a dotnet/extensions proposal draft for the maintainer to post (#119).
 **Surface:** Docs
 **HelpWanted:** no
-**Plan:** _to be written_
+**Plan:** `docs/superpowers/plans/2026-11-07-phase-10.4-confidence-routing.md`
 
 ## Later: not scheduled
 Work with an issue but no milestone yet. Each needs a milestone design before it is planned.

@@ -124,6 +124,9 @@ public static class ShopRouting
 ```
 <!-- endSnippet -->
 
+A gate can also run inside the client. When the decider itself is unsure, [the Escalation guide](../escalation/index.md)
+shows how to ask a stronger decider for the unsure questions only, and how to size a threshold for each.
+
 ## C# notes
 
 - Keep one `static readonly ConfidenceThresholds` per action, next to the code that uses it, so each gate is named and
