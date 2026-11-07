@@ -546,6 +546,31 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Plan:** `docs/superpowers/plans/2026-11-07-phase-10.4-confidence-routing.md`
 **Completed:** 2026-11-07
 
+## Milestone 11: Microsoft.Extensions.AI decision adapters [status: active]
+**Goal:** Use Minos and the dotnet/extensions decision abstraction together: a Minos client wrapped as the upstream `IDecisionClient` and the reverse, so escalation and fallback work over upstream providers. Shipping waits for an upstream package.
+**Started:** 2026-11-07
+**Design:** `docs/superpowers/specs/2026-11-07-milestone-11-design.md`
+**Definition of Done:**
+- [ ] A tested mapping of the Minos and upstream decision types on the docs site, and a gap list for the upstream discussion
+- [ ] Adapters both ways pass the applicable conformance checks and round-trip the same answers; `UseEscalation` and `UseFallback` run over an upstream-backed client, path included
+- [ ] The adapter package builds against a pinned local build of the upstream PR head and stays unpacked until an upstream package exists
+- [ ] If an upstream package with the decision types exists: shipped as a beta in a minor release, ApiCompat clean; otherwise the publish is a tracked issue
+
+### Phase 11.1: Mapping and gap analysis [status: pending]
+**Goal:** A tested mapping between the Minos and upstream decision types, a docs page, and a short gap list for the upstream discussion.
+**Surface:** Docs
+**HelpWanted:** no
+
+### Phase 11.2: Adapters [status: pending]
+**Goal:** The two adapters in a new unpacked package, with conformance, round-trip and pipeline tests, built against a pinned local build of the upstream PR head.
+**Surface:** Backend
+**HelpWanted:** no
+
+### Phase 11.3: Publish when upstream ships [status: pending]
+**Goal:** Pack and release the package as a beta against the first upstream package that contains the decision types, or record the wait as an issue and close the phase as deferred.
+**Surface:** Infra
+**HelpWanted:** no
+
 ## Later: not scheduled
 Work with an issue but no milestone yet. Each needs a milestone design before it is planned.
 - **A robust decision-policy layer** (#124): paraphrase ensembling, recalibration and cost-aware thresholds. It builds on Milestone 8's calibration reports and Milestone 9's recorded outcomes.
