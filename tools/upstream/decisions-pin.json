@@ -1,0 +1,6 @@
+{
+  "repository": "dotnet/extensions",
+  "commit": "02e54f023bdf3c8c2729353b110c22f5f8593957",
+  "checked": "2026-11-07",
+  "project": "src/Libraries/Microsoft.Extensions.AI.Abstractions/Microsoft.Extensions.AI.Abstractions.csproj"
+}

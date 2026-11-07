@@ -1,0 +1,51 @@
+#!/usr/bin/env bash
+# Builds the pinned upstream Microsoft.Extensions.AI.Abstractions locally.
+# Output: artifacts/upstream/abstractions.path holds the full DLL path.
+set -euo pipefail
+
+fail() { echo "build-decisions: $*" >&2; exit 1; }
+
+root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+pin="$root/tools/upstream/decisions-pin.json"
+out="$root/artifacts/upstream"
+src="$out/src"
+
+command -v jq >/dev/null || fail "jq is required"
+command -v git >/dev/null || fail "git is required"
+command -v dotnet >/dev/null || fail "dotnet is required"
+[ -f "$pin" ] || fail "pin file not found: $pin"
+
+repo="$(jq -er '.repository' "$pin")" || fail "pin has no repository"
+commit="$(jq -er '.commit' "$pin")" || fail "pin has no commit"
+project="$(jq -er '.project' "$pin")" || fail "pin has no project"
+[[ "$commit" =~ ^[0-9a-f]{40}$ ]] || fail "pin commit is not a full SHA: $commit"
+
+export MSBUILDDISABLENODEREUSE=1
+export DOTNET_NOLOGO=1
+export DOTNET_CLI_TELEMETRY_OPTOUT=1
+
+mkdir -p "$src"
+[ -d "$src/.git" ] || git -C "$src" init -q || fail "git init failed"
+git -C "$src" remote remove origin 2>/dev/null || true
+git -C "$src" remote add origin "https://github.com/$repo" || fail "git remote failed"
+
+if [ "$(git -C "$src" rev-parse -q --verify HEAD 2>/dev/null || true)" != "$commit" ]; then
+  git -C "$src" fetch -q --depth 1 origin "$commit" || fail "cannot fetch $commit from $repo"
+  git -C "$src" checkout -q --force FETCH_HEAD || fail "cannot check out $commit"
+fi
+
+[ -f "$src/$project" ] || fail "project not found at pinned commit: $project"
+
+# Build the single project directly. The repo's global.json pins an SDK patch;
+# rollForward lets a newer installed patch satisfy it.
+dotnet build "$src/$project" -c Release -nologo -v quiet \
+  -p:TreatWarningsAsErrors=false -p:ContinuousIntegrationBuild=false \
+  || fail "dotnet build failed"
+
+name="$(basename "$project" .csproj)"
+# The project is multi-targeted; the net10.0 build is the one the adapter uses.
+dll="$src/artifacts/bin/$name/Release/net10.0/$name.dll"
+[ -f "$dll" ] || fail "built $name.dll not found at $dll"
+
+printf '%s\n' "$dll" > "$out/abstractions.path"
+echo "build-decisions: $dll"
