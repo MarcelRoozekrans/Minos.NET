@@ -22,6 +22,9 @@ internal static partial class EscalationReport
     /// <summary>The text of docs/escalation/&lt;name&gt;.md.</summary>
     internal static string PageText(string name) => File.ReadAllText(Path.Combine(PublishedPages.Root, "docs", "escalation", name + ".md"));
 
+    /// <summary>The text of docs/escalation/&lt;name&gt;.md with every run of whitespace collapsed to one space, so a re-wrap does not move a phrase.</summary>
+    internal static string PageWords(string name) => string.Join(' ', PageText(name).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
     // A path such as split.all.escalated or questions[key=intent].agreement.
     internal static JsonNode Resolve(JsonNode root, string path)
     {

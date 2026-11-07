@@ -63,10 +63,11 @@ Its README records the models, the thresholds and the run.
 
 The run showed three things that decide this. They are findings of one run on one dataset, not a rule.
 
-- **The first attempt asked nothing of the target.** With the default budget of 5 seconds, the local call took a median
-  of 5.5 s and used the whole budget. All 106 questions below their threshold ended as `NoTimeLeft`, and nothing was
-  billed. [The time budget page](time-budget.md) tells the story and how to choose a budget.
-- **Noul confidence did not track error.** The local model was wrong on 51 of the 800 Noul questions, and the threshold
+- **The first attempt asked nothing of the target.** With the sample's default budget of 5 seconds, the local call took
+  a median of 5.5 s and used the whole budget. The stage has no budget unless you set one. All 106 questions below
+  their threshold ended as `NoTimeLeft`, and nothing was billed. [The time budget page](time-budget.md) tells the
+  story and how to choose a budget.
+- **Noul certainty did not track error.** The local model was wrong on 51 of the 800 Noul questions, and the threshold
   caught 1 of them. For the 400 Choice questions it caught 31 of the 37 wrong answers. A threshold can only escalate the
   questions the certainty marks as unsure. [The thresholds page](thresholds.md) shows how to read this from a report
   of your own.

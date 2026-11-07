@@ -7,12 +7,27 @@ namespace Minos.Docs.Tests;
 // The dotnet/extensions proposal draft quotes the committed Banking77 reports and the compiled Escalation snippets.
 public sealed partial class DraftProposalTests
 {
-    private const string Draft = "docs/plans/2026-11-06-dotnet-extensions-decision-proposal-draft.md";
+    internal const string Draft = "docs/plans/2026-11-06-dotnet-extensions-decision-proposal-draft.md";
 
     private static readonly JsonNode Shadow =
         JsonNode.Parse(File.ReadAllText(Path.Combine(PublishedPages.Root, "docs/reports/shadow/banking77/shadow-report.json")))!;
 
     private static string DraftText => File.ReadAllText(Path.Combine(PublishedPages.Root, Draft));
+
+    [Fact]
+    public void TheDraft_Exists_AndHasItsSections()
+    {
+        var path = Path.Combine(PublishedPages.Root, Draft);
+        Assert.True(File.Exists(path), $"{Draft} is missing.");
+        Assert.Contains(Draft, PrivateDetailTests.Files().Select<object[], string>(row => (string)row[0]));
+
+        var headings = File.ReadAllLines(path)
+            .Where(line => line.StartsWith("## ", StringComparison.Ordinal))
+            .Select(line => line[3..].Trim())
+            .ToList();
+        string[] expected = ["Summary", "The gap", "Prior art", "Usage", "Evidence", "API sketch", "Open questions for the maintainers", "Sources"];
+        Assert.Equal(expected, headings.Where(expected.Contains));
+    }
 
     public static TheoryData<string, string, string> TriageFigures() => new()
     {

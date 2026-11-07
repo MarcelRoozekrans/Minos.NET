@@ -5,9 +5,7 @@ namespace Minos.Docs.Tests;
 // The Escalation pages and the proposal draft are public. They name no private workload, host, path, address or key.
 public sealed partial class PrivateDetailTests
 {
-    private const string Draft = "docs/plans/2026-11-06-dotnet-extensions-decision-proposal-draft.md";
-
-    private static readonly string[] Words = ["Daedalus", "Thalos", "maintainer-domain.invalid", "/home/", @"C:\Users"];
+    private static readonly string[] Words = ["Daedalus", "Thalos", "/home/", @"C:\Users"];
 
     public static TheoryData<string> Files()
     {
@@ -17,9 +15,9 @@ public sealed partial class PrivateDetailTests
             files.Add(Path.GetRelativePath(PublishedPages.Root, page).Replace('\\', '/'));
         }
 
-        if (File.Exists(Path.Combine(PublishedPages.Root, Draft)))
+        if (File.Exists(Path.Combine(PublishedPages.Root, DraftProposalTests.Draft)))
         {
-            files.Add(Draft);
+            files.Add(DraftProposalTests.Draft);
         }
 
         return files;
@@ -30,30 +28,39 @@ public sealed partial class PrivateDetailTests
     public void EveryEscalationPage_HasNoPrivateDetail(string file) =>
         Assert.Empty(Findings(File.ReadAllText(Path.Combine(PublishedPages.Root, file))));
 
-    [Fact]
-    public void TheDraft_Exists_AndHasItsSections()
-    {
-        var path = Path.Combine(PublishedPages.Root, Draft);
-        Assert.True(File.Exists(path), $"{Draft} is missing.");
-        Assert.Contains(Draft, Files().Select<object[], string>(row => (string)row[0]));
-
-        var headings = File.ReadAllLines(path)
-            .Where(line => line.StartsWith("## ", StringComparison.Ordinal))
-            .Select(line => line[3..].Trim())
-            .ToList();
-        string[] expected = ["Summary", "The gap", "Prior art", "Usage", "Evidence", "API sketch", "Open questions for the maintainers", "Sources"];
-        Assert.Equal(expected, headings.Where(expected.Contains));
-    }
-
     [Theory]
     [InlineData("the Daedalus workload")]
     [InlineData("the THALOS host")]
-    [InlineData("see docs.maintainer-domain.invalid")]
     [InlineData("under /home/someone/work")]
     [InlineData(@"in C:\Users\someone")]
     [InlineData("write to someone@example.org")]
     [InlineData("key sk-abcdefghijklmnop1234")]
     public void TheDenylist_CatchesEachKind(string sample) => Assert.NotEmpty(Findings(sample));
+
+    // Every host a page or the draft links must be one of these. A new host is added here only when a page legitimately links it.
+    private static readonly string[] AllowedHosts =
+    [
+        "github.com", "learn.microsoft.com", "developers.openai.com", "docs.typesafe.ai", "developers.cloudflare.com", "marcelroozekrans.github.io",
+    ];
+
+    [Theory]
+    [MemberData(nameof(Files))]
+    public void EveryLinkedHost_IsOnTheAllowlist(string file) =>
+        Assert.Empty(UnknownHosts(File.ReadAllText(Path.Combine(PublishedPages.Root, file))));
+
+    [Fact]
+    public void TheAllowlist_CatchesAnUnknownHost()
+    {
+        Assert.Equal(["private.example.net"], UnknownHosts("see https://private.example.net/path and https://github.com/x/y"));
+        Assert.Empty(UnknownHosts("see https://github.com/x/y and (https://learn.microsoft.com/dotnet)"));
+    }
+
+    private static List<string> UnknownHosts(string text) =>
+        UrlHost().Matches(text)
+            .Select(match => match.Groups["host"].Value.ToLowerInvariant())
+            .Where(host => !AllowedHosts.Contains(host, StringComparer.Ordinal))
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
 
     [Fact]
     public void TheDenylist_LeavesOrdinaryTextAlone() =>
@@ -85,6 +92,9 @@ public sealed partial class PrivateDetailTests
 
     [GeneratedRegex(@"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex EmailAddress();
+
+    [GeneratedRegex(@"https?://(?<host>[A-Za-z0-9.-]+)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex UrlHost();
 
     [GeneratedRegex(@"sk-[A-Za-z0-9_-]{16,}", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
     private static partial Regex SecretKey();

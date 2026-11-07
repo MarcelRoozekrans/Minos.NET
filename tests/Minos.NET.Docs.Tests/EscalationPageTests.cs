@@ -40,7 +40,7 @@ public sealed partial class EscalationPageTests
     public void TheDefaultThreshold_IsPointSix()
     {
         Assert.Equal(0.6, new EscalationOptions().DefaultThreshold);
-        Assert.Contains("`DefaultThreshold` is 0.6", EscalationReport.PageText("thresholds"), StringComparison.Ordinal);
+        Assert.Contains("`DefaultThreshold` is 0.6", EscalationReport.PageWords("thresholds"), StringComparison.Ordinal);
     }
 
     [Theory]
@@ -57,7 +57,7 @@ public sealed partial class EscalationPageTests
 
         var text = value.ToString(CultureInfo.InvariantCulture);
         Assert.True(expected.StartsWith(text + " ", StringComparison.Ordinal), $"The report's {path} gives {text}.");
-        Assert.Contains(expected, EscalationReport.PageText("thresholds"), StringComparison.Ordinal);
+        Assert.Contains(expected, EscalationReport.PageWords("thresholds"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -72,7 +72,7 @@ public sealed partial class EscalationPageTests
         Assert.Equal("| 0.85 | 0.8200 | 0.9787 | 328 |", line);
         Assert.Contains(line, EscalationReport.PageText("thresholds"), StringComparison.Ordinal);
         Assert.Contains(line, File.ReadAllText(Path.Combine(PublishedPages.Root, "docs", "reports", "local", "banking77", "report.md")), StringComparison.Ordinal);
-        Assert.Contains("328 of the 400 Choice questions", EscalationReport.PageText("thresholds"), StringComparison.Ordinal);
+        Assert.Contains("328 of the 400 Choice questions", EscalationReport.PageWords("thresholds"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -81,12 +81,25 @@ public sealed partial class EscalationPageTests
         var sweep = EscalationReport.Calibration["choice"]!["sweep"]!.AsArray().Single(r => Math.Abs(r!["threshold"]!.GetValue<double>() - 0.85) < 1e-9)!;
         var below = 400 - sweep["covered"]!.GetValue<int>();
         var escalated = EscalationReport.Resolve(EscalationReport.Triage, "split.choice.escalated").GetValue<int>();
-        var page = EscalationReport.PageText("thresholds");
+        var page = EscalationReport.PageWords("thresholds");
 
         Assert.Equal(72, below);
         Assert.Equal(101, escalated);
         Assert.Contains("The other 72 questions", page, StringComparison.Ordinal);
         Assert.Contains("escalated 101 of the 400 Choice questions at 0.85, not 72", page, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheNoulSweepEstimate_AndTheNoulCount_AreTheReports()
+    {
+        var sweep = EscalationReport.Calibration["noul"]!["sweep"]!.AsArray().Single(r => Math.Abs(r!["threshold"]!.GetValue<double>() - 0.80) < 1e-9)!;
+        var covered = sweep["covered"]!.GetValue<int>();
+        var escalated = EscalationReport.Resolve(EscalationReport.Triage, "split.noul.escalated").GetValue<int>();
+
+        Assert.Equal(658, covered);
+        Assert.Equal(142, 800 - covered);
+        Assert.Equal(5, escalated);
+        Assert.Contains("a threshold of 0.80 keeps 658 of the 800 Noul questions, so it predicts 142 escalations. The run escalated 5.", EscalationReport.PageWords("thresholds"), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -114,7 +127,7 @@ public sealed partial class EscalationPageTests
     public void BudgetFigures_AreTheReports()
     {
         var report = EscalationReport.Triage;
-        var page = EscalationReport.PageText("time-budget");
+        var page = EscalationReport.PageWords("time-budget");
 
         Assert.Equal("5282.9", EscalationReport.Resolve(report, "latency.local.medianMs").GetValue<double>().ToString("F1", CultureInfo.InvariantCulture));
         Assert.Equal("102.3", EscalationReport.Resolve(report, "latency.target.medianMs").GetValue<double>().ToString("F1", CultureInfo.InvariantCulture));
@@ -122,18 +135,18 @@ public sealed partial class EscalationPageTests
         Assert.Equal(104, EscalationReport.Resolve(report, "split.all.ticketsWithTargetCall").GetValue<int>());
         Assert.Contains("a median of 5282.9 ms", page, StringComparison.Ordinal);
         Assert.Contains("a median of 102.3 ms", page, StringComparison.Ordinal);
-        Assert.Contains("106 questions", page, StringComparison.Ordinal);
+        Assert.Contains("Again 106 questions were escalated, in 104 target calls", page, StringComparison.Ordinal);
         Assert.Contains("104 target calls", page, StringComparison.Ordinal);
     }
 
     [Theory]
-    [InlineData("5.5 s")]
-    [InlineData("6.1 s")]
-    [InlineData("106 questions")]
+    [InlineData("median of 5.5 s")]
+    [InlineData("p95 6.1 s")]
+    [InlineData("106 questions below their threshold")]
     [InlineData("no target call")]
     public void TheFirstRun_IsQuotedFromTheReadme(string phrase)
     {
-        Assert.Contains(phrase, EscalationReport.PageText("time-budget"), StringComparison.Ordinal);
+        Assert.Contains(phrase, EscalationReport.PageWords("time-budget"), StringComparison.Ordinal);
 
         // The README wraps its lines, so a phrase may break across two of them.
         var readme = string.Join(' ', EscalationReport.TriageReadme.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
@@ -141,11 +154,36 @@ public sealed partial class EscalationPageTests
     }
 
     [Fact]
+    public void TheDefaultBudget_IsTheSamples_AndTheStageHasNone()
+    {
+        Assert.Null(new EscalationOptions().Budget);
+        foreach (var name in new[] { "index", "time-budget" })
+        {
+            var page = EscalationReport.PageWords(name);
+            Assert.Contains("the sample's default budget of 5 seconds", page, StringComparison.Ordinal);
+            Assert.DoesNotContain("the default budget of 5 seconds", page, StringComparison.Ordinal);
+        }
+    }
+
+    [Fact]
+    public void TheFallbackInsideEscalation_CutsTheLocalCall_AsThePagesSay()
+    {
+        var budget = EscalationReport.PageWords("time-budget");
+        var composing = EscalationReport.PageWords("composing-and-privacy");
+        var draft = string.Join(' ', File.ReadAllText(Path.Combine(PublishedPages.Root, "docs/plans/2026-11-06-dotnet-extensions-decision-proposal-draft.md")).Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+        Assert.Contains("unless a fallback stage inside escalation cuts it", budget, StringComparison.Ordinal);
+        Assert.Contains("a `Budget` also cuts the local call", composing, StringComparison.Ordinal);
+        Assert.Contains("unless a fallback stage inside escalation cuts it", draft, StringComparison.Ordinal);
+        Assert.Contains("Escalation needs a local call that leaves at least `ExpectedLatency` of the budget", budget, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TheReportsBudgetAndExpectedLatency_AreOnThePage()
     {
         var budget = ReadmeLine("Budget:");
         var expected = ReadmeLine("Expected latency:");
-        var page = EscalationReport.PageText("time-budget");
+        var page = EscalationReport.PageWords("time-budget");
         var snippet = File.ReadAllText(Path.Combine(PublishedPages.Root, "tests", "Minos.NET.Docs.Tests", "EscalationBudget.cs"));
 
         Assert.StartsWith("15 seconds", budget, StringComparison.Ordinal);
@@ -316,7 +354,7 @@ public sealed partial class EscalationPageTests
         Assert.Equal(69, EscalationReport.Resolve(report, "escalated.all.bothRight").GetValue<int>());
         Assert.Equal(22, EscalationReport.Resolve(report, "escalated.all.bothWrong").GetValue<int>());
         Assert.Equal(104, EscalationReport.Resolve(report, "split.all.ticketsWithTargetCall").GetValue<int>());
-        Assert.Equal(91, 106 - EscalationReport.Resolve(report, "escalated.all.fixed").GetValue<int>() - EscalationReport.Resolve(report, "escalated.all.broken").GetValue<int>());
+        Assert.Equal(91, EscalationReport.Resolve(report, "split.all.escalated").GetValue<int>() - EscalationReport.Resolve(report, "escalated.all.fixed").GetValue<int>() - EscalationReport.Resolve(report, "escalated.all.broken").GetValue<int>());
         Assert.Contains("| Tickets | 400 |", page, StringComparison.Ordinal);
         Assert.Contains("| Questions | 1,200 |", page, StringComparison.Ordinal);
         Assert.Contains("| Questions escalated | 106 |", page, StringComparison.Ordinal);

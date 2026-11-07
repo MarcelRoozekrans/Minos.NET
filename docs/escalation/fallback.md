@@ -77,8 +77,7 @@ step called is returned, and the response has no path. The caller's own cancella
 A response that the first client answered has no `Path`. Read `Path` as nullable.
 
 When a later step answered, the path says so in two places. This holds when the answering step has no routing stage of
-its own. A step whose client has its own escalation or fallback stage keeps its own routes, and its own calls follow the
-failed ones; the note after the snippet says more.
+its own; the note after the snippet covers a step that has one.
 
 - Every route has the reason `FellBack`, and `AnsweredBy` is the name of the answering step.
 - `Path.Calls` lists each client tried or skipped, in order, and the last entry is the one that answered. Each call has a

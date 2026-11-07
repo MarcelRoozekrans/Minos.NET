@@ -25,8 +25,9 @@ before the deadline:
 - With less left, it does not call. The unsure questions keep the first answer, and their route says `NoTimeLeft`.
 
 A hosted call that is still running at the deadline is cancelled. It counts as a failed target, and the unsure
-questions keep the first answer. The deadline does not cut the first decider's own call: the caller's cancellation token
-governs that call. So the first call spends the budget, and the hosted call gets what it leaves.
+questions keep the first answer. The escalation stage does not cut the first decider's own call: the caller's cancellation token governs that call,
+unless a fallback stage inside escalation cuts it, as [the composing page](composing-and-privacy.md) says. So the first
+call spends the budget, and the hosted call gets what it leaves.
 
 <!-- snippet: Escalation_Budget -->
 ```cs
@@ -64,9 +65,9 @@ public static async Task<IReadOnlyList<string>> KeysWithoutTimeAsync(
 ## The first triage run: a budget the local call used up
 
 The triage run sent 400 tickets through a local model, with escalation to a hosted one, as
-[the thresholds page](thresholds.md) describes. Its first attempt used the default budget of 5 seconds. The local call
-took a median of 5.5 s and p95 6.1 s on the CPU-only runner, so it used up the budget before the stage looked at the
-time. All 106 questions below their threshold ended as `NoTimeLeft`. There was no target call, and nothing was billed.
+[the thresholds page](thresholds.md) describes. Its first attempt used the sample's default budget of 5 seconds. The stage itself has no budget unless you set one.
+The local call took a median of 5.5 s and p95 6.1 s on the CPU-only runner, so it used up the budget before the stage
+looked at the time. All 106 questions below their threshold ended as `NoTimeLeft`. There was no target call, and nothing was billed.
 
 The second run used a budget of 15 seconds and an expected latency of 300 ms. The local call took a median of 5282.9 ms,
 and the hosted call a median of 102.3 ms. Again 106 questions were escalated, in 104 target calls. That is 106
@@ -97,8 +98,8 @@ from there, and not from the stage.
 
 ## When escalation pays off
 
-Escalation needs a hosted call that is faster than the local one, or a local call that leaves room in the budget. On CPU
-hardware, where the local call took over 5 seconds, that means a faster local server or a larger budget. With a budget
+Escalation needs a local call that leaves at least `ExpectedLatency` of the budget. On CPU hardware, where the local
+call took over 5 seconds, that means a faster local server or a larger budget. With a budget
 the local call fills, the stronger decider is never asked, and the cheap decider's unsure answers stand.
 
 ## Next

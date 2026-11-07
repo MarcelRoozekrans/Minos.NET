@@ -24,6 +24,10 @@ A question the escalation stage finds confident keeps the route the fallback sta
 reads `Confident`. A question it escalates reads `Escalated`. [The fallback page](fallback.md#reading-the-path) shows how
 to read it.
 
+With fallback inside escalation, a `Budget` also cuts the local call. Escalation passes its deadline down, and the
+fallback stage cuts its first client at the deadline minus the smallest later `ExpectedLatency`. The chain then moves
+on to the next client.
+
 <!-- snippet: Escalation_Compose -->
 ```cs
 // The first Use is the outermost stage. Recording sees one decision per call, escalation moves doubtful questions to

@@ -126,11 +126,13 @@ What the stage does, as built:
   stronger decider. The record keeps both certainties, so a report can show where they disagreed.
 - It calls the target only when there is time. The deadline is the request's `Deadline`, or a `Budget` counted from
   the start of the stage. With less time left than the target's `ExpectedLatency`, the unsure questions keep the first
-  answer and are marked `NoTimeLeft`. The deadline does not cut the first decider's own call; it bounds only the
-  escalation.
+  answer and are marked `NoTimeLeft`. The deadline does not cut the first decider's own call, unless a fallback stage
+  inside escalation cuts it: that stage cuts its first client at the deadline minus the smallest later `ExpectedLatency`.
+  Otherwise it bounds only the escalation.
 - A target that fails leaves the first answers in place, marked `TargetFailed`. The call still succeeds.
 - `DecisionResponse.Path` lists, for each question, who answered and why, and each call that was made. `Path` is null
-  from a pipeline without either stage, and when the first fallback step answered, so read it as nullable.
+  from a pipeline without either stage, and from a fallback stage alone when its first client answered, so read it as
+  nullable.
 - `ProbabilitySource` on the response is the weakest source across all its answers.
 
 A separate `UseFallback` stage handles failure: when a client fails with a provider error, the next one in a chain is
@@ -254,6 +256,9 @@ public static DecisionClientBuilder AsBuilder(this IDecisionClient innerClient);
 // Optional stage: escalation, for doubt.
 public static DecisionClientBuilder UseEscalation(this DecisionClientBuilder builder, IDecisionClient target, Action<EscalationOptions> configure);
 public static DecisionClientBuilder UseEscalation(this DecisionClientBuilder builder, Func<IServiceProvider, IDecisionClient> target, Action<EscalationOptions> configure);
+
+// In Minos.NET.DependencyInjection: the target is a client registered under a key.
+public static DecisionClientBuilder UseEscalation(this DecisionClientBuilder builder, string targetKey, Action<EscalationOptions>? configure = null);
 
 public sealed class EscalationOptions
 {

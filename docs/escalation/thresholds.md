@@ -109,7 +109,10 @@ So 31 of the 37 wrong Choice answers were escalated, and 6 slipped through. Only
 was, and 50 slipped through. A wrong Noul answer is mostly a sure one. A Noul threshold of 0.80
 escalated 5 of the 800 Noul questions, so it helps little.
 
-A threshold only helps where confidence tracks error. Check it on the sweep before you pay for the escalation: if
+The sweep is an estimate for the Noul questions too, and the gap there is larger. In the Noul sweep of the same report,
+a threshold of 0.80 keeps 658 of the 800 Noul questions, so it predicts 142 escalations. The run escalated 5.
+
+A threshold only helps where certainty tracks error. Check it on the sweep before you pay for the escalation: if
 the accuracy of the covered answers hardly rises as the threshold rises, a higher threshold only escalates more.
 
 ## Next
