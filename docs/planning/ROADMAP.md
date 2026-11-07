@@ -510,7 +510,7 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 - [ ] `UseEscalation` re-asks only the questions below their per-key threshold against a keyed target, merges the answers, skips escalation when the time left does not fit, and records the path per question on the response, span, counters and record
 - [ ] `UseFallback` moves through a chain of keyed clients on failure, composing with DI, `UseRetries` and `UseEscalation` in a documented, tested order
 - [ ] A ticket-triage sample with local-first decisions, escalation on low confidence and a committed report of the split by path, latency and cost
-- [ ] A guide turning confidence routing into a framework feature, and an approved dotnet/extensions proposal draft for the maintainer to post
+- [x] A guide turning confidence routing into a framework feature, and an approved dotnet/extensions proposal draft for the maintainer to post
 - [ ] The new API ships in a minor release, ApiCompat clean
 
 ### Phase 10.1: Escalation middleware [status: complete]
@@ -538,11 +538,12 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Plan:** `docs/superpowers/plans/2026-11-05-phase-10.3-ticket-triage.md`
 **Completed:** 2026-11-06
 
-### Phase 10.4: Confidence routing as a framework feature [status: pending]
+### Phase 10.4: Confidence routing as a framework feature [status: complete]
 **Goal:** The confidence-routing guide on the docs site, and a dotnet/extensions proposal draft for the maintainer to post (#119).
 **Surface:** Docs
 **HelpWanted:** no
 **Plan:** `docs/superpowers/plans/2026-11-07-phase-10.4-confidence-routing.md`
+**Completed:** 2026-11-07
 
 ## Later: not scheduled
 Work with an issue but no milestone yet. Each needs a milestone design before it is planned.
