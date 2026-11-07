@@ -110,6 +110,63 @@ public sealed partial class EscalationPageTests
         Assert.Contains("(../pipeline.md#escalating-unsure-questions)", page, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void BudgetFigures_AreTheReports()
+    {
+        var report = EscalationReport.Triage;
+        var page = EscalationReport.PageText("time-budget");
+
+        Assert.Equal("5282.9", EscalationReport.Resolve(report, "latency.local.medianMs").GetValue<double>().ToString("F1", CultureInfo.InvariantCulture));
+        Assert.Equal("102.3", EscalationReport.Resolve(report, "latency.target.medianMs").GetValue<double>().ToString("F1", CultureInfo.InvariantCulture));
+        Assert.Equal(106, EscalationReport.Resolve(report, "split.all.escalated").GetValue<int>());
+        Assert.Equal(104, EscalationReport.Resolve(report, "split.all.ticketsWithTargetCall").GetValue<int>());
+        Assert.Contains("a median of 5282.9 ms", page, StringComparison.Ordinal);
+        Assert.Contains("a median of 102.3 ms", page, StringComparison.Ordinal);
+        Assert.Contains("106 questions", page, StringComparison.Ordinal);
+        Assert.Contains("104 target calls", page, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("5.5 s")]
+    [InlineData("6.1 s")]
+    [InlineData("106 questions")]
+    [InlineData("no target call")]
+    public void TheFirstRun_IsQuotedFromTheReadme(string phrase)
+    {
+        Assert.Contains(phrase, EscalationReport.PageText("time-budget"), StringComparison.Ordinal);
+
+        // The README wraps its lines, so a phrase may break across two of them.
+        var readme = string.Join(' ', EscalationReport.TriageReadme.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+        Assert.Contains(phrase, readme, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheReportsBudgetAndExpectedLatency_AreOnThePage()
+    {
+        var budget = ReadmeLine("Budget:");
+        var expected = ReadmeLine("Expected latency:");
+        var page = EscalationReport.PageText("time-budget");
+
+        Assert.StartsWith("15 seconds", budget, StringComparison.Ordinal);
+        Assert.Equal("300 ms", expected);
+        Assert.Contains("15 seconds", page, StringComparison.Ordinal);
+        Assert.Contains("300 ms", page, StringComparison.Ordinal);
+        Assert.Contains("Budget = TimeSpan.FromSeconds(15)", File.ReadAllText(Path.Combine(PublishedPages.Root, "tests", "Minos.NET.Docs.Tests", "EscalationBudget.cs")), StringComparison.Ordinal);
+        Assert.Contains("ExpectedLatency = TimeSpan.FromMilliseconds(300)", File.ReadAllText(Path.Combine(PublishedPages.Root, "tests", "Minos.NET.Docs.Tests", "EscalationBudget.cs")), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheBudgetPage_LinksThePipelineAndRecording()
+    {
+        var page = EscalationReport.PageText("time-budget");
+
+        Assert.Contains("(../pipeline.md#escalating-unsure-questions)", page, StringComparison.Ordinal);
+        Assert.Contains("(../recording.md)", page, StringComparison.Ordinal);
+    }
+
+    private static string ReadmeLine(string prefix) =>
+        EscalationReport.TriageReadme.Split('\n').Single(l => l.StartsWith(prefix, StringComparison.Ordinal))[prefix.Length..].Trim().Split(',')[0];
+
     private static int CategoryPosition(string folder) =>
         JsonNode.Parse(File.ReadAllText(Path.Combine(PublishedPages.Root, "docs", folder, "_category_.json")))!["position"]!.GetValue<int>();
 

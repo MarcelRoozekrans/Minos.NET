@@ -87,9 +87,9 @@ The columns mean:
 - **Accuracy** is the share of the covered answers that were right: 0.9787.
 
 At 0.85 the local model keeps 328 of the 400 Choice questions and gets 0.9787 of those right. The other 72 questions
-are the ones escalation would ask again, about. The triage run below was a separate run of the local model. It
-escalated 101 of the 400 Choice questions at 0.85, not 72, so read the sweep as an estimate. Move the threshold up and the accuracy of what stays rises, while coverage falls,
-and with it the share of questions the cheap decider answers.
+are the ones this threshold would escalate. The triage run below was a separate run of the local model. It
+escalated 101 of the 400 Choice questions at 0.85, not 72, so read the sweep as an estimate. Move the threshold up and
+the accuracy of what stays rises, while coverage falls, and with it the share of questions the cheap decider answers.
 
 ## What confidence caught in the triage run
 
