@@ -40,8 +40,10 @@ fi
 [ -f "$src/$project" ] || fail "project not found at pinned commit: $project"
 
 # Build the single project directly. The SDK is chosen from the global.json above the
-# current directory, so run from the repo root: that is this repo's pin, 10.0.403 with
-# rollForward latestMinor, not upstream's 10.0.401 pin (dotnet --version differs in the two).
+# current directory, so change to the repo root first, whatever the caller's directory:
+# that selects this repo's pin, 10.0.403 with rollForward latestMinor, not upstream's
+# 10.0.401 pin (dotnet --version differs in the two).
+cd "$root" || fail "cannot change to $root"
 dotnet build "$src/$project" -c Release -nologo -v quiet \
   -p:TreatWarningsAsErrors=false -p:ContinuousIntegrationBuild=false \
   || fail "dotnet build failed"
