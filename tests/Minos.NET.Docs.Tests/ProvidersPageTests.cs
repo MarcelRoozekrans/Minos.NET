@@ -176,7 +176,7 @@ public sealed partial class ProvidersPageTests
         var ids = DiagnosticIdSource.ProviderRules();
         var section = Section(Matrix);
 
-        Assert.Equal(["MIN201", "MIN202", "MIN203", "MIN204", "MIN205", "MIN206"], ids);
+        Assert.Equal(["MIN201", "MIN202", "MIN203", "MIN204", "MIN205", "MIN206", "MIN207", "MIN208", "MIN209", "MIN210", "MIN211"], ids);
         Assert.All(ids, id => Assert.Contains(id, section, StringComparison.Ordinal));
     }
 

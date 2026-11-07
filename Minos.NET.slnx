@@ -5,9 +5,7 @@
     <BuildType Name="Decisions" />
   </Configurations>
   <Folder Name="/src/">
-    <Project Path="src/Minos.NET/Minos.NET.csproj">
-      <Build Solution="Decisions|*" Project="false" />
-    </Project>
+    <Project Path="src/Minos.NET/Minos.NET.csproj" />
     <Project Path="src/Minos.NET.SystemOne/Minos.NET.SystemOne.csproj">
       <Build Solution="Decisions|*" Project="false" />
     </Project>
@@ -38,15 +36,9 @@
     <Project Path="src/Minos.NET.Tool/Minos.NET.Tool.csproj">
       <Build Solution="Decisions|*" Project="false" />
     </Project>
-    <Project Path="src/Minos.NET.Generator/Minos.NET.Generator.csproj">
-      <Build Solution="Decisions|*" Project="false" />
-    </Project>
-    <Project Path="src/Minos.NET.Analyzers/Minos.NET.Analyzers.csproj">
-      <Build Solution="Decisions|*" Project="false" />
-    </Project>
-    <Project Path="src/Minos.NET.CodeFixes/Minos.NET.CodeFixes.csproj">
-      <Build Solution="Decisions|*" Project="false" />
-    </Project>
+    <Project Path="src/Minos.NET.Generator/Minos.NET.Generator.csproj" />
+    <Project Path="src/Minos.NET.Analyzers/Minos.NET.Analyzers.csproj" />
+    <Project Path="src/Minos.NET.CodeFixes/Minos.NET.CodeFixes.csproj" />
     <Project Path="src/Minos.NET.Extensions.AI.Decisions/Minos.NET.Extensions.AI.Decisions.csproj">
       <Build Solution="Debug|*" Project="false" />
       <Build Solution="Release|*" Project="false" />

@@ -28,6 +28,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- The rule ids of the QuestionFailures the adapter returns, from the one registry Minos.NET also links. -->
+    <Compile Include="..\Minos.NET.Generator\DiagnosticIds.cs" Link="Shared\DiagnosticIds.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <InternalsVisibleTo Include="Minos.NET.Extensions.AI.Decisions.Tests" />
   </ItemGroup>
 </Project>

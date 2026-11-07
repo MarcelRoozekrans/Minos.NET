@@ -59,6 +59,12 @@ limit you set in `Capabilities` applies on every provider. The capabilities you 
 images and, for the System One presets, the model listing the client checks. While model listing is off, a model-listing
 call returns the `Unsupported` kind.
 
+Five rules belong to none of these columns. They are what an
+[upstream decision client](extensions-ai-decisions/mapping.md) from Microsoft.Extensions.AI cannot take: MIN207 for an
+empty set, MIN208 for a blank key, MIN209 for a blank description, MIN210 for a Noul with blank instructions and no pair
+of descriptions, and MIN211 for a one-level Score. The planned adapter over such a client checks them before sending,
+together with MIN205 and MIN206.
+
 ## The presets
 
 | Provider | Base address | Path | Key | Default model |
@@ -412,7 +418,9 @@ problem it found. Each is a `QuestionFailure` with a rule id, the key of the que
 | `MIN206` | The request has images and `SupportsImages` is off. | none | `Custom does not support images.` |
 
 The error's `Message` is the first failure's. `MIN202` comes first, then each question's `MIN201` and `MIN203` in the
-order it is sent, then `MIN206`, then OpenAI's `MIN204` and `MIN205` in question order. The MIN2 series is for these
+order it is sent, then `MIN206`, then OpenAI's `MIN204` and `MIN205` in question order. The adapter over an upstream
+decision client reports `MIN207` first, then each question's `MIN205` and `MIN208` to `MIN211` in the order it is sent,
+then `MIN206`. The MIN2 series is for these
 provider rules, and MIN201 to MIN203 keep their meaning, so you can match on them. The rules
 MIN001 to MIN006 are the API's own rules, MIN101 to MIN108 are about what the generator can turn into code, and
 [diagnostics](diagnostics.md) lists them.

@@ -73,7 +73,7 @@ carry JSON. A declared set's instructions and descriptions are always text.
 
 ### Reported by the client
 
-MIN201 to MIN206 are provider rules, checked at run time. Whether a request breaks one depends on the provider, its
+MIN201 to MIN211 are provider rules, checked at run time. Whether a request breaks one depends on the provider, its
 [capabilities](providers.md#capabilities) and the images of the call, and none of those is known when the code
 is compiled, so no analyzer reports them. The client checks them before it sends anything. A request that breaks any of
 them returns a `DecisionError` of kind `Unsupported`, with one `QuestionFailure` per problem in
@@ -86,8 +86,13 @@ excludes it, though a custom `ShouldRetry` can retry it.
 | MIN202 | The set has more questions than the provider's `MaxQuestions`. |
 | MIN203 | A Choice question has more options than the provider's `MaxChoiceOptions`, 255 on TypeSafe and OpenRouter. |
 | MIN204 | A Noul has `WhenTrue` or `WhenFalse`, and the provider is OpenAI, whose predicate takes only instructions. |
-| MIN205 | A criterion has `Examples` or `NotFor`, and the provider is OpenAI, whose descriptions are plain strings. |
+| MIN205 | A criterion has `Examples` or `NotFor`, and the provider is OpenAI or an [upstream decision client](extensions-ai-decisions/mapping.md), whose descriptions are plain strings. |
 | MIN206 | The request has images, and the provider's `SupportsImages` is off. |
+| MIN207 | The set has no questions, and the provider is an [upstream decision client](extensions-ai-decisions/mapping.md), which needs at least one. |
+| MIN208 | A question key or a Choice option key is white space only, and the provider is an upstream decision client. |
+| MIN209 | A Noul's `WhenTrue` or `WhenFalse`, or a text criterion, is empty or white space only, and the provider is an upstream decision client. |
+| MIN210 | A Noul's instructions are blank text and it lacks `WhenTrue` or `WhenFalse`, and the provider is an upstream decision client. |
+| MIN211 | A Score question has one level, and the provider is an upstream decision client, which needs at least two. |
 
 [The Unsupported error](providers.md#the-unsupported-error) shows the messages and the order of the failures,
 and [the provider matrix](providers.md#at-a-glance) which provider each rule applies to.

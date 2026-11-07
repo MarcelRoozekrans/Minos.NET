@@ -3,6 +3,9 @@
 
   <PropertyGroup>
     <RootNamespace>Minos.Extensions.AI.Decisions.Tests</RootNamespace>
+    <!-- The tests call the experimental upstream decision types and the adapter, both marked MEAI001: opting in to an
+         experimental API is what the diagnostic asks of a caller. -->
+    <NoWarn>$(NoWarn);MEAI001</NoWarn>
   </PropertyGroup>
 
   <ItemGroup>
