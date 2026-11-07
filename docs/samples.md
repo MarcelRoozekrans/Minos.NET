@@ -1,7 +1,7 @@
 ---
 id: samples
 title: Samples
-sidebar_position: 19
+sidebar_position: 20
 description: Seven runnable cookbook samples, five that run offline, one that replays a dataset through shadow mode and one that measures escalation on labelled tickets, and how to run, record and trust them.
 ---
 

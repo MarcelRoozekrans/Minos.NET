@@ -6,13 +6,17 @@ public sealed class SnippetSourceTests
     private const string SnippetEnd = "<!-- endSnippet -->";
     private const string Fence = "```";
 
+    private static readonly string[] Folders = ["patterns", "escalation"];
+
     // mdsnippets reads a region from any tracked text file, not only this project. A second file with the same
     // region name adds a second code block under the same snippet, and the drift check still passes, because the
     // committed Markdown is what the tool regenerates. So every generated block must hold exactly one code block.
     [Fact]
     public void EverySnippet_HasExactlyOneSource()
     {
-        var guides = Directory.GetFiles(Path.Combine(RepositoryRoot(), "docs", "patterns"), "*.md");
+        var guides = Folders
+            .SelectMany(folder => Directory.GetFiles(Path.Combine(RepositoryRoot(), "docs", folder), "*.md"))
+            .ToArray();
         Assert.NotEmpty(guides);
 
         var snippets = 0;
@@ -49,7 +53,7 @@ public sealed class SnippetSourceTests
             }
         }
 
-        Assert.True(snippets > 0, "No snippets were found under docs/patterns.");
+        Assert.True(snippets > 0, "No snippets were found under docs/patterns or docs/escalation.");
         Assert.Empty(problems);
     }
 

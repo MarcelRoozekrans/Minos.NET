@@ -140,6 +140,7 @@ The guide lives at [marcelroozekrans.github.io/Minos.NET](https://marcelroozekra
 - [Native AOT and allocations](https://marcelroozekrans.github.io/Minos.NET/native-aot): what Native AOT compatibility means, the one reflection the client uses, and the allocation budgets that guard it.
 - [Diagnostics](https://marcelroozekrans.github.io/Minos.NET/diagnostics): every MIN analyzer rule with its severity, the provider rules the client checks at run time, the two code fixes, and how to suppress a rule.
 - [Testing your code](https://marcelroozekrans.github.io/Minos.NET/testing-your-code): test code that calls Jev with a fake `IDecisionClient` or a real `SystemOneDecisionClient` over a canned HTTP reply.
+- [Escalation](https://marcelroozekrans.github.io/Minos.NET/escalation): route each question to a cheap decider first and escalate only the unsure ones to a stronger one.
 - [Patterns](https://marcelroozekrans.github.io/Minos.NET/patterns): four ways to use Jev answers, each with a guide of its own.
 - [Speculative fan-out](https://marcelroozekrans.github.io/Minos.NET/patterns/fan-out): ask every question you might need in one request and read only the answers that matter.
 - [Confidence routing](https://marcelroozekrans.github.io/Minos.NET/patterns/confidence-routing): gate each action on the answer confidence, with a threshold sized to the cost of being wrong.
