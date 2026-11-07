@@ -1,45 +1,33 @@
-# Milestone 10: Escalation
+# Milestone 11: Microsoft.Extensions.AI decision adapters
 
-**Status:** complete
-**Started:** 2026-11-04
-**Completed:** 2026-11-07
-**Design:** `docs/superpowers/specs/2026-11-04-milestone-10-design.md`
+**Status:** active
+**Started:** 2026-11-07
+**Design:** `docs/superpowers/specs/2026-11-07-milestone-11-design.md`
 
 ## Goal
-A .NET app decides on a local decision server first and hands only the questions the local model is unsure of to a stronger decider, within the time it has. When a provider fails, the next one in a fallback chain answers. Each answer says which path produced it. Both are `IDecisionClient` pipeline stages in the core, `UseEscalation` and `UseFallback`, that compose with DI and keyed clients. A ticket-triage sample shows the split between local and escalated answers, and a guide teaches confidence routing as a framework feature (#119).
-
-Daedalus.NET is the first workload, and its requirements are binding: see the design.
+A .NET app can use Minos and the Microsoft.Extensions.AI decision abstraction together. A Minos `IDecisionClient`, with its pipeline of escalation, fallback, retries, caching and recording, can be handed to code that expects the upstream `IDecisionClient`. A provider that implements the upstream interface can sit behind Minos, so `UseEscalation` and `UseFallback` work over it. The upstream types are still experimental and unreleased, so the milestone builds the mapping and the adapters now, and publishes the package only when upstream ships a package that contains them.
 
 ## Definition of Done
-- [x] All planned phases are complete.
-- [x] All tests pass, including the AOT smoke and surface checks and the docs tests, with zero IL2 and IL3 warnings.
-- [x] `UseEscalation` re-asks only the questions below their per-key threshold, against a keyed target client, and merges the answers. Tests cover each of these:
-  - Score, Choice and Noul thresholds, including a Noul near 0 or 1 that does not escalate.
-  - A confident answer is never re-asked.
-  - When the time left is below the target's expected latency, escalation is skipped, the local answer is returned, and the reason is recorded.
-  - A failing target leaves the local answer in place, with the reason recorded.
-  - An escalated answer replaces the local one even when it is less confident, and the path records both confidences.
-  - The path that answered each question is on the response, on the span, in the counters, and in the recorder's record.
-  - No state appears in a log, a trace or an exception message.
-- [x] `UseFallback` moves through a chain of keyed clients on failure, composes with `UseRetries` and DI, skips a step that does not fit the time left, and records which client answered. The documented composition order with `UseEscalation` is pinned by a test.
-- [x] A ticket-triage sample runs local first with escalation on low confidence, and a committed report shows the split by path, with latency and cost. Each hosted run needs the maintainer's approval.
-- [x] A guide on the docs site teaches confidence routing as a framework feature: thresholds sized to the cost of being wrong, the time check, the fallback chain, composition order, privacy of targets, and chat-model escalation.
-- [x] A dotnet/extensions proposal draft for the decision abstraction is in the repository, with no private details, and the maintainer has approved it.
-- [x] The new API ships in a minor release through release-please, and ApiCompat is clean against the previous release.
+- [ ] All planned phases are complete.
+- [ ] All tests pass, including the AOT smoke and surface checks and the docs tests, with zero IL2 and IL3 warnings.
+- [ ] A mapping document on the docs site names every difference between the Minos and the upstream decision types, and each one has a test that pins the adapter's behaviour: question kinds, state, answers and distributions, errors, options, `GetService`, cancellation and disposal.
+- [ ] A Minos client wrapped as an upstream `IDecisionClient`, and an upstream client wrapped as a Minos one, both pass the Minos conformance checks that apply to them, and a round trip returns the same answers.
+- [ ] `UseEscalation` and `UseFallback` run over an upstream-backed client in a test, and the path and answered-by fields survive the wrap.
+- [ ] The adapter package builds against a local build of the upstream PR head in CI or a documented script, and stays unpacked, with a test that fails if it is packed before an upstream package exists.
+- [ ] The maintainer has a short upstream-facing gap list (what upstream's Layer 1 lacks for a pipeline like Minos's), for use when posting the comment on issue 7764.
+- [ ] If an upstream package with the decision types exists by the end of the milestone: the package ships as a beta in a minor release through release-please, with ApiCompat clean. Otherwise the publish is a tracked issue, and that is not a gap.
 
 **Out of scope:**
-- Posting the dotnet/extensions discussion: the maintainer posts the approved draft, or tells me to.
-- Daedalus adopting escalation: Daedalus's own work.
-- A measured running median of target latency: expected latency is configured only.
-- A live OpenAI step: #161 still has no OpenAI account.
+- Posting the comment on dotnet/extensions issue 7764: the maintainer posts the approved draft.
+- Adoption by Daedalus.NET.
+- Upstream Layer 2 (function and routing composition).
+- A Minos 2.0 that replaces Minos's types with upstream ones.
 
 ## Phases
-1. Phase 10.1 — Escalation middleware [complete]
-2. Phase 10.2 — Provider fallback chain [complete]
-3. Phase 10.3 — Ticket-triage sample [complete]
-4. Phase 10.4 — Confidence routing as a framework feature [complete]
+1. Phase 11.1 — Mapping and gap analysis [pending]
+2. Phase 11.2 — Adapters [pending]
+3. Phase 11.3 — Publish when upstream ships [pending]
 
 ## Audit History
 | Date | Verdict | Gaps |
 |---|---|---|
-| 2026-11-07 | PASS | none; see `docs/plans/2026-11-07-milestone-10-audit.md` |
