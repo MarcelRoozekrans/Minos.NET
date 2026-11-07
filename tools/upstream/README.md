@@ -29,15 +29,13 @@ the checkout; a changed pin refetches.
 The build is local only. Everything lands under `artifacts/`, which git
 ignores, and the DLL is never packed or shipped with a Minos.NET package.
 
-### Why the build works without extra setup
+### SDK and properties
 
-The upstream `global.json` pins SDK 10.0.401 and Arcade SDKs. Building the csproj
-directly lets Arcade restore itself, and a newer installed 10.0.4xx patch
-satisfies the SDK pin through the default roll-forward. No repo-specific
-property is required. The script passes two properties anyway:
+Upstream `global.json` pins SDK 10.0.401. CI must install an SDK that satisfies
+it: 10.0.401 or a later patch, via the default roll-forward. The script passes
 `-p:TreatWarningsAsErrors=false` so upstream analyzer warnings from a newer SDK
-cannot fail the build, and `-p:ContinuousIntegrationBuild=false` so the build is
-not forced into deterministic CI mode on CI runners.
+cannot fail the build, and `-p:ContinuousIntegrationBuild=false` to keep the
+build out of deterministic CI mode. Neither was needed locally.
 
 ## Bumping the pin
 
@@ -47,3 +45,7 @@ not forced into deterministic CI mode on CI runners.
 3. Run `tools/upstream/build-decisions.sh` and confirm it succeeds.
 4. Re-run the mapping tests, then update the docs mapping for any renamed or
    changed type.
+
+The pinned commit may be a PR head, which can disappear upstream if the branch
+is force-pushed or deleted; the fetch then fails. Prefer a merged or tagged
+commit as soon as one exists.

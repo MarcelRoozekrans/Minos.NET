@@ -25,12 +25,13 @@ export DOTNET_NOLOGO=1
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 
 mkdir -p "$src"
+rm -f "$out/abstractions.path"
 [ -d "$src/.git" ] || git -C "$src" init -q || fail "git init failed"
 git -C "$src" remote remove origin 2>/dev/null || true
 git -C "$src" remote add origin "https://github.com/$repo" || fail "git remote failed"
 
 if [ "$(git -C "$src" rev-parse -q --verify HEAD 2>/dev/null || true)" != "$commit" ]; then
-  git -C "$src" fetch -q --depth 1 origin "$commit" || fail "cannot fetch $commit from $repo"
+  git -C "$src" fetch -q --depth 1 origin "$commit" || fail "cannot fetch $commit from $repo; the commit may no longer exist upstream because it is a PR head, so bump the pin per tools/upstream/README.md"
   git -C "$src" checkout -q --force FETCH_HEAD || fail "cannot check out $commit"
 fi
 
@@ -47,5 +48,6 @@ name="$(basename "$project" .csproj)"
 dll="$src/artifacts/bin/$name/Release/net10.0/$name.dll"
 [ -f "$dll" ] || fail "built $name.dll not found at $dll"
 
-printf '%s\n' "$dll" > "$out/abstractions.path"
+printf '%s\n' "$dll" > "$out/abstractions.path.tmp"
+mv -f "$out/abstractions.path.tmp" "$out/abstractions.path"
 echo "build-decisions: $dll"
