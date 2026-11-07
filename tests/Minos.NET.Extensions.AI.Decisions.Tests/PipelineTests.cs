@@ -102,7 +102,12 @@ public sealed class PipelineTests
         Assert.Equal(
             [("is_urgent", "backup"), ("team", "target"), ("severity", "backup")],
             path.Routes.Select(r => (r.Key, r.AnsweredBy)));
-        Assert.Equal(RouteReason.Escalated, path.Routes[1].Reason);
+        // docs/pipeline.md: when escalation wraps fallback, a question the outer stage finds confident keeps the inner
+        // route, except that a FellBack route reads Confident. The backup's routes therefore read Confident here.
+        Assert.Equal(
+            [RouteReason.Confident, RouteReason.Escalated, RouteReason.Confident],
+            path.Routes.Select(r => r.Reason));
+        Assert.Equal(["team"], Assert.Single(upstream.Calls["target"]));
     }
 
     private enum Scenario

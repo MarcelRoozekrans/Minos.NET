@@ -228,10 +228,7 @@ internal static class AnswerAssert
         Assert.Equal(expected.Expected, actual.Expected);
         Assert.Equal(expected.ProbabilitySource, actual.ProbabilitySource);
         Assert.Equal(expected.Probabilities.ToArray(), actual.Probabilities.ToArray());
-        if (expected.Kind != QuestionKind.Noul)
-        {
-            Assert.Equal(expected.ChosenIndex, actual.ChosenIndex);
-            Assert.Equal(expected.Confidence, actual.Confidence);
-        }
+        Assert.Equal(expected.ChosenIndex, actual.ChosenIndex);
+        Assert.Equal(expected.Confidence, actual.Confidence);
     }
 }
