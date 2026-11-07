@@ -4,8 +4,9 @@
     its tests.
 
     tools/upstream/build-decisions.sh writes the full path of the built Microsoft.Extensions.AI.Abstractions.dll to
-    artifacts/upstream/abstractions.path. MinosUpstreamAbstractionsPath is that path, or empty when the file is missing; a
-    project that needs the DLL calls the MinosRequireUpstreamAbstractions target, which fails the build naming the script.
+    artifacts/upstream/abstractions.path. MinosUpstreamAbstractionsPath is that path, or empty when the file is missing.
+    The MinosRequireUpstreamAbstractions target runs on its own, before ResolveAssemblyReferences and CoreCompile, in
+    every project that imports this file; it fails the build naming the script when the path file or the DLL is missing.
 
     The DLL is referenced by path and never through the Microsoft.Extensions.AI.Abstractions package: both carry the same
     assembly name, so a project must not take both. The upstream assembly holds every type the adapters use, including

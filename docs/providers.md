@@ -62,7 +62,8 @@ call returns the `Unsupported` kind.
 Four rules belong to none of these columns. They are what an
 [upstream decision client](extensions-ai-decisions/mapping.md) from Microsoft.Extensions.AI cannot take: MIN207 for a
 blank key, MIN208 for a blank description, MIN209 for a Noul with blank instructions and no pair of descriptions, and
-MIN210 for a one-level Score. The planned adapter over such a client checks them before sending, together with MIN205
+MIN210 for a one-level Score. The adapter over such a client, which is in the repository and built but not published until Phase 11.3, checks them
+before sending, together with MIN205
 and MIN206. It refuses a set with no questions too, with a `Validation` error and no rule, as the chat client adapter
 does.
 

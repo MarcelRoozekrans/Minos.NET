@@ -28,8 +28,9 @@ The default `Release` build and test never need the upstream clone. See `tools/u
 ## Trim and AOT
 
 The project sets `IsAotCompatible`, which enables the trim, AOT and single-file analyzers, and the repository builds with
-warnings as errors, so any IL2xxx or IL3xxx diagnostic fails the build. The `upstream-decisions` job runs this check on
-the project in the `Decisions` configuration. It was verified to fail on a reflection call (IL2057 and IL2067).
+warnings as errors, so any IL2xxx or IL3xxx diagnostic fails the build. The `Decisions` build is therefore the check:
+`dotnet build Minos.NET.slnx -c Decisions`, which the `upstream-decisions` job runs. It was verified to fail on a
+reflection call (IL2057 and IL2067).
 
 Not covered yet: a `PublishAot` publish of an app that calls both adapters, as `aot-smoke` and `aot-surface` do for the
 packed libraries. The upstream assembly cannot be pulled into the default build, and those jobs run in `Release`. The
