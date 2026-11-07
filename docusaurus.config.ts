@@ -34,10 +34,10 @@ const config: Config = {
           routeBasePath: '/',
           sidebarPath: './sidebars.ts',
           editUrl: `${repository}/edit/main/`,
-          // The guide is docs/*.md, docs/patterns/ and docs/escalation/. The rest of docs/ is the project's own records: the roadmap
-          // and state (planning), design and implementation plans and review reports (plans, superpowers), the
-          // logo's construction record (design) and the calibration reports with their run config (reports). They
-          // stay readable in the repository and are not published.
+          // The guide is docs/*.md, docs/patterns/ and docs/escalation/. The rest of docs/ is the project's own
+          // records: the roadmap and state (planning), design and implementation plans and review reports (plans,
+          // superpowers), the logo's construction record (design) and the calibration reports with their run config
+          // (reports). They stay readable in the repository and are not published.
           exclude: [
             '**/README.md',
             '**/plans/**',

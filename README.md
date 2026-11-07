@@ -141,6 +141,7 @@ The guide lives at [marcelroozekrans.github.io/Minos.NET](https://marcelroozekra
 - [Diagnostics](https://marcelroozekrans.github.io/Minos.NET/diagnostics): every MIN analyzer rule with its severity, the provider rules the client checks at run time, the two code fixes, and how to suppress a rule.
 - [Testing your code](https://marcelroozekrans.github.io/Minos.NET/testing-your-code): test code that calls Jev with a fake `IDecisionClient` or a real `SystemOneDecisionClient` over a canned HTTP reply.
 - [Escalation](https://marcelroozekrans.github.io/Minos.NET/escalation): route each question to a cheap decider first and escalate only the unsure ones to a stronger one.
+- [Sizing the thresholds](https://marcelroozekrans.github.io/Minos.NET/escalation/thresholds): choose the certainty below which a question is escalated, one threshold per question, from a calibration report and the cost of a wrong answer.
 - [Patterns](https://marcelroozekrans.github.io/Minos.NET/patterns): four ways to use Jev answers, each with a guide of its own.
 - [Speculative fan-out](https://marcelroozekrans.github.io/Minos.NET/patterns/fan-out): ask every question you might need in one request and read only the answers that matter.
 - [Confidence routing](https://marcelroozekrans.github.io/Minos.NET/patterns/confidence-routing): gate each action on the answer confidence, with a threshold sized to the cost of being wrong.
