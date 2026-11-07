@@ -1,5 +1,17 @@
 # Changelog
 
+## [1.11.1](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.11.0...v1.11.1) (2026-11-06)
+
+
+### Documentation
+
+* **samples:** add the first triage report, banking77 ([36ad9fa](https://github.com/MarcelRoozekrans/Minos.NET/commit/36ad9fae1c981afaeb36feea7435dc2afeffafc2))
+
+
+### Dependencies
+
+* update zeroalloc shipped dependencies to 3.7.0 ([#338](https://github.com/MarcelRoozekrans/Minos.NET/issues/338)) ([638d984](https://github.com/MarcelRoozekrans/Minos.NET/commit/638d9840d62f45b42e3cc0d6f4dbe4ac2f411c08))
+
 ## [1.11.0](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.10.0...v1.11.0) (2026-11-06)
 
 
