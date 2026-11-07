@@ -76,7 +76,9 @@ step called is returned, and the response has no path. The caller's own cancella
 
 A response that the first client answered has no `Path`. Read `Path` as nullable.
 
-When a later step answered, the path says so in two places:
+When a later step answered, the path says so in two places. This holds when the answering step has no routing stage of
+its own. A step whose client has its own escalation or fallback stage keeps its own routes, and its own calls follow the
+failed ones; the note after the snippet says more.
 
 - Every route has the reason `FellBack`, and `AnsweredBy` is the name of the answering step.
 - `Path.Calls` lists each client tried or skipped, in order, and the last entry is the one that answered. Each call has a
@@ -101,6 +103,9 @@ public static async Task<IReadOnlyList<string>> CallsAsync(
 }
 ```
 <!-- endSnippet -->
+
+A step that has a routing stage of its own, say an escalation to a stronger client, keeps its routes: a question it
+escalated still reads `Escalated`, and its calls follow the failed ones, so the last entry is still its last call.
 
 When fallback sits inside escalation, `Path.Calls` is one flat list of every client tried. A question the escalation
 stage finds confident keeps the fallback route, except `FellBack`, which reads `Confident`. Who answered is still in

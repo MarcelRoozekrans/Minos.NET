@@ -194,6 +194,55 @@ public sealed partial class EscalationPageTests
         Assert.Contains("(../recording.md)", page, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void TheSnippet_PutsEscalationOutsideFallback()
+    {
+        var source = File.ReadAllText(Path.Combine(PublishedPages.Root, "tests", "Minos.NET.Docs.Tests", "EscalationCompose.cs"));
+
+        // The first Use is the outermost stage.
+        Assert.True(source.IndexOf(".UseRecording(", StringComparison.Ordinal) < source.IndexOf(".UseEscalation(", StringComparison.Ordinal));
+        Assert.True(source.IndexOf(".UseEscalation(", StringComparison.Ordinal) < source.IndexOf(".UseFallback(", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void ThePageOrder_IsThePipelinePagesOrder()
+    {
+        var pipeline = File.ReadAllText(Path.Combine(PublishedPages.Root, "docs", "pipeline.md"));
+        var section = pipeline[pipeline.IndexOf("### Stage order", StringComparison.Ordinal)..];
+        var fromPipeline = StageWords(section);
+
+        var page = EscalationReport.PageText("composing-and-privacy");
+        var list = page[page.IndexOf("1. recording", StringComparison.Ordinal)..];
+        var fromPage = StageWords(list);
+
+        Assert.Equal(["recording", "telemetry", "escalation", "fallback", "caching", "retries", "rate limiting"], fromPipeline);
+        Assert.Equal(fromPipeline, fromPage);
+        Assert.Contains("(../pipeline.md#building-your-own-pipeline)", page, StringComparison.Ordinal);
+        Assert.Contains("(../running-locally.md#what-stays-private-step-by-step)", page, StringComparison.Ordinal);
+        Assert.Contains("(../recording.md#the-escalation-path)", page, StringComparison.Ordinal);
+        Assert.Contains("(../recording.md#erasure)", page, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheFallbackPage_SaysWhenTheLastEntryAnswers()
+    {
+        var page = EscalationReport.PageText("fallback");
+
+        Assert.Contains("a routing stage of its own", page, StringComparison.Ordinal);
+    }
+
+    // The names of the numbered stages in a list, in the order they appear: the text between "N. " and the first comma.
+    private static List<string> StageWords(string text) =>
+        text.Split('\n')
+            .Select(line => ListItem().Match(line))
+            .Where(match => match.Success)
+            .Select(match => match.Groups["name"].Value)
+            .Take(7)
+            .ToList();
+
+    [GeneratedRegex(@"^\d\. (?<name>[a-z ]+?)(?:,| \(|;|$)", RegexOptions.None, matchTimeoutMilliseconds: 1000)]
+    private static partial Regex ListItem();
+
     private static string ReadmeLine(string prefix) =>
         EscalationReport.TriageReadme.Split('\n').Single(l => l.StartsWith(prefix, StringComparison.Ordinal))[prefix.Length..].Trim().Split(',')[0];
 

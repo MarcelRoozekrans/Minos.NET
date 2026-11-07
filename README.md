@@ -144,6 +144,7 @@ The guide lives at [marcelroozekrans.github.io/Minos.NET](https://marcelroozekra
 - [Sizing the thresholds](https://marcelroozekrans.github.io/Minos.NET/escalation/thresholds): choose the certainty below which a question is escalated, one threshold per question, from a calibration report and the cost of a wrong answer.
 - [Setting the time budget](https://marcelroozekrans.github.io/Minos.NET/escalation/time-budget): give escalation a time budget that covers the local call and the hosted call, and choose it from your own latencies.
 - [Falling back to another provider](https://marcelroozekrans.github.io/Minos.NET/escalation/fallback): keep answering when the cheap decider is down, by asking another provider, and read from the path which client answered.
+- [Composing the stages and keeping data private](https://marcelroozekrans.github.io/Minos.NET/escalation/composing-and-privacy): put escalation outside fallback, check that every provider in the chain may see the state, and know what a record keeps for a path that crossed providers.
 - [Patterns](https://marcelroozekrans.github.io/Minos.NET/patterns): four ways to use Jev answers, each with a guide of its own.
 - [Speculative fan-out](https://marcelroozekrans.github.io/Minos.NET/patterns/fan-out): ask every question you might need in one request and read only the answers that matter.
 - [Confidence routing](https://marcelroozekrans.github.io/Minos.NET/patterns/confidence-routing): gate each action on the answer confidence, with a threshold sized to the cost of being wrong.
