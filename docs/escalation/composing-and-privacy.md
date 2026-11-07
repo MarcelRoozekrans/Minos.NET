@@ -47,7 +47,7 @@ public static IServiceCollection AddComposedDecisions(IServiceCollection service
 does. For this recipe, the stages that matter are in this order, outermost first:
 
 1. recording, so one decision is one record;
-2. telemetry, so the span covers the whole call;
+2. telemetry, so the span covers the whole call (not in the snippet);
 3. escalation, so a stronger client is asked only for the questions the first was unsure of;
 4. fallback, so the next client is asked only when the first fails;
 5. caching, so a hit takes no permit;

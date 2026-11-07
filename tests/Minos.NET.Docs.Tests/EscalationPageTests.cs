@@ -234,6 +234,35 @@ public sealed partial class EscalationPageTests
         Assert.Contains("keeps its routes: a question it escalated still reads `Escalated`, and its calls follow the failed ones", text, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("Model")]
+    [InlineData("Logprobs")]
+    [InlineData("Verbalized")]
+    public void ThePage_NamesEachProbabilitySource(string source)
+    {
+        Assert.True(Enum.IsDefined(typeof(ProbabilitySource), source));
+        Assert.Contains($"`{source}`", EscalationReport.PageText("chat-model-target"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheTargetSnippet_ReadsTheAnswersSource()
+    {
+        var source = File.ReadAllText(Path.Combine(PublishedPages.Root, "tests", "Minos.NET.Docs.Tests", "EscalationChatTarget.cs"));
+
+        Assert.Contains("new ChatDecisionClient(chat)", source, StringComparison.Ordinal);
+        Assert.Contains("result.Value.ProbabilitySource", source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheChatTargetPage_LinksTheChatClientsGuide()
+    {
+        var page = EscalationReport.PageText("chat-model-target");
+
+        Assert.Contains("(../chat-clients.md#probability-modes)", page, StringComparison.Ordinal);
+        Assert.Contains("(../chat-clients.md#where-the-probabilities-came-from)", page, StringComparison.Ordinal);
+        Assert.Contains("(../chat-clients.md#reasoning-models)", page, StringComparison.Ordinal);
+    }
+
     // The names of the numbered stages in a list, in the order they appear: the text between "N. " and the first comma.
     private static List<string> StageWords(string text) =>
         text.Split('\n')
