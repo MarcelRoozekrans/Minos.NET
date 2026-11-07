@@ -30,6 +30,21 @@ public sealed partial class PrivateDetailTests
     public void EveryEscalationPage_HasNoPrivateDetail(string file) =>
         Assert.Empty(Findings(File.ReadAllText(Path.Combine(PublishedPages.Root, file))));
 
+    [Fact]
+    public void TheDraft_Exists_AndHasItsSections()
+    {
+        var path = Path.Combine(PublishedPages.Root, Draft);
+        Assert.True(File.Exists(path), $"{Draft} is missing.");
+        Assert.Contains(Draft, Files().Select<object[], string>(row => (string)row[0]));
+
+        var headings = File.ReadAllLines(path)
+            .Where(line => line.StartsWith("## ", StringComparison.Ordinal))
+            .Select(line => line[3..].Trim())
+            .ToList();
+        string[] expected = ["Summary", "The gap", "Prior art", "Usage", "Evidence", "API sketch", "Open questions for the maintainers", "Sources"];
+        Assert.Equal(expected, headings.Where(expected.Contains));
+    }
+
     [Theory]
     [InlineData("the Daedalus workload")]
     [InlineData("the THALOS host")]
