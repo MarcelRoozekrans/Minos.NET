@@ -11,6 +11,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Minos.NET\Minos.NET.csproj" />
     <ProjectReference Include="..\..\src\Minos.NET.Extensions.AI.Decisions\Minos.NET.Extensions.AI.Decisions.csproj" />
+    <!-- The conformance suite runs against both adapters. It references only the core, never the upstream package. -->
+    <ProjectReference Include="..\..\src\Minos.NET.Conformance\Minos.NET.Conformance.csproj" />
   </ItemGroup>
 
   <!--

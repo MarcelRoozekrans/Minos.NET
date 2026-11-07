@@ -30,9 +30,7 @@
     <Project Path="src/Minos.NET.DependencyInjection/Minos.NET.DependencyInjection.csproj">
       <Build Solution="Decisions|*" Project="false" />
     </Project>
-    <Project Path="src/Minos.NET.Conformance/Minos.NET.Conformance.csproj">
-      <Build Solution="Decisions|*" Project="false" />
-    </Project>
+    <Project Path="src/Minos.NET.Conformance/Minos.NET.Conformance.csproj" />
     <Project Path="src/Minos.NET.Tool/Minos.NET.Tool.csproj">
       <Build Solution="Decisions|*" Project="false" />
     </Project>
