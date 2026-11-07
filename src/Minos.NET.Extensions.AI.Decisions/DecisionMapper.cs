@@ -11,7 +11,7 @@ using UpstreamRequest = Microsoft.Extensions.AI.DecisionRequest;
 namespace Minos.Extensions.AI.Decisions;
 
 /// <summary>
-/// Converts questions, state and requests between Minos and the upstream decision abstractions, as
+/// Converts questions, state, requests and answers between Minos and the upstream decision abstractions, as
 /// docs/extensions-ai-decisions/mapping.md describes row by row.
 /// </summary>
 /// <remarks>
@@ -20,7 +20,7 @@ namespace Minos.Extensions.AI.Decisions;
 /// MIN206 for images. Every other loss converts as the page says. No message carries question text or state.
 /// </remarks>
 [Experimental("MEAI001")]
-internal static class DecisionMapper
+internal static partial class DecisionMapper
 {
     /// <summary>Converts a Minos request to an upstream request and its options.</summary>
     /// <param name="request">The Minos request.</param>
