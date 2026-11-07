@@ -1,0 +1,27 @@
+<Project>
+  <!--
+    The locally built upstream decision abstractions, for the projects that adapt them. Shared by the adapter project and
+    its tests.
+
+    tools/upstream/build-decisions.sh writes the full path of the built Microsoft.Extensions.AI.Abstractions.dll to
+    artifacts/upstream/abstractions.path. MinosUpstreamAbstractionsPath is that path, or empty when the file is missing; a
+    project that needs the DLL calls the MinosRequireUpstreamAbstractions target, which fails the build naming the script.
+
+    The DLL is referenced by path and never through the Microsoft.Extensions.AI.Abstractions package: both carry the same
+    assembly name, so a project must not take both. The upstream assembly holds every type the adapters use, including
+    UsageDetails and AdditionalPropertiesDictionary, and it depends on nothing beyond System.Text.Json, which the
+    net10.0 build takes from the shared framework. So the package is not needed at compile time. Do not add it, or a
+    package that depends on it, to a project that imports this file.
+  -->
+  <PropertyGroup>
+    <MinosUpstreamPathFile>$(MSBuildThisFileDirectory)..\..\artifacts\upstream\abstractions.path</MinosUpstreamPathFile>
+    <MinosUpstreamAbstractionsPath Condition="Exists('$(MinosUpstreamPathFile)')">$([System.IO.File]::ReadAllText('$(MinosUpstreamPathFile)').Trim())</MinosUpstreamAbstractionsPath>
+  </PropertyGroup>
+
+  <Target Name="MinosRequireUpstreamAbstractions" BeforeTargets="ResolveAssemblyReferences;CoreCompile">
+    <Error Condition="!Exists('$(MinosUpstreamPathFile)')"
+           Text="The upstream decision abstractions are not built: $(MinosUpstreamPathFile) is missing. Run tools/upstream/build-decisions.sh, then build again." />
+    <Error Condition="Exists('$(MinosUpstreamPathFile)') And !Exists('$(MinosUpstreamAbstractionsPath)')"
+           Text="The upstream decision abstractions path $(MinosUpstreamAbstractionsPath) from $(MinosUpstreamPathFile) does not exist. Run tools/upstream/build-decisions.sh, then build again." />
+  </Target>
+</Project>

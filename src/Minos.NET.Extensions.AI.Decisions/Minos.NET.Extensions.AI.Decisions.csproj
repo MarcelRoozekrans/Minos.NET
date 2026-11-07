@@ -1,0 +1,33 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!-- The path of the built upstream assembly, and the target that fails the build when it is missing. -->
+  <Import Project="..\..\tools\upstream\UpstreamDecisions.props" />
+
+  <PropertyGroup>
+    <RootNamespace>Minos.Extensions.AI.Decisions</RootNamespace>
+    <AssemblyName>Minos.NET.Extensions.AI.Decisions</AssemblyName>
+    <Description>Adapters between Minos.NET decision clients and the experimental decision abstractions of Microsoft.Extensions.AI. Not packed: it follows an unreleased upstream API.</Description>
+    <!-- Not packed or published until Phase 11.3 decides how it ships. A test fails if this stops being false. -->
+    <IsPackable>false</IsPackable>
+    <IsAotCompatible>true</IsAotCompatible>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <!-- The upstream types carry the experimental marker MEAI001; the adapters' own public API carries it too. -->
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.PublicApiAnalyzers" PrivateAssets="all" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Minos.NET\Minos.NET.csproj" />
+    <!-- The upstream decision types, built from the pinned dotnet/extensions commit. Private false: the DLL is never copied
+         into this project's output or shipped. -->
+    <Reference Include="Microsoft.Extensions.AI.Abstractions" Condition="'$(MinosUpstreamAbstractionsPath)' != ''">
+      <HintPath>$(MinosUpstreamAbstractionsPath)</HintPath>
+      <Private>false</Private>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Minos.NET.Extensions.AI.Decisions.Tests" />
+  </ItemGroup>
+</Project>

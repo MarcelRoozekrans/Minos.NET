@@ -51,6 +51,15 @@
     <FileVersion Condition="'$(MinosReleaseVersionCore)' != ''">$(MinosReleaseVersionCore).0</FileVersion>
   </PropertyGroup>
 
+  <!--
+    The Decisions configuration builds the unpacked decisions adapters against a locally built upstream assembly (see
+    tools/upstream/README.md). It builds like Release: the SDK only optimizes a configuration named Release, so it is set here.
+  -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Decisions'">
+    <Optimize>true</Optimize>
+    <DebugType>portable</DebugType>
+  </PropertyGroup>
+
   <!-- NuGet metadata -->
   <PropertyGroup>
     <Authors>Marcel Roozekrans</Authors>
