@@ -24,12 +24,16 @@ namespace Minos.Extensions.AI.Decisions;
 /// every other property are dropped.
 /// </para>
 /// <para>
-/// Distributions are never repaired. Upstream's answer constructors check them: a distribution that does not sum to 1
-/// within the declared rounding, or a score that does not agree with it, throws <see cref="DecisionProtocolException"/>
-/// with upstream's own message, which names no value. On the Over upstream side that exception comes from the upstream
-/// client, which built the answers, and the adapter maps it to <see cref="DecisionErrorKind.InvalidResponse"/> with its
-/// message. On the Over Minos side it comes from <see cref="ToUpstreamAnswer"/>, and the adapter lets it propagate
-/// unchanged: a Minos result that breaks the upstream protocol is what the exception reports to an upstream caller.
+/// Distributions are never repaired. Upstream's answer constructors check them and throw
+/// <see cref="DecisionProtocolException"/> with upstream's own message, which names no value, for any refusal: a
+/// distribution that does not sum to 1 within the declared rounding or has no normalized values consistent with it, or a
+/// score outside the level range or that does not agree with its distribution. On the Over upstream side that exception
+/// comes from the upstream client, which built the answers, and the adapter maps it to
+/// <see cref="DecisionErrorKind.InvalidResponse"/> with its message. On the Over Minos side the mapper throws it from
+/// <see cref="ToUpstreamAnswer"/>, and the adapter catches it and throws a new <see cref="DecisionProtocolException"/>
+/// with the same message, whose inner exception is a <c>MinosDecisionException</c> carrying a
+/// <see cref="DecisionError"/> of kind <see cref="DecisionErrorKind.InvalidResponse"/> with that message and the caught
+/// exception as its <see cref="DecisionError.Exception"/>, as for every other invalid Minos response.
 /// </para>
 /// </remarks>
 internal static partial class DecisionMapper
@@ -51,7 +55,7 @@ internal static partial class DecisionMapper
     /// <returns>The upstream answers, each declaring <see cref="DecisionPrecision.TwoDecimalPlaces"/>.</returns>
     /// <exception cref="DecisionProtocolException">
     /// The answers do not match the questions, or an upstream answer constructor refused a distribution or a score; see
-    /// <see cref="ToUpstreamAnswer"/>. The caller lets it propagate.
+    /// <see cref="ToUpstreamAnswer"/>. The adapter rethrows it as the class remarks describe.
     /// </exception>
     internal static DecisionAnswer[] ToUpstreamAnswers(MinosResponse response, IReadOnlyList<DecisionQuestion> questions)
     {
@@ -82,9 +86,11 @@ internal static partial class DecisionMapper
     /// <returns>The upstream answer.</returns>
     /// <exception cref="DecisionProtocolException">
     /// The answer's kind, probability count or chosen position does not fit the question; or the upstream constructor
-    /// refused the answer: a distribution that does not sum to 1 within 0.005 per value plus 0.000001, or a Score whose
-    /// expected level does not agree with its distribution under that rounding. The message is upstream's own or the
-    /// mapper's and names no value. A client adapter lets it propagate unchanged and never repairs the values.
+    /// refused the answer, for any of its reasons: a distribution that does not sum to 1 within 0.005 per value plus
+    /// 0.000001; a distribution with no normalized values consistent with that rounding; a Score whose expected level is
+    /// outside the level range, from 0 to the level count minus 1; or a Score whose expected level does not agree with its
+    /// distribution under that rounding. The message is upstream's own or the mapper's and names no value. The adapter
+    /// never repairs the values; it rethrows the exception as the class remarks describe.
     /// </exception>
     internal static DecisionAnswer ToUpstreamAnswer(QuestionAnswer answer, DecisionQuestion question)
     {
@@ -350,7 +356,7 @@ internal static partial class DecisionMapper
             decimal m => (double)m,
             int i => i,
             long l => l,
-            JsonElement { ValueKind: JsonValueKind.Number } json => json.GetDouble(),
+            JsonElement { ValueKind: JsonValueKind.Number } json when json.TryGetDouble(out var d) => d,
             _ => null,
         };
 

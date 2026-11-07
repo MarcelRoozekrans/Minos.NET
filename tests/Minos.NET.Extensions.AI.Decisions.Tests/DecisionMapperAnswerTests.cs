@@ -130,6 +130,17 @@ public sealed class DecisionMapperAnswerTests
         Assert.Equal("The score does not agree with its probability distribution.", error.Message);
     }
 
+    [Theory]
+    [InlineData(3.5)]
+    [InlineData(-0.5)]
+    public void AnExpectedLevelOutsideTheLevelRange_ThrowsUpstreamsProtocolException(double expected)
+    {
+        var score = QuestionAnswer.Score(0, expected, 0.25, [0.25, 0.25, 0.25, 0.25]);
+
+        var error = Assert.Throws<DecisionProtocolException>(() => DecisionMapper.ToUpstreamAnswer(score, UpstreamQuestions[2]));
+        Assert.Equal("A score must be finite and within the ordinal level range.", error.Message);
+    }
+
     [Fact]
     public void AnAnswerOfAnotherKind_ThanItsQuestion_ThrowsAProtocolException()
     {
@@ -246,13 +257,19 @@ public sealed class DecisionMapperAnswerTests
     [Fact]
     public void TheMinosKeys_AreReadBack_AsJsonValues_AfterUpstreamSerialization()
     {
-        var properties = Properties(
-            ("minos.chosenLevel", JsonDocument.Parse("2").RootElement),
-            ("minos.confidence", JsonDocument.Parse("0.61").RootElement),
-            ("minos.probabilitySource", JsonDocument.Parse("\"logprobs\"").RootElement));
-        var score = new ScoreDecisionAnswer("priority", 1.65, [new("0", 0.1), new("1", 0.35), new("2", 0.35), new("3", 0.2)], additionalProperties: properties);
+        // Level 2 and confidence 0.61 differ from the assumptions, level 1 and 0.35, so only the keys can produce them.
+        var minos = QuestionAnswer.Score(2, 1.65, 0.61, [0.1, 0.35, 0.35, 0.2], ProbabilitySource.Logprobs);
+        var questions = Success(DecisionMapper.ToUpstreamQuestions(Definition, Provider));
+        var sent = DecisionMapper.ToUpstreamAnswer(minos, questions[2]);
 
-        var answer = Success(DecisionMapper.ToMinosAnswer(score, Definition.Questions[2]));
+        var typeInfo = AIJsonUtilities.DefaultOptions.GetTypeInfo(typeof(DecisionAnswer));
+        var json = JsonSerializer.Serialize(sent, typeInfo);
+        var received = Assert.IsType<ScoreDecisionAnswer>(JsonSerializer.Deserialize(json, typeInfo));
+
+        var properties = Assert.IsAssignableFrom<IReadOnlyDictionary<string, object?>>(received.AdditionalProperties);
+        Assert.All(properties.Values, value => Assert.IsType<JsonElement>(value));
+
+        var answer = Success(DecisionMapper.ToMinosAnswer(received, Definition.Questions[2]));
 
         Assert.Equal((2, 0.61, ProbabilitySource.Logprobs), (answer.ChosenIndex, answer.Confidence, answer.ProbabilitySource));
     }
@@ -273,6 +290,7 @@ public sealed class DecisionMapperAnswerTests
     [InlineData("minos.chosenLevel", "1.5")]
     [InlineData("minos.chosenLevel", "\"two\"")]
     [InlineData("minos.confidence", "1.01")]
+    [InlineData("minos.confidence", "1e400")]
     [InlineData("minos.confidence", "\"high\"")]
     [InlineData("minos.probabilitySource", "\"guessed\"")]
     [InlineData("minos.probabilitySource", "1")]
@@ -289,6 +307,21 @@ public sealed class DecisionMapperAnswerTests
         Assert.DoesNotContain(json.Trim('"'), result.Error.Message, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("minos.chosenLevel")]
+    [InlineData("minos.confidence")]
+    [InlineData("minos.probabilitySource")]
+    public void APresentButNullMinosKey_IsAnInvalidResponse(string key)
+    {
+        var score = new ScoreDecisionAnswer("priority", 1.65, [new("0", 0.1), new("1", 0.35), new("2", 0.35), new("3", 0.2)], additionalProperties: Properties((key, null)));
+
+        var result = DecisionMapper.ToMinosAnswer(score, Definition.Questions[2]);
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);
+        Assert.Contains(key, result.Error.Message, StringComparison.Ordinal);
+    }
+
     [Fact]
     public void AnAnswerThatDoesNotMatchItsQuestion_IsAnInvalidResponse()
     {
@@ -299,8 +332,14 @@ public sealed class DecisionMapperAnswerTests
             new ChoiceDecisionAnswer("team", "tech", [new("tech", 0.6), new("billing", 0.3), new("sales", 0.1)]), Definition.Questions[1]);
         var wrongCount = DecisionMapper.ToMinosAnswers([new BinaryDecisionAnswer("urgent", 0.5)], Definition);
 
-        Assert.All([wrongKind.IsFailure ? wrongKind.Error : null, wrongId.IsFailure ? wrongId.Error : null, wrongOrder.IsFailure ? wrongOrder.Error : null, wrongCount.IsFailure ? wrongCount.Error : null],
-            error => Assert.Equal(DecisionErrorKind.InvalidResponse, Assert.IsType<DecisionError>(error).Kind));
+        Assert.True(wrongKind.IsFailure);
+        Assert.Equal(DecisionErrorKind.InvalidResponse, wrongKind.Error.Kind);
+        Assert.True(wrongId.IsFailure);
+        Assert.Equal(DecisionErrorKind.InvalidResponse, wrongId.Error.Kind);
+        Assert.True(wrongOrder.IsFailure);
+        Assert.Equal(DecisionErrorKind.InvalidResponse, wrongOrder.Error.Kind);
+        Assert.True(wrongCount.IsFailure);
+        Assert.Equal(DecisionErrorKind.InvalidResponse, wrongCount.Error.Kind);
     }
 
     [Fact]
