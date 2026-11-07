@@ -66,7 +66,7 @@ is_newer() {
   [ "$core" != "$baseline" ] && [ "$(printf '%s\n%s\n' "$core" "$baseline" | sort -V | tail -1)" = "$core" ]
 }
 
-[ -z "${FIND_DECISIONS_SOURCE_ONLY:-}" ] || return 0 2>/dev/null || exit 0
+[ -z "${FIND_DECISIONS_SOURCE_ONLY:-}" ] || return 0 2>/dev/null || { echo "FIND_DECISIONS_SOURCE_ONLY is only for sourcing the script in tests" >&2; exit 2; }
 
 index="$(curl -fsS --retry 3 --retry-delay 2 --max-time 60 "$feed/index.json")" \
   || err "cannot read the version list from $feed/index.json"
