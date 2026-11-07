@@ -265,7 +265,7 @@ public sealed class DecisionMapperQuestionTests
     }
 
     [Fact]
-    public void EveryProblem_IsOneFailure_InQuestionOrder_ThenImages_AndTheMessageIsTheFirsts()
+    public void EveryProblem_IsOneFailure_ImagesFirst_ThenInQuestionOrder_AndTheMessageIsTheFirsts()
     {
         var definition = new QuestionSetDefinition(
             QuestionDefinition.Score(" ", Secret, Secret.Trim() + " ", "x"),
@@ -278,7 +278,7 @@ public sealed class DecisionMapperQuestionTests
 
         Assert.True(result.IsFailure);
         Assert.Equal(
-            [("MIN208", " "), ("MIN210", "spam"), ("MIN205", "team"), ("MIN208", "team"), ("MIN209", "team"), ("MIN211", "level"), ("MIN206", null)],
+            [("MIN206", null), ("MIN208", " "), ("MIN210", "spam"), ("MIN205", "team"), ("MIN208", "team"), ("MIN209", "team"), ("MIN211", "level")],
             result.Error.Failures.Select(Pair));
         Assert.Equal(result.Error.Failures[0].Message, result.Error.Message);
         Assert.All(result.Error.Failures, failure =>
@@ -358,6 +358,14 @@ public sealed class DecisionMapperQuestionTests
             new QuestionSetDefinition(QuestionDefinition.Choice("team", "Which team?", new OptionDefinition("a", Criterion.Text("A").WithNotFor("B")))),
             Provider));
         Assert.Equal(rows["MIN205"].Replace("OpenAI", Provider, StringComparison.Ordinal), detail.Message);
+
+        // MIN201's wording is the native clients' own; the adapter's copy must not drift from it.
+        var kind = SingleFailure(DecisionMapper.ToUpstream(
+            new MinosRequest(new QuestionSetDefinition(QuestionDefinition.Choice("team", "Which team?", new OptionDefinition("a", "A"), new OptionDefinition("b", "B"))), "state"),
+            Provider,
+            QuestionKinds.Noul | QuestionKinds.Score));
+        Assert.Equal(("MIN201", "team"), Pair(kind));
+        Assert.Equal(rows["MIN201"].Replace("Custom", Provider, StringComparison.Ordinal), kind.Message);
     }
 
     // ---- Upstream to Minos ----

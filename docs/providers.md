@@ -424,9 +424,9 @@ problem it found. Each is a `QuestionFailure` with a rule id, the key of the que
 
 The error's `Message` is the first failure's. `MIN202` comes first, then each question's `MIN201` and `MIN203` in the
 order it is sent, then `MIN206`, then OpenAI's `MIN204` and `MIN205` in question order. The adapter over an upstream
-decision client reports `MIN207` first, then each question's `MIN205` and `MIN208` to `MIN211` in the order it is sent,
-then `MIN206`. The MIN2 series is for these
-provider rules, and MIN201 to MIN203 keep their meaning, so you can match on them. The rules
+decision client follows the same order, generic rules first: `MIN207`, then each question's `MIN201` in the order it is
+sent, then `MIN206`, then each question's `MIN205` and `MIN208` to `MIN211` in the order it is sent. The MIN2 series
+is for these provider rules, and MIN201 to MIN203 keep their meaning, so you can match on them. The rules
 MIN001 to MIN006 are the API's own rules, MIN101 to MIN108 are about what the generator can turn into code, and
 [diagnostics](diagnostics.md) lists them.
 

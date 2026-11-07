@@ -115,7 +115,7 @@ no such keys, so for it the rows below say what Over upstream assumes.
 | Minos | Upstream | Fit | Adapter |
 | --- | --- | --- | --- |
 | `Minos: DecisionClientMetadata` | `Upstream: DecisionClientMetadata` | with a loss | Both describe the provider and are returned by `GetService`. Upstream also lists the supported kinds; Minos keeps those on `DecisionCapabilities` and has a cache scope. |
-| `Minos: DecisionClientMetadata.ProviderName` | `Upstream: DecisionClientMetadata.ProviderName` | with a loss | Minos requires a provider name; upstream allows `null`. Over upstream uses the upstream name, or a fixed adapter name when it is `null`. |
+| `Minos: DecisionClientMetadata.ProviderName` | `Upstream: DecisionClientMetadata.ProviderName` | with a loss | Minos requires a provider name; upstream allows `null`. Over upstream uses the upstream name, or the fixed adapter name `upstream` when it is `null`. |
 | `Minos: DecisionClientMetadata.Endpoint` | `Upstream: DecisionClientMetadata.ProviderUri` | one to one | The provider's address, or `null`. |
 | `Minos: DecisionClientMetadata.DefaultModel` | `Upstream: DecisionClientMetadata.DefaultModelId` | one to one | The model used when the request names none, or `null`. |
 | `Minos: DecisionCapabilities`, `Minos: DecisionCapabilities.QuestionKinds`, `Minos: QuestionKinds` | `Upstream: DecisionClientMetadata.SupportedKinds` | with a loss | The kinds the provider accepts: flags in Minos, a list upstream. Upstream `null` means unknown; a Minos client resolves every capability. Over upstream reports `All` when the list is `null`, which assumes the provider accepts every kind, and checks the kinds before sending when the list is there. Over Minos lists the kinds of the Minos capabilities. |

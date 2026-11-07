@@ -24,9 +24,10 @@ namespace Minos.Extensions.AI.Decisions;
 /// A request is converted as the page says: the questions to upstream questions, the state to JSON, the model to
 /// <see cref="DecisionOptions.ModelId"/>. The retry attempt and the deadline are dropped. A request the page refuses is
 /// not sent: it returns <see cref="DecisionErrorKind.Unsupported"/> with one <see cref="QuestionFailure"/> per problem,
-/// the page's refusals first (MIN207 for an empty set, then each question's MIN205 and MIN208 to MIN211), then MIN201
-/// for each question whose kind is outside the upstream <see cref="UpstreamMetadata.SupportedKinds"/>, in question
-/// order, then MIN206 for images. Its message is the first failure's.
+/// in the order a native Minos client uses, generic capability rules first: MIN207 for an empty set, then MIN201 for
+/// each question whose kind is outside the upstream <see cref="UpstreamMetadata.SupportedKinds"/> in question order,
+/// then MIN206 for images, then each question's MIN205 and MIN208 to MIN211 in question order. Its message is the first
+/// failure's.
 /// </para>
 /// <para>
 /// The upstream response must carry the state and the questions that were sent; otherwise the call returns
@@ -52,11 +53,12 @@ namespace Minos.Extensions.AI.Decisions;
 [Experimental("MEAI001")]
 public sealed class UpstreamDecisionClient : MinosClient
 {
-    /// <summary>The provider name reported when the upstream client names none.</summary>
-    public const string DefaultProviderName = "upstream";
+    /// <summary>The provider name reported when the upstream client names none, as the mapping page states.</summary>
+    internal const string DefaultProviderName = "upstream";
 
     private const string MismatchMessage = "The response does not correspond to the request sent by the client.";
     private const string NoResponseMessage = "The upstream client returned no response.";
+    // Copied from Minos.DecisionErrors.DisposedMessage in Minos.NET, which this project cannot see; keep it the same.
     private const string DisposedMessage = "The client was disposed while the request was in flight.";
 
     private readonly UpstreamClient _innerClient;
@@ -64,8 +66,9 @@ public sealed class UpstreamDecisionClient : MinosClient
     private readonly QuestionKinds _kinds;
     private readonly string _providerName;
 
-    // Volatile: Dispose writes it, and a call in flight reads it when its upstream call fails.
-    private volatile bool _disposed;
+    // 1 once Dispose has run. Dispose sets it with Interlocked.Exchange, so only one caller disposes the upstream client;
+    // a call in flight reads it when its upstream call fails.
+    private int _disposed;
 
     /// <summary>Initializes a new instance of the <see cref="UpstreamDecisionClient"/> class.</summary>
     /// <param name="innerClient">The upstream client. This client owns it and disposes it.</param>
@@ -90,15 +93,10 @@ public sealed class UpstreamDecisionClient : MinosClient
     public ValueTask<Result<MinosResponse, DecisionError>> EvaluateAsync(MinosRequest request, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        ObjectDisposedException.ThrowIf(IsDisposed, this);
         cancellationToken.ThrowIfCancellationRequested();
 
-        if (CollectUnsupported(request) is { } failures)
-        {
-            return new(Result<MinosResponse, DecisionError>.Failure(new DecisionError(DecisionErrorKind.Unsupported, failures[0].Message, failures)));
-        }
-
-        var call = DecisionMapper.ToUpstream(request, _providerName);
+        var call = DecisionMapper.ToUpstream(request, _providerName, _kinds);
         return call.IsFailure
             ? new(Result<MinosResponse, DecisionError>.Failure(call.Error))
             : SendAsync(call.Value, request.Definition, cancellationToken);
@@ -145,14 +143,13 @@ public sealed class UpstreamDecisionClient : MinosClient
     /// <summary>Disposes the upstream client. Calling it more than once does nothing.</summary>
     public void Dispose()
     {
-        if (_disposed)
+        if (Interlocked.Exchange(ref _disposed, 1) == 0)
         {
-            return;
+            _innerClient.Dispose();
         }
-
-        _disposed = true;
-        _innerClient.Dispose();
     }
+
+    private bool IsDisposed => Volatile.Read(ref _disposed) != 0;
 
     private static QuestionKinds KindsOf(IReadOnlyList<DecisionKind> supported)
     {
@@ -171,44 +168,6 @@ public sealed class UpstreamDecisionClient : MinosClient
         return kinds;
     }
 
-    private static QuestionKinds FlagOf(QuestionKind kind) => kind switch
-    {
-        QuestionKind.Noul => QuestionKinds.Noul,
-        QuestionKind.Choice => QuestionKinds.Choice,
-        _ => QuestionKinds.Score,
-    };
-
-    private static string NameOf(QuestionKind kind) => kind switch
-    {
-        QuestionKind.Noul => nameof(QuestionKind.Noul),
-        QuestionKind.Choice => nameof(QuestionKind.Choice),
-        _ => nameof(QuestionKind.Score),
-    };
-
-    private List<QuestionFailure>? CollectUnsupported(MinosRequest request)
-    {
-        // The page's refusals without the image one, so the kind failures can go before it.
-        var failures = DecisionMapper.CollectUnsupported(request.Definition, imageCount: 0, _providerName);
-        if (_kinds != QuestionKinds.All)
-        {
-            foreach (var question in request.Definition.Questions)
-            {
-                if ((_kinds & FlagOf(question.Kind)) == QuestionKinds.None)
-                {
-                    (failures ??= []).Add(new QuestionFailure(
-                        DiagnosticIds.UnsupportedQuestionKind, question.Key, _providerName + " does not support " + NameOf(question.Kind) + " questions."));
-                }
-            }
-        }
-
-        if (request.Images.Count > 0)
-        {
-            (failures ??= []).Add(new QuestionFailure(DiagnosticIds.ImagesUnsupported, null, _providerName + " does not support images."));
-        }
-
-        return failures;
-    }
-
     private async ValueTask<Result<MinosResponse, DecisionError>> SendAsync(UpstreamCall call, QuestionSetDefinition definition, CancellationToken cancellationToken)
     {
         UpstreamResponse? response;
@@ -220,7 +179,7 @@ public sealed class UpstreamDecisionClient : MinosClient
         {
             throw;
         }
-        catch (Exception exception) when (_disposed)
+        catch (Exception exception) when (IsDisposed)
         {
             return Failure(new DecisionError(DecisionErrorKind.Disposed, DisposedMessage) { Exception = exception });
         }

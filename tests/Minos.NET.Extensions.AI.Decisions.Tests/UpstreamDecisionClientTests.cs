@@ -394,7 +394,7 @@ public sealed class UpstreamDecisionClientTests
         var error = (await client.EvaluateAsync(request)).Error;
 
         Assert.Equal(DecisionErrorKind.Unsupported, error.Kind);
-        Assert.Equal([("MIN211", "level"), ("MIN206", null)], error.Failures.Select(f => (f.Rule, f.QuestionKey)));
+        Assert.Equal([("MIN206", null), ("MIN211", "level")], error.Failures.Select(f => (f.Rule, f.QuestionKey)));
         Assert.Equal(error.Failures[0].Message, error.Message);
         Assert.All(error.Failures, f => Assert.DoesNotContain(Secret, f.Message, StringComparison.Ordinal));
         Assert.Empty(upstream.Requests);
@@ -416,7 +416,7 @@ public sealed class UpstreamDecisionClientTests
     }
 
     [Fact]
-    public async Task KindFailures_FollowThePageRefusals_AndPrecedeTheImageFailure()
+    public async Task KindAndImageFailures_PrecedeThePageRefusals_AsInANativeClient()
     {
         using var upstream = new FakeUpstreamClient { Metadata = new UpstreamMetadata(supportedKinds: [DecisionKind.Choice]) };
         using var client = new UpstreamDecisionClient(upstream);
@@ -426,7 +426,7 @@ public sealed class UpstreamDecisionClientTests
         var error = (await client.EvaluateAsync(request)).Error;
 
         Assert.Equal(
-            [("MIN211", "level"), ("MIN201", "urgent"), ("MIN201", "level"), ("MIN206", null)],
+            [("MIN201", "urgent"), ("MIN201", "level"), ("MIN206", null), ("MIN211", "level")],
             error.Failures.Select(f => (f.Rule, f.QuestionKey)));
         Assert.Empty(upstream.Requests);
     }
@@ -467,6 +467,17 @@ public sealed class UpstreamDecisionClientTests
     }
 
     [Fact]
+    public void ConcurrentDisposes_DisposeTheUpstreamClientOnce()
+    {
+        var upstream = new FakeUpstreamClient();
+        var client = new UpstreamDecisionClient(upstream);
+
+        Parallel.For(0, 64, _ => client.Dispose());
+
+        Assert.Equal(1, upstream.DisposeCount);
+    }
+
+    [Fact]
     public async Task ADisposalWhileACallIsInFlight_ReturnsDisposed()
     {
         var gate = new TaskCompletionSource<UpstreamResponse>(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -480,6 +491,7 @@ public sealed class UpstreamDecisionClientTests
         var error = (await call).Error;
 
         Assert.Equal(DecisionErrorKind.Disposed, error.Kind);
+        Assert.Equal("The client was disposed while the request was in flight.", error.Message);
         Assert.Same(thrown, error.Exception);
     }
 

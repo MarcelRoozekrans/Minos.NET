@@ -16,8 +16,10 @@ namespace Minos.Extensions.AI.Decisions;
 /// </summary>
 /// <remarks>
 /// Minos to upstream returns <see cref="DecisionErrorKind.Unsupported"/> before anything is sent for each rule the page
-/// refuses: MIN207 for an empty set, then each question's failures in wire order, one per rule in rule-id order, then
-/// MIN206 for images. Every other loss converts as the page says. No message carries question text or state.
+/// refuses, in the order a native Minos client uses, generic capability rules before provider-specific ones: MIN207 for
+/// an empty set, then MIN201 for each question of a kind the provider does not support in wire order, then MIN206 for
+/// images, then each question's page refusals in wire order, one per rule in rule-id order (MIN205, MIN208 to MIN211).
+/// Every other loss converts as the page says. No message carries question text or state.
 /// </remarks>
 [Experimental("MEAI001")]
 internal static partial class DecisionMapper
@@ -25,13 +27,14 @@ internal static partial class DecisionMapper
     /// <summary>Converts a Minos request to an upstream request and its options.</summary>
     /// <param name="request">The Minos request.</param>
     /// <param name="providerName">The provider, named at the start of each failure message.</param>
+    /// <param name="kinds">The question kinds the provider supports; a question of another kind fails with MIN201.</param>
     /// <returns>The upstream call, or <see cref="DecisionErrorKind.Unsupported"/> with every failure.</returns>
     /// <remarks>The retry attempt and the deadline are dropped; upstream requests have neither.</remarks>
-    internal static Result<UpstreamCall, DecisionError> ToUpstream(MinosRequest request, string providerName)
+    internal static Result<UpstreamCall, DecisionError> ToUpstream(MinosRequest request, string providerName, QuestionKinds kinds = QuestionKinds.All)
     {
         ArgumentNullException.ThrowIfNull(request);
 
-        if (CollectUnsupported(request.Definition, request.Images.Count, providerName) is { } failures)
+        if (CollectUnsupported(request.Definition, request.Images.Count, kinds, providerName) is { } failures)
         {
             return Result<UpstreamCall, DecisionError>.Failure(Unsupported(failures));
         }
@@ -48,7 +51,7 @@ internal static partial class DecisionMapper
     {
         ArgumentNullException.ThrowIfNull(definition);
 
-        return CollectUnsupported(definition, imageCount: 0, providerName) is { } failures
+        return CollectUnsupported(definition, imageCount: 0, QuestionKinds.All, providerName) is { } failures
             ? Result<IReadOnlyList<DecisionQuestion>, DecisionError>.Failure(Unsupported(failures))
             : Result<IReadOnlyList<DecisionQuestion>, DecisionError>.Success(Convert(definition));
     }
@@ -56,9 +59,10 @@ internal static partial class DecisionMapper
     /// <summary>Every rule of the mapping page that <paramref name="definition"/> and its images break.</summary>
     /// <param name="definition">The question set about to be sent.</param>
     /// <param name="imageCount">How many images the request carries.</param>
+    /// <param name="kinds">The question kinds the provider supports.</param>
     /// <param name="providerName">The provider, named at the start of each message.</param>
     /// <returns><see langword="null"/> when the set can be sent; otherwise every failure, in the order the class describes.</returns>
-    internal static List<QuestionFailure>? CollectUnsupported(QuestionSetDefinition definition, int imageCount, string providerName)
+    internal static List<QuestionFailure>? CollectUnsupported(QuestionSetDefinition definition, int imageCount, QuestionKinds kinds, string providerName)
     {
         ArgumentNullException.ThrowIfNull(definition);
         ArgumentNullException.ThrowIfNull(providerName);
@@ -70,9 +74,16 @@ internal static partial class DecisionMapper
             failures = [new QuestionFailure(DiagnosticIds.EmptyQuestionSet, null, providerName + " needs at least one question; the set has none.")];
         }
 
-        foreach (var question in questions)
+        if (kinds != QuestionKinds.All)
         {
-            CollectQuestion(question, providerName, ref failures);
+            foreach (var question in questions)
+            {
+                if ((kinds & FlagOf(question.Kind)) == QuestionKinds.None)
+                {
+                    Add(ref failures, DiagnosticIds.UnsupportedQuestionKind, question.Key,
+                        providerName + " does not support " + NameOf(question.Kind) + " questions.");
+                }
+            }
         }
 
         if (imageCount > 0)
@@ -80,8 +91,29 @@ internal static partial class DecisionMapper
             (failures ??= []).Add(new QuestionFailure(DiagnosticIds.ImagesUnsupported, null, providerName + " does not support images."));
         }
 
+        foreach (var question in questions)
+        {
+            CollectQuestion(question, providerName, ref failures);
+        }
+
         return failures;
     }
+
+    // FlagOf, NameOf and the MIN201 message above are copied from Minos.Transport.CapabilitySet in Minos.NET, which this
+    // project cannot see; keep the wording the same as there.
+    private static QuestionKinds FlagOf(QuestionKind kind) => kind switch
+    {
+        QuestionKind.Noul => QuestionKinds.Noul,
+        QuestionKind.Choice => QuestionKinds.Choice,
+        _ => QuestionKinds.Score,
+    };
+
+    private static string NameOf(QuestionKind kind) => kind switch
+    {
+        QuestionKind.Noul => nameof(QuestionKind.Noul),
+        QuestionKind.Choice => nameof(QuestionKind.Choice),
+        _ => nameof(QuestionKind.Score),
+    };
 
     /// <summary>Converts Minos state to upstream state: text as a JSON string, JSON as it is.</summary>
     /// <param name="state">The Minos state.</param>

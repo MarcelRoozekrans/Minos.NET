@@ -1,5 +1,4 @@
 #nullable enable
-[MEAI001]const Minos.Extensions.AI.Decisions.UpstreamDecisionClient.DefaultProviderName = "upstream" -> string!
 [MEAI001]Minos.Extensions.AI.Decisions.UpstreamDecisionClient
 [MEAI001]Minos.Extensions.AI.Decisions.UpstreamDecisionClient.Dispose() -> void
 [MEAI001]Minos.Extensions.AI.Decisions.UpstreamDecisionClient.EvaluateAsync(Minos.DecisionRequest! request, System.Threading.CancellationToken cancellationToken = default(System.Threading.CancellationToken)) -> System.Threading.Tasks.ValueTask<ZeroAlloc.Results.Result<Minos.DecisionResponse!, Minos.DecisionError!>>
