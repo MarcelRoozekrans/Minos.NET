@@ -14,10 +14,15 @@ namespace Minos.Docs.Tests;
 //   - Fit is one of "one to one", "with a loss" or "no counterpart". A "no counterpart" row has exactly one side;
 //     any other row has both a Minos and an Upstream identifier.
 //   - An identifier is "Type" or "Type.Member", with an optional namespace in front. A type is found by its full name,
-//     or else by its simple name among the public types of the assembly; a generic type is written without arity or
-//     type arguments. A member is any public method, property, field, event or nested type of that name, on the type
-//     or what it inherits.
-//   - The Minos side is the Minos.NET assembly; the upstream side is the assembly named by MINOS_UPSTREAM_ABSTRACTIONS.
+//     or else by its simple name among the public types of the side's assemblies. "Name<A, B>" names the type of that
+//     name with two type parameters; the parameter names are free, their count is the arity. A plain name names the
+//     non-generic type of that name when there is one, so "DecisionResponse" is the non-generic upstream type and
+//     "DecisionResponse<TResult>" the generic one; with no non-generic namesake, a plain name names the one generic type,
+//     as "Score" names Score<T>. A name that still matches more than one type, such as the same name in two namespaces
+//     or two generic arities, fails the test as ambiguous. A member is any public method, property, field, event or
+//     nested type of that name, on the type or what it inherits.
+//   - The Minos side is the Minos.NET, Minos.NET.Caching and Minos.NET.Recording assemblies; the upstream side is the
+//     assembly named by MINOS_UPSTREAM_ABSTRACTIONS.
 public sealed partial class ExtensionsAiDecisionsMappingTests
 {
     private const string Page = "extensions-ai-decisions/mapping.md";
@@ -64,10 +69,12 @@ public sealed partial class ExtensionsAiDecisionsMappingTests
     [Fact]
     public void Minos_identifiers_are_public_in_Minos_NET()
     {
-        var types = typeof(IDecisionClient).Assembly.GetExportedTypes().Select(t => (Type)t).ToList();
-        var missing = Identifiers("Minos").Where(id => !Resolves(types, id)).ToList();
+        var types = MinosAssemblies.SelectMany(a => a.GetExportedTypes()).ToList();
+        var ambiguous = new List<string>();
+        var missing = Identifiers("Minos").Where(id => !Resolves(types, id, ambiguous)).ToList();
 
-        Assert.True(missing.Count == 0, $"{Page} names Minos identifiers that are not public in Minos.NET: {string.Join(", ", missing)}.");
+        Assert.True(ambiguous.Count == 0, $"{Page} names Minos types that match more than one public type; write them with their type parameters: {string.Join(", ", ambiguous)}.");
+        Assert.True(missing.Count == 0, $"{Page} names Minos identifiers that are not public in Minos.NET, Minos.NET.Caching or Minos.NET.Recording: {string.Join(", ", missing)}.");
     }
 
     [UpstreamAbstractionsFact]
@@ -81,40 +88,92 @@ public sealed partial class ExtensionsAiDecisionsMappingTests
         using var context = new MetadataLoadContext(new PathAssemblyResolver(paths));
         var types = context.LoadFromAssemblyPath(path).GetExportedTypes().ToList();
 
-        var missing = Identifiers("Upstream").Where(id => !Resolves(types, id)).ToList();
+        var ambiguous = new List<string>();
+        var missing = Identifiers("Upstream").Where(id => !Resolves(types, id, ambiguous)).ToList();
 
+        Assert.True(ambiguous.Count == 0, $"{Page} names upstream types that match more than one public type; write them with their type parameters: {string.Join(", ", ambiguous)}.");
         Assert.True(missing.Count == 0, $"{Page} names upstream identifiers that are not public in the pinned build: {string.Join(", ", missing)}.");
     }
 
     private static List<string> Identifiers(string side) =>
         [.. ReadRows().SelectMany(r => string.Equals(side, "Minos", StringComparison.Ordinal) ? r.MinosNames : r.UpstreamNames).Distinct(StringComparer.Ordinal)];
 
-    private static bool Resolves(List<Type> types, string identifier)
+    /// <summary>The assemblies whose public types the Minos side of the page may name.</summary>
+    private static readonly Assembly[] MinosAssemblies =
+    [
+        typeof(IDecisionClient).Assembly,
+        typeof(CachingDecisionClient).Assembly,
+        typeof(Minos.Recording.RecordingDecisionClient).Assembly,
+    ];
+
+    private static bool Resolves(List<Type> types, string identifier, List<string> ambiguous)
     {
-        if (FindType(types, identifier) is not null)
+        if (FindType(types, identifier, ambiguous) is not null)
         {
             return true;
         }
 
         var dot = identifier.LastIndexOf('.');
-        if (dot < 0)
+        if (dot < 0 || identifier.EndsWith('>'))
         {
             return false;
         }
 
-        var type = FindType(types, identifier[..dot]);
+        var type = FindType(types, identifier[..dot], ambiguous);
         return type is not null && HasMember(type, identifier[(dot + 1)..]);
     }
 
-    private static Type? FindType(List<Type> types, string name)
+    /// <summary>
+    /// Finds the one type a name stands for. "Name&lt;A, B&gt;" matches only a type of that name with two type parameters.
+    /// A plain name matches the non-generic type of that name when there is one, and otherwise a generic type of any
+    /// arity. More than one match, such as the same name in two namespaces or two generic arities, is ambiguous.
+    /// </summary>
+    private static Type? FindType(List<Type> types, string name, List<string> ambiguous)
     {
-        var byFullName = types.FirstOrDefault(t => string.Equals(StripArity(t.FullName!), name, StringComparison.Ordinal));
-        if (byFullName is not null || name.Contains('.', StringComparison.Ordinal))
+        int? arity = null;
+        var open = name.IndexOf('<', StringComparison.Ordinal);
+        if (open >= 0)
         {
-            return byFullName;
+            if (!name.EndsWith('>'))
+            {
+                return null;
+            }
+
+            arity = name[(open + 1)..^1].Split(',').Length;
+            name = name[..open];
         }
 
-        return types.FirstOrDefault(t => string.Equals(StripArity(t.Name), name, StringComparison.Ordinal));
+        bool Matches(Type t, string candidate) =>
+            string.Equals(StripArity(candidate), name, StringComparison.Ordinal) && (arity is null || Arity(t) == arity);
+
+        var byFullName = types.Where(t => Matches(t, t.FullName!)).ToList();
+        var found = byFullName.Count > 0 || name.Contains('.', StringComparison.Ordinal)
+            ? byFullName
+            : types.Where(t => Matches(t, t.Name)).ToList();
+        if (arity is null && found.Exists(t => Arity(t) == 0))
+        {
+            // A plain name stands for the non-generic type when there is one; a generic namesake needs its parameters.
+            found = found.FindAll(t => Arity(t) == 0);
+        }
+
+        if (found.Count > 1)
+        {
+            var written = arity is null ? name : $"{name} of arity {arity}";
+            if (!ambiguous.Contains(written, StringComparer.Ordinal))
+            {
+                ambiguous.Add(written);
+            }
+
+            return null;
+        }
+
+        return found.Count == 1 ? found[0] : null;
+    }
+
+    private static int Arity(Type type)
+    {
+        var tick = type.Name.IndexOf('`', StringComparison.Ordinal);
+        return tick < 0 ? 0 : int.Parse(type.Name[(tick + 1)..], System.Globalization.CultureInfo.InvariantCulture);
     }
 
     private static string StripArity(string name)
