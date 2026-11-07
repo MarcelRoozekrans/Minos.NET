@@ -1,0 +1,149 @@
+---
+id: mapping
+title: Mapping the Minos decision types
+sidebar_position: 2
+description: Each Minos decision type and member next to its counterpart in the experimental Microsoft.Extensions.AI decision abstractions, with how well it fits and what an adapter does.
+---
+
+# Mapping the Minos decision types
+
+This page sets the Minos decision types next to the experimental decision abstractions in Microsoft.Extensions.AI, as
+they are at the commit in `tools/upstream/decisions-pin.json`. [Microsoft.Extensions.AI decisions](index.md) explains the
+pin and the status of the upstream API. Both sides name their main types the same way (`IDecisionClient`,
+`DecisionRequest`, `DecisionResponse`, `DecisionClientMetadata`), so every identifier below says which side it is from.
+Upstream types are in the `Microsoft.Extensions.AI` namespace, Minos types in `Minos`.
+
+## How to read the tables
+
+The Fit column has three values:
+
+- **one to one**: the two sides mean the same thing and hold the same values. The adapter copies or renames the value.
+- **with a loss**: the adapter has to convert, and the row says what goes wrong in the conversion: something is
+  dropped, refused, derived or assumed, or one side accepts values the other side rejects.
+- **no counterpart**: only one side has it. The row says what the adapter does instead.
+
+The Adapter column describes the two adapters of the planned package `Minos.NET.Extensions.AI.Decisions`:
+
+- **Over upstream** is the Minos `IDecisionClient` that wraps an upstream client. Minos callers and Minos pipeline stages
+  call it.
+- **Over Minos** is the upstream `IDecisionClient` that wraps a Minos client. Code written against the upstream API calls
+  it.
+
+Some Minos values have no upstream slot. Over Minos writes them to the upstream `AdditionalProperties` of the answer or
+the response, under keys that start with `minos.`, and Over upstream reads those keys back when they are there. With
+that rule, a Minos answer that goes to upstream and back comes back the same. A value from a real upstream provider has
+no such keys, so for it the rows below say what Over upstream assumes.
+
+## Client interface and GetService
+
+| Minos | Upstream | Fit | Adapter |
+| --- | --- | --- | --- |
+| `Minos: IDecisionClient` | `Upstream: IDecisionClient` | with a loss | The two interfaces have the same two members, an evaluation call and `GetService`, and both are `IDisposable`. The evaluation calls differ as the next row describes. |
+| `Minos: IDecisionClient.EvaluateAsync` | `Upstream: IDecisionClient.GetResponseAsync` | with a loss | Minos returns a `ValueTask` of `Result<DecisionResponse, DecisionError>` and reports a failed call as a value. Upstream returns a `Task<DecisionResponse>` and throws. Minos takes the model on the request; upstream takes it on a separate `DecisionOptions`. Over upstream catches the exceptions and returns them as `DecisionError`, as the Errors table describes. Over Minos throws for a failed result. Cancellation throws `OperationCanceledException` on both sides and passes through unchanged. |
+| `Minos: IDecisionClient.GetService` | `Upstream: IDecisionClient.GetService` | one to one | Same signature and the same contract: an object of the requested type and key, or `null`. Over upstream answers for itself, then asks the upstream client. Over Minos returns the upstream `DecisionClientMetadata` it builds and the Minos client it wraps, then asks the Minos client, so an upstream caller can reach the Minos pipeline stages. |
+| `Minos: DecisionClientExtensions.GetService` | `Upstream: DecisionClientExtensions.GetService` | one to one | Both are the typed `GetService<TService>` shortcut over the interface method. The adapters need nothing for it. |
+| `Minos: DecisionClientExtensions.GetRequiredService` | — | no counterpart | Upstream has no throwing variant. Nothing to adapt: it works over Over upstream like over any Minos client. |
+| `Minos: IDecisionClient.Dispose` | `Upstream: IDecisionClient.Dispose` | one to one | Both come from `IDisposable`. Each adapter owns the client it wraps and disposes it, as a Minos `DelegatingDecisionClient` does. |
+| `Minos: DecisionClientExtensions.EvaluateAsync`, `Minos: IQuestionSet`, `Minos: QuestionSet` | `Upstream: DecisionClientExtensions.GetResponseAsync`, `Upstream: DecisionDefinition`, `Upstream: DecisionResultBinding` | with a loss | The typed layers differ: Minos generates a typed question set from a `[Questions]` type, and upstream builds a `DecisionDefinition<TResult>` with a builder and binds the answers to a result type. The adapters do not convert one typed layer into the other. Each typed layer is an extension over its own side's neutral call, so the Minos typed calls run over Over upstream and the upstream typed calls run over Over Minos. |
+
+## Request, state and options
+
+| Minos | Upstream | Fit | Adapter |
+| --- | --- | --- | --- |
+| `Minos: DecisionRequest` | `Upstream: DecisionRequest` | with a loss | Both hold the questions and the state. The Minos request also holds the model, images, the retry attempt and a deadline; upstream has none of these on the request. |
+| `Minos: DecisionRequest.Definition`, `Minos: QuestionSetDefinition.Questions` | `Upstream: DecisionRequest.Questions` | with a loss | Both are an ordered list of questions with unique ids, compared ordinally. Upstream refuses an empty list; Minos accepts a `QuestionSetDefinition` with no questions. Over upstream returns `Unsupported` before sending for an empty set. Over Minos builds a new `QuestionSetDefinition` from the upstream questions on each call. |
+| `Minos: DecisionRequest.State`, `Minos: DecisionContent` | `Upstream: DecisionRequest.State` | with a loss | Minos state is text or a JSON string, object or array. Upstream state is any JSON value. Over upstream sends text as a JSON string and JSON as it is. Over Minos turns a JSON string back into text, as `DecisionContent.FromJson` does, and throws `ArgumentException` for a number, `true`, `false` or `null` state, which Minos cannot hold. |
+| `Minos: DecisionRequest.Model` | `Upstream: DecisionOptions.ModelId` | one to one | Both are the requested model id, or `null` for the provider's default. The adapters move it between the Minos request and the upstream options. |
+| `Minos: DecisionRequest.Images`, `Minos: DecisionImage` | — | no counterpart | Upstream requests carry no images. Over upstream returns `Unsupported` before sending for a request with images, as a Minos provider without image support does with MIN206. |
+| `Minos: DecisionRequest.RetryAttempt` | — | no counterpart | Upstream has no attempt number. Over upstream drops it; Over Minos sends 0. |
+| — | `Upstream: DecisionOptions.AdditionalProperties`, `Upstream: DecisionOptions.RawRepresentationFactory` | no counterpart | Minos has no provider-specific options on the request. Over Minos ignores them. Over upstream sends none. |
+| — | `Upstream: DecisionOptions.Clone` | no counterpart | Minos copies a request with `with`, since `DecisionRequest` is a record. Nothing to adapt. |
+
+## Question kinds
+
+| Minos | Upstream | Fit | Adapter |
+| --- | --- | --- | --- |
+| `Minos: QuestionKind` | `Upstream: DecisionKind` | one to one | Three kinds on each side, in the same order. The adapters rename the values as the next three rows list. |
+| `Minos: QuestionKind.Noul`, `Minos: QuestionDefinition.Noul` | `Upstream: DecisionKind.Binary`, `Upstream: BinaryDecisionQuestion` | with a loss | A yes-or-no question on both sides. Minos requires instructions; upstream accepts no instructions when both the true and the false description are given. Over Minos sends empty instructions in that case. Instructions and descriptions convert as the rows below describe. |
+| `Minos: QuestionKind.Choice`, `Minos: QuestionDefinition.Choice` | `Upstream: DecisionKind.Choice`, `Upstream: ChoiceDecisionQuestion` | with a loss | One option from a fixed, ordered set on both sides, with unique ids and at least one option. The options convert as the option rows below describe. |
+| `Minos: QuestionKind.Score`, `Minos: QuestionDefinition.Score` | `Upstream: DecisionKind.Score`, `Upstream: ScoreDecisionQuestion` | with a loss | Ordered levels, lowest first, on both sides. Upstream requires at least two levels; `QuestionDefinition.Score` accepts one, and Over upstream returns `Unsupported` before sending for it. The level ids differ, as the level row describes. |
+| `Minos: QuestionDefinition.Key` | `Upstream: DecisionQuestion.Id` | with a loss | Both are the caller's id for the question, unique and compared ordinally. Minos refuses only an empty key; upstream also refuses a key of white space only. Over upstream returns `Unsupported` before sending for such a key. Every upstream id is a valid Minos key. |
+| `Minos: QuestionDefinition.Instructions` | `Upstream: DecisionQuestion.Instructions` | with a loss | Minos instructions are `DecisionContent`, text or JSON; upstream instructions are a string. Over upstream sends text as it is and JSON as its JSON text, so the provider no longer knows the instructions were JSON. Over Minos sends the string as text. |
+| `Minos: QuestionDefinition.WhenTrue`, `Minos: QuestionDefinition.WhenFalse` | `Upstream: BinaryDecisionQuestion.TrueDescription`, `Upstream: BinaryDecisionQuestion.FalseDescription` | with a loss | What a yes and a no answer mean, optional on both sides. Content becomes a string as for the instructions. Upstream refuses a description of white space only, and Over upstream returns `Unsupported` before sending for one. |
+| `Minos: OptionDefinition`, `Minos: OptionDefinition.Key` | `Upstream: DecisionCandidate`, `Upstream: DecisionCandidate.Id` | with a loss | A Choice option and its id, unique and compared ordinally. Minos refuses an empty key; upstream also refuses white space only, and Over upstream returns `Unsupported` before sending for one. |
+| `Minos: OptionDefinition.Criterion`, `Minos: Criterion.Description`, `Minos: Criterion.JsonContent` | `Upstream: DecisionCandidate.Description` | with a loss | Upstream requires a description for every candidate; Minos allows an option without a criterion. Over upstream sends the option key as the description of an undescribed option, since the key is all a Minos provider sees for it, and sends a JSON criterion as its JSON text. Over Minos sends the description as a text criterion. |
+| `Minos: Criterion.Examples`, `Minos: Criterion.NotFor` | — | no counterpart | An upstream description is one string with no place for examples or exclusions. Over upstream returns `Unsupported` before sending for a criterion that has either, instead of folding them into the text in a form the provider was not trained on. |
+| `Minos: Criterion` | `Upstream: DecisionScoreLevel` | with a loss | A Score level. Minos keys levels by position, `"0"`, `"1"` and so on; upstream levels have caller ids. Over upstream sends the position keys as the level ids. Over Minos sends the levels in order and keeps the upstream ids, which it writes back on the answer's probabilities. A level's criterion converts as a Choice option's does. |
+
+## Answers and distributions
+
+| Minos | Upstream | Fit | Adapter |
+| --- | --- | --- | --- |
+| `Minos: DecisionResponse`, `Minos: DecisionResponse.Answers` | `Upstream: DecisionResponse.Answers` | with a loss | One answer per question, in question order, on both sides. Minos answers are `QuestionAnswer` values that share one probability buffer; upstream answers are objects of a type per kind. |
+| `Minos: DecisionResponse.Definition` | `Upstream: DecisionResponse.Request` | with a loss | Minos keeps the question set the answers belong to; upstream keeps the whole request, state included. Over upstream builds the Minos response on the request's own `QuestionSetDefinition` instance, which a Minos typed call checks by reference. Over Minos sets the request it was given. |
+| `Minos: QuestionAnswer.Key` | `Upstream: DecisionAnswer.QuestionId` | one to one | The id of the question the answer belongs to. |
+| `Minos: QuestionAnswer.Kind` | `Upstream: DecisionAnswer.Kind` | one to one | Renamed as in the question kinds. |
+| `Minos: QuestionAnswer.Probability`, `Minos: Noul.Probability` | `Upstream: BinaryDecisionAnswer.TrueProbability` | one to one | The probability that the answer is yes, a finite number from 0 to 1 on both sides. |
+| `Minos: Noul.Value` | — | no counterpart | Minos reads a Noul as yes from a probability of 0.5. Upstream applies no threshold and has no yes-or-no value. Over Minos does not need it; Over upstream derives it from the probability. |
+| `Minos: QuestionAnswer.ChosenIndex`, `Minos: Choice.Value`, `Minos: KeyedChoice.Value` | `Upstream: ChoiceDecisionAnswer.SelectedCandidateId` | with a loss | The chosen option, as a position in Minos and as a candidate id upstream. No value is lost: both sides require the probabilities in option order, so the adapters convert between position and id through the question's options. Neither side requires the chosen option to be the most probable one, and the adapters keep it as it is. |
+| `Minos: QuestionAnswer.Probabilities`, `Minos: ProbabilityMap`, `Minos: KeyedProbabilityMap` | `Upstream: ChoiceDecisionAnswer.Probabilities`, `Upstream: ScoreDecisionAnswer.Probabilities`, `Upstream: DecisionProbability` | with a loss | One probability per option or level, in definition order. Minos holds plain numbers, keyed by the option; upstream holds id and value pairs. Minos checks only that each value is from 0 to 1. Upstream also requires the values to sum to 1, within a tolerance that depends on the declared precision. Over Minos declares `HighPrecision`, so a Minos distribution that is off by more than 0.000001 makes the upstream answer constructor throw `DecisionProtocolException`. |
+| `Minos: QuestionAnswer.Expected`, `Minos: Score.Expected`, `Minos: KeyedScore.Expected` | `Upstream: ScoreDecisionAnswer.Score`, `Upstream: ScoreDecisionAnswer.ExpectedScore` | with a loss | The Minos expected level is the probability-weighted mean level index, as the provider returns it, and is always set. Upstream keeps two values: `Score`, the provider's own scalar, which may be `null`, and `ExpectedScore`, computed from the distribution. Over upstream takes `Score` and falls back to `ExpectedScore` when it is `null`. Over Minos reports the Minos expected level as `Score`; upstream checks that it agrees with the distribution under the declared precision, and throws `DecisionProtocolException` when it does not. |
+| `Minos: Score.Value`, `Minos: KeyedScore.Level` | — | no counterpart | Minos reports the most probable level of a Score, the lower one on a tie. An upstream score answer has no selected level. Over upstream derives it from the distribution by that rule. Over Minos drops it, since the distribution holds it. |
+| `Minos: Score.Normalized`, `Minos: KeyedScore.Normalized` | — | no counterpart | Derived from the expected level and the level count, so the adapters need nothing for it. |
+| `Minos: QuestionAnswer.Confidence`, `Minos: Choice.Confidence`, `Minos: Score.Confidence` | — | no counterpart | A Minos Choice or Score answer carries the provider's confidence; upstream answers have none. Over Minos writes it under `minos.confidence`. Over upstream reads that key, and otherwise assumes the probability of the chosen option, or of the most probable level for a Score. That is the rule the Minos chat client adapter uses, and it is an assumption: the provider did not report a confidence. |
+| `Minos: ProbabilitySource`, `Minos: QuestionAnswer.ProbabilitySource`, `Minos: DecisionResponse.ProbabilitySource` | — | no counterpart | Minos records how the probabilities were made: reported by the model, from token log probabilities, or stated in text. Upstream does not record it. Over Minos writes it under `minos.probabilitySource`. Over upstream reads that key, and otherwise reports `Model`. That is an assumption: an upstream provider may have derived its probabilities from log probabilities, and nothing in the upstream answer says so. The declared precision says how the values were rounded, not how they were made, so the adapter does not derive the source from it. |
+| — | `Upstream: DecisionPrecision`, `Upstream: DecisionAnswer.Precision`, `Upstream: DecisionProvenance.Precision` | no counterpart | Upstream declares how the provider rounded the probabilities: not at all, to four decimal places or to two. Minos does not record rounding. Over upstream drops it and keeps the values as reported, which Minos accepts, since it does not check the sum. Over Minos declares `HighPrecision`, as the distribution row describes. |
+| — | `Upstream: DecisionAnswer.AdditionalProperties`, `Upstream: DecisionResponse.AdditionalProperties` | no counterpart | Minos answers and responses have no extension data. Over upstream reads the `minos.` keys and drops the rest. Over Minos writes only `minos.` keys. |
+| — | `Upstream: DecisionAnswer.RawRepresentation`, `Upstream: DecisionResponse.RawRepresentation` | no counterpart | Minos keeps no raw provider object. Over upstream drops it; Over Minos sets the Minos `DecisionResponse` as the response's raw representation and leaves the answers' empty. |
+| — | `Upstream: DecisionFeatureSchema`, `Upstream: DecisionFeatureProjection` | no counterpart | Upstream can project complete answers onto named numeric features. It runs on an upstream response, so it works over Over Minos. Minos has no counterpart. |
+
+## Errors
+
+| Minos | Upstream | Fit | Adapter |
+| --- | --- | --- | --- |
+| `Minos: DecisionError` | `Upstream: DecisionClientException` | with a loss | Minos returns a failure as a value with a kind, a message and optional detail. Upstream throws an exception that says only whether the provider called the failure transient. `DecisionClientException` is sealed, so a Minos exception type cannot derive from it. Over Minos throws a `DecisionClientException` with the error's message, whose inner exception carries the `DecisionError`, so an upstream caller that catches `DecisionClientException` still catches it. |
+| `Minos: DecisionError.Message` | `Upstream: DecisionClientException.Message` | one to one | The failure's message, copied. Neither adapter adds the request state to it. |
+| `Minos: DecisionError.Kind`, `Minos: DecisionErrorKind` | `Upstream: DecisionClientException.IsTransient` | with a loss | Thirteen kinds against one flag. Over Minos sets `IsTransient` with `DecisionRetryOptions.IsTransient`: rate limiting, overload, server failures, network failures, time-outs and HTTP 408. Over upstream maps a transient failure to `Server` and any other to `Http`, with no status code, so the Minos retry stage retries the first and not the second, and the fallback stage moves on after both. The names describe HTTP causes that the upstream exception does not report. |
+| `Minos: DecisionErrorKind.InvalidResponse` | `Upstream: DecisionProtocolException` | with a loss | A provider result that breaks the protocol. Over upstream maps `DecisionProtocolException`, including the one an upstream constructor throws for a bad distribution, to `InvalidResponse` and keeps its message. Over Minos throws `DecisionProtocolException` for `InvalidResponse`; the status code and request id are lost. |
+| `Minos: DecisionError.StatusCode`, `Minos: DecisionError.RetryAfter`, `Minos: DecisionError.Detail`, `Minos: DecisionError.RequestId` | — | no counterpart | Upstream exceptions carry none of these. Over upstream leaves them empty. Over Minos keeps them only on the carried `DecisionError`. |
+| `Minos: DecisionError.Exception` | `Upstream: DecisionClientException.InnerException` | with a loss | Over upstream sets the caught exception as the error's exception. Over Minos sets the exception that carries the `DecisionError` as the inner exception, not the Minos error's own exception. |
+| `Minos: DecisionError.Failures`, `Minos: QuestionFailure`, `Minos: DecisionErrorKind.Unsupported`, `Minos: DecisionErrorKind.InvalidQuestions` | — | no counterpart | Minos reports each question that breaks a rule as a failure with a rule code. Upstream constructors throw `ArgumentException` for an invalid question or request. Over upstream checks the rules this page lists before sending and returns `Unsupported` with one `QuestionFailure` per problem. Over Minos throws `DecisionClientException`, not transient, for these kinds. |
+| `Minos: DecisionErrorKind.Refused`, `Minos: DecisionErrorKind.Timeout`, `Minos: DecisionErrorKind.Disposed` | — | no counterpart | Upstream has no refusal, time-out or disposal error. Over Minos throws `DecisionClientException`, transient for `Timeout` only. Over upstream never returns `Refused`; a disposal while a call is in flight returns `Disposed`, as the Minos interface documents, and a call after disposal throws `ObjectDisposedException`. |
+
+## Metadata and capabilities
+
+| Minos | Upstream | Fit | Adapter |
+| --- | --- | --- | --- |
+| `Minos: DecisionClientMetadata` | `Upstream: DecisionClientMetadata` | with a loss | Both describe the provider and are returned by `GetService`. Upstream also lists the supported kinds; Minos keeps those on `DecisionCapabilities` and has a cache scope. |
+| `Minos: DecisionClientMetadata.ProviderName` | `Upstream: DecisionClientMetadata.ProviderName` | with a loss | Minos requires a provider name; upstream allows `null`. Over upstream uses the upstream name, or a fixed adapter name when it is `null`. |
+| `Minos: DecisionClientMetadata.Endpoint` | `Upstream: DecisionClientMetadata.ProviderUri` | one to one | The provider's address, or `null`. |
+| `Minos: DecisionClientMetadata.DefaultModel` | `Upstream: DecisionClientMetadata.DefaultModelId` | one to one | The model used when the request names none, or `null`. |
+| `Minos: DecisionCapabilities`, `Minos: DecisionCapabilities.QuestionKinds`, `Minos: QuestionKinds` | `Upstream: DecisionClientMetadata.SupportedKinds` | with a loss | The kinds the provider accepts: flags in Minos, a list upstream. Upstream `null` means unknown; a Minos client resolves every capability. Over upstream reports `All` when the list is `null`, which assumes the provider accepts every kind, and checks the kinds before sending when the list is there. Over Minos lists the kinds of the Minos capabilities. |
+| `Minos: DecisionCapabilities.MaxQuestions`, `Minos: DecisionCapabilities.MaxChoiceOptions`, `Minos: DecisionCapabilities.SupportsImages`, `Minos: DecisionCapabilities.SupportsModelListing` | — | no counterpart | Upstream metadata has no limits and no image or model listing support. Over upstream reports no question or option limit, `SupportsImages` false and `SupportsModelListing` false. Over Minos still returns the Minos `DecisionCapabilities` from `GetService`. |
+| `Minos: DecisionResponse.Model` | `Upstream: DecisionProvenance.ModelId` | one to one | The model that answered, or `null` when the provider did not say. |
+| `Minos: DecisionResponse.Id` | `Upstream: DecisionProvenance.ResponseId` | one to one | The provider's id for the response, or `null`. |
+| — | `Upstream: DecisionProvenance.ProviderName`, `Upstream: DecisionProvenance.ProviderUri` | no counterpart | A Minos response does not name its provider; the client metadata does. Over upstream drops them. Over Minos fills them from the Minos client metadata. |
+| `Minos: DecisionResponse.UpstreamProvider` | — | no counterpart | The host an aggregator routed the call to. Upstream provenance has no such field, and its provider name is the provider itself, not the routed host. Over Minos writes it under `minos.upstreamProvider`. |
+
+## Minos-only parts
+
+| Minos | Upstream | Fit | Adapter |
+| --- | --- | --- | --- |
+| `Minos: DecisionClientBuilder`, `Minos: DelegatingDecisionClient` | — | no counterpart | At the pinned commit, upstream has no builder and no delegating base for decision clients. A Minos pipeline runs over Over upstream like over any Minos client, and Over Minos exposes a whole Minos pipeline as one upstream client. |
+| `Minos: RetryingDecisionClient` | — | no counterpart | Retries by error kind, so over Over upstream it retries what the provider called transient, as the Errors table maps it. |
+| `Minos: EscalatingDecisionClient`, `Minos: FallbackDecisionClient`, `Minos: ConfidenceThresholds` | — | no counterpart | Routing between deciders by certainty or by failure. Upstream applies no thresholds. Over upstream gives these stages the certainty they need from the confidence and the probabilities, with the assumptions in the answers table. |
+| `Minos: DecisionResponse.Path`, `Minos: DecisionPath`, `Minos: QuestionRoute`, `Minos: DecisionCall` | — | no counterpart | Which client answered each question and why, and each call a routing stage made. Over Minos writes the path under `minos.path` on the response. Over upstream sets no path; a routing stage above it sets its own. |
+| `Minos: DecisionRequest.Deadline` | — | no counterpart | The time by which a routing stage must have its answer. Upstream requests have no deadline. The routing stages above Over upstream enforce it by cancelling the call they make, and the adapter passes the cancellation on. Over Minos sends no deadline. |
+| `Minos: DecisionResponse.Usage`, `Minos: DecisionUsage` | `Upstream: DecisionResponse.Usage`, `Upstream: UsageDetails` | with a loss | Token usage on both sides; the next three rows give the parts. |
+| `Minos: DecisionUsage.InputTokens`, `Minos: DecisionUsage.OutputTokens` | `Upstream: UsageDetails.InputTokenCount`, `Upstream: UsageDetails.OutputTokenCount` | with a loss | Minos counts in `int`, upstream in `long`. Over Minos widens. Over upstream narrows, and leaves a count above `int.MaxValue` empty. |
+| `Minos: DecisionUsage.Cost` | — | no counterpart | The reported cost of the call. `UsageDetails` has token counts only. Over Minos writes it under `minos.cost`. |
+| — | `Upstream: UsageDetails.TotalTokenCount`, `Upstream: UsageDetails.CachedInputTokenCount`, `Upstream: UsageDetails.ReasoningTokenCount`, `Upstream: UsageDetails.AdditionalCounts` | no counterpart | Minos keeps input and output counts only. Over upstream drops the rest. Over Minos sets the total to the sum when both counts are known. |
+| `Minos: DecisionResponse.IsCached`, `Minos: DecisionCall.IsCached`, `Minos: DecisionClientMetadata.CacheScope` | — | no counterpart | Caching, with `UseCaching` from `Minos.NET.Caching`. Upstream has no cache stage. A cache stage works over Over upstream, and its key takes the provider name and the default model from the metadata Over upstream reports. Over Minos writes `IsCached` under `minos.isCached`. |
+| `Minos: DelegatingDecisionClient` | — | no counterpart | Recording, with `UseRecording` from `Minos.NET.Recording`, is a stage of this kind. It records over Over upstream like over any Minos client. Upstream has no recording. |
+| `Minos: LoggingDecisionClient`, `Minos: OpenTelemetryDecisionClient` | — | no counterpart | Logging and OpenTelemetry stages. Upstream has none for decision clients at the pinned commit. Both work over Over upstream. |
+
+## Next
+
+- [Microsoft.Extensions.AI decisions](index.md): the pin, the status of the upstream API and the planned package.
+- [The client and its errors](../client-and-errors.md): the Minos `Result` and the error kinds this page maps.
+- [The pipeline](../pipeline.md): the Minos stages that run over an upstream client.
