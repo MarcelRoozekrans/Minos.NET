@@ -66,9 +66,19 @@ def analyzer_unshipped_paths() -> list[str]:
     return sorted(glob.glob(os.path.join("src", "*", "AnalyzerReleases.Unshipped.md")))
 
 
+def is_unpackable(project_dir: str) -> bool:
+    """True when a csproj in the directory sets IsPackable to false, as the unpacked decisions adapter does.
+
+    Such a project ships in no package, so its public API is never released and stays Unshipped. Analyzer rule files
+    are not filtered this way: the Roslyn components are unpackable too, and their rules do ship.
+    """
+    return any(re.search(r"<IsPackable>\s*false\s*</IsPackable>", read(csproj), re.IGNORECASE)
+               for csproj in glob.glob(os.path.join(project_dir, "*.csproj")))
+
+
 def api_unshipped_paths() -> list[str]:
     return sorted(p for p in glob.glob(os.path.join("src", "*", "PublicAPI.Unshipped*.txt"))
-                  if UNSHIPPED_API.match(os.path.basename(p)))
+                  if UNSHIPPED_API.match(os.path.basename(p)) and not is_unpackable(os.path.dirname(p)))
 
 
 def counterpart(unshipped_path: str, shipped_name: str) -> str:
