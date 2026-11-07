@@ -502,16 +502,17 @@ Removed on 2026-10-12, because the maintainer has no OpenAI account: the live Op
 **Plan:** `docs/superpowers/plans/2026-11-04-phase-9.5-guide.md`
 **Completed:** 2026-11-04
 
-## Milestone 10: Escalation [status: active]
+## Milestone 10: Escalation [status: complete]
 **Goal:** Fast decisions first: a local decision server answers, and only the questions it is unsure of go to a stronger decider within the time left, with a provider fallback chain on failure, as two core `IDecisionClient` stages, `UseEscalation` and `UseFallback`.
 **Started:** 2026-11-04
+**Completed:** 2026-11-07
 **Design:** `docs/superpowers/specs/2026-11-04-milestone-10-design.md` (details the roadmap design's Milestone 10; Daedalus.NET is the first workload and its requirements are binding)
 **Definition of Done:**
-- [ ] `UseEscalation` re-asks only the questions below their per-key threshold against a keyed target, merges the answers, skips escalation when the time left does not fit, and records the path per question on the response, span, counters and record
-- [ ] `UseFallback` moves through a chain of keyed clients on failure, composing with DI, `UseRetries` and `UseEscalation` in a documented, tested order
-- [ ] A ticket-triage sample with local-first decisions, escalation on low confidence and a committed report of the split by path, latency and cost
+- [x] `UseEscalation` re-asks only the questions below their per-key threshold against a keyed target, merges the answers, skips escalation when the time left does not fit, and records the path per question on the response, span, counters and record
+- [x] `UseFallback` moves through a chain of keyed clients on failure, composing with DI, `UseRetries` and `UseEscalation` in a documented, tested order
+- [x] A ticket-triage sample with local-first decisions, escalation on low confidence and a committed report of the split by path, latency and cost
 - [x] A guide turning confidence routing into a framework feature, and an approved dotnet/extensions proposal draft for the maintainer to post
-- [ ] The new API ships in a minor release, ApiCompat clean
+- [x] The new API ships in a minor release, ApiCompat clean
 
 ### Phase 10.1: Escalation middleware [status: complete]
 **Goal:** `UseEscalation` in the core: per-key thresholds, a partial re-ask merged by key, the time check, the path per question on the response, telemetry and the record (#119).
