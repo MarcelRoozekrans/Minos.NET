@@ -263,6 +263,116 @@ public sealed partial class EscalationPageTests
         Assert.Contains("(../chat-clients.md#reasoning-models)", page, StringComparison.Ordinal);
     }
 
+    [Theory]
+    [InlineData("thresholds.md")]
+    [InlineData("time-budget.md")]
+    [InlineData("fallback.md")]
+    [InlineData("composing-and-privacy.md")]
+    [InlineData("chat-model-target.md")]
+    public void TheIndex_LinksEveryRecipe(string file)
+    {
+        Assert.Contains($"({file})", EscalationReport.PageText("index"), StringComparison.Ordinal);
+    }
+
+    // Each figure is anchored on the words around it. The count unit is on the page each time: tickets or questions.
+    public static TheoryData<string, string, string> IndexFigures() => new()
+    {
+        { "accuracy.all.localAlone.rate", "rate", "| Local answer alone | 0.9267 |" },
+        { "accuracy.all.final.rate", "rate", "| Final answer | 0.9308 |" },
+        { "accuracy.all.target.rate", "rate", "| Target, on the 106 escalated questions | 0.7453 |" },
+        { "escalated.all.fixed", "integer", "10 fixed" },
+        { "escalated.all.broken", "integer", "5 broken" },
+        { "split.all.confident", "integer", "1094 of the 1200 questions" },
+        { "cost.perThousandTickets", "cost", "| Cost per 1,000 tickets | 0.00597733 |" },
+    };
+
+    [Theory]
+    [MemberData(nameof(IndexFigures))]
+    public void IndexFigures_AreTheReports(string path, string format, string expected)
+    {
+        var value = EscalationReport.Resolve(EscalationReport.Triage, path);
+        var text = format switch
+        {
+            "rate" => value.GetValue<double>().ToString("F4", CultureInfo.InvariantCulture),
+            "cost" => value.GetValue<double>().ToString("F8", CultureInfo.InvariantCulture),
+            _ => value.GetValue<int>().ToString(CultureInfo.InvariantCulture),
+        };
+
+        Assert.Contains(text, expected, StringComparison.Ordinal);
+        Assert.Contains(expected, EscalationReport.PageText("index"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheIndexCounts_AreTheReports()
+    {
+        var report = EscalationReport.Triage;
+        var page = EscalationReport.PageText("index");
+
+        Assert.Equal(400, EscalationReport.Resolve(report, "accuracy.choice.localAlone.total").GetValue<int>());
+        Assert.Equal(1200, EscalationReport.Resolve(report, "accuracy.all.localAlone.total").GetValue<int>());
+        Assert.Equal(106, EscalationReport.Resolve(report, "split.all.escalated").GetValue<int>());
+        Assert.Contains("| Tickets | 400 |", page, StringComparison.Ordinal);
+        Assert.Contains("| Questions | 1,200 |", page, StringComparison.Ordinal);
+        Assert.Contains("| Questions escalated | 106 |", page, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheIndex_StatesTheCostUnitAsTheReportDoes()
+    {
+        var report = File.ReadAllText(Path.Combine(PublishedPages.Root, "docs", "reports", "triage", "banking77", "triage-report.md"));
+        var text = string.Join(' ', EscalationReport.PageText("index").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+        Assert.Contains("in the currency of the prices and reported costs", report, StringComparison.Ordinal);
+        Assert.Contains("in the currency of the prices and reported costs", text, StringComparison.Ordinal);
+    }
+
+    [Theory]
+    [InlineData("patterns/confidence-routing.md")]
+    [InlineData("patterns/index.md")]
+    [InlineData("pipeline.md")]
+    [InlineData("samples.md")]
+    public void TheExistingPages_LinkToTheGuide(string page)
+    {
+        var text = File.ReadAllText(Path.Combine(PublishedPages.Root, "docs", page));
+
+        Assert.Contains("escalation/", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ThePipelinePage_LinksTheGuideInBothSections()
+    {
+        var text = File.ReadAllText(Path.Combine(PublishedPages.Root, "docs", "pipeline.md"));
+        var escalating = text[text.IndexOf("## Escalating unsure questions", StringComparison.Ordinal)..text.IndexOf("## Falling back to another provider", StringComparison.Ordinal)];
+        var falling = text[text.IndexOf("## Falling back to another provider", StringComparison.Ordinal)..text.IndexOf("## Writing a stage", StringComparison.Ordinal)];
+
+        Assert.Contains("(escalation/", escalating, StringComparison.Ordinal);
+        Assert.Contains("(escalation/fallback.md)", falling, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void ThePatternsIndex_StillSaysFourPatterns()
+    {
+        var text = File.ReadAllText(Path.Combine(PublishedPages.Root, "docs", "patterns", "index.md"));
+
+        Assert.Contains("Four ways to use Jev's answers", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheChatTargetPage_SaysTheEscalatedAnswerWinsWhenLessSure()
+    {
+        var text = string.Join(' ', EscalationReport.PageText("chat-model-target").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+        Assert.Contains("For a question it escalated, the target's answer takes the primary's place, with the target's probabilities and the target's `ProbabilitySource`. It wins when it is less confident than the primary was", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void TheChatTargetPage_SaysWhenAutoAsksAgainVerbalized()
+    {
+        var text = string.Join(' ', EscalationReport.PageText("chat-model-target").Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+        Assert.Contains("asks again, verbalized, for a question whose reply has no logprobs or no option label among them, or whose logprob request the provider rejects with HTTP 400 or 422", text, StringComparison.Ordinal);
+    }
+
     // The names of the numbered stages in a list, in the order they appear: the text between "N. " and the first comma.
     private static List<string> StageWords(string text) =>
         text.Split('\n')

@@ -38,8 +38,9 @@ Every answer carries a `ProbabilitySource`:
 - `Logprobs`: the probabilities come from the logprobs of the answer token. They are measured from the model's output.
 - `Verbalized`: the model stated the probabilities in its text.
 
-A `ChatDecisionClient` uses the `Auto` mode unless you set another. It asks for logprobs first and asks again,
-verbalized, for a question whose reply has none. [The probability modes](../chat-clients.md#probability-modes) list all
+A `ChatDecisionClient` uses the `Auto` mode unless you set another. It asks for logprobs first. It asks again,
+verbalized, for a question whose reply has no logprobs or no option label among them, or whose logprob request the
+provider rejects with HTTP 400 or 422. [The probability modes](../chat-clients.md#probability-modes) list all
 three. [The source section](../chat-clients.md#where-the-probabilities-came-from) says how the sources combine in one
 response. The source is chosen for each question, so one answer of a set can be `Logprobs` and another `Verbalized`.
 
