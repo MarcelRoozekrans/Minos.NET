@@ -290,20 +290,42 @@ public sealed class MinosDecisionClientTests
 
     [Theory]
     [InlineData(-0.5)]
+    [InlineData(-double.Epsilon)]
     [InlineData(double.NaN)]
     [InlineData(double.PositiveInfinity)]
-    public async Task ACostOverUpstreamRefuses_IsWrittenAsIs_AndComesBackAsInvalidResponse(double cost)
+    [InlineData(double.NegativeInfinity)]
+    public async Task OverMinos_RefusesANegativeOrNonFiniteCost_AsAnInvalidResponse(double cost)
+    {
+        using var minos = new FakeMinosClient
+        {
+            Respond = (_, definition) => new MinosResponse(definition, GoodAnswers(), usage: new DecisionUsage { Cost = cost }),
+        };
+        using var client = new MinosDecisionClient(minos);
+
+        var exception = await Assert.ThrowsAsync<DecisionProtocolException>(() => client.GetResponseAsync(Request(Secret)));
+
+        Assert.Contains("cost", exception.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(cost.ToString(System.Globalization.CultureInfo.InvariantCulture), exception.Message, StringComparison.Ordinal);
+        Assert.DoesNotContain(Secret, exception.Message, StringComparison.Ordinal);
+        var error = Assert.IsType<MinosDecisionException>(exception.InnerException).Error;
+        Assert.NotNull(error);
+        Assert.Equal(DecisionErrorKind.InvalidResponse, error.Kind);
+        Assert.Equal(exception.Message, error.Message);
+    }
+
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(0.25)]
+    public async Task AValidCost_IsWrittenAndReadBack(double cost)
     {
         using var minos = new FakeMinosClient
         {
             Respond = (_, definition) => new MinosResponse(definition, GoodAnswers(), usage: new DecisionUsage { Cost = cost }),
         };
         using var upstream = new MinosDecisionClient(minos);
+        Assert.Equal(cost, Assert.IsType<double>((await upstream.GetResponseAsync(Request())).AdditionalProperties![MinosPropertyKeys.Cost]));
 
-        var written = (await upstream.GetResponseAsync(Request())).AdditionalProperties![MinosPropertyKeys.Cost];
-        Assert.Equal(cost, Assert.IsType<double>(written));
-
-        using var back = new MinosDecisionClient(new FakeMinosClient { Respond = minos.Respond }).AsMinosDecisionClient();
+        using var back = upstream.AsMinosDecisionClient();
         var result = await back.EvaluateAsync(new MinosRequest(
             new QuestionSetDefinition(
                 QuestionDefinition.Noul("urgent", "Is it urgent?"),
@@ -311,8 +333,8 @@ public sealed class MinosDecisionClientTests
                 QuestionDefinition.Score("priority", "How soon?", "Later", "Today")),
             "s"));
 
-        Assert.True(result.IsFailure);
-        Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);
+        Assert.True(result.IsSuccess);
+        Assert.Equal(cost, result.Value.Usage?.Cost);
     }
 
     private const string ExpectedPathJson =

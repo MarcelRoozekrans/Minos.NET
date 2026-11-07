@@ -32,8 +32,11 @@ namespace Minos.Extensions.AI.Decisions;
 /// known, and the Minos response as its raw representation. Its additional properties hold only <c>minos.</c> keys:
 /// <c>minos.upstreamProvider</c> as a <see cref="string"/>, <c>minos.cost</c> as a <see cref="double"/> and
 /// <c>minos.path</c> as a <see cref="JsonElement"/>, each only when the Minos response has it, and <c>minos.isCached</c>
-/// as a <see cref="bool"/> always. A cost is written as the Minos response has it, so a negative or non-finite cost is
-/// one <see cref="UpstreamDecisionClient"/> refuses as <see cref="DecisionErrorKind.InvalidResponse"/>. Every value has a
+/// as a <see cref="bool"/> always. A Minos response whose usage cost is negative or not a finite number is refused, as
+/// answers upstream refuses are, so nothing invalid reaches the additional properties: the adapter throws a
+/// <see cref="DecisionProtocolException"/> that names the cost but not its value, whose inner
+/// <see cref="MinosDecisionException"/> carries an <see cref="DecisionErrorKind.InvalidResponse"/> error with the same
+/// message. Every value has a
 /// JSON contract in <see cref="AIJsonUtilities.DefaultOptions"/>, so the response serializes without reflection.
 /// </para>
 /// <para>
@@ -43,8 +46,10 @@ namespace Minos.Extensions.AI.Decisions;
 /// Minos enum names in camelCase, such as <c>confident</c>, <c>fellBack</c>, <c>answered</c> and <c>rateLimited</c>.
 /// <c>status</c> is always written; <c>targetCertainty</c>, <c>model</c>, <c>errorKind</c> and the usage members only
 /// when set. A non-finite call cost, which JSON numbers cannot hold, is written as the string <c>NaN</c>,
-/// <c>Infinity</c> or <c>-Infinity</c>. <see cref="UpstreamDecisionClient"/> does not read the path back, since a
-/// routing stage sets its own.
+/// <c>Infinity</c> or <c>-Infinity</c>; a call's cost is kept as reported, since the path records what each call said.
+/// The path's internal routing telemetry is left out on purpose: it is not public data and feeds only the routing
+/// stage's own spans and metrics. <see cref="UpstreamDecisionClient"/> does not read the path back, since a routing stage
+/// sets its own.
 /// </para>
 /// <para>
 /// A Minos <see cref="DecisionError"/> throws a <see cref="DecisionClientException"/> with the error's message, transient
@@ -69,6 +74,9 @@ namespace Minos.Extensions.AI.Decisions;
 [Experimental("MEAI001")]
 public sealed class MinosDecisionClient : UpstreamClient
 {
+    // Names the field, never its value.
+    private const string InvalidCostMessage = "The Minos response's usage cost is negative or not a finite number.";
+
     private readonly MinosClient _innerClient;
     private readonly MinosMetadata? _minosMetadata;
     private readonly UpstreamMetadata _metadata;
@@ -297,6 +305,12 @@ public sealed class MinosDecisionClient : UpstreamClient
         }
 
         var response = result.Value;
+        if (response.Usage?.Cost is { } cost && (cost < 0 || !double.IsFinite(cost)))
+        {
+            throw new DecisionProtocolException(
+                InvalidCostMessage, new MinosDecisionException(new DecisionError(DecisionErrorKind.InvalidResponse, InvalidCostMessage)));
+        }
+
         try
         {
             var answers = DecisionMapper.ToUpstreamAnswers(response, request.Questions);
