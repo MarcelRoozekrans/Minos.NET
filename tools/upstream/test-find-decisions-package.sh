@@ -81,5 +81,26 @@ got=0
 FIND_DECISIONS_HASTYPE="$tmp/Broken.cs" "$script" --check "$upstream" >/dev/null 2>&1 || got=$?
 if [ "$got" -eq 2 ]; then echo "ok   check: failing helper build is an error"; else echo "FAIL check: failing helper build: want exit 2, got $got"; failures=$((failures + 1)); fi
 
+# --- is_newer, sourced through the FIND_DECISIONS_SOURCE_ONLY test hook. ---
+# expect_newer <version> <yes|no>
+(
+  FIND_DECISIONS_SOURCE_ONLY=1
+  # shellcheck disable=SC1090
+  source "$script"
+  fail=0
+  check_newer() {
+    local got=no; is_newer "$1" && got=yes
+    if [ "$got" = "$2" ]; then echo "ok   is_newer $1 -> $2"; else echo "FAIL is_newer $1: want $2, got $got"; fail=1; fi
+  }
+  check_newer 10.11.0-preview.1 no
+  check_newer 10.11.0 no
+  check_newer 10.11.1 yes
+  check_newer 10.12.0-preview.1 yes
+  check_newer 10.100.0 yes
+  check_newer 10.2.0 no
+  check_newer 9.9.9 no
+  exit "$fail"
+) || failures=$((failures + 1))
+
 [ "$failures" -eq 0 ] && echo "all passed"
 exit "$failures"

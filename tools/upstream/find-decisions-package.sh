@@ -28,13 +28,20 @@ export MSBUILDDISABLENODEREUSE=1 DOTNET_NOLOGO=1 DOTNET_CLI_TELEMETRY_OPTOUT=1
 # line from a clean run is an answer; a build, restore or run failure ends the script with
 # exit 2, so an outage can never read as "absent".
 has_type() {
-  local rc=0 out
-  out="$(cd "$root" && dotnet run "${FIND_DECISIONS_HASTYPE:-tools/upstream/HasType.cs}" -- "$1" "$2" 2>/dev/null)" || rc=$?
-  [ "$rc" -eq 0 ] || err "type check failed on $1 (exit $rc)"
+  local rc=0 out errfile errtext
+  errfile="$(mktemp)"
+  out="$(cd "$root" && dotnet run "${FIND_DECISIONS_HASTYPE:-tools/upstream/HasType.cs}" -- "$1" "$2" 2>"$errfile")" || rc=$?
+  errtext="$(tail -5 "$errfile")"
+  rm -f "$errfile"
+  [ "$rc" -eq 0 ] || err "type check failed on $1 (exit $rc)
+stderr: $errtext
+stdout: $(printf '%s\n' "$out" | tail -5)"
   case "$(printf '%s\n' "$out" | tail -1)" in
     FOUND) return 0 ;;
     ABSENT) return 1 ;;
-    *) err "type check gave no answer on $1" ;;
+    *) err "type check gave no answer on $1
+stderr: $errtext
+stdout: $(printf '%s\n' "$out" | tail -5)" ;;
   esac
 }
 
@@ -58,6 +65,8 @@ is_newer() {
   local core="${1%%[-+]*}"
   [ "$core" != "$baseline" ] && [ "$(printf '%s\n%s\n' "$core" "$baseline" | sort -V | tail -1)" = "$core" ]
 }
+
+[ -z "${FIND_DECISIONS_SOURCE_ONLY:-}" ] || return 0 2>/dev/null || exit 0
 
 index="$(curl -fsS --retry 3 --retry-delay 2 --max-time 60 "$feed/index.json")" \
   || err "cannot read the version list from $feed/index.json"
