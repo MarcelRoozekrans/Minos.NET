@@ -28,7 +28,7 @@ to read it.
 ```cs
 // The first Use is the outermost stage. Recording sees one decision per call, escalation moves doubtful questions to
 // "hosted", and fallback keeps the local model reliable by asking "backup" when it fails. Both "hosted" and "backup"
-// are sent the state, so register only providers that may see it. The recorder is registered as the recording page
+// may be sent the state, so register only providers that may see it. The recorder is registered as the recording page
 // shows.
 public static IServiceCollection AddComposedDecisions(IServiceCollection services, string localKey, string hostedKey, string backupKey)
 {
@@ -51,16 +51,19 @@ does. For this recipe, the stages that matter are in this order, outermost first
 3. escalation, so a stronger client is asked only for the questions the first was unsure of;
 4. fallback, so the next client is asked only when the first fails;
 5. caching, so a hit takes no permit;
-6. retries, so a transient failure is tried again before the chain moves on;
+6. retries, outside the limiter, so a local rejection is retried after its `RetryAfter`;
 7. rate limiting, so every attempt takes a permit.
 
-The snippet builds the first four with a client from dependency injection. That client's standard pipeline already holds
-retries, and it runs inside every stage you add.
+The snippet adds the first, third and fourth stages to a client from dependency injection. It adds no telemetry stage.
+Each client's standard pipeline gives it a span of its own, and the escalation stage records none. One span over the
+whole call, with the escalation and fallback tags, needs `UseOpenTelemetry` placed outside escalation, as [the stage
+order](../pipeline.md#stage-order) shows. The standard pipeline also already holds retries, and it runs inside every
+stage you add.
 
-## Every client you add sees the state
+## Every client you add may see the state
 
 A question below its threshold is sent to the target with the state of the request, and its images. So is a fallback
-step: it receives the full state. Redaction does not change that. [The step by
+step: when it is called, it receives the full state. Redaction does not change that. [The step by
 step table](../running-locally.md#what-stays-private-step-by-step) says it for recording: redaction runs before a record
 is kept and changes only what is recorded, and the provider still gets the state whole.
 
@@ -84,11 +87,15 @@ your redaction leaves it. A call on the path does not repeat it.
 
 ## Erasing a path
 
-The path is part of its record, so it goes when the record goes. `EraseDecisionAsync` with the decision id erases that
+The path is part of its record, so it is erased when the record is. `EraseDecisionAsync` with the decision id erases that
 one decision, and `EraseAsync` with the erasure key erases every record under it. [Erasure](../recording.md#erasure)
 describes both. A record that crossed providers needs no extra step.
 
-That erases the record. It does not reach the providers. The target and the fallback steps were sent the state, and what
+The JSONL sink's erasure is a tombstone: the erased state stays in the file. For production, use a sink over your own
+store that deletes. An export is a copy that a later erasure does not reach, so delete earlier exports after an erasure
+and export again.
+
+Erasure does not reach the providers either. The target and any fallback step that was called were sent the state, and what
 they keep is set by the rules of each account.
 
 ## Next

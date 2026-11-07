@@ -228,7 +228,10 @@ public sealed partial class EscalationPageTests
     {
         var page = EscalationReport.PageText("fallback");
 
-        Assert.Contains("a routing stage of its own", page, StringComparison.Ordinal);
+        var text = string.Join(' ', page.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+
+        Assert.Contains("when the answering step has no routing stage of its own", text, StringComparison.Ordinal);
+        Assert.Contains("keeps its routes: a question it escalated still reads `Escalated`, and its calls follow the failed ones", text, StringComparison.Ordinal);
     }
 
     // The names of the numbered stages in a list, in the order they appear: the text between "N. " and the first comma.

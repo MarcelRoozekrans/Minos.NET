@@ -9,7 +9,7 @@ public static class EscalationCompose
     #region Escalation_Compose
     // The first Use is the outermost stage. Recording sees one decision per call, escalation moves doubtful questions to
     // "hosted", and fallback keeps the local model reliable by asking "backup" when it fails. Both "hosted" and "backup"
-    // are sent the state, so register only providers that may see it. The recorder is registered as the recording page
+    // may be sent the state, so register only providers that may see it. The recorder is registered as the recording page
     // shows.
     public static IServiceCollection AddComposedDecisions(IServiceCollection services, string localKey, string hostedKey, string backupKey)
     {
