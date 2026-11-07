@@ -2,9 +2,12 @@ using System.Text.RegularExpressions;
 
 namespace Minos.Docs.Tests;
 
-// The Escalation pages and the proposal draft are public. They name no private workload, host, path, address or key.
+// The Escalation pages, the proposal draft and the upstream gap list are public. They name no private workload, host, path,
+// address or key.
 public sealed partial class PrivateDetailTests
 {
+    internal const string GapList = "docs/plans/2026-11-07-upstream-decisions-gap-list.md";
+
     private static readonly string[] Words = ["Daedalus", "Thalos", "/home/", @"C:\Users"];
 
     public static TheoryData<string> Files()
@@ -20,7 +23,19 @@ public sealed partial class PrivateDetailTests
             files.Add(DraftProposalTests.Draft);
         }
 
+        if (File.Exists(Path.Combine(PublishedPages.Root, GapList)))
+        {
+            files.Add(GapList);
+        }
+
         return files;
+    }
+
+    [Fact]
+    public void TheGapList_IsChecked()
+    {
+        Assert.True(File.Exists(Path.Combine(PublishedPages.Root, GapList)), $"{GapList} is missing.");
+        Assert.Contains(GapList, Files().Select<object[], string>(row => (string)row[0]));
     }
 
     [Theory]
