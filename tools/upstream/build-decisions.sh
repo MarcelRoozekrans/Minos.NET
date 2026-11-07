@@ -10,6 +10,9 @@ pin="$root/tools/upstream/decisions-pin.json"
 out="$root/artifacts/upstream"
 src="$out/src"
 
+# Drop any stale pointer first so a failed run never leaves the old one.
+rm -f "$out/abstractions.path" "$out/abstractions.path.tmp"
+
 command -v jq >/dev/null || fail "jq is required"
 command -v git >/dev/null || fail "git is required"
 command -v dotnet >/dev/null || fail "dotnet is required"
@@ -25,7 +28,6 @@ export DOTNET_NOLOGO=1
 export DOTNET_CLI_TELEMETRY_OPTOUT=1
 
 mkdir -p "$src"
-rm -f "$out/abstractions.path"
 [ -d "$src/.git" ] || git -C "$src" init -q || fail "git init failed"
 git -C "$src" remote remove origin 2>/dev/null || true
 git -C "$src" remote add origin "https://github.com/$repo" || fail "git remote failed"
