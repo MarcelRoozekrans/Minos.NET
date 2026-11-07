@@ -1,5 +1,13 @@
 # Changelog
 
+## [1.11.2](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.11.1...v1.11.2) (2026-11-07)
+
+
+### Documentation
+
+* add the Escalation guide with a concept page and five recipes ([5f2847a](https://github.com/MarcelRoozekrans/Minos.NET/commit/5f2847a2e51cdc7df2fcadc9248f6cfed9e79fde))
+* draft the dotnet/extensions decision proposal ([5f2847a](https://github.com/MarcelRoozekrans/Minos.NET/commit/5f2847a2e51cdc7df2fcadc9248f6cfed9e79fde))
+
 ## [1.11.1](https://github.com/MarcelRoozekrans/Minos.NET/compare/v1.11.0...v1.11.1) (2026-11-06)
 
 
