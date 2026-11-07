@@ -1,4 +1,6 @@
 using System.Text.Json;
+using System.Text.Json.Serialization;
+using System.Text.Json.Serialization.Metadata;
 using Microsoft.Extensions.AI;
 using ZeroAlloc.Results;
 using MinosClient = Minos.IDecisionClient;
@@ -8,6 +10,7 @@ using MinosResponse = Minos.DecisionResponse;
 using UpstreamClient = Microsoft.Extensions.AI.IDecisionClient;
 using UpstreamMetadata = Microsoft.Extensions.AI.DecisionClientMetadata;
 using UpstreamRequest = Microsoft.Extensions.AI.DecisionRequest;
+using UpstreamResponse = Microsoft.Extensions.AI.DecisionResponse;
 
 namespace Minos.Extensions.AI.Decisions.Tests;
 
@@ -197,20 +200,13 @@ public sealed class MinosDecisionClientTests
     [Fact]
     public async Task TheMinosResponseValues_AreWrittenUnderTheMinosKeys()
     {
-        DecisionPath? path = null;
         using var minos = new FakeMinosClient
         {
-            Respond = (_, definition) =>
+            Respond = (_, definition) => new MinosResponse(definition, GoodAnswers(), usage: new DecisionUsage { Cost = 0.25 })
             {
-                path = new DecisionPath(
-                    definition.Questions.Select(q => new QuestionRoute(q.Key, "primary", RouteReason.Confident, 0.9, null)).ToArray(),
-                    [new DecisionCall("primary", "model-b", null, IsCached: false)]);
-                return new MinosResponse(definition, GoodAnswers(), usage: new DecisionUsage { Cost = 0.25 })
-                {
-                    UpstreamProvider = "host-a",
-                    IsCached = true,
-                    Path = path,
-                };
+                UpstreamProvider = "host-a",
+                IsCached = true,
+                Path = FullPath(definition),
             },
         };
         using var client = new MinosDecisionClient(minos);
@@ -221,9 +217,118 @@ public sealed class MinosDecisionClientTests
         Assert.Equal("host-a", Assert.IsType<string>(properties[MinosPropertyKeys.UpstreamProvider]));
         Assert.Equal(0.25, Assert.IsType<double>(properties[MinosPropertyKeys.Cost]));
         Assert.True(Assert.IsType<bool>(properties[MinosPropertyKeys.IsCached]));
-        Assert.Same(path, properties[MinosPropertyKeys.Path]);
+        Assert.Equal(JsonValueKind.Object, Assert.IsType<JsonElement>(properties[MinosPropertyKeys.Path]).ValueKind);
         Assert.All(properties.Keys, k => Assert.StartsWith("minos.", k, StringComparison.Ordinal));
     }
+
+    [Fact]
+    public async Task ThePath_IsWrittenAsJson_WithCamelCaseNamesAndNoNullMembers()
+    {
+        using var minos = new FakeMinosClient
+        {
+            Respond = (_, definition) => new MinosResponse(definition, GoodAnswers()) { Path = FullPath(definition) },
+        };
+        using var client = new MinosDecisionClient(minos);
+
+        var path = Assert.IsType<JsonElement>((await client.GetResponseAsync(Request()))!.AdditionalProperties![MinosPropertyKeys.Path]);
+
+        Assert.Equal(ExpectedPathJson, path.GetRawText());
+    }
+
+    [Fact]
+    public async Task TheResponse_SerializesWithTheUpstreamSourceGeneratedContracts_WithoutReflection()
+    {
+        using var minos = new FakeMinosClient
+        {
+            Respond = (_, definition) => new MinosResponse(definition, GoodAnswers(), usage: new DecisionUsage { Cost = 0.25 })
+            {
+                UpstreamProvider = "host-a",
+                IsCached = true,
+                Path = FullPath(definition),
+            },
+        };
+        using var client = new MinosDecisionClient(minos);
+        var response = await client.GetResponseAsync(Request());
+
+        // The default options without the reflection fallback they add when reflection is enabled, as under AOT.
+        var sourceGenerated = AIJsonUtilities.DefaultOptions.TypeInfoResolverChain.OfType<JsonSerializerContext>().Single();
+        var options = new JsonSerializerOptions(AIJsonUtilities.DefaultOptions) { TypeInfoResolver = sourceGenerated };
+        Assert.DoesNotContain(options.TypeInfoResolverChain, r => r is DefaultJsonTypeInfoResolver);
+
+        var json = JsonSerializer.Serialize(response, (JsonTypeInfo<UpstreamResponse>)options.GetTypeInfo(typeof(UpstreamResponse)));
+
+        using var document = JsonDocument.Parse(json);
+        var properties = document.RootElement.GetProperty("additionalProperties");
+        Assert.Equal("host-a", properties.GetProperty(MinosPropertyKeys.UpstreamProvider).GetString());
+        Assert.Equal(0.25, properties.GetProperty(MinosPropertyKeys.Cost).GetDouble());
+        Assert.True(properties.GetProperty(MinosPropertyKeys.IsCached).GetBoolean());
+        Assert.True(JsonElement.DeepEquals(Json(ExpectedPathJson), properties.GetProperty(MinosPropertyKeys.Path)));
+    }
+
+    [Fact]
+    public async Task ANonFiniteCallCost_IsWrittenAsANamedString()
+    {
+        using var minos = new FakeMinosClient
+        {
+            Respond = (_, definition) => new MinosResponse(definition, GoodAnswers())
+            {
+                Path = new DecisionPath(
+                    definition.Questions.Select(q => new QuestionRoute(q.Key, "a", RouteReason.Confident, 0.9, null)).ToArray(),
+                    [
+                        new DecisionCall("a", null, new DecisionUsage { Cost = double.NaN }, IsCached: false),
+                        new DecisionCall("b", null, new DecisionUsage { Cost = double.PositiveInfinity }, IsCached: false),
+                        new DecisionCall("c", null, new DecisionUsage { Cost = double.NegativeInfinity }, IsCached: false),
+                    ]),
+            },
+        };
+        using var client = new MinosDecisionClient(minos);
+
+        var path = Assert.IsType<JsonElement>((await client.GetResponseAsync(Request())).AdditionalProperties![MinosPropertyKeys.Path]);
+
+        Assert.Equal(["NaN", "Infinity", "-Infinity"], path.GetProperty("calls").EnumerateArray().Select(c => c.GetProperty("cost").GetString()));
+    }
+
+    [Theory]
+    [InlineData(-0.5)]
+    [InlineData(double.NaN)]
+    [InlineData(double.PositiveInfinity)]
+    public async Task ACostOverUpstreamRefuses_IsWrittenAsIs_AndComesBackAsInvalidResponse(double cost)
+    {
+        using var minos = new FakeMinosClient
+        {
+            Respond = (_, definition) => new MinosResponse(definition, GoodAnswers(), usage: new DecisionUsage { Cost = cost }),
+        };
+        using var upstream = new MinosDecisionClient(minos);
+
+        var written = (await upstream.GetResponseAsync(Request())).AdditionalProperties![MinosPropertyKeys.Cost];
+        Assert.Equal(cost, Assert.IsType<double>(written));
+
+        using var back = new MinosDecisionClient(new FakeMinosClient { Respond = minos.Respond }).AsMinosDecisionClient();
+        var result = await back.EvaluateAsync(new MinosRequest(
+            new QuestionSetDefinition(
+                QuestionDefinition.Noul("urgent", "Is it urgent?"),
+                QuestionDefinition.Choice("team", "Which team?", new OptionDefinition("billing", "Payments"), new OptionDefinition("tech", "Bugs")),
+                QuestionDefinition.Score("priority", "How soon?", "Later", "Today")),
+            "s"));
+
+        Assert.True(result.IsFailure);
+        Assert.Equal(DecisionErrorKind.InvalidResponse, result.Error.Kind);
+    }
+
+    private const string ExpectedPathJson =
+        """{"routes":[{"key":"urgent","answeredBy":"primary","reason":"confident","primaryCertainty":0.9},{"key":"team","answeredBy":"target","reason":"escalated","primaryCertainty":0.4,"targetCertainty":0.8},{"key":"priority","answeredBy":"backup","reason":"fellBack","primaryCertainty":0.5}],"calls":[{"clientName":"primary","model":"model-b","isCached":false,"status":"answered","inputTokens":12,"outputTokens":3,"cost":0.001},{"clientName":"target","isCached":true,"status":"failed","errorKind":"rateLimited"},{"clientName":"backup","isCached":false,"status":"notCalledNoTimeLeft"}]}""";
+
+    private static DecisionPath FullPath(QuestionSetDefinition definition) => new(
+        [
+            new QuestionRoute(definition.Questions[0].Key, "primary", RouteReason.Confident, 0.9, null),
+            new QuestionRoute(definition.Questions[1].Key, "target", RouteReason.Escalated, 0.4, 0.8),
+            new QuestionRoute(definition.Questions[2].Key, "backup", RouteReason.FellBack, 0.5, null),
+        ],
+        [
+            new DecisionCall("primary", "model-b", new DecisionUsage { InputTokens = 12, OutputTokens = 3, Cost = 0.001 }, IsCached: false),
+            new DecisionCall("target", null, null, IsCached: true) { Status = CallStatus.Failed, ErrorKind = DecisionErrorKind.RateLimited },
+            new DecisionCall("backup", null, null, IsCached: false) { Status = CallStatus.NotCalledNoTimeLeft },
+        ]);
 
     [Fact]
     public async Task MissingMinosResponseValues_AreLeftOut_AndIsCachedIsAlwaysWritten()
@@ -436,6 +541,31 @@ public sealed class MinosDecisionClientTests
     }
 
     [Fact]
+    public async Task ConcurrentDispose_DisposesTheMinosClientOnce()
+    {
+        for (var round = 0; round < 50; round++)
+        {
+            var minos = new FakeMinosClient();
+            var client = new MinosDecisionClient(minos);
+            using var start = new Barrier(8);
+
+            var disposers = new Task[8];
+            for (var i = 0; i < disposers.Length; i++)
+            {
+                disposers[i] = Task.Run(() =>
+                {
+                    start.SignalAndWait();
+                    client.Dispose();
+                });
+            }
+
+            await Task.WhenAll(disposers);
+
+            Assert.Equal(1, minos.DisposeCount);
+        }
+    }
+
+    [Fact]
     public void TheConstructor_RejectsANullClient()
         => Assert.Throws<ArgumentNullException>(() => new MinosDecisionClient(null!));
 
@@ -508,7 +638,9 @@ public sealed class MinosDecisionClientTests
 
         public MinosResponse? LastResponse { get; private set; }
 
-        public int DisposeCount { get; private set; }
+        private int _disposeCount;
+
+        public int DisposeCount => Volatile.Read(ref _disposeCount);
 
         public ValueTask<Result<MinosResponse, DecisionError>> EvaluateAsync(MinosRequest request, CancellationToken cancellationToken = default)
         {
@@ -555,6 +687,6 @@ public sealed class MinosDecisionClientTests
                 : null;
         }
 
-        public void Dispose() => DisposeCount++;
+        public void Dispose() => Interlocked.Increment(ref _disposeCount);
     }
 }

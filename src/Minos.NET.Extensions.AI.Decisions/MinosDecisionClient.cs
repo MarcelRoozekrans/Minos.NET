@@ -1,4 +1,6 @@
+using System.Buffers;
 using System.Diagnostics.CodeAnalysis;
+using System.Text.Json;
 using Microsoft.Extensions.AI;
 using MinosClient = Minos.IDecisionClient;
 using MinosMetadata = Minos.DecisionClientMetadata;
@@ -29,9 +31,20 @@ namespace Minos.Extensions.AI.Decisions;
 /// <see cref="DecisionPrecision.TwoDecimalPlaces"/>, the token counts widened with their sum as the total when both are
 /// known, and the Minos response as its raw representation. Its additional properties hold only <c>minos.</c> keys:
 /// <c>minos.upstreamProvider</c> as a <see cref="string"/>, <c>minos.cost</c> as a <see cref="double"/> and
-/// <c>minos.path</c> as the Minos <see cref="DecisionPath"/> instance, each only when the Minos response has it, and
-/// <c>minos.isCached</c> as a <see cref="bool"/> always. The path is immutable and safe to share, as upstream asks of a
-/// property value; <see cref="UpstreamDecisionClient"/> does not read it back, since a routing stage sets its own path.
+/// <c>minos.path</c> as a <see cref="JsonElement"/>, each only when the Minos response has it, and <c>minos.isCached</c>
+/// as a <see cref="bool"/> always. A cost is written as the Minos response has it, so a negative or non-finite cost is
+/// one <see cref="UpstreamDecisionClient"/> refuses as <see cref="DecisionErrorKind.InvalidResponse"/>. Every value has a
+/// JSON contract in <see cref="AIJsonUtilities.DefaultOptions"/>, so the response serializes without reflection.
+/// </para>
+/// <para>
+/// The path is a JSON object with camelCase names and no null members:
+/// <c>{"routes":[{"key","answeredBy","reason","primaryCertainty","targetCertainty"}],"calls":[{"clientName","model","isCached","status","errorKind","inputTokens","outputTokens","cost"}]}</c>,
+/// one route per question and one call per call, in order. <c>reason</c>, <c>status</c> and <c>errorKind</c> are the
+/// Minos enum names in camelCase, such as <c>confident</c>, <c>fellBack</c>, <c>answered</c> and <c>rateLimited</c>.
+/// <c>status</c> is always written; <c>targetCertainty</c>, <c>model</c>, <c>errorKind</c> and the usage members only
+/// when set. A non-finite call cost, which JSON numbers cannot hold, is written as the string <c>NaN</c>,
+/// <c>Infinity</c> or <c>-Infinity</c>. <see cref="UpstreamDecisionClient"/> does not read the path back, since a
+/// routing stage sets its own.
 /// </para>
 /// <para>
 /// A Minos <see cref="DecisionError"/> throws a <see cref="DecisionClientException"/> with the error's message, transient
@@ -47,6 +60,11 @@ namespace Minos.Extensions.AI.Decisions;
 /// The client owns the Minos client and disposes it, as a Minos <see cref="DelegatingDecisionClient"/> does its inner
 /// client. A call after <see cref="Dispose"/> throws <see cref="ObjectDisposedException"/>.
 /// </para>
+/// <para>
+/// A Minos client reports failures as a <see cref="DecisionError"/>. One that throws anything other than
+/// <see cref="ArgumentNullException"/>, <see cref="ObjectDisposedException"/> or <see cref="OperationCanceledException"/>
+/// breaks the Minos contract, and the exception passes through unwrapped.
+/// </para>
 /// </remarks>
 [Experimental("MEAI001")]
 public sealed class MinosDecisionClient : UpstreamClient
@@ -55,7 +73,8 @@ public sealed class MinosDecisionClient : UpstreamClient
     private readonly MinosMetadata? _minosMetadata;
     private readonly UpstreamMetadata _metadata;
 
-    private volatile bool _disposed;
+    // 1 once Dispose has run. Dispose sets it with Interlocked.Exchange, so only one caller disposes the Minos client.
+    private int _disposed;
 
     /// <summary>Initializes a new instance of the <see cref="MinosDecisionClient"/> class.</summary>
     /// <param name="innerClient">The Minos client. This client owns it and disposes it.</param>
@@ -81,7 +100,7 @@ public sealed class MinosDecisionClient : UpstreamClient
     public Task<UpstreamResponse> GetResponseAsync(UpstreamRequest request, DecisionOptions? options = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(request);
-        ObjectDisposedException.ThrowIf(_disposed, this);
+        ObjectDisposedException.ThrowIf(Volatile.Read(ref _disposed) != 0, this);
 
         // Throws the non-transient DecisionClientException for a state Minos cannot hold, before anything is sent.
         var minosRequest = DecisionMapper.ToMinos(request, options);
@@ -122,13 +141,10 @@ public sealed class MinosDecisionClient : UpstreamClient
     /// <summary>Disposes the Minos client. Calling it more than once does nothing.</summary>
     public void Dispose()
     {
-        if (_disposed)
+        if (Interlocked.Exchange(ref _disposed, 1) == 0)
         {
-            return;
+            _innerClient.Dispose();
         }
-
-        _disposed = true;
-        _innerClient.Dispose();
     }
 
     private static List<DecisionKind> KindsOf(QuestionKinds kinds)
@@ -167,7 +183,7 @@ public sealed class MinosDecisionClient : UpstreamClient
 
         if (response.Path is { } path)
         {
-            properties[MinosPropertyKeys.Path] = path;
+            properties[MinosPropertyKeys.Path] = PathJson(path);
         }
 
         if (response.Usage?.Cost is { } cost)
@@ -178,6 +194,82 @@ public sealed class MinosDecisionClient : UpstreamClient
         properties[MinosPropertyKeys.IsCached] = response.IsCached;
         return properties;
     }
+
+    // Written by hand, so no reflection and no contract to keep in a serializer context.
+    private static JsonElement PathJson(DecisionPath path)
+    {
+        var buffer = new ArrayBufferWriter<byte>();
+        using (var writer = new Utf8JsonWriter(buffer))
+        {
+            writer.WriteStartObject();
+            writer.WriteStartArray("routes");
+            foreach (var route in path.Routes)
+            {
+                writer.WriteStartObject();
+                writer.WriteString("key", route.Key);
+                writer.WriteString("answeredBy", route.AnsweredBy);
+                writer.WriteString("reason", NameOf(route.Reason.ToString()));
+                writer.WriteNumber("primaryCertainty", route.PrimaryCertainty);
+                if (route.TargetCertainty is { } target)
+                {
+                    writer.WriteNumber("targetCertainty", target);
+                }
+
+                writer.WriteEndObject();
+            }
+
+            writer.WriteEndArray();
+            writer.WriteStartArray("calls");
+            foreach (var call in path.Calls)
+            {
+                writer.WriteStartObject();
+                writer.WriteString("clientName", call.ClientName);
+                if (call.Model is { } model)
+                {
+                    writer.WriteString("model", model);
+                }
+
+                writer.WriteBoolean("isCached", call.IsCached);
+                writer.WriteString("status", NameOf(call.Status.ToString()));
+                if (call.ErrorKind is { } errorKind)
+                {
+                    writer.WriteString("errorKind", NameOf(errorKind.ToString()));
+                }
+
+                if (call.Usage?.InputTokens is { } input)
+                {
+                    writer.WriteNumber("inputTokens", input);
+                }
+
+                if (call.Usage?.OutputTokens is { } output)
+                {
+                    writer.WriteNumber("outputTokens", output);
+                }
+
+                if (call.Usage?.Cost is { } cost)
+                {
+                    if (double.IsFinite(cost))
+                    {
+                        writer.WriteNumber("cost", cost);
+                    }
+                    else
+                    {
+                        writer.WriteString("cost", double.IsNaN(cost) ? "NaN" : cost > 0 ? "Infinity" : "-Infinity");
+                    }
+                }
+
+                writer.WriteEndObject();
+            }
+
+            writer.WriteEndArray();
+            writer.WriteEndObject();
+        }
+
+        using var document = JsonDocument.Parse(buffer.WrittenMemory);
+        return document.RootElement.Clone();
+    }
+
+    private static string NameOf(string enumName) => JsonNamingPolicy.CamelCase.ConvertName(enumName);
 
     private static UsageDetails? UsageOf(DecisionUsage? usage)
     {
